@@ -422,6 +422,10 @@ enum HTMLReportGenerator {
 
           // Prediction curve
           const predCurve = pred.curve.map(([t,v]) => ({x: t, y: v}));
+          // No-future-insulin variant (null when not applicable)
+          const predCurveNoFuture = pred.curveNoFutureInsulin
+            ? pred.curveNoFutureInsulin.map(([t,v]) => ({x: t, y: v}))
+            : null;
 
           // Find closest Nightscout forecast to current snapshot time (within 10 min)
           const nsPreds = BUNDLE.nsPredictions || [];
@@ -466,11 +470,19 @@ enum HTMLReportGenerator {
                   borderColor: '#7eb8f7', borderWidth: 2, tension: 0.3, order: 3
                 },
                 {
-                  label: 'Prediction',
+                  label: 'Prediction (w/ future insulin)',
                   data: predCurve,
                   pointRadius: 0, showLine: true,
                   borderColor: '#f4a460', borderWidth: 2,
                   borderDash: [5,3], tension: 0.2, order: 2
+                },
+                {
+                  label: 'Prediction (no future insulin)',
+                  data: predCurveNoFuture || [],
+                  hidden: predCurveNoFuture === null,
+                  pointRadius: 0, showLine: true,
+                  borderColor: '#f4a46070', borderWidth: 1.5,
+                  borderDash: [2,4], tension: 0.2, order: 2
                 },
                 {
                   label: 'Loop (Nightscout)',

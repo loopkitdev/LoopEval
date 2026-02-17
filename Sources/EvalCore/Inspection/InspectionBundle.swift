@@ -60,17 +60,27 @@ public struct PredictionSnapshot: Codable, Sendable {
     public let t: Double
     /// Predicted trajectory — array of [timestamp_ms, mgdl] pairs.
     public let curve: [[Double]]
+    /// Same prediction but with future insulin (doses after t) excluded.
+    /// `nil` when `includeFutureInsulin` was already false.
+    public let curveNoFutureInsulin: [[Double]]?
     /// Insulin on board (units) at prediction time.
     public let iob: Double?
     /// Carbs on board (grams) at prediction time.
     public let cob: Double?
 
     public init(evaluatedAt: Date, predicted: [PredictedGlucoseValue],
+                predictedNoFutureInsulin: [PredictedGlucoseValue]? = nil,
                 iob: Double? = nil, cob: Double? = nil) {
         self.t = evaluatedAt.timeIntervalSince1970 * 1000
         self.curve = predicted.map { p in
             [p.startDate.timeIntervalSince1970 * 1000,
              p.quantity.doubleValue(for: .milligramsPerDeciliter)]
+        }
+        self.curveNoFutureInsulin = predictedNoFutureInsulin.map { pts in
+            pts.map { p in
+                [p.startDate.timeIntervalSince1970 * 1000,
+                 p.quantity.doubleValue(for: .milligramsPerDeciliter)]
+            }
         }
         self.iob = iob
         self.cob = cob
@@ -195,6 +205,7 @@ public enum InspectionBundleBuilder {
         ).map { i in
             let rec = result.predictions[i]
             return PredictionSnapshot(evaluatedAt: rec.evaluatedAt, predicted: rec.predicted,
+                                      predictedNoFutureInsulin: rec.predictedNoFutureInsulin,
                                       iob: rec.iob, cob: rec.cob)
         }
 

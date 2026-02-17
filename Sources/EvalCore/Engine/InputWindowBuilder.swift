@@ -34,9 +34,15 @@ struct InputWindowBuilder: Sendable {
 
     /// Returns a `PredictionInput` suitable for calling `generatePrediction(start: t, ...)`.
     ///
+    /// - Parameter includeFutureInsulin: Override for the config flag. Pass `false` to
+    ///   exclude doses after `t` (useful for side-by-side comparison curves). Defaults
+    ///   to `config.includeFutureInsulin`.
+    ///
     /// Returns `nil` if there is insufficient data — specifically, if there is no
     /// CGM reading within the last 30 minutes of `t`.
-    func buildInput(at t: Date) -> PredictionInput? {
+    func buildInput(at t: Date, includeFutureInsulin overrideFuture: Bool? = nil) -> PredictionInput? {
+
+        let useFutureInsulin = overrideFuture ?? config.includeFutureInsulin
 
         // ── Glucose ─────────────────────────────────────────────────────────────
         let glucoseWindowStart = t.addingTimeInterval(-config.glucoseLookbackHours * 3600)
@@ -53,7 +59,7 @@ struct InputWindowBuilder: Sendable {
         // ── Doses ────────────────────────────────────────────────────────────────
         let doseWindowStart = t.addingTimeInterval(-config.insulinLookbackHours * 3600)
         let doseWindowEnd: Date
-        if config.includeFutureInsulin {
+        if useFutureInsulin {
             doseWindowEnd = t.addingTimeInterval(6 * 3600)
         } else {
             doseWindowEnd = t

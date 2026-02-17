@@ -152,10 +152,33 @@ public actor EvaluationEngine {
                     includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                     useMidAbsorptionISF: config.useMidAbsorptionISF,
                     carbAbsorptionModel: config.carbAbsorptionModel.model
-                    // gradualTransitionsThreshold: use default (40.0)
                 )
+
+                // When using future insulin, also compute the no-future-insulin
+                // version so Panel 3 can overlay both curves for comparison.
+                var noFuturePredicted: [PredictedGlucoseValue]? = nil
+                if config.includeFutureInsulin,
+                   let inputNoFuture = builder.buildInput(at: t, includeFutureInsulin: false) {
+                    let predNoFuture = LoopAlgorithm.generatePrediction(
+                        start: t,
+                        glucoseHistory: inputNoFuture.glucose,
+                        doses: inputNoFuture.doses,
+                        carbEntries: inputNoFuture.carbs,
+                        basal: inputNoFuture.basal,
+                        sensitivity: inputNoFuture.sensitivity,
+                        carbRatio: inputNoFuture.carbRatio,
+                        algorithmEffectsOptions: .all,
+                        useIntegralRetrospectiveCorrection: config.useIntegralRC,
+                        includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
+                        useMidAbsorptionISF: config.useMidAbsorptionISF,
+                        carbAbsorptionModel: config.carbAbsorptionModel.model
+                    )
+                    noFuturePredicted = predNoFuture.glucose
+                }
+
                 predictions.append(
                     PredictionRecord(evaluatedAt: t, predicted: prediction.glucose,
+                                     predictedNoFutureInsulin: noFuturePredicted,
                                      iob: prediction.activeInsulin, cob: prediction.activeCarbs)
                 )
             } else {
