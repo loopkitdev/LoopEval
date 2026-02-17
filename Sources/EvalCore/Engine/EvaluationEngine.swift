@@ -192,11 +192,15 @@ public actor EvaluationEngine {
         // Final progress
         progress?(1.0)
 
-        // Actual CGM is the raw glucose within the *evaluation* interval
-        // (after warmup) — not the full data-collection interval.
+        // Actual CGM includes a lookback buffer before evalStart so that:
+        //  • The Kalman smoother warms up on real data (not a cold start)
+        //  • Panel 3's past-history window has data even for the first predictions
+        // Pre-evalStart points don't affect metric computation: PredictionComparator
+        // only matches against points that have a corresponding prediction (≥ evalStart).
         let evalInterval = DateInterval(start: evalStart, end: interval.end)
+        let actualWarmupStart = evalStart.addingTimeInterval(-config.glucoseLookbackHours * 3600)
         let actualGlucose = data.glucose.filter {
-            $0.startDate >= evalStart && $0.startDate <= interval.end
+            $0.startDate >= actualWarmupStart && $0.startDate <= interval.end
         }
 
         return EvaluationResult(

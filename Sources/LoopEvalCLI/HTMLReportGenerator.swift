@@ -416,8 +416,13 @@ enum HTMLReportGenerator {
           const futureActual = BUNDLE.rawGlucose
             .filter(p => p.t > tMs && p.t <= futureEnd)
             .map(p => ({x: p.t, y: p.v}));
+
+          // Kalman: show 15 min before t so momentum/trend is visible at the origin.
+          // The smoother is run on the full CGM history (with warmup), so values before
+          // t reflect real prior data, not a cold-started estimate.
+          const kalmanContextMs = 15 * 60000;
           const futureSmoothed = BUNDLE.smoothedGlucose
-            .filter(p => p.t > tMs && p.t <= futureEnd)
+            .filter(p => p.t >= tMs - kalmanContextMs && p.t <= futureEnd)
             .map(p => ({x: p.t, y: p.v}));
 
           // Prediction curve
@@ -464,7 +469,7 @@ enum HTMLReportGenerator {
                   showLine: false, order: 4
                 },
                 {
-                  label: 'Kalman actual (future)',
+                  label: 'Kalman actual',
                   data: futureSmoothed,
                   pointRadius: 0, showLine: true,
                   borderColor: '#7eb8f7', borderWidth: 2, tension: 0.3, order: 3
