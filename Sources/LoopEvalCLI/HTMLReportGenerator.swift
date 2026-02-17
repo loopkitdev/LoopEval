@@ -388,6 +388,7 @@ enum HTMLReportGenerator {
             }
           }
 
+          // Use smoothed for actual-at-horizon (matches error metric ground truth)
           const actualAtH = lookup(smoothMap, targetT) ?? lookup(rawMap, targetT);
           const error = (predAtH != null && actualAtH != null) ? predAtH - actualAtH : null;
 
@@ -404,18 +405,18 @@ enum HTMLReportGenerator {
           ].map(s => `<div class="stat"><div class="label">${s.label}</div><div class="value">${s.value}</div></div>`).join('');
 
           // Build chart data
-          // Historical actual (3h before t)
+          // Past: raw CGM only (algorithm input — no smoothing applied to past)
           const histStart = tMs - 3 * 3600000;
           const histActual = BUNDLE.rawGlucose
             .filter(p => p.t >= histStart && p.t <= tMs)
             .map(p => ({x: p.t, y: p.v}));
-          const histSmoothed = BUNDLE.smoothedGlucose
-            .filter(p => p.t >= histStart && p.t <= tMs)
-            .map(p => ({x: p.t, y: p.v}));
 
-          // Future actual (from t to t+6h)
+          // Future: both raw and Kalman-smoothed (smoother is the error comparison target)
           const futureEnd = tMs + 6 * 3600000;
           const futureActual = BUNDLE.rawGlucose
+            .filter(p => p.t > tMs && p.t <= futureEnd)
+            .map(p => ({x: p.t, y: p.v}));
+          const futureSmoothed = BUNDLE.smoothedGlucose
             .filter(p => p.t > tMs && p.t <= futureEnd)
             .map(p => ({x: p.t, y: p.v}));
 
@@ -447,22 +448,22 @@ enum HTMLReportGenerator {
             data: {
               datasets: [
                 {
-                  label: 'Raw actual',
+                  label: 'Raw CGM (past)',
                   data: histActual,
-                  pointRadius: 2, pointBackgroundColor: '#5b9bd580',
+                  pointRadius: 2.5, pointBackgroundColor: '#5b9bd5',
                   showLine: false, order: 5
                 },
                 {
-                  label: 'Smoothed actual (past)',
-                  data: histSmoothed,
-                  pointRadius: 0, showLine: true,
-                  borderColor: '#7eb8f7', borderWidth: 2, tension: 0.3, order: 4
+                  label: 'Raw CGM (future)',
+                  data: futureActual,
+                  pointRadius: 2.5, pointBackgroundColor: '#5b9bd570',
+                  showLine: false, order: 4
                 },
                 {
-                  label: 'Raw actual (future)',
-                  data: futureActual,
-                  pointRadius: 3, pointBackgroundColor: '#7eb8f7',
-                  showLine: false, order: 3
+                  label: 'Kalman actual (future)',
+                  data: futureSmoothed,
+                  pointRadius: 0, showLine: true,
+                  borderColor: '#7eb8f7', borderWidth: 2, tension: 0.3, order: 3
                 },
                 {
                   label: 'Prediction',
