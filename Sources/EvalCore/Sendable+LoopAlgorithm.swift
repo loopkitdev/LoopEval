@@ -10,3 +10,5 @@ import LoopAlgorithm
 extension GlucoseCondition:              @retroactive @unchecked Sendable {}
 extension InsulinDeliveryType:           @retroactive @unchecked Sendable {}
 extension ExponentialInsulinModelPreset: @retroactive @unchecked Sendable {}
+extension PredictedGlucoseValue:         @retroactive @unchecked Sendable {}
+extension CarbAbsorptionModel:           @retroactive @unchecked Sendable {}

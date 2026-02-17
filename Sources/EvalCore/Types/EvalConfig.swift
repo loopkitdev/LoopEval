@@ -1,6 +1,7 @@
 // EvalConfig.swift — configuration for an evaluation run
 
 import Foundation
+import LoopAlgorithm
 
 /// Configuration parameters for a Loop prediction evaluation sweep.
 public struct EvalConfig: Codable, Sendable {
@@ -26,6 +27,17 @@ public struct EvalConfig: Codable, Sendable {
     /// Default: every 30 min from 30 min to 360 min.
     public var horizons: [TimeInterval]
 
+    /// If false, only net negative momentum and RC effects will be used.
+    /// Default: true (same as LoopAlgorithm default).
+    public var includingPositiveVelocityAndRC: Bool
+
+    /// Use mid-absorption ISF for insulin effects computation.
+    /// Default: false (same as LoopAlgorithm default).
+    public var useMidAbsorptionISF: Bool
+
+    /// Carb absorption model.  Default: .piecewiseLinear.
+    public var carbAbsorptionModel: CarbAbsorptionModel
+
     // MARK: – Defaults
 
     public static var `default`: EvalConfig { EvalConfig() }
@@ -38,14 +50,20 @@ public struct EvalConfig: Codable, Sendable {
         useIntegralRC: Bool = false,
         kalmanSmoothing: Bool = true,
         horizons: [TimeInterval] = stride(from: 30.0, through: 360.0, by: 30.0)
-            .map { $0 * 60 }
+            .map { $0 * 60 },
+        includingPositiveVelocityAndRC: Bool = true,
+        useMidAbsorptionISF: Bool = false,
+        carbAbsorptionModel: CarbAbsorptionModel = .piecewiseLinear
     ) {
-        self.evalStep             = evalStep
-        self.includeFutureInsulin = includeFutureInsulin
-        self.insulinLookbackHours = insulinLookbackHours
-        self.glucoseLookbackHours = glucoseLookbackHours
-        self.useIntegralRC        = useIntegralRC
-        self.kalmanSmoothing      = kalmanSmoothing
-        self.horizons             = horizons
+        self.evalStep                       = evalStep
+        self.includeFutureInsulin           = includeFutureInsulin
+        self.insulinLookbackHours           = insulinLookbackHours
+        self.glucoseLookbackHours           = glucoseLookbackHours
+        self.useIntegralRC                  = useIntegralRC
+        self.kalmanSmoothing                = kalmanSmoothing
+        self.horizons                       = horizons
+        self.includingPositiveVelocityAndRC = includingPositiveVelocityAndRC
+        self.useMidAbsorptionISF            = useMidAbsorptionISF
+        self.carbAbsorptionModel            = carbAbsorptionModel
     }
 }

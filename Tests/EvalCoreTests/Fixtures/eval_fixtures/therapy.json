@@ -1,0 +1,35 @@
+{
+  "basal": [
+    {
+      "startDate": "2023-06-22T08:00:00Z",
+      "endDate": "2023-06-23T08:00:00Z",
+      "value": 0.8
+    }
+  ],
+  "sensitivity": [
+    {
+      "startDate": "2023-06-22T08:00:00Z",
+      "endDate": "2023-06-23T08:00:00Z",
+      "value": 60.0
+    }
+  ],
+  "carbRatio": [
+    {
+      "startDate": "2023-06-22T08:00:00Z",
+      "endDate": "2023-06-23T08:00:00Z",
+      "value": 11.0
+    }
+  ],
+  "target": [
+    {
+      "startDate": "2023-06-22T08:00:00Z",
+      "endDate": "2023-06-23T08:00:00Z",
+      "lowerBound": 90.0,
+      "upperBound": 110.0
+    }
+  ],
+  "suspendThreshold": 70.0,
+  "maxBolus": 10.0,
+  "maxBasalRate": 4.0,
+  "insulinType": "rapidActingAdult"
+}
