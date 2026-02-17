@@ -17,10 +17,10 @@ struct EvaluateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Nightscout base URL (e.g. https://mysite.nightscout.io)")
     var nightscoutUrl: String
 
-    @Option(name: .long, help: "Start date — ISO8601, e.g. 2024-01-01 or 2024-01-01T00:00:00Z")
+    @Option(name: .long, help: "Start date — ISO8601, e.g. 2026-01-01 or 2026-01-01T00:00:00Z")
     var start: String
 
-    @Option(name: .long, help: "End date   — ISO8601, e.g. 2024-01-08 or 2024-01-08T00:00:00Z")
+    @Option(name: .long, help: "End date   — ISO8601, e.g. 2026-01-08 or 2026-01-08T00:00:00Z")
     var end: String
 
     // MARK: – Auth
@@ -166,7 +166,7 @@ func parseISO8601Date(_ string: String) throws -> Date {
     fmt3.timeZone = .current
     if let d = fmt3.date(from: string) { return d }
 
-    // Try "2024-01-01" → midnight local
+    // Try "2026-01-01" → midnight local
     let df = DateFormatter()
     df.dateFormat = "yyyy-MM-dd"
     df.locale = Locale(identifier: "en_US_POSIX")
@@ -174,7 +174,7 @@ func parseISO8601Date(_ string: String) throws -> Date {
     if let d = df.date(from: string) { return d }
 
     throw ValidationError(
-        "Cannot parse date '\(string)'. Use ISO8601 format, e.g. 2024-01-01 or 2024-01-01T00:00:00Z"
+        "Cannot parse date '\(string)'. Use ISO8601 format, e.g. 2026-01-01 or 2026-01-01T00:00:00Z"
     )
 }
 

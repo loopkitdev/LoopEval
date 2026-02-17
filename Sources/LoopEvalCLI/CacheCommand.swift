@@ -17,10 +17,10 @@ struct CacheCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Nightscout base URL (e.g. https://mysite.nightscout.io)")
     var nightscoutUrl: String
 
-    @Option(name: .long, help: "Start date — ISO8601, e.g. 2024-01-01")
+    @Option(name: .long, help: "Start date — ISO8601, e.g. 2026-01-01")
     var start: String
 
-    @Option(name: .long, help: "End date   — ISO8601, e.g. 2024-01-08")
+    @Option(name: .long, help: "End date   — ISO8601, e.g. 2026-01-08")
     var end: String
 
     @Option(name: .long, help: "Nightscout API secret (optional)")
