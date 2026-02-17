@@ -49,25 +49,31 @@ public actor EvaluationEngine {
         for interval: DateInterval,
         config: EvalConfig
     ) async throws -> PreloadedData {
-        // Data collection starts at interval.start (no backwards buffer —
-        // the warmup period provides the historical context window).
-        // Small forward pads ensure the last evaluation step's future windows
-        // are covered.
+        // Data collection must start BEFORE interval.start so the first evaluated
+        // step (at interval.start + evalWarmupHours) has a full history window.
+        // evalWarmupHours == insulinLookbackHours by default, so the warmup window
+        // exactly covers the insulin history. But doses can start slightly earlier
+        // (e.g., a temp basal that started before midnight). We add a 3h buffer on
+        // top of evalWarmupHours to make sure we capture any such carryover doses
+        // and avoid the LoopAlgorithm activeInsulin = 0 fallback.
+        let historyBuffer = config.insulinLookbackHours * 3600 + 3 * 3600   // lookback + 3h pad
+        let dataStart = interval.start.addingTimeInterval(-historyBuffer)
+
         let doseEnd: Date = config.includeFutureInsulin
             ? interval.end.addingTimeInterval(6 * 3600)
             : interval.end
 
         let glucoseInterval = DateInterval(
-            start: interval.start,
+            start: dataStart,
             end:   interval.end.addingTimeInterval(10 * 60)   // tiny pad for last step
         )
-        let doseInterval = DateInterval(start: interval.start, end: doseEnd)
+        let doseInterval = DateInterval(start: dataStart, end: doseEnd)
         let carbInterval = DateInterval(
-            start: interval.start,
+            start: dataStart,
             end:   interval.end.addingTimeInterval(6 * 3600)
         )
         let therapyInterval = DateInterval(
-            start: interval.start,
+            start: dataStart,
             end:   interval.end.addingTimeInterval(8 * 3600)  // ISF t+8h extension
         )
 

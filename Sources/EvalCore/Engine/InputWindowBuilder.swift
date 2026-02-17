@@ -71,15 +71,22 @@ struct InputWindowBuilder: Sendable {
             $0.startDate >= carbWindowStart && $0.startDate <= carbWindowEnd
         }
 
+        // ── Earliest dose start (needed for basal + ISF alignment) ──────────────
+        // Doses are overlap-filtered: some may have startDates BEFORE basalWindowStart
+        // (due to the 2h extension in getDoses). LoopAlgorithm requires
+        // `basal.first.startDate <= doses.first.startDate` or it sets activeInsulin = 0.
+        let nominalBasalWindowStart = t.addingTimeInterval(-config.insulinLookbackHours * 3600)
+        let earliestDoseStart = dosesSlice.map(\.startDate).min() ?? nominalBasalWindowStart
+        let basalWindowStart = min(nominalBasalWindowStart, earliestDoseStart)
+
         // ── Basal ────────────────────────────────────────────────────────────────
-        let basalWindowStart = t.addingTimeInterval(-config.insulinLookbackHours * 3600)
-        let basalWindowEnd   = t.addingTimeInterval(2 * 3600)
+        let basalWindowEnd = t.addingTimeInterval(2 * 3600)
         var basalSlice = sliceSchedule(
             therapyTimeline.basal,
             from: basalWindowStart,
             to: basalWindowEnd
         )
-        // Extend basal backward/forward to fill gaps (same reasoning as ISF)
+        // Extend basal backward/forward to fill any schedule gaps
         if basalSlice.isEmpty {
             let fallback = therapyTimeline.basal.last?.value ?? 1.0
             basalSlice = [AbsoluteScheduleValue(startDate: basalWindowStart, endDate: basalWindowEnd, value: fallback)]
@@ -94,12 +101,8 @@ struct InputWindowBuilder: Sendable {
         }
 
         // ── Sensitivity (ISF) ────────────────────────────────────────────────────
-        // CRITICAL: ISF must cover ALL dose startDates AND extend to t+8h.
-        // Doses are filtered by overlapping the window (endDate >= windowStart),
-        // so some doses may have startDates EARLIER than basalWindowStart.
-        // We must cover the earliest actual dose startDate, not just t-16h.
-        let earliestDoseStart = dosesSlice.map(\.startDate).min() ?? basalWindowStart
-        let isfBackStart = min(basalWindowStart, earliestDoseStart)
+        // ISF must cover ALL dose startDates AND extend to t+8h (same reasoning as basal).
+        let isfBackStart = basalWindowStart   // already min(nominal, earliestDose)
         let isfFwdEnd    = t.addingTimeInterval(8 * 3600)
         var sensitivitySlice = sliceSensitivity(
             therapyTimeline.sensitivity,
