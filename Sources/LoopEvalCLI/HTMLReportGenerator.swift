@@ -62,7 +62,8 @@ enum HTMLReportGenerator {
           <div class="legend-row">
             <div class="legend-item"><div class="legend-dot" style="background:#5b9bd5"></div> Raw CGM</div>
             <div class="legend-item"><div class="legend-swatch" style="background:#7eb8f7"></div> Smoothed CGM</div>
-            <div class="legend-item"><div class="legend-swatch" style="background:#9b7ed4"></div> Basal (U/hr, right axis)</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#9b7ed4"></div> Basal — temp (U/hr, right axis)</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#9b7ed450;border:1px dashed #9b7ed4"></div> Basal — scheduled (U/hr, right axis)</div>
             <div class="legend-item"><div class="legend-dot" style="background:#f4a460;width:10px;height:10px;border-radius:0;clip-path:polygon(50% 0%,100% 100%,0% 100%)"></div> Bolus (U)</div>
             <div class="legend-item"><div class="legend-dot" style="background:#5cb85c"></div> Carbs (g)</div>
           </div>
@@ -127,15 +128,19 @@ enum HTMLReportGenerator {
 
         const carbPts = BUNDLE.carbs.map(c => ({x: c.t, y: 30 + c.g * 1.2, _g: c.g}));
 
-        // Basal step function — build [t, rate] pairs for a stepped line
-        // rate (U/hr) = units / duration_hours
-        const basalPts = [];
-        const basalDoses = BUNDLE.doses.filter(d => !d.isBolus && d.tEnd > d.t);
-        for (const d of basalDoses) {
-          const durationHrs = (d.tEnd - d.t) / 3600000;
-          const rate = durationHrs > 0 ? d.units / durationHrs : 0;
-          basalPts.push({x: d.t,    y: rate, _rate: rate});
-          basalPts.push({x: d.tEnd, y: rate, _rate: rate});
+        // Split basal timeline into scheduled vs temp datasets for distinct styling.
+        // Inject NaN gaps so discontinuous segments don't connect across each other.
+        const basalSchedPts = [], basalTempPts = [];
+        let prevSeg = null;
+        for (const seg of BUNDLE.basalTimeline) {
+          const rate = seg.rate;
+          const target = seg.isScheduled ? basalSchedPts : basalTempPts;
+          const other  = seg.isScheduled ? basalTempPts  : basalSchedPts;
+          // Insert NaN gap in the other series so its line doesn't bridge this segment
+          other.push({x: seg.t, y: NaN});
+          target.push({x: seg.t,    y: rate, _rate: rate});
+          target.push({x: seg.tEnd, y: rate, _rate: rate});
+          prevSeg = seg;
         }
 
         new Chart(document.getElementById('timelineChart'), {
@@ -163,17 +168,33 @@ enum HTMLReportGenerator {
                 order: 3
               },
               {
-                label: 'Basal (U/hr)',
-                data: basalPts,
+                label: 'Basal — temp (U/hr)',
+                data: basalTempPts,
                 pointRadius: 0,
                 showLine: true,
                 stepped: 'before',
+                spanGaps: false,
                 borderColor: '#9b7ed4',
-                backgroundColor: 'rgba(155,126,212,0.12)',
+                backgroundColor: 'rgba(155,126,212,0.18)',
                 borderWidth: 1.5,
                 fill: 'origin',
                 yAxisID: 'yBasal',
                 order: 5
+              },
+              {
+                label: 'Basal — scheduled (U/hr)',
+                data: basalSchedPts,
+                pointRadius: 0,
+                showLine: true,
+                stepped: 'before',
+                spanGaps: false,
+                borderColor: '#9b7ed480',
+                backgroundColor: 'rgba(155,126,212,0.06)',
+                borderWidth: 1,
+                borderDash: [3, 3],
+                fill: 'origin',
+                yAxisID: 'yBasal',
+                order: 6
               },
               {
                 label: 'Bolus (U)',

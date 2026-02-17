@@ -16,19 +16,31 @@ public struct GlucosePoint: Codable, Sendable {
     }
 }
 
-/// Compact representation of a dose for charting.
+/// Compact representation of a bolus dose for charting.
 public struct DosePoint: Codable, Sendable {
     public let t: Double        // start (Unix ms)
     public let tEnd: Double     // end   (Unix ms)
     public let units: Double    // total U
-    public let isBolus: Bool    // false → basal/temp basal
+    public let isBolus: Bool    // always true — boluses only; basal uses BasalSegment
 
     public init(dose: EvalInsulinDose) {
-        self.t      = dose.startDate.timeIntervalSince1970 * 1000
-        self.tEnd   = dose.endDate.timeIntervalSince1970 * 1000
-        self.units  = dose.volume
+        self.t       = dose.startDate.timeIntervalSince1970 * 1000
+        self.tEnd    = dose.endDate.timeIntervalSince1970 * 1000
+        self.units   = dose.volume
         self.isBolus = (dose.deliveryType == .bolus)
     }
+}
+
+/// One segment of the continuous delivered basal rate timeline.
+///
+/// Built by filling gaps between temp basals with the scheduled rate, so
+/// the timeline covers the evaluation window without holes.
+public struct BasalSegment: Codable, Sendable {
+    public let t: Double        // start (Unix ms)
+    public let tEnd: Double     // end   (Unix ms)
+    public let rate: Double     // U/hr
+    /// `true` = gap filled from scheduled basal; `false` = actual temp basal (or suspend = 0)
+    public let isScheduled: Bool
 }
 
 /// Compact representation of a carb entry for charting.
@@ -94,8 +106,10 @@ public struct InspectionBundle: Codable, Sendable {
     public let rawGlucose: [GlucosePoint]
     /// Kalman-smoothed CGM (empty if Kalman is disabled).
     public let smoothedGlucose: [GlucosePoint]
-    /// All delivered doses in the evaluation window.
+    /// Bolus doses in the evaluation window.
     public let doses: [DosePoint]
+    /// Continuous delivered basal rate timeline (gaps filled with scheduled basal).
+    public let basalTimeline: [BasalSegment]
     /// All carb entries in the evaluation window.
     public let carbs: [CarbPoint]
     /// Sampled prediction snapshots (≈ every 30 min).
@@ -179,36 +193,45 @@ public enum InspectionBundleBuilder {
             evalConfig: cfg,
             rawGlucose: rawPoints,
             smoothedGlucose: smoothedPoints,
-            doses: [],    // filled by caller
-            carbs: [],    // filled by caller
+            doses: [],            // filled by caller
+            basalTimeline: [],    // filled by caller
+            carbs: [],            // filled by caller
             predictions: sampledPredictions,
             horizonProfile: horizonProfile
         )
     }
 
-    /// Build with doses and carbs provided by the caller.
+    /// Build with doses, carbs, and therapy timeline provided by the caller.
     public static func build(
         result: EvaluationResult,
         smoothed: [EvalGlucoseSample]?,
         score: AggregateScore,
         doses: [EvalInsulinDose],
         carbs: [EvalCarbEntry],
+        therapyTimeline: TherapyTimeline,
         sampleStride: Int = 6
     ) -> InspectionBundle {
         let base = build(result: result, smoothed: smoothed, score: score, sampleStride: sampleStride)
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime]
 
         let winStart = result.interval.start
         let winEnd   = result.interval.end
 
+        // Boluses only in the doses array; basal handled by basalTimeline
         let dosePoints = doses
+            .filter { $0.deliveryType == .bolus }
             .filter { $0.startDate < winEnd && $0.endDate > winStart }
             .map { DosePoint(dose: $0) }
 
         let carbPoints = carbs
             .filter { $0.startDate >= winStart && $0.startDate <= winEnd }
             .map { CarbPoint(entry: $0) }
+
+        let basalTimeline = buildBasalTimeline(
+            doses: doses,
+            scheduledBasal: therapyTimeline.basal,
+            from: result.interval.start,
+            to:   result.interval.end
+        )
 
         return InspectionBundle(
             startISO: base.startISO,
@@ -217,9 +240,88 @@ public enum InspectionBundleBuilder {
             rawGlucose: base.rawGlucose,
             smoothedGlucose: base.smoothedGlucose,
             doses: dosePoints,
+            basalTimeline: basalTimeline,
             carbs: carbPoints,
             predictions: base.predictions,
             horizonProfile: base.horizonProfile
         )
+    }
+
+    // MARK: – Basal timeline builder
+
+    /// Constructs a continuous delivered basal rate timeline by filling gaps
+    /// between temp basals with the scheduled basal rate.
+    ///
+    /// - Temp basals: actual delivered rate (volume / duration)
+    /// - Suspend Pump events: stored as 0-volume basal → rendered as 0 U/hr
+    /// - Gaps (no temp basal): scheduled basal rate from `scheduledBasal`
+    private static func buildBasalTimeline(
+        doses: [EvalInsulinDose],
+        scheduledBasal: [AbsoluteScheduleValue<Double>],
+        from: Date,
+        to: Date
+    ) -> [BasalSegment] {
+
+        // Only basal-type doses, clipped to window, sorted
+        let tempBasals = doses
+            .filter { $0.deliveryType == .basal && $0.startDate < to && $0.endDate > from }
+            .sorted { $0.startDate < $1.startDate }
+
+        var result: [BasalSegment] = []
+        var cursor = from
+
+        for dose in tempBasals {
+            let segStart = max(dose.startDate, from)
+            let segEnd   = min(dose.endDate,   to)
+            guard segEnd > segStart else { continue }
+
+            // Fill gap before this dose with scheduled basal
+            if cursor < segStart {
+                appendScheduled(from: cursor, to: segStart,
+                                scheduled: scheduledBasal, into: &result)
+                cursor = segStart
+            }
+
+            // This temp basal (or suspend = 0-volume)
+            if cursor < segEnd {
+                let duration = dose.endDate.timeIntervalSince(dose.startDate)
+                let rate = duration > 0 ? dose.volume / (duration / 3600) : 0
+                result.append(BasalSegment(
+                    t: cursor.timeIntervalSince1970 * 1000,
+                    tEnd: segEnd.timeIntervalSince1970 * 1000,
+                    rate: rate,
+                    isScheduled: false
+                ))
+                cursor = segEnd
+            }
+        }
+
+        // Fill any remaining window with scheduled basal
+        if cursor < to {
+            appendScheduled(from: cursor, to: to,
+                            scheduled: scheduledBasal, into: &result)
+        }
+
+        return result
+    }
+
+    private static func appendScheduled(
+        from: Date,
+        to: Date,
+        scheduled: [AbsoluteScheduleValue<Double>],
+        into result: inout [BasalSegment]
+    ) {
+        let segs = scheduled.filter { $0.endDate > from && $0.startDate < to }
+        for seg in segs {
+            let s = max(seg.startDate, from)
+            let e = min(seg.endDate,   to)
+            guard s < e else { continue }
+            result.append(BasalSegment(
+                t: s.timeIntervalSince1970 * 1000,
+                tEnd: e.timeIntervalSince1970 * 1000,
+                rate: seg.value,
+                isScheduled: true
+            ))
+        }
     }
 }

@@ -114,6 +114,7 @@ struct InspectCommand: AsyncParsableCommand {
             score: score,
             doses: preloaded.doses,
             carbs: preloaded.carbs,
+            therapyTimeline: preloaded.therapyTimeline,
             sampleStride: 6   // one snapshot per 30 min at 5-min steps
         )
 
