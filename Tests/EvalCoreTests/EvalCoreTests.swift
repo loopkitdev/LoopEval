@@ -37,6 +37,7 @@ func evalConfigDefaults() {
     #expect(cfg.horizons.last  == 21600)
     #expect(!cfg.useIntegralRC)
     #expect(cfg.kalmanSmoothing)
+    #expect(cfg.evalWarmupHours == cfg.insulinLookbackHours)  // warmup defaults to insulin lookback
 }
 
 @Test("EvalConfig round-trips through JSON")

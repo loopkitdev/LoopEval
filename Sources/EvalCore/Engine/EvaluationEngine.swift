@@ -38,43 +38,43 @@ public actor EvaluationEngine {
         return try runSweep(data: data, interval: interval, config: config, progress: progress)
     }
 
-    /// Pre-fetch all data needed for an evaluation (with appropriate buffers).
+    /// Pre-fetch all data needed for an evaluation.
+    ///
+    /// `interval.start` is the beginning of the data collection window.
+    /// Predictions are not generated until after `config.evalWarmupHours`
+    /// have elapsed, so every scored forecast has a full history window.
     ///
     /// Exposed for reuse in parameter sweeps — fetch once, sweep many configs.
     public func prefetchData(
         for interval: DateInterval,
         config: EvalConfig
     ) async throws -> PreloadedData {
-        // Add buffers large enough for any evaluation step in the window:
-        //   glucose:  lookback from earliest possible t
-        //   doses:    lookback + optional future insulin
-        //   carbs:    8h back + 6h future
-        //   therapy:  full range including ISF t+8h extension
+        // Data collection starts at interval.start (no backwards buffer —
+        // the warmup period provides the historical context window).
+        // Small forward pads ensure the last evaluation step's future windows
+        // are covered.
+        let doseEnd: Date = config.includeFutureInsulin
+            ? interval.end.addingTimeInterval(6 * 3600)
+            : interval.end
 
-        let glucoseBufferStart = interval.start.addingTimeInterval(
-            -config.glucoseLookbackHours * 3600
+        let glucoseInterval = DateInterval(
+            start: interval.start,
+            end:   interval.end.addingTimeInterval(10 * 60)   // tiny pad for last step
         )
-        let insulinBufferStart = interval.start.addingTimeInterval(
-            -config.insulinLookbackHours * 3600
+        let doseInterval = DateInterval(start: interval.start, end: doseEnd)
+        let carbInterval = DateInterval(
+            start: interval.start,
+            end:   interval.end.addingTimeInterval(6 * 3600)
         )
-        let carbBufferStart = interval.start.addingTimeInterval(-8 * 3600)
-        let therapyBufferEnd = interval.end.addingTimeInterval(8 * 3600)
-        let doseBufferEnd: Date
-        if config.includeFutureInsulin {
-            doseBufferEnd = interval.end.addingTimeInterval(6 * 3600)
-        } else {
-            doseBufferEnd = interval.end
-        }
+        let therapyInterval = DateInterval(
+            start: interval.start,
+            end:   interval.end.addingTimeInterval(8 * 3600)  // ISF t+8h extension
+        )
 
-        let glucoseInterval  = DateInterval(start: glucoseBufferStart, end: interval.end.addingTimeInterval(10 * 60))
-        let doseInterval     = DateInterval(start: insulinBufferStart, end: doseBufferEnd)
-        let carbInterval     = DateInterval(start: carbBufferStart, end: interval.end.addingTimeInterval(6 * 3600))
-        let therapyInterval  = DateInterval(start: insulinBufferStart, end: therapyBufferEnd)
-
-        async let glucose  = dataSource.getGlucoseValues(interval: glucoseInterval)
-        async let doses    = dataSource.getDoses(interval: doseInterval)
-        async let carbs    = dataSource.getCarbEntries(interval: carbInterval)
-        async let therapy  = dataSource.getTherapyTimeline(interval: therapyInterval)
+        async let glucose = dataSource.getGlucoseValues(interval: glucoseInterval)
+        async let doses   = dataSource.getDoses(interval: doseInterval)
+        async let carbs   = dataSource.getCarbEntries(interval: carbInterval)
+        async let therapy = dataSource.getTherapyTimeline(interval: therapyInterval)
 
         return PreloadedData(
             glucose: try await glucose,
@@ -112,14 +112,18 @@ public actor EvaluationEngine {
         var predictions: [PredictionRecord] = []
         var skippedCount = 0
 
-        // Compute total steps for progress reporting
-        let totalDuration = interval.duration
-        let totalSteps = totalDuration > 0
-            ? Int(totalDuration / config.evalStep) + 1
+        // First evaluated step is after the warmup period, so every prediction
+        // has a full insulin/glucose history window behind it.
+        let evalStart = interval.start.addingTimeInterval(config.evalWarmupHours * 3600)
+
+        // Compute total steps for progress reporting (eval window only, not warmup)
+        let evalDuration = interval.end.timeIntervalSince(evalStart)
+        let totalSteps = evalDuration > 0
+            ? Int(evalDuration / config.evalStep) + 1
             : 1
 
         var stepIndex = 0
-        var t = interval.start
+        var t = evalStart
 
         while t <= interval.end {
             // Report progress
@@ -158,13 +162,15 @@ public actor EvaluationEngine {
         // Final progress
         progress?(1.0)
 
-        // Actual CGM is the raw glucose within the evaluation interval
+        // Actual CGM is the raw glucose within the *evaluation* interval
+        // (after warmup) — not the full data-collection interval.
+        let evalInterval = DateInterval(start: evalStart, end: interval.end)
         let actualGlucose = data.glucose.filter {
-            $0.startDate >= interval.start && $0.startDate <= interval.end
+            $0.startDate >= evalStart && $0.startDate <= interval.end
         }
 
         return EvaluationResult(
-            interval: interval,
+            interval: evalInterval,
             config: config,
             predictions: predictions,
             actual: actualGlucose,

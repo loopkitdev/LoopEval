@@ -38,6 +38,14 @@ public struct EvalConfig: Codable, Sendable {
     /// Carb absorption model.  Default: .piecewiseLinear.
     public var carbAbsorptionModel: CarbAbsorptionModel
 
+    /// How long to wait after `interval.start` before the first evaluated
+    /// prediction (seconds).  Default: `insulinLookbackHours` hours.
+    ///
+    /// Data is always fetched starting from `interval.start`.  Predictions
+    /// are only generated and scored after this warmup has elapsed, ensuring
+    /// every reported forecast has a full insulin/glucose history window.
+    public var evalWarmupHours: Double
+
     // MARK: – Defaults
 
     public static var `default`: EvalConfig { EvalConfig() }
@@ -53,7 +61,8 @@ public struct EvalConfig: Codable, Sendable {
             .map { $0 * 60 },
         includingPositiveVelocityAndRC: Bool = true,
         useMidAbsorptionISF: Bool = false,
-        carbAbsorptionModel: CarbAbsorptionModel = .piecewiseLinear
+        carbAbsorptionModel: CarbAbsorptionModel = .piecewiseLinear,
+        evalWarmupHours: Double? = nil   // nil → use insulinLookbackHours
     ) {
         self.evalStep                       = evalStep
         self.includeFutureInsulin           = includeFutureInsulin
@@ -65,5 +74,6 @@ public struct EvalConfig: Codable, Sendable {
         self.includingPositiveVelocityAndRC = includingPositiveVelocityAndRC
         self.useMidAbsorptionISF            = useMidAbsorptionISF
         self.carbAbsorptionModel            = carbAbsorptionModel
+        self.evalWarmupHours                = evalWarmupHours ?? insulinLookbackHours
     }
 }

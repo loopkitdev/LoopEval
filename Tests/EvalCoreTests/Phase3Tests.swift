@@ -259,7 +259,8 @@ func engineIntegrationTest() async throws {
 
     let result = try await engine.evaluate(
         interval: interval,
-        config: EvalConfig(includeFutureInsulin: false)  // don't need future insulin
+        // Fixture data covers exactly the eval window, so no warmup needed.
+        config: EvalConfig(includeFutureInsulin: false, evalWarmupHours: 0)
     ) { p in
         capture.values.append(p)
     }
