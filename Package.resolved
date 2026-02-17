@@ -1,0 +1,24 @@
+{
+  "originHash" : "97aeceef2c5de7064b45aa2a2171960d46038521139255b2f6c3eacb4c74da17",
+  "pins" : [
+    {
+      "identity" : "loopalgorithm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tidepool-org/LoopAlgorithm",
+      "state" : {
+        "branch" : "main",
+        "revision" : "13cb4b45258cee5be1eb2ad941b374dde53de551"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "c5d11a805e765f52ba34ec7284bd4fcd6ba68615",
+        "version" : "1.7.0"
+      }
+    }
+  ],
+  "version" : 3
+}
