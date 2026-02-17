@@ -13,7 +13,7 @@ struct LoopEvalCLI: AsyncParsableCommand {
         commandName: "loop-eval",
         abstract: "Evaluate LoopAlgorithm forecast accuracy against real-world CGM data.",
         version: "0.1.0",
-        subcommands: [EvaluateCommand.self, CacheCommand.self],
+        subcommands: [EvaluateCommand.self, CacheCommand.self, InspectCommand.self],
         defaultSubcommand: EvaluateCommand.self
     )
 }

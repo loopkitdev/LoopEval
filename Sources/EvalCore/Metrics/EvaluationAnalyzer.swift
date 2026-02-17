@@ -23,6 +23,17 @@ public struct EvaluationAnalyzer {
         result: EvaluationResult,
         horizons: [TimeInterval]? = nil
     ) -> AggregateScore {
+        analyzeWithSmoothed(result: result, horizons: horizons).score
+    }
+
+    /// Analyse and also return the smoothed CGM series used for comparison.
+    ///
+    /// - Returns: `(score, smoothedActual)` — smoothedActual is the (possibly
+    ///   Kalman-filtered) CGM array that predictions were compared against.
+    public func analyzeWithSmoothed(
+        result: EvaluationResult,
+        horizons: [TimeInterval]? = nil
+    ) -> (score: AggregateScore, smoothedActual: [EvalGlucoseSample]) {
         let effectiveHorizons = horizons ?? result.config.horizons
 
         let actualForComparison: [EvalGlucoseSample]
@@ -39,6 +50,6 @@ public struct EvaluationAnalyzer {
         )
 
         let metrics = ErrorMetrics.compute(results: horizonResults)
-        return AggregateScore.compute(metrics: metrics)
+        return (AggregateScore.compute(metrics: metrics), actualForComparison)
     }
 }
