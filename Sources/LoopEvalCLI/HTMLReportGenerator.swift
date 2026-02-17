@@ -62,6 +62,7 @@ enum HTMLReportGenerator {
           <div class="legend-row">
             <div class="legend-item"><div class="legend-dot" style="background:#5b9bd5"></div> Raw CGM</div>
             <div class="legend-item"><div class="legend-swatch" style="background:#7eb8f7"></div> Smoothed CGM</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#9b7ed4"></div> Basal (U/hr, right axis)</div>
             <div class="legend-item"><div class="legend-dot" style="background:#f4a460;width:10px;height:10px;border-radius:0;clip-path:polygon(50% 0%,100% 100%,0% 100%)"></div> Bolus (U)</div>
             <div class="legend-item"><div class="legend-dot" style="background:#5cb85c"></div> Carbs (g)</div>
           </div>
@@ -119,12 +120,23 @@ enum HTMLReportGenerator {
         const rawPts    = BUNDLE.rawGlucose.map(p => ({x: p.t, y: p.v}));
         const smoothPts = BUNDLE.smoothedGlucose.map(p => ({x: p.t, y: p.v}));
 
-        // Scale boluses to glucose y-axis (marker at 400 - units*20, sized by units)
-        const bolusPts  = BUNDLE.doses
+        // Bolus markers (scaled position on glucose axis)
+        const bolusPts = BUNDLE.doses
           .filter(d => d.isBolus)
           .map(d => ({x: d.t, y: 30 + d.units * 15, _units: d.units}));
 
-        const carbPts   = BUNDLE.carbs.map(c => ({x: c.t, y: 30 + c.g * 1.2, _g: c.g}));
+        const carbPts = BUNDLE.carbs.map(c => ({x: c.t, y: 30 + c.g * 1.2, _g: c.g}));
+
+        // Basal step function — build [t, rate] pairs for a stepped line
+        // rate (U/hr) = units / duration_hours
+        const basalPts = [];
+        const basalDoses = BUNDLE.doses.filter(d => !d.isBolus && d.tEnd > d.t);
+        for (const d of basalDoses) {
+          const durationHrs = (d.tEnd - d.t) / 3600000;
+          const rate = durationHrs > 0 ? d.units / durationHrs : 0;
+          basalPts.push({x: d.t,    y: rate, _rate: rate});
+          basalPts.push({x: d.tEnd, y: rate, _rate: rate});
+        }
 
         new Chart(document.getElementById('timelineChart'), {
           type: 'scatter',
@@ -136,7 +148,8 @@ enum HTMLReportGenerator {
                 pointRadius: 2,
                 pointBackgroundColor: '#5b9bd5',
                 showLine: false,
-                order: 3
+                yAxisID: 'yGlucose',
+                order: 4
               },
               {
                 label: 'Smoothed CGM',
@@ -146,7 +159,21 @@ enum HTMLReportGenerator {
                 borderColor: '#7eb8f7',
                 borderWidth: 2,
                 tension: 0.3,
-                order: 2
+                yAxisID: 'yGlucose',
+                order: 3
+              },
+              {
+                label: 'Basal (U/hr)',
+                data: basalPts,
+                pointRadius: 0,
+                showLine: true,
+                stepped: 'before',
+                borderColor: '#9b7ed4',
+                backgroundColor: 'rgba(155,126,212,0.12)',
+                borderWidth: 1.5,
+                fill: 'origin',
+                yAxisID: 'yBasal',
+                order: 5
               },
               {
                 label: 'Bolus (U)',
@@ -155,6 +182,7 @@ enum HTMLReportGenerator {
                 pointStyle: 'triangle',
                 pointBackgroundColor: '#f4a460',
                 showLine: false,
+                yAxisID: 'yGlucose',
                 order: 1
               },
               {
@@ -164,6 +192,7 @@ enum HTMLReportGenerator {
                 pointStyle: 'circle',
                 pointBackgroundColor: '#5cb85c',
                 showLine: false,
+                yAxisID: 'yGlucose',
                 order: 1
               }
             ]
@@ -172,10 +201,18 @@ enum HTMLReportGenerator {
             responsive: true, maintainAspectRatio: false, animation: false,
             scales: {
               x: { ...timeAxis },
-              y: {
+              yGlucose: {
+                type: 'linear', position: 'left',
                 title: { display: true, text: 'mg/dL', color: '#666' },
                 min: 20, max: 400,
                 grid: { color: '#232638' }
+              },
+              yBasal: {
+                type: 'linear', position: 'right',
+                title: { display: true, text: 'U/hr', color: '#9b7ed4' },
+                min: 0,
+                grid: { drawOnChartArea: false },
+                ticks: { color: '#9b7ed4' }
               }
             },
             plugins: {
@@ -185,7 +222,8 @@ enum HTMLReportGenerator {
                   label: ctx => {
                     const d = ctx.raw;
                     if (d._units != null) return `Bolus: ${d._units.toFixed(2)} U`;
-                    if (d._g != null)    return `Carbs: ${d._g.toFixed(0)} g`;
+                    if (d._g    != null)  return `Carbs: ${d._g.toFixed(0)} g`;
+                    if (d._rate != null)  return `Basal: ${d._rate.toFixed(3)} U/hr`;
                     return `${ctx.dataset.label}: ${d.y.toFixed(1)} mg/dL`;
                   },
                   title: ctx => fmt(ctx[0].raw.x)
