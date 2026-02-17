@@ -83,19 +83,13 @@ enum HTMLReportGenerator {
           </div>
           <div class="timeline-scroll" id="timelineScroll">
             <div class="timeline-inner" id="timelineInner" style="height:370px;">
-              <canvas id="timelineChart"></canvas>
+              <canvas id="timelineChart" style="cursor:crosshair;" title="Click a CGM point to jump prediction detail to that time"></canvas>
             </div>
           </div>
         </div>
 
-        <!-- Panel 2: Error profile by horizon -->
-        <div class="panel">
-          <h2>Forecast Error Profile by Horizon</h2>
-          <div class="chart-wrap"><canvas id="errorChart"></canvas></div>
-        </div>
-
-        <!-- Panel 3: Prediction detail -->
-        <div class="panel">
+        <!-- Panel 2: Prediction detail -->
+        <div class="panel" id="predPanel">
           <h2>Prediction Detail</h2>
           <div class="legend-row" style="margin-bottom:8px;">
             <div class="legend-item"><div class="legend-swatch" style="background:#f4a460;border-bottom:2px dashed #f4a460;"></div> Prediction (algo)</div>
@@ -111,6 +105,12 @@ enum HTMLReportGenerator {
           </div>
           <div class="stat-bar" id="predStats"></div>
           <div class="chart-wrap-tall"><canvas id="predChart"></canvas></div>
+        </div>
+
+        <!-- Panel 3: Error profile by horizon -->
+        <div class="panel">
+          <h2>Forecast Error Profile by Horizon</h2>
+          <div class="chart-wrap"><canvas id="errorChart"></canvas></div>
         </div>
 
         <script>
@@ -194,7 +194,7 @@ enum HTMLReportGenerator {
             data: {
               datasets: [
                 { label: 'Raw CGM', data: rawPts,
-                  pointRadius: 2, pointBackgroundColor: '#5b9bd5',
+                  pointRadius: 4, pointBackgroundColor: '#5b9bd5',
                   showLine: false, yAxisID: 'yGlucose', order: 4 },
                 { label: 'Smoothed CGM', data: smoothPts,
                   pointRadius: 0, showLine: true,
@@ -210,11 +210,11 @@ enum HTMLReportGenerator {
                   borderWidth: 1, borderDash: [3,3], fill: 'origin',
                   yAxisID: 'yBasal', order: 6 },
                 { label: 'Bolus (U)', data: bolusPts,
-                  pointRadius: bolusPts.map(p => Math.max(4, p._units * 3)),
+                  pointRadius: bolusPts.map(p => Math.max(7, p._units * 4)),
                   pointStyle: 'triangle', pointBackgroundColor: '#f4a460',
                   showLine: false, yAxisID: 'yGlucose', order: 1 },
                 { label: 'Carbs (g)', data: carbPts,
-                  pointRadius: carbPts.map(p => Math.max(4, p._g * 0.12)),
+                  pointRadius: carbPts.map(p => Math.max(7, p._g * 0.18)),
                   pointStyle: 'circle', pointBackgroundColor: '#5cb85c',
                   showLine: false, yAxisID: 'yGlucose', order: 1 }
               ]
@@ -282,6 +282,28 @@ enum HTMLReportGenerator {
         }, { passive: false });
 
         applyZoom(1.0);
+
+        // Click on a CGM point → jump prediction detail to nearest prediction time
+        document.getElementById('timelineChart').addEventListener('click', e => {
+          if (!tlChart) return;
+          const pts = tlChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+          if (!pts.length) return;
+          const pt = pts[0];
+          // Only act on Raw CGM dataset (index 0)
+          if (pt.datasetIndex !== 0) return;
+          const clickedT = rawPts[pt.index].x;
+          // Find nearest prediction index
+          let bestIdx = 0, bestDist = Infinity;
+          BUNDLE.predictions.forEach((p, i) => {
+            const d = Math.abs(p.t - clickedT);
+            if (d < bestDist) { bestDist = d; bestIdx = i; }
+          });
+          const slider = document.getElementById('predSlider');
+          slider.value = bestIdx;
+          slider.dispatchEvent(new Event('input'));
+          // Scroll prediction panel into view
+          document.getElementById('predPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
 
         // ── Panel 2: Error profile ────────────────────────────────────────────────
         const hp = BUNDLE.horizonProfile;
