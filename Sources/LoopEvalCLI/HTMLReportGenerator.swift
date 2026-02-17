@@ -406,7 +406,7 @@ enum HTMLReportGenerator {
 
           // Build chart data
           // Past: raw CGM only (algorithm input — no smoothing applied to past)
-          const histStart = tMs - 3 * 3600000;
+          const histStart = tMs - 20 * 60000;  // 20 min of context before forecast origin
           const histActual = BUNDLE.rawGlucose
             .filter(p => p.t >= histStart && p.t <= tMs)
             .map(p => ({x: p.t, y: p.v}));
