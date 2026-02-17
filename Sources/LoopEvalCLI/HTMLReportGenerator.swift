@@ -83,7 +83,7 @@ enum HTMLReportGenerator {
           </div>
           <div class="timeline-scroll" id="timelineScroll">
             <div class="timeline-inner" id="timelineInner" style="height:370px;">
-              <canvas id="timelineChart" style="cursor:crosshair;" title="Click a CGM point to jump prediction detail to that time"></canvas>
+              <canvas id="timelineChart" title="Click a CGM point to jump prediction detail to that time"></canvas>
             </div>
           </div>
         </div>
@@ -221,6 +221,22 @@ enum HTMLReportGenerator {
             },
             options: {
               responsive: false, maintainAspectRatio: false, animation: false,
+              interaction: { mode: 'nearest', intersect: true },
+              onClick: (evt, elements) => {
+                if (!elements.length) return;
+                const el = elements[0];
+                if (el.datasetIndex !== 0) return;  // only Raw CGM
+                const clickedT = rawPts[el.index].x;
+                let bestIdx = 0, bestDist = Infinity;
+                BUNDLE.predictions.forEach((p, i) => {
+                  const d = Math.abs(p.t - clickedT);
+                  if (d < bestDist) { bestDist = d; bestIdx = i; }
+                });
+                const sl = document.getElementById('predSlider');
+                sl.value = bestIdx;
+                sl.dispatchEvent(new Event('input'));
+                document.getElementById('predPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+              },
               scales: {
                 x: {
                   type: 'time',
@@ -282,28 +298,6 @@ enum HTMLReportGenerator {
         }, { passive: false });
 
         applyZoom(1.0);
-
-        // Click on a CGM point → jump prediction detail to nearest prediction time
-        document.getElementById('timelineChart').addEventListener('click', e => {
-          if (!tlChart) return;
-          const pts = tlChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
-          if (!pts.length) return;
-          const pt = pts[0];
-          // Only act on Raw CGM dataset (index 0)
-          if (pt.datasetIndex !== 0) return;
-          const clickedT = rawPts[pt.index].x;
-          // Find nearest prediction index
-          let bestIdx = 0, bestDist = Infinity;
-          BUNDLE.predictions.forEach((p, i) => {
-            const d = Math.abs(p.t - clickedT);
-            if (d < bestDist) { bestDist = d; bestIdx = i; }
-          });
-          const slider = document.getElementById('predSlider');
-          slider.value = bestIdx;
-          slider.dispatchEvent(new Event('input'));
-          // Scroll prediction panel into view
-          document.getElementById('predPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
 
         // ── Panel 2: Error profile ────────────────────────────────────────────────
         const hp = BUNDLE.horizonProfile;
