@@ -177,8 +177,9 @@ enum HTMLReportGenerator {
           const pxPerDay  = basePxPerDay() * zoomFactor;
           const totalPx   = Math.max(Math.round(totalDays * pxPerDay), window.innerWidth - 40);
           const canvas    = document.getElementById('timelineChart');
-          canvas.width    = totalPx * DPR;
-          canvas.height   = CHART_HEIGHT * DPR;
+          // Set only CSS dimensions; let Chart.js apply DPR scaling internally
+          // via devicePixelRatio option — otherwise its hit-testing multiplies
+          // event coords by DPR a second time, putting clicks at the wrong position.
           canvas.style.width  = totalPx + 'px';
           canvas.style.height = CHART_HEIGHT + 'px';
           document.getElementById('timelineInner').style.width = totalPx + 'px';
@@ -221,6 +222,7 @@ enum HTMLReportGenerator {
             },
             options: {
               responsive: false, maintainAspectRatio: false, animation: false,
+              devicePixelRatio: DPR,
               interaction: { mode: 'nearest', intersect: true },
               onClick: (evt, elements) => {
                 if (!elements.length) return;
