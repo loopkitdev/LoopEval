@@ -33,7 +33,10 @@ let package = Package(
         ),
         .testTarget(
             name: "EvalCoreTests",
-            dependencies: ["EvalCore"],
+            dependencies: [
+                "EvalCore",
+                .product(name: "LoopAlgorithm", package: "LoopAlgorithm"),
+            ],
             resources: [.copy("Fixtures")]
         ),
     ],
