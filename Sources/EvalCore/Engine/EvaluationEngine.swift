@@ -149,7 +149,8 @@ public actor EvaluationEngine {
                     // gradualTransitionsThreshold: use default (40.0)
                 )
                 predictions.append(
-                    PredictionRecord(evaluatedAt: t, predicted: prediction.glucose)
+                    PredictionRecord(evaluatedAt: t, predicted: prediction.glucose,
+                                     iob: prediction.activeInsulin, cob: prediction.activeCarbs)
                 )
             } else {
                 skippedCount += 1

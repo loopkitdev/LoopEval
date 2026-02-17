@@ -107,6 +107,20 @@ struct InspectCommand: AsyncParsableCommand {
         let analyzer = EvaluationAnalyzer(smoother: smoother)
         let (score, smoothedActual) = analyzer.analyzeWithSmoothed(result: result)
 
+        // ── Fetch Nightscout devicestatus for NS forecast overlay ─────────────────
+        printStderr("Fetching Nightscout devicestatus...")
+        let nsPredictions: [NsPrediction]
+        do {
+            let rawStatuses = try await client.fetchDeviceStatus(
+                from: interval.start, to: interval.end)
+            nsPredictions = rawStatuses.compactMap { NsPrediction.from(status: $0) }
+                .sorted { $0.t < $1.t }
+            printStderr(" \(nsPredictions.count) forecasts\n")
+        } catch {
+            printStderr(" skipped (\(error))\n")
+            nsPredictions = []
+        }
+
         // ── Build inspection bundle ───────────────────────────────────────────────
         let bundle = InspectionBundleBuilder.build(
             result: result,
@@ -115,7 +129,8 @@ struct InspectCommand: AsyncParsableCommand {
             doses: preloaded.doses,
             carbs: preloaded.carbs,
             therapyTimeline: preloaded.therapyTimeline,
-            sampleStride: 6   // one snapshot per 30 min at 5-min steps
+            sampleStride: 6,   // one snapshot per 30 min at 5-min steps
+            nsPredictions: nsPredictions
         )
 
         // ── Generate HTML ─────────────────────────────────────────────────────────

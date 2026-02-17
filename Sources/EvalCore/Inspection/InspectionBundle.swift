@@ -60,14 +60,35 @@ public struct PredictionSnapshot: Codable, Sendable {
     public let t: Double
     /// Predicted trajectory — array of [timestamp_ms, mgdl] pairs.
     public let curve: [[Double]]
+    /// Insulin on board (units) at prediction time.
+    public let iob: Double?
+    /// Carbs on board (grams) at prediction time.
+    public let cob: Double?
 
-    public init(evaluatedAt: Date, predicted: [PredictedGlucoseValue]) {
+    public init(evaluatedAt: Date, predicted: [PredictedGlucoseValue],
+                iob: Double? = nil, cob: Double? = nil) {
         self.t = evaluatedAt.timeIntervalSince1970 * 1000
         self.curve = predicted.map { p in
             [p.startDate.timeIntervalSince1970 * 1000,
              p.quantity.doubleValue(for: .milligramsPerDeciliter)]
         }
+        self.iob = iob
+        self.cob = cob
     }
+}
+
+/// A Nightscout-stored Loop forecast, fetched from devicestatus.
+public struct NsPrediction: Codable, Sendable {
+    /// Unix ms of `created_at` (when Loop uploaded this to Nightscout).
+    public let t: Double
+    /// Unix ms of `loop.predicted.startDate` (start of the prediction curve).
+    public let startMs: Double
+    /// IOB from the Nightscout record.
+    public let iob: Double?
+    /// COB from the Nightscout record.
+    public let cob: Double?
+    /// Predicted glucose values at 5-minute intervals (mg/dL).
+    public let values: [Double]
 }
 
 /// Per-horizon summary for the error profile panel.
@@ -116,6 +137,8 @@ public struct InspectionBundle: Codable, Sendable {
     public let predictions: [PredictionSnapshot]
     /// Per-horizon error profile.
     public let horizonProfile: [HorizonSummary]
+    /// Nightscout-stored Loop forecasts from devicestatus (sorted by created_at).
+    public let nsPredictions: [NsPrediction]
 
     /// Lightweight config summary for display.
     public struct InspectionConfig: Codable, Sendable {
@@ -171,7 +194,8 @@ public enum InspectionBundleBuilder {
             from: 0, to: result.predictions.count, by: max(1, sampleStride)
         ).map { i in
             let rec = result.predictions[i]
-            return PredictionSnapshot(evaluatedAt: rec.evaluatedAt, predicted: rec.predicted)
+            return PredictionSnapshot(evaluatedAt: rec.evaluatedAt, predicted: rec.predicted,
+                                      iob: rec.iob, cob: rec.cob)
         }
 
         let horizonProfile = score.horizonMetrics.map { HorizonSummary(from: $0) }
@@ -197,7 +221,8 @@ public enum InspectionBundleBuilder {
             basalTimeline: [],    // filled by caller
             carbs: [],            // filled by caller
             predictions: sampledPredictions,
-            horizonProfile: horizonProfile
+            horizonProfile: horizonProfile,
+            nsPredictions: []     // filled by caller when available
         )
     }
 
@@ -209,7 +234,8 @@ public enum InspectionBundleBuilder {
         doses: [EvalInsulinDose],
         carbs: [EvalCarbEntry],
         therapyTimeline: TherapyTimeline,
-        sampleStride: Int = 6
+        sampleStride: Int = 6,
+        nsPredictions: [NsPrediction] = []
     ) -> InspectionBundle {
         let base = build(result: result, smoothed: smoothed, score: score, sampleStride: sampleStride)
 
@@ -243,7 +269,8 @@ public enum InspectionBundleBuilder {
             basalTimeline: basalTimeline,
             carbs: carbPoints,
             predictions: base.predictions,
-            horizonProfile: base.horizonProfile
+            horizonProfile: base.horizonProfile,
+            nsPredictions: nsPredictions
         )
     }
 

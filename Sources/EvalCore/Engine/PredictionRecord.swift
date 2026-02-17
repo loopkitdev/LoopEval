@@ -12,9 +12,17 @@ public struct PredictionRecord: Sendable {
     /// Sorted ascending by startDate, starting at or very near `evaluatedAt`.
     public let predicted: [PredictedGlucoseValue]
 
-    public init(evaluatedAt: Date, predicted: [PredictedGlucoseValue]) {
+    /// Insulin on board (units) at the time of prediction.
+    public let iob: Double?
+    /// Carbs on board (grams) at the time of prediction.
+    public let cob: Double?
+
+    public init(evaluatedAt: Date, predicted: [PredictedGlucoseValue],
+                iob: Double? = nil, cob: Double? = nil) {
         self.evaluatedAt = evaluatedAt
         self.predicted   = predicted
+        self.iob         = iob
+        self.cob         = cob
     }
 
     // MARK: – Horizon lookup

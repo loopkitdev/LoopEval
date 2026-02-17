@@ -100,6 +100,37 @@ public struct NightscoutProfileRecord: Decodable, Sendable {
     }
 }
 
+// MARK: – Device status models
+
+/// A device status record from /api/v1/devicestatus.json
+public struct NightscoutDeviceStatus: Decodable, Sendable {
+    public let created_at: String
+    public let loop: NightscoutLoopStatus?
+}
+
+/// The `loop` object within a device status record.
+public struct NightscoutLoopStatus: Decodable, Sendable {
+    public let iob: NightscoutIOB?
+    public let cob: NightscoutCOB?
+    public let predicted: NightscoutPredicted?
+}
+
+/// IOB field within a Nightscout loop status.
+public struct NightscoutIOB: Decodable, Sendable {
+    public let iob: Double?
+}
+
+/// COB field within a Nightscout loop status.
+public struct NightscoutCOB: Decodable, Sendable {
+    public let cob: Double?
+}
+
+/// The predicted glucose curve within a Nightscout loop status.
+public struct NightscoutPredicted: Decodable, Sendable {
+    public let startDate: String
+    public let values: [Double]
+}
+
 // MARK: – Client errors
 
 public enum NightscoutClientError: Error, Sendable {
@@ -173,6 +204,20 @@ public struct NightscoutClient: Sendable {
         return try await fetchJSON([NightscoutTreatment].self, from: url)
     }
 
+    /// Fetch device status records between `from` and `to`.
+    public func fetchDeviceStatus(from: Date, to: Date) async throws -> [NightscoutDeviceStatus] {
+        let fmt = Self.makeDateFormatter()
+        var components = URLComponents(url: baseURL.appendingPathComponent("api/v1/devicestatus.json"),
+                                       resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "find[created_at][$gte]", value: fmt.string(from: from)),
+            URLQueryItem(name: "find[created_at][$lte]", value: fmt.string(from: to)),
+            URLQueryItem(name: "count", value: "10000"),
+        ]
+        guard let url = components.url else { throw NightscoutClientError.invalidURL }
+        return try await fetchJSON([NightscoutDeviceStatus].self, from: url)
+    }
+
     /// Fetch the current profile store (returns the most recent profile record).
     public func fetchProfile() async throws -> NightscoutProfileRecord {
         let url = baseURL.appendingPathComponent("api/v1/profile.json")
@@ -215,5 +260,40 @@ public struct NightscoutClient: Sendable {
         let data = Data(input.utf8)
         let digest = Insecure.SHA1.hash(data: data)
         return digest.map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+// MARK: – NsPrediction conversion
+
+extension NsPrediction {
+    /// Convert a raw `NightscoutDeviceStatus` into an `NsPrediction`.
+    /// Returns `nil` if the record has no loop predicted curve.
+    public static func from(status: NightscoutDeviceStatus) -> NsPrediction? {
+        let fmt = ISO8601DateFormatter()
+        fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        guard let loop = status.loop,
+              let predicted = loop.predicted else { return nil }
+
+        // Try with fractional seconds first, then without
+        func parseDate(_ string: String) -> Date? {
+            let fmtFrac = ISO8601DateFormatter()
+            fmtFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let d = fmtFrac.date(from: string) { return d }
+            let fmtPlain = ISO8601DateFormatter()
+            fmtPlain.formatOptions = [.withInternetDateTime]
+            return fmtPlain.date(from: string)
+        }
+
+        guard let createdAt = parseDate(status.created_at),
+              let startDate = parseDate(predicted.startDate) else { return nil }
+
+        return NsPrediction(
+            t: createdAt.timeIntervalSince1970 * 1000,
+            startMs: startDate.timeIntervalSince1970 * 1000,
+            iob: loop.iob?.iob,
+            cob: loop.cob?.cob,
+            values: predicted.values
+        )
     }
 }
