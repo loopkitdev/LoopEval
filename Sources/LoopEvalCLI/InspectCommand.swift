@@ -129,7 +129,7 @@ struct InspectCommand: AsyncParsableCommand {
             doses: preloaded.doses,
             carbs: preloaded.carbs,
             therapyTimeline: preloaded.therapyTimeline,
-            sampleStride: 6,   // one snapshot per 30 min at 5-min steps
+            sampleStride: 1,   // every prediction — needed for click-to-navigate
             nsPredictions: nsPredictions
         )
 
