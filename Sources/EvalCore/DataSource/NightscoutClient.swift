@@ -92,7 +92,7 @@ public struct NightscoutProfileRecord: Decodable, Sendable {
     public let defaultProfile: String?
     public let startDate: String?
     public let store: [String: NightscoutProfile]?
-    public let mills: Double?   // creation timestamp in milliseconds
+    public let mills: String?   // creation timestamp in milliseconds (NS sends as String)
     public let units: String?   // top-level units (fallback if profile lacks units)
 
     private enum CodingKeys: String, CodingKey {

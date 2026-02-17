@@ -60,7 +60,7 @@ enum OutputFormatter {
                 ? String(format: " +%.1f", m.percentile90)
                 : String(format: " %.1f", m.percentile90)
 
-            let row = String(format: " %4d min │ %7d │ %5.1f │ %5.1f │%6s  │%6s  │%6s  │ %4.2f │ %4.2f │ %4.2f%@",
+            let row = String(format: " %4d min │ %7d │ %5.1f │ %5.1f │%@  │%@  │%@  │ %4.2f │ %4.2f │ %4.2f%@",
                 hMin,
                 m.sampleCount,
                 m.rmse,

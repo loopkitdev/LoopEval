@@ -74,43 +74,89 @@ struct InputWindowBuilder: Sendable {
         // ── Basal ────────────────────────────────────────────────────────────────
         let basalWindowStart = t.addingTimeInterval(-config.insulinLookbackHours * 3600)
         let basalWindowEnd   = t.addingTimeInterval(2 * 3600)
-        let basalSlice = sliceSchedule(
+        var basalSlice = sliceSchedule(
             therapyTimeline.basal,
             from: basalWindowStart,
             to: basalWindowEnd
         )
+        // Extend basal backward/forward to fill gaps (same reasoning as ISF)
+        if basalSlice.isEmpty {
+            let fallback = therapyTimeline.basal.last?.value ?? 1.0
+            basalSlice = [AbsoluteScheduleValue(startDate: basalWindowStart, endDate: basalWindowEnd, value: fallback)]
+        } else {
+            if basalSlice[0].startDate > basalWindowStart {
+                basalSlice[0] = AbsoluteScheduleValue(startDate: basalWindowStart, endDate: basalSlice[0].endDate, value: basalSlice[0].value)
+            }
+            let li = basalSlice.count - 1
+            if basalSlice[li].endDate < basalWindowEnd {
+                basalSlice[li] = AbsoluteScheduleValue(startDate: basalSlice[li].startDate, endDate: basalWindowEnd, value: basalSlice[li].value)
+            }
+        }
 
         // ── Sensitivity (ISF) ────────────────────────────────────────────────────
-        // CRITICAL: must extend to at least t+8h to prevent preconditionFailure
-        // in glucoseEffects() inside LoopAlgorithm.
-        let isfRequired = t.addingTimeInterval(8 * 3600)
+        // CRITICAL: ISF must cover ALL dose startDates AND extend to t+8h.
+        // Doses are filtered by overlapping the window (endDate >= windowStart),
+        // so some doses may have startDates EARLIER than basalWindowStart.
+        // We must cover the earliest actual dose startDate, not just t-16h.
+        let earliestDoseStart = dosesSlice.map(\.startDate).min() ?? basalWindowStart
+        let isfBackStart = min(basalWindowStart, earliestDoseStart)
+        let isfFwdEnd    = t.addingTimeInterval(8 * 3600)
         var sensitivitySlice = sliceSensitivity(
             therapyTimeline.sensitivity,
-            from: basalWindowStart,   // ISF covers same early start as basal
-            to: isfRequired
+            from: isfBackStart,
+            to: isfFwdEnd
         )
-        // Extend last value if it doesn't reach t+8h
-        if let last = sensitivitySlice.last, last.endDate < isfRequired {
-            sensitivitySlice[sensitivitySlice.count - 1] = AbsoluteScheduleValue(
-                startDate: last.startDate,
-                endDate: isfRequired,
-                value: last.value
-            )
-        } else if sensitivitySlice.isEmpty, let last = therapyTimeline.sensitivity.last {
-            // No sensitivity found in range — use global last value extended
+
+        if sensitivitySlice.isEmpty {
+            // No ISF data at all in range — use any available value
+            let fallback = therapyTimeline.sensitivity.last?.value
+                ?? LoopQuantity(unit: .milligramsPerDeciliterPerInternationalUnit, doubleValue: 50)
             sensitivitySlice = [AbsoluteScheduleValue(
-                startDate: basalWindowStart,
-                endDate: isfRequired,
-                value: last.value
+                startDate: isfBackStart,
+                endDate: isfFwdEnd,
+                value: fallback
             )]
+        } else {
+            // Extend first entry backward if it doesn't reach isfBackStart
+            if sensitivitySlice[0].startDate > isfBackStart {
+                sensitivitySlice[0] = AbsoluteScheduleValue(
+                    startDate: isfBackStart,
+                    endDate: sensitivitySlice[0].endDate,
+                    value: sensitivitySlice[0].value
+                )
+            }
+            // Extend last entry forward if it doesn't reach t+8h
+            let lastIdx = sensitivitySlice.count - 1
+            if sensitivitySlice[lastIdx].endDate < isfFwdEnd {
+                sensitivitySlice[lastIdx] = AbsoluteScheduleValue(
+                    startDate: sensitivitySlice[lastIdx].startDate,
+                    endDate: isfFwdEnd,
+                    value: sensitivitySlice[lastIdx].value
+                )
+            }
         }
 
         // ── Carb Ratio ───────────────────────────────────────────────────────────
-        let carbRatioSlice = sliceSchedule(
+        // Must cover ALL carb entry startDates: [t-8h, t+6h]
+        let crBack = carbWindowStart    // = t - 8h
+        let crFwd  = carbWindowEnd      // = t + 6h
+        var carbRatioSlice = sliceSchedule(
             therapyTimeline.carbRatio,
-            from: t,
-            to: t.addingTimeInterval(6 * 3600)
+            from: crBack,
+            to: crFwd
         )
+        if carbRatioSlice.isEmpty {
+            let fallback = therapyTimeline.carbRatio.last?.value ?? 10.0
+            carbRatioSlice = [AbsoluteScheduleValue(startDate: crBack, endDate: crFwd, value: fallback)]
+        } else {
+            if carbRatioSlice[0].startDate > crBack {
+                carbRatioSlice[0] = AbsoluteScheduleValue(startDate: crBack, endDate: carbRatioSlice[0].endDate, value: carbRatioSlice[0].value)
+            }
+            let li2 = carbRatioSlice.count - 1
+            if carbRatioSlice[li2].endDate < crFwd {
+                carbRatioSlice[li2] = AbsoluteScheduleValue(startDate: carbRatioSlice[li2].startDate, endDate: crFwd, value: carbRatioSlice[li2].value)
+            }
+        }
 
         // ── Target ───────────────────────────────────────────────────────────────
         let targetSlice = sliceTarget(
