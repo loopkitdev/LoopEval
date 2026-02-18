@@ -101,6 +101,21 @@ public struct NsPrediction: Codable, Sendable {
     public let values: [Double]
 }
 
+/// A single DTS risk score data point for the risk-over-time chart.
+/// `t` is the prediction origin time (Unix ms), `horizonMin` is the forecast
+/// horizon in minutes, and `risk` is the signed DTS risk (-4…+4).
+public struct DtsRiskPoint: Codable, Sendable {
+    public let t: Double          // Unix ms — prediction origin
+    public let horizonMin: Int    // forecast horizon in minutes
+    public let risk: Double       // signed DTS risk -4…+4
+
+    public init(t: Double, horizonMin: Int, risk: Double) {
+        self.t = t
+        self.horizonMin = horizonMin
+        self.risk = risk
+    }
+}
+
 /// Per-horizon summary for the error profile panel.
 public struct HorizonSummary: Codable, Sendable {
     public let horizonMin: Int
@@ -149,6 +164,9 @@ public struct InspectionBundle: Codable, Sendable {
     public let horizonProfile: [HorizonSummary]
     /// Nightscout-stored Loop forecasts from devicestatus (sorted by created_at).
     public let nsPredictions: [NsPrediction]
+    /// DTS signed risk scores over time, one point per (prediction, horizon) pair.
+    /// Used to render the risk-over-time chart panel.
+    public let dtsRiskTimeline: [DtsRiskPoint]
 
     /// Lightweight config summary for display.
     public struct InspectionConfig: Codable, Sendable {
@@ -233,11 +251,12 @@ public enum InspectionBundleBuilder {
             carbs: [],            // filled by caller
             predictions: sampledPredictions,
             horizonProfile: horizonProfile,
-            nsPredictions: []     // filled by caller when available
+            nsPredictions: [],    // filled by caller when available
+            dtsRiskTimeline: []   // filled by caller
         )
     }
 
-    /// Build with doses, carbs, and therapy timeline provided by the caller.
+    /// Build with doses, carbs, therapy timeline, and DTS risk timeline provided by the caller.
     public static func build(
         result: EvaluationResult,
         smoothed: [EvalGlucoseSample]?,
@@ -246,7 +265,8 @@ public enum InspectionBundleBuilder {
         carbs: [EvalCarbEntry],
         therapyTimeline: TherapyTimeline,
         sampleStride: Int = 6,
-        nsPredictions: [NsPrediction] = []
+        nsPredictions: [NsPrediction] = [],
+        dtsRiskTimeline: [DtsRiskPoint] = []
     ) -> InspectionBundle {
         let base = build(result: result, smoothed: smoothed, score: score, sampleStride: sampleStride)
 
@@ -281,7 +301,8 @@ public enum InspectionBundleBuilder {
             carbs: carbPoints,
             predictions: base.predictions,
             horizonProfile: base.horizonProfile,
-            nsPredictions: nsPredictions
+            nsPredictions: nsPredictions,
+            dtsRiskTimeline: dtsRiskTimeline
         )
     }
 

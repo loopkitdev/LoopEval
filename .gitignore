@@ -3,3 +3,4 @@
 *.xcworkspace/
 .swiftpm/
 .DS_Store
+.vscode

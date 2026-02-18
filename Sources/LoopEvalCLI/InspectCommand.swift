@@ -121,6 +121,35 @@ struct InspectCommand: AsyncParsableCommand {
             nsPredictions = []
         }
 
+        // ── Compute DTS risk timeline ─────────────────────────────────────────────
+        // For every prediction × horizon, interpolate the actual CGM at the target
+        // time and compute the signed DTS risk score (predicted as "measured",
+        // actual as "reference").  Use the same smoothed-actual series that the
+        // error metrics use so the risk scores are consistent with RMSE/bias.
+        printStderr("Computing DTS risk timeline...")
+        let actualForRisk = config.kalmanSmoothing ? smoothedActual : result.actual
+        let horizons = result.config.horizons
+        var dtsRiskPoints: [DtsRiskPoint] = []
+        dtsRiskPoints.reserveCapacity(result.predictions.count * horizons.count)
+        for record in result.predictions {
+            let tMs = record.evaluatedAt.timeIntervalSince1970 * 1000
+            for horizon in horizons {
+                let targetDate = record.evaluatedAt.addingTimeInterval(horizon)
+                guard
+                    let predicted = record.predictedValue(atHorizon: horizon),
+                    let actual    = GlucoseInterpolator.interpolate(
+                                        samples: actualForRisk, at: targetDate)
+                else { continue }
+                let risk = CustomDTSRisk.signedRiskScore(reference: actual, measured: predicted)
+                dtsRiskPoints.append(DtsRiskPoint(
+                    t: tMs,
+                    horizonMin: Int(horizon / 60),
+                    risk: risk
+                ))
+            }
+        }
+        printStderr(" \(dtsRiskPoints.count) points\n")
+
         // ── Build inspection bundle ───────────────────────────────────────────────
         let bundle = InspectionBundleBuilder.build(
             result: result,
@@ -130,7 +159,8 @@ struct InspectCommand: AsyncParsableCommand {
             carbs: preloaded.carbs,
             therapyTimeline: preloaded.therapyTimeline,
             sampleStride: 1,   // every prediction — needed for click-to-navigate
-            nsPredictions: nsPredictions
+            nsPredictions: nsPredictions,
+            dtsRiskTimeline: dtsRiskPoints
         )
 
         // ── Generate HTML ─────────────────────────────────────────────────────────

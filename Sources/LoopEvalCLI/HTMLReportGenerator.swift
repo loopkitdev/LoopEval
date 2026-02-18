@@ -80,10 +80,21 @@ enum HTMLReportGenerator {
                    style="width:140px; accent-color:#7eb8f7;">
             <span id="zoomLabel" style="color:#7eb8f7;font-size:0.82em;min-width:160px;"></span>
             <span style="font-size:0.75em;color:#555;margin-left:4px;">Scroll or drag to pan · Ctrl+scroll to zoom</span>
+            <span style="margin-left:24px;font-size:0.82em;color:#999;">Risk horizon:</span>
+            <select id="riskHorizonSel" style="background:#252836;border:1px solid #3a3d4a;color:#ddd;border-radius:5px;padding:4px 8px;font-size:0.82em;"></select>
+            <span style="font-size:0.82em;color:#999;">Smooth:</span>
+            <select id="riskSmoothSel" style="background:#252836;border:1px solid #3a3d4a;color:#ddd;border-radius:5px;padding:4px 8px;font-size:0.82em;">
+              <option value="1">None</option>
+              <option value="3">3-pt</option>
+              <option value="6" selected>6-pt (~30 min)</option>
+              <option value="12">12-pt (~1 hr)</option>
+            </select>
           </div>
           <div class="timeline-scroll" id="timelineScroll">
-            <div class="timeline-inner" id="timelineInner" style="height:370px;">
+            <div class="timeline-inner" id="timelineInner">
               <canvas id="timelineChart" title="Click a CGM point to jump prediction detail to that time"></canvas>
+              <div style="height:4px;background:#0f1117;"></div>
+              <canvas id="riskChart"></canvas>
             </div>
           </div>
         </div>
@@ -107,7 +118,8 @@ enum HTMLReportGenerator {
           <div class="chart-wrap-tall"><canvas id="predChart"></canvas></div>
         </div>
 
-        <!-- Panel 3: Error profile by horizon -->
+
+        <!-- Panel 4: Error profile by horizon -->
         <div class="panel">
           <h2>Forecast Error Profile by Horizon</h2>
           <div class="chart-wrap"><canvas id="errorChart"></canvas></div>
@@ -170,28 +182,110 @@ enum HTMLReportGenerator {
         // Base px per day: 1 day fills ~0.78 of the viewport at zoom=1
         const basePxPerDay = () => Math.round(window.innerWidth * 0.78);
 
+        // ── Risk data helpers (used inside buildTimelineChart) ────────────────────
+        const riskByHorizon = new Map();
+        for (const pt of (BUNDLE.dtsRiskTimeline || [])) {
+          if (!riskByHorizon.has(pt.horizonMin)) riskByHorizon.set(pt.horizonMin, []);
+          riskByHorizon.get(pt.horizonMin).push(pt);
+        }
+        for (const pts of riskByHorizon.values()) pts.sort((a,b) => a.t - b.t);
+        const riskHorizons = [...riskByHorizon.keys()].sort((a,b) => a - b);
+
+        // Populate horizon selector
+        const riskHorizonSel = document.getElementById('riskHorizonSel');
+        riskHorizons.forEach(h => {
+          const o = document.createElement('option');
+          o.value = h; o.text = h + ' min';
+          riskHorizonSel.appendChild(o);
+        });
+        const defaultRiskH = riskHorizons.find(h => h >= 60) ?? riskHorizons[Math.floor(riskHorizons.length / 2)];
+        if (defaultRiskH != null) riskHorizonSel.value = defaultRiskH;
+
+        const movingAvg = (pts, n) => {
+          if (n <= 1) return pts.map(p => ({x: p.t, y: p.risk}));
+          const out = [];
+          for (let i = 0; i < pts.length; i++) {
+            const start = Math.max(0, i - Math.floor(n / 2));
+            const end   = Math.min(pts.length, start + n);
+            let sum = 0;
+            for (let j = start; j < end; j++) sum += pts[j].risk;
+            out.push({x: pts[i].t, y: sum / (end - start)});
+          }
+          return out;
+        };
+
+        const riskZone = r => Math.abs(r) < 1.5 ? 'green' : Math.abs(r) < 2.5 ? 'yellow' : 'red';
+        const zoneColor = {
+          green:  { border: '#4caf7d', bg: '#4caf7d22' },
+          yellow: { border: '#f0c040', bg: '#f0c04022' },
+          red:    { border: '#e05c5c', bg: '#e05c5c22' },
+        };
+
+        // Build risk datasets for the separate risk chart
+        const buildRiskDatasets = (pts, smoothN, horizonMin) => {
+          const smoothed = movingAvg(pts, smoothN);
+          if (!smoothed.length) return [];
+          const datasets = [];
+          let runPts = [smoothed[0]], runZone = riskZone(smoothed[0].y);
+          const pushRun = (rp, zone) => {
+            const { border, bg } = zoneColor[zone];
+            datasets.push({ data: rp, borderColor: border, backgroundColor: bg,
+              borderWidth: 2, pointRadius: 0, showLine: true, tension: 0.2,
+              fill: { target: { value: 0 }, above: bg, below: bg },
+              label: '_risk_' + zone, _horizonMin: horizonMin });
+          };
+          for (let i = 1; i < smoothed.length; i++) {
+            const z = riskZone(smoothed[i].y);
+            if (z !== runZone) { runPts.push(smoothed[i]); pushRun(runPts, runZone); runPts = [smoothed[i]]; runZone = z; }
+            else runPts.push(smoothed[i]);
+          }
+          if (runPts.length) pushRun(runPts, runZone);
+          const tMin = smoothed[0].x, tMax = smoothed[smoothed.length-1].x;
+          datasets.push({ data: [{x:tMin,y:0},{x:tMax,y:0}], borderColor: '#55555588',
+            borderWidth: 1, borderDash: [4,4], pointRadius: 0, showLine: true, fill: false, label: '_zero' });
+          for (const v of [1.5,-1.5,2.5,-2.5]) {
+            datasets.push({ data: [{x:tMin,y:v},{x:tMax,y:v}],
+              borderColor: Math.abs(v) < 2 ? '#f0c04044' : '#e05c5c44',
+              borderWidth: 1, borderDash: [2,6], pointRadius: 0, showLine: true, fill: false, label: '_ref' });
+          }
+          return datasets;
+        };
+
         let tlChart = null;
+        let riskChart = null;
+        let tlYWidth = 0;   // measured left-axis width of timeline chart; applied to risk chart
+        const RISK_HEIGHT = 140;
 
         function buildTimelineChart(zoomFactor) {
           if (tlChart) { tlChart.destroy(); tlChart = null; }
+          if (riskChart) { riskChart.destroy(); riskChart = null; }
+
           const pxPerDay  = basePxPerDay() * zoomFactor;
           const totalPx   = Math.max(Math.round(totalDays * pxPerDay), window.innerWidth - 40);
-          const canvas    = document.getElementById('timelineChart');
-          // Reset the canvas pixel buffer to logical dimensions first — prevents
-          // the browser from stretching the stale buffer when CSS width changes.
-          // Chart.js (with devicePixelRatio: DPR below) will upscale to totalPx×DPR
-          // internally and keeps its own hit-testing consistent with that scale.
-          canvas.width  = totalPx;
-          canvas.height = CHART_HEIGHT;
-          canvas.style.width  = totalPx + 'px';
-          canvas.style.height = CHART_HEIGHT + 'px';
+
+          // Size both canvases to the same width
+          const canvas = document.getElementById('timelineChart');
+          canvas.width  = totalPx; canvas.height = CHART_HEIGHT;
+          canvas.style.width  = totalPx + 'px'; canvas.style.height = CHART_HEIGHT + 'px';
+
+          const riskCanvas = document.getElementById('riskChart');
+          riskCanvas.width  = totalPx; riskCanvas.height = RISK_HEIGHT;
+          riskCanvas.style.width  = totalPx + 'px'; riskCanvas.style.height = RISK_HEIGHT + 'px';
+
           document.getElementById('timelineInner').style.width = totalPx + 'px';
 
-          // Tick granularity: choose unit based on px per day
+          // Tick granularity
           let timeUnit = 'hour', tickLimit = 12;
           if (pxPerDay < 120) { timeUnit = 'day'; tickLimit = 10; }
           else if (pxPerDay < 400) { timeUnit = 'hour'; tickLimit = Math.round(totalDays * 6); }
           else { timeUnit = 'hour'; tickLimit = Math.round(totalDays * 12); }
+
+          // Shared X axis config (no ticks on timeline — only on risk chart below)
+          const sharedX = {
+            type: 'time', min: tlStartMs, max: tlEndMs,
+            time: { unit: timeUnit, displayFormats: { hour: 'MMM d HH:mm', day: 'MMM d' } },
+            grid: { color: '#232638' }
+          };
 
           tlChart = new Chart(canvas, {
             type: 'scatter',
@@ -230,7 +324,7 @@ enum HTMLReportGenerator {
               onClick: (evt, elements) => {
                 if (!elements.length) return;
                 const el = elements[0];
-                if (el.datasetIndex !== 0) return;  // only Raw CGM
+                if (el.datasetIndex !== 0) return;
                 const clickedT = rawPts[el.index].x;
                 let bestIdx = 0, bestDist = Infinity;
                 BUNDLE.predictions.forEach((p, i) => {
@@ -243,18 +337,12 @@ enum HTMLReportGenerator {
                 document.getElementById('predPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
               },
               scales: {
-                x: {
-                  type: 'time',
-                  min: tlStartMs, max: tlEndMs,
-                  time: { unit: timeUnit, displayFormats: {
-                    hour: 'MMM d HH:mm', day: 'MMM d' } },
-                  ticks: { maxTicksLimit: tickLimit, color: '#888' },
-                  grid: { color: '#232638' }
-                },
+                x: { ...sharedX, ticks: { display: false } },
                 yGlucose: {
                   type: 'linear', position: 'left',
                   title: { display: true, text: 'mg/dL', color: '#666' },
-                  min: 20, max: 400, grid: { color: '#232638' }
+                  min: 20, max: 400, grid: { color: '#232638' },
+                  afterFit: scale => { tlYWidth = scale.width; }
                 },
                 yBasal: {
                   type: 'linear', position: 'right',
@@ -267,14 +355,66 @@ enum HTMLReportGenerator {
                 legend: { display: false },
                 tooltip: {
                   callbacks: {
+                    title: ctx => fmt(ctx[0].raw.x),
                     label: ctx => {
                       const d = ctx.raw;
                       if (d._units != null) return `Bolus: ${d._units.toFixed(2)} U`;
                       if (d._g    != null)  return `Carbs: ${d._g.toFixed(0)} g`;
                       if (d._rate != null)  return `Basal: ${d._rate.toFixed(3)} U/hr`;
                       return `${ctx.dataset.label}: ${d.y.toFixed(1)} mg/dL`;
-                    },
-                    title: ctx => fmt(ctx[0].raw.x)
+                    }
+                  }
+                }
+              }
+            }
+          });
+
+          // ── Risk chart (separate canvas, same width, same X range) ──────────────
+          // Build after tlChart so tlYWidth is already measured via afterFit
+          if (riskChart) { riskChart.destroy(); riskChart = null; }
+          const h       = parseInt(riskHorizonSel.value) || (defaultRiskH ?? 0);
+          const smoothN = parseInt(document.getElementById('riskSmoothSel').value);
+          const riskPts = riskByHorizon.get(h) || [];
+          const riskDatasets = buildRiskDatasets(riskPts, smoothN, h);
+
+          riskChart = new Chart(riskCanvas, {
+            type: 'scatter',
+            data: { datasets: riskDatasets },
+            options: {
+              responsive: false, maintainAspectRatio: false, animation: false,
+              devicePixelRatio: DPR,
+              scales: {
+                x: { ...sharedX, ticks: { maxTicksLimit: tickLimit, color: '#888' } },
+                y: {
+                  type: 'linear', position: 'left',
+                  title: { display: true, text: 'DTS Risk', color: '#aaa' },
+                  min: -4, max: 4,
+                  grid: { color: '#232638' },
+                  afterFit: scale => { if (tlYWidth > 0) scale.width = tlYWidth; },
+                  ticks: { color: '#888', count: 5,
+                    callback: v => v === 0 ? '0' : (v < 0 ? '−' : '+') + Math.abs(v) }
+                }
+              },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    title: ctx => fmt(ctx[0].raw.x),
+                    label: ctx => {
+                      const ds = ctx.dataset;
+                      if (ds.label === '_zero' || ds.label === '_ref') return null;
+                      const r = ctx.raw.y;
+                      const abs = Math.abs(r);
+                      const level = abs >= 3.5 ? 'Extreme' : abs >= 2.5 ? 'High'
+                                  : abs >= 1.5 ? 'Moderate' : abs >= 0.5 ? 'Low' : 'Negligible';
+                      const dir = r < 0 ? 'Hypo risk' : r > 0 ? 'Hyper risk' : 'No risk';
+                      const hMin = ds._horizonMin;
+                      const baseMs = ctx.raw.x;
+                      return [
+                        `DTS Risk (${hMin}min horizon): ${r.toFixed(2)}  ${level} ${dir}`,
+                        `  Base: ${fmt(baseMs)}  →  Eval: ${fmt(baseMs + hMin * 60000)}`
+                      ];
+                    }
                   }
                 }
               }
@@ -282,7 +422,7 @@ enum HTMLReportGenerator {
           });
         }
 
-        // Zoom slider
+        // Zoom + risk controls all call buildTimelineChart
         const zoomSlider = document.getElementById('zoomSlider');
         const zoomLabel  = document.getElementById('zoomLabel');
         function applyZoom(z) {
@@ -291,6 +431,8 @@ enum HTMLReportGenerator {
           buildTimelineChart(z);
         }
         zoomSlider.addEventListener('input', () => applyZoom(parseFloat(zoomSlider.value)));
+        document.getElementById('riskHorizonSel').addEventListener('change', () => applyZoom(parseFloat(zoomSlider.value)));
+        document.getElementById('riskSmoothSel').addEventListener('change',  () => applyZoom(parseFloat(zoomSlider.value)));
 
         // Ctrl+scroll to zoom, plain scroll to pan (browser default)
         document.getElementById('timelineScroll').addEventListener('wheel', e => {
@@ -301,8 +443,6 @@ enum HTMLReportGenerator {
           zoomSlider.value = newZ;
           applyZoom(newZ);
         }, { passive: false });
-
-        applyZoom(1.0);
 
         // ── Panel 2: Error profile ────────────────────────────────────────────────
         const hp = BUNDLE.horizonProfile;
@@ -557,6 +697,9 @@ enum HTMLReportGenerator {
         slider.addEventListener('input', updatePredPanel);
         sel.addEventListener('change', updatePredPanel);
         updatePredPanel();
+
+        // Initial render
+        applyZoom(1.0);
         </script>
         </body>
         </html>
