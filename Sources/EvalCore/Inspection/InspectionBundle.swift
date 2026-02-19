@@ -167,6 +167,9 @@ public struct InspectionBundle: Codable, Sendable {
     /// DTS signed risk scores over time, one point per (prediction, horizon) pair.
     /// Used to render the risk-over-time chart panel.
     public let dtsRiskTimeline: [DtsRiskPoint]
+    /// IANA timezone identifier from the Nightscout profile (e.g. "America/Chicago").
+    /// `nil` if the profile was unavailable or did not include a timezone.
+    public let nsTimezone: String?
 
     /// Lightweight config summary for display.
     public struct InspectionConfig: Codable, Sendable {
@@ -252,7 +255,8 @@ public enum InspectionBundleBuilder {
             predictions: sampledPredictions,
             horizonProfile: horizonProfile,
             nsPredictions: [],    // filled by caller when available
-            dtsRiskTimeline: []   // filled by caller
+            dtsRiskTimeline: [],  // filled by caller
+            nsTimezone: nil       // filled by caller
         )
     }
 
@@ -266,7 +270,8 @@ public enum InspectionBundleBuilder {
         therapyTimeline: TherapyTimeline,
         sampleStride: Int = 6,
         nsPredictions: [NsPrediction] = [],
-        dtsRiskTimeline: [DtsRiskPoint] = []
+        dtsRiskTimeline: [DtsRiskPoint] = [],
+        nsTimezone: String? = nil
     ) -> InspectionBundle {
         let base = build(result: result, smoothed: smoothed, score: score, sampleStride: sampleStride)
 
@@ -302,7 +307,8 @@ public enum InspectionBundleBuilder {
             predictions: base.predictions,
             horizonProfile: base.horizonProfile,
             nsPredictions: nsPredictions,
-            dtsRiskTimeline: dtsRiskTimeline
+            dtsRiskTimeline: dtsRiskTimeline,
+            nsTimezone: nsTimezone
         )
     }
 

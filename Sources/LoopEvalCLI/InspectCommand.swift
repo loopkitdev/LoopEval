@@ -121,6 +121,17 @@ struct InspectCommand: AsyncParsableCommand {
             nsPredictions = []
         }
 
+        // ── Fetch Nightscout profile timezone ─────────────────────────────────────
+        let nsTimezone: String?
+        do {
+            let profileRecord = try await client.fetchProfile()
+            let profileName = profileRecord.defaultProfile ?? "Default"
+            let profile = profileRecord.store?[profileName] ?? profileRecord.store?.values.first
+            nsTimezone = profile?.timezone
+        } catch {
+            nsTimezone = nil
+        }
+
         // ── Compute DTS risk timeline ─────────────────────────────────────────────
         // For every prediction × horizon, interpolate the actual CGM at the target
         // time and compute the signed DTS risk score (predicted as "measured",
@@ -160,7 +171,8 @@ struct InspectCommand: AsyncParsableCommand {
             therapyTimeline: preloaded.therapyTimeline,
             sampleStride: 1,   // every prediction — needed for click-to-navigate
             nsPredictions: nsPredictions,
-            dtsRiskTimeline: dtsRiskPoints
+            dtsRiskTimeline: dtsRiskPoints,
+            nsTimezone: nsTimezone
         )
 
         // ── Generate HTML ─────────────────────────────────────────────────────────

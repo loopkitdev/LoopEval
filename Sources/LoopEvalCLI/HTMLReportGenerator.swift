@@ -80,7 +80,9 @@ enum HTMLReportGenerator {
                    style="width:140px; accent-color:#7eb8f7;">
             <span id="zoomLabel" style="color:#7eb8f7;font-size:0.82em;min-width:160px;"></span>
             <span style="font-size:0.75em;color:#555;margin-left:4px;">Scroll or drag to pan · Ctrl+scroll to zoom</span>
-            <span style="margin-left:24px;font-size:0.82em;color:#999;">Risk horizon:</span>
+            <span style="margin-left:24px;font-size:0.82em;color:#999;">Timezone:</span>
+            <select id="tzSel" style="background:#252836;border:1px solid #3a3d4a;color:#ddd;border-radius:5px;padding:4px 8px;font-size:0.82em;"></select>
+            <span style="margin-left:12px;font-size:0.82em;color:#999;">Risk horizon:</span>
             <select id="riskHorizonSel" style="background:#252836;border:1px solid #3a3d4a;color:#ddd;border-radius:5px;padding:4px 8px;font-size:0.82em;"></select>
             <span style="font-size:0.82em;color:#999;">Smooth:</span>
             <select id="riskSmoothSel" style="background:#252836;border:1px solid #3a3d4a;color:#ddd;border-radius:5px;padding:4px 8px;font-size:0.82em;">
@@ -129,11 +131,37 @@ enum HTMLReportGenerator {
         // ── Embedded data ─────────────────────────────────────────────────────────
         const BUNDLE = \(bundleJSON);
 
+        // ── Timezone selector ─────────────────────────────────────────────────────
+        const NS_TZ = BUNDLE.nsTimezone || null;   // e.g. "America/Chicago" or null
+        const LOCAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+        const tzSel = document.getElementById('tzSel');
+        // Always add Local and UTC
+        [
+          { value: 'local', label: `Local (${LOCAL_TZ})` },
+          { value: 'UTC',   label: 'UTC' },
+        ].forEach(({value, label}) => {
+          const o = document.createElement('option');
+          o.value = value; o.text = label;
+          tzSel.appendChild(o);
+        });
+        // Add NS timezone if present and different from local
+        if (NS_TZ && NS_TZ !== LOCAL_TZ && NS_TZ !== 'UTC') {
+          const o = document.createElement('option');
+          o.value = NS_TZ; o.text = `Nightscout (${NS_TZ})`;
+          tzSel.appendChild(o);
+        }
+        tzSel.value = 'local';
+
         // ── Helpers ───────────────────────────────────────────────────────────────
         const fmt = t => {
-          const d = new Date(t);
-          return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' +
-                 d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+          const tz = tzSel.value === 'local' ? LOCAL_TZ : tzSel.value;
+          const use24 = (tz === 'UTC');
+          return new Intl.DateTimeFormat('en-US', {
+            month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: !use24,
+            timeZone: tz
+          }).format(new Date(t));
         };
 
         // ── Subtitle ──────────────────────────────────────────────────────────────
@@ -281,6 +309,21 @@ enum HTMLReportGenerator {
           else { timeUnit = 'hour'; tickLimit = Math.round(totalDays * 12); }
 
           // Shared X axis config (no ticks on timeline — only on risk chart below)
+          // ticks.callback routes through fmt() so timezone dropdown affects axis labels too
+          const fmtTick = (val) => {
+            const tz = tzSel.value === 'local' ? LOCAL_TZ : tzSel.value;
+            const use24 = (tz === 'UTC');
+            const d = new Date(val);
+            // For day-level ticks just show month+day; for hour ticks show time too
+            if (timeUnit === 'day') {
+              return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: tz }).format(d);
+            }
+            return new Intl.DateTimeFormat('en-US', {
+              month: 'short', day: 'numeric',
+              hour: '2-digit', minute: '2-digit', hour12: !use24,
+              timeZone: tz
+            }).format(d);
+          };
           const sharedX = {
             type: 'time', min: tlStartMs, max: tlEndMs,
             time: { unit: timeUnit, displayFormats: { hour: 'MMM d HH:mm', day: 'MMM d' } },
@@ -384,7 +427,7 @@ enum HTMLReportGenerator {
               responsive: false, maintainAspectRatio: false, animation: false,
               devicePixelRatio: DPR,
               scales: {
-                x: { ...sharedX, ticks: { maxTicksLimit: tickLimit, color: '#888' } },
+                x: { ...sharedX, ticks: { maxTicksLimit: tickLimit, color: '#888', callback: fmtTick } },
                 y: {
                   type: 'linear', position: 'left',
                   title: { display: true, text: 'DTS Risk', color: '#aaa' },
@@ -410,10 +453,42 @@ enum HTMLReportGenerator {
                       const dir = r < 0 ? 'Hypo risk' : r > 0 ? 'Hyper risk' : 'No risk';
                       const hMin = ds._horizonMin;
                       const baseMs = ctx.raw.x;
-                      return [
+                      const evalMs = baseMs + hMin * 60000;
+
+                      // Look up actual BG at eval time (nearest smoothed CGM point within 6 min)
+                      let actualBG = null;
+                      let bestActDist = 6 * 60000;
+                      for (const p of smoothPts) {
+                        const d = Math.abs(p.x - evalMs);
+                        if (d < bestActDist) { bestActDist = d; actualBG = p.y; }
+                      }
+
+                      // Look up predicted BG: find closest prediction by base time, then interpolate curve at evalMs
+                      let predBG = null;
+                      let bestPredDist = 10 * 60000;
+                      let bestPred = null;
+                      for (const p of preds) {
+                        const d = Math.abs(p.t - baseMs);
+                        if (d < bestPredDist) { bestPredDist = d; bestPred = p; }
+                      }
+                      if (bestPred) {
+                        const curve = bestPred.curve;
+                        for (let i = 0; i < curve.length - 1; i++) {
+                          const [t0, v0] = curve[i], [t1, v1] = curve[i+1];
+                          if (t0 <= evalMs && evalMs <= t1) {
+                            predBG = v0 + (v1 - v0) * (evalMs - t0) / (t1 - t0);
+                            break;
+                          }
+                        }
+                      }
+
+                      const lines = [
                         `DTS Risk (${hMin}min horizon): ${r.toFixed(2)}  ${level} ${dir}`,
-                        `  Base: ${fmt(baseMs)}  →  Eval: ${fmt(baseMs + hMin * 60000)}`
+                        `  Base: ${fmt(baseMs)}  →  Eval: ${fmt(evalMs)}`,
                       ];
+                      if (predBG != null)   lines.push(`  Predicted BG at eval: ${predBG.toFixed(1)} mg/dL`);
+                      if (actualBG != null) lines.push(`  Actual BG at eval:    ${actualBG.toFixed(1)} mg/dL`);
+                      return lines;
                     }
                   }
                 }
@@ -674,7 +749,23 @@ enum HTMLReportGenerator {
             options: {
               responsive: true, maintainAspectRatio: false, animation: false,
               scales: {
-                x: { ...timeAxis },
+                x: {
+                  type: 'time',
+                  time: { unit: 'hour', displayFormats: { hour: 'MMM d HH:mm' } },
+                  ticks: {
+                    maxTicksLimit: 10,
+                    callback: val => {
+                      const tz = tzSel.value === 'local' ? LOCAL_TZ : tzSel.value;
+                      const use24 = (tz === 'UTC');
+                      return new Intl.DateTimeFormat('en-US', {
+                        month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit', hour12: !use24,
+                        timeZone: tz
+                      }).format(new Date(val));
+                    }
+                  },
+                  grid: { color: '#232638' }
+                },
                 y: {
                   title: { display: true, text: 'mg/dL', color: '#666' },
                   min: 40, max: 350,
@@ -696,6 +787,11 @@ enum HTMLReportGenerator {
 
         slider.addEventListener('input', updatePredPanel);
         sel.addEventListener('change', updatePredPanel);
+        // Timezone change: rebuild timeline charts and pred panel (all labels use fmt())
+        tzSel.addEventListener('change', () => {
+          applyZoom(parseFloat(zoomSlider.value));
+          updatePredPanel();
+        });
         updatePredPanel();
 
         // Initial render
