@@ -115,6 +115,27 @@ public actor EvaluationEngine {
             config: config
         )
 
+        // Pre-compute annotation + insulin effects for the full sweep window.
+        // Annotation is ISF-independent (done once regardless of sensitivityMultiplier).
+        // Effects are computed once for the (possibly scaled) sensitivity timeline
+        // and reused for every step — saving O(D×T) work per step.
+        let sweepInterval = DateInterval(start: interval.start, end: interval.end)
+        let scaledSensitivity = config.sensitivityMultiplier == 1.0
+            ? data.therapyTimeline.sensitivity
+            : data.therapyTimeline.sensitivity.map { entry in
+                let unit = entry.value.unit
+                let scaled = entry.value.doubleValue(for: unit) * config.sensitivityMultiplier
+                return AbsoluteScheduleValue(
+                    startDate: entry.startDate,
+                    endDate: entry.endDate,
+                    value: LoopQuantity(unit: unit, doubleValue: scaled)
+                )
+            }
+        let precomputed = data.precomputedInsulinInput(
+            for: sweepInterval,
+            sensitivity: scaledSensitivity,
+            useMidAbsorptionISF: config.useMidAbsorptionISF
+        )
         var predictions: [PredictionRecord] = []
         var skippedCount = 0
 
@@ -139,12 +160,25 @@ public actor EvaluationEngine {
             }
 
             if let input = builder.buildInput(at: t) {
+                // Slice annotated doses to this step's window and inject the
+                // pre-built effect timeline — no annotation or glucoseEffects
+                // computation inside generatePrediction.
+                // Slice annotated doses to the same window InputWindowBuilder uses.
+                // The ISF in input.sensitivity covers back to
+                // min(nominalLookback, earliestDoseStart) — so we must not
+                // include annotated doses with startDate before that.
+                // Using input.sensitivity.first?.startDate as the floor guarantees
+                // the ISF coverage precondition inside glucoseEffects is satisfied.
+                let doseWindowStart = input.sensitivity.first?.startDate
+                    ?? t.addingTimeInterval(-config.insulinLookbackHours * 3600)
+                let doseWindowEnd = config.includeFutureInsulin
+                    ? t.addingTimeInterval(6 * 3600) : t
+                let stepPrecomputed = precomputed.sliced(from: doseWindowStart, to: doseWindowEnd)
                 let prediction = LoopAlgorithm.generatePrediction(
                     start: t,
                     glucoseHistory: input.glucose,
-                    doses: input.doses,
+                    precomputedInsulin: stepPrecomputed,
                     carbEntries: input.carbs,
-                    basal: input.basal,
                     sensitivity: input.sensitivity,
                     carbRatio: input.carbRatio,
                     algorithmEffectsOptions: .all,
@@ -154,8 +188,10 @@ public actor EvaluationEngine {
                     carbAbsorptionModel: config.carbAbsorptionModel.model
                 )
 
-                // When using future insulin, also compute the no-future-insulin
-                // version so Panel 3 can overlay both curves for comparison.
+                // Optional no-future-insulin overlay (inspect report only, not
+                // on the scoring hot path). Uses the standard raw-dose path since
+                // the dose window changes per step (future doses excluded) which
+                // makes pre-built effects invalid here.
                 var noFuturePredicted: [PredictedGlucoseValue]? = nil
                 if config.includeFutureInsulin,
                    let inputNoFuture = builder.buildInput(at: t, includeFutureInsulin: false) {

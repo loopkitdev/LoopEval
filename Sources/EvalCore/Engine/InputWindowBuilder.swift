@@ -3,6 +3,28 @@
 import Foundation
 import LoopAlgorithm
 
+// MARK: – Binary search helpers
+
+/// Returns the index of the first element whose keyPath value is >= `date`.
+private func lowerBound<T>(_ array: [T], by date: Date, key: KeyPath<T, Date>) -> Int {
+    var lo = 0, hi = array.count
+    while lo < hi {
+        let mid = (lo + hi) / 2
+        if array[mid][keyPath: key] < date { lo = mid + 1 } else { hi = mid }
+    }
+    return lo
+}
+
+/// Returns the index one past the last element whose keyPath value is <= `date`.
+private func upperBound<T>(_ array: [T], by date: Date, key: KeyPath<T, Date>) -> Int {
+    var lo = 0, hi = array.count
+    while lo < hi {
+        let mid = (lo + hi) / 2
+        if array[mid][keyPath: key] <= date { lo = mid + 1 } else { hi = mid }
+    }
+    return lo
+}
+
 // MARK: – PredictionInput
 
 /// The sliced inputs needed to call LoopAlgorithm.generatePrediction at a
@@ -46,13 +68,13 @@ struct InputWindowBuilder: Sendable {
 
         // ── Glucose ─────────────────────────────────────────────────────────────
         let glucoseWindowStart = t.addingTimeInterval(-config.glucoseLookbackHours * 3600)
-        let glucoseSlice = glucose.filter {
-            $0.startDate >= glucoseWindowStart && $0.startDate <= t
-        }
+        let gLo = lowerBound(glucose, by: glucoseWindowStart, key: \.startDate)
+        let gHi = upperBound(glucose, by: t, key: \.startDate)
+        let glucoseSlice = gLo < gHi ? Array(glucose[gLo..<gHi]) : []
 
         // Minimum data check: at least one reading in the last 30 min
         let recentCutoff = t.addingTimeInterval(-30 * 60)
-        guard glucoseSlice.contains(where: { $0.startDate >= recentCutoff }) else {
+        guard glucoseSlice.last.map({ $0.startDate >= recentCutoff }) == true else {
             return nil
         }
 
@@ -64,18 +86,19 @@ struct InputWindowBuilder: Sendable {
         } else {
             doseWindowEnd = t
         }
-        // Keep doses that overlap the window (startDate or endDate inside window,
-        // or dose spans the entire window)
-        let dosesSlice = doses.filter { d in
-            d.startDate <= doseWindowEnd && d.endDate >= doseWindowStart
-        }
+        // Keep doses that overlap [doseWindowStart, doseWindowEnd].
+        // Doses are sorted by startDate; find the first dose that ends after
+        // doseWindowStart, up to the last dose that starts before doseWindowEnd.
+        let dLo = lowerBound(doses, by: doseWindowStart, key: \.endDate)
+        let dHi = upperBound(doses, by: doseWindowEnd, key: \.startDate)
+        let dosesSlice = dLo < dHi ? Array(doses[dLo..<dHi]) : []
 
         // ── Carbs ────────────────────────────────────────────────────────────────
         let carbWindowStart = t.addingTimeInterval(-8 * 3600)
         let carbWindowEnd   = t.addingTimeInterval(6 * 3600)
-        let carbsSlice = carbs.filter {
-            $0.startDate >= carbWindowStart && $0.startDate <= carbWindowEnd
-        }
+        let cLo = lowerBound(carbs, by: carbWindowStart, key: \.startDate)
+        let cHi = upperBound(carbs, by: carbWindowEnd, key: \.startDate)
+        let carbsSlice = cLo < cHi ? Array(carbs[cLo..<cHi]) : []
 
         // ── Earliest dose start (needed for basal + ISF alignment) ──────────────
         // Doses are overlap-filtered: some may have startDates BEFORE basalWindowStart
@@ -145,6 +168,9 @@ struct InputWindowBuilder: Sendable {
             }
         }
 
+        // Apply ISF multiplier (no-op when multiplier == 1.0)
+        sensitivitySlice = applyISFMultiplier(sensitivitySlice)
+
         // ── Carb Ratio ───────────────────────────────────────────────────────────
         // Must cover ALL carb entry startDates: [t-8h, t+6h]
         let crBack = carbWindowStart    // = t - 8h
@@ -187,14 +213,20 @@ struct InputWindowBuilder: Sendable {
 
     // MARK: – Private slicing helpers
 
-    /// Returns schedule entries that overlap `[from, to)`, keeping entries
-    /// sorted and covering the range continuously.
+    /// Returns schedule entries that overlap `[from, to)` using binary search.
+    /// Schedules are contiguous (endDate[i] == startDate[i+1]), so we step back
+    /// one from the lower bound to catch entries that start before `from` but
+    /// end after it.
     private func sliceSchedule(
         _ schedule: [AbsoluteScheduleValue<Double>],
         from: Date,
         to: Date
     ) -> [AbsoluteScheduleValue<Double>] {
-        schedule.filter { $0.endDate > from && $0.startDate < to }
+        var lo = lowerBound(schedule, by: from, key: \.startDate)
+        if lo > 0 { lo -= 1 }
+        let hi = lowerBound(schedule, by: to, key: \.startDate)
+        guard lo < hi else { return [] }
+        return Array(schedule[lo..<hi]).filter { $0.endDate > from }
     }
 
     private func sliceSensitivity(
@@ -202,7 +234,11 @@ struct InputWindowBuilder: Sendable {
         from: Date,
         to: Date
     ) -> [AbsoluteScheduleValue<LoopQuantity>] {
-        schedule.filter { $0.endDate > from && $0.startDate < to }
+        var lo = lowerBound(schedule, by: from, key: \.startDate)
+        if lo > 0 { lo -= 1 }
+        let hi = lowerBound(schedule, by: to, key: \.startDate)
+        guard lo < hi else { return [] }
+        return Array(schedule[lo..<hi]).filter { $0.endDate > from }
     }
 
     private func sliceTarget(
@@ -210,6 +246,28 @@ struct InputWindowBuilder: Sendable {
         from: Date,
         to: Date
     ) -> [AbsoluteScheduleValue<ClosedRange<LoopQuantity>>] {
-        schedule.filter { $0.endDate > from && $0.startDate < to }
+        var lo = lowerBound(schedule, by: from, key: \.startDate)
+        if lo > 0 { lo -= 1 }
+        let hi = lowerBound(schedule, by: to, key: \.startDate)
+        guard lo < hi else { return [] }
+        return Array(schedule[lo..<hi]).filter { $0.endDate > from }
+    }
+
+    /// Apply `config.sensitivityMultiplier` to a sensitivity slice.
+    /// Multiplier > 1 → higher ISF value → less aggressive correction.
+    /// Multiplier < 1 → lower ISF value → more aggressive correction.
+    private func applyISFMultiplier(
+        _ slice: [AbsoluteScheduleValue<LoopQuantity>]
+    ) -> [AbsoluteScheduleValue<LoopQuantity>] {
+        guard config.sensitivityMultiplier != 1.0 else { return slice }
+        return slice.map { entry in
+            let unit = entry.value.unit   // preserve whatever unit Nightscout supplied
+            let scaled = entry.value.doubleValue(for: unit) * config.sensitivityMultiplier
+            return AbsoluteScheduleValue(
+                startDate: entry.startDate,
+                endDate: entry.endDate,
+                value: LoopQuantity(unit: unit, doubleValue: scaled)
+            )
+        }
     }
 }

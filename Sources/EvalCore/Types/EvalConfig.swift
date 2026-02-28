@@ -38,6 +38,13 @@ public struct EvalConfig: Codable, Sendable {
     /// Carb absorption model.  Default: .piecewiseLinear.
     public var carbAbsorptionModel: CarbAbsorptionModel
 
+    /// Multiplicative scalar applied to the ISF (sensitivity) timeline before
+    /// passing to LoopAlgorithm.  1.0 = use values as-is from Nightscout.
+    /// Values > 1.0 make the algorithm more aggressive (lower ISF → more
+    /// correction), values < 1.0 make it more conservative.
+    /// Default: 1.0.
+    public var sensitivityMultiplier: Double
+
     /// How long to wait after `interval.start` before the first evaluated
     /// prediction (seconds).  Default: `insulinLookbackHours` hours.
     ///
@@ -62,6 +69,7 @@ public struct EvalConfig: Codable, Sendable {
         includingPositiveVelocityAndRC: Bool = true,
         useMidAbsorptionISF: Bool = false,
         carbAbsorptionModel: CarbAbsorptionModel = .piecewiseLinear,
+        sensitivityMultiplier: Double = 1.0,
         evalWarmupHours: Double? = nil   // nil → use insulinLookbackHours
     ) {
         self.evalStep                       = evalStep
@@ -74,6 +82,7 @@ public struct EvalConfig: Codable, Sendable {
         self.includingPositiveVelocityAndRC = includingPositiveVelocityAndRC
         self.useMidAbsorptionISF            = useMidAbsorptionISF
         self.carbAbsorptionModel            = carbAbsorptionModel
+        self.sensitivityMultiplier          = sensitivityMultiplier
         self.evalWarmupHours                = evalWarmupHours ?? insulinLookbackHours
     }
 }

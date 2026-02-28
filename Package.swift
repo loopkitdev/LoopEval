@@ -9,7 +9,7 @@ let package = Package(
         .library(name: "EvalCore", targets: ["EvalCore"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/tidepool-org/LoopAlgorithm", branch: "main"),
+        .package(path: "../LoopAlgorithm"),
         // TODO: Re-evaluate NightscoutKit (LoopKit/NightscoutKit) — currently swift-tools-version:5.7
         // and targets iOS/watchOS; may produce Swift 6 strict-concurrency warnings.
         // Add back in Phase 2 when building the Nightscout data source.

@@ -53,6 +53,9 @@ struct EvaluateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Exclude future-scheduled insulin (real-time simulation mode)")
     var noFutureInsulin: Bool = false
 
+    @Option(name: .long, help: "ISF multiplier applied to Nightscout sensitivity values (default: 1.0). Values >1 raise ISF (less aggressive), <1 lower ISF (more aggressive).")
+    var sensitivityMultiplier: Double = 1.0
+
     // MARK: – Output
 
     @Option(name: .long, help: "Output format: table | json | csv")
@@ -78,7 +81,8 @@ struct EvaluateCommand: AsyncParsableCommand {
             evalStep: TimeInterval(stepMinutes) * 60,
             includeFutureInsulin: !noFutureInsulin,
             useIntegralRC: integralRC,
-            kalmanSmoothing: !noKalman
+            kalmanSmoothing: !noKalman,
+            sensitivityMultiplier: sensitivityMultiplier
         )
 
         // 4. Create data source
