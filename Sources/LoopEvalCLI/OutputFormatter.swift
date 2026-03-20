@@ -74,9 +74,9 @@ enum OutputFormatter {
         let sigMin = 60
         let targetStr = String(format: "%.0f–%.0f mg/dL", config.targetLow, config.targetHigh)
         print(" Weighted score (peak \(pkMin) min, σ=\(sigMin) min)  |  Target range: \(targetStr)")
-        print(String(format: "   Overdelivery Risk:   %6.3f", score.weightedOverdeliveryRisk))
-        print(String(format: "   Underdelivery Risk:  %6.3f", score.weightedUnderdeliveryRisk))
-        print(String(format: "   Primary (ODR + UDR):    %6.3f  ← optimization target", score.primaryScore))
+        print(String(format: "   ODR (overdelivery risk):  %6.3f", score.weightedOverdeliveryRisk))
+        print(String(format: "   UDR (underdelivery risk): %6.3f", score.weightedUnderdeliveryRisk))
+        print(String(format: "   Primary (ODR + UDR):         %6.3f  ← optimization target", score.primaryScore))
         print(String(format: "   RMSE:                   %5.1f mg/dL  (reference)", score.weightedRMSE))
         print(String(format: "   BGRI:                   %5.2f        (reference)", score.weightedBGRI))
         print(ruler)
