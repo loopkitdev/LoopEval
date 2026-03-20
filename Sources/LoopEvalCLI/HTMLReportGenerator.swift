@@ -124,7 +124,16 @@ enum HTMLReportGenerator {
         <!-- Panel 4: Error profile by horizon -->
         <div class="panel">
           <h2>Forecast Error Profile by Horizon</h2>
-          <div class="chart-wrap"><canvas id="errorChart"></canvas></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div>
+              <div style="color:#aaa;font-size:12px;margin-bottom:4px;text-align:center">Raw error (mg/dL)</div>
+              <div class="chart-wrap"><canvas id="errorChart"></canvas></div>
+            </div>
+            <div>
+              <div style="color:#aaa;font-size:12px;margin-bottom:4px;text-align:center">Danger scores — hypo vs hyper risk (Clarke-Kovatchev weighted)</div>
+              <div class="chart-wrap"><canvas id="dangerChart"></canvas></div>
+            </div>
+          </div>
         </div>
 
         <script>
@@ -568,6 +577,52 @@ enum HTMLReportGenerator {
               }
             },
             plugins: { legend: { labels: { color: '#aaa', boxWidth: 18 } } }
+          }
+        });
+
+        // ── Panel 2b: Danger scores (DOS / DUS) ──────────────────────────────────
+        new Chart(document.getElementById('dangerChart'), {
+          type: 'line',
+          data: {
+            labels: hp.map(m => m.horizonMin + ' min'),
+            datasets: [
+              {
+                label: 'DOS — hypo risk (over-predictions when BG low)',
+                data: hp.map(m => m.dos),
+                borderColor: '#e05c5c', backgroundColor: 'rgba(224,92,92,0.08)',
+                borderWidth: 2.5, tension: 0.2, fill: false,
+                pointRadius: 3
+              },
+              {
+                label: 'DUS — hyper risk (under-predictions when BG high)',
+                data: hp.map(m => m.dus),
+                borderColor: '#f4a460', backgroundColor: 'rgba(244,164,96,0.08)',
+                borderWidth: 2.5, tension: 0.2, fill: false,
+                pointRadius: 3
+              }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            scales: {
+              x: { grid: { color: '#232638' } },
+              y: {
+                title: { display: true, text: 'Risk-weighted score (lower = safer)', color: '#666' },
+                grid: { color: '#232638' },
+                min: 0
+              }
+            },
+            plugins: {
+              legend: { labels: { color: '#aaa', boxWidth: 18 } },
+              tooltip: {
+                callbacks: {
+                  label: ctx => {
+                    const label = ctx.dataset.label.split('—')[0].trim();
+                    return `${label}: ${ctx.parsed.y.toFixed(3)}`;
+                  }
+                }
+              }
+            }
           }
         });
 
