@@ -49,7 +49,11 @@ public struct EvaluationAnalyzer {
             horizons: effectiveHorizons
         )
 
-        let metrics = ErrorMetrics.compute(results: horizonResults)
+        let metrics = ErrorMetrics.compute(
+            results: horizonResults,
+            targetLow: result.config.targetLow,
+            targetHigh: result.config.targetHigh
+        )
         return (AggregateScore.compute(metrics: metrics), actualForComparison)
     }
 }

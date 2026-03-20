@@ -22,7 +22,16 @@ public struct AggregateScore: Codable, Sendable {
     /// Gaussian-weighted average high-risk-weighted RMSE.
     public let weightedHighRMSE: Double
 
-    /// Combined primary score: `rmseWeight * weightedRMSE + bgriWeight * weightedBGRI`.
+    /// Gaussian-weighted Dangerous Over-prediction Score (DOS).
+    /// Measures over-predictions when BG is below target — avoidable lows.
+    public let weightedDOS: Double
+
+    /// Gaussian-weighted Dangerous Under-prediction Score (DUS).
+    /// Measures under-predictions when BG is above target — avoidable highs.
+    public let weightedDUS: Double
+
+    /// **Primary optimization target: `weightedDOS + weightedDUS`.**
+    /// Lower is better.  Zero means no dangerous mispredictions outside target range.
     public let primaryScore: Double
 
     // MARK: – Factory
@@ -31,22 +40,20 @@ public struct AggregateScore: Codable, Sendable {
     ///
     /// - Parameters:
     ///   - metrics: Per-horizon metrics (may be any order; all horizons contribute).
-    ///   - peakHorizon: The horizon (seconds) that receives maximum weight. Default: 150 min.
+    ///   - peakHorizon: The horizon (seconds) that receives maximum weight. Default: 90 min
+    ///                  (peak rapid insulin action — most consequential for dosing decisions).
     ///   - sigmaSecs: Standard deviation of the Gaussian kernel (seconds). Default: 60 min.
-    ///   - bgriWeight: Weight of BGRI in the primary score. Default: 0.5.
-    ///   - rmseWeight: Weight of RMSE in the primary score. Default: 0.5.
     public static func compute(
         metrics: [HorizonMetrics],
-        peakHorizon: TimeInterval = 150 * 60,
-        sigmaSecs: TimeInterval   = 60 * 60,
-        bgriWeight: Double        = 0.5,
-        rmseWeight: Double        = 0.5
+        peakHorizon: TimeInterval = 90 * 60,
+        sigmaSecs: TimeInterval   = 60 * 60
     ) -> AggregateScore {
         guard !metrics.isEmpty else {
             return AggregateScore(
                 horizonMetrics: [],
                 weightedRMSE: 0, weightedBGRI: 0,
                 weightedLowRMSE: 0, weightedHighRMSE: 0,
+                weightedDOS: 0, weightedDUS: 0,
                 primaryScore: 0
             )
         }
@@ -63,6 +70,7 @@ public struct AggregateScore: Codable, Sendable {
                 horizonMetrics: metrics,
                 weightedRMSE: 0, weightedBGRI: 0,
                 weightedLowRMSE: 0, weightedHighRMSE: 0,
+                weightedDOS: 0, weightedDUS: 0,
                 primaryScore: 0
             )
         }
@@ -75,15 +83,21 @@ public struct AggregateScore: Codable, Sendable {
         var wBGRI: Double = 0
         var wLowRMSE: Double = 0
         var wHighRMSE: Double = 0
+        var wDOS: Double = 0
+        var wDUS: Double = 0
 
         for (m, w) in zip(metrics, weights) {
             wRMSE     += w * m.rmse
             wBGRI     += w * m.bgri
             wLowRMSE  += w * m.lowWeightedRMSE
             wHighRMSE += w * m.highWeightedRMSE
+            wDOS      += w * m.dos
+            wDUS      += w * m.dus
         }
 
-        let primary = rmseWeight * wRMSE + bgriWeight * wBGRI
+        // Primary score = DOS + DUS: penalises only clinically dangerous
+        // mispredictions outside the target BG range.
+        let primary = wDOS + wDUS
 
         return AggregateScore(
             horizonMetrics: metrics,
@@ -91,6 +105,8 @@ public struct AggregateScore: Codable, Sendable {
             weightedBGRI: wBGRI,
             weightedLowRMSE: wLowRMSE,
             weightedHighRMSE: wHighRMSE,
+            weightedDOS: wDOS,
+            weightedDUS: wDUS,
             primaryScore: primary
         )
     }

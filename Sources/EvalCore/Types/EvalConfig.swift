@@ -45,6 +45,16 @@ public struct EvalConfig: Codable, Sendable {
     /// Default: 1.0.
     public var sensitivityMultiplier: Double
 
+    /// Lower bound of the in-target BG range (mg/dL).
+    /// Errors when actual BG is ≥ targetLow are not penalised by the
+    /// Dangerous Over-prediction Score (DOS).  Default: 100.
+    public var targetLow: Double
+
+    /// Upper bound of the in-target BG range (mg/dL).
+    /// Errors when actual BG is ≤ targetHigh are not penalised by the
+    /// Dangerous Under-prediction Score (DUS).  Default: 115.
+    public var targetHigh: Double
+
     /// How long to wait after `interval.start` before the first evaluated
     /// prediction (seconds).  Default: `insulinLookbackHours` hours.
     ///
@@ -70,6 +80,8 @@ public struct EvalConfig: Codable, Sendable {
         useMidAbsorptionISF: Bool = false,
         carbAbsorptionModel: CarbAbsorptionModel = .piecewiseLinear,
         sensitivityMultiplier: Double = 1.0,
+        targetLow: Double = 100.0,
+        targetHigh: Double = 115.0,
         evalWarmupHours: Double? = nil   // nil → use insulinLookbackHours
     ) {
         self.evalStep                       = evalStep
@@ -83,6 +95,8 @@ public struct EvalConfig: Codable, Sendable {
         self.useMidAbsorptionISF            = useMidAbsorptionISF
         self.carbAbsorptionModel            = carbAbsorptionModel
         self.sensitivityMultiplier          = sensitivityMultiplier
+        self.targetLow                      = targetLow
+        self.targetHigh                     = targetHigh
         self.evalWarmupHours                = evalWarmupHours ?? insulinLookbackHours
     }
 }
