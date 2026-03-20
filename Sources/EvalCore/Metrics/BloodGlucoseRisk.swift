@@ -91,7 +91,7 @@ public struct BloodGlucoseRisk {
     ///   the target floor.
     ///
     /// Formula: `sqrt( Σ rl(actual) · max(predicted − actual, 0)² / n )`
-    public static func dangerousOverpredictionScore(
+    public static func overdeliveryRisk(
         errors: [(predicted: Double, actual: Double)],
         targetLow: Double
     ) -> Double {
@@ -118,7 +118,7 @@ public struct BloodGlucoseRisk {
     ///   the target ceiling.
     ///
     /// Formula: `sqrt( Σ rh(actual) · max(actual − predicted, 0)² / n )`
-    public static func dangerousUnderpredictionScore(
+    public static func underdeliveryRisk(
         errors: [(predicted: Double, actual: Double)],
         targetHigh: Double
     ) -> Double {

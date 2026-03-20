@@ -126,8 +126,8 @@ public struct HorizonSummary: Codable, Sendable {
     public let p90: Double
     public let lbgi: Double
     public let hbgi: Double
-    public let dos: Double
-    public let dus: Double
+    public let odr: Double
+    public let udr: Double
 
     public init(from m: HorizonMetrics) {
         self.horizonMin = Int(m.horizon / 60)
@@ -138,8 +138,8 @@ public struct HorizonSummary: Codable, Sendable {
         self.p90   = m.percentile90
         self.lbgi  = m.lbgi
         self.hbgi  = m.hbgi
-        self.dos   = m.dos
-        self.dus   = m.dus
+        self.odr   = m.odr
+        self.udr   = m.udr
     }
 }
 

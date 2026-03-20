@@ -34,7 +34,7 @@ enum OutputFormatter {
         print(ruler)
 
         // Column header
-        let colHeader = " Horizon │    N    │ RMSE  │  MAE  │  Bias  │   DOS  │   DUS"
+        let colHeader = " Horizon │    N    │ RMSE  │  MAE  │  Bias  │   ODR  │   UDR"
         let colDiv    = "─────────┼─────────┼───────┼───────┼────────┼────────┼───────"
         print(colHeader)
         print(colDiv)
@@ -60,8 +60,8 @@ enum OutputFormatter {
                 m.rmse,
                 m.mae,
                 bias,
-                m.dos,
-                m.dus,
+                m.odr,
+                m.udr,
                 marker
             )
             print(row)
@@ -74,9 +74,9 @@ enum OutputFormatter {
         let sigMin = 60
         let targetStr = String(format: "%.0f–%.0f mg/dL", config.targetLow, config.targetHigh)
         print(" Weighted score (peak \(pkMin) min, σ=\(sigMin) min)  |  Target range: \(targetStr)")
-        print(String(format: "   DOS (avoidable lows):   %6.3f", score.weightedDOS))
-        print(String(format: "   DUS (avoidable highs):  %6.3f", score.weightedDUS))
-        print(String(format: "   Primary (DOS + DUS):    %6.3f  ← optimization target", score.primaryScore))
+        print(String(format: "   Overdelivery Risk:   %6.3f", score.weightedOverdeliveryRisk))
+        print(String(format: "   Underdelivery Risk:  %6.3f", score.weightedUnderdeliveryRisk))
+        print(String(format: "   Primary (ODR + UDR):    %6.3f  ← optimization target", score.primaryScore))
         print(String(format: "   RMSE:                   %5.1f mg/dL  (reference)", score.weightedRMSE))
         print(String(format: "   BGRI:                   %5.2f        (reference)", score.weightedBGRI))
         print(ruler)
@@ -102,7 +102,7 @@ enum OutputFormatter {
     /// Print one row per horizon as CSV to stdout.
     static func printCSV(score: AggregateScore) {
         // Header
-        let header = "horizon_min,n,rmse,mae,bias,p10,p90,lbgi,hbgi,bgri,low_wrmse,high_wrmse,dos,dus"
+        let header = "horizon_min,n,rmse,mae,bias,p10,p90,lbgi,hbgi,bgri,low_wrmse,high_wrmse,odr,udr"
         print(header)
 
         // Rows
@@ -114,14 +114,14 @@ enum OutputFormatter {
                              m.percentile10, m.percentile90,
                              m.lbgi, m.hbgi, m.bgri,
                              m.lowWeightedRMSE, m.highWeightedRMSE,
-                             m.dos, m.dus)
+                             m.odr, m.udr)
             print(row)
         }
 
         // Weighted summary footer (as CSV comment)
-        print(String(format: "# weighted: rmse=%.4f bgri=%.4f dos=%.4f dus=%.4f primary=%.4f",
+        print(String(format: "# weighted: rmse=%.4f bgri=%.4f odr=%.4f udr=%.4f primary=%.4f",
                      score.weightedRMSE, score.weightedBGRI,
-                     score.weightedDOS, score.weightedDUS,
+                     score.weightedOverdeliveryRisk, score.weightedUnderdeliveryRisk,
                      score.primaryScore))
     }
 

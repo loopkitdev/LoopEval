@@ -130,7 +130,7 @@ enum HTMLReportGenerator {
               <div class="chart-wrap"><canvas id="errorChart"></canvas></div>
             </div>
             <div>
-              <div style="color:#aaa;font-size:12px;margin-bottom:4px;text-align:center">Danger scores — hypo vs hyper risk (Clarke-Kovatchev weighted)</div>
+              <div style="color:#aaa;font-size:12px;margin-bottom:4px;text-align:center">Delivery risk — overdelivery (red) vs underdelivery (orange), Clarke-Kovatchev weighted</div>
               <div class="chart-wrap"><canvas id="dangerChart"></canvas></div>
             </div>
           </div>
@@ -580,22 +580,22 @@ enum HTMLReportGenerator {
           }
         });
 
-        // ── Panel 2b: Danger scores (DOS / DUS) ──────────────────────────────────
+        // ── Panel 2b: Delivery risk scores ──────────────────────────────────
         new Chart(document.getElementById('dangerChart'), {
           type: 'line',
           data: {
             labels: hp.map(m => m.horizonMin + ' min'),
             datasets: [
               {
-                label: 'DOS — hypo risk (over-predictions when BG low)',
-                data: hp.map(m => m.dos),
+                label: 'Overdelivery Risk — forecast too high, BG ended low',
+                data: hp.map(m => m.odr),
                 borderColor: '#e05c5c', backgroundColor: 'rgba(224,92,92,0.08)',
                 borderWidth: 2.5, tension: 0.2, fill: false,
                 pointRadius: 3
               },
               {
-                label: 'DUS — hyper risk (under-predictions when BG high)',
-                data: hp.map(m => m.dus),
+                label: 'Underdelivery Risk — forecast too low, BG stayed high',
+                data: hp.map(m => m.udr),
                 borderColor: '#f4a460', backgroundColor: 'rgba(244,164,96,0.08)',
                 borderWidth: 2.5, tension: 0.2, fill: false,
                 pointRadius: 3

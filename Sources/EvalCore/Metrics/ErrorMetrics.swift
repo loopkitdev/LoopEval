@@ -43,15 +43,15 @@ public struct HorizonMetrics: Codable, Sendable {
     /// **Dangerous Over-prediction Score (DOS)**
     /// Penalises over-predictions when actual BG is below `targetLow`.
     /// Zero when BG is in-range or high.  Primary safety metric for avoidable lows.
-    public let dos: Double
+    public let odr: Double
 
     /// **Dangerous Under-prediction Score (DUS)**
     /// Penalises under-predictions when actual BG is above `targetHigh`.
     /// Zero when BG is in-range or low.  Primary safety metric for avoidable highs.
-    public let dus: Double
+    public let udr: Double
 
-    /// Combined primary danger score: `dos + dus`.
-    public var dangerScore: Double { dos + dus }
+    /// Combined primary danger score: `odr + udr`.
+    public var dangerScore: Double { odr + udr }
 }
 
 public struct ErrorMetrics {
@@ -72,7 +72,7 @@ public struct ErrorMetrics {
                 percentile10: 0, percentile90: 0,
                 lbgi: 0, hbgi: 0, bgri: 0,
                 lowWeightedRMSE: 0, highWeightedRMSE: 0,
-                dos: 0, dus: 0
+                odr: 0, udr: 0
             )
         }
 
@@ -95,8 +95,8 @@ public struct ErrorMetrics {
         let lowWRMSE  = BloodGlucoseRisk.lowWeightedRMSE(errors: errors)
         let highWRMSE = BloodGlucoseRisk.highWeightedRMSE(errors: errors)
 
-        let dos = BloodGlucoseRisk.dangerousOverpredictionScore(errors: errors, targetLow: targetLow)
-        let dus = BloodGlucoseRisk.dangerousUnderpredictionScore(errors: errors, targetHigh: targetHigh)
+        let odr = BloodGlucoseRisk.overdeliveryRisk(errors: errors, targetLow: targetLow)
+        let udr = BloodGlucoseRisk.underdeliveryRisk(errors: errors, targetHigh: targetHigh)
 
         return HorizonMetrics(
             horizon: result.horizon,
@@ -111,8 +111,8 @@ public struct ErrorMetrics {
             bgri: bgri,
             lowWeightedRMSE: lowWRMSE,
             highWeightedRMSE: highWRMSE,
-            dos: dos,
-            dus: dus
+            odr: odr,
+            udr: udr
         )
     }
 
