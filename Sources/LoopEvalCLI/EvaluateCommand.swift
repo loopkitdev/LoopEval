@@ -61,6 +61,12 @@ struct EvaluateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Output format: table | json | csv")
     var output: String = "table"
 
+    @Option(name: .long, help: "Save a snapshot JSON for later use with `loop-eval compare`")
+    var save: String?
+
+    @Option(name: .long, help: "Label embedded in the snapshot (defaults to the file name)")
+    var label: String?
+
     // MARK: – Run
 
     mutating func run() async throws {
@@ -146,6 +152,27 @@ struct EvaluateCommand: AsyncParsableCommand {
                 skippedCount: result.skippedCount,
                 durationSeconds: totalDuration
             )
+        }
+
+        // 10. Optionally save snapshot for later comparison
+        if let savePath = save {
+            let snapshot = EvalSnapshot(
+                label: label ?? URL(fileURLWithPath: savePath).deletingPathExtension().lastPathComponent,
+                runDate: Date(),
+                intervalStart: startDate,
+                intervalEnd: endDate,
+                insulinType: insulinType,
+                config: config,
+                predictionCount: result.predictionCount,
+                skippedCount: result.skippedCount,
+                score: score
+            )
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.dateEncodingStrategy = .iso8601
+            let data = try encoder.encode(snapshot)
+            try data.write(to: URL(fileURLWithPath: savePath))
+            printStderr("Snapshot saved → \(savePath)\n")
         }
     }
 }
