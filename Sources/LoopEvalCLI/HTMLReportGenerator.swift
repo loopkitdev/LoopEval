@@ -475,14 +475,27 @@ enum HTMLReportGenerator {
                   grid: { color: '#232638' },
                   afterFit: scale => { if (tlYWidth > 0) scale.width = tlYWidth; },
                   ticks: { color: '#888', count: 5,
-                    callback: v => v === 0 ? '0' : (v < 0 ? '−' : '+') + Math.abs(v) }
+                    callback: v => {
+                      if (v === -4) return 'Hypo −4';
+                      if (v ===  4) return 'Hyper +4';
+                      if (v ===  0) return '0';
+                      return (v < 0 ? '−' : '+') + Math.abs(v);
+                    }
+                  }
                 }
               },
               plugins: {
                 legend: { display: false },
                 tooltip: {
                   callbacks: {
-                    title: ctx => fmt(ctx[0].raw.x),
+                    title: ctx => {
+                      const ds = ctx[0].dataset;
+                      const baseMs = ctx[0].raw.x;
+                      const hMin = ds._horizonMin;
+                      if (hMin == null) return fmt(baseMs);
+                      const evalMs = baseMs + hMin * 60000;
+                      return `Forecast at ${fmt(baseMs)}  →  predicted BG at ${fmt(evalMs)}`;
+                    },
                     label: ctx => {
                       const ds = ctx.dataset;
                       if (ds.label === '_zero' || ds.label === '_ref') return null;
@@ -523,11 +536,10 @@ enum HTMLReportGenerator {
                       }
 
                       const lines = [
-                        `DTS Risk (${hMin}min horizon): ${r.toFixed(2)}  ${level} ${dir}`,
-                        `  Base: ${fmt(baseMs)}  →  Eval: ${fmt(evalMs)}`,
+                        `DTS Risk: ${r.toFixed(2)}  ${level} ${dir}`,
                       ];
-                      if (predBG != null)   lines.push(`  Predicted BG at eval: ${predBG.toFixed(1)} mg/dL`);
-                      if (actualBG != null) lines.push(`  Actual BG at eval:    ${actualBG.toFixed(1)} mg/dL`);
+                      if (predBG != null)   lines.push(`  Predicted BG: ${predBG.toFixed(1)} mg/dL`);
+                      if (actualBG != null) lines.push(`  Actual BG:    ${actualBG.toFixed(1)} mg/dL`);
                       return lines;
                     }
                   }
