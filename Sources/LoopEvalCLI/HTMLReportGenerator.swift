@@ -321,7 +321,8 @@ enum HTMLReportGenerator {
 
         let tlChart = null;
         let riskChart = null;
-        let tlYWidth = 0;   // measured left-axis width of timeline chart; applied to risk chart
+        let tlYWidth = 0;      // measured left-axis width of timeline chart; applied to risk chart
+        let tlYRightWidth = 0; // measured right-axis (basal) width; applied as padding to risk chart
         const RISK_HEIGHT = 140;
 
         function buildTimelineChart(zoomFactor) {
@@ -431,7 +432,8 @@ enum HTMLReportGenerator {
                   type: 'linear', position: 'right',
                   title: { display: true, text: 'U/hr', color: '#9b7ed4' },
                   min: 0, grid: { drawOnChartArea: false },
-                  ticks: { color: '#9b7ed4' }
+                  ticks: { color: '#9b7ed4' },
+                  afterFit: scale => { tlYRightWidth = scale.width; }
                 }
               },
               plugins: {
@@ -466,6 +468,7 @@ enum HTMLReportGenerator {
             options: {
               responsive: false, maintainAspectRatio: false, animation: false,
               devicePixelRatio: DPR,
+              layout: { padding: { right: tlYRightWidth } },
               scales: {
                 x: { ...sharedX, ticks: { maxTicksLimit: tickLimit, color: '#888', callback: fmtTick } },
                 y: {
