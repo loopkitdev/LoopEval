@@ -291,7 +291,11 @@ struct BenchCommand: AsyncParsableCommand {
             ? String(format: "+%.1f%%", pct)
             : String(format: "%.1f%%",  pct)
 
-        return String(format: "  %-22s  %8s → %-8s  Δ %-10s  %@ %-7s  %@",
-                      label, aStr, bStr, dStr, arrow, pStr, verdict)
+        let labelPad  = label.padding(toLength: 22, withPad: " ", startingAt: 0)
+        let aPad      = String(repeating: " ", count: max(0, 8 - aStr.count)) + aStr
+        let bPad      = bStr.padding(toLength: 8, withPad: " ", startingAt: 0)
+        let dPad      = dStr.padding(toLength: 10, withPad: " ", startingAt: 0)
+        let pPad      = pStr.padding(toLength: 7, withPad: " ", startingAt: 0)
+        return "  \(labelPad)  \(aPad) → \(bPad)  Δ \(dPad)  \(arrow) \(pPad)  \(verdict)"
     }
 }
