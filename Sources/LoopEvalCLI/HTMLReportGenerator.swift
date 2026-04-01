@@ -56,6 +56,17 @@ enum HTMLReportGenerator {
                            font-size: 0.78em; color: #aaa; }
             .legend-swatch { width: 18px; height: 3px; border-radius: 2px; }
             .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+            .wo-table { width: 100%; border-collapse: collapse; font-size: 0.82em;
+                        background: #0a0d18; border-radius: 6px; overflow: hidden; }
+            .wo-table th { text-align: left; padding: 8px 10px; color: #888;
+                           font-weight: 500; border-bottom: 1px solid #2a2d3a;
+                           font-size: 0.9em; }
+            .wo-table td { padding: 7px 10px; font-family: ui-monospace, 'SF Mono',
+                           Menlo, Monaco, monospace; color: #ddd; }
+            .wo-table tr { cursor: pointer; transition: background 0.15s; }
+            .wo-table tbody tr:hover { background: #1a1d27; }
+            .wo-odr tbody tr { border-left: 3px solid rgba(224,92,92,0.25); }
+            .wo-udr tbody tr { border-left: 3px solid rgba(244,164,96,0.25); }
           </style>
         </head>
         <body>
@@ -120,6 +131,26 @@ enum HTMLReportGenerator {
           <div class="chart-wrap-tall"><canvas id="predChart"></canvas></div>
         </div>
 
+
+        <!-- Panel 3: Worst Offenders -->
+        <div class="panel" id="worstOffendersPanel">
+          <h2>Worst Offenders</h2>
+          <div class="controls" style="margin-bottom:14px;">
+            <label style="color:#999;font-size:0.82em;">Horizon:</label>
+            <select id="woHorizonSel" style="background:#252836;border:1px solid #3a3d4a;color:#ddd;border-radius:5px;padding:4px 8px;font-size:0.82em;"></select>
+            <span id="woNote" style="margin-left:16px;font-size:0.78em;color:#666;"></span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+            <div>
+              <div style="color:#e05c5c;font-size:0.85em;font-weight:500;margin-bottom:8px;">Top ODR Contributors (over-prediction)</div>
+              <table id="woOdrTable" class="wo-table wo-odr"></table>
+            </div>
+            <div>
+              <div style="color:#f4a460;font-size:0.85em;font-weight:500;margin-bottom:8px;">Top UDR Contributors (under-prediction)</div>
+              <table id="woUdrTable" class="wo-table wo-udr"></table>
+            </div>
+          </div>
+        </div>
 
         <!-- Panel 4: Error profile by horizon -->
         <div class="panel">
@@ -848,6 +879,81 @@ enum HTMLReportGenerator {
           updatePredPanel();
         });
         updatePredPanel();
+
+        // ── Panel: Worst Offenders ────────────────────────────────────────────────
+        const woHorizonSel = document.getElementById('woHorizonSel');
+        const woOdrTable = document.getElementById('woOdrTable');
+        const woUdrTable = document.getElementById('woUdrTable');
+        const woNote = document.getElementById('woNote');
+
+        // Populate horizon selector (reuse riskHorizons from above)
+        riskHorizons.forEach(h => {
+          const o = document.createElement('option');
+          o.value = h; o.text = h + ' min';
+          woHorizonSel.appendChild(o);
+        });
+        // Default to 90 min or nearest available
+        const defaultWoH = riskHorizons.find(h => h >= 90) ?? riskHorizons[riskHorizons.length - 1] ?? 60;
+        woHorizonSel.value = defaultWoH;
+
+        function buildWorstOffendersPanel() {
+          const h = parseInt(woHorizonSel.value) || defaultWoH;
+          const pts = riskByHorizon.get(h) || [];
+
+          // Sort for ODR (positive risk = over-prediction) and UDR (negative risk = under-prediction)
+          const sortedOdr = [...pts].sort((a, b) => b.risk - a.risk).slice(0, 10);
+          const sortedUdr = [...pts].sort((a, b) => a.risk - b.risk).slice(0, 10);
+
+          // Helper to find IOB/COB from predictions by nearest timestamp
+          const findPredContext = (tMs) => {
+            let best = null, bestDist = Infinity;
+            for (const p of preds) {
+              const d = Math.abs(p.t - tMs);
+              if (d < bestDist) { bestDist = d; best = p; }
+            }
+            return best && bestDist < 10 * 60000 ? best : null;
+          };
+
+          // Helper to jump to prediction
+          const jumpToPred = (tMs) => {
+            let bestIdx = 0, bestDist = Infinity;
+            preds.forEach((p, i) => {
+              const d = Math.abs(p.t - tMs);
+              if (d < bestDist) { bestDist = d; bestIdx = i; }
+            });
+            const sl = document.getElementById('predSlider');
+            sl.value = bestIdx;
+            sl.dispatchEvent(new Event('input'));
+            document.getElementById('predPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          };
+
+          // Render table
+          const renderTable = (table, rows, isOdr) => {
+            table.innerHTML = `
+              <thead><tr><th>Time</th><th>Risk</th><th>IOB</th><th>COB</th></tr></thead>
+              <tbody>
+                ${rows.map(pt => {
+                  const ctx = findPredContext(pt.t);
+                  const iob = ctx?.iob != null ? ctx.iob.toFixed(2) : '—';
+                  const cob = ctx?.cob != null ? ctx.cob.toFixed(0) : '—';
+                  const risk = pt.risk.toFixed(2);
+                  return `<tr data-t="${pt.t}"><td>${fmt(pt.t)}</td><td>${risk}</td><td>${iob}</td><td>${cob}</td></tr>`;
+                }).join('')}
+              </tbody>
+            `;
+            // Attach click handlers
+            table.querySelectorAll('tbody tr').forEach(tr => {
+              tr.addEventListener('click', () => jumpToPred(parseInt(tr.dataset.t)));
+            });
+          };
+
+          renderTable(woOdrTable, sortedOdr, true);
+          renderTable(woUdrTable, sortedUdr, false);
+          woNote.textContent = `Showing top contributors at ${h} min horizon — click any row to inspect`;
+        }
+
+        woHorizonSel.addEventListener('change', buildWorstOffendersPanel);
+        buildWorstOffendersPanel();
 
         // Initial render
         applyZoom(1.0);
