@@ -36,6 +36,9 @@ struct CompareCommand: ParsableCommand {
     @Flag(name: .long, help: "Show per-horizon detail table in addition to the summary.")
     var detail: Bool = false
 
+    @Option(name: .long, help: "Write a comparison HTML report to this path")
+    var html: String?
+
     // MARK: – Run
 
     func run() throws {
@@ -74,6 +77,24 @@ struct CompareCommand: ParsableCommand {
         }
 
         print(ruler)
+
+        // ── HTML report (opt-in) ─────────────────────────────────────────────────
+        if let htmlPath = html {
+            let meta = ComparisonMeta(
+                baselineLabel: a.label ?? URL(fileURLWithPath: baseline).lastPathComponent,
+                candidateLabel: b.label ?? URL(fileURLWithPath: candidate).lastPathComponent,
+                intervalStart: a.intervalStart,
+                intervalEnd: a.intervalEnd,
+                runDate: Date()
+            )
+            try ComparisonHTMLGenerator.write(
+                baseline: a.score,
+                candidate: b.score,
+                meta: meta,
+                to: URL(fileURLWithPath: htmlPath)
+            )
+            print("Comparison report written → \(htmlPath)")
+        }
     }
 
     // MARK: – Horizon table

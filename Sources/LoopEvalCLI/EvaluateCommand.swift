@@ -67,6 +67,9 @@ struct EvaluateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Label embedded in the snapshot (defaults to the file name)")
     var label: String?
 
+    @Option(name: .long, help: "Write (or update) an ODR/UDR horizon chart HTML to this path. Re-running with the same path stacks runs on the same graph.")
+    var chart: String?
+
     // MARK: – Run
 
     mutating func run() async throws {
@@ -154,7 +157,20 @@ struct EvaluateCommand: AsyncParsableCommand {
             )
         }
 
-        // 10. Optionally save snapshot for later comparison
+        // 10. Optionally write/update ODR/UDR chart HTML
+        if let chartPath = chart {
+            let chartURL = URL(fileURLWithPath: chartPath)
+            let meta = ChartRunMeta(
+                intervalStart: startDate,
+                intervalEnd: endDate,
+                runDate: Date(),
+                label: label
+            )
+            try ChartHTMLGenerator.writeAppending(score: score, meta: meta, to: chartURL)
+            printStderr("Chart written → \(chartPath)\n")
+        }
+
+        // 11. Optionally save snapshot for later comparison
         if let savePath = save {
             let snapshot = EvalSnapshot(
                 label: label ?? URL(fileURLWithPath: savePath).deletingPathExtension().lastPathComponent,

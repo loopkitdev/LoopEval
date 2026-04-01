@@ -45,6 +45,14 @@ public struct EvalConfig: Codable, Sendable {
     /// Default: 1.0.
     public var sensitivityMultiplier: Double
 
+    /// Multiplier applied to carb ratios from Nightscout (default: 1.0).
+    /// Values > 1 make CR larger (less insulin per carb), < 1 make it more aggressive.
+    public var carbRatioMultiplier: Double
+
+    /// Multiplier applied to basal rates from Nightscout (default: 1.0).
+    /// Values > 1 raise basal (more background insulin), < 1 lower it.
+    public var basalRateMultiplier: Double
+
     /// Lower bound of the in-target BG range (mg/dL).
     /// Errors when actual BG is ≥ targetLow are not penalised by the
     /// Dangerous Over-prediction Score (DOS).  Default: 100.
@@ -80,6 +88,8 @@ public struct EvalConfig: Codable, Sendable {
         useMidAbsorptionISF: Bool = false,
         carbAbsorptionModel: CarbAbsorptionModel = .piecewiseLinear,
         sensitivityMultiplier: Double = 1.0,
+        carbRatioMultiplier: Double = 1.0,
+        basalRateMultiplier: Double = 1.0,
         targetLow: Double = 100.0,
         targetHigh: Double = 115.0,
         evalWarmupHours: Double? = nil   // nil → use insulinLookbackHours
@@ -95,6 +105,8 @@ public struct EvalConfig: Codable, Sendable {
         self.useMidAbsorptionISF            = useMidAbsorptionISF
         self.carbAbsorptionModel            = carbAbsorptionModel
         self.sensitivityMultiplier          = sensitivityMultiplier
+        self.carbRatioMultiplier            = carbRatioMultiplier
+        self.basalRateMultiplier            = basalRateMultiplier
         self.targetLow                      = targetLow
         self.targetHigh                     = targetHigh
         self.evalWarmupHours                = evalWarmupHours ?? insulinLookbackHours

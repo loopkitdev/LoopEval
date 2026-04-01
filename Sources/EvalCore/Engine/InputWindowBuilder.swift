@@ -171,6 +171,9 @@ struct InputWindowBuilder: Sendable {
         // Apply ISF multiplier (no-op when multiplier == 1.0)
         sensitivitySlice = applyISFMultiplier(sensitivitySlice)
 
+        // Apply basal rate multiplier (no-op when multiplier == 1.0)
+        basalSlice = applyBasalMultiplier(basalSlice)
+
         // ── Carb Ratio ───────────────────────────────────────────────────────────
         // Must cover ALL carb entry startDates: [t-8h, t+6h]
         let crBack = carbWindowStart    // = t - 8h
@@ -192,6 +195,9 @@ struct InputWindowBuilder: Sendable {
                 carbRatioSlice[li2] = AbsoluteScheduleValue(startDate: carbRatioSlice[li2].startDate, endDate: crFwd, value: carbRatioSlice[li2].value)
             }
         }
+
+        // Apply carb ratio multiplier (no-op when multiplier == 1.0)
+        carbRatioSlice = applyCarbRatioMultiplier(carbRatioSlice)
 
         // ── Target ───────────────────────────────────────────────────────────────
         let targetSlice = sliceTarget(
@@ -267,6 +273,40 @@ struct InputWindowBuilder: Sendable {
                 startDate: entry.startDate,
                 endDate: entry.endDate,
                 value: LoopQuantity(unit: unit, doubleValue: scaled)
+            )
+        }
+    }
+
+    /// Apply `config.carbRatioMultiplier` to a carb ratio slice.
+    /// Multiplier > 1 → larger CR value → less insulin per carb.
+    /// Multiplier < 1 → smaller CR value → more insulin per carb.
+    private func applyCarbRatioMultiplier(
+        _ slice: [AbsoluteScheduleValue<Double>]
+    ) -> [AbsoluteScheduleValue<Double>] {
+        guard config.carbRatioMultiplier != 1.0 else { return slice }
+        return slice.map { entry in
+            let scaled = entry.value * config.carbRatioMultiplier
+            return AbsoluteScheduleValue(
+                startDate: entry.startDate,
+                endDate: entry.endDate,
+                value: scaled
+            )
+        }
+    }
+
+    /// Apply `config.basalRateMultiplier` to a basal schedule slice.
+    /// Multiplier > 1 → higher basal rate → more background insulin.
+    /// Multiplier < 1 → lower basal rate → less background insulin.
+    private func applyBasalMultiplier(
+        _ slice: [AbsoluteScheduleValue<Double>]
+    ) -> [AbsoluteScheduleValue<Double>] {
+        guard config.basalRateMultiplier != 1.0 else { return slice }
+        return slice.map { entry in
+            let scaled = entry.value * config.basalRateMultiplier
+            return AbsoluteScheduleValue(
+                startDate: entry.startDate,
+                endDate: entry.endDate,
+                value: scaled
             )
         }
     }
