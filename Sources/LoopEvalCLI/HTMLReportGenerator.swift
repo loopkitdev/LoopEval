@@ -420,7 +420,7 @@ enum HTMLReportGenerator {
                 document.getElementById('predPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
               },
               scales: {
-                x: { ...sharedX, ticks: { display: false } },
+                x: { ...sharedX, ticks: { maxTicksLimit: tickLimit, color: '#888', callback: fmtTick } },
                 yGlucose: {
                   type: 'linear', position: 'left',
                   title: { display: true, text: 'mg/dL', color: '#666' },
@@ -466,7 +466,6 @@ enum HTMLReportGenerator {
             options: {
               responsive: false, maintainAspectRatio: false, animation: false,
               devicePixelRatio: DPR,
-              layout: { autoPadding: false },
               scales: {
                 x: { ...sharedX, ticks: { maxTicksLimit: tickLimit, color: '#888', callback: fmtTick } },
                 y: {
@@ -560,29 +559,7 @@ enum HTMLReportGenerator {
             }]
           });
 
-          // ── Align chart areas post-render ────────────────────────────────────
-          // autoPadding:false on the risk chart prevents label-overflow padding,
-          // but first/last ticks may still shift the origin slightly.
-          // Read actual chartArea.left of each chart (available synchronously
-          // after Chart.js construction with animation:false) and compensate.
-          requestAnimationFrame(() => {
-            const tlLeft   = tlChart  ? tlChart.chartArea.left   : 0;
-            const riskLeft = riskChart ? riskChart.chartArea.left : 0;
-            const diff = riskLeft - tlLeft;
-            if (Math.abs(diff) > 0.5) {
-              if (diff > 0) {
-                tlChart.options.layout = tlChart.options.layout || {};
-                tlChart.options.layout.padding = tlChart.options.layout.padding || {};
-                tlChart.options.layout.padding.left = diff;
-                tlChart.update('none');
-              } else {
-                riskChart.options.layout = riskChart.options.layout || {};
-                riskChart.options.layout.padding = riskChart.options.layout.padding || {};
-                riskChart.options.layout.padding.left = -diff;
-                riskChart.update('none');
-              }
-            }
-          });
+
         }
 
         // Zoom + risk controls all call buildTimelineChart
