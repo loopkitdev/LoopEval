@@ -466,6 +466,7 @@ enum HTMLReportGenerator {
             options: {
               responsive: false, maintainAspectRatio: false, animation: false,
               devicePixelRatio: DPR,
+              layout: { autoPadding: false },
               scales: {
                 x: { ...sharedX, ticks: { maxTicksLimit: tickLimit, color: '#888', callback: fmtTick } },
                 y: {
@@ -559,26 +560,29 @@ enum HTMLReportGenerator {
             }]
           });
 
-          // ── Align chart areas: compare chartArea.left of both charts and pad
-          // whichever starts further left (DTS x-axis labels cause extra left offset)
-          const tlLeft   = tlChart.chartArea.left;
-          const riskLeft = riskChart.chartArea.left;
-          const leftDiff = riskLeft - tlLeft;
-          if (Math.abs(leftDiff) > 0.5) {
-            if (leftDiff > 0) {
-              // DTS plot starts further right — pad CGM chart to match
-              tlChart.options.layout = tlChart.options.layout || {};
-              tlChart.options.layout.padding = tlChart.options.layout.padding || {};
-              tlChart.options.layout.padding.left = leftDiff;
-              tlChart.update('none');
-            } else {
-              // CGM plot starts further right — pad DTS chart to match
-              riskChart.options.layout = riskChart.options.layout || {};
-              riskChart.options.layout.padding = riskChart.options.layout.padding || {};
-              riskChart.options.layout.padding.left = -leftDiff;
-              riskChart.update('none');
+          // ── Align chart areas post-render ────────────────────────────────────
+          // autoPadding:false on the risk chart prevents label-overflow padding,
+          // but first/last ticks may still shift the origin slightly.
+          // Read actual chartArea.left of each chart (available synchronously
+          // after Chart.js construction with animation:false) and compensate.
+          requestAnimationFrame(() => {
+            const tlLeft   = tlChart  ? tlChart.chartArea.left   : 0;
+            const riskLeft = riskChart ? riskChart.chartArea.left : 0;
+            const diff = riskLeft - tlLeft;
+            if (Math.abs(diff) > 0.5) {
+              if (diff > 0) {
+                tlChart.options.layout = tlChart.options.layout || {};
+                tlChart.options.layout.padding = tlChart.options.layout.padding || {};
+                tlChart.options.layout.padding.left = diff;
+                tlChart.update('none');
+              } else {
+                riskChart.options.layout = riskChart.options.layout || {};
+                riskChart.options.layout.padding = riskChart.options.layout.padding || {};
+                riskChart.options.layout.padding.left = -diff;
+                riskChart.update('none');
+              }
             }
-          }
+          });
         }
 
         // Zoom + risk controls all call buildTimelineChart
