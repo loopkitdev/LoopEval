@@ -542,24 +542,24 @@ enum HTMLReportGenerator {
                     }
                   }
                 }
-              },
-              [{
-                id: 'riskDirectionLabels',
-                afterDraw(chart) {
-                  const { ctx, scales: { y } } = chart;
-                  if (!y) return;
-                  ctx.save();
-                  ctx.font = '10px system-ui';
-                  ctx.textAlign = 'left';
-                  const x = y.right + 4;
-                  ctx.fillStyle = '#e05c5c99';
-                  ctx.fillText('Hyper', x, y.getPixelForValue(4) + 10);
-                  ctx.fillStyle = '#4a9eff99';
-                  ctx.fillText('Hypo', x, y.getPixelForValue(-4) - 3);
-                  ctx.restore();
-                }
-              }]
-            }
+              }
+            },
+            plugins: [{
+              id: 'riskDirectionLabels',
+              afterDraw(chart) {
+                const { ctx, scales: { y } } = chart;
+                if (!y) return;
+                ctx.save();
+                ctx.font = '10px system-ui';
+                ctx.textAlign = 'left';
+                const x = y.right + 4;
+                ctx.fillStyle = '#e05c5c99';
+                ctx.fillText('Hyper', x, y.getPixelForValue(4) + 10);
+                ctx.fillStyle = '#4a9eff99';
+                ctx.fillText('Hypo', x, y.getPixelForValue(-4) - 3);
+                ctx.restore();
+              }
+            }]
           });
         }
 
