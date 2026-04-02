@@ -478,12 +478,7 @@ enum HTMLReportGenerator {
                   grid: { color: '#232638' },
                   afterFit: scale => { if (tlYWidth > 0) scale.width = tlYWidth; },
                   ticks: { color: '#888', count: 5,
-                    callback: v => {
-                      if (v === -4) return 'Hypo −4';
-                      if (v ===  4) return 'Hyper +4';
-                      if (v ===  0) return '0';
-                      return (v < 0 ? '−' : '+') + Math.abs(v);
-                    }
+                    callback: v => v === 0 ? '0' : (v < 0 ? '−' : '+') + Math.abs(v)
                   }
                 }
               },
@@ -547,7 +542,23 @@ enum HTMLReportGenerator {
                     }
                   }
                 }
-              }
+              },
+              [{
+                id: 'riskDirectionLabels',
+                afterDraw(chart) {
+                  const { ctx, scales: { y } } = chart;
+                  if (!y) return;
+                  ctx.save();
+                  ctx.font = '10px system-ui';
+                  ctx.textAlign = 'left';
+                  const x = y.right + 4;
+                  ctx.fillStyle = '#e05c5c99';
+                  ctx.fillText('Hyper', x, y.getPixelForValue(4) + 10);
+                  ctx.fillStyle = '#4a9eff99';
+                  ctx.fillText('Hypo', x, y.getPixelForValue(-4) - 3);
+                  ctx.restore();
+                }
+              }]
             }
           });
         }
