@@ -321,8 +321,7 @@ enum HTMLReportGenerator {
 
         let tlChart = null;
         let riskChart = null;
-        let tlYWidth = 0;      // measured left-axis width of timeline chart; applied to risk chart
-        let tlYRightWidth = 0; // measured right-axis (basal) width; applied as padding to risk chart
+        let tlYWidth = 0;   // measured left-axis width of timeline chart; applied to risk chart
         const RISK_HEIGHT = 140;
 
         function buildTimelineChart(zoomFactor) {
@@ -432,8 +431,7 @@ enum HTMLReportGenerator {
                   type: 'linear', position: 'right',
                   title: { display: true, text: 'U/hr', color: '#9b7ed4' },
                   min: 0, grid: { drawOnChartArea: false },
-                  ticks: { color: '#9b7ed4' },
-                  afterFit: scale => { tlYRightWidth = scale.width; }
+                  ticks: { color: '#9b7ed4' }
                 }
               },
               plugins: {
@@ -468,7 +466,6 @@ enum HTMLReportGenerator {
             options: {
               responsive: false, maintainAspectRatio: false, animation: false,
               devicePixelRatio: DPR,
-              layout: { padding: { right: tlYRightWidth } },
               scales: {
                 x: { ...sharedX, ticks: { maxTicksLimit: tickLimit, color: '#888', callback: fmtTick } },
                 y: {
@@ -480,7 +477,7 @@ enum HTMLReportGenerator {
                   ticks: { color: '#888', count: 5,
                     callback: v => v === 0 ? '0' : (v < 0 ? '−' : '+') + Math.abs(v)
                   }
-                }
+                },
               },
               plugins: {
                 legend: { display: false },
@@ -561,6 +558,27 @@ enum HTMLReportGenerator {
               }
             }]
           });
+
+          // ── Align chart areas: compare chartArea.left of both charts and pad
+          // whichever starts further left (DTS x-axis labels cause extra left offset)
+          const tlLeft   = tlChart.chartArea.left;
+          const riskLeft = riskChart.chartArea.left;
+          const leftDiff = riskLeft - tlLeft;
+          if (Math.abs(leftDiff) > 0.5) {
+            if (leftDiff > 0) {
+              // DTS plot starts further right — pad CGM chart to match
+              tlChart.options.layout = tlChart.options.layout || {};
+              tlChart.options.layout.padding = tlChart.options.layout.padding || {};
+              tlChart.options.layout.padding.left = leftDiff;
+              tlChart.update('none');
+            } else {
+              // CGM plot starts further right — pad DTS chart to match
+              riskChart.options.layout = riskChart.options.layout || {};
+              riskChart.options.layout.padding = riskChart.options.layout.padding || {};
+              riskChart.options.layout.padding.left = -leftDiff;
+              riskChart.update('none');
+            }
+          }
         }
 
         // Zoom + risk controls all call buildTimelineChart
