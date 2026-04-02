@@ -256,10 +256,8 @@ struct BenchCommand: AsyncParsableCommand {
         print(sep)
 
         let rows: [(label: String, a: Double, b: Double, lowerBetter: Bool)] = [
-            ("Primary  (ODR+UDR)", baseline.primaryScore,              candidate.primaryScore,              true),
-            ("ODR  (overdelivery)", baseline.weightedOverdeliveryRisk,  candidate.weightedOverdeliveryRisk,  true),
-            ("UDR (underdelivery)", baseline.weightedUnderdeliveryRisk, candidate.weightedUnderdeliveryRisk, true),
-            ("RMSE       (mg/dL)", baseline.weightedRMSE,               candidate.weightedRMSE,               true),
+            ("RMSE       (mg/dL)", baseline.weightedRMSE,  candidate.weightedRMSE,  true),
+            ("BGRI",               baseline.weightedBGRI,  candidate.weightedBGRI,  true),
         ]
 
         for row in rows {

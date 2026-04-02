@@ -18,7 +18,6 @@ enum OutputFormatter {
         durationSeconds: Double
     ) {
         let ruler = String(repeating: "━", count: 70)
-        let sep   = String(repeating: "─", count: 70)
 
         // Header
         let days = interval.duration / 86400
@@ -34,8 +33,8 @@ enum OutputFormatter {
         print(ruler)
 
         // Column header
-        let colHeader = " Horizon │    N    │ RMSE  │  MAE  │  Bias  │   ODR  │   UDR"
-        let colDiv    = "─────────┼─────────┼───────┼───────┼────────┼────────┼───────"
+        let colHeader = " Horizon │    N    │ RMSE  │  MAE  │  Bias  │  BGRI"
+        let colDiv    = "─────────┼─────────┼───────┼───────┼────────┼───────"
         print(colHeader)
         print(colDiv)
 
@@ -54,14 +53,13 @@ enum OutputFormatter {
                 ? String(format: " +%.1f", m.meanError)
                 : String(format: " %.1f", m.meanError)
 
-            let row = String(format: " %4d min │ %7d │ %5.1f │ %5.1f │%@  │ %6.3f │ %6.3f%@",
+            let row = String(format: " %4d min │ %7d │ %5.1f │ %5.1f │%@  │ %5.2f%@",
                 hMin,
                 m.sampleCount,
                 m.rmse,
                 m.mae,
                 bias,
-                m.odr,
-                m.udr,
+                m.bgri,
                 marker
             )
             print(row)
@@ -72,16 +70,10 @@ enum OutputFormatter {
         // Weighted summary
         let pkMin = Int(peakHorizon / 60)
         let sigMin = 60
-        let targetStr = String(format: "%.0f–%.0f mg/dL", config.targetLow, config.targetHigh)
-        print(" Weighted score (peak \(pkMin) min, σ=\(sigMin) min)  |  Target range: \(targetStr)")
-        print(String(format: "   ODR (overdelivery risk):  %6.3f", score.weightedOverdeliveryRisk))
-        print(String(format: "   UDR (underdelivery risk): %6.3f", score.weightedUnderdeliveryRisk))
-        print(String(format: "   Primary (ODR + UDR):         %6.3f  ← optimization target", score.primaryScore))
-        print(String(format: "   RMSE:                   %5.1f mg/dL  (reference)", score.weightedRMSE))
-        print(String(format: "   BGRI:                   %5.2f        (reference)", score.weightedBGRI))
+        print(" Weighted score (peak \(pkMin) min, σ=\(sigMin) min)")
+        print(String(format: "   RMSE:                   %5.1f mg/dL", score.weightedRMSE))
+        print(String(format: "   BGRI:                   %5.2f", score.weightedBGRI))
         print(ruler)
-
-        _ = sep  // suppress unused-variable warning
     }
 
     // MARK: – JSON output
@@ -102,27 +94,24 @@ enum OutputFormatter {
     /// Print one row per horizon as CSV to stdout.
     static func printCSV(score: AggregateScore) {
         // Header
-        let header = "horizon_min,n,rmse,mae,bias,p10,p90,lbgi,hbgi,bgri,low_wrmse,high_wrmse,odr,udr"
+        let header = "horizon_min,n,rmse,mae,bias,p10,p90,lbgi,hbgi,bgri,low_wrmse,high_wrmse"
         print(header)
 
         // Rows
         for m in score.horizonMetrics {
             let hMin = Int(m.horizon / 60)
             let row = "\(hMin),\(m.sampleCount)," +
-                      String(format: "%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f",
+                      String(format: "%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f",
                              m.rmse, m.mae, m.meanError,
                              m.percentile10, m.percentile90,
                              m.lbgi, m.hbgi, m.bgri,
-                             m.lowWeightedRMSE, m.highWeightedRMSE,
-                             m.odr, m.udr)
+                             m.lowWeightedRMSE, m.highWeightedRMSE)
             print(row)
         }
 
         // Weighted summary footer (as CSV comment)
-        print(String(format: "# weighted: rmse=%.4f bgri=%.4f odr=%.4f udr=%.4f primary=%.4f",
-                     score.weightedRMSE, score.weightedBGRI,
-                     score.weightedOverdeliveryRisk, score.weightedUnderdeliveryRisk,
-                     score.primaryScore))
+        print(String(format: "# weighted: rmse=%.4f bgri=%.4f",
+                     score.weightedRMSE, score.weightedBGRI))
     }
 
     // MARK: – Helpers

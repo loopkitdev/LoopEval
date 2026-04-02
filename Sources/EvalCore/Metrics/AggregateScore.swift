@@ -22,18 +22,6 @@ public struct AggregateScore: Codable, Sendable {
     /// Gaussian-weighted average high-risk-weighted RMSE.
     public let weightedHighRMSE: Double
 
-    /// Gaussian-weighted Dangerous Over-prediction Score (DOS).
-    /// Measures over-predictions when BG is below target — avoidable lows.
-    public let weightedOverdeliveryRisk: Double
-
-    /// Gaussian-weighted Dangerous Under-prediction Score (DUS).
-    /// Measures under-predictions when BG is above target — avoidable highs.
-    public let weightedUnderdeliveryRisk: Double
-
-    /// **Primary optimization target: `weightedOverdeliveryRisk + weightedUnderdeliveryRisk`.**
-    /// Lower is better.  Zero means no dangerous mispredictions outside target range.
-    public let primaryScore: Double
-
     // MARK: – Factory
 
     /// Compute an aggregate score using Gaussian horizon weights.
@@ -52,9 +40,7 @@ public struct AggregateScore: Codable, Sendable {
             return AggregateScore(
                 horizonMetrics: [],
                 weightedRMSE: 0, weightedBGRI: 0,
-                weightedLowRMSE: 0, weightedHighRMSE: 0,
-                weightedOverdeliveryRisk: 0, weightedUnderdeliveryRisk: 0,
-                primaryScore: 0
+                weightedLowRMSE: 0, weightedHighRMSE: 0
             )
         }
 
@@ -69,9 +55,7 @@ public struct AggregateScore: Codable, Sendable {
             return AggregateScore(
                 horizonMetrics: metrics,
                 weightedRMSE: 0, weightedBGRI: 0,
-                weightedLowRMSE: 0, weightedHighRMSE: 0,
-                weightedOverdeliveryRisk: 0, weightedUnderdeliveryRisk: 0,
-                primaryScore: 0
+                weightedLowRMSE: 0, weightedHighRMSE: 0
             )
         }
 
@@ -83,31 +67,20 @@ public struct AggregateScore: Codable, Sendable {
         var wBGRI: Double = 0
         var wLowRMSE: Double = 0
         var wHighRMSE: Double = 0
-        var wODR: Double = 0
-        var wUDR: Double = 0
 
         for (m, w) in zip(metrics, weights) {
             wRMSE     += w * m.rmse
             wBGRI     += w * m.bgri
             wLowRMSE  += w * m.lowWeightedRMSE
             wHighRMSE += w * m.highWeightedRMSE
-            wODR      += w * m.odr
-            wUDR      += w * m.udr
         }
-
-        // Primary score = DOS + DUS: penalises only clinically dangerous
-        // mispredictions outside the target BG range.
-        let primary = wODR + wUDR
 
         return AggregateScore(
             horizonMetrics: metrics,
             weightedRMSE: wRMSE,
             weightedBGRI: wBGRI,
             weightedLowRMSE: wLowRMSE,
-            weightedHighRMSE: wHighRMSE,
-            weightedOverdeliveryRisk: wODR,
-            weightedUnderdeliveryRisk: wUDR,
-            primaryScore: primary
+            weightedHighRMSE: wHighRMSE
         )
     }
 }

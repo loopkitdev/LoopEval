@@ -107,6 +107,21 @@ struct InspectCommand: AsyncParsableCommand {
         let analyzer = EvaluationAnalyzer(smoother: smoother)
         let (score, smoothedActual) = analyzer.analyzeWithSmoothed(result: result)
 
+        // ── Insulin-informed Kalman smoothing (visualization only) ───────────────
+        let insulinKalmanSmoothed: [EvalGlucoseSample]?
+        if config.kalmanSmoothing {
+            printStderr("Running insulin-informed Kalman smoother...")
+            let insulinSmoother = InsulinInformedKalmanSmoother()
+            insulinKalmanSmoothed = insulinSmoother.smooth(
+                samples: result.actual,
+                doses: preloaded.doses,
+                isfSchedule: preloaded.therapyTimeline.sensitivity
+            )
+            printStderr(" done\n")
+        } else {
+            insulinKalmanSmoothed = nil
+        }
+
         // ── Fetch Nightscout devicestatus for NS forecast overlay ─────────────────
         printStderr("Fetching Nightscout devicestatus...")
         let nsPredictions: [NsPrediction]
@@ -165,6 +180,7 @@ struct InspectCommand: AsyncParsableCommand {
         let bundle = InspectionBundleBuilder.build(
             result: result,
             smoothed: config.kalmanSmoothing ? smoothedActual : nil,
+            insulinKalmanSmoothed: insulinKalmanSmoothed,
             score: score,
             doses: preloaded.doses,
             carbs: preloaded.carbs,

@@ -80,6 +80,7 @@ enum HTMLReportGenerator {
           <div class="legend-row">
             <div class="legend-item"><div class="legend-dot" style="background:#5b9bd5"></div> Raw CGM</div>
             <div class="legend-item"><div class="legend-swatch" style="background:#7eb8f7"></div> Smoothed CGM</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:rgba(0,180,180,0.85)"></div> Insulin-Kalman (exp)</div>
             <div class="legend-item"><div class="legend-swatch" style="background:#9b7ed4"></div> Basal — temp (U/hr, right axis)</div>
             <div class="legend-item"><div class="legend-swatch" style="background:#9b7ed450;border:1px dashed #9b7ed4"></div> Basal — scheduled (U/hr, right axis)</div>
             <div class="legend-item"><div class="legend-dot" style="background:#f4a460;width:10px;height:10px;border-radius:0;clip-path:polygon(50% 0%,100% 100%,0% 100%)"></div> Bolus (U)</div>
@@ -119,6 +120,7 @@ enum HTMLReportGenerator {
             <div class="legend-item"><div class="legend-swatch" style="background:#f4a460;border-bottom:2px dashed #f4a460;"></div> Prediction (algo)</div>
             <div class="legend-item"><div class="legend-swatch" style="background:#50c8a8;border-bottom:2px dashed #50c8a8;"></div> Loop (NS stored)</div>
             <div class="legend-item"><div class="legend-swatch" style="background:#7eb8f7"></div> Smoothed CGM</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:rgba(0,180,180,0.85)"></div> Insulin-Kalman (exp)</div>
             <div class="legend-item"><div class="legend-dot" style="background:#5b9bd5"></div> Raw CGM</div>
           </div>
           <div class="controls">
@@ -224,6 +226,7 @@ enum HTMLReportGenerator {
         // ── Panel 1: Timeline (scrollable) ────────────────────────────────────────
         const rawPts    = BUNDLE.rawGlucose.map(p => ({x: p.t, y: p.v}));
         const smoothPts = BUNDLE.smoothedGlucose.map(p => ({x: p.t, y: p.v}));
+        const insulinKalmanPts = BUNDLE.insulinKalmanGlucose.map(p => ({x: p.t, y: p.v}));
 
         const bolusPts = BUNDLE.doses
           .filter(d => d.isBolus)
@@ -381,6 +384,10 @@ enum HTMLReportGenerator {
                   pointRadius: 0, showLine: true,
                   borderColor: '#7eb8f7', borderWidth: 2, tension: 0.3,
                   yAxisID: 'yGlucose', order: 3 },
+                { label: 'Insulin-Kalman (exp)', data: insulinKalmanPts,
+                  pointRadius: 0, showLine: true,
+                  borderColor: 'rgba(0, 180, 180, 0.85)', borderWidth: 1.5, tension: 0.3,
+                  yAxisID: 'yGlucose', order: 2 },
                 { label: 'Basal — temp (U/hr)', data: basalTempPts,
                   pointRadius: 0, showLine: true, stepped: 'before', spanGaps: false,
                   borderColor: '#9b7ed4', backgroundColor: 'rgba(155,126,212,0.18)',
@@ -772,6 +779,11 @@ enum HTMLReportGenerator {
             .filter(p => p.t >= tMs - kalmanContextMs && p.t <= futureEnd)
             .map(p => ({x: p.t, y: p.v}));
 
+          // Insulin-informed Kalman: same time window as futureSmoothed
+          const futureInsulinKalman = BUNDLE.insulinKalmanGlucose
+            .filter(p => p.t >= tMs - kalmanContextMs && p.t <= futureEnd)
+            .map(p => ({x: p.t, y: p.v}));
+
           // Prediction curve
           const predCurve = pred.curve.map(([t,v]) => ({x: t, y: v}));
           // No-future-insulin variant (null when not applicable)
@@ -820,6 +832,12 @@ enum HTMLReportGenerator {
                   data: futureSmoothed,
                   pointRadius: 0, showLine: true,
                   borderColor: '#7eb8f7', borderWidth: 2, tension: 0.3, order: 3
+                },
+                {
+                  label: 'Insulin-Kalman (exp)',
+                  data: futureInsulinKalman,
+                  pointRadius: 0, showLine: true,
+                  borderColor: 'rgba(0, 180, 180, 0.85)', borderWidth: 1.5, tension: 0.3, order: 3
                 },
                 {
                   label: 'Prediction (w/ future insulin)',

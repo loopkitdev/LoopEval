@@ -1,9 +1,9 @@
 // ComparisonHTMLGenerator.swift — generates a self-contained comparison HTML report
 //
 // Compares two AggregateScore values (baseline vs candidate) with:
-//   - Verdict banner showing primary score change
-//   - ODR/UDR dual-axis chart (baseline solid, candidate dashed)
-//   - Score cards grid (2 rows × 4 columns)
+//   - Verdict banner showing RMSE change
+//   - RMSE/BGRI dual-axis chart (baseline solid, candidate dashed)
+//   - Score cards grid
 //   - Per-horizon delta table
 
 import EvalCore
@@ -43,17 +43,14 @@ enum ComparisonHTMLGenerator {
         meta: ComparisonMeta
     ) -> String {
 
-        // ── Verdict calculation ───────────────────────────────────────────────────
-        let primaryDelta = candidate.primaryScore - baseline.primaryScore
-        let primaryPct = baseline.primaryScore != 0
-            ? (primaryDelta / abs(baseline.primaryScore)) * 100
+        // ── Verdict calculation (based on RMSE) ───────────────────────────────────
+        let rmseDelta = candidate.weightedRMSE - baseline.weightedRMSE
+        let rmsePct = baseline.weightedRMSE != 0
+            ? (rmseDelta / abs(baseline.weightedRMSE)) * 100
             : 0
 
-        let odrDelta = candidate.weightedOverdeliveryRisk - baseline.weightedOverdeliveryRisk
-        let udrDelta = candidate.weightedUnderdeliveryRisk - baseline.weightedUnderdeliveryRisk
-
-        let improved = primaryDelta < 0
-        let neutral = abs(primaryPct) < 1.0
+        let improved = rmseDelta < 0
+        let neutral = abs(rmsePct) < 1.0
 
         let verdictColor: String
         let verdictIcon: String
@@ -62,27 +59,15 @@ enum ComparisonHTMLGenerator {
         if neutral {
             verdictColor = "#b8a038"  // yellow
             verdictIcon = "≈"
-            verdictText = String(format: "Primary score unchanged (%.1f%%)", abs(primaryPct))
+            verdictText = String(format: "RMSE unchanged (%.1f%%)", abs(rmsePct))
         } else if improved {
             verdictColor = "#5cb85c"  // green
             verdictIcon = "✓"
-            var changes: [String] = []
-            if odrDelta < 0 { changes.append("ODR ↓") }
-            if udrDelta < 0 { changes.append("UDR ↓") }
-            if odrDelta > 0 { changes.append("ODR ↑") }
-            if udrDelta > 0 { changes.append("UDR ↑") }
-            let changeStr = changes.isEmpty ? "" : " (\(changes.joined(separator: " ")))"
-            verdictText = String(format: "Primary score improved %.1f%%%@ %@", abs(primaryPct), changeStr, verdictIcon)
+            verdictText = String(format: "RMSE improved %.1f%% %@", abs(rmsePct), verdictIcon)
         } else {
             verdictColor = "#e05c5c"  // red
             verdictIcon = "✗"
-            var changes: [String] = []
-            if odrDelta > 0 { changes.append("ODR ↑") }
-            if udrDelta > 0 { changes.append("UDR ↑") }
-            if odrDelta < 0 { changes.append("ODR ↓") }
-            if udrDelta < 0 { changes.append("UDR ↓") }
-            let changeStr = changes.isEmpty ? "" : " (\(changes.joined(separator: " ")))"
-            verdictText = String(format: "Primary score regressed %.1f%%%@ %@", abs(primaryPct), changeStr, verdictIcon)
+            verdictText = String(format: "RMSE regressed %.1f%% %@", abs(rmsePct), verdictIcon)
         }
 
         // ── Chart data ────────────────────────────────────────────────────────────
@@ -92,23 +77,23 @@ enum ComparisonHTMLGenerator {
         let horizons = baselineSorted.map { Int($0.horizon / 60) }
         let labelsJS = horizons.map { "\"\($0) min\"" }.joined(separator: ", ")
 
-        let baselineODR = baselineSorted.map { String(format: "%.3f", $0.odr) }.joined(separator: ", ")
-        let baselineUDR = baselineSorted.map { String(format: "%.3f", $0.udr) }.joined(separator: ", ")
-        let candidateODR = candidateSorted.map { String(format: "%.3f", $0.odr) }.joined(separator: ", ")
-        let candidateUDR = candidateSorted.map { String(format: "%.3f", $0.udr) }.joined(separator: ", ")
+        let baselineRMSE = baselineSorted.map { String(format: "%.1f", $0.rmse) }.joined(separator: ", ")
+        let baselineBGRI = baselineSorted.map { String(format: "%.2f", $0.bgri) }.joined(separator: ", ")
+        let candidateRMSE = candidateSorted.map { String(format: "%.1f", $0.rmse) }.joined(separator: ", ")
+        let candidateBGRI = candidateSorted.map { String(format: "%.2f", $0.bgri) }.joined(separator: ", ")
 
         // ── Score cards ───────────────────────────────────────────────────────────
-        func deltaCard(_ label: String, baseVal: Double, candVal: Double, colorClass: String) -> String {
+        func deltaCard(_ label: String, baseVal: Double, candVal: Double, colorClass: String, fmt: String = "%.1f") -> String {
             let delta = candVal - baseVal
             let pct = baseVal != 0 ? (delta / abs(baseVal)) * 100 : 0
             let arrow = delta < 0 ? "▼" : (delta > 0 ? "▲" : "=")
             let mark = abs(delta) < 1e-9 ? "" : (delta < 0 ? "✓" : "✗")
-            let deltaStr = String(format: "Δ %.1f %@ %.1f%% %@", delta, arrow, abs(pct), mark)
+            let deltaStr = String(format: "Δ \(fmt) %@ %.1f%% %@", delta, arrow, abs(pct), mark)
 
             return """
             <div class="score-card \(colorClass)">
               <div class="lbl">\(label)</div>
-              <div class="val">\(String(format: "%.1f", candVal))</div>
+              <div class="val">\(String(format: fmt, candVal))</div>
               <div class="delta">\(deltaStr)</div>
             </div>
             """
@@ -117,20 +102,16 @@ enum ComparisonHTMLGenerator {
         let baselineCardsHTML = """
         <div class="row-label">Baseline: \(escapeHTML(meta.baselineLabel))</div>
         <div class="score-row">
-          <div class="score-card danger"><div class="lbl">ODR</div><div class="val">\(String(format: "%.1f", baseline.weightedOverdeliveryRisk))</div></div>
-          <div class="score-card warn-card"><div class="lbl">UDR</div><div class="val">\(String(format: "%.1f", baseline.weightedUnderdeliveryRisk))</div></div>
-          <div class="score-card primary-card"><div class="lbl">Primary</div><div class="val">\(String(format: "%.1f", baseline.primaryScore))</div></div>
           <div class="score-card rmse-card"><div class="lbl">RMSE</div><div class="val">\(String(format: "%.1f", baseline.weightedRMSE))</div></div>
+          <div class="score-card bgri-card"><div class="lbl">BGRI</div><div class="val">\(String(format: "%.2f", baseline.weightedBGRI))</div></div>
         </div>
         """
 
         let candidateCardsHTML = """
         <div class="row-label">Candidate: \(escapeHTML(meta.candidateLabel))</div>
         <div class="score-row">
-          \(deltaCard("ODR", baseVal: baseline.weightedOverdeliveryRisk, candVal: candidate.weightedOverdeliveryRisk, colorClass: "danger"))
-          \(deltaCard("UDR", baseVal: baseline.weightedUnderdeliveryRisk, candVal: candidate.weightedUnderdeliveryRisk, colorClass: "warn-card"))
-          \(deltaCard("Primary", baseVal: baseline.primaryScore, candVal: candidate.primaryScore, colorClass: "primary-card"))
           \(deltaCard("RMSE", baseVal: baseline.weightedRMSE, candVal: candidate.weightedRMSE, colorClass: "rmse-card"))
+          \(deltaCard("BGRI", baseVal: baseline.weightedBGRI, candVal: candidate.weightedBGRI, colorClass: "bgri-card", fmt: "%.2f"))
         </div>
         """
 
@@ -141,9 +122,8 @@ enum ComparisonHTMLGenerator {
             guard let cm = candidateMap[bm.horizon] else { continue }
             let hMin = Int(bm.horizon / 60)
             let rmseCell = deltaCell(bm.rmse, cm.rmse, fmt: "%.1f")
-            let odrCell  = deltaCell(bm.odr, cm.odr, fmt: "%.3f")
-            let udrCell  = deltaCell(bm.udr, cm.udr, fmt: "%.3f")
-            tableRows += "<tr><td>\(hMin) min</td><td>\(rmseCell)</td><td>\(odrCell)</td><td>\(udrCell)</td></tr>\n"
+            let bgriCell = deltaCell(bm.bgri, cm.bgri, fmt: "%.2f")
+            tableRows += "<tr><td>\(hMin) min</td><td>\(rmseCell)</td><td>\(bgriCell)</td></tr>\n"
         }
 
         // ── Timestamp ─────────────────────────────────────────────────────────────
@@ -189,17 +169,15 @@ enum ComparisonHTMLGenerator {
 
           /* Score cards */
           .row-label { font-size: 0.9rem; color: var(--muted); margin: 16px 0 8px; font-weight: 500; }
-          .score-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+          .score-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
           @media (max-width: 640px) { .score-row { grid-template-columns: 1fr 1fr; } }
           .score-card { background: #0a0d18; border: 1px solid var(--border);
                         border-radius: 8px; padding: 14px; text-align: center; }
           .score-card .val { font-size: 1.6rem; font-weight: 700; margin: 6px 0 2px; }
           .score-card .lbl { font-size: 0.75rem; color: var(--muted); }
           .score-card .delta { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
-          .score-card.danger .val { color: var(--red); }
-          .score-card.warn-card .val { color: var(--orange); }
-          .score-card.primary-card .val { color: var(--accent); }
           .score-card.rmse-card .val { color: var(--teal); }
+          .score-card.bgri-card .val { color: var(--orange); }
 
           /* Table */
           table { width: 100%; border-collapse: collapse; margin-top: 16px; }
@@ -222,7 +200,7 @@ enum ComparisonHTMLGenerator {
           </div>
 
           <div class="panel">
-            <strong>ODR / UDR by Horizon</strong>
+            <strong>RMSE / BGRI by Horizon</strong>
             <div class="chart-wrap"><canvas id="compChart"></canvas></div>
           </div>
 
@@ -236,7 +214,7 @@ enum ComparisonHTMLGenerator {
             <strong>Per-Horizon Delta</strong>
             <table>
               <thead>
-                <tr><th>Horizon</th><th>RMSE (A→B)</th><th>ODR (A→B)</th><th>UDR (A→B)</th></tr>
+                <tr><th>Horizon</th><th>RMSE (A→B)</th><th>BGRI (A→B)</th></tr>
               </thead>
               <tbody>
                 \(tableRows)
@@ -254,30 +232,30 @@ enum ComparisonHTMLGenerator {
         const labels = [\(labelsJS)];
         const datasets = [
           {
-            label: 'Baseline ODR',
-            data: [\(baselineODR)],
-            borderColor: '#e05c5c', backgroundColor: '#e05c5c22',
+            label: 'Baseline RMSE',
+            data: [\(baselineRMSE)],
+            borderColor: '#4ac8c8', backgroundColor: '#4ac8c822',
             borderWidth: 2.5, tension: 0.2, pointRadius: 4, fill: false,
             yAxisID: 'y'
           },
           {
-            label: 'Baseline UDR',
-            data: [\(baselineUDR)],
+            label: 'Baseline BGRI',
+            data: [\(baselineBGRI)],
             borderColor: '#f4a460', backgroundColor: '#f4a46022',
             borderWidth: 2.5, tension: 0.2, pointRadius: 4, fill: false,
             yAxisID: 'y2'
           },
           {
-            label: 'Candidate ODR',
-            data: [\(candidateODR)],
-            borderColor: '#e05c5c', backgroundColor: '#e05c5c22',
+            label: 'Candidate RMSE',
+            data: [\(candidateRMSE)],
+            borderColor: '#4ac8c8', backgroundColor: '#4ac8c822',
             borderWidth: 2.5, tension: 0.2, pointRadius: 4, fill: false,
             borderDash: [6, 3],
             yAxisID: 'y'
           },
           {
-            label: 'Candidate UDR',
-            data: [\(candidateUDR)],
+            label: 'Candidate BGRI',
+            data: [\(candidateBGRI)],
             borderColor: '#f4a460', backgroundColor: '#f4a46022',
             borderWidth: 2.5, tension: 0.2, pointRadius: 4, fill: false,
             borderDash: [6, 3],
@@ -295,12 +273,12 @@ enum ComparisonHTMLGenerator {
               x: { grid: { color: '#1e2230' } },
               y: {
                 type: 'linear', position: 'left',
-                title: { display: true, text: 'ODR (Overdelivery Risk)', color: '#e05c5c' },
+                title: { display: true, text: 'RMSE (mg/dL)', color: '#4ac8c8' },
                 grid: { color: '#1e2230' }, min: 0
               },
               y2: {
                 type: 'linear', position: 'right',
-                title: { display: true, text: 'UDR (Underdelivery Risk)', color: '#f4a460' },
+                title: { display: true, text: 'BGRI', color: '#f4a460' },
                 grid: { drawOnChartArea: false }, min: 0
               }
             },
@@ -310,17 +288,17 @@ enum ComparisonHTMLGenerator {
                   color: '#aaa', boxWidth: 18, font: { size: 12 },
                   generateLabels: function(chart) {
                     return [
-                      { text: 'Baseline ODR', fillStyle: '#e05c5c', strokeStyle: '#e05c5c', lineWidth: 2, lineDash: [] },
-                      { text: 'Baseline UDR', fillStyle: '#f4a460', strokeStyle: '#f4a460', lineWidth: 2, lineDash: [] },
-                      { text: 'Candidate ODR', fillStyle: '#e05c5c', strokeStyle: '#e05c5c', lineWidth: 2, lineDash: [6,3] },
-                      { text: 'Candidate UDR', fillStyle: '#f4a460', strokeStyle: '#f4a460', lineWidth: 2, lineDash: [6,3] }
+                      { text: 'Baseline RMSE', fillStyle: '#4ac8c8', strokeStyle: '#4ac8c8', lineWidth: 2, lineDash: [] },
+                      { text: 'Baseline BGRI', fillStyle: '#f4a460', strokeStyle: '#f4a460', lineWidth: 2, lineDash: [] },
+                      { text: 'Candidate RMSE', fillStyle: '#4ac8c8', strokeStyle: '#4ac8c8', lineWidth: 2, lineDash: [6,3] },
+                      { text: 'Candidate BGRI', fillStyle: '#f4a460', strokeStyle: '#f4a460', lineWidth: 2, lineDash: [6,3] }
                     ];
                   }
                 }
               },
               tooltip: {
                 callbacks: {
-                  label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(3)
+                  label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2)
                 }
               }
             }

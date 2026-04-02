@@ -15,7 +15,7 @@ struct CompareCommand: ParsableCommand {
 
         Arrow legend:
           ▼  decreased   ▲  increased
-          ✓  improved    ✗  regressed   (primary/RMSE/ODR/UDR: lower is better)
+          ✓  improved    ✗  regressed   (RMSE/BGRI: lower is better)
 
         Example:
           loop-eval evaluate ... --save before.json
@@ -65,9 +65,6 @@ struct CompareCommand: ParsableCommand {
         print(sep)
 
         let rows: [(label: String, a: Double, b: Double, lowerBetter: Bool)] = [
-            ("Primary  (ODR+UDR)", a.score.primaryScore,              b.score.primaryScore,              true),
-            ("ODR  (overdelivery)", a.score.weightedOverdeliveryRisk,  b.score.weightedOverdeliveryRisk,  true),
-            ("UDR (underdelivery)", a.score.weightedUnderdeliveryRisk, b.score.weightedUnderdeliveryRisk, true),
             ("RMSE       (mg/dL)", a.score.weightedRMSE,               b.score.weightedRMSE,               true),
             ("BGRI              ", a.score.weightedBGRI,               b.score.weightedBGRI,               true),
         ]
@@ -103,18 +100,17 @@ struct CompareCommand: ParsableCommand {
         // Build lookup: horizon → metrics
         let bMap = Dictionary(uniqueKeysWithValues: b.horizonMetrics.map { ($0.horizon, $0) })
 
-        let colHeader = " Horizon │      RMSE (A→B)      │      ODR  (A→B)      │      UDR  (A→B)"
-        let colDiv    = "─────────┼──────────────────────┼──────────────────────┼──────────────────────"
+        let colHeader = " Horizon │      RMSE (A→B)      │      BGRI (A→B)"
+        let colDiv    = "─────────┼──────────────────────┼──────────────────────"
         print(colHeader)
         print(colDiv)
 
         for mA in a.horizonMetrics {
             guard let mB = bMap[mA.horizon] else { continue }
             let hMin = Int(mA.horizon / 60)
-            let rmse = deltaCell(mA.rmse,  mB.rmse,  fmt: "%.1f", lowerBetter: true)
-            let odr  = deltaCell(mA.odr,   mB.odr,   fmt: "%.3f", lowerBetter: true)
-            let udr  = deltaCell(mA.udr,   mB.udr,   fmt: "%.3f", lowerBetter: true)
-            print(String(format: " %4d min │ %@ │ %@ │ %@", hMin, rmse, odr, udr))
+            let rmse = deltaCell(mA.rmse, mB.rmse, fmt: "%.1f", lowerBetter: true)
+            let bgri = deltaCell(mA.bgri, mB.bgri, fmt: "%.2f", lowerBetter: true)
+            print(String(format: " %4d min │ %@ │ %@", hMin, rmse, bgri))
         }
 
         print(ruler)

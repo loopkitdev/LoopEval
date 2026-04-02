@@ -126,8 +126,6 @@ public struct HorizonSummary: Codable, Sendable {
     public let p90: Double
     public let lbgi: Double
     public let hbgi: Double
-    public let odr: Double
-    public let udr: Double
 
     public init(from m: HorizonMetrics) {
         self.horizonMin = Int(m.horizon / 60)
@@ -138,8 +136,6 @@ public struct HorizonSummary: Codable, Sendable {
         self.p90   = m.percentile90
         self.lbgi  = m.lbgi
         self.hbgi  = m.hbgi
-        self.odr   = m.odr
-        self.udr   = m.udr
     }
 }
 
@@ -156,6 +152,8 @@ public struct InspectionBundle: Codable, Sendable {
     public let rawGlucose: [GlucosePoint]
     /// Kalman-smoothed CGM (empty if Kalman is disabled).
     public let smoothedGlucose: [GlucosePoint]
+    /// Insulin-informed Kalman-smoothed CGM (empty if Kalman is disabled).
+    public let insulinKalmanGlucose: [GlucosePoint]
     /// Bolus doses in the evaluation window.
     public let doses: [DosePoint]
     /// Continuous delivered basal rate timeline (gaps filled with scheduled basal).
@@ -195,11 +193,13 @@ public enum InspectionBundleBuilder {
     /// - Parameters:
     ///   - result:      Output of `EvaluationEngine.evaluate`.
     ///   - smoothed:    Kalman-smoothed CGM samples (nil = no smoothing).
+    ///   - insulinKalmanSmoothed: Insulin-informed Kalman-smoothed CGM samples (nil = empty array).
     ///   - score:       Aggregate score from `EvaluationAnalyzer.analyze`.
     ///   - sampleStride: Store one prediction snapshot per this many steps (default 6 → every 30 min at 5-min steps).
     public static func build(
         result: EvaluationResult,
         smoothed: [EvalGlucoseSample]?,
+        insulinKalmanSmoothed: [EvalGlucoseSample]? = nil,
         score: AggregateScore,
         sampleStride: Int = 6
     ) -> InspectionBundle {
@@ -212,6 +212,11 @@ public enum InspectionBundleBuilder {
         }
 
         let smoothedPoints = (smoothed ?? []).map { s in
+            GlucosePoint(date: s.startDate,
+                         mgdl: s.quantity.doubleValue(for: .milligramsPerDeciliter))
+        }
+
+        let insulinKalmanPoints = (insulinKalmanSmoothed ?? []).map { s in
             GlucosePoint(date: s.startDate,
                          mgdl: s.quantity.doubleValue(for: .milligramsPerDeciliter))
         }
@@ -253,6 +258,7 @@ public enum InspectionBundleBuilder {
             evalConfig: cfg,
             rawGlucose: rawPoints,
             smoothedGlucose: smoothedPoints,
+            insulinKalmanGlucose: insulinKalmanPoints,
             doses: [],            // filled by caller
             basalTimeline: [],    // filled by caller
             carbs: [],            // filled by caller
@@ -268,6 +274,7 @@ public enum InspectionBundleBuilder {
     public static func build(
         result: EvaluationResult,
         smoothed: [EvalGlucoseSample]?,
+        insulinKalmanSmoothed: [EvalGlucoseSample]? = nil,
         score: AggregateScore,
         doses: [EvalInsulinDose],
         carbs: [EvalCarbEntry],
@@ -277,7 +284,7 @@ public enum InspectionBundleBuilder {
         dtsRiskTimeline: [DtsRiskPoint] = [],
         nsTimezone: String? = nil
     ) -> InspectionBundle {
-        let base = build(result: result, smoothed: smoothed, score: score, sampleStride: sampleStride)
+        let base = build(result: result, smoothed: smoothed, insulinKalmanSmoothed: insulinKalmanSmoothed, score: score, sampleStride: sampleStride)
 
         let winStart = result.interval.start
         let winEnd   = result.interval.end
@@ -305,6 +312,7 @@ public enum InspectionBundleBuilder {
             evalConfig: base.evalConfig,
             rawGlucose: base.rawGlucose,
             smoothedGlucose: base.smoothedGlucose,
+            insulinKalmanGlucose: base.insulinKalmanGlucose,
             doses: dosePoints,
             basalTimeline: basalTimeline,
             carbs: carbPoints,
