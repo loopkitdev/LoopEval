@@ -146,6 +146,20 @@ enum ComparisonHTMLGenerator {
           .sc-delta{font-size:.7rem;color:#666b85;margin-top:4px}
 
           .footer{text-align:center;font-size:.78rem;color:#555a75;margin-top:40px}
+
+          /* Explainer */
+          .explainer{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:0}
+          @media(max-width:640px){.explainer{grid-template-columns:1fr}}
+          .exp-card{background:#0a0d18;border:1px solid #1e2230;border-radius:10px;padding:18px 20px}
+          .exp-card h3{font-size:.85rem;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+          .exp-card p{font-size:.8rem;color:#888da8;line-height:1.65;margin-bottom:8px}
+          .exp-card p:last-child{margin-bottom:0}
+          .exp-card code{background:#1a1e2e;border-radius:4px;padding:2px 6px;font-size:.75rem;color:#c8ccd8;font-family:'SF Mono',Monaco,monospace}
+          .pill{display:inline-block;border-radius:4px;padding:2px 8px;font-size:.7rem;font-weight:600;margin-right:4px}
+          .pill-red{background:rgba(232,104,90,.18);color:#e8685a}
+          .pill-orange{background:rgba(240,168,74,.18);color:#f0a84a}
+          .pill-blue{background:rgba(106,142,240,.18);color:#6a8ef0}
+          .formula{font-family:'SF Mono',Monaco,monospace;font-size:.72rem;color:#9da8c8;background:#111520;border-radius:6px;padding:8px 12px;margin:8px 0;line-height:1.7}
         </style>
         </head>
         <body>
@@ -161,6 +175,34 @@ enum ComparisonHTMLGenerator {
           <div class="panel">
             \(baseCards)
             \(candCards)
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">What are ODR and UDR?</div>
+            <div class="explainer">
+              <div class="exp-card">
+                <h3><span class="pill pill-red">ODR</span> Overdelivery Risk</h3>
+                <p>Penalises forecasts that predict BG will be <strong>higher than it actually is</strong>, when actual BG is <strong>below the target floor</strong> (100 mg/dL). This is the dangerous case where Loop keeps delivering insulin into a falling or already-low BG.</p>
+                <p>Cost is <strong>zero</strong> when BG is in-range or high. Only over-predictions in the low zone are penalised, weighted by the Clarke-Kovatchev low-risk function <code>rl(actual)</code> — so an error at BG 60 costs far more than the same error at BG 95.</p>
+                <div class="formula">ODR = √( Σ rl(actual) · max(predicted − actual, 0)² / n )</div>
+              </div>
+              <div class="exp-card">
+                <h3><span class="pill pill-orange">UDR</span> Underdelivery Risk</h3>
+                <p>Penalises forecasts that predict BG will be <strong>lower than it actually is</strong>, when actual BG is <strong>above the target ceiling</strong> (115 mg/dL). This is the case where Loop withholds a correction it should have given.</p>
+                <p>Cost is <strong>zero</strong> when BG is in-range or low. Only under-predictions in the high zone are penalised, weighted by the high-risk function <code>rh(actual)</code>.</p>
+                <div class="formula">UDR = √( Σ rh(actual) · max(actual − predicted, 0)² / n )</div>
+              </div>
+              <div class="exp-card">
+                <h3><span class="pill pill-blue">Primary</span> ODR + UDR</h3>
+                <p>The primary optimisation target. Lower is better; zero would mean no dangerous mispredictions outside the target range.</p>
+                <p>Both ODR and UDR are Gaussian-weighted across horizons (peak at 90 min, σ=60 min) before summing, so the 60–120 min window dominates — the window most consequential for dosing decisions.</p>
+              </div>
+              <div class="exp-card">
+                <h3>Why the scores look asymmetric</h3>
+                <p>UDR is almost always much larger than ODR in absolute terms. This is expected: the Clarke-Kovatchev functions encode clinical reality — <code>rl(60) ≈ 29.6</code> vs <code>rh(200) ≈ 3.0</code> — roughly 10× more risk weight for a symmetric deviation into hypoglycemia than hyperglycemia.</p>
+                <p>So even though <em>fewer</em> errors trigger UDR (BG must be above 115), the high-BG population is large and the under-prediction errors are common, making UDR large in absolute value.</p>
+              </div>
+            </div>
           </div>
 
           <p class="footer">Generated \(runStr) · 2 run(s)</p>
