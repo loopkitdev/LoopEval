@@ -56,6 +56,9 @@ struct EvaluateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "ISF multiplier applied to Nightscout sensitivity values (default: 1.0). Values >1 raise ISF (less aggressive), <1 lower ISF (more aggressive).")
     var sensitivityMultiplier: Double = 1.0
 
+    @Option(name: .long, help: "Cap positive CGM momentum velocity at this value (mg/dL/min). Default: none (uses algorithm's built-in 4.0 cap). Example: --momentum-cap 0.5")
+    var momentumCap: Double?
+
     // MARK: – Output
 
     @Option(name: .long, help: "Output format: table | json | csv")
@@ -88,7 +91,8 @@ struct EvaluateCommand: AsyncParsableCommand {
             includeFutureInsulin: !noFutureInsulin,
             useIntegralRC: integralRC,
             kalmanSmoothing: !noKalman,
-            sensitivityMultiplier: sensitivityMultiplier
+            sensitivityMultiplier: sensitivityMultiplier,
+            positiveVelocityCap: momentumCap
         )
 
         // 4. Create data source

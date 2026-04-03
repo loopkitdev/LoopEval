@@ -174,6 +174,9 @@ public actor EvaluationEngine {
                 let doseWindowEnd = config.includeFutureInsulin
                     ? t.addingTimeInterval(6 * 3600) : t
                 let stepPrecomputed = precomputed.sliced(from: doseWindowStart, to: doseWindowEnd)
+                let momentumCap: LoopQuantity? = config.positiveVelocityCap.map {
+                    LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: $0)
+                }
                 let prediction = LoopAlgorithm.generatePrediction(
                     start: t,
                     glucoseHistory: input.glucose,
@@ -185,7 +188,8 @@ public actor EvaluationEngine {
                     useIntegralRetrospectiveCorrection: config.useIntegralRC,
                     includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                     useMidAbsorptionISF: config.useMidAbsorptionISF,
-                    carbAbsorptionModel: config.carbAbsorptionModel.model
+                    carbAbsorptionModel: config.carbAbsorptionModel.model,
+                    momentumVelocityMaximum: momentumCap
                 )
 
                 // Optional no-future-insulin overlay (inspect report only, not
@@ -207,7 +211,8 @@ public actor EvaluationEngine {
                         useIntegralRetrospectiveCorrection: config.useIntegralRC,
                         includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                         useMidAbsorptionISF: config.useMidAbsorptionISF,
-                        carbAbsorptionModel: config.carbAbsorptionModel.model
+                        carbAbsorptionModel: config.carbAbsorptionModel.model,
+                        momentumVelocityMaximum: momentumCap
                     )
                     noFuturePredicted = predNoFuture.glucose
                 }

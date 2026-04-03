@@ -63,6 +63,13 @@ public struct EvalConfig: Codable, Sendable {
     /// Dangerous Under-prediction Score (DUS).  Default: 115.
     public var targetHigh: Double
 
+    /// Cap on positive CGM momentum velocity (mg/dL/min).
+    /// When set, limits the velocity term passed to `linearMomentumEffect` to
+    /// this value.  `nil` = use LoopAlgorithm's built-in default (4.0 mg/dL/min).
+    /// Example: set to 0.5 to compare an algorithm that limits upward momentum
+    /// to 0.5 mg/dL/min.
+    public var positiveVelocityCap: Double?
+
     /// How long to wait after `interval.start` before the first evaluated
     /// prediction (seconds).  Default: `insulinLookbackHours` hours.
     ///
@@ -92,6 +99,7 @@ public struct EvalConfig: Codable, Sendable {
         basalRateMultiplier: Double = 1.0,
         targetLow: Double = 100.0,
         targetHigh: Double = 115.0,
+        positiveVelocityCap: Double? = nil,
         evalWarmupHours: Double? = nil   // nil → use insulinLookbackHours
     ) {
         self.evalStep                       = evalStep
@@ -109,6 +117,7 @@ public struct EvalConfig: Codable, Sendable {
         self.basalRateMultiplier            = basalRateMultiplier
         self.targetLow                      = targetLow
         self.targetHigh                     = targetHigh
+        self.positiveVelocityCap            = positiveVelocityCap
         self.evalWarmupHours                = evalWarmupHours ?? insulinLookbackHours
     }
 }
