@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoopEval — Comparison Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #161b2e; --border: #252a3a;
+    --text: #d0d4e8; --muted: #7a7f9a; --accent: #5b8ef0;
+    --red: #e05c5c; --orange: #f4a460; --green: #5cb85c;
+    --teal: #4ac8c8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text);
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         font-size: 15px; line-height: 1.6; }
+  .page { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 1.7rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 0.92rem; margin-bottom: 24px; }
+
+  /* Verdict banner */
+  .verdict { padding: 16px 24px; border-radius: 8px; margin-bottom: 24px;
+             font-size: 1.1rem; font-weight: 600; text-align: center; }
+
+  .panel { background: var(--panel); border: 1px solid var(--border);
+           border-radius: 10px; padding: 24px; margin: 20px 0; }
+  .chart-wrap { position: relative; height: 340px; margin-top: 16px; }
+
+  /* Score cards */
+  .row-label { font-size: 0.9rem; color: var(--muted); margin: 16px 0 8px; font-weight: 500; }
+  .score-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (max-width: 640px) { .score-row { grid-template-columns: 1fr 1fr; } }
+  .score-card { background: #0a0d18; border: 1px solid var(--border);
+                border-radius: 8px; padding: 14px; text-align: center; }
+  .score-card .val { font-size: 1.6rem; font-weight: 700; margin: 6px 0 2px; }
+  .score-card .lbl { font-size: 0.75rem; color: var(--muted); }
+  .score-card .delta { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+  .score-card.rmse-card .val { color: var(--teal); }
+  .score-card.bgri-card .val { color: var(--orange); }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: 0.8rem; font-weight: 500; }
+  td { font-size: 0.9rem; font-family: "SF Mono", Monaco, monospace; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  .footer { font-size: 0.78rem; color: var(--muted); margin-top: 40px; text-align: center; }
+  strong { color: #fff; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>LoopEval — Comparison Report</h1>
+  <p class="subtitle">2026-03-11 → 2026-04-01</p>
+
+  <div class="verdict" style="background: #e05c5c22; border: 1px solid #e05c5c; color: #e05c5c;">
+    RMSE regressed 1.4% ✗
+  </div>
+
+  <div class="panel">
+    <strong>RMSE / BGRI by Horizon</strong>
+    <div class="chart-wrap"><canvas id="compChart"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <strong>Score Cards</strong>
+    <div class="row-label">Baseline: baseline</div>
+<div class="score-row">
+  <div class="score-card rmse-card"><div class="lbl">RMSE</div><div class="val">108.9</div></div>
+  <div class="score-card bgri-card"><div class="lbl">BGRI</div><div class="val">5.90</div></div>
+</div>
+    <div class="row-label">Candidate: momentum-cap-0.5</div>
+<div class="score-row">
+  <div class="score-card rmse-card">
+  <div class="lbl">RMSE</div>
+  <div class="val">110.3</div>
+  <div class="delta">Δ 1.5 ▲ 1.4% ✗</div>
+</div>
+  <div class="score-card bgri-card">
+  <div class="lbl">BGRI</div>
+  <div class="val">5.90</div>
+  <div class="delta">Δ 0.00 = 0.0% </div>
+</div>
+</div>
+  </div>
+
+  <div class="panel">
+    <strong>Per-Horizon Delta</strong>
+    <table>
+      <thead>
+        <tr><th>Horizon</th><th>RMSE (A→B)</th><th>BGRI (A→B)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>30 min</td><td>41.7 → 41.6 ▼ ✓</td><td>5.93 → 5.93 =</td></tr>
+<tr><td>60 min</td><td>68.5 → 69.2 ▲ ✗</td><td>5.92 → 5.92 =</td></tr>
+<tr><td>90 min</td><td>96.0 → 97.6 ▲ ✗</td><td>5.90 → 5.90 =</td></tr>
+<tr><td>120 min</td><td>124.8 → 126.9 ▲ ✗</td><td>5.89 → 5.89 =</td></tr>
+<tr><td>150 min</td><td>154.8 → 157.1 ▲ ✗</td><td>5.88 → 5.88 =</td></tr>
+<tr><td>180 min</td><td>184.8 → 187.3 ▲ ✗</td><td>5.88 → 5.88 =</td></tr>
+<tr><td>210 min</td><td>214.8 → 217.3 ▲ ✗</td><td>5.89 → 5.89 =</td></tr>
+<tr><td>240 min</td><td>244.2 → 246.9 ▲ ✗</td><td>5.89 → 5.89 =</td></tr>
+<tr><td>270 min</td><td>273.4 → 276.0 ▲ ✗</td><td>5.89 → 5.89 =</td></tr>
+<tr><td>300 min</td><td>302.2 → 304.8 ▲ ✗</td><td>5.89 → 5.89 =</td></tr>
+<tr><td>330 min</td><td>330.1 → 332.7 ▲ ✗</td><td>5.88 → 5.88 =</td></tr>
+<tr><td>360 min</td><td>357.1 → 359.7 ▲ ✗</td><td>5.89 → 5.89 =</td></tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <p class="footer">Generated 2026-04-03T16:08:57Z · Baseline: baseline · Candidate: momentum-cap-0.5</p>
+</div>
+
+<script>
+Chart.defaults.color = '#888';
+Chart.defaults.borderColor = '#252a3a';
+
+const labels = ["30 min", "60 min", "90 min", "120 min", "150 min", "180 min", "210 min", "240 min", "270 min", "300 min", "330 min", "360 min"];
+const datasets = [
+  {
+    label: 'Baseline RMSE',
+    data: [41.7, 68.5, 96.0, 124.8, 154.8, 184.8, 214.8, 244.2, 273.4, 302.2, 330.1, 357.1],
+    borderColor: '#4ac8c8', backgroundColor: '#4ac8c822',
+    borderWidth: 2.5, tension: 0.2, pointRadius: 4, fill: false,
+    yAxisID: 'y'
+  },
+  {
+    label: 'Baseline BGRI',
+    data: [5.93, 5.92, 5.90, 5.89, 5.88, 5.88, 5.89, 5.89, 5.89, 5.89, 5.88, 5.89],
+    borderColor: '#f4a460', backgroundColor: '#f4a46022',
+    borderWidth: 2.5, tension: 0.2, pointRadius: 4, fill: false,
+    yAxisID: 'y2'
+  },
+  {
+    label: 'Candidate RMSE',
+    data: [41.6, 69.2, 97.6, 126.9, 157.1, 187.3, 217.3, 246.9, 276.0, 304.8, 332.7, 359.7],
+    borderColor: '#4ac8c8', backgroundColor: '#4ac8c822',
+    borderWidth: 2.5, tension: 0.2, pointRadius: 4, fill: false,
+    borderDash: [6, 3],
+    yAxisID: 'y'
+  },
+  {
+    label: 'Candidate BGRI',
+    data: [5.93, 5.92, 5.90, 5.89, 5.88, 5.88, 5.89, 5.89, 5.89, 5.89, 5.88, 5.89],
+    borderColor: '#f4a460', backgroundColor: '#f4a46022',
+    borderWidth: 2.5, tension: 0.2, pointRadius: 4, fill: false,
+    borderDash: [6, 3],
+    yAxisID: 'y2'
+  }
+];
+
+new Chart(document.getElementById('compChart'), {
+  type: 'line',
+  data: { labels, datasets },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      x: { grid: { color: '#1e2230' } },
+      y: {
+        type: 'linear', position: 'left',
+        title: { display: true, text: 'RMSE (mg/dL)', color: '#4ac8c8' },
+        grid: { color: '#1e2230' }, min: 0
+      },
+      y2: {
+        type: 'linear', position: 'right',
+        title: { display: true, text: 'BGRI', color: '#f4a460' },
+        grid: { drawOnChartArea: false }, min: 0
+      }
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: '#aaa', boxWidth: 18, font: { size: 12 },
+          generateLabels: function(chart) {
+            return [
+              { text: 'Baseline RMSE', fillStyle: '#4ac8c8', strokeStyle: '#4ac8c8', lineWidth: 2, lineDash: [] },
+              { text: 'Baseline BGRI', fillStyle: '#f4a460', strokeStyle: '#f4a460', lineWidth: 2, lineDash: [] },
+              { text: 'Candidate RMSE', fillStyle: '#4ac8c8', strokeStyle: '#4ac8c8', lineWidth: 2, lineDash: [6,3] },
+              { text: 'Candidate BGRI', fillStyle: '#f4a460', strokeStyle: '#f4a460', lineWidth: 2, lineDash: [6,3] }
+            ];
+          }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2)
+        }
+      }
+    }
+  },
+  plugins: [{
+    id: 'peakLine',
+    afterDraw(chart) {
+      const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+      const px = x.getPixelForValue('90 min');
+      if (!px) return;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(91,142,240,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(px, top); ctx.lineTo(px, bottom); ctx.stroke();
+      ctx.fillStyle = 'rgba(91,142,240,0.6)';
+      ctx.font = '11px system-ui';
+      ctx.fillText('peak weight', px + 5, top + 14);
+      ctx.restore();
+    }
+  }]
+});
+</script>
+</body>
+</html>
