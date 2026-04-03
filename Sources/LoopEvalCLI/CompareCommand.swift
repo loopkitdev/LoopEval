@@ -146,8 +146,12 @@ struct CompareCommand: ParsableCommand {
             ? String(format: "+%.1f%%", pct)
             : String(format: "%.1f%%",  pct)
 
-        return String(format: "  %-22s  %8s → %-8s  Δ %-10s  %@ %-7s  %@",
-                      label, aStr, bStr, dStr, arrow, pStr, verdict)
+        let labelPad = label.padding(toLength: 22, withPad: " ", startingAt: 0)
+        let aStrPad  = String(repeating: " ", count: max(0, 8 - aStr.count)) + aStr
+        let bStrPad  = bStr.padding(toLength: 8, withPad: " ", startingAt: 0)
+        let dStrPad  = dStr.padding(toLength: 10, withPad: " ", startingAt: 0)
+        let pStrPad  = pStr.padding(toLength: 7, withPad: " ", startingAt: 0)
+        return "  \(labelPad)  \(aStrPad) → \(bStrPad)  Δ \(dStrPad)  \(arrow) \(pStrPad)  \(verdict)"
     }
 
     /// Compact 20-char cell for the per-horizon table.
@@ -158,7 +162,9 @@ struct CompareCommand: ParsableCommand {
         let aStr = String(format: fmt, a)
         let bStr = String(format: fmt, b)
         // Pad to fixed width: "X.XXX → X.XXX ▼✓" = ~20 chars
-        return String(format: "%-6s → %-6s %@ %@", aStr, bStr, arrow, mark)
+        let aP = aStr.padding(toLength: 6, withPad: " ", startingAt: 0)
+        let bP = bStr.padding(toLength: 6, withPad: " ", startingAt: 0)
+        return "\(aP) → \(bP) \(arrow) \(mark)"
     }
 
     private func snapshotTitle(_ snap: EvalSnapshot, path: String) -> String {
