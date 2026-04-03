@@ -59,6 +59,15 @@ struct EvaluateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Cap positive CGM momentum velocity at this value (mg/dL/min). Default: none (uses algorithm's built-in 4.0 cap). Example: --momentum-cap 0.5")
     var momentumCap: Double?
 
+    @Flag(name: .long, help: "Use asymmetric EMA momentum: slow to build (alphaSlow), fast to drop (alphaFast).")
+    var asymmetricMomentum: Bool = false
+
+    @Option(name: .long, help: "Asymmetric momentum slow-rise alpha (default: 0.15).")
+    var momentumAlphaSlow: Double = 0.15
+
+    @Option(name: .long, help: "Asymmetric momentum fast-drop alpha (default: 0.85).")
+    var momentumAlphaFast: Double = 0.85
+
     // MARK: – Output
 
     @Option(name: .long, help: "Output format: table | json | csv")
@@ -92,7 +101,10 @@ struct EvaluateCommand: AsyncParsableCommand {
             useIntegralRC: integralRC,
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: sensitivityMultiplier,
-            positiveVelocityCap: momentumCap
+            positiveVelocityCap: momentumCap,
+            useAsymmetricMomentum: asymmetricMomentum,
+            momentumAlphaSlow: momentumAlphaSlow,
+            momentumAlphaFast: momentumAlphaFast
         )
 
         // 4. Create data source

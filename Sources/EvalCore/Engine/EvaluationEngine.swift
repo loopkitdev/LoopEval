@@ -189,7 +189,10 @@ public actor EvaluationEngine {
                     includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                     useMidAbsorptionISF: config.useMidAbsorptionISF,
                     carbAbsorptionModel: config.carbAbsorptionModel.model,
-                    momentumVelocityMaximum: momentumCap
+                    momentumVelocityMaximum: momentumCap,
+                    useAsymmetricMomentum: config.useAsymmetricMomentum,
+                    momentumAlphaSlow: config.momentumAlphaSlow,
+                    momentumAlphaFast: config.momentumAlphaFast
                 )
 
                 // Optional no-future-insulin overlay (inspect report only, not
@@ -212,7 +215,10 @@ public actor EvaluationEngine {
                         includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                         useMidAbsorptionISF: config.useMidAbsorptionISF,
                         carbAbsorptionModel: config.carbAbsorptionModel.model,
-                        momentumVelocityMaximum: momentumCap
+                        momentumVelocityMaximum: momentumCap,
+                        useAsymmetricMomentum: config.useAsymmetricMomentum,
+                        momentumAlphaSlow: config.momentumAlphaSlow,
+                        momentumAlphaFast: config.momentumAlphaFast
                     )
                     noFuturePredicted = predNoFuture.glucose
                 }

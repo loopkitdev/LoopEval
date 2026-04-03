@@ -63,6 +63,16 @@ public struct EvalConfig: Codable, Sendable {
     /// Dangerous Under-prediction Score (DUS).  Default: 115.
     public var targetHigh: Double
 
+    /// Use asymmetric EMA momentum instead of standard linear regression.
+    /// Slow to build positive momentum (alphaSlow), fast to shed it (alphaFast).
+    public var useAsymmetricMomentum: Bool
+
+    /// Slow-rise alpha for asymmetric momentum EMA (default 0.15 ≈ 33 min time constant).
+    public var momentumAlphaSlow: Double
+
+    /// Fast-drop alpha for asymmetric momentum EMA (default 0.85 ≈ 1 reading response).
+    public var momentumAlphaFast: Double
+
     /// Cap on positive CGM momentum velocity (mg/dL/min).
     /// When set, limits the velocity term passed to `linearMomentumEffect` to
     /// this value.  `nil` = use LoopAlgorithm's built-in default (4.0 mg/dL/min).
@@ -100,6 +110,9 @@ public struct EvalConfig: Codable, Sendable {
         targetLow: Double = 100.0,
         targetHigh: Double = 115.0,
         positiveVelocityCap: Double? = nil,
+        useAsymmetricMomentum: Bool = false,
+        momentumAlphaSlow: Double = 0.15,
+        momentumAlphaFast: Double = 0.85,
         evalWarmupHours: Double? = nil   // nil → use insulinLookbackHours
     ) {
         self.evalStep                       = evalStep
@@ -118,6 +131,9 @@ public struct EvalConfig: Codable, Sendable {
         self.targetLow                      = targetLow
         self.targetHigh                     = targetHigh
         self.positiveVelocityCap            = positiveVelocityCap
+        self.useAsymmetricMomentum          = useAsymmetricMomentum
+        self.momentumAlphaSlow              = momentumAlphaSlow
+        self.momentumAlphaFast              = momentumAlphaFast
         self.evalWarmupHours                = evalWarmupHours ?? insulinLookbackHours
     }
 }
