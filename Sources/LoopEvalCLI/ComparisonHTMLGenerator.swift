@@ -193,14 +193,16 @@ enum ComparisonHTMLGenerator {
                 <div class="formula">UDR = √( Σ rh(actual) · max(actual − predicted, 0)² / n )</div>
               </div>
               <div class="exp-card">
-                <h3><span class="pill pill-blue">Primary</span> ODR + UDR</h3>
-                <p>The primary optimisation target. Lower is better; zero would mean no dangerous mispredictions outside the target range.</p>
-                <p>Both ODR and UDR are Gaussian-weighted across horizons (peak at 90 min, σ=60 min) before summing, so the 60–120 min window dominates — the window most consequential for dosing decisions.</p>
+                <h3><span class="pill pill-blue">Primary</span> ODR + UDR — ⚠️ interpret with caution</h3>
+                <p>The sum of ODR and UDR. <strong>However, this metric has a fundamental structural bias that makes it an unreliable optimisation target.</strong></p>
+                <p>Loop cannot know about future unannounced carbs. When a meal raises BG, the algorithm's prediction will almost always be lower than actual — triggering UDR — even though withholding that dose was the correct, safe behaviour. Optimising to reduce UDR would mean making predictions systematically higher, which would cause over-delivery and more lows.</p>
+                <p>UDR is large by design. The bias cannot be quantified or corrected for. <strong>ODR is the more meaningful safety signal.</strong></p>
               </div>
               <div class="exp-card">
-                <h3>Why the scores look asymmetric</h3>
-                <p>UDR is almost always much larger than ODR in absolute terms. This is expected: the Clarke-Kovatchev functions encode clinical reality — <code>rl(60) ≈ 29.6</code> vs <code>rh(200) ≈ 3.0</code> — roughly 10× more risk weight for a symmetric deviation into hypoglycemia than hyperglycemia.</p>
-                <p>So even though <em>fewer</em> errors trigger UDR (BG must be above 115), the high-BG population is large and the under-prediction errors are common, making UDR large in absolute value.</p>
+                <h3>Why UDR dominates — and why that's expected</h3>
+                <p>UDR is almost always much larger than ODR. The primary reason is <strong>unannounced future carbs</strong>: Loop predicts BG without knowing what a person will eat, so under-predictions when BG rises after meals are structural and unavoidable.</p>
+                <p>Secondary reason: Clarke-Kovatchev risk weighting — <code>rl(60) ≈ 29.6</code> vs <code>rh(200) ≈ 3.0</code> — applies ~10× more weight to hypo errors. Even so, the sheer volume of high-BG under-predictions from unannounced carbs overwhelms this, producing a large UDR.</p>
+                <p>A large UDR is not a red flag. Trying to shrink it would be dangerous.</p>
               </div>
             </div>
           </div>
