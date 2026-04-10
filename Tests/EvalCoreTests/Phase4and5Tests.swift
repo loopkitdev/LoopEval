@@ -312,23 +312,20 @@ func aggregateScoreGaussianPeak() {
     // Create metrics at 30, 60, 90, 120, 150, 180 min
     let horizons: [TimeInterval] = [30, 60, 90, 120, 150, 180].map { $0 * 60 }
     let metrics = horizons.map { h -> HorizonMetrics in
-        // Use rmse = 1.0 for all, so weighted rmse = 1.0 regardless of weights
-        // But we want to check that the 150-min horizon gets the highest weight
         HorizonMetrics(
             horizon: h, sampleCount: 100,
             rmse: 1.0, mae: 1.0, meanError: 0,
             percentile10: -1, percentile90: 1,
             lbgi: 0, hbgi: 0, bgri: 0,
-            lowWeightedRMSE: 0, highWeightedRMSE: 0
+            lowWeightedRMSE: 0, highWeightedRMSE: 0,
+            odr: 0, udr: 0
         )
     }
 
     let score = AggregateScore.compute(
         metrics: metrics,
         peakHorizon: 150 * 60,
-        sigmaSecs: 60 * 60,
-        bgriWeight: 0.5,
-        rmseWeight: 0.5
+        sigmaSecs: 60 * 60
     )
 
     // Weighted RMSE should be 1.0 since all horizons have rmse=1.0
@@ -349,16 +346,15 @@ func aggregateScorePeakHorizonWeight() {
             rmse: r, mae: r, meanError: 0,
             percentile10: -r, percentile90: r,
             lbgi: 0, hbgi: 0, bgri: 0,
-            lowWeightedRMSE: 0, highWeightedRMSE: 0
+            lowWeightedRMSE: 0, highWeightedRMSE: 0,
+            odr: 0, udr: 0
         )
     }
 
     let score = AggregateScore.compute(
         metrics: metrics,
         peakHorizon: 150 * 60,
-        sigmaSecs: 30 * 60,   // narrow sigma → peak gets high weight
-        bgriWeight: 0.0,
-        rmseWeight: 1.0
+        sigmaSecs: 30 * 60   // narrow sigma → peak gets high weight
     )
 
     // With narrow sigma and rmse=100 at peak, weighted RMSE should be pulled toward 100
@@ -381,15 +377,12 @@ func aggregateScorePrimaryScore() {
         rmse: 10.0, mae: 8.0, meanError: 2.0,
         percentile10: -8, percentile90: 12,
         lbgi: 0.5, hbgi: 1.5, bgri: 2.0,
-        lowWeightedRMSE: 5.0, highWeightedRMSE: 8.0
+        lowWeightedRMSE: 5.0, highWeightedRMSE: 8.0,
+        odr: 0.4, udr: 0.6
     )
-    let score = AggregateScore.compute(
-        metrics: [m],
-        bgriWeight: 0.3,
-        rmseWeight: 0.7
-    )
-    // Single horizon → weighted values equal the metric values
-    let expected = 0.7 * 10.0 + 0.3 * 2.0
+    let score = AggregateScore.compute(metrics: [m])
+    // Single horizon → primaryScore = odr + udr
+    let expected = 0.4 + 0.6
     #expect(abs(score.primaryScore - expected) < 0.001,
             "Primary score: expected \(expected), got \(score.primaryScore)")
 }
