@@ -70,6 +70,9 @@ struct DriftCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Write comparison HTML report to this path")
     var html: String?
 
+    @Option(name: .long, help: "Write per-step comparison CSV to this path")
+    var csv: String?
+
     mutating func run() async throws {
         let startDate = try parseISO8601Date(start)
         let endDate   = try parseISO8601Date(end)
@@ -215,6 +218,19 @@ struct DriftCommand: AsyncParsableCommand {
             evalStep: evalStep
         )
         Self.printPumpComparison(pumpCompare)
+
+        if let csvPath = csv {
+            try Self.writeDriftCSV(
+                path: csvPath,
+                decisions: decisions,
+                predictions: candidateResult.predictions,
+                syntheticActual: syntheticPredictions,
+                basalSchedule: basalSchedule,
+                actualGlucose: candidateResult.actual,
+                evalStep: evalStep
+            )
+            printStderr("Per-step CSV written → \(csvPath)\n")
+        }
 
         // Optional HTML
         if let htmlPath = html {
@@ -656,6 +672,109 @@ struct DriftCommand: AsyncParsableCommand {
             print(" the first-order explanation for dose-recommendation drift.")
         }
         print(ruler)
+    }
+
+    // MARK: – CSV export
+
+    /// Emit one row per evaluation step pairing Loop-now and pump-Loop
+    /// quantities. Missing values are left as empty strings so the CSV
+    /// parses cleanly in pandas / numpy.
+    static func writeDriftCSV(
+        path: String,
+        decisions: [PumpDecision],
+        predictions: [PredictionRecord],
+        syntheticActual: [PredictionRecord],
+        basalSchedule: [AbsoluteScheduleValue<Double>],
+        actualGlucose: [EvalGlucoseSample],
+        evalStep: TimeInterval
+    ) throws {
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        let sortedBG = actualGlucose.sorted { $0.startDate < $1.startDate }
+
+        // Nearest-neighbour BG lookup — we want actual CGM at step time, not
+        // a smoothed forecast. Simple linear scan with a cursor.
+        var bgCursor = 0
+        func actualBG(at t: Date) -> Double? {
+            while bgCursor + 1 < sortedBG.count &&
+                  abs(sortedBG[bgCursor + 1].startDate.timeIntervalSince(t)) <
+                  abs(sortedBG[bgCursor].startDate.timeIntervalSince(t)) {
+                bgCursor += 1
+            }
+            guard bgCursor < sortedBG.count else { return nil }
+            let candidate = sortedBG[bgCursor]
+            // Tolerate up to 6 min since CGM is 5-min spaced.
+            if abs(candidate.startDate.timeIntervalSince(t)) > 360 { return nil }
+            return candidate.quantity.doubleValue(for: .milligramsPerDeciliter)
+        }
+
+        var lines: [String] = [
+            [
+                "step_time",
+                "actual_bg",
+                "scheduled_rate",
+                "ns_iob", "now_iob",
+                "ns_fc30", "now_fc30",
+                "ns_fc60", "now_fc60",
+                "ns_fc90", "now_fc90",
+                "ns_fc_min", "now_fc_min",
+                "ns_enacted_rate", "now_rec_rate",
+                "ns_auto_bolus", "now_auto_bolus",
+                "ns_delta_u", "now_delta_u", "actual_delta_u",
+                "ns_rec_bolus_full"
+            ].joined(separator: ",")
+        ]
+        lines.reserveCapacity(predictions.count + 1)
+
+        func f(_ x: Double?, _ decimals: Int = 3) -> String {
+            guard let x else { return "" }
+            return String(format: "%.\(decimals)f", x)
+        }
+
+        let tol = evalStep / 2
+        for (i, p) in predictions.enumerated() {
+            let schedRate = scheduledRate(at: p.evaluatedAt, schedule: basalSchedule)
+            let pd = closestDecision(to: p.evaluatedAt, in: decisions, tolerance: tol)
+
+            // Loop-now forecast samples.
+            func nowFC(_ offsetMin: Double) -> Double? {
+                interpNowForecast(p.predicted, at: p.evaluatedAt.addingTimeInterval(offsetMin * 60))
+            }
+            let nowMin = p.predicted
+                .map { $0.quantity.doubleValue(for: .milligramsPerDeciliter) }
+                .min()
+
+            // Pump forecast samples anchored from the pump's own timestamp.
+            let pumpFC30: Double? = pd.flatMap { interpForecast($0, at: $0.timestamp.addingTimeInterval(30 * 60)) }
+            let pumpFC60: Double? = pd.flatMap { interpForecast($0, at: $0.timestamp.addingTimeInterval(60 * 60)) }
+            let pumpFC90: Double? = pd.flatMap { interpForecast($0, at: $0.timestamp.addingTimeInterval(90 * 60)) }
+            let pumpMin: Double? = pd?.forecast?.min()
+
+            let pumpDelta: Double? = pd.map {
+                $0.autoBolus + (($0.enactedRate ?? schedRate) - schedRate) * evalStep / 3600
+            }
+            let actualDelta = i < syntheticActual.count ? syntheticActual[i].recommendedDeltaU : nil
+
+            let row: [String] = [
+                iso.string(from: p.evaluatedAt),
+                f(actualBG(at: p.evaluatedAt), 1),
+                f(schedRate, 3),
+                f(pd?.iob, 3),                              f(p.iob, 3),
+                f(pumpFC30, 1),                             f(nowFC(30), 1),
+                f(pumpFC60, 1),                             f(nowFC(60), 1),
+                f(pumpFC90, 1),                             f(nowFC(90), 1),
+                f(pumpMin, 1),                              f(nowMin, 1),
+                f(pd?.enactedRate, 3),                      f(p.recommendedTempBasalRate, 3),
+                f(pd?.autoBolus, 3),                        f(p.recommendedBolus, 3),
+                f(pumpDelta, 3),                            f(p.recommendedDeltaU, 3),
+                f(actualDelta, 3),
+                f(pd?.recommendedBolus, 3)
+            ]
+            lines.append(row.joined(separator: ","))
+        }
+
+        let content = lines.joined(separator: "\n") + "\n"
+        try content.write(toFile: path, atomically: true, encoding: .utf8)
     }
 
     struct DescStats { let mean, median, p10, p90: Double }
