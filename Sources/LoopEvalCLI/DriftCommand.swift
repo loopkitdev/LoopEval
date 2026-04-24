@@ -357,6 +357,41 @@ struct DriftCommand: AsyncParsableCommand {
         let timestamp: Date
         let autoBolus: Double      // enacted.bolusVolume (actually delivered)
         let enactedRate: Double?   // enacted.rate (U/hr); nil = no temp enacted
+        let iob: Double?           // loop.iob.iob
+        let recommendedBolus: Double?   // full correction before applicationFactor
+        let forecastStart: Date?
+        let forecast: [Double]?    // BG forecast at 5-min spacing from forecastStart
+    }
+
+    /// Linear-interpolate a pump-Loop forecast at an arbitrary time.
+    static func interpForecast(_ d: PumpDecision, at t: Date) -> Double? {
+        guard let start = d.forecastStart,
+              let values = d.forecast,
+              values.count >= 2 else { return nil }
+        let offset = t.timeIntervalSince(start) / 300   // 5-min spacing
+        let lo = Int(offset.rounded(.down))
+        guard lo >= 0, lo + 1 < values.count else { return nil }
+        let frac = offset - Double(lo)
+        return values[lo] + (values[lo + 1] - values[lo]) * frac
+    }
+
+    /// Interpolate Loop-now's forecast at an arbitrary time.
+    static func interpNowForecast(_ values: [PredictedGlucoseValue], at t: Date) -> Double? {
+        guard values.count >= 2 else { return nil }
+        // Binary search for the first value with date >= t
+        var lo = 0, hi = values.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if values[mid].startDate < t { lo = mid + 1 } else { hi = mid }
+        }
+        guard lo > 0, lo < values.count else { return nil }
+        let a = values[lo - 1], b = values[lo]
+        let span = b.startDate.timeIntervalSince(a.startDate)
+        guard span > 0 else { return a.quantity.doubleValue(for: .milligramsPerDeciliter) }
+        let frac = t.timeIntervalSince(a.startDate) / span
+        let va = a.quantity.doubleValue(for: .milligramsPerDeciliter)
+        let vb = b.quantity.doubleValue(for: .milligramsPerDeciliter)
+        return va + (vb - va) * frac
     }
 
     struct PumpComparison {
@@ -369,6 +404,14 @@ struct DriftCommand: AsyncParsableCommand {
         let nowUnderPumpSteps: Int
         let pumpOverActualSteps: Int
         let pumpUnderActualSteps: Int
+        /// (nowIOB − pumpIOB) at every matched step where both are available.
+        let iobDiffs: [Double]
+        /// Forecast differences (Loop-now − pump) at 30, 60, 90 min horizons.
+        let fc30Diffs: [Double]
+        let fc60Diffs: [Double]
+        let fc90Diffs: [Double]
+        /// Forecast curve-minimum differences — what insulinCorrection keys off.
+        let fcMinDiffs: [Double]
     }
 
     static func fetchPumpDecisions(
@@ -396,7 +439,18 @@ struct DriftCommand: AsyncParsableCommand {
             guard let t = ts else { continue }
             let autoBolus = loop.enacted?.bolusVolume ?? 0
             let enactedRate = loop.enacted?.rate
-            out.append(PumpDecision(timestamp: t, autoBolus: autoBolus, enactedRate: enactedRate))
+            let iob = loop.iob?.iob
+            let recBolus = loop.recommendedBolus
+            var fcStart: Date? = nil
+            if let pred = loop.predicted {
+                fcStart = fmt.date(from: pred.startDate) ?? fmtNoFrac.date(from: pred.startDate)
+            }
+            let fcValues = loop.predicted?.values
+            out.append(PumpDecision(
+                timestamp: t, autoBolus: autoBolus, enactedRate: enactedRate,
+                iob: iob, recommendedBolus: recBolus,
+                forecastStart: fcStart, forecast: fcValues
+            ))
         }
         let sorted = out.sorted { $0.timestamp < $1.timestamp }
 
@@ -466,6 +520,11 @@ struct DriftCommand: AsyncParsableCommand {
         var pumpSum = 0.0, nowSum = 0.0, actualSum = 0.0
         var nowOverPump = 0, nowUnderPump = 0
         var pumpOverActual = 0, pumpUnderActual = 0
+        var iobDiffs: [Double] = []
+        var fc30Diffs: [Double] = []
+        var fc60Diffs: [Double] = []
+        var fc90Diffs: [Double] = []
+        var fcMinDiffs: [Double] = []
         let tol = evalStep / 2
 
         for (i, p) in predictions.enumerated() {
@@ -474,9 +533,6 @@ struct DriftCommand: AsyncParsableCommand {
             ) else { continue }
 
             let schedRate = scheduledRate(at: p.evaluatedAt, schedule: basalSchedule)
-            // Pump Loop's per-cycle ΔU = auto_bolus + (enactedRate − schedRate) × evalStep/3600.
-            // If no temp was enacted this cycle, the rate in force is whatever
-            // was running before — conservatively treat as scheduled (Δ=0).
             let pumpDelta = pd.autoBolus +
                 ((pd.enactedRate ?? schedRate) - schedRate) * evalStep / 3600
             pumpSum += pumpDelta
@@ -494,6 +550,40 @@ struct DriftCommand: AsyncParsableCommand {
                 if diff >  0.01 { pumpOverActual  += 1 }
                 if diff < -0.01 { pumpUnderActual += 1 }
             }
+
+            // IOB comparison — both represent active insulin at step start.
+            if let nowIob = p.iob, let pumpIob = pd.iob {
+                iobDiffs.append(nowIob - pumpIob)
+            }
+
+            // Forecast comparisons at 30 / 60 / 90 min horizons plus the
+            // forecast curve minimum (which is what insulinCorrection keys
+            // off: it treats the forecast minimum as the limiting factor).
+            for (hSec, arr) in [(30.0*60, \PumpComparison.fc30Diffs),
+                                (60.0*60, \PumpComparison.fc60Diffs),
+                                (90.0*60, \PumpComparison.fc90Diffs)] {
+                let tNow  = p.evaluatedAt.addingTimeInterval(hSec)
+                let tPump = pd.timestamp.addingTimeInterval(hSec)
+                if let nowFC = interpNowForecast(p.predicted, at: tNow),
+                   let pumpFC = interpForecast(pd, at: tPump) {
+                    switch arr {
+                    case \PumpComparison.fc30Diffs: fc30Diffs.append(nowFC - pumpFC)
+                    case \PumpComparison.fc60Diffs: fc60Diffs.append(nowFC - pumpFC)
+                    case \PumpComparison.fc90Diffs: fc90Diffs.append(nowFC - pumpFC)
+                    default: break
+                    }
+                }
+            }
+
+            // Forecast minima over the shared lookahead window.
+            let nowMin = p.predicted
+                .map { $0.quantity.doubleValue(for: .milligramsPerDeciliter) }
+                .min()
+            let pumpMin = pd.forecast?.min()
+            if let nowMin, let pumpMin {
+                fcMinDiffs.append(nowMin - pumpMin)
+            }
+
             matched += 1
         }
 
@@ -506,7 +596,12 @@ struct DriftCommand: AsyncParsableCommand {
             nowOverPumpSteps: nowOverPump,
             nowUnderPumpSteps: nowUnderPump,
             pumpOverActualSteps: pumpOverActual,
-            pumpUnderActualSteps: pumpUnderActual
+            pumpUnderActualSteps: pumpUnderActual,
+            iobDiffs: iobDiffs,
+            fc30Diffs: fc30Diffs,
+            fc60Diffs: fc60Diffs,
+            fc90Diffs: fc90Diffs,
+            fcMinDiffs: fcMinDiffs
         )
     }
 
@@ -535,7 +630,45 @@ struct DriftCommand: AsyncParsableCommand {
         print(String(format: "     Pump Loop < actual:     %4d  (%.1f%%)", c.pumpUnderActualSteps, pUnderPct))
         print(" If pump-Loop and actual diverge, either the pump rejected some")
         print(" recommendation or devicestatus/treatments are out of sync.")
+
+        // Algorithmic-divergence diagnostic: if IOB matches but forecasts
+        // differ, the forecast path changed. If IOB also differs, insulin
+        // integration changed. Forecast-min is what insulinCorrection uses
+        // to decide dose size.
+        if !c.iobDiffs.isEmpty || !c.fc90Diffs.isEmpty {
+            print(sep)
+            print(" Algorithmic divergence (Loop-now − pump Loop, per step)")
+            print(sep)
+            func row(_ label: String, _ xs: [Double], _ fmt: String) {
+                guard !xs.isEmpty else { return }
+                let s = Self.descStats(xs)
+                print(String(format: "   \(label)   mean \(fmt)  median \(fmt)  P10 \(fmt)  P90 \(fmt)   n=%d",
+                             s.mean, s.median, s.p10, s.p90, xs.count))
+            }
+            row("ΔIOB (U)          ", c.iobDiffs,    "%+.3f")
+            row("ΔForecast@30 mg/dL", c.fc30Diffs,   "%+.1f")
+            row("ΔForecast@60 mg/dL", c.fc60Diffs,   "%+.1f")
+            row("ΔForecast@90 mg/dL", c.fc90Diffs,   "%+.1f")
+            row("ΔForecast min     ", c.fcMinDiffs,  "%+.1f")
+            print(" Positive ΔIOB → Loop-now thinks more insulin is active; would recommend LESS.")
+            print(" Positive ΔForecast → Loop-now forecasts higher BG; would recommend MORE.")
+            print(" Forecast min drives insulinCorrection — a systematic offset there is")
+            print(" the first-order explanation for dose-recommendation drift.")
+        }
         print(ruler)
+    }
+
+    struct DescStats { let mean, median, p10, p90: Double }
+    static func descStats(_ xs: [Double]) -> DescStats {
+        let sorted = xs.sorted()
+        let n = sorted.count
+        let mean = xs.reduce(0, +) / Double(n)
+        func pct(_ p: Double) -> Double {
+            if n == 0 { return 0 }
+            let i = min(n - 1, max(0, Int((Double(n - 1) * p).rounded())))
+            return sorted[i]
+        }
+        return DescStats(mean: mean, median: pct(0.5), p10: pct(0.10), p90: pct(0.90))
     }
 }
 
