@@ -67,6 +67,9 @@ struct DriftCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Disable Kalman smoothing")
     var noKalman: Bool = false
 
+    @Flag(name: .long, help: "Use Integral Retrospective Correction (must match pump-side Loop config)")
+    var integralRc: Bool = false
+
     @Option(name: .long, help: "Write comparison HTML report to this path")
     var html: String?
 
@@ -95,6 +98,7 @@ struct DriftCommand: AsyncParsableCommand {
         let config = EvalConfig(
             evalStep: TimeInterval(stepMinutes) * 60,
             includeFutureInsulin: false,
+            useIntegralRC: integralRc,
             kalmanSmoothing: !noKalman,
             positiveVelocityCap: momentumCap,
             useAsymmetricMomentum: asymmetricMomentum
@@ -129,7 +133,12 @@ struct DriftCommand: AsyncParsableCommand {
         printStderr("  suspendThreshold: \(suspendStr)\n")
         printStderr("  maxBolus:         \(String(format: "%.2f U", tt.maxBolus))\n")
         printStderr("  maxBasalRate:     \(String(format: "%.2f U/hr", tt.maxBasalRate))\n")
-        printStderr("  insulinType:      \(tt.insulinType)\n\n")
+        printStderr("  insulinType:      \(tt.insulinType)\n")
+        printStderr("  retrospective correction: \(integralRc ? "Integral (180min)" : "Standard (60min)")\n")
+        if !integralRc {
+            printStderr("  (if pump-side Loop runs Integral RC, rerun with --integral-rc)\n")
+        }
+        printStderr("\n")
 
         printStderr("Running Loop-now sweep...\n")
         let candidateResult = try await engine.runSweep(
