@@ -1,4 +1,4 @@
-// ComparisonHTMLGenerator.swift — ODR/UDR comparison report (matches LoopEval style)
+// ComparisonHTMLGenerator.swift — OPR/UPR comparison report (matches LoopEval style)
 
 import EvalCore
 import Foundation
@@ -21,9 +21,11 @@ enum ComparisonHTMLGenerator {
         baseline: AggregateScore,
         candidate: AggregateScore,
         meta: ComparisonMeta,
-        to url: URL
+        to url: URL,
+        delivery: DeliveryScores? = nil
     ) throws {
-        let html = buildHTML(baseline: baseline, candidate: candidate, meta: meta)
+        let html = buildHTML(baseline: baseline, candidate: candidate,
+                             meta: meta, delivery: delivery)
         try html.write(to: url, atomically: true, encoding: .utf8)
     }
 
@@ -32,7 +34,8 @@ enum ComparisonHTMLGenerator {
     private static func buildHTML(
         baseline: AggregateScore,
         candidate: AggregateScore,
-        meta: ComparisonMeta
+        meta: ComparisonMeta,
+        delivery: DeliveryScores? = nil
     ) -> String {
 
         let baselineSorted  = baseline.horizonMetrics.sorted  { $0.horizon < $1.horizon }
@@ -47,10 +50,10 @@ enum ComparisonHTMLGenerator {
             vals.map { String(format: fmt, $0) }.joined(separator: ", ")
         }
 
-        let bODR = jsArr(baselineSorted.map  { $0.odr  }, "%.3f")
-        let bUDR = jsArr(baselineSorted.map  { $0.udr  }, "%.3f")
-        let cODR = jsArr(candidateSorted.map { $0.odr  }, "%.3f")
-        let cUDR = jsArr(candidateSorted.map { $0.udr  }, "%.3f")
+        let bOPR = jsArr(baselineSorted.map  { $0.opr  }, "%.3f")
+        let bUPR = jsArr(baselineSorted.map  { $0.upr  }, "%.3f")
+        let cOPR = jsArr(candidateSorted.map { $0.opr  }, "%.3f")
+        let cUPR = jsArr(candidateSorted.map { $0.upr  }, "%.3f")
 
         // ── Score cards ───────────────────────────────────────────────────────────
         func card(_ label: String, val: Double, sub: String, color: String) -> String {
@@ -94,22 +97,77 @@ enum ComparisonHTMLGenerator {
         let baseCards = """
         <div class="run-label">\(esc(meta.baselineLabel))</div>
         <div class="sc-row">
-          \(card("ODR — Overdelivery Risk", val: baseline.weightedOverdeliveryRisk,  sub: "weighted avg",         color: "#e8685a"))
-          \(card("UDR — Underdelivery Risk", val: baseline.weightedUnderdeliveryRisk, sub: "weighted avg",         color: "#f0a84a"))
-          \(card("Primary (ODR + UDR)",      val: baseline.primaryScore,              sub: "optimization target ↓", color: "#6a8ef0"))
-          \(card("RMSE (weighted)",          val: baseline.weightedRMSE,              sub: "mg/dL · reference",    color: "#4dcfb8"))
+          \(card("OPR — Over-Prediction Risk",  val: baseline.weightedOverpredictionRisk,  sub: "weighted avg",         color: "#e8685a"))
+          \(card("UPR — Under-Prediction Risk", val: baseline.weightedUnderpredictionRisk, sub: "weighted avg",         color: "#f0a84a"))
+          \(card("Primary (OPR + UPR)",         val: baseline.primaryScore,                sub: "optimization target ↓", color: "#6a8ef0"))
+          \(card("RMSE (weighted)",             val: baseline.weightedRMSE,                sub: "mg/dL · reference",    color: "#4dcfb8"))
         </div>
         """
 
         let candCards = """
         <div class="run-label" style="margin-top:28px">\(esc(meta.candidateLabel))</div>
         <div class="sc-row">
-          \(deltaCard("ODR — Overdelivery Risk",  baseVal: baseline.weightedOverdeliveryRisk,  candVal: candidate.weightedOverdeliveryRisk,  sub: "weighted avg",         color: "#e8685a"))
-          \(deltaCard("UDR — Underdelivery Risk", baseVal: baseline.weightedUnderdeliveryRisk, candVal: candidate.weightedUnderdeliveryRisk, sub: "weighted avg",         color: "#f0a84a"))
-          \(deltaCard("Primary (ODR + UDR)",      baseVal: baseline.primaryScore,              candVal: candidate.primaryScore,              sub: "optimization target ↓", color: "#6a8ef0"))
-          \(deltaCard("RMSE (weighted)",          baseVal: baseline.weightedRMSE,              candVal: candidate.weightedRMSE,              sub: "mg/dL · reference",    color: "#4dcfb8"))
+          \(deltaCard("OPR — Over-Prediction Risk",  baseVal: baseline.weightedOverpredictionRisk,  candVal: candidate.weightedOverpredictionRisk,  sub: "weighted avg",         color: "#e8685a"))
+          \(deltaCard("UPR — Under-Prediction Risk", baseVal: baseline.weightedUnderpredictionRisk, candVal: candidate.weightedUnderpredictionRisk, sub: "weighted avg",         color: "#f0a84a"))
+          \(deltaCard("Primary (OPR + UPR)",         baseVal: baseline.primaryScore,                candVal: candidate.primaryScore,                sub: "optimization target ↓", color: "#6a8ef0"))
+          \(deltaCard("RMSE (weighted)",             baseVal: baseline.weightedRMSE,                candVal: candidate.weightedRMSE,                sub: "mg/dL · reference",    color: "#4dcfb8"))
         </div>
         """
+
+        // ── Delivery-based ODR/UDR panel ───────────────────────────────────────────
+        func scCard(label: String, val: String, sub: String, color: String) -> String {
+            """
+            <div class="sc">
+              <div class="sc-lbl">\(label)</div>
+              <div class="sc-val" style="color:\(color)">\(val)</div>
+              <div class="sc-sub">\(sub)</div>
+            </div>
+            """
+        }
+
+        let deliveryHTML: String
+        if let d = delivery {
+            let odrStr = String(format: "%.4f", d.weightedODR)
+            let udrStr = String(format: "%.4f", d.weightedUDR)
+            let totalStr = String(format: "%.4f", d.primaryDeliveryScore)
+            // Per-horizon table
+            var horizonRows = ""
+            for hs in d.horizonScores {
+                horizonRows += "<tr><td style='padding:4px 10px;'>\(Int(hs.horizon / 60)) min</td>"
+                horizonRows += "<td style='padding:4px 10px;font-family:monospace;'>\(String(format: "%.4f", hs.odr))</td>"
+                horizonRows += "<td style='padding:4px 10px;font-family:monospace;'>\(String(format: "%.4f", hs.udr))</td>"
+                horizonRows += "<td style='padding:4px 10px;color:#888;'>n_ODR=\(hs.nODR), n_UDR=\(hs.nUDR)</td></tr>"
+            }
+            deliveryHTML = """
+            <div class="panel">
+              <div class="panel-title">Delivery-based ODR / UDR  <span style="color:#888;font-weight:normal;">(candidate vs baseline Δdose, weighted by Clarke-Kovatchev risk)</span></div>
+              <div class="sc-row">
+                \(scCard(label: "ODR — Over-Delivery Risk", val: odrStr, sub: "candidate > baseline at pre-low moments", color: "#e8685a"))
+                \(scCard(label: "UDR — Under-Delivery Risk", val: udrStr, sub: "candidate < baseline at pre-high moments", color: "#f0a84a"))
+                \(scCard(label: "ODR + UDR", val: totalStr, sub: "primary delivery score", color: "#6a8ef0"))
+              </div>
+              <p style="color:#888da8;font-size:.82rem;margin-top:16px;line-height:1.6">
+                <strong>Interpretation:</strong> these are the clinically-consequential dose-delta metrics.
+                <strong style="color:#e8685a">ODR &gt; 0</strong> means the candidate delivered
+                <em>more</em> insulin than baseline at moments where actual BG went below 100 — real over-delivery into lows.
+                <strong style="color:#f0a84a">UDR &gt; 0</strong> means the candidate delivered <em>less</em> than baseline
+                at moments where actual BG went above 115 — real under-delivery during highs.
+                Unlike OPR/UPR (forecast error), these capture what actually reached the patient.
+              </p>
+              <table style="width:100%;margin-top:18px;border-collapse:collapse;font-size:.85rem;color:#c8ccd8;">
+                <thead><tr style="background:#0a0d18;">
+                  <th style="padding:6px 10px;text-align:left;font-weight:500;color:#888;">Horizon</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:500;color:#e8685a;">ODR</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:500;color:#f0a84a;">UDR</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:500;color:#888;">Paired decisions</th>
+                </tr></thead>
+                <tbody>\(horizonRows)</tbody>
+              </table>
+            </div>
+            """
+        } else {
+            deliveryHTML = ""
+        }
 
         // ── Timestamp ─────────────────────────────────────────────────────────────
         let iso = ISO8601DateFormatter()
@@ -122,7 +180,7 @@ enum ComparisonHTMLGenerator {
         <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>LoopEval — ODR / UDR by Horizon</title>
+        <title>LoopEval — OPR / UPR by Horizon</title>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <style>
           *{box-sizing:border-box;margin:0;padding:0}
@@ -164,11 +222,11 @@ enum ComparisonHTMLGenerator {
         </head>
         <body>
         <div class="page">
-          <h1>LoopEval — ODR / UDR by Horizon</h1>
-          <p class="sub">Overdelivery &amp; Underdelivery Risk across forecast horizons · target range 100–115 mg/dL</p>
+          <h1>LoopEval — bench comparison</h1>
+          <p class="sub">Forecast-based OPR/UPR + delivery-based ODR/UDR across horizons · target range 100–115 mg/dL</p>
 
           <div class="panel">
-            <div class="panel-title">Overdelivery and Underdelivery Risk by forecast horizon</div>
+            <div class="panel-title">OPR / UPR — forecast error by horizon</div>
             <div class="chart-wrap"><canvas id="chart"></canvas></div>
           </div>
 
@@ -177,32 +235,36 @@ enum ComparisonHTMLGenerator {
             \(candCards)
           </div>
 
+          \(deliveryHTML)
+
           <div class="panel">
-            <div class="panel-title">What are ODR and UDR?</div>
+            <div class="panel-title">What are OPR and UPR?</div>
             <div class="explainer">
               <div class="exp-card">
-                <h3><span class="pill pill-red">ODR</span> Overdelivery Risk</h3>
-                <p>Penalises forecasts that predict BG will be <strong>higher than it actually is</strong>, when actual BG is <strong>below the target floor</strong> (100 mg/dL). This is the dangerous case where Loop keeps delivering insulin into a falling or already-low BG.</p>
+                <h3><span class="pill pill-red">OPR</span> Over-Prediction Risk</h3>
+                <p>Penalises forecasts that predict BG will be <strong>higher than it actually is</strong>, when actual BG is <strong>below the target floor</strong> (100 mg/dL). This is the dangerous case where Loop would keep delivering insulin into a falling or already-low BG.</p>
                 <p>Cost is <strong>zero</strong> when BG is in-range or high. Only over-predictions in the low zone are penalised, weighted by the Clarke-Kovatchev low-risk function <code>rl(actual)</code> — so an error at BG 60 costs far more than the same error at BG 95.</p>
-                <div class="formula">ODR = √( Σ rl(actual) · max(predicted − actual, 0)² / n )</div>
+                <div class="formula">OPR = √( Σ rl(actual) · max(predicted − actual, 0)² / n )</div>
+                <p><em>Forecast-error metric. The clinically-consequential delivery-based counterpart (ODR) is reserved for a future implementation that measures how much insulin was actually delivered into pre-low windows.</em></p>
               </div>
               <div class="exp-card">
-                <h3><span class="pill pill-orange">UDR</span> Underdelivery Risk</h3>
-                <p>Penalises forecasts that predict BG will be <strong>lower than it actually is</strong>, when actual BG is <strong>above the target ceiling</strong> (115 mg/dL). This is the case where Loop withholds a correction it should have given.</p>
+                <h3><span class="pill pill-orange">UPR</span> Under-Prediction Risk</h3>
+                <p>Penalises forecasts that predict BG will be <strong>lower than it actually is</strong>, when actual BG is <strong>above the target ceiling</strong> (115 mg/dL). This is the case where Loop would withhold a correction it should have given.</p>
                 <p>Cost is <strong>zero</strong> when BG is in-range or low. Only under-predictions in the high zone are penalised, weighted by the high-risk function <code>rh(actual)</code>.</p>
-                <div class="formula">UDR = √( Σ rh(actual) · max(actual − predicted, 0)² / n )</div>
+                <div class="formula">UPR = √( Σ rh(actual) · max(actual − predicted, 0)² / n )</div>
+                <p><em>Forecast-error metric. UDR is reserved for the delivery-based counterpart.</em></p>
               </div>
               <div class="exp-card">
-                <h3><span class="pill pill-blue">Primary</span> ODR + UDR — ⚠️ interpret with caution</h3>
-                <p>The sum of ODR and UDR. <strong>However, this metric has a fundamental structural bias that makes it an unreliable optimisation target.</strong></p>
-                <p>Loop cannot know about future unannounced carbs. When a meal raises BG, the algorithm's prediction will almost always be lower than actual — triggering UDR — even though withholding that dose was the correct, safe behaviour. Optimising to reduce UDR would mean making predictions systematically higher, which would cause over-delivery and more lows.</p>
-                <p>UDR is large by design. The bias cannot be quantified or corrected for. <strong>ODR is the more meaningful safety signal.</strong></p>
+                <h3><span class="pill pill-blue">Primary</span> OPR + UPR — ⚠️ interpret with caution</h3>
+                <p>The sum of OPR and UPR. <strong>However, this metric has a fundamental structural bias that makes it an unreliable optimisation target.</strong></p>
+                <p>Loop cannot know about future unannounced carbs. When a meal raises BG, the algorithm's prediction will almost always be lower than actual — triggering UPR — even though withholding that dose was the correct, safe behaviour. Optimising to reduce UPR would mean making predictions systematically higher, which would cause over-delivery and more lows.</p>
+                <p>UPR is large by design. The bias cannot be quantified or corrected for. <strong>OPR is the more meaningful safety signal.</strong></p>
               </div>
               <div class="exp-card">
-                <h3>Why UDR dominates — and why that's expected</h3>
-                <p>UDR is almost always much larger than ODR. The primary reason is <strong>unannounced future carbs</strong>: Loop predicts BG without knowing what a person will eat, so under-predictions when BG rises after meals are structural and unavoidable.</p>
-                <p>Secondary reason: Clarke-Kovatchev risk weighting — <code>rl(60) ≈ 29.6</code> vs <code>rh(200) ≈ 3.0</code> — applies ~10× more weight to hypo errors. Even so, the sheer volume of high-BG under-predictions from unannounced carbs overwhelms this, producing a large UDR.</p>
-                <p>A large UDR is not a red flag. Trying to shrink it would be dangerous.</p>
+                <h3>Why UPR dominates — and why that's expected</h3>
+                <p>UPR is almost always much larger than OPR. The primary reason is <strong>unannounced future carbs</strong>: Loop predicts BG without knowing what a person will eat, so under-predictions when BG rises after meals are structural and unavoidable.</p>
+                <p>Secondary reason: Clarke-Kovatchev risk weighting — <code>rl(60) ≈ 29.6</code> vs <code>rh(200) ≈ 3.0</code> — applies ~10× more weight to hypo errors. Even so, the sheer volume of high-BG under-predictions from unannounced carbs overwhelms this, producing a large UPR.</p>
+                <p>A large UPR is not a red flag. Trying to shrink it would be dangerous.</p>
               </div>
             </div>
           </div>
@@ -236,10 +298,10 @@ enum ComparisonHTMLGenerator {
           data:{
             labels,
             datasets:[
-              {label:'\(esc(meta.baselineLabel)) ODR',data:[\(bODR)],borderColor:'#e8685a',pointBackgroundColor:'#e8685a',borderWidth:2.5,pointRadius:5,tension:.3,yAxisID:'yODR'},
-              {label:'\(esc(meta.baselineLabel)) UDR',data:[\(bUDR)],borderColor:'#f0a84a',pointBackgroundColor:'#f0a84a',borderWidth:2.5,pointRadius:5,tension:.3,yAxisID:'yUDR'},
-              {label:'\(esc(meta.candidateLabel)) ODR',data:[\(cODR)],borderColor:'#6a8ef0',pointBackgroundColor:'#6a8ef0',borderWidth:2,pointRadius:5,tension:.3,borderDash:[6,3],yAxisID:'yODR'},
-              {label:'\(esc(meta.candidateLabel)) UDR',data:[\(cUDR)],borderColor:'#4dcfb8',pointBackgroundColor:'#4dcfb8',borderWidth:2,pointRadius:5,tension:.3,borderDash:[6,3],yAxisID:'yUDR'},
+              {label:'\(esc(meta.baselineLabel)) OPR',data:[\(bOPR)],borderColor:'#e8685a',pointBackgroundColor:'#e8685a',borderWidth:2.5,pointRadius:5,tension:.3,yAxisID:'yOPR'},
+              {label:'\(esc(meta.baselineLabel)) UPR',data:[\(bUPR)],borderColor:'#f0a84a',pointBackgroundColor:'#f0a84a',borderWidth:2.5,pointRadius:5,tension:.3,yAxisID:'yUPR'},
+              {label:'\(esc(meta.candidateLabel)) OPR',data:[\(cOPR)],borderColor:'#6a8ef0',pointBackgroundColor:'#6a8ef0',borderWidth:2,pointRadius:5,tension:.3,borderDash:[6,3],yAxisID:'yOPR'},
+              {label:'\(esc(meta.candidateLabel)) UPR',data:[\(cUPR)],borderColor:'#4dcfb8',pointBackgroundColor:'#4dcfb8',borderWidth:2,pointRadius:5,tension:.3,borderDash:[6,3],yAxisID:'yUPR'},
             ]
           },
           options:{
@@ -255,16 +317,16 @@ enum ComparisonHTMLGenerator {
             },
             scales:{
               x:{ticks:{color:'#777b98',font:{size:12}},grid:{color:'rgba(255,255,255,0.04)'}},
-              yODR:{
+              yOPR:{
                 type:'linear',position:'left',
-                title:{display:true,text:'Overdelivery Risk (ODR)',color:'#e8685a',font:{size:12}},
+                title:{display:true,text:'Over-Prediction Risk (OPR)',color:'#e8685a',font:{size:12}},
                 ticks:{color:'#e8685a',font:{size:11}},
                 grid:{color:'rgba(255,255,255,0.04)'},
                 min:0
               },
-              yUDR:{
+              yUPR:{
                 type:'linear',position:'right',
-                title:{display:true,text:'Underdelivery Risk (UDR)',color:'#f0a84a',font:{size:12}},
+                title:{display:true,text:'Under-Prediction Risk (UPR)',color:'#f0a84a',font:{size:12}},
                 ticks:{color:'#f0a84a',font:{size:11}},
                 grid:{drawOnChartArea:false},
                 min:0

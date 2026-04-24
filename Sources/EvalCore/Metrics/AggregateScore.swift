@@ -22,15 +22,19 @@ public struct AggregateScore: Codable, Sendable {
     /// Gaussian-weighted average high-risk-weighted RMSE.
     public let weightedHighRMSE: Double
 
-    /// Gaussian-weighted Dangerous Over-prediction Score (DOS).
-    /// Measures over-predictions when BG is below target — avoidable lows.
-    public let weightedOverdeliveryRisk: Double
+    /// Gaussian-weighted Over-Prediction Risk (OPR). Measures over-predictions
+    /// when BG is below target — a forecast-error proxy for avoidable lows.
+    /// NOTE: measures *forecast* accuracy, not actual insulin delivery.
+    /// ODR is reserved for a future delivery-based metric.
+    public let weightedOverpredictionRisk: Double
 
-    /// Gaussian-weighted Dangerous Under-prediction Score (DUS).
-    /// Measures under-predictions when BG is above target — avoidable highs.
-    public let weightedUnderdeliveryRisk: Double
+    /// Gaussian-weighted Under-Prediction Risk (UPR). Measures under-predictions
+    /// when BG is above target — a forecast-error proxy for avoidable highs.
+    /// NOTE: measures *forecast* accuracy, not actual insulin delivery.
+    /// UDR is reserved for a future delivery-based metric.
+    public let weightedUnderpredictionRisk: Double
 
-    /// **Primary optimization target: `weightedOverdeliveryRisk + weightedUnderdeliveryRisk`.**
+    /// **Primary forecast-risk score: `weightedOverpredictionRisk + weightedUnderpredictionRisk`.**
     /// Lower is better.  Zero means no dangerous mispredictions outside target range.
     public let primaryScore: Double
 
@@ -53,7 +57,7 @@ public struct AggregateScore: Codable, Sendable {
                 horizonMetrics: [],
                 weightedRMSE: 0, weightedBGRI: 0,
                 weightedLowRMSE: 0, weightedHighRMSE: 0,
-                weightedOverdeliveryRisk: 0, weightedUnderdeliveryRisk: 0,
+                weightedOverpredictionRisk: 0, weightedUnderpredictionRisk: 0,
                 primaryScore: 0
             )
         }
@@ -70,7 +74,7 @@ public struct AggregateScore: Codable, Sendable {
                 horizonMetrics: metrics,
                 weightedRMSE: 0, weightedBGRI: 0,
                 weightedLowRMSE: 0, weightedHighRMSE: 0,
-                weightedOverdeliveryRisk: 0, weightedUnderdeliveryRisk: 0,
+                weightedOverpredictionRisk: 0, weightedUnderpredictionRisk: 0,
                 primaryScore: 0
             )
         }
@@ -83,21 +87,21 @@ public struct AggregateScore: Codable, Sendable {
         var wBGRI: Double = 0
         var wLowRMSE: Double = 0
         var wHighRMSE: Double = 0
-        var wODR: Double = 0
-        var wUDR: Double = 0
+        var wOPR: Double = 0
+        var wUPR: Double = 0
 
         for (m, w) in zip(metrics, weights) {
             wRMSE     += w * m.rmse
             wBGRI     += w * m.bgri
             wLowRMSE  += w * m.lowWeightedRMSE
             wHighRMSE += w * m.highWeightedRMSE
-            wODR      += w * m.odr
-            wUDR      += w * m.udr
+            wOPR      += w * m.opr
+            wUPR      += w * m.upr
         }
 
-        // Primary score = DOS + DUS: penalises only clinically dangerous
-        // mispredictions outside the target BG range.
-        let primary = wODR + wUDR
+        // Primary forecast-risk score = OPR + UPR: penalises clinically
+        // dangerous forecast errors outside the target BG range.
+        let primary = wOPR + wUPR
 
         return AggregateScore(
             horizonMetrics: metrics,
@@ -105,8 +109,8 @@ public struct AggregateScore: Codable, Sendable {
             weightedBGRI: wBGRI,
             weightedLowRMSE: wLowRMSE,
             weightedHighRMSE: wHighRMSE,
-            weightedOverdeliveryRisk: wODR,
-            weightedUnderdeliveryRisk: wUDR,
+            weightedOverpredictionRisk: wOPR,
+            weightedUnderpredictionRisk: wUPR,
             primaryScore: primary
         )
     }

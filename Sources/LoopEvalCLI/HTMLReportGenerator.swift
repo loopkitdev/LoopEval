@@ -65,8 +65,8 @@ enum HTMLReportGenerator {
                            Menlo, Monaco, monospace; color: #ddd; }
             .wo-table tr { cursor: pointer; transition: background 0.15s; }
             .wo-table tbody tr:hover { background: #1a1d27; }
-            .wo-odr tbody tr { border-left: 3px solid rgba(224,92,92,0.25); }
-            .wo-udr tbody tr { border-left: 3px solid rgba(244,164,96,0.25); }
+            .wo-opr tbody tr { border-left: 3px solid rgba(224,92,92,0.25); }
+            .wo-upr tbody tr { border-left: 3px solid rgba(244,164,96,0.25); }
           </style>
         </head>
         <body>
@@ -144,12 +144,12 @@ enum HTMLReportGenerator {
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
             <div>
-              <div style="color:#e05c5c;font-size:0.85em;font-weight:500;margin-bottom:8px;">Top ODR Contributors (over-prediction)</div>
-              <table id="woOdrTable" class="wo-table wo-odr"></table>
+              <div style="color:#e05c5c;font-size:0.85em;font-weight:500;margin-bottom:8px;">Top OPR Contributors (over-prediction)</div>
+              <table id="woOprTable" class="wo-table wo-opr"></table>
             </div>
             <div>
-              <div style="color:#f4a460;font-size:0.85em;font-weight:500;margin-bottom:8px;">Top UDR Contributors (under-prediction)</div>
-              <table id="woUdrTable" class="wo-table wo-udr"></table>
+              <div style="color:#f4a460;font-size:0.85em;font-weight:500;margin-bottom:8px;">Top UPR Contributors (under-prediction)</div>
+              <table id="woUprTable" class="wo-table wo-upr"></table>
             </div>
           </div>
         </div>
@@ -163,7 +163,7 @@ enum HTMLReportGenerator {
               <div class="chart-wrap"><canvas id="errorChart"></canvas></div>
             </div>
             <div>
-              <div style="color:#aaa;font-size:12px;margin-bottom:4px;text-align:center">Delivery risk — overdelivery (red) vs underdelivery (orange), Clarke-Kovatchev weighted</div>
+              <div style="color:#aaa;font-size:12px;margin-bottom:4px;text-align:center">Forecast risk — over-prediction (red) vs under-prediction (orange), Clarke-Kovatchev weighted</div>
               <div class="chart-wrap"><canvas id="dangerChart"></canvas></div>
             </div>
           </div>
@@ -650,15 +650,15 @@ enum HTMLReportGenerator {
             labels: hp.map(m => m.horizonMin + ' min'),
             datasets: [
               {
-                label: 'Overdelivery Risk — forecast too high, BG ended low',
-                data: hp.map(m => m.odr),
+                label: 'Over-Prediction Risk (OPR) — forecast too high, BG ended low',
+                data: hp.map(m => m.opr),
                 borderColor: '#e05c5c', backgroundColor: 'rgba(224,92,92,0.08)',
                 borderWidth: 2.5, tension: 0.2, fill: false,
                 pointRadius: 3
               },
               {
-                label: 'Underdelivery Risk — forecast too low, BG stayed high',
-                data: hp.map(m => m.udr),
+                label: 'Under-Prediction Risk (UPR) — forecast too low, BG stayed high',
+                data: hp.map(m => m.upr),
                 borderColor: '#f4a460', backgroundColor: 'rgba(244,164,96,0.08)',
                 borderWidth: 2.5, tension: 0.2, fill: false,
                 pointRadius: 3
@@ -925,8 +925,8 @@ enum HTMLReportGenerator {
 
         // ── Panel: Worst Offenders ────────────────────────────────────────────────
         const woHorizonSel = document.getElementById('woHorizonSel');
-        const woOdrTable = document.getElementById('woOdrTable');
-        const woUdrTable = document.getElementById('woUdrTable');
+        const woOprTable = document.getElementById('woOprTable');
+        const woUprTable = document.getElementById('woUprTable');
         const woNote = document.getElementById('woNote');
 
         // Populate horizon selector (reuse riskHorizons from above)
@@ -943,9 +943,9 @@ enum HTMLReportGenerator {
           const h = parseInt(woHorizonSel.value) || defaultWoH;
           const pts = riskByHorizon.get(h) || [];
 
-          // Sort for ODR (positive risk = over-prediction) and UDR (negative risk = under-prediction)
-          const sortedOdr = [...pts].sort((a, b) => b.risk - a.risk).slice(0, 10);
-          const sortedUdr = [...pts].sort((a, b) => a.risk - b.risk).slice(0, 10);
+          // Sort for OPR (positive risk = over-prediction) and UPR (negative risk = under-prediction)
+          const sortedOpr = [...pts].sort((a, b) => b.risk - a.risk).slice(0, 10);
+          const sortedUpr = [...pts].sort((a, b) => a.risk - b.risk).slice(0, 10);
 
           // Helper to find IOB/COB from predictions by nearest timestamp
           const findPredContext = (tMs) => {
@@ -971,7 +971,7 @@ enum HTMLReportGenerator {
           };
 
           // Render table
-          const renderTable = (table, rows, isOdr) => {
+          const renderTable = (table, rows, isOpr) => {
             table.innerHTML = `
               <thead><tr><th>Time</th><th>Risk</th><th>IOB</th><th>COB</th></tr></thead>
               <tbody>
@@ -990,8 +990,8 @@ enum HTMLReportGenerator {
             });
           };
 
-          renderTable(woOdrTable, sortedOdr, true);
-          renderTable(woUdrTable, sortedUdr, false);
+          renderTable(woOprTable, sortedOpr, true);
+          renderTable(woUprTable, sortedUpr, false);
           woNote.textContent = `Showing top contributors at ${h} min horizon — click any row to inspect`;
         }
 

@@ -223,10 +223,32 @@ public actor EvaluationEngine {
                     noFuturePredicted = predNoFuture.glucose
                 }
 
+                // Compute dose recommendation from this forecast. Used for
+                // delivery-based ODR/UDR metrics that compare total insulin
+                // delivery between two configurations.
+                let doseRec = Self.computeDoseRecommendation(
+                    prediction: prediction,
+                    at: t,
+                    input: input,
+                    suspendThreshold: data.therapyTimeline.suspendThreshold,
+                    maxBolus: data.therapyTimeline.maxBolus,
+                    maxBasalRate: data.therapyTimeline.maxBasalRate,
+                    insulinType: data.therapyTimeline.insulinType,
+                    evalStep: config.evalStep
+                )
+
                 predictions.append(
-                    PredictionRecord(evaluatedAt: t, predicted: prediction.glucose,
-                                     predictedNoFutureInsulin: noFuturePredicted,
-                                     iob: prediction.activeInsulin, cob: prediction.activeCarbs)
+                    PredictionRecord(
+                        evaluatedAt: t,
+                        predicted: prediction.glucose,
+                        predictedNoFutureInsulin: noFuturePredicted,
+                        iob: prediction.activeInsulin,
+                        cob: prediction.activeCarbs,
+                        recommendedDeltaU: doseRec?.deltaU,
+                        recommendedBolus: doseRec?.bolus,
+                        recommendedTempBasalRate: doseRec?.tempBasalRate,
+                        scheduledBasalRate: doseRec?.scheduledBasalRate
+                    )
                 )
             } else {
                 skippedCount += 1
@@ -256,6 +278,88 @@ public actor EvaluationEngine {
             predictions: predictions,
             actual: actualGlucose,
             skippedCount: skippedCount
+        )
+    }
+
+    // MARK: – Dose recommendation
+
+    struct DoseOutput {
+        let bolus: Double
+        let tempBasalRate: Double
+        let scheduledBasalRate: Double
+        let deltaU: Double  // total insulin delivered in next evalStep vs scheduled
+    }
+
+    /// Runs Loop's dose-recommendation logic from a forecast, returning the
+    /// total insulin Loop would deliver in the next evalStep window compared
+    /// to continuing scheduled basal. Used to compute delivery-based ODR/UDR.
+    ///
+    /// Uses the `.automaticBolus` recommendation path (equivalent to Loop's
+    /// default automatic dosing). A more complete implementation would switch
+    /// based on config, but most deployed configurations use automaticBolus.
+    static func computeDoseRecommendation<C: CarbEntry>(
+        prediction: LoopPrediction<C>,
+        at t: Date,
+        input: PredictionInput,
+        suspendThreshold: LoopQuantity?,
+        maxBolus: Double,
+        maxBasalRate: Double,
+        insulinType: ExponentialInsulinModelPreset,
+        evalStep: TimeInterval
+    ) -> DoseOutput? {
+        guard let scheduledBasalEntry = input.basal.first(where: { $0.startDate <= t && $0.endDate > t })
+            ?? input.basal.closestPrior(to: t) else { return nil }
+        let scheduledRate = scheduledBasalEntry.value
+
+        let suspend = suspendThreshold ?? input.target.closestPrior(to: t)?.value.lowerBound
+        guard let suspend else { return nil }
+
+        // ISF for dosing — single value at t, extended forward to cover forecast
+        let forecastEnd = t.addingTimeInterval(insulinType.model.effectDuration)
+        guard let sensitivityAtT = input.sensitivity.first(where: { $0.startDate <= t && $0.endDate >= t })
+            ?? input.sensitivity.closestPrior(to: t) else { return nil }
+        let sensitivityForDosing = [AbsoluteScheduleValue(
+            startDate: sensitivityAtT.startDate,
+            endDate: max(forecastEnd, prediction.effects.insulin.last?.startDate ?? forecastEnd),
+            value: sensitivityAtT.value
+        )]
+
+        let correction = LoopAlgorithm.insulinCorrection(
+            prediction: prediction.glucose,
+            at: t,
+            target: input.target,
+            suspendThreshold: suspend,
+            sensitivity: sensitivityForDosing,
+            insulinModel: insulinType.model
+        )
+
+        let maxActiveInsulin = maxBolus * 2   // default multiplier used by Loop
+        let activeInsulin = prediction.activeInsulin ?? 0
+
+        let recommendation = LoopAlgorithm.recommendAutomaticDose(
+            for: correction,
+            applicationFactor: 0.4,  // Loop default
+            neutralBasalRate: scheduledRate,
+            activeInsulin: activeInsulin,
+            maxBolus: maxBolus,
+            maxBasalRate: maxBasalRate,
+            maxActiveInsulin: maxActiveInsulin
+        )
+
+        let bolus = recommendation.bolusUnits ?? 0
+        let tempRate = recommendation.basalAdjustment.unitsPerHour
+
+        // Delta delivery over the next evalStep:
+        //   bolus + (tempRate - scheduledRate) × evalStep/3600
+        // Positive = more than scheduled basal, negative = less.
+        let basalDeltaU = (tempRate - scheduledRate) * evalStep / 3600
+        let deltaU = bolus + basalDeltaU
+
+        return DoseOutput(
+            bolus: bolus,
+            tempBasalRate: tempRate,
+            scheduledBasalRate: scheduledRate,
+            deltaU: deltaU
         )
     }
 }

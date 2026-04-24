@@ -78,11 +78,11 @@ public struct BloodGlucoseRisk {
 
     // MARK: – Directional danger scores (primary optimization target)
 
-    /// **Dangerous Over-prediction Score (DOS)**
+    /// **Over-Prediction Risk (OPR)** — forecast-error metric.
     ///
     /// Penalises forecasts that predict BG will be *higher* than it actually is,
     /// when the actual BG is *below* the target range.  This is the error that
-    /// causes Loop to keep delivering insulin into a falling or already-low BG.
+    /// would cause Loop to keep delivering insulin into a falling or already-low BG.
     ///
     /// - Cost is **zero** when `actual >= targetLow` (in-range or high: no danger).
     /// - Cost is **zero** for under-predictions (`predicted <= actual`): only
@@ -90,8 +90,11 @@ public struct BloodGlucoseRisk {
     /// - Weighted by `rl(actual)` so the cost grows rapidly as BG falls below
     ///   the target floor.
     ///
+    /// NOTE: measures *forecast* error, not actual insulin delivery. ODR is
+    /// reserved for a future delivery-based metric.
+    ///
     /// Formula: `sqrt( Σ rl(actual) · max(predicted − actual, 0)² / n )`
-    public static func overdeliveryRisk(
+    public static func overpredictionRisk(
         errors: [(predicted: Double, actual: Double)],
         targetLow: Double
     ) -> Double {
@@ -105,11 +108,11 @@ public struct BloodGlucoseRisk {
         return sqrt(sum / n)
     }
 
-    /// **Dangerous Under-prediction Score (DUS)**
+    /// **Under-Prediction Risk (UPR)** — forecast-error metric.
     ///
     /// Penalises forecasts that predict BG will be *lower* than it actually is,
     /// when the actual BG is *above* the target range.  This is the error that
-    /// causes Loop to withhold a correction it should have delivered.
+    /// would cause Loop to withhold a correction it should have delivered.
     ///
     /// - Cost is **zero** when `actual <= targetHigh` (in-range or low: no danger).
     /// - Cost is **zero** for over-predictions (`predicted >= actual`): only
@@ -117,8 +120,11 @@ public struct BloodGlucoseRisk {
     /// - Weighted by `rh(actual)` so the cost grows rapidly as BG rises above
     ///   the target ceiling.
     ///
+    /// NOTE: measures *forecast* error, not actual insulin delivery. UDR is
+    /// reserved for a future delivery-based metric.
+    ///
     /// Formula: `sqrt( Σ rh(actual) · max(actual − predicted, 0)² / n )`
-    public static func underdeliveryRisk(
+    public static func underpredictionRisk(
         errors: [(predicted: Double, actual: Double)],
         targetHigh: Double
     ) -> Double {

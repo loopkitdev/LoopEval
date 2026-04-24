@@ -208,12 +208,24 @@ struct BenchCommand: AsyncParsableCommand {
         let baselineScore = analyzer.analyze(result: baselineResult)
         let candidateScore = analyzer.analyze(result: candidateResult)
 
+        // 10b. Delivery-based ODR/UDR (candidate vs baseline)
+        let deliveryHorizons = baselineScore.horizonMetrics.map { $0.horizon }
+        let deliveryScores = DeliveryScores.compute(
+            baseline: baselineResult,
+            candidate: candidateResult,
+            horizons: deliveryHorizons,
+            actualGlucose: baselineResult.actual,
+            targetLow: baselineConfig.targetLow,
+            targetHigh: baselineConfig.targetHigh
+        )
+
         // 11. Print text comparison
         printComparison(
             baseline: baselineScore,
             candidate: candidateScore,
             baselineLabel: baselineLabel,
-            candidateLabel: candidateLabel
+            candidateLabel: candidateLabel,
+            delivery: deliveryScores
         )
 
         // 12. Write HTML report if requested
@@ -229,7 +241,8 @@ struct BenchCommand: AsyncParsableCommand {
                 baseline: baselineScore,
                 candidate: candidateScore,
                 meta: meta,
-                to: URL(fileURLWithPath: htmlPath)
+                to: URL(fileURLWithPath: htmlPath),
+                delivery: deliveryScores
             )
             printStderr("Comparison report written → \(htmlPath)\n")
         }
@@ -241,7 +254,8 @@ struct BenchCommand: AsyncParsableCommand {
         baseline: AggregateScore,
         candidate: AggregateScore,
         baselineLabel: String,
-        candidateLabel: String
+        candidateLabel: String,
+        delivery: DeliveryScores? = nil
     ) {
         let ruler = String(repeating: "━", count: 76)
         let sep   = String(repeating: "─", count: 76)
@@ -256,14 +270,25 @@ struct BenchCommand: AsyncParsableCommand {
         print(sep)
 
         let rows: [(label: String, a: Double, b: Double, lowerBetter: Bool)] = [
-            ("Primary  (ODR+UDR)", baseline.primaryScore,              candidate.primaryScore,              true),
-            ("ODR  (overdelivery)", baseline.weightedOverdeliveryRisk,  candidate.weightedOverdeliveryRisk,  true),
-            ("UDR (underdelivery)", baseline.weightedUnderdeliveryRisk, candidate.weightedUnderdeliveryRisk, true),
+            ("Primary  (OPR+UPR)", baseline.primaryScore,                candidate.primaryScore,                true),
+            ("OPR (overprediction)", baseline.weightedOverpredictionRisk,  candidate.weightedOverpredictionRisk,  true),
+            ("UPR (underprediction)", baseline.weightedUnderpredictionRisk, candidate.weightedUnderpredictionRisk, true),
             ("RMSE       (mg/dL)", baseline.weightedRMSE,               candidate.weightedRMSE,               true),
         ]
 
         for row in rows {
             print(summaryLine(row.label, valA: row.a, valB: row.b, lowerBetter: row.lowerBetter))
+        }
+
+        if let d = delivery {
+            print(sep)
+            print(" Delivery-based scores (candidate vs baseline Δdose, weighted by Clarke-Kovatchev risk)")
+            print(sep)
+            print(String(format: "   ODR (over-delivery at pre-low):   %6.4f U·√rl", d.weightedODR))
+            print(String(format: "   UDR (under-delivery at pre-high): %6.4f U·√rh", d.weightedUDR))
+            print(String(format: "   ODR + UDR:                        %6.4f", d.primaryDeliveryScore))
+            print(" (positive ODR = candidate delivered MORE insulin at moments where actual BG ended low)")
+            print(" (positive UDR = candidate delivered LESS insulin at moments where actual BG ended high)")
         }
 
         print(ruler)

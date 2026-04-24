@@ -40,18 +40,22 @@ public struct HorizonMetrics: Codable, Sendable {
     /// RMSE weighted by the high-BG risk of each actual value.
     public let highWeightedRMSE: Double
 
-    /// **Dangerous Over-prediction Score (DOS)**
+    /// **Over-Prediction Risk (OPR)** — formerly called ODR.
     /// Penalises over-predictions when actual BG is below `targetLow`.
-    /// Zero when BG is in-range or high.  Primary safety metric for avoidable lows.
-    public let odr: Double
+    /// Zero when BG is in-range or high. Measures *forecast* accuracy weighted
+    /// by clinical risk of the outcome; does NOT measure actual insulin delivery.
+    /// ODR is reserved for a future delivery-based metric.
+    public let opr: Double
 
-    /// **Dangerous Under-prediction Score (DUS)**
+    /// **Under-Prediction Risk (UPR)** — formerly called UDR.
     /// Penalises under-predictions when actual BG is above `targetHigh`.
-    /// Zero when BG is in-range or low.  Primary safety metric for avoidable highs.
-    public let udr: Double
+    /// Zero when BG is in-range or low. Measures *forecast* accuracy weighted
+    /// by clinical risk; does NOT measure actual insulin delivery.
+    /// UDR is reserved for a future delivery-based metric.
+    public let upr: Double
 
-    /// Combined primary danger score: `odr + udr`.
-    public var dangerScore: Double { odr + udr }
+    /// Combined primary forecast-risk score: `opr + upr`.
+    public var dangerScore: Double { opr + upr }
 }
 
 public struct ErrorMetrics {
@@ -72,7 +76,7 @@ public struct ErrorMetrics {
                 percentile10: 0, percentile90: 0,
                 lbgi: 0, hbgi: 0, bgri: 0,
                 lowWeightedRMSE: 0, highWeightedRMSE: 0,
-                odr: 0, udr: 0
+                opr: 0, upr: 0
             )
         }
 
@@ -95,8 +99,8 @@ public struct ErrorMetrics {
         let lowWRMSE  = BloodGlucoseRisk.lowWeightedRMSE(errors: errors)
         let highWRMSE = BloodGlucoseRisk.highWeightedRMSE(errors: errors)
 
-        let odr = BloodGlucoseRisk.overdeliveryRisk(errors: errors, targetLow: targetLow)
-        let udr = BloodGlucoseRisk.underdeliveryRisk(errors: errors, targetHigh: targetHigh)
+        let opr = BloodGlucoseRisk.overpredictionRisk(errors: errors, targetLow: targetLow)
+        let upr = BloodGlucoseRisk.underpredictionRisk(errors: errors, targetHigh: targetHigh)
 
         return HorizonMetrics(
             horizon: result.horizon,
@@ -111,8 +115,8 @@ public struct ErrorMetrics {
             bgri: bgri,
             lowWeightedRMSE: lowWRMSE,
             highWeightedRMSE: highWRMSE,
-            odr: odr,
-            udr: udr
+            opr: opr,
+            upr: upr
         )
     }
 

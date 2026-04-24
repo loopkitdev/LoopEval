@@ -21,14 +21,44 @@ public struct PredictionRecord: Sendable {
     /// Carbs on board (grams) at the time of prediction.
     public let cob: Double?
 
+    /// Recommended dose at this decision point. Total insulin delivery Loop
+    /// would produce in the immediate next evalStep window, measured as the
+    /// delta vs continuing the scheduled basal rate.
+    ///
+    /// = `bolusUnits + (temp_basal_rate_U_hr − scheduled_basal_rate_U_hr) × evalStep/3600`
+    ///
+    /// Positive values mean "Loop would deliver more than scheduled basal"
+    /// (a correction bolus or high-temp-basal); negative means "less than
+    /// scheduled" (low-temp or suspend). `nil` when dose recommendation
+    /// couldn't be computed.
+    public let recommendedDeltaU: Double?
+
+    /// Bolus volume recommended at this step (U), if any. `nil` if not computed.
+    public let recommendedBolus: Double?
+
+    /// Temp basal rate recommended at this step (U/hr), if any. `nil` if
+    /// recommendation was to continue scheduled basal.
+    public let recommendedTempBasalRate: Double?
+
+    /// Scheduled (baseline) basal rate at this moment (U/hr).
+    public let scheduledBasalRate: Double?
+
     public init(evaluatedAt: Date, predicted: [PredictedGlucoseValue],
                 predictedNoFutureInsulin: [PredictedGlucoseValue]? = nil,
-                iob: Double? = nil, cob: Double? = nil) {
+                iob: Double? = nil, cob: Double? = nil,
+                recommendedDeltaU: Double? = nil,
+                recommendedBolus: Double? = nil,
+                recommendedTempBasalRate: Double? = nil,
+                scheduledBasalRate: Double? = nil) {
         self.evaluatedAt               = evaluatedAt
         self.predicted                 = predicted
         self.predictedNoFutureInsulin  = predictedNoFutureInsulin
         self.iob                       = iob
         self.cob                       = cob
+        self.recommendedDeltaU         = recommendedDeltaU
+        self.recommendedBolus          = recommendedBolus
+        self.recommendedTempBasalRate  = recommendedTempBasalRate
+        self.scheduledBasalRate        = scheduledBasalRate
     }
 
     // MARK: – Horizon lookup

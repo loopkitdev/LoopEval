@@ -318,7 +318,7 @@ func aggregateScoreGaussianPeak() {
             percentile10: -1, percentile90: 1,
             lbgi: 0, hbgi: 0, bgri: 0,
             lowWeightedRMSE: 0, highWeightedRMSE: 0,
-            odr: 0, udr: 0
+            opr: 0, upr: 0
         )
     }
 
@@ -347,7 +347,7 @@ func aggregateScorePeakHorizonWeight() {
             percentile10: -r, percentile90: r,
             lbgi: 0, hbgi: 0, bgri: 0,
             lowWeightedRMSE: 0, highWeightedRMSE: 0,
-            odr: 0, udr: 0
+            opr: 0, upr: 0
         )
     }
 
@@ -378,10 +378,10 @@ func aggregateScorePrimaryScore() {
         percentile10: -8, percentile90: 12,
         lbgi: 0.5, hbgi: 1.5, bgri: 2.0,
         lowWeightedRMSE: 5.0, highWeightedRMSE: 8.0,
-        odr: 0.4, udr: 0.6
+        opr: 0.4, upr: 0.6
     )
     let score = AggregateScore.compute(metrics: [m])
-    // Single horizon → primaryScore = odr + udr
+    // Single horizon → primaryScore = opr + upr
     let expected = 0.4 + 0.6
     #expect(abs(score.primaryScore - expected) < 0.001,
             "Primary score: expected \(expected), got \(score.primaryScore)")
