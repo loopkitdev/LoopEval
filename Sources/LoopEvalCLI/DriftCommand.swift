@@ -79,8 +79,13 @@ struct DriftCommand: AsyncParsableCommand {
         let interval = DateInterval(start: startDate, end: endDate)
         let preset = try parseInsulinType(insulinType)
 
+        // Drift analysis must NOT include future insulin: at each step we
+        // simulate what Loop-now would have done given the information
+        // available at that time. Seeing future boluses would inflate IOB
+        // and systematically suppress Loop-now's recommendations.
         let config = EvalConfig(
             evalStep: TimeInterval(stepMinutes) * 60,
+            includeFutureInsulin: false,
             kalmanSmoothing: !noKalman,
             positiveVelocityCap: momentumCap,
             useAsymmetricMomentum: asymmetricMomentum
@@ -181,6 +186,20 @@ struct DriftCommand: AsyncParsableCommand {
             totalSteps: candidateResult.predictions.count
         )
 
+        // Three-way comparison: pump-side Loop vs Loop-now vs actual
+        printStderr("Fetching pump-side Loop decisions (devicestatus)...\n")
+        let decisions = try await Self.fetchPumpDecisions(
+            client: client, from: startDate, to: endDate
+        )
+        let pumpCompare = Self.comparePumpDecisions(
+            decisions: decisions,
+            predictions: candidateResult.predictions,
+            basalSchedule: basalSchedule,
+            syntheticActual: syntheticPredictions,
+            evalStep: evalStep
+        )
+        Self.printPumpComparison(pumpCompare)
+
         // Optional HTML
         if let htmlPath = html {
             let meta = ComparisonMeta(
@@ -240,9 +259,21 @@ struct DriftCommand: AsyncParsableCommand {
 
     // MARK: – Actual delivery delta
 
-    /// Total insulin delivered in [t_start, t_end) MINUS the scheduled basal
-    /// that would have been delivered over the same window. Matches the
-    /// semantics of `recommendedDeltaU` so the two are directly comparable.
+    /// Insulin delivered in [t_start, t_end) relative to scheduled basal.
+    /// Matches the semantics of `recommendedDeltaU`:
+    ///   deltaU = bolus + (tempRate - scheduledRate) × evalStep/3600
+    ///
+    /// Only temp-basal-covered time contributes to the basal delta; for windows
+    /// not covered by an explicit temp basal record, the pump was running
+    /// scheduled basal and the delta is zero. Nightscout does not emit treatment
+    /// records for pure scheduled-basal time, so uncovered intervals must not
+    /// be charged against scheduled (doing so produces ~−1 U/hr phantom
+    /// underdelivery for every uncovered hour).
+    ///
+    /// Manual (user-entered) boluses are excluded: Loop-now's simulated
+    /// recommendation only covers automatic action, so manual boluses would
+    /// only appear on the actual side and bias the comparison. We treat manual
+    /// boluses as "given in both worlds" — they cancel out.
     static func actualDeliveryDelta(
         doses: [EvalInsulinDose],
         from t_start: Date, to t_end: Date,
@@ -251,46 +282,244 @@ struct DriftCommand: AsyncParsableCommand {
         let ts_start = t_start.timestamp()
         let ts_end   = t_end.timestamp()
 
-        var actualU = 0.0
+        var delta = 0.0
         for d in doses {
             let ds = d.startDate.timeIntervalSince1970
             let de = d.endDate.timeIntervalSince1970
             if ds >= ts_end { break }
-            if de < ts_start { continue }
-            let overlapStart = max(ds, ts_start)
-            let overlapEnd   = min(de, ts_end)
-            if overlapEnd <= overlapStart { continue }
+            if de <= ts_start { continue }
 
             switch d.deliveryType {
             case .bolus:
-                // Bolus delivered at startDate; include fully if startDate in window.
+                // Exclude manual boluses — they're "external input" assumed
+                // identical in both sides of the comparison.
+                guard d.automatic else { continue }
+                // Bolus: fully attributed to the window containing its startDate.
                 if ts_start <= ds && ds < ts_end {
-                    actualU += d.volume
+                    delta += d.volume
                 }
             case .basal:
-                // Temp basal: pro-rate by overlap fraction.
+                // Temp basal: contributes (tempRate - scheduledRate) × overlap.
                 let duration = de - ds
-                if duration > 0 {
-                    actualU += d.volume * (overlapEnd - overlapStart) / duration
+                guard duration > 0 else { continue }
+                let tempRate = d.volume / (duration / 3600.0)   // U/hr
+                let overlapStart = max(ds, ts_start)
+                let overlapEnd   = min(de, ts_end)
+                let overlapSec = overlapEnd - overlapStart
+                if overlapSec <= 0 { continue }
+
+                let midpoint = Date(timeIntervalSince1970: (overlapStart + overlapEnd) / 2)
+                let scheduledRate = Self.scheduledRate(at: midpoint, schedule: basalSchedule)
+                delta += (tempRate - scheduledRate) * (overlapSec / 3600.0)
+            }
+        }
+        return delta
+    }
+
+    /// Scheduled basal rate (U/hr) at a specific time.
+    private static func scheduledRate(
+        at t: Date,
+        schedule: [AbsoluteScheduleValue<Double>]
+    ) -> Double {
+        if let entry = schedule.first(where: { $0.startDate <= t && $0.endDate > t }) {
+            return entry.value
+        }
+        // Fall back to the closest prior entry if the lookup falls between
+        // expanded schedule segments (shouldn't happen in practice).
+        return schedule.last(where: { $0.startDate <= t })?.value
+            ?? schedule.first?.value ?? 0
+    }
+
+    // MARK: – Pump-side Loop comparison
+
+    /// One cycle of the pump-side Loop's decision, extracted from a
+    /// Nightscout devicestatus record. We use `enacted` (what actually hit
+    /// the pump) rather than `automaticDoseRecommendation` (what Loop said
+    /// to do) because the latter is only serialised when a correction was
+    /// recommended — carb-triggered and other auto-boluses are missing.
+    struct PumpDecision {
+        let timestamp: Date
+        let autoBolus: Double      // enacted.bolusVolume (actually delivered)
+        let enactedRate: Double?   // enacted.rate (U/hr); nil = no temp enacted
+    }
+
+    struct PumpComparison {
+        let matchedSteps: Int
+        let totalSteps: Int
+        let pumpNetDelta: Double
+        let nowNetDelta: Double
+        let actualNetDelta: Double
+        let nowOverPumpSteps: Int
+        let nowUnderPumpSteps: Int
+        let pumpOverActualSteps: Int
+        let pumpUnderActualSteps: Int
+    }
+
+    static func fetchPumpDecisions(
+        client: NightscoutClient,
+        from start: Date,
+        to end: Date
+    ) async throws -> [PumpDecision] {
+        // Pad by 5 min on each side so the first/last eval steps have a
+        // matching devicestatus record.
+        let statuses = try await client.fetchDeviceStatus(
+            from: start.addingTimeInterval(-300),
+            to: end.addingTimeInterval(300)
+        )
+        let fmt = ISO8601DateFormatter()
+        fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let fmtNoFrac = ISO8601DateFormatter()
+        fmtNoFrac.formatOptions = [.withInternetDateTime]
+
+        var out: [PumpDecision] = []
+        out.reserveCapacity(statuses.count)
+        for s in statuses {
+            guard let loop = s.loop else { continue }
+            let tsStr = loop.timestamp ?? s.created_at
+            let ts = fmt.date(from: tsStr) ?? fmtNoFrac.date(from: tsStr)
+            guard let t = ts else { continue }
+            let autoBolus = loop.enacted?.bolusVolume ?? 0
+            let enactedRate = loop.enacted?.rate
+            out.append(PumpDecision(timestamp: t, autoBolus: autoBolus, enactedRate: enactedRate))
+        }
+        let sorted = out.sorted { $0.timestamp < $1.timestamp }
+
+        // Loop sometimes uploads two devicestatus records per cycle: a
+        // pre-dose one (predicted + recommendation, no `enacted`) and a
+        // post-dose one (adds `enacted` after pump ACK). Nightscout viewers
+        // show the later/enacted one. When two records sit within 60s of
+        // each other, keep the one carrying enacted data (or, if both or
+        // neither, the later one).
+        var deduped: [PumpDecision] = []
+        deduped.reserveCapacity(sorted.count)
+        for d in sorted {
+            if let last = deduped.last,
+               d.timestamp.timeIntervalSince(last.timestamp) < 60 {
+                let lastHasEnacted = last.enactedRate != nil
+                let newHasEnacted  = d.enactedRate != nil
+                if newHasEnacted || !lastHasEnacted {
+                    deduped[deduped.count - 1] = d   // replace with later/enacted
                 }
+                // else: keep the earlier one (it has enacted, new one doesn't)
+            } else {
+                deduped.append(d)
             }
         }
+        return deduped
+    }
 
-        // Scheduled basal over the window — what would have been delivered
-        // absent any overrides.
-        var scheduledU = 0.0
-        for entry in basalSchedule {
-            let es = entry.startDate.timeIntervalSince1970
-            let ee = entry.endDate.timeIntervalSince1970
-            if es >= ts_end { break }
-            if ee < ts_start { continue }
-            let overlap = max(0.0, min(ee, ts_end) - max(es, ts_start))
-            if overlap > 0 {
-                scheduledU += entry.value * overlap / 3600.0
+    /// Find the decision with timestamp closest to `t`, within `tolerance`.
+    /// Binary search over the ascending-sorted `decisions` array.
+    static func closestDecision(
+        to t: Date,
+        in decisions: [PumpDecision],
+        tolerance: TimeInterval
+    ) -> PumpDecision? {
+        guard !decisions.isEmpty else { return nil }
+        // Binary search for the first decision with timestamp >= t.
+        var lo = 0, hi = decisions.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if decisions[mid].timestamp < t { lo = mid + 1 }
+            else { hi = mid }
+        }
+        // Candidates: decisions[lo-1] and decisions[lo]. Pick whichever is closer.
+        var best: PumpDecision?
+        var bestDist = TimeInterval.greatestFiniteMagnitude
+        if lo > 0 {
+            let d = decisions[lo - 1]
+            let dist = abs(d.timestamp.timeIntervalSince(t))
+            if dist < bestDist { best = d; bestDist = dist }
+        }
+        if lo < decisions.count {
+            let d = decisions[lo]
+            let dist = abs(d.timestamp.timeIntervalSince(t))
+            if dist < bestDist { best = d; bestDist = dist }
+        }
+        return bestDist <= tolerance ? best : nil
+    }
+
+    static func comparePumpDecisions(
+        decisions: [PumpDecision],
+        predictions: [PredictionRecord],
+        basalSchedule: [AbsoluteScheduleValue<Double>],
+        syntheticActual: [PredictionRecord],
+        evalStep: TimeInterval
+    ) -> PumpComparison {
+        var matched = 0
+        var pumpSum = 0.0, nowSum = 0.0, actualSum = 0.0
+        var nowOverPump = 0, nowUnderPump = 0
+        var pumpOverActual = 0, pumpUnderActual = 0
+        let tol = evalStep / 2
+
+        for (i, p) in predictions.enumerated() {
+            guard let pd = closestDecision(
+                to: p.evaluatedAt, in: decisions, tolerance: tol
+            ) else { continue }
+
+            let schedRate = scheduledRate(at: p.evaluatedAt, schedule: basalSchedule)
+            // Pump Loop's per-cycle ΔU = auto_bolus + (enactedRate − schedRate) × evalStep/3600.
+            // If no temp was enacted this cycle, the rate in force is whatever
+            // was running before — conservatively treat as scheduled (Δ=0).
+            let pumpDelta = pd.autoBolus +
+                ((pd.enactedRate ?? schedRate) - schedRate) * evalStep / 3600
+            pumpSum += pumpDelta
+
+            if let nowDelta = p.recommendedDeltaU {
+                nowSum += nowDelta
+                let diff = nowDelta - pumpDelta
+                if diff >  0.01 { nowOverPump  += 1 }
+                if diff < -0.01 { nowUnderPump += 1 }
             }
+            if i < syntheticActual.count,
+               let actDelta = syntheticActual[i].recommendedDeltaU {
+                actualSum += actDelta
+                let diff = pumpDelta - actDelta
+                if diff >  0.01 { pumpOverActual  += 1 }
+                if diff < -0.01 { pumpUnderActual += 1 }
+            }
+            matched += 1
         }
 
-        return actualU - scheduledU
+        return PumpComparison(
+            matchedSteps: matched,
+            totalSteps: predictions.count,
+            pumpNetDelta: pumpSum,
+            nowNetDelta: nowSum,
+            actualNetDelta: actualSum,
+            nowOverPumpSteps: nowOverPump,
+            nowUnderPumpSteps: nowUnderPump,
+            pumpOverActualSteps: pumpOverActual,
+            pumpUnderActualSteps: pumpUnderActual
+        )
+    }
+
+    static func printPumpComparison(_ c: PumpComparison) {
+        let ruler = String(repeating: "━", count: 76)
+        let sep   = String(repeating: "─", count: 76)
+
+        print(ruler)
+        print(" Three-way comparison: pump-side Loop vs Loop-now vs actual")
+        print(sep)
+        print(String(format: "   Steps matched to devicestatus: %d / %d", c.matchedSteps, c.totalSteps))
+        print(sep)
+        print("   Net ΔU over matched steps (U, vs scheduled basal)")
+        print(String(format: "     Pump-side Loop (auto only):  %+.2f", c.pumpNetDelta))
+        print(String(format: "     Loop-now       (auto only):  %+.2f", c.nowNetDelta))
+        print(String(format: "     Actual delivery (auto only): %+.2f", c.actualNetDelta))
+        print(sep)
+        print("   Per-step agreement")
+        let overPct  = 100.0 * Double(c.nowOverPumpSteps)  / Double(max(1, c.matchedSteps))
+        let underPct = 100.0 * Double(c.nowUnderPumpSteps) / Double(max(1, c.matchedSteps))
+        print(String(format: "     Loop-now > pump Loop:   %4d  (%.1f%%)", c.nowOverPumpSteps, overPct))
+        print(String(format: "     Loop-now < pump Loop:   %4d  (%.1f%%)", c.nowUnderPumpSteps, underPct))
+        let pOverPct  = 100.0 * Double(c.pumpOverActualSteps)  / Double(max(1, c.matchedSteps))
+        let pUnderPct = 100.0 * Double(c.pumpUnderActualSteps) / Double(max(1, c.matchedSteps))
+        print(String(format: "     Pump Loop > actual:     %4d  (%.1f%%)  (user's enacted != recommended)", c.pumpOverActualSteps, pOverPct))
+        print(String(format: "     Pump Loop < actual:     %4d  (%.1f%%)", c.pumpUnderActualSteps, pUnderPct))
+        print(" If pump-Loop and actual diverge, either the pump rejected some")
+        print(" recommendation or devicestatus/treatments are out of sync.")
+        print(ruler)
     }
 }
 

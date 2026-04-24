@@ -113,6 +113,31 @@ public struct NightscoutLoopStatus: Decodable, Sendable {
     public let iob: NightscoutIOB?
     public let cob: NightscoutCOB?
     public let predicted: NightscoutPredicted?
+    /// ISO8601 timestamp of this Loop cycle.
+    public let timestamp: String?
+    /// Full correction-bolus recommendation (before applicationFactor scaling).
+    public let recommendedBolus: Double?
+    /// Automatic-dose recommendation (after applicationFactor scaling).
+    public let automaticDoseRecommendation: NightscoutAutoDoseRec?
+    /// What Loop actually enacted on the pump this cycle.
+    public let enacted: NightscoutEnactedDose?
+}
+
+/// Automatic-dose recommendation within a Loop status.
+public struct NightscoutAutoDoseRec: Decodable, Sendable {
+    public let bolusVolume: Double?
+    public let timestamp: String?
+}
+
+/// Enacted dose within a Loop status (what went to the pump).
+public struct NightscoutEnactedDose: Decodable, Sendable {
+    /// Temp basal rate in U/hr (0 = pump suspend / basal zeroed).
+    public let rate: Double?
+    /// Temp basal duration in minutes (0 = cancel / instantaneous).
+    public let duration: Double?
+    /// Auto-bolus amount that was sent to the pump this cycle.
+    public let bolusVolume: Double?
+    public let timestamp: String?
 }
 
 /// IOB field within a Nightscout loop status.

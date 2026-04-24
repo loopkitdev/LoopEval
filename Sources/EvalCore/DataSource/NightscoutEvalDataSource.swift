@@ -146,23 +146,29 @@ public actor NightscoutEvalDataSource: EvalDataSource {
 
             case "Bolus", "Meal Bolus", "Correction Bolus", "Carb Correction":
                 guard let units = t.insulin, units > 0 else { continue }
+                // Loop emits `automatic: true/false` on every bolus. Default
+                // to `true` when absent, which matches older Loop versions
+                // that only logged automatic boluses.
                 let dose = EvalInsulinDose(
                     deliveryType: .bolus,
                     startDate: date,
                     endDate: date.addingTimeInterval(30),   // bolus delivery ~30s
                     volume: units,
-                    insulinType: insulinType
+                    insulinType: insulinType,
+                    automatic: t.automatic ?? true
                 )
                 doses.append(dose)
 
             case "SMB":
                 guard let units = t.insulin, units > 0 else { continue }
+                // SMBs are algorithm-driven by definition.
                 let dose = EvalInsulinDose(
                     deliveryType: .bolus,
                     startDate: date,
                     endDate: date.addingTimeInterval(30),
                     volume: units,
-                    insulinType: insulinType
+                    insulinType: insulinType,
+                    automatic: true
                 )
                 doses.append(dose)
 

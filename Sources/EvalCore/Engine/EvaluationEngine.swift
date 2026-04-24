@@ -160,40 +160,59 @@ public actor EvaluationEngine {
             }
 
             if let input = builder.buildInput(at: t) {
-                // Slice annotated doses to this step's window and inject the
-                // pre-built effect timeline — no annotation or glucoseEffects
-                // computation inside generatePrediction.
-                // Slice annotated doses to the same window InputWindowBuilder uses.
-                // The ISF in input.sensitivity covers back to
-                // min(nominalLookback, earliestDoseStart) — so we must not
-                // include annotated doses with startDate before that.
-                // Using input.sensitivity.first?.startDate as the floor guarantees
-                // the ISF coverage precondition inside glucoseEffects is satisfied.
-                let doseWindowStart = input.sensitivity.first?.startDate
-                    ?? t.addingTimeInterval(-config.insulinLookbackHours * 3600)
-                let doseWindowEnd = config.includeFutureInsulin
-                    ? t.addingTimeInterval(6 * 3600) : t
-                let stepPrecomputed = precomputed.sliced(from: doseWindowStart, to: doseWindowEnd)
                 let momentumCap: LoopQuantity? = config.positiveVelocityCap.map {
                     LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: $0)
                 }
-                let prediction = LoopAlgorithm.generatePrediction(
-                    start: t,
-                    glucoseHistory: input.glucose,
-                    precomputedInsulin: stepPrecomputed,
-                    carbEntries: input.carbs,
-                    sensitivity: input.sensitivity,
-                    carbRatio: input.carbRatio,
-                    algorithmEffectsOptions: .all,
-                    useIntegralRetrospectiveCorrection: config.useIntegralRC,
-                    includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
-                    useMidAbsorptionISF: config.useMidAbsorptionISF,
-                    carbAbsorptionModel: config.carbAbsorptionModel.model,
-                    momentumVelocityMaximum: momentumCap,
-                    useAsymmetricMomentum: config.useAsymmetricMomentum,
-                    momentumAlphaSlow: config.momentumAlphaSlow,
-                    momentumAlphaFast: config.momentumAlphaFast
-                )
+
+                // When includeFutureInsulin is false, the precomputed fast path
+                // cannot be used: its insulinEffects timeline has future-dose
+                // effects baked in and .sliced() only trims annotatedDoses
+                // cosmetically. Fall back to the raw-dose path in that mode,
+                // which is slower but correctly honors the no-future-insulin
+                // semantics (critical for drift analysis and --no-future-insulin).
+                let prediction: LoopPrediction<EvalCarbEntry>
+                if config.includeFutureInsulin {
+                    let doseWindowStart = input.sensitivity.first?.startDate
+                        ?? t.addingTimeInterval(-config.insulinLookbackHours * 3600)
+                    let doseWindowEnd = t.addingTimeInterval(6 * 3600)
+                    let stepPrecomputed = precomputed.sliced(from: doseWindowStart, to: doseWindowEnd)
+                    prediction = LoopAlgorithm.generatePrediction(
+                        start: t,
+                        glucoseHistory: input.glucose,
+                        precomputedInsulin: stepPrecomputed,
+                        carbEntries: input.carbs,
+                        sensitivity: input.sensitivity,
+                        carbRatio: input.carbRatio,
+                        algorithmEffectsOptions: .all,
+                        useIntegralRetrospectiveCorrection: config.useIntegralRC,
+                        includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
+                        useMidAbsorptionISF: config.useMidAbsorptionISF,
+                        carbAbsorptionModel: config.carbAbsorptionModel.model,
+                        momentumVelocityMaximum: momentumCap,
+                        useAsymmetricMomentum: config.useAsymmetricMomentum,
+                        momentumAlphaSlow: config.momentumAlphaSlow,
+                        momentumAlphaFast: config.momentumAlphaFast
+                    )
+                } else {
+                    prediction = LoopAlgorithm.generatePrediction(
+                        start: t,
+                        glucoseHistory: input.glucose,
+                        doses: input.doses,
+                        carbEntries: input.carbs,
+                        basal: input.basal,
+                        sensitivity: input.sensitivity,
+                        carbRatio: input.carbRatio,
+                        algorithmEffectsOptions: .all,
+                        useIntegralRetrospectiveCorrection: config.useIntegralRC,
+                        includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
+                        useMidAbsorptionISF: config.useMidAbsorptionISF,
+                        carbAbsorptionModel: config.carbAbsorptionModel.model,
+                        momentumVelocityMaximum: momentumCap,
+                        useAsymmetricMomentum: config.useAsymmetricMomentum,
+                        momentumAlphaSlow: config.momentumAlphaSlow,
+                        momentumAlphaFast: config.momentumAlphaFast
+                    )
+                }
 
                 // Optional no-future-insulin overlay (inspect report only, not
                 // on the scoring hot path). Uses the standard raw-dose path since
