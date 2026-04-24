@@ -184,7 +184,7 @@ public struct NightscoutClient: Sendable {
         components.queryItems = [
             URLQueryItem(name: "find[dateString][$gte]", value: fmt.string(from: interval.start)),
             URLQueryItem(name: "find[dateString][$lte]", value: fmt.string(from: interval.end)),
-            URLQueryItem(name: "count", value: "10000"),
+            URLQueryItem(name: "count", value: "500000"),
         ]
         guard let url = components.url else { throw NightscoutClientError.invalidURL }
         return try await fetchJSON([NightscoutEntry].self, from: url)
@@ -198,7 +198,7 @@ public struct NightscoutClient: Sendable {
         components.queryItems = [
             URLQueryItem(name: "find[created_at][$gte]", value: fmt.string(from: interval.start)),
             URLQueryItem(name: "find[created_at][$lte]", value: fmt.string(from: interval.end)),
-            URLQueryItem(name: "count", value: "10000"),
+            URLQueryItem(name: "count", value: "500000"),
         ]
         guard let url = components.url else { throw NightscoutClientError.invalidURL }
         return try await fetchJSON([NightscoutTreatment].self, from: url)
@@ -212,7 +212,7 @@ public struct NightscoutClient: Sendable {
         components.queryItems = [
             URLQueryItem(name: "find[created_at][$gte]", value: fmt.string(from: from)),
             URLQueryItem(name: "find[created_at][$lte]", value: fmt.string(from: to)),
-            URLQueryItem(name: "count", value: "10000"),
+            URLQueryItem(name: "count", value: "500000"),
         ]
         guard let url = components.url else { throw NightscoutClientError.invalidURL }
         return try await fetchJSON([NightscoutDeviceStatus].self, from: url)
