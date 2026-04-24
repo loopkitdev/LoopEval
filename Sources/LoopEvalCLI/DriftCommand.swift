@@ -377,6 +377,11 @@ struct DriftCommand: AsyncParsableCommand {
         let recommendedBolus: Double?   // full correction before applicationFactor
         let forecastStart: Date?
         let forecast: [Double]?    // BG forecast at 5-min spacing from forecastStart
+        /// True if a preset override was active on the pump this cycle.
+        let overrideActive: Bool
+        /// Override multiplier (nil if inactive or not reported).
+        /// <1.0 means pump Loop ran less-aggressive than profile defaults.
+        let overrideMultiplier: Double?
     }
 
     /// Linear-interpolate a pump-Loop forecast at an arbitrary time.
@@ -428,6 +433,20 @@ struct DriftCommand: AsyncParsableCommand {
         let fc90Diffs: [Double]
         /// Forecast curve-minimum differences — what insulinCorrection keys off.
         let fcMinDiffs: [Double]
+
+        /// Subtotal for the "no override active" subset. Loop-now runs
+        /// without override awareness, so this subset is the apples-to-apples
+        /// drift signal; the override-active subset is biased.
+        let noOverrideSteps: Int
+        let noOverridePumpNetDelta: Double
+        let noOverrideNowNetDelta: Double
+        let noOverrideActualNetDelta: Double
+        /// Subtotal for override-active cycles (biased — Loop-now doesn't
+        /// apply the pump-side override multiplier).
+        let overrideSteps: Int
+        let overridePumpNetDelta: Double
+        let overrideNowNetDelta: Double
+        let overrideActualNetDelta: Double
     }
 
     static func fetchPumpDecisions(
@@ -462,10 +481,14 @@ struct DriftCommand: AsyncParsableCommand {
                 fcStart = fmt.date(from: pred.startDate) ?? fmtNoFrac.date(from: pred.startDate)
             }
             let fcValues = loop.predicted?.values
+            let ov = s.activeOverride
+            let overrideActive = ov?.active == true
             out.append(PumpDecision(
                 timestamp: t, autoBolus: autoBolus, enactedRate: enactedRate,
                 iob: iob, recommendedBolus: recBolus,
-                forecastStart: fcStart, forecast: fcValues
+                forecastStart: fcStart, forecast: fcValues,
+                overrideActive: overrideActive,
+                overrideMultiplier: overrideActive ? ov?.multiplier : nil
             ))
         }
         let sorted = out.sorted { $0.timestamp < $1.timestamp }
@@ -541,6 +564,11 @@ struct DriftCommand: AsyncParsableCommand {
         var fc60Diffs: [Double] = []
         var fc90Diffs: [Double] = []
         var fcMinDiffs: [Double] = []
+        // Split sums by override state so we can separate the apples-to-apples
+        // subset (no override) from the biased subset.
+        var noOvSteps = 0, ovSteps = 0
+        var noOvPump = 0.0, noOvNow = 0.0, noOvActual = 0.0
+        var ovPump = 0.0, ovNow = 0.0, ovActual = 0.0
         let tol = evalStep / 2
 
         for (i, p) in predictions.enumerated() {
@@ -553,18 +581,32 @@ struct DriftCommand: AsyncParsableCommand {
                 ((pd.enactedRate ?? schedRate) - schedRate) * evalStep / 3600
             pumpSum += pumpDelta
 
-            if let nowDelta = p.recommendedDeltaU {
+            let nowDelta = p.recommendedDeltaU
+            if let nowDelta {
                 nowSum += nowDelta
                 let diff = nowDelta - pumpDelta
                 if diff >  0.01 { nowOverPump  += 1 }
                 if diff < -0.01 { nowUnderPump += 1 }
             }
-            if i < syntheticActual.count,
-               let actDelta = syntheticActual[i].recommendedDeltaU {
+            let actDelta = (i < syntheticActual.count) ? syntheticActual[i].recommendedDeltaU : nil
+            if let actDelta {
                 actualSum += actDelta
                 let diff = pumpDelta - actDelta
                 if diff >  0.01 { pumpOverActual  += 1 }
                 if diff < -0.01 { pumpUnderActual += 1 }
+            }
+
+            // Override-gated subset totals.
+            if pd.overrideActive {
+                ovSteps += 1
+                ovPump   += pumpDelta
+                if let nowDelta { ovNow    += nowDelta }
+                if let actDelta { ovActual += actDelta }
+            } else {
+                noOvSteps += 1
+                noOvPump   += pumpDelta
+                if let nowDelta { noOvNow    += nowDelta }
+                if let actDelta { noOvActual += actDelta }
             }
 
             // IOB comparison — both represent active insulin at step start.
@@ -617,7 +659,15 @@ struct DriftCommand: AsyncParsableCommand {
             fc30Diffs: fc30Diffs,
             fc60Diffs: fc60Diffs,
             fc90Diffs: fc90Diffs,
-            fcMinDiffs: fcMinDiffs
+            fcMinDiffs: fcMinDiffs,
+            noOverrideSteps: noOvSteps,
+            noOverridePumpNetDelta: noOvPump,
+            noOverrideNowNetDelta: noOvNow,
+            noOverrideActualNetDelta: noOvActual,
+            overrideSteps: ovSteps,
+            overridePumpNetDelta: ovPump,
+            overrideNowNetDelta: ovNow,
+            overrideActualNetDelta: ovActual
         )
     }
 
@@ -634,6 +684,23 @@ struct DriftCommand: AsyncParsableCommand {
         print(String(format: "     Pump-side Loop (auto only):  %+.2f", c.pumpNetDelta))
         print(String(format: "     Loop-now       (auto only):  %+.2f", c.nowNetDelta))
         print(String(format: "     Actual delivery (auto only): %+.2f", c.actualNetDelta))
+
+        // Override-gated split. Loop-now doesn't simulate the pump-side
+        // override multiplier, so override-active cycles compare unfairly.
+        if c.overrideSteps > 0 || c.noOverrideSteps > 0 {
+            print(sep)
+            print("   Split by override state (pump-side override skews comparison)")
+            print(String(format: "     No-override subset   (n=%d)", c.noOverrideSteps))
+            print(String(format: "       Pump   %+.2f   Loop-now %+.2f   Actual %+.2f",
+                         c.noOverridePumpNetDelta, c.noOverrideNowNetDelta, c.noOverrideActualNetDelta))
+            print(String(format: "       Loop-now − Pump: %+.2f U over %d steps",
+                         c.noOverrideNowNetDelta - c.noOverridePumpNetDelta, c.noOverrideSteps))
+            print(String(format: "     Override-active subset (n=%d, BIASED)", c.overrideSteps))
+            print(String(format: "       Pump   %+.2f   Loop-now %+.2f   Actual %+.2f",
+                         c.overridePumpNetDelta, c.overrideNowNetDelta, c.overrideActualNetDelta))
+            print(String(format: "       Loop-now − Pump: %+.2f U over %d steps",
+                         c.overrideNowNetDelta - c.overridePumpNetDelta, c.overrideSteps))
+        }
         print(sep)
         print("   Per-step agreement")
         let overPct  = 100.0 * Double(c.nowOverPumpSteps)  / Double(max(1, c.matchedSteps))
@@ -721,7 +788,8 @@ struct DriftCommand: AsyncParsableCommand {
                 "ns_enacted_rate", "now_rec_rate",
                 "ns_auto_bolus", "now_auto_bolus",
                 "ns_delta_u", "now_delta_u", "actual_delta_u",
-                "ns_rec_bolus_full"
+                "ns_rec_bolus_full",
+                "override_active", "override_multiplier"
             ].joined(separator: ",")
         ]
         lines.reserveCapacity(predictions.count + 1)
@@ -768,7 +836,8 @@ struct DriftCommand: AsyncParsableCommand {
                 f(pd?.autoBolus, 3),                        f(p.recommendedBolus, 3),
                 f(pumpDelta, 3),                            f(p.recommendedDeltaU, 3),
                 f(actualDelta, 3),
-                f(pd?.recommendedBolus, 3)
+                f(pd?.recommendedBolus, 3),
+                (pd?.overrideActive == true) ? "1" : "0",   f(pd?.overrideMultiplier, 3)
             ]
             lines.append(row.joined(separator: ","))
         }

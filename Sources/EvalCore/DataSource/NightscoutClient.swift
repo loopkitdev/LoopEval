@@ -121,6 +121,23 @@ public struct NightscoutLoopSettings: Decodable, Sendable {
 public struct NightscoutDeviceStatus: Decodable, Sendable {
     public let created_at: String
     public let loop: NightscoutLoopStatus?
+    /// Temporary preset override active on this cycle, if any.
+    /// Loop uploads this at the devicestatus root (sibling of `loop`).
+    public let activeOverride: NightscoutOverride?
+
+    private enum CodingKeys: String, CodingKey {
+        case created_at, loop
+        case activeOverride = "override"
+    }
+}
+
+/// Temporary preset override state ("override" in the Loop app).
+/// When active, `multiplier` scales insulin needs (basal × m, ISF ÷ m,
+/// CR ÷ m) — i.e., m<1 makes Loop less aggressive.
+public struct NightscoutOverride: Decodable, Sendable {
+    public let active: Bool?
+    public let name: String?
+    public let multiplier: Double?
 }
 
 /// The `loop` object within a device status record.
