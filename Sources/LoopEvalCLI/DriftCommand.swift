@@ -106,6 +106,22 @@ struct DriftCommand: AsyncParsableCommand {
         let data = try await engine.prefetchData(for: interval, config: config)
         printStderr(" done (\(String(format: "%.1fs", Date().timeIntervalSince(t0))))\n")
 
+        // Report therapy settings Loop-now will simulate with, so any drift
+        // attributable to a mismatch between our defaults and pump settings
+        // shows up clearly.
+        let tt = data.therapyTimeline
+        let suspendStr: String
+        if let s = tt.suspendThreshold {
+            suspendStr = String(format: "%.0f mg/dL", s.doubleValue(for: .milligramsPerDeciliter))
+        } else {
+            suspendStr = "<unset — falls back to targetLow>"
+        }
+        printStderr("Loop-now therapy settings:\n")
+        printStderr("  suspendThreshold: \(suspendStr)\n")
+        printStderr("  maxBolus:         \(String(format: "%.2f U", tt.maxBolus))\n")
+        printStderr("  maxBasalRate:     \(String(format: "%.2f U/hr", tt.maxBasalRate))\n")
+        printStderr("  insulinType:      \(tt.insulinType)\n\n")
+
         printStderr("Running Loop-now sweep...\n")
         let candidateResult = try await engine.runSweep(
             data: data, interval: interval, config: config,

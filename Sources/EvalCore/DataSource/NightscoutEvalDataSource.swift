@@ -273,14 +273,25 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             interval: interval
         )
 
+        // Loop publishes its runtime caps and suspend threshold into
+        // profile.loopSettings. Prefer those over our defaults so the sim
+        // matches what the pump-side Loop is actually constrained by.
+        // minimumBGGuard is in mg/dL even when the profile unit is mmol/L.
+        let ls = record.loopSettings
+        let suspendThreshold: LoopQuantity? = ls?.minimumBGGuard.map {
+            LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: $0)
+        }
+        let maxBolus     = ls?.maximumBolus            ?? defaultMaxBolus
+        let maxBasalRate = ls?.maximumBasalRatePerHour ?? defaultMaxBasalRate
+
         return TherapyTimeline(
             basal: basalValues.isEmpty ? makeDefaultBasal(interval: interval) : basalValues,
             sensitivity: isfValues.isEmpty ? makeDefaultISF(interval: interval) : isfValues,
             carbRatio: crValues.isEmpty ? makeDefaultCR(interval: interval) : crValues,
             target: targets.isEmpty ? makeDefaultTarget(interval: interval) : targets,
-            suspendThreshold: nil,
-            maxBolus: defaultMaxBolus,
-            maxBasalRate: defaultMaxBasalRate,
+            suspendThreshold: suspendThreshold,
+            maxBolus: maxBolus,
+            maxBasalRate: maxBasalRate,
             insulinType: insulinType
         )
     }

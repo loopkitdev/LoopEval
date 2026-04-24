@@ -94,10 +94,25 @@ public struct NightscoutProfileRecord: Decodable, Sendable {
     public let store: [String: NightscoutProfile]?
     public let mills: String?   // creation timestamp in milliseconds (NS sends as String)
     public let units: String?   // top-level units (fallback if profile lacks units)
+    /// Loop-specific runtime settings (suspend threshold, max bolus/basal,
+    /// dosing strategy). Present on profiles uploaded by Loop.
+    public let loopSettings: NightscoutLoopSettings?
 
     private enum CodingKeys: String, CodingKey {
-        case defaultProfile, startDate, store, mills, units
+        case defaultProfile, startDate, store, mills, units, loopSettings
     }
+}
+
+/// Loop runtime settings as serialised into the Nightscout profile record.
+public struct NightscoutLoopSettings: Decodable, Sendable {
+    /// Suspend threshold (a.k.a. minimum BG guard) in mg/dL.
+    public let minimumBGGuard: Double?
+    /// Maximum automatic bolus / single-bolus cap in units.
+    public let maximumBolus: Double?
+    /// Maximum basal rate in U/hr.
+    public let maximumBasalRatePerHour: Double?
+    /// "automaticBolus" | "tempBasalOnly" | …
+    public let dosingStrategy: String?
 }
 
 // MARK: – Device status models
