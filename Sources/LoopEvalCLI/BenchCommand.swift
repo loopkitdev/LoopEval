@@ -247,8 +247,8 @@ struct BenchCommand: AsyncParsableCommand {
             candidate: candidateResult,
             horizons: deliveryHorizons,
             actualGlucose: baselineResult.actual,
-            targetLow: baselineConfig.targetLow,
-            targetHigh: baselineConfig.targetHigh
+            dangerLow: baselineConfig.dangerLow,
+            dangerHigh: baselineConfig.dangerHigh
         )
 
         // 11. Print text comparison

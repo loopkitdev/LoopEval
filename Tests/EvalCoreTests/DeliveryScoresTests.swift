@@ -118,10 +118,10 @@ struct DeliveryScoresTests {
         let t0 = Date(timeIntervalSince1970: 1_700_000_000)
         let base = makeResult(
             [makePrediction(t0, deltaU: 0.0)],
-            actual: flatActualAt(108, from: t0, count: 50)  // in target (100-115)
+            actual: flatActualAt(108, from: t0, count: 50)  // 70 < 108 < 180 — in safe zone
         )
         let cand = makeResult(
-            [makePrediction(t0, deltaU: 2.0)],              // huge delta — but BG is fine
+            [makePrediction(t0, deltaU: 2.0)],              // huge delta — but BG is safe
             actual: flatActualAt(108, from: t0, count: 50)
         )
         let d = DeliveryScores.compute(
@@ -169,8 +169,9 @@ struct DeliveryScoresTests {
                 horizons: [90 * 60], actualGlucose: b.actual
             )
         }
-        let mild   = shared(95)   // barely below target
-        let severe = shared(55)   // dangerous
+        // Both below dangerLow (70 mg/dL); severe is deeper hypo.
+        let mild   = shared(68)   // just below danger threshold
+        let severe = shared(55)   // severe hypo
         #expect(severe.weightedODR > mild.weightedODR,
                 "Severe low (\(severe.weightedODR)) should have larger ODR than mild (\(mild.weightedODR))")
     }

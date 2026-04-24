@@ -42,13 +42,20 @@ public struct DeliveryScores: Codable, Sendable {
     public let weightedUDR: Double
     public let primaryDeliveryScore: Double   // ODR + UDR
 
+    /// Compute delivery-based ODR/UDR scores.
+    ///
+    /// ODR and UDR are gated on the CLINICAL DANGER thresholds (defaults
+    /// 70 / 180 mg/dL), not the target range. A mildly-below-target BG of
+    /// 95 mg/dL isn't "dangerous" — these metrics are about meaningful hypo
+    /// (< 70) and hyper (> 180) events. For the legacy target-range gating
+    /// used by OPR/UPR, pass `targetLow`/`targetHigh` from the eval config.
     public static func compute(
         baseline: EvaluationResult,
         candidate: EvaluationResult,
         horizons: [TimeInterval],
         actualGlucose: [EvalGlucoseSample],
-        targetLow: Double = 100.0,
-        targetHigh: Double = 115.0,
+        dangerLow: Double = 70.0,
+        dangerHigh: Double = 180.0,
         peakHorizon: TimeInterval = 90 * 60,
         sigmaSecs: TimeInterval = 60 * 60
     ) -> DeliveryScores {
@@ -75,13 +82,13 @@ public struct DeliveryScores: Codable, Sendable {
             for pair in pairs {
                 let tFuture = pair.t.addingTimeInterval(h)
                 guard let actualBG = Self.interpolate(sortedActual, at: tFuture) else { continue }
-                if actualBG < targetLow {
+                if actualBG < dangerLow {
                     let over = max(pair.deltaU, 0)
                     if over > 0 {
                         sumODR += BloodGlucoseRisk.rl(actualBG) * over * over
                     }
                     nODR += 1
-                } else if actualBG > targetHigh {
+                } else if actualBG > dangerHigh {
                     let under = max(-pair.deltaU, 0)
                     if under > 0 {
                         sumUDR += BloodGlucoseRisk.rh(actualBG) * under * under

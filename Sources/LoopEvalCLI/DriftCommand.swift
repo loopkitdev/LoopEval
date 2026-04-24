@@ -195,8 +195,8 @@ struct DriftCommand: AsyncParsableCommand {
             candidate: candidateResult,
             horizons: horizons,
             actualGlucose: candidateResult.actual,
-            targetLow: config.targetLow,
-            targetHigh: config.targetHigh
+            dangerLow: config.dangerLow,
+            dangerHigh: config.dangerHigh
         )
 
         // Summary delta stats

@@ -53,15 +53,24 @@ public struct EvalConfig: Codable, Sendable {
     /// Values > 1 raise basal (more background insulin), < 1 lower it.
     public var basalRateMultiplier: Double
 
-    /// Lower bound of the in-target BG range (mg/dL).
-    /// Errors when actual BG is ≥ targetLow are not penalised by the
-    /// Dangerous Over-prediction Score (DOS).  Default: 100.
+    /// Lower bound of the in-target BG range (mg/dL).  Forecast-error metric
+    /// **OPR** fires when actual BG < targetLow (i.e., below target).  Default: 100.
     public var targetLow: Double
 
-    /// Upper bound of the in-target BG range (mg/dL).
-    /// Errors when actual BG is ≤ targetHigh are not penalised by the
-    /// Dangerous Under-prediction Score (DUS).  Default: 115.
+    /// Upper bound of the in-target BG range (mg/dL).  Forecast-error metric
+    /// **UPR** fires when actual BG > targetHigh.  Default: 115.
     public var targetHigh: Double
+
+    /// Clinical hypoglycemia threshold (mg/dL).  Delivery-based metric **ODR**
+    /// fires only when actual BG at horizon < dangerLow.  Distinct from
+    /// targetLow because ODR measures clinically dangerous over-delivery, not
+    /// merely out-of-target.  Default: 70 mg/dL (standard ADA hypo cutoff).
+    public var dangerLow: Double
+
+    /// Clinical hyperglycemia threshold (mg/dL).  Delivery-based metric **UDR**
+    /// fires only when actual BG at horizon > dangerHigh.  Default: 180 mg/dL
+    /// (standard time-in-range high cutoff, ≈ 10 mmol/L).
+    public var dangerHigh: Double
 
     /// Use asymmetric EMA momentum instead of standard linear regression.
     /// Slow to build positive momentum (alphaSlow), fast to shed it (alphaFast).
@@ -109,6 +118,8 @@ public struct EvalConfig: Codable, Sendable {
         basalRateMultiplier: Double = 1.0,
         targetLow: Double = 100.0,
         targetHigh: Double = 115.0,
+        dangerLow: Double = 70.0,
+        dangerHigh: Double = 180.0,
         positiveVelocityCap: Double? = nil,
         useAsymmetricMomentum: Bool = false,
         momentumAlphaSlow: Double = 0.15,
@@ -130,10 +141,50 @@ public struct EvalConfig: Codable, Sendable {
         self.basalRateMultiplier            = basalRateMultiplier
         self.targetLow                      = targetLow
         self.targetHigh                     = targetHigh
+        self.dangerLow                      = dangerLow
+        self.dangerHigh                     = dangerHigh
         self.positiveVelocityCap            = positiveVelocityCap
         self.useAsymmetricMomentum          = useAsymmetricMomentum
         self.momentumAlphaSlow              = momentumAlphaSlow
         self.momentumAlphaFast              = momentumAlphaFast
         self.evalWarmupHours                = evalWarmupHours ?? insulinLookbackHours
+    }
+
+    // Custom decoder so snapshots written before `dangerLow`/`dangerHigh` were
+    // added still decode cleanly (fall back to the clinical defaults).
+    private enum CodingKeys: String, CodingKey {
+        case evalStep, includeFutureInsulin, insulinLookbackHours, glucoseLookbackHours
+        case useIntegralRC, kalmanSmoothing, horizons, includingPositiveVelocityAndRC
+        case useMidAbsorptionISF, carbAbsorptionModel
+        case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
+        case targetLow, targetHigh, dangerLow, dangerHigh
+        case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
+        case evalWarmupHours
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.evalStep             = try c.decode(TimeInterval.self, forKey: .evalStep)
+        self.includeFutureInsulin = try c.decode(Bool.self,         forKey: .includeFutureInsulin)
+        self.insulinLookbackHours = try c.decode(Double.self,       forKey: .insulinLookbackHours)
+        self.glucoseLookbackHours = try c.decode(Double.self,       forKey: .glucoseLookbackHours)
+        self.useIntegralRC        = try c.decode(Bool.self,         forKey: .useIntegralRC)
+        self.kalmanSmoothing      = try c.decode(Bool.self,         forKey: .kalmanSmoothing)
+        self.horizons             = try c.decode([TimeInterval].self, forKey: .horizons)
+        self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
+        self.useMidAbsorptionISF  = try c.decode(Bool.self,         forKey: .useMidAbsorptionISF)
+        self.carbAbsorptionModel  = try c.decode(CarbAbsorptionModel.self, forKey: .carbAbsorptionModel)
+        self.sensitivityMultiplier = try c.decode(Double.self,      forKey: .sensitivityMultiplier)
+        self.carbRatioMultiplier  = try c.decode(Double.self,       forKey: .carbRatioMultiplier)
+        self.basalRateMultiplier  = try c.decode(Double.self,       forKey: .basalRateMultiplier)
+        self.targetLow            = try c.decode(Double.self,       forKey: .targetLow)
+        self.targetHigh           = try c.decode(Double.self,       forKey: .targetHigh)
+        self.dangerLow            = try c.decodeIfPresent(Double.self, forKey: .dangerLow)  ?? 70.0
+        self.dangerHigh           = try c.decodeIfPresent(Double.self, forKey: .dangerHigh) ?? 180.0
+        self.positiveVelocityCap  = try c.decodeIfPresent(Double.self, forKey: .positiveVelocityCap)
+        self.useAsymmetricMomentum = try c.decode(Bool.self,        forKey: .useAsymmetricMomentum)
+        self.momentumAlphaSlow    = try c.decode(Double.self,       forKey: .momentumAlphaSlow)
+        self.momentumAlphaFast    = try c.decode(Double.self,       forKey: .momentumAlphaFast)
+        self.evalWarmupHours      = try c.decode(Double.self,       forKey: .evalWarmupHours)
     }
 }
