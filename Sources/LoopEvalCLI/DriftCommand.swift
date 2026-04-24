@@ -73,6 +73,12 @@ struct DriftCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Write per-step comparison CSV to this path")
     var csv: String?
 
+    @Option(name: .long, help: "Dump a detailed trace of the single step at this ISO8601 time to this path")
+    var traceStep: String?
+
+    @Option(name: .long, help: "Path for --trace-step output (default: <csv>.trace.txt or /tmp/drift-trace.txt)")
+    var tracePath: String?
+
     mutating func run() async throws {
         let startDate = try parseISO8601Date(start)
         let endDate   = try parseISO8601Date(end)
@@ -230,6 +236,25 @@ struct DriftCommand: AsyncParsableCommand {
                 evalStep: evalStep
             )
             printStderr("Per-step CSV written → \(csvPath)\n")
+        }
+
+        // Deep single-step trace: compare Loop-now's forecast curve and all
+        // stored intermediates against pump-Loop's devicestatus at the same time.
+        if let traceTimeStr = traceStep {
+            printStderr("Building step trace for \(traceTimeStr)...\n")
+            let traceT = try parseISO8601Date(traceTimeStr)
+            let outPath = tracePath ?? (csv.map { $0 + ".trace.txt" } ?? "/tmp/drift-trace.txt")
+            printStderr("  trace output path: \(outPath)\n")
+            try Self.writeTrace(
+                at: traceT,
+                predictions: candidateResult.predictions,
+                decisions: decisions,
+                basalSchedule: basalSchedule,
+                doses: data.doses,
+                glucoseHistory: candidateResult.actual,
+                to: outPath
+            )
+            printStderr("Step trace written → \(outPath)\n")
         }
 
         // Optional HTML
@@ -853,6 +878,148 @@ struct DriftCommand: AsyncParsableCommand {
 
         let content = lines.joined(separator: "\n") + "\n"
         try content.write(toFile: path, atomically: true, encoding: .utf8)
+    }
+
+    // MARK: – Single-step trace
+
+    /// Emit a detailed side-by-side trace of Loop-now vs pump-Loop at one
+    /// specific time. Useful for pinpointing where forecast divergence arises.
+    static func writeTrace(
+        at traceT: Date,
+        predictions: [PredictionRecord],
+        decisions: [PumpDecision],
+        basalSchedule: [AbsoluteScheduleValue<Double>],
+        doses: [EvalInsulinDose],
+        glucoseHistory: [EvalGlucoseSample],
+        to path: String
+    ) throws {
+        // Find the closest Loop-now prediction (5-min step grid).
+        var closest: PredictionRecord? = nil
+        var bestDist = TimeInterval.greatestFiniteMagnitude
+        for p in predictions {
+            let d = abs(p.evaluatedAt.timeIntervalSince(traceT))
+            if d < bestDist { bestDist = d; closest = p }
+        }
+        guard let p = closest else {
+            throw ValidationError("No prediction found near \(traceT)")
+        }
+        // Find the closest pump decision (±5 min).
+        let pd = Self.closestDecision(to: p.evaluatedAt, in: decisions, tolerance: 300)
+
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        func f(_ v: Double?, _ dec: Int = 3) -> String {
+            guard let v else { return "—" }
+            return String(format: "%.\(dec)f", v)
+        }
+
+        func pad(_ s: String, _ width: Int) -> String {
+            s.count >= width ? s : s + String(repeating: " ", count: width - s.count)
+        }
+
+        var out = ""
+        out += String(repeating: "=", count: 78) + "\n"
+        out += " DRIFT TRACE — single step deep dump\n"
+        out += String(repeating: "=", count: 78) + "\n"
+        out += "Requested trace time: \(iso.string(from: traceT))\n"
+        out += "Loop-now step at:     \(iso.string(from: p.evaluatedAt))\n"
+        if let pd {
+            let deltaSec = pd.timestamp.timeIntervalSince(p.evaluatedAt)
+            out += "Pump Loop cycle at:   \(iso.string(from: pd.timestamp))"
+            out += "  (Δ\(String(format: "%+.0f", deltaSec))s from Loop-now step)\n"
+        } else {
+            out += "Pump Loop cycle:      NO MATCH within ±5min\n"
+        }
+
+        // Scalars side by side
+        out += "\n" + String(repeating: "-", count: 78) + "\n"
+        out += " SCALAR QUANTITIES\n"
+        out += String(repeating: "-", count: 78) + "\n"
+        let scalars: [(String, String, String)] = [
+            ("IOB (U)",                      f(p.iob),                                            f(pd?.iob)),
+            ("COB (g)",                      f(p.cob, 1),                                         "—"),
+            ("scheduled basal (U/hr)",       f(scheduledRate(at: p.evaluatedAt, schedule: basalSchedule)), "—"),
+            ("recommended bolus (U)",        f(p.recommendedBolus),                               f(pd?.recommendedBolus)),
+            ("recommended temp rate (U/hr)", f(p.recommendedTempBasalRate),                       f(pd?.enactedRate)),
+            ("ΔU over next evalStep",        f(p.recommendedDeltaU),                              "—"),
+        ]
+        out += " \(pad("", 32))  \(pad("Loop-now", 18))  Pump Loop\n"
+        for (label, a, b) in scalars {
+            out += " \(pad(label, 32))  \(pad(a, 18))  \(b)\n"
+        }
+
+        // Forecast curves side by side
+        out += "\n" + String(repeating: "-", count: 78) + "\n"
+        out += " FORECAST CURVES (mg/dL, sampled every 15 min out to 3 h)\n"
+        out += String(repeating: "-", count: 78) + "\n"
+        out += " \(pad("horizon", 12))\(pad("Loop-now", 14))\(pad("Pump Loop", 14))Δ (now−pump)\n"
+        let anchorNow = p.evaluatedAt
+        let anchorPump = pd?.timestamp ?? p.evaluatedAt
+        for minutes in stride(from: 0, through: 180, by: 15) {
+            let tNow = anchorNow.addingTimeInterval(TimeInterval(minutes * 60))
+            let tPump = anchorPump.addingTimeInterval(TimeInterval(minutes * 60))
+            let nowBG = Self.interpNowForecast(p.predicted, at: tNow)
+            let pumpBG = pd.flatMap { Self.interpForecast($0, at: tPump) }
+            let delta = (nowBG != nil && pumpBG != nil) ? nowBG! - pumpBG! : nil
+            let nowStr  = nowBG.map { String(format: "%.1f", $0) } ?? "—"
+            let pumpStr = pumpBG.map { String(format: "%.1f", $0) } ?? "—"
+            let dStr    = delta.map { String(format: "%+.1f", $0) } ?? "—"
+            let hStr    = String(format: "t+%3d min", minutes)
+            out += " \(pad(hStr, 12))\(pad(nowStr, 14))\(pad(pumpStr, 14))\(dStr)\n"
+        }
+
+        // Loop-now component samples (already stored on PredictionRecord)
+        out += "\n" + String(repeating: "-", count: 78) + "\n"
+        out += " LOOP-NOW FORECAST COMPONENTS  (change from t to horizon)\n"
+        out += String(repeating: "-", count: 78) + "\n"
+        out += "   insulin effect Δ @60min:  \(f(p.insulinEffectΔ60, 2)) mg/dL\n"
+        out += "   insulin effect Δ @90min:  \(f(p.insulinEffectΔ90, 2)) mg/dL\n"
+        out += "   RC contribution @60min:    \(f(p.rcEffect60, 2)) mg/dL\n"
+        out += "   RC contribution @90min:    \(f(p.rcEffect90, 2)) mg/dL\n"
+        out += "   momentum @30min:           \(f(p.momentumEffect30, 2)) mg/dL\n"
+
+        // Glucose history in the 30 min preceding step
+        out += "\n" + String(repeating: "-", count: 78) + "\n"
+        out += " GLUCOSE HISTORY — preceding 30 min (inputs to momentum/RC)\n"
+        out += String(repeating: "-", count: 78) + "\n"
+        let gStart = p.evaluatedAt.addingTimeInterval(-30 * 60)
+        let recent = glucoseHistory
+            .filter { $0.startDate >= gStart && $0.startDate <= p.evaluatedAt }
+            .sorted { $0.startDate < $1.startDate }
+        if recent.isEmpty {
+            out += "   (none — CGM dropout)\n"
+        } else {
+            for g in recent {
+                let rel = g.startDate.timeIntervalSince(p.evaluatedAt) / 60
+                let bg = g.quantity.doubleValue(for: .milligramsPerDeciliter)
+                out += String(format: "   %+6.1f min   %6.1f mg/dL   ", rel, bg)
+                out += iso.string(from: g.startDate) + "\n"
+            }
+        }
+
+        // Recent doses — 30 min preceding
+        out += "\n" + String(repeating: "-", count: 78) + "\n"
+        out += " RECENT DOSES — preceding 30 min\n"
+        out += String(repeating: "-", count: 78) + "\n"
+        let dStart = p.evaluatedAt.addingTimeInterval(-30 * 60)
+        let recentDoses = doses
+            .filter { $0.startDate >= dStart && $0.startDate <= p.evaluatedAt }
+            .sorted { $0.startDate < $1.startDate }
+        if recentDoses.isEmpty {
+            out += "   (none — scheduled basal only)\n"
+        } else {
+            for d in recentDoses {
+                let relStart = d.startDate.timeIntervalSince(p.evaluatedAt) / 60
+                let dur = d.endDate.timeIntervalSince(d.startDate) / 60
+                let rate = dur > 0 ? d.volume / (dur / 60) : 0
+                let type = d.deliveryType == .bolus ? "bolus" : "basal"
+                let auto = d.automatic ? "yes" : "no"
+                out += String(format: "   t%+5.1f  type=%@  dur=%4.1fmin  rate=%5.2fU/hr  vol=%5.3fU  auto=%@\n",
+                              relStart, type as NSString, dur, rate, d.volume, auto as NSString)
+            }
+        }
+        out += String(repeating: "=", count: 78) + "\n"
+        try out.write(toFile: path, atomically: true, encoding: .utf8)
     }
 
     struct DescStats { let mean, median, p10, p90: Double }
