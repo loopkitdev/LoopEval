@@ -80,6 +80,18 @@ struct BenchCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Basal rate multiplier for baseline (default: 1.0)")
     var basalMultiplier: Double = 1.0
 
+    @Flag(name: .long, help: "Use asymmetric momentum for baseline (slow rise, fast drop)")
+    var asymmetricMomentum: Bool = false
+
+    @Option(name: .long, help: "Positive v_cgm cap for baseline (mg/dL/min). Unset = no cap.")
+    var momentumCap: Double?
+
+    @Option(name: .long, help: "Baseline asymmetric-momentum EMA alpha for building positive momentum (default 0.15)")
+    var momentumAlphaSlow: Double = 0.15
+
+    @Option(name: .long, help: "Baseline asymmetric-momentum EMA alpha for shedding positive momentum (default 0.85)")
+    var momentumAlphaFast: Double = 0.85
+
     // MARK: – Labels
 
     @Option(name: .long, help: "Label for the baseline configuration")
@@ -107,6 +119,18 @@ struct BenchCommand: AsyncParsableCommand {
 
     @Flag(name: .long, help: "Exclude future insulin for candidate")
     var candidateNoFutureInsulin: Bool = false
+
+    @Flag(name: .long, help: "Use asymmetric momentum for candidate (slow rise, fast drop)")
+    var candidateAsymmetricMomentum: Bool = false
+
+    @Option(name: .long, help: "Candidate positive v_cgm cap (mg/dL/min)")
+    var candidateMomentumCap: Double?
+
+    @Option(name: .long, help: "Candidate asymmetric-momentum alpha-slow (default: same as baseline)")
+    var candidateMomentumAlphaSlow: Double?
+
+    @Option(name: .long, help: "Candidate asymmetric-momentum alpha-fast (default: same as baseline)")
+    var candidateMomentumAlphaFast: Double?
 
     // MARK: – Output
 
@@ -140,7 +164,11 @@ struct BenchCommand: AsyncParsableCommand {
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: sensitivityMultiplier,
             carbRatioMultiplier: crMultiplier,
-            basalRateMultiplier: basalMultiplier
+            basalRateMultiplier: basalMultiplier,
+            positiveVelocityCap: momentumCap,
+            useAsymmetricMomentum: asymmetricMomentum,
+            momentumAlphaSlow: momentumAlphaSlow,
+            momentumAlphaFast: momentumAlphaFast
         )
 
         // 4. Build candidate config (start from baseline, apply overrides)
@@ -151,7 +179,11 @@ struct BenchCommand: AsyncParsableCommand {
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,
             carbRatioMultiplier: candidateCrMultiplier ?? crMultiplier,
-            basalRateMultiplier: candidateBasalMultiplier ?? basalMultiplier
+            basalRateMultiplier: candidateBasalMultiplier ?? basalMultiplier,
+            positiveVelocityCap: candidateMomentumCap ?? momentumCap,
+            useAsymmetricMomentum: candidateAsymmetricMomentum || asymmetricMomentum,
+            momentumAlphaSlow: candidateMomentumAlphaSlow ?? momentumAlphaSlow,
+            momentumAlphaFast: candidateMomentumAlphaFast ?? momentumAlphaFast
         )
 
         // 5. Create data source (use baseline insulin type for fetching)
