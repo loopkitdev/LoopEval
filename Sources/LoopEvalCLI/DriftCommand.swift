@@ -789,7 +789,13 @@ struct DriftCommand: AsyncParsableCommand {
                 "ns_auto_bolus", "now_auto_bolus",
                 "ns_delta_u", "now_delta_u", "actual_delta_u",
                 "ns_rec_bolus_full",
-                "override_active", "override_multiplier"
+                "override_active", "override_multiplier",
+                // Loop-now's per-effect component contributions (mg/dL).
+                // `now_insulin_delta_60` = insulin_effect(t+60) − insulin_effect(t);
+                // rc/momentum are projected from t so the raw value is the contribution.
+                "now_insulin_delta_60", "now_insulin_delta_90",
+                "now_rc_60", "now_rc_90",
+                "now_momentum_30"
             ].joined(separator: ",")
         ]
         lines.reserveCapacity(predictions.count + 1)
@@ -837,7 +843,10 @@ struct DriftCommand: AsyncParsableCommand {
                 f(pumpDelta, 3),                            f(p.recommendedDeltaU, 3),
                 f(actualDelta, 3),
                 f(pd?.recommendedBolus, 3),
-                (pd?.overrideActive == true) ? "1" : "0",   f(pd?.overrideMultiplier, 3)
+                (pd?.overrideActive == true) ? "1" : "0",   f(pd?.overrideMultiplier, 3),
+                f(p.insulinEffectΔ60, 2), f(p.insulinEffectΔ90, 2),
+                f(p.rcEffect60, 2),       f(p.rcEffect90, 2),
+                f(p.momentumEffect30, 2)
             ]
             lines.append(row.joined(separator: ","))
         }

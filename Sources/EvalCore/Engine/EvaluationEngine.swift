@@ -256,6 +256,40 @@ public actor EvaluationEngine {
                     evalStep: config.evalStep
                 )
 
+                // Per-component effect samples for drift diagnostics.
+                // Each effect series is interpreted by `LoopMath.predictGlucose`
+                // via adjacent-element DIFFERENCES, so the contribution of an
+                // effect from its start to some horizon T is:
+                //     value(T) − value(first_element)
+                //
+                // `insulin` spans past+future (cumulative from earliest dose).
+                // For the *forecast-time* contribution, use value(t) as the
+                // baseline — only insulin effect AFTER t matters for forecast.
+                //
+                // `rc` and `momentum` use decayEffect which seeds with the
+                // starting glucose as element[0], so subtract element[0].
+                let insEff = prediction.effects.insulin
+                let rcEff  = prediction.effects.retrospectiveCorrection
+                let momEff = prediction.effects.momentum
+                let rcBase  = rcEff.first?.quantity.doubleValue(for: .milligramsPerDeciliter)
+                let momBase = momEff.first?.quantity.doubleValue(for: .milligramsPerDeciliter)
+                let insBaseT = Self.sampleEffect(insEff, at: t)
+                let ins60   = Self.sampleEffect(insEff, at: t.addingTimeInterval(60 * 60)).flatMap { v in
+                    insBaseT.map { v - $0 }
+                }
+                let ins90   = Self.sampleEffect(insEff, at: t.addingTimeInterval(90 * 60)).flatMap { v in
+                    insBaseT.map { v - $0 }
+                }
+                let rc60    = Self.sampleEffect(rcEff, at: t.addingTimeInterval(60 * 60)).flatMap { v in
+                    rcBase.map { v - $0 }
+                }
+                let rc90    = Self.sampleEffect(rcEff, at: t.addingTimeInterval(90 * 60)).flatMap { v in
+                    rcBase.map { v - $0 }
+                }
+                let mom30   = Self.sampleEffect(momEff, at: t.addingTimeInterval(30 * 60)).flatMap { v in
+                    momBase.map { v - $0 }
+                }
+
                 predictions.append(
                     PredictionRecord(
                         evaluatedAt: t,
@@ -266,7 +300,12 @@ public actor EvaluationEngine {
                         recommendedDeltaU: doseRec?.deltaU,
                         recommendedBolus: doseRec?.bolus,
                         recommendedTempBasalRate: doseRec?.tempBasalRate,
-                        scheduledBasalRate: doseRec?.scheduledBasalRate
+                        scheduledBasalRate: doseRec?.scheduledBasalRate,
+                        insulinEffectΔ60: ins60,
+                        insulinEffectΔ90: ins90,
+                        rcEffect60: rc60,
+                        rcEffect90: rc90,
+                        momentumEffect30: mom30
                     )
                 )
             } else {
@@ -298,6 +337,34 @@ public actor EvaluationEngine {
             actual: actualGlucose,
             skippedCount: skippedCount
         )
+    }
+
+    // MARK: – Effect sampling
+
+    /// Linear-interpolate a GlucoseEffect time-series at an arbitrary date.
+    /// Returns nil outside the series range.
+    static func sampleEffect(_ effects: [GlucoseEffect], at t: Date) -> Double? {
+        guard !effects.isEmpty else { return nil }
+        if t <= effects.first!.startDate {
+            return effects.first!.quantity.doubleValue(for: .milligramsPerDeciliter)
+        }
+        if t >= effects.last!.startDate {
+            return effects.last!.quantity.doubleValue(for: .milligramsPerDeciliter)
+        }
+        // Binary search for first index with startDate >= t.
+        var lo = 0, hi = effects.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if effects[mid].startDate < t { lo = mid + 1 } else { hi = mid }
+        }
+        guard lo > 0, lo < effects.count else { return nil }
+        let a = effects[lo - 1], b = effects[lo]
+        let span = b.startDate.timeIntervalSince(a.startDate)
+        guard span > 0 else { return a.quantity.doubleValue(for: .milligramsPerDeciliter) }
+        let frac = t.timeIntervalSince(a.startDate) / span
+        let va = a.quantity.doubleValue(for: .milligramsPerDeciliter)
+        let vb = b.quantity.doubleValue(for: .milligramsPerDeciliter)
+        return va + (vb - va) * frac
     }
 
     // MARK: – Dose recommendation

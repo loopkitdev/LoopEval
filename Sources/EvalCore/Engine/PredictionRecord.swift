@@ -43,13 +43,33 @@ public struct PredictionRecord: Sendable {
     /// Scheduled (baseline) basal rate at this moment (U/hr).
     public let scheduledBasalRate: Double?
 
+    /// Per-effect-component contributions to the forecast, measured as the
+    /// change from `evaluatedAt` to the horizon. Used by drift analysis to
+    /// isolate which forecast component drives divergence between Loop-now
+    /// and pump-side Loop. All values in mg/dL. `nil` when not computed or
+    /// when the effect array is empty at that horizon.
+    ///
+    /// For RC and momentum we report the cumulative effect value at the
+    /// horizon directly (since both are defined as effects projected from
+    /// `evaluatedAt` forward).
+    public let insulinEffectΔ60: Double?   // insulin_effect(t+60) − insulin_effect(t)
+    public let insulinEffectΔ90: Double?
+    public let rcEffect60: Double?
+    public let rcEffect90: Double?
+    public let momentumEffect30: Double?
+
     public init(evaluatedAt: Date, predicted: [PredictedGlucoseValue],
                 predictedNoFutureInsulin: [PredictedGlucoseValue]? = nil,
                 iob: Double? = nil, cob: Double? = nil,
                 recommendedDeltaU: Double? = nil,
                 recommendedBolus: Double? = nil,
                 recommendedTempBasalRate: Double? = nil,
-                scheduledBasalRate: Double? = nil) {
+                scheduledBasalRate: Double? = nil,
+                insulinEffectΔ60: Double? = nil,
+                insulinEffectΔ90: Double? = nil,
+                rcEffect60: Double? = nil,
+                rcEffect90: Double? = nil,
+                momentumEffect30: Double? = nil) {
         self.evaluatedAt               = evaluatedAt
         self.predicted                 = predicted
         self.predictedNoFutureInsulin  = predictedNoFutureInsulin
@@ -59,6 +79,11 @@ public struct PredictionRecord: Sendable {
         self.recommendedBolus          = recommendedBolus
         self.recommendedTempBasalRate  = recommendedTempBasalRate
         self.scheduledBasalRate        = scheduledBasalRate
+        self.insulinEffectΔ60          = insulinEffectΔ60
+        self.insulinEffectΔ90          = insulinEffectΔ90
+        self.rcEffect60                = rcEffect60
+        self.rcEffect90                = rcEffect90
+        self.momentumEffect30          = momentumEffect30
     }
 
     // MARK: – Horizon lookup
