@@ -55,11 +55,14 @@ func interpolationOutOfRange() {
     #expect(after == nil)
 }
 
-@Test("Interpolation with unsorted input is handled")
-func interpolationUnsortedInput() {
-    let s1 = sample(offset: 300, mgdL: 110)
+@Test("Interpolation requires sorted input (caller's contract)")
+func interpolationRequiresSortedInput() {
+    // Per the contract, callers must pass samples sorted ascending by startDate.
+    // PredictionComparator and DriftCommand both sort once up front before
+    // entering the per-horizon hot loop. Test the contract directly:
     let s0 = sample(offset: 0,   mgdL: 100)
-    let result = GlucoseInterpolator.interpolate(samples: [s1, s0], at: T0.addingTimeInterval(150))
+    let s1 = sample(offset: 300, mgdL: 110)
+    let result = GlucoseInterpolator.interpolate(samples: [s0, s1], at: T0.addingTimeInterval(150))
     #expect(result != nil)
     #expect(abs(result! - 105.0) < 0.001)
 }

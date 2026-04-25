@@ -17,27 +17,26 @@ public struct GlucoseInterpolator {
         samples: [EvalGlucoseSample],
         at date: Date
     ) -> Double? {
-        guard !samples.isEmpty else { return nil }
-
-        // Sort defensively
-        let sorted = samples.sorted { $0.startDate < $1.startDate }
-
-        // No extrapolation: date must be within the data range
-        guard let first = sorted.first, let last = sorted.last else { return nil }
+        // Caller must pass samples sorted ascending by startDate. We binary-search
+        // and skip the defensive `.sorted()` — re-sorting inside a hot loop made
+        // the analyze step quadratic-in-samples and stalled long benches.
+        guard let first = samples.first, let last = samples.last else { return nil }
         guard date >= first.startDate && date <= last.startDate else { return nil }
 
-        // Find last sample with startDate <= date
-        guard let beforeIdx = sorted.lastIndex(where: { $0.startDate <= date }) else { return nil }
-        let before = sorted[beforeIdx]
-
-        // Find first sample with startDate >= date
-        guard let afterIdx = sorted.firstIndex(where: { $0.startDate >= date }) else { return nil }
-        let after = sorted[afterIdx]
-
-        // Exact match
-        if before.startDate == after.startDate {
-            return before.quantity.doubleValue(for: .milligramsPerDeciliter)
+        // Binary search for the first index with startDate >= date.
+        var lo = 0, hi = samples.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if samples[mid].startDate < date { lo = mid + 1 } else { hi = mid }
         }
+        // `lo` is now the first index with startDate >= date. The "before" sample
+        // is at lo-1 unless there's an exact match at lo.
+        let after = samples[lo]
+        if after.startDate == date {
+            return after.quantity.doubleValue(for: .milligramsPerDeciliter)
+        }
+        guard lo > 0 else { return nil }
+        let before = samples[lo - 1]
 
         // Check gap
         let gap = after.startDate.timeIntervalSince(before.startDate)

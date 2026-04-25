@@ -31,7 +31,10 @@ public struct PredictionComparator {
         actual: [EvalGlucoseSample],
         horizons: [TimeInterval]
     ) -> [HorizonResult] {
-        horizons.map { horizon in
+        // Sort once up front — `interpolate` requires sorted input and that
+        // contract is enforced here so the inner loop is O(log N) per call.
+        let sortedActual = actual.sorted { $0.startDate < $1.startDate }
+        return horizons.map { horizon in
             var errors: [(predicted: Double, actual: Double)] = []
 
             for record in predictions {
@@ -39,7 +42,7 @@ public struct PredictionComparator {
 
                 guard
                     let pred = record.predictedValue(atHorizon: horizon),
-                    let act  = GlucoseInterpolator.interpolate(samples: actual, at: targetDate)
+                    let act  = GlucoseInterpolator.interpolate(samples: sortedActual, at: targetDate)
                 else { continue }
 
                 errors.append((predicted: pred, actual: act))
