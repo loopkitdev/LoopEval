@@ -32,7 +32,10 @@ public struct EvalConfig: Codable, Sendable {
     public var includingPositiveVelocityAndRC: Bool
 
     /// Use mid-absorption ISF for insulin effects computation.
-    /// Default: false (same as LoopAlgorithm default).
+    /// Default: TRUE — this isn't a behavior change, it's the correct way to
+    /// handle ISF-schedule transitions during a dose's absorption window.
+    /// Without it, a dose given just before an ISF change uses the old ISF
+    /// for its full absorption, which is just wrong.
     public var useMidAbsorptionISF: Bool
 
     /// Carb absorption model.  Default: .piecewiseLinear.
@@ -89,6 +92,27 @@ public struct EvalConfig: Codable, Sendable {
     /// to 0.5 mg/dL/min.
     public var positiveVelocityCap: Double?
 
+    /// Enable glucose-based application factor (GBAF).  When true, the
+    /// auto-bolus applicationFactor scales with current BG via a piecewise-linear
+    /// curve: factorLow at gbafLowAnchor (and below), factorHigh at gbafHighAnchor
+    /// (and above), linear interpolation between.  Designed for the Priority-3
+    /// safety case "reduce highs without increasing lows" — more aggressive
+    /// dosing only when BG is heading high, not when it's near or below target.
+    /// Default: false (use flat applicationFactor=0.4).
+    public var glucoseBasedApplicationFactor: Bool
+
+    /// GBAF curve: BG (mg/dL) at and below which applicationFactor = factorLow.
+    public var gbafLowAnchor: Double
+
+    /// GBAF curve: BG (mg/dL) at and above which applicationFactor = factorHigh.
+    public var gbafHighAnchor: Double
+
+    /// GBAF curve: applicationFactor when current BG ≤ gbafLowAnchor.
+    public var gbafFactorLow: Double
+
+    /// GBAF curve: applicationFactor when current BG ≥ gbafHighAnchor.
+    public var gbafFactorHigh: Double
+
     /// How long to wait after `interval.start` before the first evaluated
     /// prediction (seconds).  Default: `insulinLookbackHours` hours.
     ///
@@ -111,7 +135,7 @@ public struct EvalConfig: Codable, Sendable {
         horizons: [TimeInterval] = stride(from: 30.0, through: 360.0, by: 30.0)
             .map { $0 * 60 },
         includingPositiveVelocityAndRC: Bool = true,
-        useMidAbsorptionISF: Bool = false,
+        useMidAbsorptionISF: Bool = true,
         carbAbsorptionModel: CarbAbsorptionModel = .piecewiseLinear,
         sensitivityMultiplier: Double = 1.0,
         carbRatioMultiplier: Double = 1.0,
@@ -124,6 +148,11 @@ public struct EvalConfig: Codable, Sendable {
         useAsymmetricMomentum: Bool = false,
         momentumAlphaSlow: Double = 0.15,
         momentumAlphaFast: Double = 0.85,
+        glucoseBasedApplicationFactor: Bool = false,
+        gbafLowAnchor: Double = 140.0,
+        gbafHighAnchor: Double = 220.0,
+        gbafFactorLow: Double = 0.4,
+        gbafFactorHigh: Double = 0.7,
         evalWarmupHours: Double? = nil   // nil → use insulinLookbackHours
     ) {
         self.evalStep                       = evalStep
@@ -145,6 +174,11 @@ public struct EvalConfig: Codable, Sendable {
         self.dangerHigh                     = dangerHigh
         self.positiveVelocityCap            = positiveVelocityCap
         self.useAsymmetricMomentum          = useAsymmetricMomentum
+        self.glucoseBasedApplicationFactor  = glucoseBasedApplicationFactor
+        self.gbafLowAnchor                  = gbafLowAnchor
+        self.gbafHighAnchor                 = gbafHighAnchor
+        self.gbafFactorLow                  = gbafFactorLow
+        self.gbafFactorHigh                 = gbafFactorHigh
         self.momentumAlphaSlow              = momentumAlphaSlow
         self.momentumAlphaFast              = momentumAlphaFast
         self.evalWarmupHours                = evalWarmupHours ?? insulinLookbackHours
@@ -159,6 +193,7 @@ public struct EvalConfig: Codable, Sendable {
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
         case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
+        case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh
         case evalWarmupHours
     }
 
@@ -185,6 +220,11 @@ public struct EvalConfig: Codable, Sendable {
         self.useAsymmetricMomentum = try c.decode(Bool.self,        forKey: .useAsymmetricMomentum)
         self.momentumAlphaSlow    = try c.decode(Double.self,       forKey: .momentumAlphaSlow)
         self.momentumAlphaFast    = try c.decode(Double.self,       forKey: .momentumAlphaFast)
+        self.glucoseBasedApplicationFactor = try c.decodeIfPresent(Bool.self, forKey: .glucoseBasedApplicationFactor) ?? false
+        self.gbafLowAnchor        = try c.decodeIfPresent(Double.self, forKey: .gbafLowAnchor)   ?? 140.0
+        self.gbafHighAnchor       = try c.decodeIfPresent(Double.self, forKey: .gbafHighAnchor)  ?? 220.0
+        self.gbafFactorLow        = try c.decodeIfPresent(Double.self, forKey: .gbafFactorLow)   ?? 0.4
+        self.gbafFactorHigh       = try c.decodeIfPresent(Double.self, forKey: .gbafFactorHigh)  ?? 0.7
         self.evalWarmupHours      = try c.decode(Double.self,       forKey: .evalWarmupHours)
     }
 }

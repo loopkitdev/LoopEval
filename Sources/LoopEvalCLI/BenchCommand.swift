@@ -132,6 +132,21 @@ struct BenchCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Candidate asymmetric-momentum alpha-fast (default: same as baseline)")
     var candidateMomentumAlphaFast: Double?
 
+    @Flag(name: .long, help: "Enable glucose-based application factor (GBAF) for candidate — auto-bolus app-factor scales with current BG")
+    var candidateGbaf: Bool = false
+
+    @Option(name: .long, help: "GBAF curve: BG (mg/dL) at/below which factor=factorLow (default 140)")
+    var candidateGbafLowAnchor: Double = 140.0
+
+    @Option(name: .long, help: "GBAF curve: BG (mg/dL) at/above which factor=factorHigh (default 220)")
+    var candidateGbafHighAnchor: Double = 220.0
+
+    @Option(name: .long, help: "GBAF curve: applicationFactor at lowAnchor (default 0.4)")
+    var candidateGbafFactorLow: Double = 0.4
+
+    @Option(name: .long, help: "GBAF curve: applicationFactor at highAnchor (default 0.7)")
+    var candidateGbafFactorHigh: Double = 0.7
+
     // MARK: – Output
 
     @Option(name: .long, help: "Write a comparison HTML report to this path")
@@ -183,7 +198,12 @@ struct BenchCommand: AsyncParsableCommand {
             positiveVelocityCap: candidateMomentumCap ?? momentumCap,
             useAsymmetricMomentum: candidateAsymmetricMomentum || asymmetricMomentum,
             momentumAlphaSlow: candidateMomentumAlphaSlow ?? momentumAlphaSlow,
-            momentumAlphaFast: candidateMomentumAlphaFast ?? momentumAlphaFast
+            momentumAlphaFast: candidateMomentumAlphaFast ?? momentumAlphaFast,
+            glucoseBasedApplicationFactor: candidateGbaf,
+            gbafLowAnchor: candidateGbafLowAnchor,
+            gbafHighAnchor: candidateGbafHighAnchor,
+            gbafFactorLow: candidateGbafFactorLow,
+            gbafFactorHigh: candidateGbafFactorHigh
         )
 
         // 5. Create data source (use baseline insulin type for fetching)

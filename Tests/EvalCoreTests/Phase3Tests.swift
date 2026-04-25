@@ -329,7 +329,9 @@ func predictionRecordNilOnEmpty() {
 func evalConfigPhase3Defaults() {
     let cfg = EvalConfig.default
     #expect(cfg.includingPositiveVelocityAndRC == true)
-    #expect(cfg.useMidAbsorptionISF == false)
+    // useMidAbsorptionISF defaults to true as of 2026-04-25 — it's the correct
+    // way to handle ISF schedule transitions during a dose's absorption window.
+    #expect(cfg.useMidAbsorptionISF == true)
     #expect(cfg.carbAbsorptionModel == .piecewiseLinear)
 }
 

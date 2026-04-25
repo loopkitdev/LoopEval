@@ -245,6 +245,19 @@ public actor EvaluationEngine {
                 // Compute dose recommendation from this forecast. Used for
                 // delivery-based ODR/UDR metrics that compare total insulin
                 // delivery between two configurations.
+                let currentBG = input.glucose.last?.quantity.doubleValue(for: .milligramsPerDeciliter) ?? 100
+                let appFactor: Double
+                if config.glucoseBasedApplicationFactor {
+                    appFactor = Self.glucoseBasedApplicationFactor(
+                        currentBG: currentBG,
+                        lowAnchor: config.gbafLowAnchor,
+                        highAnchor: config.gbafHighAnchor,
+                        factorLow: config.gbafFactorLow,
+                        factorHigh: config.gbafFactorHigh
+                    )
+                } else {
+                    appFactor = 0.4
+                }
                 let doseRec = Self.computeDoseRecommendation(
                     prediction: prediction,
                     at: t,
@@ -253,7 +266,8 @@ public actor EvaluationEngine {
                     maxBolus: data.therapyTimeline.maxBolus,
                     maxBasalRate: data.therapyTimeline.maxBasalRate,
                     insulinType: data.therapyTimeline.insulinType,
-                    evalStep: config.evalStep
+                    evalStep: config.evalStep,
+                    applicationFactor: appFactor
                 )
 
                 // Per-component effect samples for drift diagnostics.
@@ -339,6 +353,34 @@ public actor EvaluationEngine {
         )
     }
 
+    // MARK: – Glucose-based application factor
+
+    /// Piecewise-linear curve mapping current BG to applicationFactor.
+    ///
+    /// - At BG ≤ `lowAnchor`: returns `factorLow`.
+    /// - At BG ≥ `highAnchor`: returns `factorHigh`.
+    /// - Between: linear interpolation.
+    ///
+    /// Designed for the Priority-3 case "reduce highs without increasing
+    /// lows": with `factorLow=0.4, factorHigh=0.7, lowAnchor=140, highAnchor=220`,
+    /// auto-bolus delivers a larger fraction of the recommended correction
+    /// when BG is heading high, and the same fraction as today (0.4) when BG
+    /// is near or below target — never more aggressive at moments where
+    /// over-delivery would risk hypoglycemia.
+    public static func glucoseBasedApplicationFactor(
+        currentBG: Double,
+        lowAnchor: Double,
+        highAnchor: Double,
+        factorLow: Double,
+        factorHigh: Double
+    ) -> Double {
+        guard highAnchor > lowAnchor else { return factorLow }
+        if currentBG <= lowAnchor { return factorLow }
+        if currentBG >= highAnchor { return factorHigh }
+        let frac = (currentBG - lowAnchor) / (highAnchor - lowAnchor)
+        return factorLow + frac * (factorHigh - factorLow)
+    }
+
     // MARK: – Effect sampling
 
     /// Linear-interpolate a GlucoseEffect time-series at an arbitrary date.
@@ -391,7 +433,8 @@ public actor EvaluationEngine {
         maxBolus: Double,
         maxBasalRate: Double,
         insulinType: ExponentialInsulinModelPreset,
-        evalStep: TimeInterval
+        evalStep: TimeInterval,
+        applicationFactor: Double = 0.4
     ) -> DoseOutput? {
         guard let scheduledBasalEntry = input.basal.first(where: { $0.startDate <= t && $0.endDate > t })
             ?? input.basal.closestPrior(to: t) else { return nil }
@@ -424,7 +467,7 @@ public actor EvaluationEngine {
 
         let recommendation = LoopAlgorithm.recommendAutomaticDose(
             for: correction,
-            applicationFactor: 0.4,  // Loop default
+            applicationFactor: applicationFactor,
             neutralBasalRate: scheduledRate,
             activeInsulin: activeInsulin,
             maxBolus: maxBolus,
