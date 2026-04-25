@@ -17,22 +17,41 @@ import Foundation
 import LoopAlgorithm
 
 /// Per-horizon delivery-based risk scores.
+///
+/// Four signed metrics partition the (Δdose × pre-low/pre-high) space:
+///
+/// ```
+///                     pre-low (BG<70)     pre-high (BG>180)
+///   over-delivers:    ODR  (cost)         OAH  (benefit)
+///   under-delivers:   UAL  (benefit)      UDR  (cost)
+/// ```
+///
+/// `Δdose = candidate_deltaU − baseline_deltaU`. Costs measure when the
+/// candidate dosed in a dangerous direction; benefits measure when it dosed
+/// in a beneficial direction. All four are Clarke-Kovatchev risk-weighted
+/// at the actual future BG and computed as risk-weighted RMS magnitudes —
+/// they are non-negative; interpret signs via the column they're in.
 public struct DeliveryHorizonScores: Codable, Sendable {
     /// Forecast horizon this was computed at (e.g., 90 min).
     public let horizon: TimeInterval
     /// Number of paired (baseline, candidate) decisions at which actual BG
-    /// at horizon was in-range-low (for ODR) or in-range-high (for UDR).
+    /// at horizon was in-range-low (gates ODR & UAL) or in-range-high (gates UDR & OAH).
     public let nODR: Int
     public let nUDR: Int
-    /// Over-Delivery Risk: dangerous EXTRA delivery into pre-low moments.
+    /// Over-Delivery Risk (cost): dangerous EXTRA delivery into pre-low moments.
     ///   ODR = √( Σ rl(actual) · max(Δdose, 0)² / nODR )
-    /// where Δdose = candidate_deltaU − baseline_deltaU, sampled at decisions
-    /// whose actual BG at `horizon` ended below `targetLow`.
     public let odr: Double
-    /// Under-Delivery Risk: dangerous LESS delivery into pre-high moments.
+    /// Under-Delivery Risk (cost): LESS delivery into pre-high moments.
     ///   UDR = √( Σ rh(actual) · max(−Δdose, 0)² / nUDR )
-    /// sampled at decisions whose actual BG at `horizon` ended above `targetHigh`.
     public let udr: Double
+    /// Over-At-High (benefit): EXTRA delivery into pre-high moments — the
+    /// candidate dosed more aggressively at moments that turned out to need it.
+    ///   OAH = √( Σ rh(actual) · max(Δdose, 0)² / nUDR )
+    public let oah: Double
+    /// Under-At-Low (benefit): LESS delivery at pre-low moments — the
+    /// candidate held back at moments that turned out to be hypos.
+    ///   UAL = √( Σ rl(actual) · max(−Δdose, 0)² / nODR )
+    public let ual: Double
 }
 
 /// Aggregate delivery-based scores across horizons (Gaussian-weighted like OPR/UPR).
@@ -40,7 +59,9 @@ public struct DeliveryScores: Codable, Sendable {
     public let horizonScores: [DeliveryHorizonScores]
     public let weightedODR: Double
     public let weightedUDR: Double
-    public let primaryDeliveryScore: Double   // ODR + UDR
+    public let weightedOAH: Double
+    public let weightedUAL: Double
+    public let primaryDeliveryScore: Double   // ODR + UDR (costs only)
 
     /// Compute delivery-based ODR/UDR scores.
     ///
@@ -77,29 +98,40 @@ public struct DeliveryScores: Codable, Sendable {
         // Per-horizon scores
         var perHorizon: [DeliveryHorizonScores] = []
         for h in horizons {
-            var sumODR = 0.0, sumUDR = 0.0
+            var sumODR = 0.0, sumUDR = 0.0, sumOAH = 0.0, sumUAL = 0.0
             var nODR = 0, nUDR = 0
             for pair in pairs {
                 let tFuture = pair.t.addingTimeInterval(h)
                 guard let actualBG = Self.interpolate(sortedActual, at: tFuture) else { continue }
                 if actualBG < dangerLow {
                     let over = max(pair.deltaU, 0)
+                    let under = max(-pair.deltaU, 0)
                     if over > 0 {
                         sumODR += BloodGlucoseRisk.rl(actualBG) * over * over
                     }
+                    if under > 0 {
+                        sumUAL += BloodGlucoseRisk.rl(actualBG) * under * under
+                    }
                     nODR += 1
                 } else if actualBG > dangerHigh {
+                    let over = max(pair.deltaU, 0)
                     let under = max(-pair.deltaU, 0)
                     if under > 0 {
                         sumUDR += BloodGlucoseRisk.rh(actualBG) * under * under
+                    }
+                    if over > 0 {
+                        sumOAH += BloodGlucoseRisk.rh(actualBG) * over * over
                     }
                     nUDR += 1
                 }
             }
             let odr = nODR > 0 ? sqrt(sumODR / Double(nODR)) : 0
+            let ual = nODR > 0 ? sqrt(sumUAL / Double(nODR)) : 0
             let udr = nUDR > 0 ? sqrt(sumUDR / Double(nUDR)) : 0
+            let oah = nUDR > 0 ? sqrt(sumOAH / Double(nUDR)) : 0
             perHorizon.append(DeliveryHorizonScores(
-                horizon: h, nODR: nODR, nUDR: nUDR, odr: odr, udr: udr
+                horizon: h, nODR: nODR, nUDR: nUDR,
+                odr: odr, udr: udr, oah: oah, ual: ual
             ))
         }
 
@@ -112,20 +144,25 @@ public struct DeliveryScores: Codable, Sendable {
         guard totalW > 0 else {
             return DeliveryScores(
                 horizonScores: perHorizon,
-                weightedODR: 0, weightedUDR: 0, primaryDeliveryScore: 0
+                weightedODR: 0, weightedUDR: 0, weightedOAH: 0, weightedUAL: 0,
+                primaryDeliveryScore: 0
             )
         }
         let weights = rawWeights.map { $0 / totalW }
-        var wODR = 0.0, wUDR = 0.0
+        var wODR = 0.0, wUDR = 0.0, wOAH = 0.0, wUAL = 0.0
         for (s, w) in zip(perHorizon, weights) {
             wODR += w * s.odr
             wUDR += w * s.udr
+            wOAH += w * s.oah
+            wUAL += w * s.ual
         }
 
         return DeliveryScores(
             horizonScores: perHorizon,
             weightedODR: wODR,
             weightedUDR: wUDR,
+            weightedOAH: wOAH,
+            weightedUAL: wUAL,
             primaryDeliveryScore: wODR + wUDR
         )
     }

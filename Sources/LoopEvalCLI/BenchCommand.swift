@@ -336,11 +336,25 @@ struct BenchCommand: AsyncParsableCommand {
             print(sep)
             print(" Delivery-based scores (candidate vs baseline Δdose, weighted by Clarke-Kovatchev risk)")
             print(sep)
-            print(String(format: "   ODR (over-delivery at pre-low):   %6.4f U·√rl", d.weightedODR))
-            print(String(format: "   UDR (under-delivery at pre-high): %6.4f U·√rh", d.weightedUDR))
-            print(String(format: "   ODR + UDR:                        %6.4f", d.primaryDeliveryScore))
-            print(" (positive ODR = candidate delivered MORE insulin at moments where actual BG ended low)")
-            print(" (positive UDR = candidate delivered LESS insulin at moments where actual BG ended high)")
+            print("                          pre-low (BG<70)        pre-high (BG>180)")
+            print(String(format: "   over-delivers (Δ>0):     %6.4f  ← ODR (cost)    %6.4f  ← OAH (benefit)",
+                         d.weightedODR, d.weightedOAH))
+            print(String(format: "   under-delivers (Δ<0):    %6.4f  ← UAL (benefit)  %6.4f  ← UDR (cost)",
+                         d.weightedUAL, d.weightedUDR))
+            print(sep)
+            print(String(format: "   primary cost (ODR + UDR):    %6.4f", d.primaryDeliveryScore))
+            print(String(format: "   primary benefit (OAH + UAL): %6.4f", d.weightedOAH + d.weightedUAL))
+            // Benefit-to-cost ratio: useful for ranking interventions like GBAF
+            // where some over-delivery at hypos is "paid for" by extra coverage at hypers.
+            let cost = d.primaryDeliveryScore
+            let benefit = d.weightedOAH + d.weightedUAL
+            if cost > 0 {
+                print(String(format: "   benefit / cost:               %6.2f  (>1 ⇒ net safety-positive)", benefit / cost))
+            } else if benefit > 0 {
+                print("   benefit / cost:                  ∞   (no costs incurred — safety-positive)")
+            }
+            print(" Costs ↑ ⇒ candidate dosed in dangerous direction at risky moments.")
+            print(" Benefits ↑ ⇒ candidate dosed in beneficial direction at risky moments.")
         }
 
         print(ruler)

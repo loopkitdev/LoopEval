@@ -43,8 +43,10 @@ public struct EvalConfig: Codable, Sendable {
 
     /// Multiplicative scalar applied to the ISF (sensitivity) timeline before
     /// passing to LoopAlgorithm.  1.0 = use values as-is from Nightscout.
-    /// Values > 1.0 make the algorithm more aggressive (lower ISF → more
-    /// correction), values < 1.0 make it more conservative.
+    /// ISF is mg/dL per unit of insulin, so HIGHER ISF means each unit drops
+    /// BG more, which means Loop recommends FEWER units for a given correction.
+    /// Values > 1.0 → larger ISF → MORE conservative dosing (less insulin).
+    /// Values < 1.0 → smaller ISF → MORE aggressive dosing (more insulin).
     /// Default: 1.0.
     public var sensitivityMultiplier: Double
 
