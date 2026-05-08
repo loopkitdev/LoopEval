@@ -259,22 +259,20 @@ struct InputWindowBuilder: Sendable {
         return Array(schedule[lo..<hi]).filter { $0.endDate > from }
     }
 
-    /// Apply `config.sensitivityMultiplier` to a sensitivity slice.
-    /// Multiplier > 1 → higher ISF value → less aggressive correction.
-    /// Multiplier < 1 → lower ISF value → more aggressive correction.
+    /// Apply `config.sensitivityMultiplier` and (optionally) per-local-hour
+    /// multipliers from `config.sensitivityHourlyMultipliers` to a sensitivity
+    /// slice. When hourly multipliers are present, each entry is split at
+    /// local-hour boundaries (per `config.localTimezone`) so the appropriate
+    /// per-hour multiplier applies to each piece.
     private func applyISFMultiplier(
         _ slice: [AbsoluteScheduleValue<LoopQuantity>]
     ) -> [AbsoluteScheduleValue<LoopQuantity>] {
-        guard config.sensitivityMultiplier != 1.0 else { return slice }
-        return slice.map { entry in
-            let unit = entry.value.unit   // preserve whatever unit Nightscout supplied
-            let scaled = entry.value.doubleValue(for: unit) * config.sensitivityMultiplier
-            return AbsoluteScheduleValue(
-                startDate: entry.startDate,
-                endDate: entry.endDate,
-                value: LoopQuantity(unit: unit, doubleValue: scaled)
-            )
-        }
+        return EvaluationEngine.applySensitivityScaling(
+            slice,
+            globalMultiplier: config.sensitivityMultiplier,
+            hourlyMultipliers: config.sensitivityHourlyMultipliers,
+            timezone: config.localTimezone
+        )
     }
 
     /// Apply `config.carbRatioMultiplier` to a carb ratio slice.

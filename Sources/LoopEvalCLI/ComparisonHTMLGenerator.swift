@@ -130,39 +130,117 @@ enum ComparisonHTMLGenerator {
             let odrStr = String(format: "%.4f", d.weightedODR)
             let udrStr = String(format: "%.4f", d.weightedUDR)
             let totalStr = String(format: "%.4f", d.primaryDeliveryScore)
-            // Per-horizon table
+            // Per-horizon table — RMS columns + raw U/hr rate columns
             var horizonRows = ""
             for hs in d.horizonScores {
                 horizonRows += "<tr><td style='padding:4px 10px;'>\(Int(hs.horizon / 60)) min</td>"
                 horizonRows += "<td style='padding:4px 10px;font-family:monospace;'>\(String(format: "%.4f", hs.odr))</td>"
                 horizonRows += "<td style='padding:4px 10px;font-family:monospace;'>\(String(format: "%.4f", hs.udr))</td>"
+                horizonRows += "<td style='padding:4px 10px;font-family:monospace;color:#e8685a;'>\(String(format: "%+.4f", hs.odrURate))</td>"
+                horizonRows += "<td style='padding:4px 10px;font-family:monospace;color:#f0a84a;'>\(String(format: "%+.4f", hs.udrURate))</td>"
                 horizonRows += "<td style='padding:4px 10px;color:#888;'>n_ODR=\(hs.nODR), n_UDR=\(hs.nUDR)</td></tr>"
             }
+
+            // Magnitude-distribution panel at peak (90-min) horizon.
+            // Tells rare-big-spike apart from many-small-ticks at a glance.
+            let peakHS = d.horizonScores.first(where: { abs($0.horizon - 90 * 60) < 1 })
+                ?? d.horizonScores.first
+            var distHTML = ""
+            if let p = peakHS {
+                func row(_ name: String, _ q: MagnitudeQuantiles, color: String) -> String {
+                    if q.count == 0 {
+                        return "<tr><td style='padding:4px 10px;color:\(color);font-weight:500;'>\(name)</td>"
+                            + "<td colspan='4' style='padding:4px 10px;color:#666;font-style:italic;'>no events in this cell</td></tr>"
+                    }
+                    return "<tr><td style='padding:4px 10px;color:\(color);font-weight:500;'>\(name)</td>"
+                        + "<td style='padding:4px 10px;font-family:monospace;'>\(String(format: "%.4f", q.p50))</td>"
+                        + "<td style='padding:4px 10px;font-family:monospace;'>\(String(format: "%.4f", q.p90))</td>"
+                        + "<td style='padding:4px 10px;font-family:monospace;'>\(String(format: "%.4f", q.p99))</td>"
+                        + "<td style='padding:4px 10px;color:#888;'>n=\(q.count)</td></tr>"
+                }
+                distHTML = """
+                <table style="width:100%;margin-top:18px;border-collapse:collapse;font-size:.85rem;color:#c8ccd8;">
+                  <thead><tr style="background:#0a0d18;">
+                    <th style="padding:6px 10px;text-align:left;font-weight:500;color:#888;">|Δdose| at \(Int(p.horizon / 60)) min</th>
+                    <th style="padding:6px 10px;text-align:left;font-weight:500;color:#888;">P50</th>
+                    <th style="padding:6px 10px;text-align:left;font-weight:500;color:#888;">P90</th>
+                    <th style="padding:6px 10px;text-align:left;font-weight:500;color:#888;">P99</th>
+                    <th style="padding:6px 10px;text-align:left;font-weight:500;color:#888;">events</th>
+                  </tr></thead>
+                  <tbody>
+                    \(row("ODR", p.odrQuantiles, color: "#e8685a"))
+                    \(row("RDB", p.rdbQuantiles, color: "#9bd96b"))
+                    \(row("IDB", p.idbQuantiles, color: "#9bd96b"))
+                    \(row("UDR", p.udrQuantiles, color: "#f0a84a"))
+                  </tbody>
+                </table>
+                <p style="color:#888da8;font-size:.78rem;margin-top:8px;line-height:1.5">
+                  Per-cell distribution of |Δdose| in U. High P99 with low P50 ⇒ rare-but-severe;
+                  flat profile ⇒ small-but-persistent (where rate-form scores will reveal duration cost).
+                </p>
+                """
+            }
+
+            // Rate-form summary card row (raw U/hr — clinically interpretable)
+            let odrURate = String(format: "%+.4f", d.weightedODRURate)
+            let udrURate = String(format: "%+.4f", d.weightedUDRURate)
+            let idbURate = String(format: "%+.4f", d.weightedIDBURate)
+            let rdbURate = String(format: "%+.4f", d.weightedRDBURate)
+
+            // Risk-weighted rate ratio (duration-aware analog of benefit/cost)
+            let rateCost = d.weightedODRRate + d.weightedUDRRate
+            let rateBenefit = d.weightedIDBRate + d.weightedRDBRate
+            let ratioStr: String
+            if rateCost > 0 {
+                ratioStr = String(format: "%.2f", rateBenefit / rateCost)
+            } else if rateBenefit > 0 {
+                ratioStr = "∞"
+            } else {
+                ratioStr = "—"
+            }
+
             deliveryHTML = """
             <div class="panel">
               <div class="panel-title">Delivery-based ODR / UDR  <span style="color:#888;font-weight:normal;">(candidate vs baseline Δdose, weighted by Clarke-Kovatchev risk)</span></div>
+
+              <div style="color:#888da8;font-size:.78rem;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">RMS magnitude (per-event, duration-blind)</div>
               <div class="sc-row">
                 \(scCard(label: "ODR — Over-Delivery Risk", val: odrStr, sub: "candidate > baseline at pre-low moments", color: "#e8685a"))
                 \(scCard(label: "UDR — Under-Delivery Risk", val: udrStr, sub: "candidate < baseline at pre-high moments", color: "#f0a84a"))
                 \(scCard(label: "ODR + UDR", val: totalStr, sub: "primary delivery score", color: "#6a8ef0"))
               </div>
+
+              <div style="color:#888da8;font-size:.78rem;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.05em;">Rate-form (duration-aware, U/hr of analysis time)</div>
+              <div class="sc-row">
+                \(scCard(label: "ODR rate", val: odrURate, sub: "extra U/hr into pre-low windows", color: "#e8685a"))
+                \(scCard(label: "UDR rate", val: udrURate, sub: "less U/hr into pre-high windows", color: "#f0a84a"))
+                \(scCard(label: "IDB rate", val: idbURate, sub: "extra U/hr into pre-high (benefit)", color: "#9bd96b"))
+                \(scCard(label: "RDB rate", val: rdbURate, sub: "less U/hr into pre-low (benefit)", color: "#9bd96b"))
+                \(scCard(label: "rate B/C", val: ratioStr, sub: "risk-weighted benefit / cost", color: "#6a8ef0"))
+              </div>
+
               <p style="color:#888da8;font-size:.82rem;margin-top:16px;line-height:1.6">
                 <strong>Interpretation:</strong> these are the clinically-consequential dose-delta metrics.
                 <strong style="color:#e8685a">ODR &gt; 0</strong> means the candidate delivered
-                <em>more</em> insulin than baseline at moments where actual BG went below 100 — real over-delivery into lows.
+                <em>more</em> insulin than baseline at moments where actual BG went below 70 — real over-delivery into lows.
                 <strong style="color:#f0a84a">UDR &gt; 0</strong> means the candidate delivered <em>less</em> than baseline
-                at moments where actual BG went above 115 — real under-delivery during highs.
-                Unlike OPR/UPR (forecast error), these capture what actually reached the patient.
+                at moments where actual BG went above 180 — real under-delivery during highs.
+                The <strong>rate-form</strong> row is duration-aware: a 1-hour hold-back counts ~12× a 5-min one of
+                equal magnitude. RMS punishes rare big spikes harder; rate punishes persistent small drift.
+                Unlike OPR/UPR (forecast error), all of these capture what actually reached the patient.
               </p>
               <table style="width:100%;margin-top:18px;border-collapse:collapse;font-size:.85rem;color:#c8ccd8;">
                 <thead><tr style="background:#0a0d18;">
                   <th style="padding:6px 10px;text-align:left;font-weight:500;color:#888;">Horizon</th>
-                  <th style="padding:6px 10px;text-align:left;font-weight:500;color:#e8685a;">ODR</th>
-                  <th style="padding:6px 10px;text-align:left;font-weight:500;color:#f0a84a;">UDR</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:500;color:#e8685a;">ODR (RMS)</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:500;color:#f0a84a;">UDR (RMS)</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:500;color:#e8685a;">ODR (U/hr)</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:500;color:#f0a84a;">UDR (U/hr)</th>
                   <th style="padding:6px 10px;text-align:left;font-weight:500;color:#888;">Paired decisions</th>
                 </tr></thead>
                 <tbody>\(horizonRows)</tbody>
               </table>
+              \(distHTML)
             </div>
             """
         } else {
@@ -223,7 +301,7 @@ enum ComparisonHTMLGenerator {
         <body>
         <div class="page">
           <h1>LoopEval — bench comparison</h1>
-          <p class="sub">Forecast-based OPR/UPR + delivery-based ODR/UDR across horizons · target range 100–115 mg/dL</p>
+          <p class="sub">Forecast error (OPR/UPR) + delivery deltas (ODR/UDR/IDB/RDB) — RMS magnitude, duration-aware U/hr rate, and |Δdose| distribution · target range 100–115, danger thresholds 70 / 180 mg/dL</p>
 
           <div class="panel">
             <div class="panel-title">OPR / UPR — forecast error by horizon</div>

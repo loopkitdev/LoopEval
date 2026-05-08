@@ -195,6 +195,7 @@ struct DriftCommand: AsyncParsableCommand {
             candidate: candidateResult,
             horizons: horizons,
             actualGlucose: candidateResult.actual,
+            evalStep: config.evalStep,
             dangerLow: config.dangerLow,
             dangerHigh: config.dangerHigh
         )
@@ -317,14 +318,14 @@ struct DriftCommand: AsyncParsableCommand {
         print(sep)
         print(String(format: "   ODR (Loop-now over-delivers at pre-low):    %6.4f  (cost)", deliveryScores.weightedODR))
         print(String(format: "   UDR (Loop-now under-delivers at pre-high):  %6.4f  (cost)", deliveryScores.weightedUDR))
-        print(String(format: "   OAH (Loop-now over-delivers at pre-high):   %6.4f  (benefit)", deliveryScores.weightedOAH))
-        print(String(format: "   UAL (Loop-now under-delivers at pre-low):   %6.4f  (benefit)", deliveryScores.weightedUAL))
+        print(String(format: "   IDB (Loop-now increased delivery at pre-high): %6.4f  (benefit)", deliveryScores.weightedIDB))
+        print(String(format: "   RDB (Loop-now reduced delivery at pre-low):    %6.4f  (benefit)", deliveryScores.weightedRDB))
         print(String(format: "   primary cost (ODR + UDR):                   %6.4f", deliveryScores.primaryDeliveryScore))
-        print(String(format: "   primary benefit (OAH + UAL):                %6.4f", deliveryScores.weightedOAH + deliveryScores.weightedUAL))
+        print(String(format: "   primary benefit (IDB + RDB):                %6.4f", deliveryScores.weightedIDB + deliveryScores.weightedRDB))
         print(" Positive ODR → Loop-now would have caused worse lows vs reality.")
         print(" Positive UDR → Loop-now would have left highs un-corrected longer.")
-        print(" Positive OAH → Loop-now would have given more correction at moments that ended high.")
-        print(" Positive UAL → Loop-now would have held back at moments that ended low.")
+        print(" Positive IDB → Loop-now would have given more correction at moments that ended high.")
+        print(" Positive RDB → Loop-now would have held back at moments that ended low.")
         print(ruler)
     }
 
