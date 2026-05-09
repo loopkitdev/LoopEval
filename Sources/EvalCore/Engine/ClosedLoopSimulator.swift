@@ -215,14 +215,26 @@ extension EvaluationEngine {
                 ?? scaledSensitivity.closestPrior(to: t)?.value
             let isf = isfQty?.doubleValue(for: mgdlUnit) ?? 0
 
-            // Apply Δdose impact to FUTURE counter_mgdl entries
+            // Apply Δdose impact to FUTURE counter_mgdl entries.
+            //
+            // Within DIA, scale by the pharmacodynamic curve. PAST DIA, the
+            // impact is the asymptote (= 1.0 × ISF × Δdose) — all the insulin
+            // has eventually manifested. Earlier versions broke out of the
+            // loop at τ > DIA, which dropped each step's contribution off a
+            // cliff for samples that crossed the DIA boundary. That created
+            // spurious jumps in counter_BG whenever clusters of prior Δdoses
+            // expired in the same 5-min window.
             if deltaDose != 0 && isf > 0 {
                 for i in 0..<counterGlucose.count {
                     let futureT = counterGlucose[i].startDate
                     if futureT <= t { continue }
                     let τ = futureT.timeIntervalSince(t)
-                    if τ > activityDuration { break }
-                    let pd = max(0.0, min(1.0, 1.0 - insulinModel.percentEffectRemaining(at: τ)))
+                    let pd: Double
+                    if τ > activityDuration {
+                        pd = 1.0
+                    } else {
+                        pd = max(0.0, min(1.0, 1.0 - insulinModel.percentEffectRemaining(at: τ)))
+                    }
                     counterMgdl[i] -= deltaDose * isf * pd
                 }
                 // Append virtual dose entry. Treat Δdose as an instantaneous bolus
