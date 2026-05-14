@@ -199,6 +199,47 @@ public struct EvalConfig: Codable, Sendable {
     /// Maximum ISF scale-up factor. Default: 0.5 (max +50% increase).
     public var dynamicISFMaxBoost: Double
 
+    /// Enable asymmetric dynamic-ISF cap-and-lock layered on top of `dynamicISFMode`.
+    /// Mechanism: when in-algorithm dynamic-ISF fires at step T with suppressed
+    /// dose D_T (vs the unboosted-at-T recommendation), record that dose as a
+    /// hard cap and lock it active for `asymmetricDynamicISFLockHours`. While the
+    /// cap is active, candidate dose = min(current_boosted_rec, cap). Each
+    /// subsequent in-algorithm trigger lowers the cap (and extends the lock).
+    /// Designed to prevent the IOB-echo failure mode where post-suppression
+    /// counter-BG drift causes the algorithm to recommend MORE than baseline
+    /// at later steps even with the boost still nominally active.
+    /// Implies `dynamicISFMode = true`. Default: false.
+    public var asymmetricDynamicISF: Bool
+
+    /// MAX lockout duration (hours) for `asymmetricDynamicISF`. Hard ceiling
+    /// on how long boost stays active after the most recent fresh trigger.
+    /// Default: 2.0.
+    public var asymmetricDynamicISFLockHours: Double
+
+    /// Minimum boost hold time (hours) after a trigger. Even if BG-based
+    /// release conditions trigger, the boost holds at least this long so
+    /// it has time to take effect. Default: 0.5h.
+    public var asymmetricDynamicISFMinLockHours: Double
+
+    /// BG (mg/dL) above which boost releases IMMEDIATELY. Rationale: if BG
+    /// has reached a level where we're out of the hypo-risk zone, dosing
+    /// normally is safe even if the BG rise is from carbs rather than
+    /// sensitivity ending. Default: 250.
+    public var asymmetricDynamicISFReleaseHighBG: Double
+
+    /// BG (mg/dL) above which boost releases if SUSTAINED for
+    /// `asymmetricDynamicISFSustainedHighMinutes`. Default: 180.
+    public var asymmetricDynamicISFSustainedHighBG: Double
+
+    /// Duration (minutes) BG must stay above `asymmetricDynamicISFSustainedHighBG`
+    /// before triggering release. Default: 30.
+    public var asymmetricDynamicISFSustainedHighMinutes: Double
+
+    /// BG (mg/dL) below which boost will NOT release, regardless of other
+    /// release conditions (sensitivity event probably ongoing if BG is still
+    /// low — release would be premature). Default: 120.
+    public var asymmetricDynamicISFKeepActiveBelowBG: Double
+
     /// How long to wait after `interval.start` before the first evaluated
     /// prediction (seconds).  Default: `insulinLookbackHours` hours.
     ///
@@ -253,6 +294,13 @@ public struct EvalConfig: Codable, Sendable {
         dynamicISFWindowHours: Double = 2.0,
         dynamicISFICEThreshold: Double = 0.5,
         dynamicISFMaxBoost: Double = 0.5,
+        asymmetricDynamicISF: Bool = false,
+        asymmetricDynamicISFLockHours: Double = 2.0,
+        asymmetricDynamicISFMinLockHours: Double = 0.5,
+        asymmetricDynamicISFReleaseHighBG: Double = 250.0,
+        asymmetricDynamicISFSustainedHighBG: Double = 180.0,
+        asymmetricDynamicISFSustainedHighMinutes: Double = 30.0,
+        asymmetricDynamicISFKeepActiveBelowBG: Double = 120.0,
         evalWarmupHours: Double? = nil   // nil → use insulinLookbackHours
     ) {
         self.evalStep                       = evalStep
@@ -296,6 +344,13 @@ public struct EvalConfig: Codable, Sendable {
         self.dynamicISFWindowHours          = dynamicISFWindowHours
         self.dynamicISFICEThreshold         = dynamicISFICEThreshold
         self.dynamicISFMaxBoost             = dynamicISFMaxBoost
+        self.asymmetricDynamicISF           = asymmetricDynamicISF
+        self.asymmetricDynamicISFLockHours  = asymmetricDynamicISFLockHours
+        self.asymmetricDynamicISFMinLockHours = asymmetricDynamicISFMinLockHours
+        self.asymmetricDynamicISFReleaseHighBG = asymmetricDynamicISFReleaseHighBG
+        self.asymmetricDynamicISFSustainedHighBG = asymmetricDynamicISFSustainedHighBG
+        self.asymmetricDynamicISFSustainedHighMinutes = asymmetricDynamicISFSustainedHighMinutes
+        self.asymmetricDynamicISFKeepActiveBelowBG = asymmetricDynamicISFKeepActiveBelowBG
         self.momentumAlphaSlow              = momentumAlphaSlow
         self.momentumAlphaFast              = momentumAlphaFast
         self.evalWarmupHours                = evalWarmupHours ?? insulinLookbackHours
@@ -314,6 +369,10 @@ public struct EvalConfig: Codable, Sendable {
         case postLowConservativeMode, postLowWindow, postLowAppFactor, postLowEntryThreshold
         case postLowRiseRateGate, postLowRequireIOBHeadroom, postLowIOBGateThreshold
         case dynamicISFMode, dynamicISFWindowHours, dynamicISFICEThreshold, dynamicISFMaxBoost
+        case asymmetricDynamicISF, asymmetricDynamicISFLockHours
+        case asymmetricDynamicISFMinLockHours, asymmetricDynamicISFReleaseHighBG
+        case asymmetricDynamicISFSustainedHighBG, asymmetricDynamicISFSustainedHighMinutes
+        case asymmetricDynamicISFKeepActiveBelowBG
         case sensitivityHourlyMultipliers, localTimezoneIdentifier
         case evalWarmupHours
     }
@@ -358,6 +417,13 @@ public struct EvalConfig: Codable, Sendable {
         self.dynamicISFWindowHours   = try c.decodeIfPresent(Double.self, forKey: .dynamicISFWindowHours) ?? 2.0
         self.dynamicISFICEThreshold  = try c.decodeIfPresent(Double.self, forKey: .dynamicISFICEThreshold) ?? 0.5
         self.dynamicISFMaxBoost      = try c.decodeIfPresent(Double.self, forKey: .dynamicISFMaxBoost) ?? 0.5
+        self.asymmetricDynamicISF    = try c.decodeIfPresent(Bool.self,   forKey: .asymmetricDynamicISF) ?? false
+        self.asymmetricDynamicISFLockHours = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFLockHours) ?? 2.0
+        self.asymmetricDynamicISFMinLockHours = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFMinLockHours) ?? 0.5
+        self.asymmetricDynamicISFReleaseHighBG = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFReleaseHighBG) ?? 250.0
+        self.asymmetricDynamicISFSustainedHighBG = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFSustainedHighBG) ?? 180.0
+        self.asymmetricDynamicISFSustainedHighMinutes = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFSustainedHighMinutes) ?? 30.0
+        self.asymmetricDynamicISFKeepActiveBelowBG = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFKeepActiveBelowBG) ?? 120.0
         self.sensitivityHourlyMultipliers = try c.decodeIfPresent([Double].self, forKey: .sensitivityHourlyMultipliers)
         if let h = self.sensitivityHourlyMultipliers, h.count != 24 {
             throw DecodingError.dataCorruptedError(forKey: .sensitivityHourlyMultipliers, in: c,
@@ -412,6 +478,13 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(dynamicISFWindowHours, forKey: .dynamicISFWindowHours)
         try c.encode(dynamicISFICEThreshold, forKey: .dynamicISFICEThreshold)
         try c.encode(dynamicISFMaxBoost, forKey: .dynamicISFMaxBoost)
+        try c.encode(asymmetricDynamicISF, forKey: .asymmetricDynamicISF)
+        try c.encode(asymmetricDynamicISFLockHours, forKey: .asymmetricDynamicISFLockHours)
+        try c.encode(asymmetricDynamicISFMinLockHours, forKey: .asymmetricDynamicISFMinLockHours)
+        try c.encode(asymmetricDynamicISFReleaseHighBG, forKey: .asymmetricDynamicISFReleaseHighBG)
+        try c.encode(asymmetricDynamicISFSustainedHighBG, forKey: .asymmetricDynamicISFSustainedHighBG)
+        try c.encode(asymmetricDynamicISFSustainedHighMinutes, forKey: .asymmetricDynamicISFSustainedHighMinutes)
+        try c.encode(asymmetricDynamicISFKeepActiveBelowBG, forKey: .asymmetricDynamicISFKeepActiveBelowBG)
         try c.encodeIfPresent(sensitivityHourlyMultipliers, forKey: .sensitivityHourlyMultipliers)
         try c.encode(localTimezone.identifier, forKey: .localTimezoneIdentifier)
         try c.encode(evalWarmupHours, forKey: .evalWarmupHours)
