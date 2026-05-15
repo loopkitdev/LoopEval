@@ -11,6 +11,11 @@ public struct EvalConfig: Codable, Sendable {
     /// Whether to include future-scheduled basal insulin in the dose window.
     public var includeFutureInsulin: Bool
 
+    /// Whether to include carb entries after the evaluated timestamp.
+    /// Forecast replay can use this as an oracle/debug mode, but real-time
+    /// replay and closed-loop simulation should leave it false.
+    public var includeFutureCarbs: Bool
+
     /// How far back to look for insulin doses (hours).  Default: 16.
     public var insulinLookbackHours: Double
 
@@ -255,6 +260,7 @@ public struct EvalConfig: Codable, Sendable {
     public init(
         evalStep: TimeInterval = 5 * 60,
         includeFutureInsulin: Bool = true,
+        includeFutureCarbs: Bool = true,
         insulinLookbackHours: Double = 16,
         glucoseLookbackHours: Double = 10,
         useIntegralRC: Bool = false,
@@ -305,6 +311,7 @@ public struct EvalConfig: Codable, Sendable {
     ) {
         self.evalStep                       = evalStep
         self.includeFutureInsulin           = includeFutureInsulin
+        self.includeFutureCarbs             = includeFutureCarbs
         self.insulinLookbackHours           = insulinLookbackHours
         self.glucoseLookbackHours           = glucoseLookbackHours
         self.useIntegralRC                  = useIntegralRC
@@ -359,7 +366,7 @@ public struct EvalConfig: Codable, Sendable {
     // Custom decoder so snapshots written before `dangerLow`/`dangerHigh` were
     // added still decode cleanly (fall back to the clinical defaults).
     private enum CodingKeys: String, CodingKey {
-        case evalStep, includeFutureInsulin, insulinLookbackHours, glucoseLookbackHours
+        case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
         case useIntegralRC, kalmanSmoothing, horizons, includingPositiveVelocityAndRC
         case useMidAbsorptionISF, carbAbsorptionModel
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
@@ -381,6 +388,7 @@ public struct EvalConfig: Codable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.evalStep             = try c.decode(TimeInterval.self, forKey: .evalStep)
         self.includeFutureInsulin = try c.decode(Bool.self,         forKey: .includeFutureInsulin)
+        self.includeFutureCarbs   = try c.decodeIfPresent(Bool.self, forKey: .includeFutureCarbs) ?? true
         self.insulinLookbackHours = try c.decode(Double.self,       forKey: .insulinLookbackHours)
         self.glucoseLookbackHours = try c.decode(Double.self,       forKey: .glucoseLookbackHours)
         self.useIntegralRC        = try c.decode(Bool.self,         forKey: .useIntegralRC)
@@ -442,6 +450,7 @@ public struct EvalConfig: Codable, Sendable {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(evalStep, forKey: .evalStep)
         try c.encode(includeFutureInsulin, forKey: .includeFutureInsulin)
+        try c.encode(includeFutureCarbs, forKey: .includeFutureCarbs)
         try c.encode(insulinLookbackHours, forKey: .insulinLookbackHours)
         try c.encode(glucoseLookbackHours, forKey: .glucoseLookbackHours)
         try c.encode(useIntegralRC, forKey: .useIntegralRC)

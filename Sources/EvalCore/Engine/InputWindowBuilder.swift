@@ -59,12 +59,20 @@ struct InputWindowBuilder: Sendable {
     /// - Parameter includeFutureInsulin: Override for the config flag. Pass `false` to
     ///   exclude doses after `t` (useful for side-by-side comparison curves). Defaults
     ///   to `config.includeFutureInsulin`.
+    /// - Parameter includeFutureCarbs: Override for the config flag. Pass `false` to
+    ///   exclude carb entries after `t` for real-time replay. Defaults to
+    ///   `config.includeFutureCarbs`.
     ///
     /// Returns `nil` if there is insufficient data — specifically, if there is no
     /// CGM reading within the last 30 minutes of `t`.
-    func buildInput(at t: Date, includeFutureInsulin overrideFuture: Bool? = nil) -> PredictionInput? {
+    func buildInput(
+        at t: Date,
+        includeFutureInsulin overrideFuture: Bool? = nil,
+        includeFutureCarbs overrideFutureCarbs: Bool? = nil
+    ) -> PredictionInput? {
 
         let useFutureInsulin = overrideFuture ?? config.includeFutureInsulin
+        let useFutureCarbs = overrideFutureCarbs ?? config.includeFutureCarbs
 
         // ── Glucose ─────────────────────────────────────────────────────────────
         let glucoseWindowStart = t.addingTimeInterval(-config.glucoseLookbackHours * 3600)
@@ -95,7 +103,7 @@ struct InputWindowBuilder: Sendable {
 
         // ── Carbs ────────────────────────────────────────────────────────────────
         let carbWindowStart = t.addingTimeInterval(-8 * 3600)
-        let carbWindowEnd   = t.addingTimeInterval(6 * 3600)
+        let carbWindowEnd = useFutureCarbs ? t.addingTimeInterval(6 * 3600) : t
         let cLo = lowerBound(carbs, by: carbWindowStart, key: \.startDate)
         let cHi = upperBound(carbs, by: carbWindowEnd, key: \.startDate)
         let carbsSlice = cLo < cHi ? Array(carbs[cLo..<cHi]) : []
@@ -175,7 +183,8 @@ struct InputWindowBuilder: Sendable {
         basalSlice = applyBasalMultiplier(basalSlice)
 
         // ── Carb Ratio ───────────────────────────────────────────────────────────
-        // Must cover ALL carb entry startDates: [t-8h, t+6h]
+        // Must cover all included carb entry startDates. In oracle/debug mode
+        // this extends to t+6h; in real-time replay it stops at t.
         let crBack = carbWindowStart    // = t - 8h
         let crFwd  = carbWindowEnd      // = t + 6h
         var carbRatioSlice = sliceSchedule(

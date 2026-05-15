@@ -70,7 +70,7 @@ public actor EvaluationEngine {
         let doseInterval = DateInterval(start: dataStart, end: doseEnd)
         let carbInterval = DateInterval(
             start: dataStart,
-            end:   interval.end.addingTimeInterval(6 * 3600)
+            end:   config.includeFutureCarbs ? interval.end.addingTimeInterval(6 * 3600) : interval.end
         )
         let therapyInterval = DateInterval(
             start: dataStart,

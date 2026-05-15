@@ -31,6 +31,13 @@ private func dose(
     )
 }
 
+private func carb(startOffset: TimeInterval, grams: Double = 20) -> EvalCarbEntry {
+    EvalCarbEntry(
+        startDate: T.addingTimeInterval(startOffset),
+        quantity: LoopQuantity(unit: .gram, doubleValue: grams)
+    )
+}
+
 /// Build a simple TherapyTimeline spanning `startOffset` to `endOffset` relative to T.
 private func makeTimeline(
     startOffset: TimeInterval = -16 * 3600,
@@ -177,6 +184,38 @@ func inputBuilderFutureInsulin() {
     // Without future insulin, the future dose should be absent
     let futureAbsent = inputNoFuture?.doses.contains(where: { $0.startDate > T }) ?? true
     #expect(!futureAbsent, "Future dose must not appear when includeFutureInsulin = false")
+}
+
+@Test("InputWindowBuilder excludes future carbs when includeFutureCarbs = false")
+func inputBuilderFutureCarbs() {
+    let futureCarb = carb(startOffset: 2 * 3600, grams: 30)
+    let pastCarb = carb(startOffset: -2 * 3600, grams: 15)
+    let readings = denseGlucose(startOffset: -10 * 3600, endOffset: 0)
+
+    let builderFuture = InputWindowBuilder(
+        glucose: readings,
+        doses: [],
+        carbs: [pastCarb, futureCarb],
+        therapyTimeline: makeTimeline(),
+        config: EvalConfig(includeFutureCarbs: true)
+    )
+    let builderNoFuture = InputWindowBuilder(
+        glucose: readings,
+        doses: [],
+        carbs: [pastCarb, futureCarb],
+        therapyTimeline: makeTimeline(),
+        config: EvalConfig(includeFutureCarbs: false)
+    )
+
+    let inputFuture = builderFuture.buildInput(at: T)
+    let inputNoFuture = builderNoFuture.buildInput(at: T)
+
+    #expect(inputFuture != nil)
+    #expect(inputNoFuture != nil)
+    #expect(inputFuture?.carbs.contains(where: { $0.startDate > T }) == true,
+            "Future carb should appear when includeFutureCarbs = true")
+    #expect(inputNoFuture?.carbs.contains(where: { $0.startDate > T }) == false,
+            "Future carb must not appear when includeFutureCarbs = false")
 }
 
 // MARK: – 4. Nil on insufficient data
@@ -333,6 +372,7 @@ func evalConfigPhase3Defaults() {
     // way to handle ISF schedule transitions during a dose's absorption window.
     #expect(cfg.useMidAbsorptionISF == true)
     #expect(cfg.carbAbsorptionModel == .piecewiseLinear)
+    #expect(cfg.includeFutureCarbs == true)
 }
 
 @Test("EvalConfig new Phase 3 fields round-trip through JSON")
@@ -341,6 +381,7 @@ func evalConfigPhase3Codable() throws {
     original.includingPositiveVelocityAndRC = false
     original.useMidAbsorptionISF = true
     original.carbAbsorptionModel = .piecewiseLinear
+    original.includeFutureCarbs = false
 
     let data    = try JSONEncoder().encode(original)
     let decoded = try JSONDecoder().decode(EvalConfig.self, from: data)
@@ -348,4 +389,5 @@ func evalConfigPhase3Codable() throws {
     #expect(decoded.includingPositiveVelocityAndRC == false)
     #expect(decoded.useMidAbsorptionISF == true)
     #expect(decoded.carbAbsorptionModel == .piecewiseLinear)
+    #expect(decoded.includeFutureCarbs == false)
 }
