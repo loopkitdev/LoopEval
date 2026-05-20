@@ -66,7 +66,10 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     }
 
     public func getCarbEntries(interval: DateInterval) async throws -> [EvalCarbEntry] {
-        let cacheKey = DataCache.key(for: "carbs", url: client.baseURL, interval: interval)
+        // v2 — schema bump to include entryDate (separate from meal time).
+        // Old "carbs" caches lack the field and would silently fall back to
+        // startDate, perpetuating the future-carb leak. Force a re-fetch.
+        let cacheKey = DataCache.key(for: "carbs_v2", url: client.baseURL, interval: interval)
         if let cached: [EvalCarbEntry] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -203,9 +206,13 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         let fmt = makeISOParser()
         return treatments.compactMap { t in
             guard let carbs = t.carbs, carbs > 0 else { return nil }
-            guard let date = fmt.date(from: t.created_at) else { return nil }
+            guard let entryDate = fmt.date(from: t.created_at) else { return nil }
+            // Meal time may differ from entry time (user can log past/future meals).
+            // Visibility is gated by entryDate; the absorption curve starts at startDate.
+            let mealDate = t.timestamp.flatMap { fmt.date(from: $0) } ?? entryDate
             return EvalCarbEntry(
-                startDate: date,
+                startDate: mealDate,
+                entryDate: entryDate,
                 quantity: LoopQuantity(unit: .gram, doubleValue: carbs),
                 absorptionTime: nil,    // NS doesn't carry absorption time
                 foodType: nil

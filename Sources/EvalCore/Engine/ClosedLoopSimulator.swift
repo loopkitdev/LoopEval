@@ -34,6 +34,9 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         public let candidateDose: Double // candidate's recommendedDeltaU (with feedback)
         public let deltaDose: Double     // candidateDose - baselineDose
         public let isf: Double           // ISF used at this t (mg/dL/U)
+        // Decomposition of candidate's delivery this step (automatic-bolus strategy):
+        public let candidateBolus: Double       // auto-bolus units this step
+        public let candidateTempRate: Double    // temp basal rate set this step (U/hr)
     }
     public let steps: [Step]
     public let baselineLabel: String
@@ -54,16 +57,14 @@ extension EvaluationEngine {
         candidateConfig: EvalConfig,
         baselineLabel: String = "Baseline",
         candidateLabel: String = "Candidate",
-        progress: (@Sendable (Double) -> Void)? = nil,
-        smoothBoostScores: [(Date, Double)]? = nil,
-        smoothBoostLowAnchor: Double = 0.4,
-        smoothBoostHighAnchor: Double = 0.6,
-        smoothBoostMaxBoost: Double = 0.5,
-        smoothBoostInline: Bool = false,
-        smoothBoostFeaturesOut: String? = nil,
-        smoothBoostDownLowAnchor: Double = 0.0,
-        smoothBoostMaxBoostDown: Double = 0.0,
-        baselineDoseLookup: [(Date, Double)]? = nil
+        isfMultiplierByStep: [Date: Double]? = nil,
+        isfBoostActiveOnly: Bool = false,
+        egpPhysicalDecomposition: Bool = false,
+        outages: [Outage] = [],
+        cgmStaleGuardSec: TimeInterval = 0,
+        counterfactualMode: Bool = false,
+        counterfactualBurnInSec: TimeInterval = 6 * 3600,
+        progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
 
         // 1. Set up mutable state.
@@ -88,21 +89,6 @@ extension EvaluationEngine {
         // Baseline always reads from actual glucose; precomputed once for GBAF lookups.
         let baselineMgdl = data.glucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
 
-        // Optional features dump for inline-mode diagnostic.
-        var inlineFeaturesRows: [(Date, Double?, [Double]?)] = []
-
-        // Per-step IOB history (for the rolling-max feature in RiskScoreModel).
-        var pastIOBs: [(Date, Double)] = []
-        pastIOBs.reserveCapacity(2048)
-
-        // Asymmetric dynamic-ISF state. Boost applies to BOTH prediction and
-        // dose recommendation. Release uses BG-aware conditions: hard to
-        // release while BG is still low or sensitivity continues; easier to
-        // release once BG indicates the user is safely out of hypo-risk zone.
-        var asymISFBoost: Double = 1.0
-        var asymBoostStartedAt: Date? = nil
-        var asymBoostExpiresAt: Date? = nil
-        var asymSustainedHighSince: Date? = nil
 
         // Virtual doses: candidate's accumulated extra/reduced deliveries.
         // Stored as bolus-type entries with volume = Δdose; insulin model
@@ -110,11 +96,27 @@ extension EvaluationEngine {
         var virtualDoses: [EvalInsulinDose] = []
         virtualDoses.reserveCapacity(1024)
 
-        // Counter glucose samples: maintained as a single buffer across all
-        // sim steps, updated in-place when counterMgdl[i] changes via the
-        // forward-impact loop. This avoids a per-step O(N) zip/map rebuild
-        // that was consuming ~10-15% of per-sim time on long sweeps.
-        var counterSamples: [EvalGlucoseSample] = data.glucose
+        // Counterfactual mode state (only used if counterfactualMode == true).
+        // counterfactualDoses replaces data.doses for the candidate's prediction
+        // input — Loop sees only candidate's accumulated deliveries plus
+        // pre-warmup real-pump seed + USER-INITIATED manual boluses from real
+        // pump (preserved as pass-through user behavior; algorithm can't
+        // predict these). Seeded with real-pump doses from
+        // [evalStart - DIA, evalStart) so initial IOB at sim start matches
+        // reality (otherwise candidate would start with 0 IOB).
+        var counterfactualDoses: [EvalInsulinDose] = []
+        counterfactualDoses.reserveCapacity(2048)
+        // Per-step rasterized real-pump deliveries:
+        //   - realAutoOnlyPerStep: AUTO-only deliveries (auto-boluses + basal
+        //     entries). Used as deltaDose baseline so candidate's algorithm-
+        //     vs-algorithm comparison is clean.
+        //   - Manual boluses are passed through separately (added to
+        //     counterfactualDoses as they occur, preserving user input).
+        var realAutoOnlyPerStep: [Date: Double] = [:]
+        // Manual boluses (user-initiated) sorted by startDate, for in-loop
+        // pass-through into counterfactualDoses.
+        var realManualBoluses: [EvalInsulinDose] = []
+        var nextManualIdx = 0
 
         // Pre-scale sensitivity once per candidate config (timeline doesn't
         // depend on dose history).
@@ -128,12 +130,96 @@ extension EvaluationEngine {
         // 2. Sequential walk
         let evalStart = interval.start.addingTimeInterval(candidateConfig.evalWarmupHours * 3600)
 
+        // Counterfactual setup: rasterize real pump (auto-only) per step,
+        // collect manual boluses for pass-through, and seed pre-sim IOB +
+        // burn-in. During the burn-in period (default 6h after evalStart),
+        // the sim uses real-pump deliveries (deltaDose=0, no perturbation)
+        // so candidate has a fully-realistic recent dose history when its
+        // counterfactual decisions start to apply.
+        let cfActiveStart = counterfactualMode
+            ? evalStart.addingTimeInterval(counterfactualBurnInSec)
+            : evalStart
+        if counterfactualMode {
+            let warmupStart = evalStart.addingTimeInterval(-activityDuration)
+            // Seed with EVERYTHING from real pump up to cfActiveStart so
+            // candidate's prediction at cfActiveStart sees a fully-real recent
+            // history (pre-warmup + burn-in real pump deliveries).
+            counterfactualDoses = data.doses.filter {
+                $0.endDate > warmupStart && $0.startDate < cfActiveStart
+            }
+            // Rasterize only AUTO deliveries (auto boluses + basal entries) —
+            // manual boluses are passed through as user actions and excluded
+            // from the perturbation reference.
+            let autoOnlyDoses = data.doses.filter { dose in
+                !(dose.deliveryType != .basal && !dose.automatic)
+            }
+            realAutoOnlyPerStep = Self.rasterizeRealPumpPerStep(
+                doses: autoOnlyDoses, start: cfActiveStart, end: interval.end,
+                stepSec: candidateConfig.evalStep)
+            // Collect user-initiated manual boluses that occur AFTER burn-in
+            // ends, sorted by startDate, for pass-through into
+            // counterfactualDoses as the sim progresses.
+            realManualBoluses = data.doses
+                .filter { dose in
+                    dose.deliveryType != .basal && !dose.automatic
+                    && dose.startDate >= cfActiveStart && dose.startDate < interval.end
+                }
+                .sorted { $0.startDate < $1.startDate }
+        }
+
+        // Pre-compute the REAL-BG-DERIVED Insulin Counteraction Effect (ICE)
+        // timeline. In physiological-counterfactual mode this carries the
+        // user's non-insulin BG dynamics (carb absorption, exercise, dawn
+        // phenomenon, sensor surprise) into the counter trajectory. The
+        // counterfactual is: "the user's real-day physiology with different
+        // insulin decisions". Insulin response differs (computed from
+        // candidate doses each step); everything else is borrowed from reality.
+        let realICE: [GlucoseEffectVelocity]
+        if counterfactualMode {
+            let iceStart = Date()
+            FileHandle.standardError.write(Data("Sim setup: doses=\(data.doses.count) glucose=\(data.glucose.count)\n".utf8))
+            // Filter doses to those covered by the sensitivity schedule —
+            // LoopAlgorithm.glucoseEffects preconditions on closestPrior(...)
+            // returning a non-nil entry for each dose.startDate.
+            let firstSensDate = scaledSensitivity.first?.startDate ?? .distantPast
+            let lastSensDate = scaledSensitivity.last?.endDate ?? .distantFuture
+            let safeDataDoses = data.doses.filter {
+                $0.startDate >= firstSensDate && $0.startDate <= lastSensDate
+            }
+            // useMidAbsorptionISF: true switches to the PARALLELIZED
+            // glucoseEffectsMidAbsorptionISF (DispatchQueue.concurrentPerform
+            // across cores). Single-threaded glucoseEffects took 17 minutes for
+            // 60 days; parallel + release build → ~30s. Mid-absorption ISF is
+            // also what Loop's default config uses.
+            let precomp = PrecomputedInsulinInput.build(
+                doses: safeDataDoses,
+                basal: data.therapyTimeline.basal,
+                sensitivity: scaledSensitivity,
+                effectsFrom: data.glucose.first?.startDate.addingTimeInterval(-insulinModel.effectDuration),
+                effectsTo: data.glucose.last?.startDate,
+                useMidAbsorptionISF: true
+            )
+            let insulinEffects = precomp.insulinEffects ?? []
+            FileHandle.standardError.write(Data("PrecomputedInsulinInput.build done in \(Int(Date().timeIntervalSince(iceStart) * 1000))ms (effects entries=\(insulinEffects.count))\n".utf8))
+            realICE = data.glucose.counteractionEffects(to: insulinEffects)
+            FileHandle.standardError.write(Data("ICE done (entries=\(realICE.count))\n".utf8))
+        } else {
+            realICE = []
+        }
+
         // Pre-compute expected step count for progress reporting
         let totalDuration = max(0, interval.end.timeIntervalSince(evalStart))
         let totalSteps = max(1, Int(totalDuration / candidateConfig.evalStep) + 1)
+        FileHandle.standardError.write(Data("sim setup done. totalSteps=\(totalSteps), realICE.count=\(realICE.count). entering main loop.\n".utf8))
 
         var steps: [ClosedLoopSimResult.Step] = []
         steps.reserveCapacity(totalSteps)
+
+        // Hoist out of per-step loop: O(N) scan over 14k+ entries done once,
+        // not 17k times. True if ANY map value departs from 1.0.
+        let mapHasAnyBoost: Bool = isfMultiplierByStep.map {
+            $0.values.contains(where: { abs($0 - 1.0) > 1e-9 })
+        } ?? false
 
         var t = evalStart
         var stepIdx = 0
@@ -143,42 +229,95 @@ extension EvaluationEngine {
                 progress(min(Double(stepIdx) / Double(totalSteps - 1), 1.0))
             }
 
-            // ----- BASELINE step: either look up from cache or compute fresh.
-            // Cache mode: avoid duplicating identical baseline work across a
-            // parameter sweep. Provided lookup table is a sorted [(Date, Double)].
-            let baselineDose: Double
-            if let lookup = baselineDoseLookup,
-               let cached = Self.lookupCachedDose(at: t, in: lookup) {
-                baselineDose = cached
-            } else {
-                let baselineBuilder = InputWindowBuilder(
-                    glucose: data.glucose,
-                    doses: data.doses,
-                    carbs: data.carbs,
-                    therapyTimeline: data.therapyTimeline,
-                    config: baselineConfig
-                )
-                if let baselineInput = baselineBuilder.buildInput(at: t) {
-                    baselineDose = Self.simStepDose(
-                        t: t,
-                        input: baselineInput,
-                        config: baselineConfig,
-                        therapy: data.therapyTimeline,
-                        glucoseMgdl: baselineMgdl,
-                        glucoseSamples: data.glucose
-                    ).dose
-                } else {
-                    baselineDose = 0
+            // ----- CGM-CYCLE GATING -----
+            // Loop's loop is CGM-triggered: with no fresh CGM there is no
+            // cycle — no forecast, no dose decision. When the staleness guard
+            // is enabled, skip the entire step (no baseline/candidate dose, no
+            // prediction, no recorded point) once we are more than the guard
+            // interval away from ANY real CGM sample. This permits a single
+            // missing sample to be "paved over" (the neighbouring real sample
+            // is within the guard) and the post-gap resumption step to run
+            // (the resumed sample is within the guard), but stops the sim from
+            // continuing to generate forecast points deep inside a CGM outage.
+            //
+            // Scheduled basal during the gap contributes zero NET insulin
+            // (delivered == scheduled ⇒ netBasalUnits 0), so nothing need be
+            // added for IOB continuity. Manual boluses are physical events and
+            // are still passed through so the candidate's dose history (and the
+            // post-gap counter advance) account for them.
+            if cgmStaleGuardSec > 0 {
+                let nextIdx = EvaluationEngine.bestGlucoseIndex(at: t, in: data.glucose)
+                let prevIdx = Self.latestGlucoseIndex(at: t, in: data.glucose)
+                let dNext = abs(data.glucose[nextIdx].startDate.timeIntervalSince(t))
+                let dPrev = abs(t.timeIntervalSince(data.glucose[prevIdx].startDate))
+                if min(dNext, dPrev) > cgmStaleGuardSec {
+                    if counterfactualMode && t >= cfActiveStart {
+                        let stepEnd = t.addingTimeInterval(candidateConfig.evalStep)
+                        while nextManualIdx < realManualBoluses.count {
+                            let mb = realManualBoluses[nextManualIdx]
+                            if mb.startDate >= stepEnd { break }
+                            if mb.startDate >= t { counterfactualDoses.append(mb) }
+                            nextManualIdx += 1
+                        }
+                    }
+                    t = t.addingTimeInterval(candidateConfig.evalStep)
+                    stepIdx += 1
+                    continue
                 }
             }
 
-            // ----- CANDIDATE step: counter glucose, combined doses, candidateConfig.
-            // Combined doses = actual + accumulated virtual deliveries (sorted by time).
-            let combinedDoses = EvaluationEngine.mergeSorted(data.doses, virtualDoses)
+            // ----- BASELINE step: actual glucose, actual doses, baselineConfig.
+            let baselineBuilder = InputWindowBuilder(
+                glucose: data.glucose,
+                doses: data.doses,
+                carbs: data.carbs,
+                therapyTimeline: data.therapyTimeline,
+                config: baselineConfig
+            )
+            var baselineDose: Double
+            if let baselineInput = baselineBuilder.buildInput(at: t) {
+                baselineDose = Self.simStepDose(
+                    t: t,
+                    input: baselineInput,
+                    config: baselineConfig,
+                    therapy: data.therapyTimeline,
+                    glucoseMgdl: baselineMgdl,
+                    glucoseSamples: data.glucose
+                ).dose
+            } else {
+                baselineDose = 0
+            }
 
-            // counterSamples is maintained incrementally above (mutated in-place
-            // when the forward-impact loop changes counterMgdl[i]). No per-step
-            // rebuild needed.
+            // ----- CANDIDATE step: counter glucose, doses, candidateConfig.
+            // Normal mode: combined = real pump + virtual marginal deltas.
+            // Counterfactual mode active (t >= cfActiveStart): candidate sees
+            //   ONLY its own delivery history (real-pump warmup+burn-in seed
+            //   + counterfactual deliveries so far).
+            // Counterfactual burn-in (t < cfActiveStart): candidate sees real
+            //   pump deliveries (counterfactualDoses already seeded with all
+            //   real pump up to cfActiveStart, so it's equivalent).
+            let cfActive = counterfactualMode && t >= cfActiveStart
+            let combinedDoses: [EvalInsulinDose]
+            if counterfactualMode {
+                combinedDoses = counterfactualDoses
+            } else {
+                combinedDoses = EvaluationEngine.mergeSorted(data.doses, virtualDoses)
+            }
+
+            // Snapshot candidate glucose from counter_mgdl. Unchanged samples reuse
+            // the original EvalGlucoseSample object; touched indices get a new one.
+            let counterSamples = zip(counterGlucose, counterMgdl).map { (s, v) -> EvalGlucoseSample in
+                if v == s.quantity.doubleValue(for: mgdlUnit) { return s }
+                return EvalGlucoseSample(
+                    startDate: s.startDate,
+                    quantity: LoopQuantity(unit: mgdlUnit, doubleValue: v),
+                    provenanceIdentifier: s.provenanceIdentifier,
+                    isDisplayOnly: s.isDisplayOnly,
+                    wasUserEntered: s.wasUserEntered,
+                    condition: s.condition,
+                    trendRate: s.trendRate
+                )
+            }
             let candidateBuilder = InputWindowBuilder(
                 glucose: counterSamples,
                 doses: combinedDoses,
@@ -191,179 +330,114 @@ extension EvaluationEngine {
                 stepIdx += 1
                 continue
             }
-            // ----- CANDIDATE step: three possible paths:
-            //  (a) smooth-boost mode (continuous risk-score → ISF multiplier)
-            //  (b) asymmetric persistent-boost (state-tracked binary mechanism)
-            //  (c) normal candidate dose
+            // ----- CANDIDATE step: candidate's Loop sees the per-step ISF
+            // schedule (if any) and emits a dose.
             var candidateDose: Double
-            if let scores = smoothBoostScores, !scores.isEmpty {
-                // Smooth-boost via precomputed scores (Python-trained, CSV).
-                // Look up nearest score within ±5 min of t.
-                let score = Self.lookupScore(at: t, scores: scores)
-                let boost = Self.smoothBoostFactor(
-                    score: score,
-                    lowAnchor: smoothBoostLowAnchor,
-                    highAnchor: smoothBoostHighAnchor,
-                    maxBoost: smoothBoostMaxBoost,
-                    downLowAnchor: smoothBoostDownLowAnchor,
-                    maxBoostDown: smoothBoostMaxBoostDown
-                )
-                candidateDose = Self.simStepDose(
-                    t: t,
-                    input: candidateInput,
-                    config: candidateConfig,
-                    therapy: data.therapyTimeline,
-                    glucoseMgdl: counterMgdl,
-                    glucoseSamples: counterGlucose,
-                    extraISFMultiplier: boost
-                ).dose
-            } else if smoothBoostInline {
-                // Smooth-boost computed INLINE from counter-state. We need the
-                // candidate's unboosted prediction to extract features (past
-                // ICE, insulin effects, etc.), then re-run with the computed
-                // boost. Two simStepDose calls per step → slower but
-                // deployable.
-                let (_, unboostedPrediction) = Self.simStepDose(
-                    t: t,
-                    input: candidateInput,
-                    config: candidateConfig,
-                    therapy: data.therapyTimeline,
-                    glucoseMgdl: counterMgdl,
-                    glucoseSamples: counterGlucose,
-                    extraISFMultiplier: 1.0
-                )
-                let curIOB = unboostedPrediction.activeInsulin ?? 0
-                let features = RiskScoreModel.features(
-                    at: t,
-                    glucose: counterGlucose,
-                    glucoseMgdl: counterMgdl,
-                    prediction: unboostedPrediction,
-                    currentIOB: curIOB,
-                    pastIOBs: pastIOBs,
-                    localTimezone: candidateConfig.localTimezone
-                )
-                pastIOBs.append((t, curIOB))
-                let inlineScore: Double? = features.map { RiskScoreModel.score(features: $0) }
-                let boost = Self.smoothBoostFactor(
-                    score: inlineScore,
-                    lowAnchor: smoothBoostLowAnchor,
-                    highAnchor: smoothBoostHighAnchor,
-                    maxBoost: smoothBoostMaxBoost,
-                    downLowAnchor: smoothBoostDownLowAnchor,
-                    maxBoostDown: smoothBoostMaxBoostDown
-                )
-                if smoothBoostFeaturesOut != nil {
-                    inlineFeaturesRows.append((t, inlineScore, features))
-                }
-                candidateDose = Self.simStepDose(
-                    t: t,
-                    input: candidateInput,
-                    config: candidateConfig,
-                    therapy: data.therapyTimeline,
-                    glucoseMgdl: counterMgdl,
-                    glucoseSamples: counterGlucose,
-                    extraISFMultiplier: boost
-                ).dose
-            } else if candidateConfig.asymmetricDynamicISF {
-                // Step 1: unboosted candidate (gives us the past ICE).
-                let (unboostedDose, unboostedPrediction) = Self.simStepDose(
-                    t: t,
-                    input: candidateInput,
-                    config: candidateConfig,
-                    therapy: data.therapyTimeline,
-                    glucoseMgdl: counterMgdl,
-                    glucoseSamples: counterGlucose,
-                    extraISFMultiplier: 1.0
-                )
-
-                // Step 2: trigger detection.
-                let triggerBoost = Self.boostFromPastICE(
-                    t: t,
-                    prediction: unboostedPrediction,
-                    windowHours: candidateConfig.dynamicISFWindowHours,
-                    threshold: candidateConfig.dynamicISFICEThreshold,
-                    maxBoost: candidateConfig.dynamicISFMaxBoost
-                )
-
-                // Step 2.5: current counter-BG for release-condition checks.
-                let currentBG = counterMgdl[EvaluationEngine.bestGlucoseIndex(at: t, in: counterGlucose)]
-
-                // Step 2.6: update boost state.
-                if triggerBoost > 1.0 + 1e-9 {
-                    // Fresh sensitivity signal: activate or extend boost.
-                    asymISFBoost = max(asymISFBoost, triggerBoost)
-                    if asymBoostStartedAt == nil { asymBoostStartedAt = t }
-                    asymBoostExpiresAt = t.addingTimeInterval(
-                        candidateConfig.asymmetricDynamicISFLockHours * 3600)
-                    // Reset sustained-high counter — fresh signal overrides BG-based release.
-                    asymSustainedHighSince = nil
-                } else if asymISFBoost > 1.0 + 1e-9, let startedAt = asymBoostStartedAt {
-                    // Currently boosting, no fresh signal: check BG-aware release.
-                    let elapsed = t.timeIntervalSince(startedAt)
-                    let minHold = candidateConfig.asymmetricDynamicISFMinLockHours * 3600
-
-                    // Track sustained-high streak.
-                    if currentBG > candidateConfig.asymmetricDynamicISFSustainedHighBG {
-                        if asymSustainedHighSince == nil { asymSustainedHighSince = t }
-                    } else {
-                        asymSustainedHighSince = nil
-                    }
-
-                    var shouldRelease = false
-                    if elapsed >= minHold {
-                        // Hold-floor on low BG: don't release while BG still low,
-                        // regardless of other conditions.
-                        if currentBG >= candidateConfig.asymmetricDynamicISFKeepActiveBelowBG {
-                            // Hard ceiling
-                            if let expires = asymBoostExpiresAt, t >= expires {
-                                shouldRelease = true
-                            }
-                            // Immediate release on very high BG
-                            if currentBG > candidateConfig.asymmetricDynamicISFReleaseHighBG {
-                                shouldRelease = true
-                            }
-                            // Sustained-high release
-                            if let since = asymSustainedHighSince,
-                               t.timeIntervalSince(since) >= candidateConfig.asymmetricDynamicISFSustainedHighMinutes * 60 {
-                                shouldRelease = true
-                            }
-                        }
-                    }
-                    if shouldRelease {
-                        asymISFBoost = 1.0
-                        asymBoostStartedAt = nil
-                        asymBoostExpiresAt = nil
-                        asymSustainedHighSince = nil
-                    }
-                }
-
-                // Step 3: if boost active, re-run candidate with scaled ISF in
-                // prediction + dose. Else use the unboosted dose we already have.
-                if asymISFBoost > 1.0 + 1e-9 {
-                    candidateDose = Self.simStepDose(
-                        t: t,
-                        input: candidateInput,
-                        config: candidateConfig,
-                        therapy: data.therapyTimeline,
-                        glucoseMgdl: counterMgdl,
-                        glucoseSamples: counterGlucose,
-                        extraISFMultiplier: asymISFBoost
-                    ).dose
+            var candidateBolus: Double
+            var candidateTempRate: Double
+            do {
+                let csvIsfMult: Double
+                if let m = isfMultiplierByStep, !m.isEmpty {
+                    let rounded = Date(timeIntervalSince1970:
+                        (t.timeIntervalSince1970 / candidateConfig.evalStep).rounded() * candidateConfig.evalStep)
+                    csvIsfMult = m[rounded] ?? 1.0
                 } else {
-                    candidateDose = unboostedDose
+                    csvIsfMult = 1.0
                 }
-            } else {
-                candidateDose = Self.simStepDose(
+                let perStepMapForLoop = isfMultiplierByStep
+                let csvIsfEnabled = abs(csvIsfMult - 1.0) > 1e-9 || mapHasAnyBoost
+                let result = Self.simStepDose(
                     t: t,
                     input: candidateInput,
                     config: candidateConfig,
                     therapy: data.therapyTimeline,
                     glucoseMgdl: counterMgdl,
-                    glucoseSamples: counterGlucose
-                ).dose
+                    glucoseSamples: counterGlucose,
+                    perStepIsfMultByTime: csvIsfEnabled ? perStepMapForLoop : nil,
+                    isfBoostActiveOnly: isfBoostActiveOnly,
+                    egpPhysicalDecomposition: egpPhysicalDecomposition
+                )
+                candidateDose = result.dose
+                candidateBolus = result.bolus
+                candidateTempRate = result.tempRate
             }
 
-            let deltaDose = candidateDose - baselineDose
+            // ----- DELIVERABILITY / DATA-AVAILABILITY CLAMPS -----
+            // Two structurally different conditions can override the sim's
+            // dose decision at step t. Pump outage takes precedence over a
+            // CGM gap (if the pump is physically off, CGM staleness is moot).
+            let inOutage = !outages.isEmpty && outages.containing(t) != nil
+
+            // CGM staleness: Loop refuses to issue a NEW dose when the latest
+            // glucose is older than its inputDataRecencyInterval (15min,
+            // LoopAlgorithm.swift). The sim's per-step dose path
+            // (simStepDose → generatePrediction) bypasses that guard, so it
+            // would otherwise keep dosing on stale data. When stale, Loop
+            // makes no adjustment and scheduled basal continues delivering —
+            // distinct from a pump outage where delivery stops entirely.
+            var cgmStale = false
+            if cgmStaleGuardSec > 0 && !inOutage {
+                let idx = Self.latestGlucoseIndex(at: t, in: counterGlucose)
+                let latestT = counterGlucose[idx].startDate
+                if latestT <= t {
+                    cgmStale = t.timeIntervalSince(latestT) > cgmStaleGuardSec
+                }
+            }
+
+            if inOutage {
+                // Physical pump outage: absolute delivery = 0. Real Loop's
+                // recorded auto-deliveries during outages are already 0 (Loop
+                // wrote 0 U/hr temps after pump failure), so real-pump
+                // quantities (realPumpAutoAtStep, the ICE pipeline) need no
+                // adjustment — only the simulator's own decisions do.
+                let schedRate = data.therapyTimeline.basal.first(where: {
+                    $0.startDate <= t && $0.endDate > t
+                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
+                let schedStepU = schedRate * candidateConfig.evalStep / 3600.0
+                // absolute delivery = scheduled_step + dose; want absolute = 0.
+                candidateDose = -schedStepU
+                baselineDose = -schedStepU
+                candidateBolus = 0
+                candidateTempRate = 0
+            } else if cgmStale {
+                // CGM gap: no NEW dose adjustment, scheduled basal continues.
+                // dose ADJUSTMENT (delta over scheduled) = 0, so absolute
+                // delivery = scheduled. candidateTempRate reports the
+                // scheduled rate to reflect "running at schedule".
+                let schedRate = data.therapyTimeline.basal.first(where: {
+                    $0.startDate <= t && $0.endDate > t
+                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
+                candidateDose = 0
+                baselineDose = 0
+                candidateBolus = 0
+                candidateTempRate = schedRate
+            }
+
+            // deltaDose semantics depend on mode:
+            //   - Normal: candidate's dose minus sim-Loop-alone's dose (rule's
+            //     marginal effect on top of real-pump-history)
+            //   - Counterfactual: candidate's absolute delivery minus real
+            //     pump's absolute delivery for this step (rule REPLACES real
+            //     pump; perturbs counter_BG accordingly)
+            let deltaDose: Double
+            if cfActive {
+                // Scheduled basal at t (U over this step)
+                let schedBasalRate = data.therapyTimeline.basal.first(where: {
+                    $0.startDate <= t && $0.endDate > t
+                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
+                let schedDeliveryThisStep = schedBasalRate * candidateConfig.evalStep / 3600.0
+                let candidateAbsoluteDelivery = schedDeliveryThisStep + candidateDose
+                // Use AUTO-ONLY real pump as the baseline. Manual boluses are
+                // passed through (preserved in candidate's dose history) so
+                // they cancel out and don't perturb counter_BG.
+                let realPumpAutoAtStep = realAutoOnlyPerStep[t] ?? 0
+                deltaDose = candidateAbsoluteDelivery - realPumpAutoAtStep
+            } else if counterfactualMode {
+                // Burn-in: no perturbation (counter = actual_BG during burn-in)
+                deltaDose = 0
+            } else {
+                deltaDose = candidateDose - baselineDose
+            }
 
             // ISF at this time (in mg/dL/U convention; stored as mg/dL unit per codebase quirk).
             let isfQty = scaledSensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
@@ -372,44 +446,28 @@ extension EvaluationEngine {
 
             // Apply Δdose impact to FUTURE counter_mgdl entries.
             //
-            // Within DIA, scale by the pharmacodynamic curve. PAST DIA, the
-            // impact is the asymptote (= 1.0 × ISF × Δdose) — all the insulin
-            // has eventually manifested. Earlier versions broke out of the
-            // loop at τ > DIA, which dropped each step's contribution off a
-            // cliff for samples that crossed the DIA boundary. That created
-            // spurious jumps in counter_BG whenever clusters of prior Δdoses
-            // expired in the same 5-min window.
-            if deltaDose != 0 && isf > 0 {
-                // Binary-search for the first sample with startDate > t. Past
-                // samples (futureT <= t) get skipped wholesale instead of being
-                // tested one-by-one — saves ~half the iterations late in the run
-                // when most samples are in the past.
-                let startIdx = Self.firstIndex(where: { counterGlucose[$0].startDate > t },
-                                                in: 0..<counterGlucose.count)
-                if startIdx < counterGlucose.count {
-                    for i in startIdx..<counterGlucose.count {
-                        let futureT = counterGlucose[i].startDate
-                        let τ = futureT.timeIntervalSince(t)
-                        let pd: Double
-                        if τ > activityDuration {
-                            pd = 1.0
-                        } else {
-                            pd = max(0.0, min(1.0, 1.0 - insulinModel.percentEffectRemaining(at: τ)))
-                        }
-                        let newMgdl = counterMgdl[i] - deltaDose * isf * pd
-                        counterMgdl[i] = newMgdl
-                        // Mirror the update into the maintained counterSamples buffer.
-                        let s = counterSamples[i]
-                        counterSamples[i] = EvalGlucoseSample(
-                            startDate: s.startDate,
-                            quantity: LoopQuantity(unit: mgdlUnit, doubleValue: newMgdl),
-                            provenanceIdentifier: s.provenanceIdentifier,
-                            isDisplayOnly: s.isDisplayOnly,
-                            wasUserEntered: s.wasUserEntered,
-                            condition: s.condition,
-                            trendRate: s.trendRate
-                        )
+            // Non-CF mode (rule evaluation): uses the legacy linear-PD
+            // perturbation — counter = actual + small Δ × ISF × PD. Correct
+            // for small per-step deltas; documented in [feedback_sim_linear_pd_limit].
+            //
+            // CF mode: handled separately below via PHYSIOLOGICAL ADVANCE
+            // (counter steps forward = insulin effect from candidate doses +
+            // observed ICE from actual BG). The Δ-perturbation path is
+            // skipped in CF mode because the counter trajectory is no longer
+            // a perturbation of actual — it's a fully integrated independent
+            // simulation. (Fixed 2026-05-18.)
+            if deltaDose != 0 && isf > 0 && !cfActive {
+                for i in 0..<counterGlucose.count {
+                    let futureT = counterGlucose[i].startDate
+                    if futureT <= t { continue }
+                    let τ = futureT.timeIntervalSince(t)
+                    let pd: Double
+                    if τ > activityDuration {
+                        pd = 1.0
+                    } else {
+                        pd = max(0.0, min(1.0, 1.0 - insulinModel.percentEffectRemaining(at: τ)))
                     }
+                    counterMgdl[i] -= deltaDose * isf * pd
                 }
                 // Append virtual dose entry. Treat Δdose as an instantaneous bolus
                 // at time t. This makes IOB calculations on subsequent steps
@@ -423,10 +481,89 @@ extension EvaluationEngine {
                     automatic: true
                 ))
             }
+            // Counterfactual mode (post-burn-in only): append candidate's full
+            // absolute delivery for this step + pass-through any user manual
+            // boluses that occurred in [t, t + stepSec). This builds the
+            // candidate-only dose history that future prediction inputs need
+            // so Loop sees both its own decisions AND user-input manual boluses.
+            // During burn-in, counterfactualDoses was pre-seeded with real
+            // pump deliveries up to cfActiveStart, so no per-step append needed.
+            if cfActive {
+                let schedBasalRate = data.therapyTimeline.basal.first(where: {
+                    $0.startDate <= t && $0.endDate > t
+                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
+                let schedDeliveryThisStep = schedBasalRate * candidateConfig.evalStep / 3600.0
+                let candidateAbsoluteDelivery = schedDeliveryThisStep + candidateDose
+                // Record as a TEMP BASAL segment covering this step, NOT a bolus.
+                // LoopAlgorithm's IOB pipeline computes `netBasalUnits = volume
+                // - scheduledRate × duration` for basal segments. Recording each
+                // step as a .bolus would inflate IOB by the scheduled-basal
+                // contribution that should be neutral (a 6h DIA pumping
+                // 0.7 U/hr scheduled basal would accumulate ~2 U of spurious
+                // "phantom IOB" — sim Loop then forecasts BG dropping and
+                // suspends inappropriately). Bug found 2026-05-18.
+                counterfactualDoses.append(EvalInsulinDose(
+                    deliveryType: .basal,
+                    startDate: t,
+                    endDate: t.addingTimeInterval(candidateConfig.evalStep),
+                    volume: candidateAbsoluteDelivery,
+                    insulinType: data.therapyTimeline.insulinType,
+                    automatic: true
+                ))
+                // Pass through any user-initiated manual boluses falling in
+                // [t, t + stepSec). Preserves user behavior on top of the
+                // candidate's algorithmic decisions.
+                let stepEnd = t.addingTimeInterval(candidateConfig.evalStep)
+                while nextManualIdx < realManualBoluses.count {
+                    let mb = realManualBoluses[nextManualIdx]
+                    if mb.startDate >= stepEnd { break }
+                    if mb.startDate >= t {
+                        counterfactualDoses.append(mb)
+                    }
+                    nextManualIdx += 1
+                }
 
-            // Record step
-            let actualMgdl = data.glucose[EvaluationEngine.bestGlucoseIndex(at: t, in: data.glucose)].quantity.doubleValue(for: mgdlUnit)
-            let counterMgdlAtT = counterMgdl[EvaluationEngine.bestGlucoseIndex(at: t, in: counterGlucose)]
+                // PHYSIOLOGICAL ADVANCE — step counter_BG forward to whatever
+                // CGM samples fall in (t, t + stepSec]. counter_BG advance =
+                //   insulin effect over [prev, next] from candidate dose history
+                //   + ICE over [prev, next] from real-BG-derived timeline.
+                // Per-step insulinEffectDelta uses binary search to slice only
+                // the doses whose effect window overlaps the target interval —
+                // bounded to ~70 doses (6h DIA × 1 dose per 5-min step + a few
+                // historical), so each call is fast.
+                var advIdx = 0
+                while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= t {
+                    advIdx += 1
+                }
+                while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd {
+                    let prevIdx = advIdx > 0 ? advIdx - 1 : advIdx
+                    let prevT = counterGlucose[prevIdx].startDate
+                    let nextT = counterGlucose[advIdx].startDate
+                    let insulinDelta = Self.insulinEffectDelta(
+                        doses: counterfactualDoses,
+                        basal: data.therapyTimeline.basal,
+                        sensitivity: scaledSensitivity,
+                        from: prevT, to: nextT,
+                        insulinModel: insulinModel
+                    )
+                    let iceDelta = Self.integrateICE(realICE, from: prevT, to: nextT)
+                    counterMgdl[advIdx] = counterMgdl[prevIdx] + insulinDelta + iceDelta
+                    advIdx += 1
+                }
+            }
+
+            // Record step. Use the latest-CGM-sample-at-or-before-t — the
+            // counter perturbation loop only updates entries inside
+            // (t_prev_step, t_step], so the *next-future* sample may not have
+            // been advanced yet during a CGM gap and still holds its original
+            // (unperturbed) actual_BG. The past sample has had all applicable
+            // perturbations applied. This avoids spurious counter_BG spikes
+            // at the step before a CGM gap closes. For the very first step
+            // (no past sample) fall back to the first available sample.
+            let actualLookupIdx = Self.latestGlucoseIndex(at: t, in: data.glucose)
+            let counterLookupIdx = Self.latestGlucoseIndex(at: t, in: counterGlucose)
+            let actualMgdl = data.glucose[actualLookupIdx].quantity.doubleValue(for: mgdlUnit)
+            let counterMgdlAtT = counterMgdl[counterLookupIdx]
             steps.append(ClosedLoopSimResult.Step(
                 t: t,
                 actualBG: actualMgdl,
@@ -434,7 +571,9 @@ extension EvaluationEngine {
                 baselineDose: baselineDose,
                 candidateDose: candidateDose,
                 deltaDose: deltaDose,
-                isf: isf
+                isf: isf,
+                candidateBolus: candidateBolus,
+                candidateTempRate: candidateTempRate
             ))
 
             t = t.addingTimeInterval(candidateConfig.evalStep)
@@ -443,32 +582,6 @@ extension EvaluationEngine {
 
         progress?(1.0)
 
-        // Optional features dump
-        if let featuresPath = smoothBoostFeaturesOut, !inlineFeaturesRows.isEmpty {
-            let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            let cols = [
-                "time", "score",
-                "f_peak_bg_90m", "f_peak_iob_90m", "f_recent_insulin",
-                "f_bg_now", "f_iob_now", "f_v_cgm",
-                "f_ice_w15", "f_ice_trend_60",
-                "f_hour_sin", "f_hour_cos",
-            ]
-            var lines = [cols.joined(separator: ",")]
-            for (t, score, feats) in inlineFeaturesRows {
-                var cells = [formatter.string(from: t)]
-                cells.append(score.map { String(format: "%.6f", $0) } ?? "")
-                if let f = feats {
-                    for v in f { cells.append(String(format: "%.6f", v)) }
-                } else {
-                    cells.append(contentsOf: Array(repeating: "", count: cols.count - 2))
-                }
-                lines.append(cells.joined(separator: ","))
-            }
-            let csv = lines.joined(separator: "\n") + "\n"
-            try csv.write(to: URL(fileURLWithPath: featuresPath), atomically: true, encoding: .utf8)
-        }
-
         return ClosedLoopSimResult(
             steps: steps,
             baselineLabel: baselineLabel,
@@ -476,6 +589,266 @@ extension EvaluationEngine {
             intervalStart: evalStart,
             intervalEnd: interval.end
         )
+    }
+
+    /// Decompose the prediction at fixed lookahead horizons into its component
+    /// Rasterize real-pump deliveries (boluses + temp basals) onto the
+    /// 5-min step grid. Each step's value is the total U delivered in
+    /// [step_t, step_t + stepSec). Boluses count as instant at startDate;
+    /// basal entries spread their volume linearly across their duration.
+    /// Used by counterfactual mode to know what real pump delivered at
+    /// each step so the candidate's marginal effect can be computed.
+    // ── Physiological counterfactual helpers ────────────────────────────────
+
+    /// Pre-compute the real-BG-derived Insulin Counteraction Effect timeline.
+    /// ICE is observed BG slope minus modelled insulin slope. It captures all
+    /// non-insulin BG dynamics (carb absorption, exercise, dawn, sensor noise).
+    /// Returns velocities in mg/dL/sec, one per CGM-sample interval.
+    fileprivate static func computeRealICE(
+        glucose: [EvalGlucoseSample],
+        doses: [EvalInsulinDose],
+        basal: [AbsoluteScheduleValue<Double>],
+        sensitivity: [AbsoluteScheduleValue<LoopQuantity>],
+        insulinModel: InsulinModel
+    ) -> [GlucoseEffectVelocity] {
+        guard let firstGlucose = glucose.first, let lastGlucose = glucose.last else { return [] }
+        guard let firstSens = sensitivity.first, let lastSens = sensitivity.last else { return [] }
+        // Filter real doses to the relevant window plus lookback AND to the
+        // sensitivity schedule's coverage (glucoseEffects preconditions on it).
+        let lookbackStart = firstGlucose.startDate.addingTimeInterval(-insulinModel.effectDuration)
+        let relevantDoses = doses.filter {
+            $0.endDate >= lookbackStart && $0.startDate <= lastGlucose.startDate
+            && $0.startDate >= firstSens.startDate && $0.startDate <= lastSens.endDate
+        }
+        // Trim basal schedule to the relevant window
+        let trimmedBasal = basal.trimmed(from: lookbackStart, to: lastGlucose.startDate)
+        let annotated = relevantDoses.annotated(with: trimmedBasal, fillBasalGaps: true)
+        let insulinEffects = annotated.glucoseEffects(
+            insulinSensitivityHistory: sensitivity,
+            from: lookbackStart,
+            to: lastGlucose.startDate
+        )
+        return glucose.counteractionEffects(to: insulinEffects)
+    }
+
+    /// Add a single dose's glucose-effect contribution to the cumulative
+    /// timeline. `cum[j] - cum[i]` = insulin glucose effect over [grid[i], grid[j]].
+    /// Uses Loop's exact `glucoseEffects` on a single-dose array (bounded cost
+    /// per dose since the effects window is at most DIA wide).
+    fileprivate static func addDoseContribution(
+        dose: BasalRelativeDose,
+        grid: [Date],
+        cum: inout [Double],
+        sensitivity: [AbsoluteScheduleValue<LoopQuantity>],
+        insulinModel: InsulinModel
+    ) {
+        if cum.count != grid.count {
+            cum = Array(repeating: 0, count: grid.count)
+        }
+        guard abs(dose.netBasalUnits) > 1e-12 else { return }
+        // Single-dose effect timeline over [dose.startDate, dose.endDate + DIA].
+        let from = dose.startDate
+        let to = dose.endDate.addingTimeInterval(insulinModel.effectDuration)
+        let stepSec: TimeInterval = 5 * 60
+        let effects = [dose].glucoseEffects(
+            insulinSensitivityHistory: sensitivity,
+            from: from,
+            to: to,
+            delta: stepSec
+        )
+        guard !effects.isEmpty else { return }
+        // Effects are CUMULATIVE; effects[k].quantity = total mg/dL change due to
+        // this dose at effects[k].startDate (relative to baseline at first entry).
+        let mgdl = LoopUnit.milligramsPerDeciliter
+        // Binary search grid for first entry > dose.startDate
+        var lo = 0, hi = grid.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if grid[mid] <= dose.startDate { lo = mid + 1 } else { hi = mid }
+        }
+        // For each grid point past dose.startDate, look up the effect at that
+        // point in the dose's effects timeline (linear interp), and add it.
+        var effIdx = 0
+        for i in lo..<grid.count {
+            let target = grid[i]
+            // Advance effIdx to last entry with startDate <= target
+            while effIdx + 1 < effects.count && effects[effIdx + 1].startDate <= target {
+                effIdx += 1
+            }
+            let v: Double
+            if effIdx + 1 < effects.count {
+                // Linear interp
+                let a = effects[effIdx], b = effects[effIdx + 1]
+                let span = b.startDate.timeIntervalSince(a.startDate)
+                let frac = span > 0 ? target.timeIntervalSince(a.startDate) / span : 0
+                v = a.quantity.doubleValue(for: mgdl) * (1 - frac)
+                  + b.quantity.doubleValue(for: mgdl) * frac
+            } else if effIdx < effects.count {
+                v = effects[effIdx].quantity.doubleValue(for: mgdl)
+            } else {
+                v = 0
+            }
+            cum[i] += v
+        }
+    }
+
+    /// O(log N) lookup of cumulative insulin effect at a target date.
+    /// Linear-interpolates between adjacent grid points.
+    fileprivate static func lookupCumEffect(
+        target: Date,
+        grid: [Date],
+        cum: [Double]
+    ) -> Double {
+        guard !grid.isEmpty else { return 0 }
+        if target <= grid.first! { return cum.first! }
+        if target >= grid.last! { return cum.last! }
+        var lo = 0, hi = grid.count - 1
+        while hi - lo > 1 {
+            let mid = (lo + hi) / 2
+            if grid[mid] <= target { lo = mid } else { hi = mid }
+        }
+        let span = grid[hi].timeIntervalSince(grid[lo])
+        let frac = span > 0 ? target.timeIntervalSince(grid[lo]) / span : 0
+        return cum[lo] * (1 - frac) + cum[hi] * frac
+    }
+
+    /// Integrate ICE velocities over a time interval to get total mg/dL change.
+    fileprivate static func integrateICE(_ ice: [GlucoseEffectVelocity],
+                                          from: Date, to: Date) -> Double {
+        guard to > from, !ice.isEmpty else { return 0 }
+        let perSecUnit = GlucoseEffectVelocity.perSecondUnit
+        var total = 0.0
+        // ICE entries are sorted by startDate. Linear scan; could binary search.
+        for entry in ice {
+            if entry.endDate <= from { continue }
+            if entry.startDate >= to { break }
+            let overlapStart = Swift.max(entry.startDate, from)
+            let overlapEnd = Swift.min(entry.endDate, to)
+            let overlapSec = overlapEnd.timeIntervalSince(overlapStart)
+            if overlapSec > 0 {
+                total += entry.quantity.doubleValue(for: perSecUnit) * overlapSec
+            }
+        }
+        return total
+    }
+
+    /// Compute the insulin glucose effect delta over [from, to] from the
+    /// candidate dose history. Result is in mg/dL (negative = BG drop from
+    /// insulin). Uses Loop's public glucoseEffects timeline and diffs the
+    /// cumulative value at the two boundary times.
+    ///
+    /// `doses` is assumed sorted ascending by startDate (counterfactualDoses
+    /// always is). We binary-search the upper bound on startDate (<= to) and
+    /// then walk back to find the lower bound (endDate >= lookback). This
+    /// limits per-call cost to O(log N + DIA-window size) instead of O(N).
+    fileprivate static func insulinEffectDelta(
+        doses: [EvalInsulinDose],
+        basal: [AbsoluteScheduleValue<Double>],
+        sensitivity: [AbsoluteScheduleValue<LoopQuantity>],
+        from: Date, to: Date,
+        insulinModel: InsulinModel
+    ) -> Double {
+        guard to > from else { return 0 }
+        let lookback = from.addingTimeInterval(-insulinModel.effectDuration)
+        // Binary search for first index where startDate > to.
+        var lo = 0, hi = doses.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if doses[mid].startDate <= to { lo = mid + 1 } else { hi = mid }
+        }
+        let upperIdx = lo  // first index with startDate > to
+        if upperIdx == 0 { return 0 }
+        // Walk back to find the first index whose endDate >= lookback.
+        // Doses are sorted by startDate; doses earlier than lookback - DIA can't
+        // possibly overlap. Stop scanning once startDate < lookback - DIA.
+        let scanFloor = lookback.addingTimeInterval(-insulinModel.effectDuration)
+        var lowerIdx = upperIdx - 1
+        while lowerIdx > 0 && doses[lowerIdx - 1].startDate >= scanFloor {
+            lowerIdx -= 1
+        }
+        let relevantDoses = doses[lowerIdx..<upperIdx].filter { $0.endDate >= lookback }
+        if relevantDoses.isEmpty { return 0 }
+        guard let firstSens = sensitivity.first, let lastSens = sensitivity.last else { return 0 }
+        let safeDoses = relevantDoses.filter {
+            $0.startDate >= firstSens.startDate && $0.startDate <= lastSens.endDate
+        }
+        if safeDoses.isEmpty { return 0 }
+        let trimmedBasal = basal.trimmed(from: lookback, to: to)
+        let annotated = safeDoses.annotated(with: trimmedBasal, fillBasalGaps: true)
+        // Compute cumulative glucose effects timeline that covers [from, to].
+        // Use 5-min delta so the timeline lands at the boundaries we want.
+        let delta: TimeInterval = 5 * 60
+        let effects = annotated.glucoseEffects(
+            insulinSensitivityHistory: sensitivity,
+            from: from.addingTimeInterval(-delta),
+            to: to.addingTimeInterval(delta),
+            delta: delta
+        )
+        let mgdl = LoopUnit.milligramsPerDeciliter
+        let valueAt: (Date) -> Double = { target in
+            // Find the entry closest to target; effects are monotonically spaced
+            // by `delta`. Linear interp between neighbors.
+            guard !effects.isEmpty else { return 0 }
+            if target <= effects.first!.startDate { return effects.first!.quantity.doubleValue(for: mgdl) }
+            if target >= effects.last!.startDate { return effects.last!.quantity.doubleValue(for: mgdl) }
+            for i in 0..<(effects.count - 1) {
+                let a = effects[i], b = effects[i + 1]
+                if a.startDate <= target && target <= b.startDate {
+                    let span = b.startDate.timeIntervalSince(a.startDate)
+                    let frac = span > 0 ? target.timeIntervalSince(a.startDate) / span : 0
+                    return a.quantity.doubleValue(for: mgdl) * (1 - frac)
+                         + b.quantity.doubleValue(for: mgdl) * frac
+                }
+            }
+            return effects.last!.quantity.doubleValue(for: mgdl)
+        }
+        return valueAt(to) - valueAt(from)
+    }
+
+    fileprivate static func rasterizeRealPumpPerStep(
+        doses: [EvalInsulinDose], start: Date, end: Date, stepSec: TimeInterval
+    ) -> [Date: Double] {
+        var result: [Date: Double] = [:]
+        let stepCount = Int((end.timeIntervalSince(start) / stepSec).rounded(.up)) + 1
+        // Initialize all step bins to 0
+        for i in 0..<stepCount {
+            let bin = start.addingTimeInterval(Double(i) * stepSec)
+            result[bin] = 0
+        }
+        let gridStartSec = start.timeIntervalSince1970
+        let gridEndSec = end.timeIntervalSince1970 + stepSec
+        for dose in doses {
+            let dStart = dose.startDate.timeIntervalSince1970
+            let dEnd = dose.endDate.timeIntervalSince1970
+            if dEnd < gridStartSec || dStart > gridEndSec { continue }
+            // Bolus (instant) — treat anything with duration < step as instant
+            if dose.deliveryType != .basal || (dEnd - dStart) < 1 {
+                let s = max(dStart, gridStartSec)
+                let binIdx = Int((s - gridStartSec) / stepSec)
+                if binIdx >= 0 && binIdx < stepCount {
+                    let bin = start.addingTimeInterval(Double(binIdx) * stepSec)
+                    result[bin, default: 0] += dose.volume
+                }
+                continue
+            }
+            // Basal entry: distribute volume across overlapping bins
+            let dur = dEnd - dStart
+            if dur <= 0 { continue }
+            let uPerSec = dose.volume / dur
+            var cur = max(dStart, gridStartSec)
+            let stop = min(dEnd, gridEndSec)
+            while cur < stop {
+                let binIdx = Int((cur - gridStartSec) / stepSec)
+                if binIdx < 0 { cur += stepSec; continue }
+                if binIdx >= stepCount { break }
+                let bin = start.addingTimeInterval(Double(binIdx) * stepSec)
+                let binEndSec = gridStartSec + Double(binIdx + 1) * stepSec
+                let segEnd = min(binEndSec, stop)
+                result[bin, default: 0] += uPerSec * (segEnd - cur)
+                cur = segEnd
+            }
+        }
+        return result
     }
 
     // MARK: – Helpers
@@ -493,8 +866,12 @@ extension EvaluationEngine {
         therapy: TherapyTimeline,
         glucoseMgdl: [Double],
         glucoseSamples: [EvalGlucoseSample],
-        extraISFMultiplier: Double = 1.0
-    ) -> (dose: Double, prediction: LoopPrediction<EvalCarbEntry>) {
+        extraISFMultiplier: Double = 1.0,
+        forecastOffsetMgdl: Double = 0.0,
+        perStepIsfMultByTime: [Date: Double]? = nil,
+        isfBoostActiveOnly: Bool = false,
+        egpPhysicalDecomposition: Bool = false
+    ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>) {
         let momentumCap: LoopQuantity? = config.positiveVelocityCap.map {
             LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: $0)
         }
@@ -504,9 +881,96 @@ extension EvaluationEngine {
         // matters: if the forecast also "knows" ISF is currently higher than
         // schedule, Loop's IOB-compensation expects less BG drop and doesn't
         // try to redistribute the under-delivered insulin forward.
+        let unit = LoopUnit.milligramsPerDeciliter
         let effectiveSensitivity: [AbsoluteScheduleValue<LoopQuantity>]
-        if abs(extraISFMultiplier - 1.0) > 1e-9 {
-            let unit = LoopUnit.milligramsPerDeciliter
+
+        // Fast-path: even if a map is set, if no boost falls within [t, t+DIA]
+        // the schedule is effectively unchanged for this step's prediction.
+        // Probe the map for any non-1.0 mult in the forecast window before
+        // doing the (relatively expensive) segment expansion.
+        let stepSec = config.evalStep
+        let horizonEnd = t.addingTimeInterval(therapy.insulinType.model.effectDuration + stepSec)
+        let mapHasBoostInWindow: Bool = {
+            guard let perStepMap = perStepIsfMultByTime, !perStepMap.isEmpty else { return false }
+            var probeT = Date(timeIntervalSince1970:
+                (t.timeIntervalSince1970 / stepSec).rounded() * stepSec)
+            while probeT < horizonEnd {
+                if let m = perStepMap[probeT], abs(m - 1.0) > 1e-9 { return true }
+                probeT = probeT.addingTimeInterval(stepSec)
+            }
+            return false
+        }()
+
+        if let perStepMap = perStepIsfMultByTime, !perStepMap.isEmpty, mapHasBoostInWindow {
+            // Expand sensitivity into per-step segments ONLY over the forecast
+            // horizon [t, t + DIA]. Outside that window keep the original
+            // (unboosted) schedule entries — they're not consulted by the
+            // dose calc (insulinCorrection only filters segments overlapping
+            // the prediction's absorption window).
+            //
+            // CRITICAL: only apply the mult to FUTURE segments (segEnd > t).
+
+            var fineEntries: [AbsoluteScheduleValue<LoopQuantity>] = []
+            fineEntries.reserveCapacity(96)   // ~6h × 12 segs/h × bit of slack
+
+            for entry in input.sensitivity {
+                let baseVal = entry.value.doubleValue(for: unit) * extraISFMultiplier
+                // Three regions:
+                //   1) entirely before t — pass through as-is (mult=1.0)
+                //   2) overlaps [t, horizonEnd] — expand into 5-min segments with per-future mult
+                //   3) entirely after horizonEnd — pass through as-is (no boost lookup needed)
+                if entry.endDate <= t || entry.startDate >= horizonEnd {
+                    // Region 1 or 3: no expansion needed, scaled by extraISFMultiplier
+                    fineEntries.append(AbsoluteScheduleValue(
+                        startDate: entry.startDate, endDate: entry.endDate,
+                        value: LoopQuantity(unit: unit, doubleValue: baseVal)))
+                    continue
+                }
+                // Region 2: split entry at t and horizonEnd boundaries, expand the middle.
+                if entry.startDate < t {
+                    fineEntries.append(AbsoluteScheduleValue(
+                        startDate: entry.startDate, endDate: t,
+                        value: LoopQuantity(unit: unit, doubleValue: baseVal)))
+                }
+                // Coalesce consecutive 5-min segments with the same mult.
+                // CSV is mostly 1.0 (60-75% of entries); merging runs cuts
+                // Loop's sensitivity-iteration cost (it's O(N) in schedule
+                // length per dose × per prediction sample, so this matters).
+                var cursor = max(entry.startDate, t)
+                let expandEnd = min(entry.endDate, horizonEnd)
+                var runStart = cursor
+                var runMult: Double? = nil
+                while cursor < expandEnd {
+                    let segEnd = min(cursor.addingTimeInterval(stepSec), expandEnd)
+                    let rounded = Date(timeIntervalSince1970:
+                        (cursor.timeIntervalSince1970 / stepSec).rounded() * stepSec)
+                    let mult = perStepMap[rounded] ?? 1.0
+                    if runMult == nil {
+                        runMult = mult
+                        runStart = cursor
+                    } else if abs(mult - runMult!) > 1e-9 {
+                        // Flush previous run
+                        fineEntries.append(AbsoluteScheduleValue(
+                            startDate: runStart, endDate: cursor,
+                            value: LoopQuantity(unit: unit, doubleValue: baseVal * runMult!)))
+                        runMult = mult
+                        runStart = cursor
+                    }
+                    cursor = segEnd
+                }
+                if let m = runMult {
+                    fineEntries.append(AbsoluteScheduleValue(
+                        startDate: runStart, endDate: cursor,
+                        value: LoopQuantity(unit: unit, doubleValue: baseVal * m)))
+                }
+                if entry.endDate > horizonEnd {
+                    fineEntries.append(AbsoluteScheduleValue(
+                        startDate: horizonEnd, endDate: entry.endDate,
+                        value: LoopQuantity(unit: unit, doubleValue: baseVal)))
+                }
+            }
+            effectiveSensitivity = fineEntries
+        } else if abs(extraISFMultiplier - 1.0) > 1e-9 {
             effectiveSensitivity = input.sensitivity.map { entry in
                 AbsoluteScheduleValue(
                     startDate: entry.startDate,
@@ -527,13 +991,33 @@ extension EvaluationEngine {
             target: input.target
         )
 
-        let prediction: LoopPrediction<EvalCarbEntry> = LoopAlgorithm.generatePrediction(
+        // Phase-1 decomposition: when `isfBoostActiveOnly` is on, pass the
+        // UNBOOSTED schedule as `scheduleBaselineSensitivity` so the
+        // EGP-credit term (negative netBasalUnits — implicit endogenous
+        // glucose production from suspending below scheduled basal) keeps
+        // using the scheduled ISF, while the dose-rec and active-insulin
+        // glucose-effect use the boosted `effectiveSensitivity`. When the
+        // step has no boost (effectiveSensitivity == input.sensitivity by
+        // content), Phase 1's decomposed formula is bit-identical to legacy.
+        let scheduleBaseline: [AbsoluteScheduleValue<LoopQuantity>]? =
+            isfBoostActiveOnly ? input.sensitivity : nil
+        // Phase-2: with `egpPhysicalDecomposition`, the active-insulin term is
+        // computed over PHYSICAL delivered insulin (volume) rather than
+        // net-basal-units, so an active-ISF boost amplifies real insulin even
+        // when delivery is below scheduled basal. Only meaningful alongside
+        // isfBoostActiveOnly (a non-nil scheduleBaseline). Default keeps the
+        // classic net-basal-units split.
+        let decomposition: SensitivityDecomposition =
+            (egpPhysicalDecomposition && isfBoostActiveOnly) ? .physicalDelivery : .netBasalUnits
+        var prediction: LoopPrediction<EvalCarbEntry> = LoopAlgorithm.generatePrediction(
             start: t,
             glucoseHistory: effectiveInput.glucose,
             doses: effectiveInput.doses,
             carbEntries: effectiveInput.carbs,
             basal: effectiveInput.basal,
             sensitivity: effectiveInput.sensitivity,
+            scheduleBaselineSensitivity: scheduleBaseline,
+            sensitivityDecomposition: decomposition,
             carbRatio: effectiveInput.carbRatio,
             algorithmEffectsOptions: .all,
             useIntegralRetrospectiveCorrection: config.useIntegralRC,
@@ -542,24 +1026,25 @@ extension EvaluationEngine {
             carbAbsorptionModel: config.carbAbsorptionModel.model,
             momentumVelocityMaximum: momentumCap,
             useAsymmetricMomentum: config.useAsymmetricMomentum,
-            useHybridAsymmetricMomentum: config.useHybridAsymmetricMomentum,
             momentumAlphaSlow: config.momentumAlphaSlow,
             momentumAlphaFast: config.momentumAlphaFast
         )
 
-        let appFactor: Double
-        if config.glucoseBasedApplicationFactor {
-            let idx = EvaluationEngine.bestGlucoseIndex(at: t, in: glucoseSamples)
-            let currentBG = glucoseMgdl[idx]
-            appFactor = EvaluationEngine.glucoseBasedApplicationFactor(
-                currentBG: currentBG,
-                lowAnchor: config.gbafLowAnchor,
-                highAnchor: config.gbafHighAnchor,
-                factorLow: config.gbafFactorLow,
-                factorHigh: config.gbafFactorHigh
-            )
-        } else {
-            appFactor = 0.4
+        // Classifier-gated forecast modifier: shift the predicted glucose
+        // trajectory upward by `forecastOffsetMgdl` before the dose calc. This
+        // is a true forecast modification — Loop's correction logic and
+        // suspend-zone detection both see the bumped trajectory, so the rule
+        // can release dose even when Loop would otherwise be at the suspend
+        // floor. AGENTS.md "modify the forecast, not the dose".
+        if abs(forecastOffsetMgdl) > 1e-9 {
+            let unit = LoopUnit.milligramsPerDeciliter
+            prediction.glucose = prediction.glucose.map { p in
+                PredictedGlucoseValue(
+                    startDate: p.startDate,
+                    quantity: LoopQuantity(unit: unit,
+                                           doubleValue: p.quantity.doubleValue(for: unit) + forecastOffsetMgdl)
+                )
+            }
         }
 
         let doseRec = EvaluationEngine.computeDoseRecommendation(
@@ -571,142 +1056,14 @@ extension EvaluationEngine {
             maxBasalRate: therapy.maxBasalRate,
             insulinType: therapy.insulinType,
             evalStep: config.evalStep,
-            applicationFactor: appFactor,
-            dynamicISFMode: config.dynamicISFMode,
-            dynamicISFWindowHours: config.dynamicISFWindowHours,
-            dynamicISFICEThreshold: config.dynamicISFICEThreshold,
-            dynamicISFMaxBoost: config.dynamicISFMaxBoost
+            applicationFactor: 0.4
         )
-        return (dose: doseRec?.deltaU ?? 0, prediction: prediction)
-    }
-
-    /// Compute the asymmetric-dynamic-ISF boost factor for time `t` given a
-    /// candidate prediction. Returns 1.0 if no sensitivity event is detected.
-    /// Uses the same ICE-based trigger logic as in-algorithm dynamic-ISF: the
-    /// most-negative 30-min rolling mean ICE in `windowHours` lookback.
-    fileprivate static func boostFromPastICE(
-        t: Date,
-        prediction: LoopPrediction<EvalCarbEntry>,
-        windowHours: Double,
-        threshold: Double,
-        maxBoost: Double
-    ) -> Double {
-        let lookbackStart = t.addingTimeInterval(-windowHours * 3600)
-        let pastICE = prediction.effects.insulinCounteraction.filter {
-            $0.endDate <= t && $0.startDate >= lookbackStart
-        }
-        let subWindowSec: TimeInterval = 30 * 60
-        var minRollingMean = Double.infinity
-        for i in 0..<pastICE.count {
-            let endT = pastICE[i].endDate
-            let windowStart = endT.addingTimeInterval(-subWindowSec)
-            var sum = 0.0
-            var count = 0
-            for j in stride(from: i, through: 0, by: -1) {
-                if pastICE[j].endDate <= windowStart { break }
-                sum += pastICE[j].quantity.doubleValue(for: .milligramsPerDeciliterPerMinute)
-                count += 1
-            }
-            guard count >= 4 else { continue }
-            let mean = sum / Double(count)
-            if mean < minRollingMean { minRollingMean = mean }
-        }
-        if minRollingMean < -threshold {
-            let excess = -minRollingMean - threshold
-            return 1.0 + min(maxBoost, excess / threshold)
-        }
-        return 1.0
-    }
-
-    /// Piecewise-linear smooth boost from risk score:
-    ///   score ≤ downLowAnchor          → boost = 1 − maxBoostDown   (aggressive)
-    ///   downLowAnchor < score < lowAnchor → linear ramp up to 1.0
-    ///   score = lowAnchor              → boost = 1.0 (no change)
-    ///   lowAnchor < score < highAnchor → linear ramp up to 1 + maxBoost
-    ///   score ≥ highAnchor             → boost = 1 + maxBoost (conservative)
-    ///
-    /// When downLowAnchor=0 and maxBoostDown=0 (defaults), the negative-side
-    /// branch is inert and the function behaves identically to the original
-    /// one-sided mapping.
-    fileprivate static func smoothBoostFactor(
-        score: Double?,
-        lowAnchor: Double,
-        highAnchor: Double,
-        maxBoost: Double,
-        downLowAnchor: Double = 0.0,
-        maxBoostDown: Double = 0.0
-    ) -> Double {
-        guard let s = score else { return 1.0 }
-        // Up-side
-        if s >= lowAnchor {
-            let span = highAnchor - lowAnchor
-            guard span > 1e-9 else { return 1.0 }
-            let clipped = max(0.0, min(1.0, (s - lowAnchor) / span))
-            return 1.0 + maxBoost * clipped
-        }
-        // Down-side (only active if maxBoostDown > 0 and anchors are valid)
-        let downSpan = lowAnchor - downLowAnchor
-        guard maxBoostDown > 1e-9, downSpan > 1e-9 else { return 1.0 }
-        // s < lowAnchor; clamp ratio in [0, 1]
-        let aggression = max(0.0, min(1.0, (lowAnchor - s) / downSpan))
-        return 1.0 - maxBoostDown * aggression
-    }
-
-    /// Look up the risk score nearest to `t` within a ±5 min tolerance.
-    /// Returns nil if no score is within range. Assumes scores sorted by time.
-    fileprivate static func lookupScore(at t: Date, scores: [(Date, Double)]) -> Double? {
-        guard !scores.isEmpty else { return nil }
-        // Binary search for closest index
-        var lo = 0, hi = scores.count - 1
-        while lo < hi {
-            let mid = (lo + hi) / 2
-            if scores[mid].0 < t { lo = mid + 1 } else { hi = mid }
-        }
-        // Check lo and lo-1
-        let toleranceSec: TimeInterval = 5 * 60 + 1
-        var best: (Date, Double)? = nil
-        var bestDelta = Double.infinity
-        for cand in [lo - 1, lo, lo + 1] where cand >= 0 && cand < scores.count {
-            let delta = abs(scores[cand].0.timeIntervalSince(t))
-            if delta < bestDelta {
-                bestDelta = delta
-                best = scores[cand]
-            }
-        }
-        guard let b = best, bestDelta <= toleranceSec else { return nil }
-        return b.1
-    }
-
-    /// Look up the baseline dose at time `t` from a sorted `[(Date, Double)]`
-    /// cache. Requires exact-or-near-exact timestamp match (within 1ms). Used
-    /// to skip recomputing baseline across cells in a sweep.
-    fileprivate static func lookupCachedDose(at t: Date, in cache: [(Date, Double)]) -> Double? {
-        guard !cache.isEmpty else { return nil }
-        var lo = 0, hi = cache.count - 1
-        while lo < hi {
-            let mid = (lo + hi) / 2
-            if cache[mid].0 < t { lo = mid + 1 } else { hi = mid }
-        }
-        // Check lo and lo-1 for closest match
-        for cand in [lo - 1, lo, lo + 1] where cand >= 0 && cand < cache.count {
-            if abs(cache[cand].0.timeIntervalSince(t)) < 0.001 {
-                return cache[cand].1
-            }
-        }
-        return nil
-    }
-
-    /// Binary-search the smallest index `i` in `range` for which `predicate(i)`
-    /// is true. Predicate must be monotonic — false then true. Returns
-    /// `range.upperBound` if no element satisfies it.
-    fileprivate static func firstIndex(where predicate: (Int) -> Bool, in range: Range<Int>) -> Int {
-        var lo = range.lowerBound
-        var hi = range.upperBound
-        while lo < hi {
-            let mid = lo + (hi - lo) / 2
-            if predicate(mid) { hi = mid } else { lo = mid + 1 }
-        }
-        return lo
+        return (
+            dose: doseRec?.deltaU ?? 0,
+            bolus: doseRec?.bolus ?? 0,
+            tempRate: doseRec?.tempBasalRate ?? 0,
+            prediction: prediction
+        )
     }
 
     /// Find the index of the glucose sample closest to `t` (binary-search).
@@ -717,6 +1074,23 @@ extension EvaluationEngine {
             if samples[mid].startDate < t { lo = mid + 1 } else { hi = mid }
         }
         return min(max(lo, 0), samples.count - 1)
+    }
+
+    /// Largest index with `samples[idx].startDate <= t`; if none, returns 0.
+    /// Differs from `bestGlucoseIndex` (which returns the *first* sample at
+    /// or after t). For the closed-loop trace writer, the "past sample" is
+    /// what carries advanced counter perturbations; the "next future"
+    /// sample may sit in an unprocessed CGM gap and still hold its
+    /// un-advanced original value.
+    fileprivate static func latestGlucoseIndex(at t: Date, in samples: [EvalGlucoseSample]) -> Int {
+        guard !samples.isEmpty else { return 0 }
+        if samples[0].startDate > t { return 0 }
+        var lo = 0, hi = samples.count - 1
+        while lo < hi {
+            let mid = (lo + hi + 1) / 2  // upper bisect
+            if samples[mid].startDate <= t { lo = mid } else { hi = mid - 1 }
+        }
+        return lo
     }
 
     /// Merge two sorted dose arrays in O(N+M).

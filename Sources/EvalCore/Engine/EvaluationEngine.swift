@@ -31,7 +31,7 @@ public actor EvaluationEngine {
     ///   - progress: Optional callback receiving 0.0–1.0 progress values.
     public func evaluate(
         interval: DateInterval,
-        config: EvalConfig = .default,
+        config: EvalConfig = EvalConfig(),
         progress: (@Sendable (Double) -> Void)? = nil
     ) async throws -> EvaluationResult {
         let data = try await prefetchData(for: interval, config: config)
@@ -70,7 +70,7 @@ public actor EvaluationEngine {
         let doseInterval = DateInterval(start: dataStart, end: doseEnd)
         let carbInterval = DateInterval(
             start: dataStart,
-            end:   config.includeFutureCarbs ? interval.end.addingTimeInterval(6 * 3600) : interval.end
+            end:   interval.end.addingTimeInterval(6 * 3600)
         )
         let therapyInterval = DateInterval(
             start: dataStart,
@@ -259,7 +259,6 @@ public actor EvaluationEngine {
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
                 momentumVelocityMaximum: momentumCap,
                 useAsymmetricMomentum: config.useAsymmetricMomentum,
-                useHybridAsymmetricMomentum: config.useHybridAsymmetricMomentum,
                 momentumAlphaSlow: config.momentumAlphaSlow,
                 momentumAlphaFast: config.momentumAlphaFast
             )
@@ -279,7 +278,6 @@ public actor EvaluationEngine {
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
                 momentumVelocityMaximum: momentumCap,
                 useAsymmetricMomentum: config.useAsymmetricMomentum,
-                useHybridAsymmetricMomentum: config.useHybridAsymmetricMomentum,
                 momentumAlphaSlow: config.momentumAlphaSlow,
                 momentumAlphaFast: config.momentumAlphaFast
             )
@@ -304,47 +302,10 @@ public actor EvaluationEngine {
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
                 momentumVelocityMaximum: momentumCap,
                 useAsymmetricMomentum: config.useAsymmetricMomentum,
-                useHybridAsymmetricMomentum: config.useHybridAsymmetricMomentum,
                 momentumAlphaSlow: config.momentumAlphaSlow,
                 momentumAlphaFast: config.momentumAlphaFast
             )
             noFuturePredicted = predNoFuture.glucose
-        }
-
-        // Application factor for the dose recommendation.
-        let currentBG = input.glucose.last?.quantity.doubleValue(for: .milligramsPerDeciliter) ?? 100
-        var appFactor: Double
-        if config.glucoseBasedApplicationFactor {
-            appFactor = Self.glucoseBasedApplicationFactor(
-                currentBG: currentBG,
-                lowAnchor: config.gbafLowAnchor,
-                highAnchor: config.gbafHighAnchor,
-                factorLow: config.gbafFactorLow,
-                factorHigh: config.gbafFactorHigh
-            )
-        } else {
-            appFactor = 0.4
-        }
-
-        // Post-low conservative mode gates.
-        if config.postLowConservativeMode {
-            let windowStart = t.addingTimeInterval(-config.postLowWindow * 3600)
-            let recentLow = input.glucose.contains(where: {
-                $0.startDate >= windowStart && $0.startDate <= t &&
-                $0.quantity.doubleValue(for: .milligramsPerDeciliter) < config.postLowEntryThreshold
-            })
-            var triggers = recentLow
-            if triggers && config.postLowRiseRateGate > 0 {
-                triggers = Self.recentRiseRate(input.glucose, at: t, lookbackMin: 15)
-                    >= config.postLowRiseRateGate
-            }
-            if triggers && config.postLowRequireIOBHeadroom {
-                let iob = prediction.activeInsulin ?? 0
-                triggers = iob > config.postLowIOBGateThreshold
-            }
-            if triggers {
-                appFactor = config.postLowAppFactor
-            }
         }
 
         let doseRec = Self.computeDoseRecommendation(
@@ -356,11 +317,7 @@ public actor EvaluationEngine {
             maxBasalRate: therapy.maxBasalRate,
             insulinType: therapy.insulinType,
             evalStep: config.evalStep,
-            applicationFactor: appFactor,
-            dynamicISFMode: config.dynamicISFMode,
-            dynamicISFWindowHours: config.dynamicISFWindowHours,
-            dynamicISFICEThreshold: config.dynamicISFICEThreshold,
-            dynamicISFMaxBoost: config.dynamicISFMaxBoost
+            applicationFactor: 0.4
         )
 
         // Per-component effect samples for drift diagnostics.
@@ -485,55 +442,6 @@ public actor EvaluationEngine {
         return out
     }
 
-    // MARK: – Glucose helpers
-
-    /// Estimate recent CGM rise rate (mg/dL/min) from the last `lookbackMin`
-    /// minutes of glucose history. Returns 0 if insufficient samples.
-    static func recentRiseRate(
-        _ samples: [EvalGlucoseSample],
-        at t: Date,
-        lookbackMin: Double = 15
-    ) -> Double {
-        let cutoff = t.addingTimeInterval(-lookbackMin * 60)
-        let recent = samples.filter { $0.startDate >= cutoff && $0.startDate <= t }
-        guard recent.count >= 2 else { return 0 }
-        let first = recent.first!
-        let last = recent.last!
-        let dtMin = last.startDate.timeIntervalSince(first.startDate) / 60
-        guard dtMin > 0 else { return 0 }
-        let dBG = last.quantity.doubleValue(for: .milligramsPerDeciliter) -
-                  first.quantity.doubleValue(for: .milligramsPerDeciliter)
-        return dBG / dtMin
-    }
-
-    // MARK: – Glucose-based application factor
-
-    /// Piecewise-linear curve mapping current BG to applicationFactor.
-    ///
-    /// - At BG ≤ `lowAnchor`: returns `factorLow`.
-    /// - At BG ≥ `highAnchor`: returns `factorHigh`.
-    /// - Between: linear interpolation.
-    ///
-    /// Designed for the Priority-3 case "reduce highs without increasing
-    /// lows": with `factorLow=0.4, factorHigh=0.7, lowAnchor=140, highAnchor=220`,
-    /// auto-bolus delivers a larger fraction of the recommended correction
-    /// when BG is heading high, and the same fraction as today (0.4) when BG
-    /// is near or below target — never more aggressive at moments where
-    /// over-delivery would risk hypoglycemia.
-    public static func glucoseBasedApplicationFactor(
-        currentBG: Double,
-        lowAnchor: Double,
-        highAnchor: Double,
-        factorLow: Double,
-        factorHigh: Double
-    ) -> Double {
-        guard highAnchor > lowAnchor else { return factorLow }
-        if currentBG <= lowAnchor { return factorLow }
-        if currentBG >= highAnchor { return factorHigh }
-        let frac = (currentBG - lowAnchor) / (highAnchor - lowAnchor)
-        return factorLow + frac * (factorHigh - factorLow)
-    }
-
     // MARK: – Effect sampling
 
     /// Linear-interpolate a GlucoseEffect time-series at an arbitrary date.
@@ -587,11 +495,7 @@ public actor EvaluationEngine {
         maxBasalRate: Double,
         insulinType: ExponentialInsulinModelPreset,
         evalStep: TimeInterval,
-        applicationFactor: Double = 0.4,
-        dynamicISFMode: Bool = false,
-        dynamicISFWindowHours: Double = 2.0,
-        dynamicISFICEThreshold: Double = 0.5,
-        dynamicISFMaxBoost: Double = 0.5
+        applicationFactor: Double = 0.4
     ) -> DoseOutput? {
         guard let scheduledBasalEntry = input.basal.first(where: { $0.startDate <= t && $0.endDate > t })
             ?? input.basal.closestPrior(to: t) else { return nil }
@@ -600,96 +504,35 @@ public actor EvaluationEngine {
         let suspend = suspendThreshold ?? input.target.closestPrior(to: t)?.value.lowerBound
         guard let suspend else { return nil }
 
-        // ISF for dosing — single value at t, extended forward to cover forecast
-        let forecastEnd = t.addingTimeInterval(insulinType.model.effectDuration)
-        guard let sensitivityAtT = input.sensitivity.first(where: { $0.startDate <= t && $0.endDate >= t })
-            ?? input.sensitivity.closestPrior(to: t) else { return nil }
-
-        // Pass 1: compute the original recommendation with unscaled ISF.
-        let sensitivityEnd = max(forecastEnd, prediction.effects.insulin.last?.startDate ?? forecastEnd)
-        let sensitivityOriginal = [AbsoluteScheduleValue(
-            startDate: sensitivityAtT.startDate,
-            endDate: sensitivityEnd,
-            value: sensitivityAtT.value
-        )]
-        let maxActiveInsulin = maxBolus * 2   // default multiplier used by Loop
+        // Use the FULL sensitivity schedule from input, not just the at-t value.
+        // The schedule may include per-future-time ISF boosts (e.g., from
+        // --candidate-isf-csv) that Loop's dose-calc must see across its 6h
+        // forecast horizon — otherwise the boost only affects the prediction
+        // but not the correction sizing, and the oracle is silently no-op.
+        guard !input.sensitivity.isEmpty else { return nil }
+        let maxActiveInsulin = maxBolus * 2
         let activeInsulin = prediction.activeInsulin ?? 0
 
-        func runRecommendation(sensitivity: [AbsoluteScheduleValue<LoopQuantity>])
-            -> (bolus: Double, tempRate: Double)
-        {
-            let correction = LoopAlgorithm.insulinCorrection(
-                prediction: prediction.glucose,
-                at: t,
-                target: input.target,
-                suspendThreshold: suspend,
-                sensitivity: sensitivity,
-                insulinModel: insulinType.model
-            )
-            let recommendation = LoopAlgorithm.recommendAutomaticDose(
-                for: correction,
-                applicationFactor: applicationFactor,
-                neutralBasalRate: scheduledRate,
-                activeInsulin: activeInsulin,
-                maxBolus: maxBolus,
-                maxBasalRate: maxBasalRate,
-                maxActiveInsulin: maxActiveInsulin
-            )
-            return (recommendation.bolusUnits ?? 0,
-                    recommendation.basalAdjustment.unitsPerHour)
-        }
+        let correction = LoopAlgorithm.insulinCorrection(
+            prediction: prediction.glucose,
+            at: t,
+            target: input.target,
+            suspendThreshold: suspend,
+            sensitivity: input.sensitivity,
+            insulinModel: insulinType.model
+        )
+        let recommendation = LoopAlgorithm.recommendAutomaticDose(
+            for: correction,
+            applicationFactor: applicationFactor,
+            neutralBasalRate: scheduledRate,
+            activeInsulin: activeInsulin,
+            maxBolus: maxBolus,
+            maxBasalRate: maxBasalRate,
+            maxActiveInsulin: maxActiveInsulin
+        )
+        let bolus = recommendation.bolusUnits ?? 0
+        let tempRate = recommendation.basalAdjustment.unitsPerHour
 
-        var (bolus, tempRate) = runRecommendation(sensitivity: sensitivityOriginal)
-
-        // Dynamic-ISF: scale ISF up only when Loop is in the DOSING regime
-        // (planned net delivery > scheduled basal). In the suspend regime,
-        // scaling ISF up shrinks suspension magnitude — directionally wrong.
-        //
-        // Detection: most-negative 30-min rolling-mean ICE within the past
-        // `dynamicISFWindowHours`. The MIN-over-window keeps the boost in
-        // effect through the post-low rebound, when Loop would otherwise
-        // dose into rescue-carb rise and cause a double-low.
-        if dynamicISFMode {
-            let intendedToDose = bolus > 0 || tempRate > scheduledRate
-            if intendedToDose {
-                let lookbackStart = t.addingTimeInterval(-dynamicISFWindowHours * 3600)
-                let pastICE = prediction.effects.insulinCounteraction.filter {
-                    $0.endDate <= t && $0.startDate >= lookbackStart
-                }
-                let subWindowSec: TimeInterval = 30 * 60
-                var minRollingMean = Double.infinity
-                for i in 0..<pastICE.count {
-                    let endT = pastICE[i].endDate
-                    let windowStart = endT.addingTimeInterval(-subWindowSec)
-                    var sum = 0.0
-                    var count = 0
-                    for j in stride(from: i, through: 0, by: -1) {
-                        if pastICE[j].endDate <= windowStart { break }
-                        sum += pastICE[j].quantity.doubleValue(for: .milligramsPerDeciliterPerMinute)
-                        count += 1
-                    }
-                    guard count >= 4 else { continue }
-                    let mean = sum / Double(count)
-                    if mean < minRollingMean { minRollingMean = mean }
-                }
-                if minRollingMean < -dynamicISFICEThreshold {
-                    let excess = -minRollingMean - dynamicISFICEThreshold
-                    let boost = min(dynamicISFMaxBoost, excess / dynamicISFICEThreshold)
-                    let unit = sensitivityAtT.value.unit
-                    let scaled = sensitivityAtT.value.doubleValue(for: unit) * (1.0 + boost)
-                    let sensitivityScaled = [AbsoluteScheduleValue(
-                        startDate: sensitivityAtT.startDate,
-                        endDate: sensitivityEnd,
-                        value: LoopQuantity(unit: unit, doubleValue: scaled)
-                    )]
-                    (bolus, tempRate) = runRecommendation(sensitivity: sensitivityScaled)
-                }
-            }
-        }
-
-        // Delta delivery over the next evalStep:
-        //   bolus + (tempRate - scheduledRate) × evalStep/3600
-        // Positive = more than scheduled basal, negative = less.
         let basalDeltaU = (tempRate - scheduledRate) * evalStep / 3600
         let deltaU = bolus + basalDeltaU
 

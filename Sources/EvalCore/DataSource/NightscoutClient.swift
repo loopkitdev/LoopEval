@@ -54,10 +54,12 @@ public struct NightscoutTreatment: Decodable, Sendable {
     public let isSMB: Bool?
     /// Whether this was an automatic (algorithm-driven) delivery
     public let automatic: Bool?
+    /// Meal time for carb entries — may differ from created_at when user enters past/future meals
+    public let timestamp: String?
 
     private enum CodingKeys: String, CodingKey {
         case created_at, eventType, insulin, carbs, rate, duration,
-             absolute, percent, isSMB, automatic
+             absolute, percent, isSMB, automatic, timestamp
     }
 }
 

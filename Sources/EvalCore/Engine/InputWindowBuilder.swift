@@ -59,20 +59,15 @@ struct InputWindowBuilder: Sendable {
     /// - Parameter includeFutureInsulin: Override for the config flag. Pass `false` to
     ///   exclude doses after `t` (useful for side-by-side comparison curves). Defaults
     ///   to `config.includeFutureInsulin`.
-    /// - Parameter includeFutureCarbs: Override for the config flag. Pass `false` to
-    ///   exclude carb entries after `t` for real-time replay. Defaults to
-    ///   `config.includeFutureCarbs`.
     ///
     /// Returns `nil` if there is insufficient data — specifically, if there is no
     /// CGM reading within the last 30 minutes of `t`.
-    func buildInput(
-        at t: Date,
-        includeFutureInsulin overrideFuture: Bool? = nil,
-        includeFutureCarbs overrideFutureCarbs: Bool? = nil
-    ) -> PredictionInput? {
+    func buildInput(at t: Date,
+                    includeFutureInsulin overrideFuture: Bool? = nil,
+                    includeFutureCarbs overrideFutureCarbs: Bool? = nil) -> PredictionInput? {
 
         let useFutureInsulin = overrideFuture ?? config.includeFutureInsulin
-        let useFutureCarbs = overrideFutureCarbs ?? config.includeFutureCarbs
+        let useFutureCarbs   = overrideFutureCarbs ?? config.includeFutureCarbs
 
         // ── Glucose ─────────────────────────────────────────────────────────────
         let glucoseWindowStart = t.addingTimeInterval(-config.glucoseLookbackHours * 3600)
@@ -102,11 +97,18 @@ struct InputWindowBuilder: Sendable {
         let dosesSlice = dLo < dHi ? Array(doses[dLo..<dHi]) : []
 
         // ── Carbs ────────────────────────────────────────────────────────────────
+        // Window the absorption-relevant range by MEAL TIME (startDate), then
+        // gate visibility by ENTRY TIME (entryDate): Loop only knows about a
+        // carb at step t if the user already logged it (entryDate <= t). Meal
+        // time can sit anywhere in the absorption window.
         let carbWindowStart = t.addingTimeInterval(-8 * 3600)
-        let carbWindowEnd = useFutureCarbs ? t.addingTimeInterval(6 * 3600) : t
+        let carbWindowEnd   = t.addingTimeInterval(6 * 3600)
         let cLo = lowerBound(carbs, by: carbWindowStart, key: \.startDate)
         let cHi = upperBound(carbs, by: carbWindowEnd, key: \.startDate)
-        let carbsSlice = cLo < cHi ? Array(carbs[cLo..<cHi]) : []
+        var carbsSlice = cLo < cHi ? Array(carbs[cLo..<cHi]) : []
+        if !useFutureCarbs {
+            carbsSlice = carbsSlice.filter { $0.entryDate <= t }
+        }
 
         // ── Earliest dose start (needed for basal + ISF alignment) ──────────────
         // Doses are overlap-filtered: some may have startDates BEFORE basalWindowStart
@@ -183,8 +185,7 @@ struct InputWindowBuilder: Sendable {
         basalSlice = applyBasalMultiplier(basalSlice)
 
         // ── Carb Ratio ───────────────────────────────────────────────────────────
-        // Must cover all included carb entry startDates. In oracle/debug mode
-        // this extends to t+6h; in real-time replay it stops at t.
+        // Must cover ALL carb entry startDates: [t-8h, t+6h]
         let crBack = carbWindowStart    // = t - 8h
         let crFwd  = carbWindowEnd      // = t + 6h
         var carbRatioSlice = sliceSchedule(

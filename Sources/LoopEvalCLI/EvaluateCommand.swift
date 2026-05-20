@@ -50,8 +50,8 @@ struct EvaluateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Disable Kalman smoothing of actual CGM used for comparison")
     var noKalman: Bool = false
 
-    @Flag(name: .long, help: "Exclude future-scheduled insulin (real-time simulation mode)")
-    var noFutureInsulin: Bool = false
+    @Flag(name: .long, help: "Oracle mode: include future doses in Loop's prediction window. Default OFF since 2026-05-17.")
+    var oracleFutureInputs: Bool = false
 
     @Option(name: .long, help: "ISF multiplier applied to Nightscout sensitivity values (default: 1.0). Values >1 raise ISF (less aggressive), <1 lower ISF (more aggressive).")
     var sensitivityMultiplier: Double = 1.0
@@ -73,12 +73,6 @@ struct EvaluateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Output format: table | json | csv")
     var output: String = "table"
 
-    @Option(name: .long, help: "Save a snapshot JSON for later use with `loop-eval compare`")
-    var save: String?
-
-    @Option(name: .long, help: "Label embedded in the snapshot (defaults to the file name)")
-    var label: String?
-
     // MARK: – Run
 
     mutating func run() async throws {
@@ -97,7 +91,7 @@ struct EvaluateCommand: AsyncParsableCommand {
         // 3. Build EvalConfig
         let config = EvalConfig(
             evalStep: TimeInterval(stepMinutes) * 60,
-            includeFutureInsulin: !noFutureInsulin,
+            includeFutureInsulin: oracleFutureInputs,
             useIntegralRC: integralRC,
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: sensitivityMultiplier,
@@ -170,26 +164,6 @@ struct EvaluateCommand: AsyncParsableCommand {
             )
         }
 
-        // 10. Optionally save snapshot for later comparison
-        if let savePath = save {
-            let snapshot = EvalSnapshot(
-                label: label ?? URL(fileURLWithPath: savePath).deletingPathExtension().lastPathComponent,
-                runDate: Date(),
-                intervalStart: startDate,
-                intervalEnd: endDate,
-                insulinType: insulinType,
-                config: config,
-                predictionCount: result.predictionCount,
-                skippedCount: result.skippedCount,
-                score: score
-            )
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            encoder.dateEncodingStrategy = .iso8601
-            let data = try encoder.encode(snapshot)
-            try data.write(to: URL(fileURLWithPath: savePath))
-            printStderr("Snapshot saved → \(savePath)\n")
-        }
     }
 }
 

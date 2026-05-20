@@ -73,7 +73,7 @@ struct CacheCommand: AsyncParsableCommand {
 
         // Use EvaluationEngine.prefetchData to trigger all fetches with their
         // buffers (this is the same call that evaluate makes internally).
-        let config     = EvalConfig.default
+        let config     = EvalConfig()
         let engine     = EvaluationEngine(dataSource: dataSource)
 
         let t0 = Date()

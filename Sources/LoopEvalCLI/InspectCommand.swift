@@ -37,8 +37,8 @@ struct InspectCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Use integral retrospective correction")
     var integralRc: Bool = false
 
-    @Flag(name: .long, help: "Exclude future insulin from predictions")
-    var noFutureInsulin: Bool = false
+    @Flag(name: .long, help: "Oracle mode: include future doses in Loop's prediction window. Default OFF since 2026-05-17.")
+    var oracleFutureInputs: Bool = false
 
     @Option(name: .long, help: "Nightscout API secret (if auth required)")
     var apiSecret: String?
@@ -67,7 +67,7 @@ struct InspectCommand: AsyncParsableCommand {
         // ── Build config ──────────────────────────────────────────────────────────
         let preset = try parseInsulinType(insulinType)
         let config = EvalConfig(
-            includeFutureInsulin: !noFutureInsulin,
+            includeFutureInsulin: oracleFutureInputs,
             useIntegralRC: integralRc,
             kalmanSmoothing: !noKalman
         )

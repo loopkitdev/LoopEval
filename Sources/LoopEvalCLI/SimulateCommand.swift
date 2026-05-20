@@ -65,9 +65,6 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Use asymmetric momentum for candidate")
     var candidateAsymmetricMomentum: Bool = false
 
-    @Flag(name: .long, help: "Use hybrid momentum for candidate (linear regression on rises, fast EMA on drops)")
-    var candidateHybridAsymmetricMomentum: Bool = false
-
     @Option(name: .long, help: "Candidate asymmetric-momentum alpha-slow (default 0.15)")
     var candidateMomentumAlphaSlow: Double = 0.15
 
@@ -80,86 +77,41 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Per-hour candidate ISF multipliers (24 csv)")
     var candidateIsfHourly: String?
 
-    @Flag(name: .long, help: "Enable dynamic-ISF on candidate")
-    var candidateDynamicIsf: Bool = false
-
-    @Option(name: .long, help: "Dyn-ISF lookback (h)")
-    var candidateDynamicIsfWindowHours: Double = 2.0
-
-    @Option(name: .long, help: "Dyn-ISF ICE threshold")
-    var candidateDynamicIsfIceThreshold: Double = 0.5
-
-    @Option(name: .long, help: "Dyn-ISF max boost")
-    var candidateDynamicIsfMaxBoost: Double = 0.5
-
-    @Flag(name: .long, help: "Enable asymmetric dynamic-ISF cap-and-lock for candidate. Layered on top of in-algorithm dynamic-ISF: once it fires, locks in the suppressed dose as a cap for the lock-hours window, preventing IOB-echo over-doses.")
-    var candidateAsymmetricDynamicIsf: Bool = false
-
-    @Option(name: .long, help: "Asymmetric dynamic-ISF MAX lockout hours (default 2.0)")
-    var candidateAsymmetricDynamicIsfLockHours: Double = 2.0
-
-    @Option(name: .long, help: "Asymmetric dynamic-ISF MIN lockout hours — boost holds at least this long after trigger (default 0.5)")
-    var candidateAsymmetricDynamicIsfMinLockHours: Double = 0.5
-
-    @Option(name: .long, help: "Asymmetric dynamic-ISF: BG (mg/dL) above which boost releases immediately (default 250)")
-    var candidateAsymmetricDynamicIsfReleaseHighBG: Double = 250.0
-
-    @Option(name: .long, help: "Asymmetric dynamic-ISF: BG (mg/dL) above which boost releases if sustained (default 180)")
-    var candidateAsymmetricDynamicIsfSustainedHighBG: Double = 180.0
-
-    @Option(name: .long, help: "Asymmetric dynamic-ISF: minutes BG must stay above sustained-high threshold (default 30)")
-    var candidateAsymmetricDynamicIsfSustainedHighMinutes: Double = 30.0
-
-    @Option(name: .long, help: "Asymmetric dynamic-ISF: BG (mg/dL) below which boost will NOT release regardless of other conditions (default 120)")
-    var candidateAsymmetricDynamicIsfKeepActiveBelowBG: Double = 120.0
-
-    @Flag(name: .long, help: "Enable glucose-based application factor (GBAF) for candidate — auto-bolus app-factor scales with current BG")
-    var candidateGbaf: Bool = false
-
-    @Option(name: .long, help: "GBAF curve: BG (mg/dL) at/below which factor=factorLow (default 140)")
-    var candidateGbafLowAnchor: Double = 140.0
-
-    @Option(name: .long, help: "GBAF curve: BG (mg/dL) at/above which factor=factorHigh (default 220)")
-    var candidateGbafHighAnchor: Double = 220.0
-
-    @Option(name: .long, help: "GBAF curve: applicationFactor at lowAnchor (default 0.4)")
-    var candidateGbafFactorLow: Double = 0.4
-
-    @Option(name: .long, help: "GBAF curve: applicationFactor at highAnchor (default 0.7)")
-    var candidateGbafFactorHigh: Double = 0.7
-
-    @Option(name: .long, help: "Smooth-boost mode: path to CSV with (time,score) for risk-score-driven smooth ISF boost. Replaces binary trigger.")
-    var candidateSmoothBoostCsv: String?
-
-    @Flag(name: .long, help: "Smooth-boost mode: compute risk score INLINE from counter-state at each step (uses baked-in RiskScoreModel coefficients). Mutually exclusive with --candidate-smooth-boost-csv.")
-    var candidateSmoothBoostInline: Bool = false
-
-    @Option(name: .long, help: "When smooth-boost-inline is on, also dump per-step features to this CSV path for diagnostic comparison against Python.")
-    var candidateSmoothBoostFeaturesOut: String?
-
-    @Option(name: .long, help: "Smooth-boost: score at/below this → no boost (default 0.4)")
-    var candidateSmoothBoostLowAnchor: Double = 0.4
-
-    @Option(name: .long, help: "Smooth-boost: score at/above this → max boost (default 0.6)")
-    var candidateSmoothBoostHighAnchor: Double = 0.6
-
-    @Option(name: .long, help: "Smooth-boost: max ISF boost magnitude (default 0.5 = +50%)")
-    var candidateSmoothBoostMax: Double = 0.5
-
-    @Option(name: .long, help: "Bidirectional smooth-boost: score at/below this → max negative boost (more aggressive ISF). Default 0 (disabled).")
-    var candidateSmoothBoostDownLowAnchor: Double = 0.0
-
-    @Option(name: .long, help: "Bidirectional smooth-boost: max ISF reduction when score is confidently low (default 0 = unidirectional)")
-    var candidateSmoothBoostMaxDown: Double = 0.0
-
     @Option(name: .long, help: "Local timezone identifier")
     var localTimezone: String?
 
-    @Option(name: .long, help: "Optional: load baseline dose-per-timestamp from a previously-saved trace JSON. When provided, skips the baseline simStepDose calls — useful for sweeps where many cells share an identical baseline.")
-    var baselineFromTrace: String?
-
     @Option(name: .long, help: "Output trace JSON path (compatible with tir_methodology_report.py)")
     var traceOut: String
+
+    @Flag(name: .long, help: "Oracle mode: let sim Loop see future doses in its prediction dose window (legacy backward-compat default behavior). Causes sim Loop to forecast based on insulin it hasn't 'delivered yet' — produces dramatically over-suspended decisions. Default OFF — clean real-time replay.")
+    var oracleFutureInputs: Bool = false
+
+    @Flag(name: .long, help: "Counterfactual sim mode: candidate's recommendations REPLACE real-pump deliveries (not just add as marginal delta vs sim Loop alone). Required for evaluating candidates that fundamentally diverge from real Loop's dosing. Loop's prediction sees only candidate's accumulated deliveries (warm-up-seeded with real pump for the DIA preceding sim start so initial IOB matches reality).")
+    var candidateCounterfactual: Bool = false
+
+    @Option(name: .long, help: "Counterfactual burn-in hours (default 6.0): real-pump deliveries drive the sim for this period before counterfactual divergence starts. Gives candidate's prediction a fully-realistic recent dose history at the moment CF mode activates.")
+    var candidateCounterfactualBurnInHours: Double = 6.0
+
+    @Option(name: .long, help: "Positive momentum velocity cap (mg/dL/min). LoopAlgorithm default is 4 mg/dL/min, which limits rising-BG momentum extrapolation. Real-deployed Loop in this user's case had NO cap; pass a high value (e.g., 100) to effectively disable.")
+    var candidateMomentumCap: Double?
+
+    @Option(name: .long, help: "Per-step ISF multiplier CSV: (time, isf_multiplier) pairs. At each sim step, scales ISF by the value from the CSV nearest to step time (default 1.0 = no change). Use values >1 to make Loop see ISF as higher (less BG drop per U → recommends less dose, DAMP direction). Use <1 to make Loop see ISF as lower (more dose, BOOST direction). Steps with no matching CSV row are unchanged.")
+    var candidateIsfCsv: String?
+
+    @Option(name: .long, help: "Time-matching tolerance for --candidate-isf-csv (seconds, default 150 = ±2.5min)")
+    var candidateIsfCsvToleranceSec: Double = 150.0
+
+    @Flag(name: .long, help: "Apply candidate ISF boost (multiplier and/or per-step CSV) ONLY to the active-insulin term: dose-recommendation sizing and the positive-net-units glucose-effect. The EGP-credit term (negative netBasalUnits — implicit endogenous glucose production from suspending below schedule) continues to use the unmodulated scheduled ISF via Phase-1's scheduleBaselineSensitivity parameter. Default OFF preserves the legacy conflated behavior so pre-Phase-1 results stay reproducible.")
+    var candidateIsfBoostActiveOnly: Bool = false
+
+    @Option(name: .long, help: "Path to an outage CSV (start,end,reason,source,notes) describing windows where the physical pump could not deliver insulin (pod failure, occlusion, manual disconnect). During each outage the sim clamps both candidate and baseline absolute delivery to 0 so counter_BG isn't contaminated by phantom basal. Generate with `analysis/case-study` tooling: `python -m loopeval_analysis.outage from-nightscout ...`")
+    var outagesCsv: String?
+
+    @Flag(name: .long, help: "Phase 2: compute the active-insulin glucose-effect over PHYSICAL delivered insulin (volume) rather than net-basal-units, so a candidate ISF boost amplifies real insulin even when delivery is below scheduled basal. Requires --candidate-isf-boost-active-only. Without it, sub-basal insulin sits in the EGP-credit term and the boost can't reach it (the Mar-29 'negative insulin' case). Default OFF (classic net-basal-units).")
+    var candidateEgpPhysical: Bool = false
+
+    @Option(name: .long, help: "CGM stale-data guard (minutes). Loop refuses to issue a new dose when the latest glucose is older than its inputDataRecencyInterval (15min). The sim's per-step dose path bypasses that guard, so set this to 15 to apply it: at any step where the latest CGM sample is older than N minutes, the sim makes NO dose adjustment (candidate and baseline keep delivering scheduled basal — unlike a pump outage, basal still flows during a CGM gap). 0 = disabled (legacy behavior; dose on stale data). Single missed samples (~10min) stay under 15min and are 'paved over'; 2+ missed samples cross the threshold and are treated as a gap.")
+    var cgmStaleGuardMin: Double = 0
 
     mutating func run() async throws {
         let startDate = try parseISO8601Date(start)
@@ -181,7 +133,8 @@ struct SimulateCommand: AsyncParsableCommand {
 
         let baselineConfig = EvalConfig(
             evalStep: TimeInterval(stepMinutes) * 60,
-            includeFutureInsulin: true,
+            includeFutureInsulin: oracleFutureInputs,
+            includeFutureCarbs: oracleFutureInputs,
             useIntegralRC: integralRC,
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: sensitivityMultiplier,
@@ -191,32 +144,17 @@ struct SimulateCommand: AsyncParsableCommand {
 
         let candidateConfig = EvalConfig(
             evalStep: TimeInterval(stepMinutes) * 60,
-            includeFutureInsulin: true,
+            includeFutureInsulin: oracleFutureInputs,
+            includeFutureCarbs: oracleFutureInputs,
             useIntegralRC: candidateIntegralRC || integralRC,
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,
             sensitivityHourlyMultipliers: hourlyISF,
             localTimezone: resolvedTz,
+            positiveVelocityCap: candidateMomentumCap,
             useAsymmetricMomentum: candidateAsymmetricMomentum || asymmetricMomentum,
-            useHybridAsymmetricMomentum: candidateHybridAsymmetricMomentum,
             momentumAlphaSlow: candidateMomentumAlphaSlow,
-            momentumAlphaFast: candidateMomentumAlphaFast,
-            glucoseBasedApplicationFactor: candidateGbaf,
-            gbafLowAnchor: candidateGbafLowAnchor,
-            gbafHighAnchor: candidateGbafHighAnchor,
-            gbafFactorLow: candidateGbafFactorLow,
-            gbafFactorHigh: candidateGbafFactorHigh,
-            dynamicISFMode: candidateDynamicIsf,
-            dynamicISFWindowHours: candidateDynamicIsfWindowHours,
-            dynamicISFICEThreshold: candidateDynamicIsfIceThreshold,
-            dynamicISFMaxBoost: candidateDynamicIsfMaxBoost,
-            asymmetricDynamicISF: candidateAsymmetricDynamicIsf,
-            asymmetricDynamicISFLockHours: candidateAsymmetricDynamicIsfLockHours,
-            asymmetricDynamicISFMinLockHours: candidateAsymmetricDynamicIsfMinLockHours,
-            asymmetricDynamicISFReleaseHighBG: candidateAsymmetricDynamicIsfReleaseHighBG,
-            asymmetricDynamicISFSustainedHighBG: candidateAsymmetricDynamicIsfSustainedHighBG,
-            asymmetricDynamicISFSustainedHighMinutes: candidateAsymmetricDynamicIsfSustainedHighMinutes,
-            asymmetricDynamicISFKeepActiveBelowBG: candidateAsymmetricDynamicIsfKeepActiveBelowBG
+            momentumAlphaFast: candidateMomentumAlphaFast
         )
 
         guard let baseURL = URL(string: nightscoutUrl) else { throw ValidationError("Invalid URL") }
@@ -229,18 +167,27 @@ struct SimulateCommand: AsyncParsableCommand {
         let data = try await engine.prefetchData(for: interval, config: baselineConfig)
         printStderr("done\n")
 
-        // Load smooth-boost scores if provided.
-        var smoothBoostScores: [(Date, Double)]? = nil
-        if let csvPath = candidateSmoothBoostCsv {
-            smoothBoostScores = try Self.loadScoresCSV(path: csvPath)
-            printStderr("Loaded \(smoothBoostScores?.count ?? 0) smooth-boost scores from \(csvPath)\n")
+        // Optional per-step ISF multiplier CSV (time → multiplier).
+        let isfMultMap: [Date: Double]?
+        if let path = candidateIsfCsv {
+            isfMultMap = try Self.loadIsfMultiplierCSV(
+                path: path,
+                stepSeconds: TimeInterval(stepMinutes) * 60
+            )
+            printStderr("Loaded ISF CSV: \(isfMultMap?.count ?? 0) per-step multipliers; mean=\(isfMultMap.map { $0.values.reduce(0, +) / Double($0.count) } ?? 1.0)\n")
+        } else {
+            isfMultMap = nil
         }
 
-        // Load baseline dose cache if provided.
-        var baselineDoseLookup: [(Date, Double)]? = nil
-        if let tracePath = baselineFromTrace {
-            baselineDoseLookup = try Self.loadBaselineDosesFromTrace(path: tracePath)
-            printStderr("Loaded \(baselineDoseLookup?.count ?? 0) baseline doses from \(tracePath)\n")
+        let outages: [Outage]
+        if let csv = outagesCsv {
+            outages = try OutageCSV.load(from: csv)
+            printStderr("Loaded \(outages.count) outage(s) from \(csv)\n")
+            let totalMin = outages.reduce(0.0) { $0 + $1.interval.duration / 60 }
+            printStderr("  total outage time: \(String(format: "%.0f", totalMin)) min "
+                        + "(\(String(format: "%.2f", totalMin / (interval.duration / 60) * 100))% of window)\n")
+        } else {
+            outages = []
         }
 
         printStderr("Running closed-loop simulation (sequential, ~10× slower than bench)...\n")
@@ -251,21 +198,16 @@ struct SimulateCommand: AsyncParsableCommand {
             candidateConfig: candidateConfig,
             baselineLabel: baselineLabel,
             candidateLabel: candidateLabel,
-            progress: { f in
-                let pct = Int(f * 100)
-                printStderr("\rProgress: \(pct)%  ")
-            },
-            smoothBoostScores: smoothBoostScores,
-            smoothBoostLowAnchor: candidateSmoothBoostLowAnchor,
-            smoothBoostHighAnchor: candidateSmoothBoostHighAnchor,
-            smoothBoostMaxBoost: candidateSmoothBoostMax,
-            smoothBoostInline: candidateSmoothBoostInline,
-            smoothBoostFeaturesOut: candidateSmoothBoostFeaturesOut,
-            smoothBoostDownLowAnchor: candidateSmoothBoostDownLowAnchor,
-            smoothBoostMaxBoostDown: candidateSmoothBoostMaxDown,
-            baselineDoseLookup: baselineDoseLookup
+            isfMultiplierByStep: isfMultMap,
+            isfBoostActiveOnly: candidateIsfBoostActiveOnly,
+            egpPhysicalDecomposition: candidateEgpPhysical,
+            outages: outages,
+            cgmStaleGuardSec: cgmStaleGuardMin * 60,
+            counterfactualMode: candidateCounterfactual,
+            counterfactualBurnInSec: candidateCounterfactualBurnInHours * 3600,
+            progress: Self.makeProgressReporter()
         )
-        printStderr("\rProgress: 100%\n")
+        printStderr("Progress: 100%\n")
 
         // Emit trace JSON in the same shape as bench --trace-out so the
         // existing python report script can consume it. Add a `closedLoop`
@@ -276,70 +218,6 @@ struct SimulateCommand: AsyncParsableCommand {
             to: URL(fileURLWithPath: traceOut)
         )
         printStderr("Closed-loop trace → \(traceOut)\n")
-    }
-
-    /// Load baseline (time, dose) pairs from a previously-emitted closed-loop
-    /// trace JSON. Used to skip the baseline simStepDose call when many sweep
-    /// cells share an identical baseline.
-    static func loadBaselineDosesFromTrace(path: String) throws -> [(Date, Double)] {
-        let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
-        let data = try Data(contentsOf: url)
-        struct Pred: Decodable { let t: String; let baselineDose: Double }
-        struct Trace: Decodable { let predictions: [Pred] }
-        let trace = try JSONDecoder().decode(Trace.self, from: data)
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let formatterNoFrac = ISO8601DateFormatter()
-        formatterNoFrac.formatOptions = [.withInternetDateTime]
-        var out: [(Date, Double)] = []
-        out.reserveCapacity(trace.predictions.count)
-        for p in trace.predictions {
-            guard let date = formatter.date(from: p.t) ?? formatterNoFrac.date(from: p.t) else {
-                continue
-            }
-            out.append((date, p.baselineDose))
-        }
-        out.sort { $0.0 < $1.0 }
-        return out
-    }
-
-    /// Load (time, score) pairs from a CSV. Expects header row with `time` and
-    /// `score` columns; ignores other columns. Times must be ISO-8601.
-    static func loadScoresCSV(path: String) throws -> [(Date, Double)] {
-        let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
-        let text = try String(contentsOf: url, encoding: .utf8)
-        let lines = text.split(separator: "\n", omittingEmptySubsequences: true)
-        guard !lines.isEmpty else { return [] }
-        let header = lines[0].split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
-        guard let timeIdx = header.firstIndex(of: "time"),
-              let scoreIdx = header.firstIndex(of: "score") else {
-            throw ValidationError("CSV must have 'time' and 'score' columns; got: \(header)")
-        }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let formatterNoFrac = ISO8601DateFormatter()
-        formatterNoFrac.formatOptions = [.withInternetDateTime]
-        var out: [(Date, Double)] = []
-        out.reserveCapacity(lines.count)
-        for line in lines.dropFirst() {
-            let cells = line.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
-            guard cells.count > max(timeIdx, scoreIdx) else { continue }
-            let timeStr = cells[timeIdx].trimmingCharacters(in: .whitespaces)
-            let scoreStr = cells[scoreIdx].trimmingCharacters(in: .whitespaces)
-            // Pandas writes either "2026-03-30 11:01:56" (no T) or with T.
-            // Normalize to ISO format with T and Z if needed.
-            var iso = timeStr.replacingOccurrences(of: " ", with: "T")
-            if !iso.hasSuffix("Z") && !iso.contains("+") {
-                iso += "Z"
-            }
-            guard let date = formatter.date(from: iso) ?? formatterNoFrac.date(from: iso),
-                  let score = Double(scoreStr) else {
-                continue
-            }
-            out.append((date, score))
-        }
-        out.sort { $0.0 < $1.0 }
-        return out
     }
 
     static func writeTrace(
@@ -357,6 +235,8 @@ struct SimulateCommand: AsyncParsableCommand {
             let candidateDose: Double
             let deltaDose: Double
             let isf: Double
+            let candidateBolus: Double      // auto-bolus U this step
+            let candidateTempRate: Double   // temp basal rate U/hr this step
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
         struct CounterSample: Codable { let t: String; let bg: Double }
@@ -379,7 +259,9 @@ struct SimulateCommand: AsyncParsableCommand {
                  baselineDose: $0.baselineDose,
                  candidateDose: $0.candidateDose,
                  deltaDose: $0.deltaDose,
-                 isf: $0.isf)
+                 isf: $0.isf,
+                 candidateBolus: $0.candidateBolus,
+                 candidateTempRate: $0.candidateTempRate)
         }
         let actualOut = data.glucose.sorted { $0.startDate < $1.startDate }.map {
             ActualSample(t: formatter.string(from: $0.startDate),
@@ -416,4 +298,74 @@ struct SimulateCommand: AsyncParsableCommand {
         let json = try encoder.encode(trace)
         try json.write(to: url)
     }
+
+    /// Parse a (time, isf_multiplier) CSV. Returns a per-step lookup keyed
+    /// by step time (rounded to nearest `stepSeconds` grid). Header row is
+    /// auto-skipped if its second column doesn't parse as a number.
+    static func loadIsfMultiplierCSV(
+        path: String,
+        stepSeconds: TimeInterval
+    ) throws -> [Date: Double] {
+        let text = try String(contentsOfFile: path, encoding: .utf8)
+        // Strict ISO8601 first, then a permissive fallback that accepts the
+        // pandas-default "YYYY-MM-DD HH:MM:SS+00:00" (space separator instead
+        // of 'T'). We lost a debugging session because pandas produced the
+        // space form and ISO8601DateFormatter silently rejected every row.
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        let isoFrac = ISO8601DateFormatter()
+        isoFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var out: [Date: Double] = [:]
+        for raw in text.split(separator: "\n", omittingEmptySubsequences: true) {
+            let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if line.isEmpty { continue }
+            let parts = line.split(separator: ",", maxSplits: 2).map { String($0).trimmingCharacters(in: .whitespaces) }
+            guard parts.count >= 2 else { continue }
+            guard let mult = Double(parts[1]) else { continue }
+            // Normalize space-separator → 'T' before handing to ISO8601 parser
+            let tsStr: String = {
+                var s = parts[0]
+                if s.count > 10, s[s.index(s.startIndex, offsetBy: 10)] == " " {
+                    s.replaceSubrange(s.index(s.startIndex, offsetBy: 10)...s.index(s.startIndex, offsetBy: 10), with: "T")
+                }
+                return s
+            }()
+            guard let t = iso.date(from: tsStr) ?? isoFrac.date(from: tsStr) else { continue }
+            let rounded = Date(timeIntervalSince1970:
+                (t.timeIntervalSince1970 / stepSeconds).rounded() * stepSeconds)
+            out[rounded] = mult
+        }
+        return out
+    }
+
+    /// Returns a `@Sendable` progress callback that prints a newline-per-event
+    /// "Progress: X%  elapsed=…s  ETA=…s" line — at most every 2 seconds AND
+    /// at every whole-percent change. Newlines so `tee` / log monitors see
+    /// updates; the throttle keeps it from spamming on per-step calls.
+    static func makeProgressReporter() -> @Sendable (Double) -> Void {
+        let state = ProgressState()
+        return { f in
+            let pct = Int(f * 100)
+            let now = Date()
+            state.lock.lock()
+            defer { state.lock.unlock() }
+            let elapsed = now.timeIntervalSince(state.startedAt)
+            let dueByPct = pct > state.lastPctReported
+            let dueByTime = now.timeIntervalSince(state.lastReportAt) >= 2.0
+            if dueByPct || dueByTime {
+                let eta = pct > 0 ? Int(elapsed * (100.0 - Double(pct)) / Double(pct)) : 0
+                printStderr("Progress: \(pct)%  elapsed=\(Int(elapsed))s  ETA=\(eta)s\n")
+                state.lastPctReported = pct
+                state.lastReportAt = now
+            }
+        }
+    }
+
+    private final class ProgressState: @unchecked Sendable {
+        let lock = NSLock()
+        let startedAt = Date()
+        var lastReportAt = Date()
+        var lastPctReported: Int = -1
+    }
+
 }

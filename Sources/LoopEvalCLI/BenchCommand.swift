@@ -68,8 +68,8 @@ struct BenchCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Disable Kalman smoothing of actual CGM used for comparison")
     var noKalman: Bool = false
 
-    @Flag(name: .long, help: "Exclude future-scheduled insulin (real-time simulation mode)")
-    var noFutureInsulin: Bool = false
+    @Flag(name: .long, help: "Oracle mode: include future doses in Loop's prediction window. Default OFF since 2026-05-17.")
+    var oracleFutureInputs: Bool = false
 
     @Option(name: .long, help: "ISF multiplier for baseline (default: 1.0)")
     var sensitivityMultiplier: Double = 1.0
@@ -138,58 +138,8 @@ struct BenchCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Candidate asymmetric-momentum alpha-fast (default: same as baseline)")
     var candidateMomentumAlphaFast: Double?
 
-    @Flag(name: .long, help: "Enable glucose-based application factor (GBAF) for candidate — auto-bolus app-factor scales with current BG")
-    var candidateGbaf: Bool = false
-
-    @Option(name: .long, help: "GBAF curve: BG (mg/dL) at/below which factor=factorLow (default 140)")
-    var candidateGbafLowAnchor: Double = 140.0
-
-    @Option(name: .long, help: "GBAF curve: BG (mg/dL) at/above which factor=factorHigh (default 220)")
-    var candidateGbafHighAnchor: Double = 220.0
-
-    @Option(name: .long, help: "GBAF curve: applicationFactor at lowAnchor (default 0.4)")
-    var candidateGbafFactorLow: Double = 0.4
-
-    @Option(name: .long, help: "GBAF curve: applicationFactor at highAnchor (default 0.7)")
-    var candidateGbafFactorHigh: Double = 0.7
-
-    @Flag(name: .long, help: "Enable post-low conservative mode for candidate (suppresses dosing for a window after a low)")
-    var candidatePostLow: Bool = false
-
-    @Option(name: .long, help: "Post-low conservative window (hours, default 3.0)")
-    var candidatePostLowWindow: Double = 3.0
-
-    @Option(name: .long, help: "Post-low conservative applicationFactor (default 0.2)")
-    var candidatePostLowAppFactor: Double = 0.2
-
-    @Option(name: .long, help: "Post-low entry threshold (mg/dL, default 70)")
-    var candidatePostLowEntryThreshold: Double = 70.0
-
-    @Option(name: .long, help: "Post-low rise-rate gate (mg/dL/min, 0=disabled). Only fires post-low mode if recent CGM rise rate exceeds this.")
-    var candidatePostLowRiseRateGate: Double = 0.0
-
-    @Flag(name: .long, help: "Post-low IOB headroom gate: only fire when IOB > threshold")
-    var candidatePostLowRequireIobHeadroom: Bool = false
-
-    @Option(name: .long, help: "Post-low IOB gate threshold (U, default -0.5)")
-    var candidatePostLowIobGateThreshold: Double = -0.5
-
-    @Flag(name: .long, help: "Enable dynamic-ISF for candidate: scale ISF used for dose calc when recent rolling-mean ICE indicates elevated sensitivity (forecast unchanged)")
-    var candidateDynamicIsf: Bool = false
-
-    @Option(name: .long, help: "Dynamic-ISF rolling window for ICE averaging (hours, default 2.0)")
-    var candidateDynamicIsfWindowHours: Double = 2.0
-
-    @Option(name: .long, help: "Dynamic-ISF ICE threshold (mg/dL/min, default 0.5). Mean ICE more negative than -threshold triggers scaling.")
-    var candidateDynamicIsfIceThreshold: Double = 0.5
-
-    @Option(name: .long, help: "Dynamic-ISF max ISF scale-up (default 0.5 = +50%)")
-    var candidateDynamicIsfMaxBoost: Double = 0.5
-
     // MARK: – Output
 
-    @Option(name: .long, help: "Write a comparison HTML report to this path")
-    var html: String?
 
     @Option(name: .long, help: "Write a per-timestep trace JSON (predictions, dose deltas, counterfactual BG) for analysis")
     var traceOut: String?
@@ -229,7 +179,7 @@ struct BenchCommand: AsyncParsableCommand {
         // 3. Build baseline config
         let baselineConfig = EvalConfig(
             evalStep: TimeInterval(stepMinutes) * 60,
-            includeFutureInsulin: !noFutureInsulin,
+            includeFutureInsulin: oracleFutureInputs,   // safe default: real-time replay
             useIntegralRC: integralRC,
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: sensitivityMultiplier,
@@ -244,7 +194,7 @@ struct BenchCommand: AsyncParsableCommand {
         // 4. Build candidate config (start from baseline, apply overrides)
         let candidateConfig = EvalConfig(
             evalStep: TimeInterval(stepMinutes) * 60,
-            includeFutureInsulin: candidateNoFutureInsulin ? false : !noFutureInsulin,
+            includeFutureInsulin: candidateNoFutureInsulin ? false : oracleFutureInputs,
             useIntegralRC: candidateIntegralRC || integralRC,
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,
@@ -255,23 +205,7 @@ struct BenchCommand: AsyncParsableCommand {
             positiveVelocityCap: candidateMomentumCap ?? momentumCap,
             useAsymmetricMomentum: candidateAsymmetricMomentum || asymmetricMomentum,
             momentumAlphaSlow: candidateMomentumAlphaSlow ?? momentumAlphaSlow,
-            momentumAlphaFast: candidateMomentumAlphaFast ?? momentumAlphaFast,
-            glucoseBasedApplicationFactor: candidateGbaf,
-            gbafLowAnchor: candidateGbafLowAnchor,
-            gbafHighAnchor: candidateGbafHighAnchor,
-            gbafFactorLow: candidateGbafFactorLow,
-            gbafFactorHigh: candidateGbafFactorHigh,
-            postLowConservativeMode: candidatePostLow,
-            postLowWindow: candidatePostLowWindow,
-            postLowAppFactor: candidatePostLowAppFactor,
-            postLowEntryThreshold: candidatePostLowEntryThreshold,
-            postLowRiseRateGate: candidatePostLowRiseRateGate,
-            postLowRequireIOBHeadroom: candidatePostLowRequireIobHeadroom,
-            postLowIOBGateThreshold: candidatePostLowIobGateThreshold,
-            dynamicISFMode: candidateDynamicIsf,
-            dynamicISFWindowHours: candidateDynamicIsfWindowHours,
-            dynamicISFICEThreshold: candidateDynamicIsfIceThreshold,
-            dynamicISFMaxBoost: candidateDynamicIsfMaxBoost
+            momentumAlphaFast: candidateMomentumAlphaFast ?? momentumAlphaFast
         )
 
         // 5. Create data source (use baseline insulin type for fetching)
@@ -375,24 +309,6 @@ struct BenchCommand: AsyncParsableCommand {
             printStderr("Trace JSON written → \(tracePath)\n")
         }
 
-        // 13. Write HTML report if requested
-        if let htmlPath = html {
-            let meta = ComparisonMeta(
-                baselineLabel: baselineLabel,
-                candidateLabel: candidateLabel,
-                intervalStart: startDate,
-                intervalEnd: endDate,
-                runDate: Date()
-            )
-            try ComparisonHTMLGenerator.write(
-                baseline: baselineScore,
-                candidate: candidateScore,
-                meta: meta,
-                to: URL(fileURLWithPath: htmlPath),
-                delivery: deliveryScores
-            )
-            printStderr("Comparison report written → \(htmlPath)\n")
-        }
     }
 
     // MARK: – Text comparison output

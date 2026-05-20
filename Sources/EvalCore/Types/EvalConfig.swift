@@ -9,11 +9,13 @@ public struct EvalConfig: Codable, Sendable {
     public var evalStep: TimeInterval
 
     /// Whether to include future-scheduled basal insulin in the dose window.
+    /// `SimulateCommand` overrides to `false` by default (clean decision-time
+    /// replay); pass `--oracle-future-inputs` for oracle/debug runs.
     public var includeFutureInsulin: Bool
 
-    /// Whether to include carb entries after the evaluated timestamp.
-    /// Forecast replay can use this as an oracle/debug mode, but real-time
-    /// replay and closed-loop simulation should leave it false.
+    /// Whether to include future-entered carbs in the per-step input window.
+    /// When false, carbs with entryDate > t are excluded (real-time replay).
+    /// When true, all carbs whose meal time falls in the window are visible (oracle mode).
     public var includeFutureCarbs: Bool
 
     /// How far back to look for insulin doses (hours).  Default: 16.
@@ -37,10 +39,9 @@ public struct EvalConfig: Codable, Sendable {
     public var includingPositiveVelocityAndRC: Bool
 
     /// Use mid-absorption ISF for insulin effects computation.
-    /// Default: TRUE — this isn't a behavior change, it's the correct way to
-    /// handle ISF-schedule transitions during a dose's absorption window.
-    /// Without it, a dose given just before an ISF change uses the old ISF
-    /// for its full absorption, which is just wrong.
+    /// Default: true — propagates per-future-time ISF schedule changes into
+    /// the BG prediction, which is needed for `--candidate-isf-csv` oracles
+    /// to actually affect Loop's forecast (not just the dose-calc sizing).
     public var useMidAbsorptionISF: Bool
 
     /// Carb absorption model.  Default: .piecewiseLinear.
@@ -48,20 +49,13 @@ public struct EvalConfig: Codable, Sendable {
 
     /// Multiplicative scalar applied to the ISF (sensitivity) timeline before
     /// passing to LoopAlgorithm.  1.0 = use values as-is from Nightscout.
-    /// ISF is mg/dL per unit of insulin, so HIGHER ISF means each unit drops
-    /// BG more, which means Loop recommends FEWER units for a given correction.
-    /// Values > 1.0 → larger ISF → MORE conservative dosing (less insulin).
-    /// Values < 1.0 → smaller ISF → MORE aggressive dosing (more insulin).
-    /// Default: 1.0.
+    /// Values > 1.0 → larger ISF → MORE conservative dosing.
+    /// Values < 1.0 → smaller ISF → MORE aggressive dosing.
     public var sensitivityMultiplier: Double
 
     /// Optional 24-element vector of per-local-hour ISF multipliers, applied
-    /// on top of `sensitivityMultiplier`. Index = local hour [0, 23]. Each
-    /// hour-aligned slice of the absolute sensitivity timeline gets multiplied
-    /// by the matching hour's value. nil = behave like `sensitivityMultiplier`
-    /// alone (no per-hour variation). Default: nil.
-    /// Requires `useMidAbsorptionISF = true` for hourly changes to be applied
-    /// at the time the change is needed (rather than ahead-of-effect).
+    /// on top of `sensitivityMultiplier`. Index = local hour [0, 23]. nil =
+    /// no per-hour variation.
     public var sensitivityHourlyMultipliers: [Double]?
 
     /// Local timezone for interpreting hour-of-day for
@@ -69,39 +63,26 @@ public struct EvalConfig: Codable, Sendable {
     public var localTimezone: TimeZone
 
     /// Multiplier applied to carb ratios from Nightscout (default: 1.0).
-    /// Values > 1 make CR larger (less insulin per carb), < 1 make it more aggressive.
     public var carbRatioMultiplier: Double
 
     /// Multiplier applied to basal rates from Nightscout (default: 1.0).
-    /// Values > 1 raise basal (more background insulin), < 1 lower it.
     public var basalRateMultiplier: Double
 
-    /// Lower bound of the in-target BG range (mg/dL).  Forecast-error metric
-    /// **OPR** fires when actual BG < targetLow (i.e., below target).  Default: 100.
+    /// Lower bound of the in-target BG range (mg/dL). OPR fires when actual BG < targetLow.
     public var targetLow: Double
 
-    /// Upper bound of the in-target BG range (mg/dL).  Forecast-error metric
-    /// **UPR** fires when actual BG > targetHigh.  Default: 115.
+    /// Upper bound of the in-target BG range (mg/dL). UPR fires when actual BG > targetHigh.
     public var targetHigh: Double
 
-    /// Clinical hypoglycemia threshold (mg/dL).  Delivery-based metric **ODR**
-    /// fires only when actual BG at horizon < dangerLow.  Distinct from
-    /// targetLow because ODR measures clinically dangerous over-delivery, not
-    /// merely out-of-target.  Default: 70 mg/dL (standard ADA hypo cutoff).
+    /// Clinical hypoglycemia threshold (mg/dL). Default: 70.
     public var dangerLow: Double
 
-    /// Clinical hyperglycemia threshold (mg/dL).  Delivery-based metric **UDR**
-    /// fires only when actual BG at horizon > dangerHigh.  Default: 180 mg/dL
-    /// (standard time-in-range high cutoff, ≈ 10 mmol/L).
+    /// Clinical hyperglycemia threshold (mg/dL). Default: 180.
     public var dangerHigh: Double
 
     /// Use asymmetric EMA momentum instead of standard linear regression.
     /// Slow to build positive momentum (alphaSlow), fast to shed it (alphaFast).
     public var useAsymmetricMomentum: Bool
-
-    /// Use hybrid momentum: standard linear regression on rises, fast EMA on drops.
-    /// Takes precedence over `useAsymmetricMomentum` when both are set.
-    public var useHybridAsymmetricMomentum: Bool
 
     /// Slow-rise alpha for asymmetric momentum EMA (default 0.15 ≈ 33 min time constant).
     public var momentumAlphaSlow: Double
@@ -109,158 +90,23 @@ public struct EvalConfig: Codable, Sendable {
     /// Fast-drop alpha for asymmetric momentum EMA (default 0.85 ≈ 1 reading response).
     public var momentumAlphaFast: Double
 
-    /// Cap on positive CGM momentum velocity (mg/dL/min).
-    /// When set, limits the velocity term passed to `linearMomentumEffect` to
-    /// this value.  `nil` = use LoopAlgorithm's built-in default (4.0 mg/dL/min).
-    /// Example: set to 0.5 to compare an algorithm that limits upward momentum
-    /// to 0.5 mg/dL/min.
+    /// Cap on positive CGM momentum velocity (mg/dL/min). nil = use LoopAlgorithm
+    /// default (4.0 mg/dL/min).
     public var positiveVelocityCap: Double?
 
-    /// Enable glucose-based application factor (GBAF).  When true, the
-    /// auto-bolus applicationFactor scales with current BG via a piecewise-linear
-    /// curve: factorLow at gbafLowAnchor (and below), factorHigh at gbafHighAnchor
-    /// (and above), linear interpolation between.  Designed for the Priority-3
-    /// safety case "reduce highs without increasing lows" — more aggressive
-    /// dosing only when BG is heading high, not when it's near or below target.
-    /// Default: false (use flat applicationFactor=0.4).
-    public var glucoseBasedApplicationFactor: Bool
-
-    /// GBAF curve: BG (mg/dL) at and below which applicationFactor = factorLow.
-    public var gbafLowAnchor: Double
-
-    /// GBAF curve: BG (mg/dL) at and above which applicationFactor = factorHigh.
-    public var gbafHighAnchor: Double
-
-    /// GBAF curve: applicationFactor when current BG ≤ gbafLowAnchor.
-    public var gbafFactorLow: Double
-
-    /// GBAF curve: applicationFactor when current BG ≥ gbafHighAnchor.
-    public var gbafFactorHigh: Double
-
-    /// Enable post-low conservative mode.  When BG was below
-    /// `postLowEntryThreshold` within the last `postLowWindow` hours, the
-    /// auto-bolus applicationFactor is reduced to `postLowAppFactor` for the
-    /// duration of the window. Designed to mitigate the "double-low" pattern:
-    /// after a hypo, the user takes unannounced rescue carbs, BG rises
-    /// rapidly, Loop misreads the rise as a normal meal rise and bolus,
-    /// driving the user back into hypo while still in a sensitive regime.
-    /// Default: false.
-    public var postLowConservativeMode: Bool
-
-    /// Hours after the most recent BG < entry threshold during which the
-    /// conservative applicationFactor applies. Default: 3.0 hours.
-    public var postLowWindow: Double
-
-    /// applicationFactor used during post-low conservative window.
-    /// Default: 0.2 (half of normal 0.4).
-    public var postLowAppFactor: Double
-
-    /// BG threshold (mg/dL) — readings below this trigger the post-low window.
-    /// Default: 70 (clinical hypo cutoff).
-    public var postLowEntryThreshold: Double
-
-    /// If > 0, post-low conservative mode also requires the recent CGM rise
-    /// rate (last 15 min) to exceed this threshold (mg/dL/min). Designed to
-    /// detect rescue-carb signature specifically — sharp post-low rise
-    /// strongly predicts the double-low pattern (15% double-rate at >2.4
-    /// vs 4.8% below). 0 = disabled (any post-low cycle qualifies).
-    /// Default: 0 (disabled).
-    public var postLowRiseRateGate: Double
-
-    /// If true, post-low mode additionally requires `prediction.activeInsulin`
-    /// (IOB) to be above `postLowIOBGateThreshold`. Rationale: spontaneous
-    /// lows in a moderate-IOB regime have ~10× higher double-rate than lows
-    /// where Loop was already suspending heavily (negative IOB).
-    /// Default: false.
-    public var postLowRequireIOBHeadroom: Bool
-
-    /// IOB threshold (U) for the post-low IOB gate. Active only when
-    /// `postLowRequireIOBHeadroom` is true. Default: -0.5 U (above this =
-    /// "less aggressive suspension" regime; below this = Loop already
-    /// holding back, no need to add post-low protection).
-    public var postLowIOBGateThreshold: Double
-
-    /// Enable dynamic-ISF mode: scale the ISF used for dose recommendation
-    /// based on recent rolling-mean insulin counteraction effect (ICE). When
-    /// recent ICE is more negative than expected — meaning observed glucose is
-    /// dropping faster than insulin alone explains, indicating elevated
-    /// sensitivity — the ISF used for the correction calc scales up, making
-    /// Loop more conservative. Designed to PREVENT lows by recognizing
-    /// sensitivity in real time, addressing the root cause of the double-low
-    /// pattern (Loop dosing into the rise from a non-suspended position
-    /// because it didn't realize sensitivity was elevated).
-    /// Forecast is unchanged; only the dose recommendation is scaled.
-    /// Default: false.
-    public var dynamicISFMode: Bool
-
-    /// Rolling-window size for averaging ICE (hours). Default: 2.0.
-    public var dynamicISFWindowHours: Double
-
-    /// ICE threshold (mg/dL/min). When recent rolling-mean ICE is MORE
-    /// NEGATIVE than -dynamicISFICEThreshold, scaling kicks in. Default: 0.5
-    /// (i.e., ICE more negative than -0.5 mg/dL/min triggers).
-    public var dynamicISFICEThreshold: Double
-
-    /// Maximum ISF scale-up factor. Default: 0.5 (max +50% increase).
-    public var dynamicISFMaxBoost: Double
-
-    /// Enable asymmetric dynamic-ISF cap-and-lock layered on top of `dynamicISFMode`.
-    /// Mechanism: when in-algorithm dynamic-ISF fires at step T with suppressed
-    /// dose D_T (vs the unboosted-at-T recommendation), record that dose as a
-    /// hard cap and lock it active for `asymmetricDynamicISFLockHours`. While the
-    /// cap is active, candidate dose = min(current_boosted_rec, cap). Each
-    /// subsequent in-algorithm trigger lowers the cap (and extends the lock).
-    /// Designed to prevent the IOB-echo failure mode where post-suppression
-    /// counter-BG drift causes the algorithm to recommend MORE than baseline
-    /// at later steps even with the boost still nominally active.
-    /// Implies `dynamicISFMode = true`. Default: false.
-    public var asymmetricDynamicISF: Bool
-
-    /// MAX lockout duration (hours) for `asymmetricDynamicISF`. Hard ceiling
-    /// on how long boost stays active after the most recent fresh trigger.
-    /// Default: 2.0.
-    public var asymmetricDynamicISFLockHours: Double
-
-    /// Minimum boost hold time (hours) after a trigger. Even if BG-based
-    /// release conditions trigger, the boost holds at least this long so
-    /// it has time to take effect. Default: 0.5h.
-    public var asymmetricDynamicISFMinLockHours: Double
-
-    /// BG (mg/dL) above which boost releases IMMEDIATELY. Rationale: if BG
-    /// has reached a level where we're out of the hypo-risk zone, dosing
-    /// normally is safe even if the BG rise is from carbs rather than
-    /// sensitivity ending. Default: 250.
-    public var asymmetricDynamicISFReleaseHighBG: Double
-
-    /// BG (mg/dL) above which boost releases if SUSTAINED for
-    /// `asymmetricDynamicISFSustainedHighMinutes`. Default: 180.
-    public var asymmetricDynamicISFSustainedHighBG: Double
-
-    /// Duration (minutes) BG must stay above `asymmetricDynamicISFSustainedHighBG`
-    /// before triggering release. Default: 30.
-    public var asymmetricDynamicISFSustainedHighMinutes: Double
-
-    /// BG (mg/dL) below which boost will NOT release, regardless of other
-    /// release conditions (sensitivity event probably ongoing if BG is still
-    /// low — release would be premature). Default: 120.
-    public var asymmetricDynamicISFKeepActiveBelowBG: Double
-
     /// How long to wait after `interval.start` before the first evaluated
-    /// prediction (seconds).  Default: `insulinLookbackHours` hours.
-    ///
-    /// Data is always fetched starting from `interval.start`.  Predictions
-    /// are only generated and scored after this warmup has elapsed, ensuring
-    /// every reported forecast has a full insulin/glucose history window.
+    /// prediction (seconds). Default: `insulinLookbackHours` hours.
     public var evalWarmupHours: Double
 
     // MARK: – Defaults
 
+    /// A config with all defaults. Convenience used widely by tests and callers.
     public static var `default`: EvalConfig { EvalConfig() }
 
     public init(
         evalStep: TimeInterval = 5 * 60,
         includeFutureInsulin: Bool = true,
-        includeFutureCarbs: Bool = true,
+        includeFutureCarbs: Bool = false,
         insulinLookbackHours: Double = 16,
         glucoseLookbackHours: Double = 10,
         useIntegralRC: Bool = false,
@@ -281,32 +127,8 @@ public struct EvalConfig: Codable, Sendable {
         dangerHigh: Double = 180.0,
         positiveVelocityCap: Double? = nil,
         useAsymmetricMomentum: Bool = false,
-        useHybridAsymmetricMomentum: Bool = false,
         momentumAlphaSlow: Double = 0.15,
         momentumAlphaFast: Double = 0.85,
-        glucoseBasedApplicationFactor: Bool = false,
-        gbafLowAnchor: Double = 140.0,
-        gbafHighAnchor: Double = 220.0,
-        gbafFactorLow: Double = 0.4,
-        gbafFactorHigh: Double = 0.7,
-        postLowConservativeMode: Bool = false,
-        postLowWindow: Double = 3.0,
-        postLowAppFactor: Double = 0.2,
-        postLowEntryThreshold: Double = 70.0,
-        postLowRiseRateGate: Double = 0.0,
-        postLowRequireIOBHeadroom: Bool = false,
-        postLowIOBGateThreshold: Double = -0.5,
-        dynamicISFMode: Bool = false,
-        dynamicISFWindowHours: Double = 2.0,
-        dynamicISFICEThreshold: Double = 0.5,
-        dynamicISFMaxBoost: Double = 0.5,
-        asymmetricDynamicISF: Bool = false,
-        asymmetricDynamicISFLockHours: Double = 2.0,
-        asymmetricDynamicISFMinLockHours: Double = 0.5,
-        asymmetricDynamicISFReleaseHighBG: Double = 250.0,
-        asymmetricDynamicISFSustainedHighBG: Double = 180.0,
-        asymmetricDynamicISFSustainedHighMinutes: Double = 30.0,
-        asymmetricDynamicISFKeepActiveBelowBG: Double = 120.0,
         evalWarmupHours: Double? = nil   // nil → use insulinLookbackHours
     ) {
         self.evalStep                       = evalStep
@@ -334,52 +156,18 @@ public struct EvalConfig: Codable, Sendable {
         self.dangerHigh                     = dangerHigh
         self.positiveVelocityCap            = positiveVelocityCap
         self.useAsymmetricMomentum          = useAsymmetricMomentum
-        self.useHybridAsymmetricMomentum    = useHybridAsymmetricMomentum
-        self.glucoseBasedApplicationFactor  = glucoseBasedApplicationFactor
-        self.gbafLowAnchor                  = gbafLowAnchor
-        self.gbafHighAnchor                 = gbafHighAnchor
-        self.gbafFactorLow                  = gbafFactorLow
-        self.gbafFactorHigh                 = gbafFactorHigh
-        self.postLowConservativeMode        = postLowConservativeMode
-        self.postLowWindow                  = postLowWindow
-        self.postLowAppFactor               = postLowAppFactor
-        self.postLowEntryThreshold          = postLowEntryThreshold
-        self.postLowRiseRateGate            = postLowRiseRateGate
-        self.postLowRequireIOBHeadroom      = postLowRequireIOBHeadroom
-        self.postLowIOBGateThreshold        = postLowIOBGateThreshold
-        self.dynamicISFMode                 = dynamicISFMode
-        self.dynamicISFWindowHours          = dynamicISFWindowHours
-        self.dynamicISFICEThreshold         = dynamicISFICEThreshold
-        self.dynamicISFMaxBoost             = dynamicISFMaxBoost
-        self.asymmetricDynamicISF           = asymmetricDynamicISF
-        self.asymmetricDynamicISFLockHours  = asymmetricDynamicISFLockHours
-        self.asymmetricDynamicISFMinLockHours = asymmetricDynamicISFMinLockHours
-        self.asymmetricDynamicISFReleaseHighBG = asymmetricDynamicISFReleaseHighBG
-        self.asymmetricDynamicISFSustainedHighBG = asymmetricDynamicISFSustainedHighBG
-        self.asymmetricDynamicISFSustainedHighMinutes = asymmetricDynamicISFSustainedHighMinutes
-        self.asymmetricDynamicISFKeepActiveBelowBG = asymmetricDynamicISFKeepActiveBelowBG
         self.momentumAlphaSlow              = momentumAlphaSlow
         self.momentumAlphaFast              = momentumAlphaFast
         self.evalWarmupHours                = evalWarmupHours ?? insulinLookbackHours
     }
 
-    // Custom decoder so snapshots written before `dangerLow`/`dangerHigh` were
-    // added still decode cleanly (fall back to the clinical defaults).
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
         case useIntegralRC, kalmanSmoothing, horizons, includingPositiveVelocityAndRC
         case useMidAbsorptionISF, carbAbsorptionModel
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
-        case positiveVelocityCap, useAsymmetricMomentum, useHybridAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
-        case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh
-        case postLowConservativeMode, postLowWindow, postLowAppFactor, postLowEntryThreshold
-        case postLowRiseRateGate, postLowRequireIOBHeadroom, postLowIOBGateThreshold
-        case dynamicISFMode, dynamicISFWindowHours, dynamicISFICEThreshold, dynamicISFMaxBoost
-        case asymmetricDynamicISF, asymmetricDynamicISFLockHours
-        case asymmetricDynamicISFMinLockHours, asymmetricDynamicISFReleaseHighBG
-        case asymmetricDynamicISFSustainedHighBG, asymmetricDynamicISFSustainedHighMinutes
-        case asymmetricDynamicISFKeepActiveBelowBG
+        case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
         case sensitivityHourlyMultipliers, localTimezoneIdentifier
         case evalWarmupHours
     }
@@ -388,7 +176,7 @@ public struct EvalConfig: Codable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.evalStep             = try c.decode(TimeInterval.self, forKey: .evalStep)
         self.includeFutureInsulin = try c.decode(Bool.self,         forKey: .includeFutureInsulin)
-        self.includeFutureCarbs   = try c.decodeIfPresent(Bool.self, forKey: .includeFutureCarbs) ?? true
+        self.includeFutureCarbs   = try c.decodeIfPresent(Bool.self, forKey: .includeFutureCarbs) ?? false
         self.insulinLookbackHours = try c.decode(Double.self,       forKey: .insulinLookbackHours)
         self.glucoseLookbackHours = try c.decode(Double.self,       forKey: .glucoseLookbackHours)
         self.useIntegralRC        = try c.decode(Bool.self,         forKey: .useIntegralRC)
@@ -406,32 +194,8 @@ public struct EvalConfig: Codable, Sendable {
         self.dangerHigh           = try c.decodeIfPresent(Double.self, forKey: .dangerHigh) ?? 180.0
         self.positiveVelocityCap  = try c.decodeIfPresent(Double.self, forKey: .positiveVelocityCap)
         self.useAsymmetricMomentum = try c.decode(Bool.self,        forKey: .useAsymmetricMomentum)
-        self.useHybridAsymmetricMomentum = try c.decodeIfPresent(Bool.self, forKey: .useHybridAsymmetricMomentum) ?? false
         self.momentumAlphaSlow    = try c.decode(Double.self,       forKey: .momentumAlphaSlow)
         self.momentumAlphaFast    = try c.decode(Double.self,       forKey: .momentumAlphaFast)
-        self.glucoseBasedApplicationFactor = try c.decodeIfPresent(Bool.self, forKey: .glucoseBasedApplicationFactor) ?? false
-        self.gbafLowAnchor        = try c.decodeIfPresent(Double.self, forKey: .gbafLowAnchor)   ?? 140.0
-        self.gbafHighAnchor       = try c.decodeIfPresent(Double.self, forKey: .gbafHighAnchor)  ?? 220.0
-        self.gbafFactorLow        = try c.decodeIfPresent(Double.self, forKey: .gbafFactorLow)   ?? 0.4
-        self.gbafFactorHigh       = try c.decodeIfPresent(Double.self, forKey: .gbafFactorHigh)  ?? 0.7
-        self.postLowConservativeMode = try c.decodeIfPresent(Bool.self,   forKey: .postLowConservativeMode) ?? false
-        self.postLowWindow        = try c.decodeIfPresent(Double.self, forKey: .postLowWindow)        ?? 3.0
-        self.postLowAppFactor     = try c.decodeIfPresent(Double.self, forKey: .postLowAppFactor)     ?? 0.2
-        self.postLowEntryThreshold = try c.decodeIfPresent(Double.self, forKey: .postLowEntryThreshold) ?? 70.0
-        self.postLowRiseRateGate   = try c.decodeIfPresent(Double.self, forKey: .postLowRiseRateGate) ?? 0.0
-        self.postLowRequireIOBHeadroom = try c.decodeIfPresent(Bool.self, forKey: .postLowRequireIOBHeadroom) ?? false
-        self.postLowIOBGateThreshold = try c.decodeIfPresent(Double.self, forKey: .postLowIOBGateThreshold) ?? -0.5
-        self.dynamicISFMode          = try c.decodeIfPresent(Bool.self,   forKey: .dynamicISFMode) ?? false
-        self.dynamicISFWindowHours   = try c.decodeIfPresent(Double.self, forKey: .dynamicISFWindowHours) ?? 2.0
-        self.dynamicISFICEThreshold  = try c.decodeIfPresent(Double.self, forKey: .dynamicISFICEThreshold) ?? 0.5
-        self.dynamicISFMaxBoost      = try c.decodeIfPresent(Double.self, forKey: .dynamicISFMaxBoost) ?? 0.5
-        self.asymmetricDynamicISF    = try c.decodeIfPresent(Bool.self,   forKey: .asymmetricDynamicISF) ?? false
-        self.asymmetricDynamicISFLockHours = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFLockHours) ?? 2.0
-        self.asymmetricDynamicISFMinLockHours = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFMinLockHours) ?? 0.5
-        self.asymmetricDynamicISFReleaseHighBG = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFReleaseHighBG) ?? 250.0
-        self.asymmetricDynamicISFSustainedHighBG = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFSustainedHighBG) ?? 180.0
-        self.asymmetricDynamicISFSustainedHighMinutes = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFSustainedHighMinutes) ?? 30.0
-        self.asymmetricDynamicISFKeepActiveBelowBG = try c.decodeIfPresent(Double.self, forKey: .asymmetricDynamicISFKeepActiveBelowBG) ?? 120.0
         self.sensitivityHourlyMultipliers = try c.decodeIfPresent([Double].self, forKey: .sensitivityHourlyMultipliers)
         if let h = self.sensitivityHourlyMultipliers, h.count != 24 {
             throw DecodingError.dataCorruptedError(forKey: .sensitivityHourlyMultipliers, in: c,
@@ -468,32 +232,8 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(dangerHigh, forKey: .dangerHigh)
         try c.encodeIfPresent(positiveVelocityCap, forKey: .positiveVelocityCap)
         try c.encode(useAsymmetricMomentum, forKey: .useAsymmetricMomentum)
-        try c.encode(useHybridAsymmetricMomentum, forKey: .useHybridAsymmetricMomentum)
         try c.encode(momentumAlphaSlow, forKey: .momentumAlphaSlow)
         try c.encode(momentumAlphaFast, forKey: .momentumAlphaFast)
-        try c.encode(glucoseBasedApplicationFactor, forKey: .glucoseBasedApplicationFactor)
-        try c.encode(gbafLowAnchor, forKey: .gbafLowAnchor)
-        try c.encode(gbafHighAnchor, forKey: .gbafHighAnchor)
-        try c.encode(gbafFactorLow, forKey: .gbafFactorLow)
-        try c.encode(gbafFactorHigh, forKey: .gbafFactorHigh)
-        try c.encode(postLowConservativeMode, forKey: .postLowConservativeMode)
-        try c.encode(postLowWindow, forKey: .postLowWindow)
-        try c.encode(postLowAppFactor, forKey: .postLowAppFactor)
-        try c.encode(postLowEntryThreshold, forKey: .postLowEntryThreshold)
-        try c.encode(postLowRiseRateGate, forKey: .postLowRiseRateGate)
-        try c.encode(postLowRequireIOBHeadroom, forKey: .postLowRequireIOBHeadroom)
-        try c.encode(postLowIOBGateThreshold, forKey: .postLowIOBGateThreshold)
-        try c.encode(dynamicISFMode, forKey: .dynamicISFMode)
-        try c.encode(dynamicISFWindowHours, forKey: .dynamicISFWindowHours)
-        try c.encode(dynamicISFICEThreshold, forKey: .dynamicISFICEThreshold)
-        try c.encode(dynamicISFMaxBoost, forKey: .dynamicISFMaxBoost)
-        try c.encode(asymmetricDynamicISF, forKey: .asymmetricDynamicISF)
-        try c.encode(asymmetricDynamicISFLockHours, forKey: .asymmetricDynamicISFLockHours)
-        try c.encode(asymmetricDynamicISFMinLockHours, forKey: .asymmetricDynamicISFMinLockHours)
-        try c.encode(asymmetricDynamicISFReleaseHighBG, forKey: .asymmetricDynamicISFReleaseHighBG)
-        try c.encode(asymmetricDynamicISFSustainedHighBG, forKey: .asymmetricDynamicISFSustainedHighBG)
-        try c.encode(asymmetricDynamicISFSustainedHighMinutes, forKey: .asymmetricDynamicISFSustainedHighMinutes)
-        try c.encode(asymmetricDynamicISFKeepActiveBelowBG, forKey: .asymmetricDynamicISFKeepActiveBelowBG)
         try c.encodeIfPresent(sensitivityHourlyMultipliers, forKey: .sensitivityHourlyMultipliers)
         try c.encode(localTimezone.identifier, forKey: .localTimezoneIdentifier)
         try c.encode(evalWarmupHours, forKey: .evalWarmupHours)

@@ -372,7 +372,10 @@ func evalConfigPhase3Defaults() {
     // way to handle ISF schedule transitions during a dose's absorption window.
     #expect(cfg.useMidAbsorptionISF == true)
     #expect(cfg.carbAbsorptionModel == .piecewiseLinear)
-    #expect(cfg.includeFutureCarbs == true)
+    // EvalConfig defaults includeFutureCarbs to false — decision-time-only
+    // replay is the correct default (AGENTS.md §3); SimulateCommand no longer
+    // needs to override it.
+    #expect(cfg.includeFutureCarbs == false)
 }
 
 @Test("EvalConfig new Phase 3 fields round-trip through JSON")
