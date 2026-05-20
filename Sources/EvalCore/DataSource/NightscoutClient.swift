@@ -56,10 +56,12 @@ public struct NightscoutTreatment: Decodable, Sendable {
     public let automatic: Bool?
     /// Meal time for carb entries — may differ from created_at when user enters past/future meals
     public let timestamp: String?
+    /// Carb absorption time in MINUTES (Loop publishes this per carb entry; e.g. 30, 180)
+    public let absorptionTime: Double?
 
     private enum CodingKeys: String, CodingKey {
         case created_at, eventType, insulin, carbs, rate, duration,
-             absolute, percent, isSMB, automatic, timestamp
+             absolute, percent, isSMB, automatic, timestamp, absorptionTime
     }
 }
 

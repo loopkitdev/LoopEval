@@ -66,10 +66,10 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     }
 
     public func getCarbEntries(interval: DateInterval) async throws -> [EvalCarbEntry] {
-        // v2 — schema bump to include entryDate (separate from meal time).
-        // Old "carbs" caches lack the field and would silently fall back to
-        // startDate, perpetuating the future-carb leak. Force a re-fetch.
-        let cacheKey = DataCache.key(for: "carbs_v2", url: client.baseURL, interval: interval)
+        // v3 — schema bump to include per-entry absorptionTime (from NS, minutes).
+        // v2 caches hardcoded absorptionTime=nil, making meals absorb at the long
+        // default (~3h) instead of the real entry value (e.g. 30min). Force re-fetch.
+        let cacheKey = DataCache.key(for: "carbs_v3", url: client.baseURL, interval: interval)
         if let cached: [EvalCarbEntry] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -210,11 +210,17 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             // Meal time may differ from entry time (user can log past/future meals).
             // Visibility is gated by entryDate; the absorption curve starts at startDate.
             let mealDate = t.timestamp.flatMap { fmt.date(from: $0) } ?? entryDate
+            // Loop publishes per-entry absorptionTime in NS (MINUTES). Use it —
+            // otherwise the carb math falls back to a long default (~3h) and
+            // absorbs meals far slower than the deployed Loop (e.g. a 30-min fast
+            // meal modeled as 180-min), which under-projects the meal, starves the
+            // retrospective correction, and makes the sim under-dose.
+            let absorption: TimeInterval? = t.absorptionTime.map { $0 * 60.0 }  // minutes → seconds
             return EvalCarbEntry(
                 startDate: mealDate,
                 entryDate: entryDate,
                 quantity: LoopQuantity(unit: .gram, doubleValue: carbs),
-                absorptionTime: nil,    // NS doesn't carry absorption time
+                absorptionTime: absorption,
                 foodType: nil
             )
         }
