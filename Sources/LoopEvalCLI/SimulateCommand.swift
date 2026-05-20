@@ -107,6 +107,22 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Path to an outage CSV (start,end,reason,source,notes) describing windows where the physical pump could not deliver insulin (pod failure, occlusion, manual disconnect). During each outage the sim clamps both candidate and baseline absolute delivery to 0 so counter_BG isn't contaminated by phantom basal. Generate with `analysis/case-study` tooling: `python -m loopeval_analysis.outage from-nightscout ...`")
     var outagesCsv: String?
 
+    @Option(name: .long, help: "Asymmetric IRC: gain scale on the retrospective correction when BG is dropping faster than predicted (negative discrepancy = sensitivity). >1 responds more strongly/faster to drops (lows-protective). Only used with --candidate-integral-rc. Default 1.0 (symmetric).")
+    var candidateIrcDropScale: Double = 1.0
+    @Option(name: .long, help: "Asymmetric IRC: gain scale when BG is rising faster than predicted (positive discrepancy = resistance). <1 responds more weakly/slower to rises. Only used with --candidate-integral-rc. Default 1.0 (symmetric).")
+    var candidateIrcRiseScale: Double = 1.0
+
+    @Flag(name: .long, help: "Enable glucose-based application factor (GBAF) for candidate — auto-bolus app-factor ramps from factorLow (at/below lowAnchor) to factorHigh (at/above highAnchor) with current BG. More aggressive only when BG is high.")
+    var candidateGbaf: Bool = false
+    @Option(name: .long, help: "GBAF: BG at/below which factor=factorLow (default 140)")
+    var candidateGbafLowAnchor: Double = 140.0
+    @Option(name: .long, help: "GBAF: BG at/above which factor=factorHigh (default 220)")
+    var candidateGbafHighAnchor: Double = 220.0
+    @Option(name: .long, help: "GBAF: applicationFactor at lowAnchor (default 0.4)")
+    var candidateGbafFactorLow: Double = 0.4
+    @Option(name: .long, help: "GBAF: applicationFactor at highAnchor (default 0.7)")
+    var candidateGbafFactorHigh: Double = 0.7
+
     @Flag(name: .long, help: "Phase 2: compute the active-insulin glucose-effect over PHYSICAL delivered insulin (volume) rather than net-basal-units, so a candidate ISF boost amplifies real insulin even when delivery is below scheduled basal. Requires --candidate-isf-boost-active-only. Without it, sub-basal insulin sits in the EGP-credit term and the boost can't reach it (the Mar-29 'negative insulin' case). Default OFF (classic net-basal-units).")
     var candidateEgpPhysical: Bool = false
 
@@ -143,10 +159,17 @@ struct SimulateCommand: AsyncParsableCommand {
         )
 
         let candidateConfig = EvalConfig(
+            glucoseBasedApplicationFactor: candidateGbaf,
+            gbafLowAnchor: candidateGbafLowAnchor,
+            gbafHighAnchor: candidateGbafHighAnchor,
+            gbafFactorLow: candidateGbafFactorLow,
+            gbafFactorHigh: candidateGbafFactorHigh,
             evalStep: TimeInterval(stepMinutes) * 60,
             includeFutureInsulin: oracleFutureInputs,
             includeFutureCarbs: oracleFutureInputs,
             useIntegralRC: candidateIntegralRC || integralRC,
+            ircDropGainScale: candidateIrcDropScale,
+            ircRiseGainScale: candidateIrcRiseScale,
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,
             sensitivityHourlyMultipliers: hourlyISF,
@@ -237,6 +260,14 @@ struct SimulateCommand: AsyncParsableCommand {
             let isf: Double
             let candidateBolus: Double      // auto-bolus U this step
             let candidateTempRate: Double   // temp basal rate U/hr this step
+            let baselineEventualBG: Double  // sim Loop forecast on REAL BG (vs field devicestatus)
+            let baselineIOB: Double
+            let baselineCOB: Double
+            let baselineMomentum: Double    // net momentum contribution to forecast (mg/dL)
+            let baselineRC: Double          // net retrospective-correction contribution (mg/dL)
+            let candidateEventualBG: Double // sim Loop forecast on counter BG (CF)
+            let candidateIOB: Double
+            let candidateCOB: Double
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
         struct CounterSample: Codable { let t: String; let bg: Double }
@@ -261,7 +292,15 @@ struct SimulateCommand: AsyncParsableCommand {
                  deltaDose: $0.deltaDose,
                  isf: $0.isf,
                  candidateBolus: $0.candidateBolus,
-                 candidateTempRate: $0.candidateTempRate)
+                 candidateTempRate: $0.candidateTempRate,
+                 baselineEventualBG: $0.baselineEventualBG,
+                 baselineIOB: $0.baselineIOB,
+                 baselineCOB: $0.baselineCOB,
+                 baselineMomentum: $0.baselineMomentum,
+                 baselineRC: $0.baselineRC,
+                 candidateEventualBG: $0.candidateEventualBG,
+                 candidateIOB: $0.candidateIOB,
+                 candidateCOB: $0.candidateCOB)
         }
         let actualOut = data.glucose.sorted { $0.startDate < $1.startDate }.map {
             ActualSample(t: formatter.string(from: $0.startDate),

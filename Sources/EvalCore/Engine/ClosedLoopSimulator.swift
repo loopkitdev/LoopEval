@@ -37,6 +37,17 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         // Decomposition of candidate's delivery this step (automatic-bolus strategy):
         public let candidateBolus: Double       // auto-bolus units this step
         public let candidateTempRate: Double    // temp basal rate set this step (U/hr)
+        // Decision diagnostics — the forecast/IOB that drove the dose. Baseline =
+        // sim Loop on REAL BG (directly comparable to field devicestatus eventualBG/IOB);
+        // candidate = sim Loop on the counterfactual (counter) BG. NaN if not computed.
+        public var baselineEventualBG: Double = .nan
+        public var baselineIOB: Double = .nan
+        public var baselineCOB: Double = .nan
+        public var baselineMomentum: Double = .nan   // net momentum contribution to forecast (mg/dL)
+        public var baselineRC: Double = .nan          // net retrospective-correction contribution (mg/dL)
+        public var candidateEventualBG: Double = .nan
+        public var candidateIOB: Double = .nan
+        public var candidateCOB: Double = .nan
     }
     public let steps: [Step]
     public let baselineLabel: String
@@ -81,13 +92,31 @@ extension EvaluationEngine {
         let insulinModel = data.therapyTimeline.insulinType.model
         let activityDuration = insulinModel.effectDuration
 
+        // SUBSTRATE: the actual-BG trace the whole sim runs on. When
+        // kalmanSmoothing is on (default), this is the RTS-smoothed CGM
+        // resampled onto the 5-min sim grid (single missing samples
+        // interpolated, ≥2-sample gaps left out). It is the basis for ICE, the
+        // counter, Loop's decision-time input, and the outcome stats.
+        //
+        // NOTE (deliberate, see AGENTS.md "RTS substrate"): the smoother's RTS
+        // backward pass uses FUTURE samples, so this is NOT decision-time-clean
+        // — by design. We explore the algorithm in a low-noise "ground truth"
+        // space; baseline and candidate share this identical substrate, so the
+        // future information is the same on both sides and cancels in every
+        // experiment-vs-sanity delta. Use --no-kalman for the raw substrate.
+        let simGlucose: [EvalGlucoseSample] = candidateConfig.kalmanSmoothing
+            ? Self.buildSmoothedGrid(raw: data.glucose,
+                                     start: interval.start, end: interval.end,
+                                     stepSec: candidateConfig.evalStep)
+            : data.glucose
+
         // counter_glucose: starts as actual; modified as Δdose impacts accumulate.
         // We mutate values in place at sample indices, preserving original
         // timestamps and metadata.
-        var counterGlucose = data.glucose
-        var counterMgdl = data.glucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
+        var counterGlucose = simGlucose
+        var counterMgdl = simGlucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
         // Baseline always reads from actual glucose; precomputed once for GBAF lookups.
-        let baselineMgdl = data.glucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
+        let baselineMgdl = simGlucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
 
 
         // Virtual doses: candidate's accumulated extra/reduced deliveries.
@@ -177,7 +206,7 @@ extension EvaluationEngine {
         let realICE: [GlucoseEffectVelocity]
         if counterfactualMode {
             let iceStart = Date()
-            FileHandle.standardError.write(Data("Sim setup: doses=\(data.doses.count) glucose=\(data.glucose.count)\n".utf8))
+            FileHandle.standardError.write(Data("Sim setup: doses=\(data.doses.count) glucose=\(simGlucose.count)\n".utf8))
             // Filter doses to those covered by the sensitivity schedule —
             // LoopAlgorithm.glucoseEffects preconditions on closestPrior(...)
             // returning a non-nil entry for each dose.startDate.
@@ -195,13 +224,13 @@ extension EvaluationEngine {
                 doses: safeDataDoses,
                 basal: data.therapyTimeline.basal,
                 sensitivity: scaledSensitivity,
-                effectsFrom: data.glucose.first?.startDate.addingTimeInterval(-insulinModel.effectDuration),
-                effectsTo: data.glucose.last?.startDate,
+                effectsFrom: simGlucose.first?.startDate.addingTimeInterval(-insulinModel.effectDuration),
+                effectsTo: simGlucose.last?.startDate,
                 useMidAbsorptionISF: true
             )
             let insulinEffects = precomp.insulinEffects ?? []
             FileHandle.standardError.write(Data("PrecomputedInsulinInput.build done in \(Int(Date().timeIntervalSince(iceStart) * 1000))ms (effects entries=\(insulinEffects.count))\n".utf8))
-            realICE = data.glucose.counteractionEffects(to: insulinEffects)
+            realICE = simGlucose.counteractionEffects(to: insulinEffects)
             FileHandle.standardError.write(Data("ICE done (entries=\(realICE.count))\n".utf8))
         } else {
             realICE = []
@@ -246,10 +275,10 @@ extension EvaluationEngine {
             // are still passed through so the candidate's dose history (and the
             // post-gap counter advance) account for them.
             if cgmStaleGuardSec > 0 {
-                let nextIdx = EvaluationEngine.bestGlucoseIndex(at: t, in: data.glucose)
-                let prevIdx = Self.latestGlucoseIndex(at: t, in: data.glucose)
-                let dNext = abs(data.glucose[nextIdx].startDate.timeIntervalSince(t))
-                let dPrev = abs(t.timeIntervalSince(data.glucose[prevIdx].startDate))
+                let nextIdx = EvaluationEngine.bestGlucoseIndex(at: t, in: simGlucose)
+                let prevIdx = Self.latestGlucoseIndex(at: t, in: simGlucose)
+                let dNext = abs(simGlucose[nextIdx].startDate.timeIntervalSince(t))
+                let dPrev = abs(t.timeIntervalSince(simGlucose[prevIdx].startDate))
                 if min(dNext, dPrev) > cgmStaleGuardSec {
                     if counterfactualMode && t >= cfActiveStart {
                         let stepEnd = t.addingTimeInterval(candidateConfig.evalStep)
@@ -268,22 +297,38 @@ extension EvaluationEngine {
 
             // ----- BASELINE step: actual glucose, actual doses, baselineConfig.
             let baselineBuilder = InputWindowBuilder(
-                glucose: data.glucose,
+                glucose: simGlucose,
                 doses: data.doses,
                 carbs: data.carbs,
                 therapyTimeline: data.therapyTimeline,
                 config: baselineConfig
             )
             var baselineDose: Double
+            var baselineEventualBG = Double.nan
+            var baselineIOB = Double.nan
+            var baselineCOB = Double.nan
+            var baselineMomentum = Double.nan
+            var baselineRC = Double.nan
             if let baselineInput = baselineBuilder.buildInput(at: t) {
-                baselineDose = Self.simStepDose(
+                let br = Self.simStepDose(
                     t: t,
                     input: baselineInput,
                     config: baselineConfig,
                     therapy: data.therapyTimeline,
                     glucoseMgdl: baselineMgdl,
-                    glucoseSamples: data.glucose
-                ).dose
+                    glucoseSamples: simGlucose
+                )
+                baselineDose = br.dose
+                baselineEventualBG = br.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
+                baselineIOB = br.prediction.activeInsulin ?? .nan
+                baselineCOB = br.prediction.activeCarbs ?? .nan
+                func netMgdl(_ arr: [GlucoseEffect]) -> Double {
+                    // Empty effect array = the effect was gated off / not produced ⇒ 0 contribution.
+                    guard let f = arr.first, let l = arr.last else { return 0.0 }
+                    return l.quantity.doubleValue(for: mgdlUnit) - f.quantity.doubleValue(for: mgdlUnit)
+                }
+                baselineMomentum = netMgdl(br.prediction.effects.momentum)
+                baselineRC = netMgdl(br.prediction.effects.retrospectiveCorrection)
             } else {
                 baselineDose = 0
             }
@@ -335,6 +380,9 @@ extension EvaluationEngine {
             var candidateDose: Double
             var candidateBolus: Double
             var candidateTempRate: Double
+            var candidateEventualBG = Double.nan
+            var candidateIOB = Double.nan
+            var candidateCOB = Double.nan
             do {
                 let csvIsfMult: Double
                 if let m = isfMultiplierByStep, !m.isEmpty {
@@ -360,6 +408,9 @@ extension EvaluationEngine {
                 candidateDose = result.dose
                 candidateBolus = result.bolus
                 candidateTempRate = result.tempRate
+                candidateEventualBG = result.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
+                candidateIOB = result.prediction.activeInsulin ?? .nan
+                candidateCOB = result.prediction.activeCarbs ?? .nan
             }
 
             // ----- DELIVERABILITY / DATA-AVAILABILITY CLAMPS -----
@@ -560,9 +611,9 @@ extension EvaluationEngine {
             // perturbations applied. This avoids spurious counter_BG spikes
             // at the step before a CGM gap closes. For the very first step
             // (no past sample) fall back to the first available sample.
-            let actualLookupIdx = Self.latestGlucoseIndex(at: t, in: data.glucose)
+            let actualLookupIdx = Self.latestGlucoseIndex(at: t, in: simGlucose)
             let counterLookupIdx = Self.latestGlucoseIndex(at: t, in: counterGlucose)
-            let actualMgdl = data.glucose[actualLookupIdx].quantity.doubleValue(for: mgdlUnit)
+            let actualMgdl = simGlucose[actualLookupIdx].quantity.doubleValue(for: mgdlUnit)
             let counterMgdlAtT = counterMgdl[counterLookupIdx]
             steps.append(ClosedLoopSimResult.Step(
                 t: t,
@@ -573,7 +624,15 @@ extension EvaluationEngine {
                 deltaDose: deltaDose,
                 isf: isf,
                 candidateBolus: candidateBolus,
-                candidateTempRate: candidateTempRate
+                candidateTempRate: candidateTempRate,
+                baselineEventualBG: baselineEventualBG,
+                baselineIOB: baselineIOB,
+                baselineCOB: baselineCOB,
+                baselineMomentum: baselineMomentum,
+                baselineRC: baselineRC,
+                candidateEventualBG: candidateEventualBG,
+                candidateIOB: candidateIOB,
+                candidateCOB: candidateCOB
             ))
 
             t = t.addingTimeInterval(candidateConfig.evalStep)
@@ -599,6 +658,59 @@ extension EvaluationEngine {
     /// Used by counterfactual mode to know what real pump delivered at
     /// each step so the candidate's marginal effect can be computed.
     // ── Physiological counterfactual helpers ────────────────────────────────
+
+    /// Build the RTS-smoothed actual-BG trace resampled onto the simulation grid.
+    ///
+    /// Runs the Kalman + RTS backward smoother on the raw CGM, then samples the
+    /// smoothed estimate at each grid time (`start + k*stepSec`). A grid point is
+    /// emitted only if it lies within a real-CGM gap of at most `maxMissing`
+    /// samples (the bracketing real samples are ≤ (maxMissing+1) steps apart);
+    /// larger gaps are omitted so the stale-guard / disruption-exclusion handle
+    /// them, and no extrapolation occurs before the first / after the last
+    /// sample. The RTS pass uses future samples by design (see the SUBSTRATE
+    /// note in simulateClosedLoop).
+    fileprivate static func buildSmoothedGrid(
+        raw: [EvalGlucoseSample],
+        start: Date,
+        end: Date,
+        stepSec: TimeInterval,
+        maxMissing: Int = 1
+    ) -> [EvalGlucoseSample] {
+        guard raw.count >= 2, stepSec > 0 else { return raw }
+        let unit = LoopUnit.milligramsPerDeciliter
+        let smoothed = KalmanSmoother().smooth(samples: raw.sorted { $0.startDate < $1.startDate })
+        let times = smoothed.map { $0.startDate.timeIntervalSince1970 }
+        let vals  = smoothed.map { $0.quantity.doubleValue(for: unit) }
+        let maxGap = Double(maxMissing + 1) * stepSec + 60.0   // ≤maxMissing missing ⇒ ≤(m+1) steps + slack
+        let eps = 1e-6
+        var out: [EvalGlucoseSample] = []
+        out.reserveCapacity(Int((end.timeIntervalSince(start)) / stepSec) + 2)
+        func emit(_ tg: Double, _ bg: Double) {
+            out.append(EvalGlucoseSample(
+                startDate: Date(timeIntervalSince1970: tg),
+                quantity: .init(unit: unit, doubleValue: bg),
+                provenanceIdentifier: "rts-grid"))
+        }
+        var j = 0
+        var tg = start.timeIntervalSince1970
+        let endSec = end.timeIntervalSince1970
+        while tg <= endSec + eps {
+            while j + 1 < times.count && times[j + 1] <= tg { j += 1 }
+            if times[j] <= tg + eps {
+                if j + 1 < times.count {
+                    let pT = times[j], nT = times[j + 1]
+                    if (nT - pT) <= maxGap {            // ≤1 missing sample between brackets
+                        let frac = (nT - pT) > eps ? (tg - pT) / (nT - pT) : 0.0
+                        emit(tg, vals[j] + frac * (vals[j + 1] - vals[j]))
+                    }                                   // else: gap too large → skip
+                } else if abs(times[j] - tg) <= stepSec * 0.5 {
+                    emit(tg, vals[j])                   // last sample, grid point coincides
+                }
+            }                                           // else: before first sample → skip
+            tg += stepSec
+        }
+        return out.isEmpty ? raw : out
+    }
 
     /// Pre-compute the real-BG-derived Insulin Counteraction Effect timeline.
     /// ICE is observed BG slope minus modelled insulin slope. It captures all
@@ -1021,6 +1133,8 @@ extension EvaluationEngine {
             carbRatio: effectiveInput.carbRatio,
             algorithmEffectsOptions: .all,
             useIntegralRetrospectiveCorrection: config.useIntegralRC,
+            ircDropGainScale: config.ircDropGainScale,
+            ircRiseGainScale: config.ircRiseGainScale,
             includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
             useMidAbsorptionISF: config.useMidAbsorptionISF,
             carbAbsorptionModel: config.carbAbsorptionModel.model,
@@ -1047,6 +1161,17 @@ extension EvaluationEngine {
             }
         }
 
+        // Application factor: flat 0.4, or glucose-based (GBAF) ramp keyed on
+        // the current BG (latest glucose at/before t).
+        var appFactor = 0.4
+        if config.glucoseBasedApplicationFactor {
+            let curBG = effectiveInput.glucose.last?.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter)
+                ?? prediction.glucose.first?.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter) ?? 0
+            appFactor = EvaluationEngine.glucoseBasedApplicationFactor(
+                currentBG: curBG,
+                lowAnchor: config.gbafLowAnchor, highAnchor: config.gbafHighAnchor,
+                factorLow: config.gbafFactorLow, factorHigh: config.gbafFactorHigh)
+        }
         let doseRec = EvaluationEngine.computeDoseRecommendation(
             prediction: prediction,
             at: t,
@@ -1056,7 +1181,7 @@ extension EvaluationEngine {
             maxBasalRate: therapy.maxBasalRate,
             insulinType: therapy.insulinType,
             evalStep: config.evalStep,
-            applicationFactor: 0.4
+            applicationFactor: appFactor
         )
         return (
             dose: doseRec?.deltaU ?? 0,

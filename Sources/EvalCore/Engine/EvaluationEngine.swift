@@ -254,6 +254,8 @@ public actor EvaluationEngine {
                 carbRatio: input.carbRatio,
                 algorithmEffectsOptions: .all,
                 useIntegralRetrospectiveCorrection: config.useIntegralRC,
+                ircDropGainScale: config.ircDropGainScale,
+                ircRiseGainScale: config.ircRiseGainScale,
                 includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                 useMidAbsorptionISF: config.useMidAbsorptionISF,
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
@@ -273,6 +275,8 @@ public actor EvaluationEngine {
                 carbRatio: input.carbRatio,
                 algorithmEffectsOptions: .all,
                 useIntegralRetrospectiveCorrection: config.useIntegralRC,
+                ircDropGainScale: config.ircDropGainScale,
+                ircRiseGainScale: config.ircRiseGainScale,
                 includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                 useMidAbsorptionISF: config.useMidAbsorptionISF,
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
@@ -297,6 +301,8 @@ public actor EvaluationEngine {
                 carbRatio: inputNoFuture.carbRatio,
                 algorithmEffectsOptions: .all,
                 useIntegralRetrospectiveCorrection: config.useIntegralRC,
+                ircDropGainScale: config.ircDropGainScale,
+                ircRiseGainScale: config.ircRiseGainScale,
                 includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                 useMidAbsorptionISF: config.useMidAbsorptionISF,
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
@@ -483,6 +489,21 @@ public actor EvaluationEngine {
     /// total insulin Loop would deliver in the next evalStep window compared
     /// to continuing scheduled basal. Used to compute delivery-based ODR/UDR.
     ///
+    /// Glucose-based application factor (GBAF): piecewise-linear ramp of the
+    /// auto-bolus applicationFactor from `factorLow` (at/below `lowAnchor`) to
+    /// `factorHigh` (at/above `highAnchor`). More aggressive dosing only when
+    /// BG is heading high; near/below target it stays conservative.
+    public static func glucoseBasedApplicationFactor(
+        currentBG: Double, lowAnchor: Double, highAnchor: Double,
+        factorLow: Double, factorHigh: Double
+    ) -> Double {
+        guard highAnchor > lowAnchor else { return factorLow }
+        if currentBG <= lowAnchor { return factorLow }
+        if currentBG >= highAnchor { return factorHigh }
+        let frac = (currentBG - lowAnchor) / (highAnchor - lowAnchor)
+        return factorLow + frac * (factorHigh - factorLow)
+    }
+
     /// Uses the `.automaticBolus` recommendation path (equivalent to Loop's
     /// default automatic dosing). A more complete implementation would switch
     /// based on config, but most deployed configurations use automaticBolus.

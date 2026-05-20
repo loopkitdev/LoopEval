@@ -27,6 +27,13 @@ public struct EvalConfig: Codable, Sendable {
     /// Use Integral Retrospective Correction instead of standard RC.
     public var useIntegralRC: Bool
 
+    /// Asymmetric IRC gains (only used when `useIntegralRC` is true). `ircDropGainScale`
+    /// scales the correction when the discrepancy run is negative (BG dropping faster
+    /// than predicted = sensitivity); `ircRiseGainScale` when positive (resistance).
+    /// Default 1.0/1.0 == standard symmetric IRC.
+    public var ircDropGainScale: Double
+    public var ircRiseGainScale: Double
+
     /// Smooth actual CGM with a Kalman filter before comparison (not algorithm input).
     public var kalmanSmoothing: Bool
 
@@ -98,18 +105,35 @@ public struct EvalConfig: Codable, Sendable {
     /// prediction (seconds). Default: `insulinLookbackHours` hours.
     public var evalWarmupHours: Double
 
+    /// Glucose-based application factor (GBAF): when true, the auto-bolus
+    /// applicationFactor scales with current BG via a piecewise-linear curve
+    /// (factorLow at/below gbafLowAnchor, factorHigh at/above gbafHighAnchor).
+    /// More aggressive dosing only when BG is heading high. Default false.
+    public var glucoseBasedApplicationFactor: Bool
+    public var gbafLowAnchor: Double
+    public var gbafHighAnchor: Double
+    public var gbafFactorLow: Double
+    public var gbafFactorHigh: Double
+
     // MARK: – Defaults
 
     /// A config with all defaults. Convenience used widely by tests and callers.
     public static var `default`: EvalConfig { EvalConfig() }
 
     public init(
+        glucoseBasedApplicationFactor: Bool = false,
+        gbafLowAnchor: Double = 140.0,
+        gbafHighAnchor: Double = 220.0,
+        gbafFactorLow: Double = 0.4,
+        gbafFactorHigh: Double = 0.7,
         evalStep: TimeInterval = 5 * 60,
         includeFutureInsulin: Bool = true,
         includeFutureCarbs: Bool = false,
         insulinLookbackHours: Double = 16,
         glucoseLookbackHours: Double = 10,
         useIntegralRC: Bool = false,
+        ircDropGainScale: Double = 1.0,
+        ircRiseGainScale: Double = 1.0,
         kalmanSmoothing: Bool = true,
         horizons: [TimeInterval] = stride(from: 30.0, through: 360.0, by: 30.0)
             .map { $0 * 60 },
@@ -131,12 +155,19 @@ public struct EvalConfig: Codable, Sendable {
         momentumAlphaFast: Double = 0.85,
         evalWarmupHours: Double? = nil   // nil → use insulinLookbackHours
     ) {
+        self.glucoseBasedApplicationFactor  = glucoseBasedApplicationFactor
+        self.gbafLowAnchor                  = gbafLowAnchor
+        self.gbafHighAnchor                 = gbafHighAnchor
+        self.gbafFactorLow                  = gbafFactorLow
+        self.gbafFactorHigh                 = gbafFactorHigh
         self.evalStep                       = evalStep
         self.includeFutureInsulin           = includeFutureInsulin
         self.includeFutureCarbs             = includeFutureCarbs
         self.insulinLookbackHours           = insulinLookbackHours
         self.glucoseLookbackHours           = glucoseLookbackHours
         self.useIntegralRC                  = useIntegralRC
+        self.ircDropGainScale               = ircDropGainScale
+        self.ircRiseGainScale               = ircRiseGainScale
         self.kalmanSmoothing                = kalmanSmoothing
         self.horizons                       = horizons
         self.includingPositiveVelocityAndRC = includingPositiveVelocityAndRC
@@ -163,13 +194,14 @@ public struct EvalConfig: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
-        case useIntegralRC, kalmanSmoothing, horizons, includingPositiveVelocityAndRC
+        case useIntegralRC, ircDropGainScale, ircRiseGainScale, kalmanSmoothing, horizons, includingPositiveVelocityAndRC
         case useMidAbsorptionISF, carbAbsorptionModel
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
         case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
         case sensitivityHourlyMultipliers, localTimezoneIdentifier
         case evalWarmupHours
+        case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh
     }
 
     public init(from decoder: Decoder) throws {
@@ -180,6 +212,8 @@ public struct EvalConfig: Codable, Sendable {
         self.insulinLookbackHours = try c.decode(Double.self,       forKey: .insulinLookbackHours)
         self.glucoseLookbackHours = try c.decode(Double.self,       forKey: .glucoseLookbackHours)
         self.useIntegralRC        = try c.decode(Bool.self,         forKey: .useIntegralRC)
+        self.ircDropGainScale     = try c.decodeIfPresent(Double.self, forKey: .ircDropGainScale) ?? 1.0
+        self.ircRiseGainScale     = try c.decodeIfPresent(Double.self, forKey: .ircRiseGainScale) ?? 1.0
         self.kalmanSmoothing      = try c.decode(Bool.self,         forKey: .kalmanSmoothing)
         self.horizons             = try c.decode([TimeInterval].self, forKey: .horizons)
         self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
@@ -208,6 +242,11 @@ public struct EvalConfig: Codable, Sendable {
             self.localTimezone = .current
         }
         self.evalWarmupHours      = try c.decode(Double.self,       forKey: .evalWarmupHours)
+        self.glucoseBasedApplicationFactor = try c.decodeIfPresent(Bool.self, forKey: .glucoseBasedApplicationFactor) ?? false
+        self.gbafLowAnchor        = try c.decodeIfPresent(Double.self, forKey: .gbafLowAnchor)  ?? 140.0
+        self.gbafHighAnchor       = try c.decodeIfPresent(Double.self, forKey: .gbafHighAnchor) ?? 220.0
+        self.gbafFactorLow        = try c.decodeIfPresent(Double.self, forKey: .gbafFactorLow)  ?? 0.4
+        self.gbafFactorHigh       = try c.decodeIfPresent(Double.self, forKey: .gbafFactorHigh) ?? 0.7
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -218,6 +257,8 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(insulinLookbackHours, forKey: .insulinLookbackHours)
         try c.encode(glucoseLookbackHours, forKey: .glucoseLookbackHours)
         try c.encode(useIntegralRC, forKey: .useIntegralRC)
+        try c.encode(ircDropGainScale, forKey: .ircDropGainScale)
+        try c.encode(ircRiseGainScale, forKey: .ircRiseGainScale)
         try c.encode(kalmanSmoothing, forKey: .kalmanSmoothing)
         try c.encode(horizons, forKey: .horizons)
         try c.encode(includingPositiveVelocityAndRC, forKey: .includingPositiveVelocityAndRC)
@@ -237,5 +278,10 @@ public struct EvalConfig: Codable, Sendable {
         try c.encodeIfPresent(sensitivityHourlyMultipliers, forKey: .sensitivityHourlyMultipliers)
         try c.encode(localTimezone.identifier, forKey: .localTimezoneIdentifier)
         try c.encode(evalWarmupHours, forKey: .evalWarmupHours)
+        try c.encode(glucoseBasedApplicationFactor, forKey: .glucoseBasedApplicationFactor)
+        try c.encode(gbafLowAnchor, forKey: .gbafLowAnchor)
+        try c.encode(gbafHighAnchor, forKey: .gbafHighAnchor)
+        try c.encode(gbafFactorLow, forKey: .gbafFactorLow)
+        try c.encode(gbafFactorHigh, forKey: .gbafFactorHigh)
     }
 }
