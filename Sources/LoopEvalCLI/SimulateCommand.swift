@@ -92,6 +92,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Counterfactual burn-in hours (default 6.0): real-pump deliveries drive the sim for this period before counterfactual divergence starts. Gives candidate's prediction a fully-realistic recent dose history at the moment CF mode activates.")
     var candidateCounterfactualBurnInHours: Double = 6.0
 
+    @Flag(name: .long, help: "No user boluses: do NOT pass through user-initiated manual boluses (post burn-in). The sim's Loop owns ALL dosing, covering meals only via its own COB-driven auto-bolusing. Tests how the fully-automated system performs with no user intervention.")
+    var noUserBoluses: Bool = false
+
     @Option(name: .long, help: "Positive momentum velocity cap (mg/dL/min). LoopAlgorithm default is 4 mg/dL/min, which limits rising-BG momentum extrapolation. Real-deployed Loop in this user's case had NO cap; pass a high value (e.g., 100) to effectively disable.")
     var candidateMomentumCap: Double?
 
@@ -228,6 +231,7 @@ struct SimulateCommand: AsyncParsableCommand {
             cgmStaleGuardSec: cgmStaleGuardMin * 60,
             counterfactualMode: candidateCounterfactual,
             counterfactualBurnInSec: candidateCounterfactualBurnInHours * 3600,
+            excludeManualBoluses: noUserBoluses,
             progress: Self.makeProgressReporter()
         )
         printStderr("Progress: 100%\n")
@@ -265,6 +269,7 @@ struct SimulateCommand: AsyncParsableCommand {
             let baselineCOB: Double
             let baselineMomentum: Double    // net momentum contribution to forecast (mg/dL)
             let baselineRC: Double          // net retrospective-correction contribution (mg/dL)
+            let baselineDiscrepancy: Double // latest 30-min RC discrepancy (mg/dL)
             let candidateEventualBG: Double // sim Loop forecast on counter BG (CF)
             let candidateIOB: Double
             let candidateCOB: Double
@@ -298,6 +303,7 @@ struct SimulateCommand: AsyncParsableCommand {
                  baselineCOB: $0.baselineCOB,
                  baselineMomentum: $0.baselineMomentum,
                  baselineRC: $0.baselineRC,
+                 baselineDiscrepancy: $0.baselineDiscrepancy,
                  candidateEventualBG: $0.candidateEventualBG,
                  candidateIOB: $0.candidateIOB,
                  candidateCOB: $0.candidateCOB)

@@ -58,10 +58,24 @@ public struct NightscoutTreatment: Decodable, Sendable {
     public let timestamp: String?
     /// Carb absorption time in MINUTES (Loop publishes this per carb entry; e.g. 30, 180)
     public let absorptionTime: Double?
+    /// Mongo ObjectId. Its first 4 bytes encode the DB-insertion time — the
+    /// actual moment the record was written, independent of the (backdatable)
+    /// created_at/timestamp. Used to recover the true entry time of carbs the
+    /// user logged with a past meal time.
+    public let id: String?
 
     private enum CodingKeys: String, CodingKey {
         case created_at, eventType, insulin, carbs, rate, duration,
              absolute, percent, isSMB, automatic, timestamp, absorptionTime
+        case id = "_id"
+    }
+
+    /// DB-insertion time decoded from the ObjectId (first 8 hex chars = 4-byte
+    /// big-endian Unix seconds). Returns nil if `_id` is missing/not an ObjectId.
+    public var objectIdInsertionDate: Date? {
+        guard let id = id, id.count >= 8,
+              let secs = UInt32(id.prefix(8), radix: 16) else { return nil }
+        return Date(timeIntervalSince1970: TimeInterval(secs))
     }
 }
 

@@ -45,6 +45,7 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         public var baselineCOB: Double = .nan
         public var baselineMomentum: Double = .nan   // net momentum contribution to forecast (mg/dL)
         public var baselineRC: Double = .nan          // net retrospective-correction contribution (mg/dL)
+        public var baselineDiscrepancy: Double = .nan // latest 30-min RC discrepancy (mg/dL); drives IRC accumulation
         public var candidateEventualBG: Double = .nan
         public var candidateIOB: Double = .nan
         public var candidateCOB: Double = .nan
@@ -75,6 +76,7 @@ extension EvaluationEngine {
         cgmStaleGuardSec: TimeInterval = 0,
         counterfactualMode: Bool = false,
         counterfactualBurnInSec: TimeInterval = 6 * 3600,
+        excludeManualBoluses: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
 
@@ -188,7 +190,13 @@ extension EvaluationEngine {
             // Collect user-initiated manual boluses that occur AFTER burn-in
             // ends, sorted by startDate, for pass-through into
             // counterfactualDoses as the sim progresses.
-            realManualBoluses = data.doses
+            //
+            // excludeManualBoluses: drop them entirely so the sim's Loop owns ALL
+            // dosing (meals covered only by its own COB-driven auto-bolusing).
+            // Answers "how would the fully-automated system perform with NO user
+            // intervention?". Burn-in seed (pre-cfActiveStart) still keeps real
+            // manual boluses for IOB continuity; only post-burn-in ones are removed.
+            realManualBoluses = excludeManualBoluses ? [] : data.doses
                 .filter { dose in
                     dose.deliveryType != .basal && !dose.automatic
                     && dose.startDate >= cfActiveStart && dose.startDate < interval.end
@@ -309,6 +317,7 @@ extension EvaluationEngine {
             var baselineCOB = Double.nan
             var baselineMomentum = Double.nan
             var baselineRC = Double.nan
+            var baselineDiscrepancy = Double.nan
             if let baselineInput = baselineBuilder.buildInput(at: t) {
                 let br = Self.simStepDose(
                     t: t,
@@ -329,6 +338,7 @@ extension EvaluationEngine {
                 }
                 baselineMomentum = netMgdl(br.prediction.effects.momentum)
                 baselineRC = netMgdl(br.prediction.effects.retrospectiveCorrection)
+                baselineDiscrepancy = br.prediction.effects.retrospectiveGlucoseDiscrepancies.last?.quantity.doubleValue(for: mgdlUnit) ?? 0.0
             } else {
                 baselineDose = 0
             }
@@ -630,6 +640,7 @@ extension EvaluationEngine {
                 baselineCOB: baselineCOB,
                 baselineMomentum: baselineMomentum,
                 baselineRC: baselineRC,
+                baselineDiscrepancy: baselineDiscrepancy,
                 candidateEventualBG: candidateEventualBG,
                 candidateIOB: candidateIOB,
                 candidateCOB: candidateCOB

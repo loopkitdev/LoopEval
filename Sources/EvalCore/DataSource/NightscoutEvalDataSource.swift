@@ -66,10 +66,12 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     }
 
     public func getCarbEntries(interval: DateInterval) async throws -> [EvalCarbEntry] {
-        // v3 — schema bump to include per-entry absorptionTime (from NS, minutes).
-        // v2 caches hardcoded absorptionTime=nil, making meals absorb at the long
-        // default (~3h) instead of the real entry value (e.g. 30min). Force re-fetch.
-        let cacheKey = DataCache.key(for: "carbs_v3", url: client.baseURL, interval: interval)
+        // v6 — user-takeover deferral now lands the carb the STEP AFTER the
+        // paired manual bolus (was the same cycle as the bolus in v5, which still
+        // let the sim auto-dose the meal before the bolus hit IOB → double cover).
+        // v4 set entryDate from the ObjectId DB-insertion time; v3 added per-entry
+        // absorptionTime; v2 hardcoded absorptionTime=nil. Force re-fetch.
+        let cacheKey = DataCache.key(for: "carbs_v6", url: client.baseURL, interval: interval)
         if let cached: [EvalCarbEntry] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -204,12 +206,55 @@ public actor NightscoutEvalDataSource: EvalDataSource {
 
     private func convertTreatmentsToCarbs(_ treatments: [NightscoutTreatment]) -> [EvalCarbEntry] {
         let fmt = makeISOParser()
-        return treatments.compactMap { t in
+        // Delivery times of USER manual boluses (automatic != true), for the
+        // user-takeover rule below. A bolus timestamp is its delivery time (not
+        // backdatable), so created_at is correct here.
+        let manualBolusTimes: [Date] = treatments
+            .compactMap { tb in
+                guard let ins = tb.insulin, ins > 0, tb.automatic != true else { return nil }
+                return fmt.date(from: tb.created_at)
+            }
+            .sorted()
+        // How long after logging a meal the user's manual bolus may arrive and
+        // still count as "the user is covering this meal".
+        let userTakeoverWindow: TimeInterval = 15 * 60
+        // Make the carb visible the STEP AFTER the paired bolus (not the same
+        // cycle), so the bolus is already in IOB when the meal becomes visible
+        // and the sim's forecast/auto-bolus nets against it (mirrors the app's
+        // UI, which shows a bolus rec net of any auto-dosing → no double cover).
+        let postBolusVisibilityDelay: TimeInterval = 5 * 60
+
+        return treatments.compactMap { t -> EvalCarbEntry? in
             guard let carbs = t.carbs, carbs > 0 else { return nil }
-            guard let entryDate = fmt.date(from: t.created_at) else { return nil }
+            guard let createdAt = fmt.date(from: t.created_at) else { return nil }
             // Meal time may differ from entry time (user can log past/future meals).
             // Visibility is gated by entryDate; the absorption curve starts at startDate.
-            let mealDate = t.timestamp.flatMap { fmt.date(from: $0) } ?? entryDate
+            //
+            // created_at / timestamp are BACKDATABLE — the user logs a meal with
+            // the time she ate (e.g. 20 min ago), so both equal the meal time, not
+            // when Loop actually learned about the carbs. Using created_at as the
+            // decision-time gate leaks the meal into the sim ~15-40 min early, so
+            // the sim auto-boluses before reality did (and then double-covers the
+            // user's manual meal bolus → counter blow-up). The ObjectId's embedded
+            // DB-insertion time is the true "Loop learned about it" moment; prefer it.
+            let baseEntry = t.objectIdInsertionDate ?? createdAt
+            // User-takeover: when the user manual-boluses for this meal shortly
+            // after logging it, Loop (in reality) saw the carbs and the user's
+            // bolus together and deferred to the user — it did NOT auto-bolus in
+            // the log→bolus gap. The sim, replaying decision-time, otherwise
+            // auto-doses the meal in that gap and then double-covers the
+            // passed-through manual bolus. So defer carb visibility to the paired
+            // manual bolus (if one lands within the window) — the sim then sees
+            // bolus together. Deferring to the bolus time alone is NOT enough —
+            // the sim still auto-doses the meal in the SAME cycle, before the
+            // bolus registers in IOB (the forecast at that step has no offsetting
+            // insulin). So defer to one step AFTER the bolus. Meals with no nearby
+            // manual bolus keep baseEntry (Loop genuinely owns that meal).
+            let pairedBolus = manualBolusTimes.first {
+                $0 >= baseEntry && $0 <= baseEntry.addingTimeInterval(userTakeoverWindow)
+            }
+            let entryDate = pairedBolus.map { $0.addingTimeInterval(postBolusVisibilityDelay) } ?? baseEntry
+            let mealDate = t.timestamp.flatMap { fmt.date(from: $0) } ?? createdAt
             // Loop publishes per-entry absorptionTime in NS (MINUTES). Use it —
             // otherwise the carb math falls back to a long default (~3h) and
             // absorbs meals far slower than the deployed Loop (e.g. a 30-min fast
