@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Thin wrapper so `analysis/case-study ...` works without setting PYTHONPATH.
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec env PYTHONPATH="$DIR" python3 -m loopeval_analysis.case_study "$@"
