@@ -252,13 +252,28 @@ public struct NightscoutClient: Sendable {
     // MARK: – Public API
 
     /// Fetch CGM entries between `interval.start` and `interval.end`.
+    /// Fetched in 28-day chunks: a full-year single request (~105k entries)
+    /// 504s on slower hosts (e.g. slow guest). Chunking is transparent to the
+    /// DataCache, which still stores one file for the requested interval.
     public func fetchEntries(interval: DateInterval) async throws -> [NightscoutEntry] {
+        let chunk: TimeInterval = 28 * 24 * 3600
+        var all: [NightscoutEntry] = []
+        var start = interval.start
+        while start < interval.end {
+            let end = min(start.addingTimeInterval(chunk), interval.end)
+            all += try await fetchEntriesChunk(from: start, to: end)
+            start = end.addingTimeInterval(1)  // no overlap, no boundary dup
+        }
+        return all
+    }
+
+    private func fetchEntriesChunk(from: Date, to: Date) async throws -> [NightscoutEntry] {
         let fmt = Self.makeDateFormatter()
         var components = URLComponents(url: baseURL.appendingPathComponent("api/v1/entries.json"),
                                        resolvingAgainstBaseURL: false)!
         components.queryItems = [
-            URLQueryItem(name: "find[dateString][$gte]", value: fmt.string(from: interval.start)),
-            URLQueryItem(name: "find[dateString][$lte]", value: fmt.string(from: interval.end)),
+            URLQueryItem(name: "find[dateString][$gte]", value: fmt.string(from: from)),
+            URLQueryItem(name: "find[dateString][$lte]", value: fmt.string(from: to)),
             URLQueryItem(name: "count", value: "500000"),
         ]
         guard let url = components.url else { throw NightscoutClientError.invalidURL }
