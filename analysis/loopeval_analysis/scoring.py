@@ -1,17 +1,17 @@
 """Outcome scoring with disruption-window exclusion.
 
-Counter_BG in the closed-loop sim re-anchors to actual BG whenever CGM data
-resumes after a gap, and a pump outage ends with a replacement + catch-up
-bolus. For roughly a DIA afterwards the counterfactual is dominated by the
-actual trajectory, not by the candidate's own divergence — so we (1) don't
-really know how the candidate would have performed and (2) the candidate has
-had little time to take effect. Those windows should be excluded from outcome
-stats.
+POLICY (2026-05-26, user): we DO NOT ignore the recovery window after a
+disruption. The sim handles disruptions operationally — delivery is clamped to
+0 only DURING a pump outage, and no dose is issued during a CGM gap (stale
+guard) — and it resumes its OWN closed-loop dosing the moment the pump/CGM
+returns. So the post-disruption trajectory genuinely measures the candidate
+(in hands-off mode there's no real catch-up bolus to contaminate it). Only the
+disruption INTERVAL itself is dropped: for a pump outage that's a forced
+no-dose period (delivers 0 in both real and counter); for a CGM gap the
+interior is absent/empty. `post_hours` therefore defaults to 0.
 
-`exclusion_mask` marks every sample within `post_hours` AFTER the end of any
-CGM gap or pump outage (and, by default, the disruption interval itself, since
-CGM-gap interiors have no candidate signal and outage interiors deliver 0 in
-both real and counter). `outcome_stats` reports the usual metrics on the
+`exclusion_mask` marks the disruption intervals (and, if post_hours>0, the
+recovery window after). `outcome_stats` reports the usual metrics on the
 surviving samples.
 """
 from __future__ import annotations
@@ -22,13 +22,14 @@ import pandas as pd
 def exclusion_mask(index: pd.DatetimeIndex,
                    outages: Sequence = (),
                    cgm_gaps: Sequence = (),
-                   post_hours: float = 3.0,
+                   post_hours: float = 0.0,
                    include_interior: bool = True) -> pd.Series:
     """Boolean Series over `index`: True where the sample should be EXCLUDED.
 
-    For each disruption window [start, end], excludes [end, end + post_hours]
-    (the recovery window). With `include_interior` also excludes [start, end].
-    Both outages and CGM gaps are treated identically.
+    For each disruption window [start, end], excludes [end, end + post_hours].
+    With `include_interior` (default) also excludes [start, end]. Default
+    post_hours=0 ⇒ only the disruption interval is dropped, NOT the recovery
+    window (see module docstring). Both outages and CGM gaps treated identically.
     """
     idx = pd.DatetimeIndex(index)
     mask = pd.Series(False, index=idx)
@@ -43,7 +44,7 @@ def exclusion_mask(index: pd.DatetimeIndex,
 def score_counterfactual(trace_path: str,
                          outages_csv: Optional[str] = None,
                          cgm_gaps_csv: Optional[str] = None,
-                         post_hours: float = 3.0,
+                         post_hours: float = 0.0,
                          burnin_hours: float = 6.0,
                          tz=None) -> dict:
     """Canonical outcome scorer for a SimulateCommand trace.
