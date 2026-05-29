@@ -115,6 +115,54 @@ public struct EvalConfig: Codable, Sendable {
     public var gbafFactorLow: Double
     public var gbafFactorHigh: Double
 
+    /// Flat (global) auto-bolus application factor — fraction of the recommended
+    /// correction applied per cycle when GBAF is off. Loop default 0.4.
+    public var applicationFactor: Double
+
+    /// Asymmetric HIGH correction: rise-only BG-addition (positive-discrepancy driven)
+    /// with a fast-off velocity gate. Off by default.
+    public var highCorrectionEnabled: Bool
+    public var highCorrectionRiseGain: Double
+    public var highCorrectionEffectDurationMinutes: Double
+    public var highCorrectionFastOffVelocity: Double
+
+    /// Post-low (sustained-sensitivity) forecast suppression: when a recent low
+    /// (< postlowThresholdMgdl within postlowWindowMin) occurred, lower the
+    /// forecast by up to postlowSuppressMgdl (decaying over the window) so Loop
+    /// backs off — a SELECTIVE lows-protector for the repeat-low/rebound regime.
+    public var postlowSuppressMgdl: Double
+    public var postlowWindowMin: Double
+    public var postlowThresholdMgdl: Double
+    /// Trend augmentation: within the post-low window, ADD this many mg/dL of
+    /// forecast suppression per mg/dL/min of current DOWNTREND (causal velocity
+    /// over the last ~20 min). Targets the rebound's second drop with lead time;
+    /// fires only while BG is actually dropping again (not while recovering), so
+    /// it adds lows-protection without the blanket-window TIR cost. 0 = off
+    /// (≡ the plain recency-decay post-low protector).
+    public var postlowTrendGain: Double
+    /// Sustained post-low ISF REDUCTION (input-side). Within the post-low window
+    /// scale Loop's effective ISF by up to this factor (>1 = insulin modeled MORE
+    /// effective = Loop sizes the rebound CORRECTION down at the source, not just
+    /// nudges the forecast — so it doesn't saturate at the suspend wall the way
+    /// pure forecast-suppression does). Decays with recency (slow-off). EGP-safe
+    /// in practice (acts at the rebound's super-basal dosing where net~physical).
+    /// 1.0 = off.
+    public var postlowIsfMult: Double
+
+    /// PREDICTIVE pre-low damper: a strict-causal sustained-sensitivity trigger.
+    /// Over a trailing window compute causal ICE = v_bg − v_insulin (BG dropping
+    /// faster than the candidate's OWN insulin explains = a sensitivity
+    /// excursion, selective vs a normal bolus drawdown where ICE≈0). When that
+    /// rate is below −`sensDampThresholdRate`, raise effective ISF (dose less)
+    /// PROACTIVELY — before the low, while still super-basal — so the IOB that
+    /// would later crash BG never accumulates. Input-side, EGP-safe (shares the
+    /// post-low ISF path). `sensDampGain` = ISF-mult increase per mg/dL/min of
+    /// negative ICE beyond threshold; capped at `sensDampMax`. gain 0 = off.
+    public var sensDampWindowMin: Double
+    public var sensDampThresholdRate: Double
+    public var sensDampGain: Double
+    public var sensDampMax: Double
+
     // MARK: – Defaults
 
     /// A config with all defaults. Convenience used widely by tests and callers.
@@ -126,6 +174,20 @@ public struct EvalConfig: Codable, Sendable {
         gbafHighAnchor: Double = 220.0,
         gbafFactorLow: Double = 0.4,
         gbafFactorHigh: Double = 0.7,
+        applicationFactor: Double = 0.4,
+        highCorrectionEnabled: Bool = false,
+        highCorrectionRiseGain: Double = 1.0,
+        highCorrectionEffectDurationMinutes: Double = 60.0,
+        highCorrectionFastOffVelocity: Double = 0.5,
+        postlowSuppressMgdl: Double = 0.0,
+        postlowWindowMin: Double = 120.0,
+        postlowThresholdMgdl: Double = 70.0,
+        postlowTrendGain: Double = 0.0,
+        postlowIsfMult: Double = 1.0,
+        sensDampWindowMin: Double = 45.0,
+        sensDampThresholdRate: Double = 0.4,
+        sensDampGain: Double = 0.0,
+        sensDampMax: Double = 2.5,
         evalStep: TimeInterval = 5 * 60,
         includeFutureInsulin: Bool = true,
         includeFutureCarbs: Bool = false,
@@ -160,6 +222,20 @@ public struct EvalConfig: Codable, Sendable {
         self.gbafHighAnchor                 = gbafHighAnchor
         self.gbafFactorLow                  = gbafFactorLow
         self.gbafFactorHigh                 = gbafFactorHigh
+        self.applicationFactor              = applicationFactor
+        self.highCorrectionEnabled          = highCorrectionEnabled
+        self.highCorrectionRiseGain         = highCorrectionRiseGain
+        self.highCorrectionEffectDurationMinutes = highCorrectionEffectDurationMinutes
+        self.highCorrectionFastOffVelocity  = highCorrectionFastOffVelocity
+        self.postlowSuppressMgdl            = postlowSuppressMgdl
+        self.postlowWindowMin               = postlowWindowMin
+        self.postlowThresholdMgdl           = postlowThresholdMgdl
+        self.postlowTrendGain               = postlowTrendGain
+        self.postlowIsfMult                 = postlowIsfMult
+        self.sensDampWindowMin              = sensDampWindowMin
+        self.sensDampThresholdRate          = sensDampThresholdRate
+        self.sensDampGain                   = sensDampGain
+        self.sensDampMax                    = sensDampMax
         self.evalStep                       = evalStep
         self.includeFutureInsulin           = includeFutureInsulin
         self.includeFutureCarbs             = includeFutureCarbs
@@ -202,6 +278,10 @@ public struct EvalConfig: Codable, Sendable {
         case sensitivityHourlyMultipliers, localTimezoneIdentifier
         case evalWarmupHours
         case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh
+        case applicationFactor
+        case highCorrectionEnabled, highCorrectionRiseGain, highCorrectionEffectDurationMinutes, highCorrectionFastOffVelocity
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult
+        case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
 
     public init(from decoder: Decoder) throws {
@@ -247,6 +327,20 @@ public struct EvalConfig: Codable, Sendable {
         self.gbafHighAnchor       = try c.decodeIfPresent(Double.self, forKey: .gbafHighAnchor) ?? 220.0
         self.gbafFactorLow        = try c.decodeIfPresent(Double.self, forKey: .gbafFactorLow)  ?? 0.4
         self.gbafFactorHigh       = try c.decodeIfPresent(Double.self, forKey: .gbafFactorHigh) ?? 0.7
+        self.applicationFactor    = try c.decodeIfPresent(Double.self, forKey: .applicationFactor) ?? 0.4
+        self.highCorrectionEnabled = try c.decodeIfPresent(Bool.self, forKey: .highCorrectionEnabled) ?? false
+        self.highCorrectionRiseGain = try c.decodeIfPresent(Double.self, forKey: .highCorrectionRiseGain) ?? 1.0
+        self.highCorrectionEffectDurationMinutes = try c.decodeIfPresent(Double.self, forKey: .highCorrectionEffectDurationMinutes) ?? 60.0
+        self.highCorrectionFastOffVelocity = try c.decodeIfPresent(Double.self, forKey: .highCorrectionFastOffVelocity) ?? 0.5
+        self.postlowSuppressMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowSuppressMgdl) ?? 0.0
+        self.postlowWindowMin = try c.decodeIfPresent(Double.self, forKey: .postlowWindowMin) ?? 120.0
+        self.postlowThresholdMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowThresholdMgdl) ?? 70.0
+        self.postlowTrendGain = try c.decodeIfPresent(Double.self, forKey: .postlowTrendGain) ?? 0.0
+        self.postlowIsfMult = try c.decodeIfPresent(Double.self, forKey: .postlowIsfMult) ?? 1.0
+        self.sensDampWindowMin = try c.decodeIfPresent(Double.self, forKey: .sensDampWindowMin) ?? 45.0
+        self.sensDampThresholdRate = try c.decodeIfPresent(Double.self, forKey: .sensDampThresholdRate) ?? 0.4
+        self.sensDampGain = try c.decodeIfPresent(Double.self, forKey: .sensDampGain) ?? 0.0
+        self.sensDampMax = try c.decodeIfPresent(Double.self, forKey: .sensDampMax) ?? 2.5
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -283,5 +377,19 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(gbafHighAnchor, forKey: .gbafHighAnchor)
         try c.encode(gbafFactorLow, forKey: .gbafFactorLow)
         try c.encode(gbafFactorHigh, forKey: .gbafFactorHigh)
+        try c.encode(applicationFactor, forKey: .applicationFactor)
+        try c.encode(highCorrectionEnabled, forKey: .highCorrectionEnabled)
+        try c.encode(highCorrectionRiseGain, forKey: .highCorrectionRiseGain)
+        try c.encode(highCorrectionEffectDurationMinutes, forKey: .highCorrectionEffectDurationMinutes)
+        try c.encode(highCorrectionFastOffVelocity, forKey: .highCorrectionFastOffVelocity)
+        try c.encode(postlowSuppressMgdl, forKey: .postlowSuppressMgdl)
+        try c.encode(postlowWindowMin, forKey: .postlowWindowMin)
+        try c.encode(postlowThresholdMgdl, forKey: .postlowThresholdMgdl)
+        try c.encode(postlowTrendGain, forKey: .postlowTrendGain)
+        try c.encode(postlowIsfMult, forKey: .postlowIsfMult)
+        try c.encode(sensDampWindowMin, forKey: .sensDampWindowMin)
+        try c.encode(sensDampThresholdRate, forKey: .sensDampThresholdRate)
+        try c.encode(sensDampGain, forKey: .sensDampGain)
+        try c.encode(sensDampMax, forKey: .sensDampMax)
     }
 }

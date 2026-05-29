@@ -95,6 +95,18 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "No user boluses: do NOT pass through user-initiated manual boluses (post burn-in). The sim's Loop owns ALL dosing, covering meals only via its own COB-driven auto-bolusing. Tests how the fully-automated system performs with no user intervention.")
     var noUserBoluses: Bool = false
 
+    @Flag(name: .long, help: "Unannounced meals: hide carb entries from BOTH baseline and candidate forecasts (no COB), so Loop can only react to the BG rise. The meal's BG-raising effect REMAINS in the ICE/counter (it's the real trace, not subtracted), so the meal still happens — Loop just doesn't know about it. Use with --no-user-boluses for a true fully-unannounced, fully-automated test.")
+    var noCarbEntries: Bool = false
+
+    @Option(name: .long, help: "Counter-regulation onset (mg/dL). When the counterfactual BG falls below this, model the body's defensive hepatic glucose output as a positive BG velocity that ramps with depth below onset (capped). Prevents the counter running to unphysical negatives. 0 = off (default). ~65 is a reasonable physiological onset.")
+    var counterRegOnset: Double = 0
+
+    @Option(name: .long, help: "Counter-regulation gain (mg/dL/min per mg/dL below onset). Default 0.2.")
+    var counterRegGain: Double = 0.2
+
+    @Option(name: .long, help: "Counter-regulation max rate (mg/dL/min), the saturating defense ceiling. Default 6.0.")
+    var counterRegMax: Double = 6.0
+
     @Option(name: .long, help: "Positive momentum velocity cap (mg/dL/min). LoopAlgorithm default is 4 mg/dL/min, which limits rising-BG momentum extrapolation. Real-deployed Loop in this user's case had NO cap; pass a high value (e.g., 100) to effectively disable.")
     var candidateMomentumCap: Double?
 
@@ -103,6 +115,12 @@ struct SimulateCommand: AsyncParsableCommand {
 
     @Option(name: .long, help: "Time-matching tolerance for --candidate-isf-csv (seconds, default 150 = ±2.5min)")
     var candidateIsfCsvToleranceSec: Double = 150.0
+
+    @Option(name: .long, help: "Lows-protection gate for the ISF BOOST (mult<1 from --candidate-isf-csv). At each step, a boost is applied ONLY if the candidate's UNBOOSTED forecast PEAK (highest BG expected over the horizon = real headroom) exceeds this mg/dL threshold. Fires when BG is high or climbing (incl. unannounced-meal rises); suppresses the comfortable-and-falling case so the boost can't float into a developing low. The DAMP direction (mult>=1) is always kept. Unset = no gate.")
+    var candidateIsfBoostGateEventual: Double?
+
+    @Option(name: .long, help: "Intraday ICE veto on the ISF BOOST (mult<1). Suppress the boost when the recent (last 30min) insulin-counteraction-effect RATE is below this magnitude (mg/dL/min) — i.e. non-insulin drivers are currently pulling BG down (a sensitive moment, ICE<0 ⟺ high local-ISF), so adding insulin would float into a developing drop. Takes precedence over the forecast gate. DAMP (mult>=1) always kept. e.g. 0.5 = veto boost when ICE rate < -0.5 mg/dL/min.")
+    var candidateIsfBoostVetoIce: Double?
 
     @Flag(name: .long, help: "Apply candidate ISF boost (multiplier and/or per-step CSV) ONLY to the active-insulin term: dose-recommendation sizing and the positive-net-units glucose-effect. The EGP-credit term (negative netBasalUnits — implicit endogenous glucose production from suspending below schedule) continues to use the unmodulated scheduled ISF via Phase-1's scheduleBaselineSensitivity parameter. Default OFF preserves the legacy conflated behavior so pre-Phase-1 results stay reproducible.")
     var candidateIsfBoostActiveOnly: Bool = false
@@ -125,9 +143,46 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateGbafFactorLow: Double = 0.4
     @Option(name: .long, help: "GBAF: applicationFactor at highAnchor (default 0.7)")
     var candidateGbafFactorHigh: Double = 0.7
+    @Option(name: .long, help: "Candidate flat (global) auto-bolus application factor — fraction of recommended correction applied per cycle. Loop default 0.4. Only used when GBAF is off.")
+    var candidateApplicationFactor: Double = 0.4
+    @Flag(name: .long, help: "Enable candidate asymmetric HIGH correction: rise-only BG-addition driven by the positive retrospective discrepancy, with a fast-off velocity gate (turns off fast on a downtrend).")
+    var candidateHighCorrection: Bool = false
+    @Option(name: .long, help: "High-correction rise gain (scale on the rise-side BG-addition). Default 1.0.")
+    var candidateHighCorrectionRiseGain: Double = 1.0
+    @Option(name: .long, help: "High-correction effect duration (min). Default 60.")
+    var candidateHighCorrectionEffectMin: Double = 60.0
+    @Option(name: .long, help: "High-correction fast-off velocity (mg/dL/min): gate ramps to 0 as recent glucose velocity drops to -this. Smaller = turns off on a gentler downtrend. Default 0.5.")
+    var candidateHighCorrectionFastOffVelocity: Double = 0.5
+    @Option(name: .long, help: "Post-low forecast SUPPRESSION (mg/dL): when a recent low occurred, lower the candidate forecast by up to this (decaying over the window) so Loop backs off — selective lows-protector for the repeat-low regime. 0 = off (default).")
+    var candidatePostlowSuppress: Double = 0.0
+    @Option(name: .long, help: "Post-low suppression window / slow-off duration (min). Default 120.")
+    var candidatePostlowWindow: Double = 120.0
+    @Option(name: .long, help: "Post-low trigger threshold (mg/dL): a sample below this counts as a 'low'. Default 70.")
+    var candidatePostlowThreshold: Double = 70.0
+    @Option(name: .long, help: "Post-low TREND gain (mg/dL of extra forecast suppression per mg/dL/min of current downtrend, within the post-low window). Targets the rebound's second drop with lead time; fires only while BG is dropping again. 0 = off (plain recency-decay protector).")
+    var candidatePostlowTrendGain: Double = 0.0
+    @Option(name: .long, help: "Sustained post-low ISF REDUCTION factor (>1 = insulin modeled more effective, so Loop sizes the rebound correction DOWN at the source; decays with recency over the post-low window; EGP-safe via physical-delivery split). 1.0 = off.")
+    var candidatePostlowIsfMult: Double = 1.0
+    @Option(name: .long, help: "PREDICTIVE pre-low damper GAIN: causal sustained-sensitivity trigger (causal ICE = v_bg - v_insulin over a trailing window). ISF-mult increase per mg/dL/min of negative ICE beyond the threshold; raises ISF proactively before the low. 0 = off.")
+    var candidateSensDampGain: Double = 0.0
+    @Option(name: .long, help: "Predictive damper: causal-ICE rate (mg/dL/min) below which the damper engages (BG dropping this much faster than insulin explains). Default 0.4.")
+    var candidateSensDampThreshold: Double = 0.4
+    @Option(name: .long, help: "Predictive damper: trailing window (min) for the causal ICE estimate. Default 45.")
+    var candidateSensDampWindow: Double = 45.0
+    @Option(name: .long, help: "Predictive damper: cap on the ISF multiplier. Default 2.5.")
+    var candidateSensDampMax: Double = 2.5
 
     @Flag(name: .long, help: "Phase 2: compute the active-insulin glucose-effect over PHYSICAL delivered insulin (volume) rather than net-basal-units, so a candidate ISF boost amplifies real insulin even when delivery is below scheduled basal. Requires --candidate-isf-boost-active-only. Without it, sub-basal insulin sits in the EGP-credit term and the boost can't reach it (the Mar-29 'negative insulin' case). Default OFF (classic net-basal-units).")
     var candidateEgpPhysical: Bool = false
+
+    @Flag(name: .long, help: "Sim-FIDELITY: infer a local insulin-sensitivity multiplier m(t) from the residual. When BG is still dropping after subtracting the PD-modeled (scheduled-ISF) insulin, the insulin was more effective than scheduled, so scale ISF UP just enough to zero that negative residual (never past it). Applied to the PHYSIOLOGY (ICE + counterfactual dose-effect run at scheduled ISF × m), DECOUPLED from the controller's ISF belief. Capped by --candidate-infer-sensitivity-max. Default OFF.")
+    var candidateInferSensitivity: Bool = false
+    @Option(name: .long, help: "Cap on the inferred sensitivity multiplier m ('can't subtract more insulin than is physically present'). Default 2.0. Set 1.0 for an identity check (≡ off when sensitivity-multiplier is 1).")
+    var candidateInferSensitivityMax: Double = 2.0
+    @Option(name: .long, help: "Trailing window (min) over which the residual/insulin velocities are measured to infer m(t). Default 30.")
+    var candidateInferSensitivityWindowMin: Double = 30.0
+    @Option(name: .long, help: "Dump per-step NIE (de-insulinized real BG change = realBGdelta − m·real_physical_insulin) + m + substrate BG to this CSV (requires --candidate-infer-sensitivity). Feeds the offline perfect-foresight dosing oracle.")
+    var candidateDumpNieCsv: String? = nil
 
     @Option(name: .long, help: "CGM stale-data guard (minutes). Loop refuses to issue a new dose when the latest glucose is older than its inputDataRecencyInterval (15min). The sim's per-step dose path bypasses that guard, so set this to 15 to apply it: at any step where the latest CGM sample is older than N minutes, the sim makes NO dose adjustment (candidate and baseline keep delivering scheduled basal — unlike a pump outage, basal still flows during a CGM gap). 0 = disabled (legacy behavior; dose on stale data). Single missed samples (~10min) stay under 15min and are 'paved over'; 2+ missed samples cross the threshold and are treated as a gap.")
     var cgmStaleGuardMin: Double = 0
@@ -167,6 +222,20 @@ struct SimulateCommand: AsyncParsableCommand {
             gbafHighAnchor: candidateGbafHighAnchor,
             gbafFactorLow: candidateGbafFactorLow,
             gbafFactorHigh: candidateGbafFactorHigh,
+            applicationFactor: candidateApplicationFactor,
+            highCorrectionEnabled: candidateHighCorrection,
+            highCorrectionRiseGain: candidateHighCorrectionRiseGain,
+            highCorrectionEffectDurationMinutes: candidateHighCorrectionEffectMin,
+            highCorrectionFastOffVelocity: candidateHighCorrectionFastOffVelocity,
+            postlowSuppressMgdl: candidatePostlowSuppress,
+            postlowWindowMin: candidatePostlowWindow,
+            postlowThresholdMgdl: candidatePostlowThreshold,
+            postlowTrendGain: candidatePostlowTrendGain,
+            postlowIsfMult: candidatePostlowIsfMult,
+            sensDampWindowMin: candidateSensDampWindow,
+            sensDampThresholdRate: candidateSensDampThreshold,
+            sensDampGain: candidateSensDampGain,
+            sensDampMax: candidateSensDampMax,
             evalStep: TimeInterval(stepMinutes) * 60,
             includeFutureInsulin: oracleFutureInputs,
             includeFutureCarbs: oracleFutureInputs,
@@ -227,11 +296,21 @@ struct SimulateCommand: AsyncParsableCommand {
             isfMultiplierByStep: isfMultMap,
             isfBoostActiveOnly: candidateIsfBoostActiveOnly,
             egpPhysicalDecomposition: candidateEgpPhysical,
+            isfBoostGateEventualMgdl: candidateIsfBoostGateEventual,
+            isfBoostVetoIceRate: candidateIsfBoostVetoIce,
             outages: outages,
             cgmStaleGuardSec: cgmStaleGuardMin * 60,
             counterfactualMode: candidateCounterfactual,
             counterfactualBurnInSec: candidateCounterfactualBurnInHours * 3600,
             excludeManualBoluses: noUserBoluses,
+            suppressCarbs: noCarbEntries,
+            counterRegOnsetMgdl: counterRegOnset,
+            counterRegGain: counterRegGain,
+            counterRegMaxRate: counterRegMax,
+            inferSensitivity: candidateInferSensitivity,
+            inferSensitivityMax: candidateInferSensitivityMax,
+            inferSensitivityWindowSec: candidateInferSensitivityWindowMin * 60,
+            dumpNiePath: candidateDumpNieCsv,
             progress: Self.makeProgressReporter()
         )
         printStderr("Progress: 100%\n")

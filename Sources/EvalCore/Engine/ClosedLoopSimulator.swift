@@ -72,11 +72,21 @@ extension EvaluationEngine {
         isfMultiplierByStep: [Date: Double]? = nil,
         isfBoostActiveOnly: Bool = false,
         egpPhysicalDecomposition: Bool = false,
+        isfBoostGateEventualMgdl: Double? = nil,
+        isfBoostVetoIceRate: Double? = nil,
         outages: [Outage] = [],
         cgmStaleGuardSec: TimeInterval = 0,
         counterfactualMode: Bool = false,
         counterfactualBurnInSec: TimeInterval = 6 * 3600,
         excludeManualBoluses: Bool = false,
+        suppressCarbs: Bool = false,
+        counterRegOnsetMgdl: Double = 0,
+        counterRegGain: Double = 0.2,
+        counterRegMaxRate: Double = 6.0,
+        inferSensitivity: Bool = false,
+        inferSensitivityMax: Double = 2.0,
+        inferSensitivityWindowSec: TimeInterval = 30 * 60,
+        dumpNiePath: String? = nil,
         progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
 
@@ -158,6 +168,17 @@ extension EvaluationEngine {
             timezone: candidateConfig.localTimezone
         )
 
+        // PHYSIOLOGY sensitivity. In sensitivity-inference (fidelity) mode the
+        // physiological insulin response is decoupled from the controller's ISF
+        // belief: ICE and the counterfactual dose-effect run at the SCHEDULED
+        // ISF (the body's baseline), and the inferred per-step multiplier m(t)
+        // corrects it. The controller (generatePrediction) still uses the
+        // candidate's `scaledSensitivity`. Outside inference mode this is just
+        // `scaledSensitivity`, so all existing behavior is unchanged.
+        let physiologySensitivity = inferSensitivity
+            ? data.therapyTimeline.sensitivity
+            : scaledSensitivity
+
         // 2. Sequential walk
         let evalStart = interval.start.addingTimeInterval(candidateConfig.evalWarmupHours * 3600)
 
@@ -212,6 +233,10 @@ extension EvaluationEngine {
         // insulin decisions". Insulin response differs (computed from
         // candidate doses each step); everything else is borrowed from reality.
         let realICE: [GlucoseEffectVelocity]
+        // Per-grid-step PHYSICAL active-insulin effect of the REAL doses (EGP
+        // zeroed), for the sensitivity-inference application. Stays 0 outside
+        // inference mode.
+        var realPhysDelta = [Double](repeating: 0, count: simGlucose.count)
         if counterfactualMode {
             let iceStart = Date()
             FileHandle.standardError.write(Data("Sim setup: doses=\(data.doses.count) glucose=\(simGlucose.count)\n".utf8))
@@ -231,7 +256,7 @@ extension EvaluationEngine {
             let precomp = PrecomputedInsulinInput.build(
                 doses: safeDataDoses,
                 basal: data.therapyTimeline.basal,
-                sensitivity: scaledSensitivity,
+                sensitivity: physiologySensitivity,
                 effectsFrom: simGlucose.first?.startDate.addingTimeInterval(-insulinModel.effectDuration),
                 effectsTo: simGlucose.last?.startDate,
                 useMidAbsorptionISF: true
@@ -240,8 +265,74 @@ extension EvaluationEngine {
             FileHandle.standardError.write(Data("PrecomputedInsulinInput.build done in \(Int(Date().timeIntervalSince(iceStart) * 1000))ms (effects entries=\(insulinEffects.count))\n".utf8))
             realICE = simGlucose.counteractionEffects(to: insulinEffects)
             FileHandle.standardError.write(Data("ICE done (entries=\(realICE.count))\n".utf8))
+            if inferSensitivity {
+                let physStart = Date()
+                for j in 1..<simGlucose.count {
+                    realPhysDelta[j] = Self.physicalActiveEffectDelta(
+                        doses: safeDataDoses, basal: data.therapyTimeline.basal,
+                        sensitivity: physiologySensitivity,
+                        from: simGlucose[j - 1].startDate, to: simGlucose[j].startDate,
+                        insulinModel: insulinModel)
+                }
+                FileHandle.standardError.write(Data("realPhysActive precompute done in \(Int(Date().timeIntervalSince(physStart) * 1000))ms\n".utf8))
+            }
         } else {
             realICE = []
+        }
+
+        // SENSITIVITY-INFERENCE m(t) timeline (fidelity mode). For each grid
+        // sample, over a trailing window measure how much BG actually moved
+        // (`bgDeltaWindow`) vs how much the scheduled-ISF insulin model
+        // explains (`insReal = bgDeltaWindow - iceWindow`). If BG is still
+        // DROPPING after subtracting modeled insulin (iceWindow < 0), the
+        // insulin must have been more effective than scheduled — scale ISF up
+        // by m = bgDelta/insReal, JUST enough to zero that negative residual
+        // (never past it, so we never manufacture a spurious rise). Capped at
+        // `inferSensitivityMax` (the "can't subtract more insulin than is
+        // physically present" ceiling): when little insulin is active the cap
+        // binds and the unexplained drop stays as additive ICE — the
+        // exercise / low-IOB case, correctly left as non-insulin. Positive
+        // residuals (carbs/EGP winning) are untouched (m = 1).
+        var mByIndex = [Double](repeating: 1.0, count: simGlucose.count)
+        if counterfactualMode && inferSensitivity {
+            let velEps = 1.0  // mg/dL of modeled insulin over the window; below this we can't identify m
+            var kStart = 0
+            for j in 0..<simGlucose.count {
+                let tEnd = simGlucose[j].startDate
+                let tStart = tEnd.addingTimeInterval(-inferSensitivityWindowSec)
+                while kStart + 1 < simGlucose.count && simGlucose[kStart + 1].startDate <= tStart { kStart += 1 }
+                if simGlucose[kStart].startDate > tStart || simGlucose[kStart].startDate >= tEnd { continue }
+                let bgDeltaWindow = simGlucose[j].quantity.doubleValue(for: mgdlUnit)
+                    - simGlucose[kStart].quantity.doubleValue(for: mgdlUnit)
+                let iceWindow = Self.integrateICE(realICE, from: simGlucose[kStart].startDate, to: tEnd)
+                if iceWindow < 0 {
+                    let insReal = bgDeltaWindow - iceWindow  // modeled insulin effect (negative)
+                    if insReal < -velEps {
+                        mByIndex[j] = min(bgDeltaWindow / insReal, inferSensitivityMax)
+                    }
+                }
+            }
+            let active = mByIndex.filter { $0 > 1.0 }
+            let meanActive = active.isEmpty ? 0 : active.reduce(0, +) / Double(active.count)
+            FileHandle.standardError.write(Data("sensitivity-inference: m>1 at \(active.count)/\(mByIndex.count) steps (\(String(format: "%.1f", 100*Double(active.count)/Double(max(1,mByIndex.count))))%), mean m|active=\(String(format: "%.3f", meanActive)), max m=\(String(format: "%.3f", mByIndex.max() ?? 1))\n".utf8))
+            // DUMP per-step NIE (de-insulinized real BG change = realBGdelta −
+            // m·real_physical_insulin) + m + substrate BG, for the offline
+            // perfect-foresight dosing oracle. NIE is candidate-INDEPENDENT
+            // (property of the real day), so this dump is valid from any
+            // fidelity run. NIE_i covers [i-1, i].
+            if let dumpPath = dumpNiePath {
+                let isoFmt = ISO8601DateFormatter(); isoFmt.formatOptions = [.withInternetDateTime]
+                var csv = "t,nie,m,bg\n"
+                csv.reserveCapacity(simGlucose.count * 48)
+                for i in 1..<simGlucose.count {
+                    let bgPrev = simGlucose[i - 1].quantity.doubleValue(for: mgdlUnit)
+                    let bgNow = simGlucose[i].quantity.doubleValue(for: mgdlUnit)
+                    let nie = (bgNow - bgPrev) - mByIndex[i] * realPhysDelta[i]
+                    csv += "\(isoFmt.string(from: simGlucose[i].startDate)),\(nie),\(mByIndex[i]),\(bgNow)\n"
+                }
+                try? csv.write(toFile: dumpPath, atomically: true, encoding: .utf8)
+                FileHandle.standardError.write(Data("dumped NIE/m → \(dumpPath) (\(simGlucose.count - 1) rows)\n".utf8))
+            }
         }
 
         // Pre-compute expected step count for progress reporting
@@ -307,7 +398,7 @@ extension EvaluationEngine {
             let baselineBuilder = InputWindowBuilder(
                 glucose: simGlucose,
                 doses: data.doses,
-                carbs: data.carbs,
+                carbs: suppressCarbs ? [] : data.carbs,
                 therapyTimeline: data.therapyTimeline,
                 config: baselineConfig
             )
@@ -376,7 +467,7 @@ extension EvaluationEngine {
             let candidateBuilder = InputWindowBuilder(
                 glucose: counterSamples,
                 doses: combinedDoses,
-                carbs: data.carbs,
+                carbs: suppressCarbs ? [] : data.carbs,
                 therapyTimeline: data.therapyTimeline,
                 config: candidateConfig
             )
@@ -404,17 +495,43 @@ extension EvaluationEngine {
                 }
                 let perStepMapForLoop = isfMultiplierByStep
                 let csvIsfEnabled = abs(csvIsfMult - 1.0) > 1e-9 || mapHasAnyBoost
-                let result = Self.simStepDose(
-                    t: t,
-                    input: candidateInput,
-                    config: candidateConfig,
-                    therapy: data.therapyTimeline,
-                    glucoseMgdl: counterMgdl,
-                    glucoseSamples: counterGlucose,
-                    perStepIsfMultByTime: csvIsfEnabled ? perStepMapForLoop : nil,
-                    isfBoostActiveOnly: isfBoostActiveOnly,
-                    egpPhysicalDecomposition: egpPhysicalDecomposition
-                )
+                func doStep(_ map: [Date: Double]?)
+                    -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>) {
+                    Self.simStepDose(
+                        t: t, input: candidateInput, config: candidateConfig,
+                        therapy: data.therapyTimeline, glucoseMgdl: counterMgdl,
+                        glucoseSamples: counterGlucose,
+                        perStepIsfMultByTime: map,
+                        isfBoostActiveOnly: isfBoostActiveOnly,
+                        egpPhysicalDecomposition: egpPhysicalDecomposition)
+                }
+                // Forecast-gated boost (lows-protection): a boost (mult<1) is only
+                // applied if the candidate's UNBOOSTED forecast PEAK (highest BG
+                // expected over the horizon = real headroom) exceeds the gate. Fires
+                // when BG is high OR climbing (TIR-useful, incl. unannounced-meal
+                // rises); suppresses only the comfortable-and-falling case where the
+                // boost would float into a developing low. NB: gating on EVENTUAL BG
+                // is wrong — Loop drives eventual to target, so it rarely clears the
+                // gate and over-suppresses. The damp direction (mult>=1) is always kept.
+                // Primary lows-protection: an INTRADAY ICE veto. Suppress the boost
+                // when the recent insulin-counteraction effect is sufficiently negative
+                // — non-insulin drivers are currently pulling BG down (a sensitive
+                // moment, ICE<0 ⟺ high local-ISF), so adding insulin would float into a
+                // developing drop. Forecast-peak gate kept as a secondary option.
+                let result: (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>)
+                let wantBoost = csvIsfMult < 1.0 - 1e-9
+                if wantBoost, let iceR = isfBoostVetoIceRate {
+                    let iceRate = Self.integrateICE(realICE, from: t.addingTimeInterval(-1800), to: t) / 30.0
+                    result = (iceRate < -iceR) ? doStep(nil) : doStep(perStepMapForLoop)
+                } else if wantBoost, let gate = isfBoostGateEventualMgdl {
+                    let unboosted = doStep(nil)
+                    let peak = unboosted.prediction.glucose.map {
+                        $0.quantity.doubleValue(for: mgdlUnit)
+                    }.max() ?? .nan
+                    result = (peak.isFinite && peak > gate) ? doStep(perStepMapForLoop) : unboosted
+                } else {
+                    result = doStep(csvIsfEnabled ? perStepMapForLoop : nil)
+                }
                 candidateDose = result.dose
                 candidateBolus = result.bolus
                 candidateTempRate = result.tempRate
@@ -600,15 +717,58 @@ extension EvaluationEngine {
                     let prevIdx = advIdx > 0 ? advIdx - 1 : advIdx
                     let prevT = counterGlucose[prevIdx].startDate
                     let nextT = counterGlucose[advIdx].startDate
-                    let insulinDelta = Self.insulinEffectDelta(
-                        doses: counterfactualDoses,
-                        basal: data.therapyTimeline.basal,
-                        sensitivity: scaledSensitivity,
-                        from: prevT, to: nextT,
-                        insulinModel: insulinModel
-                    )
                     let iceDelta = Self.integrateICE(realICE, from: prevT, to: nextT)
-                    counterMgdl[advIdx] = counterMgdl[prevIdx] + insulinDelta + iceDelta
+                    // Counter-regulation: as counter_BG falls below the onset
+                    // threshold the body defends with surging hepatic glucose
+                    // output (glucagon/epinephrine). Model it as a positive BG
+                    // velocity that ramps with depth below onset, capped. The
+                    // real ICE already carries counter-reg at the *real* BG
+                    // level; this adds the EXTRA defense the counter's lower
+                    // level would trigger — fires ~only where counter has
+                    // diverged below the real range, so double-counting in the
+                    // tracking regime is negligible (term is 0 above onset).
+                    var crDelta = 0.0
+                    if counterRegOnsetMgdl > 0 {
+                        let below = counterRegOnsetMgdl - counterMgdl[prevIdx]
+                        if below > 0 {
+                            let rate = min(counterRegGain * below, counterRegMaxRate)
+                            crDelta = rate * (nextT.timeIntervalSince(prevT) / 60.0)
+                        }
+                    }
+                    let stepDelta: Double
+                    if inferSensitivity {
+                        // PHYSICAL / EGP-separated application. realBGdelta
+                        // carries ALL non-insulin physiology — including EGP —
+                        // unscaled. Only the PHYSICAL active-insulin delta
+                        // between candidate and real doses is scaled by the
+                        // inferred local sensitivity m. EGP is never magnified
+                        // by m (it isn't in the physical term), so a candidate
+                        // that suspends into sub-basal does NOT inherit a
+                        // magnified "negative IOB raises BG" artifact — it just
+                        // removes m × (the cut) of lowering and lets the real,
+                        // unscaled EGP carry BG back up. Identity: candidate
+                        // doses == real ⇒ candPhys == realPhysDelta ⇒ counter
+                        // reproduces the substrate.
+                        let realBGdelta = counterGlucose[advIdx].quantity.doubleValue(for: mgdlUnit)
+                            - counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
+                        let candPhys = Self.physicalActiveEffectDelta(
+                            doses: counterfactualDoses,
+                            basal: data.therapyTimeline.basal,
+                            sensitivity: physiologySensitivity,
+                            from: prevT, to: nextT,
+                            insulinModel: insulinModel)
+                        let m = mByIndex[advIdx]
+                        stepDelta = realBGdelta + m * (candPhys - realPhysDelta[advIdx])
+                    } else {
+                        let insulinDelta = Self.insulinEffectDelta(
+                            doses: counterfactualDoses,
+                            basal: data.therapyTimeline.basal,
+                            sensitivity: physiologySensitivity,
+                            from: prevT, to: nextT,
+                            insulinModel: insulinModel)
+                        stepDelta = insulinDelta + iceDelta
+                    }
+                    counterMgdl[advIdx] = counterMgdl[prevIdx] + stepDelta + crDelta
                     advIdx += 1
                 }
             }
@@ -928,6 +1088,77 @@ extension EvaluationEngine {
         return valueAt(to) - valueAt(from)
     }
 
+    /// PHYSICAL active-insulin glucose effect over [from, to]: the always-
+    /// lowering effect of ABSOLUTE delivered insulin (volume), with the
+    /// EGP-credit term zeroed (scheduleBaselineSensitivity = 0 ⇒ only the
+    /// `volume × -activeSensitivity` term survives the .physicalDelivery split).
+    /// Used by sensitivity-inference so the inferred multiplier scales ONLY the
+    /// physical insulin; EGP stays in the dose-independent residual and is never
+    /// magnified by m (avoids the net-basal "negative IOB raises BG" artifact).
+    /// mg/dL, negative = drop. Same dose-slicing as `insulinEffectDelta`.
+    fileprivate static func physicalActiveEffectDelta(
+        doses: [EvalInsulinDose],
+        basal: [AbsoluteScheduleValue<Double>],
+        sensitivity: [AbsoluteScheduleValue<LoopQuantity>],
+        from: Date, to: Date,
+        insulinModel: InsulinModel
+    ) -> Double {
+        guard to > from else { return 0 }
+        let lookback = from.addingTimeInterval(-insulinModel.effectDuration)
+        var lo = 0, hi = doses.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if doses[mid].startDate <= to { lo = mid + 1 } else { hi = mid }
+        }
+        let upperIdx = lo
+        if upperIdx == 0 { return 0 }
+        let scanFloor = lookback.addingTimeInterval(-insulinModel.effectDuration)
+        var lowerIdx = upperIdx - 1
+        while lowerIdx > 0 && doses[lowerIdx - 1].startDate >= scanFloor { lowerIdx -= 1 }
+        let relevantDoses = doses[lowerIdx..<upperIdx].filter { $0.endDate >= lookback }
+        if relevantDoses.isEmpty { return 0 }
+        guard let firstSens = sensitivity.first, let lastSens = sensitivity.last else { return 0 }
+        let safeDoses = relevantDoses.filter {
+            $0.startDate >= firstSens.startDate && $0.startDate <= lastSens.endDate
+        }
+        if safeDoses.isEmpty { return 0 }
+        let trimmedBasal = basal.trimmed(from: lookback, to: to)
+        let annotated = safeDoses.annotated(with: trimmedBasal, fillBasalGaps: true)
+        let delta: TimeInterval = 5 * 60
+        // Zero baseline-sensitivity ⇒ the EGP-credit term (egpRaise × baseline)
+        // vanishes; only the physical active term (volume × -activeSensitivity)
+        // remains. EGP is instead carried, unscaled, by realBGdelta.
+        let zeroBaseline = sensitivity.map {
+            AbsoluteScheduleValue(startDate: $0.startDate, endDate: $0.endDate,
+                                  value: LoopQuantity(unit: $0.value.unit, doubleValue: 0))
+        }
+        let effects = annotated.glucoseEffects(
+            insulinSensitivityHistory: sensitivity,
+            scheduleBaselineSensitivityHistory: zeroBaseline,
+            from: from.addingTimeInterval(-delta),
+            to: to.addingTimeInterval(delta),
+            delta: delta,
+            decomposition: .physicalDelivery
+        )
+        let mgdl = LoopUnit.milligramsPerDeciliter
+        let valueAt: (Date) -> Double = { target in
+            guard !effects.isEmpty else { return 0 }
+            if target <= effects.first!.startDate { return effects.first!.quantity.doubleValue(for: mgdl) }
+            if target >= effects.last!.startDate { return effects.last!.quantity.doubleValue(for: mgdl) }
+            for i in 0..<(effects.count - 1) {
+                let a = effects[i], b = effects[i + 1]
+                if a.startDate <= target && target <= b.startDate {
+                    let span = b.startDate.timeIntervalSince(a.startDate)
+                    let frac = span > 0 ? target.timeIntervalSince(a.startDate) / span : 0
+                    return a.quantity.doubleValue(for: mgdl) * (1 - frac)
+                         + b.quantity.doubleValue(for: mgdl) * frac
+                }
+            }
+            return effects.last!.quantity.doubleValue(for: mgdl)
+        }
+        return valueAt(to) - valueAt(from)
+    }
+
     fileprivate static func rasterizeRealPumpPerStep(
         doses: [EvalInsulinDose], start: Date, end: Date, stepSec: TimeInterval
     ) -> [Date: Double] {
@@ -1005,6 +1236,55 @@ extension EvaluationEngine {
         // schedule, Loop's IOB-compensation expects less BG drop and doesn't
         // try to redistribute the under-delivered insulin forward.
         let unit = LoopUnit.milligramsPerDeciliter
+        // Sustained post-low ISF reduction: within the post-low window, model
+        // insulin as MORE effective (ISF × factor, decaying with recency) so
+        // Loop sizes the rebound correction down at the source. Folded into the
+        // effective ISF multiplier used to build effectiveSensitivity below.
+        var dampFactor = 1.0  // ISF-up (dose-down) factor: post-low and/or predictive
+        // Post-low: recent low → size the rebound correction down (recency-decay).
+        if config.postlowIsfMult > 1.0, let lastG = input.glucose.last {
+            // Scan the candidate's OWN glucose history up to t (input.glucose),
+            // NOT the static substrate — its last element is the current step.
+            let windowSec = config.postlowWindowMin * 60.0
+            var recency = 0.0
+            for s in input.glucose.reversed() {
+                let age = lastG.startDate.timeIntervalSince(s.startDate)
+                if age > windowSec { break }
+                if s.quantity.doubleValue(for: unit) < config.postlowThresholdMgdl {
+                    recency = max(0.0, 1.0 - age / windowSec); break
+                }
+            }
+            dampFactor = max(dampFactor, 1.0 + (config.postlowIsfMult - 1.0) * recency)
+        }
+        // Predictive pre-low: strict-causal sustained-sensitivity trigger.
+        // causal ICE = v_bg − v_insulin over a trailing window (from the
+        // candidate's OWN glucose + dose history). When BG is dropping faster
+        // than the candidate's modeled insulin explains, raise ISF proactively.
+        if config.sensDampGain > 0, let lastG = input.glucose.last {
+            let winSec = config.sensDampWindowMin * 60.0
+            let nowBG = lastG.quantity.doubleValue(for: unit)
+            var vbg = 0.0; var have = false
+            for s in input.glucose.reversed() {
+                let dt = lastG.startDate.timeIntervalSince(s.startDate)
+                if dt >= winSec {
+                    vbg = (nowBG - s.quantity.doubleValue(for: unit)) / (dt / 60.0); have = true; break
+                }
+            }
+            if have {
+                let insEff = Self.insulinEffectDelta(
+                    doses: input.doses, basal: therapy.basal, sensitivity: therapy.sensitivity,
+                    from: lastG.startDate.addingTimeInterval(-winSec), to: lastG.startDate,
+                    insulinModel: therapy.insulinType.model)
+                let vins = insEff / (winSec / 60.0)        // mg/dL/min, negative = drop
+                let causalICE = vbg - vins                 // negative = sensitive (faster than insulin)
+                if causalICE < -config.sensDampThresholdRate {
+                    let f = min(1.0 + config.sensDampGain * (-causalICE - config.sensDampThresholdRate),
+                                config.sensDampMax)
+                    dampFactor = max(dampFactor, f)
+                }
+            }
+        }
+        let effExtraISF = extraISFMultiplier * dampFactor
         let effectiveSensitivity: [AbsoluteScheduleValue<LoopQuantity>]
 
         // Fast-path: even if a map is set, if no boost falls within [t, t+DIA]
@@ -1037,7 +1317,7 @@ extension EvaluationEngine {
             fineEntries.reserveCapacity(96)   // ~6h × 12 segs/h × bit of slack
 
             for entry in input.sensitivity {
-                let baseVal = entry.value.doubleValue(for: unit) * extraISFMultiplier
+                let baseVal = entry.value.doubleValue(for: unit) * effExtraISF
                 // Three regions:
                 //   1) entirely before t — pass through as-is (mult=1.0)
                 //   2) overlaps [t, horizonEnd] — expand into 5-min segments with per-future mult
@@ -1093,13 +1373,13 @@ extension EvaluationEngine {
                 }
             }
             effectiveSensitivity = fineEntries
-        } else if abs(extraISFMultiplier - 1.0) > 1e-9 {
+        } else if abs(effExtraISF - 1.0) > 1e-9 {
             effectiveSensitivity = input.sensitivity.map { entry in
                 AbsoluteScheduleValue(
                     startDate: entry.startDate,
                     endDate: entry.endDate,
                     value: LoopQuantity(unit: unit,
-                                        doubleValue: entry.value.doubleValue(for: unit) * extraISFMultiplier))
+                                        doubleValue: entry.value.doubleValue(for: unit) * effExtraISF))
             }
         } else {
             effectiveSensitivity = input.sensitivity
@@ -1122,8 +1402,13 @@ extension EvaluationEngine {
         // glucose-effect use the boosted `effectiveSensitivity`. When the
         // step has no boost (effectiveSensitivity == input.sensitivity by
         // content), Phase 1's decomposed formula is bit-identical to legacy.
+        // The post-low ISF reduction is also a boost-active case: hold EGP at
+        // the scheduled ISF (physicalDelivery split) so the reduction scales
+        // ONLY the active-insulin term — never amplifies the sub-basal EGP
+        // credit (per the asym-IRC low-side "preserve EGP separately" design).
+        let postlowActive = abs(effExtraISF - extraISFMultiplier) > 1e-12
         let scheduleBaseline: [AbsoluteScheduleValue<LoopQuantity>]? =
-            isfBoostActiveOnly ? input.sensitivity : nil
+            (isfBoostActiveOnly || postlowActive) ? input.sensitivity : nil
         // Phase-2: with `egpPhysicalDecomposition`, the active-insulin term is
         // computed over PHYSICAL delivered insulin (volume) rather than
         // net-basal-units, so an active-ISF boost amplifies real insulin even
@@ -1131,7 +1416,7 @@ extension EvaluationEngine {
         // isfBoostActiveOnly (a non-nil scheduleBaseline). Default keeps the
         // classic net-basal-units split.
         let decomposition: SensitivityDecomposition =
-            (egpPhysicalDecomposition && isfBoostActiveOnly) ? .physicalDelivery : .netBasalUnits
+            ((egpPhysicalDecomposition && isfBoostActiveOnly) || postlowActive) ? .physicalDelivery : .netBasalUnits
         var prediction: LoopPrediction<EvalCarbEntry> = LoopAlgorithm.generatePrediction(
             start: t,
             glucoseHistory: effectiveInput.glucose,
@@ -1152,29 +1437,76 @@ extension EvaluationEngine {
             momentumVelocityMaximum: momentumCap,
             useAsymmetricMomentum: config.useAsymmetricMomentum,
             momentumAlphaSlow: config.momentumAlphaSlow,
-            momentumAlphaFast: config.momentumAlphaFast
+            momentumAlphaFast: config.momentumAlphaFast,
+            highCorrectionEnabled: config.highCorrectionEnabled,
+            highCorrectionRiseGain: config.highCorrectionRiseGain,
+            highCorrectionEffectDurationMinutes: config.highCorrectionEffectDurationMinutes,
+            highCorrectionFastOffVelocity: config.highCorrectionFastOffVelocity
         )
 
+        // Sustained-sensitivity (post-low) forecast SUPPRESSION: a SELECTIVE
+        // lows-protector. When a recent low occurred (strong evidence of elevated
+        // sensitivity, and the repeat-low/rebound regime), LOWER the forecast so
+        // Loop backs off / holds the suspend through the rebound — preventing the
+        // redose that drives the next low. Decays linearly over the window
+        // (slow-off). Forecast-side, BG-subtraction (EGP-safe, no ISF/EGP coupling).
+        var postlowOffset = 0.0
+        if config.postlowSuppressMgdl > 0 || config.postlowTrendGain > 0,
+           let lastT = effectiveInput.glucose.last?.startDate {
+            let windowSec = config.postlowWindowMin * 60.0
+            let mgdl = LoopUnit.milligramsPerDeciliter
+            var recency = 0.0  // 1 just after a recent low, decaying to 0 over the window
+            for s in effectiveInput.glucose.reversed() {
+                let age = lastT.timeIntervalSince(s.startDate)
+                if age > windowSec { break }
+                if s.quantity.doubleValue(for: mgdl) < config.postlowThresholdMgdl {
+                    recency = max(0.0, 1.0 - age / windowSec); break
+                }
+            }
+            if recency > 0 {
+                // Trend augmentation: current downtrend (causal velocity over the
+                // last ~20 min). Suppress MORE when BG is dropping again toward the
+                // second low; nothing extra while recovering (velocity ≥ 0).
+                var dropRate = 0.0  // mg/dL per minute, positive = dropping
+                if config.postlowTrendGain > 0 {
+                    let g = effectiveInput.glucose
+                    if let last = g.last {
+                        let lastV = last.quantity.doubleValue(for: mgdl)
+                        // find a sample ~20 min before the last
+                        for s in g.reversed() {
+                            let dt = last.startDate.timeIntervalSince(s.startDate)
+                            if dt >= 20 * 60 {
+                                let v = (lastV - s.quantity.doubleValue(for: mgdl)) / (dt / 60.0)
+                                dropRate = max(0.0, -v); break
+                            }
+                        }
+                    }
+                }
+                postlowOffset = -recency * (config.postlowSuppressMgdl
+                                            + config.postlowTrendGain * dropRate)
+            }
+        }
+
         // Classifier-gated forecast modifier: shift the predicted glucose
-        // trajectory upward by `forecastOffsetMgdl` before the dose calc. This
-        // is a true forecast modification — Loop's correction logic and
-        // suspend-zone detection both see the bumped trajectory, so the rule
-        // can release dose even when Loop would otherwise be at the suspend
-        // floor. AGENTS.md "modify the forecast, not the dose".
-        if abs(forecastOffsetMgdl) > 1e-9 {
+        // trajectory by `forecastOffsetMgdl` (+ any post-low suppression) before
+        // the dose calc. A true forecast modification — Loop's correction logic
+        // and suspend-zone detection both see it. AGENTS.md "modify the forecast,
+        // not the dose".
+        let totalForecastOffset = forecastOffsetMgdl + postlowOffset
+        if abs(totalForecastOffset) > 1e-9 {
             let unit = LoopUnit.milligramsPerDeciliter
             prediction.glucose = prediction.glucose.map { p in
                 PredictedGlucoseValue(
                     startDate: p.startDate,
                     quantity: LoopQuantity(unit: unit,
-                                           doubleValue: p.quantity.doubleValue(for: unit) + forecastOffsetMgdl)
+                                           doubleValue: p.quantity.doubleValue(for: unit) + totalForecastOffset)
                 )
             }
         }
 
-        // Application factor: flat 0.4, or glucose-based (GBAF) ramp keyed on
-        // the current BG (latest glucose at/before t).
-        var appFactor = 0.4
+        // Application factor: flat config value (default 0.4), or glucose-based
+        // (GBAF) ramp keyed on the current BG (latest glucose at/before t).
+        var appFactor = config.applicationFactor
         if config.glucoseBasedApplicationFactor {
             let curBG = effectiveInput.glucose.last?.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter)
                 ?? prediction.glucose.first?.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter) ?? 0
