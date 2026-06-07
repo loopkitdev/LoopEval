@@ -184,6 +184,36 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Dump per-step NIE (de-insulinized real BG change = realBGdelta − m·real_physical_insulin) + m + substrate BG to this CSV (requires --candidate-infer-sensitivity). Feeds the offline perfect-foresight dosing oracle.")
     var candidateDumpNieCsv: String? = nil
 
+    @Flag(name: .long, help: "Candidate engine = OpenAPS (oref0-Swift) instead of Loop. Baseline always stays Loop. Lets you compare 'how would OpenAPS dose on this data?' against Loop's behavior on the same trace. Most Loop-specific candidate flags (asym momentum, IRC, ISF boost, etc.) are ignored on the OpenAPS leg.")
+    var candidateOpenaps: Bool = false
+
+    @Flag(name: .long, help: "DIAGNOSTIC: candidate engine = Loop's recommendation re-routed through the OpenAPSAdapter dose-translation path. If the resulting counter trace matches a plain Loop CF run, the OpenAPS translation is sound and any Loop-vs-OpenAPS divergence is genuine algorithm differences, not framework artifacts.")
+    var candidateLoopMimicOaps: Bool = false
+
+    @Option(name: .long, help: "Sensor cap on glucose reported to the controller (mg/dL). Real CGMs (Dexcom G6/G7, Libre) peg at ~400 — the algorithm never sees BG above this. Counter trajectory + outcome scoring use uncapped values. Default 400 (Dexcom-realistic). Pass 0 to disable.")
+    var sensorCapMgdl: Double = 400.0
+
+    @Option(name: .long, help: "OpenAPS threshold_setting (mg/dL) — oref's minGuardBG safety floor. SMB is gated off when minGuardBG drops below this. Default 60 (oref stock). Raising it directly suppresses SMB-firing into the suspend zone.")
+    var candidateOapsThreshold: Double?
+
+    @Option(name: .long, help: "OpenAPS smb_delivery_ratio (0..1). Fraction of computed needed-correction delivered as SMB each cycle. Default 0.5. Lower = smaller SMBs, less aggressive bolus pathway.")
+    var candidateOapsSmbRatio: Double?
+
+    @Option(name: .long, help: "OpenAPS maxSMBBasalMinutes / maxUAMSMBBasalMinutes — single-SMB size cap in minutes of current basal. Default 30. Lower = smaller per-SMB cap.")
+    var candidateOapsMaxSmbMin: Double?
+
+    @Flag(name: .long, help: "OpenAPS useNewFormula — enable Dynamic ISF (auto-scales ISF with current BG — analog of Loop's GBAF). Off by default in oref stock.")
+    var candidateOapsDynamicIsf: Bool = false
+
+    @Flag(name: .long, help: "OpenAPS sigmoid — sigmoid-shaped Dynamic ISF curve (alternative to power-law). Use with --candidate-oaps-dynamic-isf.")
+    var candidateOapsSigmoid: Bool = false
+
+    @Option(name: .long, help: "OpenAPS adjustmentFactor (power-law Dynamic ISF aggression). Default 0.8. Higher = more aggressive scaling with BG.")
+    var candidateOapsAdjustmentFactor: Double?
+
+    @Option(name: .long, help: "OpenAPS adjustmentFactorSigmoid (sigmoid Dynamic ISF aggression). Default 0.5.")
+    var candidateOapsAdjustmentFactorSigmoid: Double?
+
     @Option(name: .long, help: "CGM stale-data guard (minutes). Loop refuses to issue a new dose when the latest glucose is older than its inputDataRecencyInterval (15min). The sim's per-step dose path bypasses that guard, so set this to 15 to apply it: at any step where the latest CGM sample is older than N minutes, the sim makes NO dose adjustment (candidate and baseline keep delivering scheduled basal — unlike a pump outage, basal still flows during a CGM gap). 0 = disabled (legacy behavior; dose on stale data). Single missed samples (~10min) stay under 15min and are 'paved over'; 2+ missed samples cross the threshold and are treated as a gap.")
     var cgmStaleGuardMin: Double = 0
 
@@ -227,6 +257,13 @@ struct SimulateCommand: AsyncParsableCommand {
             highCorrectionRiseGain: candidateHighCorrectionRiseGain,
             highCorrectionEffectDurationMinutes: candidateHighCorrectionEffectMin,
             highCorrectionFastOffVelocity: candidateHighCorrectionFastOffVelocity,
+            oapsThresholdSetting: candidateOapsThreshold,
+            oapsSmbDeliveryRatio: candidateOapsSmbRatio,
+            oapsMaxSmbBasalMinutes: candidateOapsMaxSmbMin,
+            oapsUseNewFormula: candidateOapsDynamicIsf ? true : nil,
+            oapsSigmoid: candidateOapsSigmoid ? true : nil,
+            oapsAdjustmentFactor: candidateOapsAdjustmentFactor,
+            oapsAdjustmentFactorSigmoid: candidateOapsAdjustmentFactorSigmoid,
             postlowSuppressMgdl: candidatePostlowSuppress,
             postlowWindowMin: candidatePostlowWindow,
             postlowThresholdMgdl: candidatePostlowThreshold,
@@ -311,6 +348,9 @@ struct SimulateCommand: AsyncParsableCommand {
             inferSensitivityMax: candidateInferSensitivityMax,
             inferSensitivityWindowSec: candidateInferSensitivityWindowMin * 60,
             dumpNiePath: candidateDumpNieCsv,
+            useOpenAPSForCandidate: candidateOpenaps,
+            useLoopMimicForCandidate: candidateLoopMimicOaps,
+            sensorCapMgdl: sensorCapMgdl,
             progress: Self.makeProgressReporter()
         )
         printStderr("Progress: 100%\n")

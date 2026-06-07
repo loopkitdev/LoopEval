@@ -126,6 +126,32 @@ public struct EvalConfig: Codable, Sendable {
     public var highCorrectionEffectDurationMinutes: Double
     public var highCorrectionFastOffVelocity: Double
 
+    /// OpenAPSAdapter-specific knobs. When non-nil, override the corresponding
+    /// oref Preferences field. Nil = use oref defaults.
+    /// - `oapsThresholdSetting`: oref's `threshold_setting` (mg/dL). The
+    ///   minimum predicted-BG safety floor — SMB is gated off when minGuardBG
+    ///   drops below it. Default 60.
+    /// - `oapsSmbDeliveryRatio`: fraction of needed correction delivered as
+    ///   SMB on each cycle. Default 0.5.
+    /// - `oapsMaxSmbBasalMinutes`: cap on single-SMB size in minutes of
+    ///   current basal. Default 30.
+    public var oapsThresholdSetting: Double?
+    public var oapsSmbDeliveryRatio: Double?
+    public var oapsMaxSmbBasalMinutes: Double?
+    /// `useNewFormula`: enable oref's Dynamic ISF (auto-scales ISF based on
+    /// current BG — lower ISF at high BG = more aggressive, higher at low
+    /// BG = less aggressive). oref's analog of Loop's GBAF.
+    public var oapsUseNewFormula: Bool?
+    /// `sigmoid`: use the sigmoid-shaped Dynamic ISF curve instead of the
+    /// power-law one. Used together with useNewFormula.
+    public var oapsSigmoid: Bool?
+    /// `adjustmentFactor`: aggression of Dynamic ISF when useNewFormula is on
+    /// (power-law form). Default 0.8.
+    public var oapsAdjustmentFactor: Double?
+    /// `adjustmentFactorSigmoid`: aggression of the sigmoid Dynamic ISF.
+    /// Default 0.5.
+    public var oapsAdjustmentFactorSigmoid: Double?
+
     /// Post-low (sustained-sensitivity) forecast suppression: when a recent low
     /// (< postlowThresholdMgdl within postlowWindowMin) occurred, lower the
     /// forecast by up to postlowSuppressMgdl (decaying over the window) so Loop
@@ -179,6 +205,13 @@ public struct EvalConfig: Codable, Sendable {
         highCorrectionRiseGain: Double = 1.0,
         highCorrectionEffectDurationMinutes: Double = 60.0,
         highCorrectionFastOffVelocity: Double = 0.5,
+        oapsThresholdSetting: Double? = nil,
+        oapsSmbDeliveryRatio: Double? = nil,
+        oapsMaxSmbBasalMinutes: Double? = nil,
+        oapsUseNewFormula: Bool? = nil,
+        oapsSigmoid: Bool? = nil,
+        oapsAdjustmentFactor: Double? = nil,
+        oapsAdjustmentFactorSigmoid: Double? = nil,
         postlowSuppressMgdl: Double = 0.0,
         postlowWindowMin: Double = 120.0,
         postlowThresholdMgdl: Double = 70.0,
@@ -227,6 +260,13 @@ public struct EvalConfig: Codable, Sendable {
         self.highCorrectionRiseGain         = highCorrectionRiseGain
         self.highCorrectionEffectDurationMinutes = highCorrectionEffectDurationMinutes
         self.highCorrectionFastOffVelocity  = highCorrectionFastOffVelocity
+        self.oapsThresholdSetting           = oapsThresholdSetting
+        self.oapsSmbDeliveryRatio           = oapsSmbDeliveryRatio
+        self.oapsMaxSmbBasalMinutes         = oapsMaxSmbBasalMinutes
+        self.oapsUseNewFormula              = oapsUseNewFormula
+        self.oapsSigmoid                    = oapsSigmoid
+        self.oapsAdjustmentFactor           = oapsAdjustmentFactor
+        self.oapsAdjustmentFactorSigmoid    = oapsAdjustmentFactorSigmoid
         self.postlowSuppressMgdl            = postlowSuppressMgdl
         self.postlowWindowMin               = postlowWindowMin
         self.postlowThresholdMgdl           = postlowThresholdMgdl
@@ -280,6 +320,8 @@ public struct EvalConfig: Codable, Sendable {
         case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh
         case applicationFactor
         case highCorrectionEnabled, highCorrectionRiseGain, highCorrectionEffectDurationMinutes, highCorrectionFastOffVelocity
+        case oapsThresholdSetting, oapsSmbDeliveryRatio, oapsMaxSmbBasalMinutes
+        case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
@@ -332,6 +374,13 @@ public struct EvalConfig: Codable, Sendable {
         self.highCorrectionRiseGain = try c.decodeIfPresent(Double.self, forKey: .highCorrectionRiseGain) ?? 1.0
         self.highCorrectionEffectDurationMinutes = try c.decodeIfPresent(Double.self, forKey: .highCorrectionEffectDurationMinutes) ?? 60.0
         self.highCorrectionFastOffVelocity = try c.decodeIfPresent(Double.self, forKey: .highCorrectionFastOffVelocity) ?? 0.5
+        self.oapsThresholdSetting = try c.decodeIfPresent(Double.self, forKey: .oapsThresholdSetting)
+        self.oapsSmbDeliveryRatio = try c.decodeIfPresent(Double.self, forKey: .oapsSmbDeliveryRatio)
+        self.oapsMaxSmbBasalMinutes = try c.decodeIfPresent(Double.self, forKey: .oapsMaxSmbBasalMinutes)
+        self.oapsUseNewFormula = try c.decodeIfPresent(Bool.self, forKey: .oapsUseNewFormula)
+        self.oapsSigmoid = try c.decodeIfPresent(Bool.self, forKey: .oapsSigmoid)
+        self.oapsAdjustmentFactor = try c.decodeIfPresent(Double.self, forKey: .oapsAdjustmentFactor)
+        self.oapsAdjustmentFactorSigmoid = try c.decodeIfPresent(Double.self, forKey: .oapsAdjustmentFactorSigmoid)
         self.postlowSuppressMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowSuppressMgdl) ?? 0.0
         self.postlowWindowMin = try c.decodeIfPresent(Double.self, forKey: .postlowWindowMin) ?? 120.0
         self.postlowThresholdMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowThresholdMgdl) ?? 70.0
@@ -382,6 +431,13 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(highCorrectionRiseGain, forKey: .highCorrectionRiseGain)
         try c.encode(highCorrectionEffectDurationMinutes, forKey: .highCorrectionEffectDurationMinutes)
         try c.encode(highCorrectionFastOffVelocity, forKey: .highCorrectionFastOffVelocity)
+        try c.encodeIfPresent(oapsThresholdSetting, forKey: .oapsThresholdSetting)
+        try c.encodeIfPresent(oapsSmbDeliveryRatio, forKey: .oapsSmbDeliveryRatio)
+        try c.encodeIfPresent(oapsMaxSmbBasalMinutes, forKey: .oapsMaxSmbBasalMinutes)
+        try c.encodeIfPresent(oapsUseNewFormula, forKey: .oapsUseNewFormula)
+        try c.encodeIfPresent(oapsSigmoid, forKey: .oapsSigmoid)
+        try c.encodeIfPresent(oapsAdjustmentFactor, forKey: .oapsAdjustmentFactor)
+        try c.encodeIfPresent(oapsAdjustmentFactorSigmoid, forKey: .oapsAdjustmentFactorSigmoid)
         try c.encode(postlowSuppressMgdl, forKey: .postlowSuppressMgdl)
         try c.encode(postlowWindowMin, forKey: .postlowWindowMin)
         try c.encode(postlowThresholdMgdl, forKey: .postlowThresholdMgdl)

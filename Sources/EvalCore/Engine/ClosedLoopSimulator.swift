@@ -87,6 +87,9 @@ extension EvaluationEngine {
         inferSensitivityMax: Double = 2.0,
         inferSensitivityWindowSec: TimeInterval = 30 * 60,
         dumpNiePath: String? = nil,
+        useOpenAPSForCandidate: Bool = false,
+        useLoopMimicForCandidate: Bool = false,
+        sensorCapMgdl: Double = 400.0,
         progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
 
@@ -98,8 +101,19 @@ extension EvaluationEngine {
         // and candidate through an inline call (doses path); those two paths
         // are mathematically equivalent but numerically diverge, producing
         // non-zero Δdose at every step and compounding drift through the
-        // feedback loop. Both sides now go through `Self.simStepDose(...)`
-        // which uses one canonical doses-path generatePrediction call.
+        // feedback loop. Both sides now go through the engine's `step(_:)`
+        // which (for LoopAdapter) calls one canonical doses-path
+        // generatePrediction. Identity sanity therefore requires baseline and
+        // candidate to share the SAME engine instance.
+        let baselineEngine: DosingEngine = LoopAdapter()
+        let candidateEngine: DosingEngine
+        if useLoopMimicForCandidate {
+            candidateEngine = LoopMimicViaOpenAPSAdapter()
+        } else if useOpenAPSForCandidate {
+            candidateEngine = OpenAPSAdapter()
+        } else {
+            candidateEngine = LoopAdapter()
+        }
         let mgdlUnit = LoopUnit.milligramsPerDeciliter
         let insulinModel = data.therapyTimeline.insulinType.model
         let activityDuration = insulinModel.effectDuration
@@ -395,8 +409,14 @@ extension EvaluationEngine {
             }
 
             // ----- BASELINE step: actual glucose, actual doses, baselineConfig.
+            // Apply sensor cap: real CGMs (Dexcom G6/G7, Libre) peg at ~400 mg/dL,
+            // so the controller never sees BG above the cap. The counter / scoring
+            // still uses uncapped values. When sensorCapMgdl <= 0, no cap is applied.
+            let baselineGlucose = sensorCapMgdl > 0
+                ? Self.capGlucoseToSensor(simGlucose, capMgdl: sensorCapMgdl, unit: mgdlUnit)
+                : simGlucose
             let baselineBuilder = InputWindowBuilder(
-                glucose: simGlucose,
+                glucose: baselineGlucose,
                 doses: data.doses,
                 carbs: suppressCarbs ? [] : data.carbs,
                 therapyTimeline: data.therapyTimeline,
@@ -410,14 +430,14 @@ extension EvaluationEngine {
             var baselineRC = Double.nan
             var baselineDiscrepancy = Double.nan
             if let baselineInput = baselineBuilder.buildInput(at: t) {
-                let br = Self.simStepDose(
+                let br = baselineEngine.step(EngineStepRequest(
                     t: t,
                     input: baselineInput,
                     config: baselineConfig,
                     therapy: data.therapyTimeline,
                     glucoseMgdl: baselineMgdl,
                     glucoseSamples: simGlucose
-                )
+                ))
                 baselineDose = br.dose
                 baselineEventualBG = br.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
                 baselineIOB = br.prediction.activeInsulin ?? .nan
@@ -464,8 +484,13 @@ extension EvaluationEngine {
                     trendRate: s.trendRate
                 )
             }
+            // Sensor cap (Dexcom-like 400) applied to what the candidate algorithm
+            // sees. counterSamples / counterMgdl remain uncapped for advance + scoring.
+            let candidateSensorSamples = sensorCapMgdl > 0
+                ? Self.capGlucoseToSensor(counterSamples, capMgdl: sensorCapMgdl, unit: mgdlUnit)
+                : counterSamples
             let candidateBuilder = InputWindowBuilder(
-                glucose: counterSamples,
+                glucose: candidateSensorSamples,
                 doses: combinedDoses,
                 carbs: suppressCarbs ? [] : data.carbs,
                 therapyTimeline: data.therapyTimeline,
@@ -495,15 +520,14 @@ extension EvaluationEngine {
                 }
                 let perStepMapForLoop = isfMultiplierByStep
                 let csvIsfEnabled = abs(csvIsfMult - 1.0) > 1e-9 || mapHasAnyBoost
-                func doStep(_ map: [Date: Double]?)
-                    -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>) {
-                    Self.simStepDose(
+                func doStep(_ map: [Date: Double]?) -> EngineStepResult {
+                    candidateEngine.step(EngineStepRequest(
                         t: t, input: candidateInput, config: candidateConfig,
                         therapy: data.therapyTimeline, glucoseMgdl: counterMgdl,
                         glucoseSamples: counterGlucose,
                         perStepIsfMultByTime: map,
                         isfBoostActiveOnly: isfBoostActiveOnly,
-                        egpPhysicalDecomposition: egpPhysicalDecomposition)
+                        egpPhysicalDecomposition: egpPhysicalDecomposition))
                 }
                 // Forecast-gated boost (lows-protection): a boost (mult<1) is only
                 // applied if the candidate's UNBOOSTED forecast PEAK (highest BG
@@ -518,7 +542,7 @@ extension EvaluationEngine {
                 // — non-insulin drivers are currently pulling BG down (a sensitive
                 // moment, ICE<0 ⟺ high local-ISF), so adding insulin would float into a
                 // developing drop. Forecast-peak gate kept as a secondary option.
-                let result: (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>)
+                let result: EngineStepResult
                 let wantBoost = csvIsfMult < 1.0 - 1e-9
                 if wantBoost, let iceR = isfBoostVetoIceRate {
                     let iceRate = Self.integrateICE(realICE, from: t.addingTimeInterval(-1800), to: t) / 30.0
@@ -1213,7 +1237,10 @@ extension EvaluationEngine {
     /// Δdose = 0 at every step. Uses the raw-doses `generatePrediction` path
     /// (not `precomputedInsulin`) because the candidate's dose history changes
     /// per step — precomputing wouldn't be valid for it.
-    fileprivate static func simStepDose(
+    ///
+    /// `internal` (was `fileprivate`) so `LoopAdapter` (in Engine/) can call
+    /// it as the Loop-backed implementation of `DosingEngine.step(_:)`.
+    internal static func simStepDose(
         t: Date,
         input: PredictionInput,
         config: EvalConfig,
@@ -1437,11 +1464,14 @@ extension EvaluationEngine {
             momentumVelocityMaximum: momentumCap,
             useAsymmetricMomentum: config.useAsymmetricMomentum,
             momentumAlphaSlow: config.momentumAlphaSlow,
-            momentumAlphaFast: config.momentumAlphaFast,
-            highCorrectionEnabled: config.highCorrectionEnabled,
-            highCorrectionRiseGain: config.highCorrectionRiseGain,
-            highCorrectionEffectDurationMinutes: config.highCorrectionEffectDurationMinutes,
-            highCorrectionFastOffVelocity: config.highCorrectionFastOffVelocity
+            momentumAlphaFast: config.momentumAlphaFast
+            // NB: `highCorrectionEnabled` / `*RiseGain` / `*EffectDurationMinutes`
+            // / `*FastOffVelocity` came from the abandoned
+            // `experiment/asymmetric-high-correction` LoopAlgorithm branch.
+            // They are still in EvalConfig + CLI flags (dormant) but not
+            // wired through here — the canonical `feat/asymmetric-momentum`
+            // LoopAlgorithm fork does not accept them. Removing the EvalConfig
+            // fields + CLI flags is a separate cleanup.
         )
 
         // Sustained-sensitivity (post-low) forecast SUPPRESSION: a SELECTIVE
@@ -1562,6 +1592,30 @@ extension EvaluationEngine {
     }
 
     /// Merge two sorted dose arrays in O(N+M).
+    /// Cap CGM samples at the sensor's report ceiling (Dexcom G6/G7 = 400 mg/dL;
+    /// Libre similar). Real-world CGMs peg at this ceiling — the controller
+    /// never sees BG above it — so the sim mirrors that for fairness across
+    /// algorithms. Counter trajectory and outcome scoring use uncapped values.
+    fileprivate static func capGlucoseToSensor(
+        _ samples: [EvalGlucoseSample],
+        capMgdl: Double,
+        unit: LoopUnit
+    ) -> [EvalGlucoseSample] {
+        samples.map { s in
+            let v = s.quantity.doubleValue(for: unit)
+            if v <= capMgdl { return s }
+            return EvalGlucoseSample(
+                startDate: s.startDate,
+                quantity: LoopQuantity(unit: unit, doubleValue: capMgdl),
+                provenanceIdentifier: s.provenanceIdentifier,
+                isDisplayOnly: s.isDisplayOnly,
+                wasUserEntered: s.wasUserEntered,
+                condition: s.condition,
+                trendRate: s.trendRate
+            )
+        }
+    }
+
     private static func mergeSorted(_ a: [EvalInsulinDose], _ b: [EvalInsulinDose]) -> [EvalInsulinDose] {
         if b.isEmpty { return a }
         if a.isEmpty { return b }

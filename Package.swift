@@ -10,6 +10,9 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../LoopAlgorithm"),
+        // OpenAPSSwift: the oref0 algorithm port extracted from nightscout/Trio.
+        // Hosts the second DosingEngine (OpenAPSAdapter). See ../OpenAPSSwift/Package.swift.
+        .package(path: "../OpenAPSSwift"),
         // TODO: Re-evaluate NightscoutKit (LoopKit/NightscoutKit) — currently swift-tools-version:5.7
         // and targets iOS/watchOS; may produce Swift 6 strict-concurrency warnings.
         // Add back in Phase 2 when building the Nightscout data source.
@@ -21,6 +24,7 @@ let package = Package(
             name: "EvalCore",
             dependencies: [
                 .product(name: "LoopAlgorithm", package: "LoopAlgorithm"),
+                .product(name: "OpenAPSSwift", package: "OpenAPSSwift"),
                 // TODO: add NightscoutKit dependency here in Phase 2
             ]
         ),
