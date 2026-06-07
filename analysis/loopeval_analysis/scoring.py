@@ -16,6 +16,7 @@ surviving samples.
 """
 from __future__ import annotations
 from typing import Optional, Sequence
+import numpy as np
 import pandas as pd
 
 
@@ -76,6 +77,15 @@ def score_counterfactual(trace_path: str,
     excl = exclusion_mask(bg.index, outs, gaps, post_hours=post_hours) if (outs or gaps) else None
     st = outcome_stats(bg, exclude=excl)
     st["kept_frac"] = st["n"] / len(bg) if len(bg) else float("nan")
+
+    # IOB-at-crossing-54 danger metric (reads the sim's per-step candidateIOB).
+    preds = t.get("predictions")
+    if preds:
+        p = pd.DataFrame(preds)
+        if "candidateIOB" in p.columns and "t" in p.columns:
+            p["t"] = pd.to_datetime(p["t"]).dt.tz_convert(tz)
+            iob = p.dropna(subset=["t"]).set_index("t")["candidateIOB"]
+            st.update(crossing_iob_stats(bg, iob, threshold=54.0, exclude=excl))
     return st
 
 
@@ -100,4 +110,55 @@ def outcome_stats(bg: pd.Series,
         "t180": tp(bg > 180), "t250": tp(bg > 250),
         "auc70": auc_below(70), "auc54": auc_below(54), "auc180": auc_above(180),
         "mean": bg.mean(), "min": bg.min(), "std": bg.std(),
+    }
+
+
+def crossing_iob_stats(bg: pd.Series,
+                       iob: pd.Series,
+                       threshold: float = 54.0,
+                       exclude: Optional[pd.Series] = None,
+                       max_gap_min: float = 6.0) -> dict:
+    """Net IOB at each DOWNWARD crossing of `threshold` (a low-DANGER metric).
+
+    Danger framing: the more committed insulin a candidate carries into a severe
+    low, the more dangerous it is — it drives the low deeper and forces more
+    rescue, EVEN WHEN the treated time-below-threshold looks identical. This is a
+    danger axis that t<54 duration cannot see (duration is flattened by rescue
+    behavior in real data and by the counter-reg floor in sim). See
+    memory/project_iob_at_crossing_danger_2026_06_07.
+
+    A crossing is the first sample that drops below `threshold` from at-or-above.
+    Crossings whose preceding sample is >`max_gap_min` away (a data gap) or that
+    fall in an `exclude`d interval are skipped. Returns counts and IOB summaries;
+    `possum` (sum of positive IOB across crossings) is the aggregate exposure —
+    it scales with BOTH how often the candidate goes low AND how much committed
+    insulin it carries in. Negative IOB at a crossing is safe (no committed
+    lowering left, e.g. already suspended), so it is floored to 0 in `possum`.
+    """
+    key = f"{threshold:.0f}"
+    bg = bg.dropna()
+    if len(bg) < 2:
+        return {f"n_cross{key}": 0}
+    iob = iob.reindex(bg.index)
+    idx = bg.index
+    dt = idx.to_series().diff().dt.total_seconds().to_numpy() / 60.0
+    excl = (exclude.reindex(idx).fillna(False).to_numpy()
+            if exclude is not None else np.zeros(len(idx), dtype=bool))
+    v = bg.to_numpy(); iv = iob.to_numpy()
+    cross = []
+    for i in range(1, len(v)):
+        if (v[i-1] >= threshold and v[i] < threshold
+                and not excl[i] and dt[i] <= max_gap_min and not np.isnan(iv[i])):
+            cross.append(iv[i])
+    cross = np.asarray(cross, dtype=float)
+    n = len(cross)
+    if n == 0:
+        return {f"n_cross{key}": 0}
+    pos = np.clip(cross, 0.0, None)
+    return {
+        f"n_cross{key}": n,
+        f"iob_cross{key}_med": float(np.median(cross)),
+        f"iob_cross{key}_mean": float(cross.mean()),
+        f"iob_cross{key}_p90": float(np.percentile(cross, 90)),
+        f"iob_cross{key}_possum": float(pos.sum()),
     }
