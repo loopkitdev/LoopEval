@@ -183,6 +183,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateInferSensitivityWindowMin: Double = 30.0
     @Option(name: .long, help: "Smooth m(t) over this timescale (min, Gaussian FWHM, carry-latent: m≈1 steps treated as missing). Models sensitivity as a slow latent state instead of a per-step spike. 0 = off (default). Try 90.")
     var candidateInferSensitivitySmoothMin: Double = 0.0
+    @Option(name: .long, help: "Shrinkage prior weight (equivalent observations at m=1) for the smoother. Pulls the smoothed m back toward 1 where identified drops are sparse, countering carry-latent over-attribution. 0 = pure carry-latent (default). Try 1–6.")
+    var candidateInferSensitivitySmoothPrior: Double = 0.0
     @Option(name: .long, help: "Dump per-step NIE (de-insulinized real BG change = realBGdelta − m·real_physical_insulin) + m + substrate BG to this CSV (requires --candidate-infer-sensitivity). Feeds the offline perfect-foresight dosing oracle.")
     var candidateDumpNieCsv: String? = nil
 
@@ -350,6 +352,7 @@ struct SimulateCommand: AsyncParsableCommand {
             inferSensitivityMax: candidateInferSensitivityMax,
             inferSensitivityWindowSec: candidateInferSensitivityWindowMin * 60,
             inferSensitivitySmoothSec: candidateInferSensitivitySmoothMin * 60,
+            inferSensitivitySmoothPrior: candidateInferSensitivitySmoothPrior,
             dumpNiePath: candidateDumpNieCsv,
             useOpenAPSForCandidate: candidateOpenaps,
             useLoopMimicForCandidate: candidateLoopMimicOaps,

@@ -87,6 +87,7 @@ extension EvaluationEngine {
         inferSensitivityMax: Double = 2.0,
         inferSensitivityWindowSec: TimeInterval = 30 * 60,
         inferSensitivitySmoothSec: TimeInterval = 0,
+        inferSensitivitySmoothPrior: Double = 0,
         dumpNiePath: String? = nil,
         useOpenAPSForCandidate: Bool = false,
         useLoopMimicForCandidate: Bool = false,
@@ -340,16 +341,27 @@ extension EvaluationEngine {
             // (no evidence of elevated sensitivity). This is the "carry-latent"
             // (Policy B) smoother. Identity is unaffected (m drops out when
             // candidate ≡ real), so this is pure patient-model fidelity.
+            //
+            // SHRINKAGE TOWARD 1 (`inferSensitivitySmoothPrior > 0`): pure
+            // carry-latent over-attributes — it holds the elevated estimate as
+            // long as ANY drop is within the kernel, so elevated m spreads to
+            // ~84% of steps on rloop. Adding a prior pseudo-observation at m=1
+            // with weight w_prior (in "equivalent observations") shrinks the
+            // estimate back toward 1 where identified drops are sparse:
+            //   m = (Σ_obs w_k·m_k + w_prior·1) / (Σ_obs w_k + w_prior)
+            // Dense drops → elevated m survives; isolated drops → pulled to 1.
+            // w_prior = 0 reproduces pure carry-latent. Tune against field lows.
             if inferSensitivitySmoothSec > 0 {
                 let stepSec = candidateConfig.evalStep
                 let sigmaSteps = (inferSensitivitySmoothSec / stepSec) / 2.355  // FWHM → σ
                 let half = max(1, Int((3.0 * sigmaSteps).rounded(.up)))
+                let wPrior = max(0.0, inferSensitivitySmoothPrior)
                 let raw = mByIndex
                 let obs = raw.map { $0 > 1.0001 }   // identified observations only
                 var smoothed = [Double](repeating: 1.0, count: raw.count)
                 for i in 0..<raw.count {
                     let lo = max(0, i - half), hi = min(raw.count - 1, i + half)
-                    var wsum = 0.0, vsum = 0.0
+                    var wsum = wPrior, vsum = wPrior   // prior pseudo-obs at m=1
                     var k = lo
                     while k <= hi {
                         if obs[k] {
@@ -362,7 +374,7 @@ extension EvaluationEngine {
                     smoothed[i] = wsum > 0 ? min(vsum / wsum, inferSensitivityMax) : 1.0
                 }
                 mByIndex = smoothed
-                FileHandle.standardError.write(Data("sensitivity-inference: smoothed m over \(Int(inferSensitivitySmoothSec/60))min (σ=\(String(format: "%.1f", sigmaSteps)) steps, carry-latent)\n".utf8))
+                FileHandle.standardError.write(Data("sensitivity-inference: smoothed m over \(Int(inferSensitivitySmoothSec/60))min (σ=\(String(format: "%.1f", sigmaSteps)) steps, prior=\(String(format: "%.1f", wPrior)))\n".utf8))
             }
             let active = mByIndex.filter { $0 > 1.0 }
             let meanActive = active.isEmpty ? 0 : active.reduce(0, +) / Double(active.count)
