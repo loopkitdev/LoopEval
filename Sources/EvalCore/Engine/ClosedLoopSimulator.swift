@@ -86,6 +86,7 @@ extension EvaluationEngine {
         inferSensitivity: Bool = false,
         inferSensitivityMax: Double = 2.0,
         inferSensitivityWindowSec: TimeInterval = 30 * 60,
+        inferSensitivitySmoothSec: TimeInterval = 0,
         dumpNiePath: String? = nil,
         useOpenAPSForCandidate: Bool = false,
         useLoopMimicForCandidate: Bool = false,
@@ -325,6 +326,43 @@ extension EvaluationEngine {
                         mByIndex[j] = min(bgDeltaWindow / insReal, inferSensitivityMax)
                     }
                 }
+            }
+            // SMOOTHING (optional, `inferSensitivitySmoothSec > 0`). Physiology
+            // belief: insulin sensitivity is a SLOWLY-varying latent state, not a
+            // per-step spike. The raw per-step m is noisy (it's solved
+            // independently each step to exactly zero that step's residual).
+            // Smooth it with a Gaussian over a `smoothSec` timescale.
+            // CRUCIAL: steps with m≈1 are "carbs/EGP masked the signal — NO
+            // INFO", not "sensitivity is exactly scheduled". So they are treated
+            // as MISSING (excluded from the weighted mean), and the elevated
+            // latent is carried THROUGH meal windows. Where no identified
+            // observation falls within the kernel support, m relaxes to 1
+            // (no evidence of elevated sensitivity). This is the "carry-latent"
+            // (Policy B) smoother. Identity is unaffected (m drops out when
+            // candidate ≡ real), so this is pure patient-model fidelity.
+            if inferSensitivitySmoothSec > 0 {
+                let stepSec = candidateConfig.evalStep
+                let sigmaSteps = (inferSensitivitySmoothSec / stepSec) / 2.355  // FWHM → σ
+                let half = max(1, Int((3.0 * sigmaSteps).rounded(.up)))
+                let raw = mByIndex
+                let obs = raw.map { $0 > 1.0001 }   // identified observations only
+                var smoothed = [Double](repeating: 1.0, count: raw.count)
+                for i in 0..<raw.count {
+                    let lo = max(0, i - half), hi = min(raw.count - 1, i + half)
+                    var wsum = 0.0, vsum = 0.0
+                    var k = lo
+                    while k <= hi {
+                        if obs[k] {
+                            let d = Double(k - i) / sigmaSteps
+                            let w = exp(-0.5 * d * d)
+                            wsum += w; vsum += w * raw[k]
+                        }
+                        k += 1
+                    }
+                    smoothed[i] = wsum > 0 ? min(vsum / wsum, inferSensitivityMax) : 1.0
+                }
+                mByIndex = smoothed
+                FileHandle.standardError.write(Data("sensitivity-inference: smoothed m over \(Int(inferSensitivitySmoothSec/60))min (σ=\(String(format: "%.1f", sigmaSteps)) steps, carry-latent)\n".utf8))
             }
             let active = mByIndex.filter { $0 > 1.0 }
             let meanActive = active.isEmpty ? 0 : active.reduce(0, +) / Double(active.count)
