@@ -31,94 +31,57 @@ import OpenAPSSwift
 struct OpenAPSAdapter: DosingEngine {
     func step(_ req: EngineStepRequest) -> EngineStepResult {
         do {
-            var _m = DispatchTime.now()
-            func lap() -> Double { let n = DispatchTime.now(); let d = Double(n.uptimeNanoseconds - _m.uptimeNanoseconds)/1e6; _m = n; return d }
-            let inputs = try buildInputs(req: req); let tBuild = lap()
+            let inputs = try buildInputs(req: req)
 
-            let profile = try OpenAPSSwift.makeProfile(
-                preferences: inputs.preferences,
-                pumpSettings: inputs.pumpSettings,
-                bgTargets: inputs.bgTargets,
-                basalProfile: inputs.basalProfile,
-                isf: inputs.isf,
-                carbRatio: inputs.carbRatio,
-                tempTargets: "[]",
-                model: "\"X22\"",
-                trioSettings: "{}",
-                clock: req.t
-            ).returnOrThrow(); let tProfile = lap()
-
-            let clockStr = inputs.clockString
-
-            let meal = try OpenAPSSwift.meal(
-                pumphistory: inputs.pumpHistory,
-                profile: profile,
-                basalProfile: inputs.basalProfile,
-                clock: clockStr,
-                carbs: inputs.carbs,
-                glucose: inputs.glucose
-            ).returnOrThrow(); let tMeal = lap()
-
-            // Autosens is ~41% of per-step cost but a SLOW-moving signal (the ratio
-            // barely changes over 30 min). Recompute at most every 30 min of sim
-            // time and reuse the cached ratio in between — ~33% faster overall,
-            // faithful (real oref's ratio is stable on this timescale).
-            let autosens = try OpenAPSSwift.autosense(
-                glucose: inputs.glucose,
-                pumpHistory: inputs.pumpHistory,
-                basalProfile: inputs.basalProfile,
-                profile: profile,
-                carbs: inputs.carbs,
-                tempTargets: "[]",
-                clock: clockStr
-            ).returnOrThrow(); let tAuto = lap()
-
-            // Instrumentation: sample the autosens ratio (every 6h of sim time) so
-            // we can see how far oref's autosens is running from 1.0 and with how
-            // much data. Gated to keep the log light.
-            if let data = autosens.data(using: .utf8),
-               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let ratio = obj["ratio"] as? Double {
-                let comps = Calendar(identifier: .gregorian).dateComponents([.hour, .minute], from: req.t)
-                if (comps.hour ?? 0) % 6 == 0 && (comps.minute ?? 0) < 5 {
-                    FileHandle.standardError.write(Data("autosens \(req.t) ratio=\(String(format: "%.3f", ratio))\n".utf8))
-                }
+            // LEGACY path (OAPS_LEGACY env set): 5 separate JSON-bridged calls that
+            // re-parse profile/pumpHistory/glucose each call. Kept only for the
+            // bit-identity A/B check against the combined runPipeline below.
+            if ProcessInfo.processInfo.environment["OAPS_LEGACY"] != nil {
+                let profile = try OpenAPSSwift.makeProfile(
+                    preferences: inputs.preferences, pumpSettings: inputs.pumpSettings,
+                    bgTargets: inputs.bgTargets, basalProfile: inputs.basalProfile,
+                    isf: inputs.isf, carbRatio: inputs.carbRatio, tempTargets: "[]",
+                    model: "\"X22\"", trioSettings: "{}", clock: req.t).returnOrThrow()
+                let clockStr = inputs.clockString
+                let meal = try OpenAPSSwift.meal(
+                    pumphistory: inputs.pumpHistory, profile: profile,
+                    basalProfile: inputs.basalProfile, clock: clockStr,
+                    carbs: inputs.carbs, glucose: inputs.glucose).returnOrThrow()
+                let autosens = try OpenAPSSwift.autosense(
+                    glucose: inputs.glucose, pumpHistory: inputs.pumpHistory,
+                    basalProfile: inputs.basalProfile, profile: profile,
+                    carbs: inputs.carbs, tempTargets: "[]", clock: clockStr).returnOrThrow()
+                let iob = try OpenAPSSwift.iob(
+                    pumphistory: inputs.pumpHistory, profile: profile,
+                    clock: clockStr, autosens: autosens).returnOrThrow()
+                let det = try OpenAPSSwift.determineBasal(
+                    glucose: inputs.glucose, currentTemp: inputs.currentTemp, iob: iob,
+                    profile: profile, autosens: autosens, meal: meal,
+                    microBolusAllowed: true, reservoir: "100",
+                    pumpHistory: inputs.pumpHistory, preferences: inputs.preferences,
+                    basalProfile: inputs.basalProfile, trioCustomOrefVariables: inputs.trioCustomOref,
+                    clock: req.t).returnOrThrow()
+                return try mapDetermination(det, req: req, scheduledBasalUhr: inputs.scheduledBasalUhr)
             }
 
-            _ = lap()  // exclude the autosens-ratio print above from call timings
-            let iob = try OpenAPSSwift.iob(
-                pumphistory: inputs.pumpHistory,
-                profile: profile,
-                clock: clockStr,
-                autosens: autosens
-            ).returnOrThrow(); let tIob = lap()
-
-            let det = try OpenAPSSwift.determineBasal(
-                glucose: inputs.glucose,
-                currentTemp: inputs.currentTemp,
-                iob: iob,
-                profile: profile,
-                autosens: autosens,
-                meal: meal,
-                // microBolusAllowed: paired with the enableSMB* prefs above —
-                // tells oref to actually emit SMBs (`units > 0`) when its
-                // logic decides one is warranted.
-                microBolusAllowed: true,
-                reservoir: "100",
-                pumpHistory: inputs.pumpHistory,
-                preferences: inputs.preferences,
-                basalProfile: inputs.basalProfile,
+            // FAST PATH (default): one combined pipeline — parse each raw input once,
+            // pass structs between generators (no intermediate JSON). Same generators,
+            // same order → mathematically identical to the legacy 5-call sequence.
+            let pipe = try OpenAPSSwift.runPipeline(
+                preferences: inputs.preferences, pumpSettings: inputs.pumpSettings,
+                bgTargets: inputs.bgTargets, basalProfile: inputs.basalProfile,
+                isf: inputs.isf, carbRatio: inputs.carbRatio,
+                model: "\"X22\"", trioSettings: "{}",
+                pumpHistory: inputs.pumpHistory, carbs: inputs.carbs, glucose: inputs.glucose,
+                currentTemp: inputs.currentTemp, reservoir: "100", microBolusAllowed: true,
                 trioCustomOrefVariables: inputs.trioCustomOref,
-                clock: req.t
-            ).returnOrThrow(); let tDet = lap()
+                clockDate: req.t, clockJSON: inputs.clockString)
 
             let comps = Calendar(identifier: .gregorian).dateComponents([.hour, .minute], from: req.t)
             if (comps.hour ?? 0) % 6 == 0 && (comps.minute ?? 0) < 5 {
-                let total = tBuild+tProfile+tMeal+tAuto+tIob+tDet
-                FileHandle.standardError.write(Data(String(format: "oref-timing build=%.1f profile=%.1f meal=%.1f autosens=%.1f iob=%.1f determine=%.1f total=%.1f ms\n",
-                    tBuild, tProfile, tMeal, tAuto, tIob, tDet, total).utf8))
+                FileHandle.standardError.write(Data("autosens \(req.t) ratio=\(String(format: "%.3f", pipe.autosensRatio))\n".utf8))
             }
-            return try mapDetermination(det, req: req, scheduledBasalUhr: inputs.scheduledBasalUhr)
+            return try mapDetermination(pipe.determination, req: req, scheduledBasalUhr: inputs.scheduledBasalUhr)
         } catch {
             FileHandle.standardError.write(Data("OpenAPSAdapter error at \(req.t): \(error)\n".utf8))
             return fallbackResult(req: req, scheduledBasalUhr: activeBasal(at: req.t, req: req))
