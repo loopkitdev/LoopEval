@@ -49,6 +49,8 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         public var candidateEventualBG: Double = .nan
         public var candidateIOB: Double = .nan
         public var candidateCOB: Double = .nan
+        public var candidateMomentum: Double = .nan  // candidate's net momentum contribution (mg/dL)
+        public var candidateRC: Double = .nan         // candidate's net RC contribution (mg/dL); = asym-IRC when enabled
     }
     public let steps: [Step]
     public let baselineLabel: String
@@ -559,6 +561,8 @@ extension EvaluationEngine {
             var candidateEventualBG = Double.nan
             var candidateIOB = Double.nan
             var candidateCOB = Double.nan
+            var candidateMomentum = Double.nan
+            var candidateRC = Double.nan
             do {
                 let csvIsfMult: Double
                 if let m = isfMultiplierByStep, !m.isEmpty {
@@ -612,6 +616,12 @@ extension EvaluationEngine {
                 candidateEventualBG = result.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
                 candidateIOB = result.prediction.activeInsulin ?? .nan
                 candidateCOB = result.prediction.activeCarbs ?? .nan
+                func netEff(_ a: [GlucoseEffect]) -> Double {
+                    guard let f = a.first, let l = a.last else { return 0.0 }
+                    return l.quantity.doubleValue(for: mgdlUnit) - f.quantity.doubleValue(for: mgdlUnit)
+                }
+                candidateMomentum = netEff(result.prediction.effects.momentum)
+                candidateRC = netEff(result.prediction.effects.retrospectiveCorrection)
             }
 
             // ----- DELIVERABILITY / DATA-AVAILABILITY CLAMPS -----
@@ -877,7 +887,9 @@ extension EvaluationEngine {
                 baselineDiscrepancy: baselineDiscrepancy,
                 candidateEventualBG: candidateEventualBG,
                 candidateIOB: candidateIOB,
-                candidateCOB: candidateCOB
+                candidateCOB: candidateCOB,
+                candidateMomentum: candidateMomentum,
+                candidateRC: candidateRC
             ))
 
             t = t.addingTimeInterval(candidateConfig.evalStep)

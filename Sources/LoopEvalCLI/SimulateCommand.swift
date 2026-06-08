@@ -402,6 +402,8 @@ struct SimulateCommand: AsyncParsableCommand {
             let candidateEventualBG: Double // sim Loop forecast on counter BG (CF)
             let candidateIOB: Double
             let candidateCOB: Double
+            let candidateMomentum: Double   // candidate's net momentum contribution (mg/dL)
+            let candidateRC: Double         // candidate's net RC contribution (mg/dL); = asym-IRC when enabled
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
         struct CounterSample: Codable { let t: String; let bg: Double }
@@ -435,7 +437,9 @@ struct SimulateCommand: AsyncParsableCommand {
                  baselineDiscrepancy: $0.baselineDiscrepancy,
                  candidateEventualBG: $0.candidateEventualBG,
                  candidateIOB: $0.candidateIOB,
-                 candidateCOB: $0.candidateCOB)
+                 candidateCOB: $0.candidateCOB,
+                 candidateMomentum: $0.candidateMomentum,
+                 candidateRC: $0.candidateRC)
         }
         let actualOut = data.glucose.sorted { $0.startDate < $1.startDate }.map {
             ActualSample(t: formatter.string(from: $0.startDate),
