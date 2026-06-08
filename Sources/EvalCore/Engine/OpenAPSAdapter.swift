@@ -530,6 +530,12 @@ struct OpenAPSAdapter: DosingEngine {
         let IOB: Double?
         let COB: Double?
         let reason: String?
+        // Withholding diagnostics: minGuardBG/minPredBG are oref's predicted
+        // minimum BG; SMB is gated off when minGuardBG < threshold. sensitivityRatio
+        // is autosens.
+        let minGuardBG: Double?
+        let minPredBG: Double?
+        let sensitivityRatio: Double?
         /// Present when DeterminationGenerator threw a DeterminationError.
         /// OpenAPSSwift wraps it as `{"error": "..."}` — see OpenAPSSwift.swift:94.
         let error: String?
@@ -592,7 +598,10 @@ struct OpenAPSAdapter: DosingEngine {
             dose: dose,
             bolus: bolus,
             tempRate: tempRate,
-            prediction: prediction
+            prediction: prediction,
+            autosensRatio: det.sensitivityRatio,
+            minGuardBG: det.minGuardBG,
+            minPredBG: det.minPredBG
         )
     }
 

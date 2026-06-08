@@ -49,8 +49,13 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         public var candidateEventualBG: Double = .nan
         public var candidateIOB: Double = .nan
         public var candidateCOB: Double = .nan
-        public var candidateMomentum: Double = .nan  // candidate's net momentum contribution (mg/dL)
-        public var candidateRC: Double = .nan         // candidate's net RC contribution (mg/dL); = asym-IRC when enabled
+        public var candidateMomentum: Double = .nan  // candidate's net momentum contribution IN ISOLATION (mg/dL)
+        public var candidateRC: Double = .nan         // candidate's net RC contribution IN ISOLATION (mg/dL); = asym-IRC when enabled
+        public var candidateMomentumMarginal: Double = .nan // MARGINAL effect on eventualBG: with - without momentum (accounts for blend)
+        public var candidateRCMarginal: Double = .nan       // MARGINAL effect on eventualBG: with - without RC
+        public var candidateAutosensRatio: Double = .nan  // OAPS autosens ratio (nan for Loop)
+        public var candidateMinGuardBG: Double = .nan     // OAPS predicted-min BG that gates SMB (nan for Loop)
+        public var candidateMinPredBG: Double = .nan      // OAPS predicted-min BG (nan for Loop)
     }
     public let steps: [Step]
     public let baselineLabel: String
@@ -563,6 +568,11 @@ extension EvaluationEngine {
             var candidateCOB = Double.nan
             var candidateMomentum = Double.nan
             var candidateRC = Double.nan
+            var candidateMomentumMarginal = Double.nan
+            var candidateRCMarginal = Double.nan
+            var candidateAutosensRatio = Double.nan
+            var candidateMinGuardBG = Double.nan
+            var candidateMinPredBG = Double.nan
             do {
                 let csvIsfMult: Double
                 if let m = isfMultiplierByStep, !m.isEmpty {
@@ -622,6 +632,36 @@ extension EvaluationEngine {
                 }
                 candidateMomentum = netEff(result.prediction.effects.momentum)
                 candidateRC = netEff(result.prediction.effects.retrospectiveCorrection)
+                // MARGINAL contributions to eventualBG: recompute the forecast with the
+                // component removed and diff the endpoint. This accounts for Loop's
+                // momentum blend (LoopMath.predictGlucose blends momentum against the
+                // sum of the other effects over the first 15 min) — so if the other
+                // terms already imply the same near-term slope, momentum's marginal is
+                // ~0 even though its isolated net is non-zero.
+                if let startG = result.prediction.glucose.first {
+                    let eff = result.prediction.effects
+                    let withEventual = result.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
+                    var nonMom: [[GlucoseEffect]] = []
+                    if !eff.insulin.isEmpty { nonMom.append(eff.insulin) }
+                    if !eff.carbs.isEmpty { nonMom.append(eff.carbs) }
+                    if !eff.retrospectiveCorrection.isEmpty { nonMom.append(eff.retrospectiveCorrection) }
+                    if !eff.momentum.isEmpty {
+                        let woMom = LoopMath.predictGlucose(startingAt: startG, momentum: [], effects: nonMom)
+                            .last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
+                        candidateMomentumMarginal = withEventual - woMom
+                    }
+                    if !eff.retrospectiveCorrection.isEmpty {
+                        var noRC: [[GlucoseEffect]] = []
+                        if !eff.insulin.isEmpty { noRC.append(eff.insulin) }
+                        if !eff.carbs.isEmpty { noRC.append(eff.carbs) }
+                        let woRC = LoopMath.predictGlucose(startingAt: startG, momentum: eff.momentum, effects: noRC)
+                            .last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
+                        candidateRCMarginal = withEventual - woRC
+                    }
+                }
+                candidateAutosensRatio = result.autosensRatio ?? .nan
+                candidateMinGuardBG = result.minGuardBG ?? .nan
+                candidateMinPredBG = result.minPredBG ?? .nan
             }
 
             // ----- DELIVERABILITY / DATA-AVAILABILITY CLAMPS -----
@@ -889,7 +929,12 @@ extension EvaluationEngine {
                 candidateIOB: candidateIOB,
                 candidateCOB: candidateCOB,
                 candidateMomentum: candidateMomentum,
-                candidateRC: candidateRC
+                candidateRC: candidateRC,
+                candidateMomentumMarginal: candidateMomentumMarginal,
+                candidateRCMarginal: candidateRCMarginal,
+                candidateAutosensRatio: candidateAutosensRatio,
+                candidateMinGuardBG: candidateMinGuardBG,
+                candidateMinPredBG: candidateMinPredBG
             ))
 
             t = t.addingTimeInterval(candidateConfig.evalStep)
@@ -1520,6 +1565,7 @@ extension EvaluationEngine {
             useIntegralRetrospectiveCorrection: config.useIntegralRC,
             ircDropGainScale: config.ircDropGainScale,
             ircRiseGainScale: config.ircRiseGainScale,
+            ircLowMemoryScale: config.ircLowMemoryScale,
             includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
             useMidAbsorptionISF: config.useMidAbsorptionISF,
             carbAbsorptionModel: config.carbAbsorptionModel.model,

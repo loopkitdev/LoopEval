@@ -33,6 +33,10 @@ public struct EvalConfig: Codable, Sendable {
     /// Default 1.0/1.0 == standard symmetric IRC.
     public var ircDropGainScale: Double
     public var ircRiseGainScale: Double
+    /// IRC low-memory carry ("remember the low"): when > 0, a positive (rebound)
+    /// discrepancy run carries the immediately-preceding negative (low) run across
+    /// the sign flip instead of resetting, scaled by this factor. 0 == off.
+    public var ircLowMemoryScale: Double
 
     /// Smooth actual CGM with a Kalman filter before comparison (not algorithm input).
     public var kalmanSmoothing: Bool
@@ -229,6 +233,7 @@ public struct EvalConfig: Codable, Sendable {
         useIntegralRC: Bool = false,
         ircDropGainScale: Double = 1.0,
         ircRiseGainScale: Double = 1.0,
+        ircLowMemoryScale: Double = 0.0,
         kalmanSmoothing: Bool = true,
         horizons: [TimeInterval] = stride(from: 30.0, through: 360.0, by: 30.0)
             .map { $0 * 60 },
@@ -284,6 +289,7 @@ public struct EvalConfig: Codable, Sendable {
         self.useIntegralRC                  = useIntegralRC
         self.ircDropGainScale               = ircDropGainScale
         self.ircRiseGainScale               = ircRiseGainScale
+        self.ircLowMemoryScale              = ircLowMemoryScale
         self.kalmanSmoothing                = kalmanSmoothing
         self.horizons                       = horizons
         self.includingPositiveVelocityAndRC = includingPositiveVelocityAndRC
@@ -310,7 +316,7 @@ public struct EvalConfig: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
-        case useIntegralRC, ircDropGainScale, ircRiseGainScale, kalmanSmoothing, horizons, includingPositiveVelocityAndRC
+        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, kalmanSmoothing, horizons, includingPositiveVelocityAndRC
         case useMidAbsorptionISF, carbAbsorptionModel
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
@@ -336,6 +342,7 @@ public struct EvalConfig: Codable, Sendable {
         self.useIntegralRC        = try c.decode(Bool.self,         forKey: .useIntegralRC)
         self.ircDropGainScale     = try c.decodeIfPresent(Double.self, forKey: .ircDropGainScale) ?? 1.0
         self.ircRiseGainScale     = try c.decodeIfPresent(Double.self, forKey: .ircRiseGainScale) ?? 1.0
+        self.ircLowMemoryScale    = try c.decodeIfPresent(Double.self, forKey: .ircLowMemoryScale) ?? 0.0
         self.kalmanSmoothing      = try c.decode(Bool.self,         forKey: .kalmanSmoothing)
         self.horizons             = try c.decode([TimeInterval].self, forKey: .horizons)
         self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
@@ -402,6 +409,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(useIntegralRC, forKey: .useIntegralRC)
         try c.encode(ircDropGainScale, forKey: .ircDropGainScale)
         try c.encode(ircRiseGainScale, forKey: .ircRiseGainScale)
+        try c.encode(ircLowMemoryScale, forKey: .ircLowMemoryScale)
         try c.encode(kalmanSmoothing, forKey: .kalmanSmoothing)
         try c.encode(horizons, forKey: .horizons)
         try c.encode(includingPositiveVelocityAndRC, forKey: .includingPositiveVelocityAndRC)

@@ -66,11 +66,14 @@ struct EngineStepResult {
     let dose: Double
     let bolus: Double
     let tempRate: Double
-    /// Loop-flavored prediction (forecast curves, IOB, COB, momentum/RC
-    /// effects). Today only LoopAdapter populates this; when OpenAPSAdapter
-    /// lands it will either synthesize one from `Determination.predBGs` or
-    /// we'll move the diagnostic fields onto EngineStepResult directly.
+    /// Loop-flavored prediction (forecast curves, IOB, COB, momentum/RC effects).
     let prediction: LoopPrediction<EvalCarbEntry>
+    /// OpenAPS-only decision diagnostics (nil for Loop): why oref withholds dosing
+    /// before a low — autosens sensitivity ratio + the predicted-minimum BG that
+    /// gates SMB (minGuardBG/minPredBG vs threshold_setting).
+    var autosensRatio: Double? = nil
+    var minGuardBG: Double? = nil
+    var minPredBG: Double? = nil
 }
 
 protocol DosingEngine: Sendable {

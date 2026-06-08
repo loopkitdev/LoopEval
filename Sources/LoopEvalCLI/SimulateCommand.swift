@@ -132,6 +132,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateIrcDropScale: Double = 1.0
     @Option(name: .long, help: "Asymmetric IRC: gain scale when BG is rising faster than predicted (positive discrepancy = resistance). <1 responds more weakly/slower to rises. Only used with --candidate-integral-rc. Default 1.0 (symmetric).")
     var candidateIrcRiseScale: Double = 1.0
+    @Option(name: .long, help: "IRC low-memory carry ('remember the low'): when >0 and the current discrepancy run is positive (a rebound), the integral carries the immediately-preceding negative (low) run across the sign flip instead of resetting, scaled by this factor, so the low's memory offsets the rebound's upward dosing. One-sided (only +run carries a preceding -run). Only used with --candidate-integral-rc. Default 0 (off).")
+    var candidateIrcLowMemoryScale: Double = 0.0
 
     @Flag(name: .long, help: "Enable glucose-based application factor (GBAF) for candidate — auto-bolus app-factor ramps from factorLow (at/below lowAnchor) to factorHigh (at/above highAnchor) with current BG. More aggressive only when BG is high.")
     var candidateGbaf: Bool = false
@@ -287,6 +289,7 @@ struct SimulateCommand: AsyncParsableCommand {
             useIntegralRC: candidateIntegralRC || integralRC,
             ircDropGainScale: candidateIrcDropScale,
             ircRiseGainScale: candidateIrcRiseScale,
+            ircLowMemoryScale: candidateIrcLowMemoryScale,
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,
             sensitivityHourlyMultipliers: hourlyISF,
@@ -402,8 +405,13 @@ struct SimulateCommand: AsyncParsableCommand {
             let candidateEventualBG: Double // sim Loop forecast on counter BG (CF)
             let candidateIOB: Double
             let candidateCOB: Double
-            let candidateMomentum: Double   // candidate's net momentum contribution (mg/dL)
-            let candidateRC: Double         // candidate's net RC contribution (mg/dL); = asym-IRC when enabled
+            let candidateMomentum: Double   // candidate's net momentum contribution IN ISOLATION (mg/dL)
+            let candidateRC: Double         // candidate's net RC contribution IN ISOLATION (mg/dL); = asym-IRC when enabled
+            let candidateMomentumMarginal: Double // MARGINAL effect on eventualBG (with - without momentum; accounts for blend)
+            let candidateRCMarginal: Double       // MARGINAL effect on eventualBG (with - without RC)
+            let candidateAutosensRatio: Double  // OAPS autosens ratio (nan for Loop)
+            let candidateMinGuardBG: Double     // OAPS predicted-min BG gating SMB (nan for Loop)
+            let candidateMinPredBG: Double      // OAPS predicted-min BG (nan for Loop)
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
         struct CounterSample: Codable { let t: String; let bg: Double }
@@ -439,7 +447,12 @@ struct SimulateCommand: AsyncParsableCommand {
                  candidateIOB: $0.candidateIOB,
                  candidateCOB: $0.candidateCOB,
                  candidateMomentum: $0.candidateMomentum,
-                 candidateRC: $0.candidateRC)
+                 candidateRC: $0.candidateRC,
+                 candidateMomentumMarginal: $0.candidateMomentumMarginal.isFinite ? $0.candidateMomentumMarginal : 0.0,
+                 candidateRCMarginal: $0.candidateRCMarginal.isFinite ? $0.candidateRCMarginal : 0.0,
+                 candidateAutosensRatio: $0.candidateAutosensRatio.isFinite ? $0.candidateAutosensRatio : -1.0,
+                 candidateMinGuardBG: $0.candidateMinGuardBG.isFinite ? $0.candidateMinGuardBG : -1.0,
+                 candidateMinPredBG: $0.candidateMinPredBG.isFinite ? $0.candidateMinPredBG : -1.0)
         }
         let actualOut = data.glucose.sorted { $0.startDate < $1.startDate }.map {
             ActualSample(t: formatter.string(from: $0.startDate),
