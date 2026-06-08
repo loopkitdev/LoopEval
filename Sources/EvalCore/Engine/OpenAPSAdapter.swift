@@ -67,6 +67,18 @@ struct OpenAPSAdapter: DosingEngine {
                 clock: clockStr
             ).returnOrThrow()
 
+            // Instrumentation: sample the autosens ratio (every 6h of sim time) so
+            // we can see how far oref's autosens is running from 1.0 and with how
+            // much data. Gated to keep the log light.
+            if let data = autosens.data(using: .utf8),
+               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let ratio = obj["ratio"] as? Double {
+                let comps = Calendar(identifier: .gregorian).dateComponents([.hour, .minute], from: req.t)
+                if (comps.hour ?? 0) % 6 == 0 && (comps.minute ?? 0) < 5 {
+                    FileHandle.standardError.write(Data("autosens \(req.t) ratio=\(String(format: "%.3f", ratio))\n".utf8))
+                }
+            }
+
             let iob = try OpenAPSSwift.iob(
                 pumphistory: inputs.pumpHistory,
                 profile: profile,

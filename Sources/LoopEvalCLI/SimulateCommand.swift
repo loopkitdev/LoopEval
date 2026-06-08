@@ -185,6 +185,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateInferSensitivitySmoothMin: Double = 0.0
     @Option(name: .long, help: "Shrinkage prior weight (equivalent observations at m=1) for the smoother. Pulls the smoothed m back toward 1 where identified drops are sparse, countering carry-latent over-attribution. 0 = pure carry-latent (default). Try 1–6.")
     var candidateInferSensitivitySmoothPrior: Double = 0.0
+    @Option(name: .long, help: "Hours of glucose history fed to the controller each step. Default 10. oref's autosens wants ~24h — raise to 24 for a representative OpenAPS autosens (Loop only uses recent glucose for momentum/RC, so it's ~insensitive).")
+    var glucoseLookbackHours: Double = 10.0
     @Option(name: .long, help: "Dump per-step NIE (de-insulinized real BG change = realBGdelta − m·real_physical_insulin) + m + substrate BG to this CSV (requires --candidate-infer-sensitivity). Feeds the offline perfect-foresight dosing oracle.")
     var candidateDumpNieCsv: String? = nil
 
@@ -243,6 +245,7 @@ struct SimulateCommand: AsyncParsableCommand {
             evalStep: TimeInterval(stepMinutes) * 60,
             includeFutureInsulin: oracleFutureInputs,
             includeFutureCarbs: oracleFutureInputs,
+            glucoseLookbackHours: glucoseLookbackHours,
             useIntegralRC: integralRC,
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: sensitivityMultiplier,
@@ -280,6 +283,7 @@ struct SimulateCommand: AsyncParsableCommand {
             evalStep: TimeInterval(stepMinutes) * 60,
             includeFutureInsulin: oracleFutureInputs,
             includeFutureCarbs: oracleFutureInputs,
+            glucoseLookbackHours: glucoseLookbackHours,
             useIntegralRC: candidateIntegralRC || integralRC,
             ircDropGainScale: candidateIrcDropScale,
             ircRiseGainScale: candidateIrcRiseScale,
