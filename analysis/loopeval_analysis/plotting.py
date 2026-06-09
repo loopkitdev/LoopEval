@@ -193,3 +193,18 @@ def isf_change_vs_outcome_change(
     ax.grid(alpha=0.2)
     fig.tight_layout()
     return fig
+
+
+def tir_t54_axes(ax, ylim=(0.0, 1.5), budget=1.0,
+                 xlabel="TIR 70-180 (%)", ylabel="time <54 (%)"):
+    """Standard LoopEval outcome axes (convention 2026-06-09):
+      x = TIR (increasing right), y = time<54 (increasing up), y fixed 0-1.5.
+      Better outcomes are toward the LOWER-RIGHT (high TIR, low severe-lows).
+      Always plot points as (x=TIR, y=t54). Dotted line marks the soft t<54 budget.
+    """
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_ylim(*ylim)
+    if budget is not None:
+        ax.axhline(budget, color="#7b1fa2", ls=":", lw=0.9, zorder=0)
+    return ax
