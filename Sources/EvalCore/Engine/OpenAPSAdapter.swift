@@ -192,7 +192,18 @@ struct OpenAPSAdapter: DosingEngine {
         let basalProfileJSON = encodeBasalSchedule(req.input.basal, calendar: cal)
         let isfJSON          = encodeISFSchedule(req.input.sensitivity, calendar: cal)
         let carbRatioJSON    = encodeCRSchedule(req.input.carbRatio, calendar: cal)
-        let bgTargetsJSON    = encodeTargetSchedule(req.input.target, calendar: cal,
+        // Honor the candidate correction-range override (same flag used by the Loop
+        // path) so oref can be run at a fixed target/width for fair head-to-heads.
+        let targetSchedule: [AbsoluteScheduleValue<ClosedRange<LoopQuantity>>]
+        if let lo = req.config.correctionRangeOverrideLow, let hi = req.config.correctionRangeOverrideHigh {
+            let s = req.input.target.first?.startDate ?? Date.distantPast
+            let e = req.input.target.last?.endDate ?? Date.distantFuture
+            targetSchedule = [AbsoluteScheduleValue(startDate: s, endDate: e,
+                value: LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: lo)...LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: hi))]
+        } else {
+            targetSchedule = req.input.target
+        }
+        let bgTargetsJSON    = encodeTargetSchedule(targetSchedule, calendar: cal,
                                                     fallbackMidMgdl: 100)
 
         // ── Glucose history ───────────────────────────────────────────────────
