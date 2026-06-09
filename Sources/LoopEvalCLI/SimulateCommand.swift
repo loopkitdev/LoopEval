@@ -134,6 +134,10 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateIrcRiseScale: Double = 1.0
     @Option(name: .long, help: "IRC low-memory carry ('remember the low'): when >0 and the current discrepancy run is positive (a rebound), the integral carries the immediately-preceding negative (low) run across the sign flip instead of resetting, scaled by this factor, so the low's memory offsets the rebound's upward dosing. One-sided (only +run carries a preceding -run). Only used with --candidate-integral-rc. Default 0 (off).")
     var candidateIrcLowMemoryScale: Double = 0.0
+    @Option(name: .long, help: "Candidate correction-range target MIDPOINT (mg/dL) override. With --candidate-target-width, replaces the profile correction range for the candidate's dose decision. Lets us sweep target independent of ISF.")
+    var candidateTargetMid: Double?
+    @Option(name: .long, help: "Candidate correction-range WIDTH (mg/dL) override. Range = [mid-width/2, mid+width/2]. Width 0 = single-value target. Requires --candidate-target-mid.")
+    var candidateTargetWidth: Double?
 
     @Flag(name: .long, help: "Enable glucose-based application factor (GBAF) for candidate — auto-bolus app-factor ramps from factorLow (at/below lowAnchor) to factorHigh (at/above highAnchor) with current BG. More aggressive only when BG is high.")
     var candidateGbaf: Bool = false
@@ -255,6 +259,9 @@ struct SimulateCommand: AsyncParsableCommand {
             useAsymmetricMomentum: asymmetricMomentum
         )
 
+        let crHalfWidth: Double = (candidateTargetWidth ?? 0) / 2
+        let crOverrideLow: Double? = candidateTargetMid.map { $0 - crHalfWidth }
+        let crOverrideHigh: Double? = candidateTargetMid.map { $0 + crHalfWidth }
         let candidateConfig = EvalConfig(
             glucoseBasedApplicationFactor: candidateGbaf,
             gbafLowAnchor: candidateGbafLowAnchor,
@@ -290,6 +297,8 @@ struct SimulateCommand: AsyncParsableCommand {
             ircDropGainScale: candidateIrcDropScale,
             ircRiseGainScale: candidateIrcRiseScale,
             ircLowMemoryScale: candidateIrcLowMemoryScale,
+            correctionRangeOverrideLow: crOverrideLow,
+            correctionRangeOverrideHigh: crOverrideHigh,
             kalmanSmoothing: !noKalman,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,
             sensitivityHourlyMultipliers: hourlyISF,

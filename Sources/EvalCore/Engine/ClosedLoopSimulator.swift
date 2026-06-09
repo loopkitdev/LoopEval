@@ -1518,6 +1518,18 @@ extension EvaluationEngine {
         } else {
             effectiveSensitivity = input.sensitivity
         }
+        // Candidate correction-range override (study: sweep target midpoint/width
+        // independent of ISF). When set, replace the profile target with a flat range.
+        let effectiveTarget: [AbsoluteScheduleValue<ClosedRange<LoopQuantity>>]
+        if let lo = config.correctionRangeOverrideLow, let hi = config.correctionRangeOverrideHigh {
+            let s = input.target.first?.startDate ?? Date.distantPast
+            let e = input.target.last?.endDate ?? Date.distantFuture
+            effectiveTarget = [AbsoluteScheduleValue(
+                startDate: s, endDate: e,
+                value: LoopQuantity(unit: unit, doubleValue: lo)...LoopQuantity(unit: unit, doubleValue: hi))]
+        } else {
+            effectiveTarget = input.target
+        }
         let effectiveInput = PredictionInput(
             glucose: input.glucose,
             doses: input.doses,
@@ -1525,7 +1537,7 @@ extension EvaluationEngine {
             basal: input.basal,
             sensitivity: effectiveSensitivity,
             carbRatio: input.carbRatio,
-            target: input.target
+            target: effectiveTarget
         )
 
         // Phase-1 decomposition: when `isfBoostActiveOnly` is on, pass the
