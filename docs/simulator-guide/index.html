@@ -43,7 +43,7 @@
 <header><div class="wrap">
   <h1>LoopEval Closed-Loop Simulator</h1>
   <p>A technical primer on how the simulator works — data, the counterfactual physiology, the closed loop, the sensitivity-fidelity model, disruption handling, and how candidate algorithm changes (Loop <i>and</i> OpenAPS) are scored. <b>Living document</b> — kept current as the evaluator evolves.</p>
-  <p style="margin-top:6px;color:#9fc4ee;font-size:13.5px;">Last reviewed 2026-06-07.</p>
+  <p style="margin-top:6px;color:#9fc4ee;font-size:13.5px;">Last reviewed 2026-06-11.</p>
 </div></header>
 
 <div class="wrap">
@@ -65,6 +65,7 @@
 <a href="#example">13. A worked counterfactual</a><br>
 <a href="#scoring">14. Metrics &amp; scoring</a><br>
 <a href="#analysis">15. The analysis layer</a><br>
+<a href="#episodic">&nbsp;&nbsp;15.1 Episodic (event-windowed) eval</a><br>
 <a href="#principles">16. Principles &amp; traps</a><br>
 <a href="#validation">17. Validation</a><br>
 <a href="#params">18. Parameter reference</a><br>
@@ -186,7 +187,7 @@
 <h2 id="creg">8. Counter-regulation floor (a rescue-carb proxy)</h2>
 <p>When <code>counter_BG</code> falls below an onset threshold, a positive BG velocity is added that ramps with depth below onset, capped:</p>
 <div class="eq">if counter &lt; onset:  crVelocity = min( gain × (onset − counter), maxRate )</div>
-<p>Standard config: <code>--counter-reg-onset 54 --counter-reg-gain 0.4 --counter-reg-max 8.0</code>. It exists because, before it, counterfactual lows could run away to physically-impossible values (e.g. −100 mg/dL), which made severe-low stats meaningless. But it is best understood as a crude proxy — and the name "counter-regulation" is a bit of a misnomer, for two reasons.</p>
+<p><b>The floor is OFF by default</b> (<code>--counter-reg-onset</code> defaults to <code>0</code>; the floor code only runs when onset&nbsp;&gt;&nbsp;0). When enabled, the CLI defaults are <code>gain 0.2 / max 6.0</code>. It exists because, before it, counterfactual lows could run away to physically-impossible values (e.g. −100 mg/dL), which made severe-low stats meaningless — so the canonical <i>whole-trace</i> outcome sims turn it on (onset ~54) to keep severe-low stats physical. But enabling it is an <b>evaluation choice, not a default</b>: some evaluations deliberately leave it off — the <a href="#episodic">episodic event eval (§15.1)</a> does, so candidate-induced deep lows are counted un-truncated. It is best understood as a crude proxy — and the name "counter-regulation" is a bit of a misnomer, for two reasons.</p>
 <div class="warn"><b>In T1D the defense is rescue carbs, not endogenous counter-regulation.</b> The glucagon response to hypoglycemia is characteristically lost in established T1D, and the epinephrine backup is blunted by recurrent lows (HAAF / impaired awareness). The one endogenous lever that does remain — less insulin → less suppression of hepatic glucose output — is <i>already</i> captured by the insulin model when a candidate suspends. What actually brings these lows back up is the person <b>eating</b>.</div>
 <p><b>And the real rescue is already in the model — as positive ICE.</b> A treated low recovers because carbs were consumed; that recovery is in the real BG trace, so it rides into every counterfactual as a positive ICE/NIE bump at that wall-clock time (and, with the fidelity <code>m</code>, cleanly so — descent attributed to insulin, recovery to carbs). So in the tracking regime the floor isn't doing the recovering; the ICE is.</p>
 <div class="fig"><img src="recovery_characterization.png" alt="real low recoveries vs the floor">
@@ -262,6 +263,7 @@ where <code>candPhys</code> and <code>realPhys</code> are the <i>physical</i> ac
 <tr><td>Asymmetric IRC</td><td><code>--candidate-irc-drop-scale / -rise-scale</code></td><td>Sign-dependent IRC gain — damp the rise response, amplify the drop response (lows-protective).</td></tr>
 <tr><td>Asymmetric momentum</td><td><code>--candidate-asymmetric-momentum</code></td><td>Turns off positive momentum fast on a downtrend.</td></tr>
 <tr><td>Post-low protector</td><td><code>--candidate-postlow-suppress / -isf-mult</code></td><td>After a recent low, lower the forecast / raise ISF (slow-off) to damp the rebound re-dose.</td></tr>
+<tr><td>Uncertainty cap</td><td><code>--candidate-uncertainty-cap</code> (+ <code>-uncertainty-k</code>)</td><td>A unified dosing ceiling that replaces the application factor and the predicted-min gate. Per cycle, deliver at most the dose whose <i>worst-case</i> insulin effect (physical insulin × (1+<code>k</code>)) <i>with maximum basal suspension</i> still keeps the forecast ≥ a low threshold. <code>k</code> is the uncertainty knob (it plays AF's role: hedging the unknown future). Because it caps the dose <i>level</i> (not the rate), it does not wind up to 100% of need at a stable high. <span class="small">(Built 2026-06-10; EvalCore-only, no fork.)</span></td></tr>
 <tr><td>Sensitivity inference</td><td><code>--candidate-infer-sensitivity</code></td><td>The fidelity physiology model (§9) — also a research substrate, not only a therapy lever. Tuning: <code>-max</code> (cap, default 2.0), <code>-window-min</code> (default 30), and the off-by-default smoothers <code>-smooth-min</code> / <code>-smooth-prior</code>.</td></tr>
 <tr><td>Predictive sens-damp</td><td><code>--candidate-sens-damp-gain</code></td><td>Causal sustained-ICE trigger → proactive ISF reduction before a low.</td></tr>
 <tr><td><b>OpenAPS engine</b></td><td><code>--candidate-openaps</code> (+ <code>-oaps-*</code>)</td><td>Swap the candidate's whole dosing algorithm to oref/OpenAPS instead of Loop. Sub-flags expose oref knobs: <code>-oaps-threshold</code> (SMB safety floor), <code>-oaps-dynamic-isf</code> / <code>-oaps-sigmoid</code> (Dynamic ISF), <code>-oaps-smb-ratio</code>, etc.</td></tr>
@@ -294,6 +296,17 @@ where <code>candPhys</code> and <code>realPhys</code> are the <i>physical</i> ac
 <div class="cap">Lift analysis (one real user). The grey curve is the ISF/uniform-aggressiveness reference; green points shift it up-and-right (real improvements — asymmetric-IRC and GBAF+asym-IRC families); grey points sit on it (pure aggressiveness). The real-world star and sanity star are overlaid with their lift.</div></div>
 <p>Beyond the reactive frontier, a <b>perfect-foresight oracle</b> (offline optimal dosing given the known future ICE) bounds the best case: with perfect carb + sensitivity foresight, ~95% TIR at ~0 severe lows is achievable — and the gap to the best causal algorithm is almost entirely a <i>forecasting</i> problem (carbs/sensitivity ~85 min ahead), not a dosing-logic one. A <b>regret</b> analysis (best-causal vs oracle, on the same substrate) localizes that gap by regime.</p>
 
+<h3 id="episodic">15.1 Episodic (event-windowed) evaluation</h3>
+<p>The lift, oracle, and regret analyses above all score the <b>whole trace</b>. A complementary view asks a narrower, more faithful question: <i>how well does a candidate handle one specific unannounced meal?</i> This exists because a whole-trace hands-off counterfactual drifts away from the paired pro-regulatory human behaviour (the manual boluses and rescue carbs the person actually took) — the further the counter diverges from reality, the more it enters a contradictory-action space and the less the comparison means. The episodic eval keeps each counterfactual <b>anchored to reality</b> and isolates one meal at a time.</p>
+<ul>
+<li><b>Detect</b> a real unannounced rise: ≥&nbsp;40&nbsp;mg/dL within 90&nbsp;min, with <i>no</i> manual bolus or carb entry in [−45,&nbsp;+15]&nbsp;min around onset&nbsp;<i>T</i>. (Validate carb loading via <code>entryDate</code>/<code>startDate</code> — a detector that reads <code>created_at</code> silently loads zero carbs and mislabels announced meals as unannounced.)</li>
+<li><b>Window</b>: the candidate takes over dosing a couple hours <i>before</i> onset (<code>cfActive = T−2h</code>), so the IOB it carries into the meal is its <i>own</i> run-up decision, not the real Loop's. The real boluses/carbs are otherwise kept, and divergence is bounded to the single event.</li>
+<li><b>Score by AUC, not peak</b>, over a fixed <code>[T−2h, T+8h]</code> horizon: <b>AUC&gt;180</b> (the hyperglycemic burden the meal creates) and <b>AUC&lt;70</b> (the hypo cost). Peak is misleading — a candidate can blunt the first peak yet, via an induced low → rebound, raise the <i>total</i> time-above-180. 8&nbsp;h exceeds insulin DIA past the meal-response dosing (candidate-induced lows land at ~5–8&nbsp;h). It is a <b>fixed window, not a recovery-detected endpoint</b>: overlapping grazing meals make a clean "recovered" moment ill-defined, and a fair ΔAUC needs both arms scored over a common span.</li>
+<li><b>Reference</b>: the real <i>deployed</i> Loop sits at ΔAUC&gt;180 = 0 by construction; its absolute AUC&lt;70 is plotted as a star, so you can see which candidates beat ground-truth on each axis.</li>
+<li>The counter-reg floor is deliberately <b>off</b> here (<a href="#creg">§8</a>), so candidate-induced deep lows are counted un-truncated.</li>
+</ul>
+<div class="ok"><b>What it found — the benchmark brackets the value of meal foresight.</b> On a <i>heavy</i> meal-announcer, the deployed Loop is already on the meal-handling frontier and no candidate Pareto-beats it (the human supplies the foresight). On a <i>minimal</i> announcer, the deployed Loop badly under-doses unannounced rises, so candidates can cut large amounts of hyperglycemia (ΔAUC&gt;180 down to −100+) — but only by dosing harder into the meal and accepting more lows (the §1 "dose-more-into-a-low" axis). So the two datasets bracket exactly how much of the causal-vs-oracle gap is meal-announcement. <span class="small">(Scripts: <code>runs/2026-06-10-unann-*-runup/</code>; <code>plot_auc.py</code>.)</span></div>
+
 <!-- ============================================================ -->
 <h2 id="principles">16. Methodological principles &amp; traps</h2>
 <ul>
@@ -323,7 +336,7 @@ where <code>candPhys</code> and <code>realPhys</code> are the <i>physical</i> ac
 <tr><td>burn-in</td><td>6 h</td><td>Real-pump warm-up before CF divergence</td></tr>
 <tr><td>insulin model</td><td>RAPID_ACTING_ADULT</td><td>DIA 6 h, peak 75 min, 10 min delay</td></tr>
 <tr><td>kalman smoothing</td><td>ON</td><td>RTS-smoothed substrate (<code>--no-kalman</code> = raw)</td></tr>
-<tr><td>counter-reg</td><td>onset 54 / gain 0.4 / max 8.0 <span class="small">(std)</span></td><td>Glucose-defense velocity floor</td></tr>
+<tr><td>counter-reg</td><td><b>off by default</b> (onset 0); when on, gain 0.2 / max 6.0</td><td>Glucose-defense velocity floor (§8). Whole-trace outcome runs enable it; the episodic eval (§15.1) leaves it off.</td></tr>
 <tr><td>sensitivity infer</td><td>window 30 min · m_max 2.0 · raw (no smoothing)</td><td>Fidelity model (§9), off by default; raw per-step <code>m</code> is the field-validated default</td></tr>
 <tr><td>sensor cap</td><td>400 mg/dL</td><td>Ceiling on BG the controller sees (§4); <code>--sensor-cap-mgdl</code></td></tr>
 <tr><td>dosing engine</td><td>Loop</td><td>Pluggable; <code>--candidate-openaps</code> swaps in oref/OpenAPS (§1, §12)</td></tr>
@@ -331,7 +344,7 @@ where <code>candPhys</code> and <code>realPhys</code> are the <i>physical</i> ac
 <tr><td>scoring exclusion</td><td>post_hours 0</td><td>Disruption interval only, not recovery (§11)</td></tr>
 </table>
 
-<p class="small" style="margin-top:40px;border-top:1px solid var(--line);padding-top:14px;">LoopEval closed-loop simulator — technical guide. <b>Living document</b>, last reviewed 2026-06-07 (RTS substrate, physiological CF, counter-reg floor, EGP-separated sensitivity-inference fidelity with field-validated raw <code>m</code>, pluggable Loop/OpenAPS dosing engines, sensor cap, interval-only disruption exclusion). Graphs generated from real user data; regenerate with <code>make_guide_assets.py</code>. Lives in the LoopEval repo (<code>docs/simulator-guide/</code>) so it versions with the evaluator.</p>
+<p class="small" style="margin-top:40px;border-top:1px solid var(--line);padding-top:14px;">LoopEval closed-loop simulator — technical guide. <b>Living document</b>, last reviewed 2026-06-11 (RTS substrate, physiological CF, counter-reg floor <i>off-by-default</i>, EGP-separated sensitivity-inference fidelity with field-validated raw <code>m</code>, pluggable Loop/OpenAPS dosing engines, sensor cap, interval-only disruption exclusion, uncertainty-cap lever, episodic event-windowed evaluation). Graphs generated from real user data; regenerate with <code>make_guide_assets.py</code>. Lives in the LoopEval repo (<code>docs/simulator-guide/</code>) so it versions with the evaluator.</p>
 
 </div>
 </body>
