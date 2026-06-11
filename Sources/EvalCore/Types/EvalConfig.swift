@@ -123,6 +123,59 @@ public struct EvalConfig: Codable, Sendable {
     public var gbafHighAnchor: Double
     public var gbafFactorLow: Double
     public var gbafFactorHigh: Double
+    /// Forecast-keyed GBAF: key the application-factor ramp on max(currentBG, eventualBG)
+    /// instead of currentBG, so Loop acts on a rising/high FORECAST even when current BG is
+    /// still low-normal — but only when the predicted minimum is >= gbafForecastMinGuard
+    /// (don't lift the throttle into a predicted dip). false = standard current-BG GBAF.
+    public var gbafForecastKeyed: Bool
+    public var gbafForecastMinGuard: Double
+    /// Soft low-gate: replace Loop's hard 'predicted-min < range-floor -> zero auto-bolus'
+    /// cliff with a graded ramp from the suspend threshold up to the range floor. false = original cliff.
+    public var softLowGate: Bool
+    /// UAM projection (minutes): project recent unexplained glucose appearance (ICE minus
+    /// modeled carbs) forward as ongoing absorption with a linear taper over this many
+    /// minutes. Continuous unannounced-meal forecast term. 0 = off.
+    public var uamProjectionMinutes: Double
+    /// Early-ascending-limb projection (continuous complement of GBAF). When BG is low-normal
+    /// AND rising, project the rise forward as a tapering meal-shaped forecast bump so the
+    /// existing dosing logic covers the meal on its ascending limb (not at the peak). Active
+    /// only when earlyRiseGain > 0 AND earlyRiseMinutes > 0.
+    public var earlyRiseMinutes: Double
+    public var earlyRiseGain: Double
+    public var earlyRiseBgLow: Double
+    public var earlyRiseBgHigh: Double
+    public var earlyRiseSlopeThreshold: Double
+    /// Dynamic ISF (continuous): the sensitivity used for DOSE SIZING is scaled by a
+    /// linear ramp of current BG — g(BG)=1 at/below dynIsfLowAnchor, dynIsfMultHigh at/above
+    /// dynIsfHighAnchor. multHigh<1 = more insulin per mg/dL gap when high (insulin
+    /// resistance rises with glycemia). 1.0 = off (identity). Forecast ISF unchanged.
+    public var dynIsfMultHigh: Double
+    public var dynIsfLowAnchor: Double
+    public var dynIsfHighAnchor: Double
+    /// Uncertainty-bounded dosing cap. When enabled, REPLACES the flat/GBAF application factor
+    /// AND the predicted-min bolus gate with a single state-derived cap: deliver the largest dose
+    /// such that, for every horizon, the WORST-CASE trajectory (insulin effect amplified by
+    /// 1+uncertaintyK) WITH maximum basal suspension stays ≥ the low threshold. A LEVEL cap on
+    /// committed IOB (no wind-up), bounded at uncertaintyFmax × nominal need.
+    public var uncertaintyCapEnabled: Bool
+    /// k: sensitivity-uncertainty multiplier (worst case = insulin effect ×(1+k)). 0 = no buffer.
+    public var uncertaintyK: Double
+    /// Hard ceiling on the effective application factor (allowed dose / nominal need). Default 1.
+    public var uncertaintyFmax: Double
+    /// Low threshold (mg/dL) the worst-case-with-suspension must stay above. 0 = use suspendThreshold.
+    public var uncertaintyLow: Double
+    /// Autosens (sustained-resistance integral action). Scales the dose-sizing AND forecast ISF by
+    /// (1 − gain × avg(BG − target) over autosensWindowMin): BG persistently ABOVE target ⇒ ISF↓
+    /// (more insulin, resistant/under-counted-carbs); persistently below ⇒ ISF↑. Multi-hour average
+    /// ignores transient rises/rebounds (the discrimination fast IRC lacks). 0 = off. Pairs with the
+    /// uncertainty cap (anti-windup bound). Folds into RC eventually; separate effect for now.
+    public var autosensGain: Double
+    public var autosensWindowMin: Double
+    public var autosensMin: Double
+    public var autosensMax: Double
+    /// Decouple the uncertainty cap's worst-case ISF from the autosens adjustment: the cap hedges
+    /// that the resistance estimate could be wrong (insulin as effective as nominal). false = coupled.
+    public var uncertaintyDecoupleAutosens: Bool
 
     /// Flat (global) auto-bolus application factor — fraction of the recommended
     /// correction applied per cycle when GBAF is off. Loop default 0.4.
@@ -160,6 +213,12 @@ public struct EvalConfig: Codable, Sendable {
     /// `adjustmentFactorSigmoid`: aggression of the sigmoid Dynamic ISF.
     /// Default 0.5.
     public var oapsAdjustmentFactorSigmoid: Double?
+    /// Ablation: when false, set `enableUAM` off (no UAM forecast/SMB on unannounced rises).
+    /// nil = leave default (on). Isolates oref's UAM forecast contribution from SMB delivery.
+    public var oapsEnableUAM: Bool?
+    /// Ablation: when false, disable all SMB (enableSMB_always/with_COB/after_carbs/UAM off),
+    /// leaving temp-basal-only dosing. nil = leave default (on). Isolates the SMB delivery cadence.
+    public var oapsEnableSMB: Bool?
 
     /// Post-low (sustained-sensitivity) forecast suppression: when a recent low
     /// (< postlowThresholdMgdl within postlowWindowMin) occurred, lower the
@@ -209,6 +268,27 @@ public struct EvalConfig: Codable, Sendable {
         gbafHighAnchor: Double = 220.0,
         gbafFactorLow: Double = 0.4,
         gbafFactorHigh: Double = 0.7,
+        gbafForecastKeyed: Bool = false,
+        gbafForecastMinGuard: Double = 85.0,
+        softLowGate: Bool = false,
+        uamProjectionMinutes: Double = 0,
+        earlyRiseMinutes: Double = 0,
+        earlyRiseGain: Double = 0,
+        earlyRiseBgLow: Double = 70,
+        earlyRiseBgHigh: Double = 140,
+        earlyRiseSlopeThreshold: Double = 0.3,
+        dynIsfMultHigh: Double = 1.0,
+        dynIsfLowAnchor: Double = 100,
+        dynIsfHighAnchor: Double = 200,
+        uncertaintyCapEnabled: Bool = false,
+        uncertaintyK: Double = 0.5,
+        uncertaintyFmax: Double = 1.0,
+        uncertaintyLow: Double = 0,
+        autosensGain: Double = 0,
+        autosensWindowMin: Double = 360,
+        autosensMin: Double = 0.7,
+        autosensMax: Double = 1.3,
+        uncertaintyDecoupleAutosens: Bool = false,
         applicationFactor: Double = 0.4,
         highCorrectionEnabled: Bool = false,
         highCorrectionRiseGain: Double = 1.0,
@@ -221,6 +301,8 @@ public struct EvalConfig: Codable, Sendable {
         oapsSigmoid: Bool? = nil,
         oapsAdjustmentFactor: Double? = nil,
         oapsAdjustmentFactorSigmoid: Double? = nil,
+        oapsEnableUAM: Bool? = nil,
+        oapsEnableSMB: Bool? = nil,
         postlowSuppressMgdl: Double = 0.0,
         postlowWindowMin: Double = 120.0,
         postlowThresholdMgdl: Double = 70.0,
@@ -267,6 +349,27 @@ public struct EvalConfig: Codable, Sendable {
         self.gbafHighAnchor                 = gbafHighAnchor
         self.gbafFactorLow                  = gbafFactorLow
         self.gbafFactorHigh                 = gbafFactorHigh
+        self.gbafForecastKeyed              = gbafForecastKeyed
+        self.gbafForecastMinGuard           = gbafForecastMinGuard
+        self.softLowGate                    = softLowGate
+        self.uamProjectionMinutes           = uamProjectionMinutes
+        self.earlyRiseMinutes               = earlyRiseMinutes
+        self.earlyRiseGain                  = earlyRiseGain
+        self.earlyRiseBgLow                 = earlyRiseBgLow
+        self.earlyRiseBgHigh                = earlyRiseBgHigh
+        self.earlyRiseSlopeThreshold        = earlyRiseSlopeThreshold
+        self.dynIsfMultHigh                 = dynIsfMultHigh
+        self.dynIsfLowAnchor                = dynIsfLowAnchor
+        self.dynIsfHighAnchor               = dynIsfHighAnchor
+        self.uncertaintyCapEnabled          = uncertaintyCapEnabled
+        self.uncertaintyK                   = uncertaintyK
+        self.uncertaintyFmax                = uncertaintyFmax
+        self.uncertaintyLow                 = uncertaintyLow
+        self.autosensGain                   = autosensGain
+        self.autosensWindowMin              = autosensWindowMin
+        self.autosensMin                    = autosensMin
+        self.autosensMax                    = autosensMax
+        self.uncertaintyDecoupleAutosens    = uncertaintyDecoupleAutosens
         self.applicationFactor              = applicationFactor
         self.highCorrectionEnabled          = highCorrectionEnabled
         self.highCorrectionRiseGain         = highCorrectionRiseGain
@@ -279,6 +382,8 @@ public struct EvalConfig: Codable, Sendable {
         self.oapsSigmoid                    = oapsSigmoid
         self.oapsAdjustmentFactor           = oapsAdjustmentFactor
         self.oapsAdjustmentFactorSigmoid    = oapsAdjustmentFactorSigmoid
+        self.oapsEnableUAM                  = oapsEnableUAM
+        self.oapsEnableSMB                  = oapsEnableSMB
         self.postlowSuppressMgdl            = postlowSuppressMgdl
         self.postlowWindowMin               = postlowWindowMin
         self.postlowThresholdMgdl           = postlowThresholdMgdl
@@ -332,11 +437,12 @@ public struct EvalConfig: Codable, Sendable {
         case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
         case sensitivityHourlyMultipliers, localTimezoneIdentifier
         case evalWarmupHours
-        case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh
+        case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh, gbafForecastKeyed, gbafForecastMinGuard, softLowGate, uamProjectionMinutes, earlyRiseMinutes, earlyRiseGain, earlyRiseBgLow, earlyRiseBgHigh, earlyRiseSlopeThreshold, dynIsfMultHigh, dynIsfLowAnchor, dynIsfHighAnchor, uncertaintyCapEnabled, uncertaintyK, uncertaintyFmax, uncertaintyLow, autosensGain, autosensWindowMin, autosensMin, autosensMax, uncertaintyDecoupleAutosens
         case applicationFactor
         case highCorrectionEnabled, highCorrectionRiseGain, highCorrectionEffectDurationMinutes, highCorrectionFastOffVelocity
         case oapsThresholdSetting, oapsSmbDeliveryRatio, oapsMaxSmbBasalMinutes
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
+        case oapsEnableUAM, oapsEnableSMB
         case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
@@ -387,6 +493,27 @@ public struct EvalConfig: Codable, Sendable {
         self.gbafHighAnchor       = try c.decodeIfPresent(Double.self, forKey: .gbafHighAnchor) ?? 220.0
         self.gbafFactorLow        = try c.decodeIfPresent(Double.self, forKey: .gbafFactorLow)  ?? 0.4
         self.gbafFactorHigh       = try c.decodeIfPresent(Double.self, forKey: .gbafFactorHigh) ?? 0.7
+        self.gbafForecastKeyed    = try c.decodeIfPresent(Bool.self, forKey: .gbafForecastKeyed) ?? false
+        self.gbafForecastMinGuard = try c.decodeIfPresent(Double.self, forKey: .gbafForecastMinGuard) ?? 85.0
+        self.softLowGate          = try c.decodeIfPresent(Bool.self, forKey: .softLowGate) ?? false
+        self.uamProjectionMinutes = try c.decodeIfPresent(Double.self, forKey: .uamProjectionMinutes) ?? 0
+        self.earlyRiseMinutes        = try c.decodeIfPresent(Double.self, forKey: .earlyRiseMinutes) ?? 0
+        self.earlyRiseGain           = try c.decodeIfPresent(Double.self, forKey: .earlyRiseGain) ?? 0
+        self.earlyRiseBgLow          = try c.decodeIfPresent(Double.self, forKey: .earlyRiseBgLow) ?? 70
+        self.earlyRiseBgHigh         = try c.decodeIfPresent(Double.self, forKey: .earlyRiseBgHigh) ?? 140
+        self.earlyRiseSlopeThreshold = try c.decodeIfPresent(Double.self, forKey: .earlyRiseSlopeThreshold) ?? 0.3
+        self.dynIsfMultHigh       = try c.decodeIfPresent(Double.self, forKey: .dynIsfMultHigh) ?? 1.0
+        self.dynIsfLowAnchor      = try c.decodeIfPresent(Double.self, forKey: .dynIsfLowAnchor) ?? 100
+        self.dynIsfHighAnchor     = try c.decodeIfPresent(Double.self, forKey: .dynIsfHighAnchor) ?? 200
+        self.uncertaintyCapEnabled = try c.decodeIfPresent(Bool.self, forKey: .uncertaintyCapEnabled) ?? false
+        self.uncertaintyK          = try c.decodeIfPresent(Double.self, forKey: .uncertaintyK) ?? 0.5
+        self.uncertaintyFmax       = try c.decodeIfPresent(Double.self, forKey: .uncertaintyFmax) ?? 1.0
+        self.uncertaintyLow        = try c.decodeIfPresent(Double.self, forKey: .uncertaintyLow) ?? 0
+        self.autosensGain      = try c.decodeIfPresent(Double.self, forKey: .autosensGain) ?? 0
+        self.autosensWindowMin = try c.decodeIfPresent(Double.self, forKey: .autosensWindowMin) ?? 360
+        self.autosensMin       = try c.decodeIfPresent(Double.self, forKey: .autosensMin) ?? 0.7
+        self.autosensMax       = try c.decodeIfPresent(Double.self, forKey: .autosensMax) ?? 1.3
+        self.uncertaintyDecoupleAutosens = try c.decodeIfPresent(Bool.self, forKey: .uncertaintyDecoupleAutosens) ?? false
         self.applicationFactor    = try c.decodeIfPresent(Double.self, forKey: .applicationFactor) ?? 0.4
         self.highCorrectionEnabled = try c.decodeIfPresent(Bool.self, forKey: .highCorrectionEnabled) ?? false
         self.highCorrectionRiseGain = try c.decodeIfPresent(Double.self, forKey: .highCorrectionRiseGain) ?? 1.0
@@ -399,6 +526,8 @@ public struct EvalConfig: Codable, Sendable {
         self.oapsSigmoid = try c.decodeIfPresent(Bool.self, forKey: .oapsSigmoid)
         self.oapsAdjustmentFactor = try c.decodeIfPresent(Double.self, forKey: .oapsAdjustmentFactor)
         self.oapsAdjustmentFactorSigmoid = try c.decodeIfPresent(Double.self, forKey: .oapsAdjustmentFactorSigmoid)
+        self.oapsEnableUAM = try c.decodeIfPresent(Bool.self, forKey: .oapsEnableUAM)
+        self.oapsEnableSMB = try c.decodeIfPresent(Bool.self, forKey: .oapsEnableSMB)
         self.postlowSuppressMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowSuppressMgdl) ?? 0.0
         self.postlowWindowMin = try c.decodeIfPresent(Double.self, forKey: .postlowWindowMin) ?? 120.0
         self.postlowThresholdMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowThresholdMgdl) ?? 70.0
@@ -447,6 +576,27 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(gbafHighAnchor, forKey: .gbafHighAnchor)
         try c.encode(gbafFactorLow, forKey: .gbafFactorLow)
         try c.encode(gbafFactorHigh, forKey: .gbafFactorHigh)
+        try c.encode(gbafForecastKeyed, forKey: .gbafForecastKeyed)
+        try c.encode(gbafForecastMinGuard, forKey: .gbafForecastMinGuard)
+        try c.encode(softLowGate, forKey: .softLowGate)
+        try c.encode(uamProjectionMinutes, forKey: .uamProjectionMinutes)
+        try c.encode(earlyRiseMinutes, forKey: .earlyRiseMinutes)
+        try c.encode(earlyRiseGain, forKey: .earlyRiseGain)
+        try c.encode(earlyRiseBgLow, forKey: .earlyRiseBgLow)
+        try c.encode(earlyRiseBgHigh, forKey: .earlyRiseBgHigh)
+        try c.encode(earlyRiseSlopeThreshold, forKey: .earlyRiseSlopeThreshold)
+        try c.encode(dynIsfMultHigh, forKey: .dynIsfMultHigh)
+        try c.encode(dynIsfLowAnchor, forKey: .dynIsfLowAnchor)
+        try c.encode(dynIsfHighAnchor, forKey: .dynIsfHighAnchor)
+        try c.encode(uncertaintyCapEnabled, forKey: .uncertaintyCapEnabled)
+        try c.encode(uncertaintyK, forKey: .uncertaintyK)
+        try c.encode(uncertaintyFmax, forKey: .uncertaintyFmax)
+        try c.encode(uncertaintyLow, forKey: .uncertaintyLow)
+        try c.encode(autosensGain, forKey: .autosensGain)
+        try c.encode(autosensWindowMin, forKey: .autosensWindowMin)
+        try c.encode(autosensMin, forKey: .autosensMin)
+        try c.encode(autosensMax, forKey: .autosensMax)
+        try c.encode(uncertaintyDecoupleAutosens, forKey: .uncertaintyDecoupleAutosens)
         try c.encode(applicationFactor, forKey: .applicationFactor)
         try c.encode(highCorrectionEnabled, forKey: .highCorrectionEnabled)
         try c.encode(highCorrectionRiseGain, forKey: .highCorrectionRiseGain)
@@ -459,6 +609,8 @@ public struct EvalConfig: Codable, Sendable {
         try c.encodeIfPresent(oapsSigmoid, forKey: .oapsSigmoid)
         try c.encodeIfPresent(oapsAdjustmentFactor, forKey: .oapsAdjustmentFactor)
         try c.encodeIfPresent(oapsAdjustmentFactorSigmoid, forKey: .oapsAdjustmentFactorSigmoid)
+        try c.encodeIfPresent(oapsEnableUAM, forKey: .oapsEnableUAM)
+        try c.encodeIfPresent(oapsEnableSMB, forKey: .oapsEnableSMB)
         try c.encode(postlowSuppressMgdl, forKey: .postlowSuppressMgdl)
         try c.encode(postlowWindowMin, forKey: .postlowWindowMin)
         try c.encode(postlowThresholdMgdl, forKey: .postlowThresholdMgdl)

@@ -257,6 +257,12 @@ public actor EvaluationEngine {
                 ircDropGainScale: config.ircDropGainScale,
                 ircRiseGainScale: config.ircRiseGainScale,
                 ircLowMemoryScale: config.ircLowMemoryScale,
+                uamProjectionMinutes: config.uamProjectionMinutes,
+                earlyRiseMinutes: config.earlyRiseMinutes,
+                earlyRiseGain: config.earlyRiseGain,
+                earlyRiseBgLow: config.earlyRiseBgLow,
+                earlyRiseBgHigh: config.earlyRiseBgHigh,
+                earlyRiseSlopeThreshold: config.earlyRiseSlopeThreshold,
                 includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                 useMidAbsorptionISF: config.useMidAbsorptionISF,
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
@@ -279,6 +285,12 @@ public actor EvaluationEngine {
                 ircDropGainScale: config.ircDropGainScale,
                 ircRiseGainScale: config.ircRiseGainScale,
                 ircLowMemoryScale: config.ircLowMemoryScale,
+                uamProjectionMinutes: config.uamProjectionMinutes,
+                earlyRiseMinutes: config.earlyRiseMinutes,
+                earlyRiseGain: config.earlyRiseGain,
+                earlyRiseBgLow: config.earlyRiseBgLow,
+                earlyRiseBgHigh: config.earlyRiseBgHigh,
+                earlyRiseSlopeThreshold: config.earlyRiseSlopeThreshold,
                 includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                 useMidAbsorptionISF: config.useMidAbsorptionISF,
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
@@ -306,6 +318,12 @@ public actor EvaluationEngine {
                 ircDropGainScale: config.ircDropGainScale,
                 ircRiseGainScale: config.ircRiseGainScale,
                 ircLowMemoryScale: config.ircLowMemoryScale,
+                uamProjectionMinutes: config.uamProjectionMinutes,
+                earlyRiseMinutes: config.earlyRiseMinutes,
+                earlyRiseGain: config.earlyRiseGain,
+                earlyRiseBgLow: config.earlyRiseBgLow,
+                earlyRiseBgHigh: config.earlyRiseBgHigh,
+                earlyRiseSlopeThreshold: config.earlyRiseSlopeThreshold,
                 includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                 useMidAbsorptionISF: config.useMidAbsorptionISF,
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
@@ -507,6 +525,89 @@ public actor EvaluationEngine {
         return factorLow + frac * (factorHigh - factorLow)
     }
 
+    /// Suspension-mitigated, uncertainty-bounded maximum dose (units).
+    ///
+    /// Returns the largest additional dose `d` such that, for EVERY horizon τ, the worst-case
+    /// trajectory — insulin effect amplified by (1+k) (sensitivity could be more effective than
+    /// nominal) — WITH the maximum corrective basal suspension applied from now, still stays at or
+    /// above `lowThreshold`:
+    ///
+    ///   P_nom(τ) + k·eIns(τ) + Suspend(τ) − (1+k)·d·ISF(τ)·delivered(τ)  ≥  L     for all τ
+    ///
+    /// where eIns(τ) is the (≤0) glucose effect of CURRENT IOB by τ, delivered(τ)=1−percentEffect
+    /// Remaining(τ) is the acted fraction of a dose given now, and Suspend(τ) is the +BG credit
+    /// from withholding scheduled basal over [0,τ] (grows with τ, so it's small early/low-BG and
+    /// large far-out/high-BG — the recourse we have if a sensitivity surprise appears). Each term
+    /// is linear in `d`, so the cap is closed-form: d ≤ min_τ (P_nom+k·eIns+Suspend−L)/((1+k)·ISF·delivered).
+    /// This is a LEVEL cap on committed insulin (re-derived each cycle), so it does not wind up to
+    /// full need at a persistent high the way repeated partial application does.
+    static func uncertaintyMaxDose(
+        predictedGlucose: [PredictedGlucoseValue],
+        insulinEffect: [GlucoseEffect],
+        sensitivity: [AbsoluteScheduleValue<LoopQuantity>],
+        scheduledBasalRate: Double,
+        insulinModel: InsulinModel,
+        k: Double,
+        lowThreshold: Double,
+        // Decouple from autosens: when autosens lowered ISF (factor < 1, "resistant"), the cap's
+        // WORST CASE should hedge that the resistance estimate is wrong and insulin is actually as
+        // effective as nominal (or more). m = max(1, 1/factor) scales the worst-case insulin
+        // effectiveness back up to nominal. 1.0 = coupled (use the adjusted ISF as-is).
+        autosensFactor: Double = 1.0
+    ) -> Double {
+        let m = Swift.max(1.0, 1.0 / Swift.max(0.05, autosensFactor))
+        let mgdl = LoopUnit.milligramsPerDeciliter
+        guard let t0 = predictedGlucose.first?.startDate, predictedGlucose.count > 1 else { return 0 }
+        // Raw cumulative insulin glucose effect at a date. The effect timeline starts at the
+        // INPUT-window start (includes historical insulin), so anchor at t0 (now) to get the
+        // FUTURE effect of current IOB only.
+        func insCum(_ d: Date) -> Double {
+            var v = insulinEffect.first?.quantity.doubleValue(for: mgdl) ?? 0
+            for e in insulinEffect { if e.startDate <= d { v = e.quantity.doubleValue(for: mgdl) } else { break } }
+            return v
+        }
+        let insAtT0 = insCum(t0)
+        func insAt(_ d: Date) -> Double { insCum(d) - insAtT0 }   // effect from now → d (≤ 0)
+        func isfAt(_ d: Date) -> Double {
+            sensitivity.closestPrior(to: d)?.value.doubleValue(for: mgdl)
+                ?? sensitivity.first?.value.doubleValue(for: mgdl) ?? 50
+        }
+        // acted fraction of a unit dosed `age` ago
+        func delivered(_ age: TimeInterval) -> Double {
+            age <= 0 ? 0 : Swift.max(0, Swift.min(1, 1 - insulinModel.percentEffectRemaining(at: age)))
+        }
+        let dtHr = predictedGlucose[1].startDate.timeIntervalSince(predictedGlucose[0].startDate) / 3600.0
+        let dbg = ProcessInfo.processInfo.environment["CAPDEBUG"] != nil
+        var dmax = Double.greatestFiniteMagnitude
+        var bTau = 0.0, bP = 0.0, bE = 0.0, bS = 0.0
+        for (i, p) in predictedGlucose.enumerated() {
+            let tau = p.startDate.timeIntervalSince(t0)
+            if tau <= 0 { continue }
+            let del = delivered(tau)
+            if del <= 1e-6 { continue }
+            let isf = isfAt(p.startDate)
+            // max-suspension credit available by τ: withheld scheduled basal micro-doses [0,τ]
+            var suspend = 0.0
+            for j in 0..<i {
+                let s = predictedGlucose[j].startDate.timeIntervalSince(t0)
+                suspend += scheduledBasalRate * dtHr * delivered(tau - s)
+            }
+            suspend *= isf
+            let eIns = insAt(p.startDate)
+            let pnom = p.quantity.doubleValue(for: mgdl)
+            // Worst-case insulin effectiveness scaled by m (autosens-decouple): existing-IOB drop,
+            // suspension rescue, and the new dose's drop all use ISF×m. Non-insulin part (pnom−eIns)
+            // is unchanged. m=1 reduces to pnom + k·eIns + suspend − L over (1+k)·isf·del.
+            let num = pnom + eIns * ((1 + k) * m - 1) + suspend * m - lowThreshold
+            let cap = num / ((1 + k) * isf * m * del)
+            if cap < dmax { dmax = cap; bTau = tau/60; bP = pnom; bE = eIns; bS = suspend }
+        }
+        if dbg {
+            FileHandle.standardError.write("  bind τ=\(Int(bTau))m Pnom=\(Int(bP)) eIns=\(Int(bE)) suspend=\(Int(bS)) -> dmax=\(String(format: "%.2f", Swift.max(0,dmax)))\n".data(using: .utf8)!)
+        }
+        return Swift.max(0, dmax == .greatestFiniteMagnitude ? 0 : dmax)
+    }
+
     /// Uses the `.automaticBolus` recommendation path (equivalent to Loop's
     /// default automatic dosing). A more complete implementation would switch
     /// based on config, but most deployed configurations use automaticBolus.
@@ -519,7 +620,13 @@ public actor EvaluationEngine {
         maxBasalRate: Double,
         insulinType: ExponentialInsulinModelPreset,
         evalStep: TimeInterval,
-        applicationFactor: Double = 0.4
+        applicationFactor: Double = 0.4,
+        softLowGate: Bool = false,
+        // Uncertainty-bounded dosing cap: when k >= 0 and enabled, REPLACES applicationFactor +
+        // the predicted-min gate with the suspension-mitigated worst-case cap. nil = off.
+        // autosensFactor decouples the cap's worst-case from the autosens ISF adjustment (see
+        // uncertaintyMaxDose); 1.0 = coupled.
+        uncertaintyCap: (k: Double, fmax: Double, low: Double, autosensFactor: Double)? = nil
     ) -> DoseOutput? {
         guard let scheduledBasalEntry = input.basal.first(where: { $0.startDate <= t && $0.endDate > t })
             ?? input.basal.closestPrior(to: t) else { return nil }
@@ -545,14 +652,50 @@ public actor EvaluationEngine {
             sensitivity: input.sensitivity,
             insulinModel: insulinType.model
         )
+        // Uncertainty-bounded cap: derive the effective application factor from the
+        // suspension-mitigated worst-case dose, and disable the predicted-min gate (the cap
+        // already encodes future low-risk via the worst-case-with-suspension constraint).
+        var effAppFactor = applicationFactor
+        var gateFloor: Double? = softLowGate ? suspend.doubleValue(for: LoopUnit.milligramsPerDeciliter) : nil
+        if let uc = uncertaintyCap {
+            let fullUnits = correction.asPartialBolus(partialApplicationFactor: 1.0,
+                                                      maxBolusUnits: .greatestFiniteMagnitude)
+            if fullUnits > 1e-9 {
+                let lowThr = uc.low > 0 ? uc.low : suspend.doubleValue(for: LoopUnit.milligramsPerDeciliter)
+                let dmax = Self.uncertaintyMaxDose(
+                    predictedGlucose: prediction.glucose,
+                    insulinEffect: prediction.effects.insulin,
+                    sensitivity: input.sensitivity,
+                    scheduledBasalRate: scheduledRate,
+                    insulinModel: insulinType.model,
+                    k: uc.k,
+                    lowThreshold: lowThr,
+                    autosensFactor: uc.autosensFactor)
+                // k REPLACES the application factor: both hedge future uncertainty, and with the
+                // suspension-recourse term the cap already covers "forecast too high → BG falls →
+                // suspend", so a separate AF rate-limit is redundant. Dose up to the cap each
+                // cycle; fmax is the optional <100%-of-need ceiling (default 1.0).
+                effAppFactor = Swift.max(0, Swift.min(uc.fmax, dmax / fullUnits))
+                if ProcessInfo.processInfo.environment["CAPDEBUG"] != nil {
+                    let bg0 = prediction.glucose.first?.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter) ?? 0
+                    let pmin = prediction.glucose.map { $0.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter) }.min() ?? 0
+                    let pmax = prediction.glucose.map { $0.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter) }.max() ?? 0
+                    FileHandle.standardError.write("CAP bg0=\(Int(bg0)) pmin=\(Int(pmin)) pmax=\(Int(pmax)) iob=\(String(format: "%.1f", activeInsulin)) low=\(Int(lowThr)) full=\(String(format: "%.2f", fullUnits)) dmax=\(String(format: "%.2f", dmax)) AF=\(String(format: "%.2f", effAppFactor))\n".data(using: .utf8)!)
+                }
+            } else {
+                effAppFactor = 0
+            }
+            gateFloor = -1e9   // disable the predicted-min gate (ramp factor ≈ 1)
+        }
         let recommendation = LoopAlgorithm.recommendAutomaticDose(
             for: correction,
-            applicationFactor: applicationFactor,
+            applicationFactor: effAppFactor,
             neutralBasalRate: scheduledRate,
             activeInsulin: activeInsulin,
             maxBolus: maxBolus,
             maxBasalRate: maxBasalRate,
-            maxActiveInsulin: maxActiveInsulin
+            maxActiveInsulin: maxActiveInsulin,
+            lowGateRampFloor: gateFloor
         )
         let bolus = recommendation.bolusUnits ?? 0
         let tempRate = recommendation.basalAdjustment.unitsPerHour

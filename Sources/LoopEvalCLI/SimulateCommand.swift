@@ -89,6 +89,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Counterfactual sim mode: candidate's recommendations REPLACE real-pump deliveries (not just add as marginal delta vs sim Loop alone). Required for evaluating candidates that fundamentally diverge from real Loop's dosing. Loop's prediction sees only candidate's accumulated deliveries (warm-up-seeded with real pump for the DIA preceding sim start so initial IOB matches reality).")
     var candidateCounterfactual: Bool = false
 
+    @Flag(name: .long, help: "Decision-time replay (NOT a closed loop): both arms see the IDENTICAL real glucose/insulin/carb history at every step and emit a dose recommendation WITHOUT acting. For same-input Loop-vs-oref dose & forecast comparison against the insulin-hole oracle. Neither arm's recommendation feeds back. With candidate == Loop, baselineDose must equal candidateDose at every step (fairness identity check). Do not combine with --candidate-counterfactual or --candidate-infer-sensitivity.")
+    var decisionTimeReplay: Bool = false
+
     @Option(name: .long, help: "Counterfactual burn-in hours (default 6.0): real-pump deliveries drive the sim for this period before counterfactual divergence starts. Gives candidate's prediction a fully-realistic recent dose history at the moment CF mode activates.")
     var candidateCounterfactualBurnInHours: Double = 6.0
 
@@ -149,8 +152,50 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateGbafFactorLow: Double = 0.4
     @Option(name: .long, help: "GBAF: applicationFactor at highAnchor (default 0.7)")
     var candidateGbafFactorHigh: Double = 0.7
+    @Flag(name: .long, help: "Forecast-keyed GBAF: key the application-factor ramp on max(currentBG, eventualBG) instead of currentBG, so Loop acts on a rising/high forecast even when current BG is low-normal — gated on the predicted minimum >= --candidate-gbaf-forecast-min-guard.")
+    var candidateGbafForecastKeyed: Bool = false
+    @Option(name: .long, help: "Predicted-minimum guard (mg/dL) for forecast-keyed GBAF: only key on the forecast when the predicted minimum stays >= this (don't dose into a predicted dip). Default 85.")
+    var candidateGbafForecastMinGuard: Double = 85.0
+    @Flag(name: .long, help: "Soft low-gate: replace Loop's hard 'predicted-min < range-floor -> zero auto-bolus' cliff with a graded ramp from the suspend threshold up to the range floor (bolus scaled by how far the predicted minimum sits between them). GBAF's low-BG factor still applies on top.")
+    var candidateSoftLowGate: Bool = false
+    @Option(name: .long, help: "UAM projection (minutes): treat recent unexplained glucose appearance (ICE minus modeled carbs, last 30 min) as ongoing absorption, projected forward with a linear taper over this many minutes. Continuous unannounced-meal forecast term; raises eventualBG early on genuine carb rises so the existing dosing logic acts sooner. 0 = off.")
+    var candidateUamMinutes: Double = 0
+    @Option(name: .long, help: "Early-ascending-limb projection (minutes): the continuous complement of GBAF. When BG is in the low-normal band AND rising, project the current rise forward as a tapering, meal-shaped forecast bump over this many minutes, so the existing dosing logic covers an unannounced meal on its ascending limb instead of at the peak. Off at high BG (never piles onto the peak) and off when flat/falling. Needs --candidate-early-rise-gain > 0. 0 = off.")
+    var candidateEarlyRiseMinutes: Double = 0
+    @Option(name: .long, help: "Early-rise gain: dimensionless multiplier on the projected rise rate (mg/dL per min of forecast appearance = gain x bandGate x max(0, slope - threshold)). 0 = off. Try ~0.5-2.0.")
+    var candidateEarlyRiseGain: Double = 0
+    @Option(name: .long, help: "Early-rise BG band lower edge (mg/dL): the gate ramps 0->1 over [low, low+15]; term is off below this (never push the forecast up near a low). Default 70.")
+    var candidateEarlyRiseBgLow: Double = 70
+    @Option(name: .long, help: "Early-rise BG band upper edge (mg/dL): the gate ramps 1->0 over [high-15, high]; term is off above this (never pile onto the peak). Default 140.")
+    var candidateEarlyRiseBgHigh: Double = 140
+    @Option(name: .long, help: "Early-rise slope threshold (mg/dL per min): rise slope at/below this contributes nothing (no firing while flat/falling or on a post-low rebound's reversal). Default 0.3.")
+    var candidateEarlyRiseSlopeThreshold: Double = 0.3
+    @Option(name: .long, help: "Dynamic ISF: multiplier applied to the dose-sizing ISF at/above --candidate-dynisf-high-anchor (linear ramp from 1.0 at the low anchor). <1 = more insulin per mg/dL gap when BG is high (continuous insulin-resistance-with-glycemia model). Default 1.0 = off.")
+    var candidateDynisfMultHigh: Double = 1.0
+    @Option(name: .long, help: "Dynamic ISF low anchor (mg/dL): at/below this the dose-sizing ISF is unchanged. Default 100.")
+    var candidateDynisfLowAnchor: Double = 100
+    @Option(name: .long, help: "Dynamic ISF high anchor (mg/dL): at/above this the full multiplier applies. Default 200.")
+    var candidateDynisfHighAnchor: Double = 200
     @Option(name: .long, help: "Candidate flat (global) auto-bolus application factor — fraction of recommended correction applied per cycle. Loop default 0.4. Only used when GBAF is off.")
     var candidateApplicationFactor: Double = 0.4
+    @Flag(name: .long, help: "Uncertainty-bounded dosing cap: REPLACE the flat/GBAF application factor AND the predicted-min bolus gate with a single state-derived cap — deliver the largest dose whose WORST-CASE trajectory (insulin effect ×(1+k)) WITH max basal suspension stays above the low threshold. A level cap on committed IOB (no wind-up).")
+    var candidateUncertaintyCap: Bool = false
+    @Option(name: .long, help: "Uncertainty cap k: sensitivity-uncertainty multiplier (worst case = insulin effect ×(1+k)). Larger = more buffer / less dosing. Default 0.5.")
+    var candidateUncertaintyK: Double = 0.5
+    @Option(name: .long, help: "Uncertainty cap fmax: hard ceiling on effective application factor (allowed dose / nominal need). <1 keeps a margin even when the worst-case is safe. Default 1.0.")
+    var candidateUncertaintyFmax: Double = 1.0
+    @Option(name: .long, help: "Uncertainty cap low threshold (mg/dL) the worst-case-with-suspension must stay above. 0 = use the suspend threshold.")
+    var candidateUncertaintyLow: Double = 0
+    @Option(name: .long, help: "Autosens gain: scale dose-sizing AND forecast ISF by (1 − gain × avg(BG−target) over the autosens window). Sustained high → ISF↓ (more insulin, resistance/under-counted carbs); sustained low → ISF↑. Multi-hour average ignores transient rises (the discrimination IRC lacks). 0 = off. Try ~0.002-0.006.")
+    var candidateAutosensGain: Double = 0
+    @Option(name: .long, help: "Autosens window (minutes) for the sustained BG−target average. Default 360 (6h). Longer = slower/more-sustained.")
+    var candidateAutosensWindowMin: Double = 360
+    @Option(name: .long, help: "Autosens min ISF ratio (most resistant). Default 0.7.")
+    var candidateAutosensMin: Double = 0.7
+    @Option(name: .long, help: "Autosens max ISF ratio (most sensitive). Default 1.3.")
+    var candidateAutosensMax: Double = 1.3
+    @Flag(name: .long, help: "Decouple the uncertainty cap's worst-case from autosens: when autosens lowers ISF (resistant), the cap still hedges that insulin could be as effective as nominal (the resistance estimate may be wrong) — refuses dangerous doses while letting autosens be aggressive where it's safe even if wrong.")
+    var candidateUncertaintyDecouple: Bool = false
     @Flag(name: .long, help: "Enable candidate asymmetric HIGH correction: rise-only BG-addition driven by the positive retrospective discrepancy, with a fast-off velocity gate (turns off fast on a downtrend).")
     var candidateHighCorrection: Bool = false
     @Option(name: .long, help: "High-correction rise gain (scale on the rise-side BG-addition). Default 1.0.")
@@ -226,6 +271,11 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "OpenAPS adjustmentFactorSigmoid (sigmoid Dynamic ISF aggression). Default 0.5.")
     var candidateOapsAdjustmentFactorSigmoid: Double?
 
+    @Flag(name: .long, help: "OpenAPS ablation: disable UAM (enableUAM=false) — drop the unannounced-meal forecast/SMB while keeping SMB on the base forecast. Isolates UAM's forecast contribution.")
+    var candidateOapsNoUam: Bool = false
+    @Flag(name: .long, help: "OpenAPS ablation: disable all SMB (temp-basal-only delivery). Isolates the SMB delivery cadence from the forecast.")
+    var candidateOapsNoSmb: Bool = false
+
     @Option(name: .long, help: "CGM stale-data guard (minutes). Loop refuses to issue a new dose when the latest glucose is older than its inputDataRecencyInterval (15min). The sim's per-step dose path bypasses that guard, so set this to 15 to apply it: at any step where the latest CGM sample is older than N minutes, the sim makes NO dose adjustment (candidate and baseline keep delivering scheduled basal — unlike a pump outage, basal still flows during a CGM gap). 0 = disabled (legacy behavior; dose on stale data). Single missed samples (~10min) stay under 15min and are 'paved over'; 2+ missed samples cross the threshold and are treated as a gap.")
     var cgmStaleGuardMin: Double = 0
 
@@ -268,6 +318,27 @@ struct SimulateCommand: AsyncParsableCommand {
             gbafHighAnchor: candidateGbafHighAnchor,
             gbafFactorLow: candidateGbafFactorLow,
             gbafFactorHigh: candidateGbafFactorHigh,
+            gbafForecastKeyed: candidateGbafForecastKeyed,
+            gbafForecastMinGuard: candidateGbafForecastMinGuard,
+            softLowGate: candidateSoftLowGate,
+            uamProjectionMinutes: candidateUamMinutes,
+            earlyRiseMinutes: candidateEarlyRiseMinutes,
+            earlyRiseGain: candidateEarlyRiseGain,
+            earlyRiseBgLow: candidateEarlyRiseBgLow,
+            earlyRiseBgHigh: candidateEarlyRiseBgHigh,
+            earlyRiseSlopeThreshold: candidateEarlyRiseSlopeThreshold,
+            dynIsfMultHigh: candidateDynisfMultHigh,
+            dynIsfLowAnchor: candidateDynisfLowAnchor,
+            dynIsfHighAnchor: candidateDynisfHighAnchor,
+            uncertaintyCapEnabled: candidateUncertaintyCap,
+            uncertaintyK: candidateUncertaintyK,
+            uncertaintyFmax: candidateUncertaintyFmax,
+            uncertaintyLow: candidateUncertaintyLow,
+            autosensGain: candidateAutosensGain,
+            autosensWindowMin: candidateAutosensWindowMin,
+            autosensMin: candidateAutosensMin,
+            autosensMax: candidateAutosensMax,
+            uncertaintyDecoupleAutosens: candidateUncertaintyDecouple,
             applicationFactor: candidateApplicationFactor,
             highCorrectionEnabled: candidateHighCorrection,
             highCorrectionRiseGain: candidateHighCorrectionRiseGain,
@@ -280,6 +351,8 @@ struct SimulateCommand: AsyncParsableCommand {
             oapsSigmoid: candidateOapsSigmoid ? true : nil,
             oapsAdjustmentFactor: candidateOapsAdjustmentFactor,
             oapsAdjustmentFactorSigmoid: candidateOapsAdjustmentFactorSigmoid,
+            oapsEnableUAM: candidateOapsNoUam ? false : nil,
+            oapsEnableSMB: candidateOapsNoSmb ? false : nil,
             postlowSuppressMgdl: candidatePostlowSuppress,
             postlowWindowMin: candidatePostlowWindow,
             postlowThresholdMgdl: candidatePostlowThreshold,
@@ -358,6 +431,7 @@ struct SimulateCommand: AsyncParsableCommand {
             outages: outages,
             cgmStaleGuardSec: cgmStaleGuardMin * 60,
             counterfactualMode: candidateCounterfactual,
+            decisionTimeReplay: decisionTimeReplay,
             counterfactualBurnInSec: candidateCounterfactualBurnInHours * 3600,
             excludeManualBoluses: noUserBoluses,
             suppressCarbs: noCarbEntries,

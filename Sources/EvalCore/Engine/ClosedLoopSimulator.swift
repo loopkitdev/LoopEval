@@ -84,6 +84,13 @@ extension EvaluationEngine {
         outages: [Outage] = [],
         cgmStaleGuardSec: TimeInterval = 0,
         counterfactualMode: Bool = false,
+        // Decision-time replay: NOT a closed loop. Both arms see the IDENTICAL real
+        // (glucose, doses, carbs, settings) at every step and emit a dose recommendation
+        // without acting — the candidate's glucose/dose inputs are forced to the same real
+        // data the baseline sees (no counter trajectory, no perturbation, no virtual doses).
+        // For same-input Loop-vs-oref dose/forecast comparison. With candidate == Loop this
+        // must yield baselineDose == candidateDose at every step (fairness identity test).
+        decisionTimeReplay: Bool = false,
         counterfactualBurnInSec: TimeInterval = 6 * 3600,
         excludeManualBoluses: Bool = false,
         suppressCarbs: Bool = false,
@@ -521,7 +528,9 @@ extension EvaluationEngine {
             //   real pump up to cfActiveStart, so it's equivalent).
             let cfActive = counterfactualMode && t >= cfActiveStart
             let combinedDoses: [EvalInsulinDose]
-            if counterfactualMode {
+            if decisionTimeReplay {
+                combinedDoses = data.doses                 // identical real insulin history
+            } else if counterfactualMode {
                 combinedDoses = counterfactualDoses
             } else {
                 combinedDoses = EvaluationEngine.mergeSorted(data.doses, virtualDoses)
@@ -543,9 +552,11 @@ extension EvaluationEngine {
             }
             // Sensor cap (Dexcom-like 400) applied to what the candidate algorithm
             // sees. counterSamples / counterMgdl remain uncapped for advance + scoring.
-            let candidateSensorSamples = sensorCapMgdl > 0
-                ? Self.capGlucoseToSensor(counterSamples, capMgdl: sensorCapMgdl, unit: mgdlUnit)
-                : counterSamples
+            let candidateSensorSamples = decisionTimeReplay
+                ? baselineGlucose                          // identical real glucose the baseline sees
+                : (sensorCapMgdl > 0
+                    ? Self.capGlucoseToSensor(counterSamples, capMgdl: sensorCapMgdl, unit: mgdlUnit)
+                    : counterSamples)
             let candidateBuilder = InputWindowBuilder(
                 glucose: candidateSensorSamples,
                 doses: combinedDoses,
@@ -584,11 +595,15 @@ extension EvaluationEngine {
                 }
                 let perStepMapForLoop = isfMultiplierByStep
                 let csvIsfEnabled = abs(csvIsfMult - 1.0) > 1e-9 || mapHasAnyBoost
+                // Decision-time replay: candidate momentum/velocity reads the SAME real
+                // glucose the baseline saw (not the counter trajectory).
+                let candMomentumMgdl = decisionTimeReplay ? baselineMgdl : counterMgdl
+                let candMomentumSamples = decisionTimeReplay ? simGlucose : counterGlucose
                 func doStep(_ map: [Date: Double]?) -> EngineStepResult {
                     candidateEngine.step(EngineStepRequest(
                         t: t, input: candidateInput, config: candidateConfig,
-                        therapy: data.therapyTimeline, glucoseMgdl: counterMgdl,
-                        glucoseSamples: counterGlucose,
+                        therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
+                        glucoseSamples: candMomentumSamples,
                         perStepIsfMultByTime: map,
                         isfBoostActiveOnly: isfBoostActiveOnly,
                         egpPhysicalDecomposition: egpPhysicalDecomposition))
@@ -1418,7 +1433,31 @@ extension EvaluationEngine {
                 }
             }
         }
-        let effExtraISF = extraISFMultiplier * dampFactor
+        // Autosens (sustained-resistance integral action): scale ISF DOWN when BG has run
+        // persistently ABOVE the correction target over a multi-hour window (sustained
+        // resistance / under-counted carbs → need more insulin), UP when persistently below.
+        // The multi-hour average ignores transient rises/rebounds — the discrimination fast
+        // IRC lacks. Causal (candidate's own glucose history). Pairs with the uncertainty cap,
+        // which is the anti-windup bound for this integral term.
+        var autosensFactor = 1.0
+        if config.autosensGain > 0, let lastG = input.glucose.last,
+           let tgt = (input.target.closestPrior(to: t)?.value ?? input.target.first?.value) {
+            let winSec = config.autosensWindowMin * 60.0
+            let target = (tgt.lowerBound.doubleValue(for: unit) + tgt.upperBound.doubleValue(for: unit)) / 2.0
+            var sum = 0.0, cnt = 0.0
+            for s in input.glucose.reversed() {
+                let age = lastG.startDate.timeIntervalSince(s.startDate)
+                if age > winSec { break }
+                sum += s.quantity.doubleValue(for: unit) - target
+                cnt += 1
+            }
+            if cnt > 0 {
+                let avgErr = sum / cnt                          // sustained BG − target (mg/dL)
+                let f = 1.0 - config.autosensGain * avgErr      // resistant (avgErr>0) → f<1 → lower ISF
+                autosensFactor = Swift.max(config.autosensMin, Swift.min(config.autosensMax, f))
+            }
+        }
+        let effExtraISF = extraISFMultiplier * dampFactor * autosensFactor
         let effectiveSensitivity: [AbsoluteScheduleValue<LoopQuantity>]
 
         // Fast-path: even if a map is set, if no boost falls within [t, t+DIA]
@@ -1578,6 +1617,12 @@ extension EvaluationEngine {
             ircDropGainScale: config.ircDropGainScale,
             ircRiseGainScale: config.ircRiseGainScale,
             ircLowMemoryScale: config.ircLowMemoryScale,
+            uamProjectionMinutes: config.uamProjectionMinutes,
+            earlyRiseMinutes: config.earlyRiseMinutes,
+            earlyRiseGain: config.earlyRiseGain,
+            earlyRiseBgLow: config.earlyRiseBgLow,
+            earlyRiseBgHigh: config.earlyRiseBgHigh,
+            earlyRiseSlopeThreshold: config.earlyRiseSlopeThreshold,
             includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
             useMidAbsorptionISF: config.useMidAbsorptionISF,
             carbAbsorptionModel: config.carbAbsorptionModel.model,
@@ -1656,25 +1701,65 @@ extension EvaluationEngine {
 
         // Application factor: flat config value (default 0.4), or glucose-based
         // (GBAF) ramp keyed on the current BG (latest glucose at/before t).
+        let mgdl = LoopUnit.milligramsPerDeciliter
+        let curBG = effectiveInput.glucose.last?.quantity.doubleValue(for: mgdl)
+            ?? prediction.glucose.first?.quantity.doubleValue(for: mgdl) ?? 0
         var appFactor = config.applicationFactor
         if config.glucoseBasedApplicationFactor {
-            let curBG = effectiveInput.glucose.last?.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter)
-                ?? prediction.glucose.first?.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter) ?? 0
+            var keyBG = curBG
+            // Forecast-keyed GBAF: act on a rising/high FORECAST even when current BG is
+            // still low-normal — but ONLY when the predicted minimum stays >= the guard,
+            // so we never lift the throttle into a predicted dip (momentum/RC-inflated
+            // rebound). keyBG = max(currentBG, eventualBG).
+            if config.gbafForecastKeyed {
+                let eventualBG = prediction.glucose.last?.quantity.doubleValue(for: mgdl) ?? curBG
+                let predMin = prediction.glucose.map { $0.quantity.doubleValue(for: mgdl) }.min() ?? curBG
+                if predMin >= config.gbafForecastMinGuard {
+                    keyBG = Swift.max(curBG, eventualBG)
+                }
+            }
             appFactor = EvaluationEngine.glucoseBasedApplicationFactor(
-                currentBG: curBG,
+                currentBG: keyBG,
                 lowAnchor: config.gbafLowAnchor, highAnchor: config.gbafHighAnchor,
                 factorLow: config.gbafFactorLow, factorHigh: config.gbafFactorHigh)
+        }
+        // Dynamic ISF (continuous): scale the sensitivity used for DOSE SIZING by a
+        // linear ramp of current BG (1 at/below lowAnchor → multHigh at/above highAnchor).
+        // multHigh < 1 ⇒ more insulin per mg/dL of correction when BG is high (insulin
+        // resistance rises with glycemia). The forecast's ISF is unchanged.
+        var doseInput = effectiveInput
+        if abs(config.dynIsfMultHigh - 1.0) > 1e-9 {
+            let span = Swift.max(1.0, config.dynIsfHighAnchor - config.dynIsfLowAnchor)
+            let frac = Swift.max(0, Swift.min(1, (curBG - config.dynIsfLowAnchor) / span))
+            let g = 1.0 + (config.dynIsfMultHigh - 1.0) * frac
+            doseInput = PredictionInput(
+                glucose: effectiveInput.glucose,
+                doses: effectiveInput.doses,
+                carbs: effectiveInput.carbs,
+                basal: effectiveInput.basal,
+                sensitivity: effectiveInput.sensitivity.map {
+                    AbsoluteScheduleValue(startDate: $0.startDate, endDate: $0.endDate,
+                        value: LoopQuantity(unit: mgdl, doubleValue: $0.value.doubleValue(for: mgdl) * g))
+                },
+                carbRatio: effectiveInput.carbRatio,
+                target: effectiveInput.target
+            )
         }
         let doseRec = EvaluationEngine.computeDoseRecommendation(
             prediction: prediction,
             at: t,
-            input: effectiveInput,
+            input: doseInput,
             suspendThreshold: therapy.suspendThreshold,
             maxBolus: therapy.maxBolus,
             maxBasalRate: therapy.maxBasalRate,
             insulinType: therapy.insulinType,
             evalStep: config.evalStep,
-            applicationFactor: appFactor
+            applicationFactor: appFactor,
+            softLowGate: config.softLowGate,
+            uncertaintyCap: config.uncertaintyCapEnabled
+                ? (k: config.uncertaintyK, fmax: config.uncertaintyFmax, low: config.uncertaintyLow,
+                   autosensFactor: config.uncertaintyDecoupleAutosens ? autosensFactor : 1.0)
+                : nil
         )
         return (
             dose: doseRec?.deltaU ?? 0,
