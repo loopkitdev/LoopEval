@@ -166,6 +166,18 @@ struct OpenAPSAdapter: DosingEngine {
         if let sig = req.config.oapsSigmoid {
             prefs["sigmoid"] = sig
         }
+        // Ablations (mechanism isolation). UAM-off: drop only the UAM forecast/SMB on
+        // unannounced rises (SMB_always still fires on the base forecast). SMB-off: disable all
+        // SMB → temp-basal-only delivery.
+        if req.config.oapsEnableUAM == false {
+            prefs["enableUAM"] = false
+        }
+        if req.config.oapsEnableSMB == false {
+            prefs["enableSMB_always"]     = false
+            prefs["enableSMB_with_COB"]   = false
+            prefs["enableSMB_after_carbs"] = false
+            prefs["enableUAM"]            = false
+        }
         if let af = req.config.oapsAdjustmentFactor {
             prefs["adjustmentFactor"] = af
         }
@@ -464,7 +476,7 @@ struct OpenAPSAdapter: DosingEngine {
         let entries: [[String: Any]] = carbs.enumerated().map { i, c in
             [
                 "_id": "c\(i)",
-                "createdAt": iso.string(from: c.entryDate),
+                "created_at": iso.string(from: c.entryDate),
                 "actualDate": iso.string(from: c.startDate),
                 "carbs": c.quantity.doubleValue(for: .gram),
                 "enteredBy": "loopeval"
