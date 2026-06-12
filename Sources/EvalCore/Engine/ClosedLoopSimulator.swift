@@ -460,6 +460,14 @@ extension EvaluationEngine {
             }
         }()
 
+        // Cross-cycle sensitivity-memory reservoir (EvalConfig.sensMemory*): EWMA of recent
+        // NEGATIVE discrepancies that raises effective ISF on future cycles to prevent a
+        // delayed second low. Off when tau==0 or gain==0.
+        let sensMemDecay = candidateConfig.sensMemoryTauSec > 0
+            ? exp(-candidateConfig.evalStep / candidateConfig.sensMemoryTauSec) : 0.0
+        let sensMemOn = candidateConfig.sensMemoryTauSec > 0 && candidateConfig.sensMemoryGain > 0
+        var sensMemR = 0.0
+
         var t = evalStart
         var stepIdx = 0
 
@@ -631,6 +639,8 @@ extension EvaluationEngine {
                 }
                 let perStepMapForLoop = isfMultiplierByStep
                 let csvIsfEnabled = abs(csvIsfMult - 1.0) > 1e-9 || mapHasAnyBoost
+                // Cross-cycle sensitivity-memory ISF bump (>=1 damp; always safe to apply).
+                let sensMemMult = sensMemOn ? Swift.min(2.0, 1.0 + candidateConfig.sensMemoryGain * sensMemR) : 1.0
                 // Decision-time replay: candidate momentum/velocity reads the SAME real
                 // glucose the baseline saw (not the counter trajectory).
                 let candMomentumMgdl = decisionTimeReplay ? baselineMgdl : counterMgdl
@@ -640,6 +650,7 @@ extension EvaluationEngine {
                         t: t, input: candidateInput, config: candidateConfig,
                         therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
                         glucoseSamples: candMomentumSamples,
+                        extraISFMultiplier: sensMemMult,
                         perStepIsfMultByTime: map,
                         isfBoostActiveOnly: isfBoostActiveOnly,
                         egpPhysicalDecomposition: egpPhysicalDecomposition))
@@ -732,6 +743,12 @@ extension EvaluationEngine {
                 }
                 if candidateICE.isFinite && candidateCarbEffect.isFinite {
                     candidateDiscrepancy = candidateICE - candidateCarbEffect
+                }
+                // Feed the sensitivity-memory reservoir: EWMA of the NEGATIVE part of this
+                // step's discrepancy (mg/dL). Decays with sensMemoryTauSec; raises ISF on
+                // future steps via sensMemMult above (causal: this update affects t+1 onward).
+                if sensMemOn && candidateDiscrepancy.isFinite {
+                    sensMemR = sensMemDecay * sensMemR + (1.0 - sensMemDecay) * Swift.max(0.0, -candidateDiscrepancy)
                 }
             }
 
@@ -1698,6 +1715,8 @@ extension EvaluationEngine {
             ircDropGainScale: config.ircDropGainScale,
             ircRiseGainScale: config.ircRiseGainScale,
             ircLowMemoryScale: config.ircLowMemoryScale,
+            ircDropDurationScale: config.ircDropDurationScale,
+            ircRiseDurationScale: config.ircRiseDurationScale,
             uamProjectionMinutes: config.uamProjectionMinutes,
             earlyRiseMinutes: config.earlyRiseMinutes,
             earlyRiseGain: config.earlyRiseGain,

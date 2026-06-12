@@ -37,6 +37,20 @@ public struct EvalConfig: Codable, Sendable {
     /// discrepancy run carries the immediately-preceding negative (low) run across
     /// the sign flip instead of resetting, scaled by this factor. 0 == off.
     public var ircLowMemoryScale: Double
+    /// IRC asymmetric PERSISTENCE ("remember the low longer than the high"): scales how
+    /// long the correction lingers in the forecast by discrepancy sign. drop>1 = a
+    /// negative-discrepancy (sensitivity) correction turns off slowly/persists; rise<1 =
+    /// a positive-discrepancy (resistance) correction turns off fast. 1.0/1.0 == standard.
+    public var ircDropDurationScale: Double
+    public var ircRiseDurationScale: Double
+    /// Cross-cycle SENSITIVITY MEMORY ("remember the low to prevent a SECOND low").
+    /// A reservoir R (EWMA of recent NEGATIVE retrospective discrepancies, mg/dL) decays
+    /// with time constant `sensMemoryTauSec` and raises effective ISF by
+    /// (1 + sensMemoryGain · R) on FUTURE cycles — so after a sensitivity event Loop stays
+    /// conservative for hours, preventing a delayed second low. Input-side, EGP-safe,
+    /// fires on discrepancy SIGN (not BG level). tau=0 or gain=0 == off.
+    public var sensMemoryTauSec: TimeInterval
+    public var sensMemoryGain: Double
     /// Candidate correction-range override (mg/dL). When set, the candidate's dose
     /// decision targets this range instead of the profile's; lets us sweep target
     /// midpoint & width independently of ISF. nil = use profile target.
@@ -339,6 +353,10 @@ public struct EvalConfig: Codable, Sendable {
         ircDropGainScale: Double = 1.0,
         ircRiseGainScale: Double = 1.0,
         ircLowMemoryScale: Double = 0.0,
+        ircDropDurationScale: Double = 1.0,
+        ircRiseDurationScale: Double = 1.0,
+        sensMemoryTauSec: TimeInterval = 0,
+        sensMemoryGain: Double = 0,
         correctionRangeOverrideLow: Double? = nil,
         correctionRangeOverrideHigh: Double? = nil,
         kalmanSmoothing: Bool = true,
@@ -423,6 +441,10 @@ public struct EvalConfig: Codable, Sendable {
         self.ircDropGainScale               = ircDropGainScale
         self.ircRiseGainScale               = ircRiseGainScale
         self.ircLowMemoryScale              = ircLowMemoryScale
+        self.ircDropDurationScale           = ircDropDurationScale
+        self.ircRiseDurationScale           = ircRiseDurationScale
+        self.sensMemoryTauSec               = sensMemoryTauSec
+        self.sensMemoryGain                 = sensMemoryGain
         self.correctionRangeOverrideLow     = correctionRangeOverrideLow
         self.correctionRangeOverrideHigh    = correctionRangeOverrideHigh
         self.kalmanSmoothing                = kalmanSmoothing
@@ -452,7 +474,7 @@ public struct EvalConfig: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
-        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, horizons, includingPositiveVelocityAndRC
+        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensMemoryTauSec, sensMemoryGain, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, horizons, includingPositiveVelocityAndRC
         case useMidAbsorptionISF, carbAbsorptionModel, carbAbsorptionTimeCapSec
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
@@ -480,6 +502,10 @@ public struct EvalConfig: Codable, Sendable {
         self.ircDropGainScale     = try c.decodeIfPresent(Double.self, forKey: .ircDropGainScale) ?? 1.0
         self.ircRiseGainScale     = try c.decodeIfPresent(Double.self, forKey: .ircRiseGainScale) ?? 1.0
         self.ircLowMemoryScale    = try c.decodeIfPresent(Double.self, forKey: .ircLowMemoryScale) ?? 0.0
+        self.ircDropDurationScale = try c.decodeIfPresent(Double.self, forKey: .ircDropDurationScale) ?? 1.0
+        self.ircRiseDurationScale = try c.decodeIfPresent(Double.self, forKey: .ircRiseDurationScale) ?? 1.0
+        self.sensMemoryTauSec     = try c.decodeIfPresent(TimeInterval.self, forKey: .sensMemoryTauSec) ?? 0
+        self.sensMemoryGain       = try c.decodeIfPresent(Double.self, forKey: .sensMemoryGain) ?? 0
         self.correctionRangeOverrideLow  = try c.decodeIfPresent(Double.self, forKey: .correctionRangeOverrideLow)
         self.correctionRangeOverrideHigh = try c.decodeIfPresent(Double.self, forKey: .correctionRangeOverrideHigh)
         self.kalmanSmoothing      = try c.decode(Bool.self,         forKey: .kalmanSmoothing)
@@ -575,6 +601,10 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(ircDropGainScale, forKey: .ircDropGainScale)
         try c.encode(ircRiseGainScale, forKey: .ircRiseGainScale)
         try c.encode(ircLowMemoryScale, forKey: .ircLowMemoryScale)
+        try c.encode(ircDropDurationScale, forKey: .ircDropDurationScale)
+        try c.encode(ircRiseDurationScale, forKey: .ircRiseDurationScale)
+        try c.encode(sensMemoryTauSec, forKey: .sensMemoryTauSec)
+        try c.encode(sensMemoryGain, forKey: .sensMemoryGain)
         try c.encodeIfPresent(correctionRangeOverrideLow, forKey: .correctionRangeOverrideLow)
         try c.encodeIfPresent(correctionRangeOverrideHigh, forKey: .correctionRangeOverrideHigh)
         try c.encode(kalmanSmoothing, forKey: .kalmanSmoothing)

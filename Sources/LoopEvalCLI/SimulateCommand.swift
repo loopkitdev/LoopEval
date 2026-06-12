@@ -137,6 +137,14 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateIrcRiseScale: Double = 1.0
     @Option(name: .long, help: "IRC low-memory carry ('remember the low'): when >0 and the current discrepancy run is positive (a rebound), the integral carries the immediately-preceding negative (low) run across the sign flip instead of resetting, scaled by this factor, so the low's memory offsets the rebound's upward dosing. One-sided (only +run carries a preceding -run). Only used with --candidate-integral-rc. Default 0 (off).")
     var candidateIrcLowMemoryScale: Double = 0.0
+    @Option(name: .long, help: "Asymmetric IRC persistence ('remember the low longer'): scales how long a NEGATIVE-discrepancy (sensitivity) correction lingers in the forecast. >1 = turns off slowly / persists. Only used with --candidate-integral-rc. Default 1.0.")
+    var candidateIrcDropDurationScale: Double = 1.0
+    @Option(name: .long, help: "Asymmetric IRC persistence: scales how long a POSITIVE-discrepancy (resistance) correction lingers. <1 = turns off fast. Only used with --candidate-integral-rc. Default 1.0.")
+    var candidateIrcRiseDurationScale: Double = 1.0
+    @Option(name: .long, help: "Cross-cycle sensitivity-memory time constant (MINUTES): a reservoir of recent NEGATIVE discrepancies decays at this tau and raises effective ISF on future cycles to prevent a delayed SECOND low. 0 = off. Try 60-360.")
+    var candidateSensMemoryTauMin: Double = 0
+    @Option(name: .long, help: "Cross-cycle sensitivity-memory gain k: effective ISF is scaled by (1 + k*R) where R is the EWMA of recent negative discrepancy (mg/dL). 0 = off. Try 0.01-0.05.")
+    var candidateSensMemoryGain: Double = 0
     @Option(name: .long, help: "Candidate correction-range target MIDPOINT (mg/dL) override. With --candidate-target-width, replaces the profile correction range for the candidate's dose decision. Lets us sweep target independent of ISF.")
     var candidateTargetMid: Double?
     @Option(name: .long, help: "Candidate correction-range WIDTH (mg/dL) override. Range = [mid-width/2, mid+width/2]. Width 0 = single-value target. Requires --candidate-target-mid.")
@@ -380,6 +388,10 @@ struct SimulateCommand: AsyncParsableCommand {
             ircDropGainScale: candidateIrcDropScale,
             ircRiseGainScale: candidateIrcRiseScale,
             ircLowMemoryScale: candidateIrcLowMemoryScale,
+            ircDropDurationScale: candidateIrcDropDurationScale,
+            ircRiseDurationScale: candidateIrcRiseDurationScale,
+            sensMemoryTauSec: candidateSensMemoryTauMin * 60,
+            sensMemoryGain: candidateSensMemoryGain,
             correctionRangeOverrideLow: crOverrideLow,
             correctionRangeOverrideHigh: crOverrideHigh,
             kalmanSmoothing: !noKalman,
