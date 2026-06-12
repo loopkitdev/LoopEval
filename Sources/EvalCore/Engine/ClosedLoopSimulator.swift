@@ -187,6 +187,8 @@ extension EvaluationEngine {
         // Manual boluses (user-initiated) sorted by startDate, for in-loop
         // pass-through into counterfactualDoses.
         var realManualBoluses: [EvalInsulinDose] = []
+        // REAL IOB at each manual bolus (excluding the bolus itself), for IOB-aware passthrough.
+        var realManualBolusRealIOB: [Double] = []
         var nextManualIdx = 0
 
         // Pre-scale sensitivity once per candidate config (timeline doesn't
@@ -253,6 +255,16 @@ extension EvaluationEngine {
                     && dose.startDate >= cfActiveStart && dose.startDate < interval.end
                 }
                 .sorted { $0.startDate < $1.startDate }
+
+            // IOB-aware passthrough: precompute the REAL IOB the user faced at each manual bolus
+            // (from the real deployed dose stream, excluding the bolus itself). Later the bolus is
+            // resized by (candidate IOB − this), so a candidate carrying more IOB delivers less.
+            if candidateConfig.iobAdjustManualBoluses && !realManualBoluses.isEmpty {
+                let realAnnotated = data.doses.annotated(with: data.therapyTimeline.basal, fillBasalGaps: true)
+                realManualBolusRealIOB = realManualBoluses.map { mb in
+                    Swift.max(0, realAnnotated.insulinOnBoard(at: mb.startDate) - mb.volume)
+                }
+            }
         }
 
         // Pre-compute the REAL-BG-DERIVED Insulin Counteraction Effect (ICE)
@@ -835,7 +847,19 @@ extension EvaluationEngine {
                     let mb = realManualBoluses[nextManualIdx]
                     if mb.startDate >= stepEnd { break }
                     if mb.startDate >= t {
-                        counterfactualDoses.append(mb)
+                        if candidateConfig.iobAdjustManualBoluses
+                            && nextManualIdx < realManualBolusRealIOB.count
+                            && candidateIOB.isFinite {
+                            // x - (z - y): resize by the counterfactual-vs-real IOB difference.
+                            let y = realManualBolusRealIOB[nextManualIdx]
+                            let z = candidateIOB
+                            let adj = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus, mb.volume - (z - y)))
+                            counterfactualDoses.append(EvalInsulinDose(
+                                deliveryType: mb.deliveryType, startDate: mb.startDate, endDate: mb.endDate,
+                                volume: adj, insulinType: mb.insulinType, automatic: mb.automatic))
+                        } else {
+                            counterfactualDoses.append(mb)
+                        }
                     }
                     nextManualIdx += 1
                 }
@@ -1756,6 +1780,7 @@ extension EvaluationEngine {
             evalStep: config.evalStep,
             applicationFactor: appFactor,
             softLowGate: config.softLowGate,
+            lowGateThreshold: config.lowGateThresholdMgdl,
             uncertaintyCap: config.uncertaintyCapEnabled
                 ? (k: config.uncertaintyK, fmax: config.uncertaintyFmax, low: config.uncertaintyLow,
                    autosensFactor: config.uncertaintyDecoupleAutosens ? autosensFactor : 1.0)

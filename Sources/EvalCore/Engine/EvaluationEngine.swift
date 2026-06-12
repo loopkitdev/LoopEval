@@ -622,6 +622,10 @@ public actor EvaluationEngine {
         evalStep: TimeInterval,
         applicationFactor: Double = 0.4,
         softLowGate: Bool = false,
+        // Predicted-min cutoff (mg/dL) below which the auto-bolus gate engages. nil = the
+        // correction-range floor (standard Loop). e.g. 80 keeps the full application factor for
+        // predicted minimums down to 80 before gating — a small step toward the uncertainty cap.
+        lowGateThreshold: Double? = nil,
         // Uncertainty-bounded dosing cap: when k >= 0 and enabled, REPLACES applicationFactor +
         // the predicted-min gate with the suspension-mitigated worst-case cap. nil = off.
         // autosensFactor decouples the cap's worst-case from the autosens ISF adjustment (see
@@ -695,7 +699,8 @@ public actor EvaluationEngine {
             maxBolus: maxBolus,
             maxBasalRate: maxBasalRate,
             maxActiveInsulin: maxActiveInsulin,
-            lowGateRampFloor: gateFloor
+            lowGateRampFloor: gateFloor,
+            gateThreshold: uncertaintyCap == nil ? lowGateThreshold : nil
         )
         let bolus = recommendation.bolusUnits ?? 0
         let tempRate = recommendation.basalAdjustment.unitsPerHour

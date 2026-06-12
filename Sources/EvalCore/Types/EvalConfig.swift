@@ -132,6 +132,16 @@ public struct EvalConfig: Codable, Sendable {
     /// Soft low-gate: replace Loop's hard 'predicted-min < range-floor -> zero auto-bolus'
     /// cliff with a graded ramp from the suspend threshold up to the range floor. false = original cliff.
     public var softLowGate: Bool
+    /// Predicted-min cutoff (mg/dL) below which the auto-bolus gate engages. nil = the
+    /// correction-range floor (standard Loop). e.g. 80 keeps the full application factor for
+    /// predicted minimums down to that value before gating (a step toward the uncertainty cap).
+    public var lowGateThresholdMgdl: Double?
+    /// IOB-aware manual-bolus passthrough: when true, a real user bolus of `x` units delivered at
+    /// real IOB `y` is resized to `x - (z - y)` (clamped to [0, maxBolus]) where `z` is the
+    /// counterfactual IOB at that moment — i.e. if the candidate already carries more IOB, the user
+    /// would have bolused less (Loop's bolus calc subtracts IOB), and vice versa. false = pass the
+    /// real bolus through verbatim (original behavior).
+    public var iobAdjustManualBoluses: Bool
     /// UAM projection (minutes): project recent unexplained glucose appearance (ICE minus
     /// modeled carbs) forward as ongoing absorption with a linear taper over this many
     /// minutes. Continuous unannounced-meal forecast term. 0 = off.
@@ -271,6 +281,8 @@ public struct EvalConfig: Codable, Sendable {
         gbafForecastKeyed: Bool = false,
         gbafForecastMinGuard: Double = 85.0,
         softLowGate: Bool = false,
+        lowGateThresholdMgdl: Double? = nil,
+        iobAdjustManualBoluses: Bool = true,   // veracity default: resize passed-through user boluses by counterfactual−real IOB
         uamProjectionMinutes: Double = 0,
         earlyRiseMinutes: Double = 0,
         earlyRiseGain: Double = 0,
@@ -352,6 +364,8 @@ public struct EvalConfig: Codable, Sendable {
         self.gbafForecastKeyed              = gbafForecastKeyed
         self.gbafForecastMinGuard           = gbafForecastMinGuard
         self.softLowGate                    = softLowGate
+        self.lowGateThresholdMgdl           = lowGateThresholdMgdl
+        self.iobAdjustManualBoluses         = iobAdjustManualBoluses
         self.uamProjectionMinutes           = uamProjectionMinutes
         self.earlyRiseMinutes               = earlyRiseMinutes
         self.earlyRiseGain                  = earlyRiseGain
@@ -437,7 +451,7 @@ public struct EvalConfig: Codable, Sendable {
         case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
         case sensitivityHourlyMultipliers, localTimezoneIdentifier
         case evalWarmupHours
-        case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh, gbafForecastKeyed, gbafForecastMinGuard, softLowGate, uamProjectionMinutes, earlyRiseMinutes, earlyRiseGain, earlyRiseBgLow, earlyRiseBgHigh, earlyRiseSlopeThreshold, dynIsfMultHigh, dynIsfLowAnchor, dynIsfHighAnchor, uncertaintyCapEnabled, uncertaintyK, uncertaintyFmax, uncertaintyLow, autosensGain, autosensWindowMin, autosensMin, autosensMax, uncertaintyDecoupleAutosens
+        case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh, gbafForecastKeyed, gbafForecastMinGuard, softLowGate, lowGateThresholdMgdl, iobAdjustManualBoluses, uamProjectionMinutes, earlyRiseMinutes, earlyRiseGain, earlyRiseBgLow, earlyRiseBgHigh, earlyRiseSlopeThreshold, dynIsfMultHigh, dynIsfLowAnchor, dynIsfHighAnchor, uncertaintyCapEnabled, uncertaintyK, uncertaintyFmax, uncertaintyLow, autosensGain, autosensWindowMin, autosensMin, autosensMax, uncertaintyDecoupleAutosens
         case applicationFactor
         case highCorrectionEnabled, highCorrectionRiseGain, highCorrectionEffectDurationMinutes, highCorrectionFastOffVelocity
         case oapsThresholdSetting, oapsSmbDeliveryRatio, oapsMaxSmbBasalMinutes
@@ -496,6 +510,8 @@ public struct EvalConfig: Codable, Sendable {
         self.gbafForecastKeyed    = try c.decodeIfPresent(Bool.self, forKey: .gbafForecastKeyed) ?? false
         self.gbafForecastMinGuard = try c.decodeIfPresent(Double.self, forKey: .gbafForecastMinGuard) ?? 85.0
         self.softLowGate          = try c.decodeIfPresent(Bool.self, forKey: .softLowGate) ?? false
+        self.lowGateThresholdMgdl = try c.decodeIfPresent(Double.self, forKey: .lowGateThresholdMgdl)
+        self.iobAdjustManualBoluses = try c.decodeIfPresent(Bool.self, forKey: .iobAdjustManualBoluses) ?? true
         self.uamProjectionMinutes = try c.decodeIfPresent(Double.self, forKey: .uamProjectionMinutes) ?? 0
         self.earlyRiseMinutes        = try c.decodeIfPresent(Double.self, forKey: .earlyRiseMinutes) ?? 0
         self.earlyRiseGain           = try c.decodeIfPresent(Double.self, forKey: .earlyRiseGain) ?? 0
@@ -579,6 +595,8 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(gbafForecastKeyed, forKey: .gbafForecastKeyed)
         try c.encode(gbafForecastMinGuard, forKey: .gbafForecastMinGuard)
         try c.encode(softLowGate, forKey: .softLowGate)
+        try c.encodeIfPresent(lowGateThresholdMgdl, forKey: .lowGateThresholdMgdl)
+        try c.encode(iobAdjustManualBoluses, forKey: .iobAdjustManualBoluses)
         try c.encode(uamProjectionMinutes, forKey: .uamProjectionMinutes)
         try c.encode(earlyRiseMinutes, forKey: .earlyRiseMinutes)
         try c.encode(earlyRiseGain, forKey: .earlyRiseGain)

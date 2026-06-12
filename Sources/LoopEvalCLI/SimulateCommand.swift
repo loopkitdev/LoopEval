@@ -158,6 +158,12 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateGbafForecastMinGuard: Double = 85.0
     @Flag(name: .long, help: "Soft low-gate: replace Loop's hard 'predicted-min < range-floor -> zero auto-bolus' cliff with a graded ramp from the suspend threshold up to the range floor (bolus scaled by how far the predicted minimum sits between them). GBAF's low-BG factor still applies on top.")
     var candidateSoftLowGate: Bool = false
+
+    @Option(name: .long, help: "Predicted-min gate threshold (mg/dL): the predicted-minimum BG below which the auto-bolus is gated off. Default (unset) = the correction-range floor (standard Loop). Set lower (e.g. 80) to KEEP the full application factor for predicted minimums down to that value before gating — 'continue the application factor down to <value>'. A small step toward the uncertainty cap (which disables the gate entirely). Composes with --candidate-soft-low-gate (ramp below the threshold) and is overridden by --candidate-uncertainty-cap.")
+    var candidateLowGateThreshold: Double?
+
+    @Flag(name: .long, inversion: .prefixedNo, help: "IOB-aware manual-bolus passthrough (DEFAULT ON — a simulation-veracity correction, not an algorithm change). Resize each real user bolus by the IOB difference between the counterfactual and reality: a real bolus of x U delivered at real IOB y becomes x-(z-y) (clamped to [0,maxBolus]) where z is the candidate's IOB at that moment — if the candidate already carries more IOB, the user would have bolused less (Loop's calc subtracts IOB), and vice versa. Pass --no-candidate-iob-adjust-manual-boluses to disable (verbatim passthrough, the old behavior).")
+    var candidateIobAdjustManualBoluses: Bool = true
     @Option(name: .long, help: "UAM projection (minutes): treat recent unexplained glucose appearance (ICE minus modeled carbs, last 30 min) as ongoing absorption, projected forward with a linear taper over this many minutes. Continuous unannounced-meal forecast term; raises eventualBG early on genuine carb rises so the existing dosing logic acts sooner. 0 = off.")
     var candidateUamMinutes: Double = 0
     @Option(name: .long, help: "Early-ascending-limb projection (minutes): the continuous complement of GBAF. When BG is in the low-normal band AND rising, project the current rise forward as a tapering, meal-shaped forecast bump over this many minutes, so the existing dosing logic covers an unannounced meal on its ascending limb instead of at the peak. Off at high BG (never piles onto the peak) and off when flat/falling. Needs --candidate-early-rise-gain > 0. 0 = off.")
@@ -321,6 +327,8 @@ struct SimulateCommand: AsyncParsableCommand {
             gbafForecastKeyed: candidateGbafForecastKeyed,
             gbafForecastMinGuard: candidateGbafForecastMinGuard,
             softLowGate: candidateSoftLowGate,
+            lowGateThresholdMgdl: candidateLowGateThreshold,
+            iobAdjustManualBoluses: candidateIobAdjustManualBoluses,
             uamProjectionMinutes: candidateUamMinutes,
             earlyRiseMinutes: candidateEarlyRiseMinutes,
             earlyRiseGain: candidateEarlyRiseGain,
