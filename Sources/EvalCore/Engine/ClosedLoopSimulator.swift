@@ -56,6 +56,13 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         public var candidateAutosensRatio: Double = .nan  // OAPS autosens ratio (nan for Loop)
         public var candidateMinGuardBG: Double = .nan     // OAPS predicted-min BG that gates SMB (nan for Loop)
         public var candidateMinPredBG: Double = .nan      // OAPS predicted-min BG (nan for Loop)
+        // ICE→carb/RC attribution diagnostics (mg/dL over the latest ~5-min interval).
+        // candidateICE = raw insulin-counteraction effect; candidateCarbEffect = portion the
+        // dynamic carb model absorbed; candidateDiscrepancy = remainder that feeds RC.
+        // By construction candidateICE ≈ candidateCarbEffect + candidateDiscrepancy.
+        public var candidateICE: Double = .nan
+        public var candidateCarbEffect: Double = .nan
+        public var candidateDiscrepancy: Double = .nan
     }
     public let steps: [Step]
     public let baselineLabel: String
@@ -439,6 +446,20 @@ extension EvaluationEngine {
             $0.values.contains(where: { abs($0 - 1.0) > 1e-9 })
         } ?? false
 
+        // Candidate carbs, optionally with each entry's absorptionTime capped
+        // (diagnostic: raises the modeled absorption-rate ceiling — see
+        // EvalConfig.carbAbsorptionTimeCapSec). Baseline always uses real carbs.
+        let candidateCarbs: [EvalCarbEntry] = {
+            let cap = candidateConfig.carbAbsorptionTimeCapSec
+            guard cap > 0 else { return data.carbs }
+            return data.carbs.map { c in
+                var c2 = c
+                let cur = c.absorptionTime ?? TimeInterval(3 * 3600)
+                c2.absorptionTime = Swift.min(cur, cap)
+                return c2
+            }
+        }()
+
         var t = evalStart
         var stepIdx = 0
 
@@ -572,7 +593,7 @@ extension EvaluationEngine {
             let candidateBuilder = InputWindowBuilder(
                 glucose: candidateSensorSamples,
                 doses: combinedDoses,
-                carbs: suppressCarbs ? [] : data.carbs,
+                carbs: suppressCarbs ? [] : candidateCarbs,
                 therapyTimeline: data.therapyTimeline,
                 config: candidateConfig
             )
@@ -596,6 +617,9 @@ extension EvaluationEngine {
             var candidateAutosensRatio = Double.nan
             var candidateMinGuardBG = Double.nan
             var candidateMinPredBG = Double.nan
+            var candidateICE = Double.nan
+            var candidateCarbEffect = Double.nan
+            var candidateDiscrepancy = Double.nan
             do {
                 let csvIsfMult: Double
                 if let m = isfMultiplierByStep, !m.isEmpty {
@@ -689,6 +713,26 @@ extension EvaluationEngine {
                 candidateAutosensRatio = result.autosensRatio ?? .nan
                 candidateMinGuardBG = result.minGuardBG ?? .nan
                 candidateMinPredBG = result.minPredBG ?? .nan
+                // ICE→carb/RC split over the interval ENDING at the decision time t.
+                // Read the carb attribution AUTHORITATIVELY from the carbEffects curve
+                // (effects.carbs = the same cumulative curve subtracted to form RC), and ICE
+                // from the counteraction curve — both matched to t. carbEffect = Δ(carbs) over
+                // [t−Δ, t]; discrepancy (→RC) = ICE − carbEffect. (Deriving carbEffect as
+                // ICE − model.discrepancy is unreliable: LoopMath.subtracting normalizes ICE to
+                // a fixed 5-min effectInterval and trims to the carb grid, so its per-interval
+                // discrepancy can exceed the raw ICE and flip the implied carb share negative.)
+                let ceff = result.prediction.effects
+                let tEps = t.addingTimeInterval(1)
+                if let ki = ceff.carbs.lastIndex(where: { $0.startDate <= tEps }), ki > ceff.carbs.startIndex {
+                    candidateCarbEffect = ceff.carbs[ki].quantity.doubleValue(for: mgdlUnit)
+                        - ceff.carbs[ki - 1].quantity.doubleValue(for: mgdlUnit)
+                }
+                if let iceM = ceff.insulinCounteraction.last(where: { $0.endDate <= tEps }) {
+                    candidateICE = iceM.effect.quantity.doubleValue(for: mgdlUnit)
+                }
+                if candidateICE.isFinite && candidateCarbEffect.isFinite {
+                    candidateDiscrepancy = candidateICE - candidateCarbEffect
+                }
             }
 
             // ----- DELIVERABILITY / DATA-AVAILABILITY CLAMPS -----
@@ -983,7 +1027,10 @@ extension EvaluationEngine {
                 candidateRCMarginal: candidateRCMarginal,
                 candidateAutosensRatio: candidateAutosensRatio,
                 candidateMinGuardBG: candidateMinGuardBG,
-                candidateMinPredBG: candidateMinPredBG
+                candidateMinPredBG: candidateMinPredBG,
+                candidateICE: candidateICE,
+                candidateCarbEffect: candidateCarbEffect,
+                candidateDiscrepancy: candidateDiscrepancy
             ))
 
             t = t.addingTimeInterval(candidateConfig.evalStep)

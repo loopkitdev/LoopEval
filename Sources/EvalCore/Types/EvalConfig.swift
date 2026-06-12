@@ -63,6 +63,12 @@ public struct EvalConfig: Codable, Sendable {
     /// Carb absorption model.  Default: .piecewiseLinear.
     public var carbAbsorptionModel: CarbAbsorptionModel
 
+    /// Diagnostic: cap every carb entry's absorptionTime to at most this many
+    /// seconds (0 = no cap). Shortening the logged absorption time raises the
+    /// modeled absorption-rate ceiling, so a fast rise is absorbed into carbs
+    /// instead of spilling into RC. Used to confirm the ICE→carb/RC mechanism.
+    public var carbAbsorptionTimeCapSec: TimeInterval
+
     /// Multiplicative scalar applied to the ISF (sensitivity) timeline before
     /// passing to LoopAlgorithm.  1.0 = use values as-is from Nightscout.
     /// Values > 1.0 → larger ISF → MORE conservative dosing.
@@ -341,6 +347,7 @@ public struct EvalConfig: Codable, Sendable {
         includingPositiveVelocityAndRC: Bool = true,
         useMidAbsorptionISF: Bool = true,
         carbAbsorptionModel: CarbAbsorptionModel = .piecewiseLinear,
+        carbAbsorptionTimeCapSec: TimeInterval = 0,
         sensitivityMultiplier: Double = 1.0,
         sensitivityHourlyMultipliers: [Double]? = nil,
         localTimezone: TimeZone = .current,
@@ -423,6 +430,7 @@ public struct EvalConfig: Codable, Sendable {
         self.includingPositiveVelocityAndRC = includingPositiveVelocityAndRC
         self.useMidAbsorptionISF            = useMidAbsorptionISF
         self.carbAbsorptionModel            = carbAbsorptionModel
+        self.carbAbsorptionTimeCapSec       = carbAbsorptionTimeCapSec
         self.sensitivityMultiplier          = sensitivityMultiplier
         if let h = sensitivityHourlyMultipliers, h.count != 24 {
             preconditionFailure("sensitivityHourlyMultipliers must have exactly 24 entries")
@@ -445,7 +453,7 @@ public struct EvalConfig: Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
         case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, horizons, includingPositiveVelocityAndRC
-        case useMidAbsorptionISF, carbAbsorptionModel
+        case useMidAbsorptionISF, carbAbsorptionModel, carbAbsorptionTimeCapSec
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
         case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
@@ -479,6 +487,7 @@ public struct EvalConfig: Codable, Sendable {
         self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
         self.useMidAbsorptionISF  = try c.decode(Bool.self,         forKey: .useMidAbsorptionISF)
         self.carbAbsorptionModel  = try c.decode(CarbAbsorptionModel.self, forKey: .carbAbsorptionModel)
+        self.carbAbsorptionTimeCapSec = try c.decodeIfPresent(TimeInterval.self, forKey: .carbAbsorptionTimeCapSec) ?? 0
         self.sensitivityMultiplier = try c.decode(Double.self,      forKey: .sensitivityMultiplier)
         self.carbRatioMultiplier  = try c.decode(Double.self,       forKey: .carbRatioMultiplier)
         self.basalRateMultiplier  = try c.decode(Double.self,       forKey: .basalRateMultiplier)
@@ -573,6 +582,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(includingPositiveVelocityAndRC, forKey: .includingPositiveVelocityAndRC)
         try c.encode(useMidAbsorptionISF, forKey: .useMidAbsorptionISF)
         try c.encode(carbAbsorptionModel, forKey: .carbAbsorptionModel)
+        try c.encode(carbAbsorptionTimeCapSec, forKey: .carbAbsorptionTimeCapSec)
         try c.encode(sensitivityMultiplier, forKey: .sensitivityMultiplier)
         try c.encode(carbRatioMultiplier, forKey: .carbRatioMultiplier)
         try c.encode(basalRateMultiplier, forKey: .basalRateMultiplier)

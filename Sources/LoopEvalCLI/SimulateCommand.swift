@@ -184,6 +184,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateDynisfHighAnchor: Double = 200
     @Option(name: .long, help: "Candidate flat (global) auto-bolus application factor — fraction of recommended correction applied per cycle. Loop default 0.4. Only used when GBAF is off.")
     var candidateApplicationFactor: Double = 0.4
+    @Option(name: .long, help: "Diagnostic: cap every candidate carb entry's absorptionTime to at most this many MINUTES (0 = no cap). Shorter time raises the modeled carb-absorption-rate ceiling, absorbing fast rises into carbs instead of RC.")
+    var candidateCarbAbsorptionCapMin: Double = 0
     @Flag(name: .long, help: "Uncertainty-bounded dosing cap: REPLACE the flat/GBAF application factor AND the predicted-min bolus gate with a single state-derived cap — deliver the largest dose whose WORST-CASE trajectory (insulin effect ×(1+k)) WITH max basal suspension stays above the low threshold. A level cap on committed IOB (no wind-up).")
     var candidateUncertaintyCap: Bool = false
     @Option(name: .long, help: "Uncertainty cap k: sensitivity-uncertainty multiplier (worst case = insulin effect ×(1+k)). Larger = more buffer / less dosing. Default 0.5.")
@@ -381,6 +383,7 @@ struct SimulateCommand: AsyncParsableCommand {
             correctionRangeOverrideLow: crOverrideLow,
             correctionRangeOverrideHigh: crOverrideHigh,
             kalmanSmoothing: !noKalman,
+            carbAbsorptionTimeCapSec: candidateCarbAbsorptionCapMin * 60,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,
             sensitivityHourlyMultipliers: hourlyISF,
             localTimezone: resolvedTz,
@@ -503,6 +506,9 @@ struct SimulateCommand: AsyncParsableCommand {
             let candidateAutosensRatio: Double  // OAPS autosens ratio (nan for Loop)
             let candidateMinGuardBG: Double     // OAPS predicted-min BG gating SMB (nan for Loop)
             let candidateMinPredBG: Double      // OAPS predicted-min BG (nan for Loop)
+            let candidateICE: Double            // raw insulin-counteraction effect, latest interval (mg/dL)
+            let candidateCarbEffect: Double     // ICE portion absorbed by dynamic carbs (mg/dL)
+            let candidateDiscrepancy: Double    // ICE − carbEffect = RC-bound remainder (mg/dL)
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
         struct CounterSample: Codable { let t: String; let bg: Double }
@@ -543,7 +549,10 @@ struct SimulateCommand: AsyncParsableCommand {
                  candidateRCMarginal: $0.candidateRCMarginal.isFinite ? $0.candidateRCMarginal : 0.0,
                  candidateAutosensRatio: $0.candidateAutosensRatio.isFinite ? $0.candidateAutosensRatio : -1.0,
                  candidateMinGuardBG: $0.candidateMinGuardBG.isFinite ? $0.candidateMinGuardBG : -1.0,
-                 candidateMinPredBG: $0.candidateMinPredBG.isFinite ? $0.candidateMinPredBG : -1.0)
+                 candidateMinPredBG: $0.candidateMinPredBG.isFinite ? $0.candidateMinPredBG : -1.0,
+                 candidateICE: $0.candidateICE.isFinite ? $0.candidateICE : 0.0,
+                 candidateCarbEffect: $0.candidateCarbEffect.isFinite ? $0.candidateCarbEffect : 0.0,
+                 candidateDiscrepancy: $0.candidateDiscrepancy.isFinite ? $0.candidateDiscrepancy : 0.0)
         }
         let actualOut = data.glucose.sorted { $0.startDate < $1.startDate }.map {
             ActualSample(t: formatter.string(from: $0.startDate),
