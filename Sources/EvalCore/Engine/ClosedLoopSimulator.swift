@@ -843,6 +843,12 @@ extension EvaluationEngine {
                 // [t, t + stepSec). Preserves user behavior on top of the
                 // candidate's algorithmic decisions.
                 let stepEnd = t.addingTimeInterval(candidateConfig.evalStep)
+                // Candidate insulin already committed THIS cycle before the manual bolus is
+                // delivered: the auto-dose (candidateDose, issued at step start) plus any earlier
+                // manual boluses passed through this same step. The manual-bolus IOB adjustment
+                // must see this — using the step-start IOB alone ignores the candidate's own
+                // same-cycle auto-bolus and would mis-size (even up-size) the manual bolus.
+                var stepCandidateAdded = candidateDose
                 while nextManualIdx < realManualBoluses.count {
                     let mb = realManualBoluses[nextManualIdx]
                     if mb.startDate >= stepEnd { break }
@@ -850,14 +856,18 @@ extension EvaluationEngine {
                         if candidateConfig.iobAdjustManualBoluses
                             && nextManualIdx < realManualBolusRealIOB.count
                             && candidateIOB.isFinite {
-                            // x - (z - y): resize by the counterfactual-vs-real IOB difference.
+                            // x - (z - y): resize by the counterfactual-vs-real IOB difference,
+                            // where z is the candidate IOB at the MOMENT of the bolus (step-start
+                            // IOB + this cycle's own committed insulin).
                             let y = realManualBolusRealIOB[nextManualIdx]
-                            let z = candidateIOB
+                            let z = candidateIOB + stepCandidateAdded
                             let adj = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus, mb.volume - (z - y)))
+                            stepCandidateAdded += adj
                             counterfactualDoses.append(EvalInsulinDose(
                                 deliveryType: mb.deliveryType, startDate: mb.startDate, endDate: mb.endDate,
                                 volume: adj, insulinType: mb.insulinType, automatic: mb.automatic))
                         } else {
+                            stepCandidateAdded += mb.volume
                             counterfactualDoses.append(mb)
                         }
                     }
