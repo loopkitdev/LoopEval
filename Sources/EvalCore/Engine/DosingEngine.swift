@@ -74,6 +74,8 @@ struct EngineStepResult {
     var autosensRatio: Double? = nil
     var minGuardBG: Double? = nil
     var minPredBG: Double? = nil
+    /// Candidate's recommended MANUAL bolus at this step (full correction, clamped to maxBolus).
+    var manualBolusRec: Double = 0
 }
 
 protocol DosingEngine: Sendable {

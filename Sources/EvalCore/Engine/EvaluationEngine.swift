@@ -510,6 +510,7 @@ public actor EvaluationEngine {
         let tempBasalRate: Double
         let scheduledBasalRate: Double
         let deltaU: Double  // total insulin delivered in next evalStep vs scheduled
+        var manualBolusRec: Double = 0  // candidate's recommended MANUAL bolus at this step (full correction, clamped to maxBolus)
     }
 
     /// Runs Loop's dose-recommendation logic from a forecast, returning the
@@ -714,11 +715,17 @@ public actor EvaluationEngine {
         let basalDeltaU = (tempRate - scheduledRate) * evalStep / 3600
         let deltaU = bolus + basalDeltaU
 
+        // Candidate's recommended MANUAL bolus at this step: the full correction
+        // (application factor 1.0) clamped to maxBolus — what Loop's bolus screen
+        // would suggest given the candidate's own forecast/IOB/COB. Used by the
+        // "manual bolus = candidate recommendation" injection mode.
+        let manualBolusRec = correction.asManualBolus(maxBolus: maxBolus).amount
         return DoseOutput(
             bolus: bolus,
             tempBasalRate: tempRate,
             scheduledBasalRate: scheduledRate,
-            deltaU: deltaU
+            deltaU: deltaU,
+            manualBolusRec: manualBolusRec
         )
     }
 }

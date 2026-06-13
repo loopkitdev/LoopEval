@@ -63,6 +63,10 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         public var candidateICE: Double = .nan
         public var candidateCarbEffect: Double = .nan
         public var candidateDiscrepancy: Double = .nan
+        // Sensitive Mode state: the ISF multiplier applied this step (1.0 = inactive;
+        // >1 = active, raising effective ISF from accumulated recent negative discrepancies).
+        public var candidateSensModeMult: Double = .nan
+        public var candidateManualBolusRecOut: Double = .nan
     }
     public let steps: [Step]
     public let baselineLabel: String
@@ -614,6 +618,7 @@ extension EvaluationEngine {
             // schedule (if any) and emits a dose.
             var candidateDose: Double
             var candidateBolus: Double
+            var candidateManualBolusRec = Double.nan
             var candidateTempRate: Double
             var candidateEventualBG = Double.nan
             var candidateIOB = Double.nan
@@ -628,6 +633,7 @@ extension EvaluationEngine {
             var candidateICE = Double.nan
             var candidateCarbEffect = Double.nan
             var candidateDiscrepancy = Double.nan
+            var candidateSensModeMult = Double.nan
             do {
                 let csvIsfMult: Double
                 if let m = isfMultiplierByStep, !m.isEmpty {
@@ -641,6 +647,7 @@ extension EvaluationEngine {
                 let csvIsfEnabled = abs(csvIsfMult - 1.0) > 1e-9 || mapHasAnyBoost
                 // Cross-cycle sensitive-mode ISF bump (>=1 damp; always safe to apply).
                 let sensModeMult = sensModeOn ? Swift.min(2.0, 1.0 + candidateConfig.sensitiveModeGain * sensModeLevel) : 1.0
+                candidateSensModeMult = sensModeMult
                 // Decision-time replay: candidate momentum/velocity reads the SAME real
                 // glucose the baseline saw (not the counter trajectory).
                 let candMomentumMgdl = decisionTimeReplay ? baselineMgdl : counterMgdl
@@ -684,7 +691,53 @@ extension EvaluationEngine {
                 }
                 candidateDose = result.dose
                 candidateBolus = result.bolus
+                candidateManualBolusRec = result.manualBolusRec
                 candidateTempRate = result.tempRate
+                // Manual-bolus recommendation, same-transaction carb relaxation:
+                // if this step contains a real manual bolus that was co-entered with a
+                // carb (entry within ±carbTol of the bolus, and the bolus covers >=50%
+                // of carbs/CR — i.e. a meal bolus), recompute the candidate's manual-bolus
+                // recommendation with that carb made visible (entryDate just past the step
+                // base would otherwise hide it). Manual-bolus path ONLY; auto-dosing above
+                // stays strictly causal. No-op unless manualBolusFromRecommendation is on.
+                if candidateConfig.manualBolusFromRecommendation && !realManualBoluses.isEmpty && !suppressCarbs {
+                    let carbTol: TimeInterval = 30
+                    let mbStepEnd = t.addingTimeInterval(candidateConfig.evalStep)
+                    // first real manual bolus landing in this step
+                    let mbHere: EvalInsulinDose? = realManualBoluses[nextManualIdx...].first(where: { $0.startDate >= t && $0.startDate < mbStepEnd })
+                    if let mb = mbHere {
+                        let visCut = mb.startDate.addingTimeInterval(carbTol)
+                        let cr: Double = candidateInput.carbRatio.closestPrior(to: mb.startDate)?.value ?? 0
+                        // a carb co-entered with this bolus but not yet visible at the step base,
+                        // where the bolus covers >=50% of carbs/CR (i.e. it was a meal bolus)
+                        // Use the TRUE entry time (entryDate, ObjectId) — the carb was
+                        // co-logged with the bolus even though its normal-dosing gate
+                        // (dosingVisibleDate) is deferred past it. Fire only if it's hidden
+                        // at the step base (entryDate > t), within carbTol of the bolus, and
+                        // the bolus covers >=50% of carbs/CR (a meal bolus).
+                        var coEntered = false
+                        for c in candidateCarbs {
+                            let g: Double = c.quantity.doubleValue(for: LoopUnit.gram)
+                            let dt: TimeInterval = abs(c.entryDate.timeIntervalSince(mb.startDate))
+                            if c.entryDate > t && c.entryDate <= visCut && dt <= carbTol
+                                && cr > 0 && g > 0 && mb.volume >= 0.5 * (g / cr) {
+                                coEntered = true; break
+                            }
+                        }
+                        if coEntered,
+                           let relaxedInput = candidateBuilder.buildInput(at: t, carbVisibilityCutoff: visCut) {
+                            let rr = EvaluationEngine.simStepDose(
+                                t: t, input: relaxedInput, config: candidateConfig,
+                                therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
+                                glucoseSamples: candMomentumSamples,
+                                extraISFMultiplier: sensModeMult,
+                                perStepIsfMultByTime: csvIsfEnabled ? perStepMapForLoop : nil,
+                                isfBoostActiveOnly: isfBoostActiveOnly,
+                                egpPhysicalDecomposition: egpPhysicalDecomposition)
+                            candidateManualBolusRec = rr.manualBolusRec
+                        }
+                    }
+                }
                 candidateEventualBG = result.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
                 candidateIOB = result.prediction.activeInsulin ?? .nan
                 candidateCOB = result.prediction.activeCarbs ?? .nan
@@ -910,11 +963,24 @@ extension EvaluationEngine {
                 // must see this — using the step-start IOB alone ignores the candidate's own
                 // same-cycle auto-bolus and would mis-size (even up-size) the manual bolus.
                 var stepCandidateAdded = candidateDose
+                var recUsedThisStep = false
                 while nextManualIdx < realManualBoluses.count {
                     let mb = realManualBoluses[nextManualIdx]
                     if mb.startDate >= stepEnd { break }
                     if mb.startDate >= t {
-                        if candidateConfig.iobAdjustManualBoluses
+                        if candidateConfig.manualBolusFromRecommendation {
+                            // Replace the user's manual bolus with the candidate algorithm's OWN
+                            // recommended manual bolus at this step (full correction vs its own
+                            // forecast/IOB) — self-consistent, so no IOB-divergence amplification.
+                            // One recommendation per step: first manual event takes it; any further
+                            // events in the same step are already covered (deliver 0).
+                            let rec = (!recUsedThisStep && candidateManualBolusRec.isFinite) ? candidateManualBolusRec : 0.0
+                            recUsedThisStep = true
+                            stepCandidateAdded += rec
+                            counterfactualDoses.append(EvalInsulinDose(
+                                deliveryType: mb.deliveryType, startDate: mb.startDate, endDate: mb.endDate,
+                                volume: rec, insulinType: mb.insulinType, automatic: mb.automatic))
+                        } else if candidateConfig.iobAdjustManualBoluses
                             && nextManualIdx < realManualBolusRealIOB.count
                             && candidateIOB.isFinite {
                             // x - (z - y): resize by the counterfactual-vs-real IOB difference,
@@ -1047,7 +1113,9 @@ extension EvaluationEngine {
                 candidateMinPredBG: candidateMinPredBG,
                 candidateICE: candidateICE,
                 candidateCarbEffect: candidateCarbEffect,
-                candidateDiscrepancy: candidateDiscrepancy
+                candidateDiscrepancy: candidateDiscrepancy,
+                candidateSensModeMult: candidateSensModeMult,
+                candidateManualBolusRecOut: candidateManualBolusRec
             ))
 
             t = t.addingTimeInterval(candidateConfig.evalStep)
@@ -1472,7 +1540,7 @@ extension EvaluationEngine {
         perStepIsfMultByTime: [Date: Double]? = nil,
         isfBoostActiveOnly: Bool = false,
         egpPhysicalDecomposition: Bool = false
-    ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>) {
+    ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>, manualBolusRec: Double) {
         let momentumCap: LoopQuantity? = config.positiveVelocityCap.map {
             LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: $0)
         }
@@ -1866,7 +1934,8 @@ extension EvaluationEngine {
             dose: doseRec?.deltaU ?? 0,
             bolus: doseRec?.bolus ?? 0,
             tempRate: doseRec?.tempBasalRate ?? 0,
-            prediction: prediction
+            prediction: prediction,
+            manualBolusRec: doseRec?.manualBolusRec ?? 0
         )
     }
 

@@ -29,7 +29,8 @@ struct LoopAdapter: DosingEngine {
             dose: r.dose,
             bolus: r.bolus,
             tempRate: r.tempRate,
-            prediction: r.prediction
+            prediction: r.prediction,
+            manualBolusRec: r.manualBolusRec
         )
     }
 }

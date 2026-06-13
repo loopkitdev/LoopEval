@@ -64,7 +64,8 @@ struct InputWindowBuilder: Sendable {
     /// CGM reading within the last 30 minutes of `t`.
     func buildInput(at t: Date,
                     includeFutureInsulin overrideFuture: Bool? = nil,
-                    includeFutureCarbs overrideFutureCarbs: Bool? = nil) -> PredictionInput? {
+                    includeFutureCarbs overrideFutureCarbs: Bool? = nil,
+                    carbVisibilityCutoff: Date? = nil) -> PredictionInput? {
 
         let useFutureInsulin = overrideFuture ?? config.includeFutureInsulin
         let useFutureCarbs   = overrideFutureCarbs ?? config.includeFutureCarbs
@@ -98,16 +99,30 @@ struct InputWindowBuilder: Sendable {
 
         // ── Carbs ────────────────────────────────────────────────────────────────
         // Window the absorption-relevant range by MEAL TIME (startDate), then
-        // gate visibility by ENTRY TIME (entryDate): Loop only knows about a
-        // carb at step t if the user already logged it (entryDate <= t). Meal
-        // time can sit anywhere in the absorption window.
+        // gate visibility by ENTRY TIME (entryDate): NORMAL dosing only knows about a
+        // carb once the user has logged it by the forecast base time t (entryDate <= t).
+        // A decision at t must NEVER see carbs entered after t. (The manual-bolus
+        // recommendation path applies a tight, separate same-transaction relaxation —
+        // see ClosedLoopSimulator — but normal auto-dosing stays strictly causal here.)
+        // Meal time (startDate) can sit anywhere in the absorption window, incl. future.
         let carbWindowStart = t.addingTimeInterval(-8 * 3600)
         let carbWindowEnd   = t.addingTimeInterval(6 * 3600)
         let cLo = lowerBound(carbs, by: carbWindowStart, key: \.startDate)
         let cHi = upperBound(carbs, by: carbWindowEnd, key: \.startDate)
         var carbsSlice = cLo < cHi ? Array(carbs[cLo..<cHi]) : []
         if !useFutureCarbs {
-            carbsSlice = carbsSlice.filter { $0.entryDate <= t }
+            if let cutoff = carbVisibilityCutoff {
+                // Manual-bolus recommendation path: gate by the TRUE entry time (entryDate),
+                // bypassing the user-takeover visibility deferral that `dosingVisibleDate`
+                // carries — so a carb co-logged with the bolus is visible to the bolus's own
+                // recommendation even though normal dosing defers it. A future MEAL time
+                // (startDate) is still kept (it's in the absorption window) so its predicted
+                // absorption is in the forecast the bolus is computed against.
+                carbsSlice = carbsSlice.filter { $0.entryDate <= cutoff }
+            } else {
+                // Normal dosing: strictly causal on the (possibly deferred) dosing gate.
+                carbsSlice = carbsSlice.filter { $0.dosingVisibleDate <= t }
+            }
         }
 
         // ── Earliest dose start (needed for basal + ISF alignment) ──────────────

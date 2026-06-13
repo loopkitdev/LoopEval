@@ -71,7 +71,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // let the sim auto-dose the meal before the bolus hit IOB → double cover).
         // v4 set entryDate from the ObjectId DB-insertion time; v3 added per-entry
         // absorptionTime; v2 hardcoded absorptionTime=nil. Force re-fetch.
-        let cacheKey = DataCache.key(for: "carbs_v6", url: client.baseURL, interval: interval)
+        let cacheKey = DataCache.key(for: "carbs_v9", url: client.baseURL, interval: interval)
         if let cached: [EvalCarbEntry] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -222,7 +222,12 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // cycle), so the bolus is already in IOB when the meal becomes visible
         // and the sim's forecast/auto-bolus nets against it (mirrors the app's
         // UI, which shows a bolus rec net of any auto-dosing → no double cover).
-        let postBolusVisibilityDelay: TimeInterval = 5 * 60
+        // Empirically the carb is saved ~1s BEFORE its paired bolus (90d: median -1s,
+        // 67% before, 98% within 10s — only 1.5% saved after, all but 2 within a few s).
+        // So defer carb visibility by only ~seconds past the bolus (just enough that the
+        // bolus is in the dose stream first); double-cover is otherwise absorbed by the
+        // IOB-aware manual-bolus passthrough. (Was 5*60 — a ~5-min fidelity error.)
+        let postBolusVisibilityDelay: TimeInterval = 10
 
         return treatments.compactMap { t -> EvalCarbEntry? in
             guard let carbs = t.carbs, carbs > 0 else { return nil }
@@ -253,7 +258,9 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             let pairedBolus = manualBolusTimes.first {
                 $0 >= baseEntry && $0 <= baseEntry.addingTimeInterval(userTakeoverWindow)
             }
-            let entryDate = pairedBolus.map { $0.addingTimeInterval(postBolusVisibilityDelay) } ?? baseEntry
+            // dosingVisibleDate = the (possibly deferred) gate for NORMAL auto-dosing;
+            // entryDate stays the TRUE entry time (baseEntry).
+            let dosingVisibleDate = pairedBolus.map { $0.addingTimeInterval(postBolusVisibilityDelay) } ?? baseEntry
             let mealDate = t.timestamp.flatMap { fmt.date(from: $0) } ?? createdAt
             // Loop publishes per-entry absorptionTime in NS (MINUTES). Use it —
             // otherwise the carb math falls back to a long default (~3h) and
@@ -263,7 +270,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             let absorption: TimeInterval? = t.absorptionTime.map { $0 * 60.0 }  // minutes → seconds
             return EvalCarbEntry(
                 startDate: mealDate,
-                entryDate: entryDate,
+                entryDate: baseEntry,                 // TRUE entry time (ObjectId DB-insert)
+                dosingVisibleDate: dosingVisibleDate, // deferred gate for normal auto-dosing
                 quantity: LoopQuantity(unit: .gram, doubleValue: carbs),
                 absorptionTime: absorption,
                 foodType: nil

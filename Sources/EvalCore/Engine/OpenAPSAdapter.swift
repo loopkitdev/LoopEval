@@ -476,7 +476,7 @@ struct OpenAPSAdapter: DosingEngine {
         let entries: [[String: Any]] = carbs.enumerated().map { i, c in
             [
                 "_id": "c\(i)",
-                "created_at": iso.string(from: c.entryDate),
+                "created_at": iso.string(from: c.dosingVisibleDate),  // normal-dosing visibility gate (unchanged by the entryDate rename)
                 "actualDate": iso.string(from: c.startDate),
                 "carbs": c.quantity.doubleValue(for: .gram),
                 "enteredBy": "loopeval"

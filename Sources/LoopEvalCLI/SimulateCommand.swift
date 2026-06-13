@@ -172,6 +172,8 @@ struct SimulateCommand: AsyncParsableCommand {
 
     @Flag(name: .long, inversion: .prefixedNo, help: "IOB-aware manual-bolus passthrough (DEFAULT ON — a simulation-veracity correction, not an algorithm change). Resize each real user bolus by the IOB difference between the counterfactual and reality: a real bolus of x U delivered at real IOB y becomes x-(z-y) (clamped to [0,maxBolus]) where z is the candidate's IOB at that moment — if the candidate already carries more IOB, the user would have bolused less (Loop's calc subtracts IOB), and vice versa. Pass --no-candidate-iob-adjust-manual-boluses to disable (verbatim passthrough, the old behavior).")
     var candidateIobAdjustManualBoluses: Bool = true
+    @Flag(name: .long, help: "Manual-bolus mode: REPLACE each real user manual bolus with the candidate algorithm's OWN recommended manual bolus at that step (full correction vs the candidate's forecast/IOB/COB, clamped to maxBolus). Self-consistent with the candidate state, so it avoids the IOB-divergence amplification of the IOB-aware x-(z-y) resize. Takes precedence over --candidate-iob-adjust-manual-boluses.")
+    var candidateManualBolusFromRecommendation: Bool = false
     @Option(name: .long, help: "UAM projection (minutes): treat recent unexplained glucose appearance (ICE minus modeled carbs, last 30 min) as ongoing absorption, projected forward with a linear taper over this many minutes. Continuous unannounced-meal forecast term; raises eventualBG early on genuine carb rises so the existing dosing logic acts sooner. 0 = off.")
     var candidateUamMinutes: Double = 0
     @Option(name: .long, help: "Early-ascending-limb projection (minutes): the continuous complement of GBAF. When BG is in the low-normal band AND rising, project the current rise forward as a tapering, meal-shaped forecast bump over this many minutes, so the existing dosing logic covers an unannounced meal on its ascending limb instead of at the peak. Off at high BG (never piles onto the peak) and off when flat/falling. Needs --candidate-early-rise-gain > 0. 0 = off.")
@@ -339,6 +341,7 @@ struct SimulateCommand: AsyncParsableCommand {
             softLowGate: candidateSoftLowGate,
             lowGateThresholdMgdl: candidateLowGateThreshold,
             iobAdjustManualBoluses: candidateIobAdjustManualBoluses,
+            manualBolusFromRecommendation: candidateManualBolusFromRecommendation,
             uamProjectionMinutes: candidateUamMinutes,
             earlyRiseMinutes: candidateEarlyRiseMinutes,
             earlyRiseGain: candidateEarlyRiseGain,
@@ -521,6 +524,8 @@ struct SimulateCommand: AsyncParsableCommand {
             let candidateICE: Double            // raw insulin-counteraction effect, latest interval (mg/dL)
             let candidateCarbEffect: Double     // ICE portion absorbed by dynamic carbs (mg/dL)
             let candidateDiscrepancy: Double    // ICE − carbEffect = RC-bound remainder (mg/dL)
+            let candidateSensModeMult: Double   // Sensitive Mode ISF multiplier (1.0 = inactive)
+            let candidateManualBolusRecOut: Double // candidate recommended MANUAL bolus this step (pre-factor full correction)
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
         struct CounterSample: Codable { let t: String; let bg: Double }
@@ -564,7 +569,9 @@ struct SimulateCommand: AsyncParsableCommand {
                  candidateMinPredBG: $0.candidateMinPredBG.isFinite ? $0.candidateMinPredBG : -1.0,
                  candidateICE: $0.candidateICE.isFinite ? $0.candidateICE : 0.0,
                  candidateCarbEffect: $0.candidateCarbEffect.isFinite ? $0.candidateCarbEffect : 0.0,
-                 candidateDiscrepancy: $0.candidateDiscrepancy.isFinite ? $0.candidateDiscrepancy : 0.0)
+                 candidateDiscrepancy: $0.candidateDiscrepancy.isFinite ? $0.candidateDiscrepancy : 0.0,
+                 candidateSensModeMult: $0.candidateSensModeMult.isFinite ? $0.candidateSensModeMult : 1.0,
+                 candidateManualBolusRecOut: $0.candidateManualBolusRecOut.isFinite ? $0.candidateManualBolusRecOut : 0.0)
         }
         let actualOut = data.glucose.sorted { $0.startDate < $1.startDate }.map {
             ActualSample(t: formatter.string(from: $0.startDate),

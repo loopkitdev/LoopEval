@@ -162,6 +162,13 @@ public struct EvalConfig: Codable, Sendable {
     /// would have bolused less (Loop's bolus calc subtracts IOB), and vice versa. false = pass the
     /// real bolus through verbatim (original behavior).
     public var iobAdjustManualBoluses: Bool
+    /// Manual-bolus mode: when true, REPLACE each real manual bolus with the candidate
+    /// algorithm's OWN recommended manual bolus at that step (full correction vs the
+    /// candidate's forecast/IOB/COB, clamped to maxBolus). Self-consistent with the
+    /// candidate state, so it avoids the IOB-divergence amplification of the x−(z−y)
+    /// resize. Takes precedence over `iobAdjustManualBoluses`. false = use the iobAdjust
+    /// (or verbatim) passthrough.
+    public var manualBolusFromRecommendation: Bool
     /// UAM projection (minutes): project recent unexplained glucose appearance (ICE minus
     /// modeled carbs) forward as ongoing absorption with a linear taper over this many
     /// minutes. Continuous unannounced-meal forecast term. 0 = off.
@@ -303,6 +310,7 @@ public struct EvalConfig: Codable, Sendable {
         softLowGate: Bool = false,
         lowGateThresholdMgdl: Double? = nil,
         iobAdjustManualBoluses: Bool = true,   // veracity default: resize passed-through user boluses by counterfactual−real IOB
+        manualBolusFromRecommendation: Bool = false,
         uamProjectionMinutes: Double = 0,
         earlyRiseMinutes: Double = 0,
         earlyRiseGain: Double = 0,
@@ -391,6 +399,7 @@ public struct EvalConfig: Codable, Sendable {
         self.softLowGate                    = softLowGate
         self.lowGateThresholdMgdl           = lowGateThresholdMgdl
         self.iobAdjustManualBoluses         = iobAdjustManualBoluses
+        self.manualBolusFromRecommendation  = manualBolusFromRecommendation
         self.uamProjectionMinutes           = uamProjectionMinutes
         self.earlyRiseMinutes               = earlyRiseMinutes
         self.earlyRiseGain                  = earlyRiseGain
@@ -481,7 +490,7 @@ public struct EvalConfig: Codable, Sendable {
         case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
         case sensitivityHourlyMultipliers, localTimezoneIdentifier
         case evalWarmupHours
-        case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh, gbafForecastKeyed, gbafForecastMinGuard, softLowGate, lowGateThresholdMgdl, iobAdjustManualBoluses, uamProjectionMinutes, earlyRiseMinutes, earlyRiseGain, earlyRiseBgLow, earlyRiseBgHigh, earlyRiseSlopeThreshold, dynIsfMultHigh, dynIsfLowAnchor, dynIsfHighAnchor, uncertaintyCapEnabled, uncertaintyK, uncertaintyFmax, uncertaintyLow, autosensGain, autosensWindowMin, autosensMin, autosensMax, uncertaintyDecoupleAutosens
+        case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh, gbafForecastKeyed, gbafForecastMinGuard, softLowGate, lowGateThresholdMgdl, iobAdjustManualBoluses, manualBolusFromRecommendation, uamProjectionMinutes, earlyRiseMinutes, earlyRiseGain, earlyRiseBgLow, earlyRiseBgHigh, earlyRiseSlopeThreshold, dynIsfMultHigh, dynIsfLowAnchor, dynIsfHighAnchor, uncertaintyCapEnabled, uncertaintyK, uncertaintyFmax, uncertaintyLow, autosensGain, autosensWindowMin, autosensMin, autosensMax, uncertaintyDecoupleAutosens
         case applicationFactor
         case highCorrectionEnabled, highCorrectionRiseGain, highCorrectionEffectDurationMinutes, highCorrectionFastOffVelocity
         case oapsThresholdSetting, oapsSmbDeliveryRatio, oapsMaxSmbBasalMinutes
@@ -547,6 +556,7 @@ public struct EvalConfig: Codable, Sendable {
         self.softLowGate          = try c.decodeIfPresent(Bool.self, forKey: .softLowGate) ?? false
         self.lowGateThresholdMgdl = try c.decodeIfPresent(Double.self, forKey: .lowGateThresholdMgdl)
         self.iobAdjustManualBoluses = try c.decodeIfPresent(Bool.self, forKey: .iobAdjustManualBoluses) ?? true
+        self.manualBolusFromRecommendation = try c.decodeIfPresent(Bool.self, forKey: .manualBolusFromRecommendation) ?? false
         self.uamProjectionMinutes = try c.decodeIfPresent(Double.self, forKey: .uamProjectionMinutes) ?? 0
         self.earlyRiseMinutes        = try c.decodeIfPresent(Double.self, forKey: .earlyRiseMinutes) ?? 0
         self.earlyRiseGain           = try c.decodeIfPresent(Double.self, forKey: .earlyRiseGain) ?? 0
@@ -637,6 +647,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(softLowGate, forKey: .softLowGate)
         try c.encodeIfPresent(lowGateThresholdMgdl, forKey: .lowGateThresholdMgdl)
         try c.encode(iobAdjustManualBoluses, forKey: .iobAdjustManualBoluses)
+        try c.encode(manualBolusFromRecommendation, forKey: .manualBolusFromRecommendation)
         try c.encode(uamProjectionMinutes, forKey: .uamProjectionMinutes)
         try c.encode(earlyRiseMinutes, forKey: .earlyRiseMinutes)
         try c.encode(earlyRiseGain, forKey: .earlyRiseGain)
