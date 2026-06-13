@@ -141,10 +141,10 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateIrcDropDurationScale: Double = 1.0
     @Option(name: .long, help: "Asymmetric IRC persistence: scales how long a POSITIVE-discrepancy (resistance) correction lingers. <1 = turns off fast. Only used with --candidate-integral-rc. Default 1.0.")
     var candidateIrcRiseDurationScale: Double = 1.0
-    @Option(name: .long, help: "Cross-cycle sensitivity-memory time constant (MINUTES): a reservoir of recent NEGATIVE discrepancies decays at this tau and raises effective ISF on future cycles to prevent a delayed SECOND low. 0 = off. Try 60-360.")
-    var candidateSensMemoryTauMin: Double = 0
-    @Option(name: .long, help: "Cross-cycle sensitivity-memory gain k: effective ISF is scaled by (1 + k*R) where R is the EWMA of recent negative discrepancy (mg/dL). 0 = off. Try 0.01-0.05.")
-    var candidateSensMemoryGain: Double = 0
+    @Option(name: .long, help: "Cross-cycle sensitive-mode time constant (MINUTES): an EWMA of recent NEGATIVE discrepancies decays at this tau and raises effective ISF on future cycles to prevent a delayed SECOND low. 0 = off. Try 60-360.")
+    var candidateSensitiveModeTauMin: Double = 0
+    @Option(name: .long, help: "Cross-cycle sensitive-mode gain k: effective ISF is scaled by (1 + k*R) where R is the EWMA of recent negative discrepancy (mg/dL). 0 = off. Try 0.01-0.05.")
+    var candidateSensitiveModeGain: Double = 0
     @Option(name: .long, help: "Candidate correction-range target MIDPOINT (mg/dL) override. With --candidate-target-width, replaces the profile correction range for the candidate's dose decision. Lets us sweep target independent of ISF.")
     var candidateTargetMid: Double?
     @Option(name: .long, help: "Candidate correction-range WIDTH (mg/dL) override. Range = [mid-width/2, mid+width/2]. Width 0 = single-value target. Requires --candidate-target-mid.")
@@ -390,8 +390,8 @@ struct SimulateCommand: AsyncParsableCommand {
             ircLowMemoryScale: candidateIrcLowMemoryScale,
             ircDropDurationScale: candidateIrcDropDurationScale,
             ircRiseDurationScale: candidateIrcRiseDurationScale,
-            sensMemoryTauSec: candidateSensMemoryTauMin * 60,
-            sensMemoryGain: candidateSensMemoryGain,
+            sensitiveModeTauSec: candidateSensitiveModeTauMin * 60,
+            sensitiveModeGain: candidateSensitiveModeGain,
             correctionRangeOverrideLow: crOverrideLow,
             correctionRangeOverrideHigh: crOverrideHigh,
             kalmanSmoothing: !noKalman,
