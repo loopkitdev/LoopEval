@@ -46,6 +46,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Disable Kalman smoothing")
     var noKalman: Bool = false
 
+    @Flag(name: .long, inversion: .prefixedNo, help: "Run the SIMULATOR (Loop decision-time glucose input, the counter trajectory, and outcome stats) on the ORIGINAL noisy CGM samples, while keeping the RTS-smoothed trace for patient-physiology estimation (ICE + sensitivity multiplier m(t)). Raw samples are resampled onto the smoothed grid's exact timestamps so the per-grid m(t) stays aligned. Requires Kalman smoothing (no effect with --no-kalman). DEFAULT ON; pass --no-sim-raw-glucose for the legacy all-smoothed sim.")
+    var simRawGlucose: Bool = true
+
     @Option(name: .long, help: "Baseline ISF multiplier")
     var sensitivityMultiplier: Double = 1.0
 
@@ -322,6 +325,7 @@ struct SimulateCommand: AsyncParsableCommand {
             glucoseLookbackHours: glucoseLookbackHours,
             useIntegralRC: integralRC,
             kalmanSmoothing: !noKalman,
+            simRawGlucose: simRawGlucose,
             sensitivityMultiplier: sensitivityMultiplier,
             localTimezone: resolvedTz,
             useAsymmetricMomentum: asymmetricMomentum
@@ -398,6 +402,7 @@ struct SimulateCommand: AsyncParsableCommand {
             correctionRangeOverrideLow: crOverrideLow,
             correctionRangeOverrideHigh: crOverrideHigh,
             kalmanSmoothing: !noKalman,
+            simRawGlucose: simRawGlucose,
             carbAbsorptionTimeCapSec: candidateCarbAbsorptionCapMin * 60,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,
             sensitivityHourlyMultipliers: hourlyISF,

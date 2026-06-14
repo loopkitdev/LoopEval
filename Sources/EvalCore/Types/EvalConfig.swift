@@ -60,6 +60,15 @@ public struct EvalConfig: Codable, Sendable {
     /// Smooth actual CGM with a Kalman filter before comparison (not algorithm input).
     public var kalmanSmoothing: Bool
 
+    /// Run the SIMULATOR (Loop's decision-time glucose input, the counter
+    /// trajectory, and the outcome stats) on the ORIGINAL noisy CGM samples while
+    /// keeping the smoothed trace for patient-physiology estimation (ICE + the
+    /// sensitivity-multiplier m(t)). Requires kalmanSmoothing; no effect with
+    /// --no-kalman (already all-raw). Default TRUE: the simulator runs on the
+    /// real noisy CGM while physiology stays smoothed. Set false for the legacy
+    /// all-smoothed sim.
+    public var simRawGlucose: Bool
+
     /// Forecast horizons to evaluate, in seconds.
     /// Default: every 30 min from 30 min to 360 min.
     public var horizons: [TimeInterval]
@@ -368,6 +377,7 @@ public struct EvalConfig: Codable, Sendable {
         correctionRangeOverrideLow: Double? = nil,
         correctionRangeOverrideHigh: Double? = nil,
         kalmanSmoothing: Bool = true,
+        simRawGlucose: Bool = true,
         horizons: [TimeInterval] = stride(from: 30.0, through: 360.0, by: 30.0)
             .map { $0 * 60 },
         includingPositiveVelocityAndRC: Bool = true,
@@ -457,6 +467,7 @@ public struct EvalConfig: Codable, Sendable {
         self.correctionRangeOverrideLow     = correctionRangeOverrideLow
         self.correctionRangeOverrideHigh    = correctionRangeOverrideHigh
         self.kalmanSmoothing                = kalmanSmoothing
+        self.simRawGlucose                  = simRawGlucose
         self.horizons                       = horizons
         self.includingPositiveVelocityAndRC = includingPositiveVelocityAndRC
         self.useMidAbsorptionISF            = useMidAbsorptionISF
@@ -483,7 +494,7 @@ public struct EvalConfig: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
-        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, horizons, includingPositiveVelocityAndRC
+        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, horizons, includingPositiveVelocityAndRC
         case useMidAbsorptionISF, carbAbsorptionModel, carbAbsorptionTimeCapSec
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
@@ -518,6 +529,7 @@ public struct EvalConfig: Codable, Sendable {
         self.correctionRangeOverrideLow  = try c.decodeIfPresent(Double.self, forKey: .correctionRangeOverrideLow)
         self.correctionRangeOverrideHigh = try c.decodeIfPresent(Double.self, forKey: .correctionRangeOverrideHigh)
         self.kalmanSmoothing      = try c.decode(Bool.self,         forKey: .kalmanSmoothing)
+        self.simRawGlucose        = (try? c.decode(Bool.self,       forKey: .simRawGlucose)) ?? false
         self.horizons             = try c.decode([TimeInterval].self, forKey: .horizons)
         self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
         self.useMidAbsorptionISF  = try c.decode(Bool.self,         forKey: .useMidAbsorptionISF)
@@ -618,6 +630,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encodeIfPresent(correctionRangeOverrideLow, forKey: .correctionRangeOverrideLow)
         try c.encodeIfPresent(correctionRangeOverrideHigh, forKey: .correctionRangeOverrideHigh)
         try c.encode(kalmanSmoothing, forKey: .kalmanSmoothing)
+        try c.encode(simRawGlucose, forKey: .simRawGlucose)
         try c.encode(horizons, forKey: .horizons)
         try c.encode(includingPositiveVelocityAndRC, forKey: .includingPositiveVelocityAndRC)
         try c.encode(useMidAbsorptionISF, forKey: .useMidAbsorptionISF)

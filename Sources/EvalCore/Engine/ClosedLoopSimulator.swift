@@ -157,11 +157,29 @@ extension EvaluationEngine {
         // space; baseline and candidate share this identical substrate, so the
         // future information is the same on both sides and cancels in every
         // experiment-vs-sanity delta. Use --no-kalman for the raw substrate.
-        let simGlucose: [EvalGlucoseSample] = candidateConfig.kalmanSmoothing
+        // physGlucose: the PHYSIOLOGY substrate — RTS-smoothed CGM on the 5-min
+        // grid. Low-noise "ground truth" used ONLY for patient-physiology
+        // estimation: ICE and the sensitivity-multiplier m(t) ("k") inference.
+        let physGlucose: [EvalGlucoseSample] = candidateConfig.kalmanSmoothing
             ? Self.buildSmoothedGrid(raw: data.glucose,
                                      start: interval.start, end: interval.end,
                                      stepSec: candidateConfig.evalStep)
             : data.glucose
+
+        // simGlucose: the SIMULATOR substrate — what Loop's decision-time glucose
+        // input, the counter trajectory, and the outcome stats actually run on.
+        // Default: the same smoothed trace as physGlucose (legacy behavior). With
+        // simRawGlucose: the simulator runs on the ORIGINAL (noisy) CGM samples
+        // resampled onto physGlucose's EXACT timestamps — so the per-grid m(t)
+        // and realPhysDelta arrays (indexed against physGlucose) stay aligned —
+        // while physiology estimation keeps using the smoothed physGlucose. This
+        // lets us estimate sensitivity in low-noise space but evaluate the
+        // controller against the real noisy CGM it would actually see. Identity
+        // holds: candidate doses == real ⇒ the counter reproduces whichever
+        // substrate the sim runs on.
+        let simGlucose: [EvalGlucoseSample] = (candidateConfig.kalmanSmoothing && candidateConfig.simRawGlucose)
+            ? Self.rawGridMatching(grid: physGlucose, raw: data.glucose, unit: mgdlUnit)
+            : physGlucose
 
         // counter_glucose: starts as actual; modified as Δdose impacts accumulate.
         // We mutate values in place at sample indices, preserving original
@@ -289,10 +307,10 @@ extension EvaluationEngine {
         // Per-grid-step PHYSICAL active-insulin effect of the REAL doses (EGP
         // zeroed), for the sensitivity-inference application. Stays 0 outside
         // inference mode.
-        var realPhysDelta = [Double](repeating: 0, count: simGlucose.count)
+        var realPhysDelta = [Double](repeating: 0, count: physGlucose.count)
         if counterfactualMode {
             let iceStart = Date()
-            FileHandle.standardError.write(Data("Sim setup: doses=\(data.doses.count) glucose=\(simGlucose.count)\n".utf8))
+            FileHandle.standardError.write(Data("Sim setup: doses=\(data.doses.count) glucose=\(physGlucose.count)\n".utf8))
             // Filter doses to those covered by the sensitivity schedule —
             // LoopAlgorithm.glucoseEffects preconditions on closestPrior(...)
             // returning a non-nil entry for each dose.startDate.
@@ -310,21 +328,21 @@ extension EvaluationEngine {
                 doses: safeDataDoses,
                 basal: data.therapyTimeline.basal,
                 sensitivity: physiologySensitivity,
-                effectsFrom: simGlucose.first?.startDate.addingTimeInterval(-insulinModel.effectDuration),
-                effectsTo: simGlucose.last?.startDate,
+                effectsFrom: physGlucose.first?.startDate.addingTimeInterval(-insulinModel.effectDuration),
+                effectsTo: physGlucose.last?.startDate,
                 useMidAbsorptionISF: true
             )
             let insulinEffects = precomp.insulinEffects ?? []
             FileHandle.standardError.write(Data("PrecomputedInsulinInput.build done in \(Int(Date().timeIntervalSince(iceStart) * 1000))ms (effects entries=\(insulinEffects.count))\n".utf8))
-            realICE = simGlucose.counteractionEffects(to: insulinEffects)
+            realICE = physGlucose.counteractionEffects(to: insulinEffects)
             FileHandle.standardError.write(Data("ICE done (entries=\(realICE.count))\n".utf8))
             if inferSensitivity {
                 let physStart = Date()
-                for j in 1..<simGlucose.count {
+                for j in 1..<physGlucose.count {
                     realPhysDelta[j] = Self.physicalActiveEffectDelta(
                         doses: safeDataDoses, basal: data.therapyTimeline.basal,
                         sensitivity: physiologySensitivity,
-                        from: simGlucose[j - 1].startDate, to: simGlucose[j].startDate,
+                        from: physGlucose[j - 1].startDate, to: physGlucose[j].startDate,
                         insulinModel: insulinModel)
                 }
                 FileHandle.standardError.write(Data("realPhysActive precompute done in \(Int(Date().timeIntervalSince(physStart) * 1000))ms\n".utf8))
@@ -346,18 +364,18 @@ extension EvaluationEngine {
         // binds and the unexplained drop stays as additive ICE — the
         // exercise / low-IOB case, correctly left as non-insulin. Positive
         // residuals (carbs/EGP winning) are untouched (m = 1).
-        var mByIndex = [Double](repeating: 1.0, count: simGlucose.count)
+        var mByIndex = [Double](repeating: 1.0, count: physGlucose.count)
         if counterfactualMode && inferSensitivity {
             let velEps = 1.0  // mg/dL of modeled insulin over the window; below this we can't identify m
             var kStart = 0
-            for j in 0..<simGlucose.count {
-                let tEnd = simGlucose[j].startDate
+            for j in 0..<physGlucose.count {
+                let tEnd = physGlucose[j].startDate
                 let tStart = tEnd.addingTimeInterval(-inferSensitivityWindowSec)
-                while kStart + 1 < simGlucose.count && simGlucose[kStart + 1].startDate <= tStart { kStart += 1 }
-                if simGlucose[kStart].startDate > tStart || simGlucose[kStart].startDate >= tEnd { continue }
-                let bgDeltaWindow = simGlucose[j].quantity.doubleValue(for: mgdlUnit)
-                    - simGlucose[kStart].quantity.doubleValue(for: mgdlUnit)
-                let iceWindow = Self.integrateICE(realICE, from: simGlucose[kStart].startDate, to: tEnd)
+                while kStart + 1 < physGlucose.count && physGlucose[kStart + 1].startDate <= tStart { kStart += 1 }
+                if physGlucose[kStart].startDate > tStart || physGlucose[kStart].startDate >= tEnd { continue }
+                let bgDeltaWindow = physGlucose[j].quantity.doubleValue(for: mgdlUnit)
+                    - physGlucose[kStart].quantity.doubleValue(for: mgdlUnit)
+                let iceWindow = Self.integrateICE(realICE, from: physGlucose[kStart].startDate, to: tEnd)
                 if iceWindow < 0 {
                     let insReal = bgDeltaWindow - iceWindow  // modeled insulin effect (negative)
                     if insReal < -velEps {
@@ -424,15 +442,15 @@ extension EvaluationEngine {
             if let dumpPath = dumpNiePath {
                 let isoFmt = ISO8601DateFormatter(); isoFmt.formatOptions = [.withInternetDateTime]
                 var csv = "t,nie,m,bg\n"
-                csv.reserveCapacity(simGlucose.count * 48)
-                for i in 1..<simGlucose.count {
-                    let bgPrev = simGlucose[i - 1].quantity.doubleValue(for: mgdlUnit)
-                    let bgNow = simGlucose[i].quantity.doubleValue(for: mgdlUnit)
+                csv.reserveCapacity(physGlucose.count * 48)
+                for i in 1..<physGlucose.count {
+                    let bgPrev = physGlucose[i - 1].quantity.doubleValue(for: mgdlUnit)
+                    let bgNow = physGlucose[i].quantity.doubleValue(for: mgdlUnit)
                     let nie = (bgNow - bgPrev) - mByIndex[i] * realPhysDelta[i]
-                    csv += "\(isoFmt.string(from: simGlucose[i].startDate)),\(nie),\(mByIndex[i]),\(bgNow)\n"
+                    csv += "\(isoFmt.string(from: physGlucose[i].startDate)),\(nie),\(mByIndex[i]),\(bgNow)\n"
                 }
                 try? csv.write(toFile: dumpPath, atomically: true, encoding: .utf8)
-                FileHandle.standardError.write(Data("dumped NIE/m → \(dumpPath) (\(simGlucose.count - 1) rows)\n".utf8))
+                FileHandle.standardError.write(Data("dumped NIE/m → \(dumpPath) (\(physGlucose.count - 1) rows)\n".utf8))
             }
         }
 
@@ -1166,6 +1184,48 @@ extension EvaluationEngine {
     /// them, and no extrapolation occurs before the first / after the last
     /// sample. The RTS pass uses future samples by design (see the SUBSTRATE
     /// note in simulateClosedLoop).
+    /// Resample the RAW (unsmoothed) CGM samples onto the EXACT timestamps of
+    /// `grid` (the smoothed grid) by linear interpolation. Produces a raw-valued
+    /// series index-aligned 1:1 with `grid` — and therefore with the per-grid
+    /// m(t) / realPhysDelta arrays — so the simulator can run on the original
+    /// noisy CGM while physiology estimation stays on the smoothed grid. Every
+    /// grid time falls between raw samples that are ≤ the grid's gap tolerance
+    /// apart (same emission rule built it), so the interpolation is well-defined;
+    /// before the first / after the last raw sample we clamp to the endpoint.
+    fileprivate static func rawGridMatching(
+        grid: [EvalGlucoseSample],
+        raw: [EvalGlucoseSample],
+        unit: LoopUnit
+    ) -> [EvalGlucoseSample] {
+        guard !grid.isEmpty else { return grid }
+        let rs = raw.sorted { $0.startDate < $1.startDate }
+        guard rs.count >= 2 else { return grid }
+        let times = rs.map { $0.startDate.timeIntervalSince1970 }
+        let vals  = rs.map { $0.quantity.doubleValue(for: unit) }
+        var out: [EvalGlucoseSample] = []
+        out.reserveCapacity(grid.count)
+        var j = 0
+        for g in grid {
+            let tg = g.startDate.timeIntervalSince1970
+            while j + 1 < times.count && times[j + 1] <= tg { j += 1 }
+            let v: Double
+            if tg <= times[0] {
+                v = vals[0]
+            } else if tg >= times[times.count - 1] {
+                v = vals[times.count - 1]
+            } else {
+                let pT = times[j], nT = times[j + 1]
+                let frac = (nT - pT) > 1e-9 ? (tg - pT) / (nT - pT) : 0.0
+                v = vals[j] + frac * (vals[j + 1] - vals[j])
+            }
+            out.append(EvalGlucoseSample(
+                startDate: g.startDate,
+                quantity: .init(unit: unit, doubleValue: v),
+                provenanceIdentifier: "raw-grid"))
+        }
+        return out
+    }
+
     fileprivate static func buildSmoothedGrid(
         raw: [EvalGlucoseSample],
         start: Date,
