@@ -43,7 +43,7 @@
 <header><div class="wrap">
   <h1>LoopEval Closed-Loop Simulator</h1>
   <p>A technical primer on how the simulator works — data, the counterfactual physiology, the closed loop, the sensitivity-fidelity model, disruption handling, and how candidate algorithm changes (Loop <i>and</i> OpenAPS) are scored. <b>Living document</b> — kept current as the evaluator evolves.</p>
-  <p style="margin-top:6px;color:#9fc4ee;font-size:13.5px;">Last reviewed 2026-06-11.</p>
+  <p style="margin-top:6px;color:#9fc4ee;font-size:13.5px;">Last reviewed 2026-06-14 (substrate split).</p>
 </div></header>
 
 <div class="wrap">
@@ -53,7 +53,7 @@
 <a href="#what">1. What this is &amp; why</a><br>
 <a href="#arch">2. Architecture at a glance</a><br>
 <a href="#data">3. Data pipeline &amp; cache</a><br>
-<a href="#substrate">4. The substrate (RTS smoothing)</a><br>
+<a href="#substrate">4. The substrate (split: smoothed physiology, raw sim)</a><br>
 <a href="#insulin">5. The insulin model (PD)</a><br>
 <a href="#cf">6. The physiological counterfactual</a><br>
 <a href="#loop">7. The closed loop, step by step</a><br>
@@ -94,7 +94,7 @@
   <g>
     <rect x="8" y="40" width="120" height="58" rx="8" fill="#eef3f8" stroke="#1565c0"/><text x="68" y="62" text-anchor="middle" font-weight="600">Nightscout</text><text x="68" y="80" text-anchor="middle" fill="#5b6770">CGM·doses·carbs·devicestatus</text>
     <rect x="160" y="40" width="120" height="58" rx="8" fill="#eef3f8" stroke="#1565c0"/><text x="220" y="62" text-anchor="middle" font-weight="600">Fetch + Cache</text><text x="220" y="80" text-anchor="middle" fill="#5b6770">28-day chunks · range-keyed</text>
-    <rect x="312" y="40" width="130" height="58" rx="8" fill="#e7f0fe" stroke="#1565c0" stroke-width="2"/><text x="377" y="62" text-anchor="middle" font-weight="600">SUBSTRATE</text><text x="377" y="80" text-anchor="middle" fill="#5b6770">RTS-smoothed 5-min grid</text>
+    <rect x="312" y="40" width="130" height="58" rx="8" fill="#e7f0fe" stroke="#1565c0" stroke-width="2"/><text x="377" y="62" text-anchor="middle" font-weight="600">SUBSTRATE</text><text x="377" y="80" text-anchor="middle" fill="#5b6770">raw sim grid + smoothed physiology</text>
     <rect x="474" y="22" width="150" height="94" rx="8" fill="#f3e9fb" stroke="#7b1fa2"/><text x="549" y="42" text-anchor="middle" font-weight="600">Pre-compute (once)</text><text x="549" y="60" text-anchor="middle" fill="#5b6770">ICE (counteraction)</text><text x="549" y="76" text-anchor="middle" fill="#5b6770">m(t) sensitivity</text><text x="549" y="92" text-anchor="middle" fill="#5b6770">insulin effects</text><text x="549" y="108" text-anchor="middle" fill="#5b6770">real physical effect</text>
     <rect x="656" y="22" width="150" height="94" rx="8" fill="#fdeee2" stroke="#ef6c00" stroke-width="2"/><text x="731" y="42" text-anchor="middle" font-weight="600">Per-step closed loop</text><text x="731" y="60" text-anchor="middle" fill="#5b6770">forecast → dose →</text><text x="731" y="76" text-anchor="middle" fill="#5b6770">clamp → advance</text><text x="731" y="96" text-anchor="middle" fill="#5b6770">(sequential walk)</text>
     <rect x="838" y="40" width="94" height="58" rx="8" fill="#eaf6ec" stroke="#2e7d32"/><text x="885" y="58" text-anchor="middle" font-weight="600">Counter</text><text x="885" y="74" text-anchor="middle" font-weight="600">trajectory</text><text x="885" y="90" text-anchor="middle" fill="#5b6770">+ scoring</text>
@@ -120,10 +120,14 @@
 
 <!-- ============================================================ -->
 <h2 id="substrate">4. The substrate — what the sim actually runs on</h2>
-<p>The raw CGM is resampled onto a uniform <b>5-minute grid</b> and passed through an <b>RTS Kalman smoother</b> (<code>buildSmoothedGrid</code>, gated on <code>kalmanSmoothing</code>, default ON; <code>--no-kalman</code> = raw). This smoothed trace is the single substrate for <b>everything</b>: the ICE, the counterfactual, what Loop's forecast "sees", and the outcome stats.</p>
+<p>The raw CGM is resampled onto a uniform <b>5-minute grid</b>. As of <b>2026-06-14</b> the substrate is <b>split into two traces on the same grid</b>:</p>
+<ul>
+<li><b><code>physGlucose</code> — RTS-Kalman-smoothed</b> (<code>buildSmoothedGrid</code>, gated on <code>kalmanSmoothing</code>, default ON). Used <b>only for patient-physiology estimation</b>: the ICE and the sensitivity multiplier <i>m(t)</i> ("k"). Low-noise "ground-truth" space for inferring physiology.</li>
+<li><b><code>simGlucose</code> — what the simulator runs on</b>: Loop's decision-time glucose input, the counterfactual trajectory, and the outcome stats. <b>Default (<code>simRawGlucose</code>, on): the original noisy CGM</b>, resampled onto <code>physGlucose</code>'s exact timestamps (<code>rawGridMatching</code>) so the per-grid <i>m(t)</i> stays index-aligned. So the controller is evaluated against the <i>real noisy CGM it would actually dose on</i>, while sensitivity is still inferred from the smoothed trace. <code>--no-sim-raw-glucose</code> = legacy all-smoothed sim; <code>--no-kalman</code> = everything raw.</li>
+</ul>
 <div class="fig"><img src="substrate.png" alt="raw vs smoothed substrate">
-<div class="cap">The RTS smoother removes single-sample CGM noise and lands the trace on a clean 5-min grid. Single missing samples are interpolated; gaps of ≥2 samples are omitted (then handled by the stale-guard / disruption logic).</div></div>
-<div class="warn"><b>Deliberate future-leak.</b> The RTS <i>backward</i> pass uses future samples, so the smoothed BG at time <i>t</i> is informed by observations after <i>t</i>. This is a deliberate decision to study the algorithm in a low-noise "ground-truth" space (noise-sensitivity is a separate pass), <b>not</b> a bug. Fairness holds because the baseline and every candidate share the <i>identical</i> substrate, so the future information is common-mode and cancels in every candidate-vs-baseline delta. (Absolute numbers are not comparable to raw-substrate runs.)</div>
+<div class="cap">The RTS smoother removes single-sample CGM noise and lands the trace on a clean 5-min grid (now <code>physGlucose</code>, the physiology trace). Single missing samples are interpolated; gaps of ≥2 samples are omitted (then handled by the stale-guard / disruption logic).</div></div>
+<div class="warn"><b>Deliberate future-leak — physiology only.</b> The RTS <i>backward</i> pass uses future samples, so the smoothed BG at time <i>t</i> is informed by observations after <i>t</i>. This is intentional, and now confined to <code>physGlucose</code> (ICE + <i>m(t)</i>) — the <b>simulator/controller runs on the raw causal CGM by default</b>, so Loop's decision-time input is no longer future-leaked. Fairness holds because baseline and every candidate share the identical substrate(s), so any remaining future information is common-mode and cancels in every candidate-vs-baseline delta. <b>Absolute numbers under the raw-sim default are not comparable to the 2026-05-20→06-13 all-smoothed runs</b> (raw noise pushes t&lt;54 up / TIR down); deltas/rankings hold.</div>
 <div class="note"><b>Sensor cap (<code>--sensor-cap-mgdl</code>, default 400).</b> The glucose the <i>algorithm</i> sees is clipped at the sensor's reporting ceiling — real Dexcom G6/G7 and Libre peg at ~400 mg/dL, so no controller ever sees a higher value. The cap is applied to both the baseline and candidate inputs; the counter trajectory and scoring still use the uncapped values. Without it, a counterfactual that runs very high (e.g. an algorithm that wedges after a pump outage) could feed an unrealistically high reading into the controller and distort its response. Common-mode, so deltas are unaffected.</div>
 
 <!-- ============================================================ -->
