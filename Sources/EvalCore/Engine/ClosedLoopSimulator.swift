@@ -1018,23 +1018,8 @@ extension EvaluationEngine {
                     let prevT = counterGlucose[prevIdx].startDate
                     let nextT = counterGlucose[advIdx].startDate
                     let iceDelta = Self.integrateICE(realICE, from: prevT, to: nextT)
-                    // Counter-regulation: as counter_BG falls below the onset
-                    // threshold the body defends with surging hepatic glucose
-                    // output (glucagon/epinephrine). Model it as a positive BG
-                    // velocity that ramps with depth below onset, capped. The
-                    // real ICE already carries counter-reg at the *real* BG
-                    // level; this adds the EXTRA defense the counter's lower
-                    // level would trigger — fires ~only where counter has
-                    // diverged below the real range, so double-counting in the
-                    // tracking regime is negligible (term is 0 above onset).
-                    var crDelta = 0.0
-                    if counterRegOnsetMgdl > 0 {
-                        let below = counterRegOnsetMgdl - counterMgdl[prevIdx]
-                        if below > 0 {
-                            let rate = min(counterRegGain * below, counterRegMaxRate)
-                            crDelta = rate * (nextT.timeIntervalSince(prevT) / 60.0)
-                        }
-                    }
+                    // baseDelta = insulin + non-insulin physiology over [prevT, nextT],
+                    // EXCLUDING the counter-regulation term (added per sub-step below).
                     let stepDelta: Double
                     if inferSensitivity {
                         // PHYSICAL / EGP-separated application. realBGdelta
@@ -1068,7 +1053,36 @@ extension EvaluationEngine {
                             insulinModel: insulinModel)
                         stepDelta = insulinDelta + iceDelta
                     }
-                    counterMgdl[advIdx] = counterMgdl[prevIdx] + stepDelta + crDelta
+                    // Counter-regulation: as counter_BG falls below the onset
+                    // threshold the body defends with surging hepatic glucose
+                    // output (glucagon/epinephrine) — a positive BG VELOCITY that
+                    // ramps with depth below onset, capped. Because it is a
+                    // velocity, it must integrate at the per-step cadence: a single
+                    // advance that spans a skipped CGM gap (prevT..nextT can be
+                    // 15-25 min, not 5) would otherwise multiply the velocity by the
+                    // whole gap and inject a spurious BG jump on gap-close (the real
+                    // recovery is already in baseDelta). Subdivide into <=1-step
+                    // sub-intervals: distribute baseDelta linearly and recompute the
+                    // counter-reg term against the rising counter level each
+                    // sub-step (it stops once the level climbs back above onset).
+                    // For a normal 5-min step nSub==1 and this reproduces the prior
+                    // arithmetic exactly (identity preserved).
+                    let totalSec = nextT.timeIntervalSince(prevT)
+                    let nSub = Swift.max(1, Int((totalSec / candidateConfig.evalStep).rounded(.up)))
+                    let subFrac = 1.0 / Double(nSub)
+                    var bg = counterMgdl[prevIdx]
+                    for _ in 0..<nSub {
+                        var crSub = 0.0
+                        if counterRegOnsetMgdl > 0 {
+                            let below = counterRegOnsetMgdl - bg
+                            if below > 0 {
+                                let rate = Swift.min(counterRegGain * below, counterRegMaxRate)
+                                crSub = rate * (totalSec * subFrac / 60.0)
+                            }
+                        }
+                        bg += stepDelta * subFrac + crSub
+                    }
+                    counterMgdl[advIdx] = bg
                     advIdx += 1
                 }
             }
