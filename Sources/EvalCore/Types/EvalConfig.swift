@@ -174,6 +174,15 @@ public struct EvalConfig: Codable, Sendable {
     /// default (4.0 mg/dL/min).
     public var positiveVelocityCap: Double?
 
+    /// Momentum projection duration (minutes). Default 15 (LoopAlgorithm). Loop
+    /// 3.9.3 / classic LoopKit used 30 — set 30 for 3.9.3-compatible momentum.
+    public var momentumProjectionMinutes: Double = 15
+
+    /// Momentum gradual-transitions gate: suppress momentum when consecutive CGM
+    /// readings jump > this many mg/dL. Default 40 (LoopAlgorithm). nil = no gate
+    /// (Loop 3.9.3 / classic LoopKit had no such gate).
+    public var momentumGradualTransitionsThreshold: Double? = 40
+
     /// How long to wait after `interval.start` before the first evaluated
     /// prediction (seconds). Default: `insulinLookbackHours` hours.
     public var evalWarmupHours: Double
@@ -447,6 +456,8 @@ public struct EvalConfig: Codable, Sendable {
         dangerLow: Double = 70.0,
         dangerHigh: Double = 180.0,
         positiveVelocityCap: Double? = nil,
+        momentumProjectionMinutes: Double = 15,
+        momentumGradualTransitionsThreshold: Double? = 40,
         useAsymmetricMomentum: Bool = false,
         momentumAlphaSlow: Double = 0.15,
         momentumAlphaFast: Double = 0.85,
@@ -550,6 +561,8 @@ public struct EvalConfig: Codable, Sendable {
         self.dangerLow                      = dangerLow
         self.dangerHigh                     = dangerHigh
         self.positiveVelocityCap            = positiveVelocityCap
+        self.momentumProjectionMinutes      = momentumProjectionMinutes
+        self.momentumGradualTransitionsThreshold = momentumGradualTransitionsThreshold
         self.useAsymmetricMomentum          = useAsymmetricMomentum
         self.momentumAlphaSlow              = momentumAlphaSlow
         self.momentumAlphaFast              = momentumAlphaFast

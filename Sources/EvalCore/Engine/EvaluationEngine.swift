@@ -304,7 +304,9 @@ public actor EvaluationEngine {
                 includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                 useMidAbsorptionISF: config.useMidAbsorptionISF,
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
+                gradualTransitionsThreshold: config.momentumGradualTransitionsThreshold,
                 momentumVelocityMaximum: momentumCap,
+                momentumProjectionDuration: config.momentumProjectionMinutes * 60,
                 useAsymmetricMomentum: config.useAsymmetricMomentum,
                 momentumAlphaSlow: config.momentumAlphaSlow,
                 momentumAlphaFast: config.momentumAlphaFast
@@ -334,7 +336,9 @@ public actor EvaluationEngine {
                 includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                 useMidAbsorptionISF: config.useMidAbsorptionISF,
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
+                gradualTransitionsThreshold: config.momentumGradualTransitionsThreshold,
                 momentumVelocityMaximum: momentumCap,
+                momentumProjectionDuration: config.momentumProjectionMinutes * 60,
                 useAsymmetricMomentum: config.useAsymmetricMomentum,
                 momentumAlphaSlow: config.momentumAlphaSlow,
                 momentumAlphaFast: config.momentumAlphaFast
@@ -369,7 +373,9 @@ public actor EvaluationEngine {
                 includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
                 useMidAbsorptionISF: config.useMidAbsorptionISF,
                 carbAbsorptionModel: config.carbAbsorptionModel.model,
+                gradualTransitionsThreshold: config.momentumGradualTransitionsThreshold,
                 momentumVelocityMaximum: momentumCap,
+                momentumProjectionDuration: config.momentumProjectionMinutes * 60,
                 useAsymmetricMomentum: config.useAsymmetricMomentum,
                 momentumAlphaSlow: config.momentumAlphaSlow,
                 momentumAlphaFast: config.momentumAlphaFast
