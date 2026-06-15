@@ -53,6 +53,19 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Option(name: .long, help: "ISF multiplier (default 1.0).")
     var sensitivityMultiplier: Double = 1.0
 
+    // Momentum knobs (for Loop-3.9.3-compatibility experiments). Defaults = LoopAlgorithm.
+    @Option(name: .long, help: "Momentum projection duration (minutes). Default 15 (LoopAlgorithm). Loop 3.9.3 used 30.")
+    var momentumDurationMin: Double = 15
+
+    @Option(name: .long, help: "Momentum velocity cap (mg/dL/min). Default 4.0 (LoopAlgorithm/LoopKit since 2020). Pass a large value (e.g. 1000) to disable.")
+    var momentumCap: Double = 4.0
+
+    @Flag(name: .long, help: "Disable the gradual-transitions gate (>40 mg/dL jump suppresses momentum). The gate is a LoopAlgorithm addition NOT in Loop 3.9.3 — pass this to match 3.9.3.")
+    var noGradualTransitionsGate: Bool = false
+
+    @Flag(name: .long, help: "Convenience: set Loop-3.9.3-compatible momentum (30-min duration, no gradual-transitions gate). Velocity cap still applies unless --momentum-cap overrides.")
+    var loop393Momentum: Bool = false
+
     struct OutRow: Codable {
         let t: String
         let eventualBG: Double?
@@ -83,14 +96,20 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         times = times.filter { $0 >= startDate && $0 <= endDate }.sorted()
         printStderr("Evaluating at \(times.count) timestamps\n")
 
+        let durMin = loop393Momentum ? 30 : momentumDurationMin
+        let gateThreshold: Double? = (loop393Momentum || noGradualTransitionsGate) ? nil : 40
         let config = EvalConfig(
             applicationFactor: applicationFactor,
             includeFutureInsulin: false,   // decision-time replay
             includeFutureCarbs: false,
             useIntegralRC: integralRC,
             kalmanSmoothing: false,        // raw native CGM (evaluate path uses data.glucose directly)
-            sensitivityMultiplier: sensitivityMultiplier
+            sensitivityMultiplier: sensitivityMultiplier,
+            positiveVelocityCap: momentumCap,
+            momentumProjectionMinutes: durMin,
+            momentumGradualTransitionsThreshold: gateThreshold
         )
+        printStderr("momentum: duration=\(durMin)min cap=\(momentumCap)mg/dL/min gate=\(gateThreshold.map { "\($0)" } ?? "OFF")\n")
 
         guard let baseURL = URL(string: nightscoutUrl) else {
             throw ValidationError("Invalid Nightscout URL: \(nightscoutUrl)")
