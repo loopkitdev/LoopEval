@@ -258,6 +258,10 @@ public struct EvalConfig: Codable, Sendable {
     /// that the resistance estimate could be wrong (insulin as effective as nominal). false = coupled.
     public var uncertaintyDecoupleAutosens: Bool
 
+    /// Export the full baseline forecast curve per step (for point-by-point comparison
+    /// against field devicestatus predicted.values). Off by default (trace-size).
+    public var exportForecastCurve: Bool = false
+
     /// Flat (global) auto-bolus application factor — fraction of the recommended
     /// correction applied per cycle when GBAF is off. Loop default 0.4. The auto-bolus
     /// is FLOORED to the pump increment AFTER this factor (see EvaluationEngine), which
@@ -377,6 +381,7 @@ public struct EvalConfig: Codable, Sendable {
         autosensMax: Double = 1.3,
         uncertaintyDecoupleAutosens: Bool = false,
         applicationFactor: Double = 0.4,
+        exportForecastCurve: Bool = false,
         highCorrectionEnabled: Bool = false,
         highCorrectionRiseGain: Double = 1.0,
         highCorrectionEffectDurationMinutes: Double = 60.0,
@@ -477,6 +482,7 @@ public struct EvalConfig: Codable, Sendable {
         self.autosensMax                    = autosensMax
         self.uncertaintyDecoupleAutosens    = uncertaintyDecoupleAutosens
         self.applicationFactor              = applicationFactor
+        self.exportForecastCurve            = exportForecastCurve
         self.highCorrectionEnabled          = highCorrectionEnabled
         self.highCorrectionRiseGain         = highCorrectionRiseGain
         self.highCorrectionEffectDurationMinutes = highCorrectionEffectDurationMinutes
