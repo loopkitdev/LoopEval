@@ -214,6 +214,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateDynisfLowAnchor: Double = 100
     @Option(name: .long, help: "Dynamic ISF high anchor (mg/dL): at/above this the full multiplier applies. Default 200.")
     var candidateDynisfHighAnchor: Double = 200
+    @Flag(name: .long, help: "Export the full baseline forecast curve per step (sim Loop on real BG) into the trace, for point-by-point comparison against field devicestatus predicted.values.")
+    var exportForecastCurve: Bool = false
     @Option(name: .long, help: "Auto-bolus application factor for BOTH arms (baseline + candidate inherit unless --candidate-application-factor is set) — fraction of recommended correction applied per cycle. Property of the real Loop deployment. Loop default 0.4 (the auto-bolus is floored to the pump increment AFTER this, matching real devicestatus).")
     var applicationFactor: Double = 0.4
     @Option(name: .long, help: "Candidate flat (global) auto-bolus application factor — overrides --application-factor for the candidate arm only. Negative = inherit --application-factor. Only used when GBAF is off.")
@@ -348,6 +350,7 @@ struct SimulateCommand: AsyncParsableCommand {
         let effCandidateAppFactor = candidateApplicationFactor < 0 ? applicationFactor : candidateApplicationFactor
         let baselineConfig = EvalConfig(
             applicationFactor: applicationFactor,
+            exportForecastCurve: exportForecastCurve,
             evalStep: TimeInterval(stepMinutes) * 60,
             includeFutureInsulin: oracleFutureInputs,
             includeFutureCarbs: oracleFutureInputs,
@@ -579,6 +582,7 @@ struct SimulateCommand: AsyncParsableCommand {
             let candidateDiscrepancy: Double    // ICE − carbEffect = RC-bound remainder (mg/dL)
             let candidateSensModeMult: Double   // Sensitive Mode ISF multiplier (1.0 = inactive)
             let candidateManualBolusRecOut: Double // candidate recommended MANUAL bolus this step (pre-factor full correction)
+            let baselinePredCurve: [Double]?       // full baseline forecast curve (mg/dL, 5-min spaced from t); nil unless --export-forecast-curve
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
         struct CounterSample: Codable { let t: String; let bg: Double }
@@ -624,7 +628,8 @@ struct SimulateCommand: AsyncParsableCommand {
                  candidateCarbEffect: $0.candidateCarbEffect.isFinite ? $0.candidateCarbEffect : 0.0,
                  candidateDiscrepancy: $0.candidateDiscrepancy.isFinite ? $0.candidateDiscrepancy : 0.0,
                  candidateSensModeMult: $0.candidateSensModeMult.isFinite ? $0.candidateSensModeMult : 1.0,
-                 candidateManualBolusRecOut: $0.candidateManualBolusRecOut.isFinite ? $0.candidateManualBolusRecOut : 0.0)
+                 candidateManualBolusRecOut: $0.candidateManualBolusRecOut.isFinite ? $0.candidateManualBolusRecOut : 0.0,
+                 baselinePredCurve: $0.baselinePredCurve.isEmpty ? nil : $0.baselinePredCurve)
         }
         let actualOut = data.glucose.sorted { $0.startDate < $1.startDate }.map {
             ActualSample(t: formatter.string(from: $0.startDate),

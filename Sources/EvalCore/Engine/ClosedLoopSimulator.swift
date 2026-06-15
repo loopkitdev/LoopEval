@@ -67,6 +67,9 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         // >1 = active, raising effective ISF from accumulated recent negative discrepancies).
         public var candidateSensModeMult: Double = .nan
         public var candidateManualBolusRecOut: Double = .nan
+        // Full baseline forecast curve (sim Loop on REAL BG), mg/dL, 5-min spaced from t.
+        // For point-by-point comparison against field devicestatus predicted.values. Empty unless requested.
+        public var baselinePredCurve: [Double] = []
     }
     public let steps: [Step]
     public let baselineLabel: String
@@ -556,6 +559,7 @@ extension EvaluationEngine {
             var baselineMomentum = Double.nan
             var baselineRC = Double.nan
             var baselineDiscrepancy = Double.nan
+            var baselinePredCurve: [Double] = []
             if let baselineInput = baselineBuilder.buildInput(at: t) {
                 let br = baselineEngine.step(EngineStepRequest(
                     t: t,
@@ -567,6 +571,9 @@ extension EvaluationEngine {
                 ))
                 baselineDose = br.dose
                 baselineEventualBG = br.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
+                if baselineConfig.exportForecastCurve {
+                    baselinePredCurve = br.prediction.glucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
+                }
                 baselineIOB = br.prediction.activeInsulin ?? .nan
                 baselineCOB = br.prediction.activeCarbs ?? .nan
                 func netMgdl(_ arr: [GlucoseEffect]) -> Double {
@@ -1184,7 +1191,8 @@ extension EvaluationEngine {
                 candidateCarbEffect: candidateCarbEffect,
                 candidateDiscrepancy: candidateDiscrepancy,
                 candidateSensModeMult: candidateSensModeMult,
-                candidateManualBolusRecOut: candidateManualBolusRec
+                candidateManualBolusRecOut: candidateManualBolusRec,
+                baselinePredCurve: baselinePredCurve
             ))
 
             t = t.addingTimeInterval(candidateConfig.evalStep)

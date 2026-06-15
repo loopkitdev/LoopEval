@@ -219,6 +219,42 @@ public actor EvaluationEngine {
         )
     }
 
+    /// Evaluate the decision-time forecast + dose recommendation at an EXPLICIT list
+    /// of timestamps (e.g. the field's real Loop decision times from devicestatus),
+    /// instead of a uniform grid. Runs on the raw native CGM history (no Kalman grid,
+    /// no resampling) so the glucose the engine sees matches exactly what the field
+    /// saw at that instant — for bit-level forecast comparison. Returns one record per
+    /// time whose input window can be built (others are dropped).
+    nonisolated public func forecastAtTimes(
+        _ times: [Date],
+        data: PreloadedData,
+        interval: DateInterval,
+        config: EvalConfig
+    ) -> [PredictionRecord] {
+        let builder = InputWindowBuilder(
+            glucose: data.glucose,
+            doses: data.doses,
+            carbs: data.carbs,
+            therapyTimeline: data.therapyTimeline,
+            config: config
+        )
+        let scaledSensitivity = Self.applySensitivityScaling(
+            data.therapyTimeline.sensitivity,
+            globalMultiplier: config.sensitivityMultiplier,
+            hourlyMultipliers: config.sensitivityHourlyMultipliers,
+            timezone: config.localTimezone
+        )
+        let precomputed = data.precomputedInsulinInput(
+            for: interval,
+            sensitivity: scaledSensitivity,
+            useMidAbsorptionISF: config.useMidAbsorptionISF
+        )
+        return times.compactMap { t in
+            Self.computeStep(t: t, builder: builder, precomputed: precomputed,
+                             therapy: data.therapyTimeline, config: config)
+        }
+    }
+
     // MARK: – Per-step body
 
     /// Runs the per-step prediction + dose-recommendation work for a single
