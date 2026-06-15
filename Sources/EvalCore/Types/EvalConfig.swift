@@ -259,7 +259,10 @@ public struct EvalConfig: Codable, Sendable {
     public var uncertaintyDecoupleAutosens: Bool
 
     /// Flat (global) auto-bolus application factor — fraction of the recommended
-    /// correction applied per cycle when GBAF is off. Loop default 0.4.
+    /// correction applied per cycle when GBAF is off. Default 0.37 = the empirical
+    /// LoopKit-main value, confirmed identically (quantization-aware fit, ≈82–87%
+    /// exact-under-quant) on two independent real-Loop datasets (rloop, user2).
+    /// Older Loop code shipped 0.4; source the user's actual value when known.
     public var applicationFactor: Double
 
     /// Asymmetric HIGH correction: rise-only BG-addition (positive-discrepancy driven)
@@ -373,7 +376,7 @@ public struct EvalConfig: Codable, Sendable {
         autosensMin: Double = 0.7,
         autosensMax: Double = 1.3,
         uncertaintyDecoupleAutosens: Bool = false,
-        applicationFactor: Double = 0.4,
+        applicationFactor: Double = 0.37,
         highCorrectionEnabled: Bool = false,
         highCorrectionRiseGain: Double = 1.0,
         highCorrectionEffectDurationMinutes: Double = 60.0,
@@ -652,7 +655,7 @@ public struct EvalConfig: Codable, Sendable {
         self.autosensMin       = try c.decodeIfPresent(Double.self, forKey: .autosensMin) ?? 0.7
         self.autosensMax       = try c.decodeIfPresent(Double.self, forKey: .autosensMax) ?? 1.3
         self.uncertaintyDecoupleAutosens = try c.decodeIfPresent(Bool.self, forKey: .uncertaintyDecoupleAutosens) ?? false
-        self.applicationFactor    = try c.decodeIfPresent(Double.self, forKey: .applicationFactor) ?? 0.4
+        self.applicationFactor    = try c.decodeIfPresent(Double.self, forKey: .applicationFactor) ?? 0.37
         self.highCorrectionEnabled = try c.decodeIfPresent(Bool.self, forKey: .highCorrectionEnabled) ?? false
         self.highCorrectionRiseGain = try c.decodeIfPresent(Double.self, forKey: .highCorrectionRiseGain) ?? 1.0
         self.highCorrectionEffectDurationMinutes = try c.decodeIfPresent(Double.self, forKey: .highCorrectionEffectDurationMinutes) ?? 60.0

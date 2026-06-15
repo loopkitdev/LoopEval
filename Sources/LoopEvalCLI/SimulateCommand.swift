@@ -214,8 +214,10 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateDynisfLowAnchor: Double = 100
     @Option(name: .long, help: "Dynamic ISF high anchor (mg/dL): at/above this the full multiplier applies. Default 200.")
     var candidateDynisfHighAnchor: Double = 200
-    @Option(name: .long, help: "Candidate flat (global) auto-bolus application factor — fraction of recommended correction applied per cycle. Loop default 0.4. Only used when GBAF is off.")
-    var candidateApplicationFactor: Double = 0.4
+    @Option(name: .long, help: "Auto-bolus application factor for BOTH arms (baseline + candidate inherit unless --candidate-application-factor is set) — fraction of recommended correction applied per cycle. Property of the real Loop deployment. Default 0.37 = empirical LoopKit-main value (quantization-aware fit on rloop & user2 devicestatus); older Loop code shipped 0.4.")
+    var applicationFactor: Double = 0.37
+    @Option(name: .long, help: "Candidate flat (global) auto-bolus application factor — overrides --application-factor for the candidate arm only. Negative = inherit --application-factor. Only used when GBAF is off.")
+    var candidateApplicationFactor: Double = -1
     @Option(name: .long, help: "Pump bolus increment (U): round the auto-bolus to this grid (real Loop delivers on the pump's increment, e.g. Omnipod 0.05U, and drops sub-increment doses). 0 = no rounding (legacy continuous micro-dosing). Default 0.05.")
     var candidateBolusIncrement: Double = 0.05
     @Option(name: .long, help: "Pump temp-basal-rate increment (U/hr): round temp basal to this grid. 0 = none. Default 0.05.")
@@ -341,7 +343,11 @@ struct SimulateCommand: AsyncParsableCommand {
 
         let baselinePreset = try parseInsulinType(insulinType)
 
+        // App factor is a property of the real Loop deployment → both arms share it.
+        // Candidate inherits unless explicitly overridden (negative sentinel = inherit).
+        let effCandidateAppFactor = candidateApplicationFactor < 0 ? applicationFactor : candidateApplicationFactor
         let baselineConfig = EvalConfig(
+            applicationFactor: applicationFactor,
             evalStep: TimeInterval(stepMinutes) * 60,
             includeFutureInsulin: oracleFutureInputs,
             includeFutureCarbs: oracleFutureInputs,
@@ -389,7 +395,7 @@ struct SimulateCommand: AsyncParsableCommand {
             autosensMin: candidateAutosensMin,
             autosensMax: candidateAutosensMax,
             uncertaintyDecoupleAutosens: candidateUncertaintyDecouple,
-            applicationFactor: candidateApplicationFactor,
+            applicationFactor: effCandidateAppFactor,
             highCorrectionEnabled: candidateHighCorrection,
             highCorrectionRiseGain: candidateHighCorrectionRiseGain,
             highCorrectionEffectDurationMinutes: candidateHighCorrectionEffectMin,
