@@ -18,8 +18,11 @@ struct SimulateCommand: AsyncParsableCommand {
         abstract: "Closed-loop counterfactual simulation (full feedback) — slower than bench but accurate for aggressive candidates."
     )
 
-    @Option(name: .long, help: "Nightscout base URL")
-    var nightscoutUrl: String
+    @Option(name: .long, help: "Nightscout base URL (omit when using --data-dir)")
+    var nightscoutUrl: String = ""
+
+    @Option(name: .long, help: "Directory of pre-exported EvalCore JSON files (glucose/doses/carbs/therapy) — uses JSONFileDataSource instead of Nightscout. For non-Nightscout datasets (e.g. Tidepool BDDP exported via loopeval_analysis.tidepool.etl).")
+    var dataDir: String?
 
     @Option(name: .long, help: "Start date — ISO8601")
     var start: String
@@ -437,10 +440,17 @@ struct SimulateCommand: AsyncParsableCommand {
             momentumAlphaFast: candidateMomentumAlphaFast
         )
 
-        guard let baseURL = URL(string: nightscoutUrl) else { throw ValidationError("Invalid URL") }
-        let client = NightscoutClient(baseURL: baseURL, apiSecret: apiSecret)
-        let cache = try DataCache(cacheDir: cacheDir)
-        let dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset)
+        let dataSource: any EvalDataSource
+        if let dataDir {
+            dataSource = JSONFileDataSource(baseURL: URL(fileURLWithPath: dataDir))
+        } else {
+            guard !nightscoutUrl.isEmpty, let baseURL = URL(string: nightscoutUrl) else {
+                throw ValidationError("Provide --nightscout-url or --data-dir")
+            }
+            let client = NightscoutClient(baseURL: baseURL, apiSecret: apiSecret)
+            let cache = try DataCache(cacheDir: cacheDir)
+            dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset)
+        }
         let engine = EvaluationEngine(dataSource: dataSource)
 
         printStderr("Fetching data... ")
