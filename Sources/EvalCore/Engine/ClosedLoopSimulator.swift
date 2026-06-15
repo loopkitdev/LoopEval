@@ -666,6 +666,42 @@ extension EvaluationEngine {
                 // Cross-cycle sensitive-mode ISF bump (>=1 damp; always safe to apply).
                 let sensModeMult = sensModeOn ? Swift.min(2.0, 1.0 + candidateConfig.sensitiveModeGain * sensModeLevel) : 1.0
                 candidateSensModeMult = sensModeMult
+                // ICE RISE-BOOST (rise side of the unified ICE-response term): attack a
+                // SUSTAINED, actively-driven high. A positive forecast offset when BG is
+                // high AND the trailing ICE rate is positive (BG being pushed up = a real
+                // persistent high, not a resolving spike). Skips transient/resolving highs
+                // (where uniform GBAF causes lows). Forecast-side (§2). Causal: trailing
+                // ICE uses only past samples.
+                var iceRiseBoostOffset = 0.0
+                // ISF-fade: scale the boost gain by aggressiveness so the high-attack
+                // auto-disables (→ pure smairc) as the lows budget tightens (ISF rises).
+                var iceRiseBoostGainEff = candidateConfig.iceRiseBoostGain
+                if candidateConfig.iceRiseBoostIsfFadeHi > candidateConfig.iceRiseBoostIsfFadeLo {
+                    let isfM = candidateConfig.sensitivityMultiplier
+                    let fade = Swift.max(0.0, Swift.min(1.0,
+                        (candidateConfig.iceRiseBoostIsfFadeHi - isfM)
+                        / (candidateConfig.iceRiseBoostIsfFadeHi - candidateConfig.iceRiseBoostIsfFadeLo)))
+                    iceRiseBoostGainEff *= fade
+                }
+                if iceRiseBoostGainEff > 0 {
+                    let bIdx = Self.latestGlucoseIndex(at: t, in: counterGlucose)
+                    let curBgRB = counterMgdl[bIdx]
+                    let lo = candidateConfig.iceRiseBoostBgLo, hi = candidateConfig.iceRiseBoostBgHi
+                    let gate = hi > lo ? Swift.max(0.0, Swift.min(1.0, (curBgRB - lo) / (hi - lo)))
+                                       : (curBgRB >= hi ? 1.0 : 0.0)
+                    if gate > 0 {
+                        let tau = candidateConfig.iceRiseBoostTauSec
+                        let iceRate = Self.integrateICE(realICE, from: t.addingTimeInterval(-tau), to: t) / (tau / 60.0)
+                        let driven = Swift.max(0.0, iceRate - candidateConfig.iceRiseBoostThresh)
+                        iceRiseBoostOffset = iceRiseBoostGainEff * gate * driven
+                        // Lows-coupling (unification): damp the high-attack when recently
+                        // sensitive (sensMode level R elevated) — don't attack a high that
+                        // may flip into a low. R is the same negative-ICE memory sensMode uses.
+                        if candidateConfig.iceRiseBoostSensSuppress > 0 {
+                            iceRiseBoostOffset *= Swift.max(0.0, 1.0 - candidateConfig.iceRiseBoostSensSuppress * sensModeLevel)
+                        }
+                    }
+                }
                 // Decision-time replay: candidate momentum/velocity reads the SAME real
                 // glucose the baseline saw (not the counter trajectory).
                 let candMomentumMgdl = decisionTimeReplay ? baselineMgdl : counterMgdl
@@ -676,6 +712,7 @@ extension EvaluationEngine {
                         therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
                         glucoseSamples: candMomentumSamples,
                         extraISFMultiplier: sensModeMult,
+                        forecastOffsetMgdl: iceRiseBoostOffset,
                         perStepIsfMultByTime: map,
                         isfBoostActiveOnly: isfBoostActiveOnly,
                         egpPhysicalDecomposition: egpPhysicalDecomposition))

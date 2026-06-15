@@ -51,6 +51,34 @@ public struct EvalConfig: Codable, Sendable {
     /// fires on discrepancy SIGN (not BG level). tau=0 or gain=0 == off.
     public var sensitiveModeTauSec: TimeInterval
     public var sensitiveModeGain: Double
+    /// ICE RISE-BOOST ("attack a SUSTAINED, actively-driven high"). The rise side of
+    /// the unified ICE-response term: at high BG with sustained POSITIVE trailing ICE
+    /// (BG being actively pushed up = a real persistent high, not a resolving spike),
+    /// add a POSITIVE forecast offset so Loop doses harder. Offset =
+    /// gain · gate(BG) · max(0, trailingICErate − thresh), where gate ramps 0→1 over
+    /// [bgLo, bgHi] and trailingICErate (mg/dL/min) is the mean ICE over the last
+    /// iceRiseBoostTauSec. Forecast-side (§2 "modify the forecast"); gated to high BG
+    /// and persistence so it skips transient/resolving highs (where uniform GBAF
+    /// causes lows). gain=0 == off.
+    public var iceRiseBoostGain: Double
+    public var iceRiseBoostBgLo: Double
+    public var iceRiseBoostBgHi: Double
+    public var iceRiseBoostTauSec: TimeInterval
+    public var iceRiseBoostThresh: Double
+    /// Lows-coupling of the rise-boost (the unification): suppress the high-attack
+    /// when the SENSITIVE-MODE level R (recent negative-ICE memory) is elevated — i.e.
+    /// don't attack a high during a recently-sensitive period (it may flip into a low).
+    /// rise-boost ×= max(0, 1 − iceRiseBoostSensSuppress · R). 0 = off (uncoupled).
+    public var iceRiseBoostSensSuppress: Double
+    /// ISF-fade of the rise-boost: scale the boost gain by how AGGRESSIVELY the
+    /// therapy is run, so the high-attack auto-disables as you tighten the lows
+    /// budget. gain ×= clamp((isfFadeHi − sensitivityMultiplier)/(isfFadeHi − isfFadeLo), 0, 1)
+    /// — full boost at ISF ≤ isfFadeLo (aggressive, budget region), zero at ISF ≥
+    /// isfFadeHi (conservative, deep-low region) where the config collapses to pure
+    /// smairc. So an ISF sweep traces the UPPER ENVELOPE of smairc and the coupled
+    /// rise-boost. isfFadeHi ≤ isfFadeLo == off (no fade, full gain always).
+    public var iceRiseBoostIsfFadeLo: Double
+    public var iceRiseBoostIsfFadeHi: Double
     /// Candidate correction-range override (mg/dL). When set, the candidate's dose
     /// decision targets this range instead of the profile's; lets us sweep target
     /// midpoint & width independently of ISF. nil = use profile target.
@@ -374,6 +402,14 @@ public struct EvalConfig: Codable, Sendable {
         ircRiseDurationScale: Double = 1.0,
         sensitiveModeTauSec: TimeInterval = 0,
         sensitiveModeGain: Double = 0,
+        iceRiseBoostGain: Double = 0,
+        iceRiseBoostBgLo: Double = 170,
+        iceRiseBoostBgHi: Double = 250,
+        iceRiseBoostTauSec: TimeInterval = 45 * 60,
+        iceRiseBoostThresh: Double = 0,
+        iceRiseBoostSensSuppress: Double = 0,
+        iceRiseBoostIsfFadeLo: Double = 0,
+        iceRiseBoostIsfFadeHi: Double = 0,
         correctionRangeOverrideLow: Double? = nil,
         correctionRangeOverrideHigh: Double? = nil,
         kalmanSmoothing: Bool = true,
@@ -464,6 +500,14 @@ public struct EvalConfig: Codable, Sendable {
         self.ircRiseDurationScale           = ircRiseDurationScale
         self.sensitiveModeTauSec               = sensitiveModeTauSec
         self.sensitiveModeGain                 = sensitiveModeGain
+        self.iceRiseBoostGain                  = iceRiseBoostGain
+        self.iceRiseBoostBgLo                  = iceRiseBoostBgLo
+        self.iceRiseBoostBgHi                  = iceRiseBoostBgHi
+        self.iceRiseBoostTauSec                = iceRiseBoostTauSec
+        self.iceRiseBoostThresh                = iceRiseBoostThresh
+        self.iceRiseBoostSensSuppress          = iceRiseBoostSensSuppress
+        self.iceRiseBoostIsfFadeLo             = iceRiseBoostIsfFadeLo
+        self.iceRiseBoostIsfFadeHi             = iceRiseBoostIsfFadeHi
         self.correctionRangeOverrideLow     = correctionRangeOverrideLow
         self.correctionRangeOverrideHigh    = correctionRangeOverrideHigh
         self.kalmanSmoothing                = kalmanSmoothing
@@ -494,7 +538,7 @@ public struct EvalConfig: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
-        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, horizons, includingPositiveVelocityAndRC
+        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, horizons, includingPositiveVelocityAndRC
         case useMidAbsorptionISF, carbAbsorptionModel, carbAbsorptionTimeCapSec
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
@@ -526,6 +570,14 @@ public struct EvalConfig: Codable, Sendable {
         self.ircRiseDurationScale = try c.decodeIfPresent(Double.self, forKey: .ircRiseDurationScale) ?? 1.0
         self.sensitiveModeTauSec     = try c.decodeIfPresent(TimeInterval.self, forKey: .sensitiveModeTauSec) ?? 0
         self.sensitiveModeGain       = try c.decodeIfPresent(Double.self, forKey: .sensitiveModeGain) ?? 0
+        self.iceRiseBoostGain        = try c.decodeIfPresent(Double.self, forKey: .iceRiseBoostGain) ?? 0
+        self.iceRiseBoostBgLo        = try c.decodeIfPresent(Double.self, forKey: .iceRiseBoostBgLo) ?? 170
+        self.iceRiseBoostBgHi        = try c.decodeIfPresent(Double.self, forKey: .iceRiseBoostBgHi) ?? 250
+        self.iceRiseBoostTauSec      = try c.decodeIfPresent(TimeInterval.self, forKey: .iceRiseBoostTauSec) ?? (45*60)
+        self.iceRiseBoostThresh      = try c.decodeIfPresent(Double.self, forKey: .iceRiseBoostThresh) ?? 0
+        self.iceRiseBoostSensSuppress = try c.decodeIfPresent(Double.self, forKey: .iceRiseBoostSensSuppress) ?? 0
+        self.iceRiseBoostIsfFadeLo = try c.decodeIfPresent(Double.self, forKey: .iceRiseBoostIsfFadeLo) ?? 0
+        self.iceRiseBoostIsfFadeHi = try c.decodeIfPresent(Double.self, forKey: .iceRiseBoostIsfFadeHi) ?? 0
         self.correctionRangeOverrideLow  = try c.decodeIfPresent(Double.self, forKey: .correctionRangeOverrideLow)
         self.correctionRangeOverrideHigh = try c.decodeIfPresent(Double.self, forKey: .correctionRangeOverrideHigh)
         self.kalmanSmoothing      = try c.decode(Bool.self,         forKey: .kalmanSmoothing)
@@ -627,6 +679,14 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(ircRiseDurationScale, forKey: .ircRiseDurationScale)
         try c.encode(sensitiveModeTauSec, forKey: .sensitiveModeTauSec)
         try c.encode(sensitiveModeGain, forKey: .sensitiveModeGain)
+        try c.encode(iceRiseBoostGain, forKey: .iceRiseBoostGain)
+        try c.encode(iceRiseBoostBgLo, forKey: .iceRiseBoostBgLo)
+        try c.encode(iceRiseBoostBgHi, forKey: .iceRiseBoostBgHi)
+        try c.encode(iceRiseBoostTauSec, forKey: .iceRiseBoostTauSec)
+        try c.encode(iceRiseBoostThresh, forKey: .iceRiseBoostThresh)
+        try c.encode(iceRiseBoostSensSuppress, forKey: .iceRiseBoostSensSuppress)
+        try c.encode(iceRiseBoostIsfFadeLo, forKey: .iceRiseBoostIsfFadeLo)
+        try c.encode(iceRiseBoostIsfFadeHi, forKey: .iceRiseBoostIsfFadeHi)
         try c.encodeIfPresent(correctionRangeOverrideLow, forKey: .correctionRangeOverrideLow)
         try c.encodeIfPresent(correctionRangeOverrideHigh, forKey: .correctionRangeOverrideHigh)
         try c.encode(kalmanSmoothing, forKey: .kalmanSmoothing)

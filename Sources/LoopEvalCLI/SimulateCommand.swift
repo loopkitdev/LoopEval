@@ -148,6 +148,22 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateSensitiveModeTauMin: Double = 0
     @Option(name: .long, help: "Cross-cycle sensitive-mode gain k: effective ISF is scaled by (1 + k*R) where R is the EWMA of recent negative discrepancy (mg/dL). 0 = off. Try 0.01-0.05.")
     var candidateSensitiveModeGain: Double = 0
+    @Option(name: .long, help: "ICE RISE-BOOST gain: attack a SUSTAINED, actively-driven high. Adds a POSITIVE forecast offset = gain * gate(BG) * max(0, trailingICErate - thresh) so Loop doses harder when BG is high AND trailing ICE is positive (real persistent high, not a resolving spike). The rise side of the unified ICE-response term. 0 = off. Try 20-80.")
+    var candidateIceRiseBoostGain: Double = 0
+    @Option(name: .long, help: "ICE rise-boost BG gate low (mg/dL): offset ramps from 0 at this BG. Default 170.")
+    var candidateIceRiseBoostBgLo: Double = 170
+    @Option(name: .long, help: "ICE rise-boost BG gate high (mg/dL): offset gate saturates at 1.0 at/above this BG. Default 250.")
+    var candidateIceRiseBoostBgHi: Double = 250
+    @Option(name: .long, help: "ICE rise-boost trailing window (MINUTES) for the mean-ICE-rate (persistence). Default 45.")
+    var candidateIceRiseBoostTauMin: Double = 45
+    @Option(name: .long, help: "ICE rise-boost threshold (mg/dL per min): trailing ICE rate must exceed this to fire. Default 0.")
+    var candidateIceRiseBoostThresh: Double = 0
+    @Option(name: .long, help: "ICE rise-boost lows-coupling: suppress the high-attack when recently sensitive (sensMode level R high). offset *= max(0, 1 - k*R). 0 = uncoupled. Try 0.05-0.3.")
+    var candidateIceRiseBoostSensSuppress: Double = 0
+    @Option(name: .long, help: "ICE rise-boost ISF-fade LOW: boost is full at ISF multiplier <= this (aggressive). Default 0 (off).")
+    var candidateIceRiseBoostIsfFadeLo: Double = 0
+    @Option(name: .long, help: "ICE rise-boost ISF-fade HIGH: boost fades to 0 at ISF multiplier >= this (conservative); config collapses to smairc. isfFadeHi<=Lo = off.")
+    var candidateIceRiseBoostIsfFadeHi: Double = 0
     @Option(name: .long, help: "Candidate correction-range target MIDPOINT (mg/dL) override. With --candidate-target-width, replaces the profile correction range for the candidate's dose decision. Lets us sweep target independent of ISF.")
     var candidateTargetMid: Double?
     @Option(name: .long, help: "Candidate correction-range WIDTH (mg/dL) override. Range = [mid-width/2, mid+width/2]. Width 0 = single-value target. Requires --candidate-target-mid.")
@@ -399,6 +415,14 @@ struct SimulateCommand: AsyncParsableCommand {
             ircRiseDurationScale: candidateIrcRiseDurationScale,
             sensitiveModeTauSec: candidateSensitiveModeTauMin * 60,
             sensitiveModeGain: candidateSensitiveModeGain,
+            iceRiseBoostGain: candidateIceRiseBoostGain,
+            iceRiseBoostBgLo: candidateIceRiseBoostBgLo,
+            iceRiseBoostBgHi: candidateIceRiseBoostBgHi,
+            iceRiseBoostTauSec: candidateIceRiseBoostTauMin * 60,
+            iceRiseBoostThresh: candidateIceRiseBoostThresh,
+            iceRiseBoostSensSuppress: candidateIceRiseBoostSensSuppress,
+            iceRiseBoostIsfFadeLo: candidateIceRiseBoostIsfFadeLo,
+            iceRiseBoostIsfFadeHi: candidateIceRiseBoostIsfFadeHi,
             correctionRangeOverrideLow: crOverrideLow,
             correctionRangeOverrideHigh: crOverrideHigh,
             kalmanSmoothing: !noKalman,
