@@ -637,7 +637,12 @@ public actor EvaluationEngine {
         // the predicted-min gate with the suspension-mitigated worst-case cap. nil = off.
         // autosensFactor decouples the cap's worst-case from the autosens ISF adjustment (see
         // uncertaintyMaxDose); 1.0 = coupled.
-        uncertaintyCap: (k: Double, fmax: Double, low: Double, autosensFactor: Double)? = nil
+        uncertaintyCap: (k: Double, fmax: Double, low: Double, autosensFactor: Double)? = nil,
+        // Pump dose quantization: round the auto-bolus / temp-basal rate to the pump's
+        // supported increment (real Loop delivers on this grid + drops sub-increment).
+        // 0 = no rounding (legacy continuous micro-dosing).
+        bolusIncrement: Double = 0,
+        tempBasalIncrement: Double = 0
     ) -> DoseOutput? {
         guard let scheduledBasalEntry = input.basal.first(where: { $0.startDate <= t && $0.endDate > t })
             ?? input.basal.closestPrior(to: t) else { return nil }
@@ -709,8 +714,14 @@ public actor EvaluationEngine {
             lowGateRampFloor: gateFloor,
             gateThreshold: uncertaintyCap == nil ? lowGateThreshold : nil
         )
-        let bolus = recommendation.bolusUnits ?? 0
-        let tempRate = recommendation.basalAdjustment.unitsPerHour
+        // Quantize to the pump's supported increment (round-to-nearest; sub-increment
+        // doses fall to 0) so the sim matches real pump delivery instead of emitting
+        // continuous micro-boluses. Recompute deltaU from the rounded values so the
+        // counter physics see exactly what would be delivered.
+        var bolus = recommendation.bolusUnits ?? 0
+        var tempRate = recommendation.basalAdjustment.unitsPerHour
+        if bolusIncrement > 0 { bolus = (bolus / bolusIncrement).rounded() * bolusIncrement }
+        if tempBasalIncrement > 0 { tempRate = (tempRate / tempBasalIncrement).rounded() * tempBasalIncrement }
 
         let basalDeltaU = (tempRate - scheduledRate) * evalStep / 3600
         let deltaU = bolus + basalDeltaU

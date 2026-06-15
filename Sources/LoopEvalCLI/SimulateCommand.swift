@@ -216,6 +216,10 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateDynisfHighAnchor: Double = 200
     @Option(name: .long, help: "Candidate flat (global) auto-bolus application factor — fraction of recommended correction applied per cycle. Loop default 0.4. Only used when GBAF is off.")
     var candidateApplicationFactor: Double = 0.4
+    @Option(name: .long, help: "Pump bolus increment (U): round the auto-bolus to this grid (real Loop delivers on the pump's increment, e.g. Omnipod 0.05U, and drops sub-increment doses). 0 = no rounding (legacy continuous micro-dosing). Default 0.05.")
+    var candidateBolusIncrement: Double = 0.05
+    @Option(name: .long, help: "Pump temp-basal-rate increment (U/hr): round temp basal to this grid. 0 = none. Default 0.05.")
+    var candidateTempBasalIncrement: Double = 0.05
     @Option(name: .long, help: "Diagnostic: cap every candidate carb entry's absorptionTime to at most this many MINUTES (0 = no cap). Shorter time raises the modeled carb-absorption-rate ceiling, absorbing fast rises into carbs instead of RC.")
     var candidateCarbAbsorptionCapMin: Double = 0
     @Flag(name: .long, help: "Uncertainty-bounded dosing cap: REPLACE the flat/GBAF application factor AND the predicted-min bolus gate with a single state-derived cap — deliver the largest dose whose WORST-CASE trajectory (insulin effect ×(1+k)) WITH max basal suspension stays above the low threshold. A level cap on committed IOB (no wind-up).")
@@ -343,6 +347,8 @@ struct SimulateCommand: AsyncParsableCommand {
             includeFutureCarbs: oracleFutureInputs,
             glucoseLookbackHours: glucoseLookbackHours,
             useIntegralRC: integralRC,
+            bolusIncrement: candidateBolusIncrement,
+            tempBasalIncrement: candidateTempBasalIncrement,
             kalmanSmoothing: !noKalman,
             simRawGlucose: simRawGlucose,
             sensitivityMultiplier: sensitivityMultiplier,
@@ -426,6 +432,8 @@ struct SimulateCommand: AsyncParsableCommand {
             iceRiseBoostSensSuppress: candidateIceRiseBoostSensSuppress,
             iceRiseBoostIsfFadeLo: candidateIceRiseBoostIsfFadeLo,
             iceRiseBoostIsfFadeHi: candidateIceRiseBoostIsfFadeHi,
+            bolusIncrement: candidateBolusIncrement,
+            tempBasalIncrement: candidateTempBasalIncrement,
             correctionRangeOverrideLow: crOverrideLow,
             correctionRangeOverrideHigh: crOverrideHigh,
             kalmanSmoothing: !noKalman,
