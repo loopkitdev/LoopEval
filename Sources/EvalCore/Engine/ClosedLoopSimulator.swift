@@ -2039,7 +2039,9 @@ extension EvaluationEngine {
             uncertaintyCap: config.uncertaintyCapEnabled
                 ? (k: config.uncertaintyK, fmax: config.uncertaintyFmax, low: config.uncertaintyLow,
                    autosensFactor: config.uncertaintyDecoupleAutosens ? autosensFactor : 1.0)
-                : nil
+                : nil,
+            bolusIncrement: config.bolusIncrement,
+            tempBasalIncrement: config.tempBasalIncrement
         )
         return (
             dose: doseRec?.deltaU ?? 0,
