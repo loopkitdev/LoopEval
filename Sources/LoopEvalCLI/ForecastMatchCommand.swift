@@ -63,7 +63,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Disable the gradual-transitions gate (>40 mg/dL jump suppresses momentum). The gate is a LoopAlgorithm addition NOT in Loop 3.9.3 — pass this to match 3.9.3.")
     var noGradualTransitionsGate: Bool = false
 
-    @Flag(name: .long, help: "Convenience: set Loop-3.9.3-compatible momentum (30-min duration, no gradual-transitions gate). Velocity cap still applies unless --momentum-cap overrides.")
+    @Flag(name: .long, help: "Convenience: Loop-3.9.3-compatible momentum = disable the gradual-transitions gate only. (Verified from LoopKit dev source: deployed Loop uses 15-min duration + 4 mg/dL/min cap — same as default — and NO gradual-transitions gate.)")
     var loop393Momentum: Bool = false
 
     struct OutRow: Codable {
@@ -96,7 +96,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         times = times.filter { $0 >= startDate && $0 <= endDate }.sorted()
         printStderr("Evaluating at \(times.count) timestamps\n")
 
-        let durMin = loop393Momentum ? 30 : momentumDurationMin
+        let durMin = momentumDurationMin   // deployed Loop = 15 (LoopKit dev momentumDuration); 30 only in stale master
         let gateThreshold: Double? = (loop393Momentum || noGradualTransitionsGate) ? nil : 40
         let config = EvalConfig(
             applicationFactor: applicationFactor,
