@@ -59,16 +59,26 @@ def _ms_bounds(start, end):
 # t_ms expression reused everywhere
 _TMS = "CAST(get_json_object(time,'$.$date.$numberLong') AS BIGINT)"
 
+def _dedup(cols, where, typ):
+    """One row per Tidepool logical `id` (the table has exact-duplicate rows AND
+    edit-versions sharing an id; without this everything is 2-3× over-counted).
+    `cols` are inner expressions ("EXPR AS alias" or a plain column); the outer
+    query selects only the aliases."""
+    inner = ", ".join(cols)
+    aliases = [c.split(" AS ")[-1].strip() if " AS " in c else c.strip() for c in cols]
+    outer = ", ".join(aliases)
+    return (f"SELECT {outer} FROM (SELECT {inner}, ROW_NUMBER() OVER (PARTITION BY id ORDER BY _id) rn "
+            f"FROM {TBL} WHERE {where} AND type='{typ}') WHERE rn=1 ORDER BY t_ms")
+
 def export_donor(user, start, end, outdir):
     os.makedirs(outdir, exist_ok=True)
     s_ms, e_ms = _ms_bounds(start, end)
     win = f"_userId='{user}' AND {_TMS} BETWEEN {s_ms} AND {e_ms}"
 
     # ---- glucose (cbg, mmol/L → mg/dL) ----
-    g = query(f"""SELECT {_TMS} AS t_ms,
-        COALESCE(CAST(get_json_object(value,'$.$numberDouble') AS DOUBLE),
-                 CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol
-        FROM {TBL} WHERE {win} AND type='cbg' ORDER BY t_ms""")
+    g = query(_dedup([f"{_TMS} AS t_ms",
+        "COALESCE(CAST(get_json_object(value,'$.$numberDouble') AS DOUBLE), "
+        "CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol"], win, "cbg"))
     # dedup cbg by timestamp (Tidepool has duplicate uploads; dupes break the
     # velocity/ICE grid). Keep last per (rounded-to-min) timestamp.
     seen = set(); glucose = []
@@ -81,23 +91,23 @@ def export_donor(user, start, end, outdir):
         glucose.append({"startDate": _iso(int(r.t_ms)), "quantity": round(v * MMOL, 2)})
 
     # ---- doses (bolus + basal) ----
-    b = query(f"""SELECT {_TMS} AS t_ms, subType,
-        COALESCE(CAST(get_json_object(normal,'$.$numberDouble') AS DOUBLE),
-                 CAST(get_json_object(normal,'$.$numberInt') AS DOUBLE)) AS units
-        FROM {TBL} WHERE {win} AND type='bolus' ORDER BY t_ms""")
-    doses = []
+    b = query(_dedup([f"{_TMS} AS t_ms", "subType",
+        "COALESCE(CAST(get_json_object(normal,'$.$numberDouble') AS DOUBLE), "
+        "CAST(get_json_object(normal,'$.$numberInt') AS DOUBLE)) AS units"], win, "bolus"))
+    doses = []; manual_ms = []
     for r in b.itertuples():
         u = _fin(r.units)
         if u is None: continue
+        auto = (r.subType == "automated")
+        if not auto: manual_ms.append(int(r.t_ms))   # manual meal/correction boluses
         doses.append({"deliveryType": "bolus", "startDate": _iso(int(r.t_ms)), "endDate": _iso(int(r.t_ms)),
-                      "volume": round(u, 4), "insulinType": "rapidActingAdult",
-                      "automatic": (r.subType == "automated")})
-    bas = query(f"""SELECT {_TMS} AS t_ms, deliveryType,
-        COALESCE(CAST(get_json_object(rate,'$.$numberDouble') AS DOUBLE),
-                 CAST(get_json_object(rate,'$.$numberInt') AS DOUBLE)) AS rate,
-        COALESCE(CAST(get_json_object(duration,'$.$numberInt') AS BIGINT),
-                 CAST(get_json_object(duration,'$.$numberLong') AS BIGINT)) AS dur_ms
-        FROM {TBL} WHERE {win} AND type='basal' ORDER BY t_ms""")
+                      "volume": round(u, 4), "insulinType": "rapidActingAdult", "automatic": auto})
+    manual_ms.sort()
+    bas = query(_dedup([f"{_TMS} AS t_ms", "deliveryType",
+        "COALESCE(CAST(get_json_object(rate,'$.$numberDouble') AS DOUBLE), "
+        "CAST(get_json_object(rate,'$.$numberInt') AS DOUBLE)) AS rate",
+        "COALESCE(CAST(get_json_object(duration,'$.$numberInt') AS BIGINT), "
+        "CAST(get_json_object(duration,'$.$numberLong') AS BIGINT)) AS dur_ms"], win, "basal"))
     # collect basal segments, then CLIP each end to the next segment's start so
     # overlapping Loop basal records don't double-count delivery.
     segs = []
@@ -115,21 +125,38 @@ def export_donor(user, start, end, outdir):
     doses.sort(key=lambda d: d["startDate"])
 
     # ---- carbs (food: nutrition.carbohydrate.net g, estimatedAbsorptionDuration s) ----
-    f = query(f"""SELECT {_TMS} AS t_ms, nutrition FROM {TBL} WHERE {win} AND type='food' ORDER BY t_ms""")
+    f = query(_dedup([f"{_TMS} AS t_ms", "nutrition"], win, "food"))
+    import bisect
+    PAIR_WIN = 10 * 60 * 1000   # ±10 min: a manual bolus this close = co-logged with the carb
+    POST_BOLUS_DELAY = 10 * 1000  # dosingVisibleDate = paired bolus + 10s (matches NS postBolusVisibilityDelay)
+    def paired_bolus(t):
+        i = bisect.bisect_left(manual_ms, t)
+        best = None
+        for j in (i - 1, i):
+            if 0 <= j < len(manual_ms) and abs(manual_ms[j] - t) <= PAIR_WIN:
+                if best is None or abs(manual_ms[j] - t) < abs(best - t): best = manual_ms[j]
+        return best
     carbs = []; cseen = set()
     for r in f.itertuples():
         try: nut = json.loads(r.nutrition)
         except Exception: continue
         grams = _fin(_num(((nut.get("carbohydrate") or {}).get("net"))))
         if not grams: continue
+        t = int(r.t_ms)
         # dedup: Tidepool food records are re-uploaded many times; collapse entries
         # at the same minute with the same grams (one real carb entry).
-        key = (int(r.t_ms) // 60000, round(grams, 1))
+        key = (t // 60000, round(grams, 1))
         if key in cseen: continue
         cseen.add(key)
         absorb = _fin(_num(nut.get("estimatedAbsorptionDuration")))  # seconds
-        iso = _iso(int(r.t_ms))
-        e = {"startDate": iso, "entryDate": iso, "dosingVisibleDate": iso, "grams": round(grams, 1)}
+        # dosingVisibleDate: defer past the paired manual meal bolus so the sim's
+        # auto-dosing doesn't cover the carb BEFORE the (passed-through) manual bolus
+        # does — avoids double-covering announced meals (crash-low). startDate = meal
+        # time (drives absorption); entryDate = meal time (best available).
+        pb = paired_bolus(t)
+        vis = (pb + POST_BOLUS_DELAY) if pb is not None else t
+        e = {"startDate": _iso(t), "entryDate": _iso(t), "dosingVisibleDate": _iso(vis),
+             "grams": round(grams, 1)}
         if absorb: e["absorptionTime"] = absorb
         carbs.append(e)
 
