@@ -714,13 +714,17 @@ public actor EvaluationEngine {
             lowGateRampFloor: gateFloor,
             gateThreshold: uncertaintyCap == nil ? lowGateThreshold : nil
         )
-        // Quantize to the pump's supported increment (round-to-nearest; sub-increment
-        // doses fall to 0) so the sim matches real pump delivery instead of emitting
-        // continuous micro-boluses. Recompute deltaU from the rounded values so the
-        // counter physics see exactly what would be delivered.
+        // Quantize to the pump's supported increment so the sim matches real pump
+        // delivery instead of emitting continuous micro-boluses. Recompute deltaU from
+        // the quantized values so the counter physics see exactly what would be delivered.
+        //   - Auto-bolus: real Loop FLOORS (drops the sub-increment remainder) after the
+        //     application factor — verified against devicestatus (AF 0.4 + floor matches
+        //     ~89% of rloop / ~87% of user2 auto-boluses exactly; round-to-nearest does
+        //     not). Flooring is what made a round-to-nearest fit look like AF≈0.37.
+        //   - Temp basal: the pump rounds the rate to the nearest supported value.
         var bolus = recommendation.bolusUnits ?? 0
         var tempRate = recommendation.basalAdjustment.unitsPerHour
-        if bolusIncrement > 0 { bolus = (bolus / bolusIncrement).rounded() * bolusIncrement }
+        if bolusIncrement > 0 { bolus = (bolus / bolusIncrement).rounded(.down) * bolusIncrement }
         if tempBasalIncrement > 0 { tempRate = (tempRate / tempBasalIncrement).rounded() * tempBasalIncrement }
 
         let basalDeltaU = (tempRate - scheduledRate) * evalStep / 3600
