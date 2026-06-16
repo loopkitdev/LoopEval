@@ -426,6 +426,7 @@ public actor EvaluationEngine {
             cob: prediction.activeCarbs,
             recommendedDeltaU: doseRec?.deltaU,
             recommendedBolus: doseRec?.bolus,
+            recommendedManualBolus: doseRec?.manualBolusRec,
             recommendedTempBasalRate: doseRec?.tempBasalRate,
             scheduledBasalRate: doseRec?.scheduledBasalRate,
             insulinEffectΔ60: ins60,

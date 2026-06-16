@@ -78,6 +78,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         let iob: Double?
         let cob: Double?
         let recommendedBolus: Double?      // auto-bolus this cycle (app factor + floor)
+        let recommendedManualBolus: Double?  // full correction (app factor 1.0, clamped) = devicestatus recommendedBolus
         let recommendedDeltaU: Double?
         let recommendedTempBasalRate: Double?
         let curve: [Double]                // full forecast curve, mg/dL, 5-min spaced from t
@@ -142,6 +143,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
                 iob: r.iob,
                 cob: r.cob,
                 recommendedBolus: r.recommendedBolus,
+                recommendedManualBolus: r.recommendedManualBolus,
                 recommendedDeltaU: r.recommendedDeltaU,
                 recommendedTempBasalRate: r.recommendedTempBasalRate,
                 curve: r.predicted.map { $0.quantity.doubleValue(for: mgdl) }

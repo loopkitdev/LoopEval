@@ -36,6 +36,12 @@ public struct PredictionRecord: Sendable {
     /// Bolus volume recommended at this step (U), if any. `nil` if not computed.
     public let recommendedBolus: Double?
 
+    /// Full correction bolus (application factor 1.0, clamped to maxBolus) — the
+    /// upstream "recommendedBolus" Loop computes every cycle before applying the
+    /// auto-bolus application factor. Directly comparable to devicestatus
+    /// `loop.recommendedBolus`. `nil` if not computed.
+    public let recommendedManualBolus: Double?
+
     /// Temp basal rate recommended at this step (U/hr), if any. `nil` if
     /// recommendation was to continue scheduled basal.
     public let recommendedTempBasalRate: Double?
@@ -63,6 +69,7 @@ public struct PredictionRecord: Sendable {
                 iob: Double? = nil, cob: Double? = nil,
                 recommendedDeltaU: Double? = nil,
                 recommendedBolus: Double? = nil,
+                recommendedManualBolus: Double? = nil,
                 recommendedTempBasalRate: Double? = nil,
                 scheduledBasalRate: Double? = nil,
                 insulinEffectΔ60: Double? = nil,
@@ -77,6 +84,7 @@ public struct PredictionRecord: Sendable {
         self.cob                       = cob
         self.recommendedDeltaU         = recommendedDeltaU
         self.recommendedBolus          = recommendedBolus
+        self.recommendedManualBolus    = recommendedManualBolus
         self.recommendedTempBasalRate  = recommendedTempBasalRate
         self.scheduledBasalRate        = scheduledBasalRate
         self.insulinEffectΔ60          = insulinEffectΔ60
