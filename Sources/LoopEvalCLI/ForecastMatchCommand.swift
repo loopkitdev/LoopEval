@@ -84,6 +84,9 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         let recommendedManualBolus: Double?  // full correction (app factor 1.0, clamped) = devicestatus recommendedBolus
         let recommendedDeltaU: Double?
         let recommendedTempBasalRate: Double?
+        let insulinEffect90: Double?       // insulin effect Δ at +90min (mg/dL)
+        let rcEffect90: Double?            // retrospective-correction effect at +90min (mg/dL)
+        let momentumEffect30: Double?      // momentum effect at +30min (mg/dL)
         let curve: [Double]                // full forecast curve, mg/dL, 5-min spaced from t
     }
 
@@ -150,6 +153,9 @@ struct ForecastMatchCommand: AsyncParsableCommand {
                 recommendedManualBolus: r.recommendedManualBolus,
                 recommendedDeltaU: r.recommendedDeltaU,
                 recommendedTempBasalRate: r.recommendedTempBasalRate,
+                insulinEffect90: r.insulinEffectΔ90,
+                rcEffect90: r.rcEffect90,
+                momentumEffect30: r.momentumEffect30,
                 curve: r.predicted.map { $0.quantity.doubleValue(for: mgdl) }
             )
         }
