@@ -710,6 +710,22 @@ public actor EvaluationEngine {
             sensitivity: input.sensitivity,
             insulinModel: insulinType.model
         )
+        if ProcessInfo.processInfo.environment["DBG_CORR"] != nil {
+            let mg = LoopUnit.milligramsPerDeciliter
+            let ev = prediction.glucose.last?.quantity.doubleValue(for: mg) ?? -1
+            let mn = prediction.glucose.map { $0.quantity.doubleValue(for: mg) }.min() ?? -1
+            let tgt = input.target.closestPrior(to: t)?.value
+            var desc = "inRange"
+            switch correction {
+            case .suspend(let m): desc = "suspend(min=\(Int(m.quantity.doubleValue(for: mg))))"
+            case .aboveRange(let m, let cg, let mt, let u): desc = "aboveRange min=\(Int(m.quantity.doubleValue(for: mg))) correcting=\(Int(cg.quantity.doubleValue(for: mg))) minTarget=\(Int(mt.doubleValue(for: mg))) units=\(String(format: "%.3f", u))"
+            case .entirelyBelowRange(let m, _, let u): desc = "belowRange min=\(Int(m.quantity.doubleValue(for: mg))) units=\(String(format: "%.3f", u))"
+            case .inRange: desc = "inRange"
+            }
+            let tlo = tgt.map { Int($0.lowerBound.doubleValue(for: mg)) } ?? -1
+            let thi = tgt.map { Int($0.upperBound.doubleValue(for: mg)) } ?? -1
+            FileHandle.standardError.write("DBG_CORR \(t) ev=\(Int(ev)) min=\(Int(mn)) iob=\(String(format: "%.2f", activeInsulin)) suspend=\(Int(suspend.doubleValue(for: mg))) target=[\(tlo),\(thi)] -> \(desc)\n".data(using: .utf8)!)
+        }
         // Uncertainty-bounded cap: derive the effective application factor from the
         // suspension-mitigated worst-case dose, and disable the predicted-min gate (the cap
         // already encodes future low-risk via the worst-case-with-suspension constraint).
