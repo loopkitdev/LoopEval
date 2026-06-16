@@ -53,6 +53,9 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Option(name: .long, help: "ISF multiplier (default 1.0).")
     var sensitivityMultiplier: Double = 1.0
 
+    @Flag(name: .long, help: "Treat a temp basal still running at the prediction instant as ENDED at t (clean going-forward design). Default off = project the running temp forward as FieldLoop does (field-faithful).")
+    var clipInProgressTempBasal: Bool = false
+
     // Momentum knobs (for Loop-3.9.3-compatibility experiments). Defaults = LoopAlgorithm.
     @Option(name: .long, help: "Momentum projection duration (minutes). Default 15 (LoopAlgorithm). Loop 3.9.3 used 30.")
     var momentumDurationMin: Double = 15
@@ -104,6 +107,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
             includeFutureCarbs: false,
             useIntegralRC: integralRC,
             kalmanSmoothing: false,        // raw native CGM (evaluate path uses data.glucose directly)
+            clipInProgressTempBasal: clipInProgressTempBasal,
             sensitivityMultiplier: sensitivityMultiplier,
             positiveVelocityCap: momentumCap,
             momentumProjectionMinutes: durMin,

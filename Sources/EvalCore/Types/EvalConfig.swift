@@ -104,6 +104,13 @@ public struct EvalConfig: Codable, Sendable {
     /// all-smoothed sim.
     public var simRawGlucose: Bool
 
+    /// In-progress temp-basal handling at decision time. false (default): keep the
+    /// running temp's recorded duration projected forward — reproduces FieldLoop best.
+    /// true: treat a temp still running at the prediction instant as ENDED at t (only
+    /// the elapsed portion counts; scheduled resumes after) — the cleaner going-forward
+    /// design. NOT field-faithful (worsens the field-match; see InputWindowBuilder).
+    public var clipInProgressTempBasal: Bool
+
     /// Forecast horizons to evaluate, in seconds.
     /// Default: every 30 min from 30 min to 360 min.
     public var horizons: [TimeInterval]
@@ -440,6 +447,7 @@ public struct EvalConfig: Codable, Sendable {
         correctionRangeOverrideHigh: Double? = nil,
         kalmanSmoothing: Bool = true,
         simRawGlucose: Bool = true,
+        clipInProgressTempBasal: Bool = false,
         horizons: [TimeInterval] = stride(from: 30.0, through: 360.0, by: 30.0)
             .map { $0 * 60 },
         includingPositiveVelocityAndRC: Bool = true,
@@ -543,6 +551,7 @@ public struct EvalConfig: Codable, Sendable {
         self.correctionRangeOverrideHigh    = correctionRangeOverrideHigh
         self.kalmanSmoothing                = kalmanSmoothing
         self.simRawGlucose                  = simRawGlucose
+        self.clipInProgressTempBasal        = clipInProgressTempBasal
         self.horizons                       = horizons
         self.includingPositiveVelocityAndRC = includingPositiveVelocityAndRC
         self.useMidAbsorptionISF            = useMidAbsorptionISF
@@ -571,7 +580,7 @@ public struct EvalConfig: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
-        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, horizons, includingPositiveVelocityAndRC
+        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, horizons, includingPositiveVelocityAndRC
         case useMidAbsorptionISF, carbAbsorptionModel, carbAbsorptionTimeCapSec
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
@@ -617,6 +626,7 @@ public struct EvalConfig: Codable, Sendable {
         self.correctionRangeOverrideHigh = try c.decodeIfPresent(Double.self, forKey: .correctionRangeOverrideHigh)
         self.kalmanSmoothing      = try c.decode(Bool.self,         forKey: .kalmanSmoothing)
         self.simRawGlucose        = (try? c.decode(Bool.self,       forKey: .simRawGlucose)) ?? false
+        self.clipInProgressTempBasal = (try? c.decode(Bool.self,    forKey: .clipInProgressTempBasal)) ?? false
         self.horizons             = try c.decode([TimeInterval].self, forKey: .horizons)
         self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
         self.useMidAbsorptionISF  = try c.decode(Bool.self,         forKey: .useMidAbsorptionISF)
@@ -728,6 +738,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encodeIfPresent(correctionRangeOverrideHigh, forKey: .correctionRangeOverrideHigh)
         try c.encode(kalmanSmoothing, forKey: .kalmanSmoothing)
         try c.encode(simRawGlucose, forKey: .simRawGlucose)
+        try c.encode(clipInProgressTempBasal, forKey: .clipInProgressTempBasal)
         try c.encode(horizons, forKey: .horizons)
         try c.encode(includingPositiveVelocityAndRC, forKey: .includingPositiveVelocityAndRC)
         try c.encode(useMidAbsorptionISF, forKey: .useMidAbsorptionISF)
