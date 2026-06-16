@@ -96,6 +96,11 @@ struct InputWindowBuilder: Sendable {
         let dLo = lowerBound(doses, by: doseWindowStart, key: \.endDate)
         let dHi = upperBound(doses, by: doseWindowEnd, key: \.startDate)
         let dosesSlice = dLo < dHi ? Array(doses[dLo..<dHi]) : []
+        // NOTE: an in-progress temp basal (start < t < end) is intentionally kept with
+        // its full recorded duration — empirically Loop PROJECTS the enacted temp/suspend
+        // forward in its forecast (clipping it to end at t worsened the field-match by
+        // ~3 mg/dL at 6h, esp. for suspends whose forward portion raises BG). See
+        // memory project_field_stock_match_2026_06_15.
 
         // ── Carbs ────────────────────────────────────────────────────────────────
         // Window the absorption-relevant range by MEAL TIME (startDate), then
