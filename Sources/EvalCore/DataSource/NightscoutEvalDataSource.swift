@@ -57,7 +57,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // Doses embed insulinType (EvalInsulinDose.insulinType drives the PD curve),
         // so the cache key MUST include the model — otherwise --insulin-type silently
         // reuses the first model's cached doses.
-        let cacheKey = DataCache.key(for: "doses_\(insulinType)", url: client.baseURL, interval: lookback)
+        // v2: temp-basal volume now uses the pump's delivered `amount` (not rate*duration).
+        let cacheKey = DataCache.key(for: "doses_v2_\(insulinType)", url: client.baseURL, interval: lookback)
         if let cached: [EvalInsulinDose] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -144,11 +145,16 @@ public actor NightscoutEvalDataSource: EvalDataSource {
                 let rate = t.absolute ?? t.rate ?? 0.0
                 let durationMin = t.duration ?? 0
                 let endDate = date.addingTimeInterval(durationMin * 60)
+                // Use the pump's ACTUAL pulse-quantized delivered amount when present
+                // (Loop reconciles IOB/effects on delivered units; pumps deliver basal
+                // in 0.05U pulses, so amount != rate*duration). Fall back to the nominal
+                // rate*duration only when the delivered amount wasn't recorded.
+                let volume = t.amount ?? (rate * (durationMin / 60.0))
                 let dose = EvalInsulinDose(
                     deliveryType: .basal,
                     startDate: date,
                     endDate: endDate,
-                    volume: rate * (durationMin / 60.0),
+                    volume: volume,
                     insulinType: insulinType
                 )
                 doses.append(dose)
