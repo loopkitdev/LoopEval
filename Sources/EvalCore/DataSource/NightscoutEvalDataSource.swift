@@ -54,7 +54,10 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             start: interval.start.addingTimeInterval(-2 * 3600),
             end: interval.end
         )
-        let cacheKey = DataCache.key(for: "doses", url: client.baseURL, interval: lookback)
+        // Doses embed insulinType (EvalInsulinDose.insulinType drives the PD curve),
+        // so the cache key MUST include the model — otherwise --insulin-type silently
+        // reuses the first model's cached doses.
+        let cacheKey = DataCache.key(for: "doses_\(insulinType)", url: client.baseURL, interval: lookback)
         if let cached: [EvalInsulinDose] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -83,7 +86,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     }
 
     public func getTherapyTimeline(interval: DateInterval) async throws -> TherapyTimeline {
-        let cacheKey = DataCache.key(for: "therapy", url: client.baseURL, interval: interval)
+        // TherapyTimeline carries insulinType → include it in the key (see getDoses).
+        let cacheKey = DataCache.key(for: "therapy_\(insulinType)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
