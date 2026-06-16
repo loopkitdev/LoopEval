@@ -48,6 +48,10 @@ public struct NightscoutTreatment: Decodable, Sendable {
     public let duration: Double?
     /// Absolute temp basal rate in U/hr
     public let absolute: Double?
+    /// ACTUAL delivered units for this temp basal segment — pulse-quantized by the
+    /// pump (Omnipod 0.05U pulses), so generally != rate*duration. Loop reconciles
+    /// IOB/effects on this delivered amount, not the nominal rate*duration.
+    public let amount: Double?
     /// Relative temp basal percent (+/- of scheduled)
     public let percent: Int?
     /// Whether this was an SMB (Super Micro Bolus)
@@ -66,7 +70,7 @@ public struct NightscoutTreatment: Decodable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case created_at, eventType, insulin, carbs, rate, duration,
-             absolute, percent, isSMB, automatic, timestamp, absorptionTime
+             absolute, amount, percent, isSMB, automatic, timestamp, absorptionTime
         case id = "_id"
     }
 
