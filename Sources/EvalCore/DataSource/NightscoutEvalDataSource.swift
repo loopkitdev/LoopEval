@@ -80,7 +80,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // let the sim auto-dose the meal before the bolus hit IOB → double cover).
         // v4 set entryDate from the ObjectId DB-insertion time; v3 added per-entry
         // absorptionTime; v2 hardcoded absorptionTime=nil. Force re-fetch.
-        let cacheKey = DataCache.key(for: "carbs_v9", url: client.baseURL, interval: interval)
+        let cacheKey = DataCache.key(for: "carbs_v10", url: client.baseURL, interval: interval)
         if let cached: [EvalCarbEntry] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -237,19 +237,12 @@ public actor NightscoutEvalDataSource: EvalDataSource {
                 return fmt.date(from: tb.created_at)
             }
             .sorted()
-        // How long after logging a meal the user's manual bolus may arrive and
-        // still count as "the user is covering this meal".
+        // A co-logged meal carb and its manual bolus are effectively ATOMIC: the
+        // user enters carbs and boluses in one action (90d: carb saved a median ~1s
+        // from its bolus, 98% within 10s — but the NS upload / ObjectId-insert order
+        // of the two can straddle a decision cycle). The user's manual bolus may
+        // arrive slightly before OR after the carb's insert; pair within this window.
         let userTakeoverWindow: TimeInterval = 15 * 60
-        // Make the carb visible the STEP AFTER the paired bolus (not the same
-        // cycle), so the bolus is already in IOB when the meal becomes visible
-        // and the sim's forecast/auto-bolus nets against it (mirrors the app's
-        // UI, which shows a bolus rec net of any auto-dosing → no double cover).
-        // Empirically the carb is saved ~1s BEFORE its paired bolus (90d: median -1s,
-        // 67% before, 98% within 10s — only 1.5% saved after, all but 2 within a few s).
-        // So defer carb visibility by only ~seconds past the bolus (just enough that the
-        // bolus is in the dose stream first); double-cover is otherwise absorbed by the
-        // IOB-aware manual-bolus passthrough. (Was 5*60 — a ~5-min fidelity error.)
-        let postBolusVisibilityDelay: TimeInterval = 10
 
         return treatments.compactMap { t -> EvalCarbEntry? in
             guard let carbs = t.carbs, carbs > 0 else { return nil }
@@ -265,24 +258,23 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             // user's manual meal bolus → counter blow-up). The ObjectId's embedded
             // DB-insertion time is the true "Loop learned about it" moment; prefer it.
             let baseEntry = t.objectIdInsertionDate ?? createdAt
-            // User-takeover: when the user manual-boluses for this meal shortly
-            // after logging it, Loop (in reality) saw the carbs and the user's
-            // bolus together and deferred to the user — it did NOT auto-bolus in
-            // the log→bolus gap. The sim, replaying decision-time, otherwise
-            // auto-doses the meal in that gap and then double-covers the
-            // passed-through manual bolus. So defer carb visibility to the paired
-            // manual bolus (if one lands within the window) — the sim then sees
-            // bolus together. Deferring to the bolus time alone is NOT enough —
-            // the sim still auto-doses the meal in the SAME cycle, before the
-            // bolus registers in IOB (the forecast at that step has no offsetting
-            // insulin). So defer to one step AFTER the bolus. Meals with no nearby
-            // manual bolus keep baseEntry (Loop genuinely owns that meal).
-            let pairedBolus = manualBolusTimes.first {
-                $0 >= baseEntry && $0 <= baseEntry.addingTimeInterval(userTakeoverWindow)
-            }
-            // dosingVisibleDate = the (possibly deferred) gate for NORMAL auto-dosing;
+            // User-takeover + carb/bolus ALIGNMENT: when the user manual-boluses for
+            // this meal, Loop (in reality) saw the carbs and the bolus together and
+            // deferred to the user. Gate the carb's auto-dosing visibility to the
+            // PAIRED MANUAL BOLUS's delivery time so the meal becomes visible exactly
+            // when the bolus enters IOB — never before (no premature auto-dose /
+            // double-cover) and never after (no bolus-in-IOB-without-its-carb forecast
+            // crash). Pair to the NEAREST manual bolus within the window in EITHER
+            // direction: the carb's ObjectId-insert can land just before OR after its
+            // bolus, and a forward-only pair misses the bolus-uploaded-first case,
+            // leaving the carb invisible while its bolus is already dosing → crash.
+            // Meals with no nearby manual bolus keep baseEntry (Loop genuinely owns it).
+            let pairedBolus = manualBolusTimes
+                .filter { abs($0.timeIntervalSince(baseEntry)) <= userTakeoverWindow }
+                .min(by: { abs($0.timeIntervalSince(baseEntry)) < abs($1.timeIntervalSince(baseEntry)) })
+            // dosingVisibleDate = the (aligned) gate for NORMAL auto-dosing;
             // entryDate stays the TRUE entry time (baseEntry).
-            let dosingVisibleDate = pairedBolus.map { $0.addingTimeInterval(postBolusVisibilityDelay) } ?? baseEntry
+            let dosingVisibleDate = pairedBolus ?? baseEntry
             let mealDate = t.timestamp.flatMap { fmt.date(from: $0) } ?? createdAt
             // Loop publishes per-entry absorptionTime in NS (MINUTES). Use it —
             // otherwise the carb math falls back to a long default (~3h) and
