@@ -80,6 +80,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Candidate ISF multiplier")
     var candidateSensitivityMultiplier: Double?
 
+    @Flag(name: .long, help: "Candidate: treat a temp basal still running at the decision instant as ENDED at t (clean going-forward design). Default off = project it forward as FieldLoop does. Baseline always stays field-faithful.")
+    var candidateClipInProgressTempBasal: Bool = false
+
     @Option(name: .long, help: "Per-hour candidate ISF multipliers (24 csv)")
     var candidateIsfHourly: String?
 
@@ -447,6 +450,7 @@ struct SimulateCommand: AsyncParsableCommand {
             correctionRangeOverrideHigh: crOverrideHigh,
             kalmanSmoothing: !noKalman,
             simRawGlucose: simRawGlucose,
+            clipInProgressTempBasal: candidateClipInProgressTempBasal,
             carbAbsorptionTimeCapSec: candidateCarbAbsorptionCapMin * 60,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,
             sensitivityHourlyMultipliers: hourlyISF,

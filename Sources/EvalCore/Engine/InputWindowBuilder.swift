@@ -95,12 +95,22 @@ struct InputWindowBuilder: Sendable {
         // doseWindowStart, up to the last dose that starts before doseWindowEnd.
         let dLo = lowerBound(doses, by: doseWindowStart, key: \.endDate)
         let dHi = upperBound(doses, by: doseWindowEnd, key: \.startDate)
-        let dosesSlice = dLo < dHi ? Array(doses[dLo..<dHi]) : []
-        // NOTE: an in-progress temp basal (start < t < end) is intentionally kept with
-        // its full recorded duration — empirically Loop PROJECTS the enacted temp/suspend
-        // forward in its forecast (clipping it to end at t worsened the field-match by
-        // ~3 mg/dL at 6h, esp. for suspends whose forward portion raises BG). See
-        // memory project_field_stock_match_2026_06_15.
+        var dosesSlice = dLo < dHi ? Array(doses[dLo..<dHi]) : []
+        // In-progress temp basal handling (decision-time only). Default (false): keep the
+        // temp's recorded duration projected forward — this best reproduces FieldLoop,
+        // which projects the enacted temp/suspend forward (clipping it to end at t worsens
+        // the field-match ~3 mg/dL at 6h; projecting the full 30-min commanded duration
+        // OVERshoots +10 mg/dL — recorded duration is the best-balanced). Set true for the
+        // cleaner going-forward design: a temp still running at t is treated as ENDED at t
+        // (only the elapsed [start,t] portion counts; scheduled resumes after).
+        if config.clipInProgressTempBasal && !useFutureInsulin {
+            for i in dosesSlice.indices where dosesSlice[i].deliveryType == .basal && dosesSlice[i].endDate > t {
+                let full = dosesSlice[i].endDate.timeIntervalSince(dosesSlice[i].startDate)
+                let elapsed = max(0, t.timeIntervalSince(dosesSlice[i].startDate))
+                dosesSlice[i].volume = full > 0 ? dosesSlice[i].volume * (elapsed / full) : 0
+                dosesSlice[i].endDate = t
+            }
+        }
 
         // ── Carbs ────────────────────────────────────────────────────────────────
         // Window the absorption-relevant range by MEAL TIME (startDate), then
