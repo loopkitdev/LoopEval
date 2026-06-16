@@ -1913,6 +1913,8 @@ extension EvaluationEngine {
             includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
             useMidAbsorptionISF: config.useMidAbsorptionISF,
             carbAbsorptionModel: config.carbAbsorptionModel.model,
+            adaptiveCarbAbsorption: config.adaptiveCarbAbsorption,
+            initialAbsorptionTimeOverrun: config.adaptiveCarbAbsorption ? 1.0 : CarbMath.defaultAbsorptionTimeOverrun,
             momentumVelocityMaximum: momentumCap,
             useAsymmetricMomentum: config.useAsymmetricMomentum,
             momentumAlphaSlow: config.momentumAlphaSlow,

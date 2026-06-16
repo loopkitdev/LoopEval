@@ -59,6 +59,9 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Apply Loop Temporary Overrides to the therapy timeline (basal ×f, ISF ÷f, CR ÷f, target ← override range). Off by default.")
     var applyOverrides: Bool = false
 
+    @Flag(name: .long, help: "Use deployed Loop's adaptive carb absorption (.adaptiveRateNonlinear: adaptiveAbsorptionRateEnabled=true, initialAbsorptionTimeOverrun=1.0). Off by default = the .nonlinear non-adaptive deployed default.")
+    var adaptiveCarbAbsorption: Bool = false
+
     // Momentum knobs (for Loop-3.9.3-compatibility experiments). Defaults = LoopAlgorithm.
     @Option(name: .long, help: "Momentum projection duration (minutes). Default 15 (LoopAlgorithm). Loop 3.9.3 used 30.")
     var momentumDurationMin: Double = 15
@@ -112,6 +115,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
             useIntegralRC: integralRC,
             kalmanSmoothing: false,        // raw native CGM (evaluate path uses data.glucose directly)
             clipInProgressTempBasal: clipInProgressTempBasal,
+            adaptiveCarbAbsorption: adaptiveCarbAbsorption,
             sensitivityMultiplier: sensitivityMultiplier,
             positiveVelocityCap: momentumCap,
             momentumProjectionMinutes: durMin,

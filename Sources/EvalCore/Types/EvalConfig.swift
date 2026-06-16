@@ -128,6 +128,12 @@ public struct EvalConfig: Codable, Sendable {
     /// Carb absorption model.  Default: .piecewiseLinear.
     public var carbAbsorptionModel: CarbAbsorptionModel
 
+    /// Adaptive carb absorption rate (deployed Loop's `.adaptiveRateNonlinear`):
+    /// when observed absorption runs fast, shorten absorption / drop COB faster
+    /// (adaptiveAbsorptionRateEnabled=true, initialAbsorptionTimeOverrun=1.0).
+    /// Default false = the `.nonlinear` (non-adaptive, overrun 1.5) deployed default.
+    public var adaptiveCarbAbsorption: Bool
+
     /// Diagnostic: cap every carb entry's absorptionTime to at most this many
     /// seconds (0 = no cap). Shortening the logged absorption time raises the
     /// modeled absorption-rate ceiling, so a fast rise is absorbed into carbs
@@ -453,6 +459,7 @@ public struct EvalConfig: Codable, Sendable {
         includingPositiveVelocityAndRC: Bool = true,
         useMidAbsorptionISF: Bool = true,
         carbAbsorptionModel: CarbAbsorptionModel = .piecewiseLinear,
+        adaptiveCarbAbsorption: Bool = false,
         carbAbsorptionTimeCapSec: TimeInterval = 0,
         sensitivityMultiplier: Double = 1.0,
         sensitivityHourlyMultipliers: [Double]? = nil,
@@ -556,6 +563,7 @@ public struct EvalConfig: Codable, Sendable {
         self.includingPositiveVelocityAndRC = includingPositiveVelocityAndRC
         self.useMidAbsorptionISF            = useMidAbsorptionISF
         self.carbAbsorptionModel            = carbAbsorptionModel
+        self.adaptiveCarbAbsorption         = adaptiveCarbAbsorption
         self.carbAbsorptionTimeCapSec       = carbAbsorptionTimeCapSec
         self.sensitivityMultiplier          = sensitivityMultiplier
         if let h = sensitivityHourlyMultipliers, h.count != 24 {
@@ -581,7 +589,7 @@ public struct EvalConfig: Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
         case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, horizons, includingPositiveVelocityAndRC
-        case useMidAbsorptionISF, carbAbsorptionModel, carbAbsorptionTimeCapSec
+        case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
         case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
@@ -631,6 +639,7 @@ public struct EvalConfig: Codable, Sendable {
         self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
         self.useMidAbsorptionISF  = try c.decode(Bool.self,         forKey: .useMidAbsorptionISF)
         self.carbAbsorptionModel  = try c.decode(CarbAbsorptionModel.self, forKey: .carbAbsorptionModel)
+        self.adaptiveCarbAbsorption = try c.decodeIfPresent(Bool.self, forKey: .adaptiveCarbAbsorption) ?? false
         self.carbAbsorptionTimeCapSec = try c.decodeIfPresent(TimeInterval.self, forKey: .carbAbsorptionTimeCapSec) ?? 0
         self.sensitivityMultiplier = try c.decode(Double.self,      forKey: .sensitivityMultiplier)
         self.carbRatioMultiplier  = try c.decode(Double.self,       forKey: .carbRatioMultiplier)
@@ -743,6 +752,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(includingPositiveVelocityAndRC, forKey: .includingPositiveVelocityAndRC)
         try c.encode(useMidAbsorptionISF, forKey: .useMidAbsorptionISF)
         try c.encode(carbAbsorptionModel, forKey: .carbAbsorptionModel)
+        try c.encode(adaptiveCarbAbsorption, forKey: .adaptiveCarbAbsorption)
         try c.encode(carbAbsorptionTimeCapSec, forKey: .carbAbsorptionTimeCapSec)
         try c.encode(sensitivityMultiplier, forKey: .sensitivityMultiplier)
         try c.encode(carbRatioMultiplier, forKey: .carbRatioMultiplier)
