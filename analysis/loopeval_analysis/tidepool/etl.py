@@ -107,20 +107,32 @@ def export_donor(user, start, end, outdir):
         "COALESCE(CAST(get_json_object(rate,'$.$numberDouble') AS DOUBLE), "
         "CAST(get_json_object(rate,'$.$numberInt') AS DOUBLE)) AS rate",
         "COALESCE(CAST(get_json_object(duration,'$.$numberInt') AS BIGINT), "
-        "CAST(get_json_object(duration,'$.$numberLong') AS BIGINT)) AS dur_ms"], win, "basal"))
+        "CAST(get_json_object(duration,'$.$numberLong') AS BIGINT)) AS dur_ms",
+        # ACTUAL pulse-quantized delivered units (Loop/diy-loop & trio write this in
+        # payload.deliveredUnits). Loop reconciles IOB/effects on delivered, not
+        # rate*duration. NULL for pumps that don't report it (aaps/sequel/xdrip) → fall back.
+        "COALESCE(CAST(get_json_object(payload,'$.deliveredUnits.$numberDouble') AS DOUBLE), "
+        "CAST(get_json_object(payload,'$.deliveredUnits.$numberInt') AS DOUBLE)) AS delivered"], win, "basal"))
     # collect basal segments, then CLIP each end to the next segment's start so
     # overlapping Loop basal records don't double-count delivery.
     segs = []
     for r in bas.itertuples():
         st = int(r.t_ms); dur_ms = int(_fin(r.dur_ms) or 0); rate = _fin(r.rate) or 0.0
-        segs.append((st, st + dur_ms, rate))
+        delivered = _fin(r.delivered)   # None if not reported
+        segs.append((st, st + dur_ms, rate, delivered, dur_ms))
     segs.sort()
-    for i, (st, en, rate) in enumerate(segs):
+    for i, (st, en, rate, delivered, rec_dur) in enumerate(segs):
         if i + 1 < len(segs):
             en = min(en, segs[i + 1][0])      # clip to next start (no overlap)
         if en <= st: continue
+        if delivered is not None and rec_dur > 0:
+            # Use the actual delivered amount, scaled by the clip ratio so a
+            # clipped (superseded) segment counts only its delivered portion.
+            vol = delivered * ((en - st) / rec_dur)
+        else:
+            vol = rate * ((en - st) / 3600000.0)   # fallback: nominal rate*duration
         doses.append({"deliveryType": "basal", "startDate": _iso(st), "endDate": _iso(en),
-                      "volume": round(rate * ((en - st) / 3600000.0), 5),
+                      "volume": round(vol, 5),
                       "insulinType": "rapidActingAdult", "automatic": True})
     doses.sort(key=lambda d: d["startDate"])
 
