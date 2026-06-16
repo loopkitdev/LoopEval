@@ -56,6 +56,9 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Treat a temp basal still running at the prediction instant as ENDED at t (clean going-forward design). Default off = project the running temp forward as FieldLoop does (field-faithful).")
     var clipInProgressTempBasal: Bool = false
 
+    @Flag(name: .long, help: "Apply Loop Temporary Overrides to the therapy timeline (basal ×f, ISF ÷f, CR ÷f, target ← override range). Off by default.")
+    var applyOverrides: Bool = false
+
     // Momentum knobs (for Loop-3.9.3-compatibility experiments). Defaults = LoopAlgorithm.
     @Option(name: .long, help: "Momentum projection duration (minutes). Default 15 (LoopAlgorithm). Loop 3.9.3 used 30.")
     var momentumDurationMin: Double = 15
@@ -120,7 +123,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         }
         let client = NightscoutClient(baseURL: baseURL, apiSecret: apiSecret)
         let cache  = try DataCache(cacheDir: cacheDir)
-        let dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: preset)
+        let dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: preset, applyOverrides: applyOverrides)
         let engine = EvaluationEngine(dataSource: dataSource)
 
         printStderr("Fetching data...\n")

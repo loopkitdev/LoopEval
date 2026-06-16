@@ -67,10 +67,16 @@ public struct NightscoutTreatment: Decodable, Sendable {
     /// created_at/timestamp. Used to recover the true entry time of carbs the
     /// user logged with a past meal time.
     public let id: String?
+    /// Temporary Override: insulin-needs scale factor (basal ×f, ISF ÷f, CR ÷f).
+    /// nil = no insulin scaling (target-only override).
+    public let insulinNeedsScaleFactor: Double?
+    /// Temporary Override: the override target/correction range [low, high] mg/dL.
+    public let correctionRange: [Double]?
 
     private enum CodingKeys: String, CodingKey {
         case created_at, eventType, insulin, carbs, rate, duration,
-             absolute, amount, percent, isSMB, automatic, timestamp, absorptionTime
+             absolute, amount, percent, isSMB, automatic, timestamp, absorptionTime,
+             insulinNeedsScaleFactor, correctionRange
         case id = "_id"
     }
 

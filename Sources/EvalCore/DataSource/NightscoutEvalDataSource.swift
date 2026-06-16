@@ -17,6 +17,9 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     public let insulinType: ExponentialInsulinModelPreset
     public let defaultMaxBolus: Double
     public let defaultMaxBasalRate: Double
+    /// Apply Loop Temporary Overrides (insulinNeedsScaleFactor + correction range)
+    /// to the therapy timeline over their active windows. Off by default.
+    public let applyOverrides: Bool
 
     // MARK: – Init
 
@@ -25,13 +28,15 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         cache: DataCache,
         insulinType: ExponentialInsulinModelPreset = .rapidActingAdult,
         defaultMaxBolus: Double = 10.0,
-        defaultMaxBasalRate: Double = 3.0
+        defaultMaxBasalRate: Double = 3.0,
+        applyOverrides: Bool = false
     ) {
         self.client = client
         self.cache = cache
         self.insulinType = insulinType
         self.defaultMaxBolus = defaultMaxBolus
         self.defaultMaxBasalRate = defaultMaxBasalRate
+        self.applyOverrides = applyOverrides
     }
 
     // MARK: – EvalDataSource
@@ -88,13 +93,20 @@ public actor NightscoutEvalDataSource: EvalDataSource {
 
     public func getTherapyTimeline(interval: DateInterval) async throws -> TherapyTimeline {
         // TherapyTimeline carries insulinType → include it in the key (see getDoses).
-        let cacheKey = DataCache.key(for: "therapy_\(insulinType)", url: client.baseURL, interval: interval)
+        // Override application also changes the schedules → key on it too.
+        let ovTag = applyOverrides ? "_ov" : ""
+        let cacheKey = DataCache.key(for: "therapy_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
 
         let profileRecord = try await client.fetchProfile()
-        let timeline = buildTherapyTimeline(from: profileRecord, interval: interval)
+        var overrides: [OverrideWindow] = []
+        if applyOverrides {
+            let treatments = try await client.fetchTreatments(interval: interval)
+            overrides = TemporaryOverrides.windows(from: treatments, parse: makeISOParser().date(from:))
+        }
+        let timeline = buildTherapyTimeline(from: profileRecord, interval: interval, overrides: overrides)
         try await cache.save(timeline, key: cacheKey)
         return timeline
     }
@@ -294,7 +306,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
 
     private func buildTherapyTimeline(
         from record: NightscoutProfileRecord,
-        interval: DateInterval
+        interval: DateInterval,
+        overrides: [OverrideWindow] = []
     ) -> TherapyTimeline {
         let profileName = record.defaultProfile ?? "Default"
         guard let store = record.store,
@@ -360,11 +373,18 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         let maxBolus     = ls?.maximumBolus            ?? defaultMaxBolus
         let maxBasalRate = ls?.maximumBasalRatePerHour ?? defaultMaxBasalRate
 
+        // Apply Temporary Overrides over their active windows (basal ×f, ISF ÷f, CR ÷f,
+        // target ← override range). No-op when overrides is empty.
+        let basalFinal  = TemporaryOverrides.applyDoubles(basalValues, overrides, divide: false)
+        let isfFinal    = TemporaryOverrides.applyISF(isfValues, overrides)
+        let crFinal     = TemporaryOverrides.applyDoubles(crValues, overrides, divide: true)
+        let targetsFinal = TemporaryOverrides.applyTargets(targets, overrides)
+
         return TherapyTimeline(
-            basal: basalValues.isEmpty ? makeDefaultBasal(interval: interval) : basalValues,
-            sensitivity: isfValues.isEmpty ? makeDefaultISF(interval: interval) : isfValues,
-            carbRatio: crValues.isEmpty ? makeDefaultCR(interval: interval) : crValues,
-            target: targets.isEmpty ? makeDefaultTarget(interval: interval) : targets,
+            basal: basalFinal.isEmpty ? makeDefaultBasal(interval: interval) : basalFinal,
+            sensitivity: isfFinal.isEmpty ? makeDefaultISF(interval: interval) : isfFinal,
+            carbRatio: crFinal.isEmpty ? makeDefaultCR(interval: interval) : crFinal,
+            target: targetsFinal.isEmpty ? makeDefaultTarget(interval: interval) : targetsFinal,
             suspendThreshold: suspendThreshold,
             maxBolus: maxBolus,
             maxBasalRate: maxBasalRate,
