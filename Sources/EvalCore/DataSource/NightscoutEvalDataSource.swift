@@ -63,7 +63,10 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // so the cache key MUST include the model — otherwise --insulin-type silently
         // reuses the first model's cached doses.
         // v2: temp-basal volume now uses the pump's delivered `amount` (not rate*duration).
-        let cacheKey = DataCache.key(for: "doses_v2_\(insulinType)", url: client.baseURL, interval: lookback)
+        // DBG_RATEDUR=1 forces commanded rate*duration (ignore delivered amount) — a
+        // diagnostic to test whether the field's runtime IOB used commanded vs delivered.
+        let rateDurTag = ProcessInfo.processInfo.environment["DBG_RATEDUR"] != nil ? "_ratedur" : ""
+        let cacheKey = DataCache.key(for: "doses_v3\(rateDurTag)_\(insulinType)", url: client.baseURL, interval: lookback)
         if let cached: [EvalInsulinDose] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -75,12 +78,12 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     }
 
     public func getCarbEntries(interval: DateInterval) async throws -> [EvalCarbEntry] {
-        // v11 — visibility gate (entryDate/baseEntry) now uses `userEnteredAt`
-        // (Loop's tap time) instead of the ObjectId DB-insert time; startDate stays
-        // the meal-time `timestamp`. v6 landed the user-takeover deferral the STEP
-        // AFTER the paired manual bolus; v4 set entryDate from ObjectId; v3 added
-        // per-entry absorptionTime; v2 hardcoded absorptionTime=nil. Force re-fetch.
-        let cacheKey = DataCache.key(for: "carbs_v11", url: client.baseURL, interval: interval)
+        // v12 — robust ISO parse (with/without fractional seconds) for userEnteredAt
+        // /timestamp/created_at: Loop emits userEnteredAt with NO fractional seconds,
+        // which the fractional-only parser rejected → the visibility gate fell back to
+        // the upload-delayed ObjectId time (80 min late on rloop). v11 switched the
+        // gate to userEnteredAt; v6 user-takeover deferral; v4 ObjectId entryDate.
+        let cacheKey = DataCache.key(for: "carbs_v12", url: client.baseURL, interval: interval)
         if let cached: [EvalCarbEntry] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -160,11 +163,10 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     // MARK: – Treatment → Dose conversion
 
     private func convertTreatmentsToDoses(_ treatments: [NightscoutTreatment]) -> [EvalInsulinDose] {
-        let fmt = makeISOParser()
         var doses: [EvalInsulinDose] = []
 
         for t in treatments {
-            guard let date = fmt.date(from: t.created_at) else { continue }
+            guard let date = Self.robustISODate(t.created_at) else { continue }
 
             let eventType = t.eventType.trimmingCharacters(in: .whitespaces)
 
@@ -177,7 +179,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
                 // (Loop reconciles IOB/effects on delivered units; pumps deliver basal
                 // in 0.05U pulses, so amount != rate*duration). Fall back to the nominal
                 // rate*duration only when the delivered amount wasn't recorded.
-                let volume = t.amount ?? (rate * (durationMin / 60.0))
+                let forceRateDur = ProcessInfo.processInfo.environment["DBG_RATEDUR"] != nil
+                let volume = forceRateDur ? (rate * (durationMin / 60.0)) : (t.amount ?? (rate * (durationMin / 60.0)))
                 let dose = EvalInsulinDose(
                     deliveryType: .basal,
                     startDate: date,
@@ -243,14 +246,13 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     // MARK: – Treatment → Carb conversion
 
     private func convertTreatmentsToCarbs(_ treatments: [NightscoutTreatment]) -> [EvalCarbEntry] {
-        let fmt = makeISOParser()
         // Delivery times of USER manual boluses (automatic != true), for the
         // user-takeover rule below. A bolus timestamp is its delivery time (not
         // backdatable), so created_at is correct here.
         let manualBolusTimes: [Date] = treatments
             .compactMap { tb in
                 guard let ins = tb.insulin, ins > 0, tb.automatic != true else { return nil }
-                return fmt.date(from: tb.created_at)
+                return Self.robustISODate(tb.created_at)
             }
             .sorted()
         // A co-logged meal carb and its manual bolus are effectively ATOMIC: the
@@ -262,7 +264,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
 
         return treatments.compactMap { t -> EvalCarbEntry? in
             guard let carbs = t.carbs, carbs > 0 else { return nil }
-            guard let createdAt = fmt.date(from: t.created_at) else { return nil }
+            guard let createdAt = Self.robustISODate(t.created_at) else { return nil }
             // Meal time may differ from entry time (user can log past/future meals).
             // Visibility is gated by entryDate; the absorption curve starts at startDate.
             //
@@ -279,7 +281,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             // (unlike the ObjectId DB-insert time, which can lag the tap by seconds)
             // and is exactly "when Loop learned about the carbs". Fall back to the
             // ObjectId insert time, then created_at, when absent.
-            let baseEntry = (t.userEnteredAt.flatMap { fmt.date(from: $0) })
+            let baseEntry = Self.robustISODate(t.userEnteredAt)
                 ?? t.objectIdInsertionDate ?? createdAt
             // User-takeover + carb/bolus ALIGNMENT: when the user manual-boluses for
             // this meal, Loop (in reality) saw the carbs and the bolus together and
@@ -298,7 +300,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             // dosingVisibleDate = the (aligned) gate for NORMAL auto-dosing;
             // entryDate stays the TRUE entry time (baseEntry).
             let dosingVisibleDate = pairedBolus ?? baseEntry
-            let mealDate = t.timestamp.flatMap { fmt.date(from: $0) } ?? createdAt
+            let mealDate = Self.robustISODate(t.timestamp) ?? createdAt
             // Loop publishes per-entry absorptionTime in NS (MINUTES). Use it —
             // otherwise the carb math falls back to a long default (~3h) and
             // absorbs meals far slower than the deployed Loop (e.g. a 30-min fast
@@ -584,6 +586,20 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         let fmt = ISO8601DateFormatter()
         fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return fmt
+    }
+
+    /// Parse an ISO8601 timestamp robustly: WITH fractional seconds (Loop's
+    /// created_at, e.g. "…21.000Z") AND WITHOUT (e.g. "…21Z"). Loop's
+    /// `userEnteredAt`/`timestamp` are often emitted with NO fractional seconds,
+    /// which the fractional-only parser silently rejects (returns nil) — that made
+    /// the carb visibility gate fall back to the upload-delayed ObjectId time
+    /// (80 min late on a batch-upload instance like rloop). Always parse both.
+    static func robustISODate(_ s: String?) -> Date? {
+        guard let s = s else { return nil }
+        let frac = ISO8601DateFormatter(); frac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = frac.date(from: s) { return d }
+        let plain = ISO8601DateFormatter(); plain.formatOptions = [.withInternetDateTime]
+        return plain.date(from: s)
     }
 }
 
