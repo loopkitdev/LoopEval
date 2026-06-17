@@ -62,10 +62,18 @@ struct InputWindowBuilder: Sendable {
     ///
     /// Returns `nil` if there is insufficient data — specifically, if there is no
     /// CGM reading within the last 30 minutes of `t`.
+    /// - Parameter decisionAnchor: The instant the decision is triggered, used as the
+    ///   decision-time dose cutoff (doses at/after it are this cycle's OWN output and are
+    ///   excluded). Pass the COMMON step time in multi-arm contexts (the closed-loop sim
+    ///   passes `t` for both arms so the cutoff is symmetric and identity is preserved).
+    ///   When nil (forecast-match's natural use), it defaults to the triggering CGM time
+    ///   (the latest glucose sample ≤ `t`) — robust to `t` being a few seconds AFTER the
+    ///   CGM (e.g. when `t` is the timestamp of the dose this decision enacted).
     func buildInput(at t: Date,
                     includeFutureInsulin overrideFuture: Bool? = nil,
                     includeFutureCarbs overrideFutureCarbs: Bool? = nil,
-                    carbVisibilityCutoff: Date? = nil) -> PredictionInput? {
+                    carbVisibilityCutoff: Date? = nil,
+                    decisionAnchor: Date? = nil) -> PredictionInput? {
 
         let useFutureInsulin = overrideFuture ?? config.includeFutureInsulin
         let useFutureCarbs   = overrideFutureCarbs ?? config.includeFutureCarbs
@@ -83,18 +91,28 @@ struct InputWindowBuilder: Sendable {
         }
 
         // ── Doses ────────────────────────────────────────────────────────────────
+        // The decision is triggered by the latest CGM (`decisionTime`), NOT the
+        // evaluation instant `t` (which, in field-replay, is often the timestamp of
+        // the dose this very decision enacted — a few seconds AFTER the triggering
+        // CGM). Loop doses strictly BEFORE the CGM that triggered it; the dose it
+        // then enacts lands slightly later (startDate >= decisionTime). Including
+        // that dose would feed the decision its OWN just-enacted insulin (inflated
+        // IOB + a suppressed forecast → a systematic under-dose artifact). So the
+        // decision-time dose window ends at the triggering CGM and EXCLUDES anything
+        // at or after it.
+        let decisionTime = decisionAnchor ?? glucoseSlice.last!.startDate
         let doseWindowStart = t.addingTimeInterval(-config.insulinLookbackHours * 3600)
-        let doseWindowEnd: Date
-        if useFutureInsulin {
-            doseWindowEnd = t.addingTimeInterval(6 * 3600)
-        } else {
-            doseWindowEnd = t
-        }
-        // Keep doses that overlap [doseWindowStart, doseWindowEnd].
-        // Doses are sorted by startDate; find the first dose that ends after
-        // doseWindowStart, up to the last dose that starts before doseWindowEnd.
         let dLo = lowerBound(doses, by: doseWindowStart, key: \.endDate)
-        let dHi = upperBound(doses, by: doseWindowEnd, key: \.startDate)
+        let dHi: Int
+        if useFutureInsulin {
+            // Oracle/debug: keep future doses out to +6h from t.
+            dHi = upperBound(doses, by: t.addingTimeInterval(6 * 3600), key: \.startDate)
+        } else {
+            // Decision-time replay: lowerBound gives the first dose with
+            // startDate >= decisionTime, so every kept dose has startDate < the
+            // triggering CGM — doses "right at / right after" the CGM are ignored.
+            dHi = lowerBound(doses, by: decisionTime, key: \.startDate)
+        }
         var dosesSlice = dLo < dHi ? Array(doses[dLo..<dHi]) : []
         // In-progress temp basal handling (decision-time only). Default (false): keep the
         // temp's recorded duration projected forward — this best reproduces FieldLoop,
@@ -104,11 +122,11 @@ struct InputWindowBuilder: Sendable {
         // cleaner going-forward design: a temp still running at t is treated as ENDED at t
         // (only the elapsed [start,t] portion counts; scheduled resumes after).
         if config.clipInProgressTempBasal && !useFutureInsulin {
-            for i in dosesSlice.indices where dosesSlice[i].deliveryType == .basal && dosesSlice[i].endDate > t {
+            for i in dosesSlice.indices where dosesSlice[i].deliveryType == .basal && dosesSlice[i].endDate > decisionTime {
                 let full = dosesSlice[i].endDate.timeIntervalSince(dosesSlice[i].startDate)
-                let elapsed = max(0, t.timeIntervalSince(dosesSlice[i].startDate))
+                let elapsed = max(0, decisionTime.timeIntervalSince(dosesSlice[i].startDate))
                 dosesSlice[i].volume = full > 0 ? dosesSlice[i].volume * (elapsed / full) : 0
-                dosesSlice[i].endDate = t
+                dosesSlice[i].endDate = decisionTime
             }
         }
 

@@ -560,7 +560,7 @@ extension EvaluationEngine {
             var baselineRC = Double.nan
             var baselineDiscrepancy = Double.nan
             var baselinePredCurve: [Double] = []
-            if let baselineInput = baselineBuilder.buildInput(at: t) {
+            if let baselineInput = baselineBuilder.buildInput(at: t, decisionAnchor: t) {
                 let br = baselineEngine.step(EngineStepRequest(
                     t: t,
                     input: baselineInput,
@@ -634,7 +634,7 @@ extension EvaluationEngine {
                 therapyTimeline: data.therapyTimeline,
                 config: candidateConfig
             )
-            guard let candidateInput = candidateBuilder.buildInput(at: t) else {
+            guard let candidateInput = candidateBuilder.buildInput(at: t, decisionAnchor: t) else {
                 t = t.addingTimeInterval(candidateConfig.evalStep)
                 stepIdx += 1
                 continue
@@ -787,7 +787,7 @@ extension EvaluationEngine {
                             }
                         }
                         if coEntered,
-                           let relaxedInput = candidateBuilder.buildInput(at: t, carbVisibilityCutoff: visCut) {
+                           let relaxedInput = candidateBuilder.buildInput(at: t, carbVisibilityCutoff: visCut, decisionAnchor: t) {
                             let rr = EvaluationEngine.simStepDose(
                                 t: t, input: relaxedInput, config: candidateConfig,
                                 therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
