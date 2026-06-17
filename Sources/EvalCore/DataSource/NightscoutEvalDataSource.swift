@@ -95,7 +95,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // TherapyTimeline carries insulinType → include it in the key (see getDoses).
         // Override application also changes the schedules → key on it too.
         let ovTag = applyOverrides ? "_ov" : ""
-        let cacheKey = DataCache.key(for: "therapy_v2hist_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
+        let cacheKey = DataCache.key(for: "therapy_v3tz_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -388,10 +388,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             return makeDefaultTherapyTimeline(interval: interval)
         }
 
-        let tzIdentifier = profile.timezone ?? "UTC"
-        let timeZone = TimeZone(identifier: tzIdentifier)
-            ?? TimeZone(abbreviation: tzIdentifier)
-            ?? .current
+        let timeZone = Self.resolveTimeZone(profile.timezone)
 
         // Determine glucose units (default mg/dL)
         let unitStr = (profile.units ?? record.units ?? "mg/dl").lowercased()
@@ -533,6 +530,30 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     }
 
     // MARK: – Helpers
+
+    /// Resolve a Nightscout profile timezone to the USER's zone (never the sim
+    /// host's). Loop uploads POSIX `ETC/GMT±N` ids in UPPERCASE, which
+    /// `TimeZone(identifier:)` rejects (valid id is `Etc/GMT±N`); without this
+    /// the schedule would silently fall back to the host's timezone and be
+    /// applied hours off. NOTE: `Etc/GMT+7` == UTC−7 (POSIX sign inversion),
+    /// which `TimeZone(identifier:)` handles correctly once the case is fixed.
+    static func resolveTimeZone(_ identifier: String?) -> TimeZone {
+        let utc = TimeZone(identifier: "UTC")!
+        guard let id = identifier, !id.isEmpty else { return utc }
+        if let tz = TimeZone(identifier: id) { return tz }
+        // Case-normalize the IANA "Etc/GMT±N" form (Loop sends "ETC/GMT+7").
+        if let r = id.range(of: "etc/gmt", options: .caseInsensitive) {
+            let suffix = String(id[r.upperBound...])   // e.g. "+7"
+            if let tz = TimeZone(identifier: "Etc/GMT" + suffix) { return tz }
+        }
+        // Bare "GMT±N" → seconds (UTC offset, NOT POSIX-inverted here).
+        if let r = id.range(of: "gmt", options: .caseInsensitive) {
+            let suffix = id[r.upperBound...].trimmingCharacters(in: .whitespaces)
+            if let hours = Int(suffix), let tz = TimeZone(secondsFromGMT: hours * 3600) { return tz }
+        }
+        if let tz = TimeZone(abbreviation: id) { return tz }
+        return utc   // last resort: UTC, never the host's .current
+    }
 
     private func makeISOParser() -> ISO8601DateFormatter {
         let fmt = ISO8601DateFormatter()
