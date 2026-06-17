@@ -87,6 +87,9 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         let insulinEffect90: Double?       // insulin effect Δ at +90min (mg/dL)
         let rcEffect90: Double?            // retrospective-correction effect at +90min (mg/dL)
         let momentumEffect30: Double?      // momentum effect at +30min (mg/dL)
+        let carbEffect360: Double?         // carb effect t→+6h (mg/dL)
+        let insulinEffect360: Double?      // insulin effect t→+6h (mg/dL)
+        let rcEffect360: Double?           // RC effect t→+6h (mg/dL)
         let curve: [Double]                // full forecast curve, mg/dL, 5-min spaced from t
     }
 
@@ -156,6 +159,9 @@ struct ForecastMatchCommand: AsyncParsableCommand {
                 insulinEffect90: r.insulinEffectΔ90,
                 rcEffect90: r.rcEffect90,
                 momentumEffect30: r.momentumEffect30,
+                carbEffect360: r.carbEffect360,
+                insulinEffect360: r.insulinEffect360,
+                rcEffect360: r.rcEffect360,
                 curve: r.predicted.map { $0.quantity.doubleValue(for: mgdl) }
             )
         }
