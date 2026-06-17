@@ -931,7 +931,16 @@ extension EvaluationEngine {
                     $0.startDate <= t && $0.endDate > t
                 })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
                 let schedDeliveryThisStep = schedBasalRate * candidateConfig.evalStep / 3600.0
-                let candidateAbsoluteDelivery = schedDeliveryThisStep + candidateDose
+                var candidateAbsoluteDelivery = schedDeliveryThisStep + candidateDose
+                // Pump pulse quantization: a real pump delivers basal in discrete
+                // pulses, and Loop's per-cycle temp re-issue cancels the in-progress
+                // pulse, so actual deliveredAmount = floor(rate×time / pulse)×pulse
+                // (field: ~−1.1 U/day below rate×time). Without this the counter
+                // over-delivers basal and runs low. (Auto-boluses are already floored.)
+                if candidateConfig.basalPulseQuantum > 0, candidateAbsoluteDelivery > 0 {
+                    let q = candidateConfig.basalPulseQuantum
+                    candidateAbsoluteDelivery = (candidateAbsoluteDelivery / q).rounded(.down) * q
+                }
                 // Use AUTO-ONLY real pump as the baseline. Manual boluses are
                 // passed through (preserved in candidate's dose history) so
                 // they cancel out and don't perturb counter_BG.
@@ -998,7 +1007,16 @@ extension EvaluationEngine {
                     $0.startDate <= t && $0.endDate > t
                 })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
                 let schedDeliveryThisStep = schedBasalRate * candidateConfig.evalStep / 3600.0
-                let candidateAbsoluteDelivery = schedDeliveryThisStep + candidateDose
+                var candidateAbsoluteDelivery = schedDeliveryThisStep + candidateDose
+                // Pump pulse quantization: a real pump delivers basal in discrete
+                // pulses, and Loop's per-cycle temp re-issue cancels the in-progress
+                // pulse, so actual deliveredAmount = floor(rate×time / pulse)×pulse
+                // (field: ~−1.1 U/day below rate×time). Without this the counter
+                // over-delivers basal and runs low. (Auto-boluses are already floored.)
+                if candidateConfig.basalPulseQuantum > 0, candidateAbsoluteDelivery > 0 {
+                    let q = candidateConfig.basalPulseQuantum
+                    candidateAbsoluteDelivery = (candidateAbsoluteDelivery / q).rounded(.down) * q
+                }
                 // Record as a TEMP BASAL segment covering this step, NOT a bolus.
                 // LoopAlgorithm's IOB pipeline computes `netBasalUnits = volume
                 // - scheduledRate × duration` for basal segments. Recording each

@@ -55,6 +55,12 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Apply Loop Temporary Overrides to the therapy timeline over their active windows (basal ×f, ISF ÷f, CR ÷f, target ← override range; f = insulinNeedsScaleFactor). Fidelity feature — applies to BOTH arms. Off by default.")
     var applyOverrides: Bool = false
 
+    @Option(name: .long, help: "Pump pulse size (U) for quantizing candidate BASAL delivery in the counter (floor to pulses, matching a real pump's deliveredAmount; field is ~1.1 U/day below rate×time). 0 = off (legacy rate×time). Fidelity feature — applies to BOTH arms.")
+    var basalPulseQuantum: Double = 0
+
+    @Flag(name: .long, help: "Use deployed Loop's adaptive carb absorption (.adaptiveRateNonlinear). Off by default. Applies to BOTH arms.")
+    var adaptiveCarbAbsorption: Bool = false
+
     @Option(name: .long, help: "Baseline ISF multiplier")
     var sensitivityMultiplier: Double = 1.0
 
@@ -364,8 +370,10 @@ struct SimulateCommand: AsyncParsableCommand {
             useIntegralRC: integralRC,
             bolusIncrement: candidateBolusIncrement,
             tempBasalIncrement: candidateTempBasalIncrement,
+            basalPulseQuantum: basalPulseQuantum,
             kalmanSmoothing: !noKalman,
             simRawGlucose: simRawGlucose,
+            adaptiveCarbAbsorption: adaptiveCarbAbsorption,
             sensitivityMultiplier: sensitivityMultiplier,
             localTimezone: resolvedTz,
             useAsymmetricMomentum: asymmetricMomentum
@@ -449,11 +457,13 @@ struct SimulateCommand: AsyncParsableCommand {
             iceRiseBoostIsfFadeHi: candidateIceRiseBoostIsfFadeHi,
             bolusIncrement: candidateBolusIncrement,
             tempBasalIncrement: candidateTempBasalIncrement,
+            basalPulseQuantum: basalPulseQuantum,
             correctionRangeOverrideLow: crOverrideLow,
             correctionRangeOverrideHigh: crOverrideHigh,
             kalmanSmoothing: !noKalman,
             simRawGlucose: simRawGlucose,
             clipInProgressTempBasal: candidateClipInProgressTempBasal,
+            adaptiveCarbAbsorption: adaptiveCarbAbsorption,
             carbAbsorptionTimeCapSec: candidateCarbAbsorptionCapMin * 60,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,
             sensitivityHourlyMultipliers: hourlyISF,

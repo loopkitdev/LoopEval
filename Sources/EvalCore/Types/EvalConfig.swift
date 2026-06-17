@@ -86,6 +86,12 @@ public struct EvalConfig: Codable, Sendable {
     /// Default 0.05 (Omnipod). See project_field_stock_match.
     public var bolusIncrement: Double
     public var tempBasalIncrement: Double
+    /// Pump pulse size (U) for quantizing the candidate's BASAL delivery in the
+    /// counter. A real pump delivers basal in discrete pulses and a new temp
+    /// each cycle cancels the in-progress pulse, so actual deliveredAmount is
+    /// floor(rate×time / pulse)×pulse — systematically LESS than rate×time
+    /// (field: ~−1.1 U/day). 0 = off (legacy rate×time, over-delivers).
+    public var basalPulseQuantum: Double
     /// Candidate correction-range override (mg/dL). When set, the candidate's dose
     /// decision targets this range instead of the profile's; lets us sweep target
     /// midpoint & width independently of ISF. nil = use profile target.
@@ -449,6 +455,7 @@ public struct EvalConfig: Codable, Sendable {
         iceRiseBoostIsfFadeHi: Double = 0,
         bolusIncrement: Double = 0.05,
         tempBasalIncrement: Double = 0.05,
+        basalPulseQuantum: Double = 0,
         correctionRangeOverrideLow: Double? = nil,
         correctionRangeOverrideHigh: Double? = nil,
         kalmanSmoothing: Bool = true,
@@ -554,6 +561,7 @@ public struct EvalConfig: Codable, Sendable {
         self.iceRiseBoostIsfFadeHi             = iceRiseBoostIsfFadeHi
         self.bolusIncrement                    = bolusIncrement
         self.tempBasalIncrement                = tempBasalIncrement
+        self.basalPulseQuantum                 = basalPulseQuantum
         self.correctionRangeOverrideLow     = correctionRangeOverrideLow
         self.correctionRangeOverrideHigh    = correctionRangeOverrideHigh
         self.kalmanSmoothing                = kalmanSmoothing
@@ -588,7 +596,7 @@ public struct EvalConfig: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
-        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, horizons, includingPositiveVelocityAndRC
+        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, horizons, includingPositiveVelocityAndRC
         case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
@@ -630,6 +638,7 @@ public struct EvalConfig: Codable, Sendable {
         self.iceRiseBoostIsfFadeHi = try c.decodeIfPresent(Double.self, forKey: .iceRiseBoostIsfFadeHi) ?? 0
         self.bolusIncrement = try c.decodeIfPresent(Double.self, forKey: .bolusIncrement) ?? 0.05
         self.tempBasalIncrement = try c.decodeIfPresent(Double.self, forKey: .tempBasalIncrement) ?? 0.05
+        self.basalPulseQuantum = try c.decodeIfPresent(Double.self, forKey: .basalPulseQuantum) ?? 0
         self.correctionRangeOverrideLow  = try c.decodeIfPresent(Double.self, forKey: .correctionRangeOverrideLow)
         self.correctionRangeOverrideHigh = try c.decodeIfPresent(Double.self, forKey: .correctionRangeOverrideHigh)
         self.kalmanSmoothing      = try c.decode(Bool.self,         forKey: .kalmanSmoothing)
@@ -743,6 +752,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(iceRiseBoostIsfFadeHi, forKey: .iceRiseBoostIsfFadeHi)
         try c.encode(bolusIncrement, forKey: .bolusIncrement)
         try c.encode(tempBasalIncrement, forKey: .tempBasalIncrement)
+        try c.encode(basalPulseQuantum, forKey: .basalPulseQuantum)
         try c.encodeIfPresent(correctionRangeOverrideLow, forKey: .correctionRangeOverrideLow)
         try c.encodeIfPresent(correctionRangeOverrideHigh, forKey: .correctionRangeOverrideHigh)
         try c.encode(kalmanSmoothing, forKey: .kalmanSmoothing)

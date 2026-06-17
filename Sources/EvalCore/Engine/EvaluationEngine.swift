@@ -405,9 +405,22 @@ public actor EvaluationEngine {
         let insEff = prediction.effects.insulin
         let rcEff  = prediction.effects.retrospectiveCorrection
         let momEff = prediction.effects.momentum
+        let carbEff = prediction.effects.carbs
         let rcBase  = rcEff.first?.quantity.doubleValue(for: .milligramsPerDeciliter)
         let momBase = momEff.first?.quantity.doubleValue(for: .milligramsPerDeciliter)
         let insBaseT = Self.sampleEffect(insEff, at: t)
+        // FUTURE component effects from t to the 6h horizon (baseline AT t, so
+        // these are the forward contributions to the eventual — not past-window).
+        let carbBaseT = Self.sampleEffect(carbEff, at: t)
+        let carb360 = Self.sampleEffect(carbEff, at: t.addingTimeInterval(360 * 60)).flatMap { v in
+            carbBaseT.map { v - $0 }
+        }
+        let ins360 = Self.sampleEffect(insEff, at: t.addingTimeInterval(360 * 60)).flatMap { v in
+            insBaseT.map { v - $0 }
+        }
+        let rc360 = Self.sampleEffect(rcEff, at: t.addingTimeInterval(360 * 60)).flatMap { v in
+            rcBase.map { v - $0 }
+        }
         let ins60   = Self.sampleEffect(insEff, at: t.addingTimeInterval(60 * 60)).flatMap { v in
             insBaseT.map { v - $0 }
         }
@@ -439,7 +452,10 @@ public actor EvaluationEngine {
             insulinEffectΔ90: ins90,
             rcEffect60: rc60,
             rcEffect90: rc90,
-            momentumEffect30: mom30
+            momentumEffect30: mom30,
+            carbEffect360: carb360,
+            insulinEffect360: ins360,
+            rcEffect360: rc360
         )
     }
 
