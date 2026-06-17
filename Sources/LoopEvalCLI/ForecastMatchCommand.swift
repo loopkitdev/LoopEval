@@ -90,6 +90,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         let carbEffect360: Double?         // carb effect t→+6h (mg/dL)
         let insulinEffect360: Double?      // insulin effect t→+6h (mg/dL)
         let rcEffect360: Double?           // RC effect t→+6h (mg/dL)
+        let currentDiscrepancy: Double?    // latest 30-min summed discrepancy (ICE−carb) the RC integrates
         let curve: [Double]                // full forecast curve, mg/dL, 5-min spaced from t
     }
 
@@ -162,6 +163,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
                 carbEffect360: r.carbEffect360,
                 insulinEffect360: r.insulinEffect360,
                 rcEffect360: r.rcEffect360,
+                currentDiscrepancy: r.currentDiscrepancy,
                 curve: r.predicted.map { $0.quantity.doubleValue(for: mgdl) }
             )
         }

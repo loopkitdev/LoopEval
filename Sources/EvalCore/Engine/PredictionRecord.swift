@@ -66,6 +66,7 @@ public struct PredictionRecord: Sendable {
     public let carbEffect360: Double?   // carb effect t→6h (mg/dL, baseline at t)
     public let insulinEffect360: Double? // insulin effect t→6h (mg/dL)
     public let rcEffect360: Double?      // retrospective-correction effect t→6h (mg/dL)
+    public let currentDiscrepancy: Double? // latest 30-min summed retrospective discrepancy (ICE−carb, mg/dL) the RC integrates
 
     public init(evaluatedAt: Date, predicted: [PredictedGlucoseValue],
                 predictedNoFutureInsulin: [PredictedGlucoseValue]? = nil,
@@ -82,7 +83,8 @@ public struct PredictionRecord: Sendable {
                 momentumEffect30: Double? = nil,
                 carbEffect360: Double? = nil,
                 insulinEffect360: Double? = nil,
-                rcEffect360: Double? = nil) {
+                rcEffect360: Double? = nil,
+                currentDiscrepancy: Double? = nil) {
         self.evaluatedAt               = evaluatedAt
         self.predicted                 = predicted
         self.predictedNoFutureInsulin  = predictedNoFutureInsulin
@@ -101,6 +103,7 @@ public struct PredictionRecord: Sendable {
         self.carbEffect360             = carbEffect360
         self.insulinEffect360          = insulinEffect360
         self.rcEffect360               = rcEffect360
+        self.currentDiscrepancy        = currentDiscrepancy
     }
 
     // MARK: – Horizon lookup
