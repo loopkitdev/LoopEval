@@ -95,18 +95,31 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // TherapyTimeline carries insulinType → include it in the key (see getDoses).
         // Override application also changes the schedules → key on it too.
         let ovTag = applyOverrides ? "_ov" : ""
-        let cacheKey = DataCache.key(for: "therapy_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
+        let cacheKey = DataCache.key(for: "therapy_v2hist_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
 
-        let profileRecord = try await client.fetchProfile()
+        // TIME-VARYING profile history: the user's ISF/CR/basal/target schedule
+        // changes over time (each record's startDate = when it became active).
+        // Backfilling one current profile across history mis-dates the schedule
+        // (e.g. user2 ISF 35-37 pre-2025-05-15, 32 after). Segment the interval
+        // by the profile active at each point.
+        let history = (try? await client.fetchProfileHistory()) ?? []
         var overrides: [OverrideWindow] = []
         if applyOverrides {
             let treatments = try await client.fetchTreatments(interval: interval)
             overrides = TemporaryOverrides.windows(from: treatments, parse: makeISOParser().date(from:))
         }
-        let timeline = buildTherapyTimeline(from: profileRecord, interval: interval, overrides: overrides)
+        let timeline: TherapyTimeline
+        if history.count > 1 {
+            timeline = buildTherapyTimelineHistory(records: history, interval: interval, overrides: overrides)
+        } else {
+            let profileRecord: NightscoutProfileRecord
+            if let first = history.first { profileRecord = first }
+            else { profileRecord = try await client.fetchProfile() }
+            timeline = buildTherapyTimeline(from: profileRecord, interval: interval, overrides: overrides)
+        }
         try await cache.save(timeline, key: cacheKey)
         return timeline
     }
@@ -295,6 +308,72 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     }
 
     // MARK: – Profile → TherapyTimeline conversion
+
+    /// Build a TIME-VARYING therapy timeline from profile history: each profile
+    /// record is active from its `startDate` until the next record's, so the
+    /// ISF/CR/basal/target schedule changes over time as the user changed it.
+    /// Per-segment raw schedules are concatenated, THEN overrides are applied.
+    private func buildTherapyTimelineHistory(
+        records: [NightscoutProfileRecord],
+        interval: DateInterval,
+        overrides: [OverrideWindow]
+    ) -> TherapyTimeline {
+        // Profile `startDate` has NO fractional seconds (e.g. 2026-06-16T06:48:23Z),
+        // unlike treatment `created_at` (…23.791Z), so parse robustly (with and
+        // without fractional) and fall back to created_at.
+        let isoFrac = makeISOParser()
+        let isoPlain = ISO8601DateFormatter(); isoPlain.formatOptions = [.withInternetDateTime]
+        func parseDate(_ s: String?) -> Date? {
+            guard let s = s else { return nil }
+            return isoFrac.date(from: s) ?? isoPlain.date(from: s)
+        }
+        // (startDate, record), sorted ascending; drop records with no parseable date.
+        let dated = records.compactMap { r -> (Date, NightscoutProfileRecord)? in
+            var d = parseDate(r.startDate)
+            if d == nil, let ms = r.mills, let msv = Double(ms) {
+                d = Date(timeIntervalSince1970: msv / 1000.0)   // mills = ms epoch
+            }
+            guard let dd = d else { return nil }
+            return (dd, r)
+        }.sorted { $0.0 < $1.0 }
+        guard !dated.isEmpty else {
+            return buildTherapyTimeline(from: records[0], interval: interval, overrides: overrides)
+        }
+        // Build segments covering [interval.start, interval.end): record i is
+        // active from max(start_i, interval.start) to min(start_{i+1}, interval.end).
+        var segBasal: [AbsoluteScheduleValue<Double>] = []
+        var segISF: [AbsoluteScheduleValue<LoopQuantity>] = []
+        var segCR: [AbsoluteScheduleValue<Double>] = []
+        var segTarget: [AbsoluteScheduleValue<ClosedRange<LoopQuantity>>] = []
+        var lastRaw: TherapyTimeline?
+        for (i, (start, record)) in dated.enumerated() {
+            let activeStart = max(start, interval.start)
+            let activeEnd = (i + 1 < dated.count) ? min(dated[i + 1].0, interval.end) : interval.end
+            guard activeStart < activeEnd else { continue }
+            let raw = buildTherapyTimeline(from: record,
+                                           interval: DateInterval(start: activeStart, end: activeEnd),
+                                           overrides: [])
+            segBasal.append(contentsOf: raw.basal)
+            segISF.append(contentsOf: raw.sensitivity)
+            segCR.append(contentsOf: raw.carbRatio)
+            segTarget.append(contentsOf: raw.target)
+            lastRaw = raw   // most-recent in-window record supplies loopSettings/caps
+        }
+        guard let tmpl = lastRaw, !segISF.isEmpty else {
+            return buildTherapyTimeline(from: dated.last!.1, interval: interval, overrides: overrides)
+        }
+        // Apply overrides to the concatenated (time-varying) schedules.
+        return TherapyTimeline(
+            basal: TemporaryOverrides.applyDoubles(segBasal, overrides, divide: false),
+            sensitivity: TemporaryOverrides.applyISF(segISF, overrides),
+            carbRatio: TemporaryOverrides.applyDoubles(segCR, overrides, divide: true),
+            target: TemporaryOverrides.applyTargets(segTarget, overrides),
+            suspendThreshold: tmpl.suspendThreshold,
+            maxBolus: tmpl.maxBolus,
+            maxBasalRate: tmpl.maxBasalRate,
+            insulinType: insulinType
+        )
+    }
 
     private func buildTherapyTimeline(
         from record: NightscoutProfileRecord,
