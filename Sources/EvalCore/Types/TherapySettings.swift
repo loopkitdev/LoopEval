@@ -18,6 +18,22 @@ public struct TherapySettings: Codable, Sendable {
     public var maxBasalRate: Double
     public var insulinType: ExponentialInsulinModelPreset
 
+    // ── Decision-time override gating (not Codable; in-memory only) ───────────
+    // The fields above (`basal`/`sensitivity`/`carbRatio`/`target`) hold the
+    // FULLY-override-applied ("baked") schedules — what callers that read the
+    // timeline directly (precompute, sim scheduled-basal physics) have always
+    // used. To make DECISION-TIME replay faithful, we also keep the RAW
+    // (un-override) schedules plus the override windows so that a forecast made
+    // at time `t` can apply ONLY the overrides the user had already enabled by
+    // `t` (window.start <= t) — a future override (created later) must be
+    // invisible to an earlier decision, exactly like the carb visibility gate.
+    // Empty `overrideWindows` ⇒ no gating (the baked == raw, behavior unchanged).
+    public var rawBasal: [AbsoluteScheduleValue<Double>] = []
+    public var rawSensitivity: [AbsoluteScheduleValue<LoopQuantity>] = []
+    public var rawCarbRatio: [AbsoluteScheduleValue<Double>] = []
+    public var rawTarget: [AbsoluteScheduleValue<ClosedRange<LoopQuantity>>] = []
+    public var overrideWindows: [OverrideWindow] = []
+
     public init(
         basal: [AbsoluteScheduleValue<Double>],
         sensitivity: [AbsoluteScheduleValue<LoopQuantity>],
@@ -26,7 +42,12 @@ public struct TherapySettings: Codable, Sendable {
         suspendThreshold: LoopQuantity? = nil,
         maxBolus: Double,
         maxBasalRate: Double,
-        insulinType: ExponentialInsulinModelPreset = .rapidActingAdult
+        insulinType: ExponentialInsulinModelPreset = .rapidActingAdult,
+        rawBasal: [AbsoluteScheduleValue<Double>] = [],
+        rawSensitivity: [AbsoluteScheduleValue<LoopQuantity>] = [],
+        rawCarbRatio: [AbsoluteScheduleValue<Double>] = [],
+        rawTarget: [AbsoluteScheduleValue<ClosedRange<LoopQuantity>>] = [],
+        overrideWindows: [OverrideWindow] = []
     ) {
         self.basal            = basal
         self.sensitivity      = sensitivity
@@ -36,6 +57,11 @@ public struct TherapySettings: Codable, Sendable {
         self.maxBolus         = maxBolus
         self.maxBasalRate     = maxBasalRate
         self.insulinType      = insulinType
+        self.rawBasal         = rawBasal
+        self.rawSensitivity   = rawSensitivity
+        self.rawCarbRatio     = rawCarbRatio
+        self.rawTarget        = rawTarget
+        self.overrideWindows  = overrideWindows
     }
 
     // MARK: – Codable helpers
@@ -57,6 +83,13 @@ public struct TherapySettings: Codable, Sendable {
         case maxBolus
         case maxBasalRate
         case insulinType
+        // Decision-time override gating (must round-trip through the cache, else
+        // a cache load silently drops the gate and the override leaks back in).
+        case rawBasal
+        case rawSensitivity     // stored as mg/dL values
+        case rawCarbRatio
+        case rawTarget          // stored as CodableTargetEntry
+        case overrideWindows
     }
 
     public init(from decoder: Decoder) throws {
@@ -94,6 +127,23 @@ public struct TherapySettings: Codable, Sendable {
         } else {
             suspendThreshold = nil
         }
+
+        // ── Decision-time override gating (optional; absent in legacy caches) ──────
+        rawBasal     = (try? c.decodeIfPresent([AbsoluteScheduleValue<Double>].self, forKey: .rawBasal)) ?? []
+        rawCarbRatio = (try? c.decodeIfPresent([AbsoluteScheduleValue<Double>].self, forKey: .rawCarbRatio)) ?? []
+        let rawSensRaw = (try? c.decodeIfPresent([AbsoluteScheduleValue<Double>].self, forKey: .rawSensitivity)) ?? []
+        rawSensitivity = rawSensRaw.map {
+            AbsoluteScheduleValue(startDate: $0.startDate, endDate: $0.endDate,
+                                  value: LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: $0.value))
+        }
+        let rawTargetRaw = (try? c.decodeIfPresent([CodableTargetEntry].self, forKey: .rawTarget)) ?? []
+        rawTarget = rawTargetRaw.map {
+            let lo = LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: $0.lowerBound)
+            let hi = LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: $0.upperBound)
+            return AbsoluteScheduleValue(startDate: $0.startDate, endDate: $0.endDate,
+                                         value: ClosedRange(uncheckedBounds: (lower: lo, upper: hi)))
+        }
+        overrideWindows = (try? c.decodeIfPresent([OverrideWindow].self, forKey: .overrideWindows)) ?? []
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -126,5 +176,26 @@ public struct TherapySettings: Codable, Sendable {
         if let st = suspendThreshold {
             try c.encode(st.doubleValue(for: .milligramsPerDeciliter), forKey: .suspendThreshold)
         }
+
+        // ── Decision-time override gating ─────────────────────────────────────────
+        if !rawBasal.isEmpty     { try c.encode(rawBasal, forKey: .rawBasal) }
+        if !rawCarbRatio.isEmpty { try c.encode(rawCarbRatio, forKey: .rawCarbRatio) }
+        if !rawSensitivity.isEmpty {
+            let raw = rawSensitivity.map {
+                AbsoluteScheduleValue(startDate: $0.startDate, endDate: $0.endDate,
+                                      value: $0.value.doubleValue(for: .milligramsPerDeciliter))
+            }
+            try c.encode(raw, forKey: .rawSensitivity)
+        }
+        if !rawTarget.isEmpty {
+            let raw = rawTarget.map { entry in
+                CodableTargetEntry(
+                    startDate: entry.startDate, endDate: entry.endDate,
+                    lowerBound: entry.value.lowerBound.doubleValue(for: .milligramsPerDeciliter),
+                    upperBound: entry.value.upperBound.doubleValue(for: .milligramsPerDeciliter))
+            }
+            try c.encode(raw, forKey: .rawTarget)
+        }
+        if !overrideWindows.isEmpty { try c.encode(overrideWindows, forKey: .overrideWindows) }
     }
 }

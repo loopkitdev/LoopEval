@@ -148,16 +148,34 @@ struct InputWindowBuilder: Sendable {
         let earliestDoseStart = dosesSlice.map(\.startDate).min() ?? nominalBasalWindowStart
         let basalWindowStart = min(nominalBasalWindowStart, earliestDoseStart)
 
+        // ── Decision-time override gating ─────────────────────────────────────────
+        // Apply ONLY the Temporary Overrides the user had enabled by the decision
+        // time `t` (window.start <= t). A future override (created later) must be
+        // invisible to this earlier forecast — the same causal gate as carb
+        // visibility. We slice the RAW (un-override) schedules and apply the gated
+        // windows here, instead of reading the fully-baked schedule (which would
+        // leak a not-yet-created override into earlier decisions — e.g. a 10pm
+        // "high" override's higher target floor reaching back into a 6pm meal
+        // forecast and spuriously gating its auto-bolus). When there are no
+        // overrides, srcX == the baked fields and applyOv=false ⇒ behavior is
+        // byte-identical to the pre-gating path.
+        let applyOv = !therapyTimeline.overrideWindows.isEmpty && !therapyTimeline.rawBasal.isEmpty
+        let gatedWindows = applyOv ? therapyTimeline.overrideWindows.filter { $0.start <= t } : []
+        let srcBasal = applyOv ? therapyTimeline.rawBasal       : therapyTimeline.basal
+        let srcSens  = applyOv ? therapyTimeline.rawSensitivity : therapyTimeline.sensitivity
+        let srcCR    = applyOv ? therapyTimeline.rawCarbRatio   : therapyTimeline.carbRatio
+        let srcTgt   = applyOv ? therapyTimeline.rawTarget      : therapyTimeline.target
+
         // ── Basal ────────────────────────────────────────────────────────────────
         let basalWindowEnd = t.addingTimeInterval(2 * 3600)
         var basalSlice = sliceSchedule(
-            therapyTimeline.basal,
+            srcBasal,
             from: basalWindowStart,
             to: basalWindowEnd
         )
         // Extend basal backward/forward to fill any schedule gaps
         if basalSlice.isEmpty {
-            let fallback = therapyTimeline.basal.last?.value ?? 1.0
+            let fallback = srcBasal.last?.value ?? 1.0
             basalSlice = [AbsoluteScheduleValue(startDate: basalWindowStart, endDate: basalWindowEnd, value: fallback)]
         } else {
             if basalSlice[0].startDate > basalWindowStart {
@@ -168,20 +186,22 @@ struct InputWindowBuilder: Sendable {
                 basalSlice[li] = AbsoluteScheduleValue(startDate: basalSlice[li].startDate, endDate: basalWindowEnd, value: basalSlice[li].value)
             }
         }
+        // Apply decision-time-gated overrides to the basal slice (basal × f).
+        if applyOv { basalSlice = TemporaryOverrides.applyDoubles(basalSlice, gatedWindows, divide: false) }
 
         // ── Sensitivity (ISF) ────────────────────────────────────────────────────
         // ISF must cover ALL dose startDates AND extend to t+8h (same reasoning as basal).
         let isfBackStart = basalWindowStart   // already min(nominal, earliestDose)
         let isfFwdEnd    = t.addingTimeInterval(8 * 3600)
         var sensitivitySlice = sliceSensitivity(
-            therapyTimeline.sensitivity,
+            srcSens,
             from: isfBackStart,
             to: isfFwdEnd
         )
 
         if sensitivitySlice.isEmpty {
             // No ISF data at all in range — use any available value
-            let fallback = therapyTimeline.sensitivity.last?.value
+            let fallback = srcSens.last?.value
                 ?? LoopQuantity(unit: .milligramsPerDeciliterPerInternationalUnit, doubleValue: 50)
             sensitivitySlice = [AbsoluteScheduleValue(
                 startDate: isfBackStart,
@@ -208,6 +228,9 @@ struct InputWindowBuilder: Sendable {
             }
         }
 
+        // Apply decision-time-gated overrides to the ISF slice (ISF ÷ f).
+        if applyOv { sensitivitySlice = TemporaryOverrides.applyISF(sensitivitySlice, gatedWindows) }
+
         // Apply ISF multiplier (no-op when multiplier == 1.0)
         sensitivitySlice = applyISFMultiplier(sensitivitySlice)
 
@@ -219,12 +242,12 @@ struct InputWindowBuilder: Sendable {
         let crBack = carbWindowStart    // = t - 8h
         let crFwd  = carbWindowEnd      // = t + 6h
         var carbRatioSlice = sliceSchedule(
-            therapyTimeline.carbRatio,
+            srcCR,
             from: crBack,
             to: crFwd
         )
         if carbRatioSlice.isEmpty {
-            let fallback = therapyTimeline.carbRatio.last?.value ?? 10.0
+            let fallback = srcCR.last?.value ?? 10.0
             carbRatioSlice = [AbsoluteScheduleValue(startDate: crBack, endDate: crFwd, value: fallback)]
         } else {
             if carbRatioSlice[0].startDate > crBack {
@@ -235,16 +258,20 @@ struct InputWindowBuilder: Sendable {
                 carbRatioSlice[li2] = AbsoluteScheduleValue(startDate: carbRatioSlice[li2].startDate, endDate: crFwd, value: carbRatioSlice[li2].value)
             }
         }
+        // Apply decision-time-gated overrides to the carb-ratio slice (CR ÷ f).
+        if applyOv { carbRatioSlice = TemporaryOverrides.applyDoubles(carbRatioSlice, gatedWindows, divide: true) }
 
         // Apply carb ratio multiplier (no-op when multiplier == 1.0)
         carbRatioSlice = applyCarbRatioMultiplier(carbRatioSlice)
 
         // ── Target ───────────────────────────────────────────────────────────────
-        let targetSlice = sliceTarget(
-            therapyTimeline.target,
+        var targetSlice = sliceTarget(
+            srcTgt,
             from: t,
             to: t.addingTimeInterval(6 * 3600)
         )
+        // Apply decision-time-gated overrides to the target slice (range ← override).
+        if applyOv { targetSlice = TemporaryOverrides.applyTargets(targetSlice, gatedWindows) }
 
         return PredictionInput(
             glucose: glucoseSlice,

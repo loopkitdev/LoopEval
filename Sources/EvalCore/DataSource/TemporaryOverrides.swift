@@ -9,12 +9,17 @@
 import Foundation
 import LoopAlgorithm
 
-public struct OverrideWindow: Sendable {
+public struct OverrideWindow: Sendable, Codable {
     public let start: Date
     public let end: Date
     public let factor: Double?     // insulinNeedsScaleFactor; nil = no insulin scaling
     public let targetLo: Double?   // mg/dL
     public let targetHi: Double?
+
+    public init(start: Date, end: Date, factor: Double?, targetLo: Double?, targetHi: Double?) {
+        self.start = start; self.end = end
+        self.factor = factor; self.targetLo = targetLo; self.targetHi = targetHi
+    }
 }
 
 public enum TemporaryOverrides {
