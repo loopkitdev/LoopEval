@@ -455,7 +455,9 @@ public actor EvaluationEngine {
             momentumEffect30: mom30,
             carbEffect360: carb360,
             insulinEffect360: ins360,
-            rcEffect360: rc360
+            rcEffect360: rc360,
+            currentDiscrepancy: prediction.effects.retrospectiveGlucoseDiscrepancies.last?
+                .quantity.doubleValue(for: .milligramsPerDeciliter)
         )
     }
 
