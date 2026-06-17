@@ -332,6 +332,27 @@ public struct NightscoutClient: Sendable {
         }
     }
 
+    /// All profile records (history), most-recent first. Used to build a
+    /// TIME-VARYING therapy timeline: the user's ISF/CR/basal/target schedule
+    /// changes over time, and each record's `startDate` is when that schedule
+    /// became active. Backfilling a single (current) profile across history is
+    /// a fidelity bug — e.g. user2's ISF was 35–37 before 2025-05-15, 32 after.
+    /// Lossy wrapper: a single malformed profile record (over years of history,
+    /// some have quirky/legacy fields) must NOT fail the whole array decode.
+    private struct LossyProfile: Decodable {
+        let value: NightscoutProfileRecord?
+        init(from decoder: Decoder) throws { value = try? NightscoutProfileRecord(from: decoder) }
+    }
+
+    public func fetchProfileHistory(count: Int = 8000) async throws -> [NightscoutProfileRecord] {
+        var comps = URLComponents(
+            url: baseURL.appendingPathComponent("api/v1/profile.json"),
+            resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "count", value: String(count))]
+        let lossy = try await fetchJSON([LossyProfile].self, from: comps.url!)
+        return lossy.compactMap { $0.value }
+    }
+
     // MARK: – Private helpers
 
     private func fetchJSON<T: Decodable>(_ type: T.Type, from url: URL) async throws -> T {
