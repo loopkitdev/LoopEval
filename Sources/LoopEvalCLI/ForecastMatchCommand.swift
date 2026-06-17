@@ -50,6 +50,17 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Auto-bolus application factor (default 0.4).")
     var applicationFactor: Double = 0.4
 
+    @Flag(name: .long, help: "Glucose-based application factor (Loop GBAF): ramp AF from gbaf-factor-low (at gbaf-low-anchor) to gbaf-factor-high (at gbaf-high-anchor). Loop's default: 110/200, 0.20/0.80.")
+    var gbaf: Bool = false
+    @Option(name: .long, help: "GBAF low anchor mg/dL (Loop: targetLow+10).")
+    var gbafLowAnchor: Double = 110
+    @Option(name: .long, help: "GBAF high anchor mg/dL (Loop: 200).")
+    var gbafHighAnchor: Double = 200
+    @Option(name: .long, help: "GBAF factor at/below low anchor (Loop: 0.20).")
+    var gbafFactorLow: Double = 0.20
+    @Option(name: .long, help: "GBAF factor at/above high anchor (Loop: 0.80).")
+    var gbafFactorHigh: Double = 0.80
+
     @Option(name: .long, help: "ISF multiplier (default 1.0).")
     var sensitivityMultiplier: Double = 1.0
 
@@ -120,6 +131,11 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         let durMin = momentumDurationMin   // deployed Loop = 15 (LoopKit dev momentumDuration); 30 only in stale master
         let gateThreshold: Double? = (loop393Momentum || noGradualTransitionsGate) ? nil : 40
         let config = EvalConfig(
+            glucoseBasedApplicationFactor: gbaf,
+            gbafLowAnchor: gbafLowAnchor,
+            gbafHighAnchor: gbafHighAnchor,
+            gbafFactorLow: gbafFactorLow,
+            gbafFactorHigh: gbafFactorHigh,
             applicationFactor: applicationFactor,
             includeFutureInsulin: false,   // decision-time replay
             includeFutureCarbs: false,
