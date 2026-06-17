@@ -55,6 +55,10 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Apply Loop Temporary Overrides to the therapy timeline over their active windows (basal ×f, ISF ÷f, CR ÷f, target ← override range; f = insulinNeedsScaleFactor). Fidelity feature — applies to BOTH arms. Off by default.")
     var applyOverrides: Bool = false
 
+    @Flag(name: .customLong("mid-absorption-isf"), inversion: .prefixedNo,
+          help: "Mid-absorption ISF: re-evaluate ALL active IOB at the CURRENT sensitivity (current LoopAlgorithm default). Pass --no-mid-absorption-isf for the OLD/deployed-Loop behavior: each dose keeps the sensitivity in effect at its delivery time for its lifetime (matters when ISF changes mid-absorption, e.g. a Temporary Override). Applies to BOTH arms.")
+    var midAbsorptionIsf: Bool = true
+
     @Option(name: .long, help: "Pump pulse size (U) for quantizing candidate BASAL delivery in the counter (floor to pulses, matching a real pump's deliveredAmount; field is ~1.1 U/day below rate×time). 0 = off (legacy rate×time). Fidelity feature — applies to BOTH arms.")
     var basalPulseQuantum: Double = 0
 
@@ -373,6 +377,7 @@ struct SimulateCommand: AsyncParsableCommand {
             basalPulseQuantum: basalPulseQuantum,
             kalmanSmoothing: !noKalman,
             simRawGlucose: simRawGlucose,
+            useMidAbsorptionISF: midAbsorptionIsf,
             adaptiveCarbAbsorption: adaptiveCarbAbsorption,
             sensitivityMultiplier: sensitivityMultiplier,
             localTimezone: resolvedTz,
@@ -463,6 +468,7 @@ struct SimulateCommand: AsyncParsableCommand {
             kalmanSmoothing: !noKalman,
             simRawGlucose: simRawGlucose,
             clipInProgressTempBasal: candidateClipInProgressTempBasal,
+            useMidAbsorptionISF: midAbsorptionIsf,
             adaptiveCarbAbsorption: adaptiveCarbAbsorption,
             carbAbsorptionTimeCapSec: candidateCarbAbsorptionCapMin * 60,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,

@@ -59,6 +59,10 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Apply Loop Temporary Overrides to the therapy timeline (basal ×f, ISF ÷f, CR ÷f, target ← override range). Off by default.")
     var applyOverrides: Bool = false
 
+    @Flag(name: .customLong("mid-absorption-isf"), inversion: .prefixedNo,
+          help: "Mid-absorption ISF: re-evaluate ALL active IOB at the CURRENT sensitivity (current LoopAlgorithm default). Pass --no-mid-absorption-isf for the OLD/deployed-Loop behavior: each dose keeps the sensitivity in effect at its delivery time for its lifetime (matters when ISF changes mid-absorption, e.g. a Temporary Override).")
+    var midAbsorptionIsf: Bool = true
+
     @Flag(name: .long, help: "Use deployed Loop's adaptive carb absorption (.adaptiveRateNonlinear: adaptiveAbsorptionRateEnabled=true, initialAbsorptionTimeOverrun=1.0). Off by default = the .nonlinear non-adaptive deployed default.")
     var adaptiveCarbAbsorption: Bool = false
 
@@ -122,6 +126,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
             useIntegralRC: integralRC,
             kalmanSmoothing: false,        // raw native CGM (evaluate path uses data.glucose directly)
             clipInProgressTempBasal: clipInProgressTempBasal,
+            useMidAbsorptionISF: midAbsorptionIsf,
             adaptiveCarbAbsorption: adaptiveCarbAbsorption,
             sensitivityMultiplier: sensitivityMultiplier,
             positiveVelocityCap: momentumCap,
