@@ -95,7 +95,10 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // TherapyTimeline carries insulinType → include it in the key (see getDoses).
         // Override application also changes the schedules → key on it too.
         let ovTag = applyOverrides ? "_ov" : ""
-        let cacheKey = DataCache.key(for: "therapy_v3tz_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
+        // v4ovgate: timeline now also carries RAW schedules + override windows for
+        // decision-time override gating (future overrides invisible to earlier
+        // forecasts). Bump so caches written before the gate are rebuilt.
+        let cacheKey = DataCache.key(for: "therapy_v4ovgate_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -369,7 +372,10 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         guard let tmpl = lastRaw, !segISF.isEmpty else {
             return buildTherapyTimeline(from: dated.last!.1, interval: interval, overrides: overrides)
         }
-        // Apply overrides to the concatenated (time-varying) schedules.
+        // Apply overrides to the concatenated (time-varying) schedules for the
+        // BAKED fields; keep the RAW concatenated schedules + windows so buildInput
+        // can re-derive decision-time-gated schedules (future overrides invisible
+        // to earlier decisions). No-op gating when overrides is empty.
         return TherapyTimeline(
             basal: TemporaryOverrides.applyDoubles(segBasal, overrides, divide: false),
             sensitivity: TemporaryOverrides.applyISF(segISF, overrides),
@@ -378,7 +384,12 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             suspendThreshold: tmpl.suspendThreshold,
             maxBolus: tmpl.maxBolus,
             maxBasalRate: tmpl.maxBasalRate,
-            insulinType: insulinType
+            insulinType: insulinType,
+            rawBasal:       overrides.isEmpty ? [] : segBasal,
+            rawSensitivity: overrides.isEmpty ? [] : segISF,
+            rawCarbRatio:   overrides.isEmpty ? [] : segCR,
+            rawTarget:      overrides.isEmpty ? [] : segTarget,
+            overrideWindows: overrides
         )
     }
 
@@ -463,7 +474,14 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             suspendThreshold: suspendThreshold,
             maxBolus: maxBolus,
             maxBasalRate: maxBasalRate,
-            insulinType: insulinType
+            insulinType: insulinType,
+            // RAW (un-override) schedules + windows for decision-time override
+            // gating in buildInput (see TherapySettings). Empty when no overrides.
+            rawBasal:       overrides.isEmpty ? [] : (basalValues.isEmpty ? makeDefaultBasal(interval: interval) : basalValues),
+            rawSensitivity: overrides.isEmpty ? [] : (isfValues.isEmpty   ? makeDefaultISF(interval: interval)   : isfValues),
+            rawCarbRatio:   overrides.isEmpty ? [] : (crValues.isEmpty     ? makeDefaultCR(interval: interval)    : crValues),
+            rawTarget:      overrides.isEmpty ? [] : (targets.isEmpty      ? makeDefaultTarget(interval: interval): targets),
+            overrideWindows: overrides
         )
     }
 
