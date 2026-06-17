@@ -75,12 +75,12 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     }
 
     public func getCarbEntries(interval: DateInterval) async throws -> [EvalCarbEntry] {
-        // v6 — user-takeover deferral now lands the carb the STEP AFTER the
-        // paired manual bolus (was the same cycle as the bolus in v5, which still
-        // let the sim auto-dose the meal before the bolus hit IOB → double cover).
-        // v4 set entryDate from the ObjectId DB-insertion time; v3 added per-entry
-        // absorptionTime; v2 hardcoded absorptionTime=nil. Force re-fetch.
-        let cacheKey = DataCache.key(for: "carbs_v10", url: client.baseURL, interval: interval)
+        // v11 — visibility gate (entryDate/baseEntry) now uses `userEnteredAt`
+        // (Loop's tap time) instead of the ObjectId DB-insert time; startDate stays
+        // the meal-time `timestamp`. v6 landed the user-takeover deferral the STEP
+        // AFTER the paired manual bolus; v4 set entryDate from ObjectId; v3 added
+        // per-entry absorptionTime; v2 hardcoded absorptionTime=nil. Force re-fetch.
+        let cacheKey = DataCache.key(for: "carbs_v11", url: client.baseURL, interval: interval)
         if let cached: [EvalCarbEntry] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -268,9 +268,16 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             // when Loop actually learned about the carbs. Using created_at as the
             // decision-time gate leaks the meal into the sim ~15-40 min early, so
             // the sim auto-boluses before reality did (and then double-covers the
-            // user's manual meal bolus → counter blow-up). The ObjectId's embedded
-            // DB-insertion time is the true "Loop learned about it" moment; prefer it.
-            let baseEntry = t.objectIdInsertionDate ?? createdAt
+            // user's manual meal bolus → counter blow-up).
+            //
+            // The correct visibility gate is `userEnteredAt` — Loop's own record of
+            // the moment the user tapped "save" (its `userCreatedDate`), present on
+            // 100% of this user's carb entries. It is immune to upload-latency noise
+            // (unlike the ObjectId DB-insert time, which can lag the tap by seconds)
+            // and is exactly "when Loop learned about the carbs". Fall back to the
+            // ObjectId insert time, then created_at, when absent.
+            let baseEntry = (t.userEnteredAt.flatMap { fmt.date(from: $0) })
+                ?? t.objectIdInsertionDate ?? createdAt
             // User-takeover + carb/bolus ALIGNMENT: when the user manual-boluses for
             // this meal, Loop (in reality) saw the carbs and the bolus together and
             // deferred to the user. Gate the carb's auto-dosing visibility to the

@@ -60,6 +60,12 @@ public struct NightscoutTreatment: Decodable, Sendable {
     public let automatic: Bool?
     /// Meal time for carb entries — may differ from created_at when user enters past/future meals
     public let timestamp: String?
+    /// Wall-clock time the user actually tapped "save" (Loop's `userCreatedDate`).
+    /// Unlike `timestamp`/`created_at` (the BACKDATABLE meal/absorption-anchor time),
+    /// this is when Loop genuinely learned about the carbs — the correct visibility
+    /// gate. Present on 100% of this user's carb entries; `timestamp − userEnteredAt`
+    /// is the true backdating signal (~4% of entries >5 min on user2).
+    public let userEnteredAt: String?
     /// Carb absorption time in MINUTES (Loop publishes this per carb entry; e.g. 30, 180)
     public let absorptionTime: Double?
     /// Mongo ObjectId. Its first 4 bytes encode the DB-insertion time — the
@@ -75,7 +81,7 @@ public struct NightscoutTreatment: Decodable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case created_at, eventType, insulin, carbs, rate, duration,
-             absolute, amount, percent, isSMB, automatic, timestamp, absorptionTime,
+             absolute, amount, percent, isSMB, automatic, timestamp, userEnteredAt, absorptionTime,
              insulinNeedsScaleFactor, correctionRange
         case id = "_id"
     }
