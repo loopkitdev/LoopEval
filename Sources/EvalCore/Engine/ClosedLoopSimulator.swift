@@ -1163,18 +1163,34 @@ extension EvaluationEngine {
                     // sub-step (it stops once the level climbs back above onset).
                     // For a normal 5-min step nSub==1 and this reproduces the prior
                     // arithmetic exactly (identity preserved).
+                    // INCREMENTAL counter-regulation. Like insulin and ICE, the
+                    // counter-reg defense is applied as a DIFFERENCE from the real
+                    // trajectory: realBGdelta already carries the real body's
+                    // counter-regulation at the real lows, so adding the absolute
+                    // defense counterreg(counter) on top would DOUBLE-COUNT it (and
+                    // breaks the identity: candidate==real would then push counter
+                    // above actual at every low). Instead add
+                    //   counterreg(counter_BG) − counterreg(actual_BG)
+                    // so at identity (counter==actual) the term is 0; a counter that
+                    // goes genuinely LOWER than actual gets the EXTRA defense; a
+                    // counter that ends HIGHER sheds the real-low defense it wrongly
+                    // inherited via realBGdelta. actual_BG is the real substrate the
+                    // advance runs on (counterGlucose), interpolated across sub-steps.
                     let totalSec = nextT.timeIntervalSince(prevT)
                     let nSub = Swift.max(1, Int((totalSec / candidateConfig.evalStep).rounded(.up)))
                     let subFrac = 1.0 / Double(nSub)
+                    let aPrev = counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
+                    let aNext = counterGlucose[advIdx].quantity.doubleValue(for: mgdlUnit)
                     var bg = counterMgdl[prevIdx]
-                    for _ in 0..<nSub {
+                    for k in 0..<nSub {
                         var crSub = 0.0
                         if counterRegOnsetMgdl > 0 {
-                            let below = counterRegOnsetMgdl - bg
-                            if below > 0 {
-                                let rate = Swift.min(counterRegGain * below, counterRegMaxRate)
-                                crSub = rate * (totalSec * subFrac / 60.0)
-                            }
+                            let belowC = counterRegOnsetMgdl - bg
+                            let rateC = belowC > 0 ? Swift.min(counterRegGain * belowC, counterRegMaxRate) : 0.0
+                            let aSub = aPrev + (aNext - aPrev) * (Double(k) / Double(nSub))
+                            let belowA = counterRegOnsetMgdl - aSub
+                            let rateA = belowA > 0 ? Swift.min(counterRegGain * belowA, counterRegMaxRate) : 0.0
+                            crSub = (rateC - rateA) * (totalSec * subFrac / 60.0)
                         }
                         bg += stepDelta * subFrac + crSub
                     }
