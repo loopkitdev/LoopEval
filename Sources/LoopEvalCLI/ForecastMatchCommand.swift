@@ -87,6 +87,9 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Disable the gradual-transitions gate (>40 mg/dL jump suppresses momentum). The gate is a LoopAlgorithm addition NOT in Loop 3.9.3 — pass this to match 3.9.3.")
     var noGradualTransitionsGate: Bool = false
 
+    @Option(name: .long, help: "Drop decision times whose latest CGM is older than this many minutes — off-cycle / user-triggered devicestatus uploads (manual bolus, carb log) that fall BETWEEN CGM readings, where real Loop does NOT issue an automatic dose. 0 = keep all (default). Typical: 1.5 to keep only fresh-CGM auto-dose cycles.")
+    var maxCgmAgeMin: Double = 0
+
     @Flag(name: .long, help: "Convenience: Loop-3.9.3-compatible momentum = disable the gradual-transitions gate only. (Verified from LoopKit dev source: deployed Loop uses 15-min duration + 4 mg/dL/min cap — same as default — and NO gradual-transitions gate.)")
     var loop393Momentum: Bool = false
 
@@ -161,6 +164,20 @@ struct ForecastMatchCommand: AsyncParsableCommand {
 
         printStderr("Fetching data...\n")
         let data = try await engine.prefetchData(for: interval, config: config)
+
+        // CGM-aligned decision-time filter: deployed Loop auto-doses on CGM-reading
+        // cycles, not on user-triggered devicestatus uploads (manual bolus / carb log)
+        // that land between readings. Drop times whose latest CGM is staler than the
+        // threshold so we don't replay an auto-dose on stale glucose.
+        if maxCgmAgeMin > 0 {
+            let g = data.glucose  // sorted ascending by startDate
+            let before = times.count
+            times = times.filter { t in
+                guard let last = g.last(where: { $0.startDate <= t }) else { return false }
+                return t.timeIntervalSince(last.startDate) <= maxCgmAgeMin * 60
+            }
+            printStderr("CGM-aligned filter: kept \(times.count)/\(before) decision times (max CGM age \(maxCgmAgeMin) min)\n")
+        }
 
         let records = engine.forecastAtTimes(times, data: data, interval: interval, config: config)
         printStderr("Got \(records.count) forecast records\n")
