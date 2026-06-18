@@ -845,18 +845,20 @@ public actor EvaluationEngine {
             lowGateRampFloor: gateFloor,
             gateThreshold: uncertaintyCap == nil ? lowGateThreshold : nil
         )
-        // Quantize to the pump's supported increment so the sim matches real pump
-        // delivery instead of emitting continuous micro-boluses. Recompute deltaU from
-        // the quantized values so the counter physics see exactly what would be delivered.
-        //   - Auto-bolus: real Loop FLOORS (drops the sub-increment remainder) after the
-        //     application factor — verified against devicestatus (AF 0.4 + floor matches
+        // Map the controller's continuous request onto what the pump can actually
+        // deliver, via the PumpModel, so the counter physics see exactly what would
+        // be delivered instead of idealized micro-doses. Recompute deltaU from the
+        // delivered values. Omnipod (rloop + user2) FLOORS both basal rate and bolus
+        // volume to the 0.05 grid (largest supported value <= request):
+        //   - Auto-bolus floor verified against devicestatus (AF 0.4 + floor matches
         //     ~89% of rloop / ~87% of user2 auto-boluses exactly; round-to-nearest does
-        //     not). Flooring is what made a round-to-nearest fit look like AF≈0.37.
-        //   - Temp basal: the pump rounds the rate to the nearest supported value.
-        var bolus = recommendation.bolusUnits ?? 0
-        var tempRate = recommendation.basalAdjustment.unitsPerHour
-        if bolusIncrement > 0 { bolus = (bolus / bolusIncrement).rounded(.down) * bolusIncrement }
-        if tempBasalIncrement > 0 { tempRate = (tempRate / tempBasalIncrement).rounded() * tempBasalIncrement }
+        //     not — flooring is what made a round-to-nearest fit look like AF≈0.37).
+        //   - Temp basal floor verified against rloop override-scaled neutral basal
+        //     (0.486→0.45, 0.648→0.60, 0.891→0.85; round-to-nearest would give .50/.65/.90).
+        let pump = PumpModel(basalRateIncrement: tempBasalIncrement, bolusIncrement: bolusIncrement,
+                             pulseQuantum: 0, rounding: .down)
+        let bolus = pump.supportedBolusVolume(recommendation.bolusUnits ?? 0)
+        let tempRate = pump.supportedBasalRate(recommendation.basalAdjustment.unitsPerHour)
 
         let basalDeltaU = (tempRate - scheduledRate) * evalStep / 3600
         let deltaU = bolus + basalDeltaU

@@ -995,8 +995,9 @@ extension EvaluationEngine {
                 // (field: ~−1.1 U/day below rate×time). Without this the counter
                 // over-delivers basal and runs low. (Auto-boluses are already floored.)
                 if candidateConfig.basalPulseQuantum > 0, candidateAbsoluteDelivery > 0 {
-                    let q = candidateConfig.basalPulseQuantum
-                    candidateAbsoluteDelivery = (candidateAbsoluteDelivery / q).rounded(.down) * q
+                    let pump = PumpModel(basalRateIncrement: 0, bolusIncrement: 0,
+                                         pulseQuantum: candidateConfig.basalPulseQuantum, rounding: .down)
+                    candidateAbsoluteDelivery = pump.quantizeDelivery(candidateAbsoluteDelivery)
                 }
                 // Use AUTO-ONLY real pump as the baseline. Manual boluses are
                 // passed through (preserved in candidate's dose history) so
@@ -1076,8 +1077,9 @@ extension EvaluationEngine {
                 // (field: ~−1.1 U/day below rate×time). Without this the counter
                 // over-delivers basal and runs low. (Auto-boluses are already floored.)
                 if candidateConfig.basalPulseQuantum > 0, candidateAbsoluteDelivery > 0 {
-                    let q = candidateConfig.basalPulseQuantum
-                    candidateAbsoluteDelivery = (candidateAbsoluteDelivery / q).rounded(.down) * q
+                    let pump = PumpModel(basalRateIncrement: 0, bolusIncrement: 0,
+                                         pulseQuantum: candidateConfig.basalPulseQuantum, rounding: .down)
+                    candidateAbsoluteDelivery = pump.quantizeDelivery(candidateAbsoluteDelivery)
                 }
                 // Record as a TEMP BASAL segment covering this step, NOT a bolus.
                 // LoopAlgorithm's IOB pipeline computes `netBasalUnits = volume
