@@ -18,8 +18,14 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     public let defaultMaxBolus: Double
     public let defaultMaxBasalRate: Double
     /// Apply Loop Temporary Overrides (insulinNeedsScaleFactor + correction range)
-    /// to the therapy timeline over their active windows. Off by default.
+    /// to the therapy timeline over their active windows. On by default.
     public let applyOverrides: Bool
+
+    /// How far before `interval.start` to scan for Temporary Override events, so a
+    /// long/indefinite override that began before the analysis window is still
+    /// captured while it is active inside it. 180 days comfortably covers the
+    /// longest observed overrides; the eventType-filtered fetch keeps it cheap.
+    private static let overrideLookback: TimeInterval = 180 * 24 * 3600
 
     // MARK: – Init
 
@@ -29,7 +35,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         insulinType: ExponentialInsulinModelPreset = .rapidActingAdult,
         defaultMaxBolus: Double = 10.0,
         defaultMaxBasalRate: Double = 3.0,
-        applyOverrides: Bool = false
+        applyOverrides: Bool = true
     ) {
         self.client = client
         self.cache = cache
@@ -98,10 +104,12 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // TherapyTimeline carries insulinType → include it in the key (see getDoses).
         // Override application also changes the schedules → key on it too.
         let ovTag = applyOverrides ? "_ov" : ""
-        // v4ovgate: timeline now also carries RAW schedules + override windows for
+        // v5ovdeep: timeline carries RAW schedules + override windows for
         // decision-time override gating (future overrides invisible to earlier
-        // forecasts). Bump so caches written before the gate are rebuilt.
-        let cacheKey = DataCache.key(for: "therapy_v4ovgate_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
+        // forecasts). v5 fetches override treatments over a DEEP look-back so a
+        // long/indefinite override starting before the window is still captured.
+        // Bump so caches written before the deep fetch are rebuilt.
+        let cacheKey = DataCache.key(for: "therapy_v5ovdeep_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -114,7 +122,13 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         let history = (try? await client.fetchProfileHistory()) ?? []
         var overrides: [OverrideWindow] = []
         if applyOverrides {
-            let treatments = try await client.fetchTreatments(interval: interval)
+            // Deep look-back: a long/indefinite Temporary Override can start well
+            // before `interval` yet still be active inside it. Fetch override
+            // events over a wide window (cheap — overrides are low-volume thanks to
+            // the eventType filter); the windows are clamped to the interval when
+            // the timeline is built, so the cached result still matches `interval`.
+            let ovStart = interval.start.addingTimeInterval(-Self.overrideLookback)
+            let treatments = try await client.fetchTreatments(from: ovStart, to: interval.end, eventType: "Temporary Override")
             overrides = TemporaryOverrides.windows(from: treatments, parse: makeISOParser().date(from:))
         }
         let timeline: TherapyTimeline

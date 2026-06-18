@@ -310,6 +310,25 @@ public struct NightscoutClient: Sendable {
         return try await fetchJSON([NightscoutTreatment].self, from: url)
     }
 
+    /// Fetch only treatments of a given eventType over [from, to].
+    /// Used for low-volume event types (e.g. "Temporary Override") where a deep
+    /// look-back is needed — a long/indefinite override can start well before the
+    /// analysis window yet still be active inside it. The eventType filter keeps
+    /// the deep query cheap (overrides are rare relative to temp-basals/boluses).
+    public func fetchTreatments(from: Date, to: Date, eventType: String) async throws -> [NightscoutTreatment] {
+        let fmt = Self.makeDateFormatter()
+        var components = URLComponents(url: baseURL.appendingPathComponent("api/v1/treatments.json"),
+                                       resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "find[eventType]", value: eventType),
+            URLQueryItem(name: "find[created_at][$gte]", value: fmt.string(from: from)),
+            URLQueryItem(name: "find[created_at][$lte]", value: fmt.string(from: to)),
+            URLQueryItem(name: "count", value: "500000"),
+        ]
+        guard let url = components.url else { throw NightscoutClientError.invalidURL }
+        return try await fetchJSON([NightscoutTreatment].self, from: url)
+    }
+
     /// Fetch device status records between `from` and `to`.
     public func fetchDeviceStatus(from: Date, to: Date) async throws -> [NightscoutDeviceStatus] {
         let fmt = Self.makeDateFormatter()
