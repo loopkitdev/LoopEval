@@ -90,6 +90,9 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Drop decision times whose latest CGM is older than this many minutes — off-cycle / user-triggered devicestatus uploads (manual bolus, carb log) that fall BETWEEN CGM readings, where real Loop does NOT issue an automatic dose. 0 = keep all (default). Typical: 1.5 to keep only fresh-CGM auto-dose cycles.")
     var maxCgmAgeMin: Double = 0
 
+    @Option(name: .long, help: "Outages CSV (start,end,... ISO8601 UTC header row) — drop decision times that fall inside a pump-outage / pod-off interval, where the loop cannot run (no pump to dose). Same CSV the outcome-scoring disruption mask uses (loopeval_analysis.outage from-nightscout).")
+    var outagesCsv: String?
+
     @Flag(name: .long, help: "Convenience: Loop-3.9.3-compatible momentum = disable the gradual-transitions gate only. (Verified from LoopKit dev source: deployed Loop uses 15-min duration + 4 mg/dL/min cap — same as default — and NO gradual-transitions gate.)")
     var loop393Momentum: Bool = false
 
@@ -177,6 +180,23 @@ struct ForecastMatchCommand: AsyncParsableCommand {
                 return t.timeIntervalSince(last.startDate) <= maxCgmAgeMin * 60
             }
             printStderr("CGM-aligned filter: kept \(times.count)/\(before) decision times (max CGM age \(maxCgmAgeMin) min)\n")
+        }
+
+        // Pod-outage filter: the loop cannot run while the pod is done and no new
+        // pod is applied (no pump to dose). Drop decision times inside any outage
+        // interval — the same data-level mask the outcome scorer uses.
+        if let outPath = outagesCsv {
+            let rawOut = try String(contentsOfFile: outPath, encoding: .utf8)
+            var intervals: [(Date, Date)] = []
+            for line in rawOut.split(whereSeparator: { $0 == "\n" || $0 == "\r" }) {
+                let f = line.split(separator: ",", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
+                guard f.count >= 2, f[0].lowercased() != "start",
+                      let a = try? parseISO8601Date(f[0]), let b = try? parseISO8601Date(f[1]) else { continue }
+                intervals.append((a, b))
+            }
+            let before = times.count
+            times = times.filter { t in !intervals.contains { $0.0 <= t && t <= $0.1 } }
+            printStderr("Outage filter: kept \(times.count)/\(before) decision times (\(intervals.count) outage intervals)\n")
         }
 
         let records = engine.forecastAtTimes(times, data: data, interval: interval, config: config)

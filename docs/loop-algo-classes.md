@@ -23,7 +23,9 @@ This is the running list of what changed from deployed Loop-main to the new Loop
 | D3 | **momentum velocity cap** (~4.0 mg/dL/min) | caps upward momentum slope | *(no flag yet)* | limits early-rise projection on steep meals; magnitude TBD |
 
 | **OFF-CYCLE decision replay** (FIXED — replay/methodology bug, minor) | forecast-match replays at EVERY field devicestatus timestamp, but ~0.3% are **user-triggered cycles between CGM readings** (manual bolus / carb log) on a 2-5 min STALE BG, where real Loop does NOT auto-dose (field devicestatus there: `enacted bolus=None`). Our sim auto-dosed there → spurious boluses on stale BG. rloop week: 6/1834 off-cycle, 5 spurious boluses (3.0 U) incl. 09-18 21:21 (1.35 U) and 09-16 21:48 (1.25 U). | **`--max-cgm-age-min 1.5`** (new forecast-match flag) drops decision times with stale CGM. **Effect is small**: bolus 181.8→178.6 U, exact 93.9→94.2%. | NOT the main residual — see below |
-| **CGM-aligned residual over-bolus** (open) | even after the off-cycle filter, sim auto-boluses **+13.5 U/week over field** across ~23 CGM-aligned steps; total delivery sim 263 vs field 247 U (+6%). | open — genuine forecast-level/carb/suspend differences at CGM cycles | this is the real remaining residual, not the off-cycle artifact |
+| **09-20 = a PUMP-SUSPEND DISRUPTION** (root-caused, not a delta) | a temp basal rate=0 / **duration 356 min (6 h, 05:47→11:44)** = a pump suspend (pod change). The DEFAULT forecast projects that in-progress 6h suspend forward → "no insulin for 6 h" → `insulinEffect360` flips POSITIVE (+98 at IOB +0.95) → eventualBG soars 111→401. BG then really climbs from 6 h of no basal and **pegs at 400**; pod change ~11:44 → recovery. So the "morning anomaly" AND the "sensor peg" are ONE disruption event. | `--clip-in-progress-temp-basal` makes it sane (evBG 401→117) and matches field (field clips the long suspend; its evBG stayed ~134). Exclude via the disruption/outage mask. **Fidelity note: for long in-progress suspends, CLIPPING is field-faithful — the flag's "default off = field-faithful" help is wrong for long suspends.** | most of the +14.6 U/week "residual" is this one disruption day |
+
+| **CGM-aligned residual over-bolus** (characterized — not a class delta) | sim auto-boluses **+14.6 U/week over field** across 23 CGM-aligned steps (ALL over-bolus, 21/23 COB≈0). Breakdown: **~half is 09-20 sensor artifact** — BG pegged at the 400 ceiling for ~2 h (11:29-13:29, sim forecasts 554→boluses 2.35×2 where true BG is unknown) plus a morning forecast anomaly (BG 140→evBG 400, +2 U); **~half is small scattered over-boluses (0.15-0.7 U) on rising/high BG** where sim's forecast is marginally more aggressive than field's actions. | sensor-ceiling artifacts → covered by a disruption/CGM-quality mask; the scattered part is sub-cycle forecast over-aggressiveness on rises (same family as the suspend-side residual). | **NOT a structural class delta** — sensor artifacts + small forecast-fidelity noise |
 
 Everything else (IRC presence, GBAF, pump quantization, per-point correction sampling) is shared or version/config-dependent, **not** part of the 1→2 algorithm delta. IRC *asymmetry* and the extra forecast terms are the 2→3 delta.
 
@@ -73,6 +75,17 @@ This is **correct class-2 behavior** (the gate is now standard LoopAlgorithm —
 Same veracity test on user2 (Fiasp peak-55, IRC-always-on, overrides; in-cache week 2026-03-09..15, class-1 flags). **D1+D2+IRC transfer:** temp basal sim 104 / field 101 U (76% within 0.05, 43% suspend both), and at **application factor ≈ 0.15** (vs rloop's 0.4) bolus sim 100 / field 106 and **total sim 204 / field 207 U**. So no new user2-specific *algorithm* delta — only a per-user config (AF, insulin model, IRC). The auto-bolus is a fraction of the dose and temp is set independently, so AF scales only the bolus (temp is AF-invariant).
 
 **Tooling lesson (cost me a wrong "user2 over-doses 2.7×" reading):** the Python `effective_delivery_rate` field baseline uses a per-host **doses cache with a fixed epoch range**; if the test window is outside it (my first user2 try was June 2026, cache ended 2026-04-29) it silently returns the scheduled-basal fallback (constant 1.5) → bogus field temp. Always pick a window inside the cache range (or refresh it), and sanity-check that the field rate *varies* before comparing.
+
+## Final residual after excluding pod outages (2026-06-18)
+
+The loop cannot run when the pod is done and no new pod is applied — those intervals must be excluded (data-level outage mask, as in the outcome-scoring disruption policy). Applying the rloop week outage CSV (`loopeval_analysis.outage from-nightscout`, which caught both pod changes incl. 09-20 05:39→11:44 = 356-min suspend + dose gap):
+
+| | auto-bolus sim/field | exact | total Δ |
+|---|---|---|---|
+| all steps | 178.6 / 165.1 (+13.5 U) | 94.2% | +15.4 U |
+| **outage-excluded** | 171.3 / 165.1 (**+6.2 U**) | **94.5%** | **+7.7 U** |
+
+So ~half the residual was the two pod outages. The remaining **+6.2 U/week (~3% of TDD)** is 2 carb steps (post-pod meal + a co-log) and the 09-14 scattered small over-boluses on rises (COB 0, forecast marginally aggressive) — sub-cycle forecast-fidelity floor, **no structural class delta**. The veracity test should apply the outage mask (and `--max-cgm-age-min`) before scoring.
 
 ## Open items
 
