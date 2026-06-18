@@ -106,6 +106,13 @@ extension EvaluationEngine {
         // must yield baselineDose == candidateDose at every step (fairness identity test).
         decisionTimeReplay: Bool = false,
         counterfactualBurnInSec: TimeInterval = 6 * 3600,
+        // CF-IDENTITY harness: force the candidate to deliver EXACTLY the real
+        // dose history (no re-dosing) through the SAME physiological advance, so
+        // `counter` MUST reproduce `actual` to within rounding. This isolates the
+        // patient model from the controller — the only valid test of the CF
+        // advance math (candidate doses == real ⇒ counter == actual). Requires
+        // counterfactualMode.
+        cfIdentity: Bool = false,
         excludeManualBoluses: Bool = false,
         suppressCarbs: Bool = false,
         counterRegOnsetMgdl: Double = 0,
@@ -262,6 +269,15 @@ extension EvaluationEngine {
             // history (pre-warmup + burn-in real pump deliveries).
             counterfactualDoses = data.doses.filter {
                 $0.endDate > warmupStart && $0.startDate < cfActiveStart
+            }
+            // CF-IDENTITY: seed the candidate with the FULL real dose history
+            // (whole window, not just burn-in), and below we skip the per-step
+            // candidate append. The advance then runs on real doses ⇒
+            // candPhys == realPhysDelta ⇒ counter == actual (the test).
+            if cfIdentity {
+                counterfactualDoses = data.doses.filter {
+                    $0.endDate > warmupStart && $0.startDate < interval.end
+                }
             }
             // Rasterize only AUTO deliveries (auto boluses + basal entries) —
             // manual boluses are passed through as user actions and excluded
@@ -1003,6 +1019,11 @@ extension EvaluationEngine {
             // During burn-in, counterfactualDoses was pre-seeded with real
             // pump deliveries up to cfActiveStart, so no per-step append needed.
             if cfActive {
+              let stepEnd = t.addingTimeInterval(candidateConfig.evalStep)
+              // CF-IDENTITY: skip the candidate's own dose append entirely;
+              // counterfactualDoses was pre-seeded with the full REAL history.
+              // The physiological advance below still runs, on real doses.
+              if !cfIdentity {
                 let schedBasalRate = data.therapyTimeline.basal.first(where: {
                     $0.startDate <= t && $0.endDate > t
                 })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
@@ -1035,8 +1056,7 @@ extension EvaluationEngine {
                 ))
                 // Pass through any user-initiated manual boluses falling in
                 // [t, t + stepSec). Preserves user behavior on top of the
-                // candidate's algorithmic decisions.
-                let stepEnd = t.addingTimeInterval(candidateConfig.evalStep)
+                // candidate's algorithmic decisions. (stepEnd hoisted above.)
                 // Candidate insulin already committed THIS cycle before the manual bolus is
                 // delivered: the auto-dose (candidateDose, issued at step start) plus any earlier
                 // manual boluses passed through this same step. The manual-bolus IOB adjustment
@@ -1080,6 +1100,7 @@ extension EvaluationEngine {
                     }
                     nextManualIdx += 1
                 }
+              } // end !cfIdentity (skip candidate dose append in identity mode)
 
                 // PHYSIOLOGICAL ADVANCE — step counter_BG forward to whatever
                 // CGM samples fall in (t, t + stepSec]. counter_BG advance =
@@ -1509,8 +1530,17 @@ extension EvaluationEngine {
         let annotated = safeDoses.annotated(with: trimmedBasal, fillBasalGaps: true)
         // Compute cumulative glucose effects timeline that covers [from, to].
         // Use 5-min delta so the timeline lands at the boundaries we want.
+        // MID-ABSORPTION ISF (patient model): the counter advance MUST use the
+        // same ISF treatment the ICE precompute uses (realICE is built with
+        // useMidAbsorptionISF: true). Using dose-time `glucoseEffects` here left
+        // the added candidate insulin and the removed field insulin on different
+        // ISF timelines, so they did NOT cancel at equal doses and the counter
+        // drifted tens of mg/dL/day on intraday-ISF datasets. Mid-abs on both
+        // sides keeps the patient model self-consistent (candidate==field ⇒
+        // counter==actual).
         let delta: TimeInterval = 5 * 60
-        let effects = annotated.glucoseEffects(
+        let effects = annotated.glucoseEffectsMidAbsorptionISF(
+            longestEffectDuration: insulinModel.effectDuration,
             insulinSensitivityHistory: sensitivity,
             from: from.addingTimeInterval(-delta),
             to: to.addingTimeInterval(delta),
@@ -1581,7 +1611,10 @@ extension EvaluationEngine {
             AbsoluteScheduleValue(startDate: $0.startDate, endDate: $0.endDate,
                                   value: LoopQuantity(unit: $0.value.unit, doubleValue: 0))
         }
-        let effects = annotated.glucoseEffects(
+        // MID-ABSORPTION ISF (patient model): same treatment as realICE /
+        // realPhysDelta so candPhys and realPhysDelta cancel at equal doses.
+        let effects = annotated.glucoseEffectsMidAbsorptionISF(
+            longestEffectDuration: insulinModel.effectDuration,
             insulinSensitivityHistory: sensitivity,
             scheduleBaselineSensitivityHistory: zeroBaseline,
             from: from.addingTimeInterval(-delta),

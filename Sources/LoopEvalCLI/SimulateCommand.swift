@@ -114,6 +114,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Decision-time replay (NOT a closed loop): both arms see the IDENTICAL real glucose/insulin/carb history at every step and emit a dose recommendation WITHOUT acting. For same-input Loop-vs-oref dose & forecast comparison against the insulin-hole oracle. Neither arm's recommendation feeds back. With candidate == Loop, baselineDose must equal candidateDose at every step (fairness identity check). Do not combine with --candidate-counterfactual or --candidate-infer-sensitivity.")
     var decisionTimeReplay: Bool = false
 
+    @Flag(name: .long, help: "CF-IDENTITY harness (requires --candidate-counterfactual): force the candidate to deliver EXACTLY the real dose history through the physiological advance (no re-dosing). The counter MUST then reproduce the actual CGM to within rounding. Tests the patient-model advance in isolation from the controller.")
+    var cfIdentity: Bool = false
+
     @Option(name: .long, help: "Counterfactual burn-in hours (default 6.0): real-pump deliveries drive the sim for this period before counterfactual divergence starts. Gives candidate's prediction a fully-realistic recent dose history at the moment CF mode activates.")
     var candidateCounterfactualBurnInHours: Double = 6.0
 
@@ -538,6 +541,7 @@ struct SimulateCommand: AsyncParsableCommand {
             counterfactualMode: candidateCounterfactual,
             decisionTimeReplay: decisionTimeReplay,
             counterfactualBurnInSec: candidateCounterfactualBurnInHours * 3600,
+            cfIdentity: cfIdentity,
             excludeManualBoluses: noUserBoluses,
             suppressCarbs: noCarbEntries,
             counterRegOnsetMgdl: counterRegOnset,
