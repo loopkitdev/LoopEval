@@ -355,7 +355,14 @@ extension EvaluationEngine {
             FileHandle.standardError.write(Data("PrecomputedInsulinInput.build done in \(Int(Date().timeIntervalSince(iceStart) * 1000))ms (effects entries=\(insulinEffects.count))\n".utf8))
             realICE = physGlucose.counteractionEffects(to: insulinEffects)
             FileHandle.standardError.write(Data("ICE done (entries=\(realICE.count))\n".utf8))
-            if inferSensitivity {
+            // realPhysDelta is the field's PHYSICAL active-insulin effect on the
+            // single mid-abs ISF timeline. ALWAYS precompute it (not just for
+            // infer-sensitivity): the counter advance now uses the ONE patient
+            // model `realBGdelta + m·(candPhys − realPhysDelta)` for every CF
+            // comparison, with m≡1 when sensitivity isn't inferred. This is the
+            // single ISF timeline used symmetrically to remove field doses and
+            // add candidate doses.
+            do {
                 let physStart = Date()
                 for j in 1..<physGlucose.count {
                     realPhysDelta[j] = Self.physicalActiveEffectDelta(
@@ -1118,42 +1125,30 @@ extension EvaluationEngine {
                     let prevIdx = advIdx > 0 ? advIdx - 1 : advIdx
                     let prevT = counterGlucose[prevIdx].startDate
                     let nextT = counterGlucose[advIdx].startDate
-                    let iceDelta = Self.integrateICE(realICE, from: prevT, to: nextT)
-                    // baseDelta = insulin + non-insulin physiology over [prevT, nextT],
-                    // EXCLUDING the counter-regulation term (added per sub-step below).
-                    let stepDelta: Double
-                    if inferSensitivity {
-                        // PHYSICAL / EGP-separated application. realBGdelta
-                        // carries ALL non-insulin physiology — including EGP —
-                        // unscaled. Only the PHYSICAL active-insulin delta
-                        // between candidate and real doses is scaled by the
-                        // inferred local sensitivity m. EGP is never magnified
-                        // by m (it isn't in the physical term), so a candidate
-                        // that suspends into sub-basal does NOT inherit a
-                        // magnified "negative IOB raises BG" artifact — it just
-                        // removes m × (the cut) of lowering and lets the real,
-                        // unscaled EGP carry BG back up. Identity: candidate
-                        // doses == real ⇒ candPhys == realPhysDelta ⇒ counter
-                        // reproduces the substrate.
-                        let realBGdelta = counterGlucose[advIdx].quantity.doubleValue(for: mgdlUnit)
-                            - counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
-                        let candPhys = Self.physicalActiveEffectDelta(
-                            doses: counterfactualDoses,
-                            basal: data.therapyTimeline.basal,
-                            sensitivity: physiologySensitivity,
-                            from: prevT, to: nextT,
-                            insulinModel: insulinModel)
-                        let m = mByIndex[advIdx]
-                        stepDelta = realBGdelta + m * (candPhys - realPhysDelta[advIdx])
-                    } else {
-                        let insulinDelta = Self.insulinEffectDelta(
-                            doses: counterfactualDoses,
-                            basal: data.therapyTimeline.basal,
-                            sensitivity: physiologySensitivity,
-                            from: prevT, to: nextT,
-                            insulinModel: insulinModel)
-                        stepDelta = insulinDelta + iceDelta
-                    }
+                    // SINGLE PATIENT MODEL (used for EVERY CF comparison and for
+                    // --cf-identity). The advance is always the PHYSICAL /
+                    // EGP-separated form on ONE mid-abs ISF timeline:
+                    //   stepDelta = realBGdelta + m·(E(candidate) − E(field))
+                    // where E(·) = physicalActiveEffectDelta (mid-abs ISF, EGP
+                    // credit zeroed) and m = mByIndex (≡1 unless sensitivity is
+                    // inferred). realBGdelta carries ALL non-insulin physiology
+                    // (incl. EGP) UNSCALED, so m never magnifies EGP and a
+                    // candidate that suspends into sub-basal just removes
+                    // m·(the cut) of lowering while the real unscaled EGP carries
+                    // BG back up. The SAME E(·) removes field doses (realPhysDelta)
+                    // and adds candidate doses (candPhys) — one ISF timeline, both
+                    // directions. Identity: candidate doses == real ⇒
+                    // candPhys == realPhysDelta ⇒ counter reproduces the substrate.
+                    let realBGdelta = counterGlucose[advIdx].quantity.doubleValue(for: mgdlUnit)
+                        - counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
+                    let candPhys = Self.physicalActiveEffectDelta(
+                        doses: counterfactualDoses,
+                        basal: data.therapyTimeline.basal,
+                        sensitivity: physiologySensitivity,
+                        from: prevT, to: nextT,
+                        insulinModel: insulinModel)
+                    let m = mByIndex[advIdx]
+                    let stepDelta = realBGdelta + m * (candPhys - realPhysDelta[advIdx])
                     // Counter-regulation: as counter_BG falls below the onset
                     // threshold the body defends with surging hepatic glucose
                     // output (glucagon/epinephrine) — a positive BG VELOCITY that
