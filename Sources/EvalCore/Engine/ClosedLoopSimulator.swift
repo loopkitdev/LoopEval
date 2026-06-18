@@ -155,6 +155,27 @@ extension EvaluationEngine {
         let insulinModel = data.therapyTimeline.insulinType.model
         let activityDuration = insulinModel.effectDuration
 
+        // DBG: audit the field-reference delivery the sim sees in data.doses,
+        // bucketed per local day. Confirms data.doses captures the field's TRUE
+        // delivery (bolus + net basal incl. scheduled-via-annotation) vs the
+        // §7 doses-cache total — so realPhysDelta isn't an undercounted reference.
+        if ProcessInfo.processInfo.environment["DBG_DELIV"] != nil {
+            var perDayBolus = [String: Double](), perDayBasal = [String: Double]()
+            let dfmt = DateFormatter(); dfmt.dateFormat = "yyyy-MM-dd"; dfmt.timeZone = TimeZone(identifier: "America/Chicago")
+            for d in data.doses {
+                let day = dfmt.string(from: d.startDate)
+                if d.deliveryType == .bolus { perDayBolus[day, default: 0] += d.volume }
+                else {
+                    // absolute delivered basal = recorded temp volume (covers the temp's span)
+                    perDayBasal[day, default: 0] += d.volume
+                }
+            }
+            for day in Set(perDayBolus.keys).union(perDayBasal.keys).sorted() {
+                let b = perDayBolus[day] ?? 0, ba = perDayBasal[day] ?? 0
+                FileHandle.standardError.write(Data("DBG_DELIV \(day): bolus=\(String(format: "%.1f", b)) tempBasal=\(String(format: "%.1f", ba)) total=\(String(format: "%.1f", b+ba))\n".utf8))
+            }
+        }
+
         // SUBSTRATE: the actual-BG trace the whole sim runs on. When
         // kalmanSmoothing is on (default), this is the RTS-smoothed CGM
         // resampled onto the 5-min sim grid (single missing samples
