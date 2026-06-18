@@ -389,31 +389,6 @@ public actor EvaluationEngine {
             noFuturePredicted = predNoFuture.glucose
         }
 
-        // DBG_DUMP_DOSES=<ISO8601>: dump the EXACT doses the sim integrates and the
-        // computed activeInsulin at the matching step, for exact per-dose IOB accounting.
-        if let dumpStr = ProcessInfo.processInfo.environment["DBG_DUMP_DOSES"],
-           let dumpT = ISO8601DateFormatter().date(from: dumpStr),
-           abs(t.timeIntervalSince(dumpT)) < 150 {
-            let mgdl = LoopUnit.milligramsPerDeciliter
-            var s = "DBG_DUMP_DOSES at \(t) activeInsulin=\(String(format: "%.4f", prediction.activeInsulin ?? -999))\n"
-            let bsched = input.basal
-            for d in input.doses {
-                let sch = bsched.first(where: { $0.startDate <= d.startDate && $0.endDate > d.startDate })?.value
-                    ?? bsched.closestPrior(to: d.startDate)?.value ?? -1
-                s += "  \(d.deliveryType) start=\(d.startDate) end=\(d.endDate) vol=\(String(format: "%.4f", d.volume)) sched=\(String(format: "%.3f", sch))\n"
-            }
-            s += "  --- input.carbs (count=\(input.carbs.count)) ---\n"
-            for c in input.carbs {
-                s += "  CARB start=\(c.startDate) g=\(c.quantity.doubleValue(for: .gram)) absorp=\(c.absorptionTime.map { String(Int($0/60)) } ?? "nil")min\n"
-            }
-            s += "  --- prediction.effects.carbs count=\(prediction.effects.carbs.count) (first=\(prediction.effects.carbs.first?.quantity.doubleValue(for: mgdl).description ?? "none") last=\(prediction.effects.carbs.last?.quantity.doubleValue(for: mgdl).description ?? "none")) ---\n"
-            s += "  --- ALL loaded carbs (builder.carbs count=\(builder.carbs.count)) ---\n"
-            for c in builder.carbs where abs(c.startDate.timeIntervalSince(t)) < 6 * 3600 {
-                s += "  LOADED start=\(c.startDate) entry=\(c.entryDate) visible=\(c.dosingVisibleDate) g=\(c.quantity.doubleValue(for: .gram)) visible<=t? \(c.dosingVisibleDate <= t)\n"
-            }
-            FileHandle.standardError.write(s.data(using: .utf8)!)
-        }
-
         // Glucose-based application factor (GBAF): when enabled, the auto-bolus
         // application factor ramps with current BG (Loop's GlucoseBasedApplicationFactorStrategy).
         // Otherwise flat config.applicationFactor.
@@ -780,25 +755,6 @@ public actor EvaluationEngine {
             sensitivity: input.sensitivity,
             insulinModel: insulinType.model
         )
-        if ProcessInfo.processInfo.environment["DBG_CORR"] != nil {
-            let mg = LoopUnit.milligramsPerDeciliter
-            let ev = prediction.glucose.last?.quantity.doubleValue(for: mg) ?? -1
-            let mn = prediction.glucose.map { $0.quantity.doubleValue(for: mg) }.min() ?? -1
-            let tgt = input.target.closestPrior(to: t)?.value
-            var desc = "inRange"
-            switch correction {
-            case .suspend(let m): desc = "suspend(min=\(Int(m.quantity.doubleValue(for: mg))))"
-            case .aboveRange(let m, let cg, let mt, let u): desc = "aboveRange min=\(Int(m.quantity.doubleValue(for: mg))) correcting=\(Int(cg.quantity.doubleValue(for: mg))) minTarget=\(Int(mt.doubleValue(for: mg))) units=\(String(format: "%.3f", u))"
-            case .entirelyBelowRange(let m, _, let u): desc = "belowRange min=\(Int(m.quantity.doubleValue(for: mg))) units=\(String(format: "%.3f", u))"
-            case .inRange: desc = "inRange"
-            }
-            let tlo = tgt.map { Int($0.lowerBound.doubleValue(for: mg)) } ?? -1
-            let thi = tgt.map { Int($0.upperBound.doubleValue(for: mg)) } ?? -1
-            let isfNow = input.sensitivity.closestPrior(to: t)?.value.doubleValue(for: mg) ?? -1
-            let evDate = prediction.glucose.last?.startDate ?? t
-            let isfEv = input.sensitivity.closestPrior(to: evDate)?.value.doubleValue(for: mg) ?? -1
-            FileHandle.standardError.write("DBG_CORR \(t) ev=\(Int(ev)) min=\(Int(mn)) iob=\(String(format: "%.2f", activeInsulin)) suspend=\(Int(suspend.doubleValue(for: mg))) target=[\(tlo),\(thi)] isfNow=\(Int(isfNow)) isfEv=\(Int(isfEv)) -> \(desc)\n".data(using: .utf8)!)
-        }
         // Uncertainty-bounded cap: derive the effective application factor from the
         // suspension-mitigated worst-case dose, and disable the predicted-min gate (the cap
         // already encodes future low-risk via the worst-case-with-suspension constraint).
