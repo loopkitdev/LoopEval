@@ -10,3 +10,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ipynb_checkpoints/
+
+# Sim/analysis outputs (large; not source)
+runs/
