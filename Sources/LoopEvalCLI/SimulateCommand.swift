@@ -52,8 +52,8 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, inversion: .prefixedNo, help: "Run the SIMULATOR (Loop decision-time glucose input, the counter trajectory, and outcome stats) on the ORIGINAL noisy CGM samples, while keeping the RTS-smoothed trace for patient-physiology estimation (ICE + sensitivity multiplier m(t)). Raw samples are resampled onto the smoothed grid's exact timestamps so the per-grid m(t) stays aligned. Requires Kalman smoothing (no effect with --no-kalman). DEFAULT ON; pass --no-sim-raw-glucose for the legacy all-smoothed sim.")
     var simRawGlucose: Bool = true
 
-    @Flag(name: .long, help: "Apply Loop Temporary Overrides to the therapy timeline over their active windows (basal ×f, ISF ÷f, CR ÷f, target ← override range; f = insulinNeedsScaleFactor). Fidelity feature — applies to BOTH arms. Off by default.")
-    var applyOverrides: Bool = false
+    @Flag(name: .customLong("apply-overrides"), inversion: .prefixedNo, help: "Apply Loop Temporary Overrides to the therapy timeline over their active windows (basal ×f, ISF ÷f, CR ÷f, target ← override range; f = insulinNeedsScaleFactor). Fidelity feature — applies to BOTH arms. DEFAULT ON; pass --no-apply-overrides to ignore overrides.")
+    var applyOverrides: Bool = true
 
     @Flag(name: .customLong("mid-absorption-isf"), inversion: .prefixedNo,
           help: "Mid-absorption ISF: re-evaluate ALL active IOB at the CURRENT sensitivity (current LoopAlgorithm default). Pass --no-mid-absorption-isf for the OLD/deployed-Loop behavior: each dose keeps the sensitivity in effect at its delivery time for its lifetime (matters when ISF changes mid-absorption, e.g. a Temporary Override). Applies to BOTH arms.")
