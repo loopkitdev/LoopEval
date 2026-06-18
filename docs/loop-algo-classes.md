@@ -53,9 +53,13 @@ Our binary defaults to **class 2** (LoopAlgorithm standard). To reproduce **clas
 
 Matches all classes by design: pump-floor quantization (PumpModel `.omnipod`), per-prediction-point correction-range sampling, decision-time input gating.
 
-## Why this matters
+## The veracity test (use this)
 
-Aggregate outcome matches (e.g. an ISF-sweep curve through the field point) can be hit with the **wrong** class via *compensating errors* (m/ISF absorbing a missing IRC integral or a too-aggressive gate). Decision-time **forecast** replay against field's uploaded `predicted.values` is the sharp fidelity test. Example: rloop 2025 field-curve validation ran IRC-OFF over an IRC-ON period yet "matched" the aggregate — compensating-error, not fidelity.
+NS `predicted.values` is **post-dose** (`predictedGlucoseIncludingPendingInsulin`) and `devicestatus.enacted` is a review snapshot — **don't** compare forecasts to them. On identical BG + dose history, the real test is: **does the sim's newly-computed dose equal the field's actual delivered dose from the DOSE HISTORY (treatments) at that timestamp** — and that means **bolus + temp basal** (field doses rising highs via temp as often as bolus). Use `effective_delivery_rate()` for the field rate (temps are recorded on-change and persist between — the §7 trap; nearest-event matching is wrong).
+
+Aggregate outcome matches (e.g. an ISF-sweep curve through the field point) can be hit with the **wrong** class via *compensating errors*. The decision-time dose-vs-dose-history test is the sharp one.
+
+**Result (rloop week 09-14..09-20, class-1 emulation, 1834 steps):** auto-bolus **93.9% exact** (mean |Δ| 0.012 U), temp rate **94.3% within 0.05 U/hr**, total/cycle delivery sim 266.5 vs field 248.1 U (+7%). The ~6% residual is **forecast-min-driven suspend/neutral disagreements** (sim runs scheduled where field suspended, and vice versa) at dynamic BG moments + the D4 carb steps — bidirectional, small, not a systematic class delta. IOB matches field (|Δ| 0.13 U).
 
 ## Forecast collapse on fast unannounced rises (ROOT-CAUSED + FIXED 2026-06-18)
 
@@ -67,3 +71,19 @@ This is **correct class-2 behavior** (the gate is now standard LoopAlgorithm —
 
 - ~24 mg/dL residual after class-1 emulation (slight overshoot at rise onset) — likely IRC gain (2.0/60/180 vs 5.0/90/240); confirm which Loop version each period shipped.
 - No CLI flag yet to disable the **momentum velocity cap** (4.0) — add one so class-1 emulation is a complete one-liner.
+
+### Week-long residual is mostly comparison artifacts, NOT new deltas (2026-06-18)
+
+Validating class-1 emulation over a week (1834 steps), sim auto-bolus was +16 U vs field, in 25 steps. Decomposed:
+- **3/25 = D4 carb-model** (real, small): sim over-forecasts the carb rise at equal COB.
+- **~rest = measurement/comparison artifacts, not algorithm deltas:**
+  - **IOB matches field exactly** (mean |Δ| 0.13 U) → no IOB/basal delta.
+  - **pre-dose vs post-dose forecast variant**: field uploads `predictedGlucoseIncludingPendingInsulin` (post-dose); our `forecast-match` curve is pre-dose. At heavy-dosing moments the eventualBG gap is the pending insulin, not a model diff.
+  - **bolus-vs-temp dosing channel**: field often doses a rising high via temp basal (en_bolus 0) where sim recommends a bolus → spurious auto-bolus "mismatch" (temp-rate mean |Δ| ~0.5 U/hr).
+  - **sensor artifacts**: CGM pegged at 400, and occasional bad/duplicate devicestatus records.
+
+**Cleaner comparison needed:** compare **total delivery (bolus + temp basal)** per step, and compare forecasts like-for-like (our pre-dose curve vs a reconstructed field pre-dose, or both post-dose). The auto-bolus-only + eventualBG comparison overstates the residual. Do this before declaring any further 1→2 delta.
+
+### Residual root-caused (2026-06-18): small forecast-min noise, not a class delta
+
+Drilling into the ~6% dose-decision residual (the dominant part is temp-rate disagreements): **59/76 are Type A — sim runs scheduled basal where field SUSPENDED** at falling low-normal BG (now ~100-114, trend −8, negative IOB), sim forecast-min ~85-96, field's min was <78 (suspendThreshold). BG **never actually went low** (future-min 91-141, 0% <70). So field's forecast dips ~10-15 mg/dL lower than ours near the threshold and flips the suspend decision; clinically inconsequential. Ruled out as causes: **suspendThreshold** (78, from cache = field's, correct); **`includingPositiveVelocityAndRC`** (forcing `false` is catastrophic — bolus 182→17 U, so field uses `true` like us); **IOB** (matches |Δ| 0.13); gate/ISF-timing (already applied). The residual is small forecast-*minimum* noise (likely momentum/RC magnitude at gentle falls) that **can't be attributed to a single class delta from NS data** (field's pre-dose forecast isn't uploaded). Net: confirmed 1→2 algo deltas = **D1 + D2** (+ small **D4** carb); the rest is sub-cycle forecast fidelity, not a class difference.
