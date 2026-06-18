@@ -22,7 +22,11 @@ This is the running list of what changed from deployed Loop-main to the new Loop
 | D2 | **gradual-transitions gate added** (40 mg/dL) | suppresses **momentum (15-min win) AND RC (30-min win)** when any consecutive CGM step >40 mg/dL | `--no-gradual-transitions-gate` | **large**: on fast unannounced rises class-2 forecast collapses → under-doses; class 1 stays high + doses. Root cause of the 09-17 collapse (mean fcst err 116→24 when emulating class 1). |
 | D3 | **momentum velocity cap** (~4.0 mg/dL/min) | caps upward momentum slope | *(no flag yet)* | limits early-rise projection on steep meals; magnitude TBD |
 
+| D4? | **carb absorption / forecast model** (candidate, under investigation) | with equal COB, our class-2 forecast attributes a much larger future rise to carbs than field (rloop 09-18 21:21: same COB 41 → sim eventualBG **386** vs field **81**) | `--adaptive-carb-absorption` (deployed Loop = adaptive `.adaptiveRateNonlinear`; our default off) — **but this barely helped (386→372)**, so our adaptive impl doesn't yet replicate field's observed-absorption behavior | drives a **+16 U / week over-dose** concentrated in ~25 meal/COB steps; on carb-free steps dosing matches field exactly |
+
 Everything else (IRC presence, GBAF, pump quantization, per-point correction sampling) is shared or version/config-dependent, **not** part of the 1→2 algorithm delta. IRC *asymmetry* and the extra forecast terms are the 2→3 delta.
+
+**Validation status (rloop, IRC-on period):** with class-1 flags (`--no-mid-absorption-isf --no-gradual-transitions-gate --integral-rc`), 09-17 (carb-free) dosing matches field **exactly** (auto-bolus 26.1 = 26.1, mean |Δ| 0.003 U). Over a week, auto-bolus mean |Δ| 0.012 U with **only 3.1% of steps off — and the misses are the D4 carb steps** (sim over-doses where it carries a larger carb-forecast than field). So D1+D2+IRC reproduce class-1 dosing except for the carb-model delta (D4). Carb *visibility* is correctly gated on `userEnteredAt` (not meal-time `created_at`); residual visibility error is ≤1 cycle.
 
 ## Who runs what
 
