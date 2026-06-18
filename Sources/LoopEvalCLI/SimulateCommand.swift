@@ -138,6 +138,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Positive momentum velocity cap (mg/dL/min). LoopAlgorithm default is 4 mg/dL/min, which limits rising-BG momentum extrapolation. Real-deployed Loop in this user's case had NO cap; pass a high value (e.g., 100) to effectively disable.")
     var candidateMomentumCap: Double?
 
+    @Flag(name: .long, help: "Disable the gradual-transitions gate (>40 mg/dL jump suppresses momentum AND RC) in BOTH arms. The gate is a LoopAlgorithm (class-2) addition NOT in deployed Loop-main (class-1) — pass this to reproduce class-1. Applies to baseline + candidate so identity is preserved.")
+    var noGradualTransitionsGate: Bool = false
+
     @Option(name: .long, help: "Per-step ISF multiplier CSV: (time, isf_multiplier) pairs. At each sim step, scales ISF by the value from the CSV nearest to step time (default 1.0 = no change). Use values >1 to make Loop see ISF as higher (less BG drop per U → recommends less dose, DAMP direction). Use <1 to make Loop see ISF as lower (more dose, BOOST direction). Steps with no matching CSV row are unchanged.")
     var candidateIsfCsv: String?
 
@@ -384,6 +387,7 @@ struct SimulateCommand: AsyncParsableCommand {
             adaptiveCarbAbsorption: adaptiveCarbAbsorption,
             sensitivityMultiplier: sensitivityMultiplier,
             localTimezone: resolvedTz,
+            momentumGradualTransitionsThreshold: noGradualTransitionsGate ? nil : 40,
             useAsymmetricMomentum: asymmetricMomentum
         )
 
@@ -478,6 +482,7 @@ struct SimulateCommand: AsyncParsableCommand {
             sensitivityHourlyMultipliers: hourlyISF,
             localTimezone: resolvedTz,
             positiveVelocityCap: candidateMomentumCap,
+            momentumGradualTransitionsThreshold: noGradualTransitionsGate ? nil : 40,
             useAsymmetricMomentum: candidateAsymmetricMomentum || asymmetricMomentum,
             momentumAlphaSlow: candidateMomentumAlphaSlow,
             momentumAlphaFast: candidateMomentumAlphaFast
