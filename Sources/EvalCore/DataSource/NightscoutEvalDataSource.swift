@@ -69,10 +69,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // so the cache key MUST include the model — otherwise --insulin-type silently
         // reuses the first model's cached doses.
         // v2: temp-basal volume now uses the pump's delivered `amount` (not rate*duration).
-        // DBG_RATEDUR=1 forces commanded rate*duration (ignore delivered amount) — a
-        // diagnostic to test whether the field's runtime IOB used commanded vs delivered.
-        let rateDurTag = ProcessInfo.processInfo.environment["DBG_RATEDUR"] != nil ? "_ratedur" : ""
-        let cacheKey = DataCache.key(for: "doses_v3\(rateDurTag)_\(insulinType)", url: client.baseURL, interval: lookback)
+        let cacheKey = DataCache.key(for: "doses_v3_\(insulinType)", url: client.baseURL, interval: lookback)
         if let cached: [EvalInsulinDose] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -193,8 +190,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
                 // (Loop reconciles IOB/effects on delivered units; pumps deliver basal
                 // in 0.05U pulses, so amount != rate*duration). Fall back to the nominal
                 // rate*duration only when the delivered amount wasn't recorded.
-                let forceRateDur = ProcessInfo.processInfo.environment["DBG_RATEDUR"] != nil
-                let volume = forceRateDur ? (rate * (durationMin / 60.0)) : (t.amount ?? (rate * (durationMin / 60.0)))
+                let volume = t.amount ?? (rate * (durationMin / 60.0))
                 let dose = EvalInsulinDose(
                     deliveryType: .basal,
                     startDate: date,

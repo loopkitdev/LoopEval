@@ -11,7 +11,7 @@ import ArgumentParser
 struct LoopEvalCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "loop-eval",
-        abstract: "Evaluate LoopAlgorithm forecast accuracy against real-world CGM data.",
+        abstract: "Evaluate LoopAlgorithm performance using real-world CGM & insulin data.",
         version: "0.1.0",
         subcommands: [EvaluateCommand.self, CacheCommand.self, InspectCommand.self, BenchCommand.self, SimulateCommand.self, ForecastMatchCommand.self],
         defaultSubcommand: EvaluateCommand.self

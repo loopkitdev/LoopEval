@@ -155,40 +155,6 @@ extension EvaluationEngine {
         let insulinModel = data.therapyTimeline.insulinType.model
         let activityDuration = insulinModel.effectDuration
 
-        // DBG: audit the field-reference delivery the sim sees in data.doses,
-        // bucketed per local day. Confirms data.doses captures the field's TRUE
-        // delivery (bolus + net basal incl. scheduled-via-annotation) vs the
-        // §7 doses-cache total — so realPhysDelta isn't an undercounted reference.
-        if ProcessInfo.processInfo.environment["DBG_DELIV"] != nil {
-            var perDayBolus = [String: Double](), perDayBasal = [String: Double]()
-            let dfmt = DateFormatter(); dfmt.dateFormat = "yyyy-MM-dd"; dfmt.timeZone = TimeZone(identifier: "America/Chicago")
-            for d in data.doses {
-                let day = dfmt.string(from: d.startDate)
-                if d.deliveryType == .bolus { perDayBolus[day, default: 0] += d.volume }
-                else {
-                    // absolute delivered basal = recorded temp volume (covers the temp's span)
-                    perDayBasal[day, default: 0] += d.volume
-                }
-            }
-            // Dump the sim's SCHEDULED basal schedule (the one annotation fills
-            // gaps with and the candidate's neutral rate comes from). Compare to
-            // the §7 therapy-cache scheduled basal — a mismatch mis-sizes both the
-            // field reference (realPhysDelta gap-fill) and the candidate's neutral.
-            let tfmt = DateFormatter(); tfmt.dateFormat = "MM-dd HH:mm"; tfmt.timeZone = TimeZone(identifier: "America/Chicago")
-            FileHandle.standardError.write(Data("DBG_BASAL sim scheduled-basal schedule (start -> U/hr):\n".utf8))
-            var lastRate = -1.0
-            for seg in data.therapyTimeline.basal {
-                if abs(seg.value - lastRate) > 1e-9 {
-                    FileHandle.standardError.write(Data("  \(tfmt.string(from: seg.startDate))  \(String(format: "%.3f", seg.value)) U/hr\n".utf8))
-                    lastRate = seg.value
-                }
-            }
-            for day in Set(perDayBolus.keys).union(perDayBasal.keys).sorted() {
-                let b = perDayBolus[day] ?? 0, ba = perDayBasal[day] ?? 0
-                FileHandle.standardError.write(Data("DBG_DELIV \(day): bolus=\(String(format: "%.1f", b)) tempBasal=\(String(format: "%.1f", ba)) total=\(String(format: "%.1f", b+ba))\n".utf8))
-            }
-        }
-
         // SUBSTRATE: the actual-BG trace the whole sim runs on. When
         // kalmanSmoothing is on (default), this is the RTS-smoothed CGM
         // resampled onto the 5-min sim grid (single missing samples
@@ -1286,19 +1252,6 @@ extension EvaluationEngine {
         }
 
         progress?(1.0)
-
-        // DBG: dump the candidate's ACTUAL delivered doses (counterfactualDoses)
-        // bucketed per local day — the true stock delivery candPhys integrates,
-        // independent of the overlapping trace fields (candidateBolus is folded
-        // into the basal segment volume). Compare to DBG_DELIV (field) directly.
-        if ProcessInfo.processInfo.environment["DBG_DELIV"] != nil && counterfactualMode {
-            var perDay = [String: Double]()
-            let dfmt = DateFormatter(); dfmt.dateFormat = "yyyy-MM-dd"; dfmt.timeZone = TimeZone(identifier: "America/Chicago")
-            for d in counterfactualDoses { perDay[dfmt.string(from: d.startDate), default: 0] += d.volume }
-            for day in perDay.keys.sorted() {
-                FileHandle.standardError.write(Data("DBG_DELIV_CAND \(day): total delivered=\(String(format: "%.1f", perDay[day]!))U\n".utf8))
-            }
-        }
 
         return ClosedLoopSimResult(
             steps: steps,
