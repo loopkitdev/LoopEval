@@ -125,7 +125,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         // Read the timestamp list.
         let raw = try String(contentsOfFile: timesCsv, encoding: .utf8)
         var times: [Date] = []
-        for line in raw.split(whereSeparator: { $0 == "\n" || $0 == "\r" }) {
+        for line in raw.split(whereSeparator: { $0.isNewline }) {
             let s = line.trimmingCharacters(in: .whitespaces)
             if s.isEmpty || s.lowercased() == "t" { continue }
             let field = s.split(separator: ",").first.map(String.init) ?? s
@@ -188,7 +188,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         if let outPath = outagesCsv {
             let rawOut = try String(contentsOfFile: outPath, encoding: .utf8)
             var intervals: [(Date, Date)] = []
-            for line in rawOut.split(whereSeparator: { $0 == "\n" || $0 == "\r" }) {
+            for line in rawOut.split(whereSeparator: { $0.isNewline }) {
                 let f = line.split(separator: ",", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
                 guard f.count >= 2, f[0].lowercased() != "start",
                       let a = try? parseISO8601Date(f[0]), let b = try? parseISO8601Date(f[1]) else { continue }
