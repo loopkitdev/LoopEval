@@ -113,6 +113,14 @@ extension EvaluationEngine {
         // advance math (candidate doses == real ⇒ counter == actual). Requires
         // counterfactualMode.
         cfIdentity: Bool = false,
+        // CGM-DRIVEN DECISIONS: trigger one automatic dosing decision per actual
+        // CGM sample (the real, irregular ~5-min cadence) instead of a fixed
+        // evalStep grid. The loop runs ONLY after a new CGM — never for any other
+        // reason. The substrate is built on the raw CGM sample timestamps
+        // (smoothed values for physiology, raw values for the controller) with
+        // variable per-step dt = (next CGM − this CGM). Default (false) keeps the
+        // regular 5-min substrate + grid march (byte-identical legacy path).
+        decisionsFromCgm: Bool = false,
         excludeManualBoluses: Bool = false,
         suppressCarbs: Bool = false,
         counterRegOnsetMgdl: Double = 0,
@@ -170,11 +178,24 @@ extension EvaluationEngine {
         // physGlucose: the PHYSIOLOGY substrate — RTS-smoothed CGM on the 5-min
         // grid. Low-noise "ground truth" used ONLY for patient-physiology
         // estimation: ICE and the sensitivity-multiplier m(t) ("k") inference.
-        let physGlucose: [EvalGlucoseSample] = candidateConfig.kalmanSmoothing
-            ? Self.buildSmoothedGrid(raw: data.glucose,
-                                     start: interval.start, end: interval.end,
-                                     stepSec: candidateConfig.evalStep)
-            : data.glucose
+        let physGlucose: [EvalGlucoseSample]
+        if decisionsFromCgm {
+            // CGM-driven: substrate lives on the RAW CGM sample timestamps (no
+            // resample to a regular grid). Physiology values are RTS-smoothed in
+            // place (smoother keeps the input timestamps); raw values feed the
+            // controller via simGlucose below. One substrate sample == one CGM ==
+            // one decision.
+            let sortedRaw = data.glucose.sorted { $0.startDate < $1.startDate }
+            physGlucose = candidateConfig.kalmanSmoothing
+                ? KalmanSmoother().smooth(samples: sortedRaw)
+                : sortedRaw
+        } else {
+            physGlucose = candidateConfig.kalmanSmoothing
+                ? Self.buildSmoothedGrid(raw: data.glucose,
+                                         start: interval.start, end: interval.end,
+                                         stepSec: candidateConfig.evalStep)
+                : data.glucose
+        }
 
         // simGlucose: the SIMULATOR substrate — what Loop's decision-time glucose
         // input, the counter trajectory, and the outcome stats actually run on.
@@ -216,6 +237,16 @@ extension EvaluationEngine {
         // reality (otherwise candidate would start with 0 IOB).
         var counterfactualDoses: [EvalInsulinDose] = []
         counterfactualDoses.reserveCapacity(2048)
+        // Stateful pump basal-pulse delivery for the candidate's temp-basal stream
+        // (carries the sub-pulse remainder across steps, drops it only on a temp
+        // re-issue at a new rate). Advanced exactly once per cfActive step.
+        let candidateBasalAcc = PumpModel.BasalAccumulator(quantum: candidateConfig.basalPulseQuantum)
+        // Loop temp basals carry a 30-min duration. Normally the next CGM cycle
+        // (~5min) overwrites them so duration never bites. Across a CGM gap there
+        // is no overwriting cycle, so the temp must EXPIRE at 30 min and revert to
+        // scheduled basal (exactly like the real pump). Used to cap the candidate's
+        // temp delivery on the long pre-gap step. (user, 2026-06-23)
+        let tempBasalDuration: TimeInterval = 30 * 60
         // Per-step rasterized real-pump deliveries:
         //   - realAutoOnlyPerStep: AUTO-only deliveries (auto-boluses + basal
         //     entries). Used as deltaDose baseline so candidate's algorithm-
@@ -516,10 +547,37 @@ extension EvaluationEngine {
         let sensModeOn = candidateConfig.sensitiveModeTauSec > 0 && candidateConfig.sensitiveModeGain > 0
         var sensModeLevel = 0.0
 
-        var t = evalStart
-        var stepIdx = 0
+        // STEP TIMES. CGM-driven: one step per real CGM sample in the eval window
+        // (irregular cadence). Default: the regular evalStep grid (stepDur ≡
+        // evalStep ⇒ byte-identical to the legacy march). stepDur is the interval
+        // to the NEXT step and is used wherever a step duration appears (scheduled
+        // basal delivered, the candidate temp segment, the manual-bolus window,
+        // sensitive-mode decay). A gap (stepDur ≫ evalStep) is capped for delivery
+        // so a long CGM outage doesn't issue one giant temp.
+        var stepTimes: [Date] = []
+        if decisionsFromCgm {
+            stepTimes = simGlucose.map { $0.startDate }.filter { $0 >= evalStart && $0 <= interval.end }
+        } else {
+            var tt = evalStart
+            while tt <= interval.end { stepTimes.append(tt); tt = tt.addingTimeInterval(candidateConfig.evalStep) }
+        }
+        let nSteps = stepTimes.count
 
-        while t <= interval.end {
+        for stepIdx in 0..<nSteps {
+            let t = stepTimes[stepIdx]
+            // Interval to the next decision (= next CGM in CGM-driven mode).
+            let stepEnd = stepIdx + 1 < nSteps
+                ? stepTimes[stepIdx + 1]
+                : t.addingTimeInterval(candidateConfig.evalStep)
+            let stepDur = max(1.0, stepEnd.timeIntervalSince(t))
+            // Scheduled basal delivered over the actual interval (over a CGM gap,
+            // scheduled basal really did run, so stepDur is correct). In default
+            // mode stepDur == evalStep so every duration below is byte-identical.
+            // Per-step sensitive-mode decay (default mode: stepDur == evalStep ⇒
+            // equals the hoisted sensModeDecay constant).
+            let sensModeDecayStep = candidateConfig.sensitiveModeTauSec > 0
+                ? exp(-stepDur / candidateConfig.sensitiveModeTauSec) : 0.0
+            _ = sensModeDecay  // hoisted constant kept for reference; per-step value used below
             if let progress, totalSteps > 1 {
                 progress(min(Double(stepIdx) / Double(totalSteps - 1), 1.0))
             }
@@ -547,7 +605,6 @@ extension EvaluationEngine {
                 let dPrev = abs(t.timeIntervalSince(simGlucose[prevIdx].startDate))
                 if min(dNext, dPrev) > cgmStaleGuardSec {
                     if counterfactualMode && t >= cfActiveStart {
-                        let stepEnd = t.addingTimeInterval(candidateConfig.evalStep)
                         while nextManualIdx < realManualBoluses.count {
                             let mb = realManualBoluses[nextManualIdx]
                             if mb.startDate >= stepEnd { break }
@@ -555,8 +612,6 @@ extension EvaluationEngine {
                             nextManualIdx += 1
                         }
                     }
-                    t = t.addingTimeInterval(candidateConfig.evalStep)
-                    stepIdx += 1
                     continue
                 }
             }
@@ -658,8 +713,6 @@ extension EvaluationEngine {
                 config: candidateConfig
             )
             guard let candidateInput = candidateBuilder.buildInput(at: t, decisionAnchor: t) else {
-                t = t.addingTimeInterval(candidateConfig.evalStep)
-                stepIdx += 1
                 continue
             }
             // ----- CANDIDATE step: candidate's Loop sees the per-step ISF
@@ -787,7 +840,7 @@ extension EvaluationEngine {
                 // stays strictly causal. No-op unless manualBolusFromRecommendation is on.
                 if candidateConfig.manualBolusFromRecommendation && !realManualBoluses.isEmpty && !suppressCarbs {
                     let carbTol: TimeInterval = 30
-                    let mbStepEnd = t.addingTimeInterval(candidateConfig.evalStep)
+                    let mbStepEnd = stepEnd
                     // first real manual bolus landing in this step
                     let mbHere: EvalInsulinDose? = realManualBoluses[nextManualIdx...].first(where: { $0.startDate >= t && $0.startDate < mbStepEnd })
                     if let mb = mbHere {
@@ -886,7 +939,7 @@ extension EvaluationEngine {
                 // step's discrepancy (mg/dL). Decays with sensitiveModeTauSec; raises ISF on
                 // future steps via sensModeMult above (causal: this update affects t+1 onward).
                 if sensModeOn && candidateDiscrepancy.isFinite {
-                    sensModeLevel = sensModeDecay * sensModeLevel + (1.0 - sensModeDecay) * Swift.max(0.0, -candidateDiscrepancy)
+                    sensModeLevel = sensModeDecayStep * sensModeLevel + (1.0 - sensModeDecayStep) * Swift.max(0.0, -candidateDiscrepancy)
                 }
             }
 
@@ -921,7 +974,7 @@ extension EvaluationEngine {
                 let schedRate = data.therapyTimeline.basal.first(where: {
                     $0.startDate <= t && $0.endDate > t
                 })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
-                let schedStepU = schedRate * candidateConfig.evalStep / 3600.0
+                let schedStepU = schedRate * stepDur / 3600.0
                 // absolute delivery = scheduled_step + dose; want absolute = 0.
                 candidateDose = -schedStepU
                 baselineDose = -schedStepU
@@ -947,29 +1000,46 @@ extension EvaluationEngine {
             //   - Counterfactual: candidate's absolute delivery minus real
             //     pump's absolute delivery for this step (rule REPLACES real
             //     pump; perturbs counter_BG accordingly)
+            // Candidate's actual absolute delivery this cfActive step (pump basal
+            // pulses for the temp-basal stream + auto-bolus). Computed ONCE here via
+            // the stateful accumulator and reused for the counterfactualDoses append
+            // below (so the deltaDose report and the counter physics never diverge).
+            var cfAbsoluteDelivery: Double = 0
+            // Split of the candidate's basal delivery for the counterfactualDoses
+            // record: a temp segment [t, cfTempSegEnd] (the 30-min temp + auto-bolus)
+            // and, only when the step spans longer than the temp duration (a CGM
+            // gap), a SCHEDULED-basal remainder [cfTempSegEnd, stepEnd] (net-zero
+            // IOB) so the candidate tracks the real pump through the gap.
+            var cfTempVolume: Double = 0
+            var cfSchedRemainderU: Double = 0
+            var cfTempSegEnd: Date = stepEnd
             let deltaDose: Double
             if cfActive {
-                // Scheduled basal at t (U over this step)
-                let schedBasalRate = data.therapyTimeline.basal.first(where: {
-                    $0.startDate <= t && $0.endDate > t
-                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
-                let schedDeliveryThisStep = schedBasalRate * candidateConfig.evalStep / 3600.0
-                var candidateAbsoluteDelivery = schedDeliveryThisStep + candidateDose
-                // Pump pulse quantization: a real pump delivers basal in discrete
-                // pulses, and Loop's per-cycle temp re-issue cancels the in-progress
-                // pulse, so actual deliveredAmount = floor(rate×time / pulse)×pulse
-                // (field: ~−1.1 U/day below rate×time). Without this the counter
-                // over-delivers basal and runs low. (Auto-boluses are already floored.)
-                if candidateConfig.basalPulseQuantum > 0, candidateAbsoluteDelivery > 0 {
-                    let pump = PumpModel(basalRateIncrement: 0, bolusIncrement: 0,
-                                         pulseQuantum: candidateConfig.basalPulseQuantum, rounding: .down)
-                    candidateAbsoluteDelivery = pump.quantizeDelivery(candidateAbsoluteDelivery)
+                // Temp basal expires after its 30-min duration. For a normal step
+                // (stepDur ≤ 30min) tempSec == stepDur and this is unchanged. For a
+                // long pre-gap step (stepDur ≫ 30min) the temp runs only 30 min,
+                // then scheduled basal resumes — preventing a pre-gap suspend from
+                // delivering 0 for the whole multi-hour gap (counter runaway).
+                let tempSec = min(stepDur, tempBasalDuration)
+                cfTempSegEnd = t.addingTimeInterval(tempSec)
+                // Pump basal-pulse delivery for the temp RATE over its live window.
+                // The accumulator carries the sub-pulse remainder while the rate is
+                // unchanged and drops the in-progress pulse on a temp re-issue
+                // (rate change) — reproducing the field ~1.1 U/day below rate×time.
+                let basalDelivered = candidateBasalAcc.deliver(rate: candidateTempRate, seconds: tempSec)
+                // Auto-bolus already floored to the bolus grid; delivered whole.
+                cfTempVolume = basalDelivered + candidateBolus
+                if stepDur > tempBasalDuration {
+                    // Temp expired mid-step: scheduled basal for the remainder.
+                    cfSchedRemainderU = Self.integrateScheduledBasal(
+                        data.therapyTimeline.basal, from: cfTempSegEnd, to: stepEnd)
                 }
+                cfAbsoluteDelivery = cfTempVolume + cfSchedRemainderU
                 // Use AUTO-ONLY real pump as the baseline. Manual boluses are
                 // passed through (preserved in candidate's dose history) so
                 // they cancel out and don't perturb counter_BG.
                 let realPumpAutoAtStep = realAutoOnlyPerStep[t] ?? 0
-                deltaDose = candidateAbsoluteDelivery - realPumpAutoAtStep
+                deltaDose = cfAbsoluteDelivery - realPumpAutoAtStep
             } else if counterfactualMode {
                 // Burn-in: no perturbation (counter = actual_BG during burn-in)
                 deltaDose = 0
@@ -1027,27 +1097,13 @@ extension EvaluationEngine {
             // During burn-in, counterfactualDoses was pre-seeded with real
             // pump deliveries up to cfActiveStart, so no per-step append needed.
             if cfActive {
-              let stepEnd = t.addingTimeInterval(candidateConfig.evalStep)
               // CF-IDENTITY: skip the candidate's own dose append entirely;
               // counterfactualDoses was pre-seeded with the full REAL history.
               // The physiological advance below still runs, on real doses.
               if !cfIdentity {
-                let schedBasalRate = data.therapyTimeline.basal.first(where: {
-                    $0.startDate <= t && $0.endDate > t
-                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
-                let schedDeliveryThisStep = schedBasalRate * candidateConfig.evalStep / 3600.0
-                var candidateAbsoluteDelivery = schedDeliveryThisStep + candidateDose
-                // Pump pulse quantization: a real pump delivers basal in discrete
-                // pulses, and Loop's per-cycle temp re-issue cancels the in-progress
-                // pulse, so actual deliveredAmount = floor(rate×time / pulse)×pulse
-                // (field: ~−1.1 U/day below rate×time). Without this the counter
-                // over-delivers basal and runs low. (Auto-boluses are already floored.)
-                if candidateConfig.basalPulseQuantum > 0, candidateAbsoluteDelivery > 0 {
-                    let pump = PumpModel(basalRateIncrement: 0, bolusIncrement: 0,
-                                         pulseQuantum: candidateConfig.basalPulseQuantum, rounding: .down)
-                    candidateAbsoluteDelivery = pump.quantizeDelivery(candidateAbsoluteDelivery)
-                }
-                // Record as a TEMP BASAL segment covering this step, NOT a bolus.
+                // Candidate's actual absolute delivery this step (pump basal pulses
+                // + auto-bolus) — computed once above via the stateful accumulator.
+                // Record as a TEMP BASAL segment, NOT a bolus.
                 // LoopAlgorithm's IOB pipeline computes `netBasalUnits = volume
                 // - scheduledRate × duration` for basal segments. Recording each
                 // step as a .bolus would inflate IOB by the scheduled-basal
@@ -1055,14 +1111,27 @@ extension EvaluationEngine {
                 // 0.7 U/hr scheduled basal would accumulate ~2 U of spurious
                 // "phantom IOB" — sim Loop then forecasts BG dropping and
                 // suspends inappropriately). Bug found 2026-05-18.
+                // The temp covers only [t, cfTempSegEnd] (≤30min); across a CGM gap
+                // a second SCHEDULED-basal segment covers the remainder so the temp
+                // doesn't run for the whole gap (net-zero, tracks the real pump).
                 counterfactualDoses.append(EvalInsulinDose(
                     deliveryType: .basal,
                     startDate: t,
-                    endDate: t.addingTimeInterval(candidateConfig.evalStep),
-                    volume: candidateAbsoluteDelivery,
+                    endDate: cfTempSegEnd,
+                    volume: cfTempVolume,
                     insulinType: data.therapyTimeline.insulinType,
                     automatic: true
                 ))
+                if cfTempSegEnd < stepEnd {
+                    counterfactualDoses.append(EvalInsulinDose(
+                        deliveryType: .basal,
+                        startDate: cfTempSegEnd,
+                        endDate: stepEnd,
+                        volume: cfSchedRemainderU,
+                        insulinType: data.therapyTimeline.insulinType,
+                        automatic: true
+                    ))
+                }
                 // Pass through any user-initiated manual boluses falling in
                 // [t, t + stepSec). Preserves user behavior on top of the
                 // candidate's algorithmic decisions. (stepEnd hoisted above.)
@@ -1246,9 +1315,6 @@ extension EvaluationEngine {
                 candidateManualBolusRecOut: candidateManualBolusRec,
                 baselinePredCurve: baselinePredCurve
             ))
-
-            t = t.addingTimeInterval(candidateConfig.evalStep)
-            stepIdx += 1
         }
 
         progress?(1.0)
@@ -1479,6 +1545,26 @@ extension EvaluationEngine {
     }
 
     /// Integrate ICE velocities over a time interval to get total mg/dL change.
+    /// Total scheduled-basal units delivered over [from, to], integrating across
+    /// schedule segments. Used to fill the post-temp-expiry remainder of a long
+    /// (CGM-gap) step with scheduled basal (net-zero IOB vs the schedule).
+    fileprivate static func integrateScheduledBasal(
+        _ basal: [AbsoluteScheduleValue<Double>], from: Date, to: Date) -> Double {
+        guard to > from else { return 0 }
+        var total = 0.0
+        var covered = from
+        for seg in basal where seg.endDate > from && seg.startDate < to {
+            let s = Swift.max(from, seg.startDate)
+            let e = Swift.min(to, seg.endDate)
+            if e > s { total += seg.value * e.timeIntervalSince(s) / 3600.0; covered = Swift.max(covered, e) }
+        }
+        // Any uncovered tail (schedule didn't reach `to`): hold the last known rate.
+        if covered < to, let r = basal.closestPrior(to: covered)?.value ?? basal.last?.value {
+            total += r * to.timeIntervalSince(covered) / 3600.0
+        }
+        return total
+    }
+
     fileprivate static func integrateICE(_ ice: [GlucoseEffectVelocity],
                                           from: Date, to: Date) -> Double {
         guard to > from, !ice.isEmpty else { return 0 }
@@ -1961,6 +2047,7 @@ extension EvaluationEngine {
             scheduleBaselineSensitivity: scheduleBaseline,
             sensitivityDecomposition: decomposition,
             carbRatio: effectiveInput.carbRatio,
+            target: (config.useIntegralRC && config.useIntegralRCClamp) ? effectiveInput.target : nil,
             algorithmEffectsOptions: .all,
             useIntegralRetrospectiveCorrection: config.useIntegralRC,
             ircDropGainScale: config.ircDropGainScale,
@@ -2115,7 +2202,8 @@ extension EvaluationEngine {
                    autosensFactor: config.uncertaintyDecoupleAutosens ? autosensFactor : 1.0)
                 : nil,
             bolusIncrement: config.bolusIncrement,
-            tempBasalIncrement: config.tempBasalIncrement
+            tempBasalIncrement: config.tempBasalIncrement,
+            useMidAbsorptionISF: config.useMidAbsorptionISF
         )
         return (
             dose: doseRec?.deltaU ?? 0,

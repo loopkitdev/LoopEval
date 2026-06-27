@@ -26,6 +26,9 @@ struct CacheCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Nightscout API secret (optional)")
     var apiSecret: String?
 
+    @Option(name: .long, help: "Nightscout subject access token (optional; for ?token= role auth)")
+    var token: String?
+
     @Option(name: .long, help: "Cache directory",
             transform: URL.init(fileURLWithPath:))
     var cacheDir: URL = URL(fileURLWithPath: NSHomeDirectory())
@@ -57,7 +60,7 @@ struct CacheCommand: AsyncParsableCommand {
         guard let baseURL = URL(string: nightscoutUrl) else {
             throw ValidationError("Invalid Nightscout URL: \(nightscoutUrl)")
         }
-        let client     = NightscoutClient(baseURL: baseURL, apiSecret: apiSecret)
+        let client     = NightscoutClient(baseURL: baseURL, apiSecret: apiSecret, token: token)
         let cache      = try DataCache(cacheDir: cacheDir)
         let dataSource = NightscoutEvalDataSource(
             client: client,

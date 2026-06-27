@@ -28,8 +28,8 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Data window end (ISO8601).")
     var end: String
 
-    @Option(name: .long, help: "CSV file with one ISO8601 timestamp per line (header 't' optional) — the times to evaluate at (the field's decision times).")
-    var timesCsv: String
+    @Option(name: .long, help: "CSV file with one ISO8601 timestamp per line (header 't' optional) — the times to evaluate at (the field's decision times). Optional when --decisions-from-cgm is set.")
+    var timesCsv: String?
 
     @Option(name: .long, help: "Output JSON path.")
     var out: String
@@ -46,6 +46,9 @@ struct ForecastMatchCommand: AsyncParsableCommand {
 
     @Flag(name: .long, help: "Use integral retrospective correction (default: standard RC).")
     var integralRC: Bool = false
+
+    @Flag(name: .long, help: "Apply the deployed-LoopKit integral-correction clamp to IRC (only with --integral-rc). ON = faithful to deployed Loop-main.")
+    var integralRCClamp: Bool = false
 
     @Option(name: .long, help: "Auto-bolus application factor (default 0.4).")
     var applicationFactor: Double = 0.4
@@ -96,6 +99,21 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Convenience: Loop-3.9.3-compatible momentum = disable the gradual-transitions gate only. (Verified from LoopKit dev source: deployed Loop uses 15-min duration + 4 mg/dL/min cap — same as default — and NO gradual-transitions gate.)")
     var loop393Momentum: Bool = false
 
+    @Option(name: .long, help: "Carb-revisions overlay JSON (from reconstruct_carb_history.py): splice edited carb entries into their as-seen revision sequences so replay matches what the deployed Loop saw at each moment (fixes edited-entry phantom COB). Default: use cached final grams from original entry time.")
+    var carbRevisionsJson: String?
+
+    @Option(name: .long, help: "Override-targets overlay JSON (from override_targets.py): fill named-preset override correction ranges (+multiplier) from devicestatus, which the NS treatment omits. Use for hands-on replay of users with overrides.")
+    var overrideTargetsJson: String?
+
+    @Option(name: .long, help: "Debug: export the EXACT decision-time LoopPredictionInput our engine builds at this ISO time, in deployed-LoopKit fixture JSON format (to --dump-loop-input-path), then exit. Lets the LoopWorkspace harness run the identical input through the actual deployed Loop.")
+    var dumpLoopInputAt: String?
+
+    @Option(name: .long, help: "Output path for --dump-loop-input-at.")
+    var dumpLoopInputPath: String?
+
+    @Flag(name: .long, help: "Derive decision times from the CGM samples themselves — one automatic dosing decision per new CGM reading — instead of the field devicestatus timestamps in --times-csv. This is the correct trigger model: the loop runs ONLY after a new CGM, never on user-triggered uploads (carb log / manual bolus) that land between readings. Overrides --times-csv and --max-cgm-age-min.")
+    var decisionsFromCgm: Bool = false
+
     struct OutRow: Codable {
         let t: String
         let eventualBG: Double?
@@ -122,17 +140,24 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         let interval = DateInterval(start: startDate, end: endDate)
         let preset = try parseInsulinType(insulinType)
 
-        // Read the timestamp list.
-        let raw = try String(contentsOfFile: timesCsv, encoding: .utf8)
+        // Decision times. Default: read the field's devicestatus timestamps from
+        // --times-csv. With --decisions-from-cgm: derive them from the CGM samples
+        // instead (set after prefetch below) — one decision per new CGM reading.
         var times: [Date] = []
-        for line in raw.split(whereSeparator: { $0.isNewline }) {
-            let s = line.trimmingCharacters(in: .whitespaces)
-            if s.isEmpty || s.lowercased() == "t" { continue }
-            let field = s.split(separator: ",").first.map(String.init) ?? s
-            if let d = try? parseISO8601Date(field) { times.append(d) }
+        if !decisionsFromCgm {
+            guard let timesCsv else {
+                throw ValidationError("--times-csv is required unless --decisions-from-cgm is set")
+            }
+            let raw = try String(contentsOfFile: timesCsv, encoding: .utf8)
+            for line in raw.split(whereSeparator: { $0.isNewline }) {
+                let s = line.trimmingCharacters(in: .whitespaces)
+                if s.isEmpty || s.lowercased() == "t" { continue }
+                let field = s.split(separator: ",").first.map(String.init) ?? s
+                if let d = try? parseISO8601Date(field) { times.append(d) }
+            }
+            times = times.filter { $0 >= startDate && $0 <= endDate }.sorted()
+            printStderr("Evaluating at \(times.count) timestamps\n")
         }
-        times = times.filter { $0 >= startDate && $0 <= endDate }.sorted()
-        printStderr("Evaluating at \(times.count) timestamps\n")
 
         let durMin = momentumDurationMin   // deployed Loop = 15 (LoopKit dev momentumDuration); 30 only in stale master
         let gateThreshold: Double? = (loop393Momentum || noGradualTransitionsGate) ? nil : 40
@@ -146,10 +171,13 @@ struct ForecastMatchCommand: AsyncParsableCommand {
             includeFutureInsulin: false,   // decision-time replay
             includeFutureCarbs: false,
             useIntegralRC: integralRC,
+            useIntegralRCClamp: integralRCClamp,
             kalmanSmoothing: false,        // raw native CGM (evaluate path uses data.glucose directly)
             clipInProgressTempBasal: clipInProgressTempBasal,
             useMidAbsorptionISF: midAbsorptionIsf,
             adaptiveCarbAbsorption: adaptiveCarbAbsorption,
+            carbRevisionsPath: carbRevisionsJson,
+            overrideTargetsPath: overrideTargetsJson,
             sensitivityMultiplier: sensitivityMultiplier,
             positiveVelocityCap: momentumCap,
             momentumProjectionMinutes: durMin,
@@ -168,11 +196,23 @@ struct ForecastMatchCommand: AsyncParsableCommand {
         printStderr("Fetching data...\n")
         let data = try await engine.prefetchData(for: interval, config: config)
 
+        // CGM-driven decision times: one automatic dosing decision per CGM sample.
+        // The loop runs ONLY after a new CGM reading — never on user-triggered
+        // devicestatus uploads (carb log / manual bolus) that land between readings,
+        // which would otherwise replay a spurious auto-bolus on a just-logged carb
+        // before its covering manual bolus is in IOB.
+        if decisionsFromCgm {
+            times = data.glucose.map { $0.startDate }
+                .filter { $0 >= startDate && $0 <= endDate }
+                .sorted()
+            printStderr("Decisions from CGM: \(times.count) CGM samples in window\n")
+        }
+
         // CGM-aligned decision-time filter: deployed Loop auto-doses on CGM-reading
         // cycles, not on user-triggered devicestatus uploads (manual bolus / carb log)
         // that land between readings. Drop times whose latest CGM is staler than the
         // threshold so we don't replay an auto-dose on stale glucose.
-        if maxCgmAgeMin > 0 {
+        if maxCgmAgeMin > 0 && !decisionsFromCgm {
             let g = data.glucose  // sorted ascending by startDate
             let before = times.count
             times = times.filter { t in
@@ -197,6 +237,24 @@ struct ForecastMatchCommand: AsyncParsableCommand {
             let before = times.count
             times = times.filter { t in !intervals.contains { $0.0 <= t && t <= $0.1 } }
             printStderr("Outage filter: kept \(times.count)/\(before) decision times (\(intervals.count) outage intervals)\n")
+        }
+
+        // Debug: export the exact decision-time LoopPredictionInput at a target time.
+        if let atStr = dumpLoopInputAt, let outPath = dumpLoopInputPath {
+            let target = try parseISO8601Date(atStr)
+            guard let t = times.min(by: { abs($0.timeIntervalSince(target)) < abs($1.timeIntervalSince(target)) }) else {
+                throw ValidationError("no decision times to match --dump-loop-input-at")
+            }
+            // InsulinType raw (LoopKit): novolog=0, humalog=1, apidra=2, fiasp=3, lyumjev=4.
+            let itRaw: Int = insulinType.lowercased().contains("fiasp") ? 3
+                : insulinType.lowercased().contains("lyumjev") ? 4 : 0
+            guard let json = engine.loopPredictionInputJSON(
+                at: t, data: data, config: config, insulinTypeRaw: itRaw, useIntegralRC: integralRC) else {
+                throw ValidationError("could not build input at \(t)")
+            }
+            try json.write(to: URL(fileURLWithPath: outPath))
+            printStderr("Dumped LoopPredictionInput at \(ISO8601DateFormatter().string(from: t)) → \(outPath)\n")
+            return
         }
 
         let records = engine.forecastAtTimes(times, data: data, interval: interval, config: config)

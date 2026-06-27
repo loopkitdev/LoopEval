@@ -30,6 +30,14 @@ public struct EvalCarbEntry: CarbEntry, Codable, Sendable {
     public var quantity: LoopQuantity           // grams
     public var absorptionTime: TimeInterval?
     public var foodType: String?
+    // Groups the time-ordered REVISIONS of a single logged meal (e.g. the user
+    // logged 15g, then edited to 45g 35 min later). All revisions of one entry
+    // share the same revisionKey (Loop's syncIdentifier) and the same startDate
+    // (meal time), but carry different grams + visibility dates. The window
+    // builder keeps only the LATEST revision visible at the decision time, so the
+    // replay sees the carbs exactly as the deployed Loop saw them at each moment.
+    // nil ⇒ a standalone entry (the common, non-edited case) — no collapsing.
+    public var revisionKey: String?
 
     public init(
         startDate: Date,
@@ -37,7 +45,8 @@ public struct EvalCarbEntry: CarbEntry, Codable, Sendable {
         dosingVisibleDate: Date? = nil,
         quantity: LoopQuantity,
         absorptionTime: TimeInterval? = nil,
-        foodType: String? = nil
+        foodType: String? = nil,
+        revisionKey: String? = nil
     ) {
         self.startDate         = startDate
         self.entryDate         = entryDate ?? startDate
@@ -45,6 +54,7 @@ public struct EvalCarbEntry: CarbEntry, Codable, Sendable {
         self.quantity          = quantity
         self.absorptionTime    = absorptionTime
         self.foodType          = foodType
+        self.revisionKey       = revisionKey
     }
 
     // MARK: – Codable
@@ -56,6 +66,7 @@ public struct EvalCarbEntry: CarbEntry, Codable, Sendable {
         case grams
         case absorptionTime
         case foodType
+        case revisionKey
     }
 
     public init(from decoder: Decoder) throws {
@@ -68,6 +79,7 @@ public struct EvalCarbEntry: CarbEntry, Codable, Sendable {
         quantity          = LoopQuantity(unit: .gram, doubleValue: grams)
         absorptionTime    = try c.decodeIfPresent(TimeInterval.self, forKey: .absorptionTime)
         foodType          = try c.decodeIfPresent(String.self, forKey: .foodType)
+        revisionKey       = try c.decodeIfPresent(String.self, forKey: .revisionKey)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -78,5 +90,6 @@ public struct EvalCarbEntry: CarbEntry, Codable, Sendable {
         try c.encode(quantity.doubleValue(for: .gram), forKey: .grams)
         try c.encodeIfPresent(absorptionTime, forKey: .absorptionTime)
         try c.encodeIfPresent(foodType, forKey: .foodType)
+        try c.encodeIfPresent(revisionKey, forKey: .revisionKey)
     }
 }

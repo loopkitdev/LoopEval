@@ -33,6 +33,12 @@ public struct TherapySettings: Codable, Sendable {
     public var rawCarbRatio: [AbsoluteScheduleValue<Double>] = []
     public var rawTarget: [AbsoluteScheduleValue<ClosedRange<LoopQuantity>>] = []
     public var overrideWindows: [OverrideWindow] = []
+    // Times at which the user EDITED the profile schedule (profile-history boundaries).
+    // A decision before such an edit must not see it: InputWindowBuilder holds the
+    // decision-time-active profile's schedule across the forecast horizon rather than
+    // switching to a future-edited profile mid-horizon (future-profile-edit leak fix).
+    // Empty ⇒ no gating (single-profile/backfill behavior unchanged).
+    public var profileEditTimes: [Date] = []
 
     public init(
         basal: [AbsoluteScheduleValue<Double>],
@@ -47,7 +53,8 @@ public struct TherapySettings: Codable, Sendable {
         rawSensitivity: [AbsoluteScheduleValue<LoopQuantity>] = [],
         rawCarbRatio: [AbsoluteScheduleValue<Double>] = [],
         rawTarget: [AbsoluteScheduleValue<ClosedRange<LoopQuantity>>] = [],
-        overrideWindows: [OverrideWindow] = []
+        overrideWindows: [OverrideWindow] = [],
+        profileEditTimes: [Date] = []
     ) {
         self.basal            = basal
         self.sensitivity      = sensitivity
@@ -62,6 +69,7 @@ public struct TherapySettings: Codable, Sendable {
         self.rawCarbRatio     = rawCarbRatio
         self.rawTarget        = rawTarget
         self.overrideWindows  = overrideWindows
+        self.profileEditTimes = profileEditTimes
     }
 
     // MARK: – Codable helpers
@@ -90,6 +98,7 @@ public struct TherapySettings: Codable, Sendable {
         case rawCarbRatio
         case rawTarget          // stored as CodableTargetEntry
         case overrideWindows
+        case profileEditTimes
     }
 
     public init(from decoder: Decoder) throws {
@@ -144,6 +153,7 @@ public struct TherapySettings: Codable, Sendable {
                                          value: ClosedRange(uncheckedBounds: (lower: lo, upper: hi)))
         }
         overrideWindows = (try? c.decodeIfPresent([OverrideWindow].self, forKey: .overrideWindows)) ?? []
+        profileEditTimes = (try? c.decodeIfPresent([Date].self, forKey: .profileEditTimes)) ?? []
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -197,5 +207,6 @@ public struct TherapySettings: Codable, Sendable {
             try c.encode(raw, forKey: .rawTarget)
         }
         if !overrideWindows.isEmpty { try c.encode(overrideWindows, forKey: .overrideWindows) }
+        if !profileEditTimes.isEmpty { try c.encode(profileEditTimes, forKey: .profileEditTimes) }
     }
 }

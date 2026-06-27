@@ -33,6 +33,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Nightscout API secret (optional)")
     var apiSecret: String?
 
+    @Option(name: .long, help: "Nightscout subject access token (optional; for ?token= role auth)")
+    var token: String?
+
     @Option(name: .long, help: "Cache directory", transform: URL.init(fileURLWithPath:))
     var cacheDir: URL = URL(fileURLWithPath: NSHomeDirectory())
         .appendingPathComponent(".loop-eval/cache")
@@ -45,6 +48,9 @@ struct SimulateCommand: AsyncParsableCommand {
 
     @Flag(name: .long, help: "Use integral RC for baseline")
     var integralRC: Bool = false
+
+    @Flag(name: .long, help: "Apply the deployed-LoopKit integral-correction clamp to baseline IRC (only with --integral-rc). ON = faithful to deployed Loop-main; OFF (default) = legacy unclamped IRC.")
+    var integralRCClamp: Bool = false
 
     @Flag(name: .long, help: "Disable Kalman smoothing")
     var noKalman: Bool = false
@@ -59,11 +65,17 @@ struct SimulateCommand: AsyncParsableCommand {
           help: "Mid-absorption ISF: re-evaluate ALL active IOB at the CURRENT sensitivity (current LoopAlgorithm default). Pass --no-mid-absorption-isf for the OLD/deployed-Loop behavior: each dose keeps the sensitivity in effect at its delivery time for its lifetime (matters when ISF changes mid-absorption, e.g. a Temporary Override). Applies to BOTH arms.")
     var midAbsorptionIsf: Bool = true
 
-    @Option(name: .long, help: "Pump pulse size (U) for quantizing candidate BASAL delivery in the counter (floor to pulses, matching a real pump's deliveredAmount; field is ~1.1 U/day below rate×time). 0 = off (legacy rate×time). Fidelity feature — applies to BOTH arms.")
-    var basalPulseQuantum: Double = 0
+    @Option(name: .long, help: "Pump pulse size (U) for the candidate BASAL delivery in the counter. Models a real pump: delivers whole pulses, CARRIES the sub-pulse remainder while the temp rate is unchanged, drops the in-progress pulse on a temp re-issue (rate change) — reproduces the field ~1.1 U/day below rate×time. Default 0.05 (Omnipod). 0 = off (ideal continuous rate×time). Applies to BOTH arms.")
+    var basalPulseQuantum: Double = 0.05
 
     @Flag(name: .long, help: "Use deployed Loop's adaptive carb absorption (.adaptiveRateNonlinear). Off by default. Applies to BOTH arms.")
     var adaptiveCarbAbsorption: Bool = false
+
+    @Option(name: .long, help: "Carb-revisions overlay JSON (from reconstruct_carb_history.py): splice edited carb entries into their as-seen revision sequences so the sim sees carbs as the deployed Loop saw them at each moment. Data-level (applies to BOTH arms → identity-preserving). Default: cached final grams from original entry time.")
+    var carbRevisionsJson: String?
+
+    @Option(name: .long, help: "Override-targets overlay JSON (from override_targets.py): fill named-preset override correction ranges (+multiplier) from devicestatus (omitted by the NS treatment). Data-level (both arms → identity-preserving). Use for hands-on sim of override users.")
+    var overrideTargetsJson: String?
 
     @Option(name: .long, help: "Baseline ISF multiplier")
     var sensitivityMultiplier: Double = 1.0
@@ -80,6 +92,9 @@ struct SimulateCommand: AsyncParsableCommand {
     // Candidate-side flags (subset of bench's; can extend as needed)
     @Flag(name: .long, help: "Use integral RC for candidate")
     var candidateIntegralRC: Bool = false
+
+    @Flag(name: .long, help: "Apply the deployed-LoopKit integral-correction clamp to candidate IRC (only with integral RC). ON = faithful to deployed Loop-main; OFF (default) = legacy unclamped IRC.")
+    var candidateIntegralRCClamp: Bool = false
 
     @Flag(name: .long, help: "Use asymmetric momentum for candidate")
     var candidateAsymmetricMomentum: Bool = false
@@ -116,6 +131,9 @@ struct SimulateCommand: AsyncParsableCommand {
 
     @Flag(name: .long, help: "CF-IDENTITY harness (requires --candidate-counterfactual): force the candidate to deliver EXACTLY the real dose history through the physiological advance (no re-dosing). The counter MUST then reproduce the actual CGM to within rounding. Tests the patient-model advance in isolation from the controller.")
     var cfIdentity: Bool = false
+
+    @Flag(name: .long, inversion: .prefixedNo, help: "CGM-driven decisions: trigger ONE automatic dosing decision per real CGM sample (irregular ~5-min cadence), never on a fixed grid or any other event. The substrate is built on the raw CGM timestamps with variable per-step dt. DEFAULT ON — the faithful CF substrate (validated 2026-06-23 to reproduce field within ~0.5 TIR with exact cf-identity and NO CGM-gap masking, since the counter runs on the real CGM at real times and temp basals expire at 30 min across gaps). Pass --no-decisions-from-cgm for the legacy fixed 5-min grid march (resamples raw CGM onto the grid → smooths lows, needs gap masking). Physiology (ICE/sensitivity) is RTS-smoothed in place at the CGM times.")
+    var decisionsFromCgm: Bool = true
 
     @Option(name: .long, help: "Counterfactual burn-in hours (default 6.0): real-pump deliveries drive the sim for this period before counterfactual divergence starts. Gives candidate's prediction a fully-realistic recent dose history at the moment CF mode activates.")
     var candidateCounterfactualBurnInHours: Double = 6.0
@@ -308,6 +326,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateInferSensitivitySmoothPrior: Double = 0.0
     @Option(name: .long, help: "Hours of glucose history fed to the controller each step. Default 10. oref's autosens wants ~24h — raise to 24 for a representative OpenAPS autosens (Loop only uses recent glucose for momentum/RC, so it's ~insensitive).")
     var glucoseLookbackHours: Double = 10.0
+    @Option(name: .long, help: "Hours of insulin (dose) history fed to the controller each step. Default 16. oref needs ≥24h to compute IOB (DIA up to ~9h), autosens, and TDD (Dynamic ISF) — raise to 24+ for a faithful OpenAPS replay. Loop is ~insensitive beyond its DIA.")
+    var insulinLookbackHours: Double = 16.0
     @Option(name: .long, help: "Dump per-step NIE (de-insulinized real BG change = realBGdelta − m·real_physical_insulin) + m + substrate BG to this CSV (requires --candidate-infer-sensitivity). Feeds the offline perfect-foresight dosing oracle.")
     var candidateDumpNieCsv: String? = nil
 
@@ -340,6 +360,27 @@ struct SimulateCommand: AsyncParsableCommand {
 
     @Option(name: .long, help: "OpenAPS adjustmentFactorSigmoid (sigmoid Dynamic ISF aggression). Default 0.5.")
     var candidateOapsAdjustmentFactorSigmoid: Double?
+
+    @Option(name: .long, help: "OpenAPS autosens_max — upper clamp on the sensitivity/Dynamic-ISF ratio. Trio stock 1.2; match the user's 'Dynamic limit' (e.g. 1.9).")
+    var candidateOapsAutosensMax: Double?
+
+    @Option(name: .long, help: "OpenAPS autosens_min — lower clamp on the sensitivity/Dynamic-ISF ratio. Trio stock 0.7.")
+    var candidateOapsAutosensMin: Double?
+
+    @Option(name: .long, help: "OpenAPS insulin peak time (min) — drives the IOB curve AND Dynamic ISF insulinFactor (=120−peak). Uses an ultra-rapid curve so peaks <50 are allowed. Match the user's insulin (~41–45 Lyumjev/ultra-rapid). Default: rapid-acting (insulinFactor 55).")
+    var candidateOapsInsulinPeak: Double?
+
+    @Option(name: .long, help: "OpenAPS DIA (hours) = insulin_action_curve = insulin curve END time. Set to the user's profile DIA (e.g. 9); adapter otherwise hardcodes 6, which decays IOB too fast.")
+    var candidateOapsDia: Double?
+
+    @Option(name: .long, help: "OpenAPS insulin curve PRESET, no custom peak ('ultra-rapid' | 'rapid-acting'). ultra-rapid = Lyumjev/Fiasp: IOB peak 55 AND dynISF insulinFactor 70 (decoupled). Use instead of --candidate-oaps-insulin-peak.")
+    var candidateOapsCurve: String?
+
+    @Option(name: .long, help: "OpenAPS max_iob (U) — the user's real safety cap. Not uploaded by Trio; set for faithful reproduction (else a non-binding maxBolus×10 fallback is used).")
+    var candidateOapsMaxIob: Double?
+
+    @Option(name: .long, help: "OpenAPS preferences JSON (object) merged over the adapter defaults — supply a user's complete Trio settings verbatim. Inline JSON or @path/to/file.json.")
+    var candidateOapsPrefsJson: String?
 
     @Flag(name: .long, help: "OpenAPS ablation: disable UAM (enableUAM=false) — drop the unannounced-meal forecast/SMB while keeping SMB on the base forecast. Isolates UAM's forecast contribution.")
     var candidateOapsNoUam: Bool = false
@@ -376,8 +417,10 @@ struct SimulateCommand: AsyncParsableCommand {
             evalStep: TimeInterval(stepMinutes) * 60,
             includeFutureInsulin: oracleFutureInputs,
             includeFutureCarbs: oracleFutureInputs,
+            insulinLookbackHours: insulinLookbackHours,
             glucoseLookbackHours: glucoseLookbackHours,
             useIntegralRC: integralRC,
+            useIntegralRCClamp: integralRCClamp,
             bolusIncrement: candidateBolusIncrement,
             tempBasalIncrement: candidateTempBasalIncrement,
             basalPulseQuantum: basalPulseQuantum,
@@ -385,6 +428,8 @@ struct SimulateCommand: AsyncParsableCommand {
             simRawGlucose: simRawGlucose,
             useMidAbsorptionISF: midAbsorptionIsf,
             adaptiveCarbAbsorption: adaptiveCarbAbsorption,
+            carbRevisionsPath: carbRevisionsJson,
+            overrideTargetsPath: overrideTargetsJson,
             sensitivityMultiplier: sensitivityMultiplier,
             localTimezone: resolvedTz,
             momentumGradualTransitionsThreshold: noGradualTransitionsGate ? nil : 40,
@@ -394,7 +439,7 @@ struct SimulateCommand: AsyncParsableCommand {
         let crHalfWidth: Double = (candidateTargetWidth ?? 0) / 2
         let crOverrideLow: Double? = candidateTargetMid.map { $0 - crHalfWidth }
         let crOverrideHigh: Double? = candidateTargetMid.map { $0 + crHalfWidth }
-        let candidateConfig = EvalConfig(
+        var candidateConfig = EvalConfig(
             glucoseBasedApplicationFactor: candidateGbaf,
             gbafLowAnchor: candidateGbafLowAnchor,
             gbafHighAnchor: candidateGbafHighAnchor,
@@ -452,6 +497,7 @@ struct SimulateCommand: AsyncParsableCommand {
             includeFutureCarbs: oracleFutureInputs,
             glucoseLookbackHours: glucoseLookbackHours,
             useIntegralRC: candidateIntegralRC || integralRC,
+            useIntegralRCClamp: candidateIntegralRCClamp || integralRCClamp,
             ircDropGainScale: candidateIrcDropScale,
             ircRiseGainScale: candidateIrcRiseScale,
             ircLowMemoryScale: candidateIrcLowMemoryScale,
@@ -478,6 +524,8 @@ struct SimulateCommand: AsyncParsableCommand {
             useMidAbsorptionISF: midAbsorptionIsf,
             adaptiveCarbAbsorption: adaptiveCarbAbsorption,
             carbAbsorptionTimeCapSec: candidateCarbAbsorptionCapMin * 60,
+            carbRevisionsPath: carbRevisionsJson,
+            overrideTargetsPath: overrideTargetsJson,
             sensitivityMultiplier: candidateSensitivityMultiplier ?? sensitivityMultiplier,
             sensitivityHourlyMultipliers: hourlyISF,
             localTimezone: resolvedTz,
@@ -487,6 +535,20 @@ struct SimulateCommand: AsyncParsableCommand {
             momentumAlphaSlow: candidateMomentumAlphaSlow,
             momentumAlphaFast: candidateMomentumAlphaFast
         )
+        // Set post-construction to keep the EvalConfig(...) literal under the
+        // Swift type-checker's expression-complexity limit.
+        candidateConfig.oapsAutosensMax = candidateOapsAutosensMax
+        candidateConfig.oapsAutosensMin = candidateOapsAutosensMin
+        candidateConfig.oapsInsulinPeakTime = candidateOapsInsulinPeak
+        candidateConfig.oapsDia = candidateOapsDia
+        candidateConfig.oapsCurve = candidateOapsCurve
+        candidateConfig.oapsMaxIob = candidateOapsMaxIob
+        if let pj = candidateOapsPrefsJson {
+            candidateConfig.oapsPrefsJson = pj.hasPrefix("@")
+                ? (try? String(contentsOfFile: String(pj.dropFirst()), encoding: .utf8)) ?? pj
+                : pj
+        }
+        candidateConfig.insulinLookbackHours = insulinLookbackHours
 
         let dataSource: any EvalDataSource
         if let dataDir {
@@ -495,7 +557,7 @@ struct SimulateCommand: AsyncParsableCommand {
             guard !nightscoutUrl.isEmpty, let baseURL = URL(string: nightscoutUrl) else {
                 throw ValidationError("Provide --nightscout-url or --data-dir")
             }
-            let client = NightscoutClient(baseURL: baseURL, apiSecret: apiSecret)
+            let client = NightscoutClient(baseURL: baseURL, apiSecret: apiSecret, token: token)
             let cache = try DataCache(cacheDir: cacheDir)
             dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset, applyOverrides: applyOverrides)
         }
@@ -547,6 +609,7 @@ struct SimulateCommand: AsyncParsableCommand {
             decisionTimeReplay: decisionTimeReplay,
             counterfactualBurnInSec: candidateCounterfactualBurnInHours * 3600,
             cfIdentity: cfIdentity,
+            decisionsFromCgm: decisionsFromCgm,
             excludeManualBoluses: noUserBoluses,
             suppressCarbs: noCarbEntries,
             counterRegOnsetMgdl: counterRegOnset,

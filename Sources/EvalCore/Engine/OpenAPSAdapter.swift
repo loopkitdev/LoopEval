@@ -129,10 +129,17 @@ struct OpenAPSAdapter: DosingEngine {
         //   runs/2026-06-05-openaps-first-run/case_study_noon_meal.html).
         // maxSMBBasalMinutes / maxUAMSMBBasalMinutes: stock 30 (≈ 30 min of
         //   scheduled basal per SMB). Kept at default to start.
-        let maxIob = req.therapy.maxBolus * 10.0
+        // FAITHFUL safety limits: use the user's REAL pump caps and oref STOCK
+        // safety multipliers so temp basal is bounded exactly as on the device.
+        // (Earlier these were inflated — max_basal×3, multipliers 10 — to "measure
+        // algorithm behavior, not the safety ceiling"; that double-doses vs a real
+        // oref user, which delivers via SMB and lets the temp cap bind. max_iob is
+        // genuinely per-user and not uploaded by Trio → supply via --candidate-oaps-
+        // max-iob; the non-binding maxBolus×10 fallback is NOT faithful.)
+        let maxIob = req.config.oapsMaxIob ?? (req.therapy.maxBolus * 10.0)
         var prefs: [String: Any] = [
             "max_iob": maxIob,
-            "max_basal": req.therapy.maxBasalRate * 3.0,
+            "max_basal": req.therapy.maxBasalRate,
             // Keys match Preferences.CodingKeys exactly — see
             // OpenAPSSwift/TrioModels/Preferences.swift
             "enableSMB_always": true,
@@ -140,14 +147,13 @@ struct OpenAPSAdapter: DosingEngine {
             "enableSMB_after_carbs": true,
             "enableUAM": true,
             "allowSMB_with_high_temptarget": true,
-            // Bumped from stock (30 each, 3, 4) so the algorithm's own limits
-            // don't bind during recovery events. The intent is to measure how
-            // the algorithm WANTS to dose, not how quickly it hits a hardcoded
-            // safety ceiling that's smaller than Loop's auto-bolus cap.
+            // maxSMBBasalMinutes: the field runs a high value (its SMBs require
+            // ≥~68 min of basal); keep 60 (override via --candidate-oaps-max-smb-min).
             "maxSMBBasalMinutes": 60,
             "maxUAMSMBBasalMinutes": 60,
-            "max_daily_safety_multiplier": 10,
-            "current_basal_safety_multiplier": 10
+            // oref STOCK safety multipliers (were 10/10).
+            "max_daily_safety_multiplier": 3,
+            "current_basal_safety_multiplier": 4
         ]
         // Optional per-experiment overrides.
         if let thr = req.config.oapsThresholdSetting {
@@ -181,21 +187,48 @@ struct OpenAPSAdapter: DosingEngine {
         if let af = req.config.oapsAdjustmentFactor {
             prefs["adjustmentFactor"] = af
         }
+        // Sensitivity-ratio clamps (autosens and/or Dynamic ISF). Load-bearing for
+        // matching a user who runs a non-stock Dynamic limit (e.g. autosens_max 1.9).
+        if let am = req.config.oapsAutosensMax {
+            prefs["autosens_max"] = am
+        }
+        if let an = req.config.oapsAutosensMin {
+            prefs["autosens_min"] = an
+        }
+        // Insulin peak time → drives both the IOB curve and Dynamic ISF's
+        // insulinFactor (= 120 − peak). Use the ultra-rapid curve so oref permits
+        // a custom peak below 50 (the rapid-acting curve clamps peak to ≥50, i.e.
+        // insulinFactor ≤ 70; ultra-rapid clamps to [35,100]).
+        if let peak = req.config.oapsInsulinPeakTime {
+            prefs["curve"] = "ultra-rapid"
+            prefs["useCustomPeakTime"] = true
+            prefs["insulinPeakTime"] = peak
+        } else if let curve = req.config.oapsCurve {
+            // Preset curve, NO custom peak: oref's ultra-rapid branch sets IOB
+            // peak 55 AND dynISF insulinFactor 70 (120−50), decoupling the two —
+            // the Lyumjev/Fiasp config (see EvalConfig.oapsCurve).
+            prefs["curve"] = curve
+        }
         if let afs = req.config.oapsAdjustmentFactorSigmoid {
             prefs["adjustmentFactorSigmoid"] = afs
+        }
+        // Merge a raw oref-preferences JSON over the defaults/knobs (faithful
+        // reproduction: supply a real user's complete Trio settings verbatim).
+        if let pj = req.config.oapsPrefsJson,
+           let data = pj.data(using: .utf8),
+           let merge = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            for (k, v) in merge { prefs[k] = v }
         }
         let preferencesJSON = String(data: try JSONSerialization.data(withJSONObject: prefs),
                                      encoding: .utf8)!
 
         // ── Pump settings ─────────────────────────────────────────────────────
-        // maxBasal is multiplied so the temp-basal cap (= maxBasal × safety
-        // multipliers) doesn't bind during recovery from outages. We want to
-        // compare algorithm BEHAVIOR, not how quickly each algorithm hits a
-        // safety ceiling.
+        // Use the user's REAL maxBasal so the temp-basal cap binds exactly as on
+        // the device (was ×3 to avoid binding — not faithful, see prefs above).
         let pumpSettings: [String: Any] = [
-            "insulin_action_curve": 6,
+            "insulin_action_curve": req.config.oapsDia ?? 6,
             "maxBolus": req.therapy.maxBolus,
-            "maxBasal": req.therapy.maxBasalRate * 3.0
+            "maxBasal": req.therapy.maxBasalRate
         ]
         let pumpSettingsJSON = String(data: try JSONSerialization.data(withJSONObject: pumpSettings),
                                       encoding: .utf8)!
@@ -281,8 +314,9 @@ struct OpenAPSAdapter: DosingEngine {
         if coverageHours < 24 {
             tdd *= 24.0 / coverageHours
         }
-        // Add the scheduled-basal "default" — many sims have very few real
-        // doses early on. Floor at 12 U/day so Dynamic ISF actually engages.
+        // Floor at 12 U/day so Dynamic ISF actually engages early in a sim when
+        // there are few real doses yet. (TDD is summed from reconciled, non-
+        // overlapping basal doses — see NightscoutEvalDataSource.clipOverlappingBasals.)
         let estimatedTdd = max(tdd, 12.0)
 
         // ── TrioCustomOrefVariables (overrides off) ───────────────────────────
@@ -360,6 +394,19 @@ struct OpenAPSAdapter: DosingEngine {
         return sorted
     }
 
+    /// oref's profile lookups (ISF/CR/basal) require a midnight (offset-0) anchor:
+    /// `Isf.isfLookup` returns -1 (→ ProfileError.invalidISF) unless the first
+    /// schedule entry has offset 0. A decision-time window rarely starts at local
+    /// midnight, so a sliced daily schedule's earliest segment usually has a
+    /// nonzero time-of-day offset. Add offset 0 using the wrap-around
+    /// (largest-offset) value — the cyclic schedule's value in force at midnight.
+    /// No-op when an offset-0 entry already exists.
+    private func anchorMidnight(_ byMinutes: inout [Int: (Date, Double)]) {
+        if byMinutes[0] == nil, let maxKey = byMinutes.keys.max() {
+            byMinutes[0] = (Date.distantPast, byMinutes[maxKey]!.1)
+        }
+    }
+
     private func encodeBasalSchedule(
         _ entries: [AbsoluteScheduleValue<Double>],
         calendar cal: Calendar
@@ -370,6 +417,7 @@ struct OpenAPSAdapter: DosingEngine {
             if let prev = byMinutes[mins], prev.0 >= e.startDate { continue }
             byMinutes[mins] = (e.startDate, e.value)
         }
+        anchorMidnight(&byMinutes)
         let sorted = byMinutes.keys.sorted()
         let items: [[String: Any]] = sorted.isEmpty
             ? [["start": "00:00:00", "minutes": 0, "rate": entries.last?.value ?? 1.0]]
@@ -390,6 +438,7 @@ struct OpenAPSAdapter: DosingEngine {
             if let prev = byMinutes[mins], prev.0 >= e.startDate { continue }
             byMinutes[mins] = (e.startDate, v)
         }
+        anchorMidnight(&byMinutes)
         let sorted = byMinutes.keys.sorted()
         let items: [[String: Any]] = sorted.isEmpty
             ? [["start": "00:00:00", "offset": 0, "sensitivity": 50.0]]
@@ -414,6 +463,7 @@ struct OpenAPSAdapter: DosingEngine {
             if let prev = byMinutes[mins], prev.0 >= e.startDate { continue }
             byMinutes[mins] = (e.startDate, e.value)
         }
+        anchorMidnight(&byMinutes)
         let sorted = byMinutes.keys.sorted()
         let items: [[String: Any]] = sorted.isEmpty
             ? [["start": "00:00:00", "offset": 0, "ratio": 10.0]]
@@ -437,6 +487,10 @@ struct OpenAPSAdapter: DosingEngine {
             if let prev = byMinutes[mins], prev.0 >= e.startDate { continue }
             byMinutes[mins] = (e.startDate, lo, hi)
         }
+        if byMinutes[0] == nil, let maxKey = byMinutes.keys.max() {
+            let wrap = byMinutes[maxKey]!
+            byMinutes[0] = (Date.distantPast, wrap.1, wrap.2)
+        }
         let sorted = byMinutes.keys.sorted()
         let items: [[String: Any]] = sorted.isEmpty
             ? [["low": fallbackMidMgdl, "high": fallbackMidMgdl, "start": "00:00:00", "offset": 0]]
@@ -456,7 +510,16 @@ struct OpenAPSAdapter: DosingEngine {
 
     private func encodeGlucose(_ samples: [EvalGlucoseSample], iso: ISO8601DateFormatter) -> String {
         let mgdl = LoopUnit.milligramsPerDeciliter
-        let entries: [[String: Any]] = samples.enumerated().map { i, s in
+        // oref's convention is glucose NEWEST-FIRST (descending), the order
+        // Nightscout feeds real oref. `getGlucoseStatus` sorts defensively, but
+        // `MealCob.bucketGlucoseForCob` does NOT — fed oldest-first, its
+        // `foundPreMealBG` early-exit trips on the first (oldest) reading and
+        // skips the whole series, yielding EMPTY deviations (maxDev=0/minDev=999)
+        // → mealCOB=0 and a steep slopeFromDeviations that collapses the UAM/COB
+        // forecast. Emit newest-first so the carb-absorption deconvolution runs.
+        let entries: [[String: Any]] = samples
+            .sorted { $0.startDate > $1.startDate }
+            .enumerated().map { i, s in
             let val = Int(s.quantity.doubleValue(for: mgdl).rounded())
             return [
                 "_id": "g\(i)",

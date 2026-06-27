@@ -27,6 +27,13 @@ public struct EvalConfig: Codable, Sendable {
     /// Use Integral Retrospective Correction instead of standard RC.
     public var useIntegralRC: Bool
 
+    /// Apply the deployed-LoopKit integral-correction CLAMP to IRC (only meaningful
+    /// when `useIntegralRC` is true). Deployed Loop bounds the wound-up integral term
+    /// by an ISF×basal-scaled, target-relative window; that clamp was dropped in the
+    /// LoopAlgorithm port. ON ⇒ faithful to deployed Loop-main. OFF (default) ⇒ legacy
+    /// unclamped IRC, so prior IRC experiments reproduce byte-identical.
+    public var useIntegralRCClamp: Bool
+
     /// Asymmetric IRC gains (only used when `useIntegralRC` is true). `ircDropGainScale`
     /// scales the correction when the discrepancy run is negative (BG dropping faster
     /// than predicted = sensitivity); `ircRiseGainScale` when positive (resistance).
@@ -145,6 +152,22 @@ public struct EvalConfig: Codable, Sendable {
     /// modeled absorption-rate ceiling, so a fast rise is absorbed into carbs
     /// instead of spilling into RC. Used to confirm the ICE→carb/RC mechanism.
     public var carbAbsorptionTimeCapSec: TimeInterval
+
+    /// Path to a carb-revisions overlay JSON (produced by
+    /// `analysis/.../reconstruct_carb_history.py`). When set, edited carb entries
+    /// are spliced into their time-ordered revision sequences so decision-time
+    /// replay sees the carbs exactly as the deployed Loop saw them at each moment
+    /// (a user who logs 15g then edits to 45g looks like 15g until the edit time).
+    /// nil ⇒ use cached entries as-is (final grams from original entry time).
+    public var carbRevisionsPath: String?
+
+    /// Path to a devicestatus-derived override correction-range overlay
+    /// (analysis/loopeval_analysis/override_targets.py). Named-preset overrides
+    /// ("Sick", "Grazing", …) carry their target range only in devicestatus, not
+    /// the NS treatment — this fills the gated override windows' ranges (+multiplier)
+    /// so hands-on replay doses to the target Loop actually used. nil ⇒ treatment-
+    /// based override targets only (misses named-preset ranges).
+    public var overrideTargetsPath: String?
 
     /// Multiplicative scalar applied to the ISF (sensitivity) timeline before
     /// passing to LoopAlgorithm.  1.0 = use values as-is from Nightscout.
@@ -335,6 +358,38 @@ public struct EvalConfig: Codable, Sendable {
     /// Ablation: when false, disable all SMB (enableSMB_always/with_COB/after_carbs/UAM off),
     /// leaving temp-basal-only dosing. nil = leave default (on). Isolates the SMB delivery cadence.
     public var oapsEnableSMB: Bool?
+    /// `autosens_max`: upper clamp on the sensitivity ratio (autosens and/or Dynamic ISF).
+    /// Trio stock 1.2; raise to match a user who runs a higher dynamic limit (e.g. 1.9).
+    /// Load-bearing for Dynamic-ISF fidelity — the ratio is clamped to this before ISF scales.
+    public var oapsAutosensMax: Double?
+    /// `autosens_min`: lower clamp on the sensitivity ratio. Trio stock 0.7.
+    public var oapsAutosensMin: Double?
+    /// oref insulin peak time (minutes). Drives BOTH the IOB curve AND Dynamic
+    /// ISF's `insulinFactor` (= 120 − peak). When set, the adapter uses an
+    /// ultra-rapid curve with custom peak so peaks below 50 are allowed (oref
+    /// clamps the rapid-acting curve to ≥50, capping insulinFactor at 70). Match
+    /// the user's insulin (e.g. ~41–45 for Lyumjev/ultra-rapid). nil = oref
+    /// default (rapid-acting → insulinFactor 55, peak 65).
+    public var oapsInsulinPeakTime: Double?
+    /// oref DIA (hours) = `insulin_action_curve`, which oref uses as the insulin
+    /// curve END time (profile.dia). The adapter otherwise hardcodes 6; set this
+    /// to the user's profile DIA (e.g. 9) so the IOB tail length matches — a too-
+    /// short DIA decays IOB too fast (systematically low, proportional to IOB).
+    public var oapsDia: Double?
+    /// oref insulin `curve` preset WITHOUT custom peak time ("ultra-rapid" |
+    /// "rapid-acting"). Decouples IOB peak from dynISF insulinFactor: ultra-rapid
+    /// → IOB peak 55 AND insulinFactor 70 (hardcoded 120−50, NOT 120−55) — the
+    /// Lyumjev/Fiasp config. Use INSTEAD of oapsInsulinPeakTime (custom-peak path).
+    public var oapsCurve: String?
+    /// oref max_iob (U) — the user's real safety cap on total IOB. Per-user and
+    /// NOT uploaded by Trio; supply for faithful reproduction. nil → adapter's
+    /// non-binding maxBolus×10 fallback (not faithful).
+    public var oapsMaxIob: Double?
+    /// Raw oref preferences JSON (object) MERGED over the adapter's prefs dict
+    /// (overrides defaults/knobs) — lets a real user's COMPLETE Trio settings be
+    /// supplied verbatim for faithful reproduction (enableSMB flags, min_5m_carbimpact,
+    /// maxCOB, weightPercentage, custom peak, etc.). Keys = oref pref keys.
+    public var oapsPrefsJson: String?
 
     /// Post-low (sustained-sensitivity) forecast suppression: when a recent low
     /// (< postlowThresholdMgdl within postlowWindowMin) occurred, lower the
@@ -423,6 +478,13 @@ public struct EvalConfig: Codable, Sendable {
         oapsAdjustmentFactorSigmoid: Double? = nil,
         oapsEnableUAM: Bool? = nil,
         oapsEnableSMB: Bool? = nil,
+        oapsAutosensMax: Double? = nil,
+        oapsAutosensMin: Double? = nil,
+        oapsInsulinPeakTime: Double? = nil,
+        oapsDia: Double? = nil,
+        oapsCurve: String? = nil,
+        oapsMaxIob: Double? = nil,
+        oapsPrefsJson: String? = nil,
         postlowSuppressMgdl: Double = 0.0,
         postlowWindowMin: Double = 120.0,
         postlowThresholdMgdl: Double = 70.0,
@@ -438,6 +500,7 @@ public struct EvalConfig: Codable, Sendable {
         insulinLookbackHours: Double = 16,
         glucoseLookbackHours: Double = 10,
         useIntegralRC: Bool = false,
+        useIntegralRCClamp: Bool = false,
         ircDropGainScale: Double = 1.0,
         ircRiseGainScale: Double = 1.0,
         ircLowMemoryScale: Double = 0.0,
@@ -455,7 +518,7 @@ public struct EvalConfig: Codable, Sendable {
         iceRiseBoostIsfFadeHi: Double = 0,
         bolusIncrement: Double = 0.05,
         tempBasalIncrement: Double = 0.05,
-        basalPulseQuantum: Double = 0,
+        basalPulseQuantum: Double = 0.05,
         correctionRangeOverrideLow: Double? = nil,
         correctionRangeOverrideHigh: Double? = nil,
         kalmanSmoothing: Bool = true,
@@ -468,6 +531,8 @@ public struct EvalConfig: Codable, Sendable {
         carbAbsorptionModel: CarbAbsorptionModel = .piecewiseLinear,
         adaptiveCarbAbsorption: Bool = false,
         carbAbsorptionTimeCapSec: TimeInterval = 0,
+        carbRevisionsPath: String? = nil,
+        overrideTargetsPath: String? = nil,
         sensitivityMultiplier: Double = 1.0,
         sensitivityHourlyMultipliers: [Double]? = nil,
         localTimezone: TimeZone = .current,
@@ -529,6 +594,13 @@ public struct EvalConfig: Codable, Sendable {
         self.oapsAdjustmentFactorSigmoid    = oapsAdjustmentFactorSigmoid
         self.oapsEnableUAM                  = oapsEnableUAM
         self.oapsEnableSMB                  = oapsEnableSMB
+        self.oapsAutosensMax                = oapsAutosensMax
+        self.oapsAutosensMin                = oapsAutosensMin
+        self.oapsInsulinPeakTime            = oapsInsulinPeakTime
+        self.oapsDia                        = oapsDia
+        self.oapsCurve                      = oapsCurve
+        self.oapsMaxIob                     = oapsMaxIob
+        self.oapsPrefsJson                  = oapsPrefsJson
         self.postlowSuppressMgdl            = postlowSuppressMgdl
         self.postlowWindowMin               = postlowWindowMin
         self.postlowThresholdMgdl           = postlowThresholdMgdl
@@ -544,6 +616,7 @@ public struct EvalConfig: Codable, Sendable {
         self.insulinLookbackHours           = insulinLookbackHours
         self.glucoseLookbackHours           = glucoseLookbackHours
         self.useIntegralRC                  = useIntegralRC
+        self.useIntegralRCClamp             = useIntegralRCClamp
         self.ircDropGainScale               = ircDropGainScale
         self.ircRiseGainScale               = ircRiseGainScale
         self.ircLowMemoryScale              = ircLowMemoryScale
@@ -573,6 +646,8 @@ public struct EvalConfig: Codable, Sendable {
         self.carbAbsorptionModel            = carbAbsorptionModel
         self.adaptiveCarbAbsorption         = adaptiveCarbAbsorption
         self.carbAbsorptionTimeCapSec       = carbAbsorptionTimeCapSec
+        self.carbRevisionsPath              = carbRevisionsPath
+        self.overrideTargetsPath            = overrideTargetsPath
         self.sensitivityMultiplier          = sensitivityMultiplier
         if let h = sensitivityHourlyMultipliers, h.count != 24 {
             preconditionFailure("sensitivityHourlyMultipliers must have exactly 24 entries")
@@ -596,8 +671,8 @@ public struct EvalConfig: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
-        case useIntegralRC, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, horizons, includingPositiveVelocityAndRC
-        case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec
+        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, horizons, includingPositiveVelocityAndRC
+        case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec, carbRevisionsPath, overrideTargetsPath
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
         case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
@@ -609,6 +684,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsThresholdSetting, oapsSmbDeliveryRatio, oapsMaxSmbBasalMinutes
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
+        case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson
         case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
@@ -621,6 +697,7 @@ public struct EvalConfig: Codable, Sendable {
         self.insulinLookbackHours = try c.decode(Double.self,       forKey: .insulinLookbackHours)
         self.glucoseLookbackHours = try c.decode(Double.self,       forKey: .glucoseLookbackHours)
         self.useIntegralRC        = try c.decode(Bool.self,         forKey: .useIntegralRC)
+        self.useIntegralRCClamp   = try c.decodeIfPresent(Bool.self, forKey: .useIntegralRCClamp) ?? false
         self.ircDropGainScale     = try c.decodeIfPresent(Double.self, forKey: .ircDropGainScale) ?? 1.0
         self.ircRiseGainScale     = try c.decodeIfPresent(Double.self, forKey: .ircRiseGainScale) ?? 1.0
         self.ircLowMemoryScale    = try c.decodeIfPresent(Double.self, forKey: .ircLowMemoryScale) ?? 0.0
@@ -650,6 +727,8 @@ public struct EvalConfig: Codable, Sendable {
         self.carbAbsorptionModel  = try c.decode(CarbAbsorptionModel.self, forKey: .carbAbsorptionModel)
         self.adaptiveCarbAbsorption = try c.decodeIfPresent(Bool.self, forKey: .adaptiveCarbAbsorption) ?? false
         self.carbAbsorptionTimeCapSec = try c.decodeIfPresent(TimeInterval.self, forKey: .carbAbsorptionTimeCapSec) ?? 0
+        self.carbRevisionsPath = try c.decodeIfPresent(String.self, forKey: .carbRevisionsPath)
+        self.overrideTargetsPath = try c.decodeIfPresent(String.self, forKey: .overrideTargetsPath)
         self.sensitivityMultiplier = try c.decode(Double.self,      forKey: .sensitivityMultiplier)
         self.carbRatioMultiplier  = try c.decode(Double.self,       forKey: .carbRatioMultiplier)
         self.basalRateMultiplier  = try c.decode(Double.self,       forKey: .basalRateMultiplier)
@@ -716,6 +795,13 @@ public struct EvalConfig: Codable, Sendable {
         self.oapsAdjustmentFactorSigmoid = try c.decodeIfPresent(Double.self, forKey: .oapsAdjustmentFactorSigmoid)
         self.oapsEnableUAM = try c.decodeIfPresent(Bool.self, forKey: .oapsEnableUAM)
         self.oapsEnableSMB = try c.decodeIfPresent(Bool.self, forKey: .oapsEnableSMB)
+        self.oapsAutosensMax = try c.decodeIfPresent(Double.self, forKey: .oapsAutosensMax)
+        self.oapsAutosensMin = try c.decodeIfPresent(Double.self, forKey: .oapsAutosensMin)
+        self.oapsInsulinPeakTime = try c.decodeIfPresent(Double.self, forKey: .oapsInsulinPeakTime)
+        self.oapsDia = try c.decodeIfPresent(Double.self, forKey: .oapsDia)
+        self.oapsCurve = try c.decodeIfPresent(String.self, forKey: .oapsCurve)
+        self.oapsMaxIob = try c.decodeIfPresent(Double.self, forKey: .oapsMaxIob)
+        self.oapsPrefsJson = try c.decodeIfPresent(String.self, forKey: .oapsPrefsJson)
         self.postlowSuppressMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowSuppressMgdl) ?? 0.0
         self.postlowWindowMin = try c.decodeIfPresent(Double.self, forKey: .postlowWindowMin) ?? 120.0
         self.postlowThresholdMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowThresholdMgdl) ?? 70.0
@@ -735,6 +821,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(insulinLookbackHours, forKey: .insulinLookbackHours)
         try c.encode(glucoseLookbackHours, forKey: .glucoseLookbackHours)
         try c.encode(useIntegralRC, forKey: .useIntegralRC)
+        try c.encode(useIntegralRCClamp, forKey: .useIntegralRCClamp)
         try c.encode(ircDropGainScale, forKey: .ircDropGainScale)
         try c.encode(ircRiseGainScale, forKey: .ircRiseGainScale)
         try c.encode(ircLowMemoryScale, forKey: .ircLowMemoryScale)
@@ -764,6 +851,8 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(carbAbsorptionModel, forKey: .carbAbsorptionModel)
         try c.encode(adaptiveCarbAbsorption, forKey: .adaptiveCarbAbsorption)
         try c.encode(carbAbsorptionTimeCapSec, forKey: .carbAbsorptionTimeCapSec)
+        try c.encodeIfPresent(carbRevisionsPath, forKey: .carbRevisionsPath)
+        try c.encodeIfPresent(overrideTargetsPath, forKey: .overrideTargetsPath)
         try c.encode(sensitivityMultiplier, forKey: .sensitivityMultiplier)
         try c.encode(carbRatioMultiplier, forKey: .carbRatioMultiplier)
         try c.encode(basalRateMultiplier, forKey: .basalRateMultiplier)
@@ -821,6 +910,13 @@ public struct EvalConfig: Codable, Sendable {
         try c.encodeIfPresent(oapsAdjustmentFactorSigmoid, forKey: .oapsAdjustmentFactorSigmoid)
         try c.encodeIfPresent(oapsEnableUAM, forKey: .oapsEnableUAM)
         try c.encodeIfPresent(oapsEnableSMB, forKey: .oapsEnableSMB)
+        try c.encodeIfPresent(oapsAutosensMax, forKey: .oapsAutosensMax)
+        try c.encodeIfPresent(oapsAutosensMin, forKey: .oapsAutosensMin)
+        try c.encodeIfPresent(oapsInsulinPeakTime, forKey: .oapsInsulinPeakTime)
+        try c.encodeIfPresent(oapsDia, forKey: .oapsDia)
+        try c.encodeIfPresent(oapsCurve, forKey: .oapsCurve)
+        try c.encodeIfPresent(oapsMaxIob, forKey: .oapsMaxIob)
+        try c.encodeIfPresent(oapsPrefsJson, forKey: .oapsPrefsJson)
         try c.encode(postlowSuppressMgdl, forKey: .postlowSuppressMgdl)
         try c.encode(postlowWindowMin, forKey: .postlowWindowMin)
         try c.encode(postlowThresholdMgdl, forKey: .postlowThresholdMgdl)

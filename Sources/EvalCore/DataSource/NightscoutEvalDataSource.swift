@@ -71,13 +71,49 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // v2: temp-basal volume now uses the pump's delivered `amount` (not rate*duration).
         let cacheKey = DataCache.key(for: "doses_v3_\(insulinType)", url: client.baseURL, interval: lookback)
         if let cached: [EvalInsulinDose] = try await cache.load(key: cacheKey) {
-            return cached
+            return Self.clipOverlappingBasals(cached)
         }
 
         let treatments = try await client.fetchTreatments(interval: lookback)
         let doses = convertTreatmentsToDoses(treatments)
-        try await cache.save(doses, key: cacheKey)
-        return doses
+        try await cache.save(doses, key: cacheKey)   // cache RAW; clip on return (idempotent)
+        return Self.clipOverlappingBasals(doses)
+    }
+
+    /// Enforce the single-basal-stream invariant: at most one temp basal active
+    /// at any instant. A pump can't run two basal rates at once, but some
+    /// uploaders (notably Trio) log a 30-min temp basal every ~5 min WITHOUT
+    /// ending the prior one, so the raw stream has heavily overlapping basal
+    /// doses (their summed durations can exceed the wall-clock span several-fold,
+    /// over-counting TDD). When a newer basal starts before an older one ends,
+    /// truncate the older to end at the newer's start and scale its delivered
+    /// volume to the retained fraction. Idempotent and a NO-OP on non-overlapping
+    /// streams (e.g. Loop). Boluses are untouched. Applied on every dose return
+    /// so it covers both freshly-parsed and previously-cached (raw) doses.
+    static func clipOverlappingBasals(_ doses: [EvalInsulinDose]) -> [EvalInsulinDose] {
+        let basalStarts = doses.filter { $0.deliveryType == .basal }
+            .map { $0.startDate }.sorted()
+        guard !basalStarts.isEmpty else { return doses }
+        // First basal start strictly after `t` (binary search; basalStarts sorted).
+        func firstStartAfter(_ t: Date) -> Date? {
+            var lo = 0, hi = basalStarts.count
+            while lo < hi {
+                let m = (lo + hi) / 2
+                if basalStarts[m] > t { hi = m } else { lo = m + 1 }
+            }
+            return lo < basalStarts.count ? basalStarts[lo] : nil
+        }
+        return doses.map { d in
+            guard d.deliveryType == .basal,
+                  let nextStart = firstStartAfter(d.startDate),
+                  nextStart < d.endDate else { return d }
+            let oldDur = d.endDate.timeIntervalSince(d.startDate)
+            guard oldDur > 0 else { return d }
+            var clipped = d
+            clipped.endDate = nextStart
+            clipped.volume = d.volume * (nextStart.timeIntervalSince(d.startDate) / oldDur)
+            return clipped
+        }
     }
 
     public func getCarbEntries(interval: DateInterval) async throws -> [EvalCarbEntry] {
@@ -106,7 +142,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // forecasts). v5 fetches override treatments over a DEEP look-back so a
         // long/indefinite override starting before the window is still captured.
         // Bump so caches written before the deep fetch are rebuilt.
-        let cacheKey = DataCache.key(for: "therapy_v5ovdeep_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
+        let cacheKey = DataCache.key(for: "therapy_v6pedit_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -368,6 +404,18 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         var segCR: [AbsoluteScheduleValue<Double>] = []
         var segTarget: [AbsoluteScheduleValue<ClosedRange<LoopQuantity>>] = []
         var lastRaw: TherapyTimeline?
+        // Times where the profile schedule actually CHANGED (vs identical re-uploads),
+        // so a decision before the change doesn't see it (future-profile-edit leak fix).
+        var profileEditTimes: [Date] = []
+        var prevSig: String? = nil
+        let mgdl = LoopUnit.milligramsPerDeciliter
+        func scheduleSig(_ tl: TherapyTimeline) -> String {
+            let s = Set(tl.sensitivity.map { ($0.value.doubleValue(for: mgdl) * 100).rounded() / 100 }).sorted()
+            let b = Set(tl.basal.map { ($0.value * 1000).rounded() / 1000 }).sorted()
+            let c = Set(tl.carbRatio.map { ($0.value * 100).rounded() / 100 }).sorted()
+            let t = Set(tl.target.map { "\(Int($0.value.lowerBound.doubleValue(for: mgdl)))-\(Int($0.value.upperBound.doubleValue(for: mgdl)))" }).sorted()
+            return "S\(s)B\(b)C\(c)T\(t)"
+        }
         for (i, (start, record)) in dated.enumerated() {
             let activeStart = max(start, interval.start)
             let activeEnd = (i + 1 < dated.count) ? min(dated[i + 1].0, interval.end) : interval.end
@@ -375,6 +423,11 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             let raw = buildTherapyTimeline(from: record,
                                            interval: DateInterval(start: activeStart, end: activeEnd),
                                            overrides: [])
+            let sig = scheduleSig(raw)
+            if let p = prevSig, p != sig, start > interval.start {
+                profileEditTimes.append(start)   // real schedule change at this boundary
+            }
+            prevSig = sig
             segBasal.append(contentsOf: raw.basal)
             segISF.append(contentsOf: raw.sensitivity)
             segCR.append(contentsOf: raw.carbRatio)
@@ -401,7 +454,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             rawSensitivity: overrides.isEmpty ? [] : segISF,
             rawCarbRatio:   overrides.isEmpty ? [] : segCR,
             rawTarget:      overrides.isEmpty ? [] : segTarget,
-            overrideWindows: overrides
+            overrideWindows: overrides,
+            profileEditTimes: profileEditTimes
         )
     }
 
