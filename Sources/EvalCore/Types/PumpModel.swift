@@ -70,8 +70,49 @@ public struct PumpModel: Sendable, Codable, Equatable {
     /// Supported bolus volume for a continuous request (Omnipod: floor to grid).
     public func supportedBolusVolume(_ volume: Double) -> Double { snap(volume, bolusIncrement) }
     /// Floor a per-step delivered amount to whole pulses (always floor).
+    /// STATELESS — drops any sub-pulse remainder every call. Correct only when
+    /// the temp basal is re-issued every step; for a continuing temp use
+    /// `BasalAccumulator`, which carries the remainder. Kept for boluses / one-shot
+    /// amounts.
     public func quantizeDelivery(_ amount: Double) -> Double {
         guard pulseQuantum > 0, amount > 0 else { return amount }
         return ((amount / pulseQuantum) + Self.snapTol).rounded(.down) * pulseQuantum
     }
+
+    /// Stateful basal-pulse delivery for the closed-loop counter.
+    ///
+    /// A real pump delivers basal as discrete `pulseQuantum` pulses and CARRIES the
+    /// sub-pulse remainder across time — EXCEPT when a temp basal is cancelled and
+    /// re-issued at a NEW rate (Loop's per-cycle re-issue), which abandons the
+    /// in-progress partial pulse and restarts accrual. So the remainder carries
+    /// while the temp rate is unchanged and is dropped on a rate change. This
+    /// reproduces the field ~1.1 U/day below rate×time. A stateless per-step floor
+    /// over-penalizes (~2.8 U/day): it drops the partial pulse EVERY step, but
+    /// only ~27% of steps are real rate changes; the rest continue the same temp
+    /// and should keep accruing. (rloop ISF-72 window: nominal 29.7, per-step-floor
+    /// 27.0, cancellation-aware 28.5 U/day; field ≈ −1.1/day.)
+    public final class BasalAccumulator {
+        public let quantum: Double
+        private var remainder: Double = 0
+        private var lastRate: Double? = nil
+        public init(quantum: Double) { self.quantum = quantum }
+
+        /// Whole-pulse basal units actually delivered over a step at `rate` (U/hr)
+        /// for `seconds`. `quantum <= 0` ⇒ continuous (rate×time, no quantization).
+        /// A change in `rate` from the previous call drops the in-progress pulse
+        /// (temp re-issue/cancellation) before accruing this step.
+        public func deliver(rate: Double, seconds: Double) -> Double {
+            let nominal = rate * seconds / 3600.0
+            guard quantum > 0 else { lastRate = rate; return nominal }
+            if let lr = lastRate, abs(rate - lr) > 1e-9 { remainder = 0 }  // cancellation: drop partial pulse
+            lastRate = rate
+            remainder += nominal
+            let pulses = ((remainder / quantum) + 1e-6).rounded(.down) * quantum
+            remainder = Swift.max(0, remainder - pulses)
+            return pulses
+        }
+    }
+
+    /// A fresh basal-pulse accumulator for this pump's `pulseQuantum`.
+    public func makeBasalAccumulator() -> BasalAccumulator { BasalAccumulator(quantum: pulseQuantum) }
 }

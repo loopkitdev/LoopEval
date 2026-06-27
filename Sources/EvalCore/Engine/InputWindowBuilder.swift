@@ -156,6 +156,33 @@ struct InputWindowBuilder: Sendable {
                 // Normal dosing: strictly causal on the (possibly deferred) dosing gate.
                 carbsSlice = carbsSlice.filter { $0.dosingVisibleDate <= t }
             }
+
+            // ── Collapse carb REVISIONS ─────────────────────────────────────────
+            // An edited carb entry is represented as several revisions sharing a
+            // revisionKey (e.g. 15g visible from 11:26, 45g visible from 12:01).
+            // The visibility filter above keeps EVERY revision whose gate <= t, so
+            // after an edit both the 15g and 45g revisions survive and would SUM to
+            // 60g. Keep only the LATEST-visible revision per key — exactly the grams
+            // the deployed Loop had at the decision time. Entries with no
+            // revisionKey (the non-edited common case) pass through untouched, so
+            // this is a no-op for any input that carries no revisions.
+            if carbsSlice.contains(where: { $0.revisionKey != nil }) {
+                let useCutoff = carbVisibilityCutoff != nil
+                var latestByKey: [String: EvalCarbEntry] = [:]
+                var passthrough: [EvalCarbEntry] = []
+                for c in carbsSlice {
+                    guard let key = c.revisionKey else { passthrough.append(c); continue }
+                    let gate = useCutoff ? c.entryDate : c.dosingVisibleDate
+                    if let existing = latestByKey[key] {
+                        let exGate = useCutoff ? existing.entryDate : existing.dosingVisibleDate
+                        if gate > exGate { latestByKey[key] = c }
+                    } else {
+                        latestByKey[key] = c
+                    }
+                }
+                carbsSlice = (passthrough + Array(latestByKey.values))
+                    .sorted { $0.startDate < $1.startDate }
+            }
         }
 
         // ── Earliest dose start (needed for basal + ISF alignment) ──────────────
@@ -178,11 +205,33 @@ struct InputWindowBuilder: Sendable {
         // overrides, srcX == the baked fields and applyOv=false ⇒ behavior is
         // byte-identical to the pre-gating path.
         let applyOv = !therapyTimeline.overrideWindows.isEmpty && !therapyTimeline.rawBasal.isEmpty
-        let gatedWindows = applyOv ? therapyTimeline.overrideWindows.filter { $0.start <= t } : []
-        let srcBasal = applyOv ? therapyTimeline.rawBasal       : therapyTimeline.basal
-        let srcSens  = applyOv ? therapyTimeline.rawSensitivity : therapyTimeline.sensitivity
-        let srcCR    = applyOv ? therapyTimeline.rawCarbRatio   : therapyTimeline.carbRatio
-        let srcTgt   = applyOv ? therapyTimeline.rawTarget      : therapyTimeline.target
+        // Include every override that has STARTED by t (start <= t). A window must keep
+        // applying to the PAST schedule even after it ended, because doses delivered
+        // during it keep their delivery-time ISF/basal (dose-time ISF) for their whole
+        // lifetime — dropping an ended override would wrongly revert those past doses'
+        // ISF (over-dose). Each window's [start, end] confines its effect; for the
+        // FORECAST horizon an ended override (end <= t) naturally contributes nothing.
+        // EXCEPTION: an INDEFINITE override still ACTIVE at t (start <= t < end) had no
+        // scheduled end known at t, so extend its end across this decision's horizon —
+        // reverting the target at its realized (future) cancel would leak that cancel.
+        let gatedWindows: [OverrideWindow] = applyOv ? therapyTimeline.overrideWindows.compactMap { w in
+            guard w.start <= t else { return nil }
+            guard w.indefinite, t < w.end else { return w }   // ended/definite: [start,end] as-is
+            return OverrideWindow(start: w.start, end: t.addingTimeInterval(9 * 3600),
+                                  factor: w.factor, targetLo: w.targetLo, targetHi: w.targetHi,
+                                  indefinite: true)
+        } : []
+        // Future-profile-edit gate: a decision at t must not see a profile schedule the
+        // user EDITED after t. Hold the decision-time-active profile's schedule across the
+        // forecast horizon by clamping at the first edit time > t — drop later-edited
+        // segments and extend the active-at-edit value forward. Daily transitions of the
+        // active profile BEFORE the edit are preserved (they're known at decision time).
+        // editClamp = nil ⇒ no edit ahead ⇒ no-op. (Profile-edit leak fix, 2026-06-22.)
+        let editClamp = therapyTimeline.profileEditTimes.first { $0 > t }
+        let srcBasal = holdPastEdit(applyOv ? therapyTimeline.rawBasal       : therapyTimeline.basal,       editClamp)
+        let srcSens  = holdPastEdit(applyOv ? therapyTimeline.rawSensitivity : therapyTimeline.sensitivity, editClamp)
+        let srcCR    = holdPastEdit(applyOv ? therapyTimeline.rawCarbRatio   : therapyTimeline.carbRatio,   editClamp)
+        let srcTgt   = holdPastEdit(applyOv ? therapyTimeline.rawTarget      : therapyTimeline.target,      editClamp)
 
         // ── Basal ────────────────────────────────────────────────────────────────
         let basalWindowEnd = t.addingTimeInterval(2 * 3600)
@@ -283,9 +332,15 @@ struct InputWindowBuilder: Sendable {
         carbRatioSlice = applyCarbRatioMultiplier(carbRatioSlice)
 
         // ── Target ───────────────────────────────────────────────────────────────
+        // Start the target slice at the prediction's first point (the decision CGM,
+        // which can be a little before t when the decision is triggered after the CGM),
+        // NOT at t — the dose-correction is anchored there and `insulinCorrection`
+        // force-unwraps `correctionRange.closestPrior(to: predictionPoint)`, so every
+        // considered point (incl. the now-point) must be covered or it crashes.
+        let targetStart = min(t, glucoseSlice.last?.startDate ?? t)
         var targetSlice = sliceTarget(
             srcTgt,
-            from: t,
+            from: targetStart,
             to: t.addingTimeInterval(6 * 3600)
         )
         // Apply decision-time-gated overrides to the target slice (range ← override).
@@ -308,6 +363,20 @@ struct InputWindowBuilder: Sendable {
     /// Schedules are contiguous (endDate[i] == startDate[i+1]), so we step back
     /// one from the lower bound to catch entries that start before `from` but
     /// end after it.
+    /// Hold the decision-time-active profile's schedule across a future profile edit.
+    /// Keeps every segment starting before `editClamp` (the active profile + its known
+    /// daily transitions + all past/lookback segments) and extends the last such segment
+    /// to the distant future, so forecast times after the edit use the active-at-edit
+    /// value rather than the future-edited profile. `editClamp == nil` ⇒ unchanged.
+    private func holdPastEdit<V>(_ s: [AbsoluteScheduleValue<V>], _ editClamp: Date?) -> [AbsoluteScheduleValue<V>] {
+        guard let te = editClamp else { return s }
+        var out = s.filter { $0.startDate < te }
+        guard let last = out.last else { return s }   // nothing before the edit → leave as-is
+        out[out.count - 1] = AbsoluteScheduleValue(startDate: last.startDate,
+                                                   endDate: Date.distantFuture, value: last.value)
+        return out
+    }
+
     private func sliceSchedule(
         _ schedule: [AbsoluteScheduleValue<Double>],
         from: Date,

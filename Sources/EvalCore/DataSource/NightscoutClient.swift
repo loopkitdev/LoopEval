@@ -126,7 +126,7 @@ public struct NightscoutProfileRecord: Decodable, Sendable {
     public let defaultProfile: String?
     public let startDate: String?
     public let store: [String: NightscoutProfile]?
-    public let mills: String?   // creation timestamp in milliseconds (NS sends as String)
+    public let mills: String?   // creation timestamp in ms. Loop uploads a String; Trio uploads a Number.
     public let units: String?   // top-level units (fallback if profile lacks units)
     /// Loop-specific runtime settings (suspend threshold, max bolus/basal,
     /// dosing strategy). Present on profiles uploaded by Loop.
@@ -134,6 +134,27 @@ public struct NightscoutProfileRecord: Decodable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case defaultProfile, startDate, store, mills, units, loopSettings
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        defaultProfile = try c.decodeIfPresent(String.self, forKey: .defaultProfile)
+        startDate      = try c.decodeIfPresent(String.self, forKey: .startDate)
+        store          = try c.decodeIfPresent([String: NightscoutProfile].self, forKey: .store)
+        units          = try c.decodeIfPresent(String.self, forKey: .units)
+        loopSettings   = try c.decodeIfPresent(NightscoutLoopSettings.self, forKey: .loopSettings)
+        // `mills` is a String on Loop-uploaded profiles but a JSON Number on Trio's.
+        // Decoding `String.self` against a number THREW, silently dropping every
+        // Trio profile record (→ stale fallback to an ancient record). Accept both.
+        if let s = try? c.decode(String.self, forKey: .mills) {
+            mills = s
+        } else if let n = try? c.decode(Int64.self, forKey: .mills) {
+            mills = String(n)
+        } else if let d = try? c.decode(Double.self, forKey: .mills) {
+            mills = String(Int64(d))
+        } else {
+            mills = nil
+        }
     }
 }
 
@@ -240,6 +261,7 @@ public struct NightscoutClient: Sendable {
 
     public let baseURL: URL
     private let apiSecretHash: String?  // SHA-1 hex of apiSecret
+    private let token: String?          // Nightscout subject access token (?token=…)
 
     // ISO8601 formatter for query parameters (shared; DateFormatter is not Sendable but
     // we construct fresh ones per call to avoid concurrency issues)
@@ -251,7 +273,7 @@ public struct NightscoutClient: Sendable {
 
     // MARK: – Init
 
-    public init(baseURL: URL, apiSecret: String? = nil) {
+    public init(baseURL: URL, apiSecret: String? = nil, token: String? = nil) {
         // Strip trailing slash
         var url = baseURL
         if url.absoluteString.hasSuffix("/") {
@@ -263,6 +285,24 @@ public struct NightscoutClient: Sendable {
         } else {
             self.apiSecretHash = nil
         }
+        if let t = token, !t.isEmpty {
+            self.token = t
+        } else {
+            self.token = nil
+        }
+    }
+
+    /// Append the Nightscout subject access token (`?token=…`) to a request URL,
+    /// when configured. Token auth is used by instances with role-based access
+    /// (`authDefaultRoles: denied`); it is an alternative to the api-secret header.
+    private static func appendingToken(_ token: String?, to url: URL) -> URL {
+        guard let token = token,
+              var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else { return url }
+        var items = comps.queryItems ?? []
+        items.append(URLQueryItem(name: "token", value: token))
+        comps.queryItems = items
+        return comps.url ?? url
     }
 
     // MARK: – Public API
@@ -381,7 +421,8 @@ public struct NightscoutClient: Sendable {
     // MARK: – Private helpers
 
     private func fetchJSON<T: Decodable>(_ type: T.Type, from url: URL) async throws -> T {
-        var request = URLRequest(url: url)
+        let finalURL = Self.appendingToken(token, to: url)
+        var request = URLRequest(url: finalURL)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let hash = apiSecretHash {
             request.setValue(hash, forHTTPHeaderField: "api-secret")

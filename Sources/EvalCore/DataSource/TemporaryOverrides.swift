@@ -11,14 +11,31 @@ import LoopAlgorithm
 
 public struct OverrideWindow: Sendable, Codable {
     public let start: Date
-    public let end: Date
+    public let end: Date            // realized end (active→inactive transition / scheduled end)
     public let factor: Double?     // insulinNeedsScaleFactor; nil = no insulin scaling
     public let targetLo: Double?   // mg/dL
     public let targetHi: Double?
+    /// True ⇒ the override had NO scheduled end at decision time (devicestatus omitted
+    /// `duration`). `end` is the realized cancel, which Loop didn't know in advance — so a
+    /// decision BEFORE `end` must extend the override across its forecast horizon (no
+    /// revert at `end`). InputWindowBuilder extends indefinite windows per decision time.
+    public let indefinite: Bool
 
-    public init(start: Date, end: Date, factor: Double?, targetLo: Double?, targetHi: Double?) {
+    public init(start: Date, end: Date, factor: Double?, targetLo: Double?, targetHi: Double?, indefinite: Bool = false) {
         self.start = start; self.end = end
         self.factor = factor; self.targetLo = targetLo; self.targetHi = targetHi
+        self.indefinite = indefinite
+    }
+
+    private enum CodingKeys: String, CodingKey { case start, end, factor, targetLo, targetHi, indefinite }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        start = try c.decode(Date.self, forKey: .start)
+        end = try c.decode(Date.self, forKey: .end)
+        factor = try c.decodeIfPresent(Double.self, forKey: .factor)
+        targetLo = try c.decodeIfPresent(Double.self, forKey: .targetLo)
+        targetHi = try c.decodeIfPresent(Double.self, forKey: .targetHi)
+        indefinite = (try? c.decodeIfPresent(Bool.self, forKey: .indefinite)) ?? false
     }
 }
 

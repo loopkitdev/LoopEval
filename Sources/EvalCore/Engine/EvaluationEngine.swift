@@ -82,11 +82,35 @@ public actor EvaluationEngine {
         async let carbs   = dataSource.getCarbEntries(interval: carbInterval)
         async let therapy = dataSource.getTherapyTimeline(interval: therapyInterval)
 
+        var carbEntries = try await carbs
+        // Reconstruct the as-seen carb history: splice edited entries into their
+        // time-ordered revision sequences so decision-time replay matches what the
+        // deployed Loop actually saw (see CarbRevisions / reconstruct_carb_history.py).
+        if let revPath = config.carbRevisionsPath {
+            carbEntries = CarbRevisions.applyFile(
+                path: revPath,
+                to: carbEntries,
+                onWarning: { FileHandle.standardError.write(Data(("[carb-revisions] " + $0 + "\n").utf8)) }
+            )
+        }
+
+        var therapyTimeline = try await therapy
+        // Named-preset override correction ranges live only in devicestatus, not the
+        // NS treatment — fill them from the reconstructed overlay so hands-on replay
+        // doses to the target Loop actually had (see OverrideTargets).
+        if let ovtPath = config.overrideTargetsPath {
+            therapyTimeline = OverrideTargets.applyFile(
+                path: ovtPath,
+                to: therapyTimeline,
+                onWarning: { FileHandle.standardError.write(Data(("[override-targets] " + $0 + "\n").utf8)) }
+            )
+        }
+
         return PreloadedData(
             glucose: try await glucose,
             doses: try await doses,
-            carbs: try await carbs,
-            therapyTimeline: try await therapy
+            carbs: carbEntries,
+            therapyTimeline: therapyTimeline
         )
     }
 
@@ -255,6 +279,70 @@ public actor EvaluationEngine {
         }
     }
 
+    /// Export the EXACT decision-time input our engine feeds to
+    /// generatePrediction at `t`, serialized in the deployed-LoopKit
+    /// `LoopPredictionInput` fixture JSON format. Lets us run the IDENTICAL input
+    /// through the actual deployed Loop (LoopWorkspace RloopForecastCaseTests) and
+    /// diff its forecast against our fork's — isolating code-vs-input.
+    /// `insulinTypeRaw`: LoopKit InsulinType raw Int (fiasp=3) stamped on doses so
+    /// the deployed PresetInsulinModelProvider picks the right model.
+    public nonisolated func loopPredictionInputJSON(
+        at t: Date, data: PreloadedData, config: EvalConfig,
+        insulinTypeRaw: Int, useIntegralRC: Bool
+    ) -> Data? {
+        let builder = InputWindowBuilder(
+            glucose: data.glucose, doses: data.doses, carbs: data.carbs,
+            therapyTimeline: data.therapyTimeline, config: config)
+        guard let input = builder.buildInput(at: t) else { return nil }
+        let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime]
+        let mgdl = LoopUnit.milligramsPerDeciliter
+        func ds(_ x: Date) -> String { iso.string(from: x) }
+        let glucose: [[String: Any]] = input.glucose.map {
+            ["quantity": $0.quantity.doubleValue(for: mgdl), "startDate": ds($0.startDate)]
+        }
+        let doses: [[String: Any]] = input.doses.map { dose in
+            // EvalInsulinDose.deliveryType .basal == a TEMP BASAL segment (absolute
+            // delivery). Deployed LoopKit zeroes netBasalUnits for type "basal"
+            // (treats it as scheduled) and only nets "tempBasal" (delivered −
+            // scheduled), so temps MUST export as "tempBasal" or their insulin
+            // effect vanishes.
+            ["type": dose.deliveryType == .bolus ? "bolus" : "tempBasal",
+             "unit": "U", "value": dose.volume,
+             "startDate": ds(dose.startDate), "endDate": ds(dose.endDate),
+             "insulinType": insulinTypeRaw]
+        }
+        let carbs: [[String: Any]] = input.carbs.map { c in
+            ["absorptionTime": c.absorptionTime ?? TimeInterval(3 * 3600),
+             "quantity": c.quantity.doubleValue(for: LoopUnit.gram),
+             "startDate": ds(c.startDate)]
+        }
+        func dsched(_ s: [AbsoluteScheduleValue<Double>]) -> [[String: Any]] {
+            s.map { ["startDate": ds($0.startDate), "endDate": ds($0.endDate), "value": $0.value] }
+        }
+        let sens: [[String: Any]] = input.sensitivity.map {
+            ["startDate": ds($0.startDate), "endDate": ds($0.endDate),
+             "value": $0.value.doubleValue(for: mgdl)]
+        }
+        let tgt: [[String: Any]] = input.target.map { v in
+            ["startDate": ds(v.startDate), "endDate": ds(v.endDate),
+             "value": ["minValue": v.value.lowerBound.doubleValue(for: mgdl),
+                       "maxValue": v.value.upperBound.doubleValue(for: mgdl)]]
+        }
+        let settings: [String: Any] = [
+            "basal": dsched(input.basal), "sensitivity": sens,
+            "carbRatio": dsched(input.carbRatio), "target": tgt,
+            "maximumBasalRatePerHour": data.therapyTimeline.maxBasalRate,
+            "maximumBolus": data.therapyTimeline.maxBolus,
+            "suspendThreshold": data.therapyTimeline.suspendThreshold?.doubleValue(for: mgdl) as Any,
+            "useIntegralRetrospectiveCorrection": useIntegralRC
+        ]
+        let root: [String: Any] = [
+            "glucoseHistory": glucose, "doses": doses,
+            "carbEntries": carbs, "settings": settings
+        ]
+        return try? JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys])
+    }
+
     // MARK: – Per-step body
 
     /// Runs the per-step prediction + dose-recommendation work for a single
@@ -288,6 +376,8 @@ public actor EvaluationEngine {
                 carbEntries: input.carbs,
                 sensitivity: input.sensitivity,
                 carbRatio: input.carbRatio,
+                target: (config.useIntegralRC && config.useIntegralRCClamp) ? input.target : nil,
+                scheduledBasalRate: (config.useIntegralRC && config.useIntegralRCClamp) ? input.basal.closestPrior(to: t)?.value : nil,
                 algorithmEffectsOptions: .all,
                 useIntegralRetrospectiveCorrection: config.useIntegralRC,
                 ircDropGainScale: config.ircDropGainScale,
@@ -322,6 +412,7 @@ public actor EvaluationEngine {
                 basal: input.basal,
                 sensitivity: input.sensitivity,
                 carbRatio: input.carbRatio,
+                target: (config.useIntegralRC && config.useIntegralRCClamp) ? input.target : nil,
                 algorithmEffectsOptions: .all,
                 useIntegralRetrospectiveCorrection: config.useIntegralRC,
                 ircDropGainScale: config.ircDropGainScale,
@@ -361,6 +452,7 @@ public actor EvaluationEngine {
                 basal: inputNoFuture.basal,
                 sensitivity: inputNoFuture.sensitivity,
                 carbRatio: inputNoFuture.carbRatio,
+                target: (config.useIntegralRC && config.useIntegralRCClamp) ? inputNoFuture.target : nil,
                 algorithmEffectsOptions: .all,
                 useIntegralRetrospectiveCorrection: config.useIntegralRC,
                 ircDropGainScale: config.ircDropGainScale,
@@ -418,7 +510,8 @@ public actor EvaluationEngine {
             // this, forecast-match emits continuous micro-boluses and over-states the
             // auto-bolus total ~1.2x vs the field's enacted (floored) doses.
             bolusIncrement: config.bolusIncrement,
-            tempBasalIncrement: config.tempBasalIncrement
+            tempBasalIncrement: config.tempBasalIncrement,
+            useMidAbsorptionISF: config.useMidAbsorptionISF
         )
 
         // Per-component effect samples for drift diagnostics.
@@ -729,7 +822,13 @@ public actor EvaluationEngine {
         // supported increment (real Loop delivers on this grid + drops sub-increment).
         // 0 = no rounding (legacy continuous micro-dosing).
         bolusIncrement: Double = 0,
-        tempBasalIncrement: Double = 0
+        tempBasalIncrement: Double = 0,
+        // Deployed Loop's correction uses the DOSE-TIME ISF (a single ISF segment at the
+        // decision anchor) for the whole absorption. The fork otherwise integrates the
+        // time-varying ISF timeline into the correction (a mid-absorption-ISF leak in the
+        // correction path). When false (dose-time ISF mode, --no-mid-absorption-isf), use
+        // the single dose-time segment to match deployed.
+        useMidAbsorptionISF: Bool = true
     ) -> DoseOutput? {
         guard let scheduledBasalEntry = input.basal.first(where: { $0.startDate <= t && $0.endDate > t })
             ?? input.basal.closestPrior(to: t) else { return nil }
@@ -747,12 +846,40 @@ public actor EvaluationEngine {
         let maxActiveInsulin = maxBolus * 2
         let activeInsulin = prediction.activeInsulin ?? 0
 
+        // Anchor the correction at the prediction's FIRST point (the decision CGM),
+        // exactly like deployed Loop-main (`recommendedAutomaticDose(at: predictedGlucose[0].startDate)`).
+        // `insulinCorrection` only considers prediction points with startDate >= the anchor;
+        // if we anchored at `t` (e.g. the devicestatus/decision-trigger time, a few seconds
+        // AFTER the CGM in the times-csv path) the current/now point would be dropped from
+        // minGlucose, mis-sizing the correction and mis-firing the predicted-min auto-bolus
+        // gate. On the CGM-driven path t == this anchor, so it's a no-op there.
+        let correctionAnchor = prediction.glucose.first?.startDate ?? t
+        // Deployed Loop computes the correction against a SINGLE dose-time ISF (the ISF at
+        // the decision anchor, held across the whole absorption); the fork otherwise
+        // integrates the time-varying ISF timeline (a mid-absorption-ISF leak in the
+        // correction). In dose-time-ISF mode, collapse the ISF to a single anchor segment
+        // spanning the effect duration to match deployed.
+        let correctionSensitivity: [AbsoluteScheduleValue<LoopQuantity>]
+        if useMidAbsorptionISF {
+            correctionSensitivity = input.sensitivity
+        } else if let anchorISF = input.sensitivity.closestPrior(to: correctionAnchor)?.value
+                    ?? input.sensitivity.first?.value {
+            // Span well past the effect duration so the segment covers the last
+            // prediction point (which sits at ~anchor+effectDuration); insulinCorrection
+            // requires the ISF timeline to cover every considered prediction point.
+            correctionSensitivity = [AbsoluteScheduleValue(
+                startDate: correctionAnchor.addingTimeInterval(-3600),
+                endDate: correctionAnchor.addingTimeInterval(insulinType.model.effectDuration + 7200),
+                value: anchorISF)]
+        } else {
+            correctionSensitivity = input.sensitivity
+        }
         let correction = LoopAlgorithm.insulinCorrection(
             prediction: prediction.glucose,
-            at: t,
+            at: correctionAnchor,
             target: input.target,
             suspendThreshold: suspend,
-            sensitivity: input.sensitivity,
+            sensitivity: correctionSensitivity,
             insulinModel: insulinType.model
         )
         // Uncertainty-bounded cap: derive the effective application factor from the
