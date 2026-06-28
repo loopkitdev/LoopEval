@@ -354,11 +354,13 @@ struct OpenAPSAdapter: DosingEngine {
 
         // 10-day average daily TDD (Trio's `average_total_data` ≈ mean of the
         // rolling-24h TDD over 10 days ≈ total delivery / days). Stable, unlike
-        // the instantaneous 24h sum. Needs a deep dose lookback (≥240h) to be
-        // meaningful; with a short lookback it collapses toward `estimatedTdd`.
+        // the instantaneous 24h sum. Summed from req.tddDoses (the full clipped
+        // dose history, passed by the sim) so the default 24h input lookback
+        // suffices — no slow 240h input window. Falls back to input.doses.
+        let tddSource = req.tddDoses.isEmpty ? req.input.doses : req.tddDoses
         let tenDayStart = req.t.addingTimeInterval(-240 * 3600)
         var tenSum = 0.0
-        for d in req.input.doses {
+        for d in tddSource {
             if d.endDate <= tenDayStart || d.startDate >= req.t { continue }
             switch d.deliveryType {
             case .bolus:
@@ -370,7 +372,7 @@ struct OpenAPSAdapter: DosingEngine {
                 tenSum += d.volume * max(0, hi.timeIntervalSince(lo)) / fullSec
             }
         }
-        let tenEarliest = max(tenDayStart, req.input.doses.first?.startDate ?? tenDayStart)
+        let tenEarliest = max(tenDayStart, tddSource.first?.startDate ?? tenDayStart)
         let tenDays = max(1.0, req.t.timeIntervalSince(tenEarliest) / 86_400.0)
         let avgTotalData = max(tenSum / tenDays, 12.0)
         // Trio weightedAverage = weightPercentage·past2h + (1−weightPercentage)·10day.

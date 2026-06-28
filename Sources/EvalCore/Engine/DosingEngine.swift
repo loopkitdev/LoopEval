@@ -34,6 +34,11 @@ struct EngineStepRequest {
     let perStepIsfMultByTime: [Date: Double]?
     let isfBoostActiveOnly: Bool
     let egpPhysicalDecomposition: Bool
+    /// Full clipped dose history for the run, used ONLY to compute the oref
+    /// weighted-TDD's 10-day average without needing a 240h input lookback
+    /// (summing doses is cheap; inflating the input window's IOB/effects is not).
+    /// Empty ⇒ adapter falls back to `input.doses` (the lookback slice).
+    let tddDoses: [EvalInsulinDose]
 
     init(
         t: Date,
@@ -46,7 +51,8 @@ struct EngineStepRequest {
         forecastOffsetMgdl: Double = 0.0,
         perStepIsfMultByTime: [Date: Double]? = nil,
         isfBoostActiveOnly: Bool = false,
-        egpPhysicalDecomposition: Bool = false
+        egpPhysicalDecomposition: Bool = false,
+        tddDoses: [EvalInsulinDose] = []
     ) {
         self.t = t
         self.input = input
@@ -59,6 +65,7 @@ struct EngineStepRequest {
         self.perStepIsfMultByTime = perStepIsfMultByTime
         self.isfBoostActiveOnly = isfBoostActiveOnly
         self.egpPhysicalDecomposition = egpPhysicalDecomposition
+        self.tddDoses = tddDoses
     }
 }
 
