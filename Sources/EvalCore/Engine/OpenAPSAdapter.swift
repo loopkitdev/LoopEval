@@ -332,12 +332,16 @@ struct OpenAPSAdapter: DosingEngine {
             case .bolus:
                 tdd += d.volume
             case .basal:
-                // pro-rate to the intersection with the 24h window
+                // pro-rate to the intersection with the 24h window, then FLOOR to
+                // the pump pulse increment per segment — Trio's calculateTDD floors
+                // each temp-basal segment via roundToSupportedBasalRate (Omnipod
+                // delivers whole 0.05 U pulses), so naive rate×duration over-counts
+                // the real delivery and inflates TDD → dynISF → over-dose.
                 let lo = max(d.startDate, tddWindowStart)
                 let hi = min(d.endDate, req.t)
                 let segSec = max(0, hi.timeIntervalSince(lo))
                 let fullSec = max(d.endDate.timeIntervalSince(d.startDate), 1)
-                tdd += d.volume * segSec / fullSec
+                tdd += Self.pulseFloor(d.volume * segSec / fullSec)
             }
         }
         // If we have less than 24h of dose history (typical: 16h slice), scale
@@ -369,7 +373,7 @@ struct OpenAPSAdapter: DosingEngine {
                 let lo = max(d.startDate, tenDayStart)
                 let hi = min(d.endDate, req.t)
                 let fullSec = max(d.endDate.timeIntervalSince(d.startDate), 1)
-                tenSum += d.volume * max(0, hi.timeIntervalSince(lo)) / fullSec
+                tenSum += Self.pulseFloor(d.volume * max(0, hi.timeIntervalSince(lo)) / fullSec)
             }
         }
         let tenEarliest = max(tenDayStart, tddSource.first?.startDate ?? tenDayStart)
@@ -579,6 +583,15 @@ struct OpenAPSAdapter: DosingEngine {
     // Params are Trio's: 1st-order exp α0.5, 2nd-order Holt α0.4/β1.0, blend
     // 0.4/0.6, floor 39, contiguous-window (split on ≥12 min gap or a 38 error;
     // segments <4 samples pass through as max(raw,39)).
+    // Pump basal-pulse increment (Omnipod = 0.05 U). Trio's TDD floors each
+    // temp-basal segment's delivery to this grid (roundToSupportedBasalRate);
+    // matching it is required to reproduce the field's TDD → dynISF → dosing.
+    // TODO: source from PumpModel instead of hardcoding when non-Omnipod pumps appear.
+    private static let pumpPulse = 0.05
+    static func pulseFloor(_ units: Double) -> Double {
+        (units / pumpPulse).rounded(.down) * pumpPulse
+    }
+
     static func aapsSmoothGlucose(_ samples: [EvalGlucoseSample]) -> [EvalGlucoseSample] {
         guard samples.count >= 2 else { return samples }
         let mgdl = LoopUnit.milligramsPerDeciliter
