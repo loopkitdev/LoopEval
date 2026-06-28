@@ -645,7 +645,8 @@ extension EvaluationEngine {
                     config: baselineConfig,
                     therapy: data.therapyTimeline,
                     glucoseMgdl: baselineMgdl,
-                    glucoseSamples: simGlucose
+                    glucoseSamples: simGlucose,
+                    tddDoses: data.doses
                 ))
                 baselineDose = br.dose
                 baselineEventualBG = br.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
@@ -798,7 +799,8 @@ extension EvaluationEngine {
                         forecastOffsetMgdl: iceRiseBoostOffset,
                         perStepIsfMultByTime: map,
                         isfBoostActiveOnly: isfBoostActiveOnly,
-                        egpPhysicalDecomposition: egpPhysicalDecomposition))
+                        egpPhysicalDecomposition: egpPhysicalDecomposition,
+                        tddDoses: data.doses))
                 }
                 // Forecast-gated boost (lows-protection): a boost (mult<1) is only
                 // applied if the candidate's UNBOOSTED forecast PEAK (highest BG

@@ -63,11 +63,20 @@ public actor EvaluationEngine {
             ? interval.end.addingTimeInterval(6 * 3600)
             : interval.end
 
+        // The oref weighted-TDD needs a 10-day daily-TDD average. Fetch doses
+        // back ≥11 days (10d window + a day for the trailing rolling-24h) so the
+        // full history is in PreloadedData.doses for the per-cycle TDD sum —
+        // WITHOUT inflating the IOB/glucose input lookback (which is the slow
+        // part). Doses are low-volume, so the extra fetch is cheap. The input
+        // window builder still slices to insulinLookbackHours per cycle.
+        let tddDoseHistory = 11.0 * 24 * 3600
+        let doseStart = min(dataStart, interval.start.addingTimeInterval(-tddDoseHistory))
+
         let glucoseInterval = DateInterval(
             start: dataStart,
             end:   interval.end.addingTimeInterval(10 * 60)   // tiny pad for last step
         )
-        let doseInterval = DateInterval(start: dataStart, end: doseEnd)
+        let doseInterval = DateInterval(start: doseStart, end: doseEnd)
         let carbInterval = DateInterval(
             start: dataStart,
             end:   interval.end.addingTimeInterval(6 * 3600)
