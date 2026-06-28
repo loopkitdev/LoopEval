@@ -8,6 +8,19 @@
 import Foundation
 import LoopAlgorithm
 
+/// A Nightscout "Temporary Target" (oref temptarget). Carried on the therapy
+/// timeline so the oref candidate can apply the user's real temp targets at
+/// decision time (start <= t). oref uses target as a single value (top==bottom
+/// in practice for Trio); we keep one mg/dL value + the window.
+public struct EvalTempTarget: Codable, Sendable, Equatable {
+    public var start: Date          // created_at
+    public var durationMin: Double  // minutes (0 == cancel)
+    public var targetMgdl: Double   // target BG (mg/dL)
+    public init(start: Date, durationMin: Double, targetMgdl: Double) {
+        self.start = start; self.durationMin = durationMin; self.targetMgdl = targetMgdl
+    }
+}
+
 public struct TherapySettings: Codable, Sendable {
     public var basal: [AbsoluteScheduleValue<Double>]
     public var sensitivity: [AbsoluteScheduleValue<LoopQuantity>]   // ISF mg/dL/U
@@ -39,6 +52,15 @@ public struct TherapySettings: Codable, Sendable {
     // switching to a future-edited profile mid-horizon (future-profile-edit leak fix).
     // Empty ⇒ no gating (single-profile/backfill behavior unchanged).
     public var profileEditTimes: [Date] = []
+    // NS Temporary Targets (oref temptargets) — applied by the oref candidate at
+    // decision time (start <= t). Empty ⇒ none (Loop path ignores this field).
+    public var orefTempTargets: [EvalTempTarget] = []
+    // The timezone the schedules (basal/ISF/CR/target) are DEFINED in — the NS
+    // profile's timezone. Schedule reconstruction (time-of-day regrouping) MUST
+    // use this, NOT the host/sim timezone, or a user whose profile TZ differs
+    // from the host gets shifted schedules (e.g. Berlin profile on a US host →
+    // mangled basal). nil ⇒ fall back to the sim's localTimezone (legacy).
+    public var scheduleTimeZone: TimeZone? = nil
 
     public init(
         basal: [AbsoluteScheduleValue<Double>],
@@ -54,7 +76,9 @@ public struct TherapySettings: Codable, Sendable {
         rawCarbRatio: [AbsoluteScheduleValue<Double>] = [],
         rawTarget: [AbsoluteScheduleValue<ClosedRange<LoopQuantity>>] = [],
         overrideWindows: [OverrideWindow] = [],
-        profileEditTimes: [Date] = []
+        profileEditTimes: [Date] = [],
+        orefTempTargets: [EvalTempTarget] = [],
+        scheduleTimeZone: TimeZone? = nil
     ) {
         self.basal            = basal
         self.sensitivity      = sensitivity
@@ -70,6 +94,8 @@ public struct TherapySettings: Codable, Sendable {
         self.rawTarget        = rawTarget
         self.overrideWindows  = overrideWindows
         self.profileEditTimes = profileEditTimes
+        self.orefTempTargets  = orefTempTargets
+        self.scheduleTimeZone = scheduleTimeZone
     }
 
     // MARK: – Codable helpers
@@ -99,6 +125,8 @@ public struct TherapySettings: Codable, Sendable {
         case rawTarget          // stored as CodableTargetEntry
         case overrideWindows
         case profileEditTimes
+        case orefTempTargets
+        case scheduleTimeZoneIdentifier
     }
 
     public init(from decoder: Decoder) throws {
@@ -154,6 +182,10 @@ public struct TherapySettings: Codable, Sendable {
         }
         overrideWindows = (try? c.decodeIfPresent([OverrideWindow].self, forKey: .overrideWindows)) ?? []
         profileEditTimes = (try? c.decodeIfPresent([Date].self, forKey: .profileEditTimes)) ?? []
+        orefTempTargets = (try? c.decodeIfPresent([EvalTempTarget].self, forKey: .orefTempTargets)) ?? []
+        if let tzId = (try? c.decodeIfPresent(String.self, forKey: .scheduleTimeZoneIdentifier)) ?? nil {
+            scheduleTimeZone = TimeZone(identifier: tzId)
+        }
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -208,5 +240,7 @@ public struct TherapySettings: Codable, Sendable {
         }
         if !overrideWindows.isEmpty { try c.encode(overrideWindows, forKey: .overrideWindows) }
         if !profileEditTimes.isEmpty { try c.encode(profileEditTimes, forKey: .profileEditTimes) }
+        if !orefTempTargets.isEmpty { try c.encode(orefTempTargets, forKey: .orefTempTargets) }
+        if let tz = scheduleTimeZone { try c.encode(tz.identifier, forKey: .scheduleTimeZoneIdentifier) }
     }
 }

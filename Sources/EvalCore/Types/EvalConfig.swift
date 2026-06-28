@@ -390,6 +390,10 @@ public struct EvalConfig: Codable, Sendable {
     /// supplied verbatim for faithful reproduction (enableSMB flags, min_5m_carbimpact,
     /// maxCOB, weightPercentage, custom peak, etc.). Keys = oref pref keys.
     public var oapsPrefsJson: String?
+    /// Apply Trio's AAPS double-exponential glucose smoothing to the oref
+    /// candidate's glucose feed (matches Trio's `smoothGlucose`; oref doses on
+    /// the smoothed series while NS stores raw). Candidate-only; off = raw.
+    public var oapsSmoothGlucose: Bool = false
 
     /// Post-low (sustained-sensitivity) forecast suppression: when a recent low
     /// (< postlowThresholdMgdl within postlowWindowMin) occurred, lower the
@@ -485,6 +489,7 @@ public struct EvalConfig: Codable, Sendable {
         oapsCurve: String? = nil,
         oapsMaxIob: Double? = nil,
         oapsPrefsJson: String? = nil,
+        oapsSmoothGlucose: Bool = false,
         postlowSuppressMgdl: Double = 0.0,
         postlowWindowMin: Double = 120.0,
         postlowThresholdMgdl: Double = 70.0,
@@ -601,6 +606,7 @@ public struct EvalConfig: Codable, Sendable {
         self.oapsCurve                      = oapsCurve
         self.oapsMaxIob                     = oapsMaxIob
         self.oapsPrefsJson                  = oapsPrefsJson
+        self.oapsSmoothGlucose              = oapsSmoothGlucose
         self.postlowSuppressMgdl            = postlowSuppressMgdl
         self.postlowWindowMin               = postlowWindowMin
         self.postlowThresholdMgdl           = postlowThresholdMgdl
@@ -684,7 +690,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsThresholdSetting, oapsSmbDeliveryRatio, oapsMaxSmbBasalMinutes
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
-        case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson
+        case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsSmoothGlucose
         case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
@@ -802,6 +808,7 @@ public struct EvalConfig: Codable, Sendable {
         self.oapsCurve = try c.decodeIfPresent(String.self, forKey: .oapsCurve)
         self.oapsMaxIob = try c.decodeIfPresent(Double.self, forKey: .oapsMaxIob)
         self.oapsPrefsJson = try c.decodeIfPresent(String.self, forKey: .oapsPrefsJson)
+        self.oapsSmoothGlucose = (try c.decodeIfPresent(Bool.self, forKey: .oapsSmoothGlucose)) ?? false
         self.postlowSuppressMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowSuppressMgdl) ?? 0.0
         self.postlowWindowMin = try c.decodeIfPresent(Double.self, forKey: .postlowWindowMin) ?? 120.0
         self.postlowThresholdMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowThresholdMgdl) ?? 70.0
@@ -917,6 +924,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encodeIfPresent(oapsCurve, forKey: .oapsCurve)
         try c.encodeIfPresent(oapsMaxIob, forKey: .oapsMaxIob)
         try c.encodeIfPresent(oapsPrefsJson, forKey: .oapsPrefsJson)
+        try c.encode(oapsSmoothGlucose, forKey: .oapsSmoothGlucose)
         try c.encode(postlowSuppressMgdl, forKey: .postlowSuppressMgdl)
         try c.encode(postlowWindowMin, forKey: .postlowWindowMin)
         try c.encode(postlowThresholdMgdl, forKey: .postlowThresholdMgdl)

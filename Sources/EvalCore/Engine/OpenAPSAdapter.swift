@@ -32,6 +32,9 @@ struct OpenAPSAdapter: DosingEngine {
     func step(_ req: EngineStepRequest) -> EngineStepResult {
         do {
             let inputs = try buildInputs(req: req)
+            // NS temp targets the user had ALREADY set by decision time t (oref
+            // temptargets). Empty ("[]") when none — the prior hardcoded behavior.
+            let tempTargetsJSON = orefTempTargetsJSON(req: req)
 
             // LEGACY path (OAPS_LEGACY env set): 5 separate JSON-bridged calls that
             // re-parse profile/pumpHistory/glucose each call. Kept only for the
@@ -40,7 +43,7 @@ struct OpenAPSAdapter: DosingEngine {
                 let profile = try OpenAPSSwift.makeProfile(
                     preferences: inputs.preferences, pumpSettings: inputs.pumpSettings,
                     bgTargets: inputs.bgTargets, basalProfile: inputs.basalProfile,
-                    isf: inputs.isf, carbRatio: inputs.carbRatio, tempTargets: "[]",
+                    isf: inputs.isf, carbRatio: inputs.carbRatio, tempTargets: tempTargetsJSON,
                     model: "\"X22\"", trioSettings: "{}", clock: req.t).returnOrThrow()
                 let clockStr = inputs.clockString
                 let meal = try OpenAPSSwift.meal(
@@ -50,7 +53,7 @@ struct OpenAPSAdapter: DosingEngine {
                 let autosens = try OpenAPSSwift.autosense(
                     glucose: inputs.glucose, pumpHistory: inputs.pumpHistory,
                     basalProfile: inputs.basalProfile, profile: profile,
-                    carbs: inputs.carbs, tempTargets: "[]", clock: clockStr).returnOrThrow()
+                    carbs: inputs.carbs, tempTargets: tempTargetsJSON, clock: clockStr).returnOrThrow()
                 let iob = try OpenAPSSwift.iob(
                     pumphistory: inputs.pumpHistory, profile: profile,
                     clock: clockStr, autosens: autosens).returnOrThrow()
@@ -75,7 +78,8 @@ struct OpenAPSAdapter: DosingEngine {
                 pumpHistory: inputs.pumpHistory, carbs: inputs.carbs, glucose: inputs.glucose,
                 currentTemp: inputs.currentTemp, reservoir: "100", microBolusAllowed: true,
                 trioCustomOrefVariables: inputs.trioCustomOref,
-                clockDate: req.t, clockJSON: inputs.clockString)
+                clockDate: req.t, clockJSON: inputs.clockString,
+                tempTargets: tempTargetsJSON)
 
             let comps = Calendar(identifier: .gregorian).dateComponents([.hour, .minute], from: req.t)
             if (comps.hour ?? 0) % 6 == 0 && (comps.minute ?? 0) < 5 {
@@ -86,6 +90,27 @@ struct OpenAPSAdapter: DosingEngine {
             FileHandle.standardError.write(Data("OpenAPSAdapter error at \(req.t): \(error)\n".utf8))
             return fallbackResult(req: req, scheduledBasalUhr: activeBasal(at: req.t, req: req))
         }
+    }
+
+    // Build the oref `temptargets` JSON from the therapy timeline, gated to the
+    // temp targets the user had already SET by decision time `t` (start <= t) so a
+    // future temp target can't leak into an earlier decision. oref's makeProfile /
+    // autosens pick the one active at the clock (and honor durations / cancels).
+    private func orefTempTargetsJSON(req: EngineStepRequest) -> String {
+        let active = req.therapy.orefTempTargets.filter { $0.start <= req.t }
+        guard !active.isEmpty else { return "[]" }
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let items = active.enumerated().map { (i, tt) -> String in
+            let ts = iso.string(from: tt.start)
+            let tgt = Int(tt.targetMgdl.rounded())
+            let dur = Int(tt.durationMin.rounded())
+            // `_id` is a required key on the oref TempTarget decoder; synthesize a
+            // stable one (start+index) — its value is irrelevant to dosing.
+            let id = "tt\(Int(tt.start.timeIntervalSince1970))_\(i)"
+            return "{\"_id\":\"\(id)\",\"created_at\":\"\(ts)\",\"targetTop\":\(tgt),\"targetBottom\":\(tgt),\"duration\":\(dur)}"
+        }
+        return "[" + items.joined(separator: ",") + "]"
     }
 
     // MARK: – Input translation
@@ -109,7 +134,12 @@ struct OpenAPSAdapter: DosingEngine {
     private func buildInputs(req: EngineStepRequest) throws -> InputBundle {
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let tz = req.config.localTimezone
+        // Schedules (basal/ISF/CR/target) are DEFINED in the profile's timezone;
+        // regroup them by time-of-day in THAT zone, not the host/sim zone, or a
+        // user whose profile TZ ≠ host gets shifted schedules (Berlin profile on a
+        // US host → mangled basal → wrong net-basal IOB). Fall back to the sim's
+        // localTimezone only when the timeline doesn't carry a profile TZ (legacy).
+        let tz = req.therapy.scheduleTimeZone ?? req.config.localTimezone
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = tz
 
@@ -252,7 +282,10 @@ struct OpenAPSAdapter: DosingEngine {
                                                     fallbackMidMgdl: 100)
 
         // ── Glucose history ───────────────────────────────────────────────────
-        let glucoseJSON = encodeGlucose(req.input.glucose, iso: iso)
+        let glucoseForOref = req.config.oapsSmoothGlucose
+            ? Self.aapsSmoothGlucose(req.input.glucose)
+            : req.input.glucose
+        let glucoseJSON = encodeGlucose(glucoseForOref, iso: iso)
 
         // ── Carbs ─────────────────────────────────────────────────────────────
         let carbsJSON = encodeCarbs(req.input.carbs, iso: iso)
@@ -319,11 +352,40 @@ struct OpenAPSAdapter: DosingEngine {
         // overlapping basal doses — see NightscoutEvalDataSource.clipOverlappingBasals.)
         let estimatedTdd = max(tdd, 12.0)
 
+        // 10-day average daily TDD (Trio's `average_total_data` ≈ mean of the
+        // rolling-24h TDD over 10 days ≈ total delivery / days). Stable, unlike
+        // the instantaneous 24h sum. Needs a deep dose lookback (≥240h) to be
+        // meaningful; with a short lookback it collapses toward `estimatedTdd`.
+        let tenDayStart = req.t.addingTimeInterval(-240 * 3600)
+        var tenSum = 0.0
+        for d in req.input.doses {
+            if d.endDate <= tenDayStart || d.startDate >= req.t { continue }
+            switch d.deliveryType {
+            case .bolus:
+                tenSum += d.volume
+            case .basal:
+                let lo = max(d.startDate, tenDayStart)
+                let hi = min(d.endDate, req.t)
+                let fullSec = max(d.endDate.timeIntervalSince(d.startDate), 1)
+                tenSum += d.volume * max(0, hi.timeIntervalSince(lo)) / fullSec
+            }
+        }
+        let tenEarliest = max(tenDayStart, req.input.doses.first?.startDate ?? tenDayStart)
+        let tenDays = max(1.0, req.t.timeIntervalSince(tenEarliest) / 86_400.0)
+        let avgTotalData = max(tenSum / tenDays, 12.0)
+        // Trio weightedAverage = weightPercentage·past2h + (1−weightPercentage)·10day.
+        // past2hoursAverage of the rolling-24h TDD ≈ the current 24h TDD. Default
+        // weightPercentage 0.65 (Trio default & this user's setting).
+        // TODO: read from prefs.weightPercentage instead of hardcoding (Trio default
+        // 0.65 == this user's setting). weightPercentage==1 ⇒ weighted == 24h TDD.
+        let weightPct = 0.65
+        let weightedTdd = weightPct * estimatedTdd + (1 - weightPct) * avgTotalData
+
         // ── TrioCustomOrefVariables (overrides off) ───────────────────────────
         let trioCustom: [String: Any] = [
-            "average_total_data": estimatedTdd,
+            "average_total_data": avgTotalData,
             "currentTDD": estimatedTdd,
-            "weightedAverage": estimatedTdd,
+            "weightedAverage": weightedTdd,
             "past2hoursAverage": estimatedTdd / 12.0,  // ~2h share
             "date": iso.string(from: req.t),
             "overridePercentage": 100,
@@ -508,6 +570,52 @@ struct OpenAPSAdapter: DosingEngine {
 
     // MARK: – History encoders
 
+    // Trio's AAPS double-exponential glucose smoothing (FetchGlucoseManager
+    // .applyExponentialSmoothingAndStore). oref doses on the smoothed series;
+    // NS stores raw. On a fast rise the smoothed value lags below raw → lower
+    // deviation → less dose, which is what the field's oref actually did.
+    // Params are Trio's: 1st-order exp α0.5, 2nd-order Holt α0.4/β1.0, blend
+    // 0.4/0.6, floor 39, contiguous-window (split on ≥12 min gap or a 38 error;
+    // segments <4 samples pass through as max(raw,39)).
+    static func aapsSmoothGlucose(_ samples: [EvalGlucoseSample]) -> [EvalGlucoseSample] {
+        guard samples.count >= 2 else { return samples }
+        let mgdl = LoopUnit.milligramsPerDeciliter
+        let sorted = samples.sorted { $0.startDate < $1.startDate }   // chronological
+        let raw = sorted.map { $0.quantity.doubleValue(for: mgdl) }
+        let dates = sorted.map { $0.startDate }
+        var out = raw
+        func smoothSegment(_ lo: Int, _ hi: Int) {
+            let n = hi - lo + 1
+            guard n >= 4 else { for i in lo...hi { out[i] = max(raw[i], 39) }; return }
+            // 1st-order exponential (α 0.5)
+            var fo = [Double](); fo.reserveCapacity(n)
+            var cur = raw[lo]; fo.append(cur)
+            for i in (lo+1)...hi { cur += 0.5 * (raw[i] - cur); fo.append(cur) }
+            // 2nd-order Holt (α 0.4, β 1.0)
+            var so = [raw[lo]]; so.reserveCapacity(n)
+            var ps = raw[lo]; var d = raw[lo+1] - raw[lo]
+            for i in (lo+1)...hi {
+                let ns = 0.4 * raw[i] + 0.6 * (ps + d)
+                d = (ns - ps)          // β 1.0
+                ps = ns; so.append(ns)
+            }
+            for k in 0..<n { out[lo+k] = max((0.4 * fo[k] + 0.6 * so[k]).rounded(), 39) }
+        }
+        var segStart = 0
+        for i in 1...sorted.count {
+            let brk: Bool
+            if i == sorted.count { brk = true }
+            else { brk = dates[i].timeIntervalSince(dates[i-1]) / 60 >= 12 || Int(raw[i].rounded()) == 38 }
+            if brk { smoothSegment(segStart, i-1); segStart = i }
+        }
+        return zip(sorted, out).map { s, v in
+            EvalGlucoseSample(startDate: s.startDate,
+                              quantity: LoopQuantity(unit: mgdl, doubleValue: v),
+                              provenanceIdentifier: s.provenanceIdentifier,
+                              isDisplayOnly: s.isDisplayOnly, wasUserEntered: s.wasUserEntered)
+        }
+    }
+
     private func encodeGlucose(_ samples: [EvalGlucoseSample], iso: ISO8601DateFormatter) -> String {
         let mgdl = LoopUnit.milligramsPerDeciliter
         // oref's convention is glucose NEWEST-FIRST (descending), the order
@@ -687,7 +795,8 @@ struct OpenAPSAdapter: DosingEngine {
             prediction: prediction,
             autosensRatio: det.sensitivityRatio,
             minGuardBG: det.minGuardBG,
-            minPredBG: det.minPredBG
+            minPredBG: det.minPredBG,
+            reason: det.reason
         )
     }
 

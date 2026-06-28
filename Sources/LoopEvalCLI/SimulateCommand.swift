@@ -382,6 +382,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "OpenAPS preferences JSON (object) merged over the adapter defaults — supply a user's complete Trio settings verbatim. Inline JSON or @path/to/file.json.")
     var candidateOapsPrefsJson: String?
 
+    @Flag(name: .long, help: "Apply Trio's AAPS double-exponential glucose smoothing to the oref candidate's glucose feed (matches Trio's smoothGlucose; oref doses on smoothed, NS stores raw).")
+    var candidateOapsSmoothGlucose: Bool = false
+
     @Flag(name: .long, help: "OpenAPS ablation: disable UAM (enableUAM=false) — drop the unannounced-meal forecast/SMB while keeping SMB on the base forecast. Isolates UAM's forecast contribution.")
     var candidateOapsNoUam: Bool = false
     @Flag(name: .long, help: "OpenAPS ablation: disable all SMB (temp-basal-only delivery). Isolates the SMB delivery cadence from the forecast.")
@@ -543,6 +546,7 @@ struct SimulateCommand: AsyncParsableCommand {
         candidateConfig.oapsDia = candidateOapsDia
         candidateConfig.oapsCurve = candidateOapsCurve
         candidateConfig.oapsMaxIob = candidateOapsMaxIob
+        candidateConfig.oapsSmoothGlucose = candidateOapsSmoothGlucose
         if let pj = candidateOapsPrefsJson {
             candidateConfig.oapsPrefsJson = pj.hasPrefix("@")
                 ? (try? String(contentsOfFile: String(pj.dropFirst()), encoding: .utf8)) ?? pj

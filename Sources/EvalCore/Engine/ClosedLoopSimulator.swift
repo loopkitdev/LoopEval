@@ -915,6 +915,11 @@ extension EvaluationEngine {
                 candidateAutosensRatio = result.autosensRatio ?? .nan
                 candidateMinGuardBG = result.minGuardBG ?? .nan
                 candidateMinPredBG = result.minPredBG ?? .nan
+                // TEMP DEBUG (minPredBG dig): dump oref reason for 06-09 cycles.
+                if ProcessInfo.processInfo.environment["OREF_REASON_DUMP"] != nil,
+                   let rsn = result.reason {
+                    FileHandle.standardError.write(Data("RSN \(t) | \(rsn)\n".utf8))
+                }
                 // ICE→carb/RC split over the interval ENDING at the decision time t.
                 // Read the carb attribution AUTHORITATIVELY from the carbEffects curve
                 // (effects.carbs = the same cumulative curve subtracted to form RC), and ICE

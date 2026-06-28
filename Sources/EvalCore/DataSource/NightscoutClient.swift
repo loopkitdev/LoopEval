@@ -78,11 +78,14 @@ public struct NightscoutTreatment: Decodable, Sendable {
     public let insulinNeedsScaleFactor: Double?
     /// Temporary Override: the override target/correction range [low, high] mg/dL.
     public let correctionRange: [Double]?
+    /// Temporary Target: target range bounds (mg/dL). Trio sets top==bottom.
+    public let targetTop: Double?
+    public let targetBottom: Double?
 
     private enum CodingKeys: String, CodingKey {
         case created_at, eventType, insulin, carbs, rate, duration,
              absolute, amount, percent, isSMB, automatic, timestamp, userEnteredAt, absorptionTime,
-             insulinNeedsScaleFactor, correctionRange
+             insulinNeedsScaleFactor, correctionRange, targetTop, targetBottom
         case id = "_id"
     }
 

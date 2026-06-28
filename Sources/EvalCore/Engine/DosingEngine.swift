@@ -74,6 +74,7 @@ struct EngineStepResult {
     var autosensRatio: Double? = nil
     var minGuardBG: Double? = nil
     var minPredBG: Double? = nil
+    var reason: String? = nil   // oref reason string (Dev/BGI/IOBpredBG/minPredBG diagnostics)
     /// Candidate's recommended MANUAL bolus at this step (full correction, clamped to maxBolus).
     var manualBolusRec: Double = 0
 }

@@ -142,7 +142,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // forecasts). v5 fetches override treatments over a DEEP look-back so a
         // long/indefinite override starting before the window is still captured.
         // Bump so caches written before the deep fetch are rebuilt.
-        let cacheKey = DataCache.key(for: "therapy_v6pedit_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
+        let cacheKey = DataCache.key(for: "therapy_v8tz_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -164,7 +164,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             let treatments = try await client.fetchTreatments(from: ovStart, to: interval.end, eventType: "Temporary Override")
             overrides = TemporaryOverrides.windows(from: treatments, parse: makeISOParser().date(from:))
         }
-        let timeline: TherapyTimeline
+        var timeline: TherapyTimeline
         if history.count > 1 {
             timeline = buildTherapyTimelineHistory(records: history, interval: interval, overrides: overrides)
         } else {
@@ -173,6 +173,19 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             else { profileRecord = try await client.fetchProfile() }
             timeline = buildTherapyTimeline(from: profileRecord, interval: interval, overrides: overrides)
         }
+        // NS Temporary Targets (oref temptargets) — fetched unconditionally (real
+        // therapy the oref candidate must see). Deep look-back so a temp target
+        // that started before `interval` but is still active inside it is caught;
+        // the adapter decision-time-gates them (start <= t).
+        let ttStart = interval.start.addingTimeInterval(-Self.overrideLookback)
+        let ttTreatments = (try? await client.fetchTreatments(from: ttStart, to: interval.end, eventType: "Temporary Target")) ?? []
+        let isoTT = makeISOParser()
+        timeline.orefTempTargets = ttTreatments.compactMap { t in
+            guard let start = isoTT.date(from: t.created_at) else { return nil }
+            let tgt = t.targetBottom ?? t.targetTop
+            guard let target = tgt else { return nil }
+            return EvalTempTarget(start: start, durationMin: t.duration ?? 0, targetMgdl: target)
+        }.sorted { $0.start < $1.start }
         try await cache.save(timeline, key: cacheKey)
         return timeline
     }
@@ -455,7 +468,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             rawCarbRatio:   overrides.isEmpty ? [] : segCR,
             rawTarget:      overrides.isEmpty ? [] : segTarget,
             overrideWindows: overrides,
-            profileEditTimes: profileEditTimes
+            profileEditTimes: profileEditTimes,
+            scheduleTimeZone: tmpl.scheduleTimeZone   // profile TZ (segments share it)
         )
     }
 
@@ -547,7 +561,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             rawSensitivity: overrides.isEmpty ? [] : (isfValues.isEmpty   ? makeDefaultISF(interval: interval)   : isfValues),
             rawCarbRatio:   overrides.isEmpty ? [] : (crValues.isEmpty     ? makeDefaultCR(interval: interval)    : crValues),
             rawTarget:      overrides.isEmpty ? [] : (targets.isEmpty      ? makeDefaultTarget(interval: interval): targets),
-            overrideWindows: overrides
+            overrideWindows: overrides,
+            scheduleTimeZone: timeZone   // schedules are defined in the profile's TZ
         )
     }
 
