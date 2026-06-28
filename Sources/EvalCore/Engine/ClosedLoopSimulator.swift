@@ -138,6 +138,16 @@ extension EvaluationEngine {
         progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
 
+        // Run in the USER's timezone (the profile's), so oref's INTERNAL
+        // time-of-day lookups — which use Calendar.current (basal-schedule lookup
+        // in IobHistory, autosens hour-binning) — match the field's phone, just
+        // like the adapter's explicit schedule reconstruction already does. The
+        // host TZ would otherwise shift them (e.g. Berlin profile on a US host).
+        // Common to baseline and candidate ⇒ identity (Δdose=0) is preserved.
+        if let tz = data.therapyTimeline.scheduleTimeZone {
+            NSTimeZone.default = tz
+        }
+
         // 1. Set up mutable state.
         //
         // IMPORTANT: baseline and candidate must use the SAME code path so the
