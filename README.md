@@ -9,11 +9,15 @@ A Swift CLI that **evaluates and simulates insulin-dosing algorithms against rea
 - **Loop** — `LoopAlgorithm` (the [loopkitdev fork](https://github.com/loopkitdev/LoopAlgorithm))
 - **oref / OpenAPS** — via the [OpenAPSSwift](https://github.com/loopkitdev/OpenAPSSwift) port of oref0 (the algorithm Trio runs)
 
-**Data sources.** Input is read through a pluggable `EvalDataSource`. Today that source is **Nightscout**, which works regardless of the uploading app — instances populated by **Loop**, **Trio**, and other DIY closed-loop systems are all supported, with per-system quirks (carb-entry timestamps, dose/temp-basal conventions, glucose smoothing) handled in the loaders.
+**Data sources.** Input is read through a pluggable `EvalDataSource`:
+
+- **Nightscout** (`NightscoutEvalDataSource`) — live fetch, regardless of the uploading app: instances populated by **Loop**, **Trio**, and other DIY closed-loop systems, with per-system quirks (carb-entry timestamps, dose/temp-basal conventions, glucose smoothing) handled in the loaders.
+- **Tidepool** — the Python ETL (`loopeval_analysis.tidepool.export_donor`) extracts a donor's Tidepool `device_data` (Databricks) into the four EvalCore JSON files; `simulate --data-dir <dir>` then runs on them via `JSONFileDataSource`. Tidepool quirks (Mongo-wrapped numbers, mmol/L → mg/dL, bolus subType, basal deliveryType, food records) are handled in the ETL.
+- **JSON files** (`JSONFileDataSource`) — any pre-exported `glucose/doses/carbs/therapy.json` directory, for offline replay.
 
 ## What it does
 
-- Pulls CGM readings, insulin doses, carb entries, and therapy settings from a Nightscout instance (Loop- or Trio-populated)
+- Pulls CGM readings, insulin doses, carb entries, and therapy settings from Nightscout (Loop- or Trio-populated) or Tidepool (via the ETL)
 - **Evaluate** — runs the algorithm's forecast at every 5-minute step across a date range and compares predictions at configurable horizons (30 min → 6 hours) against actual CGM; computes RMSE, MAE, bias, percentiles, LBGI/HBGI/BGRI risk metrics
 - **Simulate** — closed-loop counterfactual replay: re-runs the chosen algorithm cycle-by-cycle on a person's history to estimate therapy outcomes (TIR, time-below-54, etc.) under a candidate change
 - Parameter sweeps to find optimal therapy settings or algorithm tuning parameters
@@ -103,7 +107,8 @@ loop-eval cache clear
 Sources/
   EvalCore/               # Library — all logic, no I/O
     Types/                # EvalGlucoseSample, EvalInsulinDose, TherapySettings, EvalConfig
-    DataSource/           # EvalDataSource protocol (pluggable), NightscoutClient, DataCache
+    DataSource/           # EvalDataSource protocol (pluggable): NightscoutEvalDataSource,
+                          #   JSONFileDataSource (Tidepool ETL / offline), DataCache
     Engine/               # DosingEngine protocol + LoopAdapter / OpenAPSAdapter,
                           #   EvaluationEngine, ClosedLoopSimulator, InputWindowBuilder
     Analysis/             # GlucoseInterpolator, BloodGlucoseRisk, KalmanSmoother, EvaluationAnalyzer
