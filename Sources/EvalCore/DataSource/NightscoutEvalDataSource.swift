@@ -117,12 +117,14 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     }
 
     public func getCarbEntries(interval: DateInterval) async throws -> [EvalCarbEntry] {
-        // v12 — robust ISO parse (with/without fractional seconds) for userEnteredAt
-        // /timestamp/created_at: Loop emits userEnteredAt with NO fractional seconds,
-        // which the fractional-only parser rejected → the visibility gate fell back to
-        // the upload-delayed ObjectId time (80 min late on rloop). v11 switched the
-        // gate to userEnteredAt; v6 user-takeover deferral; v4 ObjectId entryDate.
-        let cacheKey = DataCache.key(for: "carbs_v12", url: client.baseURL, interval: interval)
+        // v13 — Trio carbs have NO userEnteredAt, so the visibility gate fell back to
+        // the upload-delayed ObjectId time — the SAME late-gate bug v12 fixed for Loop,
+        // but unfixable by parsing (no field). Trio uploads are latent/batched (a carb
+        // logged 03:26 ingested 04:50, +84 min), hiding carbs its loop already dosed on.
+        // Fix: gate by created_at when userEnteredAt is absent (see convertTreatmentsToCarbs).
+        // v12 — robust ISO parse for userEnteredAt (Loop emits it with no fractional
+        // seconds); v11 switched the gate to userEnteredAt; v6 user-takeover; v4 ObjectId.
+        let cacheKey = DataCache.key(for: "carbs_v13", url: client.baseURL, interval: interval)
         if let cached: [EvalCarbEntry] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -338,10 +340,19 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             // the moment the user tapped "save" (its `userCreatedDate`), present on
             // 100% of this user's carb entries. It is immune to upload-latency noise
             // (unlike the ObjectId DB-insert time, which can lag the tap by seconds)
-            // and is exactly "when Loop learned about the carbs". Fall back to the
-            // ObjectId insert time, then created_at, when absent.
+            // and is exactly "when Loop learned about the carbs".
+            //
+            // Trio carbs have NO userEnteredAt. Do NOT fall back to the ObjectId
+            // (NS DB-insert) time for them: Trio uploads to Nightscout are latent and
+            // BATCHED, so the ObjectId can lag the real log time by minutes-to-hours
+            // (observed: a carb logged at 03:26 not ingested until 04:50 — +84 min — in
+            // a catch-up batch). That hides carbs Trio's own loop already dosed on,
+            // turning announced meals into unannounced ones in the replay. created_at
+            // is Trio's log/meal time (≈ when its loop learned the carbs), so gate by
+            // it. Trade-off: created_at is backdatable (a small, bounded early-leak) —
+            // far better than the large LATE miss from ObjectId gating.
             let baseEntry = Self.robustISODate(t.userEnteredAt)
-                ?? t.objectIdInsertionDate ?? createdAt
+                ?? createdAt
             // User-takeover + carb/bolus ALIGNMENT: when the user manual-boluses for
             // this meal, Loop (in reality) saw the carbs and the bolus together and
             // deferred to the user. Gate the carb's auto-dosing visibility to the
