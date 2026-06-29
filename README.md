@@ -1,14 +1,23 @@
 # LoopEval
 
-A Swift CLI tool that evaluates [LoopAlgorithm](https://github.com/tidepool-org/LoopAlgorithm) glucose forecast accuracy against real-world CGM data from Nightscout. Supports parameter sweeps to find optimal therapy settings or algorithm tuning parameters.
+A Swift CLI that **evaluates and simulates insulin-dosing algorithms against real-world diabetes data** — to estimate the therapy impact of an algorithm or settings change *before* it is ever tried on a person. It is not tied to a single algorithm or a single data ecosystem.
+
+## Algorithms & data sources
+
+**Algorithms.** Per-step dosing decisions go through a pluggable engine, so the same evaluation and simulation harness runs against more than one controller:
+
+- **Loop** — `LoopAlgorithm` (the [loopkitdev fork](https://github.com/loopkitdev/LoopAlgorithm))
+- **oref / OpenAPS** — via the [OpenAPSSwift](https://github.com/loopkitdev/OpenAPSSwift) port of oref0 (the algorithm Trio runs)
+
+**Data sources.** Input is read through a pluggable `EvalDataSource`. Today that source is **Nightscout**, which works regardless of the uploading app — instances populated by **Loop**, **Trio**, and other DIY closed-loop systems are all supported, with per-system quirks (carb-entry timestamps, dose/temp-basal conventions, glucose smoothing) handled in the loaders.
 
 ## What it does
 
-- Pulls CGM readings, insulin doses, carb entries, and therapy settings from your Nightscout instance
-- Runs `LoopAlgorithm.generatePrediction()` at every 5-minute step across a date range
-- Compares predictions at configurable horizons (30 min → 6 hours) against actual CGM readings
-- Computes RMSE, MAE, bias, percentiles, LBGI/HBGI/BGRI risk metrics per horizon
-- Optional 2D Kalman smoother on the actual CGM (for comparison only — algorithm input stays raw)
+- Pulls CGM readings, insulin doses, carb entries, and therapy settings from a Nightscout instance (Loop- or Trio-populated)
+- **Evaluate** — runs the algorithm's forecast at every 5-minute step across a date range and compares predictions at configurable horizons (30 min → 6 hours) against actual CGM; computes RMSE, MAE, bias, percentiles, LBGI/HBGI/BGRI risk metrics
+- **Simulate** — closed-loop counterfactual replay: re-runs the chosen algorithm cycle-by-cycle on a person's history to estimate therapy outcomes (TIR, time-below-54, etc.) under a candidate change
+- Parameter sweeps to find optimal therapy settings or algorithm tuning parameters
+- Optional 2D Kalman / AAPS glucose smoothing (for comparison or to match a system's input pipeline)
 
 ## Requirements
 
@@ -94,10 +103,14 @@ loop-eval cache clear
 Sources/
   EvalCore/               # Library — all logic, no I/O
     Types/                # EvalGlucoseSample, EvalInsulinDose, TherapySettings, EvalConfig
-    DataSource/           # EvalDataSource protocol, NightscoutClient, DataCache
-    Engine/               # EvaluationEngine, InputWindowBuilder, PredictionComparator
+    DataSource/           # EvalDataSource protocol (pluggable), NightscoutClient, DataCache
+    Engine/               # DosingEngine protocol + LoopAdapter / OpenAPSAdapter,
+                          #   EvaluationEngine, ClosedLoopSimulator, InputWindowBuilder
     Analysis/             # GlucoseInterpolator, BloodGlucoseRisk, KalmanSmoother, EvaluationAnalyzer
   LoopEvalCLI/            # CLI executable (ArgumentParser commands)
+
+# Algorithm packages are local SwiftPM dependencies (siblings of this repo):
+#   ../LoopAlgorithm   (Loop)            ../OpenAPSSwift  (oref/OpenAPS)
 
 Tests/
   EvalCoreTests/          # 47 unit tests + fixture data
@@ -105,6 +118,7 @@ Tests/
 
 **Key design decisions:**
 
+- **Pluggable algorithm + data source** — `DosingEngine` abstracts the controller (Loop vs oref) and `EvalDataSource` abstracts the input (Nightscout today), so a new algorithm or data backend is an adapter, not a rewrite
 - **No NightscoutKit / LoopKit dependency** — uses native `URLSession`; those pull in HealthKit/CoreData which are iOS-only
 - **`generatePrediction()` not `run()`** — supports future insulin without LoopAlgorithm changes
 - **2D Kalman smoother** — applied only to the actual CGM used for comparison, not algorithm input; uses RTS backward pass for smooth reference trajectory
