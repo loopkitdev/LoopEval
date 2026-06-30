@@ -69,7 +69,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // so the cache key MUST include the model — otherwise --insulin-type silently
         // reuses the first model's cached doses.
         // v2: temp-basal volume now uses the pump's delivered `amount` (not rate*duration).
-        let cacheKey = DataCache.key(for: "doses_v3_\(insulinType)", url: client.baseURL, interval: lookback)
+        let cacheKey = DataCache.key(for: "doses_v4trio_\(insulinType)", url: client.baseURL, interval: lookback)
         if let cached: [EvalInsulinDose] = try await cache.load(key: cacheKey) {
             return Self.clipOverlappingBasals(cached)
         }
@@ -250,6 +250,18 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     private func convertTreatmentsToDoses(_ treatments: [NightscoutTreatment]) -> [EvalInsulinDose] {
         var doses: [EvalInsulinDose] = []
 
+        // Data-source convention for the `automatic` default on bolus events with
+        // no explicit flag (Trio omits it):
+        //   - Trio logs AUTO microboluses as eventType "SMB" and the USER'S
+        //     MANUAL boluses as "Bolus" (automatic absent) ⇒ "Bolus" = MANUAL.
+        //   - Loop logs auto-boluses as "Bolus" with automatic:true; older Loop
+        //     omitted the flag and only logged auto boluses ⇒ "Bolus" = AUTO.
+        // Detect Trio by the presence of "SMB" events; default "Bolus" to manual
+        // there so manual meal boluses are kept (and SMB'd on top) in the CF
+        // rather than treated as auto and replaced. Loop datasets are untouched.
+        let hasSMB = treatments.contains { $0.eventType.trimmingCharacters(in: .whitespaces) == "SMB" }
+        let bolusAutomaticDefault = hasSMB ? false : true
+
         for t in treatments {
             guard let date = Self.robustISODate(t.created_at) else { continue }
 
@@ -285,7 +297,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
                     endDate: date.addingTimeInterval(30),   // bolus delivery ~30s
                     volume: units,
                     insulinType: insulinType,
-                    automatic: t.automatic ?? true
+                    automatic: t.automatic ?? bolusAutomaticDefault
                 )
                 doses.append(dose)
 
