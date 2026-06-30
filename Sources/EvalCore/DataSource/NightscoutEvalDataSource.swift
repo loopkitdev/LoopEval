@@ -144,7 +144,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // forecasts). v5 fetches override treatments over a DEEP look-back so a
         // long/indefinite override starting before the window is still captured.
         // Bump so caches written before the deep fetch are rebuilt.
-        let cacheKey = DataCache.key(for: "therapy_v8tz_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
+        let cacheKey = DataCache.key(for: "therapy_v9ex_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -181,15 +181,38 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // the adapter decision-time-gates them (start <= t).
         let ttStart = interval.start.addingTimeInterval(-Self.overrideLookback)
         let ttTreatments = (try? await client.fetchTreatments(from: ttStart, to: interval.end, eventType: "Temporary Target")) ?? []
+        // Trio logs exercise/preset temp targets as eventType "Exercise" with
+        // NULL targetTop/Bottom and the target in `notes` (e.g. "130 mg/dL @ 100%").
+        // Without these the sim misses the raised target + high_temptarget
+        // sensitivity, over-dosing exercise windows (see memory 2026-06-30).
+        let exTreatments = (try? await client.fetchTreatments(from: ttStart, to: interval.end, eventType: "Exercise")) ?? []
         let isoTT = makeISOParser()
-        timeline.orefTempTargets = ttTreatments.compactMap { t in
+        timeline.orefTempTargets = (ttTreatments + exTreatments).compactMap { t in
             guard let start = isoTT.date(from: t.created_at) else { return nil }
-            let tgt = t.targetBottom ?? t.targetTop
-            guard let target = tgt else { return nil }
+            // explicit bounds first; fall back to the target embedded in notes.
+            guard let target = t.targetBottom ?? t.targetTop ?? Self.parseTargetFromNotes(t.notes)
+            else { return nil }
             return EvalTempTarget(start: start, durationMin: t.duration ?? 0, targetMgdl: target)
         }.sorted { $0.start < $1.start }
         try await cache.save(timeline, key: cacheKey)
         return timeline
+    }
+
+    /// Parse a temp-target value (mg/dL) from a Trio note like "130 mg/dL @ 100%"
+    /// or "7.2 mmol/L @ 100%". Takes the number immediately before the unit token
+    /// (so the "@ 100%" percentage is not mistaken for the target); mmol is
+    /// converted to mg/dL. Returns nil if no target is found.
+    static func parseTargetFromNotes(_ notes: String?) -> Double? {
+        guard let n = notes else { return nil }
+        let toks = n.split(whereSeparator: { $0 == " " || $0 == "\t" }).map(String.init)
+        for (i, tok) in toks.enumerated() where i > 0 {
+            let low = tok.lowercased()
+            if low.hasPrefix("mg"), let v = Double(toks[i - 1]) { return v }
+            if low.hasPrefix("mmol"), let v = Double(toks[i - 1]) { return v * 18.01559 }
+        }
+        // Fallback: first cleanly-numeric token (skips "100%" etc.).
+        for tok in toks where Double(tok) != nil { return Double(tok) }
+        return nil
     }
 
     // MARK: – Glucose conversion
