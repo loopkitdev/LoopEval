@@ -81,11 +81,15 @@ public struct NightscoutTreatment: Decodable, Sendable {
     /// Temporary Target: target range bounds (mg/dL). Trio sets top==bottom.
     public let targetTop: Double?
     public let targetBottom: Double?
+    /// Free-text note. Trio logs Exercise/preset temp targets as eventType
+    /// "Exercise" with NULL targetTop/Bottom and the target embedded here,
+    /// e.g. "130 mg/dL @ 100%". Parsed as a fallback when bounds are absent.
+    public let notes: String?
 
     private enum CodingKeys: String, CodingKey {
         case created_at, eventType, insulin, carbs, rate, duration,
              absolute, amount, percent, isSMB, automatic, timestamp, userEnteredAt, absorptionTime,
-             insulinNeedsScaleFactor, correctionRange, targetTop, targetBottom
+             insulinNeedsScaleFactor, correctionRange, targetTop, targetBottom, notes
         case id = "_id"
     }
 
