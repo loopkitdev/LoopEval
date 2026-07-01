@@ -153,6 +153,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Counter-regulation max rate (mg/dL/min), the saturating defense ceiling. Default 6.0.")
     var counterRegMax: Double = 6.0
 
+    @Option(name: .long, help: "CGM-gap re-anchor threshold (minutes). Across a CGM gap longer than this the counterfactual has no ground truth and the single big-step physiological advance is unreliable (manual boluses given during the gap are on the field side but not the candidate history ⇒ runaway asymmetry that blew the counter to 700+). Re-anchor the counter to the real CGM at gap-end. Identity-safe. Default 30. 0 disables (legacy).")
+    var cfGapReanchorMin: Double = 30
+
     @Option(name: .long, help: "Positive momentum velocity cap (mg/dL/min). LoopAlgorithm default is 4 mg/dL/min, which limits rising-BG momentum extrapolation. Real-deployed Loop in this user's case had NO cap; pass a high value (e.g., 100) to effectively disable.")
     var candidateMomentumCap: Double?
 
@@ -623,6 +626,7 @@ struct SimulateCommand: AsyncParsableCommand {
             counterRegOnsetMgdl: counterRegOnset,
             counterRegGain: counterRegGain,
             counterRegMaxRate: counterRegMax,
+            cfGapReanchorSec: cfGapReanchorMin * 60,
             inferSensitivity: candidateInferSensitivity,
             inferSensitivityMax: candidateInferSensitivityMax,
             inferSensitivityWindowSec: candidateInferSensitivityWindowMin * 60,
