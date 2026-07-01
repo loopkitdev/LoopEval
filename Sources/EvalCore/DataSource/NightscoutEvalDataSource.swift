@@ -69,7 +69,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // so the cache key MUST include the model — otherwise --insulin-type silently
         // reuses the first model's cached doses.
         // v2: temp-basal volume now uses the pump's delivered `amount` (not rate*duration).
-        let cacheKey = DataCache.key(for: "doses_v4trio_\(insulinType)", url: client.baseURL, interval: lookback)
+        let cacheKey = DataCache.key(for: "doses_v5ext_\(insulinType)", url: client.baseURL, interval: lookback)
         if let cached: [EvalInsulinDose] = try await cache.load(key: cacheKey) {
             return Self.clipOverlappingBasals(cached)
         }
@@ -286,7 +286,10 @@ public actor NightscoutEvalDataSource: EvalDataSource {
                 )
                 doses.append(dose)
 
-            case "Bolus", "Meal Bolus", "Correction Bolus", "Carb Correction":
+            // "External Insulin" = a manual injection (pen/syringe) the user logs
+            // outside the pump. Real insulin — must count toward IOB/effects/TDD.
+            // Dropping it under-counted delivery (e.g. TDD → dynISF too hot).
+            case "Bolus", "Meal Bolus", "Correction Bolus", "Carb Correction", "External Insulin":
                 guard let units = t.insulin, units > 0 else { continue }
                 // Loop emits `automatic: true/false` on every bolus. Default
                 // to `true` when absent, which matches older Loop versions

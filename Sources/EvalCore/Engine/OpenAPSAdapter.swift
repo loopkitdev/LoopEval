@@ -325,36 +325,49 @@ struct OpenAPSAdapter: DosingEngine {
         //   - .basal: dose.volume is delivery over [startDate, endDate]
         // We sum what overlaps the (t - 24h, t] window.
         let tddWindowStart = req.t.addingTimeInterval(-24 * 3600)
-        var tdd = 0.0
+        // Per-dose delivery within the 24h window. Trio TDDStorage.calculateTDD:
+        // total = bolus + temp + scheduled; calculateBolusInsulin sums ALL boluses
+        // (manual included). Basal segments are pulse-floored to match Trio's
+        // roundToSupportedBasalRate (Omnipod 0.05U pulses) — naive rate×duration
+        // over-counts the real delivery.
+        var doseDeliv: [(start: Date, amount: Double)] = []
         for d in req.input.doses {
             if d.endDate <= tddWindowStart || d.startDate >= req.t { continue }
+            let amount: Double
             switch d.deliveryType {
             case .bolus:
-                tdd += d.volume
+                amount = d.volume
             case .basal:
-                // pro-rate to the intersection with the 24h window, then FLOOR to
-                // the pump pulse increment per segment — Trio's calculateTDD floors
-                // each temp-basal segment via roundToSupportedBasalRate (Omnipod
-                // delivers whole 0.05 U pulses), so naive rate×duration over-counts
-                // the real delivery and inflates TDD → dynISF → over-dose.
                 let lo = max(d.startDate, tddWindowStart)
                 let hi = min(d.endDate, req.t)
                 let segSec = max(0, hi.timeIntervalSince(lo))
                 let fullSec = max(d.endDate.timeIntervalSince(d.startDate), 1)
-                tdd += Self.pulseFloor(d.volume * segSec / fullSec, pulse: req.config.oapsPumpPulse)
+                // d.volume is the already-pump-quantized delivery; pro-rate to the
+                // window. Trio rounds the RATE (roundToSupportedBasalRate) not the
+                // per-segment delivery, so a per-segment pulse-floor here would
+                // systematically zero sub-0.05U 5-min segments and under-count basal.
+                amount = d.volume * segSec / fullSec
             }
+            doseDeliv.append((d.startDate, amount))
         }
-        // If we have less than 24h of dose history (typical: 16h slice), scale
-        // up. Otherwise leave as-is.
-        let earliestDoseT = req.input.doses.first?.startDate ?? req.t
-        let coverageHours = max(0.5, min(24.0, req.t.timeIntervalSince(earliestDoseT) / 3600.0))
-        if coverageHours < 24 {
-            tdd *= 24.0 / coverageHours
-        }
-        // Floor at 12 U/day so Dynamic ISF actually engages early in a sim when
-        // there are few real doses yet. (TDD is summed from reconciled, non-
-        // overlapping basal doses — see NightscoutEvalDataSource.clipOverlappingBasals.)
-        let estimatedTdd = max(tdd, 12.0)
+        let full24h = doseDeliv.reduce(0.0) { $0 + $1.amount }
+        // Trio's getPumpHistory() applies `fetchLimit: 288` to the last-24h pump
+        // events, and calculateTDD sums their delivery RAW (un-normalized, NOT
+        // scaled to 24h). For an active SMB user (a temp basal every 5min = 288/day
+        // PLUS SMBs/boluses) there are >288 events per 24h, so the most-recent 288
+        // span <24h (~18h for this user) and the TDD that drives dynISF is
+        // correspondingly LOWER than the full-24h sum. Summing the full 24h
+        // over-states TDD → dynISF runs hot → over-dose (amplified at high BG via
+        // ×ln(BG)). Match Trio by truncating to the most-recent 288 dose events.
+        // (Verified 2026-06-30 against the field: 288-window ≈ 40.9U vs field reason
+        // TDD 39.7, full-24h 52.6.)
+        let trunc288 = doseDeliv.sorted { $0.start > $1.start }.prefix(288).reduce(0.0) { $0 + $1.amount }
+        // Floor at 12 U/day so Dynamic ISF engages early in a sim with few doses.
+        let estimatedTdd = max(trunc288, 12.0)
+        // Each stored TDD record Trio averages for the 10-day term is ITSELF a
+        // 288-truncated total, so the 10-day average carries the same truncation.
+        // Apply the current truncation fraction to it (event density is ~steady).
+        let truncFrac = full24h > 0 ? trunc288 / full24h : 1.0
 
         // 10-day average daily TDD (Trio's `average_total_data` ≈ mean of the
         // rolling-24h TDD over 10 days ≈ total delivery / days). Stable, unlike
@@ -373,12 +386,14 @@ struct OpenAPSAdapter: DosingEngine {
                 let lo = max(d.startDate, tenDayStart)
                 let hi = min(d.endDate, req.t)
                 let fullSec = max(d.endDate.timeIntervalSince(d.startDate), 1)
-                tenSum += Self.pulseFloor(d.volume * max(0, hi.timeIntervalSince(lo)) / fullSec, pulse: req.config.oapsPumpPulse)
+                tenSum += d.volume * max(0, hi.timeIntervalSince(lo)) / fullSec
             }
         }
         let tenEarliest = max(tenDayStart, tddSource.first?.startDate ?? tenDayStart)
         let tenDays = max(1.0, req.t.timeIntervalSince(tenEarliest) / 86_400.0)
-        let avgTotalData = max(tenSum / tenDays, 12.0)
+        // × truncFrac: Trio's 10-day average is a mean of 288-truncated totals (see
+        // estimatedTdd above), so the full-24h daily delivery over-states it.
+        let avgTotalData = max((tenSum / tenDays) * truncFrac, 12.0)
         // Trio weightedAverage = weightPercentage·past2h + (1−weightPercentage)·10day.
         // past2hoursAverage of the rolling-24h TDD ≈ the current 24h TDD. Default
         // weightPercentage 0.65 (Trio default & this user's setting).
