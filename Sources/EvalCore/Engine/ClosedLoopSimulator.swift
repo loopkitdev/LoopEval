@@ -126,6 +126,16 @@ extension EvaluationEngine {
         counterRegOnsetMgdl: Double = 0,
         counterRegGain: Double = 0.2,
         counterRegMaxRate: Double = 6.0,
+        // CGM-gap re-anchor: across a CGM gap longer than this, the counterfactual
+        // has no ground truth and the single big-step physiological advance is
+        // unreliable — manual boluses the user gave DURING the gap are in the field
+        // side (realPhysDelta) but not in the candidate dose history (the per-step
+        // passthrough only fires at CGM samples, of which there are none in a gap),
+        // so the insulin asymmetry explodes (a 13.8h gap over meals ran the counter
+        // to 700+). Re-anchor the counter to the real CGM at gap-end. Identity-safe:
+        // at candidate==real, stepDelta==realBGdelta so the advance lands on the
+        // actual anyway ⇒ no-op at identity. 0 disables (legacy).
+        cfGapReanchorSec: TimeInterval = 1800,
         inferSensitivity: Bool = false,
         inferSensitivityMax: Double = 2.0,
         inferSensitivityWindowSec: TimeInterval = 30 * 60,
@@ -1269,6 +1279,16 @@ extension EvaluationEngine {
                     let subFrac = 1.0 / Double(nSub)
                     let aPrev = counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
                     let aNext = counterGlucose[advIdx].quantity.doubleValue(for: mgdlUnit)
+                    // GAP RE-ANCHOR: across a long CGM gap the single big-step advance
+                    // is unreliable (manual boluses in the gap are on the field side
+                    // but not the candidate history ⇒ runaway asymmetry). Re-anchor
+                    // to the real CGM at gap-end. No-op at identity (aNext is what the
+                    // advance would produce when candidate==real).
+                    if cfGapReanchorSec > 0 && totalSec > cfGapReanchorSec {
+                        counterMgdl[advIdx] = aNext
+                        advIdx += 1
+                        continue
+                    }
                     var bg = counterMgdl[prevIdx]
                     for k in 0..<nSub {
                         var crSub = 0.0
