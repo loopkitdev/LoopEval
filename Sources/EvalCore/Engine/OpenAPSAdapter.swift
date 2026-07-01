@@ -350,7 +350,6 @@ struct OpenAPSAdapter: DosingEngine {
             }
             doseDeliv.append((d.startDate, amount))
         }
-        let full24h = doseDeliv.reduce(0.0) { $0 + $1.amount }
         // Trio's getPumpHistory() applies `fetchLimit: 288` to the last-24h pump
         // events, and calculateTDD sums their delivery RAW (un-normalized, NOT
         // scaled to 24h). For an active SMB user (a temp basal every 5min = 288/day
@@ -364,10 +363,6 @@ struct OpenAPSAdapter: DosingEngine {
         let trunc288 = doseDeliv.sorted { $0.start > $1.start }.prefix(288).reduce(0.0) { $0 + $1.amount }
         // Floor at 12 U/day so Dynamic ISF engages early in a sim with few doses.
         let estimatedTdd = max(trunc288, 12.0)
-        // Each stored TDD record Trio averages for the 10-day term is ITSELF a
-        // 288-truncated total, so the 10-day average carries the same truncation.
-        // Apply the current truncation fraction to it (event density is ~steady).
-        let truncFrac = full24h > 0 ? trunc288 / full24h : 1.0
 
         // 10-day average daily TDD (Trio's `average_total_data` ≈ mean of the
         // rolling-24h TDD over 10 days ≈ total delivery / days). Stable, unlike
@@ -377,8 +372,10 @@ struct OpenAPSAdapter: DosingEngine {
         let tddSource = req.tddDoses.isEmpty ? req.input.doses : req.tddDoses
         let tenDayStart = req.t.addingTimeInterval(-240 * 3600)
         var tenSum = 0.0
+        var nTen = 0
         for d in tddSource {
             if d.endDate <= tenDayStart || d.startDate >= req.t { continue }
+            nTen += 1
             switch d.deliveryType {
             case .bolus:
                 tenSum += d.volume
@@ -391,9 +388,16 @@ struct OpenAPSAdapter: DosingEngine {
         }
         let tenEarliest = max(tenDayStart, tddSource.first?.startDate ?? tenDayStart)
         let tenDays = max(1.0, req.t.timeIntervalSince(tenEarliest) / 86_400.0)
-        // × truncFrac: Trio's 10-day average is a mean of 288-truncated totals (see
-        // estimatedTdd above), so the full-24h daily delivery over-states it.
-        let avgTotalData = max((tenSum / tenDays) * truncFrac, 12.0)
+        // Trio's average_total_data is the mean of the stored TDD records (each a
+        // 288-truncated total) over 10 days — a STABLE value. Scaling the 10-day
+        // delivery by the CURRENT-24h truncation fraction (truncFrac) makes it swing
+        // with that window's event density (~0.78 overnight → ~0.96 post-meal),
+        // which spikes the dynISF right after meals (over-dose at exactly the
+        // high-BG cycles that matter). Use a STABLE fraction from the 10-day average
+        // event density instead: 288 / (events per 24h).
+        let avgEventsPer24h = max(1.0, Double(nTen) / tenDays)
+        let truncFracStable = min(1.0, 288.0 / avgEventsPer24h)
+        let avgTotalData = max((tenSum / tenDays) * truncFracStable, 12.0)
         // Trio weightedAverage = weightPercentage·past2h + (1−weightPercentage)·10day.
         // past2hoursAverage of the rolling-24h TDD ≈ the current 24h TDD. Default
         // weightPercentage 0.65 (Trio default & this user's setting).
