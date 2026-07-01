@@ -324,89 +324,33 @@ struct OpenAPSAdapter: DosingEngine {
         //   - .bolus: dose.volume is the full bolus
         //   - .basal: dose.volume is delivery over [startDate, endDate]
         // We sum what overlaps the (t - 24h, t] window.
-        let tddWindowStart = req.t.addingTimeInterval(-24 * 3600)
-        // Per-dose delivery within the 24h window. Trio TDDStorage.calculateTDD:
-        // total = bolus + temp + scheduled; calculateBolusInsulin sums ALL boluses
-        // (manual included). Basal segments are pulse-floored to match Trio's
-        // roundToSupportedBasalRate (Omnipod 0.05U pulses) — naive rate×duration
-        // over-counts the real delivery.
-        var doseDeliv: [(start: Date, amount: Double)] = []
-        for d in req.input.doses {
-            if d.endDate <= tddWindowStart || d.startDate >= req.t { continue }
-            let amount: Double
-            switch d.deliveryType {
-            case .bolus:
-                amount = d.volume
-            case .basal:
-                let lo = max(d.startDate, tddWindowStart)
-                let hi = min(d.endDate, req.t)
-                let segSec = max(0, hi.timeIntervalSince(lo))
-                let fullSec = max(d.endDate.timeIntervalSince(d.startDate), 1)
-                // Trio TDDStorage.calculateTempBasalInsulin: each temp segment (a
-                // reconciled dose, i.e. a temp interrupted by the next) delivers
-                // roundToSupportedBasalRate(rate × durationHours) — which FLOORS to
-                // the 0.05U pump grid. So sub-0.05U short segments floor to 0. Not
-                // flooring over-counts basal → currentTDD too high → dynISF hot.
-                amount = Self.pulseFloor(d.volume * segSec / fullSec, pulse: req.config.oapsPumpPulse)
-            }
-            doseDeliv.append((d.startDate, amount))
-        }
-        // Trio's getPumpHistory() applies `fetchLimit: 288` to the last-24h pump
-        // events, and calculateTDD sums their delivery RAW (un-normalized, NOT
-        // scaled to 24h). For an active SMB user (a temp basal every 5min = 288/day
-        // PLUS SMBs/boluses) there are >288 events per 24h, so the most-recent 288
-        // span <24h (~18h for this user) and the TDD that drives dynISF is
-        // correspondingly LOWER than the full-24h sum. Summing the full 24h
-        // over-states TDD → dynISF runs hot → over-dose (amplified at high BG via
-        // ×ln(BG)). Match Trio by truncating to the most-recent 288 dose events.
-        // (Verified 2026-06-30 against the field: 288-window ≈ 40.9U vs field reason
-        // TDD 39.7, full-24h 52.6.)
-        let trunc288 = doseDeliv.sorted { $0.start > $1.start }.prefix(288).reduce(0.0) { $0 + $1.amount }
-        // Floor at 12 U/day so Dynamic ISF engages early in a sim with few doses.
-        let estimatedTdd = max(trunc288, 12.0)
-
-        // 10-day average daily TDD (Trio's `average_total_data` ≈ mean of the
-        // rolling-24h TDD over 10 days ≈ total delivery / days). Stable, unlike
-        // the instantaneous 24h sum. Summed from req.tddDoses (the full clipped
-        // dose history, passed by the sim) so the default 24h input lookback
-        // suffices — no slow 240h input window. Falls back to input.doses.
+        // ── TDD (faithful Trio TDDStorage replication) ───────────────────────
+        // The dynISF uses Trio's WEIGHTED average = weightPercentage·past2hoursAverage
+        // + (1-weightPercentage)·average_total_data, where each is a MEAN of the
+        // per-5min TDD records. Each record (calculateTDD) = the total insulin over
+        // the most-recent 288 pump events (getPumpHistory fetchLimit; ~18h for an
+        // active SMB user), with each interrupted temp segment FLOORED to the pump
+        // pulse grid (roundToSupportedBasalRate). The reason line "TDD: X" DISPLAYS
+        // currentTDD but the dynISF USES the weighted average — verified 2026-07-01:
+        // with the weighted TDD the field's dynISF insulinFactor is a flat ~75 across
+        // all BG, whereas currentTDD drifts (the past2h mean drops at post-meal rises
+        // because it lags the currentTDD spike, correctly damping the dynISF).
         let tddSource = req.tddDoses.isEmpty ? req.input.doses : req.tddDoses
-        let tenDayStart = req.t.addingTimeInterval(-240 * 3600)
-        var tenSum = 0.0
-        var nTen = 0
-        for d in tddSource {
-            if d.endDate <= tenDayStart || d.startDate >= req.t { continue }
-            nTen += 1
-            switch d.deliveryType {
-            case .bolus:
-                tenSum += d.volume
-            case .basal:
-                let lo = max(d.startDate, tenDayStart)
-                let hi = min(d.endDate, req.t)
-                let fullSec = max(d.endDate.timeIntervalSince(d.startDate), 1)
-                tenSum += d.volume * max(0, hi.timeIntervalSince(lo)) / fullSec
-            }
-        }
-        let tenEarliest = max(tenDayStart, tddSource.first?.startDate ?? tenDayStart)
-        let tenDays = max(1.0, req.t.timeIntervalSince(tenEarliest) / 86_400.0)
-        // Trio's average_total_data is the mean of the stored TDD records (each a
-        // 288-truncated total) over 10 days — a STABLE value. Scaling the 10-day
-        // delivery by the CURRENT-24h truncation fraction (truncFrac) makes it swing
-        // with that window's event density (~0.78 overnight → ~0.96 post-meal),
-        // which spikes the dynISF right after meals (over-dose at exactly the
-        // high-BG cycles that matter). Use a STABLE fraction from the 10-day average
-        // event density instead: 288 / (events per 24h).
-        let avgEventsPer24h = max(1.0, Double(nTen) / tenDays)
-        let truncFracStable = min(1.0, 288.0 / avgEventsPer24h)
-        let avgTotalData = max((tenSum / tenDays) * truncFracStable, 12.0)
-        // The field's dynISF uses currentTDD (the floor-quantized 288-truncated
-        // sum), NOT the 0.65-weighted past2h/10-day blend: verified 2026-07-01 that
-        // the floored currentTDD (39.40) matches the field's reason TDD (39.55) at
-        // multiple cycles while the 0.65-blend does not. (Trio's tdd() returns
-        // currentTDD when weightPercentage ≥ 1; this user's records are stable so
-        // currentTDD == weighted regardless.) Use currentTDD directly.
-        let weightPct = 1.0
-        let weightedTdd = weightPct * estimatedTdd + (1 - weightPct) * avgTotalData
+        let pulse = req.config.oapsPumpPulse
+        let estimatedTdd = max(Self.flooredTdd288(doses: tddSource, asof: req.t, pulse: pulse), 12.0)
+        // past2hoursAverage: mean of the per-5min TDD records over the last 2h.
+        var p2sum = 0.0
+        for i in 0..<24 { p2sum += Self.flooredTdd288(doses: tddSource, asof: req.t.addingTimeInterval(Double(-300 * i)), pulse: pulse) }
+        let past2h = max(p2sum / 24.0, 12.0)
+        // average_total_data: mean of the TDD records over 10 days. Sampled every 3h
+        // (the record is stable enough for this 0.35-weight term; full 5-min sampling
+        // would be 2880 evals/cycle).
+        var a10sum = 0.0
+        for i in 0..<80 { a10sum += Self.flooredTdd288(doses: tddSource, asof: req.t.addingTimeInterval(Double(-10800 * i)), pulse: pulse) }
+        let avgTotalData = max(a10sum / 80.0, 12.0)
+        // TODO: read weightPercentage from prefs (0.65 = Trio default & this user's).
+        let weightPct = 0.65
+        let weightedTdd = weightPct * past2h + (1 - weightPct) * avgTotalData
 
         // ── TrioCustomOrefVariables (overrides off) ───────────────────────────
         let trioCustom: [String: Any] = [
@@ -611,6 +555,35 @@ struct OpenAPSAdapter: DosingEngine {
     static func pulseFloor(_ units: Double, pulse: Double) -> Double {
         guard pulse > 0 else { return units }
         return (units / pulse).rounded(.down) * pulse
+    }
+
+    /// One Trio TDD record (`TDDStorage.calculateTDD` as of `asof`): total insulin
+    /// over the most-recent 288 pump events within the last 24h (`getPumpHistory`
+    /// predicate `pumpHistoryLast24h` + `fetchLimit: 288`). bolus = sum of all
+    /// bolus amounts (manual included); temp = per interrupted segment (a reconciled
+    /// dose = a temp cut at the next temp's start) delivering
+    /// `roundToSupportedBasalRate(rate × durationHours)`, which floors to the pump
+    /// pulse grid. `doses` must be the reconciled EvalInsulinDoses.
+    fileprivate static func flooredTdd288(doses: [EvalInsulinDose], asof: Date, pulse: Double) -> Double {
+        let windowStart = asof.addingTimeInterval(-24 * 3600)
+        var dd: [(start: Date, amount: Double)] = []
+        dd.reserveCapacity(400)
+        for d in doses {
+            if d.endDate <= windowStart || d.startDate >= asof { continue }
+            let amount: Double
+            switch d.deliveryType {
+            case .bolus:
+                amount = d.volume
+            case .basal:
+                let lo = max(d.startDate, windowStart)
+                let hi = min(d.endDate, asof)
+                let seg = max(0, hi.timeIntervalSince(lo))
+                let full = max(d.endDate.timeIntervalSince(d.startDate), 1)
+                amount = pulseFloor(d.volume * seg / full, pulse: pulse)
+            }
+            dd.append((start: d.startDate, amount: amount))
+        }
+        return dd.sorted { $0.start > $1.start }.prefix(288).reduce(0.0) { $0 + $1.amount }
     }
 
     static func aapsSmoothGlucose(_ samples: [EvalGlucoseSample]) -> [EvalGlucoseSample] {
