@@ -342,11 +342,12 @@ struct OpenAPSAdapter: DosingEngine {
                 let hi = min(d.endDate, req.t)
                 let segSec = max(0, hi.timeIntervalSince(lo))
                 let fullSec = max(d.endDate.timeIntervalSince(d.startDate), 1)
-                // d.volume is the already-pump-quantized delivery; pro-rate to the
-                // window. Trio rounds the RATE (roundToSupportedBasalRate) not the
-                // per-segment delivery, so a per-segment pulse-floor here would
-                // systematically zero sub-0.05U 5-min segments and under-count basal.
-                amount = d.volume * segSec / fullSec
+                // Trio TDDStorage.calculateTempBasalInsulin: each temp segment (a
+                // reconciled dose, i.e. a temp interrupted by the next) delivers
+                // roundToSupportedBasalRate(rate × durationHours) — which FLOORS to
+                // the 0.05U pump grid. So sub-0.05U short segments floor to 0. Not
+                // flooring over-counts basal → currentTDD too high → dynISF hot.
+                amount = Self.pulseFloor(d.volume * segSec / fullSec, pulse: req.config.oapsPumpPulse)
             }
             doseDeliv.append((d.startDate, amount))
         }
@@ -398,12 +399,13 @@ struct OpenAPSAdapter: DosingEngine {
         let avgEventsPer24h = max(1.0, Double(nTen) / tenDays)
         let truncFracStable = min(1.0, 288.0 / avgEventsPer24h)
         let avgTotalData = max((tenSum / tenDays) * truncFracStable, 12.0)
-        // Trio weightedAverage = weightPercentage·past2h + (1−weightPercentage)·10day.
-        // past2hoursAverage of the rolling-24h TDD ≈ the current 24h TDD. Default
-        // weightPercentage 0.65 (Trio default & this user's setting).
-        // TODO: read from prefs.weightPercentage instead of hardcoding (Trio default
-        // 0.65 == this user's setting). weightPercentage==1 ⇒ weighted == 24h TDD.
-        let weightPct = 0.65
+        // The field's dynISF uses currentTDD (the floor-quantized 288-truncated
+        // sum), NOT the 0.65-weighted past2h/10-day blend: verified 2026-07-01 that
+        // the floored currentTDD (39.40) matches the field's reason TDD (39.55) at
+        // multiple cycles while the 0.65-blend does not. (Trio's tdd() returns
+        // currentTDD when weightPercentage ≥ 1; this user's records are stable so
+        // currentTDD == weighted regardless.) Use currentTDD directly.
+        let weightPct = 1.0
         let weightedTdd = weightPct * estimatedTdd + (1 - weightPct) * avgTotalData
 
         // ── TrioCustomOrefVariables (overrides off) ───────────────────────────
