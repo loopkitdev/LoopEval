@@ -291,7 +291,22 @@ struct OpenAPSAdapter: DosingEngine {
         let carbsJSON = encodeCarbs(req.input.carbs, iso: iso)
 
         // ── Pump history (boluses + temp basal pairs derived from doses) ──────
-        let pumpHistoryJSON = encodePumpHistory(req.input.doses, iso: iso,
+        // Trio fetches `pumpHistoryLast1440Minutes` (24h) and feeds that SAME history
+        // to meal / iob / autosens / determineBasal. `req.input.doses` is sliced to the
+        // (shorter) insulin lookback (~DIA), which starves autosens: it computes
+        // deviations over 24h and each deviation's BGI needs IOB back to 24h+DIA, so a
+        // DIA-length history leaves the oldest ~DIA hours of buckets with under-counted
+        // IOB → sensitivity is under-detected (ratio pinned near 1.0). Build the pump
+        // history from the candidate's OWN full dose history sliced to Trio's 24h event
+        // window (by startDate, matching pumpHistoryLast1440Minutes). Fidelity note: 24h
+        // — not 24h+DIA — is deliberate; Trio itself only feeds 24h, so its autosens
+        // carries the same DIA-tail under-count, and matching it (not "fixing" it to 33h)
+        // is what reproduces the field. Empty ⇒ legacy behavior (input.doses slice).
+        let orefWindowStart = req.t.addingTimeInterval(-24 * 3600)
+        let orefPumpDoses = req.orefPumpHistoryDoses.isEmpty
+            ? req.input.doses
+            : req.orefPumpHistoryDoses.filter { $0.startDate >= orefWindowStart && $0.startDate <= req.t }
+        let pumpHistoryJSON = encodePumpHistory(orefPumpDoses, iso: iso,
                                                 scheduledBasalUhr: scheduledBasalUhr)
 
         // ── Current temp ──────────────────────────────────────────────────────

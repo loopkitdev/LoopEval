@@ -666,7 +666,8 @@ extension EvaluationEngine {
                     therapy: data.therapyTimeline,
                     glucoseMgdl: baselineMgdl,
                     glucoseSamples: simGlucose,
-                    tddDoses: data.doses
+                    tddDoses: data.doses,
+                    orefPumpHistoryDoses: data.doses
                 ))
                 baselineDose = br.dose
                 baselineEventualBG = br.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
@@ -810,6 +811,18 @@ extension EvaluationEngine {
                 // glucose the baseline saw (not the counter trajectory).
                 let candMomentumMgdl = decisionTimeReplay ? baselineMgdl : counterMgdl
                 let candMomentumSamples = decisionTimeReplay ? simGlucose : counterGlucose
+                // oref pump-history window (24h) for autosens: combinedDoses only reaches
+                // back to warmupStart (evalStart - activityDuration), which for a cycle
+                // early in the eval is < 24h. Before the candidate went active it used
+                // REAL insulin, so prepend the real doses older than the candidate's
+                // earliest entry to complete the 24h window (data.doses spans the full run).
+                let orefHistDoses: [EvalInsulinDose]
+                if let earliest = combinedDoses.first?.startDate {
+                    orefHistDoses = EvaluationEngine.mergeSorted(
+                        data.doses.filter { $0.startDate < earliest }, combinedDoses)
+                } else {
+                    orefHistDoses = data.doses
+                }
                 func doStep(_ map: [Date: Double]?) -> EngineStepResult {
                     candidateEngine.step(EngineStepRequest(
                         t: t, input: candidateInput, config: candidateConfig,
@@ -820,7 +833,8 @@ extension EvaluationEngine {
                         perStepIsfMultByTime: map,
                         isfBoostActiveOnly: isfBoostActiveOnly,
                         egpPhysicalDecomposition: egpPhysicalDecomposition,
-                        tddDoses: data.doses))
+                        tddDoses: data.doses,
+                        orefPumpHistoryDoses: orefHistDoses))
                 }
                 // Forecast-gated boost (lows-protection): a boost (mult<1) is only
                 // applied if the candidate's UNBOOSTED forecast PEAK (highest BG
