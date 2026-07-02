@@ -39,6 +39,14 @@ struct EngineStepRequest {
     /// (summing doses is cheap; inflating the input window's IOB/effects is not).
     /// Empty ⇒ adapter falls back to `input.doses` (the lookback slice).
     let tddDoses: [EvalInsulinDose]
+    /// Full (un-windowed) dose history for building the oref pump-history JSON.
+    /// oref's autosens computes deviations over 24h and each deviation's BGI needs
+    /// IOB back to 24h+DIA, so `input.doses` (sliced to the insulin lookback, ~DIA)
+    /// starves it and under-detects sensitivity. The adapter slices this to Trio's
+    /// 24h `pumpHistoryLast1440Minutes` window. For the counterfactual candidate this
+    /// MUST be the candidate's own dose history (not the real one). Empty ⇒ adapter
+    /// falls back to `input.doses`.
+    let orefPumpHistoryDoses: [EvalInsulinDose]
 
     init(
         t: Date,
@@ -52,7 +60,8 @@ struct EngineStepRequest {
         perStepIsfMultByTime: [Date: Double]? = nil,
         isfBoostActiveOnly: Bool = false,
         egpPhysicalDecomposition: Bool = false,
-        tddDoses: [EvalInsulinDose] = []
+        tddDoses: [EvalInsulinDose] = [],
+        orefPumpHistoryDoses: [EvalInsulinDose] = []
     ) {
         self.t = t
         self.input = input
@@ -66,6 +75,7 @@ struct EngineStepRequest {
         self.isfBoostActiveOnly = isfBoostActiveOnly
         self.egpPhysicalDecomposition = egpPhysicalDecomposition
         self.tddDoses = tddDoses
+        self.orefPumpHistoryDoses = orefPumpHistoryDoses
     }
 }
 
