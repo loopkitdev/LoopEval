@@ -249,6 +249,23 @@ struct OpenAPSAdapter: DosingEngine {
            let merge = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             for (k, v) in merge { prefs[k] = v }
         }
+        // Time-varying adjustmentFactor (config history): override AF with the value
+        // the user actually had at decision time `t`. Applied AFTER the prefs-json
+        // merge so it wins over the (single, latest) prefs AF. CSV rows "ISO8601,af"
+        // ASCENDING; pick the last start <= t (first row for earlier t).
+        if let afCsv = req.config.oapsAfScheduleCSV {
+            let iso = ISO8601DateFormatter()
+            var active: Double? = nil, firstAf: Double? = nil
+            for line in afCsv.split(separator: "\n") {
+                let parts = line.split(separator: ",")
+                guard parts.count >= 2,
+                      let d = iso.date(from: parts[0].trimmingCharacters(in: .whitespaces)),
+                      let af = Double(parts[1].trimmingCharacters(in: .whitespaces)) else { continue }
+                if firstAf == nil { firstAf = af }
+                if d <= req.t { active = af }
+            }
+            if let af = active ?? firstAf { prefs["adjustmentFactor"] = af }
+        }
         let preferencesJSON = String(data: try JSONSerialization.data(withJSONObject: prefs),
                                      encoding: .utf8)!
 

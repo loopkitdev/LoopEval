@@ -385,6 +385,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "OpenAPS preferences JSON (object) merged over the adapter defaults — supply a user's complete Trio settings verbatim. Inline JSON or @path/to/file.json.")
     var candidateOapsPrefsJson: String?
 
+    @Option(name: .long, help: "Path to a CSV of time-varying dynISF adjustmentFactor: rows 'ISO8601,af' ascending. Per decision cycle the adapter uses the last row whose start <= t, overriding the prefs AF (reproduces a user who re-tuned AF over the replay period).")
+    var candidateOapsAfCsv: String?
+
     @Flag(name: .long, help: "Apply Trio's AAPS double-exponential glucose smoothing to the oref candidate's glucose feed (matches Trio's smoothGlucose; oref doses on smoothed, NS stores raw).")
     var candidateOapsSmoothGlucose: Bool = false
 
@@ -558,6 +561,9 @@ struct SimulateCommand: AsyncParsableCommand {
             candidateConfig.oapsPrefsJson = pj.hasPrefix("@")
                 ? (try? String(contentsOfFile: String(pj.dropFirst()), encoding: .utf8)) ?? pj
                 : pj
+        }
+        if let afc = candidateOapsAfCsv {
+            candidateConfig.oapsAfScheduleCSV = (try? String(contentsOfFile: afc, encoding: .utf8)) ?? nil
         }
         candidateConfig.insulinLookbackHours = insulinLookbackHours
 
