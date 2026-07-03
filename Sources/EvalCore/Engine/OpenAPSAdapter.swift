@@ -299,9 +299,15 @@ struct OpenAPSAdapter: DosingEngine {
                                                     fallbackMidMgdl: 100)
 
         // ── Glucose history ───────────────────────────────────────────────────
+        // Dedup by timestamp first: NS returns duplicate CGM entries, but Trio's
+        // Core Data has one row per reading. A duplicate at a smoothing-segment start
+        // corrupts the 2nd-order Holt delta init (d=0 instead of raw[1]-raw[0]) → a
+        // ±1-2 mg/dL smoothed-glucose divergence that the UAM projection amplifies on
+        // fast rises. Keep the newest occurrence per exact timestamp (stable).
+        let dedupGlucose = Self.dedupGlucoseByTimestamp(req.input.glucose)
         let glucoseForOref = req.config.oapsSmoothGlucose
-            ? Self.aapsSmoothGlucose(req.input.glucose)
-            : req.input.glucose
+            ? Self.aapsSmoothGlucose(dedupGlucose)
+            : dedupGlucose
         let glucoseJSON = encodeGlucose(glucoseForOref, iso: iso)
 
         // ── Carbs ─────────────────────────────────────────────────────────────
@@ -616,6 +622,16 @@ struct OpenAPSAdapter: DosingEngine {
             dd.append((start: d.startDate, amount: amount))
         }
         return dd.sorted { $0.start > $1.start }.prefix(288).reduce(0.0) { $0 + $1.amount }
+    }
+
+    /// Drop exact-timestamp duplicate CGM readings (NS returns duplicates; Trio's
+    /// Core Data stores one row per reading). Order-preserving, keeps first per date.
+    static func dedupGlucoseByTimestamp(_ samples: [EvalGlucoseSample]) -> [EvalGlucoseSample] {
+        var seen = Set<Date>()
+        var out: [EvalGlucoseSample] = []
+        out.reserveCapacity(samples.count)
+        for s in samples where seen.insert(s.startDate).inserted { out.append(s) }
+        return out
     }
 
     static func aapsSmoothGlucose(_ samples: [EvalGlucoseSample]) -> [EvalGlucoseSample] {
