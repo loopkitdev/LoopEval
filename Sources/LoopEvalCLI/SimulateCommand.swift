@@ -61,6 +61,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .customLong("apply-overrides"), inversion: .prefixedNo, help: "Apply Loop Temporary Overrides to the therapy timeline over their active windows (basal ×f, ISF ÷f, CR ÷f, target ← override range; f = insulinNeedsScaleFactor). Fidelity feature — applies to BOTH arms. DEFAULT ON; pass --no-apply-overrides to ignore overrides.")
     var applyOverrides: Bool = true
 
+    @Option(name: .customLong("oaps-preset-target"), help: "Map a Trio Exercise preset NAME to a target (mg/dL) for presets whose target is carried only in the preset name, not the treatment fields/notes (e.g. a \"Dienst\" shift preset → 110). Format NAME:TARGET, repeatable. Matched case-insensitively against the Exercise note.")
+    var oapsPresetTarget: [String] = []
+
     @Flag(name: .customLong("mid-absorption-isf"), inversion: .prefixedNo,
           help: "Mid-absorption ISF: re-evaluate ALL active IOB at the CURRENT sensitivity (current LoopAlgorithm default). Pass --no-mid-absorption-isf for the OLD/deployed-Loop behavior: each dose keeps the sensitivity in effect at its delivery time for its lifetime (matters when ISF changes mid-absorption, e.g. a Temporary Override). Applies to BOTH arms.")
     var midAbsorptionIsf: Bool = true
@@ -576,7 +579,12 @@ struct SimulateCommand: AsyncParsableCommand {
             }
             let client = NightscoutClient(baseURL: baseURL, apiSecret: apiSecret, token: token)
             let cache = try DataCache(cacheDir: cacheDir)
-            dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset, applyOverrides: applyOverrides)
+            var presetTargets: [String: Double] = [:]
+            for spec in oapsPresetTarget {
+                let parts = spec.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+                if parts.count == 2, let tgt = Double(parts[1]) { presetTargets[parts[0]] = tgt }
+            }
+            dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset, applyOverrides: applyOverrides, presetTargets: presetTargets)
         }
         let engine = EvaluationEngine(dataSource: dataSource)
 

@@ -97,7 +97,16 @@ struct OpenAPSAdapter: DosingEngine {
     // future temp target can't leak into an earlier decision. oref's makeProfile /
     // autosens pick the one active at the clock (and honor durations / cancels).
     private func orefTempTargetsJSON(req: EngineStepRequest) -> String {
-        let active = req.therapy.orefTempTargets.filter { $0.start <= req.t }
+        // Trio semantics: the MOST-RECENTLY-SET temp target is the current one, and
+        // when it expires the target reverts to PROFILE — it does NOT fall back to an
+        // older, still-within-duration temp target. Feeding oref every past temp
+        // target let a stale long-duration one (e.g. a 30-day "Dienst" exercise) stay
+        // active forever. So feed only the single latest temp target that has started;
+        // oref then applies it if now is within its duration, else uses the profile.
+        let active = req.therapy.orefTempTargets
+            .filter { $0.start <= req.t }
+            .max(by: { $0.start < $1.start })
+            .map { [$0] } ?? []
         guard !active.isEmpty else { return "[]" }
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
