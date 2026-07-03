@@ -21,6 +21,14 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     /// to the therapy timeline over their active windows. On by default.
     public let applyOverrides: Bool
 
+    /// Preset-name → target (mg/dL) map for Trio Exercise presets whose target is
+    /// carried only in the preset NAME, not the treatment fields or notes (e.g. a
+    /// "Dienst" shift preset that sets target 110). The NS Exercise event has null
+    /// targetTop/Bottom and notes == the bare preset name, so parseTargetFromNotes
+    /// can't recover it; this map supplies the target during those windows. Matched
+    /// case-insensitively against `notes`. Empty ⇒ no preset mapping (default).
+    public let presetTargets: [String: Double]
+
     /// How far before `interval.start` to scan for Temporary Override events, so a
     /// long/indefinite override that began before the analysis window is still
     /// captured while it is active inside it. 180 days comfortably covers the
@@ -35,7 +43,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         insulinType: ExponentialInsulinModelPreset = .rapidActingAdult,
         defaultMaxBolus: Double = 10.0,
         defaultMaxBasalRate: Double = 3.0,
-        applyOverrides: Bool = true
+        applyOverrides: Bool = true,
+        presetTargets: [String: Double] = [:]
     ) {
         self.client = client
         self.cache = cache
@@ -43,6 +52,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         self.defaultMaxBolus = defaultMaxBolus
         self.defaultMaxBasalRate = defaultMaxBasalRate
         self.applyOverrides = applyOverrides
+        self.presetTargets = presetTargets
     }
 
     // MARK: – EvalDataSource
@@ -139,12 +149,15 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // TherapyTimeline carries insulinType → include it in the key (see getDoses).
         // Override application also changes the schedules → key on it too.
         let ovTag = applyOverrides ? "_ov" : ""
+        // Preset targets change orefTempTargets → must key the cache on them.
+        let ptTag = presetTargets.isEmpty ? "" : "_pt" + presetTargets.sorted { $0.key < $1.key }
+            .map { "\($0.key)=\($0.value)" }.joined(separator: ",")
         // v5ovdeep: timeline carries RAW schedules + override windows for
         // decision-time override gating (future overrides invisible to earlier
         // forecasts). v5 fetches override treatments over a DEEP look-back so a
         // long/indefinite override starting before the window is still captured.
         // Bump so caches written before the deep fetch are rebuilt.
-        let cacheKey = DataCache.key(for: "therapy_v9ex_\(insulinType)\(ovTag)", url: client.baseURL, interval: interval)
+        let cacheKey = DataCache.key(for: "therapy_v9ex_\(insulinType)\(ovTag)\(ptTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -189,8 +202,12 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         let isoTT = makeISOParser()
         timeline.orefTempTargets = (ttTreatments + exTreatments).compactMap { t in
             guard let start = isoTT.date(from: t.created_at) else { return nil }
-            // explicit bounds first; fall back to the target embedded in notes.
-            guard let target = t.targetBottom ?? t.targetTop ?? Self.parseTargetFromNotes(t.notes)
+            // explicit bounds first; then the target embedded in notes ("130 mg/dL
+            // @ 100%"); finally a preset-name → target map for named presets whose
+            // target lives only in the preset name (e.g. "Dienst" → 110).
+            guard let target = t.targetBottom ?? t.targetTop
+                    ?? Self.parseTargetFromNotes(t.notes)
+                    ?? Self.presetTarget(t.notes, map: presetTargets)
             else { return nil }
             return EvalTempTarget(start: start, durationMin: t.duration ?? 0, targetMgdl: target)
         }.sorted { $0.start < $1.start }
@@ -212,6 +229,14 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         }
         // Fallback: first cleanly-numeric token (skips "100%" etc.).
         for tok in toks where Double(tok) != nil { return Double(tok) }
+        return nil
+    }
+
+    /// Look up a named-preset target (mg/dL) by matching `notes` against the
+    /// preset-name map case-insensitively (a note containing a mapped name wins).
+    static func presetTarget(_ notes: String?, map: [String: Double]) -> Double? {
+        guard let n = notes?.lowercased(), !map.isEmpty else { return nil }
+        for (name, tgt) in map where n.contains(name.lowercased()) { return tgt }
         return nil
     }
 
