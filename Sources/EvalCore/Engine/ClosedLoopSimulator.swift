@@ -1295,11 +1295,28 @@ extension EvaluationEngine {
                     let aNext = counterGlucose[advIdx].quantity.doubleValue(for: mgdlUnit)
                     // GAP RE-ANCHOR: across a long CGM gap the single big-step advance
                     // is unreliable (manual boluses in the gap are on the field side
-                    // but not the candidate history ⇒ runaway asymmetry). Re-anchor
-                    // to the real CGM at gap-end. No-op at identity (aNext is what the
-                    // advance would produce when candidate==real).
+                    // but not the candidate history ⇒ runaway asymmetry). Take the
+                    // gap-END LEVEL from the real CGM (discarding the unreliable
+                    // big-step advance), but PRESERVE the candidate-vs-real divergence
+                    // accumulated BEFORE the gap. Snapping straight to `aNext` zeroed
+                    // that divergence in BOTH directions, so a candidate that
+                    // legitimately drove BG away from real (e.g. an aggressive oref on
+                    // a Loop dataset that over-doses a high) had its accumulated
+                    // insulin effect wiped at every gap → it saw a high counter and
+                    // re-dosed → runaway. Carrying the pre-gap offset fixes that while
+                    // still resyncing the absolute level + gap-interval non-insulin
+                    // physiology from real. Identity-safe: at candidate==real,
+                    // counterMgdl[prevIdx]==aPrev, so the offset is 0 (⇒ = aNext).
                     if cfGapReanchorSec > 0 && totalSec > cfGapReanchorSec {
-                        counterMgdl[advIdx] = aNext
+                        // Preserve only a SIGNIFICANT candidate-vs-real divergence; for
+                        // small offsets snap straight to real (the original behavior) so
+                        // the sub-step advance's tiny numerical drift (~1 mg/dL) can't
+                        // accumulate across gaps and degrade the identity. The threshold
+                        // sits well above that noise but far below any real over/under-
+                        // dose divergence (e.g. an over-dosing oref runs 80-90 mg/dL
+                        // below real before a gap).
+                        let gapOffset = counterMgdl[prevIdx] - aPrev
+                        counterMgdl[advIdx] = abs(gapOffset) > 10.0 ? aNext + gapOffset : aNext
                         advIdx += 1
                         continue
                     }
@@ -1795,6 +1812,10 @@ extension EvaluationEngine {
         doses: [EvalInsulinDose], start: Date, end: Date, stepSec: TimeInterval
     ) -> [Date: Double] {
         var result: [Date: Double] = [:]
+        // Guard against an empty/inverted window (e.g. a run shorter than
+        // warmup+burn-in makes cfActiveStart > interval.end): a negative stepCount
+        // traps `for i in 0..<stepCount`. Nothing to rasterize ⇒ empty map.
+        guard end > start else { return result }
         let stepCount = Int((end.timeIntervalSince(start) / stepSec).rounded(.up)) + 1
         // Initialize all step bins to 0
         for i in 0..<stepCount {
