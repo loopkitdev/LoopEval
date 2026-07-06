@@ -371,6 +371,13 @@ public struct EvalConfig: Codable, Sendable {
     /// the user's insulin (e.g. ~41–45 for Lyumjev/ultra-rapid). nil = oref
     /// default (rapid-acting → insulinFactor 55, peak 65).
     public var oapsInsulinPeakTime: Double?
+    /// PHYSICAL insulin-model override (experiment): replaces the counter/ICE
+    /// exponential model's PEAK (minutes) and DIA (hours) — the "true" insulin
+    /// physiology the whole sim decomposes against and advances the counter with.
+    /// Pair with the candidate's dosing peak for a self-consistent world (e.g.
+    /// "insulin really peaks at 90"). nil = therapy insulinType preset.
+    public var insulinPhysicalPeakMin: Double? = nil
+    public var insulinPhysicalDiaHours: Double? = nil
     /// oref DIA (hours) = `insulin_action_curve`, which oref uses as the insulin
     /// curve END time (profile.dia). The adapter otherwise hardcodes 6; set this
     /// to the user's profile DIA (e.g. 9) so the IOB tail length matches — a too-

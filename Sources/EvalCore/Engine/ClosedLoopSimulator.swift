@@ -180,7 +180,15 @@ extension EvaluationEngine {
             candidateEngine = LoopAdapter()
         }
         let mgdlUnit = LoopUnit.milligramsPerDeciliter
-        let insulinModel = data.therapyTimeline.insulinType.model
+        // Physical insulin model: therapy preset, unless a peak/DIA override is set
+        // (experiment — run the whole sim against a custom "true" insulin, e.g. peak 90).
+        let insulinModel: InsulinModel
+        if let pk = candidateConfig.insulinPhysicalPeakMin {
+            let diaSec = (candidateConfig.insulinPhysicalDiaHours ?? 6.0) * 3600.0
+            insulinModel = ExponentialInsulinModel(actionDuration: diaSec, peakActivityTime: pk * 60.0, delay: 600)
+        } else {
+            insulinModel = data.therapyTimeline.insulinType.model
+        }
         let activityDuration = insulinModel.effectDuration
 
         // SUBSTRATE: the actual-BG trace the whole sim runs on. When
