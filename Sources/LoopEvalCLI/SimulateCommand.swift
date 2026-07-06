@@ -382,6 +382,12 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "OpenAPS insulin curve PRESET, no custom peak ('ultra-rapid' | 'rapid-acting'). ultra-rapid = Lyumjev/Fiasp: IOB peak 55 AND dynISF insulinFactor 70 (decoupled). Use instead of --candidate-oaps-insulin-peak.")
     var candidateOapsCurve: String?
 
+    @Option(name: .long, help: "PHYSICAL insulin-model PEAK (min) override for the counter/ICE — the 'true' insulin physiology (e.g. 90). Pair with --candidate-oaps-insulin-peak for a self-consistent world. Omit = therapy insulinType preset.")
+    var insulinPhysicalPeak: Double?
+
+    @Option(name: .long, help: "PHYSICAL insulin-model DIA (hours) override (default 6). Used with --insulin-physical-peak.")
+    var insulinPhysicalDia: Double?
+
     @Option(name: .long, help: "OpenAPS max_iob (U) — the user's real safety cap. Not uploaded by Trio; set for faithful reproduction (else a non-binding maxBolus×10 fallback is used).")
     var candidateOapsMaxIob: Double?
 
@@ -556,6 +562,8 @@ struct SimulateCommand: AsyncParsableCommand {
         candidateConfig.oapsAutosensMin = candidateOapsAutosensMin
         candidateConfig.oapsInsulinPeakTime = candidateOapsInsulinPeak
         candidateConfig.oapsDia = candidateOapsDia
+        candidateConfig.insulinPhysicalPeakMin = insulinPhysicalPeak
+        candidateConfig.insulinPhysicalDiaHours = insulinPhysicalDia
         candidateConfig.oapsCurve = candidateOapsCurve
         candidateConfig.oapsMaxIob = candidateOapsMaxIob
         candidateConfig.oapsSmoothGlucose = candidateOapsSmoothGlucose
