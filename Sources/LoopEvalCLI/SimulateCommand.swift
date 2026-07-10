@@ -168,6 +168,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Per-step ISF multiplier CSV: (time, isf_multiplier) pairs. At each sim step, scales ISF by the value from the CSV nearest to step time (default 1.0 = no change). Use values >1 to make Loop see ISF as higher (less BG drop per U → recommends less dose, DAMP direction). Use <1 to make Loop see ISF as lower (more dose, BOOST direction). Steps with no matching CSV row are unchanged.")
     var candidateIsfCsv: String?
 
+    @Option(name: .long, help: "Per-step FORECAST OFFSET CSV: (time, offset_mgdl) pairs. At each sim step the candidate ADDS the matching offset (mg/dL) to Loop's predicted-glucose trajectory, so Loop pre-doses for anticipated (unannounced) carb pressure. The meal-anticipation predictor produces this; values should be pre-scaled conservatively. Steps with no matching row get 0. Forecast-side modifier (AGENTS.md §2).")
+    var candidateForecastOffsetCsv: String?
+
     @Option(name: .long, help: "Time-matching tolerance for --candidate-isf-csv (seconds, default 150 = ±2.5min)")
     var candidateIsfCsvToleranceSec: Double = 150.0
 
@@ -612,6 +615,21 @@ struct SimulateCommand: AsyncParsableCommand {
             isfMultMap = nil
         }
 
+        // Optional per-step forecast-offset CSV (time → mg/dL). Reuses the same
+        // (time, value) loader as the ISF CSV; values are BG offsets, not multipliers.
+        let forecastOffsetMap: [Date: Double]?
+        if let path = candidateForecastOffsetCsv {
+            forecastOffsetMap = try Self.loadIsfMultiplierCSV(
+                path: path,
+                stepSeconds: TimeInterval(stepMinutes) * 60
+            )
+            let vals = forecastOffsetMap.map { Array($0.values) } ?? []
+            let mean = vals.isEmpty ? 0 : vals.reduce(0, +) / Double(vals.count)
+            printStderr("Loaded forecast-offset CSV: \(forecastOffsetMap?.count ?? 0) per-step offsets; mean=\(String(format: "%.2f", mean)) mg/dL, max=\(String(format: "%.1f", vals.max() ?? 0))\n")
+        } else {
+            forecastOffsetMap = nil
+        }
+
         let outages: [Outage]
         if let csv = outagesCsv {
             outages = try OutageCSV.load(from: csv)
@@ -632,6 +650,7 @@ struct SimulateCommand: AsyncParsableCommand {
             baselineLabel: baselineLabel,
             candidateLabel: candidateLabel,
             isfMultiplierByStep: isfMultMap,
+            forecastOffsetByStep: forecastOffsetMap,
             isfBoostActiveOnly: candidateIsfBoostActiveOnly,
             egpPhysicalDecomposition: candidateEgpPhysical,
             isfBoostGateEventualMgdl: candidateIsfBoostGateEventual,
