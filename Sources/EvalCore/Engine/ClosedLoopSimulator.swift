@@ -91,6 +91,7 @@ extension EvaluationEngine {
         baselineLabel: String = "Baseline",
         candidateLabel: String = "Candidate",
         isfMultiplierByStep: [Date: Double]? = nil,
+        forecastOffsetByStep: [Date: Double]? = nil,
         isfBoostActiveOnly: Bool = false,
         egpPhysicalDecomposition: Bool = false,
         isfBoostGateEventualMgdl: Double? = nil,
@@ -786,6 +787,16 @@ extension EvaluationEngine {
                 // (where uniform GBAF causes lows). Forecast-side (§2). Causal: trailing
                 // ICE uses only past samples.
                 var iceRiseBoostOffset = 0.0
+                // ANTICIPATION forecast offset (per-step, from the meal-anticipation
+                // predictor CSV): a positive BG offset added to Loop's forecast so it
+                // pre-doses for predicted-but-unannounced carb pressure. Forecast-side
+                // (§2). Values already scaled conservatively by the CSV producer.
+                let anticipationOffset: Double = {
+                    guard let om = forecastOffsetByStep, !om.isEmpty else { return 0.0 }
+                    let r = Date(timeIntervalSince1970:
+                        (t.timeIntervalSince1970 / candidateConfig.evalStep).rounded() * candidateConfig.evalStep)
+                    return om[r] ?? 0.0
+                }()
                 // ISF-fade: scale the boost gain by aggressiveness so the high-attack
                 // auto-disables (→ pure smairc) as the lows budget tightens (ISF rises).
                 var iceRiseBoostGainEff = candidateConfig.iceRiseBoostGain
@@ -837,7 +848,7 @@ extension EvaluationEngine {
                         therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
                         glucoseSamples: candMomentumSamples,
                         extraISFMultiplier: sensModeMult,
-                        forecastOffsetMgdl: iceRiseBoostOffset,
+                        forecastOffsetMgdl: iceRiseBoostOffset + anticipationOffset,
                         perStepIsfMultByTime: map,
                         isfBoostActiveOnly: isfBoostActiveOnly,
                         egpPhysicalDecomposition: egpPhysicalDecomposition,
