@@ -31,7 +31,8 @@ Date = class extends RealDate {
 };
 
 const fs = require('fs');
-const L = (process.env.TRIO_OREF_LIB || '/Users/pete/dev/Trio/trio-oref/lib') + '/';
+// Point TRIO_OREF_LIB at the lib/ dir of a trio-oref checkout.
+const L = (process.env.TRIO_OREF_LIB || './trio-oref/lib') + '/';
 const makeProfile = require(L + 'profile/index'), mealGen = require(L + 'meal/index');
 const autosens = require(L + 'determine-basal/autosens'), iobGen = require(L + 'iob/index');
 const determine = require(L + 'determine-basal/determine-basal'), basalSetTemp = require(L + 'basal-set-temp');

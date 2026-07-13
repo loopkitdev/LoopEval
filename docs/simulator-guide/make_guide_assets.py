@@ -1,10 +1,15 @@
 """Generate explanatory graphs for the simulator guide (real user1 data)."""
 import sys, json
-sys.path.insert(0,'/Users/pete/dev/loopalgo/analysis')
+import os
+from pathlib import Path
+_REPO = Path(__file__).resolve().parents[2]  # LoopEval repo root
+sys.path.insert(0, str(_REPO / 'analysis'))
 import numpy as np, pandas as pd, pytz
 import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
 from loopeval_analysis.iob import RAPID_ACTING_ADULT, percent_effect_remaining
-G='/Users/pete/dev/loopalgo/LoopEval/docs/simulator-guide'; A='/Users/pete/dev/loopalgo/runs/2026-05-25-appfactor'
+G=str(Path(__file__).resolve().parent)
+# A: directory of simulate traces used as illustration inputs (any run dir works)
+A=os.environ.get('GUIDE_ASSETS_RUN', str(_REPO / 'runs/guide-assets'))
 tz=pytz.timezone('America/Chicago')
 plt.rcParams.update({'figure.dpi':120,'font.size':10,'axes.grid':True,'grid.alpha':0.3})
 

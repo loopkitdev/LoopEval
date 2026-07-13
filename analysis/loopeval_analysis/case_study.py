@@ -362,12 +362,12 @@ def load_carbs_in_window(win_start: pd.Timestamp,
     """Read the locally-cached Nightscout carb entries that fall in [start, end]."""
     import glob, os
     files = sorted(
-        glob.glob("/Users/pete/.loop-eval/cache/carbs_v2_*.json"),
+        glob.glob(os.path.expanduser("~/.loop-eval/cache/carbs_v2_*.json")),
         key=os.path.getsize, reverse=True,
     )
     if not files:
         files = sorted(
-            glob.glob("/Users/pete/.loop-eval/cache/carbs_*.json"),
+            glob.glob(os.path.expanduser("~/.loop-eval/cache/carbs_*.json")),
             key=os.path.getsize, reverse=True,
         )
     if not files:

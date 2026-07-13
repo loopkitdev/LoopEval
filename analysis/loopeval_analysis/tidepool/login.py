@@ -2,7 +2,7 @@
 
 Run this ONCE, interactively (a browser window opens to authenticate):
 
-    cd /Users/pete/dev/loopalgo/analysis
+    cd LoopEval/analysis
     python3 -m loopeval_analysis.tidepool.login
 
 It caches the OAuth token (refresh-token-backed, in ~/.databricks/token-cache.json),

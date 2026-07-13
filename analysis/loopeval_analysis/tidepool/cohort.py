@@ -10,8 +10,11 @@ import os, sys, json, subprocess
 import numpy as np, pandas as pd
 from loopeval_analysis.tidepool.etl import export_donor
 
-BIN = "/Users/pete/dev/loopalgo/LoopEval/.build/release/loop-eval"
-BASE = "/Users/pete/dev/loopalgo/runs/2026-06-15-tidepool/cohort"
+import os
+from pathlib import Path
+_REPO = Path(__file__).resolve().parents[3]  # LoopEval repo root
+BIN = os.environ.get("LOOP_EVAL_BIN", str(_REPO / ".build/release/loop-eval"))
+BASE = os.environ.get("COHORT_BASE", str(_REPO / "runs/tidepool-cohort"))
 
 def _score(trace):
     t = json.load(open(trace))

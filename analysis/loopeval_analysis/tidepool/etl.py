@@ -15,7 +15,7 @@ Tidepool quirks handled:
 
 Usage:
     from loopeval_analysis.tidepool.etl import export_donor
-    export_donor("d6954e6498", "2026-02-01", "2026-04-01", "/Users/pete/dev/loopalgo/runs/2026-06-15-tidepool/d6954e6498")
+    export_donor("d6954e6498", "2026-02-01", "2026-04-01", "runs/tidepool/DONOR_ID")
 """
 import json, os
 from datetime import datetime, timezone, timedelta
