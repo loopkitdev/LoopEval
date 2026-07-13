@@ -71,6 +71,37 @@ Deep background on the simulator itself (substrate, counterfactual physiology, f
 model, disruption handling): [docs/simulator-guide/index.html](docs/simulator-guide/index.html).
 LLM agents picking up the project should start with [AGENTS.md](AGENTS.md).
 
+## Adding a Nightscout site
+
+There is no registration step — a site is just a URL passed to the CLI (data is cached
+in `~/.loop-eval/cache/` after the first fetch):
+
+```bash
+NS=https://my-site.example.com          # keep this in a local, untracked file
+TOK=my-access-token                     # only if the site requires ?token= auth
+
+# 1. Smoke test / warm the cache (run ONE window serially before any parallel
+#    sweeps — small Nightscout hosts can 500 on parallel cold fetches)
+.build/release/loop-eval simulate --nightscout-url $NS --token $TOK \
+    --start 2026-06-01 --end 2026-06-08 \
+    --candidate-counterfactual --candidate-label smoke --trace-out smoke.json
+```
+
+Then, before trusting any outcome numbers from the site:
+
+2. **Match the deployed configuration** — insulin model (`--insulin-type`; verify IOB
+   against devicestatus), retrospective-correction mode (`--integral-rc` for IRC
+   periods), deployed-Loop emulation flags, Temporary Overrides, and edited carb
+   entries. See [docs/FRONTIERS.md §2](docs/FRONTIERS.md).
+3. **Generate the per-site disruption overlays** (pump outages, CGM gaps) and, where
+   applicable, carb-revision / override overlays. See [docs/FRONTIERS.md §1](docs/FRONTIERS.md).
+4. **Validate**: a stock ISF sweep's TIR-vs-t<54 curve should pass through the site's
+   real deployment point. If it doesn't, the config in step 2 is wrong — fix that
+   before evaluating candidates.
+
+**Privacy**: Nightscout data is a real person's medical data. Keep URLs and tokens out
+of the repo, reports, and issue trackers; refer to datasets by an anonymous alias.
+
 ## Usage
 
 ### Evaluate a date range
