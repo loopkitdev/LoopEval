@@ -74,6 +74,10 @@ class SimTrace:
     interval_end: pd.Timestamp
     closed_loop: bool = True
     tz: pytz.BaseTzInfo = field(default_factory=lambda: TZ_DEFAULT)
+    #: Canonical actual-delivery stream (from the trace's `delivery` array).
+    #: Columns: t (index), tEnd, source {field,candidate}, kind {basal,bolus},
+    #: automatic (bool), amountU, rateUhr. Empty for pre-delivery-stream traces.
+    delivery: pd.DataFrame = field(default_factory=pd.DataFrame)
 
     @property
     def burnin_end(self) -> pd.Timestamp:
@@ -108,6 +112,13 @@ def load_trace(path: str | Path, label: Optional[str] = None,
     preds["t"] = pd.to_datetime(preds["t"]).dt.tz_convert(tz)
     preds = preds.set_index("t").sort_index()
 
+    delivery = pd.DataFrame(j.get("delivery", []))
+    if len(delivery):
+        delivery["t"] = pd.to_datetime(delivery["t"]).dt.tz_convert(tz)
+        if "tEnd" in delivery:
+            delivery["tEnd"] = pd.to_datetime(delivery["tEnd"]).dt.tz_convert(tz)
+        delivery = delivery.set_index("t").sort_index()
+
     return SimTrace(
         path=p,
         label=label or j.get("candidateLabel") or p.stem,
@@ -119,6 +130,7 @@ def load_trace(path: str | Path, label: Optional[str] = None,
         interval_end=pd.to_datetime(j["intervalEnd"]).tz_convert(tz),
         closed_loop=bool(j.get("closedLoop", True)),
         tz=tz,
+        delivery=delivery,
     )
 
 
@@ -298,6 +310,52 @@ def fetch_devicestatus_iob(host: str, win_start: pd.Timestamp,
     return s[~s.index.duplicated(keep="last")]
 
 
+def fetch_devicestatus_state(host: str, win_start: pd.Timestamp,
+                             win_end: pd.Timestamp,
+                             tz: pytz.BaseTzInfo = TZ_DEFAULT) -> pd.DataFrame:
+    """Deployed-Loop GROUND TRUTH from Nightscout devicestatus over a window:
+    columns ``iob`` (U), ``cob`` (g), ``eventualBG`` (mg/dL, last value of the
+    uploaded predicted-glucose curve). These are the values the deployed Loop
+    actually recorded (post-dose review snapshot) — the reference our baseline*
+    reconstruction should be checked against. Empty frame on network failure.
+    """
+    if not host.startswith("http"):
+        host = "https://" + host
+    url = host.rstrip("/") + "/api/v1/devicestatus.json?" + urllib.parse.urlencode({
+        "find[created_at][$gte]": win_start.tz_convert("UTC").isoformat().replace("+00:00", ".000Z"),
+        "find[created_at][$lt]":  win_end.tz_convert("UTC").isoformat().replace("+00:00", ".000Z"),
+        "count": 800,
+    })
+    try:
+        ds = json.loads(urllib.request.urlopen(url, timeout=20).read())
+    except Exception as exc:  # noqa: BLE001
+        print(f"  [devicestatus] fetch failed: {exc}", file=sys.stderr)
+        return pd.DataFrame(columns=["iob", "cob", "eventualBG"])
+    rows = []
+    for d in ds:
+        loop_obj = d.get("loop")
+        if not isinstance(loop_obj, dict):
+            continue
+        def _scalar(obj):
+            return obj.get(k) if isinstance(obj, dict) else obj
+        iob_obj = loop_obj.get("iob"); k = "iob"
+        iob = _scalar(iob_obj)
+        cob_obj = loop_obj.get("cob"); k = "cob"
+        cob = _scalar(cob_obj)
+        ebg = None
+        pred = loop_obj.get("predicted")
+        if isinstance(pred, dict):
+            vals = pred.get("values")
+            if isinstance(vals, list) and vals:
+                ebg = vals[-1]
+        ts = pd.to_datetime(d["created_at"]).tz_convert(tz)
+        rows.append((ts, iob, cob, ebg))
+    if not rows:
+        return pd.DataFrame(columns=["iob", "cob", "eventualBG"])
+    df = pd.DataFrame(rows, columns=["t", "iob", "cob", "eventualBG"]).set_index("t").sort_index()
+    return df[~df.index.duplicated(keep="last")].astype(float)
+
+
 def load_carbs_in_window(win_start: pd.Timestamp,
                          win_end: pd.Timestamp,
                          tz: pytz.BaseTzInfo = TZ_DEFAULT) -> pd.DataFrame:
@@ -449,6 +507,54 @@ def panel_predictions_field(field: str, label: Optional[str] = None,
     return _impl
 
 
+def panel_field_vs_candidate(cand_col: str, field_col: Optional[str], label: str,
+                             unit: str = "", fill: bool = False,
+                             ground_truth: Optional[pd.Series] = None) -> ExtraPanel:
+    """Extra panel overlaying a Loop internal-state column, field vs candidate.
+
+    ``field_col`` is the BASELINE column — OUR algorithm (the sim's baseline
+    arm) recomputed on the REAL glucose/doses/carbs. It is NOT the deployed
+    Loop's recorded value; label it as a reconstruction, not "field". ``cand_col``
+    is the candidate column. Baseline drawn once in black; each candidate in its
+    trace color. ``fill=True`` shades non-negative quantities (e.g. COB) to zero.
+    """
+    def _impl(ax, traces, win_start, win_end, t_center) -> Optional[str]:
+        plotted = False
+        if field_col:
+            t0 = traces[0].predictions
+            fw = t0.loc[(t0.index >= win_start) & (t0.index <= win_end)]
+            if field_col in fw and fw[field_col].notna().any():
+                ax.plot(fw.index, fw[field_col].values, "-", color="black", lw=1.6,
+                        alpha=0.6, label=f"sim-Loop·real-inputs {label} (recon)")
+                if fill:
+                    ax.fill_between(fw.index, 0, fw[field_col].values, color="black", alpha=0.06)
+                plotted = True
+        for tr in traces:
+            pw = tr.predictions.loc[(tr.predictions.index >= win_start) & (tr.predictions.index <= win_end)]
+            if cand_col not in pw or not pw[cand_col].notna().any():
+                continue
+            ax.plot(pw.index, pw[cand_col].values, "-", color=tr.color, lw=1.5,
+                    alpha=0.8, label=f"{tr.label} {label}")
+            if fill:
+                ax.fill_between(pw.index, 0, pw[cand_col].values, color=tr.color, alpha=0.08)
+            plotted = True
+        # deployed-Loop ground truth (devicestatus), where it exists — grey dotted.
+        if ground_truth is not None and len(ground_truth):
+            gw = ground_truth.loc[(ground_truth.index >= win_start) & (ground_truth.index <= win_end)].dropna()
+            if len(gw):
+                ax.plot(gw.index, gw.values, ":", color="grey", lw=1.2, alpha=0.8,
+                        label=f"field {label} (devicestatus)")
+                plotted = True
+        if not plotted:
+            return None
+        ax.axhline(0, color="grey", lw=0.5)
+        ax.axvline(t_center, ls=":", color="purple", alpha=0.5)
+        ax.legend(loc="upper right", fontsize=8)
+        ax.grid(True, alpha=0.3)
+        return f"{label} ({unit})" if unit else label
+    return _impl
+
+
 def panel_oracle_components(csv_path: str | Path,
                             time_col: str = "time",
                             v_insulin_col: str = "v_insulin",
@@ -586,6 +692,93 @@ def panel_signal_csv(csv_path: str | Path,
     return _impl
 
 
+def _draw_delivery_panel(ax, traces: Sequence[SimTrace],
+                         win_start: pd.Timestamp, win_end: pd.Timestamp) -> None:
+    """Standard delivery rendering from the canonical `delivery` stream.
+
+    ONE shared numeric axis (basal rate U/hr and boluses U live on the same
+    scale — different units but comparable magnitude). Basal is drawn as a
+    staircase: horizontal at each rate with a vertical connector at every rate
+    change (a real gap in the stream breaks the line rather than bridging).
+    Boluses are stems: ``o`` filled = automatic, ``D`` hollow = manual. Field
+    (real pump, black) and each candidate (trace color) are semi-transparent so
+    they read where they overlap — which is most of the time.
+    """
+    import numpy as np
+    import matplotlib.lines as mlines
+
+    def draw_basal(d, color, alpha):
+        b = d[d["kind"] == "basal"].sort_index()
+        if not len(b):
+            return
+        xs: list = []
+        ys: list = []
+        prev_end = None
+        for t0, r in b.iterrows():
+            te = r["tEnd"] if pd.notna(r["tEnd"]) else t0
+            if te < win_start or t0 > win_end:
+                continue
+            # break the line at a real gap (non-contiguous spans), so we don't
+            # bridge across scheduled-basal stretches not present in the stream.
+            if prev_end is not None and (t0 - prev_end) > pd.Timedelta(minutes=1):
+                xs.append(prev_end); ys.append(np.nan)
+            xs.append(max(t0, win_start)); ys.append(r["rateUhr"])
+            xs.append(min(te, win_end)); ys.append(r["rateUhr"])
+            prev_end = te
+        # consecutive (end_i, rate_i) -> (start_{i+1}, rate_{i+1}) at the same x
+        # renders the vertical connector at each inflection point automatically.
+        ax.plot(xs, ys, "-", color=color, lw=1.5, alpha=alpha, solid_capstyle="butt")
+
+    def draw_bolus(d, color, alpha):
+        b = d[(d["kind"] == "bolus") & (d.index >= win_start) & (d.index <= win_end)]
+        for auto, marker, fill in [(True, "o", True), (False, "D", False)]:
+            s = b[(b["automatic"] == auto) & (b["amountU"] > 0)]
+            if not len(s):
+                continue
+            ax.vlines(s.index, 0, s["amountU"], color=color, lw=1.2, alpha=alpha)
+            ax.scatter(s.index, s["amountU"], marker=marker, s=42, zorder=5,
+                       alpha=min(1.0, alpha + 0.2),
+                       facecolors=(color if fill else "none"), edgecolors=color, linewidths=1.4)
+
+    # Field: same real pump across traces — draw once from the first that has it.
+    field_src = next((tr.delivery for tr in traces if len(tr.delivery)
+                      and (tr.delivery["source"] == "field").any()), None)
+    if field_src is not None:
+        fd = field_src[field_src["source"] == "field"]
+        draw_basal(fd, "black", 0.55)
+        draw_bolus(fd, "black", 0.55)
+    for tr in traces:
+        if not len(tr.delivery):
+            continue
+        cd = tr.delivery[tr.delivery["source"] == "candidate"]
+        draw_basal(cd, tr.color, 0.6)
+        draw_bolus(cd, tr.color, 0.6)
+
+    ax.set_ylabel("basal (U/hr) · bolus (U)")
+    # Lift 0 off the bottom spine so a suspend (basal == 0) line is visible and
+    # doesn't merge with the axis; faint reference at 0.
+    top = max(ax.get_ylim()[1], 0.5)
+    ax.set_ylim(bottom=-0.04 * top, top=top)
+    ax.axhline(0, color="grey", lw=0.6, alpha=0.5, zorder=1)
+    # Legend: sources (color) + basal/bolus + auto/manual glyphs.
+    handles = [mlines.Line2D([], [], color="black", lw=1.5, alpha=0.7, label="field basal (real pump)"),
+               mlines.Line2D([], [], color="black", marker="o", ls="none", label="field bolus — auto"),
+               mlines.Line2D([], [], color="black", marker="D", markerfacecolor="none", ls="none",
+                             label="field bolus — manual")]
+    for tr in traces:
+        if not len(tr.delivery):
+            continue
+        cb = tr.delivery[tr.delivery["source"] == "candidate"]
+        handles.append(mlines.Line2D([], [], color=tr.color, lw=1.5, alpha=0.75,
+                                     label=f"{tr.label} basal"))
+        handles.append(mlines.Line2D([], [], color=tr.color, marker="o", ls="none",
+                                     label=f"{tr.label} bolus (auto)"))
+        if ((cb["kind"] == "bolus") & (~cb["automatic"]) & (cb["amountU"] > 0)).any():
+            handles.append(mlines.Line2D([], [], color=tr.color, marker="D", markerfacecolor="none",
+                                         ls="none", label=f"{tr.label} bolus (manual, resized)"))
+    ax.legend(handles=handles, loc="upper left", fontsize=8, ncol=2)
+
+
 def plot_case(traces: Sequence[SimTrace],
               t_center: pd.Timestamp,
               window_hours: float = 12.0,
@@ -628,7 +821,7 @@ def plot_case(traces: Sequence[SimTrace],
         t_center = t_center.tz_convert(tz)
     win_start, win_end = _resolve_window(t_center, window_hours, tz)
 
-    # Heuristic: pick host from a trace label if not given (e.g., "rloop ...")
+    # Heuristic: pick host from a trace label if not given (e.g., "user1 ...")
     host = nightscout_host or "https://your-ns.example.com"
     # Resolve cache hostname from the URL
     cache_host = host.replace("https://", "").replace("http://", "").rstrip("/")
@@ -737,41 +930,67 @@ def plot_case(traces: Sequence[SimTrace],
         title = f"Case study around {t_center.strftime('%Y-%m-%d %H:%M %Z')}"
     ax.set_title(title)
 
-    # ---- Panel 1: Dose --------------------------------------------------------
+    # ---- Panel 1: Delivery (canonical stream) --------------------------------
+    # Basal = rate segments (U/hr, left axis); boluses = stems (U, right axis),
+    # auto = filled marker, manual = hollow marker. Field (real pump) + each
+    # candidate. Reads the trace `delivery` stream — never `baselineDose` (which
+    # is a decision-time recommendation, not delivery).
     ax = axes[1]
     _shade(ax)
-    bar_width = pd.Timedelta(minutes=1.5).to_pytimedelta()
-    n = len(traces) + 1   # +1 for real pump
-    # Slot offsets so bars don't overlap visually
-    offsets = [pd.Timedelta(minutes=(k - (n - 1) / 2.0) * 0.9) for k in range(n)]
-    ax.bar(step_index + offsets[0], real_step.values, width=bar_width,
-           color="black", alpha=0.7, label="real auto pump (U/5min)")
-    for k, tr in enumerate(traces, start=1):
-        pw = tr.predictions.loc[(tr.predictions.index >= win_start) & (tr.predictions.index <= win_end)]
-        sim_abs = sched.reindex(pw.index).values + pw["candidateDose"].values
-        ax.bar(pw.index + offsets[k], sim_abs, width=bar_width,
-               color=tr.color, alpha=0.7, label=f"{tr.label}")
+    have_delivery = any(len(tr.delivery) for tr in traces)
+    if have_delivery:
+        _draw_delivery_panel(ax, traces, win_start, win_end)
+    else:
+        # Legacy fallback: reconstruct absolute delivery from caches (old traces).
+        bar_width = pd.Timedelta(minutes=1.5).to_pytimedelta()
+        ax.bar(step_index, real_step.values, width=bar_width, color="black",
+               alpha=0.7, label="real auto pump (U/5min)")
+        for tr in traces:
+            pw = tr.predictions.loc[(tr.predictions.index >= win_start) & (tr.predictions.index <= win_end)]
+            sim_abs = sched.reindex(pw.index).values + pw["candidateDose"].values
+            ax.bar(pw.index, sim_abs, width=bar_width, color=tr.color, alpha=0.6, label=tr.label)
+        ax.set_ylabel("Insulin delivered (U / 5min)")
+        ax.legend(loc="upper left", fontsize=9)
     ax.axhline(0, color="grey", lw=0.5)
     ax.axvline(t_center, ls=":", color="purple", alpha=0.5)
-    ax.set_ylabel("Insulin delivered (U / 5min)")
-    ax.legend(loc="upper left", fontsize=9)
     ax.grid(True, alpha=0.3)
 
-    # ---- Panel 2: IOB ---------------------------------------------------------
+    # ---- Panel 2: PATIENT IOB -------------------------------------------------
+    # Independent, apples-to-apples IOB: field dosing and candidate dosing each
+    # run through the SAME patient insulin model (trace `patientIOBField` /
+    # `patientIOBCandidate`). NOT the NS devicestatus IOB (post-dose timing) and
+    # NOT the candidate algorithm's own IOB (which may have method changes). The
+    # devicestatus series is drawn faint as an external reference only. Falls back
+    # to baselineIOB/candidateIOB, then cache, for traces predating patient IOB.
     ax = axes[2]
     _shade(ax)
-    ax.plot(real_iob_computed.index, real_iob_computed.values, "-",
-            color="black", lw=1.8, label="real IOB (computed)")
+    p0 = traces[0].predictions
+    fw = p0.loc[(p0.index >= win_start) & (p0.index <= win_end)]
+    if "patientIOBField" in fw and fw["patientIOBField"].notna().any():
+        ax.plot(fw.index, fw["patientIOBField"].values, "-", color="black", lw=1.8,
+                label="patient IOB — field dosing")
+    elif "baselineIOB" in fw and fw["baselineIOB"].notna().any():
+        ax.plot(fw.index, fw["baselineIOB"].values, "-", color="black", lw=1.8,
+                label="field IOB (algo)")
+    else:
+        ax.plot(real_iob_computed.index, real_iob_computed.values, "-",
+                color="black", lw=1.8, label="real IOB (computed, cache)")
     if len(devicestatus_iob) > 0:
         ax.plot(devicestatus_iob.index, devicestatus_iob.values, ":",
-                color="grey", lw=1, alpha=0.7, label="real IOB (devicestatus)")
+                color="grey", lw=1, alpha=0.6, label="field IOB (devicestatus ref)")
     for tr in traces:
-        pw = tr.predictions.loc[
-            (tr.predictions.index >= iob_lookback_start) & (tr.predictions.index <= win_end)
-        ]
-        sim_iob = _build_sim_iob(pw, iob_grid, therapy_path, manual_in_window)
-        ax.plot(sim_iob.index, sim_iob.values, "-", color=tr.color, lw=1.6,
-                label=f"sim IOB — {tr.label}")
+        pw = tr.predictions.loc[(tr.predictions.index >= win_start) & (tr.predictions.index <= win_end)]
+        if "patientIOBCandidate" in pw and pw["patientIOBCandidate"].notna().any():
+            ax.plot(pw.index, pw["patientIOBCandidate"].values, "-", color=tr.color, lw=1.6,
+                    label=f"patient IOB — {tr.label} dosing")
+        elif "candidateIOB" in pw and pw["candidateIOB"].notna().any():
+            ax.plot(pw.index, pw["candidateIOB"].values, "-", color=tr.color, lw=1.6,
+                    label=f"sim IOB (algo) — {tr.label}")
+        else:
+            pw2 = tr.predictions.loc[(tr.predictions.index >= iob_lookback_start) & (tr.predictions.index <= win_end)]
+            sim_iob = _build_sim_iob(pw2, iob_grid, therapy_path, manual_in_window)
+            ax.plot(sim_iob.index, sim_iob.values, "-", color=tr.color, lw=1.6,
+                    label=f"sim IOB — {tr.label}")
     ax.axhline(0, color="grey", lw=0.5, alpha=0.4)
     for ts, mb in manual_in_window.iterrows():
         ax.axvline(ts, color="blue", alpha=0.2, lw=0.7)

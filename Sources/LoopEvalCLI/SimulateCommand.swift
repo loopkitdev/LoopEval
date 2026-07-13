@@ -730,11 +730,34 @@ struct SimulateCommand: AsyncParsableCommand {
             let candidateDiscrepancy: Double    // ICE − carbEffect = RC-bound remainder (mg/dL)
             let candidateSensModeMult: Double   // Sensitive Mode ISF multiplier (1.0 = inactive)
             let candidateManualBolusRecOut: Double // candidate recommended MANUAL bolus this step (pre-factor full correction)
+            // PATIENT IOB — field dosing and candidate dosing through the SAME patient
+            // insulin model (net-basal, scheduled-gap-filled). Independent of NS
+            // devicestatus timing and of any candidate IOB-method changes. Use these
+            // as the fair field-vs-candidate IOB comparison.
+            let patientIOBField: Double
+            let patientIOBCandidate: Double
             let baselinePredCurve: [Double]?       // full baseline forecast curve (mg/dL, 5-min spaced from t); nil unless --export-forecast-curve
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
         struct CounterSample: Codable { let t: String; let bg: Double }
         struct CurvePoint: Codable { let tMin: Double; let percentRemaining: Double; let percentDelivered: Double }
+        // Canonical insulin-delivery stream — uniform for both arms so a renderer
+        // can plot ACTUAL delivery (basal rate + boluses, auto vs manual) without
+        // reconstructing it from caches. `source` = "field" (real pump history) or
+        // "candidate" (what the candidate controller delivered). `kind` = "basal"
+        // or "bolus". For basal, `rateUhr` is the delivered rate and `amountU` the
+        // units over [t, tEnd]; for bolus, `amountU` is the bolus and `rateUhr` nil.
+        // NOTE: `Pred.baselineDose` is a decision-time RECOMMENDATION, NOT delivery —
+        // use this stream (source=="field") for what the pump actually delivered.
+        struct DeliveryRecord: Codable {
+            let t: String
+            let tEnd: String?
+            let source: String
+            let kind: String
+            let automatic: Bool
+            let amountU: Double
+            let rateUhr: Double?
+        }
         struct Trace: Codable {
             let baselineLabel: String
             let candidateLabel: String
@@ -744,6 +767,7 @@ struct SimulateCommand: AsyncParsableCommand {
             let predictions: [Pred]
             let actual: [ActualSample]
             let counter: [CounterSample]   // closed-loop trajectory (NEW)
+            let delivery: [DeliveryRecord] // canonical actual-delivery stream (NEW)
             let insulinActivityCurve: [CurvePoint]
             let closedLoop: Bool
         }
@@ -777,6 +801,8 @@ struct SimulateCommand: AsyncParsableCommand {
                  candidateDiscrepancy: $0.candidateDiscrepancy.isFinite ? $0.candidateDiscrepancy : 0.0,
                  candidateSensModeMult: $0.candidateSensModeMult.isFinite ? $0.candidateSensModeMult : 1.0,
                  candidateManualBolusRecOut: $0.candidateManualBolusRecOut.isFinite ? $0.candidateManualBolusRecOut : 0.0,
+                 patientIOBField: $0.patientIOBField.isFinite ? $0.patientIOBField : 0.0,
+                 patientIOBCandidate: $0.patientIOBCandidate.isFinite ? $0.patientIOBCandidate : 0.0,
                  baselinePredCurve: $0.baselinePredCurve.isEmpty ? nil : $0.baselinePredCurve)
         }
         let actualOut = data.glucose.sorted { $0.startDate < $1.startDate }.map {
@@ -796,6 +822,82 @@ struct SimulateCommand: AsyncParsableCommand {
             τ += 5 * 60
         }
 
+        // ---- Canonical delivery stream (both arms, uniform schema) -------------
+        var delivery: [DeliveryRecord] = []
+        // FIELD: the real pump history that actually fed the field IOB.
+        let dLo = simResult.intervalStart.addingTimeInterval(-6 * 3600)
+        // Boluses: raw pump events (preserve the real automatic/manual flag).
+        for d in data.doses
+        where d.deliveryType == .bolus && d.startDate >= dLo && d.startDate <= simResult.intervalEnd {
+            delivery.append(DeliveryRecord(
+                t: formatter.string(from: d.startDate),
+                tEnd: formatter.string(from: d.endDate),
+                source: "field", kind: "bolus", automatic: d.automatic,
+                amountU: d.volume, rateUhr: nil))
+        }
+        // Basal: the CONTINUOUS delivered rate — temp basal where a temp is active,
+        // scheduled basal otherwise — via gap-filled annotation, so the field basal
+        // staircase has no holes (raw dose entries only record temps, not the
+        // scheduled basal that runs between them).
+        let fieldBasalAnnotated = data.doses.annotated(with: data.therapyTimeline.basal, fillBasalGaps: true)
+        for d in fieldBasalAnnotated {
+            guard case .basal = d.type,
+                  d.endDate > dLo, d.startDate <= simResult.intervalEnd else { continue }
+            // Skip sub-minute segments: consecutive real temps have ~1-second
+            // timestamp gaps, and gap-filling inserts a 1-second scheduled-basal
+            // slice there — a spurious rate spike. Real basal segments are minutes.
+            guard d.endDate.timeIntervalSince(d.startDate) >= 60 else { continue }
+            let hours = max(d.endDate.timeIntervalSince(d.startDate), 0) / 3600.0
+            let rate = hours > 0 ? d.volume / hours : 0.0
+            delivery.append(DeliveryRecord(
+                t: formatter.string(from: d.startDate),
+                tEnd: formatter.string(from: d.endDate),
+                source: "field", kind: "basal", automatic: true,
+                amountU: d.volume, rateUhr: rate))
+        }
+        // CANDIDATE: what the candidate controller delivered each step — the temp
+        // basal it set (rate) plus any auto-bolus. Emitted per 5-min step. In CF
+        // mode all candidate delivery is automatic. Basal records are run-length
+        // compacted (one span per unchanged rate) to keep the trace small.
+        let stepDur: TimeInterval = 5 * 60
+        var runStart: Date? = nil
+        var runRate = Double.nan
+        func flushBasalRun(endingAt end: Date) {
+            guard let s = runStart, runRate.isFinite else { return }
+            let hours = max(end.timeIntervalSince(s), 0) / 3600.0
+            delivery.append(DeliveryRecord(
+                t: formatter.string(from: s), tEnd: formatter.string(from: end),
+                source: "candidate", kind: "basal", automatic: true,
+                amountU: runRate * hours, rateUhr: runRate))
+        }
+        for step in simResult.steps {
+            let r = step.candidateTempRate
+            if !(r.isFinite && r == runRate) {
+                flushBasalRun(endingAt: step.t)
+                runStart = r.isFinite ? step.t : nil
+                runRate = r
+            }
+            if step.candidateBolus > 0 {
+                delivery.append(DeliveryRecord(
+                    t: formatter.string(from: step.t), tEnd: nil,
+                    source: "candidate", kind: "bolus", automatic: true,
+                    amountU: step.candidateBolus, rateUhr: nil))
+            }
+        }
+        if let last = simResult.steps.last { flushBasalRun(endingAt: last.t.addingTimeInterval(stepDur)) }
+        // Candidate MANUAL boluses: the user's manual boluses are passed through
+        // (and possibly resized) into the candidate's actual delivery. They live
+        // in counterfactualDoses (automatic == false), NOT in candidateBolus
+        // (auto-only). Emit them so the candidate stream is complete.
+        for d in simResult.counterfactualDoses
+        where d.deliveryType == .bolus && !d.automatic
+              && d.startDate >= dLo && d.startDate <= simResult.intervalEnd {
+            delivery.append(DeliveryRecord(
+                t: formatter.string(from: d.startDate), tEnd: nil,
+                source: "candidate", kind: "bolus", automatic: false,
+                amountU: d.volume, rateUhr: nil))
+        }
+
         let trace = Trace(
             baselineLabel: simResult.baselineLabel,
             candidateLabel: simResult.candidateLabel,
@@ -805,6 +907,7 @@ struct SimulateCommand: AsyncParsableCommand {
             predictions: preds,
             actual: actualOut,
             counter: counterOut,
+            delivery: delivery,
             insulinActivityCurve: curve,
             closedLoop: true
         )
