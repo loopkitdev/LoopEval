@@ -3,7 +3,7 @@
 // The simulator delegates each per-step "what should the algorithm do here?"
 // decision to a `DosingEngine`. Today the only adapter is `LoopAdapter`
 // (Loop Algorithm via the local LoopAlgorithm package). Hosting the
-// OpenAPSSwift fork (sibling Swift package at ../OpenAPSSwift) is the next
+// OpenAPSSwift fork (git submodule at ./OpenAPSSwift) is the next
 // adapter — see `runs/2026-06-04-openapsswift-host/` for scope notes.
 //
 // The protocol is intentionally narrow: a single `step(_:)` call with the

@@ -1,7 +1,7 @@
 """loopeval_analysis — reusable Python primitives for digging into LoopEval datasets.
 
 Everything in here takes paths/options as arguments. No hardcoded hosts, no
-hardcoded windows. Specific analyses live in /Users/pete/dev/loopalgo/runs/
+hardcoded windows. Specific analyses live in per-experiment runs/ directories
 and call into this package.
 """
 
