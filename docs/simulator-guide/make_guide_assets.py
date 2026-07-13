@@ -1,4 +1,4 @@
-"""Generate explanatory graphs for the simulator guide (real rloop data)."""
+"""Generate explanatory graphs for the simulator guide (real user1 data)."""
 import sys, json
 sys.path.insert(0,'/Users/pete/dev/loopalgo/analysis')
 import numpy as np, pandas as pd, pytz
@@ -20,7 +20,7 @@ ax.set_xlabel('hours since dose'); ax.set_ylabel('IOB fraction',color='#1565c0')
 ax.set_title('Insulin pharmacodynamics — RAPID_ACTING_ADULT (DIA 6h, peak 75 min, 10 min delay)')
 ax.set_xlim(0,6.2); fig.tight_layout(); fig.savefig(G+'/pd_curve.png',bbox_inches='tight'); plt.close()
 
-# ---------- load rloop substrate (smoothed) + a raw trace ----------
+# ---------- load user1 substrate (smoothed) + a raw trace ----------
 d=pd.read_csv(A+'/nie_mmax2.csv', parse_dates=['t']); d['t']=d.t.dt.tz_convert(tz)
 tr=json.load(open(A+'/nbnc_af040.json')); ac=pd.DataFrame(tr['actual']); ac['t']=pd.to_datetime(ac['t']).dt.tz_convert(tz); ac=ac.dropna(subset=['bg'])
 

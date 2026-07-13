@@ -32,12 +32,44 @@ A Swift CLI that **evaluates and simulates insulin-dosing algorithms against rea
 ## Build
 
 ```bash
-git clone https://github.com/loopkitdev/LoopEval.git
+git clone --recursive https://github.com/loopkitdev/LoopEval.git
 cd LoopEval
 swift build -c release
 ```
 
-The binary lands at `.build/release/loop-eval`.
+The binary lands at `.build/release/loop-eval`. The algorithm packages
+([LoopAlgorithm](https://github.com/loopkitdev/LoopAlgorithm) and
+[OpenAPSSwift](https://github.com/loopkitdev/OpenAPSSwift)) are git submodules —
+if you cloned without `--recursive`, run `git submodule update --init`.
+
+## The two main workflows
+
+Most work with LoopEval is one of these — each has a full walkthrough:
+
+**1. Frontier experiments — [docs/FRONTIERS.md](docs/FRONTIERS.md).** Run a candidate
+algorithm/settings change through the closed-loop counterfactual simulator over real
+data, score TIR and time-below-54, and compare against a stock-algorithm ISF sweep (the
+*reference curve*). A change matters only if it has **lift** — better outcomes than
+aggressiveness tuning alone reaches.
+
+```bash
+loop-eval simulate --nightscout-url $NS --start 2026-05-01 --end 2026-07-01 \
+    --candidate-counterfactual --candidate-infer-sensitivity \
+    --candidate-integral-rc --candidate-irc-drop-scale 1.5 --candidate-irc-rise-scale 0.5 \
+    --candidate-label asym-irc --trace-out airc.json
+python3 -m loopeval_analysis.frontier --ref 'm*.json' --cand airc.json:asym-IRC \
+    --outages-csv outages.csv --field-from m1.00.json --out frontier.png
+```
+
+**2. Case studies — [docs/CASE_STUDIES.md](docs/CASE_STUDIES.md).** Zoom into a specific
+scenario and plot BG, insulin delivery (basal staircase + boluses, auto vs manual),
+patient IOB, and algorithm state (COB / RC / momentum / forecast) to verify the
+simulator and candidate are behaving correctly — via
+`loopeval_analysis.case_study.plot_case`.
+
+Deep background on the simulator itself (substrate, counterfactual physiology, fidelity
+model, disruption handling): [docs/simulator-guide/index.html](docs/simulator-guide/index.html).
+LLM agents picking up the project should start with [AGENTS.md](AGENTS.md).
 
 ## Usage
 
@@ -114,8 +146,8 @@ Sources/
     Analysis/             # GlucoseInterpolator, BloodGlucoseRisk, KalmanSmoother, EvaluationAnalyzer
   LoopEvalCLI/            # CLI executable (ArgumentParser commands)
 
-# Algorithm packages are local SwiftPM dependencies (siblings of this repo):
-#   ../LoopAlgorithm   (Loop)            ../OpenAPSSwift  (oref/OpenAPS)
+# Algorithm packages are git submodules (checked out by --recursive):
+#   LoopAlgorithm/   (Loop)            OpenAPSSwift/   (oref/OpenAPS)
 
 Tests/
   EvalCoreTests/          # 47 unit tests + fixture data

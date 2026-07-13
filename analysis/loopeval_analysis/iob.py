@@ -9,7 +9,7 @@ Key facts that make this match Loop's reported IOB (devicestatus loop.iob.iob):
   2. For temp basals, Loop counts the NET delivery vs scheduled basal
      (`netBasalUnits = (actual_rate - scheduled_rate) * duration`). When Loop
      suspends, that yields a NEGATIVE dose. Using absolute deliveries gives
-     a systematically inflated IOB (~2 U high on rloop). Use the netBasal
+     a systematically inflated IOB (~2 U high on user1). Use the netBasal
      approach to match Loop.
   3. Boluses count as their full amount (no scheduled offset).
 """

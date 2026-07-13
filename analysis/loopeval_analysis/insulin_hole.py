@@ -84,7 +84,7 @@ def loop_target_at_tau(
       - For τ ≥ DIA: target = correction_range_avg
 
     With default `inflection_pct=0.5` and `dia_hours=6`, this is:
-      - 0 to 3h: target = suspend threshold (e.g. 78 mg/dL on rloop)
+      - 0 to 3h: target = suspend threshold (e.g. 78 mg/dL on user1)
       - 3h to 6h: target rises linearly to correction range mid (e.g. ~112)
 
     LoopAlgorithm uses this as the value the correction-dose calculation
@@ -177,7 +177,7 @@ def insulin_hole(
         When BOTH are provided, the floor becomes time-varying matching
         LoopAlgorithm's `targetGlucoseValue` (see ``loop_target_at_tau``):
         suspend_threshold for τ in [0, DIA/2], rising linearly to
-        correction_range_avg over [DIA/2, DIA]. Typical rloop values:
+        correction_range_avg over [DIA/2, DIA]. Typical user1 values:
         suspend_threshold=78, correction_range_avg=112.5.
     dia_hours : float
         Insulin duration of action (h). Default 6.
