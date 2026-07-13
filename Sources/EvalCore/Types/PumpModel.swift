@@ -4,12 +4,12 @@
 // dose through this type makes the counter physics see exactly what would be
 // delivered, instead of the controller's idealized request.
 //
-// Omnipod (rloop and user2 both run Omnipod) supports basal rates and bolus
+// Omnipod (user1 and user2 both run Omnipod) supports basal rates and bolus
 // volumes on a 0.05 U(/hr) grid, and maps a request onto the grid by taking the
 // LARGEST supported value <= the request (a FLOOR), via
 // `roundToSupportedBasalRate` / `roundToSupportedBolusVolume`.
 //
-// Empirically confirmed on rloop Temporary Overrides (factor 0.81): the
+// Empirically confirmed on user1 Temporary Overrides (factor 0.81): the
 // override-scaled neutral basal is delivered as the floor of the scaled rate —
 //   scheduled 0.6 ×0.81 = 0.486 → delivered 0.45   (round-to-nearest would be 0.50)
 //   scheduled 0.8 ×0.81 = 0.648 → delivered 0.60   (round-to-nearest would be 0.65)
@@ -89,7 +89,7 @@ public struct PumpModel: Sendable, Codable, Equatable {
     /// reproduces the field ~1.1 U/day below rate×time. A stateless per-step floor
     /// over-penalizes (~2.8 U/day): it drops the partial pulse EVERY step, but
     /// only ~27% of steps are real rate changes; the rest continue the same temp
-    /// and should keep accruing. (rloop ISF-72 window: nominal 29.7, per-step-floor
+    /// and should keep accruing. (user1 ISF-72 window: nominal 29.7, per-step-floor
     /// 27.0, cancellation-aware 28.5 U/day; field ≈ −1.1/day.)
     public final class BasalAccumulator {
         public let quantum: Double

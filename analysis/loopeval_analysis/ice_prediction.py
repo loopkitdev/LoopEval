@@ -7,7 +7,7 @@ carb-appearance magnitude as a continuous regression target.
 
 STATUS: EXPERIMENTAL — kept for future exploration, may be removed.
   The signal is REAL (leak-free walk-forward: Spearman ~0.51 on user2, ~0.41 on
-  rloop; recent-ICE features roughly double the rank signal over time-of-day
+  user1; recent-ICE features roughly double the rank signal over time-of-day
   alone). BUT it did NOT convert to a closed-loop therapy win when wired as a
   forecast offset (`--candidate-forecast-offset-csv`): across modes/precisions it
   behaved as a uniform aggressiveness slider (highs down, lows up, flat TIR) or,

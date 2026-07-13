@@ -291,7 +291,7 @@ public actor EvaluationEngine {
     /// Export the EXACT decision-time input our engine feeds to
     /// generatePrediction at `t`, serialized in the deployed-LoopKit
     /// `LoopPredictionInput` fixture JSON format. Lets us run the IDENTICAL input
-    /// through the actual deployed Loop (LoopWorkspace RloopForecastCaseTests) and
+    /// through the actual deployed Loop (LoopWorkspace deployed-Loop forecast case tests) and
     /// diff its forecast against our fork's — isolating code-vs-input.
     /// `insulinTypeRaw`: LoopKit InsulinType raw Int (fiasp=3) stamped on doses so
     /// the deployed PresetInsulinModelProvider picks the right model.
@@ -940,12 +940,12 @@ public actor EvaluationEngine {
         // Map the controller's continuous request onto what the pump can actually
         // deliver, via the PumpModel, so the counter physics see exactly what would
         // be delivered instead of idealized micro-doses. Recompute deltaU from the
-        // delivered values. Omnipod (rloop + user2) FLOORS both basal rate and bolus
+        // delivered values. Omnipod (user1 + user2) FLOORS both basal rate and bolus
         // volume to the 0.05 grid (largest supported value <= request):
         //   - Auto-bolus floor verified against devicestatus (AF 0.4 + floor matches
-        //     ~89% of rloop / ~87% of user2 auto-boluses exactly; round-to-nearest does
+        //     ~89% of user1 / ~87% of user2 auto-boluses exactly; round-to-nearest does
         //     not — flooring is what made a round-to-nearest fit look like AF≈0.37).
-        //   - Temp basal floor verified against rloop override-scaled neutral basal
+        //   - Temp basal floor verified against user1 override-scaled neutral basal
         //     (0.486→0.45, 0.648→0.60, 0.891→0.85; round-to-nearest would give .50/.65/.90).
         let pump = PumpModel(basalRateIncrement: tempBasalIncrement, bolusIncrement: bolusIncrement,
                              pulseQuantum: 0, rounding: .down)

@@ -316,7 +316,7 @@ public struct EvalConfig: Codable, Sendable {
     /// Flat (global) auto-bolus application factor — fraction of the recommended
     /// correction applied per cycle when GBAF is off. Loop default 0.4. The auto-bolus
     /// is FLOORED to the pump increment AFTER this factor (see EvaluationEngine), which
-    /// matches real devicestatus auto-boluses (~89% rloop / ~87% user2 exact) — do not
+    /// matches real devicestatus auto-boluses (~89% user1 / ~87% user2 exact) — do not
     /// lower this factor to compensate for round-to-nearest, that was a fitting artifact.
     public var applicationFactor: Double
 

@@ -746,7 +746,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     /// `userEnteredAt`/`timestamp` are often emitted with NO fractional seconds,
     /// which the fractional-only parser silently rejects (returns nil) — that made
     /// the carb visibility gate fall back to the upload-delayed ObjectId time
-    /// (80 min late on a batch-upload instance like rloop). Always parse both.
+    /// (80 min late on a batch-upload instance like user1). Always parse both.
     static func robustISODate(_ s: String?) -> Date? {
         guard let s = s else { return nil }
         let frac = ISO8601DateFormatter(); frac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
