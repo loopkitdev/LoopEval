@@ -1,0 +1,8 @@
+[submodule "LoopAlgorithm"]
+	path = LoopAlgorithm
+	url = https://github.com/loopkitdev/LoopAlgorithm.git
+	branch = loop-eval-experiments
+[submodule "OpenAPSSwift"]
+	path = OpenAPSSwift
+	url = https://github.com/loopkitdev/OpenAPSSwift.git
+	branch = main
