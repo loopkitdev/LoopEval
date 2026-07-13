@@ -67,6 +67,13 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         // >1 = active, raising effective ISF from accumulated recent negative discrepancies).
         public var candidateSensModeMult: Double = .nan
         public var candidateManualBolusRecOut: Double = .nan
+        // PATIENT IOB — a single independent IOB view: field dosing and candidate
+        // dosing each run through the SAME patient insulin model (net-basal,
+        // fillBasalGaps) via insulinOnBoard(at:). Independent of NS devicestatus
+        // timing and of any candidate-algorithm IOB changes. This is the fair
+        // apples-to-apples IOB for field-vs-candidate visualization.
+        public var patientIOBField: Double = .nan
+        public var patientIOBCandidate: Double = .nan
         // Full baseline forecast curve (sim Loop on REAL BG), mg/dL, 5-min spaced from t.
         // For point-by-point comparison against field devicestatus predicted.values. Empty unless requested.
         public var baselinePredCurve: [Double] = []
@@ -76,6 +83,11 @@ public struct ClosedLoopSimResult: Codable, Sendable {
     public let candidateLabel: String
     public let intervalStart: Date
     public let intervalEnd: Date
+    /// The candidate's ACTUAL delivery history (burn-in real seed + candidate
+    /// basal/auto-bolus + passed-through/resized user manual boluses). This is
+    /// the ground-truth candidate delivery — use it for the delivery stream so
+    /// manual boluses (automatic == false) are represented, not just auto-boluses.
+    public var counterfactualDoses: [EvalInsulinDose] = []
 }
 
 extension EvaluationEngine {
@@ -486,7 +498,7 @@ extension EvaluationEngine {
             // SHRINKAGE TOWARD 1 (`inferSensitivitySmoothPrior > 0`): pure
             // carry-latent over-attributes — it holds the elevated estimate as
             // long as ANY drop is within the kernel, so elevated m spreads to
-            // ~84% of steps on rloop. Adding a prior pseudo-observation at m=1
+            // ~84% of steps on user1. Adding a prior pseudo-observation at m=1
             // with weight w_prior (in "equivalent observations") shrinks the
             // estimate back toward 1 where identified drops are sparse:
             //   m = (Σ_obs w_k·m_k + w_prior·1) / (Σ_obs w_k + w_prior)
@@ -1406,12 +1418,86 @@ extension EvaluationEngine {
 
         progress?(1.0)
 
+        // PATIENT IOB — one independent computation applied to BOTH dose
+        // histories. Re-stamp every dose with the PATIENT insulin model so the
+        // result is invariant to any candidate insulin-model experiment, then
+        // annotate (net-basal, scheduled-basal gaps filled) and evaluate
+        // insulinOnBoard at each step. Field = real pump; candidate = the
+        // candidate's actual delivery (counterfactualDoses).
+        let patientType = data.therapyTimeline.insulinType
+        // Split long basal segments into ≤5-min pieces so every basal takes the
+        // SAME smooth path in insulinOnBoard. Loop's insulinOnBoard treats a
+        // ≤1.05·delta segment as momentary but longer segments via a continuous
+        // model whose integration bound is quantized to `delta` — which makes a
+        // multi-delta segment (e.g. a 20-min suspend) produce lumpy IOB at its
+        // boundaries. The candidate already delivers 5-min temp segments, so
+        // splitting field basals the same way makes the two apples-to-apples.
+        let splitSec: TimeInterval = 5 * 60
+        func prep(_ doses: [EvalInsulinDose]) -> [EvalInsulinDose] {
+            var out: [EvalInsulinDose] = []
+            out.reserveCapacity(doses.count)
+            for d0 in doses {
+                var d = d0; d.insulinType = patientType
+                let dur = d.endDate.timeIntervalSince(d.startDate)
+                if d.deliveryType != .basal || dur <= 1.05 * splitSec {
+                    out.append(d); continue
+                }
+                let rate = d.volume / dur   // U per second
+                var s = d.startDate
+                while s < d.endDate {
+                    let e = Swift.min(s.addingTimeInterval(splitSec), d.endDate)
+                    var piece = d
+                    piece.startDate = s; piece.endDate = e
+                    piece.volume = rate * e.timeIntervalSince(s)
+                    out.append(piece)
+                    s = e
+                }
+            }
+            return out
+        }
+        let fieldAnnotated = prep(data.doses)
+            .annotated(with: data.therapyTimeline.basal, fillBasalGaps: true)
+        let candAnnotated = prep(counterfactualDoses)
+            .annotated(with: data.therapyTimeline.basal, fillBasalGaps: true)
+        // Sliding-window IOB: doses are start-sorted and step times increase, so a
+        // two-pointer window over the active-effect span keeps this O(N·W) instead
+        // of the O(N²) whole-collection insulinOnBoard(at:) per step (which times
+        // out once basal gaps are filled → ~17k dose entries).
+        let effDur = data.therapyTimeline.insulinType.model.effectDuration
+        let iobDelta = 5.0 * 60.0
+        let iobBack = effDur + 12.0 * 3600.0   // conservative: covers long scheduled-basal segments
+        let iobStepTimes = steps.map { $0.t }
+        _ = iobDelta
+        func iobSeries(_ ann: [BasalRelativeDose]) -> [Double] {
+            var out = [Double](repeating: 0, count: iobStepTimes.count)
+            let n = ann.count
+            var lo = 0, hi = 0
+            for (i, t) in iobStepTimes.enumerated() {
+                let loBound = t.addingTimeInterval(-iobBack)
+                while lo < n && ann[lo].startDate < loBound { lo += 1 }
+                while hi < n && ann[hi].startDate <= t { hi += 1 }
+                // public Collection method on the window slice (no copy) — internal
+                // per-dose insulinOnBoard(at:delta:) isn't accessible cross-module.
+                out[i] = ann[lo..<hi].insulinOnBoard(at: t)
+            }
+            return out
+        }
+        let fieldIOB = iobSeries(fieldAnnotated)
+        let candIOB = iobSeries(candAnnotated)
+        let stepsWithPatientIOB = steps.enumerated().map { (i, step) -> ClosedLoopSimResult.Step in
+            var s = step
+            s.patientIOBField = fieldIOB[i]
+            s.patientIOBCandidate = candIOB[i]
+            return s
+        }
+
         return ClosedLoopSimResult(
-            steps: steps,
+            steps: stepsWithPatientIOB,
             baselineLabel: baselineLabel,
             candidateLabel: candidateLabel,
             intervalStart: evalStart,
-            intervalEnd: interval.end
+            intervalEnd: interval.end,
+            counterfactualDoses: counterfactualDoses
         )
     }
 
