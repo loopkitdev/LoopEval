@@ -30,6 +30,23 @@ only if it has **lift** — more TIR at equal severe-lows than aggressiveness tu
 reaches. See **[docs/FRONTIERS.md](docs/FRONTIERS.md)**; the scorer is
 `python -m loopeval_analysis.frontier`.
 
+**Lift — the definition (in `frontier.lift`):** the signed, **axis-normalized closest
+distance** from a candidate `(TIR, t<54)` point to the reference-sweep polyline. Both axes
+are scaled by the reference sweep's span (TIR ≈ tens of %, t<54 ≈ fraction of a %) so
+neither dominates — a raw Euclidean distance would be swamped by TIR. Sign is **+** when
+the point is **below-and-right** of the sweep (better: more TIR / less t<54) and **−** when
+above-left (worse). **Greatest positive lift = best.** (This replaced an older "TIR gap at
+matched t<54", which blew up wherever the reference curve runs flat.)
+
+**Sweep the candidate, rank by mean.** A candidate parameterization is a *mechanism*; sweep
+it over its own ISF multipliers and rank mechanisms by the **mean (or median) lift across
+the sweep** (`frontier.summarize_mechanisms`) — not by any single point. Best-of-sweep max
+is optimistically biased (it grabs the highest jitter point); report the peak multiplier
+only as a secondary "where it peaks". The multiplier that pairs best with a mechanism is
+**dataset-dependent**: a non-announcer may want *lower* ISF (dose more aggressively, let the
+mechanism catch the added lows), a heavy announcer *higher* ISF (gentler automation, since
+meal boluses already carry TIR). *(Provisional — this definition may still change.)*
+
 **Current frontier picture (qualitative — regenerate numbers per dataset/window):**
 
 - **Leading with lift:** **Asymmetric Integral RC** (`--candidate-integral-rc
@@ -120,8 +137,16 @@ instead live fully outside the repo in `~/.loop-eval/<alias>/site.json`.
 - **IOB-at-crossing-54** (`iob_cross54_*` from `score_counterfactual`): committed insulin
   carried into severe lows — a danger axis t<54 duration can't see (rescue carbs
   truncate lows in real data, the counter-reg floor truncates them in sim).
-- **Plot convention:** x = TIR (right = better), y = t<54 (0–1.5, up = worse), dotted
-  budget line at 1.0, better = lower-right. Use `loopeval_analysis.plotting.tir_t54_axes`.
+- **Plot convention:** x = TIR (right = better), y = t<54 (0–1.5, **up = worse** — never
+  `invert_yaxis()`), dotted budget line at 1.0, better = lower-right. Use
+  `loopeval_analysis.plotting.tir_t54_axes`.
+- **Sweep plots — order lines by ISF multiplier, never by TIR.** A candidate/reference
+  sweep is a curve *parameterized by ISF multiplier*; connect its points in multiplier
+  order (adjacent vertices = adjacent ISF). Sorting by TIR makes the line zig-zag on any
+  non-monotonic sweep (e.g. an announcer's hooked curve). **Don't hand-roll sweep plots —
+  call `loopeval_analysis.frontier.plot_sweeps`**, which orders by multiplier and applies
+  `tir_t54_axes` for you. (`frontier.lift` likewise interpolates the reference in
+  multiplier order.)
 - `bench` linearized TIR and `evaluate` forecast metrics are diagnostics — never therapy
   evidence.
 
