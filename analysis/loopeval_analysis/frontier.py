@@ -9,9 +9,14 @@ The method:
    (``simulate --candidate-sensitivity-multiplier``). Scoring each trace gives
    a TIR-vs-t<54 **reference curve** — the outcomes reachable by pure
    aggressiveness tuning.
-2. Run each **candidate** (an algorithm change) once, at stock sensitivity
-   (and optionally at a couple of multipliers of its own).
-3. **Lift** = candidate TIR − reference-curve TIR *at the candidate's t<54*.
+2. Run each **candidate** (an algorithm change), ideally swept over its own ISF
+   multipliers so it traces a curve comparable to the reference.
+3. **Lift** = the signed, axis-normalized closest distance from a candidate
+   (TIR, t<54) point to the reference sweep polyline: **+** when below-right of
+   the sweep (more TIR / less t<54 than aggressiveness tuning reaches), **−** when
+   above-left. See :func:`lift`. Rank a *mechanism* (one parameterization swept
+   over ISF) by the **mean lift over its sweep** (:func:`summarize_mechanisms`),
+   not by a single point — best-of-sweep max is jitter-inflated.
    Lift ≈ 0 → the change is a slider (a point on the same curve).
    Lift > 0 → a genuine structural improvement (more TIR at equal severe-lows).
 
@@ -43,6 +48,7 @@ from __future__ import annotations
 import argparse
 import glob as _glob
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Dict, Mapping, Optional
@@ -108,17 +114,74 @@ def field_point(trace_path: str | Path,
 #  Lift                                                                       #
 # --------------------------------------------------------------------------- #
 
-def lift(ref: pd.DataFrame, tir: float, t54: float) -> float:
-    """TIR above the reference curve at this t<54 (interpolated).
+def _multiplier_of(frame: pd.DataFrame):
+    """ISF multiplier per row — from a ``multiplier`` column if present, else parsed
+    from the index label (``m1.05`` → 1.05). Returns None if any row can't resolve."""
+    if "multiplier" in frame.columns:
+        m = frame["multiplier"].to_numpy(dtype=float)
+        return None if np.isnan(m).any() else m
+    vals = []
+    for idx in frame.index:
+        mm = re.search(r"m([0-9]*\.?[0-9]+)", str(idx))
+        if not mm:
+            return None
+        vals.append(float(mm.group(1)))
+    return np.array(vals, dtype=float)
 
-    The reference curve is (t54 → TIR) from the ISF sweep, sorted by t54.
-    Outside the swept t54 range the nearest endpoint is used (flat
-    extrapolation) — treat lift for far-outside points with caution.
-    """
-    pts = ref[["t54", "TIR"]].dropna().sort_values("t54")
+
+def _ref_polyline(ref: pd.DataFrame):
+    """Reference sweep as an (N,2) [TIR, t54] polyline **ordered by ISF multiplier**
+    (the sweep path — adjacent vertices are adjacent ISF settings, so segment
+    interpolation is physically meaningful; ordering by TIR would connect
+    non-adjacent settings and zig-zag on a non-monotonic sweep). Returns
+    (P_sweeporder, span, env_tirsorted) — ``env`` is TIR-sorted for the below/above
+    sign lookup. (None, None, None) when there are too few points."""
+    pts = ref[["TIR", "t54"]].dropna()
     if len(pts) < 2:
+        return None, None, None
+    A = pts.to_numpy(dtype=float)
+    mult = _multiplier_of(pts)
+    order = np.argsort(mult, kind="stable") if mult is not None \
+        else np.argsort(A[:, 0], kind="stable")     # fallback: TIR order
+    P = A[order]
+    span = np.array([np.ptp(A[:, 0]), np.ptp(A[:, 1])])
+    span[span == 0] = 1.0                             # guard degenerate axes
+    env = A[np.argsort(A[:, 0], kind="stable")]       # TIR-sorted for sign lookup
+    return P, span, env
+
+
+def lift(ref: pd.DataFrame, tir: float, t54: float) -> float:
+    """Signed, axis-normalized closest distance from a candidate (TIR, t54) point
+    to the plain ISF-sweep polyline (the baseline reachable by aggressiveness
+    tuning alone).
+
+    Sign is **+** when the point is below-and-to-the-right of the sweep (better:
+    more TIR / less t<54) and **−** when above-left (worse). Both axes are scaled
+    by the reference sweep's span so TIR (≈tens of %) and t<54 (≈fraction of a %)
+    contribute comparably — a raw Euclidean distance would be swamped by TIR.
+
+    Greatest positive lift = best. This replaces the old horizontal "TIR-at-
+    matched-t54" gap, which blew up wherever the reference curve runs flat.
+
+    Rank a *mechanism* (one candidate parameterization swept over ISF multipliers)
+    by the MEAN (or median) of this lift across its sweep — see
+    :func:`summarize_mechanisms`. Best-of-sweep max is optimistically biased (it
+    grabs the highest jitter point), so use it only as a secondary "where it
+    peaks" readout, not the headline.
+    """
+    P, span, env = _ref_polyline(ref)
+    if P is None:
         return float("nan")
-    return float(tir - np.interp(t54, pts["t54"].values, pts["TIR"].values))
+    q = np.array([tir, t54], dtype=float) / span
+    best = np.inf
+    for a, b in zip(P[:-1], P[1:]):
+        A, B = a / span, b / span
+        ab = B - A
+        denom = float(np.dot(ab, ab)) or 1.0
+        s = np.clip(float(np.dot(q - A, ab)) / denom, 0.0, 1.0)
+        best = min(best, float(np.hypot(*(q - (A + s * ab)))))
+    curve_t54 = float(np.interp(tir, env[:, 0], env[:, 1]))   # below curve = better
+    return best if t54 < curve_t54 else -best
 
 
 def add_lift(ref: pd.DataFrame, cand: pd.DataFrame) -> pd.DataFrame:
@@ -128,9 +191,91 @@ def add_lift(ref: pd.DataFrame, cand: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def summarize_mechanisms(ref: pd.DataFrame, cand: pd.DataFrame,
+                         mechanism: str = "mechanism",
+                         multiplier: str = "multiplier") -> pd.DataFrame:
+    """Aggregate per-point lift into a per-mechanism table.
+
+    ``cand`` must carry a ``mechanism`` column (one row per ISF-multiplier point).
+    Returns, per mechanism: ``lift_mean`` / ``lift_median`` (the robust ranking
+    statistics — sort by these), ``frac_pos`` (fraction of the sweep on the
+    better side), and ``lift_best`` with ``best_mult`` (best-of-sweep peak and the
+    ISF multiplier where it occurs — secondary; jitter-inflated). Sorted by
+    ``lift_mean`` descending.
+    """
+    c = add_lift(ref, cand)
+    rows = []
+    for name, g in c.groupby(mechanism):
+        best = g.loc[g["lift"].idxmax()]
+        rows.append({
+            mechanism: name,
+            "lift_mean": g["lift"].mean(),
+            "lift_median": g["lift"].median(),
+            "frac_pos": (g["lift"] > 0).mean(),
+            "lift_best": best["lift"],
+            "best_mult": best[multiplier] if multiplier in g.columns else float("nan"),
+        })
+    return pd.DataFrame(rows).sort_values("lift_mean", ascending=False).reset_index(drop=True)
+
+
 # --------------------------------------------------------------------------- #
 #  Plot                                                                       #
 # --------------------------------------------------------------------------- #
+
+def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
+                out: str | Path = "frontier_sweeps.png",
+                field: Optional[dict] = None,
+                mechanism: str = "mechanism", multiplier: str = "multiplier",
+                mark_mult: float = 1.0,
+                title: str = "Candidate ISF sweeps vs reference"):
+    """Plot the reference and each candidate *mechanism* as a swept LINE, on the
+    standard axes (t<54 up = worse — via :func:`plotting.tir_t54_axes`, never
+    inverted). Every line is ordered by **ISF multiplier**, not by TIR — a
+    TIR-ordered line zig-zags on a non-monotonic sweep. Use THIS instead of
+    hand-rolling sweep plots so the ordering and axis convention can't be gotten
+    wrong. ``mark_mult`` (default 1.0) drops a black-edged square on each line at
+    that ISF multiplier (the deployed point). ``ref``/``cand`` need TIR, t54 and a
+    ``multiplier`` column (or an index like ``m1.05`` to parse it from).
+
+    Returns the saved path.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    def _ordered(frame):
+        m = _multiplier_of(frame)
+        f = frame.copy()
+        f["_m"] = m if m is not None else frame["TIR"].to_numpy(float)
+        return f.sort_values("_m")
+
+    def _mark(ax, frame, color):
+        hit = frame[np.isclose(frame["_m"], mark_mult)]
+        if len(hit):
+            ax.scatter(hit["TIR"], hit["t54"], s=110, marker="s",
+                       facecolor=color, edgecolor="k", linewidth=1.2, zorder=7)
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+    r = _ordered(ref.dropna(subset=["TIR", "t54"]))
+    ax.plot(r["TIR"], r["t54"], "o-", color="#888", lw=2, zorder=3, label="ISF sweep (reference)")
+    _mark(ax, r, "#888")
+    for name, g in cand.dropna(subset=["TIR", "t54"]).groupby(mechanism):
+        g = _ordered(g)
+        line, = ax.plot(g["TIR"], g["t54"], "o-", ms=4, lw=1.5, zorder=4, label=str(name))
+        _mark(ax, g, line.get_color())
+    if field is not None:
+        ax.scatter([field["TIR"]], [field["t54"]], s=300, marker="*", color="crimson",
+                   edgecolor="k", linewidth=0.5, zorder=6, label="FIELD (real deployment)")
+    ax.scatter([], [], s=110, marker="s", facecolor="none", edgecolor="k",
+               linewidth=1.2, label=f"ISF ×{mark_mult:g} (deployed)")
+    tir_t54_axes(ax)          # t54 up = worse; NEVER invert
+    ax.set_title(title)
+    ax.legend(fontsize=9, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(out, dpi=110)
+    plt.close(fig)
+    return out
+
 
 def plot_frontier(ref: pd.DataFrame, cand: pd.DataFrame,
                   out: str | Path = "frontier.png",
@@ -159,7 +304,7 @@ def plot_frontier(ref: pd.DataFrame, cand: pd.DataFrame,
     colors = plt.cm.tab10(np.linspace(0, 1, max(len(cand), 1)))
     for (label, row), c in zip(cand.iterrows(), colors):
         ax.scatter([row["TIR"]], [row["t54"]], s=95, color=c, marker="D", zorder=5,
-                   label=f"{label} (lift {row['lift']:+.1f})")
+                   label=f"{label} (lift {row['lift']:+.3f})")
 
     if field is not None:
         ax.scatter([field["TIR"]], [field["t54"]], s=280, marker="*", color="crimson",
