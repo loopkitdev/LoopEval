@@ -1224,7 +1224,8 @@ extension EvaluationEngine {
                             // forecast/IOB) — self-consistent, so no IOB-divergence amplification.
                             // One recommendation per step: first manual event takes it; any further
                             // events in the same step are already covered (deliver 0).
-                            let rec = (!recUsedThisStep && candidateManualBolusRec.isFinite) ? candidateManualBolusRec : 0.0
+                            let rec = (!recUsedThisStep && candidateManualBolusRec.isFinite)
+                                ? candidateManualBolusRec * candidateConfig.manualBolusRecScale : 0.0
                             recUsedThisStep = true
                             stepCandidateAdded += rec
                             counterfactualDoses.append(EvalInsulinDose(
