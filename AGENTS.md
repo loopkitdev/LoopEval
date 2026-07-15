@@ -11,8 +11,9 @@ that costs the other is not a win.
 
 **Privacy:** Nightscout data is a real person's medical data. Never commit or publish a
 Nightscout URL, hostname, token, or anything identifying. Use placeholders
-(`https://YOUR-NS.example.com`) in anything written to the repo. Keep real URLs in a
-local, untracked file.
+(`https://YOUR-NS.example.com`) and anonymous aliases (`user1`, `user2`, …) in anything
+written to the repo. Keep real URLs, tokens, and per-dataset config in the git-ignored
+**`PRIVATE.md`** — see *Private site config* below.
 
 ---
 
@@ -84,6 +85,34 @@ should. See **[docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)**; the renderer is
   the moment of most lows delivery is already at zero — keep this in mind when sizing
   the plausible benefit of any "dose less" mechanism.
 
+## Private site config (`PRIVATE.md`)
+
+Real Nightscout URLs, tokens, and each dataset's replay config live in **`PRIVATE.md` at
+the repo root — git-ignored, never committed**. `CLAUDE.md` imports it, so you have this
+context automatically. On a fresh checkout it won't exist yet: copy the template with
+`cp PRIVATE.example.md PRIVATE.md`.
+
+**When the user tells you about a Nightscout site — or a config fact about one — record it
+in `PRIVATE.md`** (one row per dataset), capturing what deployment-faithful replay needs
+(see *Deployment-faithful config per dataset* above):
+
+- alias (`user1`, `user2`, `orefuser`, …), base URL, and token if the site requires one;
+- pump + insulin model (`--insulin-type …`; verify IOB against devicestatus);
+- RC mode and era (`--integral-rc` while IRC was on — note the switch date);
+- deployed-Loop emulation flags for Loop users; oref / dynISF prefs for Trio users;
+- override handling (`--apply-overrides`), edited-carb handling (`--carb-revisions-json`),
+  app factor / GBAF, meal-announcement level;
+- any dated settings changes (target, ISF, CR).
+
+Then **validate** before trusting numbers from a new site: a stock ISF sweep's TIR-vs-t<54
+curve should pass through the site's real deployment point; if it doesn't, the recorded
+config is wrong — fix it first (see `docs/FRONTIERS.md`).
+
+**Privacy is absolute:** never put a real URL, host, token, or identifying detail into the
+repo, a report, a PR, an issue, or a plot — use the alias and a placeholder URL there. Data
+is cached under `~/.loop-eval/cache/` after the first fetch; creds for a private site may
+instead live fully outside the repo in `~/.loop-eval/<alias>/site.json`.
+
 ## Metrics
 
 - **Primary:** TIR 70–180, time <54. Secondary: time <70, time >180/>250, AUC<70,
@@ -139,6 +168,7 @@ not in second-guessing the dose.
 | `docs/CASE_STUDIES.md` | Case-study walkthrough |
 | `docs/simulator-guide/index.html` | Deep technical guide to the simulator |
 | `docs/loop-algo-classes.md` | Deployed-Loop vs LoopAlgorithm-package behavior classes and emulation flags |
+| `PRIVATE.example.md` | Template for `PRIVATE.md` — your private per-site config (copy it; `PRIVATE.md` is git-ignored) |
 
 ## Build & smoke
 
