@@ -74,10 +74,12 @@ LLM agents picking up the project should start with [AGENTS.md](AGENTS.md).
 ## Adding a Nightscout site
 
 There is no registration step — a site is just a URL passed to the CLI (data is cached
-in `~/.loop-eval/cache/` after the first fetch):
+in `~/.loop-eval/cache/` after the first fetch). Record the site's URL, token, and the
+config below in **`PRIVATE.md`** (`cp PRIVATE.example.md PRIVATE.md` — it's git-ignored);
+if you use an agent, `CLAUDE.md` imports it so the agent tracks your sites for you.
 
 ```bash
-NS=https://my-site.example.com          # keep this in a local, untracked file
+NS=https://my-site.example.com          # keep this in PRIVATE.md (git-ignored)
 TOK=my-access-token                     # only if the site requires ?token= auth
 
 # 1. Smoke test / warm the cache (run ONE window serially before any parallel
@@ -99,8 +101,9 @@ Then, before trusting any outcome numbers from the site:
    real deployment point. If it doesn't, the config in step 2 is wrong — fix that
    before evaluating candidates.
 
-**Privacy**: Nightscout data is a real person's medical data. Keep URLs and tokens out
-of the repo, reports, and issue trackers; refer to datasets by an anonymous alias.
+**Privacy**: Nightscout data is a real person's medical data. Keep URLs and tokens in the
+git-ignored `PRIVATE.md`, out of the repo, reports, and issue trackers; refer to datasets
+by an anonymous alias (`user1`, `user2`, …) and a placeholder URL in anything shareable.
 
 ## Usage
 
