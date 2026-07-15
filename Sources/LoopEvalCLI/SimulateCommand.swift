@@ -245,6 +245,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateIobAdjustManualBoluses: Bool = true
     @Flag(name: .long, help: "Manual-bolus mode: REPLACE each real user manual bolus with the candidate algorithm's OWN recommended manual bolus at that step (full correction vs the candidate's forecast/IOB/COB, clamped to maxBolus). Self-consistent with the candidate state, so it avoids the IOB-divergence amplification of the IOB-aware x-(z-y) resize. Takes precedence over --candidate-iob-adjust-manual-boluses.")
     var candidateManualBolusFromRecommendation: Bool = false
+    @Option(name: .long, help: "Scale applied to the recommended manual bolus in --candidate-manual-bolus-from-recommendation mode (1.0 = full algo dose, 0.5 = half). Models deliberate meal under-bolusing. No effect unless that mode is on.")
+    var candidateManualBolusRecScale: Double = 1.0
     @Option(name: .long, help: "UAM projection (minutes): treat recent unexplained glucose appearance (ICE minus modeled carbs, last 30 min) as ongoing absorption, projected forward with a linear taper over this many minutes. Continuous unannounced-meal forecast term; raises eventualBG early on genuine carb rises so the existing dosing logic acts sooner. 0 = off.")
     var candidateUamMinutes: Double = 0
     @Option(name: .long, help: "Early-ascending-limb projection (minutes): the continuous complement of GBAF. When BG is in the low-normal band AND rising, project the current rise forward as a tapering, meal-shaped forecast bump over this many minutes, so the existing dosing logic covers an unannounced meal on its ascending limb instead of at the peak. Off at high BG (never piles onto the peak) and off when flat/falling. Needs --candidate-early-rise-gain > 0. 0 = off.")
@@ -475,6 +477,7 @@ struct SimulateCommand: AsyncParsableCommand {
             lowGateThresholdMgdl: candidateLowGateThreshold,
             iobAdjustManualBoluses: candidateIobAdjustManualBoluses,
             manualBolusFromRecommendation: candidateManualBolusFromRecommendation,
+            manualBolusRecScale: candidateManualBolusRecScale,
             uamProjectionMinutes: candidateUamMinutes,
             earlyRiseMinutes: candidateEarlyRiseMinutes,
             earlyRiseGain: candidateEarlyRiseGain,
