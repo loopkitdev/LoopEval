@@ -1355,13 +1355,28 @@ extension EvaluationEngine {
                     var bg = counterMgdl[prevIdx]
                     for k in 0..<nSub {
                         var crSub = 0.0
+                        // Counter-regulation is a defense that fires only when the
+                        // COUNTERFACTUAL itself is below onset — GATED on `belowC > 0`.
+                        // Inside that gate it stays difference-based (rateC − rateA) so
+                        // identity holds and a counter that inherited a DEEPER real-low
+                        // defense via realBGdelta sheds the excess. But when the counter
+                        // is at/above onset we apply NOTHING: a counterfactual running
+                        // high must not shed the real low's defense (rateA), which used
+                        // to subtract the full real-counter-reg rate and drive a
+                        // high-running arm implausibly below the real substrate — a
+                        // systematic downward bias against less-aggressive / lows-
+                        // reducing candidates (they run high, so real lows crashed them).
+                        // Cost: a high counter keeps a small inherited real-low lift;
+                        // far preferable to a spurious plunge.
                         if counterRegOnsetMgdl > 0 {
                             let belowC = counterRegOnsetMgdl - bg
-                            let rateC = belowC > 0 ? Swift.min(counterRegGain * belowC, counterRegMaxRate) : 0.0
-                            let aSub = aPrev + (aNext - aPrev) * (Double(k) / Double(nSub))
-                            let belowA = counterRegOnsetMgdl - aSub
-                            let rateA = belowA > 0 ? Swift.min(counterRegGain * belowA, counterRegMaxRate) : 0.0
-                            crSub = (rateC - rateA) * (totalSec * subFrac / 60.0)
+                            if belowC > 0 {
+                                let rateC = Swift.min(counterRegGain * belowC, counterRegMaxRate)
+                                let aSub = aPrev + (aNext - aPrev) * (Double(k) / Double(nSub))
+                                let belowA = counterRegOnsetMgdl - aSub
+                                let rateA = belowA > 0 ? Swift.min(counterRegGain * belowA, counterRegMaxRate) : 0.0
+                                crSub = (rateC - rateA) * (totalSec * subFrac / 60.0)
+                            }
                         }
                         bg += stepDelta * subFrac + crSub
                     }
