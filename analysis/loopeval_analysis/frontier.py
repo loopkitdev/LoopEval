@@ -228,6 +228,7 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
                 mechanism: str = "mechanism", multiplier: str = "multiplier",
                 mark_mult: float = 1.0,
                 ref_label: str = "insulin-needs sweep (reference)",
+                label_ref_points: bool = True,
                 title: str = "Candidate sweeps vs reference"):
     """Plot the reference and each candidate *mechanism* as a swept LINE, on the
     standard axes (t<54 up = worse — via :func:`plotting.tir_t54_axes`, never
@@ -263,6 +264,10 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
     r = _ordered(ref.dropna(subset=["TIR", "t54"]))
     ax.plot(r["TIR"], r["t54"], "o-", color="#888", lw=2, zorder=3, label=ref_label)
     _mark(ax, r, "#888")
+    if label_ref_points and _multiplier_of(r) is not None:      # annotate each ref vertex with its sweep value
+        for _, row in r.iterrows():
+            ax.annotate(f"{row['_m']:g}", (row["TIR"], row["t54"]), fontsize=7, color="#555",
+                        xytext=(3, 3), textcoords="offset points", zorder=8)
     for name, g in cand.dropna(subset=["TIR", "t54"]).groupby(mechanism):
         g = _ordered(g)
         line, = ax.plot(g["TIR"], g["t54"], "o-", ms=4, lw=1.5, zorder=4, label=str(name))
