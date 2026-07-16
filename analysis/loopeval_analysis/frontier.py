@@ -227,15 +227,19 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
                 field: Optional[dict] = None,
                 mechanism: str = "mechanism", multiplier: str = "multiplier",
                 mark_mult: float = 1.0,
-                title: str = "Candidate ISF sweeps vs reference"):
+                ref_label: str = "insulin-needs sweep (reference)",
+                title: str = "Candidate sweeps vs reference"):
     """Plot the reference and each candidate *mechanism* as a swept LINE, on the
     standard axes (t<54 up = worse — via :func:`plotting.tir_t54_axes`, never
-    inverted). Every line is ordered by **ISF multiplier**, not by TIR — a
-    TIR-ordered line zig-zags on a non-monotonic sweep. Use THIS instead of
-    hand-rolling sweep plots so the ordering and axis convention can't be gotten
-    wrong. ``mark_mult`` (default 1.0) drops a black-edged square on each line at
-    that ISF multiplier (the deployed point). ``ref``/``cand`` need TIR, t54 and a
-    ``multiplier`` column (or an index like ``m1.05`` to parse it from).
+    inverted). Every line is ordered by its **sweep multiplier** (insulin-needs or
+    ISF, per the ``multiplier`` column), not by TIR — a TIR-ordered line zig-zags on
+    a non-monotonic sweep. Use THIS instead of hand-rolling sweep plots so the
+    ordering and axis convention can't be gotten wrong. ``ref_label`` names the gray
+    reference line (default "insulin-needs sweep (reference)" — the preferred
+    baseline; pass "ISF sweep (reference)" if you swept ISF). ``mark_mult`` (default
+    1.0) drops a black-edged square on each line at that multiplier (the deployed
+    point). ``ref``/``cand`` need TIR, t54 and a ``multiplier`` column (or an index
+    like ``m1.05`` to parse it from).
 
     Returns the saved path.
     """
@@ -257,7 +261,7 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
 
     fig, ax = plt.subplots(figsize=(12, 8))
     r = _ordered(ref.dropna(subset=["TIR", "t54"]))
-    ax.plot(r["TIR"], r["t54"], "o-", color="#888", lw=2, zorder=3, label="ISF sweep (reference)")
+    ax.plot(r["TIR"], r["t54"], "o-", color="#888", lw=2, zorder=3, label=ref_label)
     _mark(ax, r, "#888")
     for name, g in cand.dropna(subset=["TIR", "t54"]).groupby(mechanism):
         g = _ordered(g)
@@ -267,7 +271,7 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
         ax.scatter([field["TIR"]], [field["t54"]], s=300, marker="*", color="crimson",
                    edgecolor="k", linewidth=0.5, zorder=6, label="FIELD (real deployment)")
     ax.scatter([], [], s=110, marker="s", facecolor="none", edgecolor="k",
-               linewidth=1.2, label=f"ISF ×{mark_mult:g} (deployed)")
+               linewidth=1.2, label=f"×{mark_mult:g} (deployed)")
     tir_t54_axes(ax)          # t54 up = worse; NEVER invert
     ax.set_title(title)
     ax.legend(fontsize=9, loc="upper left")
