@@ -66,13 +66,19 @@ BASE="--candidate-counterfactual --candidate-infer-sensitivity \
       --start 2026-05-01 --end 2026-07-01"
 # ... plus your per-dataset flags from step 2 (insulin type, IRC, overrides, carbrev)
 
-# reference curve: ISF multipliers (run ONE serially first to warm caches,
-# then the rest in parallel — cold parallel fetches can 500 a small NS host)
-$BIN simulate $BASE --candidate-sensitivity-multiplier 1.00 \
+# reference curve: sweep the INSULIN-NEEDS dial, NOT ISF alone. `--candidate-insulin-needs f`
+# scales basal ×f, ISF ÷f, CR ÷f together — the realistic single-dial aggressiveness axis
+# (a Loop insulin-needs Temporary Override). An ISF-only sweep
+# (`--candidate-sensitivity-multiplier`) is a MUCH weaker baseline: it only touches
+# correction dosing, so it floors well above the achievable t<54 (it can't cut the
+# basal/meal lows) and thereby OVERSTATES candidate lift. Measure lift from insulin-needs.
+# (Run ONE serially first to warm caches, then the rest in parallel — cold parallel
+# fetches can 500 a small NS host.)
+$BIN simulate $BASE --candidate-insulin-needs 1.00 \
     --baseline-label S --candidate-label m1.00 --trace-out m1.00.json
-for M in 0.70 0.80 0.90 1.10 1.20 1.30 1.40; do
-  $BIN simulate $BASE --candidate-sensitivity-multiplier $M \
-      --baseline-label S --candidate-label m$M --trace-out m$M.json &
+for N in 0.70 0.80 0.85 0.90 0.95 1.05 1.10 1.20 1.30; do
+  $BIN simulate $BASE --candidate-insulin-needs $N \
+      --baseline-label S --candidate-label m$N --trace-out m$N.json &
 done; wait
 
 # candidates (examples)
@@ -99,21 +105,34 @@ This prints the reference curve, each candidate's TIR / t<54 / **lift**, and the
 point, and renders the standard plot (x = TIR right-is-better, y = t<54 up-is-worse,
 dotted 1% budget line; better = lower-right).
 
+**Lift** = the signed, axis-normalized **closest distance** from a candidate `(TIR, t<54)`
+point to the reference-sweep polyline (both axes scaled by the sweep's span so neither
+dominates); **+** = below-and-right (better), **−** = above-left. See `frontier.lift`. Rank
+a mechanism by the **mean lift over its own sweep** (`frontier.summarize_mechanisms`), not a
+single point. Full definition: AGENTS.md → *Frontier experiments*.
+
 **Reading lift:**
 
-- **lift ≈ 0** — the change is a slider. Equivalent outcomes were available by tuning
-  ISF. Not an improvement (not necessarily useless — it may be a nicer *parameterization*
-  — but it's not frontier).
-- **lift > 0** (beyond run-to-run noise, ~±0.3 on multi-week windows) — structural
-  improvement; verify it holds at 2–3 points along the curve (re-run the candidate at
-  ×0.9/×1.1) and on the full available date range.
-- **lift < 0** — the change is worse than doing nothing but tuning.
+- **lift ≈ 0** — the change is a slider. Equivalent outcomes were available from the
+  insulin-needs dial alone. Not frontier (may still be a nicer *parameterization*).
+- **lift > 0** (beyond run-to-run noise) — structural improvement; verify it holds along
+  the curve and on the full date range.
+- **lift < 0** — worse than just turning the dial.
+
+**Baseline honesty (the big one):** measure lift against the **insulin-needs** reference,
+not ISF-only. Much of what looks like candidate lift is really *"this candidate delivers
+less insulin,"* which the insulin-needs dial does trivially — against an ISF-only baseline
+that floors high on t<54, that shows up as spurious lift. Re-baselining user2's aIRC+DLP
+against insulin-needs cut its apparent lift roughly in half, and a "halve the meal boluses"
+lever's apparent lift (**+0.185**) almost entirely evaporated (**→ +0.036**) because
+insulin-needs already scales meal boluses via CR. If a candidate can't clear the
+insulin-needs curve, it isn't frontier.
 
 ## 5. Believe it only after robustness
 
 - **Full-range re-run** — single-window wins usually evaporate.
 - **Both directions of the curve** — a lows-reducer must be tested at the aggressive end
-  (low ISF multipliers) where lows exist to reduce.
+  (high insulin-needs) where lows exist to reduce.
 - **Second dataset** if available — ranking transfer matters more than absolute numbers.
 - **Safety detail**: check `iob_cross54_*` (committed insulin into severe lows) and AUC<70
   alongside t<54; check delivery shortly before lows didn't increase.
