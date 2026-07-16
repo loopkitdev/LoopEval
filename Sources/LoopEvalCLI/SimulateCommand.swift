@@ -111,6 +111,12 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Candidate ISF multiplier")
     var candidateSensitivityMultiplier: Double?
 
+    @Option(name: .long, help: "Candidate basal-rate multiplier: scale the candidate's scheduled basal profile (0.8 = 80% basal). Changes the belief (delivered basal AND the forecast's net-basal reference), not just the output. Baseline arm keeps 1.0. Default 1.0.")
+    var candidateBasalRateMultiplier: Double = 1.0
+
+    @Option(name: .long, help: "Candidate 'overall insulin needs' scale factor f (Loop preset-style): ONE knob scaling basal ×f, ISF ÷f, CR ÷f together. f=0.5 → half basal, double ISF, double CR (less insulin overall); f=1.2 → 20% more insulin. Composes multiplicatively with the individual --candidate-{sensitivity,basal-rate}-multiplier flags. Unset = no scaling. This is the realistic single-dial aggressiveness axis (matches an insulin-needs Temporary Override) — sweep it for the reference frontier.")
+    var candidateInsulinNeeds: Double?
+
     @Flag(name: .long, help: "Candidate: treat a temp basal still running at the decision instant as ENDED at t (clean going-forward design). Default off = project it forward as FieldLoop does. Baseline always stays field-faithful.")
     var candidateClipInProgressTempBasal: Bool = false
 
@@ -563,7 +569,17 @@ struct SimulateCommand: AsyncParsableCommand {
             momentumAlphaFast: candidateMomentumAlphaFast
         )
         // Set post-construction to keep the EvalConfig(...) literal under the
-        // Swift type-checker's expression-complexity limit.
+        // Swift type-checker's expression-complexity limit. Property assignment is
+        // also order-free — prefer adding NEW candidate flags here rather than
+        // threading them into the positional EvalConfig(...) literal above.
+        candidateConfig.basalRateMultiplier = candidateBasalRateMultiplier
+        // "Overall insulin needs" preset-style factor f: basal ×f, ISF ÷f, CR ÷f.
+        // Composes multiplicatively with the individual multipliers set above/in the literal.
+        if let needs = candidateInsulinNeeds {
+            candidateConfig.basalRateMultiplier   *= needs
+            candidateConfig.sensitivityMultiplier *= 1.0 / needs
+            candidateConfig.carbRatioMultiplier   *= 1.0 / needs
+        }
         candidateConfig.oapsAutosensMax = candidateOapsAutosensMax
         candidateConfig.oapsAutosensMin = candidateOapsAutosensMin
         candidateConfig.oapsInsulinPeakTime = candidateOapsInsulinPeak
