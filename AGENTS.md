@@ -38,6 +38,21 @@ the point is **below-and-right** of the sweep (better: more TIR / less t<54) and
 above-left (worse). **Greatest positive lift = best.** (This replaced an older "TIR gap at
 matched t<54", which blew up wherever the reference curve runs flat.)
 
+**Two things lift is fragile about — both have produced confidently wrong rankings:**
+
+- **Compare on ONE dial.** Sweeping the candidate over ISF while the reference sweeps
+  insulin-needs measures the *dial* as much as the mechanism — the two trace different
+  paths through (TIR, t<54). Sweep the candidate over **insulin-needs too**, or include a
+  plain (mechanism-off) control swept on the candidate's dial to subtract the dial's share.
+- **Lift is span-normalized, so it is NOT comparable across reference extents.** Extending
+  a reference (e.g. needs ×1.3 → ×2.0) grows the t<54 span and silently shrinks *every*
+  lift value — 6.6× on one dataset. Only rank within one reference; never compare lift
+  magnitudes across runs whose reference differs.
+
+**Never read a lift number without looking at the plot.** Lift is a scalar summary of a
+geometric fact; if the sign disagrees with where the point sits relative to the gray line,
+believe the plot. That check is what caught both hooked-curve bugs (fixed 2026-07-17).
+
 **Sweep the candidate, rank by mean.** A candidate parameterization is a *mechanism*; sweep
 it over its own ISF multipliers and rank mechanisms by the **mean (or median) lift across
 the sweep** (`frontier.summarize_mechanisms`) — not by any single point. Best-of-sweep max

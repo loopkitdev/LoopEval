@@ -130,24 +130,24 @@ def _multiplier_of(frame: pd.DataFrame):
 
 
 def _ref_polyline(ref: pd.DataFrame):
-    """Reference sweep as an (N,2) [TIR, t54] polyline **ordered by ISF multiplier**
-    (the sweep path — adjacent vertices are adjacent ISF settings, so segment
+    """Reference sweep as an (N,2) [TIR, t54] polyline **ordered by sweep multiplier**
+    (the sweep path — adjacent vertices are adjacent settings, so segment
     interpolation is physically meaningful; ordering by TIR would connect
     non-adjacent settings and zig-zag on a non-monotonic sweep). Returns
-    (P_sweeporder, span, env_tirsorted) — ``env`` is TIR-sorted for the below/above
-    sign lookup. (None, None, None) when there are too few points."""
-    pts = ref[["TIR", "t54"]].dropna()
-    if len(pts) < 2:
-        return None, None, None
-    A = pts.to_numpy(dtype=float)
-    mult = _multiplier_of(pts)
+    (P_sweeporder, span), or (None, None) when there are too few points."""
+    sub = ref.dropna(subset=["TIR", "t54"])
+    if len(sub) < 2:
+        return None, None
+    A = sub[["TIR", "t54"]].to_numpy(dtype=float)
+    # NB: resolve the multiplier from the FULL frame — slicing to [TIR, t54] first
+    # drops the `multiplier` column, silently forcing the TIR-order fallback.
+    mult = _multiplier_of(sub)
     order = np.argsort(mult, kind="stable") if mult is not None \
         else np.argsort(A[:, 0], kind="stable")     # fallback: TIR order
     P = A[order]
     span = np.array([np.ptp(A[:, 0]), np.ptp(A[:, 1])])
     span[span == 0] = 1.0                             # guard degenerate axes
-    env = A[np.argsort(A[:, 0], kind="stable")]       # TIR-sorted for sign lookup
-    return P, span, env
+    return P, span
 
 
 def lift(ref: pd.DataFrame, tir: float, t54: float) -> float:
@@ -169,19 +169,27 @@ def lift(ref: pd.DataFrame, tir: float, t54: float) -> float:
     grabs the highest jitter point), so use it only as a secondary "where it
     peaks" readout, not the headline.
     """
-    P, span, env = _ref_polyline(ref)
+    P, span = _ref_polyline(ref)
     if P is None:
         return float("nan")
     q = np.array([tir, t54], dtype=float) / span
-    best = np.inf
+    best, closest = np.inf, None
     for a, b in zip(P[:-1], P[1:]):
         A, B = a / span, b / span
         ab = B - A
         denom = float(np.dot(ab, ab)) or 1.0
         s = np.clip(float(np.dot(q - A, ab)) / denom, 0.0, 1.0)
-        best = min(best, float(np.hypot(*(q - (A + s * ab)))))
-    curve_t54 = float(np.interp(tir, env[:, 0], env[:, 1]))   # below curve = better
-    return best if t54 < curve_t54 else -best
+        c = A + s * ab
+        d = float(np.hypot(*(q - c)))
+        if d < best:
+            best, closest = d, c
+    # Sign LOCALLY, against the closest point: better = further right (+TIR) and/or
+    # further down (-t54), i.e. the (+1,-1) direction in normalized space. Do NOT
+    # sign by interpolating a TIR-sorted copy of the curve — on a hooked reference
+    # (an announcer's sweep, where TIR rises then falls back as needs climb) TIR
+    # order interleaves the two branches, so the lookup interpolates a mild point
+    # against a catastrophic one and calls nearly everything an improvement.
+    return best if float(np.dot(q - closest, np.array([1.0, -1.0]))) >= 0 else -best
 
 
 def add_lift(ref: pd.DataFrame, cand: pd.DataFrame) -> pd.DataFrame:
