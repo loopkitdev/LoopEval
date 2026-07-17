@@ -229,6 +229,7 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
                 mark_mult: float = 1.0,
                 ref_label: str = "insulin-needs sweep (reference)",
                 label_ref_points: bool = True,
+                ylim: tuple[float, float] = (0.0, 1.5),
                 title: str = "Candidate sweeps vs reference"):
     """Plot the reference and each candidate *mechanism* as a swept LINE, on the
     standard axes (t<54 up = worse — via :func:`plotting.tir_t54_axes`, never
@@ -241,6 +242,12 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
     1.0) drops a black-edged square on each line at that multiplier (the deployed
     point). ``ref``/``cand`` need TIR, t54 and a ``multiplier`` column (or an index
     like ``m1.05`` to parse it from).
+
+    ``ylim`` keeps the standard 0-1.5 t<54 window by default. Widen it only to view
+    a sweep pushed deep into the aggressive region (t<54 of several %), where the
+    standard window would clip the points off-chart entirely; the orientation stays
+    t<54-up either way. A widened window is an exploration view, not the house plot
+    — the 0-1.5 window is what therapy claims get read on.
 
     Returns the saved path.
     """
@@ -277,7 +284,7 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
                    edgecolor="k", linewidth=0.5, zorder=6, label="FIELD (real deployment)")
     ax.scatter([], [], s=110, marker="s", facecolor="none", edgecolor="k",
                linewidth=1.2, label=f"×{mark_mult:g} (deployed)")
-    tir_t54_axes(ax)          # t54 up = worse; NEVER invert
+    tir_t54_axes(ax, ylim=ylim)   # t54 up = worse; NEVER invert
     ax.set_title(title)
     ax.legend(fontsize=9, loc="upper left")
     fig.tight_layout()
