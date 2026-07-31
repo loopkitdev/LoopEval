@@ -94,10 +94,17 @@ def export_donor(user, start, end, outdir):
     b = query(_dedup([f"{_TMS} AS t_ms", "subType",
         "COALESCE(CAST(get_json_object(normal,'$.$numberDouble') AS DOUBLE), "
         "CAST(get_json_object(normal,'$.$numberInt') AS DOUBLE)) AS units"], win, "bolus"))
-    doses = []; manual_ms = []
-    for r in b.itertuples():
+    doses = []; manual_ms = []; bseen = set()
+    for r in b.sort_values("t_ms").itertuples():
         u = _fin(r.units)
         if u is None: continue
+        # Loop mirrors every bolus to HealthKit, so each real bolus has TWO records
+        # (origin com.loopkit.Loop + com.apple.HealthKit) with different `id`s but the
+        # same time+amount — id-dedup can't catch them. Collapse by (second, amount) so
+        # boluses aren't 2x-counted (which corrupts TDD and the counterfactual ICE).
+        key = (int(r.t_ms) // 1000, round(u, 4))
+        if key in bseen: continue
+        bseen.add(key)
         auto = (r.subType == "automated")
         if not auto: manual_ms.append(int(r.t_ms))   # manual meal/correction boluses
         doses.append({"deliveryType": "bolus", "startDate": _iso(int(r.t_ms)), "endDate": _iso(int(r.t_ms)),
@@ -193,42 +200,53 @@ def _sched(j):
         out.append((int(_num(it["start"])), it))
     return sorted(out, key=lambda x: x[0])
 
-def _expand(daily, s_ms, e_ms, valfn):
-    """Expand a daily schedule [(start_ms_midnight, item)] to absolute segments over [s,e]."""
+def _expand(daily, s_ms, e_ms, valfn, tz="UTC"):
+    """Expand a daily schedule [(start_ms_from_LOCAL_midnight, item)] to absolute UTC
+    segments over [s,e]. Tidepool schedules are keyed to the user's LOCAL midnight, so
+    they must be laid on local-day boundaries (DST-aware): expanding at UTC midnight
+    shifts the whole basal/ISF/CR/target timeline by the UTC offset (e.g. ~6-7h for
+    America/Denver), so the replay runs the wrong scheduled basal/ISF/CR at every
+    wall-clock time."""
+    import pytz
+    zone = pytz.timezone(tz) if tz else pytz.UTC
     out = []
-    day0 = datetime.fromtimestamp(s_ms / 1000.0, tz=timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    day = day0
-    end_dt = datetime.fromtimestamp(e_ms / 1000.0, tz=timezone.utc)
-    while day < end_dt:
+    s_utc = datetime.fromtimestamp(s_ms / 1000.0, tz=timezone.utc)
+    e_utc = datetime.fromtimestamp(e_ms / 1000.0, tz=timezone.utc)
+    d = s_utc.astimezone(zone).date()
+    last = e_utc.astimezone(zone).date()
+    while d <= last:
+        mid = zone.localize(datetime(d.year, d.month, d.day))
+        nxt = zone.localize(datetime(d.year, d.month, d.day) + timedelta(days=1))
         for i, (sms, item) in enumerate(daily):
-            seg_s = day + timedelta(milliseconds=sms)
-            seg_e = (day + timedelta(milliseconds=daily[i + 1][0])) if i + 1 < len(daily) else (day + timedelta(days=1))
-            s = max(seg_s, datetime.fromtimestamp(s_ms / 1000.0, tz=timezone.utc))
-            e = min(seg_e, end_dt)
+            seg_s = zone.normalize(mid + timedelta(milliseconds=sms))
+            seg_e = zone.normalize(mid + timedelta(milliseconds=daily[i + 1][0])) if i + 1 < len(daily) else nxt
+            s = max(seg_s.astimezone(timezone.utc), s_utc)
+            e = min(seg_e.astimezone(timezone.utc), e_utc)
             if e > s:
                 rec = {"startDate": s.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                        "endDate": e.strftime("%Y-%m-%dT%H:%M:%S.000Z")}
                 rec.update(valfn(item))
                 out.append(rec)
-        day += timedelta(days=1)
+        d += timedelta(days=1)
     return out
 
 def _therapy(user, s_ms, e_ms):
-    ps = query(f"""SELECT {_TMS} AS t_ms, units, basalSchedules, insulinSensitivities, carbRatios, bgTargets, bgSafetyLimit
+    ps = query(f"""SELECT {_TMS} AS t_ms, units, basalSchedules, insulinSensitivities, carbRatios, bgTargets, bgSafetyLimit, timezone
         FROM {TBL} WHERE _userId='{user}' AND type='pumpSettings' AND {_TMS} <= {e_ms}
         ORDER BY t_ms DESC LIMIT 1""")
     if ps.empty:
         raise RuntimeError(f"no pumpSettings for {user} before window end")
     row = ps.iloc[0]
+    tz = row.timezone or "UTC"
     basal = _expand(_sched(row.basalSchedules), s_ms, e_ms,
-                    lambda it: {"value": round(_num(it["rate"]), 4)})
+                    lambda it: {"value": round(_num(it["rate"]), 4)}, tz)
     sens = _expand(_sched(row.insulinSensitivities), s_ms, e_ms,
-                   lambda it: {"value": round(_num(it["amount"]) * MMOL, 2)})
+                   lambda it: {"value": round(_num(it["amount"]) * MMOL, 2)}, tz)
     cr = _expand(_sched(row.carbRatios), s_ms, e_ms,
-                 lambda it: {"value": round(_num(it["amount"]), 2)})
+                 lambda it: {"value": round(_num(it["amount"]), 2)}, tz)
     tgt = _expand(_sched(row.bgTargets), s_ms, e_ms,
                   lambda it: {"lowerBound": round(_num(it["low"]) * MMOL, 1),
-                              "upperBound": round(_num(it["high"]) * MMOL, 1)})
+                              "upperBound": round(_num(it["high"]) * MMOL, 1)}, tz)
     safety = _num(row.bgSafetyLimit)
     return {"basal": basal, "sensitivity": sens, "carbRatio": cr, "target": tgt,
             "suspendThreshold": round(safety * MMOL, 1) if safety else 70.0,
