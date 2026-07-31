@@ -1471,10 +1471,18 @@ extension EvaluationEngine {
             }
             return out
         }
+        // NB: the two-pointer iobSeries below REQUIRES start-sorted input. `annotated`
+        // with gap-filling can interleave gap-fill basal segments out of start-order
+        // (a later-dated fill can precede an earlier bolus), which makes `hi` stop early
+        // and delays that bolus's IOB contribution by up to a fill span (~1h) — a
+        // display-only artifact in patientIOBField, but a misleading one in case studies.
+        // Sort defensively so the window is always correct.
         let fieldAnnotated = prep(data.doses)
             .annotated(with: data.therapyTimeline.basal, fillBasalGaps: true)
+            .sorted { $0.startDate < $1.startDate }
         let candAnnotated = prep(counterfactualDoses)
             .annotated(with: data.therapyTimeline.basal, fillBasalGaps: true)
+            .sorted { $0.startDate < $1.startDate }
         // Sliding-window IOB: doses are start-sorted and step times increase, so a
         // two-pointer window over the active-effect span keeps this O(N·W) instead
         // of the O(N²) whole-collection insulinOnBoard(at:) per step (which times
