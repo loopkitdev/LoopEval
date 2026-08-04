@@ -208,6 +208,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateRcEffectDurationMin: Double?
     @Option(name: .long, help: "Candidate momentum projection duration (MINUTES): how far forward CGM momentum is extrapolated. Default 15.")
     var candidateMomentumProjectionMin: Double = 15
+    @Option(name: .long, help: "Candidate momentum lookback (MINUTES): the glucose window the momentum slope is fit over ('how far back' momentum looks). Default 15.")
+    var candidateMomentumLookbackMin: Double = 15
     @Option(name: .long, help: "Cross-cycle sensitive-mode time constant (MINUTES): an EWMA of recent NEGATIVE discrepancies decays at this tau and raises effective ISF on future cycles to prevent a delayed SECOND low. 0 = off. Try 60-360.")
     var candidateSensitiveModeTauMin: Double = 0
     @Option(name: .long, help: "Cross-cycle sensitive-mode gain k: effective ISF is scaled by (1 + k*R) where R is the EWMA of recent negative discrepancy (mg/dL). 0 = off. Try 0.01-0.05.")
@@ -607,6 +609,7 @@ struct SimulateCommand: AsyncParsableCommand {
         candidateConfig.insulinLookbackHours = insulinLookbackHours
         // RC/momentum absolute windows (how far back / how far forward). nil ⇒ deployed defaults.
         candidateConfig.momentumProjectionMinutes = candidateMomentumProjectionMin
+        candidateConfig.momentumDataIntervalMinutes = candidateMomentumLookbackMin
         candidateConfig.rcRetrospectionMinutes = candidateRcRetrospectionMin
         candidateConfig.rcEffectDurationMinutes = candidateRcEffectDurationMin
 
