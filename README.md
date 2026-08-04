@@ -68,7 +68,8 @@ simulator and candidate are behaving correctly — via
 `loopeval_analysis.case_study.plot_case`.
 
 Deep background on the simulator itself (substrate, counterfactual physiology, fidelity
-model, disruption handling): [docs/simulator-guide/index.html](docs/simulator-guide/index.html).
+model, disruption handling): [docs/simulator-guide/](docs/simulator-guide/). All docs are
+indexed in [docs/README.md](docs/README.md).
 LLM agents picking up the project should start with [AGENTS.md](AGENTS.md).
 
 ## Adding a Nightscout site
