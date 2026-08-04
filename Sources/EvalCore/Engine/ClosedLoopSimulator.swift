@@ -2256,6 +2256,8 @@ extension EvaluationEngine {
             ircLowMemoryScale: config.ircLowMemoryScale,
             ircDropDurationScale: config.ircDropDurationScale,
             ircRiseDurationScale: config.ircRiseDurationScale,
+            rcRetrospectionInterval: config.rcRetrospectionMinutes.map { $0 * 60 },
+            rcEffectDuration: config.rcEffectDurationMinutes.map { $0 * 60 },
             uamProjectionMinutes: config.uamProjectionMinutes,
             earlyRiseMinutes: config.earlyRiseMinutes,
             earlyRiseGain: config.earlyRiseGain,
@@ -2268,6 +2270,7 @@ extension EvaluationEngine {
             adaptiveCarbAbsorption: config.adaptiveCarbAbsorption,
             initialAbsorptionTimeOverrun: config.adaptiveCarbAbsorption ? 1.0 : CarbMath.defaultAbsorptionTimeOverrun,
             momentumVelocityMaximum: momentumCap,
+            momentumProjectionDuration: config.momentumProjectionMinutes * 60,
             useAsymmetricMomentum: config.useAsymmetricMomentum,
             momentumAlphaSlow: config.momentumAlphaSlow,
             momentumAlphaFast: config.momentumAlphaFast
