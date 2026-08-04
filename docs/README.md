@@ -12,3 +12,15 @@ GitHub — no build step, no server.
   correctly?"* Multi-panel plots of one window to root-cause a surprising outcome number.
 - **[Loop algorithm classes](loop-algo-classes.md)** — deployed-Loop vs LoopAlgorithm-package
   behavior classes and the emulation flags that reproduce each.
+
+## Local preview
+
+These render on GitHub as-is. To preview locally (or share on your LAN) with the same GitHub
+rendering — Mermaid diagrams, alerts, images — run:
+
+```
+python3 scripts/docserve.py        # http://localhost:8080/docs/  (+ the LAN URL it prints)
+```
+
+Stdlib only; Markdown is rendered in-browser via marked + mermaid from a CDN (the viewing
+machine needs internet), everything else is served as static files.
