@@ -219,6 +219,10 @@ public struct EvalConfig: Codable, Sendable {
     /// Momentum projection duration (minutes). Default 15 (LoopAlgorithm). Loop
     /// 3.9.3 / classic LoopKit used 30 — set 30 for 3.9.3-compatible momentum.
     public var momentumProjectionMinutes: Double = 15
+    /// RC "how far back" — retrospection integration window (minutes). nil ⇒ deployed default (180).
+    public var rcRetrospectionMinutes: Double? = nil
+    /// RC "how far forward" — correction effect duration / persistence cap (minutes). nil ⇒ deployed default.
+    public var rcEffectDurationMinutes: Double? = nil
 
     /// Momentum gradual-transitions gate: suppress momentum when consecutive CGM
     /// readings jump > this many mg/dL. Default 40 (LoopAlgorithm). nil = no gate

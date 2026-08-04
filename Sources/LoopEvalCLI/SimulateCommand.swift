@@ -202,6 +202,12 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateIrcDropDurationScale: Double = 1.0
     @Option(name: .long, help: "Asymmetric IRC persistence: scales how long a POSITIVE-discrepancy (resistance) correction lingers. <1 = turns off fast. Only used with --candidate-integral-rc. Default 1.0.")
     var candidateIrcRiseDurationScale: Double = 1.0
+    @Option(name: .long, help: "RC 'how far back': retrospection integration window (MINUTES) over which discrepancies are gathered/summed. Default: deployed 180. Applies to standard and integral RC.")
+    var candidateRcRetrospectionMin: Double?
+    @Option(name: .long, help: "RC 'how far forward': correction-effect duration / persistence (MINUTES). Sets the base effect duration and (for IRC) the persistence cap. Default: deployed (60 base / 180 cap).")
+    var candidateRcEffectDurationMin: Double?
+    @Option(name: .long, help: "Candidate momentum projection duration (MINUTES): how far forward CGM momentum is extrapolated. Default 15.")
+    var candidateMomentumProjectionMin: Double = 15
     @Option(name: .long, help: "Cross-cycle sensitive-mode time constant (MINUTES): an EWMA of recent NEGATIVE discrepancies decays at this tau and raises effective ISF on future cycles to prevent a delayed SECOND low. 0 = off. Try 60-360.")
     var candidateSensitiveModeTauMin: Double = 0
     @Option(name: .long, help: "Cross-cycle sensitive-mode gain k: effective ISF is scaled by (1 + k*R) where R is the EWMA of recent negative discrepancy (mg/dL). 0 = off. Try 0.01-0.05.")
@@ -599,6 +605,10 @@ struct SimulateCommand: AsyncParsableCommand {
             candidateConfig.oapsAfScheduleCSV = (try? String(contentsOfFile: afc, encoding: .utf8)) ?? nil
         }
         candidateConfig.insulinLookbackHours = insulinLookbackHours
+        // RC/momentum absolute windows (how far back / how far forward). nil ⇒ deployed defaults.
+        candidateConfig.momentumProjectionMinutes = candidateMomentumProjectionMin
+        candidateConfig.rcRetrospectionMinutes = candidateRcRetrospectionMin
+        candidateConfig.rcEffectDurationMinutes = candidateRcEffectDurationMin
 
         let dataSource: any EvalDataSource
         if let dataDir {
