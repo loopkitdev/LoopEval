@@ -410,6 +410,7 @@ public actor EvaluationEngine {
                 gradualTransitionsThreshold: config.momentumGradualTransitionsThreshold,
                 momentumVelocityMaximum: momentumCap,
                 momentumProjectionDuration: config.momentumProjectionMinutes * 60,
+                momentumDataInterval: config.momentumDataIntervalMinutes * 60,
                 useAsymmetricMomentum: config.useAsymmetricMomentum,
                 momentumAlphaSlow: config.momentumAlphaSlow,
                 momentumAlphaFast: config.momentumAlphaFast
@@ -447,6 +448,7 @@ public actor EvaluationEngine {
                 gradualTransitionsThreshold: config.momentumGradualTransitionsThreshold,
                 momentumVelocityMaximum: momentumCap,
                 momentumProjectionDuration: config.momentumProjectionMinutes * 60,
+                momentumDataInterval: config.momentumDataIntervalMinutes * 60,
                 useAsymmetricMomentum: config.useAsymmetricMomentum,
                 momentumAlphaSlow: config.momentumAlphaSlow,
                 momentumAlphaFast: config.momentumAlphaFast
@@ -489,6 +491,7 @@ public actor EvaluationEngine {
                 gradualTransitionsThreshold: config.momentumGradualTransitionsThreshold,
                 momentumVelocityMaximum: momentumCap,
                 momentumProjectionDuration: config.momentumProjectionMinutes * 60,
+                momentumDataInterval: config.momentumDataIntervalMinutes * 60,
                 useAsymmetricMomentum: config.useAsymmetricMomentum,
                 momentumAlphaSlow: config.momentumAlphaSlow,
                 momentumAlphaFast: config.momentumAlphaFast

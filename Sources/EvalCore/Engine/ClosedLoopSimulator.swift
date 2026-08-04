@@ -2271,6 +2271,7 @@ extension EvaluationEngine {
             initialAbsorptionTimeOverrun: config.adaptiveCarbAbsorption ? 1.0 : CarbMath.defaultAbsorptionTimeOverrun,
             momentumVelocityMaximum: momentumCap,
             momentumProjectionDuration: config.momentumProjectionMinutes * 60,
+            momentumDataInterval: config.momentumDataIntervalMinutes * 60,
             useAsymmetricMomentum: config.useAsymmetricMomentum,
             momentumAlphaSlow: config.momentumAlphaSlow,
             momentumAlphaFast: config.momentumAlphaFast
