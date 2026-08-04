@@ -95,7 +95,7 @@ should. See **[docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)**; the renderer is
   doses) + observed_ICE(real)` — the person's non-insulin physiology (carbs, exercise,
   sensor noise) is carried into the counterfactual via ICE computed from the real trace.
   Add `--candidate-infer-sensitivity` (the fidelity model) for whole-algorithm sweeps.
-  Full detail: `docs/simulator-guide/index.html`.
+  Full detail: `docs/simulator-guide/README.md`.
 - **`--decision-time-replay`** replays decisions on the fixed real history without
   acting — for same-input dose comparison and single-decision anatomy (both arms see
   identical inputs; no feedback).
@@ -206,7 +206,7 @@ not in second-guessing the dose.
 | `analysis/loopeval_analysis/` | Python: scoring, frontier, case_study, iob, disruption CSVs, carb reconstruction |
 | `docs/FRONTIERS.md` | Frontier-experiment walkthrough |
 | `docs/CASE_STUDIES.md` | Case-study walkthrough |
-| `docs/simulator-guide/index.html` | Deep technical guide to the simulator |
+| `docs/simulator-guide/README.md` | Deep technical guide to the simulator (GitHub-rendered) |
 | `docs/loop-algo-classes.md` | Deployed-Loop vs LoopAlgorithm-package behavior classes and emulation flags |
 | `PRIVATE.example.md` | Template for `PRIVATE.md` — your private per-site config (copy it; `PRIVATE.md` is git-ignored) |
 
