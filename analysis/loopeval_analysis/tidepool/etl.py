@@ -70,7 +70,7 @@ def _dedup(cols, where, typ):
     return (f"SELECT {outer} FROM (SELECT {inner}, ROW_NUMBER() OVER (PARTITION BY id ORDER BY _id) rn "
             f"FROM {TBL} WHERE {where} AND type='{typ}') WHERE rn=1 ORDER BY t_ms")
 
-def export_donor(user, start, end, outdir):
+def export_donor(user, start, end, outdir, insulin_type="rapidActingAdult"):
     os.makedirs(outdir, exist_ok=True)
     s_ms, e_ms = _ms_bounds(start, end)
     win = f"_userId='{user}' AND {_TMS} BETWEEN {s_ms} AND {e_ms}"
@@ -108,7 +108,7 @@ def export_donor(user, start, end, outdir):
         auto = (r.subType == "automated")
         if not auto: manual_ms.append(int(r.t_ms))   # manual meal/correction boluses
         doses.append({"deliveryType": "bolus", "startDate": _iso(int(r.t_ms)), "endDate": _iso(int(r.t_ms)),
-                      "volume": round(u, 4), "insulinType": "rapidActingAdult", "automatic": auto})
+                      "volume": round(u, 4), "insulinType": insulin_type, "automatic": auto})
     manual_ms.sort()
     bas = query(_dedup([f"{_TMS} AS t_ms", "deliveryType",
         "COALESCE(CAST(get_json_object(rate,'$.$numberDouble') AS DOUBLE), "
@@ -140,7 +140,7 @@ def export_donor(user, start, end, outdir):
             vol = rate * ((en - st) / 3600000.0)   # fallback: nominal rate*duration
         doses.append({"deliveryType": "basal", "startDate": _iso(st), "endDate": _iso(en),
                       "volume": round(vol, 5),
-                      "insulinType": "rapidActingAdult", "automatic": True})
+                      "insulinType": insulin_type, "automatic": True})
     doses.sort(key=lambda d: d["startDate"])
 
     # ---- carbs (food: nutrition.carbohydrate.net g, estimatedAbsorptionDuration s) ----
@@ -180,7 +180,7 @@ def export_donor(user, start, end, outdir):
         carbs.append(e)
 
     # ---- therapy (latest pumpSettings at/before window start; expand daily schedules) ----
-    therapy = _therapy(user, s_ms, e_ms)
+    therapy = _therapy(user, s_ms, e_ms, insulin_type)
 
     for name, obj in [("glucose", glucose), ("doses", doses), ("carbs", carbs), ("therapy", therapy)]:
         with open(os.path.join(outdir, f"{name}.json"), "w") as fh:
@@ -230,7 +230,7 @@ def _expand(daily, s_ms, e_ms, valfn, tz="UTC"):
         d += timedelta(days=1)
     return out
 
-def _therapy(user, s_ms, e_ms):
+def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
     ps = query(f"""SELECT {_TMS} AS t_ms, units, basalSchedules, insulinSensitivities, carbRatios, bgTargets, bgSafetyLimit, timezone
         FROM {TBL} WHERE _userId='{user}' AND type='pumpSettings' AND {_TMS} <= {e_ms}
         ORDER BY t_ms DESC LIMIT 1""")
@@ -250,7 +250,7 @@ def _therapy(user, s_ms, e_ms):
     safety = _num(row.bgSafetyLimit)
     return {"basal": basal, "sensitivity": sens, "carbRatio": cr, "target": tgt,
             "suspendThreshold": round(safety * MMOL, 1) if safety else 70.0,
-            "maxBolus": 12.0, "maxBasalRate": 8.0, "insulinType": "rapidActingAdult"}
+            "maxBolus": 12.0, "maxBasalRate": 8.0, "insulinType": insulin_type}
 
 if __name__ == "__main__":
     import sys
