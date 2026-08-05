@@ -127,7 +127,7 @@ def export_donor(user, start, end, outdir, insulin_type="rapidActingAdult"):
         st = int(r.t_ms); dur_ms = int(_fin(r.dur_ms) or 0); rate = _fin(r.rate) or 0.0
         delivered = _fin(r.delivered)   # None if not reported
         segs.append((st, st + dur_ms, rate, delivered, dur_ms))
-    segs.sort()
+    segs.sort(key=lambda s: (s[0], s[1]))   # sort by (start, end); `delivered` may be None
     for i, (st, en, rate, delivered, rec_dur) in enumerate(segs):
         if i + 1 < len(segs):
             en = min(en, segs[i + 1][0])      # clip to next start (no overlap)
