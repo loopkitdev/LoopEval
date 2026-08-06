@@ -9,6 +9,7 @@
 import ArgumentParser
 import EvalCore
 import Foundation
+import LoopAlgorithm
 
 @available(macOS 10.15, macCatalyst 13, iOS 13, tvOS 13, watchOS 6, *)
 struct SimulateCommand: AsyncParsableCommand {
@@ -67,6 +68,10 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .customLong("mid-absorption-isf"), inversion: .prefixedNo,
           help: "Mid-absorption ISF: re-evaluate ALL active IOB at the CURRENT sensitivity (current LoopAlgorithm default). Pass --no-mid-absorption-isf for the OLD/deployed-Loop behavior: each dose keeps the sensitivity in effect at its delivery time for its lifetime (matters when ISF changes mid-absorption, e.g. a Temporary Override). Applies to BOTH arms.")
     var midAbsorptionIsf: Bool = true
+
+    @Flag(name: .customLong("legacy-basal-iob"),
+          help: "Deployed-Loop-main basal IOB: reproduce the delta-quantized basal-IOB \"ripple\" (pre-PR#35), which deployed Loop main still has and the LoopAlgorithm package fixed. Biggest on long basal segments (overnight temp basals/suspends). Class-1 emulation flag for Loop-main users. Applies to BOTH arms.")
+    var legacyBasalIob: Bool = false
 
     @Option(name: .long, help: "Pump pulse size (U) for the candidate BASAL delivery in the counter. Models a real pump: delivers whole pulses, CARRIES the sub-pulse remainder while the temp rate is unchanged, drops the in-progress pulse on a temp re-issue (rate change) — reproduces the field ~1.1 U/day below rate×time. Default 0.05 (Omnipod). 0 = off (ideal continuous rate×time). Applies to BOTH arms.")
     var basalPulseQuantum: Double = 0.05
@@ -436,6 +441,9 @@ struct SimulateCommand: AsyncParsableCommand {
         guard endDate > startDate else { throw ValidationError("--end must be after --start") }
         let interval = DateInterval(start: startDate, end: endDate)
         let resolvedTz: TimeZone = localTimezone.flatMap { TimeZone(identifier: $0) } ?? .current
+
+        // Class-1 emulation: reproduce deployed Loop main's basal-IOB ripple (pre-PR#35).
+        InsulinMathCompat.useLegacyBasalRippleIOB = legacyBasalIob
 
         let hourlyISF: [Double]?
         if let csv = candidateIsfHourly {
