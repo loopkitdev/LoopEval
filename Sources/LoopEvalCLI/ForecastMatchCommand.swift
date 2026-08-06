@@ -10,6 +10,7 @@
 import ArgumentParser
 import EvalCore
 import Foundation
+import LoopAlgorithm
 
 @available(macOS 10.15, macCatalyst 13, iOS 13, tvOS 13, watchOS 6, *)
 struct ForecastMatchCommand: AsyncParsableCommand {
@@ -90,6 +91,9 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Disable the gradual-transitions gate (>40 mg/dL jump suppresses momentum). The gate is a LoopAlgorithm addition NOT in Loop 3.9.3 — pass this to match 3.9.3.")
     var noGradualTransitionsGate: Bool = false
 
+    @Flag(name: .customLong("legacy-basal-iob"), help: "Deployed-Loop-main basal IOB: reproduce the delta-quantized basal-IOB \"ripple\" (pre-PR#35) that deployed Loop main still has and the LoopAlgorithm package fixed. Class-1 emulation flag for Loop-main forecast-matching.")
+    var legacyBasalIob: Bool = false
+
     @Option(name: .long, help: "Drop decision times whose latest CGM is older than this many minutes — off-cycle / user-triggered devicestatus uploads (manual bolus, carb log) that fall BETWEEN CGM readings, where real Loop does NOT issue an automatic dose. 0 = keep all (default). Typical: 1.5 to keep only fresh-CGM auto-dose cycles.")
     var maxCgmAgeMin: Double = 0
 
@@ -134,6 +138,7 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     }
 
     mutating func run() async throws {
+        InsulinMathCompat.useLegacyBasalRippleIOB = legacyBasalIob
         let startDate = try parseISO8601Date(start)
         let endDate   = try parseISO8601Date(end)
         guard endDate > startDate else { throw ValidationError("--end must be after --start") }
