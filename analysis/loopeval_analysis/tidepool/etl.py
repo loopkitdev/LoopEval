@@ -70,10 +70,134 @@ def _dedup(cols, where, typ):
     return (f"SELECT {outer} FROM (SELECT {inner}, ROW_NUMBER() OVER (PARTITION BY id ORDER BY _id) rn "
             f"FROM {TBL} WHERE {where} AND type='{typ}') WHERE rn=1 ORDER BY t_ms")
 
-def export_donor(user, start, end, outdir, insulin_type="rapidActingAdult"):
+# brand (insulinFormulation.simple.brand) → EvalCore ExponentialInsulinModelPreset
+_BRAND_MAP = {
+    "fiasp": "fiasp", "lyumjev": "lyumjev", "afrezza": "afrezza",
+    "novolog": "rapidActingAdult", "novorapid": "rapidActingAdult",
+    "humalog": "rapidActingAdult", "admelog": "rapidActingAdult",
+    "apidra": "rapidActingAdult",
+}
+
+def _insulin_type_from_data(user, s_ms, e_ms, default="rapidActingAdult"):
+    """Read the actual insulin brand from insulinFormulation on bolus/basal records
+    (Tidepool: {"simple":{"actingType":"rapid","brand":"Fiasp"}}) → EvalCore preset.
+    Returns (preset, brand_str). Falls back to `default` if absent/unknown."""
+    q = (f"SELECT get_json_object(insulinFormulation,'$.simple.brand') AS brand, count(*) n "
+         f"FROM {TBL} WHERE _userId='{user}' AND {_TMS} BETWEEN {s_ms} AND {e_ms} "
+         f"AND insulinFormulation IS NOT NULL GROUP BY brand ORDER BY n DESC LIMIT 1")
+    df = query(q)
+    if df.empty or not df.iloc[0]["brand"]:
+        return default, None
+    brand = str(df.iloc[0]["brand"])
+    return _BRAND_MAP.get(brand.strip().lower(), default), brand
+
+def _overrides(user, s_ms, e_ms, e_win_ms):
+    """Fetch temporary-override usage (deviceEvent/pumpSettingsOverride) and build
+    absolute-time intervals with the effective scale factors + target. Each enactment
+    is logged twice at one timestamp (a finite-duration row and a None/indefinite row);
+    collapse per timestamp, using the finite duration when present. An override runs
+    [start, start+duration] (finite) or [start, modifiedTime] (indefinite — Tidepool
+    bumps modifiedTime when it's turned off; falls back to the next enactment only if
+    modifiedTime is missing), always cut short by the next enactment (supersession).
+    Returns sorted list of (start_ms, end_ms, {isf_sf, basal_sf, cr_sf, tgt_low,
+    tgt_high, preset}). NOTE: indefinite-→-next-enactment over-extended (a 6.6h "low"
+    became 29.7h); modifiedTime end validated against Loop's recorded IOB (2026-08-07)."""
+    q = (f"SELECT {_TMS} AS t_ms, "
+         f"CAST(get_json_object(duration,'$.$numberInt') AS BIGINT) AS dur_s, "
+         f"overridePreset AS preset, "
+         f"get_json_object(insulinSensitivityScaleFactor,'$.$numberDouble') AS isf_sf, "
+         f"get_json_object(basalRateScaleFactor,'$.$numberDouble') AS basal_sf, "
+         f"get_json_object(carbRatioScaleFactor,'$.$numberDouble') AS cr_sf, "
+         f"get_json_object(bgTarget,'$.low.$numberDouble') AS tgt_low, "
+         f"get_json_object(bgTarget,'$.high.$numberDouble') AS tgt_high, "
+         f"CAST(get_json_object(modifiedTime,'$.$date.$numberLong') AS BIGINT) AS mod_ms, id "
+         # NO id-dedup: Tidepool stores an override as EDIT-VERSIONS sharing one id — it's
+         # first uploaded INDEFINITE (duration null), then EDITED with the resolved finite
+         # duration when it ends. Keeping rn=1 (oldest _id) drops the finite end → the
+         # override looks indefinite and over-extends. Fetch all versions; the per-timestamp
+         # collapse below keeps the finite (resolved) one.
+         f"FROM {TBL} WHERE _userId='{user}' AND type='deviceEvent' AND subType='pumpSettingsOverride'")
+    df = query(q)
+    if df.empty:
+        return []
+    # collapse per (timestamp, preset): prefer the finite-duration (resolved) edit-version;
+    # among finite versions keep the LARGEST duration (the final resolved end, not an interim).
+    grp = {}
+    for r in df.itertuples():
+        t = int(r.t_ms); key = (t // 1000, r.preset)
+        dur = _fin(r.dur_s)
+        _m = _fin(r.mod_ms); mod = int(_m) if _m is not None else None
+        cur = grp.get(key)
+        rec = dict(t=t, dur=dur, mod=mod, preset=r.preset,
+                   isf=_fin(r.isf_sf) or 1.0, basal=_fin(r.basal_sf) or 1.0, cr=_fin(r.cr_sf) or 1.0,
+                   tlo=_fin(r.tgt_low), thi=_fin(r.tgt_high))
+        if cur is None:
+            grp[key] = rec
+        else:
+            # keep the latest modifiedTime across edit-versions (marks the end for indefinite ones)
+            if mod is not None and (cur["mod"] is None or mod > cur["mod"]):
+                cur["mod"] = mod
+            # prefer a finite (resolved) duration; among finite versions keep the LARGEST
+            if dur is not None and (cur["dur"] is None or dur > cur["dur"]):
+                rec["mod"] = max(m for m in (mod, cur["mod"]) if m is not None) if (mod or cur["mod"]) else None
+                grp[key] = rec
+    evs = sorted(grp.values(), key=lambda x: x["t"])
+    ivals = []
+    for i, ev in enumerate(evs):
+        nxt = evs[i + 1]["t"] if i + 1 < len(evs) else e_win_ms
+        if ev["dur"] is not None:
+            end = ev["t"] + int(ev["dur"] * 1000)               # finite: start + duration
+        elif ev["mod"] is not None and ev["mod"] > ev["t"]:
+            end = ev["mod"]                                       # indefinite: ended at modifiedTime
+        else:
+            end = nxt                                             # truly-open: until next enactment
+        end = min(end, nxt, e_win_ms)
+        st = max(ev["t"], s_ms)
+        if end <= st:
+            continue
+        ivals.append((st, end, {"isf_sf": ev["isf"], "basal_sf": ev["basal"], "cr_sf": ev["cr"],
+                                "tgt_low": ev["tlo"], "tgt_high": ev["thi"], "preset": ev["preset"]}))
+    return ivals
+
+def _overlay_overrides(base, overrides, apply_fn):
+    """Split base segments (dicts w/ startDate/endDate ISO + values) at override
+    boundaries; apply_fn(rec, ov_or_None) yields the effective value dict per piece."""
+    if not overrides:
+        return base
+    def pms(iso):
+        return int(datetime.strptime(iso, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc).timestamp() * 1000) \
+            if "." in iso else int(datetime.strptime(iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp() * 1000)
+    segs = [(pms(r["startDate"]), pms(r["endDate"]), r) for r in base]
+    bnds = sorted(set([s for s, _, _ in segs] + [e for _, e, _ in segs]
+                      + [o[0] for o in overrides] + [o[1] for o in overrides]))
+    out = []
+    for i in range(len(bnds) - 1):
+        s, e = bnds[i], bnds[i + 1]
+        if e <= s:
+            continue
+        rec = next((r for (bs, be, r) in segs if bs <= s and be >= e), None)
+        if rec is None:
+            continue
+        ov = next((o[2] for o in overrides if o[0] <= s and o[1] >= e), None)
+        val = apply_fn(rec, ov)
+        row = {"startDate": _iso(s), "endDate": _iso(e)}
+        row.update(val)
+        # merge with previous if identical value (keep the file compact)
+        if out and out[-1]["endDate"] == row["startDate"] and \
+           {k: v for k, v in out[-1].items() if k not in ("startDate", "endDate")} == val:
+            out[-1]["endDate"] = row["endDate"]
+        else:
+            out.append(row)
+    return out
+
+def export_donor(user, start, end, outdir, insulin_type=None):
     os.makedirs(outdir, exist_ok=True)
     s_ms, e_ms = _ms_bounds(start, end)
     win = f"_userId='{user}' AND {_TMS} BETWEEN {s_ms} AND {e_ms}"
+    # Insulin type from data (insulinFormulation.brand) unless caller forces one.
+    if insulin_type is None:
+        insulin_type, brand = _insulin_type_from_data(user, s_ms, e_ms)
+        print(f"{user}: insulin brand={brand} → --insulin-type {insulin_type}")
 
     # ---- glucose (cbg, mmol/L → mg/dL) ----
     g = query(_dedup([f"{_TMS} AS t_ms",
@@ -247,6 +371,24 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
     tgt = _expand(_sched(row.bgTargets), s_ms, e_ms,
                   lambda it: {"lowerBound": round(_num(it["low"]) * MMOL, 1),
                               "upperBound": round(_num(it["high"]) * MMOL, 1)}, tz)
+
+    # Bake temporary-override usage into the effective schedules: within each override
+    # window scale basal/ISF/CR by the recorded factors and replace the target. This
+    # makes the CF sim replay the OVERRIDDEN settings the person actually ran, instead
+    # of the base schedule (which mis-attributes override-driven glycemia to the algo).
+    ovs = _overrides(user, s_ms, e_ms, e_ms)
+    if ovs:
+        basal = _overlay_overrides(basal, ovs, lambda r, o: {"value": round(r["value"] * (o["basal_sf"] if o else 1.0), 5)})
+        sens = _overlay_overrides(sens, ovs, lambda r, o: {"value": round(r["value"] * (o["isf_sf"] if o else 1.0), 3)})
+        cr = _overlay_overrides(cr, ovs, lambda r, o: {"value": round(r["value"] * (o["cr_sf"] if o else 1.0), 3)})
+        def _tgt(r, o):
+            if o and o["tgt_low"] is not None and o["tgt_high"] is not None:
+                return {"lowerBound": round(o["tgt_low"] * MMOL, 1), "upperBound": round(o["tgt_high"] * MMOL, 1)}
+            return {"lowerBound": r["lowerBound"], "upperBound": r["upperBound"]}
+        tgt = _overlay_overrides(tgt, ovs, _tgt)
+        tot_h = sum((e - s) for s, e, _ in ovs) / 3600000.0
+        print(f"{user}: baked {len(ovs)} override windows ({tot_h:.0f}h active) into therapy schedules")
+
     safety = _num(row.bgSafetyLimit)
     return {"basal": basal, "sensitivity": sens, "carbRatio": cr, "target": tgt,
             "suspendThreshold": round(safety * MMOL, 1) if safety else 70.0,
