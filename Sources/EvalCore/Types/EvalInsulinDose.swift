@@ -23,6 +23,14 @@ public struct EvalInsulinDose: InsulinDose, Codable, Sendable {
     /// Defaults to true when absent (older caches / non-Loop data sources).
     public var automatic: Bool
 
+    /// Programmed temp-basal rate (U/hr) for `.basal` doses. Preserved so an
+    /// in-progress temp basal (the one running at a forecast instant) can be
+    /// recreated as `rate × elapsed` and clipped at t — the finalized record's
+    /// pulse-quantized `volume` (delivered `amount`) under-reports the elapsed
+    /// delivery of the still-running temp the previous loop enacted. nil for
+    /// boluses / older caches.
+    public var tempRate: Double?
+
     /// Conforms to InsulinDose — derived at runtime from insulinType.
     public var insulinModel: InsulinModel { insulinType.model }
 
@@ -32,7 +40,8 @@ public struct EvalInsulinDose: InsulinDose, Codable, Sendable {
         endDate: Date,
         volume: Double,
         insulinType: ExponentialInsulinModelPreset = .rapidActingAdult,
-        automatic: Bool = true
+        automatic: Bool = true,
+        tempRate: Double? = nil
     ) {
         self.deliveryType = deliveryType
         self.startDate    = startDate
@@ -40,6 +49,7 @@ public struct EvalInsulinDose: InsulinDose, Codable, Sendable {
         self.volume       = volume
         self.insulinType  = insulinType
         self.automatic    = automatic
+        self.tempRate     = tempRate
     }
 
     // Custom decoder so existing caches (written before the `automatic` field
@@ -52,5 +62,6 @@ public struct EvalInsulinDose: InsulinDose, Codable, Sendable {
         volume       = try c.decode(Double.self,              forKey: .volume)
         insulinType  = try c.decode(ExponentialInsulinModelPreset.self, forKey: .insulinType)
         automatic    = try c.decodeIfPresent(Bool.self,       forKey: .automatic) ?? true
+        tempRate     = try c.decodeIfPresent(Double.self,     forKey: .tempRate)
     }
 }

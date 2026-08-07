@@ -297,17 +297,18 @@ public actor NightscoutEvalDataSource: EvalDataSource {
                 let rate = t.absolute ?? t.rate ?? 0.0
                 let durationMin = t.duration ?? 0
                 let endDate = date.addingTimeInterval(durationMin * 60)
-                // Use the pump's ACTUAL pulse-quantized delivered amount when present
-                // (Loop reconciles IOB/effects on delivered units; pumps deliver basal
-                // in 0.05U pulses, so amount != rate*duration). Fall back to the nominal
-                // rate*duration only when the delivered amount wasn't recorded.
+                // ENDED temp basals: use the pump-reported delivered `amount` (matches Loop main +
+                // LoopAlgorithm). ONGOING temp basals (spanning the forecast instant) must instead be
+                // rate×elapsed cut at the forecast time — handled by dose trimming at prediction time,
+                // NOT here. Fall back to rate×duration only when `amount` is absent.
                 let volume = t.amount ?? (rate * (durationMin / 60.0))
                 let dose = EvalInsulinDose(
                     deliveryType: .basal,
                     startDate: date,
                     endDate: endDate,
                     volume: volume,
-                    insulinType: insulinType
+                    insulinType: insulinType,
+                    tempRate: rate           // programmed rate — recreate the in-progress temp as rate×elapsed
                 )
                 doses.append(dose)
 

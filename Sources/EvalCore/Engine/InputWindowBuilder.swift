@@ -121,12 +121,29 @@ struct InputWindowBuilder: Sendable {
         // OVERshoots +10 mg/dL — recorded duration is the best-balanced). Set true for the
         // cleaner going-forward design: a temp still running at t is treated as ENDED at t
         // (only the elapsed [start,t] portion counts; scheduled resumes after).
-        if config.clipInProgressTempBasal && !useFutureInsulin {
-            for i in dosesSlice.indices where dosesSlice[i].deliveryType == .basal && dosesSlice[i].endDate > decisionTime {
-                let full = dosesSlice[i].endDate.timeIntervalSince(dosesSlice[i].startDate)
-                let elapsed = max(0, decisionTime.timeIntervalSince(dosesSlice[i].startDate))
-                dosesSlice[i].volume = full > 0 ? dosesSlice[i].volume * (elapsed / full) : 0
-                dosesSlice[i].endDate = decisionTime
+        if !useFutureInsulin {
+            // The temp the PREVIOUS loop enacted is still running at t — the record shows it
+            // ending at t only because THIS loop ends it, and single-stream clipping trimmed its
+            // `endDate` to t. Recreate it at its programmed rate projected to its COMMANDED end
+            // (its finalized pulse-quantized `volume` under-reports the elapsed delivery). The
+            // insulin model then gives IOB(t) = rate×elapsed AND keeps the forecast's future
+            // rate×remaining. `>=` catches the running temp clipped to end exactly at t.
+            // NS data only (tempRate/programmedEnd present); other sources fall back to the flag.
+            for i in dosesSlice.indices where dosesSlice[i].deliveryType == .basal && dosesSlice[i].endDate >= decisionTime {
+                // Confirmed against a Loop Issue Report: an ENDED temp uses the pulse-floored
+                // deliveredUnits (= NS `amount`), but the IN-PROGRESS temp has deliveredUnits == nil,
+                // so Loop's IOB uses programmedUnits = rate×duration, trimmed at t → rate×elapsed
+                // (the finalized floored `amount` under-reports the still-running elapsed delivery).
+                if let rate = dosesSlice[i].tempRate {
+                    let elapsed = max(0, decisionTime.timeIntervalSince(dosesSlice[i].startDate))
+                    dosesSlice[i].volume = rate * (elapsed / 3600.0)
+                    dosesSlice[i].endDate = decisionTime
+                } else if config.clipInProgressTempBasal {
+                    let full = dosesSlice[i].endDate.timeIntervalSince(dosesSlice[i].startDate)
+                    let elapsed = max(0, decisionTime.timeIntervalSince(dosesSlice[i].startDate))
+                    dosesSlice[i].volume = full > 0 ? dosesSlice[i].volume * (elapsed / full) : 0
+                    dosesSlice[i].endDate = decisionTime
+                }
             }
         }
 
