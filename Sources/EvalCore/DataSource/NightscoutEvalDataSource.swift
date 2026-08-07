@@ -127,6 +127,9 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     }
 
     public func getCarbEntries(interval: DateInterval) async throws -> [EvalCarbEntry] {
+        // v14 — one-to-one carb↔manual-bolus pairing + tight 120s window (was 15 min,
+        // which let an early carb steal a LATER carb's manual bolus, deferring its
+        // visibility and under-dosing the meal ~0.75U). See convertTreatmentsToCarbs.
         // v13 — Trio carbs have NO userEnteredAt, so the visibility gate fell back to
         // the upload-delayed ObjectId time — the SAME late-gate bug v12 fixed for Loop,
         // but unfixable by parsing (no field). Trio uploads are latent/batched (a carb
@@ -134,7 +137,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // Fix: gate by created_at when userEnteredAt is absent (see convertTreatmentsToCarbs).
         // v12 — robust ISO parse for userEnteredAt (Loop emits it with no fractional
         // seconds); v11 switched the gate to userEnteredAt; v6 user-takeover; v4 ObjectId.
-        let cacheKey = DataCache.key(for: "carbs_v13", url: client.baseURL, interval: interval)
+        let cacheKey = DataCache.key(for: "carbs_v14", url: client.baseURL, interval: interval)
         if let cached: [EvalCarbEntry] = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -381,11 +384,38 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             }
             .sorted()
         // A co-logged meal carb and its manual bolus are effectively ATOMIC: the
-        // user enters carbs and boluses in one action (90d: carb saved a median ~1s
-        // from its bolus, 98% within 10s — but the NS upload / ObjectId-insert order
-        // of the two can straddle a decision cycle). The user's manual bolus may
-        // arrive slightly before OR after the carb's insert; pair within this window.
-        let userTakeoverWindow: TimeInterval = 15 * 60
+        // user enters carbs and boluses in one action (rloop 30d: carb saved a
+        // median ~5s from its bolus, p90 13s). Pair within a TIGHT window — a manual
+        // bolus minutes away belongs to a DIFFERENT meal or is a separate correction,
+        // NOT this carb's co-log. (Was 15 min, which let an early carb with no manual
+        // bolus grab a LATER carb's manual bolus: e.g. a 15g carb entered 14:51 —
+        // auto-dosed by Loop at 14:56 — paired to the 15:02 manual bolus of a
+        // separate 25g carb, deferring the 15g's visibility to 15:02 so the sim saw
+        // COB=0 and UNDER-dosed the meal by ~0.75U on the first post-meal cycle.)
+        let userTakeoverWindow: TimeInterval = 120
+
+        // ONE-TO-ONE greedy pairing (closest first): each manual bolus gates at most
+        // ONE carb (its nearest), and each carb takes at most one bolus — so a bolus
+        // can't defer two carbs and a carb can't steal a neighbouring meal's bolus.
+        // Keyed per carb by _id (fallback created_at).
+        func carbKey(_ t: NightscoutTreatment) -> String { t.id ?? t.created_at }
+        let carbBases: [(key: String, base: Date)] = treatments.compactMap { t in
+            guard let c = t.carbs, c > 0, let ca = Self.robustISODate(t.created_at) else { return nil }
+            return (carbKey(t), Self.robustISODate(t.userEnteredAt) ?? ca)
+        }
+        var pairCandidates: [(gap: TimeInterval, key: String, bolus: Date)] = []
+        for (key, base) in carbBases {
+            for bt in manualBolusTimes where abs(bt.timeIntervalSince(base)) <= userTakeoverWindow {
+                pairCandidates.append((abs(bt.timeIntervalSince(base)), key, bt))
+            }
+        }
+        pairCandidates.sort { $0.gap < $1.gap }
+        var pairedBolusForCarb = [String: Date]()
+        var usedCarb = Set<String>(); var usedBolus = Set<Date>()
+        for cand in pairCandidates where !usedCarb.contains(cand.key) && !usedBolus.contains(cand.bolus) {
+            pairedBolusForCarb[cand.key] = cand.bolus
+            usedCarb.insert(cand.key); usedBolus.insert(cand.bolus)
+        }
 
         return treatments.compactMap { t -> EvalCarbEntry? in
             guard let carbs = t.carbs, carbs > 0 else { return nil }
@@ -428,12 +458,10 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             // bolus, and a forward-only pair misses the bolus-uploaded-first case,
             // leaving the carb invisible while its bolus is already dosing → crash.
             // Meals with no nearby manual bolus keep baseEntry (Loop genuinely owns it).
-            let pairedBolus = manualBolusTimes
-                .filter { abs($0.timeIntervalSince(baseEntry)) <= userTakeoverWindow }
-                .min(by: { abs($0.timeIntervalSince(baseEntry)) < abs($1.timeIntervalSince(baseEntry)) })
             // dosingVisibleDate = the (aligned) gate for NORMAL auto-dosing;
-            // entryDate stays the TRUE entry time (baseEntry).
-            let dosingVisibleDate = pairedBolus ?? baseEntry
+            // entryDate stays the TRUE entry time (baseEntry). Pairing is the
+            // one-to-one greedy assignment computed above.
+            let dosingVisibleDate = pairedBolusForCarb[carbKey(t)] ?? baseEntry
             let mealDate = Self.robustISODate(t.timestamp) ?? createdAt
             // Loop publishes per-entry absorptionTime in NS (MINUTES). Use it —
             // otherwise the carb math falls back to a long default (~3h) and
