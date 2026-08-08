@@ -303,7 +303,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         if absorb: e["absorptionTime"] = absorb
         carbs.append(e)
 
-    # ---- therapy (latest pumpSettings at/before window start; expand daily schedules) ----
+    # ---- therapy (per-era pumpSettings schedules across the window; expand daily schedules) ----
     therapy = _therapy(user, s_ms, e_ms, insulin_type)
 
     for name, obj in [("glucose", glucose), ("doses", doses), ("carbs", carbs), ("therapy", therapy)]:
@@ -354,23 +354,75 @@ def _expand(daily, s_ms, e_ms, valfn, tz="UTC"):
         d += timedelta(days=1)
     return out
 
+def _merge_adj(segs):
+    """Merge consecutive segments (startDate/endDate ISO + values) that share a
+    boundary AND identical values — keeps concatenated per-era schedules compact."""
+    out = []
+    for r in segs:
+        val = {k: v for k, v in r.items() if k not in ("startDate", "endDate")}
+        if out and out[-1]["endDate"] == r["startDate"] and \
+           {k: v for k, v in out[-1].items() if k not in ("startDate", "endDate")} == val:
+            out[-1]["endDate"] = r["endDate"]
+        else:
+            out.append(dict(r))
+    return out
+
 def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
+    # Full pumpSettings history up to window end (NO lower bound — we need the record
+    # active at window START too), oldest→newest. We track SETTINGS CHANGES over the
+    # window by building per-era dated schedules, instead of applying one end-of-window
+    # snapshot across the whole window (which mis-replays base basal/ISF/CR/target for
+    # the pre-edit period — biased toward the newest settings since it took ≤ window-end).
     ps = query(f"""SELECT {_TMS} AS t_ms, units, basalSchedules, insulinSensitivities, carbRatios, bgTargets, bgSafetyLimit, timezone
         FROM {TBL} WHERE _userId='{user}' AND type='pumpSettings' AND {_TMS} <= {e_ms}
-        ORDER BY t_ms DESC LIMIT 1""")
+        ORDER BY t_ms ASC""")
     if ps.empty:
         raise RuntimeError(f"no pumpSettings for {user} before window end")
-    row = ps.iloc[0]
-    tz = row.timezone or "UTC"
-    basal = _expand(_sched(row.basalSchedules), s_ms, e_ms,
-                    lambda it: {"value": round(_num(it["rate"]), 4)}, tz)
-    sens = _expand(_sched(row.insulinSensitivities), s_ms, e_ms,
-                   lambda it: {"value": round(_num(it["amount"]) * MMOL, 2)}, tz)
-    cr = _expand(_sched(row.carbRatios), s_ms, e_ms,
-                 lambda it: {"value": round(_num(it["amount"]), 2)}, tz)
-    tgt = _expand(_sched(row.bgTargets), s_ms, e_ms,
-                  lambda it: {"lowerBound": round(_num(it["low"]) * MMOL, 1),
-                              "upperBound": round(_num(it["high"]) * MMOL, 1)}, tz)
+
+    # Collapse consecutive records with identical therapy content into distinct eras
+    # (Loop re-uploads pumpSettings frequently with no change; without this the schedules
+    # churn into thousands of redundant segments). Each era is keyed by when it first
+    # took effect.
+    def _sig(r):
+        return (r.basalSchedules, r.insulinSensitivities, r.carbRatios, r.bgTargets,
+                str(r.bgSafetyLimit), r.timezone)
+    eras, prev = [], None
+    for r in ps.itertuples():
+        sig = _sig(r)
+        if sig != prev:
+            eras.append((int(r.t_ms), r)); prev = sig
+
+    # For each era, expand schedules over [max(era_start, s_ms), min(next_era_start, e_ms)]
+    # and concatenate. Eras are sorted & contiguous, so the result is sorted & non-overlapping.
+    basal, sens, cr, tgt, contrib = [], [], [], [], []
+    for i, (t0, r) in enumerate(eras):
+        era_s = max(t0, s_ms)
+        era_e = min(eras[i + 1][0] if i + 1 < len(eras) else e_ms, e_ms)
+        if era_e <= era_s:
+            continue
+        tz = r.timezone or "UTC"
+        basal += _expand(_sched(r.basalSchedules), era_s, era_e,
+                         lambda it: {"value": round(_num(it["rate"]), 4)}, tz)
+        sens += _expand(_sched(r.insulinSensitivities), era_s, era_e,
+                        lambda it: {"value": round(_num(it["amount"]) * MMOL, 2)}, tz)
+        cr += _expand(_sched(r.carbRatios), era_s, era_e,
+                      lambda it: {"value": round(_num(it["amount"]), 2)}, tz)
+        tgt += _expand(_sched(r.bgTargets), era_s, era_e,
+                       lambda it: {"lowerBound": round(_num(it["low"]) * MMOL, 1),
+                                   "upperBound": round(_num(it["high"]) * MMOL, 1)}, tz)
+        contrib.append(r)
+    basal, sens, cr, tgt = map(_merge_adj, (basal, sens, cr, tgt))
+    if len(contrib) > 1:
+        print(f"{user}: therapy spans {len(contrib)} settings eras in-window (tracking mid-window changes)")
+
+    # suspendThreshold is a single scalar in the therapy schema (not a schedule), so if it
+    # changed in-window we can't represent the timeline — use the latest and warn.
+    safeties = [_num(r.bgSafetyLimit) for r in contrib]
+    safety = next((s for s in reversed(safeties) if s), None)
+    distinct = sorted({round(s * MMOL, 1) for s in safeties if s})
+    if len(distinct) > 1:
+        print(f"{user}: WARNING suspendThreshold changed in-window {distinct} mg/dL — "
+              f"schema stores one scalar; using latest {round(safety * MMOL, 1)}")
 
     # Bake temporary-override usage into the effective schedules: within each override
     # window scale basal/ISF/CR by the recorded factors and replace the target. This
@@ -389,7 +441,6 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
         tot_h = sum((e - s) for s, e, _ in ovs) / 3600000.0
         print(f"{user}: baked {len(ovs)} override windows ({tot_h:.0f}h active) into therapy schedules")
 
-    safety = _num(row.bgSafetyLimit)
     return {"basal": basal, "sensitivity": sens, "carbRatio": cr, "target": tgt,
             "suspendThreshold": round(safety * MMOL, 1) if safety else 70.0,
             "maxBolus": 12.0, "maxBasalRate": 8.0, "insulinType": insulin_type}
