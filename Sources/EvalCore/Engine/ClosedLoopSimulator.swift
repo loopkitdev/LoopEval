@@ -2238,8 +2238,11 @@ extension EvaluationEngine {
         // classic net-basal-units split.
         let decomposition: SensitivityDecomposition =
             ((egpPhysicalDecomposition && isfBoostActiveOnly) || postlowActive) ? .physicalDelivery : .netBasalUnits
+        // start = last glucose + processing delay, so the momentum/RC windows now-anchor
+        // like deployed Loop main (see EvalConfig.momentumProcessingDelay).
+        let predStart = effectiveInput.glucose.last?.startDate.addingTimeInterval(EvalConfig.momentumProcessingDelay) ?? t
         var prediction: LoopPrediction<EvalCarbEntry> = LoopAlgorithm.generatePrediction(
-            start: t,
+            start: predStart,
             glucoseHistory: effectiveInput.glucose,
             doses: effectiveInput.doses,
             carbEntries: effectiveInput.carbs,
