@@ -378,8 +378,11 @@ public actor EvaluationEngine {
                 ?? t.addingTimeInterval(-config.insulinLookbackHours * 3600)
             let doseWindowEnd = t.addingTimeInterval(6 * 3600)
             let stepPrecomputed = precomputed.sliced(from: doseWindowStart, to: doseWindowEnd)
+            // start = last glucose + processing delay, so the momentum/RC windows now-anchor
+            // like deployed Loop main (see EvalConfig.momentumProcessingDelay).
+            let predStart = input.glucose.last?.startDate.addingTimeInterval(EvalConfig.momentumProcessingDelay) ?? t
             prediction = LoopAlgorithm.generatePrediction(
-                start: t,
+                start: predStart,
                 glucoseHistory: input.glucose,
                 precomputedInsulin: stepPrecomputed,
                 carbEntries: input.carbs,
@@ -416,8 +419,10 @@ public actor EvaluationEngine {
                 momentumAlphaFast: config.momentumAlphaFast
             )
         } else {
+            // start = last glucose + processing delay (see EvalConfig.momentumProcessingDelay).
+            let predStart = input.glucose.last?.startDate.addingTimeInterval(EvalConfig.momentumProcessingDelay) ?? t
             prediction = LoopAlgorithm.generatePrediction(
-                start: t,
+                start: predStart,
                 glucoseHistory: input.glucose,
                 doses: input.doses,
                 carbEntries: input.carbs,
@@ -459,8 +464,10 @@ public actor EvaluationEngine {
         var noFuturePredicted: [PredictedGlucoseValue]? = nil
         if config.includeFutureInsulin,
            let inputNoFuture = builder.buildInput(at: t, includeFutureInsulin: false) {
+            // start = last glucose + processing delay (see EvalConfig.momentumProcessingDelay).
+            let predStartNF = inputNoFuture.glucose.last?.startDate.addingTimeInterval(EvalConfig.momentumProcessingDelay) ?? t
             let predNoFuture = LoopAlgorithm.generatePrediction(
-                start: t,
+                start: predStartNF,
                 glucoseHistory: inputNoFuture.glucose,
                 doses: inputNoFuture.doses,
                 carbEntries: inputNoFuture.carbs,

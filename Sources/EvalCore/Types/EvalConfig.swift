@@ -5,6 +5,16 @@ import LoopAlgorithm
 
 /// Configuration parameters for a Loop prediction evaluation sweep.
 public struct EvalConfig: Codable, Sendable {
+    /// CGM→loop processing delay (seconds). Deployed Loop `main` runs the loop a few
+    /// seconds AFTER a CGM sample arrives and anchors its momentum window to wall-clock
+    /// `now` (`GlucoseStore.getRecentMomentumEffect(for: now())` → `[now − 15min, …]`),
+    /// which excludes the sample exactly one interval before the latest one. The
+    /// LoopAlgorithm package instead anchors the momentum/RC windows to the forecast
+    /// `start`; passing `start = lastGlucose + this delay` reproduces the deployed
+    /// now-anchoring (the forecast itself stays anchored to `latestGlucose`, so its
+    /// values are unaffected — only the windows shift). See getRecentMomentumEffect.
+    public static let momentumProcessingDelay: TimeInterval = 7
+
     /// How often to advance the prediction start (seconds).  Default: 5 min.
     public var evalStep: TimeInterval
 
