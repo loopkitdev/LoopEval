@@ -141,6 +141,8 @@ public struct EvalConfig: Codable, Sendable {
     /// If false, only net negative momentum and RC effects will be used.
     /// Default: true (same as LoopAlgorithm default).
     public var includingPositiveVelocityAndRC: Bool
+    /// Emulate Loop-main (pre-#33): step-by-step RC decayEffect instead of the continuous quadratic.
+    public var useLegacyRCDecay: Bool = false
 
     /// Use mid-absorption ISF for insulin effects computation.
     /// Default: true — propagates per-future-time ISF schedule changes into
@@ -590,6 +592,7 @@ public struct EvalConfig: Codable, Sendable {
         positiveVelocityCap: Double? = nil,
         momentumProjectionMinutes: Double = 15,
         momentumGradualTransitionsThreshold: Double? = 40,
+        useLegacyRCDecay: Bool = false,
         useAsymmetricMomentum: Bool = false,
         momentumAlphaSlow: Double = 0.15,
         momentumAlphaFast: Double = 0.85,
@@ -690,6 +693,7 @@ public struct EvalConfig: Codable, Sendable {
         self.clipInProgressTempBasal        = clipInProgressTempBasal
         self.horizons                       = horizons
         self.includingPositiveVelocityAndRC = includingPositiveVelocityAndRC
+        self.useLegacyRCDecay = useLegacyRCDecay
         self.useMidAbsorptionISF            = useMidAbsorptionISF
         self.carbAbsorptionModel            = carbAbsorptionModel
         self.adaptiveCarbAbsorption         = adaptiveCarbAbsorption
@@ -719,7 +723,7 @@ public struct EvalConfig: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
-        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, horizons, includingPositiveVelocityAndRC
+        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay
         case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec, carbRevisionsPath, overrideTargetsPath
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
@@ -771,6 +775,7 @@ public struct EvalConfig: Codable, Sendable {
         self.clipInProgressTempBasal = (try? c.decode(Bool.self,    forKey: .clipInProgressTempBasal)) ?? false
         self.horizons             = try c.decode([TimeInterval].self, forKey: .horizons)
         self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
+        self.useLegacyRCDecay = try c.decodeIfPresent(Bool.self, forKey: .useLegacyRCDecay) ?? false
         self.useMidAbsorptionISF  = try c.decode(Bool.self,         forKey: .useMidAbsorptionISF)
         self.carbAbsorptionModel  = try c.decode(CarbAbsorptionModel.self, forKey: .carbAbsorptionModel)
         self.adaptiveCarbAbsorption = try c.decodeIfPresent(Bool.self, forKey: .adaptiveCarbAbsorption) ?? false
@@ -899,6 +904,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(clipInProgressTempBasal, forKey: .clipInProgressTempBasal)
         try c.encode(horizons, forKey: .horizons)
         try c.encode(includingPositiveVelocityAndRC, forKey: .includingPositiveVelocityAndRC)
+        try c.encode(useLegacyRCDecay, forKey: .useLegacyRCDecay)
         try c.encode(useMidAbsorptionISF, forKey: .useMidAbsorptionISF)
         try c.encode(carbAbsorptionModel, forKey: .carbAbsorptionModel)
         try c.encode(adaptiveCarbAbsorption, forKey: .adaptiveCarbAbsorption)

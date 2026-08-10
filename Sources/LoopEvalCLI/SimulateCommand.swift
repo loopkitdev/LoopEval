@@ -176,6 +176,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Disable the gradual-transitions gate (>40 mg/dL jump suppresses momentum AND RC) in BOTH arms. The gate is a LoopAlgorithm (class-2) addition NOT in deployed Loop-main (class-1) — pass this to reproduce class-1. Applies to baseline + candidate so identity is preserved.")
     var noGradualTransitionsGate: Bool = false
 
+    @Flag(name: .long, help: "Emulate Loop-main: use the pre-#33 step-by-step RC decayEffect (a small discontinuity at delta boundaries for unaligned CGM) instead of the LoopAlgorithm continuous-quadratic reformulation (LoopKit#556). Pass for donors whose deployed Loop predates that change. Applies to both arms.")
+    var legacyRcDecay: Bool = false
+
     @Option(name: .long, help: "Per-step ISF multiplier CSV: (time, isf_multiplier) pairs. At each sim step, scales ISF by the value from the CSV nearest to step time (default 1.0 = no change). Use values >1 to make Loop see ISF as higher (less BG drop per U → recommends less dose, DAMP direction). Use <1 to make Loop see ISF as lower (more dose, BOOST direction). Steps with no matching CSV row are unchanged.")
     var candidateIsfCsv: String?
 
@@ -481,6 +484,7 @@ struct SimulateCommand: AsyncParsableCommand {
             sensitivityMultiplier: sensitivityMultiplier,
             localTimezone: resolvedTz,
             momentumGradualTransitionsThreshold: noGradualTransitionsGate ? nil : 40,
+            useLegacyRCDecay: legacyRcDecay,
             useAsymmetricMomentum: asymmetricMomentum
         )
 
@@ -580,6 +584,7 @@ struct SimulateCommand: AsyncParsableCommand {
             localTimezone: resolvedTz,
             positiveVelocityCap: candidateMomentumCap,
             momentumGradualTransitionsThreshold: noGradualTransitionsGate ? nil : 40,
+            useLegacyRCDecay: legacyRcDecay,
             useAsymmetricMomentum: candidateAsymmetricMomentum || asymmetricMomentum,
             momentumAlphaSlow: candidateMomentumAlphaSlow,
             momentumAlphaFast: candidateMomentumAlphaFast
