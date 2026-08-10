@@ -194,6 +194,42 @@ def _overlay_overrides(base, overrides, apply_fn):
             out.append(row)
     return out
 
+def _suspends(user, s_ms, e_ms):
+    """Manual / pump-suspend intervals (basal deliveryType='suspend'). A suspend is
+    the pump PHYSICALLY stopping delivery — a manual suspend or pod fault — which is
+    exogenous to the control loop: deployed Loop STOPS auto-dosing while suspended
+    (no reason='loop' dosingDecisions across the suspend), and it can't deliver. So
+    the sim must clamp delivery to 0 over the interval and the scorer must exclude it;
+    replaying dose logic through a suspend just measures the sim dosing where Loop
+    didn't. Emitted as the standard outage/disruption CSV (loopeval_analysis.outage
+    schema) so `--outages-csv` clamps both arms and scoring drops the window.
+
+    Duration is on the suspend record (ms). Look back 6h before window start so a
+    suspend straddling the start is captured; merge overlapping/adjacent windows."""
+    q = (f"SELECT {_TMS} AS t_ms, "
+         f"COALESCE(CAST(get_json_object(duration,'$.$numberInt') AS BIGINT), "
+         f"CAST(get_json_object(duration,'$.$numberLong') AS BIGINT)) AS dur_ms "
+         f"FROM {TBL} WHERE _userId='{user}' AND type='basal' AND deliveryType='suspend' "
+         f"AND {_TMS} BETWEEN {int(s_ms - 6 * 3600 * 1000)} AND {int(e_ms)}")
+    df = query(q)
+    if df.empty:
+        return []
+    iv = []
+    for r in df.itertuples():
+        dur = _fin(r.dur_ms)
+        if not dur or dur <= 0:
+            continue
+        st = int(r.t_ms)
+        iv.append((st, st + int(dur)))
+    iv.sort()
+    merged = []
+    for st, en in iv:
+        if merged and st <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], en)
+        else:
+            merged.append([st, en])
+    return [(s, e) for s, e in merged]
+
 def export_donor(user, start, end, outdir, insulin_type=None):
     os.makedirs(outdir, exist_ok=True)
     s_ms, e_ms = _ms_bounds(start, end)
@@ -313,8 +349,21 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     for name, obj in [("glucose", glucose), ("doses", doses), ("carbs", carbs), ("therapy", therapy)]:
         with open(os.path.join(outdir, f"{name}.json"), "w") as fh:
             json.dump(obj, fh, allow_nan=False)
+
+    # ---- disruptions: manual/pump suspends → outage CSV (clamp delivery + exclude from scoring) ----
+    import csv as _csv
+    sus = _suspends(user, s_ms, e_ms)
+    dis_path = os.path.join(outdir, "disruptions.csv")
+    with open(dis_path, "w", newline="") as fh:
+        w = _csv.writer(fh); w.writerow(["start", "end", "reason", "source", "notes"])
+        for s, e in sus:
+            w.writerow([_iso(s), _iso(e), "suspend", "tidepool/suspend_dose",
+                        f"suspend {round((e - s) / 60000)}min"])
+    sus_h = sum((e - s) for s, e in sus) / 3600000.0
+
     print(f"{user}: glucose={len(glucose)} doses={len(doses)} carbs={len(carbs)} "
-          f"therapy(basal={len(therapy['basal'])},isf={len(therapy['sensitivity'])}) → {outdir}")
+          f"therapy(basal={len(therapy['basal'])},isf={len(therapy['sensitivity'])}) "
+          f"suspends={len(sus)}({sus_h:.1f}h) → {outdir}")
     return dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs))
 
 def _sched(j):
