@@ -2278,6 +2278,7 @@ extension EvaluationEngine {
             earlyRiseBgHigh: config.earlyRiseBgHigh,
             earlyRiseSlopeThreshold: config.earlyRiseSlopeThreshold,
             includingPositiveVelocityAndRC: config.includingPositiveVelocityAndRC,
+                useLegacyRCDecay: config.useLegacyRCDecay,
             useMidAbsorptionISF: config.useMidAbsorptionISF,
             carbAbsorptionModel: config.carbAbsorptionModel.model,
             adaptiveCarbAbsorption: config.adaptiveCarbAbsorption,
