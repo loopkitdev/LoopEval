@@ -131,16 +131,20 @@ def _overrides(user, s_ms, e_ms, e_win_ms):
         rec = dict(t=t, dur=dur, mod=mod, preset=r.preset,
                    isf=_fin(r.isf_sf) or 1.0, basal=_fin(r.basal_sf) or 1.0, cr=_fin(r.cr_sf) or 1.0,
                    tlo=_fin(r.tgt_low), thi=_fin(r.tgt_high))
+        # Keep the LATEST edit-version (by modifiedTime). When an override is turned off
+        # EARLY, Tidepool writes a new version at the same start with the ACTUAL (shorter)
+        # duration and a later modifiedTime, while the original carries the longer SCHEDULED
+        # duration. The newest-modified version holds the resolved duration/end. An earlier
+        # "keep the LARGEST duration" rule over-extended every early-cancelled override
+        # (e.g. a 2.6h "hypo" override ran to its 4h scheduled length → ISF held ×3.33 for
+        # 84 extra min → forecast/counter crater → spurious severe lows).
         if cur is None:
             grp[key] = rec
-        else:
-            # keep the latest modifiedTime across edit-versions (marks the end for indefinite ones)
-            if mod is not None and (cur["mod"] is None or mod > cur["mod"]):
-                cur["mod"] = mod
-            # prefer a finite (resolved) duration; among finite versions keep the LARGEST
-            if dur is not None and (cur["dur"] is None or dur > cur["dur"]):
-                rec["mod"] = max(m for m in (mod, cur["mod"]) if m is not None) if (mod or cur["mod"]) else None
-                grp[key] = rec
+        elif mod is not None and (cur["mod"] is None or mod > cur["mod"]):
+            grp[key] = rec
+        elif mod is None and cur["mod"] is None and dur is not None and \
+                (cur["dur"] is None or dur > cur["dur"]):
+            grp[key] = rec  # no modifiedTime on either → fall back to the longer finite duration
     evs = sorted(grp.values(), key=lambda x: x["t"])
     ivals = []
     for i, ev in enumerate(evs):
