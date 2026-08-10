@@ -2241,6 +2241,16 @@ extension EvaluationEngine {
         // start = last glucose + processing delay, so the momentum/RC windows now-anchor
         // like deployed Loop main (see EvalConfig.momentumProcessingDelay).
         let predStart = effectiveInput.glucose.last?.startDate.addingTimeInterval(EvalConfig.momentumProcessingDelay) ?? t
+        // Hoist computed args to locals so the generatePrediction call stays under the
+        // Swift type-checker's complexity heuristic (adding gradualTransitionsThreshold
+        // tipped it into "unable to type-check in reasonable time").
+        let clampTarget: [AbsoluteScheduleValue<ClosedRange<LoopQuantity>>]? =
+            (config.useIntegralRC && config.useIntegralRCClamp) ? effectiveInput.target : nil
+        let rcRetroInterval: TimeInterval? = config.rcRetrospectionMinutes.map { $0 * 60 }
+        let rcEffDuration: TimeInterval? = config.rcEffectDurationMinutes.map { $0 * 60 }
+        let absorbOverrun: Double = config.adaptiveCarbAbsorption ? 1.0 : CarbMath.defaultAbsorptionTimeOverrun
+        let momProjDuration: TimeInterval = config.momentumProjectionMinutes * 60
+        let momDataIntervalSec: TimeInterval = config.momentumDataIntervalMinutes * 60
         var prediction: LoopPrediction<EvalCarbEntry> = LoopAlgorithm.generatePrediction(
             start: predStart,
             glucoseHistory: effectiveInput.glucose,
@@ -2251,7 +2261,7 @@ extension EvaluationEngine {
             scheduleBaselineSensitivity: scheduleBaseline,
             sensitivityDecomposition: decomposition,
             carbRatio: effectiveInput.carbRatio,
-            target: (config.useIntegralRC && config.useIntegralRCClamp) ? effectiveInput.target : nil,
+            target: clampTarget,
             algorithmEffectsOptions: .all,
             useIntegralRetrospectiveCorrection: config.useIntegralRC,
             ircDropGainScale: config.ircDropGainScale,
@@ -2259,8 +2269,8 @@ extension EvaluationEngine {
             ircLowMemoryScale: config.ircLowMemoryScale,
             ircDropDurationScale: config.ircDropDurationScale,
             ircRiseDurationScale: config.ircRiseDurationScale,
-            rcRetrospectionInterval: config.rcRetrospectionMinutes.map { $0 * 60 },
-            rcEffectDuration: config.rcEffectDurationMinutes.map { $0 * 60 },
+            rcRetrospectionInterval: rcRetroInterval,
+            rcEffectDuration: rcEffDuration,
             uamProjectionMinutes: config.uamProjectionMinutes,
             earlyRiseMinutes: config.earlyRiseMinutes,
             earlyRiseGain: config.earlyRiseGain,
@@ -2271,10 +2281,11 @@ extension EvaluationEngine {
             useMidAbsorptionISF: config.useMidAbsorptionISF,
             carbAbsorptionModel: config.carbAbsorptionModel.model,
             adaptiveCarbAbsorption: config.adaptiveCarbAbsorption,
-            initialAbsorptionTimeOverrun: config.adaptiveCarbAbsorption ? 1.0 : CarbMath.defaultAbsorptionTimeOverrun,
+            initialAbsorptionTimeOverrun: absorbOverrun,
+            gradualTransitionsThreshold: config.momentumGradualTransitionsThreshold,   // WIRING FIX: was omitted → defaulted to 40 (gate always on), silently ignoring --no-gradual-transitions-gate in the dosing forecast
             momentumVelocityMaximum: momentumCap,
-            momentumProjectionDuration: config.momentumProjectionMinutes * 60,
-            momentumDataInterval: config.momentumDataIntervalMinutes * 60,
+            momentumProjectionDuration: momProjDuration,
+            momentumDataInterval: momDataIntervalSec,
             useAsymmetricMomentum: config.useAsymmetricMomentum,
             momentumAlphaSlow: config.momentumAlphaSlow,
             momentumAlphaFast: config.momentumAlphaFast
