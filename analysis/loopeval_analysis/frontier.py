@@ -238,6 +238,8 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
                 ref_label: str = "insulin-needs sweep (reference)",
                 label_ref_points: bool = True,
                 ylim: tuple[float, float] = (0.0, 1.5),
+                deployed: Optional[dict] = None,
+                ref_deployed: Optional[tuple] = None,
                 title: str = "Candidate sweeps vs reference"):
     """Plot the reference and each candidate *mechanism* as a swept LINE, on the
     standard axes (t<54 up = worse — via :func:`plotting.tir_t54_axes`, never
@@ -257,11 +259,37 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
     t<54-up either way. A widened window is an exploration view, not the house plot
     — the 0-1.5 window is what therapy claims get read on.
 
+    ``deployed`` ({mechanism_name: (TIR, t54)}) and ``ref_deployed`` ((TIR, t54)) let a
+    curve's deployed point (typically the insulin-needs=1.0 / ISF×1.0 point) be shown
+    even when it sits above ``ylim``: a caret at the top edge (at its TIR) plus a
+    color-matched label above the frame — so the off-chart value isn't silently lost
+    without widening (and distorting) the sub-1% view. Points inside ``ylim`` are
+    ignored (mark them with ``mark_mult`` instead).
+
     Returns the saved path.
     """
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    _off_idx = [0]
+    def _offlabel(tir, t54, color, tag):
+        """Draw a deployed (f=1.0) point: an on-chart square if within ylim, else a
+        caret at the top edge + a color-matched label above the frame. Returns True
+        iff an on-chart square was drawn (so the legend can advertise the square)."""
+        if tir is None or t54 is None:
+            return False
+        if t54 <= ylim[1]:
+            ax.scatter([tir], [t54], s=110, marker="s", facecolor=color, edgecolor="k",
+                       linewidth=1.2, zorder=7)
+            return True
+        ax.scatter([tir], [ylim[1]], marker="^", s=55, color=color, edgecolor="k",
+                   linewidth=0.6, zorder=9, clip_on=False)
+        ax.annotate(f"{tag}@1.0 → {tir:.0f}/{t54:.2f}", xy=(tir, ylim[1]),
+                    xytext=(0, 9 + _off_idx[0] * 12), textcoords="offset points",
+                    ha="center", va="bottom", fontsize=7.5, color=color, fontweight="bold",
+                    zorder=9, clip_on=False)
+        _off_idx[0] += 1
+        return False
 
     def _ordered(frame):
         m = _multiplier_of(frame)
@@ -274,11 +302,15 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
         if len(hit):
             ax.scatter(hit["TIR"], hit["t54"], s=110, marker="s",
                        facecolor=color, edgecolor="k", linewidth=1.2, zorder=7)
+            return True
+        return False
 
     fig, ax = plt.subplots(figsize=(12, 8))
     r = _ordered(ref.dropna(subset=["TIR", "t54"]))
     ax.plot(r["TIR"], r["t54"], "o-", color="#888", lw=2, zorder=3, label=ref_label)
-    _mark(ax, r, "#888")
+    marked = _mark(ax, r, "#888")
+    if ref_deployed is not None:
+        marked = _offlabel(ref_deployed[0], ref_deployed[1], "#888", "std") or marked
     if label_ref_points and _multiplier_of(r) is not None:      # annotate each ref vertex with its sweep value
         for _, row in r.iterrows():
             ax.annotate(f"{row['_m']:g}", (row["TIR"], row["t54"]), fontsize=7, color="#555",
@@ -286,17 +318,21 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
     for name, g in cand.dropna(subset=["TIR", "t54"]).groupby(mechanism):
         g = _ordered(g)
         line, = ax.plot(g["TIR"], g["t54"], "o-", ms=4, lw=1.5, zorder=4, label=str(name))
-        _mark(ax, g, line.get_color())
+        marked = _mark(ax, g, line.get_color()) or marked
+        if deployed is not None and str(name) in deployed:
+            dp = deployed[str(name)]
+            marked = _offlabel(dp[0], dp[1], line.get_color(), str(name)) or marked
     if field is not None:
         ax.scatter([field["TIR"]], [field["t54"]], s=300, marker="*", color="crimson",
                    edgecolor="k", linewidth=0.5, zorder=6, label="FIELD (real deployment)")
-    ax.scatter([], [], s=110, marker="s", facecolor="none", edgecolor="k",
-               linewidth=1.2, label=f"×{mark_mult:g} (deployed)")
+    if marked:   # only advertise the deployed square if one actually landed on-chart
+        ax.scatter([], [], s=110, marker="s", facecolor="none", edgecolor="k",
+                   linewidth=1.2, label=f"×{mark_mult:g} (deployed)")
     tir_t54_axes(ax, ylim=ylim)   # t54 up = worse; NEVER invert
     ax.set_title(title)
     ax.legend(fontsize=9, loc="upper left")
     fig.tight_layout()
-    fig.savefig(out, dpi=110)
+    fig.savefig(out, dpi=110, bbox_inches="tight")   # bbox_inches captures off-chart labels above the frame
     plt.close(fig)
     return out
 
