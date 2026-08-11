@@ -228,15 +228,33 @@ struct InputWindowBuilder: Sendable {
         // lifetime — dropping an ended override would wrongly revert those past doses'
         // ISF (over-dose). Each window's [start, end] confines its effect; for the
         // FORECAST horizon an ended override (end <= t) naturally contributes nothing.
-        // EXCEPTION: an INDEFINITE override still ACTIVE at t (start <= t < end) had no
-        // scheduled end known at t, so extend its end across this decision's horizon —
-        // reverting the target at its realized (future) cancel would leak that cancel.
-        let gatedWindows: [OverrideWindow] = applyOv ? therapyTimeline.overrideWindows.compactMap { w in
+        //
+        // TARGET vs RATE (ISF/basal/CR) diverge for an ACTIVE override, mirroring deployed
+        // Loop-main EXACTLY (LoopKit e7e2ee2):
+        //  • TARGET — GlucoseRangeSchedule.value(at:) applies the override to every point
+        //    `time >= override.start` as long as `now < override.end`; it does NOT check
+        //    `time < end`. So while an override is active at the decision (start <= t < end),
+        //    its correction range extends FLAT across the whole forecast horizon and never
+        //    reverts within it — even a DEFINITE 4h override. (This is the min-guard input:
+        //    an active raised target lifts the eventual target, gating the auto-bolus.)
+        //  • ISF/basal/CR — DailyValueSchedule.applyingOverride(during: activeInterval) applies
+        //    the multiplier only over the time-of-day window [start, end], so those DO revert at
+        //    the scheduled end within the forecast.
+        // An INDEFINITE active override (end = distantFuture) extends in both.
+        let horizonEnd = t.addingTimeInterval(9 * 3600)
+        let gatedTargetWindows: [OverrideWindow] = applyOv ? therapyTimeline.overrideWindows.compactMap { w in
+            guard w.start <= t else { return nil }
+            guard t < w.end else { return w }   // ended → [start,end] as-is (past-schedule)
+            return OverrideWindow(start: w.start, end: horizonEnd,
+                                  factor: w.factor, targetLo: w.targetLo, targetHi: w.targetHi,
+                                  indefinite: true)                       // ACTIVE → extend flat
+        } : []
+        let gatedRateWindows: [OverrideWindow] = applyOv ? therapyTimeline.overrideWindows.compactMap { w in
             guard w.start <= t else { return nil }
             guard w.indefinite, t < w.end else { return w }   // ended/definite: [start,end] as-is
-            return OverrideWindow(start: w.start, end: t.addingTimeInterval(9 * 3600),
+            return OverrideWindow(start: w.start, end: horizonEnd,
                                   factor: w.factor, targetLo: w.targetLo, targetHi: w.targetHi,
-                                  indefinite: true)
+                                  indefinite: true)                       // indefinite active → extend
         } : []
         // Future-profile-edit gate: a decision at t must not see a profile schedule the
         // user EDITED after t. Hold the decision-time-active profile's schedule across the
@@ -271,7 +289,7 @@ struct InputWindowBuilder: Sendable {
             }
         }
         // Apply decision-time-gated overrides to the basal slice (basal × f).
-        if applyOv { basalSlice = TemporaryOverrides.applyDoubles(basalSlice, gatedWindows, divide: false) }
+        if applyOv { basalSlice = TemporaryOverrides.applyDoubles(basalSlice, gatedRateWindows, divide: false) }
 
         // ── Sensitivity (ISF) ────────────────────────────────────────────────────
         // ISF must cover ALL dose startDates AND extend to t+8h (same reasoning as basal).
@@ -313,7 +331,7 @@ struct InputWindowBuilder: Sendable {
         }
 
         // Apply decision-time-gated overrides to the ISF slice (ISF ÷ f).
-        if applyOv { sensitivitySlice = TemporaryOverrides.applyISF(sensitivitySlice, gatedWindows) }
+        if applyOv { sensitivitySlice = TemporaryOverrides.applyISF(sensitivitySlice, gatedRateWindows) }
 
         // Apply ISF multiplier (no-op when multiplier == 1.0)
         sensitivitySlice = applyISFMultiplier(sensitivitySlice)
@@ -343,7 +361,7 @@ struct InputWindowBuilder: Sendable {
             }
         }
         // Apply decision-time-gated overrides to the carb-ratio slice (CR ÷ f).
-        if applyOv { carbRatioSlice = TemporaryOverrides.applyDoubles(carbRatioSlice, gatedWindows, divide: true) }
+        if applyOv { carbRatioSlice = TemporaryOverrides.applyDoubles(carbRatioSlice, gatedRateWindows, divide: true) }
 
         // Apply carb ratio multiplier (no-op when multiplier == 1.0)
         carbRatioSlice = applyCarbRatioMultiplier(carbRatioSlice)
@@ -361,7 +379,7 @@ struct InputWindowBuilder: Sendable {
             to: t.addingTimeInterval(6 * 3600)
         )
         // Apply decision-time-gated overrides to the target slice (range ← override).
-        if applyOv { targetSlice = TemporaryOverrides.applyTargets(targetSlice, gatedWindows) }
+        if applyOv { targetSlice = TemporaryOverrides.applyTargets(targetSlice, gatedTargetWindows) }
 
         return PredictionInput(
             glucose: glucoseSlice,
