@@ -484,24 +484,34 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
         print(f"{user}: WARNING suspendThreshold changed in-window {distinct} mg/dL — "
               f"schema stores one scalar; using latest {round(safety * MMOL, 1)}")
 
-    # Bake temporary-override usage into the effective schedules: within each override
-    # window scale basal/ISF/CR by the recorded factors and replace the target. This
-    # makes the CF sim replay the OVERRIDDEN settings the person actually ran, instead
-    # of the base schedule (which mis-attributes override-driven glycemia to the algo).
+    # Emit temporary overrides as CAUSAL windows + RAW (un-baked) schedules. The sim
+    # (InputWindowBuilder decision-time gating) then applies each override ONLY to
+    # decisions at/after its start — a future override is excluded from earlier decisions.
+    # We previously BAKED overrides into the schedules as fixed absolute windows, which
+    # LEAKED a not-yet-enacted override into earlier decisions' 6h forecasts: e.g. a noon
+    # override's raised target reached a 07:47 decision's horizon → insulinCorrection's
+    # min-guard (min < target-at-eventual) mis-fired → spurious auto-bolus=0 (under-dose).
+    # OverrideWindow.factor = insulinNeedsScaleFactor (basal×f, ISF÷f, CR÷f); target in mg/dL.
     ovs = _overrides(user, s_ms, e_ms, e_ms)
-    if ovs:
-        basal = _overlay_overrides(basal, ovs, lambda r, o: {"value": round(r["value"] * (o["basal_sf"] if o else 1.0), 5)})
-        sens = _overlay_overrides(sens, ovs, lambda r, o: {"value": round(r["value"] * (o["isf_sf"] if o else 1.0), 3)})
-        cr = _overlay_overrides(cr, ovs, lambda r, o: {"value": round(r["value"] * (o["cr_sf"] if o else 1.0), 3)})
-        def _tgt(r, o):
-            if o and o["tgt_low"] is not None and o["tgt_high"] is not None:
-                return {"lowerBound": round(o["tgt_low"] * MMOL, 1), "upperBound": round(o["tgt_high"] * MMOL, 1)}
-            return {"lowerBound": r["lowerBound"], "upperBound": r["upperBound"]}
-        tgt = _overlay_overrides(tgt, ovs, _tgt)
+    override_windows = []
+    for st, en, d in ovs:
+        w = {"start": _iso(st), "end": _iso(en), "indefinite": False}
+        bsf = d.get("basal_sf")
+        if bsf is not None and abs(bsf - 1.0) > 1e-6:
+            w["factor"] = round(bsf, 5)
+        if d.get("tgt_low") is not None and d.get("tgt_high") is not None:
+            w["targetLo"] = round(d["tgt_low"] * MMOL, 1)
+            w["targetHi"] = round(d["tgt_high"] * MMOL, 1)
+        override_windows.append(w)
+    if override_windows:
         tot_h = sum((e - s) for s, e, _ in ovs) / 3600000.0
-        print(f"{user}: baked {len(ovs)} override windows ({tot_h:.0f}h active) into therapy schedules")
+        print(f"{user}: {len(override_windows)} override windows ({tot_h:.0f}h) — applied CAUSALLY per-decision (not baked)")
 
+    # base schedules stay un-baked; raw* mirror them so InputWindowBuilder's override
+    # gating (applyOv, needs non-empty rawBasal + overrideWindows) engages.
     return {"basal": basal, "sensitivity": sens, "carbRatio": cr, "target": tgt,
+            "rawBasal": basal, "rawSensitivity": sens, "rawCarbRatio": cr, "rawTarget": tgt,
+            "overrideWindows": override_windows,
             "suspendThreshold": round(safety * MMOL, 1) if safety else 70.0,
             "maxBolus": 12.0, "maxBasalRate": 8.0, "insulinType": insulin_type}
 
