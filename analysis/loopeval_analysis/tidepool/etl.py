@@ -353,19 +353,26 @@ def export_donor(user, start, end, outdir, insulin_type=None):
             if 0 <= j < len(manual_ms) and abs(manual_ms[j] - t) <= PAIR_WIN:
                 if best is None or abs(manual_ms[j] - t) < abs(best - t): best = manual_ms[j]
         return best
-    carbs = []; cseen = set()
+    carbs = []; cby = {}
     for r in f.itertuples():
         try: nut = json.loads(r.nutrition)
         except Exception: continue
         grams = _fin(_num(((nut.get("carbohydrate") or {}).get("net"))))
         if not grams: continue
         t = int(r.t_ms)
-        # dedup: Tidepool food records are re-uploaded many times; collapse entries
-        # at the same minute with the same grams (one real carb entry).
-        key = (t // 60000, round(grams, 1))
-        if key in cseen: continue
-        cseen.add(key)
         absorb = _fin(_num(nut.get("estimatedAbsorptionDuration")))  # seconds
+        # dedup: Tidepool food records are re-uploaded many times AND HealthKit-mirrored;
+        # collapse to one real entry per (minute, grams). CRITICAL: the mirror copies carry
+        # NO estimatedAbsorptionDuration (only the native Loop upload does), and they may
+        # sort first — so keeping the first-seen record silently drops the real absorption
+        # time and the carb defaults to 3h, systematically under-forecasting fast meals.
+        # Keep the first-seen entry but MERGE in the absorption from whichever duplicate has
+        # it (native Loop record). (Same family as the HealthKit bolus double-count.)
+        key = (t // 60000, round(grams, 1))
+        if key in cby:
+            if absorb and "absorptionTime" not in cby[key]:
+                cby[key]["absorptionTime"] = absorb   # backfill from the version that has it
+            continue
         # dosingVisibleDate: defer past the paired manual meal bolus so the sim's
         # auto-dosing doesn't cover the carb BEFORE the (passed-through) manual bolus
         # does — avoids double-covering announced meals (crash-low). startDate = meal
@@ -375,6 +382,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         e = {"startDate": _iso(t), "entryDate": _iso(t), "dosingVisibleDate": _iso(vis),
              "grams": round(grams, 1)}
         if absorb: e["absorptionTime"] = absorb
+        cby[key] = e            # same dict object is appended below; later backfill reflects here
         carbs.append(e)
 
     # ---- therapy (per-era pumpSettings schedules across the window; expand daily schedules) ----
