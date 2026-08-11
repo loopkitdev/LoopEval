@@ -68,8 +68,8 @@ struct ForecastMatchCommand: AsyncParsableCommand {
     @Option(name: .long, help: "ISF multiplier (default 1.0).")
     var sensitivityMultiplier: Double = 1.0
 
-    @Flag(name: .long, help: "Treat a temp basal still running at the prediction instant as ENDED at t (clean going-forward design). Default off = project the running temp forward as FieldLoop does (field-faithful).")
-    var clipInProgressTempBasal: Bool = false
+    @Flag(name: .customLong("clip-in-progress-temp-basal"), inversion: .prefixedNo, help: "Treat a temp basal still running at the prediction instant as ENDED at t (only elapsed counts; scheduled resumes after). DEFAULT ON — matches deployed Loop-main (trims non-bolus doses to basalDosingEnd=now() before forecasting). Pass --no-clip-in-progress-temp-basal to project forward (reproduces the untruncated recorded display forecast).")
+    var clipInProgressTempBasal: Bool = true
 
     @Flag(name: .customLong("apply-overrides"), inversion: .prefixedNo, help: "Apply Loop Temporary Overrides to the therapy timeline (basal ×f, ISF ÷f, CR ÷f, target ← override range). DEFAULT ON; pass --no-apply-overrides to ignore overrides.")
     var applyOverrides: Bool = true

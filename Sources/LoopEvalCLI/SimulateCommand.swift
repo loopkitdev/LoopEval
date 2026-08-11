@@ -122,8 +122,8 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Candidate 'overall insulin needs' scale factor f (Loop preset-style): ONE knob scaling basal ×f, ISF ÷f, CR ÷f together. f=0.5 → half basal, double ISF, double CR (less insulin overall); f=1.2 → 20% more insulin. Composes multiplicatively with the individual --candidate-{sensitivity,basal-rate}-multiplier flags. Unset = no scaling. This is the realistic single-dial aggressiveness axis (matches an insulin-needs Temporary Override) — sweep it for the reference frontier.")
     var candidateInsulinNeeds: Double?
 
-    @Flag(name: .long, help: "Candidate: treat a temp basal still running at the decision instant as ENDED at t (clean going-forward design). Default off = project it forward as FieldLoop does. Baseline always stays field-faithful.")
-    var candidateClipInProgressTempBasal: Bool = false
+    @Flag(name: .customLong("candidate-clip-in-progress-temp-basal"), inversion: .prefixedNo, help: "Candidate: treat a temp basal still running at the decision instant as ENDED at t (only the elapsed portion counts; scheduled resumes after). DEFAULT ON — this matches deployed Loop-main, which trims non-bolus doses to basalDosingEnd=now() before forecasting. Pass --no-candidate-clip-in-progress-temp-basal to project it forward (reproduces the UNTRUNCATED recorded dosingDecision.bgForecast, not Loop's dosing forecast). With per-dose tempRate the truncation is exact regardless.")
+    var candidateClipInProgressTempBasal: Bool = true
 
     @Option(name: .long, help: "Per-hour candidate ISF multipliers (24 csv)")
     var candidateIsfHourly: String?

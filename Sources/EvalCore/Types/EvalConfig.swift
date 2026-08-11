@@ -127,11 +127,16 @@ public struct EvalConfig: Codable, Sendable {
     /// all-smoothed sim.
     public var simRawGlucose: Bool
 
-    /// In-progress temp-basal handling at decision time. false (default): keep the
-    /// running temp's recorded duration projected forward — reproduces FieldLoop best.
-    /// true: treat a temp still running at the prediction instant as ENDED at t (only
-    /// the elapsed portion counts; scheduled resumes after) — the cleaner going-forward
-    /// design. NOT field-faithful (worsens the field-match; see InputWindowBuilder).
+    /// In-progress temp-basal handling at decision time. true (DEFAULT): treat a temp
+    /// still running at the prediction instant as ENDED at t (only the elapsed portion
+    /// counts; scheduled resumes after) — this MATCHES deployed Loop-main, which trims
+    /// every non-bolus dose to `basalDosingEnd = now()` before forecasting (LoopKit
+    /// DoseStore.getGlucoseEffects → DoseEntry.trimmed(to:)). Verified in
+    /// /Users/pete/dev/LoopWorkspace 2026-08-10. false: project the running temp forward
+    /// for its recorded duration — matches the recorded dosingDecision.bgForecast (an
+    /// UNTRUNCATED display variant) but NOT Loop's dosing forecast; opt out only to
+    /// reproduce that display curve. When a dose carries `tempRate` the truncation is
+    /// exact (rate×elapsed, InputWindowBuilder behavior-1) regardless of this flag.
     public var clipInProgressTempBasal: Bool
 
     /// Forecast horizons to evaluate, in seconds.
@@ -570,7 +575,7 @@ public struct EvalConfig: Codable, Sendable {
         correctionRangeOverrideHigh: Double? = nil,
         kalmanSmoothing: Bool = true,
         simRawGlucose: Bool = true,
-        clipInProgressTempBasal: Bool = false,
+        clipInProgressTempBasal: Bool = true,
         horizons: [TimeInterval] = stride(from: 30.0, through: 360.0, by: 30.0)
             .map { $0 * 60 },
         includingPositiveVelocityAndRC: Bool = true,
@@ -772,7 +777,7 @@ public struct EvalConfig: Codable, Sendable {
         self.correctionRangeOverrideHigh = try c.decodeIfPresent(Double.self, forKey: .correctionRangeOverrideHigh)
         self.kalmanSmoothing      = try c.decode(Bool.self,         forKey: .kalmanSmoothing)
         self.simRawGlucose        = (try? c.decode(Bool.self,       forKey: .simRawGlucose)) ?? false
-        self.clipInProgressTempBasal = (try? c.decode(Bool.self,    forKey: .clipInProgressTempBasal)) ?? false
+        self.clipInProgressTempBasal = (try? c.decode(Bool.self,    forKey: .clipInProgressTempBasal)) ?? true
         self.horizons             = try c.decode([TimeInterval].self, forKey: .horizons)
         self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
         self.useLegacyRCDecay = try c.decodeIfPresent(Bool.self, forKey: .useLegacyRCDecay) ?? false
