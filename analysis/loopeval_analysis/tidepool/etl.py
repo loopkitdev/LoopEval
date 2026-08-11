@@ -267,19 +267,45 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         print(f"{user}: insulin brand={brand} → --insulin-type {insulin_type}")
 
     # ---- glucose (cbg, mmol/L → mg/dL) ----
+    # Replay LOOP'S OWN CGM stream, not the union of every source. A Tidepool cbg reading
+    # appears from MULTIPLE provenances: Loop's own write (origin name '*.loopkit.Loop',
+    # i.e. what Loop's CGMManager actually received & cached) AND the vendor app's parallel
+    # write (e.g. com.dexcom.g7app) mirrored via HealthKit. Loop uses ITS OWN cached samples
+    # for momentum/RC, and LoopKit's linearMomentumEffect DISABLES momentum when that stream
+    # fails `count>2 && isContinuous() && hasSingleProvenance`. When Loop's BLE misses a
+    # reading (present only in the vendor stream), merging it back FILLS a gap Loop actually
+    # had → the sim computes momentum where Loop's guard turned it off (proven at bddp11
+    # 05-15 19:32: Loop's own stream missing 19:22 → momentum off → forecast fell; the
+    # merged sim kept 19:22 → momentum on → +34 mg/dL divergence). So: keep a reading only if
+    # Loop's own app wrote it, and use Loop's own sample time. FALLBACK: donors whose Loop
+    # reads HealthKit directly (few/no own-provenance samples) keep the merged stream, else
+    # we'd drop everything. See [[momentum-provenance-guard-gap]].
     g = query(_dedup([f"{_TMS} AS t_ms",
         "COALESCE(CAST(get_json_object(value,'$.$numberDouble') AS DOUBLE), "
-        "CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol"], win, "cbg"))
-    # dedup cbg by timestamp (Tidepool has duplicate uploads; dupes break the
-    # velocity/ICE grid). Keep last per (rounded-to-min) timestamp.
-    seen = set(); glucose = []
+        "CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol",
+        "CAST(origin AS STRING) AS origin"], win, "cbg"))
+    buckets = {}   # 1-min bucket -> list of (t_ms, mmol, is_loop)
     for r in g.itertuples():
         v = _fin(r.mmol)
         if v is None: continue
-        key = int(r.t_ms) // 60000  # 1-min bucket
-        if key in seen: continue
-        seen.add(key)
-        glucose.append({"startDate": _iso(int(r.t_ms)), "quantity": round(v * MMOL, 2)})
+        is_loop = (r.origin is not None) and ("loopkit.Loop" in r.origin)
+        buckets.setdefault(int(r.t_ms) // 60000, []).append((int(r.t_ms), v, is_loop))
+    n_with_loop = sum(1 for s in buckets.values() if any(x[2] for x in s))
+    loop_frac = (n_with_loop / len(buckets)) if buckets else 0.0
+    use_own = loop_frac >= 0.5   # Loop is the CGM writer → replay its own (gapped) stream
+    glucose = []
+    for key in sorted(buckets):
+        loop_s = [x for x in buckets[key] if x[2]]
+        if use_own:
+            if not loop_s:                 # Loop's own stream missed this reading → replay the gap
+                continue
+            t_ms, v = min(loop_s)[0], loop_s[0][1]   # Loop's own sample time (earliest loop copy)
+        else:
+            t_ms, v, _ = buckets[key][0]   # fallback: merged stream (Loop reads HealthKit directly)
+        glucose.append({"startDate": _iso(t_ms), "quantity": round(v * MMOL, 2)})
+    if buckets:
+        print(f"{user}: glucose own-stream loop_frac={loop_frac:.2f} use_own={use_own} "
+              f"({len(glucose)}/{len(buckets)} readings kept)", flush=True)
 
     # ---- doses (bolus + basal) ----
     b = query(_dedup([f"{_TMS} AS t_ms", "subType",
