@@ -302,8 +302,15 @@ def export_donor(user, start, end, outdir, insulin_type=None):
             vol = delivered * ((en - st) / rec_dur)
         else:
             vol = rate * ((en - st) / 3600000.0)   # fallback: nominal rate*duration
+        # Emit the programmed temp RATE (U/hr) so the sim can truncate an in-progress
+        # temp basal to `rate × elapsed` at the decision instant — matching deployed
+        # Loop-main, which trims every non-bolus dose to `basalDosingEnd = now()` before
+        # forecasting (LoopKit DoseStore.getGlucoseEffects → DoseEntry.trimmed(to:)).
+        # Without it the sim projects the running temp forward, over-/under-counting its
+        # future portion (the basal-dominant forecast-tail residual). Tidepool carries
+        # `rate` (+ suppressed.rate for scheduled) on every basal record.
         doses.append({"deliveryType": "basal", "startDate": _iso(st), "endDate": _iso(en),
-                      "volume": round(vol, 5),
+                      "volume": round(vol, 5), "tempRate": round(rate, 5),
                       "insulinType": insulin_type, "automatic": True})
     doses.sort(key=lambda d: d["startDate"])
 
