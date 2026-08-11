@@ -266,46 +266,54 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         insulin_type, brand = _insulin_type_from_data(user, s_ms, e_ms)
         print(f"{user}: insulin brand={brand} → --insulin-type {insulin_type}")
 
-    # ---- glucose (cbg, mmol/L → mg/dL) ----
-    # Replay LOOP'S OWN CGM stream, not the union of every source. A Tidepool cbg reading
-    # appears from MULTIPLE provenances: Loop's own write (origin name '*.loopkit.Loop',
-    # i.e. what Loop's CGMManager actually received & cached) AND the vendor app's parallel
-    # write (e.g. com.dexcom.g7app) mirrored via HealthKit. Loop uses ITS OWN cached samples
-    # for momentum/RC, and LoopKit's linearMomentumEffect DISABLES momentum when that stream
-    # fails `count>2 && isContinuous() && hasSingleProvenance`. When Loop's BLE misses a
-    # reading (present only in the vendor stream), merging it back FILLS a gap Loop actually
-    # had → the sim computes momentum where Loop's guard turned it off (proven at bddp11
-    # 05-15 19:32: Loop's own stream missing 19:22 → momentum off → forecast fell; the
-    # merged sim kept 19:22 → momentum on → +34 mg/dL divergence). So: keep a reading only if
-    # Loop's own app wrote it, and use Loop's own sample time. FALLBACK: donors whose Loop
-    # reads HealthKit directly (few/no own-provenance samples) keep the merged stream, else
-    # we'd drop everything. See [[momentum-provenance-guard-gap]].
-    g = query(_dedup([f"{_TMS} AS t_ms",
-        "COALESCE(CAST(get_json_object(value,'$.$numberDouble') AS DOUBLE), "
-        "CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol",
-        "CAST(origin AS STRING) AS origin"], win, "cbg"))
-    buckets = {}   # 1-min bucket -> list of (t_ms, mmol, is_loop)
-    for r in g.itertuples():
-        v = _fin(r.mmol)
-        if v is None: continue
-        is_loop = (r.origin is not None) and ("loopkit.Loop" in r.origin)
-        buckets.setdefault(int(r.t_ms) // 60000, []).append((int(r.t_ms), v, is_loop))
-    n_with_loop = sum(1 for s in buckets.values() if any(x[2] for x in s))
-    loop_frac = (n_with_loop / len(buckets)) if buckets else 0.0
-    use_own = loop_frac >= 0.5   # Loop is the CGM writer → replay its own (gapped) stream
-    glucose = []
-    for key in sorted(buckets):
-        loop_s = [x for x in buckets[key] if x[2]]
-        if use_own:
-            if not loop_s:                 # Loop's own stream missed this reading → replay the gap
-                continue
-            t_ms, v = min(loop_s)[0], loop_s[0][1]   # Loop's own sample time (earliest loop copy)
-        else:
-            t_ms, v, _ = buckets[key][0]   # fallback: merged stream (Loop reads HealthKit directly)
-        glucose.append({"startDate": _iso(t_ms), "quantity": round(v * MMOL, 2)})
-    if buckets:
-        print(f"{user}: glucose own-stream loop_frac={loop_frac:.2f} use_own={use_own} "
-              f"({len(glucose)}/{len(buckets)} readings kept)", flush=True)
+    # ---- glucose: replay Loop's REAL-TIME stream = the CGM it actually LOOPED on ----
+    # Loop loops once per CGM sample it RECEIVES, and its dosingDecision.bgForecast[0] IS that
+    # sample (device time = CGM sample time, value = full-precision CGM). Using this stream —
+    # NOT the cbg table — automatically excludes every reading Loop never looped on in real
+    # time, in one shot: (a) samples it never received (present only in the vendor stream,
+    # e.g. com.dexcom.g7app), and (b) samples it received LATE (backfilled — written to
+    # HealthKit with an old device time but with NO loop cycle at that time; a provenance
+    # filter can't catch these because Loop DID eventually write them). Both leave a cbg
+    # record, so a cbg-based stream OVER-completes Loop's history, restoring momentum/RC
+    # continuity Loop didn't have → the sim computes momentum where LoopKit's
+    # linearMomentumEffect guard (count>2 && isContinuous()) was OFF. Proven at bddp11 05-15
+    # 19:22 (never received) AND 05-20 05:57 (backfilled — a 10-min loop-cadence gap): dropping
+    # them makes the sim's forecast match Loop to <0.5 mg/dL. The loop cadence is the ground
+    # truth for "what Loop had"; this is the fine-grained (single-cycle) counterpart of the
+    # loop-offline-gap detector. See [[momentum-provenance-guard-gap]].
+    gq = query(f"SELECT {_TMS} AS dd_ms, "
+               f"CAST(get_json_object(bgForecast,'$[0].time.$date.$numberLong') AS BIGINT) AS fc_ms, "
+               f"COALESCE(CAST(get_json_object(bgForecast,'$[0].value.$numberDouble') AS DOUBLE), "
+               f"CAST(get_json_object(bgForecast,'$[0].value.$numberInt') AS DOUBLE)) AS mmol "
+               f"FROM {TBL} WHERE {win} AND type='dosingDecision' AND CAST(reason AS STRING)='loop' "
+               f"AND bgForecast IS NOT NULL ORDER BY {_TMS}")
+    seen = set(); glucose = []
+    for r in gq.itertuples():
+        v = _fin(r.mmol); fc = _fin(r.fc_ms)
+        if v is None or fc is None:
+            continue
+        key = int(fc) // 60000    # dedup: non-CGM-triggered loops (bolus/carb) reuse the last sample
+        if key in seen:
+            continue
+        seen.add(key)
+        glucose.append({"startDate": _iso(int(fc)), "quantity": round(v * MMOL, 2)})
+    glucose.sort(key=lambda e: e["startDate"])
+    src = "bgForecast[0] loop stream"
+    # FALLBACK: donors whose Loop doesn't record bgForecast → merged cbg (best available).
+    if len(glucose) < 500:
+        g = query(_dedup([f"{_TMS} AS t_ms",
+            "COALESCE(CAST(get_json_object(value,'$.$numberDouble') AS DOUBLE), "
+            "CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol"], win, "cbg"))
+        seen = set(); glucose = []
+        for r in g.itertuples():
+            v = _fin(r.mmol)
+            if v is None: continue
+            key = int(r.t_ms) // 60000
+            if key in seen: continue
+            seen.add(key)
+            glucose.append({"startDate": _iso(int(r.t_ms)), "quantity": round(v * MMOL, 2)})
+        src = "cbg-fallback (no bgForecast)"
+    print(f"{user}: glucose {len(glucose)} readings from {src}", flush=True)
 
     # ---- doses (bolus + basal) ----
     b = query(_dedup([f"{_TMS} AS t_ms", "subType",
