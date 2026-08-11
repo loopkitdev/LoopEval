@@ -230,6 +230,33 @@ def _suspends(user, s_ms, e_ms):
             merged.append([st, en])
     return [(s, e) for s, e in merged]
 
+def _loop_offline_gaps(user, s_ms, e_ms, min_gap_min=20):
+    """Loop-OFFLINE gaps: stretches with NO reason='loop' dosingDecision for longer than
+    `min_gap_min` (Loop's decision cadence is ~5 min, so a 20+ min gap is 4+ consecutive
+    missed cycles). Deployed Loop wasn't running its loop over the gap — phone off, out of
+    range, app killed — so it auto-dosed NOTHING and simply ran scheduled basal. CGM keeps
+    flowing (Dexcom uploads independently), so the sim, still fed readings, keeps
+    recommending corrections into the rising BG → spurious over-dose (and, on a falling
+    trace, over-lows). Same disruption family as a pump suspend (real system not
+    controlling) but there is NO suspend record — it can only be seen from the
+    dosingDecision cadence. Emitted to the same outage CSV so `--outages-csv` clamps both
+    arms' delivery and the scorer drops the window; without it these gaps are the largest
+    remaining DTR over-dose residual (bddp11 2026-05-15 17:12→17:58, 47 min: sim wants
+    1.5 U into a spike Loop never touched). Distinct from a CGM outage (no readings), which
+    `--cgm-stale-guard-min` already handles; clamping a gap that is both is harmless.
+
+    Look back 6h before the window so a gap straddling the start is captured."""
+    q = (f"SELECT {_TMS} AS t_ms FROM {TBL} WHERE _userId='{user}' AND type='dosingDecision' "
+         f"AND CAST(reason AS STRING)='loop' "
+         f"AND {_TMS} BETWEEN {int(s_ms - 6 * 3600 * 1000)} AND {int(e_ms)} ORDER BY {_TMS}")
+    df = query(q)
+    if len(df) < 2:
+        return []
+    ts = [int(x) for x in df["t_ms"].tolist()]
+    gap_ms = min_gap_min * 60 * 1000
+    return [(a, b) for a, b in zip(ts, ts[1:]) if b - a > gap_ms]
+
+
 def export_donor(user, start, end, outdir, insulin_type=None):
     os.makedirs(outdir, exist_ok=True)
     s_ms, e_ms = _ms_bounds(start, end)
@@ -357,20 +384,33 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         with open(os.path.join(outdir, f"{name}.json"), "w") as fh:
             json.dump(obj, fh, allow_nan=False)
 
-    # ---- disruptions: manual/pump suspends → outage CSV (clamp delivery + exclude from scoring) ----
+    # ---- disruptions: pump suspends + loop-offline gaps → outage CSV (clamp + exclude from scoring) ----
     import csv as _csv
     sus = _suspends(user, s_ms, e_ms)
+    off = _loop_offline_gaps(user, s_ms, e_ms)
+    # merge all disruption intervals (suspends + offline gaps), tagging source
+    tagged = [(s, e, "suspend", "tidepool/suspend_dose") for s, e in sus] \
+           + [(s, e, "loop_offline", "tidepool/decision_gap") for s, e in off]
+    tagged.sort()
+    merged = []
+    for s, e, reason, src in tagged:
+        if merged and s <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], e)
+            if merged[-1][2] != reason:
+                merged[-1][2], merged[-1][3] = "disruption", "tidepool/merged"
+        else:
+            merged.append([s, e, reason, src])
     dis_path = os.path.join(outdir, "disruptions.csv")
     with open(dis_path, "w", newline="") as fh:
         w = _csv.writer(fh); w.writerow(["start", "end", "reason", "source", "notes"])
-        for s, e in sus:
-            w.writerow([_iso(s), _iso(e), "suspend", "tidepool/suspend_dose",
-                        f"suspend {round((e - s) / 60000)}min"])
+        for s, e, reason, src in merged:
+            w.writerow([_iso(s), _iso(e), reason, src, f"{reason} {round((e - s) / 60000)}min"])
     sus_h = sum((e - s) for s, e in sus) / 3600000.0
+    off_h = sum((e - s) for s, e in off) / 3600000.0
 
     print(f"{user}: glucose={len(glucose)} doses={len(doses)} carbs={len(carbs)} "
           f"therapy(basal={len(therapy['basal'])},isf={len(therapy['sensitivity'])}) "
-          f"suspends={len(sus)}({sus_h:.1f}h) → {outdir}")
+          f"suspends={len(sus)}({sus_h:.1f}h) offline_gaps={len(off)}({off_h:.1f}h) → {outdir}")
     return dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs))
 
 def _sched(j):
