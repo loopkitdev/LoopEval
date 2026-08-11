@@ -705,6 +705,31 @@ extension EvaluationEngine {
                 baselineMomentum = netMgdl(br.prediction.effects.momentum)
                 baselineRC = netMgdl(br.prediction.effects.retrospectiveCorrection)
                 baselineDiscrepancy = br.prediction.effects.retrospectiveGlucoseDiscrepancies.last?.quantity.doubleValue(for: mgdlUnit) ?? 0.0
+                // Per-component forecast dump (diagnostic): FORECAST_COMPONENT_DUMP=<ISO-date-prefix>
+                // dumps, for each cycle whose timestamp starts with that prefix, the total forecast
+                // plus each component's ISOLATED contribution curve (predictGlucose with only that
+                // effect), 5-min spaced from t, as one JSON line to stderr. Run the FULL window for
+                // faithful IOB/RC state; the date filter limits output to the cycles under study.
+                if let ddate = ProcessInfo.processInfo.environment["FORECAST_COMPONENT_DUMP"],
+                   Self.isoNoFrac.string(from: t).hasPrefix(ddate),
+                   let startG = br.prediction.glucose.first {
+                    let eff = br.prediction.effects
+                    func comp(_ mom: [GlucoseEffect], _ effs: [[GlucoseEffect]]) -> [Double] {
+                        LoopMath.predictGlucose(startingAt: startG, momentum: mom, effects: effs.filter { !$0.isEmpty })
+                            .map { ($0.quantity.doubleValue(for: mgdlUnit) * 10).rounded() / 10 }
+                    }
+                    let obj: [String: Any] = [
+                        "t": Self.isoNoFrac.string(from: t),
+                        "full": comp(eff.momentum, [eff.insulin, eff.carbs, eff.retrospectiveCorrection]),
+                        "mom":  comp(eff.momentum, []),
+                        "ins":  comp([], [eff.insulin]),
+                        "carb": comp([], [eff.carbs]),
+                        "rc":   comp([], [eff.retrospectiveCorrection]),
+                    ]
+                    if let d = try? JSONSerialization.data(withJSONObject: obj) {
+                        FileHandle.standardError.write(d); FileHandle.standardError.write(Data("\n".utf8))
+                    }
+                }
             } else {
                 baselineDose = 0
             }
@@ -2464,6 +2489,11 @@ extension EvaluationEngine {
     /// Merge two sorted dose arrays in O(N+M).
     /// Cap CGM samples at the sensor's report ceiling (Dexcom G6/G7 = 400 mg/dL;
     /// Libre similar). Real-world CGMs peg at this ceiling — the controller
+    /// ISO8601 (no fractional seconds) for the FORECAST_COMPONENT_DUMP date filter.
+    nonisolated(unsafe) fileprivate static let isoNoFrac: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime]; return f
+    }()
+
     /// never sees BG above it — so the sim mirrors that for fairness across
     /// algorithms. Counter trajectory and outcome scoring use uncapped values.
     fileprivate static func capGlucoseToSensor(
