@@ -388,16 +388,25 @@ def export_donor(user, start, end, outdir, insulin_type=None):
 
     # ---- doses (bolus + basal) ----
     b = query(_dedup([f"{_TMS} AS t_ms", "subType",
+        "get_json_object(CAST(origin AS STRING),'$.name') AS orig",
         "COALESCE(CAST(get_json_object(normal,'$.$numberDouble') AS DOUBLE), "
         "CAST(get_json_object(normal,'$.$numberInt') AS DOUBLE)) AS units"], win, "bolus"))
+    # Loop mirrors every bolus to HealthKit, so each real bolus has TWO records
+    # (origin com.<team>.loopkit.Loop + com.apple.HealthKit) with different `id`s but the
+    # same time+amount — id-dedup can't catch them. Collapse by (second, amount).
+    # CRITICAL: HealthKit STRIPS the `automated` subType — every mirror comes through as
+    # `normal`. So a plain first-seen dedup that keeps a mirror mislabels an auto-bolus as
+    # manual (subType `normal` → automatic=False), which then gets passed through as a real
+    # manual bolus in the counterfactual. bddp11: 5025 native `automated` + 42 native
+    # `normal` (the true manuals) + 8497 HealthKit mirrors (all `normal`); a mirror-keeping
+    # dedup yielded ~3244 "manual". PREFER THE NATIVE LOOP RECORD (non-HealthKit origin) so
+    # the authoritative subType survives; fall back to the mirror only if no native exists.
+    b = b.copy()
+    b["_mirror"] = (b["orig"].astype(str) == "com.apple.HealthKit").astype(int)
     doses = []; manual_ms = []; bseen = set()
-    for r in b.sort_values("t_ms").itertuples():
+    for r in b.sort_values(["t_ms", "_mirror"]).itertuples():   # native (_mirror=0) sorts first
         u = _fin(r.units)
         if u is None: continue
-        # Loop mirrors every bolus to HealthKit, so each real bolus has TWO records
-        # (origin com.loopkit.Loop + com.apple.HealthKit) with different `id`s but the
-        # same time+amount — id-dedup can't catch them. Collapse by (second, amount) so
-        # boluses aren't 2x-counted (which corrupts TDD and the counterfactual ICE).
         key = (int(r.t_ms) // 1000, round(u, 4))
         if key in bseen: continue
         bseen.add(key)
