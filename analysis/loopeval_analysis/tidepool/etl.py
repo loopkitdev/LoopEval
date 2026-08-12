@@ -35,6 +35,14 @@ def _fin(x):
 def _iso(ms):
     return datetime.fromtimestamp(ms / 1000.0, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
+def _iso_to_ms(s):
+    """ISO8601 string ('…Z' or with offset) → epoch ms, or None."""
+    if not s or not isinstance(s, str): return None
+    try:
+        return int(datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp() * 1000)
+    except Exception:
+        return None
+
 def _num(j):
     """Parse a Mongo-wrapped number (dict, JSON string, or plain) → float, or None."""
     if j is None: return None
@@ -280,6 +288,80 @@ def _loop_offline_gaps(user, s_ms, e_ms, min_gap_min=20):
     return [(a, b) for a, b in zip(ts, ts[1:]) if b - a > gap_ms]
 
 
+def _carbs(win, manual_ms):
+    """Build the carb entries (food records) for a window. `manual_ms` = sorted list of
+    manual-bolus epoch-ms (for the paired-bolus visibility gate). Independent of the giant
+    glucose query, so carbs.json can be regenerated on its own."""
+    import bisect
+    f = query(_dedup([f"{_TMS} AS t_ms", "nutrition",
+                      "get_json_object(CAST(payload AS STRING), '$.addedDate') AS added_iso",
+                      f"CAST(get_json_object(createdTime,'$.$date.$numberLong') AS BIGINT) AS created_ms"],
+                     win, "food"))
+    PAIR_WIN = 10 * 60 * 1000   # ±10 min: a manual bolus this close = co-logged with the carb
+    POST_BOLUS_DELAY = 10 * 1000  # dosingVisibleDate = paired bolus + 10s (matches NS postBolusVisibilityDelay)
+    def paired_bolus(t):
+        i = bisect.bisect_left(manual_ms, t)
+        best = None
+        for j in (i - 1, i):
+            if 0 <= j < len(manual_ms) and abs(manual_ms[j] - t) <= PAIR_WIN:
+                if best is None or abs(manual_ms[j] - t) < abs(best - t): best = manual_ms[j]
+        return best
+    BACKDATE_TOL = 5 * 60 * 1000  # ignore <5min upload lag on real-time entries
+    carbs = []; cby = {}
+    for r in f.itertuples():
+        try: nut = json.loads(r.nutrition)
+        except Exception: continue
+        grams = _fin(_num(((nut.get("carbohydrate") or {}).get("net"))))
+        if not grams: continue
+        t = int(r.t_ms)
+        absorb = _fin(_num(nut.get("estimatedAbsorptionDuration")))  # seconds
+        # addedDate = when the deployed Loop's carb store first held this entry (Loop-local),
+        # falling back to createdTime (Tidepool server receive). For a carb the user logged
+        # LATE and back-stamped to an earlier eat-time, this is hours after t.
+        added_ms = _iso_to_ms(getattr(r, "added_iso", None))
+        if added_ms is None:
+            cm = _fin(getattr(r, "created_ms", None)); added_ms = int(cm) if cm is not None else None
+        # dedup: Tidepool food records are re-uploaded many times AND HealthKit-mirrored;
+        # collapse to one real entry per (minute, grams). CRITICAL: the mirror copies carry
+        # NO estimatedAbsorptionDuration (only the native Loop upload does), and they may
+        # sort first — so keeping the first-seen record silently drops the real absorption
+        # time and the carb defaults to 3h, systematically under-forecasting fast meals.
+        # Keep the first-seen entry but MERGE in the absorption from whichever duplicate has
+        # it (native Loop record). (Same family as the HealthKit bolus double-count.)
+        key = (t // 60000, round(grams, 1))
+        if key in cby:
+            if absorb and "absorptionTime" not in cby[key]:
+                cby[key]["absorptionTime"] = absorb   # backfill from the version that has it
+            if added_ms is not None and (cby[key]["_added_ms"] is None or added_ms < cby[key]["_added_ms"]):
+                cby[key]["_added_ms"] = added_ms      # earliest "Loop learned it" across dup copies
+            continue
+        # dosingVisibleDate: defer past the paired manual meal bolus so the sim's
+        # auto-dosing doesn't cover the carb BEFORE the (passed-through) manual bolus
+        # does — avoids double-covering announced meals (crash-low). startDate = meal
+        # time (drives absorption); entryDate = meal time (best available).
+        pb = paired_bolus(t)
+        vis = (pb + POST_BOLUS_DELAY) if pb is not None else t
+        e = {"startDate": _iso(t), "entryDate": _iso(t), "dosingVisibleDate": _iso(vis),
+             "grams": round(grams, 1), "_base_vis": vis, "_added_ms": added_ms}
+        if absorb: e["absorptionTime"] = absorb
+        cby[key] = e            # same dict object is appended below; later backfill reflects here
+        carbs.append(e)
+
+    # Causal carb visibility for BACK-DATED entries: a carb the user logged late and
+    # back-stamped to an earlier eat-time was NOT in the deployed Loop's carb store until
+    # `addedDate`, so the real Loop never dosed for it at the eat-time. Absorption still
+    # starts at the eat-time (startDate unchanged — the ICE/physiology is real), but dosing
+    # can only see it from when Loop learned it → dosingVisibleDate = max(paired-bolus gate,
+    # addedDate). A truly back-dated carb is mostly absorbed by addedDate → contributes ~0 to
+    # dosing, exactly as it did for the real Loop. Real-time entries (addedDate ≈ eat-time)
+    # are unchanged. Data-level → applies to BOTH arms → identity-preserving.
+    for e in carbs:
+        base_vis = e.pop("_base_vis"); added_ms = e.pop("_added_ms")
+        if added_ms is not None and added_ms > base_vis + BACKDATE_TOL:
+            e["dosingVisibleDate"] = _iso(added_ms)
+    return carbs
+
+
 def export_donor(user, start, end, outdir, insulin_type=None):
     os.makedirs(outdir, exist_ok=True)
     s_ms, e_ms = _ms_bounds(start, end)
@@ -365,48 +447,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     doses.sort(key=lambda d: d["startDate"])
 
     # ---- carbs (food: nutrition.carbohydrate.net g, estimatedAbsorptionDuration s) ----
-    f = query(_dedup([f"{_TMS} AS t_ms", "nutrition"], win, "food"))
-    import bisect
-    PAIR_WIN = 10 * 60 * 1000   # ±10 min: a manual bolus this close = co-logged with the carb
-    POST_BOLUS_DELAY = 10 * 1000  # dosingVisibleDate = paired bolus + 10s (matches NS postBolusVisibilityDelay)
-    def paired_bolus(t):
-        i = bisect.bisect_left(manual_ms, t)
-        best = None
-        for j in (i - 1, i):
-            if 0 <= j < len(manual_ms) and abs(manual_ms[j] - t) <= PAIR_WIN:
-                if best is None or abs(manual_ms[j] - t) < abs(best - t): best = manual_ms[j]
-        return best
-    carbs = []; cby = {}
-    for r in f.itertuples():
-        try: nut = json.loads(r.nutrition)
-        except Exception: continue
-        grams = _fin(_num(((nut.get("carbohydrate") or {}).get("net"))))
-        if not grams: continue
-        t = int(r.t_ms)
-        absorb = _fin(_num(nut.get("estimatedAbsorptionDuration")))  # seconds
-        # dedup: Tidepool food records are re-uploaded many times AND HealthKit-mirrored;
-        # collapse to one real entry per (minute, grams). CRITICAL: the mirror copies carry
-        # NO estimatedAbsorptionDuration (only the native Loop upload does), and they may
-        # sort first — so keeping the first-seen record silently drops the real absorption
-        # time and the carb defaults to 3h, systematically under-forecasting fast meals.
-        # Keep the first-seen entry but MERGE in the absorption from whichever duplicate has
-        # it (native Loop record). (Same family as the HealthKit bolus double-count.)
-        key = (t // 60000, round(grams, 1))
-        if key in cby:
-            if absorb and "absorptionTime" not in cby[key]:
-                cby[key]["absorptionTime"] = absorb   # backfill from the version that has it
-            continue
-        # dosingVisibleDate: defer past the paired manual meal bolus so the sim's
-        # auto-dosing doesn't cover the carb BEFORE the (passed-through) manual bolus
-        # does — avoids double-covering announced meals (crash-low). startDate = meal
-        # time (drives absorption); entryDate = meal time (best available).
-        pb = paired_bolus(t)
-        vis = (pb + POST_BOLUS_DELAY) if pb is not None else t
-        e = {"startDate": _iso(t), "entryDate": _iso(t), "dosingVisibleDate": _iso(vis),
-             "grams": round(grams, 1)}
-        if absorb: e["absorptionTime"] = absorb
-        cby[key] = e            # same dict object is appended below; later backfill reflects here
-        carbs.append(e)
+    carbs = _carbs(win, manual_ms)
 
     # ---- therapy (per-era pumpSettings schedules across the window; expand daily schedules) ----
     therapy = _therapy(user, s_ms, e_ms, insulin_type)
