@@ -204,23 +204,46 @@ def _suspends(user, s_ms, e_ms):
     didn't. Emitted as the standard outage/disruption CSV (loopeval_analysis.outage
     schema) so `--outages-csv` clamps both arms and scoring drops the window.
 
-    Duration is on the suspend record (ms). Look back 6h before window start so a
-    suspend straddling the start is captured; merge overlapping/adjacent windows."""
+    TWO record shapes carry suspends and BOTH must be read:
+      1. `basal deliveryType='suspend'` — a suspend with an explicit `duration` (ms).
+      2. `deviceEvent subType='status'` with `status='suspended'`/`'resumed'` — a PUMP
+         STATUS suspend (manual suspend, or the pod expiring / coming off and no new pod
+         put on). It has NO duration; the interval is [suspended, next resumed]. These are
+         the LONG ones (a pod-off can run tens of hours) and were previously MISSED —
+         bddp10 07-05 19:21→07-07 20:28 was a 49h pod-off (every dosingDecision across it
+         carried `pumpDataTooOld`, BG pinned at 401, IOB→0) that the sim then dosed into
+         and cratered. 55 such intervals / 139h (4.6% of window) for bddp10 alone.
+    Look back 7 days for status events so a suspend straddling the window start (and its
+    opening `suspended` edge) is captured; merge overlapping/adjacent windows."""
+    iv = []
+    # (1) basal deliveryType='suspend' (has duration)
     q = (f"SELECT {_TMS} AS t_ms, "
          f"COALESCE(CAST(get_json_object(duration,'$.$numberInt') AS BIGINT), "
          f"CAST(get_json_object(duration,'$.$numberLong') AS BIGINT)) AS dur_ms "
          f"FROM {TBL} WHERE _userId='{user}' AND type='basal' AND deliveryType='suspend' "
          f"AND {_TMS} BETWEEN {int(s_ms - 6 * 3600 * 1000)} AND {int(e_ms)}")
-    df = query(q)
-    if df.empty:
-        return []
-    iv = []
-    for r in df.itertuples():
+    for r in query(q).itertuples():
         dur = _fin(r.dur_ms)
-        if not dur or dur <= 0:
-            continue
-        st = int(r.t_ms)
-        iv.append((st, st + int(dur)))
+        if dur and dur > 0:
+            iv.append((int(r.t_ms), int(r.t_ms) + int(dur)))
+    # (2) deviceEvent status suspended->resumed (no duration; pair the edges)
+    qs = (f"SELECT {_TMS} AS t_ms, CAST(status AS STRING) st FROM {TBL} "
+          f"WHERE _userId='{user}' AND type='deviceEvent' AND subType='status' "
+          f"AND {_TMS} BETWEEN {int(s_ms - 7 * 86400 * 1000)} AND {int(e_ms)} ORDER BY {_TMS}")
+    ds = query(qs)
+    if not ds.empty:
+        cur = None
+        for r in ds.drop_duplicates("t_ms").itertuples():
+            if r.st == "suspended" and cur is None:
+                cur = int(r.t_ms)
+            elif r.st == "resumed" and cur is not None:
+                iv.append((cur, int(r.t_ms))); cur = None
+        if cur is not None:                       # still suspended at window end
+            iv.append((cur, int(e_ms)))
+    # clip to the window (+6h lead) and drop intervals entirely before it
+    lo = int(s_ms - 6 * 3600 * 1000)
+    iv = [(max(a, lo), min(b, int(e_ms))) for a, b in iv if b > lo and a < e_ms]
+    iv = [(a, b) for a, b in iv if b > a]
     iv.sort()
     merged = []
     for st, en in iv:
