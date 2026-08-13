@@ -67,15 +67,22 @@ def _ms_bounds(start, end):
 # t_ms expression reused everywhere
 _TMS = "CAST(get_json_object(time,'$.$date.$numberLong') AS BIGINT)"
 
-def _dedup(cols, where, typ):
+def _dedup(cols, where, typ, order="_id"):
     """One row per Tidepool logical `id` (the table has exact-duplicate rows AND
     edit-versions sharing an id; without this everything is 2-3× over-counted).
     `cols` are inner expressions ("EXPR AS alias" or a plain column); the outer
-    query selects only the aliases."""
+    query selects only the aliases. `order` picks WHICH version of an id survives
+    (ROW_NUMBER rn=1) — default `_id` (earliest). For BASAL pass `_id DESC`: a temp
+    basal is uploaded as an interim `dur=0` record FIRST and the authoritative
+    completed segment (e.g. a `dur=20m` suspend) LATER, both sharing the id; keeping
+    the earliest grabs the interim `dur=0`, which the clip then drops (en<=st),
+    leaving a GAP that `annotated(fillBasalGaps:true)` backfills with SCHEDULED basal
+    — crediting phantom insulin during suspends the pump delivered 0. Keep the LATEST
+    (final) version instead. [[phantom-basal-dropped-suspends]]"""
     inner = ", ".join(cols)
     aliases = [c.split(" AS ")[-1].strip() if " AS " in c else c.strip() for c in cols]
     outer = ", ".join(aliases)
-    return (f"SELECT {outer} FROM (SELECT {inner}, ROW_NUMBER() OVER (PARTITION BY id ORDER BY _id) rn "
+    return (f"SELECT {outer} FROM (SELECT {inner}, ROW_NUMBER() OVER (PARTITION BY id ORDER BY {order}) rn "
             f"FROM {TBL} WHERE {where} AND type='{typ}') WHERE rn=1 ORDER BY t_ms")
 
 # brand (insulinFormulation.simple.brand) → EvalCore ExponentialInsulinModelPreset
@@ -424,7 +431,8 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         # payload.deliveredUnits). Loop reconciles IOB/effects on delivered, not
         # rate*duration. NULL for pumps that don't report it (aaps/sequel/xdrip) → fall back.
         "COALESCE(CAST(get_json_object(payload,'$.deliveredUnits.$numberDouble') AS DOUBLE), "
-        "CAST(get_json_object(payload,'$.deliveredUnits.$numberInt') AS DOUBLE)) AS delivered"], win, "basal"))
+        "CAST(get_json_object(payload,'$.deliveredUnits.$numberInt') AS DOUBLE)) AS delivered"],
+        win, "basal", order="_id DESC"))   # keep the LATEST version of each basal id (final completed segment, not the interim dur=0)
     # collect basal segments, then CLIP each end to the next segment's start so
     # overlapping Loop basal records don't double-count delivery.
     segs = []
