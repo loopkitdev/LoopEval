@@ -329,13 +329,18 @@ def _carbs(win, manual_ms):
         if added_ms is None:
             cm = _fin(getattr(r, "created_ms", None)); added_ms = int(cm) if cm is not None else None
         # dedup: Tidepool food records are re-uploaded many times AND HealthKit-mirrored;
-        # collapse to one real entry per (minute, grams). CRITICAL: the mirror copies carry
+        # collapse to one real entry per (SECOND, grams). CRITICAL: the mirror copies carry
         # NO estimatedAbsorptionDuration (only the native Loop upload does), and they may
         # sort first — so keeping the first-seen record silently drops the real absorption
         # time and the carb defaults to 3h, systematically under-forecasting fast meals.
         # Keep the first-seen entry but MERGE in the absorption from whichever duplicate has
         # it (native Loop record). (Same family as the HealthKit bolus double-count.)
-        key = (t // 60000, round(grams, 1))
+        # Key on the SECOND, not the minute: a native carb and its HealthKit mirror share the
+        # EXACT event second (verified across donors), so (second, grams) still collapses them,
+        # BUT two GENUINELY-DISTINCT carbs the user logged seconds apart with the same grams
+        # (e.g. two 30g entries at 00:09:25 and 00:09:33) are no longer wrongly merged — the
+        # minute key dropped one, undercounting COB by a whole meal on those cycles.
+        key = (t // 1000, round(grams, 1))
         if key in cby:
             if absorb and "absorptionTime" not in cby[key]:
                 cby[key]["absorptionTime"] = absorb   # backfill from the version that has it
