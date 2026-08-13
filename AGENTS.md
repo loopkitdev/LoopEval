@@ -99,6 +99,22 @@ should. See **[docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)**; the renderer is
 - **`--decision-time-replay`** replays decisions on the fixed real history without
   acting — for same-input dose comparison and single-decision anatomy (both arms see
   identical inputs; no feedback).
+- **Replay-verification process (verify accurate replay in THIS order):**
+  1. **Forecasts first.** Every DTR forecast must match the field's recorded `bgForecast`
+     within a **few mg/dL**, ranked **worst-case (max point delta), not average**. Compare
+     only IOB-aligned, same-dose-state cycles (a field record whose IOB is post-a-just-decided
+     dose is not comparable to a pre-dose sim forecast). t0 agreement is meaningless (shared
+     current CGM value).
+  2. **The ONLY accepted uncorrectable exclusions** — a mismatch gets a pass *only when
+     concretely proven* (never assumed) to be one of: **(a) cancelled/incomplete bolus**
+     (field thought a bolus was in progress/complete but it failed/was cancelled →
+     `requestedBolus` ≫ delivered `normal`, syncId amount ≠ delivered, transient IOB
+     spike-and-revert); **(b) backfilled BG** (a reading Loop got late — undetectable
+     directly, but shows as a missed loop cycle); **(c) CGM sub-second wobble** (timestamps
+     stored at second precision → tiny only). Anything else is a **real discrepancy to fix**
+     (decoding / settings / model), not an exclusion.
+  3. **Then dosing.** Only after forecasts match, compare the dose computed from those
+     forecasts: target **<= 0.05 U (bolus) or U/hr (temp basal)**, worst-case.
 - **Identity checks are mandatory** after any simulator or dose-path change: identical
   baseline/candidate configs ⇒ Δdose ≈ 0 every step and counter == sanity. A failed
   identity test invalidates everything downstream.
