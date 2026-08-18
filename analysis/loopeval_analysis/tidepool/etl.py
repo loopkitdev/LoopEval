@@ -89,7 +89,11 @@ from .provenance import write_manifest as _write_manifest
 #      (bddp03 post-dated 12,358 samples at v4 — a wholesale input rewrite on a
 #      heuristic validated only for clean 5-min streams); such donors keep
 #      stale_cgm.csv but post-date nothing.
-DATA_VERSION = 5
+#   6  overrides: mid-flight slider edits expand to per-version sub-windows
+#      (distinct ids under one enactment, activation = createdTime). bddp09's
+#      24.5h window replayed the 02:04 slider position (×0.9) back into 21:58;
+#      reality was ×1.04 → none → ×0.9.
+DATA_VERSION = 6
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -133,15 +137,31 @@ def _insulin_type_from_data(user, s_ms, e_ms, default="rapidActingAdult"):
 
 def _overrides(user, s_ms, e_ms, e_win_ms):
     """Fetch temporary-override usage (deviceEvent/pumpSettingsOverride) and build
-    absolute-time intervals with the effective scale factors + target. Each enactment
-    is logged twice at one timestamp (a finite-duration row and a None/indefinite row);
-    collapse per timestamp, using the finite duration when present. An override runs
-    [start, start+duration] (finite) or [start, modifiedTime] (indefinite — Tidepool
-    bumps modifiedTime when it's turned off; falls back to the next enactment only if
-    modifiedTime is missing), always cut short by the next enactment (supersession).
-    Returns sorted list of (start_ms, end_ms, {isf_sf, basal_sf, cr_sf, tgt_low,
-    tgt_high, preset}). NOTE: indefinite-→-next-enactment over-extended (a 6.6h "low"
-    became 29.7h); modifiedTime end validated against Loop's recorded IOB (2026-08-07)."""
+    absolute-time intervals with the effective scale factors + target.
+
+    An enactment is a group of rows sharing one `time`; WITHIN it there are two kinds of
+    versioning, and conflating them mis-replays hours of therapy:
+
+    • SAME `id`, several rows — Tidepool edit-versions of one state (e.g. the finite
+      `duration` stamped when the override ends). Resolve by LATEST modifiedTime — the
+      early-cancel fix (a 2.6h "hypo" override otherwise runs its 4h scheduled length,
+      ISF held ×3.33 for 84 extra minutes → spurious severe lows).
+
+    • DIFFERENT `id`s — MID-FLIGHT EDITS: the user moved the needs slider while the
+      override ran, and each slider position is its own record whose `createdTime` is
+      when it took effect. bddp09 2026-06-05 21:58 (the case that exposed this): enacted
+      ×1.04, edited to no-factors at 23:34, to ×0.90 at 06-06 02:04, ended 22:32.
+      Collapsing to the final version replayed ×0.90 across all 24.5h — the under-dose
+      cluster at 23:28-23:48 ran under ×1.04 in reality (confirmed by the pod's scheduled
+      basal: 1.04 until ~23:23, 1.00 after). Emit ONE SUB-WINDOW PER VERSION:
+      [activation, next version's activation), first from the enactment instant.
+      `createdTime` is server ingestion, so activation can lag the true edit by an
+      upload batch — bddp09's boundaries land within minutes of the pod-basal evidence.
+
+    Enactment END: last version's finite duration (start+dur), else its modifiedTime
+    (indefinite turned off), else the next enactment; always cut by supersession.
+    Returns sorted (start_ms, end_ms, {isf_sf, basal_sf, cr_sf, tgt_low, tgt_high,
+    preset})."""
     q = (f"SELECT {_TMS} AS t_ms, "
          f"CAST(get_json_object(duration,'$.$numberInt') AS BIGINT) AS dur_s, "
          f"overridePreset AS preset, "
@@ -150,7 +170,8 @@ def _overrides(user, s_ms, e_ms, e_win_ms):
          f"get_json_object(carbRatioScaleFactor,'$.$numberDouble') AS cr_sf, "
          f"get_json_object(bgTarget,'$.low.$numberDouble') AS tgt_low, "
          f"get_json_object(bgTarget,'$.high.$numberDouble') AS tgt_high, "
-         f"CAST(get_json_object(modifiedTime,'$.$date.$numberLong') AS BIGINT) AS mod_ms, id "
+         f"CAST(get_json_object(modifiedTime,'$.$date.$numberLong') AS BIGINT) AS mod_ms, "
+         f"CAST(get_json_object(createdTime,'$.$date.$numberLong') AS BIGINT) AS crt_ms, id "
          # NO id-dedup: Tidepool stores an override as EDIT-VERSIONS sharing one id — it's
          # first uploaded INDEFINITE (duration null), then EDITED with the resolved finite
          # duration when it ends. Keeping rn=1 (oldest _id) drops the finite end → the
@@ -160,47 +181,54 @@ def _overrides(user, s_ms, e_ms, e_win_ms):
     df = query(q)
     if df.empty:
         return []
-    # collapse per (timestamp, preset): prefer the finite-duration (resolved) edit-version;
-    # among finite versions keep the LARGEST duration (the final resolved end, not an interim).
-    grp = {}
+    # Group rows: enactment (t//1000, preset) -> logical record (id) -> versions.
+    enact = {}
     for r in df.itertuples():
         t = int(r.t_ms); key = (t // 1000, r.preset)
-        dur = _fin(r.dur_s)
-        _m = _fin(r.mod_ms); mod = int(_m) if _m is not None else None
-        cur = grp.get(key)
-        rec = dict(t=t, dur=dur, mod=mod, preset=r.preset,
+        _m = _fin(r.mod_ms); _c = _fin(r.crt_ms)
+        ver = dict(t=t, dur=_fin(r.dur_s),
+                   mod=int(_m) if _m is not None else None,
+                   crt=int(_c) if _c is not None else None,
+                   preset=r.preset,
                    isf=_fin(r.isf_sf) or 1.0, basal=_fin(r.basal_sf) or 1.0, cr=_fin(r.cr_sf) or 1.0,
                    tlo=_fin(r.tgt_low), thi=_fin(r.tgt_high))
-        # Keep the LATEST edit-version (by modifiedTime). When an override is turned off
-        # EARLY, Tidepool writes a new version at the same start with the ACTUAL (shorter)
-        # duration and a later modifiedTime, while the original carries the longer SCHEDULED
-        # duration. The newest-modified version holds the resolved duration/end. An earlier
-        # "keep the LARGEST duration" rule over-extended every early-cancelled override
-        # (e.g. a 2.6h "hypo" override ran to its 4h scheduled length → ISF held ×3.33 for
-        # 84 extra min → forecast/counter crater → spurious severe lows).
-        if cur is None:
-            grp[key] = rec
-        elif mod is not None and (cur["mod"] is None or mod > cur["mod"]):
-            grp[key] = rec
-        elif mod is None and cur["mod"] is None and dur is not None and \
-                (cur["dur"] is None or dur > cur["dur"]):
-            grp[key] = rec  # no modifiedTime on either → fall back to the longer finite duration
-    evs = sorted(grp.values(), key=lambda x: x["t"])
+        enact.setdefault(key, {}).setdefault(r.id, []).append(ver)
+
+    evs = []   # one entry per enactment: ordered sub-versions + resolved end
+    for key, byid in enact.items():
+        subs = []
+        for _id, vers in byid.items():
+            # Same-id edit-versions: content from the LATEST modifiedTime (early-cancel
+            # fix — it holds the resolved duration); ACTIVATION from the EARLIEST
+            # createdTime (the end-stamp's late createdTime is when the override ENDED,
+            # not when this slider position began).
+            best = max(vers, key=lambda v: (v["mod"] is not None, v["mod"] or 0))
+            act = min((v["crt"] for v in vers if v["crt"] is not None), default=best["t"])
+            subs.append(dict(best, act=act))
+        subs.sort(key=lambda v: v["act"])
+        subs[0]["act"] = subs[0]["t"]          # first version runs from the enactment instant
+        evs.append(dict(t=subs[0]["t"], subs=subs))
+    evs.sort(key=lambda e: e["t"])
+
     ivals = []
     for i, ev in enumerate(evs):
         nxt = evs[i + 1]["t"] if i + 1 < len(evs) else e_win_ms
-        if ev["dur"] is not None:
-            end = ev["t"] + int(ev["dur"] * 1000)               # finite: start + duration
-        elif ev["mod"] is not None and ev["mod"] > ev["t"]:
-            end = ev["mod"]                                       # indefinite: ended at modifiedTime
+        last = ev["subs"][-1]
+        if last["dur"] is not None:
+            end = ev["t"] + int(last["dur"] * 1000)             # finite: start + duration
+        elif last["mod"] is not None and last["mod"] > ev["t"]:
+            end = last["mod"]                                     # indefinite: ended at modifiedTime
         else:
             end = nxt                                             # truly-open: until next enactment
         end = min(end, nxt, e_win_ms)
-        st = max(ev["t"], s_ms)
-        if end <= st:
-            continue
-        ivals.append((st, end, {"isf_sf": ev["isf"], "basal_sf": ev["basal"], "cr_sf": ev["cr"],
-                                "tgt_low": ev["tlo"], "tgt_high": ev["thi"], "preset": ev["preset"]}))
+        for j, sub in enumerate(ev["subs"]):
+            sub_end = ev["subs"][j + 1]["act"] if j + 1 < len(ev["subs"]) else end
+            st = max(sub["act"], s_ms)
+            en = min(sub_end, end)
+            if en <= st:
+                continue
+            ivals.append((st, en, {"isf_sf": sub["isf"], "basal_sf": sub["basal"], "cr_sf": sub["cr"],
+                                   "tgt_low": sub["tlo"], "tgt_high": sub["thi"], "preset": sub["preset"]}))
     return ivals
 
 def _overlay_overrides(base, overrides, apply_fn):
