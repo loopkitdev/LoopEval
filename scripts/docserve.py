@@ -22,8 +22,81 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]  # repo root
-PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
-HOST = sys.argv[2] if len(sys.argv) > 2 else "0.0.0.0"
+
+# ---------------------------------------------------------------- allowlist
+# This server binds to 0.0.0.0 by default, so everything reachable is on the LAN.
+# The repo holds a real person's medical data (runs/) and live credentials
+# (PRIVATE.md) — so paths are ALLOWLISTED, not denylisted: a request is served
+# only if it resolves inside an explicitly allowed root. Nothing else exists as
+# far as this server is concerned, including the rest of the filesystem.
+#
+#   docs/  is always allowed (the guides + their images).
+#   --allow <dir>  opts an extra repo-relative dir in, e.g. `--allow runs`
+#                  to share case-study plots. Never on by default.
+ALWAYS_ALLOW = ["docs"]
+
+# Extra (opted-in) roots serve only these suffixes — plots and tabular data,
+# never source, config, or credential files that may sit alongside them.
+DATA_SUFFIXES = {".png", ".jpg", ".jpeg", ".svg", ".gif", ".webp",
+                 ".csv", ".json", ".md", ".txt"}
+
+# Belt-and-braces: never serve these, even if they land inside an allowed root.
+DENY_NAMES = {"private.md", ".env", "site.json", ".netrc", "databricks.env",
+              "credentials", "secrets.json", "id_rsa", ".git-credentials"}
+DENY_SUFFIXES = {".pem", ".key", ".p12", ".pfx", ".sqlite", ".db"}
+
+
+def _parse_args(argv):
+    port, host, extra = 8080, "0.0.0.0", []
+    pos = []
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--allow" and i + 1 < len(argv):
+            extra.append(argv[i + 1].strip("/"))
+            i += 2
+        else:
+            pos.append(argv[i])
+            i += 1
+    if pos:
+        port = int(pos[0])
+    if len(pos) > 1:
+        host = pos[1]
+    return port, host, extra
+
+
+PORT, HOST, EXTRA_ALLOW = _parse_args(sys.argv[1:])
+
+ALLOW_ROOTS = []
+for rel in ALWAYS_ALLOW + EXTRA_ALLOW:
+    p = (ROOT / rel).resolve()
+    if p.is_dir():
+        ALLOW_ROOTS.append(p)
+    else:
+        print(f"  ! --allow {rel}: not a directory under {ROOT} — ignored")
+
+
+def permitted(fp: Path):
+    """True if fp resolves inside an allowed root and isn't denied.
+
+    Resolves symlinks first, so a link pointing out of an allowed root (or out
+    of the repo) is rejected rather than followed.
+    """
+    try:
+        real = fp.resolve()
+    except (OSError, RuntimeError):
+        return False
+    if real.name.lower() in DENY_NAMES or real.suffix.lower() in DENY_SUFFIXES:
+        return False
+    if any(part.startswith(".") and part not in (".", "..") for part in real.parts):
+        return False  # dotfiles / .git / .ssh …
+    for root in ALLOW_ROOTS:
+        if real == root or root in real.parents:
+            # Opted-in extra roots are restricted to plot/data suffixes.
+            if root.name not in ALWAYS_ALLOW and real.is_file() \
+                    and real.suffix.lower() not in DATA_SUFFIXES:
+                return False
+            return True
+    return False
 
 PAGE = r"""<!doctype html><html lang=en><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1"><title>__TITLE__ · LoopEval docs</title>
@@ -87,6 +160,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         fp = Path(self.translate_path(self.path))
+        clean = self.path.split("?")[0]
+
+        # Root: a small index of what's shared — never a repo-root listing.
+        if clean in ("/", "/index.html"):
+            return self._index()
+
+        # Everything else must be inside an allowed root (see permitted()).
+        if not permitted(fp):
+            self.send_error(404, "Not Found")
+            return
+
         if fp.is_dir():
             if not self.path.split("?")[0].endswith("/"):
                 self.send_response(301)
@@ -99,6 +183,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif fp.suffix.lower() == ".md" and fp.exists():
             return self._render(fp)
         return super().do_GET()
+
+    def _index(self):
+        links = "".join(
+            f'<li><a href="/{r.relative_to(ROOT).as_posix()}/">'
+            f'{r.relative_to(ROOT).as_posix()}/</a></li>'
+            for r in ALLOW_ROOTS
+        )
+        html = (
+            "<!doctype html><meta charset=utf-8><title>LoopEval docs</title>"
+            "<style>body{font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;"
+            "max-width:640px;margin:64px auto;padding:0 24px}"
+            "a{color:#0969da}@media(prefers-color-scheme:dark){"
+            "body{background:#0d1117;color:#e6edf3}a{color:#4493f8}}</style>"
+            "<h1>LoopEval docs</h1><p>Shared on this LAN:</p><ul>" + links + "</ul>"
+            "<p><a href='/docs/simulator-guide/'>→ Simulator guide</a></p>"
+        ).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(html)))
+        self.end_headers()
+        self.wfile.write(html)
 
     def _render(self, mdpath: Path):
         b64 = base64.b64encode(mdpath.read_text(encoding="utf-8").encode("utf-8")).decode("ascii")
@@ -127,9 +232,13 @@ def lan_ip() -> str:
 
 if __name__ == "__main__":
     ip = lan_ip()
-    print(f"LoopEval docs — serving {ROOT}")
-    print(f"  local : http://localhost:{PORT}/docs/")
+    print(f"LoopEval docs — repo {ROOT}")
+    print("  sharing (allowlist):")
+    for r in ALLOW_ROOTS:
+        print(f"    {r.relative_to(ROOT).as_posix()}/")
+    print("  blocked: PRIVATE.md, credentials, dotfiles, and everything not listed above")
+    print(f"  local : http://localhost:{PORT}/docs/simulator-guide/")
     if HOST == "0.0.0.0":
-        print(f"  LAN   : http://{ip}:{PORT}/docs/   ← share this with the team")
+        print(f"  LAN   : http://{ip}:{PORT}/docs/simulator-guide/   ← share this")
     print("  Ctrl-C to stop")
     http.server.ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
