@@ -84,7 +84,14 @@ struct InputWindowBuilder: Sendable {
         let glucoseWindowStart = t.addingTimeInterval(-config.glucoseLookbackHours * 3600)
         let gLo = lowerBound(glucose, by: glucoseWindowStart, key: \.startDate)
         let gHi = upperBound(glucose, by: t, key: \.startDate)
-        let glucoseSlice = gLo < gHi ? Array(glucose[gLo..<gHi]) : []
+        // Visibility gate: a decision at `t` sees only samples the CONTROLLER held by
+        // `t` (`receivedDate`, when set — a delayed reading is post-dated past the
+        // decisions the real Loop made without it). Same causality rule as the carb
+        // `entryDate` gate below. Filtering can't disturb startDate ordering, so the
+        // binary-searched window stays valid.
+        let glucoseSlice = gLo < gHi
+            ? glucose[gLo..<gHi].filter { ($0.receivedDate ?? $0.startDate) <= t }
+            : []
 
         // Minimum data check: at least one reading in the last 30 min
         let recentCutoff = t.addingTimeInterval(-30 * 60)

@@ -82,7 +82,10 @@ from .provenance import write_manifest as _write_manifest
 #   3  disruptions.csv gains `pump_error` rows from dosingDecision.errors — cycles
 #      Loop decided but the pump never received (bddp11: 220 cycles / 72.5 U in two
 #      weeks). Earlier exports let the sim deliver through a disconnected pump.
-DATA_VERSION = 3
+#   4  new stale_cgm.csv: decisions Loop anchored on a stale sample
+#      (bgForecast[0] vs the export's latest sample) — comparability exclusions
+#      for verification, NOT delivery clamps.
+DATA_VERSION = 4
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -311,6 +314,65 @@ def _loop_offline_gaps(user, s_ms, e_ms, min_gap_min=20):
     ts = [int(x) for x in df["t_ms"].tolist()]
     gap_ms = min_gap_min * 60 * 1000
     return [(a, b) for a, b in zip(ts, ts[1:]) if b - a > gap_ms]
+
+
+def _stale_cgm_decisions(user, s_ms, e_ms, glucose, tol_mgdl=2.0):
+    """Decisions Loop made on a STALE CGM sample — the reading existed but hadn't reached
+    Loop yet, so its anchor (and, for the next ~2 cycles, its momentum/RC windows)
+    differ from any replay fed the complete export.
+
+    Detection: `dosingDecision.bgForecast[0]` IS the sample Loop anchored on. Compare it
+    with the export's latest sample at/before the decision; a mismatch that instead
+    equals an EARLIER sample = Loop ran on stale glucose. Proven on bddp11
+    2026-06-15 21:37 (the only such cycle in 3,746): Loop anchored 174 (the 21:32
+    sample) while the 21:37 sample (181) already existed; deleting that one sample from
+    the replay made the next two cycles match Loop EXACTLY (dose 0.65→0.30=rec,
+    forecast Δ 34.7→0.4 mg/dL) — and re-diverge at 21:52, bracketing the late arrival
+    at 10–15 min. Loop never anchored on a sample the export lacks; the failure mode is
+    purely timing.
+
+    This is a COMPARABILITY exclusion, not a delivery clamp: Loop dosed and the pump
+    delivered, so these cycles must NOT go into disruptions.csv (clamping would falsify
+    real delivery). Written to stale_cgm.csv for verification tooling to exclude the
+    stale cycle and the following two (momentum window 15 min + RC retrospection 30 min
+    heal as the sample lands).
+
+    `glucose`: the export's [{startDate, quantity}] list (mg/dL), already built.
+    NOTE bgForecast is uploaded in mmol/L; detect by magnitude (<40) as elsewhere."""
+    import bisect
+    q = (f"SELECT {_TMS} AS t_ms, "
+         f"COALESCE(CAST(get_json_object(bgForecast,'$[0].value.$numberDouble') AS DOUBLE), "
+         f"         CAST(get_json_object(bgForecast,'$[0].value.$numberInt') AS DOUBLE), "
+         f"         CAST(get_json_object(bgForecast,'$[0].value') AS DOUBLE)) AS t0 "
+         f"FROM {TBL} WHERE _userId='{user}' AND type='dosingDecision' "
+         f"AND CAST(reason AS STRING)='loop' AND bgForecast IS NOT NULL "
+         f"AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)} ORDER BY {_TMS}")
+    df = query(q)
+    gt = [(_iso_to_ms(g["startDate"]), float(g["quantity"])) for g in glucose]
+    gt = [(t, v) for t, v in gt if t is not None]
+    gt.sort()
+    times = [t for t, _ in gt]
+    out = []
+    for t_ms, t0 in zip(df["t_ms"].tolist(), df["t0"].tolist()):
+        v = _fin(t0)
+        if v is None:
+            continue
+        if v < 40:                       # mmol/L upload
+            v *= MMOL
+        i = bisect.bisect_right(times, int(t_ms)) - 1
+        if i < 1:                        # need a latest AND an earlier sample
+            continue
+        latest_v = gt[i][1]
+        if abs(v - latest_v) <= tol_mgdl:
+            continue                     # anchored on the sample we'd feed the replay
+        # stale only if the anchor matches some EARLIER sample (not an unknown one)
+        prior = next((j for j in range(i - 1, max(-1, i - 5), -1)
+                      if abs(gt[j][1] - v) <= tol_mgdl), None)
+        out.append(dict(t_ms=int(t_ms), loop_anchor=round(v, 2),
+                        our_sample=round(latest_v, 2),
+                        our_sample_t_ms=gt[i][0],
+                        matched_earlier_t_ms=(gt[prior][0] if prior is not None else None)))
+    return out
 
 
 def _pump_error_cycles(user, s_ms, e_ms, half_window_ms=90 * 1000):
@@ -554,6 +616,43 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     sus = _suspends(user, s_ms, e_ms)
     off = _loop_offline_gaps(user, s_ms, e_ms)
     perr = _pump_error_cycles(user, s_ms, e_ms)
+    stale = _stale_cgm_decisions(user, s_ms, e_ms, glucose)
+    # Post-date the late samples: a decision replayed at/before the stale decision must
+    # not see a sample the real Loop provably lacked. The PROVEN bound from anchors is
+    # only "absent at the stale decision" (arrival needs forecast evidence — bddp11's one
+    # case arrived 10-15 min late), so post-date minimally: 1 s past the last decision
+    # whose anchor proves absence. glucose.json is rewritten with receivedDate on exactly
+    # those samples; the sim's visibility gate (EvalGlucoseSample.receivedDate) does the
+    # rest. stale_cgm.csv still lists the cycles — the following ~2 cycles can retain a
+    # small momentum/RC mismatch until the true (unknown) arrival, so verification should
+    # still exclude them.
+    if stale:
+        post = {}   # sample t_ms -> received_ms
+        for r in stale:
+            anchor_ms = r["matched_earlier_t_ms"]
+            if anchor_ms is None:
+                continue    # anchor matches no sample we hold — nothing safe to post-date
+            for g in glucose:
+                g_ms = _iso_to_ms(g["startDate"])
+                if g_ms is not None and anchor_ms < g_ms <= r["t_ms"]:
+                    post[g_ms] = max(post.get(g_ms, 0), r["t_ms"] + 1000)
+        if post:
+            for g in glucose:
+                g_ms = _iso_to_ms(g["startDate"])
+                if g_ms in post:
+                    g["receivedDate"] = _iso(post[g_ms])
+            with open(os.path.join(outdir, "glucose.json"), "w") as fh:
+                json.dump(glucose, fh, allow_nan=False)
+            print(f"{user}: post-dated {len(post)} late CGM sample(s) past the stale decision(s)")
+    # stale-CGM decisions: comparability exclusions, NOT delivery clamps — own CSV.
+    stale_path = os.path.join(outdir, "stale_cgm.csv")
+    import csv as _csv0
+    with open(stale_path, "w", newline="") as fh:
+        w = _csv0.writer(fh)
+        w.writerow(["decision", "loop_anchor_mgdl", "our_sample_mgdl", "our_sample_time", "anchor_matches_sample_time"])
+        for r in stale:
+            w.writerow([_iso(r["t_ms"]), r["loop_anchor"], r["our_sample"], _iso(r["our_sample_t_ms"]),
+                        _iso(r["matched_earlier_t_ms"]) if r["matched_earlier_t_ms"] else "UNKNOWN_SAMPLE"])
     # merge all disruption intervals (suspends + offline gaps + pump errors), tagging source
     tagged = [(s, e, "suspend", "tidepool/suspend_dose") for s, e in sus] \
            + [(s, e, "loop_offline", "tidepool/decision_gap") for s, e in off] \
@@ -579,12 +678,12 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     _write_manifest(outdir, user, start, end,
                     counts=dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs),
                                 suspends=len(sus), offline_gaps=len(off),
-                                pump_errors=len(perr)))
+                                pump_errors=len(perr), stale_cgm=len(stale)))
 
     print(f"{user}: glucose={len(glucose)} doses={len(doses)} carbs={len(carbs)} "
           f"therapy(basal={len(therapy['basal'])},isf={len(therapy['sensitivity'])}) "
           f"suspends={len(sus)}({sus_h:.1f}h) offline_gaps={len(off)}({off_h:.1f}h) "
-          f"pump_errors={len(perr)}({perr_h:.1f}h) → {outdir}")
+          f"pump_errors={len(perr)}({perr_h:.1f}h) stale_cgm={len(stale)} → {outdir}")
     return dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs))
 
 def _sched(j):
