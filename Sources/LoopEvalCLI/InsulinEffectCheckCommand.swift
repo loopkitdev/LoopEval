@@ -28,6 +28,9 @@ struct InsulinEffectCheckCommand: ParsableCommand {
     @Option(help: "Only cycles with this dosingDecision reason (empty = all)")
     var reason: String = "loop"
 
+    @Option(help: "ISF timeline override for mixed-era captures, e.g. '50,100@2026-08-18T19:52:08Z,50@2026-08-18T20:54:00Z' — first value from the epoch, each @-tagged value from its instant. Empty = the capture's flat isf. The capture stores ONE isf per cycle, so any cycle whose dose window spans an override boundary cannot be reconstructed from it; supply the real breakpoints instead.")
+    var isfSchedule: String = ""
+
     @Flag(help: "Print the worst cycle point-by-point")
     var verbose: Bool = false
 
@@ -91,10 +94,29 @@ struct InsulinEffectCheckCommand: ParsableCommand {
 
             let first = Date(timeIntervalSince1970: effect.first![0])
             let last = Date(timeIntervalSince1970: effect.last![0])
-            let isfHistory = [AbsoluteScheduleValue(
-                startDate: first.addingTimeInterval(-86400 * 2),
-                endDate: last.addingTimeInterval(86400 * 2),
-                value: LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: isf))]
+            let lo = first.addingTimeInterval(-86400 * 2)
+            let hi = last.addingTimeInterval(86400 * 2)
+            var isfHistory: [AbsoluteScheduleValue<LoopQuantity>] = []
+            if isfSchedule.isEmpty {
+                isfHistory = [AbsoluteScheduleValue(
+                    startDate: lo, endDate: hi,
+                    value: LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: isf))]
+            } else {
+                let iso = ISO8601DateFormatter()
+                var pts: [(Date, Double)] = []
+                for part in isfSchedule.split(separator: ",") {
+                    let bits = part.split(separator: "@")
+                    guard let v = Double(bits[0]) else { continue }
+                    pts.append((bits.count > 1 ? (iso.date(from: String(bits[1])) ?? lo) : lo, v))
+                }
+                pts.sort { $0.0 < $1.0 }
+                for (i, p) in pts.enumerated() {
+                    let end = i + 1 < pts.count ? pts[i + 1].0 : hi
+                    isfHistory.append(AbsoluteScheduleValue(
+                        startDate: max(lo, p.0), endDate: end,
+                        value: LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: p.1)))
+                }
+            }
 
             let ours = doses.glucoseEffects(insulinSensitivityHistory: isfHistory, from: first, to: last)
             guard ours.count > 1 else { skipped += 1; continue }
