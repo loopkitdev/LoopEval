@@ -305,10 +305,23 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
             return True
         return False
 
+    # Any SWEEP point that craters above ylim (t<54 > ceiling) is drawn as a caret at
+    # the top edge (at its TIR, color-matched) and listed in an info box — so the value
+    # isn't silently clipped, WITHOUT widening the sub-1.5% view. (Distinct from the
+    # `deployed`/`_offlabel` path, which handles only the single ×1.0 point.)
+    _offchart: list[tuple] = []
+    def _catch_off(frame, color, name):
+        for _, row in frame.iterrows():
+            if row["t54"] > ylim[1]:
+                ax.scatter([row["TIR"]], [ylim[1]], marker="^", s=42, color=color,
+                           edgecolor="k", linewidth=0.5, zorder=9, clip_on=False)
+                _offchart.append((str(name), float(row["_m"]), float(row["t54"]), color))
+
     fig, ax = plt.subplots(figsize=(12, 8))
     r = _ordered(ref.dropna(subset=["TIR", "t54"]))
     ax.plot(r["TIR"], r["t54"], "o-", color="#888", lw=2, zorder=3, label=ref_label)
     marked = _mark(ax, r, "#888")
+    _catch_off(r, "#888", ref_label)
     if ref_deployed is not None:
         marked = _offlabel(ref_deployed[0], ref_deployed[1], "#888", "std") or marked
     if label_ref_points and _multiplier_of(r) is not None:      # annotate each ref vertex with its sweep value
@@ -319,6 +332,7 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
         g = _ordered(g)
         line, = ax.plot(g["TIR"], g["t54"], "o-", ms=4, lw=1.5, zorder=4, label=str(name))
         marked = _mark(ax, g, line.get_color()) or marked
+        _catch_off(g, line.get_color(), name)
         if deployed is not None and str(name) in deployed:
             dp = deployed[str(name)]
             marked = _offlabel(dp[0], dp[1], line.get_color(), str(name)) or marked
@@ -329,6 +343,22 @@ def plot_sweeps(ref: pd.DataFrame, cand: pd.DataFrame,
         ax.scatter([], [], s=110, marker="s", facecolor="none", edgecolor="k",
                    linewidth=1.2, label=f"×{mark_mult:g} (deployed)")
     tir_t54_axes(ax, ylim=ylim)   # t54 up = worse; NEVER invert
+    if _offchart:                 # info box: off-chart points (t<54 above the ceiling)
+        rows_by_mech: dict[str, list] = {}
+        colfor: dict[str, str] = {}
+        for name, m, t54, color in sorted(_offchart, key=lambda x: (x[0], x[1])):
+            rows_by_mech.setdefault(name, []).append(f"{m:g}→{t54:.2f}")
+            colfor[name] = color
+        y = 0.045
+        ax.text(0.985, y + 0.02 + 0.05 * len(rows_by_mech), f"off-chart  (t<54 > {ylim[1]:g}):",
+                transform=ax.transAxes, ha="right", va="bottom", fontsize=8.5,
+                fontweight="bold", color="#333", zorder=11)
+        for name in sorted(rows_by_mech, key=lambda n: -max(float(v.split('→')[1]) for v in rows_by_mech[n])):
+            ax.text(0.985, y, f"{name}:  " + ", ".join(rows_by_mech[name]),
+                    transform=ax.transAxes, ha="right", va="bottom", fontsize=8,
+                    family="monospace", color=colfor[name], fontweight="bold", zorder=11,
+                    bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor=colfor[name], alpha=0.85))
+            y += 0.05
     ax.set_title(title)
     ax.legend(fontsize=9, loc="upper left")
     fig.tight_layout()
