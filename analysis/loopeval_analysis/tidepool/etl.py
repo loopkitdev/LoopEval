@@ -67,6 +67,21 @@ def _ms_bounds(start, end):
 # t_ms expression reused everywhere
 _TMS = "CAST(get_json_object(time,'$.$date.$numberLong') AS BIGINT)"
 
+from .provenance import write_manifest as _write_manifest
+
+# ---------------------------------------------------------------------------
+# BUMP THIS whenever an ETL change alters the DATA an export produces (dedup
+# rules, decoding, reconstruction, new/changed fields). It is the staleness
+# gate: `provenance.scan()` marks every export written at a lower version as
+# STALE so it can be re-exported or deleted instead of silently re-analysed.
+# Cosmetic edits (comments, prints, refactors) must NOT bump it.
+#
+#   1  pre-2026-08-12 baseline
+#   2  basal dedup keeps the LATEST version of an id (92fafda) — earlier exports
+#      carry 21-88 h of phantom basal [[stale-preFix-cohort-exports]]
+DATA_VERSION = 2
+
+
 def _dedup(cols, where, typ, order="_id"):
     """One row per Tidepool logical `id` (the table has exact-duplicate rows AND
     edit-versions sharing an id; without this everything is 2-3× over-counted).
@@ -501,6 +516,10 @@ def export_donor(user, start, end, outdir, insulin_type=None):
             w.writerow([_iso(s), _iso(e), reason, src, f"{reason} {round((e - s) / 60000)}min"])
     sus_h = sum((e - s) for s, e in sus) / 3600000.0
     off_h = sum((e - s) for s, e in off) / 3600000.0
+
+    _write_manifest(outdir, user, start, end,
+                    counts=dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs),
+                                suspends=len(sus), offline_gaps=len(off)))
 
     print(f"{user}: glucose={len(glucose)} doses={len(doses)} carbs={len(carbs)} "
           f"therapy(basal={len(therapy['basal'])},isf={len(therapy['sensitivity'])}) "
