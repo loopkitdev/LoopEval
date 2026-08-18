@@ -79,7 +79,10 @@ from .provenance import write_manifest as _write_manifest
 #   1  pre-2026-08-12 baseline
 #   2  basal dedup keeps the LATEST version of an id (92fafda) — earlier exports
 #      carry 21-88 h of phantom basal [[stale-preFix-cohort-exports]]
-DATA_VERSION = 2
+#   3  disruptions.csv gains `pump_error` rows from dosingDecision.errors — cycles
+#      Loop decided but the pump never received (bddp11: 220 cycles / 72.5 U in two
+#      weeks). Earlier exports let the sim deliver through a disconnected pump.
+DATA_VERSION = 3
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -310,6 +313,59 @@ def _loop_offline_gaps(user, s_ms, e_ms, min_gap_min=20):
     return [(a, b) for a, b in zip(ts, ts[1:]) if b - a > gap_ms]
 
 
+def _pump_error_cycles(user, s_ms, e_ms, half_window_ms=90 * 1000):
+    """Cycles where Loop DECIDED but the pump could not be reached, so nothing was
+    delivered.
+
+    `dosingDecision.errors` records why a cycle failed to enact. Measured on bddp11 over
+    2026-06-10..06-23 (3954 'loop' cycles), `pumpManagerError` separates delivery
+    perfectly:
+
+        error kind                              cycles w/ rec>0.05    delivered nothing
+        (no error)                                     844                 0   (0%)
+        pumpManagerError :: Pod not connected           196               196 (100%)
+        pumpManagerError :: No pod paired                 4                 4 (100%)
+        pumpManagerError :: Bolus in progress             2                 2 (100%)
+
+    i.e. 220 cycles / 72.5 U that Loop asked for and the person never received — an
+    out-of-range Omnipod, mostly. There is no bolus record for them in the dose stream OR
+    in raw Tidepool, so nothing else in the export reveals them: without this the sim
+    happily delivers through a disconnected pump and the dose-match score blames the
+    replay for the pod being offline.
+
+    Only `pumpManagerError` is treated as non-delivery. `pumpDataTooOld` also appears in
+    `errors` but did not coincide with a suppressed dose in the measured window, so it is
+    deliberately NOT clamped — clamping on an unverified signal would silently discard
+    real delivery. Widen only with evidence.
+
+    Interval is a TIGHT window centred on the failing decision (±`half_window_ms`), not a
+    forward cadence span. Two reasons: the replay's step for a given decision can sit a few
+    seconds either side of the field timestamp, so a window starting exactly at it misses
+    the step it is meant to clamp; and a full 5-min span reaches the NEXT decision, which
+    usually succeeded. Measured on bddp11: forward-span [T, T+5min] covered only 32% of the
+    known non-delivered cycles while falsely clamping 15% of delivered ones.
+
+    Only the COMMANDED dose is clamped, not basal — a disconnected pod keeps running its
+    last programmed basal autonomously; what fails is Loop's new command.
+
+    Errors are stored as a JSON array whose key order varies between otherwise identical
+    entries, so match on a parse, never on the raw string."""
+    q = (f"SELECT {_TMS} AS t_ms, CAST(errors AS STRING) AS errors FROM {TBL} "
+         f"WHERE _userId='{user}' AND type='dosingDecision' AND CAST(reason AS STRING)='loop' "
+         f"AND errors IS NOT NULL "
+         f"AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)} ORDER BY {_TMS}")
+    df = query(q)
+    out = []
+    for t_ms, raw in zip(df["t_ms"].tolist(), df["errors"].tolist()):
+        try:
+            entries = json.loads(raw) if isinstance(raw, str) else []
+        except (ValueError, TypeError):
+            continue
+        if any(isinstance(e, dict) and e.get("id") == "pumpManagerError" for e in entries):
+            out.append((int(t_ms) - half_window_ms, int(t_ms) + half_window_ms))
+    return out
+
+
 def _carbs(win, manual_ms):
     """Build the carb entries (food records) for a window. `manual_ms` = sorted list of
     manual-bolus epoch-ms (for the paired-bolus visibility gate). Independent of the giant
@@ -497,9 +553,11 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     import csv as _csv
     sus = _suspends(user, s_ms, e_ms)
     off = _loop_offline_gaps(user, s_ms, e_ms)
-    # merge all disruption intervals (suspends + offline gaps), tagging source
+    perr = _pump_error_cycles(user, s_ms, e_ms)
+    # merge all disruption intervals (suspends + offline gaps + pump errors), tagging source
     tagged = [(s, e, "suspend", "tidepool/suspend_dose") for s, e in sus] \
-           + [(s, e, "loop_offline", "tidepool/decision_gap") for s, e in off]
+           + [(s, e, "loop_offline", "tidepool/decision_gap") for s, e in off] \
+           + [(s, e, "pump_error", "tidepool/dosing_decision_errors") for s, e in perr]
     tagged.sort()
     merged = []
     for s, e, reason, src in tagged:
@@ -516,14 +574,17 @@ def export_donor(user, start, end, outdir, insulin_type=None):
             w.writerow([_iso(s), _iso(e), reason, src, f"{reason} {round((e - s) / 60000)}min"])
     sus_h = sum((e - s) for s, e in sus) / 3600000.0
     off_h = sum((e - s) for s, e in off) / 3600000.0
+    perr_h = sum((e - s) for s, e in perr) / 3600000.0
 
     _write_manifest(outdir, user, start, end,
                     counts=dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs),
-                                suspends=len(sus), offline_gaps=len(off)))
+                                suspends=len(sus), offline_gaps=len(off),
+                                pump_errors=len(perr)))
 
     print(f"{user}: glucose={len(glucose)} doses={len(doses)} carbs={len(carbs)} "
           f"therapy(basal={len(therapy['basal'])},isf={len(therapy['sensitivity'])}) "
-          f"suspends={len(sus)}({sus_h:.1f}h) offline_gaps={len(off)}({off_h:.1f}h) → {outdir}")
+          f"suspends={len(sus)}({sus_h:.1f}h) offline_gaps={len(off)}({off_h:.1f}h) "
+          f"pump_errors={len(perr)}({perr_h:.1f}h) → {outdir}")
     return dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs))
 
 def _sched(j):
