@@ -175,6 +175,11 @@ struct ForecastMatchCommand: AsyncParsableCommand {
             applicationFactor: applicationFactor,
             includeFutureInsulin: false,   // decision-time replay
             includeFutureCarbs: false,
+            // With --times-csv the evaluation instants ARE the field's recorded
+            // dosingDecision timestamps, so anchor the forecast on them directly rather
+            // than on the lastGlucose+7s estimate of `now`. --decisions-from-cgm derives
+            // the times from CGM samples instead, where the estimate is all we have.
+            decisionTimesAreAuthoritative: !decisionsFromCgm,
             useIntegralRC: integralRC,
             useIntegralRCClamp: integralRCClamp,
             kalmanSmoothing: false,        // raw native CGM (evaluate path uses data.glucose directly)

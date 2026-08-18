@@ -2265,7 +2265,7 @@ extension EvaluationEngine {
             ((egpPhysicalDecomposition && isfBoostActiveOnly) || postlowActive) ? .physicalDelivery : .netBasalUnits
         // start = last glucose + processing delay, so the momentum/RC windows now-anchor
         // like deployed Loop main (see EvalConfig.momentumProcessingDelay).
-        let predStart = effectiveInput.glucose.last?.startDate.addingTimeInterval(EvalConfig.momentumProcessingDelay) ?? t
+        let predStart = loopEvalPredictionStart(t: t, glucose: effectiveInput.glucose, config: config)
         // Hoist computed args to locals so the generatePrediction call stays under the
         // Swift type-checker's complexity heuristic (adding gradualTransitionsThreshold
         // tipped it into "unable to type-check in reasonable time").

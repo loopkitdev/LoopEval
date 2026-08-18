@@ -380,7 +380,7 @@ public actor EvaluationEngine {
             let stepPrecomputed = precomputed.sliced(from: doseWindowStart, to: doseWindowEnd)
             // start = last glucose + processing delay, so the momentum/RC windows now-anchor
             // like deployed Loop main (see EvalConfig.momentumProcessingDelay).
-            let predStart = input.glucose.last?.startDate.addingTimeInterval(EvalConfig.momentumProcessingDelay) ?? t
+            let predStart = loopEvalPredictionStart(t: t, glucose: input.glucose, config: config)
             prediction = LoopAlgorithm.generatePrediction(
                 start: predStart,
                 glucoseHistory: input.glucose,
@@ -421,7 +421,7 @@ public actor EvaluationEngine {
             )
         } else {
             // start = last glucose + processing delay (see EvalConfig.momentumProcessingDelay).
-            let predStart = input.glucose.last?.startDate.addingTimeInterval(EvalConfig.momentumProcessingDelay) ?? t
+            let predStart = loopEvalPredictionStart(t: t, glucose: input.glucose, config: config)
             prediction = LoopAlgorithm.generatePrediction(
                 start: predStart,
                 glucoseHistory: input.glucose,
@@ -467,7 +467,7 @@ public actor EvaluationEngine {
         if config.includeFutureInsulin,
            let inputNoFuture = builder.buildInput(at: t, includeFutureInsulin: false) {
             // start = last glucose + processing delay (see EvalConfig.momentumProcessingDelay).
-            let predStartNF = inputNoFuture.glucose.last?.startDate.addingTimeInterval(EvalConfig.momentumProcessingDelay) ?? t
+            let predStartNF = loopEvalPredictionStart(t: t, glucose: inputNoFuture.glucose, config: config)
             let predNoFuture = LoopAlgorithm.generatePrediction(
                 start: predStartNF,
                 glucoseHistory: inputNoFuture.glucose,
@@ -987,4 +987,17 @@ public actor EvaluationEngine {
             manualBolusRec: manualBolusRec
         )
     }
+}
+
+/// The forecast start instant.
+///
+/// Prefer the controller's REAL decision timestamp when we have it; fall back to the
+/// `lastGlucose + momentumProcessingDelay` approximation of `now` only when we don't.
+/// The approximation exists to reproduce deployed Loop's now-anchored momentum/RC windows
+/// from CGM-cadence step times; it is not a substitute for a recorded decision time, and
+/// it degrades by exactly the CGM lag (minutes, on a backfilling or networked feed).
+@inline(__always)
+func loopEvalPredictionStart(t: Date, glucose: [EvalGlucoseSample], config: EvalConfig) -> Date {
+    if config.decisionTimesAreAuthoritative { return t }
+    return glucose.last?.startDate.addingTimeInterval(EvalConfig.momentumProcessingDelay) ?? t
 }

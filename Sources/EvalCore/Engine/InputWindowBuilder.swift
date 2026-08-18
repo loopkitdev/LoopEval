@@ -66,9 +66,11 @@ struct InputWindowBuilder: Sendable {
     ///   decision-time dose cutoff (doses at/after it are this cycle's OWN output and are
     ///   excluded). Pass the COMMON step time in multi-arm contexts (the closed-loop sim
     ///   passes `t` for both arms so the cutoff is symmetric and identity is preserved).
-    ///   When nil (forecast-match's natural use), it defaults to the triggering CGM time
-    ///   (the latest glucose sample ≤ `t`) — robust to `t` being a few seconds AFTER the
-    ///   CGM (e.g. when `t` is the timestamp of the dose this decision enacted).
+    ///   When nil (forecast-match's natural use), the CUTOFF defaults to the triggering
+    ///   CGM time (the latest glucose sample ≤ `t`) — robust to `t` being a few seconds
+    ///   AFTER the CGM (e.g. when `t` is the timestamp of the dose this decision enacted).
+    ///   The in-progress temp's clip boundary does NOT share that default: it falls back
+    ///   to `t`, because deployed Loop trims at `now`. See the note beside `clipBoundary`.
     func buildInput(at t: Date,
                     includeFutureInsulin overrideFuture: Bool? = nil,
                     includeFutureCarbs overrideFutureCarbs: Bool? = nil,
@@ -101,6 +103,21 @@ struct InputWindowBuilder: Sendable {
         // decision-time dose window ends at the triggering CGM and EXCLUDES anything
         // at or after it.
         let decisionTime = decisionAnchor ?? glucoseSlice.last!.startDate
+
+        // The CUTOFF above and the in-progress temp's CLIP BOUNDARY are two different
+        // instants and must not be conflated. The cutoff answers "which doses are this
+        // decision's own output?" and stays anchored on the triggering CGM. The clip
+        // boundary answers "how much of the running temp has been delivered?", and
+        // deployed Loop answers that with `now` — `DoseStore.getGlucoseEffects` is called
+        // with `basalDosingEnd: now()`, never with the glucose date.
+        //
+        // Verified against the instrumented rig, which records `basalDosingEnd` per cycle:
+        // it equals the capture instant on 389/389 cycles and the latest glucose on
+        // 0/389. The two coincide on a donor whose CGM arrives promptly (~5 s), which is
+        // why this went unnoticed — but on the rig, whose network CGM feed lags a median
+        // 280 s (p95 597 s), anchoring on glucose clipped the running temp 281 s short.
+        // Same failure as the momentum window anchoring fixed in d19d903.
+        let clipBoundary = decisionAnchor ?? t
         let doseWindowStart = t.addingTimeInterval(-config.insulinLookbackHours * 3600)
         let dLo = lowerBound(doses, by: doseWindowStart, key: \.endDate)
         let dHi: Int
@@ -129,20 +146,31 @@ struct InputWindowBuilder: Sendable {
             // insulin model then gives IOB(t) = rate×elapsed AND keeps the forecast's future
             // rate×remaining. `>=` catches the running temp clipped to end exactly at t.
             // NS data only (tempRate/programmedEnd present); other sources fall back to the flag.
-            for i in dosesSlice.indices where dosesSlice[i].deliveryType == .basal && dosesSlice[i].endDate >= decisionTime {
+            for i in dosesSlice.indices where dosesSlice[i].deliveryType == .basal && dosesSlice[i].endDate >= clipBoundary {
                 // Confirmed against a Loop Issue Report: an ENDED temp uses the pulse-floored
                 // deliveredUnits (= NS `amount`), but the IN-PROGRESS temp has deliveredUnits == nil,
                 // so Loop's IOB uses programmedUnits = rate×duration, trimmed at t → rate×elapsed
                 // (the finalized floored `amount` under-reports the still-running elapsed delivery).
                 if let rate = dosesSlice[i].tempRate {
-                    let elapsed = max(0, decisionTime.timeIntervalSince(dosesSlice[i].startDate))
-                    dosesSlice[i].volume = rate * (elapsed / 3600.0)
-                    dosesSlice[i].endDate = decisionTime
+                    if config.clipInProgressTempBasal {
+                        let elapsed = max(0, clipBoundary.timeIntervalSince(dosesSlice[i].startDate))
+                        dosesSlice[i].volume = rate * (elapsed / 3600.0)
+                        dosesSlice[i].endDate = clipBoundary
+                    } else {
+                        // UNTRIMMED variant: project the running temp to its COMMANDED end at its
+                        // programmed rate. This reproduces Loop's `insulinEffectIncludingPendingInsulin`
+                        // (DoseStore.getGlucoseEffects with basalDosingEnd: nil) — which is what
+                        // becomes dosingDecision.predictedGlucose and therefore the UPLOADED
+                        // bgForecast. Loop DOSES on the trimmed variant but RECORDS this one, so
+                        // forecast-vs-recorded comparisons must use it or they are apples-to-oranges.
+                        let full = max(0, dosesSlice[i].endDate.timeIntervalSince(dosesSlice[i].startDate))
+                        dosesSlice[i].volume = rate * (full / 3600.0)
+                    }
                 } else if config.clipInProgressTempBasal {
                     let full = dosesSlice[i].endDate.timeIntervalSince(dosesSlice[i].startDate)
-                    let elapsed = max(0, decisionTime.timeIntervalSince(dosesSlice[i].startDate))
+                    let elapsed = max(0, clipBoundary.timeIntervalSince(dosesSlice[i].startDate))
                     dosesSlice[i].volume = full > 0 ? dosesSlice[i].volume * (elapsed / full) : 0
-                    dosesSlice[i].endDate = decisionTime
+                    dosesSlice[i].endDate = clipBoundary
                 }
             }
         }

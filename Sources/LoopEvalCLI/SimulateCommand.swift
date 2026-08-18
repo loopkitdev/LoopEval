@@ -122,8 +122,14 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Candidate 'overall insulin needs' scale factor f (Loop preset-style): ONE knob scaling basal ×f, ISF ÷f, CR ÷f together. f=0.5 → half basal, double ISF, double CR (less insulin overall); f=1.2 → 20% more insulin. Composes multiplicatively with the individual --candidate-{sensitivity,basal-rate}-multiplier flags. Unset = no scaling. This is the realistic single-dial aggressiveness axis (matches an insulin-needs Temporary Override) — sweep it for the reference frontier.")
     var candidateInsulinNeeds: Double?
 
-    @Flag(name: .customLong("candidate-clip-in-progress-temp-basal"), inversion: .prefixedNo, help: "Candidate: treat a temp basal still running at the decision instant as ENDED at t (only the elapsed portion counts; scheduled resumes after). DEFAULT ON — this matches deployed Loop-main, which trims non-bolus doses to basalDosingEnd=now() before forecasting. Pass --no-candidate-clip-in-progress-temp-basal to project it forward (reproduces the UNTRUNCATED recorded dosingDecision.bgForecast, not Loop's dosing forecast). With per-dose tempRate the truncation is exact regardless.")
+    @Flag(name: .customLong("candidate-clip-in-progress-temp-basal"), inversion: .prefixedNo, help: "Candidate: treat a temp basal still running at the decision instant as ENDED at t (only the elapsed portion counts; scheduled resumes after). DEFAULT ON — this matches deployed Loop-main, which trims non-bolus doses to basalDosingEnd=now() before forecasting. Pass --no-candidate-clip-in-progress-temp-basal to project it forward (reproduces the UNTRUNCATED recorded dosingDecision.bgForecast, not Loop's dosing forecast). Honored for per-dose tempRate sources too (fixed 2026-08-16).")
     var candidateClipInProgressTempBasal: Bool = true
+
+    @Flag(name: .customLong("clip-in-progress-temp-basal"), inversion: .prefixedNo,
+          help: """
+          BASELINE arm: clip the in-progress temp basal at the decision instant (default on           = what Loop DOSES on). Pass --no-clip-in-progress-temp-basal to project it to its           commanded end instead, reproducing Loop's insulinEffectIncludingPendingInsulin — the           variant Loop RECORDS as dosingDecision.predictedGlucose / the uploaded bgForecast.           Use this when comparing forecasts against recorded field data; leave it on when           comparing doses.
+          """)
+    var clipInProgressTempBasal: Bool = true
 
     @Option(name: .long, help: "Per-hour candidate ISF multipliers (24 csv)")
     var candidateIsfHourly: String?
@@ -477,6 +483,7 @@ struct SimulateCommand: AsyncParsableCommand {
             basalPulseQuantum: basalPulseQuantum,
             kalmanSmoothing: !noKalman,
             simRawGlucose: simRawGlucose,
+            clipInProgressTempBasal: clipInProgressTempBasal,
             useMidAbsorptionISF: midAbsorptionIsf,
             adaptiveCarbAbsorption: adaptiveCarbAbsorption,
             carbRevisionsPath: carbRevisionsJson,
