@@ -85,7 +85,11 @@ from .provenance import write_manifest as _write_manifest
 #   4  new stale_cgm.csv: decisions Loop anchored on a stale sample
 #      (bgForecast[0] vs the export's latest sample) — comparability exclusions
 #      for verification, NOT delivery clamps.
-DATA_VERSION = 4
+#   5  post-dating guarded: >2% stale-detection rate = multi-source/1-min CGM
+#      (bddp03 post-dated 12,358 samples at v4 — a wholesale input rewrite on a
+#      heuristic validated only for clean 5-min streams); such donors keep
+#      stale_cgm.csv but post-date nothing.
+DATA_VERSION = 5
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -626,9 +630,35 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     # rest. stale_cgm.csv still lists the cycles — the following ~2 cycles can retain a
     # small momentum/RC mismatch until the true (unknown) arrival, so verification should
     # still exclude them.
-    if stale:
+    # SANITY GUARD on post-dating: the detector was validated on a clean 5-min
+    # single-source CGM stream (bddp11: 1 detection / 3,746 decisions, proven by
+    # reconstruction). On a 1-min or multi-uploader stream the export's "latest sample
+    # at the decision" is routinely one deployed Loop legitimately never anchored on
+    # (it never saw that uploader / that cadence), and the detector fires constantly —
+    # bddp03: 6,294 "stale" decisions, 12,358 samples post-dated, i.e. a wholesale
+    # rewrite of the replay's inputs on a heuristic outside its validated regime.
+    # A real transport delay is RARE (bddp09: 2 in two months); a detection rate above
+    # ~2% of decisions is a data-quality signature, not 100+ genuine delays. In that
+    # regime: keep stale_cgm.csv (it is still a useful data-quality flag), post-date
+    # NOTHING, and say so loudly.
+    n_dec = max(len(stale), 1)
+    try:
+        n_dec = max(int(query(
+            f"SELECT COUNT(*) n FROM {TBL} WHERE _userId='{user}' AND type='dosingDecision' "
+            f"AND CAST(reason AS STRING)='loop' AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)}"
+        ).iloc[0]["n"]), 1)
+    except Exception:
+        pass
+    stale_frac = len(stale) / n_dec
+    if stale and stale_frac > 0.02:
+        print(f"{user}: WARNING stale_cgm={len(stale)} is {100*stale_frac:.1f}% of {n_dec} decisions "
+              f"— outside the detector's validated regime (multi-source/1-min CGM?); NOT post-dating")
+        stale_postdate = []
+    else:
+        stale_postdate = stale
+    if stale_postdate:
         post = {}   # sample t_ms -> received_ms
-        for r in stale:
+        for r in stale_postdate:
             anchor_ms = r["matched_earlier_t_ms"]
             if anchor_ms is None:
                 continue    # anchor matches no sample we hold — nothing safe to post-date
