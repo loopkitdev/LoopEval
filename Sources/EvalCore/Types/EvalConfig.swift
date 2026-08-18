@@ -15,6 +15,21 @@ public struct EvalConfig: Codable, Sendable {
     /// values are unaffected — only the windows shift). See getRecentMomentumEffect.
     public static let momentumProcessingDelay: TimeInterval = 7
 
+    /// Whether the evaluation instant `t` IS the controller's real decision timestamp.
+    ///
+    /// `momentumProcessingDelay` above is an APPROXIMATION of `now`, built by nudging the
+    /// latest glucose forward a few seconds. It is only defensible when the true decision
+    /// instant is unknown — and it silently degrades as the CGM lags: on the instrumented
+    /// rig, whose network feed runs a median 280 s behind (p95 597 s), `lastGlucose + 7 s`
+    /// misses `now` by minutes and shifts the momentum/RC windows with it.
+    ///
+    /// Set true when `t` comes from a recorded `dosingDecision` timestamp (e.g.
+    /// forecast-match driven by `--times-csv`), and the real instant is used directly
+    /// instead of the approximation. Default false: sim step times follow the CGM cadence,
+    /// so the approximation remains the best available estimate and all existing runs
+    /// reproduce bit-for-bit.
+    public var decisionTimesAreAuthoritative: Bool
+
     /// How often to advance the prediction start (seconds).  Default: 5 min.
     public var evalStep: TimeInterval
 
@@ -549,6 +564,7 @@ public struct EvalConfig: Codable, Sendable {
         evalStep: TimeInterval = 5 * 60,
         includeFutureInsulin: Bool = true,
         includeFutureCarbs: Bool = false,
+        decisionTimesAreAuthoritative: Bool = false,
         insulinLookbackHours: Double = 16,
         glucoseLookbackHours: Double = 10,
         useIntegralRC: Bool = false,
@@ -669,6 +685,7 @@ public struct EvalConfig: Codable, Sendable {
         self.evalStep                       = evalStep
         self.includeFutureInsulin           = includeFutureInsulin
         self.includeFutureCarbs             = includeFutureCarbs
+        self.decisionTimesAreAuthoritative  = decisionTimesAreAuthoritative
         self.insulinLookbackHours           = insulinLookbackHours
         self.glucoseLookbackHours           = glucoseLookbackHours
         self.useIntegralRC                  = useIntegralRC
@@ -728,6 +745,7 @@ public struct EvalConfig: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
+        case decisionTimesAreAuthoritative
         case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay
         case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec, carbRevisionsPath, overrideTargetsPath
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
@@ -751,6 +769,7 @@ public struct EvalConfig: Codable, Sendable {
         self.evalStep             = try c.decode(TimeInterval.self, forKey: .evalStep)
         self.includeFutureInsulin = try c.decode(Bool.self,         forKey: .includeFutureInsulin)
         self.includeFutureCarbs   = try c.decodeIfPresent(Bool.self, forKey: .includeFutureCarbs) ?? false
+        self.decisionTimesAreAuthoritative = try c.decodeIfPresent(Bool.self, forKey: .decisionTimesAreAuthoritative) ?? false
         self.insulinLookbackHours = try c.decode(Double.self,       forKey: .insulinLookbackHours)
         self.glucoseLookbackHours = try c.decode(Double.self,       forKey: .glucoseLookbackHours)
         self.useIntegralRC        = try c.decode(Bool.self,         forKey: .useIntegralRC)
@@ -880,6 +899,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(evalStep, forKey: .evalStep)
         try c.encode(includeFutureInsulin, forKey: .includeFutureInsulin)
         try c.encode(includeFutureCarbs, forKey: .includeFutureCarbs)
+        try c.encode(decisionTimesAreAuthoritative, forKey: .decisionTimesAreAuthoritative)
         try c.encode(insulinLookbackHours, forKey: .insulinLookbackHours)
         try c.encode(glucoseLookbackHours, forKey: .glucoseLookbackHours)
         try c.encode(useIntegralRC, forKey: .useIntegralRC)
