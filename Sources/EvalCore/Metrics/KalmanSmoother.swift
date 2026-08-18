@@ -204,7 +204,8 @@ public struct KalmanSmoother {
                 isDisplayOnly: sample.isDisplayOnly,
                 wasUserEntered: sample.wasUserEntered,
                 condition: sample.condition,
-                trendRate: sample.trendRate
+                trendRate: sample.trendRate,
+                receivedDate: sample.receivedDate
             )
         }
     }

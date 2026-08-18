@@ -763,7 +763,8 @@ extension EvaluationEngine {
                     isDisplayOnly: s.isDisplayOnly,
                     wasUserEntered: s.wasUserEntered,
                     condition: s.condition,
-                    trendRate: s.trendRate
+                    trendRate: s.trendRate,
+                    receivedDate: s.receivedDate
                 )
             }
             // Sensor cap (Dexcom-like 400) applied to what the candidate algorithm
@@ -1606,7 +1607,8 @@ extension EvaluationEngine {
             out.append(EvalGlucoseSample(
                 startDate: g.startDate,
                 quantity: .init(unit: unit, doubleValue: v),
-                provenanceIdentifier: "raw-grid"))
+                provenanceIdentifier: "raw-grid",
+                receivedDate: g.receivedDate))
         }
         return out
     }
@@ -2511,7 +2513,8 @@ extension EvaluationEngine {
                 isDisplayOnly: s.isDisplayOnly,
                 wasUserEntered: s.wasUserEntered,
                 condition: s.condition,
-                trendRate: s.trendRate
+                trendRate: s.trendRate,
+                receivedDate: s.receivedDate
             )
         }
     }
