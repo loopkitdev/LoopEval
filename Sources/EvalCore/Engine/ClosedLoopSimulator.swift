@@ -134,6 +134,14 @@ extension EvaluationEngine {
         // variable per-step dt = (next CGM − this CGM). Default (false) keeps the
         // regular 5-min substrate + grid march (byte-identical legacy path).
         decisionsFromCgm: Bool = false,
+        // FIELD-CADENCE DECISIONS: step at exactly these instants — the real
+        // controller's recorded dosingDecision times — instead of the CGM sample
+        // cadence. Kills two divergence classes at once: synthetic steps the field
+        // never made (a 1-min multi-source stream gives 5x the field's cycles, each
+        // meal moment scored 2-5x), and steps DURING field skip-gaps whose state the
+        // field never computed. Implies the instants are authoritative (the momentum
+        // now-anchor uses them directly, not lastGlucose+7s). Empty = off.
+        decisionTimes: [Date] = [],
         excludeManualBoluses: Bool = false,
         suppressCarbs: Bool = false,
         counterRegOnsetMgdl: Double = 0,
@@ -596,7 +604,9 @@ extension EvaluationEngine {
         // sensitive-mode decay). A gap (stepDur ≫ evalStep) is capped for delivery
         // so a long CGM outage doesn't issue one giant temp.
         var stepTimes: [Date] = []
-        if decisionsFromCgm {
+        if !decisionTimes.isEmpty {
+            stepTimes = decisionTimes.sorted().filter { $0 >= evalStart && $0 <= interval.end }
+        } else if decisionsFromCgm {
             stepTimes = simGlucose.map { $0.startDate }.filter { $0 >= evalStart && $0 <= interval.end }
         } else {
             var tt = evalStart

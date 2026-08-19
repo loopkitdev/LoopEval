@@ -155,6 +155,10 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, inversion: .prefixedNo, help: "CGM-driven decisions: trigger ONE automatic dosing decision per real CGM sample (irregular ~5-min cadence), never on a fixed grid or any other event. The substrate is built on the raw CGM timestamps with variable per-step dt. DEFAULT ON — the faithful CF substrate (validated 2026-06-23 to reproduce field within ~0.5 TIR with exact cf-identity and NO CGM-gap masking, since the counter runs on the real CGM at real times and temp basals expire at 30 min across gaps). Pass --no-decisions-from-cgm for the legacy fixed 5-min grid march (resamples raw CGM onto the grid → smooths lows, needs gap masking). Physiology (ICE/sensitivity) is RTS-smoothed in place at the CGM times.")
     var decisionsFromCgm: Bool = true
 
+    @Option(name: .customLong("decision-times-csv"),
+            help: "CSV of ISO8601 instants (header 't' optional) — step the replay at EXACTLY the real controller's recorded dosingDecision times instead of the CGM cadence. Removes synthetic steps the field never made (multi-source 1-min streams) and steps inside field skip-gaps. Marks the instants authoritative for the momentum/RC now-anchor.")
+    var decisionTimesCsv: String? = nil
+
     @Option(name: .long, help: "Counterfactual burn-in hours (default 6.0): real-pump deliveries drive the sim for this period before counterfactual divergence starts. Gives candidate's prediction a fully-realistic recent dose history at the moment CF mode activates.")
     var candidateCounterfactualBurnInHours: Double = 6.0
 
@@ -468,7 +472,7 @@ struct SimulateCommand: AsyncParsableCommand {
         // App factor is a property of the real Loop deployment → both arms share it.
         // Candidate inherits unless explicitly overridden (negative sentinel = inherit).
         let effCandidateAppFactor = candidateApplicationFactor < 0 ? applicationFactor : candidateApplicationFactor
-        let baselineConfig = EvalConfig(
+        var baselineConfig = EvalConfig(
             applicationFactor: applicationFactor,
             exportForecastCurve: exportForecastCurve,
             evalStep: TimeInterval(stepMinutes) * 60,
@@ -693,6 +697,26 @@ struct SimulateCommand: AsyncParsableCommand {
             outages = []
         }
 
+        var parsedDecisionTimes: [Date] = []
+        if let csvPath = decisionTimesCsv {
+            let iso = ISO8601DateFormatter()
+            iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let isoNoFrac = ISO8601DateFormatter()
+            let text = try String(contentsOfFile: csvPath, encoding: .utf8)
+            for line in text.split(separator: "\n") {
+                let tok = line.trimmingCharacters(in: .whitespaces)
+                if tok.isEmpty || tok == "t" { continue }
+                if let d = iso.date(from: tok) ?? isoNoFrac.date(from: tok) {
+                    parsedDecisionTimes.append(d)
+                }
+            }
+            printStderr("Stepping at \(parsedDecisionTimes.count) recorded decision times from \(csvPath)\n")
+            // These instants ARE the controller's real decision timestamps — anchor
+            // momentum/RC on them directly, not on the lastGlucose+7s estimate.
+            baselineConfig.decisionTimesAreAuthoritative = true
+            candidateConfig.decisionTimesAreAuthoritative = true
+        }
+
         printStderr("Running closed-loop simulation (sequential, ~10× slower than bench)...\n")
         let simResult = try await engine.simulateClosedLoop(
             data: data,
@@ -714,6 +738,7 @@ struct SimulateCommand: AsyncParsableCommand {
             counterfactualBurnInSec: candidateCounterfactualBurnInHours * 3600,
             cfIdentity: cfIdentity,
             decisionsFromCgm: decisionsFromCgm,
+            decisionTimes: parsedDecisionTimes,
             excludeManualBoluses: noUserBoluses,
             suppressCarbs: noCarbEntries,
             counterRegOnsetMgdl: counterRegOnset,
