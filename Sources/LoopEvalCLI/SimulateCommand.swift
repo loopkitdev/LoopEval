@@ -698,13 +698,27 @@ struct SimulateCommand: AsyncParsableCommand {
         }
 
         var parsedDecisionTimes: [Date] = []
-        if let csvPath = decisionTimesCsv {
+        // Cadence is a DATASET property: an export that carries the field's recorded
+        // decision instants (decision_times.csv, ETL v8+) is replayed on that cadence;
+        // otherwise the CGM cadence + processing-delay estimate stands in. Explicit
+        // --decision-times-csv always wins; --no-decisions-from-cgm disables both.
+        var effectiveDecisionTimesCsv = decisionTimesCsv
+        if effectiveDecisionTimesCsv == nil, decisionsFromCgm, let dir = dataDir {
+            let candidate = URL(fileURLWithPath: dir).appendingPathComponent("decision_times.csv").path
+            if FileManager.default.fileExists(atPath: candidate) {
+                effectiveDecisionTimesCsv = candidate
+                printStderr("Using the dataset's recorded decision cadence (decision_times.csv)\n")
+            }
+        }
+        if let csvPath = effectiveDecisionTimesCsv {
             let iso = ISO8601DateFormatter()
             iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             let isoNoFrac = ISO8601DateFormatter()
             let text = try String(contentsOfFile: csvPath, encoding: .utf8)
             for line in text.split(separator: "\n") {
-                let tok = line.trimmingCharacters(in: .whitespaces)
+                // first column = the instant; further columns (rec fields) are for scorers
+                let tok = String(line.split(separator: ",", omittingEmptySubsequences: false)[0])
+                    .trimmingCharacters(in: .whitespaces)
                 if tok.isEmpty || tok == "t" { continue }
                 if let d = iso.date(from: tok) ?? isoNoFrac.date(from: tok) {
                     parsedDecisionTimes.append(d)
