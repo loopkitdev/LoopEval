@@ -96,7 +96,10 @@ from .provenance import write_manifest as _write_manifest
 #   7  carb visibility pairs FORWARD-only to the bolus that SAVED the entry
 #      (bddp03: nearest-bolus pairing made a 70g meal visible 85 s before the
 #      field's own carb-free forecast proves the store held it).
-DATA_VERSION = 7
+#   8  new decision_times.csv: every reason='loop' decision instant + recorded
+#      recommendation — field-cadence stepping and no-rec cycle flags become
+#      dataset properties instead of per-analysis Databricks queries.
+DATA_VERSION = 8
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -410,6 +413,38 @@ def _stale_cgm_decisions(user, s_ms, e_ms, glucose, tol_mgdl=2.0):
     return out
 
 
+def _decision_times(user, s_ms, e_ms):
+    """Every reason='loop' dosingDecision: its instant plus the recorded automatic
+    recommendation (bolus U / temp rate+duration), for decision_times.csv.
+
+    Two consumers: (1) `simulate --decision-times-csv` steps the replay at the field's
+    REAL cadence instead of CGM samples — kills synthetic steps the field never computed
+    (multi-source 1-min streams score every meal moment 2-5x) and steps inside field
+    skip-gaps; (2) scorers compare ours-vs-recommendation directly, with an ABSENT
+    recommendation scored as ZERO — a loop cycle that ran and stored no recommendation
+    recommended nothing (a real algorithmic outcome to MATCH; corroborated by the
+    same-instant updateRemoteRecommendation rows recording 0.0). A cycle a user's bolus
+    actually BLOCKED reports through the errors channel ("Bolus in progress"
+    pumpManagerError) and is excluded by the pump_error clamp, not by rec-absence.
+    Cadence choice is dataset-level: field cadence when this file exists, CGM+delay
+    otherwise."""
+    q = (f"SELECT {_TMS} AS t_ms, "
+         f"COALESCE(CAST(get_json_object(recommendedBolus,'$.amount.$numberDouble') AS DOUBLE), "
+         f"         CAST(get_json_object(recommendedBolus,'$.amount.$numberInt') AS DOUBLE)) AS rec_bolus, "
+         f"COALESCE(CAST(get_json_object(recommendedBasal,'$.rate.$numberDouble') AS DOUBLE), "
+         f"         CAST(get_json_object(recommendedBasal,'$.rate.$numberInt') AS DOUBLE)) AS rec_rate, "
+         f"CAST(get_json_object(recommendedBasal,'$.duration.$numberInt') AS BIGINT) AS rec_dur_ms "
+         f"FROM {TBL} WHERE _userId='{user}' AND type='dosingDecision' "
+         f"AND CAST(reason AS STRING)='loop' AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)} "
+         f"ORDER BY {_TMS}")
+    df = query(q)
+    out = []
+    for r in df.itertuples():
+        out.append(dict(t_ms=int(r.t_ms), rec_bolus=_fin(r.rec_bolus),
+                        rec_rate=_fin(r.rec_rate), rec_dur_ms=_fin(r.rec_dur_ms)))
+    return out
+
+
 def _pump_error_cycles(user, s_ms, e_ms, half_window_ms=90 * 1000):
     """Cycles where Loop DECIDED but the pump could not be reached, so nothing was
     delivered.
@@ -669,6 +704,17 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     sus = _suspends(user, s_ms, e_ms)
     off = _loop_offline_gaps(user, s_ms, e_ms)
     perr = _pump_error_cycles(user, s_ms, e_ms)
+    dts = _decision_times(user, s_ms, e_ms)
+    import csv as _csvd
+    with open(os.path.join(outdir, "decision_times.csv"), "w", newline="") as fh:
+        w = _csvd.writer(fh)
+        w.writerow(["t", "rec_bolus", "rec_rate", "rec_dur_min"])
+        for r in dts:
+            w.writerow([_iso(r["t_ms"]),
+                        "" if r["rec_bolus"] is None else r["rec_bolus"],
+                        "" if r["rec_rate"] is None else r["rec_rate"],
+                        "" if r["rec_dur_ms"] is None else round(r["rec_dur_ms"] / 60000, 1)])
+
     stale = _stale_cgm_decisions(user, s_ms, e_ms, glucose)
     # Post-date the late samples: a decision replayed at/before the stale decision must
     # not see a sample the real Loop provably lacked. The PROVEN bound from anchors is
