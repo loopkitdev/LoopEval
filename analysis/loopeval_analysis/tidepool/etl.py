@@ -93,7 +93,10 @@ from .provenance import write_manifest as _write_manifest
 #      (distinct ids under one enactment, activation = createdTime). bddp09's
 #      24.5h window replayed the 02:04 slider position (×0.9) back into 21:58;
 #      reality was ×1.04 → none → ×0.9.
-DATA_VERSION = 6
+#   7  carb visibility pairs FORWARD-only to the bolus that SAVED the entry
+#      (bddp03: nearest-bolus pairing made a 70g meal visible 85 s before the
+#      field's own carb-free forecast proves the store held it).
+DATA_VERSION = 7
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -469,15 +472,33 @@ def _carbs(win, manual_ms):
                       "get_json_object(CAST(payload AS STRING), '$.addedDate') AS added_iso",
                       f"CAST(get_json_object(createdTime,'$.$date.$numberLong') AS BIGINT) AS created_ms"],
                      win, "food"))
-    PAIR_WIN = 10 * 60 * 1000   # ±10 min: a manual bolus this close = co-logged with the carb
-    POST_BOLUS_DELAY = 10 * 1000  # dosingVisibleDate = paired bolus + 10s (matches NS postBolusVisibilityDelay)
+    PAIR_WIN = 10 * 60 * 1000   # forward window: the SAVING bolus follows the entry
+    POST_BOLUS_DELAY = 10 * 1000  # dosingVisibleDate = saving bolus + 10s (matches NS postBolusVisibilityDelay)
     def paired_bolus(t):
+        """The manual bolus that SAVED this entry — the FIRST one AT/AFTER the entry
+        timestamp, never one before it.
+
+        A carb typed in Loop's bolus flow is not persisted when typed: the store save
+        happens when the user hits deliver, so visibility rides the FOLLOWING bolus.
+        Proven on bddp03 2026-06-10: entry stamped 17:51:57, boluses at 17:51:56 (0.55 U)
+        and 17:53:21 (7 U meal). Nearest-bolus pairing picked the 0.55 (1.4 s BEFORE the
+        entry) → visible 17:52:06 — but the field's own 17:53:20 forecast is carb-free
+        (eventual 108 where 70 g adds ~+350), so the store held nothing until the 7 U
+        save; carbs appear by 17:58. Forward-only pairing picks the 7 U → visible
+        17:53:31, inside the proven bracket. No backward tolerance at all: same-flow
+        ordering can put a small bolus a second before the entry stamp, and any backward
+        slack re-introduces exactly this bug.
+
+        A carb with NO manual bolus in the forward window was saved standalone at entry
+        time → visible then (the back-dated-entry gate below still applies on top). Cost
+        of the forward window: a standalone entry followed within 10 min by an UNRELATED
+        manual bolus defers visibility to that bolus — rarer and milder than the
+        early-visibility bug this replaces (auto-dosing covering a meal the store did
+        not yet contain)."""
         i = bisect.bisect_left(manual_ms, t)
-        best = None
-        for j in (i - 1, i):
-            if 0 <= j < len(manual_ms) and abs(manual_ms[j] - t) <= PAIR_WIN:
-                if best is None or abs(manual_ms[j] - t) < abs(best - t): best = manual_ms[j]
-        return best
+        if i < len(manual_ms) and manual_ms[i] - t <= PAIR_WIN:
+            return manual_ms[i]
+        return None
     BACKDATE_TOL = 5 * 60 * 1000  # ignore <5min upload lag on real-time entries
     carbs = []; cby = {}
     for r in f.itertuples():
