@@ -99,7 +99,14 @@ from .provenance import write_manifest as _write_manifest
 #   8  new decision_times.csv: every reason='loop' decision instant + recorded
 #      recommendation — field-cadence stepping and no-rec cycle flags become
 #      dataset properties instead of per-analysis Databricks queries.
-DATA_VERSION = 8
+#   9  carb visibility = payload.addedDate (Loop's recorded store-save instant),
+#      proven exact on bddp03; bolus-pairing demoted to fallback for records
+#      without addedDate. v7/v8 forward-pairing could defer a standalone entry
+#      to an unrelated later bolus (bddp03 05-21: 7 min late, missed a 3.7 U rec).
+#  10  exclude soft-deleted records (_active='false' + archivedTime): user-deleted
+#      carbs/boluses stayed in every export (bddp03: 9 carbs incl. the 2.75 U
+#      residual's phantom 80 g; bddp04: 7 deleted boluses = phantom insulin).
+DATA_VERSION = 10
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -572,8 +579,19 @@ def _carbs(win, manual_ms):
         # auto-dosing doesn't cover the carb BEFORE the (passed-through) manual bolus
         # does — avoids double-covering announced meals (crash-low). startDate = meal
         # time (drives absorption); entryDate = meal time (best available).
-        pb = paired_bolus(t)
-        vis = (pb + POST_BOLUS_DELAY) if pb is not None else t
+        # dosingVisibleDate = payload.addedDate — Loop's OWN record of the store-save
+        # instant. PROVEN exact on bddp03 06-10: entry stamped 17:51:57, addedDate
+        # 17:53:20.561 — 0.4 s after the field's loop cycle whose forecast is carb-free
+        # and just before the 7 U meal command; and on 05-21: a standalone 85 g entry
+        # saved 4 s after typing, which the field auto-dosed 2 min later (the v7
+        # forward-pairing wrongly deferred it 7 min to an unrelated later bolus).
+        # No heuristic needed when the save instant is recorded; forward-pairing to the
+        # saving bolus remains the FALLBACK for records without addedDate.
+        if added_ms is not None:
+            vis = added_ms
+        else:
+            pb = paired_bolus(t)
+            vis = (pb + POST_BOLUS_DELAY) if pb is not None else t
         e = {"startDate": _iso(t), "entryDate": _iso(t), "dosingVisibleDate": _iso(vis),
              "grams": round(grams, 1), "_base_vis": vis, "_added_ms": added_ms}
         if absorb: e["absorptionTime"] = absorb
@@ -598,7 +616,14 @@ def _carbs(win, manual_ms):
 def export_donor(user, start, end, outdir, insulin_type=None):
     os.makedirs(outdir, exist_ok=True)
     s_ms, e_ms = _ms_bounds(start, end)
-    win = f"_userId='{user}' AND {_TMS} BETWEEN {s_ms} AND {e_ms}"
+    # Tidepool soft-deletes: a record the user DELETED stays in the table with
+    # _active='false' + archivedTime. Never replay them: bddp03's worst dose residual
+    # (2.75 U) was two deleted 40 g carb entries — Loop's own COB read 20 g while the
+    # export replayed 100 g; bddp04 carries 7 deleted BOLUSES (phantom insulin).
+    # (A deleted entry did live in the store for [addedDate, archivedTime) — minutes,
+    # in every observed case; modeling that presence window is not worth the phantom
+    # hours it prevents.)
+    win = f"_userId='{user}' AND {_TMS} BETWEEN {s_ms} AND {e_ms} AND CAST(_active AS STRING) != 'false'"
     # Insulin type from data (insulinFormulation.brand) unless caller forces one.
     if insulin_type is None:
         insulin_type, brand = _insulin_type_from_data(user, s_ms, e_ms)
@@ -707,7 +732,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     dts = _decision_times(user, s_ms, e_ms)
     import csv as _csvd
     with open(os.path.join(outdir, "decision_times.csv"), "w", newline="") as fh:
-        w = _csvd.writer(fh)
+        w = _csvd.writer(fh, lineterminator="\n")
         w.writerow(["t", "rec_bolus", "rec_rate", "rec_dur_min"])
         for r in dts:
             w.writerow([_iso(r["t_ms"]),
