@@ -540,7 +540,10 @@ public actor EvaluationEngine {
             bolusIncrement: config.bolusIncrement,
             tempBasalIncrement: config.tempBasalIncrement,
             useMidAbsorptionISF: config.useMidAbsorptionISF,
-            useTempBasalStrategy: config.useTempBasalStrategy
+            useTempBasalStrategy: config.useTempBasalStrategy,
+            basalOverrideActive: therapy.overrideWindows.contains {
+                $0.start <= t && t < $0.end && ($0.factor ?? 1.0) != 1.0
+            }
         )
 
         // Per-component effect samples for drift diagnostics.
@@ -720,6 +723,12 @@ public actor EvaluationEngine {
         let scheduledBasalRate: Double
         let deltaU: Double  // total insulin delivered in next evalStep vs scheduled
         var manualBolusRec: Double = 0  // candidate's recommended MANUAL bolus at this step (full correction, clamped to maxBolus)
+        /// Temp-basal-strategy action after deployed ifNecessary (DoseMath v3.14.2):
+        /// "set" = issue the temp; "cancel" = cancel the running temp back to schedule
+        /// (field records rate 0 / duration 0); "none" = no command — same-rate temp
+        /// with >11 min remaining, or already at schedule with no temp running (field
+        /// records NO recommendedBasal). Always "set" on the automatic-bolus path.
+        var tempAction: String = "set"
     }
 
     /// Runs Loop's dose-recommendation logic from a forecast, returning the
@@ -863,7 +872,12 @@ public actor EvaluationEngine {
         // (recommendTempBasal: ALL correction via a 30-min temp, never a bolus) —
         // what bddp02/bddp07-class deployments run (0% of their loop cycles record a
         // recommendedBolus; recs live entirely in recommendedBasal).
-        useTempBasalStrategy: Bool = false
+        useTempBasalStrategy: Bool = false,
+        // Whether a basal-scaling override is active at t: deployed passes
+        // scheduledBasalRateMatchesPump = !override-active into ifNecessary, so
+        // while an override runs, an at-neutral recommendation is an EXPLICIT temp
+        // at the scaled rate (never cancel/none).
+        basalOverrideActive: Bool = false
     ) -> DoseOutput? {
         guard let scheduledBasalEntry = input.basal.first(where: { $0.startDate <= t && $0.endDate > t })
             ?? input.basal.closestPrior(to: t) else { return nil }
@@ -972,13 +986,45 @@ public actor EvaluationEngine {
             // derived maxBasalRate is NEGATIVE and passes through the min. The field
             // never records a negative rate (min recorded rec = 0.0) — floor at 0.
             let tempRate = pump.supportedBasalRate(Swift.max(0, rec.unitsPerHour))
+
+            // ifNecessary (deployed v3.14.2 DoseMath, verbatim semantics): a temp is
+            // only COMMANDED when it changes something. Same-rate running temp with
+            // > 11 min remaining -> nil (no command; field stores NO recommendedBasal).
+            // At-neutral with pump on schedule -> cancel if a temp runs (field stores
+            // rate 0 / duration 0), nil if not. Override active -> always explicit.
+            // lastTempBasal is the in-progress temp reconstructed from dose history:
+            // latest tempRate-bearing basal record with startDate <= t, projected to
+            // its COMMANDED 30-min end (record segments are 5-min re-issue clips).
+            let running: (rate: Double, commandedEnd: Date)? = {
+                var best: (rate: Double, commandedEnd: Date)? = nil
+                for d in input.doses where d.deliveryType != .bolus {
+                    guard let r = d.tempRate, d.startDate <= t else { continue }
+                    let cmdEnd = d.startDate.addingTimeInterval(30 * 60)
+                    guard cmdEnd > t else { continue }
+                    if best == nil || cmdEnd > best!.commandedEnd { best = (r, cmdEnd) }
+                }
+                return best
+            }()
+            let continuationInterval: TimeInterval = 11 * 60
+            let eps = 1e-9
+            var tempAction = "set"
+            if let lt = running {
+                if abs(lt.rate - tempRate) < eps, lt.commandedEnd.timeIntervalSince(t) > continuationInterval {
+                    tempAction = "none"
+                } else if abs(tempRate - scheduledRate) < eps, !basalOverrideActive {
+                    tempAction = "cancel"
+                }
+            } else if abs(tempRate - scheduledRate) < eps, !basalOverrideActive {
+                tempAction = "none"
+            }
             let basalDeltaU = (tempRate - scheduledRate) * evalStep / 3600
             return DoseOutput(
                 bolus: 0,
                 tempBasalRate: tempRate,
                 scheduledBasalRate: scheduledRate,
                 deltaU: basalDeltaU,
-                manualBolusRec: correction.asManualBolus(maxBolus: maxBolus).amount
+                manualBolusRec: correction.asManualBolus(maxBolus: maxBolus).amount,
+                tempAction: tempAction
             )
         }
         let recommendation = LoopAlgorithm.recommendAutomaticDose(

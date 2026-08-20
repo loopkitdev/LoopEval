@@ -94,6 +94,8 @@ struct EngineStepResult {
     var reason: String? = nil   // oref reason string (Dev/BGI/IOBpredBG/minPredBG diagnostics)
     /// Candidate's recommended MANUAL bolus at this step (full correction, clamped to maxBolus).
     var manualBolusRec: Double = 0
+    /// Temp-basal-strategy ifNecessary action ("set" | "cancel" | "none"); "set" on the bolus path.
+    var tempAction: String = "set"
 }
 
 protocol DosingEngine: Sendable {
