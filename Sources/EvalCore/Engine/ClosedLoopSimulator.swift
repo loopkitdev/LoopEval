@@ -142,6 +142,13 @@ extension EvaluationEngine {
         // field never computed. Implies the instants are authoritative (the momentum
         // now-anchor uses them directly, not lastGlucose+7s). Empty = off.
         decisionTimes: [Date] = [],
+        // Decision instants where the field controller RAN but bailed before the
+        // dosing path (dosingDecision.errors pumpDataTooOld / glucoseTooOld — no
+        // forecast, no recommendation stored). The guard's trigger state (pump-comms
+        // freshness) is exogenous and not reconstructible from the export, but
+        // Loop's own error record marks the exact cycles; the replay skips them the
+        // same way it skips stale-CGM cycles. Subset of decisionTimes.
+        noDoseGuardTimes: Set<Date> = [],
         excludeManualBoluses: Bool = false,
         suppressCarbs: Bool = false,
         counterRegOnsetMgdl: Double = 0,
@@ -665,6 +672,25 @@ extension EvaluationEngine {
                     }
                     continue
                 }
+            }
+
+            // ----- FIELD NO-DOSE GUARD -----
+            // The deployed controller ran this cycle but refused to dose on stale
+            // inputs (pumpDataTooOld / glucoseTooOld): no forecast, no recommendation
+            // stored. Skip the step exactly like a stale-CGM cycle — no dose, no
+            // prediction point — so "recommended nothing" matches on both sides and
+            // a closed-loop counterfactual doesn't dose through the same exogenous
+            // pump-comms failure.
+            if noDoseGuardTimes.contains(t) {
+                if counterfactualMode && t >= cfActiveStart {
+                    while nextManualIdx < realManualBoluses.count {
+                        let mb = realManualBoluses[nextManualIdx]
+                        if mb.startDate >= stepEnd { break }
+                        if mb.startDate >= t { counterfactualDoses.append(mb) }
+                        nextManualIdx += 1
+                    }
+                }
+                continue
             }
 
             // ----- BASELINE step: actual glucose, actual doses, baselineConfig.

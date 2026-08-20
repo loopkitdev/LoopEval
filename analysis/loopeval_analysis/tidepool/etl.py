@@ -113,7 +113,13 @@ from .provenance import write_manifest as _write_manifest
 #      evidence only) — a decision must not see a suspension Loop hadn't
 #      learned yet (bddp11 07-04 00:15: +15.8 mg/dL from an unknown suspend
 #      projected 30 min forward).
-DATA_VERSION = 12
+#  13  decision_times.csv gains `no_dose_guard`: loop cycles Loop ran but bailed
+#      before the dosing path (errors pumpDataTooOld/glucoseTooOld, no forecast,
+#      no rec stored). The replay skips those cycles — the guard's trigger
+#      (pump-comms freshness) is exogenous, but Loop's error record marks the
+#      exact cycles (bddp11: 107+18 over 2 mo; 07-04 00:55-01:00 read as 1.0-U
+#      "mismatches" until this).
+DATA_VERSION = 13
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -447,15 +453,36 @@ def _decision_times(user, s_ms, e_ms):
          f"         CAST(get_json_object(recommendedBolus,'$.amount.$numberInt') AS DOUBLE)) AS rec_bolus, "
          f"COALESCE(CAST(get_json_object(recommendedBasal,'$.rate.$numberDouble') AS DOUBLE), "
          f"         CAST(get_json_object(recommendedBasal,'$.rate.$numberInt') AS DOUBLE)) AS rec_rate, "
-         f"CAST(get_json_object(recommendedBasal,'$.duration.$numberInt') AS BIGINT) AS rec_dur_ms "
+         f"CAST(get_json_object(recommendedBasal,'$.duration.$numberInt') AS BIGINT) AS rec_dur_ms, "
+         f"CASE WHEN bgForecast IS NULL THEN 1 ELSE 0 END AS no_fc, "
+         f"CAST(errors AS STRING) AS errors "
          f"FROM {TBL} WHERE _userId='{user}' AND type='dosingDecision' "
          f"AND CAST(reason AS STRING)='loop' AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)} "
          f"ORDER BY {_TMS}")
     df = query(q)
     out = []
     for r in df.itertuples():
+        # no_dose_guard: the loop RAN but bailed before the dosing path — no forecast
+        # and no recommendation stored, with an input-staleness error recorded
+        # (pumpDataTooOld / glucoseTooOld: Loop refuses to dose on pump data or
+        # glucose older than its freshness limit). The guard's trigger state
+        # (pump-comms freshness) is exogenous and not reconstructible from the
+        # export, but Loop's own error record marks exactly which cycles it fired
+        # on; the replay skips those cycles (bddp11 07-04 00:55-01:00: three
+        # no-rec cycles, 22-27 min after the pump went silent, read as 1.0-U
+        # "mismatches" until this). Distinct from pumpManagerError, where the
+        # recommendation IS computed and only delivery fails (pump_error clamp).
+        guard = 0
+        if r.no_fc and _fin(r.rec_bolus) is None and _fin(r.rec_rate) is None and r.errors:
+            try:
+                ids = {e.get("id") for e in json.loads(r.errors) if isinstance(e, dict)}
+            except (ValueError, TypeError):
+                ids = set()
+            if ids & {"pumpDataTooOld", "glucoseTooOld"}:
+                guard = 1
         out.append(dict(t_ms=int(r.t_ms), rec_bolus=_fin(r.rec_bolus),
-                        rec_rate=_fin(r.rec_rate), rec_dur_ms=_fin(r.rec_dur_ms)))
+                        rec_rate=_fin(r.rec_rate), rec_dur_ms=_fin(r.rec_dur_ms),
+                        no_dose_guard=guard))
     return out
 
 
@@ -775,12 +802,13 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     import csv as _csvd
     with open(os.path.join(outdir, "decision_times.csv"), "w", newline="") as fh:
         w = _csvd.writer(fh, lineterminator="\n")
-        w.writerow(["t", "rec_bolus", "rec_rate", "rec_dur_min"])
+        w.writerow(["t", "rec_bolus", "rec_rate", "rec_dur_min", "no_dose_guard"])
         for r in dts:
             w.writerow([_iso(r["t_ms"]),
                         "" if r["rec_bolus"] is None else r["rec_bolus"],
                         "" if r["rec_rate"] is None else r["rec_rate"],
-                        "" if r["rec_dur_ms"] is None else round(r["rec_dur_ms"] / 60000, 1)])
+                        "" if r["rec_dur_ms"] is None else round(r["rec_dur_ms"] / 60000, 1),
+                        r.get("no_dose_guard", 0)])
 
     stale = _stale_cgm_decisions(user, s_ms, e_ms, glucose)
     # Post-date the late samples: a decision replayed at/before the stale decision must

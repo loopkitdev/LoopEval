@@ -698,6 +698,7 @@ struct SimulateCommand: AsyncParsableCommand {
         }
 
         var parsedDecisionTimes: [Date] = []
+        var parsedNoDoseGuardTimes: Set<Date> = []
         // Cadence is a DATASET property: an export that carries the field's recorded
         // decision instants (decision_times.csv, ETL v8+) is replayed on that cadence;
         // otherwise the CGM cadence + processing-delay estimate stands in. Explicit
@@ -718,16 +719,30 @@ struct SimulateCommand: AsyncParsableCommand {
             // NOT split(separator: "\n"): CRLF is ONE grapheme cluster in Swift, so a
             // "\n" separator never matches inside "\r\n" and a CRLF file parses as a
             // single line (observed: "Stepping at 0 recorded decision times").
+            var guardIdx: Int? = nil
             for line in text.split(whereSeparator: { $0.isNewline }) {
-                // first column = the instant; further columns (rec fields) are for scorers
-                let tok = String(line.split(separator: ",", omittingEmptySubsequences: false)[0])
-                    .trimmingCharacters(in: .whitespaces)
-                if tok.isEmpty || tok == "t" { continue }
+                // first column = the instant; further columns (rec fields) are for scorers,
+                // except `no_dose_guard` (ETL v13): cycles the field controller ran but
+                // bailed before the dosing path (pumpDataTooOld / glucoseTooOld) — the
+                // replay must skip those instants entirely.
+                let cols = line.split(separator: ",", omittingEmptySubsequences: false)
+                    .map { String($0).trimmingCharacters(in: .whitespaces) }
+                let tok = cols[0]
+                if tok.isEmpty { continue }
+                if tok == "t" {
+                    guardIdx = cols.firstIndex(of: "no_dose_guard")
+                    continue
+                }
                 if let d = iso.date(from: tok) ?? isoNoFrac.date(from: tok) {
                     parsedDecisionTimes.append(d)
+                    if let gi = guardIdx, gi < cols.count, cols[gi] == "1" {
+                        parsedNoDoseGuardTimes.insert(d)
+                    }
                 }
             }
-            printStderr("Stepping at \(parsedDecisionTimes.count) recorded decision times from \(csvPath)\n")
+            printStderr("Stepping at \(parsedDecisionTimes.count) recorded decision times from \(csvPath)"
+                        + (parsedNoDoseGuardTimes.isEmpty ? "\n"
+                           : " (\(parsedNoDoseGuardTimes.count) no-dose-guard cycles skipped)\n"))
             // These instants ARE the controller's real decision timestamps — anchor
             // momentum/RC on them directly, not on the lastGlucose+7s estimate.
             baselineConfig.decisionTimesAreAuthoritative = true
@@ -756,6 +771,7 @@ struct SimulateCommand: AsyncParsableCommand {
             cfIdentity: cfIdentity,
             decisionsFromCgm: decisionsFromCgm,
             decisionTimes: parsedDecisionTimes,
+            noDoseGuardTimes: parsedNoDoseGuardTimes,
             excludeManualBoluses: noUserBoluses,
             suppressCarbs: noCarbEntries,
             counterRegOnsetMgdl: counterRegOnset,
