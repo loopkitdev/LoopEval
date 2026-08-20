@@ -633,6 +633,9 @@ extension EvaluationEngine {
         }
         let nSteps = stepTimes.count
 
+        // Deployed timeBasedDoseApplicationFactor reference: the last COMPLETED loop
+        // (errored/guard-skipped cycles don't advance it).
+        var lastCompletedLoopT: Date? = nil
         for stepIdx in 0..<nSteps {
             let t = stepTimes[stepIdx]
             // Interval to the next decision (= next CGM in CGM-driven mode).
@@ -711,6 +714,17 @@ extension EvaluationEngine {
                 continue
             }
 
+            // Deployed timeBasedDoseApplicationFactor = min(1, sinceLastCompleted/5min):
+            // a loop firing < 5 min after a COMPLETED loop applies proportionally less
+            // of the correction (sub-5-min retries after FAILURES are not damped —
+            // lastLoopCompleted doesn't advance on error). Completed here = the cycle
+            // ran and wasn't inside a pump-error window.
+            let timeBasedAFScale: Double = lastCompletedLoopT.map {
+                Swift.min(1.0, Swift.max(0.0, t.timeIntervalSince($0)) / 300.0)
+            } ?? 1.0
+            let stepCompletedLoop = outages.containing(t)?.reason != "pump_error"
+            if stepCompletedLoop { lastCompletedLoopT = t }
+
             // ----- BASELINE step: actual glucose, actual doses, baselineConfig.
             // Apply sensor cap: real CGMs (Dexcom G6/G7, Libre) peg at ~400 mg/dL,
             // so the controller never sees BG above the cap. The counter / scoring
@@ -743,7 +757,8 @@ extension EvaluationEngine {
                     glucoseMgdl: baselineMgdl,
                     glucoseSamples: simGlucose,
                     tddDoses: data.doses,
-                    orefPumpHistoryDoses: data.doses
+                    orefPumpHistoryDoses: data.doses,
+                    timeBasedAFScale: timeBasedAFScale
                 ))
                 baselineDose = br.dose
                 baselineTempAction = br.tempAction
@@ -948,7 +963,8 @@ extension EvaluationEngine {
                         isfBoostActiveOnly: isfBoostActiveOnly,
                         egpPhysicalDecomposition: egpPhysicalDecomposition,
                         tddDoses: data.doses,
-                        orefPumpHistoryDoses: orefHistDoses))
+                        orefPumpHistoryDoses: orefHistDoses,
+                        timeBasedAFScale: timeBasedAFScale))
                 }
                 // Forecast-gated boost (lows-protection): a boost (mult<1) is only
                 // applied if the candidate's UNBOOSTED forecast PEAK (highest BG
@@ -2105,7 +2121,8 @@ extension EvaluationEngine {
         forecastOffsetMgdl: Double = 0.0,
         perStepIsfMultByTime: [Date: Double]? = nil,
         isfBoostActiveOnly: Bool = false,
-        egpPhysicalDecomposition: Bool = false
+        egpPhysicalDecomposition: Bool = false,
+        timeBasedAFScale: Double = 1.0
     ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>, manualBolusRec: Double, tempAction: String) {
         let momentumCap: LoopQuantity? = config.positiveVelocityCap.map {
             LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: $0)
@@ -2501,6 +2518,13 @@ extension EvaluationEngine {
                 target: effectiveInput.target
             )
         }
+        // Deployed multiplies the (possibly GBAF) application factor by
+        // timeBasedDoseApplicationFactor = min(1, timeSinceLastCompletedLoop/5min)
+        // (LoopDataManager ~873): sub-5-min loops after a COMPLETED one dose
+        // proportionally less. Known divergence: deployed's maxAutomaticBolus uses
+        // the UNSCALED factor (maxBolus x min(AF,1)) while our package caps on the
+        // scaled one - only visible on saturated sub-5-min retries, accepted.
+        appFactor *= timeBasedAFScale
         let doseRec = EvaluationEngine.computeDoseRecommendation(
             prediction: prediction,
             at: t,
