@@ -39,6 +39,10 @@ struct EngineStepRequest {
     /// (summing doses is cheap; inflating the input window's IOB/effects is not).
     /// Empty ⇒ adapter falls back to `input.doses` (the lookback slice).
     let tddDoses: [EvalInsulinDose]
+    /// Deployed timeBasedDoseApplicationFactor = min(1, timeSinceLastCOMPLETED loop / 5 min):
+    /// sub-5-min loops after a completed one dose proportionally less (LoopDataManager ~873).
+    /// Errored loops don't advance lastLoopCompleted, so retries after failures are NOT damped.
+    var timeBasedAFScale: Double = 1.0
     /// Full (un-windowed) dose history for building the oref pump-history JSON.
     /// oref's autosens computes deviations over 24h and each deviation's BGI needs
     /// IOB back to 24h+DIA, so `input.doses` (sliced to the insulin lookback, ~DIA)
@@ -61,8 +65,10 @@ struct EngineStepRequest {
         isfBoostActiveOnly: Bool = false,
         egpPhysicalDecomposition: Bool = false,
         tddDoses: [EvalInsulinDose] = [],
-        orefPumpHistoryDoses: [EvalInsulinDose] = []
+        orefPumpHistoryDoses: [EvalInsulinDose] = [],
+        timeBasedAFScale: Double = 1.0
     ) {
+        self.timeBasedAFScale = timeBasedAFScale
         self.t = t
         self.input = input
         self.config = config
