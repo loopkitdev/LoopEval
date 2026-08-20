@@ -152,6 +152,13 @@ extension EvaluationEngine {
         // Loop's own error record marks the exact cycles; the replay skips them the
         // same way it skips stale-CGM cycles. Subset of decisionTimes.
         noDoseGuardTimes: Set<Date> = [],
+        // Model deployed timeBasedDoseApplicationFactor (min(1, sinceLastCompleted/5min)).
+        // DEFAULT OFF: the deployed reference is the previous loop's COMPLETION instant
+        // (15-40 s after its decision time), which the export does not record; the
+        // decision-time approximation empirically HURT cohort match (-0.3 to -0.8 pts
+        // across bolus donors, no improvements), so the approximation is opt-in for
+        // study rather than default-on.
+        enableTimeBasedAF: Bool = false,
         // Decision instants replayed with the TEMP-BASAL dosing strategy (mixed-
         // strategy donors switch AutomaticDosingStrategy mid-window; the per-cycle
         // mode comes from decision_times.csv `mode`, ETL v15 — detected from
@@ -719,9 +726,9 @@ extension EvaluationEngine {
             // of the correction (sub-5-min retries after FAILURES are not damped —
             // lastLoopCompleted doesn't advance on error). Completed here = the cycle
             // ran and wasn't inside a pump-error window.
-            let timeBasedAFScale: Double = lastCompletedLoopT.map {
-                Swift.min(1.0, Swift.max(0.0, t.timeIntervalSince($0)) / 300.0)
-            } ?? 1.0
+            let timeBasedAFScale: Double = enableTimeBasedAF
+                ? (lastCompletedLoopT.map { Swift.min(1.0, Swift.max(0.0, t.timeIntervalSince($0)) / 300.0) } ?? 1.0)
+                : 1.0
             let stepCompletedLoop = outages.containing(t)?.reason != "pump_error"
             if stepCompletedLoop { lastCompletedLoopT = t }
 
