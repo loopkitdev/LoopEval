@@ -171,6 +171,12 @@ instead live fully outside the repo in `~/.loop-eval/<alias>/site.json`.
 - **Plot convention:** x = TIR (right = better), y = t<54 (0–1.5, **up = worse** — never
   `invert_yaxis()`), dotted budget line at 1.0, better = lower-right. Use
   `loopeval_analysis.plotting.tir_t54_axes`.
+- **Dose panels must say whether bars are RECOMMENDATIONS or DELIVERED doses** — never an
+  unlabeled "dose". They are different streams that legitimately diverge (Loop records its
+  recommendation straight through "Pod not connected" cycles while delivering nothing; DTR
+  never delivers at all). Convention: bars = recommendations (field `dosingDecision` vs
+  replay output), black ▼ markers = delivered (dose history). Comparing across streams
+  produced fake mismatches twice (bddp11 22:00 pump-error window; bddp03 meal takeovers).
 - **Sweep plots — order lines by ISF multiplier, never by TIR.** A candidate/reference
   sweep is a curve *parameterized by ISF multiplier*; connect its points in multiplier
   order (adjacent vertices = adjacent ISF). Sorting by TIR makes the line zig-zag on any
