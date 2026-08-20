@@ -207,6 +207,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Apply candidate ISF boost (multiplier and/or per-step CSV) ONLY to the active-insulin term: dose-recommendation sizing and the positive-net-units glucose-effect. The EGP-credit term (negative netBasalUnits — implicit endogenous glucose production from suspending below schedule) continues to use the unmodulated scheduled ISF via Phase-1's scheduleBaselineSensitivity parameter. Default OFF preserves the legacy conflated behavior so pre-Phase-1 results stay reproducible.")
     var candidateIsfBoostActiveOnly: Bool = false
 
+    @Flag(name: .long, help: "Replay with Loop's TEMP-BASAL dosing strategy (AutomaticDosingStrategy.tempBasal): every correction is a 30-min temp basal, never an automatic bolus. Deployment-faithful for donors whose loop cycles record recommendations only in recommendedBasal (a temp-only deployment records ZERO recommendedBolus over months). Applies to both arms.")
+    var tempBasalStrategy: Bool = false
+
     @Option(name: .long, help: "Path to an outage CSV (start,end,reason,source,notes) describing windows where the physical pump could not deliver insulin (pod failure, occlusion, manual disconnect). During each outage the sim clamps both candidate and baseline absolute delivery to 0 so counter_BG isn't contaminated by phantom basal. Generate with `analysis/case-study` tooling: `python -m loopeval_analysis.outage from-nightscout ...`")
     var outagesCsv: String?
 
@@ -498,6 +501,7 @@ struct SimulateCommand: AsyncParsableCommand {
             useLegacyRCDecay: legacyRcDecay,
             useAsymmetricMomentum: asymmetricMomentum
         )
+        baselineConfig.useTempBasalStrategy = tempBasalStrategy
 
         let crHalfWidth: Double = (candidateTargetWidth ?? 0) / 2
         let crOverrideLow: Double? = candidateTargetMid.map { $0 - crHalfWidth }
@@ -604,6 +608,7 @@ struct SimulateCommand: AsyncParsableCommand {
         // Swift type-checker's expression-complexity limit. Property assignment is
         // also order-free — prefer adding NEW candidate flags here rather than
         // threading them into the positional EvalConfig(...) literal above.
+        candidateConfig.useTempBasalStrategy = tempBasalStrategy
         candidateConfig.basalRateMultiplier = candidateBasalRateMultiplier
         // "Overall insulin needs" preset-style factor f: basal ×f, ISF ÷f, CR ÷f.
         // Composes multiplicatively with the individual multipliers set above/in the literal.
