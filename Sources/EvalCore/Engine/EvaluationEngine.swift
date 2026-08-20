@@ -996,20 +996,28 @@ public actor EvaluationEngine {
             // latest tempRate-bearing basal record with startDate <= t, projected to
             // its COMMANDED 30-min end (record segments are 5-min re-issue clips).
             let running: (rate: Double, commandedEnd: Date)? = {
-                var best: (rate: Double, commandedEnd: Date)? = nil
+                // The COVERING segment decides the pump state (deployed checks
+                // lastTempBasal.type == .tempBasal on its current dose): whatever
+                // basal segment contains t — temp ⇒ that temp is running (commanded
+                // end = segment start + 30 min; record segments are re-issue clips),
+                // scheduled/suspend ⇒ no temp running. Deciding from ANY temp record
+                // projected 30 min forward is wrong in both directions: a CANCELLED
+                // temp kept "running" through its projection (the cancel's scheduled
+                // resumption doesn't supersede it), and before v17 the scheduled
+                // resumption itself read as a temp. Records without basalType
+                // (pre-v17) keep the old tempRate-presence reading of the covering
+                // segment.
+                var cover: EvalInsulinDose? = nil
                 for d in input.doses where d.deliveryType != .bolus {
-                    guard let r = d.tempRate, d.startDate <= t else { continue }
-                    // Only a COMMANDED temp counts as lastTempBasal (deployed checks
-                    // .type == .tempBasal): post-cancel SCHEDULED resumption also
-                    // carries tempRate in the export, and reading it as a running temp
-                    // produced spurious "cancel" actions. basalType is authoritative
-                    // (ETL v17); records without it keep the tempRate heuristic.
-                    if let bt = d.basalType, bt != "temp" { continue }
-                    let cmdEnd = d.startDate.addingTimeInterval(30 * 60)
-                    guard cmdEnd > t else { continue }
-                    if best == nil || cmdEnd > best!.commandedEnd { best = (r, cmdEnd) }
+                    guard d.tempRate != nil, d.startDate <= t else { continue }
+                    if cover == nil || d.startDate > cover!.startDate { cover = d }
                 }
-                return best
+                guard let c = cover else { return nil }
+                if let bt = c.basalType { guard bt == "temp" else { return nil } }
+                guard let r = c.tempRate else { return nil }
+                let cmdEnd = c.startDate.addingTimeInterval(30 * 60)
+                guard cmdEnd > t else { return nil }
+                return (r, cmdEnd)
             }()
             let continuationInterval: TimeInterval = 11 * 60
             let eps = 1e-9
