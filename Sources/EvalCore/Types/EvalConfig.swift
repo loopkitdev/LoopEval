@@ -191,6 +191,11 @@ public struct EvalConfig: Codable, Sendable {
     /// instead of spilling into RC. Used to confirm the ICE→carb/RC mechanism.
     public var carbAbsorptionTimeCapSec: TimeInterval
 
+    /// Carb absorption-time overrun (deployed stock = 1.5; the max/min-rate window is
+    /// entered x overrun). Some custom builds ship a different constant — bddp04's field
+    /// carb-forecast slope matches 2.0, not 1.5. Behavioral inference knob like GBAF.
+    public var carbAbsorptionOverrun: Double = 1.5
+
     /// Path to a carb-revisions overlay JSON (produced by
     /// `analysis/.../reconstruct_carb_history.py`). When set, edited carb entries
     /// are spliced into their time-ordered revision sequences so decision-time
@@ -755,7 +760,7 @@ public struct EvalConfig: Codable, Sendable {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
         case decisionTimesAreAuthoritative
         case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, useTempBasalStrategy, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay
-        case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec, carbRevisionsPath, overrideTargetsPath
+        case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec, carbAbsorptionOverrun, carbRevisionsPath, overrideTargetsPath
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
         case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
@@ -813,6 +818,7 @@ public struct EvalConfig: Codable, Sendable {
         self.carbAbsorptionModel  = try c.decode(CarbAbsorptionModel.self, forKey: .carbAbsorptionModel)
         self.adaptiveCarbAbsorption = try c.decodeIfPresent(Bool.self, forKey: .adaptiveCarbAbsorption) ?? false
         self.carbAbsorptionTimeCapSec = try c.decodeIfPresent(TimeInterval.self, forKey: .carbAbsorptionTimeCapSec) ?? 0
+        self.carbAbsorptionOverrun = try c.decodeIfPresent(Double.self, forKey: .carbAbsorptionOverrun) ?? 1.5
         self.carbRevisionsPath = try c.decodeIfPresent(String.self, forKey: .carbRevisionsPath)
         self.overrideTargetsPath = try c.decodeIfPresent(String.self, forKey: .overrideTargetsPath)
         self.sensitivityMultiplier = try c.decode(Double.self,      forKey: .sensitivityMultiplier)
@@ -944,6 +950,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(carbAbsorptionModel, forKey: .carbAbsorptionModel)
         try c.encode(adaptiveCarbAbsorption, forKey: .adaptiveCarbAbsorption)
         try c.encode(carbAbsorptionTimeCapSec, forKey: .carbAbsorptionTimeCapSec)
+        try c.encode(carbAbsorptionOverrun, forKey: .carbAbsorptionOverrun)
         try c.encodeIfPresent(carbRevisionsPath, forKey: .carbRevisionsPath)
         try c.encodeIfPresent(overrideTargetsPath, forKey: .overrideTargetsPath)
         try c.encode(sensitivityMultiplier, forKey: .sensitivityMultiplier)
