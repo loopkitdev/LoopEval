@@ -2495,7 +2495,8 @@ extension EvaluationEngine {
                 : nil,
             bolusIncrement: config.bolusIncrement,
             tempBasalIncrement: config.tempBasalIncrement,
-            useMidAbsorptionISF: config.useMidAbsorptionISF
+            useMidAbsorptionISF: config.useMidAbsorptionISF,
+            useTempBasalStrategy: config.useTempBasalStrategy
         )
         return (
             dose: doseRec?.deltaU ?? 0,

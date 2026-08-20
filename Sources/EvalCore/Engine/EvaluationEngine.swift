@@ -539,7 +539,8 @@ public actor EvaluationEngine {
             // auto-bolus total ~1.2x vs the field's enacted (floored) doses.
             bolusIncrement: config.bolusIncrement,
             tempBasalIncrement: config.tempBasalIncrement,
-            useMidAbsorptionISF: config.useMidAbsorptionISF
+            useMidAbsorptionISF: config.useMidAbsorptionISF,
+            useTempBasalStrategy: config.useTempBasalStrategy
         )
 
         // Per-component effect samples for drift diagnostics.
@@ -856,7 +857,13 @@ public actor EvaluationEngine {
         // time-varying ISF timeline into the correction (a mid-absorption-ISF leak in the
         // correction path). When false (dose-time ISF mode, --no-mid-absorption-isf), use
         // the single dose-time segment to match deployed.
-        useMidAbsorptionISF: Bool = true
+        useMidAbsorptionISF: Bool = true,
+        // Loop's user-selected AutomaticDosingStrategy. false = automatic-bolus
+        // (recommendAutomaticDose: AF-scaled bolus + low temps). true = temp-basal
+        // (recommendTempBasal: ALL correction via a 30-min temp, never a bolus) —
+        // what bddp02/bddp07-class deployments run (0% of their loop cycles record a
+        // recommendedBolus; recs live entirely in recommendedBasal).
+        useTempBasalStrategy: Bool = false
     ) -> DoseOutput? {
         guard let scheduledBasalEntry = input.basal.first(where: { $0.startDate <= t && $0.endDate > t })
             ?? input.basal.closestPrior(to: t) else { return nil }
@@ -944,6 +951,35 @@ public actor EvaluationEngine {
                 effAppFactor = 0
             }
             gateFloor = -1e9   // disable the predicted-min gate (ramp factor ≈ 1)
+        }
+        if useTempBasalStrategy {
+            // Temp-basal strategy: the whole correction is expressed as a 30-min temp
+            // (deployed Loop recommendTempBasal — includes the below-high-threshold
+            // maxBasalRate=neutral clamp and the maxActiveInsulin headroom cap).
+            let rec = LoopAlgorithm.recommendTempBasal(
+                for: correction,
+                neutralBasalRate: scheduledRate,
+                activeInsulin: activeInsulin,
+                maxBolus: maxBolus,
+                maxBasalRate: maxBasalRate,
+                maxActiveInsulin: maxActiveInsulin
+            )
+            let pump = PumpModel(basalRateIncrement: tempBasalIncrement, bolusIncrement: bolusIncrement,
+                                 pulseQuantum: 0, rounding: .down)
+            // asTempBasal nests min(maxBasalRate, max(0, rate)); when IOB exceeds
+            // maxActiveInsulin (2x maxBolus — a real deployed clamp: bddp07's field
+            // recs cap at ~neutral exactly above IOB 6 = 2x its 3 U maxBolus) the
+            // derived maxBasalRate is NEGATIVE and passes through the min. The field
+            // never records a negative rate (min recorded rec = 0.0) — floor at 0.
+            let tempRate = pump.supportedBasalRate(Swift.max(0, rec.unitsPerHour))
+            let basalDeltaU = (tempRate - scheduledRate) * evalStep / 3600
+            return DoseOutput(
+                bolus: 0,
+                tempBasalRate: tempRate,
+                scheduledBasalRate: scheduledRate,
+                deltaU: basalDeltaU,
+                manualBolusRec: correction.asManualBolus(maxBolus: maxBolus).amount
+            )
         }
         let recommendation = LoopAlgorithm.recommendAutomaticDose(
             for: correction,
