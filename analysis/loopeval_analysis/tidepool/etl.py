@@ -109,7 +109,11 @@ from .provenance import write_manifest as _write_manifest
 #  11  basal dedup prefers the NATIVE Loop row over its HealthKit mirror — mirror
 #      `rate` is unreliable (0.00 for a real 0.15 temp; delivered-average vs
 #      programmed). bddp11: 5,346 conflicting-rate groups, up to 1.25 U/hr.
-DATA_VERSION = 11
+#  12  pod-reported suspends carry receivedDate=createdTime (prompt-upload
+#      evidence only) — a decision must not see a suspension Loop hadn't
+#      learned yet (bddp11 07-04 00:15: +15.8 mg/dL from an unknown suspend
+#      projected 30 min forward).
+DATA_VERSION = 12
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -686,7 +690,9 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         # rate*duration. NULL for pumps that don't report it (aaps/sequel/xdrip) → fall back.
         "COALESCE(CAST(get_json_object(payload,'$.deliveredUnits.$numberDouble') AS DOUBLE), "
         "CAST(get_json_object(payload,'$.deliveredUnits.$numberInt') AS DOUBLE)) AS delivered",
-        "get_json_object(CAST(origin AS STRING),'$.name') AS orig"],
+        "get_json_object(CAST(origin AS STRING),'$.name') AS orig",
+        "CAST(deliveryType AS STRING) AS dtype",
+        "CAST(get_json_object(createdTime,'$.$date.$numberLong') AS BIGINT) AS crt_ms"],
         win, "basal", order="_id DESC"))   # keep the LATEST version of each basal id (final completed segment, not the interim dur=0)
     # collect basal segments, then CLIP each end to the next segment's start so
     # overlapping Loop basal records don't double-count delivery.
@@ -713,9 +719,21 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     for r in keep:
         st = int(r.t_ms); dur_ms = int(_fin(r.dur_ms) or 0); rate = _fin(r.rate) or 0.0
         delivered = _fin(r.delivered)   # None if not reported
-        segs.append((st, st + dur_ms, rate, delivered, dur_ms))
+        # Knowledge time for POD-INITIATED suspends: Loop learns of them only when the
+        # pod reports back (bddp11 07-04 00:15: suspend created 0.45 s after it ENDED,
+        # 90 s after a decision that provably didn't know it — the field's forecast
+        # still carried the running temp). Gate ONLY with prompt-upload evidence
+        # (created within [end-60s, end+180s]); batch-uploaded records get no
+        # receivedDate rather than a false one that would hide doses Loop knew.
+        recv = None
+        crt = _fin(getattr(r, "crt_ms", None))
+        if getattr(r, "dtype", None) == "suspend" and crt is not None:
+            en0 = st + dur_ms
+            if en0 - 60000 <= int(crt) <= en0 + 180000 and int(crt) > st + 15000:
+                recv = int(crt)
+        segs.append((st, st + dur_ms, rate, delivered, dur_ms, recv))
     segs.sort(key=lambda s: (s[0], s[1]))   # sort by (start, end); `delivered` may be None
-    for i, (st, en, rate, delivered, rec_dur) in enumerate(segs):
+    for i, (st, en, rate, delivered, rec_dur, recv) in enumerate(segs):
         if i + 1 < len(segs):
             en = min(en, segs[i + 1][0])      # clip to next start (no overlap)
         if en <= st: continue
@@ -732,7 +750,8 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         # Without it the sim projects the running temp forward, over-/under-counting its
         # future portion (the basal-dominant forecast-tail residual). Tidepool carries
         # `rate` (+ suppressed.rate for scheduled) on every basal record.
-        doses.append({"deliveryType": "basal", "startDate": _iso(st), "endDate": _iso(en),
+        extra = {"receivedDate": _iso(recv)} if recv else {}
+        doses.append({**extra, "deliveryType": "basal", "startDate": _iso(st), "endDate": _iso(en),
                       "volume": round(vol, 5), "tempRate": round(rate, 5),
                       "insulinType": insulin_type, "automatic": True})
     doses.sort(key=lambda d: d["startDate"])

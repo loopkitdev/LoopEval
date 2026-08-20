@@ -23,6 +23,18 @@ public struct EvalInsulinDose: InsulinDose, Codable, Sendable {
     /// Defaults to true when absent (older caches / non-Loop data sources).
     public var automatic: Bool
 
+    /// When the CONTROLLER first held this record — nil means "at startDate".
+    ///
+    /// Loop knows a dose it COMMANDED immediately, but a POD-INITIATED event (suspend,
+    /// occlusion stop) only when the pod reports back — bddp11 2026-07-04 00:15: a 106 s
+    /// pump suspend started 18 s BEFORE a decision whose record was created 90 s AFTER
+    /// it; Loop's flat forecast was faithful to a store that still held the running
+    /// 0.8 temp, while the replay projected the not-yet-known suspension 30 min forward
+    /// (+15.8 mg/dL, the night's worst cycle). Decision input excludes doses with
+    /// receivedDate > t; physics/scoring keep startDate. Same causality rule as
+    /// EvalGlucoseSample.receivedDate and the carb dosingVisibleDate.
+    public var receivedDate: Date?
+
     /// Programmed temp-basal rate (U/hr) for `.basal` doses. Preserved so an
     /// in-progress temp basal (the one running at a forecast instant) can be
     /// recreated as `rate × elapsed` and clipped at t — the finalized record's
@@ -41,8 +53,10 @@ public struct EvalInsulinDose: InsulinDose, Codable, Sendable {
         volume: Double,
         insulinType: ExponentialInsulinModelPreset = .rapidActingAdult,
         automatic: Bool = true,
-        tempRate: Double? = nil
+        tempRate: Double? = nil,
+        receivedDate: Date? = nil
     ) {
+        self.receivedDate = receivedDate
         self.deliveryType = deliveryType
         self.startDate    = startDate
         self.endDate      = endDate
@@ -63,5 +77,6 @@ public struct EvalInsulinDose: InsulinDose, Codable, Sendable {
         insulinType  = try c.decode(ExponentialInsulinModelPreset.self, forKey: .insulinType)
         automatic    = try c.decodeIfPresent(Bool.self,       forKey: .automatic) ?? true
         tempRate     = try c.decodeIfPresent(Double.self,     forKey: .tempRate)
+        receivedDate = try c.decodeIfPresent(Date.self,       forKey: .receivedDate)
     }
 }

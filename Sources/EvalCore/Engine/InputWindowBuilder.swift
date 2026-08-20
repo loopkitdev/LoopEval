@@ -138,6 +138,15 @@ struct InputWindowBuilder: Sendable {
             dHi = lowerBound(doses, by: decisionTime, key: \.startDate)
         }
         var dosesSlice = dLo < dHi ? Array(doses[dLo..<dHi]) : []
+        // Knowledge gate: a decision sees only dose records the CONTROLLER held by the
+        // decision instant. Pod-initiated events (suspends) reach Loop's store only when
+        // the pod reports back — a record can START before a decision yet be unknown to
+        // it (bddp11 07-04 00:15: suspend started 18 s before, learned 90 s after; the
+        // replay projected the unknown suspension 30 min forward → +15.8, the night's
+        // worst). nil receivedDate = known at startDate, gate is a no-op.
+        if !useFutureInsulin {
+            dosesSlice = dosesSlice.filter { ($0.receivedDate ?? $0.startDate) <= clipBoundary }
+        }
         // In-progress temp basal handling (decision-time only). Default (false): keep the
         // temp's recorded duration projected forward — this best reproduces FieldLoop,
         // which projects the enacted temp/suspend forward (clipping it to end at t worsens
