@@ -2368,7 +2368,8 @@ extension EvaluationEngine {
             (config.useIntegralRC && config.useIntegralRCClamp) ? effectiveInput.target : nil
         let rcRetroInterval: TimeInterval? = config.rcRetrospectionMinutes.map { $0 * 60 }
         let rcEffDuration: TimeInterval? = config.rcEffectDurationMinutes.map { $0 * 60 }
-        let absorbOverrun: Double = config.adaptiveCarbAbsorption ? 1.0 : CarbMath.defaultAbsorptionTimeOverrun
+        let absorbOverrun: Double = config.adaptiveCarbAbsorption ? 1.0 : config.carbAbsorptionOverrun
+        let maxAbsorbOverrun: Double = config.carbAbsorptionOverrun
         let momProjDuration: TimeInterval = config.momentumProjectionMinutes * 60
         let momDataIntervalSec: TimeInterval = config.momentumDataIntervalMinutes * 60
         var prediction: LoopPrediction<EvalCarbEntry> = LoopAlgorithm.generatePrediction(
@@ -2403,6 +2404,7 @@ extension EvaluationEngine {
             carbAbsorptionModel: config.carbAbsorptionModel.model,
             adaptiveCarbAbsorption: config.adaptiveCarbAbsorption,
             initialAbsorptionTimeOverrun: absorbOverrun,
+            absorptionTimeOverrun: maxAbsorbOverrun,
             gradualTransitionsThreshold: config.momentumGradualTransitionsThreshold,   // WIRING FIX: was omitted → defaulted to 40 (gate always on), silently ignoring --no-gradual-transitions-gate in the dosing forecast
             momentumVelocityMaximum: momentumCap,
             momentumProjectionDuration: momProjDuration,

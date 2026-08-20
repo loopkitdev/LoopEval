@@ -210,6 +210,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Replay with Loop's TEMP-BASAL dosing strategy (AutomaticDosingStrategy.tempBasal): every correction is a 30-min temp basal, never an automatic bolus. Deployment-faithful for donors whose loop cycles record recommendations only in recommendedBasal (a temp-only deployment records ZERO recommendedBolus over months). Applies to both arms.")
     var tempBasalStrategy: Bool = false
 
+    @Option(name: .long, help: "Carb absorption-time overrun (stock Loop = 1.5). The remaining-carb min-rate window is entered x overrun; some custom builds differ (bddp04's field slope matches 2.0). Applies to both arms.")
+    var carbAbsorptionOverrun: Double = 1.5
+
     @Flag(name: .long, help: "Model deployed timeBasedDoseApplicationFactor (sub-5-min loops after a completed loop dose proportionally less). OFF by default: the deployed reference is the previous loop's COMPLETION instant, which exports don't record; the decision-time approximation measurably hurt cohort match.")
     var timeBasedAf: Bool = false
 
@@ -505,6 +508,7 @@ struct SimulateCommand: AsyncParsableCommand {
             useAsymmetricMomentum: asymmetricMomentum
         )
         baselineConfig.useTempBasalStrategy = tempBasalStrategy
+        baselineConfig.carbAbsorptionOverrun = carbAbsorptionOverrun
 
         let crHalfWidth: Double = (candidateTargetWidth ?? 0) / 2
         let crOverrideLow: Double? = candidateTargetMid.map { $0 - crHalfWidth }
@@ -612,6 +616,7 @@ struct SimulateCommand: AsyncParsableCommand {
         // also order-free — prefer adding NEW candidate flags here rather than
         // threading them into the positional EvalConfig(...) literal above.
         candidateConfig.useTempBasalStrategy = tempBasalStrategy
+        candidateConfig.carbAbsorptionOverrun = carbAbsorptionOverrun
         candidateConfig.basalRateMultiplier = candidateBasalRateMultiplier
         // "Overall insulin needs" preset-style factor f: basal ×f, ISF ÷f, CR ÷f.
         // Composes multiplicatively with the individual multipliers set above/in the literal.
