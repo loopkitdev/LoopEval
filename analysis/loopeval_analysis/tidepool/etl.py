@@ -128,7 +128,12 @@ from .provenance import write_manifest as _write_manifest
 #      override-scaled scheduled = temp; decreases look identical in both modes,
 #      forward-filled). Mixed-strategy donors (bddp03/04/05/06/08/10) switch
 #      mid-window; a fixed-strategy replay fabricates auto-boluses against temps.
-DATA_VERSION = 15
+#  16  carb dosingVisibleDate from evidence MERGED across duplicates: payload.addedDate
+#      (any dup) wins outright; createdTime is only the late-upload fallback gate. A
+#      late-uploaded HealthKit mirror seen first let its createdTime pose as the save
+#      instant (bddp02 05-21: carb hidden 65 min; replay suspended into a meal the
+#      field temped 5.65 U/hr for). Mirror-preference family, carb edition.
+DATA_VERSION = 16
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -596,9 +601,15 @@ def _carbs(win, manual_ms):
         # addedDate = when the deployed Loop's carb store first held this entry (Loop-local),
         # falling back to createdTime (Tidepool server receive). For a carb the user logged
         # LATE and back-stamped to an earlier eat-time, this is hours after t.
-        added_ms = _iso_to_ms(getattr(r, "added_iso", None))
-        if added_ms is None:
-            cm = _fin(getattr(r, "created_ms", None)); added_ms = int(cm) if cm is not None else None
+        # Keep the two evidence classes SEPARATE across duplicates: payload.addedDate
+        # is Loop's own store-save instant (exact); createdTime is only a server
+        # receive time (a late-uploaded HealthKit mirror's createdTime can be HOURS
+        # after the save — bddp02 05-21: native addedDate 21:46:29, mirror created
+        # 22:51:03; folding them together let the mirror's createdTime masquerade as
+        # the save instant and hide the carb from replay for 65 min while the field
+        # dosed 3.95/5.65 U/hr on it).
+        added_real_ms = _iso_to_ms(getattr(r, "added_iso", None))
+        cm = _fin(getattr(r, "created_ms", None)); created_ms = int(cm) if cm is not None else None
         # dedup: Tidepool food records are re-uploaded many times AND HealthKit-mirrored;
         # collapse to one real entry per (SECOND, grams). CRITICAL: the mirror copies carry
         # NO estimatedAbsorptionDuration (only the native Loop upload does), and they may
@@ -615,8 +626,11 @@ def _carbs(win, manual_ms):
         if key in cby:
             if absorb and "absorptionTime" not in cby[key]:
                 cby[key]["absorptionTime"] = absorb   # backfill from the version that has it
-            if added_ms is not None and (cby[key]["_added_ms"] is None or added_ms < cby[key]["_added_ms"]):
-                cby[key]["_added_ms"] = added_ms      # earliest "Loop learned it" across dup copies
+            e = cby[key]
+            if added_real_ms is not None and (e["_added_real_ms"] is None or added_real_ms < e["_added_real_ms"]):
+                e["_added_real_ms"] = added_real_ms   # earliest true store-save across dup copies
+            if created_ms is not None and (e["_created_ms"] is None or created_ms < e["_created_ms"]):
+                e["_created_ms"] = created_ms         # earliest server receive across dup copies
             continue
         # dosingVisibleDate: defer past the paired manual meal bolus so the sim's
         # auto-dosing doesn't cover the carb BEFORE the (passed-through) manual bolus
@@ -630,13 +644,14 @@ def _carbs(win, manual_ms):
         # forward-pairing wrongly deferred it 7 min to an unrelated later bolus).
         # No heuristic needed when the save instant is recorded; forward-pairing to the
         # saving bolus remains the FALLBACK for records without addedDate.
-        if added_ms is not None:
-            vis = added_ms
-        else:
-            pb = paired_bolus(t)
-            vis = (pb + POST_BOLUS_DELAY) if pb is not None else t
-        e = {"startDate": _iso(t), "entryDate": _iso(t), "dosingVisibleDate": _iso(vis),
-             "grams": round(grams, 1), "_base_vis": vis, "_added_ms": added_ms}
+        # dosingVisibleDate is finalized in the pass below, from evidence MERGED
+        # across all duplicates — computing it here from the first-seen row let a
+        # mirror's createdTime win over the native record's addedDate.
+        pb = paired_bolus(t)
+        base_vis = (pb + POST_BOLUS_DELAY) if pb is not None else t
+        e = {"startDate": _iso(t), "entryDate": _iso(t), "dosingVisibleDate": _iso(base_vis),
+             "grams": round(grams, 1), "_base_vis": base_vis,
+             "_added_real_ms": added_real_ms, "_created_ms": created_ms}
         if absorb: e["absorptionTime"] = absorb
         cby[key] = e            # same dict object is appended below; later backfill reflects here
         carbs.append(e)
@@ -650,9 +665,16 @@ def _carbs(win, manual_ms):
     # dosing, exactly as it did for the real Loop. Real-time entries (addedDate ≈ eat-time)
     # are unchanged. Data-level → applies to BOTH arms → identity-preserving.
     for e in carbs:
-        base_vis = e.pop("_base_vis"); added_ms = e.pop("_added_ms")
-        if added_ms is not None and added_ms > base_vis + BACKDATE_TOL:
-            e["dosingVisibleDate"] = _iso(added_ms)
+        base_vis = e.pop("_base_vis")
+        added_real = e.pop("_added_real_ms"); created = e.pop("_created_ms")
+        if added_real is not None:
+            # Loop's own store-save instant, merged from whichever duplicate carries
+            # it — exact, use it directly (earlier OR later than the fallback).
+            e["dosingVisibleDate"] = _iso(added_real)
+        elif created is not None and created > base_vis + BACKDATE_TOL:
+            # No addedDate on any duplicate: keep the paired-bolus/entry-time
+            # fallback, gated by the EARLIEST server receive (late-logged entry).
+            e["dosingVisibleDate"] = _iso(created)
     return carbs
 
 
