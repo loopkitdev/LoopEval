@@ -133,7 +133,11 @@ from .provenance import write_manifest as _write_manifest
 #      late-uploaded HealthKit mirror seen first let its createdTime pose as the save
 #      instant (bddp02 05-21: carb hidden 65 min; replay suspended into a meal the
 #      field temped 5.65 U/hr for). Mirror-preference family, carb edition.
-DATA_VERSION = 16
+#  17  basal doses carry basalType (Tidepool deliveryType: temp|scheduled|suspend) so
+#      the temp-strategy continuation logic only treats COMMANDED temps as running
+#      (post-cancel scheduled resumption misread as a running temp -> spurious
+#      "cancel" actions on temp-mode donors).
+DATA_VERSION = 17
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -789,9 +793,9 @@ def export_donor(user, start, end, outdir, insulin_type=None):
             en0 = st + dur_ms
             if en0 - 60000 <= int(crt) <= en0 + 180000 and int(crt) > st + 15000:
                 recv = int(crt)
-        segs.append((st, st + dur_ms, rate, delivered, dur_ms, recv))
+        segs.append((st, st + dur_ms, rate, delivered, dur_ms, recv, getattr(r, "dtype", None)))
     segs.sort(key=lambda s: (s[0], s[1]))   # sort by (start, end); `delivered` may be None
-    for i, (st, en, rate, delivered, rec_dur, recv) in enumerate(segs):
+    for i, (st, en, rate, delivered, rec_dur, recv, dtype) in enumerate(segs):
         if i + 1 < len(segs):
             en = min(en, segs[i + 1][0])      # clip to next start (no overlap)
         if en <= st: continue
@@ -809,6 +813,15 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         # future portion (the basal-dominant forecast-tail residual). Tidepool carries
         # `rate` (+ suppressed.rate for scheduled) on every basal record.
         extra = {"receivedDate": _iso(recv)} if recv else {}
+        # basalType = Tidepool deliveryType (temp | scheduled | suspend): a COMMANDED
+        # temp vs the pod running its schedule. The temp-strategy continuation logic
+        # (deployed ifNecessary lastTempBasal.type == .tempBasal) must only treat
+        # dtype=temp segments as a running temp — every basal record carries tempRate,
+        # so rate-presence alone misread post-cancel SCHEDULED resumption as a running
+        # temp (bddp07 05-08 16:52: replay "cancel" where the field correctly had no
+        # command).
+        if dtype:
+            extra["basalType"] = str(dtype)
         doses.append({**extra, "deliveryType": "basal", "startDate": _iso(st), "endDate": _iso(en),
                       "volume": round(vol, 5), "tempRate": round(rate, 5),
                       "insulinType": insulin_type, "automatic": True})

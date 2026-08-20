@@ -35,6 +35,11 @@ public struct EvalInsulinDose: InsulinDose, Codable, Sendable {
     /// EvalGlucoseSample.receivedDate and the carb dosingVisibleDate.
     public var receivedDate: Date?
 
+    /// Tidepool basal deliveryType ("temp" | "scheduled" | "suspend") — whether this
+    /// segment was a COMMANDED temp or the pod running its schedule. nil for boluses
+    /// and pre-v17 exports (fall back to tempRate-presence heuristics).
+    public var basalType: String?
+
     /// Programmed temp-basal rate (U/hr) for `.basal` doses. Preserved so an
     /// in-progress temp basal (the one running at a forecast instant) can be
     /// recreated as `rate × elapsed` and clipped at t — the finalized record's
@@ -54,8 +59,10 @@ public struct EvalInsulinDose: InsulinDose, Codable, Sendable {
         insulinType: ExponentialInsulinModelPreset = .rapidActingAdult,
         automatic: Bool = true,
         tempRate: Double? = nil,
-        receivedDate: Date? = nil
+        receivedDate: Date? = nil,
+        basalType: String? = nil
     ) {
+        self.basalType    = basalType
         self.receivedDate = receivedDate
         self.deliveryType = deliveryType
         self.startDate    = startDate
@@ -78,5 +85,6 @@ public struct EvalInsulinDose: InsulinDose, Codable, Sendable {
         automatic    = try c.decodeIfPresent(Bool.self,       forKey: .automatic) ?? true
         tempRate     = try c.decodeIfPresent(Double.self,     forKey: .tempRate)
         receivedDate = try c.decodeIfPresent(Date.self,       forKey: .receivedDate)
+        basalType    = try c.decodeIfPresent(String.self,     forKey: .basalType)
     }
 }

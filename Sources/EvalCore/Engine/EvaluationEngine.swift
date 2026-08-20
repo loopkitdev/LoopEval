@@ -999,6 +999,12 @@ public actor EvaluationEngine {
                 var best: (rate: Double, commandedEnd: Date)? = nil
                 for d in input.doses where d.deliveryType != .bolus {
                     guard let r = d.tempRate, d.startDate <= t else { continue }
+                    // Only a COMMANDED temp counts as lastTempBasal (deployed checks
+                    // .type == .tempBasal): post-cancel SCHEDULED resumption also
+                    // carries tempRate in the export, and reading it as a running temp
+                    // produced spurious "cancel" actions. basalType is authoritative
+                    // (ETL v17); records without it keep the tempRate heuristic.
+                    if let bt = d.basalType, bt != "temp" { continue }
                     let cmdEnd = d.startDate.addingTimeInterval(30 * 60)
                     guard cmdEnd > t else { continue }
                     if best == nil || cmdEnd > best!.commandedEnd { best = (r, cmdEnd) }
