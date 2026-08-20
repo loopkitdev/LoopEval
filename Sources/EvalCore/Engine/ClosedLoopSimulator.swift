@@ -1073,12 +1073,21 @@ extension EvaluationEngine {
                 }
             }
 
-            if inOutage {
+            if inOutage && !decisionTimeReplay {
                 // Physical pump outage: absolute delivery = 0. Real Loop's
                 // recorded auto-deliveries during outages are already 0 (Loop
                 // wrote 0 U/hr temps after pump failure), so real-pump
                 // quantities (realPumpAutoAtStep, the ICE pipeline) need no
                 // adjustment — only the simulator's own decisions do.
+                //
+                // DTR is exempt: nothing is ever delivered in decision-time
+                // replay, so this clamp only ERASES the recommendation — and
+                // the field records its recommendation during pump errors too
+                // (bddp11 07-03 22:00-22:10: Loop recommended 0.25/0.35/0.15
+                // through "Pod not connected" cycles while our clamp zeroed
+                // ours, a fake three-cycle dose mismatch on an exactly-matched
+                // forecast). Rec-vs-rec comparison needs both sides' outputs;
+                // dose-vs-DELIVERED scoring already excludes clamped windows.
                 let schedRate = data.therapyTimeline.basal.first(where: {
                     $0.startDate <= t && $0.endDate > t
                 })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
