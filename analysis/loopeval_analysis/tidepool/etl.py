@@ -754,6 +754,11 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         "CAST(get_json_object(payload,'$.deliveredUnits.$numberInt') AS DOUBLE)) AS delivered",
         "get_json_object(CAST(origin AS STRING),'$.name') AS orig",
         "CAST(deliveryType AS STRING) AS dtype",
+        # A COMMANDED temp suppresses the schedule (suppressed != NULL, hex
+        # 'tempBasal ...' syncIdentifier); a scheduled segment has suppressed=NULL
+        # ('BasalRateSchedule ...'). Loop uploads BOTH as deliveryType='automated',
+        # so suppressed-presence is the only reliable temp-vs-scheduled signal.
+        "CASE WHEN suppressed IS NOT NULL THEN 1 ELSE 0 END AS has_supp",
         "CAST(get_json_object(createdTime,'$.$date.$numberLong') AS BIGINT) AS crt_ms"],
         win, "basal", order="_id DESC"))   # keep the LATEST version of each basal id (final completed segment, not the interim dur=0)
     # collect basal segments, then CLIP each end to the next segment's start so
@@ -793,7 +798,9 @@ def export_donor(user, start, end, outdir, insulin_type=None):
             en0 = st + dur_ms
             if en0 - 60000 <= int(crt) <= en0 + 180000 and int(crt) > st + 15000:
                 recv = int(crt)
-        segs.append((st, st + dur_ms, rate, delivered, dur_ms, recv, getattr(r, "dtype", None)))
+        dtype = getattr(r, "dtype", None)
+        btype = "suspend" if dtype == "suspend" else ("temp" if _fin(getattr(r, "has_supp", None)) else "scheduled")
+        segs.append((st, st + dur_ms, rate, delivered, dur_ms, recv, btype))
     segs.sort(key=lambda s: (s[0], s[1]))   # sort by (start, end); `delivered` may be None
     for i, (st, en, rate, delivered, rec_dur, recv, dtype) in enumerate(segs):
         if i + 1 < len(segs):
