@@ -37,6 +37,9 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         // Decomposition of candidate's delivery this step (automatic-bolus strategy):
         public let candidateBolus: Double       // auto-bolus units this step
         public let candidateTempRate: Double    // temp basal rate set this step (U/hr)
+        /// Temp-basal-strategy ifNecessary action ("set" | "cancel" | "none"); "set" on the bolus path.
+        public var candidateTempAction: String = "set"
+        public var baselineTempAction: String = "set"
         // Decision diagnostics — the forecast/IOB that drove the dose. Baseline =
         // sim Loop on REAL BG (directly comparable to field devicestatus eventualBG/IOB);
         // candidate = sim Loop on the counterfactual (counter) BG. NaN if not computed.
@@ -723,6 +726,7 @@ extension EvaluationEngine {
                 config: baselineConfig
             )
             var baselineDose: Double
+            var baselineTempAction = "set"
             var baselineEventualBG = Double.nan
             var baselineIOB = Double.nan
             var baselineCOB = Double.nan
@@ -742,6 +746,7 @@ extension EvaluationEngine {
                     orefPumpHistoryDoses: data.doses
                 ))
                 baselineDose = br.dose
+                baselineTempAction = br.tempAction
                 baselineEventualBG = br.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
                 if baselineConfig.exportForecastCurve {
                     baselinePredCurve = br.prediction.glucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
@@ -841,6 +846,7 @@ extension EvaluationEngine {
             var candidateBolus: Double
             var candidateManualBolusRec = Double.nan
             var candidateTempRate: Double
+            var candidateTempAction = "set"
             var candidateEventualBG = Double.nan
             var candidateIOB = Double.nan
             var candidateCOB = Double.nan
@@ -975,6 +981,7 @@ extension EvaluationEngine {
                 candidateBolus = result.bolus
                 candidateManualBolusRec = result.manualBolusRec
                 candidateTempRate = result.tempRate
+                candidateTempAction = result.tempAction
                 // Manual-bolus recommendation, same-transaction carb relaxation:
                 // if this step contains a real manual bolus that was co-entered with a
                 // carb (entry within ±carbTol of the bolus, and the bolus covers >=50%
@@ -1493,6 +1500,8 @@ extension EvaluationEngine {
                 isf: isf,
                 candidateBolus: candidateBolus,
                 candidateTempRate: candidateTempRate,
+                candidateTempAction: candidateTempAction,
+                baselineTempAction: baselineTempAction,
                 baselineEventualBG: baselineEventualBG,
                 baselineIOB: baselineIOB,
                 baselineCOB: baselineCOB,
@@ -2097,7 +2106,7 @@ extension EvaluationEngine {
         perStepIsfMultByTime: [Date: Double]? = nil,
         isfBoostActiveOnly: Bool = false,
         egpPhysicalDecomposition: Bool = false
-    ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>, manualBolusRec: Double) {
+    ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>, manualBolusRec: Double, tempAction: String) {
         let momentumCap: LoopQuantity? = config.positiveVelocityCap.map {
             LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: $0)
         }
@@ -2511,14 +2520,18 @@ extension EvaluationEngine {
             bolusIncrement: config.bolusIncrement,
             tempBasalIncrement: config.tempBasalIncrement,
             useMidAbsorptionISF: config.useMidAbsorptionISF,
-            useTempBasalStrategy: config.useTempBasalStrategy
+            useTempBasalStrategy: config.useTempBasalStrategy,
+            basalOverrideActive: therapy.overrideWindows.contains {
+                $0.start <= t && t < $0.end && ($0.factor ?? 1.0) != 1.0
+            }
         )
         return (
             dose: doseRec?.deltaU ?? 0,
             bolus: doseRec?.bolus ?? 0,
             tempRate: doseRec?.tempBasalRate ?? 0,
             prediction: prediction,
-            manualBolusRec: doseRec?.manualBolusRec ?? 0
+            manualBolusRec: doseRec?.manualBolusRec ?? 0,
+            tempAction: doseRec?.tempAction ?? "set"
         )
     }
 

@@ -845,6 +845,7 @@ struct SimulateCommand: AsyncParsableCommand {
             let isf: Double
             let candidateBolus: Double      // auto-bolus U this step
             let candidateTempRate: Double   // temp basal rate U/hr this step
+            let candidateTempAction: String // temp-strategy ifNecessary action: set|cancel|none
             let baselineEventualBG: Double  // sim Loop forecast on REAL BG (vs field devicestatus)
             let baselineIOB: Double
             let baselineCOB: Double
@@ -916,6 +917,7 @@ struct SimulateCommand: AsyncParsableCommand {
                  isf: $0.isf,
                  candidateBolus: $0.candidateBolus,
                  candidateTempRate: $0.candidateTempRate,
+                 candidateTempAction: $0.candidateTempAction,
                  baselineEventualBG: $0.baselineEventualBG,
                  baselineIOB: $0.baselineIOB,
                  baselineCOB: $0.baselineCOB,
