@@ -210,6 +210,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Replay with Loop's TEMP-BASAL dosing strategy (AutomaticDosingStrategy.tempBasal): every correction is a 30-min temp basal, never an automatic bolus. Deployment-faithful for donors whose loop cycles record recommendations only in recommendedBasal (a temp-only deployment records ZERO recommendedBolus over months). Applies to both arms.")
     var tempBasalStrategy: Bool = false
 
+    @Flag(name: .long, help: "Model deployed timeBasedDoseApplicationFactor (sub-5-min loops after a completed loop dose proportionally less). OFF by default: the deployed reference is the previous loop's COMPLETION instant, which exports don't record; the decision-time approximation measurably hurt cohort match.")
+    var timeBasedAf: Bool = false
+
     @Option(name: .long, help: "Path to an outage CSV (start,end,reason,source,notes) describing windows where the physical pump could not deliver insulin (pod failure, occlusion, manual disconnect). During each outage the sim clamps both candidate and baseline absolute delivery to 0 so counter_BG isn't contaminated by phantom basal. Generate with `analysis/case-study` tooling: `python -m loopeval_analysis.outage from-nightscout ...`")
     var outagesCsv: String?
 
@@ -797,6 +800,7 @@ struct SimulateCommand: AsyncParsableCommand {
             decisionsFromCgm: decisionsFromCgm,
             decisionTimes: parsedDecisionTimes,
             noDoseGuardTimes: parsedNoDoseGuardTimes,
+            enableTimeBasedAF: timeBasedAf,
             tempStrategyTimes: parsedTempStrategyTimes,
             excludeManualBoluses: noUserBoluses,
             suppressCarbs: noCarbEntries,
