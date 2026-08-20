@@ -106,7 +106,10 @@ from .provenance import write_manifest as _write_manifest
 #  10  exclude soft-deleted records (_active='false' + archivedTime): user-deleted
 #      carbs/boluses stayed in every export (bddp03: 9 carbs incl. the 2.75 U
 #      residual's phantom 80 g; bddp04: 7 deleted boluses = phantom insulin).
-DATA_VERSION = 10
+#  11  basal dedup prefers the NATIVE Loop row over its HealthKit mirror — mirror
+#      `rate` is unreliable (0.00 for a real 0.15 temp; delivered-average vs
+#      programmed). bddp11: 5,346 conflicting-rate groups, up to 1.25 U/hr.
+DATA_VERSION = 11
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -682,12 +685,32 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         # payload.deliveredUnits). Loop reconciles IOB/effects on delivered, not
         # rate*duration. NULL for pumps that don't report it (aaps/sequel/xdrip) → fall back.
         "COALESCE(CAST(get_json_object(payload,'$.deliveredUnits.$numberDouble') AS DOUBLE), "
-        "CAST(get_json_object(payload,'$.deliveredUnits.$numberInt') AS DOUBLE)) AS delivered"],
+        "CAST(get_json_object(payload,'$.deliveredUnits.$numberInt') AS DOUBLE)) AS delivered",
+        "get_json_object(CAST(origin AS STRING),'$.name') AS orig"],
         win, "basal", order="_id DESC"))   # keep the LATEST version of each basal id (final completed segment, not the interim dur=0)
     # collect basal segments, then CLIP each end to the next segment's start so
     # overlapping Loop basal records don't double-count delivery.
+    #
+    # MIRROR PREFERENCE (same disease as the bolus HealthKit dedup): Loop mirrors every
+    # basal record to HealthKit under a DIFFERENT id at the same (instant, duration), and
+    # the mirror's `rate` is unreliable — observed 0.00 for a real 0.15 U/hr temp, and a
+    # delivered-average (0.448) where the native row carries the programmed rate (0.550).
+    # bddp11 alone: 5,346 same-(t,dur) groups with CONFLICTING rates, up to 1.25 U/hr
+    # apart. id-dedup can't collapse them (distinct ids); an arbitrary pick corrupts the
+    # temp rate that feeds IOB, forecasts and ICE. Found from a SINGLE +4 mg/dL forecast
+    # cycle (bddp11 2026-07-03 21:20) whose neighbours matched to ±0.4 — the field ran a
+    # 0.15 temp our export recorded as 0.0. Keep the NATIVE (non-HealthKit) row.
+    bas = bas.copy()
+    bas["_mirror"] = (bas["orig"].astype(str) == "com.apple.HealthKit").astype(int)
+    bseen = set()
+    keep = []
+    for r in bas.sort_values(["t_ms", "_mirror", "_id_str"] if "_id_str" in bas.columns else ["t_ms", "_mirror"]).itertuples():
+        key = (int(r.t_ms), int(_fin(r.dur_ms) or 0))
+        if key in bseen: continue
+        bseen.add(key)
+        keep.append(r)
     segs = []
-    for r in bas.itertuples():
+    for r in keep:
         st = int(r.t_ms); dur_ms = int(_fin(r.dur_ms) or 0); rate = _fin(r.rate) or 0.0
         delivered = _fin(r.delivered)   # None if not reported
         segs.append((st, st + dur_ms, rate, delivered, dur_ms))
