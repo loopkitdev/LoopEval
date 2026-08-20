@@ -119,7 +119,11 @@ from .provenance import write_manifest as _write_manifest
 #      (pump-comms freshness) is exogenous, but Loop's error record marks the
 #      exact cycles (bddp11: 107+18 over 2 mo; 07-04 00:55-01:00 read as 1.0-U
 #      "mismatches" until this).
-DATA_VERSION = 13
+#  14  therapy maxBolus/maxBasalRate from deployed pumpSettings (bolus.amountMaximum /
+#      basal.rateMaximum) instead of hard-coded 12.0/8.0 — the guess saturated replay
+#      recs on big-correction cycles (bddp04: deployed 30/10.8; field rec 15.25 U vs
+#      ours clamped at 12×AF=4.8).
+DATA_VERSION = 14
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -960,13 +964,28 @@ def _merge_adj(segs):
             out.append(dict(r))
     return out
 
+def _scalar_limit(ps, col, user, default, name):
+    """Last non-null value of a scalar pump limit; warn when it changed in-window."""
+    vals = [v for v in ps[col].tolist() if _fin(v) is not None]
+    if not vals:
+        print(f"{user}: WARNING no {name} in pumpSettings — defaulting {default}")
+        return default
+    if len(set(vals)) > 1:
+        print(f"{user}: WARNING {name} changed across pumpSettings history {sorted(set(vals))} — using last {vals[-1]}")
+    return float(vals[-1])
+
+
 def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
     # Full pumpSettings history up to window end (NO lower bound — we need the record
     # active at window START too), oldest→newest. We track SETTINGS CHANGES over the
     # window by building per-era dated schedules, instead of applying one end-of-window
     # snapshot across the whole window (which mis-replays base basal/ISF/CR/target for
     # the pre-edit period — biased toward the newest settings since it took ≤ window-end).
-    ps = query(f"""SELECT {_TMS} AS t_ms, units, basalSchedules, insulinSensitivities, carbRatios, bgTargets, bgSafetyLimit, timezone
+    ps = query(f"""SELECT {_TMS} AS t_ms, units, basalSchedules, insulinSensitivities, carbRatios, bgTargets, bgSafetyLimit, timezone,
+        COALESCE(CAST(get_json_object(bolus,'$.amountMaximum.value.$numberDouble') AS DOUBLE),
+                 CAST(get_json_object(bolus,'$.amountMaximum.value.$numberInt') AS DOUBLE)) AS max_bolus,
+        COALESCE(CAST(get_json_object(basal,'$.rateMaximum.value.$numberDouble') AS DOUBLE),
+                 CAST(get_json_object(basal,'$.rateMaximum.value.$numberInt') AS DOUBLE)) AS max_rate
         FROM {TBL} WHERE _userId='{user}' AND type='pumpSettings' AND {_TMS} <= {e_ms}
         ORDER BY t_ms ASC""")
     if ps.empty:
@@ -1046,7 +1065,15 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
             "rawBasal": basal, "rawSensitivity": sens, "rawCarbRatio": cr, "rawTarget": tgt,
             "overrideWindows": override_windows,
             "suspendThreshold": round(safety * MMOL, 1) if safety else 70.0,
-            "maxBolus": 12.0, "maxBasalRate": 8.0, "insulinType": insulin_type}
+            # Delivery limits from the deployed pumpSettings (last record ≤ window
+            # end). These were hard-coded 12.0/8.0 for every donor, which SATURATED
+            # replay recommendations on big-correction cycles (bddp04 06-25: field
+            # rec 15.25 U vs ours clamped to 12×AF=4.8 — deployed maxBolus was 30).
+            # Scalar in the therapy schema like suspendThreshold: warn if changed
+            # in-window.
+            "maxBolus": _scalar_limit(ps, "max_bolus", user, 12.0, "maxBolus"),
+            "maxBasalRate": _scalar_limit(ps, "max_rate", user, 8.0, "maxBasalRate"),
+            "insulinType": insulin_type}
 
 if __name__ == "__main__":
     import sys
