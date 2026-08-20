@@ -170,7 +170,19 @@ struct InputWindowBuilder: Sendable {
                         // becomes dosingDecision.predictedGlucose and therefore the UPLOADED
                         // bgForecast. Loop DOSES on the trimmed variant but RECORDS this one, so
                         // forecast-vs-recorded comparisons must use it or they are apples-to-oranges.
-                        let full = max(0, dosesSlice[i].endDate.timeIntervalSince(dosesSlice[i].startDate))
+                        //
+                        // COMMANDED means 30 minutes from the temp's start — NOT the record's end.
+                        // A temp that gets re-issued or superseded is CLIPPED in the final history
+                        // (bddp11 suspends: 5-15 min segments), so projecting to the record end
+                        // silently resumes scheduled basal for the clipped remainder. During
+                        // suspends that reads ~scheduled × 20 min × ISF ≈ 8-15 mg/dL LOW — exactly
+                        // partitioned by cycle: every suspend cycle -8..-14, every non-suspend ±0.4
+                        // (bddp11 2026-07-03 21:00, the case that exposed it). Loop always commands
+                        // 30-minute temps; use max(record, 30 min) so a full-length record is
+                        // unchanged.
+                        let recorded = max(0, dosesSlice[i].endDate.timeIntervalSince(dosesSlice[i].startDate))
+                        let full = max(recorded, 30 * 60)
+                        dosesSlice[i].endDate = dosesSlice[i].startDate.addingTimeInterval(full)
                         dosesSlice[i].volume = rate * (full / 3600.0)
                     }
                 } else if config.clipInProgressTempBasal {
