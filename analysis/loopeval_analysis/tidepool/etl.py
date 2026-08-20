@@ -123,7 +123,12 @@ from .provenance import write_manifest as _write_manifest
 #      basal.rateMaximum) instead of hard-coded 12.0/8.0 — the guess saturated replay
 #      recs on big-correction cycles (bddp04: deployed 30/10.8; field rec 15.25 U vs
 #      ours clamped at 12×AF=4.8).
-DATA_VERSION = 14
+#  15  decision_times.csv gains `mode` (bolus|temp): per-cycle AutomaticDosingStrategy
+#      detected from INCREASE evidence only (rec_bolus>0 = bolus; rec_rate above
+#      override-scaled scheduled = temp; decreases look identical in both modes,
+#      forward-filled). Mixed-strategy donors (bddp03/04/05/06/08/10) switch
+#      mid-window; a fixed-strategy replay fabricates auto-boluses against temps.
+DATA_VERSION = 15
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -803,16 +808,17 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     off = _loop_offline_gaps(user, s_ms, e_ms)
     perr = _pump_error_cycles(user, s_ms, e_ms)
     dts = _decision_times(user, s_ms, e_ms)
+    modes = _strategy_modes(dts, therapy)
     import csv as _csvd
     with open(os.path.join(outdir, "decision_times.csv"), "w", newline="") as fh:
         w = _csvd.writer(fh, lineterminator="\n")
-        w.writerow(["t", "rec_bolus", "rec_rate", "rec_dur_min", "no_dose_guard"])
-        for r in dts:
+        w.writerow(["t", "rec_bolus", "rec_rate", "rec_dur_min", "no_dose_guard", "mode"])
+        for r, m in zip(dts, modes):
             w.writerow([_iso(r["t_ms"]),
                         "" if r["rec_bolus"] is None else r["rec_bolus"],
                         "" if r["rec_rate"] is None else r["rec_rate"],
                         "" if r["rec_dur_ms"] is None else round(r["rec_dur_ms"] / 60000, 1),
-                        r.get("no_dose_guard", 0)])
+                        r.get("no_dose_guard", 0), m])
 
     stale = _stale_cgm_decisions(user, s_ms, e_ms, glucose)
     # Post-date the late samples: a decision replayed at/before the stale decision must
@@ -973,6 +979,56 @@ def _scalar_limit(ps, col, user, default, name):
     if len(set(vals)) > 1:
         print(f"{user}: WARNING {name} changed across pumpSettings history {sorted(set(vals))} — using last {vals[-1]}")
     return float(vals[-1])
+
+
+def _strategy_modes(dts, therapy, margin=0.06):
+    """Per-decision AutomaticDosingStrategy ('bolus'|'temp') from INCREASE evidence only.
+
+    A DECREASE looks identical in both modes (low/zero temp rec, no bolus), so only
+    increase cycles discriminate: rec_bolus > 0 → bolus mode; rec_rate above the
+    (override-scaled) scheduled basal → temp mode. Temp evidence inside a raise
+    override still compares against sched × factor, so a scaled-up neutral rate is
+    not mistaken for an increase. Evidence is forward-filled across uninformative
+    cycles; the leading gap is backfilled from the first evidence; a window with no
+    evidence at all defaults to 'bolus'. Deployed mode switches are rare user
+    actions, so each evidence flip is taken at face value (era boundary = first
+    decision showing the new mode's evidence)."""
+    import bisect
+    bas = therapy.get("basal") or []
+    bstarts = [_iso_to_ms(b["startDate"]) for b in bas]
+    ovs = [(_iso_to_ms(o["start"]), _iso_to_ms(o["end"]), float(o.get("factor") or 1.0))
+           for o in (therapy.get("overrideWindows") or [])]
+
+    def sched(t_ms):
+        i = bisect.bisect_right(bstarts, t_ms) - 1
+        return float(bas[i]["value"]) if i >= 0 else 0.0
+
+    def ov_factor(t_ms):
+        for s, e, f in ovs:
+            if s <= t_ms < e:
+                return f
+        return 1.0
+
+    evidence = []
+    for r in dts:
+        ev = None
+        if r["rec_bolus"] is not None and r["rec_bolus"] > 0:
+            ev = "bolus"
+        elif r["rec_rate"] is not None and \
+                r["rec_rate"] > sched(r["t_ms"]) * ov_factor(r["t_ms"]) + margin:
+            ev = "temp"
+        evidence.append(ev)
+    modes, cur = [], None
+    for ev in evidence:
+        if ev is not None:
+            cur = ev
+        modes.append(cur)
+    first = next((m for m in modes if m is not None), "bolus")
+    modes = [m if m is not None else first for m in modes]
+    n_temp = sum(1 for m in modes if m == "temp")
+    switches = sum(1 for a, b in zip(modes, modes[1:]) if a != b)
+    print(f"strategy modes: {n_temp}/{len(modes)} temp cycles, {switches} era switch(es)")
+    return modes
 
 
 def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):

@@ -149,6 +149,13 @@ extension EvaluationEngine {
         // Loop's own error record marks the exact cycles; the replay skips them the
         // same way it skips stale-CGM cycles. Subset of decisionTimes.
         noDoseGuardTimes: Set<Date> = [],
+        // Decision instants replayed with the TEMP-BASAL dosing strategy (mixed-
+        // strategy donors switch AutomaticDosingStrategy mid-window; the per-cycle
+        // mode comes from decision_times.csv `mode`, ETL v15 — detected from
+        // INCREASE evidence only: rec_bolus>0 = bolus mode, rec_rate>scheduled
+        // (outside raise-overrides) = temp mode; decrease cycles look identical in
+        // both modes). Empty = use the configs' static useTempBasalStrategy.
+        tempStrategyTimes: Set<Date> = [],
         excludeManualBoluses: Bool = false,
         suppressCarbs: Bool = false,
         counterRegOnsetMgdl: Double = 0,
@@ -291,6 +298,8 @@ extension EvaluationEngine {
         // predict these). Seeded with real-pump doses from
         // [evalStart - DIA, evalStart) so initial IOB at sim start matches
         // reality (otherwise candidate would start with 0 IOB).
+        var baselineConfig = baselineConfig
+        var candidateConfig = candidateConfig
         var counterfactualDoses: [EvalInsulinDose] = []
         counterfactualDoses.reserveCapacity(2048)
         // Stateful pump basal-pulse delivery for the candidate's temp-basal stream
@@ -628,6 +637,12 @@ extension EvaluationEngine {
                 ? stepTimes[stepIdx + 1]
                 : t.addingTimeInterval(candidateConfig.evalStep)
             let stepDur = max(1.0, stepEnd.timeIntervalSince(t))
+            // Per-cycle dosing strategy (mixed-strategy donors).
+            if !tempStrategyTimes.isEmpty {
+                let tempMode = tempStrategyTimes.contains(t)
+                baselineConfig.useTempBasalStrategy = tempMode
+                candidateConfig.useTempBasalStrategy = tempMode
+            }
             // Scheduled basal delivered over the actual interval (over a CGM gap,
             // scheduled basal really did run, so stepDur is correct). In default
             // mode stepDur == evalStep so every duration below is byte-identical.
