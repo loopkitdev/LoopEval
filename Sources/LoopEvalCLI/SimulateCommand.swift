@@ -687,7 +687,21 @@ struct SimulateCommand: AsyncParsableCommand {
         }
 
         let outages: [Outage]
-        if let csv = outagesCsv {
+        // Like decision_times.csv, disruption windows are a DATASET property: an
+        // export that ships disruptions.csv (ETL v3+ — suspends, loop-offline gaps,
+        // pump-error cycles) is simulated with delivery clamped in those windows.
+        // Without the auto-detect, a closed-loop/CF run that forgot --outages-csv
+        // silently dosed straight through pump-error windows where the field
+        // delivered nothing. Explicit --outages-csv always wins.
+        var effectiveOutagesCsv = outagesCsv
+        if effectiveOutagesCsv == nil, let dir = dataDir {
+            let candidate = URL(fileURLWithPath: dir).appendingPathComponent("disruptions.csv").path
+            if FileManager.default.fileExists(atPath: candidate) {
+                effectiveOutagesCsv = candidate
+                printStderr("Using the dataset's disruption windows (disruptions.csv)\n")
+            }
+        }
+        if let csv = effectiveOutagesCsv {
             outages = try OutageCSV.load(from: csv)
             printStderr("Loaded \(outages.count) outage(s) from \(csv)\n")
             let totalMin = outages.reduce(0.0) { $0 + $1.interval.duration / 60 }
