@@ -715,7 +715,10 @@ struct SimulateCommand: AsyncParsableCommand {
             iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             let isoNoFrac = ISO8601DateFormatter()
             let text = try String(contentsOfFile: csvPath, encoding: .utf8)
-            for line in text.split(separator: "\n") {
+            // NOT split(separator: "\n"): CRLF is ONE grapheme cluster in Swift, so a
+            // "\n" separator never matches inside "\r\n" and a CRLF file parses as a
+            // single line (observed: "Stepping at 0 recorded decision times").
+            for line in text.split(whereSeparator: { $0.isNewline }) {
                 // first column = the instant; further columns (rec fields) are for scorers
                 let tok = String(line.split(separator: ",", omittingEmptySubsequences: false)[0])
                     .trimmingCharacters(in: .whitespaces)
