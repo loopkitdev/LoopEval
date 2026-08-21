@@ -137,6 +137,11 @@ from .provenance import write_manifest as _write_manifest
 #      the temp-strategy continuation logic only treats COMMANDED temps as running
 #      (post-cancel scheduled resumption misread as a running temp -> spurious
 #      "cancel" actions on temp-mode donors).
+#  19  schedules expanded against the PREVAILING timezone timeline (per-decision
+#      `timezone` change-points) instead of the settings-era row's tz. A traveler's
+#      era row keeps the trip tz (bddp04: Alaska-uploaded era mis-anchored 3
+#      post-trip Denver days by 2 h — scheduled-basal reference wrong at every
+#      hour, +1 U/hr phantom netting, +2 U IOB, suspend-vs-lowtemp inversions).
 #  18  missing-end overrides reconstructed from the scheduled-stub ratio timeline:
 #      Loop normally uploads an end-version (same syncIdentifier, realized duration
 #      in SECONDS) when an override ends; when that upload is missing, the old
@@ -144,7 +149,7 @@ from .provenance import write_manifest as _write_manifest
 #      (bddp10 'partay' ×0.5: ended 03:46 in replay, ran to ~15:19 on the pump;
 #      +1 U IOB gap, RC echo, 2-3 U phantom recs). stub_rate/base_schedule = the
 #      active factor per instant, cross-checked against the recorded factor.
-DATA_VERSION = 18
+DATA_VERSION = 19
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -1058,6 +1063,41 @@ def _sched(j):
         out.append((int(_num(it["start"])), it))
     return sorted(out, key=lambda x: x[0])
 
+def _tz_timeline(user, s_ms, e_ms):
+    """Prevailing-timezone change-points from per-decision `timezone` (dosingDecision).
+    Schedules are anchored to the pump's CURRENT local midnight, which follows the
+    phone's timezone once the user accepts Loop's tz-change prompt — NOT the timezone
+    recorded on the settings-era row (a traveler's era row keeps the trip tz; bddp04's
+    Alaska-uploaded era mis-anchored 3 post-trip days by 2 h → phantom +1 U/hr basal
+    netting → +2 U IOB). Returns [(t_ms, tzname), ...] change-points."""
+    q = (f"SELECT {_TMS} AS t_ms, CAST(timezone AS STRING) AS tz FROM {TBL} "
+         f"WHERE _userId='{user}' AND type='dosingDecision' AND timezone IS NOT NULL "
+         f"AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)} ORDER BY t_ms")
+    df = query(q)
+    pts = []
+    for r in df.itertuples():
+        if not r.tz:
+            continue
+        if not pts or pts[-1][1] != r.tz:
+            pts.append((int(r.t_ms), r.tz))
+    if pts:
+        pts[0] = (int(s_ms), pts[0][1])   # first tz prevails from window start
+    return pts
+
+
+def _expand_tzline(daily, s_ms, e_ms, valfn, tzline, fallback_tz):
+    """_expand, split at prevailing-timezone change-points."""
+    if not tzline:
+        return _expand(daily, s_ms, e_ms, valfn, fallback_tz)
+    out = []
+    for i, (t0, tz) in enumerate(tzline):
+        t1 = tzline[i + 1][0] if i + 1 < len(tzline) else e_ms
+        a, b = max(t0, s_ms), min(t1, e_ms)
+        if b > a:
+            out += _expand(daily, a, b, valfn, tz)
+    return out
+
+
 def _expand(daily, s_ms, e_ms, valfn, tz="UTC"):
     """Expand a daily schedule [(start_ms_from_LOCAL_midnight, item)] to absolute UTC
     segments over [s,e]. Tidepool schedules are keyed to the user's LOCAL midnight, so
@@ -1193,6 +1233,11 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
 
     # For each era, expand schedules over [max(era_start, s_ms), min(next_era_start, e_ms)]
     # and concatenate. Eras are sorted & contiguous, so the result is sorted & non-overlapping.
+    tzline = _tz_timeline(user, s_ms, e_ms)
+    if len({tz for _, tz in tzline}) > 1:
+        print(f"{user}: traveler — {len(tzline)} timezone stints in-window "
+              f"({', '.join(sorted({tz for _, tz in tzline}))}); schedules anchored to the "
+              f"prevailing tz, not the era-row tz")
     basal, sens, cr, tgt, contrib = [], [], [], [], []
     for i, (t0, r) in enumerate(eras):
         era_s = max(t0, s_ms)
@@ -1200,15 +1245,15 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
         if era_e <= era_s:
             continue
         tz = r.timezone or "UTC"
-        basal += _expand(_sched(r.basalSchedules), era_s, era_e,
-                         lambda it: {"value": round(_num(it["rate"]), 4)}, tz)
-        sens += _expand(_sched(r.insulinSensitivities), era_s, era_e,
-                        lambda it: {"value": round(_num(it["amount"]) * MMOL, 2)}, tz)
-        cr += _expand(_sched(r.carbRatios), era_s, era_e,
-                      lambda it: {"value": round(_num(it["amount"]), 2)}, tz)
-        tgt += _expand(_sched(r.bgTargets), era_s, era_e,
+        basal += _expand_tzline(_sched(r.basalSchedules), era_s, era_e,
+                         lambda it: {"value": round(_num(it["rate"]), 4)}, tzline, tz)
+        sens += _expand_tzline(_sched(r.insulinSensitivities), era_s, era_e,
+                        lambda it: {"value": round(_num(it["amount"]) * MMOL, 2)}, tzline, tz)
+        cr += _expand_tzline(_sched(r.carbRatios), era_s, era_e,
+                      lambda it: {"value": round(_num(it["amount"]), 2)}, tzline, tz)
+        tgt += _expand_tzline(_sched(r.bgTargets), era_s, era_e,
                        lambda it: {"lowerBound": round(_num(it["low"]) * MMOL, 1),
-                                   "upperBound": round(_num(it["high"]) * MMOL, 1)}, tz)
+                                   "upperBound": round(_num(it["high"]) * MMOL, 1)}, tzline, tz)
         contrib.append(r)
     basal, sens, cr, tgt = map(_merge_adj, (basal, sens, cr, tgt))
     if len(contrib) > 1:
