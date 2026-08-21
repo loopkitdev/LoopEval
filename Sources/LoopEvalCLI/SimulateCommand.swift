@@ -210,6 +210,12 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Replay with Loop's TEMP-BASAL dosing strategy (AutomaticDosingStrategy.tempBasal): every correction is a 30-min temp basal, never an automatic bolus. Deployment-faithful for donors whose loop cycles record recommendations only in recommendedBasal (a temp-only deployment records ZERO recommendedBolus over months). Applies to both arms.")
     var tempBasalStrategy: Bool = false
 
+    @Flag(name: .long, help: "Loop-main ICE compatibility: freeze each counteraction velocity at first computation (append-only per cycle, prune-refreeze on backfilled glucose) instead of recomputing from final history — deployed LoopDataManager semantics. Applies to both arms.")
+    var frozenIce: Bool = false
+
+    @Option(name: .long, help: "Carb absorption model: piecewiseLinear (stock 3.x, FeatureFlags.nonlinearCarbModelEnabled=true) or linear (builds with the flag off). Applies to both arms.")
+    var carbModel: String = "piecewiseLinear"
+
     @Option(name: .long, help: "Carb absorption-time overrun (stock Loop = 1.5). The remaining-carb min-rate window is entered x overrun; some custom builds differ (bddp04's field slope matches 2.0). Applies to both arms.")
     var carbAbsorptionOverrun: Double = 1.5
 
@@ -509,6 +515,8 @@ struct SimulateCommand: AsyncParsableCommand {
         )
         baselineConfig.useTempBasalStrategy = tempBasalStrategy
         baselineConfig.carbAbsorptionOverrun = carbAbsorptionOverrun
+        baselineConfig.useFrozenICE = frozenIce
+        baselineConfig.carbAbsorptionModel = CarbAbsorptionModel(rawValue: carbModel) ?? .piecewiseLinear
 
         let crHalfWidth: Double = (candidateTargetWidth ?? 0) / 2
         let crOverrideLow: Double? = candidateTargetMid.map { $0 - crHalfWidth }
@@ -617,6 +625,8 @@ struct SimulateCommand: AsyncParsableCommand {
         // threading them into the positional EvalConfig(...) literal above.
         candidateConfig.useTempBasalStrategy = tempBasalStrategy
         candidateConfig.carbAbsorptionOverrun = carbAbsorptionOverrun
+        candidateConfig.useFrozenICE = frozenIce
+        candidateConfig.carbAbsorptionModel = CarbAbsorptionModel(rawValue: carbModel) ?? .piecewiseLinear
         candidateConfig.basalRateMultiplier = candidateBasalRateMultiplier
         // "Overall insulin needs" preset-style factor f: basal ×f, ISF ÷f, CR ÷f.
         // Composes multiplicatively with the individual multipliers set above/in the literal.
