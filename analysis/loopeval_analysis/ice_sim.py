@@ -59,12 +59,17 @@ import pandas as pd
 
 def percent_effect_remaining(t_sec: float,
                              action_duration_sec: float = 6 * 3600,
-                             peak_min: float = 75) -> float:
+                             peak_min: float = 75,
+                             delay_sec: float = 600.0) -> float:
     """Exponential insulin model — fraction of effect REMAINING at time t after dose.
 
-    At t=0 returns 1.0 (no effect yet), at t≥action_duration returns 0 (fully
-    delivered). Matches LoopAlgorithm.ExponentialInsulinModel shape.
+    At t=0 returns 1.0 (no effect yet), at t≥delay+action_duration returns 0
+    (fully delivered). Matches LoopAlgorithm.ExponentialInsulinModel, INCLUDING
+    its 10-min effect delay (the curve evaluates at t−delay and the total span
+    is delay+actionDuration — ExponentialInsulinModel.swift:27,40,55; the delay
+    was previously omitted here, shifting every effect 10 min early).
     """
+    t_sec = t_sec - delay_sec
     if t_sec <= 0:
         return 1.0
     if t_sec >= action_duration_sec:
@@ -81,7 +86,7 @@ def percent_effect_remaining(t_sec: float,
 
 # Precompute a fine-grained lookup table for performance.
 _PD_TABLE_DT_SEC = 30   # 30-sec grid
-_PD_TABLE_N = int(6 * 3600 / _PD_TABLE_DT_SEC) + 1
+_PD_TABLE_N = int((6 * 3600 + 600) / _PD_TABLE_DT_SEC) + 1
 _PD_TABLE = np.array([percent_effect_remaining(i * _PD_TABLE_DT_SEC) for i in range(_PD_TABLE_N)])
 
 
