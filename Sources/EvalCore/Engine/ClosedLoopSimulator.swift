@@ -797,11 +797,10 @@ extension EvaluationEngine {
                     tddDoses: data.doses,
                     orefPumpHistoryDoses: data.doses,
                     timeBasedAFScale: timeBasedAFScale,
-                    frozenCounteraction: baselineConfig.useFrozenICE ? baselineIceCache : nil
+                    frozenCounteraction: baselineConfig.useFrozenICE
+                        ? { baselineIceCache = EvaluationEngine.frozenIceAppend(cache: baselineIceCache, input: baselineInput, t: t); return baselineIceCache }()
+                        : nil
                 ))
-                if baselineConfig.useFrozenICE {
-                    baselineIceCache = br.prediction.effects.insulinCounteraction
-                }
                 baselineDose = br.dose
                 baselineTempAction = br.tempAction
                 baselineEventualBG = br.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
@@ -1013,7 +1012,9 @@ extension EvaluationEngine {
                         tddDoses: data.doses,
                         orefPumpHistoryDoses: orefHistDoses,
                         timeBasedAFScale: timeBasedAFScale,
-                        frozenCounteraction: candidateConfig.useFrozenICE ? candidateIceCache : nil))
+                        frozenCounteraction: candidateConfig.useFrozenICE
+                            ? { candidateIceCache = EvaluationEngine.frozenIceAppend(cache: candidateIceCache, input: candidateInput, t: t); return candidateIceCache }()
+                            : nil))
                 }
                 // Forecast-gated boost (lows-protection): a boost (mult<1) is only
                 // applied if the candidate's UNBOOSTED forecast PEAK (highest BG
@@ -1047,9 +1048,6 @@ extension EvaluationEngine {
                 candidateManualBolusRec = result.manualBolusRec
                 candidateTempRate = result.tempRate
                 candidateTempAction = result.tempAction
-                if candidateConfig.useFrozenICE {
-                    candidateIceCache = result.prediction.effects.insulinCounteraction
-                }
                 // Manual-bolus recommendation, same-transaction carb relaxation:
                 // if this step contains a real manual bolus that was co-entered with a
                 // carb (entry within ±carbTol of the bolus, and the bolus covers >=50%
@@ -2162,6 +2160,43 @@ extension EvaluationEngine {
     ///
     /// `internal` (was `fileprivate`) so `LoopAdapter` (in Engine/) can call
     /// it as the Loop-backed implementation of `DosingEngine.step(_:)`.
+    /// Frozen-ICE tail from the LIVE dose view (Loop-main compatibility, phase 2).
+    /// Deployed freezes each velocity against its THEN-CURRENT store: the running temp
+    /// sits there in COMMANDED form (programmed rate), not the final clipped/quantized
+    /// record. Replace the covering temp's elapsed portion with rate x elapsed, compute
+    /// insulin effects over the new-interval span, append velocities. Returns the
+    /// updated cache (tail through latest glucose <= t).
+    internal static func frozenIceAppend(
+        cache: [GlucoseEffectVelocity],
+        input: PredictionInput,
+        t: Date
+    ) -> [GlucoseEffectVelocity] {
+        let lastEnd = cache.last?.endDate ?? t.addingTimeInterval(-12 * 3600)
+        let newGlucose = input.glucose.filter { $0.startDate >= lastEnd }
+        guard newGlucose.count >= 2 else { return cache }
+        var live = input.doses
+        // covering commanded temp: last temp-typed segment containing/adjacent to t
+        var bestIdx: Int? = nil
+        for (i, d) in live.enumerated() where d.deliveryType != .bolus {
+            guard let bt = d.basalType, bt == "temp", d.tempRate != nil, d.startDate <= t else { continue }
+            if d.startDate.addingTimeInterval(30 * 60) > t,
+               bestIdx == nil || d.startDate > live[bestIdx!].startDate { bestIdx = i }
+        }
+        if let i = bestIdx, let rate = live[i].tempRate {
+            var d = live[i]
+            let en = min(t, d.startDate.addingTimeInterval(30 * 60))
+            d.endDate = en
+            d.volume = rate * en.timeIntervalSince(d.startDate) / 3600.0
+            live[i] = d
+        }
+        let rel = live.annotated(with: input.basal)
+        let effects = rel.glucoseEffects(
+            insulinSensitivityHistory: input.sensitivity,
+            from: lastEnd.addingTimeInterval(-5 * 60), to: t)
+        let newVel = newGlucose.counteractionEffects(to: effects).filter { $0.startDate >= lastEnd }
+        return cache + newVel
+    }
+
     internal static func simStepDose(
         t: Date,
         input: PredictionInput,
