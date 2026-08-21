@@ -643,17 +643,6 @@ extension EvaluationEngine {
         // Deployed timeBasedDoseApplicationFactor reference: the last COMPLETED loop
         // (errored/guard-skipped cycles don't advance it).
         var lastCompletedLoopT: Date? = nil
-        // Frozen-ICE per-arm caches (Loop-main compatibility, config.useFrozenICE).
-        // Backfill prune: samples with receivedDate become visible LATE; when one
-        // becomes visible with startDate before the cache tail, deployed prunes the
-        // cache from that startDate and re-freezes next loop (LoopDataManager:607).
-        var baselineIceCache: [GlucoseEffectVelocity] = []
-        var candidateIceCache: [GlucoseEffectVelocity] = []
-        let frozenIceOn = baselineConfig.useFrozenICE || candidateConfig.useFrozenICE
-        let backfilledSamples: [EvalGlucoseSample] = frozenIceOn
-            ? simGlucose.filter { $0.receivedDate != nil && $0.receivedDate! > $0.startDate.addingTimeInterval(60) }
-            : []
-        var prevStepT: Date? = nil
         for stepIdx in 0..<nSteps {
             let t = stepTimes[stepIdx]
             // Interval to the next decision (= next CGM in CGM-driven mode).
@@ -666,26 +655,6 @@ extension EvaluationEngine {
                 let tempMode = tempStrategyTimes.contains(t)
                 baselineConfig.useTempBasalStrategy = tempMode
                 candidateConfig.useTempBasalStrategy = tempMode
-            }
-
-            // Frozen-ICE backfill prune: any backfilled sample whose receivedDate lands
-            // in (prevStepT, t] invalidates cached velocities from its startDate on.
-            if frozenIceOn {
-                let p0 = prevStepT ?? .distantPast
-                var pruneFrom: Date? = nil
-                for bs in backfilledSamples {
-                    if let rd = bs.receivedDate, rd > p0, rd <= t {
-                        if pruneFrom == nil || bs.startDate < pruneFrom! { pruneFrom = bs.startDate }
-                    }
-                }
-                if let pf = pruneFrom {
-                    baselineIceCache.removeAll { $0.endDate >= pf }
-                    candidateIceCache.removeAll { $0.endDate >= pf }
-                }
-                let keepFrom = t.addingTimeInterval(-24 * 3600)
-                baselineIceCache.removeAll { $0.endDate < keepFrom }
-                candidateIceCache.removeAll { $0.endDate < keepFrom }
-                prevStepT = t
             }
             // Scheduled basal delivered over the actual interval (over a CGM gap,
             // scheduled basal really did run, so stepDur is correct). In default
@@ -796,12 +765,8 @@ extension EvaluationEngine {
                     glucoseSamples: simGlucose,
                     tddDoses: data.doses,
                     orefPumpHistoryDoses: data.doses,
-                    timeBasedAFScale: timeBasedAFScale,
-                    frozenCounteraction: baselineConfig.useFrozenICE ? baselineIceCache : nil
+                    timeBasedAFScale: timeBasedAFScale
                 ))
-                if baselineConfig.useFrozenICE {
-                    baselineIceCache = br.prediction.effects.insulinCounteraction
-                }
                 baselineDose = br.dose
                 baselineTempAction = br.tempAction
                 baselineEventualBG = br.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
@@ -824,17 +789,12 @@ extension EvaluationEngine {
                 // effect), 5-min spaced from t, as one JSON line to stderr. Run the FULL window for
                 // faithful IOB/RC state; the date filter limits output to the cycles under study.
                 if let ddate = ProcessInfo.processInfo.environment["FORECAST_COMPONENT_DUMP"],
-                   ddate.split(separator: ",").contains(where: { Self.isoNoFrac.string(from: t).hasPrefix($0) }),
+                   Self.isoNoFrac.string(from: t).hasPrefix(ddate),
                    let startG = br.prediction.glucose.first {
                     let eff = br.prediction.effects
                     func comp(_ mom: [GlucoseEffect], _ effs: [[GlucoseEffect]]) -> [Double] {
                         LoopMath.predictGlucose(startingAt: startG, momentum: mom, effects: effs.filter { !$0.isEmpty })
                             .map { ($0.quantity.doubleValue(for: mgdlUnit) * 10).rounded() / 10 }
-                    }
-                    let iceArr: [[Any]] = eff.insulinCounteraction.map {
-                        [Self.isoNoFrac.string(from: $0.startDate),
-                         Self.isoNoFrac.string(from: $0.endDate),
-                         $0.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliterPerMinute)]
                     }
                     let obj: [String: Any] = [
                         "t": Self.isoNoFrac.string(from: t),
@@ -843,7 +803,6 @@ extension EvaluationEngine {
                         "ins":  comp([], [eff.insulin]),
                         "carb": comp([], [eff.carbs]),
                         "rc":   comp([], [eff.retrospectiveCorrection]),
-                        "ice":  iceArr,
                     ]
                     if let d = try? JSONSerialization.data(withJSONObject: obj) {
                         FileHandle.standardError.write(d); FileHandle.standardError.write(Data("\n".utf8))
@@ -1012,8 +971,7 @@ extension EvaluationEngine {
                         egpPhysicalDecomposition: egpPhysicalDecomposition,
                         tddDoses: data.doses,
                         orefPumpHistoryDoses: orefHistDoses,
-                        timeBasedAFScale: timeBasedAFScale,
-                        frozenCounteraction: candidateConfig.useFrozenICE ? candidateIceCache : nil))
+                        timeBasedAFScale: timeBasedAFScale))
                 }
                 // Forecast-gated boost (lows-protection): a boost (mult<1) is only
                 // applied if the candidate's UNBOOSTED forecast PEAK (highest BG
@@ -1047,9 +1005,6 @@ extension EvaluationEngine {
                 candidateManualBolusRec = result.manualBolusRec
                 candidateTempRate = result.tempRate
                 candidateTempAction = result.tempAction
-                if candidateConfig.useFrozenICE {
-                    candidateIceCache = result.prediction.effects.insulinCounteraction
-                }
                 // Manual-bolus recommendation, same-transaction carb relaxation:
                 // if this step contains a real manual bolus that was co-entered with a
                 // carb (entry within ±carbTol of the bolus, and the bolus covers >=50%
@@ -2174,8 +2129,7 @@ extension EvaluationEngine {
         perStepIsfMultByTime: [Date: Double]? = nil,
         isfBoostActiveOnly: Bool = false,
         egpPhysicalDecomposition: Bool = false,
-        timeBasedAFScale: Double = 1.0,
-        frozenCounteraction: [GlucoseEffectVelocity]? = nil
+        timeBasedAFScale: Double = 1.0
     ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>, manualBolusRec: Double, tempAction: String) {
         let momentumCap: LoopQuantity? = config.positiveVelocityCap.map {
             LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: $0)
