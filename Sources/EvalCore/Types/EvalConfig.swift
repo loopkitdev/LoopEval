@@ -160,6 +160,12 @@ public struct EvalConfig: Codable, Sendable {
     /// record recommendations only in recommendedBasal (bddp02/bddp07-class).
     public var useTempBasalStrategy: Bool
 
+    /// Loop-main ICE compatibility: freeze each counteraction velocity at its first
+    /// computation (per-arm cache in the sim loop), appending only new intervals each
+    /// cycle and prune-refreezing on backfilled-glucose visibility — deployed
+    /// LoopDataManager semantics. Off = legacy full recompute from final history.
+    public var useFrozenICE: Bool = false
+
     /// Forecast horizons to evaluate, in seconds.
     /// Default: every 30 min from 30 min to 360 min.
     public var horizons: [TimeInterval]
@@ -759,7 +765,7 @@ public struct EvalConfig: Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
         case decisionTimesAreAuthoritative
-        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, useTempBasalStrategy, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay
+        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, useTempBasalStrategy, useFrozenICE, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay
         case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec, carbAbsorptionOverrun, carbRevisionsPath, overrideTargetsPath
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
@@ -811,6 +817,7 @@ public struct EvalConfig: Codable, Sendable {
         self.simRawGlucose        = (try? c.decode(Bool.self,       forKey: .simRawGlucose)) ?? false
         self.clipInProgressTempBasal = (try? c.decode(Bool.self,    forKey: .clipInProgressTempBasal)) ?? true
         self.useTempBasalStrategy = (try? c.decode(Bool.self,       forKey: .useTempBasalStrategy)) ?? false
+        self.useFrozenICE = (try? c.decode(Bool.self,               forKey: .useFrozenICE)) ?? false
         self.horizons             = try c.decode([TimeInterval].self, forKey: .horizons)
         self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
         self.useLegacyRCDecay = try c.decodeIfPresent(Bool.self, forKey: .useLegacyRCDecay) ?? false
@@ -943,6 +950,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(simRawGlucose, forKey: .simRawGlucose)
         try c.encode(clipInProgressTempBasal, forKey: .clipInProgressTempBasal)
         try c.encode(useTempBasalStrategy, forKey: .useTempBasalStrategy)
+        try c.encode(useFrozenICE, forKey: .useFrozenICE)
         try c.encode(horizons, forKey: .horizons)
         try c.encode(includingPositiveVelocityAndRC, forKey: .includingPositiveVelocityAndRC)
         try c.encode(useLegacyRCDecay, forKey: .useLegacyRCDecay)

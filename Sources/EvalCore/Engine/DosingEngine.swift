@@ -43,6 +43,8 @@ struct EngineStepRequest {
     /// sub-5-min loops after a completed one dose proportionally less (LoopDataManager ~873).
     /// Errored loops don't advance lastLoopCompleted, so retries after failures are NOT damped.
     var timeBasedAFScale: Double = 1.0
+    /// Frozen ICE cache for this arm (Loop-main compatibility); nil = legacy recompute.
+    var frozenCounteraction: [GlucoseEffectVelocity]? = nil
     /// Full (un-windowed) dose history for building the oref pump-history JSON.
     /// oref's autosens computes deviations over 24h and each deviation's BGI needs
     /// IOB back to 24h+DIA, so `input.doses` (sliced to the insulin lookback, ~DIA)
@@ -66,9 +68,11 @@ struct EngineStepRequest {
         egpPhysicalDecomposition: Bool = false,
         tddDoses: [EvalInsulinDose] = [],
         orefPumpHistoryDoses: [EvalInsulinDose] = [],
-        timeBasedAFScale: Double = 1.0
+        timeBasedAFScale: Double = 1.0,
+        frozenCounteraction: [GlucoseEffectVelocity]? = nil
     ) {
         self.timeBasedAFScale = timeBasedAFScale
+        self.frozenCounteraction = frozenCounteraction
         self.t = t
         self.input = input
         self.config = config
