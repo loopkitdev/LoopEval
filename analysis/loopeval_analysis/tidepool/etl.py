@@ -137,7 +137,14 @@ from .provenance import write_manifest as _write_manifest
 #      the temp-strategy continuation logic only treats COMMANDED temps as running
 #      (post-cancel scheduled resumption misread as a running temp -> spurious
 #      "cancel" actions on temp-mode donors).
-DATA_VERSION = 17
+#  18  missing-end overrides reconstructed from the scheduled-stub ratio timeline:
+#      Loop normally uploads an end-version (same syncIdentifier, realized duration
+#      in SECONDS) when an override ends; when that upload is missing, the old
+#      fallback used the start-row's modifiedTime — the UPLOAD instant — as the end
+#      (bddp10 'partay' ×0.5: ended 03:46 in replay, ran to ~15:19 on the pump;
+#      +1 U IOB gap, RC echo, 2-3 U phantom recs). stub_rate/base_schedule = the
+#      active factor per instant, cross-checked against the recorded factor.
+DATA_VERSION = 18
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -260,10 +267,20 @@ def _overrides(user, s_ms, e_ms, e_win_ms):
         last = ev["subs"][-1]
         if last["dur"] is not None:
             end = ev["t"] + int(last["dur"] * 1000)             # finite: start + duration
+            src = "dur"
         elif last["mod"] is not None and last["mod"] > ev["t"]:
-            end = last["mod"]                                     # indefinite: ended at modifiedTime
+            # Indefinite with NO end-version: Loop normally uploads a v2 (same
+            # syncIdentifier) carrying the realized duration when the override ends;
+            # when that upload is MISSING, modifiedTime here is just the START row's
+            # upload instant — NOT an end (bddp10 06-24 'partay' ×0.5: start row
+            # uploaded 4 h late, end-version never uploaded; this fallback
+            # manufactured a 03:46 end while the pump provably ran ×0.5 until
+            # ~15:19). Marked so the stub-ratio pass can reconstruct the real end.
+            end = last["mod"]
+            src = "mod"
         else:
             end = nxt                                             # truly-open: until next enactment
+            src = "next"
         end = min(end, nxt, e_win_ms)
         for j, sub in enumerate(ev["subs"]):
             sub_end = ev["subs"][j + 1]["act"] if j + 1 < len(ev["subs"]) else end
@@ -271,9 +288,81 @@ def _overrides(user, s_ms, e_ms, e_win_ms):
             en = min(sub_end, end)
             if en <= st:
                 continue
+            is_final = (j == len(ev["subs"]) - 1)
             ivals.append((st, en, {"isf_sf": sub["isf"], "basal_sf": sub["basal"], "cr_sf": sub["cr"],
-                                   "tgt_low": sub["tlo"], "tgt_high": sub["thi"], "preset": sub["preset"]}))
+                                   "tgt_low": sub["tlo"], "tgt_high": sub["thi"], "preset": sub["preset"]},
+                          src if is_final else "sub"))
     return ivals
+
+
+def _scheduled_stubs(user, s_ms, e_ms):
+    """Zero-duration scheduled-basal markers from the pump stream: their `rate` is the
+    pump's WORKING schedule at that instant (override-scaled while an override runs).
+    stub_rate / base_schedule_rate = the active override basal factor, per instant,
+    causally — the ground-truth backstop when an override's end-version upload is
+    missing."""
+    q = (f"SELECT {_TMS} AS t_ms, "
+         f"COALESCE(CAST(get_json_object(rate,'$.$numberDouble') AS DOUBLE),"
+         f"CAST(get_json_object(rate,'$.$numberInt') AS DOUBLE)) AS rate "
+         f"FROM {TBL} WHERE _userId='{user}' AND type='basal' "
+         f"AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)} "
+         f"AND CAST(_active AS STRING) != 'false' AND suppressed IS NULL "
+         f"AND COALESCE(CAST(get_json_object(duration,'$.$numberInt') AS BIGINT),0) < 2000 "
+         f"ORDER BY t_ms")
+    df = query(q)
+    return [(int(r.t_ms), float(r.rate)) for r in df.itertuples() if _fin(r.rate) is not None]
+
+
+def _extend_missing_override_ends(user, ivals, basal_segments, stubs, e_win_ms):
+    """For enactment-final override intervals whose end came from the mod/next
+    FALLBACK (no end-version upload), reconstruct the real end from the stub-ratio
+    timeline: while stub_rate/base ≈ the recorded basal factor, the override is still
+    running; it ends at the first stub back at ratio ≈ 1 (or a different state /
+    the next override / window end)."""
+    import bisect
+    if not stubs or not ivals:
+        return [iv[:3] for iv in ivals]
+    bst = [_iso_to_ms(b["startDate"]) for b in basal_segments]
+    bval = [float(b["value"]) for b in basal_segments]
+    def base(t):
+        i = bisect.bisect_right(bst, t) - 1
+        return bval[i] if i >= 0 else None
+    stub_t = [t for t, _ in stubs]
+    starts = sorted(iv[0] for iv in ivals)
+    out = []
+    n_ext = 0
+    for st, en, d, src in ivals:
+        bsf = d.get("basal_sf")
+        if src in ("mod", "next") and bsf is not None and abs(bsf - 1.0) > 0.02:
+            j = bisect.bisect_right(starts, en)
+            cap = starts[j] if j < len(starts) else e_win_ms
+            new_en = en
+            k = bisect.bisect_right(stub_t, en)
+            matched = False
+            while k < len(stubs) and stubs[k][0] < cap:
+                t, rate = stubs[k]
+                b = base(t)
+                if not b:
+                    break
+                ratio = rate / b
+                if abs(ratio - bsf) <= 0.03:
+                    matched = True
+                    new_en = t
+                elif matched and abs(ratio - 1.0) <= 0.03:
+                    new_en = t      # ended between last matching stub and this one
+                    break
+                else:
+                    break
+                k += 1
+            if matched and new_en > en:
+                print(f"{user}: override end reconstructed from stub ratio — "
+                      f"{_iso(en)} -> {_iso(new_en)} (factor {bsf}, preset {d.get('preset')})")
+                n_ext += 1
+                en = min(new_en, cap, e_win_ms)
+        out.append((st, en, d))
+    if n_ext:
+        print(f"{user}: {n_ext} missing-end override(s) extended via stub-ratio timeline")
+    return out
 
 def _overlay_overrides(base, overrides, apply_fn):
     """Split base segments (dicts w/ startDate/endDate ISO + values) at override
@@ -1143,6 +1232,7 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
     # min-guard (min < target-at-eventual) mis-fired → spurious auto-bolus=0 (under-dose).
     # OverrideWindow.factor = insulinNeedsScaleFactor (basal×f, ISF÷f, CR÷f); target in mg/dL.
     ovs = _overrides(user, s_ms, e_ms, e_ms)
+    ovs = _extend_missing_override_ends(user, ovs, basal, _scheduled_stubs(user, s_ms, e_ms), e_ms)
     override_windows = []
     for st, en, d in ovs:
         w = {"start": _iso(st), "end": _iso(en), "indefinite": False}
