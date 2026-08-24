@@ -151,3 +151,31 @@ broad re-baseline:
 - **GBAF, flat ISF, application factor** — sliders. Useful dials, no lift.
 - The largest factor by far is **meal announcement** (user behavior, not algorithm):
   announcing users operate far above anything hands-off automation reaches.
+
+---
+
+## Scoring — canonical definition (unified 2026-08-24; supersedes scattered guidance)
+
+**A candidate is an improvement iff, with the insulin-needs dial free to move, it can
+reach an operating point that improves BOTH axes at once** — more TIR *and* less t<54
+(use time-below-70 as the lows axis when the reference's t<54 runs ≈0 and the geometry
+degenerates) — relative to the best the reference sweep can do. Equivalently: some
+segment of the candidate's own needs-sweep must strictly dominate (sit below-and-right
+of) the reference polyline. Re-tuning is allowed and expected — "requires a different
+multiplier" is not a caveat, it is the mechanism of deployment; what is NOT credited is
+movement *along* the shared curve, which any user can buy with the dial alone.
+
+Practice:
+1. **Sweep both arms on the same dial** (insulin-needs), report the dominance verdict +
+   axis-normalized lift **in the operating band** (validated multiplier ±0.1) — never
+   whole-sweep mean alone (an oracle with +6-8 TIR of gentle-end value scored *negative*
+   whole-sweep mean lift; see runs/2026-08-22-eval-review/REVIEW.md).
+2. **Per-donor question taxonomy**: tight-control hands-on donors → non-inferiority at
+   their point + announcement-suppressed robustness; hands-off mid-TIR with real lows →
+   the dominance test above; runs-high non-announcers → TIR at fixed lows near their
+   point (information-layer candidates need the future-CGM oracle).
+3. **Error discipline**: block-bootstrap CIs per donor; multi-donor mean is the only
+   headline; single-window/single-donor wins are hypotheses.
+4. Absolute t<54 is confounded (compression lows, CGM floor, counter-reg floor, rescue
+   carbs) — rank on within-reference deltas, bound the rescue-carb bias by dual scoring
+   (with/without rescue windows).

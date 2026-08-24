@@ -60,7 +60,11 @@ is optimistically biased (it grabs the highest jitter point); report the peak mu
 only as a secondary "where it peaks". The multiplier that pairs best with a mechanism is
 **dataset-dependent**: a non-announcer may want *lower* ISF (dose more aggressively, let the
 mechanism catch the added lows), a heavy announcer *higher* ISF (gentler automation, since
-meal boluses already carry TIR). *(Provisional — this definition may still change.)*
+meal boluses already carry TIR). **Canonical scoring definition now lives in [docs/FRONTIERS.md → Scoring](docs/FRONTIERS.md)**:
+a candidate improves iff, with the needs dial free to move, it reaches an operating point
+better on BOTH axes (TIR up AND t<54 down; t<70 when t<54≈0) than the reference curve —
+strict dominance, judged in the operating band, re-tuning allowed. That section supersedes
+any other scoring guidance here or elsewhere.
 
 **Current frontier picture (qualitative — regenerate numbers per dataset/window):**
 
