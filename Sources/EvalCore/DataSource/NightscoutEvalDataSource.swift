@@ -384,7 +384,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             }
             .sorted()
         // A co-logged meal carb and its manual bolus are effectively ATOMIC: the
-        // user enters carbs and boluses in one action (rloop 30d: carb saved a
+        // user enters carbs and boluses in one action (ns3 30d: carb saved a
         // median ~5s from its bolus, p90 13s). Pair within a TIGHT window — a manual
         // bolus minutes away belongs to a DIFFERENT meal or is a separate correction,
         // NOT this carb's co-log. (Was 15 min, which let an early carb with no manual
