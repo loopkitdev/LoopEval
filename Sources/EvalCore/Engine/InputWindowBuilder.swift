@@ -526,15 +526,47 @@ struct InputWindowBuilder: Sendable {
     private func applyCarbRatioMultiplier(
         _ slice: [AbsoluteScheduleValue<Double>]
     ) -> [AbsoluteScheduleValue<Double>] {
-        guard config.carbRatioMultiplier != 1.0 else { return slice }
-        return slice.map { entry in
-            let scaled = entry.value * config.carbRatioMultiplier
-            return AbsoluteScheduleValue(
-                startDate: entry.startDate,
-                endDate: entry.endDate,
-                value: scaled
-            )
+        // CR ÷ h (hourly needs): more needs → smaller carb ratio → more insulin per carb.
+        let hourly = config.needsHourlyMultipliers.map { $0.map { 1.0 / $0 } }
+        return Self.applyDoubleScaling(slice, globalMultiplier: config.carbRatioMultiplier,
+                                       hourlyMultipliers: hourly, timezone: config.localTimezone)
+    }
+
+    /// Global + per-local-hour scaling of a Double schedule slice (basal, CR); split at
+    /// local-hour boundaries and coalesced, mirroring `applySensitivityScaling`.
+    static func applyDoubleScaling(
+        _ slice: [AbsoluteScheduleValue<Double>],
+        globalMultiplier: Double,
+        hourlyMultipliers: [Double]?,
+        timezone: TimeZone
+    ) -> [AbsoluteScheduleValue<Double>] {
+        if globalMultiplier == 1.0 && hourlyMultipliers == nil { return slice }
+        guard let hourly = hourlyMultipliers, hourly.count == 24 else {
+            return slice.map { AbsoluteScheduleValue(startDate: $0.startDate, endDate: $0.endDate,
+                                                     value: $0.value * globalMultiplier) }
         }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = timezone
+        var out: [AbsoluteScheduleValue<Double>] = []
+        let eps = 1e-9
+        for entry in slice {
+            var t = entry.startDate
+            while t < entry.endDate {
+                let localHour = cal.component(.hour, from: t)
+                let comps = cal.dateComponents([.year, .month, .day, .hour], from: t)
+                guard let topOfHour = cal.date(from: comps) else { break }
+                let nextHour = cal.date(byAdding: .hour, value: 1, to: topOfHour) ?? entry.endDate
+                let chunkEnd = min(nextHour, entry.endDate)
+                let scaled = entry.value * globalMultiplier * hourly[localHour]
+                if let last = out.last, last.endDate == t, abs(last.value - scaled) < eps {
+                    out[out.count - 1] = AbsoluteScheduleValue(startDate: last.startDate, endDate: chunkEnd, value: last.value)
+                } else {
+                    out.append(AbsoluteScheduleValue(startDate: t, endDate: chunkEnd, value: scaled))
+                }
+                t = chunkEnd
+            }
+        }
+        return out
     }
 
     /// Apply `config.basalRateMultiplier` to a basal schedule slice.
@@ -543,14 +575,9 @@ struct InputWindowBuilder: Sendable {
     private func applyBasalMultiplier(
         _ slice: [AbsoluteScheduleValue<Double>]
     ) -> [AbsoluteScheduleValue<Double>] {
-        guard config.basalRateMultiplier != 1.0 else { return slice }
-        return slice.map { entry in
-            let scaled = entry.value * config.basalRateMultiplier
-            return AbsoluteScheduleValue(
-                startDate: entry.startDate,
-                endDate: entry.endDate,
-                value: scaled
-            )
-        }
+        // basal × h (hourly needs).
+        return Self.applyDoubleScaling(slice, globalMultiplier: config.basalRateMultiplier,
+                                       hourlyMultipliers: config.needsHourlyMultipliers,
+                                       timezone: config.localTimezone)
     }
 }

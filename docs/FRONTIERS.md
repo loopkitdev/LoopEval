@@ -169,7 +169,13 @@ Practice:
 1. **Sweep both arms on the same dial** (insulin-needs), report the dominance verdict +
    axis-normalized lift **in the operating band** (validated multiplier ±0.1) — never
    whole-sweep mean alone (an oracle with +6-8 TIR of gentle-end value scored *negative*
-   whole-sweep mean lift; see runs/2026-08-22-eval-review/REVIEW.md).
+   whole-sweep mean lift; see runs/2026-08-22-eval-review/REVIEW.md). **Both sides stay in
+   the band**: candidate points at op ±0.1 are judged against the reference restricted to
+   op ±0.2 (re-tuning by one step is allowed, nothing more), and a candidate point is never
+   "dominant" if its lows exceed the worst lows the in-band reference produces. Without this
+   a hot candidate dominates the reference at ×1.5–2.0 — a region with 4–8 % t<54 that no one
+   operates in (the bddp03 UAM case, 2026-08-24). Implemented in
+   `loopeval_analysis.band.band_report` (paired weekly block bootstrap → CI on every number).
 2. **Per-donor question taxonomy**: tight-control hands-on donors → non-inferiority at
    their point + announcement-suppressed robustness; hands-off mid-TIR with real lows →
    the dominance test above; runs-high non-announcers → TIR at fixed lows near their

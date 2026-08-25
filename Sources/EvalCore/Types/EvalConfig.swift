@@ -65,6 +65,9 @@ public struct EvalConfig: Codable, Sendable {
     /// Default 1.0/1.0 == standard symmetric IRC.
     public var ircDropGainScale: Double
     public var ircRiseGainScale: Double
+    /// Apply the drop/rise gain scales to STANDARD RC as well (asymmetric standard-RC
+    /// candidate for std-RC deployments). Default false == deployed symmetric RC.
+    public var asymmetricStandardRC: Bool
     /// IRC low-memory carry ("remember the low"): when > 0, a positive (rebound)
     /// discrepancy run carries the immediately-preceding negative (low) run across
     /// the sign flip instead of resetting, scaled by this factor. 0 == off.
@@ -222,6 +225,11 @@ public struct EvalConfig: Codable, Sendable {
     /// on top of `sensitivityMultiplier`. Index = local hour [0, 23]. nil =
     /// no per-hour variation.
     public var sensitivityHourlyMultipliers: [Double]?
+    /// Per-local-hour INSULIN-NEEDS multipliers h[0...23] (candidate): basal × h,
+    /// CR ÷ h (ISF ÷ h is composed into `sensitivityHourlyMultipliers` by the CLI).
+    /// The hourly form of the `--candidate-insulin-needs` dial — a learned circadian
+    /// needs schedule. nil = flat.
+    public var needsHourlyMultipliers: [Double]?
 
     /// Local timezone for interpreting hour-of-day for
     /// `sensitivityHourlyMultipliers`. Default: `TimeZone.current`.
@@ -582,6 +590,7 @@ public struct EvalConfig: Codable, Sendable {
         useIntegralRCClamp: Bool = false,
         ircDropGainScale: Double = 1.0,
         ircRiseGainScale: Double = 1.0,
+        asymmetricStandardRC: Bool = false,
         ircLowMemoryScale: Double = 0.0,
         ircDropDurationScale: Double = 1.0,
         ircRiseDurationScale: Double = 1.0,
@@ -615,6 +624,7 @@ public struct EvalConfig: Codable, Sendable {
         overrideTargetsPath: String? = nil,
         sensitivityMultiplier: Double = 1.0,
         sensitivityHourlyMultipliers: [Double]? = nil,
+        needsHourlyMultipliers: [Double]? = nil,
         localTimezone: TimeZone = .current,
         carbRatioMultiplier: Double = 1.0,
         basalRateMultiplier: Double = 1.0,
@@ -704,6 +714,7 @@ public struct EvalConfig: Codable, Sendable {
         self.useIntegralRCClamp             = useIntegralRCClamp
         self.ircDropGainScale               = ircDropGainScale
         self.ircRiseGainScale               = ircRiseGainScale
+        self.asymmetricStandardRC           = asymmetricStandardRC
         self.ircLowMemoryScale              = ircLowMemoryScale
         self.ircDropDurationScale           = ircDropDurationScale
         self.ircRiseDurationScale           = ircRiseDurationScale
@@ -740,6 +751,10 @@ public struct EvalConfig: Codable, Sendable {
             preconditionFailure("sensitivityHourlyMultipliers must have exactly 24 entries")
         }
         self.sensitivityHourlyMultipliers   = sensitivityHourlyMultipliers
+        if let h = needsHourlyMultipliers, h.count != 24 {
+            preconditionFailure("needsHourlyMultipliers must have exactly 24 entries")
+        }
+        self.needsHourlyMultipliers         = needsHourlyMultipliers
         self.localTimezone                  = localTimezone
         self.carbRatioMultiplier            = carbRatioMultiplier
         self.basalRateMultiplier            = basalRateMultiplier
@@ -759,12 +774,12 @@ public struct EvalConfig: Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
         case decisionTimesAreAuthoritative
-        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, useTempBasalStrategy, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay
+        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, asymmetricStandardRC, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, useTempBasalStrategy, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay
         case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec, carbAbsorptionOverrun, carbRevisionsPath, overrideTargetsPath
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
         case positiveVelocityCap, useAsymmetricMomentum, momentumAlphaSlow, momentumAlphaFast
-        case sensitivityHourlyMultipliers, localTimezoneIdentifier
+        case sensitivityHourlyMultipliers, needsHourlyMultipliers, localTimezoneIdentifier
         case evalWarmupHours
         case glucoseBasedApplicationFactor, gbafLowAnchor, gbafHighAnchor, gbafFactorLow, gbafFactorHigh, gbafForecastKeyed, gbafForecastMinGuard, softLowGate, lowGateThresholdMgdl, iobAdjustManualBoluses, manualBolusFromRecommendation, manualBolusRecScale, uamProjectionMinutes, earlyRiseMinutes, earlyRiseGain, earlyRiseBgLow, earlyRiseBgHigh, earlyRiseSlopeThreshold, dynIsfMultHigh, dynIsfLowAnchor, dynIsfHighAnchor, uncertaintyCapEnabled, uncertaintyK, uncertaintyFmax, uncertaintyLow, autosensGain, autosensWindowMin, autosensMin, autosensMax, uncertaintyDecoupleAutosens
         case applicationFactor
@@ -789,6 +804,7 @@ public struct EvalConfig: Codable, Sendable {
         self.useIntegralRCClamp   = try c.decodeIfPresent(Bool.self, forKey: .useIntegralRCClamp) ?? false
         self.ircDropGainScale     = try c.decodeIfPresent(Double.self, forKey: .ircDropGainScale) ?? 1.0
         self.ircRiseGainScale     = try c.decodeIfPresent(Double.self, forKey: .ircRiseGainScale) ?? 1.0
+        self.asymmetricStandardRC = try c.decodeIfPresent(Bool.self, forKey: .asymmetricStandardRC) ?? false
         self.ircLowMemoryScale    = try c.decodeIfPresent(Double.self, forKey: .ircLowMemoryScale) ?? 0.0
         self.ircDropDurationScale = try c.decodeIfPresent(Double.self, forKey: .ircDropDurationScale) ?? 1.0
         self.ircRiseDurationScale = try c.decodeIfPresent(Double.self, forKey: .ircRiseDurationScale) ?? 1.0
@@ -837,6 +853,7 @@ public struct EvalConfig: Codable, Sendable {
             throw DecodingError.dataCorruptedError(forKey: .sensitivityHourlyMultipliers, in: c,
                 debugDescription: "sensitivityHourlyMultipliers must have exactly 24 entries")
         }
+        self.needsHourlyMultipliers = try c.decodeIfPresent([Double].self, forKey: .needsHourlyMultipliers)
         if let tzId = try c.decodeIfPresent(String.self, forKey: .localTimezoneIdentifier),
            let tz = TimeZone(identifier: tzId) {
             self.localTimezone = tz
@@ -920,6 +937,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(useIntegralRC, forKey: .useIntegralRC)
         try c.encode(useIntegralRCClamp, forKey: .useIntegralRCClamp)
         try c.encode(ircDropGainScale, forKey: .ircDropGainScale)
+        try c.encode(asymmetricStandardRC, forKey: .asymmetricStandardRC)
         try c.encode(ircRiseGainScale, forKey: .ircRiseGainScale)
         try c.encode(ircLowMemoryScale, forKey: .ircLowMemoryScale)
         try c.encode(ircDropDurationScale, forKey: .ircDropDurationScale)
@@ -965,6 +983,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(momentumAlphaSlow, forKey: .momentumAlphaSlow)
         try c.encode(momentumAlphaFast, forKey: .momentumAlphaFast)
         try c.encodeIfPresent(sensitivityHourlyMultipliers, forKey: .sensitivityHourlyMultipliers)
+        try c.encodeIfPresent(needsHourlyMultipliers, forKey: .needsHourlyMultipliers)
         try c.encode(localTimezone.identifier, forKey: .localTimezoneIdentifier)
         try c.encode(evalWarmupHours, forKey: .evalWarmupHours)
         try c.encode(glucoseBasedApplicationFactor, forKey: .glucoseBasedApplicationFactor)

@@ -223,6 +223,10 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateIrcDropScale: Double = 1.0
     @Option(name: .long, help: "Asymmetric IRC: gain scale when BG is rising faster than predicted (positive discrepancy = resistance). <1 responds more weakly/slower to rises. Only used with --candidate-integral-rc. Default 1.0 (symmetric).")
     var candidateIrcRiseScale: Double = 1.0
+    @Option(name: .long, help: "Per-local-hour INSULIN-NEEDS multipliers for the candidate (24 csv, or @file): basal × h, ISF ÷ h, CR ÷ h per hour — the hourly form of --candidate-insulin-needs (a learned circadian needs schedule). Hours are interpreted in --local-timezone. Composes with --candidate-insulin-needs and --candidate-isf-hourly.")
+    var candidateNeedsHourly: String?
+    @Flag(name: .long, help: "Asymmetric STANDARD RC (candidate): apply --candidate-irc-drop-scale / --candidate-irc-rise-scale to the standard (non-integral) retrospective correction — the deployed RC mode on most Loop users. Scales the single 30-min discrepancy before it is projected 60 min forward. Off = deployed symmetric RC.")
+    var candidateAsymmetricStdRc: Bool = false
     @Option(name: .long, help: "IRC low-memory carry ('remember the low'): when >0 and the current discrepancy run is positive (a rebound), the integral carries the immediately-preceding negative (low) run across the sign flip instead of resetting, scaled by this factor, so the low's memory offsets the rebound's upward dosing. One-sided (only +run carries a preceding -run). Only used with --candidate-integral-rc. Default 0 (off).")
     var candidateIrcLowMemoryScale: Double = 0.0
     @Option(name: .long, help: "Asymmetric IRC persistence ('remember the low longer'): scales how long a NEGATIVE-discrepancy (sensitivity) correction lingers in the forecast. >1 = turns off slowly / persists. Only used with --candidate-integral-rc. Default 1.0.")
@@ -575,6 +579,7 @@ struct SimulateCommand: AsyncParsableCommand {
             useIntegralRCClamp: candidateIntegralRCClamp || integralRCClamp,
             ircDropGainScale: candidateIrcDropScale,
             ircRiseGainScale: candidateIrcRiseScale,
+            asymmetricStandardRC: candidateAsymmetricStdRc,
             ircLowMemoryScale: candidateIrcLowMemoryScale,
             ircDropDurationScale: candidateIrcDropDurationScale,
             ircRiseDurationScale: candidateIrcRiseDurationScale,
@@ -624,6 +629,20 @@ struct SimulateCommand: AsyncParsableCommand {
             candidateConfig.basalRateMultiplier   *= needs
             candidateConfig.sensitivityMultiplier *= 1.0 / needs
             candidateConfig.carbRatioMultiplier   *= 1.0 / needs
+        }
+        if let spec = candidateNeedsHourly {
+            let csv = spec.hasPrefix("@")
+                ? ((try? String(contentsOfFile: String(spec.dropFirst()), encoding: .utf8)) ?? "")
+                : spec
+            let parts = csv.split(whereSeparator: { $0 == "," || $0 == "\n" })
+                .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.map { Double($0) }
+            guard parts.count == 24, parts.allSatisfy({ $0 != nil && $0! > 0 }) else {
+                throw ValidationError("--candidate-needs-hourly requires exactly 24 positive comma-separated numbers")
+            }
+            let h = parts.map { $0! }
+            candidateConfig.needsHourlyMultipliers = h
+            let isfH = candidateConfig.sensitivityHourlyMultipliers ?? Array(repeating: 1.0, count: 24)
+            candidateConfig.sensitivityHourlyMultipliers = zip(isfH, h).map { $0 / $1 }
         }
         candidateConfig.oapsAutosensMax = candidateOapsAutosensMax
         candidateConfig.oapsAutosensMin = candidateOapsAutosensMin

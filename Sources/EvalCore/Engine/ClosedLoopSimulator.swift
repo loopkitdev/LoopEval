@@ -2390,6 +2390,7 @@ extension EvaluationEngine {
             ircLowMemoryScale: config.ircLowMemoryScale,
             ircDropDurationScale: config.ircDropDurationScale,
             ircRiseDurationScale: config.ircRiseDurationScale,
+            asymmetricStandardRC: config.asymmetricStandardRC,
             rcRetrospectionInterval: rcRetroInterval,
             rcEffectDuration: rcEffDuration,
             uamProjectionMinutes: config.uamProjectionMinutes,
