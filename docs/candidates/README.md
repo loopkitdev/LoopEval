@@ -37,7 +37,7 @@ hash have no surviving traces.
 | [C10](#c10-post-low-protector) | Post-low protector (ISF-mult / suppress / trend) | pull-back | scored (bddp11) | ISF-mult **WORSE** (−3.5…−8.3 TIR for −0.07 t54); suppress-20 NEUTRAL (+0.006) |
 | [C11](#c11-uncertainty-cap-dosing) | Uncertainty-cap dosing | pull-back (risk-bounded) | scored (bddp11) | **WORSE** at every k (−0.11 … −0.16) — closed |
 | [C12](#c12-learned-circadian-needs-schedule-hourly-insulin-needs) | Learned circadian needs schedule | learned | scored (bddp11, holdout) | **WORSE** in-sample and holdout (k=1: −5.3 TIR / +0.96 t54 on holdout) — closed |
-| [C13](#c13-basal--isf-decoupling) | Basal × ISF decoupling | dial-like (2-D) | scored once (rloop) | small lift band (+0.056 max), unfollowed |
+| [C13](#c13-basal--isf-decoupling) | Basal × ISF decoupling | dial-like (2-D) | scored once (ns3) | small lift band (+0.056 max), unfollowed |
 | [C14](#c14-autosens-term) | Autosens (multi-hour BG-vs-target) | learned (short memory) | built, unswept | — |
 | [C15](#c15-rc-window-knobs) | RC window knobs (retro / duration) | dial-like | scored (panel) | no lift; dur120 harmful |
 | [C16](#c16-manual-bolus-rec-scaling) | Manual-bolus rec scaling | announcer behaviour | scored | +0.185 ISF-dial → +0.036 needs-dial (cautionary case) |
@@ -62,7 +62,7 @@ the **rise-cut is the active part**; the drop-boost is ≈ inert (one-sided actu
 | 2026-08-11 | bddp11 | natural | 2 mo, needs | below-right of ref from ×0.85 up, no blow-up | leads |
 | 2026-08-04 | bddp01/02/04/05/06/07 | natural | `runs/2026-08-04-rc-mom-panel` `asym_rank_summary.csv` | irc-base mean rank 2.83 (best); airc-full 3.50; airc-drop −0.109 on bddp01 | **asymmetry did not beat plain IRC** on the panel (old scoring, ISF dial) |
 | 2026-07-20 | orefuser2 substrate | natural | vs normal IRC | 1.5/0.5 −0.16, rise-only −0.16, drop-only ≈0 | hurts (non-announcer) |
-| 2026-07-17 | rloop | natural | 3 mo, needs | ≈ IRC for m ≤ 1.2; +0.8 TIR only at ×1.25–1.35 | no lift in band |
+| 2026-07-17 | ns3 | natural | 3 mo, needs | ≈ IRC for m ≤ 1.2; +0.8 TIR only at ×1.25–1.35 | no lift in band |
 | 2026-07-17 | user2 | natural (announcer) | 3 mo, needs | m1.0: 85.42/0.712 vs ref 84.95/1.225 → **+0.47 TIR AND −0.51 t54** | strict dominance |
 | 2026-07-16 | user2 | natural | 9 wk wide, needs | aIRC+DLP lift +0.10, positive everywhere | held up |
 
@@ -74,13 +74,13 @@ Ceiling is low (+0.02 lift ≈ 1 TIR point at equal lows); needs ≥ 90 d per do
 `--candidate-integral-rc [--candidate-integral-rc-clamp]`. Memory in RC. A hotter dial:
 bddp11 90 d @op +5.3 TIR / +0.62 t54, hooks above ×1.05 (m1.2 → t54 3.31). Band verdict
 2026-08-24 **WORSE** (−0.021 [−0.043,−0.003]). rc-mom-panel (6 donors, 2026-08-04): best
-mechanism in that panel (mean rank 1.5, +0.130 bddp06, −0.059 bddp04). rloop 1 yr: ≈ +3 TIR at
+mechanism in that panel (mean rank 1.5, +0.130 bddp06, −0.059 bddp04). ns3 1 yr: ≈ +3 TIR at
 matched t54 (needs dial). Clamp variants (settings / velocity 2/4/8 / none): curves
-superimposed on rloop and user2 — **no lever**. IRC low-memory carry
+superimposed on ns3 and user2 — **no lever**. IRC low-memory carry
 (`--candidate-irc-low-memory-scale`): plumbed, never swept.
 
 ## C03 · GBAF / application factor
-`--candidate-gbaf …`, `--candidate-application-factor`. Every run (rloop 1 yr, user2 1 yr,
+`--candidate-gbaf …`, `--candidate-application-factor`. Every run (ns3 1 yr, user2 1 yr,
 bddp05/09 ISF-dial, bddp11 2 mo + 90 d) rides the reference; on bddp11 mildly above-left.
 Reparameterization of the dial — **closed**; only revisit combined with a state-dependent trigger.
 
@@ -146,10 +146,10 @@ after a low. Pull-back.
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
 | 2026-07-17 | user2 (announcer) | natural | 3 mo, needs | DLP+aIRC m1.0 85.40/0.636 vs ref 84.95/1.225 → **+0.45 TIR AND −0.59 t54**; DLP alone 85.24/0.949 | strict dominance |
-| 2026-07-17 | rloop (hands-off) | natural | 3 mo, needs | m1.0 52.62/0.027 vs ref 54.23/0.044 (left of curve) | no lift |
-| 2026-07-16 | rloop / user2 | natural | 1 yr | rloop worse (39.0 vs 41.4 TIR); user2 DLP+aIRC 72.1/0.147 vs 76.3/0.483 | announcer yes / non-announcer no |
-| 2026-06-12 (`e18a017`) | user2 | natural | 90 d, ISF-dial | +2.5 lift alone, +8.0 stacked on aIRC (old rule); costly on rloop (mean BG +10) | regime-specific |
-| 2026-08-24 | bddp11 | natural | 90 d, band 1.00±0.1 | E1: τ=120,k=0.02 lift **−0.007 [−0.012,−0.000]**, dom 0.20; @op ΔTIR −1.0, Δt54 −0.04, Δt70 −0.20 (gentler, on/just above the curve) | **WORSE (marginal)** — dial-equivalent on this hands-off donor, as on rloop |
+| 2026-07-17 | ns3 (hands-off) | natural | 3 mo, needs | m1.0 52.62/0.027 vs ref 54.23/0.044 (left of curve) | no lift |
+| 2026-07-16 | ns3 / user2 | natural | 1 yr | ns3 worse (39.0 vs 41.4 TIR); user2 DLP+aIRC 72.1/0.147 vs 76.3/0.483 | announcer yes / non-announcer no |
+| 2026-06-12 (`e18a017`) | user2 | natural | 90 d, ISF-dial | +2.5 lift alone, +8.0 stacked on aIRC (old rule); costly on ns3 (mean BG +10) | regime-specific |
+| 2026-08-24 | bddp11 | natural | 90 d, band 1.00±0.1 | E1: τ=120,k=0.02 lift **−0.007 [−0.012,−0.000]**, dom 0.20; @op ΔTIR −1.0, Δt54 −0.04, Δt70 −0.20 (gentler, on/just above the curve) | **WORSE (marginal)** — dial-equivalent on this hands-off donor, as on ns3 |
 | 2026-08-24 | bddp11 | natural | 90 d, band 1.00±0.1 | E2: τ=240,k=0.05 lift −0.014 [−0.021,−0.006]; @op ΔTIR −3.0, Δt54 −0.07 | **WORSE** — stronger = more TIR cost, same lows |
 
 ## C09 · Predictive sensitivity damper
@@ -206,8 +206,8 @@ r = 0.76, split-half (even/odd days) r = 0.76, month-1 vs month-2 fitted profile
 | 2026-08-24 | bddp11 | natural | data-needed (k=1): 8w / 4w / 2w / 1w fits | holdout lift −0.297 / −0.241 / −0.317 / −0.278; in-sample −0.182 / −0.160 / −0.217 / −0.249 (Δt54 in-sample +0.52 / +0.39 / +0.76 / +1.00) | **WORSE at every history length**; shorter history = more lows (noisier profile), but even the 8-week profile loses. Not a data-quantity problem |
 
 ## C13 · Basal × ISF decoupling
-`--candidate-basal-rate-multiplier` × `--candidate-sensitivity-multiplier`, CR fixed. rloop
-30 d grid (`runs/2026-07-18-rloop-basal-isf-grid`): max lift +0.056 at B1.00/S0.80; every
+`--candidate-basal-rate-multiplier` × `--candidate-sensitivity-multiplier`, CR fixed. ns3
+30 d grid (`runs/2026-07-18-ns3-basal-isf-grid`): max lift +0.056 at B1.00/S0.80; every
 "more basal" cell negative. Small real band, never followed on other donors.
 
 ## C14 · Autosens term
