@@ -362,6 +362,12 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidatePostlowRcRiseScale: Double = 1.0
     @Option(name: .long, help: "BG ceiling (mg/dL) for the post-low RC rise-cut gate: above it the high is treated as real and RC is normal. Default 180.")
     var candidatePostlowRcBgMax: Double = 180.0
+    @Option(name: .long, help: "Fast-rise-GATED standard-RC rise-cut (meal-rise-stacking corner): while the trailing 15-min BG slope is at least this (mg/dL/min) AND BG < --candidate-rise-gate-bg-max, scale the positive RC discrepancy by --candidate-rise-gate-rc-rise-scale. 0 = off.")
+    var candidateRiseGateSlope: Double = 0.0
+    @Option(name: .long, help: "Rise scale applied while the fast-rise gate is active (0 = ignore the unexplained rise). Default 1.0.")
+    var candidateRiseGateRcRiseScale: Double = 1.0
+    @Option(name: .long, help: "BG ceiling (mg/dL) for the fast-rise gate. Default 180.")
+    var candidateRiseGateBgMax: Double = 180.0
     @Option(name: .long, help: "Comma-separated outage REASONS (from the outages/disruptions CSV) during which the pump keeps delivering SCHEDULED basal instead of nothing — e.g. 'loop_offline' (phone away: the pod runs its schedule, only new adjustments stop). Default: none (every outage clamps delivery to 0).")
     var outageBasalReasons: String?
     @Option(name: .long, help: "PREDICTIVE pre-low damper GAIN: causal sustained-sensitivity trigger (causal ICE = v_bg - v_insulin over a trailing window). ISF-mult increase per mg/dL/min of negative ICE beyond the threshold; raises ISF proactively before the low. 0 = off.")
@@ -575,6 +581,9 @@ struct SimulateCommand: AsyncParsableCommand {
             postlowIsfMult: candidatePostlowIsfMult,
             postlowRcRiseScale: candidatePostlowRcRiseScale,
             postlowRcBgMax: candidatePostlowRcBgMax,
+            riseGateSlope: candidateRiseGateSlope,
+            riseGateRcRiseScale: candidateRiseGateRcRiseScale,
+            riseGateBgMax: candidateRiseGateBgMax,
             sensDampWindowMin: candidateSensDampWindow,
             sensDampThresholdRate: candidateSensDampThreshold,
             sensDampGain: candidateSensDampGain,
