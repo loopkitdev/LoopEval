@@ -43,7 +43,7 @@ hash have no surviving traces.
 | [C16](#c16-manual-bolus-rec-scaling) | Manual-bolus rec scaling | announcer behaviour | scored | +0.185 ISF-dial → +0.036 needs-dial (cautionary case) |
 | [C17](#c17-oref-as-candidate-engine) | oref/OpenAPS as candidate engine | engine | fidelity only | no frontier number |
 | [C18](#c18-asymmetric-standard-rc) | Asymmetric **standard** RC (rise-cut without integral RC) | pull-back | scored (4 donors) | **NEUTRAL / dial-like** — closed |
-| [C20](#c20-post-low-gated-rc-rise-cut) | Post-low-gated RC rise-cut (corner candidate) | pull-back, gated | scored (bddp11 90 d); 2-mo beds running | **IMPROVES** +0.014 [+0.001,+0.029] at (0.5, 720 min, 180) — first corner-gated lift |
+| [C20](#c20-post-low-gated-rc-rise-cut) | Post-low-gated RC rise-cut (corner candidate) | pull-back, gated | scored (bddp11 90 d; bddp11/10 2 mo) | **IMPROVES** on bddp11 90 d: +0.019 [+0.006,+0.035] at (0.3,720,180); +0.013 [+0.006,+0.021] nearly free at (0.5,720,140). NEUTRAL on 2-mo beds |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -288,6 +288,8 @@ because it also damped the *real* high; this gate releases at B so the high stil
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
 | 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E9 `band_table_e9.csv`: **(0.5,720,180) lift +0.014 [+0.001,+0.029], dom 1.00 (lo 0.60); @op ΔTIR −0.4 [−0.6,−0.3], Δt54 −0.05 [−0.10,−0.01], Δt70 −0.22**; (0,360,140) +0.007 [+0.002,+0.014], dom 0.60; (0.5,360,180) +0.007 [−0.001,+0.019]; (0,360,180) +0.007 [−0.007,+0.025] (ΔTIR −1.0) | **IMPROVES** (two settings clear the CI; longer window better, releasing at 180 better than cutting to zero). Small — recovers ~⅓ of the corner's t54 ceiling (0.14) — but a genuine corner-gated lift, cheaper in TIR than aIRC (−0.4 vs −0.9) for ~⅔ of its t54 effect |
+| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E9b `band_table_e9b.csv` gate grid: **(0.3,720,180) +0.019 [+0.006,+0.035]** (@op ΔTIR −0.7, Δt54 −0.07 — aIRC's t54 effect at 20 % less TIR cost); **(0.5,720,140) +0.013 [+0.006,+0.021], dom 1.00 (lo 0.80), @op ΔTIR −0.1 [−0.3,+0.0], Δt54 −0.04** (nearly free); (0.5,1440,180) = (0.5,720,180) +0.014 (window saturates at 12 h) | **IMPROVES** across the grid; stronger cut (0.3) buys more t54 for more TIR, lower release (140) makes it nearly free. Tunable along a cheap front |
+| 2026-08-26 | bddp11 / bddp10 | natural | 2 mo, op ×1.00, 9 blocks | E9 `cohort_band_e9.csv`: (0.5,720,180) +0.020 [−0.002,+0.040] / +0.002 [−0.005,+0.008]; (0,360,140) +0.007 / +0.002; mean 0.011; aIRC 0.018 / 0.014 | **NEUTRAL** on 2-mo beds (bddp11 just misses; bddp10 has almost no post-low lows — the gate is inert outside its corner, by design). Needs a ≥90 d bed per donor and donors with the corner |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
