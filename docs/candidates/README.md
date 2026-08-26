@@ -45,8 +45,8 @@ hash have no surviving traces.
 | [C18](#c18-asymmetric-standard-rc) | Asymmetric **standard** RC (rise-cut without integral RC) | pull-back | scored (4 donors) | **NEUTRAL / dial-like** — closed |
 | [C20](#c20-post-low-gated-rc-rise-cut) | Post-low-gated RC rise-cut (corner candidate) | pull-back, gated | scored (7 beds) | **IMPROVES on 3/7 beds** at (0.3,720,180) — b11_90d +0.019, bddp03 +0.014 (TIR up AND t54 down at op), bddp08 +0.008 — and positive on all 7 (mean ≈ +0.02); best multi-donor result so far |
 | [C21](#c21-fast-rise-gated-rc-rise-cut) | Fast-rise-gated RC rise-cut (meal-rise-stacking corner) | pull-back, gated | scored (bddp11) | NEUTRAL (+0.007 best) — closed |
-| [C22](#c22-σ-widened-lower-forecast-band) | σ-widened lower forecast band (volatility-aware min guard) | pull-back, state-gated | **running (E11)** | from *The Shape of Glucose* (2026-08-25) |
-| [C23](#c23-calm-high-licence) | Calm-high licence (larger AF when high AND low σ) | dose-more, state-gated | **running (E11)** | addressable window ~3–8 % of samples |
+| [C22](#c22-σ-widened-lower-forecast-band) | σ-widened lower forecast band (volatility-aware min guard) | pull-back, state-gated | scored (bddp11 90 d); multi-donor running | **IMPROVES +0.025 [+0.009,+0.042] at k=1** — largest single-donor lift so far |
+| [C23](#c23-calm-high-licence) | Calm-high licence (larger AF when high AND low σ) | dose-more, state-gated | scored (bddp11); multi-donor running | **IMPROVES +0.008 [+0.003,+0.012]: +0.3 TIR at Δt54 0.00** — first dose-more mechanism to clear the CI |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -226,7 +226,8 @@ IRC, **dur120 harmful** (bddp01 −1.015). None beats plain IRC.
 
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
-| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11: RC effect duration **40 / 30 min** (deployed 60) — the shorter-projection case the July panel never ran; motivated by the 40-min increment-autocorrelation zero crossing in *The Shape of Glucose* | running |
+| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11: RC effect duration 40 min: lift −0.019 [−0.035,+0.002] (@op ΔTIR −4.4, Δt54 −0.14); 30 min running | **NEUTRAL — a gentler dial.** Shortening the projection removes real near-term signal along with the overshoot (the 5–60 min regime trends, H 0.71); the win from discounting the projection is state-dependent (C20/C22), not a constant |
+| 2026-08-26 | bddp11 | natural | 90 d | E11: RC effect duration 30 min: **WORSE** −0.029 [−0.043,−0.011] (ΔTIR −6.3) | closed |
 
 ## C16 · Manual-bolus rec scaling
 `--candidate-manual-bolus-rec-scale` (user2, 2026-07-14/16): lift +0.185 on the ISF dial →
@@ -322,7 +323,8 @@ quantile is folded into k. Causal by construction.
 
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
-| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11: k ∈ {1, 2, 3} | running |
+| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11 `band_table_e11.csv`: **k=1 lift +0.025 [+0.009,+0.042], dom 1.00 (lo 0.60); @op ΔTIR −1.1 [−1.5,−0.7], Δt54 −0.07 [−0.12,−0.04], Δt70 −0.63**; k=2 −0.004 [−0.051,+0.057] (ΔTIR −9.0, Δt54 −0.31 — far too wide: median σ5 on this donor is 6.8 mg/dL/5 min, so k=2 lowers the 60-min point by ~80 mg/dL); k=3 −0.368 (ΔTIR −24.8) | **IMPROVES at k=1** — the largest single-donor band lift of any deployable mechanism so far (aIRC +0.022, C20 +0.019); k=0.5 and multi-donor running |
+| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11b: **k=0.5 lift +0.009 [+0.002,+0.017], dom 1.00 (lo 0.60); @op ΔTIR −0.1 [−0.2,+0.0], Δt54 −0.03 [−0.06,−0.00]** | **IMPROVES, nearly free** — k is the width of the front: k=0.5 costs nothing, k=1 buys the full −0.07 t54 for −1.1 TIR |
 
 ## C23 · Calm-high licence
 `--candidate-calm-high-af-scale s` (+ `-bg 180`, `-sigma-max 3.5`): when BG ≥ 180 AND σ5 ≤ σmax, the
@@ -333,7 +335,7 @@ runs-high donors). Dose-more, state-gated — the goal's "know when to dose more
 
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
-| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11: s ∈ {1.5, 2.0} at σmax 3.5; s 1.5 at σmax 2.5 | running |
+| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11 `band_table_e11.csv`: σmax 3.5 / 2.5 ≈ inert (+0.002 / +0.000 — this donor's σ5 is high: p33 5.5, p50 6.8, only 1.9 % of high samples are ≤3.5). At the donor's own percentiles: **s=2.0 @ σmax 5.5 (p33): +0.008 [+0.003,+0.012], dom 1.00 (lo 0.80); @op ΔTIR +0.3 [+0.1,+0.4], Δt54 +0.00 [−0.01,+0.01]**; s=1.5 @ 6.8 (p50): +0.008 [+0.004,+0.012], ΔTIR +0.4, Δt54 −0.01; s=1.5 @ 5.5: +0.002 | **IMPROVES — the first dose-MORE mechanism to clear the CI: pure TIR gain at zero lows cost.** Small on this volatile donor (addressable window 0.5 % of samples at p33); σ threshold must be donor-relative — per-donor percentiles (`sigma_pcts.csv`) sweep running on 7 beds |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
