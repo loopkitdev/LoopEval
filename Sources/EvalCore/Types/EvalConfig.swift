@@ -506,6 +506,23 @@ public struct EvalConfig: Codable, Sendable {
     public var riseGateSlope: Double
     public var riseGateRcRiseScale: Double
     public var riseGateBgMax: Double
+    /// Volatility (σ) candidates — "The Shape of Glucose" (2026-08-25). σ5 = causal EWMA
+    /// std of the 5-min increment of the candidate's own glucose history (λ per 5-min
+    /// step, variance floored at 2·noise²). sigmaBandK > 0 widens the LOWER forecast
+    /// band: each predicted point at τ min is lowered by k·σ5·(τ/5)^H up to
+    /// sigmaBandHorizonMin, tapering back to 0 by sigmaBandTaperMin (eventual BG
+    /// unchanged; the min-forecast guard binds earlier in volatile states).
+    /// calmHighAfScale != 1 is the licence direction: when BG >= calmHighBgMin AND
+    /// σ5 <= calmHighSigmaMax, the application factor is scaled by it (capped at 1).
+    public var sigmaBandK: Double
+    public var sigmaBandHorizonMin: Double
+    public var sigmaBandTaperMin: Double
+    public var sigmaScalingH: Double
+    public var sigmaEwmaLambda: Double
+    public var sigmaNoiseMgdl: Double
+    public var calmHighAfScale: Double
+    public var calmHighBgMin: Double
+    public var calmHighSigmaMax: Double
 
     /// PREDICTIVE pre-low damper: a strict-causal sustained-sensitivity trigger.
     /// Over a trailing window compute causal ICE = v_bg − v_insulin (BG dropping
@@ -591,6 +608,15 @@ public struct EvalConfig: Codable, Sendable {
         riseGateSlope: Double = 0.0,
         riseGateRcRiseScale: Double = 1.0,
         riseGateBgMax: Double = 180.0,
+        sigmaBandK: Double = 0.0,
+        sigmaBandHorizonMin: Double = 60.0,
+        sigmaBandTaperMin: Double = 120.0,
+        sigmaScalingH: Double = 0.71,
+        sigmaEwmaLambda: Double = 0.875,
+        sigmaNoiseMgdl: Double = 1.4,
+        calmHighAfScale: Double = 1.0,
+        calmHighBgMin: Double = 180.0,
+        calmHighSigmaMax: Double = 3.5,
         sensDampWindowMin: Double = 45.0,
         sensDampThresholdRate: Double = 0.4,
         sensDampGain: Double = 0.0,
@@ -720,6 +746,15 @@ public struct EvalConfig: Codable, Sendable {
         self.riseGateSlope                  = riseGateSlope
         self.riseGateRcRiseScale            = riseGateRcRiseScale
         self.riseGateBgMax                  = riseGateBgMax
+        self.sigmaBandK                     = sigmaBandK
+        self.sigmaBandHorizonMin            = sigmaBandHorizonMin
+        self.sigmaBandTaperMin              = sigmaBandTaperMin
+        self.sigmaScalingH                  = sigmaScalingH
+        self.sigmaEwmaLambda                = sigmaEwmaLambda
+        self.sigmaNoiseMgdl                 = sigmaNoiseMgdl
+        self.calmHighAfScale                = calmHighAfScale
+        self.calmHighBgMin                  = calmHighBgMin
+        self.calmHighSigmaMax               = calmHighSigmaMax
         self.sensDampWindowMin              = sensDampWindowMin
         self.sensDampThresholdRate          = sensDampThresholdRate
         self.sensDampGain                   = sensDampGain
@@ -808,7 +843,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
         case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsSmoothGlucose, oapsPumpPulse
-        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
 
@@ -945,6 +980,15 @@ public struct EvalConfig: Codable, Sendable {
         self.riseGateSlope = try c.decodeIfPresent(Double.self, forKey: .riseGateSlope) ?? 0.0
         self.riseGateRcRiseScale = try c.decodeIfPresent(Double.self, forKey: .riseGateRcRiseScale) ?? 1.0
         self.riseGateBgMax = try c.decodeIfPresent(Double.self, forKey: .riseGateBgMax) ?? 180.0
+        self.sigmaBandK = try c.decodeIfPresent(Double.self, forKey: .sigmaBandK) ?? 0.0
+        self.sigmaBandHorizonMin = try c.decodeIfPresent(Double.self, forKey: .sigmaBandHorizonMin) ?? 60.0
+        self.sigmaBandTaperMin = try c.decodeIfPresent(Double.self, forKey: .sigmaBandTaperMin) ?? 120.0
+        self.sigmaScalingH = try c.decodeIfPresent(Double.self, forKey: .sigmaScalingH) ?? 0.71
+        self.sigmaEwmaLambda = try c.decodeIfPresent(Double.self, forKey: .sigmaEwmaLambda) ?? 0.875
+        self.sigmaNoiseMgdl = try c.decodeIfPresent(Double.self, forKey: .sigmaNoiseMgdl) ?? 1.4
+        self.calmHighAfScale = try c.decodeIfPresent(Double.self, forKey: .calmHighAfScale) ?? 1.0
+        self.calmHighBgMin = try c.decodeIfPresent(Double.self, forKey: .calmHighBgMin) ?? 180.0
+        self.calmHighSigmaMax = try c.decodeIfPresent(Double.self, forKey: .calmHighSigmaMax) ?? 3.5
         self.sensDampWindowMin = try c.decodeIfPresent(Double.self, forKey: .sensDampWindowMin) ?? 45.0
         self.sensDampThresholdRate = try c.decodeIfPresent(Double.self, forKey: .sensDampThresholdRate) ?? 0.4
         self.sensDampGain = try c.decodeIfPresent(Double.self, forKey: .sensDampGain) ?? 0.0
@@ -1075,6 +1119,15 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(riseGateSlope, forKey: .riseGateSlope)
         try c.encode(riseGateRcRiseScale, forKey: .riseGateRcRiseScale)
         try c.encode(riseGateBgMax, forKey: .riseGateBgMax)
+        try c.encode(sigmaBandK, forKey: .sigmaBandK)
+        try c.encode(sigmaBandHorizonMin, forKey: .sigmaBandHorizonMin)
+        try c.encode(sigmaBandTaperMin, forKey: .sigmaBandTaperMin)
+        try c.encode(sigmaScalingH, forKey: .sigmaScalingH)
+        try c.encode(sigmaEwmaLambda, forKey: .sigmaEwmaLambda)
+        try c.encode(sigmaNoiseMgdl, forKey: .sigmaNoiseMgdl)
+        try c.encode(calmHighAfScale, forKey: .calmHighAfScale)
+        try c.encode(calmHighBgMin, forKey: .calmHighBgMin)
+        try c.encode(calmHighSigmaMax, forKey: .calmHighSigmaMax)
         try c.encode(sensDampWindowMin, forKey: .sensDampWindowMin)
         try c.encode(sensDampThresholdRate, forKey: .sensDampThresholdRate)
         try c.encode(sensDampGain, forKey: .sensDampGain)
