@@ -45,6 +45,8 @@ hash have no surviving traces.
 | [C18](#c18-asymmetric-standard-rc) | Asymmetric **standard** RC (rise-cut without integral RC) | pull-back | scored (4 donors) | **NEUTRAL / dial-like** — closed |
 | [C20](#c20-post-low-gated-rc-rise-cut) | Post-low-gated RC rise-cut (corner candidate) | pull-back, gated | scored (7 beds) | **IMPROVES on 3/7 beds** at (0.3,720,180) — b11_90d +0.019, bddp03 +0.014 (TIR up AND t54 down at op), bddp08 +0.008 — and positive on all 7 (mean ≈ +0.02); best multi-donor result so far |
 | [C21](#c21-fast-rise-gated-rc-rise-cut) | Fast-rise-gated RC rise-cut (meal-rise-stacking corner) | pull-back, gated | scored (bddp11) | NEUTRAL (+0.007 best) — closed |
+| [C22](#c22-σ-widened-lower-forecast-band) | σ-widened lower forecast band (volatility-aware min guard) | pull-back, state-gated | **running (E11)** | from *The Shape of Glucose* (2026-08-25) |
+| [C23](#c23-calm-high-licence) | Calm-high licence (larger AF when high AND low σ) | dose-more, state-gated | **running (E11)** | addressable window ~3–8 % of samples |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -222,6 +224,10 @@ memory, no fitting) — a natural "data-needed" baseline for C12.
 6 donors, 2026-08-04): retro270 rank 2.33 (bddp06 +0.131), retro90 uniformly slightly below
 IRC, **dur120 harmful** (bddp01 −1.015). None beats plain IRC.
 
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11: RC effect duration **40 / 30 min** (deployed 60) — the shorter-projection case the July panel never ran; motivated by the 40-min increment-autocorrelation zero crossing in *The Shape of Glucose* | running |
+
 ## C16 · Manual-bolus rec scaling
 `--candidate-manual-bolus-rec-scale` (user2, 2026-07-14/16): lift +0.185 on the ISF dial →
 +0.036 on insulin-needs. The canonical "lift evaporates under a fair baseline" case. Not an
@@ -303,6 +309,31 @@ during an unannounced rise that land after absorption ends.
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
 | 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E10 `band_table_e10.csv`: (1.5,0.5,180) +0.007 [−0.001,+0.014]; (2,0.5,180) +0.004; (2,0,180) +0.001; (2,0.5,140) −0.000 | **NEUTRAL** — the gate is active only during the rise itself (~minutes), too brief to prevent the correction stack that lands hours later; the post-low window (C20) is the better gate for the same actuator. Closed |
+
+## C22 · σ-widened lower forecast band
+`--candidate-sigma-band-k k` (+ `-horizon-min 60`, `-taper-min 120`, `-h 0.71`, `-lambda 0.875`,
+`-noise 1.4`), added 2026-08-26 from *The Shape of Glucose* (artifact 2026-08-25): σ5 = causal EWMA std
+of the 5-min increment of the candidate's own glucose (26-min half-life, variance floored at 2·noise²);
+each predicted point at τ min is lowered by k·σ5·(τ/5)^0.71 out to 60 min, tapering to 0 by 120 min.
+The eventual BG is untouched — only the predicted *minimum* sees the volatility, so the min-guard /
+suspend logic binds earlier in volatile states (the artifact's view 15: at matched level and trend, the
+top-σ tercile carries 3.8× the 30-min hypo rate). "Modify the forecast, not the output." Laplace
+quantile is folded into k. Causal by construction.
+
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11: k ∈ {1, 2, 3} | running |
+
+## C23 · Calm-high licence
+`--candidate-calm-high-af-scale s` (+ `-bg 180`, `-sigma-max 3.5`): when BG ≥ 180 AND σ5 ≤ σmax, the
+automatic-bolus application factor is scaled by s (capped at 1). The artifact's licence direction: a calm
+high rarely becomes a low (high-σ highs are 2.6× more likely to end <70 within 2 h), so the fixed 0.4 AF
+is most conservative exactly there. Addressable window is modest (3.6 % of samples median, 6–8 % for
+runs-high donors). Dose-more, state-gated — the goal's "know when to dose more aggressively" lever.
+
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11: s ∈ {1.5, 2.0} at σmax 3.5; s 1.5 at σmax 2.5 | running |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum

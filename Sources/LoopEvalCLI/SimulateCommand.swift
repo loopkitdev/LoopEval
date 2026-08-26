@@ -368,6 +368,24 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateRiseGateRcRiseScale: Double = 1.0
     @Option(name: .long, help: "BG ceiling (mg/dL) for the fast-rise gate. Default 180.")
     var candidateRiseGateBgMax: Double = 180.0
+    @Option(name: .long, help: "σ-widened LOWER forecast band (candidate): each predicted point at τ min is lowered by k·σ5·(τ/5)^H up to --candidate-sigma-band-horizon-min, tapering to 0 by --candidate-sigma-band-taper-min; σ5 = causal EWMA std of the 5-min increment (λ --candidate-sigma-lambda per step, variance floored at 2·noise²). Eventual BG unchanged; the predicted minimum sees the volatility. 0 = off.")
+    var candidateSigmaBandK: Double = 0.0
+    @Option(name: .long, help: "σ band horizon (min) over which the band widens as (τ/5)^H. Default 60.")
+    var candidateSigmaBandHorizonMin: Double = 60.0
+    @Option(name: .long, help: "σ band taper end (min): the widening returns to 0 here. Default 120.")
+    var candidateSigmaBandTaperMin: Double = 120.0
+    @Option(name: .long, help: "Short-range scaling exponent H for the σ band (0.5 = random walk; measured 0.71). Default 0.71.")
+    var candidateSigmaH: Double = 0.71
+    @Option(name: .long, help: "EWMA λ per 5-min step for σ5 (0.875 ≈ 26-min half-life). Default 0.875.")
+    var candidateSigmaLambda: Double = 0.875
+    @Option(name: .long, help: "Per-reading sensor noise σ (mg/dL) used as the σ5 variance floor (2·noise²). Default 1.4.")
+    var candidateSigmaNoise: Double = 1.4
+    @Option(name: .long, help: "Calm-high LICENCE (candidate): when BG >= --candidate-calm-high-bg AND σ5 <= --candidate-calm-high-sigma-max, scale the application factor by this (capped at 1.0). 1.0 = off.")
+    var candidateCalmHighAfScale: Double = 1.0
+    @Option(name: .long, help: "Calm-high licence BG threshold (mg/dL). Default 180.")
+    var candidateCalmHighBg: Double = 180.0
+    @Option(name: .long, help: "Calm-high licence σ5 ceiling (mg/dL per 5 min). Default 3.5.")
+    var candidateCalmHighSigmaMax: Double = 3.5
     @Option(name: .long, help: "Comma-separated outage REASONS (from the outages/disruptions CSV) during which the pump keeps delivering SCHEDULED basal instead of nothing — e.g. 'loop_offline' (phone away: the pod runs its schedule, only new adjustments stop). Default: none (every outage clamps delivery to 0).")
     var outageBasalReasons: String?
     @Option(name: .long, help: "PREDICTIVE pre-low damper GAIN: causal sustained-sensitivity trigger (causal ICE = v_bg - v_insulin over a trailing window). ISF-mult increase per mg/dL/min of negative ICE beyond the threshold; raises ISF proactively before the low. 0 = off.")
@@ -584,6 +602,15 @@ struct SimulateCommand: AsyncParsableCommand {
             riseGateSlope: candidateRiseGateSlope,
             riseGateRcRiseScale: candidateRiseGateRcRiseScale,
             riseGateBgMax: candidateRiseGateBgMax,
+            sigmaBandK: candidateSigmaBandK,
+            sigmaBandHorizonMin: candidateSigmaBandHorizonMin,
+            sigmaBandTaperMin: candidateSigmaBandTaperMin,
+            sigmaScalingH: candidateSigmaH,
+            sigmaEwmaLambda: candidateSigmaLambda,
+            sigmaNoiseMgdl: candidateSigmaNoise,
+            calmHighAfScale: candidateCalmHighAfScale,
+            calmHighBgMin: candidateCalmHighBg,
+            calmHighSigmaMax: candidateCalmHighSigmaMax,
             sensDampWindowMin: candidateSensDampWindow,
             sensDampThresholdRate: candidateSensDampThreshold,
             sensDampGain: candidateSensDampGain,
