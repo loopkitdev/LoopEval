@@ -2547,7 +2547,8 @@ extension EvaluationEngine {
         // σ-widened LOWER band: lower each predicted point at τ min by k·σ5·(τ/5)^H up to
         // the horizon, tapering to 0 by taper — the eventual BG is untouched, the
         // predicted MINIMUM (min-guard / suspend logic) sees the volatility.
-        if config.sigmaBandK > 0, sigma5.isFinite, let t0 = prediction.glucose.first?.startDate {
+        let sigmaBandAllowed = !config.sigmaBandCobGate || (prediction.activeCarbs ?? 0) <= 0
+        if config.sigmaBandK > 0, sigmaBandAllowed, sigma5.isFinite, let t0 = prediction.glucose.first?.startDate {
             let unit = LoopUnit.milligramsPerDeciliter
             let hz = config.sigmaBandHorizonMin, tp = max(config.sigmaBandTaperMin, hz + 1)
             let sHz = pow(max(hz, 5.0) / 5.0, config.sigmaScalingH)
