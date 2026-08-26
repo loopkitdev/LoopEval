@@ -43,6 +43,7 @@ hash have no surviving traces.
 | [C16](#c16-manual-bolus-rec-scaling) | Manual-bolus rec scaling | announcer behaviour | scored | +0.185 ISF-dial → +0.036 needs-dial (cautionary case) |
 | [C17](#c17-oref-as-candidate-engine) | oref/OpenAPS as candidate engine | engine | fidelity only | no frontier number |
 | [C18](#c18-asymmetric-standard-rc) | Asymmetric **standard** RC (rise-cut without integral RC) | pull-back | scored (4 donors) | **NEUTRAL / dial-like** — closed |
+| [C20](#c20-post-low-gated-rc-rise-cut) | Post-low-gated RC rise-cut (corner candidate) | pull-back, gated | scored (bddp11 90 d); 2-mo beds running | **IMPROVES** +0.014 [+0.001,+0.029] at (0.5, 720 min, 180) — first corner-gated lift |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -271,6 +272,22 @@ hour-of-day, BG, ICE last 10 min, ICE last 120 min.
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
 | 2026-08-24 | bddp11 | natural | 90 d; in-sample (61 daily blocks) vs holdout (29), band 1.00±0.1 | E8 `band_table_e8_{insample,holdout}.csv`: **fc60** in-sample −0.016 [−0.086,+0.033] (@op ΔTIR +4.0, Δt54 +0.44) → holdout **−0.316 [−0.679,−0.114]** (ΔTIR −0.5, Δt54 +1.35); **fc60h** (×0.5) in-sample +0.014 (ΔTIR +2.5, Δt54 +0.07) → holdout −0.038 [−0.079,+0.000] (Δt54 +0.33) | **WORSE / NEUTRAL-trending-worse on holdout.** Holdout R² 0.16 is nowhere near enough: the false-positive pressure makes lows faster than the true-positive pressure buys TIR. Same verdict as the July predictor, now with the skill requirement quantified (see O1 degraded oracles): a 60-min ICE forecaster must reach **R² ≳ 0.7 with unbiased errors** before an additive forecast offset pays |
+
+## C20 · Post-low-gated RC rise-cut
+`--candidate-postlow-rc-rise-scale S --candidate-postlow-window W --candidate-postlow-rc-bg-max B`
+(added 2026-08-26). Corner-gated version of the rise-cut: only within W minutes of a <70 sample
+AND while BG < B does standard RC scale its positive (unexplained-rise) discrepancy by S; above B
+the high is treated as real and RC is normal; no gate → identical to std. Motivation — the corner map
+(`runs/2026-08-24-unannounced/corner_map.py`, corner_map.csv): on bddp11 the post-low re-dose class is
+40 % of severe-low minutes and the post-low rebound highs are the largest high class (2.4–2.8 % of
+time >250); the rebounds are full unannounced meals (implied 90–300 g, median 157 g), Loop's first
+bolus comes ~40 min after the nadir at BG ≈ 106 on RC/momentum projection, and the second low lands
+when absorption ends with 2–5 U still on board. The blanket post-low ISF-mult (C10) lost 3.5–8 TIR
+because it also damped the *real* high; this gate releases at B so the high still gets corrected.
+
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E9 `band_table_e9.csv`: **(0.5,720,180) lift +0.014 [+0.001,+0.029], dom 1.00 (lo 0.60); @op ΔTIR −0.4 [−0.6,−0.3], Δt54 −0.05 [−0.10,−0.01], Δt70 −0.22**; (0,360,140) +0.007 [+0.002,+0.014], dom 0.60; (0.5,360,180) +0.007 [−0.001,+0.019]; (0,360,180) +0.007 [−0.007,+0.025] (ΔTIR −1.0) | **IMPROVES** (two settings clear the CI; longer window better, releasing at 180 better than cutting to zero). Small — recovers ~⅓ of the corner's t54 ceiling (0.14) — but a genuine corner-gated lift, cheaper in TIR than aIRC (−0.4 vs −0.9) for ~⅔ of its t54 effect |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum

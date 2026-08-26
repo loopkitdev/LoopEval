@@ -358,6 +358,12 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidatePostlowTrendGain: Double = 0.0
     @Option(name: .long, help: "Sustained post-low ISF REDUCTION factor (>1 = insulin modeled more effective, so Loop sizes the rebound correction DOWN at the source; decays with recency over the post-low window; EGP-safe via physical-delivery split). 1.0 = off.")
     var candidatePostlowIsfMult: Double = 1.0
+    @Option(name: .long, help: "Post-low-GATED standard-RC rise-cut (corner candidate): within --candidate-postlow-window minutes of a sample below --candidate-postlow-threshold AND while BG < --candidate-postlow-rc-bg-max, scale the POSITIVE (unexplained-rise) RC discrepancy by this (0 = ignore rebound rises entirely). 1.0 = off.")
+    var candidatePostlowRcRiseScale: Double = 1.0
+    @Option(name: .long, help: "BG ceiling (mg/dL) for the post-low RC rise-cut gate: above it the high is treated as real and RC is normal. Default 180.")
+    var candidatePostlowRcBgMax: Double = 180.0
+    @Option(name: .long, help: "Comma-separated outage REASONS (from the outages/disruptions CSV) during which the pump keeps delivering SCHEDULED basal instead of nothing — e.g. 'loop_offline' (phone away: the pod runs its schedule, only new adjustments stop). Default: none (every outage clamps delivery to 0).")
+    var outageBasalReasons: String?
     @Option(name: .long, help: "PREDICTIVE pre-low damper GAIN: causal sustained-sensitivity trigger (causal ICE = v_bg - v_insulin over a trailing window). ISF-mult increase per mg/dL/min of negative ICE beyond the threshold; raises ISF proactively before the low. 0 = off.")
     var candidateSensDampGain: Double = 0.0
     @Option(name: .long, help: "Predictive damper: causal-ICE rate (mg/dL/min) below which the damper engages (BG dropping this much faster than insulin explains). Default 0.4.")
@@ -567,6 +573,8 @@ struct SimulateCommand: AsyncParsableCommand {
             postlowThresholdMgdl: candidatePostlowThreshold,
             postlowTrendGain: candidatePostlowTrendGain,
             postlowIsfMult: candidatePostlowIsfMult,
+            postlowRcRiseScale: candidatePostlowRcRiseScale,
+            postlowRcBgMax: candidatePostlowRcBgMax,
             sensDampWindowMin: candidateSensDampWindow,
             sensDampThresholdRate: candidateSensDampThreshold,
             sensDampGain: candidateSensDampGain,
@@ -816,6 +824,7 @@ struct SimulateCommand: AsyncParsableCommand {
             isfBoostGateEventualMgdl: candidateIsfBoostGateEventual,
             isfBoostVetoIceRate: candidateIsfBoostVetoIce,
             outages: outages,
+            outageBasalContinuesReasons: Set((outageBasalReasons ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }),
             cgmStaleGuardSec: cgmStaleGuardMin * 60,
             counterfactualMode: candidateCounterfactual,
             decisionTimeReplay: decisionTimeReplay,
