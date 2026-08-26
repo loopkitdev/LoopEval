@@ -2350,6 +2350,19 @@ extension EvaluationEngine {
                 if recentLow { gatedRiseScale = config.postlowRcRiseScale; gatedAsymStdRC = true }
             }
         }
+        // Fast-rise-gated RC rise-cut (meal-rise-stacking corner): trailing 15-min slope.
+        if config.riseGateSlope > 0, let lastG = input.glucose.last {
+            let mgdlU = LoopUnit.milligramsPerDeciliter
+            let bgNow = lastG.quantity.doubleValue(for: mgdlU)
+            if bgNow < config.riseGateBgMax {
+                var slope = 0.0
+                for s in input.glucose.reversed() {
+                    let dt = lastG.startDate.timeIntervalSince(s.startDate)
+                    if dt >= 15 * 60 { slope = (bgNow - s.quantity.doubleValue(for: mgdlU)) / (dt / 60.0); break }
+                }
+                if slope >= config.riseGateSlope { gatedRiseScale = config.riseGateRcRiseScale; gatedAsymStdRC = true }
+            }
+        }
         let effectiveInput = PredictionInput(
             glucose: input.glucose,
             doses: input.doses,
