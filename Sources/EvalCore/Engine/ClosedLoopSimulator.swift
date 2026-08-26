@@ -112,6 +112,10 @@ extension EvaluationEngine {
         isfBoostGateEventualMgdl: Double? = nil,
         isfBoostVetoIceRate: Double? = nil,
         outages: [Outage] = [],
+        // Outage reasons during which the PUMP keeps delivering SCHEDULED basal (e.g.
+        // `loop_offline`: phone away — the pod runs its schedule; only NEW adjustments
+        // stop). Default empty = legacy behaviour (every outage clamps delivery to 0).
+        outageBasalContinuesReasons: Set<String> = [],
         cgmStaleGuardSec: TimeInterval = 0,
         counterfactualMode: Bool = false,
         // Decision-time replay: NOT a closed loop. Both arms see the IDENTICAL real
@@ -1126,7 +1130,9 @@ extension EvaluationEngine {
             // Two structurally different conditions can override the sim's
             // dose decision at step t. Pump outage takes precedence over a
             // CGM gap (if the pump is physically off, CGM staleness is moot).
-            let inOutage = !outages.isEmpty && outages.containing(t) != nil
+            let outageNow = outages.isEmpty ? nil : outages.containing(t)
+            let basalContinues = outageNow.map { outageBasalContinuesReasons.contains($0.reason) } ?? false
+            let inOutage = outageNow != nil && !basalContinues
 
             // CGM staleness: Loop refuses to issue a NEW dose when the latest
             // glucose is older than its inputDataRecencyInterval (15min,
@@ -1168,8 +1174,8 @@ extension EvaluationEngine {
                 baselineDose = -schedStepU
                 candidateBolus = 0
                 candidateTempRate = 0
-            } else if cgmStale {
-                // CGM gap: no NEW dose adjustment, scheduled basal continues.
+            } else if cgmStale || basalContinues {
+                // CGM gap (or loop-offline gap): no NEW dose adjustment, scheduled basal continues.
                 // dose ADJUSTMENT (delta over scheduled) = 0, so absolute
                 // delivery = scheduled. candidateTempRate reports the
                 // scheduled rate to reflect "running at schedule".
@@ -2325,6 +2331,25 @@ extension EvaluationEngine {
         } else {
             effectiveTarget = input.target
         }
+        // Post-low-gated RC rise-cut (corner candidate): within postlowWindowMin of a
+        // <postlowThresholdMgdl sample AND while BG < postlowRcBgMax, scale the POSITIVE
+        // (unexplained-rise) discrepancy in standard RC by postlowRcRiseScale — treat the
+        // rebound rise as transient until BG proves it is a real high. Off = 1.0.
+        var gatedRiseScale = config.ircRiseGainScale
+        var gatedAsymStdRC = config.asymmetricStandardRC
+        if config.postlowRcRiseScale != 1.0, let lastG = input.glucose.last {
+            let mgdlU = LoopUnit.milligramsPerDeciliter
+            if lastG.quantity.doubleValue(for: mgdlU) < config.postlowRcBgMax {
+                let windowSec = config.postlowWindowMin * 60.0
+                var recentLow = false
+                for s in input.glucose.reversed() {
+                    let age = lastG.startDate.timeIntervalSince(s.startDate)
+                    if age > windowSec { break }
+                    if s.quantity.doubleValue(for: mgdlU) < config.postlowThresholdMgdl { recentLow = true; break }
+                }
+                if recentLow { gatedRiseScale = config.postlowRcRiseScale; gatedAsymStdRC = true }
+            }
+        }
         let effectiveInput = PredictionInput(
             glucose: input.glucose,
             doses: input.doses,
@@ -2386,11 +2411,11 @@ extension EvaluationEngine {
             algorithmEffectsOptions: .all,
             useIntegralRetrospectiveCorrection: config.useIntegralRC,
             ircDropGainScale: config.ircDropGainScale,
-            ircRiseGainScale: config.ircRiseGainScale,
+            ircRiseGainScale: gatedRiseScale,
             ircLowMemoryScale: config.ircLowMemoryScale,
             ircDropDurationScale: config.ircDropDurationScale,
             ircRiseDurationScale: config.ircRiseDurationScale,
-            asymmetricStandardRC: config.asymmetricStandardRC,
+            asymmetricStandardRC: gatedAsymStdRC,
             rcRetrospectionInterval: rcRetroInterval,
             rcEffectDuration: rcEffDuration,
             uamProjectionMinutes: config.uamProjectionMinutes,

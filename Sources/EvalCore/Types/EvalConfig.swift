@@ -496,6 +496,10 @@ public struct EvalConfig: Codable, Sendable {
     /// in practice (acts at the rebound's super-basal dosing where net~physical).
     /// 1.0 = off.
     public var postlowIsfMult: Double
+    /// Post-low-gated standard-RC rise-cut: within postlowWindowMin of a low and while
+    /// BG < postlowRcBgMax, scale the positive RC discrepancy by this. 1.0 = off.
+    public var postlowRcRiseScale: Double
+    public var postlowRcBgMax: Double
 
     /// PREDICTIVE pre-low damper: a strict-causal sustained-sensitivity trigger.
     /// Over a trailing window compute causal ICE = v_bg − v_insulin (BG dropping
@@ -576,6 +580,8 @@ public struct EvalConfig: Codable, Sendable {
         postlowThresholdMgdl: Double = 70.0,
         postlowTrendGain: Double = 0.0,
         postlowIsfMult: Double = 1.0,
+        postlowRcRiseScale: Double = 1.0,
+        postlowRcBgMax: Double = 180.0,
         sensDampWindowMin: Double = 45.0,
         sensDampThresholdRate: Double = 0.4,
         sensDampGain: Double = 0.0,
@@ -700,6 +706,8 @@ public struct EvalConfig: Codable, Sendable {
         self.postlowThresholdMgdl           = postlowThresholdMgdl
         self.postlowTrendGain               = postlowTrendGain
         self.postlowIsfMult                 = postlowIsfMult
+        self.postlowRcRiseScale             = postlowRcRiseScale
+        self.postlowRcBgMax                 = postlowRcBgMax
         self.sensDampWindowMin              = sensDampWindowMin
         self.sensDampThresholdRate          = sensDampThresholdRate
         self.sensDampGain                   = sensDampGain
@@ -788,7 +796,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
         case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsSmoothGlucose, oapsPumpPulse
-        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
 
@@ -920,6 +928,8 @@ public struct EvalConfig: Codable, Sendable {
         self.postlowThresholdMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowThresholdMgdl) ?? 70.0
         self.postlowTrendGain = try c.decodeIfPresent(Double.self, forKey: .postlowTrendGain) ?? 0.0
         self.postlowIsfMult = try c.decodeIfPresent(Double.self, forKey: .postlowIsfMult) ?? 1.0
+        self.postlowRcRiseScale = try c.decodeIfPresent(Double.self, forKey: .postlowRcRiseScale) ?? 1.0
+        self.postlowRcBgMax = try c.decodeIfPresent(Double.self, forKey: .postlowRcBgMax) ?? 180.0
         self.sensDampWindowMin = try c.decodeIfPresent(Double.self, forKey: .sensDampWindowMin) ?? 45.0
         self.sensDampThresholdRate = try c.decodeIfPresent(Double.self, forKey: .sensDampThresholdRate) ?? 0.4
         self.sensDampGain = try c.decodeIfPresent(Double.self, forKey: .sensDampGain) ?? 0.0
@@ -1045,6 +1055,8 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(postlowThresholdMgdl, forKey: .postlowThresholdMgdl)
         try c.encode(postlowTrendGain, forKey: .postlowTrendGain)
         try c.encode(postlowIsfMult, forKey: .postlowIsfMult)
+        try c.encode(postlowRcRiseScale, forKey: .postlowRcRiseScale)
+        try c.encode(postlowRcBgMax, forKey: .postlowRcBgMax)
         try c.encode(sensDampWindowMin, forKey: .sensDampWindowMin)
         try c.encode(sensDampThresholdRate, forKey: .sensDampThresholdRate)
         try c.encode(sensDampGain, forKey: .sensDampGain)
