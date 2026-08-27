@@ -39,6 +39,27 @@ role gets promoted into *this* file deliberately, as its own commit.
 property; commit them to `main` and the other worktrees pick them up on their next merge.
 Findings stay in the role's own files.
 
+**Publishing back to `main`.** Merges run both ways. When a role branch grows something the
+others need — a new analysis module, a CLI flag, a fix in shared code — publish it:
+
+1. `git merge main` **in your own worktree first**, so conflicts get resolved where you can
+   run your own checks, never on the trunk.
+2. Re-run what your change invalidates *before* publishing, not after. For anything touching
+   the engine or the dose path that means the identity check (`docs/agents/verification.md`).
+3. `git -C <main worktree> merge --ff-only <your-branch>`, then push.
+
+`--ff-only` is the enforcement, not a nicety: it can only succeed if step 1 was done against
+the current `main`. If it refuses, `main` moved while you worked — merge it again and retry.
+The invariant it buys is that `main` is a strict superset of every role branch, which is what
+makes "pick it up on the next merge" mean anything.
+
+**Publish the finished piece, not the work in progress.** Everything on `main` reaches every
+other checkout, so what goes back is the reusable thing — the module, the flag, the fix. A
+half-built experiment stays on its role branch until it is worth someone else's merge. The
+failure this prevents is the split one: a rule written into `main` whose code never left the
+role branch (`AGENTS.md` pointed every role at `dist_views.style.OUT` while the module
+existed only on `eda`, so no other worktree could import it).
+
 ---
 
 ## Private site config (`PRIVATE.md`)
