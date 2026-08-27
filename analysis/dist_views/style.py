@@ -107,8 +107,14 @@ def group_of(row) -> str:
 
 
 def color_for(co: pd.DataFrame, alias: str) -> str:
-    r = co[co["alias"] == alias].iloc[0]
-    return GROUP_COLOR.get(group_of(r), MUTED)
+    """Behaviour-group colour, grey for anyone the cohort does not describe.
+
+    Some views legitimately cover more people than the four-stream cohort — a
+    glucose-only statistic has no carb history to classify by. An unknown alias
+    is grey, never a colour asserting a group it was never assigned (lesson 20).
+    """
+    r = co[co["alias"] == alias]
+    return GROUP_COLOR.get(group_of(r.iloc[0]), MUTED) if len(r) else MUTED
 
 
 def axes(ax, *, grid=True):
@@ -200,6 +206,50 @@ def kde(x, grid, bw=None):
     w = np.exp(-0.5 * d ** 2) * cnt[None, :]
     dens = w.sum(axis=1) / (len(x) * bw * np.sqrt(2 * np.pi))
     return dens
+
+
+def strip_kde(ax, values, colors, *, fmt="{:.2f}", note=None, note_x=None,
+              note_va="center", seed=7, pad=0.12):
+    """Where a per-person statistic sits ACROSS people, on one axis.
+
+    A density curve filling the panel, one dot per person jittered underneath
+    it, the median as a full-height line and p10-p90 as a bar. This is the form
+    to reach for whenever the question is "what does this number look like over
+    the cohort" — a labelled bar per person stops being readable past ~30 and
+    the shape of the population is the point anyway. Per-person values belong
+    in the ledger table, not on an axis.
+
+    Returns (p10, median, p90).
+    """
+    import numpy as np
+    values = np.asarray(values, dtype=float)
+    v = values[np.isfinite(values)]
+    if not len(v):
+        return (np.nan, np.nan, np.nan)
+    rng = np.random.default_rng(seed)
+    lo, med, hi = np.percentile(v, [10, 50, 90])
+    span = max(v.max() - v.min(), 1e-9)
+    gx = np.linspace(v.min() - pad * span, v.max() + pad * span, 240)
+    gy = kde(v, gx)
+    gy = gy / max(gy.max(), 1e-12)
+    ax.fill_between(gx, 0, gy, color=COOL, alpha=0.16, lw=0, zorder=1)
+    ax.plot(gx, gy, color=COOL, lw=1.5, alpha=0.7, zorder=2)
+    ax.scatter(values, -0.13 - rng.uniform(0, 0.14, len(values)), s=24, c=colors,
+               alpha=0.7, lw=0, zorder=3)
+    ax.plot([lo, hi], [-0.34, -0.34], color=INK, lw=2.2, alpha=0.35, zorder=3,
+            solid_capstyle="round")
+    ax.plot([med, med], [-0.40, 1.02], color=INK, lw=2.0, zorder=4)
+    if note is None:
+        note = (f"median {fmt.format(med)}\n"
+                f"p10-p90 {fmt.format(lo)} to {fmt.format(hi)}")
+    if note:
+        x = med + 0.04 * span if note_x is None else note_x
+        ha = "left" if note_x is None else "right"
+        ax.text(x, 0.62, note, fontsize=8.5, color=INK, ha=ha, va=note_va,
+                linespacing=1.5, zorder=5)
+    ax.set_ylim(-0.46, 1.26)
+    ax.set_yticks([])
+    return (lo, med, hi)
 
 
 def order_by(co: pd.DataFrame, col: str, ascending=False) -> list[str]:
