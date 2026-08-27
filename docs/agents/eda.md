@@ -14,8 +14,12 @@ weekly states; and the measurement limits that bound all of it. Built by
 `analysis/loopeval_analysis/{dists,volatility,traits}.py` + `analysis/dist_views/`, outputs
 under `runs/2026-08-25-distributions/`.
 
-**It is kept current, not finished.** New data or a new finding ⇒ update it and republish to
-the SAME url (`Artifact` with `url=`), never a fresh document beside it.
+**It is kept current, but it is not a log of the work.** Update it when the user asks for
+it to be updated — a new finding is not itself a reason to touch the page (see *Working
+style* in AGENTS.md). When you do publish, it goes to the SAME url (`Artifact` with
+`url=`), never a fresh document beside it. What earns a place: something that says
+what glucose IS. What does not: a result whose content is that some explanation
+*fails*, a methods note, a robustness check. Those go in the lessons below.
 
 **It is an EXTERNAL SUMMARY OF FINDINGS — not a lab notebook.** The reader wants the shape of
 glucose, not the story of how it was measured. Therefore:
