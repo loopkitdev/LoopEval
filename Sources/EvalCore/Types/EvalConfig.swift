@@ -531,6 +531,12 @@ public struct EvalConfig: Codable, Sendable {
     /// already on board, so the extra AF stacks into the meal bolus and adds lows (bddp03 E11c:
     /// Δt54 +0.10 at op). The same gate removed the announcer harm from the σ band (C22 E11e).
     public var calmHighCobGate: Bool
+    /// Calm-high licence TREND gate: require the trailing 30-min glucose slope (mg/dL/min) to be
+    /// at least this before licensing. A steady 1 mg/dL/min fall is 5 mg/dL per 5 min, i.e. σ5 ≈ 5,
+    /// which passes a donor-median σ gate — so an unmodified licence fires on the calm DESCENT of a
+    /// long high 31–56 % of the time (measured, `calmhigh_slope.py`), front-loading insulin into a
+    /// high that was already coming down. -.infinity (default) = no trend gate.
+    public var calmHighMinSlope: Double
 
     /// PREDICTIVE pre-low damper: a strict-causal sustained-sensitivity trigger.
     /// Over a trailing window compute causal ICE = v_bg − v_insulin (BG dropping
@@ -627,6 +633,7 @@ public struct EvalConfig: Codable, Sendable {
         calmHighSigmaMax: Double = 3.5,
         sigmaBandCobGate: Bool = false,
         calmHighCobGate: Bool = false,
+        calmHighMinSlope: Double = -.infinity,
         sensDampWindowMin: Double = 45.0,
         sensDampThresholdRate: Double = 0.4,
         sensDampGain: Double = 0.0,
@@ -767,6 +774,7 @@ public struct EvalConfig: Codable, Sendable {
         self.calmHighSigmaMax               = calmHighSigmaMax
         self.sigmaBandCobGate               = sigmaBandCobGate
         self.calmHighCobGate                = calmHighCobGate
+        self.calmHighMinSlope               = calmHighMinSlope
         self.sensDampWindowMin              = sensDampWindowMin
         self.sensDampThresholdRate          = sensDampThresholdRate
         self.sensDampGain                   = sensDampGain
@@ -855,7 +863,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
         case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsSmoothGlucose, oapsPumpPulse
-        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
 
@@ -1003,6 +1011,7 @@ public struct EvalConfig: Codable, Sendable {
         self.calmHighSigmaMax = try c.decodeIfPresent(Double.self, forKey: .calmHighSigmaMax) ?? 3.5
         self.sigmaBandCobGate = try c.decodeIfPresent(Bool.self, forKey: .sigmaBandCobGate) ?? false
         self.calmHighCobGate = try c.decodeIfPresent(Bool.self, forKey: .calmHighCobGate) ?? false
+        self.calmHighMinSlope = try c.decodeIfPresent(Double.self, forKey: .calmHighMinSlope) ?? -.infinity
         self.sensDampWindowMin = try c.decodeIfPresent(Double.self, forKey: .sensDampWindowMin) ?? 45.0
         self.sensDampThresholdRate = try c.decodeIfPresent(Double.self, forKey: .sensDampThresholdRate) ?? 0.4
         self.sensDampGain = try c.decodeIfPresent(Double.self, forKey: .sensDampGain) ?? 0.0
@@ -1144,6 +1153,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(calmHighSigmaMax, forKey: .calmHighSigmaMax)
         try c.encode(sigmaBandCobGate, forKey: .sigmaBandCobGate)
         try c.encode(calmHighCobGate, forKey: .calmHighCobGate)
+        try c.encode(calmHighMinSlope.isFinite ? calmHighMinSlope : -1e30, forKey: .calmHighMinSlope)
         try c.encode(sensDampWindowMin, forKey: .sensDampWindowMin)
         try c.encode(sensDampThresholdRate, forKey: .sensDampThresholdRate)
         try c.encode(sensDampGain, forKey: .sensDampGain)
