@@ -17,125 +17,29 @@ written to the repo. Keep real URLs, tokens, and per-dataset config in the git-i
 
 ---
 
-## The two main workflows
+## Roles
 
-Almost all work is one of these:
+This repo is worked by several agents with different jobs, each in its own worktree. This
+file is the part they all share; the role-specific context lives in an overlay that
+`CLAUDE.md` imports through **`ROLE.md`** — a git-ignored one-line file naming the overlay
+for that checkout (copy `ROLE.example.md`, exactly like `PRIVATE.md`).
 
-### 1. Frontier experiments — "does this change actually help?"
+| Role | Overlay | Job |
+|---|---|---|
+| frontier | `docs/agents/frontier.md` | Does a candidate change actually help? Lift, scoring, the ledger. |
+| simulator | `docs/agents/simulator.md` | Building LoopEval itself — engine, adapters, CLI, analysis package. |
+| eda | `docs/agents/eda.md` | Observational analysis of the data; the live distribution study. |
+| — | `docs/agents/verification.md` | Faithful replay and identity checks; read by frontier **and** simulator. |
 
-Run a candidate algorithm/settings change through the closed-loop counterfactual
-simulator over weeks–months of real data, score **TIR and t<54**, and compare against a
-**reference curve** (the stock algorithm swept over ISF multipliers). A change matters
-only if it has **lift** — more TIR at equal severe-lows than aggressiveness tuning alone
-reaches. See **[docs/FRONTIERS.md](docs/FRONTIERS.md)**; the scorer is
-`python -m loopeval_analysis.frontier`.
+**Keep to your own overlay.** One file, one owner: roles never edit each other's overlay, so
+merging between worktrees stays conflict-free. Anything that turns out to matter to every
+role gets promoted into *this* file deliberately, as its own commit.
 
-**Lift — the definition (in `frontier.lift`):** the signed, **axis-normalized closest
-distance** from a candidate `(TIR, t<54)` point to the reference-sweep polyline. Both axes
-are scaled by the reference sweep's span (TIR ≈ tens of %, t<54 ≈ fraction of a %) so
-neither dominates — a raw Euclidean distance would be swamped by TIR. Sign is **+** when
-the point is **below-and-right** of the sweep (better: more TIR / less t<54) and **−** when
-above-left (worse). **Greatest positive lift = best.** (This replaced an older "TIR gap at
-matched t<54", which blew up wherever the reference curve runs flat.)
-
-**Two things lift is fragile about — both have produced confidently wrong rankings:**
-
-- **Compare on ONE dial.** Sweeping the candidate over ISF while the reference sweeps
-  insulin-needs measures the *dial* as much as the mechanism — the two trace different
-  paths through (TIR, t<54). Sweep the candidate over **insulin-needs too**, or include a
-  plain (mechanism-off) control swept on the candidate's dial to subtract the dial's share.
-- **Lift is span-normalized, so it is NOT comparable across reference extents.** Extending
-  a reference (e.g. needs ×1.3 → ×2.0) grows the t<54 span and silently shrinks *every*
-  lift value — 6.6× on one dataset. Only rank within one reference; never compare lift
-  magnitudes across runs whose reference differs.
-
-**Never read a lift number without looking at the plot.** Lift is a scalar summary of a
-geometric fact; if the sign disagrees with where the point sits relative to the gray line,
-believe the plot. That check is what caught both hooked-curve bugs (fixed 2026-07-17).
-
-**Sweep the candidate, rank by mean.** A candidate parameterization is a *mechanism*; sweep
-it over its own ISF multipliers and rank mechanisms by the **mean (or median) lift across
-the sweep** (`frontier.summarize_mechanisms`) — not by any single point. Best-of-sweep max
-is optimistically biased (it grabs the highest jitter point); report the peak multiplier
-only as a secondary "where it peaks". The multiplier that pairs best with a mechanism is
-**dataset-dependent**: a non-announcer may want *lower* ISF (dose more aggressively, let the
-mechanism catch the added lows), a heavy announcer *higher* ISF (gentler automation, since
-meal boluses already carry TIR). **Canonical scoring definition now lives in [docs/FRONTIERS.md → Scoring](docs/FRONTIERS.md)**:
-a candidate improves iff, with the needs dial free to move, it reaches an operating point
-better on BOTH axes (TIR up AND t<54 down; t<70 when t<54≈0) than the reference curve —
-strict dominance, judged in the operating band, re-tuning allowed. That section supersedes
-any other scoring guidance here or elsewhere.
-
-**Current frontier picture (qualitative — regenerate numbers per dataset/window):**
-
-- **Leading with lift:** **Asymmetric Integral RC** (`--candidate-integral-rc
-  --candidate-irc-drop-scale/-rise-scale` — weight the drop side of retrospective
-  correction more than the rise side) and **double-low prevention**
-  (`--candidate-sensitive-mode-tau-min/-gain` — an EWMA of recent negative discrepancy
-  that raises effective ISF on subsequent cycles, damping re-dosing into the rebound
-  after a low).
-- **Sliders (no lift, still available):** flat ISF multiplier, application factor, and
-  **GBAF** (`--candidate-gbaf`, glucose-based application factor). These move along the
-  reference curve, not above it. GBAF in particular has *not* shown lift under the
-  current fidelity stack — don't present it as a frontier lever.
-- Meal announcement dominates everything: an announcing user's real-world point sits far
-  above anything hands-off automation reaches. The residual gap is a forecasting
-  problem (anticipating carbs), not a dosing-logic problem.
-
-### 2. Case studies — "is the simulator (and the candidate) behaving correctly?"
-
-Plot a specific scenario — BG, insulin delivery (basal staircase + boluses,
-auto vs manual), patient IOB, and algorithm state (COB, RC, momentum, forecast) — for a
-window around an event, and verify the simulator and candidate are doing what they
-should. See **[docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)**; the renderer is
-`loopeval_analysis.case_study.plot_case`.
+**Shared work lands on `main`.** Tooling, the engine and the analysis package are common
+property; commit them to `main` and the other worktrees pick them up on their next merge.
+Findings stay in the role's own files.
 
 ---
-
-## Methodology essentials
-
-- **`simulate --candidate-counterfactual` is the primary tool** for outcome questions.
-  Counterfactual physiology: `counter_BG[t+5m] = counter_BG[t] + insulin_effect(candidate
-  doses) + observed_ICE(real)` — the person's non-insulin physiology (carbs, exercise,
-  sensor noise) is carried into the counterfactual via ICE computed from the real trace.
-  Add `--candidate-infer-sensitivity` (the fidelity model) for whole-algorithm sweeps.
-  Full detail: `docs/simulator-guide/README.md`.
-- **`--decision-time-replay`** replays decisions on the fixed real history without
-  acting — for same-input dose comparison and single-decision anatomy (both arms see
-  identical inputs; no feedback).
-- **Replay-verification process (verify accurate replay in THIS order):**
-  1. **Forecasts first.** Every DTR forecast must match the field's recorded `bgForecast`
-     within a **few mg/dL**, ranked **worst-case (max point delta), not average**. Compare
-     only IOB-aligned, same-dose-state cycles (a field record whose IOB is post-a-just-decided
-     dose is not comparable to a pre-dose sim forecast). t0 agreement is meaningless (shared
-     current CGM value).
-  2. **The ONLY accepted uncorrectable exclusions** — a mismatch gets a pass *only when
-     concretely proven* (never assumed) to be one of: **(a) cancelled/incomplete bolus**
-     (field thought a bolus was in progress/complete but it failed/was cancelled →
-     `requestedBolus` ≫ delivered `normal`, syncId amount ≠ delivered, transient IOB
-     spike-and-revert); **(b) backfilled BG** (a reading Loop got late — undetectable
-     directly, but shows as a missed loop cycle); **(c) CGM sub-second wobble** (timestamps
-     stored at second precision → tiny only). Anything else is a **real discrepancy to fix**
-     (decoding / settings / model), not an exclusion.
-  3. **Then dosing.** Only after forecasts match, compare the dose computed from those
-     forecasts: target **<= 0.05 U (bolus) or U/hr (temp basal)**, worst-case.
-- **Identity checks are mandatory** after any simulator or dose-path change: identical
-  baseline/candidate configs ⇒ Δdose ≈ 0 every step and counter == sanity. A failed
-  identity test invalidates everything downstream.
-- **Deployment-faithful config per dataset**: match the deployed insulin model, RC mode
-  (`--integral-rc` for IRC eras), Loop-main emulation flags
-  (`--no-mid-absorption-isf --no-gradual-transitions-gate`), overrides
-  (`--apply-overrides`), and edited-carb reconstruction (`--carb-revisions-json`) —
-  otherwise replay differences get misattributed to the candidate.
-- **Disruption handling**: clamp delivery during pump outages (`--outages-csv`), skip
-  cycles on stale CGM (`--cgm-stale-guard-min 5`), and score with the disruption
-  *interval* excluded (`loopeval_analysis.scoring.score_counterfactual`, `post_hours=0`).
-- **Hands-on is the default** (real boluses and carb entries pass through; manual
-  boluses are IOB-resized by default so the candidate doesn't double-cover).
-- Insulin actuation is **one-sided**: a controller can add or withhold insulin but never
-  remove it. Lows prevention is therefore limited by how early delivery stops, and at
-  the moment of most lows delivery is already at zero — keep this in mind when sizing
-  the plausible benefit of any "dose less" mechanism.
 
 ## Private site config (`PRIVATE.md`)
 
@@ -245,3 +149,4 @@ swift build -c release          # binary at .build/release/loop-eval
 
 `swift test` requires a toolchain with the Swift `Testing` module; when unavailable,
 verify via identity sims and smoke runs instead.
+
