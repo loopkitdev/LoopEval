@@ -2618,7 +2618,9 @@ extension EvaluationEngine {
         // scaled one - only visible on saturated sub-5-min retries, accepted.
         appFactor *= timeBasedAFScale
         // Calm-high licence: a high with low volatility takes a larger application factor.
-        if config.calmHighAfScale != 1.0, sigma5.isFinite, curBG >= config.calmHighBgMin, sigma5 <= config.calmHighSigmaMax {
+        let calmHighAllowed = !config.calmHighCobGate || (prediction.activeCarbs ?? 0) <= 0
+        if config.calmHighAfScale != 1.0, calmHighAllowed, sigma5.isFinite,
+           curBG >= config.calmHighBgMin, sigma5 <= config.calmHighSigmaMax {
             appFactor = min(1.0, appFactor * config.calmHighAfScale)
         }
         let doseRec = EvaluationEngine.computeDoseRecommendation(
