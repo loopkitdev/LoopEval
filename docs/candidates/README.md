@@ -407,8 +407,23 @@ elbow until ×1.40–1.50, where the rate falls to 3–4. C23 buys +1.5 TIR for 
 exchange rate of 50 — good in absolute terms and still a *loss* against a dial paying 83–434.
 **So E12c's "inversion" is not evidence that the licence fails for unannounced meals.** It is evidence
 that scoring a suppressed bed at its *announced-era* multiplier pits a mechanism against the dial in
-its cheap regime. Someone who stopped announcing would retune toward the elbow. E16 re-scores the
-three ncnb beds at ×1.20–1.70. Until then, treat every `:ncnb` verdict at ×1.00 as provisional.
+its cheap regime. Someone who stopped announcing would retune toward the elbow. E16 re-scored the
+three ncnb beds at a **non-arbitrary operating point: the multiplier where the suppressed sweep's t54
+equals the donor's own natural-regime operating t54** (same lows tolerance — what the person actually
+accepts). That lands at ×1.29 / ×1.19 / ×1.27, where the reference is already at 39.7 / 67.3 / 69.1 TIR
+versus 28.9 / 62.0 / 51.7 at ×1.00.
+
+| bed | ch2p50 | sb1cob | stk | stk3 |
+|---|---|---|---|---|
+| bddp08:ncnb ×1.29 | **WORSE −0.032 → NEUTRAL −0.010** (Δt54 +0.17) | −0.007 → **+0.012, Δt54 −0.07** | −0.035 → −0.000 | −0.036 → **+0.008** |
+| bddp03:ncnb ×1.19 | +0.009 → +0.024 | +0.001 → +0.005 | +0.009 → +0.031 | −0.003 → −0.001 |
+
+**Nothing is WORSE at a retuned operating point** — all three E12c WORSE verdicts were artefacts of the
+scoring multiplier. Confirmed by re-scoring, not just argued from the sweep slope. The class rule
+survives: on a non-announcing donor sb1cob is the only arm with a *negative* Δt54, while the licence
+still adds lows there. **Consequence for C05:** its "+16.6 TIR on bddp07:ncnb" was measured against a
+reference pinned at ×1.00 (51.7 TIR); at matched lows tolerance the reference is already at 69.1 TIR,
+so most of that headline may be retuning rather than mechanism. E17 extends UAM to ×1.20–1.40 to settle it.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
