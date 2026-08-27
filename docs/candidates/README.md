@@ -29,7 +29,7 @@ hash have no surviving traces.
 | [C02](#c02-integral-rc-irc) | Integral RC (IRC) | dial-like (hotter) | scored | **WORSE** in band on bddp11 (hooks); gentle-end wins elsewhere |
 | [C03](#c03-gbaf--application-factor) | GBAF / application factor | dial-like | scored, closed | rides the reference — don't re-sweep |
 | [C04](#c04-package-flags--momentum-knobs) | Package flags / momentum knobs | dial-like | scored | gate ~orthogonal but NEUTRAL; others dial-like |
-| [C05](#c05-uam-projection) | UAM projection | dose-more | scored (bddp11; bddp07/03/08 unannounced) | **WORSE** on hands-off bddp11 and unannounced bddp03/08; **IMPROVES on unannounced bddp07 (+16.6 TIR at ≈0 lows)** — patient-conditional: pays only where the regime is lows-free and delivery is capped |
+| [C05](#c05-uam-projection) | UAM projection | dose-more | scored (bddp11; bddp07/03/08 unannounced) | **WORSE** on hands-off bddp11 and unannounced bddp03/08; **REVISED 2026-08-27**: at a retuned op the bddp07 win is **uam45 +4.6 TIR** (IMPROVES), not uam90 +16.6 — half the headline was the donor not having retuned. Still patient-conditional, and every UAM arm buys TIR with lows on the other beds |
 | [C06](#c06-early-rise-projection) | Early-rise projection | dose-more | scored (bddp11) | **WORSE** (−0.05 / −0.76) |
 | [C07](#c07-ice-rise-boost) | ICE rise-boost | dose-more | scored (bddp11; 3 unannounced) | NEUTRAL/WORSE on bddp11; unannounced: IMPROVES bddp07 only (same split as UAM) |
 | [C08](#c08-sensitive-mode-double-low-prevention) | Sensitive mode / double-low prevention | pull-back | scored (bddp11) | **WORSE (marginal)** on bddp11; old: dominates on user2 (announcer) |
@@ -124,6 +124,7 @@ tapering absorption term over N min → eventualBG rises early on a real carb ri
 | 2026-08-24 | bddp07 (tight-control announcer, maxBolus 3 U) | **announcement-suppressed** (`--no-carb-entries --no-user-boluses`) | 2 mo, op ×1.00, t70 axis | E4 `cohort_band_e4a.csv`: N=90 lift **+0.203 [+0.165,+0.237]**, dom 1.00 (lo 1.00); @op **ΔTIR +16.6 [+15.2,+18.0]**, Δt54 +0.05, Δt70 +0.26; N=45 +0.090 (ΔTIR +7.8). Regime context: std natural ×1.00 = 92.2 TIR → std unannounced = 51.7 | **IMPROVES** (re-scored with the reference extended to ×2.0 and restricted to the band: lift +0.244 [+0.202,+0.279], dom 1.00 lo 0.80) — recovers ~40 % of the TIR lost by not announcing, at ≈0 lows. Mechanism of the win (hypothesis, consistent with the data): low needs + maxBolus 3 U / temp-basal strategy cap how much the projection can stack, so the regime is lows-free at every multiplier |
 | 2026-08-24 | bddp03 (heavy announcer) | announcement-suppressed | 2 mo, op ×1.00 | E4: N=45 lift **−0.380** (@op ΔTIR +7.1, Δt54 +1.30); N=90 −2.73 (ΔTIR +9.2, Δt54 +4.16) | **WORSE** (in-band re-score −2.82 [−4.63,−1.84]; the first pass wrongly called it dominant against the reference at ×1.5–2.0 — scorer fixed, FRONTIERS → Scoring) — where the unannounced reference already makes lows (t54 0.47 at ×1.00), the projection stacks into them |
 | 2026-08-24 | bddp08 (announcer, autobolus by day / temp at night) | announcement-suppressed | 2 mo, op ×1.00 | E4 `cohort_band_e4v2.csv`: N=90 lift **−1.02 [−1.74,−0.56]** (@op ΔTIR +14.7, Δt54 +1.53); N=45 −0.019 [−0.076,+0.092] (ΔTIR +6.9, Δt54 +0.29) | **WORSE / NEUTRAL** — big TIR, paid in lows; 3-donor mean N=90 −1.20, N=45 −0.10 |
+| **2026-08-27 (REVISION)** | bddp07 / bddp08 / bddp03 :ncnb | announcement-suppressed | 2 mo, **retuned op** ×1.27 / ×1.29 / ×1.19 (matched-lows rule, [M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial)) | `cohort_band_e17all.csv` — bddp07 **uam45 IMPROVES +0.195 [+0.109,+0.260], dom 1.00 (lo 0.75), @op ΔTIR +4.6, Δt54 +0.01**; uam90 **NEUTRAL** +0.165 [−0.290,+0.500], @op ΔTIR **+8.6** (not +16.6), Δt54 +0.06. bddp08 uam45 +0.445 but **Δt54 +1.07**, dom 0.50; uam90 NEUTRAL −0.258 (Δt54 +3.02). bddp03 uam45 −0.576; uam90 **WORSE −3.239** (Δt54 +6.13). 3-bed mean: uam45 +0.021 at **Δt54 +1.01**, uam90 −1.111 at **Δt54 +3.07** | **HEADLINE HALVED — about half of the original +16.6 TIR was the donor not having retuned.** The ×1.00 reference sits at 51.7 TIR only because a suppressed donor has not moved their dial; at matched lows tolerance it is already at 69.1. The mechanism survives on bddp07 at roughly a third of the claimed size, and the best parameterization moves from N=90 to **N=45** (at a hotter dial a shorter projection is what fits). Still patient-conditional, and every UAM arm buys its TIR with lows on the other two beds. **bddp08's uam45 IMPROVES is not a win**: dom 0.50 and Δt54 +1.07 at op — where the band verdict and the op-delta disagree, the op-delta describes what happens to the person |
 
 ## C06 · Early-rise projection
 `--candidate-early-rise-gain G --candidate-early-rise-minutes N` (BG band 70–140, slope
@@ -423,7 +424,14 @@ scoring multiplier. Confirmed by re-scoring, not just argued from the sweep slop
 survives: on a non-announcing donor sb1cob is the only arm with a *negative* Δt54, while the licence
 still adds lows there. **Consequence for C05:** its "+16.6 TIR on bddp07:ncnb" was measured against a
 reference pinned at ×1.00 (51.7 TIR); at matched lows tolerance the reference is already at 69.1 TIR,
-so most of that headline may be retuning rather than mechanism. E17 extends UAM to ×1.20–1.40 to settle it.
+so most of that headline may be retuning rather than mechanism. E17 settled it: see the C05 revision row — the headline halves.
+
+**Confirmed empirically, and the tooling now supports it:** `cohort_band.py --ops
+'bed=1.27,bed=1.29,...'` takes per-bed operating multipliers. At the retuned ops, across the three
+suppressed beds, **`sb1cob` is the only arm with a positive mean lift AND a negative mean Δt54**
+(+0.059 / −0.031) — the only one that satisfies TIR ↑ AND t<54 ↓ once meals are unannounced. stk
++0.060 but Δt54 +0.117; ch2p50 +0.012 at Δt54 +0.167; uam45 +0.021 at **Δt54 +1.01**; uam90 −1.111 at
+**Δt54 +3.07**. Every dose-more arm buys its TIR with lows in this regime.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
