@@ -49,7 +49,8 @@ hash have no surviving traces.
 | [C23](#c23-calm-high-licence) | Calm-high licence (AF ×2 when BG ≥ 180 AND σ5 ≤ donor median) | dose-more, state-gated | scored (7 beds + control) | **IMPROVES on 6/7 beds at zero lows cost** (bddp01 +1.4 TIR, bddp09 +0.8, bddp11 +0.6/+0.7, bddp10/08 +0.2; bddp03 NEUTRAL); no-gate control is dial-like → σ is the information. Strongest multi-donor result in the program |
 | [C24](#c24-stack-c22--c23-disjoint-state-gates) | **Stack**: COB-gated σ band + calm-high licence (+ post-low RC rise-cut) | pull-back + dose-more, state-gated | scored (10 beds) | **stk3 multi-donor mean +0.022 [lo +0.001], 5 IMPROVES / 0 WORSE**; stk +0.015, 5/0 on 10 beds; +0.6…+2.1 TIR in unannounced-meal windows on 4/5 hands-off beds |
 | [C25](#c25-cob-gate-on-the-calm-high-licence) | COB gate on the calm-high licence | dose-more, state-gated | scored (3 beds) | **Removes C23's only lows cost and is inert elsewhere** (bddp03 Δt54 +0.10 → −0.01; bddp11 gated == ungated to every digit) — adopt as C23's standard form |
-| [C26](#c26-calm-high-licence-trend-gated) | Calm-high licence, trend-gated (only flat-or-rising highs) | dose-more, state-gated | scoring (E15) | targets the measured cause of C23's harm: it fires on DESCENTS 31–56 % of the time |
+| [C26](#c26-calm-high-licence-trend-gated) | Calm-high licence, trend-gated (only flat-or-rising highs) | dose-more, state-gated | scored (3 beds) | **WASH** — removes the descent cycles and ~15 % of the TIR gain, no better lows exchange rate; the descent correlation was not causal |
+| [M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial) | *Method*: a mechanism only beats an EXPENSIVE dial | — | — | every `:ncnb` verdict scored at ×1.00 is provisional — the dial pays 83–434 TIR/t54 there vs 3 at a real operating point |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -366,7 +367,7 @@ Each component's solo arm is already scored on the same beds, so the decompositi
 | 2026-08-27 | b11_90d / bddp11 / bddp09 / bddp01 / bddp10 | natural | **meal windows** (`meal_window.py`), dial retuned to matched whole-window lows | ΔTIR in unannounced-meal windows [−30, +300 min]: **stk +0.79 / +1.23 / +1.83 / +1.23 / −0.11**; **stk3 +1.13 / +2.06 / +1.83 / +0.57 / −0.84**; ch2p50 +0.58 / +1.00 / +0.37 / +0.21 / −0.39. Meal-window Δt54 flat (−0.04…+0.02), Δ>250 −0.4…−1.4, peak −0.3…−2.0 mg/dL | **Improves meal-window glycemia on 4 of 5 beds** at unchanged lows — the goal's second criterion. bddp10 (smallest lows burden) is the exception |
 | 2026-08-27 | bddp03 / bddp08 (announcers) | natural | 2 mo, op ×1.05 | E12 `cohort_band_e12_ann.csv`: bddp03 **stk3 +0.021 [+0.001,+0.047]** but dom 0.20 and @op Δt54 **+0.06**; stk/ch2p50 NEUTRAL with Δt54 **+0.10** (the heavy-announcer weakness of C23 — fixed by [C25](#c25-cob-gate-on-the-calm-high-licence)). bddp08 **stk3 +0.010 [+0.002,+0.018]** (Δt54 −0.11), **stk +0.007**, ch2p50 +0.008, plrc3 +0.008 | **IMPROVES on both for stk3**; on bddp08 every arm improves, on bddp03 only the RC rise-cut and the stack do |
 | 2026-08-27 | bddp05 / bddp06 / bddp07 | natural | 2 mo, op ×1.15 / 1.20 / 1.00 | E12b `cohort_band_e12b.csv`: bddp05 **ch2p50 +0.039 [+0.027,+0.051] dom 1.00 (lo 1.00), @op ΔTIR +1.0, Δt54 −0.05** (largest single-bed C23 lift yet), stk +0.020, plrc3 +0.017, **sb1cob WORSE −0.012**; bddp06 ch2p50 +0.035, stk/sb1cob NEUTRAL (Δt54 +0.07); bddp07 all inert (ch2p50 exactly 0.000 — σ5 p50 3.5 and only 1.5 % of the record ≥180, so the gate never fires) | **Breadth confirmed for C23** (IMPROVES on both beds where it can fire, inert where it cannot). **C22 alone is NOT universally safe — WORSE on bddp05** |
-| 2026-08-27 | **10 beds** (9 donors) | natural | 2 mo / 90 d | E12 consolidated `cohort_band_e12all.csv`, equal weight per bed: **stk3 mean +0.022, CI-lo +0.001, 5 IMPROVES / 0 WORSE (7 beds), ΔTIR −0.21, Δt54 −0.070**; **stk mean +0.015, 5/0 (10 beds)**; **ch2p50 mean +0.014, CI-lo +0.004, 8 IMPROVES / 0 WORSE, ΔTIR +0.48 at Δt54 +0.004**; C20 +0.020 (5 beds); sb1cob +0.006 with 1 WORSE | **The two arms whose multi-donor mean lower CI clears zero are stk3 and ch2p50** — against previous program bests of aIRC +0.005 and C20 ≈ +0.02. C23 is the breadth mechanism, C20 the lows mechanism, C22 the one to gate per patient; stk3 gets both effects at once. stk3's row is 7/10 beds — E14 fills bddp05/06/07 |
+| 2026-08-27 | **10 beds** (9 donors) | natural | 2 mo / 90 d | E12 consolidated `cohort_band_e12all.csv`, equal weight per bed: **stk3 (7 beds then) mean +0.022, CI-lo +0.001 — CORRECTED at 10 beds to +0.021, CI-lo −0.006, 6 IMPROVES / 0 WORSE**; **stk mean +0.015, 5/0 (10 beds)**; **ch2p50 mean +0.014, CI-lo +0.004, 8 IMPROVES / 0 WORSE, ΔTIR +0.48 at Δt54 +0.004**; C20 +0.020 (5 beds); sb1cob +0.006 with 1 WORSE | **CORRECTED (E14, 10 beds): only ch2p50's multi-donor mean lower CI clears zero** (stk3 read +0.001 on 7 beds, −0.006 once bddp05/06/07 were filled in; it keeps the most IMPROVES, 6/10, and no WORSE) — against previous program bests of aIRC +0.005 and C20 ≈ +0.02. C23 is the breadth mechanism, C20 the lows mechanism, C22 the one to gate per patient; stk3 gets both effects at once. stk3's row is 7/10 beds — E14 fills bddp05/06/07 |
 
 ## C25 · COB gate on the calm-high licence
 `--candidate-calm-high-cob-gate` (added 2026-08-27, `EvalConfig.calmHighCobGate`): apply C23's
@@ -394,7 +395,20 @@ C20 attacks from the other side.
 
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
-| 2026-08-27 | 3 ncnb + 6 natural beds | both | 2 mo | E15 — running | planned |
+| 2026-08-27 | bddp08:ncnb / bddp03:ncnb / bddp07:ncnb | announcement-suppressed | 2 mo, op ×1.00 | E15 `cohort_band_e15c.csv`: ch2p50 −0.032 WORSE → **ch2p50s0 −0.025 NEUTRAL but Δt54 +0.03 → +0.05**; bddp03 +0.009 → −0.001; bddp07 inert either way; stks0 −0.041 vs stk −0.035. 3-bed mean unchanged at −0.008 | **WASH — and the descent correlation was NOT causal.** The gate removes ~half the firing cycles and ~15 % of the TIR gain without improving the lows exchange rate; where it moves the lift it makes Δt54 *worse*. Recorded as a negative result; flag kept (identity max|Δ| 0.0 over 16,347 cycles, default off) |
+
+## M1 · Method: a mechanism can only beat an EXPENSIVE dial
+Not a candidate — a scoring correction that applies to every announcement-suppressed verdict in this
+ledger, E4's UAM results included. Local exchange rate of the reference sweep (ΔTIR per point of t54)
+at the scoring multiplier: **bddp08:ncnb at ×1.00 = 83→434** (501/261/192 below it), against
+**bddp08 natural at ×1.05 = 3** and **bddp11 at ×1.00 = 18**.
+bddp08:ncnb at ×1.00 is **28.9 % TIR** — nowhere near an operating point; its sweep does not reach the
+elbow until ×1.40–1.50, where the rate falls to 3–4. C23 buys +1.5 TIR for +0.03 t54 there, an
+exchange rate of 50 — good in absolute terms and still a *loss* against a dial paying 83–434.
+**So E12c's "inversion" is not evidence that the licence fails for unannounced meals.** It is evidence
+that scoring a suppressed bed at its *announced-era* multiplier pits a mechanism against the dial in
+its cheap regime. Someone who stopped announcing would retune toward the elbow. E16 re-scores the
+three ncnb beds at ×1.20–1.70. Until then, treat every `:ncnb` verdict at ×1.00 as provisional.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
