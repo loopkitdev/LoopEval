@@ -13,6 +13,7 @@ __pycache__/
 
 # Sim/analysis outputs (large; not source)
 runs/
+runs
 
 # Private, per-user site config — real Nightscout URLs/tokens/replay config.
 # NEVER commit. Copy PRIVATE.example.md -> PRIVATE.md and keep it local.
