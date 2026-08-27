@@ -240,6 +240,10 @@ glucose, not the story of how it was measured. Therefore:
     **do not draw an estimate past the point where it is tracing individual readings.**
     Diagnosis method worth reusing: split-half correlation plus a subsample-scaling
     check separates a deterministic artefact from Monte-Carlo noise.
+    **Then the panel stopped estimating densities at all**: it counts exceedances,
+    rises ≥ x against falls ≥ x, evaluated on each person's own value grid. No kernel,
+    no bandwidth, nothing to ripple, and the claim is the one the title makes. Prefer a
+    counting statistic to a ratio of two smoothed ones wherever the question allows it.
 
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
