@@ -28,7 +28,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 BDDP_ROOT = os.path.expanduser("~/dev/LoopEval/runs/2026-08-13-cohort-2mo")
 # The wide cohort's own four-stream exports (alias-named; ids never on disk here).
 WIDE_ROOT = os.path.expanduser("~/.loop-eval/trait-cohort/full")
-OUT = Path(os.path.expanduser("~/dev/LoopEvalScenarios/runs/2026-08-25-distributions"))
+OUT = S.OUT
 
 # Nightscout sites come from PRIVATE.md, which is git-ignored. Real hostnames must
 # never appear in a tracked file — only aliases do. If PRIVATE.md is absent this
