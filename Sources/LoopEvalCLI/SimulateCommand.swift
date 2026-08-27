@@ -394,6 +394,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateCalmHighMinSlope: Double?
     @Option(name: .long, help: "sigma-band BASELINE (mg/dL per 5 min): widen by k*max(0, sigma5 - baseline) instead of k*sigma5. Set to the donor's own median sigma5 so the band is zero in their typical state and carries no per-donor level offset. 0 = original absolute-sigma behaviour.")
     var candidateSigmaBandBaseline: Double = 0
+    @Option(name: .long, help: "CONTROL for the sigma band: replace sigma5 with this CONSTANT, so the band carries no volatility signal. Set to the donor's median sigma5 to reproduce the average band the absolute-sigma form applies. 0 = off.")
+    var candidateSigmaBandFixedSigma: Double = 0
     @Option(name: .long, help: "Comma-separated outage REASONS (from the outages/disruptions CSV) during which the pump keeps delivering SCHEDULED basal instead of nothing — e.g. 'loop_offline' (phone away: the pod runs its schedule, only new adjustments stop). Default: none (every outage clamps delivery to 0).")
     var outageBasalReasons: String?
     @Option(name: .long, help: "PREDICTIVE pre-low damper GAIN: causal sustained-sensitivity trigger (causal ICE = v_bg - v_insulin over a trailing window). ISF-mult increase per mg/dL/min of negative ICE beyond the threshold; raises ISF proactively before the low. 0 = off.")
@@ -623,6 +625,7 @@ struct SimulateCommand: AsyncParsableCommand {
             calmHighCobGate: candidateCalmHighCobGate,
             calmHighMinSlope: candidateCalmHighMinSlope ?? -.infinity,
             sigmaBandBaseline: candidateSigmaBandBaseline,
+            sigmaBandFixedSigma: candidateSigmaBandFixedSigma,
             sensDampWindowMin: candidateSensDampWindow,
             sensDampThresholdRate: candidateSensDampThreshold,
             sensDampGain: candidateSensDampGain,

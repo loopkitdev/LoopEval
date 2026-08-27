@@ -2560,8 +2560,9 @@ extension EvaluationEngine {
                 else if tau < tp { s = sHz * (tp - tau) / (tp - hz) }
                 // Baseline-relative when sigmaBandBaseline > 0: the band opens only above the
                 // donor's own typical volatility, so it carries no per-donor level offset.
+                let sigBase = config.sigmaBandFixedSigma > 0 ? config.sigmaBandFixedSigma : sigma5
                 let sigEff = config.sigmaBandBaseline > 0
-                    ? Swift.max(0, sigma5 - config.sigmaBandBaseline) : sigma5
+                    ? Swift.max(0, sigBase - config.sigmaBandBaseline) : sigBase
                 let off = -config.sigmaBandK * sigEff * s
                 return PredictedGlucoseValue(startDate: p.startDate,
                                              quantity: LoopQuantity(unit: unit, doubleValue: p.quantity.doubleValue(for: unit) + off))
