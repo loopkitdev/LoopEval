@@ -139,6 +139,7 @@ not in second-guessing the dose.
 | `docs/simulator-guide/README.md` | Deep technical guide to the simulator (GitHub-rendered) |
 | `docs/loop-algo-classes.md` | Deployed-Loop vs LoopAlgorithm-package behavior classes and emulation flags |
 | `PRIVATE.example.md` | Template for `PRIVATE.md` — your private per-site config (copy it; `PRIVATE.md` is git-ignored) |
+| `runs/` → `~/.loop-eval/runs/` | Experiment outputs. A **symlink**: they are >100 GB across the project and live outside every checkout so worktrees share one copy. Python resolves them through `dist_views.style.OUT` (honours `LOOPEVAL_RUNS`) — never hardcode a checkout path. |
 
 ## Build & smoke
 
