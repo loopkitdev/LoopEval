@@ -147,27 +147,43 @@ def title(fig, text, sub=None, y=0.985):
 
 
 def _check_titles(fig, name):
-    """Warn when a panel title runs past its panel, or into its neighbour.
+    """Warn when a panel title runs past its panel, into a neighbour, or under
+    the figure's heading.
 
     Panel titles are written by hand and the panels get narrower every time a
-    figure gains a column, so titles silently overrun — into the panel next
-    door, off the right edge, or under the figure's own subtitle. Three of
-    these shipped before anyone noticed, so the check is automatic now.
+    figure gains a column, so titles silently overrun. Note WHERE the title
+    lives: every title in this study is `loc="left"`, and matplotlib keeps a
+    left-aligned title on `ax._left_title`, not on `ax.title` — reading only
+    `ax.get_title()` made this whole check a no-op that reported nothing for
+    months while collisions shipped.
     """
     fig.canvas.draw()
+    head = [t for t in ([fig._suptitle] if fig._suptitle else []) + list(fig.texts)
+            if t.get_text()]
+    head_boxes = [h.get_window_extent() for h in head]
     boxes = []
     for ax in fig.get_axes():
-        t = ax.get_title()
-        if not t:
-            continue
-        tb = ax.title.get_window_extent()
-        ab = ax.get_window_extent()
-        if tb.width > ab.width + 2:
-            print(f"  ! {name}: title overruns its panel by "
-                  f"{tb.width - ab.width:.0f}px — {t[:52]!r}")
-        if tb.x1 > fig.bbox.x1 - 2:
-            print(f"  ! {name}: title runs off the right edge — {t[:52]!r}")
-        boxes.append((tb, t))
+        for artist in (getattr(ax, "_left_title", None), ax.title,
+                       getattr(ax, "_right_title", None)):
+            if artist is None or not artist.get_text():
+                continue
+            t = artist.get_text()
+            tb = artist.get_window_extent()
+            ab = ax.get_window_extent()
+            # A title wider than its panel is only a defect if it reaches
+            # something: the gap between panels is there to be used. Flag it
+            # when it lands on a neighbouring panel, and say by how much.
+            over = tb.width - ab.width
+            hit = [o for o in fig.get_axes() if o is not ax
+                   and tb.overlaps(o.get_window_extent())]
+            if hit:
+                print(f"  ! {name}: title reaches into the panel next door "
+                      f"({over:.0f}px past its own) — {t[:52]!r}")
+            if tb.x1 > fig.bbox.x1 - 2:
+                print(f"  ! {name}: title runs off the right edge — {t[:52]!r}")
+            if any(tb.overlaps(hb) for hb in head_boxes):
+                print(f"  ! {name}: title runs under the figure heading — {t[:52]!r}")
+            boxes.append((tb, t))
     for i, (b1, t1) in enumerate(boxes):
         for b2, t2 in boxes[i + 1:]:
             if b1.overlaps(b2):

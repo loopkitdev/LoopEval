@@ -156,7 +156,7 @@ def f11_noise(panels, co):
             "and that intercept is twice the\nper-reading measurement variance. Its median is 1.27 mg/dL and the middle 80% of people run 0.57 to 1.94 "
             "— small on any of those.\nA 5-minute delta is mostly real glucose, which is worth knowing before smoothing it away.")
     S.save(fig, "11_measurement_noise",
-           dict(left=0.06, right=0.985, top=0.885, bottom=0.075, hspace=0.42, wspace=0.30))
+           dict(left=0.06, right=0.985, top=0.845, bottom=0.075, hspace=0.42, wspace=0.30))
     return rec
 
 

@@ -171,6 +171,15 @@ glucose, not the story of how it was measured. Therefore:
     against its panel and its neighbours, printing a warning; it runs on every `save`.
     **Look at the rendered PNG after any figure change** — the check catches overruns, not
     a panel that is merely wrong.
+    **The check itself was broken from the day it was written until 2026-08-27**: every
+    title in this study is `loc="left"`, and matplotlib keeps a left-aligned title on
+    `ax._left_title`, not on `ax.title`. Reading `ax.get_title()` returned "" for every
+    panel, so the loop skipped all of them and reported nothing, ever — which is why
+    views 05, 11 and 12 shipped with titles under their own headings. A check that
+    never fires looks exactly like a check that passes: **make a new check fail on
+    purpose once before trusting it.** It now also tests titles against the figure
+    heading, and flags a wide title only when it actually reaches a neighbouring panel —
+    the gap between panels is there to be used.
 
 26. **The artifact publishes `web/`, not `figs/` — and nothing links them.** `make_artifact.py`
     inlines the downsampled copies under `runs/.../web`; if a figure is rebuilt and the
