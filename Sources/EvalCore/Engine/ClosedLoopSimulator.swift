@@ -2618,7 +2618,25 @@ extension EvaluationEngine {
         // scaled one - only visible on saturated sub-5-min retries, accepted.
         appFactor *= timeBasedAFScale
         // Calm-high licence: a high with low volatility takes a larger application factor.
-        let calmHighAllowed = !config.calmHighCobGate || (prediction.activeCarbs ?? 0) <= 0
+        var calmHighAllowed = !config.calmHighCobGate || (prediction.activeCarbs ?? 0) <= 0
+        // Trend gate: a high that is already coming down does not need the licence — and the calm
+        // gate does not exclude it, because a steady fall reads as moderate σ5. Trailing 30-min
+        // slope from the candidate's own glucose (causal).
+        if calmHighAllowed, config.calmHighMinSlope.isFinite {
+            let g = effectiveInput.glucose
+            var slope = Double.nan
+            if let last = g.last {
+                let window = last.startDate.addingTimeInterval(-30 * 60 - 150)
+                if let first = g.first(where: { $0.startDate >= window }) {
+                    let dtMin = last.startDate.timeIntervalSince(first.startDate) / 60.0
+                    if dtMin >= 20.0 {
+                        slope = (last.quantity.doubleValue(for: mgdl)
+                                 - first.quantity.doubleValue(for: mgdl)) / dtMin
+                    }
+                }
+            }
+            calmHighAllowed = slope.isFinite && slope >= config.calmHighMinSlope
+        }
         if config.calmHighAfScale != 1.0, calmHighAllowed, sigma5.isFinite,
            curBG >= config.calmHighBgMin, sigma5 <= config.calmHighSigmaMax {
             appFactor = min(1.0, appFactor * config.calmHighAfScale)

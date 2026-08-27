@@ -48,7 +48,8 @@ hash have no surviving traces.
 | [C22](#c22-σ-widened-lower-forecast-band) | σ-widened lower forecast band (volatility-aware min guard) | pull-back, state-gated | scored (7 beds) | **IMPROVES on hands-off donors** (bddp11 90 d +0.025, bddp11 +0.022, bddp09 +0.018); with the COB=0 gate the announcer harm disappears (bddp03/08 ≈ 0) |
 | [C23](#c23-calm-high-licence) | Calm-high licence (AF ×2 when BG ≥ 180 AND σ5 ≤ donor median) | dose-more, state-gated | scored (7 beds + control) | **IMPROVES on 6/7 beds at zero lows cost** (bddp01 +1.4 TIR, bddp09 +0.8, bddp11 +0.6/+0.7, bddp10/08 +0.2; bddp03 NEUTRAL); no-gate control is dial-like → σ is the information. Strongest multi-donor result in the program |
 | [C24](#c24-stack-c22--c23-disjoint-state-gates) | **Stack**: COB-gated σ band + calm-high licence (+ post-low RC rise-cut) | pull-back + dose-more, state-gated | scored (10 beds) | **stk3 multi-donor mean +0.022 [lo +0.001], 5 IMPROVES / 0 WORSE**; stk +0.015, 5/0 on 10 beds; +0.6…+2.1 TIR in unannounced-meal windows on 4/5 hands-off beds |
-| [C25](#c25-cob-gate-on-the-calm-high-licence) | COB gate on the calm-high licence | dose-more, state-gated | scoring (E13) | **Removes C23's only lows cost** (bddp03 Δt54 +0.10 → −0.01, ΔTIR −0.2 → +0.1) |
+| [C25](#c25-cob-gate-on-the-calm-high-licence) | COB gate on the calm-high licence | dose-more, state-gated | scored (3 beds) | **Removes C23's only lows cost and is inert elsewhere** (bddp03 Δt54 +0.10 → −0.01; bddp11 gated == ungated to every digit) — adopt as C23's standard form |
+| [C26](#c26-calm-high-licence-trend-gated) | Calm-high licence, trend-gated (only flat-or-rising highs) | dose-more, state-gated | scoring (E15) | targets the measured cause of C23's harm: it fires on DESCENTS 31–56 % of the time |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -378,6 +379,22 @@ the old binary, bddp03 ch2p50 ×1.00 — max|Δ| **0.0** on counter BG and candi
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
 | 2026-08-27 | bddp03 (heavy announcer) | natural | 2 mo, op ×1.05, 9 blocks | E13 `cohort_band_e13_b03.csv`: ungated ch2p50 +0.005, @op ΔTIR −0.2, **Δt54 +0.10 [+0.00,+0.22]**, Δt70 +0.70 → gated **ch2p50cob +0.003, @op ΔTIR +0.1, Δt54 −0.01 [−0.02,+0.01]**, Δt70 +0.16 | **Gate works.** Lift stays NEUTRAL (small on this bed either way) but the lows cost is gone and ΔTIR flips positive. With it, **C23 has no bed on which it costs lows** — what a default needs. bddp08 + a bddp11 inertness check running |
+| 2026-08-27 | bddp08 / bddp11 | natural | 2 mo | E13 `cohort_band_e13.csv`: bddp08 ch2p50 +0.008 (Δt54 −0.01) vs **ch2p50cob +0.007, Δt54 +0.00 [+0.00,+0.00]**; stk3 +0.010 = stk3cob +0.010. bddp11 **stkcob == stk and ch2p50cob == ch2p50 to every digit** | **Safe as a default: fixes the one harmful bed, inert everywhere else.** A hands-off donor has no COB, so the gate is a no-op by construction — the inertness is structural, not empirical luck. Adopt `--candidate-calm-high-cob-gate` as the standard form of C23 |
+
+## C26 · Calm-high licence, trend-gated
+`--candidate-calm-high-min-slope X` (added 2026-08-27, `EvalConfig.calmHighMinSlope`): require the
+trailing 30-min glucose slope ≥ X mg/dL/min before licensing. Causal (candidate's own glucose).
+**Measured motivation, not a theory** (`calmhigh_slope.py`): a steady 1 mg/dL/min fall is 5 mg/dL per
+5 min, i.e. σ5 ≈ 5, which *passes* a donor-median σ gate — so "calm high" silently includes "high that
+is already coming down". The licence fires on a falling BG on **31–56 %** of its cycles, and the
+ordering across beds matches the verdicts exactly: bddp08:ncnb (WORSE) fires 56 % falling at median
+slope −0.34, bddp03 natural (neutral, no harm) only 31 % falling at +0.08. Front-loading a correction
+into a high that was already coming down lands the insulin after absorption ends — the same failure
+C20 attacks from the other side.
+
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-27 | 3 ncnb + 6 natural beds | both | 2 mo | E15 — running | planned |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum

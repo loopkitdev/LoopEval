@@ -390,6 +390,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateSigmaBandCobGate: Bool = false
     @Flag(name: .long, help: "Apply the calm-high licence only when the candidate has no carbs on board (COB = 0): a heavy announcer's calm highs are post-meal with the bolus still working, so the extra application factor stacks into it and adds lows.")
     var candidateCalmHighCobGate: Bool = false
+    @Option(name: .long, help: "Calm-high licence TREND gate: require the trailing 30-min glucose slope (mg/dL/min) to be at least this. 0 licenses only flat-or-rising highs; a calm DESCENT passes the sigma gate otherwise (a 1 mg/dL/min fall is sigma5 ~ 5). Omit for no trend gate.")
+    var candidateCalmHighMinSlope: Double?
     @Option(name: .long, help: "Comma-separated outage REASONS (from the outages/disruptions CSV) during which the pump keeps delivering SCHEDULED basal instead of nothing — e.g. 'loop_offline' (phone away: the pod runs its schedule, only new adjustments stop). Default: none (every outage clamps delivery to 0).")
     var outageBasalReasons: String?
     @Option(name: .long, help: "PREDICTIVE pre-low damper GAIN: causal sustained-sensitivity trigger (causal ICE = v_bg - v_insulin over a trailing window). ISF-mult increase per mg/dL/min of negative ICE beyond the threshold; raises ISF proactively before the low. 0 = off.")
@@ -617,6 +619,7 @@ struct SimulateCommand: AsyncParsableCommand {
             calmHighSigmaMax: candidateCalmHighSigmaMax,
             sigmaBandCobGate: candidateSigmaBandCobGate,
             calmHighCobGate: candidateCalmHighCobGate,
+            calmHighMinSlope: candidateCalmHighMinSlope ?? -.infinity,
             sensDampWindowMin: candidateSensDampWindow,
             sensDampThresholdRate: candidateSensDampThreshold,
             sensDampGain: candidateSensDampGain,
