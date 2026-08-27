@@ -51,7 +51,8 @@ hash have no surviving traces.
 | [C25](#c25-cob-gate-on-the-calm-high-licence) | COB gate on the calm-high licence | dose-more, state-gated | scored (3 beds) | **Removes C23's only lows cost and is inert elsewhere** (bddp03 Δt54 +0.10 → −0.01; bddp11 gated == ungated to every digit) — adopt as C23's standard form |
 | [C26](#c26-calm-high-licence-trend-gated) | Calm-high licence, trend-gated (only flat-or-rising highs) | dose-more, state-gated | scored (3 beds) | **WASH** — removes the descent cycles and ~15 % of the TIR gain, no better lows exchange rate; the descent correlation was not causal |
 | [M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial) | *Method*: a mechanism only beats an EXPENSIVE dial | — | — | every `:ncnb` verdict scored at ×1.00 is provisional — the dial pays 83–434 TIR/t54 there vs 3 at a real operating point |
-| [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | **Removes C22's harm AND its lift** — so C22's lift is the band's per-donor LEVEL, not the σ signal; E19 control decides |
+| [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
+| [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scoring (E20) | E19: the band needs BOTH depth and σ modulation — normalize k, don't subtract a baseline |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -456,7 +457,21 @@ with the artifact's ICC table: volatility *level* is a trait (0.79), volatility 
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
 | 2026-08-27 | bddp05 / bddp11 / bddp09 / bddp10 / bddp01 | natural | 2 mo | E18 `cohort_band_e18.csv`: on **bddp05** (the target) sb1cob **WORSE −0.012 → sb1b NEUTRAL −0.001**. 5-bed means: sb1cob +0.006 (2 IMPROVES / **1 WORSE**, ΔTIR −0.58); **sb1b +0.001, 0 IMPROVES / 0 WORSE, ΔTIR −0.045**; sb2b −0.004; sb3b +0.005 (1 WORSE, ΔTIR −1.22) | **The fix works — and it takes the lift with it.** The harm on bddp05 is gone, but sb1b is nearly inert and neither sb1b nor sb2b IMPROVES on any bed, including the two where sb1cob does. **So C22's lift is carried by the per-donor LEVEL of the band, not by the volatility signal.** (This does not make it the needs dial — a persistent lowering of the predicted *minimum* is a different actuator, which is why it could show lift at all — but σ is not what does the work.) The decisive control is E19 |
-| 2026-08-27 | 5 natural + 2 suppressed beds | both | 2 mo | **E19 CONTROL** `--candidate-sigma-band-fixed-sigma`: replace σ5 with the donor's own median σ5 — a fixed lowering of the predicted trajectory with **no volatility signal in it at all**, matched to the average band the absolute-σ form applies. If `sb1fix` reproduces `sb1cob`'s lift, C22's lift is a constant predicted-minimum offset and σ contributes nothing. Same control shape that proved C23's σ gate *was* its mechanism (E11f) | running |
+| 2026-08-27 | 5 natural + 2 suppressed beds | both | 2 mo | **E19 CONTROL** `--candidate-sigma-band-fixed-sigma`: replace σ5 with the donor's own median σ5 — a fixed lowering of the predicted trajectory with **no volatility signal in it at all**, matched to the average band the absolute-σ form applies. If `sb1fix` reproduces `sb1cob`'s lift, C22's lift is a constant predicted-minimum offset and σ contributes nothing. Same control shape that proved C23's σ gate *was* its mechanism (E11f) | **CONTROL DISPROVES THE E18 READING.** The absolute-σ band splits exactly into a constant-depth part (`sb1fix`) and a σ-modulation part (`sb1b`), and **the whole is much more than the sum of its parts**: bddp11 +0.022 vs 0.010+0.003, bddp09 **+0.018 vs −0.000 + −0.001**. On bddp11 the constant control buys the *same* Δt54 (−0.08) but costs **0.4 TIR more**; on bddp09 it is exactly flat while the σ form IMPROVES. Means over 5 beds: constant-only −0.000 (0 IMPROVES / 1 WORSE), modulation-only +0.001 (0/0), **both +0.006 (2/1)**. **σ is doing real work.** What E18 actually showed is that the baselined form is *under-powered* — `max(0, σ5 − median)` at k=1 barely opens the band (ΔTIR −0.045), so it is a weaker mechanism, not a level-free one. The band needs **both** depth and modulation |
+
+## C28 · Depth-normalized σ band (per-donor k)
+E19's decomposition says the fix for C22's 21–49 mg/dL per-donor depth spread is **not** to subtract a
+baseline — that removes the depth, and the depth is load-bearing — but to normalize k so the band has
+the same depth at every donor's own median σ, keeping the modulation multiplicative:
+`k_donor = k_ref · σ_ref_p50 / σ_donor_p50` (reference 6.7 = bddp11/b11_90d, where k=1 is the tuned
+value). That gives k = **0.79** on bddp05, the one WORSE bed, up to **1.90** on bddp07. Consistent with
+bddp05's own decomposition: there the constant part alone is WORSE −0.020, i.e. its band is simply too
+deep, and σ modulation partially rescues it (−0.012) without being enough. No code change — a per-donor
+argument, fitted from the same σ history audited in C27 (drift 9 %, 4 weeks sufficient).
+
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-27 | 8 natural + 3 suppressed beds | both | 2 mo | E20 — running | planned |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
