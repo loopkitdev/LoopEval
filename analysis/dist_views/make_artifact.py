@@ -337,8 +337,10 @@ against fast carbohydrate should produce.</p>
 variance is itself random, so the natural question is whether glucose is
 intrinsically fat-tailed or Gaussian moment-to-moment with a drifting scale.</p>
 <p>Conditioning each increment on the local volatility of the trace before it —
-estimated only from the <em>past</em>, so it is something a controller could
-actually compute — removes between a quarter and a third of the excess kurtosis
+estimated only from the <em>past</em>, which is what makes an estimator
+<em>causal</em>: it uses nothing from after the moment it describes, so it is
+something a controller could actually compute at the time — removes between a
+quarter and a third of the excess kurtosis
 across 69 people. Measured on the held-out span where the estimators are scored,
 the median excess kurtosis is <strong>2.71</strong> raw, <strong>2.12</strong>
 under a causal rolling window, <strong>1.79</strong> under an EWMA and
@@ -348,7 +350,7 @@ Volatility genuinely clusters and is forecastable, and that accounts for about a
 third of the tail at best; the rest is a genuinely heavy-tailed shock. A model
 needs a time-varying scale <em>and</em> a fat-tailed innovation — the same
 combination the same analysis converged on for financial returns.</p>
-<div class="read"><p>The causality is not a nicety; it decides the number. A window
+<div class="read"><p>Looking only backwards is not a nicety here; it decides the number. A window
 <em>centred</em> on the increment it scales contains that increment, so a large
 move inflates its own denominator. Scored that way the same data appears to lose
 93% of its excess kurtosis and look Gaussian. No controller can compute that
