@@ -428,26 +428,64 @@ def f09_velocity_family(panels, co):
     ax[1][0].set_title("Tails do not thin out as the horizon grows",
                        fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
 
-    # Raw consecutive-sample deltas, straight off the sensor and unbinned.
-    dss = S.datasets()
+    # Where the raw deltas can land at all: the sensor's value grid. One line
+    # per person is a comb thicket at 70 people, and the structure is the same
+    # comb for everybody, so draw the grid itself — median across people at each
+    # grid point, p10-p90 across people as the whisker.
+    MMOL = 18.0182 / 10.0                  # 0.1 mmol/L, expressed in mg/dL
+    KS = np.arange(-13, 14)                # grid points, in steps
+    grids, on_share = {1.0: [], MMOL: []}, []
     for a in order:
-        ds = dss.get(a)
-        if ds is None:
+        d = S.raw_delta(a, 5.0)
+        d = d[np.isfinite(d)]
+        if d.size < 500:
             continue
-        raw = D._load_glucose(ds.glucose_path)
-        dt = raw.index.to_series().diff().dt.total_seconds()
-        dv = raw.diff()
-        ok = (dt > 240) & (dt < 360)              # genuinely consecutive samples
-        dv = dv[ok].to_numpy()
-        vals, cnt = np.unique(np.round(dv, 2), return_counts=True)
-        m = np.abs(vals) <= 12
-        ax[1][1].plot(vals[m], cnt[m] / cnt.sum(), **S.line_style(co, a))
+        # Which grid this person reports on: whichever the samples actually sit
+        # on. A person is not always on one of them for the whole record —
+        # bddp05 switches era — so score both and take the better.
+        def on_grid(step):
+            k = np.round(d / step)
+            return k, np.abs(d - k * step) < 0.02 * max(step, 1.0)
+        cand = {st: on_grid(st) for st in (1.0, MMOL)}
+        step = max(cand, key=lambda st: cand[st][1].mean())
+        k, on = cand[step]
+        on_share.append(float(on.mean()))
+        f = np.array([np.mean(on & (k == n)) for n in KS])
+        grids[step].append(f)
+    n_mg, n_mmol = len(grids[1.0]), len(grids[MMOL])
+    FLOOR = 2e-3
+    for step, col, mark, lab in (
+            (1.0, S.COOL, "o", f"whole mg/dL — {n_mg} people"),
+            (MMOL, S.ACCENT, "s", f"0.1 mmol/L = 1.8 mg/dL — {n_mmol} people")):
+        f = np.array(grids[step])
+        if not len(f):
+            continue
+        med, lo, hi = (np.median(f, axis=0), np.percentile(f, 10, axis=0),
+                       np.percentile(f, 90, axis=0))
+        x = KS * step
+        keep = (np.abs(x) <= 12) & (med > FLOOR)
+        # Stems from the floor say what the panel is about: mass sits on the
+        # grid points and nowhere in between.
+        ax[1][1].vlines(x[keep], FLOOR, med[keep], color=col, lw=1.0, alpha=0.35)
+        ax[1][1].vlines(x[keep], np.maximum(lo[keep], FLOOR), hi[keep],
+                        color=col, lw=1.8, alpha=0.7)
+        ax[1][1].plot(x[keep], med[keep], mark, ms=3.6, color=col, label=lab,
+                      markeredgecolor=S.SURFACE, markeredgewidth=0.5)
     ax[1][1].set_yscale("log")
-    ax[1][1].set_xlim(-12, 12)
-    ax[1][1].set_xlabel("Δ BG between consecutive raw CGM samples (mg/dL)",
+    ax[1][1].set_ylim(FLOOR, 0.42)
+    ax[1][1].set_xlim(-12.5, 12.5)
+    ax[1][1].text(0.02, 0.06,
+                  f"{100 * np.median(on_share):.0f}% of the median person's samples "
+                  f"land on the grid\n({100 * min(on_share):.0f}% for the worst); "
+                  "nothing lands in between",
+                  transform=ax[1][1].transAxes, ha="left", fontsize=8.5,
+                  color=S.INK2)
+    ax[1][1].legend(frameon=False, fontsize=8.5, labelcolor=S.INK2, loc="upper left",
+                    handletextpad=0.4)
+    ax[1][1].set_xlabel("\u0394 BG over 5 minutes, raw samples (mg/dL)",
                         fontsize=9.5, color=S.INK2)
-    ax[1][1].set_ylabel("relative frequency (log)", fontsize=9.5, color=S.INK2)
-    ax[1][1].set_title("Raw sensor deltas: the value grid is discrete",
+    ax[1][1].set_ylabel("share of samples at that value", fontsize=9.5, color=S.INK2)
+    ax[1][1].set_title("Deltas can only land on the sensor's value grid",
                        fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
 
     # Laplace scale b vs sd: for a true Laplace, sd/b = sqrt(2).
@@ -469,7 +507,7 @@ def f09_velocity_family(panels, co):
     ax[1][2].set_ylabel("SD / b", fontsize=9.5, color=S.INK2)
     ax[1][2].margins(x=0.14)
     ax[1][2].legend(frameon=False, fontsize=8.5, labelcolor=S.INK2, loc="lower right")
-    ax[1][2].set_title("Everyone above Gaussian; the cohort straddles Laplace",
+    ax[1][2].set_title("Everyone above Gaussian",
                        fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
 
     S.title(fig, "09 · What kind of random variable is glucose velocity?",
