@@ -39,6 +39,19 @@ role gets promoted into *this* file deliberately, as its own commit.
 property; commit them to `main` and the other worktrees pick them up on their next merge.
 Findings stay in the role's own files.
 
+## Working style
+
+**Answer questions in the scratchpad; publish only when asked.** A question gets its
+answer in the session, with the work living in the scratchpad or in a named script under
+`analysis/`. Published documents and artifacts — the distribution study above all — change
+only when the user explicitly asks for them to change. Finding something is not a reason
+to publish it.
+
+**A published document carries only what says something important about the subject.**
+Not every true result earns a place on the page: a negative answer, a methods note or a
+robustness check belongs in the role's own lessons file, and in the commit message. If a
+section has to explain what a thing is *not*, it probably belongs there instead.
+
 ---
 
 ## Private site config (`PRIVATE.md`)
