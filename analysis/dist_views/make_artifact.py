@@ -318,7 +318,7 @@ underestimates rare large moves.</p></div>
 <figure><img alt="Four panels of glucose velocity marginals: log density with a Gaussian reference, rise-to-fall density ratio, 30-minute increments, and spread against kurtosis" src="{{FIG:02_velocity_marginals}}">
 <figcaption><b>02</b> · Velocity densities on a log axis against a Gaussian of the same SD. The near-linear flanks are the Laplace signature. Bottom left shows the 30-minute increment, where the rise/fall asymmetry is plain.</figcaption></figure>
 <figure><img alt="Six panels testing the distributional family of glucose velocity against normal and Laplace" src="{{FIG:09_velocity_family}}">
-<figcaption><b>09</b> · Q-Q against a normal (an S, so heavy-tailed) and against a Laplace (straight). Top right, the survival of the absolute increment against an exponential reference. Bottom left, excess kurtosis versus horizon. Bottom middle, raw consecutive-sample deltas — the sensor's value grid is discrete. Bottom right, the SD-over-MAD ratio, clustered just above the Laplace line.</figcaption></figure>
+<figcaption><b>09</b> · Q-Q against a normal (an S, so heavy-tailed) and against a Laplace (straight). Top right, the survival of the absolute increment against an exponential reference. Bottom left, excess kurtosis versus horizon. Bottom middle, where five-minute raw deltas can land at all: a sensor reports on a discrete value grid — whole mg/dL for 66 people, 0.1 mmol/L (1.8 mg/dL) for three — and no reading falls between its points. Dots are the median share of a person's samples at that value, bars the p10–p90 across people. Bottom right, the SD-over-MAD ratio, clustered just above the Laplace line.</figcaption></figure>
 </section>
 
 <section>
