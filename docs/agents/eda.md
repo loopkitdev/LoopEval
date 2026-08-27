@@ -225,6 +225,22 @@ glucose, not the story of how it was measured. Therefore:
     statistic should run over 73 and say so. `style.color_for` greys out anyone the
     four-stream cohort does not describe rather than raising.
 
+31. **A KDE bandwidth chosen for the bulk is wrong in the tail, and a RATIO of two of
+    them makes it visible.** View 02's rise/fall density ratio rippled on a roughly
+    1-mg/dL scale. It is not the sensor's value lattice — dithering every delta off the
+    grid removes only 6% of the wiggle for the 67 whole-mg/dL people (43% for the two
+    on the 0.1 mmol/L grid, where it IS partly the lattice). It is kernel noise: the
+    Silverman bandwidth is set by the bulk (median 0.64 mg/dL) and out in the sparse
+    tail each isolated sample becomes its own bump, so the ripple's period tracks the
+    bandwidth (median period 3.3 mg/dL, 4.7× the bandwidth, correlation 0.70 across
+    people) and its size tracks how few samples are out there (corr(log wiggle,
+    log tail count) = −0.78, and it grows like 1/√n on subsampling). Widening the
+    bandwidth to 1.2 mg/dL halves it. Fixed by flooring the bandwidth AND stopping
+    each line where that person has fewer than 40 samples left in the tail —
+    **do not draw an estimate past the point where it is tracing individual readings.**
+    Diagnosis method worth reusing: split-half correlation plus a subsample-scaling
+    check separates a deterministic artefact from Monte-Carlo noise.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
