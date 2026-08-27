@@ -15,6 +15,19 @@ import style as S                                    # noqa: E402
 from loopeval_analysis import dists as D             # noqa: E402
 
 
+
+def _silverman(x) -> float:
+    x = np.asarray(x, float)
+    x = x[np.isfinite(x)]
+    return 1.06 * x.std() * len(x) ** (-1 / 5.0) if len(x) > 1 else 1.0
+
+
+def _tail_limit(x, min_n: int) -> float:
+    """The largest value with at least `min_n` samples at or beyond it."""
+    x = np.sort(np.asarray(x, float))
+    return float(x[-min_n]) if len(x) > min_n else 0.0
+
+
 def f01_bg_ridgeline(panels, co):
     """Every person's glucose distribution, stacked and ordered by TIR."""
     order = S.order_by(co, "tir")
@@ -91,12 +104,23 @@ def f02_velocity_marginals(panels, co):
                        fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
 
     # Asymmetry: rise side vs fall side of the same distribution, folded over.
+    #
+    # Two things make this ratio ripple if you let them. The default Silverman
+    # bandwidth is chosen for the BULK (median 0.64 mg/dL here) and is far too
+    # narrow for the sparse tail, where each isolated sample becomes its own
+    # bump — and a ratio of two such estimates oscillates on the scale of the
+    # kernel. So floor the bandwidth. Then stop each line where the estimate
+    # stops being an estimate: past the point where a side has fewer than
+    # MIN_TAIL samples left, the curve is drawing individual observations.
+    MIN_TAIL = 40
     pos = np.linspace(0, 25, 300)
     for a in order:
         v = S.raw_delta(a)
-        up = S.kde(v[v > 0], pos)
-        dn = S.kde(-v[v < 0], pos)
-        ax[0][1].plot(pos, np.maximum(up / np.maximum(dn, 1e-9), 1e-3),
+        up = S.kde(v[v > 0], pos, bw=max(1.2, _silverman(v[v > 0])))
+        dn = S.kde(-v[v < 0], pos, bw=max(1.2, _silverman(-v[v < 0])))
+        lim = min(_tail_limit(v[v > 0], MIN_TAIL), _tail_limit(-v[v < 0], MIN_TAIL))
+        m = pos <= lim
+        ax[0][1].plot(pos[m], np.maximum(up[m] / np.maximum(dn[m], 1e-9), 1e-3),
                       **S.line_style(co, a))
     ax[0][1].axhline(1.0, color=S.INK, lw=1.4, ls=(0, (4, 2)))
     ax[0][1].set_yscale("log")
