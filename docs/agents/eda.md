@@ -98,6 +98,9 @@ glucose, not the story of how it was measured. Therefore:
     (fig 07 raw→log→own-λ, fig 10 short-horizon vs long-horizon Hurst). The paired form is
     strictly better than grouped bars: it shows the per-person change, not just two levels.
     Per-person identity belongs in the ledger table, not on an axis.
+    A third case: a per-person *unbinned pmf over a discrete support* (fig 09's value
+    grid) is a comb thicket at any cohort size — plot the support instead, one point
+    per grid value with the spread across people.
 18. **Line-per-person panels: everyone faint, a fixed representative sample in colour.** At
     70+ people, one coloured line each is hair. `style.line_style(co, a)` draws non-sample
     people in faint grey and the sample in group colour; `style.sample_for(co)` is a
@@ -130,6 +133,9 @@ glucose, not the story of how it was measured. Therefore:
     (`style.WINDOW_OVERRIDE` / `style.clip_window`), which is applied in `style.load`,
     `style.raw_runs` and `build.py` — not by deduplicating, which would silently mix sensors.
     Sample count per day is the cheap tell: 576/day where 288 is expected.
+    The clip only protects code that goes through those helpers: fig 09's delta panel
+    called `D._load_glucose` directly and silently mixed both sensors until 2026-08-27.
+    **Never load a glucose path directly in a view** — go through `style`.
 
 22. **A stale intermediate table degrades everything downstream in silence.** `vol_fit`/
     `vol_cache` read each person's sensor noise from `fundamentals.csv` to set the variance
