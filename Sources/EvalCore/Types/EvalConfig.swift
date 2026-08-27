@@ -537,6 +537,14 @@ public struct EvalConfig: Codable, Sendable {
     /// long high 31–56 % of the time (measured, `calmhigh_slope.py`), front-loading insulin into a
     /// high that was already coming down. -.infinity (default) = no trend gate.
     public var calmHighMinSlope: Double
+    /// σ-band BASELINE (mg/dL per 5 min): widen the lower band by k·max(0, σ5 − baseline) instead of
+    /// k·σ5. Keyed on absolute σ5 the band is a per-donor forecast offset of 21–49 mg/dL at 60 min at
+    /// the donor's own median σ (k=1) — a donor-level aggressiveness bias wearing a state-dependent
+    /// costume, and the trap the earlier volatility band already fell into. Set this to the donor's own
+    /// median σ5 and the band is zero in their typical state and only opens when they are unusually
+    /// volatile. One-sided by construction: it can only ever lower the forecast. 0 (default) = the
+    /// original absolute-σ behaviour.
+    public var sigmaBandBaseline: Double
 
     /// PREDICTIVE pre-low damper: a strict-causal sustained-sensitivity trigger.
     /// Over a trailing window compute causal ICE = v_bg − v_insulin (BG dropping
@@ -634,6 +642,7 @@ public struct EvalConfig: Codable, Sendable {
         sigmaBandCobGate: Bool = false,
         calmHighCobGate: Bool = false,
         calmHighMinSlope: Double = -.infinity,
+        sigmaBandBaseline: Double = 0,
         sensDampWindowMin: Double = 45.0,
         sensDampThresholdRate: Double = 0.4,
         sensDampGain: Double = 0.0,
@@ -775,6 +784,7 @@ public struct EvalConfig: Codable, Sendable {
         self.sigmaBandCobGate               = sigmaBandCobGate
         self.calmHighCobGate                = calmHighCobGate
         self.calmHighMinSlope               = calmHighMinSlope
+        self.sigmaBandBaseline              = sigmaBandBaseline
         self.sensDampWindowMin              = sensDampWindowMin
         self.sensDampThresholdRate          = sensDampThresholdRate
         self.sensDampGain                   = sensDampGain
@@ -863,7 +873,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
         case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsSmoothGlucose, oapsPumpPulse
-        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, sigmaBandBaseline
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
 
@@ -1012,6 +1022,7 @@ public struct EvalConfig: Codable, Sendable {
         self.sigmaBandCobGate = try c.decodeIfPresent(Bool.self, forKey: .sigmaBandCobGate) ?? false
         self.calmHighCobGate = try c.decodeIfPresent(Bool.self, forKey: .calmHighCobGate) ?? false
         self.calmHighMinSlope = try c.decodeIfPresent(Double.self, forKey: .calmHighMinSlope) ?? -.infinity
+        self.sigmaBandBaseline = try c.decodeIfPresent(Double.self, forKey: .sigmaBandBaseline) ?? 0
         self.sensDampWindowMin = try c.decodeIfPresent(Double.self, forKey: .sensDampWindowMin) ?? 45.0
         self.sensDampThresholdRate = try c.decodeIfPresent(Double.self, forKey: .sensDampThresholdRate) ?? 0.4
         self.sensDampGain = try c.decodeIfPresent(Double.self, forKey: .sensDampGain) ?? 0.0
@@ -1154,6 +1165,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(sigmaBandCobGate, forKey: .sigmaBandCobGate)
         try c.encode(calmHighCobGate, forKey: .calmHighCobGate)
         try c.encode(calmHighMinSlope.isFinite ? calmHighMinSlope : -1e30, forKey: .calmHighMinSlope)
+        try c.encode(sigmaBandBaseline, forKey: .sigmaBandBaseline)
         try c.encode(sensDampWindowMin, forKey: .sensDampWindowMin)
         try c.encode(sensDampThresholdRate, forKey: .sensDampThresholdRate)
         try c.encode(sensDampGain, forKey: .sensDampGain)

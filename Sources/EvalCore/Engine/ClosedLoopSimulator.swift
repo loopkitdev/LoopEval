@@ -2558,7 +2558,11 @@ extension EvaluationEngine {
                 if tau <= 0 { s = 0 }
                 else if tau <= hz { s = pow(max(tau, 5.0) / 5.0, config.sigmaScalingH) }
                 else if tau < tp { s = sHz * (tp - tau) / (tp - hz) }
-                let off = -config.sigmaBandK * sigma5 * s
+                // Baseline-relative when sigmaBandBaseline > 0: the band opens only above the
+                // donor's own typical volatility, so it carries no per-donor level offset.
+                let sigEff = config.sigmaBandBaseline > 0
+                    ? Swift.max(0, sigma5 - config.sigmaBandBaseline) : sigma5
+                let off = -config.sigmaBandK * sigEff * s
                 return PredictedGlucoseValue(startDate: p.startDate,
                                              quantity: LoopQuantity(unit: unit, doubleValue: p.quantity.doubleValue(for: unit) + off))
             }

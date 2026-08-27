@@ -51,6 +51,7 @@ hash have no surviving traces.
 | [C25](#c25-cob-gate-on-the-calm-high-licence) | COB gate on the calm-high licence | dose-more, state-gated | scored (3 beds) | **Removes C23's only lows cost and is inert elsewhere** (bddp03 Δt54 +0.10 → −0.01; bddp11 gated == ungated to every digit) — adopt as C23's standard form |
 | [C26](#c26-calm-high-licence-trend-gated) | Calm-high licence, trend-gated (only flat-or-rising highs) | dose-more, state-gated | scored (3 beds) | **WASH** — removes the descent cycles and ~15 % of the TIR gain, no better lows exchange rate; the descent correlation was not causal |
 | [M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial) | *Method*: a mechanism only beats an EXPENSIVE dial | — | — | every `:ncnb` verdict scored at ×1.00 is provisional — the dial pays 83–434 TIR/t54 there vs 3 at a real operating point |
+| [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scoring (E18) | repairs C22's per-donor 21–49 mg/dL level offset — the widest band is the one WORSE bed |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -432,6 +433,29 @@ suppressed beds, **`sb1cob` is the only arm with a positive mean lift AND a nega
 (+0.059 / −0.031) — the only one that satisfies TIR ↑ AND t<54 ↓ once meals are unannounced. stk
 +0.060 but Δt54 +0.117; ch2p50 +0.012 at Δt54 +0.167; uam45 +0.021 at **Δt54 +1.01**; uam90 −1.111 at
 **Δt54 +3.07**. Every dose-more arm buys its TIR with lows in this regime.
+
+## C27 · σ band keyed on σ ABOVE the donor's own median
+`--candidate-sigma-band-baseline B` (added 2026-08-27, `EvalConfig.sigmaBandBaseline`):
+`off = −k · max(0, σ5 − B) · s` instead of `−k · σ5 · s`. **C22 as built reintroduced a documented
+trap.** Keyed on absolute σ5, the band lowers the 60-min forecast by **21–49 mg/dL across donors at
+their own MEDIAN volatility** — most of the time, i.e. a per-donor aggressiveness offset wearing a
+state-dependent costume. frontier.md already records this failure for the earlier volatility band
+("keyed on ABSOLUTE σ it is dominated by σ's level and becomes a constant downward forecast shift").
+The widest band (bddp05, 49 mg/dL) is the one bed where C22 is WORSE; the narrowest (bddp07, 21) is
+where it is inert. Setting B to the donor's own median makes the band zero in their typical state and
+one-sided, so it can only ever lower the forecast.
+
+**Per-patient fit audit** (`sigma_stability.py`, required by GOALS for anything fitted): the constant
+drifts a median of **9.0 %** between the first and second half of a record (max 24.8 %), and a
+**4-week** fit lands within **4.3 %** (median) of the full-record value — 2 weeks within 12.1 %. So a
+month of history suffices, and the in-sample fits used so far are unlikely to be materially optimistic
+(the gate is a percentile threshold, not a tuned gain). bddp03 is the exception at 86 % error on a
+2-week fit — the heavy announcer with a bimodal σ, and the bed that needed the COB gate. Consistent
+with the artifact's ICC table: volatility *level* is a trait (0.79), volatility *spread* a state (0.38).
+
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-27 | 5 natural + 3 suppressed beds | both | 2 mo | E18 — running | planned |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
