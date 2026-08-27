@@ -52,7 +52,8 @@ hash have no surviving traces.
 | [C26](#c26-calm-high-licence-trend-gated) | Calm-high licence, trend-gated (only flat-or-rising highs) | dose-more, state-gated | scored (3 beds) | **WASH** — removes the descent cycles and ~15 % of the TIR gain, no better lows exchange rate; the descent correlation was not causal |
 | [M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial) | *Method*: a mechanism only beats an EXPENSIVE dial | — | — | every `:ncnb` verdict scored at ×1.00 is provisional — the dial pays 83–434 TIR/t54 there vs 3 at a real operating point |
 | [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
-| [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scoring (E20) | E19: the band needs BOTH depth and σ modulation — normalize k, don't subtract a baseline |
+| [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
+| [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | scoring (E21) | removes C22's only WORSE bed at no cost elsewhere |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -471,7 +472,19 @@ argument, fitted from the same σ history audited in C27 (drift 9 %, 4 weeks suf
 
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
-| 2026-08-27 | 8 natural + 3 suppressed beds | both | 2 mo | E20 — running | planned |
+| 2026-08-27 | 7 natural beds | natural | 2 mo | E20 `cohort_band_e20.csv`: **sb1n mean −0.042 (1 IMPROVES / 1 WORSE)** and sb13n −0.099 (0/4), against sb1cob +0.003 (2/1). Per bed the sign of the k change decides: **bddp05 (k 0.79 ↓) WORSE −0.012 → NEUTRAL −0.005**, but bddp10 (1.32 ↑) ΔTIR −0.2 → −1.1, bddp09 (1.22 ↑) +0.018 → +0.014 at nearly double the TIR cost, bddp01 (1.08 ↑) → −0.006, sb13n WORSE on four beds | **FAILS as built — and the asymmetry is the finding.** Lowering k where the band was too deep helps; raising it for calmer donors costs TIR and buys nothing, because their band at k=1 is already deep enough. Superseded by [C29](#c29--depth-capped-σ-band): make it a **cap**, not an equalization. (bddp06's sb1n/sb13n rows have 2 in-band points and NaN at op — unreliable, E21 densifies) |
+
+## C29 · Depth-CAPPED σ band
+`k = min(1.0, k_ref · σ_ref_p50 / σ_donor_p50)` — the rule E20's asymmetry supports. Identical to C22
+for every donor with σ_p50 ≤ 6.7; only bddp05 (k 0.79) and bddp08 (0.96) move. A **stated rule computed
+from the donor's own history**, not a per-bed pick of the best arm — same class as C23's per-donor
+σ-max, fitted from the σ history already audited (drift 9 %, 4 weeks sufficient).
+Expected 7-bed table (measured sb1n on bddp05, sb1cob elsewhere): **mean ≈ +0.004, 2 IMPROVES,
+0 WORSE** — the cap removes C22's only WORSE bed at no cost elsewhere, by construction.
+
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-27 | bddp08 (the only other bed where the cap binds) + bddp06 densification | natural | 2 mo | E21 — running | planned |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
