@@ -17,3 +17,6 @@ runs/
 # Private, per-user site config — real Nightscout URLs/tokens/replay config.
 # NEVER commit. Copy PRIVATE.example.md -> PRIVATE.md and keep it local.
 PRIVATE.md
+
+# Per-checkout role selection. Copy ROLE.example.md -> ROLE.md.
+ROLE.md
