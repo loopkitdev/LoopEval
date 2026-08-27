@@ -18,7 +18,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from loopeval_analysis.scoring import score_counterfactual      # noqa: E402
 from loopeval_analysis import frontier as FR                    # noqa: E402
 
-RUN = Path.home() / "dev/LoopEvalScenarios/runs/2026-08-25-distributions/frontier"
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent))
+import style as _S
+
+RUN = _S.OUT / "frontier"
 DATA = Path.home() / "dev/LoopEval/runs/2026-08-13-cohort-2mo/bddp11/data_causal"
 NEEDS = ["0.80", "0.90", "1.00", "1.10"]
 ARMS = {"std": "stock", "vsb": "VSB k=1 caution-only", "lic": "VSB k=1 + licence"}

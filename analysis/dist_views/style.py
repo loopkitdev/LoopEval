@@ -25,8 +25,7 @@ def _runs_root() -> Path:
     if env:
         return Path(env).expanduser()
     for cand in (Path("~/.loop-eval/runs").expanduser(),
-                 Path(__file__).resolve().parents[2] / "runs",
-                 Path("~/dev/LoopEvalScenarios/runs").expanduser()):
+                 Path(__file__).resolve().parents[2] / "runs"):
         if (cand / RUN_NAME).is_dir():
             return cand
     return Path("~/.loop-eval/runs").expanduser()

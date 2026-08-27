@@ -31,7 +31,12 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-RUN = Path.home() / "dev/LoopEvalScenarios/runs/2026-08-25-distributions/ksweep"
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent))
+import style as _S
+
+RUN = _S.OUT / "ksweep"
 LOW = 70.0
 SEVERE = 54.0
 LOOKAHEAD_MIN = 120.0

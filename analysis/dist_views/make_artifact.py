@@ -11,7 +11,12 @@ import os
 import re
 from pathlib import Path
 
-OUT = Path(os.path.expanduser("~/dev/LoopEvalScenarios/runs/2026-08-25-distributions"))
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent))
+import style as _S
+
+OUT = _S.OUT
 WEB = OUT / "web"
 DST = OUT / "report.html"
 

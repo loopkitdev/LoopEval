@@ -27,7 +27,7 @@ import style as S                                            # noqa: E402
 from loopeval_analysis import frontier as FR                 # noqa: E402
 from loopeval_analysis.plotting import tir_t54_axes          # noqa: E402
 
-RUN = Path.home() / "dev/LoopEvalScenarios/runs/2026-08-25-distributions/ksweep"
+RUN = S.OUT / "ksweep"
 KCOL = {0.25: "#3b6ea5", 0.5: "#1baf7a", 1.0: "#eb6834", 2.0: "#8b5cf6"}
 ELBOW = (0.925, 1.025)          # where bddp11's positive band sits
 
