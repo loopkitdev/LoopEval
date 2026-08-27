@@ -201,6 +201,21 @@ glucose, not the story of how it was measured. Therefore:
     is meaningful. **So the mixture is latent, not scheduled** — don't reach for a
     circadian or meal-state schedule to model the tail.
 
+29. **The strip+KDE form now lives in `style.strip_kde`.** Lesson 17 named it; four more
+    panels were still per-person labelled bars at 69 people (view 11's noise and noise
+    share, view 12's velocity shift and SD ratio) because the form was written inline in
+    view 07 and nothing pointed the others at it. It is one call now — reach for it
+    whenever the question is "where does this number sit across the cohort".
+
+30. **View 11 refit a quantity the ledger already had.** `noise_and_insulin` fitted its own
+    structure-function intercept over its own lag set, so the figure said σ median 1.12
+    (69 people) while the ledger and the volatility variance floor said 1.27 (73, from
+    `traits._hurst_and_noise` via `wholerecord.csv`) — lesson 24 again, and neither number
+    looked wrong. The view reads `wholerecord.csv` now. Note the two cohorts are both
+    legitimate: **73 people have glucose, 69 have all four streams**, so a glucose-only
+    statistic should run over 73 and say so. `style.color_for` greys out anyone the
+    four-stream cohort does not describe rather than raising.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and

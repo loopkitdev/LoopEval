@@ -169,27 +169,12 @@ def f07_transform(panels, co):
     A = ax[0][2]
     vals = np.array([lam[a] for a in order], float)
     cols = [S.color_for(co, a) for a in order]
-    rng = np.random.default_rng(7)
     v = vals[np.isfinite(vals)]
-    lo, med, hi = np.percentile(v, [10, 50, 90])
-    gx = np.linspace(v.min() - 0.12, v.max() + 0.12, 240)
-    gy = S.kde(v, gx)                                  # density fills the panel
-    gy = gy / max(gy.max(), 1e-12)
-    A.fill_between(gx, 0, gy, color=S.COOL, alpha=0.16, lw=0, zorder=1)
-    A.plot(gx, gy, color=S.COOL, lw=1.5, alpha=0.7, zorder=2)
-    A.scatter(vals, -0.13 - rng.uniform(0, 0.14, len(vals)), s=24, c=cols,
-              alpha=0.7, lw=0, zorder=3)              # one dot per person, below
-    A.plot([lo, hi], [-0.34, -0.34], color=S.INK, lw=2.2, alpha=0.35, zorder=3,
-           solid_capstyle="round")
-    A.plot([med, med], [-0.40, 1.02], color=S.INK, lw=2.0, zorder=4)
+    S.strip_kde(A, vals, cols)
     A.axvline(0, color=S.INK2, lw=1.5)
     A.axvline(1, color=S.MUTED, lw=1.4, ls=(0, (4, 2)))
     A.text(0.02, 1.14, "λ=0  a log", fontsize=8.5, color=S.INK2, ha="left")
     A.text(0.98, 1.14, "λ=1  raw", fontsize=8.5, color=S.MUTED, ha="right")
-    A.text(med - 0.03, 0.62, f"median {med:.2f}\np10–p90 {lo:.2f} to {hi:.2f}",
-           fontsize=8.5, color=S.INK, ha="right", va="center", linespacing=1.5)
-    A.set_ylim(-0.46, 1.26)
-    A.set_yticks([])
     A.set_xlim(min(-0.8, v.min() - 0.08), 1.12)
     A.set_xlabel("Box-Cox λ that best normalises glucose", fontsize=9.5, color=S.INK2)
     A.set_title("The best power transform is close to a log",

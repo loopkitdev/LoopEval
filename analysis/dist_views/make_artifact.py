@@ -427,10 +427,12 @@ record is a smooth signal plus independent measurement error, that intercept is
 exactly twice the per-reading noise variance. Fitting
 <code>Var[&Delta;&tau;] = 2&middot;noise&sup2; + C&middot;&tau;^(2H)</code> over the short lags
 recovers the per-reading noise without needing any reference method.</p>
-<p>That per-reading noise lands at a median of <strong>1.25 mg/dL</strong>,
-range 0.13 to 2.45, which is about <strong>7% of the variance</strong> of a
-five-minute delta at the median and never more than a quarter. The lag-1 autocorrelation of the increment sits
-far above the &minus;0.5 floor that pure noise would produce.</p>
+<p>That per-reading noise lands at a median of <strong>1.27 mg/dL</strong>
+across 73 people, with the middle 80% between 0.57 and 1.94 and the whole range
+0.13 to 2.45. It accounts for about <strong>9% of the variance</strong> of a
+five-minute delta at the median, and never more than a quarter of it. The lag-1
+autocorrelation of the increment sits far above the &minus;0.5 floor that pure
+noise would produce.</p>
 <p>The practical reading is that five-minute deltas are worth taking seriously
 rather than smoothing away — the thing that makes them look unreliable is
 volatility, not noise, and those call for different responses. It is also a
