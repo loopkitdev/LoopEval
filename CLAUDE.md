@@ -1,2 +1,3 @@
 @AGENTS.md
 @PRIVATE.md
+@ROLE.md
