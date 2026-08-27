@@ -48,6 +48,7 @@ hash have no surviving traces.
 | [C22](#c22-σ-widened-lower-forecast-band) | σ-widened lower forecast band (volatility-aware min guard) | pull-back, state-gated | scored (7 beds) | **IMPROVES on hands-off donors** (bddp11 90 d +0.025, bddp11 +0.022, bddp09 +0.018); with the COB=0 gate the announcer harm disappears (bddp03/08 ≈ 0) |
 | [C23](#c23-calm-high-licence) | Calm-high licence (AF ×2 when BG ≥ 180 AND σ5 ≤ donor median) | dose-more, state-gated | scored (7 beds + control) | **IMPROVES on 6/7 beds at zero lows cost** (bddp01 +1.4 TIR, bddp09 +0.8, bddp11 +0.6/+0.7, bddp10/08 +0.2; bddp03 NEUTRAL); no-gate control is dial-like → σ is the information. Strongest multi-donor result in the program |
 | [C24](#c24-stack-c22--c23-disjoint-state-gates) | **Stack**: COB-gated σ band + calm-high licence (+ post-low RC rise-cut) | pull-back + dose-more, state-gated | scoring (E12, 5 beds in) | **IMPROVES 3/5** (b11_90d, bddp11, bddp09), NEUTRAL-positive on the 2 low-burden beds; near-ADDITIVE; **+0.6…+2.1 TIR in unannounced-meal windows on 4/5** |
+| [C25](#c25-cob-gate-on-the-calm-high-licence) | COB gate on the calm-high licence | dose-more, state-gated | scoring (E13) | **Removes C23's only lows cost** (bddp03 Δt54 +0.10 → −0.01, ΔTIR −0.2 → +0.1) |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -363,6 +364,18 @@ Each component's solo arm is already scored on the same beds, so the decompositi
 | 2026-08-27 | bddp10 / bddp01 | natural | 2 mo, op ×1.00 | E12: bddp10 stk +0.005 [−0.010,+0.027], stk3 +0.004 (@op ΔTIR −0.7); bddp01 stk +0.003 (@op **ΔTIR +0.8 at t54 0**), stk3 −0.005, and ch2p50 alone **+0.012 (+1.4 TIR)** | **NEUTRAL-positive on both — the two beds with little or no lows burden.** Restates the class rule: **C23 is the universal component** (the only one that pays on lows-free beds), **C22/C20 pay only where there are lows to trade**. Deployable default: C23 always, + C22/C20 where t54 ≳ 0.3 % |
 | 2026-08-27 | b11_90d / bddp11 / bddp09 / bddp01 / bddp10 | natural | **meal windows** (`meal_window.py`), dial retuned to matched whole-window lows | ΔTIR in unannounced-meal windows [−30, +300 min]: **stk +0.79 / +1.23 / +1.83 / +1.23 / −0.11**; **stk3 +1.13 / +2.06 / +1.83 / +0.57 / −0.84**; ch2p50 +0.58 / +1.00 / +0.37 / +0.21 / −0.39. Meal-window Δt54 flat (−0.04…+0.02), Δ>250 −0.4…−1.4, peak −0.3…−2.0 mg/dL | **Improves meal-window glycemia on 4 of 5 beds** at unchanged lows — the goal's second criterion. bddp10 (smallest lows burden) is the exception |
 | 2026-08-27 | bddp03 / bddp08 (announcers) + bddp05/06/07 | natural | 2 mo | E12 / E12b — running | planned |
+
+## C25 · COB gate on the calm-high licence
+`--candidate-calm-high-cob-gate` (added 2026-08-27, `EvalConfig.calmHighCobGate`): apply C23's
+licence only while the candidate has no carbs on board. C23 IMPROVES on 8 of 10 beds and the one
+place it costs lows is the heavy announcer — whose calm highs are *post-meal with the bolus still
+working*, so the extra application factor stacks into insulin already committed. Same shape as the
+announcer harm C22 had, so the same fix. **Identity 2026-08-27:** new binary with the flag OFF vs
+the old binary, bddp03 ch2p50 ×1.00 — max|Δ| **0.0** on counter BG and candidate dose, 16,765 cycles.
+
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-27 | bddp03 (heavy announcer) | natural | 2 mo, op ×1.05, 9 blocks | E13 `cohort_band_e13_b03.csv`: ungated ch2p50 +0.005, @op ΔTIR −0.2, **Δt54 +0.10 [+0.00,+0.22]**, Δt70 +0.70 → gated **ch2p50cob +0.003, @op ΔTIR +0.1, Δt54 −0.01 [−0.02,+0.01]**, Δt70 +0.16 | **Gate works.** Lift stays NEUTRAL (small on this bed either way) but the lows cost is gone and ΔTIR flips positive. With it, **C23 has no bed on which it costs lows** — what a default needs. bddp08 + a bddp11 inertness check running |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
