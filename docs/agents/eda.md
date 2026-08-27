@@ -166,6 +166,17 @@ glucose, not the story of how it was measured. Therefore:
     **Look at the rendered PNG after any figure change** — the check catches overruns, not
     a panel that is merely wrong.
 
+26. **The artifact publishes `web/`, not `figs/` — and nothing links them.** `make_artifact.py`
+    inlines the downsampled copies under `runs/.../web`; if a figure is rebuilt and the
+    downsample is not, the page republishes its stale predecessor with no error and a
+    correct-looking build log. That is exactly how the redrawn figures 07/10/14/15 stayed
+    unpublished: `figs/` was 2026-08-26 21:03, `web/` 16:54, and `report.html` was rebuilt
+    from the old copies. The downsample is now a named script — **run
+    `python3 analysis/dist_views/web_figs.py` after any figure change, before
+    `make_artifact.py`** (1650 px, 192 colours: ~4.6 MB for the set, ~6.2 MB once base64
+    inflates it, against the 16 MB artifact limit — full-resolution copies blow through it).
+    Check `figs/` vs `web/` mtimes before believing a republish.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
