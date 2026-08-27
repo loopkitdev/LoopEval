@@ -184,8 +184,8 @@ time in range. Colour marks the group: <span class="swatch" style="background:#3
     <div class="n">Median power that normalises glucose, over 73 people. Range &minus;0.60 to 0.70; a log is the right centre.</div></div>
   <div class="cell"><div class="k">SD / MAD of &Delta;BG</div><div class="v">1.40</div>
     <div class="n">Median over 73 people, range 1.326–1.498. Laplace is 1.414, Gaussian 1.253; everyone is above Gaussian.</div></div>
-  <div class="cell"><div class="k">Sensor noise per reading</div><div class="v">1.25</div>
-    <div class="n">mg/dL, median; range 0.13–2.45. Only about 7% of the variance of a 5-minute change is measurement noise.</div></div>
+  <div class="cell"><div class="k">Sensor noise per reading</div><div class="v">1.27</div>
+    <div class="n">mg/dL, median over 73 people; range 0.13–2.45. Only about 9% of the variance of a 5-minute change is measurement noise.</div></div>
   <div class="cell"><div class="k">Trending, 5&ndash;60 min</div><div class="v">0.77</div>
     <div class="n">Hurst exponent; a random walk is 0.5. Over the short run a move tends to continue — true of every person measured.</div></div>
   <div class="cell"><div class="k">Trending, 2&ndash;4 h</div><div class="v">0.30</div>
@@ -330,74 +330,55 @@ against fast carbohydrate should produce.</p>
 </section>
 
 <section>
-<p class="eyebrow">Fig 10 · Fig 14 · Why it is Laplace</p>
-<h2>Partly a mixture — but less of one than it first appeared</h2>
+<p class="eyebrow">Fig 10 · Fig 24 · What the tail is made of</p>
+<h2>A wandering scale, and a fat-tailed shock underneath it</h2>
 <div class="col">
-<p>A Laplace distribution is what you get when you draw from Gaussians whose
-variance is itself random, so the natural question is whether glucose is
-intrinsically fat-tailed or Gaussian moment-to-moment with a drifting scale.</p>
-<p>Conditioning each increment on the local volatility of the trace before it —
+<p>A Laplace distribution is what you get from Gaussians whose variance is itself
+random, so the fat tail has two possible sources: a process that is intrinsically
+heavy-tailed, or a Gaussian one whose scale drifts. It is both — and the
+drifting-scale half is smaller than it looks, and is not on the clock.</p>
+<p>Conditioning each increment on the volatility of the trace before it —
 estimated only from the <em>past</em>, which is what makes an estimator
-<em>causal</em>: it uses nothing from after the moment it describes, so it is
-something a controller could actually compute at the time — removes between a
-quarter and a third of the excess kurtosis
-across 69 people. Measured on the held-out span where the estimators are scored,
-the median excess kurtosis is <strong>2.71</strong> raw, <strong>2.12</strong>
-under a causal rolling window, <strong>1.79</strong> under an EWMA and
-<strong>1.46</strong> under a GARCH: a per-person reduction of 23%, 28% and 36%.
-Every one of them is still far from a Gaussian's zero. So both things are true.
-Volatility genuinely clusters and is forecastable, and that accounts for about a
-third of the tail at best; the rest is a genuinely heavy-tailed shock. A model
-needs a time-varying scale <em>and</em> a fat-tailed innovation — the same
-combination the same analysis converged on for financial returns.</p>
-<div class="read"><p>Looking only backwards is not a nicety here; it decides the number. A window
-<em>centred</em> on the increment it scales contains that increment, so a large
-move inflates its own denominator. Scored that way the same data appears to lose
-93% of its excess kurtosis and look Gaussian. No controller can compute that
-window, and the honest one removes at most a third.</p></div>
-<figure><img alt="Six panels on volatility and scaling, with causal and non-causal standardisation compared" src="{{FIG:10_volatility}}">
-<figcaption><b>10</b> · Top left now shows both windows: grey is the centred one that flatters itself, blue the causal one. Top right, the autocorrelation of |&Delta;BG| — volatility clustering with long memory. Bottom middle, the structure function against random-walk and pure-trend references.</figcaption></figure>
-</section>
-
-<section>
-<p class="eyebrow">Fig 24 · What the mixture is made of</p>
-<h2>The mixture is not meals, and not nights</h2>
-<div class="col">
-<p>If the increment is a mixture of Gaussians with a changing scale, the obvious
-suspects are the states a day is actually made of: eating, sleeping, insulin
-acting. Those are <em>named</em> states — known in advance, on the clock or in the
-pump — so if they were the mixture, the tail would be an artefact of pooling them
-and any controller could condition it away with a schedule.</p>
-<p>They are not the mixture. Give every increment the state it occurred in — local
-time of day in three-hour blocks, whether carbs were on board, which third of this
-person's insulin-activity range was running — and divide it by the spread of its own
-state. The excess kurtosis does not fall: median <strong>2.71</strong> raw against
-<strong>2.88</strong> conditioned across 69 people. The same increments divided by a
-causal volatility estimate, which is not a named state at all, lose about a quarter.
-Named states explain <strong>4%</strong> of the squared increment; the volatility
-estimate explains <strong>16%</strong> of the same quantity.</p>
-<p>The states are real, they are just too mild and too similar to make a tail. A
-person's five-minute increment has a standard deviation <strong>1.29&times;</strong>
+<em>causal</em>: it uses nothing from after the moment it describes, so a
+controller could compute it at the time — removes between a quarter and a third of
+the excess kurtosis across 69 people. On the held-out span the median excess
+kurtosis is <strong>2.71</strong> raw, <strong>2.12</strong> under a rolling
+window, <strong>1.79</strong> under an EWMA and <strong>1.46</strong> under a
+GARCH: per-person reductions of 23%, 28% and 36%, every one still far from a
+Gaussian's zero. A model of this needs a time-varying scale <em>and</em> a
+fat-tailed innovation — the same combination the same analysis converged on for
+financial returns.</p>
+<div class="read"><p>Looking only backwards is not a nicety here; it decides the
+number. A window <em>centred</em> on the increment it scales contains that
+increment, so a large move inflates its own denominator. Scored that way the same
+data appears to lose 93% of its excess kurtosis and look Gaussian. No controller
+can compute that window, and the honest one removes at most a third.</p></div>
+<p>Nor is the drifting scale a named state. Give every increment the state it
+happened in — local time of day in three-hour blocks, whether carbs were on board,
+which third of this person's insulin-activity range was running — and divide it by
+the spread of its own state: the excess kurtosis does not fall, median
+<strong>2.71</strong> raw against <strong>2.88</strong> conditioned. Named states
+explain <strong>4%</strong> of the squared increment where the volatility estimate
+explains <strong>16%</strong>. They are real states, only far too mild to make a
+tail — a five-minute increment has a standard deviation <strong>1.29&times;</strong>
 larger with carbs on board than fasted, and <strong>0.84&times;</strong> as large at
-night as by day. A mixture of scales that close together is very nearly one scale.</p>
+night as by day. A mixture of scales that close together is very nearly one scale.
+It comes out the same among the 35 people who announce carbs heavily, for whom the
+fed/fasted split means most.</p>
 <div class="read"><p>The tail is fattest where the least is happening. Inside a
 single state, unstandardised, the excess kurtosis is <strong>1.29</strong> in the
 daytime with carbs on board, <strong>3.81</strong> in the daytime fasted for four
-hours, and <strong>4.47</strong> overnight fasted. Eating does not produce the fat
-tail — it produces the closest thing to a Gaussian a person has. What is fat-tailed
-is the quiet: long flat stretches interrupted by a sharp move.</p></div>
-<p>Two things that could have explained that away do not. Nights carry an artefact
-days do not — lying on the sensor makes a compression low, and its recovery is a
-burst the person never had — but restricting the overnight state to readings at or
-above 80&nbsp;mg/dL leaves the excess kurtosis at <strong>4.25</strong>. And carbs are
-only visible where they were announced, so the fed/fasted split means least for
-people who rarely announce; among the 35 heavy announcers, who have carbs on board
-for 41% of all samples, conditioning on the named state still removes nothing
-(&minus;4%).</p>
+hours, and <strong>4.47</strong> overnight fasted — <strong>4.25</strong> with the
+compression lows cut out. Eating does not produce the fat tail; it produces the
+closest thing to a Gaussian a person has. What is fat-tailed is the quiet: long
+flat stretches interrupted by a sharp move.</p></div>
 </div>
+<figure><img alt="Six panels on volatility and scaling, with causal and non-causal standardisation compared" src="{{FIG:10_volatility}}">
+<figcaption><b>10</b> · Top left shows both windows: grey is the centred one that flatters itself, blue the backwards-looking one. Top right, the autocorrelation of |&Delta;BG| — volatility clustering with long memory. Bottom middle, the structure function against random-walk and pure-trend references.</figcaption></figure>
 <figure><img alt="Three panels: excess kurtosis raw versus conditioned on a named state versus on volatility; kurtosis within single states; share of the squared increment explained" src="{{FIG:24_modality}}">
 <figcaption><b>24</b> · Each faint line is one person across the conditions; the heavy tick is the median across people and the pale bar its p10&ndash;p90. Left, what conditioning does to the tail. Middle, the tail inside single states, unstandardised. Right, the share of the squared increment each explanation accounts for &mdash; the same target for both, so they can be read against each other. State comes from the five-minute panel; the increments themselves are raw sensor samples.</figcaption></figure>
 </section>
+
 
 <section>
 <p class="eyebrow">Fig 10 · Dynamics</p>
