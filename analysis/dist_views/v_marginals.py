@@ -338,7 +338,7 @@ def f05_insulin_activity(panels, co):
             "of all insulin action, median 48%, and a basal-relative\nforecast books it at zero. This is the schedule only; a temp-basal-strategy "
             "user's corrections are not counted as basal here.")
     S.save(fig, "05_insulin_activity",
-           dict(left=0.075, right=0.985, top=0.875, bottom=0.07, hspace=0.38, wspace=0.2))
+           dict(left=0.075, right=0.985, top=0.835, bottom=0.07, hspace=0.38, wspace=0.2))
 
 
 def f06_ice(panels, co):
