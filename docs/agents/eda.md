@@ -183,6 +183,24 @@ glucose, not the story of how it was measured. Therefore:
     inflates it, against the 16 MB artifact limit — full-resolution copies blow through it).
     Check `figs/` vs `web/` mtimes before believing a republish.
 
+27. **Fitting one quantity against another set's baseline inflates it.** The document
+    claimed causal conditioning "removes 40% of the excess kurtosis", from 3.05 raw to
+    1.71 — but 3.05 is the WHOLE-RECORD kurtosis (view 09, 73 people) and 1.71 is the
+    EWMA's on the HELD-OUT span (view 14, 69 people). Within one set the honest numbers
+    are 2.71 raw → 2.12 rolling / 1.79 EWMA / 1.46 GARCH, a per-person 23/28/36%. Two
+    correct numbers, one invalid ratio; lesson 24's failure in its subtler form — same
+    quantity, same definition, different *sample*. State the window AND the cohort with
+    any before/after.
+
+28. **Named states do not explain the increment's tail** (2026-08-27, `modality_kurtosis.py`).
+    Time of day × carbs-on-board × insulin-activity tertile removes NOTHING of the excess
+    kurtosis (2.71 → 2.88) and explains 4% of the squared increment against the causal
+    volatility estimate's 16%. The tail is fattest in the calmest state: excess kurtosis
+    1.29 daytime-fed, 3.81 daytime-fasted, 4.47 overnight-fasted. Compression lows are not
+    the cause (BG ≥ 80 overnight: 4.25) and it holds among heavy announcers, for whom COB
+    is meaningful. **So the mixture is latent, not scheduled** — don't reach for a
+    circadian or meal-state schedule to model the tail.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and

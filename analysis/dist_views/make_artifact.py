@@ -283,7 +283,7 @@ increment is an almost perfect exponential over four decades. And the shape rati
 and 1.414 for a Laplace — comes out between <strong>1.326 and 1.498 across all 73
 people</strong>, median 1.40.</p>
 <p>Across 73 people the ratio runs <strong>1.326 to 1.498</strong> with a median
-of <strong>1.403</strong>, and excess kurtosis has a median of <strong>3.05</strong>.
+of <strong>1.403</strong>, and excess kurtosis, over each person's whole record, has a median of <strong>3.05</strong>.
 Both land on the Laplace values — 1.414 and 3.0 — rather than beside them: 41% of
 people sit above the shape ratio's Laplace value and 51% above its kurtosis. The
 population straddles the distribution rather than clearing it.</p>
@@ -330,19 +330,63 @@ variance is itself random, so the natural question is whether glucose is
 intrinsically fat-tailed or Gaussian moment-to-moment with a drifting scale.</p>
 <p>Conditioning each increment on the local volatility of the trace before it —
 estimated only from the <em>past</em>, so it is something a controller could
-actually compute — removes about <strong>40%</strong> of the excess kurtosis across 69 people: the median falls from 3.05 raw to 1.71 conditioned, still well
-short of a Gaussian's zero. So both things are true. Volatility genuinely
-clusters and is forecastable, and that accounts for roughly a third of the tail;
-the remaining two thirds is a genuinely heavy-tailed shock. A model needs a
-time-varying scale <em>and</em> a fat-tailed innovation — the same combination the
-same analysis converged on for financial returns.</p>
+actually compute — removes between a quarter and a third of the excess kurtosis
+across 69 people. Measured on the held-out span where the estimators are scored,
+the median excess kurtosis is <strong>2.71</strong> raw, <strong>2.12</strong>
+under a causal rolling window, <strong>1.79</strong> under an EWMA and
+<strong>1.46</strong> under a GARCH: a per-person reduction of 23%, 28% and 36%.
+Every one of them is still far from a Gaussian's zero. So both things are true.
+Volatility genuinely clusters and is forecastable, and that accounts for about a
+third of the tail at best; the rest is a genuinely heavy-tailed shock. A model
+needs a time-varying scale <em>and</em> a fat-tailed innovation — the same
+combination the same analysis converged on for financial returns.</p>
 <div class="read"><p>The causality is not a nicety; it decides the number. A window
 <em>centred</em> on the increment it scales contains that increment, so a large
 move inflates its own denominator. Scored that way the same data appears to lose
 93% of its excess kurtosis and look Gaussian. No controller can compute that
-window, and the honest one removes a third.</p></div>
+window, and the honest one removes at most a third.</p></div>
 <figure><img alt="Six panels on volatility and scaling, with causal and non-causal standardisation compared" src="{{FIG:10_volatility}}">
 <figcaption><b>10</b> · Top left now shows both windows: grey is the centred one that flatters itself, blue the causal one. Top right, the autocorrelation of |&Delta;BG| — volatility clustering with long memory. Bottom middle, the structure function against random-walk and pure-trend references.</figcaption></figure>
+</section>
+
+<section>
+<p class="eyebrow">Fig 24 · What the mixture is made of</p>
+<h2>The mixture is not meals, and not nights</h2>
+<div class="col">
+<p>If the increment is a mixture of Gaussians with a changing scale, the obvious
+suspects are the states a day is actually made of: eating, sleeping, insulin
+acting. Those are <em>named</em> states — known in advance, on the clock or in the
+pump — so if they were the mixture, the tail would be an artefact of pooling them
+and any controller could condition it away with a schedule.</p>
+<p>They are not the mixture. Give every increment the state it occurred in — local
+time of day in three-hour blocks, whether carbs were on board, which third of this
+person's insulin-activity range was running — and divide it by the spread of its own
+state. The excess kurtosis does not fall: median <strong>2.71</strong> raw against
+<strong>2.88</strong> conditioned across 69 people. The same increments divided by a
+causal volatility estimate, which is not a named state at all, lose about a quarter.
+Named states explain <strong>4%</strong> of the squared increment; the volatility
+estimate explains <strong>16%</strong> of the same quantity.</p>
+<p>The states are real, they are just too mild and too similar to make a tail. A
+person's five-minute increment has a standard deviation <strong>1.29&times;</strong>
+larger with carbs on board than fasted, and <strong>0.84&times;</strong> as large at
+night as by day. A mixture of scales that close together is very nearly one scale.</p>
+<div class="read"><p>The tail is fattest where the least is happening. Inside a
+single state, unstandardised, the excess kurtosis is <strong>1.29</strong> in the
+daytime with carbs on board, <strong>3.81</strong> in the daytime fasted for four
+hours, and <strong>4.47</strong> overnight fasted. Eating does not produce the fat
+tail — it produces the closest thing to a Gaussian a person has. What is fat-tailed
+is the quiet: long flat stretches interrupted by a sharp move.</p></div>
+<p>Two things that could have explained that away do not. Nights carry an artefact
+days do not — lying on the sensor makes a compression low, and its recovery is a
+burst the person never had — but restricting the overnight state to readings at or
+above 80&nbsp;mg/dL leaves the excess kurtosis at <strong>4.25</strong>. And carbs are
+only visible where they were announced, so the fed/fasted split means least for
+people who rarely announce; among the 35 heavy announcers, who have carbs on board
+for 41% of all samples, conditioning on the named state still removes nothing
+(&minus;4%).</p>
+</div>
+<figure><img alt="Three panels: excess kurtosis raw versus conditioned on a named state versus on volatility; kurtosis within single states; share of the squared increment explained" src="{{FIG:24_modality}}">
+<figcaption><b>24</b> · Each faint line is one person across the conditions; the heavy tick is the median across people and the pale bar its p10&ndash;p90. Left, what conditioning does to the tail. Middle, the tail inside single states, unstandardised. Right, the share of the squared increment each explanation accounts for &mdash; the same target for both, so they can be read against each other. State comes from the five-minute panel; the increments themselves are raw sensor samples.</figcaption></figure>
 </section>
 
 <section>
