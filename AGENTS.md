@@ -29,6 +29,7 @@ for that checkout (copy `ROLE.example.md`, exactly like `PRIVATE.md`).
 | frontier | `docs/agents/frontier.md` | Does a candidate change actually help? Lift, scoring, the ledger. |
 | simulator | `docs/agents/simulator.md` | Building LoopEval itself — engine, adapters, CLI, analysis package. |
 | eda | `docs/agents/eda.md` | Observational analysis of the data; the live distribution study. |
+| scenarios | `docs/agents/scenarios.md` | Synthetic scenarios: hand-built cycles with no donor record behind them. Overlay still a placeholder. |
 | — | `docs/agents/verification.md` | Faithful replay and identity checks; read by frontier **and** simulator. |
 
 **Keep to your own overlay.** One file, one owner: roles never edit each other's overlay, so
