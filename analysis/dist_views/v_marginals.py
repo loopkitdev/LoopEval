@@ -103,31 +103,39 @@ def f02_velocity_marginals(panels, co):
     ax[0][0].set_title("Velocity has far heavier tails than a Gaussian",
                        fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
 
-    # Asymmetry: rise side vs fall side of the same distribution, folded over.
+    # Asymmetry: how much more often a rise of at least x happens than a fall
+    # of at least x. Counting exceedances rather than comparing two densities —
+    # no kernel, so no bandwidth to pick and nothing to ripple; the earlier
+    # density-ratio version oscillated on the scale of its own bandwidth out
+    # where the tail thins.
     #
-    # Two things make this ratio ripple if you let them. The default Silverman
-    # bandwidth is chosen for the BULK (median 0.64 mg/dL here) and is far too
-    # narrow for the sparse tail, where each isolated sample becomes its own
-    # bump — and a ratio of two such estimates oscillates on the scale of the
-    # kernel. So floor the bandwidth. Then stop each line where the estimate
-    # stops being an estimate: past the point where a side has fewer than
-    # MIN_TAIL samples left, the curve is drawing individual observations.
+    # Evaluated ON each person's own value grid (view 24: whole mg/dL for most,
+    # 0.1 mmol/L = 1.8 mg/dL for a few). An exceedance count can only change at
+    # a grid value, so a finer x axis would draw a staircase and claim a
+    # resolution the sensor does not have. Lines stop where either side has
+    # fewer than MIN_TAIL exceedances left.
     MIN_TAIL = 40
-    pos = np.linspace(0, 25, 300)
     for a in order:
-        v = S.raw_delta(a)
-        up = S.kde(v[v > 0], pos, bw=max(1.2, _silverman(v[v > 0])))
-        dn = S.kde(-v[v < 0], pos, bw=max(1.2, _silverman(-v[v < 0])))
-        lim = min(_tail_limit(v[v > 0], MIN_TAIL), _tail_limit(-v[v < 0], MIN_TAIL))
-        m = pos <= lim
-        ax[0][1].plot(pos[m], np.maximum(up[m] / np.maximum(dn[m], 1e-9), 1e-3),
-                      **S.line_style(co, a))
+        v = np.asarray(S.raw_delta(a), dtype=float)
+        v = v[np.isfinite(v)]
+        up, dn = v[v > 0], -v[v < 0]
+        if len(up) <= MIN_TAIL or len(dn) <= MIN_TAIL:
+            continue
+        nz = np.abs(v[v != 0])
+        step = (1.80182 if np.mean(np.abs(nz / 1.80182 - np.round(nz / 1.80182)) < 0.02)
+                > 0.9 else 1.0)
+        x = np.arange(0, 25 + step, step)
+        n_up = np.array([(up >= t).sum() for t in x])
+        n_dn = np.array([(dn >= t).sum() for t in x])
+        m = (n_up >= MIN_TAIL) & (n_dn >= MIN_TAIL)
+        ax[0][1].plot(x[m], n_up[m] / n_dn[m], **S.line_style(co, a))
+
     ax[0][1].axhline(1.0, color=S.INK, lw=1.4, ls=(0, (4, 2)))
     ax[0][1].set_yscale("log")
-    ax[0][1].set_ylim(0.2, 6)
+    ax[0][1].set_ylim(0.35, 6)
     ax[0][1].set_xlim(0, 16)
     ax[0][1].set_xlabel("|Δ glucose| per 5 min (mg/dL)", fontsize=9.5, color=S.INK2)
-    ax[0][1].set_ylabel("density(rise) / density(fall)", fontsize=9.5, color=S.INK2)
+    ax[0][1].set_ylabel("rises ≥ x  /  falls ≥ x", fontsize=9.5, color=S.INK2)
     ax[0][1].set_title("Rises outnumber falls only once they get big",
                        fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
 
