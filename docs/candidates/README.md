@@ -47,6 +47,7 @@ hash have no surviving traces.
 | [C21](#c21-fast-rise-gated-rc-rise-cut) | Fast-rise-gated RC rise-cut (meal-rise-stacking corner) | pull-back, gated | scored (bddp11) | NEUTRAL (+0.007 best) — closed |
 | [C22](#c22-σ-widened-lower-forecast-band) | σ-widened lower forecast band (volatility-aware min guard) | pull-back, state-gated | scored (7 beds) | **IMPROVES on hands-off donors** (bddp11 90 d +0.025, bddp11 +0.022, bddp09 +0.018); with the COB=0 gate the announcer harm disappears (bddp03/08 ≈ 0) |
 | [C23](#c23-calm-high-licence) | Calm-high licence (AF ×2 when BG ≥ 180 AND σ5 ≤ donor median) | dose-more, state-gated | scored (7 beds + control) | **IMPROVES on 6/7 beds at zero lows cost** (bddp01 +1.4 TIR, bddp09 +0.8, bddp11 +0.6/+0.7, bddp10/08 +0.2; bddp03 NEUTRAL); no-gate control is dial-like → σ is the information. Strongest multi-donor result in the program |
+| [C24](#c24-stack-c22--c23-disjoint-state-gates) | **Stack**: COB-gated σ band + calm-high licence (+ post-low RC rise-cut) | pull-back + dose-more, state-gated | scoring (E12, 1 bed in) | **IMPROVES** bddp11 (stk +0.029, stk3 +0.055) and near-ADDITIVE vs components |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -344,6 +345,21 @@ runs-high donors). Dose-more, state-gated — the goal's "know when to dose more
 | 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11d gate width: **s=2.5 @ p67: +0.027 [+0.014,+0.039], dom 1.00 (lo 0.80); @op ΔTIR +1.4 [+1.0,+1.9], Δt54 +0.00 [−0.02,+0.02]**; s=2 @ p67 +0.024 [+0.016,+0.031] (+1.1 TIR); s=3 @ p50 +0.012 (+0.7); s=2 @ p50 +0.014 (+0.6) | **IMPROVES — widening the σ gate (p33→p50→p67) is worth more than raising the scale; still zero lows cost.** Largest lift of any deployable mechanism in the program. Control below |
 | 2026-08-26 | bddp11 | natural | 90 d, band 1.00±0.1 | E11f **CONTROL** `band_table_e11f.csv` — same AF boost with NO σ gate (σmax ∞): s=2 lift +0.009 [−0.004,+0.026] (@op ΔTIR +2.5, **Δt54 +0.11**); s=2.5 +0.007 [−0.010,+0.026] (ΔTIR +2.8, **Δt54 +0.22**); s=2.5 @ p90 +0.020 [−0.000,+0.039] (ΔTIR +2.0, Δt54 +0.09) | **NEUTRAL / dial-like without the gate.** The σ gate is what converts "more AF above 180" from a hotter dial into a dominant point: the calm-high subset takes the extra insulin without lows, the volatile subset pays for it in lows. Sweet spot ≈ donor p67; p90 already leaks lows |
 | 2026-08-26 | 6 beds (bddp11/10/01/09/08/03) | natural | 2 mo | E11g `cohort_band_e11g{1,2,3}.csv` — s=2 @ p67: bddp11 **+0.022 [+0.012,+0.031]** (+1.2 TIR), bddp09 **+0.015 [+0.009,+0.022]** (+1.4), bddp08 **+0.009** (+0.3); bddp10 +0.002, bddp01 −0.003 (ΔTIR +2.2 but Δt54 +0.01), bddp03 +0.007 (Δt54 +0.06) NEUTRAL. s=2.5 @ p67: bddp11 +0.031 (+1.7 TIR), bddp09 +0.016 (+1.9), bddp08 +0.010; bddp01 −0.045 (Δt54 +0.03), bddp03 Δt54 +0.18. **Control s=2 no gate: NEUTRAL on 4/6** (Δt54 +0.03…+0.10), IMPROVES only on bddp09 (no lows to add) and bddp08 (Δt54 +0.07, borderline) | **Deployable default = s=2 @ donor p50: IMPROVES on 6/7 beds and never adds lows. p67 buys ~2× the TIR on donors whose highs are lows-free (bddp11/09/08) but starts leaking t54 on bddp01/bddp03 — a per-patient tune, not a default.** The gate, not the scale, is what separates this from the dial (control) |
+
+## C24 · Stack: C22 + C23 (disjoint state gates)
+`stk` = `--candidate-sigma-band-k 1.0 --candidate-sigma-band-cob-gate` **+**
+`--candidate-calm-high-af-scale 2.0 --candidate-calm-high-sigma-max <donor p50 σ5>`.
+`stk3` adds C20 (`--candidate-postlow-rc-rise-scale 0.3 --candidate-postlow-window 720`).
+Rationale: the three gates fire on **disjoint states** — C22 only when the forecast is volatile
+(and COB = 0), C23 only when BG ≥ 180 AND σ5 ≤ the donor median (calm), C20 only within 12 h of a
+low while BG < 180. If they are genuinely orthogonal the band lifts should be ≈ additive; if the
+stack under-performs the sum, they are competing for the same lows/highs and only one is real.
+Each component's solo arm is already scored on the same beds, so the decomposition is free.
+
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-27 | bddp11 | natural | 2 mo, op ×1.00, 9 blocks | E12 `bddp11/band_points_e12pre.csv`: **stk +0.029 [+0.005,+0.050]**, dom 1.00 (@op ΔTIR −0.5 [−1.0,−0.1], Δt54 −0.08 [−0.14,−0.02], Δt70 −0.47); **stk3 +0.055 [+0.008,+0.092]**, dom 1.00 (@op ΔTIR −1.1, Δt54 **−0.24** [−0.43,−0.07], Δt70 −0.70). Components on the same bed: sb1cob +0.022 (ΔTIR −1.3, Δt54 −0.08), ch2p50 +0.013 (ΔTIR +0.7), C20 +0.019 (b11_90d) | **IMPROVES — and close to ADDITIVE.** stk3 +0.055 vs the component sum 0.054; stk +0.029 vs 0.035. The gates really are disjoint. The useful part is the *composition*: C23 pays back C22's TIR cost (−1.3 → −0.5 at the same Δt54 −0.08), and adding C20 triples the lows effect (Δt54 −0.24) for −1.1 TIR — a better exchange rate than any single mechanism. Remaining beds running |
+| 2026-08-27 | b11_90d + 5 cohort beds + bddp05/06/07 | natural | 90 d / 2 mo | E12 / E12b — running | planned |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
