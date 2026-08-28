@@ -2523,7 +2523,9 @@ extension EvaluationEngine {
         // Causal volatility σ5 (EWMA std of the 5-min increment, candidate's own history).
         // Only computed when a σ candidate is on; identity otherwise.
         var sigma5 = Double.nan
-        if config.sigmaBandK > 0 || config.calmHighAfScale != 1.0 {
+        if config.sigmaBandK > 0 || config.calmHighAfScale != 1.0 || config.calmHighTargetDelta > 0 {   // NB: every consumer of sigma5 must be listed here. C31's target shift was added without it,
+            // so sigma5 stayed NaN, calmHighActive was never true, and all three cht arms scored
+            // EXACTLY 0.000 on both donors -- a silent no-op that looked like a clean negative result.
             let unit = LoopUnit.milligramsPerDeciliter
             let g = effectiveInput.glucose.suffix(60)   // last ~5 h of samples
             let floorVar = 2.0 * config.sigmaNoiseMgdl * config.sigmaNoiseMgdl
