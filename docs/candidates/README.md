@@ -51,6 +51,7 @@ hash have no surviving traces.
 | [C25](#c25-cob-gate-on-the-calm-high-licence) | COB gate on the calm-high licence | dose-more, state-gated | scored (3 beds) | **Removes C23's only lows cost and is inert elsewhere** (bddp03 Δt54 +0.10 → −0.01; bddp11 gated == ungated to every digit) — adopt as C23's standard form |
 | [C26](#c26-calm-high-licence-trend-gated) | Calm-high licence, trend-gated (only flat-or-rising highs) | dose-more, state-gated | scored (3 beds) | **WASH** — removes the descent cycles and ~15 % of the TIR gain, no better lows exchange rate; the descent correlation was not causal |
 | [M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial) | *Method*: a mechanism only beats an EXPENSIVE dial | — | — | every `:ncnb` verdict scored at ×1.00 is provisional — the dial pays 83–434 TIR/t54 there vs 3 at a real operating point |
+| [M2](#m2--method-lift_lo_mean-is-not-a-ci-on-the-multi-donor-mean) | *Method*: `lift_lo_mean` is not a CI on the mean | — | — | four mechanisms clear zero on the multi-donor mean, not one — `cohort_ci.py` |
 | [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
 | [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
 | [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | **scored (8 beds)** | **+0.004, 2 IMPROVES, 0 WORSE** — C22 made safe to ship; the cap binds on 2 beds only |
@@ -536,6 +537,36 @@ correction the current BG warrants does *not* separate the harmful cases — the
 of them. Third mechanism-level idea killed by measurement rather than a sweep, after the level-dependent
 forecast term and momentum noise-shrinkage. The one built on a cross-bed correlation instead
 ([C26](#c26-calm-high-licence-trend-gated)) was a wash.
+
+## M2 · Method: `lift_lo_mean` is not a CI on the multi-donor mean
+`cohort_band.py` prints `lift_lo_mean` = the **mean of the per-bed lower bounds**. That is not an
+interval on the multi-donor mean and is far too conservative — averaging n roughly independent per-bed
+estimates shrinks the standard error by ≈ √n, so the mean's interval is much tighter than the average
+of the individual intervals. Reading `lift_lo_mean > 0` as "the mean clears zero" **understates every
+multi-donor result in this ledger**, and several 2026-08-27 rows above were written that way.
+
+`cohort_ci.py` computes it properly: a two-level bootstrap resampling **beds** (between-donor
+variability, which is what "a wide range of pwds" asks about) and, within each drawn bed, its lift from
+that bed's own 90 % block-bootstrap interval. b11_90d is dropped as a duplicate donor — **9 distinct
+donors**.
+
+| mechanism | beds | mean | **90 % CI on the mean** | P(mean>0) | `lift_lo_mean` | IMPROVES | WORSE |
+|---|---|---|---|---|---|---|---|
+| **stk3** | 9 | +0.0188 | **[+0.0041, +0.0349]** | **0.980** | −0.0080 | 5 | 0 |
+| C20 | 5 | +0.0164 | **[+0.0014, +0.0387]** | 0.961 | −0.0053 | 3 | 0 |
+| **C23 calm-high licence** | 9 | +0.0142 | **[+0.0064, +0.0229]** | **0.9996** | +0.0036 | 7 | 0 |
+| **stk** | 9 | +0.0128 | **[+0.0005, +0.0274]** | 0.955 | −0.0100 | 4 | 0 |
+| **C30 `final`** (gated) | 9 | +0.0127 | [−0.0060, +0.0295] | 0.880 | −0.0098 | 5 | 0 |
+| C22 σ band | 9 | +0.0034 | [−0.0089, +0.0141] | 0.726 | −0.0143 | 2 | 1 |
+
+**Four mechanisms have multi-donor means separated from zero at 90 %**, not one.
+
+**The gates cost mean lift and buy safety, and that trade is the right way round.** `stk3` (ungated
+licence, uncapped band) has the higher mean and clears zero; `final` is +0.0127 and does not (P = 0.88).
+But `final` has the better lows result — Δt54@op **−0.087** across 10 beds against stk3's −0.061 — and
+its components carry no harmful bed, where stk3 masks two (the ungated licence is Δt54 +0.10 on bddp03;
+the uncapped band is WORSE on bddp05 alone). GOALS makes the safety axis non-negotiable, so **`final`
+stays the recommendation** — reported as the safer, not the larger, of the two. Both are 0 WORSE.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
