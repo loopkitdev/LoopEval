@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, Mapping, Optional, Tuple
+from typing import Dict, Mapping, Optional, Tuple, Sequence
 
 import numpy as np
 import pandas as pd
@@ -158,6 +158,12 @@ def band_report(ref: Mapping[float, pd.DataFrame],
         IMPROVES   — band_lift CI excludes 0 from above AND some in-band point dominates
         NEUTRAL    — CI straddles 0
         WORSE      — CI below 0
+        UNDER-COVERED  — fewer than 3 candidate points in the band, or a NaN delta at op: the lift is
+                         not computable from this sweep. Extend the multiplier grid to cover
+                         op ± half_width. NEVER average this row into a cohort mean.
+        DEGENERATE-REF — the in-band reference does not span both axes (TIR span < 1 pt, lows span
+                         < 0.05, or lows-at-op < 0.10 on the t54 axis), so the axis-normalized lift is
+                         meaningless. Read dTIR_op / dt54_op instead.
     ``points`` has every candidate sweep point with its lift and dominance flag.
     """
     rng = np.random.default_rng(seed)
@@ -210,7 +216,32 @@ def band_report(ref: Mapping[float, pd.DataFrame],
         pc = lambda a: (float(np.nanpercentile(a, ci[0])), float(np.nanpercentile(a, ci[1])))
         lo, hi = pc(bs_l)
         verdict = ("IMPROVES" if (lo > 0 and fd > 0) else "WORSE" if hi < 0 else "NEUTRAL")
+        # --- VALIDITY GUARDS (2026-08-28). Both of these produced readable-but-wrong numbers that were
+        # nearly published, so they blank the verdict rather than trusting the caller to notice.
+        #
+        # UNDER-COVERED: a candidate whose sweep barely reaches into op ± half_width yields a lift from
+        # 1–2 points and a NaN operating-point delta. Averaged into a cohort mean it poisons it — this
+        # happened twice (bddp06 at op ×1.20 against a default 0.85–1.15 grid read −0.042 on 2 points
+        # against +0.009 on 5, and made a gated stack look worse than an ungated one).
+        #
+        # DEGENERATE-REF: lift is the AXIS-NORMALIZED distance to the reference polyline, so it means
+        # nothing where the reference does not span both axes in the band. A 90 %-TIR donor whose dial
+        # buys 0.53 TIR points turns any small move into lift −0.293 [−0.645,+0.222]; and a donor with
+        # essentially no severe lows at op still selects the t54 axis when its band MAX clears
+        # `t54_floor`, so a Δt54 of +0.01 normalizes into −0.080 — the same behaviour scored NEUTRAL on
+        # the t70 axis in a shorter window, i.e. the verdict flipped because the AXIS flipped.
+        under_covered = (len(cb) < 3) or not np.isfinite(d.get("TIR", np.nan))
+        tir_span = float(ref_f["TIR"].max() - ref_f["TIR"].min())
+        lows_span = float(ref_f["lows"].max() - ref_f["lows"].min())
+        lows_at_op = float(np.interp(op_mult, ref_f["multiplier"], ref_f["lows"]))
+        degenerate = (tir_span < 1.0) or (lows_span < 0.05) or (lows_axis == "t54" and lows_at_op < 0.10)
+        if under_covered:
+            verdict = "UNDER-COVERED"
+        elif degenerate:
+            verdict = "DEGENERATE-REF"
         rows.append({"mechanism": name, "lows_axis": lows_axis, "n_band": len(cb),
+                     "under_covered": under_covered, "degenerate_ref": degenerate,
+                     "ref_tir_span": tir_span, "ref_lows_span": lows_span, "ref_lows_at_op": lows_at_op,
                      "band_lift": bl, "band_lift_lo": lo, "band_lift_hi": hi,
                      "frac_dominant": fd, "dominant_ci_lo": pc(bs_d)[0],
                      "dTIR_op": d["TIR"], "dTIR_lo": pc(bs_dT)[0], "dTIR_hi": pc(bs_dT)[1],
@@ -219,6 +250,54 @@ def band_report(ref: Mapping[float, pd.DataFrame],
                      "dmean_op": d["mean"], "verdict": verdict, "n_blocks": B})
     table = pd.DataFrame(rows).sort_values("band_lift", ascending=False).reset_index(drop=True)
     return table, pd.DataFrame(pts)
+
+
+def cohort_mean_ci(table: pd.DataFrame, drop_beds: Sequence[str] = (),
+                   n_boot: int = 20000, ci: Tuple[float, float] = (5, 95),
+                   seed: int = 0) -> pd.DataFrame:
+    """A PROPER confidence interval on the MULTI-DONOR MEAN band lift.
+
+    Averaging per-bed ``band_lift`` and reporting ``band_lift_lo.mean()`` alongside it is a trap: that
+    second number is the MEAN OF THE PER-BED LOWER BOUNDS, not an interval on the mean, and it is far
+    too conservative — averaging n roughly independent estimates shrinks the standard error by about
+    sqrt(n), so the mean's own interval is much tighter than the average of the individual ones.
+    Reading ``lift_lo_mean > 0`` as "the multi-donor mean clears zero" understates every multi-donor
+    result; it flipped four mechanisms from "does not clear" to "clears" when computed correctly.
+
+    Two-level bootstrap: resample BEDS with replacement (between-donor variability, which is what
+    "works across a wide range of patients" actually asks about) and, within each drawn bed, draw its
+    lift from ``N(band_lift, sd)`` with ``sd`` implied by that bed's own interval.
+
+    Rows whose verdict is ``UNDER-COVERED`` or ``DEGENERATE-REF`` are dropped — their lift is not a
+    number this should average. Beds are the unit of inference, so a donor appearing twice (e.g. a
+    90-day window and a 2-month window of the same person) must be de-duplicated via ``drop_beds``.
+
+    Note the model: when between-donor variance is ~0 this is CONSERVATIVE, because resampling beds
+    already carries the within-bed noise and the second stage adds it again.
+    """
+    T = table[~table["bed"].isin(list(drop_beds))] if "bed" in table.columns else table
+    for col in ("verdict",):
+        if col in T.columns:
+            T = T[~T[col].isin(["UNDER-COVERED", "DEGENERATE-REF"])]
+    z = 1.6448536269514722 if tuple(ci) == (5, 95) else 1.959963984540054
+    rng = np.random.default_rng(seed)
+    out = []
+    for mech, g in T.groupby("mechanism"):
+        lift = g["band_lift"].to_numpy(float)
+        sd = (g["band_lift_hi"].to_numpy(float) - g["band_lift_lo"].to_numpy(float)) / (2 * z)
+        ok = np.isfinite(lift) & np.isfinite(sd)
+        lift, sd = lift[ok], np.where(sd[ok] > 0, sd[ok], 1e-12)
+        n = len(lift)
+        if n < 2:
+            continue
+        idx = rng.integers(0, n, size=(n_boot, n))
+        draws = (lift[idx] + rng.normal(0, 1, size=(n_boot, n)) * sd[idx]).mean(axis=1)
+        lo, hi = np.percentile(draws, list(ci))
+        out.append({"mechanism": mech, "n_beds": n, "mean": float(lift.mean()),
+                    "ci_lo": float(lo), "ci_hi": float(hi), "p_gt0": float((draws > 0).mean()),
+                    "n_improves": int((g["verdict"] == "IMPROVES").sum()) if "verdict" in g else -1,
+                    "n_worse": int((g["verdict"] == "WORSE").sum()) if "verdict" in g else -1})
+    return pd.DataFrame(out).sort_values("mean", ascending=False).reset_index(drop=True)
 
 
 def format_table(table: pd.DataFrame) -> str:
