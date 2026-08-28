@@ -56,6 +56,7 @@ hash have no surviving traces.
 | [M4](#m4--the-effect-is-homogeneous-across-donors) | *Method*: between-donor variance ≈ 0 for the stack | — | — | the per-bed scatter is sampling noise, not heterogeneity — and longer beds are therefore worth the compute |
 | [M5](#m5--bddp03s-σ-threshold-was-fitted-on-the-wrong-sampling-grid) | *Bug*: bddp03's σ threshold fitted on 1-min CGM | — | **re-running** | its calm-high gate has been running ungated all along; every other bed moves ≤1 % |
 | [S1](#s1--scope-limit-c23-needs-automatic-boluses-to-act) | *Scope*: C23 is inert on temp-basal donors | — | measured | 0 automatic boluses on bddp02/bddp07 — the licence reaches 8 of 10 donors |
+| [C31](#c31--calm-high-target-shift-the-temp-basal-reachable-licence) | Calm-high TARGET shift (temp-basal-reachable licence) | dose-more, state-gated | scoring (E35) | reaches the 2 donors C23 cannot act on at all |
 | [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
 | [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
 | [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | **scored (8 beds)** | **+0.004, 2 IMPROVES, 0 WORSE** — C22 made safe to ship; the cap binds on 2 beds only |
@@ -791,6 +792,24 @@ record ≥180, so the gate never fires" — that was the *field* high-fraction; 
 pull-back half of [C30](#c30--the-deployable-stack-c29--c23c25--c20) acts, and bddp02's **+0.049** is
 entirely σ band + C20. The obvious follow-up is a temp-basal analogue — scale the *temp-basal rate* in
 calm highs instead of the bolus application factor.
+
+## C31 · Calm-high TARGET shift (the temp-basal-reachable licence)
+`--candidate-calm-high-target-delta X` (added 2026-08-28, `EvalConfig.calmHighTargetDelta`): in the
+**same calm-high state [C23](#c23-calm-high-licence) licences** — BG ≥ 180, σ5 ≤ the donor's median,
+COB gate available — lower the correction **target range** by X mg/dL.
+
+**Why:** C23's actuator is the automatic-bolus application factor, and
+[S1](#s1--scope-limit-c23-needs-automatic-boluses-to-act) shows bddp02 and bddp07 issue **zero automatic
+boluses**, so the licence is inert on them by construction — even though bddp02 runs above 180 for
+**half its record**. A target shift enlarges the correction whichever way it is delivered.
+
+**Safety shape:** the **suspend threshold is untouched** so the low guard is unchanged; the shift is
+floored at 70/80 mg/dL so it cannot drive the target into hypo territory; and it fires only in the state
+the σ evidence says is safe to dose into. It is a *dose-more* lever, so t<54 is the axis to watch.
+
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-28 | bddp02 / bddp07 (temp-basal) + bddp11 / bddp05 (auto-bolus) | natural | 2 mo | E35 — running (cht10/20/30; cht20 on the auto-bolus pair to see whether the target route also works where the AF route already does) | planned |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
