@@ -835,11 +835,13 @@ C20 earns its place on lift, but the safety axis is the real result: **removing 
 stack's severe-lows reduction**, and on bddp05 the sign flips (−0.153 → +0.027). It buys 0.066 points of
 t<54 for 0.16 points of TIR — cheap, on the axis GOALS calls non-negotiable.
 
-**This corrects how the ledger has described the stack.** [C22](#c22-σ-widened-lower-forecast-band)/
-[C29](#c29--depth-capped-σ-band) has repeatedly been called "the pull-back mechanism, where volatility
-says lows are coming", with C20 a narrow corner case. The ablation says the reverse: **C20 is the primary
-lows-removal component**; the σ band and licence supply most of the *lift* but little of the *lows
-benefit*. A component carried on a two-bed decomposition turns out to be the one holding the safety axis.
+**What this does and does not correct.** The E12 consolidated row above already called C20 "the lows
+mechanism", so the ledger was not wrong on that point — my *narrative through this session* was, having
+repeatedly framed [C22](#c22-σ-widened-lower-forecast-band)/[C29](#c29--depth-capped-σ-band) as the
+pull-back lever and C20 as a narrow corner case. What the ablation newly establishes is the
+**magnitude**: C20 carries **92 %** of the stack's severe-lows reduction, which no prior run measured.
+That a component carried on a two-bed decomposition turns out to hold the safety axis stands either way.
+*(Correcting my own first write-up of this entry, which claimed the ledger had it backwards. It did not.)*
 
 *Two tooling fixes found on the way.* `_base()` stripped `_90d` unconditionally, so `b11_90d` resolved to
 `b11`, which has no `sigma_pcts.csv` row, and that bed's sweep died with `KeyError`. It now strips only
