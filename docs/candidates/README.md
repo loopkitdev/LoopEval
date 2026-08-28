@@ -755,8 +755,14 @@ that improve outcomes around meals, versus stock LoopAlgorithm on the user's own
 | **Safety axis (TIR ↑ AND t<54 ↓)** | **met** | mean Δt54@op −0.087; both component harms fixed ([C25](#c25-cob-gate-on-the-calm-high-licence) COB gate, [C29](#c29--depth-capped-σ-band) depth cap) |
 | **GOALS learned-parameter clauses** | **met** | data-needed **4 weeks**; drift **9 %** median; **hold-out verdicts identical** ([E25](#c30--the-deployable-stack-c29--c23c25--c20)); leakage structural — every σ input is a trailing window, constants fitted on prior data, no future CGM or carbs at any decision time |
 
-**Honest limits on that claim.** Eight to nine donors, all Loop users from one donor pool; **bddp02 and
-bddp04 remain excluded on fidelity**, so the cohort is not the full eleven. The recommendation is **two
+**Honest limits on that claim.** Eight to nine donors, all Loop users from one donor pool. **bddp02 has
+since been added and bddp04 remains out, both for stated reasons (E34):** bddp02 is a *fully-manual
+doser* (auto-frac 0.0, 15.7 manual boluses/day), so its field was not produced by the controller under
+test and matching field TIR was the wrong operating-point rule — under the matched-lows rule it crosses
+cleanly at ×0.99 and passes every guard, so it is scoreable. bddp04's sim t54 runs **2.51–12.24 % across
+its entire sweep and never reaches field's 1.32 even at ×0.70**, so no operating-point rule rescues it;
+that is a genuine unresolved defect (incomplete override reconstruction on the cohort's heaviest
+announcer, and its only GBAF donor). **The cohort is therefore 10 of 11 donors, not 9.** The recommendation is **two
 configurations, not one** ([D1](#d1--deployment-rule--two-configurations-not-one)) — the licence is for
 people who announce; a non-announcer gets the band alone. The announcement-suppressed evidence rests on
 **three beds plus a judgement** about the multiplier a non-announcer would retune to
