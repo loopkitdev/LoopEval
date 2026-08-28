@@ -743,6 +743,27 @@ announcer, at matched whole-window lows.
 3. **DEGENERATE-REF** — in-band reference TIR span < 1 pt, lows span < 0.05, or lows@op < 0.10 on t54;
    lift is span-normalized and meaningless where the reference does not span both axes.
 
+## Goal status (2026-08-28)
+Against [GOALS.md](../GOALS.md)'s completion bar — *candidates with lift across a wide range of pwds
+that improve outcomes around meals, versus stock LoopAlgorithm on the user's own settings*:
+
+| criterion | status | evidence |
+|---|---|---|
+| **Lift across a wide range of pwds** | **met** | [C30](#c30--the-deployable-stack-c29--c23c25--c20): **+0.0205 [+0.0045,+0.0371]** over 8 distinct donors (2 mo) and **+0.0386 [+0.0074,+0.0697]** over 5 beds (90 d), **0 WORSE in either window under all three scorer guards**. [M4](#m4--the-effect-is-homogeneous-across-donors): between-donor variance ≈ 0, so the per-bed scatter is sampling noise — the same effect everywhere rather than helps-some/hurts-others |
+| **Improves outcomes around meals** | **met** | CI-clearing TIR gain in **unannounced**-meal windows on 6 bed-windows, null on 4, **no CI-clearing negative** once 90-day data is in. Best: bddp03 90 d, **+1.37 TIR and −0.10 t54 together** |
+| **vs stock LoopAlgorithm, user's own settings** | **met** | reference is stock swept on the insulin-needs dial, scored at each donor's validated operating point; four beds improve **both axes at op with no retuning** |
+| **Safety axis (TIR ↑ AND t<54 ↓)** | **met** | mean Δt54@op −0.087; both component harms fixed ([C25](#c25-cob-gate-on-the-calm-high-licence) COB gate, [C29](#c29--depth-capped-σ-band) depth cap) |
+| **GOALS learned-parameter clauses** | **met** | data-needed **4 weeks**; drift **9 %** median; **hold-out verdicts identical** ([E25](#c30--the-deployable-stack-c29--c23c25--c20)); leakage structural — every σ input is a trailing window, constants fitted on prior data, no future CGM or carbs at any decision time |
+
+**Honest limits on that claim.** Eight to nine donors, all Loop users from one donor pool; **bddp02 and
+bddp04 remain excluded on fidelity**, so the cohort is not the full eleven. The recommendation is **two
+configurations, not one** ([D1](#d1--deployment-rule--two-configurations-not-one)) — the licence is for
+people who announce; a non-announcer gets the band alone. The announcement-suppressed evidence rests on
+**three beds plus a judgement** about the multiplier a non-announcer would retune to
+([M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial)). Effect sizes are real but modest: about
+**+0.5 TIR and −0.1 t<54 at a typical operating point**, with the meal-window gain concentrated where
+meals are genuinely unannounced.
+
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
 marginal contributions already in Loop's forecast), from the std ×1.00 trace
