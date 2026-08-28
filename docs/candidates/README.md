@@ -54,6 +54,7 @@ hash have no surviving traces.
 | [M2](#m2--method-lift_lo_mean-is-not-a-ci-on-the-multi-donor-mean) | *Method*: `lift_lo_mean` is not a CI on the mean | — | — | four mechanisms clear zero on the multi-donor mean, not one — `cohort_ci.py` |
 | [M3](#m3--provenance-two-beds-are-travellers-exported-at-a-stale-etl-version) | *Provenance*: traveller map + export-version audit | — | **resolved, no problem** | every traveller bed is already v19 and every v18 bed is single-timezone — the cohort stands as scored |
 | [M4](#m4--the-effect-is-homogeneous-across-donors) | *Method*: between-donor variance ≈ 0 for the stack | — | — | the per-bed scatter is sampling noise, not heterogeneity — and longer beds are therefore worth the compute |
+| [M5](#m5--bddp03s-σ-threshold-was-fitted-on-the-wrong-sampling-grid) | *Bug*: bddp03's σ threshold fitted on 1-min CGM | — | **re-running** | its calm-high gate has been running ungated all along; every other bed moves ≤1 % |
 | [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
 | [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
 | [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | **scored (8 beds)** | **+0.004, 2 IMPROVES, 0 WORSE** — C22 made safe to ship; the cap binds on 2 beds only |
@@ -657,6 +658,39 @@ opposite of the assumption under which I had deprioritized them. 90-day exports 
 **Caveat on `cohort_ci.py`:** its two-level bootstrap resamples beds *and* adds within-bed noise, which
 double-counts when between-donor variance is ≈ 0. Its `final` interval [+0.0029, +0.0332] is the
 **conservative** one; the variance-components interval is [+0.0060, +0.0294]. Both clear zero.
+
+## M5 · bddp03's σ threshold was fitted on the wrong sampling grid
+Found while re-deriving field points for the 90-day beds: `field_points.py` reported **429 days** of
+samples for bddp03 in an 89-day window. Not duplication — every timestamp is distinct. **bddp03 uploads
+1-minute CGM** (99.7 % of field gaps ≤ 2 min); every other donor is 5-minute.
+
+The runtime σ5 estimator accepts only increments spaced **(2, 7] min**. Measured:
+
+| bed | series | median dt | accepted | σ5 median |
+|---|---|---|---|---|
+| bddp03 | **field** | **1.00 min** | **0.3 %** | **5.96** |
+| bddp03 | counterfactual (what the sim keys on) | 5.00 min | 99.4 % | **3.62** |
+| bddp11 | field / counterfactual | 5.00 / 5.00 | 99.8 / 98.7 % | 6.63 / 6.48 |
+
+**The runtime estimator is fine** — every donor's counterfactual is on a 5-minute grid, so σ5 is never
+pinned. **The fitted threshold was wrong**: `sigma_pcts.py` took percentiles from the *field* series, and
+on 1-minute data the EWMA is nearly frozen, so bddp03's σmax came from a distribution the sim never sees
+(5.96 against a runtime median of 3.62). Its C23 gate has therefore been open ~85–90 % of the time
+instead of 50 % — **on bddp03, the calm-high licence has been running as the ungated control all along.**
+
+That is precisely bddp03's anomalous signature, which I had attributed to donor behaviour ("an
+announcer's calm highs are post-meal with the bolus still working"): Δt54 **+0.10** at op, the only bed
+that needed the COB gate, and the same dial-like leak the no-σ-gate control shows elsewhere. The
+behavioural story may still be part of it, but **the instrument was miscalibrated on that bed and I read
+the artefact as physiology.**
+
+**Fix:** resample to the 5-minute grid before the EWMA. Fitted p50: **bddp03 6.37 → 3.28 (−48.5 %)**;
+every other bed moves ≤ 1.0 %. **Only bddp03 is affected.** Its 35 σ-keyed traces are retired to
+`*.preSigmaFix.json` and the arms are re-running; C29's depth cap is unchanged there (still k = 1.0).
+
+**Why the hold-out did not catch it:** E25 refits the constant on the first half of the record, but both
+halves share the sampling grid and so inherit the same defect. **A hold-out tests stability, not
+validity** — it cannot detect a constant that is consistently wrong.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
