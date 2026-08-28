@@ -884,6 +884,31 @@ incomplete table yields a readable but wrong number.
 not slow (its parent shell had been backgrounded and its stdout pipe went away). **Check CPU time, not
 wall time, before concluding a job is merely slow.**
 
+## E40 · Pre-registered and refuted: lift does not scale with lows burden
+**Prediction, recorded before looking:** `final`'s band lift correlates positively with the donor's
+baseline severe-lows burden (reference t54 at op), since C20 — which carries 92 % of the lows benefit —
+can only act where severe lows exist. bddp10, the consistently weakest bed, has one of the smallest
+burdens, which is what prompted the test.
+
+**Result: no relationship. Pearson r = −0.031 (p = 0.93), Spearman ρ = 0.067 (p = 0.86), n = 10.**
+
+| bed | ref lows @op | lift | | bed | ref lows @op | lift |
+|---|---|---|---|---|---|---|
+| bddp05 | 2.121 | 0.0368 | | **bddp10** | **0.133** | **0.0028** |
+| bddp08 | 1.633 | 0.0096 | | **bddp02** | **0.127** | **0.0493** |
+| bddp03 | 1.310 | 0.0217 | | bddp07 | 0.121 | 0.0049 |
+| bddp11 | 0.497 | **0.0553** | | bddp09 | 0.084 | 0.0237 |
+
+The killer pair is bddp10 and bddp02: **essentially the same lows burden, lifts 18× apart.** The largest
+burden gives a middling lift; the largest lift comes from a mid-small burden.
+
+**So "no lows to remove" does not explain bddp10, and the deployment rule gains no lows-burden prior.**
+Per this entry's own pre-registration and the [E37](#c31--calm-high-target-shift-the-temp-basal-reachable-licence)
+precedent, **no substitute variable is being fitted**: with ten points and two near-identical-burden beds
+18× apart, anything found now would be selected to separate exactly that pair. **bddp10's weakness is
+unexplained.** (E38 already showed lift and Δt54 are distinct quantities — bddp02 reaches +0.0493 with a
+tiny burden, so its lift is not lows removal — but naming what it *is* would be the same post-hoc move.)
+
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
 marginal contributions already in Loop's forecast), from the std ×1.00 trace
