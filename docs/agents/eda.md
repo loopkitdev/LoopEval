@@ -140,6 +140,14 @@ glucose, not the story of how it was measured. Therefore:
     The clip only protects code that goes through those helpers: fig 09's delta panel
     called `D._load_glucose` directly and silently mixed both sensors until 2026-08-27.
     **Never load a glucose path directly in a view** — go through `style`.
+    **Better remedy found 2026-08-28: the two sensors are labelled, and the ETL throws
+    the label away.** Tidepool puts `manufacturer_model_localIdentifier` on EVERY cbg
+    row's `deviceId`; p03's two sensors arrive as two upload paths — one via
+    `com.apple.HealthKit` with no `deviceId`, one from `com.dekaresearch.twiist` — each
+    a clean 277 readings/day at a 5-minute cadence, with increment SDs of 10.8 and 6.7
+    mg/dL. Only their UNION shows the artefact. So split by `deviceId` and keep one
+    stream rather than trimming two months off the record; the trim is a workaround for
+    a field we discard in `etl.py`'s cbg query.
 
 22. **A stale intermediate table degrades everything downstream in silence.** `vol_fit`/
     `vol_cache` read each person's sensor noise from `fundamentals.csv` to set the variance
@@ -248,6 +256,21 @@ glucose, not the story of how it was measured. Therefore:
     rises ≥ x against falls ≥ x, evaluated on each person's own value grid. No kernel,
     no bandwidth, nothing to ripple, and the claim is the one the title makes. Prefer a
     counting statistic to a ratio of two smoothed ones wherever the question allows it.
+
+32. **Sensor make and model are IN the source, per reading, and we drop them.** Every
+    Tidepool `cbg` row carries `deviceId` as `manufacturer_model_localIdentifier`
+    (`Dexcom_G7`, `AbbottFreeStyleLibre3-…`, `twiist_…`) plus `origin.name` for the
+    uploading app; there is also a `cgmSettings` datum (12,392 people) with structured
+    `manufacturers`/`model`/`name`/`softwareVersion`. The ETL's cbg query selects time
+    and value only. Over the study window the sensor is identifiable for **52 of our 60
+    donors** — 38 twiist, 10 Dexcom G7, 4 Dexcom G6 — and **15 donors change device
+    family mid-window**, though most of those are duplicate overlapping streams (the
+    HealthKit mirror) rather than switches; a real switch shows as one stream ending
+    where another begins (p20 Libre 3 → twiist on 04-27, p55 twiist → Dexcom G7 on
+    05-11). Prefer the per-reading `deviceId` to `cgmSettings`: it timestamps the
+    change. **Caveat:** the trailing identifier is stable per person for months (median
+    one distinct value over the four-month window), so it is NOT a sensor-session id —
+    it cannot date sensor swaps or support a wear-age analysis.
 
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
