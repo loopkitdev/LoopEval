@@ -55,6 +55,7 @@ hash have no surviving traces.
 | [M3](#m3--provenance-two-beds-are-travellers-exported-at-a-stale-etl-version) | *Provenance*: traveller map + export-version audit | — | **resolved, no problem** | every traveller bed is already v19 and every v18 bed is single-timezone — the cohort stands as scored |
 | [M4](#m4--the-effect-is-homogeneous-across-donors) | *Method*: between-donor variance ≈ 0 for the stack | — | — | the per-bed scatter is sampling noise, not heterogeneity — and longer beds are therefore worth the compute |
 | [M5](#m5--bddp03s-σ-threshold-was-fitted-on-the-wrong-sampling-grid) | *Bug*: bddp03's σ threshold fitted on 1-min CGM | — | **re-running** | its calm-high gate has been running ungated all along; every other bed moves ≤1 % |
+| [S1](#s1--scope-limit-c23-needs-automatic-boluses-to-act) | *Scope*: C23 is inert on temp-basal donors | — | measured | 0 automatic boluses on bddp02/bddp07 — the licence reaches 8 of 10 donors |
 | [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
 | [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
 | [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | **scored (8 beds)** | **+0.004, 2 IMPROVES, 0 WORSE** — C22 made safe to ship; the cap binds on 2 beds only |
@@ -718,9 +719,9 @@ Re-scored the 2-month cohort under the same guards as the 90-day beds. Only **bd
 
 | window | donors | mean | **90 % CI on the mean** | P(mean>0) | IMPROVES | WORSE |
 |---|---|---|---|---|---|---|
-| **2 months** | 8 distinct | **+0.0205** | **[+0.0045, +0.0371]** | **0.980** | 5 | **0** |
+| **2 months** | **9 distinct** | **+0.0237** | **[+0.0079, +0.0401]** | **0.991** | **6** | **0** |
 | **90 days** | 5 beds | **+0.0386** | **[+0.0074, +0.0697]** | **0.978** | 2 | **0** |
-| C23 alone, 2 mo | 8 | +0.0145 | [+0.0059, +0.0244] | 0.998 | 6 | 0 |
+| C23 alone, 2 mo | 9 | +0.0129 | [+0.0052, +0.0221] | 0.999 | 6 | 0 |
 
 **The two windows agree in sign and verdict, and the 90-day estimate is ≈1.9× the 2-month one on a
 subset of the same donors** — the direction [M4](#m4--the-effect-is-homogeneous-across-donors) predicts.
@@ -769,6 +770,27 @@ people who announce; a non-announcer gets the band alone. The announcement-suppr
 ([M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial)). Effect sizes are real but modest: about
 **+0.5 TIR and −0.1 t<54 at a typical operating point**, with the meal-window gain concentrated where
 meals are genuinely unannounced.
+
+## S1 · Scope limit: C23 needs automatic boluses to act
+`ch2p50` scores **exactly 0.000** on bddp02 and bddp07. Measured cause: **both deliver zero automatic
+boluses in replay** — pure temp-basal-strategy donors. C23 scales the automatic-bolus *application
+factor*, so it is inert by construction there, however much time they spend high (**bddp02 is above 180
+for 50.3 % of its record** and the licence still does nothing).
+
+| bed | automatic boluses | auto U | % >180 |
+|---|---|---|---|
+| **bddp02** | **0** | **0.0** | **50.3** |
+| **bddp07** | **0** | **0.0** | 6.1 |
+| bddp11 / bddp05 / bddp09 / bddp01 | 4,815 / 4,025 / 5,954 / 7,171 | 1426 / 413 / 1456 / 2453 | 30.6 / 52.0 / 31.3 / 45.1 |
+
+**This corrects an earlier entry.** bddp07's inertness was recorded as "σ5 p50 3.5 and only 1.5 % of the
+record ≥180, so the gate never fires" — that was the *field* high-fraction; the counterfactual is above
+180 for 6.1 %, and the real reason is that there is no automatic bolus to scale.
+
+**Deployment consequence:** the licence reaches **8 of 10** donors here; on a temp-basal donor only the
+pull-back half of [C30](#c30--the-deployable-stack-c29--c23c25--c20) acts, and bddp02's **+0.049** is
+entirely σ band + C20. The obvious follow-up is a temp-basal analogue — scale the *temp-basal rate* in
+calm highs instead of the bolus application factor.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
