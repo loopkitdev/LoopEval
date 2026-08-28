@@ -53,7 +53,7 @@ hash have no surviving traces.
 | [M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial) | *Method*: a mechanism only beats an EXPENSIVE dial | — | — | every `:ncnb` verdict scored at ×1.00 is provisional — the dial pays 83–434 TIR/t54 there vs 3 at a real operating point |
 | [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
 | [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
-| [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | scoring (E21) | removes C22's only WORSE bed at no cost elsewhere |
+| [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | **scored (8 beds)** | **+0.004, 2 IMPROVES, 0 WORSE** — C22 made safe to ship; the cap binds on 2 beds only |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -484,7 +484,7 @@ Expected 7-bed table (measured sb1n on bddp05, sb1cob elsewhere): **mean ≈ +0.
 
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
-| 2026-08-27 | bddp08 (the only other bed where the cap binds) + bddp06 densification | natural | 2 mo | E21 — running | planned |
+| 2026-08-27 | 8 natural beds | natural | 2 mo | E21 `cohort_band_e21.csv`: the cap binds on only two beds. **bddp05 (k 0.79): WORSE −0.012 → NEUTRAL −0.005**; bddp08 (0.96): +0.005 → +0.004. Identical elsewhere — verified on bddp06, sb1cap vs sb1cob **max|Δ| BG = 0.0**. **8-bed mean +0.004, 2 IMPROVES, 0 WORSE** vs C22's +0.0035, 2 IMPROVES, **1 WORSE** | **CONFIRMED — C29 is C22 made safe to ship**: same lift, no harmful bed. Modest by design; the cap only ever removes depth. *Do not read bddp06's sb1cap row as a mechanism difference* — at k=1.0 it **is** sb1cob, and the rows differ only because one was run on 3 multipliers and the other on 8 |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
