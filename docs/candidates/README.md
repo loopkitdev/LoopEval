@@ -836,9 +836,16 @@ says lows are coming", with C20 a narrow corner case. The ablation says the reve
 lows-removal component**; the σ band and licence supply most of the *lift* but little of the *lows
 benefit*. A component carried on a two-bed decomposition turns out to be the one holding the safety axis.
 
-*Tooling fix found on the way:* `_base()` stripped `_90d` unconditionally, so `b11_90d` resolved to `b11`,
-which has no `sigma_pcts.csv` row, and that bed's sweep died with `KeyError`. It now strips only when the
-stripped name exists.
+*Two tooling fixes found on the way.* `_base()` stripped `_90d` unconditionally, so `b11_90d` resolved to
+`b11`, which has no `sigma_pcts.csv` row, and that bed's sweep died with `KeyError`. It now strips only
+when the stripped name exists. Then the same sweep failed 7/7 with `Unknown option
+'--candidate-calm-high-cob-gate'`: **`run_sweep.BIN` defaulted to the *main checkout's* build**, which
+predates every flag added in this worktree, and that sweep had been launched directly rather than through
+a script exporting `LOOPEVAL_BIN`. **It failed loudly only because the flag was unknown** — a flag that
+*existed* but behaved differently (say `--candidate-calm-high-sigma-max` before the
+[M5](#m5--bddp03s-σ-threshold-was-fitted-on-the-wrong-sampling-grid) fix) would have produced quietly
+wrong traces that scored cleanly. `BIN` now prefers the calling worktree's own build. Audit: every
+scripted sweep this session exported `LOOPEVAL_BIN`, so b11_90d's `fin2` is the only casualty.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
