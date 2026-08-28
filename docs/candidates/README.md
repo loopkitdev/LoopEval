@@ -728,6 +728,14 @@ subset of the same donors** — the direction [M4](#m4--the-effect-is-homogeneou
 with no retuning**: bddp05 (+0.6 TIR, −0.15 t54), bddp03 (+0.5, −0.07), bddp08 (+0.3, −0.11), bddp09 on
 the t70 axis.
 
+**Meals (the goal's second criterion), both windows:** CI-clearing TIR gain in **unannounced**-meal
+windows on six distinct bed-windows — bddp11 +2.06, bddp09 +1.83 (2 mo) and +1.30 (90 d), **bddp03 +1.32
+(2 mo) and +1.37 with Δt54 −0.10 (90 d)**, b11_90d +1.16 — null on four, and **no CI-clearing negative
+once 90-day data is in**: bddp10's 2-month −0.82 [−1.44,−0.15] becomes +0.04 [−0.61,+0.76] at 90 days
+with three times the meal count. The only negative meal result in the program was a 2-month artefact.
+bddp03_90d is the strongest single meal result: **+1.37 TIR and −0.10 t54 together**, on the heavy
+announcer, at matched whole-window lows.
+
 **The three guards, each found by disbelieving a result rather than publishing it:**
 1. **UNDER-COVERED** — `n_band < 3` or NaN at op; poisoned a cohort mean twice.
 2. **[M2](#m2--method-lift_lo_mean-is-not-a-ci-on-the-multi-donor-mean)** — `lift_lo_mean` is the mean of
