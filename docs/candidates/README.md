@@ -55,6 +55,7 @@ hash have no surviving traces.
 | [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
 | [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | **scored (8 beds)** | **+0.004, 2 IMPROVES, 0 WORSE** — C22 made safe to ship; the cap binds on 2 beds only |
 | [C30](#c30--the-deployable-stack-c29--c23c25--c20) | **The deployable stack** (C29 + C23/C25 + C20) | pull-back + dose-more, state-gated | **scored (10 beds + meal windows)** | **mean +0.016, 6 IMPROVES / 0 WORSE, Δt54@op −0.087; 3 beds improve TIR AND t<54 at op with no retuning; +0.6…+2.1 TIR in meal windows on 4/5** |
+| [D1](#d1--deployment-rule--two-configurations-not-one) | *Deployment rule*: full stack for announcers, band alone for non-announcers | — | **settled** | the licence pays only where highs are the residue of announced meals; the band survives both regimes |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -504,8 +505,34 @@ per-donor number is fitted from that donor's own σ history, audited in [C27](#c
 | 2026-08-27 | **10 beds** (9 donors) | natural | 2 mo / 90 d, op per `cohort_ops.csv` | E22 `cohort_band_e22.csv`: bddp11 **+0.055 [+0.008,+0.092]** (Δt54 −0.24); b11_90d **+0.045 [+0.011,+0.087]**; **bddp05 +0.043 [+0.022,+0.062], dom 1.00 (lo 1.00), @op ΔTIR +0.6 AND Δt54 −0.15**; bddp09 +0.024; **bddp03 +0.022 (@op +0.5 TIR, −0.07 t54)**; **bddp08 +0.010 (@op +0.3, −0.11)**; NEUTRAL bddp07/10/01; bddp06 under-covered †. **Mean +0.016, 6 IMPROVES, 0 WORSE, Δt54@op −0.087** | **The program's best safety result.** vs stk3 +0.021 (Δt54 −0.061), ch2p50 +0.014 (Δt54 +0.004), sb1cob +0.006 with **1 WORSE**: the stack trades a little mean lift for **twice the lows reduction and no harmful bed**. **Three beds reach the goal's actual bar — TIR up AND t<54 down at the person's own operating point, no retuning** (bddp05, bddp03, bddp08, the last two both heavy announcers); bddp09 does on the t70 axis. bddp05 is the case: the σ band alone was WORSE there, and capped + licensed it is the most dominant bed in the program |
 | 2026-08-27 | 5 hands-off beds | natural | **meal windows**, dial retuned to matched lows | ΔTIR in unannounced-meal windows: bddp11 **+2.06 [+0.94,+3.02]**, bddp09 **+1.83 [+1.09,+2.42]**, b11_90d **+1.16 [+0.45,+1.87]**, bddp01 +0.57, bddp10 −0.82. Meal-window Δ>250 negative on all five, Δt54 flat | **Improves meal-window glycemia on 4 of 5** at unchanged lows — the goal's second criterion. Identical to stk3 here because these beds are hands-off, so the COB gates never fire and the cap does not bind |
 
-† bddp06's row has 2 in-band points and NaN at op — its operating multiplier is ×1.20 while the default
-sweep tops out at ×1.15. E23 extends bddp05/bddp06 to ×1.30. Not a verdict.
+| 2026-08-27 | bddp05 / bddp06 | natural | 2 mo, sweep extended to ×1.30 so each band is fully covered | E23 `cohort_band_e23.csv`: **bddp06 NEUTRAL +0.009 [−0.068,+0.105]** — the −0.042 above was the 2-point artefact. **bddp05 IMPROVES +0.037 [+0.011,+0.058], dom 1.00 (lo 0.80), @op ΔTIR +0.6 AND Δt54 −0.15** (the 3-point read was +0.043) | **Corrected 10-bed mean +0.021, 6 IMPROVES, 0 WORSE.** Both under-covered rows resolve in the stack's favour, and the properly-covered bddp05 number is smaller and more trustworthy |
+| 2026-08-27 | bddp07 / bddp08 / bddp03 :ncnb | **announcement-suppressed** | 2 mo, retuned ops ×1.27 / ×1.29 / ×1.19 | E22 `cohort_band_e22ncnb.csv`: **sb1cob alone +0.059 at Δt54 −0.031**; **`final` +0.052 at Δt54 +0.115**; ch2p50 alone +0.012 at Δt54 +0.167. Per bed the licence is what does it — bddp03:ncnb `final` @op Δt54 **+0.30** vs sb1cob **+0.00**; bddp08:ncnb +0.08 vs **−0.07** | **The stack is the WRONG configuration once meals are unannounced** — it wins on lift and loses on the axis that matters. **The COB gate cannot fix it**: with nobody announcing, COB is always 0, so the gate passes everything. Drop the licence for a non-announcer and keep the band |
+
+† The bddp06 row above was 2 in-band points with NaN at op (operating multiplier ×1.20, default sweep
+topping out at ×1.15) — resolved by E23, and never a verdict.
+
+## D1 · Deployment rule — two configurations, not one
+The evidence does not support a single default. It supports **two, switched on a fact directly
+observable from the person's own carb-entry history** — needs no fitting, cannot leak, and is stable
+(the artifact's ICC table puts carbs announced per day at 0.84 and manual boluses at 0.77: announcing
+is a personal habit, not a phase).
+
+| the person | configuration | evidence |
+|---|---|---|
+| **announces meals** | **full stack** ([C30](#c30--the-deployable-stack-c29--c23c25--c20)): C29 band + C23/C25 licence + C20 | 10 beds — mean **+0.021, 6 IMPROVES, 0 WORSE**, Δt54@op **−0.087**; three beds improve **TIR and t<54 together at the person's own operating point, no retuning** |
+| **does not announce** | **[C29](#c29--depth-capped-σ-band) band alone** — drop the licence | 3 suppressed beds at retuned ops — **+0.059 at Δt54 −0.031**, against the stack's +0.052 at Δt54 **+0.115** |
+
+The σ band is the mechanism that survives both regimes. The licence pays only where a person's highs are
+the residue of *announced* meals rather than whole unannounced ones — and no per-cycle gate fixes that,
+because what differs is **exposure**, not per-event risk: the licence fires on 16.8 % of bddp03's record
+when announcements are suppressed against 6.1 % naturally.
+
+**Discriminants measured and rejected before building** (`calmhigh_iob.py`): IOB relative to the
+correction the current BG warrants does *not* separate the harmful cases — the suppressed beds carry
+*less* committed insulin (median ratio 0.85–1.18) than natural bddp03 (1.36), which is the least harmful
+of them. Third mechanism-level idea killed by measurement rather than a sweep, after the level-dependent
+forecast term and momentum noise-shrinkage. The one built on a cross-bed correlation instead
+([C26](#c26-calm-high-licence-trend-gated)) was a wash.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
