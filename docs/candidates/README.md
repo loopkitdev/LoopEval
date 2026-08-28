@@ -815,6 +815,31 @@ the σ evidence says is safe to dose into. It is a *dose-more* lever, so t<54 is
 | 2026-08-28 | bddp05 / bddp11 | natural | 2 mo | E36b, where **both** routes apply: **bddp05 cht20 IMPROVES +0.065 [+0.053,+0.077], dom 1.00 (lo 1.00), @op ΔTIR +1.7** vs ch2p50 +0.039 (+1.0 TIR); bddp11 cht20 NEUTRAL +0.005 (ΔTIR +1.4 but **Δt54 +0.03**) vs ch2p50 **IMPROVES +0.013** | **Neither route dominates — C31 is a second actuator, not a replacement.** On bddp05 the target route is much the better one (and the most dominant single point in the program); on bddp11 the AF route wins because cht20 adds lows. Consistent with dose–response: bddp05 runs high (52 % >180) and tolerates a larger shift, bddp11 (30 %) does not. **Strength is donor-dependent; cht20 needs per-donor judgement** |
 | 2026-08-28 | bddp11 | — | identity | **`sb1cob` under the new binary vs the stored trace: counter max\|Δ\| 0.0, dose max\|Δ\| 0.0** — clean. (The earlier reading of 1.58 mg/dL was an invalid test: `final` under the new binary vs a trace built before the [M5](#m5--bddp03s-σ-threshold-was-fitted-on-the-wrong-sampling-grid) σ fix, i.e. **different flags**) |
 
+## E38 · Ablation: C20 is the stack's lows mechanism, not the σ band
+[C30](#c30--the-deployable-stack-c29--c23c25--c20)'s third component entered on a **two-bed**
+decomposition. Ablating it (`fin2` = capped COB-gated σ band + COB-gated licence, no C20) across nine
+beds:
+
+| | mean lift | **mean Δt54@op** | mean ΔTIR@op |
+|---|---|---|---|
+| **`final`** (with C20) | **0.0237** | **−0.072** | −0.13 |
+| `fin2` (without) | 0.0151 | **−0.006** | +0.03 |
+| C20 marginal | **+0.0087**, positive on **7 of 9** | **−0.066** | −0.16 |
+
+C20 earns its place on lift, but the safety axis is the real result: **removing it costs 92 % of the
+stack's severe-lows reduction**, and on bddp05 the sign flips (−0.153 → +0.027). It buys 0.066 points of
+t<54 for 0.16 points of TIR — cheap, on the axis GOALS calls non-negotiable.
+
+**This corrects how the ledger has described the stack.** [C22](#c22-σ-widened-lower-forecast-band)/
+[C29](#c29--depth-capped-σ-band) has repeatedly been called "the pull-back mechanism, where volatility
+says lows are coming", with C20 a narrow corner case. The ablation says the reverse: **C20 is the primary
+lows-removal component**; the σ band and licence supply most of the *lift* but little of the *lows
+benefit*. A component carried on a two-bed decomposition turns out to be the one holding the safety axis.
+
+*Tooling fix found on the way:* `_base()` stripped `_90d` unconditionally, so `b11_90d` resolved to `b11`,
+which has no `sigma_pcts.csv` row, and that bed's sweep died with `KeyError`. It now strips only when the
+stripped name exists.
+
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
 marginal contributions already in Loop's forecast), from the std ×1.00 trace
