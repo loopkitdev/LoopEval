@@ -537,6 +537,13 @@ public struct EvalConfig: Codable, Sendable {
     /// long high 31–56 % of the time (measured, `calmhigh_slope.py`), front-loading insulin into a
     /// high that was already coming down. -.infinity (default) = no trend gate.
     public var calmHighMinSlope: Double
+    /// Calm-high TARGET shift (mg/dL): in the same calm-high state C23 licences, lower the correction
+    /// TARGET range by this much. C23's actuator is the automatic-bolus application factor, which does
+    /// not exist for a temp-basal donor — bddp02 and bddp07 deliver ZERO automatic boluses, so the
+    /// licence is inert on them however long they run high (bddp02 is above 180 for half its record).
+    /// A target shift acts through both delivery paths. The suspend threshold is untouched, so the
+    /// low guard is unchanged. 0 (default) = off.
+    public var calmHighTargetDelta: Double
     /// σ-band BASELINE (mg/dL per 5 min): widen the lower band by k·max(0, σ5 − baseline) instead of
     /// k·σ5. Keyed on absolute σ5 the band is a per-donor forecast offset of 21–49 mg/dL at 60 min at
     /// the donor's own median σ (k=1) — a donor-level aggressiveness bias wearing a state-dependent
@@ -648,6 +655,7 @@ public struct EvalConfig: Codable, Sendable {
         sigmaBandCobGate: Bool = false,
         calmHighCobGate: Bool = false,
         calmHighMinSlope: Double = -.infinity,
+        calmHighTargetDelta: Double = 0,
         sigmaBandBaseline: Double = 0,
         sigmaBandFixedSigma: Double = 0,
         sensDampWindowMin: Double = 45.0,
@@ -791,6 +799,7 @@ public struct EvalConfig: Codable, Sendable {
         self.sigmaBandCobGate               = sigmaBandCobGate
         self.calmHighCobGate                = calmHighCobGate
         self.calmHighMinSlope               = calmHighMinSlope
+        self.calmHighTargetDelta            = calmHighTargetDelta
         self.sigmaBandBaseline              = sigmaBandBaseline
         self.sigmaBandFixedSigma            = sigmaBandFixedSigma
         self.sensDampWindowMin              = sensDampWindowMin
@@ -881,7 +890,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
         case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsSmoothGlucose, oapsPumpPulse
-        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, sigmaBandBaseline, sigmaBandFixedSigma
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, sigmaBandBaseline, sigmaBandFixedSigma
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
 
@@ -1030,6 +1039,7 @@ public struct EvalConfig: Codable, Sendable {
         self.sigmaBandCobGate = try c.decodeIfPresent(Bool.self, forKey: .sigmaBandCobGate) ?? false
         self.calmHighCobGate = try c.decodeIfPresent(Bool.self, forKey: .calmHighCobGate) ?? false
         self.calmHighMinSlope = try c.decodeIfPresent(Double.self, forKey: .calmHighMinSlope) ?? -.infinity
+        self.calmHighTargetDelta = try c.decodeIfPresent(Double.self, forKey: .calmHighTargetDelta) ?? 0
         self.sigmaBandBaseline = try c.decodeIfPresent(Double.self, forKey: .sigmaBandBaseline) ?? 0
         self.sigmaBandFixedSigma = try c.decodeIfPresent(Double.self, forKey: .sigmaBandFixedSigma) ?? 0
         self.sensDampWindowMin = try c.decodeIfPresent(Double.self, forKey: .sensDampWindowMin) ?? 45.0
@@ -1174,6 +1184,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(sigmaBandCobGate, forKey: .sigmaBandCobGate)
         try c.encode(calmHighCobGate, forKey: .calmHighCobGate)
         try c.encode(calmHighMinSlope.isFinite ? calmHighMinSlope : -1e30, forKey: .calmHighMinSlope)
+        try c.encode(calmHighTargetDelta, forKey: .calmHighTargetDelta)
         try c.encode(sigmaBandBaseline, forKey: .sigmaBandBaseline)
         try c.encode(sigmaBandFixedSigma, forKey: .sigmaBandFixedSigma)
         try c.encode(sensDampWindowMin, forKey: .sensDampWindowMin)

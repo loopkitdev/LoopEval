@@ -2642,9 +2642,29 @@ extension EvaluationEngine {
             }
             calmHighAllowed = slope.isFinite && slope >= config.calmHighMinSlope
         }
-        if config.calmHighAfScale != 1.0, calmHighAllowed, sigma5.isFinite,
-           curBG >= config.calmHighBgMin, sigma5 <= config.calmHighSigmaMax {
+        let calmHighActive = calmHighAllowed && sigma5.isFinite
+            && curBG >= config.calmHighBgMin && sigma5 <= config.calmHighSigmaMax
+        if config.calmHighAfScale != 1.0, calmHighActive {
             appFactor = min(1.0, appFactor * config.calmHighAfScale)
+        }
+        // Calm-high TARGET shift: the temp-basal-reachable form of the same licence. The application
+        // factor above only scales an automatic BOLUS, so it is inert on a temp-basal donor (bddp02 and
+        // bddp07 issue none). Lowering the correction target enlarges the correction whichever way it is
+        // delivered. Suspend threshold untouched — the low guard is unchanged.
+        if config.calmHighTargetDelta > 0, calmHighActive {
+            let d = config.calmHighTargetDelta
+            doseInput = PredictionInput(
+                glucose: doseInput.glucose, doses: doseInput.doses, carbs: doseInput.carbs,
+                basal: doseInput.basal, sensitivity: doseInput.sensitivity,
+                carbRatio: doseInput.carbRatio,
+                target: doseInput.target.map {
+                    let lo = $0.value.lowerBound.doubleValue(for: mgdl)
+                    let hi = $0.value.upperBound.doubleValue(for: mgdl)
+                    return AbsoluteScheduleValue(
+                        startDate: $0.startDate, endDate: $0.endDate,
+                        value: LoopQuantity(unit: mgdl, doubleValue: Swift.max(70.0, lo - d))
+                            ... LoopQuantity(unit: mgdl, doubleValue: Swift.max(80.0, hi - d)))
+                })
         }
         let doseRec = EvaluationEngine.computeDoseRecommendation(
             prediction: prediction,
