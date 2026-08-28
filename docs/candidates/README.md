@@ -694,6 +694,24 @@ every other bed moves ≤ 1.0 %. **Only bddp03 is affected.** Its 35 σ-keyed tr
 halves share the sampling grid and so inherit the same defect. **A hold-out tests stability, not
 validity** — it cannot detect a constant that is consistently wrong.
 
+### CORRECTED — the bug was real, the consequence I claimed was not
+Re-ran every σ-keyed arm on bddp03 with σmax 6.37 → 3.28. The traces **do** change (counter BG max|Δ|
+**5.09 mg/dL**, dose max|Δ| 0.75 U, total insulin 360.24 → 360.06 U), so the fix took effect. **Not one
+verdict moved:** ch2p50 +0.005 with @op Δt54 **+0.10** before and after; final +0.022 / Δt54 −0.07 both
+ways; stk3 +0.021; ch2p50cob +0.003 / −0.01.
+
+**So bddp03's anomalous licence behaviour is not this bug.** The claims above — "the licence has been
+running as the ungated control all along", "I read the artefact as physiology" — are **wrong**, and the
+behavioural explanation they displaced (an announcer's calm highs are post-meal with the bolus still
+working, so extra AF stacks into committed insulin) **stands**. The gate change only bites where
+BG ≥ 180 *and* σ5 falls between the two thresholds; bddp03 is above 180 for 6.8 % of its record, so the
+addressable difference is ~2 % of cycles and 0.18 U over three months.
+
+The fix stays — a threshold fitted on a distribution the runtime never sees is wrong regardless of
+whether it happens to matter, and the resampling protects any future 1-minute-CGM donor where the window
+*is* large. **Lesson: finding a real defect is not the same as finding the cause of an anomaly.** I had
+a bug and an unexplained bed and connected them without testing the link, which was one re-run away.
+
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
 marginal contributions already in Loop's forecast), from the std ×1.00 trace
