@@ -54,6 +54,7 @@ hash have no surviving traces.
 | [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
 | [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
 | [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | **scored (8 beds)** | **+0.004, 2 IMPROVES, 0 WORSE** — C22 made safe to ship; the cap binds on 2 beds only |
+| [C30](#c30--the-deployable-stack-c29--c23c25--c20) | **The deployable stack** (C29 + C23/C25 + C20) | pull-back + dose-more, state-gated | **scored (10 beds + meal windows)** | **mean +0.016, 6 IMPROVES / 0 WORSE, Δt54@op −0.087; 3 beds improve TIR AND t<54 at op with no retuning; +0.6…+2.1 TIR in meal windows on 4/5** |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
@@ -485,6 +486,26 @@ Expected 7-bed table (measured sb1n on bddp05, sb1cob elsewhere): **mean ≈ +0.
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
 | 2026-08-27 | 8 natural beds | natural | 2 mo | E21 `cohort_band_e21.csv`: the cap binds on only two beds. **bddp05 (k 0.79): WORSE −0.012 → NEUTRAL −0.005**; bddp08 (0.96): +0.005 → +0.004. Identical elsewhere — verified on bddp06, sb1cap vs sb1cob **max|Δ| BG = 0.0**. **8-bed mean +0.004, 2 IMPROVES, 0 WORSE** vs C22's +0.0035, 2 IMPROVES, **1 WORSE** | **CONFIRMED — C29 is C22 made safe to ship**: same lift, no harmful bed. Modest by design; the cap only ever removes depth. *Do not read bddp06's sb1cap row as a mechanism difference* — at k=1.0 it **is** sb1cob, and the rows differ only because one was run on 3 multipliers and the other on 8 |
+
+## C30 · The deployable stack (C29 + C23/C25 + C20)
+```
+--candidate-sigma-band-k min(1, 6.7/σ_p50) --candidate-sigma-band-cob-gate          # C29
+--candidate-calm-high-af-scale 2.0 --candidate-calm-high-sigma-max σ_p50 \
+                                   --candidate-calm-high-cob-gate                   # C23 + C25
+--candidate-postlow-rc-rise-scale 0.3 --candidate-postlow-window 720                # C20
+```
+Three disjoint state gates — pull back where volatility says lows are coming *and* no carbs are
+announced; dose more where it says they are not; stop re-dosing into the post-low rebound. Every
+per-donor number is fitted from that donor's own σ history, audited in [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median)
+(drift 9 %, 4 weeks of history sufficient, no future data at any decision time).
+
+| date | bed | regime | window | result | verdict |
+|---|---|---|---|---|---|
+| 2026-08-27 | **10 beds** (9 donors) | natural | 2 mo / 90 d, op per `cohort_ops.csv` | E22 `cohort_band_e22.csv`: bddp11 **+0.055 [+0.008,+0.092]** (Δt54 −0.24); b11_90d **+0.045 [+0.011,+0.087]**; **bddp05 +0.043 [+0.022,+0.062], dom 1.00 (lo 1.00), @op ΔTIR +0.6 AND Δt54 −0.15**; bddp09 +0.024; **bddp03 +0.022 (@op +0.5 TIR, −0.07 t54)**; **bddp08 +0.010 (@op +0.3, −0.11)**; NEUTRAL bddp07/10/01; bddp06 under-covered †. **Mean +0.016, 6 IMPROVES, 0 WORSE, Δt54@op −0.087** | **The program's best safety result.** vs stk3 +0.021 (Δt54 −0.061), ch2p50 +0.014 (Δt54 +0.004), sb1cob +0.006 with **1 WORSE**: the stack trades a little mean lift for **twice the lows reduction and no harmful bed**. **Three beds reach the goal's actual bar — TIR up AND t<54 down at the person's own operating point, no retuning** (bddp05, bddp03, bddp08, the last two both heavy announcers); bddp09 does on the t70 axis. bddp05 is the case: the σ band alone was WORSE there, and capped + licensed it is the most dominant bed in the program |
+| 2026-08-27 | 5 hands-off beds | natural | **meal windows**, dial retuned to matched lows | ΔTIR in unannounced-meal windows: bddp11 **+2.06 [+0.94,+3.02]**, bddp09 **+1.83 [+1.09,+2.42]**, b11_90d **+1.16 [+0.45,+1.87]**, bddp01 +0.57, bddp10 −0.82. Meal-window Δ>250 negative on all five, Δt54 flat | **Improves meal-window glycemia on 4 of 5** at unchanged lows — the goal's second criterion. Identical to stk3 here because these beds are hands-off, so the COB gates never fire and the cap does not bind |
+
+† bddp06's row has 2 in-band points and NaN at op — its operating multiplier is ×1.20 while the default
+sweep tops out at ×1.15. E23 extends bddp05/bddp06 to ×1.30. Not a verdict.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
