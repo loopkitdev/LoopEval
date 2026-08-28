@@ -58,7 +58,7 @@ hash have no surviving traces.
 | [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
 | [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
 | [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | **scored (8 beds)** | **+0.004, 2 IMPROVES, 0 WORSE** — C22 made safe to ship; the cap binds on 2 beds only |
-| [C30](#c30--the-deployable-stack-c29--c23c25--c20) | **The deployable stack** (C29 + C23/C25 + C20) | pull-back + dose-more, state-gated | **scored (10 beds + meal windows)** | **mean +0.016, 6 IMPROVES / 0 WORSE, Δt54@op −0.087; 3 beds improve TIR AND t<54 at op with no retuning; +0.6…+2.1 TIR in meal windows on 4/5** |
+| [C30](#c30--the-deployable-stack-c29--c23c25--c20) | **The deployable stack** (C29 + C23/C25 + C20) | pull-back + dose-more, state-gated | **scored (2 mo × 8 donors + 90 d × 5, guarded)** | **+0.0205 [+0.0045,+0.0371] at 2 mo and +0.0386 [+0.0074,+0.0697] at 90 d, 0 WORSE in either**; 4 beds improve TIR AND t<54 at op with no retuning; CI-clearing TIR gain in unannounced-meal windows on 4/7 — see [HEADLINE](#headline--c30-with-all-three-scorer-guards-applied-2026-08-28) |
 | [D1](#d1--deployment-rule--two-configurations-not-one) | *Deployment rule*: full stack for announcers, band alone for non-announcers | — | **settled** | the licence pays only where highs are the residue of announced meals; the band survives both regimes |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
@@ -711,6 +711,29 @@ The fix stays — a threshold fitted on a distribution the runtime never sees is
 whether it happens to matter, and the resampling protects any future 1-minute-CGM donor where the window
 *is* large. **Lesson: finding a real defect is not the same as finding the cause of an anomaly.** I had
 a bug and an unexplained bed and connected them without testing the link, which was one re-run away.
+
+## HEADLINE · C30 with all three scorer guards applied (2026-08-28)
+Re-scored the 2-month cohort under the same guards as the 90-day beds. Only **bddp01** is degenerate at
+2 months (lows@op **0.000** — no severe-lows burden at all).
+
+| window | donors | mean | **90 % CI on the mean** | P(mean>0) | IMPROVES | WORSE |
+|---|---|---|---|---|---|---|
+| **2 months** | 8 distinct | **+0.0205** | **[+0.0045, +0.0371]** | **0.980** | 5 | **0** |
+| **90 days** | 5 beds | **+0.0386** | **[+0.0074, +0.0697]** | **0.978** | 2 | **0** |
+| C23 alone, 2 mo | 8 | +0.0145 | [+0.0059, +0.0244] | 0.998 | 6 | 0 |
+
+**The two windows agree in sign and verdict, and the 90-day estimate is ≈1.9× the 2-month one on a
+subset of the same donors** — the direction [M4](#m4--the-effect-is-homogeneous-across-donors) predicts.
+**No WORSE bed in either window, under any guard.** Four beds improve **both axes at the operating point
+with no retuning**: bddp05 (+0.6 TIR, −0.15 t54), bddp03 (+0.5, −0.07), bddp08 (+0.3, −0.11), bddp09 on
+the t70 axis.
+
+**The three guards, each found by disbelieving a result rather than publishing it:**
+1. **UNDER-COVERED** — `n_band < 3` or NaN at op; poisoned a cohort mean twice.
+2. **[M2](#m2--method-lift_lo_mean-is-not-a-ci-on-the-multi-donor-mean)** — `lift_lo_mean` is the mean of
+   per-bed lower bounds, not a CI on the mean; use `cohort_ci.py`.
+3. **DEGENERATE-REF** — in-band reference TIR span < 1 pt, lows span < 0.05, or lows@op < 0.10 on t54;
+   lift is span-normalized and meaningless where the reference does not span both axes.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
