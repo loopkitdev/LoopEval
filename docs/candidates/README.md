@@ -52,6 +52,7 @@ hash have no surviving traces.
 | [C26](#c26-calm-high-licence-trend-gated) | Calm-high licence, trend-gated (only flat-or-rising highs) | dose-more, state-gated | scored (3 beds) | **WASH** — removes the descent cycles and ~15 % of the TIR gain, no better lows exchange rate; the descent correlation was not causal |
 | [M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial) | *Method*: a mechanism only beats an EXPENSIVE dial | — | — | every `:ncnb` verdict scored at ×1.00 is provisional — the dial pays 83–434 TIR/t54 there vs 3 at a real operating point |
 | [M2](#m2--method-lift_lo_mean-is-not-a-ci-on-the-multi-donor-mean) | *Method*: `lift_lo_mean` is not a CI on the mean | — | — | four mechanisms clear zero on the multi-donor mean, not one — `cohort_ci.py` |
+| [M3](#m3--provenance-two-beds-are-travellers-exported-at-a-stale-etl-version) | *Provenance*: bddp06/bddp07 are travellers on a stale ETL export | — | re-exporting | 7 of 9 v18 beds are single-timezone and unaffected; bddp06 supplies one of C23's IMPROVES |
 | [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
 | [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
 | [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | **scored (8 beds)** | **+0.004, 2 IMPROVES, 0 WORSE** — C22 made safe to ship; the cap binds on 2 beds only |
@@ -582,6 +583,31 @@ corrected table (`cohort_band_e27_corrected.csv`):
 `UNDER-COVERED` when `n_band < 3` or the op-point delta is NaN. **Standing rule: a bed's sweep must
 cover op ± 0.1 with ≥ 3 points before it enters a cohort mean** — the default 0.85–1.15 grid does not,
 for beds whose op is ×1.15 or ×1.20.
+
+## M3 · Provenance: two beds are travellers exported at a stale ETL version
+Export manifests: **bddp04 is at `data_version` 19, the other ten beds at 18.** v19 (`7806e49`) expands
+schedules against the **prevailing-timezone timeline** instead of the settings-era row's tz — a
+traveller's era row keeps the tz it was uploaded from, which on bddp04 mis-anchored three post-trip days
+by 2 h (≈1 U/hr phantom basal netting, +2 U IOB, suspend-vs-low-temp inversions). It only bites for
+travellers, so: which beds travel?
+
+| bed | distinct tz in window | share outside primary tz | export |
+|---|---|---|---|
+| **bddp07** | **4** (New York + 3 Brazilian) | **36.7 %** | **v18 — stale** |
+| **bddp06** | **2** (Chicago / New York) | **12.2 %** | **v18 — stale** |
+| bddp04 | 6 | 4.6 % | v19 ✓ |
+| bddp11 | 2 (Jerusalem / Amman) | 0.03 % | v18, negligible |
+| bddp01/02/03/05/08/09/10 | 1 | 0 % | v18, **unaffected** |
+
+**Seven of the nine v18 beds are single-timezone**, so v18 and v19 expansion are identical for them and
+the bulk of the cohort stands. bddp07 was inert on every arm (a fidelity fault cannot manufacture a
+false positive, but its numbers are not trustworthy) and **bddp06 supplies one of C23's seven IMPROVES
+(+0.035)** on a 12 %-exposed export. Both re-exporting at v19 into `runs/2026-08-27-tzfix/`.
+
+*Method note worth keeping:* the first run of this check returned **zero** timezones for every donor,
+including bddp04 — the traveller the fix was written for. That impossibility was the tell: the window
+constants were in **2025** ms, not 2026. A check reporting "nothing anywhere" should be disbelieved
+before it is reported, especially when a known positive control comes back negative.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
