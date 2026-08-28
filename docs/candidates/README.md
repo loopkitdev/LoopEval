@@ -53,6 +53,7 @@ hash have no surviving traces.
 | [M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial) | *Method*: a mechanism only beats an EXPENSIVE dial | — | — | every `:ncnb` verdict scored at ×1.00 is provisional — the dial pays 83–434 TIR/t54 there vs 3 at a real operating point |
 | [M2](#m2--method-lift_lo_mean-is-not-a-ci-on-the-multi-donor-mean) | *Method*: `lift_lo_mean` is not a CI on the mean | — | — | four mechanisms clear zero on the multi-donor mean, not one — `cohort_ci.py` |
 | [M3](#m3--provenance-two-beds-are-travellers-exported-at-a-stale-etl-version) | *Provenance*: traveller map + export-version audit | — | **resolved, no problem** | every traveller bed is already v19 and every v18 bed is single-timezone — the cohort stands as scored |
+| [M4](#m4--the-effect-is-homogeneous-across-donors) | *Method*: between-donor variance ≈ 0 for the stack | — | — | the per-bed scatter is sampling noise, not heterogeneity — and longer beds are therefore worth the compute |
 | [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
 | [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
 | [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | **scored (8 beds)** | **+0.004, 2 IMPROVES, 0 WORSE** — C22 made safe to ship; the cap binds on 2 beds only |
@@ -626,6 +627,35 @@ local midnight, is wrong for them.
 including bddp04 — the traveller the fix was written for. That impossibility was the tell: the window
 constants were in **2025** ms, not 2026. A check reporting "nothing anywhere" should be disbelieved
 before it is reported, especially when a known positive control comes back negative.
+
+## M4 · The effect is homogeneous across donors
+Method-of-moments decomposition of the multi-donor mean's variance (9 donors): the spread of per-bed
+point estimates is between-donor signal **plus** within-bed sampling noise, so subtracting the mean
+within-bed variance leaves the between-donor part.
+
+| mechanism | SD across beds | between-donor | within-bed | between as % |
+|---|---|---|---|---|
+| **C30 `final`** | 0.0189 | **0.0000** | 0.0213 | **0 %** |
+| stk3 | 0.0182 | **0.0000** | 0.0225 | **0 %** |
+| C22 σ band | 0.0112 | **0.0000** | 0.0181 | 0 % |
+| C23 licence | 0.0134 | 0.0106 | 0.0082 | 62 % |
+
+**For the stack, between-donor variance is indistinguishable from zero** — the spread across beds
+(SD 0.019) is *smaller* than the within-bed noise (0.021), so the per-bed range (bddp11 +0.055 down to
+bddp01 −0.005) is entirely consistent with sampling noise. That is the strongest available form of
+"lift across a wide range of pwds": **the same effect everywhere, per-bed scatter within noise** — and
+it is why 0 WORSE across 10 beds is not luck. The calm-high licence is the exception at 62 % genuine
+heterogeneity, which fits its mechanism (its addressable window is 1.5 % of bddp07's record and 21 % of
+bddp05's).
+
+**What that implies for compute.** All remaining uncertainty for the stack is *within*-bed, which is
+what more days per bed buys: SE(mean) 0.0071 → 0.0058 going 60 d → 90 d, moving the 90 % CI lower bound
+from **+0.0060 to +0.0082** (floor with infinite data: +0.0177). So longer beds are worth it — the
+opposite of the assumption under which I had deprioritized them. 90-day exports running for eight donors.
+
+**Caveat on `cohort_ci.py`:** its two-level bootstrap resamples beds *and* adds within-bed noise, which
+double-counts when between-donor variance is ≈ 0. Its `final` interval [+0.0029, +0.0332] is the
+**conservative** one; the variance-components interval is [+0.0060, +0.0294]. Both clear zero.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
