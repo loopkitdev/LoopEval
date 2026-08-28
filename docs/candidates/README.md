@@ -872,6 +872,17 @@ default, and it is the same exchange one notch further (more lows for more TIR),
 a better gate. **0.3 / 720 / 180 stands**, now on four beds, with S=0.2 available for a patient wanting
 more lows removal at ~0.07 TIR.
 
+**Completed denominator (E39b, all five beds, every arm):** plrc2w720 **+0.0151** / Δt54 **−0.102**;
+plrc3w1440 +0.0136 / −0.086; plrc3w720 **+0.0127** / −0.086; plrc3w720b140 +0.0071 / −0.037. **The
+ordering is identical to the n=4 read**, so the conclusion survives fixing the denominator. **12-hour
+saturation now holds on 5 of 5** — the 24 h arm's Δt54 and ΔTIR are *identical* to the default, lift
+differing by +0.0009 from one bed. **S=0.2 beats S=0.3 on both axes** (+0.0151 vs +0.0127, −0.102 vs
+−0.086) for 0.07 TIR — an exchange better than the dial buys at these operating points.
+**Recommendation: keep 0.3 as the shipped default, offer 0.2 as the lows-priority setting.** Moving the
+default on a +0.0024 mean gap is not warranted when the one bed S=0.2 makes *worse* (bddp10, −0.0054 vs
+−0.0036) is the bed [E40](#e40--pre-registered-and-refuted-lift-does-not-scale-with-lows-burden) records
+as unexplained.
+
 **A near-miss worth recording.** My first table gave plrc3w1440 the best mean (+0.0179 vs +0.0127) and I
 was about to write that 24 h overturns E9b. **bddp10 was absent from the 1440 column** — I had only swept
 two arms there — and bddp10 is **the only bed with negative lift**, so excluding it inflated one arm and
