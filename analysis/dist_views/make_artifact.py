@@ -329,56 +329,6 @@ against fast carbohydrate should produce.</p>
 <figcaption><b>09</b> · Q-Q against a normal (an S, so heavy-tailed) and against a Laplace (straight). Top right, the survival of the absolute increment against an exponential reference. Bottom left, excess kurtosis versus horizon. Bottom middle, where five-minute raw deltas can land at all: a sensor reports on a discrete value grid — whole mg/dL for 66 people, 0.1 mmol/L (1.8 mg/dL) for three — and no reading falls between its points. Dots are the median share of a person's samples at that value, bars the p10–p90 across people. Bottom right, the SD-over-MAD ratio, clustered just above the Laplace line.</figcaption></figure>
 </section>
 
-<section>
-<p class="eyebrow">Fig 10 · Fig 24 · What the tail is made of</p>
-<h2>A wandering scale, and a fat-tailed shock underneath it</h2>
-<div class="col">
-<p>A Laplace distribution is what you get from Gaussians whose variance is itself
-random, so the fat tail has two possible sources: a process that is intrinsically
-heavy-tailed, or a Gaussian one whose scale drifts. It is both — and the
-drifting-scale half is smaller than it looks, and is not on the clock.</p>
-<p>Conditioning each increment on the volatility of the trace before it —
-estimated only from the <em>past</em>, which is what makes an estimator
-<em>causal</em>: it uses nothing from after the moment it describes, so a
-controller could compute it at the time — removes between a quarter and a third of
-the excess kurtosis across 69 people. On the held-out span the median excess
-kurtosis is <strong>2.71</strong> raw, <strong>2.12</strong> under a rolling
-window, <strong>1.79</strong> under an EWMA and <strong>1.46</strong> under a
-GARCH: per-person reductions of 23%, 28% and 36%, every one still far from a
-Gaussian's zero. A model of this needs a time-varying scale <em>and</em> a
-fat-tailed innovation — the same combination the same analysis converged on for
-financial returns.</p>
-<div class="read"><p>Looking only backwards is not a nicety here; it decides the
-number. A window <em>centred</em> on the increment it scales contains that
-increment, so a large move inflates its own denominator. Scored that way the same
-data appears to lose 93% of its excess kurtosis and look Gaussian. No controller
-can compute that window, and the honest one removes at most a third.</p></div>
-<p>Nor is the drifting scale a named state. Give every increment the state it
-happened in — local time of day in three-hour blocks, whether carbs were on board,
-which third of this person's insulin-activity range was running — and divide it by
-the spread of its own state: the excess kurtosis does not fall, median
-<strong>2.71</strong> raw against <strong>2.88</strong> conditioned. Named states
-explain <strong>4%</strong> of the squared increment where the volatility estimate
-explains <strong>16%</strong>. They are real states, only far too mild to make a
-tail — a five-minute increment has a standard deviation <strong>1.29&times;</strong>
-larger with carbs on board than fasted, and <strong>0.84&times;</strong> as large at
-night as by day. A mixture of scales that close together is very nearly one scale.
-It comes out the same among the 35 people who announce carbs heavily, for whom the
-fed/fasted split means most.</p>
-<div class="read"><p>The tail is fattest where the least is happening. Inside a
-single state, unstandardised, the excess kurtosis is <strong>1.29</strong> in the
-daytime with carbs on board, <strong>3.81</strong> in the daytime fasted for four
-hours, and <strong>4.47</strong> overnight fasted — <strong>4.25</strong> with the
-compression lows cut out. Eating does not produce the fat tail; it produces the
-closest thing to a Gaussian a person has. What is fat-tailed is the quiet: long
-flat stretches interrupted by a sharp move.</p></div>
-</div>
-<figure><img alt="Six panels on volatility and scaling, with causal and non-causal standardisation compared" src="{{FIG:10_volatility}}">
-<figcaption><b>10</b> · Top left shows both windows: grey is the centred one that flatters itself, blue the backwards-looking one. Top right, the autocorrelation of |&Delta;BG| — volatility clustering with long memory. Bottom middle, the structure function against random-walk and pure-trend references.</figcaption></figure>
-<figure><img alt="Three panels: excess kurtosis raw versus conditioned on a named state versus on volatility; kurtosis within single states; share of the squared increment explained" src="{{FIG:24_modality}}">
-<figcaption><b>24</b> · Each faint line is one person across the conditions; the heavy tick is the median across people and the pale bar its p10&ndash;p90. Left, what conditioning does to the tail. Middle, the tail inside single states, unstandardised. Right, the share of the squared increment each explanation accounts for &mdash; the same target for both, so they can be read against each other. State comes from the five-minute panel; the increments themselves are raw sensor samples.</figcaption></figure>
-</section>
-
 
 <section>
 <p class="eyebrow">Fig 10 · Dynamics</p>
@@ -544,7 +494,11 @@ standard deviations covers <strong>98.2%</strong>, under-covering for <strong>al
 margin lives.</p>
 <p>One floor is physically required: the fitted variance cannot fall below twice
 the measurement-noise variance, the smallest a difference of noisily-measured
-values can have.</p>
+values can have. And every estimator here looks only backwards. The same data
+scored with a window <em>centred</em> on the change it is scaling appears to lose
+93% of its excess kurtosis and look Gaussian — a large move inflates its own
+denominator — which is the grey strip in the figure, and not a window any
+controller could compute.</p>
 <figure><img alt="Six panels evaluating three causal volatility estimators" src="{{FIG:14_volatility_estimator}}">
 <figcaption><b>14</b> · Each panel is a distribution across 69 people. Q-Q of increments after conditioning, under each estimator; excess kurtosis before and after; out-of-sample R&sup2;; how volatility is spread within a person; calibration of predicted against realised change size; and far-tail coverage of a Gaussian versus a Laplace band.</figcaption></figure>
 </section>
