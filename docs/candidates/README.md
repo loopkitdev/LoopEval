@@ -820,6 +820,11 @@ the σ evidence says is safe to dose into. It is a *dose-more* lever, so t<54 is
 decomposition. Ablating it (`fin2` = capped COB-gated σ band + COB-gated licence, no C20) across nine
 beds:
 
+**b11_90d (the 90-day bed) confirms it:** `final` +0.045 [+0.011,+0.087] at Δt54 **−0.17** vs `fin2`
++0.033 [+0.013,+0.057] at Δt54 **−0.07** — C20 marginal +0.012 lift and −0.10 t54, the same shape as the
+2-month cohort. **Across all ten beds C20's marginal lift is positive on 8**, and it carries most of the
+lows benefit wherever it acts.
+
 | | mean lift | **mean Δt54@op** | mean ΔTIR@op |
 |---|---|---|---|
 | **`final`** (with C20) | **0.0237** | **−0.072** | −0.13 |
