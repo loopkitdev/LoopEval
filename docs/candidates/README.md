@@ -556,17 +556,32 @@ donors**.
 | C20 | 5 | +0.0164 | **[+0.0014, +0.0387]** | 0.961 | −0.0053 | 3 | 0 |
 | **C23 calm-high licence** | 9 | +0.0142 | **[+0.0064, +0.0229]** | **0.9996** | +0.0036 | 7 | 0 |
 | **stk** | 9 | +0.0128 | **[+0.0005, +0.0274]** | 0.955 | −0.0100 | 4 | 0 |
-| **C30 `final`** (gated) | 9 | +0.0127 | [−0.0060, +0.0295] | 0.880 | −0.0098 | 5 | 0 |
+| **C30 `final`** (gated) | 9 | +0.0127 → **+0.0177 corrected** | [−0.0060,+0.0295] → **[+0.0029,+0.0332]** | 0.88 → **0.973** | −0.0098 | 5 | 0 |
 | C22 σ band | 9 | +0.0034 | [−0.0089, +0.0141] | 0.726 | −0.0143 | 2 | 1 |
 
 **Four mechanisms have multi-donor means separated from zero at 90 %**, not one.
 
-**The gates cost mean lift and buy safety, and that trade is the right way round.** `stk3` (ungated
-licence, uncapped band) has the higher mean and clears zero; `final` is +0.0127 and does not (P = 0.88).
-But `final` has the better lows result — Δt54@op **−0.087** across 10 beds against stk3's −0.061 — and
-its components carry no harmful bed, where stk3 masks two (the ungated licence is Δt54 +0.10 on bddp03;
-the uncapped band is WORSE on bddp05 alone). GOALS makes the safety axis non-negotiable, so **`final`
-stays the recommendation** — reported as the safer, not the larger, of the two. Both are 0 WORSE.
+**CORRECTED — there is no gates-versus-lift trade.** The `final` row above (+0.0127, P 0.88) was
+poisoned by a stale under-covered bddp06 row. Bed by bed, `final` and `stk3` are **identical on eight of
+ten**, differ by +0.008 on bddp05 *in `final`'s favour*, and −0.002 on bddp10; the entire gap was
+bddp06's −0.042, the 2-in-band-point row already fixed in E23 (+0.009 properly covered). On the
+corrected table (`cohort_band_e27_corrected.csv`):
+
+| mechanism | beds | mean | 90 % CI on the mean | P(mean>0) | IMPROVES | WORSE |
+|---|---|---|---|---|---|---|
+| stk3 | 9 | +0.0188 | [+0.0041, +0.0349] | 0.980 | 5 | 0 |
+| **C30 `final`** | 9 | **+0.0177** | **[+0.0029, +0.0332]** | **0.973** | 5 | 0 |
+| C23 licence | 9 | +0.0142 | [+0.0064, +0.0229] | 0.9996 | 7 | 0 |
+| C22 σ band | 9 | +0.0034 | [−0.0089, +0.0141] | 0.720 | 2 | 1 |
+
+**`final` wins outright**: a multi-donor mean separated from zero, the best lows reduction
+(Δt54@op −0.087 against stk3's −0.061), and no harmful component.
+
+**Tooling fix so this cannot recur.** An under-covered bed has poisoned a cohort mean twice now
+(bddp06 in C28, and here). `cohort_band.py` now prints `!! UNDER-COVERED` and sets the verdict to
+`UNDER-COVERED` when `n_band < 3` or the op-point delta is NaN. **Standing rule: a bed's sweep must
+cover op ± 0.1 with ≥ 3 points before it enters a cohort mean** — the default 0.85–1.15 grid does not,
+for beds whose op is ×1.15 or ×1.20.
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
