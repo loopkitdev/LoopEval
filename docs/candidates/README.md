@@ -854,6 +854,36 @@ a script exporting `LOOPEVAL_BIN`. **It failed loudly only because the flag was 
 wrong traces that scored cleanly. `BIN` now prefers the calling worktree's own build. Audit: every
 scripted sweep this session exported `LOOPEVAL_BIN`, so b11_90d's `fin2` is the only casualty.
 
+## E39 · C20's gate grid, on four beds instead of one
+C20 holds the safety axis ([E38](#e38--ablation-c20-is-the-stacks-lows-mechanism-not-the-σ-band)) but its
+gate had only ever been grid-searched on b11_90d. On matched beds (every arm present — bddp03, bddp05,
+bddp08, bddp11):
+
+| arm | mean lift | mean Δt54@op | mean ΔTIR@op |
+|---|---|---|---|
+| **plrc2w720** (harder cut, S=0.2) | **+0.0202** | **−0.102** | −0.178 |
+| plrc3w1440 (24 h window) | +0.0179 | −0.106 | −0.010 |
+| **plrc3w720** (current default) | +0.0168 | −0.086 | −0.107 |
+| plrc3w720b140 (release at 140) | +0.0090 | −0.046 | +0.052 |
+
+**E9b's "window saturates at 12 h" holds, now on more than one donor** — plrc3w1440 is identical to
+plrc3w720 to every digit on bddp03, bddp08 and bddp11. The harder cut is the only arm beating the
+default, and it is the same exchange one notch further (more lows for more TIR), i.e. a dial rather than
+a better gate. **0.3 / 720 / 180 stands**, now on four beds, with S=0.2 available for a patient wanting
+more lows removal at ~0.07 TIR.
+
+**A near-miss worth recording.** My first table gave plrc3w1440 the best mean (+0.0179 vs +0.0127) and I
+was about to write that 24 h overturns E9b. **bddp10 was absent from the 1440 column** — I had only swept
+two arms there — and bddp10 is **the only bed with negative lift**, so excluding it inflated one arm and
+depressed the other. On matched beds the gap collapses from +0.0052 to +0.0011. **Rule: when comparing
+arms by a cohort mean, first drop to the beds where every arm exists — a column with a different
+denominator is not a comparison.** A cousin of the UNDER-COVERED and DEGENERATE-REF guards: three ways an
+incomplete table yields a readable but wrong number.
+
+*Operational note:* the first scoring run sat for ~50 minutes having used **0.14 s of CPU** — blocked,
+not slow (its parent shell had been backgrounded and its stdout pipe went away). **Check CPU time, not
+wall time, before concluding a job is merely slow.**
+
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
 marginal contributions already in Loop's forecast), from the std ×1.00 trace
