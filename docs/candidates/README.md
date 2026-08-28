@@ -809,7 +809,8 @@ the σ evidence says is safe to dose into. It is a *dose-more* lever, so t<54 is
 
 | date | bed | regime | window | result | verdict |
 |---|---|---|---|---|---|
-| 2026-08-28 | bddp02 / bddp07 (temp-basal) + bddp11 / bddp05 (auto-bolus) | natural | 2 mo | E35 — running (cht10/20/30; cht20 on the auto-bolus pair to see whether the target route also works where the AF route already does) | planned |
+| 2026-08-28 | bddp02 / bddp07 | natural | 2 mo | E35: all three cht arms read **exactly 0.000** — lift, ΔTIR and Δt54, every digit, on 21 traces per donor | **NOT A RESULT — a no-op bug in C31.** σ5 is computed only inside `if sigmaBandK > 0 \|\| calmHighAfScale != 1.0`, and I added C31 as a third consumer without adding it to that gate. The cht arms leave `calmHighAfScale` at 1.0 and run no σ band, so **σ5 stayed NaN, `calmHighActive` needs `sigma5.isFinite`, and the target shift never fired once.** Gate fixed to list all three consumers; stale traces deleted; re-running. **The tell was the exact zeros** — a mechanism that merely does nothing *useful* still perturbs some cycle and reads ±0.001; precise 0.000 across three deltas, two donors and five multipliers means the code path never executed |
+| 2026-08-28 | bddp11 | — | identity | `final` under the new binary vs the stored trace: counter max\|Δ\| **1.58 mg/dL**, dose **0.35 U** | **The TEST was invalid, not the build.** That trace predates the [M5](#m5--bddp03s-σ-threshold-was-fitted-on-the-wrong-sampling-grid) σ fix, which moved bddp11's fitted p50 from 6.61 to 6.63 — so the two runs used **different flags**. An identity test must hold everything constant but the change under test; I compared across a threshold change. Re-running on `sb1cob`, whose flags the σ fix left alone |
 
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
