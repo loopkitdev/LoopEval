@@ -52,7 +52,7 @@ hash have no surviving traces.
 | [C26](#c26-calm-high-licence-trend-gated) | Calm-high licence, trend-gated (only flat-or-rising highs) | dose-more, state-gated | scored (3 beds) | **WASH** — removes the descent cycles and ~15 % of the TIR gain, no better lows exchange rate; the descent correlation was not causal |
 | [M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial) | *Method*: a mechanism only beats an EXPENSIVE dial | — | — | every `:ncnb` verdict scored at ×1.00 is provisional — the dial pays 83–434 TIR/t54 there vs 3 at a real operating point |
 | [M2](#m2--method-lift_lo_mean-is-not-a-ci-on-the-multi-donor-mean) | *Method*: `lift_lo_mean` is not a CI on the mean | — | — | four mechanisms clear zero on the multi-donor mean, not one — `cohort_ci.py` |
-| [M3](#m3--provenance-two-beds-are-travellers-exported-at-a-stale-etl-version) | *Provenance*: bddp06/bddp07 are travellers on a stale ETL export | — | re-exporting | 7 of 9 v18 beds are single-timezone and unaffected; bddp06 supplies one of C23's IMPROVES |
+| [M3](#m3--provenance-two-beds-are-travellers-exported-at-a-stale-etl-version) | *Provenance*: traveller map + export-version audit | — | **resolved, no problem** | every traveller bed is already v19 and every v18 bed is single-timezone — the cohort stands as scored |
 | [C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median) | σ band keyed on σ above the donor's own median | pull-back, state-gated | scored (5 beds) | Removes C22's harm **and** its lift — but E19 shows why: the baselined form is under-powered, not level-free. Superseded by [C28](#c28--depth-normalized-σ-band-per-donor-k) |
 | [C28](#c28--depth-normalized-σ-band-per-donor-k) | Depth-normalized σ band (per-donor k) | pull-back, state-gated | scored (7 beds) | **FAILS** (mean −0.042 vs +0.003) — raising k for calm donors costs TIR and buys nothing; superseded by [C29](#c29--depth-capped-σ-band) |
 | [C29](#c29--depth-capped-σ-band) | Depth-CAPPED σ band, k = min(1, σ_ref/σ_donor) | pull-back, state-gated | **scored (8 beds)** | **+0.004, 2 IMPROVES, 0 WORSE** — C22 made safe to ship; the cap binds on 2 beds only |
@@ -599,10 +599,28 @@ travellers, so: which beds travel?
 | bddp11 | 2 (Jerusalem / Amman) | 0.03 % | v18, negligible |
 | bddp01/02/03/05/08/09/10 | 1 | 0 % | v18, **unaffected** |
 
-**Seven of the nine v18 beds are single-timezone**, so v18 and v19 expansion are identical for them and
-the bulk of the cohort stands. bddp07 was inert on every arm (a fidelity fault cannot manufacture a
-false positive, but its numbers are not trustworthy) and **bddp06 supplies one of C23's seven IMPROVES
-(+0.035)** on a 12 %-exposed export. Both re-exporting at v19 into `runs/2026-08-27-tzfix/`.
+**CORRECTED — there is no provenance problem.** Checking **all eleven** manifests rather than the five
+sampled: **bddp06 and bddp07 are already at v19**, as is bddp04. Every remaining v18 bed is
+**single-timezone** (bddp11's two are Jerusalem/Amman at 0.03 %, the same UTC offset most of the year),
+so v18 and v19 expansion are identical for them and **the cohort results stand exactly as scored**.
+
+| bed | data_version | distinct tz | outside primary | status |
+|---|---|---|---|---|
+| bddp04 / **bddp06** / **bddp07** | **19** | 6 / 2 / 4 | 4.6 / 12.2 / 36.7 % | travellers, current ✓ |
+| bddp01/02/03/05/08/09/10 | 18 | 1 | 0 % | single-tz — v18 ≡ v19 |
+| bddp11 | 18 | 2 | 0.03 % | negligible |
+
+**My error, recorded because it is the instructive part:** I sampled five manifests, saw one v19 and
+four v18, and wrote "the other ten beds are at 18" — then flagged as stale the two beds the claim was
+actually about, which were never v18. The rule I had just applied to the query (disbelieve an impossible
+answer before reporting it) applies to the manifest read too: the two beds that mattered were
+unchecked, and checking them was one command.
+
+The re-export was therefore unnecessary, but not worthless: it returned **identical record counts on
+every stream**, independently confirming v19 output is stable, and the per-donor timezone map is now
+documented. **Keep the map** — bddp07 spends 36.7 % of the window outside its primary timezone and
+bddp04 six zones' worth, so any future pre-v19 export of those donors, or any analysis assuming a single
+local midnight, is wrong for them.
 
 *Method note worth keeping:* the first run of this check returned **zero** timezones for every donor,
 including bddp04 — the traveller the fix was written for. That impossibility was the tell: the window
