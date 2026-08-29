@@ -20,6 +20,49 @@ import numpy as np
 import pandas as pd
 
 
+# --- Magni risk index -------------------------------------------------------------------------
+# Magni et al., "Model Predictive Control of Type 1 Diabetes: An In Silico Trial" (JDST 2007).
+#     r(g) = 10 * f(g)^2,  f(g) = 3.5506 * [ (ln g)^0.8353 - 3.7932 ],  g in mg/dL
+# A single asymmetric risk scalar: one number that prices hypo and hyper on a common scale, so a
+# candidate does not have to be judged by trading two axes against each other.
+#
+# MEASURED properties of these constants (verify_magni() below re-checks them at import-time cost
+# nothing; they are asserted in the tests rather than trusted from memory):
+#   * the minimum is at g = 138.9 mg/dL, NOT ~112 as the Kovatchev risk function's is. This is a
+#     real and consequential difference: r(100) = 5.67 exceeds r(180) = 3.47, so Magni scores a
+#     BG of 100 as RISKIER than 180. Anyone reading a Magni delta must know that the index prefers
+#     running higher than a TIR-centred view does.
+#   * it is hypo-weighted, which is why it suits this project: an equal excursion below the minimum
+#     costs 1.8x (+/-40 mg/dL), 2.6x (+/-60) and 3.7x (+/-80) more than the same excursion above.
+#   * reference values: r(40)=84.3, r(54)=48.0, r(70)=25.0, r(180)=3.5, r(250)=17.6, r(400)=56.3.
+#
+# Below 20 / above 600 mg/dL the CGM is clamped anyway; the input is clipped there so a floored 40
+# or a ceilinged 400 cannot produce a spurious spike (see AGENTS.md on interval censoring).
+MAGNI_MIN_BG = 138.9          # where r(g) = 0, measured not assumed
+
+def magni_risk(bg):
+    """Per-sample Magni risk. Accepts a scalar, ndarray or Series; returns the same shape."""
+    g = np.clip(np.asarray(bg, dtype=float), 20.0, 600.0)
+    f = 3.5506 * (np.log(g) ** 0.8353 - 3.7932)
+    r = 10.0 * f * f
+    if isinstance(bg, pd.Series):
+        return pd.Series(r, index=bg.index, name="magni")
+    return r
+
+
+def verify_magni() -> dict:
+    """Re-derive the documented properties from the constants. Used by the tests and safe to call."""
+    g = np.arange(20.0, 600.01, 0.05)
+    r = magni_risk(g)
+    out = {"argmin_bg": float(g[r.argmin()]), "min_risk": float(r.min())}
+    for x in (40, 54, 70, 100, 180, 250, 400):
+        out[f"r{x}"] = float(magni_risk(x))
+    m = out["argmin_bg"]
+    for d in (40, 60, 80):
+        out[f"asym{d}"] = float(magni_risk(m - d) / magni_risk(m + d))
+    return out
+
+
 def exclusion_mask(index: pd.DatetimeIndex,
                    outages: Sequence = (),
                    cgm_gaps: Sequence = (),
