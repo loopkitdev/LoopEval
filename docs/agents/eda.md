@@ -295,6 +295,19 @@ glucose, not the story of how it was measured. Therefore:
     velocity, noise, momentum or tail weight is a mix of people and sensors until it is
     split by family, and our cohort is 38 Libre 3 / 13 G7 / 3 G6 / 8 unlabelled.
 
+    Every headline statistic re-tested in the switchers, same person on both sensors:
+    **holds** — Hurst at both ranges, the momentum zero-crossing (40–47 min), the
+    volatility ACF at 30 min, CV, and SD/MAD, which moves 0.04 at most and stays in the
+    Laplace neighbourhood. **Instrument-dependent** — the SD of the five-minute step,
+    the implied sensor noise, the increment's lag-1, and the excess kurtosis (G6→G7
+    alone: 4.47 → 3.32, p=0.001). The two-regime Hurst_short of 0.77 is partly
+    smoothing: Libre→G7 takes it 0.80 → 0.72 (p<0.0001) while G6→G7 leaves it alone.
+
+    **Caveat that limits the twiist contrast: leaving twiist means leaving the twiist
+    AID, not just its sensor.** Its TIR (−8.8 points) and Box-Cox lambda changes are
+    therapy and era, not optics — a paired design controls for the person, never for
+    what else changed that day. The same-vendor G6→G7 contrast is the clean one.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
