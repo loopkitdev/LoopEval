@@ -23,10 +23,12 @@ from typing import Dict, Mapping, Optional, Tuple, Sequence
 import numpy as np
 import pandas as pd
 
+from .scoring import magni_risk
+
 from .frontier import lift as _lift, _ref_polyline
 from .scoring import exclusion_mask
 
-BLOCK_COLS = ["n", "in_range", "lt54", "lt70", "gt180", "gt250", "sum_bg"]
+BLOCK_COLS = ["n", "in_range", "lt54", "lt70", "gt180", "gt250", "sum_bg", "sum_magni"]
 
 
 # --------------------------------------------------------------------------- #
@@ -71,6 +73,9 @@ def block_scores(trace_path: str | Path, block_days: float = 7.0,
         "gt180": (bg > 180).astype(int).to_numpy(),
         "gt250": (bg > 250).astype(int).to_numpy(),
         "sum_bg": bg.to_numpy(),
+        # Magni risk is a per-sample quantity, so it sums in blocks and divides by n
+        # exactly like the others — which is what lets it survive the block bootstrap.
+        "sum_magni": magni_risk(bg.to_numpy()),
     })
     return df.groupby("block")[BLOCK_COLS].sum()
 
@@ -82,7 +87,8 @@ def pooled(blocks: pd.DataFrame, idx=None) -> dict:
     n = float(s["n"]) or 1.0
     return {"TIR": 100 * s["in_range"] / n, "t54": 100 * s["lt54"] / n,
             "t70": 100 * s["lt70"] / n, "t180": 100 * s["gt180"] / n,
-            "t250": 100 * s["gt250"] / n, "mean": s["sum_bg"] / n, "n": n}
+            "t250": 100 * s["gt250"] / n, "mean": s["sum_bg"] / n,
+            "magni": s["sum_magni"] / n, "n": n}
 
 
 # --------------------------------------------------------------------------- #
@@ -94,7 +100,7 @@ def _frame(sweep: Mapping[float, pd.DataFrame], idx=None, lows="t54") -> pd.Data
     for m, b in sorted(sweep.items()):
         p = pooled(b, idx)
         rows.append({"multiplier": float(m), "TIR": p["TIR"], "t54": p["t54"],
-                     "t70": p["t70"], "mean": p["mean"], "lows": p[lows]})
+                     "t70": p["t70"], "mean": p["mean"], "magni": p["magni"], "lows": p[lows]})
     return pd.DataFrame(rows)
 
 
@@ -123,7 +129,7 @@ def _interp_at(frame: pd.DataFrame, mult: float) -> Optional[pd.Series]:
     if mult < m.min() - 1e-9 or mult > m.max() + 1e-9:
         return None
     out = {}
-    for col in ("TIR", "t54", "t70", "mean", "lows"):
+    for col in ("TIR", "t54", "t70", "mean", "magni", "lows"):
         out[col] = float(np.interp(mult, m, f[col].to_numpy()))
     return pd.Series(out)
 
@@ -196,7 +202,7 @@ def band_report(ref: Mapping[float, pd.DataFrame],
                for r, l in zip(cb.itertuples(), lifts)]
         rop, cop = _interp_at(ref_frame, op_mult), _interp_at(cand_frame, op_mult)
         d = {k: (cop[k] - rop[k]) if (rop is not None and cop is not None) else np.nan
-             for k in ("TIR", "t54", "t70", "mean")}
+             for k in ("TIR", "t54", "t70", "mean", "magni")}
         return (float(np.mean(lifts)) if lifts else np.nan,
                 float(np.mean(dom)) if dom else np.nan, d, lifts, dom, cb)
 
@@ -207,12 +213,13 @@ def band_report(ref: Mapping[float, pd.DataFrame],
         for r, l, dm in zip(cb.itertuples(), lifts, dom):
             pts.append({"mechanism": name, "multiplier": r.multiplier, "TIR": r.TIR,
                         "t54": r.t54, "t70": r.t70, "mean": r.mean, "lift": l, "dominates": dm})
-        bs_l, bs_d, bs_dT, bs_d54, bs_d70 = [], [], [], [], []
+        bs_l, bs_d, bs_dT, bs_d54, bs_d70, bs_dM = [], [], [], [], [], []
         for idx in boots:
             rb, cbf = ref_band(_frame(ref, idx, lows=lows_axis)), _frame(sweep, idx, lows=lows_axis)
             l2, d2, dd, *_ = stats(rb, cbf)
             bs_l.append(l2); bs_d.append(d2)
             bs_dT.append(dd["TIR"]); bs_d54.append(dd["t54"]); bs_d70.append(dd["t70"])
+            bs_dM.append(dd["magni"])
         pc = lambda a: (float(np.nanpercentile(a, ci[0])), float(np.nanpercentile(a, ci[1])))
         lo, hi = pc(bs_l)
         verdict = ("IMPROVES" if (lo > 0 and fd > 0) else "WORSE" if hi < 0 else "NEUTRAL")
@@ -247,6 +254,7 @@ def band_report(ref: Mapping[float, pd.DataFrame],
                      "dTIR_op": d["TIR"], "dTIR_lo": pc(bs_dT)[0], "dTIR_hi": pc(bs_dT)[1],
                      "dt54_op": d["t54"], "dt54_lo": pc(bs_d54)[0], "dt54_hi": pc(bs_d54)[1],
                      "dt70_op": d["t70"], "dt70_lo": pc(bs_d70)[0], "dt70_hi": pc(bs_d70)[1],
+                     "dmagni_op": d["magni"], "dmagni_lo": pc(bs_dM)[0], "dmagni_hi": pc(bs_dM)[1],
                      "dmean_op": d["mean"], "verdict": verdict, "n_blocks": B})
     table = pd.DataFrame(rows).sort_values("band_lift", ascending=False).reset_index(drop=True)
     return table, pd.DataFrame(pts)
@@ -309,5 +317,6 @@ def format_table(table: pd.DataFrame) -> str:
             f"  dom {r.frac_dominant:.2f}(lo {r.dominant_ci_lo:.2f})"
             f"  @op ΔTIR {r.dTIR_op:+.1f} [{r.dTIR_lo:+.1f},{r.dTIR_hi:+.1f}]"
             f"  Δt54 {r.dt54_op:+.2f} [{r.dt54_lo:+.2f},{r.dt54_hi:+.2f}]"
+            f"  ΔMagni {r.dmagni_op:+.2f} [{r.dmagni_lo:+.2f},{r.dmagni_hi:+.2f}]"
             f"  Δt70 {r.dt70_op:+.2f}  ({r.lows_axis}, {r.n_band} pts, {r.n_blocks} blk)")
     return "\n".join(lines)

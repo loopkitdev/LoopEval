@@ -920,6 +920,36 @@ precedent, **no substitute variable is being fitted**: with ten points and two n
 unexplained.** (E38 already showed lift and Δt54 are distinct quantities — bddp02 reaches +0.0493 with a
 tiny burden, so its lift is not lows removal — but naming what it *is* would be the same post-hoc move.)
 
+## M6 · Magni risk index added to all scoring
+`loopeval_analysis.scoring.magni_risk` — Magni et al. (JDST 2007):
+`r(g) = 10·f(g)²`, `f(g) = 3.5506·[(ln g)^0.8353 − 3.7932]`, g in mg/dL. Wired through
+`block_scores` → `pooled` → `band_report` (so it survives the block bootstrap and appears as
+`dmagni_op` with a CI in every band table) and through `meal_window.py`. Guarded by
+`analysis/tests/test_magni.py`.
+
+**Two properties every reader of a Magni delta needs, both measured rather than recalled:**
+1. **Its minimum is at 138.9 mg/dL**, not the ~112 of the Kovatchev function it is often confused with.
+   So **r(100) = 5.67 exceeds r(180) = 3.47** — Magni scores a BG of 100 as *riskier* than 180.
+2. It is genuinely hypo-weighted, which is why it suits this project: an equal excursion below the
+   minimum costs **1.8× (±40), 2.6× (±60), 3.7× (±80)** more than the same excursion above.
+
+### What it says about the candidates (ΔMagni at op, negative = less risk)
+| mechanism | mean ΔMagni | beds improved | rank by lift | rank by Magni |
+|---|---|---|---|---|
+| aIRC | **−0.519** | **8/8** | 1 | 1 |
+| C30 `final` | **−0.447** | 9/10 | 2 | 2 |
+| C22 σ band | **−0.368** | **9/9** | **5** | **3** |
+| C20 rise-cut | −0.114 | 8/9 | 3 | 4 |
+| C23 licence | −0.037 | 7/10 | 4 | **5** |
+
+**Adopting Magni as an optimisation target would systematically favour pull-back mechanisms over
+dose-more ones**, and the reason is property 1: pulling highs down — the licence's entire job — earns
+almost nothing on an index whose zero sits at 139, while the TIR the σ band spends to avoid lows costs
+almost nothing there. The σ band improves Magni on **9 of 9 beds including the one where it is WORSE on
+lift**; the licence *worsens* Magni on bddp03 (+0.19) where it gains TIR.
+**The two metrics genuinely disagree, so this is a choice about what we are optimising, not a better
+measurement of the same thing.** Reported everywhere as of now; **not** adopted as the lift axis.
+
 ## O1 · Future-ICE forecast oracle (headroom bound, not deployable)
 `--candidate-forecast-offset-csv` with offset(t) = Σ true ICE over the next H min − (RC + momentum
 marginal contributions already in Loop's forecast), from the std ×1.00 trace
