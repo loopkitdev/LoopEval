@@ -272,6 +272,29 @@ glucose, not the story of how it was measured. Therefore:
     one distinct value over the four-month window), so it is NOT a sensor-session id —
     it cannot date sensor swaps or support a wear-age analysis.
 
+33. **The sensor changes the numbers, and switchers prove it.** Comparing sensors
+    across people confounds the instrument with whoever chose it; donors who switched
+    mid-window wear both and are their own control (select them by hash of the id, and
+    require a usable stretch on each). Paired, within-person, on raw source readings:
+
+    | | Libre 3 (twiist) → Dexcom G7, n=18 | Dexcom G6 → G7, n=16 |
+    |---|---|---|
+    | SD of the 5-min step | +2.64 mg/dL (5.09 → 8.13), p<0.0001 | +0.87 (6.18 → 6.97), p=0.03 |
+    | implied sensor noise | +0.32 (1.28 → 1.71), p=0.001 | −0.13, p=0.74 |
+    | lag-1 of the increment | −0.21 (0.639 → 0.445), p<0.0001 | −0.09, p=0.13 |
+    | share of flat steps | 10.7% → 8.1%, p=0.0001 | 10.1% → 9.1%, p=0.14 |
+    | excess kurtosis | +1.08 paired, p=0.04 | −1.54 (4.51 → 3.30), p=0.002 |
+
+    Read the direction: the twiist/Libre stream is SMOOTHED — more flat steps, higher
+    lag-1, smaller steps — and a smoothed stream reports LOWER "sensor noise", because
+    the structure-function intercept measures whatever roughness survives to the file.
+    Our sigma_meas is a property of the reported stream, not of the sensor's physics.
+    **Same person, different sensor, 60% difference in the SD of the five-minute step** —
+    comparable to the whole between-person spread the study reports for these
+    quantities. Roughness ranks G7 > G6 > Libre-via-twiist. Any cohort statistic about
+    velocity, noise, momentum or tail weight is a mix of people and sensors until it is
+    split by family, and our cohort is 38 Libre 3 / 13 G7 / 3 G6 / 8 unlabelled.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
