@@ -388,6 +388,16 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateCalmHighSigmaMax: Double = 3.5
     @Flag(name: .long, help: "Apply the σ band only when the candidate has no carbs on board (COB = 0): unexplained volatility only, so an announced meal's rise does not trigger it.")
     var candidateSigmaBandCobGate: Bool = false
+    @Flag(name: .long, help: "Apply the calm-high licence only when the candidate has no carbs on board (COB = 0): a heavy announcer's calm highs are post-meal with the bolus still working, so the extra application factor stacks into it and adds lows.")
+    var candidateCalmHighCobGate: Bool = false
+    @Option(name: .long, help: "Calm-high licence TREND gate: require the trailing 30-min glucose slope (mg/dL/min) to be at least this. 0 licenses only flat-or-rising highs; a calm DESCENT passes the sigma gate otherwise (a 1 mg/dL/min fall is sigma5 ~ 5). Omit for no trend gate.")
+    var candidateCalmHighMinSlope: Double?
+    @Option(name: .long, help: "Calm-high TARGET shift (mg/dL): in the calm-high state, lower the correction target range by this much. Reaches temp-basal donors, where the application-factor form is inert (they issue no automatic boluses). Suspend threshold untouched. 0 = off.")
+    var candidateCalmHighTargetDelta: Double = 0
+    @Option(name: .long, help: "sigma-band BASELINE (mg/dL per 5 min): widen by k*max(0, sigma5 - baseline) instead of k*sigma5. Set to the donor's own median sigma5 so the band is zero in their typical state and carries no per-donor level offset. 0 = original absolute-sigma behaviour.")
+    var candidateSigmaBandBaseline: Double = 0
+    @Option(name: .long, help: "CONTROL for the sigma band: replace sigma5 with this CONSTANT, so the band carries no volatility signal. Set to the donor's median sigma5 to reproduce the average band the absolute-sigma form applies. 0 = off.")
+    var candidateSigmaBandFixedSigma: Double = 0
     @Option(name: .long, help: "Comma-separated outage REASONS (from the outages/disruptions CSV) during which the pump keeps delivering SCHEDULED basal instead of nothing — e.g. 'loop_offline' (phone away: the pod runs its schedule, only new adjustments stop). Default: none (every outage clamps delivery to 0).")
     var outageBasalReasons: String?
     @Option(name: .long, help: "PREDICTIVE pre-low damper GAIN: causal sustained-sensitivity trigger (causal ICE = v_bg - v_insulin over a trailing window). ISF-mult increase per mg/dL/min of negative ICE beyond the threshold; raises ISF proactively before the low. 0 = off.")
@@ -614,6 +624,11 @@ struct SimulateCommand: AsyncParsableCommand {
             calmHighBgMin: candidateCalmHighBg,
             calmHighSigmaMax: candidateCalmHighSigmaMax,
             sigmaBandCobGate: candidateSigmaBandCobGate,
+            calmHighCobGate: candidateCalmHighCobGate,
+            calmHighMinSlope: candidateCalmHighMinSlope ?? -.infinity,
+            calmHighTargetDelta: candidateCalmHighTargetDelta,
+            sigmaBandBaseline: candidateSigmaBandBaseline,
+            sigmaBandFixedSigma: candidateSigmaBandFixedSigma,
             sensDampWindowMin: candidateSensDampWindow,
             sensDampThresholdRate: candidateSensDampThreshold,
             sensDampGain: candidateSensDampGain,
