@@ -2523,7 +2523,9 @@ extension EvaluationEngine {
         // Causal volatility σ5 (EWMA std of the 5-min increment, candidate's own history).
         // Only computed when a σ candidate is on; identity otherwise.
         var sigma5 = Double.nan
-        if config.sigmaBandK > 0 || config.calmHighAfScale != 1.0 {
+        if config.sigmaBandK > 0 || config.calmHighAfScale != 1.0 || config.calmHighTargetDelta > 0 {   // NB: every consumer of sigma5 must be listed here. C31's target shift was added without it,
+            // so sigma5 stayed NaN, calmHighActive was never true, and all three cht arms scored
+            // EXACTLY 0.000 on both donors -- a silent no-op that looked like a clean negative result.
             let unit = LoopUnit.milligramsPerDeciliter
             let g = effectiveInput.glucose.suffix(60)   // last ~5 h of samples
             let floorVar = 2.0 * config.sigmaNoiseMgdl * config.sigmaNoiseMgdl
@@ -2558,7 +2560,12 @@ extension EvaluationEngine {
                 if tau <= 0 { s = 0 }
                 else if tau <= hz { s = pow(max(tau, 5.0) / 5.0, config.sigmaScalingH) }
                 else if tau < tp { s = sHz * (tp - tau) / (tp - hz) }
-                let off = -config.sigmaBandK * sigma5 * s
+                // Baseline-relative when sigmaBandBaseline > 0: the band opens only above the
+                // donor's own typical volatility, so it carries no per-donor level offset.
+                let sigBase = config.sigmaBandFixedSigma > 0 ? config.sigmaBandFixedSigma : sigma5
+                let sigEff = config.sigmaBandBaseline > 0
+                    ? Swift.max(0, sigBase - config.sigmaBandBaseline) : sigBase
+                let off = -config.sigmaBandK * sigEff * s
                 return PredictedGlucoseValue(startDate: p.startDate,
                                              quantity: LoopQuantity(unit: unit, doubleValue: p.quantity.doubleValue(for: unit) + off))
             }
@@ -2618,8 +2625,48 @@ extension EvaluationEngine {
         // scaled one - only visible on saturated sub-5-min retries, accepted.
         appFactor *= timeBasedAFScale
         // Calm-high licence: a high with low volatility takes a larger application factor.
-        if config.calmHighAfScale != 1.0, sigma5.isFinite, curBG >= config.calmHighBgMin, sigma5 <= config.calmHighSigmaMax {
+        var calmHighAllowed = !config.calmHighCobGate || (prediction.activeCarbs ?? 0) <= 0
+        // Trend gate: a high that is already coming down does not need the licence — and the calm
+        // gate does not exclude it, because a steady fall reads as moderate σ5. Trailing 30-min
+        // slope from the candidate's own glucose (causal).
+        if calmHighAllowed, config.calmHighMinSlope.isFinite {
+            let g = effectiveInput.glucose
+            var slope = Double.nan
+            if let last = g.last {
+                let window = last.startDate.addingTimeInterval(-30 * 60 - 150)
+                if let first = g.first(where: { $0.startDate >= window }) {
+                    let dtMin = last.startDate.timeIntervalSince(first.startDate) / 60.0
+                    if dtMin >= 20.0 {
+                        slope = (last.quantity.doubleValue(for: mgdl)
+                                 - first.quantity.doubleValue(for: mgdl)) / dtMin
+                    }
+                }
+            }
+            calmHighAllowed = slope.isFinite && slope >= config.calmHighMinSlope
+        }
+        let calmHighActive = calmHighAllowed && sigma5.isFinite
+            && curBG >= config.calmHighBgMin && sigma5 <= config.calmHighSigmaMax
+        if config.calmHighAfScale != 1.0, calmHighActive {
             appFactor = min(1.0, appFactor * config.calmHighAfScale)
+        }
+        // Calm-high TARGET shift: the temp-basal-reachable form of the same licence. The application
+        // factor above only scales an automatic BOLUS, so it is inert on a temp-basal donor (bddp02 and
+        // bddp07 issue none). Lowering the correction target enlarges the correction whichever way it is
+        // delivered. Suspend threshold untouched — the low guard is unchanged.
+        if config.calmHighTargetDelta > 0, calmHighActive {
+            let d = config.calmHighTargetDelta
+            doseInput = PredictionInput(
+                glucose: doseInput.glucose, doses: doseInput.doses, carbs: doseInput.carbs,
+                basal: doseInput.basal, sensitivity: doseInput.sensitivity,
+                carbRatio: doseInput.carbRatio,
+                target: doseInput.target.map {
+                    let lo = $0.value.lowerBound.doubleValue(for: mgdl)
+                    let hi = $0.value.upperBound.doubleValue(for: mgdl)
+                    return AbsoluteScheduleValue(
+                        startDate: $0.startDate, endDate: $0.endDate,
+                        value: LoopQuantity(unit: mgdl, doubleValue: Swift.max(70.0, lo - d))
+                            ... LoopQuantity(unit: mgdl, doubleValue: Swift.max(80.0, hi - d)))
+                })
         }
         let doseRec = EvaluationEngine.computeDoseRecommendation(
             prediction: prediction,
