@@ -197,6 +197,115 @@ def at_window(periods, windows):
     return out.reset_index()
 
 
+def per_donor(ages, periods, windows):
+    """One row for every donor in the transition list, resolved as far as the data allows.
+
+    Every donor appears, including the ones with no formulation record at all — a screen
+    that silently drops its misses reads as far better coverage than it has. `replay_model`
+    is filled only where the data actually pins it; `notes` says in words why a row is
+    unresolved, or what the person switched between and when.
+    """
+    w = windows.rename(columns={"_userId": "uid"}).copy()
+    w["win_start"] = pd.to_datetime(w.transition_window_start)
+    w["win_end"] = pd.to_datetime(w.transition_window_end)
+
+    per = periods.copy()
+    per["start"] = pd.to_datetime(per.start)
+    per["end"] = pd.to_datetime(per.end)
+    per = per.sort_values(["uid", "start"])
+
+    aw = at_window(periods, windows).set_index("uid")
+    cats = categorize(ages, periods).set_index("uid")
+
+    by_uid = {u: g for u, g in per.groupby("uid")}
+    rows = []
+    for r in w.itertuples():
+        g = by_uid.get(r.uid)
+        a = aw.loc[r.uid]
+        c = cats.loc[r.uid] if r.uid in cats.index else None
+        setting = (c.models if c is not None and c.models else "") or ""
+        coverage = a.coverage
+        in_window = a.in_window_brands if isinstance(a.in_window_brands, str) else ""
+        brand = a.brand if isinstance(a.brand, str) else ""
+
+        notes = []
+        if coverage == "no-record":
+            notes.append("no formulation record")
+        elif coverage == "record-out-of-window":
+            gap_before = (g.start.min() - r.win_end).days
+            gap_after = (r.win_start - g.end.max()).days
+            if gap_before > 0:
+                notes.append(f"record starts {gap_before}d after the window")
+            elif gap_after > 0:
+                notes.append(f"record ends {gap_after}d before the window")
+            else:
+                notes.append("record does not overlap the window")
+
+        if a.changed_in_window is True:
+            seq = g[(g.end >= r.win_start) & (g.start <= r.win_end)]
+            notes.append("changed insulin INSIDE the window: " + "→".join(seq.brand.tolist()))
+
+        seq = []
+        if g is not None:
+            for b in g.brand:
+                if not seq or seq[-1] != b:
+                    seq.append(b)
+        n_switches = max(0, len(seq) - 1)
+        if g is not None and g.brand.nunique() > 1 and a.changed_in_window is not True:
+            # The periods are disjoint, so alternation is real sequence, not concurrent
+            # uploads — but a 15-segment chain is unreadable, so summarise the long ones.
+            if len(seq) <= 4:
+                notes.append(f"switched brand outside the window: {'→'.join(seq)}")
+            else:
+                names = sorted(set(seq))
+                joined = " and ".join([", ".join(names[:-1]), names[-1]]) if len(names) > 2 \
+                    else " and ".join(names)
+                notes.append(f"alternated between {joined} "
+                             f"across {len(seq)} segments outside the window")
+
+        ultra = bool(g is not None and (g.insulin_class == "ultra-rapid").any())
+        in_window_ultra = brand in ("Fiasp", "Lyumjev")
+        if setting and (in_window_ultra or (not brand and ultra)):
+            notes.append(f"{setting} setting on record but the insulin is ultra-rapid — "
+                         "adult/child does not apply")
+
+        if brand:
+            if in_window_ultra:
+                replay = "ultra-rapid (peak~55)"
+            elif setting == "rapidChild":
+                replay = "rapidActingChild"
+            elif setting == "rapidAdult":
+                replay = "rapidActingAdult"
+            else:
+                replay = ""
+                notes.append("rapid insulin, no model setting — adult/child unresolved")
+        else:
+            replay = ""
+
+        rows.append({
+            "_userId": r.uid,
+            "age_years": r.age_years,
+            "age_group": r.age_group,
+            "transition_window_start": r.win_start.date(),
+            "transition_window_end": r.win_end.date(),
+            "coverage": coverage,
+            "brand_in_window": brand,
+            "brands_in_window": in_window,
+            "model_setting": setting,
+            "setting_applies": "" if not brand else str(not in_window_ultra),
+            "replay_model": replay,
+            "category": c.category if c is not None else "unknown",
+            "record_brands": ";".join(sorted(set(g.brand))) if g is not None else "",
+            "record_periods": 0 if g is None else len(g),
+            "record_switches": n_switches,
+            "record_first": "" if g is None else g.start.min().date(),
+            "record_last": "" if g is None else g.end.max().date(),
+            "notes": "; ".join(notes),
+        })
+
+    return pd.DataFrame(rows).sort_values(["age_group", "age_years"])
+
+
 def brand_summary(df):
     """Exact brand × age-group counts, counting a switcher under its dominant brand."""
     t = pd.crosstab(df.dominant, df.group)
@@ -246,6 +355,8 @@ def main():
     ap.add_argument("--brands", action="store_true", help="resolve the exact brand, not just its class")
     ap.add_argument("--windows", metavar="CSV", help="transition_users.csv: resolve the brand in "
                                                      "each donor's own window (the precise form)")
+    ap.add_argument("--per-donor", action="store_true",
+                    help="write screen_per_donor.csv: every donor in --windows, one row each")
     ap.add_argument("--write", action="store_true", help="write the screen_<band>_* CSVs")
     a = ap.parse_args()
 
@@ -265,6 +376,18 @@ def main():
     if len(known):
         print("\namong the resolved:")
         print((100 * known.category.value_counts(normalize=True)).round(1).to_string())
+
+    if getattr(a, "per_donor", False):
+        if not a.windows:
+            ap.error("--per-donor needs --windows")
+        pd_df = per_donor(ages, periods, pd.read_csv(a.windows))
+        path = _out(a.run_dir, "per_donor.csv")
+        pd_df.to_csv(path, index=False)
+        print(f"wrote {os.path.basename(path)}: {len(pd_df)} donors, "
+              f"{(pd_df.coverage == 'covered').sum()} with an in-window brand, "
+              f"{(pd_df.replay_model != '').sum()} with a replay model pinned")
+        print("\ncoverage:"); print(pd_df.coverage.value_counts().to_string())
+        print("\nnotes:"); print(pd_df.notes.value_counts().head(10).to_string())
 
     if a.windows:
         w = pd.read_csv(a.windows)
