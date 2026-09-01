@@ -29,11 +29,25 @@ def f00_population():
     fig, ax = S.figure(1, 3, figsize=(14.4, 4.9))
     cols = [S.color_for(co, a) for a in w["alias"]]
 
+    # The pool these people were drawn from, drawn behind them: every Tidepool
+    # donor on an automated system, same window, same statistic.
+    pool_path = S.OUT / "pool_compare.csv"
+    if pool_path.exists():
+        pool = pd.read_csv(pool_path)
+        pool = pool[pool["aid"].astype(str).str.lower().isin(("true", "1"))]
+        gx = np.linspace(20, 100, 240)
+        gy = S.kde(pool["tir"].dropna(), gx)
+        gy = gy / max(gy.max(), 1e-12)
+        ax[0].fill_between(gx, 0, gy, color=S.MUTED, alpha=0.20, lw=0, zorder=0)
+        ax[0].plot(gx, gy, color=S.MUTED, lw=1.6, zorder=0,
+                   label=f"all {len(pool):,} donors on an automated system")
     S.strip_kde(ax[0], w["tir"], cols, fmt="{:.0f}%")
-    ax[0].axvline(70, color=S.GREEN, lw=1.4, ls=(0, (4, 2)))
-    ax[0].text(70, 1.14, " a common clinical target", fontsize=8.5, color=S.GREEN)
+    if pool_path.exists():
+        ax[0].plot([], [], color=S.COOL, lw=2.0, label=f"the {len(w)} people here")
+        ax[0].legend(frameon=False, fontsize=8, labelcolor=S.INK2, loc="upper left")
+    ax[0].set_xlim(35, 105)
     ax[0].set_xlabel("time in range 70–180 (%)", fontsize=9.5, color=S.INK2)
-    ax[0].set_title("Well-controlled, and spanning a wide range",
+    ax[0].set_title("The same shape as the pool they came from",
                     fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
 
     for _, r in co.iterrows():

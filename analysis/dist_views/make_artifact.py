@@ -169,8 +169,19 @@ uploads name a sensor, <strong>38 wear a Libre 3 through twiist, 13 a Dexcom G7
 and 3 a Dexcom G6</strong>. That mix is not incidental: the vendor's
 processing measurably changes the shape of the trace, and view 11 reads
 differently for a smoothed stream than for a raw one.</p>
-<div class="read"><p>So: read every number here as describing <em>people who chose
-an automated system, donated their data, and kept it running</em>. That is a
+<p>Within the pool they came from, they are ordinary. Measured the same way over
+the same 30 days, against all <strong>8,026</strong> Tidepool donors running an
+automated system: time in range 74.6% against 74.7%, mean glucose 151 against
+147&nbsp;mg/dL, CV 33.9% against 34.3%, time below 54 both 0.1% — no difference
+that a rank test can see (every p above 0.6). The equipment matches too: 70 / 24
+/ 6% Libre&nbsp;3, Dexcom&nbsp;G7, Dexcom&nbsp;G6 here against 72 / 23 / 4% in
+that pool. So these 73 are not a lucky corner of the donors; they are the middle
+of them.</p>
+<div class="read"><p>The pool itself is the limit. Of 18,601 donors with enough
+CGM in that window, 43% run an automated system, and all of them are people who
+chose these devices and chose to donate. So: read every number here as describing
+<em>people who chose an automated system, donated their data, and kept it
+running</em>. That is a
 selected group — better controlled than a general population with type 1
 diabetes, and equipped differently. Nothing in the export says how old anyone is,
 what sex they are, how long they have had diabetes, what they weigh or where they
