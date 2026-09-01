@@ -146,9 +146,39 @@ person rather than to the week.</p>
 without ever checking it. This goes underneath that: quantile plots, tail
 survival, structure functions, autocorrelations. The question in each case is
 distributional, not clinical.</p>
-<p>Everyone here runs Loop. The panel is fifty-six donors over one common window of up to 114 days, eleven more over 61 days inside it, and two Nightscout sites over a year, spanning 45% to 99% time in range. Everyone is referred to by
-alias.</p>
+<p>Everyone is referred to by alias.</p>
 </div>
+
+<h3>Who this is</h3>
+<div class="col">
+<p><strong>73 people, 8,095 person-days.</strong> Sixty donors over one common
+window of up to 113 days, eleven more over 61 days inside it, and two Nightscout
+sites over a year. Sensor coverage is a median of 96% of the elapsed time, so
+these are near-continuous records rather than samples.</p>
+<p>They are well controlled and they vary: time in range has a median of
+<strong>74%</strong>, with the middle 80% of people between 53% and 89% and the
+full range 44% to 98%. Mean glucose is 152 mg/dL (111–184), CV 33% (26–42), time
+below 70 mg/dL 1.4% (0.2–6.2), time below 54 mg/dL 0.15%. Total daily insulin is
+42 units (24–68) and announced carbohydrate 126 g/day (36–236).</p>
+<p>What they run matters as much as who they are. <strong>Every person here uses
+an automated insulin-delivery system of the Loop family.</strong> Of the 69 whose
+insulin records were exported alongside their glucose, 42 let the system act
+through temp basals and 27 through automatic boluses, and they split 35 / 27 / 7
+into heavy, moderate and rare announcers of carbohydrate. Of the 60 donors whose
+uploads name a sensor, <strong>38 wear a Libre 3 through twiist, 13 a Dexcom G7
+and 3 a Dexcom G6</strong>. That mix is not incidental: the vendor's
+processing measurably changes the shape of the trace, and view 11 reads
+differently for a smoothed stream than for a raw one.</p>
+<div class="read"><p>So: read every number here as describing <em>people who chose
+an automated system, donated their data, and kept it running</em>. That is a
+selected group — better controlled than a general population with type 1
+diabetes, and equipped differently. Nothing in the export says how old anyone is,
+what sex they are, how long they have had diabetes, what they weigh or where they
+live, so none of it can be adjusted for, and no claim here should be read as a
+population estimate.</p></div>
+</div>
+<figure><img alt="Three panels describing the cohort: time in range across people, mean glucose against CV, and the composition by sensor, dosing strategy and carb announcement" src="{{FIG:00_population}}">
+<figcaption><b>00</b> · Left, time in range across the 73 people — the dot strip is one person each, the bar their p10&ndash;p90. Middle, where each person sits on level and variability. Right, what they run: sensor, how the system delivers, and how much carbohydrate they announce.</figcaption></figure>
 
 <h3>Reading this page</h3>
 <p>A few terms recur. <strong>Gaussian</strong> is the bell curve; a
