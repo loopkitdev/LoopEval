@@ -81,8 +81,30 @@ def clip_window(alias: str, obj):
     return obj[m]
 
 
-def cohort() -> pd.DataFrame:
-    return pd.read_csv(OUT / "cohort.csv")
+def cohort(stratum: str = "core") -> pd.DataFrame:
+    """The people a view describes.
+
+    Two strata live in cohort.csv. **core** is hash-ordered and matches the donor
+    pool it was drawn from, so it is what the study's figures describe. The
+    **hands-off** stratum is deliberately over-sampled — few carb entries, little
+    manual bolusing, lower time in range — because the hash-ordered sample
+    reached almost nobody there. Pooling them silently would break the
+    representativeness claim in view 00, so the default is core only; pass
+    "hands-off" or "all" to reach the rest.
+    """
+    c = pd.read_csv(OUT / "cohort.csv")
+    if "stratum" not in c.columns:
+        return c
+    ho = c["stratum"].eq("hands-off")
+    if stratum == "core":                      # off-target exports belong to neither
+        return c[c["stratum"].eq("core")].reset_index(drop=True)
+    if stratum == "core":
+        return c[~ho].reset_index(drop=True)
+    if stratum == "hands-off":
+        return c[ho].reset_index(drop=True)
+    if stratum == "all":
+        return c
+    raise ValueError(f"unknown stratum {stratum!r} — core, hands-off or all")
 
 
 def load(alias: str) -> pd.DataFrame:

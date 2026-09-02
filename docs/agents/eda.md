@@ -315,6 +315,28 @@ glucose, not the story of how it was measured. Therefore:
     "compliance", "adherence". Time in range, mean glucose and CV need no adjective.
     Same family as the "user-scaled, never compliance" rule for manual boluses.
 
+35. **The hash-ordered cohort matches the pool, which is exactly why it misses the cell
+    we care about.** People who announce almost nothing, let automation bolus, and run a
+    TIR under 65% are **1.4% of automated-system donors** (110 of 8,026) — so a faithful
+    sample of 60 contained ONE of them. The fix is a second, deliberately over-sampled
+    stratum, never dilution of the core: `pull_handsoff.py` selects, `EXPORT_ROOT`/
+    `EXPORT_MAP` point `export_full.py` at a separate root, `build.py` tags `stratum`,
+    and `style.cohort()` returns **core by default** so every figure and view 00's
+    pool-matched claim stay true. 13 people qualified from a 24-donor batch.
+
+    Three traps this walked into, all worth keeping:
+    - **`manual_share = manual/(manual+auto)` is undefined when someone has no boluses,
+      and `.fillna(0)` turns "no insulin data" into "automation does the bolusing".**
+      10 of the 110 were that. Require a bolus stream.
+    - **Screen on a 30-day window, get 114-day behaviour.** Two exports announced
+      126–132 g/day across the full record. Confirm membership on the window you will
+      analyse, not the one you screened on.
+    - **Never define a stratum by the outcome you plan to measure.** The screen used TIR;
+      the stratum does not. Membership is the behavioural half only (the study's own
+      `archetype` cut, <30 g/day announced, plus a dose stream), so TIR is something
+      these people HAVE rather than something they were chosen for. It lands at a median
+      of 57% anyway, against 74% for the core.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and

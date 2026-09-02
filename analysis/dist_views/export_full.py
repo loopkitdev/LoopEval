@@ -13,6 +13,7 @@ Three things this handles that a bare loop over `export_donor` does not:
   shared and hammering it is how the transient failures start.
 
 Run:  python3 export_full.py [n_workers]
+      EXPORT_ROOT=handsoff EXPORT_MAP=handsoff_alias_map.json python3 export_full.py
 """
 from __future__ import annotations
 
@@ -26,8 +27,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 CACHE = Path(os.path.expanduser("~/.loop-eval/trait-cohort"))
-FULL = CACHE / "full"
+# A second cohort can be exported alongside the first by pointing these at
+# another alias map and root — see pull_handsoff.py, which over-samples a cell
+# the hash-ordered wide sample barely reached.
+FULL = CACHE / os.environ.get("EXPORT_ROOT", "full")
 LOGS = CACHE / "logs"
+ALIAS_MAP = CACHE / os.environ.get("EXPORT_MAP", "alias_map.json")
 WINDOW = ("2026-04-01", "2026-07-24")
 # therapy.json is tiny for a person with one settings era (~1 KB), so its floor
 # must be low; the earlier 5 KB floor flagged four complete exports as failed.
@@ -79,7 +84,7 @@ def run_one(alias: str, uid: str) -> tuple[str, bool, float, str]:
 
 
 def main(workers: int = 6) -> int:
-    amap = json.loads((CACHE / "alias_map.json").read_text())
+    amap = json.loads(ALIAS_MAP.read_text())
     todo = sorted(amap.items())
     FULL.mkdir(parents=True, exist_ok=True)
     print(f"{len(todo)} donors, {workers} workers, ~5 min each\n")
