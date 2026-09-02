@@ -28,6 +28,10 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 BDDP_ROOT = os.path.expanduser("~/dev/LoopEval/runs/2026-08-13-cohort-2mo")
 # The wide cohort's own four-stream exports (alias-named; ids never on disk here).
 WIDE_ROOT = os.path.expanduser("~/.loop-eval/trait-cohort/full")
+# Deliberately over-sampled, NOT hash-ordered: people who announce few carbs,
+# bolus by hand rarely and run a lower time in range. Kept as its own stratum
+# so the pool-matched core stays pool-matched (see pull_handsoff.py).
+HANDSOFF_ROOT = os.path.expanduser("~/.loop-eval/trait-cohort/handsoff")
 OUT = S.OUT
 
 # Nightscout sites come from PRIVATE.md, which is git-ignored. Real hostnames must
@@ -174,6 +178,10 @@ def main() -> int:
         # silently in a figure.
         datasets += wide
         print(f"  + {len(wide)} wide-cohort exports")
+    if os.path.isdir(HANDSOFF_ROOT):
+        ho = D.bddp_datasets(HANDSOFF_ROOT, source="handsoff")
+        datasets += ho
+        print(f"  + {len(ho)} hands-off stratum exports (over-sampled on purpose)")
     for alias, host in ns_sites():
         try:
             datasets.append(D.ns_dataset(alias, host))
@@ -204,6 +212,31 @@ def main() -> int:
               f"ICE {row.get('ice_abs_mean', 0):>5.1f} mg/dL/hr")
 
     cohort = pd.DataFrame(rows).sort_values("tir", ascending=False)
+
+    # Stratum. The hands-off donors were screened on a 30-day window in the
+    # source; membership is CONFIRMED here on the window we actually analyse,
+    # because behaviour moves — two of the first batch announce heavily across
+    # the full record, and one has no dose stream at all. One rule, one place.
+    def stratum(r) -> str:
+        """Membership is BEHAVIOUR, never the outcome.
+
+        The batch was screened in the source on carb entries, manual bolusing
+        AND time in range, but selecting on TIR and then measuring TIR is
+        circular — so the stratum keeps only the behavioural half, using the
+        archetype cut the whole study already uses (<30 g/day announced). TIR is
+        then something these people HAVE, not something they were picked for.
+        """
+        if r["source"] != "handsoff":
+            return "core"
+        has_doses = str(r.get("strategy", "?")) in ("temp", "bolus")
+        return ("hands-off" if has_doses and r["archetype"] == "non-announcer"
+                else "hands-off (off-target)")
+
+    cohort["stratum"] = cohort.apply(stratum, axis=1)
+    n_off = (cohort["stratum"] == "hands-off (off-target)").sum()
+    if n_off:
+        print(f"  {n_off} hands-off exports did not meet the criteria on the "
+              f"analysis window — tagged off-target, excluded from the stratum")
     cohort.to_csv(OUT / "cohort.csv", index=False)
     pd.DataFrame(offs).to_csv(OUT / "offsets.csv", index=False)
     print(f"\nwrote {len(cohort)} people -> {OUT}/cohort.csv")
