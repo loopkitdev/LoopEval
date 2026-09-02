@@ -155,7 +155,7 @@ distributional, not clinical.</p>
 window of up to 113 days, eleven more over 61 days inside it, and two Nightscout
 sites over a year. Sensor coverage is a median of 96% of the elapsed time, so
 these are near-continuous records rather than samples.</p>
-<p>They are well controlled and they vary: time in range has a median of
+<p>The spread between them is wide. Time in range has a median of
 <strong>74%</strong>, with the middle 80% of people between 53% and 89% and the
 full range 44% to 98%. Mean glucose is 152 mg/dL (111–184), CV 33% (26–42), time
 below 70 mg/dL 1.4% (0.2–6.2), time below 54 mg/dL 0.15%. Total daily insulin is

@@ -308,6 +308,13 @@ glucose, not the story of how it was measured. Therefore:
     therapy and era, not optics — a paired design controls for the person, never for
     what else changed that day. The same-vendor G6→G7 contrast is the clean one.
 
+34. **Describe glucose, never the person's success at managing it.** "They are well
+    controlled" was cut from the study's opening (2026-09-01): judging people by their
+    numbers reads as the opposite of patient-empowering, and the clause was doing no
+    work — the numbers say it. Avoid "well/poorly controlled", "good control",
+    "compliance", "adherence". Time in range, mean glucose and CV need no adjective.
+    Same family as the "user-scaled, never compliance" rule for manual boluses.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
