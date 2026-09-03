@@ -202,9 +202,9 @@ chose these devices and chose to donate. So: read every number here as describin
 <em>people who chose an automated system, donated their data, and kept it
 running</em>. That is a
 selected group, spending more of the day between 70 and 180&nbsp;mg/dL than a
-general population with type 1 diabetes does, and equipped differently. Nothing in the export says how old anyone is,
-what sex they are, how long they have had diabetes, what they weigh or where they
-live, so none of it can be adjusted for, and no claim here should be read as a
+general population with type 1 diabetes does, and equipped differently. The
+records analysed here carry no age, sex, weight or location, so nothing in this
+document is adjusted for any of them, and no claim here should be read as a
 population estimate.</p></div>
 </div>
 <figure><img alt="Three panels describing the cohort: time in range across people, mean glucose against CV, and the composition by sensor, dosing strategy and carb announcement" src="{{FIG:00_population}}">
