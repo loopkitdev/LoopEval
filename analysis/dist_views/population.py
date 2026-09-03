@@ -22,6 +22,7 @@ import style as S                                        # noqa: E402
 
 def f00_population():
     co = S.cohort()
+    ho = S.cohort("hands-off")
     w = pd.read_csv(S.OUT / "wholerecord.csv")
     sf_path = S.OUT / "sensor_family.csv"
     sf = pd.read_csv(sf_path) if sf_path.exists() else pd.DataFrame(columns=["alias", "family"])
@@ -42,6 +43,17 @@ def f00_population():
         ax[0].plot(gx, gy, color=S.MUTED, lw=1.6, zorder=0,
                    label=f"all {len(pool):,} donors on an automated system")
     S.strip_kde(ax[0], w["tir"], cols, fmt="{:.0f}%")
+    # The over-sampled stratum, on its own row so it is never mistaken for part
+    # of the pool-matched core.
+    if len(ho):
+        rng = np.random.default_rng(11)
+        ax[0].scatter(ho["tir"], -0.62 - rng.uniform(0, 0.12, len(ho)), s=26,
+                      color=S.ACCENT, alpha=0.85, lw=0, zorder=3)
+        ax[0].plot([ho["tir"].median()] * 2, [-0.78, -0.50], color=S.ACCENT, lw=2.4)
+        ax[0].text(0.985, 0.055, f"hands-off stratum, {len(ho)} people",
+                   transform=ax[0].transAxes, ha="right", va="center",
+                   fontsize=8.5, color=S.ACCENT)
+        ax[0].set_ylim(-0.86, 1.26)
     if pool_path.exists():
         ax[0].plot([], [], color=S.COOL, lw=2.0, label=f"the {len(w)} people here")
         ax[0].legend(frameon=False, fontsize=8, labelcolor=S.INK2, loc="upper left")
@@ -54,6 +66,11 @@ def f00_population():
         ax[1].scatter(r["bg_mean"], r["bg_cv"], s=52, alpha=0.85, lw=1.1,
                       color=S.GROUP_COLOR.get(S.group_of(r), S.MUTED),
                       edgecolor=S.SURFACE, zorder=3)
+    if len(ho):
+        ax[1].scatter(ho["bg_mean"], ho["bg_cv"], s=62, marker="D", lw=1.4,
+                      facecolor="none", edgecolor=S.ACCENT, zorder=4,
+                      label="hands-off stratum")
+        ax[1].legend(frameon=False, fontsize=8, labelcolor=S.INK2, loc="lower right")
     ax[1].axhline(36, color=S.ACCENT, lw=1.3, ls=(0, (3, 3)))
     ax[1].text(0.99, 36, "CV 36% ", fontsize=8, color=S.ACCENT, ha="right",
                va="bottom", transform=ax[1].get_yaxis_transform())
@@ -85,13 +102,15 @@ def f00_population():
     ax[2].set_title("Everyone runs an automated system", fontsize=10.5, color=S.INK,
                     loc="left", pad=6, weight="bold")
 
+    ho_note = (f"\nA further {len(ho)} people (orange) were sampled deliberately rather than at random: they announce almost no carbohydrate, let automation do the bolusing, "
+               f"and their median time in range is {ho['tir'].median():.0f}%.\nEvery other figure in this document describes the {len(w)}.") if len(ho) else ""
     S.title(fig, "00 · Who this is",
             f"{len(w)} people wearing a CGM under an automated insulin-delivery system, {w['days'].sum():,.0f} person-days. "
             f"Time in range runs {w['tir'].min():.0f}% to {w['tir'].max():.0f}% with a median of {w['tir'].median():.0f}%, "
             f"so this is not one\nnarrow kind of person — but it is not a general diabetes population either: everyone here chose an automated system, "
-            "donated their data, and kept it running. Age, sex,\ndiabetes duration and everything else about them is absent from the export.")
+            "donated their data, and kept it running. Age, sex,\ndiabetes duration and everything else about them is absent from the export." + ho_note)
     S.save(fig, "00_population",
-           dict(left=0.045, right=0.985, top=0.755, bottom=0.135, wspace=0.42))
+           dict(left=0.045, right=0.985, top=0.695, bottom=0.135, wspace=0.42))
 
 
 if __name__ == "__main__":

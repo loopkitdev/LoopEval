@@ -337,6 +337,17 @@ glucose, not the story of how it was measured. Therefore:
       these people HAVE rather than something they were chosen for. It lands at a median
       of 57% anyway, against 74% for the core.
 
+    **And the payoff, once the instrument is controlled for.** The stratum is 12/13
+    Dexcom G7 while the core is 70% Libre-via-twiist, so a raw stratum-vs-core
+    comparison reads as a large difference in step SD (8.71 against 5.76) and
+    Hurst_short (0.73 against 0.77) — both of which are exactly the sensor effect from
+    lesson 33, and both of which VANISH within Dexcom G7 (8.86 against 8.03, p=0.22;
+    0.71 against 0.72, p=0.46). Matched on sensor, every shape statistic agrees:
+    SD/MAD 1.42 vs 1.43, excess kurtosis 3.02 vs 3.19, momentum zero at 40 min in both.
+    **The distributional findings hold for people who announce nothing and run a TIR of
+    57%** — which is what makes the stratum worth having in the document rather than
+    only in the ledger.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and

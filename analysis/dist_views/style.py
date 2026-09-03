@@ -308,6 +308,11 @@ def datasets():
     import os as _os
     if _os.path.isdir(m.WIDE_ROOT):
         out.update({d.alias: d for d in D.bddp_datasets(m.WIDE_ROOT, source="wide")})
+    # The hands-off stratum. Reachable here so its raw samples can be analysed;
+    # membership in a FIGURE is decided by cohort(), which is core by default.
+    if _os.path.isdir(m.HANDSOFF_ROOT):
+        out.update({d.alias: d
+                    for d in D.bddp_datasets(m.HANDSOFF_ROOT, source="handsoff")})
     for alias, host in m.ns_sites():
         try:
             out[alias] = D.ns_dataset(alias, host)
