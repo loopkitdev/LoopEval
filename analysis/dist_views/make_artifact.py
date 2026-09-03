@@ -177,13 +177,32 @@ that a rank test can see (every p above 0.6). The equipment matches too: 70 / 24
 / 6% Libre&nbsp;3, Dexcom&nbsp;G7, Dexcom&nbsp;G6 here against 72 / 23 / 4% in
 that pool. So these 73 are not a lucky corner of the donors; they are the middle
 of them.</p>
+<h3>A second group, sampled on purpose</h3>
+<p>One kind of person is almost absent from a faithful sample: someone who
+announces hardly any carbohydrate, lets the automation place the boluses, and
+runs a lower time in range. Screened across the donor pool, that combination is
+<strong>1.4%</strong> of people on an automated system — so a hash-ordered sample
+of sixty contained exactly one. Since that is precisely the person an
+unannounced-meal question is about, <strong>13 more were sampled deliberately</strong>
+and are kept as their own stratum, never mixed into the 73 above. They announce a
+median of <strong>1 g of carbohydrate a day</strong> against the main group's 126,
+automation places <strong>96%</strong> of their boluses against a median of none,
+and their time in range is <strong>57%</strong> against 74%.</p>
+<div class="read"><p>They are the same glucose. Matched against the main group on
+sensor — the comparison is otherwise dominated by which device each wears — every
+shape result in this document lands in the same place: SD over MAD 1.42 against
+1.43, excess kurtosis 3.02 against 3.19, the Hurst exponent 0.71 against 0.72,
+momentum crossing zero at 40 minutes in both. A person announcing nothing at 57%
+time in range has a glucose signal with the same distributional shape as someone
+announcing 126&nbsp;g a day at 74%. What differs is where the trace sits and how
+far it swings, not what kind of random variable it is.</p></div>
 <div class="read"><p>The pool itself is the limit. Of 18,601 donors with enough
 CGM in that window, 43% run an automated system, and all of them are people who
 chose these devices and chose to donate. So: read every number here as describing
 <em>people who chose an automated system, donated their data, and kept it
 running</em>. That is a
-selected group — better controlled than a general population with type 1
-diabetes, and equipped differently. Nothing in the export says how old anyone is,
+selected group, spending more of the day between 70 and 180&nbsp;mg/dL than a
+general population with type 1 diabetes does, and equipped differently. Nothing in the export says how old anyone is,
 what sex they are, how long they have had diabetes, what they weigh or where they
 live, so none of it can be adjusted for, and no claim here should be read as a
 population estimate.</p></div>
