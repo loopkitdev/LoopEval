@@ -348,6 +348,23 @@ glucose, not the story of how it was measured. Therefore:
     57%** — which is what makes the stratum worth having in the document rather than
     only in the ledger.
 
+36. **Age, sex and diagnosis date DO exist in Tidepool's model — just not in
+    `device_data`** (checked 2026-09-03, all 132 columns: none demographic). The catalog
+    has 29 tables, and the demographics live in `seagull_profiles` (**birthday**, gender,
+    diagnosisType, diagnosisDate), `patients` / `patient_with_summary` (birthDate,
+    diagnosisType) and `consent_records` (**ageGroup**). For our 84 donor ids: 45 have a
+    birthday, giving a **median age of 27 (p10–p90 12–55), 14 under 18 and 5 under 13**;
+    `consent_records` independently shows 26 adults, 5 aged 13–17, 8 under 13. Gender is
+    empty for all 917,679 profile rows, so that one really is absent.
+
+    **The cohort is young and includes children** — which nothing in the analysis had
+    accounted for, and which the study had asserted was unknowable. Two cautions before
+    using it: coverage is only about half the donors, and a Tidepool profile birthday can
+    belong to the account holder rather than the wearer, so a child's record may carry a
+    parent's date or vice versa. Treat an individual age as a hint and the distribution
+    as approximate. Tables holding names, emails and MRNs sit beside these; select
+    demographic columns only, never identity ones, and keep every result aggregate.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
