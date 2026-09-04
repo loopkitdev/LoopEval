@@ -365,6 +365,23 @@ glucose, not the story of how it was measured. Therefore:
     as approximate. Tables holding names, emails and MRNs sit beside these; select
     demographic columns only, never identity ones, and keep every result aggregate.
 
+37. **Heavy settings editing is the most engaged behaviour in the pool, not an artefact.**
+    42 eligible donors record more than 50 therapy-editing sessions per 30 days (24 twiist,
+    18 Omnipod), and I called them an upload pathology twice before checking. They are
+    people: ISF lands on round mg/dL (41→35, 42→43→45), basal moves in 0.1 U/hr steps,
+    schedule SEGMENTS are added and removed — which no adaptive algorithm does — and they
+    edit LESS overnight than ordinary donors (9.6% of rows in 01:00–05:00 local against
+    14.6%, uniform being 16.7%). Their outcomes are the best in the pool: median TIR
+    **88.0% against 75.1%** (p<0.001), with time below 70 at 2.58% against 1.70%. The
+    exemplar runs 89.3% TIR at 8.1% below 70, 17 boluses and 12 carb entries a day.
+    Association, not effect — the capacity to tune and the result of tuning are not
+    separable here.
+
+    **Method note that made the difference:** the hour-of-day test only works in LOCAL
+    time. Casting `deviceTime` returned nulls and scored 0.0% for every group, which reads
+    as a result rather than a failure; `time + timezoneOffset` gives the real distribution.
+    A zero that is identical across two very different groups is a broken measurement.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
