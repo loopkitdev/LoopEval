@@ -52,6 +52,13 @@ Not every true result earns a place on the page: a negative answer, a methods no
 robustness check belongs in the role's own lessons file, and in the commit message. If a
 section has to explain what a thing is *not*, it probably belongs there instead.
 
+**State the current position and why, never the route to it.** No revision history, no
+"an earlier version measured X", no account of what was tried and rejected — that is what
+the lessons file and the commit log are for. Method earns a place only where it changes
+how a number must be READ: a definition the reader needs ("a settings change is an
+editing session, hour-collapsed"), or a limit that bounds the claim. The reader wants the
+cohort, not the story of measuring it.
+
 ---
 
 ## Private site config (`PRIVATE.md`)
