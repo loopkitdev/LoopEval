@@ -382,6 +382,18 @@ glucose, not the story of how it was measured. Therefore:
     as a result rather than a failure; `time + timezoneOffset` gives the real distribution.
     A zero that is identical across two very different groups is a broken measurement.
 
+38. **Count the cohort from what exists on disk, never from what was selected.** The
+    justification published N=107, which was wrong twice over: it counted donors whose
+    exports had FAILED (selection lists are not cohorts), and it dropped the 11 bddp
+    donors because their ids were not in any alias map, so they could not be screened.
+    The real figure is 115. Derive N by joining `cohort.csv` to the screen and applying
+    the gates — anything computed from an alias map counts intentions.
+
+    **The bddp ids were recoverable all along.** Each export's `_export_manifest.json`
+    carries `uid_fingerprint` = sha256(_userId)[:12], so hashing the ids already held
+    locally matched all eleven with no query at all — written to `bddp_alias_map.json`.
+    The manifest was designed for exactly this and I had forgotten it existed.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
