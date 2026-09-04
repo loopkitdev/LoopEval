@@ -32,6 +32,11 @@ WIDE_ROOT = os.path.expanduser("~/.loop-eval/trait-cohort/full")
 # bolus by hand rarely and run a lower time in range. Kept as its own stratum
 # so the pool-matched core stays pool-matched (see pull_handsoff.py).
 HANDSOFF_ROOT = os.path.expanduser("~/.loop-eval/trait-cohort/handsoff")
+# Selected to fill the dosing x settings-maintenance grid of the cohort
+# justification (pull_grid.py). Also deliberate, also its own stratum.
+GRID_ROOT = os.path.expanduser("~/.loop-eval/trait-cohort/grid")
+# Omnipod-class donors, to stop the pump from standing in for engagement.
+DEVICE_ROOT = os.path.expanduser("~/.loop-eval/trait-cohort/device")
 OUT = S.OUT
 
 # Nightscout sites come from PRIVATE.md, which is git-ignored. Real hostnames must
@@ -182,6 +187,14 @@ def main() -> int:
         ho = D.bddp_datasets(HANDSOFF_ROOT, source="handsoff")
         datasets += ho
         print(f"  + {len(ho)} hands-off stratum exports (over-sampled on purpose)")
+    if os.path.isdir(GRID_ROOT):
+        gr = D.bddp_datasets(GRID_ROOT, source="grid")
+        datasets += gr
+        print(f"  + {len(gr)} engagement-grid exports (selected to fill thin cells)")
+    if os.path.isdir(DEVICE_ROOT):
+        dv = D.bddp_datasets(DEVICE_ROOT, source="device")
+        datasets += dv
+        print(f"  + {len(dv)} device-balance exports (Omnipod-class)")
     for alias, host in ns_sites():
         try:
             datasets.append(D.ns_dataset(alias, host))
@@ -218,25 +231,44 @@ def main() -> int:
     # because behaviour moves — two of the first batch announce heavily across
     # the full record, and one has no dose stream at all. One rule, one place.
     def stratum(r) -> str:
-        """Membership is BEHAVIOUR, never the outcome.
+        """Was this person chosen for a reason, or by hash?
 
-        The batch was screened in the source on carb entries, manual bolusing
-        AND time in range, but selecting on TIR and then measuring TIR is
-        circular — so the stratum keeps only the behavioural half, using the
-        archetype cut the whole study already uses (<30 g/day announced). TIR is
-        then something these people HAVE, not something they were picked for.
+        That is the only distinction the label needs to carry. "Hands-off",
+        "engagement grid" and "device balance" describe WHY someone was
+        exported — provenance, kept in `source` — and were never analysis
+        groups: the axes to report on are the dosing and settings cells and the
+        device, which every person carries regardless of how they arrived.
+        Only `core` is hash-ordered, so only `core` supports a pooled statistic
+        about the donor population.
         """
-        if r["source"] != "handsoff":
-            return "core"
-        has_doses = str(r.get("strategy", "?")) in ("temp", "bolus")
-        return ("hands-off" if has_doses and r["archetype"] == "non-announcer"
-                else "hands-off (off-target)")
+        return "core" if r["source"] in ("bddp", "wide", "ns") else "targeted"
 
     cohort["stratum"] = cohort.apply(stratum, axis=1)
-    n_off = (cohort["stratum"] == "hands-off (off-target)").sum()
-    if n_off:
-        print(f"  {n_off} hands-off exports did not meet the criteria on the "
-              f"analysis window — tagged off-target, excluded from the stratum")
+
+    # Join the source-measured screen (screen_cohort.py) so eligibility and the
+    # engagement cells live in cohort.csv, and N is derived from what exists on
+    # disk rather than from a selection list. Aliases only — the screen carries
+    # no donor id.
+    screen = OUT / "screen.csv"
+    if screen.exists():
+        sc = pd.read_csv(screen)
+        keep = ["alias", "eligible", "wear", "loop_frac", "user_boluses_per_day",
+                "auto_boluses_per_day", "carb_entries_per_day",
+                "settings_sessions_per_30d", "pump", "sensor"]
+        cohort = cohort.merge(sc[[c for c in keep if c in sc.columns]],
+                              on="alias", how="left")
+        cohort["eligible"] = cohort["eligible"].fillna(False)
+        cohort["dosing"] = pd.cut(cohort["user_boluses_per_day"], [-.01, 3, 4, 6, 999],
+                                  labels=["<3", "3-4", "4-6", ">6"])
+        cohort["settings"] = pd.cut(cohort["settings_sessions_per_30d"],
+                                    [-.01, .001, 3, 1e9], labels=["none", "1-3", ">3"])
+        n = int(cohort["eligible"].sum())
+        print(f"  screen joined: {n} of {len(cohort)} pass the eligibility gates")
+    else:
+        print("  screen.csv absent — run screen_cohort.py for eligibility and cells")
+
+    print("  strata: " + ", ".join(f"{k} {v}" for k, v in
+                                     cohort["stratum"].value_counts().items()))
     cohort.to_csv(OUT / "cohort.csv", index=False)
     pd.DataFrame(offs).to_csv(OUT / "offsets.csv", index=False)
     print(f"\nwrote {len(cohort)} people -> {OUT}/cohort.csv")

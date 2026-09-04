@@ -84,27 +84,27 @@ def clip_window(alias: str, obj):
 def cohort(stratum: str = "core") -> pd.DataFrame:
     """The people a view describes.
 
-    Two strata live in cohort.csv. **core** is hash-ordered and matches the donor
-    pool it was drawn from, so it is what the study's figures describe. The
-    **hands-off** stratum is deliberately over-sampled — few carb entries, little
-    manual bolusing, lower time in range — because the hash-ordered sample
-    reached almost nobody there. Pooling them silently would break the
-    representativeness claim in view 00, so the default is core only; pass
-    "hands-off" or "all" to reach the rest.
+    **core** is hash-ordered and matches the donor pool it was drawn from, so it
+    is what the study's figures describe and the only group a pooled statistic
+    is honest about. **targeted** is everyone sampled deliberately — to reach
+    people who announce little, to fill a thin engagement cell, to balance the
+    pumps. Why each targeted person was chosen lives in `source`; what they are
+    lives in the dosing, settings and device columns, which is what analyses
+    should group by.
     """
     c = pd.read_csv(OUT / "cohort.csv")
-    if "stratum" not in c.columns:
+    if "stratum" not in c.columns or stratum == "all":
         return c
-    ho = c["stratum"].eq("hands-off")
-    if stratum == "core":                      # off-target exports belong to neither
-        return c[c["stratum"].eq("core")].reset_index(drop=True)
-    if stratum == "core":
-        return c[~ho].reset_index(drop=True)
-    if stratum == "hands-off":
-        return c[ho].reset_index(drop=True)
-    if stratum == "all":
-        return c
-    raise ValueError(f"unknown stratum {stratum!r} — core, hands-off or all")
+    if stratum in ("core", "targeted"):
+        return c[c["stratum"].eq(stratum)].reset_index(drop=True)
+    if stratum == "modelling":
+        # Everyone in the modelling cohort: both strata, gates passed. This is
+        # the set the cohort justification describes.
+        if "eligible" not in c.columns:
+            raise ValueError("cohort.csv has no eligibility column — run "
+                             "screen_cohort.py then build.py")
+        return c[c["eligible"].astype(bool)].reset_index(drop=True)
+    raise ValueError(f"unknown stratum {stratum!r} — core, targeted, modelling or all")
 
 
 def load(alias: str) -> pd.DataFrame:
