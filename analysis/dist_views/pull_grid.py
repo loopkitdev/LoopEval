@@ -43,14 +43,15 @@ import pandas as pd
 CACHE = Path(os.path.expanduser("~/.loop-eval/trait-cohort"))
 GRID = Path("/private/tmp/claude-501/-Users-pete-dev-loopeval-eda/"
             "bfa63131-1394-4401-ba0d-468c73f27a9b/scratchpad/eligible_grid.csv")
-OUT_MAP = CACHE / "grid_alias_map.json"
+OUT_MAP = CACHE / os.environ.get("GRID_MAP", "grid_alias_map.json")
 MIN_PER_CELL = int(sys.argv[1]) if len(sys.argv) > 1 else 5
 
 
 def main() -> int:
     g = pd.read_csv(GRID)
     held = set()
-    for f in ("alias_map.json", "handsoff_alias_map.json"):
+    for f in ("alias_map.json", "handsoff_alias_map.json", "grid_alias_map.json",
+              "device_alias_map.json"):
         p = CACHE / f
         if p.exists():
             held |= set(json.loads(p.read_text()).values())
@@ -66,7 +67,14 @@ def main() -> int:
         picked += take
         print(f"  {str(dose):>4} boluses/day × {str(sett):>4} settings: "
               f"have {have}, taking {len(take)}")
-    amap = {f"g{i + 1:02d}": u for i, u in enumerate(picked)}
+    # Continue the alias numbering past anything already exported to this root:
+    # reusing g01 would land on an existing directory, which export_full treats as
+    # already complete and skips — the new donor would never be fetched.
+    used = set()
+    for f in CACHE.glob("*alias_map.json"):
+        used |= {a for a in json.loads(f.read_text()) if a.startswith("g")}
+    start = max((int(a[1:]) for a in used if a[1:].isdigit()), default=0)
+    amap = {f"g{start + i + 1:02d}": u for i, u in enumerate(picked)}
     OUT_MAP.write_text(json.dumps(amap, indent=2))
     print(f"\n{len(amap)} donors selected -> {OUT_MAP} (git-ignored)")
     print("export with:  EXPORT_ROOT=grid EXPORT_MAP=grid_alias_map.json "
