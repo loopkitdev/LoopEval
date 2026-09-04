@@ -787,7 +787,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     # in every observed case; modeling that presence window is not worth the phantom
     # hours it prevents.)
     win = f"_userId='{user}' AND {_TMS} BETWEEN {s_ms} AND {e_ms} AND CAST(_active AS STRING) != 'false'"
-    # Insulin type from data (insulinFormulation.brand) unless caller forces one.
+    # Insulin type from data (insulinFormulation.simple.brand) unless caller forces one.
     if insulin_type is None:
         insulin_type, brand = _insulin_type_from_data(user, s_ms, e_ms)
         print(f"{user}: insulin brand={brand} → --insulin-type {insulin_type}")
