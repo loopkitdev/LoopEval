@@ -22,10 +22,10 @@ import style as S                                        # noqa: E402
 
 def f00_population():
     co = S.cohort()
-    ho = S.cohort("hands-off")
+    tg = S.cohort("targeted")
     w = pd.read_csv(S.OUT / "wholerecord.csv")
-    sf_path = S.OUT / "sensor_family.csv"
-    sf = pd.read_csv(sf_path) if sf_path.exists() else pd.DataFrame(columns=["alias", "family"])
+    sf = (co[["alias", "sensor"]].rename(columns={"sensor": "family"}).dropna()
+          if "sensor" in co.columns else pd.DataFrame(columns=["alias", "family"]))
 
     fig, ax = S.figure(1, 3, figsize=(14.4, 4.9))
     cols = [S.color_for(co, a) for a in w["alias"]]
@@ -45,12 +45,12 @@ def f00_population():
     S.strip_kde(ax[0], w["tir"], cols, fmt="{:.0f}%")
     # The over-sampled stratum, on its own row so it is never mistaken for part
     # of the pool-matched core.
-    if len(ho):
+    if len(tg):
         rng = np.random.default_rng(11)
-        ax[0].scatter(ho["tir"], -0.62 - rng.uniform(0, 0.12, len(ho)), s=26,
+        ax[0].scatter(tg["tir"], -0.62 - rng.uniform(0, 0.12, len(tg)), s=26,
                       color=S.ACCENT, alpha=0.85, lw=0, zorder=3)
-        ax[0].plot([ho["tir"].median()] * 2, [-0.78, -0.50], color=S.ACCENT, lw=2.4)
-        ax[0].text(0.985, 0.055, f"hands-off stratum, {len(ho)} people",
+        ax[0].plot([tg["tir"].median()] * 2, [-0.78, -0.50], color=S.ACCENT, lw=2.4)
+        ax[0].text(0.985, 0.055, f"targeted, {len(tg)} people",
                    transform=ax[0].transAxes, ha="right", va="center",
                    fontsize=8.5, color=S.ACCENT)
         ax[0].set_ylim(-0.86, 1.26)
@@ -66,10 +66,10 @@ def f00_population():
         ax[1].scatter(r["bg_mean"], r["bg_cv"], s=52, alpha=0.85, lw=1.1,
                       color=S.GROUP_COLOR.get(S.group_of(r), S.MUTED),
                       edgecolor=S.SURFACE, zorder=3)
-    if len(ho):
-        ax[1].scatter(ho["bg_mean"], ho["bg_cv"], s=62, marker="D", lw=1.4,
+    if len(tg):
+        ax[1].scatter(tg["bg_mean"], tg["bg_cv"], s=62, marker="D", lw=1.4,
                       facecolor="none", edgecolor=S.ACCENT, zorder=4,
-                      label="hands-off stratum")
+                      label="targeted")
         ax[1].legend(frameon=False, fontsize=8, labelcolor=S.INK2, loc="lower right")
     ax[1].axhline(36, color=S.ACCENT, lw=1.3, ls=(0, (3, 3)))
     ax[1].text(0.99, 36, "CV 36% ", fontsize=8, color=S.ACCENT, ha="right",
@@ -82,7 +82,7 @@ def f00_population():
     # Composition: what kind of people, kit and behaviour this is.
     bars, labels, colors = [], [], []
     fam = sf["family"].value_counts() if len(sf) else pd.Series(dtype=int)
-    for k in ("Libre 3 (twiist)", "Dexcom G7", "Dexcom G6", "unlabelled"):
+    for k in ("Libre 3", "Dexcom G7", "Dexcom G6", "Libre (Abbott)"):
         if k in fam:
             bars.append(fam[k]); labels.append(f"sensor: {k}"); colors.append(S.COOL)
     for k, v in co["strategy"].value_counts().items():
@@ -102,13 +102,15 @@ def f00_population():
     ax[2].set_title("Everyone runs an automated system", fontsize=10.5, color=S.INK,
                     loc="left", pad=6, weight="bold")
 
-    ho_note = (f"\nA further {len(ho)} people (orange) were sampled deliberately rather than at random: they announce almost no carbohydrate, let automation do the bolusing, "
-               f"and their median time in range is {ho['tir'].median():.0f}%.\nEvery other figure in this document describes the {len(w)}.") if len(ho) else ""
+    tg_note = (f"\n{len(tg)} of them (orange) were sampled deliberately rather than at "
+               f"random — to reach people who announce little, to fill thin engagement cells "
+               f"and to balance the pumps — and their median time in range is "
+               f"{tg['tir'].median():.0f}%.") if len(tg) else ""
     S.title(fig, "00 · Who this is",
             f"{len(w)} people wearing a CGM under an automated insulin-delivery system, {w['days'].sum():,.0f} person-days. "
             f"Time in range runs {w['tir'].min():.0f}% to {w['tir'].max():.0f}% with a median of {w['tir'].median():.0f}%, "
             f"so this is not one\nnarrow kind of person — but it is not a general diabetes population either: everyone here chose an automated system, "
-            "donated their data, and kept it running. Age, sex,\ndiabetes duration and everything else about them is absent from the export." + ho_note)
+            "donated their data, and kept it running. Age, sex,\ndiabetes duration and everything else about them is absent from the export." + tg_note)
     S.save(fig, "00_population",
            dict(left=0.045, right=0.985, top=0.695, bottom=0.135, wspace=0.42))
 
