@@ -81,12 +81,14 @@ def clip_window(alias: str, obj):
     return obj[m]
 
 
-def cohort(stratum: str = "core") -> pd.DataFrame:
+def cohort(stratum: str = "modelling") -> pd.DataFrame:
     """The people a view describes.
 
-    **core** is hash-ordered and matches the donor pool it was drawn from, so it
-    is what the study's figures describe and the only group a pooled statistic
-    is honest about. **targeted** is everyone sampled deliberately — to reach
+    The DEFAULT is **modelling**: both strata, eligibility gates passed — the
+    115 the cohort justification describes, and what the study's figures now
+    show. **core** is the hash-ordered subset that matches the donor pool, and
+    is the only group a pooled statistic about the DONOR POPULATION is honest
+    about; view 00 uses it for exactly that comparison and nothing else. **targeted** is everyone sampled deliberately — to reach
     people who announce little, to fill a thin engagement cell, to balance the
     pumps. Why each targeted person was chosen lives in `source`; what they are
     lives in the dosing, settings and device columns, which is what analyses
@@ -310,9 +312,14 @@ def datasets():
         out.update({d.alias: d for d in D.bddp_datasets(m.WIDE_ROOT, source="wide")})
     # The hands-off stratum. Reachable here so its raw samples can be analysed;
     # membership in a FIGURE is decided by cohort(), which is core by default.
-    if _os.path.isdir(m.HANDSOFF_ROOT):
-        out.update({d.alias: d
-                    for d in D.bddp_datasets(m.HANDSOFF_ROOT, source="handsoff")})
+    # Every export root build.py knows about, so a view can reach any cohort
+    # member's raw inputs. Adding a root to build.py and forgetting it here is
+    # how vol_fit came to raise KeyError on an alias that was in cohort.csv.
+    for attr, src in (("HANDSOFF_ROOT", "handsoff"), ("GRID_ROOT", "grid"),
+                      ("DEVICE_ROOT", "device")):
+        root = getattr(m, attr, None)
+        if root and _os.path.isdir(root):
+            out.update({d.alias: d for d in D.bddp_datasets(root, source=src)})
     for alias, host in m.ns_sites():
         try:
             out[alias] = D.ns_dataset(alias, host)
