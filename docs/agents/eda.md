@@ -394,6 +394,23 @@ glucose, not the story of how it was measured. Therefore:
     locally matched all eleven with no query at all — written to `bddp_alias_map.json`.
     The manifest was designed for exactly this and I had forgotten it existed.
 
+39. **`expectedNormal` cannot detect an interrupted AUTOMATIC bolus, in any uploader.**
+    (2026-09-07, pool-wide ~1 year, `bolus/mutable` rows excluded — a mutable row carries
+    the PROGRAMMED amount and reads as fully delivered.) Of 67.5 M automatic boluses, ZERO
+    record `normal < expectedNormal`. That is silence, not a rate of zero, and the two
+    uploaders fail in opposite ways: **Loop never writes the field at all** (0 of 56 M rows,
+    automatic *and* manual) — an interrupted automatic bolus is written as a smaller
+    automatic bolus, indistinguishable from an intended one; the **no-app-name uploader**
+    (`deviceId` null, `origin` only a UUID; 2,044 auto-bolusing people) stamps it on 99.9%
+    of rows *always equal to* `normal`, and never encodes a shortfall on those people's
+    6.4 M manual boluses either. Only twiist populates it meaningfully — 45,489 of 2.1 M
+    manual boluses (2.2%) — and twiist has no automatic bolus at all, it automates through
+    basal. **The trap that cost a query**: a pool cross-tab reporting "2.6 M automated rows
+    with expectedNormal, 29.7%" was entirely the mirroring uploader. Always check
+    `normal < expectedNormal`, never mere presence of the field. For a Loop cohort the
+    question has to go to `dosingDecision.recommendedBolus` matched forward to the bolus
+    that follows.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
