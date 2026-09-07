@@ -37,6 +37,10 @@ HANDSOFF_ROOT = os.path.expanduser("~/.loop-eval/trait-cohort/handsoff")
 GRID_ROOT = os.path.expanduser("~/.loop-eval/trait-cohort/grid")
 # Omnipod-class donors, to stop the pump from standing in for engagement.
 DEVICE_ROOT = os.path.expanduser("~/.loop-eval/trait-cohort/device")
+# Sampled across the outcome range so every time-in-range band has enough
+# people to report on (pull_tir_coverage.py). Selection on the outcome,
+# deliberately: see the justification's section 7.
+TIR_ROOT = os.path.expanduser("~/.loop-eval/trait-cohort/tir")
 OUT = S.OUT
 
 # Nightscout sites come from PRIVATE.md, which is git-ignored. Real hostnames must
@@ -195,6 +199,10 @@ def main() -> int:
         dv = D.bddp_datasets(DEVICE_ROOT, source="device")
         datasets += dv
         print(f"  + {len(dv)} device-balance exports (Omnipod-class)")
+    if os.path.isdir(TIR_ROOT):
+        tr = D.bddp_datasets(TIR_ROOT, source="tir")
+        datasets += tr
+        print(f"  + {len(tr)} outcome-coverage exports (time-in-range bands)")
     for alias, host in ns_sites():
         try:
             datasets.append(D.ns_dataset(alias, host))
