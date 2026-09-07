@@ -31,7 +31,8 @@ from loopeval_analysis.tidepool.conn import query            # noqa: E402
 
 CACHE = Path(os.path.expanduser("~/.loop-eval/trait-cohort"))
 MAPS = ("alias_map.json", "handsoff_alias_map.json", "grid_alias_map.json",
-        "grid2_alias_map.json", "device_alias_map.json", "bddp_alias_map.json")
+        "grid2_alias_map.json", "device_alias_map.json", "bddp_alias_map.json",
+        "tir_alias_map.json")
 TBL = os.environ.get("TIDEPOOL_TABLE") or "prod.default.device_data"
 T = "CAST(get_json_object(time,'$.$date.$numberLong') AS BIGINT)"
 V = ("COALESCE(CAST(get_json_object(value,'$.$numberDouble') AS DOUBLE),"

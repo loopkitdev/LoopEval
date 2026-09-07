@@ -316,7 +316,7 @@ def datasets():
     # member's raw inputs. Adding a root to build.py and forgetting it here is
     # how vol_fit came to raise KeyError on an alias that was in cohort.csv.
     for attr, src in (("HANDSOFF_ROOT", "handsoff"), ("GRID_ROOT", "grid"),
-                      ("DEVICE_ROOT", "device")):
+                      ("DEVICE_ROOT", "device"), ("TIR_ROOT", "tir")):
         root = getattr(m, attr, None)
         if root and _os.path.isdir(root):
             out.update({d.alias: d for d in D.bddp_datasets(root, source=src)})
@@ -329,6 +329,9 @@ def datasets():
 
 
 _RAW_CACHE: dict = {}
+
+# A step faster than this is the instrument, not the person (mg/dL per minute).
+MAX_MGDL_PER_MIN = 8.0
 
 
 def raw_runs(alias: str, minlen: int = 12):
@@ -365,7 +368,29 @@ def raw_runs(alias: str, minlen: int = 12):
             start = i
     if len(v) - start >= minlen:
         out.append(v[start:])
-    out = [r for r in out if r.size >= minlen]
+    # Break a run at a physiologically impossible step. Interstitial glucose
+    # cannot move faster than about 5 mg/dL per minute; anything past 8 is the
+    # sensor — a restart, a rail jump, a dropped-and-refilled value. These are
+    # 0.055% of increments but they dominate the tail: two of them took one
+    # person's excess kurtosis to 747, against 2.7 without them. Splitting the
+    # run (rather than deleting samples) removes the bad INCREMENT from every
+    # difference-based statistic while keeping both stretches of real glucose.
+    limit = MAX_MGDL_PER_MIN * cadence
+    split = []
+    for r in out:
+        bad = np.where(np.abs(np.diff(r)) > limit)[0]
+        if not len(bad):
+            split.append(r)
+            continue
+        prev = 0
+        for b in bad:
+            seg = r[prev:b + 1]
+            if seg.size >= minlen:
+                split.append(seg)
+            prev = b + 1
+        if r[prev:].size >= minlen:
+            split.append(r[prev:])
+    out = [r for r in split if r.size >= minlen]
     _RAW_CACHE[alias] = (out, cadence)
     return _RAW_CACHE[alias]
 
