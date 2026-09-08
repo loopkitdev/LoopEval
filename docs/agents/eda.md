@@ -411,6 +411,51 @@ glucose, not the story of how it was measured. Therefore:
     question has to go to `dosingDecision.recommendedBolus` matched forward to the bolus
     that follows.
 
+40. **Interrupted automatic boluses are a user behaviour, and they scale with dose size**
+    (2026-09-07, `cancel_rates.py` / `cancel_cause2.py` / `cause3.py`; 67 Loop donors,
+    120 days, 546,718 matched automatic boluses, 19.6 person-years). Loop records only the
+    delivered amount, so the signature is `delivered < recommendedBolus` from the matched
+    `dosingDecision` — see [[lesson 39]] for why `expectedNormal` cannot do this. Pooled
+    rate **1 in 709 boluses**, 39 per person-year, and strongly heterogeneous: per person
+    0.61 per 1,000 at the median, 0.00 at p10 (10 of 67 interrupt nothing in four months),
+    9.33 at the max, with the top decile of donors carrying 42% of all events. Exposure
+    does not explain it — automatic boluses per day varies 3×, the rate 15×.
+
+    **The rate rises with the size of the bolus far faster than duration explains**:
+    0.06 per 1,000 at 0.05–0.15 U against 40.4 at 2.5 U+, a log-log slope of **1.67** where
+    a constant-hazard, time-at-risk process (occlusion, a comms drop) would give 1.0. A
+    person reacts to a big number; a fault does not know how many units were programmed.
+
+    **Attribution needs a matched control** — "66% had a deviceEvent nearby" was meaningless
+    until the same window was measured around boluses that completed, and controls must be
+    matched on donor AND recommended size, because size drives the rate that hard. Against
+    3,809 such controls: a manual bolus takes over 55.3% (base 11.2%), an outright suspend
+    26.6% (base **0.2%**, a 143× lift), both 3.4%, no marker 12.2%. Pump/pod faults are
+    **2–3%**: the pod-change lift decays as the window opens but the excess plateaus at
+    13–16 events, and pump alarms independently give 12–14; 10 of the 12 tight-window fault
+    events also show a suspend, which is the fault signature (alarm → suspend → pod swap).
+
+    **The window has to fit the mechanism.** A pod change was invisible at −2/+5 min — the
+    user has to notice, fetch a pod, fill and prime it. Sweep the forward window and read
+    the EXCESS COUNT, not the rate: a real signal's excess plateaus while its lift decays,
+    a spurious one's excess grows as the window swallows the ordinary three-day pod change.
+    (The "no delivery for >1 h afterwards" test is worthless here for the reason Pete gave:
+    people replace a pod quickly and dosing resumes. It caught 2.3%.)
+
+    **Limit that bounds all of it: this sees only interruptions Loop KNOWS about.** A cancel
+    and a suspend go through the app, so Loop writes the reduced amount. If a pod occludes
+    mid-bolus and the phone is never told how much reached the body, Loop writes what it
+    believes was delivered and the shortfall does not exist in the record — which is the
+    likely reason **zero** of 1,545 occlusion alarms sit near an interrupted bolus. The 2–3%
+    fault share is a LOWER bound.
+
+    Method notes: `bolus/mutable` rows are duplicates, not unfinalized boluses — 99–100%
+    have a finalized twin within 60 s and the amount is identical every time, so dropping
+    them changes the unmatched rate by 0.001 points. The whole decision-to-bolus match runs
+    in one SQL query (`first_value(...) IGNORE NULLS` over a union of decisions and boluses,
+    ties ordered decision-first), which is what makes a 67-donor 120-day window affordable
+    where a per-donor loop took hours.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
