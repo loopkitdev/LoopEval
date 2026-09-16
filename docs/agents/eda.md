@@ -456,6 +456,35 @@ glucose, not the story of how it was measured. Therefore:
     ties ordered decision-first), which is what makes a 67-donor 120-day window affordable
     where a per-donor loop took hours.
 
+41. **The Databricks credential is Tidepool PRODUCTION PHI, not a de-identified research
+    extract** (inventoried 2026-09-16). It authenticates as a `@tidepool.org` user against
+    `prod.default` — 29 tables, of which `device_data` is one. The identity tables sit in the
+    same schema and join on the same `_userId`: `users` / `all_users` (email, first/last name),
+    `seagull_profiles` (fullName, mrn, birthday, gender, diagnosisType, diagnosisDate,
+    targetTimezone), `patients` / `patient_with_summary` (fullName, email, birthDate, mrn,
+    clinic linkage), `consent_records` (ageGroup, ownerName), `c2c_create_history` (patient
+    fullName + email), `device_data_sets` (device serial, upload client, `provenanceSourceIP`),
+    plus `redox` and `xealth_order`, which are raw EHR/HL7 message tables carrying patient name,
+    DOB, sex, race, religion, marital status, street address, phone, email and provider NPI for
+    the clinic population. Coverage for donors is effectively total: of the 34 donor ids in the
+    local alias maps, **34 of 34 resolve to an email address and a full name**, 33 to a birthday
+    and a diagnosis date, and 24 are linked as a clinic's patient (5 with an MRN).
+
+    **So `_userId` is a direct identifier, not a pseudonym** — the alias discipline is what
+    stands between an export and a named person, and nothing about the query surface enforces
+    it. Never join `device_data` to an identity table, and select demographic columns only when
+    a demographic question requires them (see [[lesson 36]]), never identity ones.
+
+    **The clinical stream is not de-identifiable by dropping the id, either.** What we export
+    carries full-resolution timestamps, `timezone` (10.2 M donor rows), device serial numbers
+    (6,479) and transmitter ids (2,183) — dates finer than a year and device identifiers are
+    each HIPAA Safe Harbor identifiers on their own. And the trace itself is a fingerprint: a
+    Nightscout (time, amount) bolus list located one person in an "anonymized" BDDP extract at
+    686/686 exact matches. Treat a donor export as identifiable data that happens to lack a
+    name, which is why they live under `~/.loop-eval/` and never in the repo. The manifest's
+    `uid_fingerprint` is sha256(`_userId`)[:12] — a join key for us, and a confirmation oracle
+    for anyone who already holds the id list, so it is not an anonymisation measure.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
