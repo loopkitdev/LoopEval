@@ -485,6 +485,28 @@ glucose, not the story of how it was measured. Therefore:
     `uid_fingerprint` is sha256(`_userId`)[:12] — a join key for us, and a confirmation oracle
     for anyone who already holds the id list, so it is not an anonymisation measure.
 
+42. **The post-ETL export is already a limited data set; the hazard is what sits NEXT to it**
+    (audited 2026-09-16, 56 exports under `~/.loop-eval/trait-cohort/full/`). Every field the
+    ETL writes is numeric or temporal — `glucose.json` is `startDate` + `quantity`; `doses.json`
+    adds volume/rate/type/automatic; `carbs.json` is grams + three timestamps + absorptionTime
+    with **no food name**; `therapy.json` is the four schedules, limits, suspendThreshold and
+    `overrideWindows` with **no preset name**; `disruptions.csv`'s `notes` is a generated
+    `"<reason> <N>min"` string, not user text; `pNN.pkl` is one `bg` column on a UTC index.
+    Tested directly: **not one file under `full/` or `logs/` contains any of the 115 real
+    userIds.** Everything identifying in `device_data` — deviceId, serials, `payload`, `origin`,
+    free-text names, named timezone — is gone because the ETL selects only what the simulator
+    needs. Two residues: the manifest's `uid_fingerprint`, and absolute full-resolution
+    timestamps (therapy.json's local-midnight schedule boundaries also leak the UTC offset,
+    which is what `offsets.csv` infers).
+
+    **The linkage sits one directory up.** `trait-cohort/cohort_userids.csv` has a `userId`
+    column beside the alias and every screening metric, and there are eight `*alias_map.json`
+    files next to it. Sharing `trait-cohort/` ships the key; sharing `trait-cohort/full/` does
+    not. And **`~/.loop-eval/cache/` is the dirtiest thing on disk** — 4,353 files whose
+    *filenames* embed the Nightscout hostname (20 distinct hosts, some personally named), even
+    though the contents are clean. `runs/` is clean: aliases only, no host in any filename
+    across 58 run dirs, and no id-shaped token in the distribution CSVs.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
