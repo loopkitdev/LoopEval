@@ -2,9 +2,9 @@
 """View 00 — who is in this study.
 
 Every other figure describes glucose; this one describes the people whose glucose
-it is, so a reader can judge what the numbers generalise to. Reads cohort.csv,
-wholerecord.csv and sensor_family.csv (the per-donor sensor label recovered from
-the source `deviceId`; aliases only).
+it is, so a reader can judge what the numbers generalise to. Reads cohort.csv
+(whose `sensor` column carries the per-donor sensor family recovered from the
+source `deviceId`), wholerecord.csv and pool_compare.csv. Aliases only.
 """
 from __future__ import annotations
 
@@ -22,7 +22,10 @@ import style as S                                        # noqa: E402
 
 def f00_population():
     co = S.cohort()
-    tg = S.cohort("targeted")
+    # The strata WITHIN the modelling cohort — S.cohort("targeted") ignores
+    # the eligibility gates and would count people no figure describes.
+    tg = co[co["stratum"].eq("targeted")] if "stratum" in co.columns else co.iloc[:0]
+    cr = co[co["stratum"].eq("core")] if "stratum" in co.columns else co.iloc[:0]
     w = pd.read_csv(S.OUT / "wholerecord.csv")
     sf = (co[["alias", "sensor"]].rename(columns={"sensor": "family"}).dropna()
           if "sensor" in co.columns else pd.DataFrame(columns=["alias", "family"]))
@@ -102,15 +105,16 @@ def f00_population():
     ax[2].set_title("Everyone runs an automated system", fontsize=10.5, color=S.INK,
                     loc="left", pad=6, weight="bold")
 
-    tg_note = (f"\n{len(tg)} of them (orange) were sampled deliberately rather than at "
-               f"random — to reach people who announce little, to fill thin engagement cells "
-               f"and to balance the pumps — and their median time in range is "
-               f"{tg['tir'].median():.0f}%.") if len(tg) else ""
+    tg_note = (f"\n{len(cr)} were sampled to match the donor pool; the other {len(tg)} (orange) "
+               f"deliberately — to reach people who announce little, to fill thin\nengagement "
+               f"cells and to balance the pumps. Their median time in range is "
+               f"{tg['tir'].median():.0f}% against the matched group's {cr['tir'].median():.0f}%.")\
+              if len(tg) and len(cr) else ""
     S.title(fig, "00 · Who this is",
             f"{len(w)} people wearing a CGM under an automated insulin-delivery system, {w['days'].sum():,.0f} person-days. "
             f"Time in range runs {w['tir'].min():.0f}% to {w['tir'].max():.0f}% with a median of {w['tir'].median():.0f}%, "
             f"so this is not one\nnarrow kind of person — but it is not a general diabetes population either: everyone here chose an automated system, "
-            "donated their data, and kept it running. Age, sex,\ndiabetes duration and everything else about them is absent from the export." + tg_note)
+            "donated their data and kept it\nrunning, and age, sex and diabetes duration are absent from the export." + tg_note)
     S.save(fig, "00_population",
            dict(left=0.045, right=0.985, top=0.695, bottom=0.135, wspace=0.42))
 

@@ -67,7 +67,42 @@ def runs_from_series(bg: pd.Series, cadence_min: float = ANALYSIS_CADENCE_MIN,
             start = i
     if len(v) - start >= minlen:
         out.append(v[start:])
-    return [r for r in out if len(r) >= minlen], native
+    runs = [r for r in out if len(r) >= minlen]
+    runs, _ = split_impossible(runs, native, minlen)
+    return runs, native
+
+
+# Interstitial glucose cannot move faster than roughly 5 mg/dL per minute, so a
+# step past 8 is the instrument — a sensor restart, a rail jump, a value dropped
+# and refilled. Such steps are ~0.05% of increments and they dominate every tail
+# statistic computed from them: two of them carried one donor's excess kurtosis
+# to 747, against 2.65 without them.
+MAX_MGDL_PER_MIN = 8.0
+
+
+def split_impossible(runs, cadence_min: float, minlen: int = 12):
+    """Break each run where the step is faster than the body can move.
+
+    Splitting rather than deleting keeps both stretches of real glucose while
+    removing the false INCREMENT from every difference-based statistic. Returns
+    ``(runs, n_dropped)``.
+    """
+    limit = MAX_MGDL_PER_MIN * cadence_min
+    out, dropped = [], 0
+    for r in runs:
+        bad = np.where(np.abs(np.diff(r)) > limit)[0]
+        if not len(bad):
+            out.append(r)
+            continue
+        dropped += len(bad)
+        prev = 0
+        for b in bad:
+            if b + 1 - prev >= minlen:
+                out.append(r[prev:b + 1])
+            prev = b + 1
+        if len(r) - prev >= minlen:
+            out.append(r[prev:])
+    return [r for r in out if len(r) >= minlen], dropped
 
 
 def _lagged(runs: Sequence[np.ndarray], k: int) -> np.ndarray:

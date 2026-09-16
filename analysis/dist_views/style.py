@@ -85,10 +85,15 @@ def cohort(stratum: str = "modelling") -> pd.DataFrame:
     """The people a view describes.
 
     The DEFAULT is **modelling**: both strata, eligibility gates passed — the
-    115 the cohort justification describes, and what the study's figures now
-    show. **core** is the hash-ordered subset that matches the donor pool, and
-    is the only group a pooled statistic about the DONOR POPULATION is honest
-    about; view 00 uses it for exactly that comparison and nothing else. **targeted** is everyone sampled deliberately — to reach
+    set the cohort justification describes, and what the study's figures show.
+    Its size moves with the exports on disk; read it off `cohort.csv` rather
+    than quoting a number from here.
+
+    **core** is the hash-ordered subset that matches the donor pool, and is the
+    only group a pooled statistic about the DONOR POPULATION is honest about;
+    view 00 uses it for exactly that comparison and nothing else.
+
+    **targeted** is everyone sampled deliberately — to reach
     people who announce little, to fill a thin engagement cell, to balance the
     pumps. Why each targeted person was chosen lives in `source`; what they are
     lives in the dosing, settings and device columns, which is what analyses
@@ -330,9 +335,6 @@ def datasets():
 
 _RAW_CACHE: dict = {}
 
-# A step faster than this is the instrument, not the person (mg/dL per minute).
-MAX_MGDL_PER_MIN = 8.0
-
 
 def raw_runs(alias: str, minlen: int = 12):
     """Runs of consecutive RAW CGM samples at the sensor's own cadence.
@@ -368,29 +370,11 @@ def raw_runs(alias: str, minlen: int = 12):
             start = i
     if len(v) - start >= minlen:
         out.append(v[start:])
-    # Break a run at a physiologically impossible step. Interstitial glucose
-    # cannot move faster than about 5 mg/dL per minute; anything past 8 is the
-    # sensor — a restart, a rail jump, a dropped-and-refilled value. These are
-    # 0.055% of increments but they dominate the tail: two of them took one
-    # person's excess kurtosis to 747, against 2.7 without them. Splitting the
-    # run (rather than deleting samples) removes the bad INCREMENT from every
-    # difference-based statistic while keeping both stretches of real glucose.
-    limit = MAX_MGDL_PER_MIN * cadence
-    split = []
-    for r in out:
-        bad = np.where(np.abs(np.diff(r)) > limit)[0]
-        if not len(bad):
-            split.append(r)
-            continue
-        prev = 0
-        for b in bad:
-            seg = r[prev:b + 1]
-            if seg.size >= minlen:
-                split.append(seg)
-            prev = b + 1
-        if r[prev:].size >= minlen:
-            split.append(r[prev:])
-    out = [r for r in split if r.size >= minlen]
+    # One definition, one place: the same guard the whole-record statistics
+    # use, so a figure and the ledger can never disagree about which
+    # increments are real.
+    from loopeval_analysis.traits import split_impossible
+    out, _ = split_impossible(out, cadence, minlen)
     _RAW_CACHE[alias] = (out, cadence)
     return _RAW_CACHE[alias]
 
