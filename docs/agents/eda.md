@@ -507,6 +507,40 @@ glucose, not the story of how it was measured. Therefore:
     though the contents are clean. `runs/` is clean: aliases only, no host in any filename
     across 58 run dirs, and no id-shaped token in the distribution CSVs.
 
+43. **A fresh PNG mtime is not a fresh figure, and `claims.py` now exists because prose
+    cannot be re-derived** (cohort 73 -> 159, 2026-09-16). Four things this pass taught:
+
+    - **Figure 15 READS `vol_lows.csv`/`vol_highs.csv`.** Redrawing it after a cohort change
+      stamps a new mtime on a panel still showing 51- and 68-person numbers. Lesson 22's
+      stale-intermediate failure survives a figure rebuild, so check a view's *inputs*, not
+      its output timestamp. Regenerate the table, then the figure, then `web_figs.py`, then
+      `make_artifact.py` — in that order.
+    - **Write the claims script.** `analysis/dist_views/claims.py` prints every published
+      number beside what the current tables and raw samples give, so a rewrite is a
+      transcription instead of a recollection. It immediately caught four definitions that
+      had drifted apart: person-days (cohort.csv vs wholerecord.csv), the EWMA half-life
+      (`lam` is the decay, so ln2/-ln(lam), not ln2/-ln(1-lam)), the value lattice (spacing,
+      not integrality), and figure 15's "enough events" floor (100 for lows, 30 for highs —
+      using `ci_lo.notna()` instead gave 142/105 people where the figure says 108/82).
+    - **The CGM clamps are 39 and 401 mg/dL, not 40 and 400** — the values round-trip
+      through mmol/L. An exact `v <= 40` finds 4 people at the floor where 80 are there, and
+      an integrality test finds no value lattice at all. Also `coverage_pct` in `cohort.csv`
+      is the share of the PANEL surviving cleaning, not sensor coverage; wear is
+      `screen.csv`'s `wear` (median 96.4%). The study had been quoting one as the other.
+    - **`style.cohort("core"/"targeted")` does NOT apply the eligibility gate**, only
+      `"modelling"` does. Figure 00 printed 109 targeted people where 96 pass the gates.
+      Take strata as `co[co.stratum.eq(...)]` off the gated frame.
+
+    **What actually moved, for the record:** despiking took excess kurtosis 3.05 -> 2.30 and
+    the increment's ICC **0.12 -> 0.49**, so increment kurtosis is no longer "the least
+    personal feature" — volatility memory (0.27) is. The momentum zero-crossing went 40 ->
+    45 min, between-day variance 14% -> 17.5%, Hurst_long 0.30 -> 0.32. The trait space's gap
+    statistic now clearly prefers ONE cluster (1.063 vs 0.887) while its dominant axis still
+    separates dosing strategy, 143 of 158 people on the consistent side. And the two
+    Nightscout sites fell out of the cohort silently — they have no `wear`/`loop_frac` in
+    `screen.csv`, so the eligibility gate drops them on missing data rather than on a
+    decision. The study is now BDDP-only; that was not chosen.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
