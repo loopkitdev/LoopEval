@@ -156,9 +156,12 @@ def build(body: str, filename: str, title: str) -> Path:
 SIBLINGS = {
     "glucose": ("The Shape of Glucose",
                 "https://claude.ai/code/artifact/6b061d95-1172-41a8-b048-1a567e2c533c"),
-    "insulin": ("The Shape of Insulin", None),
-    "conditioning": ("Glucose Given Insulin", None),
-    "counteraction": ("Counteraction", None),
+    "insulin": ("The Shape of Insulin",
+                "https://claude.ai/code/artifact/02e52837-4af4-4a45-b350-9ed9d8cebf1a"),
+    "conditioning": ("Glucose Given Insulin",
+                     "https://claude.ai/code/artifact/9e8666a7-fdf4-4997-9bb9-c833d1752bff"),
+    "counteraction": ("Counteraction",
+                      "https://claude.ai/code/artifact/c17b1252-3b4d-4a71-9862-ffd1f313247a"),
 }
 
 
