@@ -419,3 +419,42 @@ else:
     print(dl.assign(s=_st.to_numpy()).groupby("s")[
         ["zero_frac", "bolus_buckets", "conc1", "tdd", "tdd_cv"]]
         .median().round(2).to_string().replace("\n", "\n    "))
+
+
+# ---------------------------------------------------------------- tier F
+hdr("TIER F — insulin formulation")
+_fp = OUT / "formulation.csv"
+if not _fp.exists():
+    print("  formulation.csv missing — run pull_formulation.py")
+else:
+    fm = pd.read_csv(_fp)
+    print(f"  donors with a recorded brand      {len(fm)} of {len(co)}")
+    print(f"  brands                            {fm.brand.value_counts().to_dict()}")
+    print(f"  categories                        {fm.category.value_counts().to_dict()}")
+    print(f"  recording more than one brand     {int((fm.n_brands > 1).sum())}"
+          f"  (dominant share {fm[fm.n_brands > 1].purity.min():.2f}–"
+          f"{fm[fm.n_brands > 1].purity.max():.2f})")
+    j = co[["alias", "insulin", "pump", "sensor", "strategy"]].merge(
+        fm[["alias", "brand", "category"]], on="alias", how="left")
+    j["category"] = j["category"].fillna("unrecorded")
+    mism = j[(j.category.eq("ultra-rapid") & j.insulin.eq("rapidActingAdult"))
+             | (j.category.eq("rapid") & ~j.insulin.eq("rapidActingAdult"))]
+    print(f"  source brand vs exported preset   {len(mism)} mismatches")
+    print("\n  category x pump (is recording a property of the uploader?):")
+    print(pd.crosstab(j["pump"], j["category"]).to_string().replace("\n", "\n    "))
+    if (OUT / "delivery.csv").exists():
+        dl = pd.read_csv(OUT / "delivery.csv").merge(
+            j[["alias", "category"]], on="alias", how="left")
+        use = dl[dl.category.isin(("rapid", "ultra-rapid"))]
+        print("\n  delivery statistics by category (median), and a rank test:")
+        try:
+            from scipy.stats import mannwhitneyu
+        except ImportError:
+            mannwhitneyu = None
+        for c_ in ("tdd", "tdd_cv", "zero_frac", "conc1", "med_nonzero",
+                   "trend_pct_30d"):
+            a_ = use.loc[use.category.eq("rapid"), c_].dropna()
+            b_ = use.loc[use.category.eq("ultra-rapid"), c_].dropna()
+            p_ = (f"p={mannwhitneyu(a_, b_).pvalue:.2f}" if mannwhitneyu else "")
+            print(f"    {c_:16s} rapid {a_.median():8.3f} (n={len(a_)})   "
+                  f"ultra {b_.median():8.3f} (n={len(b_)})   {p_}")

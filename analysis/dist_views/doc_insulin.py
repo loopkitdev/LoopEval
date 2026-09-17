@@ -59,6 +59,8 @@ mg/dL of BG-lowering per five minutes.</p>
     <div class="n">Within one person, coefficient of variation. Range 9–45%.</div></div>
   <div class="cell"><div class="k">Yesterday predicts today at</div><div class="v">0.21</div>
     <div class="n">Correlation of consecutive daily totals. Essentially no weekly cycle either.</div></div>
+  <div class="cell"><div class="k">Rapid / ultra-rapid / unrecorded</div><div class="v">52 / 20 / 87</div>
+    <div class="n">People, by recorded insulin brand. No delivery statistic separates the first two.</div></div>
 </div>
 </section>
 
@@ -169,6 +171,61 @@ names.</p>
 <hr>
 
 <section>
+<p class="eyebrow">Fig 27 · Formulation</p>
+<h2>Which insulin it is changes the curve, and nothing measurable else</h2>
+<div class="col">
+<p>The activity curve above is chosen from the recorded insulin brand, so the
+brand matters twice: it decides how delivery is turned into effect, and it is
+the one property of the insulin itself that varies across this cohort. It is
+recorded per dose, and readable for <strong>72 of the 159</strong> people:</p>
+<ul>
+<li><strong>Rapid analogues — 52 people.</strong> Humalog 27, Novolog 22,
+Apidra 3.</li>
+<li><strong>Ultra-rapid analogues — 20 people.</strong> Fiasp 11, Lyumjev 9.
+Four more have Fiasp in a minority of their records behind a dominant rapid
+analogue, so 24 have used one at some point in the window.</li>
+<li><strong>No brand recorded — 87 people.</strong></li>
+</ul>
+<div class="read"><p><strong>Tidepool's own acting-type field cannot make this
+distinction.</strong> It reads <code>rapid</code> for all 72, Fiasp and Lyumjev
+included. The brand string is the only thing in the record that separates a
+rapid analogue from an ultra-rapid one, so any analysis that groups by acting
+type has silently pooled them.</p></div>
+<p>Comparing the two groups on everything this document measures gives
+<strong>no detectable difference in any of it</strong>: total daily dose 39 U
+against 41 (p&nbsp;=&nbsp;0.64), day-to-day variation in that total 20.4%
+against 20.9% (p&nbsp;=&nbsp;0.40), bins delivering nothing 40.0% against 36.6%
+(p&nbsp;=&nbsp;0.11), the share arriving in the busiest 1% of bins 27.1% against
+23.9% (p&nbsp;=&nbsp;0.20), and the median non-zero bin 0.088&nbsp;U against
+0.100 (p&nbsp;=&nbsp;0.48). Drift over the window is the closest to separating,
+at +0.4% against &minus;2.0% per 30 days (p&nbsp;=&nbsp;0.10), which at twenty
+people is not a finding. (The figure shows 49 of the 52 rapid users: three lack
+the thirty complete days a daily total needs.)</p>
+<p>That is the expected answer and worth having explicitly. An ultra-rapid
+analogue changes <em>when</em> a unit acts, not how much of it a person needs or
+how the automation chooses to deliver it — and the amounts are what this
+document measures. Where formulation does matter is downstream: it is the
+difference between an activity estimate that is correctly timed and one that is
+not.</p>
+<div class="read"><p><strong>Whether a brand is recorded at all is a property of
+the upload path, not of the person.</strong> Every one of the 87 unrecorded
+donors uploads through twiist; every one of the 72 with a brand is on Omnipod
+(two on Medtronic). So the comparison above lives entirely inside the Omnipod
+half of the cohort, and the unrecorded group cannot be read as a third
+formulation category — it is a different pump, sensor and dosing strategy. The
+two recorded groups are closely matched on all three.</p></div>
+<p class="foot">Six people record more than one brand across the window, with
+the dominant one covering 81% to 99% of their records; the export assigns a
+single curve per person from the most frequent, so a genuine mid-window
+formulation change is modelled as if it had not happened.</p>
+</div>
+<figure><img alt="Six panels comparing total daily dose, its day-to-day variation, zero-delivery bins, burst concentration, median bin size and drift between rapid and ultra-rapid analogue users" src="{{FIG:27_formulation}}">
+<figcaption><b>27</b> · One point per person, bar = median, whisker = p10&ndash;p90, for the six delivery statistics this document reports. Rapid analogue users in blue, ultra-rapid in orange. p-values are rank tests.</figcaption></figure>
+</section>
+
+<hr>
+
+<section>
 <p class="eyebrow">Fig 23 · Trait or state</p>
 <h2>Almost nothing on this side moves week to week</h2>
 <div class="col">
@@ -234,11 +291,11 @@ total.</li>
 has more than 240 of its 288 five-minute bins, and a person only if 30 such days
 survive — which is why the delivery figures describe 156 of the 159.</li>
 <li><strong>Activity is modelled, not measured.</strong> It is delivery
-convolved with a curve chosen from the recorded insulin brand.
-<strong>139 of the 159</strong> carry the rapid-acting-adult curve, and the
-record cannot say which of those chose it and which merely lack a brand; where
-the true insulin is faster, their activity is placed later than it really
-occurred. Amounts are unaffected; anything timing-sensitive carries that
+convolved with a curve chosen from the recorded insulin brand. That brand is
+present for 72 people and every one of them gets the matching curve; the other
+<strong>87 fall back to a rapid-acting adult curve</strong>, and if any of them
+is in fact on an ultra-rapid analogue their activity is placed later than it
+really occurred. Amounts are unaffected; anything timing-sensitive carries that
 error.</li>
 <li><strong>Association, not effect.</strong> Dose responded to state. Nothing
 here identifies what would happen if it responded differently.</li>

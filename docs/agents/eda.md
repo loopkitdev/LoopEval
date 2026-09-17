@@ -615,6 +615,42 @@ glucose, not the story of how it was measured. Therefore:
       peak hour — naming one ("peak 21:00") misdescribed a broad daytime plateau, so quote
       blocks rather than argmax when a profile is flat-topped. Local time only ([[lesson 37]]).
 
+46. **Insulin brand is in the record for 72 of the 159 — the EXPORT collapses it, not the
+    source** (2026-09-16, `pull_formulation.py` → `formulation.csv`). `etl._insulin_type_from_data`
+    reads `insulinFormulation.simple.brand` correctly ([[lesson 11]] blamed the wrong path) but
+    maps it onto an EvalCore preset via `_BRAND_MAP`, and novolog/humalog/admelog/apidra all
+    land on `rapidActingAdult` — the same value a donor with NO brand falls back to. So
+    `cohort.csv`'s `insulin` column cannot distinguish "recorded as Humalog" from "nothing
+    recorded", which is why the study said 139 of 159 were unknown. Query the brand string
+    separately. Dominant brand: **Humalog 27, Novolog 22, Apidra 3 (rapid 52); Fiasp 11,
+    Lyumjev 9 (ultra-rapid 20); 87 with nothing.** Four more carry Fiasp behind a dominant
+    rapid analogue, so 24 have used an ultra-rapid at some point.
+
+    - **Tidepool's `actingType` is useless for this.** It reads `rapid` for all 72, Fiasp and
+      Lyumjev included. The brand STRING is the only discriminator; anything grouped by
+      acting type has silently pooled rapid with ultra-rapid.
+    - **The export's curve assignment is correct — 0 mismatches** between source category and
+      exported preset, so every ultra-rapid donor did get a fiasp/lyumjev curve. The gap was
+      only in what the exported label can tell you afterwards.
+    - **Rapid vs ultra-rapid separates nothing about delivery amounts**: TDD 39 vs 41
+      (p=0.64), day-to-day CV 20.4 vs 20.9 (p=0.40), zero-delivery bins 40.0 vs 36.6
+      (p=0.11), burst concentration 27.1 vs 23.9 (p=0.20), median non-zero bin 0.088 vs 0.100
+      (p=0.48), drift +0.4 vs −2.0 %/30 d (p=0.10). Expected — an ultra-rapid analogue changes
+      WHEN a unit acts, not how much is needed — but worth having explicitly.
+    - **Whether a brand is recorded is a property of the UPLOADER.** All 87 unrecorded donors
+      are twiist/Libre 3/temp-basal; all 72 recorded are Omnipod (2 Medtronic)/Dexcom. So the
+      formulation contrast lives inside the Omnipod half of the cohort and says nothing about
+      the other half, and "unrecorded" must never be treated as a third formulation group —
+      it is a different pump, sensor and dosing strategy. Missingness that correlates
+      perfectly with a device is not missing at random.
+    - **Six people record more than one brand** (dominant share 0.81–0.9999) and the export
+      assigns one curve per person from the most frequent, so a genuine mid-window
+      formulation change is modelled as if it had not happened.
+
+    Method note: a group-comparison subtitle that picks `crosstab.index[0]` and calls it a
+    difference printed "the groups differ on bolus 92% vs 95%" — which is a MATCH. Name the
+    category you mean and say whether it matches.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
