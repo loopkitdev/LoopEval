@@ -198,7 +198,7 @@ def f12_insulin_joint(panels, co):
     ax[0][1].axvline(0, color=S.INK, lw=1.3)
     ax[0][1].set_xlabel("mean velocity shift, top minus bottom quintile (mg/dL / 5 min)",
                         fontsize=9.5, color=S.INK2)
-    ax[0][1].set_title("Top quintile shifts the mean by one SD",
+    ax[0][1].set_title("Top quintile shifts the mean by about half an SD",
                        fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
 
     S.strip_kde(ax[0][2], [x[1] for x in spreads], cols, fmt="{:.2f}")
@@ -247,11 +247,18 @@ def f12_insulin_joint(panels, co):
         A.set_ylabel("standardised sample quantile", fontsize=9.5, color=S.INK2)
         A.set_title(ttl, fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
 
+    # Compute the headline off the same arrays the panels draw, so the
+    # subtitle cannot outlive the cohort (lesson 23).
+    _sh = np.array([x[1] for x in shifts], dtype=float)
+    _rt = np.array([x[1] for x in spreads], dtype=float)
+    _w = pd.read_csv(S.OUT / "wholerecord.csv").set_index("alias")["v_sd"]
+    _rel = np.array([x[1] / _w[a] for a, x in zip(al, shifts) if a in _w.index])
     S.title(fig, "12 · Insulin activity against velocity",
             "Insulin activity is slow, smooth and strongly autocorrelated — its memory runs for hours where velocity's runs for minutes. "
-            "Going from the lowest to the highest\ninsulin-activity quintile moves mean velocity by roughly one velocity SD and widens the spread by "
-            "half again. Read that as association, not effect: the controller doses\nin response to glucose, so the conditioning is endogenous — "
-            "one person (bddp08) even comes out positive. Subtracting insulin off does not simplify the shape.")
+            f"Going from the lowest to the highest\ninsulin-activity quintile moves mean velocity by {np.median(_sh):.2f} mg/dL per 5 min — "
+            f"{abs(np.median(_rel)):.2f} of the person's own increment SD — and widens the spread\nby {np.median(_rt):.2f}×. Read that as "
+            f"association, not effect: the controller doses in response to glucose, so the conditioning is endogenous, and "
+            f"{int((_sh > 0).sum())} of {len(_sh)}\npeople come out with the sign reversed. Subtracting insulin off does not simplify the shape.")
     S.save(fig, "12_insulin_joint",
            dict(left=0.06, right=0.985, top=0.845, bottom=0.075, hspace=0.42, wspace=0.30))
 

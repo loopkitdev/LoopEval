@@ -379,6 +379,60 @@ def raw_runs(alias: str, minlen: int = 12):
     return _RAW_CACHE[alias]
 
 
+def restoring_force(panel, edges, minn: int = 40, lagged: bool = True):
+    """Mean FORWARD increment as a function of glucose — the restoring force.
+
+    `panel["v"]` is ``bg.diff()``, the increment that ARRIVED at the current
+    reading. Averaging it against the current level answers "how did I get
+    here", which for a mean-reverting series is the mirror image of the
+    restoring force: it rises with glucose because you reach a high level by
+    rising. Figures 03 and 04 read it that way until 2026-09-16 and so showed
+    the reflection of the quantity their captions described.
+
+    The restoring force is the increment that LEAVES: E[bg(t+1) - bg(t) | level].
+    With `lagged` (the default) the level is bg(t-1) rather than bg(t), so the
+    sensor error in the conditioning reading is not also inside the increment
+    being averaged — conditioning on bg(t) couples them and biases the slope
+    toward zero. Returns ``(x, mean, sd, n)`` on the bin centres that clear
+    `minn` samples; mean and sd are per five minutes.
+    """
+    import numpy as np
+    import pandas as pd
+    b = panel["bg"].to_numpy(dtype=float)
+    v = panel["v"].to_numpy(dtype=float)
+    fwd = np.concatenate([v[1:], [np.nan]])          # bg(t+1) - bg(t)
+    lvl = np.concatenate([[np.nan], b[:-1]]) if lagged else b
+    ctr = 0.5 * (edges[:-1] + edges[1:])
+    i = np.digitize(lvl, edges) - 1
+    ok = (i >= 0) & (i < len(ctr)) & np.isfinite(fwd) & np.isfinite(lvl)
+    g = pd.DataFrame({"i": i[ok], "y": fwd[ok]}).groupby("i")["y"]
+    m, sd, n = g.mean(), g.std(), g.size()
+    keep = n >= minn
+    m, sd, n = m[keep], sd[keep], n[keep]
+    return ctr[m.index], m.to_numpy(), sd.to_numpy(), n.to_numpy()
+
+
+def set_point(x, y, lo: float = 80.0, hi: float = 300.0):
+    """(zero-crossing, pull-back strength) of a restoring-force curve.
+
+    Returns ``(nan, nan)`` unless the fit is a genuine pull-back — negative
+    slope — whose crossing lands inside the glucose range actually observed.
+    The unguarded version put one person's set point at -60,000 mg/dL and took
+    figure 04's third panel with it.
+    """
+    import numpy as np
+    sel = (x > lo) & (x < hi)
+    if sel.sum() < 5:
+        return float("nan"), float("nan")
+    slope, intercept = np.polyfit(x[sel], y[sel], 1)
+    if slope >= 0:
+        return float("nan"), float("nan")
+    cross = -intercept / slope
+    if not (x[sel].min() <= cross <= x[sel].max()):
+        return float("nan"), float("nan")
+    return float(cross), float(-slope * 1000)
+
+
 def raw_lag(alias: str, minutes: float) -> int:
     """How many native samples correspond to `minutes` for this dataset."""
     _, cad = raw_runs(alias)

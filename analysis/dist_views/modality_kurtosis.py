@@ -315,7 +315,7 @@ def figure(df: pd.DataFrame) -> None:
     S.title(fig, "24 · The tail is not a mixture of meals and nights",
             "Every increment carries the state it happened in — local time of day, whether carbs were on board, how much insulin was acting. If the fat tail "
             f"came from pooling those states,\ndividing each increment by the spread of its OWN state would remove it. Across {n} people it removes nothing "
-            "(median excess kurtosis 2.71 raw, 2.88 conditioned), while the same increments\nconditioned on recent volatility — a latent quantity, not a "
+            f"(median excess kurtosis {df['k_raw'].median():.2f} raw, {df['k_all3'].median():.2f} conditioned), while the same increments\nconditioned on recent volatility — a latent quantity, not a "
             "named one — lose about a quarter of it. Read the middle panel for why: the fat tail is not where the eating is.")
     S.save(fig, "24_modality", dict(left=0.055, right=0.985, top=0.70, bottom=0.135, wspace=0.30))
 
