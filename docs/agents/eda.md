@@ -651,6 +651,41 @@ glucose, not the story of how it was measured. Therefore:
     difference printed "the groups differ on bolus 92% vs 95%" — which is a MATCH. Name the
     category you mean and say whether it matches.
 
+47. **Age is available for 151 of 159, and a rank correlation hides what it does**
+    (2026-09-16, `pull_age.py` → `age.csv`, `age_views.py` → figure 28). `seagull_profiles.birthday`
+    and `patients.birthDate` between them cover 156 donors and **agree to the day for 58 of the
+    60 who have both** — far better coverage than [[lesson 36]]'s 45-of-84 suggested. Median age
+    **35**, p10–p90 16–60, **27 under 18 and seven under 13**, nine at 65+. Demographic columns
+    only; the identity columns sit in the same tables ([[lesson 41]]).
+
+    - **Spearman across the whole age range reports rho = −0.03 for daily dose and finds
+      nothing.** The relationship is not monotone: <13 takes **20.5 U**, 13–17 **48.7** (the
+      highest of anyone), 18–25 46.6, 26–49 39.7, 50+ 42.7. Banded, p = 0.017. **Check
+      monotonicity before trusting a rank statistic's null** — pooling children with
+      adolescents cancels the two effects against each other.
+    - **The under-13 half-dose survives the instrument control**: 20.5 vs 42.6 U pooled
+      (p = 0.003), and 21.4 vs 40.1 within Omnipod alone (p = 0.03, n = 6). Body size, and it
+      accounts for part of the cohort's 9–184 U spread.
+    - **The apparent age gradient in zero-delivery bins is the PUMP.** Pooled it is strong
+      (40.7% under 13 down to 29.0% over 50, p = 0.001) — but **Omnipod users are a median 24
+      and twiist users 41**, Omnipod zero-temps 39% of bins against twiist's 30%, and inside
+      either pump the gradient is gone (p = 0.24, 0.30). Age is confounded with the device in
+      this cohort, so every age gradient needs the within-pump re-test, run with the SAME
+      statistic as the pooled one (I first re-tested with Spearman — the statistic the figure
+      exists to reject).
+    - **Growth does not show.** Drift by band p = 0.73; under-13s run +3.4% per 30 days against
+      +0.5%, the right direction and no power at seven people.
+    - **A profile birthday really can be the account holder's**, and here it is provable: two
+      records gave an age under three alongside a daily dose above 60 U. Excluded. Use a
+      plausibility floor, disclose it, and do not then treat the survivors as clean.
+    - **Weight is nowhere in the record**, which is what daily dose actually scales with, so
+      "children take less" is the end of the road for that question here.
+
+    Consequence for the glucose document: its cohort read-box asserted "the records carry no
+    age, sex, weight or location". Age is now known and the sentence was corrected rather than
+    quietly dropped — a document that says a thing is unknowable has to be revisited when it
+    stops being.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and

@@ -458,3 +458,65 @@ else:
             p_ = (f"p={mannwhitneyu(a_, b_).pvalue:.2f}" if mannwhitneyu else "")
             print(f"    {c_:16s} rapid {a_.median():8.3f} (n={len(a_)})   "
                   f"ultra {b_.median():8.3f} (n={len(b_)})   {p_}")
+
+
+# ---------------------------------------------------------------- tier G
+hdr("TIER G — age")
+_ap = OUT / "age.csv"
+if not _ap.exists():
+    print("  age.csv missing — run pull_age.py")
+else:
+    ag = pd.read_csv(_ap)
+    MIN_AGE = 3.0          # below this the profile date is the account holder's
+    print(f"  donors with an age               {int(ag.age_years.notna().sum())} of {len(co)}")
+    imp = ag[ag.age_years.between(0, MIN_AGE, inclusive="left")]
+    print(f"  implausible (< {MIN_AGE:.0f} y)                {len(imp)}  {list(imp.alias)}")
+    a = ag.loc[ag.age_years >= MIN_AGE, "age_years"]
+    q(a, "age at window midpoint, years", "{:.0f}")
+    print(f"  under 18 / under 13 / 65+        {int((a < 18).sum())} / "
+          f"{int((a < 13).sum())} / {int((a >= 65).sum())}")
+    print(f"  source                           {ag.source.value_counts().to_dict()}")
+    print(f"  grantorType                      {ag.grantor.value_counts(dropna=False).to_dict()}")
+    if (OUT / "delivery.csv").exists():
+        dl = (pd.read_csv(OUT / "delivery.csv")
+                .merge(ag[["alias", "age_years"]], on="alias", how="left")
+                .merge(co[["alias", "pump"]], on="alias", how="left"))
+        dl = dl[dl.age_years >= MIN_AGE].copy()
+        BANDS, LABELS = [0, 13, 18, 26, 50, 200], ["<13", "13-17", "18-25", "26-49", "50+"]
+        dl["band"] = pd.cut(dl.age_years, BANDS, labels=LABELS, right=False)
+        print("\n  medians by band:")
+        print(dl.groupby("band", observed=True)[
+            ["tdd", "tdd_cv", "zero_frac", "conc1", "trend_pct_30d"]]
+            .median().round(2).to_string().replace("\n", "\n    "))
+        try:
+            from scipy.stats import kruskal, mannwhitneyu, spearmanr
+            print("\n  pooled across bands, then re-tested inside one pump:")
+            for c_ in ("tdd", "tdd_cv", "zero_frac", "conc1", "trend_pct_30d"):
+                g = [x[c_].dropna().to_numpy() for _, x in dl.groupby("band", observed=True)]
+                g = [x for x in g if len(x) >= 3]
+                line = f"    {c_:14s} pooled p={kruskal(*g).pvalue:.4f}"
+                for pu, gg in dl.groupby("pump"):
+                    if len(gg) < 25:
+                        continue
+                    h = [x[c_].dropna().to_numpy() for _, x in gg.groupby("band", observed=True)]
+                    h = [x for x in h if len(x) >= 3]
+                    if len(h) >= 3:
+                        line += f"   {pu} p={kruskal(*h).pvalue:.3f}"
+                print(line)
+            u13 = dl.loc[dl.age_years < 13, "tdd"].dropna()
+            rest = dl.loc[dl.age_years >= 13, "tdd"].dropna()
+            print(f"\n  TDD under 13 vs 13+             {u13.median():.1f} (n={len(u13)}) vs "
+                  f"{rest.median():.1f} (n={len(rest)})  p={mannwhitneyu(u13, rest).pvalue:.4f}")
+            om = dl[dl.pump.eq("Omnipod")]
+            a_, b_ = (om.loc[om.age_years < 13, "tdd"].dropna(),
+                      om.loc[om.age_years >= 13, "tdd"].dropna())
+            if len(a_) >= 3:
+                print(f"    ... within Omnipod            {a_.median():.1f} (n={len(a_)}) vs "
+                      f"{b_.median():.1f} (n={len(b_)})  p={mannwhitneyu(a_, b_).pvalue:.4f}")
+            r_, p_ = spearmanr(dl.age_years, dl.tdd)
+            print(f"  TDD vs age, whole range (rank)   rho {r_:+.2f}  p={p_:.3f}"
+                  "   <- the monotone statistic finds nothing")
+            print(f"  age by pump (median)             "
+                  f"{dl.groupby('pump')['age_years'].median().round(0).to_dict()}")
+        except ImportError:
+            pass
