@@ -101,9 +101,11 @@ pool-matched group alone is labelled where it appears.</p></div>
 devices and chose to donate. Read every number here as describing <em>people who
 chose an automated system, donated their data, and kept it running</em>. That is a
 selected group, spending more of the day between 70 and 180&nbsp;mg/dL than a
-general population with type 1 diabetes does, and equipped differently. The
-records carry no age, sex, weight or location, so nothing here is adjusted for
-any of them and no claim here is a population estimate.</p></div>
+general population with type 1 diabetes does, and equipped differently. It is
+also younger than a reader might assume — a median age of <strong>35</strong>,
+with <strong>27 of them under 18</strong> and seven under 13. Nothing here is
+adjusted for age, and sex, weight and location are absent from the record
+altogether, so no claim here is a population estimate.</p></div>
 </div>
 <figure><img alt="Three panels describing the cohort: time in range across people, mean glucose against CV, and the composition by sensor, dosing strategy and carb announcement" src="{{FIG:00_population}}">
 <figcaption><b>00</b> · Left, time in range across the 159 people — the dot strip is one person each, the bar their p10&ndash;p90, with the donor pool's distribution behind. Middle, where each person sits on level and variability. Right, what they run: sensor, how the system delivers, and how much carbohydrate they announce.</figcaption></figure>

@@ -61,6 +61,8 @@ mg/dL of BG-lowering per five minutes.</p>
     <div class="n">Correlation of consecutive daily totals. Essentially no weekly cycle either.</div></div>
   <div class="cell"><div class="k">Rapid / ultra-rapid / unrecorded</div><div class="v">52 / 20 / 87</div>
     <div class="n">People, by recorded insulin brand. No delivery statistic separates the first two.</div></div>
+  <div class="cell"><div class="k">Median age, and under 18</div><div class="v">35 · 27</div>
+    <div class="n">Years, and how many are children. Under-13s take half the daily dose of everyone else.</div></div>
 </div>
 </section>
 
@@ -226,6 +228,59 @@ formulation change is modelled as if it had not happened.</p>
 <hr>
 
 <section>
+<p class="eyebrow">Fig 28 · Age</p>
+<h2>Under thirteen is half the dose; from thirteen to seventy-nine it is flat</h2>
+<div class="col">
+<p>Age is not in the device record at all, but it is in the account profile, and
+it is readable for <strong>151</strong> of the people with delivery data. The
+cohort is younger than a reader might assume: median <strong>35</strong>, middle
+80% between 16 and 60, and <strong>27 under 18</strong> of whom seven are under
+13. Two independent sources carry a date of birth for 60 of them and agree to
+the day for 58.</p>
+<p><strong>Children under 13 take about half the insulin of everybody else</strong>
+— a median <strong>20.5&nbsp;units</strong> a day against
+<strong>42.6</strong>. That is the one age effect here that holds up when the
+device is controlled for: restricted to Omnipod users alone it is 21.4 against
+40.1. Body size is the obvious mechanism and it needs no more explanation than
+that; the reason to state it is that it accounts for part of the enormous spread
+in daily dose this document reports, and any model of insulin requirement fitted
+across this cohort has a paediatric tail in it.</p>
+<div class="read"><p><strong>Above 13, the daily total does not track age at
+all.</strong> Adolescents are the highest of anyone at a median 48.7&nbsp;units,
+then 46.6 for 18–25, 39.7 for 26–49 and 42.7 for the over-50s — no trend, and
+the adolescent peak is what puberty is expected to do but is not established at
+twenty people. Across the whole age range a rank correlation between age and
+daily dose returns <strong>&minus;0.03</strong>: the relationship is not
+monotone, so the statistic that assumes it is finds nothing where a banded test
+finds a difference.</p></div>
+<h3>Nothing else about delivery is age</h3>
+<p>Day-to-day variation in the daily total does not move with age
+(p&nbsp;=&nbsp;0.37), nor does the burst concentration (p&nbsp;=&nbsp;0.90).
+Drift over the window does not either (p&nbsp;=&nbsp;0.73) — the under-13s run
++3.4% per 30 days against roughly +0.5% for the rest, which is the direction
+growth predicts and nowhere near significance at seven people.</p>
+<div class="read"><p>One apparent age effect is the pump. The share of
+five-minute bins delivering nothing falls steadily across the age bands, 40.7%
+under 13 to 29.0% over 50, and pooled that is a strong result
+(p&nbsp;=&nbsp;0.001). It does not survive: <strong>Omnipod users are a median 24
+years old and twiist users 41</strong>, Omnipod zero-temps 39% of bins against
+twiist's 30%, and inside either pump the age gradient is gone
+(p&nbsp;=&nbsp;0.24 and 0.30). It is the device, not the child.</p></div>
+<p class="foot">Ages are approximate. The profile date can belong to the account
+holder rather than the wearer, which is not a hypothetical here: two records
+gave an age under three alongside a daily dose above 60&nbsp;units, and were
+dropped as the parent's date rather than the child's. The consent record's
+stated age band corroborates the computed one for most of the 69 who have both,
+and the mismatches are consistent with consent having been given years before
+this window rather than with a wrong date.</p>
+</div>
+<figure><img alt="Four panels: the cohort's age distribution, and total daily dose, zero-delivery bins and drift by developmental age band" src="{{FIG:28_age}}">
+<figcaption><b>28</b> · Left, the age distribution, one point per person. The other three panels give a delivery statistic by developmental band, with the pooled test across bands and the same test re-run inside a single pump — the check that separates an age effect from a device effect.</figcaption></figure>
+</section>
+
+<hr>
+
+<section>
 <p class="eyebrow">Fig 23 · Trait or state</p>
 <h2>Almost nothing on this side moves week to week</h2>
 <div class="col">
@@ -297,6 +352,11 @@ present for 72 people and every one of them gets the matching curve; the other
 is in fact on an ultra-rapid analogue their activity is placed later than it
 really occurred. Amounts are unaffected; anything timing-sensitive carries that
 error.</li>
+<li><strong>Age is approximate and weight is absent.</strong> Age comes from an
+account profile that can carry the holder's date rather than the wearer's, and
+is missing for a few; body weight — which is what daily dose actually scales
+with — is nowhere in the record, so "children take less" is as far as this data
+can take that question.</li>
 <li><strong>Association, not effect.</strong> Dose responded to state. Nothing
 here identifies what would happen if it responded differently.</li>
 <li><strong>Only eleven records are individually validated.</strong> Those had
