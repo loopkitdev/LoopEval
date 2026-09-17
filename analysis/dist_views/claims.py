@@ -390,3 +390,32 @@ q(action, "  insulin action", "{:.3f}")
 q(vel, "  velocity (the residual)", "{:.3f}")
 if appear and action:
     print(f"  insulin action's share of the rise {100*np.median(action)/np.median(appear):.0f}%")
+
+
+# ---------------------------------------------------------------- tier E
+hdr("TIER E — delivery (the insulin document's subject)")
+_dp = OUT / "delivery.csv"
+if not _dp.exists():
+    print("  delivery.csv missing — run delivery.py")
+else:
+    dl = pd.read_csv(_dp)
+    print(f"  people with >= 30 complete days   {len(dl)} of {len(co)}")
+    q(dl["zero_frac"], "5-min bins delivering nothing %", "{:.1f}")
+    q(dl["med_nonzero"], "median non-zero bin, U", "{:.3f}")
+    q(dl["p99"], "99th percentile bin, U", "{:.2f}")
+    q(dl["mx"], "largest bin, U", "{:.1f}")
+    q(dl["bolus_buckets"], "bins carrying a bolus %", "{:.1f}")
+    q(dl["conc1"], "share in busiest 1% of bins %", "{:.1f}")
+    q(dl["tdd"], "total daily dose, U", "{:.1f}")
+    q(dl["tdd_cv"], "day-to-day CV of that total %", "{:.1f}")
+    q(dl["ac1"], "lag-1 correlation of daily totals", "{:.2f}")
+    q(dl["ac7"], "lag-7 correlation of daily totals", "{:.2f}")
+    q(dl["trend_pct_30d"], "drift % of own mean per 30 d", "{:+.1f}")
+    print(f"  rising / falling                  {int((dl.trend_pct_30d > 0).sum())} / "
+          f"{int((dl.trend_pct_30d <= 0).sum())}")
+    print(f"  |drift| > 5% per 30 d             {int((dl.trend_pct_30d.abs() > 5).sum())}")
+    _st = co.set_index("alias")["strategy"].reindex(dl["alias"])
+    print("\n  by strategy (median):")
+    print(dl.assign(s=_st.to_numpy()).groupby("s")[
+        ["zero_frac", "bolus_buckets", "conc1", "tdd", "tdd_cv"]]
+        .median().round(2).to_string().replace("\n", "\n    "))

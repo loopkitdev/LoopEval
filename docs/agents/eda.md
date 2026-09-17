@@ -586,6 +586,35 @@ glucose, not the story of how it was measured. Therefore:
       "1 in 709 interrupted automatic boluses" in it, measured on 67 donors over 120 days —
       a different sample entirely (lesson 27). Made qualitative instead.
 
+45. **Describe the signal, not its labels** (Pete, 2026-09-16). The insulin document's first
+    version was built around "basal share has two answers, and the strategy decides which one
+    you got" — a real finding ([[lesson 9]]) and the wrong centre for a document called The
+    Shape of Insulin, because a basal/bolus label is a forecast convention. Describing insulin
+    by its labels describes the **dosing strategy** instead of the insulin. The subject is the
+    AMOUNT delivered: in a five-minute bin, across a day, and over the window. The accounting
+    point survives as one small-print paragraph beside the figure that plots it.
+
+    Rebuilt on that footing (`delivery.py`, `delivery.csv`, figures 25 and 26; delivery in a
+    bin is `basal_eff/12 + bolus_u`, and a day needs 240+ of its 288 bins to carry a total,
+    which is why 156 of 159 qualify):
+    - **Delivery is sparse and bursty.** 33% of bins deliver nothing (range 2–65%); a bin that
+      delivers anything delivers a median **0.11 U** with a 99th percentile of 1.6 and a
+      cohort maximum of 47; and **the busiest 1% of bins carry 25% of all the insulin**
+      (7–59%). That concentration is 25% for temp-basal users and 26% for automatic-bolus
+      ones — **the burst structure is not a labelling artefact**, which is the cleanest
+      vindication of dropping the label as an organising idea.
+    - **The daily total is simultaneously a trait and unpredictable.** Median 42 U (9–184);
+      within one person the day-to-day CV is **20%** (9–45%); consecutive daily totals
+      correlate at only **0.21** and at a week's lag **0.05** — no weekly rhythm. Yet its
+      weekly-block ICC is 0.94. A person's requirement is a firm property of them and a poor
+      prediction of their tomorrow.
+    - **The cohort does not drift but a quarter of individuals do.** Median +0.3% per 30 days,
+      83 of 156 rising; **41 of 156 move more than 5% per 30 days**.
+    - **Time of day has one feature and it is night**: 00:00–06:00 runs at 0.72 of the daily
+      mean against 1.15 for 10:00–22:00, a per-person ratio of 1.65× (1.20–2.46). There is no
+      peak hour — naming one ("peak 21:00") misdescribed a broad daytime plateau, so quote
+      blocks rather than argmax when a profile is flat-topped. Local time only ([[lesson 37]]).
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
