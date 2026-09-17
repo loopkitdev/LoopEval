@@ -686,6 +686,60 @@ glucose, not the story of how it was measured. Therefore:
     quietly dropped — a document that says a thing is unknowable has to be revisited when it
     stops being.
 
+48. **The cohort had never been screened for synthetic or damaged data on either stream, and
+    now it has** (Pete asked, 2026-09-16; `integrity.py` → `integrity.csv`, 33 checks over 159
+    people). What existed before was a point-outlier filter on the glucose increment
+    ([[lesson 21]]'s 8 mg/dL/min guard), ONE hardcoded window trim for the single donor whose
+    dual-sensor problem was noticed by accident, and nothing at all on insulin. Do not mistake
+    a despiker for a screen.
+
+    **Clean cohort-wide, every person, zero exceptions:** duplicate (time, value) glucose
+    pairs, backwards timestamps, duplicate (time, amount) boluses, overlapping basal records.
+    The ETL's dedup and the HealthKit-mirror fix hold.
+
+    **Every alarming signal resolved to something real, and three of my own checks were wrong
+    before they were right:**
+    - **1,421 samples/day and 99.5% of gaps under two minutes** (bddp03) is a **1-minute
+      sensor**, not corruption — exactly what [[lesson 3]] says to expect. `raw_runs` detects
+      cadence per dataset, so the process statistics were never affected. A per-day sample
+      count is a cadence detector, not an integrity check.
+    - **Flat runs up to 314 samples** (26 h of one identical value) are ALL pinned at the
+      sensor ceiling — real excursions being clamped. Split the check at the clamps and the
+      longest flat run away from them is **45 samples** cohort-wide, median 8: **there are no
+      stuck sensors in this cohort.**
+    - **Recurring blocks up to 192 samples** were 99% ceiling with a single differing sample
+      at the start, so a "must not be constant" test passed them. With a distinct-value floor
+      of 6 the maximum recurring varying block is **24 samples**, on the 1-minute donor, which
+      is chance at 86,686 samples. **No copy-paste or generated structure anywhere.**
+    - `off_lattice` flagged 100% of people until I noticed the lattice has an OFFSET — values
+      round-trip through mmol/L and land at 39.01, 40.01, … so testing multiples of the step
+      from zero flags everyone.
+    - `basalType` is `"scheduled"` on every ETL basal row regardless of temping, so the share
+      of it measures nothing. Ask the panel's `basal_eff` vs `basal_sched` instead — median
+      time exactly at schedule is **2.3%**, so the automation really is working.
+    - A Loop bolus is a computed real number even when the user confirms it, so "share of
+      manual boluses off a 0.05 U grid" is 45% and discriminates nothing. Round-number
+      preference is not available as a tell here.
+
+    **The cross-stream check is the strong one.** For the 90 people with a ceiling stretch, the
+    loop delivered a mean **2.4× its own average rate** during it — and every single one is
+    above 1.0. A sensor stuck at 401 that the controller ignored would show a ratio near 1;
+    none does. The most extreme case (37 continuous hours at the ceiling) is corroborated by
+    the dose stream rather than contradicted by it.
+
+    **Two records to know about before using them**, neither provably wrong:
+    - **t03** is the extreme on several insulin axes at once — basal rates to 21 U/hr, 95 hours
+      above 15 U/hr, ~100 U/day from basal alone, 13% of readings at the ceiling. Coherent as a
+      severely insulin-resistant person running high (its ceiling-delivery ratio is 1.09
+      because it was already at maximum), but check it before it drives anything.
+    - **h22 and h20** have **45 and 36 days with no insulin delivered at all**, 28 and 21 of
+      those with substantial CGM. They pass eligibility on source CGM wear while their PANEL
+      retention is 41–54%, so their insulin statistics rest on a minority of their record.
+      I checked whether those days leak into the published totals as TDD = 0 — they do not:
+      one person cohort-wide has a single such day and the medians are unchanged to two
+      decimals, because `delivery.py`'s 240-bin gate happens to exclude them. A near miss
+      worth a deliberate gate rather than a lucky one.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
