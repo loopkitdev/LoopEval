@@ -50,7 +50,11 @@ def table(co: pd.DataFrame) -> pd.DataFrame:
         bol = c["bolus_u"].fillna(0).to_numpy()
         day = pd.Series(tot, index=c.index).resample("1D").sum()
         n = pd.Series(1, index=c.index).resample("1D").sum()
-        day = day[n > MIN_BINS_PER_DAY]
+        # The panel has a row every 5 minutes whether or not insulin was
+        # recorded, so a CGM-only day would otherwise contribute a total of
+        # zero. Two donors have 30+ such days; the bin gate happens to exclude
+        # them, which is luck rather than a rule (integrity.py, lesson 48).
+        day = day[(n > MIN_BINS_PER_DAY) & (day > 0)]
         if len(day) < MIN_DAYS:
             continue
         srt = np.sort(tot)[::-1]
