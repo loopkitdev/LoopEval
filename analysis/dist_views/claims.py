@@ -357,3 +357,36 @@ q(pre_lo, "  below 70 before a gap %", "{:.1f}")
 q(post_lo, "  below 70 overall %", "{:.1f}")
 q(pre_hi, "  above 250 before a gap %", "{:.1f}")
 q(post_hi, "  above 250 overall %", "{:.1f}")
+
+
+# ---------------------------------------------------------------- tier D
+hdr("TIER D — the restoring force (forward increment, lagged level)")
+edges = np.linspace(40, 340, 46)
+cross, stiff, appear, action, vel = [], [], [], [], []
+for a in aliases:
+    try:
+        c = D.clean(S.load(a))
+    except Exception:
+        continue
+    x, m, _, _ = S.restoring_force(c, edges)
+    if len(x) < 8:
+        continue
+    cx, st = S.set_point(x, m)
+    if np.isfinite(cx):
+        cross.append(cx)
+        stiff.append(st)
+    f = lambda y: np.polyfit(c["bg"], y * 12, 1)[0]
+    appear.append(f(c["ice_abs"]))
+    action.append(f(c["ia_abs"]))
+    vel.append(f(c["v"]))
+
+print(f"  people with a usable pull-back  {len(cross)} of {len(aliases)}")
+q(cross, "set point (zero-crossing) mg/dL", "{:.0f}")
+q(stiff, "pull-back strength x1e-3 per 5 min", "{:.1f}")
+print()
+print("  slopes against glucose, mg/dL/hr per mg/dL:")
+q(appear, "  non-insulin appearance", "{:.3f}")
+q(action, "  insulin action", "{:.3f}")
+q(vel, "  velocity (the residual)", "{:.3f}")
+if appear and action:
+    print(f"  insulin action's share of the rise {100*np.median(action)/np.median(appear):.0f}%")

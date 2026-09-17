@@ -541,6 +541,41 @@ glucose, not the story of how it was measured. Therefore:
     `screen.csv`, so the eligibility gate drops them on missing data rather than on a
     decision. The study is now BDDP-only; that was not chosen.
 
+44. **The study is FOUR documents now, and the split found a bug that the single page had
+    hidden** (2026-09-16). `page.py` holds the shared chrome and a companion-link strip;
+    `doc_glucose.py` / `doc_insulin.py` / `doc_conditioning.py` / `doc_counteraction.py` each
+    own one body; `make_artifact.py` builds all four. Still run `web_figs.py` first.
+
+    **Figures 03 and 04 were measuring the mirror image of their own captions.**
+    `panel["v"]` is `bg.diff()` — the increment that ARRIVED at the current reading — so
+    `E[v | bg]` answers "how did I get here", which for a mean-reverting series rises with
+    glucose because you reach a high level by rising. The restoring force is the increment
+    that LEAVES. Both curves cross zero near the same place, which is exactly why two years
+    of captions saying "it slopes downward" sat above a panel sloping upward without anyone
+    noticing. Corrected (`style.restoring_force`), the force falls from about +7 mg/dL/hr at
+    a glucose of 50 to −2 above 300, **156 of 159 people** have a crossing inside their
+    observed range, and the set point runs 94–253 mg/dL (median **152**) with a five-fold
+    independent spread in stiffness — a far better result than the broken version, whose
+    third panel put one person's set point at −60,000 mg/dL. **Condition the forward
+    increment on the PREVIOUS reading**, not the one it starts from: sharing a reading puts
+    its sensor error inside both terms and biases the slope toward zero. When a figure and
+    its caption disagree about a SIGN, believe neither until you have recomputed it.
+
+    Three more of the same family, all found by looking at rendered PNGs beside the data:
+    - **Figure 06's panel title said "falls steeply as glucose rises" while its lines rose.**
+      Appearance does rise, at 0.47 mg/dL/hr per mg/dL — but **84% of that is insulin action's
+      own slope** (0.39), which the identity `appearance = velocity + action` then requires
+      appearance to offset. The residual is 0.06. An "apparent dose-response of endogenous
+      appearance to glucose" is mostly the reflection of the dose.
+    - **Hardcoded figure subtitles rot exactly like prose.** Fig 05 announced "3% to 81%,
+      median 48%" above a panel printing 47% from 159 people; fig 24 announced "2.71 raw,
+      2.88 conditioned" above panels showing 2.57 and 2.71; fig 12 claimed "roughly one
+      velocity SD" for what is 0.44 of it and "one person (bddp08)" for what is now five.
+      All three now compute from the same arrays the panels draw.
+    - **Don't quote another cohort's rate in a document.** The insulin page had lesson 40's
+      "1 in 709 interrupted automatic boluses" in it, measured on 67 donors over 120 days —
+      a different sample entirely (lesson 27). Made qualitative instead.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
