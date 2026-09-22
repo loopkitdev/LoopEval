@@ -412,6 +412,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Phase 2: compute the active-insulin glucose-effect over PHYSICAL delivered insulin (volume) rather than net-basal-units, so a candidate ISF boost amplifies real insulin even when delivery is below scheduled basal. Requires --candidate-isf-boost-active-only. Without it, sub-basal insulin sits in the EGP-credit term and the boost can't reach it (the Mar-29 'negative insulin' case). Default OFF (classic net-basal-units).")
     var candidateEgpPhysical: Bool = false
 
+    @Option(name: .long, help: "PATIENT-side ISF multiplier, decoupled from the controller's ISF belief: pin the simulated body at the donor's SCHEDULED ISF x p while --candidate-sensitivity-multiplier / --candidate-insulin-needs move only what the algorithm believes. p>1 = more sensitive patient (a unit drops BG further). UNSET (default) = coupled, i.e. the plant follows the candidate's ISF, which is how every sweep behaved before this flag. Leave the candidate flags at their field values and sweep this to test the identity invariant: at field settings the counter reproduces the substrate for ANY p, so measured sensitivity to p IS replay infidelity.")
+    var patientSensitivityMultiplier: Double?
+
     @Flag(name: .long, help: "Sim-FIDELITY: infer a local insulin-sensitivity multiplier m(t) from the residual. When BG is still dropping after subtracting the PD-modeled (scheduled-ISF) insulin, the insulin was more effective than scheduled, so scale ISF UP just enough to zero that negative residual (never past it). Applied to the PHYSIOLOGY (ICE + counterfactual dose-effect run at scheduled ISF × m), DECOUPLED from the controller's ISF belief. Capped by --candidate-infer-sensitivity-max. Default OFF.")
     var candidateInferSensitivity: Bool = false
     @Option(name: .long, help: "Cap on the inferred sensitivity multiplier m ('can't subtract more insulin than is physically present'). Default 2.0. Set 1.0 for an identity check (≡ off when sensitivity-multiplier is 1).")
@@ -895,6 +898,7 @@ struct SimulateCommand: AsyncParsableCommand {
             counterRegGain: counterRegGain,
             counterRegMaxRate: counterRegMax,
             cfGapReanchorSec: cfGapReanchorMin * 60,
+            patientSensitivityMultiplier: patientSensitivityMultiplier,
             inferSensitivity: candidateInferSensitivity,
             inferSensitivityMax: candidateInferSensitivityMax,
             inferSensitivityWindowSec: candidateInferSensitivityWindowMin * 60,
