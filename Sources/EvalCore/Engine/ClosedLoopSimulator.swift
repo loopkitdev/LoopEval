@@ -200,6 +200,15 @@ extension EvaluationEngine {
         // is therefore patient-ISF-INVARIANT at identity, and any measured
         // sensitivity to p is a readout of replay infidelity, amplified by p.
         patientSensitivityMultiplier: Double? = nil,
+        // PATIENT ISF as an ABSOLUTE, FLAT value in mg/dL/U, referencing no therapy
+        // configuration at all — not the donor's schedule shape, not its time-of-day
+        // variation, not its dated settings eras. `patientSensitivityMultiplier` SCALES
+        // the configured schedule and therefore inherits all of that; this replaces it.
+        // Use when the simulated body must be an independent object from the settings
+        // the controller was running. Mutually exclusive with the multiplier.
+        // The only thing borrowed from the schedule is its DATE SPAN, which is coverage
+        // (glucoseEffects preconditions on closestPrior(dose.startDate)), not therapy.
+        patientISF: Double? = nil,
         inferSensitivity: Bool = false,
         inferSensitivityMax: Double = 2.0,
         inferSensitivityWindowSec: TimeInterval = 30 * 60,
@@ -370,15 +379,28 @@ extension EvaluationEngine {
         // `scaledSensitivity` (generatePrediction).
         //
         // Three cases, in precedence order:
-        //   1. `patientSensitivityMultiplier` set -> plant pinned at the donor's
-        //      SCHEDULED ISF x p, whatever the controller believes. This is the only
-        //      way to move controller and patient independently.
-        //   2. sensitivity-inference (fidelity) mode -> plant at SCHEDULED ISF, with
+        //   1. `patientISF` set -> plant at a FLAT ABSOLUTE ISF, independent of every
+        //      therapy setting. The body becomes its own object.
+        //   2. `patientSensitivityMultiplier` set -> plant pinned at the donor's
+        //      SCHEDULED ISF x p. Decoupled from the controller, but still inherits the
+        //      schedule's shape, time-of-day variation and settings eras.
+        //   3. sensitivity-inference (fidelity) mode -> plant at SCHEDULED ISF, with
         //      the inferred per-step m(t) correcting it.
-        //   3. default -> COUPLED to the controller (`scaledSensitivity`), i.e. an
+        //   4. default -> COUPLED to the controller (`scaledSensitivity`), i.e. an
         //      ISF-multiplier / insulin-needs sweep moves the body along with the
         //      belief. Preserved as the default so existing sweeps are unchanged.
         let physiologySensitivity: [AbsoluteScheduleValue<LoopQuantity>] = {
+            if let absISF = patientISF {
+                // One entry spanning the schedule's full coverage. Borrowing the span
+                // (not the values) keeps the dose filter below unchanged, so the same
+                // doses are modelled as in every other arm.
+                let from = data.therapyTimeline.sensitivity.first?.startDate ?? interval.start
+                let to = data.therapyTimeline.sensitivity.last?.endDate ?? interval.end
+                return [AbsoluteScheduleValue(
+                    startDate: from, endDate: to,
+                    value: LoopQuantity(unit: mgdlUnit, doubleValue: absISF)
+                )]
+            }
             if let p = patientSensitivityMultiplier {
                 return Self.applySensitivityScaling(
                     data.therapyTimeline.sensitivity,
@@ -389,6 +411,11 @@ extension EvaluationEngine {
             }
             return inferSensitivity ? data.therapyTimeline.sensitivity : scaledSensitivity
         }()
+        if let absISF = patientISF {
+            let schedLo = data.therapyTimeline.sensitivity.map { $0.value.doubleValue(for: mgdlUnit) }.min() ?? 0
+            let schedHi = data.therapyTimeline.sensitivity.map { $0.value.doubleValue(for: mgdlUnit) }.max() ?? 0
+            FileHandle.standardError.write(Data("patient ISF INDEPENDENT of configuration: plant = FLAT \(String(format: "%.4f", absISF)) mg/dL/U (configured schedule \(String(format: "%.2f", schedLo))-\(String(format: "%.2f", schedHi)) is NOT used for the plant; controller still runs it)\n".utf8))
+        }
         if let p = patientSensitivityMultiplier {
             FileHandle.standardError.write(Data("patient ISF DECOUPLED from controller: plant = scheduled ISF x \(String(format: "%.4f", p)) (controller ISF multiplier \(String(format: "%.4f", candidateConfig.sensitivityMultiplier)))\n".utf8))
         }
