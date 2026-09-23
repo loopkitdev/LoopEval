@@ -1275,9 +1275,19 @@ extension EvaluationEngine {
             }
 
             // ISF at this time (in mg/dL/U convention; stored as mg/dL unit per codebase quirk).
-            let isfQty = physiologySensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
-                ?? physiologySensitivity.closestPrior(to: t)?.value
+            //
+            // TWO of them, and they are not interchangeable once the patient ISF is
+            // decoupled. `isf` is the CONTROLLER's belief and is what the trace records
+            // (PredictionRecord.isf is algorithm state, alongside COB/RC/momentum — it is
+            // what case_study.py plots, so it must keep meaning the controller's ISF).
+            // `isfPlant` is the BODY's, and is what converts a dose delta into a BG effect.
+            // They coincide unless --patient-sensitivity-multiplier is set.
+            let isfQty = scaledSensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                ?? scaledSensitivity.closestPrior(to: t)?.value
             let isf = isfQty?.doubleValue(for: mgdlUnit) ?? 0
+            let isfPlantQty = physiologySensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                ?? physiologySensitivity.closestPrior(to: t)?.value
+            let isfPlant = isfPlantQty?.doubleValue(for: mgdlUnit) ?? 0
 
             // Apply Δdose impact to FUTURE counter_mgdl entries.
             //
@@ -1291,7 +1301,7 @@ extension EvaluationEngine {
             // skipped in CF mode because the counter trajectory is no longer
             // a perturbation of actual — it's a fully integrated independent
             // simulation. (Fixed 2026-05-18.)
-            if deltaDose != 0 && isf > 0 && !cfActive {
+            if deltaDose != 0 && isfPlant > 0 && !cfActive {
                 for i in 0..<counterGlucose.count {
                     let futureT = counterGlucose[i].startDate
                     if futureT <= t { continue }
@@ -1302,7 +1312,7 @@ extension EvaluationEngine {
                     } else {
                         pd = max(0.0, min(1.0, 1.0 - insulinModel.percentEffectRemaining(at: τ)))
                     }
-                    counterMgdl[i] -= deltaDose * isf * pd
+                    counterMgdl[i] -= deltaDose * isfPlant * pd
                 }
                 // Append virtual dose entry. Treat Δdose as an instantaneous bolus
                 // at time t. This makes IOB calculations on subsequent steps
