@@ -544,6 +544,23 @@ public struct EvalConfig: Codable, Sendable {
     /// A target shift acts through both delivery paths. The suspend threshold is untouched, so the
     /// low guard is unchanged. 0 (default) = off.
     public var calmHighTargetDelta: Double
+    /// DESCENT-gated RC rise-cut (C32). When BG reached >= descentHighBgMin within
+    /// descentWindowMin AND the trailing 60-min slope is <= descentSlopeMax (falling),
+    /// scale the POSITIVE (unexplained-rise) RC discrepancy by descentRcRiseScale.
+    /// Rationale: RC accumulated during a high is evidence of PAST resistance. Once the
+    /// trace is falling off that high the evidence is stale, and it props the forecast
+    /// up so Loop under-suspends while committed insulin is still landing. This is the
+    /// complement of the post-low gate (which requires BG < postlowRcBgMax). 1.0 = off.
+    public var descentRcRiseScale: Double
+    /// Gate the σ-band on the DESCENT state instead of on σ's own level (C33). When true the
+    /// band fires only while BG has reached descentHighBgMin within descentWindowMin AND the
+    /// trailing 60-min slope is <= descentSlopeMax. Pairs with sigmaBandFixedSigma to remove
+    /// the σ dependence entirely, making the displacement a function of STATE, not volatility
+    /// -- σ was measured to LAG lows, the descent state leads them.
+    public var sigmaBandDescentGate: Bool
+    public var descentHighBgMin: Double
+    public var descentWindowMin: Double
+    public var descentSlopeMax: Double
     /// σ-band BASELINE (mg/dL per 5 min): widen the lower band by k·max(0, σ5 − baseline) instead of
     /// k·σ5. Keyed on absolute σ5 the band is a per-donor forecast offset of 21–49 mg/dL at 60 min at
     /// the donor's own median σ (k=1) — a donor-level aggressiveness bias wearing a state-dependent
@@ -558,6 +575,13 @@ public struct EvalConfig: Codable, Sendable {
     /// control matches C22's lift, the lift is the level offset and not the state signal — the same
     /// control that proved C23's σ gate WAS the mechanism (E11f). 0 (default) = off.
     public var sigmaBandFixedSigma: Double
+    /// GUARD-ONLY σ band (2026-09-17). The band answers a TAIL question (how low might BG go) but Loop reads one
+    /// curve for both the predicted-min GUARD and the POINT correction, so a widened band also shrinks every
+    /// correction — a dial. When true, the banded curve feeds only the guard (predicted min / suspend) and the
+    /// unbanded curve sizes the correction. Measured basis: the realized 10 % downside is ≈k·σ5·(τ/5)^0.71 with
+    /// k≈1 at 60 min on every bed, and it PLATEAUS at ~5–6 σ5 out to 6 h on the lows donors — a shape that can
+    /// only be applied to the guard without lowering eventualBG by ~40 mg/dL. Default false.
+    public var sigmaBandGuardOnly: Bool
 
     /// PREDICTIVE pre-low damper: a strict-causal sustained-sensitivity trigger.
     /// Over a trailing window compute causal ICE = v_bg − v_insulin (BG dropping
@@ -656,8 +680,14 @@ public struct EvalConfig: Codable, Sendable {
         calmHighCobGate: Bool = false,
         calmHighMinSlope: Double = -.infinity,
         calmHighTargetDelta: Double = 0,
+        descentRcRiseScale: Double = 1.0,
+        sigmaBandDescentGate: Bool = false,
+        descentHighBgMin: Double = 180,
+        descentWindowMin: Double = 120,
+        descentSlopeMax: Double = -1.0,
         sigmaBandBaseline: Double = 0,
         sigmaBandFixedSigma: Double = 0,
+        sigmaBandGuardOnly: Bool = false,
         sensDampWindowMin: Double = 45.0,
         sensDampThresholdRate: Double = 0.4,
         sensDampGain: Double = 0.0,
@@ -800,8 +830,14 @@ public struct EvalConfig: Codable, Sendable {
         self.calmHighCobGate                = calmHighCobGate
         self.calmHighMinSlope               = calmHighMinSlope
         self.calmHighTargetDelta            = calmHighTargetDelta
+        self.descentRcRiseScale             = descentRcRiseScale
+        self.sigmaBandDescentGate           = sigmaBandDescentGate
+        self.descentHighBgMin               = descentHighBgMin
+        self.descentWindowMin               = descentWindowMin
+        self.descentSlopeMax                = descentSlopeMax
         self.sigmaBandBaseline              = sigmaBandBaseline
         self.sigmaBandFixedSigma            = sigmaBandFixedSigma
+        self.sigmaBandGuardOnly             = sigmaBandGuardOnly
         self.sensDampWindowMin              = sensDampWindowMin
         self.sensDampThresholdRate          = sensDampThresholdRate
         self.sensDampGain                   = sensDampGain
@@ -890,7 +926,8 @@ public struct EvalConfig: Codable, Sendable {
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
         case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsSmoothGlucose, oapsPumpPulse
-        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, sigmaBandBaseline, sigmaBandFixedSigma
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly
+        case descentRcRiseScale, descentHighBgMin, descentWindowMin, descentSlopeMax, sigmaBandDescentGate
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
 
@@ -1040,8 +1077,14 @@ public struct EvalConfig: Codable, Sendable {
         self.calmHighCobGate = try c.decodeIfPresent(Bool.self, forKey: .calmHighCobGate) ?? false
         self.calmHighMinSlope = try c.decodeIfPresent(Double.self, forKey: .calmHighMinSlope) ?? -.infinity
         self.calmHighTargetDelta = try c.decodeIfPresent(Double.self, forKey: .calmHighTargetDelta) ?? 0
+        self.descentRcRiseScale = try c.decodeIfPresent(Double.self, forKey: .descentRcRiseScale) ?? 1.0
+        self.sigmaBandDescentGate = try c.decodeIfPresent(Bool.self, forKey: .sigmaBandDescentGate) ?? false
+        self.descentHighBgMin = try c.decodeIfPresent(Double.self, forKey: .descentHighBgMin) ?? 180
+        self.descentWindowMin = try c.decodeIfPresent(Double.self, forKey: .descentWindowMin) ?? 120
+        self.descentSlopeMax = try c.decodeIfPresent(Double.self, forKey: .descentSlopeMax) ?? -1.0
         self.sigmaBandBaseline = try c.decodeIfPresent(Double.self, forKey: .sigmaBandBaseline) ?? 0
         self.sigmaBandFixedSigma = try c.decodeIfPresent(Double.self, forKey: .sigmaBandFixedSigma) ?? 0
+        self.sigmaBandGuardOnly = try c.decodeIfPresent(Bool.self, forKey: .sigmaBandGuardOnly) ?? false
         self.sensDampWindowMin = try c.decodeIfPresent(Double.self, forKey: .sensDampWindowMin) ?? 45.0
         self.sensDampThresholdRate = try c.decodeIfPresent(Double.self, forKey: .sensDampThresholdRate) ?? 0.4
         self.sensDampGain = try c.decodeIfPresent(Double.self, forKey: .sensDampGain) ?? 0.0
@@ -1185,8 +1228,14 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(calmHighCobGate, forKey: .calmHighCobGate)
         try c.encode(calmHighMinSlope.isFinite ? calmHighMinSlope : -1e30, forKey: .calmHighMinSlope)
         try c.encode(calmHighTargetDelta, forKey: .calmHighTargetDelta)
+        try c.encode(descentRcRiseScale, forKey: .descentRcRiseScale)
+        try c.encode(sigmaBandDescentGate, forKey: .sigmaBandDescentGate)
+        try c.encode(descentHighBgMin, forKey: .descentHighBgMin)
+        try c.encode(descentWindowMin, forKey: .descentWindowMin)
+        try c.encode(descentSlopeMax, forKey: .descentSlopeMax)
         try c.encode(sigmaBandBaseline, forKey: .sigmaBandBaseline)
         try c.encode(sigmaBandFixedSigma, forKey: .sigmaBandFixedSigma)
+        try c.encode(sigmaBandGuardOnly, forKey: .sigmaBandGuardOnly)
         try c.encode(sensDampWindowMin, forKey: .sensDampWindowMin)
         try c.encode(sensDampThresholdRate, forKey: .sensDampThresholdRate)
         try c.encode(sensDampGain, forKey: .sensDampGain)

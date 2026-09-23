@@ -853,6 +853,9 @@ public actor EvaluationEngine {
         evalStep: TimeInterval,
         applicationFactor: Double = 0.4,
         softLowGate: Bool = false,
+        // Guard-only sigma band: when non-nil, THIS (banded) curve decides the suspend check and supplies the
+        // predicted MIN that gates the auto-bolus, while `prediction.glucose` (unbanded) sizes the correction.
+        guardPrediction: [PredictedGlucoseValue]? = nil,
         // Predicted-min cutoff (mg/dL) below which the auto-bolus gate engages. nil = the
         // correction-range floor (standard Loop). e.g. 80 keeps the full application factor for
         // predicted minimums down to 80 before gating — a small step toward the uncertainty cap.
@@ -929,7 +932,7 @@ public actor EvaluationEngine {
         } else {
             correctionSensitivity = input.sensitivity
         }
-        let correction = LoopAlgorithm.insulinCorrection(
+        var correction = LoopAlgorithm.insulinCorrection(
             prediction: prediction.glucose,
             at: correctionAnchor,
             target: input.target,
@@ -937,6 +940,28 @@ public actor EvaluationEngine {
             sensitivity: correctionSensitivity,
             insulinModel: insulinType.model
         )
+        if let gp = guardPrediction {
+            let guardCorrection = LoopAlgorithm.insulinCorrection(
+                prediction: gp, at: correctionAnchor, target: input.target, suspendThreshold: suspend,
+                sensitivity: correctionSensitivity, insulinModel: insulinType.model)
+            func minOf(_ c: InsulinCorrection) -> GlucoseValue? {
+                switch c {
+                case .aboveRange(min: let m, correcting: _, minTarget: _, units: _): return m
+                case .entirelyBelowRange(min: let m, minTarget: _, units: _): return m
+                case .suspend(min: let m): return m
+                case .inRange: return nil
+                }
+            }
+            // The banded curve owns the tail decisions: any banded point below the suspend threshold
+            // suspends; otherwise its minimum replaces the point curve's minimum in the gate. Units and
+            // the correcting point stay the unbanded curve's — the dose is sized to the median forecast.
+            if case .suspend = guardCorrection {
+                correction = guardCorrection
+            } else if case .aboveRange(min: _, correcting: let c, minTarget: let mt, units: let u) = correction,
+                      let gm = minOf(guardCorrection) {
+                correction = .aboveRange(min: gm, correcting: c, minTarget: mt, units: u)
+            }
+        }
         // Uncertainty-bounded cap: derive the effective application factor from the
         // suspension-mitigated worst-case dose, and disable the predicted-min gate (the cap
         // already encodes future low-risk via the worst-case-with-suspension constraint).
