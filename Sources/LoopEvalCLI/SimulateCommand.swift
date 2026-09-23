@@ -168,6 +168,21 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Unannounced meals: hide carb entries from BOTH baseline and candidate forecasts (no COB), so Loop can only react to the BG rise. The meal's BG-raising effect REMAINS in the ICE/counter (it's the real trace, not subtracted), so the meal still happens — Loop just doesn't know about it. Use with --no-user-boluses for a true fully-unannounced, fully-automated test.")
     var noCarbEntries: Bool = false
 
+
+    @Flag(name: .long, help: "C33: gate the sigma band on the DESCENT state (BG reached --candidate-descent-high-bg-min within --candidate-descent-window-min AND trailing 60-min slope <= --candidate-descent-slope-max) instead of on sigma's own level. Combine with --candidate-sigma-band-fixed-sigma to make the displacement a pure function of state.")
+    var candidateSigmaBandDescentGate: Bool = false
+
+    @Option(name: .long, help: "C32 descent rise-cut: scale the POSITIVE RC discrepancy by this when BG reached --candidate-descent-high-bg-min within --candidate-descent-window-min AND the trailing 60-min slope is <= --candidate-descent-slope-max. Targets the descent off a corrected high, which carries 35% of severe lows. 1.0 = off (default).")
+    var candidateDescentRcRiseScale: Double = 1.0
+
+    @Option(name: .long, help: "C32: BG level that counts as the preceding high (mg/dL). Default 180.")
+    var candidateDescentHighBgMin: Double = 180
+
+    @Option(name: .long, help: "C32: how far back to look for that high (minutes). Default 120.")
+    var candidateDescentWindowMin: Double = 120
+
+    @Option(name: .long, help: "C32: trailing 60-min slope (mg/dL/min) at or below which the gate opens. Default -1.0.")
+    var candidateDescentSlopeMax: Double = -1.0
     @Option(name: .long, help: "Counter-regulation onset (mg/dL). When the counterfactual BG falls below this, model the body's defensive hepatic glucose output as a positive BG velocity that ramps with depth below onset (capped). Prevents the counter running to unphysical negatives. 0 = off (default). ~65 is a reasonable physiological onset.")
     var counterRegOnset: Double = 0
 
@@ -398,6 +413,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateSigmaBandBaseline: Double = 0
     @Option(name: .long, help: "CONTROL for the sigma band: replace sigma5 with this CONSTANT, so the band carries no volatility signal. Set to the donor's median sigma5 to reproduce the average band the absolute-sigma form applies. 0 = off.")
     var candidateSigmaBandFixedSigma: Double = 0
+    @Flag(name: .long, help: "GUARD-ONLY sigma band: the sigma-widened curve feeds only the predicted-minimum guard and the suspend check; the UNBANDED curve sizes the correction. Separates the tail question (guard) from the point question (dose) that Loop otherwise reads off one curve, so the band can be held at its measured plateau (taper 360) without lowering eventualBG. Requires --candidate-sigma-band-k > 0.")
+    var candidateSigmaBandGuardOnly: Bool = false
     @Option(name: .long, help: "Comma-separated outage REASONS (from the outages/disruptions CSV) during which the pump keeps delivering SCHEDULED basal instead of nothing — e.g. 'loop_offline' (phone away: the pod runs its schedule, only new adjustments stop). Default: none (every outage clamps delivery to 0).")
     var outageBasalReasons: String?
     @Option(name: .long, help: "PREDICTIVE pre-low damper GAIN: causal sustained-sensitivity trigger (causal ICE = v_bg - v_insulin over a trailing window). ISF-mult increase per mg/dL/min of negative ICE beyond the threshold; raises ISF proactively before the low. 0 = off.")
@@ -627,8 +644,14 @@ struct SimulateCommand: AsyncParsableCommand {
             calmHighCobGate: candidateCalmHighCobGate,
             calmHighMinSlope: candidateCalmHighMinSlope ?? -.infinity,
             calmHighTargetDelta: candidateCalmHighTargetDelta,
+            descentRcRiseScale: candidateDescentRcRiseScale,
+            sigmaBandDescentGate: candidateSigmaBandDescentGate,
+            descentHighBgMin: candidateDescentHighBgMin,
+            descentWindowMin: candidateDescentWindowMin,
+            descentSlopeMax: candidateDescentSlopeMax,
             sigmaBandBaseline: candidateSigmaBandBaseline,
             sigmaBandFixedSigma: candidateSigmaBandFixedSigma,
+            sigmaBandGuardOnly: candidateSigmaBandGuardOnly,
             sensDampWindowMin: candidateSensDampWindow,
             sensDampThresholdRate: candidateSensDampThreshold,
             sensDampGain: candidateSensDampGain,

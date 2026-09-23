@@ -2350,6 +2350,34 @@ extension EvaluationEngine {
                 if recentLow { gatedRiseScale = config.postlowRcRiseScale; gatedAsymStdRC = true }
             }
         }
+        // DESCENT-gated RC rise-cut (C32): BG reached descentHighBgMin within
+        // descentWindowMin AND is now falling at <= descentSlopeMax over 60 min.
+        // The RC built during the high is stale evidence of resistance; leaving it
+        // in props the forecast up so Loop under-suspends into the fall.
+        if config.descentRcRiseScale != 1.0, let lastG = input.glucose.last {
+            let mgdlU = LoopUnit.milligramsPerDeciliter
+            let bgNow = lastG.quantity.doubleValue(for: mgdlU)
+            var sawHigh = false
+            var slope = 0.0
+            var haveSlope = false
+            let windowSec = config.descentWindowMin * 60.0
+            for s in input.glucose.reversed() {
+                let age = lastG.startDate.timeIntervalSince(s.startDate)
+                if age <= windowSec, s.quantity.doubleValue(for: mgdlU) >= config.descentHighBgMin {
+                    sawHigh = true
+                }
+                // trailing 60-min slope: first sample at or beyond 60 min back
+                if !haveSlope, age >= 3600 {
+                    slope = (bgNow - s.quantity.doubleValue(for: mgdlU)) / (age / 60.0)
+                    haveSlope = true
+                }
+                if age > windowSec, haveSlope { break }
+            }
+            if sawHigh, haveSlope, slope <= config.descentSlopeMax {
+                gatedRiseScale = config.descentRcRiseScale
+                gatedAsymStdRC = true
+            }
+        }
         // Fast-rise-gated RC rise-cut (meal-rise-stacking corner): trailing 15-min slope.
         if config.riseGateSlope > 0, let lastG = input.glucose.last {
             let mgdlU = LoopUnit.milligramsPerDeciliter
@@ -2549,8 +2577,31 @@ extension EvaluationEngine {
         // σ-widened LOWER band: lower each predicted point at τ min by k·σ5·(τ/5)^H up to
         // the horizon, tapering to 0 by taper — the eventual BG is untouched, the
         // predicted MINIMUM (min-guard / suspend logic) sees the volatility.
-        let sigmaBandAllowed = !config.sigmaBandCobGate || (prediction.activeCarbs ?? 0) <= 0
-        if config.sigmaBandK > 0, sigmaBandAllowed, sigma5.isFinite, let t0 = prediction.glucose.first?.startDate {
+        // C33: descent-off-a-high gate. The band fires on STATE rather than on sigma's level.
+        var descentAllowed = true
+        if config.sigmaBandDescentGate {
+            descentAllowed = false
+            if let lastG = effectiveInput.glucose.last {
+                let mg = LoopUnit.milligramsPerDeciliter
+                let bgNow = lastG.quantity.doubleValue(for: mg)
+                let windowSec = config.descentWindowMin * 60.0
+                var sawHigh = false, haveSlope = false, slope = 0.0
+                for sm in effectiveInput.glucose.reversed() {
+                    let age = lastG.startDate.timeIntervalSince(sm.startDate)
+                    if age <= windowSec, sm.quantity.doubleValue(for: mg) >= config.descentHighBgMin { sawHigh = true }
+                    if !haveSlope, age >= 3600 {
+                        slope = (bgNow - sm.quantity.doubleValue(for: mg)) / (age / 60.0); haveSlope = true
+                    }
+                    if age > windowSec, haveSlope { break }
+                }
+                descentAllowed = sawHigh && haveSlope && slope <= config.descentSlopeMax
+            }
+        }
+        let sigmaBandAllowed = (!config.sigmaBandCobGate || (prediction.activeCarbs ?? 0) <= 0) && descentAllowed
+        var guardPrediction: [PredictedGlucoseValue]? = nil   // guard-only band: the banded curve, for the guard alone
+        if config.sigmaBandK > 0, sigmaBandAllowed, sigma5.isFinite || config.sigmaBandFixedSigma > 0,
+           let t0 = prediction.glucose.first?.startDate {
+            let unbandedGlucose = prediction.glucose
             let unit = LoopUnit.milligramsPerDeciliter
             let hz = config.sigmaBandHorizonMin, tp = max(config.sigmaBandTaperMin, hz + 1)
             let sHz = pow(max(hz, 5.0) / 5.0, config.sigmaScalingH)
@@ -2568,6 +2619,12 @@ extension EvaluationEngine {
                 let off = -config.sigmaBandK * sigEff * s
                 return PredictedGlucoseValue(startDate: p.startDate,
                                              quantity: LoopQuantity(unit: unit, doubleValue: p.quantity.doubleValue(for: unit) + off))
+            }
+            if config.sigmaBandGuardOnly {
+                // Tail question → guard; point question → dose. Hand the banded curve to the guard and
+                // put the median forecast back for the correction (and for the trace's eventualBG).
+                guardPrediction = prediction.glucose
+                prediction.glucose = unbandedGlucose
             }
         }
 
@@ -2679,6 +2736,7 @@ extension EvaluationEngine {
             evalStep: config.evalStep,
             applicationFactor: appFactor,
             softLowGate: config.softLowGate,
+            guardPrediction: guardPrediction,
             lowGateThreshold: config.lowGateThresholdMgdl,
             uncertaintyCap: config.uncertaintyCapEnabled
                 ? (k: config.uncertaintyK, fmax: config.uncertaintyFmax, low: config.uncertaintyLow,

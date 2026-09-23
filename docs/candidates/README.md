@@ -65,6 +65,10 @@ hash have no surviving traces.
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
 | [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
+| [M7](#m7--the-realized-forecast-error-table) | *Measurement*: the deployed forecast's realized error by horizon × σ5, 4 hands-off donors × 90 d | — | **measured** | k=1 at 60 min IS the realized 10 % downside on every bed; on the lows donors the downside PLATEAUS at ~5–6 σ5 to 6 h while the band tapers to 0 by 120; σ5 separates dispersion 2× but low-probability barely |
+| [E41](#e41--the-calm-high-bg-threshold-swept) | C23's BG threshold, swept 160–200 | dose-more, state-gated | scored (3 beds) | **WASH across 160–190**, 200 loses exposure; 180 stays. Δt54 = 0 at every threshold — the σ gate carries the safety, the level gate only sets exposure |
+| [C34](#c34--soft-low-gate-graded-predicted-min-guard) | Soft low gate (ramp instead of the predicted-min cliff) | actuator | scored (3 beds) | **NOT A DEFAULT** — on 6 beds the ramp arms lead on lift but Δt54 ≥ 0 on the mean (bddp08 +0.14…+0.16, hooked-curve lift; bddp05 +0.05); efficient only where the cliff wasted band depth (bddp11, b11_90d). Per-patient at most |
+| [C35](#c35--guard-only-σ-band-at-the-measured-plateau) | Guard-only σ band at the measured plateau (+ C34) | pull-back, state-gated | scored (3 beds) | **`sbgo` = C22 made safer: 6 beds, 2.6× the severe-lows reduction (Δt54 −0.053 vs −0.020) for +0.2 TIR, 0 WORSE (bddp05 WORSE → NEUTRAL), +0.003 lift** — the band acts through the guard, the plateau is the measured shape; ramp arms score higher but Δt54 ≥ 0 on the mean. Next: replace `sb1cap` in C30 |
 
 ---
 
@@ -88,6 +92,83 @@ the **rise-cut is the active part**; the drop-boost is ≈ inert (one-sided actu
 | 2026-08-24 | bddp11 / bddp10 / bddp01 / bddp09 | natural | 2 mo each, op ×1.00, 9 weekly blocks | E3 `cohort_band_e3.csv`: band lift +0.015 [−0.002,+0.031] / +0.010 [−0.005,+0.027] / −0.020 [−0.030,+0.013] / +0.015 [−0.004,+0.032] (t70 axis); **multi-donor mean +0.005**, frac-dominant 0.65; @op ΔTIR −0.2, Δt54 −0.01 | **NEUTRAL on every 2-mo bed** — the effect is real-looking but the same size as 2-month noise; on the runs-high donor (bddp01) it doses *more* (+1.1 TIR, +0.03 t54) |
 
 Ceiling is low (+0.02 lift ≈ 1 TIR point at equal lows); needs ≥ 90 d per donor to clear the CI.
+
+## C32 · Descent rise-cut (descent off a corrected high)
+`--candidate-descent-rc-rise-scale R --candidate-descent-window-min W --candidate-descent-slope-max=-S`
+Scale the POSITIVE (unexplained-rise) RC discrepancy by R once BG has reached
+`--candidate-descent-high-bg-min` (180) within W minutes AND the trailing 60-min slope is
+≤ −S. Same insertion point as C20/C18 (`gatedRiseScale` → `D_eff` → `v_rc`), and the exact
+complement of C20's gate: C20 requires BG < 180 after a low, C32 requires BG ≥ 180 recently
+and falling. **Rationale:** RC built during a high is evidence of PAST resistance; once the
+trace is falling off that high the evidence is stale and props the forecast up, so Loop
+under-suspends while committed insulin is still landing.
+
+**Why this state** (field study, `runs/2026-09-14-lows`, 56 donors + ns3, 4639 clean lows):
+the class "BG reached ≥180 in the 4 h lookback AND falling >0.8 mg/dL/min" is **23% of lows
+but 35% of ALL severe lows** (severe rate 25.7%, enrich 1.50), present in 48/56 donors, and
+carries a median **3.45 U delivered in the 4h..1h window** (84% >1 U). It is the only
+severe-enriched class with headroom left: **1.60 U is still delivered in the 2 h after** the
+state is detectable, vs `night & from-high` (enrich 1.67) which adds insulin in the final
+hour only 6.7% of the time. Prospective trigger (BG≥180 within 2 h + falling >1.0 mg/dL/min
++ excess IOB >1 U): **P(low<2h) 0.207, lift 3.01×, 0.96 alarms/day, 3.8 FA/TP**, with
+**lift>1.5 on 98% of 51 donors**. Each component alone is weaker (high+fall 1.71×, excess
+2.14×). Reference: the REJECTED volatility band ran 1.09–1.31× at 5 FA/TP.
+
+**No conflict with C23.** C23 licenses G≥180 AND σ ≤ donor median AND COB=0. Only **6%** of
+descent-class lows follow a high that was calm by that test (46 donors); severe rate after a
+calm high 0.000 vs 0.234 after a volatile one. The two gates are near-disjoint.
+
+| date | bed | regime | window / dial | result | verdict |
+|---|---|---|---|---|---|
+| 2026-09-14 | b11_90d | natural | identity | flags off: counter max|Δ| **0.0000000000** (16347 pts), delivery max|Δ| **0.0000000000** (19475 doses) | identity holds |
+| 2026-09-14 | b11_90d | natural | 90 d, needs ×1.00, band 1.00±0.1 | gate-width sweep: **d32a (R0.5,2h,−1.0) −0.001 [−0.005,+0.002]**, **d32b (R0.3,2h,−1.0) −0.002 [−0.006,+0.002]**, **d32c (R0.3,3h,−0.5) +0.009 [−0.000,+0.019]**, @op ΔTIR +0.0, **Δt54 −0.07 [−0.13,−0.01]**, **ΔMagni −0.06 [−0.11,−0.03]**, Δt70 −0.20 | **NEUTRAL** (d32c misses by lo=−0.000). NARROW gates inert, BROAD gate carries it |
+| 2026-09-14 | **9 beds** | natural | 2 mo, per-bed op, 9 blocks | `cohort_band.py … --tag c32coh`: **mean lift +0.001, CI-lo −0.006, 1 IMPROVES / 1 WORSE**, @op **ΔTIR −0.23**, Δt54 −0.018, Δt70 −0.071. Per bed: bddp11 +0.013 [−0.001,+0.023] (Δt54 −0.10, ΔMagni −0.06), bddp09 **IMPROVES** +0.007 [+0.000,+0.022] (t70 axis, but ΔTIR −0.3 and **ΔMagni +0.02**), bddp05 **WORSE** −0.012 [−0.016,−0.009], bddp01 DEGENERATE-REF (ΔTIR −0.7, **ΔMagni +0.16**), bddp06 UNDER-COVERED (n_band=2), rest NEUTRAL | **DOES NOT GENERALISE — closed at this parameterization** |
+
+**Verdict: the class is real, this expression of it is not.** The single-bed result (Δt54 −0.07
+at zero TIR cost, better exchange than C20's −0.07 at −0.7 TIR) **did not replicate**: across
+9 beds it costs TIR (−0.23) and its Magni delta turns POSITIVE on the beds it hurts (bddp01
++0.16, bddp05 +0.05). Textbook single-window trap; b11_90d is the bed C32 was designed on.
+
+**Two lessons worth keeping:**
+1. **The best classifier was the worst gate.** The narrow conjunction is the better predictor
+   (3.01× lift, 0.96 alarms/day) and is INERT as a mechanism; the broad gate (1.71×, 4.26
+   alarms/day) is the only one that moves anything. A forecast change is graded and
+   self-gated by Loop's own dose math, so coverage buys more than precision. Do not pick a
+   mechanism gate by classifier quality.
+2. **RC is the wrong lever for this state.** Cutting stale positive RC shifts the forecast by
+   mean 0.9 mg/dL and TDD by 0.01% — too small to convert a class that carries 35% of severe
+   lows. The state has headroom (1.6 U still delivered in the 2 h after detection); reaching
+   it needs a lever with authority over that delivery, e.g. the σ-band displacement gated on
+   descent-off-a-high instead of on σ. Untested.
+
+## C33 · Descent-gated σ band — REJECTED (the gate destroys value)
+`--candidate-sigma-band-k K --candidate-sigma-band-cob-gate --candidate-sigma-band-descent-gate`
+(+ `--candidate-sigma-band-fixed-sigma S` for a state-only magnitude). Adds a gate to the
+EXISTING σ-band path: the band fires only while BG reached `descentHighBgMin` within
+`descentWindowMin` AND the trailing 60-min slope ≤ `descentSlopeMax`. Premise: σ was measured
+to LAG lows (peaks 50–95 min AFTER the crossing) while the descent state LEADS them, so keying
+the displacement on state rather than on σ's level should be strictly better. **It is not.**
+
+| date | bed | regime | window / dial | result | verdict |
+|---|---|---|---|---|---|
+| 2026-09-14 | bddp11+bddp10 | natural | 2 mo, op ×1.00, 9 blk, vs `sb1cob` control | mean lift: **control sb1cob +0.014 (1 IMPROVES/0 WORSE, Δt54 −0.045, ΔMagni −0.53/−0.33)** > dsb2 +0.004 > dsb1f +0.001 > dsb1n +0.000 > dsb1 −0.000. bddp11: sb1cob **IMPROVES +0.022 [+0.001,+0.040]**, dsb1 −0.004 [−0.011,+0.004] | **REJECTED — every gated arm is WORSE than the ungated band** |
+| 2026-09-14 | bddp11 | natural | identity | flags off: counter max|Δ| **0.0**, delivery max|Δ| **0.0** | identity holds |
+
+**The finding: a predictable low class does not imply an exploitable one.** The descent class
+is real (23% of lows, 35% of severe, prospective lift 3.01×, lift>1.5 on 98% of 51 donors —
+`runs/2026-09-14-lows`). Two levers were built for it and BOTH failed, in opposite ways:
+- **C32 (RC rise-cut)** — right direction, no authority: 0.9 mg/dL forecast shift, 0.01% TDD.
+- **C33 (band, gated to the class)** — full authority, wrong target: gating fires at 27% of
+  the ungated band's mean |ΔBG| and captures ~0% of its lift.
+
+So the σ band's benefit is **diffuse, not concentrated in the predictable class**. It comes
+from many small pullbacks across many states; restricting it to the state that best predicts
+lows throws the benefit away. Corollary for candidate design: **do not derive a mechanism gate
+from a classifier, however well the classifier separates.** Both C32's width result (the WORSE
+classifier made the better gate) and this point the same way.
+Caveat: 2 beds. `sb1cob` itself reads NEUTRAL at the cohort bar (C22 is still the per-patient
+gated mechanism, 1 WORSE at 10 beds) — this ranks arms against each other, it does not promote
+the control.
 
 ## C02 · Integral RC (IRC)
 `--candidate-integral-rc [--candidate-integral-rc-clamp]`. Memory in RC. A hotter dial:
@@ -965,3 +1046,143 @@ meal-detection work on a hands-off donor.
 
 ## O3 · Perfect retrospective-ISF oracle
 Planned in REVIEW Part 3, never run; bounds all adaptation/autotune (C12/C14).
+
+## M7 · The realized forecast-error table
+`runs/2026-09-17-uncertainty/forecast_error.py` (2026-09-17): the DTR replay of deployed Loop, run with
+`--export-forecast-curve`, against the real CGM, on the four hands-off 90-day beds (b11_90d, bddp10_90d, bddp09_90d,
+bddp01_90d; ~86 k decision cycles, burn-in and disruptions excluded). err(τ) = realized(anchor+τ) − forecast(anchor+τ);
+σ5 reproduced as the runtime computes it, on the 5-min grid (M5). This is the object a lower band has to match.
+
+- **k = 1 at 60 min is the realized 10 % downside** — −p10 / (σ5·(τ/5)^0.71) at 60 min: mean 0.97 over 4 beds × 5 σ5
+  quintiles, SD 0.14 across quintiles; flat across quintiles at p10, p05 (1.35) and p01 (2.15). k·σ5 is a valid downside
+  scale in the calmest state as much as the most volatile; the calm-state kurtosis (q1 4–9 vs q5 <1) is a tight middle,
+  not a longer σ-scaled tail.
+- **The plateau.** All-state p10 downside in σ5 units by horizon (30/60/90/120/180/240/360 min): b11_90d 5.0 6.5 6.1 5.6 5.4
+  5.1 5.7; bddp10_90d 5.5 6.3 5.5 5.0 4.6 4.7 5.3 — on the lows donors it holds at ~5–6 σ5 from 60 min to 6 h. The
+  no-lows donors decay instead (bddp09 → 2.9, bddp01 → 1.4) because realized BG runs +45…+70 mg/dL ABOVE the pre-dose
+  forecast at long horizons (unannounced meals lift the whole distribution). C22's band is 5.8 σ5 at 60, 2.9 at 90 and
+  ZERO past 120 — it under-covers the lows donors' realized downside by ~5 σ5 everywhere past 90 min. Holding it flat
+  is not free: past ~120 min the band reaches the point that sizes the correction, so the shape can only be applied to
+  the guard ([C35](#c35--guard-only-σ-band-at-the-measured-plateau)).
+- **σ5 separates DISPERSION, not low-probability.** Error SD q5/q1 at 60 min 1.7 / 2.1 / 2.1 / 2.4 across beds, still 1.5×
+  at 6 h; P(realized < 70) q5/q1 at 60 min 1.6 (b11), 3.4 (b10), ~1.0 (b09). Level decides whether 70 is crossed. This is
+  the structural reason widening the forecast by σ ([C22](#c22-σ-widened-lower-forecast-band)) works — it meets level
+  through the guard — while gating a mechanism on σ ([C33](#c33--descent-gated-σ-band--rejected-the-gate-destroys-value))
+  never sees level.
+- **The licence's gate selects on forecast quality.** BG ≥ 180 & COB = 0, calm vs volatile error SD at 60 min: 36 vs 53
+  (b11), 37 vs 52 (b10), 24 vs 44 (b09), 31 vs 54 (b01); p10 from a calm high ≥ −43 mg/dL; P(realized < 70) within 2 h
+  from a calm high 0–1 % on every bed.
+- **σ5 persistence** (4-bed ACF): 0.75 @30, 0.54 @60, 0.32 @120, 0.12 @360 — half-life ~60–90 min. The realized
+  downside stays wide as σ5 itself reverts, so the band's horizon shape is not σ5's ACF.
+- **IOB at decision time is confounded with level**: P(<70) at 60 min is highest at the LOWEST IOB tercile (already
+  suspended = already falling). Not a clean conditioner on its own.
+
+## E41 · The calm-high BG threshold, swept
+`--candidate-calm-high-bg` ∈ {160, 170, 180, 190, 200} on `ch2p50cob` (bddp11, bddp10, bddp09; 2 mo; op ×1.00;
+`cohort_band_e41.csv`, 98 sims). The threshold had never been swept — 22 ledger rows vary s and the σ percentile and
+every one held the BG edge at 180, the TIR boundary.
+
+| threshold | 160 | 170 | 180 | 190 | 200 |
+|---|---|---|---|---|---|
+| 3-bed mean lift | +0.012 | +0.012 | +0.010 | +0.008 | +0.006 |
+| ΔTIR @op | +0.68 | +0.62 | +0.54 | +0.42 | +0.30 |
+| Δt54 @op | 0.00 | 0.00 | 0.00 | +0.01 | +0.01 |
+
+**WASH across 160–190** (170 vs 180: +0.002 lift, +0.1 TIR, inside every CI); 200 loses exposure. 180 stays and the hard
+edge is cosmetic: with the effect already graded by correction size, where the step sits does not matter. What matters is
+that **Δt54 sits at zero for every threshold on all three beds** — quadrupling the licence's exposure never costs a
+severe low, so the σ gate carries the safety and the level gate only sets how often it fires. bddp11 alone read as
+monotonic (160 best); bddp10 put 160 at NEUTRAL — the single-bed trap, avoided by waiting.
+
+Extended to 140/150 (E41b, `cohort_band_e41full.csv`): 3-bed lift 140 +0.009, 150 +0.009 against 160/170 +0.012; ΔTIR@op
+keeps rising (+0.88 at 140) but **Δt54@op turns positive below 160** (+0.004 at 150, +0.007 at 140), dominance falls
+1.00 → 0.73 and IMPROVES 3 → 1. **Closed: a broad hump over 160–180; severe lows begin to creep in below 160** — that is
+the exposure limit of the σ gate on this cohort, and the step's position is immaterial inside 160–190.
+
+## C34 · Soft low gate (graded predicted-min guard)
+`--candidate-soft-low-gate` (existed since the uncertainty-cap work, never scored): Loop's "predicted min below the
+range floor → automatic bolus zeroed" cliff becomes a ramp from the suspend threshold (0) to the floor (full). It changes
+nothing about WHAT the forecast says, only how proportionally the dose reads the predicted minimum. Scored alone and on
+the band (E42, `cohort_band_e42.csv`, 3 beds).
+
+| arm | 3-bed lift | ΔTIR @op | Δt54 @op | Δt70 @op | IMPROVES / WORSE |
+|---|---|---|---|---|---|
+| ramp + band (`slgsb1cob`) | +0.015 | −0.26 | −0.019 | −0.24 | 2 / 0 |
+| band alone (`sb1cob`) | +0.015 | −0.74 | −0.030 | −0.35 | 2 / 0 |
+| ramp alone (`slg`) | −0.003 | +0.14 | +0.007 | +0.10 | 0 / 0 |
+| ramp + baselined band (`slgsb1b`) | −0.003 | +0.13 | +0.002 | +0.07 | 0 / 0 |
+
+Alone it is a slightly hotter dial (it lets through boluses the cliff zeroed). On the band it is a **milder
+parameterization, not lift**: a third of the TIR cost for ~60 % of the lows benefit, landing on the same reference
+geometry on the mean. Per bed it is the exchange rate that differs — bddp11 (t54 burden 0.50) **+0.035 [+0.009,+0.054]
+vs +0.022**, bddp10 (0.13) wash, bddp09 (t70 axis) +0.008 vs +0.018. The mean-zero band ([C27](#c27--σ-band-keyed-on-σ-above-the-donors-own-median))
+stays inert on the ramp, so the depth E19 found load-bearing is not load-bearing because of the cliff; the cliff is
+where the band's TIR cost lives ([C35](#c35--guard-only-σ-band-at-the-measured-plateau) shows it directly).
+E42b, the pre-registered lows-burden test (b11_90d / bddp08 / bddp05):
+
+| bed | `slgsb1cob` | `sb1cob` | `slg` | read |
+|---|---|---|---|---|
+| b11_90d (90 d, 13 blk) | **+0.033 [+0.015,+0.054]**, ΔTIR −0.3, Δt54 −0.06 | +0.025, ΔTIR −1.0, Δt54 −0.07 | −0.003 | ramp wins, every block dominant |
+| bddp08 (op 1.05) | +0.016, ΔTIR +0.4, **Δt54 +0.14 [+0.02,+0.28]** | +0.005 NEUTRAL | +0.017, **Δt54 +0.14 [+0.03,+0.25]** | ramp ADDS severe lows; positive lift is the hooked-curve trap (TIR peaks at ×1.05, t54 1.6→3.7→5.8 beyond) |
+| bddp05 (op 1.15) | +0.016, Δt54 +0.07 [−0.08,+0.18] | WORSE −0.012 (too-deep band, C29's case) | +0.027, ΔTIR +0.3, Δt54 −0.02, Δt70 +0.35 | ramp alone buys TIR at t54 flat, t70 up |
+
+**Verdict: not a default.** The ramp is a hotter actuator whose sign on the lows axis depends on whether the cliff was
+doing safety work on that bed — efficient where band depth was being wasted on the step (bddp11, b11_90d), harmful where
+the step was the protection (bddp08, the heavy-override announcer whose counterfactual already over-lows at op). Keep the
+cliff for the cohort; C34 is at most a per-patient parameterization. The form left standing is the plateau band with the
+cliff intact ([C35](#c35--guard-only-σ-band-at-the-measured-plateau) `sbgo`, which only ever pulls back).
+
+## C35 · Guard-only σ band at the measured plateau
+`--candidate-sigma-band-guard-only` (added 2026-09-17, `EvalConfig.sigmaBandGuardOnly`; identity flags-off: counter,
+delivery and per-cycle dose max|Δ| 0.0000000000 on bddp11 2 mo): the σ-widened curve feeds only the suspend check and the
+predicted MIN that gates the automatic bolus; the unbanded curve sizes the correction. The band answers a tail question;
+Loop otherwise reads the same curve for the point question, which is why [M7](#m7--the-realized-forecast-error-table)'s
+plateau could not simply be applied — a flat band to 6 h lowers eventualBG by ~6 σ5 (frontier.md trap (b)). With the
+guard-only form the plateau is `--candidate-sigma-band-taper-min 360`. Arms (E44, `cohort_band_e44.csv`, 3 beds):
+`sbgo` plateau, `sbgo120` existing shape, each ± the ramp ([C34](#c34--soft-low-gate-graded-predicted-min-guard)).
+
+| arm | shape | actuator | bddp11 | bddp10 | bddp09 (t70) | 3-bed mean | lift_lo_mean | ΔTIR / Δt54 @op |
+|---|---|---|---|---|---|---|---|---|
+| **`slgsbgo`** | plateau, guard-only | ramp | **+0.038 [+0.015,+0.056]** | +0.008 | +0.005 | **+0.017** | **+0.004** | −0.41 / −0.037 |
+| `sbgo` | plateau, guard-only | cliff | +0.021 | +0.015 [−0.000,+0.032] | +0.015 | +0.017 | −0.000 | −1.00 / −0.048 |
+| `slgsb1cob` | taper 120, full | ramp | +0.035 | +0.003 | +0.008 | +0.015 | 0.000 | −0.26 / −0.019 |
+| `sb1cob` | taper 120, full | cliff | +0.022 | +0.005 | +0.018 | +0.015 | −0.000 | −0.74 / −0.030 |
+| `sbgo120` | taper 120, guard-only | cliff | +0.022 | +0.006 | +0.017 | +0.015 | −0.001 | −0.66 / −0.036 |
+| `slgsbgo120` | taper 120, guard-only | ramp | +0.035 | +0.004 | +0.003 | +0.014 | −0.000 | −0.23 / −0.016 |
+
+Three facts hold on the mean and on every bed: **(1) the band acts through the guard** — guard-only at the existing shape
+is the full band (`sbgo120` ≡ `sb1cob`, `slgsbgo120` ≡ `slgsb1cob`), so the correction-shrink channel is ~0 and the depth
+E19 found load-bearing is depth at the guard; **(2) the cliff is the TIR cost** — every ramp arm −0.2…−0.4 TIR against
+−0.7…−1.0 without, at comparable lows; **(3) the plateau adds severe-lows reduction on all three beds** (Δt54 −0.048 vs
+−0.030), and it pays only when read proportionally (with the cliff it is along the dial: bddp11 −0.10 t54 for −1.5 TIR).
+What has NOT been shown: lift above the existing band on the multi-donor mean — six arms sit within ±0.003 on three
+2-month beds. `slgsbgo` has the only positive `lift_lo_mean` and twice `slgsb1cob`'s severe-lows reduction for +0.15 TIR.
+E44b (plateau arms on b11_90d / bddp08 / bddp05, the lows-burden beds) is the deciding run.
+
+**E43, the no-code control** (`sb1plat`: the FULL band held to 6 h, so eventualBG drops too; bddp11 + bddp10): sb1plat
++0.026 / +0.011, `sbgo` +0.021 / +0.015, `sb1cob` +0.022 / +0.005 — 2-bed mean +0.019 / +0.018 / +0.014 at Δt54 −0.099 /
+−0.072 / −0.045 and ΔTIR −1.35 / −1.00 / −0.76. The plateau beats the taper-120 band on both beds in either form; the
+correction-shrink channel buys −0.04 t54 more on bddp11 for −0.3 TIR and costs −0.4 TIR on bddp10 for nothing. Guard-only
+is the form that never pays that channel's TIR without a lows return — C35's standard form is `sbgo`.
+
+**E44b + six-bed cohort** (`cohort_band_e44all.csv`: bddp11 / bddp10 / bddp09 / b11_90d / bddp08 / bddp05 — five distinct
+donors, bddp11 at two windows). Per bed, `sbgo` vs `sb1cob` (lift; Δt54@op): b11_90d +0.027 vs +0.025 (−0.09 vs −0.07),
+bddp11 +0.021 vs +0.022 (−0.10 vs −0.08), bddp10 +0.015 vs +0.005 (−0.05 vs −0.01), bddp09 +0.015 vs +0.018 (t70 −0.05
+vs −0.06), bddp08 +0.005 vs +0.005 (−0.03 vs −0.01), **bddp05 NEUTRAL −0.007 vs WORSE −0.012 (−0.05 vs +0.05)**.
+
+| arm | lift | lift_lo_mean | ΔTIR @op | Δt54 @op | Δt70 @op | IMPROVES / WORSE |
+|---|---|---|---|---|---|---|
+| `slgsbgo` (ramp) | +0.020 | +0.008 | −0.19 | **+0.002** | −0.18 | 5 / 0 |
+| `slgsb1cob` (ramp) | +0.019 | +0.005 | −0.09 | **+0.015** | −0.12 | 5 / 0 |
+| **`sbgo`** | +0.013 | −0.001 | −0.80 | **−0.053** | −0.40 | 2 / 0 |
+| `sb1cob` (C22) | +0.010 | −0.003 | −0.60 | −0.020 | −0.35 | 3 / 1 |
+
+**Verdict.** The ramp arms carry the highest lift and fail the safety axis on the mean — Δt54 ≥ 0, because bddp08 (+0.16)
+and bddp05 (+0.05) cancel the bddp11-family reductions; that lift is per-bed geometry plus bddp08's hooked curve
+([C34](#c34--soft-low-gate-graded-predicted-min-guard)). **`sbgo` is C22 made safer and stronger: 2.6× the severe-lows
+reduction (−0.053 vs −0.020) for +0.2 TIR, 0 WORSE — C22's one WORSE bed goes NEUTRAL with its t54 sign flipped — and
++0.003 mean lift.** The same class of result as [C29](#c29--depth-capped-σ-band), from a measured shape
+([M7](#m7--the-realized-forecast-error-table)) rather than a per-donor cap. It should replace `sb1cob` / `sb1cap` as the
+band's form in the stack ([C30](#c30--the-deployable-stack-c29--c23c25--c20)); that re-run is the next experiment. What
+it is not: lift over the band on the multi-donor mean beyond +0.003 — a safety improvement with a modest efficiency gain,
+not a new mechanism.
