@@ -185,27 +185,18 @@ extension EvaluationEngine {
         // at candidate==real, stepDelta==realBGdelta so the advance lands on the
         // actual anyway ⇒ no-op at identity. 0 disables (legacy).
         cfGapReanchorSec: TimeInterval = 1800,
-        // PATIENT-side ISF multiplier, DECOUPLED from the controller's ISF belief.
-        // nil (default) = coupled: the physiological ISF is whatever the candidate
-        // config believes (`scaledSensitivity`), which is how every sweep behaved
-        // before this flag existed — so nil reproduces prior results exactly.
-        // Set p to pin the plant at the donor's SCHEDULED ISF x p regardless of
-        // what the controller is configured with. p>1 = more sensitive patient
-        // (a unit drops BG further). Composes with inferSensitivity's m(t).
-        //
-        // The invariant this exists to test: the patient model is a DIFFERENCE
-        // form (see the counter advance below), so with the controller left at the
-        // field's own settings, candidate doses == field doses makes the insulin
-        // bracket vanish and the counter reproduces the substrate for ANY p. Dosing
-        // is therefore patient-ISF-INVARIANT at identity, and any measured
-        // sensitivity to p is a readout of replay infidelity, amplified by p.
-        patientSensitivityMultiplier: Double? = nil,
         // PATIENT ISF as an ABSOLUTE, FLAT value in mg/dL/U, referencing no therapy
         // configuration at all — not the donor's schedule shape, not its time-of-day
-        // variation, not its dated settings eras. `patientSensitivityMultiplier` SCALES
-        // the configured schedule and therefore inherits all of that; this replaces it.
-        // Use when the simulated body must be an independent object from the settings
-        // the controller was running. Mutually exclusive with the multiplier.
+        // variation, not its dated settings eras. The simulated body is an independent
+        // object from the settings the controller runs.
+        //
+        // The invariant this exists to test: the patient model is a DIFFERENCE form
+        // (see the counter advance below), so with the controller left at the field's
+        // own settings, candidate doses == field doses makes the insulin bracket vanish
+        // and the counter reproduces the substrate for ANY patient ISF. Dosing is
+        // therefore patient-ISF-INVARIANT at identity, and measured sensitivity to it
+        // is a readout of replay infidelity, amplified by the ISF gain.
+        //
         // The only thing borrowed from the schedule is its DATE SPAN, which is coverage
         // (glucoseEffects preconditions on closestPrior(dose.startDate)), not therapy.
         patientISF: Double? = nil,
@@ -381,12 +372,9 @@ extension EvaluationEngine {
         // Three cases, in precedence order:
         //   1. `patientISF` set -> plant at a FLAT ABSOLUTE ISF, independent of every
         //      therapy setting. The body becomes its own object.
-        //   2. `patientSensitivityMultiplier` set -> plant pinned at the donor's
-        //      SCHEDULED ISF x p. Decoupled from the controller, but still inherits the
-        //      schedule's shape, time-of-day variation and settings eras.
-        //   3. sensitivity-inference (fidelity) mode -> plant at SCHEDULED ISF, with
+        //   2. sensitivity-inference (fidelity) mode -> plant at SCHEDULED ISF, with
         //      the inferred per-step m(t) correcting it.
-        //   4. default -> COUPLED to the controller (`scaledSensitivity`), i.e. an
+        //   3. default -> COUPLED to the controller (`scaledSensitivity`), i.e. an
         //      ISF-multiplier / insulin-needs sweep moves the body along with the
         //      belief. Preserved as the default so existing sweeps are unchanged.
         let physiologySensitivity: [AbsoluteScheduleValue<LoopQuantity>] = {
@@ -401,23 +389,12 @@ extension EvaluationEngine {
                     value: LoopQuantity(unit: mgdlUnit, doubleValue: absISF)
                 )]
             }
-            if let p = patientSensitivityMultiplier {
-                return Self.applySensitivityScaling(
-                    data.therapyTimeline.sensitivity,
-                    globalMultiplier: p,
-                    hourlyMultipliers: nil,
-                    timezone: candidateConfig.localTimezone
-                )
-            }
             return inferSensitivity ? data.therapyTimeline.sensitivity : scaledSensitivity
         }()
         if let absISF = patientISF {
             let schedLo = data.therapyTimeline.sensitivity.map { $0.value.doubleValue(for: mgdlUnit) }.min() ?? 0
             let schedHi = data.therapyTimeline.sensitivity.map { $0.value.doubleValue(for: mgdlUnit) }.max() ?? 0
             FileHandle.standardError.write(Data("patient ISF INDEPENDENT of configuration: plant = FLAT \(String(format: "%.4f", absISF)) mg/dL/U (configured schedule \(String(format: "%.2f", schedLo))-\(String(format: "%.2f", schedHi)) is NOT used for the plant; controller still runs it)\n".utf8))
-        }
-        if let p = patientSensitivityMultiplier {
-            FileHandle.standardError.write(Data("patient ISF DECOUPLED from controller: plant = scheduled ISF x \(String(format: "%.4f", p)) (controller ISF multiplier \(String(format: "%.4f", candidateConfig.sensitivityMultiplier)))\n".utf8))
         }
 
         // 2. Sequential walk
@@ -1308,7 +1285,7 @@ extension EvaluationEngine {
             // (PredictionRecord.isf is algorithm state, alongside COB/RC/momentum — it is
             // what case_study.py plots, so it must keep meaning the controller's ISF).
             // `isfPlant` is the BODY's, and is what converts a dose delta into a BG effect.
-            // They coincide unless --patient-sensitivity-multiplier is set.
+            // They coincide unless --patient-isf is set.
             let isfQty = scaledSensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
                 ?? scaledSensitivity.closestPrior(to: t)?.value
             let isf = isfQty?.doubleValue(for: mgdlUnit) ?? 0

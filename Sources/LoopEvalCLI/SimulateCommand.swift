@@ -412,13 +412,10 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Phase 2: compute the active-insulin glucose-effect over PHYSICAL delivered insulin (volume) rather than net-basal-units, so a candidate ISF boost amplifies real insulin even when delivery is below scheduled basal. Requires --candidate-isf-boost-active-only. Without it, sub-basal insulin sits in the EGP-credit term and the boost can't reach it (the Mar-29 'negative insulin' case). Default OFF (classic net-basal-units).")
     var candidateEgpPhysical: Bool = false
 
-    @Option(name: .long, help: "PATIENT-side ISF as an ABSOLUTE FLAT value (mg/dL/U), referencing NO therapy configuration — not the donor's schedule shape, not its time-of-day variation, not its dated settings eras. The simulated body becomes an independent object from the settings the controller runs. Use this (not --patient-sensitivity-multiplier, which SCALES the configured schedule and so inherits all of it) when the patient's insulin sensitivity must be a free parameter. Mutually exclusive with --patient-sensitivity-multiplier.")
+    @Option(name: .long, help: "PATIENT-side ISF as an ABSOLUTE FLAT value (mg/dL/U), referencing NO therapy configuration — not the donor's schedule shape, not its time-of-day variation, not its dated settings eras. The simulated body becomes an independent object from the settings the controller runs, which still uses the real configured schedule. Unset = the plant is COUPLED to the controller's ISF belief (the historical behavior, so existing sweeps are unchanged). Set it when the patient's insulin sensitivity must be a free parameter — e.g. sweeping it to ask how much a result depends on the assumed patient.")
     var patientIsf: Double?
 
-    @Option(name: .long, help: "PATIENT-side ISF multiplier, decoupled from the controller's ISF belief: pin the simulated body at the donor's SCHEDULED ISF x p while --candidate-sensitivity-multiplier / --candidate-insulin-needs move only what the algorithm believes. p>1 = more sensitive patient (a unit drops BG further). UNSET (default) = coupled, i.e. the plant follows the candidate's ISF, which is how every sweep behaved before this flag. Leave the candidate flags at their field values and sweep this to test the identity invariant: at field settings the counter reproduces the substrate for ANY p, so measured sensitivity to p IS replay infidelity.")
-    var patientSensitivityMultiplier: Double?
-
-    @Flag(name: .long, help: "Sim-FIDELITY: infer a local insulin-sensitivity multiplier m(t) from the residual. When BG is still dropping after subtracting the PD-modeled (scheduled-ISF) insulin, the insulin was more effective than scheduled, so scale ISF UP just enough to zero that negative residual (never past it). Applied to the PHYSIOLOGY (ICE + counterfactual dose-effect run at scheduled ISF × m), DECOUPLED from the controller's ISF belief. Capped by --candidate-infer-sensitivity-max. Default OFF.")
+        @Flag(name: .long, help: "Sim-FIDELITY: infer a local insulin-sensitivity multiplier m(t) from the residual. When BG is still dropping after subtracting the PD-modeled (scheduled-ISF) insulin, the insulin was more effective than scheduled, so scale ISF UP just enough to zero that negative residual (never past it). Applied to the PHYSIOLOGY (ICE + counterfactual dose-effect run at scheduled ISF × m), DECOUPLED from the controller's ISF belief. Capped by --candidate-infer-sensitivity-max. Default OFF.")
     var candidateInferSensitivity: Bool = false
     @Option(name: .long, help: "Cap on the inferred sensitivity multiplier m ('can't subtract more insulin than is physically present'). Default 2.0. Set 1.0 for an identity check (≡ off when sensitivity-multiplier is 1).")
     var candidateInferSensitivityMax: Double = 2.0
@@ -712,10 +709,6 @@ struct SimulateCommand: AsyncParsableCommand {
             let isfH = candidateConfig.sensitivityHourlyMultipliers ?? Array(repeating: 1.0, count: 24)
             candidateConfig.sensitivityHourlyMultipliers = zip(isfH, h).map { $0 / $1 }
         }
-        if patientIsf != nil && patientSensitivityMultiplier != nil {
-            throw ValidationError("--patient-isf and --patient-sensitivity-multiplier are mutually exclusive: "
-                + "the first sets the plant's ISF absolutely, the second scales the configured schedule.")
-        }
         if let v = patientIsf, !(v > 0) {
             throw ValidationError("--patient-isf must be positive (mg/dL per U); got \(v).")
         }
@@ -908,7 +901,6 @@ struct SimulateCommand: AsyncParsableCommand {
             counterRegGain: counterRegGain,
             counterRegMaxRate: counterRegMax,
             cfGapReanchorSec: cfGapReanchorMin * 60,
-            patientSensitivityMultiplier: patientSensitivityMultiplier,
             patientISF: patientIsf,
             inferSensitivity: candidateInferSensitivity,
             inferSensitivityMax: candidateInferSensitivityMax,
