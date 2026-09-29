@@ -185,6 +185,21 @@ extension EvaluationEngine {
         // at candidate==real, stepDelta==realBGdelta so the advance lands on the
         // actual anyway ⇒ no-op at identity. 0 disables (legacy).
         cfGapReanchorSec: TimeInterval = 1800,
+        // PATIENT ISF as an ABSOLUTE, FLAT value in mg/dL/U, referencing no therapy
+        // configuration at all — not the donor's schedule shape, not its time-of-day
+        // variation, not its dated settings eras. The simulated body is an independent
+        // object from the settings the controller runs.
+        //
+        // The invariant this exists to test: the patient model is a DIFFERENCE form
+        // (see the counter advance below), so with the controller left at the field's
+        // own settings, candidate doses == field doses makes the insulin bracket vanish
+        // and the counter reproduces the substrate for ANY patient ISF. Dosing is
+        // therefore patient-ISF-INVARIANT at identity, and measured sensitivity to it
+        // is a readout of replay infidelity, amplified by the ISF gain.
+        //
+        // The only thing borrowed from the schedule is its DATE SPAN, which is coverage
+        // (glucoseEffects preconditions on closestPrior(dose.startDate)), not therapy.
+        patientISF: Double? = nil,
         inferSensitivity: Bool = false,
         inferSensitivityMax: Double = 2.0,
         inferSensitivityWindowSec: TimeInterval = 30 * 60,
@@ -349,16 +364,38 @@ extension EvaluationEngine {
             timezone: candidateConfig.localTimezone
         )
 
-        // PHYSIOLOGY sensitivity. In sensitivity-inference (fidelity) mode the
-        // physiological insulin response is decoupled from the controller's ISF
-        // belief: ICE and the counterfactual dose-effect run at the SCHEDULED
-        // ISF (the body's baseline), and the inferred per-step multiplier m(t)
-        // corrects it. The controller (generatePrediction) still uses the
-        // candidate's `scaledSensitivity`. Outside inference mode this is just
-        // `scaledSensitivity`, so all existing behavior is unchanged.
-        let physiologySensitivity = inferSensitivity
-            ? data.therapyTimeline.sensitivity
-            : scaledSensitivity
+        // PHYSIOLOGY sensitivity — the ISF of the SIMULATED BODY, used to strip the
+        // field's insulin out of the observed trace (ICE) and to put the candidate's
+        // insulin back in. Distinct from the controller's ISF BELIEF, which is always
+        // `scaledSensitivity` (generatePrediction).
+        //
+        // Three cases, in precedence order:
+        //   1. `patientISF` set -> plant at a FLAT ABSOLUTE ISF, independent of every
+        //      therapy setting. The body becomes its own object.
+        //   2. sensitivity-inference (fidelity) mode -> plant at SCHEDULED ISF, with
+        //      the inferred per-step m(t) correcting it.
+        //   3. default -> COUPLED to the controller (`scaledSensitivity`), i.e. an
+        //      ISF-multiplier / insulin-needs sweep moves the body along with the
+        //      belief. Preserved as the default so existing sweeps are unchanged.
+        let physiologySensitivity: [AbsoluteScheduleValue<LoopQuantity>] = {
+            if let absISF = patientISF {
+                // One entry spanning the schedule's full coverage. Borrowing the span
+                // (not the values) keeps the dose filter below unchanged, so the same
+                // doses are modelled as in every other arm.
+                let from = data.therapyTimeline.sensitivity.first?.startDate ?? interval.start
+                let to = data.therapyTimeline.sensitivity.last?.endDate ?? interval.end
+                return [AbsoluteScheduleValue(
+                    startDate: from, endDate: to,
+                    value: LoopQuantity(unit: mgdlUnit, doubleValue: absISF)
+                )]
+            }
+            return inferSensitivity ? data.therapyTimeline.sensitivity : scaledSensitivity
+        }()
+        if let absISF = patientISF {
+            let schedLo = data.therapyTimeline.sensitivity.map { $0.value.doubleValue(for: mgdlUnit) }.min() ?? 0
+            let schedHi = data.therapyTimeline.sensitivity.map { $0.value.doubleValue(for: mgdlUnit) }.max() ?? 0
+            FileHandle.standardError.write(Data("patient ISF INDEPENDENT of configuration: plant = FLAT \(String(format: "%.4f", absISF)) mg/dL/U (configured schedule \(String(format: "%.2f", schedLo))-\(String(format: "%.2f", schedHi)) is NOT used for the plant; controller still runs it)\n".utf8))
+        }
 
         // 2. Sequential walk
         let evalStart = interval.start.addingTimeInterval(candidateConfig.evalWarmupHours * 3600)
@@ -443,8 +480,8 @@ extension EvaluationEngine {
             // Filter doses to those covered by the sensitivity schedule —
             // LoopAlgorithm.glucoseEffects preconditions on closestPrior(...)
             // returning a non-nil entry for each dose.startDate.
-            let firstSensDate = scaledSensitivity.first?.startDate ?? .distantPast
-            let lastSensDate = scaledSensitivity.last?.endDate ?? .distantFuture
+            let firstSensDate = physiologySensitivity.first?.startDate ?? .distantPast
+            let lastSensDate = physiologySensitivity.last?.endDate ?? .distantFuture
             let safeDataDoses = data.doses.filter {
                 $0.startDate >= firstSensDate && $0.startDate <= lastSensDate
             }
@@ -1242,9 +1279,19 @@ extension EvaluationEngine {
             }
 
             // ISF at this time (in mg/dL/U convention; stored as mg/dL unit per codebase quirk).
+            //
+            // TWO of them, and they are not interchangeable once the patient ISF is
+            // decoupled. `isf` is the CONTROLLER's belief and is what the trace records
+            // (PredictionRecord.isf is algorithm state, alongside COB/RC/momentum — it is
+            // what case_study.py plots, so it must keep meaning the controller's ISF).
+            // `isfPlant` is the BODY's, and is what converts a dose delta into a BG effect.
+            // They coincide unless --patient-isf is set.
             let isfQty = scaledSensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
                 ?? scaledSensitivity.closestPrior(to: t)?.value
             let isf = isfQty?.doubleValue(for: mgdlUnit) ?? 0
+            let isfPlantQty = physiologySensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                ?? physiologySensitivity.closestPrior(to: t)?.value
+            let isfPlant = isfPlantQty?.doubleValue(for: mgdlUnit) ?? 0
 
             // Apply Δdose impact to FUTURE counter_mgdl entries.
             //
@@ -1258,7 +1305,7 @@ extension EvaluationEngine {
             // skipped in CF mode because the counter trajectory is no longer
             // a perturbation of actual — it's a fully integrated independent
             // simulation. (Fixed 2026-05-18.)
-            if deltaDose != 0 && isf > 0 && !cfActive {
+            if deltaDose != 0 && isfPlant > 0 && !cfActive {
                 for i in 0..<counterGlucose.count {
                     let futureT = counterGlucose[i].startDate
                     if futureT <= t { continue }
@@ -1269,7 +1316,7 @@ extension EvaluationEngine {
                     } else {
                         pd = max(0.0, min(1.0, 1.0 - insulinModel.percentEffectRemaining(at: τ)))
                     }
-                    counterMgdl[i] -= deltaDose * isf * pd
+                    counterMgdl[i] -= deltaDose * isfPlant * pd
                 }
                 // Append virtual dose entry. Treat Δdose as an instantaneous bolus
                 // at time t. This makes IOB calculations on subsequent steps
