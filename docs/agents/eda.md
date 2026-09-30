@@ -740,6 +740,86 @@ glucose, not the story of how it was measured. Therefore:
       decimals, because `delivery.py`'s 240-bin gate happens to exclude them. A near miss
       worth a deliberate gate rather than a lucky one.
 
+49. **How Loop users set ISF against their insulin use, and what goes with good outcomes**
+    (2026-09-24/25; `settings_rules.py` → `isf_rules.csv`, exploration in `settings_explore/`).
+    Observational throughout — people chose these settings.
+    - **The rule of 1800 gets the centre right and the shape wrong.** ISF × TDD has a median
+      of **1868** across 157 donors, but ISF falls as **TDD^0.74**, not TDD^1 (same 0.70 inside
+      each pump): best fit ISF ≈ 688 / TDD^0.74. The "constant" rises with TDD (1509 → 2032
+      across TDD quartiles); the rule over-predicts ISF at low TDD and under-predicts at high.
+    - **Raw ISF says nothing about outcomes; ISF relative to TDD does.** Rule of X vs TIR is
+      −0.31 holding TDD and age, **−0.46 once bolus frequency is also held**, and has **no link
+      to time below 54 or 70**. The 26 donors at TIR ≥ 80 / t<54 ≤ 1 run a median rule of
+      **1482** against 1939; mostly because they use less insulin, but against peers of the same
+      TDD they still run ISF 13% stronger (p = 0.004), all of it in the low-TDD third.
+    - **Dosing strategy changes the picture, and here strategy = pump = sensor** (temp basal is
+      86/93 twiist + Libre 3; autobolus 62/64 Omnipod + Dexcom). Temp-basal TIR falls 87 → 51
+      across rule-of-X bins; autobolus only 77 → 62. **Autobolus users have 2.5× the time below
+      54** (0.23% vs 0.09%, survives age/TDD/target, concentrated under age 26) while running a
+      *weaker* ISF (2112 vs 1810). The six Omnipod temp-basal users point at strategy rather
+      than sensor, but six cannot settle it.
+
+50. **The max-basal cap governs mild lows; ISF governs time in range — two independent knobs**
+    (2026-09-25/28). Among temp-basal users, holding TDD, rule of X, age and target: rule of X
+    → TIR (−0.33, p = 0.002) and not lows; **headroom** (max ÷ scheduled basal) → t<70 +0.29
+    (p = 0.006) and t<54 +0.24 (p = 0.03), and not TIR. Rule of X and cap barely correlate
+    (−0.09), and **their interaction is zero** (p 0.65–0.93) — "strong ISF + low cap" is good
+    because the effects add, not because they combine. Within the strong-ISF half, a low cap
+    takes t<70 from 3.1 to 0.7 with TIR unchanged (73 vs 72).
+    - Aggressive-ISF temp users DO cap harder: max basal 5.05 vs 6.0 U/hr (p = 0.014), pinned at
+      the cap 9.3% vs 4.0% of time above 180. But among them the ones doing well are pinned
+      LESS (5.7% vs 14.5%, p = 0.02): a cap that throttles most of the time goes with worse TIR.
+    - **Within-person check** (`maxbasal_history.py` → `cap_changers.py`): 126 max-basal
+      changes in 53 donors, but heavy editors leave few clean windows; 16 raises with no ISF
+      change within 3 days and ≥ 7 days each side. Raising the cap (median +14%) → TIR **+2.9**
+      (p = 0.016), t<70 **+0.6** (p = 0.034), pinned −3.0. Only one clean lowering exists.
+      Regression to the mean (people raise the cap after a bad stretch) could inflate the TIR
+      gain; it cannot explain the lows rising.
+    - Max basal in the export is the end-of-window setting; mid-window changes need the
+      `pumpSettings` history (`basal.rateMaximum.value`).
+
+51. **Bolus frequency is the strongest behavioural correlate of TIR, and TDD mostly isn't a cause**
+    (2026-09-25). Boluses/day vs TIR +0.54 holding TDD, rule of X, age, target and strategy;
+    TIR runs 58 (1–3/day) → 80 (8+/day), costing some t<70 (+0.20) but not t<54. TDD's own link
+    (−0.33) **falls to −0.12 (n.s.)** once bolusing and rule of X are held: low-TDD people do
+    better largely because they run relatively stronger ISFs. Age adds nothing beyond these.
+    Bolus frequency is also an engagement marker (lesson 37), so this is association.
+
+    **Two method traps from the same week, both of which produced confident wrong answers:**
+    - **Normalising delivery or IOB by TDD makes correlations with TIR circular.** TDD contains
+      the correction insulin of people who run high, so "delivery at 110 as a multiple of average"
+      or "IOB in hours of average delivery" shifts down for high-runners *by construction* —
+      it came out at 0.5–0.6 against TIR. Normalise by **scheduled basal** (a setting) or use
+      ratios within a person.
+    - **Slices of delivery conditioned on glucose are feedback, not settings.** Delivery near
+      110 mg/dL "predicted" more TIR and more lows — both vanished holding glucose flat, because
+      it was insulin given while glucose moved through 110. Delivery while FALLING "predicted"
+      fewer lows because the controller cuts hardest on the most dangerous falls. The
+      dose-response curve itself is solid description: automated delivery ≈ 0.3× scheduled basal
+      at 80 mg/dL, 1× at 110, 2.5× at 250, nearly identical for both strategies, and **13×
+      higher rising than falling at the same glucose** — trend dominates level.
+
+52. **Infusion-site changes (twiist): a six-hour cost, a failing-site signature, no wear-out**
+    (2026-09-29, `site_change.py`, figure 29). twiist uploads a `prime` (target cannula,
+    median 0.2 U) at every site change and a `reservoirChange` with 91% of them — 2,581 site
+    changes in 86 people, median 72 h apart (19–120 p10–p90). **Omnipod-via-Loop uploads
+    neither** (no deviceId either); pod changes are only inferable from ~70 h-spaced manual
+    suspends. Changes cluster at 17:00–22:00, so every value is taken against the same person
+    at the same local hour.
+    - **Routine change** (old site ≥ 48 h, 1,900): glucose rises in the last ~2 h, peaks about
+      **+28 mg/dL** in hours 0–3 (TIR ~49%), insulin 1.5× usual in the first hour, baseline by
+      ~6 h.
+    - **Early change** (< 48 h, 681 — a quarter): glucose climbs for 6–12 h beforehand (+9 →
+      +22 → +32) **while delivery stays flat** (0.96–1.02× usual) — a failing site; +42 at
+      the change, normal by ~6 h.
+    - **No wear-out between changes**: with the first 6 h excluded, day 1–4 are flat on glucose,
+      TIR and insulin (largest shift +3 mg/dL on day 4, p = 0.17). The only late effect is the
+      last ~12 h before a routine change, +9 mg/dL (p < 0.0001) — a fading site or a reactive
+      change, not separable here.
+    - My first pass said "day 1 is the worst day"; that was the change event plus the failing
+      sites, not the new site itself. Split the event from the life course before reading a
+      day-of-life table.
+
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
 trace differently and two people cannot characterise that difference. Candidate mechanisms and
