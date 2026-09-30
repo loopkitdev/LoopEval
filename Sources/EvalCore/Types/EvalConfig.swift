@@ -86,6 +86,15 @@ public struct EvalConfig: Codable, Sendable {
     /// fires on discrepancy SIGN (not BG level). tau=0 or gain=0 == off.
     public var sensitiveModeTauSec: TimeInterval
     public var sensitiveModeGain: Double
+    /// SLOW (autosens-scope) RC, 2026-09-29: a cross-cycle EWMA of the SIGNED per-step discrepancy (ICE minus
+    /// modeled carb effect, mg/dL per step -- the residual RC integrates, here over hours to a day instead of
+    /// IRC's 3 h / 1 h time constant) mapped to a controller ISF multiplier clamp(1 - gain * level, min, max).
+    /// A sustained POSITIVE residual (BG running above the forecast = resistance) lowers ISF; a sustained NEGATIVE
+    /// one raises it. Applied like autosens: dose sizing and the forecast's insulin effect both move. tau=0 = off.
+    public var slowRcTauSec: TimeInterval
+    public var slowRcGain: Double
+    public var slowRcMin: Double
+    public var slowRcMax: Double
     /// ICE RISE-BOOST ("attack a SUSTAINED, actively-driven high"). The rise side of
     /// the unified ICE-response term: at high BG with sustained POSITIVE trailing ICE
     /// (BG being actively pushed up = a real persistent high, not a resolving spike),
@@ -582,6 +591,24 @@ public struct EvalConfig: Codable, Sendable {
     /// k≈1 at 60 min on every bed, and it PLATEAUS at ~5–6 σ5 out to 6 h on the lows donors — a shape that can
     /// only be applied to the guard without lowering eventualBG by ~40 mg/dL. Default false.
     public var sigmaBandGuardOnly: Bool
+    /// NEGATIVE INSULIN DAMPER (Loop and Learn customization `negative_insulin`, Marion Barker / MNK, Loop >= 3.4.4;
+    /// ported 2026-09-29 from loopandlearn/customization nextdev_negative_insulin.patch). Doses delivered up to
+    /// nidLagMin ago (basal-type doses clipped there, boluses kept whole) are net-basal annotated and their glucose
+    /// effects summed over positive 5-min deltas = the predicted future RISE from negative insulin (posDeltaSum).
+    /// anchorPoint = 0.8 * peakActivity(h) * basalRate * ISF; alpha falls linearly from 1 (slope (1-anchorAlpha)/anchorPoint)
+    /// until the slope of alpha*posDeltaSum reaches nidMarginalSlope, then follows that marginal slope; damper =
+    /// max(0, 1 - max(marginalSlope, alpha)), so 25 % at the anchor and capped at 95 %. Applied to the ASSEMBLED
+    /// candidate forecast: every positive 5-min delta is multiplied by (1 - damper), negative deltas untouched.
+    /// Targets the 'double low' (re-dosing into the rebound after a treated low). Default off.
+    public var negativeInsulinDamper: Bool
+    public var nidAnchorAlpha: Double
+    public var nidMarginalSlope: Double
+    public var nidLagMin: Double
+    /// BASAL LOCK (Loop and Learn customization `basal_lock`, ported 2026-09-29 from nextdev_basal_lock.patch): while the
+    /// latest glucose is ABOVE this level (mg/dL; Loop's guardrail 200-300, recommended >= 220), a recommended temp basal
+    /// below the scheduled rate is raised to the scheduled rate. Output-side by construction (it is Loop's own
+    /// LoopDataManager patch, applied after the recommendation). Boluses are untouched. 0 = off.
+    public var basalLockBg: Double
 
     /// PREDICTIVE pre-low damper: a strict-causal sustained-sensitivity trigger.
     /// Over a trailing window compute causal ICE = v_bg − v_insulin (BG dropping
@@ -688,6 +715,11 @@ public struct EvalConfig: Codable, Sendable {
         sigmaBandBaseline: Double = 0,
         sigmaBandFixedSigma: Double = 0,
         sigmaBandGuardOnly: Bool = false,
+        negativeInsulinDamper: Bool = false,
+        nidAnchorAlpha: Double = 0.75,
+        nidMarginalSlope: Double = 0.05,
+        nidLagMin: Double = 15,
+        basalLockBg: Double = 0,
         sensDampWindowMin: Double = 45.0,
         sensDampThresholdRate: Double = 0.4,
         sensDampGain: Double = 0.0,
@@ -708,6 +740,10 @@ public struct EvalConfig: Codable, Sendable {
         ircRiseDurationScale: Double = 1.0,
         sensitiveModeTauSec: TimeInterval = 0,
         sensitiveModeGain: Double = 0,
+        slowRcTauSec: TimeInterval = 0,
+        slowRcGain: Double = 0,
+        slowRcMin: Double = 0.7,
+        slowRcMax: Double = 1.3,
         iceRiseBoostGain: Double = 0,
         iceRiseBoostBgLo: Double = 170,
         iceRiseBoostBgHi: Double = 250,
@@ -838,6 +874,11 @@ public struct EvalConfig: Codable, Sendable {
         self.sigmaBandBaseline              = sigmaBandBaseline
         self.sigmaBandFixedSigma            = sigmaBandFixedSigma
         self.sigmaBandGuardOnly             = sigmaBandGuardOnly
+        self.negativeInsulinDamper          = negativeInsulinDamper
+        self.nidAnchorAlpha                 = nidAnchorAlpha
+        self.nidMarginalSlope               = nidMarginalSlope
+        self.nidLagMin                      = nidLagMin
+        self.basalLockBg                    = basalLockBg
         self.sensDampWindowMin              = sensDampWindowMin
         self.sensDampThresholdRate          = sensDampThresholdRate
         self.sensDampGain                   = sensDampGain
@@ -858,6 +899,10 @@ public struct EvalConfig: Codable, Sendable {
         self.ircRiseDurationScale           = ircRiseDurationScale
         self.sensitiveModeTauSec               = sensitiveModeTauSec
         self.sensitiveModeGain                 = sensitiveModeGain
+        self.slowRcTauSec = slowRcTauSec
+        self.slowRcGain = slowRcGain
+        self.slowRcMin = slowRcMin
+        self.slowRcMax = slowRcMax
         self.iceRiseBoostGain                  = iceRiseBoostGain
         self.iceRiseBoostBgLo                  = iceRiseBoostBgLo
         self.iceRiseBoostBgHi                  = iceRiseBoostBgHi
@@ -912,7 +957,7 @@ public struct EvalConfig: Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
         case decisionTimesAreAuthoritative
-        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, asymmetricStandardRC, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, useTempBasalStrategy, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay
+        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, asymmetricStandardRC, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, slowRcTauSec, slowRcGain, slowRcMin, slowRcMax, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, useTempBasalStrategy, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay
         case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec, carbAbsorptionOverrun, carbRevisionsPath, overrideTargetsPath
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
@@ -926,7 +971,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
         case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsSmoothGlucose, oapsPumpPulse
-        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly, negativeInsulinDamper, nidAnchorAlpha, nidMarginalSlope, nidLagMin, basalLockBg
         case descentRcRiseScale, descentHighBgMin, descentWindowMin, descentSlopeMax, sigmaBandDescentGate
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
@@ -949,6 +994,10 @@ public struct EvalConfig: Codable, Sendable {
         self.ircRiseDurationScale = try c.decodeIfPresent(Double.self, forKey: .ircRiseDurationScale) ?? 1.0
         self.sensitiveModeTauSec     = try c.decodeIfPresent(TimeInterval.self, forKey: .sensitiveModeTauSec) ?? 0
         self.sensitiveModeGain       = try c.decodeIfPresent(Double.self, forKey: .sensitiveModeGain) ?? 0
+        self.slowRcTauSec = try c.decodeIfPresent(TimeInterval.self, forKey: .slowRcTauSec) ?? 0
+        self.slowRcGain = try c.decodeIfPresent(Double.self, forKey: .slowRcGain) ?? 0
+        self.slowRcMin = try c.decodeIfPresent(Double.self, forKey: .slowRcMin) ?? 0.7
+        self.slowRcMax = try c.decodeIfPresent(Double.self, forKey: .slowRcMax) ?? 1.3
         self.iceRiseBoostGain        = try c.decodeIfPresent(Double.self, forKey: .iceRiseBoostGain) ?? 0
         self.iceRiseBoostBgLo        = try c.decodeIfPresent(Double.self, forKey: .iceRiseBoostBgLo) ?? 170
         self.iceRiseBoostBgHi        = try c.decodeIfPresent(Double.self, forKey: .iceRiseBoostBgHi) ?? 250
@@ -1085,6 +1134,11 @@ public struct EvalConfig: Codable, Sendable {
         self.sigmaBandBaseline = try c.decodeIfPresent(Double.self, forKey: .sigmaBandBaseline) ?? 0
         self.sigmaBandFixedSigma = try c.decodeIfPresent(Double.self, forKey: .sigmaBandFixedSigma) ?? 0
         self.sigmaBandGuardOnly = try c.decodeIfPresent(Bool.self, forKey: .sigmaBandGuardOnly) ?? false
+        self.negativeInsulinDamper = try c.decodeIfPresent(Bool.self, forKey: .negativeInsulinDamper) ?? false
+        self.nidAnchorAlpha = try c.decodeIfPresent(Double.self, forKey: .nidAnchorAlpha) ?? 0.75
+        self.nidMarginalSlope = try c.decodeIfPresent(Double.self, forKey: .nidMarginalSlope) ?? 0.05
+        self.nidLagMin = try c.decodeIfPresent(Double.self, forKey: .nidLagMin) ?? 15
+        self.basalLockBg = try c.decodeIfPresent(Double.self, forKey: .basalLockBg) ?? 0
         self.sensDampWindowMin = try c.decodeIfPresent(Double.self, forKey: .sensDampWindowMin) ?? 45.0
         self.sensDampThresholdRate = try c.decodeIfPresent(Double.self, forKey: .sensDampThresholdRate) ?? 0.4
         self.sensDampGain = try c.decodeIfPresent(Double.self, forKey: .sensDampGain) ?? 0.0
@@ -1109,6 +1163,10 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(ircRiseDurationScale, forKey: .ircRiseDurationScale)
         try c.encode(sensitiveModeTauSec, forKey: .sensitiveModeTauSec)
         try c.encode(sensitiveModeGain, forKey: .sensitiveModeGain)
+        try c.encode(slowRcTauSec, forKey: .slowRcTauSec)
+        try c.encode(slowRcGain, forKey: .slowRcGain)
+        try c.encode(slowRcMin, forKey: .slowRcMin)
+        try c.encode(slowRcMax, forKey: .slowRcMax)
         try c.encode(iceRiseBoostGain, forKey: .iceRiseBoostGain)
         try c.encode(iceRiseBoostBgLo, forKey: .iceRiseBoostBgLo)
         try c.encode(iceRiseBoostBgHi, forKey: .iceRiseBoostBgHi)
@@ -1236,6 +1294,11 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(sigmaBandBaseline, forKey: .sigmaBandBaseline)
         try c.encode(sigmaBandFixedSigma, forKey: .sigmaBandFixedSigma)
         try c.encode(sigmaBandGuardOnly, forKey: .sigmaBandGuardOnly)
+        try c.encode(negativeInsulinDamper, forKey: .negativeInsulinDamper)
+        try c.encode(nidAnchorAlpha, forKey: .nidAnchorAlpha)
+        try c.encode(nidMarginalSlope, forKey: .nidMarginalSlope)
+        try c.encode(nidLagMin, forKey: .nidLagMin)
+        try c.encode(basalLockBg, forKey: .basalLockBg)
         try c.encode(sensDampWindowMin, forKey: .sensDampWindowMin)
         try c.encode(sensDampThresholdRate, forKey: .sensDampThresholdRate)
         try c.encode(sensDampGain, forKey: .sensDampGain)
