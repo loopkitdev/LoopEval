@@ -203,16 +203,13 @@ def f03_phase_plane(panels, co):
             A.axvline(x, color="#5bbf95", lw=0.9, ls=(0, (2, 2)), zorder=4)
 
         # Restoring force on its own scale, so a ±3 mg/dL signal is readable
-        # inside a ±22 mg/dL cloud without being exaggerated.
-        idx = np.digitize(c["bg"], xe) - 1
-        ok = (idx >= 0) & (idx < len(xe) - 1)
-        g = pd.DataFrame({"i": idx[ok], "v": c["v"].to_numpy()[ok]}).groupby("i")
-        mv, cnt = g["v"].mean(), g["v"].size()
-        mv = mv[cnt >= 50]
+        # inside a ±22 mg/dL cloud without being exaggerated. FORWARD
+        # increment against the previous level — see style.restoring_force.
+        rx, rm, _, _ = S.restoring_force(c, xe, minn=50)
         A2 = A.twinx()
-        A2.plot(xc[mv.index], mv.to_numpy(), color="#0f9d6d", lw=2.0, zorder=5)
+        A2.plot(rx, rm, color="#0f9d6d", lw=2.0, zorder=5)
         A2.axhline(0, color="#0f9d6d", lw=0.7, alpha=0.35, zorder=3)
-        A2.set_ylim(-4.2, 4.2)
+        A2.set_ylim(-8.4, 8.4)
         A2.spines["top"].set_visible(False)
         A2.spines["left"].set_visible(False)
         A2.spines["right"].set_color("#0f9d6d")
@@ -232,9 +229,9 @@ def f03_phase_plane(panels, co):
     for j in range(n, len(axf)):
         axf[j].set_visible(False)
     S.title(fig, "03 · The phase plane: glucose against its own velocity",
-            "Log density of every 5-minute sample (dark = where the person spends time). The green line is mean velocity at each glucose — "
-            "the restoring force — drawn on its own\nright-hand scale of ±4 mg/dL per 5 min, because it is a small signal inside a wide cloud. "
-            "It crosses zero near the glucose each system actually defends.")
+            "Log density of every 5-minute sample (dark = where the person spends time). The cloud is the increment that ARRIVED; the green line is "
+            "the one that LEAVES —\nmean NEXT increment at each glucose, the restoring force — on its own right-hand scale of ±4 mg/dL per 5 min, because it is a small "
+            "signal inside a wide cloud.\nIt is negative above the glucose each system defends and positive below it, and it crosses zero there.")
     S.save(fig, "03_phase_plane",
            dict(left=0.045, right=0.955, top=1 - 0.44 / nrow, bottom=0.06,
                 hspace=0.44, wspace=0.30))
@@ -246,17 +243,13 @@ def f04_restoring_force(panels, co):
     fig, ax = S.figure(1, 3, figsize=(14.2, 5.2))
     edges = np.linspace(40, 340, 46)
     ctr = 0.5 * (edges[:-1] + edges[1:])
+    curves = {}
     for a in order:
         c = D.clean(panels[a])
-        idx = np.digitize(c["bg"], edges) - 1
-        ok = (idx >= 0) & (idx < len(edges) - 1)
-        g = pd.DataFrame({"i": idx[ok], "v": c["v"].to_numpy()[ok],
-                          "v30": c["v30"].to_numpy()[ok]}).groupby("i")
-        m, sd, cnt = g["v"].mean(), g["v"].std(), g["v"].size()
-        m, sd = m[cnt >= 40], sd[cnt >= 40]
-        col = S.color_for(co, a)
-        ax[0].plot(ctr[m.index], m.to_numpy(), **S.line_style(co, a))
-        ax[1].plot(ctr[sd.index], sd.to_numpy(), **S.line_style(co, a))
+        x, m, sd, _ = S.restoring_force(c, edges)
+        curves[a] = (x, m)
+        ax[0].plot(x, m, **S.line_style(co, a))
+        ax[1].plot(x, sd, **S.line_style(co, a))
     ax[0].axhline(0, color=S.INK, lw=1.3, ls=(0, (4, 2)))
     ax[0].set_xlabel("glucose (mg/dL)", fontsize=9.5, color=S.INK2)
     ax[0].set_ylabel("mean Δ BG per 5 min", fontsize=9.5, color=S.INK2)
@@ -268,33 +261,36 @@ def f04_restoring_force(panels, co):
                     loc="left", pad=6, weight="bold")
 
     # Where does the restoring force cross zero, and how steep is it there?
+    pts = []
     for _, r in co.iterrows():
         a = r["alias"]
-        c = D.clean(panels[a])
-        idx = np.digitize(c["bg"], edges) - 1
-        ok = (idx >= 0) & (idx < len(edges) - 1)
-        g = pd.DataFrame({"i": idx[ok], "v": c["v"].to_numpy()[ok]}).groupby("i")
-        m, cnt = g["v"].mean(), g["v"].size()
-        m = m[cnt >= 40]
-        x, y = ctr[m.index], m.to_numpy()
-        sel = (x > 80) & (x < 300)
-        if sel.sum() < 5:
+        if a not in curves:
             continue
-        sl = np.polyfit(x[sel], y[sel], 1)
-        cross = -sl[1] / sl[0] if sl[0] != 0 else np.nan
-        col = S.GROUP_COLOR.get(S.group_of(r), S.MUTED)
-        ax[2].scatter(cross, -sl[0] * 1000, s=64, color=col,
+        cross, stiff = S.set_point(*curves[a])
+        if not np.isfinite(cross):
+            continue
+        pts.append((cross, stiff))
+        ax[2].scatter(cross, stiff, s=64, color=S.GROUP_COLOR.get(S.group_of(r), S.MUTED),
                       edgecolor=S.SURFACE, lw=1.2, zorder=3)
-        ax[2].annotate(a if a in S.sample_for(co) else "", (cross, -sl[0] * 1000), textcoords="offset points",
-                       xytext=(7, -3), fontsize=8, color=S.INK2)
+    if pts:
+        P = np.array(pts)
+        ax[2].text(0.02, 0.97, f"{len(P)} of {len(co)} people have a pull-back that\n"
+                   f"crosses zero inside their observed range\n"
+                   f"median set point {np.median(P[:, 0]):.0f} mg/dL, "
+                   f"stiffness {np.median(P[:, 1]):.1f}",
+                   transform=ax[2].transAxes, fontsize=8.5, color=S.INK2,
+                   va="top", linespacing=1.5, zorder=6,
+                   bbox=dict(facecolor=S.SURFACE, edgecolor="none", alpha=0.88,
+                             boxstyle="round,pad=0.35"))
     ax[2].set_xlabel("zero-crossing: the glucose the system holds (mg/dL)",
                      fontsize=9.5, color=S.INK2)
     ax[2].set_ylabel("pull-back strength (×10⁻³ per 5 min)", fontsize=9.5, color=S.INK2)
     ax[2].set_title("Set point vs stiffness", fontsize=10.5, color=S.INK,
                     loc="left", pad=6, weight="bold")
     S.title(fig, "04 · The restoring force, isolated",
-            "Mean velocity as a function of current glucose, for each person. The zero-crossing is the glucose their whole system "
-            "(loop + behaviour + physiology) actually defends;\nthe slope is how hard it pulls. These are two separable knobs, and people differ on both.")
+            "Mean NEXT increment as a function of the glucose before it, per person — what the system does from where it is, not how it got there. "
+            "The zero-crossing is\nthe glucose their whole system (loop + behaviour + physiology) actually defends; the slope is how hard it pulls. "
+            "These are two separable knobs,\nand people differ on both.")
     S.save(fig, "04_restoring_force",
            dict(left=0.05, right=0.99, top=0.80, bottom=0.11, wspace=0.24))
 
@@ -364,11 +360,14 @@ def f05_insulin_activity(panels, co):
     ax[1][1].set_ylabel("mean insulin activity (mg/dL / 5 min)", fontsize=9.5, color=S.INK2)
     ax[1][1].set_title("Insulin action rises with glucose — but only mildly",
                        fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
+    # Read the range off the data: hardcoding it left the 15-person era's
+    # "3% to 81%, median 48%" sitting above a panel drawn from 159 people.
+    _sh = co["ia_sched_share"].dropna() * 100
     S.title(fig, "05 · Insulin activity",
             "How much BG-lowering insulin delivers in each 5-minute bin. Left: the physiological quantity, every unit in the body. Right: the same "
-            "stream as Loop measures it,\nwith the basal schedule subtracted. The bar chart is the difference — the scheduled stream is 3% to 81% "
-            "of all insulin action, median 48%, and a basal-relative\nforecast books it at zero. This is the schedule only; a temp-basal-strategy "
-            "user's corrections are not counted as basal here.")
+            "stream as Loop measures it,\nwith the basal schedule subtracted. The bar chart is the difference — the scheduled stream is "
+            f"{_sh.min():.0f}% to {_sh.max():.0f}% of all insulin action, median {_sh.median():.0f}%,\nand a basal-relative forecast books it at "
+            "zero. This is the schedule only; a temp-basal-strategy user's corrections are not counted as basal here.")
     S.save(fig, "05_insulin_activity",
            dict(left=0.075, right=0.985, top=0.835, bottom=0.07, hspace=0.38, wspace=0.2))
 
@@ -398,9 +397,17 @@ def f06_ice(panels, co):
         col = S.GROUP_COLOR.get(S.group_of(r), S.MUTED)
         ax[1][0].scatter(r["ia_abs_mean"], r["ice_abs_mean"], s=66, color=col,
                          edgecolor=S.SURFACE, lw=1.2, zorder=3)
-        ax[1][0].annotate(r["alias"] if r["alias"] in S.sample_for(co) else "", (r["ia_abs_mean"], r["ice_abs_mean"]),
-                          textcoords="offset points", xytext=(7, -3), fontsize=8,
-                          color=S.INK2)
+    # No per-person labels: every point is ON the identity line, so a label
+    # says nothing the panel does not, and at 159 people they collide.
+    _bal = ((co["ice_abs_mean"] - co["ia_abs_mean"]).abs()
+            / co["ia_abs_mean"] * 100).dropna()
+    ax[1][0].text(0.03, 0.97,
+                  f"worst gap {_bal.max():.1f}% of insulin action\n"
+                  f"median {_bal.median():.2f}%",
+                  transform=ax[1][0].transAxes, fontsize=8.5, color=S.INK2,
+                  va="top", linespacing=1.5, zorder=6,
+                  bbox=dict(facecolor=S.SURFACE, edgecolor="none", alpha=0.88,
+                            boxstyle="round,pad=0.35"))
     lim = [0, max(co["ia_abs_mean"].max(), co["ice_abs_mean"].max()) * 1.08]
     ax[1][0].plot(lim, lim, color=S.INK, lw=1.3, ls=(0, (4, 2)), zorder=1)
     ax[1][0].set_xlim(lim)
@@ -410,21 +417,42 @@ def f06_ice(panels, co):
     ax[1][0].set_title("Over months the two sides balance exactly",
                        fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
 
-    # Does non-insulin flux depend on glucose level?
+    # Does non-insulin flux depend on glucose level? It RISES — and almost all
+    # of the rise is the controller dosing harder at high glucose, which the
+    # identity then requires appearance to offset. Drawing insulin action beside
+    # it is the only way to read the panel correctly.
     edges = np.linspace(40, 340, 40)
     ctr = 0.5 * (edges[:-1] + edges[1:])
+    sl_e, sl_i = [], []
+    _samp = set(S.sample_for(co))
     for a in order:
         c = D.clean(panels[a])
         idx = np.digitize(c["bg"], edges) - 1
         ok = (idx >= 0) & (idx < len(edges) - 1)
-        g = pd.DataFrame({"i": idx[ok], "e": c["ice_abs"].to_numpy()[ok]}).groupby("i")
-        m, cnt = g["e"].mean(), g["e"].size()
-        m = m[cnt >= 40]
-        ax[1][1].plot(ctr[m.index], m.to_numpy() * 12, **S.line_style(co, a))
+        g = pd.DataFrame({"i": idx[ok], "e": c["ice_abs"].to_numpy()[ok],
+                          "a": c["ia_abs"].to_numpy()[ok]}).groupby("i")
+        cnt = g["e"].size()
+        me, ma = g["e"].mean()[cnt >= 40], g["a"].mean()[cnt >= 40]
+        ax[1][1].plot(ctr[me.index], me.to_numpy() * 12, **S.line_style(co, a))
+        if a in _samp:
+            ax[1][1].plot(ctr[ma.index], ma.to_numpy() * 12, color=S.INK2,
+                          lw=1.1, ls=(0, (3, 2)), alpha=0.75, zorder=2)
+        if len(me) > 8:
+            sl_e.append(np.polyfit(ctr[me.index], me.to_numpy() * 12, 1)[0])
+            sl_i.append(np.polyfit(ctr[ma.index], ma.to_numpy() * 12, 1)[0])
     ax[1][1].axhline(0, color=S.INK, lw=1.2, ls=(0, (4, 2)))
     ax[1][1].set_xlabel("glucose (mg/dL)", fontsize=9.5, color=S.INK2)
-    ax[1][1].set_ylabel("mean non-insulin flux (mg/dL / hr)", fontsize=9.5, color=S.INK2)
-    ax[1][1].set_title("It falls steeply as glucose rises",
+    ax[1][1].set_ylabel("mean flux (mg/dL / hr)", fontsize=9.5, color=S.INK2)
+    if sl_e:
+        ax[1][1].text(0.03, 0.97,
+                      f"appearance rises {np.median(sl_e):.2f} mg/dL/hr per mg/dL\n"
+                      f"insulin action (dashed) rises {np.median(sl_i):.2f} — "
+                      f"{100*np.median(sl_i)/np.median(sl_e):.0f}% of it",
+                      transform=ax[1][1].transAxes, fontsize=8.5, color=S.INK2,
+                      va="top", linespacing=1.5, zorder=6,
+                      bbox=dict(facecolor=S.SURFACE, edgecolor="none", alpha=0.88,
+                                boxstyle="round,pad=0.35"))
+    ax[1][1].set_title("It RISES with glucose — because dosing does",
                        fontsize=10.5, color=S.INK, loc="left", pad=6, weight="bold")
     S.title(fig, "06 · The non-insulin side",
             "Velocity plus insulin activity leaves everything insulin did not do: glucose production, carbs, exercise, sensor noise. "

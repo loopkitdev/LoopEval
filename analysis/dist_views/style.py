@@ -81,12 +81,19 @@ def clip_window(alias: str, obj):
     return obj[m]
 
 
-def cohort(stratum: str = "core") -> pd.DataFrame:
+def cohort(stratum: str = "modelling") -> pd.DataFrame:
     """The people a view describes.
 
-    **core** is hash-ordered and matches the donor pool it was drawn from, so it
-    is what the study's figures describe and the only group a pooled statistic
-    is honest about. **targeted** is everyone sampled deliberately — to reach
+    The DEFAULT is **modelling**: both strata, eligibility gates passed — the
+    set the cohort justification describes, and what the study's figures show.
+    Its size moves with the exports on disk; read it off `cohort.csv` rather
+    than quoting a number from here.
+
+    **core** is the hash-ordered subset that matches the donor pool, and is the
+    only group a pooled statistic about the DONOR POPULATION is honest about;
+    view 00 uses it for exactly that comparison and nothing else.
+
+    **targeted** is everyone sampled deliberately — to reach
     people who announce little, to fill a thin engagement cell, to balance the
     pumps. Why each targeted person was chosen lives in `source`; what they are
     lives in the dosing, settings and device columns, which is what analyses
@@ -310,9 +317,14 @@ def datasets():
         out.update({d.alias: d for d in D.bddp_datasets(m.WIDE_ROOT, source="wide")})
     # The hands-off stratum. Reachable here so its raw samples can be analysed;
     # membership in a FIGURE is decided by cohort(), which is core by default.
-    if _os.path.isdir(m.HANDSOFF_ROOT):
-        out.update({d.alias: d
-                    for d in D.bddp_datasets(m.HANDSOFF_ROOT, source="handsoff")})
+    # Every export root build.py knows about, so a view can reach any cohort
+    # member's raw inputs. Adding a root to build.py and forgetting it here is
+    # how vol_fit came to raise KeyError on an alias that was in cohort.csv.
+    for attr, src in (("HANDSOFF_ROOT", "handsoff"), ("GRID_ROOT", "grid"),
+                      ("DEVICE_ROOT", "device"), ("TIR_ROOT", "tir")):
+        root = getattr(m, attr, None)
+        if root and _os.path.isdir(root):
+            out.update({d.alias: d for d in D.bddp_datasets(root, source=src)})
     for alias, host in m.ns_sites():
         try:
             out[alias] = D.ns_dataset(alias, host)
@@ -358,9 +370,67 @@ def raw_runs(alias: str, minlen: int = 12):
             start = i
     if len(v) - start >= minlen:
         out.append(v[start:])
-    out = [r for r in out if r.size >= minlen]
+    # One definition, one place: the same guard the whole-record statistics
+    # use, so a figure and the ledger can never disagree about which
+    # increments are real.
+    from loopeval_analysis.traits import split_impossible
+    out, _ = split_impossible(out, cadence, minlen)
     _RAW_CACHE[alias] = (out, cadence)
     return _RAW_CACHE[alias]
+
+
+def restoring_force(panel, edges, minn: int = 40, lagged: bool = True):
+    """Mean FORWARD increment as a function of glucose — the restoring force.
+
+    `panel["v"]` is ``bg.diff()``, the increment that ARRIVED at the current
+    reading. Averaging it against the current level answers "how did I get
+    here", which for a mean-reverting series is the mirror image of the
+    restoring force: it rises with glucose because you reach a high level by
+    rising. Figures 03 and 04 read it that way until 2026-09-16 and so showed
+    the reflection of the quantity their captions described.
+
+    The restoring force is the increment that LEAVES: E[bg(t+1) - bg(t) | level].
+    With `lagged` (the default) the level is bg(t-1) rather than bg(t), so the
+    sensor error in the conditioning reading is not also inside the increment
+    being averaged — conditioning on bg(t) couples them and biases the slope
+    toward zero. Returns ``(x, mean, sd, n)`` on the bin centres that clear
+    `minn` samples; mean and sd are per five minutes.
+    """
+    import numpy as np
+    import pandas as pd
+    b = panel["bg"].to_numpy(dtype=float)
+    v = panel["v"].to_numpy(dtype=float)
+    fwd = np.concatenate([v[1:], [np.nan]])          # bg(t+1) - bg(t)
+    lvl = np.concatenate([[np.nan], b[:-1]]) if lagged else b
+    ctr = 0.5 * (edges[:-1] + edges[1:])
+    i = np.digitize(lvl, edges) - 1
+    ok = (i >= 0) & (i < len(ctr)) & np.isfinite(fwd) & np.isfinite(lvl)
+    g = pd.DataFrame({"i": i[ok], "y": fwd[ok]}).groupby("i")["y"]
+    m, sd, n = g.mean(), g.std(), g.size()
+    keep = n >= minn
+    m, sd, n = m[keep], sd[keep], n[keep]
+    return ctr[m.index], m.to_numpy(), sd.to_numpy(), n.to_numpy()
+
+
+def set_point(x, y, lo: float = 80.0, hi: float = 300.0):
+    """(zero-crossing, pull-back strength) of a restoring-force curve.
+
+    Returns ``(nan, nan)`` unless the fit is a genuine pull-back — negative
+    slope — whose crossing lands inside the glucose range actually observed.
+    The unguarded version put one person's set point at -60,000 mg/dL and took
+    figure 04's third panel with it.
+    """
+    import numpy as np
+    sel = (x > lo) & (x < hi)
+    if sel.sum() < 5:
+        return float("nan"), float("nan")
+    slope, intercept = np.polyfit(x[sel], y[sel], 1)
+    if slope >= 0:
+        return float("nan"), float("nan")
+    cross = -intercept / slope
+    if not (x[sel].min() <= cross <= x[sel].max()):
+        return float("nan"), float("nan")
+    return float(cross), float(-slope * 1000)
 
 
 def raw_lag(alias: str, minutes: float) -> int:

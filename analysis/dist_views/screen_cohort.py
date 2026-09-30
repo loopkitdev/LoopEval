@@ -31,7 +31,8 @@ from loopeval_analysis.tidepool.conn import query            # noqa: E402
 
 CACHE = Path(os.path.expanduser("~/.loop-eval/trait-cohort"))
 MAPS = ("alias_map.json", "handsoff_alias_map.json", "grid_alias_map.json",
-        "grid2_alias_map.json", "device_alias_map.json", "bddp_alias_map.json")
+        "grid2_alias_map.json", "device_alias_map.json", "bddp_alias_map.json",
+        "tir_alias_map.json")
 TBL = os.environ.get("TIDEPOOL_TABLE") or "prod.default.device_data"
 T = "CAST(get_json_object(time,'$.$date.$numberLong') AS BIGINT)"
 V = ("COALESCE(CAST(get_json_object(value,'$.$numberDouble') AS DOUBLE),"
@@ -70,7 +71,7 @@ def main() -> int:
         print(f"  {label}…", flush=True)
         d = query(q)
         for c in d.columns:
-            if c != "_userId":
+            if c not in ("_userId", "pump", "sensor"):
                 d[c] = pd.to_numeric(d[c], errors="coerce")
         return d
 
@@ -109,24 +110,28 @@ def main() -> int:
           FROM {TBL} WHERE type='pumpSettings' AND {W}
             AND CAST(_active AS STRING) <> 'false')
         WHERE prev IS NOT NULL AND h <> prev GROUP BY 1"""),
-        go("device", f"""
-        SELECT _userId, pump, sensor FROM (
-          SELECT c._userId AS _userId,
-                 max(CASE WHEN p.m RLIKE '(?i)sequel' THEN 'twiist'
-                          WHEN p.m RLIKE '(?i)insulet' THEN 'Omnipod'
-                          WHEN p.m RLIKE '(?i)medtronic' THEN 'Medtronic' END) AS pump,
-                 max(CASE WHEN CAST(c.deviceId AS STRING) RLIKE '(?i)twiist' THEN 'Libre 3'
-                          WHEN CAST(c.deviceId AS STRING) RLIKE '(?i)g7' THEN 'Dexcom G7'
-                          WHEN CAST(c.deviceId AS STRING) RLIKE '(?i)g6' THEN 'Dexcom G6'
-                          WHEN CAST(c.deviceId AS STRING) RLIKE '(?i)libre|abbott'
-                               THEN 'Libre (Abbott)' END) AS sensor
-          FROM {TBL} c LEFT JOIN
-               (SELECT _userId, CAST(manufacturers AS STRING) AS m FROM {TBL}
-                WHERE type='pumpSettings' AND {W} GROUP BY 1,2) p
-            ON c._userId = p._userId
-          WHERE c.type='cbg' AND {T.replace('time','c.time')} BETWEEN {START} AND {END}
-            AND c._userId IN ({ids})
-          GROUP BY 1)"""),
+        go("pump", f"""
+        SELECT _userId, max(CASE
+                 WHEN m RLIKE '(?i)sequel'    THEN 'twiist'
+                 WHEN m RLIKE '(?i)insulet'   THEN 'Omnipod'
+                 WHEN m RLIKE '(?i)medtronic' THEN 'Medtronic'
+                 WHEN m RLIKE '(?i)medtrum'   THEN 'Medtrum' END) AS pump
+        FROM (SELECT _userId, CAST(manufacturers AS STRING) AS m
+              FROM {TBL} WHERE type='pumpSettings' AND {W})
+        GROUP BY 1"""),
+        go("sensor", f"""
+        SELECT _userId, sensor FROM (
+          SELECT _userId, sensor, row_number() OVER
+                 (PARTITION BY _userId ORDER BY n DESC) AS rk FROM (
+            SELECT _userId, count(*) AS n, CASE
+                     WHEN d RLIKE '(?i)twiist'       THEN 'Libre 3'
+                     WHEN d RLIKE '(?i)g7'           THEN 'Dexcom G7'
+                     WHEN d RLIKE '(?i)g6'           THEN 'Dexcom G6'
+                     WHEN d RLIKE '(?i)libre|abbott' THEN 'Libre (Abbott)' END AS sensor
+            FROM (SELECT _userId, CAST(deviceId AS STRING) AS d FROM {TBL}
+                  WHERE type='cbg' AND {W} AND deviceId IS NOT NULL)
+            GROUP BY _userId, sensor))
+        WHERE rk = 1 AND sensor IS NOT NULL"""),
     ]
     d = parts[0]
     for part in parts[1:]:

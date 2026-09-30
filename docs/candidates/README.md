@@ -88,6 +88,7 @@ the **rise-cut is the active part**; the drop-boost is ≈ inert (one-sided actu
 
 | date | bed | regime | window / dial | result | verdict |
 |---|---|---|---|---|---|
+| 2026-09-28 | ns3 | natural (std-RC era) | 90 d (06-30 → 09-28), needs, band 1.00±0.1; class-1 incl. `--legacy-rc-decay`, overrides on | reference crosses field at ×0.998 TIR / ×0.999 mean; band lift **+0.006 [−0.004,+0.016]**, dom 0.60; @op ΔTIR −0.6 [−1.0,−0.2] Δt54 −0.04 Δt70 −0.35; below-right only at ×1.10–1.20 (×1.15: TIR 62.3 / t54 1.01 vs ref 62.3 / 1.28). Daily: 23 win-win / 18 trade / 28 loss; helps on slow unexplained drifts toward 70, hurts on a rise that follows a fall (rise ×0.5 under-doses the rebound) — `runs/2026-09-28-ns3-airc/` | **NEUTRAL** |
 | 2026-08-24 | bddp11 | natural (hands-off) | 90 d, needs, band 1.00±0.1 | band lift **+0.022 [+0.006,+0.036]** (in-band reference; +0.019 vs full reference), dom 1.00 (lo 0.60); @op ΔTIR −0.9 Δt54 −0.07 Δt70 −0.52; holds on both halves (in-sample +0.016, holdout +0.014, daily blocks) | **IMPROVES** (1 donor) |
 | 2026-08-21 | bddp11 | natural | 90 d, needs (whole-sweep) | mean lift +0.012, frac_pos 0.7; event arm: min<54 520 vs std 555, 2/23 lows avoided | leads (old rule) |
 | 2026-08-11 | bddp11 | natural | 2 mo, needs | below-right of ref from ×0.85 up, no blow-up | leads |

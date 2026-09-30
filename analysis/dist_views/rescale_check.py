@@ -71,8 +71,11 @@ def main() -> int:
         if ref is not None:
             share = 100 * float((v > ref).mean())
             extra = f"   ·   {share:.0f}% above {ref:g}"
-        A.set_title(f"median {v.median():.3g}   ({v.min():.3g}–{v.max():.3g}){extra}",
-                    fontsize=9, color=S.INK, loc="left", pad=5, weight="bold")
+        # Two short lines rather than one long one: a negative minimum widens
+        # this title past its panel on a six-column grid.
+        A.set_title(f"median {v.median():.3g}\n({v.min():.3g}–{v.max():.3g}){extra}",
+                    fontsize=9, color=S.INK, loc="left", pad=5, weight="bold",
+                    linespacing=1.35)
 
     for j in range(len(PANELS), len(axf)):
         axf[j].set_visible(False)
