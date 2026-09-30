@@ -317,6 +317,7 @@ public actor EvaluationEngine {
             // effect vanishes.
             ["type": dose.deliveryType == .bolus ? "bolus" : "tempBasal",
              "unit": "U", "value": dose.volume,
+             "rate": dose.tempRate as Any,
              "startDate": ds(dose.startDate), "endDate": ds(dose.endDate),
              "insulinType": insulinTypeRaw]
         }
