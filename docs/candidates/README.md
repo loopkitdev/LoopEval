@@ -32,7 +32,7 @@ hash have no surviving traces.
 | [C05](#c05-uam-projection) | UAM projection | dose-more | scored (bddp11; bddp07/03/08 unannounced) | **WORSE** on hands-off bddp11 and unannounced bddp03/08; **REVISED 2026-08-27**: at a retuned op the bddp07 win is **uam45 +4.6 TIR** (IMPROVES), not uam90 +16.6 — half the headline was the donor not having retuned. Still patient-conditional, and every UAM arm buys TIR with lows on the other beds |
 | [C06](#c06-early-rise-projection) | Early-rise projection | dose-more | scored (bddp11) | **WORSE** (−0.05 / −0.76) |
 | [C07](#c07-ice-rise-boost) | ICE rise-boost | dose-more | scored (bddp11; 3 unannounced) | NEUTRAL/WORSE on bddp11; unannounced: IMPROVES bddp07 only (same split as UAM) |
-| [C08](#c08-sensitive-mode-double-low-prevention) | Sensitive mode / double-low prevention | pull-back | scored (bddp11) | **WORSE (marginal)** on bddp11; old: dominates on user2 (announcer) |
+| [C08](#c08-sensitive-mode-double-low-prevention) | Sensitive mode / double-low prevention | pull-back | scored (9 beds + b11_90d, E52, corrected feed) | **NEUTRAL → WORSE — closed.** With the feed fixed (E52): sens −0.008 [−0.022, +0.001] 0 IMPROVES / 2 WORSE; sens2 −0.029 [−0.063, −0.003] 0 / 3; 1 / 9 settings beaten. Pull-back along the dial (@op ΔTIR −0.7 / Δt54 −0.04). b11_90d before/after unchanged in verdict. Old: dominates on user2 (announcer) |
 | [C09](#c09-predictive-sensitivity-damper) | Predictive sensitivity damper | pull-back | scored (bddp11) | **NEUTRAL** (inert, −0.001) |
 | [C10](#c10-post-low-protector) | Post-low protector (ISF-mult / suppress / trend) | pull-back | scored (bddp11) | ISF-mult **WORSE** (−3.5…−8.3 TIR for −0.07 t54); suppress-20 NEUTRAL (+0.006) |
 | [C11](#c11-uncertainty-cap-dosing) | Uncertainty-cap dosing | pull-back (risk-bounded) | scored (bddp11) | **WORSE** at every k (−0.11 … −0.16) — closed |
@@ -68,7 +68,15 @@ hash have no surviving traces.
 | [M7](#m7--the-realized-forecast-error-table) | *Measurement*: the deployed forecast's realized error by horizon × σ5, 4 hands-off donors × 90 d | — | **measured** | k=1 at 60 min IS the realized 10 % downside on every bed; on the lows donors the downside PLATEAUS at ~5–6 σ5 to 6 h while the band tapers to 0 by 120; σ5 separates dispersion 2× but low-probability barely |
 | [E41](#e41--the-calm-high-bg-threshold-swept) | C23's BG threshold, swept 160–200 | dose-more, state-gated | scored (3 beds) | **WASH across 160–190**, 200 loses exposure; 180 stays. Δt54 = 0 at every threshold — the σ gate carries the safety, the level gate only sets exposure |
 | [C34](#c34--soft-low-gate-graded-predicted-min-guard) | Soft low gate (ramp instead of the predicted-min cliff) | actuator | scored (3 beds) | **NOT A DEFAULT** — on 6 beds the ramp arms lead on lift but Δt54 ≥ 0 on the mean (bddp08 +0.14…+0.16, hooked-curve lift; bddp05 +0.05); efficient only where the cliff wasted band depth (bddp11, b11_90d). Per-patient at most |
-| [C35](#c35--guard-only-σ-band-at-the-measured-plateau) | Guard-only σ band at the measured plateau (+ C34) | pull-back, state-gated | scored (3 beds) | **`sbgo` = C22 made safer: 6 beds, 2.6× the severe-lows reduction (Δt54 −0.053 vs −0.020) for +0.2 TIR, 0 WORSE (bddp05 WORSE → NEUTRAL), +0.003 lift** — the band acts through the guard, the plateau is the measured shape; ramp arms score higher but Δt54 ≥ 0 on the mean. Next: replace `sb1cap` in C30 |
+| [C35](#c35--guard-only-σ-band-at-the-measured-plateau) | Guard-only σ band at the measured plateau (+ C34) | pull-back, state-gated | scored (3 beds) | `sbgo` = the band at its measured shape, guard-only. On the 6 lows-burden/hands-off beds: 2.6× the severe-lows reduction for +0.2 TIR, 0 WORSE. **On the full 9-bed cohort a WASH vs `sb1cap` (+0.002 vs +0.005) — bddp06 (announcer, op 1.20) adds +0.08 t54 under EVERY band form.** The band acts through the guard; the plateau is right where the band belongs; bddp06 reopens where that is |
+| [M8](#m8--patient-isf-is-a-nuisance-parameter-for-frontier-verdicts) | *Robustness*: headline verdicts vs the assumed patient ISF (`--patient-isf` × 0.9/1.0/1.1), bddp05 / bddp11 / bddp08 | — | **measured** | no verdict moves; candidate-minus-reference stable to ≤0.35 TIR / ≤0.10 t54 across ±10 % plant on the highest-ISF donors; only the absolute operating point shifts (≤1.1 TIR / 0.2 t54) |
+| [M9](#m9--provenance-the-headline-traces-predate-m5s-σ-refit) | *Provenance*: headline traces regenerated on the current σ constants (E46, ~290 sims) | — | **closed** | **both headline windows unchanged** — 2 mo `final` 8 beds +0.0203 [+0.0042,+0.0366], 5/0; 90 d 6 beds +0.0395 [+0.0127,+0.0656], 3/0 (the old 5 beds reproduce to the digit). The constant shift is worth ≤0.001 lift; what surfaced is bddp06 (see C35) |
+| [C36](#c36--basal-lock-loop-and-learn) | Basal Lock (Loop and Learn): above 220 / 250 mg/dL a sub-scheduled temp basal is raised to scheduled | dose-more, level-gated, output-side | scored (9 beds) | **NEUTRAL / dial-like** — +0.001, Δt54@op +0.04 for +0.3 TIR; where it fires it adds severe lows (bddp08 +0.17 [+0.04,+0.27], bddp10 +0.05) — closed |
+| [C37](#c37--negative-insulin-damper-loop-and-learn) | Negative Insulin Damper (Loop and Learn): forecast rises damped by the predicted rise from negative insulin | pull-back, state-driven, forecast-side | scored (9 beds) | **largest mean severe-lows reduction of any single mechanism (Δt54@op −0.079 at −0.17 TIR), 2 IMPROVES / 0 WORSE, and it does NOT carry the band's announcer harm (bddp06 −0.15)**; CI on the mean +0.0225 [−0.0014,+0.0608], P 0.91 — one bed short of clearing. Stack + 90 d running (E48) |
+| [M10](#m10--lift-as-per-setting-dominance-petes-definition) | *Method*: lift as per-setting dominance — for each stock setting, does SOME candidate setting sit strictly below-and-right of it | — | **measured; verdict rule open** | reorders the ledger: stack / C20 / aIRC / stack+damper beat the person's setting on 5 beds each with margin; licence and damper 4; the σ band (C22/C29/C35) 2; basal lock 0. Point-only counts under-read at 0.05 steps; interpolation over-claims hairlines → interpolate + margin + densify |
+| [C38](#c38--slow-autosens-scope-rc) | Slow (autosens-scope) RC: signed EWMA of the RC residual over 6–24 h → controller ISF multiplier clamp(1 − gain·level, 0.7, 1.3) | adaptive dial, forecast-side | scored (9 beds, E51) | **NEUTRAL on the cohort as a mechanism; IMPROVES with margin on the two beds whose residual is two-sided (bddp06 +0.215, bddp05 +0.074).** On one-signed beds it is the needs dial applied adaptively (bddp11 @op +4.4 TIR / +0.16 t54 along the reference). Cohort mean src6g05 +0.038 [+0.001, +0.090], 3 IMPROVES / 0 WORSE, 2/9 settings beaten with margin. Next: mean-zero (relative) form |
+| [E51](#e51--slow-rc-sweep-and-the-two-bugs-behind-it) | *Experiment*: slow RC, five gain/tau arms, nine beds — after two engine bugs (patch never landed; residual NaN without carbs) and a gain re-calibration | — | done | lift tracks how two-sided the level is (corr 0.73 across 8 beds); the C08 sensitive-mode feed shares the NaN guard — decision pending |
+| [E52](#e52--c08-re-run-with-the-corrected-residual-feed) | *Experiment*: C08 sensitive mode re-run on nine beds + b11_90d after its feed was fixed to update on every cycle, not only carb-active ones | — | done | verdict unchanged: no lift, WORSE on bddp05 / bddp06 / bddp08 at the stronger setting; the fix moved b11_90d's sens from −0.007 to −0.001 (Δt54@op −0.04 → −0.08) |
 
 ---
 
@@ -252,6 +260,14 @@ after a low. Pull-back.
 | 2026-06-12 (`e18a017`) | user2 | natural | 90 d, ISF-dial | +2.5 lift alone, +8.0 stacked on aIRC (old rule); costly on ns3 (mean BG +10) | regime-specific |
 | 2026-08-24 | bddp11 | natural | 90 d, band 1.00±0.1 | E1: τ=120,k=0.02 lift **−0.007 [−0.012,−0.000]**, dom 0.20; @op ΔTIR −1.0, Δt54 −0.04, Δt70 −0.20 (gentler, on/just above the curve) | **WORSE (marginal)** — dial-equivalent on this hands-off donor, as on ns3 |
 | 2026-08-24 | bddp11 | natural | 90 d, band 1.00±0.1 | E2: τ=240,k=0.05 lift −0.014 [−0.021,−0.006]; @op ΔTIR −3.0, Δt54 −0.07 | **WORSE** — stronger = more TIR cost, same lows |
+| 2026-09-30 | b11_90d | natural | 90 d, band 1.00±0.1, **corrected feed** (E52) | sens: lift −0.001 [−0.009,+0.009], REFDOM 0.11, op beaten only by a whisker (+0.2 / −0.01, support 0.70); @op ΔTIR −1.0, Δt54 −0.08. sens2: −0.012 [−0.023,+0.001]; @op −2.7 / −0.11 | **NEUTRAL** — the fix roughly doubles the lows reduction at the same TIR cost, still on the curve |
+| 2026-09-30 | nine 2-mo beds | natural | op ±0.1, insulin-needs, corrected feed (E52, `cohort_band_e52.csv`) | sens: cohort −0.0082 [−0.0215, +0.0010], 0 IMPROVES / 2 WORSE (bddp05 −0.013, bddp06 −0.052), settings beaten with margin 1 / 9 (bddp11 whisker); @op ΔTIR −0.66, Δt54 −0.040. sens2: −0.0292 [−0.0625, −0.0027], 0 / 3 (bddp05 −0.075, bddp06 −0.140, bddp08 −0.009), 1 / 9; @op −1.67 / −0.078 | **WORSE — closed.** On bddp05 / bddp06 (the beds where slow RC wins) the curve sits left of the reference at every setting (dom 0.00) |
+
+**Feed note (2026-09-30).** Until pinned10 the level was gated on `candidateDiscrepancy.isFinite`, which is NaN on every
+cycle without a carb-effect curve — 97 % of cycles on bddp11 — so the "EWMA of recent negative discrepancy" only updated
+during meals. E52 re-ran it with the same residual the slow RC uses (ICE − carb share, zero without carbs). The offline
+preview predicted a slightly *weaker* average multiplier under the new feed (held levels between rare updates had been
+larger); measured on bddp11 it is 1.035 mean / 1.069 p95 vs 1.033 / 1.057. The verdict did not move.
 
 ## C09 · Predictive sensitivity damper
 `--candidate-sens-damp-gain g` (threshold 0.4 mg/dL/min, window 45, max ×2.5). Causal ICE
@@ -1186,3 +1202,305 @@ reduction (−0.053 vs −0.020) for +0.2 TIR, 0 WORSE — C22's one WORSE bed g
 band's form in the stack ([C30](#c30--the-deployable-stack-c29--c23c25--c20)); that re-run is the next experiment. What
 it is not: lift over the band on the multi-donor mean beyond +0.003 — a safety improvement with a modest efficiency gain,
 not a new mechanism.
+
+**CORRECTION (2026-09-23, E46 — the full nine-bed cohort on the current constants):** the six beds above are the lows-burden
+and hands-off donors. On the full cohort `sbgo` is **+0.0023 [−0.0158, +0.0151], 1 IMPROVES / 0 WORSE, Δt54@op −0.018** —
+a wash against `sb1cap` (+0.0051, Δt54 −0.000) — and the bed that does it is **bddp06** (announcer, op ×1.20, TIR ~90 %,
+never before scored at its op): `sbgo` **Δt54 +0.08 [+0.03, +0.15]**, `sb1cap` +0.07 [+0.02, +0.13], `final` +0.05
+[−0.03, +0.13], from ~0.84 at op. Every band-bearing arm adds severe lows there; the verdict labels stay NEUTRAL only because
+bddp06's lift CIs are ±0.09 wide. This is [C22](#c22-σ-widened-lower-forecast-band)'s original announcer harm — the
+delayed correction lands later — which the COB gate fixed on bddp03 / bddp08 and was never tested on bddp06. So: "C22 made
+safer, 0 WORSE" holds on the six lows-burden / hands-off beds; on the announcer with the highest TIR the plateau is no
+safer than the cap, and both forms of the band want the [D1](#d1--deployment-rule--two-configurations-not-one) treatment
+(band for the non-announcer, and on this class of announcer perhaps neither). The measured shape (M7) stands; where the band
+belongs at all is the open question bddp06 reopens.
+
+## M8 · Patient ISF is a nuisance parameter for frontier verdicts
+main's `--patient-isf <mg/dL/U>` (0b3458b / a651fd9, 2026-09-22) sets the simulated body's sensitivity to a flat absolute
+value referencing no therapy setting; the controller still runs the real schedule, and the inferred m(t) still composes on
+top. Under `--candidate-infer-sensitivity` — every sweep this ledger has run — the plant was already pinned at the scheduled
+ISF, so p = 1.0 reproduces the program: on bddp11 (one flat 40.01 entry) the flags-off run and `--patient-isf 40.01` both
+match the archived `std_m1.00` to the bit over the full window (counter, delivery, per-cycle dose, recorded ISF all 0.0).
+**Nothing in the ledger moves.** The question the flag makes askable is robustness: does a verdict survive the body being
+10 % more or less sensitive than the schedule says? Leverage scales with the donor's ISF, so the stress beds are the
+high-ISF donors. E45 (`runs/2026-09-17-uncertainty/`, `cohort_band_e45_b05/b11/b08.csv`, `e45_*_oppoints.csv`; 180 sims):
+`std`, `final`, `sbgo`, `ch2p50cob` with the plant flat at the donor's median scheduled ISF × {0.9, 1.0, 1.1}, five
+multipliers around op. The × 1.0 arm is E45's own reference — a flat plant is not the schedule-shaped one.
+
+| bed (median ISF) | plant | `final` ΔTIR / Δt54 @op | `ch2p50cob` | `sbgo` | verdicts (final / licence / sbgo) |
+|---|---|---|---|---|---|
+| bddp05 (149) | ×0.9 / ×1.0 / ×1.1 | +0.63/−0.11 · +0.61/−0.09 · +0.48/−0.14 | +0.69/+0.04 · +0.96/+0.01 · +0.87/+0.05 | −0.38/−0.03 · −0.38/+0.01 · −0.47/+0.04 | IMPROVES ×3 / IMPROVES ×3 / WORSE ×3 |
+| bddp08 (76) | ×0.9 / ×1.0 / ×1.1 | +0.19/−0.08 · +0.42/−0.16 · +0.35/−0.06 | +0.17/0.00 · +0.24/+0.01 · +0.15/0.00 | +0.02/0.00 · −0.11/−0.01 · +0.23/+0.02 | NEUTRAL ×3 / IMPR·IMPR·NEUT / NEUTRAL ×3 |
+| bddp11 (40) | ×0.9 / ×1.0 / ×1.1 | −1.04/−0.23 · −1.10/−0.24 · −1.14/−0.18 | +0.54/−0.02 · +0.66/−0.01 · +0.79/−0.01 | −1.59/−0.11 · −1.46/−0.10 · −1.43/−0.09 | IMPR·IMPR·NEUT / NEUT·IMPR·IMPR / NEUTRAL ×3 |
+
+**No verdict moves for a reason attributable to the plant.** Every candidate's effect relative to its own reference is
+stable to ≤0.35 TIR / ≤0.10 t54 across ±10 % patient ISF on all three beds; the label flips that do occur (bddp11 `final`
++0.141 / +0.129 / +0.095, `ch2p50cob` +0.020 / +0.019 / +0.022) are CI-edge wobble with the @op deltas unchanged. What the
+plant does move is the **absolute operating point**: the reference itself shifts monotonically and sensibly — a 10 % more
+sensitive body adds ~0.1 t54 at op on bddp05, and on bddp08, which sits at its hook, up to 1.1 TIR / 0.2 t54 at op and
++0.9 t54 at × 1.10. So absolute TIR / t54 numbers carry a ±10 %-plant band of that size; the deltas that verdicts rest on
+do not. Two scoring facts surfaced alongside: (1) on bddp05 the lift *label* is fragile to ≤0.1 t54 of noise from any
+source (its reference runs t54 0.85 → 3.64 over 0.2 of dial) — read that bed's @op deltas, not its labels; under a flat
+plant `sbgo` reads WORSE there at all three sensitivities (−0.4 TIR, Δt54 ≈ 0) where the schedule plant read NEUTRAL, so
+[C35](#c35--guard-only-σ-band-at-the-measured-plateau)'s "0 WORSE on six beds" holds only under the schedule plant;
+(2) the pre-registered failure mode — the licence flipping at × 1.1 on bddp05 — did not occur (Δt54 +0.01…+0.05, CIs
+crossing zero, at every plant).
+
+## M9 · Provenance: the headline traces predate M5's σ refit
+Found while checking E45's × 1.0 arm against the archive. `std` and `sbgo` on bddp11 reproduce to the bit; `final` and
+`ch2p50cob` do not (counter max|Δ| 1.58 / 2.08 mg/dL, dose 0.35 / 0.40 U). Three binaries — Sep 17, Sep 22 pre-merge,
+Sep 23 post-merge — and the flat-plant arm all agree with each other exactly; only the Aug 27 archive differs. **The code
+path is unchanged; the constant moved.** M5 refit `sigma_pcts.csv` on the 5-min grid at 03:30 on Aug 28 and re-ran only
+bddp03, but bddp11's p50 went 6.61 → 6.63 (+0.3 %) and other beds moved −1.0 … +0.6 %, and every `final` trace in the
+ledger (2-mo beds Aug 27 19:26–19:44; 90-d beds Aug 28 00:03–01:18) plus `ch2p50cob` / `sb1cap` on several beds were built
+before that. `fin2`, the E41 / E42 / E44 arms and every band-only arm are post-M5 or σ-independent; `std` is unaffected
+everywhere (verified bit-identical on bddp11 after five engine commits).
+The expected effect is a shift of a few licence decisions per bed — small — but the [C30](#c30--the-deployable-stack-c29--c23c25--c20)
+headline should rest on the constants the repo holds. **E46 regenerated** `final`, `ch2p50cob`, `sb1cap` (+ `sbgo` where
+missing) on the nine 2-month beds and `final` on the nine 90-day beds, on the current binary and CSV; stale traces are
+kept as `*.preM5.json` (`cohort_band_e46.csv`; 236 two-month sims, 0 failures).
+
+**The two-month headline does not move.** Per bed, `final` regenerated vs archived: bddp03 +0.022 / +0.022, bddp05 +0.036 /
++0.043 (Δt54 −0.153 identical — reference geometry), bddp07 +0.005 / +0.005, bddp08 +0.010 / +0.010, bddp09 +0.023 / +0.024,
+bddp10 +0.003 / +0.003, bddp11 +0.056 / +0.055 (Δt54 −0.241 identical). The same five beds IMPROVE, none WORSE. Two rows
+changed for reasons other than the constants: bddp06 was UNDER-COVERED (NaN at op) and is now scored on a grid that reaches
+its op ×1.20 (+0.007 NEUTRAL, @op ΔTIR −0.2 / Δt54 +0.05); bddp01 is DEGENERATE-REF (lows@op 0.000), as the HEADLINE already
+treated it.
+
+| arm | beds | mean | **90 % CI on the mean** | P(mean>0) | IMPROVES / WORSE | ledger before |
+|---|---|---|---|---|---|---|
+| **`final`** (C30) | 8 (bddp01 dropped) | **+0.0203** | **[+0.0042, +0.0366]** | **0.978** | 5 / 0 | +0.0237 [+0.0079, +0.0401], 0.991 — 7 beds, bddp06 under-covered |
+| `final` | 9 | +0.0175 | [+0.0029, +0.0329] | 0.974 | 5 / 0 | — |
+| `ch2p50cob` (C23/C25) | 8 | +0.0122 | [+0.0057, +0.0196] | 0.9996 | 6 / 0 | +0.0142 [+0.0064, +0.0229], 0.9996 |
+| `sb1cap` (C29) | 8 | +0.0051 | [−0.0082, +0.0168] | 0.79 | 2 / 0 | +0.004, 2 / 0 |
+| `sbgo` (C35) | 8 | +0.0023 | [−0.0158, +0.0151] | 0.67 | 1 / 0 | — see C35 |
+
+The whole difference from the HEADLINE is bddp06 entering the mean at +0.007. The σ-constant shift itself is worth ≤0.001
+lift and ≤0.01 t54 on any bed. What the regeneration DID surface is bddp06 itself — see the C35 correction.
+
+**Ninety days** (`cohort_band_e46_90d.csv`): the HEADLINE's five beds reproduce to the digit — bddp03_90d +0.044 / +0.044,
+bddp05_90d +0.056 / +0.058, bddp08_90d +0.012 / +0.012, bddp09_90d +0.051 / +0.051, bddp10_90d +0.029 / +0.029, Δt54@op
+identical on all five. The four other 90-day beds are now scored: b11_90d +0.045 IMPROVES (bddp11's donor — dropped from
+donor counts per [M2](#m2--method-lift_lo_mean-is-not-a-ci-on-the-multi-donor-mean)); bddp01_90d, bddp06_90d and
+bddp07_90d DEGENERATE-REF under the guards (lows@op 0.02; in-band TIR span 0.53; span 3.7). Six non-degenerate beds:
+**+0.0395 [+0.0127, +0.0656], P(mean>0) 0.990, 3 IMPROVES / 0 WORSE** against the HEADLINE's five-bed +0.0386
+[+0.0074, +0.0697], 0.978. **Closed: the regeneration changes nothing in either headline window.** Every headline arm now
+rests on the current binary and the current `sigma_pcts.csv`; the pre-M5 traces remain beside them as `*.preM5.json`.
+
+## C36 · Basal Lock (Loop and Learn)
+`--candidate-basal-lock-bg X` (added 2026-09-29, `EvalConfig.basalLockBg`; ported from
+`loopandlearn/customization/basal_lock/nextdev_basal_lock.patch`): while the latest glucose is above X, a recommended temp
+basal below the scheduled rate is raised to the scheduled rate; boluses are untouched. Loop's guardrail is 200–300 mg/dL,
+recommended ≥ 220. In Loop it lives in `LoopDataManager` after the recommendation — **output-side by construction**, the
+class the design principle warns about; its nearest relative here is the no-σ-gate licence control (`ch2nog`). Identity
+flags-off on bddp11 2 mo: counter / delivery / dose 0.0. E47, `cohort_band_e47.csv`, nine 2-month beds:
+
+| arm | mean lift | **90 % CI on the mean** (8 beds) | ΔTIR @op | Δt54 @op | IMPROVES / WORSE |
+|---|---|---|---|---|---|
+| `bl220` | +0.001 | [−0.005, +0.007] | +0.28 | **+0.038** | 2 / 0 |
+| `bl250` | +0.001 | [−0.003, +0.004] | +0.11 | +0.018 | 1 / 0 |
+
+**NEUTRAL, dial-like — closed.** It buys a little TIR with severe lows at the dial's rate, and on the beds where it fires
+most it adds lows with CIs clear of zero: bddp08 Δt54 **+0.17 [+0.04, +0.27]** (its IMPROVES label there is the hooked-curve
+trap), bddp10 +0.05 [+0.00, +0.12]. Combined with the damper (`nidbl220`) it eats most of the damper's lows benefit
+(Δt54 −0.029 vs −0.079). As pre-registered: a level-only gate on a dose-more rule has no state information the reference
+dial lacks — the licence's σ gate is what separates the two.
+
+## C37 · Negative Insulin Damper (Loop and Learn)
+`--candidate-negative-insulin-damper` (+ `-nid-anchor-alpha 0.75`, `-nid-marginal-slope 0.05`, `-nid-lag-min 15`; added
+2026-09-29, `EvalConfig.negativeInsulinDamper`; ported structure-for-structure from
+`loopandlearn/customization/negative_insulin/nextdev_negative_insulin.patch`, Marion Barker / MNK, Loop ≥ 3.4.4 Algorithm
+Experiment; report linked from loopandlearn.org). Every dose delivered up to 15 min ago (basal segments clipped there,
+boluses whole) is net-basal-annotated and its glucose effect summed over positive 5-min deltas — the predicted future rise
+from insulin delivered below scheduled basal. That rise sets a damper: 25 % when it equals 0.8 × peak-activity-hours ×
+basal × ISF (≈ 1 h of missing basal on rapid-acting, ≈ 44 min on ultra-rapid), linear from 0, then a 5 % marginal slope,
+capped at 95 %. Every positive 5-min delta of the **whole assembled forecast** — carbs, RC, momentum included — is
+multiplied by (1 − damper); negative deltas are untouched. So after a low Loop has been suspending into, the predicted
+rebound is flattened and the re-dose that makes the "double low" shrinks. Forecast-side, state-driven, the class of
+[C08](#c08-sensitive-mode-double-low-prevention) / [C10](#c10-post-low-protector) / [C20](#c20-post-low-gated-rc-rise-cut),
+computed from the controller's own inputs exactly as Loop does. Identity flags-off 0.0; ×1.00 on bddp11 it changes
+2313 / 16347 cycles. E47, nine 2-month beds, Loop's own constants:
+
+| bed | `nid` lift | ΔTIR @op | **Δt54 @op** | C20 `plrc3w720` for comparison |
+|---|---|---|---|---|
+| bddp11 | **+0.016 [+0.005, +0.024]** | −0.6 | **−0.08** | +0.028, −0.7 / −0.11 |
+| bddp08 | +0.009 [−0.000, +0.018] | +0.0 | **−0.29 [−0.45, −0.16]** | +0.008, +0.4 / −0.08 |
+| bddp05 | −0.007 | −0.7 | **−0.12 [−0.20, −0.04]** | +0.017, +0.0 / −0.16 |
+| bddp03 | +0.002 | +0.1 | **−0.08 [−0.15, −0.02]** | +0.014, +0.3 / −0.07 |
+| bddp06 | **+0.164 [+0.046, +0.223]** | +0.3 | **−0.15 [−0.35, −0.01]** | +0.041, +0.1 / −0.02 |
+| bddp10 | −0.009 | −0.2 | 0.00 | −0.004, −0.5 / −0.01 |
+| bddp09 (t70) | +0.003 | −0.3 | — | — |
+| bddp07 | +0.002 | −0.0 | 0.00 | +0.001 |
+| bddp01 | degenerate | −0.1 | 0.00 | — |
+
+| arm | beds | mean | **90 % CI on the mean** | P(mean>0) | ΔTIR @op | **Δt54 @op** | IMPROVES / WORSE |
+|---|---|---|---|---|---|---|---|
+| **`nid`** | 8 | **+0.0225** | [−0.0014, +0.0608] | 0.913 | −0.17 | **−0.079** | 2 / 0 |
+| `plrc3w720` (C20) | 7 | +0.0152 | [+0.0028, +0.0320] | 0.978 | −0.06 | −0.063 | 4 / 0 |
+| `final` (C30, E46) | 8 | +0.0203 | [+0.0042, +0.0366] | 0.978 | +0.00 | −0.062 | 5 / 0 |
+
+**The largest mean severe-lows reduction of any single mechanism in this ledger, at −0.17 TIR, with no bed made worse**,
+and — unlike every form of the σ band — it does **not** carry the announcer harm: on bddp06, where the band adds +0.07 t54,
+the damper removes −0.15. The lift statistic is one bed short of clearing 90 % (bddp06's lift CI is wide on a
+near-degenerate reference; bddp05 and bddp10 read slightly negative because the damper costs TIR there without a matching
+lows return). It reduces severe lows on five of the six beds that have them. Same target event as C20; similar size,
+different lever (forecast rises vs RC), so the two are plausibly additive — E48 tests `final` + damper, the damper on the
+90-day beds, and whether Loop's anchor (0.75) sits on a dial or a plateau (0.60 / 0.85).
+
+## M10 · Lift as per-setting dominance (Pete's definition)
+**Definition (Pete, 2026-09-29):** for each point on the stock insulin-needs sweep, the candidate has lift at that point if
+some point on the candidate's sweep lies strictly below and to the right of it — more TIR *and* fewer severe lows — i.e.
+the person could re-tune onto the candidate from that setting and be better on both axes. It is counted over *reference*
+settings, and it asks only that the candidate beat *that* setting, not the whole curve. Implemented as
+`band.ref_point_dominance` (columns `ref_dom_frac` and CI, `op_dominated` / `op_dom_boot` for the person's own setting,
+`op_best_dTIR` / `op_best_dlows` for the largest gain available from it; printed as `REFDOM … op✓/✗`).
+
+**How it differs from what the ledger has used.** `band_lift` is a signed, axis-normalized *distance* from each candidate
+point to the reference polyline — a magnitude, signed locally; `frac_dominant` counts *candidate* points that beat the
+*entire* polyline. Neither asks whether any actual setting is beaten. The clearest case is the damper (C37): every setting
+trades TIR for lows (−0.6 / −0.08 on bddp11), which puts its points just under the reference *chord* — polyline lift
++0.016 "IMPROVES", dom 1.00 — while beating no reference setting at 0.05-step sampling. Under this definition a move along
+the curve is a trade, not lift.
+
+**Sampling matters, in both directions (bddp11 grid test, E49: 0.05-step vs ~0.025-step points).** Point-only counting at
+0.05 steps *under-reads* — the damper goes from beating 0 settings to 1/3 of them with real dense points. Interpolating
+the candidate curve (multiplier order, 40 samples per segment) recovers the magnitude but can *over-claim* by hairline
+margins where the curve is locally concave: the licence's real dense points beat 2/12 settings, its interpolated chords
+7/12. The grid-stable quantity is the operating-point verdict with its margin — identical on both grids and both methods
+for every arm tested, best gains moving ≤0.4 TIR. Hence: **interpolate, require a minimum margin, and densify to ~0.025 in
+the band for headline candidates** (6 sims per arm per bed). The margin variant (`ref_dom_frac_margin`,
+`op_dominated_margin`: strictly better on both axes and ≥0.5 TIR *or* ≥0.05 t54 of gain) removes exactly the hairline
+wins and nothing else.
+
+**When to densify — a rule, not a habit.** The chord between two 0.05-step samples deviates from the true curve by |ΔTIR|
+p90 0.25 (max 0.46) and |Δt54| p90 0.06 (max 0.08), with the sign a coin toss (bddp11, four arms, 24 intermediate settings),
+so a symmetric allowance of that size bounds what sampling can hide. `band.sampling_ambiguity` classifies every in-band
+reference setting: **WIN** — a sampled candidate point is already in the quadrant (more samples cannot remove it);
+**AMBIGUOUS** — none is, but a chord between adjacent samples enters the quadrant or passes within the allowance of its
+corner (the unsampled curve decides; densify *that* segment); **NO-WIN** — every chord clears the allowance (more samples
+cannot create a win). The scorer prints `DENSIFY×a–b` when the person's own setting is ambiguous. On bddp11's coarse
+grid the stack and the licence are WIN by sampled points; the damper, the band and aIRC are AMBIGUOUS at ×1.00–1.05 —
+and the dense run had indeed moved the damper from 0 to 4 of 12 settings. Six sims per flagged segment settle it.
+
+**The cohort under this definition** (nine 2-month beds, standard grids, interpolated; `cohort_band_refdom_m_all.csv`):
+
+| arm | person's setting beaten (with margin) | mean bootstrap support | ref settings beaten (margin / interp / points) | best re-tune gains where it wins |
+|---|---|---|---|---|
+| `final` (C30) | **5 / 9** | 0.67 | 0.37 / 0.40 / 0.35 | bddp11 +2.8 / −0.18, bddp05 +1.0 / −0.31, bddp03 +0.5 / −0.34, bddp08 +0.4 / −0.21, bddp09 +1.4 / −0.04 |
+| `airc` (C01) | **5 / 8** | 0.60 | 0.38 / 0.42 / 0.20 | bddp05 +1.2 / −0.34, bddp03 +0.0 / −0.34, bddp06 +0.6 / −0.17, bddp09 +1.7 / −0.02, bddp11 +0.8 / −0.02 |
+| `plrc3w720` (C20) | **5 / 7** | 0.69 | 0.32 / 0.41 / 0.30 | bddp11 +2.1 / −0.08, bddp03 +0.3 / −0.30, bddp08 +0.4 / −0.16, bddp05 +0.6 / −0.16, bddp06 +0.2 / −0.06 |
+| `nidfinal` (C30 + C37) | **5 / 9** | 0.61 | 0.41 / 0.46 / 0.28 | bddp11 +1.7 / −0.13, bddp09 +1.7 / −0.03, bddp03 +0.5 / −0.33, bddp05 +0.5 / −0.16, bddp06 +0.5 / −0.13 |
+| `ch2p50cob` (C23) | 4 / 9 | 0.67 | 0.28 / 0.46 / 0.22 | bddp11 +1.1 / −0.04, bddp05 +0.9 / −0.26, bddp03 +0.1 / −0.13, bddp08 +0.1 / −0.06 |
+| `nid` (C37) | 4 / 9 | 0.43 | 0.24 / 0.29 / 0.22 | bddp11 +1.8 / −0.06, bddp06 +0.7 / −0.23, bddp08 +0.0 / −0.29, bddp03 +0.1 / −0.10 |
+| `sb1cap` (C29) | 2 / 9 | 0.42 | 0.29 / 0.35 / 0.20 | bddp11 +0.9 / −0.03, bddp09 +1.2 / −0.03 |
+| `sbgo` (C35) | 2 / 9 | 0.38 | 0.30 / 0.39 / 0.19 | bddp11 +0.8 / −0.03, bddp09 +0.7 / −0.02 |
+| `bl220` (C36) | **0 / 9** | 0.51 | 0.13 / 0.23 / 0.12 | — |
+| `irc` (C02, 6 beds) | 2 / 6 | 0.37 | — | bddp05 +2.9 / −0.96 (IRC re-tuned down is a better curve there), bddp08 +0.1 / −0.16; a hot dial elsewhere |
+
+**What changes.** The stack, C20 and aIRC genuinely dominate the person's setting on most beds, with margins of +1…+3 TIR
+and/or −0.2…−0.3 t54; aIRC, which the polyline lift had at NEUTRAL on the 2-month beds, is a first-tier dominator here.
+The licence dominates robustly where it fires (bddp11 1.00, bddp05 1.00). The damper wins on the announcer / over-lows
+beds and at its dense-grid best on bddp11, and is a trade elsewhere. **The σ band in every form (C22 / C29 / C35) beats
+the person's setting on two beds only, by small TIR at near-zero lows — it moves along the curve.** The basal lock beats
+nothing. The polyline lift, `frac_dominant` and the IMPROVES / NEUTRAL / WORSE labels throughout this ledger are the old
+statistic; they are not re-labelled here. **Open decision (Pete's):** the verdict rule — a natural one is IMPROVES iff the
+person's own setting is beaten with margin in ≥90 % of bootstrap resamples — and whether the margin thresholds (0.5 TIR /
+0.05 t54) are the right ones.
+
+## E50 · aIRC stacked on the deployable stack
+`aircfinal` = C30 + `--candidate-integral-rc --candidate-irc-drop-scale 1.5 --candidate-irc-rise-scale 0.5`;
+`aircnidfinal` adds the damper (C37). Composition is well-defined in the engine: aIRC's rise scale (0.5) is the gated rise
+scale's starting value and C20's post-low cut lowers it to 0.3 inside the 12-h window; the drop-side 1.5 and the integral
+memory apply throughout. Nine 2-month beds, `cohort_band_e50_all.csv`.
+
+| arm | setting beaten with margin | mean support | @op ΔTIR / Δt54 | polyline (8 beds) |
+|---|---|---|---|---|
+| `final` (C30) | 5 / 9 | 0.67 | +0.00 / −0.062 | +0.0203 [+0.0042, +0.0366] (unfiltered reference) |
+| `airc` (C01) | 5 / 8 | 0.60 | −0.36 / −0.198 | +0.0319 [−0.0014, +0.0743] |
+| `nidfinal` | 5 / 9 | 0.61 | −0.35 / −0.117 | +0.0168 |
+| `aircfinal` | 4 / 9 | 0.57 | −0.43 / −0.204 | +0.0312 [−0.0012, +0.0634] |
+| **`aircnidfinal`** | 5 / 9 | 0.58 | **−0.76 / −0.254** | **+0.0443 [+0.0104, +0.0875], P 0.990** |
+
+Stacking aIRC on the stack adds severe-lows reduction (−0.20…−0.25 vs −0.06) at −0.4…−0.8 TIR and does **not** add beds
+where the person's setting is beaten: `aircfinal` loses the stack's bddp08 and bddp03 wins (aIRC's pull-back costs TIR
+there) and gains bddp07; `aircnidfinal` keeps five. Under the per-setting definition ([M10](#m10--lift-as-per-setting-dominance-petes-definition))
+the combination is no better than either alone; under the polyline lift `aircnidfinal` is the largest number in the
+ledger. The two statistics disagree exactly where a mechanism trades TIR for lows — the same pattern as the damper.
+Combining the two therefore buys the deepest lows reduction on offer, priced in TIR; it is not additional dominance.
+
+## C38 · Slow (autosens-scope) RC
+`--candidate-slow-rc-tau-min T --candidate-slow-rc-gain g` (clamps `--candidate-slow-rc-min/-max`, default 0.7 / 1.3).
+Pete's ask (2026-09-29): aIRC remembers hours at most; consider an autosens-scope RC that can carry a sensitivity shift
+seen a day ago. Mechanism: every cycle the residual RC integrates — insulin counteraction over the last interval minus
+the carb model's share, zero when no carbs are on board — feeds a signed EWMA with time constant T. The level maps to a
+controller ISF multiplier clamp(1 − g·level, 0.7, 1.3) applied as `extraISFMultiplier`, so it scales the forecast's
+insulin effect and the correction dose together (not basal or CR). Positive level = running above forecast = lower ISF =
+more insulin. Updated after the cycle's dose, so causal from t+1. Symmetric, never resets, hours-to-a-day of memory —
+the complement of aIRC (3-h window, 1-h constant, sign-contiguous reset, drop-weighted, forecast offset).
+
+**Verdict (E51, nine 2-month beds, pinned9):** as a cohort mechanism NEUTRAL; on two beds IMPROVES with margin.
+
+| arm | tau / gain | settings beaten (margin) | mean support | @op ΔTIR / Δt54 | cohort mean (8 beds, drop bddp01) | IMPROVES / WORSE |
+|---|---|---|---|---|---|---|
+| `src6g05` | 6 h / 0.05 | 4 (2) / 9 | 0.49 | +2.80 / +0.133 | **+0.0379 [+0.0012, +0.0901]** P 0.96 | 3 / 0 |
+| `src24g05` | 24 h / 0.05 | 5 (3) / 9 | 0.51 | +2.29 / +0.076 | +0.0191 [+0.0015, +0.0417] P 0.97 | 2 / 0 |
+| `src6g02` | 6 h / 0.02 | 6 (2) / 9 | 0.56 | +1.28 / +0.037 | +0.0184 [+0.0033, +0.0380] P 0.99 | 3 / 0 |
+| `src24g02` | 24 h / 0.02 | 4 (2) / 9 | 0.53 | +0.99 / +0.026 | +0.0090 [+0.0015, +0.0183] P 0.98 | 2 / 0 |
+| `src24g1` | 24 h / 0.1 | 3 (3) / 9 | 0.36 | +3.81 / +0.228 | +0.0230 [−0.0126, +0.0686] | 2 / 0 |
+
+Where the margin wins are: **bddp06** (src6g05 lift +0.215 [+0.069, +0.333], op beaten 1.00 support, best +0.8 TIR /
+−0.26 t54; every arm ✓) and **bddp05** (+0.074 [+0.043, +0.107], support 1.00, best +2.0 / −0.70; every arm ✓). bddp07
+adds whisker wins (REFDOM 0.78, margin ✗ except src24g1). Everywhere else the candidate curve lies ON the reference:
+bddp11 @op +4.4 TIR / +0.16 t54, bddp09 +6.1 / +0.03, bddp01 +9.9 / +0.24 — the person's point slides up the gray line,
+no setting is beaten. bddp10 is slightly worse (src24g1 lift −0.023, curve left of the reference). bddp08 / bddp03
+(announcers) ≈ 0 on every number. Plots `runs/2026-09-17-uncertainty/e51/frontier_*.png` agree with all of this.
+
+**Why those two beds — the pre-registration held.** Reconstructing the level offline from each bed's std trace at its
+operating setting (tau 6 h): on bddp11 / bddp10 / bddp09 / bddp01 the residual is one-signed positive (level mean
++2.1 … +4.1 mg/dL per step, negative <2.5 % of the time) — unannounced meals are all rise — so the level is a near-constant
+and the mechanism is a constant ISF cut, i.e. the needs dial. On the announcers (bddp08 / bddp03 / bddp07) it is one-signed
+negative (−0.4 … −0.7, negative 74–79 %). **bddp06 and bddp05 are the only beds where the level changes sign often**
+(negative 54 % and 45 % of the time; bddp05 also has the largest day-to-day swing, daily-mean sd 1.9) — and they are the two
+IMPROVES beds. Across the 8 scored beds corr(lift, two-sidedness of the level) = 0.73; corr(lift, |level mean|) = −0.49.
+Lift comes from tracking a sensitivity that actually moves, exactly as pre-registered; where needs are steady the dial
+already covers it.
+
+**Calibration note.** The pre-registered gains 0.1 / 0.2 assumed a ±0.5–1 mg/dL/step residual; the real one-signed mean is
++2, so gain 0.2 pinned the 0.7 clamp 85 % of the time on bddp11 (a −30 % ISF constant). Gains 0.02 / 0.05 keep the
+multiplier inside the clamp on every bed (bddp11 p5/p95 0.80/0.99 at 0.05); 0.1 is the aggressive end and the only arm whose
+cohort CI crosses zero.
+
+**Next, if pursued:** a mean-zero form — multiplier keyed on the level's deviation from the person's own multi-day
+baseline — so the one-signed component (which is the dial) is removed by construction and only the moving part acts. Same
+fix the volatility band needed (frontier.md trap a). Also worth trying `src6g05` stacked on C30.
+
+## E51 · Slow RC sweep, and the two bugs behind it
+Nine beds × five arms (320 traces), E50 multipliers, binary `loop-eval-pinned9`, `cohort_band_e51.csv`. Three attempts:
+
+1. **pinned7 — the engine patch never landed.** EvalConfig and the CLI had the four fields, so the binary parsed the flags
+   and ignored them; the smoke showed 0 / 16 347 dose differences and the gate (identity only) launched anyway. All 252
+   traces were `std` under another name — deleted. The gate now requires identity **and** a smoke that differs from std.
+2. **pinned8 — the feed was NaN without carbs.** `candidateDiscrepancy` (ICE − carbEffect) is only finite when the
+   carb-effect curve has a bracket at t; on bddp11 that is 2.6 % of cycles (COB>0 on 1.0 %). An "autosens-scope" level that
+   updates during meals only. Fixed (pinned9) by feeding ICE − (carbEffect finite ? carbEffect : 0). Identity for every
+   other arm unchanged (gate: counter / delivery / dose 0.0 vs archived).
+   **Open decision for Pete:** the C08 sensitive-mode level (`--candidate-sensitive-mode-*`, arms `sens`/`sens2`/`uam90sens`)
+   has the same `.isFinite` guard, so on hands-off beds it has only ever updated in carb-active cycles. Changing it alters
+   archived arms; left as is.
+3. **pinned9 — gain re-calibration** (above), then the run scored here.
+
+## E52 · C08 re-run with the corrected residual feed
+Pete (2026-09-30): "We should rerun the C08 sensitive-mode level with the fix." Engine: both cross-cycle levels (C08
+sensitive mode, C38 slow RC) now share `rcResidualFeed` = ICE − (carbEffect finite ? carbEffect : 0); sensitive mode
+integrates its negative part. Binary `loop-eval-pinned10`; gate = identity on std (0.0 on counter / delivery / dose) and
+`sens` differing from both std (2 491 / 16 347 cycles) and the old-feed binary (2 148). Arms `sens` (τ 120 min, k 0.02) and
+`sens2` (τ 240, k 0.05) on the nine 2-month beds at the E50 multipliers plus b11_90d (old-feed traces kept in
+`b11_90d/oldfeed_sens/`). Results in the C08 table. Plots `runs/2026-09-17-uncertainty/e51/frontier_bddp0{5,6}_sens.png`,
+`frontier_b11_90d_sens.png`.
+
+Reading: the mechanism is a pull-back that fires after any unexplained fall, and with the feed fixed it fires on every
+cycle rather than only near meals — yet it stays on the reference curve on every bed and falls left of it on bddp05 and
+bddp06, the two beds where the symmetric slow RC (C38) wins with margin. Raising ISF after a fall is what the needs dial
+already prices; what those two beds reward is *lowering* it again when the residual turns positive, which a
+negative-only level cannot do. Closed; the two-sided level (C38) supersedes it.
+
