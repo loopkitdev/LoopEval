@@ -251,8 +251,8 @@ def f21_space(F: pd.DataFrame, I: pd.DataFrame):
 
     S.title(fig, "21 · The trait space — few axes, and a split that tracks dosing strategy",
             f"Only the trait-like features (ICC > 0.5), averaged per person. The first two components carry {100*var[:2].sum():.0f}% of the "
-            "variation, so people differ along a small\nnumber of axes rather than in every feature independently. A gap statistic cannot separate "
-            f"one cluster from two (best k = {best_k}, by a margin inside the test's noise), but the best two-way split\nis not arbitrary: it is "
+            "variation, so people differ along a small\nnumber of axes rather than in every feature independently. A gap statistic against a "
+            f"uniform null prefers a SINGLE cluster (best k = {best_k}), so there is no clean\nboundary here — but the axis is not arbitrary: it tracks "
             "how automated insulin is delivered. Temp-basal-strategy users sit together, lower and calmer; automatic-bolus users sit together.")
     S.save(fig, "21_trait_space",
            dict(left=0.05, right=0.99, top=0.795, bottom=0.115, wspace=0.28))

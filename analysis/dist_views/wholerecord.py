@@ -43,8 +43,9 @@ def series_for(alias: str) -> pd.Series | None:
 
 def main() -> int:
     warnings.filterwarnings("ignore")
-    aliases = sorted(set(S.datasets()) |
-                     {f.stem for f in COHORT.glob("p*.pkl")})
+    # The modelling cohort, not everyone with a pickle: the ledger this feeds
+    # describes the people the study describes.
+    aliases = sorted(S.cohort()["alias"])
     rows = []
     for a in aliases:
         bg = series_for(a)

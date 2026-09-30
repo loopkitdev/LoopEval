@@ -47,9 +47,17 @@ FEATURES = [
 
 
 def load_blocks(include_existing: bool = True) -> pd.DataFrame:
-    """Per-(person, week) features for every donor we can reach."""
+    """Per-(person, week) features for the modelling cohort.
+
+    Reaching for every pickle on disk instead pulled in glucose-only donors and
+    people dropped from the cohort — the ICC table then described a different
+    set of people from every figure beside it.
+    """
+    keep = set(S.cohort()["alias"])
     frames = []
     for f in sorted(COHORT.glob("p*.pkl")):
+        if f.stem not in keep:
+            continue
         bg = S.clip_window(f.stem, pd.read_pickle(f)["bg"])
         b = T.block_features(bg, block=BLOCK)
         if len(b) >= 4:
@@ -63,7 +71,7 @@ def load_blocks(include_existing: bool = True) -> pd.DataFrame:
             dss = {}
         seen = {f["alias"].iloc[0] for f in frames}
         for alias, ds in dss.items():
-            if alias in seen:          # the wide full exports reuse the pkl aliases
+            if alias in seen or alias not in keep:
                 continue
             try:
                 bg = S.clip_window(alias, D._load_glucose(ds.glucose_path))
