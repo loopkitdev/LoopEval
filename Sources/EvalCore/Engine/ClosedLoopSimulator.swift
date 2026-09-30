@@ -662,6 +662,11 @@ extension EvaluationEngine {
             ? exp(-candidateConfig.evalStep / candidateConfig.sensitiveModeTauSec) : 0.0
         let sensModeOn = candidateConfig.sensitiveModeTauSec > 0 && candidateConfig.sensitiveModeGain > 0
         var sensModeLevel = 0.0
+        // Slow (autosense-scope) RC (EvalConfig.slowRc*): EWMA of the SIGNED per-step
+        // discrepancy over hours; positive level (BG running above forecast) lowers
+        // effective ISF, negative raises it, clamped to [slowRcMin, slowRcMax]. Off when tau==0 or gain==0.
+        let slowRcOn = candidateConfig.slowRcTauSec > 0 && candidateConfig.slowRcGain != 0
+        var slowRcLevel = 0.0
 
         // STEP TIMES. CGM-driven: one step per real CGM sample in the eval window
         // (irregular cadence). Default: the regular evalStep grid (stepDur ≡
@@ -705,6 +710,8 @@ extension EvaluationEngine {
             let sensModeDecayStep = candidateConfig.sensitiveModeTauSec > 0
                 ? exp(-stepDur / candidateConfig.sensitiveModeTauSec) : 0.0
             _ = sensModeDecay  // hoisted constant kept for reference; per-step value used below
+            let slowRcDecayStep = candidateConfig.slowRcTauSec > 0
+                ? exp(-stepDur / candidateConfig.slowRcTauSec) : 0.0
             if let progress, totalSteps > 1 {
                 progress(min(Double(stepIdx) / Double(totalSteps - 1), 1.0))
             }
@@ -938,6 +945,9 @@ extension EvaluationEngine {
                 // Cross-cycle sensitive-mode ISF bump (>=1 damp; always safe to apply).
                 let sensModeMult = sensModeOn ? Swift.min(2.0, 1.0 + candidateConfig.sensitiveModeGain * sensModeLevel) : 1.0
                 candidateSensModeMult = sensModeMult
+                let slowRcMult = slowRcOn
+                    ? Swift.max(candidateConfig.slowRcMin, Swift.min(candidateConfig.slowRcMax, 1.0 - candidateConfig.slowRcGain * slowRcLevel))
+                    : 1.0
                 // ICE RISE-BOOST (rise side of the unified ICE-response term): attack a
                 // SUSTAINED, actively-driven high. A positive forecast offset when BG is
                 // high AND the trailing ICE rate is positive (BG being pushed up = a real
@@ -1005,7 +1015,7 @@ extension EvaluationEngine {
                         t: t, input: candidateInput, config: candidateConfig,
                         therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
                         glucoseSamples: candMomentumSamples,
-                        extraISFMultiplier: sensModeMult,
+                        extraISFMultiplier: sensModeMult * slowRcMult,
                         forecastOffsetMgdl: iceRiseBoostOffset + anticipationOffset,
                         perStepIsfMultByTime: map,
                         isfBoostActiveOnly: isfBoostActiveOnly,
@@ -1083,7 +1093,7 @@ extension EvaluationEngine {
                                 t: t, input: relaxedInput, config: candidateConfig,
                                 therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
                                 glucoseSamples: candMomentumSamples,
-                                extraISFMultiplier: sensModeMult,
+                                extraISFMultiplier: sensModeMult * slowRcMult,
                                 perStepIsfMultByTime: csvIsfEnabled ? perStepMapForLoop : nil,
                                 isfBoostActiveOnly: isfBoostActiveOnly,
                                 egpPhysicalDecomposition: egpPhysicalDecomposition)
@@ -1158,8 +1168,19 @@ extension EvaluationEngine {
                 // Feed the sensitive-mode level: EWMA of the NEGATIVE part of this
                 // step's discrepancy (mg/dL). Decays with sensitiveModeTauSec; raises ISF on
                 // future steps via sensModeMult above (causal: this update affects t+1 onward).
-                if sensModeOn && candidateDiscrepancy.isFinite {
-                    sensModeLevel = sensModeDecayStep * sensModeLevel + (1.0 - sensModeDecayStep) * Swift.max(0.0, -candidateDiscrepancy)
+                // RC-residual feed for the cross-cycle levels. candidateDiscrepancy is NaN whenever the
+                // carb-effect curve is empty (no carbs on board -- 97% of steps on a hands-off bed),
+                // because candidateCarbEffect stays NaN. With no carbs the carb share of ICE is exactly
+                // zero, so the residual is ICE itself; feed that, not NaN. (Until 2026-09-30 the
+                // sensitive-mode level was gated on candidateDiscrepancy.isFinite and so only updated
+                // in carb-active steps; C08 results before pinned10 were measured with that feed.)
+                let rcResidualFeed = candidateICE.isFinite
+                    ? candidateICE - (candidateCarbEffect.isFinite ? candidateCarbEffect : 0.0) : Double.nan
+                if sensModeOn && rcResidualFeed.isFinite {
+                    sensModeLevel = sensModeDecayStep * sensModeLevel + (1.0 - sensModeDecayStep) * Swift.max(0.0, -rcResidualFeed)
+                }
+                if slowRcOn && rcResidualFeed.isFinite {
+                    slowRcLevel = slowRcDecayStep * slowRcLevel + (1.0 - slowRcDecayStep) * rcResidualFeed
                 }
             }
 
@@ -2597,6 +2618,64 @@ extension EvaluationEngine {
 
         // Causal volatility σ5 (EWMA std of the 5-min increment, candidate's own history).
         // Only computed when a σ candidate is on; identity otherwise.
+        // NEGATIVE INSULIN DAMPER (C37; Loop and Learn customization, ported verbatim in structure from
+        // LoopDataManager.computeNegativeInsulinDamper + LoopAlgorithm.generatePrediction in
+        // nextdev_negative_insulin.patch). Loop computes it from the controller's own inputs -- doses, basal schedule,
+        // ISF schedule -- so here it reads effectiveInput, the candidate's view, exactly as Loop would.
+        if config.negativeInsulinDamper, let latestG = effectiveInput.glucose.last {
+            let mgdlU = LoopUnit.milligramsPerDeciliter
+            let anchorDate = latestG.startDate
+            let cutoff = anchorDate.addingTimeInterval(-config.nidLagMin * 60)
+            // Loop's `doses.trimmed(to:)`: doses starting after the cutoff are dropped, basal-type doses are clipped
+            // at the cutoff (volume pro-rated), boluses are kept whole.
+            var lagged: [EvalInsulinDose] = []
+            for d in effectiveInput.doses where d.startDate < cutoff {
+                if d.deliveryType == .bolus || d.endDate <= cutoff { lagged.append(d); continue }
+                var c = d
+                let full = d.endDate.timeIntervalSince(d.startDate)
+                c.endDate = cutoff
+                c.volume = full > 0 ? d.volume * cutoff.timeIntervalSince(d.startDate) / full : d.volume
+                lagged.append(c)
+            }
+            let nidEffects = lagged.annotated(with: effectiveInput.basal)
+                .glucoseEffects(insulinSensitivityHistory: effectiveInput.sensitivity,
+                                from: anchorDate.addingTimeInterval(-5 * 60))
+            var posDeltaSum = 0.0
+            if nidEffects.count > 1 {
+                for i in 1..<nidEffects.count {
+                    let dlt = nidEffects[i].quantity.doubleValue(for: mgdlU) - nidEffects[i - 1].quantity.doubleValue(for: mgdlU)
+                    posDeltaSum += Swift.max(0, dlt)
+                }
+            }
+            if let isfQ = effectiveInput.sensitivity.closestPrior(to: anchorDate)?.value,
+               let basalRate = effectiveInput.basal.closestPrior(to: anchorDate)?.value {
+                // anchorScale ~ 1 h for rapid-acting adult, ~44 min for the ultra-rapid presets
+                let anchorPoint = 0.8 * (therapy.insulinType.peakActivity / 3600.0) * basalRate * isfQ.doubleValue(for: mgdlU)
+                if anchorPoint > 0 {          // a 0 U/h basal segment would make the damper a constant 95 %: Loop disables it
+                    let a0 = config.nidAnchorAlpha, ms = config.nidMarginalSlope
+                    let lin = (1.0 - a0) / anchorPoint
+                    let tp = (1 - ms) / (2 * lin)
+                    let alpha: Double
+                    if posDeltaSum < tp { alpha = 1 - lin * posDeltaSum }
+                    else { let tv = (1 - lin * tp) * tp; alpha = (tv + ms * (posDeltaSum - tp)) / posDeltaSum }
+                    let damper = Swift.max(0, 1 - Swift.max(ms, alpha))
+                    if damper > 0 {
+                        let keep = 1 - damper
+                        var damped: [PredictedGlucoseValue] = []
+                        damped.reserveCapacity(prediction.glucose.count)
+                        var v = 0.0
+                        for (i, p) in prediction.glucose.enumerated() {
+                            let x = p.quantity.doubleValue(for: mgdlU)
+                            if i == 0 { v = x; damped.append(p); continue }
+                            let dlt = x - prediction.glucose[i - 1].quantity.doubleValue(for: mgdlU)
+                            v += dlt > 0 ? keep * dlt : dlt
+                            damped.append(PredictedGlucoseValue(startDate: p.startDate, quantity: LoopQuantity(unit: mgdlU, doubleValue: v)))
+                        }
+                        prediction.glucose = damped
+                    }
+                }
+            }
+        }
         var sigma5 = Double.nan
         if config.sigmaBandK > 0 || config.calmHighAfScale != 1.0 || config.calmHighTargetDelta > 0 {   // NB: every consumer of sigma5 must be listed here. C31's target shift was added without it,
             // so sigma5 stayed NaN, calmHighActive was never true, and all three cht arms scored
@@ -2784,6 +2863,7 @@ extension EvaluationEngine {
             applicationFactor: appFactor,
             softLowGate: config.softLowGate,
             guardPrediction: guardPrediction,
+            basalLockBg: config.basalLockBg,
             lowGateThreshold: config.lowGateThresholdMgdl,
             uncertaintyCap: config.uncertaintyCapEnabled
                 ? (k: config.uncertaintyK, fmax: config.uncertaintyFmax, low: config.uncertaintyLow,

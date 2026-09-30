@@ -856,6 +856,8 @@ public actor EvaluationEngine {
         // Guard-only sigma band: when non-nil, THIS (banded) curve decides the suspend check and supplies the
         // predicted MIN that gates the auto-bolus, while `prediction.glucose` (unbanded) sizes the correction.
         guardPrediction: [PredictedGlucoseValue]? = nil,
+        // Basal Lock (Loop and Learn): above this glucose a sub-scheduled temp basal is raised to scheduled. 0 = off.
+        basalLockBg: Double = 0,
         // Predicted-min cutoff (mg/dL) below which the auto-bolus gate engages. nil = the
         // correction-range floor (standard Loop). e.g. 80 keeps the full application factor for
         // predicted minimums down to 80 before gating — a small step toward the uncertainty cap.
@@ -1016,7 +1018,12 @@ public actor EvaluationEngine {
             // recs cap at ~neutral exactly above IOB 6 = 2x its 3 U maxBolus) the
             // derived maxBasalRate is NEGATIVE and passes through the min. The field
             // never records a negative rate (min recorded rec = 0.0) — floor at 0.
-            let tempRate = pump.supportedBasalRate(Swift.max(0, rec.unitsPerHour))
+            var requestedRate = Swift.max(0, rec.unitsPerHour)
+            if basalLockBg > 0, let g = input.glucose.last,
+               g.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter) > basalLockBg, requestedRate < scheduledRate {
+                requestedRate = scheduledRate   // Basal Lock: never throttle basal while glucose is above the lock level
+            }
+            let tempRate = pump.supportedBasalRate(requestedRate)
 
             // ifNecessary (deployed v3.14.2 DoseMath, verbatim semantics): a temp is
             // only COMMANDED when it changes something. Same-rate running temp with
@@ -1096,7 +1103,12 @@ public actor EvaluationEngine {
         let pump = PumpModel(basalRateIncrement: tempBasalIncrement, bolusIncrement: bolusIncrement,
                              pulseQuantum: 0, rounding: .down)
         let bolus = pump.supportedBolusVolume(recommendation.bolusUnits ?? 0)
-        let tempRate = pump.supportedBasalRate(recommendation.basalAdjustment.unitsPerHour)
+        var requestedRate = recommendation.basalAdjustment.unitsPerHour
+        if basalLockBg > 0, let g = input.glucose.last,
+           g.quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter) > basalLockBg, requestedRate < scheduledRate {
+            requestedRate = scheduledRate       // Basal Lock (Loop applies it to basalAdjustment only; the bolus stands)
+        }
+        let tempRate = pump.supportedBasalRate(requestedRate)
 
         let basalDeltaU = (tempRate - scheduledRate) * evalStep / 3600
         let deltaU = bolus + basalDeltaU

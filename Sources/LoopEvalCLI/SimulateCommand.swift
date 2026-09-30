@@ -258,6 +258,14 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateMomentumLookbackMin: Double = 15
     @Option(name: .long, help: "Cross-cycle sensitive-mode time constant (MINUTES): an EWMA of recent NEGATIVE discrepancies decays at this tau and raises effective ISF on future cycles to prevent a delayed SECOND low. 0 = off. Try 60-360.")
     var candidateSensitiveModeTauMin: Double = 0
+    @Option(name: .long, help: "SLOW (autosens-scope) RC time constant, minutes: EWMA of the SIGNED per-step forecast residual (the quantity RC integrates over 3 h) over hours to a day. 0 = off. Try 360 (6 h) or 1440 (24 h).")
+    var candidateSlowRcTauMin: Double = 0
+    @Option(name: .long, help: "Slow RC gain: controller ISF multiplier = clamp(1 - gain * level, min, max), level in mg/dL per 5-min step. Sustained +1 mg/dL/step (BG above forecast = resistance) at gain 0.1 -> ISF x0.9. Try 0.1-0.2.")
+    var candidateSlowRcGain: Double = 0
+    @Option(name: .long, help: "Slow RC ISF-multiplier floor (default 0.7, oref autosens_min).")
+    var candidateSlowRcMin: Double = 0.7
+    @Option(name: .long, help: "Slow RC ISF-multiplier ceiling (default 1.3; oref autosens_max is 1.2).")
+    var candidateSlowRcMax: Double = 1.3
     @Option(name: .long, help: "Cross-cycle sensitive-mode gain k: effective ISF is scaled by (1 + k*R) where R is the EWMA of recent negative discrepancy (mg/dL). 0 = off. Try 0.01-0.05.")
     var candidateSensitiveModeGain: Double = 0
     @Option(name: .long, help: "ICE RISE-BOOST gain: attack a SUSTAINED, actively-driven high. Adds a POSITIVE forecast offset = gain * gate(BG) * max(0, trailingICErate - thresh) so Loop doses harder when BG is high AND trailing ICE is positive (real persistent high, not a resolving spike). The rise side of the unified ICE-response term. 0 = off. Try 20-80.")
@@ -415,6 +423,16 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateSigmaBandFixedSigma: Double = 0
     @Flag(name: .long, help: "GUARD-ONLY sigma band: the sigma-widened curve feeds only the predicted-minimum guard and the suspend check; the UNBANDED curve sizes the correction. Separates the tail question (guard) from the point question (dose) that Loop otherwise reads off one curve, so the band can be held at its measured plateau (taper 360) without lowering eventualBG. Requires --candidate-sigma-band-k > 0.")
     var candidateSigmaBandGuardOnly: Bool = false
+    @Flag(name: .long, help: "NEGATIVE INSULIN DAMPER (candidate; Loop and Learn 'negative_insulin' customization, ported from nextdev_negative_insulin.patch): the predicted future rise from insulin delivered below scheduled basal (up to --candidate-nid-lag-min ago) sets a damper in [0, 0.95]; every positive 5-min delta of the assembled forecast is multiplied by (1 - damper). 25% at the anchor (0.8 x peak-activity hours x basal x ISF of predicted rise). Targets re-dosing into the rebound after a treated low.")
+    var candidateNegativeInsulinDamper: Bool = false
+    @Option(name: .long, help: "NID anchor alpha: the fraction of a positive delta that survives when the negative-insulin rise equals the anchor point. Loop's value 0.75 (= 25% damping).")
+    var candidateNidAnchorAlpha: Double = 0.75
+    @Option(name: .long, help: "NID marginal slope beyond the linear region; also the floor of alpha (damper cap = 1 - slope). Loop's value 0.05.")
+    var candidateNidMarginalSlope: Double = 0.05
+    @Option(name: .long, help: "NID lag (minutes): insulin delivered more recently than this is not yet counted. Loop's value 15.")
+    var candidateNidLagMin: Double = 15
+    @Option(name: .long, help: "BASAL LOCK (candidate; Loop and Learn 'basal_lock' customization, ported from nextdev_basal_lock.patch): while the latest glucose is above this (mg/dL), a recommended temp basal below the scheduled rate is raised to the scheduled rate; boluses untouched. Loop's guardrail is 200-300, recommended >= 220. 0 = off.")
+    var candidateBasalLockBg: Double = 0
     @Option(name: .long, help: "Comma-separated outage REASONS (from the outages/disruptions CSV) during which the pump keeps delivering SCHEDULED basal instead of nothing — e.g. 'loop_offline' (phone away: the pod runs its schedule, only new adjustments stop). Default: none (every outage clamps delivery to 0).")
     var outageBasalReasons: String?
     @Option(name: .long, help: "PREDICTIVE pre-low damper GAIN: causal sustained-sensitivity trigger (causal ICE = v_bg - v_insulin over a trailing window). ISF-mult increase per mg/dL/min of negative ICE beyond the threshold; raises ISF proactively before the low. 0 = off.")
@@ -655,6 +673,11 @@ struct SimulateCommand: AsyncParsableCommand {
             sigmaBandBaseline: candidateSigmaBandBaseline,
             sigmaBandFixedSigma: candidateSigmaBandFixedSigma,
             sigmaBandGuardOnly: candidateSigmaBandGuardOnly,
+            negativeInsulinDamper: candidateNegativeInsulinDamper,
+            nidAnchorAlpha: candidateNidAnchorAlpha,
+            nidMarginalSlope: candidateNidMarginalSlope,
+            nidLagMin: candidateNidLagMin,
+            basalLockBg: candidateBasalLockBg,
             sensDampWindowMin: candidateSensDampWindow,
             sensDampThresholdRate: candidateSensDampThreshold,
             sensDampGain: candidateSensDampGain,
@@ -704,6 +727,11 @@ struct SimulateCommand: AsyncParsableCommand {
             momentumAlphaSlow: candidateMomentumAlphaSlow,
             momentumAlphaFast: candidateMomentumAlphaFast
         )
+        // Slow (autosens-scope) RC: set post-construction for the same reason as the block below.
+        candidateConfig.slowRcTauSec = candidateSlowRcTauMin * 60
+        candidateConfig.slowRcGain = candidateSlowRcGain
+        candidateConfig.slowRcMin = candidateSlowRcMin
+        candidateConfig.slowRcMax = candidateSlowRcMax
         // Set post-construction to keep the EvalConfig(...) literal under the
         // Swift type-checker's expression-complexity limit. Property assignment is
         // also order-free — prefer adding NEW candidate flags here rather than
