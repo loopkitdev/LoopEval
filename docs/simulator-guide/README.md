@@ -782,12 +782,18 @@ reference curve runs flat.) Rank a mechanism by the **mean lift over its own swe
 > [!WARNING]
 ![lift analysis](lift_analysis.png)
 
-*Lift analysis (real user, fixed sim). Convention: x = TIR (right = better), **y = t<54 increasing
-upward (up = worse)**, dotted 1% budget line, **better = lower-right**. The grey curve is the
-insulin-needs reference; each candidate is swept over its ISF multiplier as a line — where it sits
-below-right of the grey curve it has positive lift. Here aIRC+DLP clears the baseline through the
-operating band. The red star is the real deployment; squares mark the ×1.0 (deployed) point of each
-sweep.*
+*Four candidate mechanisms against the insulin-needs reference (ns3, 64 d). Convention: x = TIR
+(right = better), **y = t<54 increasing upward (up = worse)**, dotted 1% budget line, **better =
+lower-right**. Every line — reference and candidates alike — is swept over the **same** dial,
+insulin-needs, on a ×0.05 grid; a candidate has lift where it sits below-right of the grey curve.
+**aIRC** (red) holds below the reference from TIR 60 up, buying ~0.2 pp of t<54 at matched TIR
+near the top of the band (mean lift +0.012, best +0.042 at ×1.15). **GBAF** (green) is similar
+(+0.011). **DLP** (blue) sits above-left almost everywhere — negative lift (−0.009), i.e. worse
+than simply turning the dial — and adding it to aIRC drags the pair back to −0.005. The red star
+is the real deployment (TIR 55.8 / t<54 0.082); squares mark each sweep's ×1.0 point. Swept over
+×0.80–×1.30 (TIR 29–67); the plot starts at ×0.95 because below it every arm sits at t<54 = 0 and
+the curves carry no information. Lift figures are quoted as the mean over a mechanism's own sweep,
+never a single point.*
 
 #### Which dial the reference sweeps
 
