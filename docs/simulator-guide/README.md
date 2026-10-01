@@ -780,15 +780,6 @@ reference curve runs flat.) Rank a mechanism by the **mean lift over its own swe
 (`frontier.summarize_mechanisms`), not a single point; plot with `frontier.plot_sweeps`.
 
 > [!WARNING]
-> **Sweep the insulin-needs dial, not ISF alone.** The reference dial should be
-> `--candidate-insulin-needs f` (a Loop preset-style single knob: basal ×f, ISF ÷f, CR ÷f
-> together), not `--candidate-sensitivity-multiplier`. An ISF-only sweep only touches correction
-> dosing, so it floors high on t<54 (can't cut basal/meal lows) and thereby **overstates candidate
-> lift** — much of what looks like lift against an ISF baseline is really just "this candidate
-> delivers less insulin," which the insulin-needs dial does trivially. Measuring a "halve the meal
-> boluses" lever against ISF-only showed +0.185 apparent lift that **evaporated to +0.036** against
-> insulin-needs.
-
 ![lift analysis](lift_analysis.png)
 
 *Lift analysis (real user, fixed sim). Convention: x = TIR (right = better), **y = t<54 increasing
@@ -797,6 +788,42 @@ insulin-needs reference; each candidate is swept over its ISF multiplier as a li
 below-right of the grey curve it has positive lift. Here aIRC+DLP clears the baseline through the
 operating band. The red star is the real deployment; squares mark the ×1.0 (deployed) point of each
 sweep.*
+
+#### Which dial the reference sweeps
+
+> [!WARNING]
+> **Sweep the insulin-needs dial, not ISF alone.** The reference dial should be
+> `--candidate-insulin-needs f` (a Loop preset-style single knob: basal ×f, ISF ÷f, CR ÷f
+> together), not `--candidate-sensitivity-multiplier`. The reason is **coverage**: insulin-needs
+> moves basal, correction *and* meal dosing, so it already does trivially whatever a candidate
+> achieves by "delivering less insulin." ISF-only never touches CR or basal, so a candidate that
+> cuts meal boluses or basal looks structurally novel against it when it is not. Measuring a
+> "halve the meal boluses" lever against ISF-only showed +0.185 apparent lift that **evaporated to
+> +0.036** against insulin-needs — because insulin-needs already scales meal boluses via CR.
+
+![the two dials](dial_choice.png)
+
+*Both dials sweeping the **stock** algorithm on one donor, one 30.5-day window, every other flag
+identical — so the only difference is which dial moves. The two meet at ×1.00, where they are the
+same config (TIR 86.891 / t<54 0.831 on both, exactly; the generator asserts this). Grey
+(insulin-needs) sweeps the whole trade-off space down to TIR 56.6 at t<54 **0.057**. Blue
+(ISF-only) is a hook confined to TIR 79–88 that bottoms out at t<54 **0.410** and curls back on
+itself: from ×1.05 to ×2.00 — nearly doubling ISF — it buys only 0.797 → 0.410 while TIR stays
+pinned. A candidate scored against that blue curve gets credit for reaching lows the dial simply
+could not.*
+
+> [!NOTE]
+> **How much this matters is donor-dependent — check it rather than assuming it.** The gap above is
+> ~7× in the achievable t<54 floor. On a second donor run the same way, the two curves sit within
+> **0.016 pp** of each other through the whole operating band (TIR 60–74) and cross twice,
+> separating only below TIR 58 (ISF-only plateauing at 0.19–0.28 where insulin-needs reaches 0).
+> On a third, the counterfactual never crosses 54 on either dial, so the comparison is empty. The
+> rule still stands — insulin-needs is never the *worse* baseline, and it is the one that covers
+> what candidates actually do — but "ISF-only floors high" is a property of donors whose lows are
+> basal- and meal-driven, not a universal one. *(The donor plotted is a heavy meal announcer whose
+> config is annotated announcer-limited and not curve-validated: its field point sits above the
+> automation curve and its sim t<54 reads about twice the field's. Read the shapes and the floor
+> ratio, not the absolute values.)*
 
 Beyond the reactive frontier, a **perfect-foresight oracle** (offline optimal dosing given the
 known future ICE) bounds the best case: with perfect carb + sensitivity foresight, ~95% TIR at ~0
