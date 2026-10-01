@@ -5,8 +5,8 @@
 > algorithm changes (Loop *and* OpenAPS) are scored. **Living document** — kept current as the
 > evaluator evolves.
 
-*Last reviewed 2026-08-04. Renders on GitHub: flowcharts are Mermaid, callouts are GitHub
-alerts, figures are the PNGs in this folder.*
+*Last reviewed 2026-10-01 (defaults and flag behavior re-verified against the source). Renders on
+GitHub: flowcharts are Mermaid, callouts are GitHub alerts, figures are the PNGs in this folder.*
 
 ## Contents
 
@@ -34,23 +34,124 @@ alerts, figures are the PNGs in this folder.*
 
 ## 1. What this is, and why it exists
 
-LoopEval estimates the likely therapy impact of a change to the **Loop** closed-loop insulin
-algorithm (or its settings) *before* the change is ever tried on a person, by replaying it
-against a real person's historical CGM + insulin data. It is safety-critical software: insulin
-dosing errors cause hypoglycemia, which can be immediately dangerous. The guiding optimization
-target is to **increase Time-in-Range (70–180 mg/dL) while keeping severe-low (<54) time as low
-as possible** — ideally both improve. This is a **heavily-weighted trade-off, not a hard
-gate**: reducing lows is the priority and a rise in <54 is a serious cost, but a small increase
-can be worth a large TIR gain. Both sides are always reported.
+If you have worked with a virtual-patient simulator — UVA/Padova, Hovorka, Cambridge, or a
+home-grown compartment model — you know the shape of the bargain. You get a physiology you can
+interrogate: repeatable, fully observable, safe to push into states no ethics board would approve,
+and able to answer counterfactuals a trial never can. You pay for it by having to *specify* that
+physiology. Parameters come from a fitted cohort; meals, exercise, sensor error and pump faults
+come from scenario generators. The result is only as representative as those choices, and the
+usual failure is not that the model is wrong in the small, but that the virtual cohort is tidier
+than the people it stands in for.
 
-The tool has three conceptually distinct modes. This guide is about `simulate` — the
-closed-loop counterfactual — which is the primary tool for therapy-outcome questions.
+**LoopEval makes the opposite trade.** It writes down exactly one physiological model — insulin
+pharmacodynamics ([§5](#5-the-insulin-model-pharmacodynamics)) — and declines to model anything
+else. It takes a real recording of CGM and insulin delivery, subtracts the glucose effect of the
+insulin that was actually given, and keeps the remainder: everything that moved glucose and was
+*not* the modelled insulin. That remainder is the patient. Then it runs a candidate controller
+forward over the same remainder and adds *its* insulin back in.
+
+Carb absorption, endogenous glucose production, exercise, stress, illness, dawn phenomenon and
+sensor behaviour are never given equations or parameters. They are not modelled at all — they are
+*observed*, once, and replayed. The insulin model earns its place because it is the one term that
+has to be re-evaluated under a dose the person never received.
+
+![the counterfactual premise](premise.png)
+
+So the physiology is **borrowed rather than parameterised**. There is no virtual cohort, because
+each recording is its own bed. There is no scenario generator, because the scenarios already
+happened. What you give up in exchange is also specific, and worth being clear about up front: you
+can only ask questions this person's real day can answer, and the further the candidate drifts
+from what was recorded, the more the borrowed physiology is being asked to hold in a state it was
+never observed in ([§6](#6-the-physiological-counterfactual), [§16](#16-methodological-principles--traps)).
+
+It is safety-critical software: insulin dosing errors cause hypoglycemia, which can be immediately
+dangerous. The guiding optimization target is to **increase Time-in-Range (70–180 mg/dL) while
+keeping severe-low (<54) time as low as possible** — ideally both improve. This is a
+**heavily-weighted trade-off, not a hard gate**: reducing lows is the priority and a rise in <54 is
+a serious cost, but a small increase can be worth a large TIR gain. Both sides are always reported.
+
+### The difference model
+
+One equation carries the whole design. At each 5-minute step:
+
+```
+ΔBG_counter  =  ΔBG_recorded  +  m · ( E_cand(Sₚ) − E_field(Sₚ) )
+                 └─ what glucose      └─ the insulin the candidate gave,
+                    actually did          minus the insulin that was really given
+```
+
+- **`E`** is an insulin glucose-effect over the step — `E_field` from the doses in the record,
+  `E_cand` from the doses the candidate's own loop chose.
+- **`Sₚ`** is the **simulated patient's** insulin sensitivity: the gain that turns a dose
+  *difference* into a BG difference. Both terms are evaluated at the same `Sₚ`, so it scales only
+  the gap between the arms, never the trajectory itself. It is distinct from the ISF the
+  *controller* believes — see [§10](#10-egp-separation--the-controllerphysiology-decoupling), which
+  also covers when the two are coupled and when they are not.
+- **`m`** is a per-step sensitivity correction, ≡ 1 unless sensitivity inference is enabled
+  ([§9](#9-sensitivity-inference-the-fidelity-model)).
+
+Three properties follow directly, and they are the reasons to prefer this over a virtual patient
+for this particular question.
+
+**It is an identity when nothing changes.** Dose what the field dosed and the bracket is exactly
+zero, so the counterfactual reproduces the recording step for step, for any `m`. That fixed point
+is not a nicety — it is the regression test the whole evaluator is anchored on
+([§17](#17-validation)), and it is a check a parameterised simulator has no analogue for.
+
+**Real-world variability arrives for free, because it is not modelled.**
+
+![what one record already contains](realworld.png)
+
+*Four consecutive days from one donor. Over the full 50-day record this one person contributes 61
+loop-offline windows (32.6 h), 6 CGM gaps ≥ 15 min (28.3 h), 20 pump suspends and 126 manual
+boluses — 2.5 a day.* Occlusions, compression lows, missed and mistimed boluses, unannounced
+meals, temporary overrides, illness and phone-offline gaps are all in the substrate at their real
+times and real sizes. Nothing was drawn from a noise model or a meal schedule, and nothing had to
+be given a distribution. The cost is the mirror image: these events cannot be *re-derived* for a
+trajectory that did not happen — most sharply with rescue carbs, which stay fixed in the substrate
+even when the candidate prevents the low that provoked them
+([§8](#8-counter-regulation-floor-a-rescue-carb-proxy)).
+
+**It is built to measure *changes*, and the common mode cancels.** The bracket *is* the change — a
+settings edit or the algorithm itself — scored against that person's own recorded day. Both arms
+inherit the same physiology, the same sensor artefacts, the same disruptions, so those terms
+subtract out of the difference even though they badly distort the levels:
+
+![paired differencing](paired.png)
+
+*One donor, 48 near-complete days, candidate = insulin-needs ×1.05. Daily TIR varies with SD
+15.1 pp; the paired per-day difference varies with SD 3.1 pp — **4.9× tighter**, resolving a
++4.20 pp effect at 95% CI +3.33..+5.07. In levels the effect is invisible inside the day-to-day
+swing; paired, it is unambiguous.* This is also why absolute figures from the sim should be read
+with more suspicion than differences: compression lows and the CGM 40-floor inflate absolute
+`t<54` in both arms ([§14](#14-metrics--scoring)).
+
+
+This guide is about `simulate` — the closed-loop counterfactual — which is the primary tool for
+therapy-outcome questions. It is one of three *outcome* modes:
 
 | Mode | What it does | Answers |
 |---|---|---|
 | `evaluate` / `inspect` | Forecast replay: reconstructs Loop's predictions at historical timestamps, compares forecast curves to actual CGM. | Is the forecast biased? Where does the model diverge? |
 | `bench` | A/B per-step dose-delta on the same observed trace. Fast; linearized counterfactual. | Quick diagnostic of dose deltas. *(Its TIR is **not** clinical evidence.)* |
 | **`simulate`** | **Closed-loop counterfactual replay** — runs a candidate algorithm forward as an independent BG trajectory. | **How would TIR / lows actually change?** |
+
+Alongside them is a **verification family** — the subcommands that establish whether a replay is
+faithful in the first place, which is the precondition for believing any outcome number:
+
+| Subcommand | What it checks |
+|---|---|
+| `forecast-match` | Decision-time forecast + dose at explicit field decision times, for bit-level comparison against `devicestatus` |
+| `dose-from-forecast` | Runs `insulinCorrection` + `recommendAutomaticDose` on a supplied forecast curve — isolates the dose logic from forecast generation |
+| `insulin-effect-check` · `carb-effect-check` · `dose-set-check` | Diff our per-component output against a deployed-Loop capture (JSONL from the instrumented-Loop rig) |
+| `dump-inputs` | Export per-cycle decision-time algorithm inputs as fixtures, to replay the identical inputs through an upstream LoopAlgorithm build |
+| `carb-cadence-probe` | Synthetic 1-min vs 5-min ICE cadence check for dynamic carb absorption |
+
+`simulate --decision-time-replay` (DTR) belongs to this family too: both arms see the identical
+real glucose/doses/carbs/settings at every step and emit a recommendation **without acting**, so
+there is no counter trajectory and no feedback. It is the canonical same-input dose comparison —
+the way to tell a dosing difference from a trajectory difference. See
+[`../agents/verification.md`](../agents/verification.md).
 
 > [!NOTE]
 > **Two dosing engines.** The candidate that drives the closed loop is pluggable (the
@@ -77,10 +178,10 @@ flowchart LR
     G["Candidate config<br/>ISF · IRC · GBAF …"] -.-> E
 ```
 
-The conceptual heart: the simulator does **not** try to model glucose physiology from first
-principles. Instead it extracts the person's real non-insulin glucose dynamics from history (the
-**ICE**, below) and replays them, substituting only the candidate's insulin decisions. *"The
-user's real-day physiology, with different insulin."*
+Determinism is worth stating precisely, because it is what makes a sweep readable: two runs of the
+same config on the same data produce **bit-identical** counter trajectories (verified: max |Δ| =
+0.000000000 mg/dL over a 5-day window). Every difference between two runs is therefore attributable
+to the config difference, with no seed, no sampling and no run-to-run noise to average out.
 
 ---
 
@@ -223,7 +324,7 @@ counter[t+Δ] = counter[t] + insulinEffect(candidate doses) + ICE(real) + counte
                             └── candidate's decisions       └ borrowed    └ glucose
                                                               physiology     defense (§8)
 
-Δ = 5 min · integrated step-by-step from a 6 h burn-in seed
+Δ = 5 min · integrated step-by-step from the burn-in seed (§7: 22 h after --start by default)
 ```
 
 Because the ICE is reused verbatim while the insulin term is recomputed from the candidate's
@@ -262,7 +363,7 @@ flowchart TD
     D --> E["DELIVERABILITY CLAMPS<br/>pump outage → deliver 0 · CGM stale → no new dose"]
     E --> F["Append candidate delivery → advance counter to t+Δ"]
     F -. "next step t+Δ · feedback" .-> A
-    G["Burn-in first 6 h<br/>uses REAL pump deliveries<br/>→ realistic initial IOB"] -.-> A
+    G["Warm-up: 16 h eval + 6 h CF burn-in<br/>uses REAL pump deliveries<br/>→ realistic initial IOB"] -.-> A
 ```
 
 #### Decision-time replay (no future leak)
@@ -272,9 +373,41 @@ whose **entryDate** (DB insert time, not the back-dated meal time) is ≤ *t*. I
 future insulin or future carb entries unless `--oracle-future-inputs` is set (debug only). The one
 deliberate exception is the substrate's RTS smoothing ([§4](#4-the-substrate--what-the-sim-actually-runs-on)).
 
-The first 6 h is a **burn-in**: real-pump deliveries drive the sim so the candidate's first real
-decision has a fully realistic recent dose history (correct initial IOB). Counterfactual
-divergence begins after burn-in.
+#### Two warm-up stages stack before divergence
+
+Real-pump deliveries drive the sim through a warm-up so the candidate's first real decision has a
+fully realistic recent dose history (correct initial IOB). **Two stages stack, and the total is 22 h
+by default:**
+
+```
+evalStart     = --start    + evalWarmupHours      (default 16 h — falls back to insulinLookbackHours)
+cfActiveStart = evalStart  + counterfactualBurnIn (default  6 h — --candidate-counterfactual-burn-in-hours)
+```
+
+The two stages gate *different* things, which is worth keeping straight:
+
+- At **`evalStart`** (16 h) the candidate begins **computing and recording its own dose
+  recommendations** — so `baselineDose` vs `candidateDose` deltas appear from here.
+- At **`cfActiveStart`** (22 h) those decisions begin **moving the counterfactual trajectory**.
+  Before it, the trajectory is driven by real-pump deliveries, so the counter tracks the substrate
+  no matter what the candidate recommends.
+
+Measured on a 2-day window (`--start 2026-06-01T00:00Z`, candidate ISF ×0.6): trace `intervalStart`
+lands at exactly +16.0 h, the first dose delta at +16.05 h, and the first counter divergence at
++22.64 h. So **a request for a single 24 h day leaves ~2 h of actual counterfactual** — size the
+window accordingly.
+
+> [!WARNING]
+> **`--insulin-lookback-hours` does not move the warm-up.** `evalWarmupHours` resolves from
+> `insulinLookbackHours` at `EvalConfig` init, and `SimulateCommand` builds the candidate config
+> before assigning the flag — so passing `--insulin-lookback-hours 24` leaves the warm-up at 16 h.
+> To see a specific day from its first minute, start the window 16 h earlier and pass
+> `--candidate-counterfactual-burn-in-hours 0`; verify both arms agree at your intended t₀ before
+> reading the result.
+
+Scoring is keyed off the same boundary, not off `--start`: the trace's `intervalStart` *is*
+`evalStart`, and `score_counterfactual` skips `burnin_hours` (6) past it — so the scored span
+matches the diverged span.
 
 ---
 
@@ -428,23 +561,41 @@ always-lowering effect of the absolute insulin volume) with the EGP held separat
 ISF (`.physicalDelivery` decomposition). `m` scales only the physical-insulin term; EGP rides,
 unscaled, in the dose-independent residual.
 
-#### (b) The controller doesn't know the true sensitivity; the body does
+#### (b) The controller's ISF belief and the body's ISF are separate inputs
 
-Loop's *controller* decides doses on what it **believes** (the scheduled ISF, or a candidate ISF).
-The *physiology* responds at the true sensitivity (scheduled × `m(t)`). The fidelity model keeps
-these two paths separate, so changing the controller's ISF belief doesn't silently change the
-body's response.
+Loop's *controller* always decides doses on what it **believes** — the scheduled ISF as scaled by
+the candidate's multipliers (`scaledSensitivity`). The **body**'s ISF is a distinct quantity: it is
+what strips the field's insulin out of the observed trace (the ICE) and what converts the
+candidate's insulin back into a BG effect. Which value the body gets has three cases, in
+precedence order:
+
+| Plant ISF | When | Body vs. controller |
+|---|---|---|
+| **Flat absolute** `--patient-isf X` | explicitly set | **Independent** — references no therapy setting at all: not the schedule shape, not its time-of-day variation, not its dated eras |
+| **Scheduled ISF × `m(t)`** | `--candidate-infer-sensitivity` | **Decoupled** — plant sits at the *scheduled* ISF with the inferred `m(t)` correcting it, so a candidate ISF multiplier moves only the belief |
+| **`scaledSensitivity`** | **default** | **Coupled** — the plant moves *with* the belief |
+
+> [!IMPORTANT]
+> **The default is coupled, and that is what a plain sweep runs.** With neither `--patient-isf` nor
+> `--candidate-infer-sensitivity`, an ISF-multiplier or insulin-needs sweep moves the simulated body
+> along with the controller's belief — it is not a pure controller-belief sweep. This is the
+> deliberate default so that existing sweeps are unchanged, but it means **"candidate ISF ×0.8"
+> under the default is "a controller that thinks it is more sensitive, in a body that also became
+> more sensitive"**. Use `--patient-isf` to hold the body fixed and move only the belief. (The
+> patient's ISF is a nuisance parameter for candidate lift, not a free win: at field settings the
+> dosing is patient-ISF-invariant, and lift moves <1% across ±10% of plant ISF.)
 
 ```mermaid
 flowchart LR
     A["real residual<br/>net-basal ICE"] --> B["infer m(t)<br/>≥ 1, capped"]
-    B --> C["CONTROLLER (Loop)<br/>doses on scheduled / candidate ISF"]
-    B --> D["PHYSIOLOGY (counter)<br/>physical insulin × (sched·m); EGP separate"]
+    B --> C["CONTROLLER (Loop)<br/>always doses on<br/>scheduled / candidate ISF"]
+    B --> D["PHYSIOLOGY (counter)<br/>physical insulin × plant ISF<br/>(flat · sched·m · or coupled)<br/>EGP separate"]
     C --> E["counter_BG"]
     D --> E
 ```
 
-*m feeds the physiology (truth); the controller keeps its own belief — they're decoupled.*
+*The controller's belief is always its own. Whether the physiology is independent of it depends on
+which of the three cases above you selected.*
 
 > [!TIP]
 > **Bit-exact identity (the regression guard).** The fidelity counter-advance is
@@ -465,7 +616,7 @@ flowchart LR
 
 ## 11. Disruption handling (pump outages & CGM gaps)
 
-Two structurally different real-world events get explicit handling, both in the SIM and in scoring.
+Structurally different real-world events get explicit handling, both in the SIM and in scoring.
 
 | | Pump outage (pod off) | CGM gap |
 |---|---|---|
@@ -473,6 +624,21 @@ Two structurally different real-world events get explicit handling, both in the 
 | **In the sim, DURING** | delivery clamped to **0** (no insulin while the pump is physically off) | no *new* dose adjustment (Loop won't dose on stale data); scheduled basal continues |
 | **When it ends** | resumes its own closed-loop dosing immediately | resumes the moment CGM returns |
 | **In scoring** | only the disruption **interval** itself is excluded — **not** the recovery window (policy 2026-05-26) | ← same |
+
+Two further classes sit in the same CSV but do *not* mean "the pump stopped":
+
+| Class | What happened | Correct sim behavior |
+|---|---|---|
+| **`loop_offline`** | Phone away / Loop not running, while CGM kept flowing. No suspend record exists — the **pod ran its schedule** and only *new* adjustments stopped. | Scheduled basal continues; no new automatic dose |
+| **No-dose guard** (`pumpDataTooOld` / `glucoseTooOld`) | Loop's own guards fired, so it issued no recommendation *by design* — the absent dose is not a mismatch | Step skipped (`noDoseGuardTimes`) |
+
+> [!WARNING]
+> **`--outage-basal-reasons` is empty by default, so *every* outage reason clamps delivery to 0.**
+> That is right for a pod failure and wrong for `loop_offline`, where the pump kept delivering
+> scheduled basal — left at the default, the sim runs those windows with no insulin at all. Pass the
+> reasons that should keep basal running, e.g. `--outage-basal-reasons loop_offline`. This matters
+> more than it looks: on one donor, loop-offline gaps nearly **tripled** total disruption coverage
+> (+24 gaps / 15.9 h), so they are not a rare corner.
 
 > [!NOTE]
 > **Policy change (2026-05-26):** earlier scoring also excluded the 3 h *after* each disruption.
@@ -486,9 +652,18 @@ Two structurally different real-world events get explicit handling, both in the 
 > **CF re-anchor across long CGM gaps.** A candidate that has already diverged before a multi-hour
 > CGM gap would keep integrating ICE across the gap with no CGM to correct it, and can blow up
 > (BG → 700+). So across a gap longer than `cfGapReanchorSec` (default **30 min**) the
-> counterfactual is **re-anchored to the real CGM at gap-end** before resuming divergence.
-> Identity-safe — a no-op candidate re-anchors to the trace it was already tracking, so Δ stays 0.
-> *(`974b384`, `46688a1`.)*
+> counterfactual resyncs to the real CGM at gap-end — but it **carries its pre-gap divergence
+> across the gap** rather than snapping flat onto the real trace:
+> ```swift
+> let gapOffset = counterMgdl[prevIdx] - aPrev
+> counterMgdl[advIdx] = abs(gapOffset) > 10.0 ? aNext + gapOffset : aNext
+> ```
+> Only a small offset (≤ 10 mg/dL) snaps straight to real; that threshold sits above the sub-step
+> advance's numerical drift (~1 mg/dL) and far below any genuine over/under-dose divergence. The
+> offset has to survive, because a candidate that legitimately drove BG away from real (an
+> aggressive oref over-dosing a high) would otherwise have its accumulated insulin effect wiped at
+> every gap, see a high counter, re-dose, and run away. Identity-safe either way — at
+> candidate ≡ real the offset is 0, so Δ stays 0.
 
 ---
 
@@ -501,10 +676,10 @@ A "candidate" is an `EvalConfig` + CLI flags expressing one change. The key leve
 | **Insulin-needs dial** | `--candidate-insulin-needs` | Loop preset-style single aggressiveness knob `f`: basal ×f, ISF ÷f, CR ÷f together (f=0.5 → half basal, double ISF/CR = less insulin). **This is the reference-sweep axis for lift (§15)** — the realistic single dial, and a much stronger baseline than ISF alone. |
 | ISF multiplier | `--candidate-sensitivity-multiplier` | Flat scale on the controller's ISF (<1 = more aggressive / dose more). A weaker aggressiveness axis than insulin-needs (corrections only). |
 | Basal-rate multiplier | `--candidate-basal-rate-multiplier` | Scale the scheduled basal profile. Changes the belief (delivered basal *and* the forecast's net-basal reference), not just the output — so it reaches fasting/non-meal lows that ISF corrections can't. |
-| Manual-bolus mode | `--candidate-manual-bolus-from-recommendation` (**DEFAULT ON**) · `-rec-scale` | Replace each real manual bolus with the candidate's *own* recommended bolus (self-consistent with candidate state; makes the aggressiveness sweep behave physically). `-rec-scale 0.5` delivers half of it (models meal under-bolusing). Pass `--no-…` for the old IOB-resize passthrough (more field-faithful for single-decision fidelity work). |
-| Application factor | `--candidate-application-factor` | Fraction of the computed correction delivered per cycle (Loop default 0.4). |
+| Manual-bolus mode | `--candidate-manual-bolus-from-recommendation` (**default OFF**) · `-rec-scale` | Replace each real manual bolus with the candidate's *own* recommended bolus (self-consistent with candidate state; makes the aggressiveness sweep behave physically). `-rec-scale 0.5` delivers half of it (models meal under-bolusing). **Off by default**, so the default path is the IOB-resize passthrough — more field-faithful for single-decision fidelity work, but it means an aggressiveness sweep leaves the real meal boluses in place unless you turn this on. |
+| Application factor | `--candidate-application-factor` | Fraction of the computed correction delivered per cycle (Loop default 0.4). **Auto-bolus only, and ignored entirely when GBAF is on** — negative value inherits `--application-factor`. |
 | GBAF | `--candidate-gbaf` (+ anchors/factors) | Glucose-based application factor: ramps the app-factor up with BG — aggressive only when high (fidelity-stable on lows). |
-| Integral RC | `--candidate-integral-rc` | Integral retrospective correction (a PID-like term on accumulated forecast error). |
+| Integral RC | `--candidate-integral-rc` (+ `-clamp`) | Integral retrospective correction (a PID-like term on accumulated forecast error). RC mode is **not** recorded in donor data — infer it per-donor by forecast-match before replaying. |
 | Asymmetric IRC | `--candidate-irc-drop-scale / -rise-scale` | Sign-dependent IRC gain — damp the rise response, amplify the drop response (lows-protective). |
 | Asymmetric momentum | `--candidate-asymmetric-momentum` | Turns off positive momentum fast on a downtrend. |
 | Post-low protector | `--candidate-postlow-suppress / -isf-mult` | After a recent low, lower the forecast / raise ISF (slow-off) to damp the rebound re-dose. |
@@ -515,6 +690,10 @@ A "candidate" is an `EvalConfig` + CLI flags expressing one change. The key leve
 | Forecast-offset (CSV) | `--candidate-forecast-offset-csv` | Per-step additive offset to the candidate's forecast, from a CSV — a general hook for testing an arbitrary "what Loop believes" shift (the §16 principle: modify the forecast, not the output). |
 | **OpenAPS engine** | `--candidate-openaps` (+ `-oaps-*`) | Swap the candidate's whole dosing algorithm to oref/OpenAPS instead of Loop. Sub-flags expose oref knobs: `-oaps-threshold` (SMB safety floor), `-oaps-dynamic-isf` / `-oaps-sigmoid` (Dynamic ISF), `-oaps-smb-ratio`, `-oaps-preset-target`, etc. |
 | Sensor cap | `--sensor-cap-mgdl` | Ceiling on the BG the controller sees (default 400 — real sensor behavior). §4. |
+| **Overrides** | `--apply-overrides` | Replay the temp overrides (presets, target/ISF/basal/CR scaling) the person actually ran. Deployed Loop applies an **active** override's *target* flat across the whole forecast while ISF/basal/CR revert at the scheduled end — the sim matches that asymmetry. Without this flag, override windows replay as if no override ran. |
+| RC decay form | `--legacy-rc-decay` | Step-by-step `decayEffect` as Loop-main computed it before LoopKit#556, for donors whose deployed Loop predates the continuous-quadratic form. |
+| **Patient ISF (plant)** | `--patient-isf` | Not an algorithm lever — a **patient** parameter. Sets the simulated body's ISF to a flat absolute value referencing no therapy configuration, so the controller's belief can be swept while the body is held fixed. Unset = the plant is coupled to the belief (§10). |
+| In-progress temp | `--no-clip-in-progress-temp-basal` | Project an in-progress temp basal to its commanded end (what the field's recorded `bgForecast` does) instead of truncating — needed when comparing against recorded forecasts. |
 
 > [!NOTE]
 > **oref / Trio fidelity.** Driving the OpenAPS engine *faithfully* (so a Loop-vs-oref comparison is
@@ -695,6 +874,22 @@ isolates one meal at a time.
   the residual gap on a sparser-announcing user is attributable to dosing character, not the
   physiology model — confirming raw per-step `m` as the faithful default (§9). Replicated on a second
   person.
+- **Replay fidelity is checked per-dataset, in two ordered steps** (the current bar — see
+  [`../agents/verification.md`](../agents/verification.md)): first the DTR **forecasts** must match
+  the field's recorded `bgForecast` within a few mg/dL *worst-case, not on average*; only once that
+  holds does a **dosing** comparison to ≤0.05 U / U-hr mean anything. A dose match on top of a
+  mismatched forecast is a coincidence, not fidelity.
+
+> [!WARNING]
+> **The two outcome-level validations above are dated, and input-fidelity fixes have landed since.**
+> They were measured 2026-06-07. These corrections to the data path and forecast assembly came
+> afterward, and each one moved replayed dosing or forecasts on affected donors:
+> `d19d903` momentum window now-anchoring · `fcd3032` a dosing-forecast flag that was silently
+> ignored · `ca8ac05` + `ce8d4fe` two override-handling errors · `cc56f55` carb `absorptionTime`
+> dropped by HealthKit-mirror dedup · `92fafda` basal dedup / phantom basal.
+> Treat the 2026-06-07 numbers as the method's demonstrated form, not as current standing on any
+> given donor: **re-run the identity check and the per-dataset forecast match before quoting
+> fidelity, and re-run any sweep whose evidence predates these fixes.**
 - **Full-range, not cherry-picked windows:** single-window wins frequently vanish under the full
   date range.
 - **Cross-user, not single-user:** a finding on one person (e.g. "smoothing helps") can reverse on a
@@ -707,16 +902,17 @@ isolates one meal at a time.
 | Parameter | Default | Meaning |
 |---|---|---|
 | eval step | 5 min | Grid + decision cadence |
-| burn-in | 6 h | Real-pump warm-up before CF divergence |
+| eval warm-up | 16 h (= `insulinLookbackHours`; no CLI flag) | Real-pump replay before `evalStart`; **not** movable via `--insulin-lookback-hours` (§7) |
+| CF burn-in | 6 h | Further real-pump warm-up after `evalStart` before CF divergence — **total dead time from `--start` is 22 h** (§7) |
 | insulin model | RAPID_ACTING_ADULT | DIA 6 h, peak 75 min, 10 min delay |
 | kalman smoothing | ON | RTS-smoothed substrate (`--no-kalman` = raw) |
 | counter-reg | **off by default** (onset 0); when on, gain 0.2 / max 6.0 | Glucose-defense velocity, **differenced vs real & gated on counter<onset** (§8). Whole-trace outcome runs enable it; the episodic eval (§15.1) leaves it off. |
-| manual-bolus mode | **recommendation (ON)** | Candidate replaces real manual boluses with its own recommendation (§12); `--no-candidate-manual-bolus-from-recommendation` = IOB-resize passthrough (more field-faithful) |
+| manual-bolus mode | **IOB-resize passthrough (recommendation mode OFF)** | Default keeps the real manual boluses, IOB-resized (more field-faithful). `--candidate-manual-bolus-from-recommendation` opts in to the candidate's own recommendation (§12) |
 | sensitivity infer | window 30 min · m_max 2.0 · raw (no smoothing) | Fidelity model (§9), off by default; raw per-step `m` is the field-validated default |
 | sensor cap | 400 mg/dL | Ceiling on BG the controller sees (§4); `--sensor-cap-mgdl` |
 | dosing engine | Loop | Pluggable; `--candidate-openaps` swaps in oref/OpenAPS (§1, §12) |
-| CGM stale guard | 5 min *(std)* | No new dose when CGM older than this |
-| CF gap re-anchor | 30 min | Re-anchor the counter to real CGM across gaps longer than this (§11) |
+| CGM stale guard | **0 = off** | `--cgm-stale-guard-min`; only runs when > 0. Deployed Loop's own value is 5 min — pass it explicitly to emulate that |
+| CF gap re-anchor | 30 min | Resync the counter to real CGM across longer gaps, **carrying any divergence > 10 mg/dL** across (§11) |
 | scoring exclusion | post_hours 0 | Disruption interval only, not recovery (§11) |
 
 ---
