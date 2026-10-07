@@ -453,6 +453,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "PATIENT-side INSULIN MODEL — the pharmacodynamics of the simulated BODY (rapidActingAdult | rapidActingChild | fiasp | lyumjev | afrezza | lateShort90dia4). The controller keeps believing --insulin-type, so this decouples 'how fast insulin really acts' from 'how fast the algorithm thinks it acts'. Unset = the body uses --insulin-type too (coupled; the historical behavior). Identity-safe: the same curve removes the field's doses and adds the candidate's, so an unchanged candidate still reproduces the recording exactly.")
     var patientInsulinModel: String?
 
+    @Option(name: .long, help: "CONTROLLER-side INSULIN MODEL — what the ALGORITHM believes insulin does, overriding the therapy timeline for BOTH arms. Works on every data source, unlike --insulin-type, which only reaches the Nightscout path and is silently ignored with --data-dir. Pair with --patient-insulin-model to vary the body and the belief independently.")
+    var controllerInsulinModel: String?
+
         @Flag(name: .long, help: "Sim-FIDELITY: infer a local insulin-sensitivity multiplier m(t) from the residual. When BG is still dropping after subtracting the PD-modeled (scheduled-ISF) insulin, the insulin was more effective than scheduled, so scale ISF UP just enough to zero that negative residual (never past it). Applied to the PHYSIOLOGY (ICE + counterfactual dose-effect run at scheduled ISF × m), DECOUPLED from the controller's ISF belief. Capped by --candidate-infer-sensitivity-max. Default OFF.")
     var candidateInferSensitivity: Bool = false
     @Option(name: .long, help: "Cap on the inferred sensitivity multiplier m ('can't subtract more insulin than is physically present'). Default 2.0. Set 1.0 for an identity check (≡ off when sensitivity-multiplier is 1).")
@@ -764,6 +767,10 @@ struct SimulateCommand: AsyncParsableCommand {
             candidateConfig.sensitivityHourlyMultipliers = zip(isfH, h).map { $0 / $1 }
         }
         let parsedPatientInsulinModel = try patientInsulinModel.map { try parseInsulinType($0) }
+        let parsedControllerInsulinModel = try controllerInsulinModel.map { try parseInsulinType($0) }
+        if dataDir != nil && insulinType != "rapidActingAdult" && controllerInsulinModel == nil {
+            printStderr("WARNING: --insulin-type is IGNORED with --data-dir (the model comes from therapy.json). Use --controller-insulin-model to override it.\n")
+        }
         if let pm = parsedPatientInsulinModel, pm == baselinePreset {
             printStderr("note: --patient-insulin-model \(patientInsulinModel!) matches --insulin-type; plant and controller are the same model (a no-op).\n")
         }
@@ -817,8 +824,26 @@ struct SimulateCommand: AsyncParsableCommand {
         let engine = EvaluationEngine(dataSource: dataSource)
 
         printStderr("Fetching data... ")
-        let data = try await engine.prefetchData(for: interval, config: baselineConfig)
+        var data = try await engine.prefetchData(for: interval, config: baselineConfig)  // swiftlint:disable:this let_var_whitespace
         printStderr("done\n")
+
+        // CONTROLLER insulin-model override. The controller's belief lives in two
+        // places: the therapy timeline (what new candidate doses get stamped with)
+        // and the stamps already on the real dose history (what LoopAlgorithm reads
+        // back for IOB/effects). Both must move together, or the arm believes two
+        // different insulins at once. The PLANT is unaffected — it re-stamps these
+        // same doses onto --patient-insulin-model inside the simulator.
+        if let cm = parsedControllerInsulinModel {
+            let was = data.therapyTimeline.insulinType
+            var tl = data.therapyTimeline
+            tl.insulinType = cm
+            let restamped = data.doses.map { (d: EvalInsulinDose) -> EvalInsulinDose in
+                var x = d; x.insulinType = cm; return x
+            }
+            data = PreloadedData(glucose: data.glucose, doses: restamped,
+                                 carbs: data.carbs, therapyTimeline: tl)
+            printStderr("controller insulin model: \(was) -> \(cm) (therapy belief + \(restamped.count) dose stamps); plant unaffected\n")
+        }
 
         // Optional per-step ISF multiplier CSV (time → multiplier).
         let isfMultMap: [Date: Double]?
