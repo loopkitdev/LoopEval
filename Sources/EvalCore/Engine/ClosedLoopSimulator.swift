@@ -200,6 +200,20 @@ extension EvaluationEngine {
         // The only thing borrowed from the schedule is its DATE SPAN, which is coverage
         // (glucoseEffects preconditions on closestPrior(dose.startDate)), not therapy.
         patientISF: Double? = nil,
+        // PATIENT-side insulin model: the pharmacodynamics of the SIMULATED BODY,
+        // used to strip the field's insulin out of the observed trace (ICE) and to
+        // put the candidate's insulin back in. Distinct from the controller's model
+        // BELIEF, which stays `data.therapyTimeline.insulinType` (what --insulin-type
+        // sets) and reaches LoopAlgorithm through each dose's own stamped type.
+        //
+        // Identity is preserved for ANY patient model: the same curve removes the
+        // field's doses and adds the candidate's, so at candidate == field the two
+        // terms are equal and the bracket vanishes exactly.
+        //
+        // nil = the plant uses the therapy insulin type, i.e. COUPLED to the
+        // controller's belief (the historical behavior, so existing runs are
+        // unchanged).
+        patientInsulinType: ExponentialInsulinModelPreset? = nil,
         inferSensitivity: Bool = false,
         inferSensitivityMax: Double = 2.0,
         inferSensitivityWindowSec: TimeInterval = 30 * 60,
@@ -246,12 +260,29 @@ extension EvaluationEngine {
         let mgdlUnit = LoopUnit.milligramsPerDeciliter
         // Physical insulin model: therapy preset, unless a peak/DIA override is set
         // (experiment — run the whole sim against a custom "true" insulin, e.g. peak 90).
+        //
+        // The PLANT's insulin curve is carried by the doses themselves: Loop's
+        // `glucoseEffects` reads each dose's own `insulinModel` (from its stamped
+        // `insulinType`), so changing the plant means RE-STAMPING the doses on the
+        // plant path, not passing a model alongside them. `insulinModel` below sizes
+        // the effect windows and drives the linear-PD path; `patientInsulinPreset` is
+        // what actually shapes the curve.
+        let patientInsulinPreset = patientInsulinType ?? data.therapyTimeline.insulinType
         let insulinModel: InsulinModel
         if let pk = candidateConfig.insulinPhysicalPeakMin {
             let diaSec = (candidateConfig.insulinPhysicalDiaHours ?? 6.0) * 3600.0
             insulinModel = ExponentialInsulinModel(actionDuration: diaSec, peakActivityTime: pk * 60.0, delay: 600)
         } else {
-            insulinModel = data.therapyTimeline.insulinType.model
+            insulinModel = patientInsulinPreset.model
+        }
+        // Re-stamp a dose list onto the patient's insulin model. nil preset ⇒ identity
+        // (returns the input untouched) so default runs stay bit-identical.
+        let plantStamp: ([EvalInsulinDose]) -> [EvalInsulinDose] = { doses in
+            guard let pt = patientInsulinType else { return doses }
+            return doses.map { var d = $0; d.insulinType = pt; return d }
+        }
+        if let pt = patientInsulinType {
+            FileHandle.standardError.write(Data("patient insulin model INDEPENDENT of configuration: plant = \(pt) (peak \(Int(pt.peakActivity / 60))min, DIA \(String(format: "%.1f", pt.model.effectDuration / 3600))h); controller still believes \(data.therapyTimeline.insulinType)\n".utf8))
         }
         let activityDuration = insulinModel.effectDuration
 
@@ -491,7 +522,7 @@ extension EvaluationEngine {
             // 60 days; parallel + release build → ~30s. Mid-absorption ISF is
             // also what Loop's default config uses.
             let precomp = PrecomputedInsulinInput.build(
-                doses: safeDataDoses,
+                doses: plantStamp(safeDataDoses),
                 basal: data.therapyTimeline.basal,
                 sensitivity: physiologySensitivity,
                 effectsFrom: physGlucose.first?.startDate.addingTimeInterval(-insulinModel.effectDuration),
@@ -511,9 +542,10 @@ extension EvaluationEngine {
             // add candidate doses.
             do {
                 let physStart = Date()
+                let plantDataDoses = plantStamp(safeDataDoses)
                 for j in 1..<physGlucose.count {
                     realPhysDelta[j] = Self.physicalActiveEffectDelta(
-                        doses: safeDataDoses, basal: data.therapyTimeline.basal,
+                        doses: plantDataDoses, basal: data.therapyTimeline.basal,
                         sensitivity: physiologySensitivity,
                         from: physGlucose[j - 1].startDate, to: physGlucose[j].startDate,
                         insulinModel: insulinModel)
@@ -1480,7 +1512,8 @@ extension EvaluationEngine {
                         basal: data.therapyTimeline.basal,
                         sensitivity: physiologySensitivity,
                         from: prevT, to: nextT,
-                        insulinModel: insulinModel)
+                        insulinModel: insulinModel,
+                        patientInsulinType: patientInsulinType)
                     let m = mByIndex[advIdx]
                     let stepDelta = realBGdelta + m * (candPhys - realPhysDelta[advIdx])
                     // Counter-regulation: as counter_BG falls below the onset
@@ -1632,7 +1665,7 @@ extension EvaluationEngine {
         // annotate (net-basal, scheduled-basal gaps filled) and evaluate
         // insulinOnBoard at each step. Field = real pump; candidate = the
         // candidate's actual delivery (counterfactualDoses).
-        let patientType = data.therapyTimeline.insulinType
+        let patientType = patientInsulinPreset
         // Split long basal segments into ≤5-min pieces so every basal takes the
         // SAME smooth path in insulinOnBoard. Loop's insulinOnBoard treats a
         // ≤1.05·delta segment as momentary but longer segments via a continuous
@@ -1679,7 +1712,7 @@ extension EvaluationEngine {
         // two-pointer window over the active-effect span keeps this O(N·W) instead
         // of the O(N²) whole-collection insulinOnBoard(at:) per step (which times
         // out once basal gaps are filled → ~17k dose entries).
-        let effDur = data.therapyTimeline.insulinType.model.effectDuration
+        let effDur = patientInsulinPreset.model.effectDuration
         let iobDelta = 5.0 * 60.0
         let iobBack = effDur + 12.0 * 3600.0   // conservative: covers long scheduled-basal segments
         let iobStepTimes = steps.map { $0.t }
@@ -2069,7 +2102,12 @@ extension EvaluationEngine {
         basal: [AbsoluteScheduleValue<Double>],
         sensitivity: [AbsoluteScheduleValue<LoopQuantity>],
         from: Date, to: Date,
-        insulinModel: InsulinModel
+        insulinModel: InsulinModel,
+        // Re-stamp the window's doses onto the PATIENT's insulin model. Loop's
+        // glucoseEffects reads each dose's own model, so this — not `insulinModel`,
+        // which only sizes the lookback — is what sets the plant's curve. Applied
+        // AFTER the window narrowing below, so the cost is O(window), not O(all doses).
+        patientInsulinType: ExponentialInsulinModelPreset? = nil
     ) -> Double {
         guard to > from else { return 0 }
         let lookback = from.addingTimeInterval(-insulinModel.effectDuration)
@@ -2086,10 +2124,13 @@ extension EvaluationEngine {
         let relevantDoses = doses[lowerIdx..<upperIdx].filter { $0.endDate >= lookback }
         if relevantDoses.isEmpty { return 0 }
         guard let firstSens = sensitivity.first, let lastSens = sensitivity.last else { return 0 }
-        let safeDoses = relevantDoses.filter {
+        var safeDoses = relevantDoses.filter {
             $0.startDate >= firstSens.startDate && $0.startDate <= lastSens.endDate
         }
         if safeDoses.isEmpty { return 0 }
+        if let pt = patientInsulinType {
+            safeDoses = safeDoses.map { var d = $0; d.insulinType = pt; return d }
+        }
         let trimmedBasal = basal.trimmed(from: lookback, to: to)
         let annotated = safeDoses.annotated(with: trimmedBasal, fillBasalGaps: true)
         let delta: TimeInterval = 5 * 60

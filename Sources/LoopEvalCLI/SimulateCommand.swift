@@ -450,6 +450,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "PATIENT-side ISF as an ABSOLUTE FLAT value (mg/dL/U), referencing NO therapy configuration — not the donor's schedule shape, not its time-of-day variation, not its dated settings eras. The simulated body becomes an independent object from the settings the controller runs, which still uses the real configured schedule. Unset = the plant is COUPLED to the controller's ISF belief (the historical behavior, so existing sweeps are unchanged). Set it when the patient's insulin sensitivity must be a free parameter — e.g. sweeping it to ask how much a result depends on the assumed patient.")
     var patientIsf: Double?
 
+    @Option(name: .long, help: "PATIENT-side INSULIN MODEL — the pharmacodynamics of the simulated BODY (rapidActingAdult | rapidActingChild | fiasp | lyumjev | afrezza | lateShort90dia4). The controller keeps believing --insulin-type, so this decouples 'how fast insulin really acts' from 'how fast the algorithm thinks it acts'. Unset = the body uses --insulin-type too (coupled; the historical behavior). Identity-safe: the same curve removes the field's doses and adds the candidate's, so an unchanged candidate still reproduces the recording exactly.")
+    var patientInsulinModel: String?
+
         @Flag(name: .long, help: "Sim-FIDELITY: infer a local insulin-sensitivity multiplier m(t) from the residual. When BG is still dropping after subtracting the PD-modeled (scheduled-ISF) insulin, the insulin was more effective than scheduled, so scale ISF UP just enough to zero that negative residual (never past it). Applied to the PHYSIOLOGY (ICE + counterfactual dose-effect run at scheduled ISF × m), DECOUPLED from the controller's ISF belief. Capped by --candidate-infer-sensitivity-max. Default OFF.")
     var candidateInferSensitivity: Bool = false
     @Option(name: .long, help: "Cap on the inferred sensitivity multiplier m ('can't subtract more insulin than is physically present'). Default 2.0. Set 1.0 for an identity check (≡ off when sensitivity-multiplier is 1).")
@@ -512,10 +515,10 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "OpenAPS insulin curve PRESET, no custom peak ('ultra-rapid' | 'rapid-acting'). ultra-rapid = Lyumjev/Fiasp: IOB peak 55 AND dynISF insulinFactor 70 (decoupled). Use instead of --candidate-oaps-insulin-peak.")
     var candidateOapsCurve: String?
 
-    @Option(name: .long, help: "PHYSICAL insulin-model PEAK (min) override for the counter/ICE — the 'true' insulin physiology (e.g. 90). Pair with --candidate-oaps-insulin-peak for a self-consistent world. Omit = therapy insulinType preset.")
+    @Option(name: .long, help: "DEPRECATED — use --patient-insulin-model. This only sizes the effect LOOKBACK WINDOW; it does NOT reshape the plant's insulin curve, because Loop's glucoseEffects reads each dose's own stamped insulinType rather than a model passed alongside. Measured: peak 75→150 and DIA 6→9 move the counterfactual by 0.0001 mg/dL. Kept so existing invocations still parse.")
     var insulinPhysicalPeak: Double?
 
-    @Option(name: .long, help: "PHYSICAL insulin-model DIA (hours) override (default 6). Used with --insulin-physical-peak.")
+    @Option(name: .long, help: "DEPRECATED — see --insulin-physical-peak. Window sizing only; use --patient-insulin-model to change the body's insulin curve.")
     var insulinPhysicalDia: Double?
 
     @Option(name: .long, help: "OpenAPS max_iob (U) — the user's real safety cap. Not uploaded by Trio; set for faithful reproduction (else a non-binding maxBolus×10 fallback is used).")
@@ -760,6 +763,13 @@ struct SimulateCommand: AsyncParsableCommand {
             let isfH = candidateConfig.sensitivityHourlyMultipliers ?? Array(repeating: 1.0, count: 24)
             candidateConfig.sensitivityHourlyMultipliers = zip(isfH, h).map { $0 / $1 }
         }
+        let parsedPatientInsulinModel = try patientInsulinModel.map { try parseInsulinType($0) }
+        if let pm = parsedPatientInsulinModel, pm == baselinePreset {
+            printStderr("note: --patient-insulin-model \(patientInsulinModel!) matches --insulin-type; plant and controller are the same model (a no-op).\n")
+        }
+        if insulinPhysicalPeak != nil || insulinPhysicalDia != nil {
+            printStderr("WARNING: --insulin-physical-peak/--insulin-physical-dia only size the effect window; they do NOT change the plant's insulin curve. Use --patient-insulin-model.\n")
+        }
         if let v = patientIsf, !(v > 0) {
             throw ValidationError("--patient-isf must be positive (mg/dL per U); got \(v).")
         }
@@ -953,6 +963,7 @@ struct SimulateCommand: AsyncParsableCommand {
             counterRegMaxRate: counterRegMax,
             cfGapReanchorSec: cfGapReanchorMin * 60,
             patientISF: patientIsf,
+            patientInsulinType: parsedPatientInsulinModel,
             inferSensitivity: candidateInferSensitivity,
             inferSensitivityMax: candidateInferSensitivityMax,
             inferSensitivityWindowSec: candidateInferSensitivityWindowMin * 60,
