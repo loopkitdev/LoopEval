@@ -5,7 +5,7 @@
 > algorithm changes (Loop *and* OpenAPS) are scored. **Living document** — kept current as the
 > evaluator evolves.
 
-*Last reviewed 2026-10-01 (defaults and flag behavior re-verified against the source). Renders on
+*Last reviewed 2026-10-08 (defaults and flag behavior re-verified against the source). Renders on
 GitHub: flowcharts are Mermaid, callouts are GitHub alerts, figures are the PNGs in this folder.*
 
 ## Contents
@@ -281,6 +281,17 @@ Insulin action uses Loop's exponential insulin model. The default is `RAPID_ACTI
 duration of action (DIA), peak activity ~75 min, 10 min delay. The **activity curve** (rate of
 glucose-lowering) and the **IOB curve** (insulin remaining) are derived from it.
 
+| Class | Presets | Peak | DIA |
+|---|---|---|---|
+| **RA** — rapid-acting | `rapidActingAdult` · `rapidActingChild` | 75 · 65 min | 6 h |
+| **URA** — ultra-rapid | `fiasp` · `lyumjev` | 55 min | 6 h |
+| inhaled | `afrezza` | 29 min | 5 h |
+| experimental | `lateShort90dia4` | 90 min | 4 h |
+
+Every RA/URA preset shares DIA 6 h, so **the class difference is peak time, not duration** — moving
+to "a faster insulin" moves the peak. `fiasp` and `lyumjev` are the *same* model here (identical
+peak, DIA and delay): choosing between them is a no-op, verified at max |Δ| 0.000000000 mg/dL.
+
 ![insulin PD curve](pd_curve.png)
 
 *A unit's effect ramps in over ~10 min, peaks near 75 min, and tails out to ~6 h. The total
@@ -294,6 +305,16 @@ delivering *less* (suspending) is modelled as an **EGP credit** — a positive (
 contribution representing endogenous glucose production no longer covered by basal. (This
 net-basal convention has important consequences for the fidelity model — see
 [§10](#10-egp-separation--the-controllerphysiology-decoupling).)
+
+> [!IMPORTANT]
+> **The curve lives on the doses, not beside them.** `glucoseEffects` reads each dose's *own*
+> `insulinModel`, derived from the `insulinType` stamped on it; a model handed in alongside a dose
+> list only sizes the lookback window. So changing the simulated body's pharmacodynamics means
+> **re-stamping the doses** on the plant path, which is what `--patient-insulin-model` does
+> ([§10](#10-egp-separation--the-controllerphysiology-decoupling)). This is also why
+> `--insulin-physical-peak` / `--insulin-physical-dia` never worked and are now deprecated: they
+> are passed beside the doses, so peak 75→150 with DIA 6→9 moves the counterfactual by 0.0001
+> mg/dL.
 
 ---
 
@@ -561,13 +582,23 @@ always-lowering effect of the absolute insulin volume) with the EGP held separat
 ISF (`.physicalDelivery` decomposition). `m` scales only the physical-insulin term; EGP rides,
 unscaled, in the dose-independent residual.
 
-#### (b) The controller's ISF belief and the body's ISF are separate inputs
+#### (b) The controller's beliefs and the body's properties are separate inputs
 
-Loop's *controller* always decides doses on what it **believes** — the scheduled ISF as scaled by
-the candidate's multipliers (`scaledSensitivity`). The **body**'s ISF is a distinct quantity: it is
-what strips the field's insulin out of the observed trace (the ICE) and what converts the
-candidate's insulin back into a BG effect. Which value the body gets has three cases, in
-precedence order:
+Loop's *controller* always decides doses on what it **believes**. The **body** is a separate object
+with its own properties: they are what strips the field's insulin out of the observed trace (the
+ICE) and what converts the candidate's insulin back into a BG effect. Two of them can be set
+independently of the controller:
+
+| Body property | Flag | Controller's matching belief |
+|---|---|---|
+| **Insulin sensitivity** (how far 1 U moves BG) | `--patient-isf` | the scheduled/scaled ISF |
+| **Insulin pharmacodynamics** (how fast it acts) | `--patient-insulin-model` | `--controller-insulin-model`, else the therapy timeline |
+
+Both are identity-safe for the same reason: the *same* body is used to remove the field's doses and
+to add the candidate's, so when the candidate doses what the field dosed, the two terms are equal
+and the bracket vanishes exactly — for any patient ISF and any patient insulin model.
+
+**ISF** has three cases, in precedence order:
 
 | Plant ISF | When | Body vs. controller |
 |---|---|---|
@@ -584,6 +615,35 @@ precedence order:
 > more sensitive"**. Use `--patient-isf` to hold the body fixed and move only the belief. (The
 > patient's ISF is a nuisance parameter for candidate lift, not a free win: at field settings the
 > dosing is patient-ISF-invariant, and lift moves <1% across ±10% of plant ISF.)
+
+**Insulin model** follows the same shape — `--patient-insulin-model` sets the body's curve,
+`--controller-insulin-model` sets the belief, and with neither the two are coupled to the therapy
+timeline. The mechanism is dose re-stamping, not a model argument
+([§5](#5-the-insulin-model-pharmacodynamics)); the controller's belief has to move in *two* places
+at once (the therapy timeline that stamps new doses, and the stamps already on the real dose
+history that LoopAlgorithm reads back for IOB), or the arm believes two insulins at once.
+
+> [!WARNING]
+> **Mismatch is asymmetric, and one direction is dangerous.** Measured on one donor over 59 days,
+> RA body (peak 75 min) vs URA body (peak 55 min), as a 2×2 of belief × body:
+>
+> | TIR % / t<54 % | body RA | body URA |
+> |---|---|---|
+> | **belief RA** | 74.0 / 1.92 *(as deployed)* | 74.2 / **1.71** |
+> | **belief URA** | 74.3 / **2.73** | 75.9 / 2.33 |
+>
+> A controller believing a **faster** insulin than the body has is pure cost: t<54 **+0.84 pp
+> [+0.52, +1.16]** paired over 60 days, for a TIR change indistinguishable from zero. It stops
+> waiting for insulin that has not acted yet, and stacks. Believing a **slower** insulin is the
+> safest cell in the table — best t<54, no TIR cost — because under-crediting active insulin makes
+> the loop wait. The TIR gain from URA is an interaction (+1.4 pp): it appears only when belief and
+> body move *together*, and even then it is a trade, not a win (+1.88 TIR for +0.41 t<54).
+>
+> Note the two axes are different kinds of object. The controller's model is a **settable therapy
+> choice**; the body's is a **model assumption** — changing it re-derives the ICE, i.e. it changes
+> how much of the observed BG motion is attributed to insulin rather than to everything else. "Body
+> = URA" means *assume this person's insulin acted with URA kinetics and re-derive their physiology
+> accordingly*, not *give this person a different insulin*.
 
 ```mermaid
 flowchart LR
@@ -693,6 +753,8 @@ A "candidate" is an `EvalConfig` + CLI flags expressing one change. The key leve
 | **Overrides** | `--apply-overrides` | Replay the temp overrides (presets, target/ISF/basal/CR scaling) the person actually ran. Deployed Loop applies an **active** override's *target* flat across the whole forecast while ISF/basal/CR revert at the scheduled end — the sim matches that asymmetry. Without this flag, override windows replay as if no override ran. |
 | RC decay form | `--legacy-rc-decay` | Step-by-step `decayEffect` as Loop-main computed it before LoopKit#556, for donors whose deployed Loop predates the continuous-quadratic form. |
 | **Patient ISF (plant)** | `--patient-isf` | Not an algorithm lever — a **patient** parameter. Sets the simulated body's ISF to a flat absolute value referencing no therapy configuration, so the controller's belief can be swept while the body is held fixed. Unset = the plant is coupled to the belief (§10). |
+| **Patient insulin model (plant)** | `--patient-insulin-model` | Also a **patient** parameter, not an algorithm lever. The body's pharmacodynamics — how fast insulin acts — set by re-stamping the doses on the plant path (§5). Unset = coupled to the controller's model. |
+| Controller insulin model | `--controller-insulin-model` | What the ALGORITHM believes insulin does, for both arms. Works on every data source — unlike `--insulin-type`, which only reaches the Nightscout path and is silently ignored with `--data-dir`. |
 | In-progress temp | `--no-clip-in-progress-temp-basal` | Project an in-progress temp basal to its commanded end (what the field's recorded `bgForecast` does) instead of truncating — needed when comparing against recorded forecasts. |
 
 > [!NOTE]
@@ -937,7 +999,9 @@ isolates one meal at a time.
 | eval step | 5 min | Grid + decision cadence |
 | eval warm-up | 16 h (= `insulinLookbackHours`; no CLI flag) | Real-pump replay before `evalStart`; **not** movable via `--insulin-lookback-hours` (§7) |
 | CF burn-in | 6 h | Further real-pump warm-up after `evalStart` before CF divergence — **total dead time from `--start` is 22 h** (§7) |
-| insulin model | RAPID_ACTING_ADULT | DIA 6 h, peak 75 min, 10 min delay |
+| insulin model | RAPID_ACTING_ADULT (RA) | DIA 6 h, peak 75 min, 10 min delay. RA vs URA differ in PEAK, not DIA (§5) |
+| patient insulin model | = controller's (coupled) | `--patient-insulin-model` sets the body's curve independently (§10) |
+| controller insulin model | therapy timeline | `--controller-insulin-model` overrides it on any data source; `--insulin-type` is ignored under `--data-dir` |
 | kalman smoothing | ON | RTS-smoothed substrate (`--no-kalman` = raw) |
 | counter-reg | **off by default** (onset 0); when on, gain 0.2 / max 6.0 | Glucose-defense velocity, **differenced vs real & gated on counter<onset** (§8). Whole-trace outcome runs enable it; the episodic eval (§15.1) leaves it off. |
 | manual-bolus mode | **IOB-resize passthrough (recommendation mode OFF)** | Default keeps the real manual boluses, IOB-resized (more field-faithful). `--candidate-manual-bolus-from-recommendation` opts in to the candidate's own recommendation (§12) |
