@@ -31,6 +31,7 @@ for that checkout (copy `ROLE.example.md`, exactly like `PRIVATE.md`).
 | eda | `docs/agents/eda.md` | Observational analysis of the data; the live distribution study. |
 | scenarios | `docs/agents/scenarios.md` | Synthetic scenarios: hand-built cycles with no donor record behind them. Overlay still a placeholder. |
 | research | `docs/agents/research.md` | Literature review: how the field builds and evaluates AID algorithms, set against our work; proposes new paths. |
+| ice | `docs/agents/ice.md` | Generative models of the insulin counteraction effect: learn realistic ICE, behavior included, from the donor pool and drive the simulator with it. |
 | — | `docs/agents/verification.md` | Faithful replay and identity checks; read by frontier **and** simulator. |
 
 **Keep to your own overlay.** One file, one owner: roles never edit each other's overlay, so
