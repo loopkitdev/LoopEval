@@ -106,6 +106,7 @@ class Plant:
             self.net = ICEGen(len(ck["features"]), len(ck["people"]))
             self.net.load_state_dict(ck["state"]); self.net.eval()
             self.pid = torch.tensor([ck["people"].index(alias)])
+            self.drop = [ck["features"].index(f) for f in ck.get("drop", [])]   # inputs the model never saw
         self.t = None; self.bg = None; self.h = None; self.running = None; self.last_ice = 0.0; self.last_ice_ok = 0.0
         self.log = []
 
@@ -128,6 +129,7 @@ class Plant:
         if self.net is not None:
             w = hist.iloc[-WARMUP_H * 12:]
             X, _ = DS.features(w)
+            X[:, self.drop] = 0.0
             with self.torch.no_grad():
                 _, _, _, self.h = self.net(self.torch.from_numpy(X)[None], self.pid)
             ice = w.ice.dropna()
@@ -158,6 +160,7 @@ class Plant:
                        act_uhr / 2.0, carbs / 50.0, man / 5.0, auto,
                        np.sin(2 * np.pi * hour / 24), np.cos(2 * np.pi * hour / 24),
                        np.sin(2 * np.pi * dow / 7), np.cos(2 * np.pi * dow / 7)]], np.float32)
+        x[:, self.drop] = 0.0
         with torch.no_grad():
             logit, mu, ls, self.h = self.net(torch.from_numpy(x)[None], self.pid, self.h)
             y = float(self.net.sample(logit, mu, ls)[0, -1])
