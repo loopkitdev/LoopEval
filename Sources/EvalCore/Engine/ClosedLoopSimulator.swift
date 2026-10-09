@@ -223,6 +223,10 @@ extension EvaluationEngine {
         useOpenAPSForCandidate: Bool = false,
         useLoopMimicForCandidate: Bool = false,
         sensorCapMgdl: Double = 400.0,
+        // EXTERNAL PLANT (sim-of-the-sim): replace the counterfactual's physiological
+        // advance with a patient model in another process (see ExternalPlant.swift).
+        // nil = the ICE replay, unchanged.
+        externalPlant: ExternalPlant? = nil,
         progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
 
@@ -1487,7 +1491,22 @@ extension EvaluationEngine {
                 while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= t {
                     advIdx += 1
                 }
-                while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd {
+                if let plant = externalPlant {
+                    // The plant, not the ICE replay, decides what the candidate's insulin does:
+                    // send this step's new deliveries, read back its CGM at each sample in
+                    // (t, stepEnd]. The candidate's history already holds them (appended above).
+                    var sampleIdx: [Int] = []
+                    var k = advIdx
+                    while k < counterGlucose.count && counterGlucose[k].startDate <= stepEnd {
+                        sampleIdx.append(k); k += 1
+                    }
+                    let stepDoses = counterfactualDoses.filter { $0.startDate >= t && $0.startDate < stepEnd }
+                    let bgs = try plant.advance(t0: t, t1: stepEnd, doses: stepDoses,
+                                                samples: sampleIdx.map { counterGlucose[$0].startDate })
+                    for (j, idx) in sampleIdx.enumerated() { counterMgdl[idx] = bgs[j] }
+                    advIdx = k
+                }
+                while externalPlant == nil && advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd {
                     let prevIdx = advIdx > 0 ? advIdx - 1 : advIdx
                     let prevT = counterGlucose[prevIdx].startDate
                     let nextT = counterGlucose[advIdx].startDate
