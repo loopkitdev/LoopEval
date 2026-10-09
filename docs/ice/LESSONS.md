@@ -31,3 +31,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
 6. **The frozen-ICE replay over-produces lows under stock Loop** (t<54 1.24% vs field 0.16%, 24
    pilot donors), and runs ~9 mg/dL above the field on mean BG with real ICE — so about half of the
    generator's closed-loop mean-BG gap is the controller not matching each donor's deployed config.
+
+7. **Check what `simulate --data-dir` already loads before calling a setting missing.** It reads
+   `decision_times.csv` (the field's decision cadence, no-dose-guard cycles, and the per-cycle
+   dosing strategy `mode`) and `disruptions.csv` (outage clamps) on its own. Only the
+   retrospective-correction mode (std / IRC / IRC+clamp) and the application factor / GBAF have
+   to be recovered and passed. I told Pete 10 of 24 rollout donors ran under the wrong strategy;
+   they hadn't (`SimulateCommand.swift`, data-dir defaults).
