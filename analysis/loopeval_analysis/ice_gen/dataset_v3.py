@@ -39,10 +39,20 @@ MEAL_T = ["m_lsize", "m_lpeak", "m_ldur", "m_onset", "m_entry", "m_bolus", "m_an
           "m_hasbol", "m_mode", "m_lr", "m_lu"]
 FEATURES_B = ["bg", "bg_ok", "bg_trend", "low30", "bgice_ema", "bgice_ok", "pulse", "since_meal", "last_size", "n_3h",
               "carbs", "bolus", "since_bolus", "hour_sin", "hour_cos", "dow_sin", "dow_cos"]
+# FEATURES_C (v3g): + the CGM-style 30-min extrapolation and a 'heading low' flag. Real people start a meal
+# (or something pulse-like) within 30 min of 53% of crossings below 70; v3f, fed the real inputs, predicted 29%
+# even in-sample, and barely more for faster falls.
+FEATURES_C = FEATURES_B + ["bg_pred30", "heading_low"]
 TARGETS = ["bgice", "meal", *MEAL_T, "corr", "c_mode", "c_lr", "c_lu"]
 REC_ZERO = 0.05
 EMA_A = 1 - np.exp(-5 / 30)                 # 30-min time constant on 5-min slots
 TREND_SLOTS = 3                             # 15 min
+
+
+def predicted(bg, trend):
+    """30-min extrapolation (bg mg/dL, trend mg/dL/min) and the heading-low flag, as dataset and plant compute them."""
+    p = np.clip(bg + 30 * trend, 40, 400)
+    return p, ((p < 70) | ((bg < 80) & (trend < 0))).astype(float)
 
 
 def ema_step(prev, x):
@@ -121,6 +131,8 @@ def build(steps, meals, corrections, bolus_dec, carbs, geq, features=FEATURES):
     cols = dict(
         bg=g.bg.ffill().bfill().to_numpy() / 100, bg_ok=g.bg.notna().to_numpy().astype(float),
         bg_trend=np.nan_to_num(trend) / 2, low30=low30,
+        bg_pred30=predicted(g.bg.ffill().bfill().to_numpy(), np.nan_to_num(trend))[0] / 100,
+        heading_low=predicted(g.bg.ffill().bfill().to_numpy(), np.nan_to_num(trend))[1],
         bgice=np.nan_to_num(bgice / ICE_SCALE), bgice_ema=np.nan_to_num(ema / ICE_SCALE), bgice_ok=np.isfinite(bgice).astype(float),
         pulse=pulses / ICE_SCALE, since_meal=since_meal / 24, last_size=last_size / 50, n_3h=n3 / 3,
         carbs=carb_g / 50, bolus=bol_u / 5, since_bolus=sb / 24,

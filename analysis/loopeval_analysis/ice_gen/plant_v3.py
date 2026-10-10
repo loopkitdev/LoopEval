@@ -132,6 +132,10 @@ class PlantV3:
             past = [b for tt, b in self.bg_hist if tl - tt >= pd.Timedelta(minutes=14)]
             x[F["bg_trend"]] = (now - past[-1]) / 15 / 2 if past else 0.0
             x[F["low30"]] = sum(1 for tt, b in self.bg_hist if tl - tt < pd.Timedelta(minutes=29) and b < 70) * 5 / 30
+            if "bg_pred30" in F:
+                tr = x[F["bg_trend"]] * 2
+                p_, hl = D3.predicted(np.array([now]), np.array([tr]))
+                x[F["bg_pred30"]] = float(p_[0]) / 100; x[F["heading_low"]] = float(hl[0])
         x[F["pulse"]] = self._pulse_rate(t) / ICE_SCALE
         x[F["since_meal"]] = min(self.since_meal, 24) / 24; x[F["last_size"]] = self.last_size / 50; x[F["n_3h"]] = n3 / 3
         x[F["carbs"]] = self.slot_carbs / 50; x[F["bolus"]] = self.slot_bolus / 5
