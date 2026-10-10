@@ -85,14 +85,20 @@ class Insulin:
 
 
 class Plant:
-    def __init__(self, alias, mode, ckpt=None, seed=0):
-        self.alias, self.mode = alias, mode
+    def __init__(self, alias, mode, ckpt=None, seed=0, actions="none"):
+        self.alias, self.mode, self.actions = alias, mode, actions
         P = pd.read_csv(ROOT / "persons.csv").set_index("alias")
         self.isf, self.tdd = float(P.isf_tdd[alias]), float(P.tdd[alias])
         d = ROOT / "full" / alias
         therapy = json.load(open(d / "therapy.json"))
         self.ins = Insulin(MODELS.get(therapy.get("insulinType"), RAPID_ACTING_ADULT))
         self.doses_real = json.load(open(d / "doses.json"))
+        # protocol v2 test actions: the person's REAL carb entries (at the moment Loop could see
+        # them) and REAL manual boluses, returned in the step they fall in
+        self.real_carbs = sorted((_ts(c.get("dosingVisibleDate") or c["startDate"]), float(c["grams"]),
+                                  c.get("absorptionTime")) for c in json.load(open(d / "carbs.json")))
+        self.real_manual = sorted((_ts(x["startDate"]), float(x["volume"])) for x in self.doses_real
+                                  if x["deliveryType"] == "bolus" and not x.get("automatic"))
         self.steps = pd.read_parquet(ROOT / "steps" / f"{alias}.parquet")
         self.grid = DS.to_grid(self.steps)                      # real history (warm-up, carbs, clock)
         self.rng = np.random.default_rng(seed)
@@ -107,7 +113,7 @@ class Plant:
             self.net.load_state_dict(ck["state"]); self.net.eval()
             self.pid = torch.tensor([ck["people"].index(alias)])
             self.drop = [ck["features"].index(f) for f in ck.get("drop", [])]   # inputs the model never saw
-        self.t = None; self.bg = None; self.h = None; self.running = None; self.last_ice = 0.0; self.last_ice_ok = 0.0
+        self.t = None; self.bg = None; self.h = None; self.running = None; self.doses_log = []; self.last_ice = 0.0; self.last_ice_ok = 0.0
         self.log = []
 
     # ---- initialisation at the first request: real insulin before t0, warm the generator up
@@ -156,7 +162,9 @@ class Plant:
 
     def _model_ice(self, t, hour, dow, carbs, man, auto, act_uhr):
         torch = self.torch
-        x = np.array([[self.last_ice, self.last_ice_ok, self.bg / 100.0, 1.0, self.ins.iob(t) / 5.0,
+        # the generator sees BG as a CGM reports it (40-400): training data never exceeds the sensor
+        # range, and an unclamped BG above 400 sent it out of distribution into runaway (i012, i033)
+        x = np.array([[self.last_ice, self.last_ice_ok, min(max(self.bg, LOW), HIGH) / 100.0, 1.0, self.ins.iob(t) / 5.0,
                        act_uhr / 2.0, carbs / 50.0, man / 5.0, auto,
                        np.sin(2 * np.pi * hour / 24), np.cos(2 * np.pi * hour / 24),
                        np.sin(2 * np.pi * dow / 7), np.cos(2 * np.pi * dow / 7)]], np.float32)
@@ -167,11 +175,25 @@ class Plant:
         self.last_ice, self.last_ice_ok = y, 1.0
         return y * DS.ICE_SCALE
 
+    def _actions(self, t0, t1):
+        """Replay the person's real actions in (t0, t1] through protocol v2 (identity tests)."""
+        if self.actions == "none":
+            return {}
+        iso = lambda t: t.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        carbs = [dict(t=iso(t), grams=g, **({"absorption_s": a} if a else {}))
+                 for t, g, a in self.real_carbs if t0 < t <= t1]
+        if self.actions == "replay-units":
+            bol = [dict(t=iso(t), units=u) for t, u in self.real_manual if t0 < t <= t1]
+        else:                                                    # replay-ratio: the calculator's own advice
+            bol = [dict(t=iso(t), ratio=1.0) for t, u in self.real_manual if t0 < t <= t1]
+        return {"carbs": carbs, "boluses": bol}
+
     def advance(self, req):
         t0 = _ts(req["t0"])
         if self.t is None:
             self._start(t0)
         auto_u = 0.0
+        self.doses_log.extend(req["doses"])
         for d in req["doses"]:
             s, e = _ts(d["start"]), _ts(d["end"])
             if self.running is not None and d["type"] == "basal":
@@ -212,6 +234,8 @@ class Plant:
             lg["clean"] = True
             lg.insert(0, "alias", self.alias)
         lg.to_parquet(path, index=False)
+        with open(str(path) + ".doses.json", "w") as f:          # what the simulator delivered
+            json.dump(self.doses_log, f)
 
 
 def main():
@@ -221,14 +245,18 @@ def main():
     ap.add_argument("--ckpt")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--log", required=True)
+    ap.add_argument("--actions", choices=["none", "replay-ratio", "replay-units"], default="none",
+                    help="protocol v2: return the person's real carb entries / manual boluses (tests)")
     a = ap.parse_args()
-    plant = Plant(a.alias, a.mode, a.ckpt, a.seed)
+    plant = Plant(a.alias, a.mode, a.ckpt, a.seed, a.actions)
     for line in sys.stdin:
         line = line.strip()
         if not line:
             continue
-        bg = plant.advance(json.loads(line))
-        sys.stdout.write(json.dumps({"bg": bg}) + "\n"); sys.stdout.flush()
+        req = json.loads(line)
+        bg = plant.advance(req)
+        reply = {"bg": bg, **plant._actions(_ts(req["t0"]), _ts(req["t1"]))}
+        sys.stdout.write(json.dumps(reply) + "\n"); sys.stdout.flush()
     plant.write_log(a.log)
 
 

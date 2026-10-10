@@ -17,6 +17,15 @@
 //   reply    {"bg": [mg/dL, ...]}            // one value per requested sample, in order
 // The plant owns everything that is not insulin (meals, behavior, sensor noise) and is
 // expected to have reproduced the field history up to the first t0 it is sent.
+//
+// v2 (docs/ice/plant-protocol-v2.md), backward compatible:
+//   request  + "state": {"rec_bolus": U, "iob": U, "cob": g, "bg": mg/dL}   // candidate at t0
+//   reply    + "carbs":   [{"t": ISO, "grams": g, "absorption_s": s}]       // the person's
+//            + "boluses": [{"t": ISO, "ratio": x} | {"t": ISO, "units": u}] // actions in (t0, t1]
+// Actions are only acted on with --plant-behavior: carbs enter the candidate's carb store,
+// visible from the next decision; a bolus is delivered AT the next decision as ratio x the
+// bolus-calculator recommendation there (or as units), so the simulator stays the source of
+// truth for what was delivered and sends it back in the next request's doses.
 
 import Foundation
 
@@ -49,9 +58,25 @@ public final class ExternalPlant: @unchecked Sendable {
         public let description: String
     }
 
-    /// Deliver `doses` over [t0, t1] and return the plant's CGM at each of `samples`.
-    func advance(t0: Date, t1: Date, doses: [EvalInsulinDose], samples: [Date]) throws -> [Double] {
-        let req: [String: Any] = [
+    /// A carb entry the plant's person made in (t0, t1].
+    public struct Carb { public let t: Date; public let grams: Double; public let absorption: TimeInterval? }
+    /// A manual bolus the plant's person asked for in (t0, t1]: a multiple of the bolus-calculator
+    /// recommendation, or an absolute amount.
+    public struct Bolus { public let t: Date; public let ratio: Double?; public let units: Double? }
+    public struct Reply { public let bg: [Double]; public let carbs: [Carb]; public let boluses: [Bolus] }
+
+    private let isoNoFrac = ISO8601DateFormatter()
+    private func date(_ s: Any?) -> Date? {
+        guard let s = s as? String else { return nil }
+        return iso.date(from: s) ?? isoNoFrac.date(from: s)
+    }
+
+    /// Deliver `doses` over [t0, t1] and return the plant's CGM at each of `samples`, plus any
+    /// actions (carb entries, manual boluses) its person took in the step. `state` describes the
+    /// candidate at t0 (v2; nil sends a v1 request).
+    func advance(t0: Date, t1: Date, doses: [EvalInsulinDose], samples: [Date],
+                 state: [String: Double]? = nil) throws -> Reply {
+        var req: [String: Any] = [
             "t0": iso.string(from: t0),
             "t1": iso.string(from: t1),
             "doses": doses.map { d -> [String: Any] in
@@ -62,6 +87,9 @@ public final class ExternalPlant: @unchecked Sendable {
             },
             "samples": samples.map { iso.string(from: $0) },
         ]
+        if let state = state {
+            req["state"] = state.mapValues { $0.isFinite ? $0 : 0.0 }
+        }
         var line = try JSONSerialization.data(withJSONObject: req)
         line.append(0x0A)
         input.write(line)
@@ -70,7 +98,16 @@ public final class ExternalPlant: @unchecked Sendable {
               let bg = obj["bg"] as? [Double], bg.count == samples.count else {
             throw PlantError(description: "external plant: bad reply \(String(data: reply, encoding: .utf8) ?? "?")")
         }
-        return bg
+        let carbs: [Carb] = (obj["carbs"] as? [[String: Any]] ?? []).compactMap { c in
+            guard let t = date(c["t"]), let g = c["grams"] as? Double, g > 0 else { return nil }
+            return Carb(t: t, grams: g, absorption: c["absorption_s"] as? Double)
+        }
+        let boluses: [Bolus] = (obj["boluses"] as? [[String: Any]] ?? []).compactMap { b in
+            guard let t = date(b["t"]) else { return nil }
+            let r = b["ratio"] as? Double, u = b["units"] as? Double
+            return (r == nil && u == nil) ? nil : Bolus(t: t, ratio: r, units: u)
+        }
+        return Reply(bg: bg, carbs: carbs, boluses: boluses)
     }
 
     private func readLine() throws -> Data {

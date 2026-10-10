@@ -157,6 +157,8 @@ struct SimulateCommand: AsyncParsableCommand {
 
     @Option(name: .customLong("external-plant"), help: "Shell command for an external patient model (sim-of-the-sim). Requires --candidate-counterfactual. The candidate's glucose advance — normally the ICE replay — is replaced by the plant: each cycle's delivered candidate doses are sent to the command's stdin as a JSON line and its CGM at the next sample time(s) is read back from stdout (protocol in ExternalPlant.swift). Decisions, enactment and timing are the unchanged simulator, so a plant-coupled run differs from an ordinary one ONLY in the physiology.")
     var externalPlant: String? = nil
+    @Flag(name: .customLong("plant-behavior"), help: "With --external-plant (protocol v2): the plant's person makes the carb entries and manual boluses. From the end of burn-in the candidate ignores the REAL carb entries and manual boluses; carbs the plant returns enter the candidate's carb store (visible from the next decision) and each bolus it returns is delivered at the next decision as ratio x the bolus-calculator recommendation there (or as absolute units). The baseline arm is unchanged. Spec: docs/ice/plant-protocol-v2.md.")
+    var plantBehavior: Bool = false
 
     @Option(name: .customLong("decision-times-csv"),
             help: "CSV of ISO8601 instants (header 't' optional) — step the replay at EXACTLY the real controller's recorded dosingDecision times instead of the CGM cadence. Removes synthetic steps the field never made (multi-source 1-min streams) and steps inside field skip-gaps. Marks the instants authoritative for the momentum/RC now-anchor.")
@@ -964,8 +966,10 @@ struct SimulateCommand: AsyncParsableCommand {
                 throw ValidationError("--external-plant requires --candidate-counterfactual")
             }
             plant = try ExternalPlant(command: cmd)
+            if plantBehavior { printStderr("Plant behavior: carb entries and manual boluses come from the plant\n") }
             printStderr("External plant: \(cmd)\n")
         } else {
+            guard !plantBehavior else { throw ValidationError("--plant-behavior requires --external-plant") }
             plant = nil
         }
         printStderr("Running closed-loop simulation (sequential, ~10× slower than bench)...\n")
@@ -1012,6 +1016,7 @@ struct SimulateCommand: AsyncParsableCommand {
             useLoopMimicForCandidate: candidateLoopMimicOaps,
             sensorCapMgdl: sensorCapMgdl,
             externalPlant: plant,
+            plantBehavior: plantBehavior,
             progress: Self.makeProgressReporter()
         )
         plant?.finish()
@@ -1067,6 +1072,8 @@ struct SimulateCommand: AsyncParsableCommand {
             let candidateDiscrepancy: Double    // ICE − carbEffect = RC-bound remainder (mg/dL)
             let candidateSensModeMult: Double   // Sensitive Mode ISF multiplier (1.0 = inactive)
             let candidateManualBolusRecOut: Double // candidate recommended MANUAL bolus this step (pre-factor full correction)
+            let plantBolusU: Double             // --plant-behavior: bolus delivered this step at the plant person's request
+            let plantCarbsG: Double             // --plant-behavior: carbs the plant person entered during this step
             // PATIENT IOB — field dosing and candidate dosing through the SAME patient
             // insulin model (net-basal, scheduled-gap-filled). Independent of NS
             // devicestatus timing and of any candidate IOB-method changes. Use these
@@ -1139,6 +1146,8 @@ struct SimulateCommand: AsyncParsableCommand {
                  candidateDiscrepancy: $0.candidateDiscrepancy.isFinite ? $0.candidateDiscrepancy : 0.0,
                  candidateSensModeMult: $0.candidateSensModeMult.isFinite ? $0.candidateSensModeMult : 1.0,
                  candidateManualBolusRecOut: $0.candidateManualBolusRecOut.isFinite ? $0.candidateManualBolusRecOut : 0.0,
+                 plantBolusU: $0.plantBolusU,
+                 plantCarbsG: $0.plantCarbsG,
                  patientIOBField: $0.patientIOBField.isFinite ? $0.patientIOBField : 0.0,
                  patientIOBCandidate: $0.patientIOBCandidate.isFinite ? $0.patientIOBCandidate : 0.0,
                  baselinePredCurve: $0.baselinePredCurve.isEmpty ? nil : $0.baselinePredCurve)
