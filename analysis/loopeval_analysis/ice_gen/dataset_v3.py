@@ -11,6 +11,10 @@ Inputs per 5-min slot (fixed scaling):
   since_meal, last_size, n_3h    hours since the last meal anchor, its size, meals in last 3 h
   carbs, bolus, since_bolus      the person's own actions this slot / hours since a bolus
   clock                          hour, weekday (sin/cos)
+FEATURES_B (v3b) instead feeds background ICE as a causal 30-min EMA (bgice_ema): the plant cannot feed back
+its own noisy draws (the spread runs away) and its predictive mean is smoother than anything seen in training
+(meal durations 1.9 -> 2.5 h), so training and plant both get the same smoothed quantity. It adds what a person
+reacts to near a low: the CGM trend (bg_trend, mg/dL per min over 15 min) and minutes below 70 in the last 30.
 Targets for the NEXT slot:
   bgice                          background ICE (scaled), NaN where not clean
   meal                           a meal is anchored here (0/1); attributes when 1:
@@ -33,11 +37,20 @@ FEATURES = ["bg", "bg_ok", "bgice", "bgice_ok", "pulse", "since_meal", "last_siz
             "carbs", "bolus", "since_bolus", "hour_sin", "hour_cos", "dow_sin", "dow_cos"]
 MEAL_T = ["m_lsize", "m_lpeak", "m_ldur", "m_onset", "m_entry", "m_bolus", "m_ann", "m_lg",
           "m_hasbol", "m_mode", "m_lr", "m_lu"]
+FEATURES_B = ["bg", "bg_ok", "bg_trend", "low30", "bgice_ema", "bgice_ok", "pulse", "since_meal", "last_size", "n_3h",
+              "carbs", "bolus", "since_bolus", "hour_sin", "hour_cos", "dow_sin", "dow_cos"]
 TARGETS = ["bgice", "meal", *MEAL_T, "corr", "c_mode", "c_lr", "c_lu"]
 REC_ZERO = 0.05
+EMA_A = 1 - np.exp(-5 / 30)                 # 30-min time constant on 5-min slots
+TREND_SLOTS = 3                             # 15 min
 
 
-def build(steps, meals, corrections, bolus_dec, carbs, geq):
+def ema_step(prev, x):
+    """One causal EMA step; a missing value holds the previous level."""
+    return prev if not np.isfinite(x) else (x if not np.isfinite(prev) else prev + EMA_A * (x - prev))
+
+
+def build(steps, meals, corrections, bolus_dec, carbs, geq, features=FEATURES):
     g = to_grid(steps)
     T, idx = len(g), g.index
     pulses = reconstruct(idx, meals, geq) if len(meals) else np.zeros(T)
@@ -99,13 +112,20 @@ def build(steps, meals, corrections, bolus_dec, carbs, geq):
         if bol_u[i] > 0:
             last = i
         sb[i] = min((i - last) * 5 / 60, 24.0)
-    X = np.column_stack([
-        g.bg.ffill().bfill().to_numpy() / 100, g.bg.notna().to_numpy().astype(float),
-        np.nan_to_num(bgice / ICE_SCALE), np.isfinite(bgice).astype(float),
-        pulses / ICE_SCALE, since_meal / 24, last_size / 50, n3 / 3,
-        carb_g / 50, bol_u / 5, sb / 24,
-        np.sin(2 * np.pi * g.hour / 24), np.cos(2 * np.pi * g.hour / 24),
-        np.sin(2 * np.pi * g.dow / 7), np.cos(2 * np.pi * g.dow / 7),
-    ]).astype(np.float32)
+    ema = np.empty(T); e = np.nan
+    for i in range(T):
+        e = ema_step(e, bgice[i]); ema[i] = e
+    bgf = g.bg.to_numpy()
+    trend = np.r_[np.full(TREND_SLOTS, np.nan), (bgf[TREND_SLOTS:] - bgf[:-TREND_SLOTS]) / (TREND_SLOTS * 5)]
+    low30 = pd.Series((bgf < 70).astype(float)).rolling(6, min_periods=1).sum().to_numpy() * 5 / 30
+    cols = dict(
+        bg=g.bg.ffill().bfill().to_numpy() / 100, bg_ok=g.bg.notna().to_numpy().astype(float),
+        bg_trend=np.nan_to_num(trend) / 2, low30=low30,
+        bgice=np.nan_to_num(bgice / ICE_SCALE), bgice_ema=np.nan_to_num(ema / ICE_SCALE), bgice_ok=np.isfinite(bgice).astype(float),
+        pulse=pulses / ICE_SCALE, since_meal=since_meal / 24, last_size=last_size / 50, n_3h=n3 / 3,
+        carbs=carb_g / 50, bolus=bol_u / 5, since_bolus=sb / 24,
+        hour_sin=np.sin(2 * np.pi * g.hour / 24), hour_cos=np.cos(2 * np.pi * g.hour / 24),
+        dow_sin=np.sin(2 * np.pi * g.dow / 7), dow_cos=np.cos(2 * np.pi * g.dow / 7))
+    X = np.column_stack([np.asarray(cols[f], float) for f in features]).astype(np.float32)
     Y[:, TARGETS.index("bgice")] = np.r_[bgice[1:], np.nan] / ICE_SCALE
     return g, X, Y

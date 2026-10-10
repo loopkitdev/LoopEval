@@ -40,7 +40,10 @@ class ICEGenV3(nn.Module):
         z, h = self.gru(torch.relu(self.inp(torch.cat([x, p], -1))), h)
         return dict(zip(self.sizes, self.head(z).split(list(self.sizes.values()), -1))), h
 
-    def loss(self, out, Y):
+    def loss(self, out, Y, w=None):
+        """w: optional per-step weight on the meal / correction start terms. Weighting by STATE (e.g. near a
+        low, where rescues are rare in the data) makes the head fit that region harder without biasing the
+        hazard there, since events and non-events in the same state get the same weight."""
         y = {k: Y[..., TARGETS.index(k)] for k in TARGETS}
         z = lambda v, m: torch.where(m, v, torch.zeros_like(v))      # never 0 * v (LESSONS 8)
         parts = {}
@@ -50,7 +53,8 @@ class ICEGenV3(nn.Module):
         for k in B:
             cond = torch.isfinite(y[k]) & (meal if k.startswith("m_") else (y["corr"] > 0.5) if k == "c_mode" else torch.ones_like(meal))
             if cond.any():
-                parts[k] = F.binary_cross_entropy_with_logits(out[k][..., 0][cond], y[k][cond])
+                ww = w[cond] if (w is not None and k in ("meal", "corr")) else None
+                parts[k] = F.binary_cross_entropy_with_logits(out[k][..., 0][cond], y[k][cond], weight=ww)
         for k in G:
             cond = torch.isfinite(y[k]) & meal
             if cond.any():

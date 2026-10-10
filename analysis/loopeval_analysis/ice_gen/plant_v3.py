@@ -36,7 +36,6 @@ from .noise import LevelNoise
 from .plant import ROOT, Insulin, _ts, LOW, HIGH
 
 WARMUP = 288
-F = {f: i for i, f in enumerate(D3.FEATURES)}
 
 
 class PlantV3:
@@ -60,6 +59,8 @@ class PlantV3:
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
         self.net = ICEGenV3(len(ck["features"]), len(ck["people"])); self.net.load_state_dict(ck["state"]); self.net.eval()
+        self.features = list(ck["features"]); self.F = {f: i for i, f in enumerate(self.features)}
+        self.drop = list(ck.get("drop", []))
         self.pid = torch.tensor([ck["people"].index(alias)])
         self.geq = ck["constants"][alias]["geq"]
         self.t = None; self.running = None; self.h = None
@@ -83,7 +84,9 @@ class PlantV3:
         mr = self.meals_real[self.meals_real.onset <= t0]
         g, X, _ = D3.build(hist, mr, self.corr_real[self.corr_real.t <= t0] if len(self.corr_real) else self.corr_real,
                            self.bd_real[self.bd_real.t <= t0],
-                           [c for c in self.carbs_real if _ts(c.get("entryDate") or c["startDate"]) <= t0], self.geq)
+                           [c for c in self.carbs_real if _ts(c.get("entryDate") or c["startDate"]) <= t0], self.geq, self.features)
+        for f in self.drop:
+            X[:, self.F[f]] = 0.0
         with torch.no_grad():
             _, self.h = self.net(torch.from_numpy(X[-WARMUP:])[None], self.pid)
         self.t = hist.t1.iloc[-1]; self.bg = float(hist.bg1.iloc[-1]) - self.e     # reported = real CGM at start
@@ -91,9 +94,13 @@ class PlantV3:
         for i, r in enumerate(mr.itertuples()):
             if (t0 - r.onset) < pd.Timedelta(hours=12):
                 self.pulses.append((r.onset, r.size_g * self.geq, m_[i], s_[i]))
-        last = X[-1]
-        self.bgice = float(last[F["bgice"]]); self.since_meal = float(last[F["since_meal"]]) * 24
+        last = X[-1]; F = self.F
+        self.bgice = float(last[F["bgice"]]) if "bgice" in F else 0.0
+        self.ema = float(last[F["bgice_ema"]]) * ICE_SCALE if "bgice_ema" in F else np.nan
+        self.since_meal = float(last[F["since_meal"]]) * 24
         self.last_size = float(last[F["last_size"]]) * 50; self.since_bolus = float(last[F["since_bolus"]]) * 24
+        tail = hist[hist.t1 > hist.t1.iloc[-1] - pd.Timedelta(minutes=35)]
+        self.bg_hist = list(zip(tail.t1, np.clip(tail.bg1.to_numpy(float), LOW, HIGH)))   # reported CGM, last ~30 min
         self.anchor_times = [t0 - pd.Timedelta(hours=self.since_meal)] if self.since_meal < 3 else []
         self.slot_carbs = 0.0; self.slot_bolus = 0.0
 
@@ -105,9 +112,19 @@ class PlantV3:
         row = self.steps.iloc[min(max(r, 1), len(self.steps)) - 1]
         hour = (float(row.hour) + (t - row.t1).total_seconds() / 3600) % 24; dow = float(row.dow)
         n3 = sum(1 for a in self.anchor_times if (t - a) < pd.Timedelta(hours=3))
+        F = self.F
         x = np.zeros(len(F), np.float32)
         x[F["bg"]] = min(max(self.bg + self.e, LOW), HIGH) / 100; x[F["bg_ok"]] = 1
-        x[F["bgice"]] = self.bgice; x[F["bgice_ok"]] = 1
+        if "bgice" in F:
+            x[F["bgice"]] = self.bgice
+        if "bgice_ema" in F:
+            x[F["bgice_ema"]] = self.ema / ICE_SCALE
+        x[F["bgice_ok"]] = 1
+        if "bg_trend" in F:                       # same definitions as dataset_v3 (15-min slope, minutes < 70 in 30)
+            tl, now = self.bg_hist[-1]            # the latest reading is the one x carries as bg
+            past = [b for tt, b in self.bg_hist if tl - tt >= pd.Timedelta(minutes=14)]
+            x[F["bg_trend"]] = (now - past[-1]) / 15 / 2 if past else 0.0
+            x[F["low30"]] = sum(1 for tt, b in self.bg_hist if tl - tt < pd.Timedelta(minutes=29) and b < 70) * 5 / 30
         x[F["pulse"]] = self._pulse_rate(t) / ICE_SCALE
         x[F["since_meal"]] = min(self.since_meal, 24) / 24; x[F["last_size"]] = self.last_size / 50; x[F["n_3h"]] = n3 / 3
         x[F["carbs"]] = self.slot_carbs / 50; x[F["bolus"]] = self.slot_bolus / 5
@@ -196,6 +213,9 @@ class PlantV3:
                 for _ in range(max(1, round(dt_h * 12))):
                     self.e = self.noise.step()
                 ice += (self.e - e0) / dt_h
+            # smoothed background as the CGM would show it (what dataset_v3 computes from real data)
+            self.ema = D3.ema_step(self.ema, ice - pulse)
+            self.bg_hist = [(tt, b) for tt, b in self.bg_hist if t - tt < pd.Timedelta(minutes=35)] + [(t, min(max(self.bg + self.e, LOW), HIGH))]
             self.pulses = [p for p in self.pulses if (t - p[0]) < pd.Timedelta(hours=12)]
             self.anchor_times = [a for a in self.anchor_times if (t - a) < pd.Timedelta(hours=3)]
             self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bgice=bgice * ICE_SCALE, pulse=pulse, bg1=self.bg + self.e, e=self.e,
