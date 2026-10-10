@@ -68,6 +68,7 @@ def _ms_bounds(start, end):
 _TMS = "CAST(get_json_object(time,'$.$date.$numberLong') AS BIGINT)"
 
 from .provenance import write_manifest as _write_manifest
+from . import cgm_streams as _cgm
 
 # ---------------------------------------------------------------------------
 # BUMP THIS whenever an ETL change alters the DATA an export produces (dedup
@@ -149,7 +150,11 @@ from .provenance import write_manifest as _write_manifest
 #      (bddp10 'partay' ×0.5: ended 03:46 in replay, ran to ~15:19 on the pump;
 #      +1 U IOB gap, RC echo, 2-3 U phantom recs). stub_rate/base_schedule = the
 #      active factor per instant, cross-checked against the recorded factor.
-DATA_VERSION = 19
+#  20  glucose split into physical sensors (cgm_streams): where two CGMs report at once the one Loop
+#      anchored on is kept — the minute-dedup of the union interleaved them into a sawtooth (pilot
+#      i171: 26% of its record, two sensors ~40 mg/dL apart). New cgm_quality.csv: two-sensor hours,
+#      unresolved interleaving, clipped and flat runs, smoothed days.
+DATA_VERSION = 20
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -793,19 +798,44 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         print(f"{user}: insulin brand={brand} → --insulin-type {insulin_type}")
 
     # ---- glucose (cbg, mmol/L → mg/dL) ----
+    # Each row's per-sensor label (deviceId, else transmitterId; other attributes such as the HealthKit
+    # device name or syncIdentifier tokens are NOT per-sensor — one merged two sensors, another split one
+    # sensor daily) and a safe type name (device type before '_', else the uploading app).
+    # cgm_streams.select splits the upload into physical sensors and, where two report at once, keeps the
+    # one Loop anchored on — the union interleaves them into a sawtooth (eda lesson 21).
     g = query(_dedup([f"{_TMS} AS t_ms",
         "COALESCE(CAST(get_json_object(value,'$.$numberDouble') AS DOUBLE), "
-        "CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol"], win, "cbg"))
-    # dedup cbg by timestamp (Tidepool has duplicate uploads; dupes break the
-    # velocity/ICE grid). Keep last per (rounded-to-min) timestamp.
-    seen = set(); glucose = []
+        "CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol",
+        "COALESCE(deviceId, get_json_object(CAST(payload AS STRING),'$.transmitterId')) AS label",
+        "COALESCE(regexp_extract(deviceId, '^([^_]+)_', 1), "
+        "  get_json_object(CAST(origin AS STRING),'$.name')) AS kind"], win, "cbg"))
+    readings = []
     for r in g.itertuples():
         v = _fin(r.mmol)
         if v is None: continue
-        key = int(r.t_ms) // 60000  # 1-min bucket
+        lab = r.label if isinstance(r.label, str) and r.label else None
+        kind = r.kind if isinstance(r.kind, str) and r.kind else "unknown"
+        readings.append((int(r.t_ms), round(v * MMOL, 2), lab, kind))
+    anc = query(f"SELECT {_TMS} AS t_ms, "
+                f"COALESCE(CAST(get_json_object(bgForecast,'$[0].value.$numberDouble') AS DOUBLE), "
+                f"         CAST(get_json_object(bgForecast,'$[0].value.$numberInt') AS DOUBLE), "
+                f"         CAST(get_json_object(bgForecast,'$[0].value') AS DOUBLE)) AS v "
+                f"FROM {TBL} WHERE _userId='{user}' AND type='dosingDecision' "
+                f"AND CAST(reason AS STRING)='loop' AND bgForecast IS NOT NULL "
+                f"AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)}")
+    anchors = [(int(r.t_ms), v * MMOL if v < 40 else v) for r in anc.itertuples()
+               for v in [_fin(r.v)] if v is not None]
+    kept, cgm_report, cgm_summary = _cgm.select(readings, anchors)
+    # dedup by timestamp (Tidepool has duplicate uploads; dupes break the velocity/ICE grid):
+    # first per 1-min bucket of the kept sensor
+    seen = set(); glucose = []
+    for t_ms, mgdl in kept:
+        key = t_ms // 60000  # 1-min bucket
         if key in seen: continue
         seen.add(key)
-        glucose.append({"startDate": _iso(int(r.t_ms)), "quantity": round(v * MMOL, 2)})
+        glucose.append({"startDate": _iso(t_ms), "quantity": mgdl})
+    cgm_report += [dict(hour_ms=q["start_ms"], kind=q["kind"], sensors="", kept="", reason=q["detail"],
+                        anchors="", readings=_iso(q["end_ms"])) for q in _cgm.quality(kept)]
 
     # ---- doses (bolus + basal) ----
     b = query(_dedup([f"{_TMS} AS t_ms", "subType",
@@ -1010,6 +1040,18 @@ def export_donor(user, start, end, outdir, insulin_type=None):
             with open(os.path.join(outdir, "glucose.json"), "w") as fh:
                 json.dump(glucose, fh, allow_nan=False)
             print(f"{user}: post-dated {len(post)} late CGM sample(s) past the stale decision(s)")
+    # CGM data quality: two-sensor hours (and which sensor was kept), unresolved interleaving,
+    # clipped / flat runs, smoothed days. Sensors named by type, never by serial.
+    import csv as _csvq
+    with open(os.path.join(outdir, "cgm_quality.csv"), "w", newline="") as fh:
+        w = _csvq.writer(fh)
+        w.writerow(["start", "kind", "sensors", "kept", "reason", "loop_anchor_matches", "readings_or_end"])
+        for q in sorted(cgm_report, key=lambda q: q["hour_ms"]):
+            w.writerow([_iso(q["hour_ms"]), q["kind"], q["sensors"], q["kept"], q["reason"], q["anchors"], q["readings"]])
+    if cgm_summary["conflict_hours"] or cgm_summary["unresolved_hours"]:
+        print(f"{user}: CGM {cgm_summary['sensors']} sensors; {cgm_summary['conflict_hours']} two-sensor hours "
+              f"({cgm_summary['dropped']} readings of the other sensor dropped); "
+              f"{cgm_summary['unresolved_hours']} hours still interleaved (see cgm_quality.csv)")
     # stale-CGM decisions: comparability exclusions, NOT delivery clamps — own CSV.
     stale_path = os.path.join(outdir, "stale_cgm.csv")
     import csv as _csv0
@@ -1044,7 +1086,10 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     _write_manifest(outdir, user, start, end,
                     counts=dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs),
                                 suspends=len(sus), offline_gaps=len(off),
-                                pump_errors=len(perr), stale_cgm=len(stale)))
+                                pump_errors=len(perr), stale_cgm=len(stale),
+                                cgm_sensors=cgm_summary["sensors"], cgm_two_sensor_hours=cgm_summary["conflict_hours"],
+                                cgm_dropped=cgm_summary["dropped"], cgm_unresolved_hours=cgm_summary["unresolved_hours"],
+                                cgm_flat_runs=sum(q["kind"] == "flat_run" for q in cgm_report)))
 
     print(f"{user}: glucose={len(glucose)} doses={len(doses)} carbs={len(carbs)} "
           f"therapy(basal={len(therapy['basal'])},isf={len(therapy['sensitivity'])}) "
