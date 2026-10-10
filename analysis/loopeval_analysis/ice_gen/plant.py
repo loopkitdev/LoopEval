@@ -7,7 +7,11 @@ simulator's (candidate) doses after it, through the donor's insulin model -- the
 and ISF that `extract` used to define ICE, so the two are interchangeable.
 
 ICE source (--mode):
-  replay  the person's measured ICE at that interval (NaN gaps: carried from the last value).
+  replay  the person's measured ICE at that interval (NaN gaps: carried from the last value). Inside a
+          disruption (the export's disruptions.csv: suspends, Loop offline, pump errors) the replay follows
+          the field CGM instead, as the simulator's own counterfactual does (it stops advancing during an
+          outage and resumes from the real CGM): integrating measured ICE through a multi-day outage pinned
+          at the 401 ceiling ran one replay to the 20 mg/dL floor for 60 h.
           With `simulate --cf-identity` this must reproduce the field CGM -- the plant's check.
   model   sampled from the trained generator, conditioned on the plant's OWN BG / IOB / ICE
           history (never the field's: real BG would leak the real ICE), local clock, the
@@ -115,6 +119,9 @@ class Plant:
             self.drop = [ck["features"].index(f) for f in ck.get("drop", [])]   # inputs the model never saw
         self.t = None; self.bg = None; self.h = None; self.running = None; self.doses_log = []; self.last_ice = 0.0; self.last_ice_ok = 0.0
         self.log = []
+        dpath = ROOT / "full" / alias / "disruptions.csv"
+        dis = pd.read_csv(dpath) if dpath.exists() else pd.DataFrame(columns=["start", "end"])
+        self.outages = [(pd.Timestamp(a), pd.Timestamp(b)) for a, b in zip(dis.start, dis.end)]
 
     # ---- initialisation at the first request: real insulin before t0, warm the generator up
     def _start(self, t0):
@@ -213,13 +220,19 @@ class Plant:
                 out.append(min(max(self.bg, LOW), HIGH)); continue
             absorbed = self.ins.absorbed(self.t, t)
             hour, dow, carbs, man = self._context(t)
+            outage = self.mode == "replay" and any(a <= t <= b for a, b in self.outages)
             if self.mode == "replay":
                 ice = self._real_ice(t)
             else:
                 ice = self._model_ice(t, hour, dow, carbs, man, auto_u, absorbed / dt_h)
             self.bg = max(self.bg + (ice - self.isf * absorbed / dt_h) * dt_h, 20.0)
+            if outage:                                       # follow the field through the outage
+                i = self.steps.t1.searchsorted(t)
+                j = min(max(i, 1), len(self.steps)) - 1
+                if abs((self.steps.t1.iloc[j] - t).total_seconds()) < 600:
+                    self.bg = float(self.steps.bg1.iloc[j])
             self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bg1=self.bg, iob=self.ins.iob(t),
-                                 ins_activity_uhr=absorbed / dt_h, hour=hour, dow=dow))
+                                 ins_activity_uhr=absorbed / dt_h, hour=hour, dow=dow, outage=outage))
             self.t = t; auto_u = 0.0
             if len(self.log) % 288 == 0:
                 self.ins.prune(t)
