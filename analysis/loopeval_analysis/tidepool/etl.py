@@ -798,17 +798,15 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         print(f"{user}: insulin brand={brand} → --insulin-type {insulin_type}")
 
     # ---- glucose (cbg, mmol/L → mg/dL) ----
-    # Each row's most specific SENSOR attribute (transmitterId, Loop's syncIdentifier transmitter token,
-    # deviceId, HealthKit device name) and a safe type name (device type before '_', else the uploading
-    # app). cgm_streams.select splits the upload into physical sensors and, where two report at once,
-    # keeps the one Loop anchored on — the union interleaves them into a sawtooth (ice lesson 14).
+    # Each row's per-sensor label (deviceId, else transmitterId; other attributes such as the HealthKit
+    # device name or syncIdentifier tokens are NOT per-sensor — one merged two sensors, another split one
+    # sensor daily) and a safe type name (device type before '_', else the uploading app).
+    # cgm_streams.select splits the upload into physical sensors and, where two report at once, keeps the
+    # one Loop anchored on — the union interleaves them into a sawtooth (ice lesson 14).
     g = query(_dedup([f"{_TMS} AS t_ms",
         "COALESCE(CAST(get_json_object(value,'$.$numberDouble') AS DOUBLE), "
         "CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol",
-        "COALESCE(get_json_object(CAST(payload AS STRING),'$.transmitterId'), "
-        "  CASE WHEN get_json_object(CAST(payload AS STRING),'$.syncIdentifier') LIKE '% %' "
-        "       THEN split(get_json_object(CAST(payload AS STRING),'$.syncIdentifier'),' ')[0] END, "
-        "  deviceId, get_json_object(CAST(payload AS STRING),'$.HKDeviceName')) AS label",
+        "COALESCE(deviceId, get_json_object(CAST(payload AS STRING),'$.transmitterId')) AS label",
         "COALESCE(regexp_extract(deviceId, '^([^_]+)_', 1), "
         "  get_json_object(CAST(origin AS STRING),'$.name')) AS kind"], win, "cbg"))
     readings = []

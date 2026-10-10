@@ -8,10 +8,11 @@ momentum and retrospective correction read noise Loop never saw, and ICE inherit
 lesson 14: i171 carried it for 26% of its record).
 
 Method
-  1. identity per reading: its deviceId when present; a label-less reading joins the labeled reading it
+  1. identity per reading: its per-sensor label (deviceId / transmitterId) when present; a label-less reading joins the labeled reading it
      mirrors (within MIRROR_S and MIRROR_MGDL); otherwise it is an 'unlabeled:<origin>' identity.
   2. identities whose overlapping readings mirror each other are one physical sensor (union-find).
-  3. an hour with two sensors each reporting >= MIN_PER_HOUR readings is a CONFLICT hour. There the sensor
+  3. an hour with two sensors each reporting >= MIN_PER_HOUR readings over >= OVERLAP_MIN shared minutes is a
+     CONFLICT hour. There the sensor
      Loop anchored on wins: dosingDecision.bgForecast[0] equals the latest reading of the sensor Loop read
      (proven exact for single-stream donors, stale_cgm lesson). No anchor evidence that hour -> the
      previous hour's choice, else the sensor with more readings.
@@ -39,6 +40,7 @@ MIRROR_MGDL = 2.0      # ... and within 2 mg/dL (mmol rounding)
 SAME_SENSOR_SHARE = 0.8
 MIN_PAIRS = 20
 MIN_PER_HOUR = 3
+OVERLAP_MIN = 10
 ANCHOR_TOL = 2.0
 ANCHOR_LOOKBACK_MS = 10 * 60_000
 SAW_CORR = -0.6
@@ -113,8 +115,15 @@ def select(readings, anchors):
             if k >= 0 and at - st[s][k] <= ANCHOR_LOOKBACK_MS and abs(sv[s][k] - av) <= ANCHOR_TOL:
                 votes[at // HOUR][s] += 1
     keep = np.ones(len(r), bool); report = []; prev = None; conflict = 0
+    sens_arr = np.array(sensor, dtype=object)
     for h in sorted(per_hour):
         present = [s for s, n in per_hour[h].items() if n >= MIN_PER_HOUR]
+        if len(present) >= 2:
+            # two sensors only conflict if they report over the SAME minutes: a label handing over to the
+            # next (sensor change, re-labelled session) puts both in one hour without any overlap
+            span = {s_: (t[(hour == h) & (sens_arr == s_)].min(), t[(hour == h) & (sens_arr == s_)].max()) for s_ in present}
+            over = lambda x, y: min(span[x][1], span[y][1]) - max(span[x][0], span[y][0]) >= OVERLAP_MIN * 60_000
+            present = [s_ for s_ in present if any(over(s_, o) for o in present if o != s_)] or present[:1]
         if len(present) < 2:
             if len(present) == 1:
                 prev = present[0]
