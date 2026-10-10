@@ -802,7 +802,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     # device name or syncIdentifier tokens are NOT per-sensor — one merged two sensors, another split one
     # sensor daily) and a safe type name (device type before '_', else the uploading app).
     # cgm_streams.select splits the upload into physical sensors and, where two report at once, keeps the
-    # one Loop anchored on — the union interleaves them into a sawtooth (ice lesson 14).
+    # one Loop anchored on — the union interleaves them into a sawtooth (eda lesson 21).
     g = query(_dedup([f"{_TMS} AS t_ms",
         "COALESCE(CAST(get_json_object(value,'$.$numberDouble') AS DOUBLE), "
         "CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol",

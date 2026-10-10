@@ -4,8 +4,8 @@ Tidepool can hold several glucose streams for one person: mirrors of ONE sensor 
 Dexcom app, HealthKit copies — same values, seconds apart) and, for some people, a SECOND independent sensor
 worn at the same time (e.g. a twiist/Libre stream next to a Dexcom one). Deduplicating the union by timestamp
 interleaves two sensors that read tens of mg/dL apart into a sawtooth: the increment's lag-1 goes to ~-1,
-momentum and retrospective correction read noise Loop never saw, and ICE inherits it (eda lesson 21; ice
-lesson 14: i171 carried it for 26% of its record).
+momentum and retrospective correction read noise Loop never saw, and ICE inherits it (eda lesson 21; in the
+2026-10 ICE pilot one donor carried it for 26% of its record, two sensors ~40 mg/dL apart).
 
 Method
   1. identity per reading: its per-sensor label (deviceId / transmitterId) when present; a label-less reading joins the labeled reading it
