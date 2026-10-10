@@ -74,3 +74,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     before looking for sensor artifacts.
 15. **A pooled rate can hide a per-person trait.** Fast no-carb V-dips show no overnight excess
     in the pool, yet 14 of 206 donors have one at p < 0.001 (0.2 expected by chance).
+16. **Score closed-loop rollouts on clean time only.** The replay plant replays measured ICE on every
+    interval, including excluded ones (a stretch pinned at the 401 HIGH ceiling has zero velocity, so its
+    ICE omits the hidden rise; Loop doses into "401" and the plant credits all of it). Stretches with
+    >= 50% excluded ICE plus the 4.5 h after them are 42% of replay time but held 83% of its time below
+    54 (5.5% vs 0.83% elsewhere; one i056 episode sat at the 20 mg/dL floor for 60 h). On the remaining
+    time the replay's excess over the field halves (t54 0.53 vs 0.12) and the generator's excess over the
+    replay becomes the larger gap (1.70 vs 0.53) — `runs/2026-10-10-replay-lows/rescore_clean.py`.
