@@ -1,0 +1,131 @@
+"""Label meals in a donor's real ICE: the event table the v3 generator trains on.
+
+A meal is a pulse of excess ICE, with whatever the person logged and bolused for it:
+  excess    30-min centred mean of clean ICE minus a LOCAL floor: the 25th percentile over a
+            centred 6-h window (an overnight baseline sits below daytime ICE all day and fused
+            breakfast, lunch and snacks into one pulse)
+  pulse     a run of excess > 0, split at clear troughs (a dip of >= SPLIT_G g-eq/h below both
+            neighbouring peaks starts a new meal); runs less than MERGE_MIN apart with no such
+            trough between them are one meal (two- and three-phase absorption); sized by SUMMED
+            excess in g-eq (ISF_tdd / (500/TDD) mg/dL per g-eq, settings-free), kept if >= GATE_G
+  entry     carb entries logged (entryDate) from ENTRY_BEFORE before to ENTRY_AFTER after onset,
+            each entry assigned to its nearest onset -> announced, grams, entry delay, estimate
+            ratio (grams / pulse g-eq)
+  bolus     manual boluses (calculator decision records) in the same window -> mode (calculator
+            ratio or override units), lead time vs onset
+  rescue    an unannounced pulse whose onset follows BG < 70 within 30 min
+Boluses matched to no meal are corrections; the BG at the time is kept.
+"""
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+
+from .stats import grid5
+
+GATE_G = 12.0
+MERGE_MIN = 30
+SPLIT_G = 12.0                      # g-eq per hour
+PHASE_H = 2.5                       # an unannounced, smaller pulse this soon after an announced one is its later phase
+ENTRY_BEFORE, ENTRY_AFTER = pd.Timedelta(minutes=60), pd.Timedelta(minutes=90)
+REC_ZERO = 0.05
+
+
+def label(steps: pd.DataFrame, carbs: list, bolus_dec: pd.DataFrame, tdd: float, isf: float):
+    """-> (meals DataFrame, corrections DataFrame, constants)."""
+    g = grid5(steps)
+    base = float(np.nanmedian(g.ice[g.hour.between(2, 5)]))
+    geq = isf / (500.0 / tdd)
+    sm = g.ice.rolling(7, center=True, min_periods=4).mean()
+    floor = sm.rolling(72, center=True, min_periods=24).quantile(0.25)
+    ex = sm - floor
+    pos = (ex > 0).to_numpy() & ex.notna().to_numpy()
+    edges = np.flatnonzero(np.diff(np.r_[0, pos.astype(int), 0]))
+    runs = []
+    for a, b in zip(edges[::2], edges[1::2]):
+        if runs and a - runs[-1][1] < MERGE_MIN // 5:
+            runs[-1][1] = b
+        else:
+            runs.append([a, b])
+    # split a run at clear troughs: a later rise after a dip of >= SPLIT_G g-eq/h is a new meal
+    from scipy.signal import find_peaks
+    split = []
+    for a, b in runs:
+        y = np.nan_to_num(ex.iloc[a:b].to_numpy()) / geq
+        tr, _ = find_peaks(-y, prominence=SPLIT_G)
+        cuts = [a] + [a + int(t) for t in tr] + [b]
+        split += [[c0, c1] for c0, c1 in zip(cuts[:-1], cuts[1:]) if c1 > c0]
+    runs = split
+    idx = g.index
+    meals = []
+    for a, b in runs:
+        seg = ex.iloc[a:b].clip(lower=0)
+        size = float(np.nansum(seg) * 5 / 60 / geq)
+        if size < GATE_G:
+            continue
+        pk = int(np.nanargmax(seg.to_numpy()))
+        pre = g.bg.iloc[max(a - 6, 0):a + 1]
+        meals.append(dict(onset=idx[a], end=idx[b - 1], size_g=size, dur_h=(b - a) * 5 / 60,
+                          peak_h=pk * 5 / 60, peak_geq_h=float(seg.iloc[pk]) / geq,
+                          hour=float(g.hour.iloc[a]), bg_onset=float(g.bg.iloc[a]) if np.isfinite(g.bg.iloc[a]) else np.nan,
+                          low_before=bool((pre < 70).any())))
+    m = pd.DataFrame(meals)
+    if m.empty:
+        return m, pd.DataFrame(), dict(base=base, geq=geq)
+    on = m.onset.astype("int64").to_numpy()                       # ns
+    ends = m.end.astype("int64").to_numpy()
+
+    def nearest(t: pd.Timestamp) -> int:
+        tn = t.value
+        j = int(np.argmin(np.abs(on - tn)))
+        # an entry belongs to the meal whose onset is nearest, if logged between ENTRY_BEFORE the
+        # onset and the end of its first ENTRY_AFTER (or its whole duration, if shorter)
+        reach = min(ENTRY_AFTER.value, int(ends[j] - on[j]) + 15 * 60 * 10**9)
+        return j if on[j] - ENTRY_BEFORE.value <= tn <= on[j] + reach else -1
+
+    m["entry_g"] = 0.0; m["entry_delay_min"] = np.nan
+    for c in carbs:
+        t = pd.Timestamp(c.get("entryDate") or c["startDate"]).tz_convert("UTC")
+        j = nearest(t)
+        if j >= 0:
+            m.loc[j, "entry_g"] += float(c["grams"])
+            d = (t - m.onset.iloc[j]).total_seconds() / 60
+            if not np.isfinite(m.loc[j, "entry_delay_min"]) or d < m.loc[j, "entry_delay_min"]:
+                m.loc[j, "entry_delay_min"] = d
+    m["announced"] = m.entry_g > 0
+    m["phases"] = 1
+    m["estimate_ratio"] = np.where(m.announced, m.entry_g / m.size_g, np.nan)
+    m["bolus_u"] = 0.0; m["bolus_mode"] = None; m["bolus_ratio"] = np.nan; m["bolus_lead_min"] = np.nan
+    corr = []
+    for r in bolus_dec.itertuples():
+        if not (r.requested and r.requested > 0):
+            continue
+        j = nearest(r.t)
+        if j < 0:
+            k = g.index.searchsorted(r.t.floor("5min"))
+            corr.append(dict(t=r.t, units=r.requested, rec=r.rec,
+                             bg=float(g.bg.iloc[min(k, len(g) - 1)]) if len(g) else np.nan))
+            continue
+        m.loc[j, "bolus_u"] += r.requested
+        if m.loc[j, "bolus_mode"] is None:
+            m.loc[j, "bolus_mode"] = "calculator" if (r.rec is not None and r.rec > REC_ZERO) else "override"
+            m.loc[j, "bolus_ratio"] = r.requested / r.rec if (r.rec and r.rec > REC_ZERO) else np.nan
+            m.loc[j, "bolus_lead_min"] = (r.t - m.onset.iloc[j]).total_seconds() / 60
+    # later absorption phases: fold an unannounced, smaller pulse starting within PHASE_H of an
+    # announced meal's onset into that meal (size and end), instead of counting a new meal
+    m = m.sort_values("onset").reset_index(drop=True)
+    keep = np.ones(len(m), bool); host = -1
+    for i in range(len(m)):
+        if m.announced.iloc[i]:
+            host = i; continue
+        if host >= 0 and keep[host] and (m.onset.iloc[i] - m.onset.iloc[host]) <= pd.Timedelta(hours=PHASE_H) \
+                and m.size_g.iloc[i] < m.size_g.iloc[host] and m.bolus_u.iloc[i] == 0:
+            m.loc[host, "size_g"] += m.size_g.iloc[i]
+            m.loc[host, "end"] = max(m.end.iloc[host], m.end.iloc[i])
+            m.loc[host, "phases"] = m.phases.iloc[host] + 1
+            keep[i] = False
+    m = m[keep].reset_index(drop=True)
+    m["dur_h"] = (m.end - m.onset).dt.total_seconds() / 3600 + 5 / 60
+    m["estimate_ratio"] = np.where(m.announced, m.entry_g / m.size_g, np.nan)
+    m["rescue"] = ~m.announced & m.low_before
+    return m, pd.DataFrame(corr), dict(base=base, geq=geq)
