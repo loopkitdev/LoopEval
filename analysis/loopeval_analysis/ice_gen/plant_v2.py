@@ -45,10 +45,11 @@ class PlantV2:
         self.steps = pd.read_parquet(ROOT / "steps" / f"{alias}.parquet")
         bd = pd.read_parquet(ROOT / "bolus_decisions.parquet")
         self.bd_real = bd[bd.alias == alias]
-        ck = torch.load(ckpt, map_location="cpu")
+        ck = torch.load(ckpt, map_location="cpu", weights_only=False)   # our own checkpoint (holds per-person constants)
         self.net = ICEGenV2(len(ck["features"]), len(ck["people"])); self.net.load_state_dict(ck["state"]); self.net.eval()
         self.pid = torch.tensor([ck["people"].index(alias)])
         self.k = ck["constants"][alias]
+        self.drop = [ck["features"].index(f) for f in ck.get("drop", [])]   # inputs the model never saw
         self.t = None; self.running = None; self.h = None
         self.log, self.actions_log, self.doses_log = [], [], []
 
@@ -64,6 +65,7 @@ class PlantV2:
         hist = self.steps[self.steps.t1 <= t0]
         g, X, _, _ = D2.build(hist, [c for c in self.carbs_real if _ts(c.get("dosingVisibleDate") or c["startDate"]) <= t0],
                               self.bd_real[self.bd_real.t <= t0], self.tdd, self.isf)
+        X[:, self.drop] = 0.0
         with torch.no_grad():
             _, self.h = self.net(torch.from_numpy(X[-WARMUP:])[None], self.pid)
         self.t = hist.t1.iloc[-1]; self.bg = float(hist.bg1.iloc[-1])
@@ -89,6 +91,7 @@ class PlantV2:
                       np.sin(2 * np.pi * hour / 24), np.cos(2 * np.pi * hour / 24),
                       np.sin(2 * np.pi * dow / 7), np.cos(2 * np.pi * dow / 7),
                       *(B / 50), min(self.since_carb, 24) / 24, min(self.since_bolus, 24) / 24], np.float32)
+        x[self.drop] = 0.0
         return torch.from_numpy(x)[None, None], hour, dow
 
     def advance(self, req):
@@ -129,7 +132,11 @@ class PlantV2:
                 self.pending_carb_g = g; self.since_carb = 0.0
                 self.actions_log.append(dict(t=t, kind="carb", grams=g, abs_h=a))
             if bool(s["bolus"][0]):
-                if bool(s["override"][0]) or rec <= D2.REC_ZERO:
+                # the model's mode choice stands: a calculator-mode bolus returns a RATIO and the
+                # simulator computes the recommendation at the next decision, with this step's carb
+                # entry visible. (Falling back to units whenever the pre-entry recommendation was ~0
+                # turned nearly every meal bolus into a small override and ran the loop away.)
+                if bool(s["override"][0]):
                     u = float(s["units"][0]); boluses.append(dict(t=iso, units=round(u, 2)))
                     self.actions_log.append(dict(t=t, kind="bolus_units", units=u, rec=rec))
                 else:

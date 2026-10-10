@@ -43,3 +43,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
    inside `torch.where`; the excluded positions dropped out of the loss value but not out of the
    gradients, and the first v2 run was NaN from iteration 250 for 20 minutes. Training now stops
    on the first non-finite loss.
+
+9. **A long-window ICE total is a habit signal, not satiety.** The v2 running budget (excess ICE
+   over 1/3/6/24 h) was meant to say "absorbed a lot, less to come". In the data a high 24-h total
+   marks a heavy-eating day, and heavy days come in runs, so the model learned the opposite: open
+   loop at BG 120, i012's generated ICE drifted to 90-125 mg/dL/h (real 71) with the 24-h total
+   at 400-535 g-eq; closed loop, 23-25 of 72 runs ran away. Held at the person's median BG with
+   the budget frozen, the same model stayed near real levels.
+10. **High BG reads as "meal under way" for some people.** With insulin inputs gone, BG is the
+    remaining proxy: i005's generated ICE climbs over 48 h when BG is held at 350-400 (mean 72 ->
+    107, p95 287 -> 496); i001 and i012 do not. Judge every variant with a held-BG probe
+    (`probe_v2.py`) before the closed loop.
