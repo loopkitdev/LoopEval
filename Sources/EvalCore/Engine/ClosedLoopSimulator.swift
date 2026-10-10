@@ -70,6 +70,10 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         // >1 = active, raising effective ISF from accumulated recent negative discrepancies).
         public var candidateSensModeMult: Double = .nan
         public var candidateManualBolusRecOut: Double = .nan
+        // Plant behavior (v2): bolus delivered this step at the plant person's request, and
+        // carbs the plant person entered during this step (0 when not in plant-behavior mode).
+        public var plantBolusU: Double = 0
+        public var plantCarbsG: Double = 0
         // PATIENT IOB — a single independent IOB view: field dosing and candidate
         // dosing each run through the SAME patient insulin model (net-basal,
         // fillBasalGaps) via insulinOnBoard(at:). Independent of NS devicestatus
@@ -227,6 +231,11 @@ extension EvaluationEngine {
         // advance with a patient model in another process (see ExternalPlant.swift).
         // nil = the ICE replay, unchanged.
         externalPlant: ExternalPlant? = nil,
+        // PLANT BEHAVIOR (protocol v2): the plant's person makes the carb entries and manual
+        // boluses. From cfActiveStart the candidate ignores the REAL ones; carbs the plant returns
+        // join the candidate's carb store, boluses are delivered at the next decision as
+        // ratio x the bolus-calculator recommendation there. Baseline arm untouched.
+        plantBehavior: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
 
@@ -389,6 +398,19 @@ extension EvaluationEngine {
         // REAL IOB at each manual bolus (excluding the bolus itself), for IOB-aware passthrough.
         var realManualBolusRealIOB: [Double] = []
         var nextManualIdx = 0
+        // Plant behavior (v2): boluses the plant's person asked for, delivered at the next
+        // decision; running totals for the end-of-run summary.
+        var pendingPlantBoluses: [ExternalPlant.Bolus] = []
+        var plantCarbsTotalG = 0.0, plantBolusTotalU = 0.0, plantBolusCount = 0, plantCarbCount = 0
+        if plantBehavior {
+            guard externalPlant != nil else {
+                throw NSError(domain: "ClosedLoopSimulator", code: 1,
+                              userInfo: [NSLocalizedDescriptionKey: "plantBehavior requires an external plant"])
+            }
+            if candidateConfig.iceRiseBoostGain > 0 || isfBoostVetoIceRate != nil {
+                FileHandle.standardError.write(Data("WARNING: --plant-behavior with an ICE rise-boost / ISF-boost veto: those read the FIELD trace's ICE and will not see plant-generated meals\n".utf8))
+            }
+        }
 
         // Pre-scale sensitivity once per candidate config (timeline doesn't
         // depend on dose history).
@@ -479,7 +501,7 @@ extension EvaluationEngine {
             // Answers "how would the fully-automated system perform with NO user
             // intervention?". Burn-in seed (pre-cfActiveStart) still keeps real
             // manual boluses for IOB continuity; only post-burn-in ones are removed.
-            realManualBoluses = excludeManualBoluses ? [] : data.doses
+            realManualBoluses = (excludeManualBoluses || plantBehavior) ? [] : data.doses
                 .filter { dose in
                     dose.deliveryType != .basal && !dose.automatic
                     && dose.startDate >= cfActiveStart && dose.startDate < interval.end
@@ -680,10 +702,11 @@ extension EvaluationEngine {
         // Candidate carbs, optionally with each entry's absorptionTime capped
         // (diagnostic: raises the modeled absorption-rate ceiling — see
         // EvalConfig.carbAbsorptionTimeCapSec). Baseline always uses real carbs.
-        let candidateCarbs: [EvalCarbEntry] = {
+        var candidateCarbs: [EvalCarbEntry] = {
             let cap = candidateConfig.carbAbsorptionTimeCapSec
-            guard cap > 0 else { return data.carbs }
-            return data.carbs.map { c in
+            let real = plantBehavior ? data.carbs.filter { $0.dosingVisibleDate < cfActiveStart } : data.carbs
+            guard cap > 0 else { return real }
+            return real.map { c in
                 var c2 = c
                 let cur = c.absorptionTime ?? TimeInterval(3 * 3600)
                 c2.absorptionTime = Swift.min(cur, cap)
@@ -951,6 +974,7 @@ extension EvaluationEngine {
             var candidateDose: Double
             var candidateBolus: Double
             var candidateManualBolusRec = Double.nan
+            var stepPlantBolusU = 0.0, stepPlantCarbsG = 0.0
             var candidateTempRate: Double
             var candidateTempAction = "set"
             var candidateEventualBG = Double.nan
@@ -1477,6 +1501,24 @@ extension EvaluationEngine {
                     }
                     nextManualIdx += 1
                 }
+                // Plant behavior: the boluses the plant's person asked for during the previous
+                // step act now, at this decision, as ratio x the bolus-calculator recommendation
+                // computed here (plant carbs entered last step are already visible to it).
+                if plantBehavior && !pendingPlantBoluses.isEmpty {
+                    let rec = candidateManualBolusRec.isFinite ? Swift.max(0, candidateManualBolusRec) : 0
+                    let want = pendingPlantBoluses.reduce(0.0) { acc, b in
+                        acc + (b.units ?? 0) + (b.ratio ?? 0) * rec
+                    }
+                    let vol = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus, want))
+                    if vol > 0 {
+                        counterfactualDoses.append(EvalInsulinDose(
+                            deliveryType: .bolus, startDate: t, endDate: t, volume: vol,
+                            insulinType: data.therapyTimeline.insulinType, automatic: false))
+                        stepCandidateAdded += vol
+                        stepPlantBolusU = vol; plantBolusTotalU += vol; plantBolusCount += 1
+                    }
+                    pendingPlantBoluses.removeAll()
+                }
               } // end !cfIdentity (skip candidate dose append in identity mode)
 
                 // PHYSIOLOGICAL ADVANCE — step counter_BG forward to whatever
@@ -1501,10 +1543,26 @@ extension EvaluationEngine {
                         sampleIdx.append(k); k += 1
                     }
                     let stepDoses = counterfactualDoses.filter { $0.startDate >= t && $0.startDate < stepEnd }
-                    let bgs = try plant.advance(t0: t, t1: stepEnd, doses: stepDoses,
-                                                samples: sampleIdx.map { counterGlucose[$0].startDate })
-                    for (j, idx) in sampleIdx.enumerated() { counterMgdl[idx] = bgs[j] }
+                    let reply = try plant.advance(
+                        t0: t, t1: stepEnd, doses: stepDoses,
+                        samples: sampleIdx.map { counterGlucose[$0].startDate },
+                        state: ["rec_bolus": candidateManualBolusRec, "iob": candidateIOB,
+                                "cob": candidateCOB, "bg": advIdx > 0 ? counterMgdl[advIdx - 1] : .nan])
+                    for (j, idx) in sampleIdx.enumerated() { counterMgdl[idx] = reply.bg[j] }
                     advIdx = k
+                    if plantBehavior {
+                        // The person's carb entries join the candidate's carb store (sorted by
+                        // startDate for InputWindowBuilder), visible from the next decision.
+                        for c in reply.carbs {
+                            let e = EvalCarbEntry(startDate: c.t, entryDate: c.t, dosingVisibleDate: c.t,
+                                                  quantity: LoopQuantity(unit: .gram, doubleValue: c.grams),
+                                                  absorptionTime: c.absorption)
+                            let pos = candidateCarbs.firstIndex(where: { $0.startDate > c.t }) ?? candidateCarbs.count
+                            candidateCarbs.insert(e, at: pos)
+                            stepPlantCarbsG += c.grams; plantCarbsTotalG += c.grams; plantCarbCount += 1
+                        }
+                        pendingPlantBoluses += reply.boluses
+                    }
                 }
                 while externalPlant == nil && advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd {
                     let prevIdx = advIdx > 0 ? advIdx - 1 : advIdx
@@ -1672,6 +1730,8 @@ extension EvaluationEngine {
                 candidateDiscrepancy: candidateDiscrepancy,
                 candidateSensModeMult: candidateSensModeMult,
                 candidateManualBolusRecOut: candidateManualBolusRec,
+                plantBolusU: stepPlantBolusU,
+                plantCarbsG: stepPlantCarbsG,
                 baselinePredCurve: baselinePredCurve
             ))
         }
@@ -1759,6 +1819,10 @@ extension EvaluationEngine {
             return s
         }
 
+        if plantBehavior {
+            FileHandle.standardError.write(Data(String(format: "plant behavior: %d carb entries (%.0f g), %d boluses (%.1f U) from the plant's person; real candidate carbs/manual boluses after cfActiveStart ignored\n",
+                plantCarbCount, plantCarbsTotalG, plantBolusCount, plantBolusTotalU).utf8))
+        }
         return ClosedLoopSimResult(
             steps: stepsWithPatientIOB,
             baselineLabel: baselineLabel,
