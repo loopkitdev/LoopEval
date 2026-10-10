@@ -18,6 +18,10 @@ Each keeps its own URL and cross-links the other three through `page.SIBLINGS`; 
 | **Glucose Given Insulin** | `9e8666a7-fdf4-4997-9bb9-c833d1752bff` | 12, 24 | The conditioning, its endogeneity, and the latent-vs-named-state result |
 | **Counteraction** | `c17b1252-3b4d-4a71-9862-ffd1f313247a` | 06 | Non-insulin appearance as a quantity, and the dosing reflection inside it |
 
+**The ICE working document** (2026-09-30) sits beside the study, not in its nav: **Insulin Counteraction**, `UF5D9JAGJ5hZ9KpDQ8eiwV` (claude.ai/artifact/…), figures i01–i04. Built by `analysis/dist_views/ice/` — `ice_first.py`, `isf_probe.py`, `isf_corrections.py`, `ice_episodes.py` (tables under `runs/.../ice/`), then `ice_views.py`, `web_figs.py`, `doc_ice.py`. It holds the ICE investigation while the definition — above all the ISF behind it — is being settled.
+
+**Reference pages beside the study** (not in its nav): **An ISF Yardstick** `T8Dbp4JLN7EpZ64wttwTdX` (`ice/isf_doc_views.py`, `ice/doc_isf.py`) and **ISF, Rule of X and Outcomes** `QYwQj8c4iXfVZZ6Y3K28Uq` (lessons 49–51; `settings_claims.py` → `settings_claims.json` → `settings_views.py` s01–s04 → `doc_settings.py`, which formats every number straight from the JSON).
+
 Built by `analysis/loopeval_analysis/{dists,volatility,traits}.py` + `analysis/dist_views/`,
 outputs under `runs/2026-08-25-distributions/`. **The build order is fixed**: regenerate any
 stale derived table, then its figure, then `web_figs.py`, then `make_artifact.py` (which
@@ -819,6 +823,42 @@ glucose, not the story of how it was measured. Therefore:
     - My first pass said "day 1 is the worst day"; that was the change event plus the failing
       sites, not the new site itself. Split the event from the life course before reading a
       day-of-life table.
+
+53. **ICE's ISF is not identifiable by regression in a closed loop** (2026-09-30, `ice/isf_probe.py`).
+    The ISF that makes fasting ICE uncorrelated with insulin absorbed is 0.50x the schedule
+    (0.48-0.56 across 30/60-min blocks, a momentum control and a >=60-min-old-insulin instrument; the
+    instrument's first stage is r=0.97, i.e. absorbed insulin is old delivery anyway). It ranks people
+    like the schedule (rho 0.71) but feedback on persistent disturbances biases it toward zero by an
+    unbounded amount, and it differs by strategy (0.43 bolus / 0.57 temp) — read it as a lower bound,
+    never as the ISF. Isolated correction boluses cannot rescue it: 19 of 159 people have a dozen, and
+    the loop's compensation holds total absorbed insulin near-constant across bolus sizes (slope ~0).
+    "No negative ICE" is not a criterion either — negatives fall monotonically with the ISF multiple.
+    Two episode-method notes: size an episode by SUMMED excess (velocity telescopes, so sensor noise
+    cancels) and gate at 10 g-eq; and test "unannounced = tail of an announced meal" against a same-hour-other-day null
+    (33% observed vs 21% chance).
+
+54. **The ISF for ICE work is the yardstick, in three tiers, from one module** (adopted by Pete,
+    2026-10-10). `analysis/dist_views/ice/isf_yardstick.py` (`start_rule`, `basal_rule`,
+    `yardstick`, `for_alias`); cohort parameters in `runs/.../ice/isf_yardstick_params.json`,
+    written by `isf_basal_prior.py` and `isf_start_rule.py`; the cohort table is
+    `ice/isf_estimate.csv`. Never hand-pick an ISF for ICE again.
+    - **No history:** ISF ~ 1267 / TDD^0.90 (or 1874 / TDD), fitted to the yardstick, leave-one-out
+      median error 24% — barely better than 1800/TDD (25%), and **age adds nothing** after TDD
+      (p = 0.64; it helps only against people's SCHEDULES, 19% -> 18%). Carries diet via TDD.
+    - **Any history:** the yardstick. Under 100 quiet blocks (~2 weeks) it IS the basal rule from the
+      measured fasting insulin rate; own-slope weight ~0.5 at 2 weeks, 0.74 at a month, 0.8+ after.
+      Two disjoint stretches differ ~13-15% from 3 weeks on and do not converge further — month-to-month
+      variation, not noise (`isf_data_needs.py`).
+    - **It is diet-free where diet can be measured**: among the 102 announcing >= 80 g/day, doubling
+      carbs moves the yardstick x0.95 (n.s.) and the rule of 1800 x0.83 (p < 0.001), holding the
+      fasting rate (`isf_diet_check.py`). Testing against meal insulin in UNITS is unfair — units per
+      gram carry sensitivity through the carb ratio, so even a perfect estimator tracks it.
+    - **An ICE meal mask is possible but not adopted** (`isf_icemask.py`): masks built at ISF x0.35-1.25
+      give slope elasticity 0.13 to the mask ISF; a 3/7-day-shifted placebo mask moves the slope only
+      x1.01-1.06 while the real one lifts it x1.33 (meals in "quiet" hours, ~3 a day). It does not
+      reduce diet dependence (already ~0) and costs ~30% more days for the same precision.
+    - **The bad-data screen moved the yardstick** a median 3.4% (8.4% for the 17 people with large
+      no-insulin-record gaps): run `ice_raw.py` before `isf_basal_prior.py`.
 
 **Scope:** observational, summative, factual, and **Loop users only** — the two oref/Trio sites
 are excluded in `build.py` (`SKIP_ALIASES`) since 2026-08-26: a different controller shapes the
