@@ -123,6 +123,94 @@ def dominates(ref: pd.DataFrame, tir: float, lows: float, samples: int = 200) ->
     return True
 
 
+def ref_point_dominance(ref_band: pd.DataFrame, cand_band: pd.DataFrame, op_mult: float, interp_samples: int = 40,
+                        min_dtir: float = 0.0, min_dlows: float = 0.0):
+    """Pete's definition of lift (2026-09-29): a reference point is DOMINATED when SOME point of the
+    candidate's insulin-needs sweep lies strictly below and to the right of it -- more TIR AND fewer
+    lows -- i.e. the person could re-tune onto the candidate from that setting and be better on both
+    axes. Counted over REFERENCE points (the settings a person might actually be at), not over candidate
+    points, and requiring only that the candidate beat THAT setting, not the whole curve.
+
+    Both frames are already restricted to the operating band by the caller, so a candidate setting far
+    from where anyone operates cannot dominate.
+
+    Returns (frac, op_dominated, op_best_dTIR, op_best_dlows):
+      frac           share of reference points in the band dominated by at least one candidate point;
+      op_dominated   whether the reference point NEAREST the operating multiplier is dominated;
+      op_best_dTIR   among candidate points dominating that reference point, the largest TIR gain;
+      op_best_dlows  among them, the largest lows reduction (both NaN when none dominates)."""
+    if len(ref_band) == 0 or len(cand_band) == 0:
+        return np.nan, False, np.nan, np.nan
+    # The candidate sweep is a CURVE sampled at a few dial settings. With `interp_samples` > 0 it is
+    # interpolated linearly between adjacent settings (multiplier order -- the sweep path, as the
+    # reference polyline is), so a reference setting the candidate curve passes below-right of is not
+    # missed just because no sampled point happens to land there. Interpolating the candidate is the
+    # CONSERVATIVE direction: on a curve that is convex in lows, the chord sits above the true curve,
+    # so an interpolated point is harder to beat with, never easier. (Interpolating the REFERENCE, as
+    # `dominates` does, is the permissive direction -- frontier.md's "coarse references manufacture
+    # false positives".)
+    cb = cand_band.sort_values("multiplier")
+    ct, cl = cb["TIR"].to_numpy(float), cb["lows"].to_numpy(float)
+    if interp_samples > 0 and len(ct) > 1:
+        s = np.linspace(0, 1, interp_samples + 2)[1:-1]
+        ti = np.concatenate([ct] + [ct[i] + s * (ct[i + 1] - ct[i]) for i in range(len(ct) - 1)])
+        li = np.concatenate([cl] + [cl[i] + s * (cl[i + 1] - cl[i]) for i in range(len(cl) - 1)])
+        ct, cl = ti, li
+    # MARGIN (optional): strictly better on both axes AND better by at least min_dtir TIR OR min_dlows lows on one of
+    # them -- so a chord that passes a whisker below-right of a setting (grid test 2026-09-29: the licence's
+    # interpolated curve beat 7/12 settings where its real 0.025-step points beat 2/12) does not count as a win.
+    def beats(r):
+        both = (ct > r.TIR + 1e-9) & (cl < r.lows - 1e-9)
+        if min_dtir > 0 or min_dlows > 0:
+            both &= ((ct - r.TIR >= min_dtir) | (r.lows - cl >= min_dlows))
+        return both
+    dominated = [bool(np.any(beats(r))) for r in ref_band.itertuples()]
+    frac = float(np.mean(dominated))
+    i_op = int(np.argmin(np.abs(ref_band["multiplier"].to_numpy(float) - op_mult)))
+    r = ref_band.iloc[i_op]
+    m = beats(r)
+    if not m.any():
+        return frac, False, np.nan, np.nan
+    return frac, True, float(np.max(ct[m] - r.TIR)), float(np.max(r.lows - cl[m]))
+
+
+def sampling_ambiguity(ref_band: pd.DataFrame, cand_band: pd.DataFrame, op_mult: float,
+                       allow_tir: float = 0.3, allow_lows: float = 0.06):
+    """WHEN TO DENSIFY THE SWEEP (2026-09-29). For each in-band reference setting, classify the per-setting dominance
+    test by how much it depends on the UNSAMPLED part of the candidate curve:
+      WIN        a sampled candidate point is in the better-on-both-axes quadrant -- more samples cannot remove it;
+      AMBIGUOUS  no sampled point is in the quadrant, but the chord between two adjacent samples enters it, OR the chord
+                 passes within (allow_tir, allow_lows) of the quadrant corner -- the true curve between those samples
+                 decides, so THAT segment should be densified;
+      NO-WIN     every chord stays clear of the quadrant by more than the allowance -- more samples cannot create a win.
+    The allowance is the measured chord-vs-truth deviation at 0.05-step sampling (bddp11 densified to ~0.025, four arms,
+    24 intermediate points): |dTIR| p90 0.25 / max 0.46, |dt54| p90 0.059 / max 0.076, sign ~50/50 -- so symmetric,
+    p90-sized. Returns (states: list of (ref_mult, state, segment_or_None), op_state, op_segment)."""
+    if len(ref_band) == 0 or len(cand_band) < 2:
+        return [], "NO-DATA", None
+    cb = cand_band.sort_values("multiplier")
+    cm, ct, cl = cb["multiplier"].to_numpy(float), cb["TIR"].to_numpy(float), cb["lows"].to_numpy(float)
+    def classify(r):
+        if bool(np.any((ct > r.TIR + 1e-9) & (cl < r.lows - 1e-9))):
+            return "WIN", None
+        best = None
+        for i in range(len(ct) - 1):
+            s = np.linspace(0, 1, 41)
+            ti, li = ct[i] + s * (ct[i + 1] - ct[i]), cl[i] + s * (cl[i + 1] - cl[i])
+            if np.any((ti > r.TIR) & (li < r.lows)):
+                return "AMBIGUOUS", (float(cm[i]), float(cm[i + 1]))
+            # closest approach of the chord to the quadrant corner, per axis (positive = short of the quadrant)
+            gap_t = np.max(ti) - r.TIR          # >0 means some chord point has more TIR than the setting
+            gap_l = r.lows - np.min(li)         # >0 means some chord point has fewer lows
+            near = (gap_t > -allow_tir) and (gap_l > -allow_lows)
+            if near and (best is None):
+                best = (float(cm[i]), float(cm[i + 1]))
+        return ("AMBIGUOUS", best) if best is not None else ("NO-WIN", None)
+    states = [(float(r.multiplier),) + classify(r) for r in ref_band.itertuples()]
+    i_op = int(np.argmin(np.abs(ref_band["multiplier"].to_numpy(float) - op_mult)))
+    return states, states[i_op][1], states[i_op][2]
+
+
 def _interp_at(frame: pd.DataFrame, mult: float) -> Optional[pd.Series]:
     f = frame.sort_values("multiplier")
     m = f["multiplier"].to_numpy()
@@ -203,21 +291,30 @@ def band_report(ref: Mapping[float, pd.DataFrame],
         rop, cop = _interp_at(ref_frame, op_mult), _interp_at(cand_frame, op_mult)
         d = {k: (cop[k] - rop[k]) if (rop is not None and cop is not None) else np.nan
              for k in ("TIR", "t54", "t70", "mean", "magni")}
+        # Pete's per-reference-point lift: which in-band reference settings does SOME in-band candidate
+        # setting beat on both axes. The reference here is the same op +- (half_width + ref_extra) frame
+        # the polyline uses; the candidate side is the op +- half_width band.
+        rd = ref_point_dominance(ref_frame, cb, op_mult)                       # candidate curve interpolated
+        rd = rd + (ref_point_dominance(ref_frame, cb, op_mult, interp_samples=0)[0],)   # + sampled points only
+        rdm = ref_point_dominance(ref_frame, cb, op_mult, min_dtir=0.5, min_dlows=0.05)   # + with a minimum margin
+        rd = rd + (rdm[0], rdm[1])
+        amb = sampling_ambiguity(ref_frame, cb, op_mult)
+        rd = rd + (sum(1 for st in amb[0] if st[1] == "AMBIGUOUS"), amb[1], amb[2])
         return (float(np.mean(lifts)) if lifts else np.nan,
-                float(np.mean(dom)) if dom else np.nan, d, lifts, dom, cb)
+                float(np.mean(dom)) if dom else np.nan, d, lifts, dom, cb, rd)
 
     rows, pts = [], []
     for name, sweep in cands.items():
         cf = _frame(sweep, lows=lows_axis)
-        bl, fd, d, lifts, dom, cb = stats(ref_f, cf)
+        bl, fd, d, lifts, dom, cb, rd = stats(ref_f, cf)
         for r, l, dm in zip(cb.itertuples(), lifts, dom):
             pts.append({"mechanism": name, "multiplier": r.multiplier, "TIR": r.TIR,
                         "t54": r.t54, "t70": r.t70, "mean": r.mean, "lift": l, "dominates": dm})
-        bs_l, bs_d, bs_dT, bs_d54, bs_d70, bs_dM = [], [], [], [], [], []
+        bs_l, bs_d, bs_dT, bs_d54, bs_d70, bs_dM, bs_rd, bs_od = [], [], [], [], [], [], [], []
         for idx in boots:
             rb, cbf = ref_band(_frame(ref, idx, lows=lows_axis)), _frame(sweep, idx, lows=lows_axis)
-            l2, d2, dd, *_ = stats(rb, cbf)
-            bs_l.append(l2); bs_d.append(d2)
+            l2, d2, dd, _l, _d, _c, rd2 = stats(rb, cbf)
+            bs_l.append(l2); bs_d.append(d2); bs_rd.append(rd2[0]); bs_od.append(1.0 if rd2[1] else 0.0)
             bs_dT.append(dd["TIR"]); bs_d54.append(dd["t54"]); bs_d70.append(dd["t70"])
             bs_dM.append(dd["magni"])
         pc = lambda a: (float(np.nanpercentile(a, ci[0])), float(np.nanpercentile(a, ci[1])))
@@ -251,6 +348,17 @@ def band_report(ref: Mapping[float, pd.DataFrame],
                      "ref_tir_span": tir_span, "ref_lows_span": lows_span, "ref_lows_at_op": lows_at_op,
                      "band_lift": bl, "band_lift_lo": lo, "band_lift_hi": hi,
                      "frac_dominant": fd, "dominant_ci_lo": pc(bs_d)[0],
+                     # Pete's lift: fraction of in-band REFERENCE settings some candidate setting beats on both axes,
+                     # its bootstrap CI, whether the person's own setting is one of them, the share of resamples in
+                     # which it stays beaten, and the best TIR / lows gain available from it.
+                     "ref_dom_frac": rd[0], "ref_dom_lo": pc(bs_rd)[0], "ref_dom_hi": pc(bs_rd)[1],
+                     "op_dominated": rd[1], "op_dom_boot": float(np.mean(bs_od)) if bs_od else np.nan,
+                     "op_best_dTIR": rd[2], "op_best_dlows": rd[3], "ref_dom_frac_pts": rd[4],
+                     "ref_dom_frac_margin": rd[5], "op_dominated_margin": rd[6],   # >= 0.5 TIR or >= 0.05 lows of gain
+                     # sampling: how many in-band reference settings are decided by the UNSAMPLED curve, the person's own
+                     # setting's state (WIN / AMBIGUOUS / NO-WIN) and, if ambiguous, the candidate segment to densify
+                     "n_ambiguous": rd[7], "op_sampling_state": rd[8],
+                     "op_densify_segment": (f"{rd[9][0]:.3f}-{rd[9][1]:.3f}" if rd[9] else ""),
                      "dTIR_op": d["TIR"], "dTIR_lo": pc(bs_dT)[0], "dTIR_hi": pc(bs_dT)[1],
                      "dt54_op": d["t54"], "dt54_lo": pc(bs_d54)[0], "dt54_hi": pc(bs_d54)[1],
                      "dt70_op": d["t70"], "dt70_lo": pc(bs_d70)[0], "dt70_hi": pc(bs_d70)[1],
@@ -315,7 +423,11 @@ def format_table(table: pd.DataFrame) -> str:
         lines.append(
             f"{r.mechanism:<22} {r.verdict:<8} lift {r.band_lift:+.3f} [{r.band_lift_lo:+.3f},{r.band_lift_hi:+.3f}]"
             f"  dom {r.frac_dominant:.2f}(lo {r.dominant_ci_lo:.2f})"
-            f"  @op ΔTIR {r.dTIR_op:+.1f} [{r.dTIR_lo:+.1f},{r.dTIR_hi:+.1f}]"
+            f"  REFDOM {r.ref_dom_frac:.2f}[{r.ref_dom_lo:.2f},{r.ref_dom_hi:.2f}] (pts {r.ref_dom_frac_pts:.2f}, margin {r.ref_dom_frac_margin:.2f}{'✓' if r.op_dominated_margin else '✗'})"
+            + (f" op✓{r.op_dom_boot:.2f} best +{r.op_best_dTIR:.1f}TIR/−{r.op_best_dlows:.2f}" if r.op_dominated else f" op✗{r.op_dom_boot:.2f}")
+            + (f" DENSIFY×{r.op_densify_segment}" if r.op_sampling_state == "AMBIGUOUS" else "")
+            + (f" ({r.n_ambiguous} ambiguous)" if r.n_ambiguous else "")
+            + f"  @op ΔTIR {r.dTIR_op:+.1f} [{r.dTIR_lo:+.1f},{r.dTIR_hi:+.1f}]"
             f"  Δt54 {r.dt54_op:+.2f} [{r.dt54_lo:+.2f},{r.dt54_hi:+.2f}]"
             f"  ΔMagni {r.dmagni_op:+.2f} [{r.dmagni_lo:+.2f},{r.dmagni_hi:+.2f}]"
             f"  Δt70 {r.dt70_op:+.2f}  ({r.lows_axis}, {r.n_band} pts, {r.n_blocks} blk)")

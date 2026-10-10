@@ -1,0 +1,939 @@
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+EVALUATION OF AUTOMATIC CLASS III DESIGNATION FOR  
+Control-IQ Technology 
+DECISION MEMORANDUM 
+A. DEN Number: 
+DEN190034 
+B. Purpose for Submission: 
+De Novo request for evaluation of automatic class III designation for Control-IQ technology. 
+C. Manufacturer and Device Name: 
+Tandem Diabetes Care, Inc. and Control-IQ technology 
+D. Type of Test or Tests Performed: 
+Not applicable. 
+E. System Descriptions: 
+1. Device Description: 
+Control-IQ technology (Control-IQ, the device) is a software-only device intended for 
+use by people with diabetes. The device controls insulin delivery from a compatible 
+alternate controller enabled insulin pump (ACE pump) based on inputs provided by a 
+compatible integrated continuous glucose monitor (iCGM) and inputs provided the user 
+(e.g., carbohydrate intake, exercise, and sleep schedule). Control-IQ technology is meant 
+to be installed on a compatible ACE pump. 
+Control-IQ technology works to control glucose towards a glucose target range of 112.5-
+160 mg/dL during normal use. Glucose targets are not customizable but can be changed 
+by a user if sleep or exercise modes are set or announced. During sleep mode, this range 
+is changed to 112.5-120 mg/dL, and it is changed to 140-160 mg/dL during exercise 
+mode. 
+Control-IQ technology includes an integrated feature whereby iCGM values are 
+automatically populated into the glucose field of the integrated bolus calculator when the 
+Control-IQ technology is active (i.e., the device is operating in closed-loop mode). This 
+feature is disabled when Control-IQ is turned off.  
+Using Control-IQ technology requires that users input their weight and their total daily 
+insulin requirement, which should be established with the help of a health care provider 
+before using the device.  
+1 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+2. Principles of Operation: 
+Control-IQ technology predicts glucose levels 30 minutes in the future based on prior 
+iCGM readings, insulin delivery history, and user input (e.g., carbohydrate intake, 
+exercise, and sleep schedule) and uses that prediction to adjust insulin delivery. Control-
+IQ technology can be used to adjust or suspend basal insulin delivery every 5 minutes 
+and automatically deliver correction boluses of insulin based on actual and predicted 
+CGM sensor readings. Users must manually deliver meal boluses they can calculate using 
+the integrated bolus calculator and can manually adjust insulin delivery (change basal 
+rates and deliver insulin boluses) when the Control-IQ technology is active.  
+3. Modes of Operation: 
+Does the applicant’s device contain the ability to transmit data to a computer, webserver, 
+or mobile device? 
+Yes ___X___ or No ________ 
+Does the applicant’s device transmit data to a computer, webserver, or mobile device 
+using wireless transmission? 
+Yes __X____ or No ________ 
+4. Software: 
+FDA has reviewed applicant’s Hazard Analysis and Software Development processes for 
+this line of product types: 
+Yes___X____ or No________ 
+F. Regulatory Information : 
+1. Regulation section: 21 CFR 862.1356 
+2. Classification: Class II 
+3 Product code: QJI 
+4. Panel:   75, Clinical Chemistry 
+G. Indications For Use: 
+1. Indication(s) for Use: 
+Control-IQ technology is intended for use with compatible integrated continuous glucose 
+monitors (iCGM) and alternate controller enabled (ACE) pumps to automatically 
+2 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+increase, decrease, and suspend delivery of basal insulin based on iCGM readings and 
+predicted glucose values. It can also deliver correction boluses when the glucose value is 
+predicted to exceed a predefined threshold.  
+Control-IQ technology is intended for the management of Type 1 diabetes mellitus in 
+persons 14 years of age and greater.  
+Control-IQ technology is intended for single patient use and requires a prescription.  
+Control-IQ technology is indicated for use with NovoLog or Humalog U-100 insulin. 
+2. Special Conditions for Use Statement(s): 
+This device is for prescription use only.  
+This pump is for use only with U-100 Humalog or U-100 NovoLog. Only U-100 
+Humalog and NovoLog have been tested and found to be compatible for use in the pump. 
+Use of insulin with lesser or greater concentration can result in under delivery or over 
+delivery of insulin. This can cause hypoglycemia (low BG) or hyperglycemia (high BG) 
+events. Use of other drugs or medications can damage the pump and result in injury if 
+infused. 
+The sponsor performed an evaluation of the Control-IQ technology and determined that it 
+may not be safe for use in children under the age of six because Control-IQ technology 
+has lower limits of total daily insulin (≥10 units) and weight requirements (≥55 lbs.). 
+Therefore, the sponsor has included a warning in the labeling for this device as follows: 
+“Tandem performed an evaluation of the Control-IQ technology and determined that 
+it may not be safe for use in children under the age of six because Control-IQ 
+technology has lower limits of total daily insulin and weight requirements. Therefore, 
+Control-IQ technology should not be used in anyone under the age of six years old. 
+Control-IQ technology should also not be used in patients who require less than a 
+total daily insulin dose of 10 units per day or who weigh less than 55 pounds, as those 
+are the required minimum values needed in order for Control-IQ technology to 
+operate safely.” 
+When the device is in closed loop mode, the integrated iCGM auto-population bolus 
+calculator feature of Control-IQ automatically enters individual iCGM values (i.e., point 
+values) into the glucose field of the manual bolus calculator (the calculator is not auto -
+populated with iCGM values when in open loop mode). The bolus calculator does not 
+take trend information into account. Because iCGM point values are typically less 
+accurate than self-monitoring blood glucose (SMBG) meter results, using iCGM point 
+values alone without taking trend information into account may result in inaccurate bolus 
+calculations. Therefore, the sponsor has included the following instruction in the labeling 
+for this device as follows: 
+3 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+“When the CGM reading is automatically populated into the bolus calculator, only 
+the current CGM reading is used to calculate the correction bolus. The trend arrow is 
+not used in the dose calculation. Speak with your healthcare provider for 
+recommendations on how best to utilize the arrows for your correction bolus dosing.” 
+At the time of device authorization, compatible iCGMs include the following: Dexcom 
+G6 iCGM 
+H. Standards Documents/Guidance Documents Referenced (if applicable): 
+ISO 14971:2007: Medical Devices - Application of Risk Management to Medical Devices 
+FDA Recognition No: 5-40 
+ANSI/AAMI/IEC 62366-1:2015 Medical Devices – Application of usability engineering to 
+medical devices 
+ANSI/AAMI HE75:2009 Human factors engineering, Design of medical devices 
+I. Performance Characteristics : 
+For the purposes of analytical and clinical validation testing, the Control-IQ technology was 
+installed on the Tandem t:slim X2 insulin pump with interoperable technology 
+(DEN180058), which was paired with the Dexcom G6 continuous glucose monitoring system 
+(DEN170088). Details on the performance characteristics of these devices can be found in 
+the public decision summaries for each device. 
+1. Analytical Performance: 
+Not applicable. 
+2. Comparison Studies: 
+Not applicable. 
+3. Clinical Studies: 
+Pivotal Study: 
+The sponsor conducted a controlled, prospective, multicenter pivotal clinical trial 
+consisting of 168 subjects, with 112 subjects in the treatment arm using Control-IQ. The 
+study enrolled subjects diagnosed with type 1 diabetes who were using insulin (either 
+multiple daily injections (MDI) or pump therapy). The study included 6 months of 
+follow-up on all enrolled subjects. The sponsor extended the study protocol for up to 15 
+months to continue use of Control-IQ in all participants after the cross-over from SAP to 
+Control-IQ in order to gather additional safety data.  
+4 
+Prior to wearing investigational study devices, all study subjects were trnined on the 
+device. Subjects who did not cunently use an insulin pump or did not use a Dexcom G4, 
+G5, or G6 CGM with readings captured on at least 11 out of the previous 14 days at the 
+time of enrollment were required to paii icipate in a 14-day nm- in phase. Subjects who 
+had prior experience with the Tandem t:slim pumps and who had the required amount of 
+CGM data available were given the option to skip the nm-in phase. To enter the 
+randomizat ion phase of the trial, paiiic ipants had to have obtained CGM readings on at 
+least 11 out of the previo us 14 days, and pump-na'ive patients must have successfully 
+used the study pump each day. Subjects were assessed for their knowledge of pump and 
+CGM use prior to continuing to the randomization phase of the study. Subjects who were 
+new to pump use had their insulin pump settings optimized during the nm- in phase . 
+Pump settings were reviewed and further optimized at weeks 2, 13, and 26 of the study. 
+A summaiy of the pivotal clinical study is provide d in the follow ing table (Control-IQ 
+group abbreviated as CLC (closed-loop contrnl)): 
+Study Feature Description 
+Title The International Diabetes Closed Loop (iDCL) Trial : 
+Pivotal Trial of t:slim X2 with Control-IQ Technology 
+Summary A randomized controlled trial of 6 month at home 
+closed loop contrnl (CLC) system vs. sensor-
+augmented pump (SAP). 
+Investigational Device Control-IQ Technology 
+Objectives The objective of the study is to assess efficacy and 
+safety of a closed loop system (Contrnl-IQ 
+Technology) in a randomized controlled ti·ial. 
+Study Design Randomized Clinical Trial with 2: 1 randomizat ion to 
+intervention with the closed loop system vs. sensor-
+augmented pump for 6 months. 
+Number of Sites Seven US clinical sites 
+Population There were 31 subjects who were 14 - 18 yeai·s old, and 
+13 7 subjects > 18 yeai·s old. The age range was 14-71 
+yeai·s with 33 as the average. 22 of the CLC group were 
+MDI users. The average baseline HbAlc was 7.6. 
+Key Inclusion Criteria 
+• Type 1 Diabetes 
+• Ages 14 and older 
+Key Exclusion Criteria 
+• Use of any non-insulin glucose-lowering agents 
+except metfonnin 
+5 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Sample Size 168 participants completed the 6-month randomized 
+trial, with 112 in the intervention arm and 56 in the 
+control arm. 
+Treatment Groups Randomized Trial 
+ Intervention Group: t:slim X2 with Control-IQ 
+Technology and Dexcom G6 iCGM. 
+ Control Group: Sensor-augmented pump (SAP) 
+with no automated insulin delivery, and Dexcom 
+G6 iCGM. 
+Study Duration 6 months for primary study, and up to 15 months total 
+with extension phase 
+Protocol 
+Overview/Synopsis 
+Eligible participants not currently using an insulin 
+pump and/or Dexcom G4, G5, or G6 CGM with 
+minimum data requirements participated in a run-in 
+phase of 2 to 8 weeks that was customized based on 
+whether the participant was already a pump or CGM 
+user. Participants who skip or successfully complete the 
+run-in were randomly assigned 2:1 to the CLC group 
+using t:slim X2 with Control-IQ Technology or the 
+SAP group for 6 months. 
+Pivotal Study Safety Results: 
+No severe hypoglycemia events occurred in either arm of the study. One diabetic 
+ketoacidosis (DKA) event occurred in the CLC group. This event occurred as the result 
+of an infusion set failure. 
+Hyperglycemia / ketosis events not meeting the definition of DKA were reportable if they 
+met one of the following criteria: 
+ evaluation or treatment was obtained at a health care provider facility for an acute 
+event involving hyperglycemia or ketosis 
+ blood ketone level ≥1.0 mmol/L and communication occurred with a health care 
+provider at the time of the event 
+ blood ketone level ≥3.0 mmol/L, even if there was no communication with a 
+health care provider 
+There were 13 hyperglycemia/ketosis events meeting the above reporting criteria in the 
+CLC arm compared to 2 in the SAP arm. 
+Subjects in both study arms were provided with blood ketone meters for use at home. 
+There were 14 recorded events (11 subjects) of blood ketone levels >1.0 mmol/L in the 
+CLC arm compared to 15 recorded events (8 subjects) in the SAP arm. 
+6 
+ 
+ 
+   
+   
+  
+  
+  
+  
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+A summary of all reportable adverse events observed during the study is provided in the 
+following table: 
+Table 1: Adverse Events by Study Treatment Group (Pre‐ and Post‐Randomization) 
+Post ‐ Randomization Pre‐
+Randomization CLC SAP 
+Hyperglycemia with Ketosis 12 2 1 
+Diabetic Ketoacidosis (DKA) 1 ‐ ‐
+Hyperglycemia without Ketosis 1 ‐ ‐
+Concussion 1 ‐ ‐
+Otitis Externa 1 ‐ ‐
+Bypass Surgery 1 ‐ ‐
+Total: 17 2 1 
+There were two unanticipated adverse device effects (UADEs) during the study, each of 
+which was related to problems with the device software and resulted in the study being 
+temporarily suspended while the problem was investigated and resolved: 
+1. Inappropriate suspension of basal insulin and inappropriate correction bolus delivery. 
+There were several instances of excess insulin delivery as a result of this device 
+malfunction, however there were no patient adverse events reported (i.e., no severe 
+hypoglycemia or other adverse events). The device problem was corrected with a 
+software patch during the study. 
+2. Incomplete bolus request resulting in hyperglycemia/ketosis. As a result of this device 
+malfunction, approximately 45 subjects experienced inappropriate insulin suspension. 
+In one instance a subject developed ketosis (2.1 mmol/L) as a result, but the patient 
+did not develop DKA. The device problem was corrected with a software patch 
+during the study. 
+Pivotal Study Observed Results: 
+The data below describe how the device performed during the pivotal study.  
+The table below provides a summary of selected metrics for the study run-in period 
+(baseline), and the results after study completion (post randomization).  
+7 
+ 
+ 
+  
+ 
+ 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+ 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+ 
+ 
+ 
+ 
+Table 2: Available CGM readings, HbA1c, and mean glucose observed in the pivotal 
+study 
+Baseline Post Randomization 
+CLC 
+(n=112) 
+SAP 
+(n=56) 
+CLC 
+(n=112) 
+SAP 
+(n=56) 
+Hours of glucose readings,  
+Median (Q1, Q3)* 
+307 
+(285, 327) 
+306 
+(283, 320) 
+4267 
+(4133, 4348) 
+4141 
+(3922, 4280) 
+HbA1c,  
+Mean ± SD 7.40 ± 0.96 7.40 ± 0.76 7.06 ± 0.79 7.39 ± 0.92 
+Mean Glucose (mg/dL), 
+Mean ± SD 166 ± 32 169 ± 25 156 ± 19 170 ± 25 
+*Quartile 1, quartile 3 
+During the pivotal study, the amount of time subjects spent in different CGM glucose 
+ranges  was observed as described in the following tables: 
+Table 3: Time spent in different glucose ranges as observed in the pivotal study 
+Baseline Post Randomization 
+CLC 
+(n=112) 
+SAP 
+(n=56) 
+CLC 
+(n=112) 
+SAP 
+(n=56) 
+% time in range 70‐180 
+mg/dL, Mean ± SD 61% ± 17% 59% ± 14% 71% ± 12% 59% ± 14% 
+% time below 70 mg/dL,  
+Mean ± SD 
+3.58% ± 
+3.39% 
+2.84% ± 
+2.54% 
+1.58% ± 
+1.15% 
+2.25% ± 
+1.46% 
+% time below 54 mg/dL,  
+Mean ± SD 
+0.90% ± 
+1.36% 
+0.56% ± 
+0.79% 
+0.29% ± 
+0.29% 
+0.35% ± 
+0.32% 
+Table 4: Time spent in different glucose ranges analyzed by time of day, post-
+randomization 
+Daytime Nighttime 
+CLC 
+(n=112) 
+SAP 
+(n=56) 
+CLC 
+(n=112) 
+SAP 
+(n=56) 
+Mean Glucose (mg/dL), 
+Mean ± SD 158 ± 20 170 ± 26 150 ± 18 170 ± 27  
+% time above 300 mg/dL,  
+Mean ± SD 
+2.6% ± 
+3.8% 
+4.8% ± 
+6.1% 
+1.8% ± 
+2.5% 
+4.5% ± 
+6.3% 
+% time above 250 mg/dL,  
+Mean ± SD 
+7.6% ± 
+7.4% 
+12.4% ± 
+10.5% 
+5.4% ± 
+5.6% 
+12.3% ± 
+10.5% 
+% time above 180 mg/dL,  
+Mean ± SD 
+28.6% ± 
+12.7% 
+38.3% ± 
+15.2% 
+22.5% ± 
+12.5% 
+39.1% ± 
+16.8% 
+8 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+% time below 70 mg/dL,  
+Mean ± SD 
+1.64% ± 
+1.2% 
+2.21% ± 
+1.5% 
+1.44% ± 
+1.2% 
+2.38% ± 
+1.9% 
+% time below 60 mg/dL,  
+Mean ± SD 
+0.59% ± 
+0.5% 
+0.72% ± 
+0.6% 
+0.60% ± 
+0.6% 
+0.85% ± 
+0.9% 
+% time below 54 mg/dL,  
+Mean ± SD 
+0.28% ± 
+0.3% 
+0.32% ± 
+0.3% 
+0.32% ± 
+0.3% 
+0.44% ± 
+0.5% 
+Safety of CGM Auto-populating Bolus Calculator Feature: 
+The device includes a feature whereby iCGM values are automatically populated into the 
+glucose field of the integrated bolus calculator when the Control-IQ technology is active 
+(i.e., the device is operating in closed-loop mode). The bolus calculator only uses the 
+iCGM point value. It does not use iCGM trend information. When the Control-IQ 
+technology is turned off (i.e., the device is operating in open-loop mode) the CGM auto-
+populating feature is disabled and users must manually enter a blood glucose value. The 
+iCGM auto-populating feature is an integrated component of the Control-IQ technology 
+device and cannot be used as a stand-alone device. 
+The sponsor analyzed iCGM readings collected during the pivotal study to assess the 
+safety of Control-IQ technology feature whereby iCGM point values are auto-populated 
+into the integrated bolus calculator. iCGM readings up to 5 hours after a bolus was 
+delivered were analyzed.  
+Two groups of bolus types were compared: (1) in which patients accepted the output of 
+the bolus calculator based on the auto-populated iCGM value, with no modifications, and 
+(2) in which patients manually adjusted the bolus calculation either by manually entering 
+in a glucose value or manually altering the insulin dose recommendation. Results were 
+stratified based on the iCGM value when the bolus was requested. 
+The following table presents the rates of low CGM glucose values observed within a 5-
+hour window after a bolus for boluses requested with various initial CGM values.  
+9 
+Table 5: Post-con ection bolus CGM readings (5 hours): based on starting glucose values 
+iCGM Glucose 
+Value Entry Type 
+One or More iCGM 
+Reading <54 mg/dL 
+(95% CI) 
+Three Consecutive 
+iCGM Readings <70 
+m2/dL 
+Five or More iCGM 
+Readings <70 mg/dL 
+(95% CI) 
+70-180 mg/dL 
+Automatic 
+(n=8,700) 
+3% 
+(2 .8, 3.5) 
+7% 
+(6.6, 7.6) 
+11% 
+(10.3, 11.6) 
+Manual 
+(n=953) 
+5% 
+(3 .2, 5.8) 
+9% 
+(7.4, 11.1) 
+13% 
+(10.4, 14.6) 
+181- 250 mg/dL 
+Automatic 
+(n=6,071) 
+4% 
+(3 .9, 5.0) 
+9% 
+(8 .0, 9.4) 
+12% 
+(11.3, 13.0) 
+Manual 
+(n=568) 
+5% 
+(3.4, 7.1) 
+9% 
+(6.6, 11.3) 
+12% 
+(9 .5, 14.8) 
+>250mg/dL 
+Automatic 
+(n=2,252) 
+5% 
+(4.0, 5.8) 
+9% 
+(7.5, 9.8) 
+13% 
+(11.9, 14.7) 
+Manual 
+(n=384) 
+4% 
+(2.4. 6.5) 
+7% 
+(4.5, 9.6) 
+9% 
+(6.5, 12.3) 
+In the above table, the differences observed between post-conection bolus iCGM 
+readings for boluses calculated using automatically populated iCGM values and those 
+calculated using manually entered glucose values were not significantly different for 
+staiiing iCGM glucose values below 250 mg/dL. For boluses given when staii ing iCGM 
+glucose values were >250 mg/dL, the rate at which subjects had five or more consecutive 
+iCGM readings <70 mg/dL within 5 hours post-bolus was higher when subjects used the 
+auto-populated iCGM value. To address this risk, the sponsor updated the user guide and 
+the trnining materials for physicians and patients to include information and instmctio ns 
+explaining that the bolus calculator does not use trend info1mation, and that users should 
+read the iCGM user guide and consult with their healthcai·e providers to detennine how to 
+use iCGM trend infonnation when using the bolus calculator. 
+Safety in the Pediatric Population 
+The sponsor provided a limited amount of safety data from an interim data analysis from 
+an ongoing study in subjects 6-12 yeai·s old. There were no episodes of DK.A or severe 
+hypoglycemia repo1ied. This device is indicated for use in people with diabetes 14 years 
+of age and older. 
+In addition, the sponsor perfonned an evaluation of the Control-IQ technology and 
+dete1mined that it may not be safe for use in children under the age of six because 
+Control-IQ technology has lower limits of total daily insulin (~10 units) and weight 
+requireme nts (~55 lbs.). Therefore , the sponsor has included a warning in the labeling for 
+this device as follows, 
+"Tandemperfo1med an evaluation of the Control-IQ technology and detennined that 
+it may not be safe for use in children under the age of six because Control-IQ 
+technology has lower limit s of total daily insulin and weight requirement s. Therefore , 
+Control-IQ technology should not be used in anyone under the age of six years old. 
+Control-IQ technology should also not be used in patients who require less than a 
+10 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+total daily insulin dose of 10 units per day or who weigh less than 55 pounds, as those 
+are the required minimum values needed in order for Control-IQ technology to 
+operate safely.” 
+Postmarket Surveillance Study 
+There is uncertainty remaining regarding the risk/benefit profile of the device when used 
+in the broader intended use population. While the premarket clinical study provided to 
+support the de novo authorization showed some benefits, the study included device users 
+with relatively high levels of education relative to the general use population, and it was 
+not adequately powered to assess differences in the rates of safety events (e.g., diabetic 
+ketoacidosis and severe hypoglycemia). Furthermore, due to the nature of the study 
+design, the apparent unfavorable difference in the rates of hyperglycemia/ketosis events 
+(not rising to the level of severity of diabetic ketoacidosis) between the treatment and 
+control arms may be due to reporting differences between users rather than a true 
+difference from the device itself. 
+Accordingly, a postmarket surveillance study will be ordered by FDA to confirm 
+understanding of safety and to evaluate the following question: 
+ What are the rates of diabetic ketoacidosis and severe hypoglycemia when the 
+device is used in the real-world intended use population? 
+ Are there differences in the rates of diabetic ketoacidosis and severe 
+hypoglycemia between the device users and standard of care? 
+To address these questions, the postmarket surveillance study will include: 
+ A prospective single arm cohort study with a minimum of 1,354 subjects being 
+followed for one year to assess differences in the rates of severe hypoglycemia 
+and diabetic ketoacidosis (DKA) between the treatment arm and current standard 
+of care (based on valid scientific evidence of event rates in current standard of 
+care including patients using multiple daily injection therapy, standalone insulin 
+pumps, or sensor-augmented pumps not including pumps with automated insulin 
+dosing features).  
+ A plan to collect robust data on the rates of severe hypoglycemia and DKA 
+experienced by device users on a monthly basis throughout the study. 
+ Enrollment targets for specific populations of interest (i.e., pump naïve users, 
+CGM naïve users, pediatric users, users with baseline HbA1c>8.5%). 
+4. Other Supportive Data Not Covered Above: 
+a. Hazard Analysis: 
+A comprehensive hazard analysis was provided for this device, in which design 
+inputs and outputs, risks, and risk mitigations for software and interoperable hardware 
+components associated with the safe and effective functioning of the device were 
+reviewed. The hazard analysis provided in this submission accounted for the unique 
+design elements, intended use, and risks of the Control-IQ technology. In particular, 
+11 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+this hazard analysis accounted for the risks associated with interoperability between 
+the software device and the hardware device it was installed on, as well as with other 
+third-party digital devices which met predefined criteria but were not specifically 
+identified. This analysis identified hazards which could reasonably be anticipated to 
+impact the proper use of the device, traced all identified risks to adequate design 
+controls, and demonstrated that design features were appropriately implemented and 
+validated. 
+b. Human Factors: 
+Human factors validation tests were conducted with the Control-IQ technology 
+installed on the t:slim X2 insulin pump with interoperable technology (DEN180058). 
+The summative human factors validation study was performed with sixty 
+representative participants interactive with the device in a simulated use environment. 
+All study participants received training that was consistent with the training that 
+patients would receive with the commercial product. Usability evaluations assessed 
+comprehension and usability of the device for critical device tasks. Results of the 
+study demonstrated that the device could be used safely by intended users in the 
+intended use environment when used in combination with a digitally connected 
+device. 
+c. Insulin Compatibility: 
+The Control-IQ technology is designed to work with either Novolog or Humalog U-
+100 insulin. These insulins were used in the pivotal clinical study for this device and 
+no other insulins have been tested for use with the device.  
+Other insulins should not be used with this device. Using insulins with different 
+concentrations or different action profiles (e.g., PK/PD)  with this device could result 
+in under delivery or over delivery of insulin. This can cause hypoglycemia or 
+hyperglycemia events. 
+d. User and Provider Training: 
+The sponsor provided detailed training materials for healthcare providers who will 
+prescribe this device and manage patients who use this device. The training covers 
+how the device works, details of the clinical study, setting up the device, and 
+information on how to assess patient results with the device. 
+A training plan for device users was also provided. The plan provides resources for 
+various types of users including new pump users, users switching from a different 
+pump, and users upgrading from a Tandem device. The training plan includes live 
+(in-person or remote) pump training for new pump users (optional for prior pump 
+users) and required online training modules. The training includes initial start-up, 
+troubleshooting, maintenance, and management of the device. Training includes a 
+follow-up 3-5 days after the initial training and subsequent communication with that 
+12 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+person’s healthcare provider to ensure ongoing follow-up care. Physician and user 
+training as per the sponsor provided training materials is important to ensure safe use 
+of the device. 
+e. Data Logging: 
+The sponsor provided validated software protocols which enable the device to record 
+critical events, including information related to its state (e.g., commanded delivery 
+rates/volumes, all algorithm calculations, open loop / closed loop mode, pump 
+behavior, power on/off events), user inputs / key presses, and device settings (e.g., 
+TDI, weight, sleep settings, and preferences). All log entries are time stamped, and 
+the logs are either generated when the events occur or every five minutes in the case 
+of recording algorithm calculations. These protocols were reviewed and found to be 
+adequate. 
+f. Interoperability: 
+A plan and approach for interoperability were provided according to the FDA 
+Guidance “Design Considerations and Pre-market Submission Recommendations for 
+Interoperable Medical Devices - Guidance for Industry and Food and Drug 
+Administration Staff” and determined to be adequate to support and clearly specify 
+expectations, requirements, and interface specifications to potential interoperable 
+devices. In addition, the plans provided by the sponsor covered their approach to 
+working with connected device companies regarding contractual issues, interfaces for 
+data communication and exchange, and post-market reporting procedures and 
+responsibilities (e.g., who is responsible for investigating and reporting complaints, 
+malfunctions, and adverse events).  
+The sponsor additionally provided validated software protocols intended to ensure 
+secure, accurate, and reliable communication with digital interfacing devices, as well 
+as failsafe design features to mitigate the risks associated with interruption of 
+communication with digitally connected devices. These protocols were reviewed and 
+found to be adequate. 
+g. Cybersecurity:  
+Detailed information on cybersecurity of the device was reviewed and found to be 
+acceptable. The sponsor also provided a software bill of materials, which provided 
+details on all software used in the device and the hardware platform that the device 
+was installed on. This included all manufacturer-developed, commercially licensed, 
+open source, and off-the-shelf software components (including firmware as relevant), 
+along with an identification of the hardware runtime environment in which each 
+resides, with relevant version and/or model information, as well as details on whether 
+each component was actively supported by its manufacturer or legacy licensed.  
+13 
+J. Proposed Labeling: 
+The labeling suppo1is the decision to grant the De Novo request for this device . 
+K. Identified Risks to Health and Mitigations Measures 
+Identified Risk Mitigation Measure s 
+Patient haim due to inappropriate drng 
+delive1y 
+Clinical data demonstrating device perfonnance 
+Certain softw are validation testing 
+User training plan 
+Ce1iain drng compat ibility info1mation in 
+labeling 
+Risk due to poorer or different Clinical data demonstrating device perfonna nce 
+perfonnance in pediatric populations in pediatric population 
+Certain warning stateme nts and precautions in 
+labeling 
+Risk due to the inability of the controller Clinical data demonstrating device perfonnance 
+to handle different Drng compatibi lity info1matio n in labeling 
+phannacokinetic /phaimacodynamic User training plan 
+chai·acteristics of the drngs Human factors testing 
+Risk due to lack of compat ibility of 
+connected devices 
+Ce1iain validation of commun ication 
+specifications, processes, and proced ures with 
+digitally connected devices 
+Limitations on interoperab le devices 
+Risk of connected devices having 
+inadequate perfo1mance to allow safe use 
+of the controller 
+Specifications for perfo1mance of connected 
+devices 
+Ce1iain validation of commun ication 
+specifications, processes, and proced ures with 
+digitally connected devices 
+Limitations on interoperab le devices 
+Failure to repo1i device malfunctions or 
+adverse events to the device 
+manufacture r 
+Plans and procedures for assigning post-market 
+responsibilitie s. 
+Risk of latent flaws in softwai·e Robust softw are validation testing 
+Ce1iain validation of commun ication 
+specifications, processes, and proced ures with 
+digitally connected devices 
+Ce1iain verification and validation of risk 
+control measures 
+Failure to provide appropriate treatment Certain verification and validat ion of risk 
+due to loss of collllllunication with control measures 
+connected devices Ce1iain validation of collllllunication 
+specificatio ns, proces ses, and procedures with 
+digitally connected devices 
+14 
+Identified Risk Mitigation Measures 
+Risk due to insecure transm ission of data Certain validation of commun ication 
+spec ifications, processes, and procedures with 
+digitally connected devices 
+Failure to coITectly operate the device Human factors testing 
+User training plan 
+Compat ible devices listed in labeling 
+Certain warning statements and precaut ions in 
+labeling 
+Failure to coITectly detennine the root 
+cause of device malfunc tions 
+Certain verification and validation of logging 
+caoabi litv 
+Risk due to data transmissio n 
+interference/ electromagnet ic disturbance 
+Ce1tain verification and validat ion of electrica l 
+safety , electromagnet ic compat ibility, and 
+radio freque ncy wireless testing 
+L. Benefit/Risk Analysis 
+Control- IQ technology is intended to be used with a compat ible iCGM and ACE pump to 
+automatically increase, decrease , or suspend basal insulin based on cuITent and predicted 
+glucose values . It can also deliver an automatic coITection bolus when the glucose value is 
+predicted to exceed a predefi ned threshold under specific conditions. Glucose targets are not 
+customizable but can be changed by a user if sleep or exerc ise modes are set or announced. 
+The device is indicated for patien ts with type 1 diabetes 14 years and older. 
+Users of the Control- IQ device had a percent time in iCGM range 70- 180 mg/dL of 71% in 
+the randomiza tion phase of the trial; however , percent time in iCGM range 70-180 mg/dL is 
+not a validated smTogate marker for clinical diabetes outcomes. Hemoglob in Ale (HbAlc) in 
+the Control-IQ group was slightly improved compa red to baseline values, and it does not 
+appear that changes in HbAlc would be worse in patien ts using Control -IQ compared to 
+patien ts using SAP. Subjects completed a series of quest ionnaires and smveys before and 
+after the randomiza tion phase of the study to assess changes in various quali ty of life aspects. 
+In genera l, Control -IQ users repo1ted reductions in diabetes related distress and fear of 
+hypog lycemia. The device can suspend insulin delive1y overn ight to reduce the risk of 
+nighttime hypog lycemia , which may prov ide quality of life improvement to device users and 
+caregivers of device users. These aspects of the data collected indicated there may be 
+significan t benefits to patients from using the Control-IQ device . 
+The study was limited to subjects 14 years and older, thus safety and effectiveness was not 
+demonstrated in children younge r than 14. The device is indicated for use in subjects 14 
+years of age and older. Additio nally, most of the study population had high socioeco nomic 
+and educational status which is likely not genera lizable to the intended use popula tion. As a 
+result of the residua l unce1tainty regard ing the genera lizability of the study results a 
+postma rket study will be perfonned for this device to confnm device safety in a broader 
+popu lation. 
+The risks associated with use of the Control-IQ techno logy in conjunct ion with the iCGM 
+and ACE pump include hypog lycemia , severe hypoglycem ia, hyperg lycemia , and diabetic 
+15 
+ 
+ 
+ 
+ 
+  
+-
+ketoacidosis (DKA). These events can be attributed to software malfunctions with 
+subsequent over-delivery or inappropriate suspension/under-delivery of insulin commands. 
+Other factors can include erroneous iCGM data transfer with subsequent inappropriate 
+insulin delivery or lack of insulin delivery, interoperable device communication/connectivity 
+issues resulting in temporary loss of Control-IQ use, lack of user knowledge and training 
+leading to device misuse, and a potential increase in mechanical problems that could 
+compromise glycemic control if frequent infusion set failures occur leading to interruption of 
+insulin delivery.  
+In the clinical study, there was one episode of DKA and no severe hypoglycemia events. The 
+rate of severe hypoglycemia or DKA is difficult to ascertain given these are relatively 
+infrequent events and the study was limited to 168 participants with 6-month device use 
+duration. There appears to be a higher risk of hyperglycemia with ketosis based on the study 
+event criteria; however, it is unclear if the higher rate of hyperglycemia and ketosis events in 
+the CLC arm compared to the SAP arm is directly related to  use of the Control-IQ device. 
+The rate of reportable ketosis events as defined in the study protocol was higher in the 
+Control-IQ arm; however, the number of measured ketosis events > 1 mmol/L ketones (many 
+of which were not recorded as study reportable events because the subjects did not report the 
+event to a healthcare provider) was similar between both arms. Therefore, there is uncertainty 
+about whether this is a true difference or a study artifact. Overall, there was one DKA event, 
+caused by infusion site failure, observed in the Control-IQ group, however twice as many 
+participants were randomized to Control-IQ compared to SAP and the DKA event may not 
+be directly associated with the device. The rate of other adverse events appears to have been 
+similar between the two study arms when accounting for possible differences in reporting. 
+While the study was not statistically powered to demonstrate statistical superiority, the 
+results suggest that the Control-IQ device may offer several benefits compared to use of a 
+SAP including possible improvements in several measures of diabetic control such as HbA1c 
+and blood glucose concentrations. Given that the study was not adequately powered to assess 
+these specific improvements, or to assess the rates of rare events such as DKA and severe 
+hypoglycemia, collection of additional data in the post-market space can confirm the safety 
+of the device during real-world use.  
+The sponsor has demonstrated that the probable benefits of Control-IQ technology outweigh 
+the probable risks in light of the special controls for this device type and in combination with 
+general controls. The special controls for this device type are intended to provide reasonable 
+assurance of the safety and effectiveness of the device in the hands of the intended users. 
+M. Patient Perspectives 
+Patient perspectives considered include information provided directly to the Agency by 
+patients in written statements and also obtained through discussion with patients and patient 
+advocacy groups at public forums regarding patient experiences with automated insulin 
+dosing systems and digitally connected diabetes devices. This device will allow patients, in 
+conjunction with their healthcare providers, to have more choice in the automated insulin 
+dosing algorithm that integrates with other elements of their diabetes management strategy 
+and works best for their body and their care. In addition, availability of this device will 
+16 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+facilitate agile technology development that will ultimately provide innovative diabetes 
+diagnostics and therapies to patients more quickly. 
+N. Conclusion 
+The De Novo request is granted and the device is classified under the following and subject to 
+the special controls identified in the letter granting the De Novo request:  
+Product Code: QJI 
+Device Type: Interoperable automated glycemic controller 
+Class: II (special controls) 
+Regulation: 21 CFR 862.1356 
+17 
