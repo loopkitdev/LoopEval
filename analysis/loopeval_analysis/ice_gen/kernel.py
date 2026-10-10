@@ -31,6 +31,16 @@ def rate(t_h, size_mgdl, m, s):
     return out
 
 
+def remaining(t_h, size_mgdl, m, s):
+    """mg/dL of the pulse still to come at t_h hours after onset (all of it before onset)."""
+    from scipy.special import ndtr
+    t = np.asarray(t_h, float)
+    out = np.full_like(t, float(size_mgdl))
+    ok = t > 0
+    out[ok] = size_mgdl * (1 - ndtr((np.log(t[ok]) - np.log(m)) / s))
+    return out
+
+
 def reconstruct(index, meals, geq):
     """Sum of all labeled meal pulses on a 5-min DatetimeIndex, mg/dL per hour."""
     tot = np.zeros(len(index))

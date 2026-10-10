@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 
 from .dataset import to_grid, ICE_SCALE
-from .kernel import reconstruct
+from .kernel import reconstruct, remaining, params
 
 FEATURES = ["bg", "bg_ok", "bgice", "bgice_ok", "pulse", "since_meal", "last_size", "n_3h",
             "carbs", "bolus", "since_bolus", "hour_sin", "hour_cos", "dow_sin", "dow_cos"]
@@ -43,6 +43,12 @@ FEATURES_B = ["bg", "bg_ok", "bg_trend", "low30", "bgice_ema", "bgice_ok", "puls
 # (or something pulse-like) within 30 min of 53% of crossings below 70; v3f, fed the real inputs, predicted 29%
 # even in-sample, and barely more for faster falls.
 FEATURES_C = FEATURES_B + ["bg_pred30", "heading_low"]
+# FEATURES_D (v3h): + an insulin-aware projection, roughly Loop's eventual glucose without carbs: BG minus
+# ISF_tdd x insulin on board, CAPPED at EVENTUAL_CAP so it only speaks near a low. Uncapped, insulin read as
+# meal evidence and the closed loop ran away (v1); near a low its feedback is stabilising (more insulin ->
+# lower projection -> eat).
+FEATURES_D = FEATURES_C + ["eventual"]
+EVENTUAL_CAP = 120.0
 TARGETS = ["bgice", "meal", *MEAL_T, "corr", "c_mode", "c_lr", "c_lu"]
 REC_ZERO = 0.05
 EMA_A = 1 - np.exp(-5 / 30)                 # 30-min time constant on 5-min slots
@@ -60,7 +66,19 @@ def ema_step(prev, x):
     return prev if not np.isfinite(x) else (x if not np.isfinite(prev) else prev + EMA_A * (x - prev))
 
 
-def build(steps, meals, corrections, bolus_dec, carbs, geq, features=FEATURES):
+def basal_iob(steps):
+    """The person's basal-level insulin on board (IOB is absolute here): median IOB at 02-05 local."""
+    q = steps.iob[steps.hour.between(2, 5)]
+    return float(q.median()) if len(q) else 0.0
+
+
+def eventual(bg, iob, isf, base, to_come=0.0):
+    """Net insulin only (above the basal level), plus the meal pulses still to absorb (mg/dL), as Loop's
+    projection subtracts insulin and adds carbs on board."""
+    return np.clip(bg - isf * np.maximum(iob - base, 0) + to_come, 40, EVENTUAL_CAP)
+
+
+def build(steps, meals, corrections, bolus_dec, carbs, geq, features=FEATURES, isf=None):
     g = to_grid(steps)
     T, idx = len(g), g.index
     pulses = reconstruct(idx, meals, geq) if len(meals) else np.zeros(T)
@@ -71,7 +89,9 @@ def build(steps, meals, corrections, bolus_dec, carbs, geq, features=FEATURES):
     since_meal = np.full(T, 24.0); last_size = np.zeros(T); n3 = np.zeros(T)
     anchors = []
     bd = bolus_dec.set_index("t") if len(bolus_dec) else None
-    for r in meals.itertuples():
+    to_come = np.zeros(T)
+    m_all, s_all = params(meals.peak_h.to_numpy() + 2.5 / 60, meals.dur_h.to_numpy()) if len(meals) else ([], [])
+    for mi, r in enumerate(meals.itertuples()):
         onset = r.onset
         entry = onset + pd.Timedelta(minutes=r.entry_delay_min) if r.announced and np.isfinite(r.entry_delay_min) else None
         bol = onset + pd.Timedelta(minutes=r.bolus_lead_min) if np.isfinite(r.bolus_lead_min) else None
@@ -80,6 +100,10 @@ def build(steps, meals, corrections, bolus_dec, carbs, geq, features=FEATURES):
         if not 0 <= i < T:
             continue
         anchors.append((i, r.size_g))
+        # pulse still to absorb, counted from the anchor on (a generator knows a meal once it has drawn it)
+        j1 = min(slot(onset + pd.Timedelta(hours=12)), T)
+        t_h = (idx.asi8[i:j1] - onset.value) / 3.6e12
+        to_come[i:j1] += remaining(t_h, r.size_g * geq, m_all[mi], s_all[mi])
         off = lambda x: np.log1p(max((x - anchor).total_seconds() / 60, 0)) if x is not None else np.nan
         row = dict(meal=1, m_lsize=np.log(r.size_g), m_lpeak=np.log(max(r.peak_h + 2.5 / 60, 5 / 60)),
                    m_ldur=np.log(max(r.dur_h, 0.25)), m_onset=off(onset), m_entry=off(entry), m_bolus=off(bol),
@@ -133,6 +157,7 @@ def build(steps, meals, corrections, bolus_dec, carbs, geq, features=FEATURES):
         bg_trend=np.nan_to_num(trend) / 2, low30=low30,
         bg_pred30=predicted(g.bg.ffill().bfill().to_numpy(), np.nan_to_num(trend))[0] / 100,
         heading_low=predicted(g.bg.ffill().bfill().to_numpy(), np.nan_to_num(trend))[1],
+        eventual=(eventual(g.bg.ffill().bfill().to_numpy(), g.iob.ffill().fillna(0).to_numpy(), isf, basal_iob(steps), to_come) / 100) if isf else np.zeros(T),
         bgice=np.nan_to_num(bgice / ICE_SCALE), bgice_ema=np.nan_to_num(ema / ICE_SCALE), bgice_ok=np.isfinite(bgice).astype(float),
         pulse=pulses / ICE_SCALE, since_meal=since_meal / 24, last_size=last_size / 50, n_3h=n3 / 3,
         carbs=carb_g / 50, bolus=bol_u / 5, since_bolus=sb / 24,

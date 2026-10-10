@@ -30,7 +30,7 @@ import torch
 from . import dataset_v3 as D3
 from .dataset import ICE_SCALE
 from .extract import MODELS, RAPID_ACTING_ADULT
-from .kernel import params, rate
+from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
 from .model_v3j import ICEGenV3J, ICEGenV3K
 from .noise import LevelNoise
@@ -55,6 +55,7 @@ class PlantV3:
         self.doses_real = json.load(open(d / "doses.json"))
         self.carbs_real = json.load(open(d / "carbs.json"))
         self.steps = pd.read_parquet(ROOT / "steps" / f"{alias}.parquet")
+        self.base_iob = D3.basal_iob(self.steps)
         bd = pd.read_parquet(ROOT / "bolus_decisions.parquet"); self.bd_real = bd[bd.alias == alias]
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
@@ -90,7 +91,7 @@ class PlantV3:
         mr = self.meals_real[self.meals_real.onset <= t0]
         g, X, _ = D3.build(hist, mr, self.corr_real[self.corr_real.t <= t0] if len(self.corr_real) else self.corr_real,
                            self.bd_real[self.bd_real.t <= t0],
-                           [c for c in self.carbs_real if _ts(c.get("entryDate") or c["startDate"]) <= t0], self.geq, self.features)
+                           [c for c in self.carbs_real if _ts(c.get("entryDate") or c["startDate"]) <= t0], self.geq, self.features, self.isf)
         for f in self.drop:
             X[:, self.F[f]] = 0.0
         with torch.no_grad():
@@ -136,6 +137,9 @@ class PlantV3:
                 tr = x[F["bg_trend"]] * 2
                 p_, hl = D3.predicted(np.array([now]), np.array([tr]))
                 x[F["bg_pred30"]] = float(p_[0]) / 100; x[F["heading_low"]] = float(hl[0])
+            if "eventual" in F:
+                to_come = sum(float(remaining([(t - on).total_seconds() / 3600], sz, m, s_)[0]) for on, sz, m, s_ in self.pulses)
+                x[F["eventual"]] = float(D3.eventual(np.array([now]), np.array([self.ins.iob(t)]), self.isf, self.base_iob, to_come)[0]) / 100
         x[F["pulse"]] = self._pulse_rate(t) / ICE_SCALE
         x[F["since_meal"]] = min(self.since_meal, 24) / 24; x[F["last_size"]] = self.last_size / 50; x[F["n_3h"]] = n3 / 3
         x[F["carbs"]] = self.slot_carbs / 50; x[F["bolus"]] = self.slot_bolus / 5
