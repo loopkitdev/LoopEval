@@ -10,7 +10,9 @@ Run with `simulate --candidate-counterfactual --plant-behavior --external-plant 
   4. a correction bolus (no meal)? -> calculator ratio or override units
   5. ICE(t) = background + sum of active pulses (kernel.py: each integrates to its size and ends)
   6. BG(t) = BG(t_prev) + (ICE - ISF_tdd * insulin absorption) * dt
-  7. actions now due -> reply {"carbs": [...], "boluses": [...]}
+  7. with --noise: the CGM reports BG + e, e the person's level noise (noise.py); the generator, Loop
+     and the scores all see the reported value, and the logged ICE is the reported one
+  8. actions now due -> reply {"carbs": [...], "boluses": [...]}
 Warmed up on the real 24 h before the first request (real meals still absorbing carry over).
 
   python -m loopeval_analysis.ice_gen.plant_v3 --alias i005 --ckpt icegen_v3.pt --log out.parquet
@@ -30,6 +32,7 @@ from .dataset import ICE_SCALE
 from .extract import MODELS, RAPID_ACTING_ADULT
 from .kernel import params, rate
 from .model_v3 import ICEGenV3
+from .noise import LevelNoise
 from .plant import ROOT, Insulin, _ts, LOW, HIGH
 
 WARMUP = 288
@@ -37,7 +40,7 @@ F = {f: i for i, f in enumerate(D3.FEATURES)}
 
 
 class PlantV3:
-    def __init__(self, alias, ckpt, seed=0, feedback="mean"):
+    def __init__(self, alias, ckpt, seed=0, feedback="mean", noise=None):
         torch.manual_seed(seed); np.random.seed(seed)
         # what the generator sees as its own last background ICE: "sample" (the noisy draw) or
         # "mean" (the predictive mean). Fed its own noisy draws, the head reads them as volatility,
@@ -60,6 +63,9 @@ class PlantV3:
         self.pid = torch.tensor([ck["people"].index(alias)])
         self.geq = ck["constants"][alias]["geq"]
         self.t = None; self.running = None; self.h = None
+        # noise: {"a1", "a2", "var": {alias: mg/dL^2}} from fit_noise; None = no level noise
+        self.noise = LevelNoise(noise["a1"], noise["a2"], noise["var"].get(alias, 0.0), seed) if noise else None
+        self.e = self.noise.e1 if self.noise else 0.0
         self.pulses = []           # (onset Timestamp, size mg/dL, m, s)
         self.due = []              # (due Timestamp, kind, payload)
         self.anchor_times = []
@@ -80,7 +86,7 @@ class PlantV3:
                            [c for c in self.carbs_real if _ts(c.get("entryDate") or c["startDate"]) <= t0], self.geq)
         with torch.no_grad():
             _, self.h = self.net(torch.from_numpy(X[-WARMUP:])[None], self.pid)
-        self.t = hist.t1.iloc[-1]; self.bg = float(hist.bg1.iloc[-1])
+        self.t = hist.t1.iloc[-1]; self.bg = float(hist.bg1.iloc[-1]) - self.e     # reported = real CGM at start
         m_, s_ = params(mr.peak_h.to_numpy() + 2.5 / 60, mr.dur_h.to_numpy()) if len(mr) else ([], [])
         for i, r in enumerate(mr.itertuples()):
             if (t0 - r.onset) < pd.Timedelta(hours=12):
@@ -100,7 +106,7 @@ class PlantV3:
         hour = (float(row.hour) + (t - row.t1).total_seconds() / 3600) % 24; dow = float(row.dow)
         n3 = sum(1 for a in self.anchor_times if (t - a) < pd.Timedelta(hours=3))
         x = np.zeros(len(F), np.float32)
-        x[F["bg"]] = min(max(self.bg, LOW), HIGH) / 100; x[F["bg_ok"]] = 1
+        x[F["bg"]] = min(max(self.bg + self.e, LOW), HIGH) / 100; x[F["bg_ok"]] = 1
         x[F["bgice"]] = self.bgice; x[F["bgice_ok"]] = 1
         x[F["pulse"]] = self._pulse_rate(t) / ICE_SCALE
         x[F["since_meal"]] = min(self.since_meal, 24) / 24; x[F["last_size"]] = self.last_size / 50; x[F["n_3h"]] = n3 / 3
@@ -135,7 +141,7 @@ class PlantV3:
             t = _ts(ts)
             dt_h = (t - self.t).total_seconds() / 3600
             if dt_h <= 0:
-                bgs.append(min(max(self.bg, LOW), HIGH)); continue
+                bgs.append(min(max(self.bg + self.e, LOW), HIGH)); continue
             absorbed = self.ins.absorbed(self.t, t)
             x, hour, dow = self._x(t)
             with torch.no_grad():
@@ -185,14 +191,19 @@ class PlantV3:
             pulse = self._pulse_rate(t)
             ice = bgice * ICE_SCALE + pulse
             self.bg = max(self.bg + (ice - self.isf * absorbed / dt_h) * dt_h, 20.0)
+            if self.noise:
+                e0 = self.e
+                for _ in range(max(1, round(dt_h * 12))):
+                    self.e = self.noise.step()
+                ice += (self.e - e0) / dt_h
             self.pulses = [p for p in self.pulses if (t - p[0]) < pd.Timedelta(hours=12)]
             self.anchor_times = [a for a in self.anchor_times if (t - a) < pd.Timedelta(hours=3)]
-            self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bgice=bgice * ICE_SCALE, pulse=pulse, bg1=self.bg,
+            self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bgice=bgice * ICE_SCALE, pulse=pulse, bg1=self.bg + self.e, e=self.e,
                                  iob=self.ins.iob(t), ins_activity_uhr=absorbed / dt_h, hour=hour, dow=dow))
             self.t = t
             if len(self.log) % 288 == 0:
                 self.ins.prune(t)
-            bgs.append(min(max(self.bg, LOW), HIGH))
+            bgs.append(min(max(self.bg + self.e, LOW), HIGH))
         return {"bg": bgs, "carbs": carbs, "boluses": boluses}
 
     def write_log(self, path):
@@ -213,8 +224,9 @@ def main():
     ap.add_argument("--alias", required=True); ap.add_argument("--ckpt", required=True)
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--log", required=True)
     ap.add_argument("--feedback", choices=["mean", "sample"], default="mean")
+    ap.add_argument("--noise", help="level-noise parameters (json from fit_noise)")
     a = ap.parse_args()
-    plant = PlantV3(a.alias, a.ckpt, a.seed, a.feedback)
+    plant = PlantV3(a.alias, a.ckpt, a.seed, a.feedback, json.load(open(a.noise)) if a.noise else None)
     for line in sys.stdin:
         if line.strip():
             sys.stdout.write(json.dumps(plant.advance(json.loads(line))) + "\n"); sys.stdout.flush()
