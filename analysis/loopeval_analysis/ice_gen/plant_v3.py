@@ -32,7 +32,7 @@ from .dataset import ICE_SCALE
 from .extract import MODELS, RAPID_ACTING_ADULT
 from .kernel import params, rate
 from .model_v3 import ICEGenV3
-from .model_v3j import ICEGenV3J
+from .model_v3j import ICEGenV3J, ICEGenV3K
 from .noise import LevelNoise
 from .plant import ROOT, Insulin, _ts, LOW, HIGH
 
@@ -59,7 +59,7 @@ class PlantV3:
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
-        Net = ICEGenV3J if ck.get("arch") == "v3j" else ICEGenV3
+        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K}.get(ck.get("arch"), ICEGenV3)
         self.net = Net(len(ck["features"]), len(ck["people"])); self.net.load_state_dict(ck["state"]); self.net.eval()
         self.features = list(ck["features"]); self.F = {f: i for i, f in enumerate(self.features)}
         self.drop = list(ck.get("drop", []))
