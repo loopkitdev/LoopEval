@@ -232,7 +232,9 @@ def extract(data_dir: str | Path, tz_daily: pd.DataFrame | None = None,
         if (bg[i - n15] - bg[i]) / sb >= 2 and (bg[i + n15] - bg[i]) / sa >= 2:
             comp[max(i - n20, 0): i + n20 + 1] = True
     df["compression"] = comp[:-1] | comp[1:]
-    inc = pd.Series(np.where(ok, df.bg1 - df.bg0, np.nan))
+    # every increment short of a gap: two interleaved CGMs report every ~1.6 / 3.4 min, which the
+    # cadence mask `ok` drops, so masking by it hid them entirely (i171: 26% of its record, 0% flagged)
+    inc = pd.Series(np.where(dt <= 1.2 * cad, df.bg1 - df.bg0, np.nan))
     w = max(int(round(120 / cad)), 8)
     df["alternating"] = (inc.rolling(w, min_periods=w // 2).corr(inc.shift(1)) < -0.6).to_numpy()
 

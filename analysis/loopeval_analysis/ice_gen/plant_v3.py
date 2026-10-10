@@ -40,7 +40,7 @@ WARMUP = 288
 
 
 class PlantV3:
-    def __init__(self, alias, ckpt, seed=0, feedback="mean", noise=None):
+    def __init__(self, alias, ckpt, seed=0, feedback="mean", noise=None, rewarm_h=0.0):
         torch.manual_seed(seed); np.random.seed(seed)
         # what the generator sees as its own last background ICE: "sample" (the noisy draw) or
         # "mean" (the predictive mean). Fed its own noisy draws, the head reads them as volatility,
@@ -66,6 +66,10 @@ class PlantV3:
         self.pid = torch.tensor([ck["people"].index(alias)])
         self.geq = ck["constants"][alias]["geq"]
         self.t = None; self.running = None; self.h = None
+        # rewarm_h > 0: every rewarm_h hours rebuild the GRU state from zero over the last 24 h of inputs, so
+        # the network always runs with 24-48 h of memory as in training (a 29-day continuous state
+        # under-generates meals by ~15%: runs/2026-10-10-ice-noise/mealrate.py)
+        self.rewarm_h = rewarm_h; self.xbuf = []; self.since_rewarm = 0.0
         # noise: {"a1", "a2", "var": {alias: mg/dL^2}} from fit_noise; None = no level noise
         self.noise = LevelNoise(noise["a1"], noise["a2"], noise["var"].get(alias, 0.0), seed) if noise else None
         self.e = self.noise.e1 if self.noise else 0.0
@@ -91,6 +95,7 @@ class PlantV3:
             X[:, self.F[f]] = 0.0
         with torch.no_grad():
             _, self.h = self.net(torch.from_numpy(X[-WARMUP:])[None], self.pid)
+        self.xbuf = [torch.from_numpy(r)[None, None] for r in X[-WARMUP:]]
         self.t = hist.t1.iloc[-1]; self.bg = float(hist.bg1.iloc[-1]) - self.e     # reported = real CGM at start
         m_, s_ = params(mr.peak_h.to_numpy() + 2.5 / 60, mr.dur_h.to_numpy()) if len(mr) else ([], [])
         for i, r in enumerate(mr.itertuples()):
@@ -164,7 +169,11 @@ class PlantV3:
             absorbed = self.ins.absorbed(self.t, t)
             x, hour, dow = self._x(t)
             with torch.no_grad():
+                if self.rewarm_h and self.since_rewarm >= self.rewarm_h:
+                    _, self.h = self.net(torch.cat(self.xbuf[-WARMUP:], 1), self.pid)
+                    self.since_rewarm = 0.0
                 out, self.h = self.net(x, self.pid, self.h)
+                self.xbuf.append(x); self.xbuf = self.xbuf[-WARMUP:]; self.since_rewarm += dt_h
                 s = self.net.sample(out)
             self.slot_carbs = 0.0; self.slot_bolus = 0.0
             self.since_meal += dt_h; self.since_bolus += dt_h
@@ -247,8 +256,9 @@ def main():
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--log", required=True)
     ap.add_argument("--feedback", choices=["mean", "sample"], default="mean")
     ap.add_argument("--noise", help="level-noise parameters (json from fit_noise)")
+    ap.add_argument("--rewarm-h", type=float, default=0.0, help="rebuild the GRU state over the last 24 h every N hours (0 = never)")
     a = ap.parse_args()
-    plant = PlantV3(a.alias, a.ckpt, a.seed, a.feedback, json.load(open(a.noise)) if a.noise else None)
+    plant = PlantV3(a.alias, a.ckpt, a.seed, a.feedback, json.load(open(a.noise)) if a.noise else None, a.rewarm_h)
     for line in sys.stdin:
         if line.strip():
             sys.stdout.write(json.dumps(plant.advance(json.loads(line))) + "\n"); sys.stdout.flush()

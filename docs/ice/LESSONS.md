@@ -54,3 +54,23 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     remaining proxy: i005's generated ICE climbs over 48 h when BG is held at 350-400 (mean 72 ->
     107, p95 287 -> 496); i001 and i012 do not. Judge every variant with a held-BG probe
     (`probe_v2.py`) before the closed loop.
+11. **Feed the plant's generator what training fed it, or its outputs shift.** The v3 plant fed
+    back the predictive mean as the last background ICE — smoother than any training input — and
+    with real inputs everywhere else that alone moved meal durations 1.9 -> 2.5 h and cut the
+    meal rate (`runs/2026-10-10-ice-noise/feedback_check.py`). v3b feeds a causal 30-min EMA in
+    both places; every ICE statistic then fell below the different-person ceiling.
+12. **A recurrent state run past its training window drifts.** Trained on 48-h windows, run for
+    29 days in the plant: teacher-forced on real data with one continuous state the meal rate is
+    0.80-0.86 of labeled, with fresh 48-h windows 0.93-0.98 (`mealrate.py`). Score calibration
+    the way the plant runs, and re-warm the state (`plant_v3 --rewarm-h`).
+13. **Sample an event's attributes jointly.** v3 drew pulse size and logged grams independently
+    given the state; entries came out unrelated to their meal (within-donor corr 0.11 vs real
+    0.29) and over-logged meals drove lows (30% followed by a low within 4 h vs real 16%). v3j's
+    staged heads: corr 0.24, lows after meals 25%.
+14. **Two interleaved CGMs hide from a cadence-masked detector.** i171 interleaves two sensors
+    ~40 mg/dL apart every 1.6 / 3.4 min for 26% of its record; `alternating` masked increments
+    by the 5-min cadence and flagged none of it. Ten pilot donors carry >2% sawtooth; little of
+    it reached `clean` (max 2.7%). It also passes for "compression" in a dip scan — screen it out
+    before looking for sensor artifacts.
+15. **A pooled rate can hide a per-person trait.** Fast no-carb V-dips show no overnight excess
+    in the pool, yet 14 of 206 donors have one at p < 0.001 (0.2 expected by chance).
