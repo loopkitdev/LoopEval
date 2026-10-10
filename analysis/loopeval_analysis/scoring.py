@@ -94,11 +94,32 @@ def score_counterfactual(trace_path: str,
     """Canonical outcome scorer for a SimulateCommand trace.
 
     THE STANDARD for every experiment: scores counter_BG with the burn-in
-    skipped AND the disruption-recovery windows excluded (3h after every CGM
-    gap and pump outage). Pass the dataset's outage/cgm-gap CSVs (generate once
-    per dataset via `loopeval_analysis.outage from-nightscout` and
-    `loopeval_analysis.cgm_gaps from-cache`). Returns the dict from
-    `outcome_stats` plus `kept_frac`.
+    skipped and the disruption INTERVALS excluded. Per the module policy
+    (2026-05-26) the recovery window after a disruption is NOT excluded --
+    `post_hours` defaults to 0, so only the interval itself is dropped. Pass
+    post_hours>0 to also drop the recovery window.
+
+    Pass the dataset's outage/cgm-gap CSVs (generate once per dataset via
+    `loopeval_analysis.outage from-nightscout` and
+    `loopeval_analysis.cgm_gaps from-cache`); with neither, nothing is excluded
+    and `kept_frac` is 1.0.
+
+    `burnin_hours` is measured from the trace's `intervalStart`, which is the
+    sim's evalStart -- NOT the `--start` the run was given. The sim's own
+    counterfactual burn-in is also 6 h past evalStart, so the default lines the
+    scored span up with the diverged span. (evalStart is itself evalWarmupHours,
+    default 16, past --start; see the simulator guide section 7.)
+
+    `tz` defaults to America/Chicago. It affects only how timestamps are
+    localized -- metric values are tz-invariant -- but pass the donor's own
+    timezone for anything that groups by local day.
+
+    Returns `outcome_stats` plus `kept_frac`, and -- when the trace carries
+    per-step `candidateIOB` -- the `crossing_iob_stats` keys at threshold 54.
+    NOTE those keys are conditional: a trace with no 54-crossing returns
+    `n_cross54: 0` and NOTHING ELSE, so read the summaries with `.get()` rather
+    than indexing (`iob_cross54_med/mean/p90/possum` appear only when
+    n_cross54 > 0).
     """
     import json, pytz
     from pathlib import Path

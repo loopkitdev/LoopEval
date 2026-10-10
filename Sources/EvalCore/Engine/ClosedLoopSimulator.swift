@@ -70,6 +70,10 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         // >1 = active, raising effective ISF from accumulated recent negative discrepancies).
         public var candidateSensModeMult: Double = .nan
         public var candidateManualBolusRecOut: Double = .nan
+        // Plant behavior (v2): bolus delivered this step at the plant person's request, and
+        // carbs the plant person entered during this step (0 when not in plant-behavior mode).
+        public var plantBolusU: Double = 0
+        public var plantCarbsG: Double = 0
         // PATIENT IOB — a single independent IOB view: field dosing and candidate
         // dosing each run through the SAME patient insulin model (net-basal,
         // fillBasalGaps) via insulinOnBoard(at:). Independent of NS devicestatus
@@ -200,6 +204,20 @@ extension EvaluationEngine {
         // The only thing borrowed from the schedule is its DATE SPAN, which is coverage
         // (glucoseEffects preconditions on closestPrior(dose.startDate)), not therapy.
         patientISF: Double? = nil,
+        // PATIENT-side insulin model: the pharmacodynamics of the SIMULATED BODY,
+        // used to strip the field's insulin out of the observed trace (ICE) and to
+        // put the candidate's insulin back in. Distinct from the controller's model
+        // BELIEF, which stays `data.therapyTimeline.insulinType` (what --insulin-type
+        // sets) and reaches LoopAlgorithm through each dose's own stamped type.
+        //
+        // Identity is preserved for ANY patient model: the same curve removes the
+        // field's doses and adds the candidate's, so at candidate == field the two
+        // terms are equal and the bracket vanishes exactly.
+        //
+        // nil = the plant uses the therapy insulin type, i.e. COUPLED to the
+        // controller's belief (the historical behavior, so existing runs are
+        // unchanged).
+        patientInsulinType: ExponentialInsulinModelPreset? = nil,
         inferSensitivity: Bool = false,
         inferSensitivityMax: Double = 2.0,
         inferSensitivityWindowSec: TimeInterval = 30 * 60,
@@ -209,6 +227,15 @@ extension EvaluationEngine {
         useOpenAPSForCandidate: Bool = false,
         useLoopMimicForCandidate: Bool = false,
         sensorCapMgdl: Double = 400.0,
+        // EXTERNAL PLANT (sim-of-the-sim): replace the counterfactual's physiological
+        // advance with a patient model in another process (see ExternalPlant.swift).
+        // nil = the ICE replay, unchanged.
+        externalPlant: ExternalPlant? = nil,
+        // PLANT BEHAVIOR (protocol v2): the plant's person makes the carb entries and manual
+        // boluses. From cfActiveStart the candidate ignores the REAL ones; carbs the plant returns
+        // join the candidate's carb store, boluses are delivered at the next decision as
+        // ratio x the bolus-calculator recommendation there. Baseline arm untouched.
+        plantBehavior: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
 
@@ -246,12 +273,29 @@ extension EvaluationEngine {
         let mgdlUnit = LoopUnit.milligramsPerDeciliter
         // Physical insulin model: therapy preset, unless a peak/DIA override is set
         // (experiment — run the whole sim against a custom "true" insulin, e.g. peak 90).
+        //
+        // The PLANT's insulin curve is carried by the doses themselves: Loop's
+        // `glucoseEffects` reads each dose's own `insulinModel` (from its stamped
+        // `insulinType`), so changing the plant means RE-STAMPING the doses on the
+        // plant path, not passing a model alongside them. `insulinModel` below sizes
+        // the effect windows and drives the linear-PD path; `patientInsulinPreset` is
+        // what actually shapes the curve.
+        let patientInsulinPreset = patientInsulinType ?? data.therapyTimeline.insulinType
         let insulinModel: InsulinModel
         if let pk = candidateConfig.insulinPhysicalPeakMin {
             let diaSec = (candidateConfig.insulinPhysicalDiaHours ?? 6.0) * 3600.0
             insulinModel = ExponentialInsulinModel(actionDuration: diaSec, peakActivityTime: pk * 60.0, delay: 600)
         } else {
-            insulinModel = data.therapyTimeline.insulinType.model
+            insulinModel = patientInsulinPreset.model
+        }
+        // Re-stamp a dose list onto the patient's insulin model. nil preset ⇒ identity
+        // (returns the input untouched) so default runs stay bit-identical.
+        let plantStamp: ([EvalInsulinDose]) -> [EvalInsulinDose] = { doses in
+            guard let pt = patientInsulinType else { return doses }
+            return doses.map { var d = $0; d.insulinType = pt; return d }
+        }
+        if let pt = patientInsulinType {
+            FileHandle.standardError.write(Data("patient insulin model INDEPENDENT of configuration: plant = \(pt) (peak \(Int(pt.peakActivity / 60))min, DIA \(String(format: "%.1f", pt.model.effectDuration / 3600))h); controller still believes \(data.therapyTimeline.insulinType)\n".utf8))
         }
         let activityDuration = insulinModel.effectDuration
 
@@ -354,6 +398,19 @@ extension EvaluationEngine {
         // REAL IOB at each manual bolus (excluding the bolus itself), for IOB-aware passthrough.
         var realManualBolusRealIOB: [Double] = []
         var nextManualIdx = 0
+        // Plant behavior (v2): boluses the plant's person asked for, delivered at the next
+        // decision; running totals for the end-of-run summary.
+        var pendingPlantBoluses: [ExternalPlant.Bolus] = []
+        var plantCarbsTotalG = 0.0, plantBolusTotalU = 0.0, plantBolusCount = 0, plantCarbCount = 0
+        if plantBehavior {
+            guard externalPlant != nil else {
+                throw NSError(domain: "ClosedLoopSimulator", code: 1,
+                              userInfo: [NSLocalizedDescriptionKey: "plantBehavior requires an external plant"])
+            }
+            if candidateConfig.iceRiseBoostGain > 0 || isfBoostVetoIceRate != nil {
+                FileHandle.standardError.write(Data("WARNING: --plant-behavior with an ICE rise-boost / ISF-boost veto: those read the FIELD trace's ICE and will not see plant-generated meals\n".utf8))
+            }
+        }
 
         // Pre-scale sensitivity once per candidate config (timeline doesn't
         // depend on dose history).
@@ -444,7 +501,7 @@ extension EvaluationEngine {
             // Answers "how would the fully-automated system perform with NO user
             // intervention?". Burn-in seed (pre-cfActiveStart) still keeps real
             // manual boluses for IOB continuity; only post-burn-in ones are removed.
-            realManualBoluses = excludeManualBoluses ? [] : data.doses
+            realManualBoluses = (excludeManualBoluses || plantBehavior) ? [] : data.doses
                 .filter { dose in
                     dose.deliveryType != .basal && !dose.automatic
                     && dose.startDate >= cfActiveStart && dose.startDate < interval.end
@@ -491,7 +548,7 @@ extension EvaluationEngine {
             // 60 days; parallel + release build → ~30s. Mid-absorption ISF is
             // also what Loop's default config uses.
             let precomp = PrecomputedInsulinInput.build(
-                doses: safeDataDoses,
+                doses: plantStamp(safeDataDoses),
                 basal: data.therapyTimeline.basal,
                 sensitivity: physiologySensitivity,
                 effectsFrom: physGlucose.first?.startDate.addingTimeInterval(-insulinModel.effectDuration),
@@ -511,9 +568,10 @@ extension EvaluationEngine {
             // add candidate doses.
             do {
                 let physStart = Date()
+                let plantDataDoses = plantStamp(safeDataDoses)
                 for j in 1..<physGlucose.count {
                     realPhysDelta[j] = Self.physicalActiveEffectDelta(
-                        doses: safeDataDoses, basal: data.therapyTimeline.basal,
+                        doses: plantDataDoses, basal: data.therapyTimeline.basal,
                         sensitivity: physiologySensitivity,
                         from: physGlucose[j - 1].startDate, to: physGlucose[j].startDate,
                         insulinModel: insulinModel)
@@ -644,10 +702,11 @@ extension EvaluationEngine {
         // Candidate carbs, optionally with each entry's absorptionTime capped
         // (diagnostic: raises the modeled absorption-rate ceiling — see
         // EvalConfig.carbAbsorptionTimeCapSec). Baseline always uses real carbs.
-        let candidateCarbs: [EvalCarbEntry] = {
+        var candidateCarbs: [EvalCarbEntry] = {
             let cap = candidateConfig.carbAbsorptionTimeCapSec
-            guard cap > 0 else { return data.carbs }
-            return data.carbs.map { c in
+            let real = plantBehavior ? data.carbs.filter { $0.dosingVisibleDate < cfActiveStart } : data.carbs
+            guard cap > 0 else { return real }
+            return real.map { c in
                 var c2 = c
                 let cur = c.absorptionTime ?? TimeInterval(3 * 3600)
                 c2.absorptionTime = Swift.min(cur, cap)
@@ -662,6 +721,11 @@ extension EvaluationEngine {
             ? exp(-candidateConfig.evalStep / candidateConfig.sensitiveModeTauSec) : 0.0
         let sensModeOn = candidateConfig.sensitiveModeTauSec > 0 && candidateConfig.sensitiveModeGain > 0
         var sensModeLevel = 0.0
+        // Slow (autosense-scope) RC (EvalConfig.slowRc*): EWMA of the SIGNED per-step
+        // discrepancy over hours; positive level (BG running above forecast) lowers
+        // effective ISF, negative raises it, clamped to [slowRcMin, slowRcMax]. Off when tau==0 or gain==0.
+        let slowRcOn = candidateConfig.slowRcTauSec > 0 && candidateConfig.slowRcGain != 0
+        var slowRcLevel = 0.0
 
         // STEP TIMES. CGM-driven: one step per real CGM sample in the eval window
         // (irregular cadence). Default: the regular evalStep grid (stepDur ≡
@@ -705,6 +769,8 @@ extension EvaluationEngine {
             let sensModeDecayStep = candidateConfig.sensitiveModeTauSec > 0
                 ? exp(-stepDur / candidateConfig.sensitiveModeTauSec) : 0.0
             _ = sensModeDecay  // hoisted constant kept for reference; per-step value used below
+            let slowRcDecayStep = candidateConfig.slowRcTauSec > 0
+                ? exp(-stepDur / candidateConfig.slowRcTauSec) : 0.0
             if let progress, totalSteps > 1 {
                 progress(min(Double(stepIdx) / Double(totalSteps - 1), 1.0))
             }
@@ -908,6 +974,7 @@ extension EvaluationEngine {
             var candidateDose: Double
             var candidateBolus: Double
             var candidateManualBolusRec = Double.nan
+            var stepPlantBolusU = 0.0, stepPlantCarbsG = 0.0
             var candidateTempRate: Double
             var candidateTempAction = "set"
             var candidateEventualBG = Double.nan
@@ -938,6 +1005,9 @@ extension EvaluationEngine {
                 // Cross-cycle sensitive-mode ISF bump (>=1 damp; always safe to apply).
                 let sensModeMult = sensModeOn ? Swift.min(2.0, 1.0 + candidateConfig.sensitiveModeGain * sensModeLevel) : 1.0
                 candidateSensModeMult = sensModeMult
+                let slowRcMult = slowRcOn
+                    ? Swift.max(candidateConfig.slowRcMin, Swift.min(candidateConfig.slowRcMax, 1.0 - candidateConfig.slowRcGain * slowRcLevel))
+                    : 1.0
                 // ICE RISE-BOOST (rise side of the unified ICE-response term): attack a
                 // SUSTAINED, actively-driven high. A positive forecast offset when BG is
                 // high AND the trailing ICE rate is positive (BG being pushed up = a real
@@ -1005,7 +1075,7 @@ extension EvaluationEngine {
                         t: t, input: candidateInput, config: candidateConfig,
                         therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
                         glucoseSamples: candMomentumSamples,
-                        extraISFMultiplier: sensModeMult,
+                        extraISFMultiplier: sensModeMult * slowRcMult,
                         forecastOffsetMgdl: iceRiseBoostOffset + anticipationOffset,
                         perStepIsfMultByTime: map,
                         isfBoostActiveOnly: isfBoostActiveOnly,
@@ -1083,7 +1153,7 @@ extension EvaluationEngine {
                                 t: t, input: relaxedInput, config: candidateConfig,
                                 therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
                                 glucoseSamples: candMomentumSamples,
-                                extraISFMultiplier: sensModeMult,
+                                extraISFMultiplier: sensModeMult * slowRcMult,
                                 perStepIsfMultByTime: csvIsfEnabled ? perStepMapForLoop : nil,
                                 isfBoostActiveOnly: isfBoostActiveOnly,
                                 egpPhysicalDecomposition: egpPhysicalDecomposition)
@@ -1158,8 +1228,19 @@ extension EvaluationEngine {
                 // Feed the sensitive-mode level: EWMA of the NEGATIVE part of this
                 // step's discrepancy (mg/dL). Decays with sensitiveModeTauSec; raises ISF on
                 // future steps via sensModeMult above (causal: this update affects t+1 onward).
-                if sensModeOn && candidateDiscrepancy.isFinite {
-                    sensModeLevel = sensModeDecayStep * sensModeLevel + (1.0 - sensModeDecayStep) * Swift.max(0.0, -candidateDiscrepancy)
+                // RC-residual feed for the cross-cycle levels. candidateDiscrepancy is NaN whenever the
+                // carb-effect curve is empty (no carbs on board -- 97% of steps on a hands-off bed),
+                // because candidateCarbEffect stays NaN. With no carbs the carb share of ICE is exactly
+                // zero, so the residual is ICE itself; feed that, not NaN. (Until 2026-09-30 the
+                // sensitive-mode level was gated on candidateDiscrepancy.isFinite and so only updated
+                // in carb-active steps; C08 results before pinned10 were measured with that feed.)
+                let rcResidualFeed = candidateICE.isFinite
+                    ? candidateICE - (candidateCarbEffect.isFinite ? candidateCarbEffect : 0.0) : Double.nan
+                if sensModeOn && rcResidualFeed.isFinite {
+                    sensModeLevel = sensModeDecayStep * sensModeLevel + (1.0 - sensModeDecayStep) * Swift.max(0.0, -rcResidualFeed)
+                }
+                if slowRcOn && rcResidualFeed.isFinite {
+                    slowRcLevel = slowRcDecayStep * slowRcLevel + (1.0 - slowRcDecayStep) * rcResidualFeed
                 }
             }
 
@@ -1420,6 +1501,24 @@ extension EvaluationEngine {
                     }
                     nextManualIdx += 1
                 }
+                // Plant behavior: the boluses the plant's person asked for during the previous
+                // step act now, at this decision, as ratio x the bolus-calculator recommendation
+                // computed here (plant carbs entered last step are already visible to it).
+                if plantBehavior && !pendingPlantBoluses.isEmpty {
+                    let rec = candidateManualBolusRec.isFinite ? Swift.max(0, candidateManualBolusRec) : 0
+                    let want = pendingPlantBoluses.reduce(0.0) { acc, b in
+                        acc + (b.units ?? 0) + (b.ratio ?? 0) * rec
+                    }
+                    let vol = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus, want))
+                    if vol > 0 {
+                        counterfactualDoses.append(EvalInsulinDose(
+                            deliveryType: .bolus, startDate: t, endDate: t, volume: vol,
+                            insulinType: data.therapyTimeline.insulinType, automatic: false))
+                        stepCandidateAdded += vol
+                        stepPlantBolusU = vol; plantBolusTotalU += vol; plantBolusCount += 1
+                    }
+                    pendingPlantBoluses.removeAll()
+                }
               } // end !cfIdentity (skip candidate dose append in identity mode)
 
                 // PHYSIOLOGICAL ADVANCE — step counter_BG forward to whatever
@@ -1434,7 +1533,38 @@ extension EvaluationEngine {
                 while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= t {
                     advIdx += 1
                 }
-                while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd {
+                if let plant = externalPlant {
+                    // The plant, not the ICE replay, decides what the candidate's insulin does:
+                    // send this step's new deliveries, read back its CGM at each sample in
+                    // (t, stepEnd]. The candidate's history already holds them (appended above).
+                    var sampleIdx: [Int] = []
+                    var k = advIdx
+                    while k < counterGlucose.count && counterGlucose[k].startDate <= stepEnd {
+                        sampleIdx.append(k); k += 1
+                    }
+                    let stepDoses = counterfactualDoses.filter { $0.startDate >= t && $0.startDate < stepEnd }
+                    let reply = try plant.advance(
+                        t0: t, t1: stepEnd, doses: stepDoses,
+                        samples: sampleIdx.map { counterGlucose[$0].startDate },
+                        state: ["rec_bolus": candidateManualBolusRec, "iob": candidateIOB,
+                                "cob": candidateCOB, "bg": advIdx > 0 ? counterMgdl[advIdx - 1] : .nan])
+                    for (j, idx) in sampleIdx.enumerated() { counterMgdl[idx] = reply.bg[j] }
+                    advIdx = k
+                    if plantBehavior {
+                        // The person's carb entries join the candidate's carb store (sorted by
+                        // startDate for InputWindowBuilder), visible from the next decision.
+                        for c in reply.carbs {
+                            let e = EvalCarbEntry(startDate: c.t, entryDate: c.t, dosingVisibleDate: c.t,
+                                                  quantity: LoopQuantity(unit: .gram, doubleValue: c.grams),
+                                                  absorptionTime: c.absorption)
+                            let pos = candidateCarbs.firstIndex(where: { $0.startDate > c.t }) ?? candidateCarbs.count
+                            candidateCarbs.insert(e, at: pos)
+                            stepPlantCarbsG += c.grams; plantCarbsTotalG += c.grams; plantCarbCount += 1
+                        }
+                        pendingPlantBoluses += reply.boluses
+                    }
+                }
+                while externalPlant == nil && advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd {
                     let prevIdx = advIdx > 0 ? advIdx - 1 : advIdx
                     let prevT = counterGlucose[prevIdx].startDate
                     let nextT = counterGlucose[advIdx].startDate
@@ -1459,7 +1589,8 @@ extension EvaluationEngine {
                         basal: data.therapyTimeline.basal,
                         sensitivity: physiologySensitivity,
                         from: prevT, to: nextT,
-                        insulinModel: insulinModel)
+                        insulinModel: insulinModel,
+                        patientInsulinType: patientInsulinType)
                     let m = mByIndex[advIdx]
                     let stepDelta = realBGdelta + m * (candPhys - realPhysDelta[advIdx])
                     // Counter-regulation: as counter_BG falls below the onset
@@ -1599,6 +1730,8 @@ extension EvaluationEngine {
                 candidateDiscrepancy: candidateDiscrepancy,
                 candidateSensModeMult: candidateSensModeMult,
                 candidateManualBolusRecOut: candidateManualBolusRec,
+                plantBolusU: stepPlantBolusU,
+                plantCarbsG: stepPlantCarbsG,
                 baselinePredCurve: baselinePredCurve
             ))
         }
@@ -1611,7 +1744,7 @@ extension EvaluationEngine {
         // annotate (net-basal, scheduled-basal gaps filled) and evaluate
         // insulinOnBoard at each step. Field = real pump; candidate = the
         // candidate's actual delivery (counterfactualDoses).
-        let patientType = data.therapyTimeline.insulinType
+        let patientType = patientInsulinPreset
         // Split long basal segments into ≤5-min pieces so every basal takes the
         // SAME smooth path in insulinOnBoard. Loop's insulinOnBoard treats a
         // ≤1.05·delta segment as momentary but longer segments via a continuous
@@ -1658,7 +1791,7 @@ extension EvaluationEngine {
         // two-pointer window over the active-effect span keeps this O(N·W) instead
         // of the O(N²) whole-collection insulinOnBoard(at:) per step (which times
         // out once basal gaps are filled → ~17k dose entries).
-        let effDur = data.therapyTimeline.insulinType.model.effectDuration
+        let effDur = patientInsulinPreset.model.effectDuration
         let iobDelta = 5.0 * 60.0
         let iobBack = effDur + 12.0 * 3600.0   // conservative: covers long scheduled-basal segments
         let iobStepTimes = steps.map { $0.t }
@@ -1686,6 +1819,10 @@ extension EvaluationEngine {
             return s
         }
 
+        if plantBehavior {
+            FileHandle.standardError.write(Data(String(format: "plant behavior: %d carb entries (%.0f g), %d boluses (%.1f U) from the plant's person; real candidate carbs/manual boluses after cfActiveStart ignored\n",
+                plantCarbCount, plantCarbsTotalG, plantBolusCount, plantBolusTotalU).utf8))
+        }
         return ClosedLoopSimResult(
             steps: stepsWithPatientIOB,
             baselineLabel: baselineLabel,
@@ -2048,7 +2185,12 @@ extension EvaluationEngine {
         basal: [AbsoluteScheduleValue<Double>],
         sensitivity: [AbsoluteScheduleValue<LoopQuantity>],
         from: Date, to: Date,
-        insulinModel: InsulinModel
+        insulinModel: InsulinModel,
+        // Re-stamp the window's doses onto the PATIENT's insulin model. Loop's
+        // glucoseEffects reads each dose's own model, so this — not `insulinModel`,
+        // which only sizes the lookback — is what sets the plant's curve. Applied
+        // AFTER the window narrowing below, so the cost is O(window), not O(all doses).
+        patientInsulinType: ExponentialInsulinModelPreset? = nil
     ) -> Double {
         guard to > from else { return 0 }
         let lookback = from.addingTimeInterval(-insulinModel.effectDuration)
@@ -2065,10 +2207,13 @@ extension EvaluationEngine {
         let relevantDoses = doses[lowerIdx..<upperIdx].filter { $0.endDate >= lookback }
         if relevantDoses.isEmpty { return 0 }
         guard let firstSens = sensitivity.first, let lastSens = sensitivity.last else { return 0 }
-        let safeDoses = relevantDoses.filter {
+        var safeDoses = relevantDoses.filter {
             $0.startDate >= firstSens.startDate && $0.startDate <= lastSens.endDate
         }
         if safeDoses.isEmpty { return 0 }
+        if let pt = patientInsulinType {
+            safeDoses = safeDoses.map { var d = $0; d.insulinType = pt; return d }
+        }
         let trimmedBasal = basal.trimmed(from: lookback, to: to)
         let annotated = safeDoses.annotated(with: trimmedBasal, fillBasalGaps: true)
         let delta: TimeInterval = 5 * 60
@@ -2397,6 +2542,34 @@ extension EvaluationEngine {
                 if recentLow { gatedRiseScale = config.postlowRcRiseScale; gatedAsymStdRC = true }
             }
         }
+        // DESCENT-gated RC rise-cut (C32): BG reached descentHighBgMin within
+        // descentWindowMin AND is now falling at <= descentSlopeMax over 60 min.
+        // The RC built during the high is stale evidence of resistance; leaving it
+        // in props the forecast up so Loop under-suspends into the fall.
+        if config.descentRcRiseScale != 1.0, let lastG = input.glucose.last {
+            let mgdlU = LoopUnit.milligramsPerDeciliter
+            let bgNow = lastG.quantity.doubleValue(for: mgdlU)
+            var sawHigh = false
+            var slope = 0.0
+            var haveSlope = false
+            let windowSec = config.descentWindowMin * 60.0
+            for s in input.glucose.reversed() {
+                let age = lastG.startDate.timeIntervalSince(s.startDate)
+                if age <= windowSec, s.quantity.doubleValue(for: mgdlU) >= config.descentHighBgMin {
+                    sawHigh = true
+                }
+                // trailing 60-min slope: first sample at or beyond 60 min back
+                if !haveSlope, age >= 3600 {
+                    slope = (bgNow - s.quantity.doubleValue(for: mgdlU)) / (age / 60.0)
+                    haveSlope = true
+                }
+                if age > windowSec, haveSlope { break }
+            }
+            if sawHigh, haveSlope, slope <= config.descentSlopeMax {
+                gatedRiseScale = config.descentRcRiseScale
+                gatedAsymStdRC = true
+            }
+        }
         // Fast-rise-gated RC rise-cut (meal-rise-stacking corner): trailing 15-min slope.
         if config.riseGateSlope > 0, let lastG = input.glucose.last {
             let mgdlU = LoopUnit.milligramsPerDeciliter
@@ -2569,6 +2742,64 @@ extension EvaluationEngine {
 
         // Causal volatility σ5 (EWMA std of the 5-min increment, candidate's own history).
         // Only computed when a σ candidate is on; identity otherwise.
+        // NEGATIVE INSULIN DAMPER (C37; Loop and Learn customization, ported verbatim in structure from
+        // LoopDataManager.computeNegativeInsulinDamper + LoopAlgorithm.generatePrediction in
+        // nextdev_negative_insulin.patch). Loop computes it from the controller's own inputs -- doses, basal schedule,
+        // ISF schedule -- so here it reads effectiveInput, the candidate's view, exactly as Loop would.
+        if config.negativeInsulinDamper, let latestG = effectiveInput.glucose.last {
+            let mgdlU = LoopUnit.milligramsPerDeciliter
+            let anchorDate = latestG.startDate
+            let cutoff = anchorDate.addingTimeInterval(-config.nidLagMin * 60)
+            // Loop's `doses.trimmed(to:)`: doses starting after the cutoff are dropped, basal-type doses are clipped
+            // at the cutoff (volume pro-rated), boluses are kept whole.
+            var lagged: [EvalInsulinDose] = []
+            for d in effectiveInput.doses where d.startDate < cutoff {
+                if d.deliveryType == .bolus || d.endDate <= cutoff { lagged.append(d); continue }
+                var c = d
+                let full = d.endDate.timeIntervalSince(d.startDate)
+                c.endDate = cutoff
+                c.volume = full > 0 ? d.volume * cutoff.timeIntervalSince(d.startDate) / full : d.volume
+                lagged.append(c)
+            }
+            let nidEffects = lagged.annotated(with: effectiveInput.basal)
+                .glucoseEffects(insulinSensitivityHistory: effectiveInput.sensitivity,
+                                from: anchorDate.addingTimeInterval(-5 * 60))
+            var posDeltaSum = 0.0
+            if nidEffects.count > 1 {
+                for i in 1..<nidEffects.count {
+                    let dlt = nidEffects[i].quantity.doubleValue(for: mgdlU) - nidEffects[i - 1].quantity.doubleValue(for: mgdlU)
+                    posDeltaSum += Swift.max(0, dlt)
+                }
+            }
+            if let isfQ = effectiveInput.sensitivity.closestPrior(to: anchorDate)?.value,
+               let basalRate = effectiveInput.basal.closestPrior(to: anchorDate)?.value {
+                // anchorScale ~ 1 h for rapid-acting adult, ~44 min for the ultra-rapid presets
+                let anchorPoint = 0.8 * (therapy.insulinType.peakActivity / 3600.0) * basalRate * isfQ.doubleValue(for: mgdlU)
+                if anchorPoint > 0 {          // a 0 U/h basal segment would make the damper a constant 95 %: Loop disables it
+                    let a0 = config.nidAnchorAlpha, ms = config.nidMarginalSlope
+                    let lin = (1.0 - a0) / anchorPoint
+                    let tp = (1 - ms) / (2 * lin)
+                    let alpha: Double
+                    if posDeltaSum < tp { alpha = 1 - lin * posDeltaSum }
+                    else { let tv = (1 - lin * tp) * tp; alpha = (tv + ms * (posDeltaSum - tp)) / posDeltaSum }
+                    let damper = Swift.max(0, 1 - Swift.max(ms, alpha))
+                    if damper > 0 {
+                        let keep = 1 - damper
+                        var damped: [PredictedGlucoseValue] = []
+                        damped.reserveCapacity(prediction.glucose.count)
+                        var v = 0.0
+                        for (i, p) in prediction.glucose.enumerated() {
+                            let x = p.quantity.doubleValue(for: mgdlU)
+                            if i == 0 { v = x; damped.append(p); continue }
+                            let dlt = x - prediction.glucose[i - 1].quantity.doubleValue(for: mgdlU)
+                            v += dlt > 0 ? keep * dlt : dlt
+                            damped.append(PredictedGlucoseValue(startDate: p.startDate, quantity: LoopQuantity(unit: mgdlU, doubleValue: v)))
+                        }
+                        prediction.glucose = damped
+                    }
+                }
+            }
+        }
         var sigma5 = Double.nan
         if config.sigmaBandK > 0 || config.calmHighAfScale != 1.0 || config.calmHighTargetDelta > 0 {   // NB: every consumer of sigma5 must be listed here. C31's target shift was added without it,
             // so sigma5 stayed NaN, calmHighActive was never true, and all three cht arms scored
@@ -2596,8 +2827,31 @@ extension EvaluationEngine {
         // σ-widened LOWER band: lower each predicted point at τ min by k·σ5·(τ/5)^H up to
         // the horizon, tapering to 0 by taper — the eventual BG is untouched, the
         // predicted MINIMUM (min-guard / suspend logic) sees the volatility.
-        let sigmaBandAllowed = !config.sigmaBandCobGate || (prediction.activeCarbs ?? 0) <= 0
-        if config.sigmaBandK > 0, sigmaBandAllowed, sigma5.isFinite, let t0 = prediction.glucose.first?.startDate {
+        // C33: descent-off-a-high gate. The band fires on STATE rather than on sigma's level.
+        var descentAllowed = true
+        if config.sigmaBandDescentGate {
+            descentAllowed = false
+            if let lastG = effectiveInput.glucose.last {
+                let mg = LoopUnit.milligramsPerDeciliter
+                let bgNow = lastG.quantity.doubleValue(for: mg)
+                let windowSec = config.descentWindowMin * 60.0
+                var sawHigh = false, haveSlope = false, slope = 0.0
+                for sm in effectiveInput.glucose.reversed() {
+                    let age = lastG.startDate.timeIntervalSince(sm.startDate)
+                    if age <= windowSec, sm.quantity.doubleValue(for: mg) >= config.descentHighBgMin { sawHigh = true }
+                    if !haveSlope, age >= 3600 {
+                        slope = (bgNow - sm.quantity.doubleValue(for: mg)) / (age / 60.0); haveSlope = true
+                    }
+                    if age > windowSec, haveSlope { break }
+                }
+                descentAllowed = sawHigh && haveSlope && slope <= config.descentSlopeMax
+            }
+        }
+        let sigmaBandAllowed = (!config.sigmaBandCobGate || (prediction.activeCarbs ?? 0) <= 0) && descentAllowed
+        var guardPrediction: [PredictedGlucoseValue]? = nil   // guard-only band: the banded curve, for the guard alone
+        if config.sigmaBandK > 0, sigmaBandAllowed, sigma5.isFinite || config.sigmaBandFixedSigma > 0,
+           let t0 = prediction.glucose.first?.startDate {
+            let unbandedGlucose = prediction.glucose
             let unit = LoopUnit.milligramsPerDeciliter
             let hz = config.sigmaBandHorizonMin, tp = max(config.sigmaBandTaperMin, hz + 1)
             let sHz = pow(max(hz, 5.0) / 5.0, config.sigmaScalingH)
@@ -2615,6 +2869,12 @@ extension EvaluationEngine {
                 let off = -config.sigmaBandK * sigEff * s
                 return PredictedGlucoseValue(startDate: p.startDate,
                                              quantity: LoopQuantity(unit: unit, doubleValue: p.quantity.doubleValue(for: unit) + off))
+            }
+            if config.sigmaBandGuardOnly {
+                // Tail question → guard; point question → dose. Hand the banded curve to the guard and
+                // put the median forecast back for the correction (and for the trace's eventualBG).
+                guardPrediction = prediction.glucose
+                prediction.glucose = unbandedGlucose
             }
         }
 
@@ -2726,6 +2986,8 @@ extension EvaluationEngine {
             evalStep: config.evalStep,
             applicationFactor: appFactor,
             softLowGate: config.softLowGate,
+            guardPrediction: guardPrediction,
+            basalLockBg: config.basalLockBg,
             lowGateThreshold: config.lowGateThresholdMgdl,
             uncertaintyCap: config.uncertaintyCapEnabled
                 ? (k: config.uncertaintyK, fmax: config.uncertaintyFmax, low: config.uncertaintyLow,

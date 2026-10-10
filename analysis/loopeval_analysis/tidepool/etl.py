@@ -1217,6 +1217,15 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
         ORDER BY t_ms ASC""")
     if ps.empty:
         raise RuntimeError(f"no pumpSettings for {user} before window end")
+    # Partial uploads: some pumpSettings rows carry a NULL schedule field. Such a row used to
+    # crash _sched whenever its era overlapped the window; skip it so the last complete
+    # settings carry forward (an export that succeeded before is unchanged).
+    full = ps[["basalSchedules", "insulinSensitivities", "carbRatios", "bgTargets"]].notna().all(axis=1)
+    if not full.all():
+        print(f"{user}: skipping {int((~full).sum())} partial pumpSettings row(s) with a null schedule")
+        ps = ps[full]
+        if ps.empty:
+            raise RuntimeError(f"no complete pumpSettings for {user} before window end")
 
     # Collapse consecutive records with identical therapy content into distinct eras
     # (Loop re-uploads pumpSettings frequently with no change; without this the schedules
@@ -1252,8 +1261,9 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
         cr += _expand_tzline(_sched(r.carbRatios), era_s, era_e,
                       lambda it: {"value": round(_num(it["amount"]), 2)}, tzline, tz)
         tgt += _expand_tzline(_sched(r.bgTargets), era_s, era_e,
-                       lambda it: {"lowerBound": round(_num(it["low"]) * MMOL, 1),
-                                   "upperBound": round(_num(it["high"]) * MMOL, 1)}, tzline, tz)
+                       # a target entry is either {low, high} or a single {target} (older uploads)
+                       lambda it: {"lowerBound": round(_num(it.get("low", it.get("target"))) * MMOL, 1),
+                                   "upperBound": round(_num(it.get("high", it.get("target"))) * MMOL, 1)}, tzline, tz)
         contrib.append(r)
     basal, sens, cr, tgt = map(_merge_adj, (basal, sens, cr, tgt))
     if len(contrib) > 1:
