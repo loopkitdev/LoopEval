@@ -38,3 +38,8 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
    retrospective-correction mode (std / IRC / IRC+clamp) and the application factor / GBAF have
    to be recovered and passed. I told Pete 10 of 24 rollout donors ran under the wrong strategy;
    they hadn't (`SimulateCommand.swift`, data-dir defaults).
+
+8. **Mask with `zeros_like`, never `0 * y`.** A masked-out NaN target turned into `0 * NaN = NaN`
+   inside `torch.where`; the excluded positions dropped out of the loss value but not out of the
+   gradients, and the first v2 run was NaN from iteration 250 for 20 minutes. Training now stops
+   on the first non-finite loss.
