@@ -54,9 +54,12 @@ def quiet(p: pd.DataFrame) -> np.ndarray:
     return (p.cob.to_numpy() <= 0) & ~recent & ~p.disrupted.to_numpy() & p.v.notna().to_numpy()
 
 
-def yardstick(steps: pd.DataFrame, carbs: list, isf_extracted: float, until=None) -> dict:
-    """The yardstick ISF for one donor, on steps before `until` (the hold-out start) only."""
+def yardstick(steps: pd.DataFrame, carbs: list, isf_extracted: float, until=None, params: dict | None = None) -> dict:
+    """The yardstick ISF for one donor, on steps before `until` (the hold-out start) only. `params` replaces
+    eda's cohort calibration (isf_yardstick_params.json) with one refit on this role's donors."""
     import isf_yardstick as Y
+    if params is not None:
+        Y.PARAMS = {**Y.PARAMS, **params}
     s = steps if until is None else steps[steps.t1 < until]
     p = panel(s, carbs); p["isf"] = isf_extracted
     return Y.yardstick(p, quiet(p))
