@@ -64,8 +64,11 @@ def _ms_bounds(start, end):
     e = int(datetime.strptime(end, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp() * 1000)
     return s, e
 
-# t_ms expression reused everywhere
-_TMS = "CAST(get_json_object(time,'$.$date.$numberLong') AS BIGINT)"
+# t_ms expression reused everywhere. Tidepool stores `time` two ways: {"$date":{"$numberLong":"<ms>"}}
+# and, on some uploads, {"$date":"2025-09-22T20:30:08Z"}. Reading only the first gave the second a NULL
+# time, so it fell outside every window filter (i083: 33 overrides; one crashed _overrides).
+_TMS = ("COALESCE(CAST(get_json_object(time,'$.$date.$numberLong') AS BIGINT), "
+        "unix_millis(try_to_timestamp(get_json_object(time,'$.$date'))))")
 
 from .provenance import write_manifest as _write_manifest
 from . import cgm_streams as _cgm
@@ -167,7 +170,9 @@ from . import cgm_streams as _cgm
 #  23  therapy.json gains maxBasalRateTimeline / maxBolusTimeline / suspendThresholdTimeline:
 #      dated limits from the pumpSettings history. The scalars kept only the last value, so
 #      i017 (max basal 3.0 from 07-16 to 10-05, exported 2.0) was capped 1 U/h short.
-DATA_VERSION = 23
+#  24  `time` stored as an ISO string ({"$date":"...Z"}) is now read (it was NULL and dropped by
+#      every window filter); override rows with no time at all are skipped instead of crashing.
+DATA_VERSION = 24
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -255,6 +260,11 @@ def _overrides(user, s_ms, e_ms, e_win_ms):
     df = query(q)
     if df.empty:
         return []
+    # A row with no `time` can't be placed (i083: such a row crashed the export); skip it.
+    no_time = int(df["t_ms"].isna().sum())
+    if no_time:
+        print(f"{user}: skipping {no_time} override row(s) with no time")
+        df = df[df["t_ms"].notna()]
     # Group rows: enactment (t//1000, preset) -> logical record (id) -> versions.
     enact = {}
     for r in df.itertuples():
