@@ -243,10 +243,13 @@ class Plant:
                 ice = self._model_ice(t, hour, dow, carbs, man, auto_u, absorbed / dt_h)
             self.bg = max(self.bg + (ice - self.isf * absorbed / dt_h) * dt_h, 20.0)
             if outage:                                       # follow the field through the outage
-                i = self.steps.t1.searchsorted(t)
-                j = min(max(i, 1), len(self.steps)) - 1
-                if abs((self.steps.t1.iloc[j] - t).total_seconds()) < 600:
-                    self.bg = float(self.steps.bg1.iloc[j])
+                # the field reading AT t (searchsorted lands on it when it exists); the reading before it
+                # left a one-reading offset at every re-anchor (median 5 mg/dL), carried to the next outage
+                i = int(self.steps.t1.searchsorted(t))
+                near = [k for k in (i, i - 1) if 0 <= k < len(self.steps) and abs((self.steps.t1.iloc[k] - t).total_seconds()) < 600]
+                if near:
+                    k = min(near, key=lambda k: abs((self.steps.t1.iloc[k] - t).total_seconds()))
+                    self.bg = float(self.steps.bg1.iloc[k])
             self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bg1=self.bg, iob=self.ins.iob(t),
                                  ins_activity_uhr=absorbed / dt_h, hour=hour, dow=dow, outage=outage))
             self.t = t; auto_u = 0.0

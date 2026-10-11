@@ -244,7 +244,8 @@ class PlantV3:
                 j = self.steps.t1.searchsorted(t)
                 near = [k for k in (j - 1, j) if 0 <= k < len(self.steps) and abs((self.steps.t1.iloc[k] - t).total_seconds()) < 600]
                 if near:
-                    self.bg = float(self.steps.bg1.iloc[near[-1]]) - self.e
+                    k = min(near, key=lambda k: abs((self.steps.t1.iloc[k] - t).total_seconds()))
+                    self.bg = float(self.steps.bg1.iloc[k]) - self.e
             if self.noise:
                 e0 = self.e
                 for _ in range(max(1, round(dt_h * 12))):
