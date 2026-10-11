@@ -38,6 +38,12 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         public let candidateBolus: Double       // auto-bolus units this step
         public let candidateTempRate: Double    // temp basal rate set this step (U/hr)
         /// Temp-basal-strategy ifNecessary action ("set" | "cancel" | "none"); "set" on the bolus path.
+        /// Basal units the pump ACTUALLY delivered for the candidate this step: whole basal pulses
+        /// from the pulse accumulator plus any scheduled remainder after a temp expired. NaN where
+        /// the candidate didn't deliver (burn-in, DTR). This -- not candidateTempRate × time, which
+        /// is the COMMAND -- is what belongs in an actual-delivery stream: a pulse pump re-temped
+        /// every cycle delivers well below its commanded rate (i040: ~31%).
+        public var candidateBasalDeliveredU: Double = .nan
         public var candidateTempAction: String = "set"
         public var baselineTempAction: String = "set"
         // Decision diagnostics — the forecast/IOB that drove the dose. Baseline =
@@ -1364,6 +1370,7 @@ extension EvaluationEngine {
             // gap), a SCHEDULED-basal remainder [cfTempSegEnd, stepEnd] (net-zero
             // IOB) so the candidate tracks the real pump through the gap.
             var cfTempVolume: Double = 0
+            var cfBasalDeliveredU: Double = .nan
             var cfSchedRemainderU: Double = 0
             var cfTempSegEnd: Date = stepEnd
             let deltaDose: Double
@@ -1388,6 +1395,7 @@ extension EvaluationEngine {
                         data.therapyTimeline.basal, from: cfTempSegEnd, to: stepEnd)
                 }
                 cfAbsoluteDelivery = cfTempVolume + cfSchedRemainderU
+                cfBasalDeliveredU = basalDelivered + cfSchedRemainderU
                 // Use AUTO-ONLY real pump as the baseline. Manual boluses are
                 // passed through (preserved in candidate's dose history) so
                 // they cancel out and don't perturb counter_BG.
@@ -1809,6 +1817,7 @@ extension EvaluationEngine {
                 plantCarbsG: stepPlantCarbsG,
                 baselinePredCurve: baselinePredCurve
             ))
+            steps[steps.count - 1].candidateBasalDeliveredU = cfBasalDeliveredU
         }
 
         progress?(1.0)

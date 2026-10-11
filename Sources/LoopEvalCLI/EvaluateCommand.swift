@@ -208,9 +208,10 @@ func parseInsulinType(_ string: String) throws -> ExponentialInsulinModelPreset 
     case "lyumjev":           return .lyumjev
     case "afrezza":           return .afrezza
     case "lateshort90dia4", "lateshort": return .lateShort90dia4
+    case "custom":            return .custom
     default:
         throw ValidationError(
-            "Unknown insulin type: '\(string)'. Valid: rapidActingAdult, rapidActingChild, fiasp, lyumjev, afrezza, lateShort90dia4"
+            "Unknown insulin type: '\(string)'. Valid: rapidActingAdult, rapidActingChild, fiasp, lyumjev, afrezza, lateShort90dia4, custom"
         )
     }
 }

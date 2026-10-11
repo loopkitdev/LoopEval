@@ -458,8 +458,14 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "PATIENT-side INSULIN MODEL — the pharmacodynamics of the simulated BODY. RA (rapid-acting): rapidActingAdult peak 75min, rapidActingChild peak 65min. URA (ultra-rapid): fiasp, lyumjev -- peak 55min, and IDENTICAL to each other in this preset set (same peak/DIA/delay), so picking one over the other is a no-op. Also afrezza (inhaled, peak 29min) and lateShort90dia4 (experimental, peak 90min/DIA 4h). All RA/URA presets share DIA 6h -- the class difference is PEAK TIME, not duration. The controller keeps believing its own model, so this decouples 'how fast insulin really acts' from 'how fast the algorithm thinks it acts'. Unset = the body uses the controller's model too (coupled; the historical behavior). Identity-safe: the same curve removes the field's doses and adds the candidate's, so an unchanged candidate still reproduces the recording exactly.")
     var patientInsulinModel: String?
 
-    @Option(name: .long, help: "CONTROLLER-side INSULIN MODEL — what the ALGORITHM believes insulin does, overriding the therapy timeline for BOTH arms. RA (rapid-acting): rapidActingAdult peak 75min, rapidActingChild peak 65min. URA (ultra-rapid): fiasp, lyumjev -- peak 55min, and IDENTICAL to each other in this preset set (same peak/DIA/delay), so picking one over the other is a no-op. Also afrezza (inhaled, peak 29min) and lateShort90dia4 (experimental, peak 90min/DIA 4h). All RA/URA presets share DIA 6h -- the class difference is PEAK TIME, not duration. Works on every data source, unlike --insulin-type, which only reaches the Nightscout path and is silently ignored with --data-dir. Pair with --patient-insulin-model to vary the body and the belief independently: a controller believing a FASTER insulin than the body has is the dangerous mismatch (it stops waiting for insulin that has not acted yet and stacks).")
+    @Option(name: .long, help: "CONTROLLER-side INSULIN MODEL — what the ALGORITHM believes insulin does, overriding the therapy timeline for BOTH arms. RA (rapid-acting): rapidActingAdult peak 75min, rapidActingChild peak 65min. URA (ultra-rapid): fiasp, lyumjev -- peak 55min, and IDENTICAL to each other in this preset set (same peak/DIA/delay), so picking one over the other is a no-op. Also afrezza (inhaled, peak 29min), lateShort90dia4 (experimental, peak 90min/DIA 4h) and custom (see --custom-insulin-duration-min). All RA/URA presets share DIA 6h -- the class difference is PEAK TIME, not duration. Works on every data source, unlike --insulin-type, which only reaches the Nightscout path and is silently ignored with --data-dir. Pair with --patient-insulin-model to vary the body and the belief independently. Measured on one donor, the belief dominates: RA->URA belief traded about +3 TIR for +0.3-0.4 t<54 in either body, while the body's model barely moved outcomes.")
     var controllerInsulinModel: String?
+
+    @Option(name: .long, help: "Action duration (MINUTES) of the `custom` insulin model, for a Loop build shipped with a modified insulin curve. Required with `--controller-insulin-model custom` or `--patient-insulin-model custom`; both sides share one custom curve. Detect it from the recorded forecasts: deployed Loop's bgForecast runs about this long plus the 10-min delay (stock models: ~370-390 min), and the recorded insulinOnBoard decays on this curve. Must exceed twice the peak.")
+    var customInsulinDurationMin: Double?
+
+    @Option(name: .long, help: "Peak activity time (MINUTES) of the `custom` insulin model. Required with a `custom` insulin model; see --custom-insulin-duration-min.")
+    var customInsulinPeakMin: Double?
 
         @Flag(name: .long, help: "Sim-FIDELITY: infer a local insulin-sensitivity multiplier m(t) from the residual. When BG is still dropping after subtracting the PD-modeled (scheduled-ISF) insulin, the insulin was more effective than scheduled, so scale ISF UP just enough to zero that negative residual (never past it). Applied to the PHYSIOLOGY (ICE + counterfactual dose-effect run at scheduled ISF × m), DECOUPLED from the controller's ISF belief. Capped by --candidate-infer-sensitivity-max. Default OFF.")
     var candidateInferSensitivity: Bool = false
@@ -553,6 +559,7 @@ struct SimulateCommand: AsyncParsableCommand {
     var cgmStaleGuardMin: Double = 0
 
     mutating func run() async throws {
+        var exportProvenance: (version: Int?, warnings: [String])? = nil
         let startDate = try parseISO8601Date(start)
         let endDate = try parseISO8601Date(end)
         guard endDate > startDate else { throw ValidationError("--end must be after --start") }
@@ -773,6 +780,19 @@ struct SimulateCommand: AsyncParsableCommand {
         }
         let parsedPatientInsulinModel = try patientInsulinModel.map { try parseInsulinType($0) }
         let parsedControllerInsulinModel = try controllerInsulinModel.map { try parseInsulinType($0) }
+        if parsedPatientInsulinModel == .custom || parsedControllerInsulinModel == .custom {
+            guard let dur = customInsulinDurationMin, let peak = customInsulinPeakMin else {
+                throw ValidationError("a `custom` insulin model needs --custom-insulin-duration-min and --custom-insulin-peak-min.")
+            }
+            guard peak > 0, dur > 2 * peak else {
+                throw ValidationError("--custom-insulin-duration-min (\(dur)) must exceed twice --custom-insulin-peak-min (\(peak)); the exponential model is undefined otherwise.")
+            }
+            ExponentialInsulinModelPreset.customActionDuration = dur * 60
+            ExponentialInsulinModelPreset.customPeakActivity = peak * 60
+            printStderr("custom insulin model: peak \(Int(peak)) min, action duration \(Int(dur)) min (+10 min delay)\n")
+        } else if customInsulinDurationMin != nil || customInsulinPeakMin != nil {
+            throw ValidationError("--custom-insulin-duration-min/--custom-insulin-peak-min only apply with `--controller-insulin-model custom` or `--patient-insulin-model custom`.")
+        }
         if dataDir != nil && insulinType != "rapidActingAdult" && controllerInsulinModel == nil {
             printStderr("WARNING: --insulin-type is IGNORED with --data-dir (the model comes from therapy.json). Use --controller-insulin-model to override it.\n")
         }
@@ -813,6 +833,11 @@ struct SimulateCommand: AsyncParsableCommand {
         let dataSource: any EvalDataSource
         if let dataDir {
             dataSource = JSONFileDataSource(baseURL: URL(fileURLWithPath: dataDir))
+            let prov = Self.checkExportProvenance(dataDir: dataDir, arguments: CommandLine.arguments)
+            exportProvenance = prov
+            for w in prov.warnings {
+                printStderr("\n*** PROVENANCE WARNING: \(w)\n")
+            }
         } else {
             guard !nightscoutUrl.isEmpty, let baseURL = URL(string: nightscoutUrl) else {
                 throw ValidationError("Provide --nightscout-url or --data-dir")
@@ -1028,15 +1053,65 @@ struct SimulateCommand: AsyncParsableCommand {
         try Self.writeTrace(
             simResult: simResult,
             data: data,
-            to: URL(fileURLWithPath: traceOut)
+            to: URL(fileURLWithPath: traceOut),
+            exportDataVersion: exportProvenance?.version,
+            provenanceWarnings: exportProvenance?.warnings ?? []
         )
         printStderr("Closed-loop trace → \(traceOut)\n")
+    }
+
+    /// Oldest export DATA_VERSION validated against the field (bddp cohort, 2026-10-11: 9/11 donors
+    /// match on lows and TIR at v18/v19). Older exports predate fidelity fixes the replay depends on --
+    /// per-cycle strategy mode (v15), carb visibility (v16), basalType (v17), deployed maxBolus (v14) --
+    /// and unversioned ones may predate the bolus dedup (e128da3) that stopped HealthKit mirrors
+    /// replaying Loop's automatic boluses as manual. Bump deliberately when an ETL change matters.
+    static let validatedExportDataVersion = 18
+
+    /// Provenance check for a --data-dir export, run before the replay starts. Returns the export's
+    /// data_version (nil if unstamped) and human-readable warnings; never throws, never blocks -- a
+    /// sweep may override a donor flag on purpose, and other roles' scripts must not break.
+    ///
+    /// Two checks:
+    ///  * `_export_manifest.json` -- missing, or a data_version below `validatedExportDataVersion`.
+    ///  * `replay_config.json` (optional, next to the export) -- `{"required_flags": ["--flag",
+    ///    "--flag value", ...], "notes": "..."}`: the flags that make THIS donor deployment-faithful.
+    ///    Each entry must appear in the command line as that exact token sequence.
+    static func checkExportProvenance(dataDir: String, arguments: [String]) -> (version: Int?, warnings: [String]) {
+        var warnings: [String] = []
+        var version: Int? = nil
+        let dir = URL(fileURLWithPath: dataDir)
+        let manifestURL = dir.appendingPathComponent("_export_manifest.json")
+        if let raw = try? Data(contentsOf: manifestURL),
+           let obj = try? JSONSerialization.jsonObject(with: raw) as? [String: Any] {
+            version = (obj["data_version"] as? NSNumber)?.intValue
+            if let v = version, v < validatedExportDataVersion {
+                warnings.append("export data_version \(v) is older than \(validatedExportDataVersion), the oldest validated against the field -- re-export before trusting absolute outcomes")
+            } else if version == nil {
+                warnings.append("export manifest has no data_version -- cannot tell which ETL fixes it carries")
+            }
+        } else {
+            warnings.append("no _export_manifest.json -- this export predates version stamping and may predate the bolus-dedup fix (Loop automatic boluses replayed as manual); re-export before trusting absolute outcomes")
+        }
+        let cfgURL = dir.appendingPathComponent("replay_config.json")
+        if let raw = try? Data(contentsOf: cfgURL),
+           let obj = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
+           let req = obj["required_flags"] as? [String] {
+            let joined = " " + arguments.joined(separator: " ") + " "
+            let missing = req.filter { !joined.contains(" " + $0 + " ") }
+            if !missing.isEmpty {
+                let note = (obj["notes"] as? String).map { " (\($0))" } ?? ""
+                warnings.append("replay_config.json requires flags not on this command line: \(missing.joined(separator: ", "))\(note) -- the replay is NOT deployment-faithful for this donor")
+            }
+        }
+        return (version, warnings)
     }
 
     static func writeTrace(
         simResult: ClosedLoopSimResult,
         data: PreloadedData,
-        to url: URL
+        to url: URL,
+        exportDataVersion: Int? = nil,
+        provenanceWarnings: [String] = []
     ) throws {
         let mgdlUnit = LoopUnit.milligramsPerDeciliter
         let formatter = ISO8601DateFormatter()
@@ -1114,6 +1189,8 @@ struct SimulateCommand: AsyncParsableCommand {
             let delivery: [DeliveryRecord] // canonical actual-delivery stream (NEW)
             let insulinActivityCurve: [CurvePoint]
             let closedLoop: Bool
+            let exportDataVersion: Int?          // --data-dir export's manifest version (nil = unstamped)
+            let provenanceWarnings: [String]     // stale export / missing donor flags; empty = clean
         }
 
         let preds = simResult.steps.map {
@@ -1206,16 +1283,22 @@ struct SimulateCommand: AsyncParsableCommand {
         // basal it set (rate) plus any auto-bolus. Emitted per 5-min step. In CF
         // mode all candidate delivery is automatic. Basal records are run-length
         // compacted (one span per unchanged rate) to keep the trace small.
+        // amountU is what the pump DELIVERED (whole pulses), not the commanded rate × time --
+        // this stream is documented as actual delivery and is compared against the field's
+        // delivered volumes. rateUhr keeps the commanded rate for reference. Steps without a
+        // recorded delivery (burn-in) fall back to rate × time.
         let stepDur: TimeInterval = 5 * 60
         var runStart: Date? = nil
         var runRate = Double.nan
+        var runDelivered = 0.0
+        var runAllMeasured = true
         func flushBasalRun(endingAt end: Date) {
             guard let s = runStart, runRate.isFinite else { return }
             let hours = max(end.timeIntervalSince(s), 0) / 3600.0
             delivery.append(DeliveryRecord(
                 t: formatter.string(from: s), tEnd: formatter.string(from: end),
                 source: "candidate", kind: "basal", automatic: true,
-                amountU: runRate * hours, rateUhr: runRate))
+                amountU: runAllMeasured ? runDelivered : runRate * hours, rateUhr: runRate))
         }
         for step in simResult.steps {
             let r = step.candidateTempRate
@@ -1223,7 +1306,10 @@ struct SimulateCommand: AsyncParsableCommand {
                 flushBasalRun(endingAt: step.t)
                 runStart = r.isFinite ? step.t : nil
                 runRate = r
+                runDelivered = 0; runAllMeasured = true
             }
+            if step.candidateBasalDeliveredU.isFinite { runDelivered += step.candidateBasalDeliveredU }
+            else { runAllMeasured = false }
             if step.candidateBolus > 0 {
                 delivery.append(DeliveryRecord(
                     t: formatter.string(from: step.t), tEnd: nil,
@@ -1256,7 +1342,9 @@ struct SimulateCommand: AsyncParsableCommand {
             counter: counterOut,
             delivery: delivery,
             insulinActivityCurve: curve,
-            closedLoop: true
+            closedLoop: true,
+            exportDataVersion: exportDataVersion,
+            provenanceWarnings: provenanceWarnings
         )
 
         let encoder = JSONEncoder()

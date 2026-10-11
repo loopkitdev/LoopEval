@@ -623,21 +623,29 @@ timeline. The mechanism is dose re-stamping, not a model argument
 at once (the therapy timeline that stamps new doses, and the stamps already on the real dose
 history that LoopAlgorithm reads back for IOB), or the arm believes two insulins at once.
 
+Some donors run a Loop build with a **modified insulin curve**, which no preset reproduces.
+`--controller-insulin-model custom --custom-insulin-duration-min D --custom-insulin-peak-min P`
+expresses one (the 10-min delay is kept; `--patient-insulin-model custom` shares the same curve).
+Two signs give it away, and both should agree before you set it. Deployed Loop's recorded
+`bgForecast` runs about the model's duration plus the delay: ~380–390 min on every stock curve. And
+the recorded `insulinOnBoard` decays on the custom curve, not on any preset. One pilot donor
+recorded ~196-min forecasts, and its IOB fits D = 180, P = 80–84 to within 0.05 U on 95% of
+decisions; on the stock curve its replay forecast missed the field by a median 27 mg/dL.
+
 > [!WARNING]
-> **Mismatch is asymmetric, and one direction is dangerous.** Measured on one donor over 59 days,
-> RA body (peak 75 min) vs URA body (peak 55 min), as a 2×2 of belief × body:
+> **The controller's belief dominates; the body's model barely matters.** Measured on one donor
+> (deployment-faithful bed, verbatim boluses), 59 days, RA (peak 75 min) vs URA (peak 55 min), as a
+> 2×2 of belief × body:
 >
 > | TIR % / t<54 % | body RA | body URA |
 > |---|---|---|
-> | **belief RA** | 74.0 / 1.92 *(as deployed)* | 74.2 / **1.71** |
-> | **belief URA** | 74.3 / **2.73** | 75.9 / 2.33 |
+> | **belief RA** | 67.3 / 0.46 *(as deployed)* | 67.3 / 0.48 |
+> | **belief URA** | 70.5 / 0.86 | 71.0 / 0.77 |
 >
-> A controller believing a **faster** insulin than the body has is pure cost: t<54 **+0.84 pp
-> [+0.52, +1.16]** paired over 60 days, for a TIR change indistinguishable from zero. It stops
-> waiting for insulin that has not acted yet, and stacks. Believing a **slower** insulin is the
-> safest cell in the table — best t<54, no TIR cost — because under-crediting active insulin makes
-> the loop wait. The TIR gain from URA is an interaction (+1.4 pp): it appears only when belief and
-> body move *together*, and even then it is a trade, not a win (+1.88 TIR for +0.41 t<54).
+> Paired over 60 days, moving the **belief** RA→URA buys TIR **+3.2 [+2.0, +4.5]** for t<54
+> **+0.40 [+0.17, +0.63]** — a trade, in either body. Moving the **body** RA→URA under an RA belief
+> changes nothing measurable: TIR +0.05 [−0.18, +0.28], t<54 +0.02 [−0.02, +0.06]. Matched URA is
+> +3.7 TIR for +0.31 t<54 — still a trade, not a win under the joint target.
 >
 > Note the two axes are different kinds of object. The controller's model is a **settable therapy
 > choice**; the body's is a **model assumption** — changing it re-derives the ICE, i.e. it changes
@@ -761,20 +769,20 @@ A "candidate" is an `EvalConfig` + CLI flags expressing one change. The key leve
 > **both of the first two default to ON at the CLI** (`SimulateCommand.swift`; `EvalConfig`'s own
 > defaults differ and are not what a `simulate` run uses). So:
 >
-> | flags | what the candidate delivers | measured on one donor, 59 d |
+> | flags | what the candidate delivers | one hands-off donor, 59 d (42 real boluses, 65 U) |
 > |---|---|---|
-> | *(default)* | the candidate's own recommended bolus | 915 → **1075 U (+17%)**, 52% of boluses zeroed |
-> | `--no-candidate-manual-bolus-from-recommendation` | the real bolus, resized by the IOB difference | 915 → **372 U (−59%)**, 50% zeroed |
-> | **both** `--no-…-from-recommendation` **and** `--no-candidate-iob-adjust-manual-boluses` | **the real bolus, verbatim** | 915 → **915 U**, none altered |
+> | *(default)* | the candidate's own recommended bolus | 65 → **77 U** |
+> | `--no-candidate-manual-bolus-from-recommendation` | the real bolus, resized by the IOB difference | 65 → **59 U** |
+> | **both** `--no-…-from-recommendation` **and** `--no-candidate-iob-adjust-manual-boluses` | **the real bolus, verbatim** | 65 → **65 U** |
 >
 > Only the third is passthrough. The second is where `--no-candidate-iob-adjust-manual-boluses`
 > appears to "do nothing" on its own: recommendation mode takes precedence, so the flag is
 > shadowed rather than broken.
 >
-> Each mode rewrites the person's dosing hard in a different direction, so **state the mode beside
-> any hands-on result**. It is not, however, the source of the counterfactual's excess lows: with
-> verbatim passthrough the same bed still produces 130 crossings below 54 against the field's 26
-> (see [§16](#16-methodological-principles--traps)).
+> How much the mode matters scales with how much the person boluses by hand: on this hands-off
+> donor outcomes are indistinguishable across the three (26–27 crossings below 54 each), but each
+> mode rewrites manual insulin in a different direction, so **state the mode beside any hands-on
+> result**, and use verbatim for fidelity work.
 
 | Controller insulin model | `--controller-insulin-model` | What the ALGORITHM believes insulin does, for both arms. Works on every data source — unlike `--insulin-type`, which only reaches the Nightscout path and is silently ignored with `--data-dir`. |
 | In-progress temp | `--no-clip-in-progress-temp-basal` | Project an in-progress temp basal to its commanded end (what the field's recorded `bgForecast` does) instead of truncating — needed when comparing against recorded forecasts. |
@@ -904,12 +912,10 @@ could not.*
 
 > [!NOTE]
 > **How much this matters is donor-dependent — check it rather than assuming it.** The gap above is
-> ~7× in the achievable t<54 floor. On a second donor run the same way, the two curves sit within
-> **0.016 pp** of each other through the whole operating band (TIR 60–74) and cross twice,
-> separating only below TIR 58 (ISF-only plateauing at 0.19–0.28 where insulin-needs reaches 0).
-> On a third, the counterfactual never crosses 54 on either dial, so the comparison is empty. The
-> rule still stands — insulin-needs is never the *worse* baseline, and it is the one that covers
-> what candidates actually do — but "ISF-only floors high" is a property of donors whose lows are
+> ~7× in the achievable t<54 floor. How much it matters across donors has not yet been measured
+> on deployment-faithful exports, so check it rather than assume it. The rule still stands —
+> insulin-needs is never the *worse* baseline, and it is the one that covers what candidates
+> actually do — but expect "ISF-only floors high" to be a property of donors whose lows are
 > basal- and meal-driven, not a universal one. *(The donor plotted is a heavy meal announcer whose
 > config is annotated announcer-limited and not curve-validated: its field point sits above the
 > automation curve and its sim t<54 reads about twice the field's. Read the shapes and the floor
@@ -974,22 +980,29 @@ isolates one meal at a time.
 - **Net-basal data traps**: a sparse temp-basal timeline with `.fillna(0)` mislabels scheduled basal
   as suspend; use the effective-delivery helper for TDD/rate.
 - **bench TIR is diagnostic only** — it's a linearization, not closed-loop evidence.
-- **The counterfactual over-corrects field highs, and that is where its excess lows come from.**
-  On a validated bed at deployed config with *verbatim* bolus passthrough — the person's own doses,
-  unaltered — the counter still produced **130 crossings below 54 against the field's 26**, running
-  18 mg/dL lower on a 4% insulin increase. 72% of those lows happen when the field was not low at
-  all (field median 91 mg/dL, counter 40 lower), and 2–3 h earlier the field was high: median
-  166–171 mg/dL, **above 180 in 43% of cases**. The real system left those highs standing — pump
-  comms, an occlusion, open-loop time, or simply the person not acting — and the replay corrects
-  them, with the correction landing hours later as a low that never happened. Read absolute `t<54`
-  and low *counts* from any counterfactual with this in mind; it is a property of the comparison,
-  not of the candidate, and it inflates both arms. A deeper glucose floor is not the lever: it
-  changes a low's depth and duration, never how often one starts (turning it off on the same bed
-  moved crossings 126 → 89 while t<54 went 1.94 → 4.20). Nor, on this bed, is disruption exclusion:
-  on clean time only 5% of these lows have a `disruptions.csv` window in the prior 6 h, so the highs
-  being corrected are not recorded disruptions. Whether the real system could not dose there or
-  simply tolerated the high is not yet separated. The pattern also varies by bed — on a 24-donor
-  replay cohort only about half the new lows followed a field high.
+- **A replay that doesn't match its own field is almost always being fed the wrong inputs.**
+  At deployed config with verbatim boluses, one donor's replay moved like this as inputs were
+  corrected, one step at a time:
+
+  | | TIR | t<54 | crossings < 54 | within 5 mg/dL of field |
+  |---|---|---|---|---|
+  | field | 68.0 | 0.48 | 26 | — |
+  | stale export (pre-`e128da3`) | 74.0 | 1.85 | 130 | 22% |
+  | current export | 69.2 | 0.59 | 40 | 70% |
+  | + the donor's class-1 flags | 67.3 | 0.46 | 26 | 88% |
+  | + pump errors as failed commands | **68.0** | **0.46** | **25** | **95%** |
+
+  The stale export had kept HealthKit mirrors of boluses, which carry no automatic flag, so 3,025
+  of Loop's own automatic boluses were replayed as *manual* — the field loop's corrections injected
+  on top of the candidate's own, producing lows a few hours after every field high. That looked
+  exactly like physiology. Check the export's `_export_manifest.json` `data_version` against the
+  ETL's before trusting any replay, and pass the donor's emulation flags from `PRIVATE.md`. A
+  glucose floor is never the fix for excess low *counts*: it changes a low's depth and duration,
+  not how often one starts.
+- **Compare the counter to the reading it actually used.** Counter points sit on the decision-time
+  grid and hold the latest CGM reading at or before them; matching them to the *nearest* reading
+  instead manufactures gaps of up to 73 mg/dL around fast moves (and made a perfect identity read
+  as 14 breaks). Align backward.
 
 ---
 
