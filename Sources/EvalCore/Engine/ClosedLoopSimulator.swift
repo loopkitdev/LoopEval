@@ -748,6 +748,16 @@ extension EvaluationEngine {
         // Deployed timeBasedDoseApplicationFactor reference: the last COMPLETED loop
         // (errored/guard-skipped cycles don't advance it).
         var lastCompletedLoopT: Date? = nil
+        // The candidate's last temp basal that actually reached the pump, and when.
+        // A pod that can't hear the phone keeps running its last command until that
+        // command expires (Loop temps last `tempBasalDuration`); see the outage branch.
+        var lastIssuedTempRate: Double? = nil
+        var lastIssuedTempT: Date = .distantPast
+        // External plant: the end of the last interval whose doses were SENT to it. Steps
+        // that `continue` early (stale CGM, no-dose guard) never call the plant, but doses
+        // still start inside them -- passed-through manual boluses and, under --cf-identity,
+        // the real dose stream. Sending only [t, stepEnd) dropped every one of those.
+        var plantDosesSentThrough: Date? = nil
         for stepIdx in 0..<nSteps {
             let t = stepTimes[stepIdx]
             // Interval to the next decision (= next CGM in CGM-driven mode).
@@ -801,7 +811,10 @@ extension EvaluationEngine {
                         while nextManualIdx < realManualBoluses.count {
                             let mb = realManualBoluses[nextManualIdx]
                             if mb.startDate >= stepEnd { break }
-                            if mb.startDate >= t { counterfactualDoses.append(mb) }
+                            // Under --cf-identity the history was seeded with the FULL real
+                            // dose stream, manual boluses included; appending here too
+                            // doubled them (4 boluses, 14.4 U on bddp11).
+                            if mb.startDate >= t && !cfIdentity { counterfactualDoses.append(mb) }
                             nextManualIdx += 1
                         }
                     }
@@ -821,7 +834,8 @@ extension EvaluationEngine {
                     while nextManualIdx < realManualBoluses.count {
                         let mb = realManualBoluses[nextManualIdx]
                         if mb.startDate >= stepEnd { break }
-                        if mb.startDate >= t { counterfactualDoses.append(mb) }
+                        // Not under --cf-identity: the real stream is already seeded.
+                        if mb.startDate >= t && !cfIdentity { counterfactualDoses.append(mb) }
                         nextManualIdx += 1
                     }
                 }
@@ -1116,6 +1130,8 @@ extension EvaluationEngine {
                 candidateManualBolusRec = result.manualBolusRec
                 candidateTempRate = result.tempRate
                 candidateTempAction = result.tempAction
+                lastIssuedTempRate = result.tempRate
+                lastIssuedTempT = t
                 // Manual-bolus recommendation, same-transaction carb relaxation:
                 // if this step contains a real manual bolus that was co-entered with a
                 // carb (entry within ±carbTol of the bolus, and the bolus covers >=50%
@@ -1268,7 +1284,32 @@ extension EvaluationEngine {
                 }
             }
 
-            if inOutage && !decisionTimeReplay {
+            if inOutage && !decisionTimeReplay && outageNow?.reason == "pump_error" {
+                // PUMP ERROR = a loop cycle whose command never reached the pod
+                // ("Pod not connected", comms timeout). The pod is NOT off: it keeps
+                // running whatever it was last told until that command expires. In the
+                // field data this is unambiguous -- on bddp11 every one of 1,723
+                // pump-error windows (median 3 min, one failed cycle each) is covered
+                // by a temp basal that started BEFORE the window. Treating them as
+                // physical outages (absolute delivery 0) removed a full step of basal
+                // per failed cycle: 59 U the real pump delivered over 2 months, which
+                // the replay then over-corrected with extra auto-boluses. Model it as
+                // what it is: no new bolus or temp this cycle; the candidate's last
+                // issued temp continues until it would have expired, then scheduled.
+                let schedRate = data.therapyTimeline.basal.first(where: {
+                    $0.startDate <= t && $0.endDate > t
+                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
+                let running: Double
+                if let r = lastIssuedTempRate, t.timeIntervalSince(lastIssuedTempT) < tempBasalDuration {
+                    running = r
+                } else {
+                    running = schedRate
+                }
+                candidateTempRate = running
+                candidateBolus = 0
+                candidateDose = (running - schedRate) * stepDur / 3600.0
+                baselineDose = candidateDose
+            } else if inOutage && !decisionTimeReplay {
                 // Physical pump outage: absolute delivery = 0. Real Loop's
                 // recorded auto-deliveries during outages are already 0 (Loop
                 // wrote 0 U/hr temps after pump failure), so real-pump
@@ -1542,7 +1583,12 @@ extension EvaluationEngine {
                     while k < counterGlucose.count && counterGlucose[k].startDate <= stepEnd {
                         sampleIdx.append(k); k += 1
                     }
-                    let stepDoses = counterfactualDoses.filter { $0.startDate >= t && $0.startDate < stepEnd }
+                    // Everything that started since the last send, not just this step: a skipped
+                    // cycle before this one may hold doses (bddp11 under --cf-identity: 19 real
+                    // doses, 26.3 U, incl. a 5.8 U bolus, never reached the plant).
+                    let sendFrom = plantDosesSentThrough ?? t
+                    let stepDoses = counterfactualDoses.filter { $0.startDate >= sendFrom && $0.startDate < stepEnd }
+                    plantDosesSentThrough = stepEnd
                     let reply = try plant.advance(
                         t0: t, t1: stepEnd, doses: stepDoses,
                         samples: sampleIdx.map { counterGlucose[$0].startDate },
