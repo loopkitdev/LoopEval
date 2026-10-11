@@ -78,7 +78,17 @@ def eventual(bg, iob, isf, base, to_come=0.0):
     return np.clip(bg - isf * np.maximum(iob - base, 0) + to_come, 40, EVENTUAL_CAP)
 
 
-def build(steps, meals, corrections, bolus_dec, carbs, geq, features=FEATURES, isf=None):
+BOLUS_T = ["corr", "c_mode", "c_lr", "c_lu", "m_hasbol", "m_mode", "m_lr", "m_lu", "m_bolus"]
+
+
+def bolus_unknown_days(decision_times) -> set:
+    """UTC days on which Loop recorded no decisions. There the upload is HealthKit-only and every bolus,
+    automatic ones included, arrives as 'normal' (2026-10-11: i006 / i132 ~85% of their 'manual' boluses on
+    such days), so who issued a bolus is unknown and the bolus targets are left out of training."""
+    return set(pd.to_datetime(decision_times.t, utc=True).dt.floor("D").unique())
+
+
+def build(steps, meals, corrections, bolus_dec, carbs, geq, features=FEATURES, isf=None, decision_days=None):
     g = to_grid(steps)
     T, idx = len(g), g.index
     pulses = reconstruct(idx, meals, geq) if len(meals) else np.zeros(T)
@@ -165,4 +175,8 @@ def build(steps, meals, corrections, bolus_dec, carbs, geq, features=FEATURES, i
         dow_sin=np.sin(2 * np.pi * g.dow / 7), dow_cos=np.cos(2 * np.pi * g.dow / 7))
     X = np.column_stack([np.asarray(cols[f], float) for f in features]).astype(np.float32)
     Y[:, TARGETS.index("bgice")] = np.r_[bgice[1:], np.nan] / ICE_SCALE
+    if decision_days is not None:           # bolus targets unknown on days with no Loop decisions (bolus_unknown_days)
+        off = ~pd.Series(idx.tz_convert("UTC") if idx.tz is not None else idx.tz_localize("UTC")).dt.floor("D").isin(decision_days).to_numpy()
+        for k in BOLUS_T:
+            Y[off, TARGETS.index(k)] = np.nan
     return g, X, Y
