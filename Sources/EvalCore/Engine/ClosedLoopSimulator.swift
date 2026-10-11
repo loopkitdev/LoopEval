@@ -1549,6 +1549,35 @@ extension EvaluationEngine {
                         state: ["rec_bolus": candidateManualBolusRec, "iob": candidateIOB,
                                 "cob": candidateCOB, "bg": advIdx > 0 ? counterMgdl[advIdx - 1] : .nan])
                     for (j, idx) in sampleIdx.enumerated() { counterMgdl[idx] = reply.bg[j] }
+                    // GAP RE-ANCHOR for external plants. The built-in advance below re-anchors
+                    // across a long CGM gap, but it is gated on `externalPlant == nil`, so a plant
+                    // never saw that protection and had to re-implement it or integrate its own
+                    // dynamics across the whole gap in one step (one measured case: a 77 h no-CGM
+                    // gap taken as a single step pinned a replay at 2,300 mg/dL). The gap is a
+                    // property of the DATA, not of the plant's physiology, so the harness handles
+                    // it on the plant's behalf, with the same rule and the same identity guarantee:
+                    // take the gap-end LEVEL from the real CGM but carry any significant pre-gap
+                    // divergence across, so a candidate that legitimately ran away from real is not
+                    // reset at every gap. At candidate == real the offset is 0, so identity holds.
+                    // `--cf-gap-reanchor-min 0` disables it, for a plant that handles gaps itself.
+                    if cfGapReanchorSec > 0 {
+                        for (j, idx) in sampleIdx.enumerated() {
+                            let prevIdx = idx > 0 ? idx - 1 : idx
+                            guard idx > 0 else { continue }
+                            let span = counterGlucose[idx].startDate
+                                .timeIntervalSince(counterGlucose[prevIdx].startDate)
+                            guard span > cfGapReanchorSec else { continue }
+                            let aPrev = counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
+                            let aNext = counterGlucose[idx].quantity.doubleValue(for: mgdlUnit)
+                            let gapOffset = counterMgdl[prevIdx] - aPrev
+                            let anchored = abs(gapOffset) > 10.0 ? aNext + gapOffset : aNext
+                            if abs(anchored - reply.bg[j]) > 0.5 {
+                                FileHandle.standardError.write(Data(
+                                    "cf gap re-anchor (external plant): \(Int(span / 60))min gap at \(counterGlucose[idx].startDate) — plant returned \(String(format: "%.0f", reply.bg[j])), re-anchored to \(String(format: "%.0f", anchored)) mg/dL\n".utf8))
+                            }
+                            counterMgdl[idx] = anchored
+                        }
+                    }
                     advIdx = k
                     if plantBehavior {
                         // The person's carb entries join the candidate's carb store (sorted by

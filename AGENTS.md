@@ -56,6 +56,14 @@ the current `main`. If it refuses, `main` moved while you worked — merge it ag
 The invariant it buys is that `main` is a strict superset of every role branch, which is what
 makes "pick it up on the next merge" mean anything.
 
+**Cross-role findings go in `docs/handoffs/`.** When one role measures something another role
+needs to act on, write it as a tracked file there (see `docs/handoffs/README.md`) — not in the run
+directory. `runs/` is a gitignored symlink out of the repo: nothing in it appears in `git status`,
+in a diff view or on GitHub, and it does not travel between worktrees, so a handoff left there can
+be unreadable to the very role it is addressed to. On `main` it reaches every checkout on the next
+merge. The evidence stays in the run dir; the handoff cites it. If the peer's session is live, send
+a one-line message pointing at the file.
+
 **Publish the finished piece, not the work in progress.** Everything on `main` reaches every
 other checkout, so what goes back is the reusable thing — the module, the flag, the fix. A
 half-built experiment stays on its role branch until it is worth someone else's merge. The
