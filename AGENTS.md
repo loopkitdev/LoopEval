@@ -112,6 +112,16 @@ in `PRIVATE.md`** (one row per dataset), capturing what deployment-faithful repl
   app factor / GBAF, meal-announcement level;
 - any dated settings changes (target, ISF, CR).
 
+**For a `--data-dir` export, put the donor's required flags next to it** in
+`replay_config.json` — `{"required_flags": ["--flag", "--flag value", ...], "notes": "..."}`.
+`simulate` checks every replay against it and against the export's `_export_manifest.json`
+(missing, or older than the oldest data_version validated against the field), prints a
+`PROVENANCE WARNING`, and records it in the trace's `provenanceWarnings`, which
+`score_counterfactual` re-raises. It warns rather than fails, so a sweep can override a donor flag on
+purpose — but a warning on a deployed-config replay means the numbers aren't faithful. Both failure
+modes have cost whole sessions: a stale bddp11 export replayed Loop's automatic boluses as manual
+(130 lows < 54 against the field's 26), and bddp04 without its GBAF flags shows ~9× the field's t<54.
+
 Then **validate** before trusting numbers from a new site: a stock ISF sweep's TIR-vs-t<54
 curve should pass through the site's real deployment point; if it doesn't, the recorded
 config is wrong — fix it first (see `docs/FRONTIERS.md`).

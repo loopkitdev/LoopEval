@@ -125,6 +125,11 @@ def score_counterfactual(trace_path: str,
     from pathlib import Path
     tz = tz or pytz.timezone("America/Chicago")
     t = json.loads(Path(trace_path).read_text())
+    # Provenance: simulate records a stale --data-dir export or missing donor flags
+    # (replay_config.json) in the trace. Surface it here so it can't be scored silently.
+    for w in t.get("provenanceWarnings") or []:
+        import warnings
+        warnings.warn(f"{Path(trace_path).name}: {w}", stacklevel=2)
     c = pd.DataFrame(t["counter"])
     c["t"] = pd.to_datetime(c["t"]).dt.tz_convert(tz)
     bg = c.set_index("t")["bg"].dropna()
