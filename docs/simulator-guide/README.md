@@ -983,9 +983,13 @@ isolates one meal at a time.
   comms, an occlusion, open-loop time, or simply the person not acting — and the replay corrects
   them, with the correction landing hours later as a low that never happened. Read absolute `t<54`
   and low *counts* from any counterfactual with this in mind; it is a property of the comparison,
-  not of the candidate, and it inflates both arms. The lever is disruption/occlusion exclusion, not
-  a deeper glucose floor: the floor changes a low's depth and duration, never how often one starts
-  (turning it off on the same bed moved crossings 126 → 89 while t<54 went 1.94 → 4.20).
+  not of the candidate, and it inflates both arms. A deeper glucose floor is not the lever: it
+  changes a low's depth and duration, never how often one starts (turning it off on the same bed
+  moved crossings 126 → 89 while t<54 went 1.94 → 4.20). Nor, on this bed, is disruption exclusion:
+  on clean time only 5% of these lows have a `disruptions.csv` window in the prior 6 h, so the highs
+  being corrected are not recorded disruptions. Whether the real system could not dose there or
+  simply tolerated the high is not yet separated. The pattern also varies by bed — on a 24-donor
+  replay cohort only about half the new lows followed a field high.
 
 ---
 
