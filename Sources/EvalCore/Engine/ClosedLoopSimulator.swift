@@ -753,6 +753,11 @@ extension EvaluationEngine {
         // command expires (Loop temps last `tempBasalDuration`); see the outage branch.
         var lastIssuedTempRate: Double? = nil
         var lastIssuedTempT: Date = .distantPast
+        // External plant: the end of the last interval whose doses were SENT to it. Steps
+        // that `continue` early (stale CGM, no-dose guard) never call the plant, but doses
+        // still start inside them -- passed-through manual boluses and, under --cf-identity,
+        // the real dose stream. Sending only [t, stepEnd) dropped every one of those.
+        var plantDosesSentThrough: Date? = nil
         for stepIdx in 0..<nSteps {
             let t = stepTimes[stepIdx]
             // Interval to the next decision (= next CGM in CGM-driven mode).
@@ -806,7 +811,10 @@ extension EvaluationEngine {
                         while nextManualIdx < realManualBoluses.count {
                             let mb = realManualBoluses[nextManualIdx]
                             if mb.startDate >= stepEnd { break }
-                            if mb.startDate >= t { counterfactualDoses.append(mb) }
+                            // Under --cf-identity the history was seeded with the FULL real
+                            // dose stream, manual boluses included; appending here too
+                            // doubled them (4 boluses, 14.4 U on bddp11).
+                            if mb.startDate >= t && !cfIdentity { counterfactualDoses.append(mb) }
                             nextManualIdx += 1
                         }
                     }
@@ -826,7 +834,8 @@ extension EvaluationEngine {
                     while nextManualIdx < realManualBoluses.count {
                         let mb = realManualBoluses[nextManualIdx]
                         if mb.startDate >= stepEnd { break }
-                        if mb.startDate >= t { counterfactualDoses.append(mb) }
+                        // Not under --cf-identity: the real stream is already seeded.
+                        if mb.startDate >= t && !cfIdentity { counterfactualDoses.append(mb) }
                         nextManualIdx += 1
                     }
                 }
@@ -1574,7 +1583,12 @@ extension EvaluationEngine {
                     while k < counterGlucose.count && counterGlucose[k].startDate <= stepEnd {
                         sampleIdx.append(k); k += 1
                     }
-                    let stepDoses = counterfactualDoses.filter { $0.startDate >= t && $0.startDate < stepEnd }
+                    // Everything that started since the last send, not just this step: a skipped
+                    // cycle before this one may hold doses (bddp11 under --cf-identity: 19 real
+                    // doses, 26.3 U, incl. a 5.8 U bolus, never reached the plant).
+                    let sendFrom = plantDosesSentThrough ?? t
+                    let stepDoses = counterfactualDoses.filter { $0.startDate >= sendFrom && $0.startDate < stepEnd }
+                    plantDosesSentThrough = stepEnd
                     let reply = try plant.advance(
                         t0: t, t1: stepEnd, doses: stepDoses,
                         samples: sampleIdx.map { counterGlucose[$0].startDate },
