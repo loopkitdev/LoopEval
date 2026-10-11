@@ -21,6 +21,12 @@ public struct EvalTempTarget: Codable, Sendable, Equatable {
     }
 }
 
+public struct InsulinTypeChange: Sendable {
+    public let start: Date
+    public let preset: ExponentialInsulinModelPreset
+    public init(start: Date, preset: ExponentialInsulinModelPreset) { self.start = start; self.preset = preset }
+}
+
 public struct TherapySettings: Codable, Sendable {
     public var basal: [AbsoluteScheduleValue<Double>]
     public var sensitivity: [AbsoluteScheduleValue<LoopQuantity>]   // ISF mg/dL/U
@@ -61,6 +67,16 @@ public struct TherapySettings: Codable, Sendable {
     // from the host gets shifted schedules (e.g. Berlin profile on a US host →
     // mangled basal). nil ⇒ fall back to the sim's localTimezone (legacy).
     public var scheduleTimeZone: TimeZone? = nil
+    // Dated CONTROLLER insulin-curve changes (a rebuilt app with a different curve). Loop maps
+    // insulin type to curve when it computes, not when it delivers, so from each `start` on a
+    // decision evaluates EVERY dose in its history, older ones included, on the new curve.
+    // Sorted by start. Empty ⇒ `insulinType` throughout (behavior unchanged).
+    public var insulinTypeChanges: [InsulinTypeChange] = []
+
+    /// The controller's insulin curve for a decision at `t`.
+    public func insulinType(at t: Date) -> ExponentialInsulinModelPreset {
+        insulinTypeChanges.last(where: { $0.start <= t })?.preset ?? insulinType
+    }
 
     public init(
         basal: [AbsoluteScheduleValue<Double>],

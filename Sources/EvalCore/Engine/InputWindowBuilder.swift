@@ -202,6 +202,12 @@ struct InputWindowBuilder: Sendable {
                 }
             }
         }
+        // A dated controller curve change re-evaluates the whole history on the curve in force
+        // at this decision (see TherapySettings.insulinTypeChanges).
+        if !therapyTimeline.insulinTypeChanges.isEmpty {
+            let preset = therapyTimeline.insulinType(at: t)
+            for i in dosesSlice.indices { dosesSlice[i].insulinType = preset }
+        }
 
         // ── Carbs ────────────────────────────────────────────────────────────────
         // Window the absorption-relevant range by MEAL TIME (startDate), then

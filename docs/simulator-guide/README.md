@@ -632,6 +632,14 @@ the recorded `insulinOnBoard` decays on the custom curve, not on any preset. One
 recorded ~196-min forecasts, and its IOB fits D = 180, P = 80–84 to within 0.05 U on 95% of
 decisions; on the stock curve its replay forecast missed the field by a median 27 mg/dL.
 
+A user can also **rebuild mid-window** onto a different curve; the recorded forecast length steps at
+the install. `--controller-insulin-switch ISO8601=SPEC` (repeatable; SPEC is a preset name or
+`DURATION/PEAK` in minutes) changes the controller's curve from that instant. Loop maps insulin type
+to curve when it computes, not when it delivers, so after a change every decision evaluates its
+**whole** dose history on the new curve, older doses included. The plant keeps the curve in force
+before the first change unless `--patient-insulin-model` says otherwise: rebuilding the app does not
+change the insulin.
+
 > [!WARNING]
 > **The controller's belief dominates; the body's model barely matters.** Measured on one donor
 > (deployment-faithful bed, verbatim boluses), 59 days, RA (peak 75 min) vs URA (peak 55 min), as a

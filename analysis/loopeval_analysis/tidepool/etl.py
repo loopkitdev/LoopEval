@@ -154,7 +154,17 @@ from . import cgm_streams as _cgm
 #      anchored on is kept — the minute-dedup of the union interleaved them into a sawtooth (pilot
 #      i171: 26% of its record, two sensors ~40 mg/dL apart). New cgm_quality.csv: two-sensor hours,
 #      unresolved interleaving, clipped and flat runs, smoothed days.
-DATA_VERSION = 20
+#  21  disruptions.csv gains `manual_temp` rows: temp basals the USER set on the pump (Tidepool
+#      deliveryType 'temp', native row), during which Loop enacts nothing. They take precedence
+#      over overlapping suspend/offline/pump_error windows. The replay delivers the field's
+#      recorded basal there (i040: 197 h, where it kept dosing through the user's pauses).
+#  22  second-app dose records (Trio, twiist; the app that recorded the dosing decisions is the
+#      controller): another app's bolus matching a controller bolus within +-2 min at the same
+#      units is dropped (i156: 86.5% of Trio's boluses), and so is its basal on controller-basal
+#      days. Days with unmatched second-app boluses go to the new dose_doubt.csv.
+#      Also: a status `suspended` with no `resumed` now ends at the first delivery after it,
+#      not at the window end (i156: one unpaired manual suspend held a 4-month disruption).
+DATA_VERSION = 22
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -443,14 +453,39 @@ def _suspends(user, s_ms, e_ms):
           f"AND {_TMS} BETWEEN {int(s_ms - 7 * 86400 * 1000)} AND {int(e_ms)} ORDER BY {_TMS}")
     ds = query(qs)
     if not ds.empty:
-        cur = None
-        for r in ds.drop_duplicates("t_ms").itertuples():
-            if r.st == "suspended" and cur is None:
-                cur = int(r.t_ms)
-            elif r.st == "resumed" and cur is not None:
-                iv.append((cur, int(r.t_ms))); cur = None
-        if cur is not None:                       # still suspended at window end
-            iv.append((cur, int(e_ms)))
+        # A status suspend also ends at the first DELIVERY after it. The `resumed` edge is not
+        # always recorded: i156 has a manual suspend on 06-06 with no resume, after which Loop
+        # made ~15k decisions a month and delivered, yet the pairing held the pump suspended to
+        # the window end (176,496 min). Same shape on i130, i105, i053. A real pod-off (bddp10's
+        # 49 h) has no delivery records until the new pod, so it is unaffected.
+        dq = (f"SELECT {_TMS} AS t_ms FROM {TBL} WHERE _userId='{user}' "
+              f"AND CAST(_active AS STRING) != 'false' AND {_TMS} BETWEEN {int(s_ms - 7 * 86400 * 1000)} AND {int(e_ms)} "
+              f"AND ((type='bolus' AND COALESCE(CAST(get_json_object(normal,'$.$numberDouble') AS DOUBLE), "
+              f"CAST(get_json_object(normal,'$.$numberInt') AS DOUBLE)) > 0) "
+              f"OR (type='basal' AND deliveryType != 'suspend' AND COALESCE(CAST(get_json_object(rate,'$.$numberDouble') AS DOUBLE), "
+              f"CAST(get_json_object(rate,'$.$numberInt') AS DOUBLE)) > 0))")
+        import bisect as _bis
+        deliv = sorted(int(x) for x in query(dq).t_ms.dropna())
+
+        def _first_delivery_after(t):
+            i = _bis.bisect_right(deliv, t + 1000)
+            return deliv[i] if i < len(deliv) else None
+        # An explicit `resumed` edge is authoritative (bddp10's pod-off carries basal records
+        # claiming delivery inside it, but BG pinned at 401 and IOB fell to 0). Delivery
+        # evidence only bounds a suspend that never gets its own resume: the next edge is
+        # another `suspended`, or there is none.
+        ev = [(int(r.t_ms), r.st) for r in ds.drop_duplicates("t_ms").itertuples()]
+        st_iv = []
+        for i, (t, st) in enumerate(ev):
+            if st != "suspended" or (st_iv and st_iv[-1][1] > t):
+                continue
+            nxt = ev[i + 1] if i + 1 < len(ev) else None
+            if nxt is not None and nxt[1] == "resumed":
+                st_iv.append((t, nxt[0])); continue
+            bound = nxt[0] if nxt is not None else int(e_ms)
+            fd = _first_delivery_after(t)
+            st_iv.append((t, min(fd, bound) if fd is not None else bound))
+        iv.extend(st_iv)
     # clip to the window (+6h lead) and drop intervals entirely before it
     lo = int(s_ms - 6 * 3600 * 1000)
     iv = [(max(a, lo), min(b, int(e_ms))) for a, b in iv if b > lo and a < e_ms]
@@ -854,6 +889,39 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     # the authoritative subType survives; fall back to the mirror only if no native exists.
     b = b.copy()
     b["_mirror"] = (b["orig"].astype(str) == "com.apple.HealthKit").astype(int)
+    # SECOND-APP DOSE RECORDS. The controller is the app that recorded the dosing decisions.
+    # Another app (Trio, twiist; not the HealthKit mirror, handled above) can upload dose
+    # records for the SAME days: i156 has Trio copying 86.5% of Loop's boluses 0-120 s later,
+    # past the exact-second key, and exports read +28-112% over Loop's own total. Drop another
+    # app's bolus that matches a controller bolus within +-2 min at the same units. Its
+    # unmatched boluses stay (we can't tell whether they reached this body) and their days go
+    # to dose_doubt.csv. An app that is the only uploader on a day (a switch of controller)
+    # is untouched.
+    ctrl_apps = set(query(f"SELECT DISTINCT get_json_object(CAST(origin AS STRING),'$.name') AS app "
+                          f"FROM {TBL} WHERE {win} AND type='dosingDecision'").app.dropna().astype(str))
+    second_app_dropped = 0
+    doubt_days = set()
+    if ctrl_apps:
+        orig_s = b["orig"].astype(str)
+        b["_other"] = (~orig_s.isin(ctrl_apps) & (b["_mirror"] == 0)).astype(int)
+        nat = b[(b["_other"] == 0) & (b["_mirror"] == 0)].dropna(subset=["units"])
+        oth = b[b["_other"] == 1]
+        if len(oth) and len(nat):
+            nat_ms = nat["t_ms"].astype("int64").to_numpy()
+            nat_u = nat["units"].round(3).to_numpy()
+            order = nat_ms.argsort(); nat_ms, nat_u = nat_ms[order], nat_u[order]
+            nat_days = set((nat_ms // 86400000).tolist())
+            import bisect as _bis
+            drop_idx = []
+            for idx, r in oth.iterrows():
+                t0 = int(r["t_ms"]); u0 = _fin(r["units"])
+                lo_i = _bis.bisect_left(nat_ms, t0 - 120000); hi_i = _bis.bisect_right(nat_ms, t0 + 120000)
+                if u0 is not None and any(abs(nat_u[j] - round(u0, 3)) < 1e-6 for j in range(lo_i, hi_i)):
+                    drop_idx.append(idx)
+                elif t0 // 86400000 in nat_days:
+                    doubt_days.add(t0 // 86400000)
+            second_app_dropped = len(drop_idx)
+            b = b.drop(index=drop_idx)
     doses = []; manual_ms = []; bseen = set()
     for r in b.sort_values(["t_ms", "_mirror"]).itertuples():   # native (_mirror=0) sorts first
         u = _fin(r.units)
@@ -899,6 +967,20 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     # 0.15 temp our export recorded as 0.0. Keep the NATIVE (non-HealthKit) row.
     bas = bas.copy()
     bas["_mirror"] = (bas["orig"].astype(str) == "com.apple.HealthKit").astype(int)
+    # Second-app basal (see the bolus block): on a day the controller recorded basal itself,
+    # another app's basal rows are copies that would interleave with its timeline (each one
+    # clips the controller's segment it starts inside). Drop them; keep them on days they
+    # are the only basal source.
+    second_app_basal_dropped = 0
+    if ctrl_apps:
+        bo = bas["orig"].astype(str)
+        other_b = ~bo.isin(ctrl_apps) & (bas["_mirror"] == 0)
+        if other_b.any():
+            day = bas["t_ms"].astype("int64") // 86400000
+            ctrl_days = set(day[bo.isin(ctrl_apps)].tolist())
+            dropm = other_b & day.isin(ctrl_days)
+            second_app_basal_dropped = int(dropm.sum())
+            bas = bas[~dropm]
     bseen = set()
     keep = []
     for r in bas.sort_values(["t_ms", "_mirror", "_id_str"] if "_id_str" in bas.columns else ["t_ms", "_mirror"]).itertuples():
@@ -924,12 +1006,21 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                 recv = int(crt)
         dtype = getattr(r, "dtype", None)
         btype = "suspend" if dtype == "suspend" else ("temp" if _fin(getattr(r, "has_supp", None)) else "scheduled")
-        segs.append((st, st + dur_ms, rate, delivered, dur_ms, recv, btype))
+        # MANUAL temp basal: one the USER set on the pump. Tidepool's deliveryType is 'temp' for
+        # these and 'automated' for Loop's own temps (HealthKit mirrors strip the type to 'temp',
+        # so only a native row counts). While one runs, Loop logs recommendations but enacts
+        # none: i040 09-10 12:55-17:03 ran 0.05 U/h manual temps through recommendations of
+        # 2.35-3.0 U/h. 39 of 207 pilot donors use them, i040 for 6.4% of its time.
+        manual = dtype == "temp" and str(getattr(r, "orig", "")) != "com.apple.HealthKit"
+        segs.append((st, st + dur_ms, rate, delivered, dur_ms, recv, btype, manual))
     segs.sort(key=lambda s: (s[0], s[1]))   # sort by (start, end); `delivered` may be None
-    for i, (st, en, rate, delivered, rec_dur, recv, dtype) in enumerate(segs):
+    manual_iv = []
+    for i, (st, en, rate, delivered, rec_dur, recv, dtype, manual) in enumerate(segs):
         if i + 1 < len(segs):
             en = min(en, segs[i + 1][0])      # clip to next start (no overlap)
         if en <= st: continue
+        if manual:
+            manual_iv.append((st, en))
         if delivered is not None and rec_dur > 0:
             # Use the actual delivered amount, scaled by the clip ratio so a
             # clipped (superseded) segment counts only its delivered portion.
@@ -1065,6 +1156,29 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     tagged = [(s, e, "suspend", "tidepool/suspend_dose") for s, e in sus] \
            + [(s, e, "loop_offline", "tidepool/decision_gap") for s, e in off] \
            + [(s, e, "pump_error", "tidepool/dosing_decision_errors") for s, e in perr]
+    # A manual temp wins wherever it overlaps another disruption: the pump runs the user's temp
+    # whatever Loop is doing, and the replay delivers the field's recorded basal there (which
+    # already carries any suspend inside it). Cut manual intervals out of the others, and keep
+    # them as their own rows so the merge below can't fold them into a generic 'disruption'.
+    man = []
+    for s, e in sorted(manual_iv):
+        if man and s <= man[-1][1]:
+            man[-1][1] = max(man[-1][1], e)
+        else:
+            man.append([s, e])
+
+    def _minus_manual(s, e):
+        out, cur = [], s
+        for ms, me in man:
+            if me <= cur or ms >= e:
+                continue
+            if ms > cur:
+                out.append((cur, ms))
+            cur = max(cur, me)
+        if cur < e:
+            out.append((cur, e))
+        return out
+    tagged = [(a, b, reason, src) for s, e, reason, src in tagged for a, b in _minus_manual(s, e)]
     tagged.sort()
     merged = []
     for s, e, reason, src in tagged:
@@ -1074,6 +1188,19 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                 merged[-1][2], merged[-1][3] = "disruption", "tidepool/merged"
         else:
             merged.append([s, e, reason, src])
+    merged = sorted(merged + [[s, e, "manual_temp", "tidepool/manual_temp_basal"] for s, e in man])
+    # Days whose doses can't be resolved: another app recorded boluses matching nothing the
+    # controller recorded. Doses stay in doses.json; consumers exclude these days (insulin
+    # unknown). Not a disruption: the pump was delivering, so the replay must not clamp it.
+    with open(os.path.join(outdir, "dose_doubt.csv"), "w", newline="") as fh:
+        w = _csv.writer(fh); w.writerow(["start", "end", "reason", "notes"])
+        for dday in sorted(doubt_days):
+            w.writerow([_iso(dday * 86400000), _iso((dday + 1) * 86400000), "second_app_doses",
+                        "another app recorded boluses on a controller day that match no controller bolus"])
+    if second_app_dropped or second_app_basal_dropped or doubt_days:
+        print(f"{user}: second-app dose records: dropped {second_app_dropped} bolus copies and "
+              f"{second_app_basal_dropped} basal rows; {len(doubt_days)} day(s) with unresolved "
+              f"doses -> dose_doubt.csv")
     dis_path = os.path.join(outdir, "disruptions.csv")
     with open(dis_path, "w", newline="") as fh:
         w = _csv.writer(fh); w.writerow(["start", "end", "reason", "source", "notes"])
@@ -1086,7 +1213,10 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     _write_manifest(outdir, user, start, end,
                     counts=dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs),
                                 suspends=len(sus), offline_gaps=len(off),
-                                pump_errors=len(perr), stale_cgm=len(stale),
+                                pump_errors=len(perr), stale_cgm=len(stale), manual_temps=len(man),
+                                second_app_bolus_dropped=second_app_dropped,
+                                second_app_basal_dropped=second_app_basal_dropped,
+                                dose_doubt_days=len(doubt_days),
                                 cgm_sensors=cgm_summary["sensors"], cgm_two_sensor_hours=cgm_summary["conflict_hours"],
                                 cgm_dropped=cgm_summary["dropped"], cgm_unresolved_hours=cgm_summary["unresolved_hours"],
                                 cgm_flat_runs=sum(q["kind"] == "flat_run" for q in cgm_report)))
@@ -1094,7 +1224,8 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     print(f"{user}: glucose={len(glucose)} doses={len(doses)} carbs={len(carbs)} "
           f"therapy(basal={len(therapy['basal'])},isf={len(therapy['sensitivity'])}) "
           f"suspends={len(sus)}({sus_h:.1f}h) offline_gaps={len(off)}({off_h:.1f}h) "
-          f"pump_errors={len(perr)}({perr_h:.1f}h) stale_cgm={len(stale)} → {outdir}")
+          f"pump_errors={len(perr)}({perr_h:.1f}h) stale_cgm={len(stale)} "
+          f"manual_temps={len(man)}({sum(e - s for s, e in man) / 3600000.0:.1f}h) → {outdir}")
     return dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs))
 
 def _sched(j):
