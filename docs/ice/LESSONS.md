@@ -81,3 +81,23 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     54 (5.5% vs 0.83% elsewhere; one i056 episode sat at the 20 mg/dL floor for 60 h). On the remaining
     time the replay's excess over the field halves (t54 0.53 vs 0.12) and the generator's excess over the
     replay becomes the larger gap (1.70 vs 0.53) — `runs/2026-10-10-replay-lows/rescore_clean.py`.
+17. **A start head's calibration is a training-run accident: calibrate it.** Fed real held-out
+    inputs, the meal-start hazard's expected count ranged 3.3-5.7/day against a real 6.2 across nine
+    trainings, under in-sample too. Comparisons between versions mostly compared that. One logit
+    offset per start head, fitted on the 28 days before the hold-out (`calibrate.py`), brings v3g
+    to 5.97 vs 6.21 held-out. Closed-loop rates still drift (calibrated v3g starts 7.5/day in its own
+    rollouts vs 6.3 real, the excess at glucose > 120), so judge a change across replicate trainings.
+18. **Insulin and state weighting did not buy the turnaround.** An insulin-aware projection input
+    (v3h) and the low-state weight on background ICE (v3i) both left the push back up after
+    entering 70-90 unchanged (48 vs 68 mg/dL/h real). Fed real inputs the model already expects the
+    real background there (37.7 vs 39.9); the shortfall builds up in its own rollouts.
+19. **Day-to-day variation is large, persistent and unexplained by the record.** Within a person the
+    daily background level has sd ~11 mg/dL/h (between-person 11.4), covariance of daily means 58 at
+    1 day and ~8 at 2 weeks. Site age, prior-day lows and highs and weekends explain ~1%. Generated
+    days were independent. It must be generated (`slow.py`), not learned from inputs.
+20. **Integrating across a CGM gap is not a replay.** Lesson 16's "i056 at the 20 mg/dL floor for
+    60 h" was a 77 h no-CGM gap integrated in one plant step. Gaps over 2 h now re-anchor to the field
+    in both plants; the generator's runaway runs went from 3 of 72 to 0.
+21. **Measured-ICE replay is more variable than the field.** Clean-time replay glucose sd 58 vs field
+    49 (median donor); the gap reverts within 3-6 h and is not the plant-vs-schedule ISF mismatch
+    (rank corr -0.07). Hand-off to simulator: `runs/2026-10-10-replay-lows/HANDOFF.md`.
