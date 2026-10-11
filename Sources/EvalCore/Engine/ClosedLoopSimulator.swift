@@ -1272,7 +1272,12 @@ extension EvaluationEngine {
             // CGM gap (if the pump is physically off, CGM staleness is moot).
             let outageNow = outages.isEmpty ? nil : outages.containing(t)
             let basalContinues = outageNow.map { outageBasalContinuesReasons.contains($0.reason) } ?? false
-            let inOutage = outageNow != nil && !basalContinues
+            // MANUAL TEMP: the user set a temp basal on the pump. The pump runs it whatever Loop
+            // decides; Loop logs recommendations but enacts none (i040 09-10: 0.05 U/h for 4 h
+            // through recommendations of 2.35-3.0 U/h). Not an outage — the pump delivers, just
+            // not what the controller asks — so the candidate delivers the field's recorded basal.
+            let manualTempNow = outageNow?.reason == "manual_temp"
+            let inOutage = outageNow != nil && !basalContinues && !manualTempNow
 
             // CGM staleness: Loop refuses to issue a NEW dose when the latest
             // glucose is older than its inputDataRecencyInterval (15min,
@@ -1290,7 +1295,22 @@ extension EvaluationEngine {
                 }
             }
 
-            if inOutage && !decisionTimeReplay && outageNow?.reason == "pump_error" {
+            if manualTempNow && !decisionTimeReplay {
+                // Delivery comes from the field record in the cfActive block below. The
+                // controller's command never reached the pump, so it must not continue later
+                // either (a pump_error right after the window would otherwise resume it).
+                let fieldRate = data.doses.last(where: {
+                    $0.deliveryType == .basal && $0.startDate <= t && $0.endDate > t
+                })?.tempRate
+                let schedRate = data.therapyTimeline.basal.first(where: {
+                    $0.startDate <= t && $0.endDate > t
+                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
+                candidateTempRate = fieldRate ?? schedRate
+                candidateBolus = 0
+                candidateDose = (candidateTempRate - schedRate) * stepDur / 3600.0
+                baselineDose = candidateDose
+                lastIssuedTempRate = nil
+            } else if inOutage && !decisionTimeReplay && outageNow?.reason == "pump_error" {
                 // PUMP ERROR = a loop cycle whose command never reached the pod
                 // ("Pod not connected", comms timeout). The pod is NOT off: it keeps
                 // running whatever it was last told until that command expires. In the
@@ -1380,13 +1400,17 @@ extension EvaluationEngine {
                 // long pre-gap step (stepDur ≫ 30min) the temp runs only 30 min,
                 // then scheduled basal resumes — preventing a pre-gap suspend from
                 // delivering 0 for the whole multi-hour gap (counter runaway).
-                let tempSec = min(stepDur, tempBasalDuration)
+                let tempSec = manualTempNow ? stepDur : min(stepDur, tempBasalDuration)
                 cfTempSegEnd = t.addingTimeInterval(tempSec)
                 // Pump basal-pulse delivery for the temp RATE over its live window.
                 // The accumulator carries the sub-pulse remainder while the rate is
                 // unchanged and drops the in-progress pulse on a temp re-issue
                 // (rate change) — reproducing the field ~1.1 U/day below rate×time.
-                let basalDelivered = candidateBasalAcc.deliver(rate: candidateTempRate, seconds: tempSec)
+                // Manual temp: exactly what the field pump delivered this step (auto-only, so it
+                // carries no manual bolus; those pass through on their own).
+                let basalDelivered = manualTempNow
+                    ? (realAutoOnlyPerStep[t] ?? 0)
+                    : candidateBasalAcc.deliver(rate: candidateTempRate, seconds: tempSec)
                 // Auto-bolus already floored to the bolus grid; delivered whole.
                 cfTempVolume = basalDelivered + candidateBolus
                 if stepDur > tempBasalDuration {

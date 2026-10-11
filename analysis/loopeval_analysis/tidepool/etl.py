@@ -154,7 +154,11 @@ from . import cgm_streams as _cgm
 #      anchored on is kept — the minute-dedup of the union interleaved them into a sawtooth (pilot
 #      i171: 26% of its record, two sensors ~40 mg/dL apart). New cgm_quality.csv: two-sensor hours,
 #      unresolved interleaving, clipped and flat runs, smoothed days.
-DATA_VERSION = 20
+#  21  disruptions.csv gains `manual_temp` rows: temp basals the USER set on the pump (Tidepool
+#      deliveryType 'temp', native row), during which Loop enacts nothing. They take precedence
+#      over overlapping suspend/offline/pump_error windows. The replay delivers the field's
+#      recorded basal there (i040: 197 h, where it kept dosing through the user's pauses).
+DATA_VERSION = 21
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -924,12 +928,21 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                 recv = int(crt)
         dtype = getattr(r, "dtype", None)
         btype = "suspend" if dtype == "suspend" else ("temp" if _fin(getattr(r, "has_supp", None)) else "scheduled")
-        segs.append((st, st + dur_ms, rate, delivered, dur_ms, recv, btype))
+        # MANUAL temp basal: one the USER set on the pump. Tidepool's deliveryType is 'temp' for
+        # these and 'automated' for Loop's own temps (HealthKit mirrors strip the type to 'temp',
+        # so only a native row counts). While one runs, Loop logs recommendations but enacts
+        # none: i040 09-10 12:55-17:03 ran 0.05 U/h manual temps through recommendations of
+        # 2.35-3.0 U/h. 39 of 207 pilot donors use them, i040 for 6.4% of its time.
+        manual = dtype == "temp" and str(getattr(r, "orig", "")) != "com.apple.HealthKit"
+        segs.append((st, st + dur_ms, rate, delivered, dur_ms, recv, btype, manual))
     segs.sort(key=lambda s: (s[0], s[1]))   # sort by (start, end); `delivered` may be None
-    for i, (st, en, rate, delivered, rec_dur, recv, dtype) in enumerate(segs):
+    manual_iv = []
+    for i, (st, en, rate, delivered, rec_dur, recv, dtype, manual) in enumerate(segs):
         if i + 1 < len(segs):
             en = min(en, segs[i + 1][0])      # clip to next start (no overlap)
         if en <= st: continue
+        if manual:
+            manual_iv.append((st, en))
         if delivered is not None and rec_dur > 0:
             # Use the actual delivered amount, scaled by the clip ratio so a
             # clipped (superseded) segment counts only its delivered portion.
@@ -1065,6 +1078,29 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     tagged = [(s, e, "suspend", "tidepool/suspend_dose") for s, e in sus] \
            + [(s, e, "loop_offline", "tidepool/decision_gap") for s, e in off] \
            + [(s, e, "pump_error", "tidepool/dosing_decision_errors") for s, e in perr]
+    # A manual temp wins wherever it overlaps another disruption: the pump runs the user's temp
+    # whatever Loop is doing, and the replay delivers the field's recorded basal there (which
+    # already carries any suspend inside it). Cut manual intervals out of the others, and keep
+    # them as their own rows so the merge below can't fold them into a generic 'disruption'.
+    man = []
+    for s, e in sorted(manual_iv):
+        if man and s <= man[-1][1]:
+            man[-1][1] = max(man[-1][1], e)
+        else:
+            man.append([s, e])
+
+    def _minus_manual(s, e):
+        out, cur = [], s
+        for ms, me in man:
+            if me <= cur or ms >= e:
+                continue
+            if ms > cur:
+                out.append((cur, ms))
+            cur = max(cur, me)
+        if cur < e:
+            out.append((cur, e))
+        return out
+    tagged = [(a, b, reason, src) for s, e, reason, src in tagged for a, b in _minus_manual(s, e)]
     tagged.sort()
     merged = []
     for s, e, reason, src in tagged:
@@ -1074,6 +1110,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                 merged[-1][2], merged[-1][3] = "disruption", "tidepool/merged"
         else:
             merged.append([s, e, reason, src])
+    merged = sorted(merged + [[s, e, "manual_temp", "tidepool/manual_temp_basal"] for s, e in man])
     dis_path = os.path.join(outdir, "disruptions.csv")
     with open(dis_path, "w", newline="") as fh:
         w = _csv.writer(fh); w.writerow(["start", "end", "reason", "source", "notes"])
@@ -1086,7 +1123,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     _write_manifest(outdir, user, start, end,
                     counts=dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs),
                                 suspends=len(sus), offline_gaps=len(off),
-                                pump_errors=len(perr), stale_cgm=len(stale),
+                                pump_errors=len(perr), stale_cgm=len(stale), manual_temps=len(man),
                                 cgm_sensors=cgm_summary["sensors"], cgm_two_sensor_hours=cgm_summary["conflict_hours"],
                                 cgm_dropped=cgm_summary["dropped"], cgm_unresolved_hours=cgm_summary["unresolved_hours"],
                                 cgm_flat_runs=sum(q["kind"] == "flat_run" for q in cgm_report)))
@@ -1094,7 +1131,8 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     print(f"{user}: glucose={len(glucose)} doses={len(doses)} carbs={len(carbs)} "
           f"therapy(basal={len(therapy['basal'])},isf={len(therapy['sensitivity'])}) "
           f"suspends={len(sus)}({sus_h:.1f}h) offline_gaps={len(off)}({off_h:.1f}h) "
-          f"pump_errors={len(perr)}({perr_h:.1f}h) stale_cgm={len(stale)} → {outdir}")
+          f"pump_errors={len(perr)}({perr_h:.1f}h) stale_cgm={len(stale)} "
+          f"manual_temps={len(man)}({sum(e - s for s, e in man) / 3600000.0:.1f}h) → {outdir}")
     return dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs))
 
 def _sched(j):
