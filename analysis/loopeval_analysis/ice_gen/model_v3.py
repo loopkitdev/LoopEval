@@ -40,15 +40,17 @@ class ICEGenV3(nn.Module):
         z, h = self.gru(torch.relu(self.inp(torch.cat([x, p], -1))), h)
         return dict(zip(self.sizes, self.head(z).split(list(self.sizes.values()), -1))), h
 
-    def loss(self, out, Y, w=None):
+    def loss(self, out, Y, w=None, w_bgice=False):
         """w: optional per-step weight on the meal / correction start terms. Weighting by STATE (e.g. near a
         low, where rescues are rare in the data) makes the head fit that region harder without biasing the
-        hazard there, since events and non-events in the same state get the same weight."""
+        hazard there, since events and non-events in the same state get the same weight. w_bgice: apply w to
+        the background-ICE density as well (the same argument: a state weight, not an outcome weight)."""
         y = {k: Y[..., TARGETS.index(k)] for k in TARGETS}
         z = lambda v, m: torch.where(m, v, torch.zeros_like(v))      # never 0 * v (LESSONS 8)
         parts = {}
         m = torch.isfinite(y["bgice"])
-        parts["bgice"] = mdn_nll(out["bgice"], z(y["bgice"], m), self.K_ICE)[m].mean()
+        nll = mdn_nll(out["bgice"], z(y["bgice"], m), self.K_ICE)
+        parts["bgice"] = (nll * w)[m].sum() / w[m].sum() if (w_bgice and w is not None) else nll[m].mean()
         meal = y["meal"] > 0.5
         for k in B:
             cond = torch.isfinite(y[k]) & (meal if k.startswith("m_") else (y["corr"] > 0.5) if k == "c_mode" else torch.ones_like(meal))

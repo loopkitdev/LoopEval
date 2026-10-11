@@ -66,6 +66,7 @@ class PlantV3:
         self.drop = list(ck.get("drop", []))
         self.pid = torch.tensor([ck["people"].index(alias)])
         self.geq = ck["constants"][alias]["geq"]
+        self.calib = dict(ck.get("calib", {}))      # logit offsets on event-start heads (calibrate.py)
         self.t = None; self.running = None; self.h = None
         # rewarm_h > 0: every rewarm_h hours rebuild the GRU state from zero over the last 24 h of inputs, so
         # the network always runs with 24-48 h of memory as in training (a 29-day continuous state
@@ -182,6 +183,8 @@ class PlantV3:
                     self.since_rewarm = 0.0
                 out, self.h = self.net(x, self.pid, self.h)
                 self.xbuf.append(x); self.xbuf = self.xbuf[-WARMUP:]; self.since_rewarm += dt_h
+                for k, b in self.calib.items():
+                    out[k] = out[k] + b
                 s = self.net.sample(out)
             self.slot_carbs = 0.0; self.slot_bolus = 0.0
             self.since_meal += dt_h; self.since_bolus += dt_h

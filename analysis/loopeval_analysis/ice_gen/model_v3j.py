@@ -53,8 +53,8 @@ class ICEGenV3J(ICEGenV3):
         vals = {k: Y[..., TARGETS.index(k)] for k in COND_C}
         return {**out, **self.cond_heads(out["z"], vals)}
 
-    def loss(self, out, Y, w=None):
-        return super().loss(self.teacher(out, Y), Y, w)
+    def loss(self, out, Y, w=None, w_bgice=False):
+        return super().loss(self.teacher(out, Y), Y, w, w_bgice)
 
     @torch.no_grad()
     def sample(self, out):
@@ -110,8 +110,8 @@ class ICEGenV3K(ICEGenV3):
             o.update(self._stage(i, out["z"], vals))
         return o
 
-    def loss(self, out, Y, w=None):
-        return ICEGenV3.loss(self, self.teacher(out, Y), Y, w)
+    def loss(self, out, Y, w=None, w_bgice=False):
+        return ICEGenV3.loss(self, self.teacher(out, Y), Y, w, w_bgice)
 
     @torch.no_grad()
     def sample(self, out):
