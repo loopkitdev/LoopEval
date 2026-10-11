@@ -1222,7 +1222,7 @@ struct SimulateCommand: AsyncParsableCommand {
             let baselinePredCurve: [Double]?       // full baseline forecast curve (mg/dL, 5-min spaced from t); nil unless --export-forecast-curve
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
-        struct CounterSample: Codable { let t: String; let bg: Double }
+        struct CounterSample: Codable { let t: String; let bg: Double? }   // nil: the plant's CGM gave no reading
         struct CurvePoint: Codable { let tMin: Double; let percentRemaining: Double; let percentDelivered: Double }
         // Canonical insulin-delivery stream — uniform for both arms so a renderer
         // can plot ACTUAL delivery (basal rate + boluses, auto vs manual) without
@@ -1298,7 +1298,7 @@ struct SimulateCommand: AsyncParsableCommand {
                          bg: $0.quantity.doubleValue(for: mgdlUnit))
         }
         let counterOut = simResult.steps.map {
-            CounterSample(t: formatter.string(from: $0.t), bg: $0.counterBG)
+            CounterSample(t: formatter.string(from: $0.t), bg: $0.counterBG.isFinite ? $0.counterBG : nil)
         }
         let insulinModel = data.therapyTimeline.insulinType.model
         let dur = insulinModel.effectDuration
