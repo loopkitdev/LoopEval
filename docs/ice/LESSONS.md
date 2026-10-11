@@ -136,3 +136,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     only (`--controller-insulin-model custom`); ICE and the plant keep the insulin's own model, because the
     person's absorption did not change when they edited Loop's. Screen forecast length before trusting any
     donor's replay; a run-wide flag cannot follow a mid-window switch, so score only the stock part.
+27. **A compression low is a break from the trend and a return to it, and the sensor often withholds
+    readings at the bottom.** The old V-shape flag (< 70, 2 mg/dL/min down and up) caught 0.15% of time with
+    no night excess and missed most artifacts. What works (`ice_gen/sensor.py`, tuned with Pete on random
+    review sheets): a slide below a near-flat prior trend, then a return to that level and trend with no
+    overshoot, the window grown over the slide in and the release. Three branches: readings resume after a
+    GAP (the commonest form, 536 of 741 pilot events: the sensor algorithm flags the data), the reading pins
+    at the LOW FLOOR, or neither (ICE well below its background, sharp return). A mirror control (sudden
+    rises that return, which physiology rarely makes) measures precision: about 0.75 for the gap branch at a
+    40 mg/dL slide. Rejected along the way: slides from a trend already falling (real lows), windows over
+    45 min. Result: 0.03 events per person-day (the same as the drop-minus-rise excess), mostly overnight,
+    a median donor about one in six weeks and the most prone about weekly. It holds only 0.7% of time below
+    54. Fingersticks are too few to validate (47 at CGM < 70, 40 of them read >= 70, mostly CGM low-range
+    lag around treated lows, not compression).

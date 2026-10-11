@@ -25,7 +25,7 @@ Conventions (from eda's ICE study, `dist_views/ice/ice_raw.py`, re-implemented h
   - `dose_doubt` reads the export's dose_doubt.csv (ETL v22+: days where a second dosing app's doses
     can't be resolved), plus 6 h after for the insulin tail; those days are also left out of TDD.
   - flags, never drops: jump, clamp, disrupted, no_insulin, unrecorded, gap_none, dose_doubt, change
-    (1 h before to 3 h after a pod/site change), compression, fast, alternating, post_gap.
+    (1 h before to 3 h after a pod/site change), compression (sensor.py), fast, alternating, post_gap.
     `EXCLUDE` is all but post_gap. (Occlusion alarms are not pulled yet.)
 
 Context columns for the generative model: insulin on board (absolute), insulin activity,
@@ -41,6 +41,7 @@ import numpy as np
 import pandas as pd
 
 from . import gapcheck as G
+from . import sensor
 from ..iob import (percent_effect_remaining, RAPID_ACTING_ADULT, RAPID_ACTING_CHILD,
                    FIASP, LYUMJEV, AFREZZA)
 
@@ -231,18 +232,6 @@ def extract(data_dir: str | Path, tz_daily: pd.DataFrame | None = None,
     kk = np.searchsorted(gap_end, t0n, side="right") - 1
     since = np.where(kk >= 0, (t0n - gap_end[np.clip(kk, 0, None)]) / 6e10, np.inf) if len(gap_end) else np.full(len(t0n), np.inf)
     df["post_gap"] = (since >= 0) & (since < 120)
-    # compression-shaped lows
-    n15, n20 = max(int(round(15 / cad)), 1), max(int(round(20 / cad)), 1)
-    comp = np.zeros(len(bg), bool)
-    for i in np.flatnonzero(bg < 70):
-        if i < n15 or i >= len(bg) - n15 or bg[i] > bg[i - 1] or bg[i] > bg[i + 1]:
-            continue
-        sb, sa = (ti[i] - ti[i - n15]) / 6e10, (ti[i + n15] - ti[i]) / 6e10
-        if sb > 1.3 * 15 or sa > 1.3 * 15:
-            continue
-        if (bg[i - n15] - bg[i]) / sb >= 2 and (bg[i + n15] - bg[i]) / sa >= 2:
-            comp[max(i - n20, 0): i + n20 + 1] = True
-    df["compression"] = comp[:-1] | comp[1:]
     # every increment short of a gap: two interleaved CGMs report every ~1.6 / 3.4 min, which the
     # cadence mask `ok` drops, so masking by it hid them entirely (i171: 26% of its record, 0% flagged)
     inc = pd.Series(np.where(dt <= 1.2 * cad, df.bg1 - df.bg0, np.nan))
@@ -270,6 +259,9 @@ def extract(data_dir: str | Path, tz_daily: pd.DataFrame | None = None,
     df["ia"] = isf * df.absorbed / df.dt * 60.0
     df["ice"] = np.where(df.on_cadence, df.v + df.ia, np.nan)
     df["ins_activity_uhr"] = df.absorbed / df.dt * 60.0
+    # compression lows and other pressure artifacts (sensor.py: gap / floor / ice branches, windows grown over
+    # the slide in and the release)
+    df["compression"] = sensor.flag(df)
     df["clean"] = df.on_cadence & ~df[EXCLUDE].any(axis=1)
     gst = pd.Series([g[2] for g in gaps], dtype=object).value_counts().to_dict()
     person = dict(gaps_ran=gst.get(G.RAN, 0), gaps_ran_by_donor=gst.get(G.RAN_BY_DONOR, 0), gaps_none=gst.get(G.NONE, 0), gaps_unknown=gst.get(G.UNKNOWN, 0), tdd=tdd, isf_tdd=isf, clean_days=int(len(clean)), cadence_min=cad,
