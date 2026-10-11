@@ -62,4 +62,12 @@ def yardstick(steps: pd.DataFrame, carbs: list, isf_extracted: float, until=None
         Y.PARAMS = {**Y.PARAMS, **params}
     s = steps if until is None else steps[steps.t1 < until]
     p = panel(s, carbs); p["isf"] = isf_extracted
-    return Y.yardstick(p, quiet(p))
+    r = Y.yardstick(p, quiet(p))
+    # tier reads "yardstick" even at weight 0 (basal rule only): name the tier actually used. Under 12 quiet
+    # steps the yardstick is NaN: fall back to the start rule from TDD (eda, 2026-10-11)
+    if not np.isfinite(r["isf"]):
+        tdd = float((s.basal_u + s.bolus_auto_u + s.bolus_manual_u).sum() / max((s.t1.max() - s.t1.min()).days, 1))
+        r = {**r, "isf": float(Y.start_rule(tdd)), "tier": "start_rule"}
+    elif r["weight_own"] == 0:
+        r = {**r, "tier": "basal_rule"}
+    return r

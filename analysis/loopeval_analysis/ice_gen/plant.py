@@ -172,9 +172,13 @@ class Plant:
     def _real_ice(self, t):
         s = self.steps
         i = s.t1.searchsorted(t)
-        if i < len(s) and abs((s.t1.iloc[i] - t).total_seconds()) < 60 and np.isfinite(s.ice.iloc[i]):
-            ice = float(s.ice.iloc[i]) if self.ice_scale_isf == 1.0 else float(s.v.iloc[i] + s.ia.iloc[i] * self.ice_scale_isf)
-            self.last_ice = ice / DS.ICE_SCALE
+        if i < len(s) and abs((s.t1.iloc[i] - t).total_seconds()) < 60:
+            r = s.iloc[i]
+            # extraction leaves ICE (and v) NaN on off-cadence / flagged steps; the replay must still move glucose
+            # as the field did there, so rebuild it from the field's own change (exact by construction)
+            v = r.v if np.isfinite(r.v) else ((r.bg1 - r.bg0) / r.dt * 60 if np.isfinite(r.bg0) and np.isfinite(r.bg1) and r.dt > 0 else np.nan)
+            if np.isfinite(v) and np.isfinite(r.ia):
+                self.last_ice = float(v + r.ia * self.ice_scale_isf) / DS.ICE_SCALE
         return self.last_ice * DS.ICE_SCALE
 
     def _model_ice(self, t, hour, dow, carbs, man, auto, act_uhr):
