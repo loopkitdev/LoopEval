@@ -458,8 +458,14 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "PATIENT-side INSULIN MODEL — the pharmacodynamics of the simulated BODY. RA (rapid-acting): rapidActingAdult peak 75min, rapidActingChild peak 65min. URA (ultra-rapid): fiasp, lyumjev -- peak 55min, and IDENTICAL to each other in this preset set (same peak/DIA/delay), so picking one over the other is a no-op. Also afrezza (inhaled, peak 29min) and lateShort90dia4 (experimental, peak 90min/DIA 4h). All RA/URA presets share DIA 6h -- the class difference is PEAK TIME, not duration. The controller keeps believing its own model, so this decouples 'how fast insulin really acts' from 'how fast the algorithm thinks it acts'. Unset = the body uses the controller's model too (coupled; the historical behavior). Identity-safe: the same curve removes the field's doses and adds the candidate's, so an unchanged candidate still reproduces the recording exactly.")
     var patientInsulinModel: String?
 
-    @Option(name: .long, help: "CONTROLLER-side INSULIN MODEL — what the ALGORITHM believes insulin does, overriding the therapy timeline for BOTH arms. RA (rapid-acting): rapidActingAdult peak 75min, rapidActingChild peak 65min. URA (ultra-rapid): fiasp, lyumjev -- peak 55min, and IDENTICAL to each other in this preset set (same peak/DIA/delay), so picking one over the other is a no-op. Also afrezza (inhaled, peak 29min) and lateShort90dia4 (experimental, peak 90min/DIA 4h). All RA/URA presets share DIA 6h -- the class difference is PEAK TIME, not duration. Works on every data source, unlike --insulin-type, which only reaches the Nightscout path and is silently ignored with --data-dir. Pair with --patient-insulin-model to vary the body and the belief independently. Measured on one donor, the belief dominates: RA->URA belief traded about +3 TIR for +0.3-0.4 t<54 in either body, while the body's model barely moved outcomes.")
+    @Option(name: .long, help: "CONTROLLER-side INSULIN MODEL — what the ALGORITHM believes insulin does, overriding the therapy timeline for BOTH arms. RA (rapid-acting): rapidActingAdult peak 75min, rapidActingChild peak 65min. URA (ultra-rapid): fiasp, lyumjev -- peak 55min, and IDENTICAL to each other in this preset set (same peak/DIA/delay), so picking one over the other is a no-op. Also afrezza (inhaled, peak 29min), lateShort90dia4 (experimental, peak 90min/DIA 4h) and custom (see --custom-insulin-duration-min). All RA/URA presets share DIA 6h -- the class difference is PEAK TIME, not duration. Works on every data source, unlike --insulin-type, which only reaches the Nightscout path and is silently ignored with --data-dir. Pair with --patient-insulin-model to vary the body and the belief independently. Measured on one donor, the belief dominates: RA->URA belief traded about +3 TIR for +0.3-0.4 t<54 in either body, while the body's model barely moved outcomes.")
     var controllerInsulinModel: String?
+
+    @Option(name: .long, help: "Action duration (MINUTES) of the `custom` insulin model, for a Loop build shipped with a modified insulin curve. Required with `--controller-insulin-model custom` or `--patient-insulin-model custom`; both sides share one custom curve. Detect it from the recorded forecasts: deployed Loop's bgForecast runs about this long plus the 10-min delay (stock models: ~370-390 min), and the recorded insulinOnBoard decays on this curve. Must exceed twice the peak.")
+    var customInsulinDurationMin: Double?
+
+    @Option(name: .long, help: "Peak activity time (MINUTES) of the `custom` insulin model. Required with a `custom` insulin model; see --custom-insulin-duration-min.")
+    var customInsulinPeakMin: Double?
 
         @Flag(name: .long, help: "Sim-FIDELITY: infer a local insulin-sensitivity multiplier m(t) from the residual. When BG is still dropping after subtracting the PD-modeled (scheduled-ISF) insulin, the insulin was more effective than scheduled, so scale ISF UP just enough to zero that negative residual (never past it). Applied to the PHYSIOLOGY (ICE + counterfactual dose-effect run at scheduled ISF × m), DECOUPLED from the controller's ISF belief. Capped by --candidate-infer-sensitivity-max. Default OFF.")
     var candidateInferSensitivity: Bool = false
@@ -774,6 +780,19 @@ struct SimulateCommand: AsyncParsableCommand {
         }
         let parsedPatientInsulinModel = try patientInsulinModel.map { try parseInsulinType($0) }
         let parsedControllerInsulinModel = try controllerInsulinModel.map { try parseInsulinType($0) }
+        if parsedPatientInsulinModel == .custom || parsedControllerInsulinModel == .custom {
+            guard let dur = customInsulinDurationMin, let peak = customInsulinPeakMin else {
+                throw ValidationError("a `custom` insulin model needs --custom-insulin-duration-min and --custom-insulin-peak-min.")
+            }
+            guard peak > 0, dur > 2 * peak else {
+                throw ValidationError("--custom-insulin-duration-min (\(dur)) must exceed twice --custom-insulin-peak-min (\(peak)); the exponential model is undefined otherwise.")
+            }
+            ExponentialInsulinModelPreset.customActionDuration = dur * 60
+            ExponentialInsulinModelPreset.customPeakActivity = peak * 60
+            printStderr("custom insulin model: peak \(Int(peak)) min, action duration \(Int(dur)) min (+10 min delay)\n")
+        } else if customInsulinDurationMin != nil || customInsulinPeakMin != nil {
+            throw ValidationError("--custom-insulin-duration-min/--custom-insulin-peak-min only apply with `--controller-insulin-model custom` or `--patient-insulin-model custom`.")
+        }
         if dataDir != nil && insulinType != "rapidActingAdult" && controllerInsulinModel == nil {
             printStderr("WARNING: --insulin-type is IGNORED with --data-dir (the model comes from therapy.json). Use --controller-insulin-model to override it.\n")
         }

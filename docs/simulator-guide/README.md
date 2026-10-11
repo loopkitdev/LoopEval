@@ -623,6 +623,15 @@ timeline. The mechanism is dose re-stamping, not a model argument
 at once (the therapy timeline that stamps new doses, and the stamps already on the real dose
 history that LoopAlgorithm reads back for IOB), or the arm believes two insulins at once.
 
+Some donors run a Loop build with a **modified insulin curve**, which no preset reproduces.
+`--controller-insulin-model custom --custom-insulin-duration-min D --custom-insulin-peak-min P`
+expresses one (the 10-min delay is kept; `--patient-insulin-model custom` shares the same curve).
+Two signs give it away, and both should agree before you set it. Deployed Loop's recorded
+`bgForecast` runs about the model's duration plus the delay: ~380–390 min on every stock curve. And
+the recorded `insulinOnBoard` decays on the custom curve, not on any preset. One pilot donor
+recorded ~196-min forecasts, and its IOB fits D = 180, P = 80–84 to within 0.05 U on 95% of
+decisions; on the stock curve its replay forecast missed the field by a median 27 mg/dL.
+
 > [!WARNING]
 > **The controller's belief dominates; the body's model barely matters.** Measured on one donor
 > (deployment-faithful bed, verbatim boluses), 59 days, RA (peak 75 min) vs URA (peak 55 min), as a
