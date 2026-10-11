@@ -164,7 +164,10 @@ from . import cgm_streams as _cgm
 #      days. Days with unmatched second-app boluses go to the new dose_doubt.csv.
 #      Also: a status `suspended` with no `resumed` now ends at the first delivery after it,
 #      not at the window end (i156: one unpaired manual suspend held a 4-month disruption).
-DATA_VERSION = 22
+#  23  therapy.json gains maxBasalRateTimeline / maxBolusTimeline / suspendThresholdTimeline:
+#      dated limits from the pumpSettings history. The scalars kept only the last value, so
+#      i017 (max basal 3.0 from 07-16 to 10-05, exported 2.0) was capped 1 U/h short.
+DATA_VERSION = 23
 
 
 def _dedup(cols, where, typ, order="_id"):
