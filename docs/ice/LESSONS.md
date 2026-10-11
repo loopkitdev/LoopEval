@@ -105,3 +105,8 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     added to ICE *and* to the generator's background input came out ~6x too large (daily variance 611
     vs 174): the generator read the shifted day as its own persistent state and generated more of it.
     Kept out of that input, the day-level spread and persistence match (true-day sd 11.5 vs 11.5).
+23. **Calibrate the start heads in closed loop, not only fed real inputs.** Calibrated teacher-forced
+    (5.97 vs 6.21 meals/day), v3g still started 8.0/day in its own rollouts against 6.5 real, too many
+    at every glucose level from 70 to 250. A second offset fitted on rollouts of the 28 days before
+    the hold-out (`calibrate_closed.py`, log rate ratio) brings every band to the real rate (6.4 vs 6.5)
+    and moves clean TIR 56.6 -> 62.9, mean 176 -> 165, t<54 unchanged (1.23 -> 1.28).

@@ -38,7 +38,7 @@ from . import dataset as DS
 from .extract import MODELS, RAPID_ACTING_ADULT
 from ..iob import percent_effect_remaining
 
-ROOT = Path(os.path.expanduser("~/.loop-eval/ice"))
+ROOT = Path(os.path.expanduser(os.environ.get("ICE_ROOT", "~/.loop-eval/ice")))   # ICE_ROOT: another extracted bed
 WARMUP_H = 24
 LOW, HIGH = 40.0, 400.0
 
@@ -93,10 +93,15 @@ class Insulin:
 
 
 class Plant:
-    def __init__(self, alias, mode, ckpt=None, seed=0, actions="none"):
+    def __init__(self, alias, mode, ckpt=None, seed=0, actions="none", isf=None):
         self.alias, self.mode, self.actions = alias, mode, actions
         P = pd.read_csv(ROOT / "persons.csv").set_index("alias")
         self.isf, self.tdd = float(P.isf_tdd[alias]), float(P.tdd[alias])
+        # isf: run the replay at another plant ISF; ICE is rebuilt at it (ice = v + ISF x absorbed), so the replay
+        # stays exact when the insulin matches the field and only the loop's response to a dose difference changes
+        self.ice_scale_isf = (float(isf) / self.isf) if isf else 1.0
+        if isf:
+            self.isf = float(isf)
         d = ROOT / "full" / alias
         therapy = json.load(open(d / "therapy.json"))
         self.ins = Insulin(MODELS.get(therapy.get("insulinType"), RAPID_ACTING_ADULT))
@@ -168,7 +173,8 @@ class Plant:
         s = self.steps
         i = s.t1.searchsorted(t)
         if i < len(s) and abs((s.t1.iloc[i] - t).total_seconds()) < 60 and np.isfinite(s.ice.iloc[i]):
-            self.last_ice = float(s.ice.iloc[i]) / DS.ICE_SCALE
+            ice = float(s.ice.iloc[i]) if self.ice_scale_isf == 1.0 else float(s.v.iloc[i] + s.ia.iloc[i] * self.ice_scale_isf)
+            self.last_ice = ice / DS.ICE_SCALE
         return self.last_ice * DS.ICE_SCALE
 
     def _model_ice(self, t, hour, dow, carbs, man, auto, act_uhr):
@@ -264,10 +270,11 @@ def main():
     ap.add_argument("--ckpt")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--log", required=True)
+    ap.add_argument("--isf", type=float, help="replay at this plant ISF (mg/dL/U) instead of ISF_tdd")
     ap.add_argument("--actions", choices=["none", "replay-ratio", "replay-units"], default="none",
                     help="protocol v2: return the person's real carb entries / manual boluses (tests)")
     a = ap.parse_args()
-    plant = Plant(a.alias, a.mode, a.ckpt, a.seed, a.actions)
+    plant = Plant(a.alias, a.mode, a.ckpt, a.seed, a.actions, a.isf)
     for line in sys.stdin:
         line = line.strip()
         if not line:
