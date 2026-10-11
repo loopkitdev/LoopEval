@@ -359,6 +359,11 @@ extension EvaluationEngine {
         // timestamps and metadata.
         var counterGlucose = simGlucose
         var counterMgdl = simGlucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
+        // Samples an external plant reported as "no reading" (reply null). They hold the last
+        // reading's value so index-aligned bookkeeping stays finite, but they never reach the
+        // candidate's glucose history (momentum, RC and the stale-CGM guard see a quiet sensor,
+        // as with a field CGM gap) or the scored trace.
+        var counterMissing = [Bool](repeating: false, count: counterMgdl.count)
         // Baseline always reads from actual glucose; precomputed once for GBAF lookups.
         let baselineMgdl = simGlucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
 
@@ -764,6 +769,91 @@ extension EvaluationEngine {
         // still start inside them -- passed-through manual boluses and, under --cf-identity,
         // the real dose stream. Sending only [t, stepEnd) dropped every one of those.
         var plantDosesSentThrough: Date? = nil
+        // ... and the same for the plant's TIME: the end of the last interval it advanced over.
+        // A step that `continue`s early never calls the plant, so its CGM samples kept the FIELD
+        // value and reached the candidate's history as if the plant had produced them. Each call
+        // now advances the plant from here, so skipped intervals are covered too.
+        var plantAdvancedThrough: Date? = nil
+        // Candidate state from the last plant call, for a catch-up call made before this step's
+        // own state exists.
+        var plantLastState: [String: Double] = [:]
+        // Advance the external plant over (plantAdvancedThrough, through]: send the candidate's
+        // doses started since the last send, and write the plant's CGM -- or "no reading" -- into
+        // every sample in the interval. The candidate's history already holds the doses.
+        // Returns the grams of carbs the plant's person entered (with --plant-behavior).
+        func advancePlant(_ plant: ExternalPlant, through t1: Date, now: Date,
+                          state: [String: Double]) throws -> Double {
+            let t0 = min(plantAdvancedThrough ?? now, now)
+            var sampleIdx: [Int] = []
+            var k = Self.latestGlucoseIndex(at: t0, in: counterGlucose)
+            if k < counterGlucose.count && counterGlucose[k].startDate <= t0 { k += 1 }
+            while k < counterGlucose.count && counterGlucose[k].startDate <= t1 {
+                sampleIdx.append(k); k += 1
+            }
+            plantAdvancedThrough = t1
+            // Everything that started since the last send, not just this step: a skipped
+            // cycle before this one may hold doses (bddp11 under --cf-identity: 19 real
+            // doses, 26.3 U, incl. a 5.8 U bolus, never reached the plant).
+            let sendFrom = plantDosesSentThrough ?? now
+            let doses = counterfactualDoses.filter { $0.startDate >= sendFrom && $0.startDate < t1 }
+            plantDosesSentThrough = t1
+            let reply = try plant.advance(
+                t0: t0, t1: t1, doses: doses,
+                samples: sampleIdx.map { counterGlucose[$0].startDate }, state: state)
+            for (j, idx) in sampleIdx.enumerated() {
+                if let v = reply.bg[j] {
+                    counterMgdl[idx] = v; counterMissing[idx] = false
+                } else {
+                    counterMissing[idx] = true
+                    counterMgdl[idx] = idx > 0 ? counterMgdl[idx - 1] : counterMgdl[idx]
+                }
+            }
+            // GAP RE-ANCHOR for external plants. The built-in advance re-anchors across a long
+            // CGM gap, but it is gated on `externalPlant == nil`, so a plant never saw that
+            // protection and had to re-implement it or integrate its own dynamics across the whole
+            // gap in one step (one measured case: a 77 h no-CGM gap taken as a single step pinned a
+            // replay at 2,300 mg/dL). The gap is a property of the DATA, not of the plant's
+            // physiology, so the harness handles it on the plant's behalf, with the same rule and
+            // the same identity guarantee: take the gap-end LEVEL from the real CGM but carry any
+            // significant pre-gap divergence across, so a candidate that legitimately ran away from
+            // real is not reset at every gap. At candidate == real the offset is 0, so identity
+            // holds. `--cf-gap-reanchor-min 0` disables it, for a plant that handles gaps itself.
+            if cfGapReanchorSec > 0 {
+                for (j, idx) in sampleIdx.enumerated() {
+                    let prevIdx = idx > 0 ? idx - 1 : idx
+                    guard idx > 0, let plantBG = reply.bg[j] else { continue }
+                    let span = counterGlucose[idx].startDate
+                        .timeIntervalSince(counterGlucose[prevIdx].startDate)
+                    guard span > cfGapReanchorSec else { continue }
+                    let aPrev = counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
+                    let aNext = counterGlucose[idx].quantity.doubleValue(for: mgdlUnit)
+                    let gapOffset = counterMgdl[prevIdx] - aPrev
+                    let anchored = abs(gapOffset) > 10.0 ? aNext + gapOffset : aNext
+                    if abs(anchored - plantBG) > 0.5 {
+                        FileHandle.standardError.write(Data(
+                            "cf gap re-anchor (external plant): \(Int(span / 60))min gap at \(counterGlucose[idx].startDate) — plant returned \(String(format: "%.0f", plantBG)), re-anchored to \(String(format: "%.0f", anchored)) mg/dL\n".utf8))
+                    }
+                    counterMgdl[idx] = anchored
+                }
+            }
+            var carbsG = 0.0
+            if plantBehavior {
+                // The person's carb entries join the candidate's carb store (sorted by
+                // startDate for InputWindowBuilder), visible from the next decision.
+                for c in reply.carbs {
+                    let e = EvalCarbEntry(startDate: c.t, entryDate: c.t, dosingVisibleDate: c.t,
+                                          quantity: LoopQuantity(unit: .gram, doubleValue: c.grams),
+                                          absorptionTime: c.absorption)
+                    let pos = candidateCarbs.firstIndex(where: { $0.startDate > c.t }) ?? candidateCarbs.count
+                    candidateCarbs.insert(e, at: pos)
+                    carbsG += c.grams; plantCarbsTotalG += c.grams; plantCarbCount += 1
+                }
+                pendingPlantBoluses += reply.boluses
+            }
+            return carbsG
+        }
+        // Plant carbs entered during a catch-up call, counted into the step that made it.
+        var catchUpPlantCarbsG = 0.0
         for stepIdx in 0..<nSteps {
             let t = stepTimes[stepIdx]
             // Interval to the next decision (= next CGM in CGM-driven mode).
@@ -771,6 +861,15 @@ extension EvaluationEngine {
                 ? stepTimes[stepIdx + 1]
                 : t.addingTimeInterval(candidateConfig.evalStep)
             let stepDur = max(1.0, stepEnd.timeIntervalSince(t))
+            // Bring the external plant up to this decision. A step that ended early never called
+            // it, so the samples since then still hold FIELD values, and this decision would read
+            // them as the candidate's own (a withheld reading would also look present).
+            if let plant = externalPlant, let through = plantAdvancedThrough, through < t {
+                var st = plantLastState
+                let li = Self.latestGlucoseIndex(at: through, in: counterGlucose)
+                st["bg"] = counterMgdl[li]
+                catchUpPlantCarbsG += try advancePlant(plant, through: t, now: t, state: st)
+            }
             // Per-cycle dosing strategy (mixed-strategy donors).
             if !tempStrategyTimes.isEmpty {
                 let tempMode = tempStrategyTimes.contains(t)
@@ -959,7 +1058,9 @@ extension EvaluationEngine {
 
             // Snapshot candidate glucose from counter_mgdl. Unchanged samples reuse
             // the original EvalGlucoseSample object; touched indices get a new one.
-            let counterSamples = zip(counterGlucose, counterMgdl).map { (s, v) -> EvalGlucoseSample in
+            let counterSamples = zip(counterGlucose, counterMgdl).enumerated().compactMap { (i, sv) -> EvalGlucoseSample? in
+                let (s, v) = sv
+                if counterMissing[i] { return nil }
                 if v == s.quantity.doubleValue(for: mgdlUnit) { return s }
                 return EvalGlucoseSample(
                     startDate: s.startDate,
@@ -994,7 +1095,8 @@ extension EvaluationEngine {
             var candidateDose: Double
             var candidateBolus: Double
             var candidateManualBolusRec = Double.nan
-            var stepPlantBolusU = 0.0, stepPlantCarbsG = 0.0
+            var stepPlantBolusU = 0.0, stepPlantCarbsG = catchUpPlantCarbsG
+            catchUpPlantCarbsG = 0
             var candidateTempRate: Double
             var candidateTempAction = "set"
             var candidateEventualBG = Double.nan
@@ -1288,7 +1390,8 @@ extension EvaluationEngine {
             // distinct from a pump outage where delivery stops entirely.
             var cgmStale = false
             if cgmStaleGuardSec > 0 && !inOutage {
-                let idx = Self.latestGlucoseIndex(at: t, in: counterGlucose)
+                var idx = Self.latestGlucoseIndex(at: t, in: counterGlucose)
+                while idx > 0 && counterMissing[idx] { idx -= 1 }   // the latest reading the CGM gave
                 let latestT = counterGlucose[idx].startDate
                 if latestT <= t {
                     cgmStale = t.timeIntervalSince(latestT) > cgmStaleGuardSec
@@ -1607,69 +1710,12 @@ extension EvaluationEngine {
                     advIdx += 1
                 }
                 if let plant = externalPlant {
-                    // The plant, not the ICE replay, decides what the candidate's insulin does:
-                    // send this step's new deliveries, read back its CGM at each sample in
-                    // (t, stepEnd]. The candidate's history already holds them (appended above).
-                    var sampleIdx: [Int] = []
-                    var k = advIdx
-                    while k < counterGlucose.count && counterGlucose[k].startDate <= stepEnd {
-                        sampleIdx.append(k); k += 1
-                    }
-                    // Everything that started since the last send, not just this step: a skipped
-                    // cycle before this one may hold doses (bddp11 under --cf-identity: 19 real
-                    // doses, 26.3 U, incl. a 5.8 U bolus, never reached the plant).
-                    let sendFrom = plantDosesSentThrough ?? t
-                    let stepDoses = counterfactualDoses.filter { $0.startDate >= sendFrom && $0.startDate < stepEnd }
-                    plantDosesSentThrough = stepEnd
-                    let reply = try plant.advance(
-                        t0: t, t1: stepEnd, doses: stepDoses,
-                        samples: sampleIdx.map { counterGlucose[$0].startDate },
-                        state: ["rec_bolus": candidateManualBolusRec, "iob": candidateIOB,
-                                "cob": candidateCOB, "bg": advIdx > 0 ? counterMgdl[advIdx - 1] : .nan])
-                    for (j, idx) in sampleIdx.enumerated() { counterMgdl[idx] = reply.bg[j] }
-                    // GAP RE-ANCHOR for external plants. The built-in advance below re-anchors
-                    // across a long CGM gap, but it is gated on `externalPlant == nil`, so a plant
-                    // never saw that protection and had to re-implement it or integrate its own
-                    // dynamics across the whole gap in one step (one measured case: a 77 h no-CGM
-                    // gap taken as a single step pinned a replay at 2,300 mg/dL). The gap is a
-                    // property of the DATA, not of the plant's physiology, so the harness handles
-                    // it on the plant's behalf, with the same rule and the same identity guarantee:
-                    // take the gap-end LEVEL from the real CGM but carry any significant pre-gap
-                    // divergence across, so a candidate that legitimately ran away from real is not
-                    // reset at every gap. At candidate == real the offset is 0, so identity holds.
-                    // `--cf-gap-reanchor-min 0` disables it, for a plant that handles gaps itself.
-                    if cfGapReanchorSec > 0 {
-                        for (j, idx) in sampleIdx.enumerated() {
-                            let prevIdx = idx > 0 ? idx - 1 : idx
-                            guard idx > 0 else { continue }
-                            let span = counterGlucose[idx].startDate
-                                .timeIntervalSince(counterGlucose[prevIdx].startDate)
-                            guard span > cfGapReanchorSec else { continue }
-                            let aPrev = counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
-                            let aNext = counterGlucose[idx].quantity.doubleValue(for: mgdlUnit)
-                            let gapOffset = counterMgdl[prevIdx] - aPrev
-                            let anchored = abs(gapOffset) > 10.0 ? aNext + gapOffset : aNext
-                            if abs(anchored - reply.bg[j]) > 0.5 {
-                                FileHandle.standardError.write(Data(
-                                    "cf gap re-anchor (external plant): \(Int(span / 60))min gap at \(counterGlucose[idx].startDate) — plant returned \(String(format: "%.0f", reply.bg[j])), re-anchored to \(String(format: "%.0f", anchored)) mg/dL\n".utf8))
-                            }
-                            counterMgdl[idx] = anchored
-                        }
-                    }
-                    advIdx = k
-                    if plantBehavior {
-                        // The person's carb entries join the candidate's carb store (sorted by
-                        // startDate for InputWindowBuilder), visible from the next decision.
-                        for c in reply.carbs {
-                            let e = EvalCarbEntry(startDate: c.t, entryDate: c.t, dosingVisibleDate: c.t,
-                                                  quantity: LoopQuantity(unit: .gram, doubleValue: c.grams),
-                                                  absorptionTime: c.absorption)
-                            let pos = candidateCarbs.firstIndex(where: { $0.startDate > c.t }) ?? candidateCarbs.count
-                            candidateCarbs.insert(e, at: pos)
-                            stepPlantCarbsG += c.grams; plantCarbsTotalG += c.grams; plantCarbCount += 1
-                        }
-                        pendingPlantBoluses += reply.boluses
-                    }
+                    // The plant, not the ICE replay, decides what the candidate's insulin does.
+                    stepPlantCarbsG += try advancePlant(plant, through: stepEnd, now: t, state: [
+                        "rec_bolus": candidateManualBolusRec, "iob": candidateIOB,
+                        "cob": candidateCOB, "bg": advIdx > 0 ? counterMgdl[advIdx - 1] : .nan])
+                    plantLastState = ["rec_bolus": candidateManualBolusRec, "iob": candidateIOB, "cob": candidateCOB]
+                    while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd { advIdx += 1 }
                 }
                 while externalPlant == nil && advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd {
                     let prevIdx = advIdx > 0 ? advIdx - 1 : advIdx
@@ -1803,7 +1849,8 @@ extension EvaluationEngine {
             let actualLookupIdx = Self.latestGlucoseIndex(at: t, in: simGlucose)
             let counterLookupIdx = Self.latestGlucoseIndex(at: t, in: counterGlucose)
             let actualMgdl = simGlucose[actualLookupIdx].quantity.doubleValue(for: mgdlUnit)
-            let counterMgdlAtT = counterMgdl[counterLookupIdx]
+            // A step whose latest sample was withheld by the plant records no counter value.
+            let counterMgdlAtT = counterMissing[counterLookupIdx] ? Double.nan : counterMgdl[counterLookupIdx]
             steps.append(ClosedLoopSimResult.Step(
                 t: t,
                 actualBG: actualMgdl,

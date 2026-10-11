@@ -14,7 +14,8 @@
 // stdout.
 //   request  {"t0": ISO, "t1": ISO, "doses": [{"type": "basal"|"bolus", "start": ISO,
 //             "end": ISO, "volume": U}], "samples": [ISO, ...]}
-//   reply    {"bg": [mg/dL, ...]}            // one value per requested sample, in order
+//   reply    {"bg": [mg/dL | null, ...]}     // one entry per requested sample, in order;
+//                                             // null = the CGM gave no reading at that time
 // The plant owns everything that is not insulin (meals, behavior, sensor noise) and is
 // expected to have reproduced the field history up to the first t0 it is sent.
 //
@@ -63,7 +64,8 @@ public final class ExternalPlant: @unchecked Sendable {
     /// A manual bolus the plant's person asked for in (t0, t1]: a multiple of the bolus-calculator
     /// recommendation, or an absolute amount.
     public struct Bolus { public let t: Date; public let ratio: Double?; public let units: Double? }
-    public struct Reply { public let bg: [Double]; public let carbs: [Carb]; public let boluses: [Bolus] }
+    /// `bg[i]` is nil where the plant's CGM gave no reading (sensor dropout, compression, warm-up).
+    public struct Reply { public let bg: [Double?]; public let carbs: [Carb]; public let boluses: [Bolus] }
 
     private let isoNoFrac = ISO8601DateFormatter()
     private func date(_ s: Any?) -> Date? {
@@ -94,9 +96,15 @@ public final class ExternalPlant: @unchecked Sendable {
         line.append(0x0A)
         input.write(line)
         let reply = try readLine()
+        let bad = PlantError(description: "external plant: bad reply \(String(data: reply, encoding: .utf8) ?? "?")")
         guard let obj = try JSONSerialization.jsonObject(with: reply) as? [String: Any],
-              let bg = obj["bg"] as? [Double], bg.count == samples.count else {
-            throw PlantError(description: "external plant: bad reply \(String(data: reply, encoding: .utf8) ?? "?")")
+              let raw = obj["bg"] as? [Any], raw.count == samples.count else { throw bad }
+        // A number is a reading; JSON null is "no reading". Anything else is malformed.
+        var bg: [Double?] = []
+        for v in raw {
+            if v is NSNull { bg.append(nil) }
+            else if let d = (v as? NSNumber)?.doubleValue, d.isFinite { bg.append(d) }
+            else { throw bad }
         }
         let carbs: [Carb] = (obj["carbs"] as? [[String: Any]] ?? []).compactMap { c in
             guard let t = date(c["t"]), let g = c["grams"] as? Double, g > 0 else { return nil }
