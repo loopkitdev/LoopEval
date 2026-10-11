@@ -127,3 +127,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     basal" was -0.5%; fixed upstream, 5345161). Compare insulin from what the plant received, never the
     trace's candidate delivery. i040's excess lows stand, with the same insulin: a timing / controller-
     fidelity question.
+26. **Some donors run a Loop build with a non-stock insulin curve; it is a controller setting, not
+    physiology.** The recorded bgForecast's length gives it away: stock curves give 370-395 min, a custom
+    3 h curve about 190 (screen of all 207 pilot donors by month: `runs/2026-10-11-ice-isf/forecast_length.py`).
+    i009 runs a 180 / peak-80 curve throughout; with it the simulator's forecast match went 27 -> 2 mg/dL
+    and its replay from TIR 60 to 75.5 (field 77). i017 switched mid-hold-out (2026-09-24). About a dozen
+    pilot donors show a non-stock length, six at a steady ~190 min. Pass the curve to the CONTROLLER
+    only (`--controller-insulin-model custom`); ICE and the plant keep the insulin's own model, because the
+    person's absorption did not change when they edited Loop's. Screen forecast length before trusting any
+    donor's replay; a run-wide flag cannot follow a mid-window switch, so score only the stock part.
