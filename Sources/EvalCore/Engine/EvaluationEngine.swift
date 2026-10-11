@@ -925,12 +925,15 @@ public actor EvaluationEngine {
             correctionSensitivity = input.sensitivity
         } else if let anchorISF = input.sensitivity.closestPrior(to: correctionAnchor)?.value
                     ?? input.sensitivity.first?.value {
-            // Span well past the effect duration so the segment covers the last
-            // prediction point (which sits at ~anchor+effectDuration); insulinCorrection
-            // requires the ISF timeline to cover every considered prediction point.
+            // insulinCorrection requires the ISF timeline to cover every considered
+            // prediction point. The forecast's length is the union of its effect intervals
+            // (carbs can outlast the insulin model), so cover whichever ends later — as
+            // deployed does with `max(forecastEnd, last insulin effect)`.
+            let isfEnd = max(correctionAnchor.addingTimeInterval(insulinType.model.effectDuration + 7200),
+                             prediction.glucose.last?.startDate ?? correctionAnchor)
             correctionSensitivity = [AbsoluteScheduleValue(
                 startDate: correctionAnchor.addingTimeInterval(-3600),
-                endDate: correctionAnchor.addingTimeInterval(insulinType.model.effectDuration + 7200),
+                endDate: isfEnd,
                 value: anchorISF)]
         } else {
             correctionSensitivity = input.sensitivity
