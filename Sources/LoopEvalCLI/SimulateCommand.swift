@@ -1125,7 +1125,9 @@ struct SimulateCommand: AsyncParsableCommand {
     /// per-cycle strategy mode (v15), carb visibility (v16), basalType (v17), deployed maxBolus (v14) --
     /// and unversioned ones may predate the bolus dedup (e128da3) that stopped HealthKit mirrors
     /// replaying Loop's automatic boluses as manual. Bump deliberately when an ETL change matters.
-    static let validatedExportDataVersion = 18
+    /// Raised to 22 (2026-10-11): manual temp basals (v21; i040's lows 13 -> 1, field 1),
+    /// second-app dose records and unpaired status suspends (v22; month-long false disruptions).
+    static let validatedExportDataVersion = 22
 
     /// Provenance check for a --data-dir export, run before the replay starts. Returns the export's
     /// data_version (nil if unstamped) and human-readable warnings; never throws, never blocks -- a
