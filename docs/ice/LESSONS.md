@@ -119,9 +119,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     carried to the next outage); and it carried the last ICE over missing-ICE steps. Fixed: identity
     93.8% within 1 mg/dL, replay 24 crossings, 96.5% within 5. Every earlier replay number on the pilot
     predates these fixes, including lesson 16's and lesson 21's.
-25. **A pulse pump re-temped every cycle delivers less than it was told.** Omnipod temps record a whole
-    number of 0.05 U pulses, about floor(rate x actual duration / 0.05): a temp superseded after 5 min
-    loses its fractional pulse. i040 delivered 388 of 566 U nominal (-31%); its replay, delivering rate x
-    time, gave +54% basal and 13 lows below 54 against the field's 1. The records (and so ICE) are right;
-    the simulated delivery is not. Two weaker tests misled first: a ±0.05 U net-IOB agreement on
-    minutes-long fragments, and an ICE regression on the shortfall that Loop's feedback confounds.
+25. **A pulse pump re-temped every cycle delivers less than it was told, and the engine knows.** Omnipod
+    temps record a whole number of 0.05 U pulses, about floor(rate x actual duration / 0.05): a temp
+    superseded after 5 min loses its fractional pulse (i040 delivered 388 of 566 U nominal, -31%). The
+    engine's PumpModel.BasalAccumulator already truncates the same way; its trace reported the candidate's
+    COMMANDS (rate x time), which made every replay-vs-field insulin comparison read high (i040 "+54%
+    basal" was -0.5%; fixed upstream, 5345161). Compare insulin from what the plant received, never the
+    trace's candidate delivery. i040's excess lows stand, with the same insulin: a timing / controller-
+    fidelity question.
