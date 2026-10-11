@@ -101,3 +101,7 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
 21. **Measured-ICE replay is more variable than the field.** Clean-time replay glucose sd 58 vs field
     49 (median donor); the gap reverts within 3-6 h and is not the plant-vs-schedule ISF mismatch
     (rank corr -0.07). Hand-off to simulator: `runs/2026-10-10-replay-lows/HANDOFF.md`.
+22. **Don't feed a generated persistent state back into the generator's own memory.** The slow level
+    added to ICE *and* to the generator's background input came out ~6x too large (daily variance 611
+    vs 174): the generator read the shifted day as its own persistent state and generated more of it.
+    Kept out of that input, the day-level spread and persistence match (true-day sd 11.5 vs 11.5).
