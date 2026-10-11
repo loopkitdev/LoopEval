@@ -110,3 +110,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     at every glucose level from 70 to 250. A second offset fitted on rollouts of the 28 days before
     the hold-out (`calibrate_closed.py`, log rate ratio) brings every band to the real rate (6.4 vs 6.5)
     and moves clean TIR 56.6 -> 62.9, mean 176 -> 165, t<54 unchanged (1.23 -> 1.28).
+24. **Test the plant against the engine on a bed where the engine matches the field.** On the
+    simulator's corrected bddp11 export the built-in counterfactual reproduced the field (27 vs 26
+    crossings below 54) while the ice replay plant gave 34, and failed identity (51% of steps within
+    5 mg/dL with the field's exact doses). Three causes, none visible on the pilot alone: the engine
+    sent an external plant no doses that started in skipped cycles (fixed upstream, 60159cf); the
+    plant re-anchored to the reading before t at every outage (a one-reading offset, median 5 mg/dL,
+    carried to the next outage); and it carried the last ICE over missing-ICE steps. Fixed: identity
+    93.8% within 1 mg/dL, replay 24 crossings, 96.5% within 5. Every earlier replay number on the pilot
+    predates these fixes, including lesson 16's and lesson 21's.
