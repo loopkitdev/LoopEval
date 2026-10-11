@@ -20,11 +20,7 @@ Conventions (from eda's ICE study, `dist_views/ice/ice_raw.py`, re-implemented h
     (`gapcheck`): schedule fill kept where it ran, zeroed where nothing was delivered
     (`gap_none`), `unrecorded` where it can't tell. A set removed without a suspend is
     invisible to every record and stays inside ICE.
-  - `dose_doubt`: UTC days on which a second dosing app uploads doses beside Loop's (copies the
-    ETL's dedup misses, and doses that match nothing), plus 6 h after for the insulin tail. The
-    recorded insulin there is wrong by tens of percent in an unknown direction; those days are
-    also left out of TDD.
-  - flags, never drops: jump, clamp, disrupted, no_insulin, unrecorded, gap_none, dose_doubt, change
+  - flags, never drops: jump, clamp, disrupted, no_insulin, unrecorded, gap_none, change
     (1 h before to 3 h after a pod/site change), compression, fast, alternating, post_gap.
     `EXCLUDE` is all but post_gap. (Occlusion alarms are not pulled yet.)
 
@@ -51,7 +47,7 @@ JUMP = 8.0                    # mg/dL/min
 LOW, HIGH = 39.5, 400.5       # sensor floor / ceiling
 MODELS = {"rapidActingAdult": RAPID_ACTING_ADULT, "rapidActingChild": RAPID_ACTING_CHILD,
           "fiasp": FIASP, "lyumjev": LYUMJEV, "afrezza": AFREZZA}
-FLAGS = ["jump", "clamp", "disrupted", "no_insulin", "unrecorded", "gap_none", "dose_doubt", "change", "compression",
+FLAGS = ["jump", "clamp", "disrupted", "no_insulin", "unrecorded", "gap_none", "change", "compression",
          "fast", "alternating", "post_gap"]
 EXCLUDE = [f for f in FLAGS if f != "post_gap"]
 MIN = pd.Timedelta(minutes=1)
@@ -122,8 +118,7 @@ def local_clock(t: pd.Series, tz_daily: pd.DataFrame | None):
 
 
 def extract(data_dir: str | Path, tz_daily: pd.DataFrame | None = None,
-            site_events: pd.DataFrame | None = None, loop_iob: pd.DataFrame | None = None,
-            dose_doubt_days=None):
+            site_events: pd.DataFrame | None = None, loop_iob: pd.DataFrame | None = None):
     """Interval table + person summary for one exported donor directory."""
     d = Path(data_dir)
     therapy = json.load(open(d / "therapy.json"))
@@ -203,8 +198,6 @@ def extract(data_dir: str | Path, tz_daily: pd.DataFrame | None = None,
     win = lambda st: [(gm[a], gm[min(b, len(gm) - 1)]) for a, b, s, *_ in gaps if s == st]
     df["unrecorded"] = _windows(t0n, t1n, win(G.UNKNOWN))
     df["gap_none"] = _windows(t0n, t1n, win(G.NONE))
-    dd = [pd.Timestamp(x, tz="UTC") for x in (dose_doubt_days if dose_doubt_days is not None else [])]
-    df["dose_doubt"] = _windows(t0n, t1n, [(x.value, (x + pd.Timedelta(hours=30)).value) for x in dd])
     # site / pod change: 1 h before to 3 h after (the swap itself, then the catch-up burst)
     ch = ev[ev.kind.isin(["no_pod", "prime:cannula", "prime:tubing", "reservoirChange"])]
     cw = [(s - 3600 * 10**9, e + 3 * 3600 * 10**9)
@@ -254,11 +247,10 @@ def extract(data_dir: str | Path, tz_daily: pd.DataFrame | None = None,
     day_ins = pd.Series(df.basal_u + df.bolus_auto_u + df.bolus_manual_u).groupby(lday).sum()
     df["no_insulin"] = pd.Series(lday).map(day_ins <= 0).to_numpy()
 
-    # a clean day: >= 240 five-minute bins with CGM and no disruption, and no unrecorded or doubtful insulin
-    bad_ins = df.unrecorded | df.dose_doubt
-    ok_bins = pd.Series(df.t1.dt.floor("5min").to_numpy())[~(df.disrupted | bad_ins).to_numpy()]
-    n5 = ok_bins.groupby(lday[~(df.disrupted | bad_ins).to_numpy()]).nunique()
-    clean = n5[(n5 >= 240) & ~bad_ins.groupby(df.local_day).any().reindex(n5.index).to_numpy()].index
+    # a clean day: >= 240 five-minute bins with CGM and no disruption, and no unrecorded basal
+    ok_bins = pd.Series(df.t1.dt.floor("5min").to_numpy())[~(df.disrupted | df.unrecorded).to_numpy()]
+    n5 = ok_bins.groupby(lday[~(df.disrupted | df.unrecorded).to_numpy()]).nunique()
+    clean = n5[(n5 >= 240) & ~df.groupby("local_day").unrecorded.any().reindex(n5.index).to_numpy()].index
     tdd = float(day_ins.loc[clean].mean()) if len(clean) >= 7 else np.nan
     isf = isf_from_tdd(tdd) if np.isfinite(tdd) else np.nan
 
