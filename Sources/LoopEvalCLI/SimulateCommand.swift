@@ -1127,7 +1127,9 @@ struct SimulateCommand: AsyncParsableCommand {
     /// replaying Loop's automatic boluses as manual. Bump deliberately when an ETL change matters.
     /// Raised to 22 (2026-10-11): manual temp basals (v21; i040's lows 13 -> 1, field 1),
     /// second-app dose records and unpaired status suspends (v22; month-long false disruptions).
-    static let validatedExportDataVersion = 22
+    /// Raised to 23: dated max basal / max bolus / suspend threshold (61 of 206 pilot donors changed
+    /// max basal in-window; i017 was capped at 2.0 U/h through months at 3.0).
+    static let validatedExportDataVersion = 23
 
     /// Provenance check for a --data-dir export, run before the replay starts. Returns the export's
     /// data_version (nil if unstamped) and human-readable warnings; never throws, never blocks -- a

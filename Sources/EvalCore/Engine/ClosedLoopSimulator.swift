@@ -1562,7 +1562,7 @@ extension EvaluationEngine {
                             // IOB + this cycle's own committed insulin).
                             let y = realManualBolusRealIOB[nextManualIdx]
                             let z = candidateIOB + stepCandidateAdded
-                            let adj = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus, mb.volume - (z - y)))
+                            let adj = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus(at: mb.startDate), mb.volume - (z - y)))
                             stepCandidateAdded += adj
                             counterfactualDoses.append(EvalInsulinDose(
                                 deliveryType: mb.deliveryType, startDate: mb.startDate, endDate: mb.endDate,
@@ -1582,7 +1582,7 @@ extension EvaluationEngine {
                     let want = pendingPlantBoluses.reduce(0.0) { acc, b in
                         acc + (b.units ?? 0) + (b.ratio ?? 0) * rec
                     }
-                    let vol = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus, want))
+                    let vol = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus(at: t), want))
                     if vol > 0 {
                         counterfactualDoses.append(EvalInsulinDose(
                             deliveryType: .bolus, startDate: t, endDate: t, volume: vol,
@@ -3087,9 +3087,9 @@ extension EvaluationEngine {
             prediction: prediction,
             at: t,
             input: doseInput,
-            suspendThreshold: therapy.suspendThreshold,
-            maxBolus: therapy.maxBolus,
-            maxBasalRate: therapy.maxBasalRate,
+            suspendThreshold: therapy.suspendThreshold(at: t),
+            maxBolus: therapy.maxBolus(at: t),
+            maxBasalRate: therapy.maxBasalRate(at: t),
             insulinType: therapy.insulinType(at: t),
             evalStep: config.evalStep,
             applicationFactor: appFactor,

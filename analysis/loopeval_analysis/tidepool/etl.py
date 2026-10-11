@@ -1328,6 +1328,31 @@ def _scalar_limit(ps, col, user, default, name):
     return float(vals[-1])
 
 
+def _limit_timeline(ps, col, s_ms, e_ms, conv=lambda v: v):
+    """Dated timeline of a scalar pump limit over [s_ms, e_ms]: the value in force at s_ms (the last
+    non-null at/before it, else the first after), then each change. [{startDate, endDate, value}]."""
+    pts = []
+    for r in ps.itertuples():
+        v = getattr(r, col)
+        v = None if v is None else conv(v)
+        v = _fin(v)
+        if v is None:
+            continue
+        if pts and abs(pts[-1][1] - v) < 1e-9:
+            continue
+        pts.append((int(r.t_ms), float(v)))
+    if not pts:
+        return []
+    start_i = max([i for i, (t, _) in enumerate(pts) if t <= s_ms] or [0])
+    pts = [(max(t, s_ms) if i == start_i else t, v) for i, (t, v) in enumerate(pts) if i >= start_i and t < e_ms]
+    out = []
+    for i, (t, v) in enumerate(pts):
+        end = pts[i + 1][0] if i + 1 < len(pts) else e_ms
+        if end > t:
+            out.append({"startDate": _iso(t), "endDate": _iso(end), "value": round(v, 4)})
+    return out
+
+
 def _strategy_modes(dts, therapy, margin=0.06):
     """Per-decision AutomaticDosingStrategy ('bolus'|'temp') from INCREASE evidence only.
 
@@ -1492,6 +1517,12 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
             # in-window.
             "maxBolus": _scalar_limit(ps, "max_bolus", user, 12.0, "maxBolus"),
             "maxBasalRate": _scalar_limit(ps, "max_rate", user, 8.0, "maxBasalRate"),
+            # Dated limits: the scalars hold only the LAST value (see TherapySettings).
+            "maxBolusTimeline": _limit_timeline(ps, "max_bolus", s_ms, e_ms),
+            "maxBasalRateTimeline": _limit_timeline(ps, "max_rate", s_ms, e_ms),
+            "suspendThresholdTimeline": _limit_timeline(
+                ps, "bgSafetyLimit", s_ms, e_ms,
+                conv=lambda v: round(_num(v) * MMOL, 1) if _num(v) else None),
             "insulinType": insulin_type}
 
 if __name__ == "__main__":
