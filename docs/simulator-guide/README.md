@@ -736,7 +736,7 @@ A "candidate" is an `EvalConfig` + CLI flags expressing one change. The key leve
 | **Insulin-needs dial** | `--candidate-insulin-needs` | Loop preset-style single aggressiveness knob `f`: basal ×f, ISF ÷f, CR ÷f together (f=0.5 → half basal, double ISF/CR = less insulin). **This is the reference-sweep axis for lift (§15)** — the realistic single dial, and a much stronger baseline than ISF alone. |
 | ISF multiplier | `--candidate-sensitivity-multiplier` | Flat scale on the controller's ISF (<1 = more aggressive / dose more). A weaker aggressiveness axis than insulin-needs (corrections only). |
 | Basal-rate multiplier | `--candidate-basal-rate-multiplier` | Scale the scheduled basal profile. Changes the belief (delivered basal *and* the forecast's net-basal reference), not just the output — so it reaches fasting/non-meal lows that ISF corrections can't. |
-| Manual-bolus mode | `--candidate-manual-bolus-from-recommendation` (**default OFF**) · `-rec-scale` | Replace each real manual bolus with the candidate's *own* recommended bolus (self-consistent with candidate state; makes the aggressiveness sweep behave physically). `-rec-scale 0.5` delivers half of it (models meal under-bolusing). **Off by default**, so the default path is the IOB-resize passthrough — more field-faithful for single-decision fidelity work, but it means an aggressiveness sweep leaves the real meal boluses in place unless you turn this on. |
+| Manual-bolus mode | `--candidate-manual-bolus-from-recommendation` (**default ON**) · `-rec-scale` | Replace each real manual bolus with the candidate's *own* recommended bolus. **This is the default**, so a hands-on replay does **not** deliver the person's boluses — see the precedence box below. |
 | Application factor | `--candidate-application-factor` | Fraction of the computed correction delivered per cycle (Loop default 0.4). **Auto-bolus only, and ignored entirely when GBAF is on** — negative value inherits `--application-factor`. |
 | GBAF | `--candidate-gbaf` (+ anchors/factors) | Glucose-based application factor: ramps the app-factor up with BG — aggressive only when high (fidelity-stable on lows). |
 | Integral RC | `--candidate-integral-rc` (+ `-clamp`) | Integral retrospective correction (a PID-like term on accumulated forecast error). RC mode is **not** recorded in donor data — infer it per-donor by forecast-match before replaying. |
@@ -754,6 +754,28 @@ A "candidate" is an `EvalConfig` + CLI flags expressing one change. The key leve
 | RC decay form | `--legacy-rc-decay` | Step-by-step `decayEffect` as Loop-main computed it before LoopKit#556, for donors whose deployed Loop predates the continuous-quadratic form. |
 | **Patient ISF (plant)** | `--patient-isf` | Not an algorithm lever — a **patient** parameter. Sets the simulated body's ISF to a flat absolute value referencing no therapy configuration, so the controller's belief can be swept while the body is held fixed. Unset = the plant is coupled to the belief (§10). |
 | **Patient insulin model (plant)** | `--patient-insulin-model` | Also a **patient** parameter, not an algorithm lever. The body's pharmacodynamics — how fast insulin acts — set by re-stamping the doses on the plant path (§5). Unset = coupled to the controller's model. |
+
+> [!IMPORTANT]
+> **Three manual-bolus modes, and the default is not passthrough.** The branch chain is
+> `manualBolusFromRecommendation` → `iobAdjustManualBoluses` → verbatim, first match wins, and
+> **both of the first two default to ON at the CLI** (`SimulateCommand.swift`; `EvalConfig`'s own
+> defaults differ and are not what a `simulate` run uses). So:
+>
+> | flags | what the candidate delivers | measured on one donor, 59 d |
+> |---|---|---|
+> | *(default)* | the candidate's own recommended bolus | 915 → **1075 U (+17%)**, 52% of boluses zeroed |
+> | `--no-candidate-manual-bolus-from-recommendation` | the real bolus, resized by the IOB difference | 915 → **372 U (−59%)**, 50% zeroed |
+> | **both** `--no-…-from-recommendation` **and** `--no-candidate-iob-adjust-manual-boluses` | **the real bolus, verbatim** | 915 → **915 U**, none altered |
+>
+> Only the third is passthrough. The second is where `--no-candidate-iob-adjust-manual-boluses`
+> appears to "do nothing" on its own: recommendation mode takes precedence, so the flag is
+> shadowed rather than broken.
+>
+> Each mode rewrites the person's dosing hard in a different direction, so **state the mode beside
+> any hands-on result**. It is not, however, the source of the counterfactual's excess lows: with
+> verbatim passthrough the same bed still produces 130 crossings below 54 against the field's 26
+> (see [§16](#16-methodological-principles--traps)).
+
 | Controller insulin model | `--controller-insulin-model` | What the ALGORITHM believes insulin does, for both arms. Works on every data source — unlike `--insulin-type`, which only reaches the Nightscout path and is silently ignored with `--data-dir`. |
 | In-progress temp | `--no-clip-in-progress-temp-basal` | Project an in-progress temp basal to its commanded end (what the field's recorded `bgForecast` does) instead of truncating — needed when comparing against recorded forecasts. |
 
@@ -952,6 +974,18 @@ isolates one meal at a time.
 - **Net-basal data traps**: a sparse temp-basal timeline with `.fillna(0)` mislabels scheduled basal
   as suspend; use the effective-delivery helper for TDD/rate.
 - **bench TIR is diagnostic only** — it's a linearization, not closed-loop evidence.
+- **The counterfactual over-corrects field highs, and that is where its excess lows come from.**
+  On a validated bed at deployed config with *verbatim* bolus passthrough — the person's own doses,
+  unaltered — the counter still produced **130 crossings below 54 against the field's 26**, running
+  18 mg/dL lower on a 4% insulin increase. 72% of those lows happen when the field was not low at
+  all (field median 91 mg/dL, counter 40 lower), and 2–3 h earlier the field was high: median
+  166–171 mg/dL, **above 180 in 43% of cases**. The real system left those highs standing — pump
+  comms, an occlusion, open-loop time, or simply the person not acting — and the replay corrects
+  them, with the correction landing hours later as a low that never happened. Read absolute `t<54`
+  and low *counts* from any counterfactual with this in mind; it is a property of the comparison,
+  not of the candidate, and it inflates both arms. The lever is disruption/occlusion exclusion, not
+  a deeper glucose floor: the floor changes a low's depth and duration, never how often one starts
+  (turning it off on the same bed moved crossings 126 → 89 while t<54 went 1.94 → 4.20).
 
 ---
 
@@ -1004,7 +1038,7 @@ isolates one meal at a time.
 | controller insulin model | therapy timeline | `--controller-insulin-model` overrides it on any data source; `--insulin-type` is ignored under `--data-dir` |
 | kalman smoothing | ON | RTS-smoothed substrate (`--no-kalman` = raw) |
 | counter-reg | **off by default** (onset 0); when on, gain 0.2 / max 6.0 | Glucose-defense velocity, **differenced vs real & gated on counter<onset** (§8). Whole-trace outcome runs enable it; the episodic eval (§15.1) leaves it off. |
-| manual-bolus mode | **IOB-resize passthrough (recommendation mode OFF)** | Default keeps the real manual boluses, IOB-resized (more field-faithful). `--candidate-manual-bolus-from-recommendation` opts in to the candidate's own recommendation (§12) |
+| manual-bolus mode | **recommendation (ON)** | The candidate's own recommendation replaces each real bolus. Verbatim passthrough needs BOTH `--no-candidate-manual-bolus-from-recommendation` and `--no-candidate-iob-adjust-manual-boluses` (§12) |
 | sensitivity infer | window 30 min · m_max 2.0 · raw (no smoothing) | Fidelity model (§9), off by default; raw per-step `m` is the field-validated default |
 | sensor cap | 400 mg/dL | Ceiling on BG the controller sees (§4); `--sensor-cap-mgdl` |
 | dosing engine | Loop | Pluggable; `--candidate-openaps` swaps in oref/OpenAPS (§1, §12) |
