@@ -165,3 +165,38 @@ def flag(df: pd.DataFrame, arts: pd.DataFrame | None = None) -> np.ndarray:
     for s_, e_ in zip(arts.start.astype("int64"), arts.end.astype("int64")):
         m |= (t1 >= s_) & (t0 <= e_)
     return m
+
+
+class CompressionLayer:
+    """Generator side: compression artifacts added to what the CGM reports (true BG is untouched).
+
+    fit: compression_layer.json from runs/2026-10-11-ice-compression/fit_layer.py (per-person rate per CGM-day,
+    pooled hour-of-day weights); templates: the real events as offset traces (reported minus prior trend, 5-min
+    grid, readings the sensor withheld marked missing). An event starts at hazard rate * hour weight * scale and
+    plays one whole trace, drawn from the person's own events when they have 3 or more, else the pool.
+    `scale` is the dial: 0 = off, 1 = the person's fitted rate. step(t, dt_h, hour) -> (offset mg/dL, missing)."""
+
+    def __init__(self, fit, templates, alias, scale=1.0, seed=0):
+        self.rng = np.random.default_rng(seed + 7919)
+        self.rate = float(fit["rate_per_day"].get(alias, fit["prior"]["alpha"] / fit["prior"]["beta"])) * scale
+        self.hw = np.asarray(fit["hour_weight"], float)
+        own = templates[templates.alias == alias]
+        lib = own if own.ev.nunique() >= 3 else templates
+        self.lib = [(g.t_min.to_numpy(float), g.offset.to_numpy(float), g.missing.to_numpy(bool))
+                    for _, g in lib.sort_values("t_min").groupby("ev")]
+        self.cur, self.t0 = None, None
+
+    def step(self, t, dt_h, hour):
+        if self.cur is None and self.rate > 0 and self.rng.random() < 1 - np.exp(-self.rate * self.hw[int(hour) % 24] * dt_h / 24):
+            self.cur, self.t0 = self.lib[self.rng.integers(len(self.lib))], t
+        if self.cur is None:
+            return 0.0, False
+        tm, off, miss = self.cur
+        m = (t - self.t0).total_seconds() / 60
+        if m > tm[-1] + 2.5:
+            self.cur = None
+            return 0.0, False
+        k = min(int(np.searchsorted(tm, m - 2.5)), len(tm) - 1)
+        ok = np.isfinite(off)
+        o = float(np.interp(m, tm[ok], off[ok])) if ok.any() else 0.0
+        return min(o, 0.0), bool(miss[k])
