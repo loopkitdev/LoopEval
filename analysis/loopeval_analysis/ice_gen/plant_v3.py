@@ -13,8 +13,8 @@ Run with `simulate --candidate-counterfactual --plant-behavior --external-plant 
   7. with --noise: the CGM reports BG + e, e the person's level noise (noise.py); the generator, Loop
      and the scores all see the reported value, and the logged ICE is the reported one
   7a. with --compression: the CGM also reports compression artifacts (sensor.CompressionLayer), an offset on
-     the reported value only; readings the sensor would withhold are sent as the depressed value (the protocol
-     has no missing reading) and marked in the log, and artifact time is left out of the scores
+     the reported value only; readings the sensor withholds are sent as null (no reading: the engine keeps them
+     out of Loop's glucose history, b09888b) and marked in the log; artifact time is left out of the scores
   7b. with --slow: background ICE += u(t), the person's persistent slow level (slow.py)
   8. actions now due -> reply {"carbs": [...], "boluses": [...]}
 Warmed up on the real 24 h before the first request (real meals still absorbing carry over).
@@ -272,7 +272,7 @@ class PlantV3:
             self.t = t
             if len(self.log) % 288 == 0:
                 self.ins.prune(t)
-            bgs.append(min(max(self.bg + self.e + self.c, LOW), HIGH))
+            bgs.append(None if self.c_miss else min(max(self.bg + self.e + self.c, LOW), HIGH))
         return {"bg": bgs, "carbs": carbs, "boluses": boluses}
 
     def write_log(self, path):
