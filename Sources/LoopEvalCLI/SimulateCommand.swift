@@ -1264,16 +1264,22 @@ struct SimulateCommand: AsyncParsableCommand {
         // basal it set (rate) plus any auto-bolus. Emitted per 5-min step. In CF
         // mode all candidate delivery is automatic. Basal records are run-length
         // compacted (one span per unchanged rate) to keep the trace small.
+        // amountU is what the pump DELIVERED (whole pulses), not the commanded rate × time --
+        // this stream is documented as actual delivery and is compared against the field's
+        // delivered volumes. rateUhr keeps the commanded rate for reference. Steps without a
+        // recorded delivery (burn-in) fall back to rate × time.
         let stepDur: TimeInterval = 5 * 60
         var runStart: Date? = nil
         var runRate = Double.nan
+        var runDelivered = 0.0
+        var runAllMeasured = true
         func flushBasalRun(endingAt end: Date) {
             guard let s = runStart, runRate.isFinite else { return }
             let hours = max(end.timeIntervalSince(s), 0) / 3600.0
             delivery.append(DeliveryRecord(
                 t: formatter.string(from: s), tEnd: formatter.string(from: end),
                 source: "candidate", kind: "basal", automatic: true,
-                amountU: runRate * hours, rateUhr: runRate))
+                amountU: runAllMeasured ? runDelivered : runRate * hours, rateUhr: runRate))
         }
         for step in simResult.steps {
             let r = step.candidateTempRate
@@ -1281,7 +1287,10 @@ struct SimulateCommand: AsyncParsableCommand {
                 flushBasalRun(endingAt: step.t)
                 runStart = r.isFinite ? step.t : nil
                 runRate = r
+                runDelivered = 0; runAllMeasured = true
             }
+            if step.candidateBasalDeliveredU.isFinite { runDelivered += step.candidateBasalDeliveredU }
+            else { runAllMeasured = false }
             if step.candidateBolus > 0 {
                 delivery.append(DeliveryRecord(
                     t: formatter.string(from: step.t), tEnd: nil,
