@@ -537,7 +537,7 @@ public actor EvaluationEngine {
             suspendThreshold: therapy.suspendThreshold,
             maxBolus: therapy.maxBolus,
             maxBasalRate: therapy.maxBasalRate,
-            insulinType: therapy.insulinType,
+            insulinType: therapy.insulinType(at: t),
             evalStep: config.evalStep,
             applicationFactor: effAppFactor,
             // Quantize to the pump grid like the sim does: real Loop FLOORS the

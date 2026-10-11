@@ -467,6 +467,9 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Peak activity time (MINUTES) of the `custom` insulin model. Required with a `custom` insulin model; see --custom-insulin-duration-min.")
     var customInsulinPeakMin: Double?
 
+    @Option(name: .long, help: "A DATED change of the controller's insulin curve, for a user who rebuilt Loop with a different curve mid-window: `ISO8601=SPEC`, where SPEC is a preset name (e.g. rapidActingAdult) or a custom curve `DURATION/PEAK` in minutes (e.g. 2026-09-24T09:03:00Z=180/80). Repeatable. Before the first change the controller uses --controller-insulin-model (else the therapy timeline). From the change on, every decision evaluates its WHOLE dose history on the new curve, as Loop does (it maps insulin type to curve when it computes, not when it delivers). At most two distinct custom curves per run, counting --custom-insulin-*. The plant keeps its own model: --patient-insulin-model, else the curve in force before the first change.")
+    var controllerInsulinSwitch: [String] = []
+
         @Flag(name: .long, help: "Sim-FIDELITY: infer a local insulin-sensitivity multiplier m(t) from the residual. When BG is still dropping after subtracting the PD-modeled (scheduled-ISF) insulin, the insulin was more effective than scheduled, so scale ISF UP just enough to zero that negative residual (never past it). Applied to the PHYSIOLOGY (ICE + counterfactual dose-effect run at scheduled ISF × m), DECOUPLED from the controller's ISF belief. Capped by --candidate-infer-sensitivity-max. Default OFF.")
     var candidateInferSensitivity: Bool = false
     @Option(name: .long, help: "Cap on the inferred sensitivity multiplier m ('can't subtract more insulin than is physically present'). Default 2.0. Set 1.0 for an identity check (≡ off when sensitivity-multiplier is 1).")
@@ -793,6 +796,57 @@ struct SimulateCommand: AsyncParsableCommand {
         } else if customInsulinDurationMin != nil || customInsulinPeakMin != nil {
             throw ValidationError("--custom-insulin-duration-min/--custom-insulin-peak-min only apply with `--controller-insulin-model custom` or `--patient-insulin-model custom`.")
         }
+        // Dated controller curve changes. A `DURATION/PEAK` spec takes the first free custom slot.
+        var insulinTypeChanges: [InsulinTypeChange] = []
+        if !controllerInsulinSwitch.isEmpty {
+            let iso = ISO8601DateFormatter()
+            var slots: [(dur: Double, peak: Double, preset: ExponentialInsulinModelPreset)] = []
+            if parsedPatientInsulinModel == .custom || parsedControllerInsulinModel == .custom,
+               let d = customInsulinDurationMin, let p = customInsulinPeakMin {
+                slots.append((d, p, .custom))
+            }
+            for raw in controllerInsulinSwitch {
+                let parts = raw.split(separator: "=", maxSplits: 1).map(String.init)
+                guard parts.count == 2, let start = iso.date(from: parts[0]) else {
+                    throw ValidationError("--controller-insulin-switch expects ISO8601=SPEC (e.g. 2026-09-24T09:03:00Z=180/80); got '\(raw)'.")
+                }
+                let spec = parts[1]
+                let preset: ExponentialInsulinModelPreset
+                let dp = spec.split(separator: "/").map { Double($0) }
+                if dp.count == 2, let d = dp[0], let p = dp[1] {
+                    guard p > 0, d > 2 * p else {
+                        throw ValidationError("--controller-insulin-switch \(spec): duration must exceed twice the peak.")
+                    }
+                    if let hit = slots.first(where: { $0.dur == d && $0.peak == p }) {
+                        preset = hit.preset
+                    } else {
+                        let free: [ExponentialInsulinModelPreset] = [.custom, .custom2].filter { c in !slots.contains { $0.preset == c } }
+                        guard let c = free.first else {
+                            throw ValidationError("--controller-insulin-switch: at most two distinct custom curves per run.")
+                        }
+                        if c == .custom {
+                            ExponentialInsulinModelPreset.customActionDuration = d * 60
+                            ExponentialInsulinModelPreset.customPeakActivity = p * 60
+                        } else {
+                            ExponentialInsulinModelPreset.custom2ActionDuration = d * 60
+                            ExponentialInsulinModelPreset.custom2PeakActivity = p * 60
+                        }
+                        slots.append((d, p, c)); preset = c
+                    }
+                } else {
+                    preset = try parseInsulinType(spec)
+                    if preset == .custom || preset == .custom2 {
+                        throw ValidationError("--controller-insulin-switch: give a custom curve as DURATION/PEAK, not by name.")
+                    }
+                }
+                insulinTypeChanges.append(InsulinTypeChange(start: start, preset: preset))
+            }
+            insulinTypeChanges.sort { $0.start < $1.start }
+            for c in insulinTypeChanges {
+                let m = c.preset
+                printStderr("controller insulin curve from \(iso.string(from: c.start)): \(m) (peak \(Int(m.peakActivity / 60)) min, action duration \(Int(m.actionDuration / 60)) min)\n")
+            }
+        }
         if dataDir != nil && insulinType != "rapidActingAdult" && controllerInsulinModel == nil {
             printStderr("WARNING: --insulin-type is IGNORED with --data-dir (the model comes from therapy.json). Use --controller-insulin-model to override it.\n")
         }
@@ -873,6 +927,12 @@ struct SimulateCommand: AsyncParsableCommand {
             data = PreloadedData(glucose: data.glucose, doses: restamped,
                                  carbs: data.carbs, therapyTimeline: tl)
             printStderr("controller insulin model: \(was) -> \(cm) (therapy belief + \(restamped.count) dose stamps); plant unaffected\n")
+        }
+        if !insulinTypeChanges.isEmpty {
+            var tl = data.therapyTimeline
+            tl.insulinTypeChanges = insulinTypeChanges
+            data = PreloadedData(glucose: data.glucose, doses: data.doses,
+                                 carbs: data.carbs, therapyTimeline: tl)
         }
 
         // Optional per-step ISF multiplier CSV (time → multiplier).
