@@ -12,6 +12,7 @@ Run with `simulate --candidate-counterfactual --plant-behavior --external-plant 
   6. BG(t) = BG(t_prev) + (ICE - ISF_tdd * insulin absorption) * dt
   7. with --noise: the CGM reports BG + e, e the person's level noise (noise.py); the generator, Loop
      and the scores all see the reported value, and the logged ICE is the reported one
+  7b. with --slow: background ICE += u(t), the person's persistent slow level (slow.py)
   8. actions now due -> reply {"carbs": [...], "boluses": [...]}
 Warmed up on the real 24 h before the first request (real meals still absorbing carry over).
 
@@ -34,13 +35,15 @@ from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
 from .model_v3j import ICEGenV3J, ICEGenV3K
 from .noise import LevelNoise
+from .plant import GAP_H
+from .slow import SlowLevel
 from .plant import ROOT, Insulin, _ts, LOW, HIGH
 
 WARMUP = 288
 
 
 class PlantV3:
-    def __init__(self, alias, ckpt, seed=0, feedback="mean", noise=None, rewarm_h=0.0):
+    def __init__(self, alias, ckpt, seed=0, feedback="mean", noise=None, rewarm_h=0.0, slow=None):
         torch.manual_seed(seed); np.random.seed(seed)
         # what the generator sees as its own last background ICE: "sample" (the noisy draw) or
         # "mean" (the predictive mean). Fed its own noisy draws, the head reads them as volatility,
@@ -75,6 +78,9 @@ class PlantV3:
         # noise: {"a1", "a2", "var": {alias: mg/dL^2}} from fit_noise; None = no level noise
         self.noise = LevelNoise(noise["a1"], noise["a2"], noise["var"].get(alias, 0.0), seed) if noise else None
         self.e = self.noise.e1 if self.noise else 0.0
+        # slow: {"fast_var", "fast_tau_h", "slow_var", "slow_tau_h", "scale": {alias: s}} from fit_slow; None = off
+        self.slow = SlowLevel(slow["fast_var"], slow["fast_tau_h"], slow["slow_var"], slow["slow_tau_h"],
+                              slow.get("scale", {}).get(alias, 1.0), seed) if slow else None
         self.pulses = []           # (onset Timestamp, size mg/dL, m, s)
         self.due = []              # (due Timestamp, kind, payload)
         self.anchor_times = []
@@ -228,8 +234,14 @@ class PlantV3:
             else:
                 self.bgice = bgice
             pulse = self._pulse_rate(t)
-            ice = bgice * ICE_SCALE + pulse
+            u = self.slow.step(dt_h) if self.slow else 0.0
+            ice = bgice * ICE_SCALE + u + pulse
             self.bg = max(self.bg + (ice - self.isf * absorbed / dt_h) * dt_h, 20.0)
+            if dt_h > GAP_H:            # a CGM gap: resume from the field reading, as the replay plant and the engine do
+                j = self.steps.t1.searchsorted(t)
+                near = [k for k in (j - 1, j) if 0 <= k < len(self.steps) and abs((self.steps.t1.iloc[k] - t).total_seconds()) < 600]
+                if near:
+                    self.bg = float(self.steps.bg1.iloc[near[-1]]) - self.e
             if self.noise:
                 e0 = self.e
                 for _ in range(max(1, round(dt_h * 12))):
@@ -240,7 +252,7 @@ class PlantV3:
             self.bg_hist = [(tt, b) for tt, b in self.bg_hist if t - tt < pd.Timedelta(minutes=35)] + [(t, min(max(self.bg + self.e, LOW), HIGH))]
             self.pulses = [p for p in self.pulses if (t - p[0]) < pd.Timedelta(hours=12)]
             self.anchor_times = [a for a in self.anchor_times if (t - a) < pd.Timedelta(hours=3)]
-            self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bgice=bgice * ICE_SCALE, pulse=pulse, bg1=self.bg + self.e, e=self.e,
+            self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bgice=bgice * ICE_SCALE + u, pulse=pulse, slow=u, bg1=self.bg + self.e, e=self.e,
                                  iob=self.ins.iob(t), ins_activity_uhr=absorbed / dt_h, hour=hour, dow=dow))
             self.t = t
             if len(self.log) % 288 == 0:
@@ -267,9 +279,11 @@ def main():
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--log", required=True)
     ap.add_argument("--feedback", choices=["mean", "sample"], default="mean")
     ap.add_argument("--noise", help="level-noise parameters (json from fit_noise)")
+    ap.add_argument("--slow", help="slow-level parameters (json from fit_slow, optional per-alias 'scale')")
     ap.add_argument("--rewarm-h", type=float, default=0.0, help="rebuild the GRU state over the last 24 h every N hours (0 = never)")
     a = ap.parse_args()
-    plant = PlantV3(a.alias, a.ckpt, a.seed, a.feedback, json.load(open(a.noise)) if a.noise else None, a.rewarm_h)
+    plant = PlantV3(a.alias, a.ckpt, a.seed, a.feedback, json.load(open(a.noise)) if a.noise else None, a.rewarm_h,
+                    json.load(open(a.slow)) if a.slow else None)
     for line in sys.stdin:
         if line.strip():
             sys.stdout.write(json.dumps(plant.advance(json.loads(line))) + "\n"); sys.stdout.flush()

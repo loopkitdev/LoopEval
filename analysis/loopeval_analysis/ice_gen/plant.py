@@ -47,6 +47,10 @@ def _ts(x):
     return pd.Timestamp(x).tz_convert("UTC") if pd.Timestamp(x).tzinfo else pd.Timestamp(x, tz="UTC")
 
 
+GAP_H = 2.0          # hours without a CGM sample after which the plant re-anchors to the field (shorter gaps
+                     # integrate the gap's averaged ICE, which is exact when the insulin matches the field's)
+
+
 class Insulin:
     """Point-mass insulin events (basal split into <= 1-min chunks); absorbed fraction via the
     model's percent-effect-remaining curve."""
@@ -220,7 +224,9 @@ class Plant:
                 out.append(min(max(self.bg, LOW), HIGH)); continue
             absorbed = self.ins.absorbed(self.t, t)
             hour, dow, carbs, man = self._context(t)
-            outage = self.mode == "replay" and any(a <= t <= b for a, b in self.outages)
+            # a CGM gap longer than GAP_H (sensor off, nothing uploaded) is followed like an outage: integrating
+            # ICE across it in one step pinned one replay at 2,300 mg/dL after a 77 h gap
+            outage = self.mode == "replay" and (dt_h > GAP_H or any(a <= t <= b for a, b in self.outages))
             if self.mode == "replay":
                 ice = self._real_ice(t)
             else:
