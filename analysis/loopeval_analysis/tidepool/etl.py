@@ -19,7 +19,7 @@ Usage:
 """
 import json, os
 from datetime import datetime, timezone, timedelta
-from loopeval_analysis.tidepool.conn import query
+from loopeval_analysis.tidepool.batch import query   # block-served inside batch(); direct otherwise
 
 MMOL = 18.0182
 TBL = "prod.default.device_data"
