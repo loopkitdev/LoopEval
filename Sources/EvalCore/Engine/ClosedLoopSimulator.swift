@@ -2461,7 +2461,7 @@ extension EvaluationEngine {
                 let insEff = Self.insulinEffectDelta(
                     doses: input.doses, basal: therapy.basal, sensitivity: therapy.sensitivity,
                     from: lastG.startDate.addingTimeInterval(-winSec), to: lastG.startDate,
-                    insulinModel: therapy.insulinType.model)
+                    insulinModel: therapy.insulinType(at: t).model)
                 let vins = insEff / (winSec / 60.0)        // mg/dL/min, negative = drop
                 let causalICE = vbg - vins                 // negative = sensitive (faster than insulin)
                 if causalICE < -config.sensDampThresholdRate {
@@ -2503,7 +2503,7 @@ extension EvaluationEngine {
         // Probe the map for any non-1.0 mult in the forecast window before
         // doing the (relatively expensive) segment expansion.
         let stepSec = config.evalStep
-        let horizonEnd = t.addingTimeInterval(therapy.insulinType.model.effectDuration + stepSec)
+        let horizonEnd = t.addingTimeInterval(therapy.insulinType(at: t).model.effectDuration + stepSec)
         let mapHasBoostInWindow: Bool = {
             guard let perStepMap = perStepIsfMultByTime, !perStepMap.isEmpty else { return false }
             var probeT = Date(timeIntervalSince1970:
@@ -2858,7 +2858,7 @@ extension EvaluationEngine {
             if let isfQ = effectiveInput.sensitivity.closestPrior(to: anchorDate)?.value,
                let basalRate = effectiveInput.basal.closestPrior(to: anchorDate)?.value {
                 // anchorScale ~ 1 h for rapid-acting adult, ~44 min for the ultra-rapid presets
-                let anchorPoint = 0.8 * (therapy.insulinType.peakActivity / 3600.0) * basalRate * isfQ.doubleValue(for: mgdlU)
+                let anchorPoint = 0.8 * (therapy.insulinType(at: t).peakActivity / 3600.0) * basalRate * isfQ.doubleValue(for: mgdlU)
                 if anchorPoint > 0 {          // a 0 U/h basal segment would make the damper a constant 95 %: Loop disables it
                     let a0 = config.nidAnchorAlpha, ms = config.nidMarginalSlope
                     let lin = (1.0 - a0) / anchorPoint
@@ -3066,7 +3066,7 @@ extension EvaluationEngine {
             suspendThreshold: therapy.suspendThreshold,
             maxBolus: therapy.maxBolus,
             maxBasalRate: therapy.maxBasalRate,
-            insulinType: therapy.insulinType,
+            insulinType: therapy.insulinType(at: t),
             evalStep: config.evalStep,
             applicationFactor: appFactor,
             softLowGate: config.softLowGate,
