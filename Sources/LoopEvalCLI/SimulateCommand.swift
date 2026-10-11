@@ -553,6 +553,7 @@ struct SimulateCommand: AsyncParsableCommand {
     var cgmStaleGuardMin: Double = 0
 
     mutating func run() async throws {
+        var exportProvenance: (version: Int?, warnings: [String])? = nil
         let startDate = try parseISO8601Date(start)
         let endDate = try parseISO8601Date(end)
         guard endDate > startDate else { throw ValidationError("--end must be after --start") }
@@ -813,6 +814,11 @@ struct SimulateCommand: AsyncParsableCommand {
         let dataSource: any EvalDataSource
         if let dataDir {
             dataSource = JSONFileDataSource(baseURL: URL(fileURLWithPath: dataDir))
+            let prov = Self.checkExportProvenance(dataDir: dataDir, arguments: CommandLine.arguments)
+            exportProvenance = prov
+            for w in prov.warnings {
+                printStderr("\n*** PROVENANCE WARNING: \(w)\n")
+            }
         } else {
             guard !nightscoutUrl.isEmpty, let baseURL = URL(string: nightscoutUrl) else {
                 throw ValidationError("Provide --nightscout-url or --data-dir")
@@ -1028,15 +1034,65 @@ struct SimulateCommand: AsyncParsableCommand {
         try Self.writeTrace(
             simResult: simResult,
             data: data,
-            to: URL(fileURLWithPath: traceOut)
+            to: URL(fileURLWithPath: traceOut),
+            exportDataVersion: exportProvenance?.version,
+            provenanceWarnings: exportProvenance?.warnings ?? []
         )
         printStderr("Closed-loop trace → \(traceOut)\n")
+    }
+
+    /// Oldest export DATA_VERSION validated against the field (bddp cohort, 2026-10-11: 9/11 donors
+    /// match on lows and TIR at v18/v19). Older exports predate fidelity fixes the replay depends on --
+    /// per-cycle strategy mode (v15), carb visibility (v16), basalType (v17), deployed maxBolus (v14) --
+    /// and unversioned ones may predate the bolus dedup (e128da3) that stopped HealthKit mirrors
+    /// replaying Loop's automatic boluses as manual. Bump deliberately when an ETL change matters.
+    static let validatedExportDataVersion = 18
+
+    /// Provenance check for a --data-dir export, run before the replay starts. Returns the export's
+    /// data_version (nil if unstamped) and human-readable warnings; never throws, never blocks -- a
+    /// sweep may override a donor flag on purpose, and other roles' scripts must not break.
+    ///
+    /// Two checks:
+    ///  * `_export_manifest.json` -- missing, or a data_version below `validatedExportDataVersion`.
+    ///  * `replay_config.json` (optional, next to the export) -- `{"required_flags": ["--flag",
+    ///    "--flag value", ...], "notes": "..."}`: the flags that make THIS donor deployment-faithful.
+    ///    Each entry must appear in the command line as that exact token sequence.
+    static func checkExportProvenance(dataDir: String, arguments: [String]) -> (version: Int?, warnings: [String]) {
+        var warnings: [String] = []
+        var version: Int? = nil
+        let dir = URL(fileURLWithPath: dataDir)
+        let manifestURL = dir.appendingPathComponent("_export_manifest.json")
+        if let raw = try? Data(contentsOf: manifestURL),
+           let obj = try? JSONSerialization.jsonObject(with: raw) as? [String: Any] {
+            version = (obj["data_version"] as? NSNumber)?.intValue
+            if let v = version, v < validatedExportDataVersion {
+                warnings.append("export data_version \(v) is older than \(validatedExportDataVersion), the oldest validated against the field -- re-export before trusting absolute outcomes")
+            } else if version == nil {
+                warnings.append("export manifest has no data_version -- cannot tell which ETL fixes it carries")
+            }
+        } else {
+            warnings.append("no _export_manifest.json -- this export predates version stamping and may predate the bolus-dedup fix (Loop automatic boluses replayed as manual); re-export before trusting absolute outcomes")
+        }
+        let cfgURL = dir.appendingPathComponent("replay_config.json")
+        if let raw = try? Data(contentsOf: cfgURL),
+           let obj = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
+           let req = obj["required_flags"] as? [String] {
+            let joined = " " + arguments.joined(separator: " ") + " "
+            let missing = req.filter { !joined.contains(" " + $0 + " ") }
+            if !missing.isEmpty {
+                let note = (obj["notes"] as? String).map { " (\($0))" } ?? ""
+                warnings.append("replay_config.json requires flags not on this command line: \(missing.joined(separator: ", "))\(note) -- the replay is NOT deployment-faithful for this donor")
+            }
+        }
+        return (version, warnings)
     }
 
     static func writeTrace(
         simResult: ClosedLoopSimResult,
         data: PreloadedData,
-        to url: URL
+        to url: URL,
+        exportDataVersion: Int? = nil,
+        provenanceWarnings: [String] = []
     ) throws {
         let mgdlUnit = LoopUnit.milligramsPerDeciliter
         let formatter = ISO8601DateFormatter()
@@ -1114,6 +1170,8 @@ struct SimulateCommand: AsyncParsableCommand {
             let delivery: [DeliveryRecord] // canonical actual-delivery stream (NEW)
             let insulinActivityCurve: [CurvePoint]
             let closedLoop: Bool
+            let exportDataVersion: Int?          // --data-dir export's manifest version (nil = unstamped)
+            let provenanceWarnings: [String]     // stale export / missing donor flags; empty = clean
         }
 
         let preds = simResult.steps.map {
@@ -1256,7 +1314,9 @@ struct SimulateCommand: AsyncParsableCommand {
             counter: counterOut,
             delivery: delivery,
             insulinActivityCurve: curve,
-            closedLoop: true
+            closedLoop: true,
+            exportDataVersion: exportDataVersion,
+            provenanceWarnings: provenanceWarnings
         )
 
         let encoder = JSONEncoder()
