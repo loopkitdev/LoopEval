@@ -81,6 +81,9 @@ class PlantV3:
         # slow: {"fast_var", "fast_tau_h", "slow_var", "slow_tau_h", "scale": {alias: s}} from fit_slow; None = off
         self.slow = SlowLevel(slow["fast_var"], slow["fast_tau_h"], slow["slow_var"], slow["slow_tau_h"],
                               slow.get("scale", {}).get(alias, 1.0), seed) if slow else None
+        # fed into the generator's own background input, the level is amplified ~6x (it reads a shifted day
+        # as its own persistent state and generates more of it: daily variance 611 vs real 174); default: not fed
+        self.slow_in_input = bool(slow.get("into_input", False)) if slow else False
         self.pulses = []           # (onset Timestamp, size mg/dL, m, s)
         self.due = []              # (due Timestamp, kind, payload)
         self.anchor_times = []
@@ -248,7 +251,7 @@ class PlantV3:
                     self.e = self.noise.step()
                 ice += (self.e - e0) / dt_h
             # smoothed background as the CGM would show it (what dataset_v3 computes from real data)
-            self.ema = D3.ema_step(self.ema, ice - pulse)
+            self.ema = D3.ema_step(self.ema, ice - pulse - (0.0 if self.slow_in_input else u))
             self.bg_hist = [(tt, b) for tt, b in self.bg_hist if t - tt < pd.Timedelta(minutes=35)] + [(t, min(max(self.bg + self.e, LOW), HIGH))]
             self.pulses = [p for p in self.pulses if (t - p[0]) < pd.Timedelta(hours=12)]
             self.anchor_times = [a for a in self.anchor_times if (t - a) < pd.Timedelta(hours=3)]
