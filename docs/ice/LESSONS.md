@@ -149,3 +149,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     a median donor about one in six weeks and the most prone about weekly. It holds only 0.7% of time below
     54. Fingersticks are too few to validate (47 at CGM < 70, 40 of them read >= 70, mostly CGM low-range
     lag around treated lows, not compression).
+28. **The yardstick ISF does not beat the TDD rule in closed loop.** ICE rebuilt with the per-person
+    yardstick ISF (median 1.15 × the TDD rule, p10 0.77, p90 1.73), three trainings each, scored on
+    held-out clean time: TIR 62.7 / 60.1 / 62.1 against the rule's 62.9 / 61.7 / 59.2, time below 54
+    1.69 / 2.33 / 1.60 against 1.28 / 1.41 / 1.66. TIR is level; lows lean worse but within the spread of
+    trainings. The rule stays. (The two sets were replayed on harnesses C and D, so their replay rows
+    differ; the model rows are what compare.)
