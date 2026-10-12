@@ -166,6 +166,13 @@ extension EvaluationEngine {
         // Loop's own error record marks the exact cycles; the replay skips them the
         // same way it skips stale-CGM cycles. Subset of decisionTimes.
         noDoseGuardTimes: Set<Date> = [],
+        // Decision instants where a bolus request was in flight (dosingDecision warning
+        // bolusInProgress): Loop forecasts but recommends nothing (LoopDataManager
+        // `guard lastRequestedBolus == nil`), so no dose and no temp change. Typically the
+        // cycle a bolus-screen carb save triggers, milliseconds before the user's bolus.
+        // Skipped like a guard cycle, but the loop COMPLETED (no error), so it still
+        // advances the time-based application factor's reference. Subset of decisionTimes.
+        bolusInProgressTimes: Set<Date> = [],
         // Model deployed timeBasedDoseApplicationFactor (min(1, sinceLastCompleted/5min)).
         // DEFAULT OFF: the deployed reference is the previous loop's COMPLETION instant
         // (15-40 s after its decision time), which the export does not record; the
@@ -933,8 +940,12 @@ extension EvaluationEngine {
             // stored. Skip the step exactly like a stale-CGM cycle — no dose, no
             // prediction point — so "recommended nothing" matches on both sides and
             // a closed-loop counterfactual doesn't dose through the same exogenous
-            // pump-comms failure.
-            if noDoseGuardTimes.contains(t) {
+            // pump-comms failure. A bolus-in-progress cycle is skipped the same way (the
+            // user's bolus is in flight in both arms).
+            if noDoseGuardTimes.contains(t) || bolusInProgressTimes.contains(t) {
+                if bolusInProgressTimes.contains(t) && outages.containing(t)?.reason != "pump_error" {
+                    lastCompletedLoopT = t
+                }
                 if counterfactualMode && t >= cfActiveStart {
                     while nextManualIdx < realManualBoluses.count {
                         let mb = realManualBoluses[nextManualIdx]

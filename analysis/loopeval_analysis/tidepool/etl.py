@@ -198,7 +198,13 @@ from . import cgm_streams as _cgm
 #      millisecond-stamped bolus of the same units within +-60 s is a copy Loop uploaded after
 #      re-reading Medtronic pump history (raw pump-event syncIdentifier, uploaded hours later,
 #      as a MANUAL bolus); Loop's IOB never counted it. Dropped.
-DATA_VERSION = 28
+#  29  decision_times.csv gains `bolus_in_progress`: loop cycles that ran while a bolus request
+#      was in flight (dosingDecision warning bolusInProgress). Loop forecasts but recommends
+#      nothing there (LoopDataManager `guard lastRequestedBolus == nil`); it is the cycle a
+#      bolus-screen carb save triggers, milliseconds before the user's bolus. The replay saw the
+#      carbs, not yet the bolus, and auto-dosed for the meal on top of it (i044 09-30: +1.4 U
+#      before a 3.5 U bolus, replay down to 38 mg/dL vs field ~100). The replay skips them.
+DATA_VERSION = 29
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -741,7 +747,8 @@ def _decision_times(user, s_ms, e_ms):
          f"         CAST(get_json_object(recommendedBasal,'$.rate.$numberInt') AS DOUBLE)) AS rec_rate, "
          f"CAST(get_json_object(recommendedBasal,'$.duration.$numberInt') AS BIGINT) AS rec_dur_ms, "
          f"CASE WHEN bgForecast IS NULL THEN 1 ELSE 0 END AS no_fc, "
-         f"CAST(errors AS STRING) AS errors "
+         f"CAST(errors AS STRING) AS errors, "
+         f"CASE WHEN CAST(warnings AS STRING) LIKE '%bolusInProgress%' THEN 1 ELSE 0 END AS bip "
          f"FROM {TBL} WHERE _userId='{user}' AND type='dosingDecision' "
          f"AND CAST(reason AS STRING)='loop' AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)} "
          f"ORDER BY {_TMS}")
@@ -768,7 +775,12 @@ def _decision_times(user, s_ms, e_ms):
                 guard = 1
         out.append(dict(t_ms=int(r.t_ms), rec_bolus=_fin(r.rec_bolus),
                         rec_rate=_fin(r.rec_rate), rec_dur_ms=_fin(r.rec_dur_ms),
-                        no_dose_guard=guard))
+                        no_dose_guard=guard,
+                        # A bolus request was in flight: Loop forecast but recommended nothing
+                        # (LoopDataManager `guard lastRequestedBolus == nil`, warning
+                        # bolusInProgress), so no dose and no temp change. Mostly the cycle a
+                        # bolus-screen carb save triggers, milliseconds before the bolus.
+                        bolus_in_progress=int(getattr(r, "bip", 0) or 0)))
     return out
 
 
@@ -1319,13 +1331,13 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     import csv as _csvd
     with open(os.path.join(outdir, "decision_times.csv"), "w", newline="") as fh:
         w = _csvd.writer(fh, lineterminator="\n")
-        w.writerow(["t", "rec_bolus", "rec_rate", "rec_dur_min", "no_dose_guard", "mode"])
+        w.writerow(["t", "rec_bolus", "rec_rate", "rec_dur_min", "no_dose_guard", "mode", "bolus_in_progress"])
         for r, m in zip(dts, modes):
             w.writerow([_iso(r["t_ms"]),
                         "" if r["rec_bolus"] is None else r["rec_bolus"],
                         "" if r["rec_rate"] is None else r["rec_rate"],
                         "" if r["rec_dur_ms"] is None else round(r["rec_dur_ms"] / 60000, 1),
-                        r.get("no_dose_guard", 0), m])
+                        r.get("no_dose_guard", 0), m, r.get("bolus_in_progress", 0)])
 
     stale = _stale_cgm_decisions(user, s_ms, e_ms, glucose)
     # Post-date the late samples: a decision replayed at/before the stale decision must
@@ -1464,7 +1476,8 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                     counts=dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs),
                                 carbs_edited=len(carb_revs["edited"]),
                                 suspends=len(sus), offline_gaps=len(off),
-                                pump_errors=len(perr), stale_cgm=len(stale), manual_temps=len(man),
+                                pump_errors=len(perr), bolus_in_progress=sum(r.get("bolus_in_progress", 0) for r in dts),
+                                stale_cgm=len(stale), manual_temps=len(man),
                                 second_app_bolus_dropped=second_app_dropped,
                                 pump_reimport_bolus_dropped=reimport_dropped,
                                 second_app_basal_dropped=second_app_basal_dropped,
