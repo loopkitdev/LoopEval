@@ -1380,6 +1380,13 @@ extension EvaluationEngine {
             // not what the controller asks — so the candidate delivers the field's recorded basal.
             let manualTempNow = outageNow?.reason == "manual_temp"
             let inOutage = outageNow != nil && !basalContinues && !manualTempNow
+            // FIELD DELIVERY: inside any disruption but a pump error (suspend, loop offline,
+            // merged windows, manual temp) the controller enacted nothing, and the pump did
+            // what it recorded: 0 while suspended, its last temp then the schedule while Loop
+            // was offline or open-loop. The candidate delivers that record. Zero delivery here
+            // dropped real insulin: i056's open-loop days (Loop running, nothing enacted,
+            // ~21 U of scheduled basal per 2-3 day window) replayed as no basal at all.
+            let fieldDeliveryNow = manualTempNow || (inOutage && outageNow?.reason != "pump_error")
 
             // CGM staleness: Loop refuses to issue a NEW dose when the latest
             // glucose is older than its inputDataRecencyInterval (15min,
@@ -1398,10 +1405,12 @@ extension EvaluationEngine {
                 }
             }
 
-            if manualTempNow && !decisionTimeReplay {
+            if fieldDeliveryNow && !decisionTimeReplay {
                 // Delivery comes from the field record in the cfActive block below. The
                 // controller's command never reached the pump, so it must not continue later
                 // either (a pump_error right after the window would otherwise resume it).
+                // DTR is exempt: nothing is delivered there, and the field records its
+                // recommendation through these windows too, so ours stays for comparison.
                 let fieldRate = data.doses.last(where: {
                     $0.deliveryType == .basal && $0.startDate <= t && $0.endDate > t
                 })?.tempRate
@@ -1438,30 +1447,6 @@ extension EvaluationEngine {
                 candidateBolus = 0
                 candidateDose = (running - schedRate) * stepDur / 3600.0
                 baselineDose = candidateDose
-            } else if inOutage && !decisionTimeReplay {
-                // Physical pump outage: absolute delivery = 0. Real Loop's
-                // recorded auto-deliveries during outages are already 0 (Loop
-                // wrote 0 U/hr temps after pump failure), so real-pump
-                // quantities (realPumpAutoAtStep, the ICE pipeline) need no
-                // adjustment — only the simulator's own decisions do.
-                //
-                // DTR is exempt: nothing is ever delivered in decision-time
-                // replay, so this clamp only ERASES the recommendation — and
-                // the field records its recommendation during pump errors too
-                // (bddp11 07-03 22:00-22:10: Loop recommended 0.25/0.35/0.15
-                // through "Pod not connected" cycles while our clamp zeroed
-                // ours, a fake three-cycle dose mismatch on an exactly-matched
-                // forecast). Rec-vs-rec comparison needs both sides' outputs;
-                // dose-vs-DELIVERED scoring already excludes clamped windows.
-                let schedRate = data.therapyTimeline.basal.first(where: {
-                    $0.startDate <= t && $0.endDate > t
-                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
-                let schedStepU = schedRate * stepDur / 3600.0
-                // absolute delivery = scheduled_step + dose; want absolute = 0.
-                candidateDose = -schedStepU
-                baselineDose = -schedStepU
-                candidateBolus = 0
-                candidateTempRate = 0
             } else if cgmStale || basalContinues {
                 // CGM gap (or loop-offline gap): no NEW dose adjustment, scheduled basal continues.
                 // dose ADJUSTMENT (delta over scheduled) = 0, so absolute
@@ -1503,15 +1488,16 @@ extension EvaluationEngine {
                 // long pre-gap step (stepDur ≫ 30min) the temp runs only 30 min,
                 // then scheduled basal resumes — preventing a pre-gap suspend from
                 // delivering 0 for the whole multi-hour gap (counter runaway).
-                let tempSec = manualTempNow ? stepDur : min(stepDur, tempBasalDuration)
+                let tempSec = fieldDeliveryNow ? stepDur : min(stepDur, tempBasalDuration)
                 cfTempSegEnd = t.addingTimeInterval(tempSec)
                 // Pump basal-pulse delivery for the temp RATE over its live window.
                 // The accumulator carries the sub-pulse remainder while the rate is
                 // unchanged and drops the in-progress pulse on a temp re-issue
                 // (rate change) — reproducing the field ~1.1 U/day below rate×time.
-                // Manual temp: exactly what the field pump delivered this step (auto-only, so it
-                // carries no manual bolus; those pass through on their own).
-                let basalDelivered = manualTempNow
+                // Field delivery (manual temp, suspend, loop offline): exactly what the field
+                // pump delivered this step (auto-only, so it carries no manual bolus; those pass
+                // through on their own).
+                let basalDelivered = fieldDeliveryNow
                     ? (realAutoOnlyPerStep[t] ?? 0)
                     : candidateBasalAcc.deliver(rate: candidateTempRate, seconds: tempSec)
                 // Auto-bolus already floored to the bolus grid; delivered whole.

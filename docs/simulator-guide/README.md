@@ -697,7 +697,7 @@ Structurally different real-world events get explicit handling, both in the SIM 
 | | Pump outage (pod off) | CGM gap |
 |---|---|---|
 | **Detected from** | Site-change events + dose-record-gap heuristic → `--outages-csv` | ≥2 missing 5-min samples (omitted from the grid); `--cgm-stale-guard-min` |
-| **In the sim, DURING** | delivery clamped to **0** (no insulin while the pump is physically off) | no *new* dose adjustment (Loop won't dose on stale data); scheduled basal continues |
+| **In the sim, DURING** | the candidate delivers **what the field pump recorded** (0 while suspended); no dose of its own | no *new* dose adjustment (Loop won't dose on stale data); scheduled basal continues |
 | **When it ends** | resumes its own closed-loop dosing immediately | resumes the moment CGM returns |
 | **In scoring** | only the disruption **interval** itself is excluded — **not** the recovery window (policy 2026-05-26) | ← same |
 
@@ -705,16 +705,16 @@ Two further classes sit in the same CSV but do *not* mean "the pump stopped":
 
 | Class | What happened | Correct sim behavior |
 |---|---|---|
-| **`loop_offline`** | Phone away / Loop not running, while CGM kept flowing. No suspend record exists — the **pod ran its schedule** and only *new* adjustments stopped. | Scheduled basal continues; no new automatic dose |
+| **`loop_offline`** | Phone away / Loop not running, while CGM kept flowing. No suspend record exists — the **pod ran its schedule** and only *new* adjustments stopped. | The field's recorded basal (its last temp, then the schedule); no new automatic dose |
 | **No-dose guard** (`pumpDataTooOld` / `glucoseTooOld`) | Loop's own guards fired, so it issued no recommendation *by design* — the absent dose is not a mismatch | Step skipped (`noDoseGuardTimes`) |
 
-> [!WARNING]
-> **`--outage-basal-reasons` is empty by default, so *every* outage reason clamps delivery to 0.**
-> That is right for a pod failure and wrong for `loop_offline`, where the pump kept delivering
-> scheduled basal — left at the default, the sim runs those windows with no insulin at all. Pass the
-> reasons that should keep basal running, e.g. `--outage-basal-reasons loop_offline`. This matters
-> more than it looks: on one donor, loop-offline gaps nearly **tripled** total disruption coverage
-> (+24 gaps / 15.9 h), so they are not a rare corner.
+> [!NOTE]
+> **Every disruption but a pump error replays the field's recorded delivery** — suspends (0),
+> loop-offline gaps, merged windows, manual temps. The pump did what it recorded, and the controller
+> enacted nothing. This matters more than it looks: one donor's open-loop days (Loop running,
+> nothing enacted, scheduled basal on the pump) covered 59% of its window; replayed at zero
+> delivery its mean BG ran 13 mg/dL above the field's, and with the recorded basal it matches.
+> A pump error keeps its own rule: the last command runs until it expires, then the schedule.
 
 > [!NOTE]
 > **Policy change (2026-05-26):** earlier scoring also excluded the 3 h *after* each disruption.
