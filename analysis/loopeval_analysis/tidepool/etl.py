@@ -172,7 +172,33 @@ from . import cgm_streams as _cgm
 #      i017 (max basal 3.0 from 07-16 to 10-05, exported 2.0) was capped 1 U/h short.
 #  24  `time` stored as an ISO string ({"$date":"...Z"}) is now read (it was NULL and dropped by
 #      every window filter); override rows with no time at all are skipped instead of crashing.
-DATA_VERSION = 24
+#  25  carb_revisions.json: the versions of each EDITED carb as the deployed Loop held them. The
+#      food records keep only the final version, visible from its last save (i003 09-10: 25 g held
+#      by Loop from 11:04, edited to 20 g at 11:26; the export showed no carbs until 11:26). Loop's
+#      bolus-screen dosingDecisions record every save (`food`, and `originalFood` = the version it
+#      replaced); chained, they give each version's grams, meal time and save instant. The replay
+#      splices them in (--carb-revisions-json, loaded from --data-dir); carbs.json is unchanged.
+#      The food record can also keep an EARLIER version than Loop's last save (i003 07-20: 15 g
+#      exported, 25 g saved at 17:03); the chain then supplies the later grams.
+#  26  an EDITED override's versions each span the whole override (revisionKey + visibleFrom).
+#      Loop keeps the original start date on an edit and deletes the previous version from
+#      its override history (LoopKit TemporaryScheduleOverrideHistory.record), so from the
+#      edit on, the new factor also re-scales the override's PAST: the net-basal reference
+#      and the dose-time ISF of insulin already given. v18-v25 applied each version only from
+#      its save. IOB vs Loop's, from the last edit to 4 h past the override: i187 median
+#      0.160 -> 0.143 U; i124 better on 8 overrides, worse on 1.
+#  27  edits uploaded in ONE batch (every version stamped with the same createdTime, so their
+#      order and timing were lost and one arbitrary version covered the override) are timed
+#      from the pump's scheduled-basal rates: rate / base schedule = the factor it ran, and each
+#      change inside the override is an edit (i003 10-03: 1.5 -> 1.6 at ~18:12 -> unscaled at
+#      ~20:22, where Loop's recorded IOB jumps +0.38 U with no dose; the export had held 1.6 all
+#      evening). i003: auto-bolus recs on field inputs 33.4 -> 24.0 U (field 20.7); closed-loop
+#      t<54 4.33 -> 0.74% (field 0.20), TIR 88.6 -> 91.4 (field 94.2).
+#  28  pump-history re-imports: a bolus stamped on a whole second (pump clock) with a native
+#      millisecond-stamped bolus of the same units within +-60 s is a copy Loop uploaded after
+#      re-reading Medtronic pump history (raw pump-event syncIdentifier, uploaded hours later,
+#      as a MANUAL bolus); Loop's IOB never counted it. Dropped.
+DATA_VERSION = 28
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -315,7 +341,25 @@ def _overrides(user, s_ms, e_ms, e_win_ms):
             end = nxt                                             # truly-open: until next enactment
             src = "next"
         end = min(end, nxt, e_win_ms)
-        for j, sub in enumerate(ev["subs"]):
+        subs = ev["subs"]
+        content = lambda v: (v["basal"], v["isf"], v["cr"], v["tlo"], v["thi"])
+        if len(subs) > 1 and len({v["act"] for v in subs[1:]}) == 1 \
+                and len({content(v) for v in subs}) > 1 and max(s_ms, ev["t"]) < end:
+            # Edits uploaded in ONE batch share one createdTime: their order and timing are
+            # lost (i003 10-03: five versions, all stamped at the override's end). Emit the
+            # override once, carrying every version; _time_batched_edits recovers when each
+            # ran from the pump's scheduled-basal rates.
+            first = subs[0]
+            ivals.append((max(ev["t"], s_ms), end,
+                          {"isf_sf": first["isf"], "basal_sf": first["basal"], "cr_sf": first["cr"],
+                           "tgt_low": first["tlo"], "tgt_high": first["thi"], "preset": first["preset"],
+                           "enact": ev["t"], "act": ev["t"],
+                           "batch": [{"isf_sf": v["isf"], "basal_sf": v["basal"], "cr_sf": v["cr"],
+                                      "tgt_low": v["tlo"], "tgt_high": v["thi"], "preset": v["preset"]}
+                                     for v in subs]},
+                          src))
+            continue
+        for j, sub in enumerate(subs):
             sub_end = ev["subs"][j + 1]["act"] if j + 1 < len(ev["subs"]) else end
             st = max(sub["act"], s_ms)
             en = min(sub_end, end)
@@ -323,7 +367,8 @@ def _overrides(user, s_ms, e_ms, e_win_ms):
                 continue
             is_final = (j == len(ev["subs"]) - 1)
             ivals.append((st, en, {"isf_sf": sub["isf"], "basal_sf": sub["basal"], "cr_sf": sub["cr"],
-                                   "tgt_low": sub["tlo"], "tgt_high": sub["thi"], "preset": sub["preset"]},
+                                   "tgt_low": sub["tlo"], "tgt_high": sub["thi"], "preset": sub["preset"],
+                                   "enact": ev["t"], "act": sub["act"]},
                           src if is_final else "sub"))
     return ivals
 
@@ -344,6 +389,82 @@ def _scheduled_stubs(user, s_ms, e_ms):
          f"ORDER BY t_ms")
     df = query(q)
     return [(int(r.t_ms), float(r.rate)) for r in df.itertuples() if _fin(r.rate) is not None]
+
+
+def _scheduled_rate_evidence(user, s_ms, e_ms):
+    """(t_ms, rate) of every scheduled-basal record's start, any duration: like the stubs, the
+    rate is the pump's working schedule at that instant (override-scaled). Loop uploads its
+    scheduled segments as deliveryType 'automated' with a 'BasalRateSchedule ...' syncIdentifier."""
+    q = (f"SELECT {_TMS} AS t_ms, "
+         f"COALESCE(CAST(get_json_object(rate,'$.$numberDouble') AS DOUBLE),"
+         f"CAST(get_json_object(rate,'$.$numberInt') AS DOUBLE)) AS rate "
+         f"FROM {TBL} WHERE _userId='{user}' AND type='basal' AND (deliveryType='scheduled' "
+         f"OR get_json_object(CAST(payload AS STRING),'$.syncIdentifier') LIKE 'BasalRateSchedule%') "
+         f"AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)} "
+         f"AND CAST(_active AS STRING) != 'false' AND suppressed IS NULL ORDER BY t_ms")
+    df = query(q)
+    return [(int(r.t_ms), float(r.rate)) for r in df.itertuples() if _fin(r.rate) is not None]
+
+
+def _time_batched_edits(user, ivals, basal_segments, evidence):
+    """Time the versions of an override whose edits were uploaded in one batch (see
+    _overrides: "batch"). The pump's scheduled rate / base schedule is the basal factor it
+    was running; each change in that ratio inside the override is an edit, placed midway
+    between the last reading of the old factor and the first of the new, and given to a
+    version with that factor (order of the batch preserved among equals). A version whose
+    factor never shows is dropped (it ran between readings, if at all); with no change
+    visible, the version matching the factor seen stands for the whole override. Versions
+    that differ only in target cannot be told apart: the first one listed is used."""
+    import bisect
+    bst = [_iso_to_ms(b["startDate"]) for b in basal_segments]
+    bval = [float(b["value"]) for b in basal_segments]
+    def base(t):
+        i = bisect.bisect_right(bst, t) - 1
+        return bval[i] if i >= 0 else None
+    ev = sorted(set(evidence))
+    et = [t for t, _ in ev]
+    out, n_timed = [], 0
+    for st, en, d in ivals:
+        batch = d.pop("batch", None)
+        if not batch:
+            out.append((st, en, d)); continue
+        reads = []
+        for t, rate in ev[bisect.bisect_left(et, st):bisect.bisect_left(et, en)]:
+            b = base(t)
+            if b:
+                reads.append((t, rate / b))
+        segs = []                                  # [first_t, last_t, ratio]
+        for t, r in reads:
+            if segs and abs(segs[-1][2] - r) <= 0.03:
+                segs[-1][1] = t
+            else:
+                segs.append([t, t, r])
+        def pick(r, used):
+            for i, v in enumerate(batch):
+                if i not in used and abs((v["basal_sf"] or 1.0) - r) <= 0.03:
+                    return i
+            for i, v in enumerate(batch):          # factor already used: reuse its first version
+                if abs((v["basal_sf"] or 1.0) - r) <= 0.03:
+                    return i
+            return None
+        chosen, used = [], set()
+        for k, (t0, t1, r) in enumerate(segs):
+            i = pick(r, used)
+            if i is None:
+                continue
+            act = st if not chosen else (segs[k - 1][1] + t0) // 2
+            if chosen and chosen[-1][1] == i:
+                continue
+            used.add(i); chosen.append((act, i))
+        if not chosen:
+            out.append((st, en, {**d, **batch[0]})); continue
+        chosen[0] = (st, chosen[0][1])
+        for act, i in chosen:
+            out.append((st, en, {**d, **batch[i], "act": act}))
+        n_timed += len(chosen) > 1
+    if n_timed:
+        print(f"{user}: {n_timed} batch-uploaded override edit sequence(s) timed from scheduled-basal rates")
+    return out
 
 
 def _extend_missing_override_ends(user, ivals, basal_segments, stubs, e_win_ms):
@@ -829,6 +950,92 @@ def _carbs(win, manual_ms):
     return carbs
 
 
+def _carb_revisions(win, carbs):
+    """Revision overlay for edited carbs (see DATA_VERSION 25): {"version": 1, "edited": [spec]}.
+
+    Each bolus-screen save is a dosingDecision carrying `food` (the saved version) and, for an edit,
+    `originalFood` (the version it replaced). Chaining replaced -> saved gives every version's grams,
+    meal time and absorption, visible from the save instant. The chain's final version is the
+    exported entry (same meal second and grams). The record can instead hold an EARLIER version
+    (i003 07-20: 15 g exported, Loop saved 25 g at 17:03 and its later forecasts carry it), and then
+    the chain stands as recorded. When a later edit outside the bolus screen changed the grams or
+    nudged the meal time (<= 2 min), the exported entry is appended as the last version, visible
+    from its own save (its dosingVisibleDate). A chain with no exported entry (deleted, or
+    its meal moved further) is left out: when Loop stopped holding it is not recorded."""
+    d = query(_dedup([f"{_TMS} AS t_ms", "CAST(food AS STRING) AS food",
+                      "CAST(originalFood AS STRING) AS ofood"],
+                     win + " AND food IS NOT NULL", "dosingDecision"))
+    def ver(sj):
+        if not sj: return None
+        try: j = json.loads(sj)
+        except Exception: return None
+        t = (j.get("time") or {}).get("$date")
+        t = int(_num(t.get("$numberLong"))) if isinstance(t, dict) else _iso_to_ms(t)
+        n = j.get("nutrition") or {}
+        g = _fin(_num((n.get("carbohydrate") or {}).get("net")))
+        if t is None or g is None: return None
+        return (t, round(g, 1), _fin(_num(n.get("estimatedAbsorptionDuration"))))
+    chains, tail = [], {}
+    seen = set()
+    for r in d.itertuples():
+        if r.t_ms != r.t_ms: continue
+        f, o = ver(r.food), ver(r.ofood)
+        if f is None or (int(r.t_ms), f, o) in seen: continue
+        seen.add((int(r.t_ms), f, o))
+        if o is not None and o in tail:
+            i = tail.pop(o)
+            chains[i].append((f, int(r.t_ms)))
+        else:
+            chains.append([(f, int(r.t_ms))] if o is None else [(o, None), (f, int(r.t_ms))])
+            i = len(chains) - 1
+        tail[f] = i
+    by_sec = {}
+    for e in carbs:
+        by_sec.setdefault(_iso_to_ms(e["startDate"]) // 1000, []).append(e)
+    edited, used = [], set()
+    for k, ch in enumerate(chains):
+        if len(ch) < 2:
+            continue
+        (t_last, g_last, _), vis_last = ch[-1]
+        cands = [e for e in by_sec.get(t_last // 1000, []) if e["grams"] == g_last]
+        exact = bool(cands)
+        if not cands:   # the record kept an EARLIER version (the later saves never reached it)
+            cands = [e for (t, g, _), v in reversed(ch[:-1]) for e in by_sec.get(t // 1000, [])
+                     if e["grams"] == g]
+            stale = bool(cands)
+        else:
+            stale = False
+        if not cands:   # edited again outside the bolus screen: same second, or meal nudged <= 2 min
+            cands = sorted((e for sec in range(t_last // 1000 - 120, t_last // 1000 + 121)
+                            for e in by_sec.get(sec, [])
+                            if _iso_to_ms(e["dosingVisibleDate"]) >= vis_last),
+                           key=lambda e: abs(_iso_to_ms(e["startDate"]) - t_last))
+        if not cands or id(cands[0]) in used:
+            continue
+        fin = cands[0]; used.add(id(fin))
+        fin_ms = _iso_to_ms(fin["startDate"])
+        def vis(t, g, v):   # an original saved outside the bolus screen: the record's own save
+            if v is None and t // 1000 == fin_ms // 1000 and g == fin["grams"]:
+                return fin["dosingVisibleDate"]
+            return _iso(v) if v is not None else None
+        revs = [dict(visibleFrom=vis(t, g, v), grams=g, startDate=_iso(t),
+                     **({"absorptionTime": a} if a else {}))
+                for (t, g, a), v in ch if vis(t, g, v) is not None]
+        if exact:
+            revs[-1]["visibleFrom"] = fin["dosingVisibleDate"]   # the record's own save instant
+        elif stale:
+            pass                                                 # the chain is the truth; its last save stands
+        else:
+            revs.append(dict(visibleFrom=fin["dosingVisibleDate"], grams=fin["grams"],
+                             startDate=fin["startDate"],
+                             **({"absorptionTime": fin["absorptionTime"]} if fin.get("absorptionTime") else {})))
+        if len(revs) < 2:
+            continue
+        edited.append(dict(matchStartDate=fin["startDate"], revisionKey=f"tp-edit-{k}",
+                           revisions=revs))
+    return {"version": 1, "edited": edited}
+
+
 def export_donor(user, start, end, outdir, insulin_type=None):
     os.makedirs(outdir, exist_ok=True)
     s_ms, e_ms = _ms_bounds(start, end)
@@ -935,6 +1142,33 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                     doubt_days.add(t0 // 86400000)
             second_app_dropped = len(drop_idx)
             b = b.drop(index=drop_idx)
+    # PUMP-HISTORY RE-IMPORTS (v28). A Medtronic donor's Loop re-read pump history it had lost
+    # track of and uploaded each event as a MANUAL bolus (subType normal, raw pump-event hex
+    # syncIdentifier, stamped by the pump clock on a whole second ~14 s before Loop's own
+    # record, uploaded hours later). Every automatic bolus then appears twice. Loop's own IOB
+    # never counted the copies (i001 09-15/16: ours up to 5.3 U above Loop's). Manual boluses
+    # are copied the same way (09-16 15:20:58.000 and 15:21:13.276, 4.1 U each). Drop a bolus
+    # stamped on a whole second when a native record with millisecond time and the same units
+    # is within +-60 s; Loop's own records carry milliseconds.
+    reimport_dropped = 0
+    ms_t = b["t_ms"].fillna(0).astype("int64")
+    au = b[(b["_mirror"] == 0) & (ms_t % 1000 != 0)].dropna(subset=["units"])
+    if len(au):
+        import bisect as _bis
+        au_ms = au["t_ms"].astype("int64").to_numpy(); au_u = au["units"].round(3).to_numpy()
+        o = au_ms.argsort(); au_ms, au_u = au_ms[o], au_u[o]
+        drop_idx = []
+        for idx, r in b[(b["subType"] != "automated") | (ms_t % 1000 == 0)].iterrows():
+            t0 = r["t_ms"]; u0 = _fin(r["units"])
+            if u0 is None or t0 != t0 or int(t0) % 1000:
+                continue
+            lo_i = _bis.bisect_left(au_ms, int(t0) - 60000); hi_i = _bis.bisect_right(au_ms, int(t0) + 60000)
+            if any(abs(au_u[j] - round(u0, 3)) < 1e-6 for j in range(lo_i, hi_i)):
+                drop_idx.append(idx)
+        reimport_dropped = len(drop_idx)
+        b = b.drop(index=drop_idx)
+        if reimport_dropped:
+            print(f"{user}: dropped {reimport_dropped} pump-history bolus re-imports")
     doses = []; manual_ms = []; bseen = set()
     for r in b.sort_values(["t_ms", "_mirror"]).itertuples():   # native (_mirror=0) sorts first
         u = _fin(r.units)
@@ -1068,7 +1302,10 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     # ---- therapy (per-era pumpSettings schedules across the window; expand daily schedules) ----
     therapy = _therapy(user, s_ms, e_ms, insulin_type)
 
-    for name, obj in [("glucose", glucose), ("doses", doses), ("carbs", carbs), ("therapy", therapy)]:
+    carb_revs = _carb_revisions(win, carbs)
+
+    for name, obj in [("glucose", glucose), ("doses", doses), ("carbs", carbs), ("therapy", therapy),
+                      ("carb_revisions", carb_revs)]:
         with open(os.path.join(outdir, f"{name}.json"), "w") as fh:
             json.dump(obj, fh, allow_nan=False)
 
@@ -1225,9 +1462,11 @@ def export_donor(user, start, end, outdir, insulin_type=None):
 
     _write_manifest(outdir, user, start, end,
                     counts=dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs),
+                                carbs_edited=len(carb_revs["edited"]),
                                 suspends=len(sus), offline_gaps=len(off),
                                 pump_errors=len(perr), stale_cgm=len(stale), manual_temps=len(man),
                                 second_app_bolus_dropped=second_app_dropped,
+                                pump_reimport_bolus_dropped=reimport_dropped,
                                 second_app_basal_dropped=second_app_basal_dropped,
                                 dose_doubt_days=len(doubt_days),
                                 cgm_sensors=cgm_summary["sensors"], cgm_two_sensor_hours=cgm_summary["conflict_hours"],
@@ -1381,7 +1620,8 @@ def _strategy_modes(dts, therapy, margin=0.06):
     import bisect
     bas = therapy.get("basal") or []
     bstarts = [_iso_to_ms(b["startDate"]) for b in bas]
-    ovs = [(_iso_to_ms(o["start"]), _iso_to_ms(o["end"]), float(o.get("factor") or 1.0))
+    ovs = [(_iso_to_ms(o["start"]), _iso_to_ms(o["end"]), float(o.get("factor") or 1.0),
+            _iso_to_ms(o.get("visibleFrom") or o["start"]))
            for o in (therapy.get("overrideWindows") or [])]
 
     def sched(t_ms):
@@ -1389,10 +1629,9 @@ def _strategy_modes(dts, therapy, margin=0.06):
         return float(bas[i]["value"]) if i >= 0 else 0.0
 
     def ov_factor(t_ms):
-        for s, e, f in ovs:
-            if s <= t_ms < e:
-                return f
-        return 1.0
+        # the pump's scheduled basal at t: of an edited override's versions, the latest saved by t
+        live = [(v, f) for s, e, f, v in ovs if s <= t_ms < e and v <= t_ms]
+        return max(live)[1] if live else 1.0
 
     evidence = []
     for r in dts:
@@ -1501,10 +1740,29 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
     # min-guard (min < target-at-eventual) mis-fired → spurious auto-bolus=0 (under-dose).
     # OverrideWindow.factor = insulinNeedsScaleFactor (basal×f, ISF÷f, CR÷f); target in mg/dL.
     ovs = _overrides(user, s_ms, e_ms, e_ms)
-    ovs = _extend_missing_override_ends(user, ovs, basal, _scheduled_stubs(user, s_ms, e_ms), e_ms)
+    stubs = _scheduled_stubs(user, s_ms, e_ms)
+    ovs = _extend_missing_override_ends(user, ovs, basal, stubs, e_ms)
+    ovs = _time_batched_edits(user, ovs, basal, stubs + _scheduled_rate_evidence(user, s_ms, e_ms))
+    # An EDITED override (several versions in one enactment) is emitted as one window per
+    # version, each spanning the WHOLE override, keyed by enactment and visible from its save:
+    # Loop keeps the original start on an edit and deletes the previous version from its
+    # history, so the new settings cover the override's past too (v26). The engine resolves
+    # the latest visible version per decision.
+    span = {}
+    for st, en, d in ovs:
+        a, b = span.get(d["enact"], (st, en)); span[d["enact"]] = (min(a, st), max(b, en))
+    n_versions = {}
+    for _, _, d in ovs:
+        n_versions[d["enact"]] = n_versions.get(d["enact"], 0) + 1
     override_windows = []
     for st, en, d in ovs:
+        rev = n_versions[d["enact"]] > 1
+        if rev:
+            st, en = span[d["enact"]]
         w = {"start": _iso(st), "end": _iso(en), "indefinite": False}
+        if rev:
+            w["revisionKey"] = f"ov-{d['enact']}"
+            w["visibleFrom"] = _iso(max(d["act"], st))
         bsf = d.get("basal_sf")
         if bsf is not None and abs(bsf - 1.0) > 1e-6:
             w["factor"] = round(bsf, 5)

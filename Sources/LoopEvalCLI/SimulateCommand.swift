@@ -79,7 +79,7 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Use deployed Loop's adaptive carb absorption (.adaptiveRateNonlinear). Off by default. Applies to BOTH arms.")
     var adaptiveCarbAbsorption: Bool = false
 
-    @Option(name: .long, help: "Carb-revisions overlay JSON (from reconstruct_carb_history.py): splice edited carb entries into their as-seen revision sequences so the sim sees carbs as the deployed Loop saw them at each moment. Data-level (applies to BOTH arms → identity-preserving). Default: cached final grams from original entry time.")
+    @Option(name: .long, help: "Carb-revisions overlay JSON (from reconstruct_carb_history.py): splice edited carb entries into their as-seen revision sequences so the sim sees carbs as the deployed Loop saw them at each moment. Data-level (applies to BOTH arms → identity-preserving). Default: the --data-dir export's carb_revisions.json when present (Tidepool ETL v25), else cached final grams from original entry time.")
     var carbRevisionsJson: String?
 
     @Option(name: .long, help: "Override-targets overlay JSON (from override_targets.py): fill named-preset override correction ranges (+multiplier) from devicestatus (omitted by the NS treatment). Data-level (both arms → identity-preserving). Use for hands-on sim of override users.")
@@ -568,6 +568,16 @@ struct SimulateCommand: AsyncParsableCommand {
         guard endDate > startDate else { throw ValidationError("--end must be after --start") }
         let interval = DateInterval(start: startDate, end: endDate)
         let resolvedTz: TimeZone = localTimezone.flatMap { TimeZone(identifier: $0) } ?? .current
+
+        // A Tidepool export ships its edited carbs' as-seen versions (carb_revisions.json,
+        // ETL v25); replay them unless an overlay was given explicitly.
+        if carbRevisionsJson == nil, let dir = dataDir {
+            let p = URL(fileURLWithPath: dir).appendingPathComponent("carb_revisions.json").path
+            if FileManager.default.fileExists(atPath: p) {
+                carbRevisionsJson = p
+                printStderr("Using the dataset's carb revisions (carb_revisions.json)\n")
+            }
+        }
 
         // Class-1 emulation: reproduce deployed Loop main's basal-IOB ripple (pre-PR#35).
         InsulinMathCompat.useLegacyBasalRippleIOB = legacyBasalIob
