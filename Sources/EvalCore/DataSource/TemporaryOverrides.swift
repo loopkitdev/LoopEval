@@ -20,14 +20,25 @@ public struct OverrideWindow: Sendable, Codable {
     /// decision BEFORE `end` must extend the override across its forecast horizon (no
     /// revert at `end`). InputWindowBuilder extends indefinite windows per decision time.
     public let indefinite: Bool
+    /// An EDITED override: every version shares `revisionKey` and spans the whole override
+    /// [start, end]; `visibleFrom` is when the version was saved. Loop keeps the original
+    /// start date on an edit, and recording it deletes the previous version outright
+    /// (TemporaryScheduleOverrideHistory.record -> deleteEventsStartingOnOrAfter), so from
+    /// the edit on, the new settings cover the override's past as well — the net-basal
+    /// reference and dose-time ISF of insulin already given. A decision at t uses the
+    /// latest version with visibleFrom <= t (see `resolved(_:at:)`). nil = not edited.
+    public let revisionKey: String?
+    public let visibleFrom: Date?
 
-    public init(start: Date, end: Date, factor: Double?, targetLo: Double?, targetHi: Double?, indefinite: Bool = false) {
+    public init(start: Date, end: Date, factor: Double?, targetLo: Double?, targetHi: Double?, indefinite: Bool = false,
+                revisionKey: String? = nil, visibleFrom: Date? = nil) {
         self.start = start; self.end = end
         self.factor = factor; self.targetLo = targetLo; self.targetHi = targetHi
         self.indefinite = indefinite
+        self.revisionKey = revisionKey; self.visibleFrom = visibleFrom
     }
 
-    private enum CodingKeys: String, CodingKey { case start, end, factor, targetLo, targetHi, indefinite }
+    private enum CodingKeys: String, CodingKey { case start, end, factor, targetLo, targetHi, indefinite, revisionKey, visibleFrom }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         start = try c.decode(Date.self, forKey: .start)
@@ -36,6 +47,37 @@ public struct OverrideWindow: Sendable, Codable {
         targetLo = try c.decodeIfPresent(Double.self, forKey: .targetLo)
         targetHi = try c.decodeIfPresent(Double.self, forKey: .targetHi)
         indefinite = (try? c.decodeIfPresent(Bool.self, forKey: .indefinite)) ?? false
+        revisionKey = try c.decodeIfPresent(String.self, forKey: .revisionKey)
+        visibleFrom = try c.decodeIfPresent(Date.self, forKey: .visibleFrom)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(start, forKey: .start)
+        try c.encode(end, forKey: .end)
+        try c.encodeIfPresent(factor, forKey: .factor)
+        try c.encodeIfPresent(targetLo, forKey: .targetLo)
+        try c.encodeIfPresent(targetHi, forKey: .targetHi)
+        try c.encode(indefinite, forKey: .indefinite)
+        try c.encodeIfPresent(revisionKey, forKey: .revisionKey)
+        try c.encodeIfPresent(visibleFrom, forKey: .visibleFrom)
+    }
+
+    /// The windows as the deployed Loop held them at decision time `t`: a version saved after
+    /// `t` is invisible, and of an edited override's visible versions only the latest stands.
+    /// No-op (returns `ws`) when nothing is edited.
+    public static func resolved(_ ws: [OverrideWindow], at t: Date) -> [OverrideWindow] {
+        guard ws.contains(where: { $0.revisionKey != nil }) else { return ws }
+        var latest: [String: OverrideWindow] = [:]
+        var out: [OverrideWindow] = []
+        for w in ws {
+            guard let key = w.revisionKey else { out.append(w); continue }
+            let vis = w.visibleFrom ?? w.start
+            guard vis <= t else { continue }
+            if let cur = latest[key], (cur.visibleFrom ?? cur.start) >= vis { continue }
+            latest[key] = w
+        }
+        return (out + latest.values).sorted { $0.start < $1.start }
     }
 }
 

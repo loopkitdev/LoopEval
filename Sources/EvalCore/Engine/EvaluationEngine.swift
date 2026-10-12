@@ -548,7 +548,7 @@ public actor EvaluationEngine {
             tempBasalIncrement: config.tempBasalIncrement,
             useMidAbsorptionISF: config.useMidAbsorptionISF,
             useTempBasalStrategy: config.useTempBasalStrategy,
-            basalOverrideActive: therapy.overrideWindows.contains {
+            basalOverrideActive: OverrideWindow.resolved(therapy.overrideWindows, at: t).contains {
                 $0.start <= t && t < $0.end && ($0.factor ?? 1.0) != 1.0
             }
         )

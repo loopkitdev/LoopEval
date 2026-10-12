@@ -180,7 +180,14 @@ from . import cgm_streams as _cgm
 #      splices them in (--carb-revisions-json, loaded from --data-dir); carbs.json is unchanged.
 #      The food record can also keep an EARLIER version than Loop's last save (i003 07-20: 15 g
 #      exported, 25 g saved at 17:03); the chain then supplies the later grams.
-DATA_VERSION = 25
+#  26  an EDITED override's versions each span the whole override (revisionKey + visibleFrom).
+#      Loop keeps the original start date on an edit and deletes the previous version from
+#      its override history (LoopKit TemporaryScheduleOverrideHistory.record), so from the
+#      edit on, the new factor also re-scales the override's PAST: the net-basal reference
+#      and the dose-time ISF of insulin already given. v18-v25 applied each version only from
+#      its save. IOB vs Loop's, from the last edit to 4 h past the override: i187 median
+#      0.160 -> 0.143 U; i124 better on 8 overrides, worse on 1.
+DATA_VERSION = 26
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -331,7 +338,8 @@ def _overrides(user, s_ms, e_ms, e_win_ms):
                 continue
             is_final = (j == len(ev["subs"]) - 1)
             ivals.append((st, en, {"isf_sf": sub["isf"], "basal_sf": sub["basal"], "cr_sf": sub["cr"],
-                                   "tgt_low": sub["tlo"], "tgt_high": sub["thi"], "preset": sub["preset"]},
+                                   "tgt_low": sub["tlo"], "tgt_high": sub["thi"], "preset": sub["preset"],
+                                   "enact": ev["t"], "act": sub["act"]},
                           src if is_final else "sub"))
     return ivals
 
@@ -1479,7 +1487,8 @@ def _strategy_modes(dts, therapy, margin=0.06):
     import bisect
     bas = therapy.get("basal") or []
     bstarts = [_iso_to_ms(b["startDate"]) for b in bas]
-    ovs = [(_iso_to_ms(o["start"]), _iso_to_ms(o["end"]), float(o.get("factor") or 1.0))
+    ovs = [(_iso_to_ms(o["start"]), _iso_to_ms(o["end"]), float(o.get("factor") or 1.0),
+            _iso_to_ms(o.get("visibleFrom") or o["start"]))
            for o in (therapy.get("overrideWindows") or [])]
 
     def sched(t_ms):
@@ -1487,10 +1496,9 @@ def _strategy_modes(dts, therapy, margin=0.06):
         return float(bas[i]["value"]) if i >= 0 else 0.0
 
     def ov_factor(t_ms):
-        for s, e, f in ovs:
-            if s <= t_ms < e:
-                return f
-        return 1.0
+        # the pump's scheduled basal at t: of an edited override's versions, the latest saved by t
+        live = [(v, f) for s, e, f, v in ovs if s <= t_ms < e and v <= t_ms]
+        return max(live)[1] if live else 1.0
 
     evidence = []
     for r in dts:
@@ -1600,9 +1608,26 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
     # OverrideWindow.factor = insulinNeedsScaleFactor (basal×f, ISF÷f, CR÷f); target in mg/dL.
     ovs = _overrides(user, s_ms, e_ms, e_ms)
     ovs = _extend_missing_override_ends(user, ovs, basal, _scheduled_stubs(user, s_ms, e_ms), e_ms)
+    # An EDITED override (several versions in one enactment) is emitted as one window per
+    # version, each spanning the WHOLE override, keyed by enactment and visible from its save:
+    # Loop keeps the original start on an edit and deletes the previous version from its
+    # history, so the new settings cover the override's past too (v26). The engine resolves
+    # the latest visible version per decision.
+    span = {}
+    for st, en, d in ovs:
+        a, b = span.get(d["enact"], (st, en)); span[d["enact"]] = (min(a, st), max(b, en))
+    n_versions = {}
+    for _, _, d in ovs:
+        n_versions[d["enact"]] = n_versions.get(d["enact"], 0) + 1
     override_windows = []
     for st, en, d in ovs:
+        rev = n_versions[d["enact"]] > 1
+        if rev:
+            st, en = span[d["enact"]]
         w = {"start": _iso(st), "end": _iso(en), "indefinite": False}
+        if rev:
+            w["revisionKey"] = f"ov-{d['enact']}"
+            w["visibleFrom"] = _iso(max(d["act"], st))
         bsf = d.get("basal_sf")
         if bsf is not None and abs(bsf - 1.0) > 1e-6:
             w["factor"] = round(bsf, 5)
