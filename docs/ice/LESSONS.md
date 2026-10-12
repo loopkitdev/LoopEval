@@ -155,3 +155,22 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     1.69 / 2.33 / 1.60 against 1.28 / 1.41 / 1.66. TIR is level; lows lean worse but within the spread of
     trainings. The rule stays. (The two sets were replayed on harnesses C and D, so their replay rows
     differ; the model rows are what compare.)
+29. **The generator under-produces each person's push back from a low, but correcting that near the low
+    barely moves closed-loop lows.** v23 big fit, 3 trainings: field 74.2 TIR / 0.12 t<54, replay
+    74.4 / 0.17, generator 59.2–63.7 / 1.27–2.21 (clean, median donor). What matches the field: meal
+    starts per day (6.2 vs 6.4) and announced share (0.45 vs 0.43); snack starts per hour heading low
+    or below 70; the rebound's size in the hour after crossing 70 (7–11 g-eq); short-lag BG structure
+    (5-min rms 7.2 vs 7.3); inputs at entry into 70–90 (trend, background EMA, IOB). What does not:
+    generated lows last 50 min against the field's 20, and from the same trend into 70–90 they go below
+    70 in 43% of cases against 29%. Fed the real history up to a field entry, the network's next-30-min
+    background is 36 mg/dL/h against the real 42 (34% vs 25% going below 70 in its free run), so the
+    error is in the network's response itself, not built up in rollouts. It is a person trait: the
+    near-low bias fitted on the 28 days before the hold-out predicts the held-out bias at r = 0.80–0.84
+    (162 donors), between-person sd ~10 mg/dL/h, while the pooled bias changes sign across trainings
+    (+3.6 / −2.9 / +1.1). A per-person offset in that state (split-half shrinkage, `calibrate_state.py`)
+    halves the held-out error (median 6–8 to ~4) but in closed loop moves t<54 only −0.35 / +0.16 /
+    −0.11 and TIR +0.3 / −0.3 / +0.15 (paired, by training): not beyond training noise, not kept.
+    Generated lows mostly come from slow drifts that spend little time in the heading-low state, so a
+    correction gated on that state rarely fires. Also measured: the slow day-level state costs 2.4 TIR
+    (mean +4.7) and no lows. Same-step means by BG band mislead here: field readings below 70 sit mostly
+    at the turnaround, generated ones deep in long lows (`runs/2026-10-11-ice-entries/`).

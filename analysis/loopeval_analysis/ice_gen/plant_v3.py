@@ -74,6 +74,9 @@ class PlantV3:
         self.pid = torch.tensor([ck["people"].index(alias)])
         self.geq = ck["constants"][alias]["geq"]
         self.calib = dict(ck.get("calib", {}))      # logit offsets on event-start heads (calibrate.py)
+        # additive background-ICE offset (mg/dL/h) in the near-low state: heading low or BG < 70 (calibrate_state.py)
+        cs = ck.get("calib_state", {})              # per person, shrunk to the pooled value, where fitted
+        self.near_low_bgice = float(cs.get("near_low_bgice_person", {}).get(alias, cs.get("near_low_bgice", 0.0)))
         self.t = None; self.running = None; self.h = None
         # rewarm_h > 0: every rewarm_h hours rebuild the GRU state from zero over the last 24 h of inputs, so
         # the network always runs with 24-48 h of memory as in training (a 29-day continuous state
@@ -238,6 +241,8 @@ class PlantV3:
                     self.actions_log.append(dict(t=t, kind="bolus_units" if "units" in pay else "bolus_ratio", **pay))
             self.due = keep
             bgice = float(s["bgice"][0])
+            if self.near_low_bgice and (float(x[0, -1, self.F["heading_low"]]) > 0.5 or float(x[0, -1, self.F["bg"]]) * 100 < 70):
+                bgice += self.near_low_bgice / ICE_SCALE
             if self.feedback == "mean":
                 lg_, mu_, _ = out["bgice"][0, -1].split(self.net.K_ICE)
                 self.bgice = float((torch.softmax(lg_, -1) * mu_).sum())
