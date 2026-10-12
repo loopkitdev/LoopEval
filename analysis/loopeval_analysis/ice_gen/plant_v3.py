@@ -77,6 +77,12 @@ class PlantV3:
         # additive background-ICE offset (mg/dL/h) in the near-low state: heading low or BG < 70 (calibrate_state.py)
         cs = ck.get("calib_state", {})              # per person, shrunk to the pooled value, where fitted
         self.near_low_bgice = float(cs.get("near_low_bgice_person", {}).get(alias, cs.get("near_low_bgice", 0.0)))
+        # meal-start logit offset per glucose band x 15-min trend cell (calibrate_meal_state.py); none unless fitted
+        ms = ck.get("calib_meal_state")
+        self.meal_state = (np.asarray(ms["bands"]), np.asarray(ms["trends"]), np.asarray(ms["offset"])) if ms else None
+        # additive shift on the sampled log time-to-peak per glucose band at the start (calibrate_closed_peak.py); none unless fitted
+        ps = ck.get("calib_peak_state")
+        self.peak_state = (np.asarray(ps["bands"]), np.asarray(ps["shift"])) if ps else None
         self.t = None; self.running = None; self.h = None
         # rewarm_h > 0: every rewarm_h hours rebuild the GRU state from zero over the last 24 h of inputs, so
         # the network always runs with 24-48 h of memory as in training (a 29-day continuous state
@@ -204,12 +210,20 @@ class PlantV3:
                 self.xbuf.append(x); self.xbuf = self.xbuf[-WARMUP:]; self.since_rewarm += dt_h
                 for k, b in self.calib.items():
                     out[k] = out[k] + b
+                if self.meal_state is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:
+                    bands, trends, off = self.meal_state
+                    i = int(np.searchsorted(bands, float(x[0, -1, self.F["bg"]]) * 100, side="right"))
+                    j = int(np.searchsorted(trends, float(x[0, -1, self.F["bg_trend"]]) * 2, side="right"))
+                    out["meal"] = out["meal"] + float(off[i, j])
                 s = self.net.sample(out)
             self.slot_carbs = 0.0; self.slot_bolus = 0.0
             self.since_meal += dt_h; self.since_bolus += dt_h
             if bool(s["meal"][0]):
                 size = float(np.clip(np.exp(float(s["m_lsize"][0])), 5, 250))
-                peak = float(np.clip(np.exp(float(s["m_lpeak"][0])), 5 / 60, 4))
+                lpk = float(s["m_lpeak"][0])
+                if self.peak_state is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:
+                    lpk += float(self.peak_state[1][int(np.searchsorted(self.peak_state[0], float(x[0, -1, self.F["bg"]]) * 100, side="right"))])
+                peak = float(np.clip(np.exp(lpk), 5 / 60, 4))
                 dur = float(np.clip(np.exp(float(s["m_ldur"][0])), 0.25, 10))
                 m, sd = params(peak, dur)
                 on = t + pd.Timedelta(minutes=float(np.clip(np.expm1(float(s["m_onset"][0])), 0, 120)))

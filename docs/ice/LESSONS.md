@@ -174,3 +174,22 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     correction gated on that state rarely fires. Also measured: the slow day-level state costs 2.4 TIR
     (mean +4.7) and no lows. Same-step means by BG band mislead here: field readings below 70 sit mostly
     at the turnaround, generated ones deep in long lows (`runs/2026-10-11-ice-entries/`).
+30. **Fit a state calibration from the generator's own runs, not from real inputs; and the snack rate by
+    state is not what keeps generated lows long.** Excess generated time below 70 is all in long episodes
+    (v3v23s0cc, min/day below 70 in episodes of > 30 min: field 11.9, model 54.8). The meal-start head is
+    flat in glucose trend. Fed real inputs it starts 0.71–0.73× the labeled rate falling 1–2 mg/dL/min
+    at 70–110 and 1.3–1.5× rising (`runs/2026-10-12-ice-lows/start_tf.py`). In its own rollouts the
+    gap is about 2× (80–90 falling 1–2: 0.59 against 1.07 starts per hour). A per-cell offset (band
+    × 15-min trend) fitted teacher-forced (`calibrate_meal_state.py`) flattens the teacher-forced
+    ratios to 1.14–1.27, but the rollouts barely move (0.59 → 0.65), nor do the outcomes (TIR −0.6 /
+    +0.3, t<54 +0.13 / −0.12, s0 / s1). The same table fitted from rollouts on the 28 days before the
+    hold-out (`calibrate_closed_state.py`, as `calibrate_closed.py` does for the overall rate) does
+    fix the structure on held-out weeks (90–110 falling 1–2: 0.53 → 0.71 against 0.84; rising
+    0.23 → 0.15 against 0.11). Long lows still barely drop: 68 → 63 and 73 → 66 min/day, against 23 in
+    the field. Outcomes do not move beyond training noise: TIR −0.7 / −1.1, t<70 −0.31 / −0.08,
+    t<54 0.00 / −0.29, mean +2.9 / −0.3. One donor, i003, carries a third of the excess on the v23
+    harness (GBAF unmodeled: model 236 min/day in long lows, replay 31, field 4), but 18 of 24 donors
+    have > 10 min/day of excess. Inside a low the field's ICE climbs to 61 / 84 mg/dL/h at 10–20 / 20–30
+    min against the generator's 48 / 62, then the two run level. The generator's snacks in a low are as
+    large as the field's (33 vs 35 g) but peak later. The same holds in every band, 15–30%, in its own
+    runs only (`peak_state.py`).
