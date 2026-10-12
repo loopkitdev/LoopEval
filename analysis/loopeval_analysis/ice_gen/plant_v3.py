@@ -83,6 +83,9 @@ class PlantV3:
         # additive shift on the sampled log time-to-peak per glucose band at the start (calibrate_closed_peak.py); none unless fitted
         ps = ck.get("calib_peak_state")
         self.peak_state = (np.asarray(ps["bands"]), np.asarray(ps["shift"])) if ps else None
+        # additive background-ICE offset (mg/dL/h) per glucose band of the input step (calibrate_closed_bg.py); none unless fitted
+        bb = ck.get("calib_bg_band")
+        self.bg_band = (np.asarray(bb["bands"]), np.asarray(bb["offset"])) if bb else None
         self.t = None; self.running = None; self.h = None
         # rewarm_h > 0: every rewarm_h hours rebuild the GRU state from zero over the last 24 h of inputs, so
         # the network always runs with 24-48 h of memory as in training (a 29-day continuous state
@@ -257,6 +260,8 @@ class PlantV3:
             bgice = float(s["bgice"][0])
             if self.near_low_bgice and (float(x[0, -1, self.F["heading_low"]]) > 0.5 or float(x[0, -1, self.F["bg"]]) * 100 < 70):
                 bgice += self.near_low_bgice / ICE_SCALE
+            if self.bg_band is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:
+                bgice += float(self.bg_band[1][int(np.searchsorted(self.bg_band[0], float(x[0, -1, self.F["bg"]]) * 100, side="right"))]) / ICE_SCALE
             if self.feedback == "mean":
                 lg_, mu_, _ = out["bgice"][0, -1].split(self.net.K_ICE)
                 self.bgice = float((torch.softmax(lg_, -1) * mu_).sum())
