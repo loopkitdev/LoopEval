@@ -234,3 +234,15 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     ccsp runs): t<54 2.63 / 2.15 / 1.77 → 0.71 / 0.78 / 0.87, t<70 5.24 / 4.54 / 3.98 → 1.91 / 2.08 / 2.07,
     TIR +2.9 / +2.0 / +1.7, mean +3.1 / +2.3 / +1.9; no donor loses more than 1.8 TIR points; worst donor
     3.9 / 2.9 / 3.3% below 54. Now the last step of the calibration pipeline.
+34. **How early a person reacts to a falling glucose is a strong personal trait; the model flattens it.** Per donor,
+    on the days before the hold-out, background ICE above the person's own steady 100–180 level and the
+    meal-start rate, in three states of the input step (`runs/2026-10-12-ice-lowtrait/trait.py`, v3v28s0,
+    168 donors). Proactive (70–100 and falling ≥ 1 mg/dL/min or heading low): push p10–p90 −13 to +18
+    mg/dL/h, snack starts 0.44–0.93 per hour, alternate-week reliability 0.76 / 0.65, the most stable trait
+    measured so far. Severe (< 60): push median +39 (p10–p90 8 to 67), reliability 0.50; snack starts
+    0.5 per hour with no person-to-person reliability (−0.01): below 60 everyone eats at about the same
+    rate, and the person shows in how early they act. Teacher-forced, the model's per-person values track
+    the field only loosely in the proactive state (Spearman 0.40 push, 0.35 snack), with the spread
+    squeezed (push −12 to +6, snacks 0.37–0.66), and its severe push is half the field's (19 vs 39).
+    So the one-table background offset (lesson 33) gives every person the median's push: too much for
+    the passive, too little for the proactive. The fix goes per person.
