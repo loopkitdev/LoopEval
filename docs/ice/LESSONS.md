@@ -193,3 +193,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     min against the generator's 48 / 62, then the two run level. The generator's snacks in a low are as
     large as the field's (33 vs 35 g) but peak later. The same holds in every band, 15–30%, in its own
     runs only (`peak_state.py`).
+31. **Snack speed is not it either: generated lows are long before a snack could act.** A per-band shift
+    on the sampled log time-to-peak, fitted from the pre-hold-out rollouts (`calibrate_closed_peak.py`;
+    below 70 −0.29 / −0.34, 70–90 −0.20 / −0.23, above 110 −0.15 / −0.16), on top of lesson 30's
+    table: held-out peaks now match in every band (below 70: 28.7 / 30.5 min against 30.0). Long lows
+    (> 30 min) 49 → 48 and 56 → 61 min/day, against 12 in the field. Outcomes, cc → ccsp, s0 / s1:
+    TIR −2.8 / −0.2, t<54 −0.21 / −0.20, mean +4.0 / +0.5. The share of episodes still below 70 at
+    15 min is unchanged: 0.65 against the field's 0.46. Generated episodes are also too frequent
+    (1.2–1.5 per day against 0.78). The remaining gap is in background ICE and how often the generator
+    enters a low at all, not in the pulses. Both calibrations make the structure checklist match, so
+    they go into the v28 pipeline and are judged there over three trainings.
