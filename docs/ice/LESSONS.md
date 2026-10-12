@@ -203,3 +203,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     (1.2–1.5 per day against 0.78). The remaining gap is in background ICE and how often the generator
     enters a low at all, not in the pulses. Both calibrations make the structure checklist match, so
     they go into the v28 pipeline and are judged there over three trainings.
+32. **A smoothed slope of background ICE adds almost nothing to the meal-start head.** Teacher-forced,
+    v3v28s0cc, ~200 donors: a logistic on the head's own logit plus the slope of the real background
+    ICE (15-min minus 60-min causal EMA), known 0 / 10 / 15 min before the step, fitted on the 28 days
+    before the hold-out. Held-out gain is +0.007 / +0.007 / +0.011 nats per start (+0.005 / +0.013 /
+    +0.012 below 100 mg/dL). Where it says anything, the sign is the reverse of "the turn is the
+    intervention starting": below 100, the steepest-rising fifth of steps has 0.5–0.65× the starts the
+    head expects. Once background ICE has turned up, the push back from a low is already under way
+    inside the background (counter-regulation, unlabeled rescues), and no labeled meal follows. The
+    turn is the behavior to generate, not a cue to feed in (`runs/2026-10-12-ice-slope/`). Aside: the
+    head's logit gets weight 1.36–1.45 in that fit, so the head is under-confident fed real inputs,
+    which fits its flatness in glucose trend (lesson 30).
