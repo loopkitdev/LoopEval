@@ -204,7 +204,11 @@ from . import cgm_streams as _cgm
 #      bolus-screen carb save triggers, milliseconds before the user's bolus. The replay saw the
 #      carbs, not yet the bolus, and auto-dosed for the meal on top of it (i044 09-30: +1.4 U
 #      before a 3.5 U bolus, replay down to 38 mg/dL vs field ~100). The replay skips them.
-DATA_VERSION = 29
+#  30  manual boluses Loop delivered and counted (its IOB rose by the requested amount) that never
+#      reached Tidepool as a bolus record are restored from the bolus screen's requestedBolus
+#      (see _unrecorded_boluses). Pilot pool: ~10 cases; i001 09-07 23:43 5.4 U, whose absence drove
+#      a 3 h replay low to 20 mg/dL (field >= 69).
+DATA_VERSION = 30
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -1048,6 +1052,61 @@ def _carb_revisions(win, carbs):
     return {"version": 1, "edited": edited}
 
 
+def _unrecorded_boluses(user, s_ms, e_ms, bolus_ms, bolus_u):
+    """Manual boluses Loop delivered and counted that never reached Tidepool as a bolus record (v30).
+
+    The bolus screen's dosingDecision (reason normalBolus) records `requestedBolus`; normally a
+    bolus record follows within seconds. Rarely none exists, of any record type and at any
+    nearby time, yet Loop's recorded IOB rises by the requested amount at the next loop cycle and
+    decays normally after it, so the insulin went into Loop's dose store and only the upload was
+    lost (i001 2026-09-07 23:43: 45 g saved, 5.4 U requested, IOB 0.69 -> 6.03 U; the replay
+    without it took 45 g with no bolus and gave ~4.5 U for it). Cancelled or failed requests
+    leave IOB flat (898 of 1044 unmatched requests in the pilot pool) and stay out.
+
+    Restored when: requested >= 0.5 U; no bolus record from 1 min before to 15 min after; no
+    bolus of the same units within +-3 h (a drifted pump clock); and Loop's IOB at the first loop
+    cycle after (within 11 min) exceeds its IOB at the request by 75-125% of the
+    request. The baseline is the IOB the bolus-screen decision itself records (at the request,
+    before the bolus), so an automatic bolus given just before does not count toward the rise.
+    Returns [(t_ms, units)] at the request instant."""
+    amt = ("COALESCE(CAST(get_json_object(CAST(requestedBolus AS STRING),'$.amount.$numberDouble') AS DOUBLE), "
+           "CAST(get_json_object(CAST(requestedBolus AS STRING),'$.amount.$numberInt') AS DOUBLE))")
+    iob = ("COALESCE(CAST(get_json_object(CAST(insulinOnBoard AS STRING),'$.amount.$numberDouble') AS DOUBLE), "
+           "CAST(get_json_object(CAST(insulinOnBoard AS STRING),'$.amount.$numberInt') AS DOUBLE))")
+    req = query(f"SELECT {_TMS} AS t_ms, {amt} AS rq, {iob} AS iob0 FROM {TBL} WHERE _userId='{user}' AND type='dosingDecision' "
+                f"AND CAST(reason AS STRING)='normalBolus' AND requestedBolus IS NOT NULL "
+                f"AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)} ORDER BY {_TMS}")
+    req = [(int(r.t_ms), float(r.rq), _fin(r.iob0)) for r in req.itertuples()
+           if _fin(r.rq) is not None and float(r.rq) >= 0.5 and _fin(r.iob0) is not None]
+    if not req:
+        return []
+    import bisect
+    order = sorted(range(len(bolus_ms)), key=lambda i: bolus_ms[i])
+    bt = [bolus_ms[i] for i in order]; bu = [bolus_u[i] for i in order]
+    cand = []
+    for t, rq, iob0 in req:
+        if bisect.bisect_left(bt, t - 60000) < bisect.bisect_right(bt, t + 900000):
+            continue
+        lo, hi = bisect.bisect_left(bt, t - 3 * 3600000), bisect.bisect_right(bt, t + 3 * 3600000)
+        if any(abs(bu[j] - rq) < 0.051 for j in range(lo, hi)):
+            continue
+        cand.append((t, rq, iob0))
+    if not cand:
+        return []
+    loops = query(f"SELECT {_TMS} AS t_ms, {iob} AS iob FROM {TBL} WHERE _userId='{user}' AND type='dosingDecision' "
+                  f"AND CAST(reason AS STRING)='loop' AND {_TMS} BETWEEN {int(s_ms) - 900000} AND {int(e_ms) + 900000} "
+                  f"ORDER BY {_TMS}").dropna()
+    lt = [int(x) for x in loops["t_ms"]]; li = [float(x) for x in loops["iob"]]
+    out = []
+    for t, rq, iob0 in cand:
+        k = bisect.bisect_right(lt, t)
+        if k >= len(lt) or lt[k] - t > 660000:
+            continue
+        if 0.75 <= (li[k] - iob0) / rq <= 1.25:
+            out.append((t, round(rq, 4)))
+    return out
+
+
 def export_donor(user, start, end, outdir, insulin_type=None):
     os.makedirs(outdir, exist_ok=True)
     s_ms, e_ms = _ms_bounds(start, end)
@@ -1192,6 +1251,15 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         if not auto: manual_ms.append(int(r.t_ms))   # manual meal/correction boluses
         doses.append({"deliveryType": "bolus", "startDate": _iso(int(r.t_ms)), "endDate": _iso(int(r.t_ms)),
                       "volume": round(u, 4), "insulinType": insulin_type, "automatic": auto})
+    # UNRECORDED BOLUSES (v30): delivered and counted by Loop, never uploaded as a bolus record.
+    unrecorded = _unrecorded_boluses(user, s_ms, e_ms, [_iso_to_ms(d["startDate"]) for d in doses],
+                                     [d["volume"] for d in doses])
+    for t_ms_u, u in unrecorded:
+        manual_ms.append(t_ms_u)
+        doses.append({"deliveryType": "bolus", "startDate": _iso(t_ms_u), "endDate": _iso(t_ms_u),
+                      "volume": u, "insulinType": insulin_type, "automatic": False})
+    if unrecorded:
+        print(f"{user}: restored {len(unrecorded)} unrecorded bolus(es), {sum(u for _, u in unrecorded):.2f} U")
     manual_ms.sort()
     bas = query(_dedup([f"{_TMS} AS t_ms", "deliveryType",
         "COALESCE(CAST(get_json_object(rate,'$.$numberDouble') AS DOUBLE), "
@@ -1480,6 +1548,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                                 stale_cgm=len(stale), manual_temps=len(man),
                                 second_app_bolus_dropped=second_app_dropped,
                                 pump_reimport_bolus_dropped=reimport_dropped,
+                                unrecorded_bolus_added=len(unrecorded),
                                 second_app_basal_dropped=second_app_basal_dropped,
                                 dose_doubt_days=len(doubt_days),
                                 cgm_sensors=cgm_summary["sensors"], cgm_two_sensor_hours=cgm_summary["conflict_hours"],
