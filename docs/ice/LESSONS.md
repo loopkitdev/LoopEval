@@ -230,3 +230,7 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     −0.54 / −0.73 / −0.50, with TIR −1.2 / −0.5 / −0.6 and mean +2.8 / +1.7 / +1.7: a consistent win on
     lows at a TIR cost about the size of training noise. (Score from the `model` arm only: the scores
     file also holds a `replay` row per donor, and averaging it in shrinks every generator gap by a quarter.)
+    Confirmed on v28 over three trainings, v30 harness, ccsp → ccspbl (offsets refitted on each training's
+    ccsp runs): t<54 2.63 / 2.15 / 1.77 → 0.71 / 0.78 / 0.87, t<70 5.24 / 4.54 / 3.98 → 1.91 / 2.08 / 2.07,
+    TIR +2.9 / +2.0 / +1.7, mean +3.1 / +2.3 / +1.9; no donor loses more than 1.8 TIR points; worst donor
+    3.9 / 2.9 / 3.3% below 54. Now the last step of the calibration pipeline.
