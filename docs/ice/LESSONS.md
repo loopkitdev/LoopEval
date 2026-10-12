@@ -219,13 +219,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     below 60: 45 against 61), and teacher-forced it is nearly right, so the gap only opens in closed loop.
     `calibrate_closed_bg.py` fits, from the pre-hold-out rollouts, an additive offset per band of the input
     step's glucose: the median over donors of field minus generated background ICE, which the plant adds
-    before its EMA feedback. Over every band (ccb) it overshoots: t<54 1.64 / 2.02 → 0.51 / 0.55, but mean
-    glucose 163 → 207 / 193 and TIR −10, because the offsets above 90 feed back on themselves in highs.
+    before its EMA feedback. Over every band (ccb) it overshoots: t<54 2.08 / 2.59 → 0.58 / 0.63, but mean
+    glucose 166 → 224 / 206 and TIR −13, because the offsets above 90 feed back on themselves in highs.
     Kept below 90 only (ccbl: below 60 +24 / +23, 60–70 +11 / +17, 70–80 +9 / +10, 80–90 +6 / +10;
-    0 above), v23 cc → ccbl, s0 / s1, per-donor means over 24 held-out donors: t<54 1.64 / 2.02 → 0.65 /
-    0.76 (field 0.18), t<70 3.84 / 4.34 → 2.17 / 2.17 (1.23), TIR +1.3 / +2.1, mean +1.6 / +1.8, insulin
-    +0.3 U/d. No donor loses more than 5 TIR points. Worst donor i003 8.2 / 6.1 → 2.6 / 2.5. Kept; it goes
-    into the pipeline after lesson 30–31's calibrations, fitted on their rollouts. On v28 those two
-    calibrations, judged the same way over three trainings, give t<54 −0.24 / −0.32 / −0.26 and t<70
-    −0.4 / −0.55 / −0.38, with TIR −0.9 / −0.4 / −0.4 and mean +2.1 / +1.3 / +1.3: a small, consistent
-    win on lows at a TIR cost inside training noise.
+    0 above), v23 cc → ccbl, s0 / s1, model runs, per-donor means over 24 held-out donors: t<54 2.08 / 2.59
+    → 0.77 / 0.92 (field 0.18), t<70 4.65 / 5.32 → 2.42 / 2.42 (1.23), TIR +1.8 / +2.8, mean +2.2 / +2.4,
+    insulin +0.4 U/d. No donor loses more than 1 TIR point. Worst donor 10.5 / 7.9 → 3.0 / 2.9. Kept; it
+    goes into the pipeline after lesson 30–31's calibrations, fitted on their rollouts. On v28 those two
+    calibrations, judged the same way over three trainings, give t<54 −0.32 / −0.43 / −0.35 and t<70
+    −0.54 / −0.73 / −0.50, with TIR −1.2 / −0.5 / −0.6 and mean +2.8 / +1.7 / +1.7: a consistent win on
+    lows at a TIR cost about the size of training noise. (Score from the `model` arm only: the scores
+    file also holds a `replay` row per donor, and averaging it in shrinks every generator gap by a quarter.)
