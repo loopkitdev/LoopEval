@@ -172,7 +172,15 @@ from . import cgm_streams as _cgm
 #      i017 (max basal 3.0 from 07-16 to 10-05, exported 2.0) was capped 1 U/h short.
 #  24  `time` stored as an ISO string ({"$date":"...Z"}) is now read (it was NULL and dropped by
 #      every window filter); override rows with no time at all are skipped instead of crashing.
-DATA_VERSION = 24
+#  25  carb_revisions.json: the versions of each EDITED carb as the deployed Loop held them. The
+#      food records keep only the final version, visible from its last save (i003 09-10: 25 g held
+#      by Loop from 11:04, edited to 20 g at 11:26; the export showed no carbs until 11:26). Loop's
+#      bolus-screen dosingDecisions record every save (`food`, and `originalFood` = the version it
+#      replaced); chained, they give each version's grams, meal time and save instant. The replay
+#      splices them in (--carb-revisions-json, loaded from --data-dir); carbs.json is unchanged.
+#      The food record can also keep an EARLIER version than Loop's last save (i003 07-20: 15 g
+#      exported, 25 g saved at 17:03); the chain then supplies the later grams.
+DATA_VERSION = 25
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -829,6 +837,92 @@ def _carbs(win, manual_ms):
     return carbs
 
 
+def _carb_revisions(win, carbs):
+    """Revision overlay for edited carbs (see DATA_VERSION 25): {"version": 1, "edited": [spec]}.
+
+    Each bolus-screen save is a dosingDecision carrying `food` (the saved version) and, for an edit,
+    `originalFood` (the version it replaced). Chaining replaced -> saved gives every version's grams,
+    meal time and absorption, visible from the save instant. The chain's final version is the
+    exported entry (same meal second and grams). The record can instead hold an EARLIER version
+    (i003 07-20: 15 g exported, Loop saved 25 g at 17:03 and its later forecasts carry it), and then
+    the chain stands as recorded. When a later edit outside the bolus screen changed the grams or
+    nudged the meal time (<= 2 min), the exported entry is appended as the last version, visible
+    from its own save (its dosingVisibleDate). A chain with no exported entry (deleted, or
+    its meal moved further) is left out: when Loop stopped holding it is not recorded."""
+    d = query(_dedup([f"{_TMS} AS t_ms", "CAST(food AS STRING) AS food",
+                      "CAST(originalFood AS STRING) AS ofood"],
+                     win + " AND food IS NOT NULL", "dosingDecision"))
+    def ver(sj):
+        if not sj: return None
+        try: j = json.loads(sj)
+        except Exception: return None
+        t = (j.get("time") or {}).get("$date")
+        t = int(_num(t.get("$numberLong"))) if isinstance(t, dict) else _iso_to_ms(t)
+        n = j.get("nutrition") or {}
+        g = _fin(_num((n.get("carbohydrate") or {}).get("net")))
+        if t is None or g is None: return None
+        return (t, round(g, 1), _fin(_num(n.get("estimatedAbsorptionDuration"))))
+    chains, tail = [], {}
+    seen = set()
+    for r in d.itertuples():
+        if r.t_ms != r.t_ms: continue
+        f, o = ver(r.food), ver(r.ofood)
+        if f is None or (int(r.t_ms), f, o) in seen: continue
+        seen.add((int(r.t_ms), f, o))
+        if o is not None and o in tail:
+            i = tail.pop(o)
+            chains[i].append((f, int(r.t_ms)))
+        else:
+            chains.append([(f, int(r.t_ms))] if o is None else [(o, None), (f, int(r.t_ms))])
+            i = len(chains) - 1
+        tail[f] = i
+    by_sec = {}
+    for e in carbs:
+        by_sec.setdefault(_iso_to_ms(e["startDate"]) // 1000, []).append(e)
+    edited, used = [], set()
+    for k, ch in enumerate(chains):
+        if len(ch) < 2:
+            continue
+        (t_last, g_last, _), vis_last = ch[-1]
+        cands = [e for e in by_sec.get(t_last // 1000, []) if e["grams"] == g_last]
+        exact = bool(cands)
+        if not cands:   # the record kept an EARLIER version (the later saves never reached it)
+            cands = [e for (t, g, _), v in reversed(ch[:-1]) for e in by_sec.get(t // 1000, [])
+                     if e["grams"] == g]
+            stale = bool(cands)
+        else:
+            stale = False
+        if not cands:   # edited again outside the bolus screen: same second, or meal nudged <= 2 min
+            cands = sorted((e for sec in range(t_last // 1000 - 120, t_last // 1000 + 121)
+                            for e in by_sec.get(sec, [])
+                            if _iso_to_ms(e["dosingVisibleDate"]) >= vis_last),
+                           key=lambda e: abs(_iso_to_ms(e["startDate"]) - t_last))
+        if not cands or id(cands[0]) in used:
+            continue
+        fin = cands[0]; used.add(id(fin))
+        fin_ms = _iso_to_ms(fin["startDate"])
+        def vis(t, g, v):   # an original saved outside the bolus screen: the record's own save
+            if v is None and t // 1000 == fin_ms // 1000 and g == fin["grams"]:
+                return fin["dosingVisibleDate"]
+            return _iso(v) if v is not None else None
+        revs = [dict(visibleFrom=vis(t, g, v), grams=g, startDate=_iso(t),
+                     **({"absorptionTime": a} if a else {}))
+                for (t, g, a), v in ch if vis(t, g, v) is not None]
+        if exact:
+            revs[-1]["visibleFrom"] = fin["dosingVisibleDate"]   # the record's own save instant
+        elif stale:
+            pass                                                 # the chain is the truth; its last save stands
+        else:
+            revs.append(dict(visibleFrom=fin["dosingVisibleDate"], grams=fin["grams"],
+                             startDate=fin["startDate"],
+                             **({"absorptionTime": fin["absorptionTime"]} if fin.get("absorptionTime") else {})))
+        if len(revs) < 2:
+            continue
+        edited.append(dict(matchStartDate=fin["startDate"], revisionKey=f"tp-edit-{k}",
+                           revisions=revs))
+    return {"version": 1, "edited": edited}
+
+
 def export_donor(user, start, end, outdir, insulin_type=None):
     os.makedirs(outdir, exist_ok=True)
     s_ms, e_ms = _ms_bounds(start, end)
@@ -1068,7 +1162,10 @@ def export_donor(user, start, end, outdir, insulin_type=None):
     # ---- therapy (per-era pumpSettings schedules across the window; expand daily schedules) ----
     therapy = _therapy(user, s_ms, e_ms, insulin_type)
 
-    for name, obj in [("glucose", glucose), ("doses", doses), ("carbs", carbs), ("therapy", therapy)]:
+    carb_revs = _carb_revisions(win, carbs)
+
+    for name, obj in [("glucose", glucose), ("doses", doses), ("carbs", carbs), ("therapy", therapy),
+                      ("carb_revisions", carb_revs)]:
         with open(os.path.join(outdir, f"{name}.json"), "w") as fh:
             json.dump(obj, fh, allow_nan=False)
 
@@ -1225,6 +1322,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
 
     _write_manifest(outdir, user, start, end,
                     counts=dict(glucose=len(glucose), doses=len(doses), carbs=len(carbs),
+                                carbs_edited=len(carb_revs["edited"]),
                                 suspends=len(sus), offline_gaps=len(off),
                                 pump_errors=len(perr), stale_cgm=len(stale), manual_temps=len(man),
                                 second_app_bolus_dropped=second_app_dropped,
