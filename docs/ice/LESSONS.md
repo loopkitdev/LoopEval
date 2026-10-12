@@ -246,3 +246,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     squeezed (push −12 to +6, snacks 0.37–0.66), and its severe push is half the field's (19 vs 39).
     So the one-table background offset (lesson 33) gives every person the median's push: too much for
     the passive, too little for the proactive. The fix goes per person.
+35. **A per-person background offset near lows does not beat the shared table.** `calibrate_closed_bg_person.py`
+    (cells = band × {steady, falling or heading low}, 60–90 per person shrunk toward the population by
+    n / (n + 100), below 60 shared; fitted on each training's pre-hold-out runs; the plant hook is not kept),
+    v28 × 3 trainings, v30 harness, against the shared below-90 table: t<54 0.74 / 0.75 / 0.86 vs 0.71 /
+    0.78 / 0.87, TIR within 0.2, and per person no closer to the field (median |t<70 gap| 0.99 / 0.92 /
+    0.84 vs 0.76 / 0.86 / 0.81; rank correlation with the field's t<70 0.49 / 0.60 / 0.48 vs 0.52 / 0.67 /
+    0.42). Per-person offsets ranged +3 to +28 at 70–90, yet the people's outcomes did not move with them:
+    28 days of a person's own runs is too little to fit a personal offset that beats the median, and the
+    offsets partly patch an under-trained model (lesson 36). The trait goes into the model instead.
