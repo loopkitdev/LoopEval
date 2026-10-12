@@ -194,7 +194,11 @@ from . import cgm_streams as _cgm
 #      ~20:22, where Loop's recorded IOB jumps +0.38 U with no dose; the export had held 1.6 all
 #      evening). i003: auto-bolus recs on field inputs 33.4 -> 24.0 U (field 20.7); closed-loop
 #      t<54 4.33 -> 0.74% (field 0.20), TIR 88.6 -> 91.4 (field 94.2).
-DATA_VERSION = 27
+#  28  pump-history re-imports: a bolus stamped on a whole second (pump clock) with a native
+#      millisecond-stamped bolus of the same units within +-60 s is a copy Loop uploaded after
+#      re-reading Medtronic pump history (raw pump-event syncIdentifier, uploaded hours later,
+#      as a MANUAL bolus); Loop's IOB never counted it. Dropped.
+DATA_VERSION = 28
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -1138,6 +1142,33 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                     doubt_days.add(t0 // 86400000)
             second_app_dropped = len(drop_idx)
             b = b.drop(index=drop_idx)
+    # PUMP-HISTORY RE-IMPORTS (v28). A Medtronic donor's Loop re-read pump history it had lost
+    # track of and uploaded each event as a MANUAL bolus (subType normal, raw pump-event hex
+    # syncIdentifier, stamped by the pump clock on a whole second ~14 s before Loop's own
+    # record, uploaded hours later). Every automatic bolus then appears twice. Loop's own IOB
+    # never counted the copies (i001 09-15/16: ours up to 5.3 U above Loop's). Manual boluses
+    # are copied the same way (09-16 15:20:58.000 and 15:21:13.276, 4.1 U each). Drop a bolus
+    # stamped on a whole second when a native record with millisecond time and the same units
+    # is within +-60 s; Loop's own records carry milliseconds.
+    reimport_dropped = 0
+    ms_t = b["t_ms"].fillna(0).astype("int64")
+    au = b[(b["_mirror"] == 0) & (ms_t % 1000 != 0)].dropna(subset=["units"])
+    if len(au):
+        import bisect as _bis
+        au_ms = au["t_ms"].astype("int64").to_numpy(); au_u = au["units"].round(3).to_numpy()
+        o = au_ms.argsort(); au_ms, au_u = au_ms[o], au_u[o]
+        drop_idx = []
+        for idx, r in b[(b["subType"] != "automated") | (ms_t % 1000 == 0)].iterrows():
+            t0 = r["t_ms"]; u0 = _fin(r["units"])
+            if u0 is None or t0 != t0 or int(t0) % 1000:
+                continue
+            lo_i = _bis.bisect_left(au_ms, int(t0) - 60000); hi_i = _bis.bisect_right(au_ms, int(t0) + 60000)
+            if any(abs(au_u[j] - round(u0, 3)) < 1e-6 for j in range(lo_i, hi_i)):
+                drop_idx.append(idx)
+        reimport_dropped = len(drop_idx)
+        b = b.drop(index=drop_idx)
+        if reimport_dropped:
+            print(f"{user}: dropped {reimport_dropped} pump-history bolus re-imports")
     doses = []; manual_ms = []; bseen = set()
     for r in b.sort_values(["t_ms", "_mirror"]).itertuples():   # native (_mirror=0) sorts first
         u = _fin(r.units)
@@ -1435,6 +1466,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                                 suspends=len(sus), offline_gaps=len(off),
                                 pump_errors=len(perr), stale_cgm=len(stale), manual_temps=len(man),
                                 second_app_bolus_dropped=second_app_dropped,
+                                pump_reimport_bolus_dropped=reimport_dropped,
                                 second_app_basal_dropped=second_app_basal_dropped,
                                 dose_doubt_days=len(doubt_days),
                                 cgm_sensors=cgm_summary["sensors"], cgm_two_sensor_hours=cgm_summary["conflict_hours"],
