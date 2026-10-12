@@ -187,7 +187,14 @@ from . import cgm_streams as _cgm
 #      and the dose-time ISF of insulin already given. v18-v25 applied each version only from
 #      its save. IOB vs Loop's, from the last edit to 4 h past the override: i187 median
 #      0.160 -> 0.143 U; i124 better on 8 overrides, worse on 1.
-DATA_VERSION = 26
+#  27  edits uploaded in ONE batch (every version stamped with the same createdTime, so their
+#      order and timing were lost and one arbitrary version covered the override) are timed
+#      from the pump's scheduled-basal rates: rate / base schedule = the factor it ran, and each
+#      change inside the override is an edit (i003 10-03: 1.5 -> 1.6 at ~18:12 -> unscaled at
+#      ~20:22, where Loop's recorded IOB jumps +0.38 U with no dose; the export had held 1.6 all
+#      evening). i003: auto-bolus recs on field inputs 33.4 -> 24.0 U (field 20.7); closed-loop
+#      t<54 4.33 -> 0.74% (field 0.20), TIR 88.6 -> 91.4 (field 94.2).
+DATA_VERSION = 27
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -330,7 +337,25 @@ def _overrides(user, s_ms, e_ms, e_win_ms):
             end = nxt                                             # truly-open: until next enactment
             src = "next"
         end = min(end, nxt, e_win_ms)
-        for j, sub in enumerate(ev["subs"]):
+        subs = ev["subs"]
+        content = lambda v: (v["basal"], v["isf"], v["cr"], v["tlo"], v["thi"])
+        if len(subs) > 1 and len({v["act"] for v in subs[1:]}) == 1 \
+                and len({content(v) for v in subs}) > 1 and max(s_ms, ev["t"]) < end:
+            # Edits uploaded in ONE batch share one createdTime: their order and timing are
+            # lost (i003 10-03: five versions, all stamped at the override's end). Emit the
+            # override once, carrying every version; _time_batched_edits recovers when each
+            # ran from the pump's scheduled-basal rates.
+            first = subs[0]
+            ivals.append((max(ev["t"], s_ms), end,
+                          {"isf_sf": first["isf"], "basal_sf": first["basal"], "cr_sf": first["cr"],
+                           "tgt_low": first["tlo"], "tgt_high": first["thi"], "preset": first["preset"],
+                           "enact": ev["t"], "act": ev["t"],
+                           "batch": [{"isf_sf": v["isf"], "basal_sf": v["basal"], "cr_sf": v["cr"],
+                                      "tgt_low": v["tlo"], "tgt_high": v["thi"], "preset": v["preset"]}
+                                     for v in subs]},
+                          src))
+            continue
+        for j, sub in enumerate(subs):
             sub_end = ev["subs"][j + 1]["act"] if j + 1 < len(ev["subs"]) else end
             st = max(sub["act"], s_ms)
             en = min(sub_end, end)
@@ -360,6 +385,82 @@ def _scheduled_stubs(user, s_ms, e_ms):
          f"ORDER BY t_ms")
     df = query(q)
     return [(int(r.t_ms), float(r.rate)) for r in df.itertuples() if _fin(r.rate) is not None]
+
+
+def _scheduled_rate_evidence(user, s_ms, e_ms):
+    """(t_ms, rate) of every scheduled-basal record's start, any duration: like the stubs, the
+    rate is the pump's working schedule at that instant (override-scaled). Loop uploads its
+    scheduled segments as deliveryType 'automated' with a 'BasalRateSchedule ...' syncIdentifier."""
+    q = (f"SELECT {_TMS} AS t_ms, "
+         f"COALESCE(CAST(get_json_object(rate,'$.$numberDouble') AS DOUBLE),"
+         f"CAST(get_json_object(rate,'$.$numberInt') AS DOUBLE)) AS rate "
+         f"FROM {TBL} WHERE _userId='{user}' AND type='basal' AND (deliveryType='scheduled' "
+         f"OR get_json_object(CAST(payload AS STRING),'$.syncIdentifier') LIKE 'BasalRateSchedule%') "
+         f"AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)} "
+         f"AND CAST(_active AS STRING) != 'false' AND suppressed IS NULL ORDER BY t_ms")
+    df = query(q)
+    return [(int(r.t_ms), float(r.rate)) for r in df.itertuples() if _fin(r.rate) is not None]
+
+
+def _time_batched_edits(user, ivals, basal_segments, evidence):
+    """Time the versions of an override whose edits were uploaded in one batch (see
+    _overrides: "batch"). The pump's scheduled rate / base schedule is the basal factor it
+    was running; each change in that ratio inside the override is an edit, placed midway
+    between the last reading of the old factor and the first of the new, and given to a
+    version with that factor (order of the batch preserved among equals). A version whose
+    factor never shows is dropped (it ran between readings, if at all); with no change
+    visible, the version matching the factor seen stands for the whole override. Versions
+    that differ only in target cannot be told apart: the first one listed is used."""
+    import bisect
+    bst = [_iso_to_ms(b["startDate"]) for b in basal_segments]
+    bval = [float(b["value"]) for b in basal_segments]
+    def base(t):
+        i = bisect.bisect_right(bst, t) - 1
+        return bval[i] if i >= 0 else None
+    ev = sorted(set(evidence))
+    et = [t for t, _ in ev]
+    out, n_timed = [], 0
+    for st, en, d in ivals:
+        batch = d.pop("batch", None)
+        if not batch:
+            out.append((st, en, d)); continue
+        reads = []
+        for t, rate in ev[bisect.bisect_left(et, st):bisect.bisect_left(et, en)]:
+            b = base(t)
+            if b:
+                reads.append((t, rate / b))
+        segs = []                                  # [first_t, last_t, ratio]
+        for t, r in reads:
+            if segs and abs(segs[-1][2] - r) <= 0.03:
+                segs[-1][1] = t
+            else:
+                segs.append([t, t, r])
+        def pick(r, used):
+            for i, v in enumerate(batch):
+                if i not in used and abs((v["basal_sf"] or 1.0) - r) <= 0.03:
+                    return i
+            for i, v in enumerate(batch):          # factor already used: reuse its first version
+                if abs((v["basal_sf"] or 1.0) - r) <= 0.03:
+                    return i
+            return None
+        chosen, used = [], set()
+        for k, (t0, t1, r) in enumerate(segs):
+            i = pick(r, used)
+            if i is None:
+                continue
+            act = st if not chosen else (segs[k - 1][1] + t0) // 2
+            if chosen and chosen[-1][1] == i:
+                continue
+            used.add(i); chosen.append((act, i))
+        if not chosen:
+            out.append((st, en, {**d, **batch[0]})); continue
+        chosen[0] = (st, chosen[0][1])
+        for act, i in chosen:
+            out.append((st, en, {**d, **batch[i], "act": act}))
+        n_timed += len(chosen) > 1
+    if n_timed:
+        print(f"{user}: {n_timed} batch-uploaded override edit sequence(s) timed from scheduled-basal rates")
+    return out
 
 
 def _extend_missing_override_ends(user, ivals, basal_segments, stubs, e_win_ms):
@@ -1607,7 +1708,9 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
     # min-guard (min < target-at-eventual) mis-fired → spurious auto-bolus=0 (under-dose).
     # OverrideWindow.factor = insulinNeedsScaleFactor (basal×f, ISF÷f, CR÷f); target in mg/dL.
     ovs = _overrides(user, s_ms, e_ms, e_ms)
-    ovs = _extend_missing_override_ends(user, ovs, basal, _scheduled_stubs(user, s_ms, e_ms), e_ms)
+    stubs = _scheduled_stubs(user, s_ms, e_ms)
+    ovs = _extend_missing_override_ends(user, ovs, basal, stubs, e_ms)
+    ovs = _time_batched_edits(user, ovs, basal, stubs + _scheduled_rate_evidence(user, s_ms, e_ms))
     # An EDITED override (several versions in one enactment) is emitted as one window per
     # version, each spanning the WHOLE override, keyed by enactment and visible from its save:
     # Loop keeps the original start on an edit and deletes the previous version from its
