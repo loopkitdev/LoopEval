@@ -283,3 +283,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     high level it had on the way up, and "ICE missing" with a high EMA is a combination the model saw rarely; the fix
     is not in how limit steps are fed. Not kept. About 30% of runs from every model spend over 2 h above 400 (field:
     a median donor 0.3 h a month at the ceiling); only some models fail to come back.
+38. **Delivering a meal's calculator bolus no earlier than its carb entry lowers the mean but adds lows; not kept.**
+    The plant drew a meal's carb-entry delay and its bolus delay independently, and a calculator bolus enacted before its
+    own carb entry is visible to the controller delivers about nothing, so some generated meals went unbolused.
+    `--couple-meal-bolus` delays a ratio bolus to its entry. With every closed-loop calibration refitted per arm on the v31
+    harness (`runs/2026-10-13-ice-highs/chain_v31.sh`, three 3000-batch trainings, held-out, clean time; field 74.2 / 0.85
+    / 0.12 / 152): TIR 63.7 / 64.3 / 65.9 → 64.2 / 64.3 / 67.2, mean −2.5 / −2.8 / −1.0 mg/dL, but t<54 0.37 / 0.43 / 0.72
+    → 0.43 / 0.60 / 0.84 and t<70 up on two of three. The v30 A/B without refitting read the same. The extra meal insulin
+    lands on a generator that already makes three times the field's severe lows, so the change waits until that is fixed;
+    the ten-point TIR gap is not bolus timing (it moves TIR under a point) but behavior rates (next lesson's target: every
+    person's announced meals, meal boluses and corrections are generated near the population middle).
+    Harness v30 → v31 (disruptions deliver the field pump's insulin, b70ba36) moves the generator's outcomes by under
+    0.2 TIR and 0.01 t<54; refitting the calibrations on v31 moves them by under 0.3 TIR. Replay insulin is 0.8% above the
+    field (was 1.5%) on the shared clean CGM steps.
