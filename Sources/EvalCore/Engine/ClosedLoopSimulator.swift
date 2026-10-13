@@ -410,6 +410,9 @@ extension EvaluationEngine {
         //   - Manual boluses are passed through separately (added to
         //     counterfactualDoses as they occur, preserving user input).
         var realAutoOnlyPerStep: [Date: Double] = [:]
+        // The same auto-only field doses, unrasterized: field delivery (disruptions, manual
+        // temps) integrates them over each step's own [t, stepEnd), which needn't sit on the grid.
+        var realAutoOnlyDoses: [EvalInsulinDose] = []
         // Manual boluses (user-initiated) sorted by startDate, for in-loop
         // pass-through into counterfactualDoses.
         var realManualBoluses: [EvalInsulinDose] = []
@@ -507,6 +510,7 @@ extension EvaluationEngine {
             let autoOnlyDoses = data.doses.filter { dose in
                 !(dose.deliveryType != .basal && !dose.automatic)
             }
+            realAutoOnlyDoses = autoOnlyDoses
             realAutoOnlyPerStep = Self.rasterizeRealPumpPerStep(
                 doses: autoOnlyDoses, start: cfActiveStart, end: interval.end,
                 stepSec: candidateConfig.evalStep)
@@ -1508,8 +1512,12 @@ extension EvaluationEngine {
                 // Field delivery (manual temp, suspend, loop offline): exactly what the field
                 // pump delivered this step (auto-only, so it carries no manual bolus; those pass
                 // through on their own).
+                // Integrated over [t, stepEnd): steps are decision/CGM times, which don't sit on
+                // realAutoOnlyPerStep's grid -- the keyed lookup found nothing and delivered 0
+                // (i008: 1 U against the field's 42 U of loop-offline basal).
                 let basalDelivered = fieldDeliveryNow
-                    ? (realAutoOnlyPerStep[t] ?? 0)
+                    ? Self.integrateFieldDelivery(realAutoOnlyDoses, schedule: data.therapyTimeline.basal,
+                                                  from: t, to: stepEnd)
                     : candidateBasalAcc.deliver(rate: candidateTempRate, seconds: tempSec)
                 // Auto-bolus already floored to the bolus grid; delivered whole.
                 cfTempVolume = basalDelivered + candidateBolus
@@ -2220,6 +2228,35 @@ extension EvaluationEngine {
         if covered < to, let r = basal.closestPrior(to: covered)?.value ?? basal.last?.value {
             total += r * to.timeIntervalSince(covered) / 3600.0
         }
+        return total
+    }
+
+    /// Units the field pump delivered over [from, to): automatic boluses starting in it plus
+    /// basal records pro-rated by overlap. Time no basal record covers ran the schedule (a
+    /// missing record is scheduled basal, not a suspend; suspends are records at rate 0).
+    fileprivate static func integrateFieldDelivery(
+        _ doses: [EvalInsulinDose], schedule: [AbsoluteScheduleValue<Double>],
+        from: Date, to: Date) -> Double {
+        guard to > from else { return 0 }
+        var total = 0.0
+        var spans: [(Date, Date)] = []
+        for d in doses where d.endDate > from && d.startDate < to || (d.startDate >= from && d.startDate < to) {
+            if d.deliveryType != .basal || d.endDate.timeIntervalSince(d.startDate) < 1 {
+                if d.startDate >= from && d.startDate < to { total += d.volume }
+                continue
+            }
+            let s = Swift.max(from, d.startDate), e = Swift.min(to, d.endDate)
+            guard e > s else { continue }
+            total += d.volume * e.timeIntervalSince(s) / d.endDate.timeIntervalSince(d.startDate)
+            spans.append((s, e))
+        }
+        // Scheduled basal over the gaps between basal records.
+        var cur = from
+        for (s, e) in spans.sorted(by: { $0.0 < $1.0 }) {
+            if s > cur { total += integrateScheduledBasal(schedule, from: cur, to: s) }
+            cur = Swift.max(cur, e)
+        }
+        if cur < to { total += integrateScheduledBasal(schedule, from: cur, to: to) }
         return total
     }
 
