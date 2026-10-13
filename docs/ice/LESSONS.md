@@ -267,3 +267,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     512 / 9000: NLL 0.674–0.690, same as 256 / 9000, but two of three seeds run +3 to +7 high in every band
     above 90. So the shrinkage of the low tails (lesson 33's "missing push") was mostly under-training:
     the pipeline moves to 256 / 9000 and the calibrations are refitted to see how much is left for them.
+    In closed loop it is not yet a win (`runs/2026-10-12-ice-i9k/`, full chain refitted per training, v30 harness,
+    held-out, model arm, i010 and i012 left out of both arms): 3000 → 9000 batches gives t<54 0.70 / 0.85 / 0.89
+    → 0.54 / 0.51 / 0.50 and t<70 1.95–2.26 → 1.57–1.68 (field 0.18 / 1.29), but TIR 66.2 / 65.0 / 67.1 → 63.5 /
+    62.4 / 64.0 and mean +6 (field 72.6 / 152), and one training runs away (mean glucose in the thousands) on i012
+    in every seed and on i010 once. The below-90 offset barely shrinks (below 60 about +21 to +25 at both lengths):
+    the low push is still missing in the generator's own runs, not when it is fed real history.
