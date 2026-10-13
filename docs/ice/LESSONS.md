@@ -296,3 +296,17 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Harness v30 → v31 (disruptions deliver the field pump's insulin, b70ba36) moves the generator's outcomes by under
     0.2 TIR and 0.01 t<54; refitting the calibrations on v31 moves them by under 0.3 TIR. Replay insulin is 0.8% above the
     field (was 1.5%) on the shared clean CGM steps.
+39. **Per-person behavior rates, fitted closed-loop, put each person's eating and correcting back where it was; kept.**
+    The model ranks people roughly right but generates every person's rates near the population middle (corrections never
+    below about 0.5 a day, on donors whose labels show 0.04). `calibrate_closed_rates_person.py` fits per-person logit
+    offsets on the meal-start, announcement, meal-bolus and correction heads from the person's own 28 training days
+    (WIN=train rollouts), shrunk toward no change by 7 days / 10 meals of prior (`runs/2026-10-13-ice-rates/`, v31 m-arm
+    of three 3000-batch trainings, held-out; `rates_score.py`: per donor, generated vs labeled per day). Spearman over
+    donors, before → after: meals 0.26–0.46 → 0.75–0.81, corrections 0.56–0.58 → 0.76–0.79, announced 0.81–0.90 →
+    0.87–0.90, bolused meals 0.67–0.71 → 0.74–0.77; median miss (|log2| ratio) meals 0.20–0.27 → 0.11–0.12, corrections
+    0.62–0.70 → 0.42–0.46, bolused meals unchanged. Outcomes on clean time move within training noise: TIR −0.5 / +1.2 /
+    +1.2, t<54 +0.01 / +0.06 / 0.00, runaway runs 1 / 3 / 1 → 0 / 3 / 1. A second pass refitted on the calibrated model's
+    own rollouts adds nothing (the rates do not feed back much through state), so one pass is the recipe. What is left:
+    the top announcers still come out near 4 a day against 6 in the labels, and the worst misses are people whose rate
+    changed between the training and held-out months (i010: 0.11 corrections a day in training, 1.43 held out), which
+    a person's own history cannot predict.

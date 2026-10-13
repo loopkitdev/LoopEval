@@ -75,6 +75,10 @@ class PlantV3:
         self.pid = torch.tensor([ck["people"].index(alias)])
         self.geq = ck["constants"][alias]["geq"]
         self.calib = dict(ck.get("calib", {}))      # logit offsets on event-start heads (calibrate.py)
+        # per-person logit offsets on the behavior heads (meal, m_ann, m_hasbol, corr), stacked on the pooled ones
+        # (calibrate_closed_rates_person.py): how often a person eats, announces, boluses and corrects is their own
+        for k, b in ck.get("calib_person", {}).get(alias, {}).items():
+            self.calib[k] = self.calib.get(k, 0.0) + float(b)
         # additive background-ICE offset (mg/dL/h) in the near-low state: heading low or BG < 70 (calibrate_state.py)
         cs = ck.get("calib_state", {})              # per person, shrunk to the pooled value, where fitted
         self.near_low_bgice = float(cs.get("near_low_bgice_person", {}).get(alias, cs.get("near_low_bgice", 0.0)))
