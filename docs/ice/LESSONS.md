@@ -255,3 +255,15 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     0.42). Per-person offsets ranged +3 to +28 at 70–90, yet the people's outcomes did not move with them:
     28 days of a person's own runs is too little to fit a personal offset that beats the median, and the
     offsets partly patch an under-trained model (lesson 36). The trait goes into the model instead.
+36. **The pilot model was under-trained; 9000 batches is the length, and width does not help.** Same v28
+    data and v3k recipe on the 4090, three seeds per arm, judged teacher-forced by background ICE per glucose
+    band on the held-out month (`runs/2026-10-12-ice-capacity/`, `tf_band.py`; model minus field, median
+    donor, mg/dL/h) and held-out NLL. 256 wide / 3000 batches (the pipeline's model): NLL 0.754–0.781, below
+    60 −14, 70–90 −2 to −4. 512 / 3000: NLL 0.711–0.735, low bands still short. 256 / 9000: NLL 0.678–0.687,
+    below 60 −6 to −7, 60–90 within ±2 except one seed at +5 (60–70), no band above 90 off by more than 2.
+    256 / 27000: NLL 0.755 / 0.764 / 0.780, below 60 −8 to −13, and the training-day fit no better either
+    (batch NLL over the last 3000 batches 0.72 vs 0.73 at 9000). The one-cycle schedule stretched to
+    27000 batches spends far longer at its peak rate; why that loses held-out skill is not measured.
+    512 / 9000: NLL 0.674–0.690, same as 256 / 9000, but two of three seeds run +3 to +7 high in every band
+    above 90. So the shrinkage of the low tails (lesson 33's "missing push") was mostly under-training:
+    the pipeline moves to 256 / 9000 and the calibrations are refitted to see how much is left for them.
