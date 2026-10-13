@@ -208,7 +208,7 @@ from . import cgm_streams as _cgm
 #      reached Tidepool as a bolus record are restored from the bolus screen's requestedBolus
 #      (see _unrecorded_boluses). Pilot pool: ~10 cases; i001 09-07 23:43 5.4 U, whose absence drove
 #      a 3 h replay low to 20 mg/dL (field >= 69).
-#  31  schedules run on the PUMP's clock: a per-day shift (+-1-2 h) inferred from the pump's own
+#  31  schedules run on the PUMP's clock: a per-day shift (+-1 h) inferred from the pump's own
 #      scheduled-basal records moves basal/ISF/CR/target where the pump's time zone differs from
 #      the phone's (a pod paired in winter time; therapy.json `scheduleShifts`). i008 decision-time
 #      replay bolus exact 88.5 -> 92.1%, worst 2.35 -> 0.65 U. 22 of 207 donors shift somewhere in
