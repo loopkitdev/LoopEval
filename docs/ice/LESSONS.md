@@ -273,3 +273,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     62.4 / 64.0 and mean +6 (field 72.6 / 152), and one training runs away (mean glucose in the thousands) on i012
     in every seed and on i010 once. The below-90 offset barely shrinks (below 60 about +21 to +25 at both lengths):
     the low push is still missing in the generator's own runs, not when it is fed real history.
+37. **Feeding sensor-limit steps as training saw them makes runaways worse.** The 9000-batch training s1 runs away on
+    i012 (glucose in the thousands for days): above 400 the CGM pins at the ceiling, extract.py flags those steps
+    `clamp` and leaves their background ICE out of training, so the model never learned the state, and the plant fed
+    its own +150 to +300 mg/dL/h draws back through the EMA while the controller sat at its delivery limit. A plant
+    option fed limit steps as the data has them (`bgice_ok` 0, EMA held; `runs/2026-10-13-ice-clamp/`, six full-chain
+    models, held-out): runaway runs (mean > 400) 0 / 0 / 0 / 0 / 4 / 0 → 0 / 0 / 1 / 2 / 7 / 7 (3000-batch s0–s2, then
+    9000-batch s0–s2), mean glucose up 2–13 mg/dL on the 3000-batch models, TIR −0.4 to −0.5. Holding the EMA keeps the
+    high level it had on the way up, and "ICE missing" with a high EMA is a combination the model saw rarely; the fix
+    is not in how limit steps are fed. Not kept. About 30% of runs from every model spend over 2 h above 400 (field:
+    a median donor 0.3 h a month at the ceiling); only some models fail to come back.
