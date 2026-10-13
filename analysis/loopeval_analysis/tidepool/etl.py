@@ -208,7 +208,12 @@ from . import cgm_streams as _cgm
 #      reached Tidepool as a bolus record are restored from the bolus screen's requestedBolus
 #      (see _unrecorded_boluses). Pilot pool: ~10 cases; i001 09-07 23:43 5.4 U, whose absence drove
 #      a 3 h replay low to 20 mg/dL (field >= 69).
-DATA_VERSION = 30
+#  31  schedules run on the PUMP's clock: a per-day shift (+-1-2 h) inferred from the pump's own
+#      scheduled-basal records moves basal/ISF/CR/target where the pump's time zone differs from
+#      the phone's (a pod paired in winter time; therapy.json `scheduleShifts`). i008 decision-time
+#      replay bolus exact 88.5 -> 92.1%, worst 2.35 -> 0.65 U. 22 of 207 donors shift somewhere in
+#      06-01..10-07 (manifest `schedule_shift_days`); long-running: i008 i071 i076 i078 i122 i147 i165.
+DATA_VERSION = 31
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -1549,6 +1554,8 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                                 second_app_bolus_dropped=second_app_dropped,
                                 pump_reimport_bolus_dropped=reimport_dropped,
                                 unrecorded_bolus_added=len(unrecorded),
+                                schedule_shift_days=round(sum(_iso_to_ms(x["end"]) - _iso_to_ms(x["start"])
+                                                              for x in therapy.get("scheduleShifts", [])) / 86400000, 1),
                                 second_app_basal_dropped=second_app_basal_dropped,
                                 dose_doubt_days=len(doubt_days),
                                 cgm_sensors=cgm_summary["sensors"], cgm_two_sensor_hours=cgm_summary["conflict_hours"],
@@ -1737,6 +1744,97 @@ def _strategy_modes(dts, therapy, margin=0.06):
     return modes
 
 
+SHIFT_CANDIDATES_MIN = (-60, 60)   # a clock left on the other side of a DST change; wider shifts matched only artifacts (settings-edit timing)
+
+
+def _schedule_shifts(basal, evidence, s_ms, e_ms, breaks=()):
+    """[(start_ms, end_ms, shift_min)] periods where the pump ran its basal schedule shifted
+    from our expansion (+-60 min). Per day, each scheduled-basal record's rate (sampled a minute after its
+    start) is checked against the expanded schedule at t - shift, over the records the shifts
+    disagree on. A day with >= 6 of them stays unshifted if no shift matches >= 90%, else moves
+    to the smallest shift that matches >= 90% and beats no shift by >= 20 points (a tie between
+    +-d is ambiguous). A move to a shift needs two informative days in a row; other days keep
+    the previous day's shift. Records within an hour of a `breaks` instant (settings edit, time
+    zone change) are skipped: a one-off edit moved by an hour also "matches" a shift (i137)."""
+    import bisect
+    if not basal or not evidence:
+        return []
+    bst = [_iso_to_ms(b["startDate"]) for b in basal]
+    ben = [_iso_to_ms(b["endDate"]) for b in basal]
+    bval = [float(b["value"]) for b in basal]
+    def base(t):
+        i = bisect.bisect_right(bst, t) - 1
+        return bval[i] if i >= 0 and t < ben[i] else None
+    day = 86400000
+    by_day = {}
+    for t, r in evidence:
+        by_day.setdefault((t - s_ms) // day, []).append((t + 60000, r))
+    cands = (0,) + SHIFT_CANDIDATES_MIN
+    near_break = lambda t: any(abs(t - b) <= 61 * 60000 for b in breaks)
+    cur, pending, per_day = 0, None, []
+    for k in range((e_ms - s_ms + day - 1) // day):
+        rows = []
+        for t, r in by_day.get(k, []):
+            bs = [base(t - sh * 60000) for sh in cands]
+            if None in bs or len({round(b, 4) for b in bs}) == 1 or near_break(t):
+                continue                      # every shift agrees here: says nothing
+            rows.append([abs(b - r) < 0.011 for b in bs])
+        if len(rows) >= 6:
+            score = {sh: sum(row[c] for row in rows) / len(rows) for c, sh in enumerate(cands)}
+            top = max(score.values())
+            best = min((sh for sh in cands if score[sh] == top), key=abs)
+            tied = [sh for sh in cands if score[sh] == top and abs(sh) == abs(best)]
+            if score[0] >= 0.9:
+                cur, pending = 0, None
+            elif top >= 0.9 and len(tied) == 1 and top - score[0] >= 0.2:
+                if best == cur:
+                    pending = None
+                elif pending == best:
+                    cur, pending = best, None
+                    # the first of the two days ran the shift too
+                    if per_day and per_day[-1] != best:
+                        per_day[-1] = best
+                else:
+                    pending = best
+        per_day.append(cur)
+    out = []
+    for k, sh in enumerate(per_day):
+        a, b = s_ms + k * day, min(s_ms + (k + 1) * day, e_ms)
+        if sh and out and out[-1][2] == sh and out[-1][1] == a:
+            out[-1] = (out[-1][0], b, sh)
+        elif sh:
+            out.append((a, b, sh))
+    return out
+
+
+def _apply_shifts(segs, shifts):
+    """Inside each shift period, the schedule as the pump ran it: our expansion moved by the
+    shift, clipped to the period. Time the moved schedule doesn't cover (the window's edge)
+    keeps the unshifted value."""
+    if not shifts:
+        return segs
+    def clip(src, a, b, d=0):
+        out = []
+        for r in src:
+            s0, e0 = _iso_to_ms(r["startDate"]) + d, _iso_to_ms(r["endDate"]) + d
+            s1, e1 = max(s0, a), min(e0, b)
+            if e1 > s1:
+                out.append(dict(r, startDate=_iso(s1), endDate=_iso(e1)))
+        return out
+    out = []
+    lo = _iso_to_ms(segs[0]["startDate"]); hi = _iso_to_ms(segs[-1]["endDate"])
+    cur = lo
+    for a, b, d in shifts:
+        out += clip(segs, cur, a)
+        moved = clip(segs, a, b, d * 60000)
+        m_lo = _iso_to_ms(moved[0]["startDate"]) if moved else b
+        m_hi = _iso_to_ms(moved[-1]["endDate"]) if moved else b
+        out += clip(segs, a, m_lo) + moved + clip(segs, m_hi, b)
+        cur = b
+    out += clip(segs, cur, hi)
+    return sorted(out, key=lambda r: r["startDate"])
+
+
 def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
     # Full pumpSettings history up to window end (NO lower bound — we need the record
     # active at window START too), oldest→newest. We track SETTINGS CHANGES over the
@@ -1801,6 +1899,18 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
                                    "upperBound": round(_num(it.get("high", it.get("target"))) * MMOL, 1)}, tzline, tz)
         contrib.append(r)
     basal, sens, cr, tgt = map(_merge_adj, (basal, sens, cr, tgt))
+    # The pump runs its schedules in ITS time zone, which Loop fixes when a pod is paired (a
+    # fixed UTC offset) and changes only when the user accepts the time-zone prompt. A pump
+    # left on winter time runs every schedule an hour later all summer (i008: 0.85 -> 1.0 U/h
+    # at 15:30 UTC, ours at 14:30). pumpSettings.scheduleTimeZoneOffset says so on ~5% of rows
+    # and is wrong on some (i068), so the shift is read off the pump's own scheduled-basal
+    # records and applied to all four schedules.
+    breaks = [max(t0, s_ms) for t0, _ in eras] + [t for t, _ in tzline]
+    shifts = _schedule_shifts(basal, _scheduled_rate_evidence(user, s_ms, e_ms), s_ms, e_ms, breaks)
+    if shifts:
+        basal, sens, cr, tgt = (_merge_adj(_apply_shifts(x, shifts)) for x in (basal, sens, cr, tgt))
+        print(f"{user}: schedules shifted to the pump's clock — "
+              + ", ".join(f"{_iso(a)[:10]}..{_iso(b)[:10]} {d:+d} min" for a, b, d in shifts))
     if len(contrib) > 1:
         print(f"{user}: therapy spans {len(contrib)} settings eras in-window (tracking mid-window changes)")
 
@@ -1861,6 +1971,7 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
     return {"basal": basal, "sensitivity": sens, "carbRatio": cr, "target": tgt,
             "rawBasal": basal, "rawSensitivity": sens, "rawCarbRatio": cr, "rawTarget": tgt,
             "overrideWindows": override_windows,
+            "scheduleShifts": [{"start": _iso(a), "end": _iso(b), "shiftMin": d} for a, b, d in shifts],
             "suspendThreshold": round(safety * MMOL, 1) if safety else 70.0,
             # Delivery limits from the deployed pumpSettings (last record ≤ window
             # end). These were hard-coded 12.0/8.0 for every donor, which SATURATED
