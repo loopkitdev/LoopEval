@@ -310,3 +310,19 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     the top announcers still come out near 4 a day against 6 in the labels, and the worst misses are people whose rate
     changed between the training and held-out months (i010: 0.11 corrections a day in training, 1.43 held out), which
     a person's own history cannot predict.
+40. **Settings edits are natural experiments only once the shift in need that prompted them is separated out.**
+    Tier 3(c) test (`runs/2026-10-13-ice-change/`): 70 pilot edits that moved day-average basal, ISF or CR by >= 10% or
+    the target by >= 10 mg/dL and then held 14+ days; 55 scored (on model people, replay within 10 TIR of the field's
+    level). Each 13-day window either side runs with the before and the after settings (the other side's dated
+    segments shifted 14 days), replay arm and the three 3000-batch v31 models with per-person rates (3 seeds); predicted
+    change = after minus before in the same window. Taken at face value both arms overstate every edit 1.6-2.8x and
+    get ISF raises backwards (11 edits: field mean -2.8 mg/dL, predicted +8 to +10). But edits answer a change: the
+    clean-ICE level shifts with them (ISF raised: median ICE -3%, insulin -3%; lowered: +8%, +7%; i192 ISF x1.87 with
+    ICE -23%), and the shift correlates -0.32 with the predicted edit effect. Regressing the field change on both,
+    the edit's coefficient is about right for TIR (replay 0.79, generator 0.90) and mean (0.60 / 0.74); on the half
+    of edits whose need held steady, TIR error 6.0 (replay) / 5.8 (generator) against 7.1 for predicting no change,
+    slopes 1.05 / 1.46. Severe lows are where both fail: the t<54 coefficient is 0.18 / 0.25, so a predicted change in
+    t<54 is 4-5x what the field shows, in the replay as much as the generator. The generator does not track the
+    person's own shift from real history (its post-after minus pre-before run: r 0.43, error 12.2 vs 11.2 for no
+    change); outcomes otherwise rank with replay (r 0.81-0.93). So for change prediction the generator so far adds
+    little beyond replay; the t<54 response is the gap to chase. Config: donors outside config.csv run standard RC.
