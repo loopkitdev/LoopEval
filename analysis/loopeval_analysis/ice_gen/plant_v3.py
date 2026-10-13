@@ -53,6 +53,7 @@ class PlantV3:
         # "mean" (the predictive mean). Fed its own noisy draws, the head reads them as volatility,
         # widens, and the background ICE spread runs away (i005: p5/p95 -289/340 vs real -69/177).
         self.feedback = feedback
+        self.couple_meal_bolus = False
         self.alias = alias
         P = pd.read_csv(ROOT / "persons.csv").set_index("alias")
         self.isf, self.tdd = float(P.isf_tdd[alias]), float(P.tdd[alias])
@@ -232,12 +233,19 @@ class PlantV3:
                 on = t + pd.Timedelta(minutes=float(np.clip(np.expm1(float(s["m_onset"][0])), 0, 120)))
                 self.pulses.append((on, size * self.geq, float(m), float(sd)))
                 self.anchor_times.append(t); self.since_meal = 0.0; self.last_size = size
+                t_entry = None
                 if bool(s["m_ann"][0]):
                     g = float(np.clip(np.exp(float(s["m_lg"][0])), 1, 250))
-                    self.due.append((t + pd.Timedelta(minutes=float(np.clip(np.expm1(float(s["m_entry"][0])), 0, 120))), "carb", g))
+                    t_entry = t + pd.Timedelta(minutes=float(np.clip(np.expm1(float(s["m_entry"][0])), 0, 120)))
+                    self.due.append((t_entry, "carb", g))
                 if bool(s["m_hasbol"][0]):
-                    self.due.append((t + pd.Timedelta(minutes=float(np.clip(np.expm1(float(s["m_bolus"][0])), 0, 120))),
-                                     "bolus", self._bolus(s, "m")))
+                    b = self._bolus(s, "m")
+                    t_bol = t + pd.Timedelta(minutes=float(np.clip(np.expm1(float(s["m_bolus"][0])), 0, 120)))
+                    # the bolus calculator doses for carbs entered with it: a calculator bolus drawn
+                    # before its own entry would see no carbs and deliver ~0 (29% of drawn meal boluses)
+                    if self.couple_meal_bolus and t_entry is not None and "ratio" in b:
+                        t_bol = max(t_bol, t_entry)
+                    self.due.append((t_bol, "bolus", b))
                 self.actions_log.append(dict(t=t, kind="meal", size_g=size, peak_h=peak, dur_h=dur,
                                              announced=bool(s["m_ann"][0]), meal_bolus=bool(s["m_hasbol"][0])))
             if bool(s["corr"][0]):
@@ -322,11 +330,13 @@ def main():
     ap.add_argument("--compression", help="compression layer fit json (fit_layer.py); templates parquet beside it")
     ap.add_argument("--compression-scale", type=float, default=1.0, help="dial on the compression rate (0 = off)")
     ap.add_argument("--rewarm-h", type=float, default=0.0, help="rebuild the GRU state over the last 24 h every N hours (0 = never)")
+    ap.add_argument("--couple-meal-bolus", action="store_true", help="a meal's calculator bolus no earlier than its carb entry")
     a = ap.parse_args()
     plant = PlantV3(a.alias, a.ckpt, a.seed, a.feedback, json.load(open(a.noise)) if a.noise else None, a.rewarm_h,
                     json.load(open(a.slow)) if a.slow else None,
                     (json.load(open(a.compression)), pd.read_parquet(a.compression.replace("_layer.json", "_templates.parquet")),
                      a.compression_scale) if a.compression else None)
+    plant.couple_meal_bolus = a.couple_meal_bolus
     for line in sys.stdin:
         if line.strip():
             sys.stdout.write(json.dumps(plant.advance(json.loads(line))) + "\n"); sys.stdout.flush()
