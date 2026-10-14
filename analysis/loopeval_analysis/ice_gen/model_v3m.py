@@ -361,3 +361,14 @@ class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
     arch = "v3m7"
+
+
+class ICEGenV3M8(ICEGenV3M5):
+    """v3m8: background ICE from exogenous inputs only (meals, actions, clock, profile) plus the glucose level (the push near
+    lows is physiology; restoring real glucose changed nothing in the swap tests). No input built from the person's own recent
+    background ICE: every such channel (CGM trend, the EMA, the previous value, own 6/24-h means) carried the model's own draws
+    back in generation and its level drifted (open loop on its own draws, glucose and meals real: day-to-day sd 20-28 vs 10,
+    level +18 to +38 mg/dL/h; LESSONS 42-48). Step-to-step dependence comes from the plant's correlated draws (BGICE_RHO,
+    fitted to real data) and the day level from the slow-level process, both stationary by construction."""
+    arch = "v3m8"
+    ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30", "bgice_ema", "bgice", "bgice_ok", "bgice_6h", "bgice_24h"]
