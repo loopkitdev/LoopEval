@@ -398,3 +398,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Outcomes move within training noise (TIR 63.4 / 56.5 vs baseline 56.6-57.9, t<54 1.67 / 1.62 vs 1.20-2.06, mean 164 /
     177 vs 170-174): with behavior right, the remaining outcome gap is the closed-loop widening of LESSONS 42 (spread ratio
     1.28 / 1.39, unchanged).
+45. **Background ICE given its own history through one exact channel (its previous value) and no indirect own-ICE inputs:
+    the closed-loop widening is gone; kept.** v3m6 (`model_v3m.ICEGenV3M6`, FEATURES_M2A): background ICE on its own
+    recurrent path that sees the previous background-ICE value (the real one in training, the plant's draw in generation,
+    PLANT_FEEDBACK=sample) and drops the CGM trend, 30-min projection, heading-low, minutes below 70 and the 30-min EMA;
+    behavior heads keep every input. ice_v32, kept recipe (LESSONS 44), held-out at the open-loop stage, seeds 0 / 1:
+    closed-loop / real predicted spread 0.95 / 0.85 (trait-init arm 1.20-1.39); background-ICE lag-1 / lag-2 autocorrelation
+    0.42 / 0.10 and 0.54 / 0.25 (field 0.48 / 0.19; before 0.31-0.34 / 0.04-0.05). Per-step glucose change on clean time,
+    split by source (sd, mg/dL per 5 min, median donor, seed 0): background 6.6 vs 6.2, pulses 4.5 vs 4.0, insulin 3.5 vs
+    2.8, total 7.8 vs 6.8. Two half-measures before it were not enough: the exact channel alongside the indirect ones (arm a:
+    the model follows its last value as real data does, slope 0.38 vs 0.38, yet closed-loop ratio 1.19-1.25), and dropping
+    the trend alone (v3m5: the loop moved to the EMA). Outcomes at the open-loop stage: TIR 62.7 / 61.3, t<54 1.96 / 2.01,
+    mean 164 / 167 (field 74.1 / 0.12 / 152): the excess lows are not the loop and not a missing push near lows (background
+    ICE below 60: real 51, fed real history 51, generated 64); generated people spend 6.6x the field's time below 60.
