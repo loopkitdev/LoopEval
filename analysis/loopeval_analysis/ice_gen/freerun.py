@@ -31,6 +31,7 @@ def freerun_bgice_loss(net, X, Y, person, features, targets, burn):
     off = torch.zeros(B, device=X.device)                             # generated minus real glucose, mg/dL
     ema = X[:, burn - 1, F["bgice_ema"]] * ICE_SCALE if "bgice_ema" in F else None
     nll = []
+    last = None                                                       # the model's own previous draw, mg/dL/h
     for t in range(burn, W - 1):
         x = X[:, t].clone()
         g = (bg_real[:, t] + off).clamp(LOW, HIGH)
@@ -46,6 +47,8 @@ def freerun_bgice_loss(net, X, Y, person, features, targets, burn):
                 x[:, F["low30"]] = torch.stack([(v < 70).float() for v in hist[-5:] + [g]], 0).sum(0) * 5 / 30
         if ema is not None:
             x[:, F["bgice_ema"]] = ema / ICE_SCALE
+        if "bgice" in F:                                              # the exact own-history channel (FEATURES_M2A): own last draw
+            x[:, F["bgice"]] = last / ICE_SCALE if last is not None else x[:, F["bgice"]]
         if "bgice_ok" in F:
             x[:, F["bgice_ok"]] = 1.0
         if "bg_ok" in F:
@@ -63,4 +66,5 @@ def freerun_bgice_loss(net, X, Y, person, features, targets, burn):
             if ema is not None:
                 ema = torch.where(torch.isfinite(ema), ema + EMA_A * (d * ICE_SCALE - ema), d * ICE_SCALE)
             hist = hist[1:] + [g]
+            last = d * ICE_SCALE
     return torch.cat(nll).mean() if nll else torch.zeros((), device=X.device)
