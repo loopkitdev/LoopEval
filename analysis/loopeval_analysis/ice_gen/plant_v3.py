@@ -105,6 +105,7 @@ class PlantV3:
         # fitted to all trained people's, and nothing personal to the host is used (no per-person calibrations, population
         # slow-state scale). For the generalization check: drawn people should match the real population's spread and co-variation.
         self.drawn = os.environ.get("DRAW_PERSON") not in (None, "")
+        self.announce = float(os.environ.get("ANNOUNCE", "1")); self.rng_ann = np.random.default_rng(seed + 15485863)
         if self.drawn:
             with torch.no_grad():
                 W = [self.net.profile.weight] + ([self.net.trait.weight] if hasattr(self.net, "trait") else [])
@@ -146,6 +147,7 @@ class PlantV3:
         self.e = self.noise.e1 if self.noise else 0.0
         # slow: {"fast_var", "fast_tau_h", "slow_var", "slow_tau_h", "scale": {alias: s}} from fit_slow; None = off
         self.slow = SlowLevel(slow["fast_var"], slow["fast_tau_h"], slow["slow_var"], slow["slow_tau_h"],
+                              float(os.environ.get("SLOW_SCALE", "1")) *   # slow-state dial
                               (float(np.median(list(slow.get("scale", {1: 1.0}).values()))) if self.drawn else slow.get("scale", {}).get(alias, 1.0)), seed) if slow else None
         # fed into the generator's own background input, the level is amplified ~6x (it reads a shifted day
         # as its own persistent state and generates more of it: daily variance 611 vs real 174); default: not fed
@@ -263,8 +265,13 @@ class PlantV3:
             self.pulses.append((t, size * self.geq, float(m), float(sd)))
             self.anchor_times.append(t); self.since_meal = 0.0; self.last_size = size
             self.actions_log.append(dict(t=t, kind="meal", size_g=size, peak_h=peak, dur_h=dur))
-        if bool(s["entry"][0]):
-            self.due.append((t, "carb", float(np.clip(np.exp(float(s["e_lg"][0])), 1, 250))))
+        entry = bool(s["entry"][0])
+        # announcement dial: a meal the person would log is logged with probability ANNOUNCE; otherwise its pulse still
+        # comes, but the carb entry and the bolus that goes with it are dropped (eating unchanged, logging and dosing not)
+        ann = entry and (self.announce >= 1 or self.rng_ann.random() < self.announce)
+        if entry:
+            if ann:
+                self.due.append((t, "carb", float(np.clip(np.exp(float(s["e_lg"][0])), 1, 250))))
             # v3m3: an entry that starts a meal brings its pulse; one that joins a meal with none begun in 2 h starts one
             if self.v3m3 and (bool(s["e_new"][0]) or not any(t - a < pd.Timedelta(hours=2) for a in self.anchor_times)):
                 size = float(np.clip(np.exp(float(s["e_lsize"][0])), 5, 250))
@@ -273,8 +280,8 @@ class PlantV3:
                 on = t + pd.Timedelta(minutes=float(np.clip(np.expm1(float(s["e_off"][0])), 0, 120)))
                 self.pulses.append((on, size * self.geq, float(m), float(sd)))
                 self.anchor_times.append(t); self.since_meal = 0.0; self.last_size = size
-                self.actions_log.append(dict(t=t, kind="meal", size_g=size, peak_h=peak, dur_h=dur, announced=True, onset=on))
-        if bool(s["bolus"][0]):
+                self.actions_log.append(dict(t=t, kind="meal", size_g=size, peak_h=peak, dur_h=dur, announced=ann, from_entry=True, onset=on))
+        if bool(s["bolus"][0]) and not (entry and not ann):
             self.due.append((t, "bolus", self._bolus(s, "b")))
 
     def advance(self, req):
