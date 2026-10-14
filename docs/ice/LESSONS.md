@@ -439,3 +439,15 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     boluses with them, eating within 4% (279-290 g-eq/day) and day spread unchanged; compression 1 / 0 / 3 moves sensor
     events 0.52 / 0 / 2.07 per 28 days and nothing else; slow-state 0 / 1 / 2 moves day spread 20.0 / 22.8 / 25.6 and
     nothing else, but most of the (excess) day spread is the model's own. No monthly-cycle dial yet.
+48. **Any input built from the person's own recent background ICE lets the generated level drift, even an exact one; the drift
+    is in the model's own dynamics, not the closed loop.** Run open loop for 7 days on its own background-ICE draws with every
+    other input real (glucose, meals, actions; no controller, `openloop_days.py`, 8 donors): v3m6 day-to-day sd of the daily
+    level 20.2 and mean level 56.8 mg/dL/h against real 10.1 / 38.3; v3m7 (+ own 6-h and 24-h means, exact channels) 28.2 /
+    76.9. Fed real history the same model predicts a mean level of 41.4 (i022); fed its own draws (wider and right-skewed:
+    90th percentile 151 vs 116), the level it infers wanders day by day (25 -> 69 -> 68 -> 52 -> 70 -> 60 -> 50, real 20-51).
+    Interpretation, not proven: the recurrent state estimates the person's current level from recent background ICE, and big
+    positive draws read as "level up". Not kept: v3m7 (held-out TIR 64.9 / 64.7 / 65.3, t<54 1.35 / 1.57 / 2.11, day spread
+    21.9 / 21.0 / 19.3, within noise of v3m6), and v3m7 + free-run scored on the day-level mean only (FR_MODE=level, weight
+    30: day spread 25.8 / 23.0, t<54 2.80 / 3.61, worse). Next: background ICE from exogenous inputs and glucose level only
+    (v3m8), step-to-step dependence from the plant's correlated draws fitted to real data, day level from the slow process:
+    stationary by construction.
