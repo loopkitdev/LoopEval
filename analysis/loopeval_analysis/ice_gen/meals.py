@@ -29,6 +29,15 @@ SPLIT_G = 12.0                      # g-eq per hour
 PHASE_H = 2.5                       # an unannounced, smaller pulse this soon after an announced one is its later phase
 ENTRY_BEFORE, ENTRY_AFTER = pd.Timedelta(minutes=60), pd.Timedelta(minutes=90)
 REC_ZERO = 0.05
+# rescues come in steps: people treat, wait ~15 min, and treat again if glucose has not turned up (Pete, 2026-10-14). The
+# 35-min smoothing and the 12 g-eq/h trough rule merged a second treatment into the first: in held-out lows a second clear rise
+# in raw ICE follows 34% of first rescues when glucose is not yet rising at 15 min (25% if it is), labels found 10-15% with no
+# dependence on rising. For a pulse starting near a low: on 30-min smoothed ICE, after the first rise's peak (within 45 min), a
+# dip >= RESCUE_SPLIT_MIN after onset followed by a renewed rise of >= RESCUE_RISE_MGDL mg/dL/h starts a new pulse (the
+# same rule as the raw-ICE check); split rescue parts are kept down to RESCUE_GATE_G. A looser rule (15-min smoothing, any
+# 4 g-eq/h rise) split 44% of first rescues, more when already rising: the first rise's own wiggles.
+# Both sides require a real dip (>= RESCUE_DIP_MGDL below the first peak): a steady single rise is one treatment.
+RESCUE_BG, RESCUE_SPLIT_MIN, RESCUE_RISE_MGDL, RESCUE_DIP_MGDL, RESCUE_GATE_G = 80.0, 15, 30.0, 10.0, 6.0
 
 
 def label(steps: pd.DataFrame, carbs: list, bolus_dec: pd.DataFrame, tdd: float, isf: float):
@@ -56,12 +65,31 @@ def label(steps: pd.DataFrame, carbs: list, bolus_dec: pd.DataFrame, tdd: float,
         cuts = [a] + [a + int(t) for t in tr] + [b]
         split += [[c0, c1] for c0, c1 in zip(cuts[:-1], cuts[1:]) if c1 > c0]
     runs = split
+    # second treatments in a low (see RESCUE_*): split near-low pulses at a renewed rise on 30-min smoothed ICE
+    ex6 = g.ice.rolling(6, min_periods=3).mean().to_numpy()
+    bgv = g.bg.to_numpy(); rescue_part = set(); split = []
+    for a, b in runs:
+        near = np.nanmin(bgv[max(a - 6, 0):a + 1]) < RESCUE_BG if np.isfinite(bgv[max(a - 6, 0):a + 1]).any() else False
+        if not near or b - a < RESCUE_SPLIT_MIN // 5 + 2:
+            split.append([a, b]); continue
+        y = ex6[a:b]; cut = None
+        if np.isfinite(y[:9]).any():
+            k = int(np.nanargmax(y[:9]))                                  # the first rise's peak, within 45 min
+            for c in range(max(k + 1, RESCUE_SPLIT_MIN // 5), len(y) - 1):
+                if (np.isfinite(y[c]) and y[c] <= y[c - 1] and y[c] <= y[c + 1] and np.nanmax(y[k:c + 1]) - y[c] >= RESCUE_DIP_MGDL
+                        and np.nanmax(y[c:c + 9]) - y[c] >= RESCUE_RISE_MGDL):
+                    cut = a + c; break
+        if cut is None:
+            split.append([a, b])
+        else:
+            split += [[a, cut], [cut, b]]; rescue_part.update({a, cut})
+    runs = split
     idx = g.index
     meals = []
     for a, b in runs:
         seg = ex.iloc[a:b].clip(lower=0)
         size = float(np.nansum(seg) * 5 / 60 / geq)
-        if size < GATE_G:
+        if size < (RESCUE_GATE_G if a in rescue_part else GATE_G):
             continue
         pk = int(np.nanargmax(seg.to_numpy()))
         pre = g.bg.iloc[max(a - 6, 0):a + 1]
