@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import zlib
 import json
 import sys
 
@@ -67,7 +68,13 @@ def mdn_quantile(params, k, q):
 
 class PlantV3:
     def __init__(self, alias, ckpt, seed=0, feedback="mean", noise=None, rewarm_h=0.0, slow=None, compression=None):
-        torch.manual_seed(seed); np.random.seed(seed)
+        # every random stream is per donor: seeded from the rollout seed AND the donor. Seeded from the rollout seed alone, every
+        # donor on a seed shared one slow-level path and one stream of uniforms for its event draws, so all generated people
+        # moved together (slow level +2.55 mg/dL/h averaged over 72 runs, standard error 0.26) and pooled results were not
+        # independent across donors. PLANT_SHARED_SEED=1 restores the old behavior.
+        if os.environ.get("PLANT_SHARED_SEED") != "1":
+            seed = int(seed) * 1_000_003 + zlib.crc32(alias.encode()) % 1_000_003
+        torch.manual_seed(seed); np.random.seed(seed % (2 ** 32))
         # what the generator sees as its own last background ICE: "sample" (the noisy draw) or
         # "mean" (the predictive mean). Fed its own noisy draws, the head reads them as volatility,
         # widens, and the background ICE spread runs away (i005: p5/p95 -289/340 vs real -69/177).
