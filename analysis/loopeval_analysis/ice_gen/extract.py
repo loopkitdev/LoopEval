@@ -152,6 +152,22 @@ def extract(data_dir: str | Path, tz_daily: pd.DataFrame | None = None,
     for s, e in zip(_ts(nopod.t_start).astype("int64"), _ts(nopod.t_end).astype("int64")):
         lo, hi = np.searchsorted(gm, s), np.searchsorted(gm, e, side="right")
         basal[lo:hi] = 0.0; covered[lo:hi] = True
+    # ---- Loop running with no pump: runs of cycles whose pump data was too old (no_dose_guard) in >= 90% of the hour.
+    # The person dosed with a device Tidepool does not see (simulator handoff 2026-10-13-ice-pumpless-disruptions), so
+    # insulin there is unknown: no schedule fill, and Loop's IOB cannot confirm one (it is Loop's own schedule assumption,
+    # ~0 net throughout i061's 13 days). Flagged `unrecorded` with one insulin duration after, while that insulin acts.
+    pumpless = []
+    if (d / "decision_times.csv").exists():
+        dtm = pd.read_csv(d / "decision_times.csv", usecols=["t", "no_dose_guard"])
+        sl = pd.Series(dtm.no_dose_guard.astype(float).to_numpy(), index=_ts(dtm.t)).sort_index().resample("5min").mean()
+        on = (sl.rolling(13, center=True, min_periods=3).mean() >= 0.9).to_numpy()
+        ed = np.flatnonzero(np.diff(np.r_[0, on.astype(int), 0]))
+        for a_, b_ in zip(ed[::2], ed[1::2]):
+            if b_ - a_ >= 12:                                   # an hour or more
+                s_, e_ = sl.index[a_].value, sl.index[min(b_, len(sl) - 1)].value
+                lo, hi = np.searchsorted(gm, s_), np.searchsorted(gm, e_, side="right")
+                basal[lo:hi] = 0.0; covered[lo:hi] = True
+                pumpless.append((s_, e_ + int(model.effect_duration_min) * 60_000_000_000))
     # ---- the remaining long gaps: did the schedule run? (Loop's own IOB decides; see gapcheck)
     sched = _schedule(therapy.get("rawBasal") or therapy["basal"], grid) / 60.0
     gaps = []
@@ -203,7 +219,7 @@ def extract(data_dir: str | Path, tz_daily: pd.DataFrame | None = None,
     # long basal-record gaps: filled with the schedule when Loop's IOB confirms it ran; zeroed
     # (`gap_none`) when it shows nothing was delivered; `unrecorded` when it can't tell
     win = lambda st: [(gm[a], gm[min(b, len(gm) - 1)]) for a, b, s, *_ in gaps if s == st]
-    df["unrecorded"] = _windows(t0n, t1n, win(G.UNKNOWN))
+    df["unrecorded"] = _windows(t0n, t1n, win(G.UNKNOWN) + pumpless)
     df["gap_none"] = _windows(t0n, t1n, win(G.NONE))
     dd = []
     if (d / "dose_doubt.csv").exists():
