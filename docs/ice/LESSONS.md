@@ -536,3 +536,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     short (0.02-0.05 at 10-60 min) and hourly means spread wider still (46). Without memory the model covers what it
     cannot track with wider draws. The lows respond to the correlation structure (t<54 fell with it), so the target is
     memory that matches real persistence at 30-60 min, not less memory.
+56. **The post-bolus low excess is the same in every architecture, so it is not background-ICE persistence; meal boluses
+    are sized right.** Lows within 3 h per meal bolus: v3m6 / v3m10 / v3m11 / v4 0.16 / 0.16 / 0.16-0.19 / 0.17 against
+    0.064 in the field, though v4 has the field's correlation at 30-60 min (0.04-0.06) and v3m11 too little. Delivered
+    units per meal bolus 2.13 vs 2.22, per 10 g entered 0.95 vs 1.00 (median donor; per donor they track). Pulse grams
+    track grams entered more loosely in generation (within-person Spearman 0.07 v3m10 / 0.12 v4 vs 0.19 field; sd of
+    log(pulse / entered) 0.79 vs 0.65), a gap but a modest one. Shared by all: hourly-mean spread of background ICE ~40 vs
+    35, and meal ICE after a meal bolus that rises slower (total ~100 vs 124 mg/dL/h at 30 min) and tails longer.
