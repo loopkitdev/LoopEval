@@ -25,7 +25,7 @@ import pandas as pd
 from .dataset import to_grid, ICE_SCALE
 from .kernel import reconstruct, remaining, params
 from . import dataset_v3 as D3
-from .dataset_v3m import action_inputs, entered_since_meal, FEATURES_M2, REC_ZERO
+from .dataset_v3m import action_inputs, entered_since_meal, FEATURES_M2, REC_ZERO, OWN_MEANS
 
 FEATURES_M3 = FEATURES_M2
 TARGETS = ["bgice", "meal", "m_lsize", "m_lpeak", "m_ldur", "entry", "e_lg", "e_new", "e_off", "e_lsize", "e_lpeak", "e_ldur",
@@ -134,6 +134,7 @@ def build(steps, meals, bolus_dec, carbs, geq, features=FEATURES_M3, isf=None, d
         pulse=pulses / ICE_SCALE, since_meal=since_meal / 24, last_size=last_size / 50, n_3h=n3 / 3,
         carbs=carb_g / 50, bolus=bol_u / 5, since_bolus=sb / 24, since_entry=se / 24, unbolused=ub / 50, bolus_3h=b3 / 5,
         entered_unabsorbed=eu / 50,
+        **{k: np.nan_to_num(pd.Series(bgice / ICE_SCALE).rolling(n, min_periods=n // 6).mean().to_numpy()) for k, n in OWN_MEANS.items()},
         hour_sin=np.sin(2 * np.pi * g.hour / 24), hour_cos=np.cos(2 * np.pi * g.hour / 24),
         dow_sin=np.sin(2 * np.pi * g.dow / 7), dow_cos=np.cos(2 * np.pi * g.dow / 7))
     X = np.column_stack([np.asarray(cols[f], float) for f in features]).astype(np.float32)

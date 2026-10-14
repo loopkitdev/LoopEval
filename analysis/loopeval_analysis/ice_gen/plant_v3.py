@@ -40,7 +40,7 @@ from .extract import MODELS, RAPID_ACTING_ADULT
 from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
 from .model_v3j import ICEGenV3J, ICEGenV3K
-from .model_v3m import ICEGenV3M, ICEGenV3M3, ICEGenV3M4, ICEGenV3M5, ICEGenV3M6
+from .model_v3m import ICEGenV3M, ICEGenV3M3, ICEGenV3M4, ICEGenV3M5, ICEGenV3M6, ICEGenV3M7
 from . import dataset_v3m3 as D3M3
 from . import dataset_v3m as D3M
 from .noise import LevelNoise
@@ -101,8 +101,8 @@ class PlantV3:
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
-        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6}.get(ck.get("arch"), ICEGenV3)
-        self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6")     # entries and boluses drawn as their own events (dataset_v3m)
+        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7}.get(ck.get("arch"), ICEGenV3)
+        self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6", "v3m7"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6", "v3m7")     # entries and boluses drawn as their own events (dataset_v3m)
         self.net = Net(len(ck["features"]), len(ck["people"])); self.net.load_state_dict(ck["state"]); self.net.eval()
         self.features = list(ck["features"]); self.F = {f: i for i, f in enumerate(self.features)}
         self.drop = list(ck.get("drop", []))
@@ -203,6 +203,10 @@ class PlantV3:
                 self.pulses.append((r.onset, r.size_g * self.geq, m_[i], s_[i]))
         last = X[-1]; F = self.F
         self.bgice = float(last[F["bgice"]]) if "bgice" in F else 0.0
+        self.own_bg = []                                          # (t, background ICE scaled) for the dataset_v3m.OWN_MEANS channels
+        if "bgice_24h" in F:
+            ok = X[:, F["bgice_ok"]] > 0.5
+            self.own_bg = [(ti, float(v)) for ti, v, o in zip(g.index[-len(X):][-288:], X[-288:, F["bgice"]], ok[-288:]) if o]
         self.ema = float(last[F["bgice_ema"]]) * ICE_SCALE if "bgice_ema" in F else np.nan
         self.since_meal = float(last[F["since_meal"]]) * 24
         self.last_size = float(last[F["last_size"]]) * 50; self.since_bolus = float(last[F["since_bolus"]]) * 24
@@ -248,6 +252,10 @@ class PlantV3:
             lb = max([bt for bt, _ in self.bols], default=None)
             x[F["unbolused"]] = sum(g for et, g in self.entries if t - et < pd.Timedelta(hours=3) and (lb is None or et > lb)) / 50
             x[F["bolus_3h"]] = sum(u for bt, u in self.bols if t - bt < pd.Timedelta(hours=3)) / 5
+        for k, n in (("bgice_6h", 72), ("bgice_24h", 288)):     # dataset_v3m.OWN_MEANS: own background over the last 6 / 24 h
+            if k in F:
+                w = [v for tt, v in self.own_bg if (t - (tt.tz_convert("UTC") if getattr(tt, "tzinfo", None) else tt.tz_localize("UTC"))) <= pd.Timedelta(minutes=5 * n)]
+                x[F[k]] = float(np.mean(w)) if len(w) >= n // 6 else 0.0
         if "entered_unabsorbed" in F:             # dataset_v3m.entered_since_meal: an entry the pulse has not followed yet
             lm = max(self.anchor_times, default=None)
             x[F["entered_unabsorbed"]] = sum(g for et, g in self.entries if t - et < pd.Timedelta(hours=3) and (lm is None or et >= lm)) / 50
@@ -397,6 +405,8 @@ class PlantV3:
                 self.bgice = float((torch.softmax(lg_, -1) * mu_).sum())
             else:
                 self.bgice = bgice
+            if "bgice_24h" in self.F:
+                self.own_bg = [(tt, v) for tt, v in self.own_bg if (t - (tt.tz_convert("UTC") if getattr(tt, "tzinfo", None) else tt.tz_localize("UTC"))) <= pd.Timedelta(hours=24)] + [(t, self.bgice)]
             pulse = self._pulse_rate(t)
             u = self.slow.step(dt_h) if self.slow else 0.0
             ice = bgice * ICE_SCALE + u + pulse

@@ -355,3 +355,9 @@ class ICEGenV3M6(ICEGenV3M5):
     indirect channels kept widening its closed-loop draws (input sd 112 mg/dL/h). Behavior heads keep every input."""
     arch = "v3m6"
     ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30", "bgice_ema"]
+
+
+class ICEGenV3M7(ICEGenV3M6):
+    """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
+    The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
+    arch = "v3m7"

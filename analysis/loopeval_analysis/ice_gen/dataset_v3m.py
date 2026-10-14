@@ -31,6 +31,12 @@ FEATURES_M2 = FEATURES_M + ["entered_unabsorbed"]
 # value directly; generation feeds back the draw (plant --feedback sample / PLANT_FEEDBACK=sample). The indirect channels
 # (CGM trend, 30-min EMA) carried real ICE in training and the model's draws in generation (LESSONS 42).
 FEATURES_M2A = FEATURES_M2 + ["bgice"]
+# FEATURES_M2B: + the person's own background ICE averaged over the last 6 h and 24 h (exact channels, computed the same way
+# from real values in training and from the model's own draws in the plant). One channel (the last value) could not carry
+# both the 5-min structure and the day level: generated levels drifted (day-to-day sd 23.5 vs 11.1), and teaching it to pull
+# back through that channel cost the 5-min structure (LESSONS 47). Real days revert (1-day persistence 0.39).
+FEATURES_M2B = FEATURES_M2A + ["bgice_6h", "bgice_24h"]
+OWN_MEANS = {"bgice_6h": 72, "bgice_24h": 288}     # slots
 TARGETS = ["bgice", "meal", "m_lsize", "m_lpeak", "m_ldur", "entry", "e_lg", "bolus", "b_mode", "b_lr", "b_lu"]
 BOLUS_T = ["bolus", "b_mode", "b_lr", "b_lu"]
 REC_ZERO = D3.REC_ZERO
