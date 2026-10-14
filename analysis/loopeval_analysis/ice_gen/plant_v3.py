@@ -37,6 +37,9 @@ from .extract import MODELS, RAPID_ACTING_ADULT
 from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
 from .model_v3j import ICEGenV3J, ICEGenV3K
+from .model_v3m import ICEGenV3M, ICEGenV3M3, ICEGenV3M4
+from . import dataset_v3m3 as D3M3
+from . import dataset_v3m as D3M
 from .noise import LevelNoise
 from .plant import GAP_H
 from .slow import SlowLevel
@@ -63,12 +66,14 @@ class PlantV3:
         self.doses_real = json.load(open(d / "doses.json"))
         self.carbs_real = json.load(open(d / "carbs.json"))
         self.steps = pd.read_parquet(ROOT / "steps" / f"{alias}.parquet")
+        self.follow_disrupted = True   # --no-follow-disrupted turns it off
         self.base_iob = D3.basal_iob(self.steps)
         bd = pd.read_parquet(ROOT / "bolus_decisions.parquet"); self.bd_real = bd[bd.alias == alias]
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
-        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K}.get(ck.get("arch"), ICEGenV3)
+        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4}.get(ck.get("arch"), ICEGenV3)
+        self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4")     # entries and boluses drawn as their own events (dataset_v3m)
         self.net = Net(len(ck["features"]), len(ck["people"])); self.net.load_state_dict(ck["state"]); self.net.eval()
         self.features = list(ck["features"]); self.F = {f: i for i, f in enumerate(self.features)}
         self.drop = list(ck.get("drop", []))
@@ -123,9 +128,20 @@ class PlantV3:
             self.ins.add(s, e, float(x.get("volume") or 0))
         hist = self.steps[self.steps.t1 <= t0]
         mr = self.meals_real[self.meals_real.onset <= t0]
-        g, X, _ = D3.build(hist, mr, self.corr_real[self.corr_real.t <= t0] if len(self.corr_real) else self.corr_real,
-                           self.bd_real[self.bd_real.t <= t0],
-                           [c for c in self.carbs_real if _ts(c.get("entryDate") or c["startDate"]) <= t0], self.geq, self.features, self.isf)
+        cr = [c for c in self.carbs_real if _ts(c.get("entryDate") or c["startDate"]) <= t0]
+        bdr = self.bd_real[self.bd_real.t <= t0]
+        if self.v3m:
+            g, X, _ = (D3M3 if self.v3m3 else D3M).build(hist, mr, bdr, cr, self.geq, self.features, self.isf)
+        else:
+            g, X, _ = D3.build(hist, mr, self.corr_real[self.corr_real.t <= t0] if len(self.corr_real) else self.corr_real,
+                               bdr, cr, self.geq, self.features, self.isf)
+        # recent actions, for the v3m inputs (since_entry, unbolused grams, units in the last 3 h)
+        w3 = t0 - pd.Timedelta(hours=3)
+        self.entries = [(_ts(c.get("entryDate") or c["startDate"]), float(c["grams"])) for c in cr
+                        if _ts(c.get("entryDate") or c["startDate"]) > w3 and float(c["grams"]) > 0]
+        self.bols = [(r.t, float(r.requested)) for r in bdr.itertuples() if r.t > w3 and r.requested and r.requested > 0]
+        ce = [_ts(c.get("entryDate") or c["startDate"]) for c in cr if float(c["grams"]) > 0]
+        self.last_entry = max(ce) if ce else None
         for f in self.drop:
             X[:, self.F[f]] = 0.0
         with torch.no_grad():
@@ -178,6 +194,14 @@ class PlantV3:
         x[F["since_meal"]] = min(self.since_meal, 24) / 24; x[F["last_size"]] = self.last_size / 50; x[F["n_3h"]] = n3 / 3
         x[F["carbs"]] = self.slot_carbs / 50; x[F["bolus"]] = self.slot_bolus / 5
         x[F["since_bolus"]] = min(self.since_bolus, 24) / 24
+        if "since_entry" in F:                    # dataset_v3m.action_inputs
+            x[F["since_entry"]] = min((t - self.last_entry).total_seconds() / 3600, 24) / 24 if self.last_entry is not None else 1.0
+            lb = max([bt for bt, _ in self.bols], default=None)
+            x[F["unbolused"]] = sum(g for et, g in self.entries if t - et < pd.Timedelta(hours=3) and (lb is None or et > lb)) / 50
+            x[F["bolus_3h"]] = sum(u for bt, u in self.bols if t - bt < pd.Timedelta(hours=3)) / 5
+        if "entered_unabsorbed" in F:             # dataset_v3m.entered_since_meal: an entry the pulse has not followed yet
+            lm = max(self.anchor_times, default=None)
+            x[F["entered_unabsorbed"]] = sum(g for et, g in self.entries if t - et < pd.Timedelta(hours=3) and (lm is None or et >= lm)) / 50
         x[F["hour_sin"]], x[F["hour_cos"]] = np.sin(2 * np.pi * hour / 24), np.cos(2 * np.pi * hour / 24)
         x[F["dow_sin"]], x[F["dow_cos"]] = np.sin(2 * np.pi * dow / 7), np.cos(2 * np.pi * dow / 7)
         return torch.from_numpy(x)[None, None], hour, dow
@@ -186,6 +210,32 @@ class PlantV3:
         if bool(s[f"{prefix}_mode"][0]):
             return dict(units=float(np.clip(np.exp(float(s[f"{prefix}_lu"][0])), 0.05, 30)))
         return dict(ratio=float(np.clip(np.exp(float(s[f"{prefix}_lr"][0])), 0.0, 5.0)))
+
+    def _draw_m(self, s, t, x):
+        """v3m: a meal pulse, a carb entry and a manual bolus, each its own draw (all due now)."""
+        if bool(s["meal"][0]):
+            size = float(np.clip(np.exp(float(s["m_lsize"][0])), 5, 250))
+            lpk = float(s["m_lpeak"][0])
+            if self.peak_state is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:
+                lpk += float(self.peak_state[1][int(np.searchsorted(self.peak_state[0], float(x[0, -1, self.F["bg"]]) * 100, side="right"))])
+            peak = float(np.clip(np.exp(lpk), 5 / 60, 4)); dur = float(np.clip(np.exp(float(s["m_ldur"][0])), 0.25, 10))
+            m, sd = params(peak, dur)
+            self.pulses.append((t, size * self.geq, float(m), float(sd)))
+            self.anchor_times.append(t); self.since_meal = 0.0; self.last_size = size
+            self.actions_log.append(dict(t=t, kind="meal", size_g=size, peak_h=peak, dur_h=dur))
+        if bool(s["entry"][0]):
+            self.due.append((t, "carb", float(np.clip(np.exp(float(s["e_lg"][0])), 1, 250))))
+            # v3m3: an entry that starts a meal brings its pulse; one that joins a meal with none begun in 2 h starts one
+            if self.v3m3 and (bool(s["e_new"][0]) or not any(t - a < pd.Timedelta(hours=2) for a in self.anchor_times)):
+                size = float(np.clip(np.exp(float(s["e_lsize"][0])), 5, 250))
+                peak = float(np.clip(np.exp(float(s["e_lpeak"][0])), 5 / 60, 4)); dur = float(np.clip(np.exp(float(s["e_ldur"][0])), 0.25, 10))
+                m, sd = params(peak, dur)
+                on = t + pd.Timedelta(minutes=float(np.clip(np.expm1(float(s["e_off"][0])), 0, 120)))
+                self.pulses.append((on, size * self.geq, float(m), float(sd)))
+                self.anchor_times.append(t); self.since_meal = 0.0; self.last_size = size
+                self.actions_log.append(dict(t=t, kind="meal", size_g=size, peak_h=peak, dur_h=dur, announced=True, onset=on))
+        if bool(s["bolus"][0]):
+            self.due.append((t, "bolus", self._bolus(s, "b")))
 
     def advance(self, req):
         t0 = _ts(req["t0"])
@@ -217,16 +267,19 @@ class PlantV3:
                 out, self.h = self.net(x, self.pid, self.h)
                 self.xbuf.append(x); self.xbuf = self.xbuf[-WARMUP:]; self.since_rewarm += dt_h
                 for k, b in self.calib.items():
-                    out[k] = out[k] + b
+                    if k in out and not (self.v3m and k in ("entry", "bolus", "b_with", "b_alone")):
+                        out[k] = out[k] + b
                 if self.meal_state is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:
                     bands, trends, off = self.meal_state
                     i = int(np.searchsorted(bands, float(x[0, -1, self.F["bg"]]) * 100, side="right"))
                     j = int(np.searchsorted(trends, float(x[0, -1, self.F["bg_trend"]]) * 2, side="right"))
                     out["meal"] = out["meal"] + float(off[i, j])
-                s = self.net.sample(out)
+                s = self.net.sample(out, {k: v for k, v in self.calib.items() if k in ("entry", "bolus", "b_with", "b_alone")}) if self.v3m else self.net.sample(out)
             self.slot_carbs = 0.0; self.slot_bolus = 0.0
             self.since_meal += dt_h; self.since_bolus += dt_h
-            if bool(s["meal"][0]):
+            if self.v3m:
+                self._draw_m(s, t, x)
+            elif bool(s["meal"][0]):
                 size = float(np.clip(np.exp(float(s["m_lsize"][0])), 5, 250))
                 lpk = float(s["m_lpeak"][0])
                 if self.peak_state is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:
@@ -252,7 +305,7 @@ class PlantV3:
                     self.due.append((t_bol, "bolus", b))
                 self.actions_log.append(dict(t=t, kind="meal", size_g=size, peak_h=peak, dur_h=dur,
                                              announced=bool(s["m_ann"][0]), meal_bolus=bool(s["m_hasbol"][0])))
-            if bool(s["corr"][0]):
+            if not self.v3m and bool(s["corr"][0]):
                 self.due.append((t, "bolus", self._bolus(s, "c")))
                 self.actions_log.append(dict(t=t, kind="correction"))
             # actions now due
@@ -262,10 +315,11 @@ class PlantV3:
                     keep.append((due_t, kind, pay)); continue
                 if kind == "carb":
                     carbs.append(dict(t=iso(t), grams=round(pay, 1), absorption_s=10800))
-                    self.slot_carbs += pay
+                    self.slot_carbs += pay; self.entries.append((t, pay)); self.last_entry = t
                     self.actions_log.append(dict(t=t, kind="carb", grams=pay))
                 else:
                     boluses.append(dict(t=iso(t), **pay)); self.since_bolus = 0.0
+                    self.bols.append((t, pay.get("units", 2.0)))
                     self.slot_bolus += pay.get("units", 2.0)
                     self.actions_log.append(dict(t=t, kind="bolus_units" if "units" in pay else "bolus_ratio", **pay))
             self.due = keep
@@ -283,12 +337,15 @@ class PlantV3:
             u = self.slow.step(dt_h) if self.slow else 0.0
             ice = bgice * ICE_SCALE + u + pulse
             self.bg = max(self.bg + (ice - self.isf * absorbed / dt_h) * dt_h, 20.0)
-            if dt_h > GAP_H:            # a CGM gap: resume from the field reading, as the replay plant and the engine do
-                j = self.steps.t1.searchsorted(t)
-                near = [k for k in (j - 1, j) if 0 <= k < len(self.steps) and abs((self.steps.t1.iloc[k] - t).total_seconds()) < 600]
-                if near:
-                    k = min(near, key=lambda k: abs((self.steps.t1.iloc[k] - t).total_seconds()))
-                    self.bg = float(self.steps.bg1.iloc[k]) - self.e
+            j = self.steps.t1.searchsorted(t)
+            near = [k for k in (j - 1, j) if 0 <= k < len(self.steps) and abs((self.steps.t1.iloc[k] - t).total_seconds()) < 600]
+            k = min(near, key=lambda k: abs((self.steps.t1.iloc[k] - t).total_seconds())) if near else None
+            # a CGM gap: resume from the field reading, as the replay plant and the engine do. Inside a field disruption,
+            # follow the field: the harness delivers what the pump recorded, and a long one (i061: 14 days the field record
+            # fills with scheduled basal, the dose input has none) drove generated glucose into the thousands (v3k and v3m4)
+            # and into the closed-loop calibrations; outcomes leave those windows out anyway
+            if k is not None and np.isfinite(self.steps.bg1.iloc[k]) and (dt_h > GAP_H or (self.follow_disrupted and bool(self.steps.disrupted.iloc[k]))):
+                self.bg = float(self.steps.bg1.iloc[k]) - self.e
             if self.noise:
                 e0 = self.e
                 for _ in range(max(1, round(dt_h * 12))):
@@ -303,6 +360,8 @@ class PlantV3:
             self.bg_hist = [(tt, b) for tt, b in self.bg_hist if t - tt < pd.Timedelta(minutes=35)] + [(t, min(max(self.bg + self.e + self.c, LOW), HIGH))]
             self.pulses = [p for p in self.pulses if (t - p[0]) < pd.Timedelta(hours=12)]
             self.anchor_times = [a for a in self.anchor_times if (t - a) < pd.Timedelta(hours=3)]
+            self.entries = [e for e in self.entries if (t - e[0]) < pd.Timedelta(hours=3)]
+            self.bols = [b for b in self.bols if (t - b[0]) < pd.Timedelta(hours=3)]
             self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bgice=bgice * ICE_SCALE + u, pulse=pulse, slow=u, bg1=self.bg + self.e + self.c, e=self.e, comp=self.c, comp_missing=self.c_miss,
                                  iob=self.ins.iob(t), ins_activity_uhr=absorbed / dt_h, hour=hour, dow=dow))
             self.t = t
@@ -335,12 +394,14 @@ def main():
     ap.add_argument("--compression-scale", type=float, default=1.0, help="dial on the compression rate (0 = off)")
     ap.add_argument("--rewarm-h", type=float, default=0.0, help="rebuild the GRU state over the last 24 h every N hours (0 = never)")
     ap.add_argument("--couple-meal-bolus", action="store_true", help="a meal's calculator bolus no earlier than its carb entry")
+    ap.add_argument("--no-follow-disrupted", action="store_true", help="keep generating glucose through field disruptions")
     a = ap.parse_args()
     plant = PlantV3(a.alias, a.ckpt, a.seed, a.feedback, json.load(open(a.noise)) if a.noise else None, a.rewarm_h,
                     json.load(open(a.slow)) if a.slow else None,
                     (json.load(open(a.compression)), pd.read_parquet(a.compression.replace("_layer.json", "_templates.parquet")),
                      a.compression_scale) if a.compression else None)
     plant.couple_meal_bolus = a.couple_meal_bolus
+    plant.follow_disrupted = not a.no_follow_disrupted
     for line in sys.stdin:
         if line.strip():
             sys.stdout.write(json.dumps(plant.advance(json.loads(line))) + "\n"); sys.stdout.flush()
