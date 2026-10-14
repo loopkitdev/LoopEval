@@ -100,6 +100,21 @@ class PlantV3:
         self.features = list(ck["features"]); self.F = {f: i for i, f in enumerate(self.features)}
         self.drop = list(ck.get("drop", []))
         self.pid = torch.tensor([ck["people"].index(alias)])
+        # DRAW_PERSON=<seed>: a new person drawn from the population, not the host donor. The host supplies only the deployed
+        # controller, insulin and warm-up context; the person's profile (and explicit trait) vector is drawn from a Gaussian
+        # fitted to all trained people's, and nothing personal to the host is used (no per-person calibrations, population
+        # slow-state scale). For the generalization check: drawn people should match the real population's spread and co-variation.
+        self.drawn = os.environ.get("DRAW_PERSON") not in (None, "")
+        if self.drawn:
+            with torch.no_grad():
+                W = [self.net.profile.weight] + ([self.net.trait.weight] if hasattr(self.net, "trait") else [])
+                Z = torch.cat(W, 1).double(); mu = Z.mean(0); C = torch.cov(Z.T) + 1e-6 * torch.eye(Z.shape[1], dtype=Z.dtype)
+                g = torch.Generator().manual_seed(int(os.environ["DRAW_PERSON"]) * 7919 + seed)
+                z = mu + torch.linalg.cholesky(C) @ torch.randn(Z.shape[1], generator=g, dtype=Z.dtype)
+                k = self.net.profile.weight.shape[1]
+                self.net.profile.weight[self.pid[0]] = z[:k].float()
+                if hasattr(self.net, "trait"):
+                    self.net.trait.weight[self.pid[0]] = z[k:].float()
         self.geq = ck["constants"][alias]["geq"]
         self.calib = dict(ck.get("calib", {}))      # logit offsets on event-start heads (calibrate.py)
         # bg_spread < 1: closed-loop inputs (denser generated meal activity, higher glucose) make the head predict 30-65%
@@ -107,11 +122,11 @@ class PlantV3:
         self.bg_spread = float(os.environ.get("BGICE_SPREAD", ck.get("calib_bg_spread", 1.0)))
         # per-person logit offsets on the behavior heads (meal, m_ann, m_hasbol, corr), stacked on the pooled ones
         # (calibrate_closed_rates_person.py): how often a person eats, announces, boluses and corrects is their own
-        for k, b in ck.get("calib_person", {}).get(alias, {}).items():
+        for k, b in ({} if self.drawn else ck.get("calib_person", {}).get(alias, {})).items():
             self.calib[k] = self.calib.get(k, 0.0) + float(b)
         # additive background-ICE offset (mg/dL/h) in the near-low state: heading low or BG < 70 (calibrate_state.py)
         cs = ck.get("calib_state", {})              # per person, shrunk to the pooled value, where fitted
-        self.near_low_bgice = float(cs.get("near_low_bgice_person", {}).get(alias, cs.get("near_low_bgice", 0.0)))
+        self.near_low_bgice = float(cs.get("near_low_bgice", 0.0) if self.drawn else cs.get("near_low_bgice_person", {}).get(alias, cs.get("near_low_bgice", 0.0)))
         # meal-start logit offset per glucose band x 15-min trend cell (calibrate_meal_state.py); none unless fitted
         ms = ck.get("calib_meal_state")
         self.meal_state = (np.asarray(ms["bands"]), np.asarray(ms["trends"]), np.asarray(ms["offset"])) if ms else None
@@ -131,7 +146,7 @@ class PlantV3:
         self.e = self.noise.e1 if self.noise else 0.0
         # slow: {"fast_var", "fast_tau_h", "slow_var", "slow_tau_h", "scale": {alias: s}} from fit_slow; None = off
         self.slow = SlowLevel(slow["fast_var"], slow["fast_tau_h"], slow["slow_var"], slow["slow_tau_h"],
-                              slow.get("scale", {}).get(alias, 1.0), seed) if slow else None
+                              (float(np.median(list(slow.get("scale", {1: 1.0}).values()))) if self.drawn else slow.get("scale", {}).get(alias, 1.0)), seed) if slow else None
         # fed into the generator's own background input, the level is amplified ~6x (it reads a shifted day
         # as its own persistent state and generates more of it: daily variance 611 vs real 174); default: not fed
         self.slow_in_input = bool(slow.get("into_input", False)) if slow else False
