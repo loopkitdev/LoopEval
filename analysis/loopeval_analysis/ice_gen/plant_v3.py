@@ -446,7 +446,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--alias", required=True); ap.add_argument("--ckpt", required=True)
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--log", required=True)
-    ap.add_argument("--feedback", choices=["mean", "sample"], default="mean")
+    ap.add_argument("--feedback", choices=["mean", "sample"], default=os.environ.get("PLANT_FEEDBACK", "mean"))
     ap.add_argument("--noise", help="level-noise parameters (json from fit_noise)")
     ap.add_argument("--slow", help="slow-level parameters (json from fit_slow, optional per-alias 'scale')")
     ap.add_argument("--compression", help="compression layer fit json (fit_layer.py); templates parquet beside it")

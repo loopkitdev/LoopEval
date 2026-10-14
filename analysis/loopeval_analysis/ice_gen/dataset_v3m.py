@@ -27,6 +27,10 @@ FEATURES_M = D3.FEATURES_C + ["since_entry", "unbolused", "bolus_3h"]
 # FEATURES_M2: + grams entered in the last 3 h since the latest meal pulse began. v3m left 25% of generated entries with no
 # pulse within -60/+120 min (field 16%), and the controller dosed for carbs that never came (t<54 3.1 vs 0.04)
 FEATURES_M2 = FEATURES_M + ["entered_unabsorbed"]
+# FEATURES_M2A: + this slot's background ICE itself (0 where unknown, with bgice_ok), so the model conditions on its own last
+# value directly; generation feeds back the draw (plant --feedback sample / PLANT_FEEDBACK=sample). The indirect channels
+# (CGM trend, 30-min EMA) carried real ICE in training and the model's draws in generation (LESSONS 42).
+FEATURES_M2A = FEATURES_M2 + ["bgice"]
 TARGETS = ["bgice", "meal", "m_lsize", "m_lpeak", "m_ldur", "entry", "e_lg", "bolus", "b_mode", "b_lr", "b_lu"]
 BOLUS_T = ["bolus", "b_mode", "b_lr", "b_lu"]
 REC_ZERO = D3.REC_ZERO
