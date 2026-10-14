@@ -584,3 +584,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     (field 74.1 / 0.86 / 0.12 / 152 / 33.1); 5-min quantile distance 13.8 / 14.2 / 12.3, hourly 17.3 / 17.6 / 17.3. Seed-
     to-seed sd: TIR ~1.8, t<54 ~0.19, mean ~4. A change is beyond training noise when it moves TIR by more than ~3 or t<54
     by more than ~0.4 on both of two seeds.
+62. **Generalization check on v3m10: drawn people miss the population's tails and invert one co-variation; draw from
+    real people, not a Gaussian.** DRAW_PERSON (a new person on each of the 24 hosts, 3 each, kept harness), against all
+    168 trained people's field rates (held-out month): per-person entries / corrections per day, 10th / 50th / 90th
+    percentile, real 0.12 / 3.09 / 6.94 and 0.10 / 1.07 / 4.25. A Gaussian over the profile and trait vectors drew 0.89 /
+    2.59 / 6.14 and 0.54 / 1.71 / 5.82: the entry trait is bimodal (a group of non-announcers far below the rest), and a
+    Gaussian puts drawn people in the gap. Now the plant draws a trained person other than the host, jittered by 0.3 x
+    the population covariance (DRAW_MODE=kernel, the default; DRAW_MODE=gauss keeps the old draw): 0.58 / 2.88 / 5.0 and
+    0.79 / 1.70 / 4.75, medians right, tails still pulled in. Co-variation among the 24 hosts: real people who enter
+    more carbs have fewer severe lows (Spearman -0.31), drawn people more (+0.38 Gaussian, +0.13 kernel); drawn t<54
+    median 2.2-3.1 vs 0.12. Rare correctors are not rare even for real people: teacher-forced on its own training days
+    the model expects i056 (no lone boluses in 100 days) to make 0.62 a day, i033 (0.20) 0.68; the trait offset was fitted
+    under a prior and step weights (LOWW) and cannot reach rare rates. Under test: traits refit by maximum likelihood on
+    training days with the network frozen (fit_traits.py).

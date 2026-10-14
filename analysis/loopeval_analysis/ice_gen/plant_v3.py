@@ -128,8 +128,8 @@ class PlantV3:
         self.drop = list(ck.get("drop", []))
         self.pid = torch.tensor([ck["people"].index(alias)])
         # DRAW_PERSON=<seed>: a new person drawn from the population, not the host donor. The host supplies only the deployed
-        # controller, insulin and warm-up context; the person's profile (and explicit trait) vector is drawn from a Gaussian
-        # fitted to all trained people's, and nothing personal to the host is used (no per-person calibrations, population
+        # controller, insulin and warm-up context; the person's profile (and explicit trait) vector is another trained person's,
+        # jittered (DRAW_MODE=gauss: a Gaussian fitted to all trained people's), and nothing personal to the host is used (no per-person calibrations, population
         # slow-state scale). For the generalization check: drawn people should match the real population's spread and co-variation.
         self.drawn = os.environ.get("DRAW_PERSON") not in (None, "")
         self.announce = float(os.environ.get("ANNOUNCE", "1")); self.rng_ann = np.random.default_rng(seed + 15485863)
@@ -138,7 +138,14 @@ class PlantV3:
                 W = [self.net.profile.weight] + ([self.net.trait.weight] if hasattr(self.net, "trait") else [])
                 Z = torch.cat(W, 1).double(); mu = Z.mean(0); C = torch.cov(Z.T) + 1e-6 * torch.eye(Z.shape[1], dtype=Z.dtype)
                 g = torch.Generator().manual_seed(int(os.environ["DRAW_PERSON"]) * 7919 + seed)
-                z = mu + torch.linalg.cholesky(C) @ torch.randn(Z.shape[1], generator=g, dtype=Z.dtype)
+                if os.environ.get("DRAW_MODE", "kernel") == "gauss":
+                    z = mu + torch.linalg.cholesky(C) @ torch.randn(Z.shape[1], generator=g, dtype=Z.dtype)
+                else:   # a trained person other than the host, jittered: keeps the population's modes (non-announcers vs announcers:
+                        # the entry trait is bimodal, a Gaussian put drawn people in the gap) and how traits co-vary
+                    others = [i for i in range(Z.shape[0]) if i != int(self.pid[0])]
+                    j = others[int(torch.randint(len(others), (1,), generator=g))]
+                    h = float(os.environ.get("DRAW_JITTER", "0.3"))
+                    z = Z[j] + h * (torch.linalg.cholesky(C) @ torch.randn(Z.shape[1], generator=g, dtype=Z.dtype))
                 k = self.net.profile.weight.shape[1]
                 self.net.profile.weight[self.pid[0]] = z[:k].float()
                 if hasattr(self.net, "trait"):
