@@ -41,6 +41,7 @@ from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
 from .model_v3j import ICEGenV3J, ICEGenV3K
 from .model_v3m import ICEGenV3M, ICEGenV3M3, ICEGenV3M4, ICEGenV3M5, ICEGenV3M6, ICEGenV3M7, ICEGenV3M8, ICEGenV3M9
+from .model_v4 import ICEGenV4
 from . import dataset_v3m3 as D3M3
 from . import dataset_v3m as D3M
 from .noise import LevelNoise
@@ -95,15 +96,17 @@ class PlantV3:
         # donors), and integrated they made generated glucose 1.3-2.3x rougher than real CGM at 5 min
         self.bgice_rho = float(os.environ.get("BGICE_RHO", "0")); self.bg_z = 0.0
         self.rng_z = np.random.default_rng(seed + 104729)
+        self.rng_v4 = np.random.default_rng(seed + 7_368_787); self.seed_v4 = seed % 2_147_483_647
         self.xlog = [] if os.environ.get("PLANT_XLOG") else None   # PLANT_XLOG=1: write the inputs fed each step beside the log
         self.base_iob = D3.basal_iob(self.steps)
         bd = pd.read_parquet(ROOT / "bolus_decisions.parquet"); self.bd_real = bd[bd.alias == alias]
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
-        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7, "v3m8": ICEGenV3M8, "v3m9": ICEGenV3M9}.get(ck.get("arch"), ICEGenV3)
-        self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9")     # entries and boluses drawn as their own events (dataset_v3m)
-        self.net = (Net(len(ck["features"]), len(ck["people"]), features=list(ck["features"])) if ck.get("arch") == "v3m9" else Net(len(ck["features"]), len(ck["people"])))
+        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7, "v3m8": ICEGenV3M8, "v3m9": ICEGenV3M9, "v4": ICEGenV4}.get(ck.get("arch"), ICEGenV3)
+        self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v4"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v4")
+        self.v4 = ck.get("arch") == "v4"     # entries and boluses drawn as their own events (dataset_v3m)
+        self.net = (Net(len(ck["features"]), len(ck["people"]), features=list(ck["features"])) if ck.get("arch") in ("v3m9", "v4") else Net(len(ck["features"]), len(ck["people"])))
         self.net.load_state_dict(ck["state"]); self.net.eval()
         self.features = list(ck["features"]); self.F = {f: i for i, f in enumerate(self.features)}
         self.drop = list(ck.get("drop", []))
@@ -181,7 +184,7 @@ class PlantV3:
         cr = [c for c in self.carbs_real if _ts(c.get("entryDate") or c["startDate"]) <= t0]
         bdr = self.bd_real[self.bd_real.t <= t0]
         if self.v3m:
-            g, X, _ = (D3M3 if self.v3m3 else D3M).build(hist, mr, bdr, cr, self.geq, self.features, self.isf)
+            g, X, Yh = (D3M3 if self.v3m3 else D3M).build(hist, mr, bdr, cr, self.geq, self.features, self.isf)
         else:
             g, X, _ = D3.build(hist, mr, self.corr_real[self.corr_real.t <= t0] if len(self.corr_real) else self.corr_real,
                                bdr, cr, self.geq, self.features, self.isf)
@@ -195,7 +198,12 @@ class PlantV3:
         for f in self.drop:
             X[:, self.F[f]] = 0.0
         with torch.no_grad():
-            _, self.h = self.net(torch.from_numpy(X[-WARMUP:])[None], self.pid)
+            o_w, self.h = self.net(torch.from_numpy(X[-WARMUP:])[None], self.pid)
+        if getattr(self, "v4", False):   # two-stream: the latent outside stream's state, filtered over the real warm-up, then drawn
+            yw = torch.from_numpy(Yh[-WARMUP:, D3M3.TARGETS.index("bgice")])   # row i holds slot i+1's value, as out[i] predicts
+            mpost, Ppost = self.net.filter_state(o_w, yw)
+            L = torch.linalg.cholesky(Ppost + 1e-8 * torch.eye(2))
+            self.fs = (mpost + L @ torch.randn(2, generator=torch.Generator().manual_seed(int(self.seed_v4)))).tolist()
         self.xbuf = [torch.from_numpy(r)[None, None] for r in X[-WARMUP:]]
         self.t = hist.t1.iloc[-1]; self.bg = float(hist.bg1.iloc[-1]) - self.e     # reported = real CGM at start
         m_, s_ = params(mr.peak_h.to_numpy() + 2.5 / 60, mr.dur_h.to_numpy()) if len(mr) else ([], [])
@@ -389,6 +397,13 @@ class PlantV3:
                     self.actions_log.append(dict(t=t, kind="bolus_units" if "units" in pay else "bolus_ratio", **pay))
             self.due = keep
             bgice = float(s["bgice"][0])
+            if self.v4:   # two-stream draw: expected outside level + reaction to the observable state + latent persistence
+                pf, ps, qs = [float(v) for v in self.net.phis()]
+                sg = float(out["lsig"][0, -1].exp()); n5 = max(1, round(dt_h * 12))
+                for _ in range(n5):
+                    self.fs[0] = pf * self.fs[0] + sg * np.sqrt(1 - pf * pf) * self.rng_v4.standard_normal()
+                    self.fs[1] = ps * self.fs[1] + np.sqrt(qs) * self.rng_v4.standard_normal()
+                bgice = float(out["mu"][0, -1]) + float(out["react"][0, -1]) + self.fs[0] + self.fs[1]
             if self.bg_spread != 1.0:   # shrink the draw's deviation from the predicted mean (closed-loop spread calibration)
                 lg_, mu_, _ = out["bgice"][0, -1].split(self.net.K_ICE)
                 m_ = float((torch.softmax(lg_, -1) * mu_).sum())
