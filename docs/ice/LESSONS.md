@@ -347,7 +347,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       boluses (t<54 3.6-6.2% vs field 0.1%) and track the person's carb-entry ratio (Spearman 0.53): near-non-announcers
       get entries they never make (i012 212x, i056 59x, i010 11x), because the trained trait's prior (sd 1) cannot reach the
       logit offset of about -5 they need. Fixes under test: per-person closed-loop rates on top, and a prior of sd 3.
-    Also found on the way: long field disruptions deliver almost no insulin in the harness while the extract counts IOB-
-    confirmed schedule fill (41 pilot donors, 32,773 h; i061 262 U missing in its last 56 days), which drove generated
-    glucose into the thousands and into every closed-loop calibration; the plant now follows the field through them
-    (handoff 2026-10-13-ice-disruption-dose-gap).
+    Also found on the way: long field disruptions are Loop running with CGM and no pump (99.7-100% of cycles pump data too
+    old; simulator handoff 2026-10-13-ice-pumpless-disruptions): the person dosed with a device Tidepool does not see, so
+    insulin there is unknown. The extract fills them with scheduled basal (Loop's net IOB sits at 0: its assumption, not a
+    measurement), the harness delivers nothing (41 pilot donors, 32,773 h; i061 262 U in its last 56 days), and generated
+    glucose ran into the thousands and into every closed-loop calibration. The plant now follows the field through
+    disrupted steps, and v3m4wp masks bolus targets on those runs (dataset_v3.pumpless_slots), which otherwise taught the
+    behavior traits "this person does not bolus".
