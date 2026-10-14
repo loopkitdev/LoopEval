@@ -84,6 +84,7 @@ class PlantV3:
         self.alias = alias
         P = pd.read_csv(ROOT / "persons.csv").set_index("alias")
         self.isf, self.tdd = float(P.isf_tdd[alias]), float(P.tdd[alias])
+        self.act_typ = self.tdd / 24.0                                  # the person's typical insulin activity, U/h
         d = ROOT / "full" / alias
         therapy = json.load(open(d / "therapy.json"))
         self.ins = Insulin(MODELS.get(therapy.get("insulinType"), RAPID_ACTING_ADULT))
@@ -91,6 +92,11 @@ class PlantV3:
         self.carbs_real = json.load(open(d / "carbs.json"))
         self.steps = pd.read_parquet(ROOT / "steps" / f"{alias}.parquet")
         self.follow_disrupted = True   # --no-follow-disrupted turns it off
+        # PATIENT_INSULIN_GAIN g: insulin activity away from the person's typical rate (TDD / 24 U/h) lowers glucose at g times the
+        # ISF_tdd rule. In fasting overnight hours real background ICE rises with insulin activity (slope +0.43, 163 donors;
+        # confounded by Loop reacting to ICE), and the field moved 0.6-0.9x what replay predicted for real settings edits (LESSONS
+        # 40): the rule likely overstates the effect of insulin the person did not get in the field. Replay is unaffected.
+        self.ins_gain = float(os.environ.get("PATIENT_INSULIN_GAIN", "1"))
         # bgice_rho > 0: successive background-ICE draws share an AR(1) quantile (5-min coefficient). Independent draws are
         # near white (lag-5 autocorrelation 0.26-0.31, lag-10 ~0) where real background ICE is 0.48 / 0.19 (median of 41
         # donors), and integrated they made generated glucose 1.3-2.3x rougher than real CGM at 5 min
@@ -426,7 +432,10 @@ class PlantV3:
             pulse = self._pulse_rate(t)
             u = self.slow.step(dt_h) if self.slow else 0.0
             ice = bgice * ICE_SCALE + u + pulse
-            self.bg = max(self.bg + (ice - self.isf * absorbed / dt_h) * dt_h, 20.0)
+            act = absorbed / dt_h
+            if self.ins_gain != 1.0:   # insulin above / below the person's typical rate acts at a gain (PATIENT_INSULIN_GAIN)
+                act = self.act_typ + self.ins_gain * (act - self.act_typ)
+            self.bg = max(self.bg + (ice - self.isf * act) * dt_h, 20.0)
             j = self.steps.t1.searchsorted(t)
             near = [k for k in (j - 1, j) if 0 <= k < len(self.steps) and abs((self.steps.t1.iloc[k] - t).total_seconds()) < 600]
             k = min(near, key=lambda k: abs((self.steps.t1.iloc[k] - t).total_seconds())) if near else None
