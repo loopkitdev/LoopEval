@@ -156,4 +156,51 @@ def label(steps: pd.DataFrame, carbs: list, bolus_dec: pd.DataFrame, tdd: float,
     m["dur_h"] = (m.end - m.onset).dt.total_seconds() / 3600 + 5 / 60
     m["estimate_ratio"] = np.where(m.announced, m.entry_g / m.size_g, np.nan)
     m["rescue"] = ~m.announced & m.low_before
+    m = fit_shapes(m, (g.ice - floor).to_numpy(), g.index, geq)
     return m, pd.DataFrame(corr), dict(base=base, geq=geq)
+
+
+# Pulse shape: peak time and spread fitted to the meal's raw ICE above the local floor, onset and size kept. Read off the
+# 35-min smoothed excess (peak = its argmax, 90% of mass by the end of the run), the rebuilt pulse under-shot real meal ICE
+# by 12 / 23 mg/dL/h at 15 / 30 min after onset and over-shot it by 8-9 at 75-105 min (3,000 pulses, 30 donors); a per-meal
+# least-squares lognormal leaves 0 / 4 and -4, with the same onset (median shift 0) and a peak 6 min earlier. The generator
+# learns its pulse shapes from these labels, and a pulse too slow early put the meal bolus ahead of the food: generated meal
+# boluses ran into a low within 3 h 26% of the time against 8% in the field (2026-10-14).
+FIT_MODES = np.exp(np.linspace(np.log(10 / 60), np.log(4), 24))
+FIT_S = np.linspace(0.15, 1.6, 20)
+
+
+def fit_shapes(m: pd.DataFrame, y: np.ndarray, idx: pd.DatetimeIndex, geq: float, rounds: int = 2) -> pd.DataFrame:
+    """Refit each pulse's peak_h / dur_h (kernel.params convention) by least squares to y = ICE minus the local floor,
+    other pulses removed; keeps the labeler's run length as run_h."""
+    from .kernel import params, rate
+    if m.empty:
+        return m
+    m = m.copy(); m["run_h"] = m.dur_h
+    tn = idx.asi8; mo = m.onset.astype("int64").to_numpy()
+    mm, ss = params(m.peak_h.to_numpy() + 2.5 / 60, m.dur_h.to_numpy())
+    span = [(int(idx.searchsorted(m.onset.iloc[i])), (tn - mo[i]) / 3.6e12) for i in range(len(m))]
+    def one(i, mu, s):
+        o, th = span[i]; j1 = min(o + 96, len(tn)); t = th[o:j1]; p = np.zeros(j1 - o); w = t > 0
+        p[w] = rate(t[w], m.size_g.iloc[i] * geq, mu, s); return o, j1, p
+    tot = np.zeros(len(tn))
+    for i in range(len(m)):
+        o, j1, p = one(i, mm[i], ss[i]); tot[o:j1] += p
+    grid = [(md * np.exp(s ** 2), s) for md in FIT_MODES for s in FIT_S if md * np.exp(s ** 2 + 1.2816 * s) <= 10]   # the plant clips duration at 10 h
+    for _ in range(rounds):
+        for i in range(len(m)):
+            o, j1, p0 = one(i, mm[i], ss[i])
+            yy = y[o:j1] - (tot[o:j1] - p0); ok = np.isfinite(yy)
+            if ok.sum() < 12:
+                continue
+            t = span[i][1][o:j1][ok]; best = None
+            for mu, s in grid:
+                e = float(np.sum((yy[ok] - rate(t, m.size_g.iloc[i] * geq, mu, s)) ** 2))
+                if best is None or e < best[0]:
+                    best = (e, mu, s)
+            mm[i], ss[i] = best[1], best[2]
+            o, j1, p1 = one(i, mm[i], ss[i]); tot[o:j1] += p1 - p0
+    mode = mm * np.exp(-ss ** 2)
+    m["peak_h"] = np.maximum(mode - 2.5 / 60, 5 / 60 - 2.5 / 60)
+    m["dur_h"] = mm * np.exp(1.2816 * ss)
+    return m
