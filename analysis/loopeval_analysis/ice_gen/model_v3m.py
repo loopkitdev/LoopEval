@@ -345,3 +345,13 @@ class ICEGenV3M5(ICEGenV3M4):
         z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
         out["bgice"] = self.head_ice(z2)
         return out, (h1, h2)
+
+
+class ICEGenV3M6(ICEGenV3M5):
+    """v3m6: background ICE sees its own history through one exact channel only: its previous value (FEATURES_M2A, fed back as
+    the draw in generation). Its path drops every indirect own-ICE input (CGM trend, 30-min projection, heading-low, minutes
+    below 70, the 30-min background EMA), which carry real ICE in training and the model's draws in generation (LESSONS 42).
+    With the exact channel the model follows its last value as real data does (slope 0.38 vs 0.38, v3m4 + M2A), but the
+    indirect channels kept widening its closed-loop draws (input sd 112 mg/dL/h). Behavior heads keep every input."""
+    arch = "v3m6"
+    ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30", "bgice_ema"]
