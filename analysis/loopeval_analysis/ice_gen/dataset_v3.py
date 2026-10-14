@@ -88,6 +88,16 @@ def bolus_unknown_days(decision_times) -> set:
     return set(pd.to_datetime(decision_times.t, utc=True).dt.floor("D").unique())
 
 
+def pumpless_slots(decision_times, share=0.9):
+    """5-min UTC slots inside a run of Loop cycles with no pump data (no_dose_guard: pump data too old in >= share of the
+    surrounding hour). Loop ran with CGM but no pump; the person dosed with a device Tidepool does not see (simulator handoff
+    2026-10-13-ice-pumpless-disruptions: i061 13 days, i110 105), so who bolused, and how much, is unknown there."""
+    d = decision_times[["t", "no_dose_guard"]].copy(); d["t"] = pd.to_datetime(d.t, utc=True, format="mixed")
+    s = d.set_index("t").no_dose_guard.astype(float).resample("5min").mean()
+    g = s.rolling(13, center=True, min_periods=3).mean()
+    return pd.DatetimeIndex(g.index[g >= share])
+
+
 def build(steps, meals, corrections, bolus_dec, carbs, geq, features=FEATURES, isf=None, decision_days=None):
     g = to_grid(steps)
     T, idx = len(g), g.index

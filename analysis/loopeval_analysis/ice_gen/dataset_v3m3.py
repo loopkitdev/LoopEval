@@ -34,7 +34,8 @@ BOLUS_T = ["bolus", "b_mode", "b_lr", "b_lu"]
 BEFORE, AFTER, LEAD = 24, 12, 1        # slots: an entry claims a pulse starting up to 120 min after / 60 min before it
 
 
-def build(steps, meals, bolus_dec, carbs, geq, features=FEATURES_M3, isf=None, decision_days=None):
+def build(steps, meals, bolus_dec, carbs, geq, features=FEATURES_M3, isf=None, decision_days=None, unknown_slots=None):
+    """unknown_slots: UTC 5-min slots whose bolus targets are unknown (dataset_v3.pumpless_slots), as decision_days does by day."""
     g = to_grid(steps)
     T, idx = len(g), g.index
     pulses = reconstruct(idx, meals, geq) if len(meals) else np.zeros(T)
@@ -137,8 +138,13 @@ def build(steps, meals, bolus_dec, carbs, geq, features=FEATURES_M3, isf=None, d
         dow_sin=np.sin(2 * np.pi * g.dow / 7), dow_cos=np.cos(2 * np.pi * g.dow / 7))
     X = np.column_stack([np.asarray(cols[f], float) for f in features]).astype(np.float32)
     Y[:, ti("bgice")] = np.r_[bgice[1:], np.nan] / ICE_SCALE
+    utc = pd.Series(idx.tz_convert("UTC") if idx.tz is not None else idx.tz_localize("UTC"))
     if decision_days is not None:
-        off = ~pd.Series(idx.tz_convert("UTC") if idx.tz is not None else idx.tz_localize("UTC")).dt.floor("D").isin(decision_days).to_numpy()
+        off = ~utc.dt.floor("D").isin(decision_days).to_numpy()
+        for k in BOLUS_T:
+            Y[off, ti(k)] = np.nan
+    if unknown_slots is not None and len(unknown_slots):
+        off = np.r_[utc.dt.floor("5min").isin(unknown_slots).to_numpy()[1:], False]   # targets sit one row before their slot
         for k in BOLUS_T:
             Y[off, ti(k)] = np.nan
     return g, X, Y
