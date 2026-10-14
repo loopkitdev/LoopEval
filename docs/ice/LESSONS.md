@@ -464,3 +464,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     had none of its own, adds ~10 on top. Generated people's meals vary day to day as real ones do (CV 0.28 vs 0.30), and
     excluding glucose < 90 leaves the day spread unchanged, so neither behavior nor lows drive it. v3m9 run open loop with
     every input real: level 37.1 vs 38.3, day spread 6.8 (white draws, no slow process).
+50. **Drop the slow-level process with the v3m6 generator; kept (harness setting).** The draws already carry the real residual
+    day variation (LESSONS 49). v3m6 seeds 0 / 1 held-out, per-donor streams, slow process on -> off: TIR 62.8 / 64.2 -> 64.1 /
+    65.6, t<54 1.89 / 1.87 -> 1.66 / 1.71, mean 163 / 161 -> 162 / 157, day-to-day sd of the daily background level about
+    19-24 -> 18.4 / 18.9 (field 74.1 / 0.12 / 152 / 11.1). The remaining day excess is the predicted mean varying by day on
+    closed-loop inputs (9.9 vs 5.8 real). Next: Pete's observation (2026-10-14) that ICE is the net of two larger streams that
+    partly cancel, an outside stream that does not respond to glucose and a behavior stream that does; a model of the net
+    cannot say how the cancellation shifts when the controller changes (the over-predicted edit effects of LESSONS 40 fit
+    stronger real compensation). Two-stream generator: a latent outside stream with fitted persistence, generated rather than
+    inferred from its own past, plus a memoryless reaction to observable state.
