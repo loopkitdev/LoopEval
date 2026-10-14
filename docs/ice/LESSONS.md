@@ -473,3 +473,27 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     cannot say how the cancellation shifts when the controller changes (the over-predicted edit effects of LESSONS 40 fit
     stronger real compensation). Two-stream generator: a latent outside stream with fitted persistence, generated rather than
     inferred from its own past, plus a memoryless reaction to observable state.
+51. **The two-stream generator (v4) is not kept: the outside stream needs a slower component than one day-scale AR(1) can
+    give.** v4 (exogenous level and scale from a recurrent net with no glucose or ICE input, a memoryless reaction to the
+    observable glucose state, fast + slow latent AR(1), exact Kalman likelihood): seeds 0 / 1 held-out TIR 60.8 / 59.4, t<54
+    2.22 / 2.64, day-to-day sd of the daily background level 19.5 / 19.7 (v3m6 64.1 / 65.6, 1.66 / 1.71, 18.4 / 18.9; field
+    74.1 / 0.12 / 11.1). Fitted on 24-h windows the slow component cannot separate a day-to-day swing from a level offset
+    between window and person (stationary sd 14.9 vs a real day-level residual of 12.1). Refitting its persistence over each
+    donor's last 60 training days (networks frozen): a 5.6-h half-life, day spread 17.2, TIR 60.2, t<54 2.11, still not
+    better than v3m6. Pooled real day variance against v4's predicted level: 6546 = predicted 1396 + residual 6192 + 2 cov
+    -1042 (corr -0.18), a small cancellation, not the large one the two-stream idea expects at the day scale. Not pursued
+    further until the shared outcome gap below is understood.
+52. **Every variant shares one outcome gap (TIR 60-66 vs 74, t<54 1.5-2.6 vs 0.12, ~20% more insulin than the field); the
+    plant's insulin response is not its cause.** PATIENT_INSULIN_GAIN (insulin away from the person's typical rate, TDD/24,
+    acts at a gain) on v3m6 seed 0: gain 1 / 0.8 / 0.6 -> TIR 64.1 / 63.6 / 60.5, t<54 1.66 / 1.46 / 1.57, mean 162 / 164
+    / 166, insulin unchanged (39.5-40.1 U/day). The overnight fasting slope of background ICE on ISF x insulin activity is
+    +0.43 (163 donors), but closed-loop confounded, so not evidence of a gain below 1. What is too big is the generated ICE:
+    total 9-14% above real, mostly in pulses (v3m6 seed 0, median donor-day: pulses 41.2 vs 35.4 mg/dL/h, background 34.0
+    vs 32.8). By source: meal-head (unannounced) pulse starts 5.55 vs 4.21/day; entry-started 3.08 vs 2.93; size per pulse
+    within ~9% once the 0.50/day labeled entries with an unfitted (unknown-size) pulse are allowed for; starts at glucose < 80
+    0.62 vs 0.12 (more time low). The meal-start hazard runs ~1.3x the field at every glucose band 70-250+, so it is not the
+    state distribution. Teacher-forced on real inputs the calibrated head is right (4.45 vs 4.50/day held-out), so the excess
+    comes from closed-loop inputs. Swap test (meal_swap.py, 24 donors): expected starts 4.36/day on real inputs, 5.13 on
+    the rollout's own; real inputs with only the background-ICE channels from the rollout 5.32. Why: the labeler starts a
+    pulse where ICE begins to rise, so a real meal-head start is preceded by a background-ICE dip (-0.6 sd 10 min before
+    onset, 40 donors); the behavior heads learned "dip -> meal" and in generation read it off the model's own draws.

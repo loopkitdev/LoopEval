@@ -357,6 +357,34 @@ class ICEGenV3M6(ICEGenV3M5):
     ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30", "bgice_ema"]
 
 
+class ICEGenV3M10(ICEGenV3M6):
+    """v3m10: v3m6 with the behavior path blind to background ICE. A person sees glucose, not ICE. The labeler places a pulse
+    onset where ICE starts to rise, so in real data a meal-head start is preceded by a dip in background ICE (-0.6 sd 10 min
+    before onset, 40 donors): a trough-then-rise is read as a meal start. The behavior heads learned that cue, and in closed
+    loop read it off the model's own draws: expected meal starts 4.36/day on real inputs, 5.13 on the rollout's own, and 5.32
+    with only the background-ICE channels taken from the rollout (swap test, v32es0c, 2026-10-14). Glucose, trend, meals and
+    actions stay."""
+    arch = "v3m10"
+    BEH_DROP = ["bgice", "bgice_ok", "bgice_ema", "bgice_6h", "bgice_24h"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        keep = torch.ones(n_features)
+        if features is not None:
+            for f in self.BEH_DROP:
+                if f in features:
+                    keep[features.index(f)] = 0.0
+        self.register_buffer("beh_keep", keep)
+
+    def forward(self, x, person, h=None):
+        h1, h2 = h if isinstance(h, tuple) else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        out["bgice"] = self.head_ice(z2)
+        return out, (h1, h2)
+
+
 class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
