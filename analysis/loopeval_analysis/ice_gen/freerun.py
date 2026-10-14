@@ -19,9 +19,12 @@ from .model_v2 import mdn_nll, mdn_sample
 LOW, HIGH = 40.0, 400.0
 
 
-def freerun_bgice_loss(net, X, Y, person, features, targets, burn):
+def freerun_bgice_loss(net, X, Y, person, features, targets, burn, mode="step"):
     """X [B, W, F], Y [B, W, T] (one training window), person [B]. Teacher-forced through `burn` steps, then free-running.
-    Returns the mean NLL of the real next background ICE over the free-running steps where it is known."""
+    mode "step": the mean NLL of the real next background ICE over the free-running steps where it is known (LESSONS 43/47:
+    taught to trust its own history less, it lost the 5-min structure). mode "level": only the free run's level is scored —
+    the squared difference between the mean of the model's predicted means over the free run and the real mean over the
+    same steps (scaled units), so it learns to keep a person's level anchored without changing its step-to-step dependence."""
     F = {f: i for i, f in enumerate(features)}
     ib = targets.index("bgice")
     B, W, _ = X.shape
@@ -30,7 +33,7 @@ def freerun_bgice_loss(net, X, Y, person, features, targets, burn):
     hist = [bg_real[:, burn - k] for k in range(TREND_SLOTS + 4, 0, -1)]   # generated glucose, last few steps (starts real)
     off = torch.zeros(B, device=X.device)                             # generated minus real glucose, mg/dL
     ema = X[:, burn - 1, F["bgice_ema"]] * ICE_SCALE if "bgice_ema" in F else None
-    nll = []
+    nll = []; pm = []; ys = []
     last = None                                                       # the model's own previous draw, mg/dL/h
     for t in range(burn, W - 1):
         x = X[:, t].clone()
@@ -57,7 +60,10 @@ def freerun_bgice_loss(net, X, Y, person, features, targets, burn):
         p = out["bgice"][:, 0]
         y = Y[:, t, ib]                                               # real background ICE of the next slot (scaled)
         ok = torch.isfinite(y)
-        if ok.any():
+        if mode == "level":
+            lg_, mu_, _ = p.split(net.K_ICE, -1)
+            pm.append((torch.softmax(lg_, -1) * mu_).sum(-1)); ys.append(y)
+        elif ok.any():
             nll.append(mdn_nll(p[ok], y[ok], net.K_ICE))
         with torch.no_grad():
             d = mdn_sample(p, net.K_ICE)                              # the model's own draw for the next slot
@@ -67,4 +73,12 @@ def freerun_bgice_loss(net, X, Y, person, features, targets, burn):
                 ema = torch.where(torch.isfinite(ema), ema + EMA_A * (d * ICE_SCALE - ema), d * ICE_SCALE)
             hist = hist[1:] + [g]
             last = d * ICE_SCALE
+    if mode == "level":
+        P_, Yt = torch.stack(pm, 1), torch.stack(ys, 1); k = torch.isfinite(Yt)
+        n = k.sum(1); use = n >= Yt.shape[1] // 2
+        if not use.any():
+            return torch.zeros((), device=X.device)
+        ym = torch.where(k, Yt, torch.zeros_like(Yt)).sum(1) / n.clamp(min=1)
+        pmm = torch.where(k, P_, torch.zeros_like(P_)).sum(1) / n.clamp(min=1)
+        return ((pmm - ym)[use] ** 2).mean()
     return torch.cat(nll).mean() if nll else torch.zeros((), device=X.device)
