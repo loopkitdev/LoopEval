@@ -451,3 +451,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     30: day spread 25.8 / 23.0, t<54 2.80 / 3.61, worse). Next: background ICE from exogenous inputs and glucose level only
     (v3m8), step-to-step dependence from the plant's correlated draws fitted to real data, day level from the slow process:
     stationary by construction.
+49. **Glucose history is an own-history channel too, but the lows need it; and the slow-level process now double-counts the
+    day level.** v3m8 (background-ICE path from exogenous inputs plus glucose, no explicit own-history input; plant draws
+    correlated by a fitted BGICE_RHO): the fitted normal-score lag-1 was only 0.07, because a recurrent net fed the glucose
+    sequence recovers recent ICE by differencing it, and the closed-loop widening came back (spread ratio 1.55, t<54 4.75,
+    seed 0). v3m9 (glucose out of the recurrent path, the current reading only at the output head): spread ratio 1.07, lag-1
+    0.47 with the fitted draw correlation 0.40 (field 0.48), but t<54 6.16, TIR 53.8, lows lasting a median 80 min (field 35,
+    v3m6 65); recovery from a low needs glucose history (how long it has been low, how fast it fell). Neither kept; v3m6
+    stays. Day level, split (v3m9 seed 0, 12 donors, mg/dL/h day-to-day sd): generated total 20.7 = predicted mean on
+    closed-loop inputs 9.9 + draws' deviation 10.7 + slow process 9.8; real total 12.3 = predicted mean (fed real history)
+    5.8 + residual 10.5. The draws already carry the real residual day variation; the slow process, fitted when the model
+    had none of its own, adds ~10 on top. Generated people's meals vary day to day as real ones do (CV 0.28 vs 0.30), and
+    excluding glucose < 90 leaves the day spread unchanged, so neither behavior nor lows drive it. v3m9 run open loop with
+    every input real: level 37.1 vs 38.3, day spread 6.8 (white draws, no slow process).
