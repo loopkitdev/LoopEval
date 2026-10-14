@@ -385,6 +385,29 @@ class ICEGenV3M10(ICEGenV3M6):
         return out, (h1, h2)
 
 
+class ICEGenV3M11(ICEGenV3M10):
+    """v3m11: v3m10 with the previous background value at the output head only, not in the recurrent ICE path. One step is
+    calibrated (real values above the predicted 90/95/99th: 9.9 / 5.0 / 1.0%), but fed its own draws the recurrent path
+    accumulated them: generated background stays correlated at 35-60 min (0.08-0.10 vs 0.04-0.06 real) and the predicted
+    mean's hourly sd is 33.5 on the rollout's inputs vs 28.2 on real ones, 26.3 with only the previous value restored
+    (swap test, v3m10 seed 0, 2026-10-14). At the head it keeps the one-step dependence and carries no memory."""
+    arch = "v3m11"
+    ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30", "bgice_ema", "bgice", "bgice_ok"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.register_buffer("prev_idx", torch.tensor([features.index("bgice"), features.index("bgice_ok")]))
+        self.head_ice = nn.Sequential(nn.Linear(hidden + 2, 128), nn.ReLU(), nn.Linear(128, self.sizes["bgice"]))
+
+    def forward(self, x, person, h=None):
+        h1, h2 = h if isinstance(h, tuple) else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        out["bgice"] = self.head_ice(torch.cat([z2, x.index_select(-1, self.prev_idx)], -1))
+        return out, (h1, h2)
+
+
 class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
