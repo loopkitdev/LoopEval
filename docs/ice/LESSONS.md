@@ -543,3 +543,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     track grams entered more loosely in generation (within-person Spearman 0.07 v3m10 / 0.12 v4 vs 0.19 field; sd of
     log(pulse / entered) 0.79 vs 0.65), a gap but a modest one. Shared by all: hourly-mean spread of background ICE ~40 vs
     35, and meal ICE after a meal bolus that rises slower (total ~100 vs 124 mg/dL/h at 30 min) and tails longer.
+57. **Background ICE in the field is coupled to the field's own events; the early meal rise is not an insulin-timing
+    artifact.** PLANT_REAL_BG=1 (diagnostic: the field's background ICE at the same time, meals and behavior generated),
+    v3m10 seed 0: clean-time TIR 60.8, t<54 5.68 (generated background: 67.0 / 1.95), lows per meal bolus 0.24. After a
+    generated meal bolus the real background stays flat (35 mg/dL/h), after a real one it rises to 69 at 30 min: the
+    field's background carries components locked to its own meals, and with them out of step the controller fails worse.
+    Not an insulin-model timing bump: after lone manual boluses (no entry within 90 min, no pulse starting -60..+120 min,
+    7,793 boluses, all pilot donors) background ICE falls 20-25 mg/dL/h for 3 h after boluses under 3 U (given at highs
+    that then ease) and stays near flat for larger ones; no positive bump while modeled insulin ramps up.

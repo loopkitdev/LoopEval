@@ -97,6 +97,15 @@ class PlantV3:
         # confounded by Loop reacting to ICE), and the field moved 0.6-0.9x what replay predicted for real settings edits (LESSONS
         # 40): the rule likely overstates the effect of insulin the person did not get in the field. Replay is unaffected.
         self.ins_gain = float(os.environ.get("PATIENT_INSULIN_GAIN", "1"))
+        # PLANT_REAL_BG=1 (diagnostic): background ICE from the field at the same time (measured ICE minus labeled pulses),
+        # meals and behavior still generated; steps with no real value keep the draw
+        self.real_bg = None
+        if os.environ.get("PLANT_REAL_BG") == "1":
+            from .dataset import to_grid
+            from .kernel import reconstruct
+            g_ = to_grid(self.steps); mr_ = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
+            pu_ = reconstruct(g_.index, mr_, self.isf / (500 / self.tdd)) if len(mr_) else 0.0
+            self.real_bg = pd.Series(g_.ice.to_numpy() - pu_, index=g_.index)
         # bgice_rho > 0: successive background-ICE draws share an AR(1) quantile (5-min coefficient). Independent draws are
         # near white (lag-5 autocorrelation 0.26-0.31, lag-10 ~0) where real background ICE is 0.48 / 0.19 (median of 41
         # donors), and integrated they made generated glucose 1.3-2.3x rougher than real CGM at 5 min
@@ -422,6 +431,10 @@ class PlantV3:
                 bgice += self.near_low_bgice / ICE_SCALE
             if self.bg_band is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:
                 bgice += float(self.bg_band[1][int(np.searchsorted(self.bg_band[0], float(x[0, -1, self.F["bg"]]) * 100, side="right"))]) / ICE_SCALE
+            if self.real_bg is not None:
+                k_ = self.real_bg.index.searchsorted(t.floor("5min"))
+                if k_ < len(self.real_bg) and self.real_bg.index[k_] == t.floor("5min") and np.isfinite(self.real_bg.iloc[k_]):
+                    bgice = float(self.real_bg.iloc[k_]) / ICE_SCALE
             if self.feedback == "mean":
                 lg_, mu_, _ = out["bgice"][0, -1].split(self.net.K_ICE)
                 self.bgice = float((torch.softmax(lg_, -1) * mu_).sum())
