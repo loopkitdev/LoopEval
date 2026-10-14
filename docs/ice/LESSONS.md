@@ -354,3 +354,21 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     glucose ran into the thousands and into every closed-loop calibration. The plant now follows the field through
     disrupted steps, and v3m4wp masks bolus targets on those runs (dataset_v3.pumpless_slots), which otherwise taught the
     behavior traits "this person does not bolus".
+42. **The generator widens its own background ICE in closed loop: exposure bias through every own-ICE input.** Fed its own
+    closed-loop inputs, the background-ICE head predicts a 30-65% wider spread than fed real history (median sd, v3m4:
+    i001 52 vs 40, i005 103 vs 65, i022 89 vs 54; v3k smaller, 54-72 vs 53-61), so generated glucose is 1.3-2.3x rougher
+    than real CGM at 5 min, crosses 70 twice as often and goes deeper. Tests (`runs/2026-10-13-ice-v3m/`, `swap_test.py`,
+    `input_review.py`, plant input dump PLANT_XLOG): moving one input onto its closed-loop distribution in a real stretch,
+    only the 15-min CGM trend matters (+13.8 mg/dL/h for v3m4, +5.6 for v3k; every other input < 3); meal activity and
+    glucose level change nothing. A v3m5 with background ICE on its own path without the trend inputs still widened
+    (60 / 84 / 75 vs 35 / 65 / 38); restoring the real 30-min background-ICE average into closed-loop inputs removed it all
+    (34 / 64 / 38). Each input built from the person's own recent background ICE (trend, the EMA, the glucose sequence)
+    carries the model's own near-independent draws back in generation but only real, smooth ICE in training; the model
+    reads its draws as a volatile state. Removing one channel moves the loop to the next. Real hour-scale volatility
+    structure is matched (persistence 0.43 vs 0.44 / 0.39, recovery after a top-10% hour alike); the fault is minutes.
+    Measured with a plant factor shrinking each draw toward the predicted mean (BGICE_SPREAD, a gauge, not kept): at
+    0.7 the v3k models' TIR 62 -> 66-70, t<54 0.49-0.83 -> 0.05-0.32, mean still 161-168 (field 74.2 / 0.12 / 152): about
+    half the TIR gap and all the excess lows, and the low calibrations then overshoot (they were patching this).
+    Correlated draws (an AR(1) quantile, BGICE_RHO) made it worse (lows x2-5): persistent errors integrate further.
+    Fix to build: train the background-ICE path on its own draws (scheduled sampling), so training sees what
+    generation feeds it.

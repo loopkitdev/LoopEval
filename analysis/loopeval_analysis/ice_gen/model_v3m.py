@@ -315,3 +315,33 @@ class ICEGenV3M4(ICEGenV3M3):
         s = super().sample(out, calib)
         s["bolus"] = torch.where(s["entry"], s["b_with"], s["b_alone"])
         return s
+
+
+class ICEGenV3M5(ICEGenV3M4):
+    """v3m5: background ICE from its own recurrent path that does not see the CGM-trend inputs. The trend is mostly the last
+    15 min of background ICE itself (plus CGM noise): in training it carries real, smooth ICE; in generation the model's own
+    near-independent draws, so a wide draw read as a volatile state and widened the next (exposure bias). Swap test,
+    2026-10-13: moving bg_trend alone onto its closed-loop distribution added 13.8 mg/dL/h to v3m4's predicted sd (5.6 for v3k);
+    every other input < 3. Behavior heads keep the full inputs (low response lives there)."""
+    arch = "v3m5"
+    ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers)
+        self.ice_mask = torch.ones(n_features)
+        if features is not None:
+            for f in self.ICE_DROP:
+                if f in features:
+                    self.ice_mask[features.index(f)] = 0.0
+        self.register_buffer("ice_keep", self.ice_mask)
+        self.inp_ice = nn.Linear(n_features + profile_dim, hidden)
+        self.gru_ice = nn.GRU(hidden, hidden, num_layers=layers, batch_first=True)
+        self.head_ice = nn.Linear(hidden, self.sizes["bgice"])
+
+    def forward(self, x, person, h=None):
+        h1, h2 = h if isinstance(h, tuple) else (None, None)
+        out, h1 = super().forward(x, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        out["bgice"] = self.head_ice(z2)
+        return out, (h1, h2)
