@@ -567,3 +567,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     90 min, no pulse -60..+120 min) are not the problem: lows within 3 h 0.11 generated vs 0.16 field, background and
     glucose trajectories alike; but the generator gives 1.8x as many of them (427 vs 238 per 28-day run), a structure gap
     (corrections are rare on an automated system).
+60. **Anatomy of the generated lows: a population-wide excess carried into the low by insulin, after meals; the response
+    to the low itself matches.** v3m10 seed 0, held-out, per donor then median: 22 of 24 donors exceed 1% generated t<54
+    (field at most 0.77% for every one; replay matches the field per donor). Per crossing below 70: chance of reaching 54
+    0.45 vs 0.18, minutes below 70 30 vs 15, nadir 57 vs 62, crossings 1.08 vs 0.71 per day; at the crossing IOB above the
+    overnight level 0.56 vs 0.15 U and insulin action (ISF x activity) 77 vs 57 mg/dL/h; ICE after the crossing 56 / 85
+    vs 58 / 95 mg/dL/h at 0-30 / 30-60 min (the low response is close). In the 2 h before: automatic insulin over the
+    overnight rate the same (+0.11 U), glucose the same (115 vs 114), a manual bolus before 40% vs 29% of lows, and ICE
+    higher (48 vs 27 mg/dL/h): generated lows come after food and a bolus, field lows in quiet stretches. Per-person bar
+    (field inside the range of 3 generated runs; 50% if faithful): TIR 12%, t<70 8-12%, t<54 8%, mean 21-29%, insulin 21%.
