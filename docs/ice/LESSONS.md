@@ -388,3 +388,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Also: v3m4's explicit trait offsets stayed near 0 (sd 0.02 against the 1.0-1.4 logit spread of people's entry and lone-
     bolus rates), ranked right (Spearman 0.81-0.86) but carried by the profile vector, so rates came out compressed; under
     test: traits initialized at the person's shrunk observed rates (TRAIT_INIT, sd 0.3-1.0).
+44. **Initializing each person's trait offsets at their own shrunk observed rates puts per-person behavior right in the model
+    itself; kept.** ice_v32, v3m4 recipe, held-out at the open-loop stage, `actions_score.py` against the field record
+    (`runs/2026-10-14-ice-freerun/`). TRAIT_INIT=1: each person's meal / entry / meal-bolus / lone-bolus logit offset starts
+    at logit(own rate, shrunk by 20 events toward the pool) minus logit(pool rate), then trains as before. Per-person
+    Spearman, baseline -> trait init (seeds 0, 1): carb entries 0.52 -> 0.96 / 0.93, boluses 0.62 -> 0.94 / 0.90,
+    corrections 0.69 -> 0.92 / 0.89; median generated / field entries 0.92 -> 1.00 / 1.04; the near-non-announcer i012
+    1.96 -> 0.44 / 0.55 entries a day (field 0). This replaces the post-hoc per-person rate calibration of LESSONS 39.
+    Outcomes move within training noise (TIR 63.4 / 56.5 vs baseline 56.6-57.9, t<54 1.67 / 1.62 vs 1.20-2.06, mean 164 /
+    177 vs 170-174): with behavior right, the remaining outcome gap is the closed-loop widening of LESSONS 42 (spread ratio
+    1.28 / 1.39, unchanged).
