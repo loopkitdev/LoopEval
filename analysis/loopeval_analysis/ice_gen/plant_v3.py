@@ -24,10 +24,12 @@ Warmed up on the real 24 h before the first request (real meals still absorbing 
 from __future__ import annotations
 
 import argparse
+import os
 import json
 import sys
 
 import numpy as np
+from scipy.special import ndtr
 import pandas as pd
 import torch
 
@@ -49,6 +51,20 @@ from .plant import ROOT, Insulin, _ts, LOW, HIGH
 WARMUP = 288
 
 
+def mdn_quantile(params, k, q):
+    """Inverse CDF of a 1-D Gaussian mixture (logits, means, log sds) at probability q, by bisection."""
+    lg, mu, ls = [t.double().numpy() for t in params.split(k, -1)]
+    w = np.exp(lg - lg.max()); w /= w.sum(); sd = np.exp(np.clip(ls, -5, 3))
+    lo, hi = float((mu - 8 * sd).min()), float((mu + 8 * sd).max())
+    for _ in range(40):
+        mid = 0.5 * (lo + hi)
+        if float((w * ndtr((mid - mu) / sd)).sum()) < q:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
 class PlantV3:
     def __init__(self, alias, ckpt, seed=0, feedback="mean", noise=None, rewarm_h=0.0, slow=None, compression=None):
         torch.manual_seed(seed); np.random.seed(seed)
@@ -67,6 +83,12 @@ class PlantV3:
         self.carbs_real = json.load(open(d / "carbs.json"))
         self.steps = pd.read_parquet(ROOT / "steps" / f"{alias}.parquet")
         self.follow_disrupted = True   # --no-follow-disrupted turns it off
+        # bgice_rho > 0: successive background-ICE draws share an AR(1) quantile (5-min coefficient). Independent draws are
+        # near white (lag-5 autocorrelation 0.26-0.31, lag-10 ~0) where real background ICE is 0.48 / 0.19 (median of 41
+        # donors), and integrated they made generated glucose 1.3-2.3x rougher than real CGM at 5 min
+        self.bgice_rho = float(os.environ.get("BGICE_RHO", "0")); self.bg_z = 0.0
+        self.rng_z = np.random.default_rng(seed + 104729)
+        self.xlog = [] if os.environ.get("PLANT_XLOG") else None   # PLANT_XLOG=1: write the inputs fed each step beside the log
         self.base_iob = D3.basal_iob(self.steps)
         bd = pd.read_parquet(ROOT / "bolus_decisions.parquet"); self.bd_real = bd[bd.alias == alias]
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
@@ -80,6 +102,9 @@ class PlantV3:
         self.pid = torch.tensor([ck["people"].index(alias)])
         self.geq = ck["constants"][alias]["geq"]
         self.calib = dict(ck.get("calib", {}))      # logit offsets on event-start heads (calibrate.py)
+        # bg_spread < 1: closed-loop inputs (denser generated meal activity, higher glucose) make the head predict 30-65%
+        # wider background ICE than it does fed real history (i001/i005/i022, v3m4); BGICE_SPREAD or ck["calib_bg_spread"]
+        self.bg_spread = float(os.environ.get("BGICE_SPREAD", ck.get("calib_bg_spread", 1.0)))
         # per-person logit offsets on the behavior heads (meal, m_ann, m_hasbol, corr), stacked on the pooled ones
         # (calibrate_closed_rates_person.py): how often a person eats, announces, boluses and corrects is their own
         for k, b in ck.get("calib_person", {}).get(alias, {}).items():
@@ -264,6 +289,8 @@ class PlantV3:
                 if self.rewarm_h and self.since_rewarm >= self.rewarm_h:
                     _, self.h = self.net(torch.cat(self.xbuf[-WARMUP:], 1), self.pid)
                     self.since_rewarm = 0.0
+                if self.xlog is not None:
+                    self.xlog.append(x[0, -1].numpy().copy())
                 out, self.h = self.net(x, self.pid, self.h)
                 self.xbuf.append(x); self.xbuf = self.xbuf[-WARMUP:]; self.since_rewarm += dt_h
                 for k, b in self.calib.items():
@@ -324,6 +351,14 @@ class PlantV3:
                     self.actions_log.append(dict(t=t, kind="bolus_units" if "units" in pay else "bolus_ratio", **pay))
             self.due = keep
             bgice = float(s["bgice"][0])
+            if self.bg_spread != 1.0:   # shrink the draw's deviation from the predicted mean (closed-loop spread calibration)
+                lg_, mu_, _ = out["bgice"][0, -1].split(self.net.K_ICE)
+                m_ = float((torch.softmax(lg_, -1) * mu_).sum())
+                bgice = m_ + self.bg_spread * (bgice - m_)
+            if self.bgice_rho > 0:   # correlated draw: the model's distribution this step, at a quantile that follows an AR(1)
+                rho = self.bgice_rho ** (dt_h * 12)
+                self.bg_z = rho * self.bg_z + np.sqrt(1 - rho ** 2) * self.rng_z.standard_normal()
+                bgice = mdn_quantile(out["bgice"][0, -1], self.net.K_ICE, float(ndtr(self.bg_z)))
             if self.near_low_bgice and (float(x[0, -1, self.F["heading_low"]]) > 0.5 or float(x[0, -1, self.F["bg"]]) * 100 < 70):
                 bgice += self.near_low_bgice / ICE_SCALE
             if self.bg_band is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:
@@ -379,6 +414,8 @@ class PlantV3:
             lg.insert(0, "alias", self.alias)
         lg.to_parquet(path, index=False)
         pd.DataFrame(self.actions_log).to_parquet(str(path) + ".actions.parquet", index=False)
+        if self.xlog:
+            pd.DataFrame(np.array(self.xlog), columns=self.features).to_parquet(str(path) + ".x.parquet", index=False)
         with open(str(path) + ".doses.json", "w") as f:
             json.dump(self.doses_log, f)
 
