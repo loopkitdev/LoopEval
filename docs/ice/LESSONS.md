@@ -576,3 +576,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     overnight rate the same (+0.11 U), glucose the same (115 vs 114), a manual bolus before 40% vs 29% of lows, and ICE
     higher (48 vs 27 mg/dL/h): generated lows come after food and a bolus, field lows in quiet stretches. Per-person bar
     (field inside the range of 3 generated runs; 50% if faithful): TIR 12%, t<70 8-12%, t<54 8%, mean 21-29%, insulin 21%.
+    Not a level bias: on the held-out month the model's predicted background mean is 0.2 mg/dL/h above the real one and its
+    rollouts 1.4 above (median donor; real held-out 33.0, the 28 training days before it 39.1), so the extra insulin comes
+    from how ICE moves, not from how much there is.
