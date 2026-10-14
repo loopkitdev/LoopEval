@@ -597,3 +597,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     the model expects i056 (no lone boluses in 100 days) to make 0.62 a day, i033 (0.20) 0.68; the trait offset was fitted
     under a prior and step weights (LOWW) and cannot reach rare rates. Under test: traits refit by maximum likelihood on
     training days with the network frozen (fit_traits.py).
+63. **Settings-edit natural experiments on v3m10 (tier 3c), two trainings, ice_v32, kept harness.** 70 edits (62 scored
+    on 47 donors; 5 donors without meal labels drop out), replay + 3 runs per arm. The field's own change around a real
+    edit is barely above its change around random days with no edit (TIR sd 11.4 vs 8.5, mean 16.3 vs 13.3), so per-
+    edit correlations are bounded low. Predicted vs field change, seeds 0 / 1: mean glucose r 0.39 / 0.39, slope 0.85 /
+    0.81 (replay r 0.32, slope 0.39); t<70 r 0.47 / 0.51, slope 0.80 / 0.73 (replay 0.48 / 0.48); TIR r 0.05 / 0.14,
+    slope 0.16 / 0.52 (replay 0.24 / 0.49); t<54 r 0.21 / 0.26 (replay 0.15). With the need shift separated (field mean
+    change ~ a x predicted edit effect + b x clean-ICE shift, 55 edits within 10 TIR of the field on replay): generator a =
+    1.10 (replay 0.62), b ~1.0; on the steady-need half (28 edits) generator r 0.72, slope 1.46, replay r 0.71, slope 0.93.
+    The generator sizes an edit's effect on mean glucose about right overall and a third small where need is steady;
+    TIR and t<54 changes do not yet rank. Its own-settings level is off (TIR median -5.0 / -6.9 vs replay -0.2): the
+    absolute gap of LESSONS 54-60.
