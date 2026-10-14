@@ -98,6 +98,10 @@ class PlantV3:
         # 40): the rule likely overstates the effect of insulin the person did not get in the field. Replay is unaffected.
         self.ins_gain = float(os.environ.get("PATIENT_INSULIN_GAIN", "1"))
         self.eoff_scale = float(os.environ.get("PLANT_EOFF_SCALE", "1"))   # diagnostic: scale entry -> pulse onset delay
+        # monthly-cycle dial (off by default): the person's insulin need swings on a 28-day sinusoid, amplitude MONTH_CYCLE x their
+        # typical insulin action (ISF x TDD/24, mg/dL/h) added to background ICE, random phase per run
+        self.mc_amp = float(os.environ.get("MONTH_CYCLE", "0"))
+        self.mc_phase = float(np.random.default_rng(seed + 32452843).uniform(0, 2 * np.pi))
         # PLANT_REAL_BG=1 (diagnostic): background ICE from the field at the same time (measured ICE minus labeled pulses),
         # meals and behavior still generated; steps with no real value keep the draw
         self.real_bg = None
@@ -453,6 +457,8 @@ class PlantV3:
             pulse = self._pulse_rate(t)
             u = self.slow.step(dt_h) if self.slow else 0.0
             ice = bgice * ICE_SCALE + u + pulse
+            mc = self.mc_amp * self.isf * self.act_typ * np.sin(2 * np.pi * (t.value / 8.64e13) / 28.0 + self.mc_phase) if self.mc_amp else 0.0
+            ice += mc
             act = absorbed / dt_h
             if self.ins_gain != 1.0:   # insulin above / below the person's typical rate acts at a gain (PATIENT_INSULIN_GAIN)
                 act = self.act_typ + self.ins_gain * (act - self.act_typ)
@@ -482,7 +488,7 @@ class PlantV3:
             self.anchor_times = [a for a in self.anchor_times if (t - a) < pd.Timedelta(hours=3)]
             self.entries = [e for e in self.entries if (t - e[0]) < pd.Timedelta(hours=3)]
             self.bols = [b for b in self.bols if (t - b[0]) < pd.Timedelta(hours=3)]
-            self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bgice=bgice * ICE_SCALE + u, pulse=pulse, slow=u, bg1=self.bg + self.e + self.c, e=self.e, comp=self.c, comp_missing=self.c_miss,
+            self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bgice=bgice * ICE_SCALE + u + mc, pulse=pulse, slow=u, cycle=mc, bg1=self.bg + self.e + self.c, e=self.e, comp=self.c, comp_missing=self.c_miss,
                                  iob=self.ins.iob(t), ins_activity_uhr=absorbed / dt_h, hour=hour, dow=dow))
             self.t = t
             if len(self.log) % 288 == 0:

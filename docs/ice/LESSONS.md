@@ -619,3 +619,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     0.00; before 0.40), i033 0.19 / 0.12 (0.04; before 0.54), i039 0.64 / 0.52 (0.39; 1.11); outcomes within noise (TIR
     66.2 / 65.0 vs 67.0 / 65.2, t<54 1.77 / 1.52 vs 1.95 / 1.58); per-person pass rate (3 runs, 50% if faithful) mean
     glucose 29 -> 42 / 21 -> 33%, insulin 21 -> 29 / 21 -> 21%, t<54 8 -> 12 / 8 -> 12%, TIR 12% unchanged.
+65. **Dial check on the kept generator (v3m10 seed 0, traits refit): all four dials move what they name.** 24 held-out
+    donors, 2 runs per setting, median per day. Announcement 1 / 0.5 / 0: entries 3.90 / 1.90 / 0.00, boluses 4.65 / 3.51
+    / 2.27, eating unchanged (pulses 7.2-7.3, 225-228 g-eq), day spread 20.9-22.4; TIR 66.0 / 65.6 / 61.3 and mean 160 /
+    160 / 171 follow as consequences (unannounced meals go unbolused). Compression 0 / 1 / 3: sensor events 0 / 0.52 /
+    2.07 per 28 days, all else within noise. Slow state off / 1 / 2: day-to-day sd of the daily background level 20.9 /
+    22.7 / 25.6, behavior unchanged; t<54 1.88 / 2.19 / 3.79 (more day-level swing, more lows). Monthly cycle (new plant
+    dial MONTH_CYCLE, off by default: a 28-day sinusoid in background ICE, amplitude x the person's ISF x TDD/24, random
+    phase): at 0.2 the daily background level follows the cycle term (within-run correlation 0.41, sd of the term 10.5
+    mg/dL/h) and so does daily insulin delivered (0.30); entries -0.04, meals -0.10, eating 218 vs 226 g-eq.
