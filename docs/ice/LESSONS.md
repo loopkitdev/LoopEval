@@ -558,3 +558,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     larger pulse in progress (+0.12 scaled, the generated excess before the bolus) lowers it by 3; the same bolus and carb
     inputs move the prediction +3 from a real context and -3 from a generated one. The remaining difference is the
     recurrent state built from the model's own earlier draws (LESSONS 42-48), here at meals, where it matters for lows.
+59. **Post-meal-bolus lows: not meal context, not onset timing.** v3m10 seed 0, held-out. Stratified, generated lows per
+    meal bolus are 2.5-3x the field's in every stratum: pulse ICE already in progress at the bolus < 10 / 10-40 / > 40
+    mg/dL/h 0.22 / 0.25 / 0.26 vs 0.09 / 0.09 / 0.08; glucose at the bolus < 120 / 120-180 / > 180 0.39 / 0.21 / 0.17 vs
+    0.16 / 0.06 / 0.06. Halving the entry-to-pulse onset delay in the plant (PLANT_EOFF_SCALE=0.5, diagnostic) moved lows
+    per meal bolus 0.162 -> 0.149 and clean-time TIR / t<54 67.0 / 1.95 -> 65.3 / 1.59, within noise. Drawn pulse shapes
+    match their labels by source (entry-started and unannounced kernels within 0.05/h). Lone corrections (no entry within
+    90 min, no pulse -60..+120 min) are not the problem: lows within 3 h 0.11 generated vs 0.16 field, background and
+    glucose trajectories alike; but the generator gives 1.8x as many of them (427 vs 238 per 28-day run), a structure gap
+    (corrections are rare on an automated system).

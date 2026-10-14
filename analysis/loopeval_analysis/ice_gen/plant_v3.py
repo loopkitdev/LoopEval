@@ -97,6 +97,7 @@ class PlantV3:
         # confounded by Loop reacting to ICE), and the field moved 0.6-0.9x what replay predicted for real settings edits (LESSONS
         # 40): the rule likely overstates the effect of insulin the person did not get in the field. Replay is unaffected.
         self.ins_gain = float(os.environ.get("PATIENT_INSULIN_GAIN", "1"))
+        self.eoff_scale = float(os.environ.get("PLANT_EOFF_SCALE", "1"))   # diagnostic: scale entry -> pulse onset delay
         # PLANT_REAL_BG=1 (diagnostic): background ICE from the field at the same time (measured ICE minus labeled pulses),
         # meals and behavior still generated; steps with no real value keep the draw
         self.real_bg = None
@@ -316,7 +317,7 @@ class PlantV3:
                 size = float(np.clip(np.exp(float(s["e_lsize"][0])), 5, 250))
                 peak = float(np.clip(np.exp(float(s["e_lpeak"][0])), 5 / 60, 4)); dur = float(np.clip(np.exp(float(s["e_ldur"][0])), 0.25, 10))
                 m, sd = params(peak, dur)
-                on = t + pd.Timedelta(minutes=float(np.clip(np.expm1(float(s["e_off"][0])), 0, 120)))
+                on = t + pd.Timedelta(minutes=self.eoff_scale * float(np.clip(np.expm1(float(s["e_off"][0])), 0, 120)))
                 self.pulses.append((on, size * self.geq, float(m), float(sd)))
                 self.anchor_times.append(t); self.since_meal = 0.0; self.last_size = size
                 self.actions_log.append(dict(t=t, kind="meal", size_g=size, peak_h=peak, dur_h=dur, announced=ann, from_entry=True, onset=on))
