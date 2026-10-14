@@ -326,3 +326,28 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     person's own shift from real history (its post-after minus pre-before run: r 0.43, error 12.2 vs 11.2 for no
     change); outcomes otherwise rank with replay (r 0.81-0.93). So for change prediction the generator so far adds
     little beyond replay; the t<54 response is the gap to chase. Config: donors outside config.csv run standard RC.
+41. **Entries and boluses as their own events: each structural step fixed one coupling and exposed the next.**
+    `runs/2026-10-13-ice-v3m/`, 3 trainings x 3000 batches on ice_v30 (PC), full closed-loop chain on the v31 harness.
+    v3 tied a pulse to one summed entry and bolus, so the heaviest hands-on users were squeezed (i050: field 11 entries
+    and 13 boluses a day, generated 3.7 and 5.8) and against the field record v3k generated 0.6x the entries, 2x the
+    corrections and a quarter of the meal-bolus insulin (1.65 vs 6.0 U/day). In order:
+    - **v3m** (entry and bolus heads apart from the pulse head, trained per-person logit offsets): held-out NLL 0.68-0.69
+      vs v3k's 0.75-0.78 at the same length, entries per day right teacher-forced; closed loop 25% of entries have no
+      pulse within -60/+120 min (field 16%), t<54 3.05. The field's unmatched 16-19% are labeler misses: ICE still rises
+      after them, about half a matched entry's (Pete: an announced meal is almost always followed by a pulse).
+    - **v3m2** (+ grams entered since the last pulse began, as input): orphans 20%, t<54 1.5 at the open-loop stage.
+    - **v3m3** (an entry that starts a meal draws its pulse: delay, size | grams, peak, duration; eating-first pulses stay
+      on the meal head): orphans 3%, delays / sizes / peaks / grams all within the field's quartiles. But one bolus head
+      averaged over all steps learned P(bolus | entry) 0.23-0.38 where the data has 0.67-0.76 (entries are ~1% of steps),
+      so 29% of generated entries were bolused vs 87%.
+    - **v3m4** (bolus split: P(bolus | entry) scored on entry steps, P(bolus | no entry) on the rest, each its own trait):
+      entries bolused 61%; manual insulin now matches the field (with an entry 6.8 vs 6.0 U/day, alone 2.6 vs 2.2,
+      lone boluses 2.1 vs 2.0 a day); background ICE by glucose band matches (below-90 offsets 3-5 vs v3k's 13-23).
+      Held-out clean t<54 still 2.38 / 2.10 (two trainings), TIR 62.4, mean 161-163. The lows sit 0-4 h after meal
+      boluses (t<54 3.6-6.2% vs field 0.1%) and track the person's carb-entry ratio (Spearman 0.53): near-non-announcers
+      get entries they never make (i012 212x, i056 59x, i010 11x), because the trained trait's prior (sd 1) cannot reach the
+      logit offset of about -5 they need. Fixes under test: per-person closed-loop rates on top, and a prior of sd 3.
+    Also found on the way: long field disruptions deliver almost no insulin in the harness while the extract counts IOB-
+    confirmed schedule fill (41 pilot donors, 32,773 h; i061 262 U missing in its last 56 days), which drove generated
+    glucose into the thousands and into every closed-loop calibration; the plant now follows the field through them
+    (handoff 2026-10-13-ice-disruption-dose-gap).
