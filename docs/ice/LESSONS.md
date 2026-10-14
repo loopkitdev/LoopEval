@@ -551,3 +551,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Not an insulin-model timing bump: after lone manual boluses (no entry within 90 min, no pulse starting -60..+120 min,
     7,793 boluses, all pilot donors) background ICE falls 20-25 mg/dL/h for 3 h after boluses under 3 U (given at highs
     that then ease) and stays near flat for larger ones; no positive bump while modeled insulin ramps up.
+58. **The meal-locked rise in background ICE is learned and lost in closed loop; the loss is in the state the model brings
+    to the meal, not in the meal's inputs.** Fed real held-out inputs, v3m10 predicts the rise after a meal bolus (mean 47
+    -> 65 mg/dL/h by 30 min; real 45 -> 61). On its own rollout inputs it predicts 40 -> 36 at +10 min -> 52 at 30.
+    Partial dependence on real events: holding glucose flat from the bolus raises the predicted rise (65 at 30 min), a
+    larger pulse in progress (+0.12 scaled, the generated excess before the bolus) lowers it by 3; the same bolus and carb
+    inputs move the prediction +3 from a real context and -3 from a generated one. The remaining difference is the
+    recurrent state built from the model's own earlier draws (LESSONS 42-48), here at meals, where it matters for lows.
