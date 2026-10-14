@@ -372,3 +372,19 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Correlated draws (an AR(1) quantile, BGICE_RHO) made it worse (lows x2-5): persistent errors integrate further.
     Fix to build: train the background-ICE path on its own draws (scheduled sampling), so training sees what
     generation feeds it.
+43. **Training the background-ICE path on its own draws (scheduled sampling) weakens the loop but fixes nothing; not kept.**
+    `runs/2026-10-14-ice-freerun/`, ice_v32, v3m4 recipe (wide trait prior, pumpless mask), 3 seeds each, held-out at the
+    open-loop stage, swap test on the logged closed-loop inputs (`swap_v32.py`). FREERUN=0.5 (`freerun.py`): up to half the
+    batches also run day 2 of the window on the model's own background-ICE draws (glucose = real + the running draw-minus-
+    real difference, derived inputs rebuilt as the plant builds them) and score the real next value. Closed-loop / real
+    predicted spread 1.41 / 1.39 / 1.28 (baseline) -> 1.24 / 1.23 / 1.14, but mostly by predicting wider everywhere (real-
+    input sd 64.8 -> 70.3 on seed 0); lag-1 autocorrelation of generated background ICE 0.30-0.32 -> 0.24-0.25 (field 0.48),
+    glucose 5-min sd 15.4 / 14.6 / 14.6 -> 14.3 / 13.9 / 13.2 (field 8.3); TIR 57.9 / 57.0 / 56.6 -> 56.3 / 59.1 / 56.2,
+    t<54 2.06 / 1.71 / 1.20 -> 1.67 / 2.14 / 2.20 (field 74.1 / 0.12). Scored against the real next value while its own
+    history has drifted, the best the model can do is trust that history less, which flattens the dependence instead of
+    making it right. Real 5-min smoothness has to come from conditioning on its own previous value through a channel that is
+    the same in training and generation: next, the background ICE of the last slot as an explicit input (FEATURES_M2A),
+    fed back as the draw in generation.
+    Also: v3m4's explicit trait offsets stayed near 0 (sd 0.02 against the 1.0-1.4 logit spread of people's entry and lone-
+    bolus rates), ranked right (Spearman 0.81-0.86) but carried by the profile vector, so rates came out compressed; under
+    test: traits initialized at the person's shrunk observed rates (TRAIT_INIT, sd 0.3-1.0).
