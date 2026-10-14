@@ -411,3 +411,18 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     the trend alone (v3m5: the loop moved to the EMA). Outcomes at the open-loop stage: TIR 62.7 / 61.3, t<54 1.96 / 2.01,
     mean 164 / 167 (field 74.1 / 0.12 / 152): the excess lows are not the loop and not a missing push near lows (background
     ICE below 60: real 51, fed real history 51, generated 64); generated people spend 6.6x the field's time below 60.
+46. **Two closed-loop level faults behind v3m6's remaining gap: shared random streams, and each person's background level
+    drifting through the exact channel.** (a) The plant seeded every random stream from the rollout seed alone, so all donors
+    on a seed shared one slow-level path and one stream of uniforms for their event draws: the slow level averaged +2.55
+    mg/dL/h over 72 runs (standard error 0.26) and every generated person moved together. Seeding from seed and donor
+    (plant_v3, default on): slow level -1.07 (sd 4.2 across runs); v3m6 seeds 0 / 1 TIR 62.7 / 61.3 -> 62.8 / 64.2, mean
+    164 / 167 -> 163 / 161, t<54 1.96 / 2.01 -> 1.89 / 1.87 (field 74.1 / 152 / 0.12). Every earlier pooled result had 3
+    shared paths per arm, not 72 independent ones. (b) Between meals generated background ICE (slow level removed) runs
+    +6-9 mg/dL/h above real from 2 h after a meal on, while fed real history the model is within +2 at every interval; so
+    people arrive at meals ~20 mg/dL high (165 vs 144), Loop adds automatic insulin (2.85 vs 2.51 U in the 3 h after a meal
+    bolus, 27.9 vs 23.9 U/day), and the tail stacks into lows 2-4 h after meals (t<54 5.5% vs 0.06%). Reverse swap: putting
+    back the real glucose level or real meal activity changes nothing; putting back the real previous background ICE
+    returns the predicted mean to its real-input value for every donor (i008 47.5 -> 32.5, real 31.5; i005 42.0 -> 53.1,
+    real 54.1). It is not a one-way bias: each generated person's level wanders off theirs and holds for the month (+16 to
+    -12), because the model follows its own last value and was only ever shown real ones, so it never learned to pull back.
+    Under test: scheduled sampling on the single exact channel (arm h).
