@@ -497,3 +497,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     the rollout's own; real inputs with only the background-ICE channels from the rollout 5.32. Why: the labeler starts a
     pulse where ICE begins to rise, so a real meal-head start is preceded by a background-ICE dip (-0.6 sd 10 min before
     onset, 40 donors); the behavior heads learned "dip -> meal" and in generation read it off the model's own draws.
+53. **The behavior path no longer sees background ICE (v3m10); kept.** A person sees glucose, not ICE, and the only thing the
+    behavior heads could learn from background ICE was the labeler's trough-then-rise onset (LESSONS 52). v3m10 = v3m6 with
+    bgice / bgice_ok / bgice_ema masked from the behavior path (the ICE path unchanged). Seeds 0 / 1, held-out, kept harness:
+    unannounced meal starts 4.33 / 4.43 per day (labeled 4.21; v3m6 5.55), entry-started 2.74 / 3.02 (2.93), generated
+    pulse grams 241 / 236 per day (v3m6 282); calibration offsets shrink (meal +0.07 vs +0.15, entry +0.01 vs +0.16); the
+    swap test's closed / real ratio 1.13 / 1.11 (v3m6 1.18), the rest from the pulse and glucose channels. Clean-time
+    outcomes, v3m6 -> v3m10: TIR 64.1 / 65.6 -> 67.0 / 65.2, t<54 1.66 / 1.71 -> 1.95 / 1.58, mean 162 / 157 -> 159 / 158,
+    insulin 39.7 / 37.4 -> 38.0 / 36.8 U/day (field 74.1 / 0.12 / 152 / 33.1), 5-min quantile distance 16.6 / 13.5 -> 13.8 /
+    14.2, hourly 18.0 / 18.6 -> 17.3 / 17.6. Kept for the structure fix; outcome changes are within seed noise. The t<54
+    gap (1.6-2.0 vs 0.12) is not from meal-start counts.
