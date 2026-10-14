@@ -579,3 +579,8 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Not a level bias: on the held-out month the model's predicted background mean is 0.2 mg/dL/h above the real one and its
     rollouts 1.4 above (median donor; real held-out 33.0, the 28 training days before it 39.1), so the extra insulin comes
     from how ICE moves, not from how much there is.
+61. **Training noise of the kept recipe (v3m10, ice_v32, kept harness), three trainings.** Held-out clean-time TIR 67.0 /
+    65.2 / 68.7, t<70 3.78 / 3.37 / 3.96, t<54 1.95 / 1.58 / 1.69, mean 159 / 158 / 152, insulin 38.0 / 36.8 / 37.2 U/day
+    (field 74.1 / 0.86 / 0.12 / 152 / 33.1); 5-min quantile distance 13.8 / 14.2 / 12.3, hourly 17.3 / 17.6 / 17.3. Seed-
+    to-seed sd: TIR ~1.8, t<54 ~0.19, mean ~4. A change is beyond training noise when it moves TIR by more than ~3 or t<54
+    by more than ~0.4 on both of two seeds.
