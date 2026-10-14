@@ -608,3 +608,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     The generator sizes an edit's effect on mean glucose about right overall and a third small where need is steady;
     TIR and t<54 changes do not yet rank. Its own-settings level is off (TIR median -5.0 / -6.9 vs replay -0.2): the
     absolute gap of LESSONS 54-60.
+64. **Refitting each person's behavior traits by maximum likelihood on their training days puts rare behavior right; kept
+    (post-training step).** `fit_traits.py` (runs dir, beside calibrate_v3.py): network frozen, per person and head
+    (meal, entry, b_with, b_alone) the logit shift d with sum sigmoid(logit + d) = events + 0.5 over the head's training
+    steps, unweighted. Run after training, before calibrate_v3.py. Shifts are small for most people (median ~0, 90%
+    within -0.4..+0.6) and large for the rare: non-announcers' entry -3 at the 5th percentile, i056's lone-bolus -4.6
+    (no corrections in 100 training days, previously expected at 0.62 a day). The pooled calibration offsets then fall
+    to ~0 (meal +0.03, entry 0.00, b_alone +0.05; before +0.15 / +0.16 / +0.33): what calibration did in bulk is now
+    per person. v3m10 seeds 0 / 1, held-out: lone boluses per day for the rarest correctors i056 0.00 / 0.00 (field
+    0.00; before 0.40), i033 0.19 / 0.12 (0.04; before 0.54), i039 0.64 / 0.52 (0.39; 1.11); outcomes within noise (TIR
+    66.2 / 65.0 vs 67.0 / 65.2, t<54 1.77 / 1.52 vs 1.95 / 1.58); per-person pass rate (3 runs, 50% if faithful) mean
+    glucose 29 -> 42 / 21 -> 33%, insulin 21 -> 29 / 21 -> 21%, t<54 8 -> 12 / 8 -> 12%, TIR 12% unchanged.
