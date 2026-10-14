@@ -507,3 +507,20 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     insulin 39.7 / 37.4 -> 38.0 / 36.8 U/day (field 74.1 / 0.12 / 152 / 33.1), 5-min quantile distance 16.6 / 13.5 -> 13.8 /
     14.2, hourly 18.0 / 18.6 -> 17.3 / 17.6. Kept for the structure fix; outcome changes are within seed noise. The t<54
     gap (1.6-2.0 vs 0.12) is not from meal-start counts.
+54. **Excess lows sit after boluses; refitted pulse shapes are right but not kept, and meal order is not the cause.** v3m10
+    seed 0, held-out: low crossings within 3 h of a manual bolus 0.87 vs 0.39 per day, beyond 5 h 0.41 vs 0.51 (the
+    generator has fewer lows away from boluses). A generated meal bolus is followed by glucose < 70 within 3 h 26% of the
+    time, 8% in the field; per lone bolus 0.13 vs 0.08. Not the cause, each measured: entered grams (25 vs 25 per meal
+    bolus), insulin in the first 30 min (+3.2 vs +3.1 U IOB), pulse grams per entered gram (generated 1.69, field 1.30),
+    drawn pulse shapes (size-normalized mean kernel within 0.1/h of the labels at every hour), meal order (eating before
+    the bolus in 27% of generated vs 26% of field meal boluses, and generated lows are 2-3x the field's in both orders).
+    The labeler's pulse kernel was too slow (rebuilt from the peak and run length of 35-min smoothed excess it missed
+    12 / 23 mg/dL/h at 15 / 30 min after onset; a per-meal least-squares fit leaves -2 / +3, meals.py fit_shapes,
+    ice_v32f), but retraining v3m10 on those labels made outcomes worse, TIR 61.9 / 62.2, t<54 2.42 / 2.10 (v3m10 on the
+    old labels 67.0 / 65.2, 1.95 / 1.58): the early meal ICE moved from background into the pulse, and the generator's
+    pulses still rise no faster after a meal bolus (pulse ICE at 30 min 58-60 vs 71 labeled). The labeler keeps the fit;
+    the models stay on ice_v32 until the post-bolus gap is understood. Background ICE response to glucose state (band x
+    15-min trend, next 30 min) matches the field within a few mg/dL/h everywhere; total ICE quantiles match (median 58 vs
+    52); the background is 5 mg/dL/h higher and wider above (90th 96 vs 87, sd of hourly means 41 vs 35), and Loop
+    delivers ~15% more insulin. Excess lows come at every daily background level, not only low days (1.5 vs 0.95 per day
+    in the middle half, 1.4 vs 0.65 in the 75-95th band).
