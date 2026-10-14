@@ -213,7 +213,13 @@ from . import cgm_streams as _cgm
 #      the phone's (a pod paired in winter time; therapy.json `scheduleShifts`). i008 decision-time
 #      replay bolus exact 88.5 -> 92.1%, worst 2.35 -> 0.65 U. 22 of 207 donors shift somewhere in
 #      06-01..10-07 (manifest `schedule_shift_days`); long-running: i008 i071 i076 i078 i122 i147 i165.
-DATA_VERSION = 31
+#  32  glucose.json `receivedDate` on CGM readings Loop did not upload itself, taken while it was not
+#      running (no loop cycle in the 6.5 min before) and received by Tidepool later: the replay sees
+#      them from Tidepool's createdTime, not their timestamp (i008 09-24 04:23 after a loop gap:
+#      forecast +95 mg/dL RC with them, matches Loop to 0.6 mg/dL without). Donors with no
+#      Loop-uploaded readings (glucose from Health) are unchanged. Manifest `cgm_late_received`.
+#      no_dose_guard also on missingDataError(glucose): Loop had no reading (i008 09-17).
+DATA_VERSION = 32
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -777,10 +783,14 @@ def _decision_times(user, s_ms, e_ms):
         guard = 0
         if r.no_fc and _fin(r.rec_bolus) is None and _fin(r.rec_rate) is None and r.errors:
             try:
-                ids = {e.get("id") for e in json.loads(r.errors) if isinstance(e, dict)}
+                errs = [e for e in json.loads(r.errors) if isinstance(e, dict)]
             except (ValueError, TypeError):
-                ids = set()
-            if ids & {"pumpDataTooOld", "glucoseTooOld"}:
+                errs = []
+            ids = {e.get("id") for e in errs}
+            # missingDataError(glucose): no reading in Loop at all (i008 09-17, phone away)
+            if ids & {"pumpDataTooOld", "glucoseTooOld"} or any(
+                    e.get("id") == "missingDataError" and (e.get("metadata") or {}).get("detail") == "glucose"
+                    for e in errs):
                 guard = 1
         out.append(dict(t_ms=int(r.t_ms), rec_bolus=_fin(r.rec_bolus),
                         rec_rate=_fin(r.rec_rate), rec_dur_ms=_fin(r.rec_dur_ms),
@@ -1139,7 +1149,20 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         "CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol",
         "COALESCE(deviceId, get_json_object(CAST(payload AS STRING),'$.transmitterId')) AS label",
         "COALESCE(regexp_extract(deviceId, '^([^_]+)_', 1), "
-        "  get_json_object(CAST(origin AS STRING),'$.name')) AS kind"], win, "cbg"))
+        "  get_json_object(CAST(origin AS STRING),'$.name')) AS kind",
+        "CAST(get_json_object(CAST(createdTime AS STRING),'$.$date.$numberLong') AS BIGINT) AS created_ms",
+        "COALESCE(get_json_object(CAST(origin AS STRING),'$.name') LIKE '%loopkit.Loop', FALSE) AS loop_origin"],
+        win, "cbg"))
+    # When each reading reached Loop. A reading taken while Loop was not running (no loop cycle in the
+    # 6.5 min before it: a running Loop cycles every 5) was not in Loop when it next ran -- the phone
+    # was away -- and reached it at best when Tidepool did, from the Dexcom app's own upload or a
+    # late backfill. The replay must not see it before then (i008 09-24 04:23, after a 39-min gap:
+    # with the gap readings our forecast carried +95 mg/dL RC and +9 momentum; without them it
+    # matches Loop's to 0.6 mg/dL). Loop's own record agrees: on i008 09-17, phone away for hours,
+    # its cycles recorded missingDataError(glucose). While Loop runs it has every reading, even one
+    # whose upload came from elsewhere or late (i008 09-11: Loop uploaded one reading in ten), and a
+    # reading Loop uploaded itself it had. Only for donors whose Loop uploads its own CGM: one
+    # reading glucose from Health catches up from Health.
     readings = []
     for r in g.itertuples():
         v = _fin(r.mmol)
@@ -1156,6 +1179,18 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                 f"AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)}")
     anchors = [(int(r.t_ms), v * MMOL if v < 40 else v) for r in anc.itertuples()
                for v in [_fin(r.v)] if v is not None]
+    import bisect as _bis
+    dec = sorted(int(r.t_ms) for r in anc.itertuples())
+    has_loop_cgm = bool(g["loop_origin"].fillna(False).astype(bool).any()) if len(g) else False
+    recv_ms = {}
+    for r in g.itertuples():
+        c = _fin(r.created_ms)
+        if not has_loop_cgm or bool(r.loop_origin) or c is None or c - r.t_ms <= 120000 or _fin(r.mmol) is None:
+            continue
+        k = _bis.bisect_right(dec, int(r.t_ms)) - 1
+        if k >= 0 and dec[k] >= r.t_ms - 390000:
+            continue                                  # Loop was running: it had this reading
+        recv_ms[int(r.t_ms)] = int(c)
     kept, cgm_report, cgm_summary = _cgm.select(readings, anchors)
     # dedup by timestamp (Tidepool has duplicate uploads; dupes break the velocity/ICE grid):
     # first per 1-min bucket of the kept sensor
@@ -1165,6 +1200,12 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         if key in seen: continue
         seen.add(key)
         glucose.append({"startDate": _iso(t_ms), "quantity": mgdl})
+        if t_ms in recv_ms:
+            glucose[-1]["receivedDate"] = _iso(recv_ms[t_ms])
+    late_received = sum("receivedDate" in x for x in glucose)
+    if late_received:
+        print(f"{user}: {late_received} CGM reading(s) taken while Loop was not running, visible to the "
+              f"replay from when Tidepool received them")
     cgm_report += [dict(hour_ms=q["start_ms"], kind=q["kind"], sensors="", kept="", reason=q["detail"],
                         anchors="", readings=_iso(q["end_ms"])) for q in _cgm.quality(kept)]
 
@@ -1462,7 +1503,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
             for g in glucose:
                 g_ms = _iso_to_ms(g["startDate"])
                 if g_ms in post:
-                    g["receivedDate"] = _iso(post[g_ms])
+                    g["receivedDate"] = _iso(max(post[g_ms], _iso_to_ms(g.get("receivedDate", _iso(0)))))
             with open(os.path.join(outdir, "glucose.json"), "w") as fh:
                 json.dump(glucose, fh, allow_nan=False)
             print(f"{user}: post-dated {len(post)} late CGM sample(s) past the stale decision(s)")
@@ -1554,6 +1595,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                                 second_app_bolus_dropped=second_app_dropped,
                                 pump_reimport_bolus_dropped=reimport_dropped,
                                 unrecorded_bolus_added=len(unrecorded),
+                                cgm_late_received=late_received,
                                 schedule_shift_days=round(sum(_iso_to_ms(x["end"]) - _iso_to_ms(x["start"])
                                                               for x in therapy.get("scheduleShifts", [])) / 86400000, 1),
                                 second_app_basal_dropped=second_app_basal_dropped,
