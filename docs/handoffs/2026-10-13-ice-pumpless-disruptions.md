@@ -20,11 +20,9 @@ expires within about 80 h, and replacing it needs a controller. Glucose stays wh
 and nothing in Tidepool says how much.
 
 **Which record is right.** Neither stands for delivery. `doses.json` correctly has no Loop doses. The
-schedule fill in `steps` assumes a pump nobody was talking to was running its basal, with no boluses. My
-understanding (not verified against LoopKit source in this session) is that Loop's recorded IOB doesn't
-confirm it either: on a pump that doesn't record basal-profile events (Omnipod), DoseStore fills the time
-after its last pump event with scheduled basal up to *now*. A flat schedule-only IOB is then Loop's own
-assumption. Real meal boluses from another device wouldn't appear in it at all. If ice's IOB check shows bolus-shaped jumps in these stretches, that would contradict this, so please look.
+schedule fill in `steps` assumes a pump nobody was talking to was running its basal, with no boluses.
+Loop's own recorded IOB agrees there was no Loop delivery: over i061 08-17 → 08-30 it is about 0
+throughout (ice: 3,544 samples, median 0.00 U, one jump over 0.3 U).
 
 **Suggested handling.** Treat these steps as insulin-unknown. Don't fill them, and leave them out of
 ICE fitting and closed-loop calibration as well as outcomes. The replay plant already follows field CGM
