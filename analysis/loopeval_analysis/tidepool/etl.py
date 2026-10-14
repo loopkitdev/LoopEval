@@ -208,7 +208,18 @@ from . import cgm_streams as _cgm
 #      reached Tidepool as a bolus record are restored from the bolus screen's requestedBolus
 #      (see _unrecorded_boluses). Pilot pool: ~10 cases; i001 09-07 23:43 5.4 U, whose absence drove
 #      a 3 h replay low to 20 mg/dL (field >= 69).
-DATA_VERSION = 30
+#  31  schedules run on the PUMP's clock: a per-day shift (+-1 h) inferred from the pump's own
+#      scheduled-basal records moves basal/ISF/CR/target where the pump's time zone differs from
+#      the phone's (a pod paired in winter time; therapy.json `scheduleShifts`). i008 decision-time
+#      replay bolus exact 88.5 -> 92.1%, worst 2.35 -> 0.65 U. 22 of 207 donors shift somewhere in
+#      06-01..10-07 (manifest `schedule_shift_days`); long-running: i008 i071 i076 i078 i122 i147 i165.
+#  32  glucose.json `receivedDate` on CGM readings Loop did not upload itself, taken while it was not
+#      running (no loop cycle in the 6.5 min before) and received by Tidepool later: the replay sees
+#      them from Tidepool's createdTime, not their timestamp (i008 09-24 04:23 after a loop gap:
+#      forecast +95 mg/dL RC with them, matches Loop to 0.6 mg/dL without). Donors with no
+#      Loop-uploaded readings (glucose from Health) are unchanged. Manifest `cgm_late_received`.
+#      no_dose_guard also on missingDataError(glucose): Loop had no reading (i008 09-17).
+DATA_VERSION = 32
 
 
 def _dedup(cols, where, typ, order="_id"):
@@ -772,10 +783,14 @@ def _decision_times(user, s_ms, e_ms):
         guard = 0
         if r.no_fc and _fin(r.rec_bolus) is None and _fin(r.rec_rate) is None and r.errors:
             try:
-                ids = {e.get("id") for e in json.loads(r.errors) if isinstance(e, dict)}
+                errs = [e for e in json.loads(r.errors) if isinstance(e, dict)]
             except (ValueError, TypeError):
-                ids = set()
-            if ids & {"pumpDataTooOld", "glucoseTooOld"}:
+                errs = []
+            ids = {e.get("id") for e in errs}
+            # missingDataError(glucose): no reading in Loop at all (i008 09-17, phone away)
+            if ids & {"pumpDataTooOld", "glucoseTooOld"} or any(
+                    e.get("id") == "missingDataError" and (e.get("metadata") or {}).get("detail") == "glucose"
+                    for e in errs):
                 guard = 1
         out.append(dict(t_ms=int(r.t_ms), rec_bolus=_fin(r.rec_bolus),
                         rec_rate=_fin(r.rec_rate), rec_dur_ms=_fin(r.rec_dur_ms),
@@ -1134,7 +1149,20 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         "CAST(get_json_object(value,'$.$numberInt') AS DOUBLE)) AS mmol",
         "COALESCE(deviceId, get_json_object(CAST(payload AS STRING),'$.transmitterId')) AS label",
         "COALESCE(regexp_extract(deviceId, '^([^_]+)_', 1), "
-        "  get_json_object(CAST(origin AS STRING),'$.name')) AS kind"], win, "cbg"))
+        "  get_json_object(CAST(origin AS STRING),'$.name')) AS kind",
+        "CAST(get_json_object(CAST(createdTime AS STRING),'$.$date.$numberLong') AS BIGINT) AS created_ms",
+        "COALESCE(get_json_object(CAST(origin AS STRING),'$.name') LIKE '%loopkit.Loop', FALSE) AS loop_origin"],
+        win, "cbg"))
+    # When each reading reached Loop. A reading taken while Loop was not running (no loop cycle in the
+    # 6.5 min before it: a running Loop cycles every 5) was not in Loop when it next ran -- the phone
+    # was away -- and reached it at best when Tidepool did, from the Dexcom app's own upload or a
+    # late backfill. The replay must not see it before then (i008 09-24 04:23, after a 39-min gap:
+    # with the gap readings our forecast carried +95 mg/dL RC and +9 momentum; without them it
+    # matches Loop's to 0.6 mg/dL). Loop's own record agrees: on i008 09-17, phone away for hours,
+    # its cycles recorded missingDataError(glucose). While Loop runs it has every reading, even one
+    # whose upload came from elsewhere or late (i008 09-11: Loop uploaded one reading in ten), and a
+    # reading Loop uploaded itself it had. Only for donors whose Loop uploads its own CGM: one
+    # reading glucose from Health catches up from Health.
     readings = []
     for r in g.itertuples():
         v = _fin(r.mmol)
@@ -1151,6 +1179,18 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                 f"AND {_TMS} BETWEEN {int(s_ms)} AND {int(e_ms)}")
     anchors = [(int(r.t_ms), v * MMOL if v < 40 else v) for r in anc.itertuples()
                for v in [_fin(r.v)] if v is not None]
+    import bisect as _bis
+    dec = sorted(int(r.t_ms) for r in anc.itertuples())
+    has_loop_cgm = bool(g["loop_origin"].fillna(False).astype(bool).any()) if len(g) else False
+    recv_ms = {}
+    for r in g.itertuples():
+        c = _fin(r.created_ms)
+        if not has_loop_cgm or bool(r.loop_origin) or c is None or c - r.t_ms <= 120000 or _fin(r.mmol) is None:
+            continue
+        k = _bis.bisect_right(dec, int(r.t_ms)) - 1
+        if k >= 0 and dec[k] >= r.t_ms - 390000:
+            continue                                  # Loop was running: it had this reading
+        recv_ms[int(r.t_ms)] = int(c)
     kept, cgm_report, cgm_summary = _cgm.select(readings, anchors)
     # dedup by timestamp (Tidepool has duplicate uploads; dupes break the velocity/ICE grid):
     # first per 1-min bucket of the kept sensor
@@ -1160,6 +1200,12 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         if key in seen: continue
         seen.add(key)
         glucose.append({"startDate": _iso(t_ms), "quantity": mgdl})
+        if t_ms in recv_ms:
+            glucose[-1]["receivedDate"] = _iso(recv_ms[t_ms])
+    late_received = sum("receivedDate" in x for x in glucose)
+    if late_received:
+        print(f"{user}: {late_received} CGM reading(s) taken while Loop was not running, visible to the "
+              f"replay from when Tidepool received them")
     cgm_report += [dict(hour_ms=q["start_ms"], kind=q["kind"], sensors="", kept="", reason=q["detail"],
                         anchors="", readings=_iso(q["end_ms"])) for q in _cgm.quality(kept)]
 
@@ -1457,7 +1503,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
             for g in glucose:
                 g_ms = _iso_to_ms(g["startDate"])
                 if g_ms in post:
-                    g["receivedDate"] = _iso(post[g_ms])
+                    g["receivedDate"] = _iso(max(post[g_ms], _iso_to_ms(g.get("receivedDate", _iso(0)))))
             with open(os.path.join(outdir, "glucose.json"), "w") as fh:
                 json.dump(glucose, fh, allow_nan=False)
             print(f"{user}: post-dated {len(post)} late CGM sample(s) past the stale decision(s)")
@@ -1549,6 +1595,9 @@ def export_donor(user, start, end, outdir, insulin_type=None):
                                 second_app_bolus_dropped=second_app_dropped,
                                 pump_reimport_bolus_dropped=reimport_dropped,
                                 unrecorded_bolus_added=len(unrecorded),
+                                cgm_late_received=late_received,
+                                schedule_shift_days=round(sum(_iso_to_ms(x["end"]) - _iso_to_ms(x["start"])
+                                                              for x in therapy.get("scheduleShifts", [])) / 86400000, 1),
                                 second_app_basal_dropped=second_app_basal_dropped,
                                 dose_doubt_days=len(doubt_days),
                                 cgm_sensors=cgm_summary["sensors"], cgm_two_sensor_hours=cgm_summary["conflict_hours"],
@@ -1737,6 +1786,97 @@ def _strategy_modes(dts, therapy, margin=0.06):
     return modes
 
 
+SHIFT_CANDIDATES_MIN = (-60, 60)   # a clock left on the other side of a DST change; wider shifts matched only artifacts (settings-edit timing)
+
+
+def _schedule_shifts(basal, evidence, s_ms, e_ms, breaks=()):
+    """[(start_ms, end_ms, shift_min)] periods where the pump ran its basal schedule shifted
+    from our expansion (+-60 min). Per day, each scheduled-basal record's rate (sampled a minute after its
+    start) is checked against the expanded schedule at t - shift, over the records the shifts
+    disagree on. A day with >= 6 of them stays unshifted if no shift matches >= 90%, else moves
+    to the smallest shift that matches >= 90% and beats no shift by >= 20 points (a tie between
+    +-d is ambiguous). A move to a shift needs two informative days in a row; other days keep
+    the previous day's shift. Records within an hour of a `breaks` instant (settings edit, time
+    zone change) are skipped: a one-off edit moved by an hour also "matches" a shift (i137)."""
+    import bisect
+    if not basal or not evidence:
+        return []
+    bst = [_iso_to_ms(b["startDate"]) for b in basal]
+    ben = [_iso_to_ms(b["endDate"]) for b in basal]
+    bval = [float(b["value"]) for b in basal]
+    def base(t):
+        i = bisect.bisect_right(bst, t) - 1
+        return bval[i] if i >= 0 and t < ben[i] else None
+    day = 86400000
+    by_day = {}
+    for t, r in evidence:
+        by_day.setdefault((t - s_ms) // day, []).append((t + 60000, r))
+    cands = (0,) + SHIFT_CANDIDATES_MIN
+    near_break = lambda t: any(abs(t - b) <= 61 * 60000 for b in breaks)
+    cur, pending, per_day = 0, None, []
+    for k in range((e_ms - s_ms + day - 1) // day):
+        rows = []
+        for t, r in by_day.get(k, []):
+            bs = [base(t - sh * 60000) for sh in cands]
+            if None in bs or len({round(b, 4) for b in bs}) == 1 or near_break(t):
+                continue                      # every shift agrees here: says nothing
+            rows.append([abs(b - r) < 0.011 for b in bs])
+        if len(rows) >= 6:
+            score = {sh: sum(row[c] for row in rows) / len(rows) for c, sh in enumerate(cands)}
+            top = max(score.values())
+            best = min((sh for sh in cands if score[sh] == top), key=abs)
+            tied = [sh for sh in cands if score[sh] == top and abs(sh) == abs(best)]
+            if score[0] >= 0.9:
+                cur, pending = 0, None
+            elif top >= 0.9 and len(tied) == 1 and top - score[0] >= 0.2:
+                if best == cur:
+                    pending = None
+                elif pending == best:
+                    cur, pending = best, None
+                    # the first of the two days ran the shift too
+                    if per_day and per_day[-1] != best:
+                        per_day[-1] = best
+                else:
+                    pending = best
+        per_day.append(cur)
+    out = []
+    for k, sh in enumerate(per_day):
+        a, b = s_ms + k * day, min(s_ms + (k + 1) * day, e_ms)
+        if sh and out and out[-1][2] == sh and out[-1][1] == a:
+            out[-1] = (out[-1][0], b, sh)
+        elif sh:
+            out.append((a, b, sh))
+    return out
+
+
+def _apply_shifts(segs, shifts):
+    """Inside each shift period, the schedule as the pump ran it: our expansion moved by the
+    shift, clipped to the period. Time the moved schedule doesn't cover (the window's edge)
+    keeps the unshifted value."""
+    if not shifts:
+        return segs
+    def clip(src, a, b, d=0):
+        out = []
+        for r in src:
+            s0, e0 = _iso_to_ms(r["startDate"]) + d, _iso_to_ms(r["endDate"]) + d
+            s1, e1 = max(s0, a), min(e0, b)
+            if e1 > s1:
+                out.append(dict(r, startDate=_iso(s1), endDate=_iso(e1)))
+        return out
+    out = []
+    lo = _iso_to_ms(segs[0]["startDate"]); hi = _iso_to_ms(segs[-1]["endDate"])
+    cur = lo
+    for a, b, d in shifts:
+        out += clip(segs, cur, a)
+        moved = clip(segs, a, b, d * 60000)
+        m_lo = _iso_to_ms(moved[0]["startDate"]) if moved else b
+        m_hi = _iso_to_ms(moved[-1]["endDate"]) if moved else b
+        out += clip(segs, a, m_lo) + moved + clip(segs, m_hi, b)
+        cur = b
+    out += clip(segs, cur, hi)
+    return sorted(out, key=lambda r: r["startDate"])
+
+
 def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
     # Full pumpSettings history up to window end (NO lower bound — we need the record
     # active at window START too), oldest→newest. We track SETTINGS CHANGES over the
@@ -1801,6 +1941,18 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
                                    "upperBound": round(_num(it.get("high", it.get("target"))) * MMOL, 1)}, tzline, tz)
         contrib.append(r)
     basal, sens, cr, tgt = map(_merge_adj, (basal, sens, cr, tgt))
+    # The pump runs its schedules in ITS time zone, which Loop fixes when a pod is paired (a
+    # fixed UTC offset) and changes only when the user accepts the time-zone prompt. A pump
+    # left on winter time runs every schedule an hour later all summer (i008: 0.85 -> 1.0 U/h
+    # at 15:30 UTC, ours at 14:30). pumpSettings.scheduleTimeZoneOffset says so on ~5% of rows
+    # and is wrong on some (i068), so the shift is read off the pump's own scheduled-basal
+    # records and applied to all four schedules.
+    breaks = [max(t0, s_ms) for t0, _ in eras] + [t for t, _ in tzline]
+    shifts = _schedule_shifts(basal, _scheduled_rate_evidence(user, s_ms, e_ms), s_ms, e_ms, breaks)
+    if shifts:
+        basal, sens, cr, tgt = (_merge_adj(_apply_shifts(x, shifts)) for x in (basal, sens, cr, tgt))
+        print(f"{user}: schedules shifted to the pump's clock — "
+              + ", ".join(f"{_iso(a)[:10]}..{_iso(b)[:10]} {d:+d} min" for a, b, d in shifts))
     if len(contrib) > 1:
         print(f"{user}: therapy spans {len(contrib)} settings eras in-window (tracking mid-window changes)")
 
@@ -1861,6 +2013,7 @@ def _therapy(user, s_ms, e_ms, insulin_type="rapidActingAdult"):
     return {"basal": basal, "sensitivity": sens, "carbRatio": cr, "target": tgt,
             "rawBasal": basal, "rawSensitivity": sens, "rawCarbRatio": cr, "rawTarget": tgt,
             "overrideWindows": override_windows,
+            "scheduleShifts": [{"start": _iso(a), "end": _iso(b), "shiftMin": d} for a, b, d in shifts],
             "suspendThreshold": round(safety * MMOL, 1) if safety else 70.0,
             # Delivery limits from the deployed pumpSettings (last record ≤ window
             # end). These were hard-coded 12.0/8.0 for every donor, which SATURATED
