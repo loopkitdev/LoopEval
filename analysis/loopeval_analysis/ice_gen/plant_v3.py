@@ -40,7 +40,7 @@ from .extract import MODELS, RAPID_ACTING_ADULT
 from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
 from .model_v3j import ICEGenV3J, ICEGenV3K
-from .model_v3m import ICEGenV3M, ICEGenV3M3, ICEGenV3M4, ICEGenV3M5, ICEGenV3M6, ICEGenV3M7, ICEGenV3M8
+from .model_v3m import ICEGenV3M, ICEGenV3M3, ICEGenV3M4, ICEGenV3M5, ICEGenV3M6, ICEGenV3M7, ICEGenV3M8, ICEGenV3M9
 from . import dataset_v3m3 as D3M3
 from . import dataset_v3m as D3M
 from .noise import LevelNoise
@@ -101,9 +101,10 @@ class PlantV3:
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
-        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7, "v3m8": ICEGenV3M8}.get(ck.get("arch"), ICEGenV3)
-        self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8")     # entries and boluses drawn as their own events (dataset_v3m)
-        self.net = Net(len(ck["features"]), len(ck["people"])); self.net.load_state_dict(ck["state"]); self.net.eval()
+        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7, "v3m8": ICEGenV3M8, "v3m9": ICEGenV3M9}.get(ck.get("arch"), ICEGenV3)
+        self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9")     # entries and boluses drawn as their own events (dataset_v3m)
+        self.net = (Net(len(ck["features"]), len(ck["people"]), features=list(ck["features"])) if ck.get("arch") == "v3m9" else Net(len(ck["features"]), len(ck["people"])))
+        self.net.load_state_dict(ck["state"]); self.net.eval()
         self.features = list(ck["features"]); self.F = {f: i for i, f in enumerate(self.features)}
         self.drop = list(ck.get("drop", []))
         self.pid = torch.tensor([ck["people"].index(alias)])

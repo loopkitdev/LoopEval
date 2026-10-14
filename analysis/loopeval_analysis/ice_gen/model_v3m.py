@@ -372,3 +372,30 @@ class ICEGenV3M8(ICEGenV3M5):
     fitted to real data) and the day level from the slow-level process, both stationary by construction."""
     arch = "v3m8"
     ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30", "bgice_ema", "bgice", "bgice_ok", "bgice_6h", "bgice_24h"]
+
+
+class ICEGenV3M9(ICEGenV3M5):
+    """v3m9: the recurrent background-ICE path sees exogenous inputs only (meals, actions, clock, profile) and no glucose:
+    glucose is the running integral of background ICE minus insulin, so a recurrent net fed the glucose sequence can recover
+    its recent ICE by differencing, and in generation that carried its own draws back (v3m8, glucose the only own-history
+    route left: closed-loop / real predicted spread 1.55, t<54 4.75). Glucose enters only at the output, as the CURRENT reading
+    into a small head beside the recurrent state: the push near lows (physiology) is learned, but one value carries no history.
+    Step-to-step dependence: the plant's correlated draws (BGICE_RHO); day level: the slow process."""
+    arch = "v3m9"
+    ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30", "bgice_ema", "bgice", "bgice_ok", "bgice_6h", "bgice_24h", "bg", "bg_ok"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.i_bg = features.index("bg") if features is not None else 0
+        self.i_bgok = features.index("bg_ok") if features is not None else 1
+        self.register_buffer("bg_idx", torch.tensor([self.i_bg, self.i_bgok]))
+        self.head_ice = nn.Sequential(nn.Linear(hidden + 2, 128), nn.ReLU(), nn.Linear(128, self.sizes["bgice"]))
+
+    def forward(self, x, person, h=None):
+        h1, h2 = h if isinstance(h, tuple) else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        now = x.index_select(-1, self.bg_idx)                         # the current glucose reading only
+        out["bgice"] = self.head_ice(torch.cat([z2, now], -1))
+        return out, (h1, h2)
