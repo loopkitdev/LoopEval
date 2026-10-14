@@ -524,3 +524,15 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     52); the background is 5 mg/dL/h higher and wider above (90th 96 vs 87, sd of hourly means 41 vs 35), and Loop
     delivers ~15% more insulin. Excess lows come at every daily background level, not only low days (1.5 vs 0.95 per day
     in the middle half, 1.4 vs 0.65 in the 75-95th band).
+55. **Background ICE needs memory, and fed its own draws the memory compounds: moving the previous value out of the
+    recurrent path (v3m11) is not kept.** v3m10 is calibrated one step ahead (real values above its predicted 90 / 95 /
+    99th percentiles 9.9 / 5.0 / 1.0% of the time, in every band of the previous value), but generated background stays
+    correlated too long (0.08-0.10 at 35-60 min vs 0.04-0.06 real) and its hourly means spread wider (sd 41 vs 35). Swap
+    test on the predicted mean (v3m10 seed 0): hourly sd 28.2 on real inputs, 33.5 on the rollout's own, 26.3 with only
+    the previous value restored, 32.1 with only it taken from the rollout; the glucose, pulse, meal, entry, bolus and
+    clock groups each move it < 1. v3m11 (the previous value at the output head only): seeds 0 / 1 clean-time t<54 1.24 /
+    0.98 (v3m10 1.95 / 1.58), TIR 66.9 / 62.3, mean 155 / 167, but the 5-min distance fails its ceiling (36 / 41 vs
+    ceiling 28; v3m10 14), the draws widen (1st / 99th percentile -124 / 192 vs -79 / 153 real), correlation is now too
+    short (0.02-0.05 at 10-60 min) and hourly means spread wider still (46). Without memory the model covers what it
+    cannot track with wider draws. The lows respond to the correlation structure (t<54 fell with it), so the target is
+    memory that matches real persistence at 30-60 min, not less memory.
