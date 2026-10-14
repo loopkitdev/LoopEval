@@ -426,3 +426,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     real 54.1). It is not a one-way bias: each generated person's level wanders off theirs and holds for the month (+16 to
     -12), because the model follows its own last value and was only ever shown real ones, so it never learned to pull back.
     Under test: scheduled sampling on the single exact channel (arm h).
+47. **Scheduled sampling on the single exact channel trades the 5-min structure for the day level; not kept. One channel
+    cannot carry both timescales.** Arm h = v3m6 + FREERUN 0.5 with the model's own previous draw in the exact channel
+    (`runs/2026-10-14-ice-freerun/`, 3 seeds, per-donor random streams, held-out open-loop stage), against v3m6 seeds 0 / 1:
+    day-to-day sd of the daily background level 23.5 / 18.8 -> 16.0 / 20.1 / 15.8 (field 11.1); TIR 62.8 / 64.2 -> 63.4 /
+    65.4 / 66.0, mean 163 / 161 -> 162 / 156 / 160, t<54 1.89 / 1.87 -> 1.49 / 2.31 / 1.92 (field 74.1 / 152 / 0.12, all
+    within training noise); but background-ICE lag-1 autocorrelation 0.42 / 0.54 -> 0.13-0.14 (field 0.48) and closed-loop /
+    real predicted spread 0.95 / 0.85 -> 1.19-1.32. Taught to pull back from its own drift, it leans on its last value less,
+    and the minutes structure goes. Next: an exact channel per timescale (last value; own 6-h and 24-h background means), so
+    the day-level pull-back is learned from real days (1-day persistence 0.39) without touching the 5-min one.
+    Dial check on v3m6 (2 seeds, `runs/2026-10-14-ice-dials/`): announcement 1 / 0.5 / 0 moves entries 5.3 / 2.5 / 0 and meal
+    boluses with them, eating within 4% (279-290 g-eq/day) and day spread unchanged; compression 1 / 0 / 3 moves sensor
+    events 0.52 / 0 / 2.07 per 28 days and nothing else; slow-state 0 / 1 / 2 moves day spread 20.0 / 22.8 / 25.6 and
+    nothing else, but most of the (excess) day spread is the model's own. No monthly-cycle dial yet.
