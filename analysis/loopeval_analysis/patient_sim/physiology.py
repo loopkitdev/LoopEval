@@ -8,7 +8,9 @@ doi:10.1109/TBME.2023.3286856) plus the terms that decide the low tail and long 
   action     disposal   dX_D = −p2 (X_D − SI_D·I)              (absolute: uptake X·G can never go negative)
              EGP arm    dX_E = −p2E(X_E − (I − Ib)/Ib)          (relative insulin, slower)
   glucose    dG = −SG(G − Gb) − (X_D·M(G)·risk(G) − X_b·Gb) + (EGP − EGP_b)/VG + Ra/VG − renal(G)
-             M(G) = G·(Km + Gb)/(Km + G): insulin-dependent uptake saturates (UVA/Padova Michaelis–Menten)
+             M(G) = Gb + κ(G − Gb): κ = 1 is Bergman's X·G, whose insulin-dependent glucose effectiveness
+             SI·Ib (~0.01–0.08 /min once SI is calibrated to ISF) flattens every meal; κ ≈ 0.15 puts total
+             effective glucose effectiveness at the 0.0013–0.0047 /min fitted on UVA/Padova (COMPONENTS A5)
              (X_b = SI_D·Ib: the basal uptake the constant term balances, so the body rests at Gb)
              EGP = EGP_b · c(t) · clip(1 − sE·X_E, 0, 1 + sE) + CR(G)   (floor at 0, ~2× when insulin is gone)
   gut        per meal parcel  Qsto1 → Qsto2 → Qgut  (kempt·φ_hypo(G), kabs, delay β, bioavailability f)
@@ -43,9 +45,9 @@ class BodyParams:
     se: float = 1.0                # EGP suppression per unit relative insulin above basal
     ib: float = 10.0               # basal plasma insulin, mU/L — set from the true basal rate
     # glucose
-    vg: float = 1.45               # dL/kg
+    vg: float = 1.88               # dL/kg (UVA/Padova; ReplayBG's 1.45 gives ~2x the carb sensitivity people's settings imply)
     sg: float = 0.003              # insulin-INDEPENDENT glucose effectiveness, 1/min (see COMPONENTS: physiology)
-    km: float = 225.0              # mg/dL, Michaelis-Menten saturation of insulin-dependent uptake (UVA/Padova Km0)
+    kappa: float = 0.15            # glucose-dependence of insulin-mediated uptake: 1 = Bergman (X·G), 0 = linear (Loop) [J]
     gb: float = 119.0              # mg/dL, rest point at true basal insulin
     egp_b: float = 2.5             # mg/kg/min at basal insulin
     rthr: float = 180.0            # renal threshold, mg/dL
@@ -132,6 +134,7 @@ class Body:
         self.ra = 0.0                        # carbohydrate appearance, mg/kg/min
         self.egp = p.egp_b
         self.insulin_absorbed = 0.0          # mU/kg/min into plasma
+        self.lost_mu = 0.0                   # mU/kg delivered but never absorbed (site loss)
         self._settle_basal_depot()
 
     # ------------------------------------------------------------------ setup
@@ -146,6 +149,12 @@ class Body:
         self.basal.fast = u * d.psi / d.k_fast
         self.basal.i1 = u * (1 - d.psi) / d.kd
         self.basal.i2 = u * (1 - d.psi) / d.ka2
+
+    def prime(self, basal_u_per_h: float):
+        """Fill the delivery delay line as if `basal_u_per_h` had been running before minute 0."""
+        tau = int(round(self.form.tau))
+        for k in range(tau):
+            self.pending.append((self.minute + k + 0.5, basal_u_per_h * 1000.0 / 60.0 / self.p.bw, self.basal))
 
     def basal_rate_u_per_h(self) -> float:
         """The infusion that holds plasma insulin at Ib (the TRUE basal requirement)."""
@@ -190,11 +199,14 @@ class Body:
 
     # ------------------------------------------------------------------ dynamics
     def step(self, dt: float = 1.0, si_mult: float = 1.0, egp_mult: float = 1.0,
-             ex_intensity: float = 0.0, ex_anaerobic: float = 0.0, ex_si_boost: float = 0.0):
+             ex_intensity: float = 0.0, ex_anaerobic: float = 0.0, ex_si_boost: float = 0.0,
+             abs_mult: float = 1.0, bio: float = 1.0):
         """Advance `dt` minutes (explicit midpoint for the fast states; dt ≤ 1 recommended).
 
         si_mult: product of sensitivity modulators (circadian, daily, cycle, illness, stress,
         exercise after-effect). egp_mult: product of EGP modulators (dawn, illness, stress).
+        abs_mult: subcutaneous absorption speed (exercise, heat, site age). bio: fraction of insulin
+        arriving at the depot that is absorbed (a failing or leaking site loses the rest).
         ex_intensity ∈ [0, 1]: current exercise intensity above rest; ex_anaerobic ∈ [0, 1]: its
         high-intensity share; ex_si_boost: acute sensitivity increase during exercise (fraction)."""
         p = self.p
@@ -204,6 +216,8 @@ class Body:
             keep = []
             for (tm, mu, dep) in self.pending:
                 if tm <= m + dt:
+                    mu *= bio
+                    self.lost_mu += mu * (1 - bio) / max(bio, 1e-9) if bio < 1 else 0.0
                     dep.fast += mu * dep.psi
                     dep.i1 += mu * (1 - dep.psi)
                 else: keep.append((tm, mu, dep))
@@ -220,9 +234,9 @@ class Body:
         # --- insulin depots (linear, exact exponential update would be overkill at dt=1)
         absorbed = 0.0
         for dep in [self.basal] + self.depots:
-            f1 = dep.kd * dep.i1
-            f2 = dep.ka2 * dep.i2
-            ff = dep.k_fast * dep.fast
+            f1 = dep.kd * abs_mult * dep.i1
+            f2 = dep.ka2 * abs_mult * dep.i2
+            ff = dep.k_fast * abs_mult * dep.fast
             dep.i1 -= dt * f1
             dep.i2 += dt * (f1 - f2)
             dep.fast -= dt * ff
@@ -263,7 +277,7 @@ class Body:
         self.egp = egp
         uex = p.ex_uptake * ex_intensity * min(1.0, g / 90.0)
         renal = p.rcl * (g - p.rthr) if g > p.rthr else 0.0
-        mm = g * (p.km + p.gb) / (p.km + g)          # = g at Gb, saturating above it
+        mm = p.gb + p.kappa * (g - p.gb)             # insulin-mediated uptake's glucose dependence
         dg = (-p.sg * (g - p.gb) - (self.xd * mm * self.risk(g) - p.si_d * p.ib * p.gb)
               + (egp - p.egp_b - uex + ra) / p.vg - renal)
         self.g = max(10.0, g + dt * dg)

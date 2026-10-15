@@ -1,0 +1,166 @@
+"""LoopEval integration: export a virtual person's data dir, serve the external-plant protocol, run.
+
+    python -m loopeval_analysis.patient_sim.loopeval_io run --seed 7 --days 14 --out runs/.../v00007
+    python -m loopeval_analysis.patient_sim.loopeval_io serve <person-dir>      (launched by simulate)
+
+`simulate` takes its sample and decision times from the field glucose file, so the export holds
+(a) the burn-in history the world produced under its internal drive — glucose, doses, carb entries —
+and (b) the sensor's reporting grid for the rest of the window, with placeholder values the
+candidate arm never reads (the plant supplies every candidate sample after burn-in). The baseline
+arm replays the placeholders and is meaningless: read only the candidate arm.
+
+The plant re-simulates the burn-in from the same (person, seed), so its state at the first request
+equals what was exported; from then on LoopEval's doses drive it, and its person's carb entries and
+bolus requests go back to LoopEval (--plant-behavior).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import pickle
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from .world import EPOCH, DAY, World, minute_of, ts
+
+DEFAULT_BIN = os.environ.get("LOOPEVAL_BIN", str(Path.home() / "dev/LoopEval/.build/release/loop-eval"))
+WARMUP_H = 10.0         # LoopEval's eval warm-up (= insulinLookbackHours by default)
+BURN_H = 6.0            # LoopEval's default counterfactual burn-in; the first plant request is at ~16 h
+EXPORT_MARGIN_MIN = 120
+
+
+def export(world: World, out: Path, days: int, burn_end: float):
+    """Write the data dir. `world` must have been run internally through `burn_end` minutes."""
+    out.mkdir(parents=True, exist_ok=True)
+    P = world.person
+    st = P.settings
+    end = days * DAY
+    # glucose: real burn-in readings, then the reporting grid with placeholders
+    g = []
+    last = 110.0
+    for k in sorted(world.readings):
+        if k >= burn_end: break
+        v = world.readings[k]
+        if v is not None:
+            g.append(dict(startDate=ts(k), quantity=float(v))); last = v
+    phase = (max(world.readings) if world.readings else 0) % world.sensor.f.cadence
+    k = burn_end - (burn_end % world.sensor.f.cadence) + phase
+    while k < end:
+        if k >= burn_end: g.append(dict(startDate=ts(k), quantity=float(last)))
+        k += world.sensor.f.cadence
+    json.dump(g, open(out / "glucose.json", "w"))
+    itype = P.controller_insulin()
+    doses = []
+    for (typ, s, e, units, auto) in world.int_doses:
+        if s >= burn_end: continue
+        if typ == "basal":
+            doses.append(dict(basalType="scheduled", deliveryType="basal", startDate=ts(s), endDate=ts(e),
+                              volume=round(units, 5), tempRate=round(units * 60 / (e - s), 4),
+                              insulinType=itype, automatic=True))
+        else:
+            doses.append(dict(deliveryType="bolus", startDate=ts(s), endDate=ts(s), volume=round(units, 2),
+                              insulinType=itype, automatic=bool(auto)))
+    json.dump(sorted(doses, key=lambda d: d["startDate"]), open(out / "doses.json", "w"))
+    carbs = [dict(startDate=ts(t), entryDate=ts(t), dosingVisibleDate=ts(t), grams=float(gr), absorptionTime=float(a))
+             for (t, gr, a) in world.entries if t < burn_end]
+    json.dump(carbs, open(out / "carbs.json", "w"))
+    seg = lambda v: [dict(startDate=ts(0), endDate=ts(end), value=round(float(v), 3))]
+    tgt = [dict(startDate=ts(0), endDate=ts(end), lowerBound=st["target"] - 5, upperBound=st["target"] + 5)]
+    th = dict(basal=seg(st["basal_uh"]), sensitivity=seg(st["isf"]), carbRatio=seg(st["cr"]), target=tgt,
+              rawBasal=seg(st["basal_uh"]), rawSensitivity=seg(st["isf"]), rawCarbRatio=seg(st["cr"]), rawTarget=tgt,
+              overrideWindows=[], scheduleShifts=[], suspendThreshold=st["suspend"], maxBolus=st["max_bolus"],
+              maxBasalRate=st["max_basal"], maxBolusTimeline=seg(st["max_bolus"]),
+              maxBasalRateTimeline=seg(st["max_basal"]), suspendThresholdTimeline=seg(st["suspend"]),
+              insulinType=itype)
+    json.dump(th, open(out / "therapy.json", "w"))
+    json.dump(dict(data_version=32, source="additive patient_sim", person=P.name, template=P.template,
+                   seed=P.seed, days=days, burn_end_min=burn_end), open(out / "_export_manifest.json", "w"))
+    flags = ["--temp-basal-strategy"] if P.strategy == "temp" else []
+    json.dump(dict(required_flags=flags, notes="synthetic person; baseline arm is placeholder"),
+              open(out / "replay_config.json", "w"))
+
+
+# ------------------------------------------------------------------------------------------ plant
+def serve(person_dir: Path):
+    """Protocol v2 server on stdin/stdout. Writes truth.pkl to person_dir at EOF."""
+    meta = json.load(open(person_dir / "meta.json"))
+    person = pickle.load(open(person_dir / "person.pkl", "rb"))
+    world = World(person, meta["days"], enable=meta.get("enable"))
+    started = False
+    out = sys.stdout
+    for line in sys.stdin:
+        req = json.loads(line)
+        t0, t1 = minute_of(req["t0"]), minute_of(req["t1"])
+        if not started:
+            if t0 > meta["burn_end"]:
+                raise SystemExit(f"plant: first request at minute {t0:.0f} is past the exported history ({meta['burn_end']:.0f})")
+            world.run_internal(t0)
+            started = True
+        doses = [(d["type"], minute_of(d["start"]), minute_of(d["end"]), float(d["volume"])) for d in req.get("doses", [])]
+        samples = [minute_of(s) for s in req.get("samples", [])]
+        rep = world.advance(t0, t1, doses, samples, req.get("state") or {})
+        out.write(json.dumps(rep) + "\n"); out.flush()
+    save_truth(world, person_dir / "truth.pkl")
+
+
+def save_truth(world: World, path: Path):
+    tr = pd.DataFrame(world.truth, columns=["m", "bg", "ra", "egp", "si", "delivered", "absorbed"])
+    cgm = pd.Series({k: (np.nan if v is None else v) for k, v in world.readings.items()}, name="cgm")
+    pickle.dump(dict(truth=tr, cgm=cgm, behavior=world.beh.log, entries=world.entries,
+                     bolus_requests=world.bolus_requests, pump=world.pump.log,
+                     illness=world.mods.ill, sensor_log=None,
+                     person=world.person.name), open(path, "wb"))
+
+
+# ------------------------------------------------------------------------------------------ run
+def run(person, days: int, out: Path, bin_path: str = DEFAULT_BIN, enable: dict | None = None,
+        extra_flags: list[str] | None = None, python: str = sys.executable) -> dict:
+    out.mkdir(parents=True, exist_ok=True)
+    pickle.dump(person, open(out / "person.pkl", "wb"))
+    burn_end = 30 * 60.0          # generous: the first request depends on the data (observed 16-22 h)
+    json.dump(dict(days=days, enable=enable or {}, burn_end=burn_end), open(out / "meta.json", "w"))
+    w = World(person, days, enable=enable)
+    w.run_internal(burn_end)
+    export(w, out / "data", days, burn_end)
+    pkg_root = Path(__file__).resolve().parents[2]
+    plant = f"cd {pkg_root} && {python} -m loopeval_analysis.patient_sim.loopeval_io serve {out}"
+    flags = json.load(open(out / "data" / "replay_config.json"))["required_flags"]
+    cmd = [bin_path, "simulate", "--data-dir", str(out / "data"),
+           "--start", ts(0), "--end", ts(days * DAY),
+           "--candidate-counterfactual", "--external-plant", plant, "--plant-behavior",
+           "--cf-gap-reanchor-min", "0", "--trace-out", str(out / "trace.json")] + flags + (extra_flags or [])
+    t = time.time()
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    (out / "simulate.log").write_text(" ".join(cmd) + "\n\n" + r.stderr[-20000:])
+    if r.returncode != 0:
+        raise RuntimeError(f"simulate failed ({r.returncode}): {r.stderr[-1500:]}")
+    return dict(seconds=time.time() - t, out=str(out))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    s = sub.add_parser("serve"); s.add_argument("dir")
+    r = sub.add_parser("run")
+    r.add_argument("--seed", type=int, required=True); r.add_argument("--days", type=int, default=14)
+    r.add_argument("--alias"); r.add_argument("--out", required=True)
+    r.add_argument("--templates", default=str(Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/templates.csv"))
+    r.add_argument("--bin", default=DEFAULT_BIN)
+    a = ap.parse_args()
+    if a.cmd == "serve":
+        serve(Path(a.dir)); return
+    from .person import sample_person
+    T = pd.read_csv(a.templates)
+    P = sample_person(T, a.seed, alias=a.alias)
+    res = run(P, a.days, Path(a.out), a.bin)
+    print(json.dumps(res))
+
+
+if __name__ == "__main__":
+    main()
