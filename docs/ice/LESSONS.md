@@ -741,3 +741,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Seed 1 does not confirm the TIR gain: TIR r 0.09, slope 0.29; t<70 0.32 / 0.67; t<54 0.07 / 0.07; mean 0.28 / 0.56;
     own-settings level TIR -5.2. On settings edits v3m13 is on a par with v3m10 (TIR r 0.22 / 0.09 vs 0.05 / 0.14), not
     better; the absolute level gap (LESSONS 76-77) is the larger obstacle to change prediction.
+78. **Hiding the previous background value on 30% of training steps does not stop the ratchet; not kept.** v3m13 + BGDROP 0.3,
+    seeds 0 / 1, traits refit, held-out clean time: TIR 63.5 / 65.1, t<54 0.96 / 0.48, mean 163 / 164 (v3m13 65.7 / 63.0,
+    1.05 / 0.72, 162 / 166), within noise; overnight background 50.0 / 45.4 mg/dL/h (v3m13 46.6, field 23.7), time above
+    180 away from meals 9.5 / 9.1% (9.4; 4.3). Taught to manage without its last value, the model still leans on it when
+    it is there. For contrast, the two-stream generator (v4, LESSONS 73), whose outside stream never reads its own draws,
+    holds the overnight background at 28.9 / 29.2 with night-to-night sd 23.2 / 25.6 (field 23.8), though its within-night
+    hourly swings run wide (sd 19.7 / 22.8 vs 12.7) and its overnight glucose high (168 / 174 vs 130). Under test: v4r, the
+    two-stream generator with v3m13's shaped defense ramp in its reaction.
