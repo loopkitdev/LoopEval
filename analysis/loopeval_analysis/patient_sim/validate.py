@@ -57,6 +57,71 @@ def lows_anatomy(cgm: pd.Series) -> dict:
                 min_below70=float(np.median(mins)) if mins else np.nan)
 
 
+def core_stats(cgm: pd.Series, d: pd.Series, days: float) -> dict:
+    """Everything computable from a CGM series (datetime index, NaN = missing) and delivered insulin in
+    5-min bins — the SAME code for simulated people and real donors."""
+    out = {}
+    b = T.block_features(cgm.dropna(), block=f"{int(days) + 3}D", min_samples=min(1200, int(len(cgm) * 0.5)))
+    if len(b):
+        r = b.iloc[b["n"].to_numpy().argmax()]
+        out.update({k: float(r[k]) for k in GLUCOSE_FEATS})
+    v = cgm.dropna()
+    out.update(t54=100 * float((v < 54).mean()), wear=float(cgm.notna().mean()))
+    out.update(lows_anatomy(cgm))
+    tot = d.to_numpy()
+    srt = np.sort(tot)[::-1]; k = max(int(0.01 * len(srt)), 1)
+    day = d.resample("1D").sum(); nb = d.resample("1D").count(); day = day[nb > 240]
+    hour = d.groupby(d.index.hour).mean()
+    out.update(zero_frac=100 * float(np.mean(tot <= 1e-9)), med_nonzero=float(np.median(tot[tot > 1e-9])) if (tot > 1e-9).any() else np.nan,
+               p99=float(np.percentile(tot, 99)), conc1=100 * float(srt[:k].sum() / srt.sum()) if srt.sum() > 0 else np.nan,
+               tdd=float(day.median()) if len(day) else np.nan,
+               tdd_cv=100 * float(day.std() / day.mean()) if len(day) > 2 else np.nan,
+               ac1=float(np.corrcoef(day[:-1], day[1:])[0, 1]) if len(day) > 5 else np.nan,
+               day_night=float(hour.loc[10:22].mean() / hour.loc[0:6].mean()) if hour.loc[0:6].mean() > 0 else np.nan)
+    return out
+
+
+def delivered_5min(doses: list, t0: pd.Timestamp, t1: pd.Timestamp) -> pd.Series:
+    """A donor's delivered insulin (doses.json records) in 5-min bins over [t0, t1)."""
+    idx = pd.date_range(t0, t1, freq="1min", inclusive="left")
+    u = np.zeros(len(idx))
+    base = t0.value // 60_000_000_000
+    for x in doses:
+        s = pd.Timestamp(x["startDate"]); e = pd.Timestamp(x["endDate"])
+        if e < t0 or s >= t1: continue
+        vol = float(x.get("volume") or 0.0)
+        if vol <= 0: continue
+        i0 = int(s.value // 60_000_000_000 - base); i1 = int(e.value // 60_000_000_000 - base)
+        if x["deliveryType"] == "bolus" or i1 <= i0:
+            if 0 <= i0 < len(u): u[i0] += vol
+        else:
+            lo, hi = max(i0, 0), min(i1, len(u))
+            if hi > lo: u[lo:hi] += vol / (i1 - i0)
+    return pd.Series(u, index=idx).resample("5min").sum()
+
+
+def real_stats(export: Path, block_days: int = 13) -> dict | None:
+    """A real donor scored like a simulated person: per non-overlapping block of `block_days` (the
+    simulated window's length — tail and day-level statistics depend on window length, eda L7), then the
+    median across blocks."""
+    g = json.load(open(export / "glucose.json"))
+    cgm = pd.Series([x["quantity"] for x in g], index=pd.to_datetime([x["startDate"] for x in g]), dtype=float).sort_index()
+    cgm = cgm[~cgm.index.duplicated()]
+    doses = json.load(open(export / "doses.json"))
+    t0, t1 = cgm.index[0].floor("D") + pd.Timedelta(days=1), cgm.index[-1].floor("D")
+    rows = []
+    s = t0
+    while s + pd.Timedelta(days=block_days) <= t1:
+        e = s + pd.Timedelta(days=block_days)
+        c = cgm[(cgm.index >= s) & (cgm.index < e)]
+        if len(c) > 0.7 * block_days * 288:
+            grid = pd.date_range(s, e, freq="5min", inclusive="left")
+            rows.append(core_stats(c, delivered_5min(doses, s, e), block_days))
+        s = e
+    if not rows: return None
+    return pd.DataFrame(rows).median(numeric_only=True).to_dict()
+
+
 def person_stats(run: Path) -> dict | None:
     tp = run / "truth.pkl"
     if not tp.exists(): return None
@@ -71,25 +136,7 @@ def person_stats(run: Path) -> dict | None:
     days = (truth.m.max() - truth.m.min()) / 1440.0
     out = dict(name=person.name, template=person.template, sensor=person.sensor, strategy=person.strategy,
                formulation=person.formulation, days=days)
-    b = T.block_features(cgm.dropna(), block=f"{int(days) + 3}D", min_samples=min(1200, int(len(cgm) * 0.5)))
-    if len(b):
-        r = b.iloc[b["n"].to_numpy().argmax()]
-        out.update({k: float(r[k]) for k in GLUCOSE_FEATS})
-    v = cgm.dropna()
-    out.update(t54=100 * float((v < 54).mean()), wear=float(cgm.notna().mean()))
-    out.update(lows_anatomy(cgm))
-    # insulin delivered, 5-min bins
-    d = pd.Series(truth.delivered.to_numpy(), index=_series(truth.m)).resample("5min").sum()
-    tot = d.to_numpy()
-    srt = np.sort(tot)[::-1]; k = max(int(0.01 * len(srt)), 1)
-    day = d.resample("1D").sum(); nb = d.resample("1D").count(); day = day[nb > 240]
-    hour = d.groupby(d.index.hour).mean()
-    out.update(zero_frac=100 * float(np.mean(tot <= 1e-9)), med_nonzero=float(np.median(tot[tot > 1e-9])),
-               p99=float(np.percentile(tot, 99)), conc1=100 * float(srt[:k].sum() / srt.sum()),
-               tdd=float(day.median()) if len(day) else np.nan,
-               tdd_cv=100 * float(day.std() / day.mean()) if len(day) > 2 else np.nan,
-               ac1=float(np.corrcoef(day[:-1], day[1:])[0, 1]) if len(day) > 5 else np.nan,
-               day_night=float(hour.loc[10:22].mean() / hour.loc[0:6].mean()) if hour.loc[0:6].mean() > 0 else np.nan)
+    out.update(core_stats(cgm, pd.Series(truth.delivered.to_numpy(), index=_series(truth.m)).resample("5min").sum(), days))
     beh = pd.DataFrame(tr["behavior"], columns=["m", "kind", "g", "x"])
     beh = beh[beh.m >= start]
     ent = [e for e in tr["entries"] if e[0] >= start]
@@ -115,9 +162,11 @@ def real_table() -> pd.DataFrame:
     return r
 
 
-def compare(sim: pd.DataFrame, by_sensor: bool = True) -> pd.DataFrame:
+def compare(sim: pd.DataFrame, by_sensor: bool = True, real: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Simulated vs real distributions across people. `real` defaults to the eda cohort tables; pass a
+    real_pilot table (same population as pilot templates, same window, same code) to compare like with like."""
     from scipy.stats import ks_2samp
-    real = real_table()
+    real = real_table() if real is None else real
     rows = []
     stats = [c for c in sim.columns if c in real.columns and c not in ("alias", "sensor", "strategy")]
     groups = sorted(sim.sensor.unique()) if by_sensor else ["all"]
@@ -170,6 +219,15 @@ def main():
     cmp = compare(sim)
     cmp.to_csv(root / "compare.csv", index=False)
     cj = root / "cohort.json"
+    tp = json.load(open(cj)).get("templates") if cj.exists() else None
+    rp = Path(tp).parent / "real_pilot.csv" if tp else None
+    if rp is not None and rp.exists() and "pilot" in str(tp):
+        rr = pd.read_csv(rp).merge(pd.read_csv(tp)[["alias", "sensor", "strategy", "carb_entries_per_day",
+                                                    "user_boluses_per_day"]], on="alias", how="left")
+        rr["strategy"] = rr["strategy"].map(lambda s: "temp" if str(s).startswith("temp") else "autobolus")
+        cp = compare(sim, real=rr)
+        cp.to_csv(root / "compare_pilot.csv", index=False)
+    cj = root / "cohort.json"
     tw = twin(sim, json.load(open(cj)).get("templates") if cj.exists() else None)
     tw.to_csv(root / "twin.csv", index=False)
     pd.set_option("display.width", 220)
@@ -177,5 +235,28 @@ def main():
     print(tw.round(3).to_string(index=False))
 
 
+
+def _real_one(a):
+    root, alias = a
+    try:
+        r = real_stats(Path(root) / alias)
+        return dict(alias=alias, **r) if r else None
+    except Exception:                       # noqa: BLE001
+        return None
+
+
+def real_pilot(root: str, out: str, par: int = 6):
+    """Score every donor export under `root` with the simulated people's own statistics."""
+    from concurrent.futures import ProcessPoolExecutor
+    aliases = sorted(p.name for p in Path(root).iterdir() if (p / "glucose.json").exists())
+    with ProcessPoolExecutor(par) as ex:
+        rows = [r for r in ex.map(_real_one, [(root, a) for a in aliases]) if r]
+    pd.DataFrame(rows).to_csv(out, index=False)
+    print(f"{len(rows)} donors -> {out}")
+
+
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "realpilot":
+        real_pilot(sys.argv[2], sys.argv[3], int(sys.argv[4]) if len(sys.argv) > 4 else 6)
+    else:
+        main()

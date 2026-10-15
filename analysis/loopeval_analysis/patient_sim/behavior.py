@@ -344,7 +344,9 @@ class Behavior:
         if not asleep and m - self.last_pro > t.pro_refractory and m - self.last_treat > 30:
             iob = float(state.get("iob", 0.0) or 0.0)
             proj = cgm + 30 * self.trend() - self.p.settings["isf"] * max(iob, 0.0)
-            if proj < t.pro_onset and self.trend() < 0.5:
+            # the defense state ice measured (L34, L69): near the low band and not rising — a person at
+            # 220 with lots of IOB does not snack, however low the projection (LESSONS 11)
+            if proj < t.pro_onset and cgm < t.pro_onset + 50 and self.trend() <= 0.0:
                 g = max(3.0, t.pro_grams * float(np.exp(r.normal(0, 0.3))))
                 acts.append(("eat", Parcel(m + 2, g, kempt=0.06, kabs=0.06, f=1.0, label="proactive")))
                 self.last_pro = m
