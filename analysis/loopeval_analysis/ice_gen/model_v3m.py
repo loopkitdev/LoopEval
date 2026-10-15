@@ -693,6 +693,23 @@ class ICEGenV3M20(ICEGenV3M17):
         return out, (h1, h2, (hb, b[:, -1], full[:, -(self.AR_K - 1):]))
 
 
+class ICEGenV3M21(ICEGenV3M15):
+    """v3m21: v3m15 with the offense routed through the exogenous baseline only. Every input driven by outside events (meals,
+    entries, boluses, the clock) feeds the baseline (now 128 wide), and the recurrent background path sees only the glucose
+    state and its own deviation from the baseline. On real inputs v3m15 predicts a +16 mg/dL/h rise in the 30 min after a
+    meal bolus (real +16), but its baseline carries only +5 of it and the rest sits in the recurrent path, which loses it in
+    closed loop (generated background rises +18 vs the field's +38; meal boluses run into a low within 3 h 17.8% vs 7.8%).
+    Pete's frame: offense (meals, exercise) is exogenous; the defense responds to state."""
+    arch = "v3m21"
+    ICE_DROP = ICEGenV3M15.ICE_DROP + ICEGenV3M15.BASE_KEEP
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.inp_base = nn.Linear(n_features + profile_dim, 128)
+        self.gru_base = nn.GRU(128, 128, num_layers=1, batch_first=True)
+        self.head_base = nn.Linear(128, 1)
+
+
 class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
