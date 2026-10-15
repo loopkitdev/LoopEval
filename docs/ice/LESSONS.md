@@ -779,3 +779,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     mean sd 58 vs 35: blind to its own deviations, the shape cannot tell a calm stretch from a volatile one and every
     draw is wide. The ratchet is the asymmetric (nonlinear) response of the mean to the model's own values. Under test:
     v3m18, means from the exogenous path + linear memory, weights and scales from a path that sees the deviation.
+83. **Means from the non-ratcheting parts but mixture weights from the deviation-aware path (v3m18): the ratchet returns
+    through the weights; not kept.** Seeds 0 / 1: closed-loop level excess +4.3 / +5.8 mg/dL/h, overnight background
+    45.9 / 36.1 (field 23.7); seed 0 has the shape right (5-min distance 15.9, background 5-min sd 75) but seed 1 does not
+    (45.9, sd 106) and collapses (TIR 52.6, t<54 5.83); TIR 64.6 / 52.6. A mixture's mean is the weighted sum of its
+    components, so a path that moves the weights moves the mean. Under test: v3m19, the mixture centred (its mean pinned
+    to the exogenous mean + baseline + defense + linear memory; the deviation-aware path sets only weights, scales and
+    component offsets relative to that mean, so it cannot move the level by construction).
