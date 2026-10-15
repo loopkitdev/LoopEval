@@ -249,8 +249,15 @@ extension EvaluationEngine {
         // join the candidate's carb store, boluses are delivered at the next decision as
         // ratio x the bolus-calculator recommendation there. Baseline arm untouched.
         plantBehavior: Bool = false,
+        // The candidate controller's basal/ISF/CR/target schedules, when they differ from the
+        // field's (a settings edit replayed in a window that ran the other settings). Limits,
+        // overrides and insulin model are the field's; the patient is untouched. The candidate's
+        // pump also runs this basal schedule wherever it falls back to scheduled basal.
+        // nil = the field's.
+        candidateTherapy: TherapyTimeline? = nil,
         progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
+        let candTherapy = candidateTherapy ?? data.therapyTimeline
 
         // Run in the USER's timezone (the profile's), so oref's INTERNAL
         // time-of-day lookups — which use Calendar.current (basal-schedule lookup
@@ -1099,7 +1106,7 @@ extension EvaluationEngine {
                 glucose: candidateSensorSamples,
                 doses: combinedDoses,
                 carbs: suppressCarbs ? [] : candidateCarbs,
-                therapyTimeline: data.therapyTimeline,
+                therapyTimeline: candTherapy,
                 config: candidateConfig
             )
             guard let candidateInput = candidateBuilder.buildInput(at: t, decisionAnchor: t) else {
@@ -1210,7 +1217,7 @@ extension EvaluationEngine {
                 func doStep(_ map: [Date: Double]?) -> EngineStepResult {
                     candidateEngine.step(EngineStepRequest(
                         t: t, input: candidateInput, config: candidateConfig,
-                        therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
+                        therapy: candTherapy, glucoseMgdl: candMomentumMgdl,
                         glucoseSamples: candMomentumSamples,
                         extraISFMultiplier: sensModeMult * slowRcMult,
                         forecastOffsetMgdl: iceRiseBoostOffset + anticipationOffset,
@@ -1290,7 +1297,7 @@ extension EvaluationEngine {
                            let relaxedInput = candidateBuilder.buildInput(at: t, carbVisibilityCutoff: visCut, decisionAnchor: t) {
                             let rr = EvaluationEngine.simStepDose(
                                 t: t, input: relaxedInput, config: candidateConfig,
-                                therapy: data.therapyTimeline, glucoseMgdl: candMomentumMgdl,
+                                therapy: candTherapy, glucoseMgdl: candMomentumMgdl,
                                 glucoseSamples: candMomentumSamples,
                                 extraISFMultiplier: sensModeMult * slowRcMult,
                                 perStepIsfMultByTime: csvIsfEnabled ? perStepMapForLoop : nil,
@@ -1449,9 +1456,9 @@ extension EvaluationEngine {
                 // the replay then over-corrected with extra auto-boluses. Model it as
                 // what it is: no new bolus or temp this cycle; the candidate's last
                 // issued temp continues until it would have expired, then scheduled.
-                let schedRate = data.therapyTimeline.basal.first(where: {
+                let schedRate = candTherapy.basal.first(where: {
                     $0.startDate <= t && $0.endDate > t
-                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
+                })?.value ?? candTherapy.basal.closestPrior(to: t)?.value ?? 0
                 let running: Double
                 if let r = lastIssuedTempRate, t.timeIntervalSince(lastIssuedTempT) < tempBasalDuration {
                     running = r
@@ -1467,9 +1474,9 @@ extension EvaluationEngine {
                 // dose ADJUSTMENT (delta over scheduled) = 0, so absolute
                 // delivery = scheduled. candidateTempRate reports the
                 // scheduled rate to reflect "running at schedule".
-                let schedRate = data.therapyTimeline.basal.first(where: {
+                let schedRate = candTherapy.basal.first(where: {
                     $0.startDate <= t && $0.endDate > t
-                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
+                })?.value ?? candTherapy.basal.closestPrior(to: t)?.value ?? 0
                 candidateDose = 0
                 baselineDose = 0
                 candidateBolus = 0
@@ -1524,7 +1531,7 @@ extension EvaluationEngine {
                 if stepDur > tempBasalDuration {
                     // Temp expired mid-step: scheduled basal for the remainder.
                     cfSchedRemainderU = Self.integrateScheduledBasal(
-                        data.therapyTimeline.basal, from: cfTempSegEnd, to: stepEnd)
+                        candTherapy.basal, from: cfTempSegEnd, to: stepEnd)
                 }
                 cfAbsoluteDelivery = cfTempVolume + cfSchedRemainderU
                 cfBasalDeliveredU = basalDelivered + cfSchedRemainderU
@@ -1744,7 +1751,7 @@ extension EvaluationEngine {
                         - counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
                     let candPhys = Self.physicalActiveEffectDelta(
                         doses: counterfactualDoses,
-                        basal: data.therapyTimeline.basal,
+                        basal: candTherapy.basal,
                         sensitivity: physiologySensitivity,
                         from: prevT, to: nextT,
                         insulinModel: insulinModel,
