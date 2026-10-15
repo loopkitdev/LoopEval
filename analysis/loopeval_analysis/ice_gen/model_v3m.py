@@ -518,6 +518,35 @@ class ICEGenV3M15(ICEGenV3M13):
         return out, (h1, h2, (hb, b[:, -1]))
 
 
+class ICEGenV3M16(ICEGenV3M15):
+    """v3m16: v3m15 with the previous deviation from the baseline at the output head only, not in the recurrent background
+    path. v3m15's baseline halved the closed-loop level excess (+4.8 vs +9.8 mg/dL/h) and what is left still runs through the
+    previous-value channel (restoring it: 34.2 vs real 33.3, LESSONS 80). With the level carried by the exogenous baseline,
+    the recurrent path no longer needs a memory of its own draws (v3m11 lost the level without one, LESSONS 55); the head
+    keeps the one-step dependence."""
+    arch = "v3m16"
+    ICE_DROP = ICEGenV3M15.ICE_DROP + ["bgice", "bgice_ok"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.head_ice = nn.Sequential(nn.Linear(hidden + 2, 128), nn.ReLU(), nn.Linear(128, self.sizes["bgice"]))
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last = h3 if h3 is not None else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        dev = ((x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_])[..., None]
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        lg, mu, ls = self.head_ice(torch.cat([z2, dev, x[..., self.i_prevok_:self.i_prevok_ + 1]], -1)).split(self.K_ICE, -1)
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + (b + d)[..., None], ls], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, h2, (hb, b[:, -1]))
+
+
 class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
