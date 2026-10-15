@@ -755,3 +755,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     35%; within-night hourly swings 23.6 / 21.1 vs 12.7. The ramp learned weaker inside v4 (median person +22.5 / +23.8
     heading below 0 vs +32 in v3m13, field +30): beside a latent stream fitted by the Kalman likelihood, the defense
     shows up less in the background's mean. Next: v3m15, the exogenous level anchor inside v3m13.
+80. **An exogenous baseline under v3m13 (v3m15) moves the level the right way on both seeds; kept as the base, a modest
+    gain.** A small recurrent net on exogenous inputs only (clock, meals, entries, boluses, the person) adds a baseline to
+    every background mixture mean; the background path reads its previous value as the deviation from the previous
+    baseline. Seeds 0 / 1, traits refit, held-out clean time: TIR 65.2 / 66.8, t<54 0.83 / 0.95, mean 160 / 160 (v3m13
+    65.7 / 63.0, 1.05 / 0.72, 162 / 166; field 74.1 / 0.12 / 152); overnight background 41.9 / 39.8 mg/dL/h (46.6; 23.7),
+    overnight glucose 157 / 149 (164; 130), time above 180 away from meals 8.8 / 8.6% (9.4; 4.3); lows per meal bolus
+    0.136 / 0.137; defense median +31 heading below 0 (field +30). Same direction on every level measure on both seeds, no
+    regression; the TIR gain is near training noise. The level is still well above the field: the anchor holds part of it.
