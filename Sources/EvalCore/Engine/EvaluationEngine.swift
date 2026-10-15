@@ -199,8 +199,9 @@ public actor EvaluationEngine {
         // distinct indices without Sendable hassles. The arrays are pre-sized
         // and never reallocated, so distinct-index writes are safe. swift-corelibs
         // Dispatch on Linux requires a @Sendable closure, so there the chunks run serially.
-        chunkRecords.withUnsafeMutableBufferPointer { recsBuf in
-            chunkSkipped.withUnsafeMutableBufferPointer { skipBuf in
+        chunkRecords.withUnsafeMutableBufferPointer { recsBuffer in
+            chunkSkipped.withUnsafeMutableBufferPointer { skipBuffer in
+                let recsBuf = recsBuffer, skipBuf = skipBuffer   // pointer copies the closure can capture
                 let runChunk = { (c: Int) in
                     var local: [PredictionRecord] = []
                     local.reserveCapacity(chunkRanges[c].count)
