@@ -598,7 +598,7 @@ extension EvaluationEngine {
             do {
                 let physStart = Date()
                 let plantDataDoses = plantStamp(safeDataDoses)
-                for j in 1..<physGlucose.count {
+                for j in 1..<max(1, physGlucose.count) {   // no CGM in the window: nothing to do
                     realPhysDelta[j] = Self.physicalActiveEffectDelta(
                         doses: plantDataDoses, basal: data.therapyTimeline.basal,
                         sensitivity: physiologySensitivity,
@@ -703,7 +703,7 @@ extension EvaluationEngine {
                 let isoFmt = ISO8601DateFormatter(); isoFmt.formatOptions = [.withInternetDateTime]
                 var csv = "t,nie,m,bg\n"
                 csv.reserveCapacity(physGlucose.count * 48)
-                for i in 1..<physGlucose.count {
+                for i in 1..<max(1, physGlucose.count) {
                     let bgPrev = physGlucose[i - 1].quantity.doubleValue(for: mgdlUnit)
                     let bgNow = physGlucose[i].quantity.doubleValue(for: mgdlUnit)
                     let nie = (bgNow - bgPrev) - mByIndex[i] * realPhysDelta[i]
