@@ -749,3 +749,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     holds the overnight background at 28.9 / 29.2 with night-to-night sd 23.2 / 25.6 (field 23.8), though its within-night
     hourly swings run wide (sd 19.7 / 22.8 vs 12.7) and its overnight glucose high (168 / 174 vs 130). Under test: v4r, the
     two-stream generator with v3m13's shaped defense ramp in its reaction.
+79. **The two-stream generator with v3m13's defense ramp (v4r) is not kept.** Seeds 0 / 1, traits refit, held-out clean
+    time: TIR 60.6 / 59.5, t<54 2.07 / 1.96, mean 167 / 168 (v3m13 65.7 / 63.0, 1.05 / 0.72, 162 / 166). Overnight
+    background 31.0 / 35.5 mg/dL/h (field 23.7, v3m13 46.6) but overnight glucose 163 / 170 (130) and time above 180 there
+    35%; within-night hourly swings 23.6 / 21.1 vs 12.7. The ramp learned weaker inside v4 (median person +22.5 / +23.8
+    heading below 0 vs +32 in v3m13, field +30): beside a latent stream fitted by the Kalman likelihood, the defense
+    shows up less in the background's mean. Next: v3m15, the exogenous level anchor inside v3m13.
