@@ -74,10 +74,12 @@ Things that cost time or would have produced a wrong simulator. Newest last.
     stays in the code at λ = 0; Visentin's swing is halved. Both remain open to the joint low-anatomy
     and circadian-amplitude calibration — as named parameters, not as new terms.
 
-11. **Read delivered insulin from the plant, never by summing the trace's delivery stream.** The trace
-    lists each auto-bolus as its own record AND folds it into that step's basal segment, so the sum
-    double-counts automatic boluses (i114: trace 67 U/day vs 45 U the plant received and absorbed).
-    That mis-read looked like a 30–60% site loss for an hour. The plant's log is the truth.
+11. **LoopEval's trace delivery stream is consistent — the gap I once blamed on it was my plant.** Each step
+    LoopEval sends ONE basal segment whose volume includes that step's auto-bolus; the trace splits it back
+    into `basal` + automatic `bolus` records, so trace basal + trace auto = what the plant receives, exactly
+    (2026-10-15 reconciliation: 8.5 + 29.5 = 38.0 U; manual 36.65 = 36.65). An earlier reading — "the trace
+    double-counts auto-boluses" — was wrong: that discrepancy was the plant dropping late doses (lesson 19).
+    Reconcile at the boundary before explaining a difference.
 
 12. **A projected-glucose trigger alone makes a runaway snacker.** Proactive snacking keyed only to
     CGM + 30·trend − ISF·IOB fired at 220 mg/dL whenever Loop's IOB was large: snacks → highs → more
