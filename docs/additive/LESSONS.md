@@ -127,3 +127,12 @@ Things that cost time or would have produced a wrong simulator. Newest last.
 Also (no lesson of its own): the candidate now runs as deployed Loop-main (`--no-mid-absorption-isf
 --no-gradual-transitions-gate --legacy-rc-decay`, docs/loop-algo-classes.md); it changed no cohort
 statistic here, but it is the controller donors ran.
+
+18. **Every carbohydrate path must share the calibrated per-gram sensitivity.** Meal bioavailability is
+    calibrated per person (f from the observed carb sensitivity, compensating a small glucose space),
+    but rescue, proactive and exercise snacks were fixed at f = 1.0: on a 50-kg body with VG 1.52, one
+    gram of rescue glucose raised 13 mg/dL (a 28 g rescue ≈ +370) against 3.95 per meal gram and 3–4 in
+    Brodows 1984. Every defensive snack became a spike; even people dosed exactly to their own truth
+    with no disturbances ran means of 158–185. Fast glucose now uses the person's f × 1.25. The test
+    that caught it — truth settings, perfect person, every disturbance off, internal drive — should run
+    for every new physiology or behavior path: a body dosed to its own truth must sit near its rest level.

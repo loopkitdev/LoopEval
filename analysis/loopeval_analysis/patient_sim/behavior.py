@@ -212,6 +212,12 @@ class Behavior:
         self.log = []                           # ground truth of every behavior event
 
     # ------------------------------------------------------------------ helpers
+    def _f_glucose(self) -> float:
+        """Bioavailability of fast glucose (tabs, juice): the person's calibrated per-gram meal value
+        × 1.25 — pure glucose vs mixed carbohydrate [J] — never a fixed 1.0, which on a small glucose
+        space made 1 g of rescue raise 13 mg/dL against 3–4 in Brodows 1984 (LESSONS 18)."""
+        return min(1.0, self.p.body.f * 1.25)
+
     def asleep(self, m: float) -> bool:
         mm = m % DAY
         wknd = int(m // DAY) % 7 in (5, 6)
@@ -313,7 +319,7 @@ class Behavior:
             elif kind == "exercise":
                 acts.append(("exercise",) + tuple(rest)); self.log.append((m, "exercise", rest[1], rest[2]))
             elif kind == "ex_carbs":
-                acts.append(("eat", Parcel(m, rest[0], kempt=0.06, kabs=0.06, label="ex_carbs")))
+                acts.append(("eat", Parcel(m, rest[0], kempt=0.06, kabs=0.06, f=self._f_glucose(), label="ex_carbs")))
                 self.log.append((m, "ex_carbs", rest[0], None))
         if m >= self.next_site:
             acts.append(("site_change", m)); self.log.append((m, "site_change", 0, None))
@@ -349,7 +355,7 @@ class Behavior:
             self.treat_check = None
             if cgm < t.treat_thr + 10 and self.trend() <= 0.2 and r.random() < t.p_retreat / 0.5 * 0.5:
                 g = max(5.0, t.treat_grams * float(np.exp(r.normal(0, 0.3))))
-                acts.append(("eat", Parcel(m + t.treat_latency, g, kempt=0.08, kabs=0.08, f=1.0, label="rescue")))
+                acts.append(("eat", Parcel(m + t.treat_latency, g, kempt=0.08, kabs=0.08, f=self._f_glucose(), label="rescue")))
                 self.log.append((m, "retreat", g, None)); self.treat_check = m + t.retreat_wait
             return acts
         if not looking: return acts
@@ -357,7 +363,7 @@ class Behavior:
         # rescue
         if cgm < t.treat_thr and m - self.last_treat > 20:
             g = max(5.0, t.treat_grams * float(np.exp(r.normal(0, 0.3))))
-            acts.append(("eat", Parcel(m + t.treat_latency, g, kempt=0.08, kabs=0.08, f=1.0, label="rescue")))
+            acts.append(("eat", Parcel(m + t.treat_latency, g, kempt=0.08, kabs=0.08, f=self._f_glucose(), label="rescue")))
             if r.random() < t.p_log_rescue: acts.append(("carb", m, round(g), 1800.0))
             self.last_treat = m; self.treat_check = m + t.treat_latency + t.retreat_wait
             self.log.append((m, "rescue", g, cgm))
@@ -370,7 +376,7 @@ class Behavior:
             # 220 with lots of IOB does not snack, however low the projection (LESSONS 11)
             if proj < t.pro_onset and cgm < t.pro_onset + 50 and self.trend() <= 0.0:
                 g = max(3.0, t.pro_grams * float(np.exp(r.normal(0, 0.3))))
-                acts.append(("eat", Parcel(m + 2, g, kempt=0.06, kabs=0.06, f=1.0, label="proactive")))
+                acts.append(("eat", Parcel(m + 2, g, kempt=0.06, kabs=0.06, f=self._f_glucose(), label="proactive")))
                 self.last_pro = m
                 self.log.append((m, "proactive", g, proj))
                 return acts
