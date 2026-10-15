@@ -902,3 +902,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     161); per-person t<54 pass rate 42 / 46% (50% if faithful); night glucose unchanged (168 / 155 / 146 / 143 at 0 / 2 / 4 /
     6 h vs field 150 / 142 / 129 / 128). Together with LESSONS 90 and 93 (level offsets, overall and by band): neither the
     background level nor the behavior rhythm, adjusted alone, makes generated nights fall as fast as the field's.
+98. **The base had lost its closed-loop start-head calibration (LESSONS 23); restored, kept. Generated people were starting
+    ~20% too many unannounced meals at every hour, and that, not the night rhythm, kept nights high.** v3m21 + pooled band
+    calibration was calibrated on real inputs only. Held-out, seed 0: unannounced meal starts 4.8 vs 3.9 a day (139 vs 106
+    g-eq), in every 6-h band; announced meals, pulse size, duration and peak all match. Overnight insulin effect matches
+    the field (78 vs 75 mg/dL/h at 23 h); the field's glucose falls 23-02 h because evening ICE drops off (86 -> 53) faster
+    than insulin, the generator's stays ~10 mg/dL/h higher (meal pulse and background both). calibrate_closed.py on
+    rollouts of the 28 days before the hold-out: meal 4.80 vs 4.01 a day (offset -0.18), standalone boluses 3.48 vs 2.96
+    (-0.16), entries and meal boluses within 5%. Seeds 0 / 1, held-out clean time (before -> after): TIR 67.9 / 68.5 ->
+    69.0 / 69.0, t<54 0.64 / 0.54 -> 0.59 / 0.60, mean 162 / 161 -> 158 / 159, night glucose 161 / 162 -> 150 / 146
+    (field 130), night background ICE 43 / 42 -> 37 / 37 (field 24). Every new base needs the closed-loop step, not only
+    the teacher-forced one; the remaining night gap is in the background level (37 vs 24), not in meal counts.
