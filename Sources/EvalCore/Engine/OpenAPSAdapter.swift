@@ -175,10 +175,10 @@ struct OpenAPSAdapter: DosingEngine {
         // oref user, which delivers via SMB and lets the temp cap bind. max_iob is
         // genuinely per-user and not uploaded by Trio → supply via --candidate-oaps-
         // max-iob; the non-binding maxBolus×10 fallback is NOT faithful.)
-        let maxIob = req.config.oapsMaxIob ?? (req.therapy.maxBolus * 10.0)
+        let maxIob = req.config.oapsMaxIob ?? (req.therapy.maxBolus(at: req.t) * 10.0)
         var prefs: [String: Any] = [
             "max_iob": maxIob,
-            "max_basal": req.therapy.maxBasalRate,
+            "max_basal": req.therapy.maxBasalRate(at: req.t),
             // Keys match Preferences.CodingKeys exactly — see
             // OpenAPSSwift/TrioModels/Preferences.swift
             "enableSMB_always": true,
@@ -283,8 +283,8 @@ struct OpenAPSAdapter: DosingEngine {
         // the device (was ×3 to avoid binding — not faithful, see prefs above).
         let pumpSettings: [String: Any] = [
             "insulin_action_curve": req.config.oapsDia ?? 6,
-            "maxBolus": req.therapy.maxBolus,
-            "maxBasal": req.therapy.maxBasalRate
+            "maxBolus": req.therapy.maxBolus(at: req.t),
+            "maxBasal": req.therapy.maxBasalRate(at: req.t)
         ]
         let pumpSettingsJSON = String(data: try JSONSerialization.data(withJSONObject: pumpSettings),
                                       encoding: .utf8)!

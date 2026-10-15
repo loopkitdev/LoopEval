@@ -202,6 +202,12 @@ struct InputWindowBuilder: Sendable {
                 }
             }
         }
+        // A dated controller curve change re-evaluates the whole history on the curve in force
+        // at this decision (see TherapySettings.insulinTypeChanges).
+        if !therapyTimeline.insulinTypeChanges.isEmpty {
+            let preset = therapyTimeline.insulinType(at: t)
+            for i in dosesSlice.indices { dosesSlice[i].insulinType = preset }
+        }
 
         // ── Carbs ────────────────────────────────────────────────────────────────
         // Window the absorption-relevant range by MEAL TIME (startDate), then
@@ -298,14 +304,15 @@ struct InputWindowBuilder: Sendable {
         //    the scheduled end within the forecast.
         // An INDEFINITE active override (end = distantFuture) extends in both.
         let horizonEnd = t.addingTimeInterval(9 * 3600)
-        let gatedTargetWindows: [OverrideWindow] = applyOv ? therapyTimeline.overrideWindows.compactMap { w in
+        let ovAtT = applyOv ? OverrideWindow.resolved(therapyTimeline.overrideWindows, at: t) : []
+        let gatedTargetWindows: [OverrideWindow] = applyOv ? ovAtT.compactMap { w in
             guard w.start <= t else { return nil }
             guard t < w.end else { return w }   // ended → [start,end] as-is (past-schedule)
             return OverrideWindow(start: w.start, end: horizonEnd,
                                   factor: w.factor, targetLo: w.targetLo, targetHi: w.targetHi,
                                   indefinite: true)                       // ACTIVE → extend flat
         } : []
-        let gatedRateWindows: [OverrideWindow] = applyOv ? therapyTimeline.overrideWindows.compactMap { w in
+        let gatedRateWindows: [OverrideWindow] = applyOv ? ovAtT.compactMap { w in
             guard w.start <= t else { return nil }
             guard w.indefinite, t < w.end else { return w }   // ended/definite: [start,end] as-is
             return OverrideWindow(start: w.start, end: horizonEnd,

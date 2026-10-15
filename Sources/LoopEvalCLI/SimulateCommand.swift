@@ -79,7 +79,7 @@ struct SimulateCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Use deployed Loop's adaptive carb absorption (.adaptiveRateNonlinear). Off by default. Applies to BOTH arms.")
     var adaptiveCarbAbsorption: Bool = false
 
-    @Option(name: .long, help: "Carb-revisions overlay JSON (from reconstruct_carb_history.py): splice edited carb entries into their as-seen revision sequences so the sim sees carbs as the deployed Loop saw them at each moment. Data-level (applies to BOTH arms → identity-preserving). Default: cached final grams from original entry time.")
+    @Option(name: .long, help: "Carb-revisions overlay JSON (from reconstruct_carb_history.py): splice edited carb entries into their as-seen revision sequences so the sim sees carbs as the deployed Loop saw them at each moment. Data-level (applies to BOTH arms → identity-preserving). Default: the --data-dir export's carb_revisions.json when present (Tidepool ETL v25), else cached final grams from original entry time.")
     var carbRevisionsJson: String?
 
     @Option(name: .long, help: "Override-targets overlay JSON (from override_targets.py): fill named-preset override correction ranges (+multiplier) from devicestatus (omitted by the NS treatment). Data-level (both arms → identity-preserving). Use for hands-on sim of override users.")
@@ -154,6 +154,11 @@ struct SimulateCommand: AsyncParsableCommand {
 
     @Flag(name: .long, inversion: .prefixedNo, help: "CGM-driven decisions: trigger ONE automatic dosing decision per real CGM sample (irregular ~5-min cadence), never on a fixed grid or any other event. The substrate is built on the raw CGM timestamps with variable per-step dt. DEFAULT ON — the faithful CF substrate (validated 2026-06-23 to reproduce field within ~0.5 TIR with exact cf-identity and NO CGM-gap masking, since the counter runs on the real CGM at real times and temp basals expire at 30 min across gaps). Pass --no-decisions-from-cgm for the legacy fixed 5-min grid march (resamples raw CGM onto the grid → smooths lows, needs gap masking). Physiology (ICE/sensitivity) is RTS-smoothed in place at the CGM times.")
     var decisionsFromCgm: Bool = true
+
+    @Option(name: .customLong("external-plant"), help: "Shell command for an external patient model (sim-of-the-sim). Requires --candidate-counterfactual. The candidate's glucose advance — normally the ICE replay — is replaced by the plant: each cycle's delivered candidate doses are sent to the command's stdin as a JSON line and its CGM at the next sample time(s) is read back from stdout (protocol in ExternalPlant.swift). Decisions, enactment and timing are the unchanged simulator, so a plant-coupled run differs from an ordinary one ONLY in the physiology.")
+    var externalPlant: String? = nil
+    @Flag(name: .customLong("plant-behavior"), help: "With --external-plant (protocol v2): the plant's person makes the carb entries and manual boluses. From the end of burn-in the candidate ignores the REAL carb entries and manual boluses; carbs the plant returns enter the candidate's carb store (visible from the next decision) and each bolus it returns is delivered at the next decision as ratio x the bolus-calculator recommendation there (or as absolute units). The baseline arm is unchanged. Spec: docs/ice/plant-protocol-v2.md.")
+    var plantBehavior: Bool = false
 
     @Option(name: .customLong("decision-times-csv"),
             help: "CSV of ISO8601 instants (header 't' optional) — step the replay at EXACTLY the real controller's recorded dosingDecision times instead of the CGM cadence. Removes synthetic steps the field never made (multi-source 1-min streams) and steps inside field skip-gaps. Marks the instants authoritative for the momentum/RC now-anchor.")
@@ -240,6 +245,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateIrcRiseScale: Double = 1.0
     @Option(name: .long, help: "Per-local-hour INSULIN-NEEDS multipliers for the candidate (24 csv, or @file): basal × h, ISF ÷ h, CR ÷ h per hour — the hourly form of --candidate-insulin-needs (a learned circadian needs schedule). Hours are interpreted in --local-timezone. Composes with --candidate-insulin-needs and --candidate-isf-hourly.")
     var candidateNeedsHourly: String?
+    @Option(name: .long, help: "A therapy.json whose basal/ISF/CR/target schedules (and their raw, un-override forms) the CANDIDATE controller runs instead of the field's: a settings edit replayed in a window that ran the other settings. The candidate's pump runs this basal wherever it falls back to scheduled basal. Limits, overrides and insulin model stay the field's; the patient is unchanged. Composes with the candidate multipliers.")
+    var candidateSchedulesJson: String?
     @Flag(name: .long, help: "Asymmetric STANDARD RC (candidate): apply --candidate-irc-drop-scale / --candidate-irc-rise-scale to the standard (non-integral) retrospective correction — the deployed RC mode on most Loop users. Scales the single 30-min discrepancy before it is projected 60 min forward. Off = deployed symmetric RC.")
     var candidateAsymmetricStdRc: Bool = false
     @Option(name: .long, help: "IRC low-memory carry ('remember the low'): when >0 and the current discrepancy run is positive (a rebound), the integral carries the immediately-preceding negative (low) run across the sign flip instead of resetting, scaled by this factor, so the low's memory offsets the rebound's upward dosing. One-sided (only +run carries a preceding -run). Only used with --candidate-integral-rc. Default 0 (off).")
@@ -450,6 +457,21 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "PATIENT-side ISF as an ABSOLUTE FLAT value (mg/dL/U), referencing NO therapy configuration — not the donor's schedule shape, not its time-of-day variation, not its dated settings eras. The simulated body becomes an independent object from the settings the controller runs, which still uses the real configured schedule. Unset = the plant is COUPLED to the controller's ISF belief (the historical behavior, so existing sweeps are unchanged). Set it when the patient's insulin sensitivity must be a free parameter — e.g. sweeping it to ask how much a result depends on the assumed patient.")
     var patientIsf: Double?
 
+    @Option(name: .long, help: "PATIENT-side INSULIN MODEL — the pharmacodynamics of the simulated BODY. RA (rapid-acting): rapidActingAdult peak 75min, rapidActingChild peak 65min. URA (ultra-rapid): fiasp, lyumjev -- peak 55min, and IDENTICAL to each other in this preset set (same peak/DIA/delay), so picking one over the other is a no-op. Also afrezza (inhaled, peak 29min) and lateShort90dia4 (experimental, peak 90min/DIA 4h). All RA/URA presets share DIA 6h -- the class difference is PEAK TIME, not duration. The controller keeps believing its own model, so this decouples 'how fast insulin really acts' from 'how fast the algorithm thinks it acts'. Unset = the body uses the controller's model too (coupled; the historical behavior). Identity-safe: the same curve removes the field's doses and adds the candidate's, so an unchanged candidate still reproduces the recording exactly.")
+    var patientInsulinModel: String?
+
+    @Option(name: .long, help: "CONTROLLER-side INSULIN MODEL — what the ALGORITHM believes insulin does, overriding the therapy timeline for BOTH arms. RA (rapid-acting): rapidActingAdult peak 75min, rapidActingChild peak 65min. URA (ultra-rapid): fiasp, lyumjev -- peak 55min, and IDENTICAL to each other in this preset set (same peak/DIA/delay), so picking one over the other is a no-op. Also afrezza (inhaled, peak 29min), lateShort90dia4 (experimental, peak 90min/DIA 4h) and custom (see --custom-insulin-duration-min). All RA/URA presets share DIA 6h -- the class difference is PEAK TIME, not duration. Works on every data source, unlike --insulin-type, which only reaches the Nightscout path and is silently ignored with --data-dir. Pair with --patient-insulin-model to vary the body and the belief independently. Measured on one donor, the belief dominates: RA->URA belief traded about +3 TIR for +0.3-0.4 t<54 in either body, while the body's model barely moved outcomes.")
+    var controllerInsulinModel: String?
+
+    @Option(name: .long, help: "Action duration (MINUTES) of the `custom` insulin model, for a Loop build shipped with a modified insulin curve. Required with `--controller-insulin-model custom` or `--patient-insulin-model custom`; both sides share one custom curve. Detect it from the recorded forecasts: deployed Loop's bgForecast runs about this long plus the 10-min delay (stock models: ~370-390 min), and the recorded insulinOnBoard decays on this curve. Must exceed twice the peak.")
+    var customInsulinDurationMin: Double?
+
+    @Option(name: .long, help: "Peak activity time (MINUTES) of the `custom` insulin model. Required with a `custom` insulin model; see --custom-insulin-duration-min.")
+    var customInsulinPeakMin: Double?
+
+    @Option(name: .long, help: "A DATED change of the controller's insulin curve, for a user who rebuilt Loop with a different curve mid-window: `ISO8601=SPEC`, where SPEC is a preset name (e.g. rapidActingAdult) or a custom curve `DURATION/PEAK` in minutes (e.g. 2026-09-24T09:03:00Z=180/80). Repeatable. Before the first change the controller uses --controller-insulin-model (else the therapy timeline). From the change on, every decision evaluates its WHOLE dose history on the new curve, as Loop does (it maps insulin type to curve when it computes, not when it delivers). At most two distinct custom curves per run, counting --custom-insulin-*. The plant keeps its own model: --patient-insulin-model, else the curve in force before the first change.")
+    var controllerInsulinSwitch: [String] = []
+
         @Flag(name: .long, help: "Sim-FIDELITY: infer a local insulin-sensitivity multiplier m(t) from the residual. When BG is still dropping after subtracting the PD-modeled (scheduled-ISF) insulin, the insulin was more effective than scheduled, so scale ISF UP just enough to zero that negative residual (never past it). Applied to the PHYSIOLOGY (ICE + counterfactual dose-effect run at scheduled ISF × m), DECOUPLED from the controller's ISF belief. Capped by --candidate-infer-sensitivity-max. Default OFF.")
     var candidateInferSensitivity: Bool = false
     @Option(name: .long, help: "Cap on the inferred sensitivity multiplier m ('can't subtract more insulin than is physically present'). Default 2.0. Set 1.0 for an identity check (≡ off when sensitivity-multiplier is 1).")
@@ -512,10 +534,10 @@ struct SimulateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "OpenAPS insulin curve PRESET, no custom peak ('ultra-rapid' | 'rapid-acting'). ultra-rapid = Lyumjev/Fiasp: IOB peak 55 AND dynISF insulinFactor 70 (decoupled). Use instead of --candidate-oaps-insulin-peak.")
     var candidateOapsCurve: String?
 
-    @Option(name: .long, help: "PHYSICAL insulin-model PEAK (min) override for the counter/ICE — the 'true' insulin physiology (e.g. 90). Pair with --candidate-oaps-insulin-peak for a self-consistent world. Omit = therapy insulinType preset.")
+    @Option(name: .long, help: "DEPRECATED — use --patient-insulin-model. This only sizes the effect LOOKBACK WINDOW; it does NOT reshape the plant's insulin curve, because Loop's glucoseEffects reads each dose's own stamped insulinType rather than a model passed alongside. Measured: peak 75→150 and DIA 6→9 move the counterfactual by 0.0001 mg/dL. Kept so existing invocations still parse.")
     var insulinPhysicalPeak: Double?
 
-    @Option(name: .long, help: "PHYSICAL insulin-model DIA (hours) override (default 6). Used with --insulin-physical-peak.")
+    @Option(name: .long, help: "DEPRECATED — see --insulin-physical-peak. Window sizing only; use --patient-insulin-model to change the body's insulin curve.")
     var insulinPhysicalDia: Double?
 
     @Option(name: .long, help: "OpenAPS max_iob (U) — the user's real safety cap. Not uploaded by Trio; set for faithful reproduction (else a non-binding maxBolus×10 fallback is used).")
@@ -542,11 +564,22 @@ struct SimulateCommand: AsyncParsableCommand {
     var cgmStaleGuardMin: Double = 0
 
     mutating func run() async throws {
+        var exportProvenance: (version: Int?, warnings: [String])? = nil
         let startDate = try parseISO8601Date(start)
         let endDate = try parseISO8601Date(end)
         guard endDate > startDate else { throw ValidationError("--end must be after --start") }
         let interval = DateInterval(start: startDate, end: endDate)
         let resolvedTz: TimeZone = localTimezone.flatMap { TimeZone(identifier: $0) } ?? .current
+
+        // A Tidepool export ships its edited carbs' as-seen versions (carb_revisions.json,
+        // ETL v25); replay them unless an overlay was given explicitly.
+        if carbRevisionsJson == nil, let dir = dataDir {
+            let p = URL(fileURLWithPath: dir).appendingPathComponent("carb_revisions.json").path
+            if FileManager.default.fileExists(atPath: p) {
+                carbRevisionsJson = p
+                printStderr("Using the dataset's carb revisions (carb_revisions.json)\n")
+            }
+        }
 
         // Class-1 emulation: reproduce deployed Loop main's basal-IOB ripple (pre-PR#35).
         InsulinMathCompat.useLegacyBasalRippleIOB = legacyBasalIob
@@ -760,6 +793,81 @@ struct SimulateCommand: AsyncParsableCommand {
             let isfH = candidateConfig.sensitivityHourlyMultipliers ?? Array(repeating: 1.0, count: 24)
             candidateConfig.sensitivityHourlyMultipliers = zip(isfH, h).map { $0 / $1 }
         }
+        let parsedPatientInsulinModel = try patientInsulinModel.map { try parseInsulinType($0) }
+        let parsedControllerInsulinModel = try controllerInsulinModel.map { try parseInsulinType($0) }
+        if parsedPatientInsulinModel == .custom || parsedControllerInsulinModel == .custom {
+            guard let dur = customInsulinDurationMin, let peak = customInsulinPeakMin else {
+                throw ValidationError("a `custom` insulin model needs --custom-insulin-duration-min and --custom-insulin-peak-min.")
+            }
+            guard peak > 0, dur > 2 * peak else {
+                throw ValidationError("--custom-insulin-duration-min (\(dur)) must exceed twice --custom-insulin-peak-min (\(peak)); the exponential model is undefined otherwise.")
+            }
+            ExponentialInsulinModelPreset.customActionDuration = dur * 60
+            ExponentialInsulinModelPreset.customPeakActivity = peak * 60
+            printStderr("custom insulin model: peak \(Int(peak)) min, action duration \(Int(dur)) min (+10 min delay)\n")
+        } else if customInsulinDurationMin != nil || customInsulinPeakMin != nil {
+            throw ValidationError("--custom-insulin-duration-min/--custom-insulin-peak-min only apply with `--controller-insulin-model custom` or `--patient-insulin-model custom`.")
+        }
+        // Dated controller curve changes. A `DURATION/PEAK` spec takes the first free custom slot.
+        var insulinTypeChanges: [InsulinTypeChange] = []
+        if !controllerInsulinSwitch.isEmpty {
+            let iso = ISO8601DateFormatter()
+            var slots: [(dur: Double, peak: Double, preset: ExponentialInsulinModelPreset)] = []
+            if parsedPatientInsulinModel == .custom || parsedControllerInsulinModel == .custom,
+               let d = customInsulinDurationMin, let p = customInsulinPeakMin {
+                slots.append((d, p, .custom))
+            }
+            for raw in controllerInsulinSwitch {
+                let parts = raw.split(separator: "=", maxSplits: 1).map(String.init)
+                guard parts.count == 2, let start = iso.date(from: parts[0]) else {
+                    throw ValidationError("--controller-insulin-switch expects ISO8601=SPEC (e.g. 2026-09-24T09:03:00Z=180/80); got '\(raw)'.")
+                }
+                let spec = parts[1]
+                let preset: ExponentialInsulinModelPreset
+                let dp = spec.split(separator: "/").map { Double($0) }
+                if dp.count == 2, let d = dp[0], let p = dp[1] {
+                    guard p > 0, d > 2 * p else {
+                        throw ValidationError("--controller-insulin-switch \(spec): duration must exceed twice the peak.")
+                    }
+                    if let hit = slots.first(where: { $0.dur == d && $0.peak == p }) {
+                        preset = hit.preset
+                    } else {
+                        let free: [ExponentialInsulinModelPreset] = [.custom, .custom2].filter { c in !slots.contains { $0.preset == c } }
+                        guard let c = free.first else {
+                            throw ValidationError("--controller-insulin-switch: at most two distinct custom curves per run.")
+                        }
+                        if c == .custom {
+                            ExponentialInsulinModelPreset.customActionDuration = d * 60
+                            ExponentialInsulinModelPreset.customPeakActivity = p * 60
+                        } else {
+                            ExponentialInsulinModelPreset.custom2ActionDuration = d * 60
+                            ExponentialInsulinModelPreset.custom2PeakActivity = p * 60
+                        }
+                        slots.append((d, p, c)); preset = c
+                    }
+                } else {
+                    preset = try parseInsulinType(spec)
+                    if preset == .custom || preset == .custom2 {
+                        throw ValidationError("--controller-insulin-switch: give a custom curve as DURATION/PEAK, not by name.")
+                    }
+                }
+                insulinTypeChanges.append(InsulinTypeChange(start: start, preset: preset))
+            }
+            insulinTypeChanges.sort { $0.start < $1.start }
+            for c in insulinTypeChanges {
+                let m = c.preset
+                printStderr("controller insulin curve from \(iso.string(from: c.start)): \(m) (peak \(Int(m.peakActivity / 60)) min, action duration \(Int(m.actionDuration / 60)) min)\n")
+            }
+        }
+        if dataDir != nil && insulinType != "rapidActingAdult" && controllerInsulinModel == nil {
+            printStderr("WARNING: --insulin-type is IGNORED with --data-dir (the model comes from therapy.json). Use --controller-insulin-model to override it.\n")
+        }
+        if let pm = parsedPatientInsulinModel, pm == baselinePreset {
+            printStderr("note: --patient-insulin-model \(patientInsulinModel!) matches --insulin-type; plant and controller are the same model (a no-op).\n")
+        }
+        if insulinPhysicalPeak != nil || insulinPhysicalDia != nil {
+            printStderr("WARNING: --insulin-physical-peak/--insulin-physical-dia only size the effect window; they do NOT change the plant's insulin curve. Use --patient-insulin-model.\n")
+        }
         if let v = patientIsf, !(v > 0) {
             throw ValidationError("--patient-isf must be positive (mg/dL per U); got \(v).")
         }
@@ -791,6 +899,11 @@ struct SimulateCommand: AsyncParsableCommand {
         let dataSource: any EvalDataSource
         if let dataDir {
             dataSource = JSONFileDataSource(baseURL: URL(fileURLWithPath: dataDir))
+            let prov = Self.checkExportProvenance(dataDir: dataDir, arguments: CommandLine.arguments)
+            exportProvenance = prov
+            for w in prov.warnings {
+                printStderr("\n*** PROVENANCE WARNING: \(w)\n")
+            }
         } else {
             guard !nightscoutUrl.isEmpty, let baseURL = URL(string: nightscoutUrl) else {
                 throw ValidationError("Provide --nightscout-url or --data-dir")
@@ -807,8 +920,32 @@ struct SimulateCommand: AsyncParsableCommand {
         let engine = EvaluationEngine(dataSource: dataSource)
 
         printStderr("Fetching data... ")
-        let data = try await engine.prefetchData(for: interval, config: baselineConfig)
+        var data = try await engine.prefetchData(for: interval, config: baselineConfig)  // swiftlint:disable:this let_var_whitespace
         printStderr("done\n")
+
+        // CONTROLLER insulin-model override. The controller's belief lives in two
+        // places: the therapy timeline (what new candidate doses get stamped with)
+        // and the stamps already on the real dose history (what LoopAlgorithm reads
+        // back for IOB/effects). Both must move together, or the arm believes two
+        // different insulins at once. The PLANT is unaffected — it re-stamps these
+        // same doses onto --patient-insulin-model inside the simulator.
+        if let cm = parsedControllerInsulinModel {
+            let was = data.therapyTimeline.insulinType
+            var tl = data.therapyTimeline
+            tl.insulinType = cm
+            let restamped = data.doses.map { (d: EvalInsulinDose) -> EvalInsulinDose in
+                var x = d; x.insulinType = cm; return x
+            }
+            data = PreloadedData(glucose: data.glucose, doses: restamped,
+                                 carbs: data.carbs, therapyTimeline: tl)
+            printStderr("controller insulin model: \(was) -> \(cm) (therapy belief + \(restamped.count) dose stamps); plant unaffected\n")
+        }
+        if !insulinTypeChanges.isEmpty {
+            var tl = data.therapyTimeline
+            tl.insulinTypeChanges = insulinTypeChanges
+            data = PreloadedData(glucose: data.glucose, doses: data.doses,
+                                 carbs: data.carbs, therapyTimeline: tl)
+        }
 
         // Optional per-step ISF multiplier CSV (time → multiplier).
         let isfMultMap: [Date: Double]?
@@ -864,6 +1001,7 @@ struct SimulateCommand: AsyncParsableCommand {
 
         var parsedDecisionTimes: [Date] = []
         var parsedNoDoseGuardTimes: Set<Date> = []
+        var parsedBolusInProgressTimes: Set<Date> = []
         var parsedTempStrategyTimes: Set<Date> = []
         // Cadence is a DATASET property: an export that carries the field's recorded
         // decision instants (decision_times.csv, ETL v8+) is replayed on that cadence;
@@ -887,6 +1025,7 @@ struct SimulateCommand: AsyncParsableCommand {
             // single line (observed: "Stepping at 0 recorded decision times").
             var guardIdx: Int? = nil
             var modeIdx: Int? = nil
+            var bipIdx: Int? = nil
             for line in text.split(whereSeparator: { $0.isNewline }) {
                 // first column = the instant; further columns (rec fields) are for scorers,
                 // except `no_dose_guard` (ETL v13): cycles the field controller ran but
@@ -899,12 +1038,16 @@ struct SimulateCommand: AsyncParsableCommand {
                 if tok == "t" {
                     guardIdx = cols.firstIndex(of: "no_dose_guard")
                     modeIdx = cols.firstIndex(of: "mode")
+                    bipIdx = cols.firstIndex(of: "bolus_in_progress")
                     continue
                 }
                 if let d = iso.date(from: tok) ?? isoNoFrac.date(from: tok) {
                     parsedDecisionTimes.append(d)
                     if let gi = guardIdx, gi < cols.count, cols[gi] == "1" {
                         parsedNoDoseGuardTimes.insert(d)
+                    }
+                    if let bi = bipIdx, bi < cols.count, cols[bi] == "1" {
+                        parsedBolusInProgressTimes.insert(d)
                     }
                     if let mi = modeIdx, mi < cols.count, cols[mi] == "temp" {
                         parsedTempStrategyTimes.insert(d)
@@ -913,6 +1056,7 @@ struct SimulateCommand: AsyncParsableCommand {
             }
             printStderr("Stepping at \(parsedDecisionTimes.count) recorded decision times from \(csvPath)"
                         + (parsedNoDoseGuardTimes.isEmpty ? "" : " (\(parsedNoDoseGuardTimes.count) no-dose-guard cycles skipped)")
+                        + (parsedBolusInProgressTimes.isEmpty ? "" : " (\(parsedBolusInProgressTimes.count) bolus-in-progress cycles skipped)")
                         + (parsedTempStrategyTimes.isEmpty ? "\n" : " (\(parsedTempStrategyTimes.count) temp-strategy cycles)\n"))
             // These instants ARE the controller's real decision timestamps — anchor
             // momentum/RC on them directly, not on the lastGlucose+7s estimate.
@@ -920,7 +1064,37 @@ struct SimulateCommand: AsyncParsableCommand {
             candidateConfig.decisionTimesAreAuthoritative = true
         }
 
+        let plant: ExternalPlant?
+        if let cmd = externalPlant {
+            guard candidateCounterfactual else {
+                throw ValidationError("--external-plant requires --candidate-counterfactual")
+            }
+            plant = try ExternalPlant(command: cmd)
+            if plantBehavior { printStderr("Plant behavior: carb entries and manual boluses come from the plant\n") }
+            printStderr("External plant: \(cmd)\n")
+        } else {
+            guard !plantBehavior else { throw ValidationError("--plant-behavior requires --external-plant") }
+            plant = nil
+        }
         printStderr("Running closed-loop simulation (sequential, ~10× slower than bench)...\n")
+        var candidateTherapy: TherapyTimeline? = nil
+        if let path = candidateSchedulesJson {
+            let dec = JSONDecoder()
+            dec.dateDecodingStrategy = .iso8601
+            let other = try dec.decode(TherapyTimeline.self, from: Data(contentsOf: URL(fileURLWithPath: path)))
+            var tl = data.therapyTimeline
+            tl.basal = other.basal
+            tl.sensitivity = other.sensitivity
+            tl.carbRatio = other.carbRatio
+            tl.target = other.target
+            if !tl.rawBasal.isEmpty {
+                tl.rawBasal = other.rawBasal.isEmpty ? other.basal : other.rawBasal
+                tl.rawSensitivity = other.rawSensitivity.isEmpty ? other.sensitivity : other.rawSensitivity
+                tl.rawCarbRatio = other.rawCarbRatio.isEmpty ? other.carbRatio : other.rawCarbRatio
+                tl.rawTarget = other.rawTarget.isEmpty ? other.target : other.rawTarget
+            }
+            candidateTherapy = tl
+        }
         let simResult = try await engine.simulateClosedLoop(
             data: data,
             interval: interval,
@@ -944,6 +1118,7 @@ struct SimulateCommand: AsyncParsableCommand {
             decisionsFromCgm: decisionsFromCgm,
             decisionTimes: parsedDecisionTimes,
             noDoseGuardTimes: parsedNoDoseGuardTimes,
+            bolusInProgressTimes: parsedBolusInProgressTimes,
             enableTimeBasedAF: timeBasedAf,
             tempStrategyTimes: parsedTempStrategyTimes,
             excludeManualBoluses: noUserBoluses,
@@ -953,6 +1128,7 @@ struct SimulateCommand: AsyncParsableCommand {
             counterRegMaxRate: counterRegMax,
             cfGapReanchorSec: cfGapReanchorMin * 60,
             patientISF: patientIsf,
+            patientInsulinType: parsedPatientInsulinModel,
             inferSensitivity: candidateInferSensitivity,
             inferSensitivityMax: candidateInferSensitivityMax,
             inferSensitivityWindowSec: candidateInferSensitivityWindowMin * 60,
@@ -962,8 +1138,12 @@ struct SimulateCommand: AsyncParsableCommand {
             useOpenAPSForCandidate: candidateOpenaps,
             useLoopMimicForCandidate: candidateLoopMimicOaps,
             sensorCapMgdl: sensorCapMgdl,
+            externalPlant: plant,
+            plantBehavior: plantBehavior,
+            candidateTherapy: candidateTherapy,
             progress: Self.makeProgressReporter()
         )
+        plant?.finish()
         printStderr("Progress: 100%\n")
 
         // Emit trace JSON in the same shape as bench --trace-out so the
@@ -972,15 +1152,69 @@ struct SimulateCommand: AsyncParsableCommand {
         try Self.writeTrace(
             simResult: simResult,
             data: data,
-            to: URL(fileURLWithPath: traceOut)
+            to: URL(fileURLWithPath: traceOut),
+            exportDataVersion: exportProvenance?.version,
+            provenanceWarnings: exportProvenance?.warnings ?? []
         )
         printStderr("Closed-loop trace → \(traceOut)\n")
+    }
+
+    /// Oldest export DATA_VERSION validated against the field (bddp cohort, 2026-10-11: 9/11 donors
+    /// match on lows and TIR at v18/v19). Older exports predate fidelity fixes the replay depends on --
+    /// per-cycle strategy mode (v15), carb visibility (v16), basalType (v17), deployed maxBolus (v14) --
+    /// and unversioned ones may predate the bolus dedup (e128da3) that stopped HealthKit mirrors
+    /// replaying Loop's automatic boluses as manual. Bump deliberately when an ETL change matters.
+    /// Raised to 22 (2026-10-11): manual temp basals (v21; i040's lows 13 -> 1, field 1),
+    /// second-app dose records and unpaired status suspends (v22; month-long false disruptions).
+    /// Raised to 23: dated max basal / max bolus / suspend threshold (61 of 206 pilot donors changed
+    /// max basal in-window; i017 was capped at 2.0 U/h through months at 3.0).
+    static let validatedExportDataVersion = 23
+
+    /// Provenance check for a --data-dir export, run before the replay starts. Returns the export's
+    /// data_version (nil if unstamped) and human-readable warnings; never throws, never blocks -- a
+    /// sweep may override a donor flag on purpose, and other roles' scripts must not break.
+    ///
+    /// Two checks:
+    ///  * `_export_manifest.json` -- missing, or a data_version below `validatedExportDataVersion`.
+    ///  * `replay_config.json` (optional, next to the export) -- `{"required_flags": ["--flag",
+    ///    "--flag value", ...], "notes": "..."}`: the flags that make THIS donor deployment-faithful.
+    ///    Each entry must appear in the command line as that exact token sequence.
+    static func checkExportProvenance(dataDir: String, arguments: [String]) -> (version: Int?, warnings: [String]) {
+        var warnings: [String] = []
+        var version: Int? = nil
+        let dir = URL(fileURLWithPath: dataDir)
+        let manifestURL = dir.appendingPathComponent("_export_manifest.json")
+        if let raw = try? Data(contentsOf: manifestURL),
+           let obj = try? JSONSerialization.jsonObject(with: raw) as? [String: Any] {
+            version = (obj["data_version"] as? NSNumber)?.intValue
+            if let v = version, v < validatedExportDataVersion {
+                warnings.append("export data_version \(v) is older than \(validatedExportDataVersion), the oldest validated against the field -- re-export before trusting absolute outcomes")
+            } else if version == nil {
+                warnings.append("export manifest has no data_version -- cannot tell which ETL fixes it carries")
+            }
+        } else {
+            warnings.append("no _export_manifest.json -- this export predates version stamping and may predate the bolus-dedup fix (Loop automatic boluses replayed as manual); re-export before trusting absolute outcomes")
+        }
+        let cfgURL = dir.appendingPathComponent("replay_config.json")
+        if let raw = try? Data(contentsOf: cfgURL),
+           let obj = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
+           let req = obj["required_flags"] as? [String] {
+            let joined = " " + arguments.joined(separator: " ") + " "
+            let missing = req.filter { !joined.contains(" " + $0 + " ") }
+            if !missing.isEmpty {
+                let note = (obj["notes"] as? String).map { " (\($0))" } ?? ""
+                warnings.append("replay_config.json requires flags not on this command line: \(missing.joined(separator: ", "))\(note) -- the replay is NOT deployment-faithful for this donor")
+            }
+        }
+        return (version, warnings)
     }
 
     static func writeTrace(
         simResult: ClosedLoopSimResult,
         data: PreloadedData,
-        to url: URL
+        to url: URL,
+        exportDataVersion: Int? = nil,
+        provenanceWarnings: [String] = []
     ) throws {
         let mgdlUnit = LoopUnit.milligramsPerDeciliter
         let formatter = ISO8601DateFormatter()
@@ -1016,6 +1250,8 @@ struct SimulateCommand: AsyncParsableCommand {
             let candidateDiscrepancy: Double    // ICE − carbEffect = RC-bound remainder (mg/dL)
             let candidateSensModeMult: Double   // Sensitive Mode ISF multiplier (1.0 = inactive)
             let candidateManualBolusRecOut: Double // candidate recommended MANUAL bolus this step (pre-factor full correction)
+            let plantBolusU: Double             // --plant-behavior: bolus delivered this step at the plant person's request
+            let plantCarbsG: Double             // --plant-behavior: carbs the plant person entered during this step
             // PATIENT IOB — field dosing and candidate dosing through the SAME patient
             // insulin model (net-basal, scheduled-gap-filled). Independent of NS
             // devicestatus timing and of any candidate IOB-method changes. Use these
@@ -1025,7 +1261,7 @@ struct SimulateCommand: AsyncParsableCommand {
             let baselinePredCurve: [Double]?       // full baseline forecast curve (mg/dL, 5-min spaced from t); nil unless --export-forecast-curve
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
-        struct CounterSample: Codable { let t: String; let bg: Double }
+        struct CounterSample: Codable { let t: String; let bg: Double? }   // nil: the plant's CGM gave no reading
         struct CurvePoint: Codable { let tMin: Double; let percentRemaining: Double; let percentDelivered: Double }
         // Canonical insulin-delivery stream — uniform for both arms so a renderer
         // can plot ACTUAL delivery (basal rate + boluses, auto vs manual) without
@@ -1056,6 +1292,8 @@ struct SimulateCommand: AsyncParsableCommand {
             let delivery: [DeliveryRecord] // canonical actual-delivery stream (NEW)
             let insulinActivityCurve: [CurvePoint]
             let closedLoop: Bool
+            let exportDataVersion: Int?          // --data-dir export's manifest version (nil = unstamped)
+            let provenanceWarnings: [String]     // stale export / missing donor flags; empty = clean
         }
 
         let preds = simResult.steps.map {
@@ -1088,6 +1326,8 @@ struct SimulateCommand: AsyncParsableCommand {
                  candidateDiscrepancy: $0.candidateDiscrepancy.isFinite ? $0.candidateDiscrepancy : 0.0,
                  candidateSensModeMult: $0.candidateSensModeMult.isFinite ? $0.candidateSensModeMult : 1.0,
                  candidateManualBolusRecOut: $0.candidateManualBolusRecOut.isFinite ? $0.candidateManualBolusRecOut : 0.0,
+                 plantBolusU: $0.plantBolusU,
+                 plantCarbsG: $0.plantCarbsG,
                  patientIOBField: $0.patientIOBField.isFinite ? $0.patientIOBField : 0.0,
                  patientIOBCandidate: $0.patientIOBCandidate.isFinite ? $0.patientIOBCandidate : 0.0,
                  baselinePredCurve: $0.baselinePredCurve.isEmpty ? nil : $0.baselinePredCurve)
@@ -1097,7 +1337,7 @@ struct SimulateCommand: AsyncParsableCommand {
                          bg: $0.quantity.doubleValue(for: mgdlUnit))
         }
         let counterOut = simResult.steps.map {
-            CounterSample(t: formatter.string(from: $0.t), bg: $0.counterBG)
+            CounterSample(t: formatter.string(from: $0.t), bg: $0.counterBG.isFinite ? $0.counterBG : nil)
         }
         let insulinModel = data.therapyTimeline.insulinType.model
         let dur = insulinModel.effectDuration
@@ -1146,16 +1386,22 @@ struct SimulateCommand: AsyncParsableCommand {
         // basal it set (rate) plus any auto-bolus. Emitted per 5-min step. In CF
         // mode all candidate delivery is automatic. Basal records are run-length
         // compacted (one span per unchanged rate) to keep the trace small.
+        // amountU is what the pump DELIVERED (whole pulses), not the commanded rate × time --
+        // this stream is documented as actual delivery and is compared against the field's
+        // delivered volumes. rateUhr keeps the commanded rate for reference. Steps without a
+        // recorded delivery (burn-in) fall back to rate × time.
         let stepDur: TimeInterval = 5 * 60
         var runStart: Date? = nil
         var runRate = Double.nan
+        var runDelivered = 0.0
+        var runAllMeasured = true
         func flushBasalRun(endingAt end: Date) {
             guard let s = runStart, runRate.isFinite else { return }
             let hours = max(end.timeIntervalSince(s), 0) / 3600.0
             delivery.append(DeliveryRecord(
                 t: formatter.string(from: s), tEnd: formatter.string(from: end),
                 source: "candidate", kind: "basal", automatic: true,
-                amountU: runRate * hours, rateUhr: runRate))
+                amountU: runAllMeasured ? runDelivered : runRate * hours, rateUhr: runRate))
         }
         for step in simResult.steps {
             let r = step.candidateTempRate
@@ -1163,7 +1409,10 @@ struct SimulateCommand: AsyncParsableCommand {
                 flushBasalRun(endingAt: step.t)
                 runStart = r.isFinite ? step.t : nil
                 runRate = r
+                runDelivered = 0; runAllMeasured = true
             }
+            if step.candidateBasalDeliveredU.isFinite { runDelivered += step.candidateBasalDeliveredU }
+            else { runAllMeasured = false }
             if step.candidateBolus > 0 {
                 delivery.append(DeliveryRecord(
                     t: formatter.string(from: step.t), tEnd: nil,
@@ -1196,7 +1445,9 @@ struct SimulateCommand: AsyncParsableCommand {
             counter: counterOut,
             delivery: delivery,
             insulinActivityCurve: curve,
-            closedLoop: true
+            closedLoop: true,
+            exportDataVersion: exportDataVersion,
+            provenanceWarnings: provenanceWarnings
         )
 
         let encoder = JSONEncoder()

@@ -27,6 +27,8 @@ struct CarbRevisionSpec: Decodable {
     struct Revision: Decodable {
         let visibleFrom: String         // ISO — when this grams value became visible to Loop
         let grams: Double
+        let startDate: String?          // ISO meal time of THIS revision (an edit can move it); default: the cached entry's
+        let absorptionTime: TimeInterval?   // seconds, this revision's (default: the spec's / cached entry's)
     }
 }
 
@@ -54,9 +56,11 @@ enum CarbRevisions {
     /// `EvalCarbEntry` per revision (same meal `startDate`; `entryDate` =
     /// `dosingVisibleDate` = the revision's `visibleFrom`; `revisionKey` set).
     ///
-    /// Safety: the spec's LAST revision grams must equal the cached entry grams
-    /// (within `gramsTol`) — otherwise the overlay is stale/misaligned for that
-    /// entry and it is left untouched (logged via `onWarning`). Specs that match
+    /// Safety: some revision's grams must equal the cached entry grams (within
+    /// `gramsTol`) — usually the last, but a Tidepool food record can keep an EARLIER
+    /// version than Loop's last save, and the overlay then supplies the later grams.
+    /// Otherwise the overlay is stale/misaligned and the entry is left untouched
+    /// (logged via `onWarning`). Specs that match
     /// no in-window cached entry are skipped silently (entry outside the window).
     static func apply(
         to carbs: [EvalCarbEntry],
@@ -74,25 +78,26 @@ enum CarbRevisions {
                 onWarning?("carb-revisions: unparseable matchStartDate \(spec.matchStartDate)")
                 continue
             }
-            // Find the matching cached entry (closest startDate within tolerance).
-            let candidates = result.enumerated().filter {
+            // Find the matching cached entry (closest startDate within tolerance), among
+            // entries carrying one of the spec's grams: two carbs logged a minute apart must
+            // not swap overlays.
+            let near = result.enumerated().filter {
                 abs($0.element.startDate.timeIntervalSince(mealTime)) <= tolerance
+            }
+            let candidates = near.filter { c in
+                let g = c.element.quantity.doubleValue(for: .gram)
+                return spec.revisions.contains(where: { abs($0.grams - g) <= gramsTol })
             }
             guard let match = candidates.min(by: {
                 abs($0.element.startDate.timeIntervalSince(mealTime)) <
                 abs($1.element.startDate.timeIntervalSince(mealTime))
             }) else {
+                if !near.isEmpty {
+                    onWarning?("carb-revisions: stale overlay for \(spec.matchStartDate) (no nearby entry has a revision's grams) — left as-is")
+                }
                 continue   // entry not in this window — nothing to splice
             }
             let cached = match.element
-            let cachedGrams = cached.quantity.doubleValue(for: .gram)
-            let finalGrams = spec.revisions.last?.grams ?? cachedGrams
-            guard abs(finalGrams - cachedGrams) <= gramsTol else {
-                onWarning?(String(format:
-                    "carb-revisions: stale overlay for %@ (final %.1fg != cached %.1fg) — left as-is",
-                    spec.matchStartDate, finalGrams, cachedGrams))
-                continue
-            }
             // Remove the cached entry and splice in the revisions.
             result.remove(at: match.offset)
             let absorption = spec.absorptionTime ?? cached.absorptionTime
@@ -103,11 +108,11 @@ enum CarbRevisions {
                     continue
                 }
                 result.append(EvalCarbEntry(
-                    startDate: cached.startDate,        // preserve meal time (absorption anchor)
+                    startDate: rev.startDate.flatMap(parseISO) ?? cached.startDate,   // meal time (absorption anchor)
                     entryDate: vf,
                     dosingVisibleDate: vf,
                     quantity: LoopQuantity(unit: .gram, doubleValue: rev.grams),
-                    absorptionTime: absorption,
+                    absorptionTime: rev.absorptionTime ?? absorption,
                     foodType: food,
                     revisionKey: spec.revisionKey
                 ))

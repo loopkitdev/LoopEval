@@ -30,6 +30,8 @@ for that checkout (copy `ROLE.example.md`, exactly like `PRIVATE.md`).
 | simulator | `docs/agents/simulator.md` | Building LoopEval itself — engine, adapters, CLI, analysis package. |
 | eda | `docs/agents/eda.md` | Observational analysis of the data; the live distribution study. |
 | scenarios | `docs/agents/scenarios.md` | Synthetic scenarios: hand-built cycles with no donor record behind them. Overlay still a placeholder. |
+| research | `docs/agents/research.md` | Literature review: how the field builds and evaluates AID algorithms, set against our work; proposes new paths. |
+| ice | `docs/agents/ice.md` | Generative models of the insulin counteraction effect: learn realistic ICE, behavior included, from the donor pool and drive the simulator with it. |
 | — | `docs/agents/verification.md` | Faithful replay and identity checks; read by frontier **and** simulator. |
 
 **Keep to your own overlay.** One file, one owner: roles never edit each other's overlay, so
@@ -53,6 +55,14 @@ others need — a new analysis module, a CLI flag, a fix in shared code — publ
 the current `main`. If it refuses, `main` moved while you worked — merge it again and retry.
 The invariant it buys is that `main` is a strict superset of every role branch, which is what
 makes "pick it up on the next merge" mean anything.
+
+**Cross-role findings go in `docs/handoffs/`.** When one role measures something another role
+needs to act on, write it as a tracked file there (see `docs/handoffs/README.md`) — not in the run
+directory. `runs/` is a gitignored symlink out of the repo: nothing in it appears in `git status`,
+in a diff view or on GitHub, and it does not travel between worktrees, so a handoff left there can
+be unreadable to the very role it is addressed to. On `main` it reaches every checkout on the next
+merge. The evidence stays in the run dir; the handoff cites it. If the peer's session is live, send
+a one-line message pointing at the file.
 
 **Publish the finished piece, not the work in progress.** Everything on `main` reaches every
 other checkout, so what goes back is the reusable thing — the module, the flag, the fix. A
@@ -101,6 +111,16 @@ in `PRIVATE.md`** (one row per dataset), capturing what deployment-faithful repl
 - override handling (`--apply-overrides`), edited-carb handling (`--carb-revisions-json`),
   app factor / GBAF, meal-announcement level;
 - any dated settings changes (target, ISF, CR).
+
+**For a `--data-dir` export, put the donor's required flags next to it** in
+`replay_config.json` — `{"required_flags": ["--flag", "--flag value", ...], "notes": "..."}`.
+`simulate` checks every replay against it and against the export's `_export_manifest.json`
+(missing, or older than the oldest data_version validated against the field), prints a
+`PROVENANCE WARNING`, and records it in the trace's `provenanceWarnings`, which
+`score_counterfactual` re-raises. It warns rather than fails, so a sweep can override a donor flag on
+purpose — but a warning on a deployed-config replay means the numbers aren't faithful. Both failure
+modes have cost whole sessions: a stale bddp11 export replayed Loop's automatic boluses as manual
+(130 lows < 54 against the field's 26), and bddp04 without its GBAF flags shows ~9× the field's t<54.
 
 Then **validate** before trusting numbers from a new site: a stock ISF sweep's TIR-vs-t<54
 curve should pass through the site's real deployment point; if it doesn't, the recorded
