@@ -809,3 +809,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     background 0.28 / 0.30 (field 0.40), 5-min quantile distance 36.9 / 37.0 (ceiling 27.9); TIR 61.7 / 62.0, t<54 1.24 /
     0.70, mean 165 / 169. As with multi-step scheduled sampling (LESSONS 43): taught that its own draws are less
     informative, the model weakens the 5-minute dependence, and the level excess stays.
+87. **Generalization check on v3m15 (seed 0, kernel draw): severe lows and the behavior tails much closer; one co-variation
+    still inverted.** Drawn people (3 per host, 24 hosts) vs the real population, 10th / 50th / 90th: t<54 0.0 / 0.75 /
+    5.2% (v3m10 draws 0.46-0.5 / 2.2-3.1 / 7.7-8.1; real 0.0 / 0.12 / 0.55); entries 0.36 / 2.66 / 6.75 a day (all 168
+    trained people 0.12 / 3.09 / 6.94); corrections 0.36 / 1.38 / 5.41 (0.10 / 1.07 / 4.25); TIR 35 / 61 / 76 (52 / 74 /
+    89); mean 134 / 167 / 224 (127 / 152 / 188), the level excess again. Real people who enter more carbs have fewer
+    severe lows (Spearman -0.31); drawn people slightly more (+0.23).
