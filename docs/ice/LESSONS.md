@@ -884,3 +884,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     test (LESSONS 63, 74, 96) puts the field's real change about where the generator predicts (slope ~0.95 for mean and
     t<70) and well below replay's prediction (0.39 / 0.48), so frozen-ICE replay likely overstates how much a dosing change
     moves outcomes. Requested via loopeval-algo with Pete's go.
+96. **On real settings edits, v3m21 (+ clock-band behavior calibration) predicts the SIZE of the change about right for TIR,
+    t<70 and mean glucose, on both seeds; t<54 still does not.** 61-62 edits, seeds 0 / 1, field change regressed on
+    predicted change (slope 1 = right size): mean glucose slope 0.95 / 0.89, r 0.38 / 0.35 (replay 0.39, r 0.32); t<70 0.95 /
+    0.91, r 0.53 / 0.43 (replay 0.48, 0.48); TIR 0.75 / 0.90, r 0.22 / 0.25 (replay 0.49, 0.24); t<54 0.22 / 0.28, r 0.22 /
+    0.27, mean error 0.46 / 0.48 vs 0.30 for predicting no change (replay 0.09, 0.15). Earlier generators had slopes 0.16-0.85
+    and TIR r 0.05-0.22 with seed-to-seed swings (LESSONS 63, 74). Correlations stay modest because the field's own change
+    at an edit is mostly noise (sd 11.4 at edits vs 8.5 at random days); per-edit error is near the no-change baseline for
+    the same reason. Frozen-ICE replay overstates every effect (slopes 0.09-0.49); with the insulin-needs check (LESSONS 95)
+    this says a reacting person, not frozen ICE, is the right reference for dosing changes. Own-settings level still off
+    (TIR -4.9 / -6.2 median).
