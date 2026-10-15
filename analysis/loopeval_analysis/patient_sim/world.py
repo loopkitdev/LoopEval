@@ -54,7 +54,7 @@ class World:
         if enable:
             self.mod_traits.enabled.update({k: v for k, v in enable.items() if k in self.mod_traits.enabled})
         self.enable = dict(exercise=True, site_failure=True, pump_faults=True, compression=True, behavior_defense=True,
-                           perfect_person=False)
+                           perfect_person=False, fat=True)
         if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable})
         self.mods = Modulators(self.mod_traits, days)
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
@@ -89,11 +89,14 @@ class World:
         # internal controller state
         self.int_doses: list = []                          # exported history: (type, start_m, end_m, units, automatic)
         self.received: list = []                           # every dose LoopEval sent, as received: (type, start, end, U)
+        self.fat_events: list = []                         # (minute, fat g) — transient fat-induced insulin resistance
+        self.fat_rho = float(r_misc.uniform(0.0, 0.35))    # per person (Wolpert 2013 +42% insulin, wide spread; evidence/01 §6.3)
 
     # ------------------------------------------------------------------ one minute
     def _minute(self, pending_actions: list):
         m = self.minute
         si, egp, absm_env = self.mods.at(m)
+        si *= self._fat_si(m)
         gi_ill = self.mods.illness(m)[2] if self.mod_traits.enabled.get("illness") else False
         ex = self.ex.at(m) if self.enable["exercise"] else dict(ex_intensity=0, ex_anaerobic=0, ex_si_boost=0, abs_mult=1)
         absm_site, bio = self.pump.site_state(m)
@@ -116,6 +119,7 @@ class World:
             if kind == "eat": self.body.eat(a[1])
             elif kind == "exercise": self.ex.add(*a[1:])
             elif kind == "site_change": self.pump.change_site(m)
+            elif kind == "fat": self.fat_events.append((a[1], a[2]))
             else: pending_actions.append(a)
         # a failing site the person notices: a long high that corrections did not move (eda L52) [J: ~3 h]
         if self.pump.failing(m) and reading and reading > 250 and not asleep \
@@ -128,6 +132,21 @@ class World:
                 self.pump.change_site(m); self.beh.log.append((m, "site_change_alarm", 0, reading))
         self.truth.append((m, self.body.g, self.body.ra, self.body.egp, si, u, self.body.insulin_absorbed * self.person.bw / 1000.0))
         self.minute = m + 1.0
+
+    def _fat_si(self, m: float) -> float:
+        """Fat-induced insulin resistance: 1 − ρ·fat/50 at full effect, ramping in from 2 h, full 3–6 h,
+        gone by 10 h after the meal (evidence/01 §6.3)."""
+        if not self.fat_events or not self.enable.get("fat", True): return 1.0
+        mult = 1.0
+        keep = []
+        for (t, fat) in self.fat_events:
+            x = (m - t) / 60.0
+            if x > 10: continue
+            keep.append((t, fat))
+            w = 0.0 if x < 2 else (x - 2) if x < 3 else 1.0 if x < 6 else (10 - x) / 4
+            mult *= 1.0 - self.fat_rho * min(fat, 80.0) / 50.0 * w
+        self.fat_events = keep
+        return max(mult, 0.4)
 
     # ------------------------------------------------------------------ internal drive (burn-in)
     def _calc_iob(self, m: float) -> float:

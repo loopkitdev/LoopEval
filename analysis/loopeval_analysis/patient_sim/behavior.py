@@ -183,6 +183,8 @@ class Meal:
     entered: Optional[float]  # grams entered in Loop (None = not announced)
     entry_t: float
     bolus: Optional[float]    # ratio of the calculator recommendation (None = no bolus)
+    fat: float = 0.0          # g
+    protein: float = 0.0      # g
 
 
 class Behavior:
@@ -271,7 +273,12 @@ class Behavior:
                 if r.random() < t.p_bolus_with_entry:
                     u = r.random()
                     bolus = 1.0 if u > t.calc_up + t.calc_down else (float(r.uniform(1.1, 1.5)) if u < t.calc_up else float(r.uniform(0.5, 0.9)))
-            meal = Meal(base + mt, grams, kind, speed, entered, et, bolus)
+            # composition [J]: T1D adults ~40% energy carbohydrate, 40% fat, 18% protein (Snell-Bergeon 2009,
+            # unverified) → per carb gram ~0.44 g fat, 0.45 g protein for meals; snacks carry less
+            fat_r, pro_r = (0.44, 0.45) if kind == "meal" else (0.2, 0.2)
+            fat = grams * fat_r * float(np.exp(r.normal(0, 0.5) - 0.125))
+            protein = grams * pro_r * float(np.exp(r.normal(0, 0.5) - 0.125))
+            meal = Meal(base + mt, grams, kind, speed, entered, et, bolus, fat=fat, protein=protein)
             self.planned.append((base + mt, ("eat_meal", meal)))
             if entered is not None:
                 self.planned.append((et, ("enter_meal", meal)))
@@ -304,8 +311,17 @@ class Behavior:
             if kind == "eat_meal":
                 meal = rest[0]
                 bp = self.p.body
-                acts.append(("eat", Parcel(m, meal.grams, kempt=bp.kempt * meal.speed, kabs=bp.kabs * meal.speed,
+                # fat slows gastric emptying (Bell 2020, Paterson 2017): kempt × 1/(1 + fat/60)
+                phi_fat = 1.0 / (1.0 + meal.fat / 60.0)
+                acts.append(("eat", Parcel(m, meal.grams, kempt=bp.kempt * meal.speed * phi_fat, kabs=bp.kabs * meal.speed,
                                            f=bp.f, label=meal.kind)))
+                # protein → late glucose appearance: 0.1 g glucose per g protein, delayed ~90 min, peak 3–5 h
+                # (Smart 2013; Paterson 2017; evidence/01 §6.3); it is glucose, so fast-glucose bioavailability
+                if meal.protein > 0:
+                    acts.append(("eat", Parcel(m, 0.1 * meal.protein, kempt=1 / 60.0, kabs=1 / 60.0, delay=90.0,
+                                               f=self._f_glucose(), hypo_sensitive=False, label="protein")))
+                if meal.fat > 0:
+                    acts.append(("fat", m, meal.fat))
                 self.log.append((m, meal.kind, meal.grams, meal.entered))
             elif kind == "enter_meal":
                 meal = rest[0]
