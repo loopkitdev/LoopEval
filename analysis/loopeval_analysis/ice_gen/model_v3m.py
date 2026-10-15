@@ -481,6 +481,43 @@ class ICEGenV3M14(ICEGenV3M13):
         return low - high * x[..., self.i_ok_]
 
 
+class ICEGenV3M15(ICEGenV3M13):
+    """v3m15: v3m13 + an exogenous baseline for background ICE. A separate recurrent net reads only exogenous inputs (clock,
+    meals, entries, boluses, the person's profile; never glucose, pending insulin or background ICE) and gives a baseline
+    b_t, added to every mixture mean; the background path reads its previous value as the deviation from the previous
+    baseline (bgice - b_{t-1}) instead of the raw level. In closed loop v3m13's level ratchets ~10 mg/dL/h up on its own
+    noise through the previous-value channel (overnight 46.6 vs 23.7, LESSONS 76-77), while the two-stream generator's
+    exogenous level holds (28.9-29.2) but loses the defense (LESSONS 73, 78): here the level is anchored exogenously and
+    v3m13's defense ramp stays."""
+    arch = "v3m15"
+    BASE_KEEP = ["pulse", "since_meal", "last_size", "n_3h", "carbs", "bolus", "since_bolus", "hour_sin", "hour_cos", "dow_sin",
+                 "dow_cos", "since_entry", "unbolused", "bolus_3h", "entered_unabsorbed"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.register_buffer("base_keep", torch.tensor([1.0 if f in self.BASE_KEEP else 0.0 for f in features]))
+        self.i_prev_ = features.index("bgice"); self.i_prevok_ = features.index("bgice_ok")
+        self.inp_base = nn.Linear(n_features + profile_dim, 64)
+        self.gru_base = nn.GRU(64, 64, num_layers=1, batch_first=True)
+        self.head_base = nn.Linear(64, 1)
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last = h3 if h3 is not None else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        xi = x.clone()
+        xi[..., self.i_prev_] = (x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_]
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([xi * self.ice_keep, p], -1))), h2)
+        lg, mu, ls = self.head_ice(z2).split(self.K_ICE, -1)
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + (b + d)[..., None], ls], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, h2, (hb, b[:, -1]))
+
+
 class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""

@@ -40,7 +40,7 @@ from .extract import MODELS, RAPID_ACTING_ADULT
 from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
 from .model_v3j import ICEGenV3J, ICEGenV3K
-from .model_v3m import ICEGenV3M, ICEGenV3M3, ICEGenV3M4, ICEGenV3M5, ICEGenV3M6, ICEGenV3M7, ICEGenV3M8, ICEGenV3M9, ICEGenV3M10, ICEGenV3M11, ICEGenV3M12, ICEGenV3M13, ICEGenV3M14
+from .model_v3m import ICEGenV3M, ICEGenV3M3, ICEGenV3M4, ICEGenV3M5, ICEGenV3M6, ICEGenV3M7, ICEGenV3M8, ICEGenV3M9, ICEGenV3M10, ICEGenV3M11, ICEGenV3M12, ICEGenV3M13, ICEGenV3M14, ICEGenV3M15
 from .model_v4 import ICEGenV4, ICEGenV4R
 from . import dataset_v3m3 as D3M3
 from . import dataset_v3m as D3M
@@ -123,10 +123,10 @@ class PlantV3:
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
-        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7, "v3m8": ICEGenV3M8, "v3m9": ICEGenV3M9, "v3m10": ICEGenV3M10, "v3m11": ICEGenV3M11, "v3m12": ICEGenV3M12, "v3m13": ICEGenV3M13, "v3m14": ICEGenV3M14, "v4": ICEGenV4, "v4r": ICEGenV4R}.get(ck.get("arch"), ICEGenV3)
-        self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v4", "v4r"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v4", "v4r")
+        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7, "v3m8": ICEGenV3M8, "v3m9": ICEGenV3M9, "v3m10": ICEGenV3M10, "v3m11": ICEGenV3M11, "v3m12": ICEGenV3M12, "v3m13": ICEGenV3M13, "v3m14": ICEGenV3M14, "v3m15": ICEGenV3M15, "v4": ICEGenV4, "v4r": ICEGenV4R}.get(ck.get("arch"), ICEGenV3)
+        self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v4", "v4r"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v4", "v4r")
         self.v4 = ck.get("arch") in ("v4", "v4r")     # entries and boluses drawn as their own events (dataset_v3m)
-        self.net = (Net(len(ck["features"]), len(ck["people"]), features=list(ck["features"])) if ck.get("arch") in ("v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v4", "v4r") else Net(len(ck["features"]), len(ck["people"])))
+        self.net = (Net(len(ck["features"]), len(ck["people"]), features=list(ck["features"])) if ck.get("arch") in ("v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v4", "v4r") else Net(len(ck["features"]), len(ck["people"])))
         self.net.load_state_dict(ck["state"]); self.net.eval()
         self.features = list(ck["features"]); self.F = {f: i for i, f in enumerate(self.features)}
         self.drop = list(ck.get("drop", []))
