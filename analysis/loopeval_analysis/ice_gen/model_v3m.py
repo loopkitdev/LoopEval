@@ -583,6 +583,43 @@ class ICEGenV3M17(ICEGenV3M15):
         return out, (h1, h2, (hb, b[:, -1], full[:, -(self.AR_K - 1):]))
 
 
+class ICEGenV3M18(ICEGenV3M17):
+    """v3m18: the mixture's means and its shape from separate sources. Means: v3m17's (exogenous baseline + defense ramp +
+    linear AR on recent deviations) plus per-component offsets from the exogenous baseline path only, so nothing nonlinear in
+    the model's own draws can move the level. Weights and scales: a recurrent net that does see the recent deviation (as in
+    v3m15), so the spread follows whether the person is in a calm or a volatile stretch. v3m17 removed the level excess
+    (+0.4 mg/dL/h, overnight 28.6 vs 23.7) but, blind to its own deviations, widened every draw (5-min sd 110 vs 56,
+    quantile distance 47.7 vs ceiling 27.9, LESSONS 82)."""
+    arch = "v3m18"
+    ICE_DROP = ICEGenV3M15.ICE_DROP            # the shape path sees the previous value (as a deviation), as in v3m15
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.head_mu_exo = nn.Linear(64, self.K_ICE)
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last, dhist = h3 if h3 is not None else (None, None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        dev = (x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_]
+        B, T = dev.shape
+        past = dhist if dhist is not None else torch.zeros(B, self.AR_K - 1, device=x.device)
+        full = torch.cat([past, dev], 1)
+        lags = torch.stack([full[:, self.AR_K - 1 - k: self.AR_K - 1 - k + T] for k in range(self.AR_K)], -1)
+        ar = (lags * self.ar).sum(-1)
+        xi = x.clone(); xi[..., self.i_prev_] = dev
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([xi * self.ice_keep, p], -1))), h2)
+        lg, _, ls = self.head_ice(z2).split(self.K_ICE, -1)
+        mu = self.head_mu_exo(zb)
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + (b + d + ar)[..., None], ls], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, h2, (hb, b[:, -1], full[:, -(self.AR_K - 1):]))
+
+
 class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
