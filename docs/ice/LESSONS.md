@@ -731,3 +731,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     meal history, entries, boluses, clock) < 2. The model's own draws, read back as what background ICE just did, pull its
     level up (the drift of LESSONS 48, here as a steady offset). Under test: feeding back the predicted mean instead of the
     draw (PLANT_FEEDBACK=mean), to tell noise compounding from a biased mean.
+77. **The level excess is noise compounding, not a biased mean.** v3m13 seed 0 with the plant feeding back the predicted
+    mean instead of the draw (PLANT_FEEDBACK=mean, diagnostic): overnight background 18.8 vs field 23.7 (draw fed back:
+    46.6), glucose mean 122, t<54 2.10, 5-min sd of background 20 vs 56, correlation 0.75 at 5 min and 0.39 at 30 (field
+    0.40 / 0.07). Fed its mean, the model sits below the real level and turns sluggish; fed its draws, above. Its response
+    to a previous value above the person's usual is stronger than to one below, so its own noise ratchets the level up.
+    Under test: hiding the previous value on 30% of training steps (BGDROP), so the level is carried by context and the
+    last value is only a local correction.
