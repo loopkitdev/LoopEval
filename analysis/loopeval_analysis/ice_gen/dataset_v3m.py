@@ -31,6 +31,11 @@ FEATURES_M2 = FEATURES_M + ["entered_unabsorbed"]
 # value directly; generation feeds back the draw (plant --feedback sample / PLANT_FEEDBACK=sample). The indirect channels
 # (CGM trend, 30-min EMA) carried real ICE in training and the model's draws in generation (LESSONS 42).
 FEATURES_M2A = FEATURES_M2 + ["bgice"]
+# M2I: + the insulin action still to come above the basal level, ISF x (IOB - basal IOB) in mg/dL / 100: what a person reads
+# off Loop's screen and acts on ahead of a low (Pete, 2026-10-14: the defense, insulin plus anticipatory carbs and walks,
+# strengthens as excursions widen and is individual in how early it acts). Generated lows began with 0.56 vs 0.15 U above
+# basal and the model had no input that showed it (LESSONS 60).
+FEATURES_M2I = FEATURES_M2A + ["iob_net"]
 # FEATURES_M2B: + the person's own background ICE averaged over the last 6 h and 24 h (exact channels, computed the same way
 # from real values in training and from the model's own draws in the plant). One channel (the last value) could not carry
 # both the 5-min structure and the day level: generated levels drifted (day-to-day sd 23.5 vs 11.1), and teaching it to pull

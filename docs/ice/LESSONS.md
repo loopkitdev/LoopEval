@@ -628,3 +628,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     dial MONTH_CYCLE, off by default: a 28-day sinusoid in background ICE, amplitude x the person's ISF x TDD/24, random
     phase): at 0.2 the daily background level follows the cycle term (within-run correlation 0.41, sd of the term 10.5
     mg/dL/h) and so does daily insulin delivered (0.30); entries -0.04, meals -0.10, eating 218 vs 226 g-eq.
+66. **Offense and defense (Pete, 2026-10-14), and the generator's missing anticipation.** Forces on glucose split into two
+    teams: offense pushes glucose away from range (meals, exercise; mostly blind to glucose), defense brings it back
+    (insulin, rescue carbs, a walk to bring a high down); the defense strengthens as excursions widen and how much it acts
+    ahead of time is personal. Measured against that: the generator's offense matches (meal starts, sizes, shapes, timing;
+    the dials leave eating alone) and its reactive defense at a low matches (ICE after a crossing below 70 close to the
+    field), but its anticipatory defense is missing: generated lows start with 0.56 vs 0.15 U above basal and the model had
+    no input that showed pending insulin (only glucose, its trend and a 30-min CGM projection; the old `eventual` input
+    added labeled pulses still to absorb, a leak of food the person may not know of). Diagnostic PLANT_REAL_MEALS=1 (the
+    person's real meals, entries and boluses replayed, background generated; v3m10 seed 0, traits refit): clean-time
+    t<54 7.48, mean 125, lows per meal bolus 0.39; after a real meal bolus the generated background falls to ~2 mg/dL/h at
+    60 min where the field's rises to 69 at 30: the field's background carries the defense in step with its own offense,
+    and neither stream can be swapped in alone (with LESSONS 57). Under test: iob_net (ISF x IOB above the basal level,
+    what Loop shows) as an input to both paths, FEATURES_M2I.

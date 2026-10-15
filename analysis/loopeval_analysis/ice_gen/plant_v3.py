@@ -237,6 +237,24 @@ class PlantV3:
         for i, r in enumerate(mr.itertuples()):
             if (t0 - r.onset) < pd.Timedelta(hours=12):
                 self.pulses.append((r.onset, r.size_g * self.geq, m_[i], s_[i]))
+        # PLANT_REAL_MEALS=1 (diagnostic): the person's real meals (labeled pulses at their onsets), carb entries and manual boluses
+        # (requested units) replayed; the generator supplies background ICE only
+        self.real_meals = os.environ.get("PLANT_REAL_MEALS") == "1"
+        if self.real_meals:
+            mall = pd.read_parquet(ROOT / "meals" / f"{self.alias}.parquet"); ma, sa = params(mall.peak_h.to_numpy() + 2.5 / 60, mall.dur_h.to_numpy())
+            for i, r in enumerate(mall.itertuples()):
+                if r.onset > t0:
+                    self.pulses.append((r.onset, r.size_g * self.geq, ma[i], sa[i]))
+                    self.actions_log.append(dict(t=r.onset, kind="meal", size_g=r.size_g, peak_h=r.peak_h + 2.5 / 60, dur_h=r.dur_h, onset=r.onset))
+            for c in self.carbs_real:
+                te = _ts(c.get("entryDate") or c["startDate"])
+                if te > t0 and float(c["grams"]) > 0:
+                    self.due.append((te, "carb", float(c["grams"])))
+            bd = pd.read_parquet(ROOT / "bolus_decisions.parquet"); bd = bd[(bd.alias == self.alias) & (bd.requested > 0)]
+            bd = bd.assign(s=bd.t.dt.floor("5min")).groupby("s").requested.max()
+            for tb, u in bd.items():
+                if _ts(tb) > t0:
+                    self.due.append((_ts(tb), "bolus", dict(units=float(u))))
         last = X[-1]; F = self.F
         self.bgice = float(last[F["bgice"]]) if "bgice" in F else 0.0
         self.own_bg = []                                          # (t, background ICE scaled) for the dataset_v3m.OWN_MEANS channels
@@ -279,6 +297,8 @@ class PlantV3:
             if "eventual" in F:
                 to_come = sum(float(remaining([(t - on).total_seconds() / 3600], sz, m, s_)[0]) for on, sz, m, s_ in self.pulses)
                 x[F["eventual"]] = float(D3.eventual(np.array([now]), np.array([self.ins.iob(t)]), self.isf, self.base_iob, to_come)[0]) / 100
+        if "iob_net" in F:
+            x[F["iob_net"]] = self.isf * max(self.ins.iob(t) - self.base_iob, 0.0) / 100
         x[F["pulse"]] = self._pulse_rate(t) / ICE_SCALE
         x[F["since_meal"]] = min(self.since_meal, 24) / 24; x[F["last_size"]] = self.last_size / 50; x[F["n_3h"]] = n3 / 3
         x[F["carbs"]] = self.slot_carbs / 50; x[F["bolus"]] = self.slot_bolus / 5
@@ -306,6 +326,8 @@ class PlantV3:
 
     def _draw_m(self, s, t, x):
         """v3m: a meal pulse, a carb entry and a manual bolus, each its own draw (all due now)."""
+        if self.real_meals:
+            return
         if bool(s["meal"][0]):
             size = float(np.clip(np.exp(float(s["m_lsize"][0])), 5, 250))
             lpk = float(s["m_lpeak"][0])
