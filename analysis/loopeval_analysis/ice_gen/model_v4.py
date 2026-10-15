@@ -137,3 +137,26 @@ class ICEGenV4(ICEGenV3M4):
                 S = P.sum() + 1e-4; v = y[t] - (mu[t] + r[t] + m.sum()); K = P.sum(-1) / S
                 m = m + K * v; P = P - K[:, None] * P.sum(-2)[None, :]
         return m, P
+
+
+class ICEGenV4R(ICEGenV4):
+    """v4r: the two-stream generator with v3m13's defense ramp added to its reaction. The outside stream (exogenous inputs and
+    latent persistence, never reading its own draws) gets the overnight level right (28.9-29.2 vs field 23.7 mg/dL/h, where
+    v3m13 ratchets to 46.6 on its own noise, LESSONS 76-77); v3m13's shaped ramp in projected glucose (glucose - ISF x IOB
+    above basal) is the anticipatory defense a free reaction network did not find (LESSONS 71, 73)."""
+    arch = "v4r"
+    DEF_C = (0.0, 0.4, 0.8)
+    DEF_TAU = 0.15
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.i_bg_, self.i_ok_, self.i_iob_ = features.index("bg"), features.index("bg_ok"), features.index("iob_net")
+        self.def_c = nn.Parameter(torch.tensor(self.DEF_C))
+        self.def_w = nn.Parameter(torch.full((len(self.DEF_C),), -2.0))
+
+    def forward(self, x, person, h=None):
+        out, h = super().forward(x, person, h)
+        proj = x[..., self.i_bg_] - x[..., self.i_iob_]
+        d = (self.def_w.exp() * self.DEF_TAU * F.softplus((self.def_c - proj[..., None]) / self.DEF_TAU)).sum(-1) * x[..., self.i_ok_]
+        out["react"] = out["react"] + d; out["defense"] = d
+        return out, h
