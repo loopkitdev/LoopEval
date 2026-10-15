@@ -38,3 +38,21 @@ Things that cost time or would have produced a wrong simulator. Newest last.
    dose was still in the delivery delay line. Test every new physiology path against a control body
    (identical except the input), never against an assumed rest level — the delay line also starts
    empty unless primed, which looked like a formulation difference.
+
+7. **Uptake must vanish with glucose, and HAAF must not act within the episode it is measured in.**
+   The first closed-loop cohort pinned true glucose at the 10 mg/dL floor for hours in half the people
+   with delivery at zero. Two terms made a stable hypoglycaemic equilibrium: κ-form insulin-mediated
+   uptake kept ~85% of its basal value at 10 mg/dL (fixed: proportional to G below Gb, as Bergman and
+   UVA's Michaelis–Menten do), and the S2013 risk multiplier (×3.6 frozen below 60) on top. HAAF had
+   been draining counter-regulation within the same low; it now builds slowly (2 h below 54 → ×0.6).
+   λ_risk is provisional 0.5 until its joint calibration with counter-regulation on donor low anatomy.
+
+8. **People's ISF/CR settings are not physical carb sensitivities, and neither settings nor the
+   yardstick is the truth — TDD is the measured constraint.** Settings imply a carb sensitivity of
+   median 4.9 mg/dL/g; a body with the literature distribution volume gives ~6.5 for an adult and
+   ~28 for an 18-kg child. Taking settings as physics produced impossible bodies; taking the yardstick
+   ISF as truth turned its estimation noise into 2× settings errors and crashes. The truth is now:
+   ISF = settings moved halfway (log) toward the yardstick (weight open); body weight blends the age
+   prior with TDD at an age-banded U/kg; carb sensitivity from the body; true basal = a share of TDD;
+   carbs eaten = what the rest of TDD covers at the true CR. The donor's own outcomes then become a
+   per-person (twin) validation target.

@@ -53,14 +53,15 @@ class World:
         self.mod_traits = person.traits.get("mod") or sample_mod_traits(r_misc, person.age, person.sex)
         if enable:
             self.mod_traits.enabled.update({k: v for k, v in enable.items() if k in self.mod_traits.enabled})
-        self.enable = dict(exercise=True, site_failure=True, compression=True, behavior_defense=True)
+        self.enable = dict(exercise=True, site_failure=True, pump_faults=True, compression=True, behavior_defense=True)
         if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable})
         self.mods = Modulators(self.mod_traits, days)
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
         self.beh = Behavior(self.beh_traits, person, r_beh)
         self.ex = Exercise()
-        site = SiteTraits(p_fail=SiteTraits.p_fail if self.enable["site_failure"] else 0.0)
-        self.pump = Pump(site, r_pump)
+        site = SiteTraits(p_fail=SiteTraits.p_fail if self.enable["site_failure"] else 0.0,
+                          planned_days=self.beh_traits.site_days)
+        self.pump = Pump(site, r_pump, family=person.pump, faults=self.enable["pump_faults"])
         self.sensor = Sensor(person.sensor, r_sen,
                              compression_rate=person.traits.get("compression_rate", float(r_misc.gamma(2.37, 1 / 75.7)))
                              if self.enable["compression"] else 0.0)
@@ -105,10 +106,15 @@ class World:
             elif kind == "exercise": self.ex.add(*a[1:])
             elif kind == "site_change": self.pump.change_site(m)
             else: pending_actions.append(a)
-        # a failing site that the person notices: a long high that corrections did not move (eda L52)
+        # a failing site the person notices: a long high that corrections did not move (eda L52) [J: ~3 h]
         if self.pump.failing(m) and reading and reading > 250 and not asleep \
                 and self.beh.rng.random() < 1.0 / 180:
             self.pump.change_site(m); self.beh.log.append((m, "site_change_early", 0, reading))
+        # an occlusion alarm: changed promptly if awake, or if the alarm wakes them (alarms repeat ~15 min)
+        if self.pump.alarm and int(m) % 15 == 0:
+            p = 0.5 if not asleep else self.beh_traits.p_wake_alarm
+            if self.beh.rng.random() < p:
+                self.pump.change_site(m); self.beh.log.append((m, "site_change_alarm", 0, reading))
         self.truth.append((m, self.body.g, self.body.ra, self.body.egp, si, u, self.body.insulin_absorbed * self.person.bw / 1000.0))
         self.minute = m + 1.0
 

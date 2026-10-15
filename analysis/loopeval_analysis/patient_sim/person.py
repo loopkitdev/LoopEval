@@ -25,6 +25,8 @@ import pandas as pd
 from .physiology import Body, BodyParams, Parcel
 from .insulins import BRAND_TO_FORMULATION, FORMULATIONS
 
+ISF_W = 0.5      # weight of the yardstick against the person's own ISF setting in the truth (open, see sample_person)
+
 
 @dataclass
 class Person:
@@ -100,6 +102,11 @@ def calibrate(bp: BodyParams, formulation: str, isf: float, basal_uh: float,
 
 
 # ---------------------------------------------------------------------------- sampling
+def _upk(age: float) -> float:
+    """U/kg/day by age band [J; puberty raises need 25–30% (evidence/02), eda L47 TDD by age]."""
+    return 0.75 if age < 13 else 1.0 if age < 18 else 0.6
+
+
 # median body weight by age (kg), approximate CDC growth-chart medians for children, adult ~77 kg [J]
 _BW = [(2, 12.0), (4, 16.0), (8, 26.0), (12, 40.0), (15, 56.0), (18, 65.0), (30, 77.0), (90, 77.0)]
 
@@ -126,9 +133,18 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     age = max(4.0, age + rng.normal(0, 2.0))
     j_tdd, j_isf, j_basal = lj(), lj(), lj()
     tdd = float(row.tdd) * j_tdd
-    isf_true = float(row.isf_true) * j_isf
-    basal_true = float(row.basal_true) * j_basal
-    bw = float(np.clip(_bw_median(age) * np.exp(rng.normal(0, 0.18)), 12, 160))
+    # TRUE ISF: the person's own setting (tuned against their real body) moved part of the way toward
+    # the eda yardstick. The yardstick/settings ratio spreads 0.41–2.69 but barely tracks lows (Spearman
+    # −0.13 with t<70), so much of it is estimation noise (eda L53: ISF is not identifiable in closed
+    # loop). ISF_W is an open parameter, settled by per-donor twin validation [J 0.5].
+    r_isf = float(np.clip(row.isf_true / row.isf, 0.5, 2.0))
+    isf_true = float(row.isf) * r_isf ** ISF_W * j_isf
+    fasting_rate = float(row.basal_true) * j_basal          # measured; kept as a validation quantity
+    # body weight: the age prior blended with what TDD implies at an age-banded U/kg (a profile age can
+    # belong to the account holder, eda L47, so neither alone is trusted)
+    bw_age = _bw_median(age)
+    bw_tdd = tdd / _upk(age)
+    bw = float(np.clip(math.exp(0.5 * math.log(bw_age) + 0.5 * math.log(bw_tdd) + rng.normal(0, 0.12)), 15, 160))
     formulation = _formulation(row.insulin_brand, rng)
 
     # physiology priors (COMPONENTS §A)
@@ -148,24 +164,16 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         f=float(np.clip(rng.normal(0.9, 0.05), 0.7, 1.0)),
     )
     if bp.ka2 >= bp.kd: bp = bp.scaled(ka2=0.9 * bp.kd)
-    csf_guess = csf_of(bp)
     egp_share = float(rng.uniform(0.3, 0.5))
-
-    # carbs EATEN per day: regular announcers' own entries, corrected for under-counting (Brazeau 2013:
-    # 63% under, ~10%) and un-entered snacks [J 15%]; otherwise the free-living distribution
-    # (Camerlingo 2021: 190 g/day, IQR 159-231), smaller for children [J]
-    ann = float(row.carb_g_day) if np.isfinite(row.carb_g_day) else 0.0
-    if np.isfinite(row.carb_entries_per_day) and row.carb_entries_per_day >= 2.5 and ann > 40:
-        carbs = ann * 1.1 * 1.15 * lj()
-    else:
-        carbs = 190.0 * float(np.exp(rng.normal(0, 0.27))) * (0.75 if age < 13 else 1.0)
-    # true basal: what TDD leaves after the meals' insulin, bounded to plausible shares [J 0.3–0.75];
-    # the measured fasting rate (template basal_true) is kept as a validation quantity
-    fasting_rate = basal_true
-    basal_true = float(np.clip(tdd - carbs / (isf_true / csf_guess), 0.3 * tdd, 0.75 * tdd)) / 24.0
+    # INSULIN BALANCE (TDD is the measured constraint): a true basal share [J prior around the scheduled
+    # share 0.43–0.51, eda L9], and the carbs EATEN are what the rest of TDD covers at the true CR
+    # (= ISF / CSF of this body). Announced grams then drive only what the person enters.
+    share = float(np.clip(rng.normal(0.5, 0.07), 0.35, 0.7))
+    basal_true = tdd * share / 24.0
     bp = calibrate(bp, formulation, isf_true, basal_true, egp_share)
     csf = csf_of(bp)
     cr_true = isf_true / csf
+    carbs = max(20.0, tdd * (1 - share) * cr_true)
     strategy = "temp" if str(row.strategy).startswith("temp") else "autobolus"
     settings = dict(
         basal_uh=float(row.basal) * j_basal, isf=float(row.isf) * j_isf, cr=float(row.cr) * j_isf / j_basal ** 0,
