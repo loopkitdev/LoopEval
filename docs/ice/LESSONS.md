@@ -803,3 +803,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     t<54 1.54 / 1.47. The learned linear memory is moderate (lag-1 0.50, sum 0.67-0.69; correlation by lag near the
     field's), so the excess is the per-step distribution's width, not the memory. The size of recent deviations does not
     carry what the recurrent net reads from their full signed history. v3m15 remains the base.
+86. **One-step self-feeding (the previous-value input replaced by the model's own draw on 30% of training steps) does not
+    stop the ratchet; not kept.** v3m15 + SELFFEED 0.3. Seeds 0 / 1: closed-loop level excess +5.7 / +9.3 mg/dL/h (v3m15
+    +4.8), overnight background 35.7 / 50.4 (field 23.7), overnight glucose 166 / 181 (130); lag-1 correlation of the
+    background 0.28 / 0.30 (field 0.40), 5-min quantile distance 36.9 / 37.0 (ceiling 27.9); TIR 61.7 / 62.0, t<54 1.24 /
+    0.70, mean 165 / 169. As with multi-step scheduled sampling (LESSONS 43): taught that its own draws are less
+    informative, the model weakens the 5-minute dependence, and the level excess stays.
