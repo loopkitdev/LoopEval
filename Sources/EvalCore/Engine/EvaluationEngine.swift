@@ -197,10 +197,11 @@ public actor EvaluationEngine {
 
         // Use UnsafeMutableBufferPointer so concurrentPerform can write to
         // distinct indices without Sendable hassles. The arrays are pre-sized
-        // and never reallocated, so distinct-index writes are safe.
+        // and never reallocated, so distinct-index writes are safe. swift-corelibs
+        // Dispatch on Linux requires a @Sendable closure, so there the chunks run serially.
         chunkRecords.withUnsafeMutableBufferPointer { recsBuf in
             chunkSkipped.withUnsafeMutableBufferPointer { skipBuf in
-                DispatchQueue.concurrentPerform(iterations: nChunks) { c in
+                let runChunk = { (c: Int) in
                     var local: [PredictionRecord] = []
                     local.reserveCapacity(chunkRanges[c].count)
                     var skipped = 0
@@ -221,6 +222,11 @@ public actor EvaluationEngine {
                     recsBuf[c] = local
                     skipBuf[c] = skipped
                 }
+                #if os(Linux)
+                for c in 0..<nChunks { runChunk(c) }
+                #else
+                DispatchQueue.concurrentPerform(iterations: nChunks, execute: runChunk)
+                #endif
             }
         }
 
