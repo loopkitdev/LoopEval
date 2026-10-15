@@ -73,3 +73,13 @@ Things that cost time or would have produced a wrong simulator. Newest last.
     moved t<54 8.5 → 6.2 and the 24-h amplitude 0.23 → 0.08 against the field's 0.12. The risk term
     stays in the code at λ = 0; Visentin's swing is halved. Both remain open to the joint low-anatomy
     and circadian-amplitude calibration — as named parameters, not as new terms.
+
+11. **Read delivered insulin from the plant, never by summing the trace's delivery stream.** The trace
+    lists each auto-bolus as its own record AND folds it into that step's basal segment, so the sum
+    double-counts automatic boluses (i114: trace 67 U/day vs 45 U the plant received and absorbed).
+    That mis-read looked like a 30–60% site loss for an hour. The plant's log is the truth.
+
+12. **A projected-glucose trigger alone makes a runaway snacker.** Proactive snacking keyed only to
+    CGM + 30·trend − ISF·IOB fired at 220 mg/dL whenever Loop's IOB was large: snacks → highs → more
+    IOB → more snacks (one person: 48 g/day of meals, 106 g/day of "defense"). The measured defense
+    state is near the low band and not rising (ice L34/L69); the trigger now requires both.

@@ -1,136 +1,137 @@
 # Component registry — the additive patient simulator
 
-Every factor the simulator composes, with its model form, its parameters and where each
-parameter's value comes from. A component is **only as good as its evidence column**: a
-literature reference (`evidence/0x §n`, with the citation there) or a measurement on BDDP data
-(a `runs/` path and the script that produced it). Values marked **[J]** are judgement calls
-waiting for evidence; they are the first things to replace.
+Every factor the simulator composes: its model form, its parameters, and where each value comes
+from. A component is only as good as its evidence column: a literature source (`evidence/0x §n`,
+full citations there) or a measurement on BDDP data (a `runs/` path and the script behind it).
+**[J]** marks a judgement call waiting for evidence. Those are the first things to replace.
 
-Tiering follows `evidence/00-factor-catalog.md` §tiers (frequency × magnitude × survives AID
-feedback). Status: **built** (code exists, tested in isolation) · **wired** (runs in the closed
-loop) · **validated** (compared with the donor targets) · **planned**.
+**No mystery terms.** A variability or offset term exists only if its size comes from its own
+controlled-condition evidence. Free-living statistics are targets the named factors must reproduce
+together (LESSONS 1).
 
-The code is `analysis/loopeval_analysis/patient_sim/`.
+Status: **built** (tested in isolation) · **wired** (runs in the closed loop through LoopEval) ·
+**calibrated** (a named parameter set against a donor statistic) · **planned**.
 
----
-
-## A. Physiology (`physiology.py`, `insulins.py`)
-
-| Component | Model form | Key parameters (population prior) | Evidence | Status |
-|---|---|---|---|---|
-| A1 Glucose kinetics | one compartment, glucose effectiveness SG(G−Gb) | VG 1.45 dL/kg; SG lognormal median 0.003 /min [J: lowered from ReplayBG's 0.022, see note 1]; Gb N(119, 7) | 01 §1.2, §4.2; ReplayBG code | built |
-| A2 SC insulin PK | per-dose depot, delay τ → Isc1 → Isc2 → plasma; optional fast route | kd lnN(−3.51, 0.62), ka2 lnN(−4.29, 0.43), ke 0.127, VI 0.126 L/kg | 01 §1.3, §3.1 | built |
-| A3 Insulin formulations | τ, kd/ka2 multipliers, fast fraction ψ per formulation | lispro/aspart reference; Fiasp, Lyumjev FITTED to clamp contrasts (Lyumjev: AUC0–15 ×7.2, >3 h ×0.60; Fiasp: AUC0–30 ×2.0); regular human insulin | 01 §3.2; `insulins.fit_formulations` | built |
-| A4 Per-dose absorption variability | ω per bolus scales kd, ka2 (and k_fast) | lnN CV 20% (clamp) – 30% (free-living) | 01 §3.3 | built (sampler planned) |
-| A5 Insulin action — disposal | X_D lag p2; uptake X_D·M(G)·risk(G), M saturating (Km 225) | p2 0.0121 /min; SI_D calibrated per person to the true ISF | 01 §1.2; UVA Km | built |
-| A6 Insulin action — EGP suppression | X_E lag p2E on relative insulin (I−Ib)/Ib; EGP = EGP_b·c(t)·clip(1−sE·X_E, 0, 1+sE) | EGP_b 2.5 ± 0.33 mg/kg/min; p2E 0.008 [J]; sE calibrated from an EGP share of ISF [J, note 2] | 01 §4.1; Hovorka 2004 | built |
-| A7 Renal excretion | Rcl·(G − Rthr) above Rthr | Rthr N(180, 25); Rcl 0.003 /min CV 30% | 01 §4.3 | built |
-| A8 Hypo risk amplification (S2013) | insulin uptake × [1 + λ·10 r1 (ln G^r2 − ln Gb^r2)²] below Gb, frozen < 60 | r1 1.4407, r2 0.8124; **λ ∈ [0, 1] calibrated jointly with A9** | 01 §4.5 | built |
-| A9 Counter-regulation + HAAF | EGP boost CRmax·h·σ((65−G)/5), τ 15 min; h drops while < 54, recovers over ~60 h | CRmax lnN(1.0 mg/kg/min, CV 50%) [J]; τ_rec 48–72 h | 01 §4.4 (no clamp-calibrated prior exists) | built |
-| A10 Gut — carbohydrate | per-meal parcel, Qsto1 → Qsto2 → Qgut (linear Dalla Man), delay β, bioavailability f | mixed meal kempt 0.025, kabs 0.05 [J, chosen for Ra peak ~1 h, 3–4 h duration]; per meal kabs CV 40%, f 0.9 CV 15–20% | 01 §6.1–6.2 | built |
-| A11 Gut — hypoglycaemic acceleration | kempt × (1 + 1.5·σ((70 − G)/5)) | ×2.5 below ~60 | 01 §6.4 (Schvarcz 1995) | built |
-| A12 Fat / protein | early: kempt × 1/(1 + fat/60); late: slow parcel 0.1·protein g, k 1/120, delay 90 min; fat SI dip 1 − ρ·fat/50 at 3–6 h | ρ U(0, 0.35) | 01 §6.3 (Smart 2013, Wolpert 2013, Bell 2020, Paterson 2017) | planned |
-| A13 Rescue carbohydrate | fast parcel: kempt 0.08, kabs 0.08, β 5, f 1.0; juice kabs × 0.6 | — | 01 §6.5 (Brodows 1984) | planned (params set, sampler pending) |
-
-Note 1 — **glucose effectiveness**: ReplayBG's identified SG (median 0.022 /min) makes every
-perturbation fade with a ~45 min time constant, which contradicts flat basal tests and eda's weak
-closed-loop restoring force (+7 mg/dL/h at 50 → −2 above 300; eda lesson 44). UVA/Padova-plant
-fits give 0.0013–0.0047 (memory: treatment-kernel-transient). Default 0.003; the restoring-force
-and rescue-kernel targets decide it in closed loop.
-
-Note 2 — **how insulin's effect splits between EGP and disposal**: with EGP_b/VG = 103 mg/dL/h,
-the EGP arm alone gives ISF × basal-rate ≈ 103·sE, while the population rule
-(ISF ≈ 1800/TDD, basal ≈ 45% of TDD) needs ≈ 34. So sE ≲ 0.3 unless EGP_b is much lower. Calibrate
-sE from a share of ISF (prior U(0.3, 0.5) [J]) and check against the glucose rise after insulin
-withdrawal (literature + donor suspensions; planned measurement).
-
-## B. Time-varying modulators (`modulators.py`, planned)
-
-All multiply A5/A6 sensitivity (`si_mult`) or basal EGP (`egp_mult`). Each is separately
-switchable for ablation.
-
-| Component | Model form | Parameters | Evidence | Status |
-|---|---|---|---|---|
-| B1 Circadian sensitivity | Visentin 7-class B/L/D profile, switches 04/11/17 h, smoothed 1 h; low = 0.4 × high; ×N(1, 0.2) | class probabilities 0.10/0.05/0.05/0.10/0.20/0.20/0.30 | 01 §5.1 (Visentin 2015) | planned |
-| B2 Dawn phenomenon | EGP ramp from onset U(02:00, 04:30) to waking | present p 0.45–0.52; magnitude lnN median +1.0 mg/kg/min | 01 §5.1; 02 dawn | planned |
-| B3 Day-to-day need | per-day lognormal multiplier + intraday OU on log SI | day CV ~15%, intraday σ 0.2, τ 3–6 h | 01 §5.2 (Ruan 2016: CV 31/22/17%); **target: ice L19 day-level sd ≈ 11 mg/dL/h, lag-1 day 0.4** | planned |
-| B4 Slow drift | OU on log SI, τ 14–30 d, σ 0.1 | — | 01 §5.3; eda L45 (41/156 drift > 5%/30 d) | planned |
-| B5 Menstrual cycle | luteal SI dip, cycle 28 ± 3 d | 61–65% of women affected; TDD +3–11% luteal (teens +10.5%) | 02 menstrual; 00 D30 | planned, **off by default** (no rhythm detected in donors: run:2026-10-11-ice-slow/cycle_screen.csv) |
-| B6 Illness | episodes ~2–4 /yr, 3–14 d; SI ×(0.65–0.85) ramp in/out; GI illness: needs −24% | 02 illness; 00 D21a | planned |
-| B7 Stress / sleep loss | short sleep: next-day SI −14 to −21%; acute stress: small post-meal effect | 02; 00 D20, D21b | planned (tier 2) |
-| B8 Alcohol | delayed hypo risk 10–15 h: SI ↑ / EGP ↓ overnight | 02; 00 D6 | planned (tier 2) |
-| B9 Heat | absorption ×1.5–5 (kd, ka2 multiplier) | 02; 00 D36 | planned (tier 2) |
-| B10 Puberty / age | SI −25–30% in puberty | 02; 00 D31 | via person sampler |
-| B11 Hyperglycaemia-induced resistance | after long highs, SI −26% / 24 h | 00 D29 | planned (tier 2) |
-
-## C. Exercise (`exercise.py`, planned)
-
-| Component | Model form | Parameters | Evidence | Status |
-|---|---|---|---|---|
-| C1 Acute aerobic | insulin-independent uptake ∝ intensity (A-ex_uptake) + acute SI boost; ETH-style states | calibrate to T1DEXI session drop vs start BG and IOB (+4 below 100, −61 at 250–300; +5 at IOB < 1 U, −30 at ≥ 3 U) | 02 exercise (Deichmann 2023; T1DEXI) | planned |
-| C2 Anaerobic / HIIT | EGP surge (catecholamines), +41 mg/dL at 80% VO2max | — | 02; 00 D16 | planned |
-| C3 Delayed sensitivity | SI multiplier τ ≈ 600 min; biphasic 7–11 h after late-afternoon exercise | overnight hypo 48% vs 28% of nights | 02; 00 X6 | planned |
-| C4 Sessions | ~60% of days, ~5.7/week, mean 41 min (T1DEXI is an active cohort — scale down) | — | 02 | planned (behavior) |
-
-## D. Sensor (`sensor.py`, planned)
-
-One parameter set per sensor session, per family (G6, G7, Libre 3 via twiist, Libre 2, Guardian).
-
-| Component | Model form | Parameters | Evidence | Status |
-|---|---|---|---|---|
-| D1 BG→IG lag | first-order filter | τ per session, median 3.8 min (G6), G7 3.5, Libre 3 1.8 | 03 | planned |
-| D2 Calibration drift | gain a0 + a1·d + a2·d², offset b0 (d = wear day), sampled JOINTLY | Vettoretti 2019 (G6) + per-brand bias (Eichenlaub 2025: Libre 3, G7 +7–8%) | 03 | planned |
-| D3 Noise | AR(2), φ ≈ (1.30, −0.42) | σ per family — **fit to eda lesson 33 paired-switcher statistics** (step SD, lag-1, flat share, implied noise) | 03; eda L33 | planned |
-| D4 Device smoothing | causal smoother on the reported stream (twiist/Libre stream is smoothed: lag-1 0.64 vs G7 0.45) | per family | eda L33 | planned |
-| D5 Compression lows | personal rate Gamma(2.37, 75.7)/day, night-weighted; depth median 24, 45 min; branches gap 72% / dip 25% / floor 3% | — | run:2026-10-11-ice-compression/compression_layer.json; 03 (Facchinetti 2016) | planned |
-| D6 Availability | warm-up blanking, session length, early failure, Markov gaps | per family | 03; donor gap measurement (planned) | planned |
-| D7 Reporting | cadence 5 min (Dexcom) / 1 min (Libre), mg/dL rounding with the mmol round-trip lattice, clamps 39/401 | — | eda L3, L6, L43 | planned |
-
-## E. Pump and infusion site (`device.py`, planned)
-
-| Component | Model form | Parameters | Evidence | Status |
-|---|---|---|---|---|
-| E1 Pulse delivery | whole 0.05 U pulses; Omnipod truncation | — | ice L25 | handled by LoopEval (delivery) |
-| E2 Site life | change every ~72 h (19–120), 17–22 h local; absorption speeds up over days 1–3 | day 4 ≈ 18 min earlier action | eda L52; 03 (Swan 2009) | planned |
-| E3 Site change event | routine: +28 mg/dL peak at 0–3 h, baseline by 6 h | — | eda L52 (2,581 changes) | planned |
-| E4 Failing site | a quarter of sites; bioavailability decays over 6–12 h before an early change (+9 → +32 mg/dL with delivery flat) | 3.3% of sets end with > 250 for ~5 h (Kanapka 2022) | eda L52; 03 | planned |
-| E5 Delivery accuracy | per-window multiplicative error on commanded volume, larger at small volumes (trumpet curves) | per pump family | 06 (planned review) | planned |
-| E6 Stiction | plunger static friction: small pulses withheld, released in a clump | per pump family | 06 | planned |
-| E7 Cannula leakage / backflow | a fraction of each bolus lost at the site, rising with bolus size | — | 06 | planned |
-| E8 Occlusion / kink / bubble | delivery stops (full) or falls (partial) until an alarm (volume threshold) or the person notices; bubble displaces a volume | — | 06; 03 (Butterfield 2024, Ruiz 2026) | planned |
-
-The pump layer sits between LoopEval and the body: LoopEval's trace records what was
-COMMANDED, the body receives what the device DELIVERED, and the gap is ground truth the
-simulator logs.
-
-## F. Behavior — the person as a second controller (`behavior.py`, planned)
-
-Traits are drawn per person from REAL people (jittered), not Gaussians — rates are bimodal
-(evidence/05 lesson 4).
-
-| Component | Model form | Parameters | Evidence | Status |
-|---|---|---|---|---|
-| F1 Meal schedule | per-person meal slots (time, size, composition), weekday/weekend | ~3.5 eating events/day, ~190 g/day (Camerlingo 2021); donors: 6.2 meal pulses/day, 43% announced | 04; 05 §1b | planned |
-| F2 Announcement & carb count | P(entry), count error = person bias + per-meal noise (−10%, 20%); big meals under-counted | 21% per-meal error, 63% under | 04 (Brazeau 2013); 05 (grams vs pulse r 0.2–0.3) | planned |
-| F3 Meal bolus | P(bolus\|entry) 0.67–0.76; timing (a third during/after the meal); calculator acceptance 86% (49–100% per person) | — | 04; 05 | planned |
-| F4 Corrections | lone manual boluses p10/50/90 0.10/1.07/4.25 per day | — | 05 (ice L62) | planned |
-| F5 Low defense | anticipatory, keyed to projected glucose; personal onset/strength/overcorrection; 2nd treatment after ~15 min if not rising | rescue ~32 g (lit) / ~35 g (donors); 73% over-treat | 04; 05 (ice L34, L69, L71) | planned |
-| F6 Monitoring & sleep | awake/asleep schedule; alarm response asleep 29–66% (children), unaided waking 1 in 16; app views < 3.3 to > 8.25 /day | — | 04 | planned |
-| F7 Exercise habits | sessions, mitigation (temp targets 73%, ≥ 1 h ahead only 27%; pre-exercise carbs) | — | 02; 04 | planned |
-
-## G. Settings — what the person tells Loop (`person.py`)
-
-| Component | Model form | Parameters | Evidence | Status |
-|---|---|---|---|---|
-| G1 ISF setting vs truth | multiplicative error | settings ÷ yardstick: median 1.15, p10 0.77, p90 1.73 | 05 (ice L28) | planned |
-| G2 Basal, CR settings vs truth | multiplicative error | to be measured (scheduled basal vs fasting need) | planned measurement | planned |
-| G3 Dosing strategy, device bundle | autobolus ↔ Omnipod + Dexcom; temp basal ↔ twiist + Libre 3 | cohort shares | eda L49 | planned |
-| G4 Insulin formulation | brand mix: rapid 52, ultra-rapid 20 of 72 recorded | — | eda L46 | planned |
+Code: `analysis/loopeval_analysis/patient_sim/`.
 
 ---
 
-## Validation targets (the primary test)
+## A. Physiology (`physiology.py`, `insulins.py`, calibration in `person.py`)
 
-Computed on simulated CGM with eda's own code (`traits.block_features`, `delivery.py`), split by
-sensor family and dosing strategy, against `runs/2026-08-25-distributions/{wholerecord,cohort,delivery}.csv`
-and the ice targets in `evidence/05 §2`. A divergence is a missing or wrong component.
+| Component | Model form | Parameters (population prior) | Evidence | Status |
+|---|---|---|---|---|
+| A1 Glucose kinetics | One compartment, insulin-independent glucose effectiveness SG(G−Gb) | VG lnN(1.88 dL/kg, 0.15); SG lnN(0.003 /min, 0.5); Gb N(119, 7) | 01 §1.2, §4.2; UVA/Padova-plant impulse fits 0.0013–0.0047 /min (LESSONS 3) | wired |
+| A2 SC insulin PK | Per-dose depot: delay τ → Isc1 →kd→ Isc2 →ka2→ plasma, ke 0.127 | kd lnN(0.030, 0.31), ka2 lnN(0.018, 0.21), VI 0.126 L/kg | 01 §3; ka2 centre refit to the lispro clamp profile (LESSONS 9) | calibrated |
+| A3 Insulin formulations | τ, kd/ka2 multipliers, fast-route fraction ψ | lispro/aspart = reference; Fiasp and Lyumjev FITTED to clamp contrasts (Lyumjev AUC0–15 ×7.2, >3 h ×0.60; Fiasp AUC0–30 ×2.0, >3 h ×0.80); glulisine; regular human insulin | 01 §3.2; `insulins.fit_formulations` | calibrated |
+| A4 Per-dose absorption jitter | ω per bolus scales kd, ka2, k_fast | lnN CV 15% | 07 (Heise 2017 repeat clamps, net of the SI share) | wired |
+| A5 Insulin action — disposal | X_D (rate p2) on absolute insulin; uptake X_D·M(G)·risk(G) − X_b·Gb; M = Gb + κ(G−Gb) above Gb, ∝ G below | p2 0.025; κ lnN(0.15, 0.4); SI_D calibrated per person | p2 refit to clamp GIR peak ~100 min, 50% by ~140, 90% by ~270 (LESSONS 9); κ (LESSONS 2); low end (LESSONS 7) | calibrated |
+| A6 Insulin action — EGP | X_E (rate p2E) on relative insulin; EGP = EGP_b·c(t)·clip(1 − sE·X_E, 0, 1+sE) | EGP_b N(2.5, 0.33) mg/kg/min; p2E 0.012; sE from an EGP share U(0.3, 0.5) of ISF [J] | 01 §4.1; Hovorka 2004 | wired |
+| A7 Renal excretion | Rcl·(G − Rthr) above Rthr | Rthr N(180, 25); Rcl lnN(0.003, 0.3) | 01 §4.3 | wired |
+| A8 Hypo risk amplification (S2013) | uptake × [1 + λ·10 r1 (ln G^r2 − ln Gb^r2)²] below Gb | **λ = 0**: at 0.5 it gave t<54 8.5% vs the field's 0.13% | 01 §4.5; ablation runs/a_norisk (LESSONS 10) | calibrated (off) |
+| A9 Counter-regulation + HAAF | EGP boost CRmax·h·σ((cr_g − G)/5), τ 15 min; h falls while < 54 (2 h → ×0.6), recovers over 60 h | CRmax lnN(1.0, 0.5) mg/kg/min [J]; cr_g N(65, 5) | 01 §4.4 (no clamp-calibrated prior exists) | wired |
+| A10 Gut — mixed meals | Per-meal parcel Qsto1 → Qsto2 → Qgut, kempt = kabs, × per-meal speed | kempt = kabs = 0.045 (peak 44 min, 90% by ~2 h); per-meal speed lnN CV 0.4 (meal composition); f N(0.9, 0.05) | ice meal-pulse fits, 116k pulses: peak 0.75 h, 90% by 1.83 h; 01 §6 | calibrated |
+| A11 Gut — hypoglycaemic acceleration | kempt × (1 + 1.5·σ((70 − G)/5)) | ×2.5 below ~60 | 01 §6.4 (Schvarcz 1995) | wired |
+| A12 Fat / protein | early emptying ×1/(1 + fat/60); late slow parcel; fat SI dip | — | 01 §6.3 | planned |
+| A13 Rescue carbohydrate | fast parcel kempt = kabs ≈ 0.06–0.08, f 1.0, with A11 | — | 01 §6.5 | wired |
+
+**Per-person calibration** (`person.calibrate`): Ib comes from the true basal rate; SI_D and sE are
+solved so a 0.1 U probe on the *linear part* (A1 SG, A5 κ and low-end, A8, A9 all off) gives the
+true ISF. ISF and CSF are defined on that linear part, the same bookkeeping ISF the eda yardstick
+estimates (LESSONS 2).
+
+## B. Time-varying modulators (`modulators.py`)
+
+| Component | Model form | Parameters | Evidence | Status |
+|---|---|---|---|---|
+| B1 Circadian sensitivity | Visentin 7-class B/L/D profile, switches 04/11/17 h, 1 h ramps, normalised to a daily mean of 1 | class probabilities 0.10/0.05/0.05/0.10/0.20/0.20/0.30; low/high ratio at **half** Visentin's swing [J]; no per-day noise (Visentin's N(1, 0.2) is estimation precision, 07) | 01 §5.1; ablation runs/a_nocirc: full swing 0.23 vs field 0.12 amplitude | wired |
+| B2 Dawn phenomenon | EGP ramp from onset U(02:00, 04:30) to a 07:00 peak, gone by 10:00 | present p 0.52; amplitude lnN(0.3, 0.6) of EGP_b [J] | 02 (Ostrovski 2020); 01 §5.1 | wired |
+| B3 Intrinsic day-level SI | independent per-day lognormal | CV 8% | 07 (repeat clamps 6–15%) | wired |
+| B4 Intraday OU / slow drift | — | **off**: no controlled-condition evidence | 07; LESSONS 1 | off |
+| B5 Menstrual cycle | luteal SI dip, cycle N(28, 3) d, 63% of people respond | amplitude lnN(0.08, 0.5) | 02; donors show no monthly rhythm (run:2026-10-11-ice-slow/cycle_screen.csv) | built, **off by default** |
+| B6 Illness | Poisson episodes (3/yr adults, 5/yr children), 1.5–15 d; SI dip 10–35% with ramps, EGP +0–15%; 20% gastrointestinal (SI up 5–15%, intake ×0.7) | — | 02 illness (Mehta 2010; Tinti 2025) | wired |
+| B7–B11 Sleep loss, stress, alcohol, heat, prolonged-high resistance | — | — | 02; 00 | planned (tier 2) |
+
+## C. Exercise (`exercise.py`)
+
+| Component | Model form | Parameters | Evidence | Status |
+|---|---|---|---|---|
+| C1 Acute uptake | insulin-independent uptake ∝ intensity | BodyParams.ex_uptake [J] | 02 §1 (Breton 2008; ETH Deichmann 2023) | built (uptake 0 until calibrated) |
+| C2 Acute + delayed sensitivity | insulin action ×(1 + αI + Z); dZ = b·I − Z/600 | α 0.8, b 0.018 [J] | 02 §1 | wired |
+| C3 Absorption during exercise | absorption ×(1 + 0.5 I) [J] | — | 02 §1 | wired |
+| C4 Anaerobic EGP surge | EGP + surge × anaerobic share | — | 02 §1 (Marliss & Vranic 2002) | built (0 until calibrated) |
+| C5 Sessions | per-person rate 0–5/week, ~40 min, time-of-day slot, pre-exercise carbs p 0.3 | — | 02 (T1DEXI, an active cohort); 04 | wired |
+
+Calibration targets for C: T1DEXI's per-session drop by starting glucose and by IOB, and the
+delayed-hypo night rate.
+
+## D. Sensor (`sensor.py`)
+
+One parameter set per session; per family (G6, G7, Libre 3, Libre 2, Medtronic).
+
+| Component | Model form | Parameters | Evidence | Status |
+|---|---|---|---|---|
+| D1 BG→IG + device lag | first-order filter | τ lnN per family: G6 3.78, G7 3.5, Libre 3 1.8, Medtronic 8.4 min | 03 §2.2 (Vettoretti 2019; device studies) | wired |
+| D2 Calibration drift | gain a0·(drift over the session, sampled jointly)·day-1 deficit + offset b0 | a0 N(0.95, 0.063), b0 N(6.35, 6.0), day-1 deficit N(0.06, 0.05) decaying 12 h | 03 §2.1 (Vettoretti 2019; G7 first-12 h bias) | wired |
+| D3 Noise | AR(2) on the reporting grid | α (1.30, −0.42), σ N(3.19, 1.0) | 03 (Vettoretti 2019) | wired; per-family calibration against eda L33 pending |
+| D4 Device smoothing | causal EMA on the reported stream | Libre 3 (twiist stream) 0.35 [J] | eda L33 (Libre stream is smoothed) | wired |
+| D5 Compression lows | personal rate Gamma(2.37, 1/75.7)/day while asleep; depth lnN(35), 45 min; gap 72% / dip 25% / floor 3% | — | run:2026-10-11-ice-compression; 03 §2.6 (literature rate ~10× higher: the donor detector is strict) | wired |
+| D6 Availability | warm-up per session; session length (+ grace); early failure 5% [J]; random gaps at the measured per-family rates by length | G7 4.4 gaps/day, Libre 3 1.5, G6 1.7 (wear ~96%) | runs/2026-10-15-additive-sensor/gaps.py (153 donors) | wired |
+| D7 Reporting | 5-min grid, integer mg/dL, clamps 39 / 401 | — | eda L3, L6, L43 | wired |
+
+## E. Pump and infusion site (`device.py`)
+
+LoopEval's trace records what was **commanded**. The body receives what the device **delivered**.
+The difference is ground truth the plant logs, and Loop never sees it (phantom IOB).
+
+| Component | Model form | Parameters | Evidence | Status |
+|---|---|---|---|---|
+| E1 Pulse delivery | whole pulses (Omnipod truncation) | — | handled by LoopEval (ice L25) | — |
+| E2 Flow error | per-device bias N(0, 1.5%) + AR(1) τ 45 min, 1-h sd by family × rate^−0.3 | Omnipod 11%, Medtronic/Tandem 4.5%, twiist 3% at 1 U/h | 06 #2 (Freckmann 2019; Ziegler 2021) | wired; matches the bench 1-h sd |
+| E3 Bolus error | per bolus sd = c/√U, floor 0.6% | Omnipod c 0.12, durable 0.03 | 06 #3 | wired |
+| E4 Start-up transient | deviation after each site change, decays 4 h | Omnipod N(+5%, 5%), Medtronic N(−5%, 5%) | 06 #4 | wired |
+| E5 Site life | absorption 0.9 → 1.15 by day 4 | — | 03 (Swan 2009) | wired |
+| E6 Failing site | absorbed fraction decays to 0.3 (τ 4 h) from a random time; the person changes it after a long high | p 0.15 per site [J; eda L52 early changes 25%] | eda L52; Kanapka 2022 | wired |
+| E7 Silent partial occlusion | delivered fraction U(0, 0.5) for ~1 h; releases part of the missed volume on clearing | Poisson 0.4 per wear | 06 #8, #10 | wired |
+| E8 Full occlusion + alarm | delivery 0; alarm at V_alarm missed units (Omnipod 3, Medtronic 2.5, twiist 0.5) | p 0.02 per wear [J] | 06 #7 | wired |
+| E9 Bubble | missed volume lnN(0.5 U) | p 0.2 per wear [J] | 06 #9 | wired |
+| E10 Dislodgement | absorbed fraction 0, never alarms | p 0.03 per wear | 06 #12 | wired |
+| E11 Lipohypertrophy | bioavailability 0.75–0.8 | prevalence not assigned | 06 #13 | built (off) |
+| E12 Leakage / backflow | — | no quantitative source | 06 #11 | not modelled |
+
+## F. Behavior — the person as a second controller (`behavior.py`)
+
+Traits come from the person's donor template: the ice pilot's per-person measured behavior (meal
+pulses, entries, boluses, corrections, rescues) where present, else literature priors.
+
+| Component | Model form | Source | Status |
+|---|---|---|---|
+| F1 Meal schedule | 3 main meals (Camerlingo timing) + snacks at the person's measured pulse rate, placed on their own hour-of-day distribution; weekend shift [J] | ice meals tables; 04 (Camerlingo 2021) | wired |
+| F2 Announcement and carb count | P(entry) from measured entries/day; count bias from the person's entered-to-pulse ratio; per-meal noise sd ~0.2; big meals under-counted | ice meals tables; 04 (Brazeau 2013) | wired |
+| F3 Meal bolus | P(bolus \| entry) measured; timing class from the measured bolus lead; calculator acceptance (7.4% up / 6.9% down) | ice; 04 (Groat 2017; Datye 2018) | wired |
+| F4 Corrections | at a glance, CGM above the person's measured correction level and not falling | ice corrections tables | wired; rate per glance [J] |
+| F5 Low defense | proactive snack when projected glucose < onset, CGM near the low band and not rising; rescue at the person's measured threshold and size; re-check at 15 min, re-treat 34%; 5% of rescues logged | ice L34, L69 (trait and ramp); measured rescue size and glucose; 04 (Savard 2016) | wired; onset and size per person [J] |
+| F6 Monitoring and sleep | glances lnN(6/day); alerts; asleep: alarm wakes with p ~0.45, unaided 1/16 | 04 (Puhr 2020; Buckingham 2005; Schultes 2007) | wired |
+| F7 Exercise habits | C5 | 02; 04 | wired |
+| F8 Site changes | every ~3 days in the evening; early on a long unexplained high or an occlusion alarm | eda L52; 06 | wired |
+
+## G. Truth and settings (`person.py`)
+
+| Component | Form | Evidence | Status |
+|---|---|---|---|
+| G1 Template | a real donor's row, jittered: eda cohort (156) or ice pilot (168, with behavior) | templates.py | wired |
+| G2 True ISF | settings ISF × (yardstick / settings)^0.5 [weight open] | LESSONS 8; eda L53, L54 | wired |
+| G3 Body weight | blend of the age prior and TDD at an age-banded U/kg | eda L47 (profile ages can be the account holder's) | wired |
+| G4 Insulin balance | true basal = share N(0.5, 0.07) × TDD/24; carbs eaten = TDD·(1 − share)·CR_true | eda L9 (scheduled share 0.43–0.51); TDD measured | wired |
+| G5 Settings | the donor's own ISF, CR, basal, target and limits | templates | wired |
+| G6 Devices | sensor family, pump, dosing strategy, formulation from the donor | sensor_month (Databricks per-reading deviceId) | wired |
+
+---
+
+## Validation (the primary test)
+
+`validate.py` computes, with **one code path for simulated people and real donors**, eda's glucose
+features (`traits.block_features`), outcomes, delivered-insulin statistics, behavior rates and low
+anatomy. For the pilot templates the reference is the pilot donors themselves in 13-day blocks
+(`real_pilot.csv`), split by sensor family; for the eda templates it is the eda cohort tables.
+`twin.csv` sets each simulated person against the donor it came from (median difference and rank
+agreement). A gap means a missing or mis-specified component. It never means adding a fitted term.
