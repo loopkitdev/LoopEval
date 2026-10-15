@@ -695,3 +695,8 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     is the hour-scale wandering of the background (hourly-mean sd 41 vs 35, LESSONS 54-55), the model compounding its
     own draws. Under test: the two-stream generator (v4: outside stream from exogenous inputs and latent persistence, no
     own-draw memory; field persistence at 30-60 min, LESSONS 56) with its reaction seeing projected glucose (iob_net).
+    Monthly-cycle dial at three settings (v3m13 seed 0, traits refit, 2 runs per setting): within-run correlation of the
+    daily cycle term with the daily background level 0.34 / 0.41 / 0.81 and with daily insulin delivered 0.24 / 0.30 /
+    0.67 at 0.1 / 0.2 / 0.4; with entries -0.01 / -0.04 / +0.05, meals 0.00 / -0.10 / -0.23; eating 224 / 218 / 225 vs
+    228 g-eq a day at 0; day-to-day sd of the background level 19.9 / 23.1 / 30.2 vs 19.7. The dial scales and moves
+    insulin need; t<54 0.93 / 1.16 / 2.26 follows as a consequence of the wider swing.
