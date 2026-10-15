@@ -136,3 +136,13 @@ statistic here, but it is the controller donors ran.
     with no disturbances ran means of 158–185. Fast glucose now uses the person's f × 1.25. The test
     that caught it — truth settings, perfect person, every disturbance off, internal drive — should run
     for every new physiology or behavior path: a body dosed to its own truth must sit near its rest level.
+
+19. **The plant dropped every bolus LoopEval sent — reconcile what crosses the boundary FIRST.** Between
+    requests the world's clock sits one minute past the last t1, so each new dose (starting at t0) was
+    already "in the past": the pump discarded boluses outright (start = end) and the first minute of
+    every 5-min basal segment. One person received 94.6 U and delivered 46.7. Every cohort from c1 to c11
+    ran with roughly half the insulin Loop gave, which explains why no behavior or physiology change
+    moved the level (mean ~185, TDD ~25 vs 40) — and some of the "fixes" in lessons 13–17 were chasing
+    this. A late dose is now delivered from the current minute, full volume and duration; the validation
+    reports delivered/received per person. Rule: before reading any cohort statistic, reconcile the
+    insulin that crosses each interface (controller → plant → pump → depot → plasma).

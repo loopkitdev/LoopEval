@@ -137,6 +137,13 @@ def person_stats(run: Path) -> dict | None:
     out = dict(name=person.name, template=person.template, sensor=person.sensor, strategy=person.strategy,
                formulation=person.formulation, days=days)
     out.update(core_stats(cgm, pd.Series(truth.delivered.to_numpy(), index=_series(truth.m)).resample("5min").sum(), days))
+    # transport check: what LoopEval sent must reach the pump (LESSONS 19); faults lose only a little
+    rec = tr.get("received")
+    if rec:
+        R = pd.DataFrame(rec, columns=["typ", "s", "e", "u"])
+        sent = float(R[R.s >= start].u.sum())
+        out["received_u"] = sent / days
+        out["delivered_over_received"] = float(truth.delivered.sum()) / sent if sent > 0 else np.nan
     beh = pd.DataFrame(tr["behavior"], columns=["m", "kind", "g", "x"])
     beh = beh[beh.m >= start]
     ent = [e for e in tr["entries"] if e[0] >= start]
