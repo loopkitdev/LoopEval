@@ -668,3 +668,8 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     but with enough departure everyone's response ramps up. Next: a defense term on the background path, a learned ramp
     in projected departure that is zero heading into range or above (so it cannot become a resistance, LESSONS 68), with
     a per-person onset and strength refit by maximum likelihood on training days.
+70. **Pending insulin on the behavior path only (v3m12): neutral, no regression.** Seeds 0 / 1, traits refit, held-out clean
+    time: TIR 67.0 / 65.6, t<54 1.78 / 1.41, mean 157 / 160 (v3m10 refit 66.2 / 65.0, 1.77 / 1.52, 160 / 160); lows per
+    meal bolus 0.145 / 0.136 (~0.16), IOB above basal at the start of a low 0.35 / 0.48 (0.56). Within training noise. The
+    missing anticipation is not in logged or unannounced snacks (behavior) but in the background push (LESSONS 69); v3m13
+    builds the per-person defense ramp on this base.
