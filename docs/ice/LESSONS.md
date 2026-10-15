@@ -650,3 +650,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     (168), 17-21% (527). Data volume is not what limits the lows; the gap is structural (LESSONS 60, 66). Expansion
     cohort (x001-x454, ETL v32, 452 exported, 359 with >= 56 clean days) is at ~/.loop-eval/ice_x32 (current labeler)
     and ice_x32o (pilot labeler); merged root ice_v32x; train_v3.py KEEP=<alias file>.
+68. **Pending insulin as an input moves lows in the right direction; on both paths it is not kept.** v3m10 + FEATURES_M2I
+    (iob_net to behavior and background paths), traits refit, seeds 0 / 1, held-out clean time: t<54 1.54 / 1.05 (v3m10
+    refit 1.77 / 1.52), lows per meal bolus 0.138 / 0.124 (~0.16), IOB above basal at the start of a low 0.32 / 0.35 (0.56;
+    field 0.15), chance a low reaches 54 0.42 / 0.40 (0.45; field 0.18); teacher-forced background NLL 0.581 / 0.551 (0.590
+    / 0.591). But TIR 65.2 / 59.4 and mean 160 / 171 (v3m10 refit 66.2 / 65.0, 160 / 160): seed 1 runs high beyond
+    training noise. Read as the background path taking high insulin as a reason for more ICE everywhere; under test:
+    v3m12, the input on the behavior path only.
