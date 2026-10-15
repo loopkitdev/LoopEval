@@ -687,3 +687,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     nothing beyond noise (seed 0: t<54 1.04, TIR 65.9, mean 159, 90th percentile person +38, onset agreement 0.19).
     Pete's frame (LESSONS 66, 69) holds: the missing piece was anticipation keyed to where glucose is heading. Still open:
     the individual spread of the defense, and the remaining post-bolus low excess (2x the field).
+72. **After the defense ramp, the TIR gap is highs away from meals: background ICE wanders up too often.** v3m13 seed 0,
+    held-out clean time, time above 180 as % of all time by context: within 3 h after an announced meal 13.1 vs 13.2
+    (field), after an unannounced start 14.1 vs 14.0, otherwise 9.4 vs 4.3 (above 250: 3.9 vs 1.0). Highs that begin
+    with no entry or pulse in the 3 h before: 0.71 vs 0.41 per day, median 30 vs 45 min, peak 194 vs 200, background ICE
+    the hour before 46 vs 41 and during 66 vs 66 mg/dL/h, IOB above basal 0.4 vs 0.5 U. Post-meal highs match; the excess
+    is the hour-scale wandering of the background (hourly-mean sd 41 vs 35, LESSONS 54-55), the model compounding its
+    own draws. Under test: the two-stream generator (v4: outside stream from exogenous inputs and latent persistence, no
+    own-draw memory; field persistence at 30-60 min, LESSONS 56) with its reaction seeing projected glucose (iob_net).
