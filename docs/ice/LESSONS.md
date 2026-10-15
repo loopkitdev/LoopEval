@@ -763,3 +763,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     overnight glucose 157 / 149 (164; 130), time above 180 away from meals 8.8 / 8.6% (9.4; 4.3); lows per meal bolus
     0.136 / 0.137; defense median +31 heading below 0 (field +30). Same direction on every level measure on both seeds, no
     regression; the TIR gain is near training noise. The level is still well above the field: the anchor holds part of it.
+81. **With an exogenous baseline, taking the background's memory of its own values away fixes the level and breaks the
+    5-minute shape (v3m16); not kept.** v3m15 with the previous deviation from the baseline at the output head only.
+    Seeds 0 / 1, traits refit, held-out clean time: TIR 62.4 / 61.8, t<54 1.04 / 1.21, mean 165 / 164 (v3m15 65.2 / 66.8,
+    0.83 / 0.95, 160 / 160). Closed-loop level excess +2.4 mg/dL/h (v3m15 +4.8, v3m13 +9.8), but the 5-min quantile
+    distance 33.4 fails its ceiling (27.9; v3m15 12-14), background 5-min sd 89 vs 56, within-night hourly sd 28.7 vs
+    12.7. As in v3m11 (LESSONS 55): without a memory of where the person currently stands relative to their baseline,
+    the model widens every draw to cover it. Memory of the deviation is needed; it must not ratchet the level.
