@@ -94,6 +94,14 @@ One parameter set per sensor session, per family (G6, G7, Libre 3 via twiist, Li
 | E2 Site life | change every ~72 h (19–120), 17–22 h local; absorption speeds up over days 1–3 | day 4 ≈ 18 min earlier action | eda L52; 03 (Swan 2009) | planned |
 | E3 Site change event | routine: +28 mg/dL peak at 0–3 h, baseline by 6 h | — | eda L52 (2,581 changes) | planned |
 | E4 Failing site | a quarter of sites; bioavailability decays over 6–12 h before an early change (+9 → +32 mg/dL with delivery flat) | 3.3% of sets end with > 250 for ~5 h (Kanapka 2022) | eda L52; 03 | planned |
+| E5 Delivery accuracy | per-window multiplicative error on commanded volume, larger at small volumes (trumpet curves) | per pump family | 06 (planned review) | planned |
+| E6 Stiction | plunger static friction: small pulses withheld, released in a clump | per pump family | 06 | planned |
+| E7 Cannula leakage / backflow | a fraction of each bolus lost at the site, rising with bolus size | — | 06 | planned |
+| E8 Occlusion / kink / bubble | delivery stops (full) or falls (partial) until an alarm (volume threshold) or the person notices; bubble displaces a volume | — | 06; 03 (Butterfield 2024, Ruiz 2026) | planned |
+
+The pump layer sits between LoopEval and the body: LoopEval's trace records what was
+COMMANDED, the body receives what the device DELIVERED, and the gap is ground truth the
+simulator logs.
 
 ## F. Behavior — the person as a second controller (`behavior.py`, planned)
 
