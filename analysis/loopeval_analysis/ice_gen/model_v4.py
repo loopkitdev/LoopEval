@@ -25,8 +25,10 @@ from .model_v2 import mdn_nll
 from .model_v3m import ICEGenV3M4
 from .dataset_v3m3 import TARGETS as T3
 
-REACT = ["bg", "bg_ok", "bg_trend", "bg_pred30", "heading_low", "low30"]
-OWN = ["bg", "bg_ok", "bg_trend", "bg_pred30", "heading_low", "low30", "bgice", "bgice_ok", "bgice_ema", "bgice_6h", "bgice_24h", "eventual"]
+REACT = ["bg", "bg_ok", "bg_trend", "bg_pred30", "heading_low", "low30", "iob_net"]
+# iob_net (pending insulin, FEATURES_M2I/M2V): the reaction sees it, so it can respond to PROJECTED glucose (where glucose is
+# heading, LESSONS 69-71); the outside stream does not, so it cannot become a general insulin resistance (LESSONS 68)
+OWN = ["bg", "bg_ok", "bg_trend", "bg_pred30", "heading_low", "low30", "bgice", "bgice_ok", "bgice_ema", "bgice_6h", "bgice_24h", "eventual", "iob_net"]
 
 
 class ICEGenV4(ICEGenV3M4):

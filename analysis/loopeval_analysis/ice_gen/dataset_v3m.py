@@ -36,6 +36,7 @@ FEATURES_M2A = FEATURES_M2 + ["bgice"]
 # strengthens as excursions widen and is individual in how early it acts). Generated lows began with 0.56 vs 0.15 U above
 # basal and the model had no input that showed it (LESSONS 60).
 FEATURES_M2I = FEATURES_M2A + ["iob_net"]
+FEATURES_M2V = FEATURES_M2 + ["iob_net"]   # v4 with pending insulin: no own background-ICE input anywhere
 # FEATURES_M2B: + the person's own background ICE averaged over the last 6 h and 24 h (exact channels, computed the same way
 # from real values in training and from the model's own draws in the plant). One channel (the last value) could not carry
 # both the 5-min structure and the day level: generated levels drifted (day-to-day sd 23.5 vs 11.1), and teaching it to pull
