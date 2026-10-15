@@ -786,3 +786,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     components, so a path that moves the weights moves the mean. Under test: v3m19, the mixture centred (its mean pinned
     to the exogenous mean + baseline + defense + linear memory; the deviation-aware path sets only weights, scales and
     component offsets relative to that mean, so it cannot move the level by construction).
+84. **A centred mixture (v3m19) blows up in closed loop; not kept.** The mixture's mean pinned to the non-ratcheting parts,
+    the deviation-aware path setting weights, scales and component offsets relative to it. Seed 0, held-out clean time:
+    TIR 45.1, t<54 8.92, mean 181; background 5-min sd 275 vs 56, quantile distance 180 vs ceiling 27.9, within-night
+    hourly sd 70 vs 13; closed-loop level excess +3.2. With the mean fixed the model fits the data by spreading its
+    component offsets (far components at small weight), and in closed loop the deviation-aware weights move onto them.
+    Summary of LESSONS 76-84: the level ratchet is the model's nonlinear response to its own recent values; a linear
+    memory removes it (v3m17) but the shape then needs those values, and every route that lets them shape the
+    distribution (weights, scales, offsets) has either brought the ratchet back (v3m18) or destabilized the mixture
+    (v3m19). v3m15 (exogenous baseline, +4.8 residual excess) remains the base.
