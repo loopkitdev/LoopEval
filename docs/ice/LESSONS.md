@@ -824,3 +824,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     quantile distance 13.5 / 15.3 (ceiling 27.9), hourly-mean sd 38 / 39 (field 35); defense median +29 / +25 heading
     below 0 (field +30). Still short: the background's rise after a meal bolus (+12 / +13 vs +38 in the field), time above
     180 away from meals (8.1 / 7.6% vs 4.3), overnight background 37 / 44 (24). Pete's frame again: offense is exogenous.
+89. **A level offset on the fed-back draw overshoots; apply it after feedback.** First calibration (v3m15 seed 0): the
+    offset subtracted from each draw before it was fed back as the previous value. Round 1 measured a median excess of
+    +2.9 mg/dL/h on the training window; with it applied, round 2 measured -6.8 (the correction went round the same
+    previous-value channel that ratchets, with a gain well above 1), and the two-round offset added level: held-out TIR
+    47.4, mean 172 (uncalibrated 65.2 / 160). Now the plant feeds back the uncorrected draw and applies the offset only to
+    the ICE the body sees, so the model's own dynamics are unchanged and one measurement on the training window suffices.

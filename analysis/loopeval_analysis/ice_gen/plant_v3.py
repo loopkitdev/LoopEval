@@ -462,8 +462,6 @@ class PlantV3:
                 lg_, mu_, _ = out["bgice"][0, -1].split(self.net.K_ICE)
                 m_ = float((torch.softmax(lg_, -1) * mu_).sum())
                 bgice = m_ + self.bg_spread * (bgice - m_)
-            if self.level_off:
-                bgice -= self.level_off / ICE_SCALE
             if self.bgice_rho > 0:   # correlated draw: the model's distribution this step, at a quantile that follows an AR(1)
                 rho = self.bgice_rho ** (dt_h * 12)
                 self.bg_z = rho * self.bg_z + np.sqrt(1 - rho ** 2) * self.rng_z.standard_normal()
@@ -485,6 +483,8 @@ class PlantV3:
                 self.own_bg = [(tt, v) for tt, v in self.own_bg if (t - (tt.tz_convert("UTC") if getattr(tt, "tzinfo", None) else tt.tz_localize("UTC"))) <= pd.Timedelta(hours=24)] + [(t, self.bgice)]
             pulse = self._pulse_rate(t)
             u = self.slow.step(dt_h) if self.slow else 0.0
+            if self.level_off:   # applied to the ICE the body sees, AFTER the draw was fed back: an offset on the fed-back draw
+                bgice -= self.level_off / ICE_SCALE   # went round the same channel that ratchets and overshot (LESSONS 89)
             ice = bgice * ICE_SCALE + u + pulse
             mc = self.mc_amp * self.isf * self.act_typ * np.sin(2 * np.pi * (t.value / 8.64e13) / 28.0 + self.mc_phase) if self.mc_amp else 0.0
             ice += mc
