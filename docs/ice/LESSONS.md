@@ -875,3 +875,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     66.8 / 68.4, 0.66 / 0.52, 162 / 162), within noise; night glucose unchanged (170 / 157 / 147 / 142 at 0 / 2 / 4 / 6 h vs
     field 150 / 142 / 129 / 128). Kept as part of the base (behavior profile closer, no regression). Overnight the excess ICE
     is split between meal pulses (20.6 vs 15.9 mg/dL/h) and background (31.9 vs 24.9).
+95. **Insulin-needs dial sanity check: the generator moves the right way and is damped relative to frozen-ICE replay, as the
+    field is.** Stock Loop, --candidate-insulin-needs 0.9 / 1.0 / 1.1, v3m21 seed 0 + clock-band behavior calibration (3
+    runs), 24 held-out donors, clean time, median donor. Generator: TIR 63.7 / 67.9 / 70.6, t<70 1.64 / 2.16 / 2.89, t<54
+    0.47 / 0.64 / 0.99, mean 166 / 162 / 155. Replay: 67.1 / 74.1 / 77.2, 0.28 / 0.99 / 3.99, 0.03 / 0.13 / 1.08, 166 / 153 /
+    138. Both monotone and correctly signed; the generator responds about 70% (TIR), 50% (t<54), 40% (mean) of replay's
+    amount: its person reacts to the dosing (more food, a stronger defense) where replayed ICE is frozen. The settings-edit
+    test (LESSONS 63, 74, 96) puts the field's real change about where the generator predicts (slope ~0.95 for mean and
+    t<70) and well below replay's prediction (0.39 / 0.48), so frozen-ICE replay likely overstates how much a dosing change
+    moves outcomes. Requested via loopeval-algo with Pete's go.
