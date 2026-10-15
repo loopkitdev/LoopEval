@@ -142,6 +142,9 @@ class PlantV3:
         cl = ck.get("calib_level", {})
         self.level_off = float(os.environ.get("LEVEL_OFF", cl.get("_median", 0.0) if self.drawn else cl.get(alias, cl.get("_median", 0.0))))
         # by clock band (calib_level_band: {alias or "_median": [offset 00-06, 06-12, 12-18, 18-24]}); added to level_off
+        # behavior-head logit offsets by clock band (00-06 / 06-12 / 12-18 / 18-24), pooled (calibrate_band.py): the pooled
+        # calibration matches each head's daily total but not its daily profile (night meals 1.13x, entries 5x, LESSONS 94)
+        self.calib_band = dict(ck.get("calib_band", {}))
         cb = ck.get("calib_level_band", {})
         self.level_band = cb.get("_median") if self.drawn else cb.get(alias, cb.get("_median"))
         self.announce = float(os.environ.get("ANNOUNCE", "1")); self.rng_ann = np.random.default_rng(seed + 15485863)
@@ -396,15 +399,16 @@ class PlantV3:
                     self.xlog.append(x[0, -1].numpy().copy())
                 out, self.h = self.net(x, self.pid, self.h)
                 self.xbuf.append(x); self.xbuf = self.xbuf[-WARMUP:]; self.since_rewarm += dt_h
+                cb_ = {k: v[min(int(hour // 6), 3)] for k, v in self.calib_band.items()}   # by clock band (calibrate_band.py)
                 for k, b in self.calib.items():
                     if k in out and not (self.v3m and k in ("entry", "bolus", "b_with", "b_alone")):
-                        out[k] = out[k] + b
+                        out[k] = out[k] + b + cb_.get(k, 0.0)
                 if self.meal_state is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:
                     bands, trends, off = self.meal_state
                     i = int(np.searchsorted(bands, float(x[0, -1, self.F["bg"]]) * 100, side="right"))
                     j = int(np.searchsorted(trends, float(x[0, -1, self.F["bg_trend"]]) * 2, side="right"))
                     out["meal"] = out["meal"] + float(off[i, j])
-                s = self.net.sample(out, {k: v for k, v in self.calib.items() if k in ("entry", "bolus", "b_with", "b_alone")}) if self.v3m else self.net.sample(out)
+                s = self.net.sample(out, {k: v + cb_.get(k, 0.0) for k, v in self.calib.items() if k in ("entry", "bolus", "b_with", "b_alone")}) if self.v3m else self.net.sample(out)
             self.slot_carbs = 0.0; self.slot_bolus = 0.0
             self.since_meal += dt_h; self.since_bolus += dt_h
             if self.v3m:
