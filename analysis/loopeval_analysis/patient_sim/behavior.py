@@ -45,7 +45,9 @@ class BehaviorTraits:
     skip_breakfast: float = 0.1
     snack_rate: float = 1.2              # snacks per day (Camerlingo: ≥1 snack on 71% of days)
     carbs_day: float = 190.0             # grams eaten per day (truth)
-    meal_cv: float = 0.35                # within-person per-meal CV [J; evidence/04 modelling choice]
+    meal_cv: float = 0.35                # within-person per-event size spread (log sd); the person's measured pulse spread when known
+    main_weight: float = 1.0             # a main meal's expected size relative to any other eating event: donors' eating
+                                         # comes as ~5.6 pulses/day of median 26 g-eq (ice meals), not 3 big meals (LESSONS 16)
     gi_cv: float = 0.4                   # per-meal absorption-speed CV (01 §6.2)
     # announcement and bolusing
     p_entry_meal: float = 0.7
@@ -162,6 +164,8 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         ex_anaerobic=float(np.clip(rng.beta(1.2, 6), 0, 1)), ex_hour=float(rng.choice([7.0, 12.5, 17.5, 19.0])),
         site_days=float(np.clip(rng.normal(3.0, 0.4), 2.0, 4.0)),
     )
+    lsd = _num(rates, "meal_size_logsd")
+    if np.isfinite(lsd): t.meal_cv = float(np.clip(lsd, 0.2, 0.9))
     mh = rates.get("meal_hours")
     if isinstance(mh, str):
         import json as _json
@@ -232,10 +236,11 @@ class Behavior:
         shift = t.weekend_shift if wknd else 0.0
         slots = []
         b = float(np.exp(r.normal(t.breakfast_mu, t.breakfast_sd))) * 60 + shift
-        if r.random() > t.skip_breakfast: slots.append(("meal", b, 0.22))
+        main_w = t.main_weight
+        if r.random() > t.skip_breakfast: slots.append(("meal", b, 0.22 / 0.286 * main_w))
         lunch = b + max(120.0, r.gumbel(282.9, 80.0) * 0.9)
         dinner = lunch + max(150.0, r.gumbel(374.9, 85.0) * 0.9)
-        slots += [("meal", lunch, 0.30), ("meal", dinner, 0.34)]
+        slots += [("meal", lunch, 0.30 / 0.286 * main_w), ("meal", dinner, 0.34 / 0.286 * main_w)]
         n_snack = r.poisson(t.snack_rate)
         sh = getattr(t, "snack_hours", None)
         for _ in range(n_snack):
@@ -243,7 +248,7 @@ class Behavior:
                 st = (float(r.choice(24, p=sh)) + r.random()) * 60
             else:
                 st = float(r.uniform(t.wake + 60, t.bed + 30))
-            slots.append(("snack", st + shift, 0.14 / max(t.snack_rate, 0.5)))
+            slots.append(("snack", st + shift, 1.0))
         total_share = sum(s[2] for s in slots)
         for kind, mt, share in slots:
             grams = t.carbs_day * carb_scale * share / max(total_share, 1e-9) * float(np.exp(r.normal(0, t.meal_cv) - t.meal_cv ** 2 / 2))
@@ -252,7 +257,7 @@ class Behavior:
             p_e = t.p_entry_meal if kind == "meal" else t.p_entry_snack
             entered = None; bolus = None; et = base + mt
             if r.random() < p_e:
-                err = t.count_bias + r.normal(0, t.count_sd) - 0.1 * math.log(max(grams, 5) / 45.0)
+                err = t.count_bias + r.normal(0, t.count_sd) - (0.1 * math.log(max(grams, 5) / 45.0) if t.count_sd > 0 else 0.0)
                 entered = max(1.0, round(grams * math.exp(err)))
                 off = {"before": r.uniform(-20, -5), "immediate": r.uniform(-3, 0),
                        "during": r.uniform(3, 15), "after": r.uniform(15, 45)}[t.bolus_timing]

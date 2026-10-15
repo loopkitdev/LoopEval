@@ -53,10 +53,17 @@ class World:
         self.mod_traits = person.traits.get("mod") or sample_mod_traits(r_misc, person.age, person.sex)
         if enable:
             self.mod_traits.enabled.update({k: v for k, v in enable.items() if k in self.mod_traits.enabled})
-        self.enable = dict(exercise=True, site_failure=True, pump_faults=True, compression=True, behavior_defense=True)
+        self.enable = dict(exercise=True, site_failure=True, pump_faults=True, compression=True, behavior_defense=True,
+                           perfect_person=False)
         if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable})
         self.mods = Modulators(self.mod_traits, days)
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
+        if enable and enable.get("perfect_person"):
+            # diagnostic: every meal entered exactly and bolused at the meal; no snacks, no exercise
+            t = self.beh_traits
+            t.p_entry_meal = t.p_entry_snack = 1.0; t.count_bias = 0.0; t.count_sd = 0.0
+            t.p_bolus_with_entry = 1.0; t.bolus_timing = "immediate"; t.calc_up = t.calc_down = 0.0
+            t.ex_per_week = 0.0; t.p_free_bolus = 0.0
         self.beh = Behavior(self.beh_traits, person, r_beh)
         self.ex = Exercise()
         site = SiteTraits(p_fail=SiteTraits.p_fail if self.enable["site_failure"] else 0.0,

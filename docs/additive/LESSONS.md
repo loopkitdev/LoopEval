@@ -107,3 +107,11 @@ Things that cost time or would have produced a wrong simulator. Newest last.
     Loop forecast eventual BG at target with 4–7 U on board and under-dosed, and every cohort settled
     near a mean of 200 with ~11 U/day of disposal done by glucose effectiveness and the kidneys instead
     of insulin. The probe now raises both arms to ~180 with the same fast carbs and boluses one.
+
+16. **Eating comes in pulses, not three big meals.** With every disturbance off and a perfect announcer
+    (every meal entered exactly, bolused immediately), Loop still ran a mean of 197: an 80 g dinner
+    sent glucose from 154 to an hourly mean of 358 while its 15 U bolus was still rising. Donors' eating
+    arrives as ~5.6 pulses/day of median 26 g-eq (ice meals tables; a second rise in 22–26% of meals),
+    so each person's carbs are now spread over their own measured pulse count with their own measured
+    size spread, main meals no larger on average than any other event. Diagnostic switches that made
+    this findable: `--disable` every disturbance and `--enable perfect_person`.

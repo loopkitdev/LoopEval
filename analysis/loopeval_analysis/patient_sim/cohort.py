@@ -48,8 +48,10 @@ def main():
     ap.add_argument("--templates", default=str(Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/templates.csv"))
     ap.add_argument("--bin", default=os.environ.get("LOOPEVAL_BIN", str(Path.home() / "dev/LoopEval/.build/release/loop-eval")))
     ap.add_argument("--disable", default="")
+    ap.add_argument("--enable", default="", help="switches to turn ON (e.g. perfect_person, menstrual)")
     a = ap.parse_args()
     enable = {k: False for k in a.disable.split(",") if k}
+    enable.update({k: True for k in a.enable.split(",") if k})
     root = Path(a.out); root.mkdir(parents=True, exist_ok=True)
     json.dump(vars(a), open(root / "cohort.json", "w"), indent=1)
     jobs = [(a.seed0 + i, a.days, str(root), a.templates, a.bin, enable) for i in range(a.n)]
