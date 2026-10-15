@@ -418,6 +418,47 @@ class ICEGenV3M12(ICEGenV3M10):
     ICE_DROP = ICEGenV3M10.ICE_DROP + ["iob_net"]
 
 
+class ICEGenV3M13(ICEGenV3M12):
+    """v3m13: v3m12 + an explicit defense term on background ICE, keyed to where glucose is heading. Projected glucose =
+    glucose - ISF x IOB above basal (bg - iob_net, both /100). The defense adds to every mixture component's mean
+        d = exp(gain_p) * sum_k exp(w_k) * tau * softplus((c_k - (proj - on_p)) / tau)
+    a monotone ramp, zero when heading into range or above and growing as the projected departure deepens, with a per-person
+    onset shift on_p and strength gain_p (weak prior). The field's defense ramps from -17 to +30 mg/dL/h as projected glucose
+    goes from 180-250 to below 0 in everyone, with the onset personal; v3m10 squashed people toward the middle (strongest 10%
+    +31 vs +57 when heading far below, onset rank agreement 0.25, LESSONS 69). The background path still does not see
+    pending insulin directly, so the term cannot become a general resistance (LESSONS 68)."""
+    arch = "v3m13"
+    DEF_C = (0.0, 0.4, 0.8)        # ramp knots, projected glucose /100 (0, 40, 80 mg/dL)
+    DEF_TAU = 0.15
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.i_bg_, self.i_ok_, self.i_iob_ = features.index("bg"), features.index("bg_ok"), features.index("iob_net")
+        self.def_c = nn.Parameter(torch.tensor(self.DEF_C))
+        self.def_w = nn.Parameter(torch.full((len(self.DEF_C),), -2.0))
+        self.def_on = nn.Embedding(n_people, 1); nn.init.zeros_(self.def_on.weight)
+        self.def_gain = nn.Embedding(n_people, 1); nn.init.zeros_(self.def_gain.weight)
+
+    def defense(self, x, person):
+        proj = x[..., self.i_bg_] - x[..., self.i_iob_]
+        u = proj - self.def_on(person)[:, None, 0]
+        r = (self.def_w.exp() * self.DEF_TAU * F.softplus((self.def_c - u[..., None]) / self.DEF_TAU)).sum(-1)
+        return self.def_gain(person)[:, None, 0].exp() * r * x[..., self.i_ok_]
+
+    def forward(self, x, person, h=None):
+        out, h = super().forward(x, person, h)
+        lg, mu, ls = out["bgice"].split(self.K_ICE, -1)
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + d[..., None], ls], -1); out["defense"] = d
+        return out, h
+
+    def loss(self, out, Y, w=None, w_bgice=False, trait_frac=0.0, trait_sd=1.0):
+        loss, parts = super().loss(out, Y, w, w_bgice, trait_frac, trait_sd)
+        if trait_frac > 0:   # weak prior on the per-person onset (sd 0.3 = 30 mg/dL) and log-strength (sd 0.7)
+            loss = loss + trait_frac * 0.5 * ((self.def_on.weight / 0.3) ** 2 + (self.def_gain.weight / 0.7) ** 2).sum()
+        return loss, parts
+
+
 class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
