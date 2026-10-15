@@ -837,3 +837,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     eaten since 21:00) background runs 43.7 / 47.1 vs 23.7 and glucose 165 / 186 vs 130, time above 180 overnight 29 /
     46% vs 5.6%; so the daytime level runs low. The baseline's clock dependence, or the closed-loop path at night, has
     the profile wrong; a per-person offset cannot fix a profile. Calibration not kept (no gain); v3m21 stays.
+91. **In v3m21 the ratchet survives at night, through the deviation channel.** Seed 0, held-out, 00-06 steps: predicted
+    background mean on real inputs 27.3 mg/dL/h (real 24.7), on the rollout's own 32.5, drawn 32.3; daytime 33.6 / 35.2 /
+    36.1 vs real 36.1, so over the whole day the level looks right (+1.6). Night-only swap test: restoring the real previous
+    value alone 26.1; taking only it from the rollout 33.8; glucose, pending insulin, meals, entries, boluses, clock each
+    move it by less than 2 the other way. The recurrent path's nonlinear response to its own deviation from the baseline
+    still ratchets when nothing exogenous anchors it (no meals overnight). The open structural problem, narrowed: the
+    deviation memory must be symmetric (linear, v3m17) for the level and still let the shape follow calm vs volatile
+    stretches (v3m17 / v3m20 widened, v3m18 / v3m19 brought the ratchet back or blew up).
