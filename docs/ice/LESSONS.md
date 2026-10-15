@@ -738,3 +738,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     to a previous value above the person's usual is stronger than to one below, so its own noise ratchets the level up.
     Under test: hiding the previous value on 30% of training steps (BGDROP), so the level is carried by context and the
     last value is only a local correction.
+    Seed 1 does not confirm the TIR gain: TIR r 0.09, slope 0.29; t<70 0.32 / 0.67; t<54 0.07 / 0.07; mean 0.28 / 0.56;
+    own-settings level TIR -5.2. On settings edits v3m13 is on a par with v3m10 (TIR r 0.22 / 0.09 vs 0.05 / 0.14), not
+    better; the absolute level gap (LESSONS 76-77) is the larger obstacle to change prediction.
