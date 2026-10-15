@@ -91,3 +91,11 @@ Things that cost time or would have produced a wrong simulator. Newest last.
     recommendation (mean ratio 1.95): food bolused without a carb entry (Groat 2017: carbs entered
     for 2/3 of boluses). That is now its own named behavior (`free_bolus`: own grams estimate over own
     CR), split from true corrections per donor (`templates._free`).
+
+14. **Physics carb sensitivity overshoots donors by ~1.7×: bioavailability per LABELED gram is a person
+    parameter.** f·1000/(BW·VG) with Dalla Man's f 0.9 (a tracer-glucose figure) gave a 55-kg adult
+    9.5 mg/dL/g; her settings imply 4.4. A 76 g meal took her from 265 to 601 mg/dL in 90 min under a
+    calculator bolus that covered less than half the body's need — every meal overwhelmed Loop, which
+    then held 4–7 U of IOB it could not use fast enough. Donors' meal pulses run 1.30× what entered grams
+    predict at the settings' carb sensitivity (ice L54), so CSF = 1.30 × settings CSF (sd 0.15) and the
+    body's f follows (0.3–1.0). Labeled carbohydrate is not all glucose appearance.
