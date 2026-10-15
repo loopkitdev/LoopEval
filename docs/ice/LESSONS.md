@@ -657,3 +657,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     / 0.591). But TIR 65.2 / 59.4 and mean 160 / 171 (v3m10 refit 66.2 / 65.0, 160 / 160): seed 1 runs high beyond
     training noise. Read as the background path taking high insulin as a reason for more ICE everywhere; under test:
     v3m12, the input on the behavior path only.
+69. **The defense ramps with projected departure in everyone, and the generator squashes people toward the middle.** Per
+    person, mean background ICE over the next 30 min (minus the person's mean) by PROJECTED glucose (glucose minus ISF x
+    IOB above basal), held-out, v3m10 seed 0 traits refit vs field, 24 donors (defense_curves.py). Field median by band
+    < 0 / 0-40 / 40-70 / 70-100 / 100-140 / 140-180 / 180-250 / > 250: +30 / +15 / +5 / -3 / -9 / -12 / -17 / -12;
+    generated +23 / +14 / +7 / -1 / -5 / -8 / -12 / -10. The person-to-person spread at the low end is cut nearly in
+    half: field 90th percentile person +57 / +40 / +22 / +13, generated +31 / +22 / +16 / +8. Per-person onset (highest
+    projected band where the response first exceeds +20) agrees with the field at Spearman 0.25: the strong, early
+    defenders are not the generator's early ones. Pete's frame (2026-10-14): how early each defense kicks in is personal,
+    but with enough departure everyone's response ramps up. Next: a defense term on the background path, a learned ramp
+    in projected departure that is zero heading into range or above (so it cannot become a resistance, LESSONS 68), with
+    a per-person onset and strength refit by maximum likelihood on training days.
