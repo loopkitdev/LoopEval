@@ -894,3 +894,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     the same reason. Frozen-ICE replay overstates every effect (slopes 0.09-0.49); with the insulin-needs check (LESSONS 95)
     this says a reacting person, not frozen ICE, is the right reference for dosing changes. Own-settings level still off
     (TIR -4.9 / -6.2 median).
+97. **Per-person behavior offsets by clock band (fit_traits_band.py) are neutral; not kept. The slow overnight fall is not a
+    behavior-rhythm problem.** On top of the pooled band calibration (LESSONS 94, which brought night entries to 0.08 a day
+    vs 0.22 before and field 0.04, night meal grams 28 vs 33 and 23.5, but left night unannounced starts at 1.26 vs 0.96),
+    each person's meal and entry offsets per 6-h band fitted by maximum likelihood on their training days. Seeds 0 / 1,
+    held-out clean time: TIR 67.7 / 67.5, t<54 0.73 / 0.55, mean 162 / 161 (pooled band 67.9 / 68.5, 0.64 / 0.54, 162 /
+    161); per-person t<54 pass rate 42 / 46% (50% if faithful); night glucose unchanged (168 / 155 / 146 / 143 at 0 / 2 / 4 /
+    6 h vs field 150 / 142 / 129 / 128). Together with LESSONS 90 and 93 (level offsets, overall and by band): neither the
+    background level nor the behavior rhythm, adjusted alone, makes generated nights fall as fast as the field's.
