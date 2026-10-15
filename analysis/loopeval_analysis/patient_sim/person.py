@@ -80,6 +80,25 @@ def _probe_isf(bp: BodyParams, formulation: str, dose: float = 0.1, minutes: int
     return best / dose
 
 
+def _probe_isf_effective(bp: BodyParams, formulation: str, g_op: float = 180.0, dose: float = 0.5,
+                         minutes: int = 600) -> float:
+    """EFFECTIVE ISF at an operating glucose, on the FULL body: both arms eat the same fast glucose to
+    reach ~g_op, one gets `dose` at the peak; peak difference per unit. This is what a closed-loop
+    estimate (the eda yardstick) measures — glucose effectiveness and renal loss included (LESSONS 15)."""
+    a, c = Body(bp, formulation), Body(bp, formulation)
+    br = a.basal_rate_u_per_h()
+    a.prime(br); c.prime(br)
+    grams = max(5.0, (g_op - bp.gb) / max(csf_of(bp), 0.5) * 1.3)
+    for b_ in (a, c): b_.eat(Parcel(0, grams, 0.08, 0.08, f=bp.f))
+    best = 0.0
+    for m in range(minutes):
+        a.infuse(br / 60.0, m); c.infuse(br / 60.0, m)
+        if m == 45: a.infuse(dose, m, omega=1.0)
+        a.step(1.0); c.step(1.0)
+        best = max(best, c.g - a.g)
+    return best / dose
+
+
 def csf_of(bp: BodyParams) -> float:
     """Carb sensitivity on the linear part: every absorbed gram lands in VG (mg/dL per g)."""
     return bp.f * 1000.0 / (bp.bw * bp.vg)
@@ -87,9 +106,9 @@ def csf_of(bp: BodyParams) -> float:
 
 def calibrate(bp: BodyParams, formulation: str, isf: float, basal_uh: float,
               egp_share: float) -> BodyParams:
-    """Set Ib from the true basal rate, then (se, si_d) so the probe ISF equals `isf` with
-    `egp_share` of it from EGP suppression. Two near-additive arms → solve each, then a joint
-    bisection on a common scale to absorb the interaction."""
+    """Set Ib from the true basal rate, split the effect between EGP suppression and disposal on the
+    linear part (`egp_share`), then scale both so the EFFECTIVE ISF of the full body at operating
+    glucose equals `isf` (the yardstick-type quantity; LESSONS 15)."""
     ib = basal_uh * 1000.0 / 60.0 / bp.bw / (bp.ke * bp.vi)
     bp = bp.scaled(ib=ib)
     tiny = 1e-7
@@ -97,10 +116,10 @@ def calibrate(bp: BodyParams, formulation: str, isf: float, basal_uh: float,
     isf_d1 = _probe_isf(bp.scaled(se=0.0, si_d=1e-3), formulation)        # disposal arm per 1e-3 SI_D
     se = egp_share * isf / max(isf_e1, 1e-9)
     sid = (1 - egp_share) * isf / max(isf_d1, 1e-9) * 1e-3
-    lo, hi = 0.25, 4.0
+    lo, hi = 0.25, 6.0
     for _ in range(18):
         k = math.sqrt(lo * hi)
-        got = _probe_isf(bp.scaled(se=se * k, si_d=sid * k), formulation)
+        got = _probe_isf_effective(bp.scaled(se=se * k, si_d=sid * k), formulation)
         if got > isf: hi = k
         else: lo = k
     k = math.sqrt(lo * hi)

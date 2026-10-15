@@ -99,3 +99,11 @@ Things that cost time or would have produced a wrong simulator. Newest last.
     then held 4–7 U of IOB it could not use fast enough. Donors' meal pulses run 1.30× what entered grams
     predict at the settings' carb sensitivity (ice L54), so CSF = 1.30 × settings CSF (sd 0.15) and the
     body's f follows (0.3–1.0). Labeled carbohydrate is not all glucose appearance.
+
+15. **Calibrate the ISF that is measured: effective, at operating glucose, on the full body.** The
+    yardstick ISF comes from closed-loop data at the person's operating glucose, so it already contains
+    glucose effectiveness and renal loss. Calibrating it onto the linear part at rest made the full
+    body ~30% less responsive than Loop believed at 150–250 mg/dL (a unit delivered ~37 instead of 53);
+    Loop forecast eventual BG at target with 4–7 U on board and under-dosed, and every cohort settled
+    near a mean of 200 with ~11 U/day of disposal done by glucose effectiveness and the kidneys instead
+    of insulin. The probe now raises both arms to ~180 with the same fast carbs and boluses one.
