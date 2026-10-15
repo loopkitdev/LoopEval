@@ -721,3 +721,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     -34 / -31 vs field -12 there, an overshoot) and leaves 180-250 at -12 / -14 vs the field's -17. The excess is in how
     often the background turns up away from meals (0.71 vs 0.41 episodes a day, LESSONS 72), not in how hard it is
     pushed back. v3m13 stays.
+76. **The TIR gap is a closed-loop level excess of ~10 mg/dL/h, carried by the previous-value channel; it shows most
+    overnight.** v3m13 seed 0, held-out. Overnight (00-06, nothing eaten since 21:00): background ICE 46.6 vs 23.7 mg/dL/h,
+    glucose 164 vs 130, time above 180 29.8 vs 5.6%, night-to-night sd 31.9 vs 23.8. Time above 180 away from meals runs
+    about double the field at every hour of the day. Model level on real inputs, matched steps: night 26.8 vs real 24.7,
+    day 35.4 vs 36.1 (right); on the rollout's own inputs 35.2 / 46.3, the draws 34.2 / 45.0 (v3m10 alike: 33.1 / 42.3).
+    Swap test on the level (matched clean steps): all real 33.9, all closed-loop 43.7; restoring the real previous
+    background value alone 36.2; taking only it from the rollout 43.7; every other group (glucose, pending insulin, pulse,
+    meal history, entries, boluses, clock) < 2. The model's own draws, read back as what background ICE just did, pull its
+    level up (the drift of LESSONS 48, here as a steady offset). Under test: feeding back the predicted mean instead of the
+    draw (PLANT_FEEDBACK=mean), to tell noise compounding from a biased mean.
