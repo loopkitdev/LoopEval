@@ -29,6 +29,8 @@ def _one(args):
     try:
         T = pd.read_csv(tmpl)
         P = sample_person(T, seed)
+        if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
+            P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
         run(P, days, out, binp, enable=enable)
         return seed, "ok"
     except Exception as e:                                       # noqa: BLE001

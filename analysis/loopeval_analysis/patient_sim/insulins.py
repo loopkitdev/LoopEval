@@ -43,11 +43,11 @@ FORMULATIONS: dict[str, Formulation] = {
     "aspart":   Formulation("aspart", tau=8.0, note="NovoLog/NovoRapid. Treated as lispro-equivalent."),
     "glulisine": Formulation("glulisine", tau=7.0, note="Apidra. Slightly faster onset [unverified]."),
     # fitted 2026-10-15 by fit_formulations(); see module docstring for targets
-    # fit result: AUC0-30 x2.00, AUC>3h x0.80, onset -7 min, total x1.00, plasma tmax 55 vs 64 min
-    "fiasp":    Formulation("fiasp", tau=4.0, kd_mult=1.115, ka2_mult=1.047, psi=0.022, k_fast=0.080,
+    # fit result (reference kd .030 / ka2 .018): AUC0-30 x2.00, AUC>3h x0.80, onset -7 min, total x1.00, plasma tmax 50 vs 58 min
+    "fiasp":    Formulation("fiasp", tau=4.0, kd_mult=1.093, ka2_mult=1.017, psi=0.035, k_fast=0.084,
                             loop_preset="fiasp", note="fitted to Heise 2017 contrasts vs aspart"),
-    # fit result: AUC0-15 x7.20, AUC>3h x0.60, onset -6 min, total x1.00, plasma tmax 44 vs 64 min
-    "lyumjev":  Formulation("lyumjev", tau=4.0, kd_mult=1.848, ka2_mult=1.071, psi=0.022, k_fast=0.023,
+    # fit result: AUC0-15 x7.20, AUC>3h x0.60, onset -7 min, total x1.00, plasma tmax 47 vs 58 min
+    "lyumjev":  Formulation("lyumjev", tau=4.0, kd_mult=1.159, ka2_mult=1.131, psi=0.033, k_fast=0.064,
                             loop_preset="lyumjev", note="fitted to Clin Pharmacokinet 2020 contrasts vs lispro"),
     "regular":  Formulation("regular", tau=10.0, kd_mult=0.5, ka2_mult=0.6,
                             note="human regular insulin; tmax ~2x analogue [unverified]"),
@@ -60,7 +60,7 @@ BRAND_TO_FORMULATION = {
 }
 
 
-def plasma_appearance(f: Formulation, kd: float = 0.030, ka2: float = 0.0137,
+def plasma_appearance(f: Formulation, kd: float = 0.030, ka2: float = 0.018,
                       minutes: int = 600) -> list[float]:
     """Rate of insulin appearance in plasma (fraction of dose per minute) for one unit dose."""
     i1 = i2 = fast = 0.0

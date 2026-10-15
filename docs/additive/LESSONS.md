@@ -56,3 +56,20 @@ Things that cost time or would have produced a wrong simulator. Newest last.
    prior with TDD at an age-banded U/kg; carb sensitivity from the body; true basal = a share of TDD;
    carbs eaten = what the rest of TDD covers at the true CR. The donor's own outcomes then become a
    per-person (twin) validation target.
+
+9. **ReplayBG's prior medians make insulin act far slower than a clamp says.** On the linear part, the
+   chain kd 0.030 / ka2 0.0137 / p2 0.0121 / p2e 0.008 delivered 47% of a bolus's effect by 3 h and
+   88% by 6 h, against Loop's 76% / 100% and the lispro clamp's GIR peak at 90–120 min. Loop then reads
+   the missing drop as resistance (retrospective correction adds insulin) and the stacked insulin
+   lands later — a low-generating mismatch far larger than the field shows. The earlier probe hid it
+   because it was normalised to the PEAK drop while glucose effectiveness eroded the tail: always
+   compare the cumulative effect on the linear part. Refit (grid) to GIR peak ~100 min, 50% by ~140,
+   90% by ~270: ka2 0.018, p2 0.025, p2e 0.012 (plasma tmax 51 min, inside the 40–60 literature).
+
+10. **Ablate before tuning: the S2013 hypo-risk term was nearly all of the excess lows.** Four runs on
+    the same 42 people (2026-10-15, runs/a_*): removing the risk term took t<54 8.5% → 0.27% (field
+    median 0.13%), t<70 15.5 → 2.5 (field 1.4), TIR 48.8 → 64.9 (field 67), rescue carbs 166 → 55 g/day.
+    Telling Loop the truth (settings = truth) changed nothing; switching the circadian profile off
+    moved t<54 8.5 → 6.2 and the 24-h amplitude 0.23 → 0.08 against the field's 0.12. The risk term
+    stays in the code at λ = 0; Visentin's swing is halved. Both remain open to the joint low-anatomy
+    and circadian-amplitude calibration — as named parameters, not as new terms.

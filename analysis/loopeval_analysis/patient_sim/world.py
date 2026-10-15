@@ -66,7 +66,10 @@ class World:
                              compression_rate=person.traits.get("compression_rate", float(r_misc.gamma(2.37, 1 / 75.7)))
                              if self.enable["compression"] else 0.0)
         self.r_abs = r_abs
-        self.body = Body(person.body, person.formulation)
+        bp = person.body
+        if enable and enable.get("risk") is False: bp = bp.scaled(risk_lambda=0.0)
+        if enable and enable.get("counterreg") is False: bp = bp.scaled(cr_max=0.0)
+        self.body = Body(bp, person.formulation)
         br = self.body.basal_rate_u_per_h()
         self.body.prime(br)
         # the body starts at its true basal; the pump will deliver what is commanded from minute 0

@@ -61,5 +61,93 @@ def main() -> int:
     return 0
 
 
+
+# ------------------------------------------------------------------------------------------------
+# Pilot templates: the ice role's 207 donors, whose every meal pulse, correction and rescue is
+# labeled (ice_v32/meals/*.parquet). Richer behavior than the eda cohort; aliases i001–i207.
+# ------------------------------------------------------------------------------------------------
+PILOT = Path.home() / ".loop-eval/ice_v32"
+SENSOR_MONTH = "2026-10-15-additive-sensor/sensor_month.csv"
+_FORM = {"rapidActingAdult": "humalog", "rapidActingChild": "humalog", "fiasp": "fiasp", "lyumjev": "lyumjev",
+         "afrezza": "humalog"}
+
+
+def _tw_mean(segs, key="value"):
+    import numpy as np
+    w = v = 0.0
+    for s in segs:
+        d = (pd.Timestamp(s["endDate"]) - pd.Timestamp(s["startDate"])).total_seconds()
+        val = s[key] if key in s else (s["lowerBound"] + s["upperBound"]) / 2
+        w += d; v += d * val
+    return v / w if w else np.nan
+
+
+def build_pilot() -> pd.DataFrame:
+    import json
+    import numpy as np
+    P = pd.read_csv(PILOT / "persons.csv")
+    sm = pd.read_csv(runs_root() / SENSOR_MONTH)
+    sm = sm[~sm.kind.isin(["unlabeled"]) & ~sm.kind.str.startswith("other")]
+    sensor = sm.groupby(["alias", "kind"]).n.sum().reset_index().sort_values("n").groupby("alias").tail(1)
+    sensor = dict(zip(sensor.alias, sensor.kind.replace({"Libre 3 (twiist)": "Libre 3", "Libre (other)": "Libre 3"})))
+    rows = []
+    for _, p in P.iterrows():
+        a = p.alias; d = PILOT / "full" / a
+        try:
+            th = json.load(open(d / "therapy.json"))
+            meals = pd.read_parquet(PILOT / "meals" / f"{a}.parquet")
+            corr = pd.read_parquet(PILOT / "meals" / f"{a}_corrections.parquet")
+            g = pd.Series([x["quantity"] for x in json.load(open(d / "glucose.json"))], dtype=float)
+            doses = json.load(open(d / "doses.json"))
+        except Exception:                                      # noqa: BLE001
+            continue
+        days = max(float(p.clean_days), 1.0)
+        span = (pd.Timestamp(th["basal"][-1]["endDate"]) - pd.Timestamp(th["basal"][0]["startDate"])).days or days
+        auto = sum(1 for x in doses if x["deliveryType"] == "bolus" and x.get("automatic"))
+        nr = meals[~meals.rescue]; rs = meals[meals.rescue]
+        hours = np.histogram(nr.hour.to_numpy() % 24, bins=24, range=(0, 24))[0]
+        ann = nr[nr.announced]
+        r = dict(alias=a, tdd=float(p.tdd), isf_true=float(p.isf_tdd),
+                 isf=_tw_mean(th["sensitivity"]), cr=_tw_mean(th["carbRatio"]), basal=_tw_mean(th["basal"]),
+                 target=_tw_mean(th["target"]), max_basal=float(th["maxBasalRate"]), max_bolus=float(th["maxBolus"]),
+                 suspend=float(th.get("suspendThreshold", 70.0)),
+                 strategy="bolus" if auto / span > 2 else "temp", pump="Omnipod",
+                 sensor=sensor.get(a, "Dexcom G7"), insulin_brand=_FORM.get(th.get("insulinType", ""), "humalog"),
+                 age_years=np.nan, basal_true=np.nan, archetype="",
+                 meals_per_day=len(nr) / span, meal_hours=json.dumps((hours / max(hours.sum(), 1)).round(4).tolist()),
+                 meal_size_med=float(nr.size_g.median()), meal_size_logsd=float(np.log(nr.size_g).std()),
+                 announced_share=float(nr.announced.mean()) if len(nr) else 0.0,
+                 estimate_ratio=float(ann.estimate_ratio.median()) if len(ann) else np.nan,
+                 bolus_lead_min=float(ann.bolus_lead_min.median()) if ann.bolus_lead_min.notna().any() else np.nan,
+                 p_bolus_ann=float((ann.bolus_u > 0).mean()) if len(ann) else np.nan,
+                 bolus_ratio=float(ann.bolus_ratio.median()) if ann.bolus_ratio.notna().any() else np.nan,
+                 corrections_per_day=len(corr) / span, corr_bg_med=float(corr.bg.median()) if len(corr) else np.nan,
+                 corr_ratio=float((corr.units / corr.rec.replace(0, np.nan)).median()) if len(corr) else np.nan,
+                 rescues_per_day=len(rs) / span, rescue_size_med=float(rs.size_g.median()) if len(rs) else np.nan,
+                 rescue_bg_med=float(rs.bg_onset.median()) if len(rs) else np.nan,
+                 carb_entries_per_day=float(meals.entry_g.gt(0).sum() / span),
+                 user_boluses_per_day=float((ann.bolus_u > 0).sum() / span + len(corr) / span),
+                 carb_g_day=float(meals.entry_g.fillna(0).sum() / span),
+                 tir=float(100 * g.between(70, 180).mean()), t70=float(100 * (g < 70).mean()),
+                 t54=float(100 * (g < 54).mean()), bg_mean=float(g.mean()), bg_cv=float(100 * g.std() / g.mean()))
+        rows.append(r)
+    t = pd.DataFrame(rows)
+    age = pd.read_csv(PILOT / "age.csv")
+    acol = next(c for c in age.columns if "age" in c.lower() and "group" not in c.lower())
+    t = t.drop(columns="age_years").merge(age[["alias", acol]].rename(columns={acol: "age_years"}), on="alias", how="left")
+    return t
+
+
+def main_pilot() -> int:
+    t = build_pilot()
+    out = runs_root() / "2026-10-15-additive-templates"
+    out.mkdir(parents=True, exist_ok=True)
+    t.to_csv(out / "templates_pilot.csv", index=False)
+    print(f"{len(t)} pilot templates -> {out/'templates_pilot.csv'}")
+    print(t[["tdd", "isf", "isf_true", "meals_per_day", "announced_share", "corrections_per_day", "rescues_per_day",
+             "tir", "t54"]].describe(percentiles=[.1, .5, .9]).round(2).to_string())
+    return 0
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main_pilot() if "pilot" in sys.argv else main())
