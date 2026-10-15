@@ -547,6 +547,42 @@ class ICEGenV3M16(ICEGenV3M15):
         return out, (h1, h2, (hb, b[:, -1]))
 
 
+class ICEGenV3M17(ICEGenV3M15):
+    """v3m17: v3m15 with the background's memory of its own recent deviations from the baseline as a LINEAR autoregression
+    added to every mixture mean (last AR_K steps, learned coefficients), and none in the recurrent path. The level ratchet
+    is an asymmetric response to the model's own previous values (LESSONS 76-77); a linear term responds symmetrically, so
+    its own noise cannot push the level, and unlike v3m16 (LESSONS 81) the persistent part of the deviation is still carried
+    forward, so the draws need not widen to cover it."""
+    arch = "v3m17"
+    ICE_DROP = ICEGenV3M15.ICE_DROP + ["bgice", "bgice_ok"]
+    AR_K = 6
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        a0 = torch.zeros(self.AR_K); a0[0] = 0.3
+        self.ar = nn.Parameter(a0)
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last, dhist = h3 if h3 is not None else (None, None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        dev = (x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_]          # deviation at t-1, seen at t
+        B, T = dev.shape
+        past = dhist if dhist is not None else torch.zeros(B, self.AR_K - 1, device=x.device)
+        full = torch.cat([past, dev], 1)                                       # [B, K-1+T]
+        lags = torch.stack([full[:, self.AR_K - 1 - k: self.AR_K - 1 - k + T] for k in range(self.AR_K)], -1)   # lag k+1
+        ar = (lags * self.ar).sum(-1)
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        lg, mu, ls = self.head_ice(z2).split(self.K_ICE, -1)
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + (b + d + ar)[..., None], ls], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, h2, (hb, b[:, -1], full[:, -(self.AR_K - 1):]))
+
+
 class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
