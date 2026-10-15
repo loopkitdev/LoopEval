@@ -88,6 +88,7 @@ class World:
         self.loop_state = dict(iob=0.0, rec_bolus=0.0, cob=0.0, bg=np.nan)
         # internal controller state
         self.int_doses: list = []                          # exported history: (type, start_m, end_m, units, automatic)
+        self.received: list = []                           # every dose LoopEval sent, as received: (type, start, end, U)
 
     # ------------------------------------------------------------------ one minute
     def _minute(self, pending_actions: list):
@@ -178,7 +179,13 @@ class World:
         """Protocol v2 step. `doses`: [(type, start_m, end_m, units)] newly delivered by LoopEval.
         Returns dict(bg=[...], carbs=[...], boluses=[...])."""
         for (typ, s, e, units) in doses:
-            self.pump.command(s, e if typ == "basal" else s, units, bolus=(typ == "bolus"))
+            self.received.append((typ, s, e, units))
+            # The plant's clock is already past t0 (it advanced through the last request's t1), so a dose
+            # starting at t0 lies in the past: deliver it from NOW with its full volume and duration.
+            # Dropping it lost every bolus and a fifth of every basal segment (LESSONS 19).
+            lag = max(0.0, self.minute - s)
+            e2 = (e if typ == "basal" else s) + lag
+            self.pump.command(s + lag, e2, units, bolus=(typ == "bolus"))
         if state:
             self.loop_state.update({k: v for k, v in state.items() if v is not None})
         carbs, boluses = [], []

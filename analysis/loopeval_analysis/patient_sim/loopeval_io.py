@@ -121,7 +121,7 @@ def save_truth(world: World, path: Path):
     cgm = pd.Series({k: (np.nan if v is None else v) for k, v in world.readings.items()}, name="cgm")
     pickle.dump(dict(truth=tr, cgm=cgm, behavior=world.beh.log, entries=world.entries,
                      bolus_requests=world.bolus_requests, pump=world.pump.log,
-                     illness=world.mods.ill, sensor_log=None,
+                     illness=world.mods.ill, sensor_log=None, received=world.received,
                      person=world.person.name), open(path, "wb"))
 
 
