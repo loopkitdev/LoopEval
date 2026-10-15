@@ -863,3 +863,15 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     1.12 / 1.06 vs 1.12 / 0.98 / 0.80 U/h). More ICE than the background level shows pushes up overnight: likely the long
     generated meal tails (pulse ICE 3 h after a meal bolus 49 vs 35, LESSONS 88) from evening meals. Calibration not
     kept; v3m21 stays.
+94. **Generated people eat more at night; behavior calibration by clock band fixes the entry profile but not the nights.**
+    v3m21 seed 0, held-out, 00-06: meal grams 32.9 vs 23.5 g-eq a day (whole day 229 vs 196), at ordinary-to-high glucose
+    (120-180: 13.2 vs 8.3, > 180: 9.3 vs 5.7; not rescues), meal starts per 6 h ~1.4x the field in every glucose band below
+    180; unannounced starts 1.26 vs 0.96 a day, carb entries 0.22 vs 0.04. Night swap test: the meal head's expected night
+    rate is LOWER on the rollout's own inputs (1.15 / day) than on real ones (1.28; actual 0.96), so the excess is in the
+    head's daily profile, not closed-loop inputs. Teacher-forced on the 28 days before the hold-out (168 people): night
+    entries expected 971 vs actual 408, meal starts 5110 vs 4904. calibrate_band.py fits pooled logit offsets per 6-h band
+    for the meal and entry heads (seed 0: meal -0.04 / -0.08 / -0.05 / +0.07, entry -0.87 / -0.12 / +0.03 / +0.18); the
+    plant applies them by local hour. Held-out seeds 0 / 1: TIR 67.9 / 68.5, t<54 0.64 / 0.54, mean 162 / 161 (uncalibrated
+    66.8 / 68.4, 0.66 / 0.52, 162 / 162), within noise; night glucose unchanged (170 / 157 / 147 / 142 at 0 / 2 / 4 / 6 h vs
+    field 150 / 142 / 129 / 128). Kept as part of the base (behavior profile closer, no regression). Overnight the excess ICE
+    is split between meal pulses (20.6 vs 15.9 mg/dL/h) and background (31.9 vs 24.9).
