@@ -708,3 +708,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     and the hourly-mean sd stays wide (39.7-39.9 vs 35). Generating the outside stream without own-draw memory trims the
     non-meal highs a little; a free reaction network, even shown pending insulin, does not give the anticipatory defense
     that v3m13's shaped ramp does. v3m13 stays.
+74. **Settings-edit test on v3m13 (seed 0, traits refit): on a par with v3m10, TIR changes begin to track.** Per edit,
+    predicted vs field change: TIR r 0.22, slope 0.69 (v3m10 0.05 / 0.16 and 0.14 / 0.52); t<70 0.44 / 0.74; t<54 0.18
+    / 0.15; mean 0.30 / 0.61 (v3m10 0.39 / 0.81-0.85). With the need shift separated: edit coefficient on mean glucose 0.87
+    (v3m10 1.10, replay 0.62); the generator's own tracking run vs the field change r 0.54, slope 0.59 (v3m10 0.42 /
+    0.51); steady-need half (28 edits) r 0.64, slope 1.41 (0.72 / 1.46). Own-settings level TIR -6.6 median (the absolute
+    gap). One seed; a second is owed before reading the TIR gain as real.
