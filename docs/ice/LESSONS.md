@@ -641,3 +641,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     60 min where the field's rises to 69 at 30: the field's background carries the defense in step with its own offense,
     and neither stream can be swapped in alone (with LESSONS 57). Under test: iob_net (ISF x IOB above the basal level,
     what Loop shows) as an input to both paths, FEATURES_M2I.
+67. **Learning curve: more people do not close the outcome gap.** v3m10 kept recipe, traits refit, calibrated, scored on
+    the same 24 held-out pilot donors (clean time, seeds 0 / 1). 84 donors (the 24 hosts + 60, 3k iterations): TIR 66.0 /
+    64.3, t<54 2.28 / 1.68, mean 155 / 158. 168 (the pilot): 66.2 / 65.0, 1.77 / 1.52, 160 / 160. 527 (pilot + 359
+    expansion donors labeled with the pilot's labeler version, 21b2c3c; 6k iterations): 60.3 / 61.8, 1.75 / 2.14, 171 /
+    164 (field 74.1 / 0.12 / 152). Halving the people moves nothing beyond training noise; tripling them lowers TIR by
+    4-5 and raises mean glucose by 4-11 on the pilot hosts, t<54 unchanged. Per-person pass rate on TIR 8-12% (84), 12%
+    (168), 17-21% (527). Data volume is not what limits the lows; the gap is structural (LESSONS 60, 66). Expansion
+    cohort (x001-x454, ETL v32, 452 exported, 359 with >= 56 clean days) is at ~/.loop-eval/ice_x32 (current labeler)
+    and ice_x32o (pilot labeler); merged root ice_v32x; train_v3.py KEEP=<alias file>.
