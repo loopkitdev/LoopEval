@@ -56,14 +56,14 @@ class BodyParams:
     risk_r1: float = 1.4407
     risk_r2: float = 0.8124
     risk_floor: float = 60.0
-    risk_lambda: float = 1.0       # 0 = off, 1 = S2013 published strength
+    risk_lambda: float = 0.5       # 0 = off, 1 = S2013 published strength; provisional, calibrated jointly with CR vs donor lows
     # counter-regulation (adrenaline-led in T1D) with HAAF memory
     cr_max: float = 1.0            # mg/kg/min EGP boost at full activation
     cr_g: float = 65.0             # mg/dL, half-activation glucose
     cr_s: float = 5.0              # mg/dL, sigmoid width
     cr_tau: float = 15.0           # min, activation time constant
     haaf_tau_rec: float = 60 * 60.0  # min, recovery of the response
-    haaf_kappa: float = math.log(2) / 90.0  # per minute spent below 54
+    haaf_kappa: float = math.log(1 / 0.6) / 120.0  # per minute below 54: 2 h → response ×0.6 [J; Dagogo-Jack 1993 thresholds shift within ~24 h]
     haaf_min: float = 0.3
     # gut
     f: float = 0.9                 # bioavailability
@@ -277,7 +277,9 @@ class Body:
         self.egp = egp
         uex = p.ex_uptake * ex_intensity * min(1.0, g / 90.0)
         renal = p.rcl * (g - p.rthr) if g > p.rthr else 0.0
-        mm = p.gb + p.kappa * (g - p.gb)             # insulin-mediated uptake's glucose dependence
+        # insulin-mediated uptake's glucose dependence: weak above Gb (κ), proportional below it so
+        # uptake vanishes with glucose (Bergman / UVA Michaelis–Menten at low G; LESSONS 7)
+        mm = p.gb + p.kappa * (g - p.gb) if g >= p.gb else g
         dg = (-p.sg * (g - p.gb) - (self.xd * mm * self.risk(g) - p.si_d * p.ib * p.gb)
               + (egp - p.egp_b - uex + ra) / p.vg - renal)
         self.g = max(10.0, g + dt * dg)
