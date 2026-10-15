@@ -700,3 +700,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     0.67 at 0.1 / 0.2 / 0.4; with entries -0.01 / -0.04 / +0.05, meals 0.00 / -0.10 / -0.23; eating 224 / 218 / 225 vs
     228 g-eq a day at 0; day-to-day sd of the background level 19.9 / 23.1 / 30.2 vs 19.7. The dial scales and moves
     insulin need; t<54 0.93 / 1.16 / 2.26 follows as a consequence of the wider swing.
+73. **The two-stream generator with a reaction that sees pending insulin (v4, FEATURES_M2V) is not kept.** Seeds 0 / 1,
+    traits refit, held-out clean time: TIR 60.9 / 59.6, t<54 1.82 / 2.53, mean 167 / 168 (v3m13 65.7 / 63.0, 1.05 / 0.72,
+    162 / 166). Time above 180 away from meals 7.2 / 6.6% of all time (v3m13 9.4, field 4.3) but after announced / un-
+    announced meals 15.7-16.2 / 16.5-17.4 (13.1 / 14.1; field 13.2 / 14.0); lows per meal bolus 0.17 / 0.16. Background
+    persistence matches the field at 30-60 min (0.04-0.07) but the 5-10 min lags run high (0.48 / 0.23 vs 0.40 / 0.11)
+    and the hourly-mean sd stays wide (39.7-39.9 vs 35). Generating the outside stream without own-draw memory trims the
+    non-meal highs a little; a free reaction network, even shown pending insulin, does not give the anticipatory defense
+    that v3m13's shaped ramp does. v3m13 stays.
