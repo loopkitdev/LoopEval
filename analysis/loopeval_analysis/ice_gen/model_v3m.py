@@ -408,6 +408,16 @@ class ICEGenV3M11(ICEGenV3M10):
         return out, (h1, h2)
 
 
+class ICEGenV3M12(ICEGenV3M10):
+    """v3m12: v3m10 with the pending-insulin input (FEATURES_M2I, iob_net) seen by the behavior path only. With it on both
+    paths (v3m10 + M2I) generated lows began with half the excess insulin (0.32-0.35 vs 0.56 U above basal, field 0.15) and
+    t<54 fell (1.54 / 1.05 vs 1.77 / 1.52), but one training ran high (TIR 59.4, mean 171): the background path read high
+    insulin as a reason for more ICE everywhere, a resistance, where the anticipatory defense is a behavior (a snack before
+    a low, LESSONS 66)."""
+    arch = "v3m12"
+    ICE_DROP = ICEGenV3M10.ICE_DROP + ["iob_net"]
+
+
 class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
