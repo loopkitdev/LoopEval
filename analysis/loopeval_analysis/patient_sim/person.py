@@ -28,7 +28,8 @@ from .insulins import BRAND_TO_FORMULATION, FORMULATIONS
 BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "archetype", "meals_per_day",
                  "meal_hours", "meal_size_med", "meal_size_logsd", "announced_share", "estimate_ratio",
                  "bolus_lead_min", "p_bolus_ann", "bolus_ratio", "corrections_per_day", "corr_bg_med", "corr_ratio",
-                 "rescues_per_day", "rescue_size_med", "rescue_bg_med"]
+                 "rescues_per_day", "rescue_size_med", "rescue_bg_med", "free_boluses_per_day",
+                 "free_bolus_u_med", "true_corrections_per_day"]
 ISF_W = 0.5      # weight of the yardstick against the person's own ISF setting in the truth (open, see sample_person)
 
 

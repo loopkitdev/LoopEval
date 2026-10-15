@@ -83,3 +83,11 @@ Things that cost time or would have produced a wrong simulator. Newest last.
     CGM + 30·trend − ISF·IOB fired at 220 mg/dL whenever Loop's IOB was large: snacks → highs → more
     IOB → more snacks (one person: 48 g/day of meals, 106 g/day of "defense"). The measured defense
     state is near the low band and not rising (ice L34/L69); the trigger now requires both.
+
+13. **"Corrections" in the donor record are partly food dosed by hand.** Simulated people received
+    ~11 U/day less insulin than their donors and ran ~45 mg/dL higher; the gap was manual insulin
+    (donors 12.9 U/day by hand, simulated 7.5) with carb entries matched. The pilot's lone boluses
+    have a median of 1.85 U at a median glucose of 163, 22% below 140, and often exceed Loop's
+    recommendation (mean ratio 1.95): food bolused without a carb entry (Groat 2017: carbs entered
+    for 2/3 of boluses). That is now its own named behavior (`free_bolus`: own grams estimate over own
+    CR), split from true corrections per donor (`templates._free`).
