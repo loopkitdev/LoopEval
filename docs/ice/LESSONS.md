@@ -854,3 +854,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     prediction 25.2 / 26.5, closed loop 31.2 / 31.0 (still +5-6); overnight glucose 187 / 170 (130). The draws are skewed,
     so the deviations do not average zero, and an odd response to a skewed input still shifts the level; the symmetry also
     takes away any glucose-only push from the recurrent path. v3m21 stays the base.
+93. **Clock-band level calibration (after feedback) on v3m21 changes nothing; generated nights fall too slowly, not start
+    too high.** Offsets by 6-h band from training-window rollouts (median, seeds 0 / 1: 00-06 +5.8 / +4.9, 06-12 +3.6 /
+    +0.9, 12-18 +0.4 / -3.6, 18-24 -3.7 / -6.6 mg/dL/h). Held-out: TIR 66.0 / 65.9, t<54 0.62 / 0.61, mean 162 / 165
+    (uncalibrated 66.8 / 68.4, 0.66 / 0.52, 162 / 162); overnight background 30.4 / 35.3 (from 37-44; field 23.7) but
+    overnight glucose still 170 / 160 (130). Glucose by hour (seed 0, uncalibrated): at 22:00 generated 168 vs field 177,
+    then 169 / 160 / 147 / 141 at 0 / 2 / 4 / 6 h vs 150 / 142 / 129 / 128, with more insulin activity from 2 h on (1.27 /
+    1.12 / 1.06 vs 1.12 / 0.98 / 0.80 U/h). More ICE than the background level shows pushes up overnight: likely the long
+    generated meal tails (pulse ICE 3 h after a meal bolus 49 vs 35, LESSONS 88) from evening meals. Calibration not
+    kept; v3m21 stays.
