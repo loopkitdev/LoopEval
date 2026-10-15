@@ -57,6 +57,7 @@ class BehaviorTraits:
     calc_up: float = 0.074               # Groat 2017: 7.4% larger, 6.9% smaller
     calc_down: float = 0.069
     absorption_entry_h: float = 3.0      # what they tell Loop
+    p_free_bolus: float = 0.0            # P(an un-entered eating event gets a hand-dosed bolus)
     # monitoring and alerts
     glances_per_day: float = 8.0         # Puhr 2020: <3.3 to >8.25 trend-screen views/day
     low_alert: float = 75.0              # Akturk 2021: 74–78.5 mg/dL
@@ -126,7 +127,11 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     else:
         timing = str(rng.choice(["before", "immediate", "during", "after"], p=[0.21, 0.44, 0.10, 0.25]))
     pb = _num(rates, "p_bolus_ann")
-    corr_rate = _num(rates, "corrections_per_day")
+    corr_rate = _num(rates, "true_corrections_per_day")
+    if not np.isfinite(corr_rate): corr_rate = _num(rates, "corrections_per_day")
+    free = _num(rates, "free_boluses_per_day")
+    unentered = max(n_eat - (entries if np.isfinite(entries) else n_eat * p_meal), 0.5)
+    p_free = float(np.clip(free / unentered, 0.0, 1.0)) if np.isfinite(free) else 0.0
     ub = _num(rates, "user_boluses_per_day")
     if not np.isfinite(corr_rate) and np.isfinite(ub):
         corr_rate = max(0.0, ub - entries) if np.isfinite(entries) else ub / 2
@@ -140,6 +145,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         count_bias=count_bias, count_sd=lj(0.2, 0.3),
         bolus_timing=timing,
         p_bolus_with_entry=float(np.clip(pb, 0.05, 1.0)) if np.isfinite(pb) else 0.85,
+        p_free_bolus=p_free,
         glances_per_day=lj(6.0, 0.6),
         low_alert=float(rng.normal(76, 8)), high_alert=float(rng.normal(240, 25)),
         p_wake_alarm=float(np.clip(rng.normal(0.45, 0.2), 0.05, 0.95)),
@@ -258,6 +264,14 @@ class Behavior:
             self.planned.append((base + mt, ("eat_meal", meal)))
             if entered is not None:
                 self.planned.append((et, ("enter_meal", meal)))
+            elif r.random() < t.p_free_bolus:
+                # food dosed by hand: their own estimate of the grams over their own CR setting
+                est = grams * math.exp(t.count_bias + r.normal(0, t.count_sd))
+                units = round(est / self.p.settings["cr"] * 2) / 2
+                off = {"before": r.uniform(-20, -5), "immediate": r.uniform(-3, 0),
+                       "during": r.uniform(3, 15), "after": r.uniform(15, 45)}[t.bolus_timing]
+                if units >= 0.5:
+                    self.planned.append((base + mt + off, ("free_bolus", units)))
         # exercise
         if r.random() < t.ex_per_week / 7.0:
             st = base + (t.ex_hour * 60 + r.normal(0, 45)) + shift
@@ -288,6 +302,9 @@ class Behavior:
                 if meal.bolus is not None:
                     acts.append(("bolus", m, meal.bolus)); self.last_bolus = m
                 self.log.append((m, "entry", meal.entered, meal.bolus))
+            elif kind == "free_bolus":
+                acts.append(("bolus_units", m, rest[0])); self.last_bolus = m
+                self.log.append((m, "free_bolus", rest[0], None))
             elif kind == "exercise":
                 acts.append(("exercise",) + tuple(rest)); self.log.append((m, "exercise", rest[1], rest[2]))
             elif kind == "ex_carbs":

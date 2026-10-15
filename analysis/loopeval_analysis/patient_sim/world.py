@@ -153,9 +153,8 @@ class World:
             for a in acts:
                 if a[0] == "carb":
                     self.entries.append((a[1], a[2], a[3]))
-                elif a[0] == "bolus":
-                    rec = self._internal_rec(a[1])
-                    units = round(max(0.0, a[2] * rec) / 0.05) * 0.05
+                elif a[0] in ("bolus", "bolus_units"):
+                    units = float(a[2]) if a[0] == "bolus_units" else round(max(0.0, a[2] * self._internal_rec(a[1])) / 0.05) * 0.05
                     if units > 0:
                         self.pump.command(m + 1, m + 1, units, bolus=True)
                         self.int_doses.append(("bolus", m + 1, m + 1, units, False))
@@ -186,6 +185,9 @@ class World:
                 elif a[0] == "bolus":
                     boluses.append(dict(t=ts(a[1]), ratio=float(a[2])))
                     self.bolus_requests.append((a[1], a[2]))
+                elif a[0] == "bolus_units":
+                    boluses.append(dict(t=ts(a[1]), units=float(a[2])))
+                    self.bolus_requests.append((a[1], -float(a[2])))     # negative = absolute units
         bg = []
         for s in samples:
             k = int(round(s))

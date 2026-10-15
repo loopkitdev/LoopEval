@@ -82,6 +82,14 @@ def _tw_mean(segs, key="value"):
     return v / w if w else np.nan
 
 
+def _free(corr: pd.DataFrame):
+    """A lone manual bolus is FOOD dosed by hand (no carb entry) when it exceeds Loop's recommendation
+    by > 20% + 0.2 U, or is given below 140 mg/dL; otherwise it is a correction."""
+    if not len(corr) or "units" not in corr:
+        return pd.Series(False, index=corr.index)
+    return (corr.units > 1.2 * corr.rec.fillna(0) + 0.2) | (corr.bg < 140)
+
+
 def build_pilot() -> pd.DataFrame:
     import json
     import numpy as np
@@ -123,6 +131,11 @@ def build_pilot() -> pd.DataFrame:
                  bolus_ratio=float(ann.bolus_ratio.median()) if ann.bolus_ratio.notna().any() else np.nan,
                  corrections_per_day=len(corr) / span, corr_bg_med=float(corr.bg.median()) if len(corr) else np.nan,
                  corr_ratio=float((corr.units / corr.rec.replace(0, np.nan)).median()) if len(corr) else np.nan,
+                 # lone boluses well above Loop's recommendation, or at normal glucose: food dosed by hand
+                 # without a carb entry (Groat 2017: carbs entered for 2/3 of boluses); the rest are corrections
+                 free_boluses_per_day=float(_free(corr).sum() / span),
+                 free_bolus_u_med=float(corr.units[_free(corr)].median()) if _free(corr).any() else np.nan,
+                 true_corrections_per_day=float((~_free(corr)).sum() / span),
                  rescues_per_day=len(rs) / span, rescue_size_med=float(rs.size_g.median()) if len(rs) else np.nan,
                  rescue_bg_med=float(rs.bg_onset.median()) if len(rs) else np.nan,
                  carb_entries_per_day=float(meals.entry_g.gt(0).sum() / span),
