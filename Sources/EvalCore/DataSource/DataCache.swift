@@ -31,7 +31,7 @@ public actor DataCache {
     public func save<T: Encodable>(_ value: T, key: String) throws {
         let data = try encoder.encode(value)
         let url  = fileURL(for: key)
-        try data.write(to: url, options: .atomicWrite)
+        try data.write(to: url, options: .atomic)
     }
 
     /// Load a previously saved value for `key`, or `nil` if not cached.
