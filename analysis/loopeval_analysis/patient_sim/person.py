@@ -25,6 +25,10 @@ import pandas as pd
 from .physiology import Body, BodyParams, Parcel
 from .insulins import BRAND_TO_FORMULATION, FORMULATIONS
 
+BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "archetype", "meals_per_day",
+                 "meal_hours", "meal_size_med", "meal_size_logsd", "announced_share", "estimate_ratio",
+                 "bolus_lead_min", "p_bolus_ann", "bolus_ratio", "corrections_per_day", "corr_bg_med", "corr_ratio",
+                 "rescues_per_day", "rescue_size_med", "rescue_bg_med"]
 ISF_W = 0.5      # weight of the yardstick against the person's own ISF setting in the truth (open, see sample_person)
 
 
@@ -56,7 +60,7 @@ def linear_part(bp: BodyParams) -> BodyParams:
     the hypo risk amplification and counter-regulation. ISF and CSF are DEFINED on this linear
     part — the same bookkeeping ISF the eda yardstick estimates (ICE = velocity + ISF·activity) —
     and the full body then adds those terms on top."""
-    return bp.scaled(sg=0.0, kappa=0.0, risk_lambda=0.0, cr_max=0.0)
+    return bp.scaled(sg=0.0, kappa=0.0, risk_lambda=0.0, cr_max=0.0, low_prop=False)
 
 
 def _probe_isf(bp: BodyParams, formulation: str, dose: float = 0.1, minutes: int = 900) -> float:
@@ -129,7 +133,8 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
 
-    age = float(row.age_years) if np.isfinite(row.age_years) else float(rng.choice(templates.age_years.dropna()))
+    ages = templates.age_years.dropna()
+    age = float(row.age_years) if np.isfinite(row.age_years) else (float(rng.choice(ages)) if len(ages) else float(rng.normal(35, 15)))
     age = max(4.0, age + rng.normal(0, 2.0))
     j_tdd, j_isf, j_basal = lj(), lj(), lj()
     tdd = float(row.tdd) * j_tdd
@@ -151,7 +156,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     bp = BodyParams(
         bw=bw,
         kd=float(np.exp(rng.normal(-3.509, 0.619 * 0.5))),     # half the ReplayBG log-sd: its prior is for identification, not a population
-        ka2=float(np.exp(rng.normal(-4.288, 0.427 * 0.5))),
+        ka2=float(np.exp(rng.normal(math.log(0.018), 0.427 * 0.5))),   # centre refit to the clamp profile
         sg=float(np.exp(rng.normal(math.log(0.003), 0.5))),
         gb=float(np.clip(rng.normal(119, 7.1), 95, 150)),
         egp_b=float(np.clip(rng.normal(2.5, 0.33), 1.5, 3.5)),
@@ -186,7 +191,5 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         truth=dict(tdd=tdd, basal_uh=basal_true, fasting_rate=fasting_rate, isf=isf_true, csf=csf, cr=cr_true,
                    carbs_g_day=carbs, egp_share=egp_share),
         settings=settings,
-        traits=dict(template_rates=dict(carb_entries_per_day=float(row.carb_entries_per_day),
-                                        user_boluses_per_day=float(row.user_boluses_per_day),
-                                        carb_g_day_announced=float(row.carb_g_day),
-                                        archetype=str(row.archetype))))
+        traits=dict(template_rates={k: (row[k] if not isinstance(row[k], float) or np.isfinite(row[k]) else np.nan)
+                                    for k in BEHAVIOR_COLS if k in row.index}))

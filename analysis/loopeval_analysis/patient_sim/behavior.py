@@ -92,32 +92,75 @@ class BehaviorTraits:
     site_hour: float = 19.5
 
 
+def _num(rates, k):
+    v = rates.get(k, np.nan)
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        return np.nan
+    return v if np.isfinite(v) else np.nan
+
+
+POOLED_ESTIMATE_RATIO = 0.77      # ice pilot median entered grams per pulse g-eq (pulse/entered 1.30, ice L54)
+
+
 def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
+    """Literature priors (evidence/04), replaced by the person's own MEASURED behavior wherever the
+    donor template carries it (ice pilot meals tables: pulses, entries, boluses, corrections, rescues)."""
     rates = person.traits.get("template_rates", {})
-    meals_day = 3.0 + 1.2
-    entries = rates.get("carb_entries_per_day", np.nan)
-    p_entry = float(np.clip(entries / meals_day, 0.0, 1.0)) if np.isfinite(entries) else float(rng.uniform(0.2, 0.9))
-    ub = rates.get("user_boluses_per_day", np.nan)
     lj = lambda mu, sd: float(np.exp(rng.normal(math.log(mu), sd)))
+    mpd = _num(rates, "meals_per_day")
+    snack_rate = max(0.3, mpd - 3.0) if np.isfinite(mpd) else lj(1.2, 0.4)
+    n_eat = 3.0 + snack_rate
+    entries = _num(rates, "carb_entries_per_day")
+    if np.isfinite(entries):
+        p_meal = float(np.clip(entries / 3.0, 0.0, 1.0))
+        p_snack = float(np.clip((entries - 3.0 * p_meal) / max(snack_rate, 0.1), 0.0, 1.0))
+    else:
+        p_meal = float(rng.uniform(0.2, 0.9)); p_snack = p_meal * 0.4
+    er = _num(rates, "estimate_ratio")
+    count_bias = (math.log(er / POOLED_ESTIMATE_RATIO) - 0.10) if np.isfinite(er) and er > 0 else float(rng.normal(-0.10, 0.097))
+    lead = _num(rates, "bolus_lead_min")
+    if np.isfinite(lead):
+        timing = "before" if lead < -5 else "immediate" if lead < 1 else "during" if lead < 15 else "after"
+    else:
+        timing = str(rng.choice(["before", "immediate", "during", "after"], p=[0.21, 0.44, 0.10, 0.25]))
+    pb = _num(rates, "p_bolus_ann")
+    corr_rate = _num(rates, "corrections_per_day")
+    ub = _num(rates, "user_boluses_per_day")
+    if not np.isfinite(corr_rate) and np.isfinite(ub):
+        corr_rate = max(0.0, ub - entries) if np.isfinite(entries) else ub / 2
+    cbg = _num(rates, "corr_bg_med")
+    rsz = _num(rates, "rescue_size_med")
+    rbg = _num(rates, "rescue_bg_med")
     t = BehaviorTraits(
         bed=float(rng.normal(23 * 60, 50)), wake=float(rng.normal(7 * 60, 50)),
-        snack_rate=lj(1.2, 0.4), carbs_day=person.truth["carbs_g_day"],
-        p_entry_meal=p_entry, p_entry_snack=p_entry * 0.4,
-        count_bias=float(rng.normal(-0.10, 0.097)), count_sd=lj(0.2, 0.3),
-        bolus_timing=str(rng.choice(["before", "immediate", "during", "after"], p=[0.21, 0.44, 0.10, 0.25])),
+        snack_rate=snack_rate, carbs_day=person.truth["carbs_g_day"],
+        p_entry_meal=p_meal, p_entry_snack=p_snack,
+        count_bias=count_bias, count_sd=lj(0.2, 0.3),
+        bolus_timing=timing,
+        p_bolus_with_entry=float(np.clip(pb, 0.05, 1.0)) if np.isfinite(pb) else 0.85,
         glances_per_day=lj(6.0, 0.6),
         low_alert=float(rng.normal(76, 8)), high_alert=float(rng.normal(240, 25)),
         p_wake_alarm=float(np.clip(rng.normal(0.45, 0.2), 0.05, 0.95)),
         pro_onset=float(rng.normal(80, 20)), pro_grams=lj(12, 0.4),
-        treat_thr=float(rng.normal(70, 6)), treat_grams=lj(25, 0.5),
+        treat_thr=float(np.clip(rbg - 5, 55, 85)) if np.isfinite(rbg) else float(rng.normal(70, 6)),
+        treat_grams=float(np.clip(rsz, 8, 60)) if np.isfinite(rsz) else lj(25, 0.5),
         treat_latency=lj(5, 0.6), p_retreat=float(np.clip(rng.normal(0.34, 0.1), 0, 1)),
-        corr_thr=float(rng.normal(200, 30)),
-        p_correct=float(np.clip(ub / 6.0, 0.02, 0.9)) if np.isfinite(ub) else float(rng.uniform(0.05, 0.5)),
+        corr_thr=float(np.clip(cbg - 20, 130, 300)) if np.isfinite(cbg) else float(rng.normal(200, 30)),
+        # a qualifying glance corrects with this chance; sized so the person's measured rate is reachable
+        # [J: ~4 qualifying glances a day for a person who runs high; refined by twin validation]
+        p_correct=float(np.clip(corr_rate / 4.0, 0.01, 0.9)) if np.isfinite(corr_rate) else float(rng.uniform(0.05, 0.5)),
         ex_per_week=float(rng.choice([0, 0.5, 1, 2, 3, 4, 5], p=[0.2, 0.1, 0.15, 0.2, 0.15, 0.1, 0.1])),
         ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
         ex_anaerobic=float(np.clip(rng.beta(1.2, 6), 0, 1)), ex_hour=float(rng.choice([7.0, 12.5, 17.5, 19.0])),
         site_days=float(np.clip(rng.normal(3.0, 0.4), 2.0, 4.0)),
     )
+    mh = rates.get("meal_hours")
+    if isinstance(mh, str):
+        import json as _json
+        h = np.array(_json.loads(mh), dtype=float)
+        if h.sum() > 0: t.snack_hours = h / h.sum()
     return t
 
 
@@ -188,8 +231,13 @@ class Behavior:
         dinner = lunch + max(150.0, r.gumbel(374.9, 85.0) * 0.9)
         slots += [("meal", lunch, 0.30), ("meal", dinner, 0.34)]
         n_snack = r.poisson(t.snack_rate)
+        sh = getattr(t, "snack_hours", None)
         for _ in range(n_snack):
-            slots.append(("snack", float(r.uniform(t.wake + 60, t.bed + 30)) + shift, 0.14 / max(t.snack_rate, 0.5)))
+            if sh is not None:      # the person's own eating clock (ice pulses by hour)
+                st = (float(r.choice(24, p=sh)) + r.random()) * 60
+            else:
+                st = float(r.uniform(t.wake + 60, t.bed + 30))
+            slots.append(("snack", st + shift, 0.14 / max(t.snack_rate, 0.5)))
         total_share = sum(s[2] for s in slots)
         for kind, mt, share in slots:
             grams = t.carbs_day * carb_scale * share / max(total_share, 1e-9) * float(np.exp(r.normal(0, t.meal_cv) - t.meal_cv ** 2 / 2))
@@ -230,7 +278,9 @@ class Behavior:
             _, (kind, *rest) = self.planned.pop(0)
             if kind == "eat_meal":
                 meal = rest[0]
-                acts.append(("eat", Parcel(m, meal.grams, kempt=0.025, kabs=0.05 * meal.speed, label=meal.kind)))
+                bp = self.p.body
+                acts.append(("eat", Parcel(m, meal.grams, kempt=bp.kempt * meal.speed, kabs=bp.kabs * meal.speed,
+                                           f=bp.f, label=meal.kind)))
                 self.log.append((m, meal.kind, meal.grams, meal.entered))
             elif kind == "enter_meal":
                 meal = rest[0]

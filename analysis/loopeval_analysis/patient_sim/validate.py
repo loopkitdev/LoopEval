@@ -138,6 +138,30 @@ def compare(sim: pd.DataFrame, by_sensor: bool = True) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def twin(sim: pd.DataFrame, templates: str | None = None) -> pd.DataFrame:
+    """Each simulated person against the donor it was drawn from: median difference and Spearman
+    rank agreement across people. A simulator that only matches the cohort's marginals but not each
+    donor's own level is getting the spread from the wrong place."""
+    from scipy.stats import spearmanr
+    real = real_table().rename(columns={"alias": "template"})
+    if templates and Path(templates).exists():       # templates carry each donor's own outcomes (pilot)
+        tp = pd.read_csv(templates).rename(columns={"alias": "template"})
+        if not set(sim.template) & set(real.template):
+            real = tp
+    m = sim.merge(real, on="template", suffixes=("_sim", "_real"))
+    rows = []
+    for st in ["tir", "t70", "t54", "bg_mean", "bg_cv", "tdd", "carb_entries_per_day", "user_boluses_per_day",
+               "v_sd", "acf_zero_min", "zero_frac", "conc1"]:
+        a, b = m.get(f"{st}_sim"), m.get(f"{st}_real")
+        if a is None or b is None: continue
+        ok = a.notna() & b.notna()
+        if ok.sum() < 5: continue
+        rho = spearmanr(a[ok], b[ok]).correlation
+        rows.append(dict(stat=st, n=int(ok.sum()), med_sim=float(a[ok].median()), med_real=float(b[ok].median()),
+                         med_diff=float((a[ok] - b[ok]).median()), spearman=float(rho)))
+    return pd.DataFrame(rows)
+
+
 def main():
     root = Path(sys.argv[1])
     rows = [s for s in (person_stats(p) for p in sorted(root.glob("v*"))) if s]
@@ -145,8 +169,12 @@ def main():
     sim.to_csv(root / "sim_stats.csv", index=False)
     cmp = compare(sim)
     cmp.to_csv(root / "compare.csv", index=False)
+    cj = root / "cohort.json"
+    tw = twin(sim, json.load(open(cj)).get("templates") if cj.exists() else None)
+    tw.to_csv(root / "twin.csv", index=False)
     pd.set_option("display.width", 220)
     print(cmp.round(3).to_string(index=False))
+    print(tw.round(3).to_string(index=False))
 
 
 if __name__ == "__main__":

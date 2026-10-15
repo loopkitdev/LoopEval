@@ -35,19 +35,20 @@ class BodyParams:
     bw: float = 70.0               # kg
     # subcutaneous insulin (ReplayBG priors: kd median .030, ka2 median .0137; ke .127)
     kd: float = 0.030
-    ka2: float = 0.0137
+    ka2: float = 0.018             # median ReplayBG 0.0137 refit with p2/p2e to the lispro clamp profile (COMPONENTS A2/A5)
     ke: float = 0.127
     vi: float = 0.126              # L/kg
     # insulin action
-    p2: float = 0.0121             # 1/min, disposal-action rate
+    p2: float = 0.025              # 1/min, disposal-action rate (ReplayBG 0.0121 was too slow: LESSONS 9)
     si_d: float = 5.0e-4           # disposal sensitivity, 1/min per (mU/L)  — calibrated to ISF
-    p2e: float = 0.008             # 1/min, EGP-suppression action rate (slower than disposal)
+    p2e: float = 0.012             # 1/min, EGP-suppression action rate (slower than disposal)
     se: float = 1.0                # EGP suppression per unit relative insulin above basal
     ib: float = 10.0               # basal plasma insulin, mU/L — set from the true basal rate
     # glucose
     vg: float = 1.88               # dL/kg (UVA/Padova; ReplayBG's 1.45 gives ~2x the carb sensitivity people's settings imply)
     sg: float = 0.003              # insulin-INDEPENDENT glucose effectiveness, 1/min (see COMPONENTS: physiology)
     kappa: float = 0.15            # glucose-dependence of insulin-mediated uptake: 1 = Bergman (X·G), 0 = linear (Loop) [J]
+    low_prop: bool = True          # below Gb, uptake ∝ G (vanishes with glucose); False only for the linear calibration part
     gb: float = 119.0              # mg/dL, rest point at true basal insulin
     egp_b: float = 2.5             # mg/kg/min at basal insulin
     rthr: float = 180.0            # renal threshold, mg/dL
@@ -56,7 +57,8 @@ class BodyParams:
     risk_r1: float = 1.4407
     risk_r2: float = 0.8124
     risk_floor: float = 60.0
-    risk_lambda: float = 0.5       # 0 = off, 1 = S2013 published strength; provisional, calibrated jointly with CR vs donor lows
+    risk_lambda: float = 0.0       # S2013 hypo amplification (1 = published). OFF: in this structure it produced
+                                   # t<54 8.5% vs the field's 0.13% (ablation 2026-10-15, LESSONS 10)
     # counter-regulation (adrenaline-led in T1D) with HAAF memory
     cr_max: float = 1.0            # mg/kg/min EGP boost at full activation
     cr_g: float = 65.0             # mg/dL, half-activation glucose
@@ -67,8 +69,8 @@ class BodyParams:
     haaf_min: float = 0.3
     # gut
     f: float = 0.9                 # bioavailability
-    kempt: float = 0.025           # linearised Dalla Man emptying for a mixed meal (Ra peak ~1 h, 3-4 h long)
-    kabs: float = 0.05
+    kempt: float = 0.045           # mixed meal: equal emptying/absorption rates give a 44-min peak and 90% by ~2 h,
+    kabs: float = 0.045            # the donor pool's meal pulses (ice meals tables, 116k pulses: peak 0.75 h, 90% by 1.83 h)
     hypo_empty_gain: float = 1.5   # φ_hypo = 1 + gain·σ((70 − G)/5)
     # exercise
     ex_uptake: float = 0.0         # mg/kg/min insulin-independent uptake at intensity 1
@@ -279,7 +281,7 @@ class Body:
         renal = p.rcl * (g - p.rthr) if g > p.rthr else 0.0
         # insulin-mediated uptake's glucose dependence: weak above Gb (κ), proportional below it so
         # uptake vanishes with glucose (Bergman / UVA Michaelis–Menten at low G; LESSONS 7)
-        mm = p.gb + p.kappa * (g - p.gb) if g >= p.gb else g
+        mm = p.gb + p.kappa * (g - p.gb) if (g >= p.gb or not p.low_prop) else g
         dg = (-p.sg * (g - p.gb) - (self.xd * mm * self.risk(g) - p.si_d * p.ib * p.gb)
               + (egp - p.egp_b - uex + ra) / p.vg - renal)
         self.g = max(10.0, g + dt * dg)
