@@ -845,3 +845,5 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     still ratchets when nothing exogenous anchors it (no meals overnight). The open structural problem, narrowed: the
     deviation memory must be symmetric (linear, v3m17) for the level and still let the shape follow calm vs volatile
     stretches (v3m17 / v3m20 widened, v3m18 / v3m19 brought the ratchet back or blew up).
+    Settings-edit test on v3m15 (seed 0, 61 edits; one lost to a killed plant process): mean glucose r 0.34, slope 0.78;
+    TIR r 0.16, slope 0.56; t<70 0.32; t<54 0.02; own-settings level TIR -5.0. On a par with v3m10 / v3m13 (LESSONS 63, 74).
