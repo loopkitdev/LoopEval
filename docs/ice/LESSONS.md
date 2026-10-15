@@ -795,3 +795,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     memory removes it (v3m17) but the shape then needs those values, and every route that lets them shape the
     distribution (weights, scales, offsets) has either brought the ratchet back (v3m18) or destabilized the mixture
     (v3m19). v3m15 (exogenous baseline, +4.8 residual excess) remains the base.
+85. **An unsigned scale from recent deviation sizes does not narrow v3m17's draws enough (v3m20); not kept.** v3m17 + a
+    common log-scale shift on every mixture component from |deviation| over the last 30 min and the recurrent state (mean
+    and weights untouched by construction). Seeds 0 / 1: level holds (closed loop 30.9 / 30.8 vs real 32.7 / 33.5),
+    overnight background 33.8 / 30.1 (field 23.7), time above 180 away from meals 6.3 / 7.3% (4.3); but background 5-min
+    sd 81 / 102 vs 56, quantile distance 47.3 / 58.7 vs ceiling 27.9, hourly-mean sd 62 / 64 vs 35; TIR 64.7 / 65.5,
+    t<54 1.54 / 1.47. The learned linear memory is moderate (lag-1 0.50, sum 0.67-0.69; correlation by lag near the
+    field's), so the excess is the per-step distribution's width, not the memory. The size of recent deviations does not
+    carry what the recurrent net reads from their full signed history. v3m15 remains the base.
