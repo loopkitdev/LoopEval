@@ -145,6 +145,8 @@ class PlantV3:
         # behavior-head logit offsets by clock band (00-06 / 06-12 / 12-18 / 18-24), pooled (calibrate_band.py): the pooled
         # calibration matches each head's daily total but not its daily profile (night meals 1.13x, entries 5x, LESSONS 94)
         self.calib_band = dict(ck.get("calib_band", {}))
+        if not self.drawn and alias in ck.get("calib_band_person", {}):   # per-person daily rhythm (fit_traits_band.py)
+            self.calib_band.update(ck["calib_band_person"][alias])
         cb = ck.get("calib_level_band", {})
         self.level_band = cb.get("_median") if self.drawn else cb.get(alias, cb.get("_median"))
         self.announce = float(os.environ.get("ANNOUNCE", "1")); self.rng_ann = np.random.default_rng(seed + 15485863)
