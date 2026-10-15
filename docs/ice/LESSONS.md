@@ -673,3 +673,17 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     meal bolus 0.145 / 0.136 (~0.16), IOB above basal at the start of a low 0.35 / 0.48 (0.56). Within training noise. The
     missing anticipation is not in logged or unannounced snacks (behavior) but in the background push (LESSONS 69); v3m13
     builds the per-person defense ramp on this base.
+71. **A defense ramp keyed to projected glucose cuts severe lows by about half; kept (v3m13).** Background ICE gets a
+    learned, monotone push in projected glucose (glucose - ISF x IOB above basal), zero heading into range or above, on
+    top of v3m12 (pending insulin on the behavior path). Traits refit, calibrated, held-out clean time, seeds 0 / 1: t<54
+    1.05 / 0.72 (v3m10 refit 1.77 / 1.52; beyond training noise on both), TIR 65.7 / 63.0 (66.2 / 65.0), mean 162 / 166
+    (160 / 160), within noise though seed 1's mean is at its edge. Lows: chance of reaching 54 0.37 / 0.36 (0.45; field
+    0.18), minutes below 70 20 / 20 (30; 15), IOB above basal at the start 0.06 / 0.20 (0.56; 0.15), lows per meal bolus
+    0.135 / 0.135 (~0.16; 0.064). Learned ramp (seed 0): 0 at projected 120+, 4 / 7 / 14 mg/dL/h at 30 / 0 / -40. The
+    median person's defense now matches the field (+32 / +31 vs +30 heading below 0); the strong end is still cut short
+    (90th percentile person +39 / +42 vs +57) and the per-person onset still does not match (Spearman -0.16 / 0.05).
+    The per-person onset and strength stayed at their starting values in training (rare lows, small gradient); refit by
+    maximum likelihood on training days (fit_defense.py: onsets -12 to +34 mg/dL, strength 0.56-1.22) they change
+    nothing beyond noise (seed 0: t<54 1.04, TIR 65.9, mean 159, 90th percentile person +38, onset agreement 0.19).
+    Pete's frame (LESSONS 66, 69) holds: the missing piece was anticipation keyed to where glucose is heading. Still open:
+    the individual spread of the defense, and the remaining post-bolus low excess (2x the field).
