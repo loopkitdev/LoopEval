@@ -245,6 +245,8 @@ struct SimulateCommand: AsyncParsableCommand {
     var candidateIrcRiseScale: Double = 1.0
     @Option(name: .long, help: "Per-local-hour INSULIN-NEEDS multipliers for the candidate (24 csv, or @file): basal × h, ISF ÷ h, CR ÷ h per hour — the hourly form of --candidate-insulin-needs (a learned circadian needs schedule). Hours are interpreted in --local-timezone. Composes with --candidate-insulin-needs and --candidate-isf-hourly.")
     var candidateNeedsHourly: String?
+    @Option(name: .long, help: "A therapy.json whose basal/ISF/CR/target schedules (and their raw, un-override forms) the CANDIDATE controller runs instead of the field's: a settings edit replayed in a window that ran the other settings. The candidate's pump runs this basal wherever it falls back to scheduled basal. Limits, overrides and insulin model stay the field's; the patient is unchanged. Composes with the candidate multipliers.")
+    var candidateSchedulesJson: String?
     @Flag(name: .long, help: "Asymmetric STANDARD RC (candidate): apply --candidate-irc-drop-scale / --candidate-irc-rise-scale to the standard (non-integral) retrospective correction — the deployed RC mode on most Loop users. Scales the single 30-min discrepancy before it is projected 60 min forward. Off = deployed symmetric RC.")
     var candidateAsymmetricStdRc: Bool = false
     @Option(name: .long, help: "IRC low-memory carry ('remember the low'): when >0 and the current discrepancy run is positive (a rebound), the integral carries the immediately-preceding negative (low) run across the sign flip instead of resetting, scaled by this factor, so the low's memory offsets the rebound's upward dosing. One-sided (only +run carries a preceding -run). Only used with --candidate-integral-rc. Default 0 (off).")
@@ -1075,6 +1077,24 @@ struct SimulateCommand: AsyncParsableCommand {
             plant = nil
         }
         printStderr("Running closed-loop simulation (sequential, ~10× slower than bench)...\n")
+        var candidateTherapy: TherapyTimeline? = nil
+        if let path = candidateSchedulesJson {
+            let dec = JSONDecoder()
+            dec.dateDecodingStrategy = .iso8601
+            let other = try dec.decode(TherapyTimeline.self, from: Data(contentsOf: URL(fileURLWithPath: path)))
+            var tl = data.therapyTimeline
+            tl.basal = other.basal
+            tl.sensitivity = other.sensitivity
+            tl.carbRatio = other.carbRatio
+            tl.target = other.target
+            if !tl.rawBasal.isEmpty {
+                tl.rawBasal = other.rawBasal.isEmpty ? other.basal : other.rawBasal
+                tl.rawSensitivity = other.rawSensitivity.isEmpty ? other.sensitivity : other.rawSensitivity
+                tl.rawCarbRatio = other.rawCarbRatio.isEmpty ? other.carbRatio : other.rawCarbRatio
+                tl.rawTarget = other.rawTarget.isEmpty ? other.target : other.rawTarget
+            }
+            candidateTherapy = tl
+        }
         let simResult = try await engine.simulateClosedLoop(
             data: data,
             interval: interval,
@@ -1120,6 +1140,7 @@ struct SimulateCommand: AsyncParsableCommand {
             sensorCapMgdl: sensorCapMgdl,
             externalPlant: plant,
             plantBehavior: plantBehavior,
+            candidateTherapy: candidateTherapy,
             progress: Self.makeProgressReporter()
         )
         plant?.finish()
