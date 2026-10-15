@@ -815,3 +815,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     trained people 0.12 / 3.09 / 6.94); corrections 0.36 / 1.38 / 5.41 (0.10 / 1.07 / 4.25); TIR 35 / 61 / 76 (52 / 74 /
     89); mean 134 / 167 / 224 (127 / 152 / 188), the level excess again. Real people who enter more carbs have fewer
     severe lows (Spearman -0.31); drawn people slightly more (+0.23).
+88. **Routing the offense through the exogenous baseline only (v3m21) helps on both seeds; kept, new base.** v3m15 with
+    every outside-event input (meals, entries, boluses, clock) feeding only the exogenous baseline (128 wide), and the
+    recurrent background path seeing only the glucose state and its own deviation from the baseline. Seeds 0 / 1, traits
+    refit, held-out clean time: TIR 66.8 / 68.4, t<54 0.66 / 0.52, mean 162 / 162 (v3m15 65.2 / 66.8, 0.83 / 0.95, 160 /
+    160; field 74.1 / 0.12 / 152); closed-loop level excess +1.6 / +2.1 mg/dL/h (v3m15 +4.8, v3m13 +9.8); lows per meal
+    bolus 0.104 / 0.100 (0.136; field 0.064), meal boluses followed by a low within 3 h 15.3 / 16.3% (17.8; 7.8); 5-min
+    quantile distance 13.5 / 15.3 (ceiling 27.9), hourly-mean sd 38 / 39 (field 35); defense median +29 / +25 heading
+    below 0 (field +30). Still short: the background's rise after a meal bolus (+12 / +13 vs +38 in the field), time above
+    180 away from meals (8.1 / 7.6% vs 4.3), overnight background 37 / 44 (24). Pete's frame again: offense is exogenous.
