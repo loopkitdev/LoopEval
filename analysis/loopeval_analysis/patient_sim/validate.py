@@ -229,6 +229,15 @@ def main():
         cp.to_csv(root / "compare_pilot.csv", index=False)
     cj = root / "cohort.json"
     tw = twin(sim, json.load(open(cj)).get("templates") if cj.exists() else None)
+    try:   # post-meal response vs donors (meal_response.py); donor table built once on the Mac
+        from .meal_response import simulated as _ms, summarize as _msum
+        S = pd.concat([_ms(p) for p in sorted(root.glob("v*")) if (p / "truth.pkl").exists()])
+        dpath = Path(tp).parent / "meal_response_donors.csv" if tp else None
+        mr = {"sim": _msum(S)}
+        if dpath is not None and dpath.exists(): mr["donors"] = _msum(pd.read_csv(dpath))
+        pd.DataFrame(mr).to_csv(root / "meal_response.csv")
+    except Exception as e:                     # noqa: BLE001
+        print("meal response skipped:", e)
     tw.to_csv(root / "twin.csv", index=False)
     pd.set_option("display.width", 220)
     print(cmp.round(3).to_string(index=False))

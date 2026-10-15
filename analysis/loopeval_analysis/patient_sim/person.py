@@ -30,7 +30,7 @@ BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "
                  "bolus_lead_min", "p_bolus_ann", "bolus_ratio", "corrections_per_day", "corr_bg_med", "corr_ratio",
                  "rescues_per_day", "rescue_size_med", "rescue_bg_med", "free_boluses_per_day",
                  "free_bolus_u_med", "true_corrections_per_day"]
-CSF_PER_SETTINGS = 1.30   # ice L54: meal pulse g-eq per entered gram at the settings' carb sensitivity
+CSF_PER_GEQ = 1.30        # ice L54: meal pulse g-eq per entered gram; g-eq = ISF_tdd/(500/TDD) mg/dL
 ISF_W = 0.5      # weight of the yardstick against the person's own ISF setting in the truth (open, see sample_person)
 
 
@@ -193,9 +193,11 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # CARB SENSITIVITY per LABELED gram: physics (f·1000 / BW·VG, f 0.9 for tracer glucose) gives ~1.7x
     # the rise donors show. Measured: a meal pulse is 1.30x what the entered grams predict at the
     # settings' ISF/CR (ice L54). Labeled carbohydrate is not all glucose appearance (fibre, fructose,
-    # resistant starch), so bioavailability per labeled gram is the person's calibrated parameter:
-    # CSF = 1.30 x settings CSF (sd 0.15), and f follows (LESSONS 14).
-    csf_target = float(row.isf) / float(row.cr) * CSF_PER_SETTINGS * float(np.exp(rng.normal(0, 0.15)))
+    # resistant starch), so bioavailability per labeled gram is the person's calibrated parameter, and f
+    # follows (LESSONS 14, 17).
+    # ice's g-eq is ISF_tdd / (500/TDD) mg/dL — settings-free (ice_gen/meals.py) — so the measured rise
+    # per entered gram is 1.30 x that, not 1.30 x the settings' ISF/CR (LESSONS 17)
+    csf_target = CSF_PER_GEQ * float(row.isf_true) * float(row.tdd) / 500.0 * float(np.exp(rng.normal(0, 0.15)))
     f_cal = csf_target * bw * bp.vg / 1000.0
     if f_cal > 1.0:
         bp = bp.scaled(f=1.0, vg=float(1000.0 / (bw * csf_target)))

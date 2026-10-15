@@ -115,3 +115,15 @@ Things that cost time or would have produced a wrong simulator. Newest last.
     so each person's carbs are now spread over their own measured pulse count with their own measured
     size spread, main meals no larger on average than any other event. Diagnostic switches that made
     this findable: `--disable` every disturbance and `--enable perfect_person`.
+
+17. **Read a measured ratio in the units it was measured in.** ice's "pulse g-eq per entered gram 1.30"
+    uses g-eq = ISF_tdd/(500/TDD) mg/dL (settings-free, ice_gen/meals.py), ~3.6 mg/dL/g at TDD 40.
+    I applied it to the settings' ISF/CR (~4.9), overstating carb sensitivity by ~1.36×. The donor
+    post-meal response exposed it: isolated bolused meals rise a median 17 mg/dL per 10 g entered
+    (72 mg/dL, peak at 111 min, +36 at 3 h; 6,484 meals, 53 donors, meal_response.py) against the
+    simulator's 34. Two lessons: check the definition behind every borrowed number, and measure the
+    behavior that integrates the components (here, glucose after a bolused meal) directly.
+
+Also (no lesson of its own): the candidate now runs as deployed Loop-main (`--no-mid-absorption-isf
+--no-gradual-transitions-gate --legacy-rc-decay`, docs/loop-algo-classes.md); it changed no cohort
+statistic here, but it is the controller donors ran.
