@@ -710,6 +710,38 @@ class ICEGenV3M21(ICEGenV3M15):
         self.head_base = nn.Linear(128, 1)
 
 
+class ICEGenV3M22(ICEGenV3M21):
+    """v3m22: v3m21 with the recurrent background path made symmetric in its own deviations. The path runs twice, on the
+    deviation history as it is and with its sign flipped (glucose unchanged); component means take half the DIFFERENCE of
+    the two heads (odd in the deviations: a run above the baseline pushes up exactly as much as the mirrored run below
+    pushes down, so the model's own noise cannot build a level), mixture weights and scales the AVERAGE (even: the spread
+    follows how volatile the recent stretch was, not its sign). v3m21's remaining excess is a night-time ratchet through the
+    deviation channel (+5 mg/dL/h on its own inputs vs real, removed by restoring the real previous value, LESSONS 91); a
+    linear memory removed the ratchet but could not shape the spread (LESSONS 82, 85)."""
+    arch = "v3m22"
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last = h3 if h3 is not None else (None, None)
+        h2p, h2m = h2 if isinstance(h2, tuple) else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        dev = (x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_]
+        xp = x.clone(); xp[..., self.i_prev_] = dev
+        xm = x.clone(); xm[..., self.i_prev_] = -dev
+        zp, h2p = self.gru_ice(torch.relu(self.inp_ice(torch.cat([xp * self.ice_keep, p], -1))), h2p)
+        zm, h2m = self.gru_ice(torch.relu(self.inp_ice(torch.cat([xm * self.ice_keep, p], -1))), h2m)
+        lgp, mup, lsp = self.head_ice(zp).split(self.K_ICE, -1)
+        lgm, mum, lsm = self.head_ice(zm).split(self.K_ICE, -1)
+        lg, ls, mu = (lgp + lgm) / 2, (lsp + lsm) / 2, (mup - mum) / 2
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + (b + d)[..., None], ls], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, (h2p, h2m), (hb, b[:, -1]))
+
+
 class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
