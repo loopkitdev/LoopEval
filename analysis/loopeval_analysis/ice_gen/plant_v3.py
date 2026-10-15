@@ -136,6 +136,11 @@ class PlantV3:
         # jittered (DRAW_MODE=gauss: a Gaussian fitted to all trained people's), and nothing personal to the host is used (no per-person calibrations, population
         # slow-state scale). For the generalization check: drawn people should match the real population's spread and co-variation.
         self.drawn = os.environ.get("DRAW_PERSON") not in (None, "")
+        # closed-loop level calibration (calibrate_level.py, Pete 2026-10-15): the model's own noise ratchets its background
+        # level up in closed loop (LESSONS 76-77, cause known, structural fixes 78-86 not clean); a per-person offset
+        # (mg/dL/h) measured on the TRAINING window is subtracted from each draw. Drawn people get the population median.
+        cl = ck.get("calib_level", {})
+        self.level_off = float(os.environ.get("LEVEL_OFF", cl.get("_median", 0.0) if self.drawn else cl.get(alias, cl.get("_median", 0.0))))
         self.announce = float(os.environ.get("ANNOUNCE", "1")); self.rng_ann = np.random.default_rng(seed + 15485863)
         if self.drawn:
             with torch.no_grad():
@@ -457,6 +462,8 @@ class PlantV3:
                 lg_, mu_, _ = out["bgice"][0, -1].split(self.net.K_ICE)
                 m_ = float((torch.softmax(lg_, -1) * mu_).sum())
                 bgice = m_ + self.bg_spread * (bgice - m_)
+            if self.level_off:
+                bgice -= self.level_off / ICE_SCALE
             if self.bgice_rho > 0:   # correlated draw: the model's distribution this step, at a quantile that follows an AR(1)
                 rho = self.bgice_rho ** (dt_h * 12)
                 self.bg_z = rho * self.bg_z + np.sqrt(1 - rho ** 2) * self.rng_z.standard_normal()
