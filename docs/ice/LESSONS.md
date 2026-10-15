@@ -830,3 +830,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     previous-value channel that ratchets, with a gain well above 1), and the two-round offset added level: held-out TIR
     47.4, mean 172 (uncalibrated 65.2 / 160). Now the plant feeds back the uncorrected draw and applies the offset only to
     the ICE the body sees, so the model's own dynamics are unchanged and one measurement on the training window suffices.
+90. **Level calibration (after feedback) on v3m21 changes nothing: what is left is the daily profile, not the level.**
+    v3m21 seeds 0 / 1, one training-window measurement: median level excess +1.3 / -1.8 mg/dL/h (v3m15 measured +2.9),
+    so the per-person offsets are small; held-out with them: TIR 66.3 / 64.1, t<54 0.68 / 0.53, mean 162 / 167
+    (uncalibrated 66.8 / 68.4, 0.66 / 0.52, 162 / 162). The overall level is about right, but overnight (00-06, nothing
+    eaten since 21:00) background runs 43.7 / 47.1 vs 23.7 and glucose 165 / 186 vs 130, time above 180 overnight 29 /
+    46% vs 5.6%; so the daytime level runs low. The baseline's clock dependence, or the closed-loop path at night, has
+    the profile wrong; a per-person offset cannot fix a profile. Calibration not kept (no gain); v3m21 stays.
