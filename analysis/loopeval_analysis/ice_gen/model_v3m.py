@@ -459,6 +459,28 @@ class ICEGenV3M13(ICEGenV3M12):
         return loss, parts
 
 
+class ICEGenV3M14(ICEGenV3M13):
+    """v3m14: v3m13 + the defense's high side, the mirror of its low ramp: a monotone downward push on background ICE that
+    grows as projected glucose climbs (walks, skipped snacks, glucosuria), zero below the knots,
+        d_high = - sum_k exp(v_k) * tau * softplus((proj - h_k) / tau)
+    Away from meals v3m13 spends 9.4% of all time above 180 vs the field's 4.3% (LESSONS 72) and its background pushes down
+    less as projected glucose heads high (-7 / -10 / -12 vs -9 / -12 / -17 mg/dL/h at 100-140 / 140-180 / 180-250).
+    Pete (2026-10-14): the defense strengthens as excursions widen, on either side."""
+    arch = "v3m14"
+    DEF_H = (1.6, 2.0, 2.5)
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.def_h = nn.Parameter(torch.tensor(self.DEF_H))
+        self.def_v = nn.Parameter(torch.full((len(self.DEF_H),), -2.5))
+
+    def defense(self, x, person):
+        low = super().defense(x, person)
+        proj = x[..., self.i_bg_] - x[..., self.i_iob_]
+        high = (self.def_v.exp() * self.DEF_TAU * F.softplus((proj[..., None] - self.def_h) / self.DEF_TAU)).sum(-1)
+        return low - high * x[..., self.i_ok_]
+
+
 class ICEGenV3M7(ICEGenV3M6):
     """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
     The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
