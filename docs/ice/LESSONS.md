@@ -714,3 +714,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     (v3m10 1.10, replay 0.62); the generator's own tracking run vs the field change r 0.54, slope 0.59 (v3m10 0.42 /
     0.51); steady-need half (28 edits) r 0.64, slope 1.41 (0.72 / 1.46). Own-settings level TIR -6.6 median (the absolute
     gap). One seed; a second is owed before reading the TIR gain as real.
+75. **The defense's high side (v3m14) is neutral: the highs away from meals are not a weak defense.** v3m13 + a mirrored
+    high-side ramp (downward push growing past projected 160-250). Seeds 0 / 1, traits refit, held-out clean time: TIR
+    65.0 / 64.2, t<54 0.83 / 0.87, mean 161 / 162 (v3m13 65.7 / 63.0, 1.05 / 0.72, 162 / 166), within noise; time above
+    180 away from meals 7.9 / 9.8% of all time (v3m13 9.4, field 4.3). The learned ramp acts above projected 250 (median
+    -34 / -31 vs field -12 there, an overshoot) and leaves 180-250 at -12 / -14 vs the field's -17. The excess is in how
+    often the background turns up away from meals (0.71 vs 0.41 episodes a day, LESSONS 72), not in how hard it is
+    pushed back. v3m13 stays.
