@@ -770,3 +770,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     distance 33.4 fails its ceiling (27.9; v3m15 12-14), background 5-min sd 89 vs 56, within-night hourly sd 28.7 vs
     12.7. As in v3m11 (LESSONS 55): without a memory of where the person currently stands relative to their baseline,
     the model widens every draw to cover it. Memory of the deviation is needed; it must not ratchet the level.
+82. **A linear memory of recent deviations removes the level ratchet; without a deviation-aware shape the draws widen
+    (v3m17); not kept, mechanism confirmed.** v3m15 with the recurrent background path blind to its own values and the last
+    30 min of deviations from the baseline entering the mixture means linearly (learned AR). Seeds 0 / 1: closed-loop level
+    excess +0.4 / +1.0 mg/dL/h (v3m15 +4.8, v3m13 +9.8); overnight background 28.6 / 30.4 (field 23.7), overnight glucose
+    143 / 152 (130), time above 180 away from meals 6.8 / 6.8% (v3m15 8.8; field 4.3); TIR 65.8 / 65.4, t<54 1.41 / 1.09,
+    mean 159 / 159. But the background's 5-min sd 110 / 99 vs 56, quantile distance 47.7 / 50.5 vs ceiling 27.9, hourly-
+    mean sd 58 vs 35: blind to its own deviations, the shape cannot tell a calm stretch from a volatile one and every
+    draw is wide. The ratchet is the asymmetric (nonlinear) response of the mean to the model's own values. Under test:
+    v3m18, means from the exogenous path + linear memory, weights and scales from a path that sees the deviation.
