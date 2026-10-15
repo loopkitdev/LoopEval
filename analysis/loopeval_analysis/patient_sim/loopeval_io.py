@@ -30,6 +30,13 @@ import pandas as pd
 from .world import EPOCH, DAY, World, minute_of, ts
 
 DEFAULT_BIN = os.environ.get("LOOPEVAL_BIN", str(Path.home() / "dev/LoopEval/.build/release/loop-eval"))
+# The controller the donors actually ran: deployed Loop-main ("class 1", docs/loop-algo-classes.md). The
+# binary's default is the LoopAlgorithm package ("class 2"), whose gradual-transitions gate suppresses
+# momentum and RC on any >40 mg/dL CGM step and under-doses fast unannounced rises (LESSONS 17).
+CONTROLLER_FLAGS = {
+    "loop-main": ["--no-mid-absorption-isf", "--no-gradual-transitions-gate", "--legacy-rc-decay"],
+    "loopalgorithm": [],
+}
 WARMUP_H = 10.0         # LoopEval's eval warm-up (= insulinLookbackHours by default)
 BURN_H = 6.0            # LoopEval's default counterfactual burn-in; the first plant request is at ~16 h
 EXPORT_MARGIN_MIN = 120
@@ -120,11 +127,12 @@ def save_truth(world: World, path: Path):
 
 # ------------------------------------------------------------------------------------------ run
 def run(person, days: int, out: Path, bin_path: str = DEFAULT_BIN, enable: dict | None = None,
-        extra_flags: list[str] | None = None, python: str = sys.executable) -> dict:
+        extra_flags: list[str] | None = None, python: str = sys.executable, controller: str = "loop-main") -> dict:
     out.mkdir(parents=True, exist_ok=True)
     pickle.dump(person, open(out / "person.pkl", "wb"))
     burn_end = 30 * 60.0          # generous: the first request depends on the data (observed 16-22 h)
-    json.dump(dict(days=days, enable=enable or {}, burn_end=burn_end), open(out / "meta.json", "w"))
+    json.dump(dict(days=days, enable=enable or {}, burn_end=burn_end, controller=controller),
+              open(out / "meta.json", "w"))
     w = World(person, days, enable=enable)
     w.run_internal(burn_end)
     export(w, out / "data", days, burn_end)
@@ -134,7 +142,8 @@ def run(person, days: int, out: Path, bin_path: str = DEFAULT_BIN, enable: dict 
     cmd = [bin_path, "simulate", "--data-dir", str(out / "data"),
            "--start", ts(0), "--end", ts(days * DAY),
            "--candidate-counterfactual", "--external-plant", plant, "--plant-behavior",
-           "--cf-gap-reanchor-min", "0", "--trace-out", str(out / "trace.json")] + flags + (extra_flags or [])
+           "--cf-gap-reanchor-min", "0", "--trace-out", str(out / "trace.json")] + flags \
+        + CONTROLLER_FLAGS[controller] + (extra_flags or [])
     t = time.time()
     r = subprocess.run(cmd, capture_output=True, text=True)
     (out / "simulate.log").write_text(" ".join(cmd) + "\n\n" + r.stderr[-20000:])

@@ -20,7 +20,7 @@ import pandas as pd
 
 
 def _one(args):
-    seed, days, root, tmpl, binp, enable = args
+    seed, days, root, tmpl, binp, enable, controller = args
     from .person import sample_person
     from .loopeval_io import run
     out = Path(root) / f"v{seed:05d}"
@@ -31,7 +31,7 @@ def _one(args):
         P = sample_person(T, seed)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
-        run(P, days, out, binp, enable=enable)
+        run(P, days, out, binp, enable=enable, controller=controller)
         return seed, "ok"
     except Exception as e:                                       # noqa: BLE001
         (Path(root) / f"v{seed:05d}.err").write_text(traceback.format_exc())
@@ -47,6 +47,7 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--templates", default=str(Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/templates.csv"))
     ap.add_argument("--bin", default=os.environ.get("LOOPEVAL_BIN", str(Path.home() / "dev/LoopEval/.build/release/loop-eval")))
+    ap.add_argument("--controller", default="loop-main", choices=["loop-main", "loopalgorithm"])
     ap.add_argument("--disable", default="")
     ap.add_argument("--enable", default="", help="switches to turn ON (e.g. perfect_person, menstrual)")
     a = ap.parse_args()
@@ -54,7 +55,7 @@ def main():
     enable.update({k: True for k in a.enable.split(",") if k})
     root = Path(a.out); root.mkdir(parents=True, exist_ok=True)
     json.dump(vars(a), open(root / "cohort.json", "w"), indent=1)
-    jobs = [(a.seed0 + i, a.days, str(root), a.templates, a.bin, enable) for i in range(a.n)]
+    jobs = [(a.seed0 + i, a.days, str(root), a.templates, a.bin, enable, a.controller) for i in range(a.n)]
     with ProcessPoolExecutor(a.par) as ex:
         for f in as_completed([ex.submit(_one, j) for j in jobs]):
             s, st = f.result(); print(f"v{s:05d} {st}", flush=True)
