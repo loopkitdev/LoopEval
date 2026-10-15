@@ -540,10 +540,10 @@ public actor EvaluationEngine {
             prediction: prediction,
             at: t,
             input: input,
-            suspendThreshold: therapy.suspendThreshold,
-            maxBolus: therapy.maxBolus,
-            maxBasalRate: therapy.maxBasalRate,
-            insulinType: therapy.insulinType,
+            suspendThreshold: therapy.suspendThreshold(at: t),
+            maxBolus: therapy.maxBolus(at: t),
+            maxBasalRate: therapy.maxBasalRate(at: t),
+            insulinType: therapy.insulinType(at: t),
             evalStep: config.evalStep,
             applicationFactor: effAppFactor,
             // Quantize to the pump grid like the sim does: real Loop FLOORS the
@@ -554,7 +554,7 @@ public actor EvaluationEngine {
             tempBasalIncrement: config.tempBasalIncrement,
             useMidAbsorptionISF: config.useMidAbsorptionISF,
             useTempBasalStrategy: config.useTempBasalStrategy,
-            basalOverrideActive: therapy.overrideWindows.contains {
+            basalOverrideActive: OverrideWindow.resolved(therapy.overrideWindows, at: t).contains {
                 $0.start <= t && t < $0.end && ($0.factor ?? 1.0) != 1.0
             }
         )
@@ -931,12 +931,15 @@ public actor EvaluationEngine {
             correctionSensitivity = input.sensitivity
         } else if let anchorISF = input.sensitivity.closestPrior(to: correctionAnchor)?.value
                     ?? input.sensitivity.first?.value {
-            // Span well past the effect duration so the segment covers the last
-            // prediction point (which sits at ~anchor+effectDuration); insulinCorrection
-            // requires the ISF timeline to cover every considered prediction point.
+            // insulinCorrection requires the ISF timeline to cover every considered
+            // prediction point. The forecast's length is the union of its effect intervals
+            // (carbs can outlast the insulin model), so cover whichever ends later — as
+            // deployed does with `max(forecastEnd, last insulin effect)`.
+            let isfEnd = max(correctionAnchor.addingTimeInterval(insulinType.model.effectDuration + 7200),
+                             prediction.glucose.last?.startDate ?? correctionAnchor)
             correctionSensitivity = [AbsoluteScheduleValue(
                 startDate: correctionAnchor.addingTimeInterval(-3600),
-                endDate: correctionAnchor.addingTimeInterval(insulinType.model.effectDuration + 7200),
+                endDate: isfEnd,
                 value: anchorISF)]
         } else {
             correctionSensitivity = input.sensitivity

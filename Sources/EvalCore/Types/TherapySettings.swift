@@ -21,6 +21,12 @@ public struct EvalTempTarget: Codable, Sendable, Equatable {
     }
 }
 
+public struct InsulinTypeChange: Sendable {
+    public let start: Date
+    public let preset: ExponentialInsulinModelPreset
+    public init(start: Date, preset: ExponentialInsulinModelPreset) { self.start = start; self.preset = preset }
+}
+
 public struct TherapySettings: Codable, Sendable {
     public var basal: [AbsoluteScheduleValue<Double>]
     public var sensitivity: [AbsoluteScheduleValue<LoopQuantity>]   // ISF mg/dL/U
@@ -61,6 +67,36 @@ public struct TherapySettings: Codable, Sendable {
     // from the host gets shifted schedules (e.g. Berlin profile on a US host →
     // mangled basal). nil ⇒ fall back to the sim's localTimezone (legacy).
     public var scheduleTimeZone: TimeZone? = nil
+    // Dated CONTROLLER insulin-curve changes (a rebuilt app with a different curve). Loop maps
+    // insulin type to curve when it computes, not when it delivers, so from each `start` on a
+    // decision evaluates EVERY dose in its history, older ones included, on the new curve.
+    // Sorted by start. Empty ⇒ `insulinType` throughout (behavior unchanged).
+    public var insulinTypeChanges: [InsulinTypeChange] = []
+    // Dated delivery limits (export v23+). The scalars above hold the LAST value; a donor who
+    // changed a limit mid-window was replayed with it throughout (i017: max basal 3.0 U/h from
+    // 07-16 to 10-05, exported as 2.0, so every high-BG temp was capped 1 U/h short of the
+    // field's). Empty ⇒ the scalar applies at every t.
+    public var maxBasalRateTimeline: [AbsoluteScheduleValue<Double>] = []
+    public var maxBolusTimeline: [AbsoluteScheduleValue<Double>] = []
+    public var suspendThresholdTimeline: [AbsoluteScheduleValue<Double>] = []   // mg/dL
+
+    public func maxBasalRate(at t: Date) -> Double {
+        maxBasalRateTimeline.last(where: { $0.startDate <= t })?.value ?? maxBasalRate
+    }
+    public func maxBolus(at t: Date) -> Double {
+        maxBolusTimeline.last(where: { $0.startDate <= t })?.value ?? maxBolus
+    }
+    public func suspendThreshold(at t: Date) -> LoopQuantity? {
+        if let v = suspendThresholdTimeline.last(where: { $0.startDate <= t })?.value {
+            return LoopQuantity(unit: .milligramsPerDeciliter, doubleValue: v)
+        }
+        return suspendThreshold
+    }
+
+    /// The controller's insulin curve for a decision at `t`.
+    public func insulinType(at t: Date) -> ExponentialInsulinModelPreset {
+        insulinTypeChanges.last(where: { $0.start <= t })?.preset ?? insulinType
+    }
 
     public init(
         basal: [AbsoluteScheduleValue<Double>],
@@ -127,6 +163,9 @@ public struct TherapySettings: Codable, Sendable {
         case profileEditTimes
         case orefTempTargets
         case scheduleTimeZoneIdentifier
+        case maxBasalRateTimeline
+        case maxBolusTimeline
+        case suspendThresholdTimeline
     }
 
     public init(from decoder: Decoder) throws {
@@ -186,6 +225,9 @@ public struct TherapySettings: Codable, Sendable {
         if let tzId = (try? c.decodeIfPresent(String.self, forKey: .scheduleTimeZoneIdentifier)) ?? nil {
             scheduleTimeZone = TimeZone(identifier: tzId)
         }
+        maxBasalRateTimeline = (try? c.decodeIfPresent([AbsoluteScheduleValue<Double>].self, forKey: .maxBasalRateTimeline)) ?? []
+        maxBolusTimeline = (try? c.decodeIfPresent([AbsoluteScheduleValue<Double>].self, forKey: .maxBolusTimeline)) ?? []
+        suspendThresholdTimeline = (try? c.decodeIfPresent([AbsoluteScheduleValue<Double>].self, forKey: .suspendThresholdTimeline)) ?? []
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -239,6 +281,9 @@ public struct TherapySettings: Codable, Sendable {
             try c.encode(raw, forKey: .rawTarget)
         }
         if !overrideWindows.isEmpty { try c.encode(overrideWindows, forKey: .overrideWindows) }
+        if !maxBasalRateTimeline.isEmpty { try c.encode(maxBasalRateTimeline, forKey: .maxBasalRateTimeline) }
+        if !maxBolusTimeline.isEmpty { try c.encode(maxBolusTimeline, forKey: .maxBolusTimeline) }
+        if !suspendThresholdTimeline.isEmpty { try c.encode(suspendThresholdTimeline, forKey: .suspendThresholdTimeline) }
         if !profileEditTimes.isEmpty { try c.encode(profileEditTimes, forKey: .profileEditTimes) }
         if !orefTempTargets.isEmpty { try c.encode(orefTempTargets, forKey: .orefTempTargets) }
         if let tz = scheduleTimeZone { try c.encode(tz.identifier, forKey: .scheduleTimeZoneIdentifier) }
