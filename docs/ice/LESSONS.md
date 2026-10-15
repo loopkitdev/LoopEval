@@ -847,3 +847,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     stretches (v3m17 / v3m20 widened, v3m18 / v3m19 brought the ratchet back or blew up).
     Settings-edit test on v3m15 (seed 0, 61 edits; one lost to a killed plant process): mean glucose r 0.34, slope 0.78;
     TIR r 0.16, slope 0.56; t<70 0.32; t<54 0.02; own-settings level TIR -5.0. On a par with v3m10 / v3m13 (LESSONS 63, 74).
+92. **A deviation path exactly odd in the mean, even in the shape (v3m22), does not stop the night ratchet; not kept.**
+    v3m21 with the recurrent background path run twice (deviation history as is and sign-flipped): component means half the
+    difference (odd), weights and scales the average (even). Seeds 0 / 1, traits refit, held-out clean time: TIR 60.8 /
+    66.7, t<54 1.38 / 1.23, mean 167 / 158 (v3m21 66.8 / 68.4, 0.66 / 0.52, 162 / 162). Night (00-06) level: real-input
+    prediction 25.2 / 26.5, closed loop 31.2 / 31.0 (still +5-6); overnight glucose 187 / 170 (130). The draws are skewed,
+    so the deviations do not average zero, and an odd response to a skewed input still shifts the level; the symmetry also
+    takes away any glucose-only push from the recurrent path. v3m21 stays the base.
