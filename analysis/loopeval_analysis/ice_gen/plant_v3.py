@@ -141,6 +141,9 @@ class PlantV3:
         # (mg/dL/h) measured on the TRAINING window is subtracted from each draw. Drawn people get the population median.
         cl = ck.get("calib_level", {})
         self.level_off = float(os.environ.get("LEVEL_OFF", cl.get("_median", 0.0) if self.drawn else cl.get(alias, cl.get("_median", 0.0))))
+        # by clock band (calib_level_band: {alias or "_median": [offset 00-06, 06-12, 12-18, 18-24]}); added to level_off
+        cb = ck.get("calib_level_band", {})
+        self.level_band = cb.get("_median") if self.drawn else cb.get(alias, cb.get("_median"))
         self.announce = float(os.environ.get("ANNOUNCE", "1")); self.rng_ann = np.random.default_rng(seed + 15485863)
         if self.drawn:
             with torch.no_grad():
@@ -485,6 +488,8 @@ class PlantV3:
             u = self.slow.step(dt_h) if self.slow else 0.0
             if self.level_off:   # applied to the ICE the body sees, AFTER the draw was fed back: an offset on the fed-back draw
                 bgice -= self.level_off / ICE_SCALE   # went round the same channel that ratchets and overshot (LESSONS 89)
+            if self.level_band is not None:
+                bgice -= self.level_band[min(int(hour // 6), 3)] / ICE_SCALE
             ice = bgice * ICE_SCALE + u + pulse
             mc = self.mc_amp * self.isf * self.act_typ * np.sin(2 * np.pi * (t.value / 8.64e13) / 28.0 + self.mc_phase) if self.mc_amp else 0.0
             ice += mc
