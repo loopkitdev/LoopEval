@@ -491,3 +491,42 @@ statistic here, but it is the controller donors ran.
       previous bolus as IOB.
     - **Side result.** c36's heavier meals raised long-range Hurst to 0.19 (donors 0.24). Meal-driven
       variability is part of what the slow structure lacks.
+
+41. **Settings edits are real but too small to show in 14 days.** Donors' daily schedule means change
+    2,821 times across 156 donors in ~4 months:
+    - per setting, median 0.03/day basal, 0.016 ISF, 0.016 CR;
+    - median |change| 3.6%, p90 14%;
+    - only weakly reactive (corr 0.16 with the previous 3 days' glucose).
+
+    They are now dated eras in the exported basal/ISF/CR schedules (templates.add_edit_rates; 1.6 per
+    person per 14 days), with random sign. Cohort c37 moves nothing beyond noise. Edits accumulate over
+    months, the slow component of the donors' daily-mean autocorrelation, which a 14-day run barely
+    samples.
+
+42. **Stationary sensor noise erases the CGM's structure; real noise level wanders.** Simulated true
+    glucose already carries the donors' process structure:
+
+    | | True glucose | Simulated CGM (before) | Donors' CGM |
+    |---|---|---|---|
+    | Volatility clustering | 0.16 | 0.05 | 0.12 |
+    | Long-range Hurst | 0.21 | 0.12 | 0.24 |
+    | Rate dispersion | 4.5 | 2.4 | 3.6 |
+    | Step kurtosis | 2.3 | 1.5 | 2.5 |
+
+    Offline ablation (sens_struct): the colored noise (AR terms, transients) erased the structure. With
+    all of it removed, clustering and dispersion return to the donors' values, but step SD falls to 4.1
+    against 7.0. So the noise is real, just not constant: SNR varies within a sensor over time
+    (Facchinetti 2011; evidence/08 §B). The noise level now wanders, variance-preserving: σ·exp(z − sd²),
+    z a log-OU with sd 0.7 and τ 8 h (G7 0.6 with σ 2.8). Cohort c38:
+    - jump anatomy matches class by class (28.1 / 7.2 / 2.2 / 1.4 / 11.3 / 5.0 vs 29.4 / 6.8 / 2.2 /
+      2.2 / 11.6 / 5.0);
+    - SD/MAD passes for G7 (1.417 vs 1.410), step kurtosis for G6 and Libre 3;
+    - rate dispersion 3.46 vs 3.61; FDA loss G7 1.4–1.7.
+
+    The FDA tables constrain the size of the error, not its timescale. That freedom has to be pinned by
+    the CGM's own structure.
+
+    Also: corrections ran at half the donors' rate. The hazard was sized by the donor's time above 180,
+    but corrections fire above the person's own level and only when CGM is not falling and nothing was
+    bolused in 2 h (46% of minutes). Planned top-ups executed 38% of the time. Both are now sized to
+    realize the donor's rate.
