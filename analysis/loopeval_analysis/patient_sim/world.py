@@ -17,6 +17,7 @@ event) is kept in `self.truth` for scoring.
 """
 from __future__ import annotations
 
+import copy
 import math
 from dataclasses import dataclass, field
 from typing import Optional
@@ -79,19 +80,15 @@ def minute_of(iso: str) -> float:
 class World:
     def __init__(self, person, days: int, seed: Optional[int] = None, enable: Optional[dict] = None):
         if enable and isinstance(enable.get("meal_k"), float):
-            import copy
             person = copy.deepcopy(person)        # calibration override: meal absorption speed multiplier
             person.body = person.body.scaled(kempt=person.body.kempt * enable["meal_k"], kabs=person.body.kabs * enable["meal_k"])
         if enable and isinstance(enable.get("ge_kcal"), float):
-            import copy
             person = copy.deepcopy(person)        # gastric-emptying energy ceiling, kcal/min (the body and behavior both read it)
             person.body = person.body.scaled(ge_kcal_max=enable["ge_kcal"])
         if enable and (isinstance(enable.get("ins_p2"), float) or isinstance(enable.get("ins_p2e"), float)):
-            import copy
             person = copy.deepcopy(person)        # insulin-action rates (ablation: clamp-fitted vs Loop-curve action)
             person.body = person.body.scaled(p2=enable.get("ins_p2", person.body.p2), p2e=enable.get("ins_p2e", person.body.p2e))
         if enable and isinstance(enable.get("ge_hyper"), float):
-            import copy
             person = copy.deepcopy(person)
             person.body = person.body.scaled(ge_hyper=enable["ge_hyper"])
         self.person = person
@@ -104,15 +101,17 @@ class World:
             # a donor's own basal profile already carries their dawn need (the body's EGP follows it); on quiet mornings
             # donors' delivered insulin falls 05–07 vs 01–03 (0.92) and glucose drifts −7 mg/dL 03→07, which the
             # profile alone reproduces (−5.6) while the extra dawn bump gave +11 (LESSONS 51)
-            import copy
             self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.dawn = False
         if enable:
             self.mod_traits.enabled.update({k: v for k, v in enable.items() if k in self.mod_traits.enabled})
             if isinstance(enable.get("day_tau"), float):
-                import copy
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.day_tau = enable["day_tau"]
+            if isinstance(enable.get("circ_uniform"), float) and enable["circ_uniform"] > 0:
+                # experiment: the seven Visentin classes equally likely (Hinshaw 2013: no population B/L/D pattern in T1D)
+                from .modulators import VISENTIN
+                self.mod_traits = copy.deepcopy(self.mod_traits)
+                self.mod_traits.circ_class = VISENTIN[int(np.random.default_rng(person.seed + 11).integers(len(VISENTIN)))][0]
             if isinstance(enable.get("circ_swing"), float):
-                import copy
                 self.mod_traits = copy.deepcopy(self.mod_traits)
                 self.mod_traits.circ_swing = enable["circ_swing"]
                 self.mod_traits.circ_low = float(np.clip(1.0 - enable["circ_swing"] * (1.0 - self.mod_traits.circ_raw), 0.4, 1.0))
