@@ -200,7 +200,7 @@ def _formulation(brand: str, rng) -> str:
 
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
-                  csf_mult: float = 1.0, sg_mult: float = 1.0) -> Person:
+                  csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -288,7 +288,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
             prof = np.asarray(_json.loads(bp_raw), dtype=float)
         except ValueError:
             prof = np.ones(24)
-    w_ = ISF_W if isf_w is None else isf_w
+    w_ = (ISF_W if isf_w is None else isf_w) if prof_w is None else prof_w
     prof_true = prof ** w_; prof_true = prof_true / prof_true.mean()
     settings = dict(
         basal_profile=[float(x) for x in prof],

@@ -69,7 +69,10 @@ class ModTraits:
 
 
 def sample_mod_traits(rng: np.random.Generator, age: float, sex: str) -> ModTraits:
-    cls = VISENTIN[rng.choice(len(VISENTIN), p=[p for _, p in VISENTIN])][0]
+    # the seven Visentin patterns, equally likely: Hinshaw 2013 (T1D, triple tracer) found no population B/L/D SI
+    # difference, the pattern being individual; Visentin's mix (70% low at breakfast) put simulated 09 h glucose at
+    # 153–157 against donors' 141 (equal classes: 143–145; LESSONS 59)
+    cls = VISENTIN[rng.choice(len(VISENTIN))][0]
     t = ModTraits(
         circ_class=cls,
         # Visentin's low/high SI ratio (0.40 ± 0.23) is an estimate from meal tests whose noise inflates the
