@@ -39,7 +39,7 @@ NET_AF = _os.environ.get("PLANT_NET_AF") == "1"     # workaround for binaries ol
 DAY = 1440.0
 
 
-def activity_carbs(person, bt, g_clamp: float = 140.0) -> float:
+def activity_carbs(person, bt, g_clamp: float = 140.0, ex_b: float | None = None) -> float:
     """Grams of glucose per day the person's EXPECTED everyday activity disposes of: the same body over one day
     at its true basal insulin, glucose clamped at g_clamp, with and without the activity (episodes at the person's
     rate and mean duration, mid-day; waking background), difference of the glucose the clamp had to add."""
@@ -49,7 +49,8 @@ def activity_carbs(person, bt, g_clamp: float = 140.0) -> float:
     out = []
     for active in (True, False):
         b = Body(bp, person.formulation); br = b.basal_rate_u_per_h(); b.prime(br)
-        ex = Exercise(ExerciseParams(gain=bt.act_gain, background=bt.act_bg if active else 0.0))
+        kw = {} if ex_b is None else dict(b=ex_b[0], z_power=ex_b[1])
+        ex = Exercise(ExerciseParams(gain=bt.act_gain, background=bt.act_bg if active else 0.0, **kw))
         if active:
             dur = bt.act_dur * _m.exp(0.75 ** 2 / 2)
             inten = 0.7 * (3.0 * _m.exp(0.2 ** 2 / 2) - 1.0) / (bt.metmax - 1.0)
@@ -146,12 +147,14 @@ class World:
         if enable and enable.get("reactive_overrides") is False:
             self.beh_traits.p_more = 0.0
         from .exercise import ExerciseParams
-        self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg))
+        self.ex_b = (enable.get("ex_b"), enable.get("ex_zp", 1.0)) if enable and isinstance(enable.get("ex_b"), float) else None
+        self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,
+                                          **({} if self.ex_b is None else dict(b=self.ex_b[0], z_power=self.ex_b[1]))))
         # energy balance: a person eats for their activity. The donor's TDD (the measured constraint, G4) was spent
         # in a life that included it, so the glucose their everyday activity uses is added to what they eat
         # (activity_carbs: clamp probe, active day vs rest day; LESSONS 34)
         if self.enable["exercise"] and not (enable or {}).get("perfect_person") and "act_carbs" not in person.traits:
-            person.traits["act_carbs"] = activity_carbs(person, self.beh_traits)
+            person.traits["act_carbs"] = activity_carbs(person, self.beh_traits, ex_b=self.ex_b)
         if self.enable["exercise"]:
             self.beh_traits.carbs_day += person.traits.get("act_carbs", 0.0)
         # every day planned now: the export writes the planned Temporary Overrides into the therapy timeline, and
@@ -201,6 +204,7 @@ class World:
         self.loop_state = dict(iob=0.0, rec_bolus=0.0, cob=0.0, bg=np.nan)
         # internal controller state
         self.int_doses: list = []                          # exported history: (type, start_m, end_m, units, automatic)
+        self.ex_log: list = []
         self.received: list = []                           # every dose LoopEval sent, as received: (type, start, end, U)
         self.fat_events: list = []                         # (minute, fat g) — transient fat-induced insulin resistance
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
@@ -238,6 +242,7 @@ class World:
         self.body.step(1.0, si_mult=si, egp_mult=egp, ex_intensity=ex["ex_intensity"],
                        ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"],
                        abs_mult=absm_env * absm_site * ex["abs_mult"], bio=bio)
+        if int(m) % 5 == 0: self.ex_log.append((m, ex["ex_si_boost"]))     # exercise sensitivity, saved as truth ex_boost
         asleep = self.beh.asleep(m)
         reading = self.sensor.step(m, self.body.g, asleep=asleep)
         if reading is not False:
