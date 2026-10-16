@@ -948,3 +948,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     88 -> 0.35 U; automatic boluses still reach the plant (as basal-type entries). Base v32of{0,1}TcB2C held-out: TIR 69.0 /
     69.0 -> 69.2 / 69.6, t<54 0.59 / 0.60 -> 0.63 / 0.55, mean 158 / 159 -> 159 / 157, lows per meal bolus 0.111 / 0.108 ->
     0.105 / 0.106 (as LESSONS 99's stopgap predicted).
+103. **The closed-loop background offset below 90 mg/dL, applied after feedback, roughly halves the severe-low excess on the
+    v3m21 base; kept.** The step kept on v23 (calibrate_closed_bg.py, offsets above 90 zeroed) had dropped out of the v3m21
+    chain. Fitted from training-window rollouts on engine 11d1b77: field minus generated background ICE by input glucose,
+    seed 0, <60 / 60-70 / 70-80 / 80-90: +15.4 / +4.8 / +1.7 / +0.2 mg/dL/h (seed 1 +13.4 / +6.3 / +2.6 / +0.5). Applied
+    to the ICE the body sees after the draw is fed back (PLANT_BGBAND_AFTER=1; before feedback it would ride the deviation
+    channel, LESSONS 89). Held-out clean time, seeds 0 / 1: t<54 0.63 / 0.55 -> 0.44 / 0.31, t<70 2.23 / 1.90 -> 1.95 /
+    1.67, TIR 69.2 / 69.6 -> 69.4 / 70.1, mean 159 / 157 -> 160 / 159; chance a crossing below 70 reaches 54 0.33 / 0.33
+    -> 0.25 / 0.26 (field 0.18); worst donor i003 t<54 5.2 / 6.5 -> 2.6 / 3.6. Lows per meal bolus unchanged (0.11 vs
+    0.064): the offset deepens the response once low, not how often a bolus leads to one. New base v32of{0,1}TcB2CG.
