@@ -551,3 +551,24 @@ statistic here, but it is the controller donors ran.
       0.17, t<70 0.27, t<54 0.13, CV 0.13, TDD 0.74). 21 of 50 overall.
     - **Still failing.** The process statistics. Increment skew is the clearest: true-glucose increments
       skew −0.33 (falls sharper than rises), against the donors' CGM +0.34.
+
+44. **Meals rise faster than they fall: the liquid phase empties first.** In simulated true glucose,
+    5-min increments skewed −0.33: falls sharper than rises. The donors' CGM increments skew +0.34. The
+    energy-limited gastric model (lesson 33) had no early fast phase. Nutrient liquids empty fastest in
+    the first 15–30 min (Hunt 1985; Calbet 1997: early delivery 3–8 kcal/min, glucose t½ ~9 min), and a
+    mixed meal's liquid share leaves first.
+
+    A share of each meal's carbohydrate now empties fast (kempt = kabs 0.08) outside the energy
+    ceiling. The share is a [J], chosen between 0.2 and 0.35 by cohort; 0.2 (c46_f0.2, 112 × 14 d)
+    matches 27 of 50 statistics, the most so far:
+
+    | | Fast phase 20% | Donors |
+    |---|---|---|
+    | Skew | 0.895 | 0.893 |
+    | Box-Cox λ | 0.00 | −0.03 |
+    | CV | 34.3 | 34.6 |
+    | G7 step kurtosis | 2.55 | 2.48 |
+    | True-glucose increment skew | −0.06 | — |
+    | Labeled meal rise per 10 g | 18.7 | 17.1 |
+
+    Every outcome passes. The 35% share overshoots the rise (22.2 per 10 g) and the skew.

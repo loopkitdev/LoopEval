@@ -48,7 +48,7 @@ class BehaviorTraits:
     meal_cv: float = 0.35                # within-person per-event size spread (log sd); the person's measured pulse spread when known
     meal_slow_frac: float = 0.0          # share of a meal emptied in the slow phase (calibrated vs donor meal response)
     meal_slow_k: float = 0.008           # /min, Dalla Man kmin
-    meal_fast_frac: float = 0.0          # share of a meal's carbohydrate in its fast-emptying liquid phase [J]
+    meal_fast_frac: float = 0.2          # share of a meal's carbohydrate in its fast-emptying liquid phase [J; 0.2 vs 0.35 by cohort, LESSONS 44]
     main_weight: float = 1.0             # a main meal's expected size relative to any other eating event: donors' eating
                                          # comes as ~5.6 pulses/day of median 26 g-eq (ice meals), not 3 big meals (LESSONS 16)
     gi_cv: float = 0.4                   # per-meal absorption-speed CV (01 §6.2)
