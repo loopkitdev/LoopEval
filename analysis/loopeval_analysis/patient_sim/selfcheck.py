@@ -22,7 +22,8 @@ QUIET = dict(exercise=False, illness=False, circadian=False, dawn=False, site_fa
              compression=False, day=False, perfect_person=True)
 
 
-def check(templates: pd.DataFrame, seeds, days: int = 5, mean_max: float = 160.0, tir_min: float = 70.0) -> pd.DataFrame:
+def check(templates: pd.DataFrame, seeds, days: int = 5, above_rest_max: float = 40.0, tir_min: float = 60.0) -> pd.DataFrame:
+    """A unit mismatch shows as a mean far above the body's OWN rest level (Gb), not above a fixed number."""
     rows = []
     for sd in seeds:
         P = sample_person(templates, sd)
@@ -34,7 +35,7 @@ def check(templates: pd.DataFrame, seeds, days: int = 5, mean_max: float = 160.0
         tr = tr[tr.m >= 1440]
         mean = float(tr.bg.mean()); tir = float(100 * tr.bg.between(70, 180).mean())
         rows.append(dict(seed=sd, template=P.template, mean=round(mean, 1), tir=round(tir, 1),
-                         gb=round(P.body.gb, 1), ok=mean <= mean_max and tir >= tir_min))
+                         gb=round(P.body.gb, 1), ok=(mean - P.body.gb) <= above_rest_max and tir >= tir_min))
     return pd.DataFrame(rows)
 
 
