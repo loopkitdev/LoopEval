@@ -102,6 +102,9 @@ class World:
         self.mod_traits = person.traits.get("mod") or sample_mod_traits(r_misc, person.age, person.sex)
         if enable:
             self.mod_traits.enabled.update({k: v for k, v in enable.items() if k in self.mod_traits.enabled})
+            if isinstance(enable.get("day_tau"), float):
+                import copy
+                self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.day_tau = enable["day_tau"]
             if isinstance(enable.get("circ_swing"), float):
                 import copy
                 self.mod_traits = copy.deepcopy(self.mod_traits)
