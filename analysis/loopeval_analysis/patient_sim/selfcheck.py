@@ -19,13 +19,13 @@ from .person import sample_person
 from .world import World
 
 QUIET = dict(exercise=False, illness=False, circadian=False, dawn=False, site_failure=False, pump_faults=False,
-             compression=False, day=False, perfect_person=True,
+             compression=False, day=False, perfect_person=True, fat=False,
              # the gastric-emptying ceiling is timing, not units: an open-loop bolus at the start of a big meal acts
              # before the energy-limited stomach delivers it (LESSONS 33), which this units check must not read as a fault
              ge_kcal=0.0)
 
 
-def check(templates: pd.DataFrame, seeds, days: int = 5, above_rest_max: float = 40.0, tir_min: float = 60.0) -> pd.DataFrame:
+def check(templates: pd.DataFrame, seeds, days: int = 10, above_rest_max: float = 40.0, tir_min: float = 60.0) -> pd.DataFrame:
     """A unit mismatch shows as a mean far above the body's OWN rest level (Gb), not above a fixed number."""
     rows = []
     for sd in seeds:
