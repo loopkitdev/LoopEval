@@ -882,3 +882,16 @@ statistic here, but it is the controller donors ran.
     - 24-h amplitude 0.16 (0.13); TDD CV 14.6–15.1 (16.4) and lag-1 (−0.03 to 0.06 vs 0.11);
     - day/night 1.73–1.86 (2.06); p99 5-min dose 1.19–1.29 (1.67 U); user boluses 3.6–4.0 (4.6);
     - minutes below 70 per episode; wear.
+
+64. **Corrections come soon after the last bolus; the 120-min wait was wrong.** In 44,777 donor boluses without a
+    carb entry, 26% come within 20 min of the previous manual bolus, 23% at 20–60, 18% at 60–120 and 34% later.
+    Donors' top-ups (≤ 60 min, no entry) come at high glucose (CGM median 202; 79% above 120 and not falling) and are
+    small (median 0.5 U).
+    - The correction rule waited 120 min after any bolus [J], which forbade two-thirds of that behavior. It now
+      waits 10 min, against a double press.
+    - Top-ups may now be several per meal bolus (Poisson, for the 24% of donors above one per meal), but under the
+      running-high condition that alone moved little.
+    Cohort c74 vs c73: lone boluses 0.75/day vs the person's own donor 0.78 (was 0.58), top-ups 0.25 vs 0.22 (median),
+    user boluses 3.75 (4.59; p 0.095) and manual U/day (p 0.19) now pass; 14 of 30; outcomes unchanged. The
+    hazard's sizing constants did not need refitting. Heavy top-up donors are still under-reproduced on average
+    (mean 0.38 vs 0.80/day).
