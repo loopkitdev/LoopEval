@@ -40,7 +40,7 @@ from .extract import MODELS, RAPID_ACTING_ADULT
 from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
 from .model_v3j import ICEGenV3J, ICEGenV3K
-from .model_v3m import ICEGenV3M, ICEGenV3M3, ICEGenV3M4, ICEGenV3M5, ICEGenV3M6, ICEGenV3M7, ICEGenV3M8, ICEGenV3M9, ICEGenV3M10, ICEGenV3M11, ICEGenV3M12, ICEGenV3M13, ICEGenV3M14, ICEGenV3M15, ICEGenV3M16, ICEGenV3M17, ICEGenV3M18, ICEGenV3M19, ICEGenV3M20, ICEGenV3M21, ICEGenV3M22, ICEGenV3M23
+from .model_v3m import ICEGenV3M, ICEGenV3M3, ICEGenV3M4, ICEGenV3M5, ICEGenV3M6, ICEGenV3M7, ICEGenV3M8, ICEGenV3M9, ICEGenV3M10, ICEGenV3M11, ICEGenV3M12, ICEGenV3M13, ICEGenV3M14, ICEGenV3M15, ICEGenV3M16, ICEGenV3M17, ICEGenV3M18, ICEGenV3M19, ICEGenV3M20, ICEGenV3M21, ICEGenV3M22, ICEGenV3M23, ICEGenV3M24
 from .model_v4 import ICEGenV4, ICEGenV4R
 from . import dataset_v3m3 as D3M3
 from . import dataset_v3m as D3M
@@ -102,6 +102,7 @@ class PlantV3:
         # 2026-10-15-simulator-plant-bolus-autodose). Until the engine orders them, ask for ratio - f so the step totals ~ratio x rec.
         self.auto_af = float(os.environ.get("PLANT_AUTO_AF", "0"))
         self.bgband_after = os.environ.get("PLANT_BGBAND_AFTER") == "1"   # apply calib_bg_band after feedback
+        self.fb_lambda = float(os.environ.get("PLANT_FB_LAMBDA", "1"))   # with feedback=sample: share of the draw's deviation fed back
         self.eoff_scale = float(os.environ.get("PLANT_EOFF_SCALE", "1"))   # diagnostic: scale entry -> pulse onset delay
         # monthly-cycle dial (off by default): the person's insulin need swings on a 28-day sinusoid, amplitude MONTH_CYCLE x their
         # typical insulin action (ISF x TDD/24, mg/dL/h) added to background ICE, random phase per run
@@ -128,10 +129,10 @@ class PlantV3:
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
-        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7, "v3m8": ICEGenV3M8, "v3m9": ICEGenV3M9, "v3m10": ICEGenV3M10, "v3m11": ICEGenV3M11, "v3m12": ICEGenV3M12, "v3m13": ICEGenV3M13, "v3m14": ICEGenV3M14, "v3m15": ICEGenV3M15, "v3m16": ICEGenV3M16, "v3m17": ICEGenV3M17, "v3m18": ICEGenV3M18, "v3m19": ICEGenV3M19, "v3m20": ICEGenV3M20, "v3m21": ICEGenV3M21, "v3m22": ICEGenV3M22, "v3m23": ICEGenV3M23, "v4": ICEGenV4, "v4r": ICEGenV4R}.get(ck.get("arch"), ICEGenV3)
-        self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v3m16", "v3m17", "v3m18", "v3m19", "v3m20", "v3m21", "v3m22", "v3m23", "v4", "v4r"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v3m16", "v3m17", "v3m18", "v3m19", "v3m20", "v3m21", "v3m22", "v3m23", "v4", "v4r")
+        Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7, "v3m8": ICEGenV3M8, "v3m9": ICEGenV3M9, "v3m10": ICEGenV3M10, "v3m11": ICEGenV3M11, "v3m12": ICEGenV3M12, "v3m13": ICEGenV3M13, "v3m14": ICEGenV3M14, "v3m15": ICEGenV3M15, "v3m16": ICEGenV3M16, "v3m17": ICEGenV3M17, "v3m18": ICEGenV3M18, "v3m19": ICEGenV3M19, "v3m20": ICEGenV3M20, "v3m21": ICEGenV3M21, "v3m22": ICEGenV3M22, "v3m23": ICEGenV3M23, "v3m24": ICEGenV3M24, "v4": ICEGenV4, "v4r": ICEGenV4R}.get(ck.get("arch"), ICEGenV3)
+        self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v3m16", "v3m17", "v3m18", "v3m19", "v3m20", "v3m21", "v3m22", "v3m23", "v3m24", "v4", "v4r"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v3m16", "v3m17", "v3m18", "v3m19", "v3m20", "v3m21", "v3m22", "v3m23", "v3m24", "v4", "v4r")
         self.v4 = ck.get("arch") in ("v4", "v4r")     # entries and boluses drawn as their own events (dataset_v3m)
-        self.net = (Net(len(ck["features"]), len(ck["people"]), features=list(ck["features"])) if ck.get("arch") in ("v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v3m16", "v3m17", "v3m18", "v3m19", "v3m20", "v3m21", "v3m22", "v3m23", "v4", "v4r") else Net(len(ck["features"]), len(ck["people"])))
+        self.net = (Net(len(ck["features"]), len(ck["people"]), features=list(ck["features"])) if ck.get("arch") in ("v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v3m16", "v3m17", "v3m18", "v3m19", "v3m20", "v3m21", "v3m22", "v3m23", "v3m24", "v4", "v4r") else Net(len(ck["features"]), len(ck["people"])))
         self.net.load_state_dict(ck["state"]); self.net.eval()
         self.features = list(ck["features"]); self.F = {f: i for i, f in enumerate(self.features)}
         self.drop = list(ck.get("drop", []))
@@ -499,6 +500,10 @@ class PlantV3:
             if self.feedback == "mean":
                 lg_, mu_, _ = out["bgice"][0, -1].split(self.net.K_ICE)
                 self.bgice = float((torch.softmax(lg_, -1) * mu_).sum())
+            elif self.fb_lambda != 1.0:   # feed back only part of the draw's deviation from its predicted mean (LESSONS 106)
+                lg_, mu_, _ = out["bgice"][0, -1].split(self.net.K_ICE)
+                m_ = float((torch.softmax(lg_, -1) * mu_).sum())
+                self.bgice = m_ + self.fb_lambda * (bgice - m_)
             else:
                 self.bgice = bgice
             if "bgice_24h" in self.F:
