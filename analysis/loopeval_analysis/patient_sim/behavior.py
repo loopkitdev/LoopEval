@@ -90,6 +90,14 @@ class BehaviorTraits:
     ex_hour: float = 17.5
     p_ex_carbs: float = 0.3
     ex_carbs: float = 15.0
+    # light daily activity (walking, chores): short bouts, more often after meals (COMPONENTS C6) [J; sized by
+    # the quiet-window step statistics, quiet.py]
+    walk_per_day: float = 4.0
+    walk_min: float = 12.0
+    walk_intensity: float = 0.25
+    # grazing: small unlogged intake below the ice labeler's 12 g-eq gate (drinks, bites) (COMPONENTS F9) [J]
+    graze_per_day: float = 2.0
+    graze_g: float = 6.0
     # site changes
     site_days: float = 3.0
     site_hour: float = 19.5
@@ -163,6 +171,8 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
         ex_anaerobic=float(np.clip(rng.beta(1.2, 6), 0, 1)), ex_hour=float(rng.choice([7.0, 12.5, 17.5, 19.0])),
         site_days=float(np.clip(rng.normal(3.0, 0.4), 2.0, 4.0)),
+        walk_per_day=lj(4.0, 0.6), walk_min=lj(12.0, 0.4), walk_intensity=float(np.clip(rng.normal(0.25, 0.06), 0.1, 0.45)),
+        graze_per_day=lj(2.0, 0.7), graze_g=lj(6.0, 0.4),
     )
     lsd = _num(rates, "meal_size_logsd")
     if np.isfinite(lsd): t.meal_cv = float(np.clip(lsd, 0.2, 0.9))
@@ -290,6 +300,19 @@ class Behavior:
                        "during": r.uniform(3, 15), "after": r.uniform(15, 45)}[t.bolus_timing]
                 if units >= 0.5:
                     self.planned.append((base + mt + off, ("free_bolus", units)))
+        # light activity bouts: daytime, half of them within 2 h after an eating event
+        eat_times = sorted(base + st for _, st, _ in slots)
+        for _ in range(r.poisson(t.walk_per_day)):
+            if eat_times and r.random() < 0.5:
+                st = float(r.choice(eat_times)) + float(r.uniform(10, 120))
+            else:
+                st = base + float(r.uniform(t.wake + 30, t.bed - 30)) + shift
+            dur = max(3.0, float(np.exp(r.normal(math.log(t.walk_min), 0.5))))
+            self.planned.append((st, ("walk", st, dur, t.walk_intensity * float(np.exp(r.normal(0, 0.2))), 0.0)))
+        # grazing: never entered, never bolused
+        for _ in range(r.poisson(t.graze_per_day)):
+            st = base + float(r.uniform(t.wake + 30, t.bed)) + shift
+            self.planned.append((st, ("graze", max(1.0, float(np.exp(r.normal(math.log(t.graze_g), 0.4)))))))
         # exercise
         if r.random() < t.ex_per_week / 7.0:
             st = base + (t.ex_hour * 60 + r.normal(0, 45)) + shift
@@ -329,6 +352,12 @@ class Behavior:
                 if meal.bolus is not None:
                     acts.append(("bolus", m, meal.bolus)); self.last_bolus = m
                 self.log.append((m, "entry", meal.entered, meal.bolus))
+            elif kind == "walk":
+                acts.append(("exercise",) + tuple(rest)); self.log.append((m, "walk", rest[1], rest[2]))
+            elif kind == "graze":
+                bp = self.p.body
+                acts.append(("eat", Parcel(m, rest[0], kempt=bp.kempt * 1.5, kabs=bp.kabs * 1.5, f=self._f_glucose(), label="graze")))
+                self.log.append((m, "graze", rest[0], None))
             elif kind == "free_bolus":
                 acts.append(("bolus_units", m, rest[0])); self.last_bolus = m
                 self.log.append((m, "free_bolus", rest[0], None))
