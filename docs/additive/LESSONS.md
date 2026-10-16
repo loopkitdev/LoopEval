@@ -1070,3 +1070,20 @@ statistic here, but it is the controller donors ran.
     Cohort c89 vs c85: quiet-night insulin CV 15.6% (donors 30.3%); quiet-period ACF zero-crossing 25 vs 20 min
     (donors 40); everything else within cohort noise (15 vs 16 of 30; Hurst 0.156 vs 0.198). evidence/12 budgeted these
     at ≤ 0.02 of the 0.06 variance gap. The between-meal drift stays unexplained.
+
+78. **Unlogged small intake is real, under-sized, and heavy-tailed across people.** Pete: grazing and sugary
+    drinks are "definitely a thing for some people". The test from evidence/14 is symmetry of quiet-window changes:
+    unlogged intake skews them upward, a physiological drift is symmetric.
+    - **Donors (> 4 h from any logged event):** waking-hour 30/60-min changes skew +0.76/+0.59, with rises above 15
+      mg/dL 0.88× as common as falls; overnight skew is +0.23/+0.06, about symmetric. The simulator skewed −0.12/−0.45
+      by day.
+    - **Change:** grazing rate per person lnN(2/day, 1.0) (was 0.7: same median, a long tail of frequent grazers) and
+      size lnN(10 g, 0.4), the middle of the evidenced 5–15 g for drinks and sweets (was 6 g). Sources: Piernas &
+      Popkin 2010 (97% of adults snack daily, 24% of energy); Groat 2017 (pump users logged carbs on 77% of days).
+    - **Cohort c90 vs c89:** quiet-period ACF zero-crossing 20–25 → 35 min (donors 40); daytime rise/fall ratio 0.44 →
+      0.59 (0.88); night-to-night insulin CV passes (38.9 vs 37.2); mean 151.8 (151.4); 16 of 30. CV 37.2 (34.8) now
+      fails.
+    - **Still open:** simulated quiet changes skew downward day and night (−0.23, −0.44): simulated falls are sharper
+      than rises, where donors fall slowly. That is the insulin and controller pull-back, not intake.
+    A per-person grazing count from donors' small rises does not discriminate (median 0.55 vs 0.53 per quiet hour;
+    sensor noise triggers it too), so the rate stays a distribution, not a per-donor value.
