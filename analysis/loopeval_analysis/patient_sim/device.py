@@ -61,7 +61,12 @@ class SiteTraits:
     p_full: float = 0.003           # full occlusions per wear (within Kanapka's 1.9% adult total) [J split]
     p_bubble: float = 0.2           # bubbles per wear [J; common by self-report, no rate]
     p_dislodge: float = 0.004       # pull-outs ending a wear in prolonged hyperglycaemia (within Kanapka's total) [J split]
-    lipo_bio: float = 1.0           # bioavailability of a lipohypertrophic site (0.75–0.8 if the person has LH)
+    lipo_bio: float = 1.0           # (legacy) bioavailability multiplier applied to every site
+    lh_person: bool = False         # the person has lipohypertrophy: 26% of pump users self-report it (Pickup 2014),
+                                    # 42–47% of children on examination (Heinemann & Krinelke 2012) (LESSONS 67)
+    p_lh_site: float = 0.5          # share of their site changes that land in LH tissue (rotation) [J]
+    lh_bio: float = 0.78            # LH site: insulin AUC −21%, Cmax −23% (Famulla 2016, lispro, n=13)
+    lh_dose_cv: float = 0.5         # LH site: within-subject CV of insulin AUC 52% vs 11% (Famulla 2016)
     abs_new: float = 0.9            # absorption speed at insertion (relative)
     bio_decline: float = 0.025      # absorbed fraction lost per day of wear after day 1 (Sampson Perrin 2015) [I]
     abs_slope: float = 0.0625       # per day, to 1.15 at day 4 [derived from Swan 2009]
@@ -89,6 +94,7 @@ class Pump:
     def _new_site(self, start: float, initial: bool = False):
         r, t = self.rng, self.t
         self.site_start = start
+        self.site_lh = bool(t.lh_person and r.random() < t.p_lh_site)
         self.gap_until = -1.0 if initial else start
         self.startup = float(r.normal(*self.f.startup))
         life = t.planned_days * DAY
@@ -126,7 +132,7 @@ class Pump:
         # the extent of absorption falls with set age while its rate rises (Simic 2021 clamp): fasting glucose
         # 126 → 133 → 147 on days 1 / 3 / 5 with insulin unchanged (Sampson Perrin 2015) ≈ −2.5% per day after day 1
         # [I size] (LESSONS 43)
-        bio = self.t.lipo_bio * (1.0 - self.t.bio_decline * max(0.0, age - 1.0))
+        bio = self.t.lipo_bio * (self.t.lh_bio if self.site_lh else 1.0) * (1.0 - self.t.bio_decline * max(0.0, age - 1.0))
         if self.fail_at is not None and m > self.fail_at:
             bio *= self.t.fail_floor + (1 - self.t.fail_floor) * math.exp(-(m - self.fail_at) / self.t.fail_tau)
         if self.dislodge_at is not None and m > self.dislodge_at:

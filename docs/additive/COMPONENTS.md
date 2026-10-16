@@ -160,3 +160,4 @@ anatomy. For the pilot templates the reference is the pilot donors themselves in
 `twin.csv` sets each simulated person against the donor it came from (median difference and rank
 agreement). A gap means a missing or mis-specified component. It never means adding a fitted term.
 | G9 Loop not acting | offline / merged windows run scheduled basal, pump errors keep the last command; written to the export's disruptions.csv, which LoopEval honours | donors' disruptions.csv: 0.9/day, lnN(32 min, 0.86) ≤ 6 h; errors 2.45/day × 3 min (LESSONS 60) | wired |
+| G10 Lipohypertrophy | person trait (26% adults, 42% children); half their sites in LH tissue [J]: bioavailability 0.78 and per-dose absorption CV 0.5 for the wear | Pickup 2014; Heinemann & Krinelke 2012; Famulla 2016 (LESSONS 67) | wired |

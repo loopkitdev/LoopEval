@@ -924,3 +924,16 @@ statistic here, but it is the controller donors ran.
     The open lever is what returns glucose after the peak: insulin action timing (set to Loop's curve on field
     forecast evidence, LESSONS 20), glucose effectiveness (halving it traded level for structure, LESSONS 49), and
     Loop's response to a plateau. Any change there must keep the first-hour forecast match that LESSONS 20 rests on.
+
+67. **Lipohypertrophy, wired at its evidenced prevalence, closes the level gaps.** The component had been built but
+    left off "until a prevalence is assigned". Prevalence: 26% of pump users self-report LH (Pickup 2014); 42–47% of
+    children on examination (Heinemann & Krinelke 2012). Famulla 2016 (lispro, n = 13) measured, in LH vs normal
+    tissue: insulin AUC −21%, Cmax −23%, within-subject AUC CV 52 vs 11%, post-meal glucose ≥ 26% higher. A person
+    with LH places half their sites in LH tissue [J, rotation]. An LH site has bioavailability 0.78 and a per-dose
+    absorption CV of 0.5 (vs 0.15), for the whole wear.
+    Cohort c75 vs c74 (n 112):
+    - mean glucose 151.5 (donors 151.4; was 147.2); TDD 37.2 (37.2; was 36.0); TIR 71.1 (71.7); time above 180 25.7
+      (25.6); TDD lag-1 0.05 (0.11; was −0.01). This matches the twin gaps of LESSONS 65 (TDD −1.4, mean −6).
+    - 16 of 30 statistics, the most at n = 112.
+    - t<54 0.135 (0.215, p 0.105) is lower, so watch it.
+    `--disable lipohypertrophy` switches it off.
