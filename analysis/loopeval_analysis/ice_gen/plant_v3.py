@@ -92,6 +92,20 @@ class PlantV3:
         self.carbs_real = json.load(open(d / "carbs.json"))
         self.steps = pd.read_parquet(ROOT / "steps" / f"{alias}.parquet")
         self.follow_disrupted = True   # --no-follow-disrupted turns it off
+        # PLANT_FOLLOW_MIN=<m>: follow the field only through disruption runs of at least m minutes. 85% of runs are under
+        # 30 min (median 10, ~3.6 a day, up to 15 for some donors); following each one snapped generated glucose onto the
+        # field's several times a day, jumps Loop saw as real (LESSONS 108). 0 = every disrupted step (the old behavior).
+        fm = float(os.environ.get("PLANT_FOLLOW_MIN", "0"))
+        dis = self.steps.disrupted.astype(bool).to_numpy(); run = np.zeros(len(dis)); i = 0
+        while i < len(dis):
+            if dis[i]:
+                j = i
+                while j < len(dis) and dis[j]:
+                    j += 1
+                run[i:j] = self.steps.dt.to_numpy()[i:j].sum(); i = j
+            else:
+                i += 1
+        self.follow_mask = dis & (run >= fm)
         # PATIENT_INSULIN_GAIN g: insulin activity away from the person's typical rate (TDD / 24 U/h) lowers glucose at g times the
         # ISF_tdd rule. In fasting overnight hours real background ICE rises with insulin activity (slope +0.43, 163 donors;
         # confounded by Loop reacting to ICE), and the field moved 0.6-0.9x what replay predicted for real settings edits (LESSONS
@@ -530,7 +544,7 @@ class PlantV3:
             # follow the field: the harness delivers what the pump recorded, and a long one (i061: 14 days the field record
             # fills with scheduled basal, the dose input has none) drove generated glucose into the thousands (v3k and v3m4)
             # and into the closed-loop calibrations; outcomes leave those windows out anyway
-            if k is not None and np.isfinite(self.steps.bg1.iloc[k]) and (dt_h > GAP_H or (self.follow_disrupted and bool(self.steps.disrupted.iloc[k]))):
+            if k is not None and np.isfinite(self.steps.bg1.iloc[k]) and (dt_h > GAP_H or (self.follow_disrupted and bool(self.follow_mask[k]))):
                 self.bg = float(self.steps.bg1.iloc[k]) - self.e
             if self.noise:
                 e0 = self.e
