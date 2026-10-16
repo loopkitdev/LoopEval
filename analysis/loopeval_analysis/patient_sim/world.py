@@ -264,12 +264,14 @@ class World:
         """Ground-truth events on day SCENARIO_DAY, switched on with --enable scenario_<name>; identical across arms."""
         d0 = self.SCENARIO_DAY * DAY
         self.scenario_at = {}
+        L = float(enable.get("scenario_level", 1.0)) if isinstance(enable.get("scenario_level"), float) else 1.0
+        self.scenario_level = L
         if enable.get("scenario_illness"):
             # non-gastrointestinal illness: SI −30%, EGP +10% (inside the B6 ranges), 3 days with ramps
-            self.mods.ill.append(dict(start=d0, dur=3 * DAY, gi=False, si_drop=0.30, egp=0.10))
+            self.mods.ill.append(dict(start=d0, dur=3 * DAY, gi=False, si_drop=0.30 * L, egp=0.10 * L))
         if enable.get("scenario_exercise"):
             st = d0 + 17 * 60          # 60 min moderate (intensity 0.6) late-afternoon session: McMahon 2007's design
-            self.beh.planned.append((st, ("exercise", st, 60.0, 0.6, 0.1))); self.beh.planned.sort(key=lambda x: x[0])
+            self.beh.planned.append((st, ("exercise", st, 60.0 * L, 0.6, 0.1))); self.beh.planned.sort(key=lambda x: x[0])
         if enable.get("scenario_missed_bolus"):
             # dinner eaten with no carb entry and no bolus
             for i, (t, act) in enumerate(self.beh.planned):
@@ -277,6 +279,7 @@ class World:
                     meal = act[1]
                     self.beh.planned = [(tt, a) for (tt, a) in self.beh.planned if not (a[0] == "enter_meal" and a[1] is meal)]
                     meal.entered, meal.bolus = None, None
+                    meal.grams *= L; meal.fat *= L; meal.protein *= L      # level scales the unbolused meal
                     break
         if enable.get("scenario_site_failure"):
             self.scenario_at[d0 + 14 * 60] = "dislodge"      # no insulin reaches the tissue until the person changes the site
@@ -289,7 +292,7 @@ class World:
         if ev == "dislodge":
             self.pump.dislodge_at = m
         elif ev == "false_low":
-            self.sensor.comp = dict(start=m, dur=45.0, depth=40.0, kind="dip", tau=8.0)
+            self.sensor.comp = dict(start=m, dur=45.0, depth=40.0 * self.scenario_level, kind="dip", tau=8.0)
         si, egp, absm_env = self.mods.at(m)
         bprof = self.person.truth.get("basal_profile")
         if bprof:                                   # basal need by local hour (EGP at basal insulin), LESSONS 48
