@@ -42,6 +42,19 @@ BURN_H = 6.0            # LoopEval's default counterfactual burn-in; the first p
 EXPORT_MARGIN_MIN = 120
 
 
+def _override_windows(world: World) -> list:
+    """The person's planned Temporary Overrides in the export's therapy-timeline form. LoopEval applies each one
+    only from its start (InputWindowBuilder's causal gate), so a planned future override never leaks backward."""
+    out = []
+    for w in sorted(world.beh.overrides, key=lambda w: w["start"]):
+        if w["end"] <= 0: continue
+        d = dict(start=ts(max(0.0, w["start"])), end=ts(w["end"]), indefinite=False)
+        if abs(w["factor"] - 1.0) > 1e-6: d["factor"] = float(w["factor"])
+        if "lo" in w: d.update(targetLo=float(w["lo"]), targetHi=float(w["hi"]))
+        out.append(d)
+    return out
+
+
 def export(world: World, out: Path, days: int, burn_end: float):
     """Write the data dir. `world` must have been run internally through `burn_end` minutes."""
     out.mkdir(parents=True, exist_ok=True)
@@ -81,7 +94,7 @@ def export(world: World, out: Path, days: int, burn_end: float):
     tgt = [dict(startDate=ts(0), endDate=ts(end), lowerBound=st["target"] - 5, upperBound=st["target"] + 5)]
     th = dict(basal=seg(st["basal_uh"]), sensitivity=seg(st["isf"]), carbRatio=seg(st["cr"]), target=tgt,
               rawBasal=seg(st["basal_uh"]), rawSensitivity=seg(st["isf"]), rawCarbRatio=seg(st["cr"]), rawTarget=tgt,
-              overrideWindows=[], scheduleShifts=[], suspendThreshold=st["suspend"], maxBolus=st["max_bolus"],
+              overrideWindows=_override_windows(world), scheduleShifts=[], suspendThreshold=st["suspend"], maxBolus=st["max_bolus"],
               maxBasalRate=st["max_basal"], maxBolusTimeline=seg(st["max_bolus"]),
               maxBasalRateTimeline=seg(st["max_basal"]), suspendThresholdTimeline=seg(st["suspend"]),
               insulinType=itype)

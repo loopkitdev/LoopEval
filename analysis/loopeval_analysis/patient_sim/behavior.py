@@ -61,6 +61,16 @@ class BehaviorTraits:
     calc_up: float = 0.074               # Groat 2017: 7.4% larger, 6.9% smaller
     calc_down: float = 0.069
     absorption_entry_h: float = 3.0      # what they tell Loop
+    # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
+    ov_less_day: float = 0.0             # less-insulin overrides/day (activity, low prevention)
+    ov_less_f: float = 0.6
+    ov_less_lo: float = float("nan")
+    ov_less_hi: float = float("nan")
+    ov_less_h: float = 1.4
+    ov_tgt_day: float = 0.0              # target-only overrides/day (pre-meal when the target is lowered)
+    ov_tgt_lo: float = float("nan")
+    ov_tgt_hi: float = float("nan")
+    ov_tgt_h: float = 1.0
     intake_cv: float = 0.22              # day-to-day CV of food eaten (Tarasuk & Beaton 1992; ~20% for carbohydrate)
     intake_rho: float = 0.29             # next-day intake correlation (Levitsky 2017)
     intake_comp: float = 1.0             # 24-h regulation of the day total across its eating events (1 = full) [J]
@@ -200,6 +210,10 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         act_bg=lj(0.06, 0.4), act_gain=lj(1.0, 0.5),
         graze_per_day=lj(2.0, 0.7), graze_g=lj(6.0, 0.4),
     )
+    for k in ("ov_less_day", "ov_less_f", "ov_less_lo", "ov_less_hi", "ov_less_h", "ov_tgt_day", "ov_tgt_lo", "ov_tgt_hi", "ov_tgt_h"):
+        v = _num(rates, k)
+        if np.isfinite(v) or k.endswith(("_lo", "_hi")):
+            setattr(t, k, v if np.isfinite(v) else (0.0 if k.endswith("_day") else getattr(t, k)))
     lsd = _num(rates, "meal_size_logsd")
     if np.isfinite(lsd): t.meal_cv = float(np.clip(lsd, 0.2, 0.9))
     mh = rates.get("meal_hours")
@@ -240,6 +254,7 @@ class Behavior:
         self.planned: list = []                 # (minute, action) sorted
         self.planned_day = -1
         self.day_z = 0.0
+        self.overrides: list[dict] = []        # planned Temporary Overrides: start, end (min), factor, lo, hi
         self.last_pro = -1e9
         self.last_treat = -1e9
         self.treat_check: Optional[float] = None
@@ -274,6 +289,20 @@ class Behavior:
         return (r[-1][1] - r[0][1]) / max(r[-1][0] - r[0][0], 1.0)
 
     # ------------------------------------------------------------------ the day's plan (offense)
+    def plan_all(self, days: int, carb_scale_of=None):
+        """Plan every day up front, so the exported history and the plant's re-simulation see the same plan and
+        the Temporary Overrides that go with it can be written into the therapy timeline (LESSONS 40)."""
+        for d in range(days + 1):
+            self.plan_day(d, carb_scale_of(d) if carb_scale_of else 1.0)
+        self.planned_day = days
+
+    def _override(self, start: float, hours: float, factor: float, lo: float, hi: float):
+        r = self.rng
+        dur = 60.0 * float(np.clip(np.exp(r.normal(math.log(max(hours, 0.25)), 0.6)), 0.25, 12.0))
+        w = dict(start=start, end=start + dur, factor=factor)
+        if np.isfinite(lo) and np.isfinite(hi): w.update(lo=lo, hi=max(hi, lo))
+        self.overrides.append(w)
+
     def plan_day(self, day: int, carb_scale: float = 1.0):
         t, r = self.t, self.rng
         base = day * DAY
@@ -317,6 +346,11 @@ class Behavior:
                 off = {"before": r.uniform(-20, -5), "immediate": r.uniform(-3, 0),
                        "during": r.uniform(3, 15), "after": r.uniform(15, 45)}[t.bolus_timing]
                 et = base + mt + off
+                # a target-only override ahead of eating ("pre-meal") at the donor's rate per entry, when the donor's
+                # target-only overrides lower the target; raised-target ones go at random waking times below
+                if t.ov_tgt_day > 0 and np.isfinite(t.ov_tgt_lo) and t.ov_tgt_lo < 110 \
+                        and r.random() < min(1.0, t.ov_tgt_day / max(t.p_entry_meal * 3 + t.p_entry_snack * t.snack_rate, 0.1)):
+                    self._override(et - float(r.uniform(15, 60)), t.ov_tgt_h, 1.0, t.ov_tgt_lo, t.ov_tgt_hi)
                 if r.random() < t.p_bolus_with_entry:
                     u = r.random()
                     bolus = 1.0 if u > t.calc_up + t.calc_down else (float(r.uniform(1.1, 1.5)) if u < t.calc_up else float(r.uniform(0.5, 0.9)))
@@ -357,6 +391,13 @@ class Behavior:
             met = float(r.uniform(4.5, 6.0)) if r.random() < 0.1 else float(np.exp(r.normal(math.log(3.0), 0.2)))
             inten = float(np.clip((met - 1.0) / (t.metmax - 1.0), 0.05, 0.9)) * 0.7
             self.planned.append((st, ("walk", st, dur, inten, 0.0)))
+            # a less-insulin override set ahead of the activity, at the donor's rate per episode
+            if t.ov_less_day > 0 and r.random() < min(1.0, t.ov_less_day / max(t.act_rate, 0.1)):
+                self._override(st - float(r.uniform(0, 30)), t.ov_less_h, t.ov_less_f, t.ov_less_lo, t.ov_less_hi)
+        # raised-target-only overrides (the donor's target-only windows sit at >= 110): random waking times [J timing]
+        if t.ov_tgt_day > 0 and np.isfinite(t.ov_tgt_lo) and t.ov_tgt_lo >= 110:
+            for _ in range(r.poisson(t.ov_tgt_day)):
+                self._override(base + float(r.uniform(t.wake, t.bed)), t.ov_tgt_h, 1.0, t.ov_tgt_lo, t.ov_tgt_hi)
         # grazing: never entered, never bolused
         for _ in range(r.poisson(t.graze_per_day)):
             st = base + float(r.uniform(t.wake + 30, t.bed)) + shift
