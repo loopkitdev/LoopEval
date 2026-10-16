@@ -45,6 +45,11 @@ should. See **[docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)**; the renderer is
 - **Identity checks are mandatory** after any simulator or dose-path change: identical
   baseline/candidate configs ⇒ Δdose ≈ 0 every step and counter == sanity. A failed
   identity test invalidates everything downstream.
+- **External plants: reconcile what the plant received.** After a change to the dose path
+  with `--external-plant`, the insulin the plant reports receiving must equal the candidate's
+  delivery stream over the same window (and plant boluses must equal the trace's `plantBolusU`).
+  Identity can't see this: Loop's IOB counts a dose the body never got, and every step still
+  looks self-consistent (8e86860 sent no plant bolus to the plant at all).
 - **Deployment-faithful config per dataset**: match the deployed insulin model, RC mode
   (`--integral-rc` for IRC eras), Loop-main emulation flags
   (`--no-mid-absorption-isf --no-gradual-transitions-gate`), overrides
