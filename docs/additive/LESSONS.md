@@ -1042,3 +1042,13 @@ statistic here, but it is the controller donors ran.
     - **Model now (c85):** 16 of 30; levels at donor values; long-range Hurst 0.198 (0.247; was 0.16 before the
       EGP arm). Still failing: ACF zero-crossing 60 (42.5), volatility clustering, between-day fraction, 24-h amplitude,
       day/night 1.77 (2.06), p99 dose, TDD CV and lag-1.
+
+76. **The ACF zero-crossing gap splits by context: meal rises too long, quiet stretches too still.** Step ACF
+    zero-crossing (eda's `_acf` on 5-min steps), c85 vs donors, split by time since the last eating or bolus event:
+    - **Within 3 h of an event:** sim 55 min, donors 40. Simulated meal-driven moves stay correlated longer; real
+      rises are shorter.
+    - **More than 4 h after:** sim 20 min, donors 40. Simulated glucose is nearly still between events, so sensor
+      noise sets the decorrelation. Donors keep a slow physiological wander there: the between-meal and night-to-night
+      variation that the evidenced factors do not explain (LESSONS 49, 56).
+    - **Whole record:** sim 60, donors 40.
+    Both halves point at known open items, not at a new factor.
