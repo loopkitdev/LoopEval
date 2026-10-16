@@ -787,3 +787,18 @@ statistic here, but it is the controller donors ran.
     - Post-hypoglycaemic insulin resistance (Attvall 1987) is not added. 2–4 h after a low's nadir the sim already
       rebounds as high as donors (+68 to +70 vs +65 to +73 mg/dL) and goes above 180 within 4 h more often (54% vs
       46%). Only the first hour of recovery is slower in the sim (+45 vs +56 at 1 h): rescue timing, not resistance.
+
+56. **Most of donors' night-to-night insulin variation is unexplained by evidenced physiology; it stays
+    unexplained.** Literature budget (evidence/12): the evidenced nightly factors add 0.02–0.035 of variance
+    against the 0.06 gap. The top ones are post-exercise overnight sensitivity, dinner fat and its spread,
+    short sleep (Donga 2010: −21% SI after 4 h), alcohol (Turner 2001: effect mostly after 06 h) and nocturnal
+    GH. Together they take a quiet-night CV of 17% to about 22–26%, against 30%. Perriello 1991 calls
+    overnight need "highly reproducible" under i.v. control, so most free-living variation is outside the body.
+    Donor-side checks (c64, local time):
+    - **Weekend:** Friday/Saturday nights take 1.036× a person's mean overnight insulin, other nights 0.986×.
+      A real 5% effect; the sim shows 0.9%.
+    - **Evening carry-over:** evening carbs, boluses, midnight glucose, recorded night carbs and the weekend
+      together cut donors' night CV only from 40.9% to 36.5%. In the sim the same covariates take 31.5% to
+      20.1%, mostly night eating: simulated people eat between 00 and 06 h on 48% of nights. That eating
+      follows the donors' own labeled pulses by hour, and some of those night pulses may not be eating.
+    No noise term is added. The all-nights statistic passes (37.2 vs 33.7, p 0.11).
