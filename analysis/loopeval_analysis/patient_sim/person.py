@@ -278,7 +278,20 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     cr_true = isf_true / csf
     carbs = max(20.0, tdd * (1 - share) * cr_true)
     strategy = "temp" if str(row.strategy).startswith("temp") else "autobolus"
+    # the donor's tuned 24-h basal shape (local hour, mean 1): Loop's schedule uses it as is; the body's basal need
+    # follows it shrunk halfway (log), the same weight as ISF and CSF — people tune it on their body (LESSONS 48)
+    prof = np.ones(24)
+    bp_raw = row.get("basal_profile") if hasattr(row, "get") else None
+    if isinstance(bp_raw, str):
+        try:
+            import json as _json
+            prof = np.asarray(_json.loads(bp_raw), dtype=float)
+        except ValueError:
+            prof = np.ones(24)
+    w_ = ISF_W if isf_w is None else isf_w
+    prof_true = prof ** w_; prof_true = prof_true / prof_true.mean()
     settings = dict(
+        basal_profile=[float(x) for x in prof],
         basal_uh=float(row.basal) * j_basal, isf=float(row.isf) * j_isf, cr=float(row.cr) * j_isf / j_basal ** 0,
         target=float(row.target), max_basal=float(row.max_basal) * j_basal, max_bolus=float(row.max_bolus),
         suspend=70.0)
@@ -287,6 +300,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         sex="F" if rng.random() < 0.5 else "M", bw=bw, formulation=formulation,
         sensor=str(row.sensor), pump=str(row.pump), strategy=strategy, body=bp,
         truth=dict(tdd=tdd, basal_uh=basal_true, fasting_rate=fasting_rate, isf=isf_true, csf=csf, cr=cr_true,
+                   basal_profile=[float(x) for x in prof_true],
                    carbs_g_day=carbs, egp_share=egp_share),
         settings=settings,
         traits=dict(template_rates={k: (row[k] if not isinstance(row[k], float) or np.isfinite(row[k]) else np.nan)

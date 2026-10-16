@@ -204,6 +204,10 @@ class World:
     def _minute(self, pending_actions: list):
         m = self.minute
         si, egp, absm_env = self.mods.at(m)
+        bprof = self.person.truth.get("basal_profile")
+        if bprof:                                   # basal need by local hour (EGP at basal insulin), LESSONS 48
+            hh = (m % DAY) / 60.0; k = int(hh) % 24; f = hh - int(hh)
+            egp *= bprof[k] * (1 - f) + bprof[(k + 1) % 24] * f
         si *= self._fat_si(m)
         if self.hyper_on:
             target = 0.26 * min(1.0, max(0.0, (self.body.g - 140.0) / 220.0))
@@ -287,8 +291,10 @@ class World:
         while self.minute < until:
             m = self.minute
             if int(m) % 5 == 0:
-                self.pump.command(m, m + 5, st["basal_uh"] / 12.0)
-                self.int_doses.append(("basal", m, m + 5, st["basal_uh"] / 12.0, True))
+                prof = st.get("basal_profile") or [1.0] * 24
+                rate = st["basal_uh"] * prof[int((m % DAY) // 60) % 24]
+                self.pump.command(m, m + 5, rate / 12.0)
+                self.int_doses.append(("basal", m, m + 5, rate / 12.0, True))
                 self.loop_state["iob"] = self._calc_iob(m)
             acts: list = []
             self._minute(acts)

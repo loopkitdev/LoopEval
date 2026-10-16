@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import pickle
 import subprocess
@@ -93,9 +94,23 @@ def export(world: World, out: Path, days: int, burn_end: float):
     seg = lambda v: [dict(startDate=ts(0), endDate=ts(end), value=round(float(v), 3))]
     eras = world.setting_eras + [(end, None)]
 
+    prof = st.get("basal_profile") or [1.0] * 24
+
     def seg_eras(key: str, v: float) -> list:      # the schedule through the person's settings edits (LESSONS 41)
-        return [dict(startDate=ts(a), endDate=ts(b), value=round(float(v) * mult[key], 3))
-                for (a, mult), (b, _) in zip(eras[:-1], eras[1:]) if b > a]
+        out_ = []
+        for (a, mult), (b, _) in zip(eras[:-1], eras[1:]):
+            if b <= a: continue
+            if key != "basal":
+                out_.append(dict(startDate=ts(a), endDate=ts(b), value=round(float(v) * mult[key], 3)))
+                continue
+            # basal: the donor's hourly profile (LESSONS 48), hour by hour through the era
+            h0 = a
+            while h0 < b:
+                h1 = min(b, (math.floor(h0 / 60.0) + 1) * 60.0)
+                out_.append(dict(startDate=ts(h0), endDate=ts(h1),
+                                 value=round(float(v) * mult[key] * prof[int((h0 % DAY) // 60) % 24], 3)))
+                h0 = h1
+        return out_
     tgt = [dict(startDate=ts(0), endDate=ts(end), lowerBound=st["target"] - 5, upperBound=st["target"] + 5)]
     th = dict(basal=seg_eras("basal", st["basal_uh"]), sensitivity=seg_eras("isf", st["isf"]),
               carbRatio=seg_eras("cr", st["cr"]), target=tgt,
