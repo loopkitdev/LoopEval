@@ -960,3 +960,15 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Change test on the new base (engine 11d1b77, RC per edit window), seeds 0 / 1: slope TIR 0.76 / 0.65, t<70 1.10 / 1.28,
     mean 1.10 / 0.62, t<54 0.35 / 0.32 (was 0.17 / 0.12), t<54 mean |error| 0.36 / 0.38 (was 0.47 / 0.50; predicting no
     change 0.30). t<54 changes now move with the field at a third of their size, still not ranking.
+104. **The generator compresses people's background spread toward the population's; a per-person spread factor fitted on
+    the training window does not fix it, not kept.** Base v32of0TcB2CG, held-out, sd of hourly-mean background ICE, generated
+    / real: calm low-insulin people too wide (i050 1.28, i003 1.23, i009 1.13), volatile ones too narrow (i012 0.72, i010 0.73,
+    i017 0.75); median 0.94, Spearman of the ratio with TDD -0.47, people's order kept (generated vs real 0.74). The excess
+    lows after boluses sit in the same people (i003 alone ~30% of the excess, then i040, i009, i050, i054, i004; replay
+    matches the field for each), and lows away from boluses match (field 0.33, generated 0.35 a day). calibrate_spread_person.py
+    scales each draw's deviation from its predicted mean by real / generated on the 28 days before the hold-out (0.78-1.38):
+    seeds 0 / 1 TIR 69.4 / 70.1 -> 68.0 / 66.0, t<54 0.44 / 0.31 -> 0.69 / 0.46, lows per meal bolus 0.111 / 0.107 -> 0.139 /
+    0.124; the widened people became the worst (i044, i017). Real spread is a fairly stable trait (training vs held-out
+    Pearson 0.71; across people sd of log 0.23, within person 0.13), but the generated / real ratio is not (Spearman 0.38
+    between periods), and the draw-level factor maps onto hourly spread only loosely. The fix belongs in the model's own
+    per-person scale.
