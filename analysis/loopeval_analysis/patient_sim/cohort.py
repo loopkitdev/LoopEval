@@ -28,7 +28,8 @@ def _one(args):
         return seed, "cached"
     try:
         T = pd.read_csv(tmpl)
-        P = sample_person(T, seed, isf_w=enable.get("isf_w") if isinstance(enable.get("isf_w"), float) else None)
+        P = sample_person(T, seed, isf_w=enable.get("isf_w") if isinstance(enable.get("isf_w"), float) else None,
+                          csf_mult=enable.get("csf_mult", 1.0) if isinstance(enable.get("csf_mult"), float) else 1.0)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
         run(P, days, out, binp, enable=enable, controller=controller)
