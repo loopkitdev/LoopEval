@@ -265,8 +265,10 @@ def add_corr_exposure(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_
         row = dict(alias=r.alias)
         if p.exists() and np.isfinite(r.get("corr_bg_med", np.nan)):
             g = json.load(open(p))
-            s = pd.Series([x["quantity"] for x in g], index=pd.to_datetime([x["startDate"] for x in g]))
-            # local hours are not in the export; the pilot's donors are mostly US — use the series' own hour as a proxy [J]
+            from .quiet import local_offset, to_local
+            # waking hours in the donor's LOCAL time (the export is UTC)
+            s = pd.Series([x["quantity"] for x in g], index=to_local(pd.to_datetime([x["startDate"] for x in g]),
+                                                                    local_offset(r.alias, ice_root)))
             w = s[(s.index.hour >= 7) & (s.index.hour < 23)]
             thr = float(np.clip(r.corr_bg_med - 20, 130, 300))
             row["corr_exposure"] = float((w > thr).mean())
@@ -303,6 +305,41 @@ def add_basal_profile(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_
             prof = np.where(w > 0, prof / np.maximum(w, 1), np.nan)
             if np.isfinite(prof).all() and prof.mean() > 0:
                 row["basal_profile"] = json.dumps((prof / prof.mean()).round(4).tolist())
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
+
+
+SLOTS = (("B", 4.0, 10.5), ("L", 10.5, 15.5), ("D", 15.5, 22.0))
+
+
+def add_slot_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Per donor and main-meal window (local 04–10:30 / 10:30–15:30 / 15:30–22), from their labeled non-rescue
+    pulses: grams eaten per day (`slot_g`) and the share of pulses that carried a carb entry (`slot_ann`). Through
+    the same labeler, simulated people ate the donors' grams at lunch and dinner but announced breakfast more and
+    lunch and dinner less (17/19/23 vs 10/27/31 g/day entered; LESSONS 51)."""
+    import json
+    import numpy as np
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        p = ice_root / "meals" / f"{a}.parquet"
+        if p.exists():
+            m = pd.read_parquet(p); m = m[~m.rescue]
+            days = (m.onset.max() - m.onset.min()).total_seconds() / 86400 if len(m) > 1 else 0
+            h = m.hour.to_numpy() % 24
+            g, ann = [], []
+            for _, lo, hi in SLOTS:
+                s = (h >= lo) & (h < hi)
+                g.append(float(m.size_g.fillna(0).to_numpy()[s].sum() / days) if days > 0 else np.nan)
+                ann.append(float(m.announced.to_numpy()[s].astype(bool).mean()) if s.sum() >= 5 else np.nan)
+            if days >= 7 and np.isfinite(g).all() and sum(g) > 0:
+                row["slot_g"] = json.dumps([round(x, 2) for x in g])
+            if np.isfinite(ann).all():
+                row["slot_ann"] = json.dumps([round(x, 3) for x in ann])
         out.append(row)
     r = pd.DataFrame(out)
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
