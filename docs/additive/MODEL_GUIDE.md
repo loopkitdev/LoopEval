@@ -264,6 +264,9 @@ the SI share). Basal gets no jitter.
   zero-order at Vmax. Each meal also gets a speed multiplier lnN(0, 0.4) for composition.
 - **Values.** Vmax 3 kcal/min, Km 60 kcal (kempt 0.05), kabs 0.05. A 25 g snack peaks at ~45 min; a
   121 g mixed meal reaches 50% at ~4 h, a carbohydrate-only one at ~2 h.
+- **Between people.** Vmax and kempt scale together by a per-person factor: lognormal, CV 30%, and ×0.6–0.8 for the
+  28% of T1D adults with delayed emptying (Samsom 2003, Hellmig 2006; evidence/09). Km stays 60 kcal.
+  `--disable ge_var` gives everyone the central value (LESSONS 88).
 - **Evidence.**
   - Emptying is energy-rate limited: Brener 1983 (2.1 kcal/min), Hunt 1985 (2.5), Calbet 1997, Marathe
     2013 review (1–4).
