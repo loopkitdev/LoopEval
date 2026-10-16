@@ -88,3 +88,28 @@ def simulated_labeled(run: Path) -> pd.DataFrame:
         x = _response(cgm, r.onset)
         if x: rows.append(dict(alias=run.name, grams=float(r.entry_g), bolus=float(r.bolus_u), **x))
     return pd.DataFrame(rows)
+
+
+def _label_one(run: str):
+    from .ice_check import check
+    try:
+        return check(Path(run))
+    except Exception:                      # noqa: BLE001
+        return None
+
+
+def labeled_cohort(root: str, par: int = 10) -> dict:
+    """ice-label every simulated person under `root` (in parallel), then the like-for-like meal response."""
+    from concurrent.futures import ProcessPoolExecutor
+    runs = sorted(str(p) for p in Path(root).glob("v*") if (p / "truth.pkl").exists())
+    with ProcessPoolExecutor(par) as ex:
+        list(ex.map(_label_one, runs))
+    L = pd.concat([simulated_labeled(Path(r)) for r in runs if (Path(r) / "meals_labeled.csv").exists()])
+    out = summarize(L)
+    pd.Series(out).to_csv(Path(root) / "meal_response_labeled.csv")
+    return out
+
+
+if __name__ == "__main__":
+    import sys
+    print(labeled_cohort(sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else 10))
