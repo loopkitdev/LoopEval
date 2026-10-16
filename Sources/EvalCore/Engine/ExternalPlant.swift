@@ -23,10 +23,15 @@
 //   request  + "state": {"rec_bolus": U, "iob": U, "cob": g, "bg": mg/dL}   // candidate at t0
 //   reply    + "carbs":   [{"t": ISO, "grams": g, "absorption_s": s}]       // the person's
 //            + "boluses": [{"t": ISO, "ratio": x} | {"t": ISO, "units": u}] // actions in (t0, t1]
+//            + "overrides": [{"t": ISO, "end": ISO, "factor": f?, "targetLo": mg/dL?, "targetHi": mg/dL?}]
 // Actions are only acted on with --plant-behavior: carbs enter the candidate's carb store,
 // visible from the next decision; a bolus is delivered AT the next decision as ratio x the
 // bolus-calculator recommendation there (or as units), so the simulator stays the source of
-// truth for what was delivered and sends it back in the next request's doses.
+// truth for what was delivered and sends it back in the next request's doses. An override is a
+// Temporary Override the person started at t: insulin needs x factor (basal x f, ISF / f, CR / f),
+// correction range targetLo...targetHi (both or neither), until end. It joins the candidate's
+// override windows exactly like an exported one, so decisions at or after t see it; a later
+// override supersedes an earlier one from its start.
 
 import Foundation
 
@@ -64,8 +69,12 @@ public final class ExternalPlant: @unchecked Sendable {
     /// A manual bolus the plant's person asked for in (t0, t1]: a multiple of the bolus-calculator
     /// recommendation, or an absolute amount.
     public struct Bolus { public let t: Date; public let ratio: Double?; public let units: Double? }
+    /// A Temporary Override the plant's person started at `start`.
+    public struct Override { public let start: Date; public let end: Date; public let factor: Double?
+                             public let targetLo: Double?; public let targetHi: Double? }
     /// `bg[i]` is nil where the plant's CGM gave no reading (sensor dropout, compression, warm-up).
-    public struct Reply { public let bg: [Double?]; public let carbs: [Carb]; public let boluses: [Bolus] }
+    public struct Reply { public let bg: [Double?]; public let carbs: [Carb]; public let boluses: [Bolus]
+                          public let overrides: [Override] }
 
     private let isoNoFrac = ISO8601DateFormatter()
     private func date(_ s: Any?) -> Date? {
@@ -115,7 +124,18 @@ public final class ExternalPlant: @unchecked Sendable {
             let r = b["ratio"] as? Double, u = b["units"] as? Double
             return (r == nil && u == nil) ? nil : Bolus(t: t, ratio: r, units: u)
         }
-        return Reply(bg: bg, carbs: carbs, boluses: boluses)
+        // An override needs t < end and a factor > 0 or a full target range; anything else is malformed.
+        var overrides: [Override] = []
+        for o in obj["overrides"] as? [[String: Any]] ?? [] {
+            let f = o["factor"] as? Double, lo = o["targetLo"] as? Double, hi = o["targetHi"] as? Double
+            guard let t = date(o["t"]), let end = date(o["end"]), end > t,
+                  f.map({ $0 > 0 && $0.isFinite }) ?? true, (lo == nil) == (hi == nil),
+                  lo.map({ $0 <= hi! }) ?? true, f != nil || lo != nil else {
+                throw PlantError(description: "external plant: bad override \(o)")
+            }
+            overrides.append(Override(start: t, end: end, factor: f, targetLo: lo, targetHi: hi))
+        }
+        return Reply(bg: bg, carbs: carbs, boluses: boluses, overrides: overrides)
     }
 
     private func readLine() throws -> Data {

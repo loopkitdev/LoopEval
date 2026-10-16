@@ -257,7 +257,8 @@ extension EvaluationEngine {
         candidateTherapy: TherapyTimeline? = nil,
         progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
-        let candTherapy = candidateTherapy ?? data.therapyTimeline
+        // var: --plant-behavior adds the plant person's Temporary Overrides to its override windows.
+        var candTherapy = candidateTherapy ?? data.therapyTimeline
 
         // Run in the USER's timezone (the profile's), so oref's INTERNAL
         // time-of-day lookups — which use Calendar.current (basal-schedule lookup
@@ -430,6 +431,7 @@ extension EvaluationEngine {
         // decision; running totals for the end-of-run summary.
         var pendingPlantBoluses: [ExternalPlant.Bolus] = []
         var plantCarbsTotalG = 0.0, plantBolusTotalU = 0.0, plantBolusCount = 0, plantCarbCount = 0
+        var plantOverrideCount = 0
         if plantBehavior {
             guard externalPlant != nil else {
                 throw NSError(domain: "ClosedLoopSimulator", code: 1,
@@ -887,6 +889,28 @@ extension EvaluationEngine {
                     carbsG += c.grams; plantCarbsTotalG += c.grams; plantCarbCount += 1
                 }
                 pendingPlantBoluses += reply.boluses
+                // The person's Temporary Overrides join the candidate's override windows, through
+                // the same decision-time gate as exported ones (InputWindowBuilder: start <= t).
+                // The override machinery reads the raw schedules; seed them as OverrideTargets does.
+                // Supersession as TemporaryOverrides.windows: a window running at the new start
+                // ends there, and the new one ends at the next window's start.
+                for o in reply.overrides {
+                    if candTherapy.rawBasal.isEmpty       { candTherapy.rawBasal = candTherapy.basal }
+                    if candTherapy.rawSensitivity.isEmpty { candTherapy.rawSensitivity = candTherapy.sensitivity }
+                    if candTherapy.rawCarbRatio.isEmpty   { candTherapy.rawCarbRatio = candTherapy.carbRatio }
+                    if candTherapy.rawTarget.isEmpty      { candTherapy.rawTarget = candTherapy.target }
+                    var ws = candTherapy.overrideWindows.map { w -> OverrideWindow in
+                        guard w.start < o.start, w.end > o.start else { return w }
+                        return OverrideWindow(start: w.start, end: o.start, factor: w.factor,
+                                              targetLo: w.targetLo, targetHi: w.targetHi, indefinite: false,
+                                              revisionKey: w.revisionKey, visibleFrom: w.visibleFrom)
+                    }
+                    let end = min(o.end, ws.filter { $0.start > o.start }.map(\.start).min() ?? o.end)
+                    ws.append(OverrideWindow(start: o.start, end: end, factor: o.factor,
+                                             targetLo: o.targetLo, targetHi: o.targetHi))
+                    candTherapy.overrideWindows = ws.sorted { $0.start < $1.start }
+                    plantOverrideCount += 1
+                }
             }
             return carbsG
         }
@@ -1609,9 +1633,12 @@ extension EvaluationEngine {
             // (PredictionRecord.isf is algorithm state, alongside COB/RC/momentum — it is
             // what case_study.py plots, so it must keep meaning the controller's ISF).
             // `isfPlant` is the BODY's, and is what converts a dose delta into a BG effect.
-            // They coincide unless --patient-isf is set.
-            let isfQty = scaledSensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
-                ?? scaledSensitivity.closestPrior(to: t)?.value
+            // They coincide unless --patient-isf is set (or a Temporary Override / candidate
+            // therapy moves the controller's ISF; the body keeps `physiologySensitivity`).
+            // `isf` is read from the decision's own input, so it carries the overrides active at
+            // t and the candidate's schedule, exactly as the controller saw them.
+            let isfQty = candidateInput.sensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                ?? candidateInput.sensitivity.closestPrior(to: t)?.value
             let isf = isfQty?.doubleValue(for: mgdlUnit) ?? 0
             let isfPlantQty = physiologySensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
                 ?? physiologySensitivity.closestPrior(to: t)?.value
@@ -2031,8 +2058,8 @@ extension EvaluationEngine {
         }
 
         if plantBehavior {
-            FileHandle.standardError.write(Data(String(format: "plant behavior: %d carb entries (%.0f g), %d boluses (%.1f U) from the plant's person; real candidate carbs/manual boluses after cfActiveStart ignored\n",
-                plantCarbCount, plantCarbsTotalG, plantBolusCount, plantBolusTotalU).utf8))
+            FileHandle.standardError.write(Data(String(format: "plant behavior: %d carb entries (%.0f g), %d boluses (%.1f U), %d overrides from the plant's person; real candidate carbs/manual boluses after cfActiveStart ignored\n",
+                plantCarbCount, plantCarbsTotalG, plantBolusCount, plantBolusTotalU, plantOverrideCount).utf8))
         }
         return ClosedLoopSimResult(
             steps: stepsWithPatientIOB,
