@@ -728,3 +728,22 @@ statistic here, but it is the controller donors ran.
     1.7 h/day), so it can't test daytime drift. The sim's automatic boluses reach the plant inside each step's
     5-min basal record. The delivered insulin is the same, but the pump model gives them basal flow error rather
     than per-bolus error.
+
+52. **Announced meals respond about 0.7× the donors' from the first hour on, at every meal; the B/L/D class mix is
+    not the cause.** Isolated announced bolused meals (no eating in the 3 h before), through the same labeler, median
+    glucose above onset (mg/dL; `mealcurve` in the run scratch):
+
+    | | 1 h | 1.5 h | 2 h | 3 h |
+    |---|---|---|---|---|
+    | Donors breakfast / lunch / dinner | 30 / 33 / 29 | 44 / 40 / 34 | 45 / 40 / 35 | 35 / 35 / 36 |
+    | Sim c60 (Visentin classes) | 26 / 20 / 20 | 35 / 26 / 24 | 39 / 27 / 21 | 31 / 20 / 18 |
+    | Sim c61 (classes equally likely) | 25 / 23 / 23 | 33 / 29 / 27 | 34 / 27 / 24 | 24 / 21 / 21 |
+
+    Entered grams (34–41) and grams per bolus unit (9–10) match the donors. Equal class probabilities (Hinshaw 2013
+    found no population B/L/D SI difference in T1D; Visentin 2015 classifies against each person's own maximum, which
+    noise inflates) move the shape toward the donors' mild breakfast > lunch > dinner, but leave the amplitude, the
+    flat evening and day/night (1.56) unchanged; statistics 12 vs 13 of 29 — kept Visentin's published probabilities,
+    `--set circ_uniform=1` stays as the switch. Not yet measured: whether the gap is meal-side (absorption shape, the
+    eaten/entered ratio, composition of later meals) or insulin-side (bolus coverage of the body's effective CR —
+    the bookkeeping CR is 0.69× the setting and says nothing about coverage, LESSONS 40). Next: the same curve on
+    TRUE glucose with eaten grams, to split the two.
