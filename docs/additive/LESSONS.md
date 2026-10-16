@@ -233,3 +233,11 @@ statistic here, but it is the controller donors ran.
     activity, intake below the labeler's 12 g-eq gate, or a latent state not yet named. Full cohort with df 4 (c23):
     20 of 42 statistics match the pilot donors, up from 16 — step kurtosis, CV, 24-h amplitude, insulin
     burstiness and day-to-day insulin CV join the outcomes.
+
+29. **Sensor noise must shrink at low glucose, or a realistic noise level manufactures lows.** Donors'
+    quiet windows hold fast excursions (≥ 12 mg/dL in 5 min, ±28 over ~15 min) at 0.35–0.61 per quiet
+    hour, at night as much as by day — sensor, not activity. Constant-σ noise big enough to reproduce them
+    (σ 4.5–5.0) pushed t<70 to 2.2–2.4% (donors 1.66). The G7 accuracy tables say absolute error is
+    ~8.5 mg/dL at 40–60, ~11.6 near 130, ~17 near 240; scaling the noise by 0.6 + 0.4·IG/130 at σ 4.5
+    gives night excursions 0.38 (0.35), quiet step SD 5.23 (5.48), t<70 1.62 (1.66), t<54 0.27 (0.23),
+    TIR 72.2 (71.7), kurtosis 2.36 (2.48) — grid runs/nh_*, runs/ns_*.

@@ -119,3 +119,54 @@ def sim_tail(run: Path) -> dict:
     ev = np.array([np.datetime64((EPOCH + pd.Timedelta(minutes=float(x))).tz_localize(None)) for x in ev_m], dtype="datetime64[ns]")
     P = pickle.load(open(run / "person.pkl", "rb"))
     return dict(alias=run.name, sensor=P.sensor, **tail_anatomy(cgm, ev))
+
+
+def excursions(t: np.ndarray, v: np.ndarray, hour: np.ndarray, quiet: np.ndarray) -> pd.DataFrame:
+    """Monotone runs inside quiet windows that contain a step >= 12 mg/dL/5 min: total excursion,
+    duration, local hour, starting glucose, direction."""
+    dt = np.diff(t) / np.timedelta64(1, "m"); d = np.diff(v)
+    ok = quiet[1:] & quiet[:-1] & (dt >= 4) & (dt <= 6)
+    rows, i, n = [], 0, len(d)
+    while i < n:
+        if not ok[i] or d[i] == 0: i += 1; continue
+        sgn = np.sign(d[i]); j = i
+        while j + 1 < n and ok[j + 1] and np.sign(d[j + 1]) == sgn: j += 1
+        seg = d[i:j + 1]
+        if np.abs(seg).max() >= 12:
+            rows.append(dict(size=float(seg.sum()), minutes=5 * len(seg), hour=float(hour[i]), g0=float(v[i]), up=bool(sgn > 0)))
+        i = j + 1
+    return pd.DataFrame(rows)
+
+
+def donor_excursions(alias: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32") -> pd.DataFrame:
+    s = pd.read_parquet(ice_root / "steps" / f"{alias}.parquet", columns=["t1", "bg1", "hour"]).sort_values("t1")
+    t = s.t1.dt.tz_localize(None).values; v = s.bg1.to_numpy(); h = s.hour.to_numpy()
+    m = pd.read_parquet(ice_root / "meals" / f"{alias}.parquet")
+    doses = json.load(open(ice_root / "full" / alias / "doses.json"))
+    man = [pd.Timestamp(x["startDate"]).tz_localize(None) for x in doses if x["deliveryType"] == "bolus" and not x.get("automatic")]
+    ev = np.sort(np.array(list(pd.to_datetime(m.onset).dt.tz_localize(None).values) + [np.datetime64(x) for x in man], dtype="datetime64[ns]"))
+    k = np.searchsorted(ev, t, side="right") - 1
+    last = np.where(k >= 0, ev[np.clip(k, 0, None)], np.datetime64("1970-01-01"))
+    q = (t - last) > np.timedelta64(4, "h")
+    E = excursions(t, v, h, q)
+    E["alias"] = alias
+    for a, b in ((0, 6), (6, 12), (12, 18), (18, 24)):
+        E[f"qh_{a}"] = float((q & (h >= a) & (h < b)).sum() * 5 / 60)
+    return E
+
+
+def sim_excursions(run: Path) -> pd.DataFrame:
+    tr = pickle.load(open(run / "truth.pkl", "rb")); meta = json.load(open(run / "meta.json"))
+    c = tr["cgm"].dropna().sort_index(); c = c[c.index >= meta.get("burn_end", 1800)]
+    tm = c.index.to_numpy().astype(float)
+    t = (EPOCH + pd.to_timedelta(tm, unit="m")).tz_localize(None).values
+    beh = pd.DataFrame(tr["behavior"], columns=["m", "k", "g", "x"])
+    evm = np.sort(beh[beh.k.isin(["meal", "snack", "rescue", "retreat", "proactive", "ex_carbs", "free_bolus", "correction", "entry"])].m.to_numpy().astype(float))
+    k = np.searchsorted(evm, tm, side="right") - 1
+    quiet = (k < 0) | ((tm - np.where(k >= 0, evm[np.clip(k, 0, None)], -1e18)) > 240)
+    h = (tm % 1440) / 60
+    E = excursions(t, c.to_numpy(), h, quiet)
+    E["alias"] = run.name
+    for a, b in ((0, 6), (6, 12), (12, 18), (18, 24)):
+        E[f"qh_{a}"] = float((quiet & (h >= a) & (h < b)).sum() * 5 / 60)
+    return E

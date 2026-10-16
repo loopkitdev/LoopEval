@@ -53,6 +53,7 @@ class Family:
     ar: tuple = (1.30, -0.42)     # AR(2) on the reporting grid (Vettoretti 2019)
     sigma: tuple = (3.19, 1.0)    # mg/dL
     smooth: float = 0.0           # EMA weight on the PREVIOUS output (0 = none) [J; fit to eda L33 lag-1]
+    hetero_a: float = 1.0         # noise scale = a + (1 − a)·IG/130 (1 = constant absolute noise)
     df: float = 0.0               # Student-t degrees of freedom of the noise innovations (0 = Gaussian). CGM error
                                   # is heavy-tailed (Breton & Kovatchev 2008: Johnson S_U); variance preserved
     early_fail: float = 0.05      # P(session ends early) [J; Eichenlaub 2025 small n: 0–18%]
@@ -61,13 +62,13 @@ class Family:
 FAMILIES = {
     # heavy-tailed innovations (Breton & Kovatchev 2008, Johnson S_U); df 4 matches pilot G7 whole-record
     # step kurtosis (2.39 vs 2.48; grid runs/df_*, LESSONS 28) — G6 inherits it pending its own fit
-    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0),
+    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, hetero_a=0.6),
     # G7 is rougher than G6 in the same people (eda L33: switchers' step SD +0.87, white noise unchanged), so its
     # correlated noise is larger: σ 4.0 matches pilot G7 donors' quiet-window step SD (5.5), whole-record step
     # SD (7.0) and implied white noise (1.39); the Vettoretti AR(2) shape is kept — a less oscillatory shape
     # destroyed the short-lag persistence donors show (grid runs/2026-10-15-additive-sg_*, LESSONS 24)
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
-                        brand_gain=1.0, sigma=(4.0, 1.0), df=4.0),
+                        brand_gain=1.0, sigma=(4.5, 1.0), df=4.0, hetero_a=0.6),
     "Libre 3":   Family("Libre 3", warmup=60, session_days=14, tau_med=1.8, brand_gain=1.0, smooth=0.35),
     "Libre 2":   Family("Libre 2", warmup=60, session_days=14, tau_med=2.4),
     "Medtronic": Family("Medtronic", warmup=120, session_days=7, tau_med=8.4, a0=(1.0, 0.1),
@@ -111,6 +112,7 @@ class Sensor:
             kw = {}
             if "sensor_sigma" in overrides: kw["sigma"] = (overrides["sensor_sigma"], self.f.sigma[1])
             if "sensor_df" in overrides: kw["df"] = overrides["sensor_df"]
+            if "sensor_hetero" in overrides: kw["hetero_a"] = overrides["sensor_hetero"]
             if "sensor_a1" in overrides or "sensor_a2" in overrides:
                 kw["ar"] = (overrides.get("sensor_a1", self.f.ar[0]), overrides.get("sensor_a2", self.f.ar[1]))
             if kw: self.f = _r(self.f, **kw)
@@ -204,7 +206,10 @@ class Sensor:
                 b = int(np.argmax(hit))
                 lo, hi = GAP_EDGES[b], GAP_EDGES[b + 1]
                 self.gap_until = minute + self.rng.uniform(lo, hi) - f.cadence
-        raw = self.gain(minute) * self.ig + s.b0 + v - self.comp_level
+        # noise grows with glucose: G7 absolute error 8.5 mg/dL at 40–60, ~11.6 near 130 (MARD 8.9%), ~17 near
+        # 240 (MARD 7.2%) (Garg 2022 tables, evidence/03 §2.3) → scale 0.6 + 0.4·IG/130 (LESSONS 29)
+        hs = (f.hetero_a + (1 - f.hetero_a) * max(self.ig, 20.0) / 130.0) if f.hetero_a < 1 else 1.0
+        raw = self.gain(minute) * self.ig + s.b0 + v * hs - self.comp_level
         c = self.comp
         withheld = minute < self.gap_until or (c is not None and c["kind"] == "gap" and self.comp_level > 0.5 * c["depth"])
         if c is not None and c["kind"] == "floor" and self.comp_level > 0.5 * c["depth"]:
