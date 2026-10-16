@@ -129,6 +129,7 @@ def person_stats(run: Path) -> dict | None:
     meta = json.load(open(run / "meta.json"))
     person = pickle.load(open(run / "person.pkl", "rb"))
     start = meta.get("burn_end", 18 * 60)
+    start = float(np.ceil(start / 1440.0) * 1440.0)     # whole days only: a partial first day (no night) biases daily means
     cgm = tr["cgm"].sort_index()
     cgm = cgm[cgm.index >= start]
     cgm.index = _series(cgm.index.to_series())
