@@ -683,3 +683,15 @@ statistic here, but it is the controller donors ran.
       autocorrelated for hours), within the FDA error budget. It lowered offline Hurst (0.197 → 0.175),
       clustering and dispersion: variance added evenly past τ flattens the structure function rather
       than tilting it. Left in the code at sd 0 (`slow_bias`).
+
+50. **Reactive overrides need the plant to speak, and the engine now lets it.** The simulator role added
+    plant-sent Temporary Overrides (main 14b2d58; trace `isf` reflects them from ce2cd7f) on the
+    2026-10-16 handoff.
+    - The additive person now starts the more-insulin class while awake when CGM is above 180 and
+      rising, at the donor's rate, factor, target and duration.
+    - A paired run (reactive on/off, same seed) gives identical candidate doses before the first
+      override and up to 0.25 U differences inside it.
+    - Planned (exported) overrides are now clipped at the next window's start, so a new override
+      replaces the running one as in Loop; the engine otherwise kept the earlier window.
+    - Cohort c57 (14b2d58): 0.22 reactive overrides/day against the matched donors' 0.195. Outcomes all
+      pass (TIR p 0.88, time above 180 0.84, t<54 0.58); process statistics unchanged.
