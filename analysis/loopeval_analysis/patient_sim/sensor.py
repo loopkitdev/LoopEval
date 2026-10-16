@@ -58,8 +58,12 @@ class Family:
 
 FAMILIES = {
     "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10),
+    # G7 is rougher than G6 in the same people (eda L33: switchers' step SD +0.87, white noise unchanged), so its
+    # correlated noise is larger: σ 4.0 matches pilot G7 donors' quiet-window step SD (5.5), whole-record step
+    # SD (7.0) and implied white noise (1.39); the Vettoretti AR(2) shape is kept — a less oscillatory shape
+    # destroyed the short-lag persistence donors show (grid runs/2026-10-15-additive-sg_*, LESSONS 24)
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
-                        brand_gain=1.0),
+                        brand_gain=1.0, sigma=(4.0, 1.0)),
     "Libre 3":   Family("Libre 3", warmup=60, session_days=14, tau_med=1.8, brand_gain=1.0, smooth=0.35),
     "Libre 2":   Family("Libre 2", warmup=60, session_days=14, tau_med=2.4),
     "Medtronic": Family("Medtronic", warmup=120, session_days=7, tau_med=8.4, a0=(1.0, 0.1),
