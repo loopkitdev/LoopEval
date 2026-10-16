@@ -871,3 +871,14 @@ statistic here, but it is the controller donors ran.
     but TIR (p 0.009), mean and time above 180 fail. The term has its own clamp evidence (Vuorinen-Markkola 1992), so
     it stays. Between-day fraction moved 0.124 → 0.145 between c70 and c71 for a nearly neutral change, so cohort
     noise in it is ~±0.02; single-cohort differences that small are not evidence.
+
+63. **Cohort noise, measured: one model, two seed sets (c71, c71b; 112 people × 14 d each).** Both match 13 of 30
+    statistics, but not the same 13. Seed-to-seed differences in the medians:
+    - mean glucose ±3; between-day fraction ±0.025; long-range Hurst ±0.015;
+    - zero-delivery share ±2; night-to-night CV ±3; day/night insulin ±0.13; manual U/day ±1.2.
+    A change must beat these to count, and single pass/fail flips near p 0.05 are noise. Failures that hold in
+    both seed sets are the real targets:
+    - long-range Hurst 0.14–0.15 (0.25); ACF zero-crossing 55 (42.5 min); volatility clustering 0.14–0.15 (0.124);
+    - 24-h amplitude 0.16 (0.13); TDD CV 14.6–15.1 (16.4) and lag-1 (−0.03 to 0.06 vs 0.11);
+    - day/night 1.73–1.86 (2.06); p99 5-min dose 1.19–1.29 (1.67 U); user boluses 3.6–4.0 (4.6);
+    - minutes below 70 per episode; wear.
