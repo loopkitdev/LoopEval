@@ -372,7 +372,7 @@ extension EvaluationEngine {
         // counter_glucose: starts as actual; modified as Δdose impacts accumulate.
         // We mutate values in place at sample indices, preserving original
         // timestamps and metadata.
-        var counterGlucose = simGlucose
+        let counterGlucose = simGlucose
         var counterMgdl = simGlucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
         // Samples an external plant reported as "no reading" (reply null). They hold the last
         // reading's value so index-aligned bookkeeping stays finite, but they never reach the
@@ -716,6 +716,16 @@ extension EvaluationEngine {
             }
         }
 
+        // The candidate's body (CandidateBody.swift): the ICE replay in counterfactual mode,
+        // the linear perturbation otherwise; an external plant replaces the ICE replay.
+        let iceBody = ICEReplayBody(
+            substrate: counterGlucose, realPhysDelta: realPhysDelta, m: mByIndex,
+            sensitivity: physiologySensitivity, insulinModel: insulinModel,
+            patientInsulinType: patientInsulinType, counterRegOnsetMgdl: counterRegOnsetMgdl,
+            counterRegGain: counterRegGain, counterRegMaxRate: counterRegMaxRate,
+            gapReanchorSec: cfGapReanchorSec, evalStep: candidateConfig.evalStep)
+        let linearBody = LinearPerturbationBody(substrate: counterGlucose, insulinModel: insulinModel)
+
         // Pre-compute expected step count for progress reporting
         let totalDuration = max(0, interval.end.timeIntervalSince(evalStart))
         let totalSteps = max(1, Int(totalDuration / candidateConfig.evalStep) + 1)
@@ -784,98 +794,17 @@ extension EvaluationEngine {
         // command expires (Loop temps last `tempBasalDuration`); see the outage branch.
         var lastIssuedTempRate: Double? = nil
         var lastIssuedTempT: Date = .distantPast
-        // External plant: the end of the last interval whose doses were SENT to it. Steps
-        // that `continue` early (stale CGM, no-dose guard) never call the plant, but doses
-        // still start inside them -- passed-through manual boluses and, under --cf-identity,
-        // the real dose stream. Sending only [t, stepEnd) dropped every one of those.
-        var plantDosesSentThrough: Date? = nil
-        // Doses appended during the run are forwarded by INSERTION, not by date: a dose can be
-        // appended dated before the last send's end (a plant bolus sits 1 s before its decision so
-        // the decision's input builder keeps it), and a date window drops it -- the plant never got
-        // any plant bolus in 8e86860 while Loop's IOB counted every one. The seeded history (the
-        // real doses before the run, or the whole window under --cf-identity) keeps the date window.
-        let plantSeedCount = counterfactualDoses.count
-        var plantNextAppended = plantSeedCount       // first appended dose not yet considered
-        var plantHeldAppended: [Int] = []            // appended doses starting at/after a send's end
-        // ... and the same for the plant's TIME: the end of the last interval it advanced over.
-        // A step that `continue`s early never calls the plant, so its CGM samples kept the FIELD
-        // value and reached the candidate's history as if the plant had produced them. Each call
-        // now advances the plant from here, so skipped intervals are covered too.
-        var plantAdvancedThrough: Date? = nil
-        // Candidate state from the last plant call, for a catch-up call made before this step's
-        // own state exists.
-        var plantLastState: [String: Double] = [:]
-        // Advance the external plant over (plantAdvancedThrough, through]: send the candidate's
-        // doses started since the last send, and write the plant's CGM -- or "no reading" -- into
-        // every sample in the interval. The candidate's history already holds the doses.
-        // Returns the grams of carbs the plant's person entered (with --plant-behavior).
-        func advancePlant(_ plant: ExternalPlant, through t1: Date, now: Date,
-                          state: [String: Double]) throws -> Double {
-            let t0 = min(plantAdvancedThrough ?? now, now)
-            var sampleIdx: [Int] = []
-            var k = Self.latestGlucoseIndex(at: t0, in: counterGlucose)
-            if k < counterGlucose.count && counterGlucose[k].startDate <= t0 { k += 1 }
-            while k < counterGlucose.count && counterGlucose[k].startDate <= t1 {
-                sampleIdx.append(k); k += 1
-            }
-            plantAdvancedThrough = t1
-            // Everything that started since the last send, not just this step: a skipped
-            // cycle before this one may hold doses (bddp11 under --cf-identity: 19 real
-            // doses, 26.3 U, incl. a 5.8 U bolus, never reached the plant).
-            let sendFrom = plantDosesSentThrough ?? now
-            var doses = counterfactualDoses[..<plantSeedCount].filter { $0.startDate >= sendFrom && $0.startDate < t1 }
-            var held: [Int] = []
-            for i in plantHeldAppended + Array(plantNextAppended..<counterfactualDoses.count) {
-                let d = counterfactualDoses[i]
-                if d.startDate >= t1 { held.append(i); continue }
-                // the plant integrates from t0: a bolus appended dated just before it lands at t0
-                doses.append(d.deliveryType == .bolus && d.startDate < t0
-                    ? EvalInsulinDose(deliveryType: .bolus, startDate: t0, endDate: t0, volume: d.volume,
-                                      insulinType: d.insulinType, automatic: d.automatic)
-                    : d)
-            }
-            plantHeldAppended = held; plantNextAppended = counterfactualDoses.count
-            doses.sort { $0.startDate < $1.startDate }
-            plantDosesSentThrough = t1
-            let reply = try plant.advance(
-                t0: t0, t1: t1, doses: doses,
-                samples: sampleIdx.map { counterGlucose[$0].startDate }, state: state)
-            for (j, idx) in sampleIdx.enumerated() {
-                if let v = reply.bg[j] {
-                    counterMgdl[idx] = v; counterMissing[idx] = false
-                } else {
-                    counterMissing[idx] = true
-                    counterMgdl[idx] = idx > 0 ? counterMgdl[idx - 1] : counterMgdl[idx]
-                }
-            }
-            // GAP RE-ANCHOR for external plants. The built-in advance re-anchors across a long
-            // CGM gap, but it is gated on `externalPlant == nil`, so a plant never saw that
-            // protection and had to re-implement it or integrate its own dynamics across the whole
-            // gap in one step (one measured case: a 77 h no-CGM gap taken as a single step pinned a
-            // replay at 2,300 mg/dL). The gap is a property of the DATA, not of the plant's
-            // physiology, so the harness handles it on the plant's behalf, with the same rule and
-            // the same identity guarantee: take the gap-end LEVEL from the real CGM but carry any
-            // significant pre-gap divergence across, so a candidate that legitimately ran away from
-            // real is not reset at every gap. At candidate == real the offset is 0, so identity
-            // holds. `--cf-gap-reanchor-min 0` disables it, for a plant that handles gaps itself.
-            if cfGapReanchorSec > 0 {
-                for (j, idx) in sampleIdx.enumerated() {
-                    let prevIdx = idx > 0 ? idx - 1 : idx
-                    guard idx > 0, let plantBG = reply.bg[j] else { continue }
-                    let span = counterGlucose[idx].startDate
-                        .timeIntervalSince(counterGlucose[prevIdx].startDate)
-                    guard span > cfGapReanchorSec else { continue }
-                    let aPrev = counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
-                    let aNext = counterGlucose[idx].quantity.doubleValue(for: mgdlUnit)
-                    let gapOffset = counterMgdl[prevIdx] - aPrev
-                    let anchored = abs(gapOffset) > 10.0 ? aNext + gapOffset : aNext
-                    if abs(anchored - plantBG) > 0.5 {
-                        FileHandle.standardError.write(Data(
-                            "cf gap re-anchor (external plant): \(Int(span / 60))min gap at \(counterGlucose[idx].startDate) — plant returned \(String(format: "%.0f", plantBG)), re-anchored to \(String(format: "%.0f", anchored)) mg/dL\n".utf8))
-                    }
-                    counterMgdl[idx] = anchored
-                }
-            }
+        // The candidate's body under --external-plant (CandidateBody.swift). Doses already in
+        // counterfactualDoses here are the seeded history; later ones are forwarded by insertion.
+        let plantBody = externalPlant.map {
+            ExternalPlantBody(plant: $0, substrate: counterGlucose, gapReanchorSec: cfGapReanchorSec,
+                              seedCount: counterfactualDoses.count)
+        }
+        // Advance the plant to `t1` and apply its person's actions (--plant-behavior).
+        // Returns the grams of carbs the plant's person entered.
+        func advancePlant(through t1: Date, now: Date, state: [String: Double]) throws -> Double {
+            let reply = try plantBody!.advance(through: t1, now: now, state: state, doses: counterfactualDoses,
+                                               counter: &counterMgdl, missing: &counterMissing)
             var carbsG = 0.0
             if plantBehavior {
                 // The person's carb entries join the candidate's carb store (sorted by
@@ -926,11 +855,11 @@ extension EvaluationEngine {
             // Bring the external plant up to this decision. A step that ended early never called
             // it, so the samples since then still hold FIELD values, and this decision would read
             // them as the candidate's own (a withheld reading would also look present).
-            if let plant = externalPlant, let through = plantAdvancedThrough, through < t {
-                var st = plantLastState
+            if let pb = plantBody, let through = pb.advancedThrough, through < t {
+                var st = pb.lastState
                 let li = Self.latestGlucoseIndex(at: through, in: counterGlucose)
                 st["bg"] = counterMgdl[li]
-                catchUpPlantCarbsG += try advancePlant(plant, through: t, now: t, state: st)
+                catchUpPlantCarbsG += try advancePlant(through: t, now: t, state: st)
             }
             // Per-cycle dosing strategy (mixed-strategy donors).
             if !tempStrategyTimes.isEmpty {
@@ -1657,18 +1586,7 @@ extension EvaluationEngine {
             // a perturbation of actual — it's a fully integrated independent
             // simulation. (Fixed 2026-05-18.)
             if deltaDose != 0 && isfPlant > 0 && !cfActive {
-                for i in 0..<counterGlucose.count {
-                    let futureT = counterGlucose[i].startDate
-                    if futureT <= t { continue }
-                    let τ = futureT.timeIntervalSince(t)
-                    let pd: Double
-                    if τ > activityDuration {
-                        pd = 1.0
-                    } else {
-                        pd = max(0.0, min(1.0, 1.0 - insulinModel.percentEffectRemaining(at: τ)))
-                    }
-                    counterMgdl[i] -= deltaDose * isfPlant * pd
-                }
+                linearBody.apply(deltaDose: deltaDose, isf: isfPlant, at: t, counter: &counterMgdl)
                 // Append virtual dose entry. Treat Δdose as an instantaneous bolus
                 // at time t. This makes IOB calculations on subsequent steps
                 // include the candidate's extra (or reduced) delivery.
@@ -1780,144 +1698,21 @@ extension EvaluationEngine {
                 }
               } // end !cfIdentity (skip candidate dose append in identity mode)
 
-                // PHYSIOLOGICAL ADVANCE — step counter_BG forward to whatever
-                // CGM samples fall in (t, t + stepSec]. counter_BG advance =
-                //   insulin effect over [prev, next] from candidate dose history
-                //   + ICE over [prev, next] from real-BG-derived timeline.
-                // Per-step insulinEffectDelta uses binary search to slice only
-                // the doses whose effect window overlaps the target interval —
-                // bounded to ~70 doses (6h DIA × 1 dose per 5-min step + a few
-                // historical), so each call is fast.
+                // PHYSIOLOGICAL ADVANCE — the candidate's body steps counter_BG forward over
+                // the samples in (t, stepEnd] (CandidateBody.swift).
                 var advIdx = 0
                 while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= t {
                     advIdx += 1
                 }
-                if let plant = externalPlant {
+                if let pb = plantBody {
                     // The plant, not the ICE replay, decides what the candidate's insulin does.
-                    stepPlantCarbsG += try advancePlant(plant, through: stepEnd, now: t, state: [
+                    stepPlantCarbsG += try advancePlant(through: stepEnd, now: t, state: [
                         "rec_bolus": candidateManualBolusRec, "iob": candidateIOB,
                         "cob": candidateCOB, "bg": advIdx > 0 ? counterMgdl[advIdx - 1] : .nan])
-                    plantLastState = ["rec_bolus": candidateManualBolusRec, "iob": candidateIOB, "cob": candidateCOB]
-                    while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd { advIdx += 1 }
-                }
-                while externalPlant == nil && advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd {
-                    let prevIdx = advIdx > 0 ? advIdx - 1 : advIdx
-                    let prevT = counterGlucose[prevIdx].startDate
-                    let nextT = counterGlucose[advIdx].startDate
-                    // SINGLE PATIENT MODEL (used for EVERY CF comparison and for
-                    // --cf-identity). The advance is always the PHYSICAL /
-                    // EGP-separated form on ONE mid-abs ISF timeline:
-                    //   stepDelta = realBGdelta + m·(E(candidate) − E(field))
-                    // where E(·) = physicalActiveEffectDelta (mid-abs ISF, EGP
-                    // credit zeroed) and m = mByIndex (≡1 unless sensitivity is
-                    // inferred). realBGdelta carries ALL non-insulin physiology
-                    // (incl. EGP) UNSCALED, so m never magnifies EGP and a
-                    // candidate that suspends into sub-basal just removes
-                    // m·(the cut) of lowering while the real unscaled EGP carries
-                    // BG back up. The SAME E(·) removes field doses (realPhysDelta)
-                    // and adds candidate doses (candPhys) — one ISF timeline, both
-                    // directions. Identity: candidate doses == real ⇒
-                    // candPhys == realPhysDelta ⇒ counter reproduces the substrate.
-                    let realBGdelta = counterGlucose[advIdx].quantity.doubleValue(for: mgdlUnit)
-                        - counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
-                    let candPhys = Self.physicalActiveEffectDelta(
-                        doses: counterfactualDoses,
-                        basal: candTherapy.basal,
-                        sensitivity: physiologySensitivity,
-                        from: prevT, to: nextT,
-                        insulinModel: insulinModel,
-                        patientInsulinType: patientInsulinType)
-                    let m = mByIndex[advIdx]
-                    let stepDelta = realBGdelta + m * (candPhys - realPhysDelta[advIdx])
-                    // Counter-regulation: as counter_BG falls below the onset
-                    // threshold the body defends with surging hepatic glucose
-                    // output (glucagon/epinephrine) — a positive BG VELOCITY that
-                    // ramps with depth below onset, capped. Because it is a
-                    // velocity, it must integrate at the per-step cadence: a single
-                    // advance that spans a skipped CGM gap (prevT..nextT can be
-                    // 15-25 min, not 5) would otherwise multiply the velocity by the
-                    // whole gap and inject a spurious BG jump on gap-close (the real
-                    // recovery is already in baseDelta). Subdivide into <=1-step
-                    // sub-intervals: distribute baseDelta linearly and recompute the
-                    // counter-reg term against the rising counter level each
-                    // sub-step (it stops once the level climbs back above onset).
-                    // For a normal 5-min step nSub==1 and this reproduces the prior
-                    // arithmetic exactly (identity preserved).
-                    // INCREMENTAL counter-regulation. Like insulin and ICE, the
-                    // counter-reg defense is applied as a DIFFERENCE from the real
-                    // trajectory: realBGdelta already carries the real body's
-                    // counter-regulation at the real lows, so adding the absolute
-                    // defense counterreg(counter) on top would DOUBLE-COUNT it (and
-                    // breaks the identity: candidate==real would then push counter
-                    // above actual at every low). Instead add
-                    //   counterreg(counter_BG) − counterreg(actual_BG)
-                    // so at identity (counter==actual) the term is 0; a counter that
-                    // goes genuinely LOWER than actual gets the EXTRA defense; a
-                    // counter that ends HIGHER sheds the real-low defense it wrongly
-                    // inherited via realBGdelta. actual_BG is the real substrate the
-                    // advance runs on (counterGlucose), interpolated across sub-steps.
-                    let totalSec = nextT.timeIntervalSince(prevT)
-                    let nSub = Swift.max(1, Int((totalSec / candidateConfig.evalStep).rounded(.up)))
-                    let subFrac = 1.0 / Double(nSub)
-                    let aPrev = counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
-                    let aNext = counterGlucose[advIdx].quantity.doubleValue(for: mgdlUnit)
-                    // GAP RE-ANCHOR: across a long CGM gap the single big-step advance
-                    // is unreliable (manual boluses in the gap are on the field side
-                    // but not the candidate history ⇒ runaway asymmetry). Take the
-                    // gap-END LEVEL from the real CGM (discarding the unreliable
-                    // big-step advance), but PRESERVE the candidate-vs-real divergence
-                    // accumulated BEFORE the gap. Snapping straight to `aNext` zeroed
-                    // that divergence in BOTH directions, so a candidate that
-                    // legitimately drove BG away from real (e.g. an aggressive oref on
-                    // a Loop dataset that over-doses a high) had its accumulated
-                    // insulin effect wiped at every gap → it saw a high counter and
-                    // re-dosed → runaway. Carrying the pre-gap offset fixes that while
-                    // still resyncing the absolute level + gap-interval non-insulin
-                    // physiology from real. Identity-safe: at candidate==real,
-                    // counterMgdl[prevIdx]==aPrev, so the offset is 0 (⇒ = aNext).
-                    if cfGapReanchorSec > 0 && totalSec > cfGapReanchorSec {
-                        // Preserve only a SIGNIFICANT candidate-vs-real divergence; for
-                        // small offsets snap straight to real (the original behavior) so
-                        // the sub-step advance's tiny numerical drift (~1 mg/dL) can't
-                        // accumulate across gaps and degrade the identity. The threshold
-                        // sits well above that noise but far below any real over/under-
-                        // dose divergence (e.g. an over-dosing oref runs 80-90 mg/dL
-                        // below real before a gap).
-                        let gapOffset = counterMgdl[prevIdx] - aPrev
-                        counterMgdl[advIdx] = abs(gapOffset) > 10.0 ? aNext + gapOffset : aNext
-                        advIdx += 1
-                        continue
-                    }
-                    var bg = counterMgdl[prevIdx]
-                    for k in 0..<nSub {
-                        var crSub = 0.0
-                        // Counter-regulation is a defense that fires only when the
-                        // COUNTERFACTUAL itself is below onset — GATED on `belowC > 0`.
-                        // Inside that gate it stays difference-based (rateC − rateA) so
-                        // identity holds and a counter that inherited a DEEPER real-low
-                        // defense via realBGdelta sheds the excess. But when the counter
-                        // is at/above onset we apply NOTHING: a counterfactual running
-                        // high must not shed the real low's defense (rateA), which used
-                        // to subtract the full real-counter-reg rate and drive a
-                        // high-running arm implausibly below the real substrate — a
-                        // systematic downward bias against less-aggressive / lows-
-                        // reducing candidates (they run high, so real lows crashed them).
-                        // Cost: a high counter keeps a small inherited real-low lift;
-                        // far preferable to a spurious plunge.
-                        if counterRegOnsetMgdl > 0 {
-                            let belowC = counterRegOnsetMgdl - bg
-                            if belowC > 0 {
-                                let rateC = Swift.min(counterRegGain * belowC, counterRegMaxRate)
-                                let aSub = aPrev + (aNext - aPrev) * (Double(k) / Double(nSub))
-                                let belowA = counterRegOnsetMgdl - aSub
-                                let rateA = belowA > 0 ? Swift.min(counterRegGain * belowA, counterRegMaxRate) : 0.0
-                                crSub = (rateC - rateA) * (totalSec * subFrac / 60.0)
-                            }
-                        }
-                        bg += stepDelta * subFrac + crSub
-                    }
-                    counterMgdl[advIdx] = bg
-                    advIdx += 1
+                    pb.lastState = ["rec_bolus": candidateManualBolusRec, "iob": candidateIOB, "cob": candidateCOB]
+                } else {
+                    _ = iceBody.advance(from: advIdx, through: stepEnd, doses: counterfactualDoses,
+                                             basal: candTherapy.basal, counter: &counterMgdl)
                 }
             }
 
@@ -2447,7 +2242,7 @@ extension EvaluationEngine {
     /// physical insulin; EGP stays in the dose-independent residual and is never
     /// magnified by m (avoids the net-basal "negative IOB raises BG" artifact).
     /// mg/dL, negative = drop. Same dose-slicing as `insulinEffectDelta`.
-    fileprivate static func physicalActiveEffectDelta(
+    static func physicalActiveEffectDelta(
         doses: [EvalInsulinDose],
         basal: [AbsoluteScheduleValue<Double>],
         sensitivity: [AbsoluteScheduleValue<LoopQuantity>],
@@ -3294,7 +3089,7 @@ extension EvaluationEngine {
     /// what carries advanced counter perturbations; the "next future"
     /// sample may sit in an unprocessed CGM gap and still hold its
     /// un-advanced original value.
-    fileprivate static func latestGlucoseIndex(at t: Date, in samples: [EvalGlucoseSample]) -> Int {
+    static func latestGlucoseIndex(at t: Date, in samples: [EvalGlucoseSample]) -> Int {
         guard !samples.isEmpty else { return 0 }
         if samples[0].startDate > t { return 0 }
         var lo = 0, hi = samples.count - 1
