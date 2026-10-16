@@ -582,3 +582,27 @@ statistic here, but it is the controller donors ran.
       gaps now come from the pilot donors; Libre 3 keeps the eda rates, with only 6 pilot donors.
     - Cohort c47 (all defaults through lesson 44) reproduces c46_f0.2 exactly (same seeds, same
       configuration): 27 of 50.
+
+46. **Check every effect size against its own source.** The 2-to-4-hour structure function saturated
+    early:
+
+    | Lag | 2 h | 3 h | 4 h | 6 h |
+    |---|---|---|---|---|
+    | Simulator, SD of glucose change (c48) | 63.8 | 66.5 | 68.6 | 71.9 |
+    | Donors | 61.4 | 69.3 | 73.5 | 75.3 |
+
+    Simulated excursions resolved by ~2 h. A slower solid phase (Vmax 2.5) shrank every lag instead of
+    shifting variance to the longer ones. The late-acting term that was undersized was fat-induced
+    insulin resistance:
+    - Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner;
+    - per-person ρ ~ U(0, 0.35) gave the median person ~21%;
+    - ρ ~ U(0.1, 0.6) (mean 0.35) reproduces the measured mean with a wide spread.
+
+    Cohort c50:
+    - mean 149.1 (p 0.57), TIR 73.7 (p 0.64), time above 180 24.4 (p 0.73);
+    - total time above 180 27.4% vs the donors' 27.3%, with announced-meal highs matching by context;
+    - 4-h SD of change 70.7, long-range Hurst 0.12;
+    - highs with no eating in the past 4 h are still half the donors'.
+
+    The structure function by lag (median person SD of Δ at 5 min–6 h) is now a standard check, done
+    the same way on both sides.

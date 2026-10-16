@@ -290,7 +290,7 @@ kempt × (1 + 1.5·σ((70 − G)/5)), about ×2.5 below ~60. Evidence: Schvarcz 
 - **Early fat effect.** Gastric emptying slows, as in A10.
 - **Protein.** A late glucose parcel of 0.1 g per g protein, with a 90-min delay and 1/60 /min rates.
 - **Late fat effect.** An SI dip `1 − ρ·min(fat, 80)/50`, ramping in over 2–3 h, full to 6 h, gone by
-  10 h. ρ ~ U(0, 0.35) per person; the product is floored at 0.4.
+  10 h. ρ ~ U(0.1, 0.6) per person (mean 0.35 reproduces Wolpert 2013's +42% insulin at 60 g fat; LESSONS 46); the product is floored at 0.4.
 - **Evidence.** Smart 2013, Wolpert 2013, Bell 2015/2020, Paterson 2016/2017 (01 §6.3).
 
 ### A13 Fast glucose (rescue, proactive snack, exercise carbs, grazing)
