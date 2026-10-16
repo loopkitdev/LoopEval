@@ -802,3 +802,20 @@ statistic here, but it is the controller donors ran.
       20.1%, mostly night eating: simulated people eat between 00 and 06 h on 48% of nights. That eating
       follows the donors' own labeled pulses by hour, and some of those night pulses may not be eating.
     No noise term is added. The all-nights statistic passes (37.2 vs 33.7, p 0.11).
+
+57. **The delayed exercise effect is a third of McMahon's size, but sizing it up adds lows the donors don't show.**
+    Paired runs on the same 56 people with the same planned sessions (`truth.ex_boost` now logged):
+    - **Default** (linear drive, b 0.018): on nights after an afternoon or evening session the delayed state is
+      0.16 vs 0.02, but overnight insulin is 1.03× the exercise-off arm and glucose only −1.9 mg/dL. At basal
+      insulin the model's insulin-driven disposal is ~1.1 mg/kg/min, so 0.16 adds ~0.18. McMahon 2007 measured
+      ≈ +0.6 mg/kg/min of glucose need 7–11 h after a 45-min moderate session; Taplin 2010 puts overnight need
+      10–20% lower.
+    - **b 0.055** (McMahon-sized): overnight insulin −6%, glucose −9 mg/dL; hypo-below-60 nights after
+      sessions 17.3% vs 13.4% (×1.29; Tsalikian 2005 ×1.7 without closed loop). But everyday walking gets 3× too:
+      t<54 0.39 (0.22) and t<70 2.6 (1.7) fail.
+    - **Quadratic drive** (`z_power` 2, b 0.134: walking at its old size, sessions McMahon-sized; glycogen use
+      rises steeply with intensity): overnight −2.5%, glucose −6.8, t<54 0.30, reaching 54 0.233 (p 0.047). It
+      scores 17 of 30 statistics against the default's 20 on the same people.
+    The default stays; `ex_b` / `ex_zp` remain switches. Session frequency and intensity are [J] and donors carry
+    no activity record, so neither side is pinned. A 56-person cohort passes more statistics than a 112-person one
+    (20 vs 14 for nearly the same model) because KS loses power: compare scores at equal n only.

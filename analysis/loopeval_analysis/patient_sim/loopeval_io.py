@@ -160,7 +160,7 @@ def save_truth(world: World, path: Path):
     tr = pd.DataFrame(world.truth, columns=["m", "bg", "ra", "egp", "si", "delivered", "absorbed"])
     cgm = pd.Series({k: (np.nan if v is None else v) for k, v in world.readings.items()}, name="cgm")
     pickle.dump(dict(truth=tr, cgm=cgm, behavior=world.beh.log, entries=world.entries, sent_overrides=world.sent_overrides,
-                     bolus_requests=world.bolus_requests, pump=world.pump.log,
+                     bolus_requests=world.bolus_requests, pump=world.pump.log, ex_boost=world.ex_log,
                      illness=world.mods.ill, sensor_log=None, received=world.received,
                      person=world.person.name), open(path, "wb"))
 

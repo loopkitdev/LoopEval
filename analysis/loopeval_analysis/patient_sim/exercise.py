@@ -23,6 +23,10 @@ from dataclasses import dataclass
 class ExerciseParams:
     alpha: float = 2.0          # acute SI boost per unit intensity (Romeres 2021, linearised) [I]
     b: float = 0.018            # delayed-state build per minute per unit drive [J]
+    z_power: float = 1.0        # drive = ((Y − threshold)/(1 − threshold))^power. 2.0 with b 0.134 keeps everyday walking
+                                # (I ~0.25) at the T1DEXI-sized build of b 0.018 linear and gives a 45-min moderate session
+                                # (I ~0.5) McMahon 2007's late-phase size, ≈ +0.6 mg/kg/min at 7–11 h; muscle glycogen use,
+                                # which the delayed sensitivity repletes, rises steeply with intensity (LESSONS 57)
     tau_z: float = 600.0        # min (ETH / UVA)
     absorb: float = 0.5         # absorption speed-up per unit intensity
     z_threshold: float = 0.12   # intensity above which delayed sensitivity builds (UVA / Deichmann) [I]
@@ -51,7 +55,7 @@ class Exercise:
         self.y += (intensity - self.y) / self.p.filt_tau
         # the delayed state follows activity above light intensity (LESSONS 23 had it at 0.35, which left everyday
         # walking without the after-effect the UVA and Deichmann models give it; LESSONS 34)
-        drive = max(0.0, self.y - self.p.z_threshold) / (1.0 - self.p.z_threshold)
+        drive = (max(0.0, self.y - self.p.z_threshold) / (1.0 - self.p.z_threshold)) ** self.p.z_power
         self.z += self.p.b * self.p.gain * drive - self.z / self.p.tau_z
         while self.sessions and self.sessions[0][1] < m - 2000:
             self.sessions.pop(0)
