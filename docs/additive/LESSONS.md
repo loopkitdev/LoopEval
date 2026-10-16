@@ -976,3 +976,18 @@ statistic here, but it is the controller donors ran.
     - levels unchanged (mean 152.9/148.2).
     LESSONS 20 fitted whole-body action to Loop's curve with 0.018; the EGP arm adds little in the first hour, so the
     first-hour forecast match it rests on should hold. Not re-checked.
+
+71. **The tracer-matched EGP arm fails the units self-check; reverted pending a calibration change.** After LESSONS
+    69–70 the self-check (truth settings, perfect person, disturbances off, open loop) failed 3 of 8 bodies: nights 64–73
+    against rest levels 121–129. The bisection blames both changes: share U(0.5, 0.7) at p2E 0.018 fails 1 of 4, and
+    adding p2E 0.010 fails 3 of 4.
+    The cause is the calibration, not a fault in either value. Effective ISF and CSF are calibrated on the PEAK
+    difference at ~180 mg/dL, and glucose effectiveness erodes a slower effect's peak more. With more of insulin
+    acting through the slow EGP arm, the calibration scales insulin up until the peak matches, so its whole-excursion
+    effect grows. The self-check doses with peak-ISF ÷ peak-CSF and so over-covers. Its whole-excursion ratio
+    (`_probe_cr_true`) is 2–4× the peak ratio for some bodies (41 vs 125, 10.7 vs 40.8) and passes 6 of 8, but stays
+    degenerate where glucose effectiveness erodes the excursion (LESSONS 40).
+    Closed loop, Loop's corrections hide this, which is why the cohort statistics improved (LESSONS 69–70).
+    Defaults are back to U(0.3, 0.5) and 0.018, and the self-check passes 8 of 8. `--set egp_share` and
+    `--set ins_p2e` remain. Using the tracer-matched values needs a calibration whose ISF does not depend on action
+    timing, which turns on what ISF means for the body; that question is for Pete.
