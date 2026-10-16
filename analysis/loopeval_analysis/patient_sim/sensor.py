@@ -80,6 +80,8 @@ FAMILIES = {
     "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(2.5, 0.8), hetero_q=0.5,
                         a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(6.0, 0.9), trans_amp=(12.0, 0.4),
                         noise_wander=(0.7, 480.0)),
+    # G7 innovations near-Gaussian (df 30): with the noise level wandering and transient biases, df 4 double-counted
+    # the tails (step kurtosis 3.1 vs donors 2.48; FDA loss 1.5 → 0.7; LESSONS 42).
     # G7 fitted to sensor-only targets, never to donor roughness (LESSONS 31; sensor_fit.py, evidence/08): FDA K213919
     # adult accuracy by range (bias 4.0/1.1/1.1/−1.9/−6.6, MARD 14/10.7/8.6/7.4/6.4 from <54 to >250) and two-sensor
     # precision PARD 8.9%. Fit: bias 3.8/2.7/1.2/−1.5/−6.8, MARD 13.7/10.9/7.9/6.9/6.8, PARD 8.9, MAD elasticity
@@ -88,7 +90,7 @@ FAMILIES = {
     # σ 2.0) carries the rest of the accuracy error. The G6 Vettoretti values (σ 3.19, a0 0.95 ± 0.063, b0 6.35 ± 6)
     # gave G7 MARD 17% at 54–69 and PARD 14%.
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
-                        brand_gain=1.0, sigma=(2.8, 0.8), df=4.0, hetero_q=0.5, a0=(0.98, 0.04), b0=(3.0, 3.0),
+                        brand_gain=1.0, sigma=(2.8, 0.8), df=30.0, hetero_q=0.5, a0=(0.98, 0.04), b0=(3.0, 3.0),
                         common_sigma=2.0, trans_rate=(8.0, 0.9), trans_amp=(12.0, 0.4), noise_wander=(0.6, 480.0)),
     # Libre 3 fitted to K212132 (bias 7.4/1.4/−4.5/−7.3/−11.5, MARD 15.5/10.3/9.7/7.5/6.9, PARD 6.8): MARD 11/10/8/7.6/7.5,
     # PARD 6.8; it reads too little high at true < 54 (+0.4 vs +7.4) [open]
