@@ -367,3 +367,28 @@ statistic here, but it is the controller donors ran.
     | Lows after a meal bolus | 0.37/day | 0.12/day |
 
     Open: the high side and post-meal lows.
+
+35. **A per-person trait read off a noisy labeler is mostly the labeler.** Each person's carb-count bias
+    came from their donor's labeled entered/pulse ratio. Run through the same labeler, simulated people
+    with a known true count bias showed a per-person spread of 0.67 log-sd for a true 0.49. So the
+    labeler alone adds ~0.46, which is all of the donors' 0.45. The donors' real per-person bias is
+    therefore small, as Brazeau 2013 measured (±0.10). The imported spread made some people
+    systematically over-bolus. Now N(−0.10, 0.10). Per-meal labeled spread had told the same story
+    (labeler noise ~0.84 log-sd against the donors' total 0.83).
+
+    Cohort c29 (112 × 14 d) matches 19 of 42 statistics:
+
+    | | c29 | Donors |
+    |---|---|---|
+    | Skew | 0.82 | 0.89 |
+    | Box-Cox λ | 0.00 | −0.03 |
+    | Lows per day | 0.94 | 1.08 |
+    | t<54 | 0.17 | 0.23 |
+    | TDD | 36.3 | 37.0 |
+    | Mean | 144 | 151 |
+    | TIR | 77 | 72 |
+    | Lows within 4 h of a meal bolus | 0.32/day | 0.12/day |
+
+    Skew and Box-Cox now pass the KS test. Post-meal lows barely moved. Two related fixes to the
+    self-check: it runs 10 days and switches off fat-induced resistance, a disturbance that a perfect
+    carb bolus does not cover.
