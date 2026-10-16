@@ -1319,7 +1319,8 @@ statistic here, but it is the controller donors ran.
       | Step skew, G7 | 0.01 | 0.00 | 0.33 |
 
       Paired outcomes are unchanged (TIR −0.1). Slow emptiers flatten their peaks, so CV improves while glucose skew
-      falls. Off by default pending Pete's call.
+      falls. **Adopted as the default (Pete, 2026-10-16);** `--disable ge_var` turns it off. The skew and Box-Cox
+      shortfall is now a lead for what is still missing. The units self-check keeps unit emptying (timing, not units).
     - **Donor quiet windows have labeler blind spots.** Half the pilot donors have at least one label-free stretch
       over 24 h (the max is 57 days). Sharp sustained daytime rises (> 20 mg/dL per 5 min, median +132 mg/dL to a
       peak of 290) with no label sit in those stretches and in disruption windows (generic disruption 18% vs 7% at
