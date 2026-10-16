@@ -65,6 +65,10 @@ class World:
         if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable and isinstance(v, bool)})
         self.mods = Modulators(self.mod_traits, days)
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
+        if enable and isinstance(enable.get("meal_slow"), float):
+            self.beh_traits.meal_slow_frac = enable["meal_slow"]
+        if enable and isinstance(enable.get("meal_slow_k"), float):
+            self.beh_traits.meal_slow_k = enable["meal_slow_k"]
         if enable and enable.get("perfect_person"):
             # diagnostic: every meal entered exactly and bolused at the meal; no snacks, no exercise
             t = self.beh_traits

@@ -149,7 +149,7 @@ def _formulation(brand: str, rng) -> str:
 
 
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
-                  jitter: float = 0.10, name: Optional[str] = None) -> Person:
+                  jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -164,7 +164,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # −0.13 with t<70), so much of it is estimation noise (eda L53: ISF is not identifiable in closed
     # loop). ISF_W is an open parameter, settled by per-donor twin validation [J 0.5].
     r_isf = float(np.clip(row.isf_true / row.isf, 0.5, 2.0))
-    isf_true = float(row.isf) * r_isf ** ISF_W * j_isf
+    isf_true = float(row.isf) * r_isf ** (ISF_W if isf_w is None else isf_w) * j_isf
     fasting_rate = float(row.basal_true) * j_basal          # measured; kept as a validation quantity
     # body weight: the age prior blended with what TDD implies at an age-banded U/kg (a profile age can
     # belong to the account holder, eda L47, so neither alone is trusted)
