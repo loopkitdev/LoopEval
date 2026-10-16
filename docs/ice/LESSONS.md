@@ -997,3 +997,15 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     (field 0.07, base 0.11) but at 5 min 0.14 / 0.11 (field 0.40, base ~0.36), 5-min sd 72 / 69 (field 56): the draws became
     nearly white. Seed 1's night background fell to 31.5 (base 37.7, field 24) and its TIR rose, yet severe lows rose on
     both seeds. With LESSONS 106: the excess lows after boluses follow the 5-min structure, not the 30-min memory.
+108. **The generator's plant snapped onto field glucose at every field disruption, several times a day; it now follows the
+    field only through disruptions of an hour or more (PLANT_FOLLOW_MIN=60), base refit, outcomes within noise.** Generated
+    5-min glucose changes had heavy tails (sd 12.3 vs field 7.3, 99th percentile |change| 35 vs 23 mg/dL; robust sd 5.6 vs 5.2)
+    although the generator's own net force matched the field's (99th percentile 22.9 vs 23.0): ~5 a day (up to 25) steps
+    where glucose did not follow the force, each the plant re-anchoring to the field reading on a disrupted step. 85% of
+    disruption runs in the held-out windows are under 30 min (median 10, ~3.6 a day; i035 15, i006 13), short enough to
+    stay inside the 30-min clean-time windows, so field glucose leaked into the scored outcomes and Loop saw the snaps as
+    real moves. Following only runs of >= 60 min (the long pumpless stretches the rule was written for): without refitting,
+    lows per meal bolus rose (0.111 / 0.107 -> 0.124 / 0.118) - the snaps had been pulling generated people back onto the
+    field's track, not causing the lows. With the closed-loop start and low-band calibrations refit under it (v32of{0,1}TcB2FG):
+    TIR 69.6 / 68.4, t<54 0.40 / 0.38, mean 157 / 158, lows per meal bolus 0.113 / 0.107 (old base 69.4 / 70.1, 0.44 / 0.31,
+    160 / 159, 0.111 / 0.107). Kept as the harness: the same outcomes, now reached without borrowing the field's glucose.
