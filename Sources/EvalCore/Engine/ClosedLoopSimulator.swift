@@ -1633,9 +1633,12 @@ extension EvaluationEngine {
             // (PredictionRecord.isf is algorithm state, alongside COB/RC/momentum — it is
             // what case_study.py plots, so it must keep meaning the controller's ISF).
             // `isfPlant` is the BODY's, and is what converts a dose delta into a BG effect.
-            // They coincide unless --patient-isf is set.
-            let isfQty = scaledSensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
-                ?? scaledSensitivity.closestPrior(to: t)?.value
+            // They coincide unless --patient-isf is set (or a Temporary Override / candidate
+            // therapy moves the controller's ISF; the body keeps `physiologySensitivity`).
+            // `isf` is read from the decision's own input, so it carries the overrides active at
+            // t and the candidate's schedule, exactly as the controller saw them.
+            let isfQty = candidateInput.sensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                ?? candidateInput.sensitivity.closestPrior(to: t)?.value
             let isf = isfQty?.doubleValue(for: mgdlUnit) ?? 0
             let isfPlantQty = physiologySensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
                 ?? physiologySensitivity.closestPrior(to: t)?.value
