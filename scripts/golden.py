@@ -45,6 +45,8 @@ CASES = {
     # Frontier counterfactual: ICE replay, candidate settings differ from the field.
     "frontier_a":        dict(alias="i008", flags=FRONTIER + ["--candidate-insulin-needs", "0.85"]),
     "frontier_b":        dict(alias="i008", flags=FRONTIER + VERBATIM_BOLUS + ["--candidate-insulin-needs", "0.85"]),
+    "frontier_iob_adjust": dict(alias="i008", flags=FRONTIER + ["--no-candidate-manual-bolus-from-recommendation",
+                                                                "--candidate-insulin-needs", "0.85"]),
     "frontier_ircc_gbaf": dict(alias="i003", flags=FRONTIER + IRCC + [
         "--candidate-gbaf", "--candidate-gbaf-low-anchor", "98", "--candidate-gbaf-high-anchor", "200",
         "--candidate-gbaf-factor-low", "0.2", "--candidate-gbaf-factor-high", "0.8", "--candidate-insulin-needs", "1.15"]),
