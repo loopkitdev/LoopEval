@@ -61,6 +61,7 @@ class BehaviorTraits:
     calc_up: float = 0.074               # Groat 2017: 7.4% larger, 6.9% smaller
     calc_down: float = 0.069
     absorption_entry_h: float = 3.0      # what they tell Loop
+    p_topup: float = 0.0                 # P(a second bolus 20–60 min after a meal bolus, no new entry) — raw donor top-ups
     p_free_bolus: float = 0.0            # P(an un-entered eating event gets a hand-dosed bolus)
     # monitoring and alerts
     glances_per_day: float = 8.0         # Puhr 2020: <3.3 to >8.25 trend-screen views/day
@@ -127,7 +128,10 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     mpd = _num(rates, "meals_per_day")
     snack_rate = max(0.3, mpd - 3.0) if np.isfinite(mpd) else lj(1.2, 0.4)
     n_eat = 3.0 + snack_rate
-    entries = _num(rates, "carb_entries_per_day")
+    # rates from the RAW record where present (templates.add_raw_rates; LESSONS 36): the ice-labeled entry count
+    # keeps only entries attached to a labeled pulse (2.07 vs 2.97/day)
+    entries = _num(rates, "entries_raw")
+    if not np.isfinite(entries): entries = _num(rates, "carb_entries_per_day")
     if np.isfinite(entries):
         p_meal = float(np.clip(entries / 3.0, 0.0, 1.0))
         p_snack = float(np.clip((entries - 3.0 * p_meal) / max(snack_rate, 0.1), 0.0, 1.0))
@@ -144,9 +148,17 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     else:
         timing = str(rng.choice(["before", "immediate", "during", "after"], p=[0.21, 0.44, 0.10, 0.25]))
     pb = _num(rates, "p_bolus_ann")
+    be_raw, lone_raw, top_raw = _num(rates, "bolus_entry_raw"), _num(rates, "lone_raw"), _num(rates, "topups_raw")
+    if np.isfinite(be_raw) and np.isfinite(entries) and entries > 0:
+        pb = float(np.clip(be_raw / entries, 0.05, 1.0))
     corr_rate = _num(rates, "true_corrections_per_day")
     if not np.isfinite(corr_rate): corr_rate = _num(rates, "corrections_per_day")
     free = _num(rates, "free_boluses_per_day")
+    if np.isfinite(lone_raw):
+        # the raw lone-bolus rate, split into hand-dosed food and corrections by the donor's own labeled split
+        fr = free / (free + corr_rate) if np.isfinite(free) and np.isfinite(corr_rate) and free + corr_rate > 0 else 0.5
+        free, corr_rate = lone_raw * fr, lone_raw * (1 - fr)
+    p_topup = float(np.clip(top_raw / be_raw, 0.0, 1.0)) if np.isfinite(top_raw) and np.isfinite(be_raw) and be_raw > 0 else 0.0
     unentered = max(n_eat - (entries if np.isfinite(entries) else n_eat * p_meal), 0.5)
     p_free = float(np.clip(free / unentered, 0.0, 1.0)) if np.isfinite(free) else 0.0
     ub = _num(rates, "user_boluses_per_day")
@@ -164,7 +176,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         count_bias=count_bias, count_sd=lj(0.2, 0.3),
         bolus_timing=timing,
         p_bolus_with_entry=float(np.clip(pb, 0.05, 1.0)) if np.isfinite(pb) else 0.85,
-        p_free_bolus=p_free,
+        p_free_bolus=p_free, p_topup=p_topup,
         glances_per_day=lj(6.0, 0.6),
         low_alert=float(rng.normal(76, 8)), high_alert=float(rng.normal(240, 25)),
         p_wake_alarm=float(np.clip(rng.normal(0.45, 0.2), 0.05, 0.95)),
@@ -385,6 +397,9 @@ class Behavior:
                 acts.append(("carb", m, float(meal.entered), t.absorption_entry_h * 3600))
                 if meal.bolus is not None:
                     acts.append(("bolus", m, meal.bolus)); self.last_bolus = m
+                    if r.random() < t.p_topup:
+                        self.planned.append((m + float(r.uniform(20, 60)), ("topup",)))
+                        self.planned.sort(key=lambda x: x[0])
                 self.log.append((m, "entry", meal.entered, meal.bolus))
             elif kind == "walk":
                 acts.append(("exercise",) + tuple(rest)); self.log.append((m, "walk", rest[1], rest[2]))
@@ -392,6 +407,11 @@ class Behavior:
                 bp = self.p.body
                 acts.append(("eat", Parcel(m, rest[0], kempt=bp.kempt * 1.5, kabs=bp.kabs * 1.5, f=self._f_glucose(), label="graze")))
                 self.log.append((m, "graze", rest[0], None))
+            elif kind == "topup":
+                # a top-up when the meal is running high: CGM above 120 and not falling [J on the condition]
+                if self.readings and self.readings[-1][1] > 120 and self.trend() >= 0:
+                    acts.append(("bolus", m, 1.0)); self.last_bolus = m
+                    self.log.append((m, "topup", 0, self.readings[-1][1]))
             elif kind == "free_bolus":
                 acts.append(("bolus_units", m, rest[0])); self.last_bolus = m
                 self.log.append((m, "free_bolus", rest[0], None))

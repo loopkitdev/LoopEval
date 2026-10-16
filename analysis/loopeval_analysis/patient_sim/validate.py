@@ -148,7 +148,13 @@ def person_stats(run: Path) -> dict | None:
     beh = beh[beh.m >= start]
     ent = [e for e in tr["entries"] if e[0] >= start]
     bol = [b for b in tr["bolus_requests"] if b[0] >= start]
-    out.update(carb_entries_per_day=len(ent) / days, user_boluses_per_day=len(bol) / days,
+    # user boluses as DELIVERED person boluses (nonzero), like the donors' raw manual dose records (LESSONS 36)
+    if rec:
+        pb = R[(R.typ == "bolus") & (R.s >= start) & (R.u > 0)]
+        n_bol, man_u = len(pb), float(pb.u.sum())
+    else:
+        n_bol, man_u = len(bol), np.nan
+    out.update(carb_entries_per_day=len(ent) / days, user_boluses_per_day=n_bol / days, manual_u_day=man_u / days,
                carbs_eaten_day=float(beh[beh.kind.isin(["meal", "snack"])].g.sum() / days),
                rescue_g_day=float(beh[beh.kind.isin(["rescue", "retreat", "proactive"])].g.sum() / days),
                proactive_per_day=float((beh.kind == "proactive").sum() / days),
@@ -204,10 +210,13 @@ def twin(sim: pd.DataFrame, templates: str | None = None) -> pd.DataFrame:
         tp = pd.read_csv(templates).rename(columns={"alias": "template"})
         if not set(sim.template) & set(real.template):
             real = tp
+            if "entries_raw" in real:   # raw-record behavior rates (LESSONS 36)
+                real = real.drop(columns=["carb_entries_per_day", "user_boluses_per_day"]).rename(
+                    columns={"entries_raw": "carb_entries_per_day", "boluses_raw": "user_boluses_per_day"})
     m = sim.merge(real, on="template", suffixes=("_sim", "_real"))
     rows = []
     for st in ["tir", "t70", "t54", "bg_mean", "bg_cv", "tdd", "carb_entries_per_day", "user_boluses_per_day",
-               "v_sd", "acf_zero_min", "zero_frac", "conc1"]:
+               "manual_u_day", "v_sd", "acf_zero_min", "zero_frac", "conc1"]:
         a, b = m.get(f"{st}_sim"), m.get(f"{st}_real")
         if a is None or b is None: continue
         ok = a.notna() & b.notna()
@@ -229,8 +238,12 @@ def main():
     tp = json.load(open(cj)).get("templates") if cj.exists() else None
     rp = Path(tp).parent / "real_pilot.csv" if tp else None
     if rp is not None and rp.exists() and "pilot" in str(tp):
-        rr = pd.read_csv(rp).merge(pd.read_csv(tp)[["alias", "sensor", "strategy", "carb_entries_per_day",
-                                                    "user_boluses_per_day"]], on="alias", how="left")
+        tt = pd.read_csv(tp)
+        if "entries_raw" in tt:   # the raw-record rates, counted like the simulator's own (templates.add_raw_rates)
+            tt = tt.drop(columns=["carb_entries_per_day", "user_boluses_per_day"]).rename(
+                columns={"entries_raw": "carb_entries_per_day", "boluses_raw": "user_boluses_per_day"})
+        cols = ["alias", "sensor", "strategy", "carb_entries_per_day", "user_boluses_per_day"] + (["manual_u_day"] if "manual_u_day" in tt else [])
+        rr = pd.read_csv(rp).merge(tt[cols], on="alias", how="left")
         rr["strategy"] = rr["strategy"].map(lambda s: "temp" if str(s).startswith("temp") else "autobolus")
         cp = compare(sim, real=rr)
         cp.to_csv(root / "compare_pilot.csv", index=False)
