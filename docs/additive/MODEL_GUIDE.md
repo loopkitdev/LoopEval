@@ -464,8 +464,9 @@ its 15-min trend, and Loop's IOB.
   is shared by the day's events in proportion to their drawn sizes (the person's measured log-sd), with
   full 24-h compensation (`intake_comp` 1 [J]).
 - **Tuning.**
-  - LESSONS 16: eating comes as ~5.6 pulses/day of median 26 g-eq, not three big meals, so main meals
-    are no larger than other events on average (`main_weight 1`).
+  - LESSONS 16, 47: eating comes as ~5.6 pulses/day; main meals are 1.9× a snack (`main_weight`,
+    Camerlingo 2021). Entered grams per entry then match the donors (32.3 vs 32.6), and so does the
+    labeled pulse-size distribution.
   - LESSONS 30: unregulated renormalization fattened the size tail; the AR day total keeps it at p99.9
     146 g.
   - LESSONS 39: eaten CV is 0.24. Entered-carb CV is still 0.54 against the donors' 0.40, because entry
@@ -485,6 +486,9 @@ its 15-min trend, and Loop's IOB.
   match the donors' through the same labeler.
 - Calculator acceptance: 7.4% larger (×1.1–1.5), 6.9% smaller (×0.5–0.9). Evidence: Groat 2017;
   Datye 2018.
+- **Split boluses:** when the donor gives more than one bolus per entry (1.09 median), the excess is the
+  chance of a split dose: 60% at the entry and Loop's recommendation 10–30 min later [J split]
+  (LESSONS 47).
 - **Top-ups:** with the donor's raw top-up rate per meal bolus (0.26/day median), a second bolus at
   Loop's recommendation 20–60 min later, if CGM is above 120 and not falling **[J on the condition]**.
 

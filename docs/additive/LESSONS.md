@@ -606,3 +606,29 @@ statistic here, but it is the controller donors ran.
 
     The structure function by lag (median person SD of Δ at 5 min–6 h) is now a standard check, done
     the same way on both sides.
+
+47. **Donors bolus more than once per meal, and they enter their bigger meals.** Classified the same way
+    (an entry within 30 min / a top-up within 60 min of a bolus / lone):
+
+    | Per day (median) | Simulator | Own donor |
+    |---|---|---|
+    | Carb entries | 2.75 | 2.80 |
+    | Boluses with an entry | 2.58 | 3.05 |
+    | Lone boluses | 0.50 | 0.78 |
+    | Entered grams | 72.7 | 93.8 |
+    | Grams per entry | 27.8 | 32.6 |
+
+    Three corrections followed:
+    - Boluses per entry (1.09 median, 1.22 mean) had been clipped to one. The excess is now a split
+      meal bolus: 60% at the entry, then Loop's recommendation 10–30 min later [J split].
+    - Corrections are sized for the 36% of intended corrections that deliver 0 U, because Loop's
+      recommendation is already covered by IOB.
+    - Main meals are 1.9× snacks (Camerlingo 2021: B 41 / L 49 / D 53 vs snack 25 g). Lesson 16's
+      flattening to 1.0 compensated for fixed-rate emptying, which is gone.
+
+    Cohort c52_w1.9:
+    - grams per entry 32.3 (32.6); manual 10.5 U/day (12.0); boluses 3.8/day (4.6);
+    - top-1% insulin share 26.0 (27.9; passes); day/night insulin 1.32 (1.38);
+    - labeled pulse-size distribution matches by bin (≤ 15 g 14% vs 14%; 50–70 g 10.4% vs 10.4%);
+    - meal response 17.2 mg/dL per 10 g (17.1);
+    - all outcomes pass; 24 of 50 statistics match.
