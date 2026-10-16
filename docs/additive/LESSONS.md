@@ -1120,3 +1120,16 @@ statistic here, but it is the controller donors ran.
     So night-time highs come down by insulin, through Loop's corrections, faster than in donors. Open candidates: real
     corrections working less well than settings imply (site, absorption at the actual site, selection of nights that
     are high because insulin is not working), and donors' controller limits (max basal, correction range).
+    **Split of the fast fall (c92):** after a quiet midnight at ≥ 200 mg/dL (median ~245), over 00–03 h:
+
+    | | delivered, % of TDD | ΔG at 3 h | ΔG per 1% TDD |
+    |---|---|---|---|
+    | Donors (355 nights) | 6.6 | −65 | −10.2 |
+    | Sim (112 nights) | 7.9 | −114 | −14.3 |
+
+    The simulated Loop delivers 20% more into a night-time high, and each unit lowers glucose 40% more, which together
+    is the 1.75× faster fall. The donors' −10.2 per 1% TDD is close to the 1800-rule ISF over 3 h. So simulated insulin
+    (with glucose effectiveness on top) works harder at night-time highs than real insulin does. Real high nights also
+    over-sample nights when insulin is not working (a poor site, resistance), which a healthy simulated body does not.
+    Next: per-unit effect at night-time highs vs at normal glucose in donors, and the simulated site states on high
+    nights.
