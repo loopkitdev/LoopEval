@@ -270,7 +270,10 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     share = float(np.clip(rng.normal(0.5, 0.07), 0.35, 0.7))
     basal_true = tdd * share / 24.0
     bp = calibrate(bp, formulation, isf_true, basal_true, egp_share)
-    csf = _probe_csf_effective(bp, formulation)      # effective, as ISF (LESSONS 40)
+    # true CR on the LINEAR part: the TDD constraint holds with it (cohort c35 TDD 36 vs donors 37); the effective
+    # peak-probe CSF (_probe_csf_effective) fed people for 42 U/day (c36), and a whole-excursion balance is
+    # degenerate under glucose effectiveness (LESSONS 40)
+    csf = csf_of(bp)
     cr_true = isf_true / csf
     carbs = max(20.0, tdd * (1 - share) * cr_true)
     strategy = "temp" if str(row.strategy).startswith("temp") else "autobolus"
