@@ -34,7 +34,7 @@ BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "
 # labeler, meal_response/ice_check). Run through that labeler, simulated people at 1.30 read 0.91 —
 # glucose effectiveness erodes the pulse before ICE sees it — so the constant is set by the labeler:
 # 1.30 × 1.21/0.91 (LESSONS 27)
-CSF_PER_GEQ = 1.73
+CSF_PER_GEQ = 1.85      # re-read through the labeler under saturating gastric emptying: 1.73 read 1.13 vs 1.21 (LESSONS 33)
 ISF_W = 0.5      # weight of the yardstick against the person's own ISF setting in the truth (open, see sample_person)
 
 
