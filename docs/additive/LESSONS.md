@@ -895,3 +895,16 @@ statistic here, but it is the controller donors ran.
     user boluses 3.75 (4.59; p 0.095) and manual U/day (p 0.19) now pass; 14 of 30; outcomes unchanged. The
     hazard's sizing constants did not need refitting. Heavy top-up donors are still under-reproduced on average
     (mean 0.38 vs 0.80/day).
+
+65. **Twin comparison separates model gaps from template sampling.** Each simulated person against their own donor
+    (c74, n 112):
+    - **Sampling:** zero-delivery time matches the person's own donor (difference +0.0). Its cohort gap (29.4 vs
+      34.4) is which 112 templates were drawn; the same holds for entries per day (ratio 1.00 per person).
+    - **Real twin gaps:** p99 5-min dose 1.33 vs 1.85 U; TDD −1.4 U/day; mean glucose −6; TIR +2.2; day/night −0.30;
+      long-range Hurst −0.10; night-to-night CV −4; 24-h amplitude +0.03.
+    - **The dose-tail gap is bolus count, not size:** boluses ≥ 1.67 U run 2.42/day against the own donor's 3.18,
+      while manual bolus sizes match or exceed the donors' (p50/p90/p99 1.9–2.7 / 5.3–6.6 / 8.3–9.2 U vs
+      2.2–2.5 / 5.2 / 7.8–8.0).
+      Boluses with an entry run 12% short of their donors' (2.67 vs 3.05/day) with entries matched.
+    Whole-cohort KS against all donors still decides pass/fail, but a gap that vanishes twin-wise is sampling, not
+    a missing component.
