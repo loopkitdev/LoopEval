@@ -1345,5 +1345,7 @@ statistic here, but it is the controller donors ran.
 
     Faster emptying also costs glucose CV (37.2 and 38.6 vs donors 34.8). Real meals rise early and plateau low: more
     glucose appears early and less in total, or insulin acts sooner at meals. No emptying speed reproduces both. Next
-    candidates: bolus timing relative to eating (the labeler reads the sim's bolus lead as +5 min vs donors' −0.5),
-    and early insulin action at meals.
+    candidates: bolus timing relative to eating, and early insulin action at meals.
+    **Bolus timing is ruled out.** In the sim the labeler places onsets a median 3 min before true eating (IQR −24 to
+    +12). Against labeled onsets, simulated boluses come later than the donors' (bolus − onset: +5 vs −0.5 min). A
+    later bolus would raise the sim's early rise, which is already too low, so timing cannot explain the shape.
