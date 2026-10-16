@@ -192,6 +192,22 @@ class World:
         # every day planned now: the export writes the planned Temporary Overrides into the therapy timeline, and
         # the plant's re-simulation reproduces the identical plan (LESSONS 40)
         gi = (lambda d: 0.7 if self.mods.illness(d * DAY + 720)[2] else 1.0) if self.mod_traits.enabled.get("illness") else None
+        # GLP-1 receptor agonist adjunct (glp1.py, evidence/16): a per-person trait, off unless --enable glp1
+        self.glp1 = None
+        if (enable or {}).get("glp1"):
+            from .glp1 import GLP1, sample_glp1
+            wk = enable.get("glp1_weeks") if isinstance(enable.get("glp1_weeks"), float) else None
+            ag = "semaglutide" if enable.get("glp1_sema") else "tirzepatide" if enable.get("glp1_tirz") else None
+            gt = sample_glp1(np.random.default_rng(person.seed + 41), weeks=wk, agent=ag)
+            if isinstance(enable.get("glp1_hour"), float): gt.inj_hour = enable["glp1_hour"]
+            self.glp1 = GLP1(gt)
+            if self.glp1.t.retuned and self.glp1.t.weeks_at_start >= 11:
+                # people re-tune on the drug: basal −8%, ISF +11%, CR +4% by day 77 (Pasqua 2025)
+                self.person = person = copy.deepcopy(person)
+                st = person.settings
+                st.update(basal_uh=st["basal_uh"] * 0.92, isf=st["isf"] * 1.11, cr=st["cr"] * 1.04)
+            g0 = gi
+            gi = (lambda d, g0=g0: (g0(d) if g0 else 1.0) * self.glp1.carb_mult(d * DAY + 720))
         self.beh.plan_all(days, gi)
         self._scenarios(enable or {})
         self.outages = plan_outages(person, days, np.random.default_rng(person.seed + 23)) if (enable or {}).get("outages", True) is not False else []
@@ -299,6 +315,7 @@ class World:
             hh = (m % DAY) / 60.0; k = int(hh) % 24; f = hh - int(hh)
             egp *= bprof[k] * (1 - f) + bprof[(k + 1) % 24] * f
         si *= self._fat_si(m)
+        if self.glp1 is not None: si *= self.glp1.si_mult(m)
         if self.hyper_on:
             target = self.hyper_max * min(1.0, max(0.0, (self.body.g - 140.0) / 220.0))
             # asymmetric: builds over ~6 h (Fanelli 1995: −15% after 6 h at 243 mg/dL; −22% after 15 h at 306), fades over
@@ -327,7 +344,10 @@ class World:
         acts = self.beh.minute(m, reading, self.loop_state, carb_scale=0.7 if gi_ill else 1.0)
         for a in acts:
             kind = a[0]
-            if kind == "eat": self.body.eat(a[1])
+            if kind == "eat":
+                if self.glp1 is not None and a[1].label not in ("protein",):
+                    a[1].kempt /= self.glp1.ge_stretch(self.minute)     # slowed gastric emptying of oral carbohydrate
+                self.body.eat(a[1])
             elif kind == "exercise": self.ex.add(*a[1:])
             elif kind == "site_change": self.pump.change_site(m)
             elif kind == "fat": self.fat_events.append((a[1], a[2]))
