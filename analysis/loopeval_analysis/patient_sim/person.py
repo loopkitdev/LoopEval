@@ -187,6 +187,9 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         cr_max=float(np.exp(rng.normal(0.0, 0.5))),
         cr_g=float(rng.normal(65, 5)),
         kappa=float(np.exp(rng.normal(math.log(0.15), 0.4))),
+        # exercise muscle uptake at full intensity: moderate work (I 0.5) ≈ −50 mg/dL/h from uptake alone, the
+        # rest of the lab −80 mg/dL/h (García-García 2015) from the acute SI boost [J; calibrate vs T1DEXI]
+        ex_uptake=float(np.exp(rng.normal(math.log(3.0), 0.3))),
         f=float(np.clip(rng.normal(0.9, 0.05), 0.7, 1.0)),
     )
     if bp.ka2 >= bp.kd: bp = bp.scaled(ka2=0.9 * bp.kd)

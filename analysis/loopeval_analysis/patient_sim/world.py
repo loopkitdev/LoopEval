@@ -45,6 +45,10 @@ def minute_of(iso: str) -> float:
 
 class World:
     def __init__(self, person, days: int, seed: Optional[int] = None, enable: Optional[dict] = None):
+        if enable and isinstance(enable.get("meal_k"), float):
+            import copy
+            person = copy.deepcopy(person)        # calibration override: meal absorption speed multiplier
+            person.body = person.body.scaled(kempt=person.body.kempt * enable["meal_k"], kabs=person.body.kabs * enable["meal_k"])
         self.person = person
         self.days = days
         seed = person.seed if seed is None else seed
@@ -55,7 +59,7 @@ class World:
             self.mod_traits.enabled.update({k: v for k, v in enable.items() if k in self.mod_traits.enabled})
         self.enable = dict(exercise=True, site_failure=True, pump_faults=True, compression=True, behavior_defense=True,
                            perfect_person=False, fat=True)
-        if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable})
+        if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable and isinstance(v, bool)})
         self.mods = Modulators(self.mod_traits, days)
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
         if enable and enable.get("perfect_person"):
