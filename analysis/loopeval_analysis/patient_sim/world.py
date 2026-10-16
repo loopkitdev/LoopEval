@@ -118,6 +118,10 @@ class World:
         if enable and isinstance(enable.get("ge_kcal"), float):
             person = copy.deepcopy(person)        # gastric-emptying energy ceiling, kcal/min (the body and behavior both read it)
             person.body = person.body.scaled(ge_kcal_max=enable["ge_kcal"])
+        if enable and isinstance(enable.get("ge_mult"), float):
+            person = copy.deepcopy(person)        # scales the person's emptying (Vmax and kempt together, Km fixed): centre of
+            b = person.body                       # the between-person distribution, inside evidence/09's 2–5 kcal/min
+            person.body = b.scaled(ge_kcal_max=b.ge_kcal_max * enable["ge_mult"], kempt=b.kempt * enable["ge_mult"])
         if enable and (isinstance(enable.get("ins_p2"), float) or isinstance(enable.get("ins_p2e"), float)):
             person = copy.deepcopy(person)        # insulin-action rates (ablation: clamp-fitted vs Loop-curve action)
             person.body = person.body.scaled(p2=enable.get("ins_p2", person.body.p2), p2e=enable.get("ins_p2e", person.body.p2e))

@@ -1330,3 +1330,20 @@ statistic here, but it is the controller donors ran.
       daytime skew changes little with the coverage filter (+0.75 → +0.77).
     Scripts: `runs/2026-10-16-additive-vskew/` (vskew, quiet_dn, quiet_ctx, rise_*); on gamepc `~/additive/`
     `skew_contrib.py`, `meal_traj.py`, `sim_labeled_quiet.py`.
+
+89. **Faster emptying cannot give the donors' meal shape; the default emptying centre stays at 3 kcal/min.** With
+    per-person emptying on (c100), meals rise too slowly early but reach the right height. Raising the centre inside
+    evidence/09's 2–5 kcal/min range (`--set ge_mult`, which scales Vmax and kempt) fixes the early rise and overshoots
+    the plateau. Isolated, announced, bolused meals, labeler onsets, median Δ in mg/dL:
+
+    | | 30 min | 60 min | 120 min | First-hour step skew | Step skew, whole record | Matched |
+    |---|---|---|---|---|---|---|
+    | Donors | 7 | 27 | 42 | +0.67 | +0.37 | — |
+    | c100, centre 3.0 | 4 | 18 | 36 | +0.41 | +0.03 | 26 |
+    | ×1.2 (3.6) | 5 | 23 | 49 | +0.16 | +0.08 | 22 |
+    | ×1.4 (4.2) | 6 | 25 | 58 | −0.11 | +0.12 | 21 |
+
+    Faster emptying also costs glucose CV (37.2 and 38.6 vs donors 34.8). Real meals rise early and plateau low: more
+    glucose appears early and less in total, or insulin acts sooner at meals. No emptying speed reproduces both. Next
+    candidates: bolus timing relative to eating (the labeler reads the sim's bolus lead as +5 min vs donors' −0.5),
+    and early insulin action at meals.
