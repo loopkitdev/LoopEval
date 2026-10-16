@@ -632,3 +632,22 @@ statistic here, but it is the controller donors ran.
     - labeled pulse-size distribution matches by bin (≤ 15 g 14% vs 14%; 50–70 g 10.4% vs 10.4%);
     - meal response 17.2 mg/dL per 10 g (17.1);
     - all outcomes pass; 24 of 50 statistics match.
+
+48. **The donor's basal schedule is a per-person measurement of their daily need; flattening it lost the
+    day/night split.** In local time, donors deliver much less insulin overnight than the simulator did:
+
+    | Local hours | 00–03 | 03–06 | 12–15 | 18–21 |
+    |---|---|---|---|---|
+    | Donors, relative to daily mean | 0.68 | 0.56 | 1.34 | 1.33 |
+    | Simulator | 0.82 | 0.78 | 1.12 | 1.17 |
+
+    The day/night ratio was 1.32 vs 1.38. The model's overnight sensitivity was an extrapolation of
+    Visentin's dinner segment (Hinshaw 2013 found no population daily pattern). Each donor's hourly raw
+    basal schedule, in local time via the ice steps' local hour (templates.add_basal_profile;
+    overnight ~0.91, day ~1.03, within-person SD 11%), now drives both sides:
+    - Loop's exported schedule uses it hour by hour;
+    - the body's basal need (EGP) follows it shrunk halfway in log terms, the ISF / CSF weight.
+
+    Cohort c53: day/night 1.396 (1.38), t<54 0.19 (0.23), 25 of 50 statistics match. The 24-h glucose
+    amplitude is now a little high (0.165 vs 0.129), with Visentin's meal-time swing and the basal profile
+    both acting.
