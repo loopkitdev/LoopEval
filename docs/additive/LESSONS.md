@@ -840,3 +840,20 @@ statistic here, but it is the controller donors ran.
     - Letting the body follow the donor's basal profile fully (`prof_w` 1.0 instead of 0.5, c69) left 06 h glucose at
       124 (130) and raised dawn-hour insulin (0.80 vs 0.75; donors 0.59). Option only.
     Open: the pre-breakfast trough (123–124 at 06 h vs 130) with more dawn insulin than donors, and the flat evening.
+
+60. **Loop not acting is a measured component, and the first named one that moves long-range persistence.**
+    Donors' `disruptions.csv` (168 pilot donors):
+    - **Offline gaps and merged mixed windows:** 0.9/day median (1.04 mean). Duration lnN(32 min, 0.86): quartiles
+      22/29/50 min, p99 4.6 h; 2.9% run longer than 6 h, mostly pumpless stretches with unknown insulin, left out.
+    - **Pump-error cycles:** ~3 min each, 2.45/day median.
+    - **Timing:** both daytime-heavy (5–6%/h from 15 to 21 h, 1.7% at 03–04).
+    The plant plans these per person at its donor's rates (`templates.add_disruption_rates`,
+    `world.plan_outages`) and writes them to the export's `disruptions.csv`. LoopEval auto-loads that file and
+    delivers what the pump would: scheduled basal while offline (checked: 0.305 U/h over a 20-min window, then
+    dosing resumes), the last command through a pump error. Loop's IOB follows.
+    Cohort c70 vs c68 (n 112):
+    - Long-range Hurst 0.137 → 0.167 (donors 0.247); volatility clustering 0.148 → 0.135 (0.124).
+    - Zero-delivery share 30.5 → 28.9 (34.4) and night-to-night CV 34.1 → 31.2 (37.2) move away, since offline
+      stretches run scheduled basal.
+    - Outcomes unchanged. 12 vs 13 of 30 statistics.
+    Suspends (0.18/day, median 2 min) are not modelled: a synthetic export has no field record to deliver zero from.

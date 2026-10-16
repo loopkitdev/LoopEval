@@ -126,6 +126,13 @@ def export(world: World, out: Path, days: int, burn_end: float):
               maxBasalRateTimeline=seg(st["max_basal"]), suspendThresholdTimeline=seg(st["suspend"]),
               insulinType=itype)
     json.dump(th, open(out / "therapy.json", "w"))
+    # Loop-not-acting windows (LESSONS 60): LoopEval auto-detects disruptions.csv and delivers what the pump would —
+    # the scheduled basal while offline, the last command through a pump error — with its own IOB following
+    rows = [(s0, e0, r) for (s0, e0, r) in getattr(world, "outages", []) if s0 >= burn_end]
+    with open(out / "disruptions.csv", "w") as fh:
+        fh.write("start,end,reason,source,notes\n")
+        for s0, e0, r in rows:
+            fh.write(f"{ts(s0)},{ts(e0)},{r},additive/plan,\n")
     json.dump(dict(data_version=32, source="additive patient_sim", person=P.name, template=P.template,
                    seed=P.seed, days=days, burn_end_min=burn_end), open(out / "_export_manifest.json", "w"))
     flags = ["--temp-basal-strategy"] if P.strategy == "temp" else []
