@@ -451,6 +451,19 @@ sees the difference, so it shows up as phantom IOB.
 
 ---
 
+### GLP-1 receptor agonist adjunct (`glp1.py`)
+- A per-person trait, off by default (`--enable glp1`; `glp1_sema` / `glp1_tirz`; `--set glp1_weeks=w,glp1_hour=h`).
+  About 7–10% of T1D adults use one (evidence/16).
+- Kinetics per agent (semaglutide t½ 165 h, tmax ~36 h, weekly; tirzepatide t½ 120 h; dulaglutide; liraglutide
+  daily), summed over every dose since starting, with the label's dose escalation. The level is normalized to the
+  maintenance steady-state mean; semaglutide swings 0.70–1.23 within a week.
+- Effects follow E = (c/(c+0.5))·1.5 **[I EC50]**:
+  - carbs eaten ×(1 − 0.25·E) for semaglutide, 0.32 for tirzepatide;
+  - gastric emptying slowed ×(1 + 0.42·E + 0.25·E after a dose step, fading over ~4 wk);
+  - SI ×(1 + 0.10/0.20·E) direct, ×(1 + 0.11) weight-mediated over ~20 wk;
+  - settings re-tuned after 11 weeks (basal ×0.92, ISF ×1.11, CR ×1.04; Pasqua 2025).
+- Injection weekday and hour set the within-week rhythm, which comes from the kinetics; no study measured it.
+
 ### Lipohypertrophy (`device.SiteTraits`)
 - A person trait: 26% of adults and 42% of children (Pickup 2014; Heinemann & Krinelke 2012). Half of their site
   changes land in LH tissue **[J]**. Such a site has bioavailability 0.78 and per-dose absorption CV 0.5 instead of
