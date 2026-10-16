@@ -135,7 +135,9 @@ class World:
         self.beh = Behavior(self.beh_traits, person, r_beh)
         self.beh.defense = self.enable["behavior_defense"]      # rescues and proactive snacks (switch was unwired before)
         if enable and enable.get("overrides") is False:       # ablation: no Temporary Overrides
-            self.beh_traits.ov_less_day = 0.0; self.beh_traits.ov_tgt_day = 0.0
+            self.beh_traits.ov_less_day = 0.0; self.beh_traits.ov_tgt_day = 0.0; self.beh_traits.p_more = 0.0
+        if enable and enable.get("reactive_overrides") is False:
+            self.beh_traits.p_more = 0.0
         from .exercise import ExerciseParams
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg))
         # energy balance: a person eats for their activity. The donor's TDD (the measured constraint, G4) was spent
@@ -194,6 +196,7 @@ class World:
         self.int_doses: list = []                          # exported history: (type, start_m, end_m, units, automatic)
         self.received: list = []                           # every dose LoopEval sent, as received: (type, start, end, U)
         self.fat_events: list = []                         # (minute, fat g) — transient fat-induced insulin resistance
+        self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
         self.fat_rho = float(r_misc.uniform(0.1, 0.6))
@@ -335,7 +338,7 @@ class World:
             self.pump.command(s + lag, e2, units, bolus=(typ == "bolus"))
         if state:
             self.loop_state.update({k: v for k, v in state.items() if v is not None})
-        carbs, boluses = [], []
+        carbs, boluses, overrides = [], [], []
         while self.minute <= t1:
             acts: list = []
             self._minute(acts)
@@ -355,6 +358,10 @@ class World:
                 elif a[0] == "bolus_units":
                     boluses.append(dict(t=ts(a[1]), units=float(a[2])))
                     self.bolus_requests.append((a[1], -float(a[2])))     # negative = absolute units
+                elif a[0] == "override":
+                    w = a[1]; d = dict(t=ts(w["start"]), end=ts(w["end"]), factor=float(w["factor"]))
+                    if "lo" in w: d.update(targetLo=float(w["lo"]), targetHi=float(w["hi"]))
+                    overrides.append(d); self.sent_overrides.append(w)
         bg = []
         for s in samples:
             k = int(round(s))
@@ -364,4 +371,6 @@ class World:
                     if (k - j) in self.readings and self.readings[k - j] is not None and (k - j) > s - 3:
                         v = self.readings[k - j]; break
             bg.append(v)
-        return dict(bg=bg, carbs=carbs, boluses=boluses)
+        out = dict(bg=bg, carbs=carbs, boluses=boluses)
+        if overrides: out["overrides"] = overrides
+        return out

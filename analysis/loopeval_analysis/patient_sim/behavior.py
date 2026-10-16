@@ -69,6 +69,12 @@ class BehaviorTraits:
     ov_less_lo: float = float("nan")
     ov_less_hi: float = float("nan")
     ov_less_h: float = 1.4
+    ov_more_day: float = 0.0             # more-insulin overrides/day, started in reaction to a rising high (plant-sent)
+    ov_more_f: float = 1.33
+    ov_more_lo: float = float("nan")
+    ov_more_hi: float = float("nan")
+    ov_more_h: float = 1.0
+    p_more: float = 0.0                  # per qualifying awake minute (CGM > 180 and rising)
     ov_tgt_day: float = 0.0              # target-only overrides/day (pre-meal when the target is lowered)
     ov_tgt_lo: float = float("nan")
     ov_tgt_hi: float = float("nan")
@@ -225,10 +231,15 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         act_bg=lj(0.06, 0.4), act_gain=lj(1.0, 0.5),
         graze_per_day=lj(2.0, 0.7), graze_g=lj(6.0, 0.4),
     )
-    for k in ("ov_less_day", "ov_less_f", "ov_less_lo", "ov_less_hi", "ov_less_h", "ov_tgt_day", "ov_tgt_lo", "ov_tgt_hi", "ov_tgt_h"):
+    for k in ("ov_less_day", "ov_less_f", "ov_less_lo", "ov_less_hi", "ov_less_h", "ov_tgt_day", "ov_tgt_lo", "ov_tgt_hi", "ov_tgt_h",
+              "ov_more_day", "ov_more_f", "ov_more_lo", "ov_more_hi", "ov_more_h"):
         v = _num(rates, k)
         if np.isfinite(v) or k.endswith(("_lo", "_hi")):
             setattr(t, k, v if np.isfinite(v) else (0.0 if k.endswith("_day") else getattr(t, k)))
+    # more-insulin overrides react to a rising high (donors: started at ~210, +11 per 20 min; LESSONS 40): a hazard per
+    # awake minute with CGM > 180 and rising, sized over the donor's waking time above 180 × ~0.4 rising [J share]
+    if t.ov_more_day > 0:
+        t.p_more = float(np.clip(t.ov_more_day / (16 * 60 * max(hi_frac, 0.05) * 0.4), 0.0, 0.05))
     lsd = _num(rates, "meal_size_logsd")
     if np.isfinite(lsd): t.meal_cv = float(np.clip(lsd, 0.2, 0.9))
     mh = rates.get("meal_hours")
@@ -271,6 +282,7 @@ class Behavior:
         self.day_z = 0.0
         self.overrides: list[dict] = []        # planned Temporary Overrides: start, end (min), factor, lo, hi
         self.defense = True                     # rescues and proactive snacks (World's behavior_defense switch)
+        self.more_until = -1e9                  # a reactive more-insulin override is running until this minute
         self.last_pro = -1e9
         self.last_treat = -1e9
         self.treat_check: Optional[float] = None
@@ -526,6 +538,13 @@ class Behavior:
         # corr_wait), a per-minute hazard sized so the donor's measured correction rate is reached over the
         # donor's own time above 180 (LESSONS 26). The app shows CGM on the lock screen and alerts on highs,
         # so this is not gated on a discrete glance.
+        # reactive more-insulin override (plant-sent; engine 14b2d58): a rising high while awake, one at a time
+        if not asleep and t.p_more > 0 and m >= self.more_until and cgm > 180 and self.trend() > 0 and r.random() < t.p_more:
+            dur = 60.0 * float(np.clip(np.exp(r.normal(math.log(max(t.ov_more_h, 0.25)), 0.6)), 0.25, 12.0))
+            ov = dict(start=m, end=m + dur, factor=t.ov_more_f)
+            if np.isfinite(t.ov_more_lo) and np.isfinite(t.ov_more_hi): ov.update(lo=t.ov_more_lo, hi=max(t.ov_more_hi, t.ov_more_lo))
+            acts.append(("override", ov)); self.more_until = m + dur
+            self.log.append((m, "override_more", t.ov_more_f, cgm))
         if not asleep and cgm > t.corr_thr and self.trend() > -0.5 and m - self.last_bolus > t.corr_wait \
                 and r.random() < t.p_correct:
             acts.append(("bolus", m, 1.0)); self.last_bolus = m
