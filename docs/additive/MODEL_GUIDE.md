@@ -517,6 +517,22 @@ An un-entered eating event gets a bolus of the person's own gram estimate ÷ the
 person's measured rate. LESSONS 13: about 45% of "corrections" in the donor record are food dosed by
 hand.
 
+### F12 Temporary Overrides
+- **Form.** Planned with the events they serve, at the donor's own rates and median settings
+  (`templates.add_override_rates`):
+  - less-insulin overrides start 0–30 min before an activity episode;
+  - lowered-target overrides start 15–60 min before a carb entry (pre-meal);
+  - raised-target-only overrides go at random waking times.
+
+  Durations are lnN(donor median, 0.6), 0.25–12 h. They are written into the exported therapy timeline
+  (`overrideWindows`); LoopEval applies each from its start, causally.
+- **Evidence.** 19,732 donor windows (LESSONS 40): less insulin 45% (factor 0.60, 1.4 h), more
+  insulin 17% (1.33, 1 h, reactive to highs), target only 37% (~90, 1 h).
+- **Not modelled.** The reactive more-insulin class needs plant-sent overrides
+  (`docs/handoffs/2026-10-16-additive-plant-overrides.md`).
+- **Notes.** Every day is planned at World construction, so the export and the plant's re-simulation
+  agree (`Behavior.plan_all`).
+
 **Interactions.**
 - Defense feeds rescue carbs into the gut (A13). Rescues are almost never logged, so Loop sees an
   unexplained rise; this is the rescue-carb confound the replay roles describe.
@@ -563,7 +579,7 @@ Failing:
 ## 10. Switches (`cohort.py`)
 
 - `--disable a,b`: modulators (circadian, dawn, day, illness), exercise, site_failure, pump_faults,
-  compression, behavior_defense, fat, risk, counterreg.
+  compression, behavior_defense (rescues, proactive snacks), graze, overrides, fat, risk, counterreg.
 - `--enable`: perfect_person (diagnostic: every meal entered exactly and bolused at the meal, no
   snacks, no exercise), menstrual, intraday, drift. `settings_mismatch=False` gives the controller the
   truth.
