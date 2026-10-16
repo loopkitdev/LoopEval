@@ -1030,3 +1030,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     TIR 69.6 / 68.4 -> 69.0 / 70.1, mean 157 / 158 -> 156 / 157; lone boluses 2.57 / 2.6 -> 2.85 / 3.13 a day (field 2.29)
     - more time high now draws more corrections; the closed-loop count calibration is refit on top. Meal boluses unchanged:
     0.114 / 0.105 lows per meal bolus vs 0.064, at the same glucose 1.5-2x the field's.
+    Closed-loop start counts refit on top (v32of{0,1}TcB2FGUC): lone boluses 2.58 / 2.66 a day (field 2.29), TIR 69.8 / 70.0,
+    t<54 0.42 / 0.35, mean 156 / 158, lows per lone bolus 0.106 / 0.112, per meal bolus 0.118 / 0.111; per-person t<54 pass
+    rate 50 / 54% (was 38 / 50%, 50% if faithful). New base.
