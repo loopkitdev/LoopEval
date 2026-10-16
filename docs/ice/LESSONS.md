@@ -980,3 +980,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     each person's row gets a step only when they are in the batch. With the one-step scale right, a calm person's hourly
     spread running 1.2-1.3x real (and a volatile one's 0.7x) comes from how the generator's own deviations persist and add
     up over an hour in closed loop, not from the width of each draw.
+106. **Generated background ICE keeps too much 30-min memory, most for calm people; feeding back only part of each draw
+    collapses the spread instead of shortening the memory, not kept.** Base v32of0TcB2CG, held-out, autocorrelation of
+    5-min background ICE at 30 min: median 0.111 generated vs 0.072 field; calm donors 0.12-0.17 vs about 0 (i050 0.12 vs
+    -0.02, i003 0.12 vs 0.00, i009 0.17 vs 0.02), and the excess tracks the hourly-spread excess (Spearman 0.67). Persistence
+    is only partly a trait: between people sd 0.045, within a person across 28-day periods 0.041 (period-to-period Pearson
+    0.63-0.81). PLANT_FB_LAMBDA=0.5 (the background path reads back mean + 0.5 x (draw - mean), the body gets the draw):
+    seeds 0 / 1 TIR 77.5 / 75.0, t<54 0.06 / 0.07, lows per meal bolus 0.060 / 0.057 (field 74.1 / 0.12 / 0.064) because the
+    draws lost their spread: 5-min sd 22 / 20 vs 67 / 59 (field 56), 30-min autocorrelation 0.42 / 0.41 (field 0.07), one donor
+    at TIR 18. Fed its own smoothed history, the head predicts narrower draws, which feed back smoother still. Outcome
+    matches that come from a generator too smooth to hold the shape bar are not wins.
