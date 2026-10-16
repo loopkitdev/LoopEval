@@ -458,3 +458,36 @@ statistic here, but it is the controller donors ran.
     multi-day changes in insulin need. Named candidates: menstrual phases (off: no monthly rhythm in
     donors), stress, sleep debt, sensor-session bias, site age. Cohort c34: 21 of 50 statistics match.
     Scoring now starts at the first midnight after burn-in (whole days only; 0.174 → 0.165).
+
+40. **Temporary Overrides are a large, measured behavior; and the simulator's "true CR" is linear-part
+    bookkeeping, not what a body-consistent dose would use.**
+    - **Overrides.** 71% of pilot donors use Temporary Overrides: median 0.36/day, 0.6 h/day, p90
+      6.6 h/day. They come in three classes:
+      - less insulin (45%): median factor 0.60 for 1.4 h, target ~130, starting ~126 and falling,
+        mostly afternoon;
+      - more insulin (17%): factor 1.33 for 1 h, starting ~210 and rising;
+      - target only (37%): mostly a lowered target ~90 for ~1 h, i.e. pre-meal.
+
+      The plan-able classes are now planned with the events they serve, at each donor's rates and
+      settings: less-insulin with activity episodes, pre-meal targets with entries
+      (templates.add_override_rates). They are written into the exported therapy timeline, which
+      LoopEval gates causally (applied from start). Every day is planned up front, so the plant's
+      re-simulation sees the same plan. The reactive more-insulin class needs plant-sent overrides
+      (handoff to simulator). Effect in cohort c35: lows 1.17 → 1.08/day; nothing else moves beyond noise.
+    - **Units.** ISF is calibrated as the effective drop on the full body (lesson 15), but the true CR was
+      ISF ÷ the linear-part CSF. A person dosed exactly to that CR, with defense off, runs 20–50 below
+      rest: glucose effectiveness erodes a meal's rise as it erodes a bolus's drop. Two alternatives
+      failed on the cohort's TDD anchor:
+      - the effective peak-probe CSF (_probe_csf_effective) fed people for 42 U/day against the donors'
+        37 (cohort c36: mean 157, TIR 67, labeled pulse 0.91 vs 1.21);
+      - a whole-excursion balance is degenerate, because glucose effectiveness clears a meal by itself
+        over 6 h (CR up to 149 g/U).
+
+      The linear-part CR stays as the intake bookkeeping. The self-check doses with the body-consistent
+      effective CR instead.
+    - **Self-check isolation.** The self-check had been passing for the wrong reason: its perfect person
+      still rescued and grazed, because `behavior_defense` had never been wired. It now really switches
+      off defense, grazing and fat resistance, and doses each meal's own carbs without netting the
+      previous bolus as IOB.
+    - **Side result.** c36's heavier meals raised long-range Hurst to 0.19 (donors 0.24). Meal-driven
+      variability is part of what the slow structure lacks.
