@@ -333,3 +333,37 @@ statistic here, but it is the controller donors ran.
 
     The oversized meal spikes had been standing in for real sources of rough, low-prone hours that the
     model still lacks.
+
+34. **Everyday activity had the right volume and the wrong physics, and a body that moves must eat for
+    it.** The donors' extra daytime lows with no bolus in 4 h (0.19 vs 0.09 per day) pointed at activity.
+    The literature (evidence/10) put the simulated volume about right (~48 min/day at intensity ~0.25)
+    but the effect model wrong:
+    - Uptake did not scale with glucose. Dhaliwal 2025 (T1DEXI) reports −11 / −33 / −52 mg/dL from starts
+      of 100–150 / 150–200 / 200–250.
+    - The acute insulin-sensitivity gain was low (Romeres 2021: about 2 per unit of intensity, not 0.8).
+    - Delayed sensitivity started at 0.35; the UVA and Deichmann models start it at about 0.12.
+    - Bouts were uniform.
+
+    Now, from the evidence:
+    - episodes lnN(2/day), duration lnN(18 min, 0.75), MET-based intensity over a per-person METmax, on
+      the UK Biobank day profile, plus a waking background;
+    - uptake ∝ G, acute gain 2.0, delayed state from 0.12, per-person gain lnN(0, 0.5).
+
+    That alone (c27) brought lows to the donors' level but dropped the mean to 136 and TDD to 33. Each
+    person's food had been set from an insulin balance at rest, while their donor's TDD was spent in an
+    active life. A clamp probe now measures the glucose a person's expected activity uses (7–38 g/day,
+    median ~28) and adds it to what they eat. Cohort c28 (112 × 14 d) matches 20 of 42 statistics:
+
+    | | c28 | Donors |
+    |---|---|---|
+    | Lows per day | 1.10 | 1.08 |
+    | t<54 | 0.20 | 0.23 |
+    | t<70 | 1.9 | 1.7 |
+    | CV | 33.6 | 34.6 |
+    | TDD | 37.4 | 37.0 |
+    | TDD day-to-day CV | 17.6 | 17.0 |
+    | Mean | 143.5 | 151 |
+    | TIR | 77 | 72 |
+    | Lows after a meal bolus | 0.37/day | 0.12/day |
+
+    Open: the high side and post-meal lows.
