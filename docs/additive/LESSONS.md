@@ -991,3 +991,13 @@ statistic here, but it is the controller donors ran.
     Defaults are back to U(0.3, 0.5) and 0.018, and the self-check passes 8 of 8. `--set egp_share` and
     `--set ins_p2e` remain. Using the tracer-matched values needs a calibration whose ISF does not depend on action
     timing, which turns on what ISF means for the body; that question is for Pete.
+
+72. **Total-drop ISF calibration, prototyped as an option (`--set isf_total=1`).** It calibrates each arm on the
+    linear part (glucose effectiveness, κ, risk and counter-regulation off), so ISF is the total per-unit drop, Loop's
+    meaning, and does not depend on how fast either arm acts. The default still matches the full body's peak drop at
+    ~180 mg/dL. Self-check with total ISF and linear CSF dosing (consistent definitions):
+    - Current EGP arm (share 0.4, p2E 0.018): 8 of 8 pass.
+    - Tracer-matched (share 0.6, p2E 0.010): 6 of 8. The two failures are nights −47 and −43 mg/dL below rest (limit
+      40): the slow EGP tail of the dinner bolus lands in the post-absorptive night.
+    Pairing total ISF with the peak-based self-check CR leaves days high (means 140–245), so each calibration needs
+    its own matching self-check. Not adopted; the definition is Pete's call (TIDEPOOL-18).
