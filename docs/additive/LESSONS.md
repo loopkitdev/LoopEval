@@ -1052,3 +1052,6 @@ statistic here, but it is the controller donors ran.
       variation that the evidenced factors do not explain (LESSONS 49, 56).
     - **Whole record:** sim 60, donors 40.
     Both halves point at known open items, not at a new factor.
+    Faster gastric emptying within its evidence range (Vmax 3 → 4 kcal/min, towards Elleri's high-GL meal; c88)
+    leaves post-event decorrelation at 55 min and moves away elsewhere: Hurst 0.198 → 0.128, CV 35.0 → 37.8 (34.8),
+    Box-Cox −0.10. Vmax stays 3 (LESSONS 33).
