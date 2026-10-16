@@ -41,7 +41,9 @@ class BodyParams:
     # insulin action
     p2: float = 0.05               # 1/min, disposal-action rate: whole action fitted to Loop's adult curve (LESSONS 9, 20)
     si_d: float = 5.0e-4           # disposal sensitivity, 1/min per (mU/L)  — calibrated to ISF
-    p2e: float = 0.018             # 1/min, EGP-suppression action rate (slower than disposal)
+    p2e: float = 0.010             # 1/min, EGP-suppression action rate (slower than disposal). T1D meal EGP suppression is
+                                   # sustained with its nadir at ~160 min (Romeres 2025); ReplayBG's prior 0.008. 0.018 bottomed
+                                   # at ~2 h and recovered by 4 h (LESSONS 70)
     se: float = 1.0                # EGP suppression per unit relative insulin above basal
     ib: float = 10.0               # basal plasma insulin, mU/L — set from the true basal rate
     # glucose

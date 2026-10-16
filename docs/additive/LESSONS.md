@@ -965,3 +965,14 @@ statistic here, but it is the controller donors ran.
       ACF zero-crossing 60 (55; 42.5) moves away. 13 + 16 of 30 vs 16 + 14.
     - **Still unmatched:** Romeres' suppression is sustained (~45% averaged over 5 h); the model's recovers by
       4 h (5-h mean 17%).
+
+70. **The EGP arm acts more slowly (p2E 0.018 → 0.010/min).** After LESSONS 69 the model's meal EGP suppression
+    still bottomed at ~2 h and recovered by 4 h. Romeres 2025's is sustained, with its nadir at ~160 min; ReplayBG's
+    prior for the hepatic action rate is 0.008. At 0.010:
+    - suppression is still 23% at 2–2.5 h;
+    - seed set A (c79 vs c78): Hurst 0.170 → 0.200, night-to-night CV 33.3 → 36.5 (37.2), dinner on true onsets
+      27/26/20/22 at 1/1.5/2/3 h (was 22/21/10/19; donors 29/34/35/36), 13 → 16 of 30;
+    - seed set B (c79b vs c78b): Hurst 0.170 → 0.178, 16 = 16;
+    - levels unchanged (mean 152.9/148.2).
+    LESSONS 20 fitted whole-body action to Loop's curve with 0.018; the EGP arm adds little in the first hour, so the
+    first-hour forecast match it rests on should hold. Not re-checked.
