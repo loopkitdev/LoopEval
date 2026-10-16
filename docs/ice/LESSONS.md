@@ -1085,3 +1085,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     the hold-out, clip [0.5, 2], median x0.95): TIR 72.2 / 72.2, mean 152 / 153 (field 152), t<54 0.36 / 0.31, t<70 1.75 /
     1.79, lows per meal bolus 0.114 / 0.106; per-person TIR pass rate 8 / 17% -> 25 / 29%. New base: v32of{0,1}TcB2FGUCG +
     PLANT_EOFF_MAP + PLANT_SIZE_PERSON. Not yet modeled: eating before logging (49% of field announced meals vs 17%).
+    Change test on the new base (two seeds' predictions averaged per edit): slope TIR 0.72, t<70 1.33, mean 0.73, t<54
+    0.52 (previous base 0.75 / 1.15 / 0.71 / 0.33), t<54 |error| 0.36 vs 0.30 for no change. Per-person size factors exist
+    only for the 24 test hosts; the change test's other donors ran at 1.0.
