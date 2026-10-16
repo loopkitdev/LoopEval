@@ -426,12 +426,8 @@ extension EvaluationEngine {
         var realManualBoluses: [EvalInsulinDose] = []
         // REAL IOB at each manual bolus (excluding the bolus itself), for IOB-aware passthrough.
         var realManualBolusRealIOB: [Double] = []
-        var nextManualIdx = 0
-        // Plant behavior (v2): boluses the plant's person asked for, delivered at the next
-        // decision; running totals for the end-of-run summary.
-        var pendingPlantBoluses: [ExternalPlant.Bolus] = []
-        var plantCarbsTotalG = 0.0, plantBolusTotalU = 0.0, plantBolusCount = 0, plantCarbCount = 0
-        var plantOverrideCount = 0
+        // Plant behavior (v2): the plant's person (CandidatePerson.swift).
+        var plantPerson = PlantPerson()
         if plantBehavior {
             guard externalPlant != nil else {
                 throw NSError(domain: "ClosedLoopSimulator", code: 1,
@@ -716,6 +712,9 @@ extension EvaluationEngine {
             }
         }
 
+        // The person's manual boluses in the candidate arm (CandidatePerson.swift).
+        var fieldBoluses = FieldManualBoluses(boluses: realManualBoluses, fieldIOB: realManualBolusRealIOB)
+
         // The candidate's body (CandidateBody.swift): the ICE replay in counterfactual mode,
         // the linear perturbation otherwise; an external plant replaces the ICE replay.
         let iceBody = ICEReplayBody(
@@ -805,43 +804,7 @@ extension EvaluationEngine {
         func advancePlant(through t1: Date, now: Date, state: [String: Double]) throws -> Double {
             let reply = try plantBody!.advance(through: t1, now: now, state: state, doses: counterfactualDoses,
                                                counter: &counterMgdl, missing: &counterMissing)
-            var carbsG = 0.0
-            if plantBehavior {
-                // The person's carb entries join the candidate's carb store (sorted by
-                // startDate for InputWindowBuilder), visible from the next decision.
-                for c in reply.carbs {
-                    let e = EvalCarbEntry(startDate: c.t, entryDate: c.t, dosingVisibleDate: c.t,
-                                          quantity: LoopQuantity(unit: .gram, doubleValue: c.grams),
-                                          absorptionTime: c.absorption)
-                    let pos = candidateCarbs.firstIndex(where: { $0.startDate > c.t }) ?? candidateCarbs.count
-                    candidateCarbs.insert(e, at: pos)
-                    carbsG += c.grams; plantCarbsTotalG += c.grams; plantCarbCount += 1
-                }
-                pendingPlantBoluses += reply.boluses
-                // The person's Temporary Overrides join the candidate's override windows, through
-                // the same decision-time gate as exported ones (InputWindowBuilder: start <= t).
-                // The override machinery reads the raw schedules; seed them as OverrideTargets does.
-                // Supersession as TemporaryOverrides.windows: a window running at the new start
-                // ends there, and the new one ends at the next window's start.
-                for o in reply.overrides {
-                    if candTherapy.rawBasal.isEmpty       { candTherapy.rawBasal = candTherapy.basal }
-                    if candTherapy.rawSensitivity.isEmpty { candTherapy.rawSensitivity = candTherapy.sensitivity }
-                    if candTherapy.rawCarbRatio.isEmpty   { candTherapy.rawCarbRatio = candTherapy.carbRatio }
-                    if candTherapy.rawTarget.isEmpty      { candTherapy.rawTarget = candTherapy.target }
-                    var ws = candTherapy.overrideWindows.map { w -> OverrideWindow in
-                        guard w.start < o.start, w.end > o.start else { return w }
-                        return OverrideWindow(start: w.start, end: o.start, factor: w.factor,
-                                              targetLo: w.targetLo, targetHi: w.targetHi, indefinite: false,
-                                              revisionKey: w.revisionKey, visibleFrom: w.visibleFrom)
-                    }
-                    let end = min(o.end, ws.filter { $0.start > o.start }.map(\.start).min() ?? o.end)
-                    ws.append(OverrideWindow(start: o.start, end: end, factor: o.factor,
-                                             targetLo: o.targetLo, targetHi: o.targetHi))
-                    candTherapy.overrideWindows = ws.sorted { $0.start < $1.start }
-                    plantOverrideCount += 1
-                }
-            }
-            return carbsG
+            return plantBehavior ? plantPerson.receive(reply, carbs: &candidateCarbs, therapy: &candTherapy) : 0.0
         }
         // Plant carbs entered during a catch-up call, counted into the step that made it.
         var catchUpPlantCarbsG = 0.0
@@ -904,15 +867,8 @@ extension EvaluationEngine {
                 let dPrev = abs(t.timeIntervalSince(simGlucose[prevIdx].startDate))
                 if min(dNext, dPrev) > cgmStaleGuardSec {
                     if counterfactualMode && t >= cfActiveStart {
-                        while nextManualIdx < realManualBoluses.count {
-                            let mb = realManualBoluses[nextManualIdx]
-                            if mb.startDate >= stepEnd { break }
-                            // Under --cf-identity the history was seeded with the FULL real
-                            // dose stream, manual boluses included; appending here too
-                            // doubled them (4 boluses, 14.4 U on bddp11).
-                            if mb.startDate >= t && !cfIdentity { counterfactualDoses.append(mb) }
-                            nextManualIdx += 1
-                        }
+                        fieldBoluses.passThroughSkipped(t: t, stepEnd: stepEnd, identity: cfIdentity,
+                                                        into: &counterfactualDoses)
                     }
                     continue
                 }
@@ -931,13 +887,8 @@ extension EvaluationEngine {
                     lastCompletedLoopT = t
                 }
                 if counterfactualMode && t >= cfActiveStart {
-                    while nextManualIdx < realManualBoluses.count {
-                        let mb = realManualBoluses[nextManualIdx]
-                        if mb.startDate >= stepEnd { break }
-                        // Not under --cf-identity: the real stream is already seeded.
-                        if mb.startDate >= t && !cfIdentity { counterfactualDoses.append(mb) }
-                        nextManualIdx += 1
-                    }
+                    fieldBoluses.passThroughSkipped(t: t, stepEnd: stepEnd, identity: cfIdentity,
+                                                    into: &counterfactualDoses)
                 }
                 continue
             }
@@ -1237,13 +1188,9 @@ extension EvaluationEngine {
                 // automatic dose is decided with it, as in real Loop, where the cycle after a user bolus
                 // sees it. Deciding the automatic dose without it delivered the calculator's dose plus
                 // the application factor's share of the same meal (~1.4x per meal for auto-bolus users).
-                if plantBehavior && cfActive && !cfIdentity && !pendingPlantBoluses.isEmpty {
-                    let rec = result.manualBolusRec.isFinite ? Swift.max(0, result.manualBolusRec) : 0
-                    let want = pendingPlantBoluses.reduce(0.0) { acc, b in
-                        acc + (b.units ?? 0) + (b.ratio ?? 0) * rec
-                    }
-                    let vol = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus(at: t), want))
-                    pendingPlantBoluses.removeAll()
+                if plantBehavior && cfActive && !cfIdentity && !plantPerson.pendingBoluses.isEmpty {
+                    let vol = plantPerson.takeBolus(recommendation: result.manualBolusRec,
+                                                    maxBolus: data.therapyTimeline.maxBolus(at: t))
                     if vol > 0 {
                         // Dated 1 s before the decision: the input builder keeps only doses before the
                         // decision anchor (a dose at the anchor is this decision's own output).
@@ -1277,11 +1224,11 @@ extension EvaluationEngine {
                 // recommendation with that carb made visible (entryDate just past the step
                 // base would otherwise hide it). Manual-bolus path ONLY; auto-dosing above
                 // stays strictly causal. No-op unless manualBolusFromRecommendation is on.
-                if candidateConfig.manualBolusFromRecommendation && !realManualBoluses.isEmpty && !suppressCarbs {
+                if candidateConfig.manualBolusFromRecommendation && !fieldBoluses.boluses.isEmpty && !suppressCarbs {
                     let carbTol: TimeInterval = 30
                     let mbStepEnd = stepEnd
                     // first real manual bolus landing in this step
-                    let mbHere: EvalInsulinDose? = realManualBoluses[nextManualIdx...].first(where: { $0.startDate >= t && $0.startDate < mbStepEnd })
+                    let mbHere: EvalInsulinDose? = fieldBoluses.first(from: t, before: mbStepEnd)
                     if let mb = mbHere {
                         let visCut = mb.startDate.addingTimeInterval(carbTol)
                         let cr: Double = candidateInput.carbRatio.closestPrior(to: mb.startDate)?.value ?? 0
@@ -1651,50 +1598,16 @@ extension EvaluationEngine {
                 // must see this — using the step-start IOB alone ignores the candidate's own
                 // same-cycle auto-bolus and would mis-size (even up-size) the manual bolus.
                 var stepCandidateAdded = candidateDose
-                var recUsedThisStep = false
-                while nextManualIdx < realManualBoluses.count {
-                    let mb = realManualBoluses[nextManualIdx]
-                    if mb.startDate >= stepEnd { break }
-                    if mb.startDate >= t {
-                        if candidateConfig.manualBolusFromRecommendation {
-                            // Replace the user's manual bolus with the candidate algorithm's OWN
-                            // recommended manual bolus at this step (full correction vs its own
-                            // forecast/IOB) — self-consistent, so no IOB-divergence amplification.
-                            // One recommendation per step: first manual event takes it; any further
-                            // events in the same step are already covered (deliver 0).
-                            let rec = (!recUsedThisStep && candidateManualBolusRec.isFinite)
-                                ? candidateManualBolusRec * candidateConfig.manualBolusRecScale : 0.0
-                            recUsedThisStep = true
-                            stepCandidateAdded += rec
-                            counterfactualDoses.append(EvalInsulinDose(
-                                deliveryType: mb.deliveryType, startDate: mb.startDate, endDate: mb.endDate,
-                                volume: rec, insulinType: mb.insulinType, automatic: mb.automatic))
-                        } else if candidateConfig.iobAdjustManualBoluses
-                            && nextManualIdx < realManualBolusRealIOB.count
-                            && candidateIOB.isFinite {
-                            // x - (z - y): resize by the counterfactual-vs-real IOB difference,
-                            // where z is the candidate IOB at the MOMENT of the bolus (step-start
-                            // IOB + this cycle's own committed insulin).
-                            let y = realManualBolusRealIOB[nextManualIdx]
-                            let z = candidateIOB + stepCandidateAdded
-                            let adj = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus(at: mb.startDate), mb.volume - (z - y)))
-                            stepCandidateAdded += adj
-                            counterfactualDoses.append(EvalInsulinDose(
-                                deliveryType: mb.deliveryType, startDate: mb.startDate, endDate: mb.endDate,
-                                volume: adj, insulinType: mb.insulinType, automatic: mb.automatic))
-                        } else {
-                            stepCandidateAdded += mb.volume
-                            counterfactualDoses.append(mb)
-                        }
-                    }
-                    nextManualIdx += 1
-                }
+                fieldBoluses.deliver(t: t, stepEnd: stepEnd, config: candidateConfig,
+                                     recommendation: candidateManualBolusRec, candidateIOB: candidateIOB,
+                                     maxBolus: { data.therapyTimeline.maxBolus(at: $0) },
+                                     committed: &stepCandidateAdded, into: &counterfactualDoses)
                 // Plant behavior: the boluses the plant's person asked for during the previous
                 // step act now, at this decision, as ratio x the bolus-calculator recommendation
                 // computed here (plant carbs entered last step are already visible to it).
                 if plantBolusNowU > 0 {                  // appended before the automatic dose was decided
                     stepCandidateAdded += plantBolusNowU
-                    stepPlantBolusU = plantBolusNowU; plantBolusTotalU += plantBolusNowU; plantBolusCount += 1
+                    stepPlantBolusU = plantBolusNowU; plantPerson.recordDelivered(plantBolusNowU)
                 }
               } // end !cfIdentity (skip candidate dose append in identity mode)
 
@@ -1854,7 +1767,8 @@ extension EvaluationEngine {
 
         if plantBehavior {
             FileHandle.standardError.write(Data(String(format: "plant behavior: %d carb entries (%.0f g), %d boluses (%.1f U), %d overrides from the plant's person; real candidate carbs/manual boluses after cfActiveStart ignored\n",
-                plantCarbCount, plantCarbsTotalG, plantBolusCount, plantBolusTotalU, plantOverrideCount).utf8))
+                plantPerson.carbCount, plantPerson.carbsTotalG, plantPerson.bolusCount, plantPerson.bolusTotalU,
+                plantPerson.overrideCount).utf8))
         }
         return ClosedLoopSimResult(
             steps: stepsWithPatientIOB,
