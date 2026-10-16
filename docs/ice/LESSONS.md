@@ -990,3 +990,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     draws lost their spread: 5-min sd 22 / 20 vs 67 / 59 (field 56), 30-min autocorrelation 0.42 / 0.41 (field 0.07), one donor
     at TIR 18. Fed its own smoothed history, the head predicts narrower draws, which feed back smoother still. Outcome
     matches that come from a generator too smooth to hold the shape bar are not wins.
+107. **Free-running training on v3m21 (FREERUN 0.5) fixes the 30-60 min memory but loses the 5-min structure, and post-bolus
+    lows get worse; not kept.** v32oj{0,1} through the base's full chain on engine 11d1b77, held-out clean time, against the
+    base v32of{0,1}TcB2CG: TIR 69.4 / 70.1 -> 68.5 / 72.4, t<54 0.44 / 0.31 -> 0.60 / 0.58, mean 160 / 159 -> 159 / 153,
+    lows per meal bolus 0.111 / 0.107 -> 0.122 / 0.139 (field 0.064). Background-ICE autocorrelation at 30 min 0.07 / 0.04
+    (field 0.07, base 0.11) but at 5 min 0.14 / 0.11 (field 0.40, base ~0.36), 5-min sd 72 / 69 (field 56): the draws became
+    nearly white. Seed 1's night background fell to 31.5 (base 37.7, field 24) and its TIR rose, yet severe lows rose on
+    both seeds. With LESSONS 106: the excess lows after boluses follow the 5-min structure, not the 30-min memory.
