@@ -24,15 +24,15 @@ Code: `analysis/loopeval_analysis/patient_sim/`.
 | A2 SC insulin PK | Per-dose depot: delay τ → Isc1 →kd→ Isc2 →ka2→ plasma, ke 0.127 | kd lnN(0.030, 0.31), ka2 lnN(0.018, 0.21), VI 0.126 L/kg | 01 §3; ka2 centre refit to the lispro clamp profile (LESSONS 9) | calibrated |
 | A3 Insulin formulations | τ, kd/ka2 multipliers, fast-route fraction ψ | lispro/aspart = reference; Fiasp and Lyumjev FITTED to clamp contrasts (Lyumjev AUC0–15 ×7.2, >3 h ×0.60; Fiasp AUC0–30 ×2.0, >3 h ×0.80); glulisine; regular human insulin | 01 §3.2; `insulins.fit_formulations` | calibrated |
 | A4 Per-dose absorption jitter | ω per bolus scales kd, ka2, k_fast | lnN CV 15% | 07 (Heise 2017 repeat clamps, net of the SI share) | wired |
-| A5 Insulin action — disposal | X_D (rate p2) on absolute insulin; uptake X_D·M(G)·risk(G) − X_b·Gb; M = Gb + κ(G−Gb) above Gb, ∝ G below | p2 0.025; κ lnN(0.15, 0.4); SI_D calibrated per person | p2 refit to clamp GIR peak ~100 min, 50% by ~140, 90% by ~270 (LESSONS 9); κ (LESSONS 2); low end (LESSONS 7) | calibrated |
+| A5 Insulin action — disposal | X_D (rate p2) on absolute insulin; uptake X_D·M(G)·risk(G) − X_b·Gb; M = Gb + κ(G−Gb) above Gb, ∝ G below | p2 0.05, p2E 0.018: the whole action tracks Loop's adult curve (13/51/77/91/99% at 1/2/3/4/6 h); κ lnN(0.15, 0.4); SI_D calibrated per person | field forecast evidence over 0.2 U/kg clamps (LESSONS 9, 20); κ (LESSONS 2); low end (LESSONS 7) | calibrated |
 | A6 Insulin action — EGP | X_E (rate p2E) on relative insulin; EGP = EGP_b·c(t)·clip(1 − sE·X_E, 0, 1+sE) | EGP_b N(2.5, 0.33) mg/kg/min; p2E 0.012; sE from an EGP share U(0.3, 0.5) of ISF [J] | 01 §4.1; Hovorka 2004 | wired |
 | A7 Renal excretion | Rcl·(G − Rthr) above Rthr | Rthr N(180, 25); Rcl lnN(0.003, 0.3) | 01 §4.3 | wired |
 | A8 Hypo risk amplification (S2013) | uptake × [1 + λ·10 r1 (ln G^r2 − ln Gb^r2)²] below Gb | **λ = 0**: at 0.5 it gave t<54 8.5% vs the field's 0.13% | 01 §4.5; ablation runs/a_norisk (LESSONS 10) | calibrated (off) |
 | A9 Counter-regulation + HAAF | EGP boost CRmax·h·σ((cr_g − G)/5), τ 15 min; h falls while < 54 (2 h → ×0.6), recovers over 60 h | CRmax lnN(1.0, 0.5) mg/kg/min [J]; cr_g N(65, 5) | 01 §4.4 (no clamp-calibrated prior exists) | wired |
 | A10 Gut — mixed meals | Per-meal parcel Qsto1 → Qsto2 → Qgut, kempt = kabs, × per-meal speed | kempt = kabs = 0.045 (peak 44 min, 90% by ~2 h); per-meal speed lnN CV 0.4 (meal composition); f N(0.9, 0.05) | ice meal-pulse fits, 116k pulses: peak 0.75 h, 90% by 1.83 h; 01 §6 | calibrated |
 | A11 Gut — hypoglycaemic acceleration | kempt × (1 + 1.5·σ((70 − G)/5)) | ×2.5 below ~60 | 01 §6.4 (Schvarcz 1995) | wired |
-| A12 Fat / protein | early emptying ×1/(1 + fat/60); late slow parcel; fat SI dip | — | 01 §6.3 | planned |
-| A13 Rescue carbohydrate | fast parcel kempt = kabs ≈ 0.06–0.08, f 1.0, with A11 | — | 01 §6.5 | wired |
+| A12 Fat / protein | early: kempt × 1/(1 + fat/60); late: slow glucose parcel 0.1·protein g, chain 1/60, delay 90 min; fat SI dip 1 − ρ·fat/50 ramping in 2→3 h, full to 6 h, gone by 10 h | per meal 0.44 g fat and 0.45 g protein per carb gram (snacks 0.2), ±50% [J: Snell-Bergeon 2009 split, unverified]; ρ U(0, 0.35) per person | 01 §6.3 (Smart 2013, Wolpert 2013, Bell 2020, Paterson 2017) | wired |
+| A13 Rescue / fast glucose | fast parcel kempt = kabs ≈ 0.06–0.08, with A11; bioavailability = the person's calibrated meal f × 1.25 (never a fixed 1.0) | — | 01 §6.5 (Brodows 1984: ~3–4 mg/dL per g); LESSONS 18 | wired |
 
 **Per-person calibration** (`person.calibrate`): Ib comes from the true basal rate; SI_D and sE are
 solved so a 0.1 U probe on the *linear part* (A1 SG, A5 κ and low-end, A8, A9 all off) gives the
@@ -55,11 +55,12 @@ estimates (LESSONS 2).
 
 | Component | Model form | Parameters | Evidence | Status |
 |---|---|---|---|---|
-| C1 Acute uptake | insulin-independent uptake ∝ intensity | BodyParams.ex_uptake [J] | 02 §1 (Breton 2008; ETH Deichmann 2023) | built (uptake 0 until calibrated) |
+| C1 Acute uptake | insulin-independent uptake ∝ intensity | ex_uptake lnN(3.0, 0.3) mg/kg/min at intensity 1 (moderate work ≈ −50 mg/dL/h from uptake alone) [J; calibrate vs T1DEXI] | 02 §1 (García-García 2015; Breton 2008) | wired |
 | C2 Acute + delayed sensitivity | insulin action ×(1 + αI + Z); dZ = b·I − Z/600 | α 0.8, b 0.018 [J] | 02 §1 | wired |
 | C3 Absorption during exercise | absorption ×(1 + 0.5 I) [J] | — | 02 §1 | wired |
 | C4 Anaerobic EGP surge | EGP + surge × anaerobic share | — | 02 §1 (Marliss & Vranic 2002) | built (0 until calibrated) |
 | C5 Sessions | per-person rate 0–5/week, ~40 min, time-of-day slot, pre-exercise carbs p 0.3 | — | 02 (T1DEXI, an active cohort); 04 | wired |
+| C6 Light daily activity | walking/chore bouts through C1–C3: lnN(4)/day, ~12 min, intensity ~0.25; half within 2 h after eating [J] | sized against quiet-window step statistics (quiet.py) | 00 D15 (tier 1); donor quiet stretches carry heavy-tailed, persistent moves | wired |
 
 Calibration targets for C: T1DEXI's per-session drop by starting glucose and by IOB, and the
 delayed-hypo night rate.
@@ -113,6 +114,9 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 | F6 Monitoring and sleep | glances lnN(6/day); alerts; asleep: alarm wakes with p ~0.45, unaided 1/16 | 04 (Puhr 2020; Buckingham 2005; Schultes 2007) | wired |
 | F7 Exercise habits | C5 | 02; 04 | wired |
 | F8 Site changes | every ~3 days in the evening; early on a long unexplained high or an occlusion alarm | eda L52; 06 | wired |
+| F9 Grazing | small unlogged intake below the ice labeler's 12 g-eq gate: lnN(2)/day of lnN(6 g), fast | quiet-window evidence [J rates] | wired |
+| F10 Hand-dosed food boluses | an un-entered eating event gets a bolus of the person's own grams estimate ÷ their CR, at the person's measured rate | pilot lone boluses above Loop's recommendation or below 140 mg/dL (templates._free); Groat 2017 | wired |
+| F11 Eating pulses | carbs/day spread over the person's measured pulse count (~5.6/day) with their measured size spread | ice meals tables (LESSONS 16) | wired |
 
 ## G. Truth and settings (`person.py`)
 
@@ -122,10 +126,21 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 | G2 True ISF | settings ISF × (yardstick / settings)^0.5 [weight open] | LESSONS 8; eda L53, L54 | wired |
 | G3 Body weight | blend of the age prior and TDD at an age-banded U/kg | eda L47 (profile ages can be the account holder's) | wired |
 | G4 Insulin balance | true basal = share N(0.5, 0.07) × TDD/24; carbs eaten = TDD·(1 − share)·CR_true | eda L9 (scheduled share 0.43–0.51); TDD measured | wired |
+| G7 Carb sensitivity | CSF = 1.30 × ISF_tdd·TDD/500 per eaten gram (sd 0.15); bioavailability f = CSF·BW·VG/1000 (0.3–1.0) | ice L54 and ice_gen/meals.py g-eq (LESSONS 14, 17) | calibrated |
+| G8 Effective ISF | the person's ISF is the EFFECTIVE drop per unit at ~180 mg/dL on the full body, as the yardstick measures it | LESSONS 15 | calibrated |
 | G5 Settings | the donor's own ISF, CR, basal, target and limits | templates | wired |
 | G6 Devices | sensor family, pump, dosing strategy, formulation from the donor | sensor_month (Databricks per-reading deviceId) | wired |
 
 ---
+
+## Coupling to LoopEval
+
+`loopeval_io.py` writes a synthetic export (30 h of internally-driven history, then the sensor grid) and
+runs `simulate --candidate-counterfactual --external-plant … --plant-behavior` as deployed Loop-main
+(`--no-mid-absorption-isf --no-gradual-transitions-gate --legacy-rc-decay`). The plant delivers every
+dose LoopEval sends from the current minute (a late dose is never dropped, LESSONS 19) and logs what it
+received; validation reports delivered/received per person. Auto-bolus users ask for ratio − 0.4 so a
+meal step totals ratio × the recommendation (LESSONS 21; engine fix handed off).
 
 ## Validation (the primary test)
 
