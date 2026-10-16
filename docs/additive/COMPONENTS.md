@@ -51,7 +51,6 @@ estimates (LESSONS 2).
 | B4 Intraday OU / slow drift | — | **off**: no controlled-condition evidence | 07; LESSONS 1 | off |
 | B5 Menstrual cycle | luteal SI dip, cycle N(28, 3) d, 63% of people respond | amplitude lnN(0.08, 0.5) | 02; donors show no monthly rhythm (run:2026-10-11-ice-slow/cycle_screen.csv) | built, **off by default** |
 | B6 Illness | Poisson episodes (3/yr adults, 5/yr children), 1.5–15 d; SI dip 10–35% with ramps, EGP +0–15%; 20% gastrointestinal (SI up 5–15%, intake ×0.7) | — | 02 illness (Mehta 2010; Tinti 2025) | wired |
-| B7–B10 Sleep loss, stress, alcohol, heat | — | — | 02; 00 | planned (tier 2) |
 | B11 Hyperglycaemia-induced resistance | SI × (1 − H), H → 0.26·clip((G − 140)/220, 0, 1), τ 12 h [J] | — | Vuorinen-Markkola 1992; Yki-Järvinen 1987 (LESSONS 43) | wired |
 
 ## C. Exercise (`exercise.py`)
@@ -103,7 +102,7 @@ The difference is ground truth the plant logs, and Loop never sees it (phantom I
 | E8 Full occlusion + alarm | delivery 0; alarm at V_alarm missed units (Omnipod 3, Medtronic 2.5, twiist 0.5) | p 0.003 per wear [J split] | 06 #7; Kanapka 2022 | wired |
 | E9 Bubble | missed volume lnN(0.5 U) | p 0.2 per wear [J] | 06 #9 | wired |
 | E10 Dislodgement | absorbed fraction 0, never alarms | p 0.004 per wear [J split] | 06 #12; Kanapka 2022 | wired |
-| E11 Lipohypertrophy | bioavailability 0.75–0.8 | prevalence not assigned | 06 #13 | built (off) |
+| E11 Lipohypertrophy | bioavailability 0.75–0.8 | prevalence not assigned | 06 #13 | wired: 26% adults / 42% children, half their sites at bio 0.78, dose CV 0.5 (LESSONS 67) |
 | E12 Leakage / backflow | — | no quantitative source | 06 #11 | not modelled |
 
 ## F. Behavior — the person as a second controller (`behavior.py`)
@@ -160,5 +159,4 @@ anatomy. For the pilot templates the reference is the pilot donors themselves in
 `twin.csv` sets each simulated person against the donor it came from (median difference and rank
 agreement). A gap means a missing or mis-specified component. It never means adding a fitted term.
 | G9 Loop not acting | offline / merged windows run scheduled basal, pump errors keep the last command; written to the export's disruptions.csv, which LoopEval honours | donors' disruptions.csv: 0.9/day, lnN(32 min, 0.86) ≤ 6 h; errors 2.45/day × 3 min (LESSONS 60) | wired |
-| G10 Lipohypertrophy | person trait (26% adults, 42% children); half their sites in LH tissue [J]: bioavailability 0.78 and per-dose absorption CV 0.5 for the wear | Pickup 2014; Heinemann & Krinelke 2012; Famulla 2016 (LESSONS 67) | wired |
 | B7–B10 Nightly factors | prior-night sleep loss (−5% SI/h lost, SD 77 min), nocturnal GH variability (CV 0.32 on a 20% dawn increment, mean-zero), evening alcohol (63% drink, 3–20% of nights; −12% SI, morning EGP ×0.85), stress (1/3 react, 40% of days, −10% SI 1–5 h) | Donga 2010; Messman 2022; Edge 1990; Campbell 1985; Kerr; Turner 2001; Riazi 2004; Moberg 1994; evidence/12 (LESSONS 77) | wired |
