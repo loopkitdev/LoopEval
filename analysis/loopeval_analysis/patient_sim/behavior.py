@@ -234,7 +234,10 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         site_days=float(np.clip(rng.normal(3.0, 0.4), 2.0, 4.0)),
         act_rate=lj(2.0, 0.55), metmax=float(np.clip(lj(9.0, 0.25) * (1 - 0.0075 * max(0.0, person.age - 30)), 4.0, 16.0)),
         act_bg=lj(0.06, 0.4), act_gain=lj(1.0, 0.5),
-        graze_per_day=lj(2.0, 0.7), graze_g=lj(6.0, 0.4),
+        # unlogged small intake (drinks, sweets): 5–15 g each (Piernas & Popkin 2010: 97% of adults snack daily, 24% of
+        # energy; Groat 2017: carbs logged on 77% of pump-user days); per-person rate heavy-tailed, a minority grazes a lot
+        # (Pete 2026-10-16) — donors' daytime quiet-window changes skew upward +0.76 vs the sim's −0.12 at 6 g (LESSONS 78)
+        graze_per_day=lj(2.0, 1.0), graze_g=lj(10.0, 0.4),
     )
     for k in ("ov_less_day", "ov_less_f", "ov_less_lo", "ov_less_hi", "ov_less_h", "ov_tgt_day", "ov_tgt_lo", "ov_tgt_hi", "ov_tgt_h",
               "ov_more_day", "ov_more_f", "ov_more_lo", "ov_more_hi", "ov_more_h"):
