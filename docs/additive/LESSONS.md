@@ -1187,3 +1187,18 @@ statistic here, but it is the controller donors ran.
       beds.
     - **Caveats:** 112 people × 14 days gives wide intervals. The sim's remaining shape gaps (meal plateau,
       night-high falls; LESSONS 66, 80–82) bear on exactly the situations these candidates act in.
+
+84. **C30's parts, separately, behave as the ledger says; C31 is the sim's clearest dose-more result.** Same 112
+    people and dial as LESSONS 83:
+
+    | | ΔTIR | Δt<54 | Δmean | lift over dial (CGM) |
+    |---|---|---|---|---|
+    | C20 post-low rise-cut | −0.13 | −0.06 [−0.12, −0.01] | +0.2 | +0.85 [−0.15, +1.77] |
+    | C29 σ band | −0.24 | −0.06 (true −0.10 [−0.20, −0.01]) | +1.3 | +0.81 [−0.96, +2.16] |
+    | C23/C25 calm-high licence | +0.32 [−0.22, +0.86] | +0.00 | −0.7 | +0.31 [−0.62, +1.31] |
+    | C31 calm-high target −20 | +0.64 [+0.09, +1.23] | −0.03 | −1.0 | +1.11 [−0.04, +2.22] |
+
+    - **C20 and C29** are pull-backs that take the lows off at a smaller TIR price than the dial.
+    - **The licence** adds TIR at zero lows cost, the ledger's verdict, but small here.
+    - **C31** raises TIR significantly with lows unchanged.
+    - **C30** (LESSONS 83) is the pull-backs' lows cut plus a licence gain too small to show.
