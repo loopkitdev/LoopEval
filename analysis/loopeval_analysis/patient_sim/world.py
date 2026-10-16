@@ -134,7 +134,10 @@ class World:
             elif kind == "fat": self.fat_events.append((a[1], a[2]))
             else: pending_actions.append(a)
         # a failing site the person notices: a long high that corrections did not move (eda L52) [J: ~3 h]
-        if self.pump.failing(m) and reading and reading > 250 and not asleep \
+        # (checked every minute on the latest reading the person can see: gated on report minutes only, the
+        # hazard ran at 1/900 per minute and a dislodged site went unnoticed for ~15 waking hours; LESSONS 30)
+        seen = self.beh.readings[-1][1] if self.beh.readings and m - self.beh.readings[-1][0] <= 15 else None
+        if self.pump.failing(m) and seen and seen > 250 and not asleep \
                 and self.beh.rng.random() < 1.0 / 180:
             self.pump.change_site(m); self.beh.log.append((m, "site_change_early", 0, reading))
         # an occlusion alarm: changed promptly if awake, or if the alarm wakes them (alarms repeat ~15 min)

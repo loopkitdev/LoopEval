@@ -241,3 +241,25 @@ statistic here, but it is the controller donors ran.
     ~8.5 mg/dL at 40–60, ~11.6 near 130, ~17 near 240; scaling the noise by 0.6 + 0.4·IG/130 at σ 4.5
     gives night excursions 0.38 (0.35), quiet step SD 5.23 (5.48), t<70 1.62 (1.66), t<54 0.27 (0.23),
     TIR 72.2 (71.7), kurtosis 2.36 (2.48) — grid runs/nh_*, runs/ns_*.
+
+30. **Look at the worst person-days, not the averages: a few multi-day excursions were half the
+    between-day spread.** Simulated daily means showed a dip shared across people (days 8–9, t −3.5 and
+    −4.8), and between-day variance was 0.24 of the total against the donors' 0.10. The shared "dip" was
+    an artifact of centering each person on a mean that two outliers had dragged down: true glucose
+    held at 500–1000 mg/dL for 10–30 h. There were two causes.
+    - A dislodged site was noticed only on reporting minutes. The 1/180 per-minute hazard became 1/900,
+      so the site went unnoticed for ~15 waking hours while the CGM read 401.
+    - Eating events were renormalised to each day's actual count, which coupled the Poisson snack count
+      into meal size. Simulated p99.9 was 246 g against the donors' 156 g-eq pulses; one meal was
+      297 g, unannounced.
+    After both fixes (cohort c25), between-day fraction is 0.118 (donors 0.105) and day-to-day TDD CV
+    is 16.6 (17.0). Skew did not move (1.32 vs 0.89). The donors' log-glucose is symmetric (median
+    log-skew 0.01: glucose is lognormal); the simulator's is 0.17, with a body slightly too low (median
+    137 vs 142) and a top tail too long (p99 335 vs 317). The excess lives in the true glucose (Box-Cox
+    −0.28), not in the sensor.
+    Two side results:
+    - The fingerstick records in the Tidepool pull are 98.7% mirrored CGM values. The 346 real sticks
+      (70 donors) cannot calibrate sensor bias.
+    - CGM second differences grow with glucose level about as fast in the simulator as in donors (sd
+      4.2 → 7.9 from 90 to 350 mg/dL). Fully proportional (log-scale) sensor noise would give ~16 at
+      350, so the sensor's fast noise is not proportional to glucose.
