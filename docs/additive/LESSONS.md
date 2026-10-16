@@ -950,3 +950,18 @@ statistic here, but it is the controller donors ran.
     free parameter to a target, so the default stays. That is a decision for Pete, raised on the board.
     LESSONS 49's quiet-window evidence for "restoring force too strong" mixed daytime windows with unlabeled eating
     (LESSONS 51). What still stands is the true-glucose step ACF (minimum −0.34) and the 2-h excess of LESSONS 66.
+
+69. **Post-meal EGP suppression set from T1D tracer data; meals plateau more.** The share of insulin's effect through
+    EGP suppression was U(0.3, 0.5) [J]. Around isolated bolused meals the model's EGP bottomed at 70% of pre-meal at
+    ~2 h (30% suppression) and averaged 88% over 5 h. Romeres 2025 (T1D adults, triple-tracer mixed meal, usual bolus)
+    measured a nadir of 44 ± 17% at ~160 min (evidence/13). Paradoxical glucagon at its evidenced size accounts for
+    ~0–10 mg/dL (Hinshaw 2016: pramlintide lowered glucagon without changing EGP), so no glucagon term.
+    - **Probes** (56 people): share 0.65 gives a 53% nadir, 0.8 gives 72%. Higher shares flatten post-meal curves
+      toward the donors' plateau (0.8: dinner 25/31/33/30 at 1/1.5/2/3 h vs donors 29/34/35/36) because more of
+      insulin's effect acts through the slower EGP arm. Mean glucose rises (156, 161).
+    - **Adopted:** U(0.5, 0.7) (centre from Romeres, width [J]). The nadir is now 40%.
+    - **Both seed sets (c78/c78b vs c75/c75b):** mean 152.8/148.3 (151.4); day/night 1.79/1.88 (was 1.70/1.83;
+      2.06); Hurst 0.170/0.170 (0.162/0.157; 0.247); dinner on true onsets 22/21/10/19 (was 14/3/0/13).
+      ACF zero-crossing 60 (55; 42.5) moves away. 13 + 16 of 30 vs 16 + 14.
+    - **Still unmatched:** Romeres' suppression is sustained (~45% averaged over 5 h); the model's recovers by
+      4 h (5-h mean 17%).
