@@ -78,7 +78,7 @@ Time is local minutes from `EPOCH` (Monday 2026-01-05 00:00; local time = UTC in
   `--temp-basal-strategy`. Auto-bolus users run LoopEval's default application factor, 0.4.
 - **Reproducibility.** The plant re-simulates the burn-in from the same (person, seed), so its state at
   the first request matches the export exactly.
-- **Engine requirement.** LoopEval main ≥ f11386e. Older binaries either stacked Loop's automatic dose
+- **Engine requirement.** LoopEval main ≥ 14b2d58 (plant-sent overrides; ≥ f11386e for everything else). Older binaries either stacked Loop's automatic dose
   on top of a plant bolus (LESSONS 21) or dropped plant boluses entirely (8e86860, LESSONS 25).
   `PLANT_NET_AF=1` restores the ratio − 0.4 workaround, for binaries older than 8e86860 only.
 - **Late doses.** The plant's clock is already past t0 when doses arrive, so each dose is delivered
@@ -544,8 +544,11 @@ eras into the exported schedules (LESSONS 41).
   (`overrideWindows`); LoopEval applies each from its start, causally.
 - **Evidence.** 19,732 donor windows (LESSONS 40): less insulin 45% (factor 0.60, 1.4 h), more
   insulin 17% (1.33, 1 h, reactive to highs), target only 37% (~90, 1 h).
-- **Not modelled.** The reactive more-insulin class needs plant-sent overrides
-  (`docs/handoffs/2026-10-16-additive-plant-overrides.md`).
+- **Reactive more-insulin overrides** are sent by the plant (LoopEval ≥ 14b2d58, `overrides` in the
+  reply). They fire while awake when CGM > 180 and rising, at the donor's rate (hazard over waking time
+  high × 0.4 rising [J]), with the donor's factor, target and duration, one at a time (LESSONS 50).
+- **Overlaps.** Exported overrides are clipped at the next one's start, so a new override replaces the
+  running one, as in Loop.
 - **Notes.** Every day is planned at World construction, so the export and the plant's re-simulation
   agree (`Behavior.plan_all`).
 
