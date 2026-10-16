@@ -1202,3 +1202,31 @@ statistic here, but it is the controller donors ran.
     - **The licence** adds TIR at zero lows cost, the ledger's verdict, but small here.
     - **C31** raises TIR significantly with lows unchanged.
     - **C30** (LESSONS 83) is the pull-backs' lows cut plus a licence gain too small to show.
+
+85. **Stress scenarios: where each candidate earns or costs (Pete: "stress scenarios").** On day 4 one ground-truth
+    event is injected into every arm alike (`--enable scenario_<name>`, `world._scenarios`):
+    - illness: SI −30%, EGP +10%, 3 days;
+    - exercise: 60 min at intensity 0.6, 17:00;
+    - missed bolus: dinner eaten with no entry and no bolus;
+    - site failure: dislodged at 14:00, until the person notices;
+    - sensor fault: a 45-min false low of 40 mg/dL at 02:00.
+
+    56 people × 8 days per arm; true glucose over the 72 h from day 4; Δ vs the baseline controller on the same
+    scenario (95% bootstrap):
+
+    | scenario (baseline) | C30 | C31 (−20) | aIRC |
+    |---|---|---|---|
+    | illness (TIR 53, >250 19%) | neutral | TIR **+1.9** [+0.6, +3.4], >250 **−1.3** [−2.5, −0.1] | neutral |
+    | exercise (t<54 0.94) | t<70 **−0.48** [−0.96, −0.01] | neutral | t<54 **−0.27** [−0.51, −0.04], t<70 **−0.67** |
+    | missed bolus | neutral | TIR +1.1 [−0.9, +2.7] | >250 **+1.1** [+0.3, +2.0] |
+    | site failure (TIR 55) | TIR +2.0 [−0.3, +4.3], >250 −1.9 | neutral | neutral |
+    | sensor false low | t<54 +0.14 [−0.05, +0.36] | >250 **−0.96**, max −19 | t<54 −0.08 |
+
+    - **C31** pays where the person is resistant or under-dosed (illness; a missed bolus by trend), with no lows cost
+      anywhere.
+    - **aIRC** protects after exercise, the lows-prone case, but leaves an unbolused meal high longer: its weaker
+      response to rising glucose.
+    - **C30**'s lows protection shows on the exercise day; it trends toward helping on a failed site.
+    - **During the false low** no candidate shows clear harm.
+    - **Limits:** 56 people each, one event per person, so many intervals still include zero. The scenario sizes are
+      single representative values from the component ranges.

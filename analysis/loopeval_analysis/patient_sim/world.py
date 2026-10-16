@@ -193,6 +193,7 @@ class World:
         # the plant's re-simulation reproduces the identical plan (LESSONS 40)
         gi = (lambda d: 0.7 if self.mods.illness(d * DAY + 720)[2] else 1.0) if self.mod_traits.enabled.get("illness") else None
         self.beh.plan_all(days, gi)
+        self._scenarios(enable or {})
         self.outages = plan_outages(person, days, np.random.default_rng(person.seed + 23)) if (enable or {}).get("outages", True) is not False else []
         youth = 3.0 if person.age < 18 else 1.0          # Kanapka 2022: 5.8% of sets at 14–17 vs 1.9% in adults
         lh = bool(self.enable.get("lipohypertrophy", True)
@@ -256,8 +257,39 @@ class World:
         self.hyper_max = enable.get("glucotox_max") if enable and isinstance(enable.get("glucotox_max"), float) else 0.26
 
     # ------------------------------------------------------------------ one minute
+    # ------------------------------------------------------------------ stress scenarios (candidates.py; LESSONS 85)
+    SCENARIO_DAY = 4
+
+    def _scenarios(self, enable: dict):
+        """Ground-truth events on day SCENARIO_DAY, switched on with --enable scenario_<name>; identical across arms."""
+        d0 = self.SCENARIO_DAY * DAY
+        self.scenario_at = {}
+        if enable.get("scenario_illness"):
+            # non-gastrointestinal illness: SI −30%, EGP +10% (inside the B6 ranges), 3 days with ramps
+            self.mods.ill.append(dict(start=d0, dur=3 * DAY, gi=False, si_drop=0.30, egp=0.10))
+        if enable.get("scenario_exercise"):
+            st = d0 + 17 * 60          # 60 min moderate (intensity 0.6) late-afternoon session: McMahon 2007's design
+            self.beh.planned.append((st, ("exercise", st, 60.0, 0.6, 0.1))); self.beh.planned.sort(key=lambda x: x[0])
+        if enable.get("scenario_missed_bolus"):
+            # dinner eaten with no carb entry and no bolus
+            for i, (t, act) in enumerate(self.beh.planned):
+                if act[0] == "eat_meal" and act[1].kind == "meal" and d0 + 16 * 60 <= t <= d0 + 22 * 60:
+                    meal = act[1]
+                    self.beh.planned = [(tt, a) for (tt, a) in self.beh.planned if not (a[0] == "enter_meal" and a[1] is meal)]
+                    meal.entered, meal.bolus = None, None
+                    break
+        if enable.get("scenario_site_failure"):
+            self.scenario_at[d0 + 14 * 60] = "dislodge"      # no insulin reaches the tissue until the person changes the site
+        if enable.get("scenario_sensor_fault"):
+            self.scenario_at[d0 + 2 * 60] = "false_low"      # 45-min false low of 40 mg/dL at 02:00 (a compression-type dip)
+
     def _minute(self, pending_actions: list):
         m = self.minute
+        ev = self.scenario_at.get(m) if getattr(self, "scenario_at", None) else None
+        if ev == "dislodge":
+            self.pump.dislodge_at = m
+        elif ev == "false_low":
+            self.sensor.comp = dict(start=m, dur=45.0, depth=40.0, kind="dip", tau=8.0)
         si, egp, absm_env = self.mods.at(m)
         bprof = self.person.truth.get("basal_profile")
         if bprof:                                   # basal need by local hour (EGP at basal insulin), LESSONS 48

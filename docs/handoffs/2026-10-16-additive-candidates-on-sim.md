@@ -39,3 +39,12 @@ Runs: `runs/2026-10-16-additive-arms/` (baseline `runs/2026-10-16-additive-c98/`
 
 Each part has the ledger's sign: C20 and C29 cut lows, the licence adds TIR at zero lows cost (small here), and C31
 raises TIR with lows flat.
+
+## Update: stress scenarios (LESSONS 85)
+
+Each scenario injects one ground-truth event on day 4 into every arm alike: illness, a 60-min exercise session, a
+missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stage these. Δ on true glucose over 72 h
+(56 people per arm):
+- **C31:** illness TIR **+1.9** [+0.6, +3.4] and >250 −1.3; missed bolus +1.1 (n.s.); no lows cost anywhere.
+- **aIRC:** exercise-day t<54 **−0.27** [−0.51, −0.04], t<70 −0.67; missed bolus >250 **+1.1** [+0.3, +2.0] (a cost).
+- **C30:** exercise-day t<70 −0.48; site failure TIR +2.0 (n.s.).
