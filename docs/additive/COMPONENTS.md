@@ -46,7 +46,7 @@ estimates (LESSONS 2).
 |---|---|---|---|---|
 | B1 Circadian sensitivity | Visentin 7-class B/L/D profile, switches 04/11/17 h, 1 h ramps, normalised to a daily mean of 1 | class probabilities 0.10/0.05/0.05/0.10/0.20/0.20/0.30; low/high N(0.40, 0.23) at Visentin's **full** swing; no per-day noise (07) | 01 §5.1; LESSONS 38: 24-h amplitude 0.14 vs donors 0.13 | calibrated |
 | B1b Basal-need profile | EGP × the donor's local hourly basal-schedule shape^0.5; Loop's exported schedule uses the shape as is | per donor (templates.add_basal_profile) | donor basal schedules in local time; LESSONS 48 (day/night insulin 1.40 vs 1.38) | calibrated |
-| B2 Dawn phenomenon | EGP ramp from onset U(02:00, 04:30) to a 07:00 peak, gone by 10:00 | present p 0.52; amplitude lnN(0.3, 0.6) of EGP_b [J] | 02 (Ostrovski 2020); 01 §5.1 | wired |
+| B2 Dawn phenomenon | EGP ramp from onset U(02:00, 04:30) to a 07:00 peak, gone by 10:00 | present p 0.52; amplitude lnN(0.3, 0.6) of EGP_b [J] | 02 (Ostrovski 2020); 01 §5.1 | wired for people without a donor basal profile (the profile carries dawn; LESSONS 51) |
 | B3 Intrinsic day-level SI | independent per-day lognormal | CV 8% | 07 (repeat clamps 6–15%) | wired |
 | B4 Intraday OU / slow drift | — | **off**: no controlled-condition evidence | 07; LESSONS 1 | off |
 | B5 Menstrual cycle | luteal SI dip, cycle N(28, 3) d, 63% of people respond | amplitude lnN(0.08, 0.5) | 02; donors show no monthly rhythm (run:2026-10-11-ice-slow/cycle_screen.csv) | built, **off by default** |
@@ -113,7 +113,7 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 
 | Component | Model form | Source | Status |
 |---|---|---|---|
-| F1 Meal schedule | 3 main meals (Camerlingo timing) + snacks at the person's measured pulse rate, placed on their own hour-of-day distribution; weekend shift [J] | ice meals tables; 04 (Camerlingo 2021) | wired |
+| F1 Meal schedule | 3 main meals (Camerlingo timing; donor's own breakfast/lunch/dinner split and per-window announcement, LESSONS 51) + snacks at the person's measured pulse rate, placed on their own hour-of-day distribution; weekend shift [J] | ice meals tables; 04 (Camerlingo 2021) | wired |
 | F2 Announcement and carb count | P(entry) from the donor's RAW entries/day (2.97 median); person bias N(−0.10, 0.10); per-meal sd lnN(0.2, 0.3); big meals under-counted | raw record (templates.add_raw_rates); Brazeau 2013; LESSONS 35–36 | wired |
 | F3 Meal bolus + top-ups | P(bolus \| entry) from raw boluses-with-entry; timing class from the measured lead; calculator acceptance (7.4% up / 6.9% down); top-ups at the donor's raw rate, 20–60 min later if CGM > 120 and not falling [J] | raw record; Groat 2017; Datye 2018 | wired |
 | F4 Corrections | at a glance, CGM above the person's measured correction level and not falling | ice corrections tables | wired; rate per glance [J] |

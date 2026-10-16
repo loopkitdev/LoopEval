@@ -307,9 +307,9 @@ All modulators multiply SI or EGP and can be switched (`enabled`).
 
 | Part | Form | Values | Evidence and tuning | Default |
 |---|---|---|---|---|
-| B1 Circadian SI | Visentin 7-class breakfast/lunch/dinner high/low profile; switches at 04/11/17 h with 1-h ramps; normalized to a daily mean of 1 | class probabilities 0.10/0.05/0.05/0.10/0.20/0.20/0.30; low/high ratio N(0.40, 0.23), Visentin's **full** measured swing (`circ_swing` 1.0) | Visentin 2015. LESSONS 38: 24-h amplitude 0.14 vs the donors' 0.13. The earlier halving (LESSONS 10) compensated for fixed-rate emptying. Visentin's per-day N(1, 0.2) is estimation precision (evidence/07), so `circ_noise = 0` | on |
-| B1b Basal-need profile | EGP × the donor's local hourly basal-schedule shape^0.5 (Loop's schedule uses the shape as is) | per-donor, overnight ~0.91 | LESSONS 48: day/night insulin 1.40 vs donors 1.38 | on |
-| B2 Dawn | EGP ramp from onset U(02:00, 04:30) to a 07:00 peak, back to 0 by 10:00 | present in 52%; amplitude lnN(0.3, 0.6) × EGP_b **[J]** | Ostrovski 2020; Porcellati 2013 | on |
+| B1 Circadian SI | Visentin 7-class breakfast/lunch/dinner high/low profile; switches at 07/11/17 h with 1-h ramps (the dinner level holds overnight; breakfast starts at breakfast, LESSONS 51); normalized to a daily mean of 1 | class probabilities 0.10/0.05/0.05/0.10/0.20/0.20/0.30; low/high ratio N(0.40, 0.23), Visentin's **full** measured swing (`circ_swing` 1.0) | Visentin 2015. LESSONS 38: 24-h amplitude 0.14 vs the donors' 0.13. The earlier halving (LESSONS 10) compensated for fixed-rate emptying. Visentin's per-day N(1, 0.2) is estimation precision (evidence/07), so `circ_noise = 0` | on |
+| B1b Basal-need profile | EGP × the donor's local hourly basal-schedule shape^0.5 (Loop's schedule uses the shape as is) | per-donor, overnight ~0.91 | LESSONS 48, 51: carries the person's dawn; quiet-morning insulin 1.02 vs donors 0.92 | on |
+| B2 Dawn | EGP ramp from onset U(02:00, 04:30) to a 07:00 peak, back to 0 by 10:00 | present in 52%; amplitude lnN(0.3, 0.6) × EGP_b **[J]** | Ostrovski 2020; Porcellati 2013. Off when a donor basal profile carries it (LESSONS 51) | profile-less people only |
 | B3 Day-level SI | independent per-day lognormal, changing at 04:00 with a 3-h ramp | CV 8% | evidence/07: repeat clamps 6–15% | on |
 | B4 Intraday OU / slow drift | OU on log SI | — | no controlled-condition evidence (LESSONS 1) | **off** |
 | B5 Menstrual | luteal SI dip, half-sine over the 14-day luteal phase; cycle N(28, 3) days; 63% respond | amplitude lnN(0.08, 0.5) | evidence/02 §3.1. Donors show no monthly rhythm (run:2026-10-11-ice-slow) | **off** (scenario) |
@@ -458,7 +458,8 @@ its 15-min trend, and Loop's IOB.
 
 ### F1 / F11 Eating
 - **Form.** Three main meals (Camerlingo 2021 timing: breakfast lnN(2.078, 0.175) h, gaps drawn from
-  Gumbel distributions; breakfast skipped with p 0.1) plus Poisson snacks at the person's measured
+  Gumbel distributions; breakfast skipped with p 0.1), split by the donor's own breakfast / lunch / dinner
+  grams (`slot_g`, windows 04–10:30 / 10:30–15:30 / 15:30–22 local; LESSONS 51), plus Poisson snacks at the person's measured
   pulse rate, placed on their own eating-hour distribution. Weekends shift by +60 min **[J]**.
 - **Sizing.** Daily intake is regulated over 24 h. A day total = carbs_day × exp(z_d) (+ activity
   intake, C7), with z AR(1) across days (CV 0.22, ρ 0.29; Tarasuk & Beaton 1992, Levitsky 2017). It
@@ -476,6 +477,8 @@ its 15-min trend, and Loop's IOB.
 ### F2 Announcement and carb count
 - P(entry) for meals and snacks comes from the donor's **raw** entries per day (`entries_raw`: 2.97
   median, entries within 30 min merged), not ice's labeled count (2.07) (LESSONS 36).
+- Each main meal's entry chance is scaled by the donor's relative announcement in that window (`slot_ann`;
+  median 0.26 / 0.52 / 0.48 of pulses announced); snacks take up the rest of the donor's entries (LESSONS 51).
 - Person count bias N(−0.10, 0.10) (Brazeau 2013: 63% under-estimated). The donor's labeled
   entered/pulse ratio is mostly labeler noise per person (LESSONS 35).
 - Per-meal count sd lnN(0.2, 0.3); big meals are under-counted and snacks over-counted

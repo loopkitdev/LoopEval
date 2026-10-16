@@ -695,3 +695,36 @@ statistic here, but it is the controller donors ran.
       replaces the running one as in Loop; the engine otherwise kept the earlier window.
     - Cohort c57 (14b2d58): 0.22 reactive overrides/day against the matched donors' 0.195. Outcomes all
       pass (TIR p 0.88, time above 180 0.84, t<54 0.58); process statistics unchanged.
+
+51. **Donor clock hours were UTC; in local time the sim's day had the wrong shape.** The exports carry UTC with no
+    zone. Three measures read donors 4–7 h off: the quiet-window CGM series, the day/night insulin ratio and the
+    waking-hour correction exposure. All three now use the ice steps' local hour (`quiet.local_offset`, `to_local`).
+    In local time:
+    - Day/night insulin is 2.06 for donors (it read 1.38). The sim was at 1.41.
+    - Overnight quiet-window 3-h SD matches (32.4 vs 33.1). The "overnight variance gap" that motivated growth-hormone
+      pulses was the UTC artifact, so GH pulses are not built.
+    - Donors are lowest at 05–07 h (130) and highest at 20–23 h (166). The sim peaked at dawn (158 at 06 h).
+    - On quiet mornings (no event 23–07 h) donors' insulin falls slightly from 01–03 to 05–07 h (0.92) and glucose
+      drifts −7 mg/dL from 03 to 07 h. The sim rose +11 with 1.25× insulin.
+
+    Ablations (c58, 56 people each): dawn off −5.6; Visentin circadian off −1.6 but loses real variance (TIR 75.8,
+    t<54 0.09, amplitude 0.09); both off −7.9. Changes:
+    - **Dawn is carried by the donor's basal profile** (B1b) when there is one; the separate dawn bump (B2) stays for
+      people without a profile.
+    - **Visentin's breakfast SI starts at 07:00, not 04:00.** His levels are breakfast meal-test SI; the 04:00 switch
+      turned them into a pre-dawn rise in fasting need for the 70% with low breakfast SI. The dinner level holds
+      overnight. [J boundary]
+    - **Meals by the donor's own windows** (`templates.add_slot_rates`): through the same labeler the sim ate the
+      donors' lunch and dinner grams but announced breakfast more and lunch and dinner less (entered 17/19/23 vs
+      10/27/31 g/day). Main-meal shares now follow the donor's breakfast/lunch/dinner grams and each meal's entry
+      chance follows the donor's relative announcement in that window (median 0.26/0.52/0.48 announced); snacks keep
+      the donor's total entry rate.
+
+    Cohort c60 (112): 06 h glucose 130.5 (130.3); quiet-morning insulin 1.02 (0.92), 03→07 h −0.2; amplitude 0.136
+    (0.131); day/night 1.62 (2.06); outcomes all pass (TIR 72.9 vs 71.7). Open: the 09 h post-breakfast peak (157 vs
+    141) and a flat evening (149–152 vs 159–166).
+
+    Two dead ends: the quiet-window comparison through the labeler leaves the sim almost no quiet windows (0.5 vs
+    1.7 h/day), so it can't test daytime drift. The sim's automatic boluses reach the plant inside each step's
+    5-min basal record. The delivered insulin is the same, but the pump model gives them basal flow error rather
+    than per-bolus error.
