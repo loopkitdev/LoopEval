@@ -207,6 +207,13 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # ice's g-eq is ISF_tdd / (500/TDD) mg/dL — settings-free (ice_gen/meals.py) — so the measured rise
     # per entered gram is 1.30 x that, not 1.30 x the settings' ISF/CR (LESSONS 17)
     csf_target = csf_mult * CSF_PER_GEQ * float(row.isf_true) * float(row.tdd) / 500.0 * float(np.exp(rng.normal(0, 0.15)))
+    # people tune their carb ratio on their own body, exactly as they tune ISF (G2): the body's carb sensitivity is
+    # moved the same way toward what their settings imply (ISF/CR), with the same weight. Drawn independently of
+    # the settings, settings-CR / true-CR spread 0.79–2.05 (p10–p90) and meals over- or under-bolused by 2× drove
+    # post-meal lows at 4× the donors' rate (LESSONS 37)
+    w = ISF_W if isf_w is None else isf_w
+    csf_set = float(row.isf) / float(row.cr)
+    csf_target = csf_target ** (1 - w) * (csf_set * float(np.exp(rng.normal(0, 0.15)))) ** w
     f_cal = csf_target * bw * bp.vg / 1000.0
     if f_cal > 1.0:
         bp = bp.scaled(f=1.0, vg=float(1000.0 / (bw * csf_target)))
