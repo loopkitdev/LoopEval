@@ -1006,3 +1006,11 @@ statistic here, but it is the controller donors ran.
     relative to each person's mean, is 0.993–1.007. Removing each person's weekday means cuts the day-to-day TDD CV
     only from 19.0% to 18.6% over full records (16.4% in 13-day blocks; sim 14.7%). Entered carbs by weekday are
     0.91 (Friday) to 0.99 (Sunday). No weekly component is added.
+
+74. **Sensor gaps were drawn the right number of times but the wrong length (fixed).** A gap of interval L withheld
+    readings until minute + L − cadence, unrounded. In isolation, 37% of the 7–12-min bin came out as 15-min intervals,
+    two readings missed instead of one. Simulated G7 then had 1.64 short (7–15 min) and 1.98 medium (15–30) gaps a day
+    against the donors' 2.70 and 1.12. A gap now withholds max(1, round(L/cadence) − 1) whole readings.
+    Cohort c80: G7 gaps 2.75 / 1.02 / 0.28 a day at 7–15 / 15–30 / 30–60 min (donors 2.70 / 1.12 / 0.27); wear 0.967 →
+    0.972 (0.977). The rest of the wear gap is ≥ 12 h gaps (2.6 vs 9.5 min/day). Other statistics are within the noise
+    of LESSONS 63 (12 vs 16 of 30, flips at p ≈ 0.05).
