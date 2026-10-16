@@ -77,6 +77,7 @@ class BehaviorTraits:
     intake_comp: float = 1.0             # 24-h regulation of the day total across its eating events (1 = full) [J]
     act_day_var: bool = True             # day-level gamma(3) on the activity rate (ablation switch)
     p_topup: float = 0.0                 # P(a second bolus 20–60 min after a meal bolus, no new entry) — raw donor top-ups
+    p_split: float = 0.0                 # P(a meal bolus is split: 60% at the entry, the rest 10–30 min later) [J split]
     p_free_bolus: float = 0.0            # P(an un-entered eating event gets a hand-dosed bolus)
     # monitoring and alerts
     glances_per_day: float = 8.0         # Puhr 2020: <3.3 to >8.25 trend-screen views/day
@@ -164,8 +165,11 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         timing = str(rng.choice(["before", "immediate", "during", "after"], p=[0.21, 0.44, 0.10, 0.25]))
     pb = _num(rates, "p_bolus_ann")
     be_raw, lone_raw, top_raw = _num(rates, "bolus_entry_raw"), _num(rates, "lone_raw"), _num(rates, "topups_raw")
+    p_split = 0.0
     if np.isfinite(be_raw) and np.isfinite(entries) and entries > 0:
-        pb = float(np.clip(be_raw / entries, 0.05, 1.0))
+        k = be_raw / entries                      # boluses per entry (donors: 1.09 median, 1.22 mean)
+        pb = float(np.clip(k, 0.05, 1.0))
+        p_split = float(np.clip(k - 1.0, 0.0, 1.0))   # the excess: a second bolus for the same meal (LESSONS 47)
     corr_rate = _num(rates, "true_corrections_per_day")
     if not np.isfinite(corr_rate): corr_rate = _num(rates, "corrections_per_day")
     free = _num(rates, "free_boluses_per_day")
@@ -194,7 +198,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         count_bias=count_bias, count_sd=lj(0.2, 0.3),
         bolus_timing=timing,
         p_bolus_with_entry=float(np.clip(pb, 0.05, 1.0)) if np.isfinite(pb) else 0.85,
-        p_free_bolus=p_free, p_topup=p_topup,
+        p_free_bolus=p_free, p_topup=p_topup, p_split=p_split,
         glances_per_day=lj(6.0, 0.6),
         low_alert=float(rng.normal(76, 8)), high_alert=float(rng.normal(240, 25)),
         p_wake_alarm=float(np.clip(rng.normal(0.45, 0.2), 0.05, 0.95)),
@@ -208,7 +212,9 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         # hazard per qualifying awake minute: the donor's rate over the donor's own waking exposure above THEIR
         # correction level (templates.add_corr_exposure), divided by the share of those minutes that pass the
         # not-falling / no-recent-bolus conditions (0.46, measured on simulated people; LESSONS 42)
-        p_correct=float(np.clip(corr_rate / (16 * 60 * (corr_exp if np.isfinite(corr_exp) else hi_frac) * 0.46), 0.0, 0.05))
+        # / 0.64: a share of intended corrections deliver 0 U (Loop's recommendation already covered by IOB); sized
+        # so the realized lone-bolus rate reaches the donor's (LESSONS 47)
+        p_correct=float(np.clip(corr_rate / (16 * 60 * (corr_exp if np.isfinite(corr_exp) else hi_frac) * 0.46 * 0.64), 0.0, 0.05))
                   if np.isfinite(corr_rate) else float(rng.uniform(0.0005, 0.005)),
         ex_per_week=float(rng.choice([0, 0.5, 1, 2, 3, 4, 5], p=[0.2, 0.1, 0.15, 0.2, 0.15, 0.1, 0.1])),
         ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
@@ -465,7 +471,13 @@ class Behavior:
                 meal = rest[0]
                 acts.append(("carb", m, float(meal.entered), t.absorption_entry_h * 3600))
                 if meal.bolus is not None:
-                    acts.append(("bolus", m, meal.bolus)); self.last_bolus = m
+                    if t.p_split > 0 and r.random() < t.p_split:
+                        acts.append(("bolus", m, 0.6 * meal.bolus))
+                        self.planned.append((m + float(r.uniform(10, 30)), ("split_rest",)))
+                        self.planned.sort(key=lambda x: x[0])
+                    else:
+                        acts.append(("bolus", m, meal.bolus))
+                    self.last_bolus = m
                     if r.random() < t.p_topup:
                         self.planned.append((m + float(r.uniform(20, 60)), ("topup",)))
                         self.planned.sort(key=lambda x: x[0])
@@ -476,6 +488,10 @@ class Behavior:
                 bp = self.p.body
                 acts.append(("eat", Parcel(m, rest[0], kempt=bp.kempt * 1.5, kabs=bp.kabs * 1.5, f=self._f_glucose(), label="graze")))
                 self.log.append((m, "graze", rest[0], None))
+            elif kind == "split_rest":
+                # the rest of a split meal bolus: Loop's recommendation now covers what remains of the entry
+                acts.append(("bolus", m, 1.0)); self.last_bolus = m
+                self.log.append((m, "split_rest", 0, None))
             elif kind == "topup":
                 # a top-up when the meal is running high: CGM above 120 and not falling [J on the condition]
                 if self.readings and self.readings[-1][1] > 120 and self.trend() >= 0:
