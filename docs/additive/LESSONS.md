@@ -181,3 +181,12 @@ statistic here, but it is the controller donors ran.
     walking bout fed the delayed state Z (glycogen repletion), so four walks a day held sensitivity ~20%
     high around the clock. The ETH model drives Z through a sigmoid of intensity; Z now builds only
     above moderate intensity (0.35). Light activity keeps its acute uptake and sensitivity effects.
+
+24. **Calibrate the sensor where the sensor dominates: quiet windows, same family, same code.** In stretches
+    with no labeled eating or manual bolus for 4 h, pilot G7 donors show a step SD of 5.5 with positive
+    step autocorrelation out to 20 min (0.48 / 0.21 / 0.15 / 0.14) and kurtosis 6.2; the simulator with the
+    G6-derived noise gave 4.0 and a G7 smoother than its G6 — the reverse of eda's switchers. A grid
+    (runs/sg_*) fixed the size (G7 σ 4.0) and showed the Vettoretti AR(2) shape is right (a less
+    oscillatory shape took lag-5 autocorrelation 0.45 → 0.09). Larger noise does NOT supply the heavy
+    tail or the 15–20 min persistence — it lightens the tail and adds false lows. Those need rare,
+    large, persistent events (compression lows at their true rate; other named disturbances).
