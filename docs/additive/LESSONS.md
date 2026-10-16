@@ -1019,3 +1019,26 @@ statistic here, but it is the controller donors ran.
     p99 27 days, which are stretches without a sensor or without uploads. In a 14-day record that is ~0.03 events per person,
     and donor blocks under 70% coverage are dropped from scoring, so they are not modelled; they are what remains of
     the wear gap.
+
+75. **Pete's calls (2026-10-16): peak ISF calibration with the tracer-matched EGP arm; SG calibrated within its range.**
+    - **Total-drop ISF was tried first and breaks the levels.** With the tracer-matched arm and total-drop calibration
+      the cohort ran high: mean 171 at SG ×1.0 (donors 151), TIR 61, t<54 0.03. That held even after carb sensitivity
+      was re-read through the labeler (CSF_BLEND_CAL 1.25 → 1.08 brought pulse/entered from 1.40 to 1.21): mean 169,
+      TIR 62. Glucose effectiveness erodes the slow effect, so a body with total ISF = settings responds more weakly
+      than its settings near 180, and Loop under-corrects. Donors run near target on their own settings, which is
+      field evidence that effective ISF ≈ settings.
+    - **Defaults now:** peak-calibrated ISF, EGP share U(0.5, 0.7), p2E 0.010, CSF_BLEND_CAL 1.25. The self-check
+      doses with peak ISF ÷ peak CSF and accepts night-to-night scatter under the slow EGP arm (not drift). Total-drop
+      calibration stays as `--set isf_total=1`, needing CSF_BLEND_CAL 1.08.
+    - **SG within its range (0.0013–0.022/min), c85–c87 (n 112):**
+
+      | SG | mean | TIR | Hurst | matched |
+      |---|---|---|---|---|
+      | ×0.7 | 155 | 67.9 | 0.206 | 14 |
+      | ×1.0 | 150 | 71.7 | 0.198 | 16 |
+      | ×1.4 | 144 | 75.3 | 0.151 | 11 |
+
+      The calibration keeps ×1.0 (0.003/min plus the insulin-dependent part).
+    - **Model now (c85):** 16 of 30; levels at donor values; long-range Hurst 0.198 (0.247; was 0.16 before the
+      EGP arm). Still failing: ACF zero-crossing 60 (42.5), volatility clustering, between-day fraction, 24-h amplitude,
+      day/night 1.77 (2.06), p99 dose, TDD CV and lag-1.
