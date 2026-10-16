@@ -42,7 +42,8 @@ class ModTraits:
     # (Pete 2026-10-15: no mystery terms fitted to field data; free-living CVs are targets for the named
     # factors, not inputs). circ_noise likewise.
     enabled: dict = field(default_factory=lambda: dict(circadian=True, dawn=True, day=True, intraday=False,
-                                                       drift=False, menstrual=False, illness=True))
+                                                       drift=False, menstrual=False, illness=True, sleep=True,
+                                                       gh=True, alcohol=True, stress=True))
     circ_class: str = "llh"
     circ_low: float = 0.4               # low segment SI as a fraction of high (Visentin: 0.40 ± 0.23)
     circ_raw: float = 0.4               # the person's Visentin draw before the swing scale
@@ -65,6 +66,16 @@ class ModTraits:
     cycle_phase: float = 0.0            # days
     luteal_amp: float = 0.08            # luteal SI dip (fraction) [02: population ±2.6%, responders more]
     illness_rate: float = 3.0           # episodes per year
+    # nightly named factors (evidence/12; LESSONS 77)
+    sleep_sd: float = 77.0              # min, night-to-night sleep duration SD (Messman 2022)
+    sleep_si_per_h: float = 0.05        # next-day SI loss per hour of lost sleep (Donga 2010: −21% after 4 h in T1D)
+    gh_cv: float = 0.32                 # night-to-night CV of nocturnal GH (30–35%; Edge 1990, Campbell 1985)
+    gh_dawn: float = 0.20               # dawn EGP increment that tracks GH, elasticity ~1 (evidence/12 §5)
+    drinker: bool = False               # 63% of T1D adults drank in the past month
+    p_drink: float = 0.0                # nights with ≥ 2 drinks (≤ 20%) [J within range]
+    stress_reactive: bool = False       # ~1/3 of people raise glucose under stress (Riazi 2004)
+    p_stress: float = 0.4               # days with a stressor (NSDE ~40%)
+    stress_si: float = 0.10             # SI loss 1–5 h after onset (Moberg 1994; low end for everyday stress)
     seed: int = 0
 
 
@@ -86,6 +97,9 @@ def sample_mod_traits(rng: np.random.Generator, age: float, sex: str) -> ModTrai
         cycle_phase=float(rng.uniform(0, 28)),
         luteal_amp=float(np.clip(np.exp(rng.normal(math.log(0.08), 0.5)), 0.0, 0.3)) if rng.random() < 0.63 else 0.0,
         illness_rate=5.0 if age < 13 else 3.0,
+        drinker=bool(age >= 18 and rng.random() < 0.63),
+        p_drink=float(rng.uniform(0.03, 0.20)),
+        stress_reactive=bool(rng.random() < 0.33),
         seed=int(rng.integers(1 << 31)),
     )
     t.circ_low = float(np.clip(1.0 - t.circ_swing * (1.0 - t.circ_raw), 0.4, 1.0))
@@ -121,6 +135,12 @@ class Modulators:
             self.ill.append(dict(start=start, dur=dur, gi=gi,
                                  si_drop=float(r.uniform(-0.15, -0.05) if gi else r.uniform(0.1, 0.35)),
                                  egp=0.0 if gi else float(r.uniform(0.0, 0.15))))
+        # nightly named factors (LESSONS 77): one draw per night / day, from a dedicated stream
+        rn = np.random.default_rng(traits.seed + 101)
+        self.sleep_loss_h = np.maximum(0.0, -rn.normal(0, traits.sleep_sd, self.days)) / 60.0    # night d (before day d)
+        self.gh = np.exp(rn.normal(0, math.sqrt(math.log(1 + traits.gh_cv ** 2)), self.days) - math.log(1 + traits.gh_cv ** 2) / 2)
+        self.drink = (rn.random(self.days) < traits.p_drink) & traits.drinker                     # evening of day d
+        self.stress_on = np.where(rn.random(self.days) < traits.p_stress, rn.uniform(8 * 60, 20 * 60, self.days), -1.0)
         # B3 intraday OU and B4 drift, advanced minute by minute
         self.rng = r
         self.ou = r.normal(0, traits.intra_sd)
@@ -199,7 +219,22 @@ class Modulators:
         si = math.exp(log_si)
         if en["circadian"]: si *= self.circadian(m)
         si *= self.menstrual(m)
+        d = int(m // DAY); mm = m % DAY; dd = max(0, min(d, self.days - 1))
+        if en.get("sleep") and 7 * 60 <= mm < 23 * 60:
+            si *= 1.0 - self.t.sleep_si_per_h * self.sleep_loss_h[dd]
+        if en.get("stress") and self.t.stress_reactive and self.stress_on[dd] >= 0:
+            x = mm - self.stress_on[dd]
+            if 60 <= x < 300: si *= 1.0 - self.t.stress_si
+        if en.get("alcohol") and self.t.drinker:
+            if mm >= 21 * 60 and self.drink[dd]: si *= 0.88                      # ethanol present (Kerr: −12%)
+            if mm < 3 * 60 and d >= 1 and self.drink[max(0, d - 1)]: si *= 0.88
         egp = 1.0 + (self.dawn(m) if en["dawn"] else 0.0)
+        if en.get("gh") and 3 * 60 <= mm < 10 * 60:
+            # mean-zero night-to-night GH variation of the dawn increment (the mean dawn lives in the basal profile)
+            shape = (mm - 180) / 180.0 if mm < 360 else 1.0 if mm < 480 else (600 - mm) / 120.0
+            egp += self.t.gh_dawn * (self.gh[dd] - 1.0) * shape
+        if en.get("alcohol") and self.t.drinker and d >= 1 and self.drink[d - 1] and 6 * 60 <= mm < 12 * 60:
+            egp *= 0.85                                                            # morning after (Turner 2001) [I size]
         if en["illness"]:
             s_ill, e_ill, _ = self.illness(m)
             si *= s_ill; egp *= e_ill

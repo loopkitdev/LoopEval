@@ -1055,3 +1055,18 @@ statistic here, but it is the controller donors ran.
     Faster gastric emptying within its evidence range (Vmax 3 → 4 kcal/min, towards Elleri's high-GL meal; c88)
     leaves post-event decorrelation at 55 min and moves away elsewhere: Hurst 0.198 → 0.128, CV 35.0 → 37.8 (34.8),
     Box-Cox −0.10. Vmax stays 3 (LESSONS 33).
+
+77. **Four evidenced nightly factors, built at their literature sizes; too small to move the statistics (as
+    budgeted).** Pete chose more named factors over a residual term (2026-10-16). Added to `modulators.py`, each
+    switchable (sleep, gh, alcohol, stress) and quiet in the self-check:
+    - **Prior-night sleep loss:** nightly duration SD 77 min (Messman 2022); next-day SI −5% per lost hour, waking
+      hours (Donga 2010, −21% after 4 h, T1D).
+    - **Nocturnal GH:** night-to-night CV 0.32 (Edge 1990, Campbell 1985); the dawn EGP increment of ~20% follows
+      it, mean-zero (the mean dawn is in the basal profile).
+    - **Evening alcohol:** 63% of adults drink, on 3–20% of nights [J within the ≤ 20% bound]; SI −12% while ethanol
+      is present (Kerr); next morning 06–12 h EGP ×0.85 (Turner 2001) [I size].
+    - **Stress:** a third of people react (Riazi 2004), on 40% of days, SI −10% from 1 to 5 h after onset (Moberg 1994,
+      low end).
+    Cohort c89 vs c85: quiet-night insulin CV 15.6% (donors 30.3%); quiet-period ACF zero-crossing 25 vs 20 min
+    (donors 40); everything else within cohort noise (15 vs 16 of 30; Hurst 0.156 vs 0.198). evidence/12 budgeted these
+    at ≤ 0.02 of the 0.06 variance gap. The between-meal drift stays unexplained.
