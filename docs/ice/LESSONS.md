@@ -1055,3 +1055,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Averaging the two seeds' predictions per edit (ensemble), slope TIR / t<70 / mean / t<54: snaps on 0.81 / 1.32 / 0.92 /
     0.49; honest 0.81 / 1.22 / 0.71 / 0.39; honest + bolus 0.75 / 1.15 / 0.71 / 0.33 (replay 0.50 / 0.47 / 0.44 / 0.10).
     t<54 changes come out 2-3x too large on every base, in step with generated t<54 running ~3x the field's level.
+113. **A second pass of the low-band background calibration on the current base is close to a fixed point; small gain,
+    kept.** Training-window rollouts of v32of0TcB2FGUC: field minus generated background below 90 mg/dL +2.2 / -0.9 / +2.6 /
+    +0.9 (<60 / 60-70 / 70-80 / 80-90), added to the table. Held-out seeds 0 / 1: t<54 0.42 / 0.35 -> 0.39 / 0.27, t<70 2.07 /
+    1.77 -> 1.79 / 1.64, TIR 69.8 / 70.0 -> 69.6 / 70.4, lows per meal bolus 0.118 / 0.111 -> 0.113 / 0.114. New base
+    v32of{0,1}TcB2FGUCG. The same table shows background 10-12 mg/dL/h low above 250 (37 vs 30, 44 vs 33): left out, a
+    high-band offset ran glucose away before (LESSONS ~33).
