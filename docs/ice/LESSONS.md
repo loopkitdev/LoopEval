@@ -913,3 +913,17 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     69.0 / 69.0, t<54 0.64 / 0.54 -> 0.59 / 0.60, mean 162 / 161 -> 158 / 159, night glucose 161 / 162 -> 150 / 146
     (field 130), night background ICE 43 / 42 -> 37 / 37 (field 24). Every new base needs the closed-loop step, not only
     the teacher-forced one; the remaining night gap is in the background level (37 vs 24), not in meal counts.
+    Change test on this base (tier 3c, 62 edits / 47 donors), seeds 0 / 1: slope of field on predicted change TIR 0.62 /
+    1.21, t<70 0.97 / 1.00 (Spearman 0.42 / 0.41, was 0.30 / 0.30), mean 1.11 / 0.88; t<54 0.23 / 0.19, still no rank.
+    Own-settings level TIR -2.2 / -6.2 (was -4.9 / -6.2).
+99. **The engine stacks Loop's automatic dose on a plant bolus at the same decision; real, but not the cause of the excess
+    lows after boluses.** (additive's handoff, 2026-10-15-simulator-plant-bolus-autodose.) Auto-bolus donor i001, seed 0,
+    held-out: 89% of the person's calculator boluses get an automatic dose at the same decision (88 U on 265 U over 28
+    days, median step total 1.38x the recommendation). Sending the bolus one step later does not help: an auto-bolus user
+    gets an automatic dose at nearly every step, so the bolus always lands on a decision made without it (63 U on 209 U).
+    Stopgap until the engine orders them (simulator's): auto-bolus donors ask for ratio - 0.4 (PLANT_AUTO_AF via rollout
+    NET_AF; approximate for the three GBAF donors). Seeds 0 / 1, clean time: TIR 69.0 / 69.0 -> 69.1 / 69.9, t<54 0.59 /
+    0.60 -> 0.61 / 0.59, mean 158 / 159 -> 159 / 159, insulin 36.2 / 36.4 -> 35.8 / 36.3 U/day; lows within 3 h of a meal
+    bolus 0.354 / 0.342 -> 0.329 / 0.333 a day (field 0.214). Loop takes the extra back on the next cycles and half the
+    held-out donors use temp basal. Within noise; flag off by default, not in the base. The post-bolus low excess
+    (1.6x the field) is elsewhere.

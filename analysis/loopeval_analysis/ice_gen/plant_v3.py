@@ -97,6 +97,10 @@ class PlantV3:
         # confounded by Loop reacting to ICE), and the field moved 0.6-0.9x what replay predicted for real settings edits (LESSONS
         # 40): the rule likely overstates the effect of insulin the person did not get in the field. Replay is unaffected.
         self.ins_gain = float(os.environ.get("PATIENT_INSULIN_GAIN", "1"))
+        # PLANT_AUTO_AF=<f> (auto-bolus donors): the engine decides the automatic dose at a decision without that decision's
+        # plant boluses, so a calculator bolus lands on top of ~f x the recommendation (handoff
+        # 2026-10-15-simulator-plant-bolus-autodose). Until the engine orders them, ask for ratio - f so the step totals ~ratio x rec.
+        self.auto_af = float(os.environ.get("PLANT_AUTO_AF", "0"))
         self.eoff_scale = float(os.environ.get("PLANT_EOFF_SCALE", "1"))   # diagnostic: scale entry -> pulse onset delay
         # monthly-cycle dial (off by default): the person's insulin need swings on a 28-day sinusoid, amplitude MONTH_CYCLE x their
         # typical insulin action (ISF x TDD/24, mg/dL/h) added to background ICE, random phase per run
@@ -449,6 +453,8 @@ class PlantV3:
             for due_t, kind, pay in self.due:
                 if due_t > t:
                     keep.append((due_t, kind, pay)); continue
+                if kind == "bolus" and self.auto_af and "ratio" in pay:
+                    pay = dict(pay, ratio=max(float(pay["ratio"]) - self.auto_af, 0.0))
                 if kind == "carb":
                     carbs.append(dict(t=iso(t), grams=round(pay, 1), absorption_s=10800))
                     self.slot_carbs += pay; self.entries.append((t, pay)); self.last_entry = t
