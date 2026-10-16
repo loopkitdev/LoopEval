@@ -76,6 +76,11 @@ class BodyParams:
                                    # (0 = off, plain first-order): emptying is energy-rate limited, so a big meal empties
                                    # for hours (Hunt 1985, Brener 1983, Calbet 1997; evidence/09). Vmax 3 is the review's
                                    # central value and the only setting that gives the donors' lognormal glucose (LESSONS 33)
+    ge_gamma: float = 0.0          # > 0: power-law emptying instead of Michaelis–Menten: the stomach's energy outflow is
+                                   # ge_kcal_max·(S/400 kcal)^γ, capped by each parcel's first-order kempt rate. The absolute
+                                   # kcal/min keeps rising with load — doubling the load: ×1.45 (Schirra 1996, γ 0.54),
+                                   # +0.72 on 2.5 kcal/min (Hunt 1985, γ ≈ 0.37) — where Km 60 kcal had flattened it to
+                                   # ×1.07 above ~300 kcal (LESSONS 53)
     ge_hyper: float = 0.0          # maximal slowing of emptying in hyperglycaemia: rate × (1 − h·(1 − e^(−(G−100)/50)));
                                    # h 0.45 gives ×0.74 at 8 mmol/L (Schvarcz 1997) and ×0.56 at 15–20 (Fraser 1990) [J]
     # exercise
@@ -268,7 +273,12 @@ class Body:
                 if pc.entered:
                     kcal += pc.kempt * (phi if pc.hypo_sensitive else 1.0) * pc.q[1] * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g
             cap = p.ge_kcal_max * phi
-            scale = cap / (cap + kcal)     # saturating (Michaelis–Menten in energy): ~first-order for small meals, toward cap for big
+            if p.ge_gamma > 0:
+                load = sum((pc.q[0] + pc.q[1]) * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g for pc in self.parcels if pc.entered)
+                allowed = cap * (max(load, 1e-9) / 400.0) ** p.ge_gamma
+                scale = min(1.0, allowed / kcal) if kcal > 0 else 1.0
+            else:
+                scale = cap / (cap + kcal)     # saturating (Michaelis–Menten in energy): ~first-order for small meals, toward cap for big
         for pc in self.parcels:
             if not pc.entered: continue
             ke_ = pc.kempt * (phi if pc.hypo_sensitive else 1.0)

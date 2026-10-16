@@ -88,6 +88,8 @@ class World:
         if enable and (isinstance(enable.get("ins_p2"), float) or isinstance(enable.get("ins_p2e"), float)):
             person = copy.deepcopy(person)        # insulin-action rates (ablation: clamp-fitted vs Loop-curve action)
             person.body = person.body.scaled(p2=enable.get("ins_p2", person.body.p2), p2e=enable.get("ins_p2e", person.body.p2e))
+        if enable and isinstance(enable.get("ge_gamma"), float):
+            person.body = person.body.scaled(ge_gamma=enable["ge_gamma"])
         if enable and isinstance(enable.get("ge_hyper"), float):
             person = copy.deepcopy(person)
             person.body = person.body.scaled(ge_hyper=enable["ge_hyper"])

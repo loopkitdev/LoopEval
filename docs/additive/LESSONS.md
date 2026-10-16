@@ -747,3 +747,20 @@ statistic here, but it is the controller donors ran.
     eaten/entered ratio, composition of later meals) or insulin-side (bolus coverage of the body's effective CR —
     the bookkeeping CR is 0.69× the setting and says nothing about coverage, LESSONS 40). Next: the same curve on
     TRUE glucose with eaten grams, to split the two.
+
+53. **The meal-response gap is a timing problem of big meals; emptying form, fat and coverage are ruled out.** By
+    entered grams (labeled, isolated announced meals), the sim matches donors up to 25 g. From 40 g it falls back
+    toward baseline at 1.5–3 h while donors plateau (+36 to +39), and above 60 g it dips to ~0 at 2 h and surges late
+    (+45 at 4 h, +72 at 5 h vs donors +37/+30). On true glucose the big-meal appearance rate is a plateau (~4 mg/kg/min
+    from 1 to 2 h, 2.8 at 4 h) while bolus insulin peaks at 1 h: insulin wins mid-meal, the carbohydrate wins late.
+    - **Coverage matches** at every size (entered ÷ pulse 0.47/0.89/1.21/1.85 vs 0.48/0.89/1.22/1.89; g/U within 0.7,
+      the sim doses slightly less per gram).
+    - **Power-law emptying** (`ge_gamma` 0.5: kcal/min ∝ load^0.5, Schirra 1996 / Hunt 1985; c62) half-empties an
+      80 g meal at 108 vs 132 min open loop, but closed-loop big meals still dip (h2 10 vs 36) and t<54 fell to
+      0.107 (p 0.048). Option kept, off.
+    - **Fat resistance off** (c63): big meals still dip and surge (+52 at 5 h); mean falls to 141 and Hurst to 0.07.
+      Fat stays.
+    Elleri 2013 (T1D, 121 g evening meal) bounds the appearance: 50% by 100 min (high GL) or 175 (low GL); the default
+    model sits near the low-GL value for meals that size. Open: what front-loads big-meal appearance relative to the
+    bolus in real people, or what holds their insulin back mid-meal (Loop's own response to a plateau is the same
+    code in both).
