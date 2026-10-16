@@ -67,8 +67,8 @@ CASES = {
     # Identity: the candidate delivers exactly the field's doses / runs the baseline's config.
     "cf_identity":       dict(alias="i008", flags=FRONTIER + ["--cf-identity"]),
     "same_config":       dict(alias="i008", flags=CLASS1),
-    # Legacy rule evaluation: no counterfactual, the candidate's dose delta perturbs field glucose.
-    "linear":            dict(alias="i008", flags=CLASS1 + ["--candidate-insulin-needs", "0.9"]),
+    # No counterfactual, different settings: the candidate decides open loop on the field's inputs.
+    "open_loop":         dict(alias="i008", flags=CLASS1 + ["--candidate-insulin-needs", "0.9"]),
     # Decision-time replay (open loop on the field's inputs), both RC modes.
     "dtr":               dict(alias="i008", flags=DTR),
     "dtr_ircc":          dict(alias="i014", flags=DTR + IRCC),

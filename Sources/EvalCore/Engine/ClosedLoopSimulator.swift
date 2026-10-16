@@ -1,24 +1,15 @@
-// ClosedLoopSimulator.swift — full closed-loop counterfactual simulation
+// ClosedLoopSimulator.swift — replay of a donor's data with a candidate controller.
 //
-// The bench's linearized counterfactual computes counter_BG by propagating
-// candidate's Δdose (computed against actual past CGM) onto the actual CGM
-// trace. That has a known weakness: candidate keeps making decisions against
-// actual BG, not its own resulting counterfactual BG. For aggressive
-// candidates (e.g. IRC), the drift compounds without self-correction.
+// Two arms step through the same decision times (DecisionTiming.swift). The baseline arm decides on
+// the field's own glucose and doses. The candidate arm depends on the mode:
+//   - counterfactual (--candidate-counterfactual): the candidate decides on its OWN glucose and dose
+//     history; its pump (CandidatePump.swift) delivers, its body (CandidateBody.swift: ICE replay or
+//     an external plant) turns that delivery into glucose, and the person's actions come from the
+//     field or the plant (CandidatePerson.swift). Full feedback.
+//   - decision-time replay / open loop (no counterfactual): the candidate decides on the field's
+//     glucose and doses at every step and never feeds back.
 //
-// This file implements true closed-loop replay: at each step t, candidate's
-// inputs are substituted to use:
-//   - counter_glucose: actual_glucose with cumulative Δdose impact applied
-//   - candidate_doses: actual_doses + virtual entries from prior Δdose decisions
-//
-// The candidate's prediction at t therefore sees its own resulting BG and
-// its own accumulated dose history. Δdose at t reflects feedback-corrected
-// behavior. Forward-impact propagation updates counter_glucose for future
-// steps, and a virtual dose entry is added so future IOB calculations
-// include the candidate's extra/reduced delivery.
-//
-// Sequential by nature; cannot reuse the parallelized runSweep. Slower
-// (~10x) but accurate for absolute trajectory estimates.
+// Sequential by nature; cannot reuse the parallelized runSweep.
 
 import Foundation
 import LoopAlgorithm
@@ -299,7 +290,7 @@ extension EvaluationEngine {
         // `glucoseEffects` reads each dose's own `insulinModel` (from its stamped
         // `insulinType`), so changing the plant means RE-STAMPING the doses on the
         // plant path, not passing a model alongside them. `insulinModel` below sizes
-        // the effect windows and drives the linear-PD path; `patientInsulinPreset` is
+        // the effect windows; `patientInsulinPreset` is
         // what actually shapes the curve.
         let patientInsulinPreset = patientInsulinType ?? data.therapyTimeline.insulinType
         let insulinModel: InsulinModel
@@ -382,12 +373,6 @@ extension EvaluationEngine {
         // Baseline always reads from actual glucose; precomputed once for GBAF lookups.
         let baselineMgdl = simGlucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
 
-
-        // Virtual doses: candidate's accumulated extra/reduced deliveries.
-        // Stored as bolus-type entries with volume = Δdose; insulin model
-        // treats them like instantaneous deliveries at time t.
-        var virtualDoses: [EvalInsulinDose] = []
-        virtualDoses.reserveCapacity(1024)
 
         // Counterfactual mode state (only used if counterfactualMode == true).
         // counterfactualDoses replaces data.doses for the candidate's prediction
@@ -707,15 +692,15 @@ extension EvaluationEngine {
         // The person's manual boluses in the candidate arm (CandidatePerson.swift).
         var fieldBoluses = FieldManualBoluses(boluses: realManualBoluses, fieldIOB: realManualBolusRealIOB)
 
-        // The candidate's body (CandidateBody.swift): the ICE replay in counterfactual mode,
-        // the linear perturbation otherwise; an external plant replaces the ICE replay.
+        // The candidate's body in counterfactual mode (CandidateBody.swift): the ICE replay, or an
+        // external plant in its place. Without a counterfactual the candidate decides open loop on
+        // the field's glucose and doses, and its glucose is the field's.
         let iceBody = ICEReplayBody(
             substrate: counterGlucose, realPhysDelta: realPhysDelta, m: mByIndex,
             sensitivity: physiologySensitivity, insulinModel: insulinModel,
             patientInsulinType: patientInsulinType, counterRegOnsetMgdl: counterRegOnsetMgdl,
             counterRegGain: counterRegGain, counterRegMaxRate: counterRegMaxRate,
             gapReanchorSec: cfGapReanchorSec, evalStep: candidateConfig.evalStep)
-        let linearBody = LinearPerturbationBody(substrate: counterGlucose, insulinModel: insulinModel)
 
         // Pre-compute expected step count for progress reporting
         let totalDuration = max(0, interval.end.timeIntervalSince(evalStart))
@@ -921,7 +906,7 @@ extension EvaluationEngine {
             } else if counterfactualMode {
                 combinedDoses = counterfactualDoses
             } else {
-                combinedDoses = EvaluationEngine.mergeSorted(data.doses, virtualDoses)
+                combinedDoses = data.doses                 // no counterfactual: open loop on the field's doses
             }
 
             // Snapshot candidate glucose from counter_mgdl. Unchanged samples reuse
@@ -1328,50 +1313,14 @@ extension EvaluationEngine {
                 deltaDose = candidateDose - baselineDose
             }
 
-            // ISF at this time (in mg/dL/U convention; stored as mg/dL unit per codebase quirk).
-            //
-            // TWO of them, and they are not interchangeable once the patient ISF is
-            // decoupled. `isf` is the CONTROLLER's belief and is what the trace records
-            // (PredictionRecord.isf is algorithm state, alongside COB/RC/momentum — it is
-            // what case_study.py plots, so it must keep meaning the controller's ISF).
-            // `isfPlant` is the BODY's, and is what converts a dose delta into a BG effect.
-            // They coincide unless --patient-isf is set (or a Temporary Override / candidate
-            // therapy moves the controller's ISF; the body keeps `physiologySensitivity`).
-            // `isf` is read from the decision's own input, so it carries the overrides active at
-            // t and the candidate's schedule, exactly as the controller saw them.
+            // ISF the candidate's decision used at t (PredictionRecord.isf, algorithm state alongside
+            // COB/RC/momentum; case_study.py plots it): read from the decision's own input, so it
+            // carries the overrides active at t and the candidate's schedule. The BODY's ISF is
+            // `physiologySensitivity`, which differs under --patient-isf.
             let isfQty = candidateInput.sensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
                 ?? candidateInput.sensitivity.closestPrior(to: t)?.value
             let isf = isfQty?.doubleValue(for: mgdlUnit) ?? 0
-            let isfPlantQty = physiologySensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
-                ?? physiologySensitivity.closestPrior(to: t)?.value
-            let isfPlant = isfPlantQty?.doubleValue(for: mgdlUnit) ?? 0
 
-            // Apply Δdose impact to FUTURE counter_mgdl entries.
-            //
-            // Non-CF mode (rule evaluation): uses the legacy linear-PD
-            // perturbation — counter = actual + small Δ × ISF × PD. Correct
-            // for small per-step deltas; documented in [feedback_sim_linear_pd_limit].
-            //
-            // CF mode: handled separately below via PHYSIOLOGICAL ADVANCE
-            // (counter steps forward = insulin effect from candidate doses +
-            // observed ICE from actual BG). The Δ-perturbation path is
-            // skipped in CF mode because the counter trajectory is no longer
-            // a perturbation of actual — it's a fully integrated independent
-            // simulation. (Fixed 2026-05-18.)
-            if deltaDose != 0 && isfPlant > 0 && !cfActive {
-                linearBody.apply(deltaDose: deltaDose, isf: isfPlant, at: t, counter: &counterMgdl)
-                // Append virtual dose entry. Treat Δdose as an instantaneous bolus
-                // at time t. This makes IOB calculations on subsequent steps
-                // include the candidate's extra (or reduced) delivery.
-                virtualDoses.append(EvalInsulinDose(
-                    deliveryType: .bolus,
-                    startDate: t,
-                    endDate: t,
-                    volume: deltaDose,
-                    insulinType: data.therapyTimeline.insulinType,
-                    automatic: true
-                ))
-            }
             // Counterfactual mode (post-burn-in only): append candidate's full
             // absolute delivery for this step + pass-through any user manual
             // boluses that occurred in [t, t + stepSec). This builds the
