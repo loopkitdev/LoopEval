@@ -149,6 +149,7 @@ class PlantV3:
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
+        self.bg_bolus = ck.get("calib_bg_bolus")   # bolus heads by glucose band (calibrate_bolus_bg.py)
         Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7, "v3m8": ICEGenV3M8, "v3m9": ICEGenV3M9, "v3m10": ICEGenV3M10, "v3m11": ICEGenV3M11, "v3m12": ICEGenV3M12, "v3m13": ICEGenV3M13, "v3m14": ICEGenV3M14, "v3m15": ICEGenV3M15, "v3m16": ICEGenV3M16, "v3m17": ICEGenV3M17, "v3m18": ICEGenV3M18, "v3m19": ICEGenV3M19, "v3m20": ICEGenV3M20, "v3m21": ICEGenV3M21, "v3m22": ICEGenV3M22, "v3m23": ICEGenV3M23, "v3m24": ICEGenV3M24, "v4": ICEGenV4, "v4r": ICEGenV4R}.get(ck.get("arch"), ICEGenV3)
         self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v3m16", "v3m17", "v3m18", "v3m19", "v3m20", "v3m21", "v3m22", "v3m23", "v3m24", "v4", "v4r"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v3m16", "v3m17", "v3m18", "v3m19", "v3m20", "v3m21", "v3m22", "v3m23", "v3m24", "v4", "v4r")
         self.v4 = ck.get("arch") in ("v4", "v4r")     # entries and boluses drawn as their own events (dataset_v3m)
@@ -433,6 +434,10 @@ class PlantV3:
                 out, self.h = self.net(x, self.pid, self.h)
                 self.xbuf.append(x); self.xbuf = self.xbuf[-WARMUP:]; self.since_rewarm += dt_h
                 cb_ = {k: v[min(int(hour // 6), 3)] for k, v in self.calib_band.items()}   # by clock band (calibrate_band.py)
+                if self.bg_bolus is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:   # bolus heads by glucose band (LESSONS 110)
+                    bb_ = int(np.searchsorted(self.bg_bolus["bands"], float(x[0, -1, self.F["bg"]]) * 100, side="right"))
+                    for k_ in ("b_with", "b_alone"):
+                        cb_[k_] = cb_.get(k_, 0.0) + float(self.bg_bolus[k_][bb_])
                 for k, b in self.calib.items():
                     if k in out and not (self.v3m and k in ("entry", "bolus", "b_with", "b_alone")):
                         out[k] = out[k] + b + cb_.get(k, 0.0)
