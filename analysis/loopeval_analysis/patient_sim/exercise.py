@@ -21,6 +21,7 @@ class ExerciseParams:
     b: float = 0.018            # delayed-state build per minute per unit intensity [J]
     tau_z: float = 600.0        # min (ETH model)
     absorb: float = 0.5         # absorption speed-up per unit intensity [J]
+    z_threshold: float = 0.35   # intensity below which no delayed sensitivity builds (Deichmann 2023 sigmoid) [J]
 
 
 class Exercise:
@@ -38,7 +39,10 @@ class Exercise:
         for (s, e, i, a) in self.sessions:
             if s <= m < e:
                 intensity, anaerobic = i, a
-        self.z += self.p.b * intensity - self.z / self.p.tau_z
+        # the delayed sensitivity state follows moderate-or-harder work (glycogen depletion); ETH drives it
+        # through a sigmoid of intensity, so light activity (walking ~0.25) builds none (LESSONS 23)
+        drive = max(0.0, intensity - self.p.z_threshold) / (1.0 - self.p.z_threshold)
+        self.z += self.p.b * drive - self.z / self.p.tau_z
         if self.sessions and self.sessions[0][1] < m - 2000:
             self.sessions.pop(0)
         return dict(ex_intensity=intensity, ex_anaerobic=anaerobic,
