@@ -38,7 +38,8 @@ BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "
 # glucose effectiveness erodes the pulse before ICE sees it — so the constant is set by the labeler:
 # 1.30 × 1.21/0.91 (LESSONS 27)
 CSF_PER_GEQ = 1.85      # re-read through the labeler under saturating gastric emptying: 1.73 read 1.13 vs 1.21 (LESSONS 33)
-CSF_BLEND_CAL = 1.25    # re-read through the labeler: 1.18 read 1.025 (LESSONS 37), then 1.15 as other components changed (c39)
+CSF_BLEND_CAL = 1.25    # re-read through the labeler: 1.18 read 1.025 (LESSONS 37), then 1.15 as other components changed (c39); under the
+                        # total-drop ISF option it must be 1.08 (labeler 1.40 → 1.21; LESSONS 75)
 ISF_W = 0.5      # weight of the yardstick against the person's own ISF setting in the truth (open, see sample_person)
 
 
@@ -204,7 +205,7 @@ def _formulation(brand: str, rng) -> str:
 
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
-                  csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True) -> Person:
+                  csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = False) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))

@@ -36,10 +36,11 @@ def check(templates: pd.DataFrame, seeds, days: int = 10, above_rest_max: float 
         Q = copy.deepcopy(P)
         # dose with the CR consistent with the body (effective ISF ÷ effective CSF, same probe semantics); the person's
         # truth["cr"] is the linear-part bookkeeping ratio that sets intake against TDD (LESSONS 40)
-        # ISF is the TOTAL per-unit drop on the linear part (Pete 2026-10-16; LESSONS 75), so the consistent CR is
-        # ISF ÷ linear CSF. Under the slow EGP arm the dinner bolus's tail lands in the post-absorptive night, so a few
-        # bodies miss the night window by a little; a unit fault shows as a much larger or a growing drift
-        cr_eff = P.truth["isf"] / csf_of(P.body)
+        # dose with the CR consistent with the body (effective ISF ÷ effective CSF, same probe semantics); the person's
+        # truth["cr"] is the linear-part bookkeeping ratio that sets intake against TDD (LESSONS 40). With the slow,
+        # tracer-matched EGP arm the dinner bolus's tail lands in the post-absorptive night, so some bodies miss the night
+        # window by night-to-night scatter rather than drift; Pete accepted that (2026-10-16, LESSONS 75)
+        cr_eff = P.truth["isf"] / _probe_csf_effective(P.body, P.formulation)
         Q.settings.update(isf=P.truth["isf"], cr=cr_eff, basal_uh=P.truth["basal_uh"],
                           basal_profile=P.truth.get("basal_profile") or [1.0] * 24)
         W = World(Q, days, enable=QUIET)
