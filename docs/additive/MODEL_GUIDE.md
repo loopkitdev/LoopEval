@@ -250,12 +250,28 @@ the SI share). Basal gets no jitter.
 - **Evidence.** 01 §4.4: Cryer 2013, Dagogo-Jack 1993. No clamp-calibrated prior exists.
 - **Tuning.** LESSONS 7: HAAF builds slowly, so it does not drain the response within the same low.
 
-### A10 Gut: mixed meals
-- **Form.** Each meal is a parcel Qsto1 → Qsto2 → Qgut, with kempt = kabs × a per-meal speed
-  lnN(0, 0.4) and × 1/(1 + fat/60).
-- **Values.** kempt = kabs = 0.045, giving a peak at 44 min and 90% absorbed by ~2 h.
-- **Evidence.** ice meals tables, 116k pulses: peak 0.75 h, 90% by 1.83 h. Dalla Man 2006/2007.
-- **Notes.** A slow-emptying tail (`meal_slow_frac`, Dalla Man kmin 0.008) exists and is OFF.
+### A10 Gut: mixed meals and gastric emptying
+- **Form.** Each meal is a parcel Qsto1 → Qsto2 → Qgut. The stomach empties *in energy terms*, and all
+  parcels in it share the capacity: E = Vmax·S/(Km + S), with S the total kcal (carbohydrate 4,
+  protein 4, fat 9 kcal/g). Small meals behave first-order at rate Vmax/Km; large meals approach
+  zero-order at Vmax. Each meal also gets a speed multiplier lnN(0, 0.4) for composition.
+- **Values.** Vmax 3 kcal/min, Km 60 kcal (kempt 0.05), kabs 0.05. A 25 g snack peaks at ~45 min; a
+  121 g mixed meal reaches 50% at ~4 h, a carbohydrate-only one at ~2 h.
+- **Evidence.**
+  - Emptying is energy-rate limited: Brener 1983 (2.1 kcal/min), Hunt 1985 (2.5), Calbet 1997, Marathe
+    2013 review (1–4).
+  - Fat, protein and carbohydrate slow emptying equally per kcal (Hunt & Stubbs 1975).
+  - Elleri 2013 (121 g, tracer, T1D): 50% appearance at 100–175 min.
+  - Full write-up: evidence/09.
+- **Tuning.** LESSONS 33: fixed first-order emptying over-skewed glucose (1.41 vs 0.89). Saturating
+  emptying gives the donors' lognormal shape (0.93). Carb sensitivity was re-read through the labeler
+  afterwards (CSF_PER_GEQ 1.85).
+- **Notes.**
+  - Fat's early slowing of emptying is carried by its kcal; the separate 1/(1 + fat/60) factor applies
+    only when the ceiling is off.
+  - Hyperglycaemic slowing (`ge_hyper`; Schvarcz 1997, Fraser 1990) is built but off: at its [J] size
+    it over-smoothed glucose (skew 0.60).
+  - The slow-tail option (`meal_slow_frac`) is off.
 
 ### A11 Gut: hypoglycemic acceleration
 kempt × (1 + 1.5·σ((70 − G)/5)), about ×2.5 below ~60. Evidence: Schvarcz 1995; Russo 2005.
