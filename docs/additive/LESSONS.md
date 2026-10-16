@@ -392,3 +392,46 @@ statistic here, but it is the controller donors ran.
     Skew and Box-Cox now pass the KS test. Post-meal lows barely moved. Two related fixes to the
     self-check: it runs 10 days and switches off fat-induced resistance, a disturbance that a perfect
     carb bolus does not cover.
+
+36. **Count behavior from the raw record on both sides.** The template's carb_entries_per_day was ice's
+    count of labeled pulses that carry an entry, 2.07/day median. The donors' raw records hold 2.97
+    entries/day (merged within 30 min) and 4.59 manual boluses/day: 3.02 with an entry, 0.26 top-ups,
+    0.81 lone, 12.0 U/day by hand. The simulator was built on the labeled undercount and validated
+    against it, so the error was invisible: 1.96 vs 2.07 "matched". Behavior and validation now use the
+    raw rates (templates.add_raw_rates; validate counts delivered person boluses). Top-ups are a new
+    behavior. The insulin-burstiness statistic followed (top-1% share 27.6% vs 27.9%; manual
+    11.0 vs 12.0 U/day). Still short: 3.3 vs 4.6 boluses/day.
+
+37. **Shrink the body's carb sensitivity toward the settings, exactly as ISF.** Body CSF came from a
+    TDD formula independent of the person's own ISF/CR. Settings CR ÷ true CR then spread 0.79–2.05
+    (p10–p90), and many meals were mis-bolused by ~2×. Post-meal lows ran 4× the donors' (0.51 vs 0.12
+    per day). People tune their carb ratio on their own body, the reason ISF is shrunk (ISF_W 0.5,
+    lesson 8). CSF now uses the same weight: settings CR ÷ true CR 0.85–1.47. Re-read through the
+    labeler afterwards (×1.18; 1.15 vs 1.21). Labeled meal response: 17.0 mg/dL per 10 g (donors 17.1),
+    peak 110 min (111). Post-meal lows are at 0.32/day, still 3×.
+
+38. **A compensation outlives its cause: re-test it when the cause is fixed.** Lesson 10 halved
+    Visentin's measured circadian swing because the 24-h amplitude came out at 0.23 against the field's
+    0.12. That was under fixed-rate emptying, whose meal spikes were the excess. At the full measured
+    swing (c32circ, 112 × 14 d), against donors:
+
+    | | Full swing | Donors |
+    |---|---|---|
+    | 24-h amplitude | 0.14 | 0.13 |
+    | TIR | 74.9 | 71.7 |
+    | Time above 180 | 23.1 | 25.6 |
+    | t<54 | 0.17 | 0.23 |
+    | CV | 35.2 | 34.6 |
+    | TDD | 37.5 | 37.0 |
+
+    21 of 50 statistics match. Full swing is the default.
+
+    Still open:
+
+    | | Simulator | Donors |
+    |---|---|---|
+    | Long-range Hurst | 0.11 | 0.24 |
+    | Volatility clustering | 0.06 | 0.12 |
+    | Rate dispersion | 2.5 | 3.6 |
+    | Between-day fraction | 0.17 | 0.10 |
+    | Day/night insulin ratio | 1.21 | 1.38 |

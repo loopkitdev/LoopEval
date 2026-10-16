@@ -43,7 +43,7 @@ class ModTraits:
     circ_class: str = "llh"
     circ_low: float = 0.4               # low segment SI as a fraction of high (Visentin: 0.40 ± 0.23)
     circ_raw: float = 0.4               # the person's Visentin draw before the swing scale
-    circ_swing: float = 0.5             # share of Visentin's measured swing applied (LESSONS 10: 0.5) [open]
+    circ_swing: float = 1.0             # share of Visentin's measured swing: full (LESSONS 38; the halving of LESSONS 10 compensated for fixed-rate emptying)
     circ_noise: float = 0.0             # per-day noise per segment; Visentin's N(1, 0.2) was a simulation choice, not a measurement
     dawn: bool = True
     dawn_amp: float = 0.3               # fractional EGP increase at the dawn peak [J]
