@@ -308,6 +308,7 @@ All modulators multiply SI or EGP and can be switched (`enabled`).
 | Part | Form | Values | Evidence and tuning | Default |
 |---|---|---|---|---|
 | B1 Circadian SI | Visentin 7-class breakfast/lunch/dinner high/low profile; switches at 04/11/17 h with 1-h ramps; normalized to a daily mean of 1 | class probabilities 0.10/0.05/0.05/0.10/0.20/0.20/0.30; low/high ratio N(0.40, 0.23), Visentin's **full** measured swing (`circ_swing` 1.0) | Visentin 2015. LESSONS 38: 24-h amplitude 0.14 vs the donors' 0.13. The earlier halving (LESSONS 10) compensated for fixed-rate emptying. Visentin's per-day N(1, 0.2) is estimation precision (evidence/07), so `circ_noise = 0` | on |
+| B1b Basal-need profile | EGP × the donor's local hourly basal-schedule shape^0.5 (Loop's schedule uses the shape as is) | per-donor, overnight ~0.91 | LESSONS 48: day/night insulin 1.40 vs donors 1.38 | on |
 | B2 Dawn | EGP ramp from onset U(02:00, 04:30) to a 07:00 peak, back to 0 by 10:00 | present in 52%; amplitude lnN(0.3, 0.6) × EGP_b **[J]** | Ostrovski 2020; Porcellati 2013 | on |
 | B3 Day-level SI | independent per-day lognormal, changing at 04:00 with a 3-h ramp | CV 8% | evidence/07: repeat clamps 6–15% | on |
 | B4 Intraday OU / slow drift | OU on log SI | — | no controlled-condition evidence (LESSONS 1) | **off** |
