@@ -50,6 +50,12 @@ struct SimulateDataFlags: ParsableArguments {
 
 // Run mode and decision timing
 struct SimulateModeFlags: ParsableArguments {
+    @Flag(name: .long, help: "Disable Kalman smoothing")
+    var noKalman: Bool = false
+
+    @Flag(name: .long, inversion: .prefixedNo, help: "Run the SIMULATOR (Loop decision-time glucose input, the counter trajectory, and outcome stats) on the ORIGINAL noisy CGM samples, while keeping the RTS-smoothed trace for patient-physiology estimation (ICE + sensitivity multiplier m(t)). Raw samples are resampled onto the smoothed grid's exact timestamps so the per-grid m(t) stays aligned. Requires Kalman smoothing (no effect with --no-kalman). DEFAULT ON; pass --no-sim-raw-glucose for the legacy all-smoothed sim.")
+    var simRawGlucose: Bool = true
+
     @Option(name: .long, help: "Eval step (minutes, default 5)")
     var stepMinutes: Int = 5
 
@@ -267,12 +273,6 @@ struct SimulatePersonFlags: ParsableArguments {
 
 // Body: ICE replay and patient
 struct SimulateBodyFlags: ParsableArguments {
-    @Flag(name: .long, help: "Disable Kalman smoothing")
-    var noKalman: Bool = false
-
-    @Flag(name: .long, inversion: .prefixedNo, help: "Run the SIMULATOR (Loop decision-time glucose input, the counter trajectory, and outcome stats) on the ORIGINAL noisy CGM samples, while keeping the RTS-smoothed trace for patient-physiology estimation (ICE + sensitivity multiplier m(t)). Raw samples are resampled onto the smoothed grid's exact timestamps so the per-grid m(t) stays aligned. Requires Kalman smoothing (no effect with --no-kalman). DEFAULT ON; pass --no-sim-raw-glucose for the legacy all-smoothed sim.")
-    var simRawGlucose: Bool = true
-
     @Option(name: .long, help: "Counter-regulation onset (mg/dL). When the counterfactual BG falls below this, model the body's defensive hepatic glucose output as a positive BG velocity that ramps with depth below onset (capped). Prevents the counter running to unphysical negatives. 0 = off (default). ~65 is a reasonable physiological onset.")
     var counterRegOnset: Double = 0
 
@@ -773,8 +773,8 @@ extension SimulateCommand {
     var candidateManualBolusFromRecommendation: Bool { get { person.candidateManualBolusFromRecommendation } set { person.candidateManualBolusFromRecommendation = newValue } }
     var candidateManualBolusRecScale: Double { get { person.candidateManualBolusRecScale } set { person.candidateManualBolusRecScale = newValue } }
     // Body: ICE replay and patient
-    var noKalman: Bool { get { body.noKalman } set { body.noKalman = newValue } }
-    var simRawGlucose: Bool { get { body.simRawGlucose } set { body.simRawGlucose = newValue } }
+    var noKalman: Bool { get { mode.noKalman } set { mode.noKalman = newValue } }
+    var simRawGlucose: Bool { get { mode.simRawGlucose } set { mode.simRawGlucose = newValue } }
     var counterRegOnset: Double { get { body.counterRegOnset } set { body.counterRegOnset = newValue } }
     var counterRegGain: Double { get { body.counterRegGain } set { body.counterRegGain = newValue } }
     var counterRegMax: Double { get { body.counterRegMax } set { body.counterRegMax = newValue } }

@@ -16,20 +16,33 @@ struct SimulateCommand: AsyncParsableCommand {
 
     static let configuration = CommandConfiguration(
         commandName: "simulate",
-        abstract: "Closed-loop counterfactual simulation (full feedback) — slower than bench but accurate for aggressive candidates."
+        abstract: "Closed-loop counterfactual simulation (full feedback) — slower than bench but accurate for aggressive candidates.",
+        discussion: """
+        Settings can also come from a JSON config file, arranged by the sections below:
+        data, mode, deployment, candidate, person, body, plant, loop-experiments, openaps.
+        Keys are flag names; in candidate sections the "candidate-" prefix may be dropped.
+        A file may "include" others. See SimulateConfig.swift.
+
+        --config FILE.json: read settings from a file (repeatable, later files win).
+        --set section.key=value: one setting (the value is parsed as JSON, else a string).
+        --show-config: print the expanded command line and exit.
+
+        Precedence, lowest first: the export's replay_config.json (with
+        deployment.from-replay-config), config files, --set, command-line flags.
+        """
     )
 
     // Flags, grouped by what they configure (SimulateFlags.swift). The group sections are what
     // `simulate --help` prints; the properties keep their old names through forwarding accessors.
-    @OptionGroup(title: "Data and output") var data: SimulateDataFlags
-    @OptionGroup(title: "Run mode and decision timing") var mode: SimulateModeFlags
-    @OptionGroup(title: "Deployed system (the donor's Loop; both arms)") var deployment: SimulateDeploymentFlags
-    @OptionGroup(title: "Candidate: controller and settings") var candidate: SimulateCandidateFlags
-    @OptionGroup(title: "Person: manual boluses and carbs") var person: SimulatePersonFlags
-    @OptionGroup(title: "Body: ICE replay and patient") var body: SimulateBodyFlags
-    @OptionGroup(title: "Body: external plant") var plant: SimulatePlantFlags
-    @OptionGroup(title: "Candidate Loop experiments") var loopExperiments: SimulateLoopExperimentFlags
-    @OptionGroup(title: "Candidate OpenAPS (with --candidate-openaps)") var openaps: SimulateOpenAPSFlags
+    @OptionGroup(title: SimulateSection.data.title) var data: SimulateDataFlags
+    @OptionGroup(title: SimulateSection.mode.title) var mode: SimulateModeFlags
+    @OptionGroup(title: SimulateSection.deployment.title) var deployment: SimulateDeploymentFlags
+    @OptionGroup(title: SimulateSection.candidate.title) var candidate: SimulateCandidateFlags
+    @OptionGroup(title: SimulateSection.person.title) var person: SimulatePersonFlags
+    @OptionGroup(title: SimulateSection.body.title) var body: SimulateBodyFlags
+    @OptionGroup(title: SimulateSection.plant.title) var plant: SimulatePlantFlags
+    @OptionGroup(title: SimulateSection.loopExperiments.title) var loopExperiments: SimulateLoopExperimentFlags
+    @OptionGroup(title: SimulateSection.openaps.title) var openaps: SimulateOpenAPSFlags
 
     mutating func run() async throws {
         var exportProvenance: (version: Int?, warnings: [String])? = nil
@@ -367,7 +380,7 @@ struct SimulateCommand: AsyncParsableCommand {
         let dataSource: any EvalDataSource
         if let dataDir {
             dataSource = JSONFileDataSource(baseURL: URL(fileURLWithPath: dataDir))
-            let prov = Self.checkExportProvenance(dataDir: dataDir, arguments: CommandLine.arguments)
+            let prov = Self.checkExportProvenance(dataDir: dataDir, arguments: SimulateConfig.effectiveArguments ?? CommandLine.arguments)
             exportProvenance = prov
             for w in prov.warnings {
                 printStderr("\n*** PROVENANCE WARNING: \(w)\n")
