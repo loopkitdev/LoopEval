@@ -230,4 +230,6 @@ statistic here, but it is the controller donors ran.
     Kovatchev 2008 use Johnson S_U) fix the SHAPE — df 4 matches whole-record kurtosis (2.39 vs 2.48) —
     but not the RATE of big moves (22 vs 54 per 1,000) nor the quiet step SD (4.6 vs 5.5). The missing
     piece is frequent, sustained, symmetric glucose movement in unlogged time: more and stronger
-    activity, intake below the labeler's 12 g-eq gate, or a latent state not yet named.
+    activity, intake below the labeler's 12 g-eq gate, or a latent state not yet named. Full cohort with df 4 (c23):
+    20 of 42 statistics match the pilot donors, up from 16 — step kurtosis, CV, 24-h amplitude, insulin
+    burstiness and day-to-day insulin CV join the outcomes.
