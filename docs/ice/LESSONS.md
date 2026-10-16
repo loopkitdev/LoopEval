@@ -1009,3 +1009,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     field's track, not causing the lows. With the closed-loop start and low-band calibrations refit under it (v32of{0,1}TcB2FG):
     TIR 69.6 / 68.4, t<54 0.40 / 0.38, mean 157 / 158, lows per meal bolus 0.113 / 0.107 (old base 69.4 / 70.1, 0.44 / 0.31,
     160 / 159, 0.111 / 0.107). Kept as the harness: the same outcomes, now reached without borrowing the field's glucose.
+109. **Generated people overshoot large bolus recommendations, but that is not what drives the lows after boluses.** Field
+    calculator ratios (requested / recommended, bolus decisions) depend on the recommendation's size: rec <= 0.3 U 34% deviate
+    (median deviator x6, topping up), 0.3-1 U 25%, > 2 U 14-15% (median x0.76-0.84, trimming; 95th percentile x1.17 at 2-4 U,
+    x1.0 above). The ratio head never sees the recommendation: generated share > x1.5 9.3% vs field 2.2% (rec > 0.3 U), 95th
+    percentile x2.43 vs x1.0. A quantile map onto the field's ratio-by-recommendation (PLANT_RATIO_MAP) was not a valid test:
+    the plant knows only Loop's recommendation at the start of the step, ~35% below the one the bolus meets at the end (i001
+    1.0 vs 1.56 U, i039 1.35 vs 1.99), so boluses landed in the small-rec bands and overshoot rose to 16.7%. The bound test,
+    every calculator ratio capped at x1.2 (PLANT_RATIO_CAP), base v32of{0,1}TcB2FG: lows per meal bolus 0.113 / 0.107 ->
+    0.118 / 0.108, TIR 69.6 / 68.4 -> 70.2 / 68.6, t<54 0.40 / 0.38 -> 0.40 / 0.33. Ruled out as the cause; a faithful
+    ratio rule would need the engine to apply it at the recommendation it computes.
