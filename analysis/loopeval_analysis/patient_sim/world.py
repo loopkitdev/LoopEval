@@ -102,6 +102,11 @@ class World:
         self.mod_traits = person.traits.get("mod") or sample_mod_traits(r_misc, person.age, person.sex)
         if enable:
             self.mod_traits.enabled.update({k: v for k, v in enable.items() if k in self.mod_traits.enabled})
+            if isinstance(enable.get("circ_swing"), float):
+                import copy
+                self.mod_traits = copy.deepcopy(self.mod_traits)
+                self.mod_traits.circ_swing = enable["circ_swing"]
+                self.mod_traits.circ_low = float(np.clip(1.0 - enable["circ_swing"] * (1.0 - self.mod_traits.circ_raw), 0.4, 1.0))
         self.enable = dict(exercise=True, site_failure=True, pump_faults=True, compression=True, behavior_defense=True,
                            perfect_person=False, fat=True)
         if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable and isinstance(v, bool)})

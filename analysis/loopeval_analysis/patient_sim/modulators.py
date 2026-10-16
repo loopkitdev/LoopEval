@@ -42,6 +42,8 @@ class ModTraits:
                                                        drift=False, menstrual=False, illness=True))
     circ_class: str = "llh"
     circ_low: float = 0.4               # low segment SI as a fraction of high (Visentin: 0.40 ± 0.23)
+    circ_raw: float = 0.4               # the person's Visentin draw before the swing scale
+    circ_swing: float = 0.5             # share of Visentin's measured swing applied (LESSONS 10: 0.5) [open]
     circ_noise: float = 0.0             # per-day noise per segment; Visentin's N(1, 0.2) was a simulation choice, not a measurement
     dawn: bool = True
     dawn_amp: float = 0.3               # fractional EGP increase at the dawn peak [J]
@@ -67,7 +69,7 @@ def sample_mod_traits(rng: np.random.Generator, age: float, sex: str) -> ModTrai
         # Visentin's low/high SI ratio (0.40 ± 0.23) is an estimate from meal tests whose noise inflates the
         # swing: at that amplitude the simulated 24-h glucose amplitude was 0.23 vs the field's 0.12
         # (ablation 2026-10-15). Half the swing [J; to be settled on circadian_amp]
-        circ_low=float(np.clip(1.0 - 0.5 * (1.0 - rng.normal(0.40, 0.23)), 0.4, 1.0)),
+        circ_raw=float(rng.normal(0.40, 0.23)),
         dawn=bool(rng.random() < 0.52),
         dawn_amp=float(np.clip(np.exp(rng.normal(math.log(0.3), 0.6)), 0.05, 1.2)),
         dawn_onset=float(rng.uniform(120, 270)),
@@ -77,6 +79,7 @@ def sample_mod_traits(rng: np.random.Generator, age: float, sex: str) -> ModTrai
         illness_rate=5.0 if age < 13 else 3.0,
         seed=int(rng.integers(1 << 31)),
     )
+    t.circ_low = float(np.clip(1.0 - t.circ_swing * (1.0 - t.circ_raw), 0.4, 1.0))
     t.enabled["menstrual"] = False                      # stress scenario only (evidence/05 lesson 22)
     t.menstruating = (sex == "F" and 13 <= age <= 50)
     return t
