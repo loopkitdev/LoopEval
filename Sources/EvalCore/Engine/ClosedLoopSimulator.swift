@@ -787,6 +787,14 @@ extension EvaluationEngine {
         // still start inside them -- passed-through manual boluses and, under --cf-identity,
         // the real dose stream. Sending only [t, stepEnd) dropped every one of those.
         var plantDosesSentThrough: Date? = nil
+        // Doses appended during the run are forwarded by INSERTION, not by date: a dose can be
+        // appended dated before the last send's end (a plant bolus sits 1 s before its decision so
+        // the decision's input builder keeps it), and a date window drops it -- the plant never got
+        // any plant bolus in 8e86860 while Loop's IOB counted every one. The seeded history (the
+        // real doses before the run, or the whole window under --cf-identity) keeps the date window.
+        let plantSeedCount = counterfactualDoses.count
+        var plantNextAppended = plantSeedCount       // first appended dose not yet considered
+        var plantHeldAppended: [Int] = []            // appended doses starting at/after a send's end
         // ... and the same for the plant's TIME: the end of the last interval it advanced over.
         // A step that `continue`s early never calls the plant, so its CGM samples kept the FIELD
         // value and reached the candidate's history as if the plant had produced them. Each call
@@ -813,7 +821,19 @@ extension EvaluationEngine {
             // cycle before this one may hold doses (bddp11 under --cf-identity: 19 real
             // doses, 26.3 U, incl. a 5.8 U bolus, never reached the plant).
             let sendFrom = plantDosesSentThrough ?? now
-            let doses = counterfactualDoses.filter { $0.startDate >= sendFrom && $0.startDate < t1 }
+            var doses = counterfactualDoses[..<plantSeedCount].filter { $0.startDate >= sendFrom && $0.startDate < t1 }
+            var held: [Int] = []
+            for i in plantHeldAppended + Array(plantNextAppended..<counterfactualDoses.count) {
+                let d = counterfactualDoses[i]
+                if d.startDate >= t1 { held.append(i); continue }
+                // the plant integrates from t0: a bolus appended dated just before it lands at t0
+                doses.append(d.deliveryType == .bolus && d.startDate < t0
+                    ? EvalInsulinDose(deliveryType: .bolus, startDate: t0, endDate: t0, volume: d.volume,
+                                      insulinType: d.insulinType, automatic: d.automatic)
+                    : d)
+            }
+            plantHeldAppended = held; plantNextAppended = counterfactualDoses.count
+            doses.sort { $0.startDate < $1.startDate }
             plantDosesSentThrough = t1
             let reply = try plant.advance(
                 t0: t0, t1: t1, doses: doses,
