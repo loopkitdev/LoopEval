@@ -96,8 +96,15 @@ class Sensor:
     (float mg/dL, or None when the sensor withholds), and nothing (False) between them."""
 
     def __init__(self, family: str, rng: np.random.Generator, compression_rate: float = 0.03,
-                 start_minute: float = 0.0, phase: float = 0.0):
+                 start_minute: float = 0.0, phase: float = 0.0, overrides: dict | None = None):
         self.f = _family(family)
+        if overrides:       # calibration grid: sensor_sigma (mean noise sd), sensor_a1, sensor_a2
+            from dataclasses import replace as _r
+            kw = {}
+            if "sensor_sigma" in overrides: kw["sigma"] = (overrides["sensor_sigma"], self.f.sigma[1])
+            if "sensor_a1" in overrides or "sensor_a2" in overrides:
+                kw["ar"] = (overrides.get("sensor_a1", self.f.ar[0]), overrides.get("sensor_a2", self.f.ar[1]))
+            if kw: self.f = _r(self.f, **kw)
         self.rng = rng
         self.compression_rate = compression_rate          # events per asleep-day
         self.ig: Optional[float] = None
