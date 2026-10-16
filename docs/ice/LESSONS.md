@@ -1052,3 +1052,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     slope falls (0.86 -> 0.61-0.63 averaged) and predicted spread rises (sd 5.9-7.4 -> 7.7-8.9 mg/dL): without the snaps
     onto the field, generated effects come out larger. t<54 mean |error| 0.40-0.42 vs 0.30 for predicting no change. The
     honest harness and the bolus calibration both stay; deciding between candidates on this bar needs more seeds per arm.
+    Averaging the two seeds' predictions per edit (ensemble), slope TIR / t<70 / mean / t<54: snaps on 0.81 / 1.32 / 0.92 /
+    0.49; honest 0.81 / 1.22 / 0.71 / 0.39; honest + bolus 0.75 / 1.15 / 0.71 / 0.33 (replay 0.50 / 0.47 / 0.44 / 0.10).
+    t<54 changes come out 2-3x too large on every base, in step with generated t<54 running ~3x the field's level.
