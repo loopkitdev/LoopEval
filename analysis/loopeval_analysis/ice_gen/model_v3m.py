@@ -10,6 +10,7 @@ middle (ice LESSONS 39). The profile vector still feeds the GRU for everything e
 """
 from __future__ import annotations
 
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -794,7 +795,7 @@ class ICEGenV3M23(ICEGenV3M21):
         AUX * [0.5 ((y - b) / s)^2 + log s],   s learned,
     makes b the expected background given exogenous inputs, and the recurrent path models deviations around it."""
     arch = "v3m23"
-    AUX = 0.5
+    AUX = float(os.environ.get("ICE_AUX", "0.5"))   # training only
 
     def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
         super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
