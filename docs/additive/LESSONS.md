@@ -1383,3 +1383,21 @@ statistic here, but it is the controller donors ran.
       reproduce is the damping of the swing that follows. Candidates: insulin acting sooner at meals than the
       clamp-fitted curve; real meals split or spread (grazing through a meal); post-meal hyperglycaemic slowing of
       emptying (evidence/09 m_BG, built but off). Defaults are unchanged (centre 3.0, CSF_BLEND_CAL 1.25).
+
+91. **Hyperglycaemic slowing of emptying, at its published size, does not survive carb-sensitivity re-fitting.**
+    Setup: emptying ×1.6 (tracer pace, LESSONS 90) plus `ge_hyper` 0.45 (×0.74 at 8 mmol/L, Schvarcz 1997; ×0.56 at
+    15–20, Fraser 1990).
+
+    | Arm | Labeler g-eq/entered | Matched | Mean | CV | Glucose skew | Box-Cox | Meal Δ at 2 h | Rises > 15, 0–1 h |
+    |---|---|---|---|---|---|---|---|---|
+    | Donors | 1.21 | — | 151 | 34.8 | 0.89 | 0.00 | 42 | 63 |
+    | c100 baseline | 1.19 | 26 | 155 | 35.2 | 0.75 | 0.10 | 36 | 36 |
+    | c103, CSF ×0.84 | 1.09 | 33 | 151 | 33.5 | 0.67 | 0.15 | 31 | 35 |
+    | c104, CSF ×0.93 | 1.13 | 30 | 154 | 34.0 | 0.67 | 0.13 | 34 | 35 |
+    | c104, CSF ×1.0 | 1.19 | 26 | 155 | 33.8 | 0.68 | 0.15 | 33 | 38 |
+
+    The 33 of 51 in c103 comes from meals the labeler reads as too small (1.09 vs 1.21). Calibrated to 1.19 it is back
+    at 26. The slowing caps every high excursion, so glucose skew falls (0.68) and meals plateau low (33 vs 42). This
+    repeats LESSONS 33 at the faster emptying. Defaults are unchanged. The gut alone cannot give the donors' shape
+    (fast rises, a high but brief plateau, CV 35); the damping must come from elsewhere (insulin timing and action at
+    meals, or how meals are eaten).
