@@ -142,7 +142,9 @@ class World:
         # the plant's re-simulation reproduces the identical plan (LESSONS 40)
         gi = (lambda d: 0.7 if self.mods.illness(d * DAY + 720)[2] else 1.0) if self.mod_traits.enabled.get("illness") else None
         self.beh.plan_all(days, gi)
-        site = SiteTraits(p_fail=SiteTraits.p_fail if self.enable["site_failure"] else 0.0,
+        youth = 3.0 if person.age < 18 else 1.0          # Kanapka 2022: 5.8% of sets at 14–17 vs 1.9% in adults
+        site = SiteTraits(p_fail=SiteTraits.p_fail * youth if self.enable["site_failure"] else 0.0,
+                          p_full=SiteTraits.p_full * youth, p_dislodge=SiteTraits.p_dislodge * youth,
                           planned_days=self.beh_traits.site_days)
         self.pump = Pump(site, r_pump, family=person.pump, faults=self.enable["pump_faults"])
         self.sensor = Sensor(person.sensor, r_sen,
