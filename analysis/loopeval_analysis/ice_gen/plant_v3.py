@@ -190,6 +190,8 @@ class PlantV3:
                         # the entry trait is bimodal, a Gaussian put drawn people in the gap) and how traits co-vary
                     others = [i for i in range(Z.shape[0]) if i != int(self.pid[0])]
                     j = others[int(torch.randint(len(others), (1,), generator=g))]
+                    if os.environ.get("DRAW_MODE") == "self":   # a new person around the host itself, so the host's deployed
+                        j = int(self.pid[0])                    # settings fit them as a real person's do (LESSONS 114)
                     h = float(os.environ.get("DRAW_JITTER", "0.3"))
                     z = Z[j] + h * (torch.linalg.cholesky(C) @ torch.randn(Z.shape[1], generator=g, dtype=Z.dtype))
                 k = self.net.profile.weight.shape[1]
