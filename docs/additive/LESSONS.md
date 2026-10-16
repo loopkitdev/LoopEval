@@ -202,3 +202,10 @@ statistic here, but it is the controller donors ran.
     simulator, fixed in main f11386e (doses forwarded by insertion). On f11386e with no workaround (cohort
     c20) the cohort matches the workaround run within noise (mean 148 vs 148, TDD 41.3 vs 40.9, t<54 0.38
     vs 0.47) and delivered/received is 0.94–1.04 per person. Cohort c19 void.
+
+26. **Size a behavior's rate by the donor's exposure, not by a guessed opportunity count.** Corrections
+    were a per-glance probability (measured rate ÷ 4 glances): simulated people corrected 0.20 a day
+    against their donors' 0.95. Few glances land on a qualifying high. Corrections are now a per-minute
+    hazard while awake and above the person's correction level, sized so the donor's measured rate is
+    reached over the donor's own time above 180. User boluses per day: 2.82 → 2.86 median, KS p 0.11 →
+    0.77 (cohort c21); free (food) boluses already matched (0.47 vs 0.41, Spearman 0.93).
