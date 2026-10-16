@@ -251,6 +251,9 @@ class World:
         # with τ 12 h [J, both ways]; insulin sensitivity × (1 − H) (LESSONS 43)
         self.hyper_res = 0.0
         self.hyper_on = not (enable and enable.get("glucotox") is False)
+        # size at 360 mg/dL: 0.26 fits the T1D clamps (Vuorinen-Markkola 1992, Yki-Järvinen 1987); Boden 1996 measured −55%
+        # after 68 h at 227 mg/dL in healthy people (evidence/15)
+        self.hyper_max = enable.get("glucotox_max") if enable and isinstance(enable.get("glucotox_max"), float) else 0.26
 
     # ------------------------------------------------------------------ one minute
     def _minute(self, pending_actions: list):
@@ -262,7 +265,7 @@ class World:
             egp *= bprof[k] * (1 - f) + bprof[(k + 1) % 24] * f
         si *= self._fat_si(m)
         if self.hyper_on:
-            target = 0.26 * min(1.0, max(0.0, (self.body.g - 140.0) / 220.0))
+            target = self.hyper_max * min(1.0, max(0.0, (self.body.g - 140.0) / 220.0))
             # asymmetric: builds over ~6 h (Fanelli 1995: −15% after 6 h at 243 mg/dL; −22% after 15 h at 306), fades over
             # ~24 h (resistance persisted 1.5–10 h after normoglycaemia; Vuorinen-Markkola 1992, Fanelli 1995) [J within the
             # studies' bounds; was 12 h both ways] (LESSONS 80)

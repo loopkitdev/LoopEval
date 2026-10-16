@@ -1142,3 +1142,19 @@ statistic here, but it is the controller donors ran.
     leaves per-unit insulin strength at high glucose (−14.3 vs −10.2 mg/dL per 1% TDD), which no evidence found so far
     sizes: κ = 0.15 fits the clamp literature (evidence/15), and Del Prato's weaker glucose effectiveness moves the
     levels (LESSONS 80). Open.
+
+81. **Neither named term Pete allowed for night-time highs calibrates them without breaking the levels.** Target: the
+    donors' −10.2 mg/dL per 1% of TDD delivered in the 3 h after a quiet midnight at ≥ 200 (sim −14.3; LESSONS 80).
+
+    | Change (n 112) | per-unit at highs | mean | TIR | matched |
+    |---|---|---|---|---|
+    | none (c92) | −14.3 | 154 | 69 | 14 |
+    | κ ×0.5 (c95) | −13.3 | 158 | 67 | 13 |
+    | κ ×0, linear (c96) | −14.7 | 158 | 65 | 10 |
+    | glucotoxicity size 0.26 → 0.52 (c97; Boden 1996 −55% bounds it) | −12.7 | 158 | 66 | 6 |
+
+    κ barely touches the per-unit effect; doubled glucotoxicity moves it only a sixth of the way while lows fall to a
+    third (t<54 0.06 vs 0.22). Defaults stay (κ ×1, size 0.26); `kappa_mult` and `glucotox_max` remain switches. The
+    per-unit gap is open. Whatever makes real insulin weaker at night-time highs is not a uniform body parameter;
+    a per-night or per-situation cause (a site that works poorly that night, missed insulin, unlogged late food) fits
+    better than any global term.
