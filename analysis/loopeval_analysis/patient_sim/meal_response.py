@@ -71,3 +71,20 @@ def summarize(df: pd.DataFrame) -> dict:
     df = df[df.grams >= 10]
     return dict(n=len(df), people=df.alias.nunique(), rise_med=df.rise.median(), rise_per10g=(10 * df.rise / df.grams).median(),
                 t_peak_med=df.t_peak.median(), d3h_med=df.d3h.median(), g0_med=df.g0.median())
+
+
+def simulated_labeled(run: Path) -> pd.DataFrame:
+    """Like `donor`, but on the ice labeler's meal table for a simulated person (ice_check.py writes
+    meals_labeled.csv): onsets as the labeler detects them, not the true eating times."""
+    tr = pickle.load(open(run / "truth.pkl", "rb"))
+    cgm = tr["cgm"].sort_index()
+    cgm.index = EPOCH + pd.to_timedelta(cgm.index, unit="m")
+    m = pd.read_csv(run / "meals_labeled.csv", parse_dates=["onset"]).sort_values("onset")
+    rows, prev = [], None
+    for _, r in m.iterrows():
+        isolated = prev is None or (r.onset - prev) > pd.Timedelta(hours=3)
+        prev = r.onset
+        if not (isolated and r.announced and r.entry_g > 0 and r.bolus_u > 0 and not r.rescue): continue
+        x = _response(cgm, r.onset)
+        if x: rows.append(dict(alias=run.name, grams=float(r.entry_g), bolus=float(r.bolus_u), **x))
+    return pd.DataFrame(rows)

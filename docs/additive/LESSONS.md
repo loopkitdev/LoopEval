@@ -167,3 +167,10 @@ statistic here, but it is the controller donors ran.
     10 g) after ruling out the bolus itself (1.02 vs 1.01 of CR) — and only after the meal response had
     resisted two "physiology" explanations (absorption speed, insulin action). Workaround: the plant
     asks for ratio − AF. Engine fix proposed (docs/handoffs/2026-10-15-simulator-plant-bolus-autodose.md).
+
+22. **Measure simulated and real with the same event definition, not just the same formula.** Donor
+    meal responses were timed from the ice labeler's pulse onset; simulated ones from the true eating
+    time. The labeler's onset lags eating by ~30 min, so the comparison read 53 vs 111 min to peak and
+    −24 vs +36 at 3 h — and three model changes (absorption speed, insulin action, auto-dose stacking)
+    "failed" to move it. Run through the labeler (ice_check.py → meal_response.simulated_labeled), the
+    simulated meals read 50 mg/dL rise, 85 min, −4.5 at 3 h against 72, 111, +36: a smaller, real gap.
