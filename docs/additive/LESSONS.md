@@ -192,3 +192,11 @@ statistic here, but it is the controller donors ran.
     oscillatory shape took lag-5 autocorrelation 0.45 → 0.09). Larger noise does NOT supply the heavy
     tail or the 15–20 min persistence — it lightens the tail and adds false lows. Those need rare,
     large, persistent events (compression lows at their true rate; other named disturbances).
+
+25. **Reconcile at the boundary after every engine change, not just once.** main 8e86860 (plant bolus
+    decided before the automatic dose, dated t − 1 s) passed its own checks, but the earlier date fell
+    outside LoopEval's forwarding window (doses dated ≥ the previous step's end), so the plant received
+    0 of 44.8 U of person boluses while Loop's IOB counted all of them. The cohort swung to mean 179,
+    TDD 31 and looked like a physiology result. Caught by the plant's received-dose log (lesson 19's
+    reconciliation) and a two-binary A/B on one person (identical without --plant-behavior). Reported to
+    simulator; additive stays on the prior binary + PLANT_NET_AF=1 until the fix lands. Cohort c19 void.
