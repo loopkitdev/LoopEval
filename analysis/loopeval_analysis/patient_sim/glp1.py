@@ -17,7 +17,7 @@ Effects, relative to the same person off the drug (randomized T1D trials on AID 
                                               ~20 weeks (ADJUST-T1D: weight explains 17% of the insulin drop at week 4,
                                               48% at week 26)
   settings       after ≥ 11 weeks, people have re-tuned: basal ×0.92, ISF ×1.11, CR ×1.04 (Pasqua 2025, day 77)
-Check: ADJUST-T1D's bolus −30%, basal −12 to −16%, TDD −20 to −23% should come out without tuning (LESSONS 86).
+Check: ADJUST-T1D's bolus −30%, basal −12 to −16%, TDD −20 to −23% should come out without tuning (LESSONS 87).
 """
 from __future__ import annotations
 

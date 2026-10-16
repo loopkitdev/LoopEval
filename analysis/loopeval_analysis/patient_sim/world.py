@@ -197,7 +197,8 @@ class World:
         if (enable or {}).get("glp1"):
             from .glp1 import GLP1, sample_glp1
             wk = enable.get("glp1_weeks") if isinstance(enable.get("glp1_weeks"), float) else None
-            ag = "semaglutide" if enable.get("glp1_sema") else "tirzepatide" if enable.get("glp1_tirz") else None
+            ag = ("semaglutide" if enable.get("glp1_sema") else "tirzepatide" if enable.get("glp1_tirz")
+                  else "liraglutide" if enable.get("glp1_lira") else None)
             gt = sample_glp1(np.random.default_rng(person.seed + 41), weeks=wk, agent=ag)
             if isinstance(enable.get("glp1_hour"), float): gt.inj_hour = enable["glp1_hour"]
             self.glp1 = GLP1(gt)
