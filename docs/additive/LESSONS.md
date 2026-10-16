@@ -908,3 +908,19 @@ statistic here, but it is the controller donors ran.
       Boluses with an entry run 12% short of their donors' (2.67 vs 3.05/day) with entries matched.
     Whole-cohort KS against all donors still decides pass/fail, but a gap that vanishes twin-wise is sampling, not
     a missing component.
+
+66. **The failing structure statistics are the meal-scale shape, not missing variance.** The SD of glucose change
+    by lag matches the donors at every scale from 1 h to 4 days (sim/donor 1.01, 1.09, 1.03, 1.00, 1.00, 1.00, 0.98,
+    0.97 at 1, 2, 3, 6, 12, 24, 48, 96 h; c74 vs one 13-day block per donor). eda's `hurst_long` is the log-log
+    slope of that SD between 2 and 4 h. The sim's +9% at 2 h with a match at 3–4 h flattens the slope (0.15 vs 0.25).
+    `acf_zero_min` (5-min steps stay positively correlated 55 vs 42.5 min) says the same: simulated excursions build
+    faster and are pulled back sooner, where donors rise more slowly and hold to 3–4 h. That is the big-meal plateau
+    gap (LESSONS 53) seen cohort-wide.
+    The gut is within its evidence:
+    - The model's 121 g mixed meal appears 25/50/75% at 95/178/270 min, Elleri 2013's low-glycaemic-load meal
+      (88/175/270); a lower-fat one falls between Elleri's two meals (72/130/197).
+    - Ferrannini 1985's 73% at 3.5 h after 75 g oral glucose is systemic appearance after splanchnic first pass, so
+      it does not pin the gut's own tail.
+    The open lever is what returns glucose after the peak: insulin action timing (set to Loop's curve on field
+    forecast evidence, LESSONS 20), glucose effectiveness (halving it traded level for structure, LESSONS 49), and
+    Loop's response to a plateau. Any change there must keep the first-hour forecast match that LESSONS 20 rests on.
