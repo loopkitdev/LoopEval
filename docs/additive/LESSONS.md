@@ -937,3 +937,6 @@ statistic here, but it is the controller donors ran.
     - 16 of 30 statistics, the most at n = 112.
     - t<54 0.135 (0.215, p 0.105) is lower, so watch it.
     `--disable lipohypertrophy` switches it off.
+    Second seed set (c75b vs c71b, seeds 2000+): 14 vs 13 of 30; mean glucose 145.9 → 147.7; long-range Hurst
+    0.139 → 0.157 (both seed sets +0.016–0.018 since c70/c71); user boluses 4.58/day vs donors 4.59. The level gain is
+    smaller here than in c75 (+1.9 vs +4.3 mg/dL), within the noise of LESSONS 63.
