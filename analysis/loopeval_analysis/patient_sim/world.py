@@ -263,7 +263,10 @@ class World:
         si *= self._fat_si(m)
         if self.hyper_on:
             target = 0.26 * min(1.0, max(0.0, (self.body.g - 140.0) / 220.0))
-            self.hyper_res += (target - self.hyper_res) / 720.0
+            # asymmetric: builds over ~6 h (Fanelli 1995: −15% after 6 h at 243 mg/dL; −22% after 15 h at 306), fades over
+            # ~24 h (resistance persisted 1.5–10 h after normoglycaemia; Vuorinen-Markkola 1992, Fanelli 1995) [J within the
+            # studies' bounds; was 12 h both ways] (LESSONS 80)
+            self.hyper_res += (target - self.hyper_res) / (360.0 if target > self.hyper_res else 1440.0)
             si *= 1.0 - self.hyper_res
         gi_ill = self.mods.illness(m)[2] if self.mod_traits.enabled.get("illness") else False
         ex = self.ex.at(m, awake=not self.beh.asleep(m)) if self.enable["exercise"] else dict(ex_intensity=0, ex_anaerobic=0, ex_si_boost=0, abs_mult=1)

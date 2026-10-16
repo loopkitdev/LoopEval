@@ -1107,3 +1107,16 @@ statistic here, but it is the controller donors ran.
     nighttime highs. From midnight glucose ≥ 200 the sim falls −82 mg/dL in 3 h against donors' −58 (LESSONS 51 data).
     In real people a night high often has a cause insulin cannot fully work through: a failing site, prolonged-high
     resistance, fat, illness. Next: whether those are under-sized at night.
+
+80. **Night-time highs fall as fast with evidence-timed glucotoxicity or lower SG: the fall is insulin-driven.**
+    Evidence/15 sizes hyperglycaemia-induced resistance at ≤ ~7% near 200 mg/dL. Onset is ~3–6 h (Fanelli 1995: −15%
+    after 6 h at 243), persistence 1.5–10 h after normoglycaemia, and the 0.26 at 360 mg/dL fits the T1D points.
+    - **Change:** the glucotoxicity state builds over 6 h and fades over 24 h, inside the studies' bounds (was 12 h both
+      ways).
+    - **Cohort c92 vs c90:** Hurst 0.153 → 0.190; mean 153.7 (151.4); 14 vs 16 of 30 (noise). The fall from a midnight
+      glucose ≥ 200 is unchanged: −113 mg/dL at 3 h vs donors −58.
+    - **SG ×0.5 (c93, toward Del Prato 1997's weaker T1D glucose effectiveness):** Hurst 0.248 (donors 0.247), but
+      mean 166.5, TIR 60.7 and 6 of 30. The fall from highs is still −117. Rejected.
+    So night-time highs come down by insulin, through Loop's corrections, faster than in donors. Open candidates: real
+    corrections working less well than settings imply (site, absorption at the actual site, selection of nights that
+    are high because insulin is not working), and donors' controller limits (max basal, correction range).
