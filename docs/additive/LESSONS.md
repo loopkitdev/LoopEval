@@ -819,3 +819,12 @@ statistic here, but it is the controller donors ran.
     The default stays; `ex_b` / `ex_zp` remain switches. Session frequency and intensity are [J] and donors carry
     no activity record, so neither side is pinned. A 56-person cohort passes more statistics than a 112-person one
     (20 vs 14 for nearly the same model) because KS loses power: compare scores at equal n only.
+
+58. **Donors' night "pulses" are mostly not eating: snacks go in waking hours only.** Snack times followed each
+    donor's labeled-pulse clock, ~18% of which starts 00–06, so simulated people ate between 00 and 06 h on 48% of
+    nights. Donors' raw carb records show eating on 7%. With snacks restricted to the person's waking hours
+    (c66), the labeler still finds 1.23 night-window pulses a day in the sim against the donors' 1.21. The labeler
+    makes them from non-eating rises: post-low rebounds, the sensor, overnight drift. Day/night insulin
+    1.64 → 1.82 (donors 2.06); overnight delivery 0.59–0.72 of the daily mean (donors 0.55–0.72). Outcomes are
+    unchanged. 12 vs 14 of 30 statistics (n = 112, within cohort noise); the 24-h amplitude rises to 0.157 (0.131)
+    and 06 h glucose falls to 125 (130).

@@ -460,7 +460,8 @@ its 15-min trend, and Loop's IOB.
 - **Form.** Three main meals (Camerlingo 2021 timing: breakfast lnN(2.078, 0.175) h, gaps drawn from
   Gumbel distributions; breakfast skipped with p 0.1), split by the donor's own breakfast / lunch / dinner
   grams (`slot_g`, windows 04–10:30 / 10:30–15:30 / 15:30–22 local; LESSONS 51), plus Poisson snacks at the person's measured
-  pulse rate, placed on their own eating-hour distribution. Weekends shift by +60 min **[J]**.
+  pulse rate, placed on their own eating-hour distribution over the hours they are awake (donors' night pulses
+  are mostly not eating, LESSONS 58). Weekends shift by +60 min **[J]**.
 - **Sizing.** Daily intake is regulated over 24 h. A day total = carbs_day × exp(z_d) (+ activity
   intake, C7), with z AR(1) across days (CV 0.22, ρ 0.29; Tarasuk & Beaton 1992, Levitsky 2017). It
   is shared by the day's events in proportion to their drawn sizes (the person's measured log-sd), with
