@@ -32,6 +32,7 @@ Code: `analysis/loopeval_analysis/patient_sim/`.
 | A10 Gut — mixed meals | Per-meal parcel Qsto1 → Qsto2 → Qgut; saturating emptying in kcal E = Vmax·S/(Km + S) shared by everything in the stomach; per-meal speed lnN(0, 0.4) | Vmax 3 kcal/min, Km 60 kcal (kempt 0.05), kabs 0.05; f N(0.9, 0.05) | evidence/09 (Brener 1983, Hunt 1985, Calbet 1997, Elleri 2013); donors' lognormal shape (LESSONS 33) | calibrated |
 | A11 Gut — hypoglycaemic acceleration | kempt × (1 + 1.5·σ((70 − G)/5)) | ×2.5 below ~60 | 01 §6.4 (Schvarcz 1995) | wired |
 | A12 Fat / protein | early: kempt × 1/(1 + fat/60); late: slow glucose parcel 0.1·protein g, chain 1/60, delay 90 min; fat SI dip 1 − ρ·fat/50 ramping in 2→3 h, full to 6 h, gone by 10 h | per meal 0.44 g fat and 0.45 g protein per carb gram (snacks 0.2), ±50% [J: Snell-Bergeon 2009 split, unverified]; ρ U(0, 0.35) per person | 01 §6.3 (Smart 2013, Wolpert 2013, Bell 2020, Paterson 2017) | wired |
+| A10b Fast liquid phase | 20% of each meal's carbohydrate empties fast (0.08/min) outside the energy ceiling | share [J] | Hunt 1985; Calbet 1997; LESSONS 44 (increment skew) | calibrated |
 | A13 Rescue / fast glucose | fast parcel kempt = kabs ≈ 0.06–0.08, with A11; bioavailability = the person's calibrated meal f × 1.25 (never a fixed 1.0) | — | 01 §6.5 (Brodows 1984: ~3–4 mg/dL per g); LESSONS 18 | wired |
 
 **Per-person calibration** (`person.calibrate`): Ib comes from the true basal rate; SI_D and sE are
@@ -49,7 +50,8 @@ estimates (LESSONS 2).
 | B4 Intraday OU / slow drift | — | **off**: no controlled-condition evidence | 07; LESSONS 1 | off |
 | B5 Menstrual cycle | luteal SI dip, cycle N(28, 3) d, 63% of people respond | amplitude lnN(0.08, 0.5) | 02; donors show no monthly rhythm (run:2026-10-11-ice-slow/cycle_screen.csv) | built, **off by default** |
 | B6 Illness | Poisson episodes (3/yr adults, 5/yr children), 1.5–15 d; SI dip 10–35% with ramps, EGP +0–15%; 20% gastrointestinal (SI up 5–15%, intake ×0.7) | — | 02 illness (Mehta 2010; Tinti 2025) | wired |
-| B7–B11 Sleep loss, stress, alcohol, heat, prolonged-high resistance | — | — | 02; 00 | planned (tier 2) |
+| B7–B10 Sleep loss, stress, alcohol, heat | — | — | 02; 00 | planned (tier 2) |
+| B11 Hyperglycaemia-induced resistance | SI × (1 − H), H → 0.26·clip((G − 140)/220, 0, 1), τ 12 h [J] | — | Vuorinen-Markkola 1992; Yki-Järvinen 1987 (LESSONS 43) | wired |
 
 ## C. Exercise (`exercise.py`)
 
@@ -76,6 +78,7 @@ One parameter set per session; per family (G6, G7, Libre 3, Libre 2, Medtronic).
 | D3 Noise, sensor-specific | AR(2) on the reporting grid, Student-t df 4, scale √(q² + (1 − q²)(IG/130)²) (floor ⊕ proportional) | α (1.30, −0.42); σ G7 N(2.5, 0.8), G6 N(2.5, 0.8), Libre 3 N(1.5, 0.5); q 0.5 | Vettoretti 2019 shape; size fitted with D2 and D3b | calibrated |
 | D3b Noise, common to co-located sensors | AR(3) (1.584, −0.884, 0.180), continuous across sessions (interstitial physiology) | σ G7 2.0, G6 2.5, Libre 3 3.0 | Biagi 2017 (Enlite: common var 3.98 > sensor-specific 2.54); raises YSI error without raising PARD | calibrated |
 | D3c Transient biases | per-session rate lnN(median, 0.9) events/day; bias ±lnN(12, 0.4) mg/dL (55% low) appearing within one reading, first-order recovery τ 10 min | G7 8/day, G6 6, Libre 3 4 [J] | donor quiet-window reversals (quiet.jump_signature, reversal_events; LESSONS 32): G7 reversal 6.6 vs donors 6.8 per 1,000 quiet steps | calibrated (G7, G6) |
+| D3d Noise-level wander | σ × exp(z − sd²), z log-OU sd 0.7 (G7 0.6), τ 8 h; G7 innovations df 30 | [J size] | Facchinetti 2011; LESSONS 42 (volatility clustering, Hurst, dispersion, jump anatomy) | calibrated |
 | D4 Device smoothing | causal EMA on the reported stream | Libre 3 (twiist stream) 0.35 [J] | eda L33 (Libre stream is smoothed) | wired |
 | D5 Compression lows | personal rate Gamma(2.37, 1/75.7)/day while asleep; depth lnN(35), 45 min; gap 72% / dip 25% / floor 3% | — | run:2026-10-11-ice-compression; 03 §2.6 (literature rate ~10× higher: the donor detector is strict) | wired |
 | D6 Availability | warm-up per session; session length (+ grace); early failure 5% [J]; random gaps at the measured per-family rates by length | G7 4.4 gaps/day, Libre 3 1.5, G6 1.7 (wear ~96%) | runs/2026-10-15-additive-sensor/gaps.py (153 donors) | wired |
@@ -93,11 +96,12 @@ The difference is ground truth the plant logs, and Loop never sees it (phantom I
 | E3 Bolus error | per bolus sd = c/√U, floor 0.6% | Omnipod c 0.12, durable 0.03 | 06 #3 | wired |
 | E4 Start-up transient | deviation after each site change, decays 4 h | Omnipod N(+5%, 5%), Medtronic N(−5%, 5%) | 06 #4 | wired |
 | E5 Site life | absorption 0.9 → 1.15 by day 4 | — | 03 (Swan 2009) | wired |
-| E6 Failing site | absorbed fraction decays to 0.3 (τ 4 h) from a random time; the person changes it after a long high | p 0.15 per site [J; eda L52 early changes 25%] | eda L52; Kanapka 2022 | wired |
+| E5b Set-age efficacy | absorbed fraction × (1 − 0.025·max(0, age − 1 d)) | [I] | Sampson Perrin 2015; Simic 2021 (LESSONS 43) | wired |
+| E6 Failing site | absorbed fraction decays to 0.3 (τ 4 h) from a random time; the person changes it after a long high | p 0.012 per site; with E8 and E10 sums to Kanapka 1.9% adults (youth ×3) [J split] | Kanapka 2022 (LESSONS 43) | calibrated |
 | E7 Silent partial occlusion | delivered fraction U(0, 0.5) for ~1 h; releases part of the missed volume on clearing | Poisson 0.4 per wear | 06 #8, #10 | wired |
-| E8 Full occlusion + alarm | delivery 0; alarm at V_alarm missed units (Omnipod 3, Medtronic 2.5, twiist 0.5) | p 0.02 per wear [J] | 06 #7 | wired |
+| E8 Full occlusion + alarm | delivery 0; alarm at V_alarm missed units (Omnipod 3, Medtronic 2.5, twiist 0.5) | p 0.003 per wear [J split] | 06 #7; Kanapka 2022 | wired |
 | E9 Bubble | missed volume lnN(0.5 U) | p 0.2 per wear [J] | 06 #9 | wired |
-| E10 Dislodgement | absorbed fraction 0, never alarms | p 0.03 per wear | 06 #12 | wired |
+| E10 Dislodgement | absorbed fraction 0, never alarms | p 0.004 per wear [J split] | 06 #12; Kanapka 2022 | wired |
 | E11 Lipohypertrophy | bioavailability 0.75–0.8 | prevalence not assigned | 06 #13 | built (off) |
 | E12 Leakage / backflow | — | no quantitative source | 06 #11 | not modelled |
 
@@ -120,6 +124,7 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 | F10 Hand-dosed food boluses | an un-entered eating event gets a bolus of the person's own grams estimate ÷ their CR, at the person's measured rate | pilot lone boluses above Loop's recommendation or below 140 mg/dL (templates._free); Groat 2017 | wired |
 | F11 Eating pulses | carbs/day spread over the person's measured pulse count (~5.6/day) with their measured size spread | ice meals tables (LESSONS 16) | wired |
 | F12 Temporary Overrides | less-insulin with activity episodes, lowered target before entries, raised target at random; donor rates and median factor / target / duration; exported to the therapy timeline (causal) | 19,732 donor windows; templates.add_override_rates; LESSONS 40 | wired (reactive more-insulin class pending plant-sent overrides) |
+| F13 Settings edits | dated multiplicative edits to basal/ISF/CR at the donor's rate per setting; size lnN(3.6%, 1.06), random sign [J]; exported as schedule eras | donor therapy timelines (templates.add_edit_rates; LESSONS 41) | wired |
 
 ## G. Truth and settings (`person.py`)
 
