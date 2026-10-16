@@ -205,7 +205,8 @@ def _formulation(brand: str, rng) -> str:
 
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
-                  csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = False) -> Person:
+                  csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = False,
+                  kappa_mult: float = 1.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -242,7 +243,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         rcl=float(np.exp(rng.normal(math.log(0.003), 0.3))),
         cr_max=float(np.exp(rng.normal(0.0, 0.5))),
         cr_g=float(rng.normal(65, 5)),
-        kappa=float(np.exp(rng.normal(math.log(0.15), 0.4))),
+        kappa=float(kappa_mult * np.exp(rng.normal(math.log(0.15), 0.4))),
         # exercise muscle uptake at full intensity: moderate work (I 0.5) ≈ −50 mg/dL/h from uptake alone, the
         # rest of the lab −80 mg/dL/h (García-García 2015) from the acute SI boost [J; calibrate vs T1DEXI]
         ex_uptake=float(np.exp(rng.normal(math.log(3.0), 0.3))),
