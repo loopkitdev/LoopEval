@@ -1158,3 +1158,11 @@ statistic here, but it is the controller donors ran.
     per-unit gap is open. Whatever makes real insulin weaker at night-time highs is not a uniform body parameter;
     a per-night or per-situation cause (a site that works poorly that night, missed insulin, unlogged late food) fits
     better than any global term.
+
+82. **Grazing on the person's own eating clock turns the daytime quiet-time skew positive; late unlogged food is not the
+    night-high answer.** Grazes were placed uniformly over waking hours. They now follow the donor's labeled eating
+    clock over the person's waking hours, as snacks do: 21% fall after 20:00, 1% between 00 and 06.
+    - **Cohort c98 vs c92:** daytime quiet-window 30-min skew −0.23 → +0.09 (donors +0.76), the first time the sim
+      leans the donors' way by day; night-time-high fall per 1% TDD −14.3 → −13.3 (donors −10.2).
+    - **Also:** Hurst 0.205, mean 155, TIR 66.6, CV 37.2; 11 vs 14 of 30, within the noise of LESSONS 63.
+    - Late unlogged eating explains only a sliver of the night-high gap; the per-unit question of LESSONS 81 stays open.
