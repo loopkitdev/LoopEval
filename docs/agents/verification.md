@@ -46,11 +46,11 @@ should. See **[docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)**; the renderer is
   baseline/candidate configs ⇒ Δdose ≈ 0 every step and counter == sanity. A failed
   identity test invalidates everything downstream.
 - **Reference traces: `python scripts/golden.py check`** runs one short case per simulation mode
-  (frontier counterfactual in both manual-bolus variants, integral RC + GBAF, time-based AF, temp
+  (frontier counterfactual in all three manual-bolus policies, integral RC + GBAF, time-based AF, temp
   strategy, custom curve, swapped schedules, patient ISF, fixed grid, both identities, decision-time
-  replay, OpenAPS and Loop-mimic candidates, external plant with and without its person acting) and
+  replay, open loop, OpenAPS and Loop-mimic candidates, external plant with and without its person acting) and
   compares every trace field with the recorded references. A change that should move nothing must
-  come back 17/17 identical; a change that moves numbers on purpose names the cases it moves in its
+  come back all identical; a change that moves numbers on purpose names the cases it moves in its
   commit and re-records them (`record --only …`). Plant cases replay a recorded transcript and stop at
   the first request that differs from it, so the doses sent to the plant are checked too.
 - **External plants: reconcile what the plant received.** After a change to the dose path

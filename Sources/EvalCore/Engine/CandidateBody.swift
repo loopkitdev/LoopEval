@@ -2,7 +2,7 @@
 //
 // simulateClosedLoop keeps the candidate's glucose as one value per substrate sample
 // (`counterMgdl`, timestamps from `counterGlucose`), plus a "no reading" flag per sample
-// (`counterMissing`). Only a body writes them. Three bodies exist:
+// (`counterMissing`). Only a body writes them. Two bodies exist:
 //
 //   ICEReplayBody          counterfactual mode: the field's own glucose change plus the
 //                          modeled effect of candidate-minus-field insulin (ICE replay), with
@@ -10,10 +10,9 @@
 //   ExternalPlantBody      --external-plant: a separate process integrates the candidate's
 //                          doses and returns its CGM. It may also return the plant person's
 //                          actions; applying them is the caller's job, not the body's.
-//   LinearPerturbationBody legacy rule evaluation (no counterfactual): field glucose minus each
-//                          step's dose delta x ISF x the insulin action curve.
 //
-// Decision-time replay has no candidate body: its candidate never feeds back.
+// Without a counterfactual (decision-time replay, open-loop runs) there is no candidate body: the
+// candidate never feeds back and its glucose is the field's.
 
 import Foundation
 import LoopAlgorithm
@@ -105,30 +104,6 @@ struct ICEReplayBody {
             advIdx += 1
         }
         return advIdx
-    }
-}
-
-/// Legacy rule evaluation (no counterfactual): a dose delta at t lowers every later sample by
-/// delta x ISF x the fraction of the insulin's effect delivered by then. Linear in the delta,
-/// so valid for small per-step deltas only.
-struct LinearPerturbationBody {
-    let substrate: [EvalGlucoseSample]
-    let insulinModel: InsulinModel
-
-    func apply(deltaDose: Double, isf: Double, at t: Date, counter: inout [Double]) {
-        let activityDuration = insulinModel.effectDuration
-        for i in 0..<substrate.count {
-            let futureT = substrate[i].startDate
-            if futureT <= t { continue }
-            let τ = futureT.timeIntervalSince(t)
-            let pd: Double
-            if τ > activityDuration {
-                pd = 1.0
-            } else {
-                pd = max(0.0, min(1.0, 1.0 - insulinModel.percentEffectRemaining(at: τ)))
-            }
-            counter[i] -= deltaDose * isf * pd
-        }
     }
 }
 
