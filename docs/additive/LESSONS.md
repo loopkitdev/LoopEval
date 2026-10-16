@@ -1136,3 +1136,9 @@ statistic here, but it is the controller donors ran.
     A within-person regression of 3-h ΔG on insulin delivered, by midnight glucose band, gives positive slopes in
     every band for donors and sim (Loop delivers more when glucose stays high). Observational dose-response is
     confounded by the controller and cannot show whether real insulin is weaker at highs.
+    **Site selection does not explain it (c94; site states now logged in `truth.pump`).** 26% of simulated high nights
+    (≥ 200 at a quiet midnight) are on a lipohypertrophic or failing site, against 20% of all nights. Those nights fall
+    −107 mg/dL in 3 h against −114 on healthy sites, because Loop delivers more and overcomes the weaker site. That
+    leaves per-unit insulin strength at high glucose (−14.3 vs −10.2 mg/dL per 1% TDD), which no evidence found so far
+    sizes: κ = 0.15 fits the clamp literature (evidence/15), and Del Prato's weaker glucose effectiveness moves the
+    levels (LESSONS 80). Open.

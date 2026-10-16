@@ -113,6 +113,7 @@ class Pump:
         self.missed = 0.0
         self.release_pending = 0.0
         self.alarm = False
+        self.log.append((start, "site", dict(lh=self.site_lh, fail_at=self.fail_at, full_at=self.full_at, dislodge_at=self.dislodge_at)))
 
     def change_site(self, m: float):
         self._new_site(m + self.f.change_gap)
