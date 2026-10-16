@@ -828,3 +828,15 @@ statistic here, but it is the controller donors ran.
     1.64 → 1.82 (donors 2.06); overnight delivery 0.59–0.72 of the daily mean (donors 0.55–0.72). Outcomes are
     unchanged. 12 vs 14 of 30 statistics (n = 112, within cohort noise); the 24-h amplitude rises to 0.157 (0.131)
     and 06 h glucose falls to 125 (130).
+
+59. **The seven Visentin patterns are now equally likely.** Visentin 2015's mix (70% low breakfast SI, 65% high
+    dinner SI) plus the 07:00 breakfast switch gave simulated glucose 153–157 at 09 h against donors' 141. With
+    equal classes it is 143–145, in two independent tests (c61, c68), at the same number of matched statistics (13
+    vs 13 of 30). Hinshaw 2013 (T1D, triple tracer, same meals B/L/D) found no population difference, with patterns
+    specific to the individual; Visentin classifies each person against their own maximum, which noise inflates.
+    Two checks that did not help:
+    - Netting expected snack grams out of each main-meal window (c67) left breakfast-window labeled grams at 51.6
+      (39.2). The excess is the morning response, not double counting. The netting stays for consistency.
+    - Letting the body follow the donor's basal profile fully (`prof_w` 1.0 instead of 0.5, c69) left 06 h glucose at
+      124 (130) and raised dawn-hour insulin (0.80 vs 0.75; donors 0.59). Option only.
+    Open: the pre-breakfast trough (123–124 at 06 h vs 130) with more dawn insulin than donors, and the flat evening.
