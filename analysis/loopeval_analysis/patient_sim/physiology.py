@@ -69,12 +69,13 @@ class BodyParams:
     haaf_min: float = 0.3
     # gut
     f: float = 0.9                 # bioavailability
-    kempt: float = 0.045           # mixed meal: equal emptying/absorption rates give a 44-min peak and 90% by ~2 h,
-    kabs: float = 0.045            # the donor pool's meal pulses (ice meals tables, 116k pulses: peak 0.75 h, 90% by 1.83 h)
+    kempt: float = 0.05            # initial (small-meal) emptying rate = Vmax/Km with Km 60 kcal (evidence/09)
+    kabs: float = 0.05             # gut absorption; a 25 g snack peaks at ~45 min as the donor pool's small pulses do
     hypo_empty_gain: float = 1.5   # φ_hypo = 1 + gain·σ((70 − G)/5)
-    ge_kcal_max: float = 0.0       # Vmax, kcal/min, of saturating gastric emptying E = Vmax·S/(Km + S) with Km = Vmax/kempt
+    ge_kcal_max: float = 3.0       # Vmax, kcal/min, of saturating gastric emptying E = Vmax·S/(Km + S) with Km = Vmax/kempt
                                    # (0 = off, plain first-order): emptying is energy-rate limited, so a big meal empties
-                                   # for hours (Hunt 1985, Brener 1983, Calbet 1997; evidence/09) [calibrating]
+                                   # for hours (Hunt 1985, Brener 1983, Calbet 1997; evidence/09). Vmax 3 is the review's
+                                   # central value and the only setting that gives the donors' lognormal glucose (LESSONS 33)
     ge_hyper: float = 0.0          # maximal slowing of emptying in hyperglycaemia: rate × (1 − h·(1 − e^(−(G−100)/50)));
                                    # h 0.45 gives ×0.74 at 8 mmol/L (Schvarcz 1997) and ×0.56 at 15–20 (Fraser 1990) [J]
     # exercise
