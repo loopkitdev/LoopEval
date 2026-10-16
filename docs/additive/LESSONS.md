@@ -857,3 +857,9 @@ statistic here, but it is the controller donors ran.
       stretches run scheduled basal.
     - Outcomes unchanged. 12 vs 13 of 30 statistics.
     Suspends (0.18/day, median 2 min) are not modelled: a synthetic export has no field record to deliver zero from.
+
+61. **Loop's stale-CGM guard is on in plant runs.** Real Loop issues no new dose once its latest glucose is more than
+    15 min old. Donors skip 0.9% of decision cycles this way (median; mean 3.3%, 0.4 runs/day). Plant runs
+    did not pass `--cgm-stale-guard-min`, so LoopEval dosed on stale CGM through every simulated sensor gap. They
+    now pass 15. Cohort c71 vs c70: about neutral (13 vs 12 of 30; Hurst 0.154 vs 0.167 and between-day 0.145 vs 0.124
+    within cohort noise). Kept for fidelity to Loop.
