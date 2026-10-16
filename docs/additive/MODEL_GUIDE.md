@@ -577,24 +577,25 @@ eras into the exported schedules (LESSONS 41).
 - **Quiet windows.** Stretches with no labeled eating or bolus for 4 h are where the sensor dominates
   (LESSONS 24, 28).
 
-**Status, cohorts c32circ / c34** (112 people × 14 days, f11386e): 21 of 50 statistics match.
+**Status, cohort c64** (112 people × 14 days, LoopEval 14b2d58, branch dd733fe): 14 of 30 whole-cohort
+statistics match (KS p > 0.05). Donors' clock statistics are in their local time (LESSONS 51).
 
-Matching (KS p > 0.05, or within a few percent):
-- Outcomes: TIR 74.9 (donors 71.7); time above 180 23.1 (25.6); t<70 1.7 (1.7); t<54 0.17 (0.23);
-  lows per day 1.02 (1.08).
-- Distribution: CV 35.2 (34.6); skew 0.93 (0.89; KS just fails); Box-Cox −0.05 (−0.03).
-- 24-h amplitude: 0.14 (0.13).
-- Insulin: TDD 37.5 (37.0); TDD day-to-day CV 17.2 (17.0); manual U/day 10.8 (12.0); top-1% share.
-- Behavior: carb entries; short-range Hurst; CGM jump anatomy.
-- Sensors: FDA accuracy tables.
-- Meal response: 17.0 mg/dL per 10 g (17.1); peak 110 min (111).
+Matching:
+- Outcomes: mean 148 (donors 151); TIR 73.1 (71.7); time above 180 24.3 (25.6); t<70 1.5 (1.7); t<54
+  0.18 (0.22); lows per day 1.02 (1.08); reaching 54 0.18 (0.20).
+- Distribution: CV 35.0 (34.8); skew 0.88 (0.89); Box-Cox −0.03 (0).
+- Insulin: TDD 36.3 (37.2); top-1% share 27.0 (27.9); night-to-night overnight CV 33.7 (37.2).
+- Behavior: carb entries 2.8 (3.0).
+- Daily shape: 06 h glucose 130.5 (130.3); quiet-morning insulin 1.02 (0.92).
 
 Failing:
-- Long-range Hurst 0.11 (0.24); volatility clustering 0.06 (0.12); rate dispersion 2.5 (3.6).
-- Between-day fraction 0.17 (0.10); day/night insulin ratio 1.21 (1.38).
-- Step kurtosis and skew; user boluses 3.3 (4.6).
-- Post-meal lows 3× the donors'.
-- Twin TIR rank agreement ~0.25.
+- Slow structure: long-range Hurst 0.14 (0.25); ACF zero-crossing 55 (42.5 min); rate dispersion 3.3
+  (3.6); between-day fraction 0.126 (0.102); volatility clustering 0.133 (0.124); 24-h amplitude 0.134
+  (0.131, KS just fails).
+- Delivery shape: day/night insulin 1.64 (2.06); zero-delivery share 31.3 (34.4); largest 5-min doses
+  (p99 1.30 vs 1.67 U); TDD CV 14.6 (16.4); TDD lag-1 −0.04 (0.11).
+- Behavior: user boluses 3.7 (4.6); manual 11.0 (12.0) U/day.
+- Meals: announced meals above ~40 g fall back mid-meal and rise late where donors plateau (LESSONS 53).
 
 ---
 
@@ -605,8 +606,8 @@ Failing:
 - `--enable`: perfect_person (diagnostic: every meal entered exactly and bolused at the meal, no
   snacks, no exercise), menstrual, intraday, drift. `settings_mismatch=False` gives the controller the
   truth.
-- `--set`: meal_k, meal_slow, meal_slow_k, isf_w, csf_mult, ge_kcal, ge_hyper, ins_p2, ins_p2e,
-  circ_swing, sensor_sigma, sensor_df, sensor_hetero, sensor_hq, sensor_a0(sd), sensor_b0(sd),
+- `--set`: meal_k, meal_slow, meal_slow_k, isf_w, csf_mult, ge_kcal, ge_gamma, ge_hyper, ins_p2, ins_p2e,
+  circ_swing, circ_uniform, sensor_sigma, sensor_df, sensor_hetero, sensor_hq, sensor_a0(sd), sensor_b0(sd),
   sensor_common, sensor_trate, sensor_tamp, sensor_ttau, sensor_a1, sensor_a2.
 
 The sensor can be fitted offline, without a closed loop: `sensor_fit.py` (FDA tables) and
@@ -622,15 +623,19 @@ Two diagnostic tests should be run for every new physiology or behavior path (LE
 
 ## 11. Open items
 
-1. **Slow structure.** Long-range persistence, volatility clustering and rate dispersion are about
-   half the donors'. Between-day spread is larger than the donors'. Candidate named factors from the
-   catalog, not yet modelled: stress, sleep loss, prolonged-high insulin resistance.
-2. **Post-meal lows** 3× the donors'; meal-time dosing against slow emptying.
-3. **Bolus count** 3.3 vs 4.6/day: lone and top-up boluses short.
-4. **Per-person drivers of TIR.** Twin rank agreement ~0.25.
-5. **Calibration.** Counter-regulation against donor low anatomy; G6 and Libre 3 sensor tails.
-6. **Wear statistic.** Its definition differs between real and simulated data (real counts timestamps,
-   so it always reads 1.0). Fix in `core_stats`.
+1. **Big meals.** Above ~40 g entered, simulated glucose falls back at 1.5–3 h and rises late, where
+   donors plateau. Meal coverage, the labeled carbohydrate pulse shape and the automatic insulin around
+   meals all match. Power-law emptying, fat resistance and the Visentin class mix are ruled out
+   (LESSONS 52–54). This also flattens the evening (150 vs 160–166) and the day/night insulin ratio.
+2. **Night-to-night need.** Quiet-night overnight insulin varies 30% in donors (Ruan 2016: 31%) and 17%
+   in the sim, and the variation is nightly. Named candidates (alcohol, sleep, evening exercise, stress,
+   nocturnal GH) are under literature review (LESSONS 55).
+3. **Slow structure.** Long-range persistence and rate dispersion are about half the donors'. Day-level
+   OU, a weaker glucose effectiveness and slow sensor bias were tried and failed (LESSONS 49).
+4. **Bolus count** 3.7 vs 4.6/day: corrections and hand-dosed food boluses each ~20% short of their
+   donors' rates (LESSONS 55).
+5. **Per-person drivers of TIR.** Twin rank agreement is low.
+6. **Wear statistic.** Its definition differs between real and simulated data. Fix in `core_stats`.
 
 ---
 
