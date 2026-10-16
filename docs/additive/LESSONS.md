@@ -1349,3 +1349,37 @@ statistic here, but it is the controller donors ran.
     **Bolus timing is ruled out.** In the sim the labeler places onsets a median 3 min before true eating (IQR −24 to
     +12). Against labeled onsets, simulated boluses come later than the donors' (bolus − onset: +5 vs −0.5 min). A
     later bolus would raise the sim's early rise, which is already too low, so timing cannot explain the shape.
+
+90. **The sim lacks sharp rises, not sharp falls, and its meals appear at a low-glycaemic-load pace; tracer-paced
+    emptying brings the rises back but makes glucose too variable.** Daytime 5-min steps, labeler contexts, G7, per
+    1,000 steps (c100 vs donors):
+
+    | | 0–1 h | 1–2 h | 2–3 h | 3–4 h |
+    |---|---|---|---|---|
+    | rises > 15, donors | 63 | 32 | 25 | 24 |
+    | rises > 15, sim | 36 | 22 | 16 | 14 |
+    | falls < −15, donors | 30 | 33 | 27 | 23 |
+    | falls < −15, sim | 24 | 31 | 27 | 22 |
+
+    So the skew gap of LESSONS 88 comes from missing rises; the falls already match.
+    - **Appearance timing against T1D tracer data.** Elleri 2013, 121 g evening meal: high-GL 25/50/75% appeared at
+      56/100/153 min, low-GL 88/175/270. The sim's isolated mixed meals of 100–200 g run 100/176/260 (n 4), the low-GL
+      pace; 40–70 g run 69/122/187. Mallad 2015 (T1D, mixed meal with 75 g glucose) peaks at 87.7 µmol/kg FFM/min at
+      57 min, about 10 mg/kg/min of body weight; the sim peaks at 2.4–4.5.
+    - **Faster emptying with carb sensitivity re-fitted** to the labeler's 1.21 g-eq per entered gram
+      (`--set ge_mult=…,csf_mult=…`):
+
+      | | Labeler | 70–100 g t25/t50/t75 | Rises > 15, 0–1 h | Step skew | Glucose skew | Box-Cox | CV | t<54 | Matched |
+      |---|---|---|---|---|---|---|---|---|---|
+      | Donors | 1.21 | — | 63 | 0.33 | 0.89 | 0.00 | 34.8 | 0.22 | — |
+      | c100, ×1.0 | 1.19 | 66/123/184 | 36 | 0.00 | 0.75 | 0.10 | 35.2 | 0.15 | 26 |
+      | ×1.4, CSF ×0.895 | 1.29 | 66/110/159 | 49 | 0.06 | 0.91 | −0.05 | 38.5 | 0.27 | 24 |
+      | ×1.6, CSF ×0.84 | 1.24 | 58/100/149 | 54 | 0.09 | 0.89 | 0.00 | 39.2 | 0.37 | 21 |
+
+      At ×1.6 the timing matches Elleri's high-GL meal, sharp rises reach 86% of the donors', and glucose skew and
+      Box-Cox match. Glucose CV then overshoots (39 vs 35), and falls in hours 1–2 overshoot too (44 vs 33). Real
+      people take fast meal appearance with less swing than the sim.
+    - **Reading.** The gut evidence and the donors' sharp rises agree on faster appearance. What the sim cannot yet
+      reproduce is the damping of the swing that follows. Candidates: insulin acting sooner at meals than the
+      clamp-fitted curve; real meals split or spread (grazing through a meal); post-meal hyperglycaemic slowing of
+      emptying (evidence/09 m_BG, built but off). Defaults are unchanged (centre 3.0, CSF_BLEND_CAL 1.25).
