@@ -217,4 +217,8 @@ statistic here, but it is the controller donors ran.
     constant is now set by the labeler (1.73). Grids that did not help, kept for the record: a slow
     gastric-emptying tail (runs/ms_*: lowers the rise, leaves the 3-h change at −4; off by default) and
     ISF_W (runs/iw_*: twin TIR rank 0.15 / 0.17 / 0.07 at 0 / 0.5 / 1; stays 0.5). Real per-person TIR is
-    carried by something not yet individualized.
+    carried by something not yet individualized. Result (cohort c22): 16 of 42
+    statistics match the pilot donors (KS p > 0.05), every outcome statistic among them (mean 153 vs 151,
+    TIR 74.7 vs 71.7, t<70 1.50 vs 1.66, t<54 0.30 vs 0.23, lows/day 1.02 vs 1.08, TDD 37.8 vs 37.0);
+    labeled meals rise 58 (72), peak 95 min (111), +11 at 3 h (+36). What still fails is the shape of the
+    signal: heavy tail, volatility switching, short-lag smoothness, long-range persistence.
