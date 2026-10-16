@@ -30,7 +30,11 @@ BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "
                  "bolus_lead_min", "p_bolus_ann", "bolus_ratio", "corrections_per_day", "corr_bg_med", "corr_ratio",
                  "rescues_per_day", "rescue_size_med", "rescue_bg_med", "free_boluses_per_day",
                  "free_bolus_u_med", "true_corrections_per_day", "tir", "t70"]
-CSF_PER_GEQ = 1.30        # ice L54: meal pulse g-eq per entered gram; g-eq = ISF_tdd/(500/TDD) mg/dL
+# ice L54 measures 1.30 g-eq of meal pulse per entered gram (1.21 for the pilot donors through the same
+# labeler, meal_response/ice_check). Run through that labeler, simulated people at 1.30 read 0.91 —
+# glucose effectiveness erodes the pulse before ICE sees it — so the constant is set by the labeler:
+# 1.30 × 1.21/0.91 (LESSONS 27)
+CSF_PER_GEQ = 1.73
 ISF_W = 0.5      # weight of the yardstick against the person's own ISF setting in the truth (open, see sample_person)
 
 
