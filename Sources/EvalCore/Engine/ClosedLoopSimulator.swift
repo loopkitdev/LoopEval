@@ -759,27 +759,14 @@ extension EvaluationEngine {
         let slowRcOn = candidateConfig.slowRcTauSec > 0 && candidateConfig.slowRcGain != 0
         var slowRcLevel = 0.0
 
-        // STEP TIMES. CGM-driven: one step per real CGM sample in the eval window
-        // (irregular cadence). Default: the regular evalStep grid (stepDur ≡
-        // evalStep ⇒ byte-identical to the legacy march). stepDur is the interval
-        // to the NEXT step and is used wherever a step duration appears (scheduled
-        // basal delivered, the candidate temp segment, the manual-bolus window,
-        // sensitive-mode decay). A gap (stepDur ≫ evalStep) is capped for delivery
-        // so a long CGM outage doesn't issue one giant temp.
-        var stepTimes: [Date] = []
-        if !decisionTimes.isEmpty {
-            stepTimes = decisionTimes.sorted().filter { $0 >= evalStart && $0 <= interval.end }
-        } else if decisionsFromCgm {
-            stepTimes = simGlucose.map { $0.startDate }.filter { $0 >= evalStart && $0 <= interval.end }
-        } else {
-            var tt = evalStart
-            while tt <= interval.end { stepTimes.append(tt); tt = tt.addingTimeInterval(candidateConfig.evalStep) }
-        }
-        let nSteps = stepTimes.count
-
-        // Deployed timeBasedDoseApplicationFactor reference: the last COMPLETED loop
-        // (errored/guard-skipped cycles don't advance it).
-        var lastCompletedLoopT: Date? = nil
+        // When decisions happen and which are skipped (DecisionTiming.swift).
+        var timing = DecisionTiming(
+            decisionTimes: decisionTimes, decisionsFromCgm: decisionsFromCgm, substrate: simGlucose,
+            from: evalStart, to: interval.end, evalStep: candidateConfig.evalStep,
+            cgmStaleGuardSec: cgmStaleGuardSec, noDoseGuardTimes: noDoseGuardTimes,
+            bolusInProgressTimes: bolusInProgressTimes, tempStrategyTimes: tempStrategyTimes,
+            outages: outages, outageBasalContinuesReasons: outageBasalContinuesReasons,
+            timeBasedAF: enableTimeBasedAF)
         // The candidate's body under --external-plant (CandidateBody.swift). Doses already in
         // counterfactualDoses here are the seeded history; later ones are forwarded by insertion.
         let plantBody = externalPlant.map {
@@ -795,12 +782,10 @@ extension EvaluationEngine {
         }
         // Plant carbs entered during a catch-up call, counted into the step that made it.
         var catchUpPlantCarbsG = 0.0
-        for stepIdx in 0..<nSteps {
-            let t = stepTimes[stepIdx]
+        for stepIdx in 0..<timing.stepTimes.count {
+            let t = timing.stepTimes[stepIdx]
             // Interval to the next decision (= next CGM in CGM-driven mode).
-            let stepEnd = stepIdx + 1 < nSteps
-                ? stepTimes[stepIdx + 1]
-                : t.addingTimeInterval(candidateConfig.evalStep)
+            let stepEnd = timing.stepEnd(stepIdx)
             let stepDur = max(1.0, stepEnd.timeIntervalSince(t))
             // Bring the external plant up to this decision. A step that ended early never called
             // it, so the samples since then still hold FIELD values, and this decision would read
@@ -812,8 +797,7 @@ extension EvaluationEngine {
                 catchUpPlantCarbsG += try advancePlant(through: t, now: t, state: st)
             }
             // Per-cycle dosing strategy (mixed-strategy donors).
-            if !tempStrategyTimes.isEmpty {
-                let tempMode = tempStrategyTimes.contains(t)
+            if let tempMode = timing.useTempBasalStrategy(at: t) {
                 baselineConfig.useTempBasalStrategy = tempMode
                 candidateConfig.useTempBasalStrategy = tempMode
             }
@@ -831,65 +815,16 @@ extension EvaluationEngine {
                 progress(min(Double(stepIdx) / Double(totalSteps - 1), 1.0))
             }
 
-            // ----- CGM-CYCLE GATING -----
-            // Loop's loop is CGM-triggered: with no fresh CGM there is no
-            // cycle — no forecast, no dose decision. When the staleness guard
-            // is enabled, skip the entire step (no baseline/candidate dose, no
-            // prediction, no recorded point) once we are more than the guard
-            // interval away from ANY real CGM sample. This permits a single
-            // missing sample to be "paved over" (the neighbouring real sample
-            // is within the guard) and the post-gap resumption step to run
-            // (the resumed sample is within the guard), but stops the sim from
-            // continuing to generate forecast points deep inside a CGM outage.
-            //
-            // Scheduled basal during the gap contributes zero NET insulin
-            // (delivered == scheduled ⇒ netBasalUnits 0), so nothing need be
-            // added for IOB continuity. Manual boluses are physical events and
-            // are still passed through so the candidate's dose history (and the
-            // post-gap counter advance) account for them.
-            if cgmStaleGuardSec > 0 {
-                let nextIdx = EvaluationEngine.bestGlucoseIndex(at: t, in: simGlucose)
-                let prevIdx = Self.latestGlucoseIndex(at: t, in: simGlucose)
-                let dNext = abs(simGlucose[nextIdx].startDate.timeIntervalSince(t))
-                let dPrev = abs(t.timeIntervalSince(simGlucose[prevIdx].startDate))
-                if min(dNext, dPrev) > cgmStaleGuardSec {
-                    if counterfactualMode && t >= cfActiveStart {
-                        fieldBoluses.passThroughSkipped(t: t, stepEnd: stepEnd, identity: cfIdentity,
-                                                        into: &counterfactualDoses)
-                    }
-                    continue
-                }
-            }
-
-            // ----- FIELD NO-DOSE GUARD -----
-            // The deployed controller ran this cycle but refused to dose on stale
-            // inputs (pumpDataTooOld / glucoseTooOld): no forecast, no recommendation
-            // stored. Skip the step exactly like a stale-CGM cycle — no dose, no
-            // prediction point — so "recommended nothing" matches on both sides and
-            // a closed-loop counterfactual doesn't dose through the same exogenous
-            // pump-comms failure. A bolus-in-progress cycle is skipped the same way (the
-            // user's bolus is in flight in both arms).
-            if noDoseGuardTimes.contains(t) || bolusInProgressTimes.contains(t) {
-                if bolusInProgressTimes.contains(t) && outages.containing(t)?.reason != "pump_error" {
-                    lastCompletedLoopT = t
-                }
+            // ----- SKIPPED CYCLES: no CGM near t, or the field controller couldn't dose -----
+            // Manual boluses still happened and pass through into the candidate's history.
+            if timing.skip(at: t) != nil {
                 if counterfactualMode && t >= cfActiveStart {
                     fieldBoluses.passThroughSkipped(t: t, stepEnd: stepEnd, identity: cfIdentity,
                                                     into: &counterfactualDoses)
                 }
                 continue
             }
-
-            // Deployed timeBasedDoseApplicationFactor = min(1, sinceLastCompleted/5min):
-            // a loop firing < 5 min after a COMPLETED loop applies proportionally less
-            // of the correction (sub-5-min retries after FAILURES are not damped —
-            // lastLoopCompleted doesn't advance on error). Completed here = the cycle
-            // ran and wasn't inside a pump-error window.
-            let timeBasedAFScale: Double = enableTimeBasedAF
-                ? (lastCompletedLoopT.map { Swift.min(1.0, Swift.max(0.0, t.timeIntervalSince($0)) / 300.0) } ?? 1.0)
-                : 1.0
-            let stepCompletedLoop = outages.containing(t)?.reason != "pump_error"
-            if stepCompletedLoop { lastCompletedLoopT = t }
+            let timeBasedAFScale = timing.timeBasedAFScale(at: t)
 
             // ----- BASELINE step: actual glucose, actual doses, baselineConfig.
             // Apply sensor cap: real CGMs (Dexcom G6/G7, Libre) peg at ~400 mg/dL,
@@ -1332,43 +1267,9 @@ extension EvaluationEngine {
             }
 
             // ----- DELIVERABILITY / DATA-AVAILABILITY CLAMPS -----
-            // Two structurally different conditions can override the sim's
-            // dose decision at step t. Pump outage takes precedence over a
-            // CGM gap (if the pump is physically off, CGM staleness is moot).
-            let outageNow = outages.isEmpty ? nil : outages.containing(t)
-            let basalContinues = outageNow.map { outageBasalContinuesReasons.contains($0.reason) } ?? false
-            // MANUAL TEMP: the user set a temp basal on the pump. The pump runs it whatever Loop
-            // decides; Loop logs recommendations but enacts none (i040 09-10: 0.05 U/h for 4 h
-            // through recommendations of 2.35-3.0 U/h). Not an outage — the pump delivers, just
-            // not what the controller asks — so the candidate delivers the field's recorded basal.
-            let manualTempNow = outageNow?.reason == "manual_temp"
-            let inOutage = outageNow != nil && !basalContinues && !manualTempNow
-            // FIELD DELIVERY: inside any disruption but a pump error (suspend, loop offline,
-            // merged windows, manual temp) the controller enacted nothing, and the pump did
-            // what it recorded: 0 while suspended, its last temp then the schedule while Loop
-            // was offline or open-loop. The candidate delivers that record. Zero delivery here
-            // dropped real insulin: i056's open-loop days (Loop running, nothing enacted,
-            // ~21 U of scheduled basal per 2-3 day window) replayed as no basal at all.
-            let fieldDeliveryNow = manualTempNow || (inOutage && outageNow?.reason != "pump_error")
-
-            // CGM staleness: Loop refuses to issue a NEW dose when the latest
-            // glucose is older than its inputDataRecencyInterval (15min,
-            // LoopAlgorithm.swift). The sim's per-step dose path
-            // (simStepDose → generatePrediction) bypasses that guard, so it
-            // would otherwise keep dosing on stale data. When stale, Loop
-            // makes no adjustment and scheduled basal continues delivering —
-            // distinct from a pump outage where delivery stops entirely.
-            var cgmStale = false
-            if cgmStaleGuardSec > 0 && !inOutage {
-                var idx = Self.latestGlucoseIndex(at: t, in: counterGlucose)
-                while idx > 0 && counterMissing[idx] { idx -= 1 }   // the latest reading the CGM gave
-                let latestT = counterGlucose[idx].startDate
-                if latestT <= t {
-                    cgmStale = t.timeIntervalSince(latestT) > cgmStaleGuardSec
-                }
-            }
-
-            if fieldDeliveryNow && !decisionTimeReplay {
+            // What the pump can do at t overrides the controller's decision (DecisionTiming.Conditions).
+            let cond = timing.conditions(at: t, counterGlucose: counterGlucose, counterMissing: counterMissing)
+            if cond.fieldDelivery && !decisionTimeReplay {
                 // Delivery comes from the field record in the cfActive block below. The
                 // controller's command never reached the pump, so it must not continue later
                 // either (a pump_error right after the window would otherwise resume it).
@@ -1380,7 +1281,7 @@ extension EvaluationEngine {
                 candidateBolus = 0
                 candidateDose = (candidateTempRate - schedRate) * stepDur / 3600.0
                 baselineDose = candidateDose
-            } else if inOutage && !decisionTimeReplay && outageNow?.reason == "pump_error" {
+            } else if cond.pumpError && !decisionTimeReplay {
                 // PUMP ERROR: no new bolus or temp this cycle; the pod keeps running its last
                 // command until it expires, then the schedule (CandidatePump.lastCommandRate).
                 let (running, schedRate) = pump.lastCommandRate(at: t, schedule: candTherapy.basal)
@@ -1388,7 +1289,7 @@ extension EvaluationEngine {
                 candidateBolus = 0
                 candidateDose = (running - schedRate) * stepDur / 3600.0
                 baselineDose = candidateDose
-            } else if cgmStale || basalContinues {
+            } else if cond.cgmStale || cond.basalContinues {
                 // CGM gap (or loop-offline gap): no NEW dose adjustment, scheduled basal continues.
                 // dose ADJUSTMENT (delta over scheduled) = 0, so absolute
                 // delivery = scheduled. candidateTempRate reports the
@@ -1414,7 +1315,7 @@ extension EvaluationEngine {
             let deltaDose: Double
             if cfActive {
                 let d = pump.deliver(from: t, to: stepEnd, rate: candidateTempRate, bolus: candidateBolus,
-                                     fieldRecord: fieldDeliveryNow ? realAutoOnlyDoses : nil,
+                                     fieldRecord: cond.fieldDelivery ? realAutoOnlyDoses : nil,
                                      fieldSchedule: data.therapyTimeline.basal, schedule: candTherapy.basal)
                 delivered = d
                 // Against the field's AUTO-ONLY delivery: manual boluses pass through on both sides.
@@ -2914,7 +2815,7 @@ extension EvaluationEngine {
     }
 
     /// Find the index of the glucose sample closest to `t` (binary-search).
-    fileprivate static func bestGlucoseIndex(at t: Date, in samples: [EvalGlucoseSample]) -> Int {
+    static func bestGlucoseIndex(at t: Date, in samples: [EvalGlucoseSample]) -> Int {
         var lo = 0, hi = samples.count - 1
         while lo < hi {
             let mid = (lo + hi) / 2

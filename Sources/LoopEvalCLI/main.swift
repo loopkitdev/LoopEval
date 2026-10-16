@@ -7,7 +7,15 @@
 import Foundation
 
 Task {
-    await LoopEvalCLI.main()
+    // `simulate --config/--set` expand into ordinary flags before parsing (SimulateConfig.swift).
+    let args: [String]
+    do {
+        args = try SimulateConfig.expand(Array(CommandLine.arguments.dropFirst()))
+    } catch {
+        FileHandle.standardError.write(Data("Error: \(error)\n".utf8))
+        exit(64)
+    }
+    await LoopEvalCLI.main(args)
     exit(0)
 }
 RunLoop.main.run()
