@@ -74,6 +74,7 @@ class BehaviorTraits:
     intake_cv: float = 0.22              # day-to-day CV of food eaten (Tarasuk & Beaton 1992; ~20% for carbohydrate)
     intake_rho: float = 0.29             # next-day intake correlation (Levitsky 2017)
     intake_comp: float = 1.0             # 24-h regulation of the day total across its eating events (1 = full) [J]
+    act_day_var: bool = True             # day-level gamma(3) on the activity rate (ablation switch)
     p_topup: float = 0.0                 # P(a second bolus 20–60 min after a meal bolus, no new entry) — raw donor top-ups
     p_free_bolus: float = 0.0            # P(an un-entered eating event gets a hand-dosed bolus)
     # monitoring and alerts
@@ -383,7 +384,8 @@ class Behavior:
         # a share after eating [J]; duration lnN(18 min, 0.75) in 5–150; intensity = (MET − 1)/(METmax − 1) × duty 0.7
         # with MET lnN(3.0, 0.2) and 10% brisk episodes MET U(4.5, 6) (2024 Compendium; Pemberton 2025 mix)
         eat_times = sorted(base + st for _, st, _ in slots)
-        n_act = r.poisson(t.act_rate * r.gamma(3.0, 1 / 3.0))
+        day_act = r.gamma(3.0, 1 / 3.0)
+        n_act = r.poisson(t.act_rate * (day_act if t.act_day_var else 1.0))
         for _ in range(n_act):
             st = None
             if eat_times and r.random() < t.act_after_meal:
