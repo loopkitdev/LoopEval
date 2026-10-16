@@ -1100,3 +1100,10 @@ statistic here, but it is the controller donors ran.
     Open: what raises simulated glucose slowly overnight and lets insulin bring it down fast. The candidates are the
     dinner-fat resistance and late protein tails, and dawn ramps. Next: decompose true quiet-night dG into gut, EGP and
     insulin terms.
+    **Decomposition (c90, 8,941 quiet-night 30-min windows of true glucose, skew −1.58):** the sharpest 5% of falls
+    (median −30 mg/dL) start high (median 208), with absorbed insulin at 1.68× the night mean and EGP suppressed to 0.63,
+    while Loop already delivers less (0.53×): insulin from earlier corrections is pulling a night-time high down. The
+    sharpest rises (+17) start near 116 with low insulin and EGP at 1.15×. So the lean is how fast the sim corrects
+    nighttime highs. From midnight glucose ≥ 200 the sim falls −82 mg/dL in 3 h against donors' −58 (LESSONS 51 data).
+    In real people a night high often has a cause insulin cannot fully work through: a failing site, prolonged-high
+    resistance, fat, illness. Next: whether those are under-sized at night.
