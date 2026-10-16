@@ -200,7 +200,7 @@ def _formulation(brand: str, rng) -> str:
 
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
-                  csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None) -> Person:
+                  csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -264,7 +264,12 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         bp = bp.scaled(f=1.0, vg=float(1000.0 / (bw * csf_target)))
     else:
         bp = bp.scaled(f=float(max(f_cal, 0.3)))
-    egp_share = float(rng.uniform(0.3, 0.5))
+    # share of insulin's effect through EGP suppression on the linear part: set so meal-time EGP suppression matches T1D
+    # triple-tracer data — nadir 44 ± 17% at ~160 min after a mixed meal with the usual bolus (Romeres 2025). U(0.3,
+    # 0.5) [J] gave a 30% nadir and meals that dipped at 2 h; 0.65 gives 53% (LESSONS 69) [centre from evidence, width J]
+    egp_share_draw = float(rng.uniform(0.5, 0.7))
+    if egp_share is not None: egp_share_draw = float(egp_share)
+    egp_share = egp_share_draw
     # INSULIN BALANCE (TDD is the measured constraint): a true basal share [J prior around the scheduled
     # share 0.43–0.51, eda L9], and the carbs EATEN are what the rest of TDD covers at the true CR
     # (= ISF / CSF of this body). Announced grams then drive only what the person enters.
