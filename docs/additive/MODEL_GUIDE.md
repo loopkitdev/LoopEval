@@ -317,7 +317,7 @@ All modulators multiply SI or EGP and can be switched (`enabled`).
 | B5 Menstrual | luteal SI dip, half-sine over the 14-day luteal phase; cycle N(28, 3) days; 63% respond | amplitude lnN(0.08, 0.5) | evidence/02 §3.1. Donors show no monthly rhythm (run:2026-10-11-ice-slow) | **off** (scenario) |
 | B6 Illness | Poisson episodes (3/yr adults, 5/yr children), 1.5–15 days, ramps; SI drop 10–35%, EGP +0–15%; 20% gastrointestinal (SI up 5–15%, intake ×0.7) | — | Mehta 2010; Tinti 2025; ISPAD 2022 | on |
 | B11 Hyperglycaemia-induced resistance | state H → 0.26·clip((G − 140)/220, 0, 1), τ 12 h **[J]**; SI × (1 − H) | 24 h at 20 mM lowers uptake 26% | Vuorinen-Markkola 1992; Yki-Järvinen 1987 (LESSONS 43) | on |
-| B7–B10 | sleep loss, stress, alcohol, heat | — | evidence/02 | planned |
+| B7–B10 Nightly factors | prior-night sleep loss: next-day SI −5%/h lost, nightly SD 77 min; nocturnal GH: per-night CV 0.32 on a 20% dawn EGP increment, mean-zero; evening alcohol: 63% drink, 3–20% of nights, SI −12% while present, next-morning EGP ×0.85; stress: 1/3 react, 40% of days, SI −10% at 1–5 h | — | Donga 2010; Messman 2022; Edge 1990; Kerr; Turner 2001 [I]; Riazi 2004; Moberg 1994 (evidence/12). Too small to move the cohort statistics (LESSONS 77) | on (heat not modelled) |
 
 **Interactions.**
 - `si_mult` scales disposal and EGP suppression together.
