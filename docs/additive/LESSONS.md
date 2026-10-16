@@ -148,3 +148,14 @@ statistic here, but it is the controller donors ran.
     this. A late dose is now delivered from the current minute, full volume and duration; the validation
     reports delivered/received per person. Rule: before reading any cohort statistic, reconcile the
     insulin that crosses each interface (controller → plant → pump → depot → plasma).
+
+20. **For an AID simulator, the insulin action that matters is the one Loop's forecast is right about.**
+    The clamp-fitted action (lesson 9; 0.2 U/kg doses) delivers ~4% of a bolus's effect in its first hour
+    against Loop's 17%. After every bolused meal Loop then saw glucose climb faster than it forecast,
+    added insulin (net +0.1 U per 10 g in the first 90 min, where donors' Loop net-REDUCES by 0.25), and
+    the stack landed late: simulated meals peaked at 56 min and ended 25 below baseline at 3 h (donors:
+    111 min, +36). The field evidence outranks the clamp for this purpose: replay found Loop's forecasts
+    match real glucose closely in the first hour, with only a small insulin-tail residual (−3.5 mg/dL
+    over 6 h), and meal boluses (2–5 U) absorb faster than 0.2 U/kg clamp doses. Action now tracks
+    Loop's adult curve (13/51/77/91/99% at 1/2/3/4/6 h vs Loop's 17/50/76/91/100) with the PK unchanged.
+    Check found by comparing insulin delivered around bolused meals, donors vs simulation, same windows.
