@@ -151,7 +151,7 @@ class World:
                 self.mod_traits.circ_swing = enable["circ_swing"]
                 self.mod_traits.circ_low = float(np.clip(1.0 - enable["circ_swing"] * (1.0 - self.mod_traits.circ_raw), 0.4, 1.0))
         self.enable = dict(exercise=True, site_failure=True, pump_faults=True, compression=True, behavior_defense=True, graze=True,
-                           perfect_person=False, fat=True)
+                           perfect_person=False, fat=True, lipohypertrophy=True)
         if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable and isinstance(v, bool)})
         self.mods = Modulators(self.mod_traits, days)
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
@@ -195,7 +195,9 @@ class World:
         self.beh.plan_all(days, gi)
         self.outages = plan_outages(person, days, np.random.default_rng(person.seed + 23)) if (enable or {}).get("outages", True) is not False else []
         youth = 3.0 if person.age < 18 else 1.0          # Kanapka 2022: 5.8% of sets at 14–17 vs 1.9% in adults
-        site = SiteTraits(p_fail=SiteTraits.p_fail * youth if self.enable["site_failure"] else 0.0,
+        lh = bool(self.enable.get("lipohypertrophy", True)
+                  and np.random.default_rng(person.seed + 31).random() < (0.42 if person.age < 18 else 0.26))
+        site = SiteTraits(lh_person=lh, p_fail=SiteTraits.p_fail * youth if self.enable["site_failure"] else 0.0,
                           p_full=SiteTraits.p_full * youth, p_dislodge=SiteTraits.p_dislodge * youth,
                           planned_days=self.beh_traits.site_days)
         self.pump = Pump(site, r_pump, family=person.pump, faults=self.enable["pump_faults"])
@@ -270,7 +272,8 @@ class World:
         if u_basal > 0:
             self.body.infuse(u_basal, m)
         if u_bolus > 0:   # per-dose absorption jitter, CV 15% (Heise 2017 repeat clamps; evidence/07)
-            self.body.infuse(u_bolus, m, omega=float(np.exp(self.r_abs.normal(0, 0.15) - 0.15 ** 2 / 2)))
+            cv = self.pump.t.lh_dose_cv if self.pump.site_lh else 0.15
+            self.body.infuse(u_bolus, m, omega=float(np.exp(self.r_abs.normal(0, cv) - cv ** 2 / 2)))
         u = u_basal + u_bolus
         self.body.step(1.0, si_mult=si, egp_mult=egp, ex_intensity=ex["ex_intensity"],
                        ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"],

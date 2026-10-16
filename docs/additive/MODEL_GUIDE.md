@@ -449,6 +449,12 @@ sees the difference, so it shows up as phantom IOB.
 
 ---
 
+### Lipohypertrophy (`device.SiteTraits`)
+- A person trait: 26% of adults and 42% of children (Pickup 2014; Heinemann & Krinelke 2012). Half of their site
+  changes land in LH tissue **[J]**. Such a site has bioavailability 0.78 and per-dose absorption CV 0.5 instead of
+  0.15, both from Famulla 2016, for the whole wear. It closes the cohort's level gaps: mean glucose, TDD, TIR
+  (LESSONS 67). `--disable lipohypertrophy`.
+
 ### Loop not acting (`world.plan_outages`)
 - Offline gaps and merged mixed windows at the donor's rate (0.9/day median), duration lnN(32 min, 0.86) clipped to
   5–360 min; pump-error cycles of 3 min at the donor's rate (2.45/day median); start hours from the pooled donor
