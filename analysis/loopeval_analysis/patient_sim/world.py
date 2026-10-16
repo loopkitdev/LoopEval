@@ -33,6 +33,8 @@ from .sensor import Sensor
 
 EPOCH = pd.Timestamp("2026-01-05T00:00:00Z")      # a Monday; local time = UTC in the simulation
 AUTOBOLUS_AF = 0.4                                 # LoopEval's default auto-bolus application factor (SimulateCommand)
+import os as _os
+NET_AF = _os.environ.get("PLANT_NET_AF") == "1"     # workaround for binaries older than main 8e86860
 DAY = 1440.0
 
 
@@ -222,12 +224,11 @@ class World:
                     carbs.append(dict(t=ts(a[1]), grams=float(a[2]), absorption_s=float(a[3])))
                     self.entries.append((a[1], a[2], a[3]))
                 elif a[0] == "bolus":
-                    # LoopEval decides the automatic dose at a decision WITHOUT the plant bolus delivered there,
-                    # so an auto-bolus user also got AF x the same need on top (~1.4x every meal; LESSONS 21).
-                    # In real Loop the cycle after a user bolus sees it. Until the engine orders it that way,
-                    # the person asks for ratio - AF, so the step totals ratio x the recommendation.
+                    # LoopEval before main 8e86860 decided the automatic dose WITHOUT the plant bolus (~1.4x
+                    # every meal; LESSONS 21). Fixed in the engine; PLANT_NET_AF=1 restores the old workaround
+                    # (ask for ratio - AF) only for runs on an older binary.
                     r = float(a[2])
-                    if self.person.strategy == "autobolus":
+                    if NET_AF and self.person.strategy == "autobolus":
                         r = max(0.0, r - AUTOBOLUS_AF)
                     boluses.append(dict(t=ts(a[1]), ratio=r))
                     self.bolus_requests.append((a[1], a[2]))
