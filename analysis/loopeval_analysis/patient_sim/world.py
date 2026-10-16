@@ -76,7 +76,8 @@ class World:
         self.pump = Pump(site, r_pump, family=person.pump, faults=self.enable["pump_faults"])
         self.sensor = Sensor(person.sensor, r_sen,
                              compression_rate=person.traits.get("compression_rate", float(r_misc.gamma(2.37, 1 / 75.7)))
-                             if self.enable["compression"] else 0.0)
+                             if self.enable["compression"] else 0.0,
+                             overrides={k: v for k, v in (enable or {}).items() if k.startswith("sensor_")})
         self.r_abs = r_abs
         bp = person.body
         if enable and enable.get("risk") is False: bp = bp.scaled(risk_lambda=0.0)
