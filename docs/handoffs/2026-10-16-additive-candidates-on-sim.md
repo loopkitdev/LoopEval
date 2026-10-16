@@ -27,3 +27,15 @@ CGM and on true glucose (`analysis/loopeval_analysis/patient_sim/candidates.py`,
 The simulator matches 11–16 of 30 donor statistics. Its open shape gaps (post-meal plateau, night-time highs falling
 too fast) are in exactly the situations these candidates act on, so treat these as a second opinion, not a verdict.
 Runs: `runs/2026-10-16-additive-arms/` (baseline `runs/2026-10-16-additive-c98/`).
+
+## Update: C30's parts and C31 (same people and dial; LESSONS 84)
+
+| | ΔTIR | Δt<54 | lift over dial (CGM) |
+|---|---|---|---|
+| C20 | −0.13 | −0.06 [−0.12, −0.01] | +0.85 [−0.15, +1.77] |
+| C29 | −0.24 | −0.06 (true −0.10) | +0.81 [−0.96, +2.16] |
+| C23/C25 | +0.32 [−0.22, +0.86] | +0.00 | +0.31 |
+| C31 (−20) | +0.64 [+0.09, +1.23] | −0.03 | +1.11 [−0.04, +2.22] |
+
+Each part has the ledger's sign: C20 and C29 cut lows, the licence adds TIR at zero lows cost (small here), and C31
+raises TIR with lows flat.
