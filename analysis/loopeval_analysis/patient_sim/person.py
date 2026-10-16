@@ -200,7 +200,7 @@ def _formulation(brand: str, rng) -> str:
 
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
-                  csf_mult: float = 1.0) -> Person:
+                  csf_mult: float = 1.0, sg_mult: float = 1.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -229,7 +229,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         bw=bw,
         kd=float(np.exp(rng.normal(-3.509, 0.619 * 0.5))),     # half the ReplayBG log-sd: its prior is for identification, not a population
         ka2=float(np.exp(rng.normal(math.log(0.018), 0.427 * 0.5))),   # centre refit to the clamp profile
-        sg=float(np.exp(rng.normal(math.log(0.003), 0.5))),
+        sg=float(sg_mult * np.exp(rng.normal(math.log(0.003), 0.5))),
         gb=float(np.clip(rng.normal(119, 7.1), 95, 150)),
         egp_b=float(np.clip(rng.normal(2.5, 0.33), 1.5, 3.5)),
         vg=float(np.exp(rng.normal(math.log(1.88), 0.15))),
