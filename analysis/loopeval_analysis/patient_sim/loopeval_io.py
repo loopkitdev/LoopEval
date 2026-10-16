@@ -47,8 +47,13 @@ def _override_windows(world: World) -> list:
     """The person's planned Temporary Overrides in the export's therapy-timeline form. LoopEval applies each one
     only from its start (InputWindowBuilder's causal gate), so a planned future override never leaks backward."""
     out = []
-    for w in sorted(world.beh.overrides, key=lambda w: w["start"]):
-        if w["end"] <= 0: continue
+    ws = sorted(world.beh.overrides, key=lambda w: w["start"])
+    for i, w in enumerate(ws):
+        # a new override REPLACES the running one, as in Loop: clip each window at the next one's start (the engine's
+        # active() otherwise keeps the earlier-starting window until it ends)
+        if i + 1 < len(ws) and ws[i + 1]["start"] < w["end"]:
+            w = dict(w, end=ws[i + 1]["start"])
+        if w["end"] <= 0 or w["end"] <= w["start"]: continue
         d = dict(start=ts(max(0.0, w["start"])), end=ts(w["end"]), indefinite=False)
         if abs(w["factor"] - 1.0) > 1e-6: d["factor"] = float(w["factor"])
         if "lo" in w: d.update(targetLo=float(w["lo"]), targetHi=float(w["hi"]))
