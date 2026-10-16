@@ -101,6 +101,7 @@ class PlantV3:
         # plant boluses, so a calculator bolus lands on top of ~f x the recommendation (handoff
         # 2026-10-15-simulator-plant-bolus-autodose). Until the engine orders them, ask for ratio - f so the step totals ~ratio x rec.
         self.auto_af = float(os.environ.get("PLANT_AUTO_AF", "0"))
+        self.bgband_after = os.environ.get("PLANT_BGBAND_AFTER") == "1"   # apply calib_bg_band after feedback
         self.eoff_scale = float(os.environ.get("PLANT_EOFF_SCALE", "1"))   # diagnostic: scale entry -> pulse onset delay
         # monthly-cycle dial (off by default): the person's insulin need swings on a 28-day sinusoid, amplitude MONTH_CYCLE x their
         # typical insulin action (ISF x TDD/24, mg/dL/h) added to background ICE, random phase per run
@@ -483,8 +484,10 @@ class PlantV3:
                 bgice = mdn_quantile(out["bgice"][0, -1], self.net.K_ICE, float(ndtr(self.bg_z)))
             if self.near_low_bgice and (float(x[0, -1, self.F["heading_low"]]) > 0.5 or float(x[0, -1, self.F["bg"]]) * 100 < 70):
                 bgice += self.near_low_bgice / ICE_SCALE
-            if self.bg_band is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:
-                bgice += float(self.bg_band[1][int(np.searchsorted(self.bg_band[0], float(x[0, -1, self.F["bg"]]) * 100, side="right"))]) / ICE_SCALE
+            bb_off = (float(self.bg_band[1][int(np.searchsorted(self.bg_band[0], float(x[0, -1, self.F["bg"]]) * 100, side="right"))]) / ICE_SCALE
+                      if self.bg_band is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5 else 0.0)
+            if not self.bgband_after:
+                bgice += bb_off
             if self.real_bg is not None:
                 k_ = self.real_bg.index.searchsorted(t.floor("5min"))
                 if k_ < len(self.real_bg) and self.real_bg.index[k_] == t.floor("5min") and np.isfinite(self.real_bg.iloc[k_]):
@@ -502,6 +505,8 @@ class PlantV3:
                 bgice -= self.level_off / ICE_SCALE   # went round the same channel that ratchets and overshot (LESSONS 89)
             if self.level_band is not None:
                 bgice -= self.level_band[min(int(hour // 6), 3)] / ICE_SCALE
+            if self.bgband_after:   # the glucose-band offset on the ICE the body sees, not on the draw fed back (LESSONS 89)
+                bgice += bb_off
             ice = bgice * ICE_SCALE + u + pulse
             mc = self.mc_amp * self.isf * self.act_typ * np.sin(2 * np.pi * (t.value / 8.64e13) / 28.0 + self.mc_phase) if self.mc_amp else 0.0
             ice += mc
