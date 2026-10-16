@@ -940,3 +940,13 @@ statistic here, but it is the controller donors ran.
     Second seed set (c75b vs c71b, seeds 2000+): 14 vs 13 of 30; mean glucose 145.9 → 147.7; long-range Hurst
     0.139 → 0.157 (both seed sets +0.016–0.018 since c70/c71); user boluses 4.58/day vs donors 4.59. The level gain is
     smaller here than in c75 (+1.9 vs +4.3 mg/dL), within the noise of LESSONS 63.
+
+68. **Glucose effectiveness at ×0.7, with the levels now right, still trades rather than wins.** c76 vs c75 (n 112):
+    - Long-range Hurst 0.162 → 0.195 (0.247) and volatility clustering passes (0.135).
+    - Mean 151.5 → 155.6, TIR 71.1 → 68.9, t<54 0.135 → 0.121 and ACF zero-crossing 55 → 60 min (42.5) move away.
+    - 16 vs 16 of 30.
+    The evidence leaves SG unpinned: UVA/Padova fits 0.0013–0.0047/min (the model sits inside, 0.003 plus an
+    insulin-dependent part via κ); ReplayBG's prior median is 0.022. Choosing it by cohort statistics would be tuning a
+    free parameter to a target, so the default stays. That is a decision for Pete, raised on the board.
+    LESSONS 49's quiet-window evidence for "restoring force too strong" mixed daytime windows with unlabeled eating
+    (LESSONS 51). What still stands is the true-glucose step ACF (minimum −0.34) and the 2-h excess of LESSONS 66.
