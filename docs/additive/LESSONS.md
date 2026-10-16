@@ -651,3 +651,31 @@ statistic here, but it is the controller donors ran.
     Cohort c53: day/night 1.396 (1.38), t<54 0.19 (0.23), 25 of 50 statistics match. The 24-h glucose
     amplitude is now a little high (0.165 vs 0.129), with Visentin's meal-time swing and the basal profile
     both acting.
+
+49. **The slow-structure gap is a restoring force that is too strong, even with no eating; no evidenced
+    dial closes it without breaking the levels.**
+    - **True glucose oscillates too cleanly.** Simulated true glucose (no sensor) has a strong negative
+      step-ACF lobe: minimum −0.34, zero crossing 62.5 min. Donors' CGM reads −0.11 and 42.5 min; the
+      simulated CGM −0.14 and 55. Sensor variants barely move it, so excursions are too regularly
+      rise-then-fall.
+    - **Quiet windows show the same saturation.** With no eating or bolus for 4 h:
+
+      | SD of change over | 1 h | 2 h | 3 h |
+      |---|---|---|---|
+      | Donors | 25.2 | 37.4 | 46.4 |
+      | Simulator | 27.2 | 37.4 | 40.3 |
+
+      Real glucose keeps drifting; simulated glucose is pulled back.
+    - **Tested and not adopted:**
+      - Day-level SI variance (CV 8%) as a smooth OU process (τ 6 h, 12 h): repeat clamps size the
+        variance, not its shape in time. Hurst unchanged; between-day fraction 0.138 → 0.124–0.127.
+      - Glucose effectiveness at the low end of its evidence range (UVA/Padova fits 0.0013–0.0047).
+        ×0.5 raised Hurst 0.12 → 0.18 and lengthened the structure function, but the mean went to 159,
+        TIR to 68 and t<54 to 0.09; ×0.7 gave Hurst 0.15 with the same direction of damage.
+
+      Restoring force governs the slow structure, but the dial moves the levels with it.
+    - **What the missing factor must look like.** It acts over hours with no meal: it raises the 3-h
+      drift without raising mean glucose, so either it varies in sign or it is offset by something
+      else. Candidates still unbuilt: stress / sleep (evidence 02 §4.1–4.2, small or day-level),
+      intraday SI wander (no controlled-condition evidence, LESSONS 1), real-world sensor sensitivity
+      drift beyond the clinic tables.
