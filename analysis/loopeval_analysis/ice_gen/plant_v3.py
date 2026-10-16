@@ -177,6 +177,10 @@ class PlantV3:
         # bg_spread < 1: closed-loop inputs (denser generated meal activity, higher glucose) make the head predict 30-65%
         # wider background ICE than it does fed real history (i001/i005/i022, v3m4); BGICE_SPREAD or ck["calib_bg_spread"]
         self.bg_spread = float(os.environ.get("BGICE_SPREAD", ck.get("calib_bg_spread", 1.0)))
+        # per-person spread (calibrate_spread_person.py): the generator pulls each person's hourly background spread toward the
+        # population's (calm low-insulin people too wide, volatile ones too narrow; LESSONS 104)
+        if not self.drawn and alias in ck.get("calib_bg_spread_person", {}) and "BGICE_SPREAD" not in os.environ:
+            self.bg_spread *= float(ck["calib_bg_spread_person"][alias])
         # per-person logit offsets on the behavior heads (meal, m_ann, m_hasbol, corr), stacked on the pooled ones
         # (calibrate_closed_rates_person.py): how often a person eats, announces, boluses and corrects is their own
         for k, b in ({} if self.drawn else ck.get("calib_person", {}).get(alias, {})).items():
