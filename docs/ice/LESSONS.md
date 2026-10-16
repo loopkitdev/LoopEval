@@ -1061,3 +1061,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     1.77 -> 1.79 / 1.64, TIR 69.8 / 70.0 -> 69.6 / 70.4, lows per meal bolus 0.118 / 0.111 -> 0.113 / 0.114. New base
     v32of{0,1}TcB2FGUCG. The same table shows background 10-12 mg/dL/h low above 250 (37 vs 30, 44 vs 33): left out, a
     high-band offset ran glucose away before (LESSONS ~33).
+114. **The generator's remaining TIR and low gap belongs to people who log carbs; drawn people with their host's settings
+    match the population's spread.** (a) Drawn people (DRAW_PERSON) ran a random other person's vector on the host's Loop
+    settings and ISF, so they were mis-set: t<54 10/50/90th 0 / 0.44 / 3.04 (real 0 / 0.12 / 0.55), TIR 35 / 68 / 81 (52 /
+    74 / 89). DRAW_MODE=self (a new person jittered around the host, settings fitting them as a real person's do): t<54 0 /
+    0.36 / 1.38, TIR 58 / 70 / 84, insulin 9.6 / 34 / 53 (9.5 / 33 / 51), and TIR-insulin / mean-insulin co-variation now the
+    field's (-0.36 / +0.30 vs -0.40 / +0.32). Still inverted: carb entries vs t<54 +0.29 (real -0.31), vs TIR -0.01 (+0.36).
+    (b) The same holds for the real people's own runs (base v32of0TcB2FGUCG, thirds by field entries a day): few (1.0) field
+    t<54 0.30 / TIR 66.8 vs generated 0.50 / 71.8; middle (5.5) 0.09 / 78.9 vs 0.56 / 68.5; many (9.9) 0.10 / 74.5 vs 0.33 /
+    66.8. TIR shortfall vs entries Spearman -0.56. Non-announcers are already slightly too easy; the whole gap is in
+    announced meals (entry, bolus, and the meal ICE behind them).
