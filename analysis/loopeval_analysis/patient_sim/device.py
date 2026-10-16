@@ -63,6 +63,7 @@ class SiteTraits:
     p_dislodge: float = 0.004       # pull-outs ending a wear in prolonged hyperglycaemia (within Kanapka's total) [J split]
     lipo_bio: float = 1.0           # bioavailability of a lipohypertrophic site (0.75–0.8 if the person has LH)
     abs_new: float = 0.9            # absorption speed at insertion (relative)
+    bio_decline: float = 0.025      # absorbed fraction lost per day of wear after day 1 (Sampson Perrin 2015) [I]
     abs_slope: float = 0.0625       # per day, to 1.15 at day 4 [derived from Swan 2009]
     planned_days: float = 3.0
 
@@ -122,7 +123,10 @@ class Pump:
         """(absorption speed multiplier, absorbed fraction) of the current site."""
         age = max(0.0, (m - self.site_start) / DAY)
         absm = self.t.abs_new + self.t.abs_slope * min(age, 4.0)
-        bio = self.t.lipo_bio
+        # the extent of absorption falls with set age while its rate rises (Simic 2021 clamp): fasting glucose
+        # 126 → 133 → 147 on days 1 / 3 / 5 with insulin unchanged (Sampson Perrin 2015) ≈ −2.5% per day after day 1
+        # [I size] (LESSONS 43)
+        bio = self.t.lipo_bio * (1.0 - self.t.bio_decline * max(0.0, age - 1.0))
         if self.fail_at is not None and m > self.fail_at:
             bio *= self.t.fail_floor + (1 - self.t.fail_floor) * math.exp(-(m - self.fail_at) / self.t.fail_tau)
         if self.dislodge_at is not None and m > self.dislodge_at:
