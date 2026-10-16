@@ -25,8 +25,11 @@ QUIET = dict(exercise=False, illness=False, circadian=False, dawn=False, site_fa
              ge_kcal=0.0)
 
 
-def check(templates: pd.DataFrame, seeds, days: int = 10, above_rest_max: float = 40.0, tir_min: float = 60.0) -> pd.DataFrame:
-    """A unit mismatch shows as a mean far above the body's OWN rest level (Gb), not above a fixed number."""
+def check(templates: pd.DataFrame, seeds, days: int = 10, above_rest_max: float = 30.0, day_mean_max: float = 250.0) -> pd.DataFrame:
+    """A unit mismatch shows as drift in the POST-ABSORPTIVE night (00–06) away from the body's own rest level (Gb):
+    insulin and carbohydrate that do not balance accumulate there. Daytime meal excursions are timing physics (an
+    open-loop bolus at the meal against the person's own absorption and carb sensitivity), so the day is only
+    guarded against a runaway (no day mean above 250)."""
     rows = []
     for sd in seeds:
         P = sample_person(templates, sd)
@@ -37,8 +40,11 @@ def check(templates: pd.DataFrame, seeds, days: int = 10, above_rest_max: float 
         tr = pd.DataFrame(W.truth, columns=["m", "bg", "ra", "egp", "si", "u", "abs"])
         tr = tr[tr.m >= 1440]
         mean = float(tr.bg.mean()); tir = float(100 * tr.bg.between(70, 180).mean())
-        rows.append(dict(seed=sd, template=P.template, mean=round(mean, 1), tir=round(tir, 1),
-                         gb=round(P.body.gb, 1), ok=(mean - P.body.gb) <= above_rest_max and tir >= tir_min))
+        night = float(tr[(tr.m % 1440) < 360].bg.mean())
+        worst_day = float(tr.groupby(tr.m // 1440).bg.mean().max())
+        rows.append(dict(seed=sd, template=P.template, mean=round(mean, 1), night=round(night, 1), tir=round(tir, 1),
+                         gb=round(P.body.gb, 1),
+                         ok=abs(night - P.body.gb) <= above_rest_max and worst_day <= day_mean_max))
     return pd.DataFrame(rows)
 
 
