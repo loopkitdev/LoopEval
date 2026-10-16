@@ -189,7 +189,9 @@ class World:
         self.int_doses: list = []                          # exported history: (type, start_m, end_m, units, automatic)
         self.received: list = []                           # every dose LoopEval sent, as received: (type, start, end, U)
         self.fat_events: list = []                         # (minute, fat g) — transient fat-induced insulin resistance
-        self.fat_rho = float(r_misc.uniform(0.0, 0.35))    # per person (Wolpert 2013 +42% insulin, wide spread; evidence/01 §6.3)
+        # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
+        # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
+        self.fat_rho = float(r_misc.uniform(0.1, 0.6))
         # hyperglycaemia-induced insulin resistance (B11): 24 h at ~360 mg/dL lowers insulin-stimulated glucose uptake by
         # 26% in T1D (Vuorinen-Markkola 1992; Yki-Järvinen 1987). State H relaxes toward 0.26·clip((G − 140)/220, 0, 1)
         # with τ 12 h [J, both ways]; insulin sensitivity × (1 − H) (LESSONS 43)
