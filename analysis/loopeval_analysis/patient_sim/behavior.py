@@ -475,7 +475,10 @@ class Behavior:
                 self._override(base + float(r.uniform(t.wake, t.bed)), t.ov_tgt_h, 1.0, t.ov_tgt_lo, t.ov_tgt_hi)
         # grazing: never entered, never bolused
         for _ in range(r.poisson(t.graze_per_day)):
-            st = base + float(r.uniform(t.wake + 30, t.bed)) + shift
+            # on the person's own eating clock over waking hours, like snacks (evening-heavy for most donors), not uniform
+            # across the day [LESSONS 82]
+            st = (base + (float(r.choice(24, p=sh_day)) + r.random()) * 60 + shift) if sh is not None \
+                else base + float(r.uniform(t.wake + 30, t.bed)) + shift
             self.planned.append((st, ("graze", max(1.0, float(np.exp(r.normal(math.log(t.graze_g), 0.4)))))))
         # exercise
         if r.random() < t.ex_per_week / 7.0:
