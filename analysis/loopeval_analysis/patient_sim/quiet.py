@@ -170,3 +170,91 @@ def sim_excursions(run: Path) -> pd.DataFrame:
     for a, b in ((0, 6), (6, 12), (12, 18), (18, 24)):
         E[f"qh_{a}"] = float((quiet & (h >= a) & (h < b)).sum() * 5 / 60)
     return E
+
+
+def jump_signature(cgm: pd.Series, events: np.ndarray) -> dict:
+    """What surrounds each big quiet-window step (>= 12 mg/dL in 5 min), aligned to the step's sign:
+    pre = mean of the 3 steps before, post = mean of the 3 after (mg/dL per 5 min).
+      reversal  the next 3 steps undo >= half the jump          (a bias that came on and recovers)
+      catch-up  flat before (|pre| < 2), trend after (post >= 2) (the device held back a real move, then caught up)
+      step      flat before and after                            (a level shift: bias onset or recovery)
+      lead-in   already moving the same way before (pre >= 2)    (a fast physiological move)
+    The two hypotheses for donors' excess jumps (Pete, 2026-10-15) predict different classes."""
+    cgm = cgm.dropna().sort_index(); t = cgm.index.values; v = cgm.to_numpy()
+    ev = np.sort(events); k = np.searchsorted(ev, t, side="right") - 1
+    last = np.where(k >= 0, ev[np.clip(k, 0, None)], np.datetime64("1970-01-01"))
+    quiet = (t - last) > np.timedelta64(4, "h")
+    dt = np.diff(t) / np.timedelta64(1, "m"); d = np.diff(v)
+    ok = quiet[1:] & quiet[:-1] & (dt >= 4) & (dt <= 6)
+    n = int(ok.sum()); cls = dict(reversal=0, catchup=0, step=0, leadin=0, other=0)
+    for i in np.where(ok & (np.abs(d) >= 12))[0]:
+        if i < 3 or i + 3 >= len(d) or not ok[i - 3:i + 4].all(): continue
+        s = np.sign(d[i]); pre = s * d[i - 3:i].mean(); post_sum = s * d[i + 1:i + 4].sum(); post = post_sum / 3
+        if post_sum <= -0.5 * abs(d[i]): cls["reversal"] += 1
+        elif abs(pre) < 2 and post >= 2: cls["catchup"] += 1
+        elif abs(pre) < 2 and abs(post) < 2: cls["step"] += 1
+        elif pre >= 2: cls["leadin"] += 1
+        else: cls["other"] += 1
+    tot = sum(cls.values())
+    return dict(n_steps=n, jumps_per_1000=1000 * tot / max(n, 1), **{f"{c}_per_1000": 1000 * x / max(n, 1) for c, x in cls.items()})
+
+
+def _donor_series(alias, ice_root):
+    g = json.load(open(ice_root / "full" / alias / "glucose.json"))
+    cgm = pd.Series([x["quantity"] for x in g], index=pd.to_datetime([x["startDate"] for x in g]).tz_localize(None)).sort_index()
+    cgm = cgm[~cgm.index.duplicated()]
+    m = pd.read_parquet(ice_root / "meals" / f"{alias}.parquet")
+    doses = json.load(open(ice_root / "full" / alias / "doses.json"))
+    man = [pd.Timestamp(x["startDate"]).tz_localize(None) for x in doses if x["deliveryType"] == "bolus" and not x.get("automatic")]
+    ev = np.array(list(pd.to_datetime(m.onset).dt.tz_localize(None).values) + [np.datetime64(x) for x in man], dtype="datetime64[ns]")
+    return cgm, ev
+
+
+def donor_jumps(alias: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32") -> dict:
+    cgm, ev = _donor_series(alias, ice_root)
+    return dict(alias=alias, **jump_signature(cgm, ev))
+
+
+def sim_jumps(run: Path, resensor: str | None = None, overrides: dict | None = None) -> dict:
+    """`resensor`: re-run this sensor family over the person's TRUE glucose (offline, same events) instead of
+    reading the CGM the cohort ran with — to see a sensor change without a new closed-loop cohort."""
+    tr = pickle.load(open(run / "truth.pkl", "rb")); meta = json.load(open(run / "meta.json"))
+    P = pickle.load(open(run / "person.pkl", "rb"))
+    if resensor:
+        from .sensor import Sensor
+        T = tr["truth"]; s = Sensor(resensor if resensor != "same" else P.sensor, np.random.default_rng(P.seed + 7),
+                                    compression_rate=0.0, overrides=overrides)
+        vals = {}
+        for m, g in zip(T.m.to_numpy(), T.bg.to_numpy()):
+            r = s.step(float(m), float(g))
+            if r: vals[m] = r
+        cgm = pd.Series(vals)
+    else:
+        cgm = tr["cgm"].sort_index()
+    cgm = cgm[cgm.index >= meta.get("burn_end", 1800)]
+    cgm.index = (EPOCH + pd.to_timedelta(cgm.index, unit="m")).tz_localize(None)
+    beh = pd.DataFrame(tr["behavior"], columns=["m", "k", "g", "x"])
+    ev_m = list(beh[beh.k.isin(["meal", "snack", "rescue", "retreat", "proactive", "ex_carbs", "free_bolus", "correction", "entry"])].m)
+    ev = np.array([np.datetime64((EPOCH + pd.Timedelta(minutes=float(x))).tz_localize(None)) for x in ev_m], dtype="datetime64[ns]")
+    return dict(alias=run.name, sensor=P.sensor, **jump_signature(cgm, ev))
+
+
+def reversal_events(cgm: pd.Series, events: np.ndarray) -> pd.DataFrame:
+    """Each quiet-window reversal (a >= 12 mg/dL step whose next 3 steps undo >= half of it): its sign, size,
+    local hour, glucose before it, and how many readings until the level is back within 1/3 of the jump."""
+    cgm = cgm.dropna().sort_index(); t = cgm.index.values; v = cgm.to_numpy()
+    ev = np.sort(events); k = np.searchsorted(ev, t, side="right") - 1
+    last = np.where(k >= 0, ev[np.clip(k, 0, None)], np.datetime64("1970-01-01"))
+    quiet = (t - last) > np.timedelta64(4, "h")
+    dt = np.diff(t) / np.timedelta64(1, "m"); d = np.diff(v)
+    ok = quiet[1:] & quiet[:-1] & (dt >= 4) & (dt <= 6)
+    hours = pd.DatetimeIndex(t).hour.to_numpy()
+    rows = []
+    for i in np.where(ok & (np.abs(d) >= 12))[0]:
+        if i < 3 or i + 7 >= len(d) or not ok[i - 3:i + 8].all(): continue
+        s = np.sign(d[i])
+        if s * d[i + 1:i + 4].sum() > -0.5 * abs(d[i]): continue
+        base = v[i]; back = next((j for j in range(1, 8) if abs(v[i + 1 + j] - base) <= abs(d[i]) / 3), 8)
+        rows.append(dict(sign=int(s), size=float(abs(d[i])), hour=int(hours[i]), g0=float(base), back_readings=back,
+                         peak_excursion=float(s * (v[i + 1:i + 4] - base).max() if s > 0 else -(v[i + 1:i + 4] - base).min())))
+    return pd.DataFrame(rows)

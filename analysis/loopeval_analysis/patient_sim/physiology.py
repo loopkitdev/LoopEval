@@ -72,6 +72,11 @@ class BodyParams:
     kempt: float = 0.045           # mixed meal: equal emptying/absorption rates give a 44-min peak and 90% by ~2 h,
     kabs: float = 0.045            # the donor pool's meal pulses (ice meals tables, 116k pulses: peak 0.75 h, 90% by 1.83 h)
     hypo_empty_gain: float = 1.5   # φ_hypo = 1 + gain·σ((70 − G)/5)
+    ge_kcal_max: float = 0.0       # Vmax, kcal/min, of saturating gastric emptying E = Vmax·S/(Km + S) with Km = Vmax/kempt
+                                   # (0 = off, plain first-order): emptying is energy-rate limited, so a big meal empties
+                                   # for hours (Hunt 1985, Brener 1983, Calbet 1997; evidence/09) [calibrating]
+    ge_hyper: float = 0.0          # maximal slowing of emptying in hyperglycaemia: rate × (1 − h·(1 − e^(−(G−100)/50)));
+                                   # h 0.45 gives ×0.74 at 8 mmol/L (Schvarcz 1997) and ×0.56 at 15–20 (Fraser 1990) [J]
     # exercise
     ex_uptake: float = 0.0         # mg/kg/min insulin-independent uptake at intensity 1
     ex_egp_surge: float = 0.0      # mg/kg/min EGP rise at intensity 1 for anaerobic work
@@ -91,6 +96,8 @@ class Parcel:
     f: float = 0.9
     hypo_sensitive: bool = True    # gastric emptying speeds up in hypoglycaemia
     label: str = "meal"
+    kcal_per_g: float = 4.0        # energy leaving the stomach per gram of this parcel's carbohydrate (fat and protein
+                                   # eaten with it included); used only by the energy-rate ceiling
     q: list = field(default_factory=lambda: [0.0, 0.0, 0.0])   # mg/kg in sto1, sto2, gut
     entered: bool = False
 
@@ -232,6 +239,8 @@ class Body:
 
         g = self.g
         phi = 1.0 + p.hypo_empty_gain * sigmoid((70.0 - g) / 5.0)
+        if p.ge_hyper > 0 and g > 100.0:
+            phi *= 1.0 - p.ge_hyper * (1.0 - math.exp(-(g - 100.0) / 50.0))
 
         # --- insulin depots (linear, exact exponential update would be overkill at dt=1)
         absorbed = 0.0
@@ -250,11 +259,20 @@ class Body:
 
         # --- gut
         ra = 0.0
+        # energy-rate ceiling: the stomach's total outflow (kcal/min) is shared by every parcel in it
+        scale = 1.0
+        if p.ge_kcal_max > 0:
+            kcal = 0.0
+            for pc in self.parcels:
+                if pc.entered:
+                    kcal += pc.kempt * (phi if pc.hypo_sensitive else 1.0) * pc.q[1] * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g
+            cap = p.ge_kcal_max * phi
+            scale = cap / (cap + kcal)     # saturating (Michaelis–Menten in energy): ~first-order for small meals, toward cap for big
         for pc in self.parcels:
             if not pc.entered: continue
             ke_ = pc.kempt * (phi if pc.hypo_sensitive else 1.0)
             s1, s2, gut = pc.q
-            e1 = ke_ * s1; e2 = ke_ * s2; a = pc.kabs * gut
+            e1 = ke_ * s1; e2 = ke_ * s2 * scale; a = pc.kabs * gut
             pc.q = [s1 - dt * e1, s2 + dt * (e1 - e2), gut + dt * (e2 - a)]
             ra += a
         if len(self.parcels) > 8:

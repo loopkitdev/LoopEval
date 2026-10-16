@@ -52,6 +52,14 @@ class World:
             import copy
             person = copy.deepcopy(person)        # calibration override: meal absorption speed multiplier
             person.body = person.body.scaled(kempt=person.body.kempt * enable["meal_k"], kabs=person.body.kabs * enable["meal_k"])
+        if enable and isinstance(enable.get("ge_kcal"), float):
+            import copy
+            person = copy.deepcopy(person)        # gastric-emptying energy ceiling, kcal/min (the body and behavior both read it)
+            person.body = person.body.scaled(ge_kcal_max=enable["ge_kcal"])
+        if enable and isinstance(enable.get("ge_hyper"), float):
+            import copy
+            person = copy.deepcopy(person)
+            person.body = person.body.scaled(ge_hyper=enable["ge_hyper"])
         self.person = person
         self.days = days
         seed = person.seed if seed is None else seed

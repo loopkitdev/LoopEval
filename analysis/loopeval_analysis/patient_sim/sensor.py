@@ -54,22 +54,43 @@ class Family:
     sigma: tuple = (3.19, 1.0)    # mg/dL
     smooth: float = 0.0           # EMA weight on the PREVIOUS output (0 = none) [J; fit to eda L33 lag-1]
     hetero_a: float = 1.0         # noise scale = a + (1 − a)·IG/130 (1 = constant absolute noise)
+    hetero_q: float = 0.0         # if > 0, quadrature form instead: scale = √(q² + (1 − q²)·(IG/130)²), an additive floor
+                                  # ⊕ a proportional part (evidence/08 §A: FDA total-error elasticity ~0.7)
     df: float = 0.0               # Student-t degrees of freedom of the noise innovations (0 = Gaussian). CGM error
                                   # is heavy-tailed (Breton & Kovatchev 2008: Johnson S_U); variance preserved
     early_fail: float = 0.05      # P(session ends early) [J; Eichenlaub 2025 small n: 0–18%]
+    trans_rate: tuple = (0.0, 0.9)  # transient sensor biases: events/day per session (median, log-sd between sessions).
+                                  # A bias of either sign appears within one reading and recovers first-order — the
+                                  # quiet-window REVERSALS donors show (±~15 mg/dL undone in 10–15 min, any glucose,
+                                  # day and night; quiet.reversal_events, LESSONS 32). Physiology cannot move that fast.
+    trans_amp: tuple = (10.0, 0.4)  # mg/dL amplitude (median, log-sd)
+    trans_tau: float = 10.0       # min, recovery time constant
+    trans_down: float = 0.55      # share of events that read low first
+    common_sigma: float = 0.0     # innovation sd of the error COMMON to co-located sensors (interstitial physiology):
+                                  # AR(3) (1.584, −0.8842, 0.1798), var(w) 3.98 → σ 2.0 on Enlite (Biagi 2017).
+                                  # Continues across sessions; YSI comparison sees it, two-sensor precision does not
 
 
 FAMILIES = {
-    # heavy-tailed innovations (Breton & Kovatchev 2008, Johnson S_U); df 4 matches pilot G7 whole-record
-    # step kurtosis (2.39 vs 2.48; grid runs/df_*, LESSONS 28) — G6 inherits it pending its own fit
-    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, hetero_a=0.6),
-    # G7 is rougher than G6 in the same people (eda L33: switchers' step SD +0.87, white noise unchanged), so its
-    # correlated noise is larger: σ 4.0 matches pilot G7 donors' quiet-window step SD (5.5), whole-record step
-    # SD (7.0) and implied white noise (1.39); the Vettoretti AR(2) shape is kept — a less oscillatory shape
-    # destroyed the short-lag persistence donors show (grid runs/2026-10-15-additive-sg_*, LESSONS 24)
+    # G6 with the G7 structure (sensor_fit.py vs DEN170088 CGM-binned bias/MARD and PARD 9.0%): loss 7.4 against 6.7 for
+    # the Vettoretti 2019 values, and it carries the transients G6 donors show (reversals 5.7 per 1,000 quiet steps)
+    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(2.5, 0.8), hetero_q=0.5,
+                        a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(6.0, 0.9), trans_amp=(12.0, 0.4)),
+    # G7 fitted to sensor-only targets, never to donor roughness (LESSONS 31; sensor_fit.py, evidence/08): FDA K213919
+    # adult accuracy by range (bias 4.0/1.1/1.1/−1.9/−6.6, MARD 14/10.7/8.6/7.4/6.4 from <54 to >250) and two-sensor
+    # precision PARD 8.9%. Fit: bias 3.8/2.7/1.2/−1.5/−6.8, MARD 13.7/10.9/7.9/6.9/6.8, PARD 8.9, MAD elasticity
+    # 0.66 (FDA 0.69). Sensor-specific innovation σ 2.5 with a floor ⊕ proportional scale (q 0.5); calibration gain
+    # N(0.98, 0.04) and offset N(3, 3) mg/dL; the error common to co-located sensors (interstitial; Biagi 2017 AR(3),
+    # σ 2.0) carries the rest of the accuracy error. The G6 Vettoretti values (σ 3.19, a0 0.95 ± 0.063, b0 6.35 ± 6)
+    # gave G7 MARD 17% at 54–69 and PARD 14%.
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
-                        brand_gain=1.0, sigma=(4.5, 1.0), df=4.0, hetero_a=0.6),
-    "Libre 3":   Family("Libre 3", warmup=60, session_days=14, tau_med=1.8, brand_gain=1.0, smooth=0.35),
+                        brand_gain=1.0, sigma=(2.5, 0.8), df=4.0, hetero_q=0.5, a0=(0.98, 0.04), b0=(3.0, 3.0),
+                        common_sigma=2.0, trans_rate=(8.0, 0.9), trans_amp=(12.0, 0.4)),
+    # Libre 3 fitted to K212132 (bias 7.4/1.4/−4.5/−7.3/−11.5, MARD 15.5/10.3/9.7/7.5/6.9, PARD 6.8): MARD 11/10/8/7.6/7.5,
+    # PARD 6.8; it reads too little high at true < 54 (+0.4 vs +7.4) [open]
+    "Libre 3":   Family("Libre 3", warmup=60, session_days=14, tau_med=1.8, brand_gain=1.0, smooth=0.35, df=4.0,
+                        sigma=(1.5, 0.5), hetero_q=0.5, a0=(0.965, 0.03), b0=(0.0, 2.0), common_sigma=3.0,
+                        trans_rate=(4.0, 0.9), trans_amp=(12.0, 0.4)),
     "Libre 2":   Family("Libre 2", warmup=60, session_days=14, tau_med=2.4),
     "Medtronic": Family("Medtronic", warmup=120, session_days=7, tau_med=8.4, a0=(1.0, 0.1),
                         ar=(1.367, -0.4816), sigma=(1.59, 0.5), brand_gain=0.94),
@@ -98,6 +119,7 @@ class Session:
     b0: float
     d1: float
     sigma: float
+    trans_rate: float = 0.0       # events/day for this session
 
 
 class Sensor:
@@ -105,7 +127,8 @@ class Sensor:
     (float mg/dL, or None when the sensor withholds), and nothing (False) between them."""
 
     def __init__(self, family: str, rng: np.random.Generator, compression_rate: float = 0.03,
-                 start_minute: float = 0.0, phase: float = 0.0, overrides: dict | None = None):
+                 start_minute: float = 0.0, phase: float = 0.0, overrides: dict | None = None,
+                 common_rng: np.random.Generator | None = None):
         self.f = _family(family)
         if overrides:       # calibration grid: sensor_sigma (mean noise sd), sensor_a1, sensor_a2
             from dataclasses import replace as _r
@@ -113,6 +136,19 @@ class Sensor:
             if "sensor_sigma" in overrides: kw["sigma"] = (overrides["sensor_sigma"], self.f.sigma[1])
             if "sensor_df" in overrides: kw["df"] = overrides["sensor_df"]
             if "sensor_hetero" in overrides: kw["hetero_a"] = overrides["sensor_hetero"]
+            if "sensor_hq" in overrides: kw["hetero_q"] = overrides["sensor_hq"]
+            if "sensor_a0" in overrides or "sensor_a0sd" in overrides:
+                kw["a0"] = (overrides.get("sensor_a0", self.f.a0[0]), overrides.get("sensor_a0sd", self.f.a0[1]))
+            if "sensor_b0" in overrides or "sensor_b0sd" in overrides:
+                kw["b0"] = (overrides.get("sensor_b0", self.f.b0[0]), overrides.get("sensor_b0sd", self.f.b0[1]))
+            if "sensor_d1" in overrides: kw["day1"] = (overrides["sensor_d1"], self.f.day1[1])
+            if "sensor_common" in overrides: kw["common_sigma"] = overrides["sensor_common"]
+            if "sensor_trate" in overrides or "sensor_tratesd" in overrides:
+                kw["trans_rate"] = (overrides.get("sensor_trate", self.f.trans_rate[0]), overrides.get("sensor_tratesd", self.f.trans_rate[1]))
+            if "sensor_tamp" in overrides or "sensor_tampsd" in overrides:
+                kw["trans_amp"] = (overrides.get("sensor_tamp", self.f.trans_amp[0]), overrides.get("sensor_tampsd", self.f.trans_amp[1]))
+            if "sensor_ttau" in overrides: kw["trans_tau"] = overrides["sensor_ttau"]
+            if "sensor_drift" in overrides: kw["drift_sd"] = overrides["sensor_drift"]
             if "sensor_a1" in overrides or "sensor_a2" in overrides:
                 kw["ar"] = (overrides.get("sensor_a1", self.f.ar[0]), overrides.get("sensor_a2", self.f.ar[1]))
             if kw: self.f = _r(self.f, **kw)
@@ -120,6 +156,9 @@ class Sensor:
         self.compression_rate = compression_rate          # events per asleep-day
         self.ig: Optional[float] = None
         self.v1 = self.v2 = 0.0
+        self.c_rng = common_rng if common_rng is not None else np.random.default_rng(int(rng.integers(1 << 31)))
+        self.c = [0.0, 0.0, 0.0]
+        self.trans = 0.0                                    # current transient bias, mg/dL
         self.out_prev: Optional[float] = None
         self.gap_until = -1.0
         self.comp: Optional[dict] = None
@@ -150,7 +189,8 @@ class Sensor:
         s = Session(start=start, end=start + length,
                     tau=float(np.exp(math.log(f.tau_med) + r.normal(0, f.tau_logsd))),
                     a0=r.normal(*f.a0), slope=slope, curve=curve, b0=r.normal(*f.b0),
-                    d1=r.normal(*f.day1), sigma=max(0.5, r.normal(*f.sigma)))
+                    d1=r.normal(*f.day1), sigma=max(0.5, r.normal(*f.sigma)),
+                    trans_rate=float(f.trans_rate[0] * np.exp(r.normal(0, f.trans_rate[1]))) if f.trans_rate[0] > 0 else 0.0)
         if warm:
             self.gap_until = max(self.gap_until, start + f.warmup)
         return s
@@ -185,6 +225,12 @@ class Sensor:
         if self.ig is None: self.ig = bg
         self.ig += (bg - self.ig) / max(self.session.tau, 1.0)    # dt = 1 min
         self._maybe_compress(minute, asleep)
+        if self.trans != 0.0:
+            self.trans *= math.exp(-1.0 / f.trans_tau)
+            if abs(self.trans) < 0.05: self.trans = 0.0
+        if self.session.trans_rate > 0 and self.rng.random() < self.session.trans_rate / 1440.0:
+            a = float(f.trans_amp[0] * np.exp(self.rng.normal(0, f.trans_amp[1])))
+            self.trans += -a if self.rng.random() < f.trans_down else a
         if minute >= self.session.end:
             self.session = self._new_session(minute)
         if minute < self.next_report:
@@ -197,6 +243,12 @@ class Sensor:
         else:
             w = self.rng.normal(0.0, s.sigma)
         v = f.ar[0] * self.v1 + f.ar[1] * self.v2 + w
+        if f.common_sigma > 0:
+            c = 1.584 * self.c[0] - 0.8842 * self.c[1] + 0.1798 * self.c[2] + self.c_rng.normal(0.0, f.common_sigma)
+            self.c = [c, self.c[0], self.c[1]]
+            v_all = v + c
+        else:
+            v_all = v
         self.v2, self.v1 = self.v1, v
         # random gaps (per-reading start probability by length bin)
         if minute >= self.gap_until:
@@ -208,8 +260,12 @@ class Sensor:
                 self.gap_until = minute + self.rng.uniform(lo, hi) - f.cadence
         # noise grows with glucose: G7 absolute error 8.5 mg/dL at 40–60, ~11.6 near 130 (MARD 8.9%), ~17 near
         # 240 (MARD 7.2%) (Garg 2022 tables, evidence/03 §2.3) → scale 0.6 + 0.4·IG/130 (LESSONS 29)
-        hs = (f.hetero_a + (1 - f.hetero_a) * max(self.ig, 20.0) / 130.0) if f.hetero_a < 1 else 1.0
-        raw = self.gain(minute) * self.ig + s.b0 + v * hs - self.comp_level
+        if f.hetero_q > 0:
+            x = max(self.ig, 20.0) / 130.0
+            hs = math.sqrt(f.hetero_q ** 2 + (1 - f.hetero_q ** 2) * x * x)
+        else:
+            hs = (f.hetero_a + (1 - f.hetero_a) * max(self.ig, 20.0) / 130.0) if f.hetero_a < 1 else 1.0
+        raw = self.gain(minute) * self.ig + s.b0 + v_all * hs + self.trans - self.comp_level
         c = self.comp
         withheld = minute < self.gap_until or (c is not None and c["kind"] == "gap" and self.comp_level > 0.5 * c["depth"])
         if c is not None and c["kind"] == "floor" and self.comp_level > 0.5 * c["depth"]:

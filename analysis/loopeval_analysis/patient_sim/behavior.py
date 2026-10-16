@@ -344,6 +344,9 @@ class Behavior:
                 bp = self.p.body
                 # fat slows gastric emptying (Bell 2020, Paterson 2017): kempt × 1/(1 + fat/60)
                 phi_fat = 1.0 / (1.0 + meal.fat / 60.0)
+                kcal_g = 4.0 + (9.0 * meal.fat + 4.0 * meal.protein) / max(meal.grams, 1.0)
+                if bp.ge_kcal_max > 0:
+                    phi_fat = 1.0      # the energy ceiling carries fat's slowing (its kcal), so no separate factor
                 # gastric emptying slows as the stomach empties (Dalla Man 2007: kmax 0.056 → kmin 0.008 /min);
                 # the linear chain keeps the fast phase, a slow fraction carries the tail (LESSONS 27) [J size]
                 sf = t.meal_slow_frac
@@ -351,12 +354,12 @@ class Behavior:
                     acts.append(("eat", Parcel(m, meal.grams * sf, kempt=t.meal_slow_k * meal.speed, kabs=bp.kabs,
                                                f=bp.f, label=meal.kind + "_tail")))
                 acts.append(("eat", Parcel(m, meal.grams * (1 - sf), kempt=bp.kempt * meal.speed * phi_fat, kabs=bp.kabs * meal.speed,
-                                           f=bp.f, label=meal.kind)))
+                                           f=bp.f, label=meal.kind, kcal_per_g=kcal_g)))
                 # protein → late glucose appearance: 0.1 g glucose per g protein, delayed ~90 min, peak 3–5 h
                 # (Smart 2013; Paterson 2017; evidence/01 §6.3); it is glucose, so fast-glucose bioavailability
                 if meal.protein > 0:
                     acts.append(("eat", Parcel(m, 0.1 * meal.protein, kempt=1 / 60.0, kabs=1 / 60.0, delay=90.0,
-                                               f=self._f_glucose(), hypo_sensitive=False, label="protein")))
+                                               f=self._f_glucose(), hypo_sensitive=False, label="protein", kcal_per_g=0.0)))
                 if meal.fat > 0:
                     acts.append(("fat", m, meal.fat))
                 self.log.append((m, meal.kind, meal.grams, meal.entered))
