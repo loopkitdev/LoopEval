@@ -97,8 +97,8 @@ had 36.
 | A, faithful | 0.98 | 0.16 | 0.21 | 0.87 |
 | B, faithful | 0.77 | 0.07 | 0.04 | 0.49 |
 
-**Not run: 2(b), retrospective-correction mode switches.** Dating them needs forecast-match of standard vs IRC against
-`bgForecast`, window by window for every donor. RC mode is recovered for only 24 donors, over one window each.
+**2(b), retrospective-correction mode switches:** see `2026-10-15-frontier-rc-switches.md`. Only 5 switches exist, too few to
+test. That handoff also gives every pilot donor's RC mode: 38 run integral RC throughout.
 
 ## Reading it
 
@@ -125,5 +125,5 @@ the plant's counter-regulation floor is the other candidate.
 - Settings edits are mostly responses to a change in need. The mean-ICE shift is a crude proxy for need.
 - The swapped schedules keep their half-hour detail. A whole 14-day shift keeps clock time and weekday, and no DST
   change falls inside these windows (June to early October).
-- RC mode is standard for the 183 donors outside ice's recovered config. Both arms of a window share it, so it largely
+- RC mode is standard for the 183 donors outside ice's recovered config; at least 38 of them actually run integral RC (`2026-10-15-frontier-rc-switches.md`). Both arms of a window share it, so it largely
   cancels from the predicted change.
