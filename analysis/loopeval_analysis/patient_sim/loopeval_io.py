@@ -189,7 +189,12 @@ def run(person, days: int, out: Path, bin_path: str = DEFAULT_BIN, enable: dict 
     cmd = [bin_path, "simulate", "--data-dir", str(out / "data"),
            "--start", ts(0), "--end", ts(days * DAY),
            "--candidate-counterfactual", "--external-plant", plant, "--plant-behavior",
-           "--cf-gap-reanchor-min", "0", "--trace-out", str(out / "trace.json")] + flags \
+           "--cf-gap-reanchor-min", "0",
+           # Loop issues no new dose once its latest glucose is > 15 min old (inputDataRecencyInterval); donors skip
+           # 0.9% of decision cycles this way (median; mean 3.3%) — without the guard LoopEval doses on stale CGM
+           # through every simulated sensor gap (LESSONS 61)
+           "--cgm-stale-guard-min", "15",
+           "--trace-out", str(out / "trace.json")] + flags \
         + CONTROLLER_FLAGS[controller] + (extra_flags or [])
     t = time.time()
     r = subprocess.run(cmd, capture_output=True, text=True)
