@@ -30,8 +30,11 @@ import numpy as np
 # measured gap rates per day by gap length bin (minutes), eda cohort (gaps.py, 2026-10-15)
 GAP_EDGES = [7, 12, 17, 22, 32, 47, 62, 92, 122, 182, 362, 722, 1440]
 MEASURED_GAPS = {
-    "Dexcom G6": [1.037, 0.121, 0.085, 0.158, 0.108, 0.039, 0.040, 0.013, 0.077, 0.027, 0.013, 0.009],
-    "Dexcom G7": [2.861, 0.797, 0.259, 0.222, 0.118, 0.052, 0.055, 0.021, 0.019, 0.021, 0.014, 0.010],
+    # G6 / G7 from the PILOT donors the simulated people are compared with (162 donors; their long gaps run at about
+    # half the eda cohort's; wear 0.977 vs the eda-rate simulation's 0.960; LESSONS 45). Libre 3: eda cohort (6 pilot
+    # donors only)
+    "Dexcom G6": [1.495, 0.197, 0.071, 0.113, 0.062, 0.030, 0.024, 0.007, 0.075, 0.018, 0.008, 0.003],
+    "Dexcom G7": [2.737, 0.686, 0.248, 0.211, 0.115, 0.039, 0.033, 0.012, 0.011, 0.011, 0.008, 0.003],
     "Libre 3":   [0.695, 0.398, 0.084, 0.087, 0.074, 0.031, 0.064, 0.018, 0.011, 0.012, 0.009, 0.013],
 }
 
