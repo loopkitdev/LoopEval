@@ -1401,3 +1401,18 @@ statistic here, but it is the controller donors ran.
     repeats LESSONS 33 at the faster emptying. Defaults are unchanged. The gut alone cannot give the donors' shape
     (fast rises, a high but brief plateau, CV 35); the damping must come from elsewhere (insulin timing and action at
     meals, or how meals are eaten).
+
+92. **Insulin around meals is close to the donors'; it does not explain the swing.** Isolated, announced, bolused meals
+    (labeler onsets). Insulin delivered above the person's median 5-min delivery, per 10 g entered, mean (c100, 600
+    meals, vs 7,470 donor meals):
+
+    | Window (min from onset) | Bolus | −30–0 | 0–30 | 30–60 | 60–120 | 120–240 | Total |
+    |---|---|---|---|---|---|---|---|
+    | Donors | 1.30 | 0.37 | 0.36 | 0.31 | 0.32 | 0.52 | 1.88 |
+    | Sim | 1.25 | 0.28 | 0.38 | 0.31 | 0.29 | 0.44 | 1.70 |
+
+    Donors take about 10% more insulin per entered gram, mostly before the meal and as Loop's response after 2 h. The
+    timing profile is otherwise the same. A 10% difference cannot turn the tracer-paced meals of LESSONS 90 (CV 39)
+    into the donors' CV 35 at full meal height. The open question stays the shape of a real meal excursion: fast, high
+    and brief (ACF zero-crossing 42 vs 55–60 min). Script: `meal_insulin.py` (gamepc `~/additive/`, scratch copy in the
+    run dir).
