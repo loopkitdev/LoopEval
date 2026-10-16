@@ -123,6 +123,8 @@ class World:
             t.p_bolus_with_entry = 1.0; t.bolus_timing = "immediate"; t.calc_up = t.calc_down = 0.0
             t.ex_per_week = 0.0; t.p_free_bolus = 0.0
         self.beh = Behavior(self.beh_traits, person, r_beh)
+        if enable and enable.get("overrides") is False:       # ablation: no Temporary Overrides
+            self.beh_traits.ov_less_day = 0.0; self.beh_traits.ov_tgt_day = 0.0
         from .exercise import ExerciseParams
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg))
         # energy balance: a person eats for their activity. The donor's TDD (the measured constraint, G4) was spent
@@ -132,6 +134,10 @@ class World:
             person.traits["act_carbs"] = activity_carbs(person, self.beh_traits)
         if self.enable["exercise"]:
             self.beh_traits.carbs_day += person.traits.get("act_carbs", 0.0)
+        # every day planned now: the export writes the planned Temporary Overrides into the therapy timeline, and
+        # the plant's re-simulation reproduces the identical plan (LESSONS 40)
+        gi = (lambda d: 0.7 if self.mods.illness(d * DAY + 720)[2] else 1.0) if self.mod_traits.enabled.get("illness") else None
+        self.beh.plan_all(days, gi)
         site = SiteTraits(p_fail=SiteTraits.p_fail if self.enable["site_failure"] else 0.0,
                           planned_days=self.beh_traits.site_days)
         self.pump = Pump(site, r_pump, family=person.pump, faults=self.enable["pump_faults"])
