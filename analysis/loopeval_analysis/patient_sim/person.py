@@ -106,6 +106,48 @@ def _probe_isf_effective(bp: BodyParams, formulation: str, g_op: float = 180.0, 
     return best / dose
 
 
+def _probe_csf_effective(bp: BodyParams, formulation: str, g_op: float = 180.0, grams: float = 10.0,
+                         minutes: int = 600) -> float:
+    """EFFECTIVE carb sensitivity on the FULL body at the same operating point as the effective ISF probe: both
+    arms raised to ~g_op with the same fast glucose, one eats `grams` more (a meal parcel) at minute 45; peak
+    difference per gram. Glucose effectiveness, κ and renal loss erode a meal's rise as they erode a bolus's drop,
+    so the true CR must be ISF_eff / CSF_eff, not ISF_eff / CSF_linear (LESSONS 40)."""
+    a, c = Body(bp, formulation), Body(bp, formulation)
+    br = a.basal_rate_u_per_h()
+    a.prime(br); c.prime(br)
+    g0 = max(5.0, (g_op - bp.gb) / max(csf_of(bp), 0.5) * 1.3)
+    for b_ in (a, c): b_.eat(Parcel(0, g0, 0.08, 0.08, f=bp.f))
+    best = 0.0
+    for m in range(minutes):
+        a.infuse(br / 60.0, m); c.infuse(br / 60.0, m)
+        if m == 45: a.eat(Parcel(m, grams, bp.kempt, bp.kabs, f=bp.f))
+        a.step(1.0); c.step(1.0)
+        best = max(best, a.g - c.g)
+    return best / grams
+
+
+def _probe_cr_true(bp: BodyParams, formulation: str, grams: float = 30.0, hours: float = 6.0) -> float:
+    """TRUE carb ratio: the grams one unit covers with no net glucose change once both have acted. A meal of
+    `grams` plus a bolus at the meal, bisected on the bolus until glucose `hours` later equals an untreated
+    control's (both at the true basal). This balances the whole excursion, which the ratio of the two peak
+    probes does not: glucose effectiveness erodes the slower insulin effect more (LESSONS 40)."""
+    def end_diff(units: float) -> float:
+        a, c = Body(bp, formulation), Body(bp, formulation)
+        br = a.basal_rate_u_per_h(); a.prime(br); c.prime(br)
+        a.eat(Parcel(0, grams, bp.kempt, bp.kabs, f=bp.f))
+        if units > 0: a.infuse(units, 0, omega=1.0)
+        for m in range(int(hours * 60)):
+            a.infuse(br / 60.0, m); c.infuse(br / 60.0, m)
+            a.step(1.0); c.step(1.0)
+        return a.g - c.g
+    lo, hi = 0.0, grams / 2.0
+    for _ in range(22):
+        u = 0.5 * (lo + hi)
+        if end_diff(u) > 0: lo = u
+        else: hi = u
+    return grams / max(0.5 * (lo + hi), 1e-6)
+
+
 def csf_of(bp: BodyParams) -> float:
     """Carb sensitivity on the linear part: every absorbed gram lands in VG (mg/dL per g)."""
     return bp.f * 1000.0 / (bp.bw * bp.vg)
@@ -228,7 +270,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     share = float(np.clip(rng.normal(0.5, 0.07), 0.35, 0.7))
     basal_true = tdd * share / 24.0
     bp = calibrate(bp, formulation, isf_true, basal_true, egp_share)
-    csf = csf_of(bp)
+    csf = _probe_csf_effective(bp, formulation)      # effective, as ISF (LESSONS 40)
     cr_true = isf_true / csf
     carbs = max(20.0, tdd * (1 - share) * cr_true)
     strategy = "temp" if str(row.strategy).startswith("temp") else "autobolus"

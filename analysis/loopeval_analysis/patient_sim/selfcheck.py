@@ -19,7 +19,7 @@ from .person import sample_person
 from .world import World
 
 QUIET = dict(exercise=False, illness=False, circadian=False, dawn=False, site_failure=False, pump_faults=False,
-             compression=False, day=False, perfect_person=True, fat=False,
+             compression=False, day=False, perfect_person=True, fat=False, behavior_defense=False, graze=False,
              # the gastric-emptying ceiling is timing, not units: an open-loop bolus at the start of a big meal acts
              # before the energy-limited stomach delivers it (LESSONS 33), which this units check must not read as a fault
              ge_kcal=0.0)
