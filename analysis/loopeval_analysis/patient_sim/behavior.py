@@ -80,7 +80,7 @@ class BehaviorTraits:
     p_log_rescue: float = 0.05           # rescues entered in the app [J; "very under-represented" — Pete]
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
-    p_correct: float = 0.3               # per qualifying glance [J; sized from the template's user-bolus rate]
+    p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
     corr_wait: float = 120.0             # min since their last bolus
     # exercise (T1DEXI is an active cohort; scale down)
     ex_per_week: float = 2.0
@@ -146,6 +146,8 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     if not np.isfinite(corr_rate) and np.isfinite(ub):
         corr_rate = max(0.0, ub - entries) if np.isfinite(entries) else ub / 2
     cbg = _num(rates, "corr_bg_med")
+    tir_d, t70_d = _num(rates, "tir"), _num(rates, "t70")
+    hi_frac = max((100 - tir_d - t70_d) / 100, 0.05) if np.isfinite(tir_d) and np.isfinite(t70_d) else 0.25
     rsz = _num(rates, "rescue_size_med")
     rbg = _num(rates, "rescue_bg_med")
     t = BehaviorTraits(
@@ -166,7 +168,8 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         corr_thr=float(np.clip(cbg - 20, 130, 300)) if np.isfinite(cbg) else float(rng.normal(200, 30)),
         # a qualifying glance corrects with this chance; sized so the person's measured rate is reachable
         # [J: ~4 qualifying glances a day for a person who runs high; refined by twin validation]
-        p_correct=float(np.clip(corr_rate / 4.0, 0.01, 0.9)) if np.isfinite(corr_rate) else float(rng.uniform(0.05, 0.5)),
+        p_correct=float(np.clip(corr_rate / (16 * 60 * hi_frac), 0.0, 0.05)) if np.isfinite(corr_rate)
+                  else float(rng.uniform(0.0005, 0.005)),
         ex_per_week=float(rng.choice([0, 0.5, 1, 2, 3, 4, 5], p=[0.2, 0.1, 0.15, 0.2, 0.15, 0.1, 0.1])),
         ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
         ex_anaerobic=float(np.clip(rng.beta(1.2, 6), 0, 1)), ex_hour=float(rng.choice([7.0, 12.5, 17.5, 19.0])),
@@ -382,6 +385,15 @@ class Behavior:
         if m - self.readings[-1][0] > 15: return []          # nothing current to see
         asleep = self.asleep(m)
         acts = []
+        # correction: while awake and above the person's correction level (not falling, nothing bolused for
+        # corr_wait), a per-minute hazard sized so the donor's measured correction rate is reached over the
+        # donor's own time above 180 (LESSONS 26). The app shows CGM on the lock screen and alerts on highs,
+        # so this is not gated on a discrete glance.
+        if not asleep and cgm > t.corr_thr and self.trend() > -0.5 and m - self.last_bolus > t.corr_wait \
+                and r.random() < t.p_correct:
+            acts.append(("bolus", m, 1.0)); self.last_bolus = m
+            self.log.append((m, "correction", 0, cgm))
+            return acts
         # what draws the person's attention this minute
         alarm = False
         if cgm <= t.urgent_low or (cgm <= t.low_alert and m - self.last_alarm >= 30):
@@ -425,9 +437,4 @@ class Behavior:
                 self.last_pro = m
                 self.log.append((m, "proactive", g, proj))
                 return acts
-        # correction of a high seen at a glance
-        if not asleep and cgm > t.corr_thr and self.trend() > -0.5 and m - self.last_bolus > t.corr_wait \
-                and r.random() < t.p_correct:
-            acts.append(("bolus", m, 1.0)); self.last_bolus = m
-            self.log.append((m, "correction", 0, cgm))
         return acts
