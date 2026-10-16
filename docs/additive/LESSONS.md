@@ -263,3 +263,44 @@ statistic here, but it is the controller donors ran.
     - CGM second differences grow with glucose level about as fast in the simulator as in donors (sd
       4.2 → 7.9 from 90 to 350 mg/dL). Fully proportional (log-scale) sensor noise would give ~16 at
       350, so the sensor's fast noise is not proportional to glucose.
+
+31. **Fit the sensor to sensor-only targets, or it absorbs whatever the physiology is missing.**
+    The G7 noise had been sized to donors' 5-min roughness (lesson 29), but that roughness includes real
+    glucose movement. Run against the FDA iCGM tables (sensor_check.py, sensor_fit.py: two independent
+    sensors over the same simulated true glucose, daytime, 15-min pairs), the simulated G7 was far less
+    accurate than the real one:
+    - MARD 22 / 17 / 10.6% at <54 / 54–69 / 70–180, against 14 / 10.7 / 8.6;
+    - two-sensor PARD 14%, against 8.9;
+    - bias −14.6 above 250, against −6.6.
+    The noise σ hardly mattered: halving it moved the low-end MARD by less than one point. The
+    per-session calibration did matter: the G6 offset N(6.35, 6) and gain sd 0.063 (Vettoretti 2019).
+    The fitted G7 has:
+    - innovation σ 2.5 with an additive floor ⊕ proportional scale;
+    - gain N(0.98, 0.04) and offset N(3, 3);
+    - an error COMMON to co-located sensors (Biagi 2017 AR(3), σ 2.0), which raises accuracy error
+      without raising precision error, as the FDA tables require.
+    It gives bias 3.8 / 2.7 / 1.2 / −1.5 / −6.8, MARD 13.7 / 10.9 / 7.9 / 6.9 / 6.8, PARD 8.9 and MAD
+    elasticity 0.66 (FDA 0.69). The whole-record step SD barely moved (7.7 → 7.3). On scaling: total
+    sensor error grows with glucose at about the 0.7 power, between additive (0) and lognormal (1). Most
+    of the proportional part is the calibration gain; the fast noise keeps an additive floor (evidence/08).
+
+32. **Donors' excess big CGM steps are transient sensor biases that recover, not catch-ups.** Quiet-window
+    jumps ≥ 12 mg/dL, classified by what surrounds them (quiet.jump_signature), per 1,000 steps:
+
+    | | Reversal | Catch-up | Step | Lead-in |
+    |---|---|---|---|---|
+    | Donors, G7 | 6.8 | 2.2 | 2.2 | 11.6 |
+    | Simulator, fitted G7 | 1.6 | 2.4 | 1.3 | 8.1 |
+
+    A reversal is undone within 15 min. Donor reversals:
+    - 55% read low first;
+    - about 15 mg/dL (p90 23), the same at every glucose level;
+    - back within 2–3 readings;
+    - day and night alike, so not compression;
+    - per-person rates spread widely, 1–321 events over the record.
+
+    Blood glucose cannot move like that. The sensor now has a transient-bias process: per session
+    lnN(8/day, 0.9), amplitude lnN(12, 0.4) mg/dL, 55% negative, first-order recovery with τ 10 min.
+    Fitted offline to the donor classes: total 30.3 (29.4), reversal 6.6 (6.8), step 2.0 (2.2),
+    catch-up 3.4 (2.2). The FDA fit holds (G7 loss 1.35, PARD 9.5). Catch-ups need no added mechanism.
+    The rise-suppression filters in Dexcom/Abbott patents are not visible in these data.
