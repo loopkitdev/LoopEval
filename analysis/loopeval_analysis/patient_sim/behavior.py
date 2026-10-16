@@ -134,7 +134,10 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     else:
         p_meal = float(rng.uniform(0.2, 0.9)); p_snack = p_meal * 0.4
     er = _num(rates, "estimate_ratio")
-    count_bias = (math.log(er / POOLED_ESTIMATE_RATIO) - 0.10) if np.isfinite(er) and er > 0 else float(rng.normal(-0.10, 0.097))
+    # person-level carb-count bias from the literature (Brazeau 2013: 63% under-estimated, ±9.7% per person). The
+    # donor's labeled entered/pulse ratio is NOT a count bias: the labeler alone spreads per-person medians by ~0.46
+    # log-sd (sim: 0.67 labeled vs 0.49 true), which is all of the donors' 0.45 (LESSONS 35)
+    count_bias = float(rng.normal(-0.10, 0.10))
     lead = _num(rates, "bolus_lead_min")
     if np.isfinite(lead):
         timing = "before" if lead < -5 else "immediate" if lead < 1 else "during" if lead < 15 else "after"
