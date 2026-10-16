@@ -319,45 +319,68 @@ the rate of delayed nocturnal hypoglycemia.
 
 ## 6. Sensor (`sensor.py`)
 
-**Structure.** Vettoretti 2019 / Facchinetti 2014. One parameter set per *session*, per family (G6,
-G7, Libre 3, Libre 2, Medtronic).
+**Structure.** Vettoretti 2019 / Facchinetti 2014, extended with Biagi 2017's common component and a
+transient-bias process. Most parameters are drawn once per *session*, per family (G6, G7, Libre 3, Libre 2,
+Medtronic).
 
 ```
 IG     dIG/dt = (BG − IG)/τ
-raw    gain(t)·IG + b0 + v(t)·h(IG) − compression(t)
+raw    gain(t)·IG + b0 + [v(t) + c(t)]·h(IG) + trans(t) − compression(t)
 gain   brand_gain·(a0 + slope·d + curve·d²)·(1 − d1·e^(−t/12h))
-v      AR(2) on the 5-min grid, Student-t innovations
-h(IG)  0.6 + 0.4·IG/130           (glucose-scaled noise)
+v      sensor-specific AR(2) on the 5-min grid, Student-t innovations (df 4)
+c      error common to co-located sensors: AR(3), per person, continuous across sessions
+h(IG)  √(q² + (1 − q²)·(IG/130)²)      additive floor ⊕ proportional, q 0.5
+trans  transient biases: ±A in one reading, first-order recovery τ 10 min
 out    EMA (Libre 3 only) → integer → clamp 39/401, or a gap
 ```
 
+**How it is calibrated.** Only against sensor-only targets, never against donor CGM roughness
+(LESSONS 31). Donor roughness also contains real glucose movement, so fitting to it would let the sensor
+absorb missing physiology. `sensor_fit.py` runs two independent sensors over the same simulated true
+glucose and scores them against:
+- the FDA iCGM accuracy tables (bias and MARD by glucose range, binned by the comparator and by the CGM
+  value);
+- two-sensor precision (PARD);
+- MAD-by-level elasticity.
+
+Then `quiet.jump_signature` checks the jump anatomy against donors.
+
 | Part | Values | Evidence and tuning |
 |---|---|---|
-| D1 Lag | τ lnN: G6 3.78, G7 3.5, Libre 3 1.8, Libre 2 2.4, Medtronic 8.4 min (log-sd 0.68) | Vettoretti 2019; device studies (03 §2.2) |
-| D2 Calibration and drift | a0 N(0.95, 0.063); b0 N(6.35, 6.0); drift total N(0, 0.04) over the session, sampled jointly (linear + quadratic); day-1 deficit N(0.06, 0.05) decaying over 12 h; brand gain 1.0 (Medtronic 0.94) | Vettoretti 2019; Eichenlaub 2025 (brand sign vs YSI, within 1–3% of capillary) |
-| D3 Noise | AR(2) (1.30, −0.42), Medtronic (1.367, −0.4816); σ: G6 N(3.19, 1), **G7 N(4.5, 1)**, Medtronic 1.59; Student-t df 4 (G6, G7); glucose scaling a = 0.6 | LESSONS 24: AR shape right, G7 rougher than G6 (eda L33). LESSONS 28: df 4 matches the donors' step kurtosis. LESSONS 29: constant-σ noise large enough for the excursions manufactures lows; the G7 accuracy tables (Garg 2022: ~8.5 mg/dL absolute error at 40–60, ~11.6 near 130, ~17 near 240) give the 0.6 + 0.4·IG/130 scaling |
+| D1 Lag | τ lnN: G6 3.78, G7 3.5, Libre 3 1.8, Libre 2 2.4, Medtronic 8.4 min (log-sd 0.68) | Vettoretti 2019; Garg 2022; Alva 2020. Commercial outputs are already lag-compensated: do not add the 5–6 min physiological delay (Basu 2013) |
+| D2 Calibration | G7 a0 N(0.98, 0.04), b0 N(3, 3); G6 a0 N(0.96, 0.05), b0 N(2, 3); Libre 3 a0 N(0.965, 0.03), b0 N(0, 2); drift N(0, 0.04) over the session; day-1 deficit N(0.06, 0.05) decaying over 12 h | Fitted (LESSONS 31). The G6 Vettoretti spread (b0 sd 6, a0 sd 0.063) gave a G7 PARD of 14% against 8.9% |
+| D3 Sensor-specific noise | AR(2) (1.30, −0.42); σ G7 N(2.5, 0.8), G6 N(2.5, 0.8), Libre 3 N(1.5, 0.5); t df 4; q 0.5 | Shape from Vettoretti 2019; tails from Breton & Kovatchev 2008 (Johnson S_U); size fitted |
+| D3b Common error | AR(3) (1.584, −0.884, 0.180); σ G7 2.0, G6 2.5, Libre 3 3.0 | Biagi 2017: in co-located Enlites the common component (var 3.98) exceeds the sensor-specific one (2.54). It adds accuracy error that two-sensor precision does not see, which is what the FDA tables require |
+| D3c Transient biases | per-session rate lnN(median, 0.9) events/day: G7 8, G6 6, Libre 3 4 **[J]**; amplitude lnN(12, 0.4) mg/dL; 55% read low first; τ 10 min | Donor quiet-window reversals (LESSONS 32): G7 6.6 vs donors 6.8 per 1,000 steps; whole jump anatomy matched |
 | D4 Device smoothing | Libre 3 (twiist stream) EMA 0.35 **[J]** | eda L33 |
-| D5 Compression lows | personal rate Gamma(2.37, 1/75.7) per night, asleep only; depth lnN(35, 0.4), duration lnN(45 min, 0.3); 72% gap / 25% dip / 3% floor | run:2026-10-11-ice-compression; Facchinetti 2016 shape |
-| D6 Availability | warm-up per session (G7 27 min, G6 120, Libre 60); session 10/14/7 days (+ G7 grace 0.5 d); early failure 5% **[J]**; random gaps at measured per-family rates by length bin | runs/2026-10-15-additive-sensor/gaps.py (153 donors): G7 4.4 gaps/day, Libre 3 1.5, G6 1.7 |
+| D5 Compression lows | personal rate Gamma(2.37, 1/75.7) per night, asleep only; depth lnN(35, 0.4), duration lnN(45 min, 0.3); 72% gap / 25% dip / 3% floor | run:2026-10-11-ice-compression; Facchinetti 2016 shape. Published rates are ~0.3/day (Idi 2025; Lobo 2026); the donor detector is stricter |
+| D6 Availability | warm-up per session (G7 27 min, G6 120, Libre 60); session 10/14/7 days (+ G7 grace 0.5 d); early failure 5% **[J]**; random gaps at the measured per-family rates by length bin | runs/2026-10-15-additive-sensor/gaps.py (153 donors) |
 | D7 Reporting | 5-min grid; integers; 39/401 clamps | eda L3, L6, L43 |
 
+**Fit quality** (adult FDA arms):
+
+| Family | Bias / MARD by range | PARD | Loss |
+|---|---|---|---|
+| G7 | 3.9 / 4.1 / 0.9 / −2.4 / −6.6 and 13.3 / 11.7 / 8.2 / 7.4 / 7.2% (FDA 4.0 / 1.1 / 1.1 / −1.9 / −6.6 and 14 / 10.7 / 8.6 / 7.4 / 6.4) | 9.5% (8.9) | 1.35 |
+| Libre 3 | — | 6.6% (6.8) | 3.5 |
+| G6 | — | 9.9% (9.0) | 7.1 |
+
+Libre 3 reads too little high at a true value below 54. G6 is fitted only to the CGM-binned table,
+whose pattern is irregular.
+
+**How sensor error scales with glucose.** Total error versus YSI grows at about the 0.7 power of glucose
+(FDA tables: G7 0.69, Libre 3 0.73, G6 0.72). That sits between additive error (0) and lognormal error
+(1): proportional above ~100 mg/dL, with an additive floor of ~6–7 mg/dL below. In the model, most of
+the proportional part comes from the per-session calibration gain. The fast noise keeps its floor.
+
 **Notes.**
-- The CGM noise is never seen by the body. It reaches the controller and the person, and it changes
+- The CGM error is never seen by the body. It reaches the controller and the person, and changes
   outcomes only through their decisions.
 - Compression withholds or dips readings; true glucose is unaffected.
-
-**Under review (2026-10-15).** A literature review is in progress on how sensor error is built up:
-fast noise, slower biases, on-device filtering and catch-up steps, and whether error scales with glucose
-level. The donor data so far:
-- Second differences of CGM grow with glucose level about as fast as the simulator's do.
-- The donors carry more isolated jumps of 12 mg/dL or more than the simulator at 60–200 mg/dL
-  (49–63 vs 33–45 per 1,000 steps). In donors these jumps sit inside quieter surroundings, and 12%
-  reverse by more than half within 15 min, against 6% in the simulator. That is consistent with a
-  bias process that resets or catches up (Pete's hypothesis), more than with white heavy-tailed
-  innovations.
-
-Fingersticks in the Tidepool pull cannot calibrate the slow components: 98.7% are mirrored CGM values,
-leaving 346 real sticks from 70 donors, taken when the CGM was doubted.
+- Rise-suppression and catch-up filters exist in manufacturer patents (Dexcom's "cone of possibility",
+  Abbott's dual-bank weighting). Donor catch-ups already match the model without them (LESSONS 32), so
+  they are not modelled.
+- Medtronic and Libre 2 keep their published models (Biagi 2017, Vettoretti) and are not FDA-fitted.
 
 ---
 

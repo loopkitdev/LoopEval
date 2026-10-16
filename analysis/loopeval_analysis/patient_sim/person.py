@@ -153,7 +153,8 @@ def _formulation(brand: str, rng) -> str:
 
 
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
-                  jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None) -> Person:
+                  jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
+                  csf_mult: float = 1.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -204,7 +205,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # follows (LESSONS 14, 17).
     # ice's g-eq is ISF_tdd / (500/TDD) mg/dL — settings-free (ice_gen/meals.py) — so the measured rise
     # per entered gram is 1.30 x that, not 1.30 x the settings' ISF/CR (LESSONS 17)
-    csf_target = CSF_PER_GEQ * float(row.isf_true) * float(row.tdd) / 500.0 * float(np.exp(rng.normal(0, 0.15)))
+    csf_target = csf_mult * CSF_PER_GEQ * float(row.isf_true) * float(row.tdd) / 500.0 * float(np.exp(rng.normal(0, 0.15)))
     f_cal = csf_target * bw * bp.vg / 1000.0
     if f_cal > 1.0:
         bp = bp.scaled(f=1.0, vg=float(1000.0 / (bw * csf_target)))
