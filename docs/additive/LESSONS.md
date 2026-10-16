@@ -572,3 +572,13 @@ statistic here, but it is the controller donors ran.
     | Labeled meal rise per 10 g | 18.7 | 17.1 |
 
     Every outcome passes. The 35% share overshoots the rise (22.2 per 10 g) and the skew.
+
+45. **Two statistics compared different things, and one input came from the wrong population.**
+    - `wear` read `cgm.notna().mean()`. A donor series holds only readings that exist, so it was always
+      1.0, while the simulated series has NaN for withheld slots. It is now coverage of the span on the
+      5-min grid for both: donors 0.977, simulator 0.960, a real gap.
+    - The simulator's CGM gap rates had been measured on the eda cohort (153 donors), but it is compared
+      with the pilot donors. Their G7 long gaps (≥ 90 min) run at about half the eda rate. G6 and G7
+      gaps now come from the pilot donors; Libre 3 keeps the eda rates, with only 6 pilot donors.
+    - Cohort c47 (all defaults through lesson 44) reproduces c46_f0.2 exactly (same seeds, same
+      configuration): 27 of 50.
