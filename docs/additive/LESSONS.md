@@ -199,4 +199,6 @@ statistic here, but it is the controller donors ran.
     0 of 44.8 U of person boluses while Loop's IOB counted all of them. The cohort swung to mean 179,
     TDD 31 and looked like a physiology result. Caught by the plant's received-dose log (lesson 19's
     reconciliation) and a two-binary A/B on one person (identical without --plant-behavior). Reported to
-    simulator; additive stays on the prior binary + PLANT_NET_AF=1 until the fix lands. Cohort c19 void.
+    simulator, fixed in main f11386e (doses forwarded by insertion). On f11386e with no workaround (cohort
+    c20) the cohort matches the workaround run within noise (mean 148 vs 148, TDD 41.3 vs 40.9, t<54 0.38
+    vs 0.47) and delivered/received is 0.94–1.04 per person. Cohort c19 void.

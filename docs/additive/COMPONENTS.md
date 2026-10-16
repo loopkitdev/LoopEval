@@ -139,8 +139,8 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 runs `simulate --candidate-counterfactual --external-plant … --plant-behavior` as deployed Loop-main
 (`--no-mid-absorption-isf --no-gradual-transitions-gate --legacy-rc-decay`). The plant delivers every
 dose LoopEval sends from the current minute (a late dose is never dropped, LESSONS 19) and logs what it
-received; validation reports delivered/received per person. LoopEval main ≥ 8e86860 delivers a plant bolus before
-deciding the automatic dose (LESSONS 21); `PLANT_NET_AF=1` restores the ratio − 0.4 workaround for older binaries.
+received; validation reports delivered/received per person. LoopEval main ≥ f11386e delivers a plant bolus before
+deciding the automatic dose and forwards it to the plant (8e86860 alone dropped it) (LESSONS 21); `PLANT_NET_AF=1` restores the ratio − 0.4 workaround for older binaries.
 
 ## Validation (the primary test)
 
