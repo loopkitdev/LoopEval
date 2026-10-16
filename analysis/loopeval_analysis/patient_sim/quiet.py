@@ -48,7 +48,7 @@ def _quiet_stats(cgm: pd.Series, events: np.ndarray) -> dict | None:
         num = sum(float(((x[lag:] - mu) * (x[:-lag] - mu)).sum()) for x in d if len(x) > lag)
         cnt = sum(len(x) - lag for x in d if len(x) > lag)
         acf.append(num / cnt / var if cnt else np.nan)
-    return dict(n=len(alld), step_sd=float(alld.std()), kurt=float(pd.Series(alld).kurtosis()),
+    return dict(n=len(alld), step_sd=float(alld.std()), kurt=float(pd.Series(alld).kurtosis()), skew=float(pd.Series(alld).skew()),
                 **{f"acf{5 * l}": a for l, a in zip(LAGS, acf)})
 
 

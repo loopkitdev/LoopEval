@@ -206,7 +206,7 @@ def _formulation(brand: str, rng) -> str:
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = False,
-                  kappa_mult: float = 1.0) -> Person:
+                  kappa_mult: float = 1.0, ge_var: bool = False) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -250,6 +250,14 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         f=float(np.clip(rng.normal(0.9, 0.05), 0.7, 1.0)),
     )
     if bp.ka2 >= bp.kd: bp = bp.scaled(ka2=0.9 * bp.kd)
+    if ge_var:
+        # between-person gastric emptying (evidence/09 §parameters): Vmax lognormal CV 30% (Samsom 2003 SDs 28% controls,
+        # 36% diabetes; Hellmig 2006), and the 28% of T1D adults with delayed emptying at ×0.6–0.8 (Samsom 2003). Km stays
+        # 60 kcal, so the small-load rate kempt scales with Vmax. Own stream: the other draws are unchanged.
+        rg = np.random.default_rng(seed + 313)
+        g_mult = float(np.exp(rg.normal(-0.5 * 0.3 ** 2, 0.3)))
+        if rg.random() < 0.28: g_mult *= float(rg.uniform(0.6, 0.8))
+        bp = bp.scaled(ge_kcal_max=bp.ge_kcal_max * g_mult, kempt=bp.kempt * g_mult)
     # CARB SENSITIVITY per LABELED gram: physics (f·1000 / BW·VG, f 0.9 for tracer glucose) gives ~1.7x
     # the rise donors show. Measured: a meal pulse is 1.30x what the entered grams predict at the
     # settings' ISF/CR (ice L54). Labeled carbohydrate is not all glucose appearance (fibre, fructose,
