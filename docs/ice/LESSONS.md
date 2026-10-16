@@ -1071,3 +1071,17 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     t<54 0.30 / TIR 66.8 vs generated 0.50 / 71.8; middle (5.5) 0.09 / 78.9 vs 0.56 / 68.5; many (9.9) 0.10 / 74.5 vs 0.33 /
     66.8. TIR shortfall vs entries Spearman -0.56. Non-announcers are already slightly too easy; the whole gap is in
     announced meals (entry, bolus, and the meal ICE behind them).
+115. **Announced meals arrived too late and too big for their entries; mapping the entry-to-food delay onto the field's and
+    scaling each person's meal size to their own entries closes the mean and half the TIR gap; kept.** Field announced meals
+    (held-out, 24 hosts): logged before eating 51% (food a median 19 min after the entry, 90th percentile 50), after 49%
+    (median 20 min late). Generated: entry-started meals 62%, food a median 34 min after the entry (90th 119); entries
+    joining a meal already started 17% (median 35 min late); the delay head models only offsets >= 0 and draws them wide.
+    Pulse size / entered grams is a personal trait (per-donor medians 1.2 over all donors, 1.46 for these hosts) and the
+    generator's runs ~1.3x it (median 1.93). PLANT_EOFF_MAP (build_eoff_map.py): drawn delay quantile-mapped onto the field's
+    delays for meals logged first (pre-hold-out, median 21.6, 90th 51). Alone, seeds 0 / 1: lows per meal bolus 0.113 /
+    0.114 -> 0.096 / 0.099, but TIR 69.6 / 70.4 -> 69.7 / 68.2 (meals now land on time and are too big). A pooled size map
+    (all donors, median 1.18) shrank these hosts' meals too far: TIR 74.9 / 75.3, mean 148 / 150, lows per meal bolus 0.153 /
+    0.129. Per person instead (PLANT_SIZE_PERSON, build_size_person.py: field / generated median ratio on the 28 days before
+    the hold-out, clip [0.5, 2], median x0.95): TIR 72.2 / 72.2, mean 152 / 153 (field 152), t<54 0.36 / 0.31, t<70 1.75 /
+    1.79, lows per meal bolus 0.114 / 0.106; per-person TIR pass rate 8 / 17% -> 25 / 29%. New base: v32of{0,1}TcB2FGUCG +
+    PLANT_EOFF_MAP + PLANT_SIZE_PERSON. Not yet modeled: eating before logging (49% of field announced meals vs 17%).
