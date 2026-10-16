@@ -92,11 +92,13 @@ class BehaviorTraits:
     ex_hour: float = 17.5
     p_ex_carbs: float = 0.3
     ex_carbs: float = 15.0
-    # light daily activity (walking, chores): short bouts, more often after meals (COMPONENTS C6) [J; sized by
-    # the quiet-window step statistics, quiet.py]
-    walk_per_day: float = 4.0
-    walk_min: float = 12.0
-    walk_intensity: float = 0.25
+    # everyday activity (walks, errands, chores) as episodes, plus a waking background (evidence/10 §7; LESSONS 34)
+    act_rate: float = 2.0                # episodes/day (person; T1DEXI ~0.8 logged ≥15-min sessions + shorter unlogged)
+    act_dur: float = 18.0                # min, lnN median; σ_log 0.75, truncated 5–150
+    metmax: float = 9.0                  # T1D adults VO2max 32 ± 9 mL/kg/min → METmax ≈ 9 (Muñoz-Hernandez 2025)
+    act_bg: float = 0.06                 # waking background intensity [J; NHANES light-activity minutes]
+    act_gain: float = 1.0                # responsiveness of glucose to activity (lnN σ 0.5; Jaloli)
+    act_after_meal: float = 0.4          # share of episodes starting 10–120 min after eating [J; not found]
     # grazing: small unlogged intake below the ice labeler's 12 g-eq gate (drinks, bites) (COMPONENTS F9) [J]
     graze_per_day: float = 2.0
     graze_g: float = 6.0
@@ -176,7 +178,8 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
         ex_anaerobic=float(np.clip(rng.beta(1.2, 6), 0, 1)), ex_hour=float(rng.choice([7.0, 12.5, 17.5, 19.0])),
         site_days=float(np.clip(rng.normal(3.0, 0.4), 2.0, 4.0)),
-        walk_per_day=lj(4.0, 0.6), walk_min=lj(12.0, 0.4), walk_intensity=float(np.clip(rng.normal(0.25, 0.06), 0.1, 0.45)),
+        act_rate=lj(2.0, 0.55), metmax=float(np.clip(lj(9.0, 0.25) * (1 - 0.0075 * max(0.0, person.age - 30)), 4.0, 16.0)),
+        act_bg=lj(0.06, 0.4), act_gain=lj(1.0, 0.5),
         graze_per_day=lj(2.0, 0.7), graze_g=lj(6.0, 0.4),
     )
     lsd = _num(rates, "meal_size_logsd")
@@ -308,15 +311,26 @@ class Behavior:
                        "during": r.uniform(3, 15), "after": r.uniform(15, 45)}[t.bolus_timing]
                 if units >= 0.5:
                     self.planned.append((base + mt + off, ("free_bolus", units)))
-        # light activity bouts: daytime, half of them within 2 h after an eating event
+        # everyday activity episodes (evidence/10 §7.2): day-level gamma noise (shape 3) on the person's rate; start
+        # times on the UK Biobank day profile (00–06 / 06–12 / 12–18 / 18–24: 0.04 / 0.34 / 0.39 / 0.23), awake only,
+        # a share after eating [J]; duration lnN(18 min, 0.75) in 5–150; intensity = (MET − 1)/(METmax − 1) × duty 0.7
+        # with MET lnN(3.0, 0.2) and 10% brisk episodes MET U(4.5, 6) (2024 Compendium; Pemberton 2025 mix)
         eat_times = sorted(base + st for _, st, _ in slots)
-        for _ in range(r.poisson(t.walk_per_day)):
-            if eat_times and r.random() < 0.5:
+        n_act = r.poisson(t.act_rate * r.gamma(3.0, 1 / 3.0))
+        for _ in range(n_act):
+            st = None
+            if eat_times and r.random() < t.act_after_meal:
                 st = float(r.choice(eat_times)) + float(r.uniform(10, 120))
             else:
-                st = base + float(r.uniform(t.wake + 30, t.bed - 30)) + shift
-            dur = max(3.0, float(np.exp(r.normal(math.log(t.walk_min), 0.5))))
-            self.planned.append((st, ("walk", st, dur, t.walk_intensity * float(np.exp(r.normal(0, 0.2))), 0.0)))
+                for _try in range(10):
+                    blk = int(r.choice(4, p=[0.04, 0.34, 0.39, 0.23]))
+                    cand = base + (blk * 6 + r.uniform(0, 6)) * 60
+                    if not self.asleep(cand): st = cand; break
+            if st is None: continue
+            dur = float(np.clip(np.exp(r.normal(math.log(t.act_dur), 0.75)), 5.0, 150.0))
+            met = float(r.uniform(4.5, 6.0)) if r.random() < 0.1 else float(np.exp(r.normal(math.log(3.0), 0.2)))
+            inten = float(np.clip((met - 1.0) / (t.metmax - 1.0), 0.05, 0.9)) * 0.7
+            self.planned.append((st, ("walk", st, dur, inten, 0.0)))
         # grazing: never entered, never bolused
         for _ in range(r.poisson(t.graze_per_day)):
             st = base + float(r.uniform(t.wake + 30, t.bed)) + shift
