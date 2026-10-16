@@ -75,12 +75,15 @@ def core_stats(cgm: pd.Series, d: pd.Series, days: float) -> dict:
     srt = np.sort(tot)[::-1]; k = max(int(0.01 * len(srt)), 1)
     day = d.resample("1D").sum(); nb = d.resample("1D").count(); day = day[nb > 240]
     hour = d.groupby(d.index.hour).mean()
+    # night-to-night variation of overnight (00–06 local) delivered insulin: Ruan 2016 31% under closed loop (LESSONS 55)
+    nt = d[d.index.hour < 6]; nn = nt.resample("1D").sum(); nc = nt.resample("1D").count(); nn = nn[nc >= 66]
     out.update(zero_frac=100 * float(np.mean(tot <= 1e-9)), med_nonzero=float(np.median(tot[tot > 1e-9])) if (tot > 1e-9).any() else np.nan,
                p99=float(np.percentile(tot, 99)), conc1=100 * float(srt[:k].sum() / srt.sum()) if srt.sum() > 0 else np.nan,
                tdd=float(day.median()) if len(day) else np.nan,
                tdd_cv=100 * float(day.std() / day.mean()) if len(day) > 2 else np.nan,
                ac1=float(np.corrcoef(day[:-1], day[1:])[0, 1]) if len(day) > 5 else np.nan,
-               day_night=float(hour.loc[10:22].mean() / hour.loc[0:6].mean()) if hour.loc[0:6].mean() > 0 else np.nan)
+               day_night=float(hour.loc[10:22].mean() / hour.loc[0:6].mean()) if hour.loc[0:6].mean() > 0 else np.nan,
+               night_cv=100 * float(nn.std() / nn.mean()) if len(nn) > 4 and nn.mean() > 0 else np.nan)
     return out
 
 

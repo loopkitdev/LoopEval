@@ -777,3 +777,13 @@ statistic here, but it is the controller donors ran.
     Around isolated announced meals donors also spread meal insulin wider than the sim: 25% more than 15 min before onset
     (sim 20%) and 16–27% from 1 to 3 h after (sim 12–25%). In −1…3 h they give 1.26–1.95 U per 10 g entered against
     the sim's 1.03–1.64. Their labeled big-meal pulses are also ~10% larger (47 vs 42 g-eq above 60 g entered).
+
+55. **Night-to-night insulin, and why post-low resistance is not added.**
+    - Overnight (00–06 local) delivered insulin varies 30.3% night to night on donors' quiet nights (no eating or
+      manual bolus 22–06; 124 donors), which is Ruan 2016's 31%. Over all nights it is 40%. Midnight glucose explains
+      ~10% of it, and successive nights barely correlate (lag-1 0.09), so the variation is nightly, not multi-day.
+      The sim gives 17% on quiet nights (31 people, ~3 nights each) and 30% over all nights. `night_cv` (all
+      nights, 13-day blocks) is now a standing statistic: donors 37.2, c64 33.7 (p 0.11).
+    - Post-hypoglycaemic insulin resistance (Attvall 1987) is not added. 2–4 h after a low's nadir the sim already
+      rebounds as high as donors (+68 to +70 vs +65 to +73 mg/dL) and goes above 180 within 4 h more often (54% vs
+      46%). Only the first hour of recovery is slower in the sim (+45 vs +56 at 1 h): rescue timing, not resistance.
