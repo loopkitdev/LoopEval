@@ -228,3 +228,26 @@ def add_override_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_edit_rates(path: str, edits_csv: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Per donor, settings edits per day for basal, ISF and CR (day-to-day changes of the time-weighted daily
+    schedule mean in the RAW schedules, |log change| > 1%; LESSONS 41). Pooled size: median 3.6%, p90 14%."""
+    import json
+    t = pd.read_csv(path)
+    e = pd.read_csv(edits_csv)
+    out = []
+    for a in t.alias:
+        p = ice_root / "full" / a / "therapy.json"
+        row = dict(alias=a)
+        if p.exists():
+            th = json.load(open(p))
+            span = (pd.Timestamp(th["basal"][-1]["endDate"]) - pd.Timestamp(th["basal"][0]["startDate"])).total_seconds() / 86400
+            x = e[e.alias == a]
+            for k, s in (("basal", "rawBasal"), ("isf", "rawSensitivity"), ("cr", "rawCarbRatio")):
+                row[f"edit_{k}_day"] = float((x.setting == s).sum() / span)
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t

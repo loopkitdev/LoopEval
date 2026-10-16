@@ -148,6 +148,24 @@ class World:
                              if self.enable["compression"] else 0.0,
                              overrides={k: v for k, v in (enable or {}).items() if k.startswith("sensor_")})
         self.r_abs = r_abs
+        # settings edits (LESSONS 41): dated, multiplicative changes to the basal / ISF / CR schedules at the donor's
+        # measured rate per setting; size lnN(median 3.6%, σ 1.06 → p90 14%), sign random [J: donors' edits are only
+        # weakly reactive, corr 0.16]. Applied by LoopEval through the exported therapy timeline, from day 2 on.
+        r_edit = np.random.default_rng(np.random.SeedSequence(seed).spawn(7)[6])
+        rates = person.traits.get("template_rates", {})
+        cum = dict(basal=1.0, isf=1.0, cr=1.0); ev = []
+        if not (enable and enable.get("edits") is False):
+            for k in ("basal", "isf", "cr"):
+                try: rate = float(rates.get(f"edit_{k}_day", 0.0) or 0.0)
+                except (TypeError, ValueError): rate = 0.0
+                if not np.isfinite(rate): rate = 0.0
+                for _ in range(r_edit.poisson(rate * max(days - 2, 0))):
+                    m = (2 + r_edit.uniform(0, days - 2)) * DAY
+                    size = min(0.5, float(np.exp(r_edit.normal(math.log(0.036), 1.06))))
+                    ev.append((m, k, size if r_edit.random() < 0.5 else -size))
+        self.setting_eras = [(0.0, dict(cum))]
+        for (m, k, d) in sorted(ev):
+            cum[k] *= math.exp(d); self.setting_eras.append((m, dict(cum)))
         bp = person.body
         if enable and enable.get("risk") is False: bp = bp.scaled(risk_lambda=0.0)
         if enable and enable.get("counterreg") is False: bp = bp.scaled(cr_max=0.0)

@@ -91,9 +91,16 @@ def export(world: World, out: Path, days: int, burn_end: float):
              for (t, gr, a) in world.entries if t < burn_end]
     json.dump(carbs, open(out / "carbs.json", "w"))
     seg = lambda v: [dict(startDate=ts(0), endDate=ts(end), value=round(float(v), 3))]
+    eras = world.setting_eras + [(end, None)]
+
+    def seg_eras(key: str, v: float) -> list:      # the schedule through the person's settings edits (LESSONS 41)
+        return [dict(startDate=ts(a), endDate=ts(b), value=round(float(v) * mult[key], 3))
+                for (a, mult), (b, _) in zip(eras[:-1], eras[1:]) if b > a]
     tgt = [dict(startDate=ts(0), endDate=ts(end), lowerBound=st["target"] - 5, upperBound=st["target"] + 5)]
-    th = dict(basal=seg(st["basal_uh"]), sensitivity=seg(st["isf"]), carbRatio=seg(st["cr"]), target=tgt,
-              rawBasal=seg(st["basal_uh"]), rawSensitivity=seg(st["isf"]), rawCarbRatio=seg(st["cr"]), rawTarget=tgt,
+    th = dict(basal=seg_eras("basal", st["basal_uh"]), sensitivity=seg_eras("isf", st["isf"]),
+              carbRatio=seg_eras("cr", st["cr"]), target=tgt,
+              rawBasal=seg_eras("basal", st["basal_uh"]), rawSensitivity=seg_eras("isf", st["isf"]),
+              rawCarbRatio=seg_eras("cr", st["cr"]), rawTarget=tgt,
               overrideWindows=_override_windows(world), scheduleShifts=[], suspendThreshold=st["suspend"], maxBolus=st["max_bolus"],
               maxBasalRate=st["max_basal"], maxBolusTimeline=seg(st["max_bolus"]),
               maxBasalRateTimeline=seg(st["max_basal"]), suspendThresholdTimeline=seg(st["suspend"]),
