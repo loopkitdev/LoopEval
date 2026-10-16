@@ -62,6 +62,9 @@ class Family:
     df: float = 0.0               # Student-t degrees of freedom of the noise innovations (0 = Gaussian). CGM error
                                   # is heavy-tailed (Breton & Kovatchev 2008: Johnson S_U); variance preserved
     early_fail: float = 0.05      # P(session ends early) [J; Eichenlaub 2025 small n: 0–18%]
+    slow_bias: tuple = (0.0, 180.0)  # (sd mg/dL at 130, τ min): a sensor bias that wanders over hours (OU), scaled with the
+                                  # noise floor ⊕ proportional form. Breton & Kovatchev 2008: sensor error autocorrelated
+                                  # "up to several hours" (evidence/08 §1.2) [J size, within the FDA error budget]
     noise_wander: tuple = (0.0, 240.0)  # within-sensor noise level wanders: σ × exp(z), z OU (sd, τ min). SNR varies over
                                   # time within a sensor (Facchinetti 2011; evidence/08 §B) — the noise's own volatility
                                   # clustering, which stationary noise wipes out of the CGM (LESSONS 42) [J size]
@@ -157,6 +160,8 @@ class Sensor:
             if "sensor_tamp" in overrides or "sensor_tampsd" in overrides:
                 kw["trans_amp"] = (overrides.get("sensor_tamp", self.f.trans_amp[0]), overrides.get("sensor_tampsd", self.f.trans_amp[1]))
             if "sensor_ttau" in overrides: kw["trans_tau"] = overrides["sensor_ttau"]
+            if "sensor_sbias" in overrides or "sensor_sbtau" in overrides:
+                kw["slow_bias"] = (overrides.get("sensor_sbias", self.f.slow_bias[0]), overrides.get("sensor_sbtau", self.f.slow_bias[1]))
             if "sensor_wander" in overrides or "sensor_wtau" in overrides:
                 kw["noise_wander"] = (overrides.get("sensor_wander", self.f.noise_wander[0]), overrides.get("sensor_wtau", self.f.noise_wander[1]))
             if "sensor_drift" in overrides: kw["drift_sd"] = overrides["sensor_drift"]
@@ -171,6 +176,7 @@ class Sensor:
         self.c = [0.0, 0.0, 0.0]
         self.trans = 0.0                                    # current transient bias, mg/dL
         self.wz = 0.0                                       # log noise-level wander (OU)
+        self.sb = 0.0                                       # slow bias (OU), mg/dL at 130
         self.out_prev: Optional[float] = None
         self.gap_until = -1.0
         self.comp: Optional[dict] = None
@@ -255,6 +261,10 @@ class Sensor:
             a = math.exp(-f.cadence / wtau)
             self.wz = a * self.wz + math.sqrt(1 - a * a) * float(self.rng.normal(0.0, wsd))
         nu = math.exp(self.wz - wsd ** 2) if wsd > 0 else 1.0      # E[ν²] = 1: the noise variance is unchanged on average
+        sbsd, sbtau = f.slow_bias
+        if sbsd > 0:
+            a2 = math.exp(-f.cadence / sbtau)
+            self.sb = a2 * self.sb + math.sqrt(1 - a2 * a2) * float(self.rng.normal(0.0, sbsd))
         if f.df > 2:
             w = nu * s.sigma * float(self.rng.standard_t(f.df)) * math.sqrt((f.df - 2) / f.df)
         else:
@@ -282,7 +292,7 @@ class Sensor:
             hs = math.sqrt(f.hetero_q ** 2 + (1 - f.hetero_q ** 2) * x * x)
         else:
             hs = (f.hetero_a + (1 - f.hetero_a) * max(self.ig, 20.0) / 130.0) if f.hetero_a < 1 else 1.0
-        raw = self.gain(minute) * self.ig + s.b0 + v_all * hs + self.trans - self.comp_level
+        raw = self.gain(minute) * self.ig + s.b0 + (v_all + self.sb) * hs + self.trans - self.comp_level
         c = self.comp
         withheld = minute < self.gap_until or (c is not None and c["kind"] == "gap" and self.comp_level > 0.5 * c["depth"])
         if c is not None and c["kind"] == "floor" and self.comp_level > 0.5 * c["depth"]:
