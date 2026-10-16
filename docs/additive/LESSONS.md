@@ -174,3 +174,10 @@ statistic here, but it is the controller donors ran.
     −24 vs +36 at 3 h — and three model changes (absorption speed, insulin action, auto-dose stacking)
     "failed" to move it. Run through the labeler (ice_check.py → meal_response.simulated_labeled), the
     simulated meals read 50 mg/dL rise, 85 min, −4.5 at 3 h against 72, 111, +36: a smaller, real gap.
+
+23. **Light activity must not build the post-exercise sensitivity state.** Ablations on the same 30
+    people (runs/lo_*): switching exercise off brought t<70 3.66 → 1.78 (donors 1.66), t<54 0.72 → 0.29
+    (0.23), lows/day 1.89 → 1.31 (1.08), minutes per low 25 → 20 (20) and the mean to 153 (151). Every
+    walking bout fed the delayed state Z (glycogen repletion), so four walks a day held sensitivity ~20%
+    high around the clock. The ETH model drives Z through a sigmoid of intensity; Z now builds only
+    above moderate intensity (0.35). Light activity keeps its acute uptake and sensitivity effects.
