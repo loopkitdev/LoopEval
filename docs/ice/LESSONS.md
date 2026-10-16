@@ -957,3 +957,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     1.67, TIR 69.2 / 69.6 -> 69.4 / 70.1, mean 159 / 157 -> 160 / 159; chance a crossing below 70 reaches 54 0.33 / 0.33
     -> 0.25 / 0.26 (field 0.18); worst donor i003 t<54 5.2 / 6.5 -> 2.6 / 3.6. Lows per meal bolus unchanged (0.11 vs
     0.064): the offset deepens the response once low, not how often a bolus leads to one. New base v32of{0,1}TcB2CG.
+    Change test on the new base (engine 11d1b77, RC per edit window), seeds 0 / 1: slope TIR 0.76 / 0.65, t<70 1.10 / 1.28,
+    mean 1.10 / 0.62, t<54 0.35 / 0.32 (was 0.17 / 0.12), t<54 mean |error| 0.36 / 0.38 (was 0.47 / 0.50; predicting no
+    change 0.30). t<54 changes now move with the field at a third of their size, still not ranking.
