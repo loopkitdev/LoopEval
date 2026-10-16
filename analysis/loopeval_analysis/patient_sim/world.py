@@ -188,12 +188,21 @@ class World:
         self.received: list = []                           # every dose LoopEval sent, as received: (type, start, end, U)
         self.fat_events: list = []                         # (minute, fat g) — transient fat-induced insulin resistance
         self.fat_rho = float(r_misc.uniform(0.0, 0.35))    # per person (Wolpert 2013 +42% insulin, wide spread; evidence/01 §6.3)
+        # hyperglycaemia-induced insulin resistance (B11): 24 h at ~360 mg/dL lowers insulin-stimulated glucose uptake by
+        # 26% in T1D (Vuorinen-Markkola 1992; Yki-Järvinen 1987). State H relaxes toward 0.26·clip((G − 140)/220, 0, 1)
+        # with τ 12 h [J, both ways]; insulin sensitivity × (1 − H) (LESSONS 43)
+        self.hyper_res = 0.0
+        self.hyper_on = not (enable and enable.get("glucotox") is False)
 
     # ------------------------------------------------------------------ one minute
     def _minute(self, pending_actions: list):
         m = self.minute
         si, egp, absm_env = self.mods.at(m)
         si *= self._fat_si(m)
+        if self.hyper_on:
+            target = 0.26 * min(1.0, max(0.0, (self.body.g - 140.0) / 220.0))
+            self.hyper_res += (target - self.hyper_res) / 720.0
+            si *= 1.0 - self.hyper_res
         gi_ill = self.mods.illness(m)[2] if self.mod_traits.enabled.get("illness") else False
         ex = self.ex.at(m, awake=not self.beh.asleep(m)) if self.enable["exercise"] else dict(ex_intensity=0, ex_anaerobic=0, ex_si_boost=0, abs_mult=1)
         absm_site, bio = self.pump.site_state(m)
