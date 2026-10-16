@@ -1133,3 +1133,6 @@ statistic here, but it is the controller donors ran.
     over-sample nights when insulin is not working (a poor site, resistance), which a healthy simulated body does not.
     Next: per-unit effect at night-time highs vs at normal glucose in donors, and the simulated site states on high
     nights.
+    A within-person regression of 3-h ΔG on insulin delivered, by midnight glucose band, gives positive slopes in
+    every band for donors and sim (Loop delivers more when glucose stays high). Observational dose-response is
+    confounded by the controller and cannot show whether real insulin is weaker at highs.
