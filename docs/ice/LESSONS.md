@@ -1044,3 +1044,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     0.099 / 0.079, t<54 0.35 / 0.30, t<70 1.74 / 1.47 (base 2.07 / 1.77), but TIR 69.2 / 68.0 (base 69.8 / 70.0), mean +2 / +3.
     The same early part with its area (6 / 11 mg/dL) taken back evenly over 1-4 h: 0.109 / 0.103, t<54 0.40 / 0.33, TIR 69.7 /
     68.8 - neutral. The low reduction came from net food per meal bolus, not the timing, at a TIR cost.
+112. **Change test on the honest harness: effect sizes a little larger, glucose-band bolus calibration neutral; seed noise
+    dominates.** Slope of the field change on the predicted, seeds 0 / 1 (TIR, t<70, mean, t<54): v32of TcB2CG (field
+    snaps on) 0.76 / 0.65, 1.10 / 1.28, 1.10 / 0.62, 0.35 / 0.32; TcB2FG (follow-min 60) 0.89 / 0.54, 0.96 / 1.18, 0.80 /
+    0.45, 0.39 / 0.15; TcB2FGUC (+ bolus heads by glucose band) 0.57 / 0.65, 0.93 / 1.20, 0.74 / 0.48, 0.24 / 0.30. The
+    seed-to-seed range of a slope (~0.35) exceeds the differences between the two newer bases; against the old one, the mean
+    slope falls (0.86 -> 0.61-0.63 averaged) and predicted spread rises (sd 5.9-7.4 -> 7.7-8.9 mg/dL): without the snaps
+    onto the field, generated effects come out larger. t<54 mean |error| 0.40-0.42 vs 0.30 for predicting no change. The
+    honest harness and the bolus calibration both stay; deciding between candidates on this bar needs more seeds per arm.
