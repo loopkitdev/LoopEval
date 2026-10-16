@@ -530,3 +530,24 @@ statistic here, but it is the controller donors ran.
     but corrections fire above the person's own level and only when CGM is not falling and nothing was
     bolused in 2 h (46% of minutes). Planned top-ups executed 38% of the time. Both are now sized to
     realize the donor's rate.
+
+43. **A [J] prior six times the literature made whole days of highs; three evidenced insulin-delivery and
+    physiology terms now carry the high side.**
+    - **Site failures.** Failing absorption, full occlusion and dislodgement had been set to 15% + 2% + 3%
+      of sites. Kanapka 2022 (22,741 wears) puts sets ending in prolonged hyperglycaemia at 3.3% all causes
+      (adults 1.9%, ages 14–17 5.8%). At the literature rates (youth ×3), the between-day fraction fell
+      0.142 → 0.112 (donors 0.105), and daytime no-bolus lows matched (0.183 vs 0.185). But TIR rose to 77
+      and time above 180 fell to 19.6 (donors 25.6): the excess failures had been supplying the highs.
+    - **Attribution of highs.** By context, the shortfall is in highs with no eating in the past 4 h
+      (2.8% vs 6.1% of readings) and in late announced meals.
+    - **Two named terms** went in for that:
+      - Hyperglycaemia-induced insulin resistance: 24 h at 20 mM lowers insulin-stimulated uptake 26% in
+        T1D (Vuorinen-Markkola 1992; Yki-Järvinen 1987). A state with τ 12 h [J].
+      - Absorbed fraction falling with set age: fasting glucose 126 / 133 / 147 on days 1 / 3 / 5 with
+        insulin unchanged (Sampson Perrin 2015); extent down, rate up (Simic 2021). −2.5% per day after
+        day 1 [I].
+
+      Cohort c45 (112 × 14 d): every outcome statistic passes KS (mean p 0.08, TIR 0.31, time above 180
+      0.17, t<70 0.27, t<54 0.13, CV 0.13, TDD 0.74). 21 of 50 overall.
+    - **Still failing.** The process statistics. Increment skew is the clearest: true-glucose increments
+      skew −0.33 (falls sharper than rises), against the donors' CGM +0.34.
