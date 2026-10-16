@@ -111,6 +111,15 @@ def real_stats(export: Path, block_days: int = 13) -> dict | None:
     cgm = pd.Series([x["quantity"] for x in g], index=pd.to_datetime([x["startDate"] for x in g]), dtype=float).sort_index()
     cgm = cgm[~cgm.index.duplicated()]
     doses = json.load(open(export / "doses.json"))
+    # the export is UTC; day boundaries and clock-hour statistics (day_night) need the donor's local time
+    from .quiet import local_offset, to_local
+    ice_root = export.parent.parent
+    off = local_offset(export.name, ice_root) if (ice_root / "steps" / f"{export.name}.parquet").exists() else None
+    if off is not None:
+        cgm.index = to_local(cgm.index, off)
+        st = to_local(pd.to_datetime([x["startDate"] for x in doses], utc=True), off)
+        en = to_local(pd.to_datetime([x["endDate"] for x in doses], utc=True), off)
+        doses = [dict(x, startDate=a, endDate=b) for x, a, b in zip(doses, st, en)]
     t0, t1 = cgm.index[0].floor("D") + pd.Timedelta(days=1), cgm.index[-1].floor("D")
     rows = []
     s = t0

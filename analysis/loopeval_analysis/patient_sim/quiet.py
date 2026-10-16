@@ -199,14 +199,34 @@ def jump_signature(cgm: pd.Series, events: np.ndarray) -> dict:
     return dict(n_steps=n, jumps_per_1000=1000 * tot / max(n, 1), **{f"{c}_per_1000": 1000 * x / max(n, 1) for c, x in cls.items()})
 
 
+def local_offset(alias: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32") -> pd.Series:
+    """The donor's UTC→local offset (minutes) over time, from the ICE steps table's local `hour` (the export
+    itself is UTC and carries no zone). Indexed by naive UTC time; changes at DST and travel."""
+    s = pd.read_parquet(ice_root / "steps" / f"{alias}.parquet", columns=["t1", "hour"]).sort_values("t1")
+    t = s.t1.dt.tz_convert("UTC").dt.tz_localize(None)
+    utc_min = t.dt.hour * 60 + t.dt.minute + t.dt.second / 60.0
+    off = ((s.hour.to_numpy() * 60 - utc_min.to_numpy() + 720) % 1440) - 720
+    return pd.Series(np.round(off / 15) * 15, index=t.to_numpy()).rolling(25, center=True, min_periods=1).median()
+
+
+def to_local(times, offset: pd.Series) -> pd.DatetimeIndex:
+    """Naive UTC times → naive local times with the donor's offset (nearest steps-table row)."""
+    t = pd.DatetimeIndex(times)
+    if t.tz is not None: t = t.tz_convert("UTC").tz_localize(None)
+    k = np.clip(np.searchsorted(offset.index.values, t.values), 0, len(offset) - 1)
+    return t + pd.to_timedelta(offset.to_numpy()[k], unit="m")
+
+
 def _donor_series(alias, ice_root):
+    """CGM and disturbance times in the donor's LOCAL time (the export is UTC)."""
     g = json.load(open(ice_root / "full" / alias / "glucose.json"))
-    cgm = pd.Series([x["quantity"] for x in g], index=pd.to_datetime([x["startDate"] for x in g]).tz_localize(None)).sort_index()
+    off = local_offset(alias, ice_root)
+    cgm = pd.Series([x["quantity"] for x in g], index=to_local(pd.to_datetime([x["startDate"] for x in g]), off)).sort_index()
     cgm = cgm[~cgm.index.duplicated()]
     m = pd.read_parquet(ice_root / "meals" / f"{alias}.parquet")
     doses = json.load(open(ice_root / "full" / alias / "doses.json"))
-    man = [pd.Timestamp(x["startDate"]).tz_localize(None) for x in doses if x["deliveryType"] == "bolus" and not x.get("automatic")]
-    ev = np.array(list(pd.to_datetime(m.onset).dt.tz_localize(None).values) + [np.datetime64(x) for x in man], dtype="datetime64[ns]")
+    man = pd.to_datetime([x["startDate"] for x in doses if x["deliveryType"] == "bolus" and not x.get("automatic")], utc=True)
+    ev = np.concatenate([to_local(pd.to_datetime(m.onset, utc=True), off).values, to_local(man, off).values]).astype("datetime64[ns]")
     return cgm, ev
 
 

@@ -100,6 +100,12 @@ class World:
         ss = np.random.SeedSequence(seed)
         r_mod, r_beh, r_sen, r_pump, r_abs, r_misc = [np.random.default_rng(s) for s in ss.spawn(6)]
         self.mod_traits = person.traits.get("mod") or sample_mod_traits(r_misc, person.age, person.sex)
+        if person.truth.get("basal_profile") and self.mod_traits.dawn:
+            # a donor's own basal profile already carries their dawn need (the body's EGP follows it); on quiet mornings
+            # donors' delivered insulin falls 05–07 vs 01–03 (0.92) and glucose drifts −7 mg/dL 03→07, which the
+            # profile alone reproduces (−5.6) while the extra dawn bump gave +11 (LESSONS 51)
+            import copy
+            self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.dawn = False
         if enable:
             self.mod_traits.enabled.update({k: v for k, v in enable.items() if k in self.mod_traits.enabled})
             if isinstance(enable.get("day_tau"), float):

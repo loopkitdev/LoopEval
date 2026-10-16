@@ -55,6 +55,8 @@ class BehaviorTraits:
     gi_cv: float = 0.4                   # per-meal absorption-speed CV (01 §6.2)
     # announcement and bolusing
     p_entry_meal: float = 0.7
+    slot_shares: tuple = (0.22, 0.30, 0.34)   # breakfast / lunch / dinner share of a main-meal day (Camerlingo 2021)
+    slot_ann: tuple = (1.0, 1.0, 1.0)         # per-meal entry chance relative to p_entry_meal (donor's own windows)
     p_entry_snack: float = 0.3
     count_bias: float = -0.10            # person's mean carb-count error (Brazeau 2013: 63% under)
     count_sd: float = 0.20               # per-meal count error sd
@@ -242,6 +244,23 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         t.p_more = float(np.clip(t.ov_more_day / (16 * 60 * max(hi_frac, 0.05) * 0.4), 0.0, 0.05))
     lsd = _num(rates, "meal_size_logsd")
     if np.isfinite(lsd): t.meal_cv = float(np.clip(lsd, 0.2, 0.9))
+    # main meals by the donor's own windows (templates.add_slot_rates; LESSONS 51): the breakfast / lunch / dinner
+    # split of eaten grams, and each meal's chance of a carb entry scaled by how the donor announces that window
+    # relative to their own average (the overall entry rate stays the donor's)
+    sg, sa = rates.get("slot_g"), rates.get("slot_ann")
+    if isinstance(sg, str):
+        import json as _json
+        g = np.array(_json.loads(sg), dtype=float)
+        if np.isfinite(g).all() and g.sum() > 0: t.slot_shares = tuple(float(x) for x in g / g.sum() * 0.86)
+    if isinstance(sa, str):
+        import json as _json
+        a = np.array(_json.loads(sa), dtype=float)
+        if np.isfinite(a).all() and a.mean() > 0:
+            t.slot_ann = tuple(float(x) for x in a / a.mean())
+            if np.isfinite(entries):
+                # the per-meal chance caps at 1, so the snacks carry whatever the main meals no longer take
+                main = sum(min(1.0, t.p_entry_meal * x) for x in t.slot_ann)
+                t.p_entry_snack = float(np.clip((entries - main) / max(snack_rate, 0.1), 0.0, 1.0))
     mh = rates.get("meal_hours")
     if isinstance(mh, str):
         import json as _json
@@ -339,10 +358,11 @@ class Behavior:
         slots = []
         b = float(np.exp(r.normal(t.breakfast_mu, t.breakfast_sd))) * 60 + shift
         main_w = t.main_weight
-        if r.random() > t.skip_breakfast: slots.append(("meal", b, 0.22 / 0.286 * main_w))
+        sB, sL, sD = t.slot_shares
+        if r.random() > t.skip_breakfast: slots.append(("meal", b, sB / 0.286 * main_w, 0))
         lunch = b + max(120.0, r.gumbel(282.9, 80.0) * 0.9)
         dinner = lunch + max(150.0, r.gumbel(374.9, 85.0) * 0.9)
-        slots += [("meal", lunch, 0.30 / 0.286 * main_w), ("meal", dinner, 0.34 / 0.286 * main_w)]
+        slots += [("meal", lunch, sL / 0.286 * main_w, 1), ("meal", dinner, sD / 0.286 * main_w, 2)]
         n_snack = r.poisson(t.snack_rate)
         sh = getattr(t, "snack_hours", None)
         for _ in range(n_snack):
@@ -350,7 +370,7 @@ class Behavior:
                 st = (float(r.choice(24, p=sh)) + r.random()) * 60
             else:
                 st = float(r.uniform(t.wake + 60, t.bed + 30))
-            slots.append(("snack", st + shift, 1.0))
+            slots.append(("snack", st + shift, 1.0, -1))
         # daily intake is regulated over 24 h more tightly than per eating occasion: a day total T_d = carbs_day ×
         # exp(z_d), z AR(1) across days (CV 0.22, ρ 0.29: within-person day-to-day carbohydrate CV ~20%, Tarasuk &
         # Beaton 1992 and dietary-record studies; next-day intake r 0.29, Levitsky 2017), shared by the day's events in
@@ -359,14 +379,14 @@ class Behavior:
         sd = math.sqrt(math.log(1 + t.intake_cv ** 2))
         self.day_z = t.intake_rho * self.day_z + math.sqrt(1 - t.intake_rho ** 2) * float(r.normal(0, sd))
         day_factor = math.exp(self.day_z - sd ** 2 / 2)
-        total_share = (1 - t.skip_breakfast) * 0.22 / 0.286 * main_w + (0.30 + 0.34) / 0.286 * main_w + t.snack_rate
-        draws = [share * float(np.exp(r.normal(0, t.meal_cv) - t.meal_cv ** 2 / 2)) for _, _, share in slots]
+        total_share = ((1 - t.skip_breakfast) * sB + sL + sD) / 0.286 * main_w + t.snack_rate
+        draws = [share * float(np.exp(r.normal(0, t.meal_cv) - t.meal_cv ** 2 / 2)) for _, _, share, _ in slots]
         comp = (total_share / max(sum(draws), 1e-9)) ** t.intake_comp
-        for (kind, mt, share), w in zip(slots, draws):
+        for (kind, mt, share, k), w in zip(slots, draws):
             grams = t.carbs_day * carb_scale * day_factor * w / max(total_share, 1e-9) * comp
             grams = max(3.0, grams)
             speed = float(np.exp(r.normal(0, t.gi_cv)))
-            p_e = t.p_entry_meal if kind == "meal" else t.p_entry_snack
+            p_e = min(1.0, t.p_entry_meal * t.slot_ann[k]) if kind == "meal" else t.p_entry_snack
             entered = None; bolus = None; et = base + mt
             if r.random() < p_e:
                 err = t.count_bias + r.normal(0, t.count_sd) - (0.1 * math.log(max(grams, 5) / 45.0) if t.count_sd > 0 else 0.0)
@@ -403,7 +423,7 @@ class Behavior:
         # times on the UK Biobank day profile (00–06 / 06–12 / 12–18 / 18–24: 0.04 / 0.34 / 0.39 / 0.23), awake only,
         # a share after eating [J]; duration lnN(18 min, 0.75) in 5–150; intensity = (MET − 1)/(METmax − 1) × duty 0.7
         # with MET lnN(3.0, 0.2) and 10% brisk episodes MET U(4.5, 6) (2024 Compendium; Pemberton 2025 mix)
-        eat_times = sorted(base + st for _, st, _ in slots)
+        eat_times = sorted(base + st for _, st, _, _ in slots)
         day_act = r.gamma(3.0, 1 / 3.0)
         n_act = r.poisson(t.act_rate * (day_act if t.act_day_var else 1.0))
         for _ in range(n_act):
