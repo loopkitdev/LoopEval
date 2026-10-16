@@ -933,3 +933,18 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     rc_mode.csv. Rerun, seeds 0 / 1: model slope TIR 0.62 / 1.21 -> 0.58 / 1.01, t<70 0.97 / 1.00 -> 0.99 / 0.86, mean
     1.11 / 0.88 -> 1.08 / 0.68, t<54 0.23 / 0.19 -> 0.17 / 0.12; replay TIR 0.49 -> 0.48. Within seed noise: both arms of
     an edit share the mode, so it cancels from the predicted change, as the handoff expected.
+101. **Making the baseline explain background ICE on its own (v3m23) buys the post-bolus rise at the cost of the level; not
+    kept at either weight.** Teacher-forced, v3m21's meal-locked rise sits in the recurrent path (baseline -12 at 10 min after
+    a meal bolus), so closed loop loses it (total ICE at 30 min 101 vs 124 field). v3m23 adds AUX x Gaussian loss of the
+    baseline alone against background ICE. Full chain (traits, band, closed loop), held-out clean time, seeds 0 / 1 (base
+    69.0 / 69.0, t<54 0.59 / 0.60, lows per meal bolus 0.111 / 0.108; field 74.1 / 0.12 / 0.064):
+    AUX 0.5: TIR 65.8 / 66.9, t<54 0.67 / 0.79, lows per meal bolus 0.077 / 0.099; the rise is there (background 63-64 at
+    15-30 min, field 47 / 69) but post-meal background stays high (52 vs 43.5 at 3 h, afternoons 171-179 vs ~160); fed real
+    inputs it overshoots after meals (66 vs 61 at 30 min, 59 vs 49 at 75): baseline and recurrent path both add the rise.
+    AUX 0.1: TIR 69.0 / 69.0, t<54 0.65 / 0.77, lows per meal bolus 0.098 / 0.103, rise 51 at 30 min. The post-bolus
+    lows track the rise only weakly; t<54 does not follow them.
+102. **Engine 11d1b77 (plant bolus before the automatic dose, 8e86860 + f11386e) adopted as the harness; outcomes within
+    noise.** Verified on i001: plant received 285.65 U = trace 285.65 U of person boluses; automatic dose at those steps
+    88 -> 0.35 U; automatic boluses still reach the plant (as basal-type entries). Base v32of{0,1}TcB2C held-out: TIR 69.0 /
+    69.0 -> 69.2 / 69.6, t<54 0.59 / 0.60 -> 0.63 / 0.55, mean 158 / 159 -> 159 / 157, lows per meal bolus 0.111 / 0.108 ->
+    0.105 / 0.106 (as LESSONS 99's stopgap predicted).
