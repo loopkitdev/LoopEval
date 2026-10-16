@@ -49,6 +49,8 @@ class BehaviorTraits:
     meal_slow_frac: float = 0.0          # share of a meal emptied in the slow phase (calibrated vs donor meal response)
     meal_slow_k: float = 0.008           # /min, Dalla Man kmin
     meal_fast_frac: float = 0.2          # share of a meal's carbohydrate in its fast-emptying liquid phase [J; 0.2 vs 0.35 by cohort, LESSONS 44]
+    meal_fast_sd: float = 0.0            # per-meal SD of that share (Beta, same mean): foods differ in rapidly available glucose
+                                         # (Englyst 1999: RAG explains 70% of the glycaemic-response variance) [switch, LESSONS 88]
     main_weight: float = 1.9             # a main meal's expected size relative to a snack: Camerlingo 2021 (B 41 / L 49 / D 53 vs
                                          # snack 25 g). Entered grams per entry then match donors (32.3 vs 32.6; LESSONS 47);
                                          # lesson 16's 1.0 compensated for fixed-rate emptying with three meals carrying all carbs
@@ -314,6 +316,7 @@ class Behavior:
         self.t = traits
         self.p = person
         self.rng = rng
+        self.r_ff = np.random.default_rng(int(getattr(person, "seed", 0)) + 777)   # per-meal fast share; own stream
         self.readings: list[tuple[float, float]] = []
         self.planned: list = []                 # (minute, action) sorted
         self.planned_day = -1
@@ -516,6 +519,9 @@ class Behavior:
                 # glucose t½ ~9 min; Calbet 1997, Hunt 1985): a share of the carbohydrate bypasses the energy-limited
                 # solid phase [J share] (LESSONS 44)
                 ff = t.meal_fast_frac
+                if t.meal_fast_sd > 0 and 0 < ff < 1:
+                    k = ff * (1 - ff) / t.meal_fast_sd ** 2 - 1
+                    if k > 0: ff = float(self.r_ff.beta(ff * k, (1 - ff) * k))
                 if ff > 0:
                     acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * ff, kempt=0.08 * meal.speed, kabs=0.08 * meal.speed,
                                                f=bp.f, label=meal.kind + "_liquid", kcal_per_g=0.0)))

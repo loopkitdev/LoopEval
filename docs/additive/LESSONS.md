@@ -1282,3 +1282,50 @@ statistic here, but it is the controller donors ran.
       The sizes follow from the inferred EC50 and the PK alone. No study measures outcomes by day since injection
       (evidence/16 §3). Treat them as a hypothesis the donor data could test, for donors on a known weekly agent.
     Scripts on gamepc: `~/additive/glp1_an.py`, `glp1_week.py`; runs `~/additive/runs/glp1_*`.
+
+88. **The 5-min step-skew gap is the first hour of real meals, and per-person gastric emptying is an evidenced
+    component that was never wired.** Donors' G7 step skew is +0.33; c98 reads +0.01 (KS p 1e-27, the worst-matched
+    statistic).
+    - **True glucose is not the problem:** the sim's true glucose skews +0.27. Its sensor noise is symmetric and
+      carries about 60% of the step variance (CGM step SD 7.4 vs true 4.7), which dilutes the skew.
+    - **Where the gap sits.** Each person's skew splits into additive shares by context: Σz³/N, by time since the last
+      labeled pulse or manual bolus, with the ice labeler on both sides. Time shares match within a few percent.
+
+      | Context | Donors | Sim |
+      |---|---|---|
+      | day, 0–1 h after an event | +0.35 | +0.18 |
+      | day, 1–3 h | −0.01 | −0.06 |
+      | night, 1–3 h | −0.01 | −0.04 |
+      | quiet, > 4 h | ±0.02 | ±0.01 |
+      | total | +0.37 | +0.05 |
+
+      Real meals rise more sharply in the first hour and come down more gently.
+    - **The median meal matches; single meals do not.** Isolated, announced, bolused meals, median Δ from onset: donors
+      42 vs sim 42 at 120 min, within 1–2 mg/dL per 10 g at every 10-min point to 4 h. First-hour steps: donors skew
+      +0.67, p99 24 mg/dL; sim +0.05, p99 19. Real meal-to-meal and person-to-person spread in rise speed is larger.
+    - **Per-meal fast-liquid share (Beta, mean 0.2, `--set meal_fast_sd`):** SD 0.15 gives step skew +0.03 and SD 0.25
+      gives +0.08. Paired outcomes are unchanged (TIR +0.15 [−0.44, +0.80]). Not the lever; the switch stays at 0.
+      (Englyst 1999: rapidly available glucose explains 70% of glycaemic-response variance; no per-meal spread found.)
+    - **Per-person gastric emptying (`--enable ge_var`).** Evidence/09 gives Vmax lognormal CV 30% (Samsom 2003,
+      Hellmig 2006) and 28% of T1D adults delayed at ×0.6–0.8. It had never been wired: every person had Vmax 3.
+      c100 vs same-code baseline c99_base (= c98 exactly):
+
+      | | Baseline | ge_var | Donors |
+      |---|---|---|---|
+      | Statistics matched | 21 of 51 | 26 | — |
+      | Glucose CV | 37.2 (fails) | 35.2 (passes) | 34.8 |
+      | Glucose skew | 0.79 | 0.75 | 0.89 |
+      | Box-Cox λ | 0.00 | 0.10 (now fails) | 0.00 |
+      | Step skew, G7 | 0.01 | 0.00 | 0.33 |
+
+      Paired outcomes are unchanged (TIR −0.1). Slow emptiers flatten their peaks, so CV improves while glucose skew
+      falls. Off by default pending Pete's call.
+    - **Donor quiet windows have labeler blind spots.** Half the pilot donors have at least one label-free stretch
+      over 24 h (the max is 57 days). Sharp sustained daytime rises (> 20 mg/dL per 5 min, median +132 mg/dL to a
+      peak of 290) with no label sit in those stretches and in disruption windows (generic disruption 18% vs 7% at
+      random). With quiet limited to coverage (inter-label gap ≤ 18 h), donors still show 14 such rises per 1,000
+      quiet daytime steps against the sim's 5 (labeler-defined). They are rare (about 0.1 per donor-day) and add
+      little to the whole-record skew. Earlier quiet-window results (LESSONS 76, 78) used uncovered stretches; the
+      daytime skew changes little with the coverage filter (+0.75 → +0.77).
+    Scripts: `runs/2026-10-16-additive-vskew/` (vskew, quiet_dn, quiet_ctx, rise_*); on gamepc `~/additive/`
+    `skew_contrib.py`, `meal_traj.py`, `sim_labeled_quiet.py`.

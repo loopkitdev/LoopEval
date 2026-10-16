@@ -34,7 +34,8 @@ def _one(args):
                           prof_w=enable.get("prof_w") if isinstance(enable.get("prof_w"), float) else None,
                           egp_share=enable.get("egp_share") if isinstance(enable.get("egp_share"), float) else None,
                           isf_total=bool(enable.get("isf_total", False)),
-                          kappa_mult=enable.get("kappa_mult", 1.0) if isinstance(enable.get("kappa_mult"), float) else 1.0)
+                          kappa_mult=enable.get("kappa_mult", 1.0) if isinstance(enable.get("kappa_mult"), float) else 1.0,
+                          ge_var=bool(enable.get("ge_var", False)))
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
         run(P, days, out, binp, enable=enable, controller=controller, extra_flags=flags.get(P.name, flags.get("*", [])))
