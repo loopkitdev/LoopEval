@@ -49,8 +49,9 @@ class BehaviorTraits:
     meal_slow_frac: float = 0.0          # share of a meal emptied in the slow phase (calibrated vs donor meal response)
     meal_slow_k: float = 0.008           # /min, Dalla Man kmin
     meal_fast_frac: float = 0.2          # share of a meal's carbohydrate in its fast-emptying liquid phase [J; 0.2 vs 0.35 by cohort, LESSONS 44]
-    main_weight: float = 1.0             # a main meal's expected size relative to any other eating event: donors' eating
-                                         # comes as ~5.6 pulses/day of median 26 g-eq (ice meals), not 3 big meals (LESSONS 16)
+    main_weight: float = 1.9             # a main meal's expected size relative to a snack: Camerlingo 2021 (B 41 / L 49 / D 53 vs
+                                         # snack 25 g). Entered grams per entry then match donors (32.3 vs 32.6; LESSONS 47);
+                                         # lesson 16's 1.0 compensated for fixed-rate emptying with three meals carrying all carbs
     gi_cv: float = 0.4                   # per-meal absorption-speed CV (01 §6.2)
     # announcement and bolusing
     p_entry_meal: float = 0.7
