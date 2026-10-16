@@ -159,3 +159,11 @@ statistic here, but it is the controller donors ran.
     over 6 h), and meal boluses (2–5 U) absorb faster than 0.2 U/kg clamp doses. Action now tracks
     Loop's adult curve (13/51/77/91/99% at 1/2/3/4/6 h vs Loop's 17/50/76/91/100) with the PK unchanged.
     Check found by comparing insulin delivered around bolused meals, donors vs simulation, same windows.
+
+21. **The protocol's order of operations is part of the plant.** At a decision where a plant bolus
+    lands, LoopEval decides the automatic dose without it; an auto-bolus user then got 0.4 × the meal's
+    need from Loop plus the full calculator bolus — ~1.4× every announced meal, then an hour of zero
+    temps and a low. Found by comparing insulin around bolused meals with donors (1.30 vs 0.84 U per
+    10 g) after ruling out the bolus itself (1.02 vs 1.01 of CR) — and only after the meal response had
+    resisted two "physiology" explanations (absorption speed, insulin action). Workaround: the plant
+    asks for ratio − AF. Engine fix proposed (docs/handoffs/2026-10-15-simulator-plant-bolus-autodose.md).
