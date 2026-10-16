@@ -126,6 +126,8 @@ class PlantV3:
         self.eoff_scale = float(os.environ.get("PLANT_EOFF_SCALE", "1"))   # diagnostic: scale entry -> pulse onset delay
         em = os.environ.get("PLANT_EOFF_MAP"); self.eoff_map = json.load(open(em)) if em else None   # build_eoff_map.py
         sz = os.environ.get("PLANT_SIZE_MAP"); self.size_map = json.load(open(sz)) if sz else None   # build_size_map.py
+        sp_ = os.environ.get("PLANT_SIZE_PERSON")
+        self.size_person = float(json.load(open(sp_)).get(alias, 1.0)) if (sp_ and os.environ.get("DRAW_PERSON") in (None, "")) else 1.0
         # monthly-cycle dial (off by default): the person's insulin need swings on a 28-day sinusoid, amplitude MONTH_CYCLE x their
         # typical insulin action (ISF x TDD/24, mg/dL/h) added to background ICE, random phase per run
         self.mc_amp = float(os.environ.get("MONTH_CYCLE", "0"))
@@ -402,6 +404,7 @@ class PlantV3:
                     g_e = float(np.clip(np.exp(float(s["e_lg"][0])), 1, 250)); sm = self.size_map
                     u_ = float(np.clip(np.interp(size / g_e, sm["gen"], sm["q"]), 0.01, 0.99))
                     size = float(np.clip(g_e * np.interp(u_, sm["q"], sm["field"]), 5, 250))
+                size = float(np.clip(size * self.size_person, 5, 250))   # per-person pulse / entry scale (build_size_person.py)
                 peak = float(np.clip(np.exp(float(s["e_lpeak"][0])), 5 / 60, 4)); dur = float(np.clip(np.exp(float(s["e_ldur"][0])), 0.25, 10))
                 m, sd = params(peak, dur)
                 off_ = float(np.clip(np.expm1(float(s["e_off"][0])), 0, 120))
