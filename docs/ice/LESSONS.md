@@ -1019,3 +1019,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     every calculator ratio capped at x1.2 (PLANT_RATIO_CAP), base v32of{0,1}TcB2FG: lows per meal bolus 0.113 / 0.107 ->
     0.118 / 0.108, TIR 69.6 / 68.4 -> 70.2 / 68.6, t<54 0.40 / 0.38 -> 0.40 / 0.33. Ruled out as the cause; a faithful
     ratio rule would need the engine to apply it at the recommendation it computes.
+110. **Generated people take lone boluses at the wrong glucose: the head is flat where real people correct when high. Bolus
+    heads calibrated by glucose band; kept.** Base v32of0TcB2FG, held-out: at a lone bolus (no entry within 15 min) glucose
+    median 147 vs 193 mg/dL field, trend +8 vs +26 per 30 min, 19% vs 7% taken below 100; within a glucose band the chance of
+    a low in the next 3 h is the field's (100-250 mg/dL), so the excess came from where the boluses fall. Fed real inputs the
+    lone-bolus rate is flat across glucose (0.10-0.12 an hour at <100 / 100-140 / 140-180 / 180-250 / >250) against the
+    field's 0.11 / 0.09 / 0.10 / 0.13 / 0.26. calibrate_bolus_bg.py: pooled logit offsets per glucose band on the lone- and
+    meal-bolus heads, teacher-forced on the 28 days before each hold-out (lone, seed 0: -0.45 / -0.43 / +0.02 / +0.53 / +0.85).
+    Held-out seeds 0 / 1: lows per lone bolus 0.138 / 0.138 -> 0.099 / 0.105 (field 0.075), t<54 0.40 / 0.38 -> 0.37 / 0.31,
+    TIR 69.6 / 68.4 -> 69.0 / 70.1, mean 157 / 158 -> 156 / 157; lone boluses 2.57 / 2.6 -> 2.85 / 3.13 a day (field 2.29)
+    - more time high now draws more corrections; the closed-loop count calibration is refit on top. Meal boluses unchanged:
+    0.114 / 0.105 lows per meal bolus vs 0.064, at the same glucose 1.5-2x the field's.
