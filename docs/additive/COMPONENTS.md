@@ -45,6 +45,7 @@ estimates (LESSONS 2).
 | Component | Model form | Parameters | Evidence | Status |
 |---|---|---|---|---|
 | B1 Circadian sensitivity | Visentin 7-class B/L/D profile, switches 04/11/17 h, 1 h ramps, normalised to a daily mean of 1 | class probabilities 0.10/0.05/0.05/0.10/0.20/0.20/0.30; low/high N(0.40, 0.23) at Visentin's **full** swing; no per-day noise (07) | 01 §5.1; LESSONS 38: 24-h amplitude 0.14 vs donors 0.13 | calibrated |
+| B1b Basal-need profile | EGP × the donor's local hourly basal-schedule shape^0.5; Loop's exported schedule uses the shape as is | per donor (templates.add_basal_profile) | donor basal schedules in local time; LESSONS 48 (day/night insulin 1.40 vs 1.38) | calibrated |
 | B2 Dawn phenomenon | EGP ramp from onset U(02:00, 04:30) to a 07:00 peak, gone by 10:00 | present p 0.52; amplitude lnN(0.3, 0.6) of EGP_b [J] | 02 (Ostrovski 2020); 01 §5.1 | wired |
 | B3 Intrinsic day-level SI | independent per-day lognormal | CV 8% | 07 (repeat clamps 6–15%) | wired |
 | B4 Intraday OU / slow drift | — | **off**: no controlled-condition evidence | 07; LESSONS 1 | off |
