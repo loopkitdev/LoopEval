@@ -505,8 +505,14 @@ class Behavior:
                 acts.append(("carb", m, float(meal.entered), t.absorption_entry_h * 3600))
                 if meal.bolus is not None:
                     if t.p_split > 0 and r.random() < t.p_split:
-                        acts.append(("bolus", m, 0.6 * meal.bolus))
-                        self.planned.append((m + float(r.uniform(10, 30)), ("split_rest",)))
+                        # two boluses on one entry: donors' second dose is about as big as the first (second/first median
+                        # 0.93, quartiles 0.42–2.0) a median 12 min later (10–90%: 2–26 min); 17,898 pairs. A planned
+                        # remainder in units, not a fresh recommendation, which was 0 U for 36% of remainders (LESSONS 54)
+                        ratio = float(np.exp(r.normal(math.log(0.93), 1.16)))
+                        f = 1.0 / (1.0 + ratio)
+                        acts.append(("bolus", m, f * meal.bolus))
+                        gap = float(np.clip(np.exp(r.normal(math.log(12.0), 0.8)), 2.0, 30.0))
+                        self.planned.append((m + gap, ("split_rest", m, ratio)))
                         self.planned.sort(key=lambda x: x[0])
                     else:
                         acts.append(("bolus", m, meal.bolus))
@@ -522,8 +528,10 @@ class Behavior:
                 acts.append(("eat", Parcel(m, rest[0], kempt=bp.kempt * 1.5, kabs=bp.kabs * 1.5, f=self._f_glucose(), label="graze")))
                 self.log.append((m, "graze", rest[0], None))
             elif kind == "split_rest":
-                # the rest of a split meal bolus: Loop's recommendation now covers what remains of the entry
-                acts.append(("bolus", m, 1.0)); self.last_bolus = m
+                # the planned rest of a split meal bolus, in units of the first part (the world reads what was delivered);
+                # skipped if the person sees a low coming (CGM < 80) [J]
+                if not (self.readings and self.readings[-1][1] < 80):
+                    acts.append(("split_units", m, rest[0], rest[1])); self.last_bolus = m
                 self.log.append((m, "split_rest", 0, None))
             elif kind == "topup":
                 # a top-up when the meal is running high: CGM above 120 and not falling [J on the condition]

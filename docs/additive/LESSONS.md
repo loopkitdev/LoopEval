@@ -764,3 +764,16 @@ statistic here, but it is the controller donors ran.
     model sits near the low-GL value for meals that size. Open: what front-loads big-meal appearance relative to the
     bolus in real people, or what holds their insulin back mid-meal (Loop's own response to a plateau is the same
     code in both).
+
+54. **A second bolus on the same entry is the person's planned remainder, not a fresh recommendation.** Simulated
+    people realized fewer manual boluses than their templates (median 3.58 vs 4.17/day). Split remainders dosed
+    at Loop's recommendation came out 0 U 36% of the time, and top-ups 58% (already sized for, LESSONS 42). In the
+    donors' raw records (17,898 pairs of boluses within ±30 min of one entry, ≤ 60 min apart), the second dose is about
+    as big as the first (second/first median 0.93, quartiles 0.42–2.0) and comes a median 12 min later (10–90%: 2–26).
+    So the split is drawn from that ratio, and the rest goes as units (the world reads the delivered first part; it
+    looks again after 5 min if LoopEval has not delivered it yet; skipped when CGM < 80 [J]).
+    Cohort c64: zero-delivery time 31.3% (34.4; was 29.2), manual 11.0 U/day (12.0; was 10.7), boluses 3.67/day
+    (4.59). Outcomes unchanged. The big-meal mid-meal dip remains (LESSONS 53).
+    Around isolated announced meals donors also spread meal insulin wider than the sim: 25% more than 15 min before onset
+    (sim 20%) and 16–27% from 1 to 3 h after (sim 12–25%). In −1…3 h they give 1.26–1.95 U per 10 g entered against
+    the sim's 1.03–1.64. Their labeled big-meal pulses are also ~10% larger (47 vs 42 g-eq above 60 g entered).

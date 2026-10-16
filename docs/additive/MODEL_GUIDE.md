@@ -491,8 +491,8 @@ its 15-min trend, and Loop's IOB.
 - Calculator acceptance: 7.4% larger (×1.1–1.5), 6.9% smaller (×0.5–0.9). Evidence: Groat 2017;
   Datye 2018.
 - **Split boluses:** when the donor gives more than one bolus per entry (1.09 median), the excess is the
-  chance of a split dose: 60% at the entry and Loop's recommendation 10–30 min later [J split]
-  (LESSONS 47).
+  chance of a split dose. The second part is a planned remainder in units, second/first lnN(0.93, 1.16), a
+  lnN(12 min, 0.8) gap clipped to 2–30 min. It is skipped if CGM < 80 (donors' same-entry pairs; LESSONS 47, 54).
 - **Top-ups:** with the donor's raw top-up rate per meal bolus (0.26/day median), a second bolus at
   Loop's recommendation 20–60 min later, if CGM is above 120 and not falling **[J on the condition]**.
 
