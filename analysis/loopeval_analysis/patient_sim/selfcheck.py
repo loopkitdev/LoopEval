@@ -32,7 +32,7 @@ def check(templates: pd.DataFrame, seeds, days: int = 10, above_rest_max: float 
     guarded against a runaway (no day mean above 250)."""
     rows = []
     for sd in seeds:
-        P = sample_person(templates, sd)
+        P = sample_person(templates, sd, ge_var=False)   # emptying speed is timing, not units (as ge_kcal above)
         Q = copy.deepcopy(P)
         # dose with the CR consistent with the body (effective ISF ÷ effective CSF, same probe semantics); the person's
         # truth["cr"] is the linear-part bookkeeping ratio that sets intake against TDD (LESSONS 40)
