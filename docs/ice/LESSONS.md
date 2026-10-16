@@ -927,3 +927,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     bolus 0.354 / 0.342 -> 0.329 / 0.333 a day (field 0.214). Loop takes the extra back on the next cycles and half the
     held-out donors use temp basal. Within noise; flag off by default, not in the base. The post-bolus low excess
     (1.6x the field) is elsewhere.
+100. **The change test is robust to the donors' RC mode.** simulator recovered each pilot donor's RC mode by era (handoff
+    2026-10-15-frontier-rc-switches): the 24 held-out donors already matched, but 15 of the change test's 70 edits sit in an
+    integral-RC or switching era that was replayed as standard. change_run.py now takes the RC mode per edit window from
+    rc_mode.csv. Rerun, seeds 0 / 1: model slope TIR 0.62 / 1.21 -> 0.58 / 1.01, t<70 0.97 / 1.00 -> 0.99 / 0.86, mean
+    1.11 / 0.88 -> 1.08 / 0.68, t<54 0.23 / 0.19 -> 0.17 / 0.12; replay TIR 0.49 -> 0.48. Within seed noise: both arms of
+    an edit share the mode, so it cancels from the predicted change, as the handoff expected.
