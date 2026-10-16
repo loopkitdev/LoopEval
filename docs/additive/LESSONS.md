@@ -1014,3 +1014,8 @@ statistic here, but it is the controller donors ran.
     Cohort c80: G7 gaps 2.75 / 1.02 / 0.28 a day at 7–15 / 15–30 / 30–60 min (donors 2.70 / 1.12 / 0.27); wear 0.967 →
     0.972 (0.977). The rest of the wear gap is ≥ 12 h gaps (2.6 vs 9.5 min/day). Other statistics are within the noise
     of LESSONS 63 (12 vs 16 of 30, flips at p ≈ 0.05).
+    Long CGM outages, measured over donors' full records: G7 has 0.0084/day at 6–12 h, 0.0029 at 12–24 h and 0.0023 at
+    ≥ 24 h (≈ 19 min/day missing); G6 0.0012/day ≥ 24 h; Libre 3 0.0065/day. Durations ≥ 12 h: median 22 h, p90 6.4 days,
+    p99 27 days, which are stretches without a sensor or without uploads. In a 14-day record that is ~0.03 events per person,
+    and donor blocks under 70% coverage are dropped from scoring, so they are not modelled; they are what remains of
+    the wear gap.
