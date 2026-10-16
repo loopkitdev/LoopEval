@@ -125,6 +125,7 @@ class PlantV3:
         self.ratio_cap = float(os.environ.get("PLANT_RATIO_CAP", "inf"))   # diagnostic: cap on calculator ratios (LESSONS 109)
         self.eoff_scale = float(os.environ.get("PLANT_EOFF_SCALE", "1"))   # diagnostic: scale entry -> pulse onset delay
         em = os.environ.get("PLANT_EOFF_MAP"); self.eoff_map = json.load(open(em)) if em else None   # build_eoff_map.py
+        self.eatfirst_q = float(os.environ.get("PLANT_EATFIRST", "0")); self.rng_ef = np.random.default_rng(zlib.crc32(f"{alias}-ef-{seed}".encode()))
         sz = os.environ.get("PLANT_SIZE_MAP"); self.size_map = json.load(open(sz)) if sz else None   # build_size_map.py
         sp_ = os.environ.get("PLANT_SIZE_PERSON")
         self.size_person = float(json.load(open(sp_)).get(alias, 1.0)) if (sp_ and os.environ.get("DRAW_PERSON") in (None, "")) else 1.0
@@ -394,11 +395,18 @@ class PlantV3:
         # announcement dial: a meal the person would log is logged with probability ANNOUNCE; otherwise its pulse still
         # comes, but the carb entry and the bolus that goes with it are dropped (eating unchanged, logging and dosing not)
         ann = entry and (self.announce >= 1 or self.rng_ann.random() < self.announce)
+        lag_ = pd.Timedelta(0)
         if entry:
-            if ann:
-                self.due.append((t, "carb", float(np.clip(np.exp(float(s["e_lg"][0])), 1, 250))))
             # v3m3: an entry that starts a meal brings its pulse; one that joins a meal with none begun in 2 h starts one
-            if self.v3m3 and (bool(s["e_new"][0]) or not any(t - a < pd.Timedelta(hours=2) for a in self.anchor_times)):
+            starts_ = self.v3m3 and (bool(s["e_new"][0]) or not any(t - a < pd.Timedelta(hours=2) for a in self.anchor_times))
+            # PLANT_EATFIRST=q: a meal the person logs after starting to eat (49% of field announced meals, 17% generated,
+            # LESSONS 116): the food starts now, the entry and its bolus come after a lag drawn from the field's
+            eat_first = starts_ and self.eatfirst_q > 0 and self.eoff_map is not None and self.rng_ef.random() < self.eatfirst_q
+            if eat_first:
+                lag_ = pd.Timedelta(minutes=float(np.interp(self.rng_ef.random(), self.eoff_map["q"], self.eoff_map["late"])))
+            if ann:
+                self.due.append((t + lag_, "carb", float(np.clip(np.exp(float(s["e_lg"][0])), 1, 250))))
+            if starts_:
                 size = float(np.clip(np.exp(float(s["e_lsize"][0])), 5, 250))
                 if self.size_map is not None:   # pulse / entered grams onto the field's ratio (LESSONS 115)
                     g_e = float(np.clip(np.exp(float(s["e_lg"][0])), 1, 250)); sm = self.size_map
@@ -410,12 +418,12 @@ class PlantV3:
                 off_ = float(np.clip(np.expm1(float(s["e_off"][0])), 0, 120))
                 if self.eoff_map is not None:   # onto the field's delay for meals logged before eating (LESSONS 115)
                     off_ = float(np.interp(float(np.interp(off_, self.eoff_map["gen"], self.eoff_map["q"])), self.eoff_map["q"], self.eoff_map["field"]))
-                on = t + pd.Timedelta(minutes=self.eoff_scale * off_)
+                on = t if eat_first else t + pd.Timedelta(minutes=self.eoff_scale * off_)
                 self.pulses.append((on, size * self.geq, float(m), float(sd)))
                 self.anchor_times.append(t); self.since_meal = 0.0; self.last_size = size
                 self.actions_log.append(dict(t=t, kind="meal", size_g=size, peak_h=peak, dur_h=dur, announced=ann, from_entry=True, onset=on))
         if bool(s["bolus"][0]) and not (entry and not ann):
-            self.due.append((t, "bolus", self._bolus(s, "b")))
+            self.due.append((t + (lag_ if entry else pd.Timedelta(0)), "bolus", self._bolus(s, "b")))
 
     def advance(self, req):
         t0 = _ts(req["t0"])
