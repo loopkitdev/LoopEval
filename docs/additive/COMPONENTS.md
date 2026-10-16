@@ -102,7 +102,7 @@ The difference is ground truth the plant logs, and Loop never sees it (phantom I
 | E8 Full occlusion + alarm | delivery 0; alarm at V_alarm missed units (Omnipod 3, Medtronic 2.5, twiist 0.5) | p 0.003 per wear [J split] | 06 #7; Kanapka 2022 | wired |
 | E9 Bubble | missed volume lnN(0.5 U) | p 0.2 per wear [J] | 06 #9 | wired |
 | E10 Dislodgement | absorbed fraction 0, never alarms | p 0.004 per wear [J split] | 06 #12; Kanapka 2022 | wired |
-| E11 Lipohypertrophy | bioavailability 0.75–0.8 | prevalence not assigned | 06 #13 | wired: 26% adults / 42% children, half their sites at bio 0.78, dose CV 0.5 (LESSONS 67) |
+| E11 Lipohypertrophy | person trait; LH sites at bioavailability 0.78, per-dose absorption CV 0.5 | prevalence 26% adults (Pickup 2014), 42% children (Heinemann & Krinelke 2012); half of sites [J] | 06 #13 | wired: 26% adults / 42% children, half their sites at bio 0.78, dose CV 0.5 (LESSONS 67) |
 | E12 Leakage / backflow | — | no quantitative source | 06 #11 | not modelled |
 
 ## F. Behavior — the person as a second controller (`behavior.py`)
