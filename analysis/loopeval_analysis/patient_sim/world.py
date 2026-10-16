@@ -38,6 +38,36 @@ NET_AF = _os.environ.get("PLANT_NET_AF") == "1"     # workaround for binaries ol
 DAY = 1440.0
 
 
+def activity_carbs(person, bt, g_clamp: float = 140.0) -> float:
+    """Grams of glucose per day the person's EXPECTED everyday activity disposes of: the same body over one day
+    at its true basal insulin, glucose clamped at g_clamp, with and without the activity (episodes at the person's
+    rate and mean duration, mid-day; waking background), difference of the glucose the clamp had to add."""
+    from .exercise import ExerciseParams
+    import math as _m
+    bp = person.body
+    out = []
+    for active in (True, False):
+        b = Body(bp, person.formulation); br = b.basal_rate_u_per_h(); b.prime(br)
+        ex = Exercise(ExerciseParams(gain=bt.act_gain, background=bt.act_bg if active else 0.0))
+        if active:
+            dur = bt.act_dur * _m.exp(0.75 ** 2 / 2)
+            inten = 0.7 * (3.0 * _m.exp(0.2 ** 2 / 2) - 1.0) / (bt.metmax - 1.0)
+            n = bt.act_rate
+            k = int(n); frac = n - k
+            for i in range(k + (1 if frac > 0 else 0)):
+                ex.add(9 * 60 + i * 150, dur * (frac if i == k else 1.0), inten, 0.0)
+        added = 0.0
+        for m in range(1440):
+            awake = 7 * 60 <= m < 23 * 60
+            e = ex.at(m, awake=awake)
+            b.infuse(br / 60.0, m)
+            b.g = g_clamp
+            b.step(1.0, ex_intensity=e["ex_intensity"], ex_si_boost=e["ex_si_boost"], abs_mult=e["abs_mult"])
+            added += (g_clamp - b.g) * bp.vg * bp.bw / 1000.0      # g of glucose to restore the clamp
+        out.append(added)
+    return max(0.0, out[0] - out[1])
+
+
 def ts(minute: float) -> str:
     return (EPOCH + pd.Timedelta(minutes=float(minute))).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
@@ -86,6 +116,13 @@ class World:
         self.beh = Behavior(self.beh_traits, person, r_beh)
         from .exercise import ExerciseParams
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg))
+        # energy balance: a person eats for their activity. The donor's TDD (the measured constraint, G4) was spent
+        # in a life that included it, so the glucose their everyday activity uses is added to what they eat
+        # (activity_carbs: clamp probe, active day vs rest day; LESSONS 34)
+        if self.enable["exercise"] and not (enable or {}).get("perfect_person") and "act_carbs" not in person.traits:
+            person.traits["act_carbs"] = activity_carbs(person, self.beh_traits)
+        if self.enable["exercise"]:
+            self.beh_traits.carbs_day += person.traits.get("act_carbs", 0.0)
         site = SiteTraits(p_fail=SiteTraits.p_fail if self.enable["site_failure"] else 0.0,
                           planned_days=self.beh_traits.site_days)
         self.pump = Pump(site, r_pump, family=person.pump, faults=self.enable["pump_faults"])
