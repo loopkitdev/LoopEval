@@ -43,6 +43,7 @@ out = dict(pulses_per_day=len(nr) / days, announced_share=float(nr.announced.mea
            size_med=float(nr.size_g.median()), peak_h=float(nr.peak_h.median()), dur_h=float(nr.dur_h.median()),
            rescues_per_day=float(meals.rescue.sum() / days), corrections_per_day=len(corr) / days,
            ice_mean=float(steps.ice[steps.clean].mean()))
+meals.to_csv(d + "/meals_labeled.csv", index=False)
 print(json.dumps(out))
 """
 
@@ -98,6 +99,9 @@ def check(run: Path) -> dict | None:
         burn_ms = int((EPOCH + pd.Timedelta(minutes=meta.get("burn_end", 1800))).value // 1_000_000)
         r = subprocess.run([sys.executable, "-W", "ignore", "-c", ICE_SCRIPT, str(ICE_ANALYSIS), d, str(burn_ms), str(tdd)],
                            capture_output=True, text=True)
+        if r.returncode == 0 and (Path(d) / "meals_labeled.csv").exists():
+            import shutil
+            shutil.copy(Path(d) / "meals_labeled.csv", run / "meals_labeled.csv")
     if r.returncode != 0:
         print(run.name, "ice check failed:", r.stderr[-400:]); return None
     return dict(alias=run.name, **json.loads(r.stdout.strip().splitlines()[-1]))
