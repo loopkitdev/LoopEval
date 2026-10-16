@@ -61,6 +61,9 @@ class BehaviorTraits:
     calc_up: float = 0.074               # Groat 2017: 7.4% larger, 6.9% smaller
     calc_down: float = 0.069
     absorption_entry_h: float = 3.0      # what they tell Loop
+    intake_cv: float = 0.22              # day-to-day CV of food eaten (Tarasuk & Beaton 1992; ~20% for carbohydrate)
+    intake_rho: float = 0.29             # next-day intake correlation (Levitsky 2017)
+    intake_comp: float = 1.0             # 24-h regulation of the day total across its eating events (1 = full) [J]
     p_topup: float = 0.0                 # P(a second bolus 20–60 min after a meal bolus, no new entry) — raw donor top-ups
     p_free_bolus: float = 0.0            # P(an un-entered eating event gets a hand-dosed bolus)
     # monitoring and alerts
@@ -236,6 +239,7 @@ class Behavior:
         self.readings: list[tuple[float, float]] = []
         self.planned: list = []                 # (minute, action) sorted
         self.planned_day = -1
+        self.day_z = 0.0
         self.last_pro = -1e9
         self.last_treat = -1e9
         self.treat_check: Optional[float] = None
@@ -290,12 +294,19 @@ class Behavior:
             else:
                 st = float(r.uniform(t.wake + 60, t.bed + 30))
             slots.append(("snack", st + shift, 1.0))
-        # each event is sized against the person's EXPECTED day (not renormalised to this day's count): a day
-        # with fewer snacks has less food, not bigger meals. Renormalising coupled the Poisson snack count into
-        # event size and fattened the size tail (p99.9 246 g vs the donors' 156 g-eq pulses; LESSONS 30)
+        # daily intake is regulated over 24 h more tightly than per eating occasion: a day total T_d = carbs_day ×
+        # exp(z_d), z AR(1) across days (CV 0.22, ρ 0.29: within-person day-to-day carbohydrate CV ~20%, Tarasuk &
+        # Beaton 1992 and dietary-record studies; next-day intake r 0.29, Levitsky 2017), shared by the day's events in
+        # proportion to their drawn sizes with compensation exponent γ (1 = full 24-h regulation). Without it, simulated
+        # entered carbs/day had CV 0.52 (donors 0.40) and daily means no day-to-day persistence (LESSONS 39)
+        sd = math.sqrt(math.log(1 + t.intake_cv ** 2))
+        self.day_z = t.intake_rho * self.day_z + math.sqrt(1 - t.intake_rho ** 2) * float(r.normal(0, sd))
+        day_factor = math.exp(self.day_z - sd ** 2 / 2)
         total_share = (1 - t.skip_breakfast) * 0.22 / 0.286 * main_w + (0.30 + 0.34) / 0.286 * main_w + t.snack_rate
-        for kind, mt, share in slots:
-            grams = t.carbs_day * carb_scale * share / max(total_share, 1e-9) * float(np.exp(r.normal(0, t.meal_cv) - t.meal_cv ** 2 / 2))
+        draws = [share * float(np.exp(r.normal(0, t.meal_cv) - t.meal_cv ** 2 / 2)) for _, _, share in slots]
+        comp = (total_share / max(sum(draws), 1e-9)) ** t.intake_comp
+        for (kind, mt, share), w in zip(slots, draws):
+            grams = t.carbs_day * carb_scale * day_factor * w / max(total_share, 1e-9) * comp
             grams = max(3.0, grams)
             speed = float(np.exp(r.normal(0, t.gi_cv)))
             p_e = t.p_entry_meal if kind == "meal" else t.p_entry_snack
