@@ -114,6 +114,8 @@ class World:
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
         if enable and isinstance(enable.get("meal_slow"), float):
             self.beh_traits.meal_slow_frac = enable["meal_slow"]
+        if enable and isinstance(enable.get("meal_fast"), float):
+            self.beh_traits.meal_fast_frac = enable["meal_fast"]
         if enable and isinstance(enable.get("meal_slow_k"), float):
             self.beh_traits.meal_slow_k = enable["meal_slow_k"]
         if enable and enable.get("perfect_person"):

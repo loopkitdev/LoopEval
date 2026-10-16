@@ -48,6 +48,7 @@ class BehaviorTraits:
     meal_cv: float = 0.35                # within-person per-event size spread (log sd); the person's measured pulse spread when known
     meal_slow_frac: float = 0.0          # share of a meal emptied in the slow phase (calibrated vs donor meal response)
     meal_slow_k: float = 0.008           # /min, Dalla Man kmin
+    meal_fast_frac: float = 0.0          # share of a meal's carbohydrate in its fast-emptying liquid phase [J]
     main_weight: float = 1.0             # a main meal's expected size relative to any other eating event: donors' eating
                                          # comes as ~5.6 pulses/day of median 26 g-eq (ice meals), not 3 big meals (LESSONS 16)
     gi_cv: float = 0.4                   # per-meal absorption-speed CV (01 §6.2)
@@ -443,7 +444,14 @@ class Behavior:
                 if sf > 0:
                     acts.append(("eat", Parcel(m, meal.grams * sf, kempt=t.meal_slow_k * meal.speed, kabs=bp.kabs,
                                                f=bp.f, label=meal.kind + "_tail")))
-                acts.append(("eat", Parcel(m, meal.grams * (1 - sf), kempt=bp.kempt * meal.speed * phi_fat, kabs=bp.kabs * meal.speed,
+                # the liquid part of a mixed meal empties first and fast (nutrient liquids: early delivery 3–8 kcal/min,
+                # glucose t½ ~9 min; Calbet 1997, Hunt 1985): a share of the carbohydrate bypasses the energy-limited
+                # solid phase [J share] (LESSONS 44)
+                ff = t.meal_fast_frac
+                if ff > 0:
+                    acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * ff, kempt=0.08 * meal.speed, kabs=0.08 * meal.speed,
+                                               f=bp.f, label=meal.kind + "_liquid", kcal_per_g=0.0)))
+                acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * (1 - ff), kempt=bp.kempt * meal.speed * phi_fat, kabs=bp.kabs * meal.speed,
                                            f=bp.f, label=meal.kind, kcal_per_g=kcal_g)))
                 # protein → late glucose appearance: 0.1 g glucose per g protein, delayed ~90 min, peak 3–5 h
                 # (Smart 2013; Paterson 2017; evidence/01 §6.3); it is glucose, so fast-glucose bioavailability
