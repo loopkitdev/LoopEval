@@ -272,7 +272,10 @@ class Behavior:
             else:
                 st = float(r.uniform(t.wake + 60, t.bed + 30))
             slots.append(("snack", st + shift, 1.0))
-        total_share = sum(s[2] for s in slots)
+        # each event is sized against the person's EXPECTED day (not renormalised to this day's count): a day
+        # with fewer snacks has less food, not bigger meals. Renormalising coupled the Poisson snack count into
+        # event size and fattened the size tail (p99.9 246 g vs the donors' 156 g-eq pulses; LESSONS 30)
+        total_share = (1 - t.skip_breakfast) * 0.22 / 0.286 * main_w + (0.30 + 0.34) / 0.286 * main_w + t.snack_rate
         for kind, mt, share in slots:
             grams = t.carbs_day * carb_scale * share / max(total_share, 1e-9) * float(np.exp(r.normal(0, t.meal_cv) - t.meal_cv ** 2 / 2))
             grams = max(3.0, grams)
