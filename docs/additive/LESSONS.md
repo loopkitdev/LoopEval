@@ -1247,3 +1247,38 @@ statistic here, but it is the controller donors ran.
     - **Severity:** where an effect exists it mostly grows with event size (C31 on missed boluses; aIRC's cost there).
       The mild events are mostly inside the noise.
     Analysis ran on gamepc (`stress2_an.py`); runs in `~/additive/runs/big_*`, `lvl*_*`.
+
+87. **GLP-1 RA validation and injection timing.** 112 people, 14 days, against the same people off the drug (c98);
+    true glucose; * = 95% bootstrap interval excludes zero.
+    - **Semaglutide at 26 weeks reproduces ADJUST-T1D without tuning:**
+
+      | | sim | ADJUST-T1D |
+      |---|---|---|
+      | TDD | −18.6%* | −20 to −23% |
+      | bolus | −25%* | −30% |
+      | basal | −16%* | −12 to −16% |
+      | carbs eaten | −20.5%* | −22% |
+      | carbs entered | −22.6%* | — |
+
+      TIR +7.2*, mean −12 mg/dL*, t<54 −0.09*. The first two weeks on 0.25 mg do little: TDD −1.7%, TIR +1.1*.
+    - **Tirzepatide:** TDD −22.8%, bolus −31%, carbs −26%, TIR +9.9*. The cost is lows: t<70 +0.66* and t<54 +0.09*,
+      because rescue carbs go up 6.6 g/day. The phase-2 T1D trial's −42% TDD (6 weeks, pump users, exploratory) is larger than
+      the model gives. Our escalation stops at 5 mg, and the dose reached in that trial was not checked.
+    - **Hour of injection: no effect,** for weekly semaglutide (20:00 − 08:00: TIR +0.4, CI spans 0) and for daily
+      liraglutide (TIR 5.9 vs 6.0). The saturating dose response (EC50 0.5, inferred) flattens even liraglutide's
+      daily level swing to about ±7% of effect.
+      Carbs scale by day, at the noon level. Within a day only gastric emptying and SI follow the drug level.
+    - **Days since a weekly injection: a rhythm, larger for tirzepatide** (Pete: a Mounjaro user reports a difference the day
+      after the injection).
+
+      | | day 1 (peak) | day 6 (trough) |
+      |---|---|---|
+      | tirzepatide: effect | 1.09 | 0.86 |
+      | tirzepatide: carbs | −57 g | −45 g |
+      | tirzepatide: TIR vs baseline | +11.3 | +7.4 (±0.9 per day) |
+      | tirzepatide: t<70 vs baseline | +0.6 to +1.1 on days 1–3 | — |
+      | semaglutide: TIR vs baseline | ~+8 | +6.4 |
+
+      The sizes follow from the inferred EC50 and the PK alone. No study measures outcomes by day since injection
+      (evidence/16 §3). Treat them as a hypothesis the donor data could test, for donors on a known weekly agent.
+    Scripts on gamepc: `~/additive/glp1_an.py`, `glp1_week.py`; runs `~/additive/runs/glp1_*`.

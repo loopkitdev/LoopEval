@@ -169,6 +169,11 @@ tirzepatide 2.5 mg ×4 wk → 5 mg, n=24, mixed pump/MDI **[checked]**:
   - That implies an Emax curve with EC50 ≈ 0.5× the 1 mg average concentration. The effect would then swing only about one-third as much as concentration: **±~7–12% of the effect, peaking days 1–3 and lowest on day 6–7**.
   - GE slowing may behave differently. Tachyphylaxis depends on continuous exposure (Umapathysivam), so a trough-to-peak rise may partly re-sensitize. This is mechanistically plausible but unmeasured for weekly agents.
 - Daily liraglutide: the peak comes ~8–12 h post-dose. A morning dose peaks over the evening meal and an evening dose overnight/breakfast. No outcome data.
+- **User report (Pete, 2026-10-16):** a person on tirzepatide (Mounjaro) noticed a difference on the day after the injection. This is
+  one anecdote, but it is specific to the agent with the larger trough-to-peak swing (§1); see LESSONS 87 for what the model gives.
+- Tirzepatide in T1D, phase 2 (Diabetes Care 49(1):161, doi via diabetesjournals.org/care/article/49/1/161) **[abstract only]**:
+  - TDD −42% at 6 weeks in pump users (95% CI −59 to −18; exploratory, about 12 per arm). The drop was visible by week 2.
+  - The drop is larger than Pasqua's real-world figure; the dose reached is the likely difference (not checked).
 
 ---
 
