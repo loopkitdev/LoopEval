@@ -251,3 +251,27 @@ def add_edit_rates(path: str, edits_csv: str, ice_root: Path = Path.home() / ".l
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_corr_exposure(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Per donor, the share of WAKING time (07–23 h) their CGM sat above their own correction level (median
+    correction glucose − 20), the exposure the correction hazard is sized by (LESSONS 42)."""
+    import json
+    import numpy as np
+    t = pd.read_csv(path)
+    out = []
+    for _, r in t.iterrows():
+        p = ice_root / "full" / r.alias / "glucose.json"
+        row = dict(alias=r.alias)
+        if p.exists() and np.isfinite(r.get("corr_bg_med", np.nan)):
+            g = json.load(open(p))
+            s = pd.Series([x["quantity"] for x in g], index=pd.to_datetime([x["startDate"] for x in g]))
+            # local hours are not in the export; the pilot's donors are mostly US — use the series' own hour as a proxy [J]
+            w = s[(s.index.hour >= 7) & (s.index.hour < 23)]
+            thr = float(np.clip(r.corr_bg_med - 20, 130, 300))
+            row["corr_exposure"] = float((w > thr).mean())
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t

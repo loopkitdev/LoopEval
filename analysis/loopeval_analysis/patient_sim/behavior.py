@@ -171,13 +171,16 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         # the raw lone-bolus rate, split into hand-dosed food and corrections by the donor's own labeled split
         fr = free / (free + corr_rate) if np.isfinite(free) and np.isfinite(corr_rate) and free + corr_rate > 0 else 0.5
         free, corr_rate = lone_raw * fr, lone_raw * (1 - fr)
-    p_topup = float(np.clip(top_raw / be_raw, 0.0, 1.0)) if np.isfinite(top_raw) and np.isfinite(be_raw) and be_raw > 0 else 0.0
+    # planned top-ups execute only when the meal is running high (~38% of plans, measured on simulated people), so the
+    # plan rate is the donor's realized rate / 0.38 (LESSONS 42)
+    p_topup = float(np.clip(top_raw / be_raw / 0.38, 0.0, 1.0)) if np.isfinite(top_raw) and np.isfinite(be_raw) and be_raw > 0 else 0.0
     unentered = max(n_eat - (entries if np.isfinite(entries) else n_eat * p_meal), 0.5)
     p_free = float(np.clip(free / unentered, 0.0, 1.0)) if np.isfinite(free) else 0.0
     ub = _num(rates, "user_boluses_per_day")
     if not np.isfinite(corr_rate) and np.isfinite(ub):
         corr_rate = max(0.0, ub - entries) if np.isfinite(entries) else ub / 2
     cbg = _num(rates, "corr_bg_med")
+    corr_exp = _num(rates, "corr_exposure")
     tir_d, t70_d = _num(rates, "tir"), _num(rates, "t70")
     hi_frac = max((100 - tir_d - t70_d) / 100, 0.05) if np.isfinite(tir_d) and np.isfinite(t70_d) else 0.25
     rsz = _num(rates, "rescue_size_med")
@@ -200,8 +203,11 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         corr_thr=float(np.clip(cbg - 20, 130, 300)) if np.isfinite(cbg) else float(rng.normal(200, 30)),
         # a qualifying glance corrects with this chance; sized so the person's measured rate is reachable
         # [J: ~4 qualifying glances a day for a person who runs high; refined by twin validation]
-        p_correct=float(np.clip(corr_rate / (16 * 60 * hi_frac), 0.0, 0.05)) if np.isfinite(corr_rate)
-                  else float(rng.uniform(0.0005, 0.005)),
+        # hazard per qualifying awake minute: the donor's rate over the donor's own waking exposure above THEIR
+        # correction level (templates.add_corr_exposure), divided by the share of those minutes that pass the
+        # not-falling / no-recent-bolus conditions (0.46, measured on simulated people; LESSONS 42)
+        p_correct=float(np.clip(corr_rate / (16 * 60 * (corr_exp if np.isfinite(corr_exp) else hi_frac) * 0.46), 0.0, 0.05))
+                  if np.isfinite(corr_rate) else float(rng.uniform(0.0005, 0.005)),
         ex_per_week=float(rng.choice([0, 0.5, 1, 2, 3, 4, 5], p=[0.2, 0.1, 0.15, 0.2, 0.15, 0.1, 0.1])),
         ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
         ex_anaerobic=float(np.clip(rng.beta(1.2, 6), 0, 1)), ex_hour=float(rng.choice([7.0, 12.5, 17.5, 19.0])),
