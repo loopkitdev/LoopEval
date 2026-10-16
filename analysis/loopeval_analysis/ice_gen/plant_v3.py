@@ -122,6 +122,7 @@ class PlantV3:
         rm = os.environ.get("PLANT_RATIO_MAP")
         self.ratio_map = json.load(open(rm)) if rm else None
         self.rec_now = float("nan")
+        self.ratio_cap = float(os.environ.get("PLANT_RATIO_CAP", "inf"))   # diagnostic: cap on calculator ratios (LESSONS 109)
         self.eoff_scale = float(os.environ.get("PLANT_EOFF_SCALE", "1"))   # diagnostic: scale entry -> pulse onset delay
         # monthly-cycle dial (off by default): the person's insulin need swings on a 28-day sinusoid, amplitude MONTH_CYCLE x their
         # typical insulin action (ISF x TDD/24, mg/dL/h) added to background ICE, random phase per run
@@ -479,6 +480,8 @@ class PlantV3:
             for due_t, kind, pay in self.due:
                 if due_t > t:
                     keep.append((due_t, kind, pay)); continue
+                if kind == "bolus" and "ratio" in pay and float(pay["ratio"]) > self.ratio_cap:
+                    pay = dict(pay, ratio=self.ratio_cap, ratio_raw=float(pay["ratio"]))
                 if kind == "bolus" and self.ratio_map is not None and "ratio" in pay and np.isfinite(self.rec_now):
                     # the recommendation this bolus will meet: Loop's at t0 plus the carbs entered with it (grams / CR, CR = 500 / TDD)
                     g_ = sum(v for (te, v) in self.entries if (t - te) <= pd.Timedelta(minutes=15))
