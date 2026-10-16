@@ -124,6 +124,7 @@ class PlantV3:
         self.rec_now = float("nan")
         self.ratio_cap = float(os.environ.get("PLANT_RATIO_CAP", "inf"))   # diagnostic: cap on calculator ratios (LESSONS 109)
         self.eoff_scale = float(os.environ.get("PLANT_EOFF_SCALE", "1"))   # diagnostic: scale entry -> pulse onset delay
+        em = os.environ.get("PLANT_EOFF_MAP"); self.eoff_map = json.load(open(em)) if em else None   # build_eoff_map.py
         # monthly-cycle dial (off by default): the person's insulin need swings on a 28-day sinusoid, amplitude MONTH_CYCLE x their
         # typical insulin action (ISF x TDD/24, mg/dL/h) added to background ICE, random phase per run
         self.mc_amp = float(os.environ.get("MONTH_CYCLE", "0"))
@@ -398,7 +399,10 @@ class PlantV3:
                 size = float(np.clip(np.exp(float(s["e_lsize"][0])), 5, 250))
                 peak = float(np.clip(np.exp(float(s["e_lpeak"][0])), 5 / 60, 4)); dur = float(np.clip(np.exp(float(s["e_ldur"][0])), 0.25, 10))
                 m, sd = params(peak, dur)
-                on = t + pd.Timedelta(minutes=self.eoff_scale * float(np.clip(np.expm1(float(s["e_off"][0])), 0, 120)))
+                off_ = float(np.clip(np.expm1(float(s["e_off"][0])), 0, 120))
+                if self.eoff_map is not None:   # onto the field's delay for meals logged before eating (LESSONS 115)
+                    off_ = float(np.interp(float(np.interp(off_, self.eoff_map["gen"], self.eoff_map["q"])), self.eoff_map["q"], self.eoff_map["field"]))
+                on = t + pd.Timedelta(minutes=self.eoff_scale * off_)
                 self.pulses.append((on, size * self.geq, float(m), float(sd)))
                 self.anchor_times.append(t); self.since_meal = 0.0; self.last_size = size
                 self.actions_log.append(dict(t=t, kind="meal", size_g=size, peak_h=peak, dur_h=dur, announced=ann, from_entry=True, onset=on))
