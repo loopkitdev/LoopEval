@@ -49,6 +49,9 @@ class ModTraits:
     dawn_amp: float = 0.3               # fractional EGP increase at the dawn peak [J]
     dawn_onset: float = 180.0           # local minute
     day_sd: float = 0.08                # INTRINSIC day-level SI CV: repeat clamps 6–15% (evidence/07)
+    day_tau: float = 0.0                # min; > 0 = the same intrinsic SI variance (sd day_sd) as a continuous OU with this
+                                        # timescale instead of a step per day — repeat clamps size the variance, not
+                                        # its shape in time (LESSONS 49) [J τ]
     day_rho: float = 0.0                # no controlled-condition evidence of persistence; the field's
                                         # lag-1-day 0.4 (ice L19) must come from named factors
     intra_sd: float = 0.12              # stationary log-SI sd within a day [J]
@@ -115,6 +118,7 @@ class Modulators:
         # B3 intraday OU and B4 drift, advanced minute by minute
         self.rng = r
         self.ou = r.normal(0, traits.intra_sd)
+        self.day_ou = r.normal(0, traits.day_sd)
         self.drift = r.normal(0, traits.drift_sd)
         self.last = None
 
@@ -172,9 +176,14 @@ class Modulators:
             self.ou = a * self.ou + math.sqrt(1 - a * a) * self.rng.normal(0, self.t.intra_sd)
             b = math.exp(-dt / self.t.drift_tau)
             self.drift = b * self.drift + math.sqrt(1 - b * b) * self.rng.normal(0, self.t.drift_sd)
+            if self.t.day_tau > 0:
+                c = math.exp(-dt / self.t.day_tau)
+                self.day_ou = c * self.day_ou + math.sqrt(1 - c * c) * self.rng.normal(0, self.t.day_sd)
             self.last = m
         log_si = 0.0
-        if en["day"]:
+        if en["day"] and self.t.day_tau > 0:
+            log_si += self.day_ou
+        elif en["day"]:
             x = (m - 4 * 60) / DAY
             d = int(math.floor(x)); into = (x - d) * DAY
             cur = self.day[max(0, min(d, self.days - 1))]; prev = self.day[max(0, min(d - 1, self.days - 1))]
