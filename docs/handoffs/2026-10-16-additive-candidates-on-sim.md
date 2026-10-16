@@ -48,3 +48,13 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
 - **C31:** illness TIR **+1.9** [+0.6, +3.4] and >250 −1.3; missed bolus +1.1 (n.s.); no lows cost anywhere.
 - **aIRC:** exercise-day t<54 **−0.27** [−0.51, −0.04], t<70 −0.67; missed bolus >250 **+1.1** [+0.3, +2.0] (a cost).
 - **C30:** exercise-day t<70 −0.48; site failure TIR +2.0 (n.s.).
+
+## Update: bigger stress runs (LESSONS 86)
+
+168 people at moderate event size, plus mild and severe at 56; * = interval excludes zero.
+- **C31:** illness TIR +1.36*; with a severe missed bolus TIR +1.63* and >250 −1.03*; a small lows cost when the
+  unbolused meal is small (t<54 +0.20*).
+- **aIRC:** exercise t<54 −0.16* and t<70 −0.43*; severe missed bolus >250 +1.12*.
+- **C30:** exercise t<70 −0.29*.
+- **Deep false CGM low:** C30 −1.38* and aIRC −1.25* TIR. The pull-back mechanisms act on the false reading. Worth a
+  sensor-robustness guard in the ledger.
