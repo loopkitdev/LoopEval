@@ -164,3 +164,33 @@ def main_pilot() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main_pilot() if "pilot" in sys.argv else main())
+
+
+def add_raw_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Per donor, behavior rates counted from the RAW record (carbs.json, doses.json), the way the simulator's own
+    records are counted: carb entries/day (entries within 30 min merged), manual boluses/day, of which with an entry
+    (±30 min), top-ups (≤ 60 min after a bolus, no entry) and lone. The ice-labeled carb_entries_per_day counts only
+    entries the labeler attached to a pulse (2.07/day median vs 3.0 raw; LESSONS 36)."""
+    import json
+    import numpy as np
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        p = ice_root / "full" / a
+        if not (p / "doses.json").exists():
+            out.append(dict(alias=a)); continue
+        d = json.load(open(p / "doses.json")); c = json.load(open(p / "carbs.json")); g = json.load(open(p / "glucose.json"))
+        days = (pd.Timestamp(g[-1]["startDate"]) - pd.Timestamp(g[0]["startDate"])).total_seconds() / 86400
+        ct = np.sort([pd.Timestamp(x["startDate"]).value // 60_000_000_000 for x in c])
+        bt = np.sort([pd.Timestamp(x["startDate"]).value // 60_000_000_000 for x in d
+                      if x["deliveryType"] == "bolus" and not x.get("automatic") and x.get("volume", 0) > 0])
+        bu = sum(x["volume"] for x in d if x["deliveryType"] == "bolus" and not x.get("automatic") and x.get("volume", 0) > 0)
+        ent = (1 + int(np.sum(np.diff(ct) > 30))) if len(ct) else 0
+        near = np.array([np.any(np.abs(ct - b) <= 30) for b in bt]) if len(ct) and len(bt) else np.zeros(len(bt), bool)
+        w60 = np.r_[False, np.diff(bt) <= 60] if len(bt) else np.zeros(0, bool)
+        out.append(dict(alias=a, entries_raw=ent / days, boluses_raw=len(bt) / days, bolus_entry_raw=near.sum() / days,
+                        topups_raw=(w60 & ~near).sum() / days, lone_raw=(~w60 & ~near).sum() / days, manual_u_day=bu / days))
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
