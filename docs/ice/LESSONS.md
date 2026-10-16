@@ -972,3 +972,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Pearson 0.71; across people sd of log 0.23, within person 0.13), but the generated / real ratio is not (Spearman 0.38
     between periods), and the draw-level factor maps onto hourly spread only loosely. The fix belongs in the model's own
     per-person scale.
+105. **Each person's one-step background spread is already right; the compression toward the population is a closed-loop
+    effect. v3m24 (per-person log-scale) dropped.** Teacher-forced on the base (v32of0TcB2C), the likelihood-best per-person
+    shift of every component's log-sd is within +-10% for the most compressed people, training and held-out alike (i003
+    0.99 / 1.03, i050 1.04 / 1.09, i012 1.10 / 1.10, i017 1.07 / 1.05, i010 1.02 / 1.05; NLL gain <= 0.005 nats a step).
+    v3m24's per-person scale embedding barely moved in training (|log| <= 0.008), like every per-person scalar table here:
+    each person's row gets a step only when they are in the batch. With the one-step scale right, a calm person's hourly
+    spread running 1.2-1.3x real (and a volatile one's 0.7x) comes from how the generator's own deviations persist and add
+    up over an hour in closed loop, not from the width of each draw.

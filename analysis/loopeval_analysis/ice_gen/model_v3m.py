@@ -810,3 +810,27 @@ class ICEGenV3M23(ICEGenV3M21):
             parts["base_aux"] = (0.5 * ((y[m] - out["base"][m]) / ls.exp()) ** 2 + ls).mean()
             loss = loss + self.AUX * parts["base_aux"]
         return loss, parts
+
+
+class ICEGenV3M24(ICEGenV3M21):
+    """v3m24: v3m21 with an explicit per-person scale for background ICE: a learned log-scale offset per person added to every
+    mixture component's log-sd (zero-init, weak prior sd 0.3). The profile vector alone compresses people's spread toward the
+    population's (hourly-mean sd generated / real 1.23-1.28 for calm low-insulin people, 0.72-0.75 for volatile ones; LESSONS
+    104), and a post-hoc per-person factor fitted on another period does not carry over."""
+    arch = "v3m24"
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.sp = nn.Embedding(n_people, 1); nn.init.zeros_(self.sp.weight)
+
+    def forward(self, x, person, h=None):
+        out, h = super().forward(x, person, h)
+        lg, mu, ls = out["bgice"].split(self.K_ICE, -1)
+        out["bgice"] = torch.cat([lg, mu, ls + self.sp(person)[:, None, :]], -1)
+        return out, h
+
+    def loss(self, out, Y, w=None, w_bgice=False, trait_frac=0.0, trait_sd=1.0):
+        loss, parts = super().loss(out, Y, w, w_bgice, trait_frac, trait_sd)
+        if trait_frac > 0:
+            loss = loss + trait_frac * 0.5 * ((self.sp.weight / 0.3) ** 2).sum()
+        return loss, parts
