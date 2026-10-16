@@ -268,9 +268,12 @@ the SI share). Basal gets no jitter.
   - Fat, protein and carbohydrate slow emptying equally per kcal (Hunt & Stubbs 1975).
   - Elleri 2013 (121 g, tracer, T1D): 50% appearance at 100–175 min.
   - Full write-up: evidence/09.
-- **Tuning.** LESSONS 33: fixed first-order emptying over-skewed glucose (1.41 vs 0.89). Saturating
-  emptying gives the donors' lognormal shape (0.93). Carb sensitivity was re-read through the labeler
-  afterwards (CSF_PER_GEQ 1.85).
+- **Tuning.**
+  - LESSONS 33: fixed first-order emptying over-skewed glucose (1.41 vs 0.89). Saturating emptying gives
+    the donors' lognormal shape (0.93). Carb sensitivity was re-read through the labeler afterwards.
+  - LESSONS 44: a **fast liquid phase**. 20% of each meal's carbohydrate empties fast (kempt = kabs 0.08)
+    outside the energy ceiling (Hunt 1985; Calbet 1997; share [J]). It turns true-glucose increment skew
+    from −0.33 to −0.06 (meals rise faster than they fall).
 - **Notes.**
   - Fat's early slowing of emptying is carried by its kcal; the separate 1/(1 + fat/60) factor applies
     only when the ceiling is off.
@@ -310,7 +313,8 @@ All modulators multiply SI or EGP and can be switched (`enabled`).
 | B4 Intraday OU / slow drift | OU on log SI | — | no controlled-condition evidence (LESSONS 1) | **off** |
 | B5 Menstrual | luteal SI dip, half-sine over the 14-day luteal phase; cycle N(28, 3) days; 63% respond | amplitude lnN(0.08, 0.5) | evidence/02 §3.1. Donors show no monthly rhythm (run:2026-10-11-ice-slow) | **off** (scenario) |
 | B6 Illness | Poisson episodes (3/yr adults, 5/yr children), 1.5–15 days, ramps; SI drop 10–35%, EGP +0–15%; 20% gastrointestinal (SI up 5–15%, intake ×0.7) | — | Mehta 2010; Tinti 2025; ISPAD 2022 | on |
-| B7–B11 | sleep loss, stress, alcohol, heat, prolonged-high resistance | — | evidence/02 | planned |
+| B11 Hyperglycaemia-induced resistance | state H → 0.26·clip((G − 140)/220, 0, 1), τ 12 h **[J]**; SI × (1 − H) | 24 h at 20 mM lowers uptake 26% | Vuorinen-Markkola 1992; Yki-Järvinen 1987 (LESSONS 43) | on |
+| B7–B10 | sleep loss, stress, alcohol, heat | — | evidence/02 | planned |
 
 **Interactions.**
 - `si_mult` scales disposal and EGP suppression together.
@@ -376,9 +380,10 @@ Then `quiet.jump_signature` checks the jump anatomy against donors.
 |---|---|---|
 | D1 Lag | τ lnN: G6 3.78, G7 3.5, Libre 3 1.8, Libre 2 2.4, Medtronic 8.4 min (log-sd 0.68) | Vettoretti 2019; Garg 2022; Alva 2020. Commercial outputs are already lag-compensated: do not add the 5–6 min physiological delay (Basu 2013) |
 | D2 Calibration | G7 a0 N(0.98, 0.04), b0 N(3, 3); G6 a0 N(0.96, 0.05), b0 N(2, 3); Libre 3 a0 N(0.965, 0.03), b0 N(0, 2); drift N(0, 0.04) over the session; day-1 deficit N(0.06, 0.05) decaying over 12 h | Fitted (LESSONS 31). The G6 Vettoretti spread (b0 sd 6, a0 sd 0.063) gave a G7 PARD of 14% against 8.9% |
-| D3 Sensor-specific noise | AR(2) (1.30, −0.42); σ G7 N(2.5, 0.8), G6 N(2.5, 0.8), Libre 3 N(1.5, 0.5); t df 4; q 0.5 | Shape from Vettoretti 2019; tails from Breton & Kovatchev 2008 (Johnson S_U); size fitted |
+| D3 Sensor-specific noise | AR(2) (1.30, −0.42); σ G7 N(2.8, 0.8), G6 N(2.5, 0.8), Libre 3 N(1.5, 0.5); t df 30 for G7 (near-Gaussian), 4 for G6 / Libre 3; q 0.5 | Shape from Vettoretti 2019; tails from Breton & Kovatchev 2008 (Johnson S_U); size fitted |
 | D3b Common error | AR(3) (1.584, −0.884, 0.180); σ G7 2.0, G6 2.5, Libre 3 3.0 | Biagi 2017: in co-located Enlites the common component (var 3.98) exceeds the sensor-specific one (2.54). It adds accuracy error that two-sensor precision does not see, which is what the FDA tables require |
 | D3c Transient biases | per-session rate lnN(median, 0.9) events/day: G7 8, G6 6, Libre 3 4 **[J]**; amplitude lnN(12, 0.4) mg/dL; 55% read low first; τ 10 min | Donor quiet-window reversals (LESSONS 32): G7 6.6 vs donors 6.8 per 1,000 steps; whole jump anatomy matched |
+| D3d Noise-level wander | σ × exp(z − sd²), z log-OU with sd 0.7 (G7 0.6), τ 8 h **[J size]**; variance-preserving | Facchinetti 2011 (SNR varies within a sensor). LESSONS 42: stationary noise erased the CGM's volatility clustering, Hurst and dispersion; with the wander, the jump anatomy matches the donors class by class |
 | D4 Device smoothing | Libre 3 (twiist stream) EMA 0.35 **[J]** | eda L33 |
 | D5 Compression lows | personal rate Gamma(2.37, 1/75.7) per night, asleep only; depth lnN(35, 0.4), duration lnN(45 min, 0.3); 72% gap / 25% dip / 3% floor | run:2026-10-11-ice-compression; Facchinetti 2016 shape. Published rates are ~0.3/day (Idi 2025; Lobo 2026); the donor detector is stricter |
 | D6 Availability | warm-up per session (G7 27 min, G6 120, Libre 60); session 10/14/7 days (+ G7 grace 0.5 d); early failure 5% **[J]**; random gaps at the measured per-family rates by length bin | runs/2026-10-15-additive-sensor/gaps.py (153 donors) |
@@ -423,11 +428,12 @@ sees the difference, so it shows up as phantom IOB.
 | E3 Bolus error | sd = c/√U, floor 0.6%; Omnipod c 0.12, durable pumps 0.03, twiist 0.02 | 06 #3 |
 | E4 Start-up transient | Omnipod N(+5%, 5%), Medtronic N(−5%, 5%), decaying over 4 h after each site change | 06 #4 |
 | E5 Site life | absorption speed 0.9 → 1.15 by day 4 | Swan 2009 |
-| E6 Failing site | p 0.15 per site **[J]**; absorbed fraction decays to 0.3 (τ 4 h); the person changes it after a long high | eda L52; Kanapka 2022 |
+| E6 Failing site | p 0.012 per site; with E8 and E10 it sums to Kanapka's 1.9% of adult sets ending in prolonged hyperglycaemia (youth ×3, 5.8%) **[J split]**; absorbed fraction decays to 0.3 (τ 4 h) | Kanapka 2022 (LESSONS 43: the earlier 15% + 2% + 3% was ~6× the literature) |
+| E5b Set-age efficacy | absorbed fraction × (1 − 0.025·max(0, age − 1 day)) **[I]** | Sampson Perrin 2015 (fasting 126 / 133 / 147 on days 1 / 3 / 5); Simic 2021 (extent down, rate up) |
 | E7 Silent partial occlusion | Poisson 0.4 per wear; delivered fraction U(0, 0.5) for ~1 h; releases part of the missed volume (≤ 1.2 U) on clearing | Gibney (06 #8, #10) |
-| E8 Full occlusion + alarm | p 0.02 per wear **[J]**; delivery 0; alarm at V_alarm missed (Omnipod 3, Medtronic 2.5, twiist 0.5 U) | 06 #7 |
+| E8 Full occlusion + alarm | p 0.003 per wear **[J split]**; delivery 0; alarm at V_alarm missed (Omnipod 3, Medtronic 2.5, twiist 0.5 U) | 06 #7 |
 | E9 Bubble | p 0.2 per wear **[J]**; missed volume lnN(0.5 U) | 06 #9 |
-| E10 Dislodgement | p 0.03 per wear; absorbed 0; never alarms | 06 #12 |
+| E10 Dislodgement | p 0.004 per wear (prolonged-hyperglycaemia endings) **[J split]**; absorbed 0; never alarms | 06 #12; Kanapka 2022 |
 | E11 Lipohypertrophy | bioavailability 0.75–0.8 | Famulla 2016 (built, off) |
 | E12 Leakage / backflow | not modelled: no quantitative source | 06 #11 |
 | Site-change gap | 15 min without delivery **[unverified]** | 06 §4.2 |
@@ -516,6 +522,11 @@ Unlogged intake below the ice labeler's 12 g-eq gate: lnN(2/day) events of lnN(6
 An un-entered eating event gets a bolus of the person's own gram estimate ÷ their CR setting, at the
 person's measured rate. LESSONS 13: about 45% of "corrections" in the donor record are food dosed by
 hand.
+
+### F13 Settings edits
+Dated multiplicative changes to the basal / ISF / CR schedules at the donor's measured rate per setting
+(median 0.03/day basal, 0.016 ISF / CR). Size lnN(3.6%, σ 1.06), random sign **[J]**. They are written as
+eras into the exported schedules (LESSONS 41).
 
 ### F12 Temporary Overrides
 - **Form.** Planned with the events they serve, at the donor's own rates and median settings
