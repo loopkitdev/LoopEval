@@ -784,3 +784,28 @@ class ICEGenV3M9(ICEGenV3M5):
         now = x.index_select(-1, self.bg_idx)                         # the current glucose reading only
         out["bgice"] = self.head_ice(torch.cat([z2, now], -1))
         return out, (h1, h2)
+
+
+class ICEGenV3M23(ICEGenV3M21):
+    """v3m23: v3m21 with the baseline made to explain background ICE on its own. Trained one step ahead, v3m21's recurrent path
+    follows the meal-locked rise as it happens, so its baseline never learns it (teacher-forced after a meal bolus: predicted
+    46 -> 56 mg/dL/h at 30-40 min, real 47 -> 63, baseline -12 at 10 min); in closed loop there is no real rise to follow and
+    the rise is lost (total ICE at 30 min 101 vs 124 in the field). An auxiliary Gaussian loss on the baseline alone,
+        AUX * [0.5 ((y - b) / s)^2 + log s],   s learned,
+    makes b the expected background given exogenous inputs, and the recurrent path models deviations around it."""
+    arch = "v3m23"
+    AUX = 0.5
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.aux_ls = nn.Parameter(torch.tensor(0.0))
+
+    def loss(self, out, Y, w=None, w_bgice=False, trait_frac=0.0, trait_sd=1.0):
+        from .dataset_v3m3 import TARGETS as T3
+        loss, parts = super().loss(out, Y, w, w_bgice, trait_frac, trait_sd)
+        y = Y[..., T3.index("bgice")]; m = torch.isfinite(y)
+        if m.any():
+            ls = self.aux_ls.clamp(-5, 3)
+            parts["base_aux"] = (0.5 * ((y[m] - out["base"][m]) / ls.exp()) ** 2 + ls).mean()
+            loss = loss + self.AUX * parts["base_aux"]
+        return loss, parts

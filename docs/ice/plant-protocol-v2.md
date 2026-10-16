@@ -62,6 +62,10 @@ response to the simulated state, so behavior and physiology come from one consis
    Timing cost: a person's bolus lands at most one decision interval (~5 min) after the plant
    chose it. Acceptable for behavior; noted for identity tests.
    If several boluses come back for one step, they are summed (ratio boluses: sum the ratios).
+   The plant bolus enters the candidate's dose history (dated `t1 − 1 s`) **before** the automatic
+   dose at `t1` is decided, so that decision sees it, as the Loop cycle after a person's bolus does
+   (engine 8e86860). Before that fix the automatic dose was decided without it and stacked on top
+   (~1.4× the recommendation for auto-bolus users; ice LESSONS 99).
 
 3. **Real actions off for the candidate only.** New flag `--plant-behavior` (requires
    `--external-plant`): from `cfActiveStart` on, the candidate ignores real carb entries and real
