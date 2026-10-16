@@ -36,6 +36,7 @@ BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "
 # glucose effectiveness erodes the pulse before ICE sees it — so the constant is set by the labeler:
 # 1.30 × 1.21/0.91 (LESSONS 27)
 CSF_PER_GEQ = 1.85      # re-read through the labeler under saturating gastric emptying: 1.73 read 1.13 vs 1.21 (LESSONS 33)
+CSF_BLEND_CAL = 1.18    # the blended population re-read through the labeler: 1.025 vs the donors' 1.21 g-eq/g (LESSONS 37)
 ISF_W = 0.5      # weight of the yardstick against the person's own ISF setting in the truth (open, see sample_person)
 
 
@@ -213,7 +214,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # post-meal lows at 4× the donors' rate (LESSONS 37)
     w = ISF_W if isf_w is None else isf_w
     csf_set = float(row.isf) / float(row.cr)
-    csf_target = csf_target ** (1 - w) * (csf_set * float(np.exp(rng.normal(0, 0.15)))) ** w
+    csf_target = CSF_BLEND_CAL * csf_target ** (1 - w) * (csf_set * float(np.exp(rng.normal(0, 0.15)))) ** w
     f_cal = csf_target * bw * bp.vg / 1000.0
     if f_cal > 1.0:
         bp = bp.scaled(f=1.0, vg=float(1000.0 / (bw * csf_target)))
