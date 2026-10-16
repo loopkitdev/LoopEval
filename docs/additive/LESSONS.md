@@ -1230,3 +1230,20 @@ statistic here, but it is the controller donors ran.
     - **During the false low** no candidate shows clear harm.
     - **Limits:** 56 people each, one event per person, so many intervals still include zero. The scenario sizes are
       single representative values from the component ranges.
+
+86. **Bigger stress runs (Pete): 168 people at moderate size, plus mild (×0.5) and severe (×1.5) at 56.** True
+    glucose, 72 h from day 4, Δ vs baseline on the same scenario; * = 95% bootstrap interval excludes zero.
+    - **C31 (calm-high target −20):**
+      - illness TIR **+1.36*** at moderate (168) and **+1.25*** severe;
+      - missed bolus, growing with the unbolused meal: severe TIR **+1.63***, >250 **−1.03***;
+      - one small cost: with a small unbolused meal (×0.5), t<54 **+0.20*** (it doses into a high that would have come
+        down by itself).
+    - **aIRC:**
+      - exercise t<54 **−0.16*** and t<70 **−0.43*** (168);
+      - missed bolus severe: >250 **+1.12***, confirming the cost of its weaker response to rising glucose.
+    - **C30:** exercise t<70 **−0.29***; site failure TIR +1.54 [−0.09, +3.03].
+    - **Deep false low** (60 mg/dL for 45 min): the pull-backs lose TIR, C30 **−1.38*** and aIRC **−1.25***. They believe
+      the false reading and hold insulin back. This is a sensor-robustness cost replay cannot isolate.
+    - **Severity:** where an effect exists it mostly grows with event size (C31 on missed boluses; aIRC's cost there).
+      The mild events are mostly inside the noise.
+    Analysis ran on gamepc (`stress2_an.py`); runs in `~/additive/runs/big_*`, `lvl*_*`.
