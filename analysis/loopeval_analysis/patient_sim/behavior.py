@@ -255,6 +255,7 @@ class Behavior:
         self.planned_day = -1
         self.day_z = 0.0
         self.overrides: list[dict] = []        # planned Temporary Overrides: start, end (min), factor, lo, hi
+        self.defense = True                     # rescues and proactive snacks (World's behavior_defense switch)
         self.last_pro = -1e9
         self.last_treat = -1e9
         self.treat_check: Optional[float] = None
@@ -509,6 +510,8 @@ class Behavior:
         else:
             looking = r.random() < t.glances_per_day / (16 * 60) or (alarm and r.random() < t.p_respond_alert)
         if not looking and self.treat_check is None:
+            return acts
+        if not self.defense:
             return acts
         # rescue re-check
         if self.treat_check is not None and m >= self.treat_check:

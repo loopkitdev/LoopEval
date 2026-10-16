@@ -107,7 +107,7 @@ class World:
                 self.mod_traits = copy.deepcopy(self.mod_traits)
                 self.mod_traits.circ_swing = enable["circ_swing"]
                 self.mod_traits.circ_low = float(np.clip(1.0 - enable["circ_swing"] * (1.0 - self.mod_traits.circ_raw), 0.4, 1.0))
-        self.enable = dict(exercise=True, site_failure=True, pump_faults=True, compression=True, behavior_defense=True,
+        self.enable = dict(exercise=True, site_failure=True, pump_faults=True, compression=True, behavior_defense=True, graze=True,
                            perfect_person=False, fat=True)
         if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable and isinstance(v, bool)})
         self.mods = Modulators(self.mod_traits, days)
@@ -122,7 +122,9 @@ class World:
             t.p_entry_meal = t.p_entry_snack = 1.0; t.count_bias = 0.0; t.count_sd = 0.0
             t.p_bolus_with_entry = 1.0; t.bolus_timing = "immediate"; t.calc_up = t.calc_down = 0.0
             t.ex_per_week = 0.0; t.p_free_bolus = 0.0
+        if not self.enable["graze"]: self.beh_traits.graze_per_day = 0.0
         self.beh = Behavior(self.beh_traits, person, r_beh)
+        self.beh.defense = self.enable["behavior_defense"]      # rescues and proactive snacks (switch was unwired before)
         if enable and enable.get("overrides") is False:       # ablation: no Temporary Overrides
             self.beh_traits.ov_less_day = 0.0; self.beh_traits.ov_tgt_day = 0.0
         from .exercise import ExerciseParams
@@ -267,6 +269,10 @@ class World:
         st = self.person.settings
         carbs = sum(g for (t, g, _) in self.entries if m - 30 <= t <= m + 1)
         bg = next((v for k, v in sorted(self.readings.items(), reverse=True) if v), st["target"])
+        if self.enable.get("perfect_person"):
+            # the diagnostic person doses each meal's own carbs exactly; netting the previous meal's bolus as IOB
+            # (the calculator's way) under-doses stacked meals and reads as a units fault in selfcheck (LESSONS 40)
+            return max(0.0, carbs / st["cr"])
         return max(0.0, carbs / st["cr"] + (bg - st["target"]) / st["isf"] - max(self._calc_iob(m), 0.0))
 
     # ------------------------------------------------------------------ plant drive (LoopEval)
