@@ -365,9 +365,16 @@ class Behavior:
         slots += [("meal", lunch, sL / 0.286 * main_w, 1), ("meal", dinner, sD / 0.286 * main_w, 2)]
         n_snack = r.poisson(t.snack_rate)
         sh = getattr(t, "snack_hours", None)
+        if sh is not None:
+            # the person's own eating clock (ice pulses by hour), over the hours they are awake: ~18% of donors'
+            # labeled pulses start 00–06, where donors' raw carb records show eating on 7% of nights against the
+            # simulated 48% (LESSONS 58) — rises the labeler reads as pulses are not all eating
+            awake = np.array([0.0 if self.asleep(base + h * 60 + 30) else 1.0 for h in range(24)])
+            sh_day = sh * awake
+            sh_day = sh_day / sh_day.sum() if sh_day.sum() > 0 else sh
         for _ in range(n_snack):
-            if sh is not None:      # the person's own eating clock (ice pulses by hour)
-                st = (float(r.choice(24, p=sh)) + r.random()) * 60
+            if sh is not None:
+                st = (float(r.choice(24, p=sh_day)) + r.random()) * 60
             else:
                 st = float(r.uniform(t.wake + 60, t.bed + 30))
             slots.append(("snack", st + shift, 1.0, -1))
