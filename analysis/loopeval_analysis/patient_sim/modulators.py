@@ -30,7 +30,10 @@ DAY = 1440.0
 # Visentin 2015 classes: pattern of (breakfast, lunch, dinner) high/low and probability
 VISENTIN = [("hhh", 0.10), ("hhl", 0.05), ("hlh", 0.05), ("hll", 0.10),
             ("lhh", 0.20), ("lhl", 0.20), ("llh", 0.30)]
-SEGMENTS = [(4 * 60, "B"), (11 * 60, "L"), (17 * 60, "D")]      # switch minutes of the local day
+# switch minutes of the local day. Visentin's levels are meal-test SI (breakfast ~07 h), so the breakfast level starts at
+# breakfast, not at 04:00: with a 04:00 switch, 70% of people (low breakfast SI) needed 50–80% more insulin from 05:00 on
+# quiet mornings, against donors' 0.92 (LESSONS 51) [J boundary]
+SEGMENTS = [(7 * 60, "B"), (11 * 60, "L"), (17 * 60, "D")]
 
 
 @dataclass
@@ -96,7 +99,7 @@ class Modulators:
         # B1 circadian: segment levels per day, normalised so the day-average SI is 1
         hi_lo = {c: (1.0 if c == "h" else traits.circ_low) for c in "hl"}
         base = np.array([hi_lo[c] for c in traits.circ_class])
-        hours = np.array([7.0, 6.0, 11.0])              # B 04–11, L 11–17, D 17–04
+        hours = np.array([4.0, 6.0, 14.0])              # B 07–11, L 11–17, D 17–07
         base = base / (base @ hours / 24.0)
         self.circ = base[None, :] * np.exp(r.normal(0, traits.circ_noise, (self.days, 3)) - traits.circ_noise ** 2 / 2)
         # B3 day level: AR(1) on log SI
