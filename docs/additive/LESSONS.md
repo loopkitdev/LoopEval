@@ -863,3 +863,11 @@ statistic here, but it is the controller donors ran.
     did not pass `--cgm-stale-guard-min`, so LoopEval dosed on stale CGM through every simulated sensor gap. They
     now pass 15. Cohort c71 vs c70: about neutral (13 vs 12 of 30; Hurst 0.154 vs 0.167 and between-day 0.145 vs 0.124
     within cohort noise). Kept for fidelity to Loop.
+
+62. **What drives day-to-day spread in the sim, and why glucotoxicity stays.** Within a person, simulated
+    daily mean CGM varies 17.9 mg/dL (SD). Logged sensitivity explains 30% of it (r −0.55), daily carbs 11%,
+    unannounced grams 9%, rescues and exercise days ~1%. Logged sensitivity includes the glucotoxicity state, which a
+    high day itself raises. With glucotoxicity off (c72), the between-day fraction is 0.122 (c71 0.145, donors 0.102),
+    but TIR (p 0.009), mean and time above 180 fail. The term has its own clamp evidence (Vuorinen-Markkola 1992), so
+    it stays. Between-day fraction moved 0.124 → 0.145 between c70 and c71 for a nearly neutral change, so cohort
+    noise in it is ~±0.02; single-cohort differences that small are not evidence.
