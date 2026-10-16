@@ -284,7 +284,10 @@ class Sensor:
             if hit.any():
                 b = int(np.argmax(hit))
                 lo, hi = GAP_EDGES[b], GAP_EDGES[b + 1]
-                self.gap_until = minute + self.rng.uniform(lo, hi) - f.cadence
+                # a gap of interval L between readings withholds round(L/cadence) − 1 readings, this one included; the
+                # unrounded L − cadence withheld two readings in 37% of the 7–12-min bin (LESSONS 74)
+                k = max(1, int(round(self.rng.uniform(lo, hi) / f.cadence)) - 1)
+                self.gap_until = minute + (k - 1) * f.cadence + 0.5
         # noise grows with glucose: G7 absolute error 8.5 mg/dL at 40–60, ~11.6 near 130 (MARD 8.9%), ~17 near
         # 240 (MARD 7.2%) (Garg 2022 tables, evidence/03 §2.3) → scale 0.6 + 0.4·IG/130 (LESSONS 29)
         if f.hetero_q > 0:
