@@ -31,11 +31,15 @@ excess is the automatic dose, not the bolus. After the stack, simulated meals pe
 ~22 mg/dL below their starting glucose at 3 h; the donors' peak at 111 min and are +36 at 3 h
 (`analysis/loopeval_analysis/patient_sim/meal_response.py`; 6,484 donor meals, 53 donors).
 
-## Why it matters beyond the additive plant
+## Effect beyond the additive plant (measured by ice)
 
-ice's generator delivers person boluses through the same path. Its long-standing open item — excess
-lows 2–4 h after meal boluses "in every architecture tried" (ice LESSONS 54–59, 88) — is the signature
-this produces. Worth re-running one ice comparison with the ordering fixed before more generator work.
+ice's generator delivers person boluses through the same path, and ice confirmed the stacking there (i001:
+89% of person boluses get an auto dose at the same decision, median step total 1.38× the recommendation;
+deferring the bolus one step does not fix it). Applying the ratio − 0.4 workaround on 24 held-out donors
+× 2 seeds moved no outcome beyond noise (TIR 69.0/69.0 → 69.1/69.9, t<54 0.59/0.60 → 0.61/0.59, lows
+within 3 h of a meal bolus 0.354/0.342 → 0.329/0.333 a day vs field 0.214): Loop takes the extra back over
+the next cycles, and half those donors run temp basal. So it is a correctness bug, not the cause of ice's
+post-bolus low excess (ice LESSONS 99).
 
 ## Suggested engine fix (for the simulator role)
 

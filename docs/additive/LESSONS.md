@@ -167,6 +167,8 @@ statistic here, but it is the controller donors ran.
     10 g) after ruling out the bolus itself (1.02 vs 1.01 of CR) — and only after the meal response had
     resisted two "physiology" explanations (absorption speed, insulin action). Workaround: the plant
     asks for ratio − AF. Engine fix proposed (docs/handoffs/2026-10-15-simulator-plant-bolus-autodose.md).
+    Its outcome effect is small: Loop takes most of the extra back on later cycles (ice measured no change
+    beyond noise on 24 donors; ice LESSONS 99). Count it as a correctness fix, not an outcome lever.
 
 22. **Measure simulated and real with the same event definition, not just the same formula.** Donor
     meal responses were timed from the ice labeler's pulse onset; simulated ones from the true eating
