@@ -37,7 +37,8 @@ def check(templates: pd.DataFrame, seeds, days: int = 10, above_rest_max: float 
         # dose with the CR consistent with the body (effective ISF ÷ effective CSF, same probe semantics); the person's
         # truth["cr"] is the linear-part bookkeeping ratio that sets intake against TDD (LESSONS 40)
         cr_eff = P.truth["isf"] / _probe_csf_effective(P.body, P.formulation)
-        Q.settings.update(isf=P.truth["isf"], cr=cr_eff, basal_uh=P.truth["basal_uh"])
+        Q.settings.update(isf=P.truth["isf"], cr=cr_eff, basal_uh=P.truth["basal_uh"],
+                          basal_profile=P.truth.get("basal_profile") or [1.0] * 24)
         W = World(Q, days, enable=QUIET)
         W.run_internal(days * 1440)
         tr = pd.DataFrame(W.truth, columns=["m", "bg", "ra", "egp", "si", "u", "abs"])

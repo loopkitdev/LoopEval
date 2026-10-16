@@ -275,3 +275,36 @@ def add_corr_exposure(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_basal_profile(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Per donor, the 24-h shape of their scheduled (raw) basal in LOCAL time, normalized to mean 1: the profile
+    they tuned on their own body (LESSONS 48). Local offset from the ice steps (local `hour` vs UTC t0)."""
+    import json
+    import numpy as np
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        p = ice_root / "full" / a / "therapy.json"; sp = ice_root / "steps" / f"{a}.parquet"
+        if p.exists() and sp.exists():
+            st = pd.read_parquet(sp, columns=["t0", "hour"]).dropna().iloc[::50]
+            off = ((st.hour - (st.t0.dt.hour + st.t0.dt.minute / 60.0)) % 24).round().mode().iloc[0]
+            th = json.load(open(p))
+            prof = np.zeros(24); w = np.zeros(24)
+            for seg in th["rawBasal"]:
+                s0, s1 = pd.Timestamp(seg["startDate"]), pd.Timestamp(seg["endDate"])
+                rng = pd.date_range(s0.floor("h"), s1, freq="h")
+                for h in rng:
+                    lo, hi = max(h, s0), min(h + pd.Timedelta(hours=1), s1)
+                    if hi <= lo: continue
+                    k = int((h.hour + off) % 24); dur = (hi - lo).total_seconds()
+                    prof[k] += seg["value"] * dur; w[k] += dur
+            prof = np.where(w > 0, prof / np.maximum(w, 1), np.nan)
+            if np.isfinite(prof).all() and prof.mean() > 0:
+                row["basal_profile"] = json.dumps((prof / prof.mean()).round(4).tolist())
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
