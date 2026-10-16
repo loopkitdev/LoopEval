@@ -43,7 +43,7 @@ estimates (LESSONS 2).
 
 | Component | Model form | Parameters | Evidence | Status |
 |---|---|---|---|---|
-| B1 Circadian sensitivity | Visentin 7-class B/L/D profile, switches 04/11/17 h, 1 h ramps, normalised to a daily mean of 1 | class probabilities 0.10/0.05/0.05/0.10/0.20/0.20/0.30; low/high ratio at **half** Visentin's swing [J]; no per-day noise (Visentin's N(1, 0.2) is estimation precision, 07) | 01 §5.1; ablation runs/a_nocirc: full swing 0.23 vs field 0.12 amplitude | wired |
+| B1 Circadian sensitivity | Visentin 7-class B/L/D profile, switches 04/11/17 h, 1 h ramps, normalised to a daily mean of 1 | class probabilities 0.10/0.05/0.05/0.10/0.20/0.20/0.30; low/high N(0.40, 0.23) at Visentin's **full** swing; no per-day noise (07) | 01 §5.1; LESSONS 38: 24-h amplitude 0.14 vs donors 0.13 | calibrated |
 | B2 Dawn phenomenon | EGP ramp from onset U(02:00, 04:30) to a 07:00 peak, gone by 10:00 | present p 0.52; amplitude lnN(0.3, 0.6) of EGP_b [J] | 02 (Ostrovski 2020); 01 §5.1 | wired |
 | B3 Intrinsic day-level SI | independent per-day lognormal | CV 8% | 07 (repeat clamps 6–15%) | wired |
 | B4 Intraday OU / slow drift | — | **off**: no controlled-condition evidence | 07; LESSONS 1 | off |
@@ -55,12 +55,12 @@ estimates (LESSONS 2).
 
 | Component | Model form | Parameters | Evidence | Status |
 |---|---|---|---|---|
-| C1 Acute uptake | insulin-independent uptake ∝ intensity | ex_uptake lnN(3.0, 0.3) mg/kg/min at intensity 1 (moderate work ≈ −50 mg/dL/h from uptake alone) [J; calibrate vs T1DEXI] | 02 §1 (García-García 2015; Breton 2008) | wired |
-| C2 Acute + delayed sensitivity | insulin action ×(1 + αI + Z); dZ = b·I − Z/600 | α 0.8, b 0.018 [J] | 02 §1 | wired |
+| C1 Insulin-independent uptake | ex_uptake·gain·Y·G/Gb, Y = intensity through a 7-min lag | ex_uptake lnN(3.0, 0.3) [J] | 02 §1; evidence/10 (Dhaliwal 2025 glucose dependence) | wired |
+| C2 Acute + delayed sensitivity | insulin action ×(1 + 2.0·gain·Y + Z); dZ = 0.018·gain·drive − Z/600, drive above Y 0.12 | α 2.0 (Romeres 2021); threshold 0.12 (UVA, Deichmann) | evidence/10 §7.3; LESSONS 34 | wired |
 | C3 Absorption during exercise | absorption ×(1 + 0.5 I) [J] | — | 02 §1 | wired |
 | C4 Anaerobic EGP surge | EGP + surge × anaerobic share | — | 02 §1 (Marliss & Vranic 2002) | built (0 until calibrated) |
 | C5 Sessions | per-person rate 0–5/week, ~40 min, time-of-day slot, pre-exercise carbs p 0.3 | — | 02 (T1DEXI, an active cohort); 04 | wired |
-| C6 Light daily activity | walking/chore bouts through C1–C3: lnN(4)/day, ~12 min, intensity ~0.25; half within 2 h after eating [J] | sized against quiet-window step statistics (quiet.py) | 00 D15 (tier 1); donor quiet stretches carry heavy-tailed, persistent moves | wired |
+| C6 Everyday activity | episodes lnN(2/day, 0.55) × day gamma(3); duration lnN(18 min, 0.75); intensity (MET − 1)/(METmax − 1) × 0.7; UK Biobank day profile; waking background lnN(0.06, 0.4); per-person gain lnN(0, 0.5); intake covers the expected activity (clamp probe, median ~28 g/day) | METmax lnN(9, 0.25) | evidence/10 (T1DEXI, NHANES, UK Biobank, Compendium); LESSONS 34 | calibrated (lows) |
 
 Calibration targets for C: T1DEXI's per-session drop by starting glucose and by IOB, and the
 delayed-hypo night rate.
@@ -109,8 +109,8 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 | Component | Model form | Source | Status |
 |---|---|---|---|
 | F1 Meal schedule | 3 main meals (Camerlingo timing) + snacks at the person's measured pulse rate, placed on their own hour-of-day distribution; weekend shift [J] | ice meals tables; 04 (Camerlingo 2021) | wired |
-| F2 Announcement and carb count | P(entry) from measured entries/day; count bias from the person's entered-to-pulse ratio; per-meal noise sd ~0.2; big meals under-counted | ice meals tables; 04 (Brazeau 2013) | wired |
-| F3 Meal bolus | P(bolus \| entry) measured; timing class from the measured bolus lead; calculator acceptance (7.4% up / 6.9% down) | ice; 04 (Groat 2017; Datye 2018) | wired |
+| F2 Announcement and carb count | P(entry) from the donor's RAW entries/day (2.97 median); person bias N(−0.10, 0.10); per-meal sd lnN(0.2, 0.3); big meals under-counted | raw record (templates.add_raw_rates); Brazeau 2013; LESSONS 35–36 | wired |
+| F3 Meal bolus + top-ups | P(bolus \| entry) from raw boluses-with-entry; timing class from the measured lead; calculator acceptance (7.4% up / 6.9% down); top-ups at the donor's raw rate, 20–60 min later if CGM > 120 and not falling [J] | raw record; Groat 2017; Datye 2018 | wired |
 | F4 Corrections | at a glance, CGM above the person's measured correction level and not falling | ice corrections tables | wired; rate per glance [J] |
 | F5 Low defense | proactive snack when projected glucose < onset, CGM near the low band and not rising; rescue at the person's measured threshold and size; re-check at 15 min, re-treat 34%; 5% of rescues logged | ice L34, L69 (trait and ramp); measured rescue size and glucose; 04 (Savard 2016) | wired; onset and size per person [J] |
 | F6 Monitoring and sleep | glances lnN(6/day); alerts; asleep: alarm wakes with p ~0.45, unaided 1/16 | 04 (Puhr 2020; Buckingham 2005; Schultes 2007) | wired |
@@ -128,7 +128,7 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 | G2 True ISF | settings ISF × (yardstick / settings)^0.5 [weight open] | LESSONS 8; eda L53, L54 | wired |
 | G3 Body weight | blend of the age prior and TDD at an age-banded U/kg | eda L47 (profile ages can be the account holder's) | wired |
 | G4 Insulin balance | true basal = share N(0.5, 0.07) × TDD/24; carbs eaten = TDD·(1 − share)·CR_true | eda L9 (scheduled share 0.43–0.51); TDD measured | wired |
-| G7 Carb sensitivity | CSF = 1.30 × ISF_tdd·TDD/500 per eaten gram (sd 0.15); bioavailability f = CSF·BW·VG/1000 (0.3–1.0) | ice L54 and ice_gen/meals.py g-eq (LESSONS 14, 17) | calibrated |
+| G7 Carb sensitivity | CSF = 1.18·[1.85·ISF_tdd·TDD/500]^0.5·[settings ISF/CR]^0.5 (each lnN 0.15); f = CSF·BW·VG/1000 (0.3–1.0) | ice L54 g-eq, re-read through the labeler (LESSONS 27, 33, 37); shrunk toward settings like ISF | calibrated |
 | G8 Effective ISF | the person's ISF is the EFFECTIVE drop per unit at ~180 mg/dL on the full body, as the yardstick measures it | LESSONS 15 | calibrated |
 | G5 Settings | the donor's own ISF, CR, basal, target and limits | templates | wired |
 | G6 Devices | sensor family, pump, dosing strategy, formulation from the donor | sensor_month (Databricks per-reading deviceId) | wired |
