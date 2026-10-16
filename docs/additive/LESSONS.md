@@ -679,3 +679,7 @@ statistic here, but it is the controller donors ran.
       else. Candidates still unbuilt: stress / sleep (evidence 02 §4.1–4.2, small or day-level),
       intraday SI wander (no controlled-condition evidence, LESSONS 1), real-world sensor sensitivity
       drift beyond the clinic tables.
+    - **Also tested and not adopted:** an hours-scale OU sensor bias (Breton & Kovatchev 2008: error
+      autocorrelated for hours), within the FDA error budget. It lowered offline Hurst (0.197 → 0.175),
+      clustering and dispersion: variance added evenly past τ flattens the structure function rather
+      than tilting it. Left in the code at sd 0 (`slow_bias`).
