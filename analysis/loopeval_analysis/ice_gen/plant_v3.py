@@ -117,6 +117,11 @@ class PlantV3:
         self.auto_af = float(os.environ.get("PLANT_AUTO_AF", "0"))
         self.bgband_after = os.environ.get("PLANT_BGBAND_AFTER") == "1"   # apply calib_bg_band after feedback
         self.fb_lambda = float(os.environ.get("PLANT_FB_LAMBDA", "1"))   # with feedback=sample: share of the draw's deviation fed back
+        # PLANT_RATIO_MAP=<json> (build_ratio_map.py): map a drawn calculator ratio through its generated quantile onto the
+        # field's ratio distribution at the size of the recommendation it will meet (LESSONS 109)
+        rm = os.environ.get("PLANT_RATIO_MAP")
+        self.ratio_map = json.load(open(rm)) if rm else None
+        self.rec_now = float("nan")
         self.eoff_scale = float(os.environ.get("PLANT_EOFF_SCALE", "1"))   # diagnostic: scale entry -> pulse onset delay
         # monthly-cycle dial (off by default): the person's insulin need swings on a 28-day sinusoid, amplitude MONTH_CYCLE x their
         # typical insulin action (ISF x TDD/24, mg/dL/h) added to background ICE, random phase per run
@@ -399,6 +404,7 @@ class PlantV3:
         if self.t is None:
             self._start(t0)
         self.doses_log.extend(req["doses"])
+        self.rec_now = float((req.get("state") or {}).get("rec_bolus", float("nan")))
         for d in req["doses"]:
             s_, e_ = _ts(d["start"]), _ts(d["end"])
             if self.running is not None and d["type"] == "basal":
@@ -473,6 +479,13 @@ class PlantV3:
             for due_t, kind, pay in self.due:
                 if due_t > t:
                     keep.append((due_t, kind, pay)); continue
+                if kind == "bolus" and self.ratio_map is not None and "ratio" in pay and np.isfinite(self.rec_now):
+                    # the recommendation this bolus will meet: Loop's at t0 plus the carbs entered with it (grams / CR, CR = 500 / TDD)
+                    g_ = sum(v for (te, v) in self.entries if (t - te) <= pd.Timedelta(minutes=15))
+                    est = max(self.rec_now, 0.0) + g_ * self.geq / self.isf
+                    rm_ = self.ratio_map; u = float(np.clip(np.interp(float(pay["ratio"]), rm_["gen"], rm_["q"]), 0.01, 0.99))
+                    band = int(np.searchsorted(rm_["bands"], est, side="right"))
+                    pay = dict(pay, ratio=float(np.interp(u, rm_["q"], rm_["field"][band])), ratio_raw=float(pay["ratio"]), rec_est=est)
                 if kind == "bolus" and self.auto_af and "ratio" in pay:
                     pay = dict(pay, ratio=max(float(pay["ratio"]) - self.auto_af, 0.0))
                 if kind == "carb":
@@ -480,7 +493,7 @@ class PlantV3:
                     self.slot_carbs += pay; self.entries.append((t, pay)); self.last_entry = t
                     self.actions_log.append(dict(t=t, kind="carb", grams=pay))
                 else:
-                    boluses.append(dict(t=iso(t), **pay)); self.since_bolus = 0.0
+                    boluses.append(dict(t=iso(t), **{k_: v_ for k_, v_ in pay.items() if k_ in ("ratio", "units")})); self.since_bolus = 0.0
                     self.bols.append((t, pay.get("units", 2.0)))
                     self.slot_bolus += pay.get("units", 2.0)
                     self.actions_log.append(dict(t=t, kind="bolus_units" if "units" in pay else "bolus_ratio", **pay))
