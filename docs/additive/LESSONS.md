@@ -209,3 +209,12 @@ statistic here, but it is the controller donors ran.
     hazard while awake and above the person's correction level, sized so the donor's measured rate is
     reached over the donor's own time above 180. User boluses per day: 2.82 → 2.86 median, KS p 0.11 →
     0.77 (cohort c21); free (food) boluses already matched (0.47 vs 0.41, Spearman 0.93).
+
+27. **Calibrate a measured ratio through the measuring pipeline, not around it.** Carb sensitivity was
+    set so the body's PRE-erosion pulse matched ice's 1.30 g-eq per entered gram; ice's labeler run on
+    simulated people (ice_check.py) read 0.91 against 1.21 on pilot donors — glucose effectiveness erodes
+    the pulse before ICE sees it. Meals then rose ~10 mg/dL per 10 g entered against the donors' 17. The
+    constant is now set by the labeler (1.73). Grids that did not help, kept for the record: a slow
+    gastric-emptying tail (runs/ms_*: lowers the rise, leaves the 3-h change at −4; off by default) and
+    ISF_W (runs/iw_*: twin TIR rank 0.15 / 0.17 / 0.07 at 0 / 0.5 / 1; stays 0.5). Real per-person TIR is
+    carried by something not yet individualized.
