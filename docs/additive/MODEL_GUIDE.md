@@ -453,13 +453,17 @@ its 15-min trend, and Loop's IOB.
 - **Form.** Three main meals (Camerlingo 2021 timing: breakfast lnN(2.078, 0.175) h, gaps drawn from
   Gumbel distributions; breakfast skipped with p 0.1) plus Poisson snacks at the person's measured
   pulse rate, placed on their own eating-hour distribution. Weekends shift by +60 min **[J]**.
-- **Sizing.** Each event is sized against the person's *expected* day: carbs_day × share ÷ expected
-  total share × lnN with the person's measured log-sd.
+- **Sizing.** Daily intake is regulated over 24 h. A day total = carbs_day × exp(z_d) (+ activity
+  intake, C7), with z AR(1) across days (CV 0.22, ρ 0.29; Tarasuk & Beaton 1992, Levitsky 2017). It
+  is shared by the day's events in proportion to their drawn sizes (the person's measured log-sd), with
+  full 24-h compensation (`intake_comp` 1 [J]).
 - **Tuning.**
   - LESSONS 16: eating comes as ~5.6 pulses/day of median 26 g-eq, not three big meals, so main meals
     are no larger than other events on average (`main_weight 1`).
-  - LESSONS 30: sizing used to be renormalised to each day's actual event count, which coupled the
-    Poisson snack count into meal size. Simulated p99.9 was 246 g against the donors' 156 g-eq.
+  - LESSONS 30: unregulated renormalization fattened the size tail; the AR day total keeps it at p99.9
+    146 g.
+  - LESSONS 39: eaten CV is 0.24. Entered-carb CV is still 0.54 against the donors' 0.40, because entry
+    choices are independent per event.
 
 ### F2 Announcement and carb count
 - P(entry) for meals and snacks comes from the donor's **raw** entries per day (`entries_raw`: 2.97
@@ -535,7 +539,7 @@ hand.
 - **Quiet windows.** Stretches with no labeled eating or bolus for 4 h are where the sensor dominates
   (LESSONS 24, 28).
 
-**Status, cohort c32circ** (112 people × 14 days, f11386e): 21 of 50 statistics match.
+**Status, cohorts c32circ / c34** (112 people × 14 days, f11386e): 21 of 50 statistics match.
 
 Matching (KS p > 0.05, or within a few percent):
 - Outcomes: TIR 74.9 (donors 71.7); time above 180 23.1 (25.6); t<70 1.7 (1.7); t<54 0.17 (0.23);
