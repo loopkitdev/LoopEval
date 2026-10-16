@@ -20,7 +20,7 @@ import pandas as pd
 
 
 def _one(args):
-    seed, days, root, tmpl, binp, enable, controller = args
+    seed, days, root, tmpl, binp, enable, controller, flags = args
     from .person import sample_person
     from .loopeval_io import run
     out = Path(root) / f"v{seed:05d}"
@@ -37,7 +37,7 @@ def _one(args):
                           kappa_mult=enable.get("kappa_mult", 1.0) if isinstance(enable.get("kappa_mult"), float) else 1.0)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
-        run(P, days, out, binp, enable=enable, controller=controller)
+        run(P, days, out, binp, enable=enable, controller=controller, extra_flags=flags.get(P.name, flags.get("*", [])))
         return seed, "ok"
     except Exception as e:                                       # noqa: BLE001
         (Path(root) / f"v{seed:05d}.err").write_text(traceback.format_exc())
@@ -56,6 +56,7 @@ def main():
     ap.add_argument("--controller", default="loop-main", choices=["loop-main", "loopalgorithm"])
     ap.add_argument("--disable", default="")
     ap.add_argument("--enable", default="", help="switches to turn ON (e.g. perfect_person, menstrual)")
+    ap.add_argument("--flags-json", default="", help="candidate flags for LoopEval: {person name or '*': [flag, ...]} — paired candidate arms")
     ap.add_argument("--set", default="", help="numeric component overrides, e.g. meal_k=0.6 (multiplies meal kempt/kabs)")
     a = ap.parse_args()
     enable = {k: False for k in a.disable.split(",") if k}
@@ -63,7 +64,8 @@ def main():
     enable.update({kv.split("=")[0]: float(kv.split("=")[1]) for kv in a.set.split(",") if "=" in kv})
     root = Path(a.out); root.mkdir(parents=True, exist_ok=True)
     json.dump(vars(a), open(root / "cohort.json", "w"), indent=1)
-    jobs = [(a.seed0 + i, a.days, str(root), a.templates, a.bin, enable, a.controller) for i in range(a.n)]
+    flags = json.load(open(a.flags_json)) if a.flags_json else {}
+    jobs = [(a.seed0 + i, a.days, str(root), a.templates, a.bin, enable, a.controller, flags) for i in range(a.n)]
     with ProcessPoolExecutor(a.par) as ex:
         for f in as_completed([ex.submit(_one, j) for j in jobs]):
             s, st = f.result(); print(f"v{s:05d} {st}", flush=True)

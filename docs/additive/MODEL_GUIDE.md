@@ -637,6 +637,14 @@ Two diagnostic tests should be run for every new physiology or behavior path (LE
 
 ---
 
+## 10b. Testing candidate controllers (`candidates.py`)
+
+Paired arms run the same simulated people under different controller flags. Each arm is a cohort run with
+`--flags-json` ({person or "*": [flags]}); σ-gated candidates take each person's σ5 median from their own
+baseline run (`candidates.sigma5_p50`). Add dial arms at `--candidate-insulin-needs 0.95` and `1.05`, then
+`python -m loopeval_analysis.patient_sim.candidates <baseline> <dial-down> <dial-up> <arm> ...` reports paired
+deltas (CGM and true glucose) with bootstrap CIs and the lift over the dial. First results: C30 and aIRC (LESSONS 83).
+
 ## 11. Open items
 
 1. **Big meals.** Above ~40 g entered, simulated glucose falls back at 1.5–3 h and rises late, where
