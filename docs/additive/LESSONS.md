@@ -1166,3 +1166,24 @@ statistic here, but it is the controller donors ran.
       leans the donors' way by day; night-time-high fall per 1% TDD −14.3 → −13.3 (donors −10.2).
     - **Also:** Hurst 0.205, mean 155, TIR 66.6, CV 37.2; 11 vs 14 of 30, within the noise of LESSONS 63.
     - Late unlogged eating explains only a sliver of the night-high gap; the per-unit question of LESSONS 81 stays open.
+
+83. **First use in LoopEval: paired candidate arms on simulated people (Pete: "use it in LoopEval").** The same 112
+    people, seeds and life events run under the deployed controller (c98) and under each candidate's flags
+    (`cohort.py --flags-json`); σ-gated flags use each person's own σ5 median from their baseline run (4.6–7.2
+    mg/dL/5 min, p10–p90). `patient_sim/candidates.py` reports paired deltas with bootstrap CIs, on CGM and on true
+    glucose, and the lift over the insulin-needs dial (×0.95 / ×1.05 arms):
+
+    | | ΔTIR | Δt<54 | Δmean | lift over dial (CGM) | (true) |
+    |---|---|---|---|---|---|
+    | dial ×0.95 | −1.76 | −0.148 | | | |
+    | dial ×1.05 | +1.53 | +0.028 | | | |
+    | C30 stack | −0.25 [−0.86, +0.39] | −0.09 [−0.19, −0.01] | +1.0 | +1.31 [−0.09, +2.60] | +1.47 |
+    | aIRC (C01) | −0.40 [−1.06, +0.27] | −0.11 [−0.19, −0.04] | +1.8 | +1.43 [+0.18, +2.48] | +0.96 |
+
+    - **C30's reduction in lows matches replay** (Δt<54 at the operating point −0.087), and true glucose agrees
+      (−0.10). The lows come off temp-basal people (−0.22); automatic-bolus people barely change (−0.03). The
+      licence's TIR gain does not appear.
+    - **aIRC** is the dial's pull-back with a smaller TIR price: positive lift where replay rated it neutral on most
+      beds.
+    - **Caveats:** 112 people × 14 days gives wide intervals. The sim's remaining shape gaps (meal plateau,
+      night-high falls; LESSONS 66, 80–82) bear on exactly the situations these candidates act in.

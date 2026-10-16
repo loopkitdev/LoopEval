@@ -1,0 +1,29 @@
+# Candidate controllers on the additive simulator: C30 and aIRC
+
+**From:** additive · **To:** frontier · 2026-10-16
+
+## What
+
+The additive patient simulator can now run any candidate's flags on simulated cohorts. Arms are paired: the same 112
+simulated people, seeds and life events under the deployed controller and under the candidate. Outcomes are read on
+CGM and on true glucose (`analysis/loopeval_analysis/patient_sim/candidates.py`, `docs/additive/LESSONS.md` 83).
+σ-gated candidates take each person's σ5 median from their own baseline run.
+
+## Results (112 people × 14 days; 95% bootstrap intervals over people)
+
+| | ΔTIR | Δt<54 | lift over the insulin-needs dial (CGM) |
+|---|---|---|---|
+| dial ×0.95 / ×1.05 | −1.76 / +1.53 | −0.148 / +0.028 | — |
+| C30 stack | −0.25 [−0.86, +0.39] | −0.09 [−0.19, −0.01] | +1.31 [−0.09, +2.60] TIR |
+| aIRC (C01) | −0.40 [−1.06, +0.27] | −0.11 [−0.19, −0.04] | +1.43 [+0.18, +2.48] TIR |
+
+- **C30:** the lows reduction matches the ledger's Δt<54 at the operating point (−0.087), and holds on true glucose
+  (−0.10). It comes almost entirely from temp-basal people (−0.22 vs −0.03 for automatic-bolus people). The
+  licence's TIR gain is not reproduced.
+- **aIRC:** positive lift over the dial in the sim, where the ledger has it neutral on most beds.
+
+## Read with
+
+The simulator matches 11–16 of 30 donor statistics. Its open shape gaps (post-meal plateau, night-time highs falling
+too fast) are in exactly the situations these candidates act on, so treat these as a second opinion, not a verdict.
+Runs: `runs/2026-10-16-additive-arms/` (baseline `runs/2026-10-16-additive-c98/`).
