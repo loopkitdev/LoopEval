@@ -66,7 +66,10 @@ def core_stats(cgm: pd.Series, d: pd.Series, days: float) -> dict:
         r = b.iloc[b["n"].to_numpy().argmax()]
         out.update({k: float(r[k]) for k in GLUCOSE_FEATS})
     v = cgm.dropna()
-    out.update(t54=100 * float((v < 54).mean()), wear=float(cgm.notna().mean()))
+    # wear = reading coverage of the record's span on the 5-min grid, the same for donors (whose series holds only
+    # the readings that exist, so notna() always read 1.0) and simulated people (whose withheld slots are NaN)
+    span_min = (v.index.max() - v.index.min()).total_seconds() / 60.0 if len(v) > 1 else np.nan
+    out.update(t54=100 * float((v < 54).mean()), wear=float(min(1.0, len(v) * 5.0 / span_min)) if span_min and span_min > 0 else np.nan)
     out.update(lows_anatomy(cgm))
     tot = d.to_numpy()
     srt = np.sort(tot)[::-1]; k = max(int(0.01 * len(srt)), 1)
