@@ -296,7 +296,7 @@ class Body:
 
         egp = egp_ins + self.cr + p.ex_egp_surge * ex_intensity * ex_anaerobic
         self.egp = egp
-        uex = p.ex_uptake * ex_intensity * min(1.0, g / 90.0)
+        uex = p.ex_uptake * ex_intensity * g / p.gb          # mass action: fades as glucose falls (evidence/10 §7.3)
         renal = p.rcl * (g - p.rthr) if g > p.rthr else 0.0
         # insulin-mediated uptake's glucose dependence: weak above Gb (κ), proportional below it so
         # uptake vanishes with glucose (Bergman / UVA Michaelis–Menten at low G; LESSONS 7)

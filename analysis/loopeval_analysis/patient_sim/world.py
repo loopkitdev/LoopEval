@@ -84,7 +84,8 @@ class World:
             t.p_bolus_with_entry = 1.0; t.bolus_timing = "immediate"; t.calc_up = t.calc_down = 0.0
             t.ex_per_week = 0.0; t.p_free_bolus = 0.0
         self.beh = Behavior(self.beh_traits, person, r_beh)
-        self.ex = Exercise()
+        from .exercise import ExerciseParams
+        self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg))
         site = SiteTraits(p_fail=SiteTraits.p_fail if self.enable["site_failure"] else 0.0,
                           planned_days=self.beh_traits.site_days)
         self.pump = Pump(site, r_pump, family=person.pump, faults=self.enable["pump_faults"])
@@ -118,7 +119,7 @@ class World:
         si, egp, absm_env = self.mods.at(m)
         si *= self._fat_si(m)
         gi_ill = self.mods.illness(m)[2] if self.mod_traits.enabled.get("illness") else False
-        ex = self.ex.at(m) if self.enable["exercise"] else dict(ex_intensity=0, ex_anaerobic=0, ex_si_boost=0, abs_mult=1)
+        ex = self.ex.at(m, awake=not self.beh.asleep(m)) if self.enable["exercise"] else dict(ex_intensity=0, ex_anaerobic=0, ex_si_boost=0, abs_mult=1)
         absm_site, bio = self.pump.site_state(m)
         u_basal, u_bolus = self.pump.deliver(m)
         if u_basal > 0:
