@@ -1087,3 +1087,16 @@ statistic here, but it is the controller donors ran.
       than rises, where donors fall slowly. That is the insulin and controller pull-back, not intake.
     A per-person grazing count from donors' small rises does not discriminate (median 0.55 vs 0.53 per quiet hour;
     sensor noise triggers it too), so the rate stays a distribution, not a per-donor value.
+
+79. **The sim's downward-leaning quiet-time changes are in true glucose, in both dosing strategies, and not from insulin
+    speed.** After LESSONS 78 the sim's quiet-window changes still skew down (day −0.23, night −0.44 at 30 min) where
+    donors skew up by day (+0.76) and are near-symmetric at night (+0.23).
+    - **Not the sensor:** the sim's true glucose skews the same way, more strongly at night (−0.99 at 30 and 60 min).
+    - **Not the controller strategy:** temp-basal −0.46/−0.74 and automatic-bolus −0.37/−0.49 at night; donors of both
+      strategies +0.21 to +0.26.
+    - **Not insulin speed:** a slower disposal arm (p2 0.05 → 0.03, inside the clamp range 0.012–0.05; c91) leaves the
+      night skew at −0.42/−0.60. It flattens meal rises toward the donors' plateau (dinner 34/34/28 at 1/1.5/2 h) but
+      scores 14 vs 16 of 30 and gives up the first-hour forecast fit of LESSONS 20, so the default stays.
+    Open: what raises simulated glucose slowly overnight and lets insulin bring it down fast. The candidates are the
+    dinner-fat resistance and late protein tails, and dawn ramps. Next: decompose true quiet-night dG into gut, EGP and
+    insulin terms.
