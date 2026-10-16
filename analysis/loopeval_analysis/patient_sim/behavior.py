@@ -85,7 +85,7 @@ class BehaviorTraits:
     intake_rho: float = 0.29             # next-day intake correlation (Levitsky 2017)
     intake_comp: float = 1.0             # 24-h regulation of the day total across its eating events (1 = full) [J]
     act_day_var: bool = True             # day-level gamma(3) on the activity rate (ablation switch)
-    p_topup: float = 0.0                 # P(a second bolus 20–60 min after a meal bolus, no new entry) — raw donor top-ups
+    p_topup: float = 0.0                 # planned top-ups per meal bolus (≤ 1: a chance; > 1: Poisson mean), each 20–60 min after the last
     p_split: float = 0.0                 # P(a meal bolus is split: 60% at the entry, the rest 10–30 min later) [J split]
     p_free_bolus: float = 0.0            # P(an un-entered eating event gets a hand-dosed bolus)
     # monitoring and alerts
@@ -109,7 +109,8 @@ class BehaviorTraits:
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
-    corr_wait: float = 120.0             # min since their last bolus
+    corr_wait: float = 10.0              # min since their last bolus: donors give 26% of no-entry boluses within 20 min of the
+                                         # previous one and 66% within 120 (44,777 boluses); the earlier 120 [J] forbade them (LESSONS 64)
     # exercise (T1DEXI is an active cohort; scale down)
     ex_per_week: float = 2.0
     ex_minutes: float = 40.0
@@ -188,7 +189,9 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         free, corr_rate = lone_raw * fr, lone_raw * (1 - fr)
     # planned top-ups execute only when the meal is running high (~38% of plans, measured on simulated people), so the
     # plan rate is the donor's realized rate / 0.38 (LESSONS 42)
-    p_topup = float(np.clip(top_raw / be_raw / 0.38, 0.0, 1.0)) if np.isfinite(top_raw) and np.isfinite(be_raw) and be_raw > 0 else 0.0
+    # expected planned top-ups per meal bolus (several for donors who chain small boluses: 24% of donors exceed one per
+    # meal after the 0.38 realization; LESSONS 64), capped at 6
+    p_topup = float(np.clip(top_raw / be_raw / 0.38, 0.0, 6.0)) if np.isfinite(top_raw) and np.isfinite(be_raw) and be_raw > 0 else 0.0
     unentered = max(n_eat - (entries if np.isfinite(entries) else n_eat * p_meal), 0.5)
     p_free = float(np.clip(free / unentered, 0.0, 1.0)) if np.isfinite(free) else 0.0
     ub = _num(rates, "user_boluses_per_day")
@@ -537,9 +540,12 @@ class Behavior:
                     else:
                         acts.append(("bolus", m, meal.bolus))
                     self.last_bolus = m
-                    if r.random() < t.p_topup:
-                        self.planned.append((m + float(r.uniform(20, 60)), ("topup",)))
-                        self.planned.sort(key=lambda x: x[0])
+                    k_top = int(r.poisson(t.p_topup)) if t.p_topup > 1 else int(r.random() < t.p_topup)
+                    tt = m
+                    for _ in range(k_top):
+                        tt += float(r.uniform(20, 60))
+                        self.planned.append((tt, ("topup",)))
+                    if k_top: self.planned.sort(key=lambda x: x[0])
                 self.log.append((m, "entry", meal.entered, meal.bolus))
             elif kind == "walk":
                 acts.append(("exercise",) + tuple(rest)); self.log.append((m, "walk", rest[1], rest[2]))
