@@ -435,3 +435,26 @@ statistic here, but it is the controller donors ran.
     | Rate dispersion | 2.5 | 3.6 |
     | Between-day fraction | 0.17 | 0.10 |
     | Day/night insulin ratio | 1.21 | 1.38 |
+
+39. **Day-to-day structure: regulate daily intake, but Loop absorbs it, so the persistence must come from
+    insulin need.** Donor days are steadier and persist; simulated days were irregular and independent:
+
+    | | Donors | Simulator before |
+    |---|---|---|
+    | Entered carbs, day-to-day CV | 0.40 | 0.52 |
+    | Daily-mean glucose, lag-1-day correlation | 0.23 | −0.02 |
+    | Between-day fraction | 0.10 | 0.16 |
+
+    Daily intake is now regulated over 24 h (AR(1) on log scale: CV 0.22, Tarasuk & Beaton 1992 and
+    dietary-record studies; ρ 0.29, Levitsky 2017), shared by the day's events. Eaten CV 0.24, event
+    p99.9 146 g.
+
+    It did not move glucose persistence (lag-1 0.01) or the between-day fraction (0.155). Loop absorbs
+    intake swings within the day. Entered-carb CV stayed 0.54, because which events get entered is still
+    independent per event.
+
+    Ablations (c33) also clear the existing day-level terms: day-level SI off moves the between-day
+    fraction only 0.159 → 0.145, and illness not at all. The donors' persistence must come from
+    multi-day changes in insulin need. Named candidates: menstrual phases (off: no monthly rhythm in
+    donors), stress, sleep debt, sensor-session bias, site age. Cohort c34: 21 of 50 statistics match.
+    Scoring now starts at the first midnight after burn-in (whole days only; 0.174 → 0.165).
