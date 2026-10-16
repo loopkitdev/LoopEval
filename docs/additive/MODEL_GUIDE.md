@@ -449,6 +449,13 @@ sees the difference, so it shows up as phantom IOB.
 
 ---
 
+### Loop not acting (`world.plan_outages`)
+- Offline gaps and merged mixed windows at the donor's rate (0.9/day median), duration lnN(32 min, 0.86) clipped to
+  5–360 min; pump-error cycles of 3 min at the donor's rate (2.45/day median); start hours from the pooled donor
+  distribution. Written to the export's `disruptions.csv`. LoopEval delivers the scheduled basal while offline and
+  the last command through a pump error, and its IOB follows. First named factor to move long-range Hurst (LESSONS 60).
+- `--disable outages` switches it off. Suspends are not modelled.
+
 ## 8. Behavior: the person as a second controller (`behavior.py`)
 
 Traits come from the person's donor template wherever ice measured them; otherwise from literature

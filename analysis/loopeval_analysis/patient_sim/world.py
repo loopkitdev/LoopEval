@@ -39,6 +39,38 @@ NET_AF = _os.environ.get("PLANT_NET_AF") == "1"     # workaround for binaries ol
 DAY = 1440.0
 
 
+# Loop not acting (donors' disruptions.csv, 168 pilot donors; LESSONS 60): offline gaps and merged mixed windows run the
+# scheduled basal with nothing corrected — 0.9/day mean (0.6 median), duration lnN(32 min, 0.86) in 5–360 (2.9% of
+# windows ran longer: mostly pumpless stretches, insulin unknown, left out); pump-error cycles keep the last command for
+# ~3 min, 2.4/day median. Start hours follow the pooled donor distribution (daytime-heavy).
+OUTAGE_HOURS = [0.03, 0.027, 0.018, 0.017, 0.017, 0.019, 0.027, 0.037, 0.041, 0.045, 0.046, 0.047, 0.05, 0.05, 0.05,
+                0.056, 0.054, 0.06, 0.06, 0.058, 0.055, 0.056, 0.046, 0.033]
+
+
+def plan_outages(person, days: int, rng) -> list:
+    """[(start_min, end_min, reason)] for the whole run, at the donor's own rates (templates.add_disruption_rates)."""
+    rates = person.traits.get("template_rates", {})
+    def num(k, default):
+        v = rates.get(k)
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return default
+        return v if np.isfinite(v) else default
+    off_day, perr_day = num("offline_day", 0.75), num("perr_day", 2.4)
+    h = np.array(OUTAGE_HOURS); h = h / h.sum()
+    out = []
+    for d in range(days):
+        for _ in range(rng.poisson(off_day)):
+            st = d * DAY + (rng.choice(24, p=h) + rng.random()) * 60
+            dur = float(np.clip(np.exp(rng.normal(math.log(32.0), 0.86)), 5.0, 360.0))
+            out.append((st, st + dur, "loop_offline"))
+        for _ in range(rng.poisson(perr_day)):
+            st = d * DAY + (rng.choice(24, p=h) + rng.random()) * 60
+            out.append((st, st + 3.0, "pump_error"))
+    return sorted(out)
+
+
 def activity_carbs(person, bt, g_clamp: float = 140.0, ex_b: float | None = None) -> float:
     """Grams of glucose per day the person's EXPECTED everyday activity disposes of: the same body over one day
     at its true basal insulin, glucose clamped at g_clamp, with and without the activity (episodes at the person's
@@ -161,6 +193,7 @@ class World:
         # the plant's re-simulation reproduces the identical plan (LESSONS 40)
         gi = (lambda d: 0.7 if self.mods.illness(d * DAY + 720)[2] else 1.0) if self.mod_traits.enabled.get("illness") else None
         self.beh.plan_all(days, gi)
+        self.outages = plan_outages(person, days, np.random.default_rng(person.seed + 23)) if (enable or {}).get("outages", True) is not False else []
         youth = 3.0 if person.age < 18 else 1.0          # Kanapka 2022: 5.8% of sets at 14–17 vs 1.9% in adults
         site = SiteTraits(p_fail=SiteTraits.p_fail * youth if self.enable["site_failure"] else 0.0,
                           p_full=SiteTraits.p_full * youth, p_dislodge=SiteTraits.p_dislodge * youth,

@@ -345,3 +345,27 @@ def add_slot_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_disruption_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Per donor, from disruptions.csv: Loop-offline and merged mixed windows of ≤ 6 h per day (`offline_day`) and
+    pump-error cycles per day (`perr_day`) (LESSONS 60)."""
+    import json
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        p = ice_root / "full" / a / "disruptions.csv"
+        if p.exists():
+            d = pd.read_csv(p)
+            g = json.load(open(ice_root / "full" / a / "glucose.json"))
+            days = (pd.Timestamp(g[-1]["startDate"]) - pd.Timestamp(g[0]["startDate"])).total_seconds() / 86400
+            dur = (pd.to_datetime(d.end, format="ISO8601") - pd.to_datetime(d.start, format="ISO8601")).dt.total_seconds() / 60
+            if days > 7:
+                row["offline_day"] = float((d.reason.isin(["loop_offline", "disruption"]) & (dur >= 1) & (dur <= 360)).sum() / days)
+                row["perr_day"] = float((d.reason == "pump_error").sum() / days)
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
