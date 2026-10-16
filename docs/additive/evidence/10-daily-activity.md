@@ -1,4 +1,4 @@
-# Everyday (non-structured) physical activity — evidence for the additive patient simulator
+# 10 — Everyday (non-structured) physical activity
 
 Compiled 2026-10-15 for the `additive` role. Scope: how much incidental and unstructured activity people with T1D do, in what bouts, at what time of day, and what it does to glucose, plus how published simulators represent it. It ends with a recommended model for the "walking bouts" component.
 
