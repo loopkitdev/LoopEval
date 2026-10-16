@@ -222,3 +222,12 @@ statistic here, but it is the controller donors ran.
     TIR 74.7 vs 71.7, t<70 1.50 vs 1.66, t<54 0.30 vs 0.23, lows/day 1.02 vs 1.08, TDD 37.8 vs 37.0);
     labeled meals rise 58 (72), peak 95 min (111), +11 at 3 h (+36). What still fails is the shape of the
     signal: heavy tail, volatility switching, short-lag smoothness, long-range persistence.
+
+28. **The quiet-window tail is mostly real glucose movement, not sensor glitches.** Donor quiet stretches
+    (no labeled eating or bolus for 4 h) hold 54 steps of ≥ 12 mg/dL per 1,000 (G7); only 6% are
+    up-then-down spikes, 45% persist for several readings, and they go up as often as down. A Gaussian
+    with the donors' quiet step SD would give ~29. Heavy-tailed sensor innovations (Student-t; Breton &
+    Kovatchev 2008 use Johnson S_U) fix the SHAPE — df 4 matches whole-record kurtosis (2.39 vs 2.48) —
+    but not the RATE of big moves (22 vs 54 per 1,000) nor the quiet step SD (4.6 vs 5.5). The missing
+    piece is frequent, sustained, symmetric glucose movement in unlogged time: more and stronger
+    activity, intake below the labeler's 12 g-eq gate, or a latent state not yet named.

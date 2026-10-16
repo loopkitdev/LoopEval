@@ -79,3 +79,43 @@ def simulated(run: Path) -> dict | None:
     if not r: return None
     P = pickle.load(open(run / "person.pkl", "rb"))
     return dict(alias=run.name, sensor=P.sensor, **r)
+
+
+def tail_anatomy(cgm: pd.Series, events: np.ndarray) -> dict:
+    """Big quiet-window steps: how many, and are they isolated spikes (up-then-down within one reading)
+    or sustained (the next steps continue the same way)?"""
+    cgm = cgm.dropna().sort_index(); t = cgm.index.values; v = cgm.to_numpy()
+    ev = np.sort(events); k = np.searchsorted(ev, t, side="right") - 1
+    last = np.where(k >= 0, ev[np.clip(k, 0, None)], np.datetime64("1970-01-01"))
+    quiet = (t - last) > np.timedelta64(4, "h")
+    dt = np.diff(t) / np.timedelta64(1, "m"); d = np.diff(v)
+    ok = quiet[1:] & quiet[:-1] & (dt >= 4) & (dt <= 6)
+    n = int(ok.sum())
+    big = np.where(ok & (np.abs(d) >= 12))[0]
+    spike = sum(1 for i in big if i + 1 < len(d) and d[i] * d[i + 1] < 0 and abs(d[i + 1]) >= 0.6 * abs(d[i]))
+    sust = sum(1 for i in big if i + 2 < len(d) and np.sign(d[i + 1]) == np.sign(d[i]) and np.sign(d[i + 2]) == np.sign(d[i]))
+    up = int((d[big] > 0).sum())
+    return dict(n_steps=n, big_per_1000=1000 * len(big) / max(n, 1), spike_share=spike / max(len(big), 1),
+                sustained_share=sust / max(len(big), 1), up_share=up / max(len(big), 1))
+
+
+def donor_tail(alias: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32") -> dict:
+    g = json.load(open(ice_root / "full" / alias / "glucose.json"))
+    cgm = pd.Series([x["quantity"] for x in g], index=pd.to_datetime([x["startDate"] for x in g]).tz_localize(None)).sort_index()
+    cgm = cgm[~cgm.index.duplicated()]
+    m = pd.read_parquet(ice_root / "meals" / f"{alias}.parquet")
+    doses = json.load(open(ice_root / "full" / alias / "doses.json"))
+    man = [pd.Timestamp(x["startDate"]).tz_localize(None) for x in doses if x["deliveryType"] == "bolus" and not x.get("automatic")]
+    ev = np.array(list(pd.to_datetime(m.onset).dt.tz_localize(None).values) + [np.datetime64(x) for x in man], dtype="datetime64[ns]")
+    return dict(alias=alias, **tail_anatomy(cgm, ev))
+
+
+def sim_tail(run: Path) -> dict:
+    tr = pickle.load(open(run / "truth.pkl", "rb")); meta = json.load(open(run / "meta.json"))
+    cgm = tr["cgm"].sort_index(); cgm = cgm[cgm.index >= meta.get("burn_end", 1800)]
+    cgm.index = (EPOCH + pd.to_timedelta(cgm.index, unit="m")).tz_localize(None)
+    beh = pd.DataFrame(tr["behavior"], columns=["m", "k", "g", "x"])
+    ev_m = list(beh[beh.k.isin(["meal", "snack", "rescue", "retreat", "proactive", "ex_carbs", "free_bolus", "correction", "entry"])].m)
+    ev = np.array([np.datetime64((EPOCH + pd.Timedelta(minutes=float(x))).tz_localize(None)) for x in ev_m], dtype="datetime64[ns]")
+    P = pickle.load(open(run / "person.pkl", "rb"))
+    return dict(alias=run.name, sensor=P.sensor, **tail_anatomy(cgm, ev))
