@@ -401,16 +401,8 @@ extension EvaluationEngine {
         var candidateConfig = candidateConfig
         var counterfactualDoses: [EvalInsulinDose] = []
         counterfactualDoses.reserveCapacity(2048)
-        // Stateful pump basal-pulse delivery for the candidate's temp-basal stream
-        // (carries the sub-pulse remainder across steps, drops it only on a temp
-        // re-issue at a new rate). Advanced exactly once per cfActive step.
-        let candidateBasalAcc = PumpModel.BasalAccumulator(quantum: candidateConfig.basalPulseQuantum)
-        // Loop temp basals carry a 30-min duration. Normally the next CGM cycle
-        // (~5min) overwrites them so duration never bites. Across a CGM gap there
-        // is no overwriting cycle, so the temp must EXPIRE at 30 min and revert to
-        // scheduled basal (exactly like the real pump). Used to cap the candidate's
-        // temp delivery on the long pre-gap step. (user, 2026-06-23)
-        let tempBasalDuration: TimeInterval = 30 * 60
+        // The candidate's pump (CandidatePump.swift): temp expiry, basal pulses, disruptions.
+        var pump = CandidatePump(pulseQuantum: candidateConfig.basalPulseQuantum)
         // Per-step rasterized real-pump deliveries:
         //   - realAutoOnlyPerStep: AUTO-only deliveries (auto-boluses + basal
         //     entries). Used as deltaDose baseline so candidate's algorithm-
@@ -788,11 +780,6 @@ extension EvaluationEngine {
         // Deployed timeBasedDoseApplicationFactor reference: the last COMPLETED loop
         // (errored/guard-skipped cycles don't advance it).
         var lastCompletedLoopT: Date? = nil
-        // The candidate's last temp basal that actually reached the pump, and when.
-        // A pod that can't hear the phone keeps running its last command until that
-        // command expires (Loop temps last `tempBasalDuration`); see the outage branch.
-        var lastIssuedTempRate: Double? = nil
-        var lastIssuedTempT: Date = .distantPast
         // The candidate's body under --external-plant (CandidateBody.swift). Doses already in
         // counterfactualDoses here are the seeded history; later ones are forwarded by insertion.
         let plantBody = externalPlant.map {
@@ -1215,8 +1202,7 @@ extension EvaluationEngine {
                 candidateManualBolusRec = calcRecShown ?? result.manualBolusRec
                 candidateTempRate = result.tempRate
                 candidateTempAction = result.tempAction
-                lastIssuedTempRate = result.tempRate
-                lastIssuedTempT = t
+                pump.issued(rate: result.tempRate, at: t)
                 // Manual-bolus recommendation, same-transaction carb relaxation:
                 // if this step contains a real manual bolus that was co-entered with a
                 // carb (entry within ±carbTol of the bolus, and the bolus covers >=50%
@@ -1388,38 +1374,16 @@ extension EvaluationEngine {
                 // either (a pump_error right after the window would otherwise resume it).
                 // DTR is exempt: nothing is delivered there, and the field records its
                 // recommendation through these windows too, so ours stays for comparison.
-                let fieldRate = data.doses.last(where: {
-                    $0.deliveryType == .basal && $0.startDate <= t && $0.endDate > t
-                })?.tempRate
-                let schedRate = data.therapyTimeline.basal.first(where: {
-                    $0.startDate <= t && $0.endDate > t
-                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
-                candidateTempRate = fieldRate ?? schedRate
+                let (rate, schedRate) = pump.fieldRecordRate(at: t, fieldDoses: data.doses,
+                                                             fieldSchedule: data.therapyTimeline.basal)
+                candidateTempRate = rate
                 candidateBolus = 0
                 candidateDose = (candidateTempRate - schedRate) * stepDur / 3600.0
                 baselineDose = candidateDose
-                lastIssuedTempRate = nil
             } else if inOutage && !decisionTimeReplay && outageNow?.reason == "pump_error" {
-                // PUMP ERROR = a loop cycle whose command never reached the pod
-                // ("Pod not connected", comms timeout). The pod is NOT off: it keeps
-                // running whatever it was last told until that command expires. In the
-                // field data this is unambiguous -- on bddp11 every one of 1,723
-                // pump-error windows (median 3 min, one failed cycle each) is covered
-                // by a temp basal that started BEFORE the window. Treating them as
-                // physical outages (absolute delivery 0) removed a full step of basal
-                // per failed cycle: 59 U the real pump delivered over 2 months, which
-                // the replay then over-corrected with extra auto-boluses. Model it as
-                // what it is: no new bolus or temp this cycle; the candidate's last
-                // issued temp continues until it would have expired, then scheduled.
-                let schedRate = candTherapy.basal.first(where: {
-                    $0.startDate <= t && $0.endDate > t
-                })?.value ?? candTherapy.basal.closestPrior(to: t)?.value ?? 0
-                let running: Double
-                if let r = lastIssuedTempRate, t.timeIntervalSince(lastIssuedTempT) < tempBasalDuration {
-                    running = r
-                } else {
-                    running = schedRate
-                }
+                // PUMP ERROR: no new bolus or temp this cycle; the pod keeps running its last
+                // command until it expires, then the schedule (CandidatePump.lastCommandRate).
+                let (running, schedRate) = pump.lastCommandRate(at: t, schedule: candTherapy.basal)
                 candidateTempRate = running
                 candidateBolus = 0
                 candidateDose = (running - schedRate) * stepDur / 3600.0
@@ -1429,9 +1393,7 @@ extension EvaluationEngine {
                 // dose ADJUSTMENT (delta over scheduled) = 0, so absolute
                 // delivery = scheduled. candidateTempRate reports the
                 // scheduled rate to reflect "running at schedule".
-                let schedRate = candTherapy.basal.first(where: {
-                    $0.startDate <= t && $0.endDate > t
-                })?.value ?? candTherapy.basal.closestPrior(to: t)?.value ?? 0
+                let schedRate = CandidatePump.scheduledRate(at: t, in: candTherapy.basal)
                 candidateDose = 0
                 baselineDose = 0
                 candidateBolus = 0
@@ -1448,53 +1410,16 @@ extension EvaluationEngine {
             // pulses for the temp-basal stream + auto-bolus). Computed ONCE here via
             // the stateful accumulator and reused for the counterfactualDoses append
             // below (so the deltaDose report and the counter physics never diverge).
-            var cfAbsoluteDelivery: Double = 0
-            // Split of the candidate's basal delivery for the counterfactualDoses
-            // record: a temp segment [t, cfTempSegEnd] (the 30-min temp + auto-bolus)
-            // and, only when the step spans longer than the temp duration (a CGM
-            // gap), a SCHEDULED-basal remainder [cfTempSegEnd, stepEnd] (net-zero
-            // IOB) so the candidate tracks the real pump through the gap.
-            var cfTempVolume: Double = 0
-            var cfBasalDeliveredU: Double = .nan
-            var cfSchedRemainderU: Double = 0
-            var cfTempSegEnd: Date = stepEnd
+            var delivered: CandidatePump.StepDelivery? = nil
             let deltaDose: Double
             if cfActive {
-                // Temp basal expires after its 30-min duration. For a normal step
-                // (stepDur ≤ 30min) tempSec == stepDur and this is unchanged. For a
-                // long pre-gap step (stepDur ≫ 30min) the temp runs only 30 min,
-                // then scheduled basal resumes — preventing a pre-gap suspend from
-                // delivering 0 for the whole multi-hour gap (counter runaway).
-                let tempSec = fieldDeliveryNow ? stepDur : min(stepDur, tempBasalDuration)
-                cfTempSegEnd = t.addingTimeInterval(tempSec)
-                // Pump basal-pulse delivery for the temp RATE over its live window.
-                // The accumulator carries the sub-pulse remainder while the rate is
-                // unchanged and drops the in-progress pulse on a temp re-issue
-                // (rate change) — reproducing the field ~1.1 U/day below rate×time.
-                // Field delivery (manual temp, suspend, loop offline): exactly what the field
-                // pump delivered this step (auto-only, so it carries no manual bolus; those pass
-                // through on their own).
-                // Integrated over [t, stepEnd): steps are decision/CGM times, which don't sit on
-                // realAutoOnlyPerStep's grid -- the keyed lookup found nothing and delivered 0
-                // (i008: 1 U against the field's 42 U of loop-offline basal).
-                let basalDelivered = fieldDeliveryNow
-                    ? Self.integrateFieldDelivery(realAutoOnlyDoses, schedule: data.therapyTimeline.basal,
-                                                  from: t, to: stepEnd)
-                    : candidateBasalAcc.deliver(rate: candidateTempRate, seconds: tempSec)
-                // Auto-bolus already floored to the bolus grid; delivered whole.
-                cfTempVolume = basalDelivered + candidateBolus
-                if stepDur > tempBasalDuration {
-                    // Temp expired mid-step: scheduled basal for the remainder.
-                    cfSchedRemainderU = Self.integrateScheduledBasal(
-                        candTherapy.basal, from: cfTempSegEnd, to: stepEnd)
-                }
-                cfAbsoluteDelivery = cfTempVolume + cfSchedRemainderU
-                cfBasalDeliveredU = basalDelivered + cfSchedRemainderU
-                // Use AUTO-ONLY real pump as the baseline. Manual boluses are
-                // passed through (preserved in candidate's dose history) so
-                // they cancel out and don't perturb counter_BG.
+                let d = pump.deliver(from: t, to: stepEnd, rate: candidateTempRate, bolus: candidateBolus,
+                                     fieldRecord: fieldDeliveryNow ? realAutoOnlyDoses : nil,
+                                     fieldSchedule: data.therapyTimeline.basal, schedule: candTherapy.basal)
+                delivered = d
+                // Against the field's AUTO-ONLY delivery: manual boluses pass through on both sides.
                 let realPumpAutoAtStep = realAutoOnlyPerStep[t] ?? 0
-                deltaDose = cfAbsoluteDelivery - realPumpAutoAtStep
+                deltaDose = d.absolute - realPumpAutoAtStep
             } else if counterfactualMode {
                 // Burn-in: no perturbation (counter = actual_BG during burn-in)
                 deltaDose = 0
@@ -1571,20 +1496,21 @@ extension EvaluationEngine {
                 // The temp covers only [t, cfTempSegEnd] (≤30min); across a CGM gap
                 // a second SCHEDULED-basal segment covers the remainder so the temp
                 // doesn't run for the whole gap (net-zero, tracks the real pump).
+                let d = delivered!
                 counterfactualDoses.append(EvalInsulinDose(
                     deliveryType: .basal,
                     startDate: t,
-                    endDate: cfTempSegEnd,
-                    volume: cfTempVolume,
+                    endDate: d.tempSegEnd,
+                    volume: d.tempVolume,
                     insulinType: data.therapyTimeline.insulinType,
                     automatic: true
                 ))
-                if cfTempSegEnd < stepEnd {
+                if d.tempSegEnd < stepEnd {
                     counterfactualDoses.append(EvalInsulinDose(
                         deliveryType: .basal,
-                        startDate: cfTempSegEnd,
+                        startDate: d.tempSegEnd,
                         endDate: stepEnd,
-                        volume: cfSchedRemainderU,
+                        volume: d.schedRemainder,
                         insulinType: data.therapyTimeline.insulinType,
                         automatic: true
                     ))
@@ -1679,7 +1605,7 @@ extension EvaluationEngine {
                 plantCarbsG: stepPlantCarbsG,
                 baselinePredCurve: baselinePredCurve
             ))
-            steps[steps.count - 1].candidateBasalDeliveredU = cfBasalDeliveredU
+            steps[steps.count - 1].candidateBasalDeliveredU = delivered?.basal ?? .nan
         }
 
         progress?(1.0)
@@ -2001,7 +1927,7 @@ extension EvaluationEngine {
     /// Total scheduled-basal units delivered over [from, to], integrating across
     /// schedule segments. Used to fill the post-temp-expiry remainder of a long
     /// (CGM-gap) step with scheduled basal (net-zero IOB vs the schedule).
-    fileprivate static func integrateScheduledBasal(
+    static func integrateScheduledBasal(
         _ basal: [AbsoluteScheduleValue<Double>], from: Date, to: Date) -> Double {
         guard to > from else { return 0 }
         var total = 0.0
@@ -2021,7 +1947,7 @@ extension EvaluationEngine {
     /// Units the field pump delivered over [from, to): automatic boluses starting in it plus
     /// basal records pro-rated by overlap. Time no basal record covers ran the schedule (a
     /// missing record is scheduled basal, not a suspend; suspends are records at rate 0).
-    fileprivate static func integrateFieldDelivery(
+    static func integrateFieldDelivery(
         _ doses: [EvalInsulinDose], schedule: [AbsoluteScheduleValue<Double>],
         from: Date, to: Date) -> Double {
         guard to > from else { return 0 }
