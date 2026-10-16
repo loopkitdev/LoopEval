@@ -787,6 +787,14 @@ extension EvaluationEngine {
         // still start inside them -- passed-through manual boluses and, under --cf-identity,
         // the real dose stream. Sending only [t, stepEnd) dropped every one of those.
         var plantDosesSentThrough: Date? = nil
+        // Doses appended during the run are forwarded by INSERTION, not by date: a dose can be
+        // appended dated before the last send's end (a plant bolus sits 1 s before its decision so
+        // the decision's input builder keeps it), and a date window drops it -- the plant never got
+        // any plant bolus in 8e86860 while Loop's IOB counted every one. The seeded history (the
+        // real doses before the run, or the whole window under --cf-identity) keeps the date window.
+        let plantSeedCount = counterfactualDoses.count
+        var plantNextAppended = plantSeedCount       // first appended dose not yet considered
+        var plantHeldAppended: [Int] = []            // appended doses starting at/after a send's end
         // ... and the same for the plant's TIME: the end of the last interval it advanced over.
         // A step that `continue`s early never calls the plant, so its CGM samples kept the FIELD
         // value and reached the candidate's history as if the plant had produced them. Each call
@@ -813,7 +821,19 @@ extension EvaluationEngine {
             // cycle before this one may hold doses (bddp11 under --cf-identity: 19 real
             // doses, 26.3 U, incl. a 5.8 U bolus, never reached the plant).
             let sendFrom = plantDosesSentThrough ?? now
-            let doses = counterfactualDoses.filter { $0.startDate >= sendFrom && $0.startDate < t1 }
+            var doses = counterfactualDoses[..<plantSeedCount].filter { $0.startDate >= sendFrom && $0.startDate < t1 }
+            var held: [Int] = []
+            for i in plantHeldAppended + Array(plantNextAppended..<counterfactualDoses.count) {
+                let d = counterfactualDoses[i]
+                if d.startDate >= t1 { held.append(i); continue }
+                // the plant integrates from t0: a bolus appended dated just before it lands at t0
+                doses.append(d.deliveryType == .bolus && d.startDate < t0
+                    ? EvalInsulinDose(deliveryType: .bolus, startDate: t0, endDate: t0, volume: d.volume,
+                                      insulinType: d.insulinType, automatic: d.automatic)
+                    : d)
+            }
+            plantHeldAppended = held; plantNextAppended = counterfactualDoses.count
+            doses.sort { $0.startDate < $1.startDate }
             plantDosesSentThrough = t1
             let reply = try plant.advance(
                 t0: t0, t1: t1, doses: doses,
@@ -1117,7 +1137,7 @@ extension EvaluationEngine {
             var candidateDose: Double
             var candidateBolus: Double
             var candidateManualBolusRec = Double.nan
-            var stepPlantBolusU = 0.0, stepPlantCarbsG = catchUpPlantCarbsG
+            var stepPlantBolusU = 0.0, stepPlantCarbsG = catchUpPlantCarbsG, plantBolusNowU = 0.0
             catchUpPlantCarbsG = 0
             var candidateTempRate: Double
             var candidateTempAction = "set"
@@ -1214,9 +1234,10 @@ extension EvaluationEngine {
                 } else {
                     orefHistDoses = data.doses
                 }
+                var stepInput = candidateInput, stepOrefHist = orefHistDoses
                 func doStep(_ map: [Date: Double]?) -> EngineStepResult {
                     candidateEngine.step(EngineStepRequest(
-                        t: t, input: candidateInput, config: candidateConfig,
+                        t: t, input: stepInput, config: candidateConfig,
                         therapy: candTherapy, glucoseMgdl: candMomentumMgdl,
                         glucoseSamples: candMomentumSamples,
                         extraISFMultiplier: sensModeMult * slowRcMult,
@@ -1225,7 +1246,7 @@ extension EvaluationEngine {
                         isfBoostActiveOnly: isfBoostActiveOnly,
                         egpPhysicalDecomposition: egpPhysicalDecomposition,
                         tddDoses: data.doses,
-                        orefPumpHistoryDoses: orefHistDoses,
+                        orefPumpHistoryDoses: stepOrefHist,
                         timeBasedAFScale: timeBasedAFScale))
                 }
                 // Forecast-gated boost (lows-protection): a boost (mult<1) is only
@@ -1241,23 +1262,57 @@ extension EvaluationEngine {
                 // — non-insulin drivers are currently pulling BG down (a sensitive
                 // moment, ICE<0 ⟺ high local-ISF), so adding insulin would float into a
                 // developing drop. Forecast-peak gate kept as a secondary option.
-                let result: EngineStepResult
-                let wantBoost = csvIsfMult < 1.0 - 1e-9
-                if wantBoost, let iceR = isfBoostVetoIceRate {
-                    let iceRate = Self.integrateICE(realICE, from: t.addingTimeInterval(-1800), to: t) / 30.0
-                    result = (iceRate < -iceR) ? doStep(nil) : doStep(perStepMapForLoop)
-                } else if wantBoost, let gate = isfBoostGateEventualMgdl {
-                    let unboosted = doStep(nil)
-                    let peak = unboosted.prediction.glucose.map {
-                        $0.quantity.doubleValue(for: mgdlUnit)
-                    }.max() ?? .nan
-                    result = (peak.isFinite && peak > gate) ? doStep(perStepMapForLoop) : unboosted
-                } else {
-                    result = doStep(csvIsfEnabled ? perStepMapForLoop : nil)
+                func decide() -> EngineStepResult {
+                    let wantBoost = csvIsfMult < 1.0 - 1e-9
+                    if wantBoost, let iceR = isfBoostVetoIceRate {
+                        let iceRate = Self.integrateICE(realICE, from: t.addingTimeInterval(-1800), to: t) / 30.0
+                        return (iceRate < -iceR) ? doStep(nil) : doStep(perStepMapForLoop)
+                    } else if wantBoost, let gate = isfBoostGateEventualMgdl {
+                        let unboosted = doStep(nil)
+                        let peak = unboosted.prediction.glucose.map {
+                            $0.quantity.doubleValue(for: mgdlUnit)
+                        }.max() ?? .nan
+                        return (peak.isFinite && peak > gate) ? doStep(perStepMapForLoop) : unboosted
+                    }
+                    return doStep(csvIsfEnabled ? perStepMapForLoop : nil)
+                }
+                var result = decide()
+                var calcRecShown: Double? = nil
+                // Plant behavior: the boluses the plant's person asked for during the previous step act
+                // now, as ratio x the bolus-calculator recommendation computed here (plant carbs entered
+                // last step are already visible to it). The bolus goes into the dose history FIRST and the
+                // automatic dose is decided with it, as in real Loop, where the cycle after a user bolus
+                // sees it. Deciding the automatic dose without it delivered the calculator's dose plus
+                // the application factor's share of the same meal (~1.4x per meal for auto-bolus users).
+                if plantBehavior && cfActive && !cfIdentity && !pendingPlantBoluses.isEmpty {
+                    let rec = result.manualBolusRec.isFinite ? Swift.max(0, result.manualBolusRec) : 0
+                    let want = pendingPlantBoluses.reduce(0.0) { acc, b in
+                        acc + (b.units ?? 0) + (b.ratio ?? 0) * rec
+                    }
+                    let vol = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus(at: t), want))
+                    pendingPlantBoluses.removeAll()
+                    if vol > 0 {
+                        // Dated 1 s before the decision: the input builder keeps only doses before the
+                        // decision anchor (a dose at the anchor is this decision's own output).
+                        let tb = t.addingTimeInterval(-1)
+                        let pb = EvalInsulinDose(deliveryType: .bolus, startDate: tb, endDate: tb, volume: vol,
+                                                 insulinType: data.therapyTimeline.insulinType, automatic: false)
+                        plantBolusNowU = vol
+                        counterfactualDoses.append(pb)
+                        stepOrefHist = EvaluationEngine.mergeSorted(orefHistDoses, [pb])
+                        let withBolus = InputWindowBuilder(
+                            glucose: candidateSensorSamples, doses: EvaluationEngine.mergeSorted(combinedDoses, [pb]),
+                            carbs: suppressCarbs ? [] : candidateCarbs, therapyTimeline: candTherapy, config: candidateConfig)
+                        if let inp = withBolus.buildInput(at: t, decisionAnchor: t) {
+                            stepInput = inp
+                            calcRecShown = result.manualBolusRec   // what the calculator showed the person
+                            result = decide()
+                        }
+                    }
                 }
                 candidateDose = result.dose
                 candidateBolus = result.bolus
-                candidateManualBolusRec = result.manualBolusRec
+                candidateManualBolusRec = calcRecShown ?? result.manualBolusRec
                 candidateTempRate = result.tempRate
                 candidateTempAction = result.tempAction
                 lastIssuedTempRate = result.tempRate
@@ -1692,20 +1747,9 @@ extension EvaluationEngine {
                 // Plant behavior: the boluses the plant's person asked for during the previous
                 // step act now, at this decision, as ratio x the bolus-calculator recommendation
                 // computed here (plant carbs entered last step are already visible to it).
-                if plantBehavior && !pendingPlantBoluses.isEmpty {
-                    let rec = candidateManualBolusRec.isFinite ? Swift.max(0, candidateManualBolusRec) : 0
-                    let want = pendingPlantBoluses.reduce(0.0) { acc, b in
-                        acc + (b.units ?? 0) + (b.ratio ?? 0) * rec
-                    }
-                    let vol = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus(at: t), want))
-                    if vol > 0 {
-                        counterfactualDoses.append(EvalInsulinDose(
-                            deliveryType: .bolus, startDate: t, endDate: t, volume: vol,
-                            insulinType: data.therapyTimeline.insulinType, automatic: false))
-                        stepCandidateAdded += vol
-                        stepPlantBolusU = vol; plantBolusTotalU += vol; plantBolusCount += 1
-                    }
-                    pendingPlantBoluses.removeAll()
+                if plantBolusNowU > 0 {                  // appended before the automatic dose was decided
+                    stepCandidateAdded += plantBolusNowU
+                    stepPlantBolusU = plantBolusNowU; plantBolusTotalU += plantBolusNowU; plantBolusCount += 1
                 }
               } // end !cfIdentity (skip candidate dose append in identity mode)
 

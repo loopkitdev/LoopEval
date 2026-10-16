@@ -10,7 +10,12 @@
 // matching Nightscout's server-side expectation.
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+#if canImport(CryptoKit)
 import CryptoKit
+#endif
 
 // MARK: – Raw Nightscout JSON models
 
@@ -451,10 +456,50 @@ public struct NightscoutClient: Sendable {
 
     /// SHA-1 hex digest of a string, for Nightscout API secret auth.
     private static func sha1Hex(_ input: String) -> String {
-        let data = Data(input.utf8)
-        let digest = Insecure.SHA1.hash(data: data)
+        #if canImport(CryptoKit)
+        let digest = Array(Insecure.SHA1.hash(data: Data(input.utf8)))
+        #else
+        let digest = sha1(Array(input.utf8))
+        #endif
         return digest.map { String(format: "%02x", $0) }.joined()
     }
+
+    #if !canImport(CryptoKit)
+    /// Plain SHA-1 (FIPS 180-4) for Linux, where CryptoKit is unavailable. Only used for the API-secret header.
+    private static func sha1(_ message: [UInt8]) -> [UInt8] {
+        var h: [UInt32] = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0]
+        var bytes = message
+        let bitLength = UInt64(message.count) * 8
+        bytes.append(0x80)
+        while bytes.count % 64 != 56 { bytes.append(0) }
+        for shift in stride(from: 56, through: 0, by: -8) { bytes.append(UInt8((bitLength >> UInt64(shift)) & 0xff)) }
+        var w = [UInt32](repeating: 0, count: 80)
+        for chunk in stride(from: 0, to: bytes.count, by: 64) {
+            for i in 0..<16 {
+                let j = chunk + 4 * i
+                w[i] = UInt32(bytes[j]) << 24 | UInt32(bytes[j + 1]) << 16 | UInt32(bytes[j + 2]) << 8 | UInt32(bytes[j + 3])
+            }
+            for i in 16..<80 {
+                let x = w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]
+                w[i] = (x << 1) | (x >> 31)
+            }
+            var (a, b, c, d, e) = (h[0], h[1], h[2], h[3], h[4])
+            for i in 0..<80 {
+                let (f, k): (UInt32, UInt32)
+                switch i {
+                case 0..<20: (f, k) = ((b & c) | (~b & d), 0x5A827999)
+                case 20..<40: (f, k) = (b ^ c ^ d, 0x6ED9EBA1)
+                case 40..<60: (f, k) = ((b & c) | (b & d) | (c & d), 0x8F1BBCDC)
+                default: (f, k) = (b ^ c ^ d, 0xCA62C1D6)
+                }
+                let temp = ((a << 5) | (a >> 27)) &+ f &+ e &+ k &+ w[i]
+                (e, d, c, b, a) = (d, c, (b << 30) | (b >> 2), a, temp)
+            }
+            h[0] = h[0] &+ a; h[1] = h[1] &+ b; h[2] = h[2] &+ c; h[3] = h[3] &+ d; h[4] = h[4] &+ e
+        }
+        return h.flatMap { v in [24, 16, 8, 0].map { UInt8((v >> UInt32($0)) & 0xff) } }
+    }
+    #endif
 }
 
 // MARK: – NsPrediction conversion

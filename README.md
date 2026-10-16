@@ -42,6 +42,10 @@ The binary lands at `.build/release/loop-eval`. The algorithm packages
 [OpenAPSSwift](https://github.com/loopkitdev/OpenAPSSwift)) are git submodules —
 if you cloned without `--recursive`, run `git submodule update --init`.
 
+It also builds on Linux (tested with Swift 6.3 on Ubuntu under WSL), with the same command. Traces match a
+Mac build to within 1e-12. Two things run differently there: the parallel per-step loops run serially,
+and messages are not localized.
+
 ## The two main workflows
 
 Most work with LoopEval is one of these — each has a full walkthrough:
