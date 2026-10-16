@@ -304,3 +304,32 @@ statistic here, but it is the controller donors ran.
     Fitted offline to the donor classes: total 30.3 (29.4), reversal 6.6 (6.8), step 2.0 (2.2),
     catch-up 3.4 (2.2). The FDA fit holds (G7 loss 1.35, PARD 9.5). Catch-ups need no added mechanism.
     The rise-suppression filters in Dexcom/Abbott patents are not visible in these data.
+
+33. **Glucose is lognormal because the stomach is energy-limited; fixed-rate emptying hid a volatility
+    deficit.** Donor log-glucose is symmetric (median log-skew 0.01). With fixed first-order emptying,
+    every meal reached the gut within ~2 h whatever its size, and simulated glucose ran over-skewed (skew
+    1.41, Box-Cox −0.25; donors 0.89, −0.03) with sharp spikes (0.38% of time ≥ 400 vs 0.05).
+    Saturating emptying in energy terms, E = Vmax·S/(Km + S), at the review's central values (Vmax 3
+    kcal/min, Km 60 kcal; Hunt 1985, Brener 1983, Calbet 1997, Elleri 2013; evidence/09), gave skew
+    0.93 and Box-Cox −0.08 (112 people).
+    - Vmax 6 gave skew 1.13.
+    - Hyperglycaemic slowing at the [J] size over-smoothed (skew 0.60), so it stays off.
+    - Carb sensitivity was re-read through the labeler (lesson 27): 1.73 read 1.13 against 1.21, and
+      1.85 reads 1.20.
+    - The labeler's pulse duration grows with size even under fixed-rate emptying (elasticity 0.49 vs
+      the donors' 0.44): it is a detection effect, not evidence for size-dependent emptying.
+
+    With the shape right (cohort c26), the remaining gap is that the simulated people are too well
+    controlled:
+
+    | | c26 | Donors |
+    |---|---|---|
+    | TIR | 77 | 72 |
+    | CV | 31.8 | 34.6 |
+    | t<54 | 0.06 | 0.23 |
+    | Lows per day | 0.59 | 1.08 |
+    | Volatility clustering | 0.05 | 0.12 |
+    | Long-range Hurst | 0.10 | 0.24 |
+
+    The oversized meal spikes had been standing in for real sources of rough, low-prone hours that the
+    model still lacks.
