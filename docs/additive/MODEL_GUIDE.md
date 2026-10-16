@@ -159,8 +159,9 @@ person keeps their donor's settings error. Suspend threshold 70.
 
 ### G8 Effective-ISF calibration (`person.calibrate`)
 1. Ib comes from the true basal rate.
-2. The effect is split between EGP suppression and disposal, with the EGP share drawn U(0.3, 0.5),
-   using probes on the *linear part*: SG, κ, risk and counter-regulation all off.
+2. The effect is split between EGP suppression and disposal, with the EGP share drawn U(0.5, 0.7)
+   (centre from Romeres 2025's meal EGP nadir of 44 ± 17%; LESSONS 69), using probes on the *linear part*: SG,
+   κ, risk and counter-regulation all off.
 3. Both arms are scaled by bisection until the full body's effective ISF at ~180 mg/dL equals
    `isf_true`. The probe raises both arms to ~180 with the same fast carbs, then boluses one of them
    (`_probe_isf_effective`).
