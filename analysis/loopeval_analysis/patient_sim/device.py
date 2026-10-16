@@ -51,13 +51,16 @@ PUMPS = {
 
 @dataclass
 class SiteTraits:
-    p_fail: float = 0.15            # sites whose absorption fails before the planned change [J; eda L52 bound 25%]
+    # sets ending early with prolonged hyperglycaemia, ALL causes: 3.3% (adults 1.9%, ages 14–17 5.8%; Kanapka 2022,
+    # 22,741 wears). Split across failing absorption, full occlusion and dislodgement [J split]; the earlier 15% + 2% + 3%
+    # was ~6× the measured rate and made whole days of highs (LESSONS 43)
+    p_fail: float = 0.012           # sites whose absorption fails before the planned change
     fail_floor: float = 0.3         # absorbed fraction a failed site decays to [J]
     fail_tau: float = 240.0         # min
     p_partial: float = 0.4          # silent partial occlusions per wear (Gibney: 36–50% of standard-set wears)
-    p_full: float = 0.02            # full occlusions per wear [J]
+    p_full: float = 0.003           # full occlusions per wear (within Kanapka's 1.9% adult total) [J split]
     p_bubble: float = 0.2           # bubbles per wear [J; common by self-report, no rate]
-    p_dislodge: float = 0.03        # pull-outs per wear [J; 7.3% of 7-day sets, 10% of 3-day sets in a benchmark]
+    p_dislodge: float = 0.004       # pull-outs ending a wear in prolonged hyperglycaemia (within Kanapka's total) [J split]
     lipo_bio: float = 1.0           # bioavailability of a lipohypertrophic site (0.75–0.8 if the person has LH)
     abs_new: float = 0.9            # absorption speed at insertion (relative)
     abs_slope: float = 0.0625       # per day, to 1.15 at day 4 [derived from Swan 2009]
