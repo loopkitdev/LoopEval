@@ -59,6 +59,9 @@ class Family:
     df: float = 0.0               # Student-t degrees of freedom of the noise innovations (0 = Gaussian). CGM error
                                   # is heavy-tailed (Breton & Kovatchev 2008: Johnson S_U); variance preserved
     early_fail: float = 0.05      # P(session ends early) [J; Eichenlaub 2025 small n: 0–18%]
+    noise_wander: tuple = (0.0, 240.0)  # within-sensor noise level wanders: σ × exp(z), z OU (sd, τ min). SNR varies over
+                                  # time within a sensor (Facchinetti 2011; evidence/08 §B) — the noise's own volatility
+                                  # clustering, which stationary noise wipes out of the CGM (LESSONS 42) [J size]
     trans_rate: tuple = (0.0, 0.9)  # transient sensor biases: events/day per session (median, log-sd between sessions).
                                   # A bias of either sign appears within one reading and recovers first-order — the
                                   # quiet-window REVERSALS donors show (±~15 mg/dL undone in 10–15 min, any glucose,
@@ -75,7 +78,8 @@ FAMILIES = {
     # G6 with the G7 structure (sensor_fit.py vs DEN170088 CGM-binned bias/MARD and PARD 9.0%): loss 7.4 against 6.7 for
     # the Vettoretti 2019 values, and it carries the transients G6 donors show (reversals 5.7 per 1,000 quiet steps)
     "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(2.5, 0.8), hetero_q=0.5,
-                        a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(6.0, 0.9), trans_amp=(12.0, 0.4)),
+                        a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(6.0, 0.9), trans_amp=(12.0, 0.4),
+                        noise_wander=(0.7, 480.0)),
     # G7 fitted to sensor-only targets, never to donor roughness (LESSONS 31; sensor_fit.py, evidence/08): FDA K213919
     # adult accuracy by range (bias 4.0/1.1/1.1/−1.9/−6.6, MARD 14/10.7/8.6/7.4/6.4 from <54 to >250) and two-sensor
     # precision PARD 8.9%. Fit: bias 3.8/2.7/1.2/−1.5/−6.8, MARD 13.7/10.9/7.9/6.9/6.8, PARD 8.9, MAD elasticity
@@ -85,12 +89,12 @@ FAMILIES = {
     # gave G7 MARD 17% at 54–69 and PARD 14%.
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
                         brand_gain=1.0, sigma=(2.5, 0.8), df=4.0, hetero_q=0.5, a0=(0.98, 0.04), b0=(3.0, 3.0),
-                        common_sigma=2.0, trans_rate=(8.0, 0.9), trans_amp=(12.0, 0.4)),
+                        common_sigma=2.0, trans_rate=(8.0, 0.9), trans_amp=(12.0, 0.4), noise_wander=(0.7, 480.0)),
     # Libre 3 fitted to K212132 (bias 7.4/1.4/−4.5/−7.3/−11.5, MARD 15.5/10.3/9.7/7.5/6.9, PARD 6.8): MARD 11/10/8/7.6/7.5,
     # PARD 6.8; it reads too little high at true < 54 (+0.4 vs +7.4) [open]
     "Libre 3":   Family("Libre 3", warmup=60, session_days=14, tau_med=1.8, brand_gain=1.0, smooth=0.35, df=4.0,
                         sigma=(1.5, 0.5), hetero_q=0.5, a0=(0.965, 0.03), b0=(0.0, 2.0), common_sigma=3.0,
-                        trans_rate=(4.0, 0.9), trans_amp=(12.0, 0.4)),
+                        trans_rate=(4.0, 0.9), trans_amp=(12.0, 0.4), noise_wander=(0.7, 480.0)),
     "Libre 2":   Family("Libre 2", warmup=60, session_days=14, tau_med=2.4),
     "Medtronic": Family("Medtronic", warmup=120, session_days=7, tau_med=8.4, a0=(1.0, 0.1),
                         ar=(1.367, -0.4816), sigma=(1.59, 0.5), brand_gain=0.94),
@@ -148,6 +152,8 @@ class Sensor:
             if "sensor_tamp" in overrides or "sensor_tampsd" in overrides:
                 kw["trans_amp"] = (overrides.get("sensor_tamp", self.f.trans_amp[0]), overrides.get("sensor_tampsd", self.f.trans_amp[1]))
             if "sensor_ttau" in overrides: kw["trans_tau"] = overrides["sensor_ttau"]
+            if "sensor_wander" in overrides or "sensor_wtau" in overrides:
+                kw["noise_wander"] = (overrides.get("sensor_wander", self.f.noise_wander[0]), overrides.get("sensor_wtau", self.f.noise_wander[1]))
             if "sensor_drift" in overrides: kw["drift_sd"] = overrides["sensor_drift"]
             if "sensor_a1" in overrides or "sensor_a2" in overrides:
                 kw["ar"] = (overrides.get("sensor_a1", self.f.ar[0]), overrides.get("sensor_a2", self.f.ar[1]))
@@ -159,6 +165,7 @@ class Sensor:
         self.c_rng = common_rng if common_rng is not None else np.random.default_rng(int(rng.integers(1 << 31)))
         self.c = [0.0, 0.0, 0.0]
         self.trans = 0.0                                    # current transient bias, mg/dL
+        self.wz = 0.0                                       # log noise-level wander (OU)
         self.out_prev: Optional[float] = None
         self.gap_until = -1.0
         self.comp: Optional[dict] = None
@@ -238,13 +245,18 @@ class Sensor:
         self.next_report += f.cadence
         # noise on the reporting grid
         s = self.session
+        wsd, wtau = f.noise_wander
+        if wsd > 0:
+            a = math.exp(-f.cadence / wtau)
+            self.wz = a * self.wz + math.sqrt(1 - a * a) * float(self.rng.normal(0.0, wsd))
+        nu = math.exp(self.wz - wsd ** 2) if wsd > 0 else 1.0      # E[ν²] = 1: the noise variance is unchanged on average
         if f.df > 2:
-            w = s.sigma * float(self.rng.standard_t(f.df)) * math.sqrt((f.df - 2) / f.df)
+            w = nu * s.sigma * float(self.rng.standard_t(f.df)) * math.sqrt((f.df - 2) / f.df)
         else:
-            w = self.rng.normal(0.0, s.sigma)
+            w = nu * self.rng.normal(0.0, s.sigma)
         v = f.ar[0] * self.v1 + f.ar[1] * self.v2 + w
         if f.common_sigma > 0:
-            c = 1.584 * self.c[0] - 0.8842 * self.c[1] + 0.1798 * self.c[2] + self.c_rng.normal(0.0, f.common_sigma)
+            c = 1.584 * self.c[0] - 0.8842 * self.c[1] + 0.1798 * self.c[2] + nu * self.c_rng.normal(0.0, f.common_sigma)
             self.c = [c, self.c[0], self.c[1]]
             v_all = v + c
         else:
