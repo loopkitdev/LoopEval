@@ -266,6 +266,19 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         import json as _json
         h = np.array(_json.loads(mh), dtype=float)
         if h.sum() > 0: t.snack_hours = h / h.sum()
+    if isinstance(sg, str) and getattr(t, "snack_hours", None) is not None and np.isfinite(g).all() and g.sum() > 0:
+        # the donor's window grams include their snacks, and snacks are placed on the donor's clock too: each main meal
+        # takes its window's share less the snack grams expected there (waking hours, weekday) (LESSONS 59)
+        hh = np.arange(24) + 0.5
+        wk, bd = t.wake / 60.0, (t.bed / 60.0) % 24
+        awake = (hh >= wk) & (hh < bd) if bd > wk else (hh >= wk) | (hh < bd)
+        sh = t.snack_hours * awake; sh = sh / sh.sum() if sh.sum() > 0 else t.snack_hours
+        pw = np.array([sh[(hh >= lo) & (hh < hi)].sum() for lo, hi in ((4, 10.5), (10.5, 15.5), (15.5, 22))])
+        M = 0.86 / 0.286 * t.main_weight
+        f = g / g.sum()
+        m = np.maximum(f * (M + t.snack_rate * pw.sum()) - t.snack_rate * pw, 0.05 * M)
+        m = m * M / m.sum()
+        t.slot_shares = tuple(float(x) for x in m * 0.286 / t.main_weight)
     return t
 
 
