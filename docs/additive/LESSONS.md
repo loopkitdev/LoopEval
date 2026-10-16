@@ -1001,3 +1001,8 @@ statistic here, but it is the controller donors ran.
       40): the slow EGP tail of the dinner bolus lands in the post-absorptive night.
     Pairing total ISF with the peak-based self-check CR leaves days high (means 140–245), so each calibration needs
     its own matching self-check. Not adopted; the definition is Pete's call (TIDEPOOL-18).
+
+73. **The weekly cycle is not the missing day-to-day TDD variance.** Donors in local time (168): TDD by weekday,
+    relative to each person's mean, is 0.993–1.007. Removing each person's weekday means cuts the day-to-day TDD CV
+    only from 19.0% to 18.6% over full records (16.4% in 13-day blocks; sim 14.7%). Entered carbs by weekday are
+    0.91 (Friday) to 0.99 (Sunday). No weekly component is added.
