@@ -1033,3 +1033,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Closed-loop start counts refit on top (v32of{0,1}TcB2FGUC): lone boluses 2.58 / 2.66 a day (field 2.29), TIR 69.8 / 70.0,
     t<54 0.42 / 0.35, mean 156 / 158, lows per lone bolus 0.106 / 0.112, per meal bolus 0.118 / 0.111; per-person t<54 pass
     rate 50 / 54% (was 38 / 50%, 50% if faithful). New base.
+111. **After a meal bolus the field's meal hits early and fades; the generator's plateaus. A closed-loop meal-response kernel
+    lowers post-bolus lows only through the food it adds; not kept.** Base v32of0TcB2FGUC, held-out, event average after a
+    meal bolus: total ICE 86 / 123 / 122 / 110 / 103 mg/dL/h at 0 / 30 / 45 / 75 / 105 min (field) vs 85 / 100 / 106 / 108 /
+    109 (generated); insulin action within 5 (ISF x activity 107 vs 112 at 60 min); field glucose +19 at 45 min and +24 at 75,
+    generated +7 and +5. calibrate_meal_kernel.py (TOTAL=1): field minus generated total ICE after a meal bolus, 28 days
+    before the hold-out, applied after each generated meal bolus to the ICE the body sees. Seeds' fitted shapes differ (seed
+    0: +16 at 30 min then -5..-15 to 3 h; seed 1: +25 at 30 min, zero after 60). As fitted: lows per meal bolus 0.170 / 0.079
+    (base 0.118 / 0.111, field 0.064), t<54 0.65 / 0.28 - the negative tail hurts. Early positive part only (first 60 min):
+    0.099 / 0.079, t<54 0.35 / 0.30, t<70 1.74 / 1.47 (base 2.07 / 1.77), but TIR 69.2 / 68.0 (base 69.8 / 70.0), mean +2 / +3.
+    The same early part with its area (6 / 11 mg/dL) taken back evenly over 1-4 h: 0.109 / 0.103, t<54 0.40 / 0.33, TIR 69.7 /
+    68.8 - neutral. The low reduction came from net food per meal bolus, not the timing, at a TIR cost.
