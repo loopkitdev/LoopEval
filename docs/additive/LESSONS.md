@@ -2203,3 +2203,11 @@ statistic here, but it is the controller donors ran.
        the labeler-bias residue of LESSONS 106 (+6.6 per person vs the +2 subtracted); correcting it (c113,
        lead_shift −4.6) was neutral on the cohort statistics. With faster meals now in the default, that late
        residue meets fast appearance. Worth re-testing the −4.6 correction on the new meal defaults.
+     - **The lead correction does not fix it** (c130, frozen 81b1865; the base reproduces c129_s15 exactly, 31).
+       lead_shift −4.6: 27 matched; entered fast rises still end −28 at 3 h (base −25; donors +17); sim lead medians
+       −5 / +5 / +5 / −2.5 by speed quartile. Not adopted.
+     - What remains: the sim's entered fast meals are over-insulinized for the carbohydrate they deliver. The
+       person's bolus is sized to the entry (CR × entered grams), and so are donors'. The difference is what the
+       entry covers: if donors' fast-rising entered meals carry more total carbohydrate or a slower tail than
+       their entries (under-counting, fat/protein), they hold; the sim's high-fast meals end. Next: compare labeled
+       g-eq per entered gram for fast-rising entered meals only, donors vs sim.
