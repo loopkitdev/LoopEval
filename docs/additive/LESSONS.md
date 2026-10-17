@@ -1416,3 +1416,22 @@ statistic here, but it is the controller donors ran.
     into the donors' CV 35 at full meal height. The open question stays the shape of a real meal excursion: fast, high
     and brief (ACF zero-crossing 42 vs 55–60 min). Script: `meal_insulin.py` (gamepc `~/additive/`, scratch copy in the
     run dir).
+
+93. **Tracer-paced emptying gives the donors' within-meal climb; renal clearance is not why highs fall fast.**
+    - **Fastest 15-min rise per isolated, announced meal** (labeler onsets):
+
+      | | p25 | p50 | p75 | p90 |
+      |---|---|---|---|---|
+      | Donors | 19 | 29 | 42 | 55 |
+      | c100 default | 13 | 22 | 34 | 46 |
+      | Emptying ×1.6, CSF ×0.84 | 17 | 28 | 39 | 53 |
+
+      At the meal level, labeled pulses already match: size, duration, time to peak, phase mix (86/13% one/two phases
+      vs 87/12%) and about 5.7 per day. So eating patterns are not the gap. The climb within a meal is, and tracer-paced
+      emptying fixes it (LESSONS 90). What breaks at that pace is the swing that follows.
+    - **Renal clearance at the UVA/Padova value** (`--set rcl_mult=0.167`; evidence/01 §4.3 corrected: Hovorka's
+      0.67 and UVA's 0.11 mg/kg/min at 300 mg/dL disagree 6×). The 3-h fall from a quiet midnight at > 200 mg/dL is
+      −94 vs −91 at the default, donors −65. Loop doses more into the longer highs and compensates. 23 of 51 matched;
+      with emptying ×1.6, 21 (CV 41.7). The default stays Hovorka's. The 140–200 band already matches (sim −32,
+      donors −33); only the > 200 band falls too fast.
+    Script: `highins_sim.py` (gamepc), donor side `highins2.py`.

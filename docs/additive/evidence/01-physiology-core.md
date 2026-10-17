@@ -408,8 +408,14 @@ UVA/Padova delay-based fast-analogue model (n = 116).
   - It varies between people and rises with age and nephropathy [unverified; Johansen 1984
     Diabetologia, PMID 6714538].
 - Clearance above threshold: Hovorka 0.003 min⁻¹ × (G − Rthr) × VG [unverified]; UVA 0.0005 min⁻¹
-  on Gp. At G = 300, both give about 0.4–0.6 mg/kg/min, roughly 20% of EGP. This bounds prolonged
-  highs and matters for TIR comparisons of high-running arms.
+  on Gp. **The two disagree about 6×** (corrected 2026-10-16; this note had said both give 0.4–0.6). At G = 300:
+  - Hovorka: 0.003·(16.7 − 9 mmol/L)·0.16 L/kg ≈ 0.0037 mmol/kg/min ≈ **0.67 mg/kg/min**, about 0.36 mg/dL/min.
+  - UVA/Padova: 0.0005·(300·1.85 − 339 mg/kg) ≈ **0.11 mg/kg/min**, about 0.06 mg/dL/min.
+  - The sim's default (Rcl 0.003/min directly on mg/dL) is Hovorka's.
+  - Filtration bounds it: GFR ~125 mL/min × G, less a reabsorption maximum TmG of ~300–400 mg/min that splays from
+    ~180 mg/dL. That gives near-zero excretion at the threshold, rising to GFR-limited slopes well above it
+    [textbook, unverified].
+  This bounds prolonged highs and matters for TIR comparisons of high-running arms (LESSONS 93).
 - **Prior:** Rthr ~ N(180, 25²) mg/dL; Rcl ~ lognormal(median 0.003 min⁻¹ in Hovorka units, CV 30%).
 
 ### 4.4 Counter-regulation in T1D, HAAF, rebound
