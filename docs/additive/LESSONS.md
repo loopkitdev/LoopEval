@@ -2503,3 +2503,11 @@ statistic here, but it is the controller donors ran.
        temp-basal people are predicted higher at bolus time (a rise already under way, or momentum on sensor noise).
        Automatic-bolus people carry 20% more IOB into meals than their donors, which fits their lower day/night
        (more automatic insulin around meals). Next: the forecast at meal-bolus time against the donors' bgForecast.
+     - **Not the CGM trend either.** 15-min CGM change before the meal bolus (median person; share > +10):
+       - donors: automatic +4.0 (0.36), temp +2.5 (0.31);
+       - c135: automatic +1.0 (0.26), temp +2.5 (0.28).
+       For temp-basal people, IOB and momentum match the donors, but the recommendation is 7% higher. The remaining
+       forecast terms are retrospective correction (glucose above Loop's prediction just before the meal) and COB
+       from earlier entries. Comparing them needs the donors' dosingDecision bgForecast and RC, which are in
+       Databricks only (the local exports carry decision times, not forecasts). Next: pull dosingDecision forecasts
+       at meal-bolus times for the 56 temp-basal pilot donors.
