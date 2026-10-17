@@ -1156,3 +1156,8 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     74.0, t<54 0.44 / 0.28, t<70 1.89 / 1.87 - TIR up, lows up; not kept. Entries made below 100 mg/dL while falling: field
     232, median 15 g, 24% with a bolus within 15 min; generated (base, seed 0) 517, 16 g, 39% bolused. More entries while
     falling add bolused ones; the bolus-given-entry head needs the same state dependence.
+    The bolus-given-entry head by glucose x trend as well (calibrate_bwith_state.py; field entries made falling fast are
+    bolused 13-30%, flat or rising above 90 mg/dL 75-82%; shifts -0.39 to -0.91 falling, up to +0.5 otherwise), with the
+    entry and unannounced-meal shifts: TIR 73.5 / 73.5, t<54 0.39 / 0.27, t<70 2.04 / 1.95 - still behind the all-starts
+    meal-head shift alone (73.1 / 73.1, 0.31 / 0.21, 1.66 / 1.80); not kept. Of the trend calibrations tried, the cruder
+    one is the best on lows; the per-head versions do not add up to it.
