@@ -185,6 +185,10 @@ class World:
             self.beh_traits.lead_own = False
         if enable and isinstance(enable.get("lead_sd"), float):
             self.beh_traits.lead_sd = enable["lead_sd"]
+        if enable and isinstance(enable.get("meal_drink_p"), float):
+            self.beh_traits.meal_drink_p = float(enable["meal_drink_p"])
+        if enable and isinstance(enable.get("meal_drink_share"), float):
+            self.beh_traits.meal_drink_share = float(enable["meal_drink_share"])
         if enable and enable.get("graze_fast"):
             self.beh_traits.graze_fast = True
         if enable and isinstance(enable.get("graze_keep"), float):
