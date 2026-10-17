@@ -1564,3 +1564,19 @@ statistic here, but it is the controller donors ran.
       - Any plant-side "bolus" count excludes them. A first hourly bolus split here read as no overnight autoboluses,
         which was this artifact.
     Scripts: `twin_fail.py`, `hourly.py` (run dir and gamepc).
+
+100. **Day/night follows meal speed: one mechanism behind three of the failing statistics.** Delivered insulin,
+     day (10–22 h) ÷ night (00–06 h), median per person, by dosing strategy:
+
+     | | c100 default | c102 tracer-paced meals (×1.6, CSF ×0.84) | c103 = c102 + hyperglycaemic slowing | Donors |
+     |---|---|---|---|---|
+     | temp basal | 1.79 | 1.93 | 1.86 | 1.96 |
+     | autobolus | 1.65 | 1.83 | 1.66 | 2.09 |
+
+     - When meals appear at the tracer pace, Loop's dosing lands at meal hours instead of trailing into evening and
+       night. That closes most of the temp-basal gap and about 40% of the autobolus gap.
+     - Together with LESSONS 90 and 93 (sharp rises, the within-meal climb), the donors' data point three ways to the
+       same thing: meals appear faster than the default model lets them.
+     - What blocks adopting the tracer pace is the swing that follows (CV 39 vs 35, more lows). The open component is
+       what keeps a real fast-appearing meal from overshooting. It is meal-specific, since the global terms (glucose
+       effectiveness, LESSONS 98; hyperglycaemic slowing, LESSONS 91) both fail.
