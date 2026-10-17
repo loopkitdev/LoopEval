@@ -87,3 +87,13 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
   `real_pilot_dupwear.csv`.
 - **Cohort result.** 30 of 51 statistics matched (c114), against 27 before. Candidate deltas measured on earlier
   defaults need re-checking.
+
+## Update 2026-10-17 (later): body insulin action from the clamp, not Loop's curve
+
+- The body's insulin-action rate p2 is now 0.025, from the lispro clamp fit (LESSONS 9, 114). It was 0.05, fitted to
+  Loop's adult curve. The body follows evidence about patients; Loop's model is what LoopEval tests, so it is never
+  the reference (Pete). About 10% of a bolus's effect lands in the first hour, against Loop's 22%.
+  - Effect: Loop sees glucose climb faster than it forecast after boluses, as the real field does.
+  - Meals now rise more like donors', and lows stay at donor level (c124: t54 0.17, donors 0.215).
+- `--set ins_p2=0.05` restores the old timing for comparison. Candidate deltas measured before this change need
+  re-checking, especially for anything that acts on the forecast's insulin tail or on meal-time dosing.

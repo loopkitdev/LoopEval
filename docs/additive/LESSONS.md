@@ -1980,3 +1980,11 @@ statistic here, but it is the controller donors ran.
      - **Open.** The first-hour climb needs another component, not more insulin delay. Appearance runs at the
        high-GL tracer pace (lesson 113), so the remaining suspects are glucose effectiveness at meal onset, the
        sensor's lag, and what donors' isolated meals really are (larger true carbs than entered).
+     - **Adopted (Pete, 2026-10-17): p2 0.025 by default** (78fcf44; p2E stays at its tracer value 0.010). The person's
+       sensitivity is recalibrated end to end at the new timing, so the default cohort differs from the override arm.
+       c124 (frozen 78fcf44, against c119_base):
+       - 27 matched (within the 26–30 band);
+       - meal ΔCGM 60/120 min +19/+35 (was +13/+27; donors +27/+42); first-hour step skew 0.48 (0.32; donors 0.67);
+       - t54 0.17 (KS 0.63), lows/day 0.83, p_reach54 0.18; TIR 67.3, mean 156; labeled g-eq per entered g 1.22.
+       - The self-check fails the same 4 of 8 bodies before and after (night below rest: the dinner tail in the
+         night window accepted in LESSONS 75; failing since at least bcb5be0).
