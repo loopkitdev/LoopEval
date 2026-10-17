@@ -2107,3 +2107,22 @@ statistic here, but it is the controller donors ran.
        smaller slow share.
      - Not adopted. Next: let the fast share add to the meal instead of displacing its slow part (e.g. a sugary
        drink with the meal), and compare falls.
+
+119. **A sugary drink with the meal, food intact, is weaker than the per-meal spread and costs the same.**
+     `--set meal_drink_p=x` (631df2f, off by default): on that share of main meals, a drink takes
+     `meal_drink_share` (0.4) of the carbohydrate as the fast phase; the food keeps its own 20% fast share and its
+     slow tail. c128 against c124:
+
+     | | c124 | p 0.2 | p 0.4 | donors |
+     |---|---|---|---|---|
+     | matched | 27 | 24 | 23 | |
+     | true rises > 20 / 1,000 | 2.0 | 3.0 | 3.8 | — |
+     | CGM rises / falls > 20 | 10.7 / 9.1 | 11.4 / 9.6 | 12.5 / 10.0 | 20.0 / 11.4 |
+     | CV | 35.4 | 36.4 | 37.3 | 34.8 |
+     | hurst_long | 0.233 | 0.189 | 0.191 | 0.247 |
+
+     - Keeping the food's tail does not stop the falls. In every faster-meal arm so far (emptying ×1.6, fast phase
+       0.3–0.4, per-meal spread, drink), CV rises and long memory weakens together.
+     - The common factor is not meal composition but what follows a fast rise in the sim: Loop and the person's
+       response to it. Donors gain fast rises with no extra falls. Next: compare insulin delivered in the hour after
+       a sharp rise (> 20 mg/dL / 5 min), donors vs sim (c127_fsd25). Then compare what glucose does 1–3 h later.
