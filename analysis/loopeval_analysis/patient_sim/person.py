@@ -208,7 +208,7 @@ def _formulation(brand: str, rng) -> str:
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = False,
-                  kappa_mult: float = 1.0, ge_var: bool = True) -> Person:
+                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -292,6 +292,11 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # share 0.43–0.51, eda L9], and the carbs EATEN are what the rest of TDD covers at the true CR
     # (= ISF / CSF of this body). Announced grams then drive only what the person enters.
     share = float(np.clip(rng.normal(0.5, 0.07), 0.35, 0.7))
+    nr = float(row.get("night_ratio", np.nan)) if "night_ratio" in row.index else np.nan
+    if basal_own and np.isfinite(nr) and float(row.basal) > 0:
+        # the body's basal need from the donor's own overnight delivery: automatic delivery / scheduled basal on the
+        # donor's nights (an upper bound: it includes night corrections), × the scheduled basal (LESSONS 125)
+        share = float(np.clip(float(row.basal) * j_basal * min(nr, 3.0) * 24.0 / tdd, 0.30, 0.75))
     basal_true = tdd * share / 24.0
     bp = calibrate(bp, formulation, isf_true, basal_true, egp_share, total=isf_total)
     # true CR on the LINEAR part: the TDD constraint holds with it (cohort c35 TDD 36 vs donors 37); the effective
