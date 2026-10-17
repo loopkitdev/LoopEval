@@ -2431,3 +2431,15 @@ statistic here, but it is the controller donors ran.
        - matched 33 vs 31, without moving its own target, so that is noise. Not adopted.
        The pulses after a fall are mostly not the proactive snack (meals and other eating that happen to follow a
        fall). The upper shoulder and CV stay open: unannounced daytime appearance (lesson 108).
+
+127. **Fewer snacks do not reduce the labeled unannounced surplus.** The snack rate is the donor's labeled
+     pulses/day − 3, and labeled pulses include non-eating rises, so it may double-count. c135 per person against
+     its own donor: labeled meals/day 1.02×, unannounced meals 1.08×, unannounced g-eq 1.11×.
+     `--set snack_minus=0.4` (0f5098e; snack rate 0.4/day lower, entry probability recomputed):
+     - twin unannounced meals 1.10×, g-eq 1.12× (unchanged); CV 37.7 (37.4); p75 186 (188); TIR 70.7;
+       lows/day 1.25 (1.08);
+     - 32 vs 31 matched (noise). Not adopted.
+     The snack count is not what the labeler sees as surplus. With grazing (lesson 109), proactive defence (126),
+     fast intake (117–119) and snacks (here) each neutral, the sim's extra unannounced daytime appearance is not one
+     eating component. What is left is the labeler's reading of the sim's own non-eating rises (2.3/day, LESSONS 108),
+     whose sources the morning-modulator ablations did not find (110).
