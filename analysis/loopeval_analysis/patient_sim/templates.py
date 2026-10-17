@@ -425,3 +425,27 @@ def add_gap_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_entry_hours(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Per donor, the local-hour histogram of carb entries (carbs.json, grams > 0), as `entry_hours` (24 shares).
+    With `meal_hours` (the labeler's eating clock) it gives the hour-by-hour chance an eating occasion is entered:
+    donors eat at night (labeled pulses) but rarely enter it (LESSONS 123)."""
+    import json
+    from .quiet import local_offset, to_local
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        p = ice_root / "full" / a / "carbs.json"
+        if p.exists():
+            c = [x for x in json.load(open(p)) if (x.get("grams") or 0) > 0]
+            if len(c) >= 20:
+                lt = to_local(pd.to_datetime([x["startDate"] for x in c], utc=True, format="ISO8601"), local_offset(a, ice_root))
+                h = np.histogram(np.asarray(lt.hour + lt.minute / 60.0), bins=24, range=(0, 24))[0].astype(float)
+                row["entry_hours"] = json.dumps((h / h.sum()).round(4).tolist())
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t

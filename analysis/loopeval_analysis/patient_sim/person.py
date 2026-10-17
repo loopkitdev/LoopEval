@@ -31,7 +31,7 @@ BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "
                  "rescues_per_day", "rescue_size_med", "rescue_bg_med", "free_boluses_per_day",
                  "free_bolus_u_med", "true_corrections_per_day", "tir", "t70",
                  "entries_raw", "boluses_raw", "bolus_entry_raw", "topups_raw", "lone_raw", "manual_u_day",
-                 "abs_fast_s", "abs_slow_s", "abs_fast_l", "abs_slow_l", "gap_short", "gap_long"] + \
+                 "abs_fast_s", "abs_slow_s", "abs_fast_l", "abs_slow_l", "gap_short", "gap_long", "entry_hours"] + \
                 [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h")] + \
                 ["edit_basal_day", "edit_isf_day", "edit_cr_day", "corr_exposure", "slot_g", "slot_ann", "offline_day", "perr_day"]
 # ice L54 measures 1.30 g-eq of meal pulse per entered gram (1.21 for the pilot donors through the same
