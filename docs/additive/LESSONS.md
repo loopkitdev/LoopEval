@@ -1744,3 +1744,35 @@ statistic here, but it is the controller donors ran.
        and the run-based statistics read through them.
      - **Still failing:** step skew (G7 0.01 vs 0.33), ACF zero-crossing 60 (42.5), day/night 1.69 (2.06), p99,
        TDD CV, lag-1 autocorrelation, between-day fraction, circadian amplitude, sigma_disp, volatility clustering.
+
+108. **The sim's heavy 180–240 band is extra unannounced daytime appearance, not announced meals.**
+     - **Where the extra CV sits.** Per-person median glucose percentiles, p25/p75/p90/p95/p98:
+       - donors 112 / 181 / 226 / 255 / 289;
+       - c114 114 / 189 / 236 / 264 / 291;
+       - tracer pace (c102) 111 / 194 / 249 / 284 / 323.
+       Even the baseline is too heavy at p75–p95, and faster emptying lifts the peaks further.
+     - **Labeled meals, like for like** (ice labeler on both). Meal size matches: g-eq q25/50/75/90/98 18/26/41/61/93
+       donors, 17/26/41/61/94 c114. Daily appearance does not: 182 g-eq donors vs 203 c114 (twin +6%), and 233 under
+       tracer pace (twin +21%).
+     - **The announced side matches** (per person, median): labeled announced g-eq per entered gram 0.87 donors vs
+       0.90 sim; entered grams matched to a labeled meal 0.77 vs 0.80; g-eq per matched gram 1.15 vs 1.13.
+       - The template's `carb_g_day` counts only entries the labeler matched to a meal, so it reads 23% below the
+         grams entered. That is not an excess.
+     - **The excess is unannounced and daytime.** Unannounced labeled appearance is 117 g-eq/day vs 93 (twin +19%;
+       tracer +36%). By clock quarter, g-eq/day for donors → sim:
+
+       | 00–06 | 06–12 | 12–18 | 18–24 |
+       |---|---|---|---|
+       | 22.3 → 23.1 | 23.0 → 33.8 | 26.5 → 32.2 | 31.0 → 35.0 |
+
+       Nights match. Announced appearance runs 7–10% short in every daytime quarter.
+     - **Sources of the sim's unannounced pulses** (nearest true event within −45/+30 min of the labeled onset):
+       - no eating event: 58 g-eq/day, 2.3 pulses. Within 3 h of eating, 30 g-eq/day, mostly afternoons and
+         evenings (meal tails read as second pulses). More than 3 h after, 28 g-eq/day, of which 15 at night.
+       - unentered meals 13, grazes 16, snacks 13, proactive carbs 16 g-eq/day.
+       - Proactive carbs are 1.6 a day, 21 g, eaten at a median CGM of 89 while falling 13 mg/dL per 15 min; 14% are
+         taken above 120.
+     - **Open.** Which daytime source is too large has no direct donor counterpart: donors' unannounced eating is
+       unobserved. Two to test against evidence:
+       - the activity-energy carbs (`act_carbs`, ~29 g/day added to meals, LESSONS 34);
+       - the meal-tail second pulses (fat and protein, LESSONS 31).
