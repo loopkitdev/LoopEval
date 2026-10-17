@@ -2553,13 +2553,14 @@ extension EvaluationEngine {
             }
         }
         var sigma5 = Double.nan
-        if config.sigmaBandK > 0 || config.calmHighAfScale != 1.0 || config.calmHighTargetDelta > 0 {   // NB: every consumer of sigma5 must be listed here. C31's target shift was added without it,
+        if config.sigmaBandK > 0 || config.calmHighAfScale != 1.0 || config.calmHighTargetDelta > 0 || config.runwayFraction > 0 {   // NB: every consumer of sigma5 must be listed here. C31's target shift was added without it,
             // so sigma5 stayed NaN, calmHighActive was never true, and all three cht arms scored
             // EXACTLY 0.000 on both donors -- a silent no-op that looked like a clean negative result.
             let unit = LoopUnit.milligramsPerDeciliter
             let g = effectiveInput.glucose.suffix(60)   // last ~5 h of samples
             let floorVar = 2.0 * config.sigmaNoiseMgdl * config.sigmaNoiseMgdl
             var v = Double.nan
+            var nInc = 0.0            // valid increments since the start of the window or the last gap
             var prev: (Date, Double)? = nil
             for s in g {
                 let bg = s.quantity.doubleValue(for: unit)
@@ -2568,13 +2569,25 @@ extension EvaluationEngine {
                     if dtMin > 2.0 && dtMin <= 7.0 {
                         let d5 = (bg - pbg) * (5.0 / dtMin)
                         v = v.isNaN ? max(d5 * d5, floorVar) : max(config.sigmaEwmaLambda * v + (1 - config.sigmaEwmaLambda) * d5 * d5, floorVar)
+                        nInc += 1
                     } else if dtMin > 7.0 {
                         v = Double.nan       // gap: restart the estimator
+                        nInc = 0
                     }
                 }
                 prev = (s.startDate, bg)
             }
             sigma5 = v.isNaN ? sqrt(floorVar) : sqrt(v)
+            // Cold-start prior: a restarted estimator reads calm on one or two quiet increments. Pull it up toward
+            // the prior until an hour of continuous data has accrued; never pull it down.
+            if config.sigmaPrior > 0 {
+                let p2 = config.sigmaPrior * config.sigmaPrior
+                if v.isNaN { sigma5 = Swift.max(sigma5, config.sigmaPrior) }
+                else if v < p2 {
+                    let w = Swift.max(0, 1 - nInc / Swift.max(1, config.sigmaPriorSteps))
+                    sigma5 = sqrt(w * p2 + (1 - w) * v)
+                }
+            }
         }
         // σ-widened LOWER band: lower each predicted point at τ min by k·σ5·(τ/5)^H up to
         // the horizon, tapering to 0 by taper — the eventual BG is untouched, the
@@ -2597,6 +2610,49 @@ extension EvaluationEngine {
                     if age > windowSec, haveSlope { break }
                 }
                 descentAllowed = sawHigh && haveSlope && slope <= config.descentSlopeMax
+            }
+        }
+        // Runway reserve (C40): how much extra correction suspending basal could still take back.
+        // Uses the forecast before the sigma band lowers it (the band term here is its own).
+        var runwayDelta = 0.0
+        if config.runwayFraction > 0, sigma5.isFinite,
+           !config.runwayCobGate || (prediction.activeCarbs ?? 0) <= 0,
+           let t0 = prediction.glucose.first?.startDate,
+           let eventual = prediction.glucose.last?.quantity.doubleValue(for: .milligramsPerDeciliter) {
+            let mg = LoopUnit.milligramsPerDeciliter
+            let bgNow = effectiveInput.glucose.last?.quantity.doubleValue(for: mg) ?? eventual
+            let isf = (effectiveInput.sensitivity.last(where: { $0.startDate <= t }) ?? effectiveInput.sensitivity.first)?
+                .value.doubleValue(for: mg) ?? 0
+            let basal = (effectiveInput.basal.last(where: { $0.startDate <= t }) ?? effectiveInput.basal.first)?.value ?? 0
+            let tr = (effectiveInput.target.last(where: { $0.startDate <= t }) ?? effectiveInput.target.first)?.value
+            let theta = therapy.suspendThreshold(at: t)?.doubleValue(for: mg) ?? 70.0
+            if bgNow >= config.runwayBgMin, isf > 0, let tr = tr {
+                let tMid = 0.5 * (tr.lowerBound.doubleValue(for: mg) + tr.upperBound.doubleValue(for: mg))
+                let excess = Swift.max(0, eventual - tMid)      // Loop's own correction, in mg/dL at completion
+                let model = therapy.insulinType(at: t).model
+                func delivered(_ min: Double) -> Double {
+                    min <= 0 ? 0 : Swift.max(0, Swift.min(1, 1 - model.percentEffectRemaining(at: min * 60)))
+                }
+                var eMin = Double.infinity
+                var withheld = 0.0          // U·fraction of basal withheld from t0 that has acted by tau
+                var lastTau = 0.0
+                for p in prediction.glucose {
+                    let tau = p.startDate.timeIntervalSince(t0) / 60.0
+                    if tau <= 0 { continue }
+                    if tau > config.runwayHorizonMin { break }
+                    // withheld(tau) = basal/60 · ∫0^tau delivered(u) du, midpoint rule on the forecast grid
+                    let mid = 0.5 * (tau + lastTau)
+                    withheld += basal / 60.0 * delivered(mid) * (tau - lastTau)
+                    lastTau = tau
+                    let d = delivered(tau)
+                    guard d > 0.05 else { continue }
+                    let path = p.quantity.doubleValue(for: mg) - excess * d
+                        - config.runwayZ * sigma5 * pow(Swift.max(tau, 5) / 5, config.sigmaScalingH)
+                    eMin = Swift.min(eMin, (path + isf * withheld - theta) / (isf * d))
+                }
+                if eMin.isFinite {
+                    runwayDelta = Swift.min(config.runwayMaxMgdl, config.runwayFraction * isf * Swift.max(0, eMin))
+                }
             }
         }
         let sigmaBandAllowed = (!config.sigmaBandCobGate || (prediction.activeCarbs ?? 0) <= 0) && descentAllowed
@@ -2712,8 +2768,9 @@ extension EvaluationEngine {
         // factor above only scales an automatic BOLUS, so it is inert on a temp-basal donor (bddp02 and
         // bddp07 issue none). Lowering the correction target enlarges the correction whichever way it is
         // delivered. Suspend threshold untouched — the low guard is unchanged.
-        if config.calmHighTargetDelta > 0, calmHighActive {
-            let d = config.calmHighTargetDelta
+        let aimShift = (config.calmHighTargetDelta > 0 && calmHighActive ? config.calmHighTargetDelta : 0) + runwayDelta
+        if aimShift > 0 {
+            let d = aimShift
             doseInput = PredictionInput(
                 glucose: doseInput.glucose, doses: doseInput.doses, carbs: doseInput.carbs,
                 basal: doseInput.basal, sensitivity: doseInput.sensitivity,
