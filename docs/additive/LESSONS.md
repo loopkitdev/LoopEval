@@ -1805,3 +1805,15 @@ statistic here, but it is the controller donors ran.
        lows/day 1.50 (1.08), p_reach54 0.25 (0.20), and CV is 38.0. At half grazes (c116_g5_ge): CV 38.9, t54 0.35.
        Faster appearance makes Loop and the person dose into steeper rises, and the excess comes back as lows.
        Vmax stays 3.
+     - **Where the morning excess sits** (c114 vs donors, unannounced g-eq/day 06–12, by time since the previous
+       labeled pulse ended):
+       - after an unannounced pulse: < 15 min 6.8 vs 4.1; 15 min–1 h 4.9 vs 5.2; 1–3 h 9.2 vs 5.0; > 3 h 5.5 vs 4.6;
+       - after an announced pulse: within 0.7 g-eq/day of donors in every bin.
+       - The first rise of the day (03–12, > 3 h without a pulse) is +2 g-eq/day (9.5 vs 7.4). The sim's are
+         larger at 06–07 (median 27–31 vs 18–20 g-eq).
+       The excess is chained unannounced rises in the morning. Their true sources: no eating and no low 6.8
+       g-eq/day, unentered meals 4.6 (the labeler splits them), grazes 2.8, proactive carbs 2.5, snacks 2.3.
+     - The dawn EGP bump is already off for anyone with a basal profile (LESSONS 51). The non-eating morning rises
+       come from the remaining morning modulators: Visentin breakfast-hour SI, GH night-to-night variation, stress
+       episodes, sleep-loss SI. Next: ablate each, measure the morning chain table, and compare each with its own
+       evidence.
