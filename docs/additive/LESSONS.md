@@ -2369,3 +2369,13 @@ statistic here, but it is the controller donors ran.
        (fat/protein late parcel, slow phase, late dinners) or the 25% of nights above 250 (donors 18.5%).
      - Next: decompose the sim's night above-schedule insulin by what preceded it (time since last eating event,
        carbohydrate still absorbing at midnight), and compare donors' carb-free nights.
+     - **The excess is the same on clean nights.** Overnight automatic ÷ scheduled per night, by whether a carb entry
+       falls 20:00–06:00 (median of person medians; `night_split.py`, entries only on both sides):
+       - donors: clean 1.16 (57% of nights), evening-carb 1.31;
+       - c133_base: clean 1.41 (53%), evening-carb 1.53.
+       Counting all simulated eating, 87% of sim nights have an event 20:00–06:00, mostly unentered.
+       The sim's Loop runs ~0.2 × schedule above the donors' on every kind of night, including nights with no
+       entered carbohydrate. Removing grazes did not help (c116_g0 day/night 1.635), and a higher body basal made it
+       worse (basal_own). Remaining candidates:
+       - what the sim's Loop forecasts at night: momentum and RC on the sim's sensor noise vs real G7 smoothing;
+       - an EGP night level above the schedule's assumption (the tracer EGP arm, LESSONS 75).
