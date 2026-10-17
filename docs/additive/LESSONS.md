@@ -2590,3 +2590,9 @@ statistic here, but it is the controller donors ran.
        The component is evidenced (Smart 2013, Wolpert 2013, Bell 2020) and stays. Its size per gram of fat and
        protein (A12, a [J] split of 0.44 / 0.45 g per carb gram) may be large for automatic-bolus people's meals. The
        temp-basal late excess (+11 vs +5 at 4–6 h) is not fat; that leaves unentered eating 3–6 h after meals.
+     - **The fat and protein amounts are evidenced.** 470 T1D adults ate fat 75 ± 31 g, carbohydrate 162 ± 63 g and
+       protein 70 ± 24 g a day (PMC11446970): 0.46 g fat and 0.43 g protein per carb gram, against the sim's
+       0.44 / 0.45 (registry A12 updated). If the automatic group's late RC is too large, it is in the effect sizes:
+       - the fat SI dip ρ U(0, 0.35) per 50 g, 2–6 h;
+       - the protein parcel, 0.1 g glucose per g, delayed 90 min.
+       Not in the amounts.
