@@ -2522,3 +2522,30 @@ statistic here, but it is the controller donors ran.
        - unannounced eating raises glucose with no carbohydrate in the forecast.
        Whether donors' Loop carries the same positive RC into meals is the check that decides whether the sim
        overstates it. It needs dosingDecision RC/bgForecast from Databricks (Pete's U2M login).
+
+129. **Real glucose follows Loop's forecast by day; simulated glucose runs above it all day.** Donors' Loop
+     retrospective correction comes from a plain replay of their own record: no counterfactual, decisions on real
+     BG, class-1 flags, the donor's recorded RC mode (rc_mode.csv), 2026-07-01..07-15, 167 pilot donors. Earlier
+     work matched the replay's RC to Loop's recorded values. The sim's comes from its trace; both are candidateRC,
+     mg/dL. Script `rc_meal_donors.py`, `rc_hours.py` (scratch).
+
+     | | RC at meal bolus | all cycles | 00–06 | 06–12 | 12–18 | 18–24 |
+     |---|---|---|---|---|---|---|
+     | donors temp (42/52) | +4.3 | +0.3 | +4.8 | +0.8 | −0.5 | +0.6 |
+     | sim temp (c135) | +9.0 | +3.9 | +2.3 | +3.6 | +4.6 | +4.5 |
+     | donors automatic (86/104) | +7.8 | +2.8 | +8.3 | +1.5 | +0.4 | +4.4 |
+     | sim automatic | +13.4 | +7.5 | +9.2 | +6.0 | +5.5 | +6.5 |
+
+     - This compares how far each side's glucose drifts from the same forecast, a like-for-like statistic of the
+       body, not a fit to Loop.
+     - **Daytime:** donors' glucose follows Loop's prediction (RC ≈ 0–1.5). The sim's runs 3.6–6 mg/dL above it from
+       06 to 24 h: more glucose enters that Loop is not told about. That is lesson 108's unannounced daytime
+       surplus, measured here with no labeler.
+     - **Night:** donors run above the forecast (dawn and night EGP rises); simulated temp-basal people less so
+       (+2.3 vs +4.8).
+     - **Not insulin timing:** the sim's all-cycles RC was +5.1 / +10.3 at p2 0.05 (c119), +5.1 / +9.4 at 0.025
+       (c124) and +3.9 / +7.5 now.
+     - It explains the temp-basal meal-bolus excess (the recommendation carries 0.21 U vs donors' 0.07 U of RC) and
+       part of the CV gap.
+     - Next: find the daytime unmodelled input by RC contribution, i.e. which simulated events precede positive-RC
+       hours (unentered meals, grazes, snacks, proactive carbs, non-eating rises).
