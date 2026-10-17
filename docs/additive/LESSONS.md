@@ -1580,3 +1580,19 @@ statistic here, but it is the controller donors ran.
      - What blocks adopting the tracer pace is the swing that follows (CV 39 vs 35, more lows). The open component is
        what keeps a real fast-appearing meal from overshooting. It is meal-specific, since the global terms (glucose
        effectiveness, LESSONS 98; hyperglycaemic slowing, LESSONS 91) both fail.
+
+101. **Entered absorption time is a measured per-person trait the sim does not have; it is not the meal brake.** The
+     sim tells Loop 3 h for every entry (`absorption_entry_h`). Donors (67,499 entries, 152 donors):
+
+     | Entered | Share | Median g | Bolused | Glucose < 80 at entry |
+     |---|---|---|---|---|
+     | 0.5 h | 14% | 15 | 75% | 14% |
+     | 1–2.5 h | 6% | 20–32 | 90–99% | 2–7% |
+     | 3 h | 75% | 25 | 90% | 6% |
+     | 5 h | 5% | 30 | 79% | 7% |
+
+     - The 0.5 h entries are mostly small fast-carb snacks, not rescues.
+     - Per donor the 0.5 h share is a median 2%, p75 15%, p90 40%; 29 donors exceed 20%.
+     - It is a candidate behavior trait (traits, not scripts): per-person shares of fast and slow entries, drawn by
+       entry size.
+     - It cannot be what damps the swing after main meals, which nearly all use 3 h. Not built yet.
