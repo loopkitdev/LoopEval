@@ -1538,3 +1538,29 @@ statistic here, but it is the controller donors ran.
     Glucose effectiveness pulls every excursion back toward the rest level, including the slow wander the donors keep
     (Hurst) and the approach to lows. Rejected, as at the default meal pace (LESSONS 68). The shorter real excursions
     need a mechanism that acts on meal excursions specifically, not on all deviations.
+
+99. **Person-by-person diagnosis of the failing statistics.** Each c106 person against the donor it was drawn from
+    (`twin_fail.py`):
+
+    | Statistic | Sim − own donor (median) | Spearman |
+    |---|---|---|
+    | step skew | −0.31 | −0.07 |
+    | ACF zero-crossing | +15 min | +0.05 |
+    | day/night | −0.29 | +0.12 |
+    | Hurst | −0.01 | +0.13 |
+    | p99 dose | −0.29 | +0.76 |
+
+    - **Universal gaps:** step skew and decorrelation are short by about the same in every group (sensor, dosing
+      strategy, announcer tercile), so their cause is structural, not tied to a kind of person.
+    - **Shape statistics do not follow the individual donor** (rank correlation about 0.1). The sim reproduces the
+      population spread of shape, not each person's own.
+    - **Day/night splits by dosing strategy:** autobolus people run too flat (−0.49; sim 1.70 vs donors 2.09) and
+      temp-basal people slightly peaked (+0.27; sim 1.90 vs donors 1.96). The day/night gap is the autobolus people's.
+    - **How automatic boluses reach the plant (engine design, not a bug).** The candidate's automatic bolus is booked
+      inside that step's temp-basal segment (`ClosedLoopSimulator`: keeps Loop's net-basal IOB accounting right), so
+      the plant receives it as `basal`. One autobolus person's trace: 465 automatic boluses (29.3 U) after hand-over,
+      all inside received 5-min basal segments; the delivered total is right.
+      - Plant side, automatic boluses take the basal depot's PK without the 15% per-dose jitter. That is small.
+      - Any plant-side "bolus" count excludes them. A first hourly bolus split here read as no overnight autoboluses,
+        which was this artifact.
+    Scripts: `twin_fail.py`, `hourly.py` (run dir and gamepc).
