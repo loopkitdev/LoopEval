@@ -2211,3 +2211,10 @@ statistic here, but it is the controller donors ran.
        entry covers: if donors' fast-rising entered meals carry more total carbohydrate or a slower tail than
        their entries (under-counting, fat/protein), they hold; the sim's high-fast meals end. Next: compare labeled
        g-eq per entered gram for fast-rising entered meals only, donors vs sim.
+     - **Per-meal size and duration match at every speed.** Announced meals (entry ≥ 10 g) by within-person
+       meal-speed quartile, slowest → fastest (donors 38,558 meals vs c130_base 2,462):
+       - labeled g-eq per entered g: 1.62 / 1.35 / 1.02 / 0.65 vs 1.48 / 1.37 / 1.12 / 0.68;
+       - duration: 3.25 / 2.50 / 1.67 / 1.08 h vs 3.64 / 2.48 / 1.77 / 1.07;
+       - bolus ratio 1.0 throughout in both.
+       The meal model now reproduces the donors' meal-to-meal spread of speed and size. The −25 at 3 h after entered
+       sharp rises is a narrow selection (~120 sim events vs 6,377), not a per-meal mismatch. Left open.
