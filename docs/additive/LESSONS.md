@@ -1435,3 +1435,26 @@ statistic here, but it is the controller donors ran.
       with emptying ×1.6, 21 (CV 41.7). The default stays Hovorka's. The 140–200 band already matches (sim −32,
       donors −33); only the > 200 band falls too fast.
     Script: `highins_sim.py` (gamepc), donor side `highins2.py`.
+
+94. **Correction to LESSONS 80–81: per-unit insulin at night-time highs matches the donors once nights without
+    recorded insulin are set aside.** After a quiet midnight at > 200 mg/dL, delivery 00–03 h as % of TDD:
+
+    | | p10 | p25 | p50 | p75 | p90 | Nights < 2% |
+    |---|---|---|---|---|---|---|
+    | Donors | 0.0 | 0.0 | 6.6 | 10.1 | 14.7 | 30% |
+    | Sim (c100) | 3.5 | 6.7 | 9.1 | 12.6 | 15.9 | 4% |
+
+    - On donor nights with < 3% recorded, glucose falls only −31 mg/dL in 3 h.
+    - With insulin recorded (≥ 3%): donors get 8.2% of TDD and fall −72; the sim gets 9.6% and falls −82. That is
+      about −8.7 mg/dL per 1% of TDD in both.
+    - So the "insulin 40% stronger at highs" of LESSONS 80 was the donor median diluted by nights with no recorded
+      insulin. The sim delivers about 17% more into these highs; per unit it is right. κ and glucotoxicity tests
+      (LESSONS 81) were chasing this artifact; their defaults stay.
+    - **Recorded-insulin gaps are common in donors.** Of all donor 3-h windows (164,228), 5.5% have < 2% of TDD
+      recorded. Of those, 60% have no dose record at all and 40% are zero temps; 58% overlap a listed disruption
+      (generic disruption 3,171, loop offline 1,212). 164 of 168 donors have some; the top ten hold 38%. Glucose still
+      falls on those nights, which a truly insulin-free T1D night would not do, so most are **unknown**, not absent,
+      insulin (memory: pumpless disruptions).
+    - **Consequence for validation.** The donor delivery statistics (zero_frac, p99, TDD CV, day/night, ac1) count
+      unknown insulin as zero. Next: mask no-record stretches in `real_stats` and re-score.
+    Scripts: `highins2.py` / `highins_sim.py`, `zero_nights.py` (run dir).
