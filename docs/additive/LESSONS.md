@@ -2269,3 +2269,19 @@ statistic here, but it is the controller donors ran.
        after 22:00, as now, so it was not run.
      - Open: a clean measurement of dinner-time spread. Candidates are bolus times with entries ≥ 30 g, which need
        no labeler, and evidence (Camerlingo's day-to-day dinner SD).
+     - **Clean dinner timing, from entries** (day's largest entry ≥ 30 g after 15:30; `dinner_entry.py`):
+       - donors (138): median hour q25/50/75 18.37 / 19.04 / 19.72; within-person SD 1.56 h; 5.4% of dinners
+         after 22:00;
+       - c130_base (51): 19.10 / 19.67 / 20.22; SD 2.13 h; 15.3% after 22:00.
+       The summed GEV gaps make the sim's dinners late and wide.
+     - **`own_clock` from entries** (19ac07c; `add_meal_clock` now uses the largest entry per window: B ≥ 15 g,
+       L ≥ 20 g, D ≥ 30 g; NaN windows keep the population draw). c132 against c130_base:
+       - fixed: dinner SD 1.55 h (donors 1.56); night entered share 0.03 (0.04); day/night 1.59 → 1.73 (2.06);
+         hurst_long 0.204 → 0.245 (0.247); glucose skew 0.85 → 0.89 (0.89);
+       - broken: 24 vs 31 matched; t54 0.149 → 0.118 (KS 0.009; donors 0.215); lows/day KS 0.02; night CV
+         31.9 → 29.3 (36.0); circadian amplitude 0.152 → 0.160 (0.131); lunch share of entered grams 0.38 (0.34).
+     - **The late dinners were standing in for missing night variance.** With dinners on time, simulated nights are
+       too quiet (CV 29 vs 36) and too free of lows. Real nights have variance and lows from something other than
+       late meals: the open night-high and night-low items of LESSONS 79–81. Not adopted (the switch stays). The
+       count drops because a stand-in was removed, so the remaining night component is the next thing to find.
+       Breakfast from entries (8.8 h) is later than from labels (8.1 h): early breakfasts go unentered.
