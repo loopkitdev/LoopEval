@@ -55,6 +55,8 @@ class SiteTraits:
     # 22,741 wears). Split across failing absorption, full occlusion and dislodgement [J split]; the earlier 15% + 2% + 3%
     # was ~6× the measured rate and made whole days of highs (LESSONS 43)
     p_fail: float = 0.012           # sites whose absorption fails before the planned change
+    site_cv: float = 0.0            # per-site absorption-speed spread (lognormal SD); Haidar 2013 per-site tmax CV ~27%
+                                    # (evidence/14 candidate 3). 0 = off (switch; LESSONS 115)
     fail_floor: float = 0.3         # absorbed fraction a failed site decays to [J]
     fail_tau: float = 240.0         # min
     p_partial: float = 0.4          # silent partial occlusions per wear (Gibney: 36–50% of standard-set wears)
@@ -81,6 +83,9 @@ class Pump:
         self.rng = rng
         self.faults = faults
         self.bias = float(rng.normal(0, 0.015))
+        # its own stream for the per-site speed draw, seeded from a value already drawn, so other draws stay paired
+        self.r_site = np.random.default_rng(int(abs(self.bias) * 1e12) % (2 ** 32))
+        self.site_speed = 1.0
         self.flow_e = 0.0
         self.queue: list = []                  # (start, end, units, bolus)
         self.delivered = 0.0
@@ -95,6 +100,8 @@ class Pump:
         r, t = self.rng, self.t
         self.site_start = start
         self.site_lh = bool(t.lh_person and r.random() < t.p_lh_site)
+        cv = t.site_cv
+        self.site_speed = float(np.exp(self.r_site.normal(-cv * cv / 2, cv))) if cv > 0 else 1.0
         self.gap_until = -1.0 if initial else start
         self.startup = float(r.normal(*self.f.startup))
         life = t.planned_days * DAY
@@ -129,7 +136,7 @@ class Pump:
     def site_state(self, m: float) -> tuple[float, float]:
         """(absorption speed multiplier, absorbed fraction) of the current site."""
         age = max(0.0, (m - self.site_start) / DAY)
-        absm = self.t.abs_new + self.t.abs_slope * min(age, 4.0)
+        absm = (self.t.abs_new + self.t.abs_slope * min(age, 4.0)) * self.site_speed
         # the extent of absorption falls with set age while its rate rises (Simic 2021 clamp): fasting glucose
         # 126 → 133 → 147 on days 1 / 3 / 5 with insulin unchanged (Sampson Perrin 2015) ≈ −2.5% per day after day 1
         # [I size] (LESSONS 43)
