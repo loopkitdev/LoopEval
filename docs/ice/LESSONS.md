@@ -1103,3 +1103,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     i061 carbs entered 59 vs 117 g a day. calibrate_level.py on the 28 days before the hold-out (offset median +2.2, i008
     +16.7, i061 +10.2), applied after feedback: TIR 72.2 / 72.2 -> 74.8 / 71.9, t<54 0.36 / 0.31 -> 0.53 / 0.41, lows per
     meal bolus 0.114 / 0.106 -> 0.150 / 0.134. As in LESSONS 90, lowering a person's background level buys TIR with lows.
+    Some per-donor gaps are the person changing between periods: i061 entered 52 g a day in its training window (generated
+    68) and 117 in the held-out month. Grams per entry match the person in the training window (Spearman 0.87 over donors,
+    generated / field median 0.97); there is nothing to calibrate there.
