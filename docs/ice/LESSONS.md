@@ -1132,3 +1132,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     early (57 / 67 / 69 mg/dL/h at 30 / 45 / 60 min) but falls off by 105 min (52), and the background carries no early rise
     (37 at 30 min): the meal's ICE ends sooner than the bolus insulin. Same direction as on v3m10 (LESSONS 54, two seeds);
     seed 1's chain was interrupted and not rerun given the size of the effect (t<70 2x, post-meal-bolus lows +43%).
+121. **Generated people's eating barely responds to glucose falling, and they eat too often while it rises; the meal-start
+    head calibrated by glucose band x trend in closed loop, kept.** Base v32of0TcB2FGUCGLBGG, held-out, meal starts per hour
+    by glucose and 15-min change (> 10 mg/dL down / flat / up): 80-100 field 0.83 / 0.29 / 0.09, generated 0.54 / 0.34 /
+    0.24; < 80 1.03 / 0.44 / 0.14 vs 0.67 / 0.50 / 0.40; 100-130 0.60 / 0.23 / 0.06 vs 0.44 / 0.28 / 0.20; 130-180 rising 0.04
+    vs 0.18. Falling raises the field's rate 2.3-2.8x, the generator's 1.3-1.6x. calibrate_closed_state.py (already in the
+    plant, absent from the chain): shifts on the 28 days before the hold-out, falling > 2 mg/dL/min at 70-110 +0.46-0.48,
+    rising 70-110 -0.83 to -1.0. Held-out seeds 0 / 1: t<54 0.37 / 0.25 -> 0.31 / 0.21, t<70 1.87 / 2.08 -> 1.66 / 1.80, TIR
+    74.1 / 72.7 -> 73.1 / 73.1, mean 148 / 151 -> 149 / 152, lows per meal bolus 0.133 / 0.122 -> 0.131 / 0.121. New base
+    v32of{0,1}TcB2FGUCGLBGGS. Lows after meal boluses still ~2x: the fall-response fix helps lows elsewhere.
