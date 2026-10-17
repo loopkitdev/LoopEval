@@ -97,3 +97,9 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
   - Meals now rise more like donors', and lows stay at donor level (c124: t54 0.17, donors 0.215).
 - `--set ins_p2=0.05` restores the old timing for comparison. Candidate deltas measured before this change need
   re-checking, especially for anything that acts on the forecast's insulin tail or on meal-time dosing.
+
+## Update 2026-10-17 (evening): per-meal absorption spread and a slow late phase are defaults
+
+- Each meal's fast share varies (Beta SD 0.25 around 0.2), and 15% of each meal empties in a slow late phase. Pete
+  chose this (LESSONS 120); the cohort match went from 27 to 31 of 51, and glucose skew, step skew and TIR now pass.
+- `--set meal_fast_sd=0.0,meal_slow=0.0` restores the previous meal model. Baselines from before this need re-running.
