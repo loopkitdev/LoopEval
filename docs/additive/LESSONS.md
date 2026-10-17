@@ -2388,3 +2388,13 @@ statistic here, but it is the controller donors ran.
          test of body and sensor (AGENTS.md trap: compression and the 40 floor).
      - Still open: ~15% of schedule overnight that the sim's bodies need and donors' don't, on nights without entered
        carbohydrate, not explained by basal level, evening eating or sensor noise.
+     - **Centre of the true basal share prior** (`--set basal_share=x`, 251224c; the same draw, shifted). c135 at
+       0.42 against c133_base (0.5): 31 vs 31 matched, with a different set passing.
+       - Now passing: night insulin CV 31.9 → 35.2 (36.0, KS 0.53); t54 0.149 → 0.233 (0.215); lows/day
+         0.83 → 1.08 (1.08); conc1 26.4 → 27.8 (27.8); mean 155 → 152 (151).
+       - Closer: day/night 1.59 → 1.72 (2.06); p99 1.33 → 1.46 (1.87); TDD CV 14.2 → 15.2 (15.7).
+       - Now failing: CV 35.8 → 37.4 (34.8).
+       - Overnight delivered ÷ scheduled 1.65 → 1.45; zero-delivery night bins 9.7 → 10.6% (donors 12.5%).
+       Simulated bodies that need less than their schedule at night (as donors' Loop behaviour implies) bring the
+       insulin structure and lows to the donors'. The 0.5 centre was a judgement prior around the scheduled share.
+       c136 at 0.46 queued to locate the CV trade-off.
