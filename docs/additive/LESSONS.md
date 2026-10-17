@@ -1667,3 +1667,31 @@ statistic here, but it is the controller donors ran.
        16.0).
      - The G7 model already sits at its best FDA fit. The quiet-night difference is then more likely in true night
        glucose than in the sensor. Defaults are unchanged; `sensor_smooth` stays as an override.
+
+105. **Bolus timing is not the missing piece: shifting every bolus 6.5 min earlier leaves the cohort shape unchanged,
+     and does not damp the overshoot from tracer-paced meals.**
+     - The labeler reads the sim's announced-meal boluses later relative to meal onset than donors' (labeled bolus
+       time − labeled onset):
+
+       | | p10 | p25 | median | p75 | ≥ 20 min early | −10 to −3 |
+       |---|---|---|---|---|---|---|
+       | donors (157, 35k meals) | −46 | −27 | −2.1 | +25 | 30.6% | 7.9% |
+       | sim c106 | −40 | −20 | +5 | +30 | 20.6% | 11.7% |
+       | sim `lead_shift=-6.5` (c110_lead) | −40 | −20 | 0 | +25 | 22.9% | 12.6% |
+
+     - The shift moves the middle of the distribution, but not the early tail. Each person draws a category from the
+       donor's median lead ("before" if < −5 min) and then a fixed window (before = −20 to −5 min). A donor whose
+       typical pre-bolus is 30–40 min early gets at most 20 in the sim. That window has no per-person evidence and is
+       the defect, not the uniform offset. The better form is the donor's own lead distribution per person, like the
+       `abs_*` columns.
+     - Paired cohorts on frozen eefe53e (112 people, 14 days, against c109_abs):
+       - **c110_lead:** 25 → 25 matched. t54 0.164 → 0.209 (donors 0.215), p_reach54 0.179 → 0.200 (0.200), lows/day
+         0.92 → 0.83 (1.08). Step skew, ACF zero-crossing, day/night and p99 are unchanged.
+       - **c110_lead_ge** (adds tracer pace `ge_mult=1.6, csf_mult=0.84`): 24 matched. The skew, Box-Cox and
+         v_skew gains of tracer pace hold. CV is still 39.4 (c102_gem1.6 39.2, donors 34.8), and Hurst long-range
+         still collapses (0.155 vs 0.247). t54 0.37 → 0.33: earlier boluses take off a little, not the overshoot.
+       - Labeler g-eq per entered gram: c110_lead 1.19, c110_lead_ge 1.37 (c102 1.24, donors 1.21). The tracer arm
+         is now over-sized by the labeler's measure, so its CV is partly a carb-size miscalibration. Re-fit csf before
+         reading its CV.
+     - Default stays `lead_shift = 0`. Next: per-person lead from the donor's labeled meals (corrected for the labeler
+       offset) in place of the four fixed windows. Expect a small cohort effect.
