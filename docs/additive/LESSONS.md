@@ -2043,3 +2043,20 @@ statistic here, but it is the controller donors ran.
        With the surplus in labeled unannounced eating, the sim seems to have **too many medium unannounced eating
        events and too few small, sharp, quick ones** (juice, sweets). That points to the shape of unlogged intake
        (size, speed), not its total.
+
+117. **Fast grazes do not make donors' quiet-day rises; those rises are real, sustained, and mostly never labeled.**
+     - `--enable graze_fast` (8539793, off by default): grazes absorb as liquid sugar (kempt = kabs 0.08, as rescues).
+       c126 against c124: 29 vs 27 matched (noise); quiet-day rises > 20 per 1,000 steps 3.6 → 3.3 (donors 14.4).
+       Fast grazes are labeled as pulses, so they never sit in "quiet".
+     - **Donors' sharp quiet-day rises** (> 20 mg/dL in 5 min, 3,333 steps, G7, labeler coverage ≤ 18 h):
+       - not sensor jumps: 1% reverse on the next reading, 81% keep climbing (median next step +18);
+       - not post-low: 4% start below 80; median start 162 mg/dL, 39% above 180;
+       - mostly not a pulse whose onset the labeler placed late: the next labeled onset is a median 72 min later
+         (25% within 30 min).
+     - So donors have fast, sustained climbs, often from already-high glucose, that the labeler does not count as
+       eating. The sim produces a quarter as many. Candidates to test next:
+       - intake during an ongoing high, which the labeler cannot separate from the excursion (its pulse model needs
+         a baseline);
+       - absorption bursts from the pump site (bubbles, release of an occlusion: device `bubble_left`,
+         `release_pending`);
+       - stress or adrenaline surges.
