@@ -2398,3 +2398,6 @@ statistic here, but it is the controller donors ran.
        Simulated bodies that need less than their schedule at night (as donors' Loop behaviour implies) bring the
        insulin structure and lows to the donors'. The 0.5 centre was a judgement prior around the scheduled share.
        c136 at 0.46 queued to locate the CV trade-off.
+     - c136 at 0.46: 29 matched; CV 36.5 (fails); t54 0.206, lows 1.00, night insulin CV 33.6 (passes); day/night 1.68.
+       The CV cost appears as soon as the centre moves down. The choice is between 0.5 (CV passes; lows, night insulin
+       and day/night fail) and 0.42 (the reverse, same count). Pete to decide.
