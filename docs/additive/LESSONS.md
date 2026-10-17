@@ -2336,3 +2336,15 @@ statistic here, but it is the controller donors ran.
        closer to or above the schedule than donors' does. Lead: the night-time settings mismatch, i.e. how far donors'
        scheduled night basal exceeds the basal their Loop actually delivers on quiet nights. Measure it per donor,
        give each simulated body that donor's own night ratio, and compare.
+     - **The sim's bodies need more at night than their schedule.** Overnight automatic delivery ÷ scheduled basal,
+       per person median (q25/75):
+       - donors 1.29 (1.07 / 1.59);
+       - c124 (no slow phase) 1.52; c130_base 1.65 (1.23 / 2.10); c132_clock 1.56.
+       The slow phase adds a little (1.52 → 1.65) and late dinners a little; the rest is the body's own night need.
+       The body's basal is the true basal share N(0.5, 0.07) × TDD (LESSONS 48), a judgement prior around the
+       population's scheduled share. It is not the donor's own, so the sim's Loop runs above schedule at night
+       ~25% more than donors' Loop does. That lowers day/night and pushes nights to max basal.
+     - **Next (evidence-based):** set each body's basal share from its donor's measured overnight delivery on quiet
+       nights (delivered ÷ scheduled × scheduled basal, as an upper bound of night need: it includes night
+       corrections), keeping the TDD balance (carbs = the rest). Test as a switch, then compare day/night, night
+       saturation and the cohort count.
