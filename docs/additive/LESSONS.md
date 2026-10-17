@@ -2321,3 +2321,18 @@ statistic here, but it is the controller donors ran.
        donors' wider night-to-night insulin is about how their nights unfold, not the gain. More nights spend time
        where Loop's output saturates (zero at lows, max basal at highs), and the 0.23 residual CV is variation not
        tied to the night mean (overrides, sleep-time changes). Open.
+     - **Saturation runs the other way** (overnight 30-min bins, per-person median; `ctrl_sat.py`):
+
+       | | zero delivery | < 25% of schedule | ≥ 90% max basal | CGM < 70 |
+       |---|---|---|---|---|
+       | donors | 12.5% | 18.9% | 1.6% | 1.9% |
+       | c130_base | 9.7% | 11.8% | 3.5% | 1.4% |
+
+       Donors' Loop cuts overnight insulin to near zero far more often, without more time low. Their scheduled night
+       basal exceeds what their nights need, so Loop trims it, and that trimming is what makes their overnight
+       insulin vary. The sim's Loop instead pushes to max basal more often, which fits its extra nights above 250
+       (25% vs 18.5%).
+     - The sim's body night need (true basal share N(0.5, 0.07), donor profile shrunk halfway, LESSONS 48) sits
+       closer to or above the schedule than donors' does. Lead: the night-time settings mismatch, i.e. how far donors'
+       scheduled night basal exceeds the basal their Loop actually delivers on quiet nights. Measure it per donor,
+       give each simulated body that donor's own night ratio, and compare.
