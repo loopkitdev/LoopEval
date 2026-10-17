@@ -2567,3 +2567,19 @@ statistic here, but it is the controller donors ran.
        bookkeeping CR. The daytime +4–5 RC remains unexplained by settings, eating sources or insulin timing.
        Next: per-event RC around simulated meals (entered vs unentered) against donors' RC around their entered
        meals, to see whether it is meal-bound or continuous.
+     - **The offset is meal-bound, and late.** Daytime RC by hours since the last carb entry, median person
+       (`rc_since.py`), bins 0–1 / 1–2 / 2–3 / 3–4 / 4–6 / 6+ h:
+       - donors temp −2.6 / −3.8 / −0.6 / +6.4 / +4.7 / +3.2;
+       - sim temp −0.8 / 0.0 / +1.5 / +8.6 / +11.3 / +7.7;
+       - donors automatic −3.6 / −4.0 / −0.7 / +8.0 / +10.2 / +6.3;
+       - sim automatic −0.5 / 0.0 / +3.4 / +16.4 / +18.3 / +12.2.
+       Two differences:
+       - In the first 2 h after an entry, donors' glucose runs below Loop's forecast (−3 to −4) and the sim's tracks
+         it (0). Real meals deliver less early than Loop's absorption model expects; the sim's deliver about what it
+         expects.
+       - From 3 h on, both run above the forecast, the sim about twice as much.
+       The late excess does not depend on the meal model: c124 / c127 (spread, no slow phase) / c129_s15 / c129_s30
+       all give 3–6 h RC of +10 to +13 (temp) and +15 to +23 (automatic). So it is not the slow phase. It is what
+       happens 3–6 h after an entry in the sim: unentered eating between meals (grazes −1 to −1.7 earlier) and the
+       fat/protein late parcels (A12; 0.1 g glucose per g protein, delayed 90 min).
+       Next: a fat/protein ablation (`--disable fat`) on this RC table.
