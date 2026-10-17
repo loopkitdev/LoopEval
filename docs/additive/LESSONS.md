@@ -2494,3 +2494,12 @@ statistic here, but it is the controller donors ran.
        more than the carbs; the donors' asks for about the carbs. The recommendation's other terms are the forecast
        above target and IOB, so the sim's temp-basal people come to meals with less IOB or a higher forecast. Next:
        IOB and forecast at meal-bolus time, donors (dosingDecision) vs sim (trace), for temp-basal people.
+     - **Not IOB.** Loop's IOB just before a meal bolus (manual bolus with an entry within ±15 min), in hours of
+       scheduled basal, median person (`iob_at_meal.py`; donors loop_iob, sim trace candidateIOB from the step
+       before the bolus; the bolus step's own value includes the bolus):
+       - donors: automatic 1.82, temp 1.37;
+       - c135: automatic 2.21, temp 1.40.
+       Temp-basal people come to meals with the donors' IOB. Their extra 7% must be in the forecast term: the sim's
+       temp-basal people are predicted higher at bolus time (a rise already under way, or momentum on sensor noise).
+       Automatic-bolus people carry 20% more IOB into meals than their donors, which fits their lower day/night
+       (more automatic insulin around meals). Next: the forecast at meal-bolus time against the donors' bgForecast.
