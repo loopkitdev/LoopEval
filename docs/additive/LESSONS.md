@@ -2403,3 +2403,22 @@ statistic here, but it is the controller donors ran.
        and day/night fail) and 0.42 (the reverse, same count). Pete to decide.
      - **Adopted (Pete, 2026-10-17): centre 0.42 by default** (63831f6). The default reproduces c135's people exactly
        (112 / 112). Open: glucose CV 37.4 vs 34.8.
+
+126. **Where the CV now fails: both tails, from two separate causes.** Per-person median glucose percentiles
+     5 / 10 / 25 / 50 / 75 / 90 / 98:
+     - donors 83 / 94 / 112 / 141 / 181 / 226 / 289;
+     - c133 (share 0.5) 83 / 93 / 115 / 143 / 188 / 233 / 292;
+     - c135 (0.42, default) 79 / 88 / 109 / 138 / 188 / 231 / 301.
+
+     The basal centre pulls the lower half 3–6 mg/dL down. The upper band (p75 188 vs 181) is the old heavy
+     shoulder of unannounced daytime appearance (LESSONS 108), unchanged. Low-side carbohydrate per person-day
+     (c133 → c135):
+     - proactive 1.54 → 1.68 (21 → 23 g);
+     - rescue 0.41 → 0.47 (10.5 → 12 g);
+     - grazes 2.8 (35 g); snacks 2.5 (45 → 50 g).
+     About 35 g/day goes to defence. Its rate is a per-person trait whose onset and size are judgements (proactive
+     onset N(80, 20) mg/dL, 12 g; LESSONS 41). Donors' proactive eating is not observable directly; it is part of the
+     unannounced labeled appearance whose daytime surplus lesson 108 measured. Next: whether lowering proactive
+     carbs toward a measured rate closes the shoulder without losing the lows.
+     Candidate evidence: donors' labeled pulses that start within 30 min of a falling CGM (< 110, falling ≥ 1
+     mg/dL/min) without reaching 70.
