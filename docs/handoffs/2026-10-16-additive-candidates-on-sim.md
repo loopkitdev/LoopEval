@@ -58,3 +58,17 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
 - **C30:** exercise t<70 −0.29*.
 - **Deep false CGM low:** C30 −1.38* and aIRC −1.25* TIR. The pull-back mechanisms act on the false reading. Worth a
   sensor-robustness guard in the ledger.
+
+## Update: new simulator defaults on main (7e4f0b7), and run hygiene
+
+- **Defaults changed:**
+  - per-person gastric emptying (LESSONS 88);
+  - meal gaps from Camerlingo's GEV (LESSONS 96);
+  - per-person entered absorption time (LESSONS 102; needs the `abs_*` template columns, otherwise 3 h as before).
+  Candidate deltas from lessons 83–86 were measured on the earlier defaults. Re-check before carrying them over.
+- **Those earlier runs are internally consistent.** An early and a late person per family (c98, arm_*, big_*, lvl*)
+  reproduce exactly (max |Δbg| 0) on frozen snapshots of the code at the commits they ran on.
+- **Run from a frozen copy.** Python imports per worker process, so code synced into a shared tree mid-run changes
+  later people in the same cohort. Use `git archive <commit> analysis/loopeval_analysis` into `~/frozen/<commit>`
+  and launch from there.
+- **Validation reference.** Donor stretches with no dose record now count as unknown insulin, not zero (LESSONS 95).
