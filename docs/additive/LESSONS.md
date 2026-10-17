@@ -1779,3 +1779,29 @@ statistic here, but it is the controller donors ran.
        proactive carbs, snacks and unentered meals each contribute about 13–16 a day. Grazing is the least-evidenced
        of them (rate lognormal around 2/day, a judgement). Next: find a measurement of unlogged small eating, or of
        the donors' proactive carbs, before changing any of them.
+
+109. **Grazing is not the excess, and fast emptying still fails without it.** `--set graze_keep=x` (eb785d3) thins
+     planned grazes on their own stream; every other plan item is unchanged (checked on four people). Paired against
+     c114 (30 matched), frozen eb785d3, defaults:
+
+     | Arm | Matched | Mean | CV | TIR | t54 | Hurst long | p75/p95/p98 | Unannounced g-eq 06–12 |
+     |---|---|---|---|---|---|---|---|---|
+     | c114 (grazes 1.0) | 30 | 154.8 | 35.6 | 69.2 | 0.22 | 0.223 | 189/264/291 | 33.8 |
+     | c117 (0.5) | 30 | 152.7 | 35.4 | 70.6 | 0.15 | 0.184 | 186/249/278 | 33.4 |
+     | c116_g0 (0) | 31 | 148.9 | 33.8 | 72.4 | 0.21 | 0.185 | 181/244/269 | 31.6 |
+     | donors | | 151.4 | 34.8 | 71.7 | 0.215 | 0.247 | 181/255/289 | 23.0 |
+
+     - **Grazes move the total, not the shape.** Fewer grazes lower the level and the upper percentiles together, and
+       long-range Hurst gets worse: small unlogged eating adds slow wander. Match counts differ within noise.
+       Literature does not pin the rate either: unbolused snacks are common in youth on pumps (2009, n = 9), and AID
+       youth miss 2.2 boluses a day (Laugesen 2024, via a press release). Neither separates nibbles from unentered
+       snacks. Default stays at 1.0.
+     - **The morning excess is not grazing.** Morning unannounced appearance stays 32–34 g-eq vs 23 in every arm.
+       Its sources (lesson 108) are rises more than 3 h after eating (7.5 g-eq/day, from waking until breakfast),
+       unentered meals (6.9) and proactive carbs (4.8). Announced morning appearance already matches (25.0 vs
+       23.3–25.1). Next lead: the size of the waking rise before breakfast (the modulators' dawn component).
+     - **Fast emptying fails on lows, not on highs.** With no grazes and tracer pace (c116_g0_ge), the upper tail
+       matches (p95 254, donors 255; p98 294, donors 289), and skew passes (G6 v_skew KS 0.28). But t54 is 0.315,
+       lows/day 1.50 (1.08), p_reach54 0.25 (0.20), and CV is 38.0. At half grazes (c116_g5_ge): CV 38.9, t54 0.35.
+       Faster appearance makes Loop and the person dose into steeper rises, and the excess comes back as lows.
+       Vmax stays 3.
