@@ -140,7 +140,7 @@ class Sensor:
 
     def __init__(self, family: str, rng: np.random.Generator, compression_rate: float = 0.03,
                  start_minute: float = 0.0, phase: float = 0.0, overrides: dict | None = None,
-                 common_rng: np.random.Generator | None = None):
+                 common_rng: np.random.Generator | None = None, gap_mult: tuple | None = None):
         self.f = _family(family)
         if overrides:       # calibration grid: sensor_sigma (mean noise sd), sensor_a1, sensor_a2
             from dataclasses import replace as _r
@@ -186,6 +186,8 @@ class Sensor:
         self.session = self._new_session(start_minute - rng.uniform(0, self.f.session_days) * 1440, warm=False)
         # per-reading gap start probability from the measured rates, warm-ups excluded
         rates = np.array(MEASURED_GAPS.get(self.f.name, MEASURED_GAPS["Dexcom G7"]), dtype=float)
+        if gap_mult is not None:     # the donor's own gap rates against the family's: short (7–32 min), long (32 min–12 h)
+            rates[:4] *= gap_mult[0]; rates[4:] *= gap_mult[1]
         wb = np.searchsorted(GAP_EDGES, self.f.warmup + self.f.cadence) - 1
         if 0 <= wb < len(rates):
             rates[wb] = max(0.0, rates[wb] - 1.0 / (self.f.session_days + self.f.grace_days))

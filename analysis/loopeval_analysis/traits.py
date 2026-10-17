@@ -195,7 +195,7 @@ def _circadian_amplitude(bg: pd.Series) -> float:
     b = bg.dropna()
     if len(b) < 2000:
         return np.nan
-    t = b.index.view("int64") / 1e9
+    t = b.index.as_unit("ns").asi8 / 1e9          # epoch seconds whatever the index unit (us under newer pandas)
     w = 2 * np.pi / 86400.0
     c, s = np.cos(w * t), np.sin(w * t)
     y = b.to_numpy() - b.mean()
