@@ -133,7 +133,7 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 | G1 Template | a real donor's row, jittered: eda cohort (156) or ice pilot (168, with behavior) | templates.py | wired |
 | G2 True ISF | settings ISF × (yardstick / settings)^0.5 [weight open] | LESSONS 8; eda L53, L54 | wired |
 | G3 Body weight | blend of the age prior and TDD at an age-banded U/kg | eda L47 (profile ages can be the account holder's) | wired |
-| G4 Insulin balance | true basal = share N(0.5, 0.07) × TDD/24; carbs eaten = TDD·(1 − share)·CR_true | eda L9 (scheduled share 0.43–0.51); TDD measured | wired |
+| G4 Insulin balance | true basal = share × TDD/24, share = N(0.5, 0.07) clipped 0.35–0.7 then centred at 0.42 (clip 0.25–0.7); carbs eaten = TDD·(1 − share)·CR_true | eda L9 (scheduled share 0.43–0.51; pilot median 0.45); centre below the schedule because donors' Loop trims overnight basal (zero delivery 12.5% of night bins; LESSONS 124–125); Pete 2026-10-17; TDD measured | wired |
 | G7 Carb sensitivity | CSF = 1.18·[1.85·ISF_tdd·TDD/500]^0.5·[settings ISF/CR]^0.5 (each lnN 0.15); f = CSF·BW·VG/1000 (0.3–1.0) | ice L54 g-eq, re-read through the labeler (LESSONS 27, 33, 37); shrunk toward settings like ISF | calibrated |
 | G8 Effective ISF | the person's ISF is the EFFECTIVE drop per unit at ~180 mg/dL on the full body, as the yardstick measures it | LESSONS 15 | calibrated |
 | G5 Settings | the donor's own ISF, CR, basal, target and limits | templates | wired |
