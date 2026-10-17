@@ -2583,3 +2583,10 @@ statistic here, but it is the controller donors ran.
        happens 3–6 h after an entry in the sim: unentered eating between meals (grazes −1 to −1.7 earlier) and the
        fat/protein late parcels (A12; 0.1 g glucose per g protein, delayed 90 min).
        Next: a fat/protein ablation (`--disable fat`) on this RC table.
+     - **Fat/protein is part of the automatic group's late excess** (`--disable fat`, c139 vs c135):
+       - 3–4 / 4–6 h RC: automatic +16.4 / +18.3 → +10.6 / +14.3 (donors +8.0 / +10.2); temp +8.6 / +11.3 →
+         +7.7 / +10.9 (donors +6.4 / +4.7);
+       - 25 vs 31 matched; hurst_long 0.219 → 0.193; mean 152 → 148.
+       The component is evidenced (Smart 2013, Wolpert 2013, Bell 2020) and stays. Its size per gram of fat and
+       protein (A12, a [J] split of 0.44 / 0.45 g per carb gram) may be large for automatic-bolus people's meals. The
+       temp-basal late excess (+11 vs +5 at 4–6 h) is not fat; that leaves unentered eating 3–6 h after meals.
