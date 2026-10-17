@@ -2060,3 +2060,24 @@ statistic here, but it is the controller donors ran.
        - absorption bursts from the pump site (bubbles, release of an occlusion: device `bubble_left`,
          `release_pending`);
        - stress or adrenaline surges.
+     - **Whole-day sharp rises, and where the sim's come from.** All daytime 5-min steps (08–22, G7), per 1,000:
+
+       | | rises > 10 | rises > 20 | falls > 10 | falls > 20 |
+       |---|---|---|---|---|
+       | donors CGM (136, 2.57 M steps) | 94.5 | 20.0 | 72.2 | 11.4 |
+       | sim CGM (c124) | 68.6 | 10.7 | 62.2 | 9.1 |
+       | sim TRUE glucose | 32.2 | 2.0 | 22.7 | 1.2 |
+
+       - Donors' rises > 20 by starting level: 15.9 / 19.6 / 24.5 / 24.0 at < 120 / 120–180 / 180–250 / ≥ 250. Sim:
+         6.6 / 8.5 / 13.0 / 22.6. The deficit is at normal levels.
+       - About four-fifths of the sim's sharp CGM rises are sensor noise. Its true glucose almost never climbs faster
+         than 4 mg/dL/min.
+       - Donors' falls > 20 nearly match the sim's (11.4 vs 9.1), so their extra sharp rises (+9.3 per 1,000 against
+         +2.3 for falls) are real glucose, not a noisier sensor. The sensor model sits at its FDA fit (LESSONS 104).
+       - The step-skew, first-hour and quiet-day gaps are one deficit: **real glucose sometimes rises at > 4 mg/dL/min
+         from normal levels, and simulated glucose does not.** A 10 g fast parcel (kempt 0.08) peaks near
+         2–2.5 mg/dL/min in a 70 kg body.
+     - **Next, against evidence:** the fastest real appearance. Liquid glucose and high-GI foods (juice, soda, white
+       bread) have early gastric delivery bursts (Calbet 1997) and peak Ra in 15–30 min. The sim's meals give their
+       liquid share no per-food spread, and fast unlogged drinks are labeled as pulses (graze_fast above). The open
+       question is which real foods produce > 4 mg/dL/min rises from euglycaemia, and how often per day.
