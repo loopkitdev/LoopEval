@@ -2186,3 +2186,14 @@ statistic here, but it is the controller donors ran.
        with 22% more insulin in the first 30 min, that points at Loop's automatic dosing stacking on the meal
        bolus while glucose is already climbing. Next: split the 0–30 min insulin into the person's bolus and
        Loop's automatic delivery, donors vs sim.
+     - **Split of the insulin after entered fast rises** (manual vs automatic, each per person mean rate, windows
+       −30–0 / 0–30 / 30–60 / 60–120 min; `split_ins.py`):
+       - donors (6,377): manual 2.70 / 2.39 / 0.42 / 0.41; automatic 0.53 / 1.45 / 0.44 / 0.46;
+       - c129_s15 (123): manual 1.62 / 2.79 / 0.70 / 0.18; automatic 0.80 / 1.34 / 0.49 / 0.40.
+       Loop's automatic delivery matches; the stacking guess above is wrong. The difference is the person's bolus
+       timing around fast meals. Donors deliver more of it before the rise, the sim at or after it, so the sim's
+       bolus acts later into a meal whose fast carbohydrate is used up early. The sim's bolus timing is one
+       per-person distribution for every meal (lead_own, LESSONS 106). Donors' fast-rising entered meals carry
+       earlier boluses than their meals overall (labeled median lead −2 min), so people may pre-bolus more for
+       fast foods, or fast foods may be the ones eaten after a pre-bolus. Open: whether bolus lead depends on the
+       food in donors (lead by first-30-min rise size).
