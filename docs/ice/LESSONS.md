@@ -1116,3 +1116,5 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     2.08, lows per meal bolus 0.114 / 0.106 -> 0.133 / 0.122; per-person pass rate mean 21 / 25% -> 38 / 42%, TIR 25 / 29%
     -> 33 / 29%, t<54 38 / 50% -> 42 / 46%. Kept on the primary pair (TIR up, t<54 level or down); t<70 and post-meal-bolus
     lows are worse. New base v32of{0,1}TcB2FGUCGLBGG (+ PLANT_EOFF_MAP, PLANT_SIZE_PERSON).
+    Change test on the new base (two seeds averaged per edit): slope TIR 0.63, t<70 1.34, mean 0.62, t<54 0.48, t<54 |error|
+    0.34 (previous base 0.72 / 1.33 / 0.73 / 0.52, 0.36; no-change baseline 0.30). Within seed noise of the previous base.
