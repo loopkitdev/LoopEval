@@ -2009,3 +2009,15 @@ statistic here, but it is the controller donors ran.
        places onsets relative to true eating. In the sim it is 2–3 min before eating (lesson 106). In donors it is
        unobservable: a meal that starts slowly (a drink, a first course) would put the labeled onset later and the
        measured climb steeper.
+
+115. **Per-site absorption speed is real but does not move the decorrelation.** `--set site_cv=x` (6517b83, off by
+     default): each infusion set draws its own absorption-speed multiplier, lognormal with SD x, on its own stream.
+     Haidar 2013 measured a per-site tmax CV of ~27% (evidence/14 candidate 3; per-person spread A2 and set-wear
+     acceleration were already built). c125 at 0.27 against c124 (frozen 6517b83):
+     - 25 vs 27 matched (noise).
+     - ACF zero-crossing 65 → 65 (donors 42.5); lag-1 ACF 0.041 → 0.032 (0.080).
+     - Lows move to the donors: t54 0.165 → 0.209 (0.215), p_reach54 0.182 → 0.200 (0.200).
+     - Between-day fraction 0.108 → 0.123 (0.102); hurst_long 0.233 → 0.251 (0.247).
+     Kept as a switch. With evidence/14 candidates 3–7 built or measured, the remaining named candidate for the
+     daytime decorrelation is unlogged small intake. Its rate is unknown for AID users, and lesson 109 found grazing
+     moves the level, not the shape. The ACF zero-crossing stays the largest open structural gap.
