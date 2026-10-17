@@ -2486,3 +2486,11 @@ statistic here, but it is the controller donors ran.
        half is meal count and size. Lead: whether donors adjust a temp-basal recommendation back toward the carbs, or
        their recommendation is lower because their pre-meal forecast is lower. Measure it from the donors'
        recommended vs delivered boluses (bolus_decisions).
+     - **Both sides take Loop's recommendation; the sim's Loop recommends more.** Requested ÷ recommended manual
+       boluses (rec > 0.3 U), median of person medians:
+       - donors (bolus_decisions): automatic 1.00, temp 1.00; 84% / 81% within 5%;
+       - c135 (trace): 1.00 / 1.00; 76% / 75%.
+       So the 7% is in the recommendation. At similar BG at onset (128 vs 129), the temp-basal sim's Loop asks for
+       more than the carbs; the donors' asks for about the carbs. The recommendation's other terms are the forecast
+       above target and IOB, so the sim's temp-basal people come to meals with less IOB or a higher forecast. Next:
+       IOB and forecast at meal-bolus time, donors (dosingDecision) vs sim (trace), for temp-basal people.
