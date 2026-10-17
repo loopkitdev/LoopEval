@@ -1088,3 +1088,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Change test on the new base (two seeds' predictions averaged per edit): slope TIR 0.72, t<70 1.33, mean 0.73, t<54
     0.52 (previous base 0.75 / 1.15 / 0.71 / 0.33), t<54 |error| 0.36 vs 0.30 for no change. Per-person size factors exist
     only for the 24 test hosts; the change test's other donors ran at 1.0.
+116. **Turning a share of logged-first meals into eat-first meals (food now, entry and bolus after the field's lag) makes
+    both highs and lows worse; not kept.** Field announced meals: 49% logged after eating starts (lag median 24 min, 90th
+    percentile 62, pre-hold-out); generated 17% (entries joining a meal already started). PLANT_EATFIRST=0.35 on entry-started
+    meals, new base: seeds 0 / 1 TIR 72.2 / 72.2 -> 70.6 / 70.3, t<54 0.36 / 0.31 -> 0.42 / 0.37, lows per meal bolus 0.114 /
+    0.106 -> 0.123 / 0.112, mean 152 / 153 -> 153 / 155. Real eat-first meals differ from logged-first ones in more than
+    timing (size, what Loop has already done by the entry); a timing-only swap does not reproduce them.
