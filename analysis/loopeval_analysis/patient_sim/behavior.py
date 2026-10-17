@@ -23,6 +23,7 @@ or missing (memory: no-mystery-terms).
 from __future__ import annotations
 
 import math
+from statistics import NormalDist
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -73,6 +74,7 @@ class BehaviorTraits:
     lead_shift: float = 0.0              # minutes added to every bolus-timing window: the donor lead is measured against the
                                          # labeler's onset, which reads the sim's boluses ~6.5 min later than true (LESSONS 105)
     lead_med: float = float("nan")       # the donor's own median bolus lead, less the labeler's +2 min bias (LESSONS 106)
+    lead_sd: float = 0.0                 # within-person SD of the bolus lead with lead_own, min (0 = ± 4 uniform)
     lead_own: bool = False               # time boluses at lead_med ± 4 min instead of the four category windows
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
     # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
@@ -362,6 +364,9 @@ class Behavior:
         w = {"before": r.uniform(-20, -5), "immediate": r.uniform(-3, 0),
              "during": r.uniform(3, 15), "after": r.uniform(15, 45)}
         if t.lead_own and np.isfinite(t.lead_med):
+            if t.lead_sd > 0:                                   # normal within-person spread, from the same draw
+                u = min(max((w["immediate"] + 3.0) / 3.0, 1e-6), 1 - 1e-6)
+                return t.lead_med + t.lead_sd * NormalDist().inv_cdf(u) + t.lead_shift
             return t.lead_med + (w["immediate"] + 1.5) * 8 / 3 + t.lead_shift      # lead_med ± 4 min
         return w[t.bolus_timing] + t.lead_shift
 
