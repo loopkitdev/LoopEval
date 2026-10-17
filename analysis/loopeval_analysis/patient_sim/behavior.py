@@ -68,6 +68,8 @@ class BehaviorTraits:
     calc_up: float = 0.074               # Groat 2017: 7.4% larger, 6.9% smaller
     calc_down: float = 0.069
     absorption_entry_h: float = 3.0      # what they tell Loop
+    abs_fast: tuple = (0.0, 0.0)         # P(0.5 h entry) for small (≤ 20 g) / larger entries: the donor's own (LESSONS 102)
+    abs_slow: tuple = (0.0, 0.0)         # P(5 h entry), same split
     # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
     ov_less_day: float = 0.0             # less-insulin overrides/day (activity, low prevention)
     ov_less_f: float = 0.6
@@ -251,6 +253,10 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     # awake minute with CGM > 180 and rising, sized over the donor's waking time above 180 × ~0.4 rising [J share]
     if t.ov_more_day > 0:
         t.p_more = float(np.clip(t.ov_more_day / (16 * 60 * max(hi_frac, 0.05) * 0.4), 0.0, 0.05))
+    fs, fl, ss, sl = (_num(rates, k) for k in ("abs_fast_s", "abs_fast_l", "abs_slow_s", "abs_slow_l"))
+    if np.isfinite(fs) or np.isfinite(fl):
+        t.abs_fast = (float(fs) if np.isfinite(fs) else float(fl), float(fl) if np.isfinite(fl) else float(fs))
+        t.abs_slow = (float(ss) if np.isfinite(ss) else float(sl), float(sl) if np.isfinite(sl) else float(ss))
     lsd = _num(rates, "meal_size_logsd")
     if np.isfinite(lsd): t.meal_cv = float(np.clip(lsd, 0.2, 0.9))
     # main meals by the donor's own windows (templates.add_slot_rates; LESSONS 51): the breakfast / lunch / dinner
@@ -324,6 +330,7 @@ class Behavior:
         self.p = person
         self.rng = rng
         self.r_ff = np.random.default_rng(int(getattr(person, "seed", 0)) + 777)   # per-meal fast share; own stream
+        self.r_abs_entry = np.random.default_rng(int(getattr(person, "seed", 0)) + 911)   # entered absorption time
         self.readings: list[tuple[float, float]] = []
         self.planned: list = []                 # (minute, action) sorted
         self.planned_day = -1
@@ -550,7 +557,10 @@ class Behavior:
                 self.log.append((m, meal.kind, meal.grams, meal.entered))
             elif kind == "enter_meal":
                 meal = rest[0]
-                acts.append(("carb", m, float(meal.entered), t.absorption_entry_h * 3600))
+                k = 0 if meal.entered <= 20 else 1
+                u = self.r_abs_entry.random()      # own stream: the other draws are unchanged
+                h = 0.5 if u < t.abs_fast[k] else 5.0 if u < t.abs_fast[k] + t.abs_slow[k] else t.absorption_entry_h
+                acts.append(("carb", m, float(meal.entered), h * 3600))
                 if meal.bolus is not None:
                     if t.p_split > 0 and r.random() < t.p_split:
                         # two boluses on one entry: donors' second dose is about as big as the first (second/first median

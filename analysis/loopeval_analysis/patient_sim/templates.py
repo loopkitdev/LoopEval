@@ -21,6 +21,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 DIST = "2026-08-25-distributions"
@@ -346,6 +347,38 @@ def add_slot_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32
     t.to_csv(path, index=False)
     return t
 
+
+
+def add_absorption_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Per donor, the absorption time entered with each carb entry (carbs.json absorptionTime): shares of fast
+    (≤ 1 h) and slow (≥ 4 h) entries, separately for small (≤ 20 g) and larger entries. Donors: 14% of entries 0.5 h,
+    mostly ~15 g snacks; 5% 5 h. Entries made below 80 mg/dL (rescues) are left out (LESSONS 102)."""
+    import json
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        p = ice_root / "full" / a / "carbs.json"
+        if p.exists():
+            c = [x for x in json.load(open(p)) if x.get("absorptionTime") and (x.get("grams") or 0) > 0]
+            # rescues are logged separately in the sim (0.5 h, behavior p_log_rescue): drop entries made below 80 mg/dL
+            g = json.load(open(ice_root / "full" / a / "glucose.json"))
+            gt = np.array([pd.Timestamp(x["startDate"]).value // 60_000_000_000 for x in g]); gv = np.array([x["quantity"] for x in g], float)
+            o = np.argsort(gt); gt, gv = gt[o], gv[o]
+            def _bg(ts):
+                m = pd.Timestamp(ts).value // 60_000_000_000; j = np.searchsorted(gt, m) - 1
+                return gv[j] if j >= 0 and m - gt[j] <= 15 else np.nan
+            c = [x for x in c if not (_bg(x["startDate"]) < 80)]
+            for lab, sel in (("s", lambda g: g <= 20), ("l", lambda g: g > 20)):
+                v = [x["absorptionTime"] / 3600 for x in c if sel(x["grams"])]
+                if len(v) >= 10:
+                    v = np.asarray(v)
+                    row[f"abs_fast_{lab}"] = float(np.mean(v <= 1.0)); row[f"abs_slow_{lab}"] = float(np.mean(v >= 4.0))
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
 
 def add_disruption_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
     """Per donor, from disruptions.csv: Loop-offline and merged mixed windows of ≤ 6 h per day (`offline_day`) and
