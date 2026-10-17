@@ -2511,3 +2511,14 @@ statistic here, but it is the controller donors ran.
        from earlier entries. Comparing them needs the donors' dosingDecision bgForecast and RC, which are in
        Databricks only (the local exports carry decision times, not forecasts). Next: pull dosingDecision forecasts
        at meal-bolus times for the 56 temp-basal pilot donors.
+     - **The sim's Loop carries a positive retrospective correction into meals.** Trace candidateRC from the step
+       before meal boluses, median person (c135):
+       - temp 9.0 mg/dL (all cycles 3.9), 0.21 U at the settings ISF;
+       - automatic 13.4 mg/dL (all cycles 7.5), 0.25 U.
+       On a ~4 U meal bolus, 0.21 U is ~5%, most of the temp-basal 7%. Simulated glucose sits persistently above Loop's
+       prediction. Two contributors, both partly by design:
+       - the body's insulin acts slower than Loop's model (clamp timing, LESSONS 114), so the predicted drop runs
+         ahead of the real one;
+       - unannounced eating raises glucose with no carbohydrate in the forecast.
+       Whether donors' Loop carries the same positive RC into meals is the check that decides whether the sim
+       overstates it. It needs dosingDecision RC/bgForecast from Databricks (Pete's U2M login).
