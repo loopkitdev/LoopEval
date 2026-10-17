@@ -165,6 +165,7 @@ class Sensor:
             if "sensor_wander" in overrides or "sensor_wtau" in overrides:
                 kw["noise_wander"] = (overrides.get("sensor_wander", self.f.noise_wander[0]), overrides.get("sensor_wtau", self.f.noise_wander[1]))
             if "sensor_drift" in overrides: kw["drift_sd"] = overrides["sensor_drift"]
+            if "sensor_smooth" in overrides: kw["smooth"] = overrides["sensor_smooth"]
             if "sensor_a1" in overrides or "sensor_a2" in overrides:
                 kw["ar"] = (overrides.get("sensor_a1", self.f.ar[0]), overrides.get("sensor_a2", self.f.ar[1]))
             if kw: self.f = _r(self.f, **kw)

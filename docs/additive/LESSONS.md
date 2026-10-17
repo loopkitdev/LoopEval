@@ -1646,3 +1646,24 @@ statistic here, but it is the controller donors ran.
        No hand-dosed bolus replaces it.
      - Settings are unchanged, so the person's Loop sees the same therapy with less announced carbohydrate.
      - Runtime behavior (corrections, top-ups, rescues) responds to the resulting glucose, as it would in a real person.
+
+104. **The G7 sensor cannot lose step noise without breaking its FDA fit; the skew gap is not a sensor fix.**
+     Pete resumed shape matching (2026-10-17). Lesson 88 found the sim's sensor dilutes the step skew, and quiet-night
+     steps hint the sensor is too noisy: SD 5.32 vs donors 4.75, lag-5 autocorrelation 0.38 vs 0.44. Variants
+     re-sensored offline over c94 true glucose (`sensor_fit`, 30 people) and scored against FDA K213919 (bias and
+     MARD by range, PARD 8.9%):
+
+     | Variant | Step SD | MARD 70–180 | PARD | Fit loss |
+     |---|---|---|---|---|
+     | base (σ 2.8) | 7.24 | 7.1 | 9.3 | 2.9 |
+     | σ 1.6 | 6.49 | 6.3 | 7.9 | 2.8 |
+     | σ 1.6 + shared error 3.0 | 7.41 | 7.3 | 8.4 | 3.1 |
+     | σ 1.6 + slow bias 5–7 | 6.9–7.0 | 8.3–8.9 | 9.4–10.4 | 5.6–6.0 |
+     | smoothing 0.2 / 0.35 (`sensor_smooth`, new override) | 6.7 / 6.2 | 7.2 / 7.4 | 9.2 / 9.0 | 3.8 / 5.8 |
+
+     - Lowering the fast noise loses in-range MARD.
+     - Moving the error into the shared component restores MARD and the step noise with it.
+     - A slow bias or device smoothing breaks accuracy in the low ranges: CGM-binned < 54 MARD rises to 17–23 (FDA
+       16.0).
+     - The G7 model already sits at its best FDA fit. The quiet-night difference is then more likely in true night
+       glucose than in the sensor. Defaults are unchanged; `sensor_smooth` stays as an override.
