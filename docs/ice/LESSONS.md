@@ -1141,3 +1141,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     rising 70-110 -0.83 to -1.0. Held-out seeds 0 / 1: t<54 0.37 / 0.25 -> 0.31 / 0.21, t<70 1.87 / 2.08 -> 1.66 / 1.80, TIR
     74.1 / 72.7 -> 73.1 / 73.1, mean 148 / 151 -> 149 / 152, lows per meal bolus 0.133 / 0.122 -> 0.131 / 0.121. New base
     v32of{0,1}TcB2FGUCGLBGGS. Lows after meal boluses still ~2x: the fall-response fix helps lows elsewhere.
+    A second pass does not converge (shifts again +0.40 falling / -0.84 rising at 70-90) and is within noise: TIR 73.8 /
+    73.6, t<54 0.31 / 0.21, t<70 1.83 / 2.01, lows per meal bolus 0.135 / 0.123; not kept. The field's starts include
+    logged meals while the offset moves only the unannounced-meal head, so the gap it measures is not all its own to close.
