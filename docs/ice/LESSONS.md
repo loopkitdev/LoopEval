@@ -1106,3 +1106,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Some per-donor gaps are the person changing between periods: i061 entered 52 g a day in its training window (generated
     68) and 117 in the held-out month. Grams per entry match the person in the training window (Spearman 0.87 over donors,
     generated / field median 0.97); there is nothing to calibrate there.
+118. **Night level offsets by clock band work once the low-band background is refit on top of them; kept, with a cost in
+    time below 70.** On the new base, per-person clock-band offsets after feedback (calibrate_level_band.py, 28 days before
+    the hold-out; median -7.5 / -2.6 / -1.0 / +5.3 mg/dL/h at 00-06 / 06-12 / 12-18 / 18-24) bring nights to the field's
+    (2 / 4 am 142-146 / 135-138 vs field 142 / 129; base 153-158 / 147-149), but alone t<54 rises 0.36 / 0.31 -> 0.49 / 0.38:
+    the low-band offsets were fitted at the old level. Two more passes of calibrate_closed_bg (below 90) on top (shift after
+    the second +1..+6, offsets settle at <60 / 60-70 / 70-80 / 80-90 +21 / +10 / +8 / +8 and +28 / +8 / +5 / +5): seeds 0 /
+    1 TIR 72.2 / 72.2 -> 74.1 / 72.7, mean 152 / 153 -> 148 / 151, t<54 0.36 / 0.31 -> 0.37 / 0.25, t<70 1.75 / 1.79 -> 1.87 /
+    2.08, lows per meal bolus 0.114 / 0.106 -> 0.133 / 0.122; per-person pass rate mean 21 / 25% -> 38 / 42%, TIR 25 / 29%
+    -> 33 / 29%, t<54 38 / 50% -> 42 / 46%. Kept on the primary pair (TIR up, t<54 level or down); t<70 and post-meal-bolus
+    lows are worse. New base v32of{0,1}TcB2FGUCGLBGG (+ PLANT_EOFF_MAP, PLANT_SIZE_PERSON).
