@@ -2467,3 +2467,12 @@ statistic here, but it is the controller donors ran.
      - Next: split temp people's manual insulin into meal boluses and corrections against their donors, and compare
        their correction bolus size (temp-basal Loop users have no automatic boluses, so hand corrections carry the
        highs).
+     - **The temp-basal excess is meal boluses, not corrections.** c135 manual boluses matched to the behaviour event
+       that triggered them (per day, count / U, median person; `bolus_kinds.py`):
+       - automatic: entry 2.50 / 8.18, correction 0.58 / 0.36, free 0.25 / 0.58, split 0.08 / 0.14;
+       - temp: entry 2.33 / 9.42, correction 0.50 / 0.69, free 0.08 / 0.33, split 0.17 / 0.20.
+       Temp-basal people's correction count matches their donors' (ratio 0.99; automatic 0.66). Their meal boluses
+       are ~15% larger than automatic-bolus people's, which takes their manual total 1.6 U/day above their donors'.
+       Lead: the meal bolus amount the sim's temp-basal person takes, against Loop's recommendation and their donor's
+       bolus ratio. A temp-basal Loop's recommendation carries the correction for current glucose and the forecast,
+       which automatic-bolus users leave to Loop's own boluses.
