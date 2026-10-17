@@ -1836,7 +1836,12 @@ statistic here, but it is the controller donors ran.
        classes add a daily shape that donors' records do not show at this amplitude. They are evidenced (Visentin
        2016), but a donor's tuned basal profile already carries their own diurnal need (LESSONS 48), so the two may
        double-count. Kept on: not a cohort-fit decision.
-     - **Next lead: the controller's own rebound.** A chained "no eating, no low" rise can be Loop's: after a rise
-       it doses, glucose falls, basal is cut, and the hepatic output that insulin was suppressing returns.
-       Compare like for like: delivered insulin in the 2 h before a chained unannounced rise (donors' dose records vs
-       the sim's), and the EGP response to insulin withdrawal against tracer evidence.
+     - **Not the controller's rebound either.** Delivered insulin around unannounced labeled rises, as a share of
+       the person's mean rate (median; −2 to −1 h / last hour / first hour after the onset; `pre_ins.py`):
+       - chained: donors 0.77 / 0.60 / 0.78 (46,756 rises), sim 0.79 / 0.59 / 0.92 (3,818);
+       - other: donors 0.77 / 0.52 / 0.71, sim 0.71 / 0.44 / 0.76.
+       Insulin is cut before a rise as much in donors as in the sim. The chained share of unannounced rises is the
+       same, 0.62 in both. The excess is a uniform surplus of daytime unannounced rises (lesson 108), not a chaining
+       mechanism. The sim answers rises a little harder in the first hour (0.92 vs 0.78), the autobolus response.
+       Open: the surplus has no single source; its parts are unentered meals, proactive carbs, grazes, snacks, and
+       non-eating rises that no modulator ablation removes.
