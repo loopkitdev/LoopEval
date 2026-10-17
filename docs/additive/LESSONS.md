@@ -2181,3 +2181,8 @@ statistic here, but it is the controller donors ran.
      - Next: the entered-meal bolus in fast meals. Candidates are the person's bolus size against what they ate
        (count bias, calculator over-ride) for high-fast meals, and whether donors' entered sharp rises are late
        entries (bolus after the rise).
+     - **Not late entries in donors.** The entry falls a median 7 min before the sharp rise in donors (quartiles −19 /
+       +6) and at 0 min in the sim (−16 / +14). The sim's fast meals start rising at or before their bolus; together
+       with 22% more insulin in the first 30 min, that points at Loop's automatic dosing stacking on the meal
+       bolus while glucose is already climbing. Next: split the 0–30 min insulin into the person's bolus and
+       Loop's automatic delivery, donors vs sim.
