@@ -43,7 +43,7 @@ class ModTraits:
     # factors, not inputs). circ_noise likewise.
     enabled: dict = field(default_factory=lambda: dict(circadian=True, dawn=True, day=True, intraday=False,
                                                        drift=False, menstrual=False, illness=True, sleep=True,
-                                                       gh=True, alcohol=True, stress=True))
+                                                       gh=True, alcohol=True, stress=True, caffeine=False))
     circ_class: str = "llh"
     circ_low: float = 0.4               # low segment SI as a fraction of high (Visentin: 0.40 ± 0.23)
     circ_raw: float = 0.4               # the person's Visentin draw before the swing scale
@@ -76,6 +76,7 @@ class ModTraits:
     stress_reactive: bool = False       # ~1/3 of people raise glucose under stress (Riazi 2004)
     p_stress: float = 0.4               # days with a stressor (NSDE ~40%)
     stress_si: float = 0.10             # SI loss 1–5 h after onset (Moberg 1994; low end for everyday stress)
+    caffeine_si: float = 0.15           # SI loss at the plasma peak of a ~200 mg dose (Keijzers 2002, IV clamp; evidence/11 §4.2)
     seed: int = 0
 
 
@@ -143,6 +144,7 @@ class Modulators:
         self.stress_on = np.where(rn.random(self.days) < traits.p_stress, rn.uniform(8 * 60, 20 * 60, self.days), -1.0)
         # B3 intraday OU and B4 drift, advanced minute by minute
         self.rng = r
+        self.caf = self._caffeine(traits) if traits.enabled.get("caffeine") else None
         self.ou = r.normal(0, traits.intra_sd)
         self.day_ou = r.normal(0, traits.day_sd)
         self.drift = r.normal(0, traits.drift_sd)
@@ -164,6 +166,35 @@ class Modulators:
             if mm < sw + 30: return prev_v + (v - prev_v) * (mm - (sw - 30)) / 60.0
             prev_v = v
         return prev_v
+
+    def _caffeine(self, t: ModTraits):
+        """Per-minute SI factor from caffeine, as a deviation from the person's own mean daily profile (evidence/11
+        §4.2: the habitual part is already in the donor's tuned basal shape; only day-to-day dose and timing add).
+        Everything is drawn on its own stream (seed + 202), so other factors stay paired.
+        - user: 64% of adults drink coffee daily [unverified, NCA]; cups/day Poisson, person mean lognormal ~2
+        - first cup ~ N(07:30, 60 min), later cups 10:00–16:00; ~95 mg a cup; 10% of days skipped
+        - one-compartment oral PK: absorption ka 3/h (peak ~30–60 min), t½ lognormal median 5 h (2–10 h, CYP1A2)
+        - effect linear in concentration: −caffeine_si at the peak of a 200 mg dose, capped at −30%"""
+        rc = np.random.default_rng(t.seed + 202)
+        if rc.random() >= 0.64: return None
+        cups = float(np.clip(np.exp(rc.normal(math.log(2.0), 0.4)), 0.5, 5.0))
+        th = float(np.clip(np.exp(rc.normal(math.log(5.0), 0.35)), 2.0, 10.0)) * 60.0
+        ka, ke = 3.0 / 60.0, math.log(2) / th
+        n = self.days * DAY; tt = np.arange(0, 12 * 60)
+        kern = ka / (ka - ke) * (np.exp(-ke * tt) - np.exp(-ka * tt))           # per mg, arbitrary units
+        ref = 200.0 * kern.max()
+        conc = np.zeros(int(n) + len(tt))
+        for d in range(self.days):
+            if rc.random() < 0.10: continue
+            k = rc.poisson(cups)
+            for j in range(k):
+                st = rc.normal(7.5 * 60, 60) if j == 0 else rc.uniform(10 * 60, 16 * 60)
+                i = int(d * DAY + max(0.0, st))
+                conc[i:i + len(tt)] += 95.0 * kern
+        conc = conc[:int(n)]
+        eff = 1.0 - np.minimum(t.caffeine_si * conc / ref, 0.30)
+        mean_day = eff.reshape(self.days, int(DAY)).mean(axis=0)
+        return eff / np.tile(mean_day, self.days)
 
     def dawn(self, m: float) -> float:
         if not self.t.dawn: return 0.0
@@ -222,6 +253,8 @@ class Modulators:
         d = int(m // DAY); mm = m % DAY; dd = max(0, min(d, self.days - 1))
         if en.get("sleep") and 7 * 60 <= mm < 23 * 60:
             si *= 1.0 - self.t.sleep_si_per_h * self.sleep_loss_h[dd]
+        if self.caf is not None and en.get("caffeine"):
+            si *= float(self.caf[min(int(m), len(self.caf) - 1)])
         if en.get("stress") and self.t.stress_reactive and self.stress_on[dd] >= 0:
             x = mm - self.stress_on[dd]
             if 60 <= x < 300: si *= 1.0 - self.t.stress_si
