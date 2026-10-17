@@ -1515,3 +1515,7 @@ statistic here, but it is the controller donors ran.
     - This repeats c69 (LESSONS 59) under the current model.
     - The gap is spread across hours, each of a few tenths: donors deliver more over schedule at meal hours and less
       before dawn. No single component accounts for it yet.
+    **p99 5-min dose (sim 1.36 vs donors 1.87).** Donor delivery books each bolus whole at its start minute; the sim's
+    `truth.delivered` spreads it at pump speed. Rebuilt from the sim's received records, the way donors are scored, p99
+    is 1.42: the asymmetry is real but small. The rest is count: donors take 4.6 user boluses and 3.0 carb entries per
+    day against the sim's 4.0 and 2.6, so they have more large 5-min bins.
