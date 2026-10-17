@@ -2561,3 +2561,9 @@ statistic here, but it is the controller donors ran.
        pattern, and it would leave the labeler's per-entry pulse (1.21 = donors) unchanged, because the labeler uses
        the TDD yardstick, not settings. Next: the effective CR (ISF_eff ÷ CSF_eff, the self-check's cr_eff) against
        the setting, and the donors' implied mismatch from their own RC after entered meals.
+     - **Correction: the CR lead is wrong.** Effective CR (true ISF ÷ effective CSF, the self-check's cr_eff) ÷
+       setting is 1.11 (q25/75 0.97 / 1.36, 60 people). Bodies need slightly less insulin per gram than their
+       settings, which would put glucose below Loop's forecast after meals, not above. The 0.69 is the linear-part
+       bookkeeping CR. The daytime +4–5 RC remains unexplained by settings, eating sources or insulin timing.
+       Next: per-event RC around simulated meals (entered vs unentered) against donors' RC around their entered
+       meals, to see whether it is meal-bound or continuous.
