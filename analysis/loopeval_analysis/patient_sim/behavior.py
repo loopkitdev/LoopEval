@@ -77,6 +77,8 @@ class BehaviorTraits:
     lead_sd: float = 23.0                # within-person SD of the bolus lead, min (0 = ± 4 uniform); donors' labeled
                                          # spread less the labeler's 28-min onset error (LESSONS 106; default 2026-10-17)
     lead_own: bool = True                # bolus at lead_med instead of the four category windows (Pete 2026-10-17)
+    meal_drink_p: float = 0.0            # share of main meals with a sugary drink; the food keeps its own fast share
+    meal_drink_share: float = 0.4        # the drink's share of that meal's carbohydrate [J]
     graze_fast: bool = False             # grazes absorb as liquid sugar (juice, sweetened coffee; evidence/14 §2; LESSONS 117)
     graze_keep: float = 1.0              # share of planned grazes kept (thinning experiment, LESSONS 109)
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
@@ -343,6 +345,7 @@ class Behavior:
         self.r_abs_entry = np.random.default_rng(int(getattr(person, "seed", 0)) + 911)   # entered absorption time
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
+        self.r_drink = np.random.default_rng(int(getattr(person, "seed", 0)) + 1601)      # meal_drink draws
         self.readings: list[tuple[float, float]] = []
         self.planned: list = []                 # (minute, action) sorted
         self.planned_day = -1
@@ -577,6 +580,8 @@ class Behavior:
                 if t.meal_fast_sd > 0 and 0 < ff < 1:
                     k = ff * (1 - ff) / t.meal_fast_sd ** 2 - 1
                     if k > 0: ff = float(self.r_ff.beta(ff * k, (1 - ff) * k))
+                if t.meal_drink_p > 0 and meal.kind == "meal" and self.r_drink.random() < t.meal_drink_p:
+                    ff = t.meal_drink_share + (1 - t.meal_drink_share) * ff     # a sugary drink with the food (LESSONS 119)
                 if ff > 0:
                     acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * ff, kempt=0.08 * meal.speed, kabs=0.08 * meal.speed,
                                                f=bp.f, label=meal.kind + "_liquid", kcal_per_g=0.0)))
