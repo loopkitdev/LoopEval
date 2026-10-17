@@ -81,6 +81,8 @@ class BehaviorTraits:
     meal_drink_p: float = 0.0            # share of main meals with a sugary drink; the food keeps its own fast share
     meal_drink_share: float = 0.4        # the drink's share of that meal's carbohydrate [J]
     graze_fast: bool = False             # grazes absorb as liquid sugar (juice, sweetened coffee; evidence/14 §2; LESSONS 117)
+    snack_entry_w: Optional[tuple] = None   # hour-of-day weight on p_entry_snack (donor entries / eating; LESSONS 123)
+    entry_clock: bool = False            # switch: use snack_entry_w
     graze_keep: float = 1.0              # share of planned grazes kept (thinning experiment, LESSONS 109)
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
     # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
@@ -294,6 +296,14 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         import json as _json
         h = np.array(_json.loads(mh), dtype=float)
         if h.sum() > 0: t.snack_hours = h / h.sum()
+        eh = rates.get("entry_hours")
+        if isinstance(eh, str) and h.sum() > 0:
+            # entry chance by hour ∝ entries / eating at that hour, normalised to mean 1 over the snack clock, so the
+            # person's overall snack-entry rate is unchanged (LESSONS 123)
+            e = np.array(_json.loads(eh), dtype=float); hs = h / h.sum()
+            ratio = np.where(hs > 0.004, e / np.maximum(hs, 1e-9), 0.0)
+            norm = float((ratio * hs).sum())
+            if norm > 0: t.snack_entry_w = tuple(float(x) for x in np.clip(ratio / norm, 0.0, 4.0))
     if isinstance(sg, str) and getattr(t, "snack_hours", None) is not None and np.isfinite(g).all() and g.sum() > 0:
         # the donor's window grams include their snacks, and snacks are placed on the donor's clock too: each main meal
         # takes its window's share less the snack grams expected there (waking hours, weekday) (LESSONS 59)
@@ -465,6 +475,8 @@ class Behavior:
             grams = max(3.0, grams)
             speed = float(np.exp(r.normal(0, t.gi_cv)))
             p_e = min(1.0, t.p_entry_meal * t.slot_ann[k]) if kind == "meal" else t.p_entry_snack
+            if kind == "snack" and t.entry_clock and t.snack_entry_w is not None:
+                p_e = min(1.0, p_e * t.snack_entry_w[int(((mt + base) % DAY) // 60) % 24])
             entered = None; bolus = None; et = base + mt
             n_ov = len(self.overrides)
             if r.random() < p_e:
