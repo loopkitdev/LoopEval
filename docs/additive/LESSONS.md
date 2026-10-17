@@ -1617,3 +1617,22 @@ statistic here, but it is the controller donors ran.
      In both, top-ups rise with the meal's fastest 15-min climb. The sim tops up at least as often and a little more.
      With appearance, liver, renal, glucose effectiveness, bolus timing, meal insulin and top-ups all checked, the
      brake on fast real meals remains unidentified (`topups.py`).
+
+102. **Entered absorption time is now per person; it does not move the cohort.** `templates.add_absorption_rates`
+     gives each donor's shares of fast (≤ 1 h) and slow (≥ 4 h) entries, for small (≤ 20 g) and larger entries,
+     leaving out entries made below 80 mg/dL. Rescues stay the sim's own 0.5 h log. Donors:
+
+     | | Small entries (≤ 20 g) | Larger entries |
+     |---|---|---|
+     | Fast, median share | 5% | 1% |
+     | Fast, p75 | 34% | 9% |
+     | Slow, median share | 0% | 2% |
+
+     - Each entry draws from the person's own shares on its own RNG stream, so all other draws are unchanged. The
+       person enters 0.5 h, 5 h or the default 3 h.
+     - **c109 vs c106 (paired, n 112):** TIR −0.07 [−1.12, +1.03], t<54 −0.08 [−0.19, +0.03]; 25 of 51 matched (noise).
+     - It stays as a behavior trait because Loop's dosing after an entry depends on the entered absorption time
+       (candidates that change carb modelling see it).
+     - Templates: `templates_pilot.csv` locally carries the new columns (the old file is
+       `templates_pilot_pre_abs.csv`). On gamepc they are in `templates_pilot_abs.csv`, leaving the file other roles
+       read untouched.
