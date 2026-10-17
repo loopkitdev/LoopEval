@@ -2139,3 +2139,26 @@ statistic here, but it is the controller donors ran.
        the late climb (+25–35% more insulin at 30–60 min), and glucose returns to its start by 3 h. The missing
        shape is fast-early and held-late together (as LESSONS 66). Next: the Dalla Man slow late emptying phase
        (`meal_slow`, kmin 0.008) combined with the per-meal fast spread.
+
+120. **Fast spread plus a slow late phase: 31 matched, with the CV cost gone.** Per-meal fast share (Beta SD 0.25,
+     LESSONS 118) combined with the Dalla Man slow late emptying phase (`meal_slow`, share emptied at kmin 0.008).
+     c129 against c124, frozen 631df2f:
+
+     | | c124 | spread + slow 0.15 | spread + slow 0.30 | donors |
+     |---|---|---|---|---|
+     | matched | 27 | **31** | 23 | |
+     | glucose skew (KS p) | 0.75 (0.000) | 0.85 (0.08) | 0.81 (0.02) | 0.89 |
+     | G6 step skew (KS p) | 0.089 (0.06) | 0.118 (0.14) | 0.113 (0.02) | 0.238 |
+     | CV (KS p) | 35.4 (0.12) | 35.8 (0.14) | 34.2 (0.82) | 34.8 |
+     | TIR (KS p) | 67.3 (0.006) | 67.9 (0.09) | 69.8 (0.25) | 71.7 |
+     | t54 / lows/day | 0.17 / 0.83 | 0.15 / 0.83 | 0.15 / 0.83 | 0.215 / 1.08 |
+     | hurst_long | 0.233 | 0.204 | 0.212 | 0.247 |
+     | CGM rises / falls > 20 | 10.7 / 9.1 | 11.8 / 9.8 | 10.5 / 9.0 | 20.0 / 11.4 |
+     | labeled g-eq / entered g | 1.22 | 1.22 | 1.08 | 1.21 |
+
+     - At 0.15 the faster-meal CV cost is gone, and skew, step skew and TIR pass. At 0.30 the labeler reads meals
+       smaller (1.08), which is off-calibration.
+     - Still open: after a sharp rise glucose returns to its start by 3 h (−6 vs donors +16), and the ACF
+       zero-crossing stays 60–65. Sharp rises are still half the donors'.
+     - Evidence status: the per-meal spread is qualitative (Englyst 1999, no per-meal SD published); the slow phase
+       is in Dalla Man 2006's meal model (kmax/kmin), but the 0.15 share is a judgement. Default decision: Pete.
