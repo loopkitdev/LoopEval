@@ -181,8 +181,8 @@ class World:
             self.beh_traits.meal_fast_frac = enable["meal_fast"]
         if enable and isinstance(enable.get("lead_shift"), float):
             self.beh_traits.lead_shift = enable["lead_shift"]
-        if enable and enable.get("lead_own"):
-            self.beh_traits.lead_own = True
+        if enable and enable.get("lead_own") is False:      # back to the four category windows
+            self.beh_traits.lead_own = False
         if enable and isinstance(enable.get("lead_sd"), float):
             self.beh_traits.lead_sd = enable["lead_sd"]
         if enable and isinstance(enable.get("announce_mult"), float):
@@ -197,7 +197,7 @@ class World:
             # diagnostic: every meal entered exactly and bolused at the meal; no snacks, no exercise
             t = self.beh_traits
             t.p_entry_meal = t.p_entry_snack = 1.0; t.count_bias = 0.0; t.count_sd = 0.0
-            t.p_bolus_with_entry = 1.0; t.bolus_timing = "immediate"; t.calc_up = t.calc_down = 0.0
+            t.p_bolus_with_entry = 1.0; t.bolus_timing = "immediate"; t.lead_own = False; t.calc_up = t.calc_down = 0.0
             t.ex_per_week = 0.0; t.p_free_bolus = 0.0
         if not self.enable["graze"]: self.beh_traits.graze_per_day = 0.0
         if enable and enable.get("act_day_var") is False: self.beh_traits.act_day_var = False
@@ -253,7 +253,7 @@ class World:
                              compression_rate=person.traits.get("compression_rate", float(r_misc.gamma(2.37, 1 / 75.7)))
                              if self.enable["compression"] else 0.0,
                              overrides={k: v for k, v in (enable or {}).items() if k.startswith("sensor_")},
-                             gap_mult=_gap_mult(person) if (enable or {}).get("gap_own") else None)
+                             gap_mult=_gap_mult(person) if (enable or {}).get("gap_own", True) else None)
         self.r_abs = r_abs
         # settings edits (LESSONS 41): dated, multiplicative changes to the basal / ISF / CR schedules at the donor's
         # measured rate per setting; size lnN(median 3.6%, σ 1.06 → p90 14%), sign random [J: donors' edits are only

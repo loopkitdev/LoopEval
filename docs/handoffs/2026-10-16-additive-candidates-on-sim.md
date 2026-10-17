@@ -72,3 +72,18 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
   later people in the same cohort. Use `git archive <commit> analysis/loopeval_analysis` into `~/frozen/<commit>`
   and launch from there.
 - **Validation reference.** Donor stretches with no dose record now count as unknown insulin, not zero (LESSONS 95).
+
+## Update 2026-10-17: per-person bolus lead and CGM gaps are defaults
+
+- **Bolus timing.** Each person boluses at their donor's own median bolus lead (bolus time relative to meal onset,
+  less the labeler's 2-min bias). It varies from meal to meal with a normal SD of 23 min. This replaces the four
+  fixed timing windows (LESSONS 106). `--disable lead_own` restores the windows.
+- **CGM gaps.** Short and long gap rates are the donor's own (LESSONS 107). This needs the `gap_short` / `gap_long`
+  template columns from `templates.add_gap_rates`; without them the family rate is used as before.
+  `--disable gap_own` turns it off.
+  - On gamepc the columns are in `templates_pilot_gap.csv` (also copied to `templates_pilot_abs.csv`).
+    `templates_pilot.csv` there is untouched.
+- **`wear` counts distinct 5-min slots.** The donor table `real_pilot.csv` was rebuilt with it; the previous one is
+  `real_pilot_dupwear.csv`.
+- **Cohort result.** 30 of 51 statistics matched (c114), against 27 before. Candidate deltas measured on earlier
+  defaults need re-checking.

@@ -74,8 +74,9 @@ class BehaviorTraits:
     lead_shift: float = 0.0              # minutes added to every bolus-timing window: the donor lead is measured against the
                                          # labeler's onset, which reads the sim's boluses ~6.5 min later than true (LESSONS 105)
     lead_med: float = float("nan")       # the donor's own median bolus lead, less the labeler's +2 min bias (LESSONS 106)
-    lead_sd: float = 0.0                 # within-person SD of the bolus lead with lead_own, min (0 = ± 4 uniform)
-    lead_own: bool = False               # time boluses at lead_med ± 4 min instead of the four category windows
+    lead_sd: float = 23.0                # within-person SD of the bolus lead, min (0 = ± 4 uniform); donors' labeled
+                                         # spread less the labeler's 28-min onset error (LESSONS 106; default 2026-10-17)
+    lead_own: bool = True                # bolus at lead_med instead of the four category windows (Pete 2026-10-17)
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
     # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
     ov_less_day: float = 0.0             # less-insulin overrides/day (activity, low prevention)
