@@ -1988,3 +1988,15 @@ statistic here, but it is the controller donors ran.
        - t54 0.17 (KS 0.63), lows/day 0.83, p_reach54 0.18; TIR 67.3, mean 156; labeled g-eq per entered g 1.22.
        - The self-check fails the same 4 of 8 bodies before and after (night below rest: the dinner tail in the
          night window accepted in LESSONS 75; failing since at least bcb5be0).
+     - **What is left of the meal gap is a ~10-min delay, not a size.** Per 10 g entered (c124 vs donors):
+
+       | min | 30 | 40 | 50 | 60 | 90 | 120 | 130 |
+       |---|---|---|---|---|---|---|---|
+       | donors | 1.9 | 3.4 | 5.2 | 6.8 | 10.2 | 10.9 | 10.8 |
+       | sim | 1.4 | 2.7 | 3.8 | 5.0 | 8.9 | 11.5 | 11.7 |
+
+       The plateau now matches. The sim reaches each early level ~10 min after donors (sim 60 ≈ donors 50).
+       Lower glucose effectiveness is not the lever (SG ×0.5: mean 166, LESSONS 92). Candidates for a 10-min lead:
+       - the gut's onset (first appearance in the sim at 9% by 30 min);
+       - eating before the logged/bolused time in donors (meal start vs entry time);
+       - sensor lag (sim G7 uses Vettoretti's G6 lag, median 3.8 min).
