@@ -1596,3 +1596,13 @@ statistic here, but it is the controller donors ran.
      - It is a candidate behavior trait (traits, not scripts): per-person shares of fast and slow entries, drawn by
        entry size.
      - It cannot be what damps the swing after main meals, which nearly all use 3 h. Not built yet.
+     **Literature check for a meal-specific brake on appearance: none found.**
+     - First-pass splanchnic extraction of oral glucose is about 10–25% (healthy; 16.4% intraduodenal vs 12.8% iv,
+       n.s.). It depends mainly on prevailing glucose, so it acts like glucose effectiveness, which already fails
+       (LESSONS 98). In T1D with insulin and glucagon matched it equals the non-diabetic value (Vella, Shah, Basu &
+       Rizza 2008, Diabetes Care 31:2230).
+     - Prandial insulin 20 min before the meal leaves T1D meal-glucose appearance unchanged (Pennant et al. 2008, as
+       reported there). Insulin lowers the excursion mainly through EGP suppression, which the sim already times to
+       tracer data (LESSONS 69–70, 75).
+     So the brake is not in appearance or liver physiology. What remains are behavior (how much is eaten when glucose
+     rises fast, corrections) and the controller's response.
