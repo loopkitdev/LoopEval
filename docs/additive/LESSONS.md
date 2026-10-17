@@ -2126,3 +2126,16 @@ statistic here, but it is the controller donors ran.
      - The common factor is not meal composition but what follows a fast rise in the sim: Loop and the person's
        response to it. Donors gain fast rises with no extra falls. Next: compare insulin delivered in the hour after
        a sharp rise (> 20 mg/dL / 5 min), donors vs sim (c127_fsd25). Then compare what glucose does 1–3 h later.
+     - **What follows a sharp rise** (first daytime CGM step > 20 mg/dL / 5 min within 60 min, starting < 180;
+       `after_sharp.py`):
+
+       | | events | insulin / mean rate 0–30 / 30–60 / 60–120 min | ΔCGM +30 / +60 / +120 / +180 |
+       |---|---|---|---|
+       | donors | 19,512 | 2.89 / 1.20 / 1.01 | +42 / +32 / +19 / +16 |
+       | c124 | 543 | 2.63 / 1.50 / 1.17 | +30 / +37 / +24 / −1 |
+       | c127_fsd25 | 617 | 2.67 / 1.60 / 1.10 | +37 / +45 / +23 / −1 |
+
+       Donors' fast rises peak within 30 min and hold +16 at 3 h. The sim's keep climbing to 60 min, Loop doses into
+       the late climb (+25–35% more insulin at 30–60 min), and glucose returns to its start by 3 h. The missing
+       shape is fast-early and held-late together (as LESSONS 66). Next: the Dalla Man slow late emptying phase
+       (`meal_slow`, kmin 0.008) combined with the per-meal fast spread.
