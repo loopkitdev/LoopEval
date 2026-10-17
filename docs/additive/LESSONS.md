@@ -1772,7 +1772,10 @@ statistic here, but it is the controller donors ran.
        - unentered meals 13, grazes 16, snacks 13, proactive carbs 16 g-eq/day.
        - Proactive carbs are 1.6 a day, 21 g, eaten at a median CGM of 89 while falling 13 mg/dL per 15 min; 14% are
          taken above 120.
-     - **Open.** Which daytime source is too large has no direct donor counterpart: donors' unannounced eating is
-       unobserved. Two to test against evidence:
-       - the activity-energy carbs (`act_carbs`, ~29 g/day added to meals, LESSONS 34);
-       - the meal-tail second pulses (fat and protein, LESSONS 31).
+     - **Meal tails are not it.** After an announced meal of ≥ 20 g with no other entry within 3 h:
+       - P(an unannounced pulse 45 min–3 h later) is 0.30 for donors (25,181 meals) and 0.32 for the sim (1,764).
+       - Its size is 11.5 vs 11.9 g-eq, and the match holds in every entered-size band (20–40, 40–70, ≥ 70 g).
+     - **Open.** The excess is in separate unannounced eating occasions (labeled 4.3/day vs 3.5). By g-eq, grazes,
+       proactive carbs, snacks and unentered meals each contribute about 13–16 a day. Grazing is the least-evidenced
+       of them (rate lognormal around 2/day, a judgement). Next: find a measurement of unlogged small eating, or of
+       the donors' proactive carbs, before changing any of them.
