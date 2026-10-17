@@ -2162,3 +2162,22 @@ statistic here, but it is the controller donors ran.
        zero-crossing stays 60–65. Sharp rises are still half the donors'.
      - Evidence status: the per-meal spread is qualitative (Englyst 1999, no per-meal SD published); the slow phase
        is in Dalla Man 2006's meal model (kmax/kmin), but the 0.15 share is a judgement. Default decision: Pete.
+
+121. **The 3-h hold after fast rises splits by entry; the entered ones are over-insulinized up front.** After a
+     sharp daytime rise (> 20 mg/dL / 5 min, start < 180), by whether a carb entry falls within ±30 min:
+
+     | | share | insulin / mean rate 0–30 / 30–60 / 60–120 | ΔCGM +30 / +60 / +120 / +180 |
+     |---|---|---|---|
+     | donors, entered | 0.33 | 3.76 / 0.85 / 0.86 | +50 / +37 / +20 / +17 |
+     | donors, not entered | 0.67 | 2.46 / 1.37 / 1.09 | +37 / +30 / +19 / +16 |
+     | c129_s15, entered | 0.22 | 4.57 / 1.31 / 0.63 | +56 / +57 / +10 / −25 |
+     | c129_s15, not entered | 0.78 | 2.20 / 1.58 / 1.25 | +31 / +30 / +17 / −3 |
+
+     - Entered fast meals in the sim get 22% more insulin in the first 30 min, peak later, and end 25 below their
+       start. Unentered rises get Loop's later insulin (30–120 min) and also don't hold.
+     - Night highs (> 200 at midnight, no event within 3 h) now fall −75 over 3 h with insulin (was −92 on old
+       timing; donors' per-unit matched in LESSONS 94). The general "highs fall too fast" gap of LESSONS 81–92 has
+       mostly closed with the clamp insulin timing.
+     - Next: the entered-meal bolus in fast meals. Candidates are the person's bolus size against what they ate
+       (count bias, calculator over-ride) for high-fast meals, and whether donors' entered sharp rises are late
+       entries (bolus after the rise).
