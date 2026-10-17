@@ -2253,3 +2253,19 @@ statistic here, but it is the controller donors ran.
            matching);
          - the night share of what dinner leaves behind.
          Neither is a single knob: the slow phase helps the cohort count (27 → 31) while it costs day/night.
+
+123. **Night entries come from late main meals, not snacks; the donors' own meal clock is too blurred to fix it.**
+     - **`--enable entry_clock`** (12b96af, off by default; `templates.add_entry_hours`, `templates_pilot_entry.csv`):
+       snack entry chance by the donor's own entry-vs-eating clock. c131 against c130_base: 29 vs 31 matched;
+       entered-gram shares night / B / L / D 0.08 / 0.18 / 0.32 / 0.39 (base 0.07 / 0.18 / 0.33 / 0.38; donors
+       0.04 / 0.15 / 0.34 / 0.44); day/night 1.589 (1.594). No effect.
+     - **What the sim's night entries are:** 201 of 280 belong to main meals and 70 to snacks. 7.6% of simulated main
+       meals are eaten 22–04 h (5.8% 22–24 h, 1.8% after midnight). The dinner time is lunch + GEV gap with lunch
+       = breakfast + GEV gap (LESSONS 96), and two summed gaps give a long late tail.
+     - **`--enable own_clock`** (built, off; `templates.add_meal_clock`, `templates_pilot_clock.csv`): main meals
+       around the donor's own median hour. Medians match the sim already (B 8.07, L 13.05, D 19.13 h). The
+       within-person SDs (B 1.67, L 1.33, D 1.75 h) are near a uniform spread over each window (D 1.9 h): the
+       largest pulse per window mixes snacks and labeler noise. A normal at 19.1 ± 1.75 h puts ~5% of dinners
+       after 22:00, as now, so it was not run.
+     - Open: a clean measurement of dinner-time spread. Candidates are bolus times with entries ≥ 30 g, which need
+       no labeler, and evidence (Camerlingo's day-to-day dinner SD).

@@ -189,6 +189,8 @@ class World:
             self.beh_traits.meal_drink_p = float(enable["meal_drink_p"])
         if enable and isinstance(enable.get("meal_drink_share"), float):
             self.beh_traits.meal_drink_share = float(enable["meal_drink_share"])
+        if enable and enable.get("own_clock"):
+            self.beh_traits.own_clock = True
         if enable and enable.get("entry_clock"):
             self.beh_traits.entry_clock = True
         if enable and enable.get("graze_fast"):

@@ -82,6 +82,8 @@ class BehaviorTraits:
     meal_drink_share: float = 0.4        # the drink's share of that meal's carbohydrate [J]
     graze_fast: bool = False             # grazes absorb as liquid sugar (juice, sweetened coffee; evidence/14 §2; LESSONS 117)
     snack_entry_w: Optional[tuple] = None   # hour-of-day weight on p_entry_snack (donor entries / eating; LESSONS 123)
+    meal_clock: Optional[tuple] = None   # donor's own (b_med, b_sd, l_med, l_sd, d_med, d_sd), hours (LESSONS 123)
+    own_clock: bool = False              # switch: main meals on the donor's own clock
     entry_clock: bool = False            # switch: use snack_entry_w
     graze_keep: float = 1.0              # share of planned grazes kept (thinning experiment, LESSONS 109)
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
@@ -291,6 +293,9 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
                 # the per-meal chance caps at 1, so the snacks carry whatever the main meals no longer take
                 main = sum(min(1.0, t.p_entry_meal * x) for x in t.slot_ann)
                 t.p_entry_snack = float(np.clip((entries - main) / max(snack_rate, 0.1), 0.0, 1.0))
+    ck = [_num(rates, k) for k in ("clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd")]
+    if all(np.isfinite(ck)):
+        t.meal_clock = tuple(float(x) for x in ck)
     mh = rates.get("meal_hours")
     if isinstance(mh, str):
         import json as _json
@@ -357,6 +362,7 @@ class Behavior:
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
         self.r_drink = np.random.default_rng(int(getattr(person, "seed", 0)) + 1601)      # meal_drink draws
+        self.r_clock = np.random.default_rng(int(getattr(person, "seed", 0)) + 1709)      # own_clock meal times
         self.readings: list[tuple[float, float]] = []
         self.planned: list = []                 # (minute, action) sorted
         self.planned_day = -1
@@ -443,6 +449,15 @@ class Behavior:
         else:   # the original draw: Gumbel (ξ 0, a long late tail) × 0.9, no source
             lunch = b + max(120.0, r.gumbel(282.9, 80.0) * 0.9)
             dinner = lunch + max(150.0, r.gumbel(374.9, 85.0) * 0.9)
+        if t.own_clock and t.meal_clock is not None:
+            # the donor's own meal clock, on its own stream (the gap draws above were still taken: other draws stay
+            # paired). Within-person SDs include the labeler's onset noise (~0.45 h), so they are upper bounds [J]
+            bm, bs, lm, ls, dm, ds = t.meal_clock
+            rc = self.r_clock
+            b_new = float(rc.normal(bm, bs)) * 60 + shift
+            lunch = max(b_new + 120.0, float(rc.normal(lm, ls)) * 60 + shift)
+            dinner = max(lunch + 150.0, float(rc.normal(dm, ds)) * 60 + shift)
+            if slots and slots[0][3] == 0: slots[0] = ("meal", b_new, slots[0][2], 0)
         slots += [("meal", lunch, sL / 0.286 * main_w, 1), ("meal", dinner, sD / 0.286 * main_w, 2)]
         n_snack = r.poisson(t.snack_rate)
         sh = getattr(t, "snack_hours", None)
