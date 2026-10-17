@@ -1845,3 +1845,17 @@ statistic here, but it is the controller donors ran.
        mechanism. The sim answers rises a little harder in the first hour (0.92 vs 0.78), the autobolus response.
        Open: the surplus has no single source; its parts are unentered meals, proactive carbs, grazes, snacks, and
        non-eating rises that no modulator ablation removes.
+
+111. **Caffeine, built at its evidence, is too small to show (as budgeted).** `--enable caffeine` (0d64b90, off by
+     default; modulators._caffeine):
+     - **Who:** 64% daily drinkers [unverified]; about 2 cups/day of 95 mg; first cup ~07:30, later ones 10–16 h;
+       10% of days skipped.
+     - **PK:** one-compartment oral absorption at 3/h (peak 30–60 min); per-person t½ lognormal around 5 h (2–10).
+     - **Effect:** SI −15% at the peak of a 200 mg dose (Keijzers 2002), linear in concentration, capped at −30%.
+       Applied as the deviation from the person's own mean daily profile, since the habitual part lives in the
+       donor's basal shape (evidence/11 §4.2), as with GH.
+     - Drinkers' SI moves 9–24% around their own mean by day and dose. Every draw is on its own stream (seed + 202).
+     - **c119** (frozen 0d64b90): the same-commit baseline reproduces c114 exactly. With caffeine: 29 vs 30 matched
+       (noise). Morning unannounced appearance 33.9 vs 33.8 g-eq/day, chained 21.0 vs 20.9. Between-day fraction
+       0.117 → 0.125 (donors 0.102); hurst_long 0.223 → 0.230 (0.247).
+     - evidence/14 budgeted 5–10% of the daytime ACF gap. It is not the morning surplus. Kept as a switch.
