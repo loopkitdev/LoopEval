@@ -2000,3 +2000,12 @@ statistic here, but it is the controller donors ran.
        - the gut's onset (first appearance in the sim at 9% by 30 min);
        - eating before the logged/bolused time in donors (meal start vs entry time);
        - sensor lag (sim G7 uses Vettoretti's G6 lag, median 3.8 min).
+     - **Neither the sensor nor meal-time dosing makes the 10 minutes.**
+       - The sim's G7 lag is 3.5 min, the G7's own apparent device lag (evidence/03).
+       - Delivered insulin around announced meals ≥ 20 g, as a share of the person's mean rate (mean over meals;
+         −1 h–0 / 0–30 / 30–60 min / 1–2 h / 2–3 h): donors 1.96 / 2.13 / 1.79 / 1.04 / 1.01 (31,475 meals);
+         c124 1.72 / 2.22 / 1.89 / 0.98 / 0.79.
+       Donors take more insulin before the onset and still climb faster. The remaining lead is in when the labeler
+       places onsets relative to true eating. In the sim it is 2–3 min before eating (lesson 106). In donors it is
+       unobservable: a meal that starts slowly (a drink, a first course) would put the labeled onset later and the
+       measured climb steeper.
