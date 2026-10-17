@@ -2197,3 +2197,9 @@ statistic here, but it is the controller donors ran.
        earlier boluses than their meals overall (labeled median lead −2 min), so people may pre-bolus more for
        fast foods, or fast foods may be the ones eaten after a pre-bolus. Open: whether bolus lead depends on the
        food in donors (lead by first-30-min rise size).
+     - **Donors do not pre-bolus by food.** Median labeled bolus lead by within-person meal-speed quartile (peak
+       appearance per g-eq): donors −4.1 / −1.9 / −0.3 / −1.8 min, slowest to fastest (35,373 meals). So no
+       food-dependent timing to model. The sim runs 0 / +5 / +5 / 0, i.e. 3–5 min later in every quartile. That is
+       the labeler-bias residue of LESSONS 106 (+6.6 per person vs the +2 subtracted); correcting it (c113,
+       lead_shift −4.6) was neutral on the cohort statistics. With faster meals now in the default, that late
+       residue meets fast appearance. Worth re-testing the −4.6 correction on the new meal defaults.
