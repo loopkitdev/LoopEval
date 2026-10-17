@@ -1817,3 +1817,26 @@ statistic here, but it is the controller donors ran.
        come from the remaining morning modulators: Visentin breakfast-hour SI, GH night-to-night variation, stress
        episodes, sleep-loss SI. Next: ablate each, measure the morning chain table, and compare each with its own
        evidence.
+
+110. **The morning modulators do not make the chained rises.** Paired ablations against c114, frozen eb785d3
+     (`--disable circadian | gh | stress | sleep`). Morning chained unannounced appearance (after an unannounced pulse,
+     ≤ 3 h, g-eq/day):
+
+     | Arm | Morning chained g-eq/day | Matched |
+     |---|---|---|
+     | c114 | 20.9 | 30 |
+     | no circadian | 20.3 | 30 |
+     | no GH | 20.6 | 29 |
+     | no stress | 20.8 | 30 |
+     | no sleep | 21.6 | 29 |
+
+     - Every quarter's unannounced total is within 1 g-eq/day of c114 in every arm.
+     - **Circadian classes and the 24-h amplitude.** Without the Visentin classes, `circadian_amp` matches (0.135 vs
+       donors 0.131, KS 0.002 → 0.64), and mean, CV and TIR improve. Long-range Hurst falls (0.223 → 0.194). The
+       classes add a daily shape that donors' records do not show at this amplitude. They are evidenced (Visentin
+       2016), but a donor's tuned basal profile already carries their own diurnal need (LESSONS 48), so the two may
+       double-count. Kept on: not a cohort-fit decision.
+     - **Next lead: the controller's own rebound.** A chained "no eating, no low" rise can be Loop's: after a rise
+       it doses, glucose falls, basal is cut, and the hepatic output that insulin was suppressing returns.
+       Compare like for like: delivered insulin in the 2 h before a chained unannounced rise (donors' dose records vs
+       the sim's), and the EGP response to insulin withdrawal against tracer evidence.
