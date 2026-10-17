@@ -2081,3 +2081,29 @@ statistic here, but it is the controller donors ran.
        bread) have early gastric delivery bursts (Calbet 1997) and peak Ra in 15–30 min. The sim's meals give their
        liquid share no per-food spread, and fast unlogged drinks are labeled as pulses (graze_fast above). The open
        question is which real foods produce > 4 mg/dL/min rises from euglycaemia, and how often per day.
+
+118. **Per-meal spread of rapidly available glucose makes real fast rises, and brings fast falls with them.**
+     `--set meal_fast_sd=x`: each meal's fast-liquid share is Beta with mean 0.2 and SD x. Englyst 1999: rapidly
+     available glucose explains 70% of glycaemic-response variance and ranges widely between foods; no per-meal
+     SD is published. Paired against c124, frozen 8539793:
+
+     | | c124 | SD 0.25 | SD 0.35 | donors |
+     |---|---|---|---|---|
+     | true rises > 20 / 1,000 daytime steps | 2.0 | 5.1 | 8.3 | — |
+     | CGM rises > 20 / falls > 20 | 10.7 / 9.1 | 12.8 / 10.1 | 15.4 / 11.6 | 20.0 / 11.4 |
+     | glucose skew (KS p) | 0.75 (0.000) | 0.84 (0.26) | 0.92 (0.02) | 0.89 |
+     | G6 step skew (KS p) | 0.089 (0.06) | 0.133 (0.28) | 0.063 (0.03) | 0.238 |
+     | CV | 35.4 | 36.8 | 38.3 | 34.8 |
+     | t54 | 0.17 | 0.21 | 0.28 | 0.215 |
+     | hurst_long | 0.233 | 0.188 | 0.187 | 0.247 |
+     | matched | 27 | 28 | 26 | |
+
+     - At SD 0.25, glucose skew and G6 step skew pass for the first time at normal emptying pace. Labeled pulse per
+       entered gram stays 1.21.
+     - **The cost is the same as every faster-meal arm** (LESSONS 89, 109, 112): CV rises and long memory weakens.
+       Donors gain sharp rises without the falls (falls > 20 match at 11.4); the sim adds both. A high-fast meal
+       in the sim has little slow carbohydrate left, so it runs out early while Loop's insulin is still acting.
+       That suggests real fast meals keep a sustained tail: total meal size or fat/protein slowing, not a
+       smaller slow share.
+     - Not adopted. Next: let the fast share add to the meal instead of displacing its slow part (e.g. a sugary
+       drink with the meal), and compare falls.
