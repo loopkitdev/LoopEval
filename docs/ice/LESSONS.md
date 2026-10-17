@@ -1161,3 +1161,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     entry and unannounced-meal shifts: TIR 73.5 / 73.5, t<54 0.39 / 0.27, t<70 2.04 / 1.95 - still behind the all-starts
     meal-head shift alone (73.1 / 73.1, 0.31 / 0.21, 1.66 / 1.80); not kept. Of the trend calibrations tried, the cruder
     one is the best on lows; the per-head versions do not add up to it.
+    Change test on the new base (two seeds averaged per edit): slope TIR 0.88, t<70 1.27, mean 0.68, t<54 0.63 (Spearman
+    0.32), t<54 |error| 0.33 (no-change baseline 0.30); previous base 0.63 / 1.34 / 0.62 / 0.48 (0.23), 0.34. Best t<54
+    change prediction so far.
