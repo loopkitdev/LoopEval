@@ -1499,3 +1499,19 @@ statistic here, but it is the controller donors ran.
       paired TIR +0.04, t<54 −0.10*.
     - **Still open:** donors put more of their insulin at meal hours and less before dawn. Bolus per entered gram
       matches (LESSONS 92), so the open items are the meal-time share of daily insulin and the night share.
+
+97. **Delivered ÷ scheduled basal by hour: the sim is 5–20% higher before dawn; the body's basal shape is not why.**
+    Median over people, c106 vs donors (masked):
+
+    | Hour | 03 | 04 | 05 | 12 | 19 |
+    |---|---|---|---|---|---|
+    | Donors | 1.30 | 1.27 | 1.25 | 2.62 | 2.57 |
+    | c106 (`prof_w` 0.5) | 1.39 | 1.39 | 1.51 | 2.46 | 2.43 |
+    | c107 (`prof_w` 1.0) | 1.38 | 1.27 | 1.47 | 2.35 | 2.49 |
+
+    - Under `prof_w` 0.5 the sim body needs 1.15× its schedule at night and 1.04× by day.
+    - Following the schedule's shape fully (`prof_w` 1.0) flattens that to 1.06× but leaves pre-dawn delivery, and
+      day/night (1.72 vs 2.06), where they were. 25 of 51 matched (noise); the default stays 0.5.
+    - This repeats c69 (LESSONS 59) under the current model.
+    - The gap is spread across hours, each of a few tenths: donors deliver more over schedule at meal hours and less
+      before dawn. No single component accounts for it yet.
