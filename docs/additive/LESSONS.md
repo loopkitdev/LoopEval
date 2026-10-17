@@ -2021,3 +2021,25 @@ statistic here, but it is the controller donors ran.
      Kept as a switch. With evidence/14 candidates 3–7 built or measured, the remaining named candidate for the
      daytime decorrelation is unlogged small intake. Its rate is unknown for AID users, and lesson 109 found grazing
      moves the level, not the shape. The ACF zero-crossing stays the largest open structural gap.
+
+116. **Quiet nights match; donors' quiet days hold more sharp rises, of which the labeler misses only a small part.**
+     Labeler-quiet 5-min steps (no labeled pulse or manual bolus within 4 h; donors limited to labeler coverage
+     ≤ 18 h; G7), c124 against the donors:
+
+     | | donors night | sim night | donors day | sim day |
+     |---|---|---|---|---|
+     | step SD | 4.75 | 4.38 | 6.65 | 5.23 |
+     | skew (median person) | +0.07 | −0.04 | +0.77 | +0.22 |
+     | rises > 10 / falls > 10 per 1,000 steps | 19.4 / 26.9 | 15.3 / 20.5 | 51.9 / 41.1 | 23.9 / 29.3 |
+     | rises > 20 per 1,000 steps | 3.6 | 1.8 | 14.4 | 3.6 |
+
+     - Nights now match. Lesson 79's sim night skew of −0.44 was before the clamp-speed insulin and the grazing clock.
+     - Sustained unlabeled daytime rises (≥ 30 mg/dL within 30 min, events ≥ 60 min apart): donors 0.35/day
+       (median person 0.29), sim 0.19/day (0.17). Some donor eating escapes the labeler and sits in "quiet"; the
+       sim's cleaner records get labeled more completely.
+     - That asymmetry is +0.16/day, about a fifth of the sim's labeled unannounced surplus (+0.8/day, lesson 108).
+       The rest of the surplus is real, and so is the donors' upward daytime quiet skew.
+     - The daytime quiet gap is in sharp rises (4× at > 20), the signature of fast unlogged sugar, not of slow wander.
+       With the surplus in labeled unannounced eating, the sim seems to have **too many medium unannounced eating
+       events and too few small, sharp, quick ones** (juice, sweets). That points to the shape of unlogged intake
+       (size, speed), not its total.
