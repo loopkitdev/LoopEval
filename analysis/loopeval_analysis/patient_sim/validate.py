@@ -67,9 +67,12 @@ def core_stats(cgm: pd.Series, d: pd.Series, days: float) -> dict:
         out.update({k: float(r[k]) for k in GLUCOSE_FEATS})
     v = cgm.dropna()
     # wear = reading coverage of the record's span on the 5-min grid, the same for donors (whose series holds only
-    # the readings that exist, so notna() always read 1.0) and simulated people (whose withheld slots are NaN)
+    # the readings that exist, so notna() always read 1.0) and simulated people (whose withheld slots are NaN).
+    # Counted as distinct 5-min slots: 21% of G7 donors carry > 5% near-duplicate readings (< 2 min apart, the same
+    # reading uploaded twice), which counted as extra coverage (LESSONS 107)
     span_min = (v.index.max() - v.index.min()).total_seconds() / 60.0 if len(v) > 1 else np.nan
-    out.update(t54=100 * float((v < 54).mean()), wear=float(min(1.0, len(v) * 5.0 / span_min)) if span_min and span_min > 0 else np.nan)
+    slots = v.index.floor("5min").nunique() if len(v) else 0
+    out.update(t54=100 * float((v < 54).mean()), wear=float(min(1.0, slots * 5.0 / span_min)) if span_min and span_min > 0 else np.nan)
     out.update(lows_anatomy(cgm))
     tot = d.to_numpy(); tot = tot[np.isfinite(tot)]      # donors: unknown-insulin bins are NaN (LESSONS 95)
     if len(tot) < 288:                                   # no known insulin in this block: glucose statistics only
