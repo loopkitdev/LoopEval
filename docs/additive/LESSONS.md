@@ -1523,3 +1523,18 @@ statistic here, but it is the controller donors ran.
     2.75 vs 2.86 per day (mean; corr 0.96) and user boluses 4.17 vs 4.17 (median; corr 0.91, mean 4.54 vs 5.36, the
     heaviest bolusers a little short). The cohort-level shortfall in the validation table comes from which templates the
     112 people drew, so the remaining p99 gap is mostly template sampling, not a component.
+
+98. **Higher glucose effectiveness with tracer-paced meals shortens excursions at the cost of lows and long memory.**
+    Emptying ×1.6, CSF ×0.84, SG ×1.5 / ×2 (0.0045 / 0.006, inside the 0.0013–0.022 range Pete allowed); vs c106 and
+    donors:
+
+    | | ACF zero-crossing | Hurst | t<54 | Mean | CV | Matched |
+    |---|---|---|---|---|---|---|
+    | Donors | 42.5 | 0.247 | 0.22 | 151 | 34.8 | — |
+    | c106 default | 60 | 0.221 | 0.15 | 155 | 34.6 | 27 |
+    | SG ×1.5 | 52.5 | 0.114 | 0.39 | 147 | 37.9 | 19 |
+    | SG ×2 | 50 | 0.086 | 0.48 | 140 | 36.3 | 17 |
+
+    Glucose effectiveness pulls every excursion back toward the rest level, including the slow wander the donors keep
+    (Hurst) and the approach to lows. Rejected, as at the default meal pace (LESSONS 68). The shorter real excursions
+    need a mechanism that acts on meal excursions specifically, not on all deviations.
