@@ -1948,3 +1948,35 @@ statistic here, but it is the controller donors ran.
        is removal: insulin action timing (p2), glucose effectiveness, or the meal bolus's absorption. With
        appearance at its evidence, the slower action rate becomes the leading explanation (the 121 g meal of
        LESSONS 89 sat at the low-GL pace because the energy ceiling binds large meals).
+
+114. **Body insulin timing from evidence, not from Loop: clamp-speed action no longer crashes meals, and the meal
+     shape gap is only partly timing.** Pete (2026-10-17): the simulator is calibrated to real patients, never to
+     what Loop believes. LESSONS 20 broke that by fitting p2 to Loop's adult curve after Loop over-dosed meals
+     against a clamp-speed body.
+     - **Evidence for meal-sized doses.** Humalog 15 U (T2D, PMC7716902):
+       - onset 45 min; early 50% tRmax 56 min; late 50% tRmax 269 min; duration 405 min;
+       - glucose infused in the first hour 42 of 670 mg/kg, **6.3%** of the total.
+     - **The body's first-hour share** (linear part): p2 0.05 ~14%, 0.03 ~12%, 0.02 ~10%; Loop's model 22%.
+     - **Translating the clamp to real life.**
+       - Pump sets speed absorption with wear: plasma tmax 55 → 45 min from day 0 to day 4 (Clausen 2009); onset and
+         offset are earlier on day 4 than day 1 in T1D adolescents. Already modeled (device.site_state `abs_slope`,
+         LESSONS 43).
+       - Smaller doses absorb faster, but the evidence found is second-hand only (volume effect). Not modeled.
+     - **Cohorts** (paired against c119_base, frozen 0d64b90):
+
+       | p2 (p2e) | Matched | Meal ΔCGM 60/120 min (donors 27/42) | t54 | TIR | hurst_long |
+       |---|---|---|---|---|---|
+       | 0.05 (0.018) | 30 | 13/27 | 0.22 | 69.2 | 0.223 |
+       | 0.04 | 26 | 15/32 | 0.19 | 66.4 | 0.234 |
+       | 0.03 | 30 | 19/37 | 0.17 | 68.7 | 0.200 |
+       | 0.025 (0.012), lesson 9's clamp fit | 26 | 18/32 | 0.23 | 68.0 | 0.192 |
+       | 0.02 | 27 | 17/39 | 0.18 | 67.3 | 0.245 |
+
+       - The match count moves non-monotonically across p2 (26–30): cohort noise, not a timing signal.
+       - Lesson 20's crash (meals ending 25 mg/dL below baseline at 3 h) does not recur at clamp speed. The
+         behavior, meal and defense components added since carry it.
+       - Slower action moves the shape toward the donors': 60 min +13 → +17–19, 120 min +27 → +32–39. The first
+         hour is still a third short of the donors' at every evidenced speed.
+     - **Open.** The first-hour climb needs another component, not more insulin delay. Appearance runs at the
+       high-GL tracer pace (lesson 113), so the remaining suspects are glucose effectiveness at meal onset, the
+       sensor's lag, and what donors' isolated meals really are (larger true carbs than entered).
