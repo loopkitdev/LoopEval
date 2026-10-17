@@ -2443,3 +2443,27 @@ statistic here, but it is the controller donors ran.
      fast intake (117–119) and snacks (here) each neutral, the sim's extra unannounced daytime appearance is not one
      eating component. What is left is the labeler's reading of the sim's own non-eating rises (2.3/day, LESSONS 108),
      whose sources the morning-modulator ablations did not find (110).
+
+128. **The CV and day/night failures are two strategy-specific defects, found by pairing people with their own
+     donors.**
+     - **Persons do not inherit their donor's variability.** Twin Spearman (sim person vs own donor, c135): TDD
+       0.90, mean 0.23, TIR 0.17, CV −0.06. Donor CV follows behaviour, and the sim does not reproduce any of it:
+
+       | trait | ρ with donor CV | ρ with sim CV |
+       |---|---|---|
+       | announced share | −0.38 | +0.04 |
+       | carb entries/day | −0.32 | +0.02 |
+       | manual boluses/day | −0.26 | +0.04 |
+       | rescues/day | +0.46 | +0.06 |
+       | TDD | +0.30 | +0.14 |
+
+     - **Temp-basal people carry the CV gap.** Twin median CV difference (sim − own donor): temp +5.0 / +5.4 / +3.9
+       / +6.8 in c114 / c124 / c133 / c135, against automatic-bolus −0.4 / 0.0 / −0.8 / +1.3. Medians in c135, sim
+       (own donors):
+       - temp: CV 38.3 (32.6); t70 1.69 (0.73); manual U/day 14.1 (12.5); conc1 30.4 (25.5); day/night 1.76 (1.76);
+       - automatic: CV 36.8 (35.3); t70 1.75 (1.11); manual U/day 12.2 (11.0); day/night 1.69 (2.15).
+       Simulated temp-basal people take 13% more manual insulin than their donors and spend 2.3× the time below 70.
+     - **The day/night gap is the automatic-bolus group's** (temp matches at 1.76). That fits LESSONS 99.
+     - Next: split temp people's manual insulin into meal boluses and corrections against their donors, and compare
+       their correction bolus size (temp-basal Loop users have no automatic boluses, so hand corrections carry the
+       highs).
