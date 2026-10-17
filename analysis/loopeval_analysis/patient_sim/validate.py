@@ -71,7 +71,9 @@ def core_stats(cgm: pd.Series, d: pd.Series, days: float) -> dict:
     span_min = (v.index.max() - v.index.min()).total_seconds() / 60.0 if len(v) > 1 else np.nan
     out.update(t54=100 * float((v < 54).mean()), wear=float(min(1.0, len(v) * 5.0 / span_min)) if span_min and span_min > 0 else np.nan)
     out.update(lows_anatomy(cgm))
-    tot = d.to_numpy()
+    tot = d.to_numpy(); tot = tot[np.isfinite(tot)]      # donors: unknown-insulin bins are NaN (LESSONS 95)
+    if len(tot) < 288:                                   # no known insulin in this block: glucose statistics only
+        return out
     srt = np.sort(tot)[::-1]; k = max(int(0.01 * len(srt)), 1)
     day = d.resample("1D").sum(); nb = d.resample("1D").count(); day = day[nb > 240]
     hour = d.groupby(d.index.hour).mean()
@@ -87,10 +89,14 @@ def core_stats(cgm: pd.Series, d: pd.Series, days: float) -> dict:
     return out
 
 
-def delivered_5min(doses: list, t0: pd.Timestamp, t1: pd.Timestamp) -> pd.Series:
-    """A donor's delivered insulin (doses.json records) in 5-min bins over [t0, t1)."""
+def delivered_5min(doses: list, t0: pd.Timestamp, t1: pd.Timestamp, mask_gaps: bool = False) -> pd.Series:
+    """A donor's delivered insulin (doses.json records) in 5-min bins over [t0, t1).
+
+    mask_gaps: stretches of >= GAP_MIN with no basal record at all are unknown insulin, not zero: memory "pumpless
+    disruptions", LESSONS 94 (60% of donor windows reading < 2% of TDD have no record). Their bins come back NaN."""
     idx = pd.date_range(t0, t1, freq="1min", inclusive="left")
     u = np.zeros(len(idx))
+    cover = np.zeros(len(idx), dtype=bool)
     base = t0.value // 60_000_000_000
     for x in doses:
         s = pd.Timestamp(x["startDate"]); e = pd.Timestamp(x["endDate"])
@@ -103,7 +109,33 @@ def delivered_5min(doses: list, t0: pd.Timestamp, t1: pd.Timestamp) -> pd.Series
         else:
             lo, hi = max(i0, 0), min(i1, len(u))
             if hi > lo: u[lo:hi] += vol / (i1 - i0)
-    return pd.Series(u, index=idx).resample("5min").sum()
+    if mask_gaps:
+        for x in doses:     # every basal record covers its span, zero-volume temps included
+            if x["deliveryType"] != "basal": continue
+            s = pd.Timestamp(x["startDate"]); e = pd.Timestamp(x["endDate"])
+            lo, hi = max(int(s.value // 60_000_000_000 - base), 0), min(int(e.value // 60_000_000_000 - base), len(u))
+            if hi > lo: cover[lo:hi] = True
+    out = pd.Series(u, index=idx).resample("5min").sum()
+    if mask_gaps:
+        unk = np.zeros(len(idx), dtype=bool)
+        i = 0
+        while i < len(cover):
+            if not cover[i]:
+                j = i
+                while j < len(cover) and not cover[j]: j += 1
+                if j - i >= GAP_MIN: unk[i:j] = True
+                i = j
+            else:
+                i += 1
+        bad = pd.Series(unk, index=idx).resample("5min").max()
+        out[bad.to_numpy()] = np.nan
+    return out
+
+
+GAP_MIN = 30
+
+
+MASK_GAPS = True     # donors: no-record stretches are unknown insulin (LESSONS 95)
 
 
 def real_stats(export: Path, block_days: int = 13) -> dict | None:
@@ -131,7 +163,7 @@ def real_stats(export: Path, block_days: int = 13) -> dict | None:
         c = cgm[(cgm.index >= s) & (cgm.index < e)]
         if len(c) > 0.7 * block_days * 288:
             grid = pd.date_range(s, e, freq="5min", inclusive="left")
-            rows.append(core_stats(c, delivered_5min(doses, s, e), block_days))
+            rows.append(core_stats(c, delivered_5min(doses, s, e, mask_gaps=MASK_GAPS), block_days))
         s = e
     if not rows: return None
     return pd.DataFrame(rows).median(numeric_only=True).to_dict()
