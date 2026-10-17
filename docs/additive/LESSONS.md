@@ -2231,3 +2231,9 @@ statistic here, but it is the controller donors ran.
        - the sim's dinner clock (GEV lunch → dinner gap, LESSONS 96) against the donors' bolus clock at 17–18 h;
        - the pre-dawn excess against the body's dawn need (basal profile shrunk halfway, LESSONS 48) and Loop's
          reaction to it.
+     - **Not the meal clock.** Per-person median hour of the largest labeled pulse in each window (B 04–10.5,
+       L 10.5–15.5, D 15.5–22), q25/50/75:
+       - donors 7.58/8.00/8.34, 12.71/13.00/13.25, 18.71/19.08/19.50;
+       - c130_base 7.67/8.04/8.52, 12.61/13.17/13.58, 18.58/19.08/19.50.
+       Dinner is on time. The donors' larger 17–18 h insulin is not a dinner bolus at a different hour. Open:
+       pre-dinner dosing (Loop on afternoon rises or evening basal, the donor's own schedule) against the sim's.
