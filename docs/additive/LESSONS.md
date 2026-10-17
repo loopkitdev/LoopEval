@@ -1926,3 +1926,16 @@ statistic here, but it is the controller donors ran.
          bgForecast vs CGM, same windows);
        - and insulin delivered around meals (LESSONS 92).
        Then decide with Pete: the meal shape argues for slower action, the ACF zero-crossing against it.
+     - **The field correction test cannot separate these rates.** ICE after isolated correction boluses, using
+       ice's step tables and extraction on both sides (`corr_ice.py`):
+       - Selection: manual ≥ 1 U at BG ≥ 150, no carb entry from −3 h to +4 h, no other manual bolus within 4 h.
+       - With all such corrections, ICE falls sharply afterwards in donors (−17 to −25 mg/dL/h per U, n = 711),
+         because people correct during rises that then end.
+       - Requiring steady CGM before the bolus (±10 mg/dL/h over 30 min) leaves 71 donor events, with ICE change
+         per U near zero in every 30-min bin (median −3.9 to +2.8, SE 3.3–5.1). The sim has only ~9 such events
+         per cohort.
+       - Expected signatures on the linear body (ISF 55): Loop's curve minus the body's effect is +6 / +3–6 /
+         −1 to −5 / −7 to −8 … mg/dL/h per U for p2 0.05 / 0.03 / 0.02. They differ by ≤ 7 per bin, inside the
+         donors' noise.
+       So lesson 20's field constraint does not pin p2 between 0.02 and 0.05. Its evidence was Loop over-dosing
+       into meals at clamp speed (4% in the first hour); p2 0.03 still gives 12% at 60 min (Loop 22%).
