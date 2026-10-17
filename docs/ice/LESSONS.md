@@ -1153,6 +1153,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Carb entries are also under-drawn while falling (< 100 mg/dL: field 0.40 / 0.22 an hour falling / flat, generated 0.27 /
     0.20; 70-90 falling fast 0.89 vs 0.26). The entry head calibrated by glucose x trend (HEAD=entry; shift +1.0 / +0.87 at
     70-90 / 90-110 falling fast, plant calib_entry_state) on top of the unannounced-only meal shifts: seeds 0 / 1 TIR 73.9 /
-    74.0, t<54 0.44 / 0.28, t<70 1.89 / 1.87 - TIR up, lows up; not kept. Not checked yet: a generated entry brings a meal
-    bolus and a meal-sized pulse, while field entries made falling look like unbolused rescues, so more entries while
-    falling may add bolused meals rather than rescues.
+    74.0, t<54 0.44 / 0.28, t<70 1.89 / 1.87 - TIR up, lows up; not kept. Entries made below 100 mg/dL while falling: field
+    232, median 15 g, 24% with a bolus within 15 min; generated (base, seed 0) 517, 16 g, 39% bolused. More entries while
+    falling add bolused ones; the bolus-given-entry head needs the same state dependence.
