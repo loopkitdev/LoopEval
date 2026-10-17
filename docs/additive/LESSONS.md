@@ -2313,3 +2313,11 @@ statistic here, but it is the controller donors ran.
        acts on differ (ISF, max basal, override use at night). Next: the controller's own gain on both sides,
        overnight insulin above scheduled basal per mg/dL of forecast excess, using dosingDecision forecasts for
        donors and the trace for the sim.
+     - **Not the controller's gain.** Overnight (00–06 h, 30-min bins, CGM 120–300) delivered minus scheduled basal
+       (manual boluses excluded), regressed on CGM; slope × mean ISF (`ctrl_gain.py`):
+       - donors (167): 0.264/h (q25/75 0.19 / 0.35); excess at 200 mg/dL 0.53 U/h;
+       - c130_base (103): 0.281/h (0.17 / 0.40); 0.65 U/h.
+       Loop's response per unit of night glucose matches; if anything the sim gives a little more at 200. So the
+       donors' wider night-to-night insulin is about how their nights unfold, not the gain. More nights spend time
+       where Loop's output saturates (zero at lows, max basal at highs), and the 0.23 residual CV is variation not
+       tied to the night mean (overrides, sleep-time changes). Open.
