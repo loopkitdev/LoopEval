@@ -1898,3 +1898,31 @@ statistic here, but it is the controller donors ran.
        - Test an intermediate action (first-hour share ~10%, between clamp 4% and Loop 17%) against three things:
          this trajectory table, the first-hour forecast residual from replay (memory: forecast-residual =
          insulin tail), and insulin delivered around meals (LESSONS 92).
+
+113. **Slower body insulin action brings the meal shape to the donors; the cohort statistics split.** `--set
+     ins_p2=x` (disposal-action rate; default 0.05 fits Loop's adult curve, LESSONS 20). Timing only; the steady-state
+     effect is unchanged. Paired against c119_base, frozen 0d64b90, 112 × 14 d.
+
+     | | Donors | p2 0.05 | 0.03 | 0.02 |
+     |---|---|---|---|---|
+     | Isolated meal ΔCGM at 60 / 90 / 120 / 150 / 240 min | 27/39/42/40/22 | 13/22/27/32/20 | 19/34/37/43/24 | 17/31/39/39/20 |
+     | First-hour step skew | 0.67 | 0.32 | 0.23 | 0.58 |
+     | Matched | | 30 | 30 | 27 |
+     | hurst_long (KS p) | 0.247 | 0.223 (0.17) | 0.200 (0.02) | 0.245 (0.23) |
+     | ACF zero-crossing, min | 42.5 | 60 | 65 | 70 |
+     | TIR | 71.7 | 69.2 | 68.7 | 67.3 |
+     | t54 / p_reach54 | 0.215 / 0.20 | 0.22 / 0.20 | 0.17 / 0.20 | 0.18 / 0.20 |
+     | Labeled g-eq / entered g | 1.21 | 1.21 | 1.25 | 1.22 |
+
+     - The plateau and the tail now sit on the donors' at both slower rates: +37–43 at 120–170 min, +20–24 at 240.
+       The first hour is still short (+17–19 vs +27). The labeled pulse size is unchanged, consistent with the
+       labeler adding back Loop's modeled insulin.
+     - **The cost is decorrelation.** Slower insulin lengthens positively correlated runs: the ACF zero-crossing
+       goes 60 → 70 (donors 42.5), the opposite of what donors need. Hurst long is fixed at 0.02.
+     - **Not adopted yet.** Lesson 20's constraint has to be re-checked first: replay found Loop's first-hour
+       forecasts match real glucose closely. Under p2 0.02–0.03, the sim's Loop would see glucose climb faster than
+       it forecast after every bolus. Next:
+       - compare the sim's forecast residual at 30/60 min after meal boluses with the donors' (dosingDecision
+         bgForecast vs CGM, same windows);
+       - and insulin delivered around meals (LESSONS 92).
+       Then decide with Pete: the meal shape argues for slower action, the ACF zero-crossing against it.
