@@ -1889,3 +1889,12 @@ statistic here, but it is the controller donors ran.
        - glucose appearance per gram (CSF) vs insulin action in the first 2 h: the labeler matches the pulse size
          per gram (1.21) but not its timing;
        - the meal-bolus insulin peaking too early relative to appearance in the sim.
+     - **Lead: the body's insulin action, bounded on both sides.** The labeler's pulse is ΔG plus Loop's modeled
+       insulin effect. The sim's body acts exactly on Loop's curve (LESSONS 20), so in the sim the modeled and real
+       effects coincide. If real meal-bolus insulin acts later than Loop's curve, donors' CGM climbs faster early
+       while the labeled pulse size stays the same. That is the observed pattern.
+       - Lesson 20 bounds the other side: clamp-speed action (4% of the effect in the first hour) made Loop stack
+         insulin and crash meals at 56 min.
+       - Test an intermediate action (first-hour share ~10%, between clamp 4% and Loop 17%) against three things:
+         this trajectory table, the first-hour forecast residual from replay (memory: forecast-residual =
+         insulin tail), and insulin delivered around meals (LESSONS 92).
