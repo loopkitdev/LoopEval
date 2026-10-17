@@ -77,6 +77,7 @@ class BehaviorTraits:
     lead_sd: float = 23.0                # within-person SD of the bolus lead, min (0 = ± 4 uniform); donors' labeled
                                          # spread less the labeler's 28-min onset error (LESSONS 106; default 2026-10-17)
     lead_own: bool = True                # bolus at lead_med instead of the four category windows (Pete 2026-10-17)
+    graze_fast: bool = False             # grazes absorb as liquid sugar (juice, sweetened coffee; evidence/14 §2; LESSONS 117)
     graze_keep: float = 1.0              # share of planned grazes kept (thinning experiment, LESSONS 109)
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
     # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
@@ -620,7 +621,8 @@ class Behavior:
                 acts.append(("exercise",) + tuple(rest)); self.log.append((m, "walk", rest[1], rest[2]))
             elif kind == "graze":
                 bp = self.p.body
-                acts.append(("eat", Parcel(m, rest[0], kempt=bp.kempt * 1.5, kabs=bp.kabs * 1.5, f=self._f_glucose(), label="graze")))
+                k = (0.08, 0.08) if t.graze_fast else (bp.kempt * 1.5, bp.kabs * 1.5)   # fast: liquid sugar, as rescues
+                acts.append(("eat", Parcel(m, rest[0], kempt=k[0], kabs=k[1], f=self._f_glucose(), label="graze")))
                 self.log.append((m, "graze", rest[0], None))
             elif kind == "split_rest":
                 # the planned rest of a split meal bolus, in units of the first part (the world reads what was delivered);

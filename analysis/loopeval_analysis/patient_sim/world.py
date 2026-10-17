@@ -185,6 +185,8 @@ class World:
             self.beh_traits.lead_own = False
         if enable and isinstance(enable.get("lead_sd"), float):
             self.beh_traits.lead_sd = enable["lead_sd"]
+        if enable and enable.get("graze_fast"):
+            self.beh_traits.graze_fast = True
         if enable and isinstance(enable.get("graze_keep"), float):
             self.beh_traits.graze_keep = float(np.clip(enable["graze_keep"], 0.0, 1.0))
         if enable and isinstance(enable.get("announce_mult"), float):
