@@ -1096,3 +1096,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     timing (field, pre-hold-out, medians, logged-first vs eat-first): pulse 36 vs 37 g-eq, entry 35 vs 30 g, pulse / entry
     1.08 vs 1.31, glucose at onset 129 vs 118, peak 40 vs 50 min, bolus 3.45 vs 2.90 U - started lower, logged smaller,
     dosed less. A timing-only swap keeps the logged-first meal's entry and bolus.
+117. **The remaining TIR gap is in middle loggers, with a different cause per donor; a per-person background level offset
+    trades it for lows again, not kept.** New base by thirds of field entries a day: heavy loggers now match (TIR 73.7 / 75.0
+    vs 74.5), few-entry people a little easy, middle (5.5 a day) 66.2 / 68.8 vs 78.9, mean 161 / 160 vs 141; replay matches
+    every one. Worst three: i008 background 43.7 vs 27.5 mg/dL/h; i017 meal food 368 vs 280 g-eq a day (size factor 1.25);
+    i061 carbs entered 59 vs 117 g a day. calibrate_level.py on the 28 days before the hold-out (offset median +2.2, i008
+    +16.7, i061 +10.2), applied after feedback: TIR 72.2 / 72.2 -> 74.8 / 71.9, t<54 0.36 / 0.31 -> 0.53 / 0.41, lows per
+    meal bolus 0.114 / 0.106 -> 0.150 / 0.134. As in LESSONS 90, lowering a person's background level buys TIR with lows.
