@@ -1126,3 +1126,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     mg/dL) for both seeds: TIR 72.4 / 70.8, t<54 0.33 / 0.18, t<70 1.74 / 1.72 (base 1.87 / 2.08), lows per meal bolus 0.106 /
     0.090, mean 152 / 155; per-person TIR pass 33 / 29% -> 29 / 12%. t<54 moves toward the field and TIR away from it by the
     same food.
+120. **The refitted meal-shape labels (ice_v32f) make the current architecture worse too; not kept.** v3m21 trained on
+    ice_v32f (v32fl0) through the base's whole chain on the current harness, held-out seed 0: TIR 72.2 (base 74.1), t<70
+    3.65 (1.87), t<54 0.64 (0.37), mean 146 (148), lows per meal bolus 0.190 (0.133). Pulse ICE after a meal bolus now rises
+    early (57 / 67 / 69 mg/dL/h at 30 / 45 / 60 min) but falls off by 105 min (52), and the background carries no early rise
+    (37 at 30 min): the meal's ICE ends sooner than the bolus insulin. Same direction as on v3m10 (LESSONS 54, two seeds);
+    seed 1's chain was interrupted and not rerun given the size of the effect (t<70 2x, post-meal-bolus lows +43%).
