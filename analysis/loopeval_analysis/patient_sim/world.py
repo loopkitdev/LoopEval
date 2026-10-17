@@ -118,6 +118,9 @@ class World:
         if enable and isinstance(enable.get("ge_kcal"), float):
             person = copy.deepcopy(person)        # gastric-emptying energy ceiling, kcal/min (the body and behavior both read it)
             person.body = person.body.scaled(ge_kcal_max=enable["ge_kcal"])
+        if enable and isinstance(enable.get("rcl_mult"), float):
+            person = copy.deepcopy(person)        # renal clearance above threshold: Hovorka 0.003/min (default) vs UVA/Padova
+            person.body = person.body.scaled(rcl=person.body.rcl * enable["rcl_mult"])   # ke1 0.0005 on Gp ≈ ×1/6 (evidence/01 §4.3)
         if enable and isinstance(enable.get("ge_mult"), float):
             person = copy.deepcopy(person)        # scales the person's emptying (Vmax and kempt together, Km fixed): centre of
             b = person.body                       # the between-person distribution, inside evidence/09's 2–5 kcal/min
