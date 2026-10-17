@@ -2549,3 +2549,15 @@ statistic here, but it is the controller donors ran.
        part of the CV gap.
      - Next: find the daytime unmodelled input by RC contribution, i.e. which simulated events precede positive-RC
        hours (unentered meals, grazes, snacks, proactive carbs, non-eating rises).
+     - **What the daytime offset is not, and a lead.** Daytime RC (06–24 h) in the source ablations moves little:
+       - no grazes −1.0 to −1.7 (c116_g0 vs c119_base);
+       - half grazes, fast grazes, proactive onset −10, 0.4 fewer snacks, own meal clock: each within ±1.
+       No single eating source carries the +4–5. True ÷ setting per simulated body (c135, median, q25/75):
+       - ISF 0.98 (0.85 / 1.05);
+       - CR 0.69 (0.62 / 0.80);
+       - basal 0.87 (0.70 / 1.12).
+       The bookkeeping CR (LESSONS 40) is 31% below the setting. If the effective CR is too, every entered meal is
+       under-dosed in Loop's eyes and glucose runs above its forecast after each one. That is the daytime RC
+       pattern, and it would leave the labeler's per-entry pulse (1.21 = donors) unchanged, because the labeler uses
+       the TDD yardstick, not settings. Next: the effective CR (ISF_eff ÷ CSF_eff, the self-check's cr_eff) against
+       the setting, and the donors' implied mismatch from their own RC after entered meals.
