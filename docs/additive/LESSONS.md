@@ -1519,3 +1519,7 @@ statistic here, but it is the controller donors ran.
     `truth.delivered` spreads it at pump speed. Rebuilt from the sim's received records, the way donors are scored, p99
     is 1.42: the asymmetry is real but small. The rest is count: donors take 4.6 user boluses and 3.0 carb entries per
     day against the sim's 4.0 and 2.6, so they have more large 5-min bins.
+    **Per-person counts match their donors** (c106, twin comparison against each template's raw rates): carb entries
+    2.75 vs 2.86 per day (mean; corr 0.96) and user boluses 4.17 vs 4.17 (median; corr 0.91, mean 4.54 vs 5.36, the
+    heaviest bolusers a little short). The cohort-level shortfall in the validation table comes from which templates the
+    112 people drew, so the remaining p99 gap is mostly template sampling, not a component.
