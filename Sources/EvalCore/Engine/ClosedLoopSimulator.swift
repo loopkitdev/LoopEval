@@ -1,24 +1,15 @@
-// ClosedLoopSimulator.swift — full closed-loop counterfactual simulation
+// ClosedLoopSimulator.swift — replay of a donor's data with a candidate controller.
 //
-// The bench's linearized counterfactual computes counter_BG by propagating
-// candidate's Δdose (computed against actual past CGM) onto the actual CGM
-// trace. That has a known weakness: candidate keeps making decisions against
-// actual BG, not its own resulting counterfactual BG. For aggressive
-// candidates (e.g. IRC), the drift compounds without self-correction.
+// Two arms step through the same decision times (DecisionTiming.swift). The baseline arm decides on
+// the field's own glucose and doses. The candidate arm depends on the mode:
+//   - counterfactual (--candidate-counterfactual): the candidate decides on its OWN glucose and dose
+//     history; its pump (CandidatePump.swift) delivers, its body (CandidateBody.swift: ICE replay or
+//     an external plant) turns that delivery into glucose, and the person's actions come from the
+//     field or the plant (CandidatePerson.swift). Full feedback.
+//   - decision-time replay / open loop (no counterfactual): the candidate decides on the field's
+//     glucose and doses at every step and never feeds back.
 //
-// This file implements true closed-loop replay: at each step t, candidate's
-// inputs are substituted to use:
-//   - counter_glucose: actual_glucose with cumulative Δdose impact applied
-//   - candidate_doses: actual_doses + virtual entries from prior Δdose decisions
-//
-// The candidate's prediction at t therefore sees its own resulting BG and
-// its own accumulated dose history. Δdose at t reflects feedback-corrected
-// behavior. Forward-impact propagation updates counter_glucose for future
-// steps, and a virtual dose entry is added so future IOB calculations
-// include the candidate's extra/reduced delivery.
-//
-// Sequential by nature; cannot reuse the parallelized runSweep. Slower
-// (~10x) but accurate for absolute trajectory estimates.
+// Sequential by nature; cannot reuse the parallelized runSweep.
 
 import Foundation
 import LoopAlgorithm
@@ -257,7 +248,8 @@ extension EvaluationEngine {
         candidateTherapy: TherapyTimeline? = nil,
         progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
-        let candTherapy = candidateTherapy ?? data.therapyTimeline
+        // var: --plant-behavior adds the plant person's Temporary Overrides to its override windows.
+        var candTherapy = candidateTherapy ?? data.therapyTimeline
 
         // Run in the USER's timezone (the profile's), so oref's INTERNAL
         // time-of-day lookups — which use Calendar.current (basal-schedule lookup
@@ -298,7 +290,7 @@ extension EvaluationEngine {
         // `glucoseEffects` reads each dose's own `insulinModel` (from its stamped
         // `insulinType`), so changing the plant means RE-STAMPING the doses on the
         // plant path, not passing a model alongside them. `insulinModel` below sizes
-        // the effect windows and drives the linear-PD path; `patientInsulinPreset` is
+        // the effect windows; `patientInsulinPreset` is
         // what actually shapes the curve.
         let patientInsulinPreset = patientInsulinType ?? data.therapyTimeline.insulinType
         let insulinModel: InsulinModel
@@ -371,7 +363,7 @@ extension EvaluationEngine {
         // counter_glucose: starts as actual; modified as Δdose impacts accumulate.
         // We mutate values in place at sample indices, preserving original
         // timestamps and metadata.
-        var counterGlucose = simGlucose
+        let counterGlucose = simGlucose
         var counterMgdl = simGlucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
         // Samples an external plant reported as "no reading" (reply null). They hold the last
         // reading's value so index-aligned bookkeeping stays finite, but they never reach the
@@ -381,12 +373,6 @@ extension EvaluationEngine {
         // Baseline always reads from actual glucose; precomputed once for GBAF lookups.
         let baselineMgdl = simGlucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
 
-
-        // Virtual doses: candidate's accumulated extra/reduced deliveries.
-        // Stored as bolus-type entries with volume = Δdose; insulin model
-        // treats them like instantaneous deliveries at time t.
-        var virtualDoses: [EvalInsulinDose] = []
-        virtualDoses.reserveCapacity(1024)
 
         // Counterfactual mode state (only used if counterfactualMode == true).
         // counterfactualDoses replaces data.doses for the candidate's prediction
@@ -400,16 +386,8 @@ extension EvaluationEngine {
         var candidateConfig = candidateConfig
         var counterfactualDoses: [EvalInsulinDose] = []
         counterfactualDoses.reserveCapacity(2048)
-        // Stateful pump basal-pulse delivery for the candidate's temp-basal stream
-        // (carries the sub-pulse remainder across steps, drops it only on a temp
-        // re-issue at a new rate). Advanced exactly once per cfActive step.
-        let candidateBasalAcc = PumpModel.BasalAccumulator(quantum: candidateConfig.basalPulseQuantum)
-        // Loop temp basals carry a 30-min duration. Normally the next CGM cycle
-        // (~5min) overwrites them so duration never bites. Across a CGM gap there
-        // is no overwriting cycle, so the temp must EXPIRE at 30 min and revert to
-        // scheduled basal (exactly like the real pump). Used to cap the candidate's
-        // temp delivery on the long pre-gap step. (user, 2026-06-23)
-        let tempBasalDuration: TimeInterval = 30 * 60
+        // The candidate's pump (CandidatePump.swift): temp expiry, basal pulses, disruptions.
+        var pump = CandidatePump(pulseQuantum: candidateConfig.basalPulseQuantum)
         // Per-step rasterized real-pump deliveries:
         //   - realAutoOnlyPerStep: AUTO-only deliveries (auto-boluses + basal
         //     entries). Used as deltaDose baseline so candidate's algorithm-
@@ -425,11 +403,8 @@ extension EvaluationEngine {
         var realManualBoluses: [EvalInsulinDose] = []
         // REAL IOB at each manual bolus (excluding the bolus itself), for IOB-aware passthrough.
         var realManualBolusRealIOB: [Double] = []
-        var nextManualIdx = 0
-        // Plant behavior (v2): boluses the plant's person asked for, delivered at the next
-        // decision; running totals for the end-of-run summary.
-        var pendingPlantBoluses: [ExternalPlant.Bolus] = []
-        var plantCarbsTotalG = 0.0, plantBolusTotalU = 0.0, plantBolusCount = 0, plantCarbCount = 0
+        // Plant behavior (v2): the plant's person (CandidatePerson.swift).
+        var plantPerson = PlantPerson()
         if plantBehavior {
             guard externalPlant != nil else {
                 throw NSError(domain: "ClosedLoopSimulator", code: 1,
@@ -714,6 +689,19 @@ extension EvaluationEngine {
             }
         }
 
+        // The person's manual boluses in the candidate arm (CandidatePerson.swift).
+        var fieldBoluses = FieldManualBoluses(boluses: realManualBoluses, fieldIOB: realManualBolusRealIOB)
+
+        // The candidate's body in counterfactual mode (CandidateBody.swift): the ICE replay, or an
+        // external plant in its place. Without a counterfactual the candidate decides open loop on
+        // the field's glucose and doses, and its glucose is the field's.
+        let iceBody = ICEReplayBody(
+            substrate: counterGlucose, realPhysDelta: realPhysDelta, m: mByIndex,
+            sensitivity: physiologySensitivity, insulinModel: insulinModel,
+            patientInsulinType: patientInsulinType, counterRegOnsetMgdl: counterRegOnsetMgdl,
+            counterRegGain: counterRegGain, counterRegMaxRate: counterRegMaxRate,
+            gapReanchorSec: cfGapReanchorSec, evalStep: candidateConfig.evalStep)
+
         // Pre-compute expected step count for progress reporting
         let totalDuration = max(0, interval.end.timeIntervalSince(evalStart))
         let totalSteps = max(1, Int(totalDuration / candidateConfig.evalStep) + 1)
@@ -756,141 +744,45 @@ extension EvaluationEngine {
         let slowRcOn = candidateConfig.slowRcTauSec > 0 && candidateConfig.slowRcGain != 0
         var slowRcLevel = 0.0
 
-        // STEP TIMES. CGM-driven: one step per real CGM sample in the eval window
-        // (irregular cadence). Default: the regular evalStep grid (stepDur ≡
-        // evalStep ⇒ byte-identical to the legacy march). stepDur is the interval
-        // to the NEXT step and is used wherever a step duration appears (scheduled
-        // basal delivered, the candidate temp segment, the manual-bolus window,
-        // sensitive-mode decay). A gap (stepDur ≫ evalStep) is capped for delivery
-        // so a long CGM outage doesn't issue one giant temp.
-        var stepTimes: [Date] = []
-        if !decisionTimes.isEmpty {
-            stepTimes = decisionTimes.sorted().filter { $0 >= evalStart && $0 <= interval.end }
-        } else if decisionsFromCgm {
-            stepTimes = simGlucose.map { $0.startDate }.filter { $0 >= evalStart && $0 <= interval.end }
-        } else {
-            var tt = evalStart
-            while tt <= interval.end { stepTimes.append(tt); tt = tt.addingTimeInterval(candidateConfig.evalStep) }
+        // When decisions happen and which are skipped (DecisionTiming.swift).
+        var timing = DecisionTiming(
+            decisionTimes: decisionTimes, decisionsFromCgm: decisionsFromCgm, substrate: simGlucose,
+            from: evalStart, to: interval.end, evalStep: candidateConfig.evalStep,
+            cgmStaleGuardSec: cgmStaleGuardSec, noDoseGuardTimes: noDoseGuardTimes,
+            bolusInProgressTimes: bolusInProgressTimes, tempStrategyTimes: tempStrategyTimes,
+            outages: outages, outageBasalContinuesReasons: outageBasalContinuesReasons,
+            timeBasedAF: enableTimeBasedAF)
+        // The candidate's body under --external-plant (CandidateBody.swift). Doses already in
+        // counterfactualDoses here are the seeded history; later ones are forwarded by insertion.
+        let plantBody = externalPlant.map {
+            ExternalPlantBody(plant: $0, substrate: counterGlucose, gapReanchorSec: cfGapReanchorSec,
+                              seedCount: counterfactualDoses.count)
         }
-        let nSteps = stepTimes.count
-
-        // Deployed timeBasedDoseApplicationFactor reference: the last COMPLETED loop
-        // (errored/guard-skipped cycles don't advance it).
-        var lastCompletedLoopT: Date? = nil
-        // The candidate's last temp basal that actually reached the pump, and when.
-        // A pod that can't hear the phone keeps running its last command until that
-        // command expires (Loop temps last `tempBasalDuration`); see the outage branch.
-        var lastIssuedTempRate: Double? = nil
-        var lastIssuedTempT: Date = .distantPast
-        // External plant: the end of the last interval whose doses were SENT to it. Steps
-        // that `continue` early (stale CGM, no-dose guard) never call the plant, but doses
-        // still start inside them -- passed-through manual boluses and, under --cf-identity,
-        // the real dose stream. Sending only [t, stepEnd) dropped every one of those.
-        var plantDosesSentThrough: Date? = nil
-        // ... and the same for the plant's TIME: the end of the last interval it advanced over.
-        // A step that `continue`s early never calls the plant, so its CGM samples kept the FIELD
-        // value and reached the candidate's history as if the plant had produced them. Each call
-        // now advances the plant from here, so skipped intervals are covered too.
-        var plantAdvancedThrough: Date? = nil
-        // Candidate state from the last plant call, for a catch-up call made before this step's
-        // own state exists.
-        var plantLastState: [String: Double] = [:]
-        // Advance the external plant over (plantAdvancedThrough, through]: send the candidate's
-        // doses started since the last send, and write the plant's CGM -- or "no reading" -- into
-        // every sample in the interval. The candidate's history already holds the doses.
-        // Returns the grams of carbs the plant's person entered (with --plant-behavior).
-        func advancePlant(_ plant: ExternalPlant, through t1: Date, now: Date,
-                          state: [String: Double]) throws -> Double {
-            let t0 = min(plantAdvancedThrough ?? now, now)
-            var sampleIdx: [Int] = []
-            var k = Self.latestGlucoseIndex(at: t0, in: counterGlucose)
-            if k < counterGlucose.count && counterGlucose[k].startDate <= t0 { k += 1 }
-            while k < counterGlucose.count && counterGlucose[k].startDate <= t1 {
-                sampleIdx.append(k); k += 1
-            }
-            plantAdvancedThrough = t1
-            // Everything that started since the last send, not just this step: a skipped
-            // cycle before this one may hold doses (bddp11 under --cf-identity: 19 real
-            // doses, 26.3 U, incl. a 5.8 U bolus, never reached the plant).
-            let sendFrom = plantDosesSentThrough ?? now
-            let doses = counterfactualDoses.filter { $0.startDate >= sendFrom && $0.startDate < t1 }
-            plantDosesSentThrough = t1
-            let reply = try plant.advance(
-                t0: t0, t1: t1, doses: doses,
-                samples: sampleIdx.map { counterGlucose[$0].startDate }, state: state)
-            for (j, idx) in sampleIdx.enumerated() {
-                if let v = reply.bg[j] {
-                    counterMgdl[idx] = v; counterMissing[idx] = false
-                } else {
-                    counterMissing[idx] = true
-                    counterMgdl[idx] = idx > 0 ? counterMgdl[idx - 1] : counterMgdl[idx]
-                }
-            }
-            // GAP RE-ANCHOR for external plants. The built-in advance re-anchors across a long
-            // CGM gap, but it is gated on `externalPlant == nil`, so a plant never saw that
-            // protection and had to re-implement it or integrate its own dynamics across the whole
-            // gap in one step (one measured case: a 77 h no-CGM gap taken as a single step pinned a
-            // replay at 2,300 mg/dL). The gap is a property of the DATA, not of the plant's
-            // physiology, so the harness handles it on the plant's behalf, with the same rule and
-            // the same identity guarantee: take the gap-end LEVEL from the real CGM but carry any
-            // significant pre-gap divergence across, so a candidate that legitimately ran away from
-            // real is not reset at every gap. At candidate == real the offset is 0, so identity
-            // holds. `--cf-gap-reanchor-min 0` disables it, for a plant that handles gaps itself.
-            if cfGapReanchorSec > 0 {
-                for (j, idx) in sampleIdx.enumerated() {
-                    let prevIdx = idx > 0 ? idx - 1 : idx
-                    guard idx > 0, let plantBG = reply.bg[j] else { continue }
-                    let span = counterGlucose[idx].startDate
-                        .timeIntervalSince(counterGlucose[prevIdx].startDate)
-                    guard span > cfGapReanchorSec else { continue }
-                    let aPrev = counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
-                    let aNext = counterGlucose[idx].quantity.doubleValue(for: mgdlUnit)
-                    let gapOffset = counterMgdl[prevIdx] - aPrev
-                    let anchored = abs(gapOffset) > 10.0 ? aNext + gapOffset : aNext
-                    if abs(anchored - plantBG) > 0.5 {
-                        FileHandle.standardError.write(Data(
-                            "cf gap re-anchor (external plant): \(Int(span / 60))min gap at \(counterGlucose[idx].startDate) — plant returned \(String(format: "%.0f", plantBG)), re-anchored to \(String(format: "%.0f", anchored)) mg/dL\n".utf8))
-                    }
-                    counterMgdl[idx] = anchored
-                }
-            }
-            var carbsG = 0.0
-            if plantBehavior {
-                // The person's carb entries join the candidate's carb store (sorted by
-                // startDate for InputWindowBuilder), visible from the next decision.
-                for c in reply.carbs {
-                    let e = EvalCarbEntry(startDate: c.t, entryDate: c.t, dosingVisibleDate: c.t,
-                                          quantity: LoopQuantity(unit: .gram, doubleValue: c.grams),
-                                          absorptionTime: c.absorption)
-                    let pos = candidateCarbs.firstIndex(where: { $0.startDate > c.t }) ?? candidateCarbs.count
-                    candidateCarbs.insert(e, at: pos)
-                    carbsG += c.grams; plantCarbsTotalG += c.grams; plantCarbCount += 1
-                }
-                pendingPlantBoluses += reply.boluses
-            }
-            return carbsG
+        // Advance the plant to `t1` and apply its person's actions (--plant-behavior).
+        // Returns the grams of carbs the plant's person entered.
+        func advancePlant(through t1: Date, now: Date, state: [String: Double]) throws -> Double {
+            let reply = try plantBody!.advance(through: t1, now: now, state: state, doses: counterfactualDoses,
+                                               counter: &counterMgdl, missing: &counterMissing)
+            return plantBehavior ? plantPerson.receive(reply, carbs: &candidateCarbs, therapy: &candTherapy) : 0.0
         }
         // Plant carbs entered during a catch-up call, counted into the step that made it.
         var catchUpPlantCarbsG = 0.0
-        for stepIdx in 0..<nSteps {
-            let t = stepTimes[stepIdx]
+        for stepIdx in 0..<timing.stepTimes.count {
+            let t = timing.stepTimes[stepIdx]
             // Interval to the next decision (= next CGM in CGM-driven mode).
-            let stepEnd = stepIdx + 1 < nSteps
-                ? stepTimes[stepIdx + 1]
-                : t.addingTimeInterval(candidateConfig.evalStep)
+            let stepEnd = timing.stepEnd(stepIdx)
             let stepDur = max(1.0, stepEnd.timeIntervalSince(t))
             // Bring the external plant up to this decision. A step that ended early never called
             // it, so the samples since then still hold FIELD values, and this decision would read
             // them as the candidate's own (a withheld reading would also look present).
-            if let plant = externalPlant, let through = plantAdvancedThrough, through < t {
-                var st = plantLastState
+            if let pb = plantBody, let through = pb.advancedThrough, through < t {
+                var st = pb.lastState
                 let li = Self.latestGlucoseIndex(at: through, in: counterGlucose)
                 st["bg"] = counterMgdl[li]
-                catchUpPlantCarbsG += try advancePlant(plant, through: t, now: t, state: st)
+                catchUpPlantCarbsG += try advancePlant(through: t, now: t, state: st)
             }
             // Per-cycle dosing strategy (mixed-strategy donors).
-            if !tempStrategyTimes.isEmpty {
-                let tempMode = tempStrategyTimes.contains(t)
+            if let tempMode = timing.useTempBasalStrategy(at: t) {
                 baselineConfig.useTempBasalStrategy = tempMode
                 candidateConfig.useTempBasalStrategy = tempMode
             }
@@ -908,77 +800,16 @@ extension EvaluationEngine {
                 progress(min(Double(stepIdx) / Double(totalSteps - 1), 1.0))
             }
 
-            // ----- CGM-CYCLE GATING -----
-            // Loop's loop is CGM-triggered: with no fresh CGM there is no
-            // cycle — no forecast, no dose decision. When the staleness guard
-            // is enabled, skip the entire step (no baseline/candidate dose, no
-            // prediction, no recorded point) once we are more than the guard
-            // interval away from ANY real CGM sample. This permits a single
-            // missing sample to be "paved over" (the neighbouring real sample
-            // is within the guard) and the post-gap resumption step to run
-            // (the resumed sample is within the guard), but stops the sim from
-            // continuing to generate forecast points deep inside a CGM outage.
-            //
-            // Scheduled basal during the gap contributes zero NET insulin
-            // (delivered == scheduled ⇒ netBasalUnits 0), so nothing need be
-            // added for IOB continuity. Manual boluses are physical events and
-            // are still passed through so the candidate's dose history (and the
-            // post-gap counter advance) account for them.
-            if cgmStaleGuardSec > 0 {
-                let nextIdx = EvaluationEngine.bestGlucoseIndex(at: t, in: simGlucose)
-                let prevIdx = Self.latestGlucoseIndex(at: t, in: simGlucose)
-                let dNext = abs(simGlucose[nextIdx].startDate.timeIntervalSince(t))
-                let dPrev = abs(t.timeIntervalSince(simGlucose[prevIdx].startDate))
-                if min(dNext, dPrev) > cgmStaleGuardSec {
-                    if counterfactualMode && t >= cfActiveStart {
-                        while nextManualIdx < realManualBoluses.count {
-                            let mb = realManualBoluses[nextManualIdx]
-                            if mb.startDate >= stepEnd { break }
-                            // Under --cf-identity the history was seeded with the FULL real
-                            // dose stream, manual boluses included; appending here too
-                            // doubled them (4 boluses, 14.4 U on bddp11).
-                            if mb.startDate >= t && !cfIdentity { counterfactualDoses.append(mb) }
-                            nextManualIdx += 1
-                        }
-                    }
-                    continue
-                }
-            }
-
-            // ----- FIELD NO-DOSE GUARD -----
-            // The deployed controller ran this cycle but refused to dose on stale
-            // inputs (pumpDataTooOld / glucoseTooOld): no forecast, no recommendation
-            // stored. Skip the step exactly like a stale-CGM cycle — no dose, no
-            // prediction point — so "recommended nothing" matches on both sides and
-            // a closed-loop counterfactual doesn't dose through the same exogenous
-            // pump-comms failure. A bolus-in-progress cycle is skipped the same way (the
-            // user's bolus is in flight in both arms).
-            if noDoseGuardTimes.contains(t) || bolusInProgressTimes.contains(t) {
-                if bolusInProgressTimes.contains(t) && outages.containing(t)?.reason != "pump_error" {
-                    lastCompletedLoopT = t
-                }
+            // ----- SKIPPED CYCLES: no CGM near t, or the field controller couldn't dose -----
+            // Manual boluses still happened and pass through into the candidate's history.
+            if timing.skip(at: t) != nil {
                 if counterfactualMode && t >= cfActiveStart {
-                    while nextManualIdx < realManualBoluses.count {
-                        let mb = realManualBoluses[nextManualIdx]
-                        if mb.startDate >= stepEnd { break }
-                        // Not under --cf-identity: the real stream is already seeded.
-                        if mb.startDate >= t && !cfIdentity { counterfactualDoses.append(mb) }
-                        nextManualIdx += 1
-                    }
+                    fieldBoluses.passThroughSkipped(t: t, stepEnd: stepEnd, identity: cfIdentity,
+                                                    into: &counterfactualDoses)
                 }
                 continue
             }
-
-            // Deployed timeBasedDoseApplicationFactor = min(1, sinceLastCompleted/5min):
-            // a loop firing < 5 min after a COMPLETED loop applies proportionally less
-            // of the correction (sub-5-min retries after FAILURES are not damped —
-            // lastLoopCompleted doesn't advance on error). Completed here = the cycle
-            // ran and wasn't inside a pump-error window.
-            let timeBasedAFScale: Double = enableTimeBasedAF
-                ? (lastCompletedLoopT.map { Swift.min(1.0, Swift.max(0.0, t.timeIntervalSince($0)) / 300.0) } ?? 1.0)
-                : 1.0
-            let stepCompletedLoop = outages.containing(t)?.reason != "pump_error"
-            if stepCompletedLoop { lastCompletedLoopT = t }
+            let timeBasedAFScale = timing.timeBasedAFScale(at: t)
 
             // ----- BASELINE step: actual glucose, actual doses, baselineConfig.
             // Apply sensor cap: real CGMs (Dexcom G6/G7, Libre) peg at ~400 mg/dL,
@@ -1075,7 +906,7 @@ extension EvaluationEngine {
             } else if counterfactualMode {
                 combinedDoses = counterfactualDoses
             } else {
-                combinedDoses = EvaluationEngine.mergeSorted(data.doses, virtualDoses)
+                combinedDoses = data.doses                 // no counterfactual: open loop on the field's doses
             }
 
             // Snapshot candidate glucose from counter_mgdl. Unchanged samples reuse
@@ -1117,7 +948,7 @@ extension EvaluationEngine {
             var candidateDose: Double
             var candidateBolus: Double
             var candidateManualBolusRec = Double.nan
-            var stepPlantBolusU = 0.0, stepPlantCarbsG = catchUpPlantCarbsG
+            var stepPlantBolusU = 0.0, stepPlantCarbsG = catchUpPlantCarbsG, plantBolusNowU = 0.0
             catchUpPlantCarbsG = 0
             var candidateTempRate: Double
             var candidateTempAction = "set"
@@ -1214,9 +1045,10 @@ extension EvaluationEngine {
                 } else {
                     orefHistDoses = data.doses
                 }
+                var stepInput = candidateInput, stepOrefHist = orefHistDoses
                 func doStep(_ map: [Date: Double]?) -> EngineStepResult {
                     candidateEngine.step(EngineStepRequest(
-                        t: t, input: candidateInput, config: candidateConfig,
+                        t: t, input: stepInput, config: candidateConfig,
                         therapy: candTherapy, glucoseMgdl: candMomentumMgdl,
                         glucoseSamples: candMomentumSamples,
                         extraISFMultiplier: sensModeMult * slowRcMult,
@@ -1225,7 +1057,7 @@ extension EvaluationEngine {
                         isfBoostActiveOnly: isfBoostActiveOnly,
                         egpPhysicalDecomposition: egpPhysicalDecomposition,
                         tddDoses: data.doses,
-                        orefPumpHistoryDoses: orefHistDoses,
+                        orefPumpHistoryDoses: stepOrefHist,
                         timeBasedAFScale: timeBasedAFScale))
                 }
                 // Forecast-gated boost (lows-protection): a boost (mult<1) is only
@@ -1241,27 +1073,56 @@ extension EvaluationEngine {
                 // — non-insulin drivers are currently pulling BG down (a sensitive
                 // moment, ICE<0 ⟺ high local-ISF), so adding insulin would float into a
                 // developing drop. Forecast-peak gate kept as a secondary option.
-                let result: EngineStepResult
-                let wantBoost = csvIsfMult < 1.0 - 1e-9
-                if wantBoost, let iceR = isfBoostVetoIceRate {
-                    let iceRate = Self.integrateICE(realICE, from: t.addingTimeInterval(-1800), to: t) / 30.0
-                    result = (iceRate < -iceR) ? doStep(nil) : doStep(perStepMapForLoop)
-                } else if wantBoost, let gate = isfBoostGateEventualMgdl {
-                    let unboosted = doStep(nil)
-                    let peak = unboosted.prediction.glucose.map {
-                        $0.quantity.doubleValue(for: mgdlUnit)
-                    }.max() ?? .nan
-                    result = (peak.isFinite && peak > gate) ? doStep(perStepMapForLoop) : unboosted
-                } else {
-                    result = doStep(csvIsfEnabled ? perStepMapForLoop : nil)
+                func decide() -> EngineStepResult {
+                    let wantBoost = csvIsfMult < 1.0 - 1e-9
+                    if wantBoost, let iceR = isfBoostVetoIceRate {
+                        let iceRate = Self.integrateICE(realICE, from: t.addingTimeInterval(-1800), to: t) / 30.0
+                        return (iceRate < -iceR) ? doStep(nil) : doStep(perStepMapForLoop)
+                    } else if wantBoost, let gate = isfBoostGateEventualMgdl {
+                        let unboosted = doStep(nil)
+                        let peak = unboosted.prediction.glucose.map {
+                            $0.quantity.doubleValue(for: mgdlUnit)
+                        }.max() ?? .nan
+                        return (peak.isFinite && peak > gate) ? doStep(perStepMapForLoop) : unboosted
+                    }
+                    return doStep(csvIsfEnabled ? perStepMapForLoop : nil)
+                }
+                var result = decide()
+                var calcRecShown: Double? = nil
+                // Plant behavior: the boluses the plant's person asked for during the previous step act
+                // now, as ratio x the bolus-calculator recommendation computed here (plant carbs entered
+                // last step are already visible to it). The bolus goes into the dose history FIRST and the
+                // automatic dose is decided with it, as in real Loop, where the cycle after a user bolus
+                // sees it. Deciding the automatic dose without it delivered the calculator's dose plus
+                // the application factor's share of the same meal (~1.4x per meal for auto-bolus users).
+                if plantBehavior && cfActive && !cfIdentity && !plantPerson.pendingBoluses.isEmpty {
+                    let vol = plantPerson.takeBolus(recommendation: result.manualBolusRec,
+                                                    maxBolus: data.therapyTimeline.maxBolus(at: t))
+                    if vol > 0 {
+                        // Dated 1 s before the decision: the input builder keeps only doses before the
+                        // decision anchor (a dose at the anchor is this decision's own output).
+                        let tb = t.addingTimeInterval(-1)
+                        let pb = EvalInsulinDose(deliveryType: .bolus, startDate: tb, endDate: tb, volume: vol,
+                                                 insulinType: data.therapyTimeline.insulinType, automatic: false)
+                        plantBolusNowU = vol
+                        counterfactualDoses.append(pb)
+                        stepOrefHist = EvaluationEngine.mergeSorted(orefHistDoses, [pb])
+                        let withBolus = InputWindowBuilder(
+                            glucose: candidateSensorSamples, doses: EvaluationEngine.mergeSorted(combinedDoses, [pb]),
+                            carbs: suppressCarbs ? [] : candidateCarbs, therapyTimeline: candTherapy, config: candidateConfig)
+                        if let inp = withBolus.buildInput(at: t, decisionAnchor: t) {
+                            stepInput = inp
+                            calcRecShown = result.manualBolusRec   // what the calculator showed the person
+                            result = decide()
+                        }
+                    }
                 }
                 candidateDose = result.dose
                 candidateBolus = result.bolus
-                candidateManualBolusRec = result.manualBolusRec
+                candidateManualBolusRec = calcRecShown ?? result.manualBolusRec
                 candidateTempRate = result.tempRate
                 candidateTempAction = result.tempAction
-                lastIssuedTempRate = result.tempRate
-                lastIssuedTempT = t
+                pump.issued(rate: result.tempRate, at: t)
                 // Manual-bolus recommendation, same-transaction carb relaxation:
                 // if this step contains a real manual bolus that was co-entered with a
                 // carb (entry within ±carbTol of the bolus, and the bolus covers >=50%
@@ -1269,11 +1130,11 @@ extension EvaluationEngine {
                 // recommendation with that carb made visible (entryDate just past the step
                 // base would otherwise hide it). Manual-bolus path ONLY; auto-dosing above
                 // stays strictly causal. No-op unless manualBolusFromRecommendation is on.
-                if candidateConfig.manualBolusFromRecommendation && !realManualBoluses.isEmpty && !suppressCarbs {
+                if candidateConfig.manualBolusFromRecommendation && !fieldBoluses.boluses.isEmpty && !suppressCarbs {
                     let carbTol: TimeInterval = 30
                     let mbStepEnd = stepEnd
                     // first real manual bolus landing in this step
-                    let mbHere: EvalInsulinDose? = realManualBoluses[nextManualIdx...].first(where: { $0.startDate >= t && $0.startDate < mbStepEnd })
+                    let mbHere: EvalInsulinDose? = fieldBoluses.first(from: t, before: mbStepEnd)
                     if let mb = mbHere {
                         let visCut = mb.startDate.addingTimeInterval(carbTol)
                         let cr: Double = candidateInput.carbRatio.closestPrior(to: mb.startDate)?.value ?? 0
@@ -1391,92 +1252,34 @@ extension EvaluationEngine {
             }
 
             // ----- DELIVERABILITY / DATA-AVAILABILITY CLAMPS -----
-            // Two structurally different conditions can override the sim's
-            // dose decision at step t. Pump outage takes precedence over a
-            // CGM gap (if the pump is physically off, CGM staleness is moot).
-            let outageNow = outages.isEmpty ? nil : outages.containing(t)
-            let basalContinues = outageNow.map { outageBasalContinuesReasons.contains($0.reason) } ?? false
-            // MANUAL TEMP: the user set a temp basal on the pump. The pump runs it whatever Loop
-            // decides; Loop logs recommendations but enacts none (i040 09-10: 0.05 U/h for 4 h
-            // through recommendations of 2.35-3.0 U/h). Not an outage — the pump delivers, just
-            // not what the controller asks — so the candidate delivers the field's recorded basal.
-            let manualTempNow = outageNow?.reason == "manual_temp"
-            let inOutage = outageNow != nil && !basalContinues && !manualTempNow
-            // FIELD DELIVERY: inside any disruption but a pump error (suspend, loop offline,
-            // merged windows, manual temp) the controller enacted nothing, and the pump did
-            // what it recorded: 0 while suspended, its last temp then the schedule while Loop
-            // was offline or open-loop. The candidate delivers that record. Zero delivery here
-            // dropped real insulin: i056's open-loop days (Loop running, nothing enacted,
-            // ~21 U of scheduled basal per 2-3 day window) replayed as no basal at all.
-            let fieldDeliveryNow = manualTempNow || (inOutage && outageNow?.reason != "pump_error")
-
-            // CGM staleness: Loop refuses to issue a NEW dose when the latest
-            // glucose is older than its inputDataRecencyInterval (15min,
-            // LoopAlgorithm.swift). The sim's per-step dose path
-            // (simStepDose → generatePrediction) bypasses that guard, so it
-            // would otherwise keep dosing on stale data. When stale, Loop
-            // makes no adjustment and scheduled basal continues delivering —
-            // distinct from a pump outage where delivery stops entirely.
-            var cgmStale = false
-            if cgmStaleGuardSec > 0 && !inOutage {
-                var idx = Self.latestGlucoseIndex(at: t, in: counterGlucose)
-                while idx > 0 && counterMissing[idx] { idx -= 1 }   // the latest reading the CGM gave
-                let latestT = counterGlucose[idx].startDate
-                if latestT <= t {
-                    cgmStale = t.timeIntervalSince(latestT) > cgmStaleGuardSec
-                }
-            }
-
-            if fieldDeliveryNow && !decisionTimeReplay {
+            // What the pump can do at t overrides the controller's decision (DecisionTiming.Conditions).
+            let cond = timing.conditions(at: t, counterGlucose: counterGlucose, counterMissing: counterMissing)
+            if cond.fieldDelivery && !decisionTimeReplay {
                 // Delivery comes from the field record in the cfActive block below. The
                 // controller's command never reached the pump, so it must not continue later
                 // either (a pump_error right after the window would otherwise resume it).
                 // DTR is exempt: nothing is delivered there, and the field records its
                 // recommendation through these windows too, so ours stays for comparison.
-                let fieldRate = data.doses.last(where: {
-                    $0.deliveryType == .basal && $0.startDate <= t && $0.endDate > t
-                })?.tempRate
-                let schedRate = data.therapyTimeline.basal.first(where: {
-                    $0.startDate <= t && $0.endDate > t
-                })?.value ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 0
-                candidateTempRate = fieldRate ?? schedRate
+                let (rate, schedRate) = pump.fieldRecordRate(at: t, fieldDoses: data.doses,
+                                                             fieldSchedule: data.therapyTimeline.basal)
+                candidateTempRate = rate
                 candidateBolus = 0
                 candidateDose = (candidateTempRate - schedRate) * stepDur / 3600.0
                 baselineDose = candidateDose
-                lastIssuedTempRate = nil
-            } else if inOutage && !decisionTimeReplay && outageNow?.reason == "pump_error" {
-                // PUMP ERROR = a loop cycle whose command never reached the pod
-                // ("Pod not connected", comms timeout). The pod is NOT off: it keeps
-                // running whatever it was last told until that command expires. In the
-                // field data this is unambiguous -- on bddp11 every one of 1,723
-                // pump-error windows (median 3 min, one failed cycle each) is covered
-                // by a temp basal that started BEFORE the window. Treating them as
-                // physical outages (absolute delivery 0) removed a full step of basal
-                // per failed cycle: 59 U the real pump delivered over 2 months, which
-                // the replay then over-corrected with extra auto-boluses. Model it as
-                // what it is: no new bolus or temp this cycle; the candidate's last
-                // issued temp continues until it would have expired, then scheduled.
-                let schedRate = candTherapy.basal.first(where: {
-                    $0.startDate <= t && $0.endDate > t
-                })?.value ?? candTherapy.basal.closestPrior(to: t)?.value ?? 0
-                let running: Double
-                if let r = lastIssuedTempRate, t.timeIntervalSince(lastIssuedTempT) < tempBasalDuration {
-                    running = r
-                } else {
-                    running = schedRate
-                }
+            } else if cond.pumpError && !decisionTimeReplay {
+                // PUMP ERROR: no new bolus or temp this cycle; the pod keeps running its last
+                // command until it expires, then the schedule (CandidatePump.lastCommandRate).
+                let (running, schedRate) = pump.lastCommandRate(at: t, schedule: candTherapy.basal)
                 candidateTempRate = running
                 candidateBolus = 0
                 candidateDose = (running - schedRate) * stepDur / 3600.0
                 baselineDose = candidateDose
-            } else if cgmStale || basalContinues {
+            } else if cond.cgmStale || cond.basalContinues {
                 // CGM gap (or loop-offline gap): no NEW dose adjustment, scheduled basal continues.
                 // dose ADJUSTMENT (delta over scheduled) = 0, so absolute
                 // delivery = scheduled. candidateTempRate reports the
                 // scheduled rate to reflect "running at schedule".
-                let schedRate = candTherapy.basal.first(where: {
-                    $0.startDate <= t && $0.endDate > t
-                })?.value ?? candTherapy.basal.closestPrior(to: t)?.value ?? 0
+                let schedRate = CandidatePump.scheduledRate(at: t, in: candTherapy.basal)
                 candidateDose = 0
                 baselineDose = 0
                 candidateBolus = 0
@@ -1493,53 +1296,16 @@ extension EvaluationEngine {
             // pulses for the temp-basal stream + auto-bolus). Computed ONCE here via
             // the stateful accumulator and reused for the counterfactualDoses append
             // below (so the deltaDose report and the counter physics never diverge).
-            var cfAbsoluteDelivery: Double = 0
-            // Split of the candidate's basal delivery for the counterfactualDoses
-            // record: a temp segment [t, cfTempSegEnd] (the 30-min temp + auto-bolus)
-            // and, only when the step spans longer than the temp duration (a CGM
-            // gap), a SCHEDULED-basal remainder [cfTempSegEnd, stepEnd] (net-zero
-            // IOB) so the candidate tracks the real pump through the gap.
-            var cfTempVolume: Double = 0
-            var cfBasalDeliveredU: Double = .nan
-            var cfSchedRemainderU: Double = 0
-            var cfTempSegEnd: Date = stepEnd
+            var delivered: CandidatePump.StepDelivery? = nil
             let deltaDose: Double
             if cfActive {
-                // Temp basal expires after its 30-min duration. For a normal step
-                // (stepDur ≤ 30min) tempSec == stepDur and this is unchanged. For a
-                // long pre-gap step (stepDur ≫ 30min) the temp runs only 30 min,
-                // then scheduled basal resumes — preventing a pre-gap suspend from
-                // delivering 0 for the whole multi-hour gap (counter runaway).
-                let tempSec = fieldDeliveryNow ? stepDur : min(stepDur, tempBasalDuration)
-                cfTempSegEnd = t.addingTimeInterval(tempSec)
-                // Pump basal-pulse delivery for the temp RATE over its live window.
-                // The accumulator carries the sub-pulse remainder while the rate is
-                // unchanged and drops the in-progress pulse on a temp re-issue
-                // (rate change) — reproducing the field ~1.1 U/day below rate×time.
-                // Field delivery (manual temp, suspend, loop offline): exactly what the field
-                // pump delivered this step (auto-only, so it carries no manual bolus; those pass
-                // through on their own).
-                // Integrated over [t, stepEnd): steps are decision/CGM times, which don't sit on
-                // realAutoOnlyPerStep's grid -- the keyed lookup found nothing and delivered 0
-                // (i008: 1 U against the field's 42 U of loop-offline basal).
-                let basalDelivered = fieldDeliveryNow
-                    ? Self.integrateFieldDelivery(realAutoOnlyDoses, schedule: data.therapyTimeline.basal,
-                                                  from: t, to: stepEnd)
-                    : candidateBasalAcc.deliver(rate: candidateTempRate, seconds: tempSec)
-                // Auto-bolus already floored to the bolus grid; delivered whole.
-                cfTempVolume = basalDelivered + candidateBolus
-                if stepDur > tempBasalDuration {
-                    // Temp expired mid-step: scheduled basal for the remainder.
-                    cfSchedRemainderU = Self.integrateScheduledBasal(
-                        candTherapy.basal, from: cfTempSegEnd, to: stepEnd)
-                }
-                cfAbsoluteDelivery = cfTempVolume + cfSchedRemainderU
-                cfBasalDeliveredU = basalDelivered + cfSchedRemainderU
-                // Use AUTO-ONLY real pump as the baseline. Manual boluses are
-                // passed through (preserved in candidate's dose history) so
-                // they cancel out and don't perturb counter_BG.
+                let d = pump.deliver(from: t, to: stepEnd, rate: candidateTempRate, bolus: candidateBolus,
+                                     fieldRecord: cond.fieldDelivery ? realAutoOnlyDoses : nil,
+                                     fieldSchedule: data.therapyTimeline.basal, schedule: candTherapy.basal)
+                delivered = d
+                // Against the field's AUTO-ONLY delivery: manual boluses pass through on both sides.
                 let realPumpAutoAtStep = realAutoOnlyPerStep[t] ?? 0
-                deltaDose = cfAbsoluteDelivery - realPumpAutoAtStep
+                deltaDose = d.absolute - realPumpAutoAtStep
             } else if counterfactualMode {
                 // Burn-in: no perturbation (counter = actual_BG during burn-in)
                 deltaDose = 0
@@ -1547,58 +1313,14 @@ extension EvaluationEngine {
                 deltaDose = candidateDose - baselineDose
             }
 
-            // ISF at this time (in mg/dL/U convention; stored as mg/dL unit per codebase quirk).
-            //
-            // TWO of them, and they are not interchangeable once the patient ISF is
-            // decoupled. `isf` is the CONTROLLER's belief and is what the trace records
-            // (PredictionRecord.isf is algorithm state, alongside COB/RC/momentum — it is
-            // what case_study.py plots, so it must keep meaning the controller's ISF).
-            // `isfPlant` is the BODY's, and is what converts a dose delta into a BG effect.
-            // They coincide unless --patient-isf is set.
-            let isfQty = scaledSensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
-                ?? scaledSensitivity.closestPrior(to: t)?.value
+            // ISF the candidate's decision used at t (PredictionRecord.isf, algorithm state alongside
+            // COB/RC/momentum; case_study.py plots it): read from the decision's own input, so it
+            // carries the overrides active at t and the candidate's schedule. The BODY's ISF is
+            // `physiologySensitivity`, which differs under --patient-isf.
+            let isfQty = candidateInput.sensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                ?? candidateInput.sensitivity.closestPrior(to: t)?.value
             let isf = isfQty?.doubleValue(for: mgdlUnit) ?? 0
-            let isfPlantQty = physiologySensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
-                ?? physiologySensitivity.closestPrior(to: t)?.value
-            let isfPlant = isfPlantQty?.doubleValue(for: mgdlUnit) ?? 0
 
-            // Apply Δdose impact to FUTURE counter_mgdl entries.
-            //
-            // Non-CF mode (rule evaluation): uses the legacy linear-PD
-            // perturbation — counter = actual + small Δ × ISF × PD. Correct
-            // for small per-step deltas; documented in [feedback_sim_linear_pd_limit].
-            //
-            // CF mode: handled separately below via PHYSIOLOGICAL ADVANCE
-            // (counter steps forward = insulin effect from candidate doses +
-            // observed ICE from actual BG). The Δ-perturbation path is
-            // skipped in CF mode because the counter trajectory is no longer
-            // a perturbation of actual — it's a fully integrated independent
-            // simulation. (Fixed 2026-05-18.)
-            if deltaDose != 0 && isfPlant > 0 && !cfActive {
-                for i in 0..<counterGlucose.count {
-                    let futureT = counterGlucose[i].startDate
-                    if futureT <= t { continue }
-                    let τ = futureT.timeIntervalSince(t)
-                    let pd: Double
-                    if τ > activityDuration {
-                        pd = 1.0
-                    } else {
-                        pd = max(0.0, min(1.0, 1.0 - insulinModel.percentEffectRemaining(at: τ)))
-                    }
-                    counterMgdl[i] -= deltaDose * isfPlant * pd
-                }
-                // Append virtual dose entry. Treat Δdose as an instantaneous bolus
-                // at time t. This makes IOB calculations on subsequent steps
-                // include the candidate's extra (or reduced) delivery.
-                virtualDoses.append(EvalInsulinDose(
-                    deliveryType: .bolus,
-                    startDate: t,
-                    endDate: t,
-                    volume: deltaDose,
-                    insulinType: data.therapyTimeline.insulinType,
-                    automatic: true
-                ))
-            }
             // Counterfactual mode (post-burn-in only): append candidate's full
             // absolute delivery for this step + pass-through any user manual
             // boluses that occurred in [t, t + stepSec). This builds the
@@ -1624,20 +1346,21 @@ extension EvaluationEngine {
                 // The temp covers only [t, cfTempSegEnd] (≤30min); across a CGM gap
                 // a second SCHEDULED-basal segment covers the remainder so the temp
                 // doesn't run for the whole gap (net-zero, tracks the real pump).
+                let d = delivered!
                 counterfactualDoses.append(EvalInsulinDose(
                     deliveryType: .basal,
                     startDate: t,
-                    endDate: cfTempSegEnd,
-                    volume: cfTempVolume,
+                    endDate: d.tempSegEnd,
+                    volume: d.tempVolume,
                     insulinType: data.therapyTimeline.insulinType,
                     automatic: true
                 ))
-                if cfTempSegEnd < stepEnd {
+                if d.tempSegEnd < stepEnd {
                     counterfactualDoses.append(EvalInsulinDose(
                         deliveryType: .basal,
-                        startDate: cfTempSegEnd,
+                        startDate: d.tempSegEnd,
                         endDate: stepEnd,
-                        volume: cfSchedRemainderU,
+                        volume: d.schedRemainder,
                         insulinType: data.therapyTimeline.insulinType,
                         automatic: true
                     ))
@@ -1651,202 +1374,34 @@ extension EvaluationEngine {
                 // must see this — using the step-start IOB alone ignores the candidate's own
                 // same-cycle auto-bolus and would mis-size (even up-size) the manual bolus.
                 var stepCandidateAdded = candidateDose
-                var recUsedThisStep = false
-                while nextManualIdx < realManualBoluses.count {
-                    let mb = realManualBoluses[nextManualIdx]
-                    if mb.startDate >= stepEnd { break }
-                    if mb.startDate >= t {
-                        if candidateConfig.manualBolusFromRecommendation {
-                            // Replace the user's manual bolus with the candidate algorithm's OWN
-                            // recommended manual bolus at this step (full correction vs its own
-                            // forecast/IOB) — self-consistent, so no IOB-divergence amplification.
-                            // One recommendation per step: first manual event takes it; any further
-                            // events in the same step are already covered (deliver 0).
-                            let rec = (!recUsedThisStep && candidateManualBolusRec.isFinite)
-                                ? candidateManualBolusRec * candidateConfig.manualBolusRecScale : 0.0
-                            recUsedThisStep = true
-                            stepCandidateAdded += rec
-                            counterfactualDoses.append(EvalInsulinDose(
-                                deliveryType: mb.deliveryType, startDate: mb.startDate, endDate: mb.endDate,
-                                volume: rec, insulinType: mb.insulinType, automatic: mb.automatic))
-                        } else if candidateConfig.iobAdjustManualBoluses
-                            && nextManualIdx < realManualBolusRealIOB.count
-                            && candidateIOB.isFinite {
-                            // x - (z - y): resize by the counterfactual-vs-real IOB difference,
-                            // where z is the candidate IOB at the MOMENT of the bolus (step-start
-                            // IOB + this cycle's own committed insulin).
-                            let y = realManualBolusRealIOB[nextManualIdx]
-                            let z = candidateIOB + stepCandidateAdded
-                            let adj = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus(at: mb.startDate), mb.volume - (z - y)))
-                            stepCandidateAdded += adj
-                            counterfactualDoses.append(EvalInsulinDose(
-                                deliveryType: mb.deliveryType, startDate: mb.startDate, endDate: mb.endDate,
-                                volume: adj, insulinType: mb.insulinType, automatic: mb.automatic))
-                        } else {
-                            stepCandidateAdded += mb.volume
-                            counterfactualDoses.append(mb)
-                        }
-                    }
-                    nextManualIdx += 1
-                }
+                fieldBoluses.deliver(t: t, stepEnd: stepEnd, config: candidateConfig,
+                                     recommendation: candidateManualBolusRec, candidateIOB: candidateIOB,
+                                     maxBolus: { data.therapyTimeline.maxBolus(at: $0) },
+                                     committed: &stepCandidateAdded, into: &counterfactualDoses)
                 // Plant behavior: the boluses the plant's person asked for during the previous
                 // step act now, at this decision, as ratio x the bolus-calculator recommendation
                 // computed here (plant carbs entered last step are already visible to it).
-                if plantBehavior && !pendingPlantBoluses.isEmpty {
-                    let rec = candidateManualBolusRec.isFinite ? Swift.max(0, candidateManualBolusRec) : 0
-                    let want = pendingPlantBoluses.reduce(0.0) { acc, b in
-                        acc + (b.units ?? 0) + (b.ratio ?? 0) * rec
-                    }
-                    let vol = Swift.max(0, Swift.min(data.therapyTimeline.maxBolus(at: t), want))
-                    if vol > 0 {
-                        counterfactualDoses.append(EvalInsulinDose(
-                            deliveryType: .bolus, startDate: t, endDate: t, volume: vol,
-                            insulinType: data.therapyTimeline.insulinType, automatic: false))
-                        stepCandidateAdded += vol
-                        stepPlantBolusU = vol; plantBolusTotalU += vol; plantBolusCount += 1
-                    }
-                    pendingPlantBoluses.removeAll()
+                if plantBolusNowU > 0 {                  // appended before the automatic dose was decided
+                    stepCandidateAdded += plantBolusNowU
+                    stepPlantBolusU = plantBolusNowU; plantPerson.recordDelivered(plantBolusNowU)
                 }
               } // end !cfIdentity (skip candidate dose append in identity mode)
 
-                // PHYSIOLOGICAL ADVANCE — step counter_BG forward to whatever
-                // CGM samples fall in (t, t + stepSec]. counter_BG advance =
-                //   insulin effect over [prev, next] from candidate dose history
-                //   + ICE over [prev, next] from real-BG-derived timeline.
-                // Per-step insulinEffectDelta uses binary search to slice only
-                // the doses whose effect window overlaps the target interval —
-                // bounded to ~70 doses (6h DIA × 1 dose per 5-min step + a few
-                // historical), so each call is fast.
+                // PHYSIOLOGICAL ADVANCE — the candidate's body steps counter_BG forward over
+                // the samples in (t, stepEnd] (CandidateBody.swift).
                 var advIdx = 0
                 while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= t {
                     advIdx += 1
                 }
-                if let plant = externalPlant {
+                if let pb = plantBody {
                     // The plant, not the ICE replay, decides what the candidate's insulin does.
-                    stepPlantCarbsG += try advancePlant(plant, through: stepEnd, now: t, state: [
+                    stepPlantCarbsG += try advancePlant(through: stepEnd, now: t, state: [
                         "rec_bolus": candidateManualBolusRec, "iob": candidateIOB,
                         "cob": candidateCOB, "bg": advIdx > 0 ? counterMgdl[advIdx - 1] : .nan])
-                    plantLastState = ["rec_bolus": candidateManualBolusRec, "iob": candidateIOB, "cob": candidateCOB]
-                    while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd { advIdx += 1 }
-                }
-                while externalPlant == nil && advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= stepEnd {
-                    let prevIdx = advIdx > 0 ? advIdx - 1 : advIdx
-                    let prevT = counterGlucose[prevIdx].startDate
-                    let nextT = counterGlucose[advIdx].startDate
-                    // SINGLE PATIENT MODEL (used for EVERY CF comparison and for
-                    // --cf-identity). The advance is always the PHYSICAL /
-                    // EGP-separated form on ONE mid-abs ISF timeline:
-                    //   stepDelta = realBGdelta + m·(E(candidate) − E(field))
-                    // where E(·) = physicalActiveEffectDelta (mid-abs ISF, EGP
-                    // credit zeroed) and m = mByIndex (≡1 unless sensitivity is
-                    // inferred). realBGdelta carries ALL non-insulin physiology
-                    // (incl. EGP) UNSCALED, so m never magnifies EGP and a
-                    // candidate that suspends into sub-basal just removes
-                    // m·(the cut) of lowering while the real unscaled EGP carries
-                    // BG back up. The SAME E(·) removes field doses (realPhysDelta)
-                    // and adds candidate doses (candPhys) — one ISF timeline, both
-                    // directions. Identity: candidate doses == real ⇒
-                    // candPhys == realPhysDelta ⇒ counter reproduces the substrate.
-                    let realBGdelta = counterGlucose[advIdx].quantity.doubleValue(for: mgdlUnit)
-                        - counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
-                    let candPhys = Self.physicalActiveEffectDelta(
-                        doses: counterfactualDoses,
-                        basal: candTherapy.basal,
-                        sensitivity: physiologySensitivity,
-                        from: prevT, to: nextT,
-                        insulinModel: insulinModel,
-                        patientInsulinType: patientInsulinType)
-                    let m = mByIndex[advIdx]
-                    let stepDelta = realBGdelta + m * (candPhys - realPhysDelta[advIdx])
-                    // Counter-regulation: as counter_BG falls below the onset
-                    // threshold the body defends with surging hepatic glucose
-                    // output (glucagon/epinephrine) — a positive BG VELOCITY that
-                    // ramps with depth below onset, capped. Because it is a
-                    // velocity, it must integrate at the per-step cadence: a single
-                    // advance that spans a skipped CGM gap (prevT..nextT can be
-                    // 15-25 min, not 5) would otherwise multiply the velocity by the
-                    // whole gap and inject a spurious BG jump on gap-close (the real
-                    // recovery is already in baseDelta). Subdivide into <=1-step
-                    // sub-intervals: distribute baseDelta linearly and recompute the
-                    // counter-reg term against the rising counter level each
-                    // sub-step (it stops once the level climbs back above onset).
-                    // For a normal 5-min step nSub==1 and this reproduces the prior
-                    // arithmetic exactly (identity preserved).
-                    // INCREMENTAL counter-regulation. Like insulin and ICE, the
-                    // counter-reg defense is applied as a DIFFERENCE from the real
-                    // trajectory: realBGdelta already carries the real body's
-                    // counter-regulation at the real lows, so adding the absolute
-                    // defense counterreg(counter) on top would DOUBLE-COUNT it (and
-                    // breaks the identity: candidate==real would then push counter
-                    // above actual at every low). Instead add
-                    //   counterreg(counter_BG) − counterreg(actual_BG)
-                    // so at identity (counter==actual) the term is 0; a counter that
-                    // goes genuinely LOWER than actual gets the EXTRA defense; a
-                    // counter that ends HIGHER sheds the real-low defense it wrongly
-                    // inherited via realBGdelta. actual_BG is the real substrate the
-                    // advance runs on (counterGlucose), interpolated across sub-steps.
-                    let totalSec = nextT.timeIntervalSince(prevT)
-                    let nSub = Swift.max(1, Int((totalSec / candidateConfig.evalStep).rounded(.up)))
-                    let subFrac = 1.0 / Double(nSub)
-                    let aPrev = counterGlucose[prevIdx].quantity.doubleValue(for: mgdlUnit)
-                    let aNext = counterGlucose[advIdx].quantity.doubleValue(for: mgdlUnit)
-                    // GAP RE-ANCHOR: across a long CGM gap the single big-step advance
-                    // is unreliable (manual boluses in the gap are on the field side
-                    // but not the candidate history ⇒ runaway asymmetry). Take the
-                    // gap-END LEVEL from the real CGM (discarding the unreliable
-                    // big-step advance), but PRESERVE the candidate-vs-real divergence
-                    // accumulated BEFORE the gap. Snapping straight to `aNext` zeroed
-                    // that divergence in BOTH directions, so a candidate that
-                    // legitimately drove BG away from real (e.g. an aggressive oref on
-                    // a Loop dataset that over-doses a high) had its accumulated
-                    // insulin effect wiped at every gap → it saw a high counter and
-                    // re-dosed → runaway. Carrying the pre-gap offset fixes that while
-                    // still resyncing the absolute level + gap-interval non-insulin
-                    // physiology from real. Identity-safe: at candidate==real,
-                    // counterMgdl[prevIdx]==aPrev, so the offset is 0 (⇒ = aNext).
-                    if cfGapReanchorSec > 0 && totalSec > cfGapReanchorSec {
-                        // Preserve only a SIGNIFICANT candidate-vs-real divergence; for
-                        // small offsets snap straight to real (the original behavior) so
-                        // the sub-step advance's tiny numerical drift (~1 mg/dL) can't
-                        // accumulate across gaps and degrade the identity. The threshold
-                        // sits well above that noise but far below any real over/under-
-                        // dose divergence (e.g. an over-dosing oref runs 80-90 mg/dL
-                        // below real before a gap).
-                        let gapOffset = counterMgdl[prevIdx] - aPrev
-                        counterMgdl[advIdx] = abs(gapOffset) > 10.0 ? aNext + gapOffset : aNext
-                        advIdx += 1
-                        continue
-                    }
-                    var bg = counterMgdl[prevIdx]
-                    for k in 0..<nSub {
-                        var crSub = 0.0
-                        // Counter-regulation is a defense that fires only when the
-                        // COUNTERFACTUAL itself is below onset — GATED on `belowC > 0`.
-                        // Inside that gate it stays difference-based (rateC − rateA) so
-                        // identity holds and a counter that inherited a DEEPER real-low
-                        // defense via realBGdelta sheds the excess. But when the counter
-                        // is at/above onset we apply NOTHING: a counterfactual running
-                        // high must not shed the real low's defense (rateA), which used
-                        // to subtract the full real-counter-reg rate and drive a
-                        // high-running arm implausibly below the real substrate — a
-                        // systematic downward bias against less-aggressive / lows-
-                        // reducing candidates (they run high, so real lows crashed them).
-                        // Cost: a high counter keeps a small inherited real-low lift;
-                        // far preferable to a spurious plunge.
-                        if counterRegOnsetMgdl > 0 {
-                            let belowC = counterRegOnsetMgdl - bg
-                            if belowC > 0 {
-                                let rateC = Swift.min(counterRegGain * belowC, counterRegMaxRate)
-                                let aSub = aPrev + (aNext - aPrev) * (Double(k) / Double(nSub))
-                                let belowA = counterRegOnsetMgdl - aSub
-                                let rateA = belowA > 0 ? Swift.min(counterRegGain * belowA, counterRegMaxRate) : 0.0
-                                crSub = (rateC - rateA) * (totalSec * subFrac / 60.0)
-                            }
-                        }
-                        bg += stepDelta * subFrac + crSub
-                    }
-                    counterMgdl[advIdx] = bg
-                    advIdx += 1
+                    pb.lastState = ["rec_bolus": candidateManualBolusRec, "iob": candidateIOB, "cob": candidateCOB]
+                } else {
+                    _ = iceBody.advance(from: advIdx, through: stepEnd, doses: counterfactualDoses,
+                                             basal: candTherapy.basal, counter: &counterMgdl)
                 }
             }
 
@@ -1900,7 +1455,7 @@ extension EvaluationEngine {
                 plantCarbsG: stepPlantCarbsG,
                 baselinePredCurve: baselinePredCurve
             ))
-            steps[steps.count - 1].candidateBasalDeliveredU = cfBasalDeliveredU
+            steps[steps.count - 1].candidateBasalDeliveredU = delivered?.basal ?? .nan
         }
 
         progress?(1.0)
@@ -1987,8 +1542,9 @@ extension EvaluationEngine {
         }
 
         if plantBehavior {
-            FileHandle.standardError.write(Data(String(format: "plant behavior: %d carb entries (%.0f g), %d boluses (%.1f U) from the plant's person; real candidate carbs/manual boluses after cfActiveStart ignored\n",
-                plantCarbCount, plantCarbsTotalG, plantBolusCount, plantBolusTotalU).utf8))
+            FileHandle.standardError.write(Data(String(format: "plant behavior: %d carb entries (%.0f g), %d boluses (%.1f U), %d overrides from the plant's person; real candidate carbs/manual boluses after cfActiveStart ignored\n",
+                plantPerson.carbCount, plantPerson.carbsTotalG, plantPerson.bolusCount, plantPerson.bolusTotalU,
+                plantPerson.overrideCount).utf8))
         }
         return ClosedLoopSimResult(
             steps: stepsWithPatientIOB,
@@ -2221,7 +1777,7 @@ extension EvaluationEngine {
     /// Total scheduled-basal units delivered over [from, to], integrating across
     /// schedule segments. Used to fill the post-temp-expiry remainder of a long
     /// (CGM-gap) step with scheduled basal (net-zero IOB vs the schedule).
-    fileprivate static func integrateScheduledBasal(
+    static func integrateScheduledBasal(
         _ basal: [AbsoluteScheduleValue<Double>], from: Date, to: Date) -> Double {
         guard to > from else { return 0 }
         var total = 0.0
@@ -2241,7 +1797,7 @@ extension EvaluationEngine {
     /// Units the field pump delivered over [from, to): automatic boluses starting in it plus
     /// basal records pro-rated by overlap. Time no basal record covers ran the schedule (a
     /// missing record is scheduled basal, not a suspend; suspends are records at rate 0).
-    fileprivate static func integrateFieldDelivery(
+    static func integrateFieldDelivery(
         _ doses: [EvalInsulinDose], schedule: [AbsoluteScheduleValue<Double>],
         from: Date, to: Date) -> Double {
         guard to > from else { return 0 }
@@ -2376,7 +1932,7 @@ extension EvaluationEngine {
     /// physical insulin; EGP stays in the dose-independent residual and is never
     /// magnified by m (avoids the net-basal "negative IOB raises BG" artifact).
     /// mg/dL, negative = drop. Same dose-slicing as `insulinEffectDelta`.
-    fileprivate static func physicalActiveEffectDelta(
+    static func physicalActiveEffectDelta(
         doses: [EvalInsulinDose],
         basal: [AbsoluteScheduleValue<Double>],
         sensitivity: [AbsoluteScheduleValue<LoopQuantity>],
@@ -3208,7 +2764,7 @@ extension EvaluationEngine {
     }
 
     /// Find the index of the glucose sample closest to `t` (binary-search).
-    fileprivate static func bestGlucoseIndex(at t: Date, in samples: [EvalGlucoseSample]) -> Int {
+    static func bestGlucoseIndex(at t: Date, in samples: [EvalGlucoseSample]) -> Int {
         var lo = 0, hi = samples.count - 1
         while lo < hi {
             let mid = (lo + hi) / 2
@@ -3223,7 +2779,7 @@ extension EvaluationEngine {
     /// what carries advanced counter perturbations; the "next future"
     /// sample may sit in an unprocessed CGM gap and still hold its
     /// un-advanced original value.
-    fileprivate static func latestGlucoseIndex(at t: Date, in samples: [EvalGlucoseSample]) -> Int {
+    static func latestGlucoseIndex(at t: Date, in samples: [EvalGlucoseSample]) -> Int {
         guard !samples.isEmpty else { return 0 }
         if samples[0].startDate > t { return 0 }
         var lo = 0, hi = samples.count - 1
