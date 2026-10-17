@@ -1817,3 +1817,195 @@ statistic here, but it is the controller donors ran.
        come from the remaining morning modulators: Visentin breakfast-hour SI, GH night-to-night variation, stress
        episodes, sleep-loss SI. Next: ablate each, measure the morning chain table, and compare each with its own
        evidence.
+
+110. **The morning modulators do not make the chained rises.** Paired ablations against c114, frozen eb785d3
+     (`--disable circadian | gh | stress | sleep`). Morning chained unannounced appearance (after an unannounced pulse,
+     ≤ 3 h, g-eq/day):
+
+     | Arm | Morning chained g-eq/day | Matched |
+     |---|---|---|
+     | c114 | 20.9 | 30 |
+     | no circadian | 20.3 | 30 |
+     | no GH | 20.6 | 29 |
+     | no stress | 20.8 | 30 |
+     | no sleep | 21.6 | 29 |
+
+     - Every quarter's unannounced total is within 1 g-eq/day of c114 in every arm.
+     - **Circadian classes and the 24-h amplitude.** Without the Visentin classes, `circadian_amp` matches (0.135 vs
+       donors 0.131, KS 0.002 → 0.64), and mean, CV and TIR improve. Long-range Hurst falls (0.223 → 0.194). The
+       classes add a daily shape that donors' records do not show at this amplitude. They are evidenced (Visentin
+       2016), but a donor's tuned basal profile already carries their own diurnal need (LESSONS 48), so the two may
+       double-count. Kept on: not a cohort-fit decision.
+     - **Not the controller's rebound either.** Delivered insulin around unannounced labeled rises, as a share of
+       the person's mean rate (median; −2 to −1 h / last hour / first hour after the onset; `pre_ins.py`):
+       - chained: donors 0.77 / 0.60 / 0.78 (46,756 rises), sim 0.79 / 0.59 / 0.92 (3,818);
+       - other: donors 0.77 / 0.52 / 0.71, sim 0.71 / 0.44 / 0.76.
+       Insulin is cut before a rise as much in donors as in the sim. The chained share of unannounced rises is the
+       same, 0.62 in both. The excess is a uniform surplus of daytime unannounced rises (lesson 108), not a chaining
+       mechanism. The sim answers rises a little harder in the first hour (0.92 vs 0.78), the autobolus response.
+       Open: the surplus has no single source; its parts are unentered meals, proactive carbs, grazes, snacks, and
+       non-eating rises that no modulator ablation removes.
+
+111. **Caffeine, built at its evidence, is too small to show (as budgeted).** `--enable caffeine` (0d64b90, off by
+     default; modulators._caffeine):
+     - **Who:** 64% daily drinkers [unverified]; about 2 cups/day of 95 mg; first cup ~07:30, later ones 10–16 h;
+       10% of days skipped.
+     - **PK:** one-compartment oral absorption at 3/h (peak 30–60 min); per-person t½ lognormal around 5 h (2–10).
+     - **Effect:** SI −15% at the peak of a 200 mg dose (Keijzers 2002), linear in concentration, capped at −30%.
+       Applied as the deviation from the person's own mean daily profile, since the habitual part lives in the
+       donor's basal shape (evidence/11 §4.2), as with GH.
+     - Drinkers' SI moves 9–24% around their own mean by day and dose. Every draw is on its own stream (seed + 202).
+     - **c119** (frozen 0d64b90): the same-commit baseline reproduces c114 exactly. With caffeine: 29 vs 30 matched
+       (noise). Morning unannounced appearance 33.9 vs 33.8 g-eq/day, chained 21.0 vs 20.9. Between-day fraction
+       0.117 → 0.125 (donors 0.102); hurst_long 0.223 → 0.230 (0.247).
+     - evidence/14 budgeted 5–10% of the daytime ACF gap. It is not the morning surplus. Kept as a switch.
+
+112. **The sim's meals rise too slowly, and a bigger fast phase is not the fix.**
+     - **Isolated announced meals** (G7, ≥ 10 g, nothing else within 4 h; `meal_trajectory.py` on c114 vs donors).
+       Median CGM change from onset:
+
+       | min | 30 | 60 | 90 | 120 | 150 | 180 | 210 | 240 |
+       |---|---|---|---|---|---|---|---|---|
+       | donors (5,484 meals) | +7 | +27 | +39 | +42 | +40 | +38 | +31 | +22 |
+       | sim (437 meals) | +4 | +13 | +22 | +27 | +32 | +30 | +33 | +20 |
+
+       - Per 10 g at 120 min: 10.9 vs 8.4. First-hour steps: SD 7.17 vs 5.78, skew 0.67 vs 0.32.
+       - Biggest 15-min rise, median: 29 vs 20 mg/dL, at 45 vs 55 min.
+       - Donors climb fast, plateau at 90–180 min, then fall. The sim climbs slowly into the third hour.
+       - Uniformly faster emptying gets the climb but shortens the tail, and the lows overshoot (LESSONS 89, 109).
+     - **A larger fast liquid phase** (`meal_fast`, LESSONS 44's 0.2), paired against c119_base (30 matched), frozen
+       0d64b90:
+
+       | Fast share | Matched | Skew | CV | TIR | t54 | Labeled g-eq / entered g |
+       |---|---|---|---|---|---|---|
+       | 0.2 (base) | 30 | 0.76 | 35.6 | 69.2 | 0.22 | 1.21 |
+       | 0.3 | 25 | 0.80 | 35.7 | 66.0 | 0.18 | 1.18 |
+       | 0.4 | 25 | 0.85 | 37.1 | 66.2 | 0.24 | 1.36 |
+
+       Skew moves a little, but TIR falls and CV rises.
+     - **What the donors' shape asks for.** A fast early climb, then a sustained plateau of 1.5–2 h at ~10 mg/dL
+       per 10 g. Meals that are fast and also long imply more total appearance per gram over the first 3 h than the
+       sim gives, with insulin not cutting it short. Candidates:
+       - glucose appearance per gram (CSF) vs insulin action in the first 2 h: the labeler matches the pulse size
+         per gram (1.21) but not its timing;
+       - the meal-bolus insulin peaking too early relative to appearance in the sim.
+     - **Lead: the body's insulin action, bounded on both sides.** The labeler's pulse is ΔG plus Loop's modeled
+       insulin effect. The sim's body acts exactly on Loop's curve (LESSONS 20), so in the sim the modeled and real
+       effects coincide. If real meal-bolus insulin acts later than Loop's curve, donors' CGM climbs faster early
+       while the labeled pulse size stays the same. That is the observed pattern.
+       - Lesson 20 bounds the other side: clamp-speed action (4% of the effect in the first hour) made Loop stack
+         insulin and crash meals at 56 min.
+       - Test an intermediate action (first-hour share ~10%, between clamp 4% and Loop 17%) against three things:
+         this trajectory table, the first-hour forecast residual from replay (memory: forecast-residual =
+         insulin tail), and insulin delivered around meals (LESSONS 92).
+
+113. **Slower body insulin action brings the meal shape to the donors; the cohort statistics split.** `--set
+     ins_p2=x` (disposal-action rate; default 0.05 fits Loop's adult curve, LESSONS 20). Timing only; the steady-state
+     effect is unchanged. Paired against c119_base, frozen 0d64b90, 112 × 14 d.
+
+     | | Donors | p2 0.05 | 0.03 | 0.02 |
+     |---|---|---|---|---|
+     | Isolated meal ΔCGM at 60 / 90 / 120 / 150 / 240 min | 27/39/42/40/22 | 13/22/27/32/20 | 19/34/37/43/24 | 17/31/39/39/20 |
+     | First-hour step skew | 0.67 | 0.32 | 0.23 | 0.58 |
+     | Matched | | 30 | 30 | 27 |
+     | hurst_long (KS p) | 0.247 | 0.223 (0.17) | 0.200 (0.02) | 0.245 (0.23) |
+     | ACF zero-crossing, min | 42.5 | 60 | 65 | 70 |
+     | TIR | 71.7 | 69.2 | 68.7 | 67.3 |
+     | t54 / p_reach54 | 0.215 / 0.20 | 0.22 / 0.20 | 0.17 / 0.20 | 0.18 / 0.20 |
+     | Labeled g-eq / entered g | 1.21 | 1.21 | 1.25 | 1.22 |
+
+     - The plateau and the tail now sit on the donors' at both slower rates: +37–43 at 120–170 min, +20–24 at 240.
+       The first hour is still short (+17–19 vs +27). The labeled pulse size is unchanged, consistent with the
+       labeler adding back Loop's modeled insulin.
+     - **The cost is decorrelation.** Slower insulin lengthens positively correlated runs: the ACF zero-crossing
+       goes 60 → 70 (donors 42.5), the opposite of what donors need. Hurst long is fixed at 0.02.
+     - **Not adopted yet.** Lesson 20's constraint has to be re-checked first: replay found Loop's first-hour
+       forecasts match real glucose closely. Under p2 0.02–0.03, the sim's Loop would see glucose climb faster than
+       it forecast after every bolus. Next:
+       - compare the sim's forecast residual at 30/60 min after meal boluses with the donors' (dosingDecision
+         bgForecast vs CGM, same windows);
+       - and insulin delivered around meals (LESSONS 92).
+       Then decide with Pete: the meal shape argues for slower action, the ACF zero-crossing against it.
+     - **The field correction test cannot separate these rates.** ICE after isolated correction boluses, using
+       ice's step tables and extraction on both sides (`corr_ice.py`):
+       - Selection: manual ≥ 1 U at BG ≥ 150, no carb entry from −3 h to +4 h, no other manual bolus within 4 h.
+       - With all such corrections, ICE falls sharply afterwards in donors (−17 to −25 mg/dL/h per U, n = 711),
+         because people correct during rises that then end.
+       - Requiring steady CGM before the bolus (±10 mg/dL/h over 30 min) leaves 71 donor events, with ICE change
+         per U near zero in every 30-min bin (median −3.9 to +2.8, SE 3.3–5.1). The sim has only ~9 such events
+         per cohort.
+       - Expected signatures on the linear body (ISF 55): Loop's curve minus the body's effect is +6 / +3–6 /
+         −1 to −5 / −7 to −8 … mg/dL/h per U for p2 0.05 / 0.03 / 0.02. They differ by ≤ 7 per bin, inside the
+         donors' noise.
+       So lesson 20's field constraint does not pin p2 between 0.02 and 0.05. Its evidence was Loop over-dosing
+       into meals at clamp speed (4% in the first hour); p2 0.03 still gives 12% at 60 min (Loop 22%).
+     - **Appearance is not the slow part.** True Ra after isolated entered meals (c119_base; ≥ 20 g, median 48 g,
+       nothing else eaten from −3 h to +6 h; `ra_traj.py`):
+       - cumulative share at 30/60/90/120/180 min: 0.09 / 0.26 / 0.45 / 0.61 / 0.87;
+       - t25/50/75 of 58/99/148 min, faster than Elleri 2013's high-GL meal (72/130/197; low-GL 95/178/270);
+       - Ra peak at 58 min.
+       The sim's CGM climbs half as fast as donors' in the first hour despite this, so what holds the rise back
+       is removal: insulin action timing (p2), glucose effectiveness, or the meal bolus's absorption. With
+       appearance at its evidence, the slower action rate becomes the leading explanation (the 121 g meal of
+       LESSONS 89 sat at the low-GL pace because the energy ceiling binds large meals).
+
+114. **Body insulin timing from evidence, not from Loop: clamp-speed action no longer crashes meals, and the meal
+     shape gap is only partly timing.** Pete (2026-10-17): the simulator is calibrated to real patients, never to
+     what Loop believes. LESSONS 20 broke that by fitting p2 to Loop's adult curve after Loop over-dosed meals
+     against a clamp-speed body.
+     - **Evidence for meal-sized doses.** Humalog 15 U (T2D, PMC7716902):
+       - onset 45 min; early 50% tRmax 56 min; late 50% tRmax 269 min; duration 405 min;
+       - glucose infused in the first hour 42 of 670 mg/kg, **6.3%** of the total.
+     - **The body's first-hour share** (linear part): p2 0.05 ~14%, 0.03 ~12%, 0.02 ~10%; Loop's model 22%.
+     - **Translating the clamp to real life.**
+       - Pump sets speed absorption with wear: plasma tmax 55 → 45 min from day 0 to day 4 (Clausen 2009); onset and
+         offset are earlier on day 4 than day 1 in T1D adolescents. Already modeled (device.site_state `abs_slope`,
+         LESSONS 43).
+       - Smaller doses absorb faster, but the evidence found is second-hand only (volume effect). Not modeled.
+     - **Cohorts** (paired against c119_base, frozen 0d64b90):
+
+       | p2 (p2e) | Matched | Meal ΔCGM 60/120 min (donors 27/42) | t54 | TIR | hurst_long |
+       |---|---|---|---|---|---|
+       | 0.05 (0.018) | 30 | 13/27 | 0.22 | 69.2 | 0.223 |
+       | 0.04 | 26 | 15/32 | 0.19 | 66.4 | 0.234 |
+       | 0.03 | 30 | 19/37 | 0.17 | 68.7 | 0.200 |
+       | 0.025 (0.012), lesson 9's clamp fit | 26 | 18/32 | 0.23 | 68.0 | 0.192 |
+       | 0.02 | 27 | 17/39 | 0.18 | 67.3 | 0.245 |
+
+       - The match count moves non-monotonically across p2 (26–30): cohort noise, not a timing signal.
+       - Lesson 20's crash (meals ending 25 mg/dL below baseline at 3 h) does not recur at clamp speed. The
+         behavior, meal and defense components added since carry it.
+       - Slower action moves the shape toward the donors': 60 min +13 → +17–19, 120 min +27 → +32–39. The first
+         hour is still a third short of the donors' at every evidenced speed.
+     - **Open.** The first-hour climb needs another component, not more insulin delay. Appearance runs at the
+       high-GL tracer pace (lesson 113), so the remaining suspects are glucose effectiveness at meal onset, the
+       sensor's lag, and what donors' isolated meals really are (larger true carbs than entered).
+     - **Adopted (Pete, 2026-10-17): p2 0.025 by default** (78fcf44; p2E stays at its tracer value 0.010). The person's
+       sensitivity is recalibrated end to end at the new timing, so the default cohort differs from the override arm.
+       c124 (frozen 78fcf44, against c119_base):
+       - 27 matched (within the 26–30 band);
+       - meal ΔCGM 60/120 min +19/+35 (was +13/+27; donors +27/+42); first-hour step skew 0.48 (0.32; donors 0.67);
+       - t54 0.17 (KS 0.63), lows/day 0.83, p_reach54 0.18; TIR 67.3, mean 156; labeled g-eq per entered g 1.22.
+       - The self-check fails the same 4 of 8 bodies before and after (night below rest: the dinner tail in the
+         night window accepted in LESSONS 75; failing since at least bcb5be0).
+     - **What is left of the meal gap is a ~10-min delay, not a size.** Per 10 g entered (c124 vs donors):
+
+       | min | 30 | 40 | 50 | 60 | 90 | 120 | 130 |
+       |---|---|---|---|---|---|---|---|
+       | donors | 1.9 | 3.4 | 5.2 | 6.8 | 10.2 | 10.9 | 10.8 |
+       | sim | 1.4 | 2.7 | 3.8 | 5.0 | 8.9 | 11.5 | 11.7 |
+
+       The plateau now matches. The sim reaches each early level ~10 min after donors (sim 60 ≈ donors 50).
+       Lower glucose effectiveness is not the lever (SG ×0.5: mean 166, LESSONS 92). Candidates for a 10-min lead:
+       - the gut's onset (first appearance in the sim at 9% by 30 min);
+       - eating before the logged/bolused time in donors (meal start vs entry time);
+       - sensor lag (sim G7 uses Vettoretti's G6 lag, median 3.8 min).
+     - **Neither the sensor nor meal-time dosing makes the 10 minutes.**
+       - The sim's G7 lag is 3.5 min, the G7's own apparent device lag (evidence/03).
+       - Delivered insulin around announced meals ≥ 20 g, as a share of the person's mean rate (mean over meals;
+         −1 h–0 / 0–30 / 30–60 min / 1–2 h / 2–3 h): donors 1.96 / 2.13 / 1.79 / 1.04 / 1.01 (31,475 meals);
+         c124 1.72 / 2.22 / 1.89 / 0.98 / 0.79.
+       Donors take more insulin before the onset and still climb faster. The remaining lead is in when the labeler
+       places onsets relative to true eating. In the sim it is 2–3 min before eating (lesson 106). In donors it is
+       unobservable: a meal that starts slowly (a drink, a first course) would put the labeled onset later and the
+       measured climb steeper.
