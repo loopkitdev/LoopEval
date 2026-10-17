@@ -294,8 +294,8 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
                 main = sum(min(1.0, t.p_entry_meal * x) for x in t.slot_ann)
                 t.p_entry_snack = float(np.clip((entries - main) / max(snack_rate, 0.1), 0.0, 1.0))
     ck = [_num(rates, k) for k in ("clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd")]
-    if all(np.isfinite(ck)):
-        t.meal_clock = tuple(float(x) for x in ck)
+    if any(np.isfinite(ck)):
+        t.meal_clock = tuple(float(x) for x in ck)          # NaN pairs fall back to the population draw
     mh = rates.get("meal_hours")
     if isinstance(mh, str):
         import json as _json
@@ -454,9 +454,10 @@ class Behavior:
             # paired). Within-person SDs include the labeler's onset noise (~0.45 h), so they are upper bounds [J]
             bm, bs, lm, ls, dm, ds = t.meal_clock
             rc = self.r_clock
-            b_new = float(rc.normal(bm, bs)) * 60 + shift
-            lunch = max(b_new + 120.0, float(rc.normal(lm, ls)) * 60 + shift)
-            dinner = max(lunch + 150.0, float(rc.normal(dm, ds)) * 60 + shift)
+            zb, zl, zd = rc.normal(size=3)
+            b_new = (bm + bs * zb) * 60 + shift if np.isfinite(bm) and np.isfinite(bs) else b
+            lunch = max(b_new + 120.0, (lm + ls * zl) * 60 + shift) if np.isfinite(lm) and np.isfinite(ls) else max(b_new + 120.0, lunch)
+            dinner = max(lunch + 150.0, (dm + ds * zd) * 60 + shift) if np.isfinite(dm) and np.isfinite(ds) else max(lunch + 150.0, dinner)
             if slots and slots[0][3] == 0: slots[0] = ("meal", b_new, slots[0][2], 0)
         slots += [("meal", lunch, sL / 0.286 * main_w, 1), ("meal", dinner, sD / 0.286 * main_w, 2)]
         n_snack = r.poisson(t.snack_rate)

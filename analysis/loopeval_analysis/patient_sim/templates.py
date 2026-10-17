@@ -452,23 +452,27 @@ def add_entry_hours(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v3
 
 
 def add_meal_clock(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
-    """Per donor, the median and SD (hours) of the largest non-rescue labeled pulse per day in each window
-    (B 04–10.5, L 10.5–15.5, D 15.5–22), local time: `clk_{b,l,d}_med`, `clk_{b,l,d}_sd` (LESSONS 123)."""
+    """Per donor, the median and SD (hours) of the day's largest carb ENTRY in each window, local time:
+    B 04–10.5 h (≥ 15 g), L 10.5–15.5 h (≥ 20 g), D ≥ 15.5 h (≥ 30 g; no upper bound, so late dinners count).
+    Entries need no labeler; the labeled largest-pulse version was near-uniform within each window (LESSONS 123).
+    Columns `clk_{b,l,d}_med`, `clk_{b,l,d}_sd`; a window with < 7 days stays NaN (population draw)."""
+    import json
     from .quiet import local_offset, to_local
     t = pd.read_csv(path)
     out = []
     for a in t.alias:
         row = dict(alias=a)
-        f = ice_root / "meals" / f"{a}.parquet"
-        if f.exists():
-            M = pd.read_parquet(f); M = M[~M.rescue].copy()
-            lo = to_local(pd.to_datetime(M.onset, utc=True), local_offset(a, ice_root))
-            M["day"] = pd.DatetimeIndex(lo).floor("D")
-            for k, a0, a1 in (("b", 4, 10.5), ("l", 10.5, 15.5), ("d", 15.5, 22)):
-                x = M[(M.hour >= a0) & (M.hour < a1)]
-                if len(x) >= 10:
-                    top = x.loc[x.groupby("day").size_g.idxmax()]
-                    row[f"clk_{k}_med"] = float(top.hour.median()); row[f"clk_{k}_sd"] = float(top.hour.std())
+        p = ice_root / "full" / a / "carbs.json"
+        if p.exists():
+            c = [x for x in json.load(open(p)) if (x.get("grams") or 0) > 0]
+            if c:
+                lt = pd.DatetimeIndex(to_local(pd.to_datetime([x["startDate"] for x in c], utc=True, format="ISO8601"), local_offset(a, ice_root)))
+                D = pd.DataFrame(dict(h=np.asarray(lt.hour + lt.minute / 60), g=[x["grams"] for x in c], day=lt.floor("D")))
+                for k, a0, a1, gmin in (("b", 4, 10.5, 15), ("l", 10.5, 15.5, 20), ("d", 15.5, 24.0, 30)):
+                    x = D[(D.h >= a0) & (D.h < a1) & (D.g >= gmin)]
+                    if x.day.nunique() >= 7:
+                        top = x.loc[x.groupby("day").g.idxmax()]
+                        row[f"clk_{k}_med"] = float(top.h.median()); row[f"clk_{k}_sd"] = float(top.h.std())
         out.append(row)
     r = pd.DataFrame(out)
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
