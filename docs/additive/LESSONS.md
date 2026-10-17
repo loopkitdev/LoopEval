@@ -2422,3 +2422,12 @@ statistic here, but it is the controller donors ran.
      carbs toward a measured rate closes the shoulder without losing the lows.
      Candidate evidence: donors' labeled pulses that start within 30 min of a falling CGM (< 110, falling ≥ 1
      mg/dL/min) without reaching 70.
+     - **Proactive defence is not the shoulder.** Measured like for like, donors have 0.25 pulses/day after a fall
+       (labeled unannounced pulse starting at CGM < 110, ≥ 15 mg/dL lower than 15 min before, no reading < 70 in the
+       prior hour), 7.9 g-eq/day (median person). c135 has 0.33/day, 10.3 g-eq; `pro_shift.py`.
+       `--set pro_shift=-10.0` (c8bc385, proactive onset 10 mg/dL lower):
+       - pulses after a fall unchanged (0.33/day); CV 37.3 (unchanged); upper percentiles unchanged
+         (p75 188, p90 236);
+       - matched 33 vs 31, without moving its own target, so that is noise. Not adopted.
+       The pulses after a fall are mostly not the proactive snack (meals and other eating that happen to follow a
+       fall). The upper shoulder and CV stay open: unannounced daytime appearance (lesson 108).
