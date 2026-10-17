@@ -2348,3 +2348,24 @@ statistic here, but it is the controller donors ran.
        nights (delivered ÷ scheduled × scheduled basal, as an upper bound of night need: it includes night
        corrections), keeping the TDD balance (carbs = the rest). Test as a switch, then compare day/night, night
        saturation and the cohort count.
+
+125. **The donor's own night delivery as the body's basal makes it worse: the extra night insulin is not a basal
+     level.** `--enable basal_own` (ef1f52f, off; template column `night_ratio`, `templates_pilot_night.csv`, donor
+     median 1.30, q25/75 1.09 / 1.63, max 9.8, capped at 3). The body's basal share = scheduled basal × night_ratio
+     × 24 / TDD, clipped 0.30–0.75, with carbs balancing TDD. c133 (same-code base reproduces c130, 31):
+
+     | | base | basal_own | donors |
+     |---|---|---|---|
+     | matched | 31 | 24 | |
+     | overnight delivered ÷ scheduled | 1.65 | 1.73 | 1.29 |
+     | day/night | 1.59 | 1.51 | 2.06 |
+     | night insulin CV / R² on night glucose | 0.29 / 0.51 | 0.23 / 0.39 | 0.39 / 0.61 |
+     | t54 / lows per day | 0.15 / 0.83 | 0.09 / 0.58 | 0.215 / 1.08 |
+     | manual U/day | 12.3 | 10.8 | 12.0 |
+
+     - A body built to need what the donor's Loop delivers makes the sim's Loop deliver more again, and lowers the
+       carbohydrate the TDD balance leaves (fewer boluses and lows). The sim's 1.65 is not a too-high basal prior.
+       Something in simulated nights calls for insulin above schedule: evening carbohydrate carried into the night
+       (fat/protein late parcel, slow phase, late dinners) or the 25% of nights above 250 (donors 18.5%).
+     - Next: decompose the sim's night above-schedule insulin by what preceded it (time since last eating event,
+       carbohydrate still absorbing at midnight), and compare donors' carb-free nights.
