@@ -1939,3 +1939,12 @@ statistic here, but it is the controller donors ran.
          donors' noise.
        So lesson 20's field constraint does not pin p2 between 0.02 and 0.05. Its evidence was Loop over-dosing
        into meals at clamp speed (4% in the first hour); p2 0.03 still gives 12% at 60 min (Loop 22%).
+     - **Appearance is not the slow part.** True Ra after isolated entered meals (c119_base; ≥ 20 g, median 48 g,
+       nothing else eaten from −3 h to +6 h; `ra_traj.py`):
+       - cumulative share at 30/60/90/120/180 min: 0.09 / 0.26 / 0.45 / 0.61 / 0.87;
+       - t25/50/75 of 58/99/148 min, faster than Elleri 2013's high-GL meal (72/130/197; low-GL 95/178/270);
+       - Ra peak at 58 min.
+       The sim's CGM climbs half as fast as donors' in the first hour despite this, so what holds the rise back
+       is removal: insulin action timing (p2), glucose effectiveness, or the meal bolus's absorption. With
+       appearance at its evidence, the slower action rate becomes the leading explanation (the 121 g meal of
+       LESSONS 89 sat at the low-GL pace because the energy ceiling binds large meals).
