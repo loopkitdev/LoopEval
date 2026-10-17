@@ -1144,3 +1144,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     A second pass does not converge (shifts again +0.40 falling / -0.84 rising at 70-90) and is within noise: TIR 73.8 /
     73.6, t<54 0.31 / 0.21, t<70 1.83 / 2.01, lows per meal bolus 0.135 / 0.123; not kept. The field's starts include
     logged meals while the offset moves only the unannounced-meal head, so the gap it measures is not all its own to close.
+122. **Counting only unannounced starts on both sides gives a cleaner trend calibration but loses the low improvement; the
+    all-starts version stays.** UNANN=1 (calibrate_closed_state.py): smaller shifts (fall > 2 at 70-90 +0.31, rising -0.41 to
+    -0.81; < 70 already matched). Held-out seeds 0 / 1: TIR 74.7 / 73.3, t<54 0.38 / 0.24, t<70 1.96 / 2.13, mean 146 / 152
+    (all-starts version 73.1 / 73.1, 0.31 / 0.21, 1.66 / 1.80; none 74.1 / 72.7, 0.37 / 0.25). The stronger shift works by
+    making unannounced eating while falling stand in for falling-glucose eating the generator under-draws among announced
+    snacks too; a cleaner fix would condition the entry head on trend as well.
