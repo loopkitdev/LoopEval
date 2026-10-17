@@ -208,7 +208,8 @@ def _formulation(brand: str, rng) -> str:
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = False,
-                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False) -> Person:
+                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False,
+                  basal_share: float | None = None) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -292,6 +293,8 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # share 0.43–0.51, eda L9], and the carbs EATEN are what the rest of TDD covers at the true CR
     # (= ISF / CSF of this body). Announced grams then drive only what the person enters.
     share = float(np.clip(rng.normal(0.5, 0.07), 0.35, 0.7))
+    if basal_share is not None:                          # experiment: the prior's centre moved, same draw (LESSONS 125)
+        share = float(np.clip(share - 0.5 + basal_share, 0.25, 0.7))
     nr = float(row.get("night_ratio", np.nan)) if "night_ratio" in row.index else np.nan
     if basal_own and np.isfinite(nr) and float(row.basal) > 0:
         # the body's basal need from the donor's own overnight delivery: automatic delivery / scheduled basal on the
