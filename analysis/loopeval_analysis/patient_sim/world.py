@@ -250,6 +250,8 @@ class World:
         site = SiteTraits(lh_person=lh, p_fail=SiteTraits.p_fail * youth if self.enable["site_failure"] else 0.0,
                           p_full=SiteTraits.p_full * youth, p_dislodge=SiteTraits.p_dislodge * youth,
                           planned_days=self.beh_traits.site_days)
+        if enable and isinstance(enable.get("site_cv"), float):
+            site.site_cv = float(enable["site_cv"])
         self.pump = Pump(site, r_pump, family=person.pump, faults=self.enable["pump_faults"])
         self.sensor = Sensor(person.sensor, r_sen,
                              compression_rate=person.traits.get("compression_rate", float(r_misc.gamma(2.37, 1 / 75.7)))
