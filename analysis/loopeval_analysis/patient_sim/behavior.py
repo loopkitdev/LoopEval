@@ -70,6 +70,8 @@ class BehaviorTraits:
     absorption_entry_h: float = 3.0      # what they tell Loop
     abs_fast: tuple = (0.0, 0.0)         # P(0.5 h entry) for small (≤ 20 g) / larger entries: the donor's own (LESSONS 102)
     abs_slow: tuple = (0.0, 0.0)         # P(5 h entry), same split
+    lead_shift: float = 0.0              # minutes added to every bolus-timing window: the donor lead is measured against the
+                                         # labeler's onset, which reads the sim's boluses ~6.5 min later than true (LESSONS 105)
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
     # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
     ov_less_day: float = 0.0             # less-insulin overrides/day (activity, low prevention)
@@ -444,7 +446,7 @@ class Behavior:
                 err = t.count_bias + r.normal(0, t.count_sd) - (0.1 * math.log(max(grams, 5) / 45.0) if t.count_sd > 0 else 0.0)
                 entered = max(1.0, round(grams * math.exp(err)))
                 off = {"before": r.uniform(-20, -5), "immediate": r.uniform(-3, 0),
-                       "during": r.uniform(3, 15), "after": r.uniform(15, 45)}[t.bolus_timing]
+                       "during": r.uniform(3, 15), "after": r.uniform(15, 45)}[t.bolus_timing] + t.lead_shift
                 et = base + mt + off
                 # a target-only override ahead of eating ("pre-meal") at the donor's rate per entry, when the donor's
                 # target-only overrides lower the target; raised-target ones go at random waking times below
@@ -476,7 +478,7 @@ class Behavior:
                 est = grams * math.exp(t.count_bias + r.normal(0, t.count_sd))
                 units = round(est / self.p.settings["cr"] * 2) / 2
                 off = {"before": r.uniform(-20, -5), "immediate": r.uniform(-3, 0),
-                       "during": r.uniform(3, 15), "after": r.uniform(15, 45)}[t.bolus_timing]
+                       "during": r.uniform(3, 15), "after": r.uniform(15, 45)}[t.bolus_timing] + t.lead_shift
                 if units >= 0.5:
                     self.planned.append((base + mt + off, ("free_bolus", units)))
         # everyday activity episodes (evidence/10 §7.2): day-level gamma noise (shape 3) on the person's rate; start
