@@ -48,10 +48,11 @@ class BehaviorTraits:
     snack_rate: float = 1.2              # snacks per day (Camerlingo: ≥1 snack on 71% of days)
     carbs_day: float = 190.0             # grams eaten per day (truth)
     meal_cv: float = 0.35                # within-person per-event size spread (log sd); the person's measured pulse spread when known
-    meal_slow_frac: float = 0.0          # share of a meal emptied in the slow phase (calibrated vs donor meal response)
+    meal_slow_frac: float = 0.15         # share of a meal emptied in the Dalla Man slow late phase (kmin) [J share; Pete 2026-10-17, LESSONS 120]
     meal_slow_k: float = 0.008           # /min, Dalla Man kmin
     meal_fast_frac: float = 0.2          # share of a meal's carbohydrate in its fast-emptying liquid phase [J; 0.2 vs 0.35 by cohort, LESSONS 44]
-    meal_fast_sd: float = 0.0            # per-meal SD of that share (Beta, same mean): foods differ in rapidly available glucose
+    meal_fast_sd: float = 0.25           # per-meal SD of that share (Beta, same mean): foods differ in rapidly available glucose
+                                         # (Englyst 1999; SD a judgement) [Pete 2026-10-17, LESSONS 120]
                                          # (Englyst 1999: RAG explains 70% of the glycaemic-response variance) [switch, LESSONS 88]
     main_weight: float = 1.9             # a main meal's expected size relative to a snack: Camerlingo 2021 (B 41 / L 49 / D 53 vs
                                          # snack 25 g). Entered grams per entry then match donors (32.3 vs 32.6; LESSONS 47);
