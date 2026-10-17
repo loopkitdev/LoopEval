@@ -72,6 +72,8 @@ class BehaviorTraits:
     abs_slow: tuple = (0.0, 0.0)         # P(5 h entry), same split
     lead_shift: float = 0.0              # minutes added to every bolus-timing window: the donor lead is measured against the
                                          # labeler's onset, which reads the sim's boluses ~6.5 min later than true (LESSONS 105)
+    lead_med: float = float("nan")       # the donor's own median bolus lead, less the labeler's +2 min bias (LESSONS 106)
+    lead_own: bool = False               # time boluses at lead_med ± 4 min instead of the four category windows
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
     # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
     ov_less_day: float = 0.0             # less-insulin overrides/day (activity, low prevention)
@@ -216,7 +218,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         snack_rate=snack_rate, carbs_day=person.truth["carbs_g_day"],
         p_entry_meal=p_meal, p_entry_snack=p_snack,
         count_bias=count_bias, count_sd=lj(0.2, 0.3),
-        bolus_timing=timing,
+        bolus_timing=timing, lead_med=float(lead - 2.0) if np.isfinite(lead) else float("nan"),
         p_bolus_with_entry=float(np.clip(pb, 0.05, 1.0)) if np.isfinite(pb) else 0.85,
         p_free_bolus=p_free, p_topup=p_topup, p_split=p_split,
         glances_per_day=lj(6.0, 0.6),
@@ -353,6 +355,16 @@ class Behavior:
         self.log = []                           # ground truth of every behavior event
 
     # ------------------------------------------------------------------ helpers
+    def _bolus_off(self, r: np.random.Generator) -> float:
+        """Minutes from eating start to the bolus. Always four draws (as the window table always took), so the default
+        reproduces earlier runs and a lead_own arm stays paired with it."""
+        t = self.t
+        w = {"before": r.uniform(-20, -5), "immediate": r.uniform(-3, 0),
+             "during": r.uniform(3, 15), "after": r.uniform(15, 45)}
+        if t.lead_own and np.isfinite(t.lead_med):
+            return t.lead_med + (w["immediate"] + 1.5) * 8 / 3 + t.lead_shift      # lead_med ± 4 min
+        return w[t.bolus_timing] + t.lead_shift
+
     def _f_glucose(self) -> float:
         """Bioavailability of fast glucose (tabs, juice): the person's calibrated per-gram meal value
         × 1.25 — pure glucose vs mixed carbohydrate [J] — never a fixed 1.0, which on a small glucose
@@ -445,8 +457,7 @@ class Behavior:
             if r.random() < p_e:
                 err = t.count_bias + r.normal(0, t.count_sd) - (0.1 * math.log(max(grams, 5) / 45.0) if t.count_sd > 0 else 0.0)
                 entered = max(1.0, round(grams * math.exp(err)))
-                off = {"before": r.uniform(-20, -5), "immediate": r.uniform(-3, 0),
-                       "during": r.uniform(3, 15), "after": r.uniform(15, 45)}[t.bolus_timing] + t.lead_shift
+                off = self._bolus_off(r)
                 et = base + mt + off
                 # a target-only override ahead of eating ("pre-meal") at the donor's rate per entry, when the donor's
                 # target-only overrides lower the target; raised-target ones go at random waking times below
@@ -477,8 +488,7 @@ class Behavior:
                 # food dosed by hand: their own estimate of the grams over their own CR setting
                 est = grams * math.exp(t.count_bias + r.normal(0, t.count_sd))
                 units = round(est / self.p.settings["cr"] * 2) / 2
-                off = {"before": r.uniform(-20, -5), "immediate": r.uniform(-3, 0),
-                       "during": r.uniform(3, 15), "after": r.uniform(15, 45)}[t.bolus_timing] + t.lead_shift
+                off = self._bolus_off(r)
                 if units >= 0.5:
                     self.planned.append((base + mt + off, ("free_bolus", units)))
         # everyday activity episodes (evidence/10 §7.2): day-level gamma noise (shape 3) on the person's rate; start
