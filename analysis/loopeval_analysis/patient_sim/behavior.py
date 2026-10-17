@@ -42,6 +42,7 @@ class BehaviorTraits:
     # meals (Camerlingo 2021 timing; carbs scaled to the person's diet)
     breakfast_mu: float = 2.078          # lognormal of breakfast hour
     breakfast_sd: float = 0.175
+    meal_gap_gev: bool = True            # meal gaps from Camerlingo's GEV (negative shape); False = the old Gumbel × 0.9
     skip_breakfast: float = 0.1
     snack_rate: float = 1.2              # snacks per day (Camerlingo: ≥1 snack on 71% of days)
     carbs_day: float = 190.0             # grams eaten per day (truth)
@@ -303,6 +304,12 @@ class Meal:
     protein: float = 0.0      # g
 
 
+def _gev(r: np.random.Generator, mu: float, sigma: float, xi: float) -> float:
+    """One draw from a generalized extreme value distribution by inverse CDF (xi ≠ 0)."""
+    u = min(max(r.random(), 1e-12), 1 - 1e-12)
+    return float(mu + sigma / xi * ((-math.log(u)) ** (-xi) - 1.0))
+
+
 class Behavior:
     """Call `minute(m, reading, state)` every minute. It returns a list of actions:
         ("eat", Parcel)                       — into the body
@@ -382,8 +389,14 @@ class Behavior:
         main_w = t.main_weight
         sB, sL, sD = t.slot_shares
         if r.random() > t.skip_breakfast: slots.append(("meal", b, sB / 0.286 * main_w, 0))
-        lunch = b + max(120.0, r.gumbel(282.9, 80.0) * 0.9)
-        dinner = lunch + max(150.0, r.gumbel(374.9, 85.0) * 0.9)
+        if t.meal_gap_gev:
+            # Camerlingo 2021 (32 adults, 17,111 meals): breakfast→lunch GEV(μ 282.9, σ 79.98, ξ −0.32), lunch→dinner
+            # GEV(μ 374.9, σ 84.86, ξ −0.47) minutes. The negative shape bounds the late tail (LESSONS 96)
+            lunch = b + max(120.0, _gev(r, 282.9, 79.98, -0.32))
+            dinner = lunch + max(150.0, _gev(r, 374.9, 84.86, -0.47))
+        else:   # the original draw: Gumbel (ξ 0, a long late tail) × 0.9, no source
+            lunch = b + max(120.0, r.gumbel(282.9, 80.0) * 0.9)
+            dinner = lunch + max(150.0, r.gumbel(374.9, 85.0) * 0.9)
         slots += [("meal", lunch, sL / 0.286 * main_w, 1), ("meal", dinner, sD / 0.286 * main_w, 2)]
         n_snack = r.poisson(t.snack_rate)
         sh = getattr(t, "snack_hours", None)
