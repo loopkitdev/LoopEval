@@ -2476,3 +2476,13 @@ statistic here, but it is the controller donors ran.
        Lead: the meal bolus amount the sim's temp-basal person takes, against Loop's recommendation and their donor's
        bolus ratio. A temp-basal Loop's recommendation carries the correction for current glucose and the forecast,
        which automatic-bolus users leave to Loop's own boluses.
+     - **Meal bolus against the carb-only amount** (labeled announced meals ≥ 10 g, bolus ÷ (entered g / CR),
+       median person; `bolus_vs_cr.py`):
+       - donors: automatic 1.00, temp 1.00 (BG at onset 129 in both);
+       - c135: automatic 1.02 (134), temp 1.07 (128).
+       Donors' meal boluses land on the carbs at the median, whatever Loop's recommendation carried. The sim's
+       temp-basal people take ~7% more: the calculator recommendation includes the correction and forecast terms,
+       and the person takes it (calc_up/down around 1). That is about half of their 13% manual excess. The other
+       half is meal count and size. Lead: whether donors adjust a temp-basal recommendation back toward the carbs, or
+       their recommendation is lower because their pre-meal forecast is lower. Measure it from the donors'
+       recommended vs delivered boluses (bolus_decisions).
