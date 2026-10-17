@@ -1118,3 +1118,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     lows are worse. New base v32of{0,1}TcB2FGUCGLBGG (+ PLANT_EOFF_MAP, PLANT_SIZE_PERSON).
     Change test on the new base (two seeds averaged per edit): slope TIR 0.63, t<70 1.34, mean 0.62, t<54 0.48, t<54 |error|
     0.34 (previous base 0.72 / 1.33 / 0.73 / 0.52, 0.36; no-change baseline 0.30). Within seed noise of the previous base.
+119. **On the new base the early meal surge still trades TIR for lows; not kept.** After a meal bolus the base now matches
+    the field's insulin action (ISF x activity 106 vs 107 at 60 min) and the meal's tail, but not the early surge (ICE 98 /
+    106 vs 123 / 122 at 30 / 45 min; glucose +10 vs +24 at 75 min; 22% vs 14% of meal boluses below 70 within 4 h). The
+    early-positive kernel of LESSONS 111 on v32of{0,1}TcB2FGUCGLBGG: per-seed fits (6 / 11 mg/dL of food) TIR 74.1 / 72.7 ->
+    73.4 / 69.7, t<54 0.37 / 0.25 -> 0.31 / 0.23, lows per meal bolus 0.133 / 0.122 -> 0.111 / 0.084; averaged kernel (8.3
+    mg/dL) for both seeds: TIR 72.4 / 70.8, t<54 0.33 / 0.18, t<70 1.74 / 1.72 (base 1.87 / 2.08), lows per meal bolus 0.106 /
+    0.090, mean 152 / 155; per-person TIR pass 33 / 29% -> 29 / 12%. t<54 moves toward the field and TIR away from it by the
+    same food.
