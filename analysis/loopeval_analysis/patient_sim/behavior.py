@@ -70,6 +70,7 @@ class BehaviorTraits:
     absorption_entry_h: float = 3.0      # what they tell Loop
     abs_fast: tuple = (0.0, 0.0)         # P(0.5 h entry) for small (≤ 20 g) / larger entries: the donor's own (LESSONS 102)
     abs_slow: tuple = (0.0, 0.0)         # P(5 h entry), same split
+    announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
     # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
     ov_less_day: float = 0.0             # less-insulin overrides/day (activity, low prevention)
     ov_less_f: float = 0.6
@@ -331,6 +332,7 @@ class Behavior:
         self.rng = rng
         self.r_ff = np.random.default_rng(int(getattr(person, "seed", 0)) + 777)   # per-meal fast share; own stream
         self.r_abs_entry = np.random.default_rng(int(getattr(person, "seed", 0)) + 911)   # entered absorption time
+        self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.readings: list[tuple[float, float]] = []
         self.planned: list = []                 # (minute, action) sorted
         self.planned_day = -1
@@ -437,6 +439,7 @@ class Behavior:
             speed = float(np.exp(r.normal(0, t.gi_cv)))
             p_e = min(1.0, t.p_entry_meal * t.slot_ann[k]) if kind == "meal" else t.p_entry_snack
             entered = None; bolus = None; et = base + mt
+            n_ov = len(self.overrides)
             if r.random() < p_e:
                 err = t.count_bias + r.normal(0, t.count_sd) - (0.1 * math.log(max(grams, 5) / 45.0) if t.count_sd > 0 else 0.0)
                 entered = max(1.0, round(grams * math.exp(err)))
@@ -451,6 +454,14 @@ class Behavior:
                 if r.random() < t.p_bolus_with_entry:
                     u = r.random()
                     bolus = 1.0 if u > t.calc_up + t.calc_down else (float(r.uniform(1.1, 1.5)) if u < t.calc_up else float(r.uniform(0.5, 0.9)))
+            # announce_mult < 1 (frontier: people who announce less, settings unchanged): an entry the person would have
+            # made is dropped with probability 1 − announce_mult on its own stream, after every draw above, so the rest of
+            # the plan (and the paired arm's RNG) is unchanged. The meal is eaten unentered and unbolused, with no hand-dosed
+            # bolus in its place, and the pre-meal override that went with the entry is dropped too
+            dropped = False
+            if entered is not None and t.announce_mult < 1.0 and self.r_ann.random() >= t.announce_mult:
+                dropped = True; entered = None; bolus = None; et = base + mt
+                del self.overrides[n_ov:]
             # composition [J]: T1D adults ~40% energy carbohydrate, 40% fat, 18% protein (Snell-Bergeon 2009,
             # unverified) → per carb gram ~0.44 g fat, 0.45 g protein for meals; snacks carry less
             fat_r, pro_r = (0.44, 0.45) if kind == "meal" else (0.2, 0.2)
@@ -460,7 +471,7 @@ class Behavior:
             self.planned.append((base + mt, ("eat_meal", meal)))
             if entered is not None:
                 self.planned.append((et, ("enter_meal", meal)))
-            elif r.random() < t.p_free_bolus:
+            elif not dropped and r.random() < t.p_free_bolus:
                 # food dosed by hand: their own estimate of the grams over their own CR setting
                 est = grams * math.exp(t.count_bias + r.normal(0, t.count_sd))
                 units = round(est / self.p.settings["cr"] * 2) / 2
