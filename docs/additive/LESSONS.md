@@ -1458,3 +1458,26 @@ statistic here, but it is the controller donors ran.
     - **Consequence for validation.** The donor delivery statistics (zero_frac, p99, TDD CV, day/night, ac1) count
       unknown insulin as zero. Next: mask no-record stretches in `real_stats` and re-score.
     Scripts: `highins2.py` / `highins_sim.py`, `zero_nights.py` (run dir).
+
+95. **Donor delivery statistics now treat no-record stretches as unknown insulin.** `validate.delivered_5min(...,
+    mask_gaps=True)` (on for donors): any stretch of 30 min or more not covered by a basal record (zero-volume temps
+    count as covered) is NaN. A block with no known insulin keeps only its glucose statistics; i032 has no dose
+    records at all and had been scored as delivering nothing.
+    - **Reference, before → after (p50 of 206 donors):**
+
+      | Statistic | Before | After |
+      |---|---|---|
+      | TDD | 37.2 | 38.8 |
+      | TDD CV | 16.4 | 15.7 |
+      | p99 5-min dose | 1.67 | 1.87 |
+      | zero_frac | 34.4 | 33.3 |
+      | ac1 | 0.11 | 0.08 |
+      | night_cv | 37.2 | 36.0 |
+      | day/night | 2.06 | 2.06 |
+
+      Worst single donor (i001): TDD 27.1 → 37.3, which matches its template (37.6; the templates' TDD comes from ice
+      and was always gap-aware).
+    - **Re-scored:** c99_base 22 of 51, c100 (per-person emptying, the default) 26. TDD now passes (KS p 0.91).
+    - **Day/night is a real gap, not missing records** (sim 1.70 vs 2.06). The p99 5-min dose gap widens (1.38 vs
+      1.87).
+    - `real_pilot.csv` is the masked version; `real_pilot_unmasked.csv` keeps the old one (local and gamepc).
