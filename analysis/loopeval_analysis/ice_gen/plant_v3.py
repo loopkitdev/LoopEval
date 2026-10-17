@@ -157,6 +157,8 @@ class PlantV3:
         self.bg_bolus = ck.get("calib_bg_bolus")   # bolus heads by glucose band (calibrate_bolus_bg.py)
         es = ck.get("calib_entry_state")
         self.entry_state = (np.asarray(es["bands"]), np.asarray(es["trends"]), np.asarray(es["offset"])) if es else None
+        ws = ck.get("calib_bwith_state")   # calibrate_bwith_state.py (LESSONS 122)
+        self.bwith_state = (np.asarray(ws["bands"]), np.asarray(ws["trends"]), np.asarray(ws["offset"])) if ws else None
         mk = ck.get("calib_meal_kernel")   # closed-loop meal-response kernel after each meal bolus (calibrate_meal_kernel.py, LESSONS 111)
         self.meal_kernel = np.asarray(mk["k"], float) if mk else None; self.mk_step = (mk or {}).get("step_min", 5); self.meal_bolus_t = []
         Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7, "v3m8": ICEGenV3M8, "v3m9": ICEGenV3M9, "v3m10": ICEGenV3M10, "v3m11": ICEGenV3M11, "v3m12": ICEGenV3M12, "v3m13": ICEGenV3M13, "v3m14": ICEGenV3M14, "v3m15": ICEGenV3M15, "v3m16": ICEGenV3M16, "v3m17": ICEGenV3M17, "v3m18": ICEGenV3M18, "v3m19": ICEGenV3M19, "v3m20": ICEGenV3M20, "v3m21": ICEGenV3M21, "v3m22": ICEGenV3M22, "v3m23": ICEGenV3M23, "v3m24": ICEGenV3M24, "v4": ICEGenV4, "v4r": ICEGenV4R}.get(ck.get("arch"), ICEGenV3)
@@ -464,6 +466,10 @@ class PlantV3:
                     eb_, et_, eo_ = self.entry_state
                     ii = int(np.searchsorted(eb_, float(x[0, -1, self.F["bg"]]) * 100, side="right")); jj = int(np.searchsorted(et_, float(x[0, -1, self.F["bg_trend"]]) * 2, side="right"))
                     cb_["entry"] = cb_.get("entry", 0.0) + float(eo_[ii, jj])
+                if self.bwith_state is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:   # bolus-given-entry by glucose x trend
+                    wb_, wt_, wo_ = self.bwith_state
+                    ii = int(np.searchsorted(wb_, float(x[0, -1, self.F["bg"]]) * 100, side="right")); jj = int(np.searchsorted(wt_, float(x[0, -1, self.F["bg_trend"]]) * 2, side="right"))
+                    cb_["b_with"] = cb_.get("b_with", 0.0) + float(wo_[ii, jj])
                 if self.bg_bolus is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:   # bolus heads by glucose band (LESSONS 110)
                     bb_ = int(np.searchsorted(self.bg_bolus["bands"], float(x[0, -1, self.F["bg"]]) * 100, side="right"))
                     for k_ in ("b_with", "b_alone"):
