@@ -2237,3 +2237,19 @@ statistic here, but it is the controller donors ran.
        - c130_base 7.67/8.04/8.52, 12.61/13.17/13.58, 18.58/19.08/19.50.
        Dinner is on time. The donors' larger 17–18 h insulin is not a dinner bolus at a different hour. Open:
        pre-dinner dosing (Loop on afternoon rises or evening basal, the donor's own schedule) against the sim's.
+     - **Manual vs automatic by hour** (share of the person's mean hourly total, median over people; `hour_split.py`):
+
+       | | 00–05 auto | 12 manual | 19 manual | 08–22 auto |
+       |---|---|---|---|---|
+       | donors (168) | 0.64 → 0.49 | 0.61 | 0.62 | 0.58–0.73 |
+       | c130_base (112) | 0.72 → 0.59 | 0.46 | 0.43 | 0.63–0.74 |
+
+       - The sim takes less of its insulin as lunch and dinner boluses and more as Loop's night delivery. Night manual
+         is ~0 in both.
+       - The slow late emptying phase adopted in LESSONS 120 moved some of this: day/night 1.68 (c124) → 1.59
+         (c129_s15). 15% of each dinner now absorbs into the night, and Loop covers it there.
+       - Two open pieces:
+         - meal bolus size at the main meals (0.43–0.46 vs 0.61–0.62 at the peaks, with daily manual units
+           matching);
+         - the night share of what dinner leaves behind.
+         Neither is a single knob: the slow phase helps the cohort count (27 → 31) while it costs day/night.
