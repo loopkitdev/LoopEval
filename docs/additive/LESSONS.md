@@ -1715,3 +1715,32 @@ statistic here, but it is the controller donors ran.
      - Templates without a lead (11) keep the category draw. The draw count is unchanged, so the default reproduces
        HEAD exactly: planned events are identical on five people, and lead_own moves only bolus entries.
      - Paired cohort c111_leadown queued on frozen 5581b12.
+     - **Result (c112, frozen 21d49eb, against c111):** at 15 min, 25 matched. At 23 min, 27 matched, and the
+       labeled lead IQR is 50 min (donors 51). Lows moved to the donors: t54 KS p 0.24 → 0.50, p_reach54 0.10 → 0.36,
+       CV 34.8 (34.75). Step skew, ACF zero-crossing, day/night and p99 are unchanged.
+     - A −4.6 min shift on top (c113, for the per-person bias of +6.6 min against the +2 assumed) matched 26. The
+       early tail gains a little (25.7% ≥ 20 min early, donors 30.6%), but 16.9% of sim boluses still label ≥ 45 min
+       late (donors 12%). That late excess is not bolus timing: it is where the labeler puts the onset when glucose
+       was already rising. Kept at no shift.
+
+107. **Wear: duplicate donor readings, then per-person gap rates; 30 of 51 matched.**
+     - **Definition fix.** 21% of G7 donors have > 5% of intervals under 2 min, the same reading uploaded twice
+       seconds apart. `wear` counted readings, so those donors read up to 1.08 coverage. It now counts distinct 5-min
+       slots (validate.core_stats; donors and sim alike). Donor median 0.977 → 0.974.
+       - Step statistics were never affected: `runs_from_series` breaks a run at a short interval.
+     - **Shared bug found on the way.** `traits._circadian_amplitude` turned the index into seconds with
+       `view("int64") / 1e9`, which assumes nanoseconds. Under a pandas build that parses to microseconds, every
+       donor's amplitude came out ~10× too large. It now uses `as_unit("ns").asi8`. With the fix, the donor table
+       reproduces the old one exactly except `wear` (`real_pilot.csv` replaced; the previous one kept as
+       `real_pilot_dupwear.csv`).
+     - **The remaining wear gap is between-person.** Corrected G7 wear q10/50/90: donors 0.927 / 0.975 / 0.993,
+       sim 0.947 / 0.971 / 0.981. Donors' short gaps (7–32 min) run 0.6 / 2.7 / 8.6 a day at p10/50/90, and long
+       gaps (32 min–12 h) 0.06 / 0.18 / 0.47. The sim gave everyone the family rate.
+     - **`--enable gap_own`** (453c0ba) scales the family's short and long bins by the donor's own whole-record
+       rates (`templates.add_gap_rates`, `templates_pilot_gap.csv`). The family table equals the donor means
+       (G7 3.88 / 0.23 a day), so the cohort mean is unchanged.
+     - **c114** (lead_own + lead_sd 23 + gap_own, against c112_sd23 rescored with slot wear): 27 → 30 matched.
+       wear KS 0.000 → 0.60, hurst_long 0.03 → 0.17, G6 v_sd 0.07 → 0.54, t54 KS 0.87. Gaps set where runs break,
+       and the run-based statistics read through them.
+     - **Still failing:** step skew (G7 0.01 vs 0.33), ACF zero-crossing 60 (42.5), day/night 1.69 (2.06), p99,
+       TDD CV, lag-1 autocorrelation, between-day fraction, circadian amplitude, sigma_disp, volatility clustering.
