@@ -1636,3 +1636,13 @@ statistic here, but it is the controller donors ran.
      - Templates: `templates_pilot.csv` locally carries the new columns (the old file is
        `templates_pilot_pre_abs.csv`). On gamepc they are in `templates_pilot_abs.csv`, leaving the file other roles
        read untouched.
+
+103. **`--set announce_mult=x`: the same people announcing less, paired (frontier request, for reduced-announcement
+     candidates).**
+     - Every carb entry the person would have made (meals and snacks) is kept with probability x, on its own RNG
+       stream (seed + 1213), drawn after all of the meal's other draws. Eating, activity, overrides, hand-dosed boluses
+       and every other plan item stay identical to the baseline arm (checked on three people at x = 0.5 and 0).
+     - A dropped entry's meal is eaten unentered and unbolused, and its pre-meal target override is dropped with it.
+       No hand-dosed bolus replaces it.
+     - Settings are unchanged, so the person's Loop sees the same therapy with less announced carbohydrate.
+     - Runtime behavior (corrections, top-ups, rescues) responds to the resulting glucose, as it would in a real person.
