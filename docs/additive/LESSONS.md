@@ -1606,3 +1606,14 @@ statistic here, but it is the controller donors ran.
        tracer data (LESSONS 69–70, 75).
      So the brake is not in appearance or liver physiology. What remains are behavior (how much is eaten when glucose
      rises fast, corrections) and the controller's response.
+     **Top-up boluses are not the missing brake.** Extra user boluses 15–120 min after isolated announced meals:
+
+     | | Meals with a top-up | Extra U per 10 g | First top-up |
+     |---|---|---|---|
+     | Donors (7,351 meals) | 55% | 0.57 | 40–52 min |
+     | c106 | 57% | 0.68 | 37–45 min |
+     | c102 tracer-paced | 64% | 0.68 | 35–48 min |
+
+     In both, top-ups rise with the meal's fastest 15-min climb. The sim tops up at least as often and a little more.
+     With appearance, liver, renal, glucose effectiveness, bolus timing, meal insulin and top-ups all checked, the
+     brake on fast real meals remains unidentified (`topups.py`).
