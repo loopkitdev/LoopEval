@@ -2280,8 +2280,19 @@ statistic here, but it is the controller donors ran.
          hurst_long 0.204 → 0.245 (0.247); glucose skew 0.85 → 0.89 (0.89);
        - broken: 24 vs 31 matched; t54 0.149 → 0.118 (KS 0.009; donors 0.215); lows/day KS 0.02; night CV
          31.9 → 29.3 (36.0); circadian amplitude 0.152 → 0.160 (0.131); lunch share of entered grams 0.38 (0.34).
-     - **The late dinners were standing in for missing night variance.** With dinners on time, simulated nights are
-       too quiet (CV 29 vs 36) and too free of lows. Real nights have variance and lows from something other than
-       late meals: the open night-high and night-low items of LESSONS 79–81. Not adopted (the switch stays). The
-       count drops because a stand-in was removed, so the remaining night component is the next thing to find.
+     - **Correction: night glucose is not too quiet.** `night_cv` is the night-to-night CV of overnight delivered
+       insulin (LESSONS 55), not glucose. On clean nights (no entry 22–06 h, 00–06 h CGM; `night_parts.py`):
+
+       | | g0 median | SD of g0 | SD of 0→6 h change | within-night SD | min < 70 | max > 250 |
+       |---|---|---|---|---|---|---|
+       | donors (15,924) | 150 | 50.7 | 56.5 | 22.6 | 18.9% | 18.5% |
+       | c130_base | 154 | 48.4 | 55.7 | 27.2 | 18.9% | 25.2% |
+       | c132_clock | 161 | 49.5 | 55.5 | 25.9 | 18.3% | 24.8% |
+
+       Simulated nights already match the donors' glucose structure, with a few more highs. What the own clock
+       removes:
+       - night-to-night variation in overnight insulin (late dinners had supplied it; 29 vs donors 36%);
+       - some of the overall lows (t54 0.12 vs 0.215).
+       Not adopted. The next leads are night-to-night insulin variation (overnight overrides, site and absorption
+       days) and daytime lows.
        Breakfast from entries (8.8 h) is later than from labels (8.1 h): early breakfasts go unentered.
