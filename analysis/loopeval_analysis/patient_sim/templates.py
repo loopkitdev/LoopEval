@@ -402,3 +402,26 @@ def add_disruption_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/i
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_gap_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Per donor, CGM gaps per day over the whole record: short (7–32 min between readings) and long (32 min–12 h),
+    the bins of sensor.MEASURED_GAPS. Donors differ several-fold (G7 short gaps p10/p90 0.6/8.6 a day), which the
+    family rate alone leaves out (LESSONS 107)."""
+    import json
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        p = ice_root / "full" / a / "glucose.json"
+        if p.exists():
+            m = np.unique(np.array([pd.Timestamp(x["startDate"]).value // 1_000_000_000 for x in json.load(open(p))]) / 60.0)
+            d = np.diff(m); days = (m[-1] - m[0]) / 1440 if len(m) > 1 else 0
+            if days > 7:
+                row["gap_short"] = float(((d >= 7) & (d < 32)).sum() / days)
+                row["gap_long"] = float(((d >= 32) & (d < 722)).sum() / days)
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t

@@ -110,6 +110,17 @@ def minute_of(iso: str) -> float:
     return (pd.Timestamp(iso) - EPOCH).total_seconds() / 60.0
 
 
+def _gap_mult(person):
+    """The donor's own CGM gap rates over the family's measured ones (templates.add_gap_rates; LESSONS 107)."""
+    from .sensor import MEASURED_GAPS
+    fam = MEASURED_GAPS.get(person.sensor, MEASURED_GAPS["Dexcom G7"])
+    r = person.traits.get("template_rates", {})
+    gs, gl = r.get("gap_short", np.nan), r.get("gap_long", np.nan)
+    ms = float(gs) / sum(fam[:4]) if np.isfinite(gs) else 1.0
+    ml = float(gl) / sum(fam[4:]) if np.isfinite(gl) else 1.0
+    return (ms, ml)
+
+
 class World:
     def __init__(self, person, days: int, seed: Optional[int] = None, enable: Optional[dict] = None):
         if enable and isinstance(enable.get("meal_k"), float):
@@ -241,7 +252,8 @@ class World:
         self.sensor = Sensor(person.sensor, r_sen,
                              compression_rate=person.traits.get("compression_rate", float(r_misc.gamma(2.37, 1 / 75.7)))
                              if self.enable["compression"] else 0.0,
-                             overrides={k: v for k, v in (enable or {}).items() if k.startswith("sensor_")})
+                             overrides={k: v for k, v in (enable or {}).items() if k.startswith("sensor_")},
+                             gap_mult=_gap_mult(person) if (enable or {}).get("gap_own") else None)
         self.r_abs = r_abs
         # settings edits (LESSONS 41): dated, multiplicative changes to the basal / ISF / CR schedules at the donor's
         # measured rate per setting; size lnN(median 3.6%, σ 1.06 → p90 14%), sign random [J: donors' edits are only
