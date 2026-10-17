@@ -361,9 +361,8 @@ over a few hours on purpose: with no insulin at all the green line keeps climbin
 that runaway is exactly the scale of the continuous work insulin is doing.)*
 
 > [!NOTE]
-> **Non-CF (linear-PD) mode** also exists (omit the flag): `counter = actual − Σ(Δdose × ISF ×
-> PD)`. It is accurate only for *small* per-step deltas (rules firing ±0.05–0.10 U); for
-> whole-algorithm comparisons use CF mode.
+> Without the flag there is no candidate body: the candidate decides open loop on the field's own
+> glucose and doses at every step (as in decision-time replay) and never feeds back.
 
 ---
 
