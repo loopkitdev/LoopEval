@@ -1093,4 +1093,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     percentile 62, pre-hold-out); generated 17% (entries joining a meal already started). PLANT_EATFIRST=0.35 on entry-started
     meals, new base: seeds 0 / 1 TIR 72.2 / 72.2 -> 70.6 / 70.3, t<54 0.36 / 0.31 -> 0.42 / 0.37, lows per meal bolus 0.114 /
     0.106 -> 0.123 / 0.112, mean 152 / 153 -> 153 / 155. Real eat-first meals differ from logged-first ones in more than
-    timing (size, what Loop has already done by the entry); a timing-only swap does not reproduce them.
+    timing (field, pre-hold-out, medians, logged-first vs eat-first): pulse 36 vs 37 g-eq, entry 35 vs 30 g, pulse / entry
+    1.08 vs 1.31, glucose at onset 129 vs 118, peak 40 vs 50 min, bolus 3.45 vs 2.90 U - started lower, logged smaller,
+    dosed less. A timing-only swap keeps the logged-first meal's entry and bolus.
