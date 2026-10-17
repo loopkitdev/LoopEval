@@ -2296,3 +2296,20 @@ statistic here, but it is the controller donors ran.
        Not adopted. The next leads are night-to-night insulin variation (overnight overrides, site and absorption
        days) and daytime lows.
        Breakfast from entries (8.8 h) is later than from labels (8.1 h): early breakfasts go unentered.
+
+124. **Night-to-night overnight insulin: donors' Loop answers night glucose more strongly.** Per person, overnight
+     (00–06 h) delivered insulin per night against mean night CGM (`night_ins.py`; donors' unknown-insulin bins
+     masked):
+
+     | | insulin CV | R² on night glucose | CV explained (r·CV) | residual CV |
+     |---|---|---|---|---|
+     | donors (168) | 0.393 | 0.61 | 0.31 | 0.231 |
+     | c130_base (112) | 0.286 | 0.51 | 0.20 | 0.177 |
+
+     - Night glucose varies alike in both (lesson 123's clean-night table), but donors' overnight insulin moves
+       ~1.5× as much with it, and also varies more independently of it.
+     - The controller is the same Loop and the settings come from the same donors. So either the sim's glucose
+       varies on time scales Loop answers less (slow drifts vs donors' sharper night moves), or the settings Loop
+       acts on differ (ISF, max basal, override use at night). Next: the controller's own gain on both sides,
+       overnight insulin above scheduled basal per mg/dL of forecast excess, using dosingDecision forecasts for
+       donors and the trace for the sim.
