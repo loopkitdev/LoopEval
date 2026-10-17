@@ -174,7 +174,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     rates = person.traits.get("template_rates", {})
     lj = lambda mu, sd: float(np.exp(rng.normal(math.log(mu), sd)))
     mpd = _num(rates, "meals_per_day")
-    snack_rate = max(0.3, mpd - 3.0) if np.isfinite(mpd) else lj(1.2, 0.4)
+    snack_rate = max(0.3, mpd - 3.0 - float(person.traits.get("snack_minus", 0.0))) if np.isfinite(mpd) else lj(1.2, 0.4)
     n_eat = 3.0 + snack_rate
     # rates from the RAW record where present (templates.add_raw_rates; LESSONS 36): the ice-labeled entry count
     # keeps only entries attached to a labeled pulse (2.07 vs 2.97/day)
