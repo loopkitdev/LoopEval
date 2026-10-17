@@ -77,6 +77,7 @@ class BehaviorTraits:
     lead_sd: float = 23.0                # within-person SD of the bolus lead, min (0 = ± 4 uniform); donors' labeled
                                          # spread less the labeler's 28-min onset error (LESSONS 106; default 2026-10-17)
     lead_own: bool = True                # bolus at lead_med instead of the four category windows (Pete 2026-10-17)
+    graze_keep: float = 1.0              # share of planned grazes kept (thinning experiment, LESSONS 109)
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
     # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
     ov_less_day: float = 0.0             # less-insulin overrides/day (activity, low prevention)
@@ -340,6 +341,7 @@ class Behavior:
         self.r_ff = np.random.default_rng(int(getattr(person, "seed", 0)) + 777)   # per-meal fast share; own stream
         self.r_abs_entry = np.random.default_rng(int(getattr(person, "seed", 0)) + 911)   # entered absorption time
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
+        self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
         self.readings: list[tuple[float, float]] = []
         self.planned: list = []                 # (minute, action) sorted
         self.planned_day = -1
@@ -531,7 +533,10 @@ class Behavior:
             # across the day [LESSONS 82]
             st = (base + (float(r.choice(24, p=sh_day)) + r.random()) * 60 + shift) if sh is not None \
                 else base + float(r.uniform(t.wake + 30, t.bed)) + shift
-            self.planned.append((st, ("graze", max(1.0, float(np.exp(r.normal(math.log(t.graze_g), 0.4)))))))
+            gz = max(1.0, float(np.exp(r.normal(math.log(t.graze_g), 0.4))))
+            if t.graze_keep < 1.0 and self.r_gz.random() >= t.graze_keep:
+                continue                                    # thinned on its own stream: every other draw stays paired
+            self.planned.append((st, ("graze", gz)))
         # exercise
         if r.random() < t.ex_per_week / 7.0:
             st = base + (t.ex_hour * 60 + r.normal(0, 45)) + shift
