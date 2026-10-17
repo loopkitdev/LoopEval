@@ -1682,8 +1682,7 @@ statistic here, but it is the controller donors ran.
      - The shift moves the middle of the distribution, but not the early tail. Each person draws a category from the
        donor's median lead ("before" if < −5 min) and then a fixed window (before = −20 to −5 min). A donor whose
        typical pre-bolus is 30–40 min early gets at most 20 in the sim. That window has no per-person evidence and is
-       the defect, not the uniform offset. The better form is the donor's own lead distribution per person, like the
-       `abs_*` columns.
+       a defect. Lesson 106 finds a second one (the windows quantize each donor's median).
      - Paired cohorts on frozen eefe53e (112 people, 14 days, against c109_abs):
        - **c110_lead:** 25 → 25 matched. t54 0.164 → 0.209 (donors 0.215), p_reach54 0.179 → 0.200 (0.200), lows/day
          0.92 → 0.83 (1.08). Step skew, ACF zero-crossing, day/night and p99 are unchanged.
@@ -1691,7 +1690,28 @@ statistic here, but it is the controller donors ran.
          v_skew gains of tracer pace hold. CV is still 39.4 (c102_gem1.6 39.2, donors 34.8), and Hurst long-range
          still collapses (0.155 vs 0.247). t54 0.37 → 0.33: earlier boluses take off a little, not the overshoot.
        - Labeler g-eq per entered gram: c110_lead 1.19, c110_lead_ge 1.37 (c102 1.24, donors 1.21). The tracer arm
-         is now over-sized by the labeler's measure, so its CV is partly a carb-size miscalibration. Re-fit csf before
-         reading its CV.
-     - Default stays `lead_shift = 0`. Next: per-person lead from the donor's labeled meals (corrected for the labeler
-       offset) in place of the four fixed windows. Expect a small cohort effect.
+         without the shift (c102) reads at the donors' size, so its CV of 39.2 is not a carb-size miscalibration. The
+         1.37 appears only once boluses move earlier, so it is how the labeler reads the meal.
+     - Default stays `lead_shift = 0`. The timing windows are replaced in lesson 106.
+
+106. **The labeler cannot see within-person bolus timing; give each person the donor's own median lead.**
+     - Labeler error on sim meals (`lead_err.py`; labeled onset vs true eating start, c106 and c110, 2,190 meals):
+       - onset error SD 26 min, so bolus-lead error SD 28 min, median bias +1 to +3 min;
+       - within-person lead SD is 3.5 min true and 27 labeled.
+     - Labeled within-person spread is therefore almost all labeler noise. It reads the same for the sim (median
+       33 min) as for donors (35), so donors' true within-person spread cannot be measured this way.
+     - The per-person median survives: about 200 meals average the noise down to about 2 min.
+
+       | Per-person median lead (labeled, min) | q10 | q25 | median | q75 | q90 |
+       |---|---|---|---|---|---|
+       | donors (151) | −14.6 | −5.9 | −0.1 | +6.0 | +9.8 |
+       | sim c106 | −10 | −5 | +5 | +15 | +19 |
+
+     - The sim is too late at the top. The four windows map the donor's median to a category: 58 of 168 templates
+       fall in "during", with medians +1 to +15, and every one of them gets 3–15 min (mean 9). "after" gets 15–45.
+     - `--enable lead_own` (commit 5581b12) times every entered-meal and hand-dosed bolus at the donor's median
+       minus the labeler's 2 min bias, ±4 min uniform. The ±4 min within-person spread is a placeholder: no
+       measurement can see it, per the above.
+     - Templates without a lead (11) keep the category draw. The draw count is unchanged, so the default reproduces
+       HEAD exactly: planned events are identical on five people, and lead_own moves only bolus entries.
+     - Paired cohort c111_leadown queued on frozen 5581b12.
