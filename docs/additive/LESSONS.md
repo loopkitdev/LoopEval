@@ -2218,3 +2218,16 @@ statistic here, but it is the controller donors ran.
        - bolus ratio 1.0 throughout in both.
        The meal model now reproduces the donors' meal-to-meal spread of speed and size. The −25 at 3 h after entered
        sharp rises is a narrow selection (~120 sim events vs 6,377), not a per-meal mismatch. Left open.
+
+122. **Day/night on the new defaults: too much pre-dawn insulin and a late dinner.** Hourly delivered insulin as a
+     share of the person's mean (c130_base vs donors, `hourly.py`):
+     - **Night:** 04–05 h is 0.58–0.68 (donors 0.52); 06 h is 0.75–0.77 (0.60). LESSONS 57's excess dawn-hour insulin
+       is still there.
+     - **Evening:** 17–18 h is 1.0–1.1 (donors 1.14 / 1.29); 19–20 h is 1.26–1.29 / 1.1 (1.35 / 1.30). The sim's
+       dinner insulin starts an hour later.
+     - The ratio is 1.59 (temp 1.66, autobolus 1.57) vs donors 2.04; the gap splits about evenly between pre-dawn
+       and early evening.
+     - Leads:
+       - the sim's dinner clock (GEV lunch → dinner gap, LESSONS 96) against the donors' bolus clock at 17–18 h;
+       - the pre-dawn excess against the body's dawn need (basal profile shrunk halfway, LESSONS 48) and Loop's
+         reaction to it.
