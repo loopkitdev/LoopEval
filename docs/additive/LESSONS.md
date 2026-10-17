@@ -2379,3 +2379,12 @@ statistic here, but it is the controller donors ran.
        worse (basal_own). Remaining candidates:
        - what the sim's Loop forecasts at night: momentum and RC on the sim's sensor noise vs real G7 smoothing;
        - an EGP night level above the schedule's assumption (the tracer EGP arm, LESSONS 75).
+     - **Sensor noise is a third of it** (c134, sensor_sigma and sensor_common 0.3, against c133_base):
+       - overnight delivered ÷ scheduled 1.65 → 1.49 (donors 1.29); clean nights 1.41 → 1.33 (1.16);
+       - day/night 1.59 → 1.62. Loop does answer noise asymmetrically at night, but the rest of the excess
+         (~0.17 × schedule on clean nights) is in the body.
+       - **Side finding:** CGM t54 0.149 → 0.029. About 80% of the sim's CGM time below 54 is sensor error, not true
+         glucose; the FDA-fitted G7 noise is what puts its lows near the donors'. A CGM t<54 comparison is a joint
+         test of body and sensor (AGENTS.md trap: compression and the 40 floor).
+     - Still open: ~15% of schedule overnight that the sim's bodies need and donors' don't, on nights without entered
+       carbohydrate, not explained by basal level, evening eating or sensor noise.
