@@ -1859,3 +1859,33 @@ statistic here, but it is the controller donors ran.
        (noise). Morning unannounced appearance 33.9 vs 33.8 g-eq/day, chained 21.0 vs 20.9. Between-day fraction
        0.117 → 0.125 (donors 0.102); hurst_long 0.223 → 0.230 (0.247).
      - evidence/14 budgeted 5–10% of the daytime ACF gap. It is not the morning surplus. Kept as a switch.
+
+112. **The sim's meals rise too slowly, and a bigger fast phase is not the fix.**
+     - **Isolated announced meals** (G7, ≥ 10 g, nothing else within 4 h; `meal_trajectory.py` on c114 vs donors).
+       Median CGM change from onset:
+
+       | min | 30 | 60 | 90 | 120 | 150 | 180 | 210 | 240 |
+       |---|---|---|---|---|---|---|---|---|
+       | donors (5,484 meals) | +7 | +27 | +39 | +42 | +40 | +38 | +31 | +22 |
+       | sim (437 meals) | +4 | +13 | +22 | +27 | +32 | +30 | +33 | +20 |
+
+       - Per 10 g at 120 min: 10.9 vs 8.4. First-hour steps: SD 7.17 vs 5.78, skew 0.67 vs 0.32.
+       - Biggest 15-min rise, median: 29 vs 20 mg/dL, at 45 vs 55 min.
+       - Donors climb fast, plateau at 90–180 min, then fall. The sim climbs slowly into the third hour.
+       - Uniformly faster emptying gets the climb but shortens the tail, and the lows overshoot (LESSONS 89, 109).
+     - **A larger fast liquid phase** (`meal_fast`, LESSONS 44's 0.2), paired against c119_base (30 matched), frozen
+       0d64b90:
+
+       | Fast share | Matched | Skew | CV | TIR | t54 | Labeled g-eq / entered g |
+       |---|---|---|---|---|---|---|
+       | 0.2 (base) | 30 | 0.76 | 35.6 | 69.2 | 0.22 | 1.21 |
+       | 0.3 | 25 | 0.80 | 35.7 | 66.0 | 0.18 | 1.18 |
+       | 0.4 | 25 | 0.85 | 37.1 | 66.2 | 0.24 | 1.36 |
+
+       Skew moves a little, but TIR falls and CV rises.
+     - **What the donors' shape asks for.** A fast early climb, then a sustained plateau of 1.5–2 h at ~10 mg/dL
+       per 10 g. Meals that are fast and also long imply more total appearance per gram over the first 3 h than the
+       sim gives, with insulin not cutting it short. Candidates:
+       - glucose appearance per gram (CSF) vs insulin action in the first 2 h: the labeler matches the pulse size
+         per gram (1.21) but not its timing;
+       - the meal-bolus insulin peaking too early relative to appearance in the sim.
