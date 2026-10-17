@@ -170,6 +170,8 @@ class World:
             self.beh_traits.meal_fast_frac = enable["meal_fast"]
         if enable and isinstance(enable.get("lead_shift"), float):
             self.beh_traits.lead_shift = enable["lead_shift"]
+        if enable and enable.get("lead_own"):
+            self.beh_traits.lead_own = True
         if enable and isinstance(enable.get("announce_mult"), float):
             self.beh_traits.announce_mult = float(np.clip(enable["announce_mult"], 0.0, 1.0))
         if enable and enable.get("meal_gap_gev") is False:
