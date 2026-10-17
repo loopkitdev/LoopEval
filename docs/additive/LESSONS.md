@@ -1481,3 +1481,21 @@ statistic here, but it is the controller donors ran.
     - **Day/night is a real gap, not missing records** (sim 1.70 vs 2.06). The p99 5-min dose gap widens (1.38 vs
       1.87).
     - `real_pilot.csv` is the masked version; `real_pilot_unmasked.csv` keeps the old one (local and gamepc).
+
+96. **Meal gaps now follow Camerlingo's GEV; the day/night gap is meal-time insulin concentration.** Hourly delivery
+    (fraction of the person's mean hour, median over people; donors masked per LESSONS 95):
+
+    | Hour | 04–05 | 12–13 | 18–20 |
+    |---|---|---|---|
+    | Donors | 0.52 | 1.35 / 1.30 | 1.29 / 1.35 / 1.30 |
+    | c100 | 0.61 / 0.62 | 1.20 / 1.15 | 1.09 / 1.21 / 1.11 |
+
+    - Labeled eating by hour matches (pulse grams within ±0.01 per hour). Donors' announced meals cluster tighter at
+      lunch (8% and 7% of entries at 12 and 13 h) and dinner (7/8/7% at 18–20 h); the sim's are flatter.
+    - **Fix:** `plan_day` drew the breakfast→lunch and lunch→dinner gaps from a Gumbel × 0.9 (ξ 0, no source for the
+      0.9). Camerlingo 2021, the cited source, fits GEV with ξ −0.32 / −0.47, a bounded late tail. Draws: SD 92 →
+      78 min, max 1,149 → 528 min. Now the default (`meal_gap_gev`; `--disable meal_gap_gev` restores the old draw).
+    - **Cohort c106 vs c100:** day/night 1.70 → 1.74 (donors 2.06); dinner entries peak 7% at 19 h; 27 of 51 (noise);
+      paired TIR +0.04, t<54 −0.10*.
+    - **Still open:** donors put more of their insulin at meal hours and less before dawn. Bolus per entered gram
+      matches (LESSONS 92), so the open items are the meal-time share of daily insulin and the night share.

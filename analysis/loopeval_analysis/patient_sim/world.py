@@ -168,6 +168,8 @@ class World:
             self.beh_traits.main_weight = enable["main_w"]
         if enable and isinstance(enable.get("meal_fast"), float):
             self.beh_traits.meal_fast_frac = enable["meal_fast"]
+        if enable and enable.get("meal_gap_gev") is False:
+            self.beh_traits.meal_gap_gev = False
         if enable and isinstance(enable.get("meal_fast_sd"), float):
             self.beh_traits.meal_fast_sd = enable["meal_fast_sd"]
         if enable and isinstance(enable.get("meal_slow_k"), float):
