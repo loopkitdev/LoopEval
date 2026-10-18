@@ -3448,3 +3448,11 @@ statistic here, but it is the controller donors ran.
      - Next for the quiet half: whether that wander is in true glucose or in the sensor. Compare the sim's quiet-period
        ACF of true glucose with its CGM's, and the donors' quiet ACF by sensor family (G6 / G7 / Libre 3): a sensor
        origin would differ by family, a physiological one would not.
+     - **The quiet wander is not the sensor.** Donors' quiet-period zero-crossing by sensor family: G6 37.5 (26
+       people), G7 40 (136), Libre 3 62.5 (6; its heavier smoothing). Two Dexcom generations with different noise agree
+       on ~40 min. The sim's TRUE glucose in quiet stretches crosses at 130 min (CGM 20: the sensor noise sets it), so
+       the simulated body is nearly still between events where real glucose keeps a ~40-min wander large enough to
+       dominate CGM noise. No named component of the sim acts on that timescale (B4's intraday OU is off for lack of
+       controlled-condition evidence, and its τ 240 min is the wrong scale). This is a missing physiological or
+       closed-loop process, to be identified from evidence (candidates: ultradian hepatic glucose output, pump-delivery
+       pulsing, Loop's own temp-basal cycling against a real body), not a fitted noise term.
