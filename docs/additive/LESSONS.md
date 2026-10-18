@@ -4197,3 +4197,17 @@ statistic here, but it is the controller donors ran.
      (LESSONS 143) is like-for-like with how the donors' ISF is measured, on the evidence-fit liver as on the old one.
      With quiet-hour insulin action, carb rise per entered gram (labeler 1.21) and paired TDD all at the donors', the
      daytime excess (+13–18) sits in what is eaten relative to what is bolused for, not in the body's response to either.
+
+205. **Paired with their own donors, the level is close; what is off is the day's shape.** Each simulated person against
+     the donor their template came from (`pair_hour_sim.py` / `pair_hour_don.py`, 108 people): mean CGM difference median
+     +4.2 mg/dL (c226_bt), +2.8 (c228); by hour, 02–06 h −6 to −11 and 09–11 h +14 to +20, 16–20 h +7 to +11. The cohort-
+     level +6 (157 vs 151) is mostly which donors the templates sample; the person-level gap is the 24-h amplitude
+     (0.18 vs 0.13): nights too low, late mornings too high.
+     - Entered grams: 73.7 vs 91.7 g/day (median ratio 0.84), short at 09–12 and 17–20 h. **`entry_own`** (91f4e83, off):
+       entry probabilities scaled on a dry-run plan to the donor's raw entered grams (new template column
+       entered_g_raw); ratio 0.84 → 0.87 only, since most people already enter nearly every meal (probability capped at
+       1); the gap is grams per entry (donors ~26.6, sim ~24). c228: mean 157.8, the same day shape, 30 matched (29).
+       Not adopted.
+     - Next, on the amplitude: what moves glucose from night to late morning in the simulated body with donor-level
+       insulin by hour (paired insulin by hour still to compute; the donor column of pair_hour_don.py is wrong and
+       must not be used).
