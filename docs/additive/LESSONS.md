@@ -3160,3 +3160,25 @@ statistic here, but it is the controller donors ran.
        all eaten, within-person meal-to-meal emptying variability, and the bolus lead when eating is delayed.
        Lesson 129's donor RC (glucose 3–4 below Loop's forecast in the first 2 h after entries) is the same signal
        seen through the forecast.
+
+146. **Real meals vary more in their first hour; at the same starting glucose they end in a low 2–4× as often.**
+     - **Donors' early lows follow ordinary meals.** Low onsets within 2 h of an entry, per day, by that entry's
+       size (5–15 / 15–30 / 30–60 / 60+ g): donors 0.054 / 0.093 / 0.098 / 0.026, new base 0.010 / 0.015 / 0.028 /
+       0.027; by minutes since the entry (0–30 / 30–60 / 60–120): donors 0.058 / 0.071 / 0.141, sim 0.021 / 0.010 /
+       0.048 (`low_ctx2.py`). Not proactive treatment entries: most follow 15–60 g meals, at 1–2 h. Large meals
+       already match.
+     - **Brazeau's size-dependent count error is a small part.** `--enable count_brazeau` (771d9ad; off): the mean
+       log count error follows estimate − actual = 10.54 − 0.28·g (Brazeau 2013, 692 T1D meals), held at the 20-g
+       value below 20 g [J: ×1.75 at 10 g is outside the data]; entered ÷ eaten by size 1.20 (15–30 g), 0.96
+       (30–60), 0.85 (60+), against the default's 0.98 / 0.89 / 0.85. c163: early lows 0.080 → 0.093/day, all lows
+       0.59 → 0.61, 21 → 25 matched; mean 166 unchanged.
+     - **Not the starting level.** P(low within 2 h | BG at a ≥ 15 g entry), by band < 90 / 90–110 / 110–130 /
+       130–160 / 160–200 / 200+ (`low_ctx3.py`): donors 0.196 / 0.142 / 0.106 / 0.102 / 0.088 / 0.050; sim 0.126 /
+       0.037 / 0.044 / 0.045 / 0.018 / 0.023. The sim's meals start higher (median 159 vs 138), but at equal start
+       real meals go low 2–4× as often, even from 160–200.
+     - **The first-hour spread is short.** Entry-anchored ΔCGM per 10 g, p10 / p25 / p50 / p75 / p90: at 60 min
+       donors −13.9 / −3.8 / +5.0 / +15.2 / +27.3 (IQR 18.9), sim −9.7 / −2.2 / +3.2 / +10.0 / +21.4 (IQR 12.1); at
+       120 and 180 min the spreads are close (IQR 23.3 / 23.3 vs 20.6 / 22.6). Real meals differ more from one
+       another in their first hour, both ways. Per-meal sources that set that spread: the bolus-to-eating offset
+       (lead, SD 23 min), the meal's own emptying speed (lnN 0.4) and fast share (Beta SD 0.25), absorption jitter
+       (15%). Next: which of them is under-sized against its evidence, not a wider knob.
