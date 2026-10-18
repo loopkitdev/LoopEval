@@ -79,9 +79,10 @@ class BehaviorTraits:
     p_entry_snack: float = 0.3
     graze_eve: bool = False              # graze timing weighted to the evening (LESSONS 170)
     skip_drop: bool = False              # skipped breakfast grams dropped, not redistributed (LESSONS 183)
-    split_more_p: float = 0.41           # with split_full: share of second doses that follow a second helping (LESSONS 186)
-    split_full: bool = False             # split meal bolus: the full recommendation first, the planned rest on top (donors
-                                         # take 1.0 of Loop's recommendation on the first of two boluses in 96%; LESSONS 186)
+    p_helping: float = 0.095             # with split_full: P(a bolused meal is eaten in two helpings, each entered and bolused)
+                                         # (donors: 9.5% of bolused entries ≥ 15 g, second ~13 min later after more carbs; LESSONS 186)
+    split_full: bool = False             # no halved split bolus: every meal bolus is the full recommendation, and second
+                                         # boluses come from second helpings (donors 1.0 of the recommendation in 96%; LESSONS 186)
     slot_comp: bool = False              # fat/protein per carb gram by meal slot (LESSONS 170)
     count_size: str = "log"              # "brazeau": the size-dependent mean error of Brazeau 2013 (LESSONS 146)
     count_bias: float = -0.10            # person's mean carb-count error (Brazeau 2013: 63% under)
@@ -565,8 +566,21 @@ class Behavior:
                 sc = (0.6, 1.0, 1.35)[k]; fat_r *= sc; pro_r *= sc
             fat = grams * fat_r * float(np.exp(r.normal(0, 0.5) - 0.125))
             protein = grams * pro_r * float(np.exp(r.normal(0, 0.5) - 0.125))
+            second = None
+            if t.split_full and kind == "meal" and entered is not None and bolus is not None and grams >= 25 \
+                    and self.r_split2.random() < t.p_helping:
+                # a second helping: part of the same meal's grams, eaten ~13 min after the first and entered and bolused
+                # on its own (median 20 g in donors) [J lognormal spread]
+                g2 = min(float(np.exp(self.r_split2.normal(math.log(20.0), 0.5))), 0.6 * grams)
+                gap = float(np.clip(np.exp(self.r_split2.normal(math.log(13.0), 0.6)), 3.0, 40.0))
+                sh = g2 / grams
+                second = Meal(base + mt + gap, g2, kind, speed, max(1.0, round(entered * sh)), max(et, base + mt) + gap, 1.0,
+                              fat=fat * sh, protein=protein * sh)
+                grams -= g2; entered = max(1.0, round(entered * (1 - sh))); fat *= 1 - sh; protein *= 1 - sh
             meal = Meal(base + mt, grams, kind, speed, entered, et, bolus, fat=fat, protein=protein)
             self.planned.append((base + mt, ("eat_meal", meal)))
+            if second is not None:
+                self.planned.append((second.t, ("eat_meal", second))); self.planned.append((second.entry_t, ("enter_meal", second)))
             if entered is not None:
                 self.planned.append((et, ("enter_meal", meal)))
             elif not dropped and r.random() < t.p_free_bolus:
@@ -680,7 +694,7 @@ class Behavior:
                 h = 0.5 if u < t.abs_fast[k] else 5.0 if u < t.abs_fast[k] + t.abs_slow[k] else t.absorption_entry_h
                 acts.append(("carb", m, float(meal.entered), h * 3600))
                 if meal.bolus is not None:
-                    if t.p_split > 0 and r.random() < t.p_split:
+                    if t.p_split > 0 and r.random() < t.p_split and not t.split_full:
                         # two boluses on one entry: donors' second dose is about as big as the first (second/first median
                         # 0.93, quartiles 0.42–2.0) a median 12 min later (10–90%: 2–26 min); 17,898 pairs. A planned
                         # remainder in units, not a fresh recommendation, which was 0 U for 36% of remainders (LESSONS 54)
@@ -713,21 +727,7 @@ class Behavior:
                 # the planned rest of a split meal bolus, in units of the first part (the world reads what was delivered);
                 # skipped if the person sees a low coming (CGM < 80) [J]
                 if not (self.readings and self.readings[-1][1] < 80):
-                    if t.split_full:
-                        # donors' second dose is a fresh recommendation (requested / recommended median 1.0), and 41% of
-                        # them follow more carbohydrate entered or an upward edit, median 20 g (LESSONS 186): a second
-                        # helping, eaten and entered, then Loop's recommendation
-                        if self.r_split2.random() < t.split_more_p:
-                            g2 = float(np.exp(self.r_split2.normal(math.log(20.0), 0.5)))
-                            bp = self.p.body
-                            acts.append(("eat", Parcel(m, g2, kempt=bp.kempt, kabs=bp.kabs, f=bp.f, label="second",
-                                                       kcal_per_g=4.0 + 9.0 * 0.44 + 4.0 * 0.45)))
-                            acts.append(("carb", m, float(max(1.0, round(g2))), t.absorption_entry_h * 3600))
-                            self.log.append((m, "meal", g2, round(g2)))
-                            self.log.append((m, "entry", round(g2), 1.0))
-                        acts.append(("bolus", m, 1.0))
-                    else:
-                        acts.append(("split_units", m, rest[0], rest[1]))
+                    acts.append(("split_units", m, rest[0], rest[1]))
                     self.last_bolus = m
                 self.log.append((m, "split_rest", 0, None))
             elif kind == "topup":
