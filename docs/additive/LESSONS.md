@@ -3909,3 +3909,25 @@ statistic here, but it is the controller donors ran.
        min after entry are 0.4% per donor on average (p90 1%; 253 across 193 donors; to a median 0.70 of the entry,
        34 min later), against 1,641 revised upward. Edits under-record (most people never edit), but where the record
        speaks, real meals grow after entry rather than shrink. Pre-bolus timing has no record in the donor data.
+
+186. **Real people take Loop's full recommendation on the first of two meal boluses; the sim halves it, but matching
+     that does not by itself bring the missing lows.** Requested ÷ recommended at the bolus nearest an entry ≥ 15 g
+     (`bolus_ratio.py`; donors from `bolus_decisions.parquet`, 34,161 bolused entries; sim from `bolus_requests`):
+     donors p10–p90 all 1.00, < 0.95 in 6%, > 1.05 in 4%; c201_base < 0.95 in 32% (p10 0.42, p25 0.74). The gap is the
+     split bolus (LESSONS 47, 54), which the sim draws as f = 1/(1 + ratio) of the recommendation first and the rest in
+     units ~12 min later. In donors, 23% of bolused entries have a second bolus within 30 min; the first is 1.00 of the
+     recommendation in 96%, the second is its own fresh recommendation (median 1.00; 0.78 of the first in units; rec ≈ 0
+     in 14%); 41% of second boluses follow more carbohydrate entered or an upward edit (median 20 g), 59% no recorded
+     carbohydrate. Lows within 2 h follow 10.5% of donor bolused meals vs the sim's 5.7%.
+     - **`--enable split_full`** (f7f2ca3, off), full recommendation first, the planned remainder on top: ratios match
+       (< 0.95 in 7%); lows 1.083/day (donors 1.077, KS 0.97), t54 KS 0.80, TDD 38.7 (38.8), early lows after bolused
+       meals 0.150/day (0.210); but bg_mean 147.5 fails, with σ_meas G7, Libre sd/MAD and between-day fraction (all
+       marginal in the base): 37 vs 40. Split meals get ~1.9× their recommendation with no extra carbohydrate.
+     - **split_full v2** (eed8ebd, same switch, `split_more_p` 0.41): second dose = Loop's fresh recommendation, after a
+       second helping (lnN median 20 g, eaten and entered) in 41%: ratios match, but Loop recommends ~0 twelve minutes
+       after a full dose with no new carbohydrate, so lows 0.833/day, early lows 0.108; hurst_long, t54, day/night fail:
+       35 vs 40. Not adopted; the switch stays off.
+     - So the lows of the first arm came from insulin real people do not take as drawn. The open fact is the donors'
+       59% of second boluses with no recorded carbohydrate for which Loop still recommended ~0.8 of the first dose: what
+       made the forecast rise (a carb entry before the first bolus missed by the ±15 min window, a pre-bolus taken on a
+       correction-only recommendation, the first dose capped) decides how the sim should draw them. Measure that next.
