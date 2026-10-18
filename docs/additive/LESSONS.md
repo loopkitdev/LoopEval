@@ -3996,3 +3996,18 @@ statistic here, but it is the controller donors ran.
        Wallace & Olefsky 1986 JCI doi:10.1172/JCI112599 report activation and deactivation rates of HGO and peripheral
        action). The sim's single X_E rate gives ~115 min both ways. An onset/offset asymmetry in insulin's hepatic action
        is the named form to check against the full papers before any switch.
+
+192. **The deactivation evidence (Gray 1982) needs a saturating hepatic dose-response before it can set a rate.** Gray
+     RS, Scarlett JA, Griffin JW, Olefsky JM, Kolterman O. *Diabetes* 1982;31:929 (doi:10.2337/diab.31.10.929), 10 lean
+     non-diabetic, euglycaemic clamp: after 40 / 120 mU/m²/min (insulin 126 / 350 µU/mL, falling with t½ 7–8 min), HGO
+     stayed fully suppressed 50 / 80 min, then reached half of basal at 59 ± 8 / 119 ± 6 min; peripheral uptake halved at
+     42 / 78 min. Deactivation lags insulin and is faster after lower insulin.
+     - Replaying the protocol on the default EGP arm (X_E linear in (I − Ib)/Ib, EGP = 1 − se·X_E clipped at 0, se 1, so
+       full suppression at 2× basal): at 126 µU/mL X_E settles ~11× past full suppression, so even p2e_off 0.02 keeps
+       HGO at zero 117 min and gives R50 151 min (Gray 50 / 59); 0.006 never recovers within 6 h. The linear arm
+       cannot use supraphysiological clamp data: real suppression saturates in insulin (half-maximal near ~2× basal,
+       Rizza 1981 [S: verify]), so the state does not have that far to unwind.
+     - Named upgrade for the EGP arm, both parts evidenced before any switch: (1) a saturating (Michaelis–Menten)
+       hepatic response to insulin, so clamp data map onto it; (2) separate on / off rates, onset kept on the meal tracer
+       nadir (Romeres 2025, p2e 0.006), offset fitted to Gray's R50s through (1). LESSONS 191's p2e 0.012 diagnostic
+       is the direction; this is the form.
