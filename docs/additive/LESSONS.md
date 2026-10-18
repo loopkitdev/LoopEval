@@ -3799,3 +3799,25 @@ statistic here, but it is the controller donors ran.
        entries 3.21/day; 36 vs 40. The donors' spread of logging, at a mean above the constant's, makes the lows
        shallower overall: frequent loggers lose more deep lows than rare loggers gain. The 0.25 constant stays the
        default and `log_own` an experiment switch.
+
+180. **Real lunches rise like breakfasts; the sim's barely rise. Circadian gastric emptying fixes the night level, not
+     lunch.** Isolated entries ≥ 20 g (no other entry −3 h / +4 h), ΔCGM every 30 min to 4 h (`slot_traj.py`):
+
+     | slot | donors | c201_base |
+     |---|---|---|
+     | breakfast 06–10 | +18 / 41 / 42 / 35 / 29 / 27 / 22 / 16 | +12 / 26 / 39 / 37 / 36 / 30 / 28 / 26 |
+     | lunch 11–15 | +18 / 34 / 36 / 35 / 33 / 31 / 26 / 18 | +1 / 7 / 10 / 2 / −3 / −8 / −4 / −2 |
+     | dinner 17–21 | +16 / 16 / 11 / 15 / 22 / 27 / 23 / 20 | +8 / 12 / 12 / 9 / 4 / 10 / 9 / 3 |
+
+     - Not the circadian SI profile (B1 off: lunch +4 / 12 / 16, c191) and not post-meal activity (a walk within 2 h of
+       28% / 33% / 31% of breakfasts / lunches / dinners in the sim).
+     - **`--enable ge_circ`** (f8e6737; off): gastric emptying ×1.25 at 06–11 h, ×1.0 at midday, ×0.8 at 17–23 h, on the
+       energy ceiling and the parcels' rates (Goo 1987: the same solid meal's emptying half-time ~54% longer in the
+       evening) [J shape]. c207 against c201_base: 00–03 140.6 → 152.5 (donors 152), night share of lows 45% → 39%,
+       circadian amplitude 0.169 → 0.139 (donors 0.131), breakfast +14 / 41 / 58 at 0.5–1.5 h with a shorter tail; but
+       lunch still +3 / 11 / 15, dinner sags (−4 to −7 at 2–3 h), lows 0.75/day, t54, P(reach 54) and day/night fail:
+       31 vs 40. Not adopted.
+     - The lunch gap is the sharpest single meal-level divergence: real lunches rise ~35, the sim's ~10. With breakfast
+       and dinner in the right range and activity and SI ruled out, what is particular about simulated lunches (their
+       entries, boluses and pre-lunch state) is the next measurement. As with sleep_util, holding the night up costs
+       the low count; the night and the daytime lows have to move together.
