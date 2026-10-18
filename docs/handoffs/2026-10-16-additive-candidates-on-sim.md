@@ -119,3 +119,9 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
   - The cohort is 35 of 51 matched; long-range Hurst and overnight insulin variability now pass.
   - Lows read a little high (t70 2.45 vs 1.67).
 - `--set ins_p2e=0.010` restores the previous rate.
+
+## Update 2026-10-18: menstrual cycle on by default
+
+- The menstrual cycle is now on by default (B5) for menstruating people, 63% of whom respond. Insulin sensitivity is
+  lowest from the late luteal days to menses onset, the shape BDDP's G7 cycle logs show (LESSONS 136). Cohort
+  statistics are unchanged within noise. `--disable menstrual` turns it off.
