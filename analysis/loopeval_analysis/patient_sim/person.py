@@ -212,7 +212,7 @@ def _formulation(brand: str, rng) -> str:
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
-                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False,
+                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
@@ -315,6 +315,8 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         # donor's nights (an upper bound: it includes night corrections), × the scheduled basal (LESSONS 125)
         share = float(np.clip(float(row.basal) * j_basal * min(nr, 3.0) * 24.0 / tdd, 0.30, 0.75))
     basal_true = tdd * share / 24.0
+    if egp_sat:                       # saturating hepatic signal + faster offset (LESSONS 193), before calibration
+        bp = bp.scaled(egp_vs=2.57, p2e_off=0.015)
     bp = calibrate(bp, formulation, isf_true, basal_true, egp_share, total=isf_total, blend=isf_blend)
     # true CR on the LINEAR part: the TDD constraint holds with it (cohort c35 TDD 36 vs donors 37); the effective
     # peak-probe CSF (_probe_csf_effective) fed people for 42 U/day (c36), and a whole-excursion balance is
