@@ -4301,3 +4301,13 @@ statistic here, but it is the controller donors ran.
        0.282 (passes, KS 0.25), night unentered rises 0.59 (0.67; base 0.49), within-person meal drop SD 32.5 (36.7; 30.4),
        low nadirs 47 / 52 / 58; lows 0.42/day and t54 ~0 (false sensor lows removed, as expected): 28 matched. The lows
        gap is now almost entirely real lows the bodies do not have.
+
+212. **After the sensor refit, the missing lows sit in the first two hours after an entry.** Low onsets per person-day
+     (low_ctx2b.py), c237_sr vs donors: total 0.60 vs 1.06; after the last entry 0–30 / 30–60 / 60–120 min 0.013 / 0.006 /
+     0.035 vs 0.058 / 0.071 / 0.141; 2–4 h 0.092 vs 0.166; 4 h+ 0.455 vs 0.623. The 30–60 min gap (12×) is the signature of
+     insulin ahead of the food (a pre-bolus with a late meal, a delayed or abandoned meal). The sim gives each person one
+     fixed timing class (`_bolus_off`: bolus 5–20 min before eating, immediately, 3–15 min into it, or 15–45 min after),
+     so a meal never starts more than 20 min after its bolus and the class never varies meal to meal; yet the within-
+     person time to peak already matches (LESSONS 178). Named candidates with their own evidence still to measure: the
+     share of meals eaten well after the bolus (delayed or interrupted meals), and post-meal activity (HealthKit workouts
+     from BDDP; Databricks login).
