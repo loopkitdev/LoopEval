@@ -218,8 +218,8 @@ class World:
             self.beh_traits.own_clock = True
         if enable and enable.get("entry_clock"):
             self.beh_traits.entry_clock = True
-        if enable and enable.get("graze_fast"):
-            self.beh_traits.graze_fast = True
+        if enable and "graze_fast" in enable:
+            self.beh_traits.graze_fast = bool(enable["graze_fast"])      # default on (LESSONS 158); --disable graze_fast
         if enable and isinstance(enable.get("graze_keep"), float):
             self.beh_traits.graze_keep = float(np.clip(enable["graze_keep"], 0.0, 1.0))
         if enable and isinstance(enable.get("announce_mult"), float):

@@ -3421,3 +3421,4 @@ statistic here, but it is the controller donors ran.
        with glucose t½ ~9 min (Calbet 1997, Hunt 1985), so `graze_fast` is the evidenced form for that share. The rest
        of the rising-trend gap belongs to the other unentered intake (snacks and meals eaten without an entry), which
        still empties as solid food.
+     - **Adopted (Pete, 2026-10-18): `graze_fast` is the default** (`--disable graze_fast` restores solid grazes).
