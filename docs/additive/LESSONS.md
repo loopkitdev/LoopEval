@@ -4271,3 +4271,11 @@ statistic here, but it is the controller donors ran.
        at 1–1.5 h (+18 / 18), within-person drop SD 27.6 (30.0), 29 matched (28). Kept off: its rate is general-population
        (about half of US adults drink a sugar-sweetened beverage on a given day, NHANES data briefs); a T1D-specific
        per-meal rate is the evidence step before a default.
+
+210. **Reference base after the review loop (c235_base, f725660): 28 of 51.** Defaults since c201_base: EGP share U(0.7,
+     0.9), egp_sat, p2e 0.012, CSF cal 1.05, site_cv 0.27, budget_tight, own_clock (templates_pilot_logs.csv now carries the
+     clk_* and entered_g_raw columns), SG median 0.0045, meal_drink_p 0.12. Against donors: mean 150.5 (151.4), CV 33.3
+     (34.8), day/night insulin 2.051 (2.057), hurst_long 0.278 (0.247), low nadirs 47 / 53 / 58 (40 / 50 / 57), low
+     duration p90 70 (65), per-person meal EGP nadir on the tracer's; open: lows 0.50/day (1.08) and t54 0.031 (0.215),
+     24-h amplitude 0.187 (0.131), night unentered rises 0.49 (0.67), within-person meal drop SD 30.4 (36.7), lunch rise
+     +19 / 22 at 1–1.5 h (+34 / 36). Validation convention unchanged (`--enable rc_own`).
