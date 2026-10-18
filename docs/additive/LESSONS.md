@@ -2614,3 +2614,12 @@ statistic here, but it is the controller donors ran.
      - Fit target (Pete: fit to observed data, never to Loop): this entry-anchored trajectory. Arms queued:
        csf_mult 1.2 and 1.4 (c140). More glucose per gram with the TDD balance means fewer grams eaten for the same
        insulin, so meals rise more and the bolus covers less.
+     - **CSF alone does not fix it** (c140, csf_mult 1.2 / 1.4 against c135):
+       - 60 / 120 / 180 min per 10 g: temp +2.6 / −0.6 / −0.9 and +4.3 / +0.4 / −0.5; automatic +2.4 / −1.6 / −2.2 and
+         +2.8 / −1.3 / −3.0 (donors temp +6.4 / +5.2 / +5.5, automatic +4.3 / +4.3 / +5.4);
+       - 28 and 32 matched; TIR falls to 66.
+       Meals still go below their start after 2 h: the insulin outlasts the carbohydrate.
+     - **Correction to LESSONS 113.** The sim's meal appearance (t25/50/75 58/99/148 min) is FASTER than both of
+       Elleri 2013's tracer meals (high-GL 72/130/197, low-GL 95/178/270). "At or above tracer pace" is not a match:
+       the late absorption is too short, which explains this trajectory. Arms queued: ge_mult 0.7 and 0.55, inside
+       evidence/09's Vmax 2–5 kcal/min. Target: this entry-anchored trajectory and the tracer t50/t75.
