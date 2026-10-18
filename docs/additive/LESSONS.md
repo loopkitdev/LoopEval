@@ -2596,3 +2596,21 @@ statistic here, but it is the controller donors ran.
        - the fat SI dip ρ U(0, 0.35) per 50 g, 2–6 h;
        - the protein parcel, 0.1 g glucose per g, delayed 90 min.
        Not in the amounts.
+
+130. **Anchored on entries, not labels: simulated meals are over-covered; donors' plateau.** CGM change per 10 g after
+     carb entries ≥ 20 g with no other entry from −3 h to +6 h. No labeler is involved, so this is observed data on
+     both sides (`entry_traj.py`, G7). Median ΔCGM per 10 g at 30 / 60 / 120 / 180 / 240 / 360 min:
+     - donors automatic (6,062): +3.2 / +4.3 / +4.3 / +5.4 / +3.7 / −0.3;
+     - donors temp (2,517): +4.7 / +6.4 / +5.2 / +5.5 / +4.0 / +1.0;
+     - c135 automatic (609): +1.3 / +1.7 / −3.0 / −4.1 / −1.0 / +1.7;
+     - c135 temp (272): +1.4 / +2.7 / −2.3 / −3.1 / −0.7 / +0.8;
+     - c139 (no fat/protein): the same shape.
+     For a 45 g meal, donors hold a plateau ~20–25 mg/dL above their start for 3 h; the sim's meals end 15–18 mg/dL
+     below it by 2–3 h. Earlier meal comparisons conditioned on labeled pulses, i.e. meals that rose, and missed this.
+     The CSF calibration (labeled g-eq per entered gram 1.21, LESSONS 89) had the same bias.
+     - In sim truth, entered ÷ eaten grams is 0.96 (q25/75 0.81 / 1.13), entry vs eating start −3 min (q10/90 −34 /
+       +27). The miss is not counting. Effective CR ÷ setting is 1.11: meals are bolused ~11% above need, and Loop
+       adds its own dosing.
+     - Fit target (Pete: fit to observed data, never to Loop): this entry-anchored trajectory. Arms queued:
+       csf_mult 1.2 and 1.4 (c140). More glucose per gram with the TDD balance means fewer grams eaten for the same
+       insulin, so meals rise more and the bolus covers less.
