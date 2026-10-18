@@ -3229,3 +3229,16 @@ statistic here, but it is the controller donors ran.
        entered gram, meal by meal (composition: fibre, fructose, fat, protein, what is actually eaten). The sim
        varies that per person (f, CSF) and in timing per meal, not in amount per meal. Next: evidence for the
        meal-to-meal spread of glucose appearance per labeled gram, and a named per-meal bioavailability term.
+
+149. **The first-hour spread is within each person, and none of the per-meal random terms sets it.**
+     - Per-meal count spread off / doubled (`--set count_sd_mult=0 / 2`, c165 on c7fd7b8): 60-min IQR 12.2 / 11.9
+       (new base 12.1); lows 0.55 / 0.61 per day; 22 / 22 matched. With lesson 147 (speed, lead and fast-share
+       spreads), every per-meal random term leaves the 60-min IQR within 11.8–14.7.
+     - **Within, not between.** Entry-anchored ΔCGM per 10 g at 60 min, people with ≥ 5 isolated entries: donors
+       (117) between-person IQR of person medians 7.5, median within-person IQR 19.1; sim (52) 5.9 and 12.2. Real
+       people's own meals differ from one another more, by about the whole gap.
+     - The one measured per-meal difference is when the entry is made: ~22% of donor entries arrive with CGM up
+       more than 15 mg/dL over the previous 15 min (eating begun before the entry), ~11% in the sim (lesson 147). A
+       late entry anchors the window on a rise already under way, then Loop doses into it. Next: the share and the
+       delay of late entries per donor, against the sim's entry-vs-eating offset (median −3 min, q10 / q90 −34 / +27),
+       as its own named behavior.
