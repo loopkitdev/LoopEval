@@ -3456,3 +3456,10 @@ statistic here, but it is the controller donors ran.
        controlled-condition evidence, and its τ 240 min is the wrong scale). This is a missing physiological or
        closed-loop process, to be identified from evidence (candidates: ultradian hepatic glucose output, pump-delivery
        pulsing, Loop's own temp-basal cycling against a real body), not a fitted noise term.
+     - **It is a daytime wander.** Quiet-period zero-crossing split by local hour (`acfctx5.py`): donors night (00–06)
+       15, day (≥ 08) 40; sim CGM 15 / 25; sim true glucose 140 / 75. Real quiet nights are as still as the sim's
+       (sensor noise sets both at 15); the ~40-min wander exists only while people are awake. That rules out a
+       hepatic rhythm or the closed loop as its source (both run at night) and points at waking life: fragmented
+       everyday movement (the sim has a constant waking background of 0.06 plus ~2 walks/day) and small sips and
+       bites. Next: a fragmented light-activity component built from accelerometry bout structure, mean-preserving
+       against the current background.
