@@ -3725,3 +3725,12 @@ statistic here, but it is the controller donors ran.
        0.098 per day; 60 g +: 0.042 vs 0.026). With the night balanced by sleep_util, the one remaining source of the
        low-count gap is the unexplained first-hour variability of real meals; closing it would be the daytime half that
        sleep_util needs to be adopted.
+
+174. **The first-hour meal spread is not the sensor.** The donors' extra within-person spread is size-independent
+     (lesson 150), as a sensor error would be, so: sim within-person IQR of the absolute 0→60 min change after isolated
+     entries (`spread_true.py`, c195_base, 73 people) CGM 51.8 vs true glucose 54.6 — the sim's sensor adds nothing;
+     donors ~63–69 on CGM. Closing it with sensor error would need an extra per-reading error sd of ~20 mg/dL (~11% at
+     180) during rises. The G7 accuracy study (Garg 2022, 316 adults): MARD at rapid rises (> 2 mg/dL/min) 9.7% (arm)
+     / 10.3% (abdomen) against 8.2% / 9.1% overall — about 1.15× the overall error. Rate-dependent CGM error is far too
+     small; the extra first-hour spread of real meals is in true glucose. Still open, with the meal-side terms
+     (lessons 147–150), late entries (149) and sensor (here) ruled out.
