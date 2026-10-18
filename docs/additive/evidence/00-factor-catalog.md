@@ -88,6 +88,62 @@ The "Freq." column is my estimate for a typical adult on AID, unless a source is
 
 ---
 
+## 1b. Simulator coverage (2026-10-18)
+
+Where each factor lives in the additive simulator. **On** = default; **switch** = built, off by default;
+**scenario** = forced by a scenario switch; **implicit** = carried by a donor-measured trait or the TDD budget rather
+than a named mechanism; **not built**. Component codes refer to `docs/additive/COMPONENTS.md`.
+
+| # | Factor | Component | Status | Data check |
+|---|---|---|---|---|
+| D1 | Carb quantity + counting error | behavior entries, count bias (person + meal, Brazeau) | on; `count_brazeau` switch | entry-anchored meals (LESSONS 130, 144) |
+| D2 | Carb type | A10 per-meal speed, fast share, slow phase; `ceiling_speed` | on (speed, fast share); switches | first-hour spread open (LESSONS 147–150, 174) |
+| D3 | Fat | A12 fat SI dip relative to the usual diet (`fat_rel`), kcal-slowed emptying | on | dinner second rise open (LESSONS 170) |
+| D4 | Protein | A12 late glucose parcel | on | — |
+| D5 | Caffeine | B-modulator, mean-zero around habit | switch | — |
+| D6 | Alcohol | B9 evening SI, morning-after EGP | on | BDDP logs (LESSONS 138) |
+| D7 | Meal timing | donor eating clock; `own_clock`, `graze_eve` | on (clock); switches | LESSONS 123, 135, 170 |
+| D8 | Dehydration | — | not built (Tier 3) | — |
+| D9 | Microbiome | per-person meal response spread | implicit | — |
+| D10 | Settings mismatch | settings = donor's; body halfway to the TDD yardstick (ISF_W) | on | LESSONS 144, 164 |
+| D11 | Bolus timing | per-person lead from the labeler (`lead_own`) | on | LESSONS 106 |
+| D12 | Adjunct medication | B12 GLP-1 RA | switch | ADJUST-T1D split (LESSONS 87) |
+| D13 | Glucocorticoids | B14 courses | on (population rate); scenario | Bevier 2008 (LESSONS 140) |
+| D14 | Niacin | — | not built (Tier 3) | — |
+| D15 | Light activity | C6 episodes + C7 fragmented bouts (`act_frag`) | on | — |
+| D16 | Exercise | C1–C5 sessions, uptake, acute and delayed SI, absorption | on | BDDP workouts (LESSONS 137) |
+| D17–18 | Fitness, exercise timing | per-person gain; session slot | on (as parameters) | — |
+| D20 | Insufficient sleep | B7 prior-night sleep loss; `sleep_util` (sleep-lowered glucose use) | on; switch | quiet-night balance (LESSONS 173) |
+| D21a | Illness | B6 episodes | on | BDDP logs (LESSONS 136) |
+| D21b | Stress | B10 reactive third | on | BDDP logs (LESSONS 138) |
+| D22 | Recent hypoglycaemia | A9 HAAF | on | — |
+| D24 | Dawn phenomenon | B1b basal-need profile (donor schedule), B2 dawn, B8 GH | on | LESSONS 48, 51 |
+| D25 | Infusion-set wear / failure | device site age, failures, occlusion | on | — |
+| D26 | Lipohypertrophy | device LH sites | on | — |
+| D27 | Intramuscular delivery | absorption jitter A4 | implicit | — |
+| D29 | Hyperglycaemia resistance | B11 | on | LESSONS 153 |
+| D30 | Menstrual cycle | B5 late-luteal shape | on | BDDP cycle logs (LESSONS 136) |
+| D31 | Puberty | age-banded U/kg | implicit | — |
+| D35 | CGM error | sensor families (G6, G7, Libre 3, Medtronic) | on | LESSONS 45, 174 |
+| D36 | Heat / sauna | — | not built (rare; evidence [U]) | — |
+| D38 | Altitude | — | not built (Tier 3) | — |
+| D32–34, D37, D39–42 | Coeliac, smoking, damaged insulin, sunburn, decision biases | — | not built (Tier 3) or implicit in behavior | — |
+| X1 | Rescue carbs / over-treatment | defense: per-person threshold and size from donors | on | LESSONS 166 |
+| X2 | Missed / unannounced boluses | per-person announcement and bolus rates | on | LESSONS 127, 145 |
+| X3 | Insulin absorption variability | A4 jitter, posture A4b | on | LESSONS 163, 169 |
+| X4 | Day-to-day need variation | B3 day SI, named nightly factors | on | — |
+| X5 | Circadian SI | B1 Visentin classes | on | LESSONS 168 |
+| X6 | Post-exercise late sensitivity | C2 delayed state | on | LESSONS 137 |
+| X7 | Compression / dropouts | sensor compression, gaps | on | LESSONS 45, 167 |
+| X8 | Loop not running | outages, pump faults | on | — |
+| X9 | Pregnancy | X9 need by gestational week | scenario (`preg_week`) | LESSONS 141 |
+| X10 | Menopause | — | not built (settings drift) | — |
+| X11 | Gastroparesis | between-person emptying, 28% delayed | on | — |
+| X12 | Thyroid | — | not built (treated → settings) | — |
+| X13 | Impaired hypo awareness | rescue timing per donor | implicit | — |
+| X14 | Long-term drift | — | not built (14-day cohorts) | — |
+| X15 | Correction stacking | per-person corrections and top-ups | on | LESSONS 164 |
+
 ## 2. Ranking and justification
 
 The ranking score is **frequency × typical magnitude × how much of it survives AID feedback**
