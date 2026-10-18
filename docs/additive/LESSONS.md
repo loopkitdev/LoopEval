@@ -2765,3 +2765,14 @@ statistic here, but it is the controller donors ran.
        evidenced mechanism. Options:
        - keep searching (mixed-meal clamp studies of postprandial insulin action in T1D);
        - accept it as a documented limit of the simulator for meal-time candidates.
+     - **Post-meal activity (Pete's question: do people move more after eating?).** In the sim, activity episodes
+       ignore meals: 37% of entries ≥ 20 g have one within 3 h, the random expectation at 2.6 episodes/day being 38%.
+       Moving after a meal lowers glucose (walks are a known way to blunt rises), so more post-meal activity would
+       deepen the dip. The useful question is the reverse: whether adults sit more after meals than the sim assumes.
+       `--disable exercise` (c149 vs c145; it also removes activity carbs, so meals are a little smaller):
+       - temp ΔCGM per 10 g at 60 / 90 / 150 / 180 min: +4.1 / +3.4 / −1.6 / −2.9 (c145 +2.1 / +0.7 / −3.3 / −3.1;
+         donors +6.4 / +5.9 / +5.5 / +5.5);
+       - 31 matched, TIR 65.
+       Activity after meals accounts for ~+1–2 mg/dL per 10 g in the first 90 min, not the 2–4 h plateau. If
+       accelerometer evidence shows adults are less active in the 1–3 h after meals, meal-coupled activity timing is a
+       real component (part of the early gap). Children may well be the opposite.
