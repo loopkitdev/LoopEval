@@ -79,6 +79,8 @@ class BehaviorTraits:
     p_entry_snack: float = 0.3
     graze_eve: bool = False              # graze timing weighted to the evening (LESSONS 170)
     skip_drop: bool = False              # skipped breakfast grams dropped, not redistributed (LESSONS 183)
+    split_full: bool = False             # split meal bolus: the full recommendation first, the planned rest on top (donors
+                                         # take 1.0 of Loop's recommendation on the first of two boluses in 96%; LESSONS 186)
     slot_comp: bool = False              # fat/protein per carb gram by meal slot (LESSONS 170)
     count_size: str = "log"              # "brazeau": the size-dependent mean error of Brazeau 2013 (LESSONS 146)
     count_bias: float = -0.10            # person's mean carb-count error (Brazeau 2013: 63% under)
@@ -681,7 +683,7 @@ class Behavior:
                         # 0.93, quartiles 0.42–2.0) a median 12 min later (10–90%: 2–26 min); 17,898 pairs. A planned
                         # remainder in units, not a fresh recommendation, which was 0 U for 36% of remainders (LESSONS 54)
                         ratio = float(np.exp(r.normal(math.log(0.93), 1.16)))
-                        f = 1.0 / (1.0 + ratio)
+                        f = 1.0 if t.split_full else 1.0 / (1.0 + ratio)
                         acts.append(("bolus", m, f * meal.bolus))
                         gap = float(np.clip(np.exp(r.normal(math.log(12.0), 0.8)), 2.0, 30.0))
                         self.planned.append((m + gap, ("split_rest", m, ratio)))
