@@ -2756,3 +2756,12 @@ statistic here, but it is the controller donors ran.
        55–77% (label). Typical meal boluses (2–8 U) sit in the linear range, so dose saturation does not make meal
        insulin act less per unit. The meal-specific deficit remains unexplained; the remaining lead is postprandial
        insulin action itself.
+     - **Not bolus bioavailability either.** Wilinska 2005 (IEEE TBME 52:3–12; lispro, bolus and CSII, 7 T1D, 12 h,
+       11 models): the best model has two absorption channels (67% slow, 33% fast) and saturable Michaelis–Menten local
+       degradation. Saturable degradation removes a larger share of small, basal-sized depots than of a bolus, so
+       boluses come out relatively MORE bioavailable, the opposite of the meal-time deficit. The device literature's
+       "large bolus volumes absorb poorly" is patent rationale, not measurement.
+     - Every candidate found so far is ruled out by evidence or by test. The post-meal plateau is an open gap with no
+       evidenced mechanism. Options:
+       - keep searching (mixed-meal clamp studies of postprandial insulin action in T1D);
+       - accept it as a documented limit of the simulator for meal-time candidates.
