@@ -2729,3 +2729,23 @@ statistic here, but it is the controller donors ran.
        insulin-mediated uptake around meals acts more per unit than the level between meals allows. Open: whether the
        ISF peak-probe calibration (a 0.5 U probe at 180 mg/dL on the linear part) misstates the uptake that acts on
        a meal bolus at post-meal glucose.
+
+133. **No single ISF calibration fits both meals and levels; the gap is meal-specific insulin action.**
+     `--set isf_blend=w` (52bc2fc; k^(1−w), 0 = peak, 1 = total). c148 against c145:
+
+     | | peak (c145) | w 0.3 | w 0.5 | total (c147) | donors |
+     |---|---|---|---|---|---|
+     | matched | 35 | 30 | 25 | 23 | |
+     | mean | 148 | 156 | 163 | 181 | 151 |
+     | TIR | 70.1 | 67.0 | 63.8 | 53.6 | 71.7 |
+     | t70 | 2.45 | 1.65 | 1.20 | 0.47 | 1.67 |
+     | temp meal per 10 g, 120 / 180 min | −2.3 / −3.3 | +1.2 / 0.0 | +2.4 / +0.3 | +7.0 / +5.5 | +5.2 / +5.5 |
+
+     Weakening insulin enough to hold the meal plateau raises every hour's level. The donors combine both: their
+     meals stay up and their levels stay down. So insulin acts less per unit at and after meals than it does on
+     basal and corrections, a meal-specific action deficit no scalar ISF expresses. Evidence to find:
+     - postprandial insulin action in T1D: mixed-meal clamps, insulin action under hyperglycaemia and
+       hyperinsulinaemia;
+     - absorption of meal-sized boluses: larger depots absorb more slowly and less completely (volume effect,
+       lesson 114, second-hand only).
+     The second is the more direct candidate. Default unchanged (peak, 35/51); switch off.
