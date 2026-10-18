@@ -2910,3 +2910,22 @@ statistic here, but it is the controller donors ran.
        and smallest for HIIT (−7.9, 8 users), consistent with the anaerobic EGP surge (C4, built, 0 until
        calibrated); strength and yoga run −13 to −16 and carry a longer tail. No change to the defaults.
      Data and scripts: `runs/2026-10-18-additive-workouts/`.
+
+138. **Alcohol and stress, measured the donors' way, are inside the donors' (wide) range.** Sim twin of the
+     reportedState check (LESSONS 136): CGM mean in the 24 h after an alcohol evening (anchored at 21:00; the donors
+     log at 18–03 local) or a stress onset, minus the same person's mean on days −14..−2 and +2..+14. c154 (56 days,
+     default people), episodes reconstructed from the person's seeded draws (`sim_states.py`):
+
+     | | sim events / people | sim median Δ | donor events | donor median Δ (95% CI, events) |
+     |---|---|---|---|---|
+     | alcohol | 371 / 56 | −1.2 | 176 | −4.7 (−10.4 .. +0.9) |
+     | stress | 912 / 43 | −1.0 | 445 | +1.8 (−0.7 .. +4.1) |
+
+     - Alcohol: the evening SI loss (−12%) and the morning-after EGP ×0.85 nearly cancel in the sim. Donors lean
+       lower, the direction of the morning effect, but the interval holds the sim's value. Logged drinking is
+       probably heavier than an average drinking night, so the donors' size is an upper bound on the typical night.
+     - Stress: the sim sits just below the donors' interval. Its stress days are 40% of days, so its baseline
+       carries stress too; donors' baselines carry unlogged stress the same way. Logged stress is selective
+       (a remembered, larger stressor), which would make the donors' +1.8 an upper bound as well.
+     Neither is evidence for a change. With illness (LESSONS 136), cycle (B5) and exercise (LESSONS 137), every
+     life factor that BDDP records now has a data check alongside its literature size.
