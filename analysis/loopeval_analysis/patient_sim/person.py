@@ -293,12 +293,11 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         bp = bp.scaled(f=1.0, vg=float(1000.0 / (bw * csf_target)))
     else:
         bp = bp.scaled(f=float(max(f_cal, 0.3)))
-    # share of insulin's effect through EGP suppression on the linear part: set so meal-time EGP suppression matches T1D
-    # triple-tracer data — nadir 44 ± 17% at ~160 min after a mixed meal with the usual bolus (Romeres 2025). U(0.3,
-    # 0.5) [J] gave a 30% nadir and meals that dipped at 2 h; 0.65 gives 53% (LESSONS 69) [centre from evidence, width J]
-    # share of insulin's effect through EGP suppression on the linear part, centred on T1D meal tracer data: nadir
-    # 44 ± 17% at ~160 min (Romeres 2025); 0.5–0.7 gives a 40% nadir (LESSONS 69, 75) [centre from evidence, width J]
-    egp_share_draw = float(rng.uniform(0.5, 0.7))
+    # share of insulin's effect through EGP suppression on the linear part, centred on T1D meal tracer data: per-person
+    # nadir suppression 44 ± 17% (time 160 ± 110 min) after a mixed meal with the usual bolus (Romeres 2025). Read like-for-
+    # like (each person's own nadir, the liver's part of SG included), U(0.5, 0.7) gave 0.34 on the total-drop base and 0.8
+    # gives 0.50 (LESSONS 195; adopted by Pete 2026-10-18) [centre from evidence, width J]
+    egp_share_draw = float(rng.uniform(0.7, 0.9))
     if egp_share is not None: egp_share_draw = float(egp_share)
     egp_share = egp_share_draw
     # INSULIN BALANCE (TDD is the measured constraint): a true basal share [J prior around the scheduled
