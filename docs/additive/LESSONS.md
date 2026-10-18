@@ -3981,3 +3981,18 @@ statistic here, but it is the controller donors ran.
      disruption 0.034, suspend 0.017; `night_disr.py`), but against random night moments the enrichment is 1.00 for pump
      errors and 1.11–1.28 for the rest. The attributable excess is ~0.02 per night of the 0.18 the sim lacks. Of the
      LESSONS 189 candidates, unrecorded night eating and rebounds after Loop's own night suspensions remain.
+
+191. **After Loop cuts insulin at night, real bodies turn upward sooner; the EGP arm's speed carries part of it.**
+     Night (00–06 h) cut episodes (`cut_rebound.py`: 30-min delivery < 30% of the person's own night median, after ≥ 60 min
+     uncut): donors 1.08 per night, c201_base 1.19, from similar CGM (median 125 vs 120). An unentered rise follows within
+     2 h in 29.7% vs 20.2%; CGM change at +2 h from onsets ≥ 120: −21 vs −35 (from 90–120: +2 vs −1). Loop withdraws
+     insulin as often; the simulated body keeps falling longer.
+     - **Diagnostic `--set ins_p2e=0.012`** (c214; default 0.006, Pete 2026-10-17, set on the meal-tracer EGP nadir,
+       LESSONS 131): rise after a cut 23.0%, +2 h from ≥ 120 −29, night unentered rises 0.54 (donors 0.66), night share of
+       lows 45% → 40%, night CV 38.4 (passes); lows 0.75/day, day/night and circadian amplitude fail: 35 vs 40. Not a
+       candidate as is: a faster X_E also deepens and advances the meal EGP nadir the tracer data fixed.
+     - Evidence lead, unverified: in lean non-diabetic people, hepatic glucose output returned halfway to basal 59 min
+       after a 40 mU/m²/min insulin infusion stopped and 119 min after 120 (deactivation study, abstract only; Prager,
+       Wallace & Olefsky 1986 JCI doi:10.1172/JCI112599 report activation and deactivation rates of HGO and peripheral
+       action). The sim's single X_E rate gives ~115 min both ways. An onset/offset asymmetry in insulin's hepatic action
+       is the named form to check against the full papers before any switch.
