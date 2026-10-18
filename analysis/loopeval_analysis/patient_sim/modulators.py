@@ -64,6 +64,7 @@ class ModTraits:
     drift_tau: float = 20 * DAY
     cycle_len: float = 28.0             # days
     cycle_phase: float = 0.0            # days
+    menstrual_shape: str = "mid"        # "mid" (sine, peak mid-luteal) | "late" (peak at onset, BDDP logs; LESSONS 136)
     luteal_amp: float = 0.08            # luteal SI dip (fraction) [02: population ±2.6%, responders more]
     illness_rate: float = 3.0           # episodes per year
     # nightly named factors (evidence/12; LESSONS 77)
@@ -219,6 +220,14 @@ class Modulators:
         if not (self.t.enabled["menstrual"] and getattr(self.t, "menstruating", False)): return 1.0
         day = (m / DAY + self.t.cycle_phase) % self.t.cycle_len
         ov = self.t.cycle_len - 14.0                    # ovulation; luteal phase ~14 d
+        if getattr(self.t, "menstrual_shape", "mid") == "late":
+            # BDDP cycle logs (LESSONS 136): glucose highest on the days before and at menses onset, back by ~day 3,
+            # lowest a week after. SI falls through the late luteal phase to a low at onset (day 0), holds 2 days
+            if day < 2.0: f = 1.0
+            elif day < 3.0: f = 3.0 - day
+            elif day >= ov + 3.0: f = (day - (ov + 3.0)) / (self.t.cycle_len - (ov + 3.0))
+            else: f = 0.0
+            return 1.0 - self.t.luteal_amp * f
         if day < ov: return 1.0
         x = (day - ov) / 14.0                           # rises after ovulation, peaks mid-luteal, resolves at menses
         return 1.0 - self.t.luteal_amp * math.sin(math.pi * x)
