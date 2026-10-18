@@ -2991,3 +2991,28 @@ statistic here, but it is the controller donors ran.
      - Reading: peak semantics give the levels and TDD and over-cover meals; total semantics give the meal plateau
        and CV and under-insulinise everything. The donors have both, so the missing piece acts at meals only and is
        not a scalar on insulin action (lesson 133). Scripts: `runs/2026-10-18-additive-workouts/`.
+
+141. **Pregnancy (X9) as a scenario: falling need early raises lows; the SI form realizes ~90% of the target need.**
+     `--set preg_week=W`: menstruating people are pregnant at week W on day 0, with no menstrual cycle. Insulin need
+     ÷ pre-pregnancy follows García-Patterson 2010's three changes of direction: up to week 9 (+10% [J]), down to a
+     week-16 nadir (0.95 [J]), +5%/week linear to week 36 (ADA Standards 2023 §15), falling after 37 (J Perinatol
+     2021). The body's SI is divided by the need. Settings start titrated to the need at week W (basal, max basal ×
+     need; ISF, CR ÷ need), so only the change within the window is new to the controller. Paired with the same
+     people in c156_base (49 pregnant of 112; c159, frozen ba1a923):
+
+     | arm | window | Δ mean | Δ t<70 (median / mean, pts) | Δ t<54 mean | insulin ratio |
+     |---|---|---|---|---|---|
+     | week 9 (need 1.10 → 1.03) | days 2–5 | −2.6 | +0.35 / +0.57 | +0.18 | 1.08 |
+     | | days 10–13 | −5.1 | +0.43 / +0.66 | +0.32 | 1.06 |
+     | week 28 (1.52 → 1.67) | days 2–5 | −7.2 | +0.27 / +1.07 | +0.28 | 1.44 |
+     | | days 10–13 | −5.1 | +0.46 / +1.04 | +0.27 | 1.45 |
+
+     - Week 9: the falling need pulls glucose down across the window and lows rise under stock Loop, the direction of
+       the clinical first-trimester risk (most severe hypoglycaemia before week 16, García-Patterson 2010).
+     - Week 28: with settings ×1.52, glucose runs 5–7 lower and Loop delivers ×1.44, so SI ÷ 1.52 makes the body
+       need only ~×1.4 insulin. Insulin-independent uptake (SG) is untouched, so a need ratio expressed through SI
+       alone comes out ~10% short; the titration then over-doses a little. Known limit of the scenario; mapping the
+       need to SI exactly would take a per-person probe.
+     - A first version without titration (c158, settings left at pre-pregnancy) put week 28 at +26 to +31 mg/dL
+       on day 0, which no clinic would leave; titrated starts are the scenario's definition.
+     Off by default; for candidate testing on a steadily changing need.
