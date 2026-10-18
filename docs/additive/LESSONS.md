@@ -2749,3 +2749,10 @@ statistic here, but it is the controller donors ran.
      - absorption of meal-sized boluses: larger depots absorb more slowly and less completely (volume effect,
        lesson 114, second-hand only).
      The second is the more direct candidate. Default unchanged (peak, 35/51); switch off.
+     - **Not dose size.** Heise 2017 (faster aspart vs aspart, 0.1 / 0.2 / 0.4 U/kg, T1D): the total glucose-lowering
+       effect is ~2× at 0.2 vs 0.1 U/kg, i.e. linear through ~7–14 U for 70 kg. It turns less than proportional only
+       at 0.3–0.4 U/kg, presumably from saturation of insulin-stimulated disposal (2019 review, PMC7007438). Lispro:
+       PK linear to 0.2 U/kg; 7–30 U gives less than proportional glucose infused (Leohr 2020); bioavailability
+       55–77% (label). Typical meal boluses (2–8 U) sit in the linear range, so dose saturation does not make meal
+       insulin act less per unit. The meal-specific deficit remains unexplained; the remaining lead is postprandial
+       insulin action itself.
