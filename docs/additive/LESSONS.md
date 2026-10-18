@@ -3048,3 +3048,38 @@ statistic here, but it is the controller donors ran.
        daytime excess lies in the overlapping, busy hours the isolation filter drops, or in the grams eaten (the
        intake balance books ISF ÷ CSF the same way under both semantics while the bodies' insulin action differs by
        ~2×, lesson 140). The next measurement is the daily grams-in vs insulin-effect budget per arm.
+
+143. **The intake budget leaves out grazing and hypo treatment; with all intake inside it, total-drop ISF holds the
+     donors' meal plateau at the donors' TDD.**
+     - **The surplus.** Grams eaten per day, median person (`budget.py`, c156 default): meals 122, snacks 47, grazes
+       21.5, proactive 20.5, rescues 7.9; total 256 against a TDD-derived budget of 148 (+ ~28 activity). Meals and
+       snacks share the budget; grazes ("never entered, never bolused") and the defense carbs are added outside it.
+       The donors' TDD paid for all of their eating, unlogged grazing and hypo treatment included, so the sim's
+       people eat 40–50 g/day more than their insulin was sized for. The peak calibration's ~2× insulin action
+       (lesson 140) absorbs it, at the cost of extra lows whose treatment adds to the surplus.
+     - **`--enable budget_all`** (3076b72; off): the budget also pays for the person's expected grazing and the
+       donor's measured rescue carbs (template rescues_per_day × rescue_size_med), floored at half. c161 against
+       c156 (first launch at efb9033 did not reach the Behavior and reproduced its controls exactly; fixed):
+
+       | | default (peak) | total + budget 0.42 | total + budget 0.50 | peak + budget | donors |
+       |---|---|---|---|---|---|
+       | temp ΔCGM per 10 g at 60 / 90 / 120 / 150 / 180 min | +2.6 / +0.4 / −2.8 / −3.5 / −3.3 | +4.3 / +5.2 / +4.7 / +4.3 / +3.8 | +5.4 / +5.4 / +6.8 / +5.9 / +4.3 | +4.3 / +1.8 / −0.8 / −1.5 / −1.9 | +6.4 / +5.9 / +5.2 / +5.5 / +5.5 |
+       | automatic, 60 / 120 / 180 | +1.1 / −2.6 / −4.4 | +2.8 / +2.7 / +0.9 | +3.3 / +3.1 / +2.3 | +1.6 / −2.0 / −4.3 | +4.3 / +4.3 / +5.4 |
+       | mean / TIR | 148 / 70 | 167 / 62 | 166 / 64 | 145 / 72 | 151 / 72 |
+       | CV (KS p) | 38.4 (0.000) | 35.2 (0.55) | 33.4 (0.04) | 38.2 (0.000) | 34.8 |
+       | TDD (KS p) | 38.9 (0.99) | 40.4 (0.68) | 39.3 (0.90) | 35.7 (0.22) | 38.8 |
+       | t70 / lows per day | 2.34 / 1.42 | 0.54 / 0.50 | 0.35 / 0.33 | 2.78 / 1.67 | 1.67 / 1.08 |
+       | hurst_long | 0.239 | 0.400 | 0.376 | 0.183 | 0.247 |
+       | grams eaten / day | 256 | 209 | 183 | 226 | |
+       | matched | 33 | 21 | 18 | 25 | |
+
+     - Total-drop ISF with the whole intake inside the budget is the first configuration whose entered meals hold
+       the donors' plateau (temp within ~1–2 mg/dL per 10 g through 3 h), at the donors' TDD and CV. Under the peak
+       calibration, closing the budget only deepens the over-insulinisation (lows 1.67/day, mean 145): the
+       calibration and the budget are one design.
+     - Still wrong on that configuration: the level (+15 mean; 3-h blocks +10 overnight to +20–28 by day), too few
+       lows (t70 0.35–0.54 vs 1.67), long-range Hurst 0.38–0.40 (0.25). The bodies now have no hidden insulin
+       excess, so the donors' lows must come from components the sim lacks or under-sizes on the low side
+       (over-boluses, exercise, insulin action variability), not from a calibration surplus.
+     - A default change (ISF semantics and the intake budget together) is Pete's call; the evidence for both halves
+       is the donors' TDD covering all intake and the entry-anchored meal trajectory.
