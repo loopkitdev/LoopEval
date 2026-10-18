@@ -36,6 +36,7 @@ import torch
 
 from . import dataset_v3 as D3
 from .dataset import ICE_SCALE
+REC_ZERO_U = D3.REC_ZERO
 from .extract import MODELS, RAPID_ACTING_ADULT
 from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
@@ -122,6 +123,7 @@ class PlantV3:
         rm = os.environ.get("PLANT_RATIO_MAP")
         self.ratio_map = json.load(open(rm)) if rm else None
         self.rec_now = float("nan")
+        self.zero_units = os.environ.get("PLANT_ZERO_UNITS", "0") == "1"
         self.ratio_cap = float(os.environ.get("PLANT_RATIO_CAP", "inf"))   # diagnostic: cap on calculator ratios (LESSONS 109)
         self.eoff_scale = float(os.environ.get("PLANT_EOFF_SCALE", "1"))   # diagnostic: scale entry -> pulse onset delay
         em = os.environ.get("PLANT_EOFF_MAP"); self.eoff_map = json.load(open(em)) if em else None   # build_eoff_map.py
@@ -377,9 +379,10 @@ class PlantV3:
         return torch.from_numpy(x)[None, None], hour, dow
 
     def _bolus(self, s, prefix):
+        u_ = float(np.clip(np.exp(float(s[f"{prefix}_lu"][0])), 0.05, 30))
         if bool(s[f"{prefix}_mode"][0]):
-            return dict(units=float(np.clip(np.exp(float(s[f"{prefix}_lu"][0])), 0.05, 30)))
-        return dict(ratio=float(np.clip(np.exp(float(s[f"{prefix}_lr"][0])), 0.0, 5.0)))
+            return dict(units=u_)
+        return dict(ratio=float(np.clip(np.exp(float(s[f"{prefix}_lr"][0])), 0.0, 5.0)), units_alt=u_)
 
     def _draw_m(self, s, t, x):
         """v3m: a meal pulse, a carb entry and a manual bolus, each its own draw (all due now)."""
@@ -521,6 +524,13 @@ class PlantV3:
             for due_t, kind, pay in self.due:
                 if due_t > t:
                     keep.append((due_t, kind, pay)); continue
+                if kind == "bolus" and self.zero_units and "ratio" in pay and np.isfinite(self.rec_now):
+                    # PLANT_ZERO_UNITS: the mode label is the recommendation on screen (ratio only above REC_ZERO, dataset_v3m),
+                    # which the bolus head cannot see; a ratio bolus meeting a zero recommendation would deliver nothing, where
+                    # a real person types units (LESSONS 125)
+                    g_ = sum(v for (te, v) in self.entries if (t - te) <= pd.Timedelta(minutes=15))
+                    if max(self.rec_now, 0.0) + g_ * self.geq / self.isf <= REC_ZERO_U:
+                        pay = dict(units=float(pay["units_alt"]), from_ratio=float(pay["ratio"]))
                 if kind == "bolus" and "ratio" in pay and float(pay["ratio"]) > self.ratio_cap:
                     pay = dict(pay, ratio=self.ratio_cap, ratio_raw=float(pay["ratio"]))
                 if kind == "bolus" and self.ratio_map is not None and "ratio" in pay and np.isfinite(self.rec_now):

@@ -1191,3 +1191,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     +0.14, up to +1.4 for the least observed): TIR 72.1 / 71.4, t<54 0.18 / 0.20, mean 152 / 154, |gap| 9.8; (c) (b) with the
     median removed: TIR 73.2 / 71.9, t<54 0.26 / 0.23, |gap| 9.9. The proper fix (meal target unknown where ICE is not
     observed, retrain) is owed on the next retrain; on these numbers it will not close the gap.
+125. **A ratio bolus meeting a zero recommendation delivers nothing; turning it into the units draw is neutral, not kept.**
+    The bolus mode label is the recommendation on screen (ratio only above 0.05 U, dataset_v3m), which the bolus head does
+    not see: on the base v32of0TcB2FGUCGLBGGSKa 17% of generated person boluses are ratio boluses at a zero recommendation
+    and deliver 0 U (field: every recorded bolus delivers; 23% of field boluses and 20% of generated are units-mode).
+    PLANT_ZERO_UNITS=1 gives those the head's own units draw. Held-out seeds 0 / 1 against the base (TIR 73.4 / 72.5,
+    t<54 0.24 / 0.16, t<70 1.57 / 1.50): as is 74.4 / 71.4, 0.27 / 0.23, 1.63 / 1.74; with the low band refit under it
+    (calibrate_closed_bg below 90, offsets +21 / +16 / +8 / +8 and +28 / +13 / +5 / +5) 74.1 / 72.2, 0.23 / 0.18, 1.50 /
+    1.71, lows per lone bolus 0.112 / 0.144 (base 0.115 / 0.132; field 0.075). Method note: counting field boluses from
+    steps.bolus_manual_u > 0 overcounts several-fold (i044 11.6 a day against 2.2 recorded decisions; i003 26.8 vs 25.7);
+    against bolus_decisions.parquet generated attempts match the field per person, so the "fewer, larger boluses" seen
+    with the step count was the count, not the generator.
