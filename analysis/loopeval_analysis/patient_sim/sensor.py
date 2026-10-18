@@ -75,6 +75,8 @@ class Family:
     trans_amp: tuple = (10.0, 0.4)  # mg/dL amplitude (median, log-sd)
     trans_tau: float = 10.0       # min, recovery time constant
     trans_down: float = 0.55      # share of events that read low first
+    trans_prop: float = 0.0       # 0 = transient in absolute mg/dL; 1 = scaled with IG/130 like the noise (CGM error is close to
+                                  # proportional: a fixed 12 mg/dL at 60 mg/dL made false lows the FDA tables do not show; LESSONS 213)
     common_sigma: float = 0.0     # innovation sd of the error COMMON to co-located sensors (interstitial physiology):
                                   # AR(3) (1.584, −0.8842, 0.1798), var(w) 3.98 → σ 2.0 on Enlite (Biagi 2017).
                                   # Continues across sessions; YSI comparison sees it, two-sensor precision does not
@@ -165,6 +167,7 @@ class Sensor:
             if "sensor_tamp" in overrides or "sensor_tampsd" in overrides:
                 kw["trans_amp"] = (overrides.get("sensor_tamp", self.f.trans_amp[0]), overrides.get("sensor_tampsd", self.f.trans_amp[1]))
             if "sensor_ttau" in overrides: kw["trans_tau"] = overrides["sensor_ttau"]
+            if "sensor_tprop" in overrides: kw["trans_prop"] = overrides["sensor_tprop"]
             if "sensor_sbias" in overrides or "sensor_sbtau" in overrides:
                 kw["slow_bias"] = (overrides.get("sensor_sbias", self.f.slow_bias[0]), overrides.get("sensor_sbtau", self.f.slow_bias[1]))
             if "sensor_wander" in overrides or "sensor_wtau" in overrides:
@@ -303,7 +306,8 @@ class Sensor:
             hs = math.sqrt(f.hetero_q ** 2 + (1 - f.hetero_q ** 2) * x * x)
         else:
             hs = (f.hetero_a + (1 - f.hetero_a) * max(self.ig, 20.0) / 130.0) if f.hetero_a < 1 else 1.0
-        raw = self.gain(minute) * self.ig + s.b0 + (v_all + self.sb) * hs + self.trans - self.comp_level
+        tr = self.trans * (1.0 + f.trans_prop * (max(self.ig, 20.0) / 130.0 - 1.0)) if self.trans != 0.0 else 0.0
+        raw = self.gain(minute) * self.ig + s.b0 + (v_all + self.sb) * hs + tr - self.comp_level
         c = self.comp
         withheld = minute < self.gap_until or (c is not None and c["kind"] == "gap" and self.comp_level > 0.5 * c["depth"])
         if c is not None and c["kind"] == "floor" and self.comp_level > 0.5 * c["depth"]:
