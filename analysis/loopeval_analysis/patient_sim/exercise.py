@@ -18,6 +18,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+import numpy as np
+
 
 @dataclass
 class ExerciseParams:
@@ -33,6 +35,12 @@ class ExerciseParams:
     filt_tau: float = 7.0       # min, intensity → physiological activity lag
     gain: float = 1.0           # per-person responsiveness (set from behavior traits)
     background: float = 0.0     # waking-hours background intensity (set from behavior traits)
+    frag: bool = False          # the waking background as alternating sitting and short light-activity bouts with the
+                                # same mean (LESSONS 161): sitting lnN(12 min, 1.0), active lnN(4 min, 0.8) [J; Healy 2008:
+                                # dozens of breaks in sedentary time a day, most sedentary time in longer bouts]
+    frag_seed: int = 0
+    frag_off_med: float = 12.0
+    frag_on_med: float = 4.0
 
 
 class Exercise:
@@ -41,6 +49,11 @@ class Exercise:
         self.sessions: list[tuple[float, float, float, float]] = []   # start, end, intensity, anaerobic
         self.z = 0.0
         self.y = 0.0
+        p = self.p
+        self._rng = np.random.default_rng(p.frag_seed)
+        self._on = False; self._left = 0.0
+        m_off = p.frag_off_med * math.exp(1.0 ** 2 / 2); m_on = p.frag_on_med * math.exp(0.8 ** 2 / 2)
+        self._on_level = p.background * (m_off + m_on) / m_on      # same waking mean as the constant background
 
     def add(self, start: float, minutes: float, intensity: float, anaerobic: float):
         self.sessions.append((start, start + minutes, intensity, anaerobic))
@@ -51,7 +64,16 @@ class Exercise:
         for (s, e, i, a) in self.sessions:
             if s <= m < e and i > intensity:
                 intensity, anaerobic = i, a
-        if awake: intensity = max(intensity, self.p.background)
+        if awake:
+            if self.p.frag and self.p.background > 0:
+                if self._left <= 0:
+                    self._on = not self._on
+                    med, sd = (self.p.frag_on_med, 0.8) if self._on else (self.p.frag_off_med, 1.0)
+                    self._left = float(np.exp(self._rng.normal(math.log(med), sd)))
+                self._left -= 1.0
+                intensity = max(intensity, self._on_level if self._on else 0.0)
+            else:
+                intensity = max(intensity, self.p.background)
         self.y += (intensity - self.y) / self.p.filt_tau
         # the delayed state follows activity above light intensity (LESSONS 23 had it at 0.35, which left everyday
         # walking without the after-effect the UVA and Deichmann models give it; LESSONS 34)
