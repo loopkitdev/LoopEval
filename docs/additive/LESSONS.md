@@ -3748,3 +3748,8 @@ statistic here, but it is the controller donors ran.
      - **Adopted as default: p_log_pro and p_log_rescue 0.25** [J share; direction from the donors' treatment logging],
        self-approved under Pete's standing permission. A per-donor logging rate from the templates is the evidence step
        still to take.
+     - **sleep_util re-tested on this base** (c202 against c201_base): night insulin CV 40.7 → 38.4 (passes), night-low
+       duration p90 96 → 80 min (donors 80), quiet-night 120–160 band −31 / 1.10 / 0.16 (donors −24 / 1.17 / 0.15); but
+       lows 0.92 → 0.75/day, t70, t54, day/night and zero-delivery fraction fail: 35 vs 40. Still the same trade
+       (lesson 173): the night is right with it, and the daytime lows it removes have no counterpart until the
+       first-hour spread of real meals is found. Stays off.
