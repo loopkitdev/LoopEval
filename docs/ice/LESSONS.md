@@ -1202,3 +1202,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     steps.bolus_manual_u > 0 overcounts several-fold (i044 11.6 a day against 2.2 recorded decisions; i003 26.8 vs 25.7);
     against bolus_decisions.parquet generated attempts match the field per person, so the "fewer, larger boluses" seen
     with the step count was the count, not the generator.
+126. **Generalization on the current base: drawn people's lows now near the real spread, one co-variation still inverted;
+    the post-bolus low excess is time spent near low, not the bolus.** (a) DRAW_MODE=self on v32of{0,1}TcB2FGUCGLBGGSKa (72
+    drawn per seed vs the 24 real hosts), 10th / 50th / 90th: t<54 0 / 0.23 / 0.89 and 0 / 0.12 / 1.36 (real 0 / 0.12 /
+    0.55; LESSONS 114 base 0 / 0.36 / 1.38), TIR 55 / 72 / 88 and 45 / 67 / 86 (52 / 74 / 89), insulin 9.5 / 34 / 53 (9.5 /
+    33 / 51); corrections a day 0.3 / 1.5 / 5.5 (0.4 / 1.1 / 3.6). Real people who enter more carbs have fewer severe lows
+    and more time in range (Spearman -0.31, +0.36); drawn +0.17-0.20 and -0.08-+0.03; the hosts' own runs are in between
+    (t<54 -0.06-0.04, TIR +0.21-0.25). (b) Lone person boluses (no entry within 15 min), seed 0, against bolus_decisions:
+    fewer than the field in every glucose band (1.4 vs 2.4 a day), smaller (median 0.21 vs 0.60 U below 90), as often near a
+    meal start (below 90: 49% vs 58% within -30..+60 min), but followed by a low within 3 h more often (below 90 58% vs 20%,
+    90-120 32% vs 22%). The chance of going below 70 within an hour from a given band matches the field (70-80 0.40 vs 0.38,
+    80-90 0.18 vs 0.18, 90-100 0.09 vs 0.08), while generated people spend 36% more time at 70-90. So the excess lows come
+    from how often a person is near low - the calm-people spread of LESSONS 104-106 (i003 alone t<70 12.5 vs 3.6) - not from
+    what a bolus does or from the defense once there.
