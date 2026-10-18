@@ -3140,3 +3140,23 @@ statistic here, but it is the controller donors ran.
        heavy enterers' over-rise at 2 h is their small-entry mix (their donors' tercile rises less at 2 h than the
        donors' 20–30 g bin, so part of the comparison is composition). Open: the 2–4 h hold of mid-size and large
        meals on the new base.
+
+145. **The new base's missing lows are mostly after meals.** Low onsets (CGM crosses below 70 after ≥ 30 min at or
+     above 70) per person-day, by time since the last carb entry ≥ 5 g and since the last manual bolus ≥ 0.3 U (a
+     meal bolus has an entry within 15 min); G7 people, donors' own records against the sim (`low_ctx.py`):
+
+     | | entry < 2 h | 2–4 h | 4 h + | total | meal bolus < 2 h | lone bolus < 2 h |
+     |---|---|---|---|---|---|---|
+     | donors (16,492 days) | 0.270 | 0.166 | 0.623 | 1.059 | 0.227 | 0.087 |
+     | old base (c156) | 0.331 | 0.303 | 0.809 | 1.442 | 0.286 | 0.108 |
+     | new base (c162) | 0.080 | 0.081 | 0.426 | 0.588 | 0.068 | 0.029 |
+
+     - A quarter of real lows start within 2 h of a carb entry, and four in ten within 4 h. The old base made them
+       from over-insulinised bodies (and too many 2–4 h after: 0.30 vs 0.17); the new base, consistent in its
+       units, makes a third of them. Lows more than 4 h after eating are 68% of the donors' rate.
+     - So the early post-meal lows are a real-world mismatch the sim does not yet produce: meals that deliver less,
+       or later, than the person dosed for. Candidates with evidence to size, not knobs: per-meal carb-count error
+       in the over-count direction (Brazeau 2013 spread, the sim has the under-count mean), food entered and not
+       all eaten, within-person meal-to-meal emptying variability, and the bolus lead when eating is delayed.
+       Lesson 129's donor RC (glucose 3–4 below Loop's forecast in the first 2 h after entries) is the same signal
+       seen through the forecast.
