@@ -3321,3 +3321,25 @@ statistic here, but it is the controller donors ran.
      24-h fade lies within those studies' bounds, so it stays; the persistence the sim adds over the donors (Hurst
      +0.13) is mostly elsewhere. The other slow terms on the new base are the day-level SI (B3, CV 8%), the late
      overnight carry-over of daytime excess, and the illness and menstrual states.
+
+154. **Real corrections act sooner than the sim's; the total matches.** CGM change per unit after isolated manual
+     corrections (≥ 0.5 U, no entry −2 h..+3 h, no other manual bolus −1 h..+3 h; G7; `corr_drop.py`), at 30 / 60 /
+     90 / 120 / 180 min. Donors 4,146 corrections (median 2.0 U, BG 213, 15-min pre-trend +11.7); sim c172_rc 135
+     (1.2 U, BG 220, +13.0):
+
+     | dose | donors | sim |
+     |---|---|---|
+     | 0.5–1.5 U | −5.8 / −29.0 / −45.5 / −55.6 / −67.3 | −3.8 / −11.2 / −32.0 / −46.0 / −68.8 |
+     | 1.5–3 U | −3.1 / −15.4 / −24.5 / −28.3 / −30.6 | +0.4 / −5.0 / −7.8 / −24.2 / −29.8 |
+     | 3 U + | +0.3 / −1.8 / −4.8 / −7.0 / −9.5 | 0.0 / −3.2 / −11.2 / −15.8 / −21.4 |
+
+     - For correction-sized doses the real drop is 2–3× the sim's at 60–90 min and the same by 3 h: same size,
+       earlier timing. Starting glucose and pre-trend match, so it is not where the corrections are given.
+     - The sim's insulin timing (p2 0.025, A2 kd/ka2) was set from a 15 U lispro clamp (lesson 114) and applies to
+       every dose. Small subcutaneous depots absorb faster than large ones (depot surface-to-volume; established for
+       regular insulin, Binder 1984; the Humalog label's 30–90 min peak range across 0.1–0.4 U/kg allows it for
+       analogs), and corrections and Loop's automatic doses are 0.05–3 U. The 3 U+ band is confounded by unentered food
+       behind large "corrections" (smaller than the sim per unit).
+     - This is the timing that sets how fast every excursion is reversed, so it bears on the ACF zero-crossing (70 vs
+       42.5) and long-range Hurst gaps. Next: dose-dependent absorption as a named A2 term, fitted to this observed
+       correction timing by dose band (Pete: fit to observed data), checked against the 15 U clamp it must still match.
