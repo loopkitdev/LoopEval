@@ -585,6 +585,30 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Option(name: .long, help: "Calm-high TARGET shift (mg/dL): in the calm-high state, lower the correction target range by this much. Reaches temp-basal donors, where the application-factor form is inert (they issue no automatic boluses). Suspend threshold untouched. 0 = off.")
     var candidateCalmHighTargetDelta: Double = 0
 
+    @Option(name: .long, help: "Runway reserve (C40): spend this fraction of the extra correction that suspending scheduled basal could still take back before a plausible fall (forecast minus z*sigma5 band) reaches the suspend threshold. Delivered as an internal lowering of the correction aim; the user's target is not changed. 0 = off.")
+    var candidateRunwayFraction: Double = 0
+
+    @Option(name: .long, help: "sigma5 cold-start PRIOR (mg/dL per 5 min): until sigma-prior-steps valid increments have accrued since the start or the last CGM gap, pull sigma5 UP toward this value (linear ramp); with no usable CGM sigma5 = prior. Only ever raises sigma5. 0 = off (sigma5 starts at the noise floor).")
+    var candidateSigmaPrior: Double = 0
+
+    @Option(name: .long, help: "sigma5 cold-start prior: number of 5-min increments over which the prior fades out (default 12 = 1 h).")
+    var candidateSigmaPriorSteps: Double = 12
+
+    @Option(name: .long, help: "Runway reserve: band width in sigma5 units for the plausible fall (default 1).")
+    var candidateRunwayZ: Double = 1.0
+
+    @Option(name: .long, help: "Runway reserve: horizon (min) over which the plausible fall must stay above the suspend threshold (default 180).")
+    var candidateRunwayHorizonMin: Double = 180
+
+    @Option(name: .long, help: "Runway reserve: cap on the aim offset (mg/dL, default 60).")
+    var candidateRunwayMaxMgdl: Double = 60
+
+    @Option(name: .long, help: "Runway reserve: only when current BG is at least this (mg/dL, default 0 = no level gate).")
+    var candidateRunwayBgMin: Double = 0
+
+    @Flag(name: .long, help: "Runway reserve only with no carbs on board.")
+    var candidateRunwayCobGate: Bool = false
+
     @Option(name: .long, help: "sigma-band BASELINE (mg/dL per 5 min): widen by k*max(0, sigma5 - baseline) instead of k*sigma5. Set to the donor's own median sigma5 so the band is zero in their typical state and carries no per-donor level offset. 0 = original absolute-sigma behaviour.")
     var candidateSigmaBandBaseline: Double = 0
 
@@ -879,6 +903,14 @@ extension SimulateCommand {
     var candidateCalmHighCobGate: Bool { get { loopExperiments.candidateCalmHighCobGate } set { loopExperiments.candidateCalmHighCobGate = newValue } }
     var candidateCalmHighMinSlope: Double? { get { loopExperiments.candidateCalmHighMinSlope } set { loopExperiments.candidateCalmHighMinSlope = newValue } }
     var candidateCalmHighTargetDelta: Double { get { loopExperiments.candidateCalmHighTargetDelta } set { loopExperiments.candidateCalmHighTargetDelta = newValue } }
+    var candidateRunwayFraction: Double { get { loopExperiments.candidateRunwayFraction } set { loopExperiments.candidateRunwayFraction = newValue } }
+    var candidateSigmaPrior: Double { get { loopExperiments.candidateSigmaPrior } set { loopExperiments.candidateSigmaPrior = newValue } }
+    var candidateSigmaPriorSteps: Double { get { loopExperiments.candidateSigmaPriorSteps } set { loopExperiments.candidateSigmaPriorSteps = newValue } }
+    var candidateRunwayZ: Double { get { loopExperiments.candidateRunwayZ } set { loopExperiments.candidateRunwayZ = newValue } }
+    var candidateRunwayHorizonMin: Double { get { loopExperiments.candidateRunwayHorizonMin } set { loopExperiments.candidateRunwayHorizonMin = newValue } }
+    var candidateRunwayMaxMgdl: Double { get { loopExperiments.candidateRunwayMaxMgdl } set { loopExperiments.candidateRunwayMaxMgdl = newValue } }
+    var candidateRunwayBgMin: Double { get { loopExperiments.candidateRunwayBgMin } set { loopExperiments.candidateRunwayBgMin = newValue } }
+    var candidateRunwayCobGate: Bool { get { loopExperiments.candidateRunwayCobGate } set { loopExperiments.candidateRunwayCobGate = newValue } }
     var candidateSigmaBandBaseline: Double { get { loopExperiments.candidateSigmaBandBaseline } set { loopExperiments.candidateSigmaBandBaseline = newValue } }
     var candidateSigmaBandFixedSigma: Double { get { loopExperiments.candidateSigmaBandFixedSigma } set { loopExperiments.candidateSigmaBandFixedSigma = newValue } }
     var candidateSigmaBandGuardOnly: Bool { get { loopExperiments.candidateSigmaBandGuardOnly } set { loopExperiments.candidateSigmaBandGuardOnly = newValue } }
