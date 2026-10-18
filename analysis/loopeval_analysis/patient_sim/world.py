@@ -220,6 +220,9 @@ class World:
             self.beh_traits.announce_mult = float(np.clip(enable["announce_mult"], 0.0, 1.0))
         if enable and enable.get("meal_gap_gev") is False:
             self.beh_traits.meal_gap_gev = False
+        if enable and isinstance(enable.get("count_sd_mult"), float):
+            # per-meal mismatch between the grams dosed for and the glucose delivered (ablation, LESSONS 149)
+            self.beh_traits.count_sd = self.beh_traits.count_sd * enable["count_sd_mult"]
         if enable and isinstance(enable.get("gi_cv"), float):
             self.beh_traits.gi_cv = enable["gi_cv"]            # per-meal emptying-speed spread (ablation, LESSONS 147)
         if enable and isinstance(enable.get("meal_fast_sd"), float):
