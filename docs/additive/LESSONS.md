@@ -4358,3 +4358,16 @@ statistic here, but it is the controller donors ran.
      bolus or eating around exercise. Logged workouts are too rare and too well managed to carry the gap; everyday
      movement is not in the record (the sim's A12/C6 activity stays on its evidence). Of the named candidates for the
      within-meal variability, this leaves meals larger than entered and sources not yet named.
+
+216. **Post-meal user boluses: the sim takes more than the donors; refitting the top-up rate is neutral.** Per bolused entry ≥
+     15 g, another manual bolus 15–120 min later with no entry between (`topups.py`): donors 16.6% of meals (paired
+     median 8.6%), low within 2 h 8.2% with vs 13.2% without; sim (user-requested boluses) 47.8% (paired median 38.8%).
+     Sim kinds within that window: top-up 26%, correction 17%, another entry 16%, split remainder 15%, override 4%, free
+     bolus 4%.
+     - **split_full v3 on this base** (c240_sf): post-meal share 0.478 → 0.456, lows 0.42 → 0.33/day, lunch start 151; 24
+       matched either way. Split remainders are not most of it; stays off.
+     - **Top-up realization share drifted**: LESSONS 42 set plans = donor rate / 0.38 (the share of planned top-ups that
+       fire on a high, measured on an old base); paired on c240 the realized rate is 0.167 vs donor 0.090 per meal bolus
+       (means 0.265 vs 0.208), implying 0.485. Refit to 0.485 (7f52fde, default). c241: lows unchanged (0.55 onsets/day),
+       24 matched; CV 32.8 (34.8, KS 0.021). Corrections within 2 h of a meal (17% of meals) are the next behaviour rate to
+       compare paired; extra insulin after meals makes lows, so the sim's surplus here works against its low shortfall.
