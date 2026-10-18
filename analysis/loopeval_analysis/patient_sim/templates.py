@@ -189,7 +189,8 @@ def add_raw_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"
         ent = (1 + int(np.sum(np.diff(ct) > 30))) if len(ct) else 0
         near = np.array([np.any(np.abs(ct - b) <= 30) for b in bt]) if len(ct) and len(bt) else np.zeros(len(bt), bool)
         w60 = np.r_[False, np.diff(bt) <= 60] if len(bt) else np.zeros(0, bool)
-        out.append(dict(alias=a, entries_raw=ent / days, boluses_raw=len(bt) / days, bolus_entry_raw=near.sum() / days,
+        eg = sum((x.get("grams") or 0) for x in c if (x.get("grams") or 0) > 0)
+        out.append(dict(alias=a, entries_raw=ent / days, entered_g_raw=eg / days, boluses_raw=len(bt) / days, bolus_entry_raw=near.sum() / days,
                         topups_raw=(w60 & ~near).sum() / days, lone_raw=(~w60 & ~near).sum() / days, manual_u_day=bu / days))
     r = pd.DataFrame(out)
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
