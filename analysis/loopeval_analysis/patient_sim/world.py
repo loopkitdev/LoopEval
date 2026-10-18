@@ -344,7 +344,13 @@ class World:
                 resc = 0.0
             if not np.isfinite(resc): resc = 0.0
             bt = self.beh_traits = copy.deepcopy(bt)
-            bt.carbs_day = max(0.5 * bt.carbs_day, bt.carbs_day - graze - resc)
+            if (enable or {}).get("budget_tight"):
+                # experiment (LESSONS 202): the TDD budget also pays for pre-emptive carbohydrate (the defense team eats
+                # ~8% of the budget on the evidence base, c223) and heavy grazers are not floored at half
+                pro = 0.08 * bt.carbs_day
+                bt.carbs_day = max(0.2 * bt.carbs_day, bt.carbs_day - graze - resc - pro)
+            else:
+                bt.carbs_day = max(0.5 * bt.carbs_day, bt.carbs_day - graze - resc)
             self.beh.t = bt                                  # the Behavior was built above with the old traits
         # every day planned now: the export writes the planned Temporary Overrides into the therapy timeline, and
         # the plant's re-simulation reproduces the identical plan (LESSONS 40)
