@@ -3694,3 +3694,28 @@ statistic here, but it is the controller donors ran.
        shape, composition and grazing timing all match or were tested. The remaining measurement is the overnight
        glucose balance with no controller in the way: true-glucose drift across quiet nights in the sim against the
        donors' CGM drift on quiet nights, per unit of insulin delivered.
+
+173. **On quiet nights the sim's body falls further on less insulin; sleep-lowered glucose use puts it on the donors'
+     balance, and exposes a shortage of daytime lows.** Quiet nights (no entry or manual bolus 21:00–06:00 local;
+     `quiet_nights.py`), by glucose at 00:00 — drift 00→06 / insulin delivered ÷ scheduled / share of nights with a low:
+
+     | start | donors (3,879 nights) | c195_base (489) | sleep_util (c199, 494) |
+     |---|---|---|---|
+     | < 120 | +8.3 / 0.98 / 0.34 | +9.3 / 0.91 / 0.56 | +12.0 / 0.95 / 0.44 |
+     | 120–160 | −24.3 / 1.17 / 0.15 | −35.3 / 1.04 / 0.25 | **−28.0 / 1.15 / 0.15** |
+     | ≥ 160 | −72.0 / 1.55 / 0.10 | −89.0 / 1.32 / 0.19 | −89.0 / 1.38 / 0.16 |
+
+     - Without sleep_util, in every band the simulated body falls further while Loop gives it less insulin: its
+       overnight glucose balance tilts downward. Real bodies hold.
+     - **`--enable sleep_util`** (a2efdd2; off): sleep lowers glucose utilisation (Van Cauter 1991, 1997: at constant
+       glucose infusion glucose rises 20–30% during sleep, about two-thirds from sleep itself through lower brain and
+       peripheral use). While asleep, net glucose rises by δ × ~1 mg/kg/min of insulin-independent (mostly brain)
+       uptake, δ per person U(0.05, 0.12) [J within those studies], ramping in over 30 min. It reproduces the donors'
+       quiet-night balance in the 120–160 band (drift, insulin and nights with a low all within 4) and moves the < 120
+       band most of the way.
+     - Whole cohort: night share of lows 46% → 42%, night insulin CV 40.9 → 38.9, CV 34.6 and Hurst 0.264 pass; but
+       lows 0.83/day and t70 1.14 now fail, day/night 1.79 and zero-delivery fraction fail; 32 vs 37 matched. The sim
+       loses night lows without the daytime lows it was already short of (by day sim 0.40 vs donors 0.56 per day).
+     - Not adopted alone: the night is now right on its own evidence and the count shows the next missing piece is a
+       daytime source of lows. Next: what produces real daytime lows that the sim lacks (by context: post-meal,
+       post-correction, activity, afternoon).
