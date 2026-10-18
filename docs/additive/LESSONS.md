@@ -4289,3 +4289,8 @@ statistic here, but it is the controller donors ran.
        nadirs 44 / 51 / 57 (40 / 50 / 57), share of lows reaching < 54 0.35 / 0.34 (0.37), night unentered rises 0.51 /
        0.57 (0.67), lows 0.54/day either way, 27 matched each (28). **G7 default sd 5.0, τ 180** (the sensor-target
        optimum). G6 and Libre 3 stay at 0 until each is refitted against its own FDA table on these bodies.
+     - **Other families on the same bodies** (sensor_fit, base / sd 5): G6 loss 23.65 / 27.59 (stays 0); Libre 3 20.23 /
+       14.73 (**sd 5 adopted**). Both have drifted far from their fitted losses (G6 7.4, LESSONS 31): CGM-binned < 54
+       MARD 31.4 (G6, FDA 13.8) and 26–30 (Libre 3, 14.2) — readings below 54 too often have true glucose higher, i.e.
+       too many false lows on these faster-moving bodies. A full sensor refit per family against its FDA table is the
+       next review item; it will remove CGM lows, so the lows gap may widen when it is done.
