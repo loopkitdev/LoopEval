@@ -3678,3 +3678,9 @@ statistic here, but it is the controller donors ran.
        unchanged). So real bodies are, if anything, more sensitive in the early night, the opposite of a missing
        resistance. The donors' held early night (lesson 169) then points away from body-side physiology toward
        behaviour or the controller's interplay with a real body; it stays open.
+     - **Not night-time treatment behaviour.** Labeled pulses at local 00–06 per person-night (`night_rescue.py`):
+       flagged rescues donors 0.075, sim (c172_rc) 0.081; unannounced pulses starting below 100 mg/dL (pre-emptive
+       eating, or dawn rises) 0.222 vs 0.160, onset BG 88 on both sides. A 0.06/night shortfall in pre-emptive pulses is
+       far smaller than the 0.28/night excess of night lows (0.44 vs 0.16). With insulin delivery (1.24 vs 1.32 ×
+       schedule) and treatment matched, the sim's nights fall into lows that real nights do not, on less insulin: the
+       difference is in the overnight glucose balance itself, and the posture step (the only lever found) acts there.
