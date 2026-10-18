@@ -372,6 +372,19 @@ class World:
                 st.update(basal_uh=st["basal_uh"] * 0.92, isf=st["isf"] * 1.11, cr=st["cr"] * 1.04)
             g0 = gi
             gi = (lambda d, g0=g0: (g0(d) if g0 else 1.0) * self.glp1.carb_mult(d * DAY + 720))
+        tgt_e = person.traits.get("template_rates", {}).get("entered_g_raw")
+        if (enable or {}).get("entry_own") and tgt_e is not None and np.isfinite(float(tgt_e)) and float(tgt_e) > 0:
+            # experiment (LESSONS 205): entry probabilities scaled so the planned ENTERED grams/day match the donor's own
+            # raw entered grams (paired, the sim entered 0.84× its donors'), measured on a dry-run copy of the plan, so
+            # every random stream is unchanged; meal sizes and the count error (Brazeau) are left as drawn
+            for _ in range(3):
+                tmp = copy.deepcopy(self.beh); tmp.plan_all(days, gi)
+                got = sum(x[1][1].entered or 0.0 for x in tmp.planned if x[1][0] == "enter_meal") / max(days + 1, 1)
+                if got <= 0: break
+                k = float(tgt_e) / got
+                self.beh.t.p_entry_meal = float(min(1.0, self.beh.t.p_entry_meal * k))
+                self.beh.t.p_entry_snack = float(min(1.0, self.beh.t.p_entry_snack * k))
+                if abs(k - 1) < 0.03: break
         self.beh.plan_all(days, gi)
         self._scenarios(enable or {})
         self.outages = plan_outages(person, days, np.random.default_rng(person.seed + 23)) if (enable or {}).get("outages", True) is not False else []
