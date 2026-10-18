@@ -3041,3 +3041,10 @@ statistic here, but it is the controller donors ran.
        on unannounced intake) is the peak calibration's; the per-unit effect after an entered meal is the total's.
        Next: split the total arm's daytime excess by source (entered meals, unannounced eating, rescues) with the
        labeled-event attribution, to see which intake the bodies fail to clear.
+     - **Not per-event handling.** Sim CGM change per 10 g after isolated eating events (nothing else eaten −2 h /
+       +4 h; `src_traj.py`), default vs total 0.50, at 60 / 120 / 240 min: entered meals +4.3 / +3.3 / −1.5 vs
+       +4.3 / +4.6 / +0.7; unentered meals +5.3 / +8.7 / +2.8 vs +5.4 / +7.8 / +3.9; snacks +6.1 / +4.7 / −10.4 vs
+       +5.1 / +3.0 / −7.0. Single events are handled about alike, within ~1–2 mg/dL per 10 g. The total arm's
+       daytime excess lies in the overlapping, busy hours the isolation filter drops, or in the grams eaten (the
+       intake balance books ISF ÷ CSF the same way under both semantics while the bodies' insulin action differs by
+       ~2×, lesson 140). The next measurement is the daily grams-in vs insulin-effect budget per arm.
