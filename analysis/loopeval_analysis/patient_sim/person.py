@@ -158,7 +158,7 @@ def csf_of(bp: BodyParams) -> float:
 
 
 def calibrate(bp: BodyParams, formulation: str, isf: float, basal_uh: float,
-              egp_share: float, total: bool = False) -> BodyParams:
+              egp_share: float, total: bool = False, blend: float = 0.0) -> BodyParams:
     """Set Ib from the true basal rate, split the effect between EGP suppression and disposal on the
     linear part (`egp_share`), then scale both so the EFFECTIVE ISF of the full body at operating
     glucose equals `isf` (the yardstick-type quantity; LESSONS 15)."""
@@ -180,6 +180,8 @@ def calibrate(bp: BodyParams, formulation: str, isf: float, basal_uh: float,
         if got > isf: hi = k
         else: lo = k
     k = math.sqrt(lo * hi)
+    # blend (experiment, LESSONS 133): 0 = peak calibration (default), 1 = total-drop (k = 1), geometric in between
+    k = k ** (1.0 - min(max(blend, 0.0), 1.0))
     return bp.scaled(se=se * k, si_d=sid * k)
 
 
@@ -209,7 +211,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = False,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False,
-                  basal_share: float | None = 0.42) -> Person:
+                  basal_share: float | None = 0.42, isf_blend: float = 0.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -303,7 +305,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         # donor's nights (an upper bound: it includes night corrections), × the scheduled basal (LESSONS 125)
         share = float(np.clip(float(row.basal) * j_basal * min(nr, 3.0) * 24.0 / tdd, 0.30, 0.75))
     basal_true = tdd * share / 24.0
-    bp = calibrate(bp, formulation, isf_true, basal_true, egp_share, total=isf_total)
+    bp = calibrate(bp, formulation, isf_true, basal_true, egp_share, total=isf_total, blend=isf_blend)
     # true CR on the LINEAR part: the TDD constraint holds with it (cohort c35 TDD 36 vs donors 37); the effective
     # peak-probe CSF (_probe_csf_effective) fed people for 42 U/day (c36), and a whole-excursion balance is
     # degenerate under glucose effectiveness (LESSONS 40)
