@@ -3242,3 +3242,14 @@ statistic here, but it is the controller donors ran.
        late entry anchors the window on a rise already under way, then Loop doses into it. Next: the share and the
        delay of late entries per donor, against the sim's entry-vs-eating offset (median −3 min, q10 / q90 −34 / +27),
        as its own named behavior.
+     - **Faster first hours do not widen it either.** On the new base (c166, c7fd7b8): a sugary drink with 30% of
+       main meals (`meal_drink_p 0.3`) / meal emptying ×1.4 (`meal_k 1.4`, towards the T1D tracer's ~55-min half
+       appearance): temp ΔCGM per 10 g at 60 / 90 min +6.2 / +7.9 and +5.3 / +7.6 (new base +4.3 / +5.2; donors
+       +6.4 / +5.9); within-person 60-min IQR 12.9 / 12.7 (donors 19.1); lows 0.62 / 0.64 per day; CV 35.8 / 36.3;
+       24 / 23 matched (21). The first-hour median moves to the donors', the spread does not, and the cost in CV and
+       falls of the old base (lesson 119) is now small. Not adopted: no gain on the spread or the lows.
+     - Every meal-side term tried (count error, speed, lead, fast share, drink, emptying) leaves the within-person
+       spread at 11.8–14.7. The term that sets it in the sim is not on the meal side; candidates are the state each
+       meal starts from (circadian sensitivity slot, IOB, Loop's temp at the entry) and how far each real meal's
+       eating extends after the entry (second helpings and desserts inside the window, which the isolation filter
+       cannot see because they are not entered).
