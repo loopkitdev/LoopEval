@@ -3792,3 +3792,10 @@ statistic here, but it is the controller donors ran.
      2.97); 36 vs 40 matched. The proxy misses treatments entered above 130 or alongside a bolus, so its level is low
      even if its spread is real. The 0.25 constant stays; a per-person version needs a better treatment-entry
      detector (for example the ice labeler's rescue flag joined to entries).
+     - **A direct per-donor measure scores the same.** The labeler's rescue flag marks only unannounced pulses, so the
+       usable measure is the share of a donor's labeled pulses starting below 75 mg/dL that were entered: median
+       0.28, mean 0.32, p25 / p75 0.09 / 0.50, p90 0.67 (161 donors with ≥ 5; column `low_entered_share`). As each
+       person's logging probability (`log_own`, 3874d0c; c206): t54 0.118 and P(reach 54) 0.162 fail narrowly, carb
+       entries 3.21/day; 36 vs 40. The donors' spread of logging, at a mean above the constant's, makes the lows
+       shallower overall: frequent loggers lose more deep lows than rare loggers gain. The 0.25 constant stays the
+       default and `log_own` an experiment switch.
