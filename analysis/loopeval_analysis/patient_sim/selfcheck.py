@@ -40,7 +40,9 @@ def check(templates: pd.DataFrame, seeds, days: int = 10, above_rest_max: float 
         # truth["cr"] is the linear-part bookkeeping ratio that sets intake against TDD (LESSONS 40). With the slow,
         # tracer-matched EGP arm the dinner bolus's tail lands in the post-absorptive night, so some bodies miss the night
         # window by night-to-night scatter rather than drift; Pete accepted that (2026-10-16, LESSONS 75)
-        cr_eff = P.truth["isf"] / _probe_csf_effective(P.body, P.formulation)
+        # under the total-drop base (LESSONS 143) ISF and the intake CR are both linear-part totals, so the body-consistent
+        # dose is the truth CR itself (8 of 8 nights at rest vs 3 of 8 for the peak semantics, LESSONS 140)
+        cr_eff = P.truth["cr"]
         Q.settings.update(isf=P.truth["isf"], cr=cr_eff, basal_uh=P.truth["basal_uh"],
                           basal_profile=P.truth.get("basal_profile") or [1.0] * 24)
         W = World(Q, days, enable=QUIET)

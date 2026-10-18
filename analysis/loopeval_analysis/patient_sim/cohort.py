@@ -33,7 +33,7 @@ def _one(args):
                           sg_mult=enable.get("sg_mult", 1.0) if isinstance(enable.get("sg_mult"), float) else 1.0,
                           prof_w=enable.get("prof_w") if isinstance(enable.get("prof_w"), float) else None,
                           egp_share=enable.get("egp_share") if isinstance(enable.get("egp_share"), float) else None,
-                          isf_total=bool(enable.get("isf_total", False)),
+                          isf_total=bool(enable.get("isf_total", True)),   # total-drop ISF + full intake budget, the base since 2026-10-18 (Pete; LESSONS 143)
                           kappa_mult=enable.get("kappa_mult", 1.0) if isinstance(enable.get("kappa_mult"), float) else 1.0,
                           ge_var=bool(enable.get("ge_var", True)), basal_own=bool(enable.get("basal_own", False)),
                           basal_share=enable.get("basal_share") if isinstance(enable.get("basal_share"), float) else 0.42,

@@ -248,8 +248,8 @@ class World:
             person.traits["act_carbs"] = activity_carbs(person, self.beh_traits, ex_b=self.ex_b)
         if self.enable["exercise"]:
             self.beh_traits.carbs_day += person.traits.get("act_carbs", 0.0)
-        if (enable or {}).get("budget_all") and not (enable or {}).get("perfect_person"):
-            # experiment (LESSONS 143): the donor's TDD covered ALL of their eating, unlogged grazing and hypo treatment
+        if (enable or {}).get("budget_all", True) and not (enable or {}).get("perfect_person"):
+            # default since 2026-10-18 (Pete, LESSONS 143; --disable budget_all): the donor's TDD covered ALL of their eating, unlogged grazing and hypo treatment
             # included, so the TDD budget pays for the person's expected grazing and the donor's measured rescue carbs
             # (template rescues_per_day × rescue_size_med); meals and snacks share what is left
             bt = self.beh_traits
