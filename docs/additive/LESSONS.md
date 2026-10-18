@@ -3560,3 +3560,25 @@ statistic here, but it is the controller donors ran.
      - Still failing at ×4.5: CV 36.5 (KS 0.012), t54 0.12 (donors 0.215: the lows are as frequent but shallower),
        acf_zero 65, the quiet daytime wander (25 vs 40). evidence/15 corrected. Default decision: Pete.
      - **Adopted (Pete, 2026-10-18): κ median 0.675** (= 0.15 × 4.5, the same draws), lnN σ 0.4 kept; registry A5.
+
+166. **Counter-regulation fitted to the donors' low depths: half the judged gain, 36 of 51.** On c185_base the lows were
+     as frequent as the donors' but shallower and longer (`nadir.py`, G7 episodes < 70 for ≥ 15 min): nadir p10 / p25 /
+     p50 donors 41 / 50 / 58, sim 47 / 54 / 60; share reaching < 54 0.35 vs 0.24; duration p90 75 vs 91 min. A9's
+     CRmax lnN(1.0 mg/kg/min, 0.5) is a judgement, and evidence/01 §4.4 prescribes fitting it to exactly this nadir
+     distribution (T1D loses the glucagon response early; adrenaline remains). `--set cr_mult` (4dc802d), c186
+     (rc_own) against c185_base:
+
+     | | ×1 | ×0.5 | ×0.25 | donors |
+     |---|---|---|---|---|
+     | nadir p10 / p25 / p50 | 47 / 54 / 60 | 46 / 52 / 59 | 43 / 51 / 59 | 41 / 50 / 58 |
+     | share reaching < 54 | 0.24 | 0.30 | 0.32 | 0.35 |
+     | t54 (KS p) | 0.117 (0.007) | 0.148 (0.26) | 0.177 (0.74) | 0.215 |
+     | lows / day | 0.92 | 1.00 | 1.08 | 1.08 |
+     | TIR / mean | 73.2 / 149.4 | 71.6 / 149.6 | 71.8 / 149.5 | 71.7 / 151.4 |
+     | CV | 36.5 | 36.8 | 37.3 | 34.8 |
+     | matched | 33 | **36** | 34 | |
+
+     - ×0.5 passes t54, p_reach54, lows/day, TIR and mean together; ×0.25 fits the depth best but adds CV. The donors'
+       deepest nadirs include compression lows and the 40-mg/dL floor (common-mode, AGENTS), so the depth target is
+       itself a little deep; ×0.5 is the fit that does not chase it.
+     - Durations stay long at p90 (95 vs 75 min): recovery from a low is still slower than real (rescue timing or size).
