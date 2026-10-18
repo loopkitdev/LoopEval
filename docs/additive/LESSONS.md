@@ -4223,3 +4223,15 @@ statistic here, but it is the controller donors ran.
        0.193 (0.131); lows 0.58/day; 26 matched (29). Adopted as each person's own measured behaviour; the afternoon
        excess after correctly timed lunches is the next measurement (lunch response amplitude per entered gram and the
        insulin given for it, paired).
+
+207. **On the own-clock base, small lunches follow long breakfast tails, and no morning EGP component carries it.**
+     Isolated entries ≥ 20 g, CGM change at 0.5–4 h (c231_base): breakfast +15 / 34 / 43 / 44 / 49 / 36 / 30 / 23 (donors
+     +18 / 41 / 42 / 35 / 29 / 27 / 22 / 16, LESSONS 181), lunch +5 / 16 / 20 / 14 / 10 / 13 / 13 / 10 (donors +18 / 34 /
+     36 / 35 / 33 / 31 / 26 / 18). Breakfast rises right and falls too slowly; lunch then starts high under Loop's
+     correction.
+     - Not B1 (zero swing, c227_s0: lunch +6 / 15 / 15, breakfast tail +31 / 26 / 31). Not B1b (`prof_w` 0, c231: breakfast
+       +42 / 33 / 27 at 2.5–3.5 h, lunch unchanged, lows 0.42/day, 29 matched). B2 dawn is inert in templated cohorts
+       (it applies only to people without a donor basal profile; `--disable dawn` reproduced the base exactly).
+     - Morning truth (c226): EGP 0.93–0.95 of basal at 06–08 h against 0.70 at midday; insulin delivered 1.13–1.76 U/h.
+       Next: the breakfast bolus's own timing relative to eating under the own clock, and the overnight-to-morning IOB
+       the sim starts breakfast with (paired, the sim delivers 0.92× the donor's insulin at 00–06 h).
