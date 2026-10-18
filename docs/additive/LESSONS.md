@@ -3783,3 +3783,12 @@ statistic here, but it is the controller donors ran.
      person; the remaining first-hour gap (lessons 146–150, 174–177) is in amplitude: how far a real meal rises,
      size-independently, while its timing and its late plateau stay as the sim has them. The sim's people also differ
      more from one another in timing than the donors do (between-person SD 34 vs 25).
+
+179. **Per-donor treatment logging undercounts with this proxy.** Donor logged treatments per day = carb entries with no
+     manual bolus within ±30 min and CGM < 130 at the entry (`treat_log_rate.py`; column `treat_log_day` in
+     templates_pilot_logs.csv): median 0.073, p25 / p75 0.008 / 0.37, p90 0.86; 44% under 0.05/day. Mapped to a
+     per-person probability as rate ÷ 1.4 (the sim's median treatments per day), `--enable log_own` (62e789c; c205)
+     against c201_base: t54 0.147 → 0.093 and P(reach 54) 0.167 → 0.146 fail again, carb entries 3.08 → 2.75/day (donors
+     2.97); 36 vs 40 matched. The proxy misses treatments entered above 130 or alongside a bolus, so its level is low
+     even if its spread is real. The 0.25 constant stays; a per-person version needs a better treatment-entry
+     detector (for example the ice labeler's rescue flag joined to entries).
