@@ -42,6 +42,7 @@ BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "
 CSF_PER_GEQ = 1.85      # re-read through the labeler under saturating gastric emptying: 1.73 read 1.13 vs 1.21 (LESSONS 33)
 CSF_BLEND_CAL = 1.25    # re-read through the labeler: 1.18 read 1.025 (LESSONS 37), then 1.15 as other components changed (c39); under the
                         # total-drop ISF option it must be 1.08 (labeler 1.40 → 1.21; LESSONS 75)
+CSF_BLEND_CAL_TOTAL = 1.08
 ISF_W = 0.5      # weight of the yardstick against the person's own ISF setting in the truth (open, see sample_person)
 
 
@@ -277,7 +278,10 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # post-meal lows at 4× the donors' rate (LESSONS 37)
     w = ISF_W if isf_w is None else isf_w
     csf_set = float(row.isf) / float(row.cr)
-    csf_target = CSF_BLEND_CAL * csf_target ** (1 - w) * (csf_set * float(np.exp(rng.normal(0, 0.15)))) ** w
+    # the labeler-calibrated constant depends on the ISF semantics: 1.25 for the peak calibration, 1.08 for total-drop
+    # (LESSONS 75); the isf_total switch ran with 1.25 until 2026-10-18 (LESSONS 140)
+    cal = CSF_BLEND_CAL_TOTAL if isf_total else CSF_BLEND_CAL
+    csf_target = cal * csf_target ** (1 - w) * (csf_set * float(np.exp(rng.normal(0, 0.15)))) ** w
     f_cal = csf_target * bw * bp.vg / 1000.0
     if f_cal > 1.0:
         bp = bp.scaled(f=1.0, vg=float(1000.0 / (bw * csf_target)))
