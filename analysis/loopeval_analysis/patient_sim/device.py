@@ -55,7 +55,8 @@ class SiteTraits:
     # 22,741 wears). Split across failing absorption, full occlusion and dislodgement [J split]; the earlier 15% + 2% + 3%
     # was ~6× the measured rate and made whole days of highs (LESSONS 43)
     p_fail: float = 0.012           # sites whose absorption fails before the planned change
-    site_cv: float = 0.0            # per-site absorption-speed spread (lognormal SD); Haidar 2013 per-site tmax CV ~27%
+    site_cv: float = 0.27           # per-site absorption-speed spread (lognormal SD); Haidar 2013 per-site tmax CV ~27% (default since
+                                    # 2026-10-18, review loop: lows and P(reach 54) toward the donors'; LESSONS 199)
                                     # (evidence/14 candidate 3). 0 = off (switch; LESSONS 115)
     fail_floor: float = 0.3         # absorbed fraction a failed site decays to [J]
     fail_tau: float = 240.0         # min
