@@ -3422,3 +3422,12 @@ statistic here, but it is the controller donors ran.
        of the rising-trend gap belongs to the other unentered intake (snacks and meals eaten without an entry), which
        still empties as solid food.
      - **Adopted (Pete, 2026-10-18): `graze_fast` is the default** (`--disable graze_fast` restores solid grazes).
+
+159. **A sugar-heavier snack does not pay.** `--set snack_fast=0.5` (adf9ba2; snacks' fast-emptying share, default as
+     meals 0.2): c178 (rc_own) against c177_base: rising-trend corrections ΔCGM per U at 60 / 90 min −7.1 / −16.1 (base
+     −4.1 / −14.8; donors −17.7 / −30.7); CV 36.8 → 37.8, TIR 68.0 → 65.8, day/night 1.83 → 1.96 (donors 2.06),
+     night insulin CV 42.4; 26 vs 27 matched. Not adopted (Piernas & Popkin give the direction, not a share).
+     - The ACF zero-crossing has stayed at 65–70 min through every arm of lessons 147–159 (meal speed, ceiling, count
+       spread, insulin absorption, action delay, meal tail, fast grazes, fast snacks). It is set by something none of
+       those terms touches; lesson 76's split (meal rises too long, quiet stretches too still) on the current base is
+       the next measurement.
