@@ -3463,3 +3463,16 @@ statistic here, but it is the controller donors ran.
        everyday movement (the sim has a constant waking background of 0.06 plus ~2 walks/day) and small sips and
        bites. Next: a fragmented light-activity component built from accelerometry bout structure, mean-preserving
        against the current background.
+
+161. **Fragmented everyday movement adds lows, not the daytime wander.** `--enable act_frag` (0cdf8b9; off): the waking
+     background as alternating sitting lnN(12 min, 1.0) and light bouts lnN(4 min, 0.8) at the intensity that keeps
+     the person's mean [J sizes; Healy 2008 bout structure]; the activity-carbs probe uses the same process. c179
+     (rc_own) against c177_base:
+     - quiet daytime zero-crossing 25 → 25 (donors 40); whole-record 70 → 65; post-event 60;
+     - lows 0.67 → 0.83/day (now passes, KS 0.06), t70 0.81 → 1.18 (donors 1.67), mean 157.8 → 155.6, TDD 38.6;
+       day/night 1.83 → 1.81 (now fails, KS 0.03), night insulin CV 42.4; 26 vs 27 matched.
+     - Minute-scale bouts, smoothed by the 7-min activity lag, move glucose too little and too fast to make a 40-min
+       wave; they reach the low side because bouts above the 0.12 threshold build delayed sensitivity. Not adopted.
+       The daytime wander needs a process that varies on a ~30–60 min scale while awake: candidates are the size of
+       unlogged sips and bites over the day (the sim's grazing is 2/day of ~10 g), posture and meal-adjacent activity
+       on that scale, or waking stress hormones.
