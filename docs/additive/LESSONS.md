@@ -2628,3 +2628,17 @@ statistic here, but it is the controller donors ran.
        the carbohydrate: donors rise faster early (60 min +4.3 / +6.4 per 10 g vs the sim's +1.7 / +2.7), hold a
        plateau, and come back by 5–6 h. Next arms (c142): slower insulin action p2 0.015 (the 15 U clamp's 6.3% in
        the first hour is below the body's ~10% at p2 0.025) and faster early emptying ×1.4.
+     - **c142: neither lever gives the donors' shape.** Entry-anchored ΔCGM per 10 g at 60 / 150 / 180 min:
+       - p2 0.015: temp +2.5 / −0.8 / −2.4, automatic +2.4 / −2.9 / −3.6 (31 matched);
+       - emptying ×1.4: temp +5.4 / +1.2 / +0.7, automatic +4.1 / −0.5 / −0.7 (26 matched; CV 40.3);
+       - donors: temp +6.4 / +5.5 / +5.5, automatic +4.3 / +5.0 / +5.4.
+       Faster emptying gets the first hour right but is back at the start by 2.5 h. Donors hold +5 per 10 g to 4 h and
+       come back by 6 h. Slower insulin changes little.
+     - What a held plateau needs is glucose still arriving, or insulin acting less, between 2 and 4 h after a
+       covered meal. The candidates are now components, not knobs:
+       - follow-on eating within 6 h that donors do not enter (dessert, a second helping; the selection excludes
+         only entered food);
+       - a meal that is under-covered in effect although the entry is right. Real CR settings are tuned on whole
+         days, not on the 2–4 h window.
+       Next: the sim's unentered eating within 6 h of an isolated entry against what donors' labeled pulses show in
+       the same window.
