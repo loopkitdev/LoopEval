@@ -3627,3 +3627,18 @@ statistic here, but it is the controller donors ran.
        Circadian amplitude 0.181 → 0.165, and with B1 off it is 0.174: the sim's 24-h amplitude (donors 0.131) is
        not B1's swing but the day's other structure (meal clock, activity, dawn). Default unchanged; the amplitude
        gap is open.
+
+169. **The night lows are mostly posture's bedtime step; half the measured contrast gives 37 of 51.** Median glucose by
+     3-h local block relative to each side's mean (donors 151, c187 150): 00–03 donors +1, sim −16; 03–06 −17 / −30;
+     09–12 −5 / +12. Real glucose holds through the first half of the night; the sim's falls from bedtime, which is
+     where its extra night lows are. Posture (A4b) switches absorption from upright to supine at bedtime.
+     - `--disable posture` (c193): night share of lows 53% → 40%, 00–03 134 → 146 (donors 152), CV 34.4 (passes),
+       hurst_long 0.259 (passes), lows 0.83/day; 35 matched.
+     - `--set posture_mult=0.5` (c194, 9f2fd79): night share 46%, 00–03 140.5, CV 35.6 (passes), hurst_long 0.267
+       (passes), TIR 72.6, lows 0.92/day; t54 0.106 and P(reach 54) 0.148 now fail; **37 matched**.
+     - Posture went in at 32 (lesson 163) before κ and counter-regulation were refitted (lessons 165–166); those now
+       carry the lows it supplied, and its full step at bedtime overstates the night/day contrast. Hildebrandt
+       compared sitting with flat supine; real evenings include reclining and real sleep is not constant flat supine.
+     - **Adopted as default: posture at half the measured contrast** (0.5 × the same draws; `--set posture_mult=1.0`
+       restores the full step). Self-approved under Pete's standing permission for additive-model updates
+       (2026-10-18). Remaining night excess 46% vs 22%.
