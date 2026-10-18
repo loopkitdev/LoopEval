@@ -160,6 +160,8 @@ class World:
             if enable.get("menstrual_late"):
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.menstrual_shape = "late"
                 self.mod_traits.enabled["menstrual"] = True
+            if "steroid" in enable and "steroid" not in self.mod_traits.enabled:      # persons sampled before B14
+                self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.enabled["steroid"] = bool(enable["steroid"])
             if isinstance(enable.get("day_tau"), float):
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.day_tau = enable["day_tau"]
             if isinstance(enable.get("circ_uniform"), float) and enable["circ_uniform"] > 0:
@@ -175,6 +177,10 @@ class World:
                            perfect_person=False, fat=True, lipohypertrophy=True)
         if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable and isinstance(v, bool)})
         self.mods = Modulators(self.mod_traits, days)
+        if enable and enable.get("steroid_course"):
+            # scenario: one glucocorticoid course starting on day 3 (B14), whatever the person's own draw
+            self.mods.gc = self.mods._glucocorticoid(self.mod_traits, force_day=3)
+            self.mod_traits.enabled["steroid"] = True
         if enable and isinstance(enable.get("snack_minus"), float):
             person.traits["snack_minus"] = float(enable["snack_minus"])   # labeled pulses that are not eating (LESSONS 127)
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
