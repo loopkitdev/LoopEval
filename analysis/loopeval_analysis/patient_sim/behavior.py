@@ -144,6 +144,7 @@ class BehaviorTraits:
     treat_latency: float = 5.0           # min after seeing it
     retreat_wait: float = 15.0
     p_retreat: float = 0.34
+    p_log_pro: float = 0.0               # proactive (pre-emptive) carbs entered in the app (LESSONS 175)
     p_log_rescue: float = 0.05           # rescues entered in the app [J; "very under-represented" — Pete]
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
@@ -380,6 +381,7 @@ class Behavior:
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
         self.r_drink = np.random.default_rng(int(getattr(person, "seed", 0)) + 1601)      # meal_drink draws
         self.r_clock = np.random.default_rng(int(getattr(person, "seed", 0)) + 1709)      # own_clock meal times
+        self.r_logp = np.random.default_rng(int(getattr(person, "seed", 0)) + 2113)       # proactive logging draws
         self.readings: list[tuple[float, float]] = []
         self.planned: list = []                 # (minute, action) sorted
         self.planned_day = -1
@@ -787,6 +789,8 @@ class Behavior:
             if proj < t.pro_onset and cgm < t.pro_onset + 50 and self.trend() <= 0.0:
                 g = max(3.0, t.pro_grams * float(np.exp(r.normal(0, 0.3))))
                 acts.append(("eat", Parcel(m + 2, g, kempt=0.06, kabs=0.06, f=self._f_glucose(), label="proactive")))
+                if t.p_log_pro > 0 and self.r_logp.random() < t.p_log_pro:
+                    acts.append(("carb", m, round(g), 1800.0))   # pre-emptive carbs entered in the app (LESSONS 175)
                 self.last_pro = m
                 self.log.append((m, "proactive", g, proj))
                 return acts

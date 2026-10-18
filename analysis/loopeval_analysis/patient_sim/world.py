@@ -236,6 +236,10 @@ class World:
             k_ = float(enable["graze_split"])
             self.beh_traits.graze_per_day = self.beh_traits.graze_per_day * k_
             self.beh_traits.graze_g = self.beh_traits.graze_g / k_
+        if enable and isinstance(enable.get("p_log_pro"), float):
+            self.beh_traits.p_log_pro = enable["p_log_pro"]
+        if enable and isinstance(enable.get("p_log_rescue"), float):
+            self.beh_traits.p_log_rescue = enable["p_log_rescue"]
         if enable and enable.get("graze_eve"):
             self.beh_traits.graze_eve = True
         if enable and enable.get("slot_comp"):
