@@ -3124,3 +3124,19 @@ statistic here, but it is the controller donors ran.
        opposite per-person errors, so the per-person carb sensitivity (CSF blended halfway toward settings ISF ÷ CR,
        ISF_W 0.5) or the per-person intake budget is the suspect, not a population constant. Next: per person,
        body CSF and grams eaten per entry against the tercile.
+     - **Not the CSF match, and meal size is real.** By tercile (low / mid / high): body CSF ÷ settings ISF/CR 1.30 /
+       1.16 / 1.06; median entry 38.5 / 27 / 21.5 g; entries per day 1.2 / 2.7 / 4.6 (`csf_tercile.py`). The heavy
+       enterers' bodies match their settings best. By entry size, ΔCGM per 10 g at 60 / 120 / 180 / 240 min:
+
+       | size | donors | sim (new base) |
+       |---|---|---|
+       | 20–30 g | +8.3 / +7.4 / +7.0 / +2.2 | +5.4 / +6.8 / +6.2 / +1.9 |
+       | 30–45 g | +6.1 / +6.0 / +6.6 / +4.9 | +3.5 / +3.9 / −0.3 / +0.5 |
+       | 45–70 g | +3.8 / +3.5 / +4.8 / +4.4 | +3.2 / +4.2 / +3.7 / +2.9 |
+       | 70 g + | +2.7 / +2.8 / +4.1 / +3.4 | +1.5 / +0.4 / −0.1 / +1.1 |
+
+       Real meals rise more per gram when small (the saturating emptying the sim models), and the sim follows that
+       ordering. What it misses is the 2–4 h hold of the 30–45 g and the large meals, which fall back early. The
+       heavy enterers' over-rise at 2 h is their small-entry mix (their donors' tercile rises less at 2 h than the
+       donors' 20–30 g bin, so part of the comparison is composition). Open: the 2–4 h hold of mid-size and large
+       meals on the new base.
