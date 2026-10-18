@@ -3383,3 +3383,10 @@ statistic here, but it is the controller donors ran.
        (food eaten after the entry and not entered; lesson 130's follow-on check counted labeled pulses, not their
        size), or real insulin action that is faster at corrections because correction-time glucose is falling from a
        peak the CGM has not shown yet.
+     - **Not follow-on eating by size either.** Unannounced, non-rescue labeled pulses starting 0.5–4 h after an
+       announced meal ≥ 20 g, g-eq per 10 g entered (`followon_size.py`; ice labeler on both sides): donors (31,549
+       meals) mean 3.66, p75 5.87, 38% of meals with any; c172_rc (2,001) 3.24, 5.09, 39%. The meal's own labeled pulse
+       9.82 vs 9.97 g-eq per 10 g. Follow-on intake is ~12% short in size and matched in frequency: not the gap. Of
+       lesson 156's two candidates this leaves real insulin action at correction time; the next measurement is the
+       donors' correction drop split by the CGM trend at the bolus (rising, flat, falling), against the sim's, to
+       separate faster action from boluses given at a peak.
