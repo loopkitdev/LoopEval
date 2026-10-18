@@ -230,7 +230,7 @@ class Body:
     # ------------------------------------------------------------------ dynamics
     def step(self, dt: float = 1.0, si_mult: float = 1.0, egp_mult: float = 1.0,
              ex_intensity: float = 0.0, ex_anaerobic: float = 0.0, ex_si_boost: float = 0.0,
-             abs_mult: float = 1.0, bio: float = 1.0, util_drop: float = 0.0):
+             abs_mult: float = 1.0, bio: float = 1.0, util_drop: float = 0.0, ge_mult: float = 1.0):
         """Advance `dt` minutes (explicit midpoint for the fast states; dt ≤ 1 recommended).
 
         si_mult: product of sensitivity modulators (circadian, daily, cycle, illness, stress,
@@ -289,7 +289,7 @@ class Body:
                     kcal += pc.kempt * (phi if pc.hypo_sensitive else 1.0) * pc.q[1] * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g
                     w_ = pc.q[1] * pc.kcal_per_g
                     wsp += w_ * pc.speed; wk += w_
-            cap = p.ge_kcal_max * phi
+            cap = p.ge_kcal_max * phi * ge_mult
             if p.ge_cap_speed > 0 and wk > 0:
                 cap *= 1.0 + p.ge_cap_speed * (wsp / wk - 1.0)
             if p.ge_gamma > 0:
@@ -300,7 +300,7 @@ class Body:
                 scale = cap / (cap + kcal)     # saturating (Michaelis–Menten in energy): ~first-order for small meals, toward cap for big
         for pc in self.parcels:
             if not pc.entered: continue
-            ke_ = pc.kempt * (phi if pc.hypo_sensitive else 1.0)
+            ke_ = pc.kempt * (phi if pc.hypo_sensitive else 1.0) * (ge_mult if pc.kcal_per_g > 0 else 1.0)
             s1, s2, gut = pc.q
             e1 = ke_ * s1; e2 = ke_ * s2 * scale; a = pc.kabs * gut
             pc.q = [s1 - dt * e1, s2 + dt * (e1 - e2), gut + dt * (e2 - a)]

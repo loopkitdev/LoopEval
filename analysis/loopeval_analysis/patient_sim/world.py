@@ -306,6 +306,7 @@ class World:
         self.sleep_util = float(np.random.default_rng(int(person.seed) + 2011).uniform(0.05, 0.12)) \
             if (enable or {}).get("sleep_util") else 0.0
         self._sleep_since = None
+        self.ge_circ = bool((enable or {}).get("ge_circ", False))
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,
                                           frag=self.act_frag, frag_seed=int(person.seed) + 1811,
                                           **({"frag_on_med": float(enable["frag_on"])} if enable and isinstance(enable.get("frag_on"), float) else {}),
@@ -503,7 +504,15 @@ class World:
                 ud = self.sleep_util * 1.0 * min(1.0, (m - self._sleep_since) / 30.0)
             else:
                 self._sleep_since = None
-        self.body.step(1.0, si_mult=si, egp_mult=egp, util_drop=ud, ex_intensity=ex["ex_intensity"],
+        gm = 1.0
+        if self.ge_circ:
+            # circadian gastric emptying (Goo 1987: evening half-time ~54% longer than morning for the same solid meal):
+            # x1.25 06-11 h, x0.8 17-23 h, x1.0 otherwise, ramped over an hour at each boundary [J shape] (LESSONS 180)
+            hh = (m % DAY) / 60.0
+            def _seg(h):
+                return 1.25 if 6 <= h < 11 else 0.8 if 17 <= h < 23 else 1.0
+            gm = 0.5 * (_seg(hh) + _seg((hh - 1.0) % 24))
+        self.body.step(1.0, si_mult=si, egp_mult=egp, util_drop=ud, ge_mult=gm, ex_intensity=ex["ex_intensity"],
                        ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"],
                        abs_mult=absm_env * absm_site * ex["abs_mult"] * self._posture_mult(m), bio=bio)
         if int(m) % 5 == 0: self.ex_log.append((m, ex["ex_si_boost"]))     # exercise sensitivity, saved as truth ex_boost
