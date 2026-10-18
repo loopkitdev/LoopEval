@@ -2875,3 +2875,9 @@ statistic here, but it is the controller donors ran.
      - Next (evidence-based component): enable the cycle for menstruating people with a shape from these logs (SI
        lower through the late-luteal days, recovering by day ~3 after onset; follicular baseline), sized so the
        simulated logged-day profile matches. A default-on decision for Pete.
+     - **`--enable menstrual_late`** (4e6c263; menstruating responders as before: 63%, amplitude lnN(0.08, 0.5)).
+       c152 vs c145: 33 vs 35 matched (noise); t70 2.34 (2.45), hurst_long 0.239 (0.217), TDD CV 14.9, night insulin
+       CV 38.7. The simulated onset profile (269 responder-days, ~12 per offset in 14-day windows) is too thin to
+       compare: day 0 +6.8, consistent with the donors' +4.7, with single offsets swinging −18 to +30. A dedicated
+       check needs menstruating people over full cycles (≥ 60 days). The shape is now evidence-based (BDDP logs).
+       Default-on is Pete's call; the cohort cost is nil.
