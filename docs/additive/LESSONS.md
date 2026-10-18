@@ -2677,3 +2677,7 @@ statistic here, but it is the controller donors ran.
        90 / 150 min: +3.0 / −1.9 (c135 +0.7 / −3.3; donors +5.9 / +5.5). 34 vs 31 matched; hurst_long 0.267
        (passes); day/night 1.80; CV 38.7 (fails). egp_share 0.4: nadir 0.64 but the trajectory is worse (−4.3 at
        150 min); 28. The timing matters, not the share. Queued p2e 0.005 / 0.004 (c144) for the tracer nadir time.
+     - **c144.** p2e 0.005: nadir 0.60 at 120 min, 32 matched, night insulin CV 43.9 (fails). p2e 0.004: 0.66 at
+       120 min, 31. The nadir time stays at 120 min for every p2e; slower rates only make it shallower than the
+       tracer's. 0.006 matches the depth (0.54 vs 0.56) and gives the best count (34). The remaining 40-min timing
+       difference is in the insulin PK and meal timing, not the EGP rate. Default decision: Pete.
