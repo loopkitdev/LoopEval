@@ -4258,3 +4258,12 @@ statistic here, but it is the controller donors ran.
        bolus-vs-entry timing from each donor. Remaining named candidates: per-dose insulin absorption in free living
        (beyond A4's clamp-net 15% and site_cv), post-meal activity (frequency and timing against HealthKit workouts where
        BDDP holds them), and meals larger than entered (the donors' upward edits).
+
+209. **A free-living per-dose absorption spread does not carry the within-meal variability.** Evidence for a wider A4
+     than its clamp-net 0.15: Schiavon et al. ATTD 2020 (abstract, 10 youths on hybrid closed loop: meal-to-meal intra-
+     individual CV of model-derived absorption parameters 34–94%, estimation noise included); CSII inter-occasion
+     variance ~40% of the total (depth, site age, perfusion). `--set dose_cv=0.3` (047975b, off) on the SG-0.0045 own-clock
+     base (c233): within-person SD of the 0–2 h drop 30.0 → 29.0 (donors 36.7), meals ending < 70 3.0 → 2.8%, lows 0.42 →
+     0.42/day, low duration p90 65 → 80 (65); 28 matched either way. Kept at 0.15: the drop within 2 h is set by early
+     insulin against early carbohydrate, which a per-dose speed spread barely moves. Of the named candidates, post-meal
+     activity (needs HealthKit workouts from BDDP, a Databricks login) and meals larger than entered remain.
