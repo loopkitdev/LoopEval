@@ -3833,3 +3833,19 @@ statistic here, but it is the controller donors ran.
      circadian SI profile off (c191) lunch starts at 145 and 09–12 reads 158: B1 explains a third. Next: what lengthens
      the simulated breakfast tail (morning fat and protein, the dawn part of the basal-need profile, and the Visentin
      breakfast level each acting after 2 h).
+
+182. **Real people skip breakfast twice as often as the sim's; matching it shortens the breakfast tail and lowers the
+     lunch start, at a cost elsewhere.** Pete asked whether breakfast skipping is modelled: as a flat 10% of days for
+     everyone (`skip_breakfast`). Donors' share of days with no labeled pulse ≥ 10 g-eq at 05:00–10:30 local: median 0.18,
+     p25 / p75 0.12 / 0.27, p10 / p90 0.07 / 0.36 (168 donors); the same measure on the sim reads 0.08 (its true 0.10), so
+     the measure under-reads slightly on both sides.
+     - **`--enable skip_own`** (cedeb80; off; per-donor share as the person's `skip_breakfast`, column `skip_bfast` in
+       templates_pilot_logs.csv; the day's other meals carry the skipped grams): c209 against c201_base: lunch starts 154 →
+       143 (donors 128) and rises +10 → +15 at 1.5 h (donors +36); breakfast's 3.5–4 h tail +26–28 → +18–19 (donors
+       +16–22); but 09–12 stays 154.7 (donors 146), CV 36.5, Hurst and t54 fail: 32 vs 40 matched.
+     - Breakfast-tail arms on the same base (c208): body basal profile at the full schedule shape (`prof_w` 1.0) lunch
+       starts 148, 34 matched; slot composition 147.5, 36 matched; breakfast tails barely move in either.
+     - None adopted. The lunch gap now reads as two parts: a higher start (breakfast eaten more often and lasting longer
+       in the sim) and a smaller rise from that start. Skipping is real, evidenced behaviour; the cost comes from the
+       skipped grams moving into larger lunches and dinners, which a real skipper may not do (part of the day's intake
+       simply not eaten). Next: skip_own with the skipped breakfast's grams dropped rather than redistributed.
