@@ -2790,3 +2790,13 @@ statistic here, but it is the controller donors ran.
        that the sim lacks. Lesson 76 measured simulated quiet stretches decorrelating at 20 min (sensor noise)
        against the donors' 40 (physiological wander). The two failures, meal plateau and ACF zero-crossing, have
        separate causes; fixing the first with insulin strength worsens the second.
+
+134. **On the current defaults the night side of day/night has nearly closed.** c145 overnight automatic ÷ scheduled,
+     median of person medians:
+     - clean nights 1.29 (c135 1.41; donors 1.16); evening-carb nights 1.35 (1.53; donors 1.31);
+     - zero-delivery night bins 13.2% (donors 12.5%); < 25% of schedule 16.8% (18.9%).
+     The basal share at 0.42 and the slower EGP rate brought the nights to the donors'. The remaining day/night gap
+     (1.75 vs 2.06) is on the daytime side: smaller meal-time peaks of manual insulin (lesson 122: 0.43–0.46 vs
+     0.61–0.62 of the mean hourly rate), with daily manual units matching. The sim spreads its bolus insulin more
+     evenly across the day than donors, who concentrate it at lunch and dinner. Next: bolus size per meal by
+     slot, sim vs own donor (twin), and the per-slot share of entered grams (dinner 0.38 vs 0.44, lesson 123).
