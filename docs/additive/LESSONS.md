@@ -3753,3 +3753,11 @@ statistic here, but it is the controller donors ran.
        lows 0.92 → 0.75/day, t70, t54, day/night and zero-delivery fraction fail: 35 vs 40. Still the same trade
        (lesson 173): the night is right with it, and the daytime lows it removes have no counterpart until the
        first-hour spread of real meals is found. Stays off.
+
+176. **Faster emptying on the matched-lows base: a better first hour, a lost plateau, no net gain.** `--set meal_k=1.3`
+     (c203 on 67ee10b, rc_own) against c201_base: bolused-meal 0→60 change +12 → +16 (donors +20); temp ΔCGM per 10 g at
+     60 / 90 / 180 min +5.0 / +7.1 / +0.6 (donors +6.4 / +5.9 / +5.5); t54 0.147 → 0.176; within-person first-hour IQR
+     48 (donors 71); 39 vs 40 matched. As on every earlier base (lessons 130, 149, 166), faster appearance moves the
+     first hour toward the donors' and empties the 2–4 h plateau the real meals keep; the within-person spread does not
+     respond to meal speed. Not adopted. The two observations together still ask for real meals that arrive both faster
+     early and longer late, with their extra variability from outside the meal itself.
