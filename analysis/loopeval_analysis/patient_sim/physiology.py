@@ -90,6 +90,13 @@ class BodyParams:
                                    # kcal/min keeps rising with load — doubling the load: ×1.45 (Schirra 1996, γ 0.54),
                                    # +0.72 on 2.5 kcal/min (Hunt 1985, γ ≈ 0.37) — where Km 60 kcal had flattened it to
                                    # ×1.07 above ~300 kcal (LESSONS 53)
+    egp_vs: float = 0.0            # > 0: the hepatic insulin signal saturates, in suppression units v = sE·(I − Ib)/Ib:
+                                   # v_eff = vs·v / (vs + v). 2.57 puts half suppression at v 0.62 and full at 1.64, the
+                                   # 29 / 60 µU/mL of Rizza 1981 (half-max / complete HGO suppression) scaled to the T1D arm,
+                                   # so clamp-level insulin no longer drives X_E far past full suppression (LESSONS 192–193)
+    p2e_off: float = 0.0           # > 0: X_E's rate when the hepatic signal is falling (insulin withdrawn); p2e stays the onset
+                                   # rate (meal tracer nadir, Romeres 2025). Gray 1982 HGO recovery half-times 59 / 119 min
+                                   # after 40 / 120 mU/m²/min give 0.012–0.020 through egp_vs (LESSONS 193)
     ge_hyper: float = 0.0          # maximal slowing of emptying in hyperglycaemia: rate × (1 − h·(1 − e^(−(G−100)/50)));
                                    # h 0.45 gives ×0.74 at 8 mmol/L (Schvarcz 1997) and ×0.56 at 15–20 (Fraser 1990) [J]
     # exercise
@@ -312,8 +319,12 @@ class Body:
         # --- insulin action
         si = p.si_d * si_mult * (1.0 + ex_si_boost)
         self.xd += dt * p.p2 * (si * I - self.xd)
-        self.xe += dt * p.p2e * ((I - p.ib) / p.ib - self.xe)
         se = p.se * si_mult
+        u_h = (I - p.ib) / p.ib
+        if p.egp_vs > 0 and u_h > 0 and p.se > 0:
+            v_h = p.se * u_h; u_h = p.egp_vs * v_h / (p.egp_vs + v_h) / p.se
+        r_e = p.p2e_off if (p.p2e_off > 0 and u_h < self.xe) else p.p2e
+        self.xe += dt * r_e * (u_h - self.xe)
         egp_ins = p.egp_b * egp_mult * min(max(1.0 - se * self.xe, 0.0), 1.0 + se)
 
         # --- counter-regulation and HAAF memory
