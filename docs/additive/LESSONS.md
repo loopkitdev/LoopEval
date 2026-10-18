@@ -4294,3 +4294,10 @@ statistic here, but it is the controller donors ran.
        MARD 31.4 (G6, FDA 13.8) and 26–30 (Libre 3, 14.2) — readings below 54 too often have true glucose higher, i.e.
        too many false lows on these faster-moving bodies. A full sensor refit per family against its FDA table is the
        next review item; it will remove CGM lows, so the lows gap may widen when it is done.
+     - **G7 refit** (e3dfe2d, default; sensor_fit grid on c235 bodies): transient amplitude 12 → 8 mg/dL and noise wander
+       0.6 → 0.2 with slow bias 5 bring the K213919 loss to 3.97 (CGM < 54 bias −9.1 vs −9.3, < 54 MARD 17.8 vs 16.0,
+       in-range MARD 8.8 vs 8.6, elasticity 0.71 vs 0.70; PARD 10.4 vs 8.9 still high). The transient amplitude had also
+       been set from the donors' quiet-window reversals (LESSONS 32); the sensor-only target now governs it. c237: hurst_long
+       0.282 (passes, KS 0.25), night unentered rises 0.59 (0.67; base 0.49), within-person meal drop SD 32.5 (36.7; 30.4),
+       low nadirs 47 / 52 / 58; lows 0.42/day and t54 ~0 (false sensor lows removed, as expected): 28 matched. The lows
+       gap is now almost entirely real lows the bodies do not have.
