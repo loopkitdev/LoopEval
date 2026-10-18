@@ -4348,3 +4348,13 @@ statistic here, but it is the controller donors ran.
        0.62 → 0.55/day, the drop entirely > 4 h after an entry (night), lows within 2 h of meals unchanged (0.066 vs
        0.069); 24 vs 25 matched. **Default on** (Van Cauter 1991/1997 size; quiet-night balance on the donors', LESSONS
        173): the daytime-lows objection that kept it off is now located in the post-meal tail (LESSONS 212).
+
+215. **Recorded workouts are not the donors' missing post-meal lows.** BDDP `physicalActivity` rows (HealthKit workouts:
+     duration, HKAverageMETs; `time` is `{"$date":{"$numberLong": ms}}`), pulled for the 207 pilot donors into
+     runs/2026-10-18-additive-workouts/activity.parquet by alias (37 have any; `workouts.py`). Inside each export window (36
+     donors): median 0.03 workouts/day (p25 / p75 0.00 / 0.31), median 30 min at 4.9 METs, starting 00–06 / 06–12 / 12–18 /
+     18–24 h in 3 / 58 / 24 / 16%. Of 11,108 bolused entries ≥ 15 g, 2.5% have a workout overlapping +0–120 min; those end
+     < 70 within 2 h in 9.2% vs 8.6% without, with smaller drops (p10 −57 vs −87), consistent with people cutting the
+     bolus or eating around exercise. Logged workouts are too rare and too well managed to carry the gap; everyday
+     movement is not in the record (the sim's A12/C6 activity stays on its evidence). Of the named candidates for the
+     within-meal variability, this leaves meals larger than entered and sources not yet named.
