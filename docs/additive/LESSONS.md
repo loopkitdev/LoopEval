@@ -3487,3 +3487,29 @@ statistic here, but it is the controller donors ran.
        counter-regulatory tone (cortisol / catecholamine swings with activity and posture, cf. the dawn and stress
        terms), insulin absorption changes with skin temperature and posture over the day (A2 has site and exercise
        terms only), and meal-time-adjacent behavior on the 30–60 min scale.
+
+163. **Upright absorption plus fragmented movement brings the lows to the donors': 32 of 51.** `--enable posture`
+     (e0c9f6c; off): insulin clamps, the reference for the sim's PK, are done supine; sitting up cuts subcutaneous blood
+     flow 29–47% and insulin absorption 19–44% (Hildebrandt 1985, 17 patients with diabetes). Awake = upright:
+     absorption × (1 − p), p per person U(0.19, 0.44) on its own stream; asleep supine. c181 (rc_own) against
+     c177_base:
+
+     | | c177 | posture | posture + act_frag | donors |
+     |---|---|---|---|---|
+     | t70 (KS p) | 0.81 (0.002) | 1.13 (0.21) | 1.59 (0.91) | 1.67 |
+     | lows / day (KS p) | 0.67 (0.001) | 0.83 (0.10) | 1.00 (0.77) | 1.08 |
+     | t54 | fails | fails | passes | 0.215 |
+     | mean (KS p) | 157.8 (0.009) | 162.5 (0.003) | 158.5 (0.04) | 151.4 |
+     | CV | 36.8 | 38.4 | 39.2 | 34.8 |
+     | day/night (KS p) | 1.83 (0.05) | 1.97 (0.15) | 1.93 (0.31) | 2.06 |
+     | night insulin CV | 40.5 | 43.7 | 46.5 | 36.0 |
+     | TDD | 39.6 | 40.1 | 38.9 | 38.8 |
+     | matched | 27 | 25 | **32** | |
+
+     - Gained with both: skew, t70, t54, lows/day, G7 sd/MAD, G7 measurement sigma; lost Libre 3 sd/MAD (6 people).
+     - Slower daytime absorption leaves daytime insulin acting later (day/night up, toward the donors), and bouts of
+       movement both speed absorption (exercise term) and build delayed sensitivity: together a daytime insulin action
+       that swings with what the person is doing. The lows they add are where the donors' are.
+     - The quiet daytime zero-crossing still reads 20 (donors 40), and CV (39.2) and night insulin CV (46.5) move away;
+       still failing: mean, CV, TIR, t180, G7 step shape, hurst_long, acf_zero, volatility clustering, between-day,
+       circadian amplitude, p_reach54, min below 70, zero fraction, p99, lag-1, night insulin CV.
