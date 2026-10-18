@@ -2690,3 +2690,15 @@ statistic here, but it is the controller donors ran.
          insulin-sensitive at night.
        - The entry-anchored meal trajectory is back to temp −3.3 per 10 g at 150 min (the override arm c143 had
          −1.9; donors +5.5). The recalibration undoes most of the meal-shape gain, so the post-meal plateau stays open.
+     - **Basal share re-fit on the new EGP rate** (c146 against c145, frozen 9513d5a):
+
+       | centre | 0.42 (default) | 0.46 | 0.50 | donors |
+       |---|---|---|---|---|
+       | matched | 35 | 32 | 27 | |
+       | t70 | 2.45 | 2.30 | 1.81 | 1.67 |
+       | lows/day | 1.42 | 1.25 | 1.13 | 1.08 |
+       | TDD CV (KS p) | 15.0 (0.14) | 14.9 (0.04) | 14.1 (0.001) | 15.7 |
+       | hurst_long (KS p) | 0.217 (0.20) | 0.234 (0.23) | 0.223 (0.03) | 0.247 |
+
+       A trade between the lows and day-level insulin variation, with no centre that passes both. The default stays
+       0.42; the low-side overshoot (t70, lows/day) is a known limit of the c145 defaults.
