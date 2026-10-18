@@ -236,6 +236,8 @@ class World:
             k_ = float(enable["graze_split"])
             self.beh_traits.graze_per_day = self.beh_traits.graze_per_day * k_
             self.beh_traits.graze_g = self.beh_traits.graze_g / k_
+        if enable and enable.get("slot_comp"):
+            self.beh_traits.slot_comp = True
         if enable and isinstance(enable.get("snack_fast"), float):
             self.beh_traits.snack_fast_frac = enable["snack_fast"]          # snacks' fast share (LESSONS 159)
         if enable and isinstance(enable.get("gi_cv"), float):
