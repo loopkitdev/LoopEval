@@ -3431,3 +3431,20 @@ statistic here, but it is the controller donors ran.
        spread, insulin absorption, action delay, meal tail, fast grazes, fast snacks). It is set by something none of
        those terms touches; lesson 76's split (meal rises too long, quiet stretches too still) on the current base is
        the next measurement.
+
+160. **The ACF zero-crossing is still lesson 76's two-sided gap, on both bases.** Step-ACF zero-crossing (eda's
+     `_acf`) split by time since the last eating or bolus event (`acfctx2.py`), median person:
+
+     | | ≤ 3 h after an event | > 4 h after (quiet) | whole record |
+     |---|---|---|---|
+     | donors (168) | 40 | 40 | 40 |
+     | new base (c177, rc_own) | 60 | 20 | 70 |
+     | old base (c156) | 60 | 20 | 65 |
+
+     - After events the sim's moves stay correlated 60 min against 40 (real rises turn sooner, lesson 157); in quiet
+       stretches the sim's glucose is nearly still, so sensor noise sets a 20-min decorrelation where real quiet
+       glucose keeps a ~40-min wander. Both halves are unchanged by the calibration and intake changes of lessons
+       140–159, so neither is an insulin or meal-shape parameter.
+     - Next for the quiet half: whether that wander is in true glucose or in the sensor. Compare the sim's quiet-period
+       ACF of true glucose with its CGM's, and the donors' quiet ACF by sensor family (G6 / G7 / Libre 3): a sensor
+       origin would differ by family, a physiological one would not.
