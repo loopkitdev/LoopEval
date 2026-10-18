@@ -157,6 +157,9 @@ class World:
             self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.dawn = False
         if enable:
             self.mod_traits.enabled.update({k: v for k, v in enable.items() if k in self.mod_traits.enabled})
+            if enable.get("menstrual_late"):
+                self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.menstrual_shape = "late"
+                self.mod_traits.enabled["menstrual"] = True
             if isinstance(enable.get("day_tau"), float):
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.day_tau = enable["day_tau"]
             if isinstance(enable.get("circ_uniform"), float) and enable["circ_uniform"] > 0:
