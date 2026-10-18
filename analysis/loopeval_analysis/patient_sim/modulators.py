@@ -42,7 +42,7 @@ class ModTraits:
     # (Pete 2026-10-15: no mystery terms fitted to field data; free-living CVs are targets for the named
     # factors, not inputs). circ_noise likewise.
     enabled: dict = field(default_factory=lambda: dict(circadian=True, dawn=True, day=True, intraday=False,
-                                                       drift=False, menstrual=False, illness=True, sleep=True,
+                                                       drift=False, menstrual=True, illness=True, sleep=True,
                                                        gh=True, alcohol=True, stress=True, caffeine=False))
     circ_class: str = "llh"
     circ_low: float = 0.4               # low segment SI as a fraction of high (Visentin: 0.40 ± 0.23)
@@ -64,7 +64,7 @@ class ModTraits:
     drift_tau: float = 20 * DAY
     cycle_len: float = 28.0             # days
     cycle_phase: float = 0.0            # days
-    menstrual_shape: str = "mid"        # "mid" (sine, peak mid-luteal) | "late" (peak at onset, BDDP logs; LESSONS 136)
+    menstrual_shape: str = "late"       # "mid" (sine, peak mid-luteal) | "late" (peak at onset, BDDP logs; LESSONS 136)
     luteal_amp: float = 0.08            # luteal SI dip (fraction) [02: population ±2.6%, responders more]
     illness_rate: float = 3.0           # episodes per year
     # nightly named factors (evidence/12; LESSONS 77)
@@ -105,7 +105,7 @@ def sample_mod_traits(rng: np.random.Generator, age: float, sex: str) -> ModTrai
         seed=int(rng.integers(1 << 31)),
     )
     t.circ_low = float(np.clip(1.0 - t.circ_swing * (1.0 - t.circ_raw), 0.4, 1.0))
-    t.enabled["menstrual"] = False                      # stress scenario only (evidence/05 lesson 22)
+    # on by default with the BDDP-log shape (Pete 2026-10-18, LESSONS 136; was off: "stress scenario only")
     t.menstruating = (sex == "F" and 13 <= age <= 50)
     return t
 

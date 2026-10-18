@@ -49,7 +49,7 @@ estimates (LESSONS 2).
 | B2 Dawn phenomenon | EGP ramp from onset U(02:00, 04:30) to a 07:00 peak, gone by 10:00 | present p 0.52; amplitude lnN(0.3, 0.6) of EGP_b [J] | 02 (Ostrovski 2020); 01 §5.1 | wired for people without a donor basal profile (the profile carries dawn; LESSONS 51) |
 | B3 Intrinsic day-level SI | independent per-day lognormal | CV 8% | 07 (repeat clamps 6–15%) | wired |
 | B4 Intraday OU / slow drift | — | **off**: no controlled-condition evidence | 07; LESSONS 1 | off |
-| B5 Menstrual cycle | luteal SI dip, cycle N(28, 3) d, 63% of people respond | amplitude lnN(0.08, 0.5) | 02; donors show no monthly rhythm (run:2026-10-11-ice-slow/cycle_screen.csv) | built, **off by default** |
+| B5 Menstrual cycle | SI falls through the late luteal phase to a low at menses onset, holds 2 days, recovers by day 3 (shape "late"); cycle N(28, 3) d, 63% of people respond | amplitude lnN(0.08, 0.5) | 02; BDDP Dexcom G7 cycle logs (493 events, 125 users): glucose ~+2 to +4.7 mg/dL up to onset, ~−3.5 a week after (LESSONS 136); population-wide screens show no rhythm because cycles are unlogged and unaligned | wired, **on by default** (Pete 2026-10-18) |
 | B6 Illness | Poisson episodes (3/yr adults, 5/yr children), 1.5–15 d; SI dip 10–35% with ramps, EGP +0–15%; 20% gastrointestinal (SI up 5–15%, intake ×0.7) | — | 02 illness (Mehta 2010; Tinti 2025) | wired |
 | B11 Hyperglycaemia-induced resistance | SI × (1 − H), H → 0.26·clip((G − 140)/220, 0, 1), τ 12 h [J] | — | Vuorinen-Markkola 1992; Yki-Järvinen 1987 (LESSONS 43) | wired |
 
