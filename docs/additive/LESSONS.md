@@ -2655,3 +2655,12 @@ statistic here, but it is the controller donors ran.
        10.54 − 0.28 × CHO g (−2 g at 45 g, −12 g at 80 g, −17 g at 100 g). The sim's bias (person N(−0.10, 0.10),
        meal-size term −0.1·ln(g/45), noise; entered ÷ eaten median 0.96) is at that evidence. The 2–4 h plateau
        is not an under-count.
+     - **Not detection, not pre-meal momentum.**
+       - Share of isolated entries (≥ 20 g) with a labeled announced pulse within ±30 min: donors 0.45 (by size
+         0.43 / 0.46 / 0.52), c135 0.48 (0.45 / 0.45 / 0.58). The labeled calibration was not conditioned on a
+         different subset.
+       - ΔCGM per 10 g at −60 / −30 / 0 min: donors temp +0.4 / 0 / 0 (flat); sim temp +1.2 / +0.8 / 0 (drifting
+         down into the meal).
+       The plateau is after the entry, with matched delivered insulin (LESSONS 122). Real meals raise glucose more
+       per entered gram in the 1–4 h window than the sim's, by ~5–8 mg/dL per 10 g at 2–3 h. This is the open
+       physiological gap; the lever is not yet identified.
