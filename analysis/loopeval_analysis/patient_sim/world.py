@@ -248,6 +248,20 @@ class World:
             person.traits["act_carbs"] = activity_carbs(person, self.beh_traits, ex_b=self.ex_b)
         if self.enable["exercise"]:
             self.beh_traits.carbs_day += person.traits.get("act_carbs", 0.0)
+        if (enable or {}).get("budget_all") and not (enable or {}).get("perfect_person"):
+            # experiment (LESSONS 143): the donor's TDD covered ALL of their eating, unlogged grazing and hypo treatment
+            # included, so the TDD budget pays for the person's expected grazing and the donor's measured rescue carbs
+            # (template rescues_per_day × rescue_size_med); meals and snacks share what is left
+            bt = self.beh_traits
+            graze = bt.graze_per_day * bt.graze_g * float(np.exp(0.4 ** 2 / 2)) * min(1.0, bt.graze_keep)
+            rr = person.traits.get("template_rates", {})
+            try:
+                resc = float(rr.get("rescues_per_day")) * float(rr.get("rescue_size_med"))
+            except (TypeError, ValueError):
+                resc = 0.0
+            if not np.isfinite(resc): resc = 0.0
+            bt = self.beh_traits = copy.deepcopy(bt)
+            bt.carbs_day = max(0.5 * bt.carbs_day, bt.carbs_day - graze - resc)
         # every day planned now: the export writes the planned Temporary Overrides into the therapy timeline, and
         # the plant's re-simulation reproduces the identical plan (LESSONS 40)
         gi = (lambda d: 0.7 if self.mods.illness(d * DAY + 720)[2] else 1.0) if self.mod_traits.enabled.get("illness") else None
