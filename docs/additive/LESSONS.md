@@ -3303,3 +3303,9 @@ statistic here, but it is the controller donors ran.
      - mean 159.0 → 158.8, TIR 65.4 → 66.6, lows 0.58 → 0.63/day (onsets 0.70 → 0.72), TDD 39.7; 24 → 24 matched.
      It is the deployment-faithful configuration, the same rule the replays follow (AGENTS: RC mode per dataset).
      What remains of the level excess is the heavy enterers (+16.5).
+     - **Not adopted (Pete, 2026-10-18):** "Whether or not a patient runs IRC is a choice on the controller side
+       where the session is about building a patient model that responds appropriately regardless of the dosing
+       strategy. I want to avoid coupling the patient to strongly to loop." The patient model stays independent of
+       the controller's configuration. For validation this means the twin gap of the 29 integral-RC donors
+       partly measures a controller difference, not a patient one: compare like with like by reading those people's
+       gaps with that in mind (or `rc_own` for a validation-only arm), never by tuning the patient to close them.
