@@ -274,8 +274,8 @@ class World:
         # (LESSONS 169: night lows 53% -> 46%, CV and Hurst pass, 37 of 51)
         self.posture_p = (float(enable["posture_mult"]) if enable and isinstance(enable.get("posture_mult"), float) else 0.5) \
             * float(np.random.default_rng(int(person.seed) + 1907).uniform(0.19, 0.44)) \
-            if (enable or {}).get("posture", True) else 0.0
-        self.posture_ramp = bool((enable or {}).get("posture_ramp", False))                   # default since 2026-10-18 (Pete, LESSONS 163)
+            if (enable or {}).get("posture", True) else 0.0                   # default since 2026-10-18 (Pete, LESSONS 163)
+        self.posture_ramp = bool((enable or {}).get("posture_ramp", False))   # experiment (LESSONS 172)
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,
                                           frag=self.act_frag, frag_seed=int(person.seed) + 1811,
                                           **({"frag_on_med": float(enable["frag_on"])} if enable and isinstance(enable.get("frag_on"), float) else {}),
