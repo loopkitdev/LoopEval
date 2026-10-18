@@ -173,6 +173,22 @@ def save_truth(world: World, path: Path):
 
 
 # ------------------------------------------------------------------------------------------ run
+
+RC_MODE_CSV = Path.home() / ".loop-eval/runs/2026-10-15-replay-change/rc/rc_mode.csv"
+
+
+def _rc_flags(person, enable) -> list[str]:
+    """rc_own (experiment, LESSONS 152): the controller runs the RC mode the person's template donor deployed —
+    integral RC with the deployed clamp for donors called "ircc" in rc_mode.csv (DTR forecast match per day,
+    2026-10-15; "mixed" stays standard). Without it every person ran standard RC."""
+    if not (enable or {}).get("rc_own"): return []
+    try:
+        import csv
+        calls = {r["alias"]: r["call"] for r in csv.DictReader(open(RC_MODE_CSV))}
+    except OSError:
+        return []
+    return ["--candidate-integral-rc", "--candidate-integral-rc-clamp"] if calls.get(person.template) == "ircc" else []
+
 def run(person, days: int, out: Path, bin_path: str = DEFAULT_BIN, enable: dict | None = None,
         extra_flags: list[str] | None = None, python: str = sys.executable, controller: str = "loop-main") -> dict:
     out.mkdir(parents=True, exist_ok=True)
@@ -195,7 +211,7 @@ def run(person, days: int, out: Path, bin_path: str = DEFAULT_BIN, enable: dict 
            # through every simulated sensor gap (LESSONS 61)
            "--cgm-stale-guard-min", "15",
            "--trace-out", str(out / "trace.json")] + flags \
-        + CONTROLLER_FLAGS[controller] + (extra_flags or [])
+        + CONTROLLER_FLAGS[controller] + _rc_flags(person, enable) + (extra_flags or [])
     t = time.time()
     r = subprocess.run(cmd, capture_output=True, text=True)
     (out / "simulate.log").write_text(" ".join(cmd) + "\n\n" + r.stderr[-20000:])
