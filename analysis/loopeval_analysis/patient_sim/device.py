@@ -173,12 +173,14 @@ class Pump:
         u = ub = 0.0
         keep = []
         rate = 0.0
+        self.bolus_size = 0.0                 # full size of the bolus being delivered this minute (dose-dependent absorption)
         for (s, e, units, bolus) in self.queue:
             if e <= m: continue
             lo, hi = max(s, m), min(e, m + 1)
             if hi > lo:
                 part = units * (hi - lo) / (e - s)
                 if bolus:
+                    self.bolus_size = max(self.bolus_size, units)
                     sd = max(0.006, self.f.bolus_c / math.sqrt(max(units, 0.05)))
                     ub += part * max(0.0, 1.0 + self.bias + r.normal(0, sd)) if self.faults else part
                 else:

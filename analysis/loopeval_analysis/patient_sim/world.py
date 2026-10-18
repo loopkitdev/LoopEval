@@ -123,6 +123,9 @@ def _gap_mult(person):
 
 class World:
     def __init__(self, person, days: int, seed: Optional[int] = None, enable: Optional[dict] = None):
+        if enable and isinstance(enable.get("dose_beta"), float):
+            # experiment (LESSONS 155): dose-dependent bolus absorption
+            person = copy.copy(person); person.body = person.body.scaled(dose_beta=enable["dose_beta"])
         if enable and enable.get("ceiling_speed"):
             # experiment (LESSONS 150): the meal's own speed scales the stomach's energy ceiling
             person = copy.copy(person); person.body = person.body.scaled(ge_cap_speed=1.0)
@@ -432,7 +435,8 @@ class World:
             self.body.infuse(u_basal, m)
         if u_bolus > 0:   # per-dose absorption jitter, CV 15% (Heise 2017 repeat clamps; evidence/07)
             cv = self.pump.t.lh_dose_cv if self.pump.site_lh else 0.15
-            self.body.infuse(u_bolus, m, omega=float(np.exp(self.r_abs.normal(0, cv) - cv ** 2 / 2)))
+            self.body.infuse(u_bolus, m, omega=float(np.exp(self.r_abs.normal(0, cv) - cv ** 2 / 2)),
+                             dose=getattr(self.pump, "bolus_size", 0.0) or u_bolus)
         u = u_basal + u_bolus
         self.body.step(1.0, si_mult=si, egp_mult=egp, ex_intensity=ex["ex_intensity"],
                        ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"],
