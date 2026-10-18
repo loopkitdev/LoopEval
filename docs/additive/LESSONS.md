@@ -2776,3 +2776,10 @@ statistic here, but it is the controller donors ran.
        Activity after meals accounts for ~+1–2 mg/dL per 10 g in the first 90 min, not the 2–4 h plateau. If
        accelerometer evidence shows adults are less active in the 1–3 h after meals, meal-coupled activity timing is a
        real component (part of the early gap). Children may well be the opposite.
+     - **Evidence for meal-coupled activity timing: effect yes, base rate no.**
+       - Post-meal activity lowers post-meal glucose: Singapore free-living study, 789 adults, accelerometer + CGM;
+         cycling 45 min after a meal (MDPI 2018); post-meal sedentary time delays the peak in older adults.
+       - Lab studies of spontaneous movement are mixed (Otago, n = 17).
+       No source gives the activity level in the 1–3 h after meals relative to other waking hours, which is the
+       quantity a meal-coupled schedule needs. Not built. A BDDP measurement is possible where donors carry
+       step or workout data (HealthKit physicalActivity records in device_data) and is the way to get it.
