@@ -4083,3 +4083,21 @@ statistic here, but it is the controller donors ran.
        under-suppressing, slow liver. Next in the loop: the components that make lows (meal-insulin mismatch,
        LESSONS 185–188; anticipatory defense, whose carbs prevent lows; counter-regulation, fitted to depths only),
        each against its own target, on this base.
+
+197. **Review loop, steps 3–4: insulin timing and carb sensitivity refitted; the missing lows are within-person meal
+     variability, not any fitted constant.** On the share-0.8 + egp_sat base:
+     - **A5 clamp timing drifted**: a 0.2 U/kg clamp replay (glucose held at Gb) on calibrated bodies gives a GIR peak at
+       125 min (old base 108; target ~100) with the same 6.7% in the first hour (6.3%): most of the effect now runs
+       through the liver's slow onset. Onset rate p2e 0.008 / 0.010 / 0.012 / 0.015: peak 120 / 116 / 109 / 101 min, first
+       hour 7.1 / 7.5 / 7.9 / 8.4%. **Default p2e 0.012** (offset 0.015 under egp_sat).
+     - **G7 carb sensitivity drifted slightly**: labeler g-eq per entered gram 1.208 (c201_base) → 1.247 (c219; donors
+       1.21). **CSF_BLEND_CAL_TOTAL 1.08 → 1.05.**
+     - c220 (both): review unchanged within noise — per-person meal EGP nadir 0.49 at 110 min (Romeres 0.44 ± 0.17 at 160 ±
+       110), low depths and durations on target, meals ending < 70 3.8% (9.7%), 27 matched (28).
+     - **ISF_W** (settings-to-body blend, open since LESSONS 37) 0.7 / 0.85 (c221): meals ending < 70 4.1 / 4.5%, drop p10
+       −74 / −77 (−84), between-person SD of the 0–2 h drop 13.4 / 17.3 (16.7), within-person SD 28.9 / 30.8 (36.6); 27 /
+       25 matched. Stays 0.5: the between-person spread is the donors' at 0.5–0.85, the within-person spread is short
+       at every w.
+     - With the physiology on its evidence the low deficit (0.67 vs 1.06/day, mostly within 2 h of meals) is the
+       within-person variability of real meals (LESSONS 146–150, 174–178): the same person's meals ending in lows more
+       often. That is the component to find, and it is not a constant in the existing ones.

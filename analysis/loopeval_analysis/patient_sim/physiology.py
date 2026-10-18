@@ -42,7 +42,8 @@ class BodyParams:
     p2: float = 0.025              # 1/min, disposal-action rate from the lispro clamp fit (GIR peak ~100 min, 50% by ~140; LESSONS 9).
                                    # Not Loop's curve: the body follows evidence about patients (Pete 2026-10-17; LESSONS 114)
     si_d: float = 5.0e-4           # disposal sensitivity, 1/min per (mU/L)  — calibrated to ISF
-    p2e: float = 0.006             # 1/min, EGP-suppression action rate (Pete 2026-10-17, LESSONS 131: post-meal EGP nadir depth
+    p2e: float = 0.012             # 1/min, EGP-suppression onset rate: clamp GIR peak 108 min on the share-0.8 base (target ~100; 0.006 gave 125;
+                                   # LESSONS 197). Was 0.006 (Pete 2026-10-17, LESSONS 131: post-meal EGP nadir depth
                                    # 0.54 vs the Romeres 2025 tracer's 0.56; 0.010 gave 0.41). T1D meal EGP suppression is
                                    # sustained with its nadir at ~160 min (Romeres 2025); ReplayBG prior 0.008 (LESSONS 70, 75)
     se: float = 1.0                # EGP suppression per unit relative insulin above basal
