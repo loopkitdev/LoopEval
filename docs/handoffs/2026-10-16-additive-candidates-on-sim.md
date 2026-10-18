@@ -152,3 +152,5 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
   have real lows to prevent again on this base (LESSONS 163).
 - Also from 2026-10-18: insulin acts harder at high glucose (κ ≈ 0.68, Best 1981; LESSONS 165). The glucose
   distribution now sits on the donors' at every percentile (mean ~149, TIR ~73), with lows unchanged.
+- Also from 2026-10-18: counter-regulation is half as strong (CRmax median 0.5, fitted to the donors' low nadirs;
+  LESSONS 166), so lows reach the donors' depth (t<54 ~0.15%, P(reach 54) ~0.19).
