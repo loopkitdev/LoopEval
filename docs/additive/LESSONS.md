@@ -3253,3 +3253,22 @@ statistic here, but it is the controller donors ran.
        meal starts from (circadian sensitivity slot, IOB, Loop's temp at the entry) and how far each real meal's
        eating extends after the entry (second helpings and desserts inside the window, which the isolation filter
        cannot see because they are not entered).
+
+150. **Real first hours vary by the same absolute amount whatever the meal size; letting a meal's speed set its own
+     emptying ceiling is part of it, not most.**
+     - **Size-independent spread.** Within-person IQR of the absolute CGM change 0 → 60 min after isolated entries,
+       by entry size 20–30 / 30–45 / 45–70 / 70+ g: donors 67 / 63 / 69 / 64 mg/dL (112 / 99 / 87 / 36 people), new
+       base 42 / 35 / 59 / 54. Both sides' median first-hour rise is roughly size-independent too (donors ~+21 to
+       +24 mg/dL, sim ~+13 to +18), the saturating-emptying signature.
+     - **Why the sim's per-meal terms had no effect.** The stomach's energy ceiling was one per person: `scale =
+       cap / (cap + kcal)` takes outflow to `cap` once a meal saturates it, so the meal's own speed (lnN 0.4, carried
+       in each parcel's kempt) vanished for typical meals. Physiologically the outflow rate depends on what is in the
+       stomach (liquid vs solid, fibre, viscosity, fat through its kcal).
+     - **`--enable ceiling_speed`** (4368a05; off): the ceiling scales with the energy-weighted speed of the meals in
+       the stomach. c167 against c162: within-person 60-min IQR per 10 g 12.2 → 13.1 (gi_cv 0.4) / 13.7 (0.6), donors
+       19.1; absolute within-person IQR by size 43 / 47 / 55 / 59 and 48 / 48 / 59 / 59; lows 0.60 / 0.58 per day;
+       22 / 23 matched (21). A real but small part of the missing spread; not adopted alone.
+     - What is left is a meal-to-meal variance of ~±30 mg/dL in the first hour that does not scale with grams and
+       is not the sim's composition, count, lead or speed terms. Sources not in the sim that would behave that way:
+       how much of a meal is actually eaten (half-finished or second helpings, independent of the entry), and
+       non-meal glucose moves coinciding with meals (activity or stress around mealtime). Neither is yet measured.
