@@ -3622,3 +3622,8 @@ statistic here, but it is the controller donors ran.
      segments at the full measured swing (lesson 38 set the full swing when the old base's 24-h amplitude matched);
      on the new base the sim's circadian amplitude has run ~0.18 against the donors' 0.131, and the fixed daily
      structure reads as long memory. Evidenced and stays; its swing is the question (next: `circ_swing 0.5`).
+     - **Half the swing** (`--set circ_swing=0.5`, c192): hurst_long 0.259 (passes, KS 0.14), CV 36.5, day/night 2.01;
+       between-day fraction now fails (0.105, KS 0.04) and P(reach 54) narrowly (KS 0.045); 36 matched, unchanged.
+       Circadian amplitude 0.181 → 0.165, and with B1 off it is 0.174: the sim's 24-h amplitude (donors 0.131) is
+       not B1's swing but the day's other structure (meal clock, activity, dawn). Default unchanged; the amplitude
+       gap is open.
