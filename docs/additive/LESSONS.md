@@ -3975,3 +3975,9 @@ statistic here, but it is the controller donors ran.
      missing component makes discrete upward events of ~50 mg/dL over ~80 min for nearly everyone, and must not be a
      fitted noise term (no mystery terms). Unrecorded night eating, rebound after Loop's night suspensions (31% of donor
      night rises follow a cut, LESSONS 184) and insulin-delivery interruptions are the named candidates to measure.
+
+190. **Delivery disruptions are not the donors' extra night rises.** Of donor night (00–06 h) unentered rises, 23% have a
+     disruption window (`disruptions.csv`) in the 2 h before (0.15 per night: pump_error 0.069, loop_offline 0.039,
+     disruption 0.034, suspend 0.017; `night_disr.py`), but against random night moments the enrichment is 1.00 for pump
+     errors and 1.11–1.28 for the rest. The attributable excess is ~0.02 per night of the 0.18 the sim lacks. Of the
+     LESSONS 189 candidates, unrecorded night eating and rebounds after Loop's own night suspensions remain.
