@@ -4132,3 +4132,24 @@ statistic here, but it is the controller donors ran.
      drop 28.9 → 29.7 (36.7); low duration p90 70 → 80 (65); 26 → 28 matched. **Default 0.27.** The remainder after
      the starting state (LESSONS 198) stays most of the gap: per-site speed varies across a set's 2–3 days, the
      real variation is meal to meal.
+
+200. **Re-testing earlier-rejected switches on the evidence base: none closes the inside-the-meal remainder at its
+     evidenced size.** Current defaults (share 0.8, egp_sat, p2e 0.012, CSF 1.05, site_cv 0.27), c223/c224 (43f5f08):
+
+     | arm | within-person SD of drop | meals < 70 | drop p10 | 3-h change | t54 | lows/day | matched |
+     |---|---|---|---|---|---|---|---|
+     | base | 29.7 | 4.1% | −79 | +14 | 0.059 | 0.58 | 28 |
+     | ceiling_speed, gi_cv 0.4 (evidenced) | 30.2 | 4.1% | −80 | +7 | 0.088 | 0.54 | 27 |
+     | ceiling_speed, gi_cv 0.6 | 31.4 | 4.3% | −78 | +5 | 0.059 | 0.58 | 28 |
+     | ceiling_speed, gi_cv 0.8 [J, LESSONS 177] | 34.6 | 5.6% | −88 | +2 | 0.088 | 0.58 | 29 |
+     | sleep_util | 28.2 | 4.0% | −79 | +12 | 0.059 | 0.42 | 27 |
+     | ge_circ | 28.6 | 4.3% | −78 | +9 | 0.058 | 0.50 | 29 |
+     | dose_beta 0.5 | 32.9 | 5.2% | −90 | +8 | 0.045 | 0.42 | 26 |
+     | donors | 36.7 | 9.7% | −84 | +21 | 0.215 | 1.08 | |
+
+     - Per-meal emptying speed reaches the donors' spread only at gi_cv 0.8, twice what Elleri 2013's high- vs low-GL
+       contrast supports (t50 100 vs 175 min, log ratio 0.56). Not adopted; the rest as before.
+     - Every arm that widens the spread also lowers the 3-h ending (+21 in the donors): a wider meal-speed spread adds
+       slow meals that the bolus outruns, never faster ones that rise higher. The remainder needs variation in both
+       directions within 2 h: meals larger than entered (the donors' upward edits, LESSONS 185) alongside smaller ones,
+       and insulin that acts faster or slower dose to dose. Base level +9 (160 vs 151) is also open on this base.
