@@ -240,7 +240,8 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     # plan rate is the donor's realized rate / 0.38 (LESSONS 42)
     # expected planned top-ups per meal bolus (several for donors who chain small boluses: 24% of donors exceed one per
     # meal after the 0.38 realization; LESSONS 64), capped at 6
-    p_topup = float(np.clip(top_raw / be_raw / 0.38, 0.0, 6.0)) if np.isfinite(top_raw) and np.isfinite(be_raw) and be_raw > 0 else 0.0
+    # realization share re-measured on the current base (c240): 0.485 (was 0.38 from LESSONS 42; LESSONS 216)
+    p_topup = float(np.clip(top_raw / be_raw / 0.485, 0.0, 6.0)) if np.isfinite(top_raw) and np.isfinite(be_raw) and be_raw > 0 else 0.0
     unentered = max(n_eat - (entries if np.isfinite(entries) else n_eat * p_meal), 0.5)
     p_free = float(np.clip(free / unentered, 0.0, 1.0)) if np.isfinite(free) else 0.0
     ub = _num(rates, "user_boluses_per_day")
