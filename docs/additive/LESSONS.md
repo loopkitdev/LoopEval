@@ -3218,3 +3218,14 @@ statistic here, but it is the controller donors ran.
      where the first-hour spread or the early lows come from. The open comparison is Loop's own automatic insulin in
      the first 3 h after meals, measured as delivery above the scheduled rate on both sides (lesson 92's method,
      last run on the old base).
+     - **Loop's dosing matches too.** All delivered insulin (basal + bolus, manual + automatic) above the person's
+       median 5-min delivery, U per 10 g around isolated entries, windows −30–0 / 0–60 / 60–180 / 180–300 min
+       (`meal_deliv.py`; donor bins outside dose-timeline coverage dropped, ≥ 90% coverage per entry):
+       - donors (15,978 meals): 0.109 / 1.245 / 0.352 / 0.703, total 2.41; 60–180 p10 / p90 −0.18 / 1.14;
+       - new base (1,164): 0.093 / 1.170 / 0.351 / 0.644, total 2.26; p10 / p90 −0.19 / 1.17;
+       - old base (1,287): 0.096 / 1.165 / 0.229 / 0.611, total 2.10; p10 / p90 −0.24 / 0.89.
+       On the new base the insulin around meals is the donors', in level and in spread, so the wider first-hour
+       glucose spread and the early lows are on the glucose side: how much glucose a real meal delivers per
+       entered gram, meal by meal (composition: fibre, fructose, fat, protein, what is actually eaten). The sim
+       varies that per person (f, CSF) and in timing per meal, not in amount per meal. Next: evidence for the
+       meal-to-meal spread of glucose appearance per labeled gram, and a named per-meal bioavailability term.
