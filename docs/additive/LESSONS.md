@@ -4318,3 +4318,10 @@ statistic here, but it is the controller donors ran.
        entry CGM median 145 vs 133 (share < 100: 10.4% vs 16.3%). Meals both start higher and fall less deeply: the
        first is the day's level by slot (LESSONS 201–206), the second the within-meal variability (LESSONS 198) in its
        lower tail.
+
+213. **G6 refitted against its own FDA table on the current bodies.** sensor_fit on c235 bodies, DEN170088 targets: base
+     loss 23.65 (CGM < 54 bias −24.6 vs −6.9, MARD 31.4 vs 13.8). Noise wander 0.7 → 0.2 and transient amplitude 12 → 8:
+     12.25; + slow bias sd 3: 11.49; + innovation sigma 2.5 → 1.8: **9.88** (CGM < 54 bias −15.6, MARD 20.4; 54–69 MARD 14.1
+     vs 11.5; in-range MARD 8.4 vs 10.9; elasticity 0.79 vs 0.7; PARD 9.2 vs 9.0). Calibration gain a0 0.98 fixed the low
+     range but pushed 181+ bias the wrong way (loss 10.99; 1.00: 16.08), so a0 stays 0.96. The residual low-range negative
+     bias is open (G6 reads low below 70 beyond FDA's). Adopted (sensor-only targets; LESSONS 31's rule).
