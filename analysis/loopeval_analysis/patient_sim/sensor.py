@@ -97,8 +97,9 @@ FAMILIES = {
     # gave G7 MARD 17% at 54–69 and PARD 14%.
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
                         brand_gain=1.0, sigma=(2.8, 0.8), df=30.0, hetero_q=0.5, a0=(0.98, 0.04), b0=(3.0, 3.0),
-                        common_sigma=2.0, trans_rate=(8.0, 0.9), trans_amp=(12.0, 0.4), noise_wander=(0.6, 480.0),
-                        slow_bias=(5.0, 180.0)),   # hours-scale error (Breton & Kovatchev 2008); FDA loss 10.9 -> 7.9 on the c235 bodies (LESSONS 211)
+                        common_sigma=2.0, trans_rate=(8.0, 0.9), trans_amp=(8.0, 0.4), noise_wander=(0.2, 480.0),
+                        slow_bias=(5.0, 180.0)),   # refit on the c235 bodies against K213919 (LESSONS 211): slow bias sd 5 (Breton &
+                                                   # Kovatchev 2008), transient amplitude 12 -> 8, noise wander 0.6 -> 0.2; loss 10.9 -> 4.0
     # Libre 3 fitted to K212132 (bias 7.4/1.4/−4.5/−7.3/−11.5, MARD 15.5/10.3/9.7/7.5/6.9, PARD 6.8): MARD 11/10/8/7.6/7.5,
     # PARD 6.8; it reads too little high at true < 54 (+0.4 vs +7.4) [open]
     "Libre 3":   Family("Libre 3", warmup=60, session_days=14, tau_med=1.8, brand_gain=1.0, smooth=0.35, df=4.0,
