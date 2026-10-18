@@ -3719,3 +3719,9 @@ statistic here, but it is the controller donors ran.
      - Not adopted alone: the night is now right on its own evidence and the count shows the next missing piece is a
        daytime source of lows. Next: what produces real daytime lows that the sim lacks (by context: post-meal,
        post-correction, activity, afternoon).
+     - **Where the missing lows are, with sleep_util on** (`low_ctx2.py`, per person-day, by time since the last entry
+       < 2 h / 2–4 h / 4 h +): sim 0.127 / 0.175 / 0.581, donors 0.270 / 0.166 / 0.623. Every context matches except
+       the first two hours after a meal, the same deficit as lessons 145–150 (15–30 g: 0.032 vs 0.093; 30–60 g: 0.030 vs
+       0.098 per day; 60 g +: 0.042 vs 0.026). With the night balanced by sleep_util, the one remaining source of the
+       low-count gap is the unexplained first-hour variability of real meals; closing it would be the daytime half that
+       sleep_util needs to be adopted.
