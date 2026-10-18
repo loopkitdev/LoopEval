@@ -40,6 +40,13 @@ def _one(args):
                           isf_blend=enable.get("isf_blend") if isinstance(enable.get("isf_blend"), float) else 0.0)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
+        if isinstance(enable.get("preg_week"), float) and P.sex == "F" and 13 <= P.age <= 50:
+            # X9: settings titrated to the need at the starting week (clinic care adjusts doses as pregnancy goes on), so
+            # only the change inside the window is new to the controller
+            from .modulators import Modulators
+            n = Modulators.pregnancy_need(enable["preg_week"])
+            P.settings.update(basal_uh=P.settings["basal_uh"] * n, isf=P.settings["isf"] / n, cr=P.settings["cr"] / n,
+                              max_basal=P.settings["max_basal"] * n)
         run(P, days, out, binp, enable=enable, controller=controller, extra_flags=flags.get(P.name, flags.get("*", [])))
         return seed, "ok"
     except Exception as e:                                       # noqa: BLE001
