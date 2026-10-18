@@ -145,3 +145,5 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
   candidates have less to prevent on this base; rank them on paired deltas, and re-run any earlier result whose
   verdict depended on post-meal lows.
 - `--disable isf_total,budget_all` reproduces the previous base exactly.
+- Also from 2026-10-18: fat-induced insulin resistance is relative to each person's usual diet (LESSONS 151), so the
+  base no longer drifts upward through the day: mean ~159 (donors 151), TDD at the donors'.
