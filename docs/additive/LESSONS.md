@@ -2929,3 +2929,27 @@ statistic here, but it is the controller donors ran.
        (a remembered, larger stressor), which would make the donors' +1.8 an upper bound as well.
      Neither is evidence for a change. With illness (LESSONS 136), cycle (B5) and exercise (LESSONS 137), every
      life factor that BDDP records now has a data check alongside its literature size.
+
+139. **The "slow" late phase is not slower than a saturated stomach; the post-meal dip happens with the meal half
+     absorbed.** `--set meal_slow=0.25 / 0.35` (c155, frozen 17c4c51) against the default 0.15 (c153):
+
+     | | 0.15 | 0.25 | 0.35 |
+     |---|---|---|---|
+     | true appearance t25 / t50 / t75, min (`ra_traj.py`, isolated meals ~55 g) | 62 / 111 / 164 | 60 / 105 / 152 | 58 / 99 / 156 |
+     | temp ΔCGM per 10 g at 60 / 120 / 180 min | +2.6 / −2.8 / −3.3 | +2.5 / −2.9 / −3.2 | +2.4 / −3.3 / −2.9 |
+     | automatic, same | +1.1 / −2.6 / −4.4 | +0.9 / −3.5 / −4.2 | +0.8 / −3.5 / −4.2 |
+     | matched | 33 | 29 | 32 |
+
+     Donors: temp +6.4 / +5.2 / +5.5, automatic +4.3 / +4.3 / +5.4 (lesson 130).
+     - A larger slow share speeds appearance. The slow parcel empties at a fixed kmin 0.008 /min outside the energy
+       ceiling, while the main parcel of a 50–60 g meal is held by the ceiling (A10) more slowly than that. The
+       share is not a tail lever at these meal sizes.
+     - At 120 min only 55% of the meal has appeared, yet simulated glucose is already below its start. The dip is
+       insulin outrunning a meal that is still arriving, not a meal that has finished. Donors take ~10% more
+       insulin per entered gram (lesson 92) and hold +5 per 10 g, so in effect each real unit of meal insulin lowers
+       glucose less, or each real gram raises it more, than in the sim, in the 1.5–4 h window.
+     - Tracer evidence does not ask for a slower meal: a T1D mixed-meal triple-tracer study (6 lean adults; secondary
+       report, primary not read) puts 50% of meal glucose at ~55 min with or without prandial insulin, faster than
+       the sim's 111; Elleri 2013's
+       121 g meals 130 / 178 min. Appearance stays at its default.
+     Default unchanged (0.15).
