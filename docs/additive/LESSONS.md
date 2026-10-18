@@ -4188,3 +4188,12 @@ statistic here, but it is the controller donors ran.
      The amplitude and the daytime level come from the day's other structure (deeper pre-dawn trough at 04–06 h,
      119–125 vs 131–134, and a steeper morning climb, 121 → 166 by 11 h vs 130 → 148). B1 keeps its evidenced full
      swing. The morning climb and the intake per unit of daytime insulin are next.
+
+204. **Insulin acts in the simulated bodies as in the donors', read by the same quiet-hour regression.** Raw yardstick
+     slope (hourly CGM change on Loop-absorbed insulin, intercept; quiet = no entry or user bolus in the prior 4 h;
+     `sim_yardstick.py`, `don_yardstick.py`) divided by the person's isf_true (the donor yardstick ISF the body is
+     calibrated to): donors 0.56 (p25 / p75 0.43 / 0.70; 168 donors, median 934 quiet hours); c226_bt 0.53 (0.40 / 0.67;
+     107 people, 113 hours); c201_base 0.52. Against the settings ISF: 0.52 vs 0.51. The total-drop calibration
+     (LESSONS 143) is like-for-like with how the donors' ISF is measured, on the evidence-fit liver as on the old one.
+     With quiet-hour insulin action, carb rise per entered gram (labeler 1.21) and paired TDD all at the donors', the
+     daytime excess (+13–18) sits in what is eaten relative to what is bolused for, not in the body's response to either.
