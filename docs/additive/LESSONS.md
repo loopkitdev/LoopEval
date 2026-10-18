@@ -2681,3 +2681,12 @@ statistic here, but it is the controller donors ran.
        120 min, 31. The nadir time stays at 120 min for every p2e; slower rates only make it shallower than the
        tracer's. 0.006 matches the depth (0.54 vs 0.56) and gives the best count (34). The remaining 40-min timing
        difference is in the insulin PK and meal timing, not the EGP rate. Default decision: Pete.
+     - **Adopted (Pete, 2026-10-17): p2e 0.006 by default** (9513d5a). c145 is the validation cohort: every person is
+       recalibrated at the new rate, against c135.
+       - **35 vs 31 matched**, the best default so far. New passes: hurst_long (KS 0.20), sigma_disp, zero_frac,
+         TDD CV, night insulin CV, Box-Cox.
+       - EGP nadir 0.51 at 120 min (Romeres 0.56 at ~160).
+       - Now failing: t70 2.45 (1.67) and lows/day 1.42 (1.08). The recalibration leaves the bodies a little more
+         insulin-sensitive at night.
+       - The entry-anchored meal trajectory is back to temp −3.3 per 10 g at 150 min (the override arm c143 had
+         −1.9; donors +5.5). The recalibration undoes most of the meal-shape gain, so the post-meal plateau stays open.
