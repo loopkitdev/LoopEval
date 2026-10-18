@@ -2651,3 +2651,7 @@ statistic here, but it is the controller donors ran.
          (CV 38–40).
        Open; the levers tried (CSF, emptying both ways, insulin speed, fat, slow phase, fast-share spread) each move
        one part.
+     - **Not carb counting.** Brazeau 2013's 692 meals, re-analysed in PMC7594710: 63% under-estimated; error =
+       10.54 − 0.28 × CHO g (−2 g at 45 g, −12 g at 80 g, −17 g at 100 g). The sim's bias (person N(−0.10, 0.10),
+       meal-size term −0.1·ln(g/45), noise; entered ÷ eaten median 0.96) is at that evidence. The 2–4 h plateau
+       is not an under-count.
