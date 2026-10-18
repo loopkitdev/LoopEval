@@ -3083,3 +3083,10 @@ statistic here, but it is the controller donors ran.
        (over-boluses, exercise, insulin action variability), not from a calibration surplus.
      - A default change (ISF semantics and the intake budget together) is Pete's call; the evidence for both halves
        is the donors' TDD covering all intake and the entry-anchored meal trajectory.
+     - **Adopted (Pete, 2026-10-18): total-drop ISF + the full intake budget are the base** (ac6b40e; `--disable
+       isf_total,budget_all` restores the previous base). The self-check now doses at the linear truth CR, the
+       semantics' consistent ratio: nights at rest for 8 of 8 bodies (the effective peak-probe CR under total-drop
+       under-doses: median night +32). Three bodies still fail the day guard on open-loop meal extremes in both
+       directions: highs to ~720 and, after stacked entries (~96 g within 15 min, bolused at once), falls to the
+       10 mg/dL floor. A quiet body reaching 10 mg/dL despite counter-regulation is an open physiology item for the
+       low end (A9), separate from units.
