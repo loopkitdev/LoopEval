@@ -4101,3 +4101,26 @@ statistic here, but it is the controller donors ran.
      - With the physiology on its evidence the low deficit (0.67 vs 1.06/day, mostly within 2 h of meals) is the
        within-person variability of real meals (LESSONS 146–150, 174–178): the same person's meals ending in lows more
        often. That is the component to find, and it is not a constant in the existing ones.
+
+198. **The missing meal variability is not the starting state: what happens inside a real meal varies 1.5× more.**
+     Bolused isolated entries ≥ 15 g, G7, within-person (each person demeaned), 0–2 h CGM drop (`meal_var.py` on c220,
+     `meal_var_don.py`):
+
+     | | donors (12,991 meals, 120 people) | sim c220 (1,162, 78) |
+     |---|---|---|
+     | within-person SD of the drop | 36.7 | 26.7 |
+     | SD of CGM at entry / its correlation with the drop | 45.7 / −0.58 | 47.8 / −0.59 |
+     | 30-min trend SD / correlation | 28.8 / −0.14 | 24.7 / +0.01 |
+     | insulin state / correlation | Loop IOB SD 1.50 U / −0.33 | delivered prior 3 h SD 1.83 U / −0.44 |
+     | joint R² of the starting state | 0.34 | 0.41 |
+     | **SD left after the starting state** | **31.5** | **~20.5** |
+
+     - Meals start from the donors' spread of states and respond to them the same way. The remainder, what happens within
+       the 2 h, is ~1.5× wider in life.
+     - Sim ground truth also says what does *not* carry it within 2 h: the true SI multiplier at the meal (within-person
+       log SD 0.31, correlation with the drop −0.06) and the eaten/entered ratio (log SD 0.20, +0.07). Loop and the meal's
+       own timing absorb them over this window.
+     - Candidates that act inside 2 h, each to be sized from evidence: per-dose insulin absorption in real pump use
+       (A4 15% net, from clamps; real-life site-to-site and wear variability larger, Heinemann 2002 review [verify]);
+       per-meal carbohydrate appearance speed (GI and composition; gi_cv tested as a whole-meal ceiling, LESSONS 177);
+       post-meal activity. The lunch, early-low and first-hour gaps (LESSONS 150, 180, 185) are the same remainder.
