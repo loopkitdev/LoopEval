@@ -230,6 +230,11 @@ class World:
         if enable and isinstance(enable.get("count_sd_mult"), float):
             # per-meal mismatch between the grams dosed for and the glucose delivered (ablation, LESSONS 149)
             self.beh_traits.count_sd = self.beh_traits.count_sd * enable["count_sd_mult"]
+        if enable and isinstance(enable.get("graze_split"), float):
+            # experiment (LESSONS 162): the same daily grazing grams as k times as many sips and bites, 1/k the size
+            k_ = float(enable["graze_split"])
+            self.beh_traits.graze_per_day = self.beh_traits.graze_per_day * k_
+            self.beh_traits.graze_g = self.beh_traits.graze_g / k_
         if enable and isinstance(enable.get("snack_fast"), float):
             self.beh_traits.snack_fast_frac = enable["snack_fast"]          # snacks' fast share (LESSONS 159)
         if enable and isinstance(enable.get("gi_cv"), float):
