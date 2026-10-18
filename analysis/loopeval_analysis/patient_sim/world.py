@@ -154,6 +154,9 @@ class World:
             person.body = person.body.scaled(ge_hyper=enable["ge_hyper"])
         self.person = person
         self.days = days
+        # per-bolus absorption spread (A4): 0.15 net of SI from repeat clamps (Heise 2017); free-living estimates are wider
+        # (Schiavon ATTD 2020: intra-individual CV of absorption parameters 34–94% under closed loop) (LESSONS 209)
+        self.dose_cv = float(enable["dose_cv"]) if enable and isinstance(enable.get("dose_cv"), float) else 0.15
         seed = person.seed if seed is None else seed
         ss = np.random.SeedSequence(seed)
         r_mod, r_beh, r_sen, r_pump, r_abs, r_misc = [np.random.default_rng(s) for s in ss.spawn(6)]
@@ -524,7 +527,7 @@ class World:
         if u_basal > 0:
             self.body.infuse(u_basal, m)
         if u_bolus > 0:   # per-dose absorption jitter, CV 15% (Heise 2017 repeat clamps; evidence/07)
-            cv = self.pump.t.lh_dose_cv if self.pump.site_lh else 0.15
+            cv = self.pump.t.lh_dose_cv if self.pump.site_lh else self.dose_cv
             self.body.infuse(u_bolus, m, omega=float(np.exp(self.r_abs.normal(0, cv) - cv ** 2 / 2)),
                              dose=getattr(self.pump, "bolus_size", 0.0) or u_bolus)
         u = u_basal + u_bolus
