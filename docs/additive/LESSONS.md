@@ -3608,3 +3608,7 @@ statistic here, but it is the controller donors ran.
        defense (urgent-low-soon alarms waking the person, and bedtime snacks taken against a predicted fall; the
        sim's p_wake_alarm N(0.45, 0.2) is a judgement), and how the donors' own CGM data cover nights (phones out of
        range overnight remove night readings and with them night lows).
+     - **Not missing night data:** donors' G7 coverage (share of 5-min slots with a reading, median person, 60
+       donors) is 0.971 at night and 0.948 by day. Real nights are measured as fully as days, so the donors' low night
+       share is real. Left: the overnight defense (alarms, bedtime snacks) and whatever keeps real overnight glucose
+       up that the sim's night lacks.
