@@ -3761,3 +3761,16 @@ statistic here, but it is the controller donors ran.
      first hour toward the donors' and empties the 2–4 h plateau the real meals keep; the within-person spread does not
      respond to meal speed. Not adopted. The two observations together still ask for real meals that arrive both faster
      early and longer late, with their extra variability from outside the meal itself.
+
+177. **A wide meal-specific emptying ceiling moves the lows the donors' way and loses the meals.** `--enable
+     ceiling_speed --set gi_cv=0.8` (c204, rc_own) against c201_base: bolused first-hour within-person IQR 52 → 59
+     (donors 71); night share of lows 45% → 40%, day low episodes 431 → 480; hurst_long 0.240 (donors 0.247), t54
+     0.178; but temp meals fall below their start by 3–4 h (−1.2 per 10 g at 4 h; donors +4.0), CV 36.3 and day/night
+     1.75 fail: 33 vs 40 matched. Not adopted.
+     - Read with lessons 147–150 and 174–176: every mechanism that adds first-hour spread through the meal itself
+       (speed, ceiling, fast share, drink, count, sensor) also empties the 2–4 h plateau, because it acts by moving the
+       meal's own glucose earlier. The donors keep both, so their first-hour variability is not the meal's: it is
+       glucose that moves in the hour after eating for reasons that leave the meal's late arrival intact. Within the
+       data available (no steps, heart rate or stress signals in BDDP), the sim cannot identify that source; it is
+       recorded as the main open gap, with the activity and stress-hormone candidates for literature or a dataset that
+       carries them.
