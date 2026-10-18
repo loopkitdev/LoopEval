@@ -239,13 +239,22 @@ class World:
         if enable and enable.get("log_own"):
             # experiment (LESSONS 179): the donor's own treatment-logging rate (carb entries with no bolus within 30 min at
             # CGM < 130, per day) over the sim's median 1.4 treatments a day, as the person's logging probability
-            r_ = person.traits.get("template_rates", {}).get("treat_log_day")
+            # preferred: the donor's share of low-start labeled pulses (< 75 mg/dL) that were entered (LESSONS 179);
+            # fallback: the logged-treatment rate over the sim's 1.4 treatments a day
+            tr_ = person.traits.get("template_rates", {})
             try:
-                r_ = float(r_)
-                if np.isfinite(r_):
-                    self.beh_traits.p_log_pro = self.beh_traits.p_log_rescue = float(np.clip(r_ / 1.4, 0.0, 1.0))
+                sh_ = float(tr_.get("low_entered_share"))
             except (TypeError, ValueError):
-                pass
+                sh_ = float("nan")
+            if np.isfinite(sh_):
+                self.beh_traits.p_log_pro = self.beh_traits.p_log_rescue = float(np.clip(sh_, 0.0, 1.0))
+            else:
+                try:
+                    r_ = float(tr_.get("treat_log_day"))
+                    if np.isfinite(r_):
+                        self.beh_traits.p_log_pro = self.beh_traits.p_log_rescue = float(np.clip(r_ / 1.4, 0.0, 1.0))
+                except (TypeError, ValueError):
+                    pass
         if enable and isinstance(enable.get("p_log_pro"), float):
             self.beh_traits.p_log_pro = enable["p_log_pro"]
         if enable and isinstance(enable.get("p_log_rescue"), float):
