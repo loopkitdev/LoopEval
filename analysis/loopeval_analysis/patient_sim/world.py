@@ -351,6 +351,19 @@ class World:
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
         self.fat_rho = float(r_misc.uniform(0.1, 0.6))
+        # fat_rel (experiment, LESSONS 151): the fat resistance relative to the person's own usual diet. Their ISF, CR and
+        # TDD were tuned on their ordinary meals, average fat included, so the term is normalised to a mean of 1 over the
+        # planned days (as caffeine is, relative to the person's habitual intake); fattier than usual still dips SI
+        self.fat_norm = 1.0
+        if (enable or {}).get("fat_rel") and self.enable.get("fat", True):
+            ev = sorted((tm, a[1].fat) for (tm, a) in self.beh.planned if a[0] == "eat_meal" and getattr(a[1], "fat", 0) > 0)
+            if ev:
+                grid = np.arange(DAY, days * DAY, 5.0); mult = np.ones_like(grid)
+                for (t0, fat) in ev:
+                    x = (grid - t0) / 60.0
+                    w = np.where(x < 2, 0.0, np.where(x < 3, x - 2, np.where(x < 6, 1.0, np.where(x < 10, (10 - x) / 4, 0.0))))
+                    mult *= 1.0 - self.fat_rho * min(fat, 80.0) / 50.0 * w
+                self.fat_norm = float(np.maximum(mult, 0.4).mean())
         # hyperglycaemia-induced insulin resistance (B11): 24 h at ~360 mg/dL lowers insulin-stimulated glucose uptake by
         # 26% in T1D (Vuorinen-Markkola 1992; Yki-Järvinen 1987). State H relaxes toward 0.26·clip((G − 140)/220, 0, 1)
         # with τ 12 h [J, both ways]; insulin sensitivity × (1 − H) (LESSONS 43)
@@ -458,7 +471,8 @@ class World:
     def _fat_si(self, m: float) -> float:
         """Fat-induced insulin resistance: 1 − ρ·fat/50 at full effect, ramping in from 2 h, full 3–6 h,
         gone by 10 h after the meal (evidence/01 §6.3)."""
-        if not self.fat_events or not self.enable.get("fat", True): return 1.0
+        if not self.enable.get("fat", True): return 1.0
+        if not self.fat_events: return 1.0 / self.fat_norm
         mult = 1.0
         keep = []
         for (t, fat) in self.fat_events:
@@ -468,7 +482,7 @@ class World:
             w = 0.0 if x < 2 else (x - 2) if x < 3 else 1.0 if x < 6 else (10 - x) / 4
             mult *= 1.0 - self.fat_rho * min(fat, 80.0) / 50.0 * w
         self.fat_events = keep
-        return max(mult, 0.4)
+        return max(mult, 0.4) / self.fat_norm
 
     # ------------------------------------------------------------------ internal drive (burn-in)
     def _calc_iob(self, m: float) -> float:
