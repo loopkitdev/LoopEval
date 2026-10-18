@@ -144,8 +144,9 @@ class BehaviorTraits:
     treat_latency: float = 5.0           # min after seeing it
     retreat_wait: float = 15.0
     p_retreat: float = 0.34
-    p_log_pro: float = 0.0               # proactive (pre-emptive) carbs entered in the app (LESSONS 175)
-    p_log_rescue: float = 0.05           # rescues entered in the app [J; "very under-represented" — Pete]
+    p_log_pro: float = 0.25              # proactive (pre-emptive) carbs entered in the app [J share; donors log treatment
+                                         # carbs ~3.6x as often as the sim did (LESSONS 175)]
+    p_log_rescue: float = 0.25           # rescues entered in the app [J; was 0.05, "very under-represented" — Pete; LESSONS 175]
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
