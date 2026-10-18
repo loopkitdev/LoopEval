@@ -3272,3 +3272,22 @@ statistic here, but it is the controller donors ran.
        is not the sim's composition, count, lead or speed terms. Sources not in the sim that would behave that way:
        how much of a meal is actually eaten (half-finished or second helpings, independent of the entry), and
        non-meal glucose moves coinciding with meals (activity or stress around mealtime). Neither is yet measured.
+
+151. **Most of the new base's level excess is the fat resistance booked on top of the person's usual diet.**
+     - **Not the settings.** Settings set to the body's truth (`--disable settings_mismatch`, c168 on c08976a):
+       3-h profile within 1–4 mg/dL of the base (06–09 131, 21–24 181), mean 165, 25 matched.
+     - **The fat term.** `--disable fat` (c169): mean 167 → 157, TIR 62 → 69, CV 34.8 (donors 34.8), TDD 39.9,
+       lows 0.67/day; twin Δ mean automatic +16 → +3.4, temp +7.8 → +1.5, entries tercile low / mid / high
+       −1.4 / +0.8 / +17.5; the excess that built from 09 h to midnight shrinks by 4–12 mg/dL per block; 24 matched.
+     - **Why.** A12 dips SI by ρ·fat/50 from 2 to 10 h after every meal (ρ U(0.1, 0.6), sized to Wolpert 2013's
+       high- vs low-fat dinner, an increment). The person's ISF, CR and TDD were tuned on their ordinary meals, fat
+       included, but the term's average (a mean SI multiplier of 0.92 over the window, 0.82–0.96 across people) was
+       booked on top of them. Under the peak calibration the ~2× insulin action hid it; under total-drop it shows as
+       a day-long drift.
+     - **`--enable fat_rel`** (44dcae1; off): the fat term divided by its own mean over the planned days, so a
+       person's usual meals leave their sensitivity at its calibrated value and fattier-than-usual meals still dip it
+       (the caffeine term's treatment of habitual intake). c170: mean 159, TIR 65.4, TDD 39.1, lows 0.58/day (onsets
+       0.70), 24 matched; twin Δ mean automatic +12.9, temp +2.4, high-entries tercile +18.4.
+     - Left after fat_rel: ~+8 mean, carried by automatic-bolus people and the heavy enterers. The protein parcel
+       (0.1 g glucose per g protein, ~4.5% of carbohydrate grams) also sits outside the TDD budget, the same
+       bookkeeping question; fat off entirely (157) bounds the two together.
