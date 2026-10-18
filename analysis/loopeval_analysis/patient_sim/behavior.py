@@ -34,6 +34,18 @@ from .physiology import Parcel
 DAY = 1440.0
 
 
+def _count_size_err(t, grams: float) -> float:
+    """Mean log carb-count error by meal size. "log" (default): −0.1·ln(g/45) on top of the person's bias (centre
+    −0.10). "brazeau": Brazeau 2013's regression on 692 T1D adult meals (re-analysed in PMC7594710), estimate − actual =
+    10.54 − 0.28·g, so small meals are over-counted (+25% at 20 g) and large ones under-counted (−15% at 80 g); the
+    person's bias then carries only the between-person spread (its −0.10 centre is in the regression)."""
+    if t.count_sd <= 0: return 0.0
+    if t.count_size == "brazeau":
+        g = max(grams, 20.0)            # below 20 g held at the 20-g value: outside the study's meal sizes [J]
+        return math.log(max(1.0 + (10.54 - 0.28 * g) / g, 0.5)) + 0.10
+    return -0.1 * math.log(max(grams, 5) / 45.0)
+
+
 @dataclass
 class BehaviorTraits:
     # sleep
@@ -63,6 +75,7 @@ class BehaviorTraits:
     slot_shares: tuple = (0.22, 0.30, 0.34)   # breakfast / lunch / dinner share of a main-meal day (Camerlingo 2021)
     slot_ann: tuple = (1.0, 1.0, 1.0)         # per-meal entry chance relative to p_entry_meal (donor's own windows)
     p_entry_snack: float = 0.3
+    count_size: str = "log"              # "brazeau": the size-dependent mean error of Brazeau 2013 (LESSONS 146)
     count_bias: float = -0.10            # person's mean carb-count error (Brazeau 2013: 63% under)
     count_sd: float = 0.20               # per-meal count error sd
     bolus_timing: str = "before"         # before | immediate | during | after (Datye 2018)
@@ -496,7 +509,7 @@ class Behavior:
             entered = None; bolus = None; et = base + mt
             n_ov = len(self.overrides)
             if r.random() < p_e:
-                err = t.count_bias + r.normal(0, t.count_sd) - (0.1 * math.log(max(grams, 5) / 45.0) if t.count_sd > 0 else 0.0)
+                err = t.count_bias + r.normal(0, t.count_sd) + _count_size_err(t, grams)
                 entered = max(1.0, round(grams * math.exp(err)))
                 off = self._bolus_off(r)
                 et = base + mt + off
@@ -527,7 +540,7 @@ class Behavior:
                 self.planned.append((et, ("enter_meal", meal)))
             elif not dropped and r.random() < t.p_free_bolus:
                 # food dosed by hand: their own estimate of the grams over their own CR setting
-                est = grams * math.exp(t.count_bias + r.normal(0, t.count_sd))
+                est = grams * math.exp(t.count_bias + r.normal(0, t.count_sd) + (_count_size_err(t, grams) if t.count_size == "brazeau" else 0.0))
                 units = round(est / self.p.settings["cr"] * 2) / 2
                 off = self._bolus_off(r)
                 if units >= 0.5:

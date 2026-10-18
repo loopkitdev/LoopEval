@@ -204,6 +204,8 @@ class World:
             self.beh_traits.meal_drink_p = float(enable["meal_drink_p"])
         if enable and isinstance(enable.get("meal_drink_share"), float):
             self.beh_traits.meal_drink_share = float(enable["meal_drink_share"])
+        if enable and enable.get("count_brazeau"):
+            self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.count_size = "brazeau"   # LESSONS 146
         if enable and isinstance(enable.get("pro_shift"), float):
             self.beh_traits.pro_onset = self.beh_traits.pro_onset + float(enable["pro_shift"])   # LESSONS 126
         if enable and enable.get("own_clock"):
