@@ -2839,3 +2839,26 @@ statistic here, but it is the controller donors ran.
        This is the first measured donor evidence for the illness, stress, menstrual and alcohol components, which are
        sized from literature today. Next: per-state frequency and the glucose / delivered-insulin response around
        logged events, against the sim's component sizes.
+     - **First donor evidence for the life factors** (reportedState, all G7 loggers whatever their controller).
+       CGM mean in the 24 h after a logged event minus the same person's mean on days −14..−2 and +2..+14
+       (≥ 200 readings in the event window, ≥ 1,500 in the baseline; time stored as epoch ms or ISO, value as plain
+       or BSON numbers; mg/dL = mmol/L × 18.016):
+
+       | state | events | users | median Δ | mean Δ | Δ time > 180 (median, pts) |
+       |---|---|---|---|---|---|
+       | illness | 994 | 206 | +3.1 | +6.6 | +1.1 |
+       | cycle | 461 | 112 | +3.5 | +5.0 | +1.6 |
+       | stress | 445 | 145 | +1.8 | +4.9 | +0.9 |
+       | alcohol | 176 | 76 | −4.7 | −4.1 | −2.0 |
+       | hypoglycaemia symptoms | 1,042 | 147 | −6.9 | −5.7 | −3.5 |
+       | hyperglycaemia symptoms | 3,658 | 97 | +0.9 | +2.0 | +3.4 |
+
+       - **Illness checks out.** The sim's illness episodes measured the same way (c145, first 24 h vs ±2–14 days,
+         16 episodes): median +4.4, mean +6.2. That matches the donors' +3.1 / +6.6, a first data validation of the
+         component's size (it is sized from literature).
+       - **Cycle.** The menstrual component is off by default (stress scenarios only), yet donors who log "cycle"
+         run +3.5 / +5.0 mg/dL in the next 24 h. Logged cycle is probably period onset; the component's luteal SI dip
+         (8%) peaks before it. Worth a matched test: phase timing against these logs.
+       - **Alcohol lowers next-day glucose** (−4.7), the direction of the sim's alcohol term (EGP ×0.85 the morning
+         after). Stress raises it a little (+1.8), consistent with the reactive-third SI −10% term.
+       - Logging is voluntary and episodic (one log per event), so these are lower bounds on a day-level effect.
