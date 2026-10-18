@@ -111,3 +111,11 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
   overnight insulin variation. Day/night moves 1.59 → 1.72. Glucose CV now reads high (37.4 vs 34.8).
 - `--set basal_share=0.5` restores the previous centre. This shifts every candidate's low-side numbers, so re-run
   baselines.
+
+## Update 2026-10-17 (late): EGP-suppression rate from the meal tracer
+
+- `p2e` is now 0.006 (was 0.010), so insulin's suppression of liver output after meals matches the depth of the
+  Romeres 2025 T1D tracer (LESSONS 131).
+  - The cohort is 35 of 51 matched; long-range Hurst and overnight insulin variability now pass.
+  - Lows read a little high (t70 2.45 vs 1.67).
+- `--set ins_p2e=0.010` restores the previous rate.
