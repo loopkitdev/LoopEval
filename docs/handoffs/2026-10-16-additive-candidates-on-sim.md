@@ -147,3 +147,6 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
 - `--disable isf_total,budget_all` reproduces the previous base exactly.
 - Also from 2026-10-18: fat-induced insulin resistance is relative to each person's usual diet (LESSONS 151), so the
   base no longer drifts upward through the day: mean ~159 (donors 151), TDD at the donors'.
+- Also from 2026-10-18: insulin absorbs more slowly while the person is upright (posture, A4b) and everyday movement
+  comes in short bouts (C7). Lows now sit at the donors' level (t<70 1.6%, ~1 low/day), so hypo-prevention candidates
+  have real lows to prevent again on this base (LESSONS 163).

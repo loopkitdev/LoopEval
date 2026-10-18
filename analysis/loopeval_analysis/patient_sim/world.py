@@ -260,12 +260,12 @@ class World:
             self.beh_traits.p_more = 0.0
         from .exercise import ExerciseParams
         self.ex_b = (enable.get("ex_b"), enable.get("ex_zp", 1.0)) if enable and isinstance(enable.get("ex_b"), float) else None
-        self.act_frag = bool((enable or {}).get("act_frag", False))
-        # posture (experiment, LESSONS 163): insulin clamps, the PK's reference, are done supine; sitting up cuts
+        self.act_frag = bool((enable or {}).get("act_frag", True))     # default since 2026-10-18 (Pete, LESSONS 163)
+        # posture (LESSONS 163; --disable posture): insulin clamps, the PK's reference, are done supine; sitting up cuts
         # subcutaneous blood flow 29–47% and insulin absorption 19–44% (Hildebrandt 1985, 17 patients with diabetes).
         # Awake = upright: absorption × (1 − p), p per person U(0.19, 0.44) on its own stream; asleep = supine
         self.posture_p = float(np.random.default_rng(int(person.seed) + 1907).uniform(0.19, 0.44)) \
-            if (enable or {}).get("posture") else 0.0
+            if (enable or {}).get("posture", True) else 0.0                   # default since 2026-10-18 (Pete, LESSONS 163)
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,
                                           frag=self.act_frag, frag_seed=int(person.seed) + 1811,
                                           **({} if self.ex_b is None else dict(b=self.ex_b[0], z_power=self.ex_b[1]))))

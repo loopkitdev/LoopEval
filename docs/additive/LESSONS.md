@@ -3513,3 +3513,4 @@ statistic here, but it is the controller donors ran.
      - The quiet daytime zero-crossing still reads 20 (donors 40), and CV (39.2) and night insulin CV (46.5) move away;
        still failing: mean, CV, TIR, t180, G7 step shape, hurst_long, acf_zero, volatility clustering, between-day,
        circadian amplitude, p_reach54, min below 70, zero fraction, p99, lag-1, night insulin CV.
+     - **Adopted (Pete, 2026-10-18): `posture` and `act_frag` are defaults** (`--disable posture,act_frag`).
