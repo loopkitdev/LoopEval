@@ -3849,3 +3849,14 @@ statistic here, but it is the controller donors ran.
        in the sim) and a smaller rise from that start. Skipping is real, evidenced behaviour; the cost comes from the
        skipped grams moving into larger lunches and dinners, which a real skipper may not do (part of the day's intake
        simply not eaten). Next: skip_own with the skipped breakfast's grams dropped rather than redistributed.
+
+183. **Dropping the skipped breakfast instead of redistributing it repairs CV but not the count.** `--enable skip_drop`
+     (with skip_own; 33093c7; off): on a skipped day the planned grams scale by (full share − breakfast share) / full
+     share, applied after the day's intake regulation. The first version scaled the share before regulation, which
+     renormalises to the day total, so c210 came out identical to c209. Planned intake 181.0 → 175.7 g/day. c210 against
+     c201_base: CV 36.5 → 35.6 (KS p 0.02 → 0.13, matched again), Hurst p 0.15, t54 p 0.08; lunch starts 148 (skip_own
+     alone 143, base 154, donors 128) and rises +16 at 1.5 h (donors +36); 09–12 153.1 (donors 146); night share of lows
+     unchanged at 0.45. 36 vs 40 matched: Box-Cox λ (p 0.22 → 0.02), the G7 split of one shape statistic, between-day
+     fraction and zero fraction drop out, the last three from p 0.053–0.061 in the base. Not adopted. Skipping on its own
+     moves the lunch start by under half the gap, so most of the late-morning excess is the second part from lesson 182:
+     the breakfast that is eaten lasts longer in the sim than in the donors.
