@@ -553,6 +553,22 @@ public struct EvalConfig: Codable, Sendable {
     /// A target shift acts through both delivery paths. The suspend threshold is untouched, so the
     /// low guard is unchanged. 0 (default) = off.
     public var calmHighTargetDelta: Double
+    /// Runway reserve (C40). The extra correction is bounded by what Loop can still undo: with the
+    /// correction it already makes, plus an extra E, the plausible path (forecast minus runwayZ*sigma5
+    /// (tau/5)^H) with scheduled basal withheld from now must stay above the suspend threshold out to
+    /// runwayHorizonMin. runwayFraction of that E is delivered, as an internal lowering of the
+    /// correction aim (capped at runwayMaxMgdl). The user's target and the suspend threshold are not
+    /// changed. 0 = off.
+    public var runwayFraction: Double
+    /// sigma5 cold-start prior: after a start or a CGM gap the EWMA restarts from one increment and reads calm. Until
+    /// sigmaPriorSteps increments have accrued, sigma5 is pulled up toward sigmaPrior (linear fade). Raises only. 0 = off.
+    public var sigmaPrior: Double
+    public var sigmaPriorSteps: Double
+    public var runwayZ: Double
+    public var runwayHorizonMin: Double
+    public var runwayMaxMgdl: Double
+    public var runwayBgMin: Double
+    public var runwayCobGate: Bool
     /// DESCENT-gated RC rise-cut (C32). When BG reached >= descentHighBgMin within
     /// descentWindowMin AND the trailing 60-min slope is <= descentSlopeMax (falling),
     /// scale the POSITIVE (unexplained-rise) RC discrepancy by descentRcRiseScale.
@@ -707,6 +723,14 @@ public struct EvalConfig: Codable, Sendable {
         calmHighCobGate: Bool = false,
         calmHighMinSlope: Double = -.infinity,
         calmHighTargetDelta: Double = 0,
+        runwayFraction: Double = 0,
+        sigmaPrior: Double = 0,
+        sigmaPriorSteps: Double = 12,
+        runwayZ: Double = 1.0,
+        runwayHorizonMin: Double = 180,
+        runwayMaxMgdl: Double = 60,
+        runwayBgMin: Double = 0,
+        runwayCobGate: Bool = false,
         descentRcRiseScale: Double = 1.0,
         sigmaBandDescentGate: Bool = false,
         descentHighBgMin: Double = 180,
@@ -866,6 +890,14 @@ public struct EvalConfig: Codable, Sendable {
         self.calmHighCobGate                = calmHighCobGate
         self.calmHighMinSlope               = calmHighMinSlope
         self.calmHighTargetDelta            = calmHighTargetDelta
+        self.runwayFraction                 = runwayFraction
+        self.sigmaPrior                     = sigmaPrior
+        self.sigmaPriorSteps                = sigmaPriorSteps
+        self.runwayZ                        = runwayZ
+        self.runwayHorizonMin               = runwayHorizonMin
+        self.runwayMaxMgdl                  = runwayMaxMgdl
+        self.runwayBgMin                    = runwayBgMin
+        self.runwayCobGate                  = runwayCobGate
         self.descentRcRiseScale             = descentRcRiseScale
         self.sigmaBandDescentGate           = sigmaBandDescentGate
         self.descentHighBgMin               = descentHighBgMin
@@ -971,7 +1003,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
         case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsSmoothGlucose, oapsPumpPulse
-        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly, negativeInsulinDamper, nidAnchorAlpha, nidMarginalSlope, nidLagMin, basalLockBg
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, runwayFraction, sigmaPrior, sigmaPriorSteps, runwayZ, runwayHorizonMin, runwayMaxMgdl, runwayBgMin, runwayCobGate, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly, negativeInsulinDamper, nidAnchorAlpha, nidMarginalSlope, nidLagMin, basalLockBg
         case descentRcRiseScale, descentHighBgMin, descentWindowMin, descentSlopeMax, sigmaBandDescentGate
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
@@ -1126,6 +1158,14 @@ public struct EvalConfig: Codable, Sendable {
         self.calmHighCobGate = try c.decodeIfPresent(Bool.self, forKey: .calmHighCobGate) ?? false
         self.calmHighMinSlope = try c.decodeIfPresent(Double.self, forKey: .calmHighMinSlope) ?? -.infinity
         self.calmHighTargetDelta = try c.decodeIfPresent(Double.self, forKey: .calmHighTargetDelta) ?? 0
+        self.runwayFraction = try c.decodeIfPresent(Double.self, forKey: .runwayFraction) ?? 0
+        self.sigmaPrior = try c.decodeIfPresent(Double.self, forKey: .sigmaPrior) ?? 0
+        self.sigmaPriorSteps = try c.decodeIfPresent(Double.self, forKey: .sigmaPriorSteps) ?? 12
+        self.runwayZ = try c.decodeIfPresent(Double.self, forKey: .runwayZ) ?? 1.0
+        self.runwayHorizonMin = try c.decodeIfPresent(Double.self, forKey: .runwayHorizonMin) ?? 180
+        self.runwayMaxMgdl = try c.decodeIfPresent(Double.self, forKey: .runwayMaxMgdl) ?? 60
+        self.runwayBgMin = try c.decodeIfPresent(Double.self, forKey: .runwayBgMin) ?? 0
+        self.runwayCobGate = try c.decodeIfPresent(Bool.self, forKey: .runwayCobGate) ?? false
         self.descentRcRiseScale = try c.decodeIfPresent(Double.self, forKey: .descentRcRiseScale) ?? 1.0
         self.sigmaBandDescentGate = try c.decodeIfPresent(Bool.self, forKey: .sigmaBandDescentGate) ?? false
         self.descentHighBgMin = try c.decodeIfPresent(Double.self, forKey: .descentHighBgMin) ?? 180
@@ -1286,6 +1326,14 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(calmHighCobGate, forKey: .calmHighCobGate)
         try c.encode(calmHighMinSlope.isFinite ? calmHighMinSlope : -1e30, forKey: .calmHighMinSlope)
         try c.encode(calmHighTargetDelta, forKey: .calmHighTargetDelta)
+        try c.encode(runwayFraction, forKey: .runwayFraction)
+        try c.encode(sigmaPrior, forKey: .sigmaPrior)
+        try c.encode(sigmaPriorSteps, forKey: .sigmaPriorSteps)
+        try c.encode(runwayZ, forKey: .runwayZ)
+        try c.encode(runwayHorizonMin, forKey: .runwayHorizonMin)
+        try c.encode(runwayMaxMgdl, forKey: .runwayMaxMgdl)
+        try c.encode(runwayBgMin, forKey: .runwayBgMin)
+        try c.encode(runwayCobGate, forKey: .runwayCobGate)
         try c.encode(descentRcRiseScale, forKey: .descentRcRiseScale)
         try c.encode(sigmaBandDescentGate, forKey: .sigmaBandDescentGate)
         try c.encode(descentHighBgMin, forKey: .descentHighBgMin)

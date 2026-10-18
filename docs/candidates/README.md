@@ -36,7 +36,7 @@ hash have no surviving traces.
 | [C09](#c09-predictive-sensitivity-damper) | Predictive sensitivity damper | pull-back | scored (bddp11) | **NEUTRAL** (inert, −0.001) |
 | [C10](#c10-post-low-protector) | Post-low protector (ISF-mult / suppress / trend) | pull-back | scored (bddp11) | ISF-mult **WORSE** (−3.5…−8.3 TIR for −0.07 t54); suppress-20 NEUTRAL (+0.006) |
 | [C11](#c11-uncertainty-cap-dosing) | Uncertainty-cap dosing | pull-back (risk-bounded) | scored (bddp11) | **WORSE** at every k (−0.11 … −0.16) — closed |
-| [C12](#c12-learned-circadian-needs-schedule-hourly-insulin-needs) | Learned circadian needs schedule | learned | scored (bddp11, holdout) | **WORSE** in-sample and holdout (k=1: −5.3 TIR / +0.96 t54 on holdout) — closed |
+| [C12](#c12-learned-circadian-needs-schedule-hourly-insulin-needs) | Learned circadian needs schedule | learned | scored (bddp11, holdout; **reviewed on 9 beds, [E54](#e54--review-of-c12-and-c19-on-every-90-day-bed)**) | **WORSE** in-sample and holdout (k=1: −5.3 TIR / +0.96 t54 on holdout). Review: WORSE on holdout on 5 of 7 scoreable beds, 0 IMPROVES; −4…−9 TIR at op on announcers — **closure confirmed on every bed type** |
 | [C13](#c13-basal--isf-decoupling) | Basal × ISF decoupling | dial-like (2-D) | scored once (ns3) | small lift band (+0.056 max), unfollowed |
 | [C14](#c14-autosens-term) | Autosens (multi-hour BG-vs-target) | learned (short memory) | built, unswept | — |
 | [C15](#c15-rc-window-knobs) | RC window knobs (retro / duration) | dial-like | scored (panel) | no lift; dur120 harmful |
@@ -63,7 +63,7 @@ hash have no surviving traces.
 | [C30](#c30--the-deployable-stack-c29--c23c25--c20) | **The deployable stack** (C29 + C23/C25 + C20) | pull-back + dose-more, state-gated | **scored (2 mo × 8 donors + 90 d × 5, guarded)** | **+0.0205 [+0.0045,+0.0371] at 2 mo and +0.0386 [+0.0074,+0.0697] at 90 d, 0 WORSE in either**; 4 beds improve TIR AND t<54 at op with no retuning; CI-clearing TIR gain in unannounced-meal windows on 4/7 — see [HEADLINE](#headline--c30-with-all-three-scorer-guards-applied-2026-08-28) |
 | [D1](#d1--deployment-rule--two-configurations-not-one) | *Deployment rule*: full stack for announcers, band alone for non-announcers | — | **settled** | the licence pays only where highs are the residue of announced meals; the band survives both regimes |
 | [O2](#o2-carb-foreknowledge-oracle) | Oracle: carbs visible 30 min early | oracle | scored | +6–8 TIR at ≈0 t54, gentle end (bddp07) |
-| [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout) | **WORSE on holdout** (R² 0.16 isn't enough; bar ≈ R² 0.7) — closed as built |
+| [C19](#c19-learned-causal-60-min-ice-forecaster) | Learned causal 60-min ICE forecaster (per patient) | learned (dose-more/pull-back) | scored (bddp11, holdout; **reviewed on 9 beds, [E54](#e54--review-of-c12-and-c19-on-every-90-day-bed)**) | **WORSE on holdout** on bddp11 (R² 0.16 isn't enough; bar ≈ R² 0.7) — closure stands for hands-off beds. **Review reopens it for announcers**: residual-target, half strength, holdout on 5 announcer beds: @op +0.55 TIR / −0.19 t54, setting beaten with margin on 4 / 5, mean +0.071 [−0.037, +0.195], 1 IMPROVES / 0 WORSE; in-sample ≈ holdout |
 | [O1](#o1-future-ice-forecast-oracle-headroom-bound-not-deployable) | Oracle: perfect 60-min exogenous (ICE) forecast | oracle | scored (bddp11) | **+10.0 TIR / −0.31 t54 at op**; half-strength still +3.9 TIR; noisy R²=0.5 already WORSE |
 | [M7](#m7--the-realized-forecast-error-table) | *Measurement*: the deployed forecast's realized error by horizon × σ5, 4 hands-off donors × 90 d | — | **measured** | k=1 at 60 min IS the realized 10 % downside on every bed; on the lows donors the downside PLATEAUS at ~5–6 σ5 to 6 h while the band tapers to 0 by 120; σ5 separates dispersion 2× but low-probability barely |
 | [E41](#e41--the-calm-high-bg-threshold-swept) | C23's BG threshold, swept 160–200 | dose-more, state-gated | scored (3 beds) | **WASH across 160–190**, 200 loses exposure; 180 stays. Δt54 = 0 at every threshold — the σ gate carries the safety, the level gate only sets exposure |
@@ -77,6 +77,12 @@ hash have no surviving traces.
 | [C38](#c38--slow-autosens-scope-rc) | Slow (autosens-scope) RC: signed EWMA of the RC residual over 6–24 h → controller ISF multiplier clamp(1 − gain·level, 0.7, 1.3) | adaptive dial, forecast-side | scored (9 beds, E51) | **NEUTRAL on the cohort as a mechanism; IMPROVES with margin on the two beds whose residual is two-sided (bddp06 +0.215, bddp05 +0.074).** On one-signed beds it is the needs dial applied adaptively (bddp11 @op +4.4 TIR / +0.16 t54 along the reference). Cohort mean src6g05 +0.038 [+0.001, +0.090], 3 IMPROVES / 0 WORSE, 2/9 settings beaten with margin. Next: mean-zero (relative) form |
 | [E51](#e51--slow-rc-sweep-and-the-two-bugs-behind-it) | *Experiment*: slow RC, five gain/tau arms, nine beds — after two engine bugs (patch never landed; residual NaN without carbs) and a gain re-calibration | — | done | lift tracks how two-sided the level is (corr 0.73 across 8 beds); the C08 sensitive-mode feed shares the NaN guard — decision pending |
 | [E52](#e52--c08-re-run-with-the-corrected-residual-feed) | *Experiment*: C08 sensitive mode re-run on nine beds + b11_90d after its feed was fixed to update on every cycle, not only carb-active ones | — | done | verdict unchanged: no lift, WORSE on bddp05 / bddp06 / bddp08 at the stronger setting; the fix moved b11_90d's sens from −0.007 to −0.001 (Δt54@op −0.04 → −0.08) |
+| [C39](#c39--daily-habit-forecast-term) | Daily-habit forecast term: g × the mean unexplained 2-h change over the same clock window on the previous 1–7 days, as a forecast offset (mean-zero form primary) | learned-lite (model-free, 7-day memory), forecast-side | scored (9 beds, E53) | **NEUTRAL on the cohort** — evidence-gated mean-zero form 0.000 [−0.017, +0.018], 2 IMPROVES / 1 WORSE; **IMPROVES with margin on bddp05 only** (+0.045; positive-side-only +0.096, best +2.1 TIR / −0.60 t54). The absolute, ungated form is WORSE (−0.107, 5 beds WORSE): pre-dosing on habit makes lows. The strongest-habit bed (bddp09) gets nothing — its dial is free |
+| [E54](#e54--review-of-c12-and-c19-on-every-90-day-bed) | *Experiment*: C12 (hourly needs) and C19 (60-min forecaster) refitted per bed on all nine 90-day beds, residual-based, fit 05-08→07-08 / holdout after — both were closed on bddp11 alone | — | done | C12 confirmed closed everywhere. C19 splits by regime: on hands-off beds its offset is positive 63–92 % of the time (a dial in disguise, +3.4 TIR / +0.15 t54 at op, setting never beaten); on announcers it is a two-sided state-conditional correction that holds out (+0.55 TIR / −0.19 t54) |
+| [M11](#m11--static-replay-predicts-δtir-not-the-hypo-axes) | *Method*: does static replay predict outcome CHANGES? Settings edits (102) and strategy switches (41) on the v32 pilot pool, by simulator | — | measured | **ΔTIR yes (need-adjusted coefficient 0.66–0.98), ΔMean direction yes, Δt<70 and Δt<54 NO** (r ≈ 0–0.3, slope ≤ 0.2, error 2–3× predicting no change). Every lift / per-setting-dominance verdict in this ledger uses t<54 (or t<70) as its lows axis — the lows side of every verdict is unvalidated |
+| [E55](#e55--c01-and-c30-with-manual-boluses-as-given) | *Experiment*: the PR's two experiments (C01 aIRC, C30 stack) re-scored with manual boluses passed through as given (M11's variant B) instead of replaced by the candidate's recommendation | — | done | **Verdicts hold.** Cohort lift C01 +0.027 → +0.035, C30 +0.018 → +0.027, both 90 % CIs above 0, no WORSE bed under either. Per-bed @op ΔTIR moves at most 0.6. Per-bed labels shuffle at the margin (C30 bddp08/03 → NEUTRAL; C01 bddp11/08/06 → IMPROVES). The lows side remains unvalidated (M11) |
+| [E56](#e56--c01-c20-and-c30-in-researchs-synthetic-oracle-worlds) | *Experiment*: C01, C20 and C30 against stock in research's synthetic worlds, where the true closed-loop outcome (generated rescues) is known, vs static and dynamic replay of the same worlds | — | done (research) | **True gains are small; static replay inflates the lows benefit 2–3× and mis-ranks.** True Δt<70 at ×1.00 −0.18 to −0.32, Δt<54 ≈ −0.02; TIR at matched t<70 +0.06 (C01) / +0.16 (C20) / +0.20 (C30). Static gives +0.62 / +0.46 / +0.34 — order reversed. Dynamic replay restores the order, magnitudes still 2–3× |
+| [E57](#e57--the-additive-simulator-896-people-reduced-carb-entry-and-the-temp-basal--automatic-bolus-switch) | *Experiment*: paired arms on the additive simulator (896 people × 14 d, frozen code), split by carb-entry habit and dosing strategy; announce_mult 1 / 0.5 / 0 on the same people; temp-basal people forced to automatic bolus | — | done | **C31(−30) + guard (C29 band + C20) is the reduced-entry pairing: TIR +0.70 / +1.00 at half / no entry with t<54 −0.03 / 0.00, safe at full entry (+0.28, −0.02).** C01 and the licence fail people who skip entry. IRC + guard: +3 to +4.5 TIR but adds lows. Switching temp → automatic bolus: TIR +3.5, t<54 +0.36; trouble is predicted by pre-switch t<70 and CV; the guard halves the added lows at no TIR cost |
 
 ---
 
@@ -1505,3 +1511,285 @@ bddp06, the two beds where the symmetric slow RC (C38) wins with margin. Raising
 already prices; what those two beds reward is *lowering* it again when the residual turns positive, which a
 negative-only level cannot do. Closed; the two-sided level (C38) supersedes it.
 
+## C39 · Daily-habit forecast term
+`--candidate-forecast-offset-csv habit/<bed>_<variant>_g4.csv` (written by `runs/2026-10-06-lookback/make_habit_csv.py`).
+habit₁₂₀(t) = mean over the previous 1–7 days (≥3 available) of the unexplained residual sum (ICE − carb share) over the same
+clock window (t, t+2 h]. Model-free and causal — nothing is fitted, the only constants are the 7-day memory, the 2-h window
+and the gain g = 0.4 (the cohort regression coefficient of the realized 2-h change on habit, given Loop's own RC + momentum).
+Offset = g × habit, clipped [−60, +80] mg/dL, applied as the forecast shift O1 / C19 used.
+
+**Why this and not another slow level (lookback study, `runs/2026-10-06-lookback/`, nine 90-day beds, temporal holdout):**
+once the last 3 h are known, 3–24 h levels (EWMAs, medians, time since a low, TDD ratio) add nothing out of sample to the
+prediction of the next 1–6 h of unexplained change (ridge 0.159 → 0.156 at 1 h; boosted trees get *worse*, 0.138 → −0.003
+at 3 h), while the same clock window on previous days adds skill at every horizon (ridge 0.109 → 0.182 at 3 h, 0.022 → 0.137
+at 6 h; up to 0.33–0.41 on bddp05 / bddp09). At rise onsets the habit ranks which rises continue: P(meal-sized
+continuation | onset) runs 0.19 / 0.29 / 0.40 across habit terciles (bddp09 0.21 / 0.50 / 0.72). The habit enters additively
+(a habit × RC interaction adds nothing). C12 and C19 used this rhythm before and failed — but both were scored only on
+bddp11, which has nearly the weakest habit of any bed (3-h Spearman 0.28 vs 0.54 on bddp09), C12 through a basal/ISF
+schedule and C19 through a fitted model that did not hold out.
+
+**Arms (E53, nine 2-month beds, insulin-needs dial):** `habrel` mean-zero (habit minus its own 24-h mean — the absolute
+habit is positive at every clock time on hands-off beds, offset mean +18…+33 mg/dL, i.e. a dial in disguise); `habrelr`
+mean-zero with the positive side applied only while Loop's own RC + momentum marginal > +10 (evidence a rise is under way);
+`haball` absolute; `habpos` positive side only, evidence-gated; `habneg` negative side only.
+**Pre-registration:** lift should track habit strength — bddp09, bddp05, bddp01 (and bddp08 on the negative side) — and be
+absent or negative on bddp11 / bddp10 / bddp06. The evidence-gated forms should be safer on lows than the ungated ones
+(no-show rate in the top habit quintile: 11–27 % on hands-off beds). If `haball` beats `habrel` it is the dial talking.
+Approximation to remove if this works: the habit comes from the std trace at the operating multiplier and is fed to every
+dial setting; an in-engine version would compute it from the controller's own history.
+
+## E54 · Review of C12 and C19 on every 90-day bed
+Both learned candidates were closed on bddp11 alone. The lookback study ([C39](#c39--daily-habit-forecast-term)) shows
+bddp11 has nearly the weakest daily habit of any bed, so the closure is re-tested: per-bed fits on 05-08 → 07-08, holdout
+07-08 → 08-05, daily blocks (`score_holdout.py`, tag e54), nine 90-day beds. Fitted on the **residual** (ICE − carb share),
+not raw ICE as built — on announcers raw ICE is mostly announced-carb absorption (35–79 mg/dL/h vs a residual of −9…+8) and
+a schedule or offset built from it would dose announced meals twice. Arms `rhk1` / `rhk05` (hourly needs, k = 1 / 0.5,
+3-h smoothing, clip 0.6–1.6) and `rfc60` / `rfc60h` (forecaster offset, full / half strength).
+Fit quality: forecaster holdout R² at 60 min 0.08–0.30 (bddp07 0.30, bddp05 0.29, bddp09 0.28; bddp11 0.12, second-weakest).
+**Pre-registration:** C12 stays WORSE where the schedule saturates its clips (bddp05, bddp01, bddp09) — a basal/ISF schedule
+is still the wrong actuator for a meal-shaped residual; C19 at half strength may reach NEUTRAL-positive on the beds with
+R² ≈ 0.3, but the O1 bar (R² ≳ 0.7 for a full-strength additive offset) is not met anywhere.
+
+**Verdict (E53, nine 2-month beds, pinned11, `cohort_band_e53.csv`):** NEUTRAL as a cohort mechanism.
+
+| arm | cohort mean (8 beds) | IMPROVES / WORSE | settings beaten (margin) | @op ΔTIR / Δt54 |
+|---|---|---|---|---|
+| `habrelr` mean-zero, positive side evidence-gated | 0.0000 [−0.0168, +0.0176] | 2 / 1 | 5 (3) / 9 | +0.12 / −0.057 |
+| `habneg` negative side only | −0.0017 [−0.0078, +0.0042] | 0 / 0 | 1 (1) / 9 | −0.29 / −0.107 |
+| `habpos` positive side only, evidence-gated | −0.0074 [−0.0394, +0.0252] | 2 / 1 | 4 (3) / 9 | +3.45 / +0.218 |
+| `habrel` mean-zero, ungated | −0.0142 [−0.0418, +0.0093] | 0 / 1 | 3 (2) / 9 | +0.29 / −0.013 |
+| `haball` absolute, ungated | **−0.1067 [−0.2018, −0.0214]** | 1 / 5 | 1 (1) / 9 | +3.15 / +0.282 |
+
+- **bddp05 is the one clear win**: `habpos` +0.096 [+0.079, +0.109], person's setting beaten in every resample, best re-tune
+  +2.1 TIR / −0.60 t54; `haball` +0.071, `habrelr` +0.045 [+0.006, +0.079], `habrel` +0.036. Small IMPROVES on bddp08
+  (`habpos` +0.008) and bddp07 (`habrelr` +0.008). WORSE on bddp03 for the mean-zero forms (−0.024 / −0.045).
+- **The strongest-habit bed gets nothing.** bddp09 (3-h habit Spearman 0.54, P(meal | onset) 0.21 → 0.72 across terciles):
+  `habrelr` −0.017 [−0.058, +0.022]. Its reference has ≈0 severe lows at every in-band setting, so the dial buys TIR for
+  free and no forecast information can beat it ([M1](#m1--method-a-mechanism-can-only-beat-an-expensive-dial)).
+  Predictive skill is necessary, not sufficient: it pays only where the dial is expensive.
+- **Pre-registration scorecard.** Evidence-gating safer than ungated: yes (`habrelr` ≥ `habrel` on 7 of 9 beds; `haball`
+  adds +0.83 / +1.08 t54 at op on bddp11 / bddp10). Absolute form is the dial plus pre-dosing: yes, and it loses. Lift
+  tracks habit strength: **no** — bddp05 only; bddp09 and bddp01 (degenerate reference) do not convert.
+- The negative side alone (`habneg`) removes lows on announcers at the dial's price: bddp05 −0.46 t54 for −0.9 TIR,
+  bddp08 −0.26 for −0.6, bddp03 −0.18 for 0.0 — NEUTRAL everywhere.
+
+Closed as a cohort mechanism. What it leaves standing: on a bed with an expensive dial and a regular day (bddp05), a
+model-free one-week habit, used only once a rise is under way, is worth about as much as the slow RC (C38 +0.074) —
+candidates for stacking there, not evidence for a general lever.
+
+**Result (180 traces, `runs/2026-10-06-lookback/review/`, `cohort_band_e54.csv`, plot `plots/e54_holdout_forecaster.png`).**
+Holdout = 28 daily blocks per bed. bddp01 (and bddp11's holdout) have degenerate references — read their @op deltas only.
+
+| arm | holdout verdicts (7 scoreable beds) | announcers (03, 05, 06, 07, 08): mean lift, @op ΔTIR / Δt54, setting beaten w/ margin | hands-off (11, 01, 09, 10): @op ΔTIR / Δt54, setting beaten |
+|---|---|---|---|
+| `rfc60h` forecaster ×0.5 | 1 IMPROVES / 5 NEUTRAL / 1 WORSE | **+0.071 [−0.037, +0.195]** P 0.88; **+0.55 / −0.192**; **4 / 5** | +3.37 / +0.149; 0 / 4 |
+| `rfc60` forecaster ×1 | 1 / 5 / 1 | +0.012 [−0.132, +0.163]; +0.37 / −0.281; 4 / 5 | +4.95 / +0.640; 0 / 4 |
+| `rhk05` hourly needs k 0.5 | 0 / 2 / 5 | −0.600 [−1.625, +0.036]; −4.24 / −0.294; 1 / 5 | −0.39 / +0.276; 0 / 4 |
+| `rhk1` hourly needs k 1 | 0 / 2 / 5 | −1.139 [−2.757, −0.075]; −9.00 / +0.307; 1 / 5 | −3.89 / +1.025; 0 / 4 |
+
+- **C12 is closed on every bed type.** The schedule loses 4–17 TIR at the person's setting on bddp03 / bddp05 / bddp08 on
+  holdout and adds lows on every hands-off bed; only bddp06, whose fitted schedule is mild (0.61–1.20, no hour clipped),
+  stays NEUTRAL. A basal/ISF schedule is the wrong actuator for a meal-shaped residual, with or without a strong habit.
+- **C19 splits by regime, and the split is visible in its own output.** On hands-off beds the half-strength offset is
+  positive 63–92 % of the time (mean +8…+16 mg/dL) — a constant upward forecast shift, the dial in disguise, and it scores
+  like one: +3.4 TIR for +0.15 t54 at the person's setting, no setting beaten, WORSE on bddp09 (free dial), worse on
+  bddp11's holdout (−0.1 TIR / +0.26 t54 — the original closure reproduces). On announcers the offset is two-sided and near
+  mean-zero (−2.8…+2.4) and its top features are *state*, not rhythm — IOB, BG, RC and momentum marginals — i.e. it has
+  learned where Loop's forecast is systematically off given the state it is in. There it is better on both axes at the
+  person's setting on 4 of 5 beds on holdout (bddp03 +1.2 / −0.32, bddp05 +0.7 / −0.25, bddp06 +0.9 / −0.07, bddp07
+  +0.1 / −0.05; bddp08 −0.2 / −0.27), and in-sample and holdout agree (+0.40 / −0.18 vs +0.55 / −0.19), so it is not fit
+  noise. Half strength beats full strength on lift (+0.071 vs +0.012): full strength buys more lows reduction for TIR.
+- **Size, for scale:** the stack (C30) is +0.00 TIR / −0.06 t54 at the person's setting and aIRC −0.36 / −0.20 on the
+  2-month cohort; on these five announcers the half-strength forecaster is +0.55 / −0.19 on 28 held-out days.
+- **Limits.** Five beds, 28 holdout days each, CI on the mean crosses zero (P 0.88), one IMPROVES. These are the beds whose
+  operating band sits at several times the field's severe-low rate (holdout t54 at op 2.2 % on bddp03, 2.4 % on bddp05,
+  1.7 % on bddp08), the same beds every adaptive mechanism in this ledger wins on (C38, C39). And the forecaster is a
+  fitted 300-tree model per patient — the data-needed / drift audit GOALS requires has not been run.
+- **Pre-registration scorecard:** C12 WORSE where it saturates — yes, and also where it does not. C19 at half strength
+  NEUTRAL-positive near R² 0.3 — yes on announcers (bddp05 IMPROVES), no on bddp09 (R² 0.28, free dial). The R² ≳ 0.7 bar
+  applies to pre-dosing an unannounced meal; a state-conditional correction on an announcer pays at R² 0.2–0.3.
+
+**Next, if pursued:** (1) the forecaster on the nine 2-month beds and with a rolling re-fit (drift), residual target,
+half strength, announcers only; (2) replace the tree model by its dominant structure — a small state-conditional bias
+table (IOB × BG × RC sign) — which would be auditable and needs no per-patient model; (3) the model-free habit (C39) as
+one more input rather than a mechanism of its own.
+
+## M11 · Static replay predicts ΔTIR, not the hypo axes
+Measured by simulator (`docs/handoffs/2026-10-15-frontier-replay-predicts-change.md` on main, 9824d24; evidence
+`runs/2026-10-15-replay-change/`), at frontier's request. v32 pilot pool, frontier's own harness (COMMON + CLASS1 +
+per-donor deployed flags). Each window around a real change replayed on both sides' settings; predicted change vs the
+field's change, scored on edits where the replay reproduces its own field (±10 mg/dL mean, ±5 TIR).
+
+| | settings edits (47–80 faithful of 102) | strategy switches (26–36 of 41) |
+|---|---|---|
+| ΔTIR | r 0.57–0.73, coefficient 0.66–0.70, error 5.6 vs no-change 7.1 | r 0.57–0.66, coefficient 0.77–0.98 |
+| ΔMean BG | r 0.52–0.63, coefficient 0.28–0.39, error ≈ no-change | r 0.55–0.70, coefficient 0.49–0.87 |
+| Δt<70 | r 0.27–0.30, coefficient 0.08–0.10, error 2.3–2.6 vs no-change 0.9 | r 0.08–0.12, coefficient 0.07–0.16 |
+| Δt<54 | r −0.01, coefficient ≈ 0, error 0.80 vs no-change 0.31 | r 0.06–0.11, coefficient 0.04–0.21 |
+
+Where need held steady, replay predicted Δt<70 of 8 points and Δt<54 of 2.6–2.9; the field moved 0.6 and 0.4, with the
+sign right half the time. The cause is not measured; the leading hypothesis is the rescue-carb confound (the person's
+low response is inherited from the field trajectory, not generated by the counterfactual's own lows).
+
+**What it does to this ledger.** Lift and per-setting dominance (M10) score a candidate on TIR *and* a lows axis, and the
+lows axis has no demonstrated skill. Every IMPROVES / NEUTRAL / WORSE verdict here is therefore half-validated: its
+TIR side stands, its lows side does not. On the validated axis alone, the leading candidates do not gain:
+C30 stack @op ΔTIR −0.06, C01 aIRC −0.57, C20 −0.06, NID −0.17; only the calm-high licence (+0.36) and the dial itself
+raise TIR. Their case rests on lows reductions that replay cannot be shown to predict. The frontier method needs a lows
+axis it can trust — the rescue-generating low-response replay (research) or field data — before a lows-side verdict
+means anything.
+
+**Harness note.** COMMON's default replaces each manual bolus with the candidate's recommendation. For heavy manual
+bolusers this removes real insulin and makes the own-settings run unfaithful (47 vs 80 of 102 edits faithful; i064 mean
+371 vs field 133). Not changed here; a decision for Pete.
+
+## E55 · C01 and C30 with manual boluses as given
+Does M11's harness note change the PR's two experiments? Same nine 2-month beds, multipliers and operating points as E53;
+reference and both candidates re-run with `--no-candidate-manual-bolus-from-recommendation
+--no-candidate-iob-adjust-manual-boluses` (`run_sweep.py` regime `vb`, beds `<bed>_vb`); pinned11. bddp10/03/06/07
+ran on gamepc's Linux build of the same tree (traces match the Mac to 1e-12). Compared with the same scorer on the
+existing default-harness traces restricted to the same multipliers (`cohort_band_vbA.csv` vs `cohort_band_vb.csv`).
+
+| | default harness (A) | boluses as given (B) |
+|---|---|---|
+| C01 aIRC, cohort lift [90 % CI] | +0.027 [+0.001, +0.064], 8 beds | +0.035 [+0.004, +0.078], 9 beds |
+| C01 IMPROVES / WORSE | 1 / 0 | 4 / 0 |
+| C01 mean @op ΔTIR / Δt54 / Δt70 | −0.36 / −0.20 / −0.70 | −0.14 / −0.15 / −0.67 |
+| C30 stack, cohort lift [90 % CI] | +0.018 [+0.002, +0.034] | +0.027 [+0.004, +0.052] |
+| C30 IMPROVES / WORSE | 5 / 0 | 3 / 0 |
+| C30 mean @op ΔTIR / Δt54 / Δt70 | +0.00 / −0.06 / −0.36 | +0.04 / −0.05 / −0.40 |
+
+The harness choice does not change either verdict; per-bed labels move only where a bed sat near the margin. The
+references differ between A and B, so lift magnitudes compare only within a column. Both candidates' lift still comes
+from the lows axis, which M11 shows replay cannot predict, and ice's generator (ice LESSONS 95–96) puts replay's
+dosing-change sizes at 2–3× the field's — read the magnitudes as upper bounds.
+
+## E56 · C01, C20 and C30 in research's synthetic oracle worlds
+Run by research (gamepc `~/lte/world/v5b/cand_metrics.csv`, `cand_score.py`; notes
+`runs/2026-10-15-defense-change/NOTES.md`). Nine synthetic people (v5b: UVA/Padova plant with counter-regulation, each
+with an anticipatory rescue policy deconvolved from the cohort's measured rescue traits), needs ×0.70/0.85/1.00/1.15.
+TRUTH = the candidate's closed loop on the plant with rescues generated by the person's policy. STATIC = today's replay of
+the stock run. DYNAMIC = replay with population glucose effectiveness (SG 0.003) and a population anticipatory low
+defense (no per-person truth). Δ = candidate − stock, mean over people.
+
+| at ×1.00, truth / static / dynamic | Δt<70 | Δt<54 | ΔTIR |
+|---|---|---|---|
+| C01 aIRC | −0.22 / −0.85 / −0.48 | −0.02 / −0.08 / −0.02 | −0.41 / −0.03 / −0.31 |
+| C20 post-low cut | −0.18 / −0.59 / −0.40 | −0.02 / −0.07 / −0.01 | −0.16 / +0.19 / +0.10 |
+| C30 stack | −0.32 / −0.75 / −0.56 | −0.03 / −0.09 / −0.00 | −0.01 / +0.12 / +0.07 |
+
+TIR at matched t<70 (stock interpolated along the dial; 3–4 points, noisy): truth C01 +0.06, C20 +0.16, C30 +0.20;
+static +0.62 / +0.46 / +0.34 (order reversed); dynamic +0.22 / +0.43 / +0.62 (order right, 2–3× too large).
+At ×1.15 the true Δt<70 grows (−0.44 to −0.64) and static still gives about 3× (−1.28 to −1.55); at ×0.70 nothing moves
+lows, and C01 costs about 0.9 TIR at ×0.70–0.85. Mean BG rises 1–2.4 mg/dL for every candidate in truth.
+
+**Reading.** Most of the t<54 benefit static replay credits these candidates is inflation: the person's own anticipatory
+rescues already catch what the candidate prevents, and replay inherits the field's rescues without generating its own.
+The real lows effect is a small t<70 reduction. C30 ranks first in truth, C01 last. Limits: synthetic people smoother
+than the donors (σ5 p50 4.2–4.9), so C30's calm-high licence barely acts and C30 ≈ C20 + band here; baseline t<54
+is low (0.13); a simulated plant and behaviour policy, not people.
+
+
+## E57 · The additive simulator, 896 people: reduced carb entry and the temp-basal → automatic-bolus switch
+Paired arms on the additive simulator (frozen trees: `frozen` = engine 14b2d58 + sim code sha 7ff58ba; `frozen2` = sim
+bcb5be0 with `announce_mult`, identical at 1.0 to 1e-12; `frozen3` = frozen2 + a frontier `force_autobolus` switch).
+896 people (seeds 1000–1895) × 14 days; every arm runs the same people, meals, sensors and events. Outcomes after
+burn-in on CGM (true glucose agrees); 95% bootstrap over people; lift = ΔTIR above the insulin-needs dial (×0.95/×1.05,
+same people, same entry level) at the arm's Δt<54. "Skips entry" = enters ≤ 50% of meals at baseline (224);
+"enters" = the rest (672). Guard = C29 band + C20 post-low cut (C30 without the licence). Runs: gamepc
+`~/frontier_sim/runs/`, scripts `analyze.py`, `analyze_level.py`, `transition.py`.
+
+**Full entry.** Nothing beats the dial for everyone: C30 −0.01 [−0.67, +0.66], C01 −0.33, licence alone −0.44, IRC
+−1.85. For people who skip entry C01 costs TIR (−1.37) and adds time > 250 (+0.45) with no significant lows gain, and
+the licence does nothing — both rejected for the reduced-announcement goal. C30's post-low weight 0.2 / 0.3 / 0.5 sits
+on a plateau. A falling-side boost (drop 1.5 or 2.0, rise 1.0) behaves as plain IRC.
+
+**Reduced entry** (the 672 who normally enter, at half / no entries, vs the same people at that level):
+
+| | half: ΔTIR / Δt<54 / lift | none: ΔTIR / Δt<54 / lift |
+|---|---|---|
+| the entry cut itself (vs full entry) | −4.9 / −0.06 / — | −9.4 / −0.15 / — |
+| guard | −0.61 / −0.04 / +0.64 | −0.53 / −0.03 / +0.61 |
+| C31(−20) | +0.87 / 0.00 / +0.83 | +1.25 / +0.02 / +0.74 |
+| C31(−20) + guard | +0.33 / −0.04 / +1.50 | +0.54 / 0.00 / +0.64 |
+| **C31(−30) + guard** | **+0.70 [+0.44, +0.96] / −0.03 / +1.74** | **+1.00 [+0.74, +1.24] / 0.00 / +1.07** |
+| IRC + guard | +3.25 / +0.11 / −0.15 | +4.45 / +0.18 / −1.32 |
+
+C31(−30) + guard at full entry: all +0.28 [+0.03, +0.52] / −0.02, skips +0.78 / −0.05, enters +0.12 / −0.00. It holds
+under both strategies. IRC + guard dominates only for people who skip entry on temp basal (lift +4.3 to +5.4).
+
+**Temp basal → automatic bolus** (the 298 temp-basal people, settings unchanged). The switch: TIR +3.5 [+3.0, +4.0],
+t<54 +0.36 [+0.29, +0.45], t<70 +0.94, mean −9 mg/dL, TDD +2.5 U; t<54 rises > 0.5 for 23%. The field's 20 temp → bolus
+switches (`runs/2026-10-15-replay-change/per_switches_B.csv`) average TIR +4.1 with t<54 +0.03, three of them +0.5 to
++0.7. Trouble is predicted by the person's own temp-basal record: t<70 (Spearman +0.40 with Δt<54), CV (+0.35), σ5
+(+0.32); not by TIR, carb-entry habit, basal share or TDD. Top t<70 quartile (≥ 3%): t<54 +0.84 and TIR only +2.0;
+bottom (< 0.6%): +0.10 and +4.9. Flag t<70 ≥ 4% or CV ≥ 38%: 42% of people, 70% of those with Δt<54 > 0.5; flagged
++0.66, unflagged +0.15. Mitigations vs the plain switch: **guard t<54 −0.19 at TIR −0.11 (lift +1.78), worst quartile
+−0.57**; AF 0.3 −0.13 at −0.57; AF 0.2 −0.24 at −2.10; needs ×0.95 −0.18 at −1.30; guard + AF 0.3 / guard + ×0.95 add
+little lows benefit for 0.5–1.4 TIR. C31(−20) + guard on the switch: TIR +4.13, t<54 +0.21 vs temp basal.
+
+**Limits.** One simulator, and candidate effects here are smaller than the differences between simulators: the
+additive team's older defaults gave C30 and C01 lift +1.3 to +1.4 at 112 people, and replay ranks them differently.
+Read E57 as which mechanisms move which group in which direction, not as field-size effects. C31 is not in the
+LoopAlgorithm experiments PR; the reduced-entry and transition results have not been checked on replay.
+
+## C40 · Runway reserve (reduced-entry TIR, framed as headroom, not target)
+Extra correction sized by how much of it Loop could still take back. Each cycle, find the largest extra correction E
+(U) such that a plausible fall stays above the suspend threshold θ for 180 min if scheduled basal is withheld from now:
+
+E_max = min over τ ≤ 180 (where d(τ) > 0.05) of [P(τ) − z·σ5·(τ/5)^H + ISF·W(τ) − θ] / (ISF·d(τ))
+
+P(τ) = forecast − excess·d(τ), excess = max(0, eventual − target midpoint) (Loop's own correction, assumed taken);
+d(τ) = fraction of a dose acted by τ; W(τ) = basal/60·∫d (withheld basal that has acted by τ); σ5 and H as the σ band.
+The candidate spends `fraction`·ISF·E_max (capped 60 mg/dL) as an internal lowering of the correction aim; the user's
+target, overrides and suspend threshold are unchanged. Because the band scales with σ5 the reserve is mainly a
+volatility signal, with a mild rise in level: mean reserve at full spend 47 / −6 / −124 mg/dL (calm / mid / volatile)
+at BG 100–130, and 79 / 36 / −38 at 220–260. Flags `--candidate-runway-fraction/-z/-horizon-min/-max-mgdl/-bg-min/
+-cob-gate`; the σ5 cold-start prior is `--candidate-sigma-prior/-steps` (off by default, see E58).
+
+## E58 · C40 on the additive simulator: the generalisation of C31
+Same setup as E57 (896 people × 14 days, paired, lift over the needs dial at that entry level); every arm includes the
+guard. Arms: runway fraction f, COB gate on, "g150" = only at BG ≥ 150.
+
+**C31's fixed 180 step, opened up** (half entry, people who normally enter: ΔTIR / lift). Lower the trigger and the gain
+grows: 200/−30 +0.27, 180/−30 +0.70 / +1.74, 165/−30 +1.09, 150/−30 +1.22 / +2.06; bigger steps help less than lower
+triggers (180/−45 +0.92, 200/−45 +0.39). The value is in 150–180, not above 200.
+
+**Runway** (people who normally enter, ΔTIR / Δt<54 / Δt<70; lift):
+
+| | half entry | no entry | full entry, all |
+|---|---|---|---|
+| C31(−30) + guard (E57) | +0.70 / −0.03 / — ; +1.74 | +1.00 / 0.00 ; +1.07 | +0.28 / −0.02 ; +0.64 |
+| f 0.45, g150 | +1.13 / −0.03 ; +2.00 | | +0.96 |
+| **f 0.7, g150** | **+1.73 / −0.02 / −0.01 ; +2.20** | **+2.13 / 0.00 / +0.02** | **+1.28 / −0.02 ; +1.66** |
+| f 0.45, no level gate | +1.98 / −0.02 / +0.01 ; +2.44 | +2.53 / 0.00 / +0.07 | +1.22 / −0.02 ; +1.68 |
+| f 0.7 / 1.0, no level gate | +2.27 / +0.01 / +0.13 ; +2.48 / −0.00 / +0.16 | | |
+
+Ungated, lift plateaus near f 0.45 and t<70 starts to rise beyond it; f 0.7 from 150 is the recommended setting. People
+who skip entry gain more (half entry: +2.50, lift +3.24).
+
+**CGM gaps.** The simulator already applies measured gap rates and sensor warm-ups. At 4× the gap rate, f 0.7 g150
+gains the same (+1.98, t<54 −0.00, t<70 −0.02 vs the same gaps without it), so a restarted σ5 (which reads calm) does
+not turn into lows. The σ5 prior (7 mg/dL, fading over 12 increments) trades TIR for a little lows protection without
+changing lift: normal gaps −0.27 TIR / −0.01 t<54 / −0.05 t<70 (lift +2.46 vs +2.51), 4× gaps −0.66 / −0.03 / −0.10.
+Not recommended.
+
+**Temp basal → automatic bolus.** Runway gives back part of the guard's protection: f 0.45 TIR +4.44, t<54 +0.25 vs temp
+basal (guard alone +3.39 / +0.17); flagged people +0.45 vs +0.29. For switchers use the guard alone, or hold runway
+until the flag clears.
+
+**Forecast bias.** Realized minus forecast BG (half entry, 32 people) is positive at every level: +6 to +14 at 60 min,
++15 to +35 at 120 min, only slightly larger when calm and high than in range. The under-forecast is general (unannounced
+meals), not specific to calm highs.
+
+**Sensitivity as an earlier lows trigger: not supported.** C09 (predictive sensitivity damper) on top of the guard, full
+entry, vs guard: gain 2 t<54 −0.03, t<70 −0.08, TIR 0.00 (lift +0.53 [−0.06, +1.22]); on the switch t<54 +0.02 to +0.03
+and TIR −0.25 to −0.29 vs guard alone. Sensitivity signals from the forecast residual (30/60/120 min, 64 people per
+arm) track true sensitivity at ρ 0.24–0.35 and peak at the low itself; a sensitivity episode 2–12 h before a first low
+is as common as at random quiet times (32% vs 29%). The guard stays the switch mitigation.
+
+**Deployment note.** The guard's band k = min(1, 6.7/σ5 median) and C31's σ-max are per-person constants; on device they
+need a running median with a population default (σ5 median 5.5, 10–90% 4.3–7.2). σ5 is an EWMA with a ~40-min time
+constant; data older than 2 h carries < 5% weight, so the reserve is usable within about an hour of a sensor start.
+
+**Limits.** As E57: one simulator; not yet checked on replay; not in the LoopAlgorithm experiments PR.
