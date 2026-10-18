@@ -125,3 +125,12 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
 - The menstrual cycle is now on by default (B5) for menstruating people, 63% of whom respond. Insulin sensitivity is
   lowest from the late luteal days to menses onset, the shape BDDP's G7 cycle logs show (LESSONS 136). Cohort
   statistics are unchanged within noise. `--disable menstrual` turns it off.
+
+## Update 2026-10-18: glucocorticoid courses (B14), and a steroid scenario
+
+- Oral glucocorticoid courses are on at the population rate (0.09 per person-year), so a 14-day cohort sees almost
+  none; default statistics are unchanged. `--disable steroid` turns them off.
+- `--enable steroid_course` gives every person one 4–7 day course from day 3: insulin sensitivity falls in the
+  afternoon and evening after a morning dose (day 1 average ~+29% insulin need). Under stock Loop the first day runs
+  +21 mg/dL (+48 from 14 to 22 h) with 12% more insulin (LESSONS 140). It is a test bed for how fast a candidate
+  adapts to a sudden, days-long rise in insulin need.
