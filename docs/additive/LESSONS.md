@@ -3390,3 +3390,22 @@ statistic here, but it is the controller donors ran.
        lesson 156's two candidates this leaves real insulin action at correction time; the next measurement is the
        donors' correction drop split by the CGM trend at the bolus (rising, flat, falling), against the sim's, to
        separate faster action from boluses given at a peak.
+
+157. **Insulin action matches; real rises end sooner.** Corrections 0.5–3 U split by the 15-min CGM trend at the bolus,
+     ΔCGM per U at 30 / 60 / 90 / 120 / 180 min (`corr_drop.py`):
+
+     | trend at bolus | donors | sim (c172_rc) |
+     |---|---|---|
+     | flat (−5..+5; 19% / 24%) | −9.8 / −26.1 / −35.7 / −44.2 / −53.3 | −11.6 / −20.7 / −40.9 / −44.9 / −62.8 |
+     | rising (> +5; 68% / 70%) | 0.0 / −17.7 / −30.7 / −36.1 / −41.8 | +3.1 / 0.0 / −4.8 / −27.0 / −41.7 |
+     | falling (< −5; 13%) | −14.8 / −30.9 / −43.7 / −53.1 / −58.1 | (too few) |
+
+     - From a flat start the sim's insulin lowers glucose as fast as real insulin, so lesson 154's gap is not insulin
+       timing (and lessons 155–156's absorption and action-delay arms were aimed at the wrong term).
+     - The gap is entirely in corrections given into a rise: real rises turn within ~30 min of the bolus, the sim's keep
+       climbing ~90 min. Real glucose rises are briefer because what drives them stops sooner: the same signature as
+       lesson 119 (real sharp rises peak within 30 min) and the ACF zero-crossing (42.5 vs 70 min).
+     - Most rises that draw a lone correction are unannounced intake. In the sim, unentered snacks and grazes go through
+       the energy-limited stomach and keep arriving for over an hour; real unlogged intake includes drinks and sweets
+       that absorb within ~30 min. Next: the `graze_fast` and fast-snack arms on the current base, judged on the
+       rising-trend correction profile and the ACF zero-crossing.
