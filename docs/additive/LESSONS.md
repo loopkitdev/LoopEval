@@ -3110,3 +3110,17 @@ statistic here, but it is the controller donors ran.
        ratio sense.
      - Heavy enterers are the hands-on, tight-control donors (many small entries and boluses). Next: what those
        donors do that the sim's people do not, per meal (pre-bolus lead, bolus per gram, top-ups), on the new base.
+     - **The meal response splits by tercile in the sim, not in the donors.** Entry-anchored ΔCGM per 10 g at 60 /
+       120 / 180 / 240 / 360 min (`entry_traj_t.py`; donors G7 all strategies, sim c162 G7):
+
+       | tercile | donors | sim (new base) |
+       |---|---|---|
+       | low | +5.1 / +4.0 / +4.4 / +2.0 / −1.5 | +2.8 / +3.0 / +1.8 / +2.1 / +0.3 |
+       | mid | +4.9 / +5.1 / +5.6 / +4.1 / +0.3 | +2.4 / +1.0 / +0.5 / +0.3 / −0.4 |
+       | high | +5.3 / +4.1 / +5.9 / +4.4 / +0.4 | +5.2 / +8.6 / +7.3 / +3.7 / +0.7 |
+
+       Real meals respond alike whoever enters them. The sim's heavy enterers rise twice the donors' at 2 h (under-
+       covered in effect, the +26 level) and the mid tercile barely holds (over-covered). The cohort median hid two
+       opposite per-person errors, so the per-person carb sensitivity (CSF blended halfway toward settings ISF ÷ CR,
+       ISF_W 0.5) or the per-person intake budget is the suspect, not a population constant. Next: per person,
+       body CSF and grams eaten per entry against the tercile.
