@@ -2642,3 +2642,12 @@ statistic here, but it is the controller donors ran.
          days, not on the 2–4 h window.
        Next: the sim's unentered eating within 6 h of an isolated entry against what donors' labeled pulses show in
        the same window.
+     - **Not follow-on eating.** Unannounced labeled pulses 0.5–6 h after an isolated entry: donors 1.10 per entry
+       (72% with ≥ 1, 9,215 entries) vs c135 1.02 (74%, 942). The donors' 2–4 h plateau belongs to the entered meal
+       itself: in effect it is under-covered between 2 and 4 h. The sim's meals are over-covered: effective CR ÷
+       setting 1.11, plus Loop's own dosing on the forecast's carb effect. The shape needs:
+       - an early rise like fast emptying (×1.4 matched the first hour);
+       - glucose still arriving 2–4 h, or less insulin acting then, without the CV cost every faster-meal arm paid
+         (CV 38–40).
+       Open; the levers tried (CSF, emptying both ways, insulin speed, fat, slow phase, fast-share spread) each move
+       one part.
