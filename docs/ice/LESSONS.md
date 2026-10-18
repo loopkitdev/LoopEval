@@ -1174,3 +1174,20 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     0.68 / 0.63 (0.32), 0.33, 1.23; no-change 0.30, 1.41). On the old base the falling-glucose eating the generator lacked
     left meal-surge food to land on top of lows; with it calibrated, the surge's food fills the early rise instead.
     New base v32of{0,1}TcB2FGUCGLBGGSKa. Ensemble scorer: runs/2026-10-13-ice-change/score_ens.py.
+124. **The per-person glucose gap is persistent and pulls people toward the population, but the meal labels' blind time
+    explains little of it; three corrections, none kept.** Base v32of{0,1}TcB2FGUCGLBGGSKa, held-out clean time: generated
+    minus field mean glucose per person correlates 0.93 between seeds (sd 14, |gap| 10.5 mg/dL), and its train-window value
+    predicts the held-out one (Pearson 0.74-0.78, slope 0.85-0.92), so it is the generator, not the person changing. It
+    tracks the total-ICE gap (0.75) and the hourly ICE spread (generated / field sd of 1-h means vs glucose gap 0.47-0.53;
+    across people generated on field slope 0.52-0.54), not the background level, which calibrate_level_band already
+    matches. One cause found: the meal target is 0 on every slot, but meals are labeled only where ICE is observed, so
+    excluded time (i056 66% of its training window, i012 49%) reads as no meal; labeled pulses on observed slots are 1.0-2.8x
+    their all-time mean. (Comparing pulses on observed slots only, as a first cut did, wrongly showed most people under-fed:
+    generated meal food per day matches the labels, Pearson 0.86, slope 0.84.) Tests, seeds 0 / 1, against the base (TIR
+    73.4 / 72.5, t<54 0.24 / 0.16, t<70 1.57 / 1.50, |gap| 10.5): (a) per-person unannounced meal-start rate matched on
+    observed slots from train-window rollouts (calibrate_meal_seen_person.py; i012 +0.68, i056 +0.47, i039 -0.47): TIR 74.0
+    / 72.5, t<54 0.25 / 0.15, t<70 1.73 / 1.76, |gap| 8.9 (i012 -17 -> +6) - the cuts for mostly-observed people add lows;
+    (b) the meal trait refit by maximum likelihood on observed training steps, delta added (trait_meal_seen.py; median
+    +0.14, up to +1.4 for the least observed): TIR 72.1 / 71.4, t<54 0.18 / 0.20, mean 152 / 154, |gap| 9.8; (c) (b) with the
+    median removed: TIR 73.2 / 71.9, t<54 0.26 / 0.23, |gap| 9.9. The proper fix (meal target unknown where ICE is not
+    observed, retrain) is owed on the next retrain; on these numbers it will not close the gap.
