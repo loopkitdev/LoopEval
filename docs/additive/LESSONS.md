@@ -2664,3 +2664,12 @@ statistic here, but it is the controller donors ran.
        The plateau is after the entry, with matched delivered insulin (LESSONS 122). Real meals raise glucose more
        per entered gram in the 1–4 h window than the sim's, by ~5–8 mg/dL per 10 g at 2–3 h. This is the open
        physiological gap; the lever is not yet identified.
+
+131. **The sim's EGP suppression after meals is deeper and earlier than the tracer evidence.** True EGP ÷ pre-meal
+     after isolated entries (≥ 20 g, no entry −3 h / +6 h; c135, 1,150 meals), 0 / 30 / 60 / 90 / 120 / 150 / 180 /
+     240 / 360 min: 1.01 / 0.91 / 0.59 / 0.41 / 0.42 / 0.52 / 0.66 / 0.83 / 0.95.
+     The nadir is −59% at 90–120 min. Romeres 2025's T1D meal tracer study gives −44% at ~160 min (the evidence the
+     EGP arm was built on, LESSONS 69 / 75, calibrated before the clamp insulin timing and the meal changes). Too
+     deep and too early removes glucose in exactly the 1.5–3 h window where simulated meals fall below baseline and
+     donors' hold (lesson 130). Fit targets: the tracer nadir (depth and time) first, then the entry-anchored CGM
+     trajectory. Arms (c143): p2e 0.006 (was 0.010; ReplayBG prior 0.008) and egp_share 0.4 (was U(0.5, 0.7)).
