@@ -4181,3 +4181,10 @@ statistic here, but it is the controller donors ran.
        mean 160 → 157 (151), CV 34.5, hurst_long 0.327 → 0.304, daytime +13–18 (was +15–21), lows 0.54/day: 29 matched (28).
      - Open: the remaining daytime excess with donor-level insulin; a per-person pre-emptive expectation (not the mean
        share) when the defense team's own rates are measured on donors.
+
+203. **The daytime excess is not the circadian sensitivity swing.** B1 at half / zero of Visentin's swing on the
+     budget_tight base (c227): hourly CGM 09–23 h 158–171 / 156–175 (donors 142–168, the base 156–173); 24-h amplitude
+     0.159 / 0.164 (base ~0.17; donors 0.131); hurst_long 0.303 / 0.284; lows 0.50 / 0.42 per day; 27 / 30 matched.
+     The amplitude and the daytime level come from the day's other structure (deeper pre-dawn trough at 04–06 h,
+     119–125 vs 131–134, and a steeper morning climb, 121 → 166 by 11 h vs 130 → 148). B1 keeps its evidenced full
+     swing. The morning climb and the intake per unit of daytime insulin are next.
