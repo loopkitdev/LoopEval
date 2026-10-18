@@ -69,7 +69,11 @@ Reading: onset is probably **on the order of 3–6 h**, faster than 12 h, and th
 - Verdonk et al. 1981, *Diabetes* 30:535, doi:10.2337/diab.30.6.535: at fixed ~18 µU/mL insulin, utilisation rose linearly (+0.4 mg/kg/min per +35 mg/dL) while clearance fell. [checked]
 - **Del Prato et al. 1997**, *Diabetologia* 40:687, doi:10.1007/s001250050735 ("glucose resistance" in IDDM): with insulin clamped at basal, raising glucose by +11.2 mM raised disposal in controls by +13.2 µmol/kg/min but in **T1D by only +4.4**. That is about one-third of the normal mass-action effect. NEFA was also not suppressed by hyperglycaemia in T1D. [checked]
   - **Direct relevance:** any glucose-effectiveness (SG) term calibrated to healthy minimal-model values over-states how fast T1D highs self-correct.
-- The sim already uses κ = 0.15 (weak glucose dependence above Gb), which is consistent with this literature.
+- **Correction (2026-10-18, LESSONS 165):** Del Prato's clamp held insulin at *basal*, so it measures the glucose
+  dependence of disposal without added insulin (the sim's SG term), not κ. κ scales the *insulin-mediated* uptake
+  with glucose; Best 1981's fixed-insulin clamps size it: doubling glucose cut clearance 38 / 16 / 11% at low / mid /
+  high insulin, i.e. disposal ×1.24 / ×1.68 / ×1.78, κ ≈ 0.24 / 0.68 / 0.78. The sim's κ 0.15 was below even the
+  low-insulin value; meal- and correction-level insulin sits at mid to high, κ ≈ 0.7.
 
 ### Other mechanisms that slow correction of highs
 

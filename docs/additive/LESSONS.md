@@ -3533,3 +3533,29 @@ statistic here, but it is the controller donors ran.
        (−0.03). The CV excess (~+4) is universal across people, not a hands-on or tuning effect: a population-wide
        component adds variance (or a missing one removes it). The posture pair raised CV 36.8 → 39.2 while fixing
        the lows; the next check is which part of the posture pair's added variance falls outside the lows.
+
+165. **The high tail was κ, read from the wrong study.** The new base's CV excess is all in the high tail: per-person
+     median percentiles p75 / p90 / p95 / p98, donors 181 / 226 / 255 / 289, c182_base 194 / 241 / 268 / 313 (low end
+     matches: p2 72 vs 71, p5 83 vs 80). κ (A5: insulin-mediated uptake ∝ Gb + κ(G − Gb) above Gb) was set at 0.15
+     on Del Prato 1997, but that clamp held insulin at basal and measures the glucose dependence of disposal without
+     added insulin (the SG term). Best 1981 sizes κ itself: at fixed insulin, doubling glucose raised disposal ×1.24 /
+     ×1.68 / ×1.78 at low / mid / high insulin (κ ≈ 0.24 / 0.68 / 0.78). `--set kappa_mult` against c182_base (rc_own):
+
+     | | κ ×1 (0.15) | ×2 | ×3 | ×4.5 (≈ 0.68, Best mid) | donors |
+     |---|---|---|---|---|---|
+     | p75 / p90 / p98 | 194 / 241 / 313 | 187 / 232 / 301 | 185 / 233 / 293 | **179 / 224 / 284** | 181 / 226 / 289 |
+     | mean (KS p) | 158.5 (0.04) | 154.1 (0.06) | 153.7 (0.12) | 149.4 (0.09) | 151.4 |
+     | TIR (KS p) | 66.7 (0.003) | 69.5 (0.09) | 70.4 (0.09) | 73.2 (0.74) | 71.7 |
+     | CV | 39.2 | 37.9 | 38.0 | 36.5 | 34.8 |
+     | t70 / lows per day | 1.59 / 1.00 | 1.68 / 1.00 | 1.67 / 1.04 | 1.46 / 0.92 | 1.67 / 1.08 |
+     | t54 (KS p) | 0.12 (0.11) | 0.12 (0.001) | 0.09 (0.001) | 0.12 (0.007) | 0.215 |
+     | hurst_long | 0.360 | 0.336 | 0.319 | 0.297 | 0.247 |
+     | night insulin CV | 46.5 | 44.6 | 43.1 | 41.6 | 36.0 |
+     | matched | 32 | 33 | 33 | 33 | |
+
+     - At Best's mid-insulin κ the whole glucose distribution sits on the donors' (every percentile within 6), the
+       level and TIR pass, the lows stay, and long-range Hurst and night insulin CV move most of the way. Highs now
+       come down as fast as real ones because insulin acts harder the higher glucose is, which the clamp evidence
+       measured and the sim had at a fifth of its size.
+     - Still failing at ×4.5: CV 36.5 (KS 0.012), t54 0.12 (donors 0.215: the lows are as frequent but shallower),
+       acf_zero 65, the quiet daytime wander (25 vs 40). evidence/15 corrected. Default decision: Pete.
