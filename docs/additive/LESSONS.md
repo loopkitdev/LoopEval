@@ -3309,3 +3309,15 @@ statistic here, but it is the controller donors ran.
        the controller's configuration. For validation this means the twin gap of the 29 integral-RC donors
        partly measures a controller difference, not a patient one: compare like with like by reading those people's
        gaps with that in mind (or `rc_own` for a validation-only arm), never by tuning the patient to close them.
+     - **Validation convention (Pete, 2026-10-18):** "it's perfectly fine to run simulations using a patient's real
+       dosing model, to see how closely our patient simulator is working ... keep the patient's side as accurate as
+       possible, regardless of dosing method." Validation cohorts against donors run with `--enable rc_own` from here
+       on (the controller as the donor deployed it); the code default stays stock, for candidate testing.
+
+153. **Hyperglycaemia-induced resistance is a small part of the long-range persistence.** `--disable glucotox`
+     (B11 off; c173 on 4141fbf) against c171: hurst_long 0.379 → 0.353 (donors 0.247); mean 159 → 158; t70 0.73 →
+     1.17, lows 0.58 → 0.75/day; twin Δ mean automatic +12.9 → +6.4, temp +2.4 → −2.7; 3-h blocks −1 to −11
+     (largest 00–03 h); 26 vs 24 matched. B11's size is evidenced (Vuorinen-Markkola 1992, Fanelli 1995) and its
+     24-h fade lies within those studies' bounds, so it stays; the persistence the sim adds over the donors (Hurst
+     +0.13) is mostly elsewhere. The other slow terms on the new base are the day-level SI (B3, CV 8%), the late
+     overnight carry-over of daytime excess, and the illness and menstrual states.
