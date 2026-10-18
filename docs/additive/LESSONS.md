@@ -4153,3 +4153,13 @@ statistic here, but it is the controller donors ran.
        slow meals that the bolus outruns, never faster ones that rise higher. The remainder needs variation in both
        directions within 2 h: meals larger than entered (the donors' upward edits, LESSONS 185) alongside smaller ones,
        and insulin that acts faster or slower dose to dose. Base level +9 (160 vs 151) is also open on this base.
+
+201. **On the evidence base the night profile matches; the waking day runs 10–20 mg/dL high.** Hourly median-over-people CGM
+     (`hour1*.py`, local clock), c223_base minus donors: 00 h +8, 01–03 h +2 / 0 / −1, 04–07 h −8 to −3, 08 h +6, 09–12 h
+     +17 to +21, 13–15 h +7 to +10, 16–20 h +10 to +17, 21–23 h +6 to +10 (mean 160 vs 151). The night that every earlier
+     base had 10–13 low (LESSONS 184) now sits on the donors' through 03 h. The excess is daytime, peaking late morning.
+     - A mechanism to measure, not yet a finding: under egp_sat the hepatic signal saturates, so the large insulin
+       levels of meal boluses suppress EGP less per unit than the small probe dose each person's ISF is calibrated on;
+       meal insulin then works less than the settings assume, by day. Check: per person, the effect of a meal-size
+       bolus against the probe ISF under egp_sat, and whether the evidence (Rizza 1981 healthy, portal) carries to
+       peripheral insulin in T1D.
