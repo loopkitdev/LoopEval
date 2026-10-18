@@ -100,7 +100,9 @@ class BehaviorTraits:
     lead_sd: float = 23.0                # within-person SD of the bolus lead, min (0 = ± 4 uniform); donors' labeled
                                          # spread less the labeler's 28-min onset error (LESSONS 106; default 2026-10-17)
     lead_own: bool = True                # bolus at lead_med instead of the four category windows (Pete 2026-10-17)
-    meal_drink_p: float = 0.0            # share of main meals with a sugary drink; the food keeps its own fast share
+    meal_drink_p: float = 0.12           # share of main meals with a sugary drink; the food keeps its own fast share. US adults with
+                                         # diabetes: 22% drink a sugar-sweetened beverage >= 1/day (BRFSS 2013), 45% on a surveyed day
+                                         # (2003-06), ~0.10-0.15 per main meal (default since 2026-10-18, LESSONS 209)
     meal_drink_share: float = 0.4        # the drink's share of that meal's carbohydrate [J]
     graze_fast: bool = True              # grazes absorb as liquid sugar (juice, sweetened coffee; evidence/14 §2; LESSONS 117); default since 2026-10-18 (Pete, LESSONS 158)
     snack_entry_w: Optional[tuple] = None   # hour-of-day weight on p_entry_snack (donor entries / eating; LESSONS 123)
