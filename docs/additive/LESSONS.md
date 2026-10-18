@@ -3860,3 +3860,35 @@ statistic here, but it is the controller donors ran.
      fraction and zero fraction drop out, the last three from p 0.053–0.061 in the base. Not adopted. Skipping on its own
      moves the lunch start by under half the gap, so most of the late-morning excess is the second part from lesson 182:
      the breakfast that is eaten lasts longer in the sim than in the donors.
+
+184. **The day's unentered rises match the donors'; nights lack about 0.2 body-driven rises for nearly everyone, and the
+     gut and the sensor are not the cause.** Measured on c201_base with Dexcom G7 people on both sides (scripts in
+     runs/2026-10-18-additive-workouts/: hour1*, slot_decomp, gut_check, slot_clean, unent_rise, night_rise_cause,
+     vd_depth, night_pre_ins).
+     - **Hourly profile** (median over people of each hour's mean CGM; donor series from `quiet._donor_series` are
+       already local, so they take no further offset): the sim runs 10–13 mg/dL below the donors from 00 to 06 h (117
+       vs 130 at 06 h) and 8–13 above them from 09 to 12 h. From 06 to 10 h it climbs 41 against the donors' 15,
+       entered morning carbs being equal (06–09 h 11.3 vs 10.2 g/day).
+     - **The gut matches tracer data**: the default parcels for a 37 g breakfast with its fat and protein appear 25 /
+       50 / 75% at 53 / 91 / 146 min, 87% by 3.5 h; 121 g carbohydrate 58 / 101 / 158 (Elleri 2013 high-GL 56 / 100 /
+       153); ~75 g glucose 91% by 3.5 h (Ferrannini 1985: 73%, so if anything the model is fast). The 3–4 h appearance
+       after an isolated breakfast (~1.9 mg/kg/min) is mostly other eating: in 46% of isolated breakfasts and 59% of
+       lunches, ≥ 15 g of unentered snacks, grazes and pre-emptive carbs follow within 4 h.
+     - **Unentered rises** (CGM +30 within 60 min from ≥ 80 mg/dL, one per 3 h, no entry from −60 to +30 min; same code
+       both sides): per day donors 3.46 vs sim 3.08, unentered share 0.78 vs 0.77, median peak 70 vs 74 mg/dL; by
+       3-h block 06–24 h within 0.07/day. **00–06 h: donors 0.66 per night, sim 0.48**. Night rises look alike (start
+       113 vs 110, after a low 10% vs 12%, 60-min gain 34 vs 35, peak 49 vs 50, time to peak 80 vs 85 min) and follow
+       a Loop insulin cut (< 50% of the person's own 90-min night delivery) in 31% vs 25% of cases. Per person the
+       night rate is shifted across the whole distribution (p10 / p50 / p90: 0.33 / 0.68 / 0.98 vs 0.17 / 0.42 /
+       0.86), not concentrated in a minority (the 9.7% of 714 T1D/T2D adults eating > 25% of calories after supper, Morse 2006 Diabetes Care 29:1800,
+       would have shown as a tail).
+     - **In the sim, 83% of night unentered rises have no carb event behind them and the body moves +6 mg/dL in the
+       hour**: they are sensor recoveries. Body-driven night rises are ~0.08 per night.
+     - **Sensor dips are right at night**: `vdips` per hour the detector can see, drop ≥ 20: 0.97 vs donors 1.11 per 6 h,
+       depths identical (median 24, p90 36–37); the sim's true glucose has none. Per all hours (as `vdips._summ`
+       reports) the sim read 2× the donors, an artefact of the donors' nights being blocked more by detected meals.
+     - So the night gap is in the body: real nights carry about 0.2 more upward excursions of ~50 mg/dL each, for nearly
+       everyone, after Loop cuts and without them. This is the same balance as LESSONS 173 (quiet nights fall further on
+       less insulin; sleep_util) seen as events rather than drift. Candidates with a mechanism for everyone: nocturnal
+       growth-hormone surges at sleep onset and the cortisol rise toward waking, as pulses rather than sleep_util's
+       smooth level; sleep arousals. Each needs its own evidence before a switch.
