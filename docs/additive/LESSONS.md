@@ -3476,3 +3476,14 @@ statistic here, but it is the controller donors ran.
        The daytime wander needs a process that varies on a ~30–60 min scale while awake: candidates are the size of
        unlogged sips and bites over the day (the sim's grazing is 2/day of ~10 g), posture and meal-adjacent activity
        on that scale, or waking stress hormones.
+
+162. **Smaller, more frequent sips do not make the wander either.** `--set graze_split=3` (54c29db; same daily grazing
+     grams as 3× as many grazes of ⅓ the size): c180 against c177_base: quiet daytime zero-crossing 25 → 20 (donors
+     40), mean 157.8 → 161.6, lows 0.67 → 0.58/day, hurst_long 0.369; 24 vs 27 matched. Not adopted.
+     - With lessons 159 and 161, three waking-life candidates built on the sim's existing pieces (sugar-heavier snacks,
+       fragmented movement, finer grazing) leave the daytime quiet wander at 20–25 min. Each is a fast, brief input;
+       the donors' wander is slower (~40 min half-cycles) and present only while awake. What varies on that scale in
+       waking T1D life and is not yet in the sim needs evidence before another arm: candidates are waking
+       counter-regulatory tone (cortisol / catecholamine swings with activity and posture, cf. the dawn and stress
+       terms), insulin absorption changes with skin temperature and posture over the day (A2 has site and exercise
+       terms only), and meal-time-adjacent behavior on the 30–60 min scale.
