@@ -17,6 +17,9 @@ B3 day level     intrinsic day-to-day SI, CV 8%, independent days (repeat clamps
 B4 slow drift    OU on log SI — OFF, same reason (weight, season, growth are to be named instead)
 B5 menstrual     luteal SI dip on a 24–35 d cycle, responders only (OFF default) 02 menstrual; 05 lesson 22
 B6 illness       Poisson episodes, SI dip with ramps, EGP rise                  02 illness; 00 D21a
+B14 steroids     oral glucocorticoid courses: morning dose, SI loss from 2 h, full 6–12 h, gone by 22 h; taper over the course
+                 (Bevier 2008: insulin +69%, 30–100%, from 6 h after the first dose, baseline by day 4; Waljee 2017: 21.1%
+                 of US adults with a short course in 3 years, half a 6-day dose pack) 00 D13
 """
 from __future__ import annotations
 
@@ -43,7 +46,8 @@ class ModTraits:
     # factors, not inputs). circ_noise likewise.
     enabled: dict = field(default_factory=lambda: dict(circadian=True, dawn=True, day=True, intraday=False,
                                                        drift=False, menstrual=True, illness=True, sleep=True,
-                                                       gh=True, alcohol=True, stress=True, caffeine=False))
+                                                       gh=True, alcohol=True, stress=True, caffeine=False,
+                                                       steroid=True))
     circ_class: str = "llh"
     circ_low: float = 0.4               # low segment SI as a fraction of high (Visentin: 0.40 ± 0.23)
     circ_raw: float = 0.4               # the person's Visentin draw before the swing scale
@@ -77,6 +81,8 @@ class ModTraits:
     stress_reactive: bool = False       # ~1/3 of people raise glucose under stress (Riazi 2004)
     p_stress: float = 0.4               # days with a stressor (NSDE ~40%)
     stress_si: float = 0.10             # SI loss 1–5 h after onset (Moberg 1994; low end for everyday stress)
+    steroid_rate: float = 0.09          # oral glucocorticoid courses per year: Waljee 2017's 21.1% of adults with >= 1 in 3 years
+                                        # is 7.4%/yr for a first course; repeats lift it a little [J]
     caffeine_si: float = 0.15           # SI loss at the plasma peak of a ~200 mg dose (Keijzers 2002, IV clamp; evidence/11 §4.2)
     seed: int = 0
 
@@ -146,6 +152,7 @@ class Modulators:
         # B3 intraday OU and B4 drift, advanced minute by minute
         self.rng = r
         self.caf = self._caffeine(traits) if traits.enabled.get("caffeine") else None
+        self.gc = self._glucocorticoid(traits)
         self.ou = r.normal(0, traits.intra_sd)
         self.day_ou = r.normal(0, traits.day_sd)
         self.drift = r.normal(0, traits.drift_sd)
@@ -196,6 +203,33 @@ class Modulators:
         eff = 1.0 - np.minimum(t.caffeine_si * conc / ref, 0.30)
         mean_day = eff.reshape(self.days, int(DAY)).mean(axis=0)
         return eff / np.tile(mean_day, self.days)
+
+    def _glucocorticoid(self, t: ModTraits, force_day: int | None = None) -> list:
+        """B14 oral glucocorticoid courses, on their own stream (seed + 303) so every other factor stays paired.
+        Each course: n days U(4, 7) (a 6-day dose pack is half of short courses, Waljee 2017; Bevier 2008's insulin was
+        back to baseline by day 4), a morning dose N(08:00, 45 min), peak SI loss U(0.35, 0.60) on day 1 (Bevier: basal
+        and boluses +30–100%, mean +69%, i.e. SI × 0.5–0.77 through the day) [J], tapering linearly to 1/n."""
+        rg = np.random.default_rng(t.seed + 303)
+        k = rg.poisson(getattr(t, "steroid_rate", 0.09) * self.days / 365.0)
+        starts = list(rg.uniform(0, self.days, k))
+        if force_day is not None: starts = [float(force_day)]
+        out = []
+        for st in starts:
+            n = int(rg.integers(4, 8)); hour = float(rg.normal(8 * 60, 45)); peak = float(rg.uniform(0.35, 0.60))
+            for j in range(n):
+                out.append((int(st) + j, hour, peak * (n - j) / n))
+        return out
+
+    def steroid(self, m: float) -> float:
+        """SI factor from glucocorticoid doses: none before 2 h after the morning dose, ramping to the day's loss by 6 h,
+        held to 12 h, gone by 22 h (fasting glucose near normal, afternoon-evening highs; hospital guidance, PMC8157052)."""
+        f = 1.0
+        for (d, hour, loss) in self.gc:
+            x = (m - (d * DAY + hour)) / 60.0
+            if x < 2 or x >= 22: continue
+            w = (x - 2) / 4 if x < 6 else 1.0 if x < 12 else (22 - x) / 10
+            f *= 1.0 - loss * w
+        return f
 
     def dawn(self, m: float) -> float:
         if not self.t.dawn: return 0.0
@@ -277,6 +311,8 @@ class Modulators:
             egp += self.t.gh_dawn * (self.gh[dd] - 1.0) * shape
         if en.get("alcohol") and self.t.drinker and d >= 1 and self.drink[d - 1] and 6 * 60 <= mm < 12 * 60:
             egp *= 0.85                                                            # morning after (Turner 2001) [I size]
+        if en.get("steroid", True) and self.gc:
+            si *= self.steroid(m)
         if en["illness"]:
             s_ill, e_ill, _ = self.illness(m)
             si *= s_ill; egp *= e_ill
