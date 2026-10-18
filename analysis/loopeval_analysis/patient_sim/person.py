@@ -212,7 +212,7 @@ def _formulation(brand: str, rng) -> str:
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
-                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None,
+                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
@@ -340,6 +340,14 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
             prof = np.ones(24)
     w_ = (ISF_W if isf_w is None else isf_w) if prof_w is None else prof_w
     prof_true = prof ** w_; prof_true = prof_true / prof_true.mean()
+    if prof_deliv:
+        # experiment (LESSONS 214): the body's need follows the donor's quiet-hour DELIVERED insulin shape (what their Loop
+        # gave a fasting body), at full weight; Loop's schedule stays the donor's own
+        dv = row.get("basal_profile_deliv") if hasattr(row, "get") else None
+        if isinstance(dv, str):
+            import json as _json
+            d_ = np.asarray(_json.loads(dv), dtype=float)
+            if np.isfinite(d_).all() and d_.mean() > 0: prof_true = d_ / d_.mean()
     settings = dict(
         basal_profile=[float(x) for x in prof],
         basal_uh=float(row.basal) * j_basal, isf=float(row.isf) * j_isf, cr=float(row.cr) * j_isf / j_basal ** 0,

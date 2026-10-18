@@ -479,3 +479,34 @@ def add_meal_clock(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_delivered_profile(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Per donor, the 24-h shape (local hour, mean 1) of the insulin their Loop actually DELIVERED on quiet steps: no carb
+    entry and no manual bolus in the prior 4 h, not disrupted. Delivered basal + automatic boluses per hour is what the
+    closed loop found the body needed while fasting, the evidence the schedule only approximates (LESSONS 214).
+    Column `basal_profile_deliv`; hours with < 20 quiet hours of data stay NaN (then the column is left empty)."""
+    import json
+    import numpy as np
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        sp = ice_root / "steps" / f"{a}.parquet"
+        if sp.exists():
+            s = pd.read_parquet(sp).sort_values("t1")
+            tm = (s.t1.astype("int64") / 6e10).to_numpy()
+            ev = np.sort(tm[(s.carbs_g.fillna(0) > 0).to_numpy() | (s.bolus_manual_u.fillna(0) > 0).to_numpy()])
+            k = np.searchsorted(ev, tm, side="right") - 1
+            dis = s.disrupted.fillna(False).to_numpy(bool)
+            quiet = (~((k >= 0) & (tm - np.where(k >= 0, ev[np.clip(k, 0, None)], -1e18) < 240)) & ~dis) if len(ev) else ~dis
+            rate = ((s.basal_u.fillna(0) + s.bolus_auto_u.fillna(0)) / (s.dt / 60.0)).to_numpy()
+            q = pd.DataFrame(dict(h=np.floor(s.hour.to_numpy()[quiet]).astype(int) % 24, r=rate[quiet], dt=s.dt.to_numpy()[quiet]))
+            g = q.groupby("h"); hrs = g.dt.sum() / 60.0; prof = g.r.mean().reindex(range(24))
+            if (hrs.reindex(range(24)).fillna(0) >= 20).all() and prof.mean() > 0:
+                row["basal_profile_deliv"] = json.dumps((prof / prof.mean()).round(4).tolist())
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
