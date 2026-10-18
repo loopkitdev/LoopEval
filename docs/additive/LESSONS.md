@@ -3966,3 +3966,12 @@ statistic here, but it is the controller donors ran.
      - The early-low shortfall (0.11 vs 0.21/day, LESSONS 185) is therefore several small parts multiplied: ~25% fewer
        lows per isolated meal from ordinary starts, a slightly higher meal start, fewer separate entries, and the stacked
        multi-entry meals the sim lacks. No single mechanism carries it; each part is a measurement for its own component.
+
+189. **sleep_util holds the night level but adds no night rises.** The unentered-rise statistic (LESSONS 184) on c202_su
+     (sleep_util on c201_base): 0.50 per person-night at 00–06 h (base 0.48, donors 0.66), not-V 0.33 (0.33; donors
+     0.44), per-person p10 / p50 / p90 0.17 / 0.42 / 0.86 (unchanged); 87% still sensor recoveries with no carbohydrate
+     behind them. With night CV above the donors' (40.7 vs 36.0), the sim's nights vary as much as real ones but mostly
+     downward, real ones more often upward. A smooth change in utilisation moves the level, not the excursions; the
+     missing component makes discrete upward events of ~50 mg/dL over ~80 min for nearly everyone, and must not be a
+     fitted noise term (no mystery terms). Unrecorded night eating, rebound after Loop's night suspensions (31% of donor
+     night rises follow a cut, LESSONS 184) and insulin-delivery interruptions are the named candidates to measure.
