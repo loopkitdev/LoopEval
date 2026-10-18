@@ -3612,3 +3612,13 @@ statistic here, but it is the controller donors ran.
        donors) is 0.971 at night and 0.948 by day. Real nights are measured as fully as days, so the donors' low night
        share is real. Left: the overnight defense (alarms, bedtime snacks) and whatever keeps real overnight glucose
        up that the sim's night lacks.
+     - **Not the circadian profile** (B1 off, c191): night share 54%. **Not sensor artefacts:** 28% of the sim's night
+       CGM lows and 36% of its day ones have no true low behind them (sensor error in the low range, both periods);
+       on true glucose the lows are still 56% nocturnal.
+
+168. **The circadian sensitivity profile carries the long-range persistence excess.** `--disable circadian` (c191,
+     rc_own) against c187_base: hurst_long 0.287 → 0.247 (donors 0.247; KS 0.42), CV 36.8 → 36.3 (passes, KS 0.051),
+     mean 148.4, TIR 72.3, lows unchanged (1.00/day), 36 matched. B1 is a fixed daily pattern of three Visentin
+     segments at the full measured swing (lesson 38 set the full swing when the old base's 24-h amplitude matched);
+     on the new base the sim's circadian amplitude has run ~0.18 against the donors' 0.131, and the fixed daily
+     structure reads as long memory. Evidenced and stays; its swing is the question (next: `circ_swing 0.5`).
