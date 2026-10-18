@@ -3514,3 +3514,17 @@ statistic here, but it is the controller donors ran.
        still failing: mean, CV, TIR, t180, G7 step shape, hurst_long, acf_zero, volatility clustering, between-day,
        circadian amplitude, p_reach54, min below 70, zero fraction, p99, lag-1, night insulin CV.
      - **Adopted (Pete, 2026-10-18): `posture` and `act_frag` are defaults** (`--disable posture,act_frag`).
+
+164. **The sim does not tighten control with hands-on behavior; donors do.** c182_base (32 of 51), by donor carb-entry
+     tercile (low / mid / high entries per day 0.8 / 2.0 / 3.3), medians:
+     - glucose CV: donors 36.7 / 33.8 / 33.0, sim 39.1 / 39.1 / 39.8; mean donors 164 / 150 / 144, sim 161 / 153 / 162;
+       t70 donors 1.17 / 0.93 / 1.33, sim 1.83 / 1.68 / 1.33. Twin Δ CV by strategy: automatic +2.8, temp +6.5.
+     - The behavior rates track each donor's own: correction attempts per day sim 0.67 / 1.17 / 1.50 vs donors' true
+       corrections 0.50 / 0.86 / 1.45; top-ups 0.08 / 0.42 / 0.67 vs 0.10 / 0.25 / 0.64; free boluses 0.08 / 0.25 / 0.25.
+     - So the hands-on donors' tighter glucose does not come from how often they act. What the frequency match leaves
+       out is how well each act lands: entry accuracy per person (count error is a population distribution,
+       Brazeau), bolus timing against eating per person (lead from the labeler), and how tuned their settings are to
+       their body (the body is drawn halfway between settings and the TDD yardstick for every person alike, ISF_W 0.5).
+       The last is the most direct suspect: a hands-on donor who edits settings often (eda edit rates are in the
+       templates) plausibly runs settings closer to their body. Next: twin CV gap against the donor's settings-edit
+       rate.
