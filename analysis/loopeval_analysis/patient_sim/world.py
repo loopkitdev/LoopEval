@@ -229,6 +229,8 @@ class World:
         if enable and isinstance(enable.get("count_sd_mult"), float):
             # per-meal mismatch between the grams dosed for and the glucose delivered (ablation, LESSONS 149)
             self.beh_traits.count_sd = self.beh_traits.count_sd * enable["count_sd_mult"]
+        if enable and isinstance(enable.get("snack_fast"), float):
+            self.beh_traits.snack_fast_frac = enable["snack_fast"]          # snacks' fast share (LESSONS 159)
         if enable and isinstance(enable.get("gi_cv"), float):
             self.beh_traits.gi_cv = enable["gi_cv"]            # per-meal emptying-speed spread (ablation, LESSONS 147)
         if enable and isinstance(enable.get("meal_fast_sd"), float):
