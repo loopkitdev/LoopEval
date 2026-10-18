@@ -83,9 +83,11 @@ class Family:
 FAMILIES = {
     # G6 with the G7 structure (sensor_fit.py vs DEN170088 CGM-binned bias/MARD and PARD 9.0%): loss 7.4 against 6.7 for
     # the Vettoretti 2019 values, and it carries the transients G6 donors show (reversals 5.7 per 1,000 quiet steps)
-    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(2.5, 0.8), hetero_q=0.5,
-                        a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(6.0, 0.9), trans_amp=(12.0, 0.4),
-                        noise_wander=(0.7, 480.0)),
+    # refit on the c235 bodies against DEN170088 (LESSONS 213): sigma 2.5 -> 1.8, transient amplitude 12 -> 8, noise wander
+    # 0.7 -> 0.2, slow bias sd 3 (Breton & Kovatchev 2008); loss 23.7 -> 9.9 (a0 0.98 traded the high range, kept 0.96)
+    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(1.8, 0.8), hetero_q=0.5,
+                        a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(6.0, 0.9), trans_amp=(8.0, 0.4),
+                        noise_wander=(0.2, 480.0), slow_bias=(3.0, 180.0)),
     # G7 innovations near-Gaussian (df 30): with the noise level wandering and transient biases, df 4 double-counted
     # the tails (step kurtosis 3.1 vs donors 2.48; FDA loss 1.5 → 0.7; LESSONS 42).
     # G7 fitted to sensor-only targets, never to donor roughness (LESSONS 31; sensor_fit.py, evidence/08): FDA K213919
