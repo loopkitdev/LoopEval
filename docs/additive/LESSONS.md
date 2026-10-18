@@ -3684,3 +3684,13 @@ statistic here, but it is the controller donors ran.
        far smaller than the 0.28/night excess of night lows (0.44 vs 0.16). With insulin delivery (1.24 vs 1.32 ×
        schedule) and treatment matched, the sim's nights fall into lows that real nights do not, on less insulin: the
        difference is in the overnight glucose balance itself, and the posture step (the only lever found) acts there.
+
+172. **A gradual evening transition does not move the night either.** `--enable posture_ramp` (7efbc53; off): the
+     upright absorption reduction fades linearly over the last 3 h before bedtime [J shape]. c198 (rc_own) against
+     c195_base: at half posture night share of lows 46% → 45%, 00–03 140.5 → 142.4, 36 matched (37); at full posture
+     with the ramp 46%, 00–03 136.5, 37 matched. Not adopted.
+     - Across lessons 167–172, twelve candidates leave the sim's night share of lows between 40% and 54% against the
+       donors' 22%; only removing posture reaches 40%. Insulin delivery, treatment behavior, CGM coverage, dinner
+       shape, composition and grazing timing all match or were tested. The remaining measurement is the overnight
+       glucose balance with no controller in the way: true-glucose drift across quiet nights in the sim against the
+       donors' CGM drift on quiet nights, per unit of insulin delivered.
