@@ -3734,3 +3734,17 @@ statistic here, but it is the controller donors ran.
      / 10.3% (abdomen) against 8.2% / 9.1% overall — about 1.15× the overall error. Rate-dependent CGM error is far too
      small; the extra first-hour spread of real meals is in true glucose. Still open, with the meal-side terms
      (lessons 147–150), late entries (149) and sensor (here) ruled out.
+
+175. **Treatment carbs entered in the app: 40 of 51.** Isolated entries ≥ 20 g split by a manual bolus within ±30 min
+     (`entry_bolus_split.py`): bolused donors 92.4% (BG at entry 138, 0→60 change +20, P(low < 2 h) 0.10), sim 97.9%
+     (145, +12, 0.10); unbolused donors 7.6% (109, +64), sim 2.1% (144, +15). Donors log carb treatments (pre-emptive
+     and rescue carbs) about 3.6× as often as the sim's people, who entered rescues at p 0.05 [J, flagged "very
+     under-represented"] and proactive snacks never.
+     - `--set p_log_pro=0.25,p_log_rescue=0.25` (3ab1bb4; c200, rc_own) against c195_base: t54 0.106 → 0.147 (passes),
+       P(reach 54) 0.148 → 0.167 (passes), hurst_long 0.262, CV 35.1, TIR 72.0, carb entries 2.67 → 3.08/day (donors
+       2.97); **40 vs 37 matched**. The ≥ 20 g unbolused share does not move (most treatments are under 20 g); the
+       effect is on Loop: a logged treatment shows Loop the carbs, so it doesn't suspend and hold glucose up after
+       the treatment.
+     - **Adopted as default: p_log_pro and p_log_rescue 0.25** [J share; direction from the donors' treatment logging],
+       self-approved under Pete's standing permission. A per-donor logging rate from the templates is the evidence step
+       still to take.
