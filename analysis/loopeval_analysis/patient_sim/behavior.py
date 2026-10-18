@@ -628,7 +628,7 @@ class Behavior:
                     acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * ff, kempt=0.08 * meal.speed, kabs=0.08 * meal.speed,
                                                f=bp.f, label=meal.kind + "_liquid", kcal_per_g=0.0)))
                 acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * (1 - ff), kempt=bp.kempt * meal.speed * phi_fat, kabs=bp.kabs * meal.speed,
-                                           f=bp.f, label=meal.kind, kcal_per_g=kcal_g)))
+                                           f=bp.f, label=meal.kind, kcal_per_g=kcal_g, speed=meal.speed)))
                 # protein → late glucose appearance: 0.1 g glucose per g protein, delayed ~90 min, peak 3–5 h
                 # (Smart 2013; Paterson 2017; evidence/01 §6.3); it is glucose, so fast-glucose bioavailability
                 if meal.protein > 0:
