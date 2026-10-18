@@ -103,7 +103,8 @@ FAMILIES = {
     # PARD 6.8; it reads too little high at true < 54 (+0.4 vs +7.4) [open]
     "Libre 3":   Family("Libre 3", warmup=60, session_days=14, tau_med=1.8, brand_gain=1.0, smooth=0.35, df=4.0,
                         sigma=(1.5, 0.5), hetero_q=0.5, a0=(0.965, 0.03), b0=(0.0, 2.0), common_sigma=3.0,
-                        trans_rate=(4.0, 0.9), trans_amp=(12.0, 0.4), noise_wander=(0.7, 480.0)),
+                        trans_rate=(4.0, 0.9), trans_amp=(12.0, 0.4), noise_wander=(0.7, 480.0),
+                        slow_bias=(5.0, 180.0)),   # K212132 loss 20.2 -> 14.7 on the c235 bodies (LESSONS 211)
     "Libre 2":   Family("Libre 2", warmup=60, session_days=14, tau_med=2.4),
     "Medtronic": Family("Medtronic", warmup=120, session_days=7, tau_med=8.4, a0=(1.0, 0.1),
                         ar=(1.367, -0.4816), sigma=(1.59, 0.5), brand_gain=0.94),
