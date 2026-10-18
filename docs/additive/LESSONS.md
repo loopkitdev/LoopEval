@@ -4011,3 +4011,18 @@ statistic here, but it is the controller donors ran.
        hepatic response to insulin, so clamp data map onto it; (2) separate on / off rates, onset kept on the meal tracer
        nadir (Romeres 2025, p2e 0.006), offset fitted to Gray's R50s through (1). LESSONS 191's p2e 0.012 diagnostic
        is the direction; this is the form.
+
+193. **A saturating hepatic signal with a faster offset holds nights and loses daytime lows.** `--enable egp_sat` (2978edc,
+     off): the hepatic insulin signal saturates, v_eff = 2.57·v/(2.57 + v) in suppression units v = sE·(I − Ib)/Ib (half
+     / full HGO suppression at 0.62 / 1.64, Rizza, Mandarino & Gerich 1981 Am J Physiol 240:E630: 29 / ~60 µU/mL), and
+     X_E relaxes at 0.015/min when the signal falls (onset stays 0.006; Gray 1982's R50s through this form give 0.012–0.020,
+     LESSONS 192); people recalibrated (sE 0.20 → 0.31 for v01000, total ISF unchanged). c215 against c201_base: rise
+     within 2 h of a night Loop cut 20% → 24% (donors 30%), +2 h from ≥ 120 −35 → −29 (−21), night unentered rises 0.48 →
+     0.54 (0.66), night CV 35.8 (passes; donors 36.0), hurst_long KS 0.91; meal EGP nadir 0.75 at 120 min (base 0.77; Romeres
+     0.56 at ~160, which the base itself no longer meets after the total-drop ISF recalibration — a separate open item);
+     but lows 0.67/day, t70 0.81, t54 0.088, day/night and zero-delivery fraction fail: 31 vs 40. Not adopted.
+     - The pattern across lessons 169–193: every mechanism that holds the night up (posture off, sleep_util, ge_circ,
+       p2e 0.012, egp_sat) also removes daytime lows, because it acts on falls everywhere. The donors have more daytime
+       lows than the sim AND fewer night lows. The components still missing are therefore time-specific in opposite
+       directions: something that makes days fall more (LESSONS 185–188: bolused meals going low, spread over several
+       small parts) and something that makes nights rise more. Adopting a night fix waits for the daytime-lows half.
