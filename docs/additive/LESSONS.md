@@ -4124,3 +4124,11 @@ statistic here, but it is the controller donors ran.
        (A4 15% net, from clamps; real-life site-to-site and wear variability larger, Heinemann 2002 review [verify]);
        per-meal carbohydrate appearance speed (GI and composition; gi_cv tested as a whole-meal ceiling, LESSONS 177);
        post-meal activity. The lunch, early-low and first-hour gaps (LESSONS 150, 180, 185) are the same remainder.
+
+199. **Per-site absorption spread on by default; it adds part of the inside-the-meal variability.** `site_cv` 0.27
+     (Haidar 2013 per-site tmax CV ~27%; lesson 115 left it a switch on an older base) on the current defaults (share 0.8,
+     egp_sat, p2e 0.012, CSF 1.05; c222, bc28aeb): lows 0.50 → 0.58/day (donors 1.08), t54 0.031 → 0.059 (0.215),
+     P(reach 54) 0.128 → 0.182 (0.200, passes), low share < 54 0.30 → 0.34 (0.37); within-person SD of the bolused-meal
+     drop 28.9 → 29.7 (36.7); low duration p90 70 → 80 (65); 26 → 28 matched. **Default 0.27.** The remainder after
+     the starting state (LESSONS 198) stays most of the gap: per-site speed varies across a set's 2–3 days, the
+     real variation is meal to meal.
