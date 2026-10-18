@@ -3182,3 +3182,28 @@ statistic here, but it is the controller donors ran.
        another in their first hour, both ways. Per-meal sources that set that spread: the bolus-to-eating offset
        (lead, SD 23 min), the meal's own emptying speed (lnN 0.4) and fast share (Beta SD 0.25), absorption jitter
        (15%). Next: which of them is under-sized against its evidence, not a wider knob.
+
+147. **The sim's per-meal variance sources do not set the first-hour spread.** One at a time on the new base (c164,
+     frozen ecffc99; `--set gi_cv`, `lead_sd`, `meal_fast_sd`), entry-anchored ΔCGM per 10 g IQR at 60 / 120 /
+     180 min and low onsets per day:
+
+     | arm | IQR 60 / 120 / 180 | lows / day |
+     |---|---|---|
+     | new base (c162) | 12.1 / 20.6 / 22.6 | 0.588 |
+     | emptying speed fixed (gi_cv 0) | 13.3 / 20.3 / 21.0 | 0.576 |
+     | emptying speed wider (gi_cv 0.7) | 12.7 / 20.8 / 22.3 | 0.599 |
+     | bolus lead fixed (lead_sd 0) | 14.7 / 21.4 / 23.1 | 0.557 |
+     | fast share fixed (meal_fast_sd 0) | 11.8 / 19.3 / 23.8 | 0.561 |
+     | donors | 18.9 / 23.3 / 23.3 | 1.059 |
+
+     Switching any of them off or widening the emptying spread moves the 60-min IQR by ≤ 2.6 and the lows by ≤ 0.03
+     per day. P(low within 2 h | BG at entry) moves within noise in every band.
+     - **Entries are made later in real meals.** ΔCGM over the 15 min before a ≥ 20 g entry, p10 / p25 / p50 / p75 /
+       p90 (`entry_traj_pre2.py`): donors −16.7 / −7.4 / +0.7 / +13.6 / +31.6, sim −16.7 / −7.6 / −0.4 / +8.5 / +18.0.
+       A quarter of donor entries come with glucose already rising (eating begun before the entry); the pre-entry
+       trend barely predicts the next hour (corr −0.08 donors, +0.15 sim).
+     - Absolute ΔCGM 0 → 60 min: donors p10 / p90 −52 / +101 (IQR 79), sim −40 / +88 (IQR 58). The real spread is
+       wider on both sides, not from momentum, and not from the meal's own speed, count error or lead spread at
+       their current sizes. What differs per meal remains open: candidates are the meal composition actually eaten
+       (the share of the entry that is glucose-available, per meal rather than per person) and Loop's own dosing
+       response, which differs between real and simulated bodies early in a meal.
