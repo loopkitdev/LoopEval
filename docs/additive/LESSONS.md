@@ -2702,3 +2702,20 @@ statistic here, but it is the controller donors ran.
 
        A trade between the lows and day-level insulin variation, with no centre that passes both. The default stays
        0.42; the low-side overshoot (t70, lows/day) is a known limit of the c145 defaults.
+
+132. **Total-drop ISF calibration gets the meal plateau right, and the levels wrong.** `--enable isf_total` on the
+     current defaults (c147 vs c145; frozen 9513d5a). Entry-anchored ΔCGM per 10 g at 60 / 90 / 120 / 180 min:
+     - temp +4.4 / +6.3 / +7.0 / +5.5 (donors +6.4 / +5.9 / +5.2 / +5.5);
+     - automatic +3.0 / +3.7 / +3.0 / +2.8 (donors +4.3 / +4.0 / +4.3 / +5.4).
+     This is the first arm whose meals hold the donors' plateau. But the whole cohort runs high: mean 180.6 (151.4),
+     TIR 53.6 (71.7), t54 0.03 (0.215), TDD 43.6 (38.8); 23 matched. That is LESSONS 75's result again.
+     - Peak calibration (default): insulin is too strong around meals (they fall below baseline at 2–3 h) but the
+       level is right.
+     - Total calibration: meals are right but every other hour runs too high.
+     So the per-unit effect real insulin has at meals is smaller than the effect that keeps the level right
+     between meals. One ISF cannot do both. Candidates (physiology, not fitting):
+     - postprandial insulin resistance beyond fat: meal-induced, hyperglycaemia-induced (B11 is a slow 6 h state);
+     - the EGP arm's share of the effect being larger in fasting than after meals (glucagon is not suppressed after
+       mixed meals in T1D, so EGP suppression is weaker exactly then).
+     The second is evidenced in T1D (paradoxical postprandial glucagon rise). Next: evidence for its size, then
+     model the meal-time EGP suppression deficit as its own named component.
