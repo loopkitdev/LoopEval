@@ -350,6 +350,7 @@ class World:
         bp = person.body
         if enable and enable.get("risk") is False: bp = bp.scaled(risk_lambda=0.0)
         if enable and enable.get("counterreg") is False: bp = bp.scaled(cr_max=0.0)
+        if enable and isinstance(enable.get("cr_mult"), float): bp = bp.scaled(cr_max=bp.cr_max * enable["cr_mult"])   # LESSONS 166
         self.body = Body(bp, person.formulation)
         br = self.body.basal_rate_u_per_h()
         self.body.prime(br)
