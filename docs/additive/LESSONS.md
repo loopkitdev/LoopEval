@@ -4267,3 +4267,7 @@ statistic here, but it is the controller donors ran.
      0.42/day, low duration p90 65 → 80 (65); 28 matched either way. Kept at 0.15: the drop within 2 h is set by early
      insulin against early carbohydrate, which a per-dose speed spread barely moves. Of the named candidates, post-meal
      activity (needs HealthKit workouts from BDDP, a Databricks login) and meals larger than entered remain.
+     - **Sugary drink with 20% of main meals** (`meal_drink_p` 0.2, LESSONS 119; c234): lows 0.42 → 0.50/day, lunch +21 / 25
+       at 1–1.5 h (+18 / 18), within-person drop SD 27.6 (30.0), 29 matched (28). Kept off: its rate is general-population
+       (about half of US adults drink a sugar-sweetened beverage on a given day, NHANES data briefs); a T1D-specific
+       per-meal rate is the evidence step before a default.
