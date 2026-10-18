@@ -2719,3 +2719,13 @@ statistic here, but it is the controller donors ran.
        mixed meals in T1D, so EGP suppression is weaker exactly then).
      The second is evidenced in T1D (paradoxical postprandial glucagon rise). Next: evidence for its size, then
      model the meal-time EGP suppression deficit as its own named component.
+     - **The glucagon candidate is already inside the EGP arm.**
+       - T1D postprandial glucagon is higher, from secretion (stable glucagon tracer, 75 g mixed meal, 16 + 16;
+         Diabetes 2026).
+       - EGP suppression after mixed meals is impaired in T1D at similar insulin exposure, with similar
+         insulin-dependent disposal and not always a larger glucagon rise (mixed-meal tracer study).
+       The sim's EGP arm is calibrated to a T1D meal tracer (Romeres 2025), and its post-meal nadir is close (0.51 vs
+       0.56), so a separate glucagon term would double-count. The meal-time over-coverage then sits in disposal:
+       insulin-mediated uptake around meals acts more per unit than the level between meals allows. Open: whether the
+       ISF peak-probe calibration (a 0.5 U probe at 180 mg/dL on the linear part) misstates the uptake that acts on
+       a meal bolus at post-meal glucose.
