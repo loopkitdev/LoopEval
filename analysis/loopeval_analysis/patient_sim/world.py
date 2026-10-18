@@ -162,6 +162,10 @@ class World:
                 self.mod_traits.enabled["menstrual"] = True
             if "steroid" in enable and "steroid" not in self.mod_traits.enabled:      # persons sampled before B14
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.enabled["steroid"] = bool(enable["steroid"])
+            if isinstance(enable.get("preg_week"), float) and getattr(self.mod_traits, "menstruating", False):
+                # scenario X9: menstruating people are pregnant at this gestational week from day 0; no menstrual cycle
+                self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.preg_week = enable["preg_week"]
+                self.mod_traits.menstruating = False
             if isinstance(enable.get("day_tau"), float):
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.day_tau = enable["day_tau"]
             if isinstance(enable.get("circ_uniform"), float) and enable["circ_uniform"] > 0:
