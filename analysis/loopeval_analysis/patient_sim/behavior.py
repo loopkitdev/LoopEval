@@ -62,6 +62,8 @@ class BehaviorTraits:
     meal_cv: float = 0.35                # within-person per-event size spread (log sd); the person's measured pulse spread when known
     meal_slow_frac: float = 0.15         # share of a meal emptied in the Dalla Man slow late phase (kmin) [J share; Pete 2026-10-17, LESSONS 120]
     meal_slow_k: float = 0.008           # /min, Dalla Man kmin
+    snack_fast_frac: float = -1.0        # < 0: as meal_fast_frac; snacks lean on sugary drinks, candy and desserts
+                                         # (Piernas & Popkin 2010) so their fast share may be higher [J] (LESSONS 159)
     meal_fast_frac: float = 0.2          # share of a meal's carbohydrate in its fast-emptying liquid phase [J; 0.2 vs 0.35 by cohort, LESSONS 44]
     meal_fast_sd: float = 0.25           # per-meal SD of that share (Beta, same mean): foods differ in rapidly available glucose
                                          # (Englyst 1999; SD a judgement) [Pete 2026-10-17, LESSONS 120]
@@ -618,7 +620,7 @@ class Behavior:
                 # the liquid part of a mixed meal empties first and fast (nutrient liquids: early delivery 3–8 kcal/min,
                 # glucose t½ ~9 min; Calbet 1997, Hunt 1985): a share of the carbohydrate bypasses the energy-limited
                 # solid phase [J share] (LESSONS 44)
-                ff = t.meal_fast_frac
+                ff = t.snack_fast_frac if (meal.kind == "snack" and t.snack_fast_frac >= 0) else t.meal_fast_frac
                 if t.meal_fast_sd > 0 and 0 < ff < 1:
                     k = ff * (1 - ff) / t.meal_fast_sd ** 2 - 1
                     if k > 0: ff = float(self.r_ff.beta(ff * k, (1 - ff) * k))
