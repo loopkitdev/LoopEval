@@ -236,6 +236,16 @@ class World:
             k_ = float(enable["graze_split"])
             self.beh_traits.graze_per_day = self.beh_traits.graze_per_day * k_
             self.beh_traits.graze_g = self.beh_traits.graze_g / k_
+        if enable and enable.get("log_own"):
+            # experiment (LESSONS 179): the donor's own treatment-logging rate (carb entries with no bolus within 30 min at
+            # CGM < 130, per day) over the sim's median 1.4 treatments a day, as the person's logging probability
+            r_ = person.traits.get("template_rates", {}).get("treat_log_day")
+            try:
+                r_ = float(r_)
+                if np.isfinite(r_):
+                    self.beh_traits.p_log_pro = self.beh_traits.p_log_rescue = float(np.clip(r_ / 1.4, 0.0, 1.0))
+            except (TypeError, ValueError):
+                pass
         if enable and isinstance(enable.get("p_log_pro"), float):
             self.beh_traits.p_log_pro = enable["p_log_pro"]
         if enable and isinstance(enable.get("p_log_rescue"), float):
