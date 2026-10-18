@@ -71,7 +71,8 @@ def plan_outages(person, days: int, rng) -> list:
     return sorted(out)
 
 
-def activity_carbs(person, bt, g_clamp: float = 140.0, ex_b: float | None = None, frag: bool = False) -> float:
+def activity_carbs(person, bt, g_clamp: float = 140.0, ex_b: float | None = None, frag: bool = False,
+                   frag_on: float | None = None) -> float:
     """Grams of glucose per day the person's EXPECTED everyday activity disposes of: the same body over one day
     at its true basal insulin, glucose clamped at g_clamp, with and without the activity (episodes at the person's
     rate and mean duration, mid-day; waking background), difference of the glucose the clamp had to add."""
@@ -83,7 +84,7 @@ def activity_carbs(person, bt, g_clamp: float = 140.0, ex_b: float | None = None
         b = Body(bp, person.formulation); br = b.basal_rate_u_per_h(); b.prime(br)
         kw = {} if ex_b is None else dict(b=ex_b[0], z_power=ex_b[1])
         ex = Exercise(ExerciseParams(gain=bt.act_gain, background=bt.act_bg if active else 0.0, frag=frag,
-                                     frag_seed=int(person.seed) + 1811, **kw))
+                                     frag_seed=int(person.seed) + 1811, **({"frag_on_med": frag_on} if frag_on else {}), **kw))
         if active:
             dur = bt.act_dur * _m.exp(0.75 ** 2 / 2)
             inten = 0.7 * (3.0 * _m.exp(0.2 ** 2 / 2) - 1.0) / (bt.metmax - 1.0)
@@ -268,12 +269,14 @@ class World:
             if (enable or {}).get("posture", True) else 0.0                   # default since 2026-10-18 (Pete, LESSONS 163)
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,
                                           frag=self.act_frag, frag_seed=int(person.seed) + 1811,
+                                          **({"frag_on_med": float(enable["frag_on"])} if enable and isinstance(enable.get("frag_on"), float) else {}),
                                           **({} if self.ex_b is None else dict(b=self.ex_b[0], z_power=self.ex_b[1]))))
         # energy balance: a person eats for their activity. The donor's TDD (the measured constraint, G4) was spent
         # in a life that included it, so the glucose their everyday activity uses is added to what they eat
         # (activity_carbs: clamp probe, active day vs rest day; LESSONS 34)
         if self.enable["exercise"] and not (enable or {}).get("perfect_person") and "act_carbs" not in person.traits:
-            person.traits["act_carbs"] = activity_carbs(person, self.beh_traits, ex_b=self.ex_b, frag=self.act_frag)
+            person.traits["act_carbs"] = activity_carbs(person, self.beh_traits, ex_b=self.ex_b, frag=self.act_frag,
+                                                        frag_on=float(enable["frag_on"]) if enable and isinstance(enable.get("frag_on"), float) else None)
         if self.enable["exercise"]:
             self.beh_traits.carbs_day += person.traits.get("act_carbs", 0.0)
         if (enable or {}).get("budget_all", True) and not (enable or {}).get("perfect_person"):
