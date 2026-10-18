@@ -134,3 +134,14 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
   afternoon and evening after a morning dose (day 1 average ~+29% insulin need). Under stock Loop the first day runs
   +21 mg/dL (+48 from 14 to 22 h) with 12% more insulin (LESSONS 140). It is a test bed for how fast a candidate
   adapts to a sudden, days-long rise in insulin need.
+
+## Update 2026-10-18: new base — total-drop ISF and a full intake budget
+
+- Each body's ISF is now the TOTAL glucose drop per unit (Loop's own meaning of ISF), and the daily insulin budget pays
+  for everything the person eats, unlogged grazing and hypo treatment included (LESSONS 143). The previous base's
+  insulin acted ~2× its stated ISF and over-covered every meal.
+- What changes for candidate testing: entered meals now plateau like the donors' (no dip below the start at 2–4 h),
+  CV and TDD match, but the level runs ~+15 mg/dL and time below 70 is ~0.5% (donors 1.7%). Hypo-prevention
+  candidates have less to prevent on this base; rank them on paired deltas, and re-run any earlier result whose
+  verdict depended on post-meal lows.
+- `--disable isf_total,budget_all` reproduces the previous base exactly.
