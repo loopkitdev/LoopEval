@@ -2815,3 +2815,27 @@ statistic here, but it is the controller donors ran.
        - 30 matched; day/night 1.83 (passes, KS 0.06; donors 2.06); night entered share 0.03 (0.04);
        - CV 39.2 (38.3), lows/day 1.50, TDD CV fails.
        It fixes the meal timing statistics and moves others further off, as on the earlier defaults. Off.
+
+136. **CSF ×1.3 on the current defaults does not fix the lows; BDDP holds self-reported states.**
+     - **c151 (csf_mult 1.3 vs c145).** Temp entry-anchored ΔCGM per 10 g at 60 / 90 / 150 min: +4.1 / +3.0 / −0.1
+       (c145 +2.1 / +0.7 / −3.3). Lows and CV get worse: t70 2.53, t54 0.33, CV 40.0. Twin CV gap: temp +8.6 (c145
+       +8.1), automatic +4.2 (+2.9). 26 vs 35 matched. Not the lever.
+     - **On c145 the temp-basal CV gap is +8.1 against own donors**, with t70 2.31 vs 0.73 (3×); automatic +2.9,
+       2.47 vs 1.11. The lows and the missing meal plateau look like one problem: meals over-covered at 2–4 h, and
+       temp-basal Loop can only suspend.
+     - **What BDDP device_data has** (types by records / users):
+       - CGM 6.33 B / 39 k; basal, dosingDecision, bolus, food, …;
+       - physicalActivity 5.25 M / 5.2 k, nearly all HealthKit workouts (name, duration, energy, distance,
+         reportedIntensity);
+       - no heart-rate type and no step counts.
+     - **`reportedState`: events logged in the Dexcom G7 app** (`states` column; records / users):
+       - illness 1,181 / 248;
+       - stress 2,266 / 172;
+       - cycle 1,377 / 141;
+       - alcohol 354 / 101;
+       - hyperglycaemia symptoms 3,786 / 116;
+       - hypoglycaemia symptoms 1,219 / 177;
+       - 26,601 / 1,248 with no state.
+       This is the first measured donor evidence for the illness, stress, menstrual and alcohol components, which are
+       sized from literature today. Next: per-state frequency and the glucose / delivered-insulin response around
+       logged events, against the sim's component sizes.
