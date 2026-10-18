@@ -3559,3 +3559,4 @@ statistic here, but it is the controller donors ran.
        measured and the sim had at a fifth of its size.
      - Still failing at ×4.5: CV 36.5 (KS 0.012), t54 0.12 (donors 0.215: the lows are as frequent but shallower),
        acf_zero 65, the quiet daytime wander (25 vs 40). evidence/15 corrected. Default decision: Pete.
+     - **Adopted (Pete, 2026-10-18): κ median 0.675** (= 0.15 × 4.5, the same draws), lnN σ 0.4 kept; registry A5.

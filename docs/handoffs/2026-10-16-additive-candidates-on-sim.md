@@ -150,3 +150,5 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
 - Also from 2026-10-18: insulin absorbs more slowly while the person is upright (posture, A4b) and everyday movement
   comes in short bouts (C7). Lows now sit at the donors' level (t<70 1.6%, ~1 low/day), so hypo-prevention candidates
   have real lows to prevent again on this base (LESSONS 163).
+- Also from 2026-10-18: insulin acts harder at high glucose (κ ≈ 0.68, Best 1981; LESSONS 165). The glucose
+  distribution now sits on the donors' at every percentile (mean ~149, TIR ~73), with lows unchanged.
