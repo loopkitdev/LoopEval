@@ -4325,3 +4325,13 @@ statistic here, but it is the controller donors ran.
      vs 11.5; in-range MARD 8.4 vs 10.9; elasticity 0.79 vs 0.7; PARD 9.2 vs 9.0). Calibration gain a0 0.98 fixed the low
      range but pushed 181+ bias the wrong way (loss 10.99; 1.00: 16.08), so a0 stays 0.96. The residual low-range negative
      bias is open (G6 reads low below 70 beyond FDA's). Adopted (sensor-only targets; LESSONS 31's rule).
+     - **Cost on the donors' G6 texture** (c238_base vs c237_sr, the only change being the G6 refit): 28 → 24 matched; G6 step
+       kurtosis 3.60 → 1.63 (donors 3.48), sd/MAD 1.435 → 1.339 (1.443), hurst_short 0.720 → 0.700 (0.744) fail. Restoring
+       transient amplitude 12 and noise wander 0.4–0.7 brings back the false lows (DEN170088 loss 21.8–29.2, CGM < 54 bias
+       −25 to −30). **`trans_prop`** (off; transients scaled with IG/130 like the noise) does not separate them: with
+       wander 0.4–0.7 the loss stays 21.8–23.2, so the low-range error and the texture both come from the noise-level
+       wander. LESSONS 31's rule (sensors fit to sensor-only targets) keeps the FDA refit; the texture gap is open and may
+       be something donors' G6 records carry that clinic tables do not (sessions late in wear, compression).
+     - **slot_comp re-tested on this base** (c238_sc): breakfast +17 / 40 / 48 at 0.5–1.5 h and +22 / 16 at 3.5–4 h (donors
+       +18 / 41 / 42 and +22 / 16), 24-h amplitude 0.191 → 0.179, lunch start 148 → 145 (128); 25 matched (24). Breakfast's
+       own shape now matches; kept a switch until the lunch start moves.
