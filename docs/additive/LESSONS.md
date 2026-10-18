@@ -4311,3 +4311,10 @@ statistic here, but it is the controller donors ran.
      person time to peak already matches (LESSONS 178). Named candidates with their own evidence still to measure: the
      share of meals eaten well after the bolus (delayed or interrupted meals), and post-meal activity (HealthKit workouts
      from BDDP; Databricks login).
+     - **Not delayed eating** (`meal_dip.py`, bolused isolated entries ≥ 15 g): meals whose CGM falls ≥ 15 within 45 min
+       and then rises ≥ 20 by 150 min, 16.1% (c237) vs 16.9% (donors); any early dip ≥ 15, 26.6% vs 25.7%.
+     - **The deep tail of post-meal falls is short** (c237, meal_out.py): ending < 70 within 2 h from entry CGM < 100 /
+       100–140 / ≥ 140: 10.7 / 1.7 / 2.2% vs donors 21.3 / 8.5 / 6.4%; drop ≥ 40 in 20.6% vs 25.7%; drop p10 −77 vs −84;
+       entry CGM median 145 vs 133 (share < 100: 10.4% vs 16.3%). Meals both start higher and fall less deeply: the
+       first is the day's level by slot (LESSONS 201–206), the second the within-meal variability (LESSONS 198) in its
+       lower tail.
