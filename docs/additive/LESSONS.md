@@ -4163,3 +4163,7 @@ statistic here, but it is the controller donors ran.
        meal insulin then works less than the settings assume, by day. Check: per person, the effect of a meal-size
        bolus against the probe ISF under egp_sat, and whether the evidence (Rizza 1981 healthy, portal) carries to
        peripheral insulin in T1D.
+     - **Checked: not dose saturation.** Linear-part total drop per unit from 250 mg/dL, 3 U ÷ 0.5 U: 0.99 with egp_sat
+       (1.17 without), so meal-size boluses act per unit as the probe says. (Full-body peak ratios, 4 U ÷ 0.5 U at 180:
+       0.75 vs 0.84, are the restoring terms, and a 2-U probe from rest hits the 10 mg/dL floor.) The daytime excess has
+       another cause.
