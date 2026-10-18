@@ -2862,3 +2862,16 @@ statistic here, but it is the controller donors ran.
        - **Alcohol lowers next-day glucose** (−4.7), the direction of the sim's alcohol term (EGP ×0.85 the morning
          after). Stress raises it a little (+1.8), consistent with the reactive-third SI −10% term.
        - Logging is voluntary and episodic (one log per event), so these are lower bounds on a day-level effect.
+     - **The cycle has a shape in the donors who log it.** Daily CGM mean relative to the same event's ±30-day mean,
+       days around a logged "cycle" (493 events, 125 users; mean / median):
+       - days −10..−2 about +2 / ~0;
+       - −1 +4.0 / +2.3; 0 +4.7 / +3.4;
+       - +1..+2 −0.9 / −2.5; +3..+6 about +2 / ~0;
+       - +7..+10 −3.3 to −3.6 / −5.
+       Elevated before and on the log day (late luteal into menses onset) and low a week after (follicular): a
+       6–8 mg/dL swing under Loop's compensation. The sim's luteal dip peaks mid-luteal and is gone at menses, a
+       different timing. The ice screen's "no monthly rhythm" was population-wide (unlogged cycles average out);
+       loggers show it.
+     - Next (evidence-based component): enable the cycle for menstruating people with a shape from these logs (SI
+       lower through the late-luteal days, recovering by day ~3 after onset; follicular baseline), sized so the
+       simulated logged-day profile matches. A default-on decision for Pete.
