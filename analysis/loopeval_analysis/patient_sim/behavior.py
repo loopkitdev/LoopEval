@@ -93,7 +93,7 @@ class BehaviorTraits:
     lead_own: bool = True                # bolus at lead_med instead of the four category windows (Pete 2026-10-17)
     meal_drink_p: float = 0.0            # share of main meals with a sugary drink; the food keeps its own fast share
     meal_drink_share: float = 0.4        # the drink's share of that meal's carbohydrate [J]
-    graze_fast: bool = False             # grazes absorb as liquid sugar (juice, sweetened coffee; evidence/14 §2; LESSONS 117)
+    graze_fast: bool = True              # grazes absorb as liquid sugar (juice, sweetened coffee; evidence/14 §2; LESSONS 117); default since 2026-10-18 (Pete, LESSONS 158)
     snack_entry_w: Optional[tuple] = None   # hour-of-day weight on p_entry_snack (donor entries / eating; LESSONS 123)
     meal_clock: Optional[tuple] = None   # donor's own (b_med, b_sd, l_med, l_sd, d_med, d_sd), hours (LESSONS 123)
     own_clock: bool = False              # switch: main meals on the donor's own clock
