@@ -3409,3 +3409,15 @@ statistic here, but it is the controller donors ran.
        the energy-limited stomach and keep arriving for over an hour; real unlogged intake includes drinks and sweets
        that absorb within ~30 min. Next: the `graze_fast` and fast-snack arms on the current base, judged on the
        rising-trend correction profile and the ACF zero-crossing.
+
+158. **Fast unlogged sugar shortens the sim's rises part of the way.** `--enable graze_fast` now empties grazes as
+     liquid sugar outside the energy ceiling (5f44dee; before, "fast" grazes still shared the ceiling with any meal in
+     the stomach). c176 (rc_own) against c172_rc:
+     - rising-trend corrections 0.5–3 U, ΔCGM per U at 60 / 90 / 120 / 180 min: −4.1 / −14.8 / −33.8 / −52.1 (base
+       0.0 / −4.8 / −27.0 / −41.7; donors −17.7 / −30.7 / −36.1 / −41.8); flat-trend unchanged (−20.5 / −30.0);
+     - 27 vs 24 matched: day/night passes (1.83, KS 0.05), hurst_long 0.368 → 0.336, lows 0.63 → 0.67/day, TIR 67.98;
+       CV 35.6 → 36.8 now fails; acf_zero stays 70; mean 157.8.
+     - evidence/14 §2 sizes unlogged intake as 5–15 g of drinks and sweets; liquid sugar empties at ~3–8 kcal/min
+       with glucose t½ ~9 min (Calbet 1997, Hunt 1985), so `graze_fast` is the evidenced form for that share. The rest
+       of the rising-trend gap belongs to the other unentered intake (snacks and meals eaten without an entry), which
+       still empties as solid food.
