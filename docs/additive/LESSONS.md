@@ -4371,3 +4371,10 @@ statistic here, but it is the controller donors ran.
        (means 0.265 vs 0.208), implying 0.485. Refit to 0.485 (7f52fde, default). c241: lows unchanged (0.55 onsets/day),
        24 matched; CV 32.8 (34.8, KS 0.021). Corrections within 2 h of a meal (17% of meals) are the next behaviour rate to
        compare paired; extra insulin after meals makes lows, so the sim's surplus here works against its low shortfall.
+     - **Insulin around meals matches** (`post_auto.py`, paired, 83 people): automatic insulin delivered 0–120 min after a
+       bolused entry ≥ 15 g, per 10 g entered, 0.97× the donor's (median 0.41 vs 0.44 U); the meal bolus per 10 g 1.00×
+       (1.05 vs 1.05 U). With insulin, entry, starting state (LESSONS 207), count error (LESSONS 208) and delayed eating
+       (LESSONS 212) all at the donors', real once-bolused meals still end < 70 within 2 h ~2–4× as often (donors 13.2%
+       without a top-up). Everything named that acts inside 2 h is now at the donors' or at its evidence; what remains is
+       how much carbohydrate actually arrives in the first 2 h relative to the entry, meal to meal (the appearance spread
+       Pete chose to keep at its Elleri size, LESSONS 208).
