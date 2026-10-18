@@ -79,6 +79,7 @@ class BehaviorTraits:
     p_entry_snack: float = 0.3
     graze_eve: bool = False              # graze timing weighted to the evening (LESSONS 170)
     skip_drop: bool = False              # skipped breakfast grams dropped, not redistributed (LESSONS 183)
+    split_more_p: float = 0.41           # with split_full: share of second doses that follow a second helping (LESSONS 186)
     split_full: bool = False             # split meal bolus: the full recommendation first, the planned rest on top (donors
                                          # take 1.0 of Loop's recommendation on the first of two boluses in 96%; LESSONS 186)
     slot_comp: bool = False              # fat/protein per carb gram by meal slot (LESSONS 170)
@@ -381,6 +382,7 @@ class Behavior:
         self.rng = rng
         self.r_ff = np.random.default_rng(int(getattr(person, "seed", 0)) + 777)   # per-meal fast share; own stream
         self.r_abs_entry = np.random.default_rng(int(getattr(person, "seed", 0)) + 911)   # entered absorption time
+        self.r_split2 = np.random.default_rng(int(getattr(person, "seed", 0)) + 3137)    # split second helpings
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
         self.r_drink = np.random.default_rng(int(getattr(person, "seed", 0)) + 1601)      # meal_drink draws
@@ -711,7 +713,22 @@ class Behavior:
                 # the planned rest of a split meal bolus, in units of the first part (the world reads what was delivered);
                 # skipped if the person sees a low coming (CGM < 80) [J]
                 if not (self.readings and self.readings[-1][1] < 80):
-                    acts.append(("split_units", m, rest[0], rest[1])); self.last_bolus = m
+                    if t.split_full:
+                        # donors' second dose is a fresh recommendation (requested / recommended median 1.0), and 41% of
+                        # them follow more carbohydrate entered or an upward edit, median 20 g (LESSONS 186): a second
+                        # helping, eaten and entered, then Loop's recommendation
+                        if self.r_split2.random() < t.split_more_p:
+                            g2 = float(np.exp(self.r_split2.normal(math.log(20.0), 0.5)))
+                            bp = self.p.body
+                            acts.append(("eat", Parcel(m, g2, kempt=bp.kempt, kabs=bp.kabs, f=bp.f, label="second",
+                                                       kcal_per_g=4.0 + 9.0 * 0.44 + 4.0 * 0.45)))
+                            acts.append(("carb", m, float(max(1.0, round(g2))), t.absorption_entry_h * 3600))
+                            self.log.append((m, "meal", g2, round(g2)))
+                            self.log.append((m, "entry", round(g2), 1.0))
+                        acts.append(("bolus", m, 1.0))
+                    else:
+                        acts.append(("split_units", m, rest[0], rest[1]))
+                    self.last_bolus = m
                 self.log.append((m, "split_rest", 0, None))
             elif kind == "topup":
                 # a top-up when the meal is running high: CGM above 120 and not falling [J on the condition]
