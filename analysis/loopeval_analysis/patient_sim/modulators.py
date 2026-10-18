@@ -20,6 +20,8 @@ B6 illness       Poisson episodes, SI dip with ramps, EGP rise                  
 B14 steroids     oral glucocorticoid courses: morning dose, SI loss from 2 h, full 6–12 h, gone by 22 h; taper over the course
                  (Bevier 2008: insulin +69%, 30–100%, from 6 h after the first dose, baseline by day 4; Waljee 2017: 21.1%
                  of US adults with a short course in 3 years, half a 6-day dose pack) 00 D13
+X9 pregnancy     scenario only: insulin need by gestational week, up to week 9, down to a week-16 nadir, +5%/week to
+                 week 36, falling after 37 (García-Patterson 2010; ADA Standards 2023 §15) 00 X9
 """
 from __future__ import annotations
 
@@ -83,6 +85,7 @@ class ModTraits:
     stress_si: float = 0.10             # SI loss 1–5 h after onset (Moberg 1994; low end for everyday stress)
     steroid_rate: float = 0.09          # oral glucocorticoid courses per year: Waljee 2017's 21.1% of adults with >= 1 in 3 years
                                         # is 7.4%/yr for a first course; repeats lift it a little [J]
+    preg_week: float = float("nan")     # gestational week at the simulation's start (scenario X9); nan = not pregnant
     caffeine_si: float = 0.15           # SI loss at the plasma peak of a ~200 mg dose (Keijzers 2002, IV clamp; evidence/11 §4.2)
     seed: int = 0
 
@@ -231,6 +234,18 @@ class Modulators:
             f *= 1.0 - loss * w
         return f
 
+    @staticmethod
+    def pregnancy_need(week: float) -> float:
+        """Insulin need ÷ pre-pregnancy by gestational week (X9). Shape: García-Patterson 2010 (n = 65 T1D; three changes
+        of direction: up to week 9, down to week 16, up to week 37); slope from week 16 ~5%/week, linear (ADA Standards
+        2023 §15); a late fall after 37 (falling late requirement: J Perinatol 2021, s41372-021-00979-x). The early peak
+        (+10%) and nadir (−5%) sizes are [J]."""
+        w = float(week)
+        if w < 9: return 1.0 + 0.10 * w / 9.0
+        if w < 16: return 1.10 - 0.15 * (w - 9.0) / 7.0
+        if w < 37: return 0.95 * (1.0 + 0.05 * (w - 16.0))
+        return 0.95 * (1.0 + 0.05 * 21.0) * max(0.8, 1.0 - 0.05 * (w - 37.0))
+
     def dawn(self, m: float) -> float:
         if not self.t.dawn: return 0.0
         mm = m % DAY
@@ -311,6 +326,9 @@ class Modulators:
             egp += self.t.gh_dawn * (self.gh[dd] - 1.0) * shape
         if en.get("alcohol") and self.t.drinker and d >= 1 and self.drink[d - 1] and 6 * 60 <= mm < 12 * 60:
             egp *= 0.85                                                            # morning after (Turner 2001) [I size]
+        pw = getattr(self.t, "preg_week", float("nan"))
+        if pw == pw:
+            si /= self.pregnancy_need(pw + m / (7 * DAY))
         if en.get("steroid", True) and self.gc:
             si *= self.steroid(m)
         if en["illness"]:
