@@ -4167,3 +4167,17 @@ statistic here, but it is the controller donors ran.
        (1.17 without), so meal-size boluses act per unit as the probe says. (Full-body peak ratios, 4 U ÷ 0.5 U at 180:
        0.75 vs 0.84, are the restoring terms, and a 2-U probe from rest hits the 10 mg/dL floor.) The daytime excess has
        another cause.
+
+202. **The daytime excess is intake, not insulin: the TDD budget leaked; closing it helps, the day stays high.**
+     - B1b basal-need profile at the donor schedule's full shape (`prof_w` 1.0, c225): daytime unchanged (+15–25), low
+       depths exactly the donors' (40 / 50 / 57), lows 0.50/day: 26 matched. Not adopted.
+     - Delivered insulin by local hour (`ins_hour.py`, G7): the sim gives MORE by day (1.8–2.1 U/h at 08–22 h vs donors
+       1.1–1.8; G7 TDD median 39.8 vs 36.1), nights equal. Paired with their own donors, TDD ratio 1.00, but people eat
+       1.20× their carbohydrate budget (c223; c201_base 1.27×): the budget (LESSONS 143) subtracted grazing and the donor's
+       rescues but not pre-emptive carbohydrate (8% of the budget on average) and floored meals at half the budget, so
+       heavy grazers ate over it. The old base's weak liver hid the leak.
+     - **`budget_tight`** (acfac34; now default): the budget also pays for pre-emptive carbohydrate at the sim's own
+       mean share (0.08 of carbs_day, an accounting value from c223, not fitted to donors) and floors meals at 0.2. c226:
+       mean 160 → 157 (151), CV 34.5, hurst_long 0.327 → 0.304, daytime +13–18 (was +15–21), lows 0.54/day: 29 matched (28).
+     - Open: the remaining daytime excess with donor-level insulin; a per-person pre-emptive expectation (not the mean
+       share) when the defense team's own rates are measured on donors.

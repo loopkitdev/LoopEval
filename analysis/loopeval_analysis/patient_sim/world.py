@@ -344,7 +344,7 @@ class World:
                 resc = 0.0
             if not np.isfinite(resc): resc = 0.0
             bt = self.beh_traits = copy.deepcopy(bt)
-            if (enable or {}).get("budget_tight"):
+            if (enable or {}).get("budget_tight", True):   # default since 2026-10-18 (review loop, LESSONS 202)
                 # experiment (LESSONS 202): the TDD budget also pays for pre-emptive carbohydrate (the defense team eats
                 # ~8% of the budget on the evidence base, c223) and heavy grazers are not floored at half
                 pro = 0.08 * bt.carbs_day
