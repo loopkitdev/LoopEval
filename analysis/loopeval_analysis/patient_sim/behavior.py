@@ -417,6 +417,14 @@ class Behavior:
         space made 1 g of rescue raise 13 mg/dL against 3–4 in Brodows 1984 (LESSONS 18)."""
         return min(1.0, self.p.body.f * 1.25)
 
+    def minutes_to_bed(self, m: float) -> float:
+        """Minutes until tonight's bedtime (large when bedtime is far away or the person is asleep)."""
+        mm = m % DAY
+        wknd = int(m // DAY) % 7 in (5, 6)
+        bed = (self.t.bed + (self.t.weekend_shift / 2 if wknd else 0)) % DAY
+        d = (bed - mm) % DAY
+        return d
+
     def asleep(self, m: float) -> bool:
         mm = m % DAY
         wknd = int(m // DAY) % 7 in (5, 6)

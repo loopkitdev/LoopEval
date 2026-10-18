@@ -274,7 +274,8 @@ class World:
         # (LESSONS 169: night lows 53% -> 46%, CV and Hurst pass, 37 of 51)
         self.posture_p = (float(enable["posture_mult"]) if enable and isinstance(enable.get("posture_mult"), float) else 0.5) \
             * float(np.random.default_rng(int(person.seed) + 1907).uniform(0.19, 0.44)) \
-            if (enable or {}).get("posture", True) else 0.0                   # default since 2026-10-18 (Pete, LESSONS 163)
+            if (enable or {}).get("posture", True) else 0.0
+        self.posture_ramp = bool((enable or {}).get("posture_ramp", False))                   # default since 2026-10-18 (Pete, LESSONS 163)
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,
                                           frag=self.act_frag, frag_seed=int(person.seed) + 1811,
                                           **({"frag_on_med": float(enable["frag_on"])} if enable and isinstance(enable.get("frag_on"), float) else {}),
@@ -467,7 +468,7 @@ class World:
         u = u_basal + u_bolus
         self.body.step(1.0, si_mult=si, egp_mult=egp, ex_intensity=ex["ex_intensity"],
                        ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"],
-                       abs_mult=absm_env * absm_site * ex["abs_mult"] * ((1.0 - self.posture_p) if (self.posture_p and not self.beh.asleep(m)) else 1.0), bio=bio)
+                       abs_mult=absm_env * absm_site * ex["abs_mult"] * self._posture_mult(m), bio=bio)
         if int(m) % 5 == 0: self.ex_log.append((m, ex["ex_si_boost"]))     # exercise sensitivity, saved as truth ex_boost
         asleep = self.beh.asleep(m)
         reading = self.sensor.step(m, self.body.g, asleep=asleep)
@@ -498,6 +499,15 @@ class World:
                 self.pump.change_site(m); self.beh.log.append((m, "site_change_alarm", 0, reading))
         self.truth.append((m, self.body.g, self.body.ra, self.body.egp, si, u, self.body.insulin_absorbed * self.person.bw / 1000.0))
         self.minute = m + 1.0
+
+    def _posture_mult(self, m: float) -> float:
+        """Upright absorption × (1 − p) while awake, supine asleep (A4b). With posture_ramp the reduction fades linearly
+        over the last 3 h before bedtime (evenings reclining before sleep) [J shape] (LESSONS 172)."""
+        if not self.posture_p or self.beh.asleep(m): return 1.0
+        if self.posture_ramp:
+            tb = self.beh.minutes_to_bed(m)
+            if tb < 180.0: return 1.0 - self.posture_p * tb / 180.0
+        return 1.0 - self.posture_p
 
     def _fat_si(self, m: float) -> float:
         """Fat-induced insulin resistance: 1 − ρ·fat/50 at full effect, ramping in from 2 h, full 3–6 h,
