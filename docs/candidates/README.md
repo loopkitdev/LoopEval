@@ -1793,3 +1793,45 @@ need a running median with a population default (σ5 median 5.5, 10–90% 4.3–
 constant; data older than 2 h carries < 5% weight, so the reserve is usable within about an hour of a sensor start.
 
 **Limits.** As E57: one simulator; not yet checked on replay; not in the LoopAlgorithm experiments PR.
+
+## E59 · E57/E58 re-checked on the new additive defaults
+Additive simulator at c903ef3: body insulin action from the lispro clamp (p2 0.025), per-person bolus lead and CGM gap
+rates, `templates_pilot_abs.csv`; engine d33875c; σ constants from each level's own new baseline (median 5.6–5.7).
+Same 896 people. All-people ΔTIR / Δt<54 / lift, old → new:
+
+| | full entry | half entry, people who enter |
+|---|---|---|
+| guard | −0.74 / −0.03 / −0.01 → −0.47 / −0.06 / +0.69 | −0.61 / −0.04 / +0.64 → −0.42 / −0.05 / +0.75 |
+| C31(−30) + guard | +0.28 / −0.02 / +0.64 → +0.42 / −0.05 / +1.44 | +0.70 / −0.03 / +1.74 → +0.69 / −0.03 / +1.33 |
+| runway 0.7 from 150 + guard | +1.28 / −0.02 / +1.66 → +1.17 / −0.03 / +1.77 | +1.73 / −0.02 / +2.20 → +1.55 / −0.01 / +1.90 |
+
+Every sign holds. Runway's one soft group is temp-basal people who enter, at half entry: TIR +0.98, lift +0.48
+[−0.65, +1.63], true t<54 +0.04 [+0.01, +0.08]; at full entry the same group is +0.37 / −0.02 / lift +1.05. Runs:
+gamepc `~/frozen/c903ef3/runs` (full), Mac scratch `fz5/runs` (half); script `score.py`.
+
+## E60 · E59 and the lows-budget frontier on the new additive base
+Additive simulator at e1e0bcb: total-drop ISF with the full intake budget, fat resistance relative to the person's
+usual diet, posture and fragmented movement, κ 0.675 (Best 1981); `templates_pilot_night.csv`; engine unchanged since
+d33875c. Baseline: TIR 69.6 / t<54 0.35 / t<70 2.18 at full entry, 66.6 / 0.29 / 1.84 at half entry. Same 896 people.
+All-people ΔTIR / Δt<54 / lift, E59 → E60:
+
+| | full entry | half entry |
+|---|---|---|
+| guard | −0.47 / −0.06 / +0.69 → +0.03 / −0.05 / +1.09 | −0.30 / −0.04 / +0.95 |
+| C31(−30) + guard | +0.42 / −0.05 / +1.44 → +0.55 / −0.05 / +1.55 | +0.62 / −0.03 / +1.50 |
+| runway 0.7 from 150 + guard | +1.17 / −0.03 / +1.77 → +1.24 / −0.04 / +2.17 | +1.50 / −0.03 / +2.38 |
+
+Every sign holds, and E59's soft group is gone: temp-basal people who enter, at half entry, runway TIR +0.86,
+lift +1.63 [+0.59, +2.76], true t<54 −0.00 [−0.03, +0.03]. Runway + guard adds +0.1 (full) / +0.3 (half) U/day.
+
+Frontier (best ΔTIR within a Δt<54 budget, all people; dial alone vs runway + guard along the dial):
+
+| budget | full: dial | full: runway + guard | half: dial | half: runway + guard |
+|---|---|---|---|---|
+| no increase | 0 | +2.1 | 0 | +2.2 |
+| +0.05 | +1.0 | +3.0 | +1.1 | +3.1 |
+| +0.10 | +1.9 | +3.8 | +2.2 | +4.1 |
+| +0.20 | +3.2 | +4.9 | +3.7 | +5.5 |
+
+The same shift right as E59's frontier, slightly larger. At needs ×1.05 runway + guard gives ΔTIR +2.4 / +2.5 for
+Δt<54 +0.02 (true +0.03). Runs: Mac scratch `fz6/runs`; scripts `score.py`, `front.py`.
