@@ -3892,3 +3892,16 @@ statistic here, but it is the controller donors ran.
        less insulin; sleep_util) seen as events rather than drift. Candidates with a mechanism for everyone: nocturnal
        growth-hormone surges at sleep onset and the cortisol rise toward waking, as pulses rather than sleep_util's
        smooth level; sleep arousals. Each needs its own evidence before a switch.
+
+185. **The missing daytime lows are bolused meals that go low about an hour later, at twice the sim's rate.** Low onsets
+     (`low_ctx2b.py`, G7, c201_base vs donors): 0.943 vs 1.059 per day, and the whole shortfall sits within 2 h of an
+     entry (0.138 vs 0.270; 0–30 / 30–60 / 60–120 min: 0.033 / 0.021 / 0.083 vs 0.058 / 0.071 / 0.141). After entries ≥ 15
+     g, the early lows are bolused meals in both: sim 0.113 per day vs donors 0.210, BG at the entry p25 / p50 / p75 84 /
+     122 / 164 vs 95 / 119 / 154, a median 76 vs 67 min after it; unbolused entries add 0.002 vs 0.029 (treatments). So
+     real bolused meals outrun their carbohydrate about twice as often, from ordinary starting glucose. With lesson
+     178 (real meals also rise further), both tails of the real meal response are wider than the sim's: the per-meal
+     match of carbohydrate arriving to insulin given varies more in life. Not the per-dose absorption spread, whose
+     values are evidenced (A4 15% net of Heise 2017's 18–26% clamp CV; 50% at lipohypertrophic sites, Famulla 2016),
+     and not count spread alone (count_sd ×2 left the first hour unchanged, lesson 150). Untested, with a mechanism
+     for this: the meal eaten later than or partly instead of what was entered (pre-bolus timing, unfinished meals);
+     each needs a measured rate before it becomes a switch.
