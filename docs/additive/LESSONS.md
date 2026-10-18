@@ -2673,3 +2673,7 @@ statistic here, but it is the controller donors ran.
      deep and too early removes glucose in exactly the 1.5–3 h window where simulated meals fall below baseline and
      donors' hold (lesson 130). Fit targets: the tracer nadir (depth and time) first, then the entry-anchored CGM
      trajectory. Arms (c143): p2e 0.006 (was 0.010; ReplayBG prior 0.008) and egp_share 0.4 (was U(0.5, 0.7)).
+     - **c143.** p2e 0.006: EGP nadir 0.54 at 120 min (Romeres 0.56 at ~160). Entry-anchored temp ΔCGM per 10 g at
+       90 / 150 min: +3.0 / −1.9 (c135 +0.7 / −3.3; donors +5.9 / +5.5). 34 vs 31 matched; hurst_long 0.267
+       (passes); day/night 1.80; CV 38.7 (fails). egp_share 0.4: nadir 0.64 but the trajectory is worse (−4.3 at
+       150 min); 28. The timing matters, not the share. Queued p2e 0.005 / 0.004 (c144) for the tracer nadir time.
