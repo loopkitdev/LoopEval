@@ -3016,3 +3016,28 @@ statistic here, but it is the controller donors ran.
      - A first version without titration (c158, settings left at pre-pregnancy) put week 28 at +26 to +31 mg/dL
        on day 0, which no clinic would leave; titrated starts are the scenario's definition.
      Off by default; for candidate testing on a steadily changing need.
+
+142. **Under total-drop ISF the excess is daytime, not basal; the basal share does not move it.** c160 (`--enable
+     isf_total --set basal_share=0.50 / 0.55`, frozen ba1a923) against c156_base and c157_total (share 0.42):
+
+     | | default (peak) | total 0.42 | total 0.50 | total 0.55 | donors |
+     |---|---|---|---|---|---|
+     | temp ΔCGM per 10 g at 60 / 120 / 150 / 180 min | +2.6 / −2.8 / −3.5 / −3.3 | +2.8 / +3.3 / +2.3 / +1.5 | +3.5 / +3.6 / +4.3 / +2.4 | +4.2 / +3.6 / +3.9 / +3.1 | +6.4 / +5.2 / +5.5 / +5.5 |
+     | mean / TIR | 148 / 70 | 178 / 56 | 179 / 55 | 175 / 57 | 151 / 72 |
+     | CV | 38.4 | 35.0 | 33.8 | 32.5 | 34.8 |
+     | t70 / lows per day | 2.34 / 1.42 | 0.44 / 0.42 | 0.34 / 0.29 | 0.26 / 0.25 | 1.67 / 1.08 |
+     | TDD | 38.9 | 46.0 | 43.0 | 43.1 | 38.8 |
+     | matched | 33 | 23 | 22 | 19 | |
+
+     Median glucose by 3-h local block (default / total 0.42 / total 0.50): 00–03 150 / 182 / 182; 03–06 129 / 151 /
+     152; 06–09 130 / 136 / 140; 09–12 151 / 170 / 169; 12–15 158 / 185 / 188; 15–18 159 / 186 / 187; 18–21 155 /
+     191 / 194; 21–24 157 / 197 / 196.
+     - The fasting morning is near the default's (+6 to +10); the excess builds through the waking day (+19 by noon,
+       +36 to +40 in the evening) and drains overnight. So total-drop bodies under Loop fail to clear the day's
+       intake, not to hold the basal state; a larger basal share (fewer grams eaten for the same TDD) leaves it.
+     - The meal shape improves further with the share (temp +4.2 / +3.6 / +3.9 / +3.1 at 0.55, the closest to the
+       donors yet), and CV goes below the donors'.
+     - Reading with lesson 140: the per-unit effect that holds the day's level (corrections, Loop's automatic dosing
+       on unannounced intake) is the peak calibration's; the per-unit effect after an entered meal is the total's.
+       Next: split the total arm's daytime excess by source (entered meals, unannounced eating, rescues) with the
+       labeled-event attribution, to see which intake the bodies fail to clear.
