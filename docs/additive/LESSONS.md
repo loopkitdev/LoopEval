@@ -3528,3 +3528,8 @@ statistic here, but it is the controller donors ran.
        The last is the most direct suspect: a hands-on donor who edits settings often (eda edit rates are in the
        templates) plausibly runs settings closer to their body. Next: twin CV gap against the donor's settings-edit
        rate.
+     - **Not settings tuning.** Twin Δ CV against the donor's settings-edit rate (basal + ISF + CR edits/day, median 0.09):
+       Spearman 0.07; by tercile few / some / many +4.3 / +3.4 / +3.9; donors' own CV does not follow edits either
+       (−0.03). The CV excess (~+4) is universal across people, not a hands-on or tuning effect: a population-wide
+       component adds variance (or a missing one removes it). The posture pair raised CV 36.8 → 39.2 while fixing
+       the lows; the next check is which part of the posture pair's added variance falls outside the lows.
