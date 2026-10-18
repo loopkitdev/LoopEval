@@ -4048,3 +4048,22 @@ statistic here, but it is the controller donors ran.
        depths hold in every arm. No single-parameter refit restores A5 without breaking another target, so the EGP arm
        (share, rate, and the nadir's 30–50 min early timing, which no arm moves) is refitted jointly with what it
        trades against, or its form revisited (egp_sat, LESSONS 193). Base unchanged.
+
+195. **Read like-for-like, the base under-suppresses meal EGP and share ≈ 0.8 fits the tracer nadir.** Two corrections to
+     the A5 check (`egp_romeres2.py`): Romeres 2025's 44 ± 17% is the mean of each subject's own nadir (time 160 ± 110 min,
+     SD), not the minimum of a median curve; and tracer EGP includes the liver's glucose-mediated suppression, which the
+     model carries inside its lumped SG term (UVA/Padova kp2 ≈ 0.0021/min of the sim's sg 0.003, so ~0.7 hepatic). Per
+     person (mean curve over their isolated meals ≥ 20 g; pre-meal EGP ≥ 30% of basal), SG hepatic part 0.7:
+
+     | arm | nadir suppression mean (p50) | mean 0–5 h | nadir time p50 |
+     |---|---|---|---|
+     | c201_base (share U(0.5, 0.7)) | 0.34 (0.29) | 0.16 | 120 |
+     | c217 share 0.8 | 0.50 (0.47) | 0.27 | 120 |
+     | c217 share 0.9 | 0.61 (0.60) | 0.38 | 120 |
+     | Romeres 2025 T1D adults | 0.44 ± 0.17 | ~0.45 [verify: evidence/13 summary] | 160 ± 110 |
+
+     (SG hepatic part 0.5 moves each nadir by ≤ 0.05.) Insulin action timing still meets its clamp target on today's
+     bodies (GIR peak 105 min vs ~100, 6.6% of the effect in the first hour vs 6.3%). So A5's share drifted low, not its
+     rate; its evidence now asks for ~0.8, at the cost lesson 194 shows (low duration p90 90 vs 65, meals ending < 70 4.4%
+     vs 9.7%: 29 matched). Suppression also fades too early at every share (5-h mean 0.27 vs ~0.45). Refitting A5 to its
+     evidence means re-reviewing what then drifts (A9's low durations, the meal-low rate) on that base.
