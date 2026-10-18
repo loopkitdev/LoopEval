@@ -77,6 +77,7 @@ class BehaviorTraits:
     slot_shares: tuple = (0.22, 0.30, 0.34)   # breakfast / lunch / dinner share of a main-meal day (Camerlingo 2021)
     slot_ann: tuple = (1.0, 1.0, 1.0)         # per-meal entry chance relative to p_entry_meal (donor's own windows)
     p_entry_snack: float = 0.3
+    graze_eve: bool = False              # graze timing weighted to the evening (LESSONS 170)
     slot_comp: bool = False              # fat/protein per carb gram by meal slot (LESSONS 170)
     count_size: str = "log"              # "brazeau": the size-dependent mean error of Brazeau 2013 (LESSONS 146)
     count_bias: float = -0.10            # person's mean carb-count error (Brazeau 2013: 63% under)
@@ -584,7 +585,12 @@ class Behavior:
         for _ in range(r.poisson(t.graze_per_day)):
             # on the person's own eating clock over waking hours, like snacks (evening-heavy for most donors), not uniform
             # across the day [LESSONS 82]
-            st = (base + (float(r.choice(24, p=sh_day)) + r.random()) * 60 + shift) if sh is not None \
+            pg = sh_day
+            if t.graze_eve and sh is not None:
+                # unlogged eating concentrates after dinner (donors' unannounced intake 1.5-5 h after dinner is 1.5x
+                # lunch's; LESSONS 170): evening hours 19-23 weighted x2 [J size], daily count unchanged
+                wv = np.ones(24); wv[19:23] = 2.0; pg = sh_day * wv; pg = pg / pg.sum()
+            st = (base + (float(r.choice(24, p=pg)) + r.random()) * 60 + shift) if sh is not None \
                 else base + float(r.uniform(t.wake + 30, t.bed)) + shift
             gz = max(1.0, float(np.exp(r.normal(math.log(t.graze_g), 0.4))))
             if t.graze_keep < 1.0 and self.r_gz.random() >= t.graze_keep:
