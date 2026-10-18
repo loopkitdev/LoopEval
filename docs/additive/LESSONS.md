@@ -2623,3 +2623,8 @@ statistic here, but it is the controller donors ran.
        Elleri 2013's tracer meals (high-GL 72/130/197, low-GL 95/178/270). "At or above tracer pace" is not a match:
        the late absorption is too short, which explains this trajectory. Arms queued: ge_mult 0.7 and 0.55, inside
        evidence/09's Vmax 2–5 kcal/min. Target: this entry-anchored trajectory and the tracer t50/t75.
+     - **Slower emptying makes it worse** (c141, ge_mult 0.7 / 0.55): entry-anchored ΔCGM per 10 g at 120–180 min
+       −6.5 to −9.6, against c135's −2 to −4; appearance t50 unchanged (98 min). The dip is insulin acting ahead of
+       the carbohydrate: donors rise faster early (60 min +4.3 / +6.4 per 10 g vs the sim's +1.7 / +2.7), hold a
+       plateau, and come back by 5–6 h. Next arms (c142): slower insulin action p2 0.015 (the 15 U clamp's 6.3% in
+       the first hour is below the body's ~10% at p2 0.025) and faster early emptying ×1.4.
