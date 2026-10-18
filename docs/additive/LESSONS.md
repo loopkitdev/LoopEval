@@ -3905,3 +3905,7 @@ statistic here, but it is the controller donors ran.
      and not count spread alone (count_sd ×2 left the first hour unchanged, lesson 150). Untested, with a mechanism
      for this: the meal eaten later than or partly instead of what was entered (pre-bolus timing, unfinished meals);
      each needs a measured rate before it becomes a switch.
+     - **Unfinished meals, as far as edits show them, are rare**: of entries ≥ 15 g, those revised downward more than 5
+       min after entry are 0.4% per donor on average (p90 1%; 253 across 193 donors; to a median 0.70 of the entry,
+       34 min later), against 1,641 revised upward. Edits under-record (most people never edit), but where the record
+       speaks, real meals grow after entry rather than shrink. Pre-bolus timing has no record in the donor data.
