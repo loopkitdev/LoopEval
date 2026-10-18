@@ -3951,3 +3951,18 @@ statistic here, but it is the controller donors ran.
        than in the sim, and Loop then withholds. The settings-to-body carb ratio is the coupling that sets this
        (person.py, LESSONS 37: an independent draw gave 4× the donors' post-meal lows; the half-weight blend now gives
        half). Its spread is the next measurement: the donors' per-meal rise per entered gram against their CR.
+
+188. **Per meal, the sim's post-bolus drop matches the donors'; the missing early lows are spread thin.** Bolused isolated
+     entries ≥ 15 g (`meal_out.py`, G7; 13,175 donor meals, 1,249 sim): nadir over 0–2 h minus entry CGM p10 / p50 / p90
+     −84 / −11 / +3 vs −85 / −12 / +2; drop ≥ 40 in 25.7% vs 27.1%; SD of person medians 16.7 vs 18.5, within-person SD
+     36.6 vs 31.4. So the carb-ratio setting's mismatch to the body (LESSONS 37's half-weight blend) has the donors' spread.
+     Ending below 70 within 2 h: 9.7% vs 7.7% of meals; by entry BG < 100 / 100–140 / ≥ 140: 21.3 / 8.5 / 6.4% vs 20.6 /
+     6.6 / 4.7%; entry BG median 133 vs 140.
+     - **Meal occasions**: paired with their own donors (`bol_occ.py`, 86 people), the simulated people make 2.88 carb
+       entries/day against 3.45 in the donors' exports, ≥ 15 g 2.17 vs 2.82, and bolus all of them (donors 92%). The
+       sim reproduces its template (entries_raw 2.95, 0.95–0.98 by tercile); entries_raw merges entries < 30 min apart
+       (templates.add_raw_rates), and donors make ~0.5/day of those (courses, second helpings, amount corrections) where
+       the sim makes almost none.
+     - The early-low shortfall (0.11 vs 0.21/day, LESSONS 185) is therefore several small parts multiplied: ~25% fewer
+       lows per isolated meal from ordinary starts, a slightly higher meal start, fewer separate entries, and the stacked
+       multi-entry meals the sim lacks. No single mechanism carries it; each part is a measurement for its own component.
