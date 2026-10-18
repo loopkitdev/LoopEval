@@ -3582,3 +3582,4 @@ statistic here, but it is the controller donors ran.
        deepest nadirs include compression lows and the 40-mg/dL floor (common-mode, AGENTS), so the depth target is
        itself a little deep; ×0.5 is the fit that does not chase it.
      - Durations stay long at p90 (95 vs 75 min): recovery from a low is still slower than real (rescue timing or size).
+     - **Adopted (Pete, 2026-10-18): CRmax median 0.5** (0.5 × the same draws); registry A9.
