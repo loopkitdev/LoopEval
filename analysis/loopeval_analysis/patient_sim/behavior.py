@@ -669,7 +669,9 @@ class Behavior:
             elif kind == "graze":
                 bp = self.p.body
                 k = (0.08, 0.08) if t.graze_fast else (bp.kempt * 1.5, bp.kabs * 1.5)   # fast: liquid sugar, as rescues
-                acts.append(("eat", Parcel(m, rest[0], kempt=k[0], kabs=k[1], f=self._f_glucose(), label="graze")))
+                # a fast graze is liquid sugar: like a meal's liquid share it empties outside the energy ceiling (LESSONS 158)
+                acts.append(("eat", Parcel(m, rest[0], kempt=k[0], kabs=k[1], f=self._f_glucose(), label="graze",
+                                           kcal_per_g=0.0 if t.graze_fast else 4.0)))
                 self.log.append((m, "graze", rest[0], None))
             elif kind == "split_rest":
                 # the planned rest of a split meal bolus, in units of the first part (the world reads what was delivered);
