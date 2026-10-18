@@ -3821,3 +3821,15 @@ statistic here, but it is the controller donors ran.
        and dinner in the right range and activity and SI ruled out, what is particular about simulated lunches (their
        entries, boluses and pre-lunch state) is the next measurement. As with sleep_util, holding the night up costs
        the low count; the night and the daytime lows have to move together.
+
+181. **Simulated lunches start 26 mg/dL higher; the late-morning bulge is breakfast's long tail.** Isolated entries
+     ≥ 20 g by slot (`slot_state.py`), medians — BG at entry / 30-min pre-trend / manual bolus U per 10 g within ±30 min
+     / bolus minus entry (min):
+     - donors: breakfast 122 / +2.6 / 1.13 / 0.1; lunch **128** / −1.8 / 1.08 / 0.1; dinner 138 / −1.0 / 1.01 / 0.1;
+     - c201_base: breakfast 122 / +2.0 / 0.98 / 2; lunch **154** / −2.9 / 1.03 / 2; dinner 144 / −2.0 / 0.95 / 2.
+     Boluses, timing and trends match; lunches begin high, so Loop's correction and κ's mass action blunt their rise
+     (lesson 180). Breakfast and dinner start at the donors' levels. The 3-h profile's 09–12 block is 158–162 against
+     the donors' 146 in every arm, and the sim's breakfasts keep +26–28 at 3.5–4 h against the donors' +16–22. With the
+     circadian SI profile off (c191) lunch starts at 145 and 09–12 reads 158: B1 explains a third. Next: what lengthens
+     the simulated breakfast tail (morning fat and protein, the dawn part of the basal-need profile, and the Visentin
+     breakfast level each acting after 2 h).
