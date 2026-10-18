@@ -36,7 +36,8 @@ def _one(args):
                           isf_total=bool(enable.get("isf_total", False)),
                           kappa_mult=enable.get("kappa_mult", 1.0) if isinstance(enable.get("kappa_mult"), float) else 1.0,
                           ge_var=bool(enable.get("ge_var", True)), basal_own=bool(enable.get("basal_own", False)),
-                          basal_share=enable.get("basal_share") if isinstance(enable.get("basal_share"), float) else 0.42)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
+                          basal_share=enable.get("basal_share") if isinstance(enable.get("basal_share"), float) else 0.42,
+                          isf_blend=enable.get("isf_blend") if isinstance(enable.get("isf_blend"), float) else 0.0)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
         run(P, days, out, binp, enable=enable, controller=controller, extra_flags=flags.get(P.name, flags.get("*", [])))
