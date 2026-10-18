@@ -57,11 +57,11 @@ estimates (LESSONS 2).
 
 | Component | Model form | Parameters | Evidence | Status |
 |---|---|---|---|---|
-| C1 Insulin-independent uptake | ex_uptake·gain·Y·G/Gb, Y = intensity through a 7-min lag | ex_uptake lnN(3.0, 0.3) [J] | 02 §1; evidence/10 (Dhaliwal 2025 glucose dependence) | wired |
+| C1 Insulin-independent uptake | ex_uptake·gain·Y·G/Gb, Y = intensity through a 7-min lag | ex_uptake lnN(3.0, 0.3) [J] | 02 §1; evidence/10 (Dhaliwal 2025 glucose dependence); BDDP workouts by starting glucose (LESSONS 137) | wired |
 | C2 Acute + delayed sensitivity | insulin action ×(1 + 2.0·gain·Y + Z); dZ = 0.018·gain·drive − Z/600, drive above Y 0.12 | α 2.0 (Romeres 2021); threshold 0.12 (UVA, Deichmann) | evidence/10 §7.3; LESSONS 34 | wired |
 | C3 Absorption during exercise | absorption ×(1 + 0.5 I) [J] | — | 02 §1 | wired |
 | C4 Anaerobic EGP surge | EGP + surge × anaerobic share | — | 02 §1 (Marliss & Vranic 2002) | built (0 until calibrated) |
-| C5 Sessions | per-person rate 0–5/week, ~40 min, time-of-day slot, pre-exercise carbs p 0.3 | — | 02 (T1DEXI, an active cohort); 04 | wired |
+| C5 Sessions | per-person rate 0–5/week, ~40 min, time-of-day slot, pre-exercise carbs p 0.3 | — | 02 (T1DEXI, an active cohort); 04; **validated** against 18 k BDDP HealthKit workouts under Loop: excess ΔCGM at 45 min sim −12.5 vs donors −17.0, 6 h −6.5 vs −6.2, intervals overlap (LESSONS 137) | wired |
 | C6 Everyday activity | episodes lnN(2/day, 0.55) × day gamma(3); duration lnN(18 min, 0.75); intensity (MET − 1)/(METmax − 1) × 0.7; UK Biobank day profile; waking background lnN(0.06, 0.4); per-person gain lnN(0, 0.5); intake covers the expected activity (clamp probe, median ~28 g/day) | METmax lnN(9, 0.25) | evidence/10 (T1DEXI, NHANES, UK Biobank, Compendium); LESSONS 34 | calibrated (lows) |
 
 Calibration targets for C: T1DEXI's per-session drop by starting glucose and by IOB, and the

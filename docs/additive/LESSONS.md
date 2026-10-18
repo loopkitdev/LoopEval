@@ -2881,3 +2881,32 @@ statistic here, but it is the controller donors ran.
        compare: day 0 +6.8, consistent with the donors' +4.7, with single offsets swinging −18 to +30. A dedicated
        check needs menstruating people over full cycles (≥ 60 days). The shape is now evidence-based (BDDP logs).
        Default-on is Pete's call; the cohort cost is nil.
+
+137. **Structured exercise checks out against BDDP workouts, under Loop, at the same measurement.** First data
+     validation of the exercise component (C1–C5), which is sized from literature.
+     - **Donors.** HealthKit workouts (`physicalActivity`, 10–180 min) of Loop users in a hashed 1-in-20 user sample:
+       18 k workouts, 76 users, median 33 min, ~5 kcal/min. "Clean" means no carb entry or bolus in the 2 h before
+       the start. Control instants are the same person at the same clock time ±2/5/9 days, clean, with no workout in
+       the 24 h before or 10 h after. The excess is the workout's ΔCGM from the 15 min before the start minus the
+       same person's control ΔCGM in the same 20 mg/dL starting band (start-glucose matching removes regression to
+       the mean, which dominates the raw split). Value: median user.
+     - **Sim.** The default people over 56 days (c154, frozen 17c4c51; 1,827 sessions, 546 clean with matched
+       controls, 51 people), measured with the same script logic on the sim CGM (`sim_workout.py`).
+
+       | min from start | 15 | 30 | 45 | 60 | 90 | 120 | 240 | 360 | 480 |
+       |---|---|---|---|---|---|---|---|---|---|
+       | donors | −8.3 | −15.4 | −17.0 | −14.5 | −7.6 | −2.7 | +0.7 | −6.2 | −7.2 |
+       | sim | −8.6 | −7.9 | −12.5 | −10.7 | −5.4 | −4.3 | −8.1 | −6.5 | +3.4 |
+
+       95% bootstrap intervals over users overlap at every bin: 45 min donors −21.1..−12.6, sim −19.0..−7.3;
+       360 min donors −9.7..−3.2, sim −16.3..+3.0. The acute drop, its recovery by 2 h and the size of the late
+       after-effect (6–8 h, delayed sensitivity) are all in the donors' range; the sim's acute drop sits at the
+       weak end (~70% of the donors' median at 30–60 min).
+     - **Glucose dependence (C1 mass action).** Donor excess at 45 min by starting glucose: < 120 −2.3, 120–180
+       −18.2, > 180 −31.1 (the shape Dhaliwal 2025 reports). Sim: −7.4, −10.6, −61.3 (14 people above 180).
+       Steeper in the sim at high starts, on few people; not acted on.
+     - Logged workouts are deliberate exercise (HIIT, strength, elliptical, cycling, yoga), so this validates C5
+       sessions, not everyday activity (C6). By type the donors' acute drop is largest for aerobic (−19.8 at 45 min)
+       and smallest for HIIT (−7.9, 8 users), consistent with the anaerobic EGP surge (C4, built, 0 until
+       calibrated); strength and yoga run −13 to −16 and carry a longer tail. No change to the defaults.
+     Data and scripts: `runs/2026-10-18-additive-workouts/`.
