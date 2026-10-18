@@ -319,7 +319,7 @@ class World:
         # While asleep, net glucose rises by delta × ~1 mg/kg/min of insulin-independent (mostly brain) uptake, delta per
         # person U(0.05, 0.12) [J within the studies' size], ramping in over the first 30 min of sleep
         self.sleep_util = float(np.random.default_rng(int(person.seed) + 2011).uniform(0.05, 0.12)) \
-            if (enable or {}).get("sleep_util") else 0.0
+            if (enable or {}).get("sleep_util", True) else 0.0     # default since 2026-10-18 (LESSONS 214)
         self._sleep_since = None
         self.ge_circ = bool((enable or {}).get("ge_circ", False))
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,

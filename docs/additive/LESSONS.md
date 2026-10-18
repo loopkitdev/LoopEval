@@ -4335,3 +4335,16 @@ statistic here, but it is the controller donors ran.
      - **slot_comp re-tested on this base** (c238_sc): breakfast +17 / 40 / 48 at 0.5–1.5 h and +22 / 16 at 3.5–4 h (donors
        +18 / 41 / 42 and +22 / 16), 24-h amplitude 0.191 → 0.179, lunch start 148 → 145 (128); 25 matched (24). Breakfast's
        own shape now matches; kept a switch until the lunch start moves.
+
+214. **Paired by hour, afternoons and evenings now match; the remaining shape is night-low / morning-high, and sleep_util
+     takes the night half.** Paired hourly CGM (c238_sc minus each person's donor): 13–23 h within ±5; 01–07 h −7 to −13 on
+     0.81–0.95× the donor's insulin; 08–11 h +5 to +11 on 1.30–1.53×.
+     - **Delivered-insulin need profile** (`templates.add_delivered_profile`, column basal_profile_deliv; `prof_deliv`,
+       off): the shape of insulin the donor's Loop delivered on quiet steps (no entry or manual bolus in 4 h). Only 62 of
+       168 donors have ≥ 20 quiet hours at every hour, and by day the "quiet" insulin still covers carbohydrate absorbing
+       past 4 h (median shape 0.68–0.84 at 03–07 h, 1.1–1.2 at 13–22 h), so it is not a clean need measure. Not run.
+     - **sleep_util on this base** (c239): night unentered rises 0.57 → 0.61 (donors 0.67), rise after a night Loop cut 21 →
+       23% (30%), 24-h amplitude 0.179 → 0.163 (0.131), low duration p90 70 → 65 (65), lunch start 145 → 143; low onsets
+       0.62 → 0.55/day, the drop entirely > 4 h after an entry (night), lows within 2 h of meals unchanged (0.066 vs
+       0.069); 24 vs 25 matched. **Default on** (Van Cauter 1991/1997 size; quiet-night balance on the donors', LESSONS
+       173): the daytime-lows objection that kept it off is now located in the post-meal tail (LESSONS 212).
