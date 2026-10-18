@@ -3774,3 +3774,12 @@ statistic here, but it is the controller donors ran.
        data available (no steps, heart rate or stress signals in BDDP), the sim cannot identify that source; it is
        recorded as the main open gap, with the activity and stress-hormone candidates for literature or a dataset that
        carries them.
+
+178. **Meal timing variability matches; the first-hour gap is in how far meals rise.** CGM time-to-peak within 3 h of
+     isolated entries ≥ 20 g with a rise ≥ 15 (`ttp.py`): donors (118 people, 10,820 meals) median 101 min, within-
+     person SD 51.2, between-person SD of person medians 25.1; c201_base (72, 783) 99 min, 47.4, 34.1. Bell 2021
+     (Nutrients; children with T1D, identical controlled breakfast): within-person time-to-peak SD 38.9 min against
+     18.5 between persons, the same ordering. The sim reproduces when meals peak and how much that varies within a
+     person; the remaining first-hour gap (lessons 146–150, 174–177) is in amplitude: how far a real meal rises,
+     size-independently, while its timing and its late plateau stay as the sim has them. The sim's people also differ
+     more from one another in timing than the donors do (between-person SD 34 vs 25).
