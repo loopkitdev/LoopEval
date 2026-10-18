@@ -3291,3 +3291,4 @@ statistic here, but it is the controller donors ran.
      - Left after fat_rel: ~+8 mean, carried by automatic-bolus people and the heavy enterers. The protein parcel
        (0.1 g glucose per g protein, ~4.5% of carbohydrate grams) also sits outside the TDD budget, the same
        bookkeeping question; fat off entirely (157) bounds the two together.
+     - **Adopted (Pete, 2026-10-18): `fat_rel` is the default** (`--disable fat_rel` restores the absolute term).

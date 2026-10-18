@@ -351,11 +351,11 @@ class World:
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
         self.fat_rho = float(r_misc.uniform(0.1, 0.6))
-        # fat_rel (experiment, LESSONS 151): the fat resistance relative to the person's own usual diet. Their ISF, CR and
+        # fat_rel (default since 2026-10-18, Pete; LESSONS 151; --disable fat_rel): the fat resistance relative to the person's own usual diet. Their ISF, CR and
         # TDD were tuned on their ordinary meals, average fat included, so the term is normalised to a mean of 1 over the
         # planned days (as caffeine is, relative to the person's habitual intake); fattier than usual still dips SI
         self.fat_norm = 1.0
-        if (enable or {}).get("fat_rel") and self.enable.get("fat", True):
+        if (enable or {}).get("fat_rel", True) and self.enable.get("fat", True):
             ev = sorted((tm, a[1].fat) for (tm, a) in self.beh.planned if a[0] == "eat_meal" and getattr(a[1], "fat", 0) > 0)
             if ev:
                 grid = np.arange(DAY, days * DAY, 5.0); mult = np.ones_like(grid)
