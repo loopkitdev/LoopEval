@@ -3583,3 +3583,20 @@ statistic here, but it is the controller donors ran.
        itself a little deep; ×0.5 is the fit that does not chase it.
      - Durations stay long at p90 (95 vs 75 min): recovery from a low is still slower than real (rescue timing or size).
      - **Adopted (Pete, 2026-10-18): CRmax median 0.5** (0.5 × the same draws); registry A9.
+
+167. **Half the sim's lows are at night; the donors' are 22%.** Low episodes (< 70 for ≥ 15 min, G7) split by local
+     night (00–06) vs day (`lowdur.py`): donors 22% at night (2,613 of 11,835; duration p90 night 80, day 60 min); sim
+     c187_base 53% (465 of 884; p90 93 / 50). It was already 45% before posture (c177); posture moves lows into the
+     night (c181_po 56%), fragmented movement adds them by day (c179 57% day).
+     - **Not the timing of the day's insulin:** hours from the last manual bolus to a night low, median 6.4 sim vs 6.8
+       donors; from the last entry 7.0 vs 7.8 (`nightlow.py`).
+     - **Not the basal share:** 0.47 / 0.52 (c188) leave the night share at 51% / 50% and trade lows against CV,
+       Hurst and night insulin CV (CV 35.0 / 34.3 and night insulin CV 39.6 / 36.0 pass; lows 0.88 / 0.67 per day;
+       34 / 31 matched).
+     - **Not the movement bouts' delayed sensitivity:** act_frag's 4-min bouts ran at intensity 0.28 to keep the
+       waking mean, above the 0.12 threshold, so everyday movement built the post-exercise state (night ex_boost 0.15
+       vs 0.03 before). Light-intensity bouts (`--set frag_on=9.6`: bouts at 0.15, ~40% of waking time, the
+       accelerometry share of light activity) bring it to 0.10, but the night share stays 52% (c189; 35 matched).
+     - **Not targets:** 7% of donors set a night target ≥ 5 higher (median night − day 0).
+     Next: the body's basal-need profile, which follows the donor's schedule shape only halfway (B1b, prof_w 0.5 [J])
+     while Loop runs the full schedule.
