@@ -79,6 +79,9 @@ class BodyParams:
                                    # (0 = off, plain first-order): emptying is energy-rate limited, so a big meal empties
                                    # for hours (Hunt 1985, Brener 1983, Calbet 1997; evidence/09). Vmax 3 is the review's
                                    # central value and the only setting that gives the donors' lognormal glucose (LESSONS 33)
+    ge_cap_speed: float = 0.0      # 1 = the energy ceiling scales with the energy-weighted speed of the meals in the stomach,
+                                   # so a meal's composition (liquid, fibre, viscosity) changes its own Vmax; 0 = one ceiling per
+                                   # person, under which per-meal speed vanishes once a meal saturates it (LESSONS 150)
     ge_gamma: float = 0.0          # > 0: power-law emptying instead of Michaelis–Menten: the stomach's energy outflow is
                                    # ge_kcal_max·(S/400 kcal)^γ, capped by each parcel's first-order kempt rate. The absolute
                                    # kcal/min keeps rising with load — doubling the load: ×1.45 (Schirra 1996, γ 0.54),
@@ -105,6 +108,8 @@ class Parcel:
     f: float = 0.9
     hypo_sensitive: bool = True    # gastric emptying speeds up in hypoglycaemia
     label: str = "meal"
+    speed: float = 1.0             # the meal's own emptying-speed factor (composition), seen by the energy ceiling when
+                                   # ge_cap_speed is on (LESSONS 150)
     kcal_per_g: float = 4.0        # energy leaving the stomach per gram of this parcel's carbohydrate (fat and protein
                                    # eaten with it included); used only by the energy-rate ceiling
     q: list = field(default_factory=lambda: [0.0, 0.0, 0.0])   # mg/kg in sto1, sto2, gut
@@ -271,11 +276,15 @@ class Body:
         # energy-rate ceiling: the stomach's total outflow (kcal/min) is shared by every parcel in it
         scale = 1.0
         if p.ge_kcal_max > 0:
-            kcal = 0.0
+            kcal = 0.0; wsp = 0.0; wk = 0.0
             for pc in self.parcels:
                 if pc.entered:
                     kcal += pc.kempt * (phi if pc.hypo_sensitive else 1.0) * pc.q[1] * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g
+                    w_ = pc.q[1] * pc.kcal_per_g
+                    wsp += w_ * pc.speed; wk += w_
             cap = p.ge_kcal_max * phi
+            if p.ge_cap_speed > 0 and wk > 0:
+                cap *= 1.0 + p.ge_cap_speed * (wsp / wk - 1.0)
             if p.ge_gamma > 0:
                 load = sum((pc.q[0] + pc.q[1]) * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g for pc in self.parcels if pc.entered)
                 allowed = cap * (max(load, 1e-9) / 400.0) ** p.ge_gamma

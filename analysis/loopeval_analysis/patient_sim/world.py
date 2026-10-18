@@ -123,6 +123,9 @@ def _gap_mult(person):
 
 class World:
     def __init__(self, person, days: int, seed: Optional[int] = None, enable: Optional[dict] = None):
+        if enable and enable.get("ceiling_speed"):
+            # experiment (LESSONS 150): the meal's own speed scales the stomach's energy ceiling
+            person = copy.copy(person); person.body = person.body.scaled(ge_cap_speed=1.0)
         if enable and isinstance(enable.get("meal_k"), float):
             person = copy.deepcopy(person)        # calibration override: meal absorption speed multiplier
             person.body = person.body.scaled(kempt=person.body.kempt * enable["meal_k"], kabs=person.body.kabs * enable["meal_k"])
