@@ -230,7 +230,7 @@ class Body:
     # ------------------------------------------------------------------ dynamics
     def step(self, dt: float = 1.0, si_mult: float = 1.0, egp_mult: float = 1.0,
              ex_intensity: float = 0.0, ex_anaerobic: float = 0.0, ex_si_boost: float = 0.0,
-             abs_mult: float = 1.0, bio: float = 1.0):
+             abs_mult: float = 1.0, bio: float = 1.0, util_drop: float = 0.0):
         """Advance `dt` minutes (explicit midpoint for the fast states; dt ≤ 1 recommended).
 
         si_mult: product of sensitivity modulators (circadian, daily, cycle, illness, stress,
@@ -331,6 +331,6 @@ class Body:
         # uptake vanishes with glucose (Bergman / UVA Michaelis–Menten at low G; LESSONS 7)
         mm = p.gb + p.kappa * (g - p.gb) if (g >= p.gb or not p.low_prop) else g
         dg = (-p.sg * (g - p.gb) - (self.xd * mm * self.risk(g) - p.si_d * p.ib * p.gb)
-              + (egp - p.egp_b - uex + ra) / p.vg - renal)
+              + (egp - p.egp_b - uex + ra + util_drop) / p.vg - renal)
         self.g = max(10.0, g + dt * dg)
         self.minute = m + dt
