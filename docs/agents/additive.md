@@ -60,6 +60,11 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   free parameter until a number matches (see memory: *understand before patching*).
 - **Compare like with like**: split every cohort comparison by sensor family (eda lesson 33) and
   by dosing strategy (lesson 9); compute statistics with eda's own functions (`traits.block_features`).
+- **Review the existing components before adding another** (Pete 2026-10-18). Every component fitted to an emergent
+  target (meal EGP nadir, low depths, meal outcomes, realized behaviour rates) drifts as other components change. After
+  any adopted change, run `python -m loopeval_analysis.patient_sim.review <run>` against the donor targets
+  (`review ... donors` builds them with the same code) and refit what drifted, each on its own evidence, before testing
+  the next new component.
 - **Lows are where simulators fail** (UVA S2008, replay validations): counter-regulation, rescue
   behavior and sensor bias in the low range get explicit evidence, and time-below results are
   reported with the uncertainty of those components.
