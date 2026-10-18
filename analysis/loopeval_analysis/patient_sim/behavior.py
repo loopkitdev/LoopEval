@@ -78,6 +78,7 @@ class BehaviorTraits:
     slot_ann: tuple = (1.0, 1.0, 1.0)         # per-meal entry chance relative to p_entry_meal (donor's own windows)
     p_entry_snack: float = 0.3
     graze_eve: bool = False              # graze timing weighted to the evening (LESSONS 170)
+    skip_drop: bool = False              # skipped breakfast grams dropped, not redistributed (LESSONS 183)
     slot_comp: bool = False              # fat/protein per carb gram by meal slot (LESSONS 170)
     count_size: str = "log"              # "brazeau": the size-dependent mean error of Brazeau 2013 (LESSONS 146)
     count_bias: float = -0.10            # person's mean carb-count error (Brazeau 2013: 63% under)
@@ -511,7 +512,8 @@ class Behavior:
         sd = math.sqrt(math.log(1 + t.intake_cv ** 2))
         self.day_z = t.intake_rho * self.day_z + math.sqrt(1 - t.intake_rho ** 2) * float(r.normal(0, sd))
         day_factor = math.exp(self.day_z - sd ** 2 / 2)
-        total_share = ((1 - t.skip_breakfast) * sB + sL + sD) / 0.286 * main_w + t.snack_rate
+        # skip_drop (experiment, LESSONS 183): a skipped breakfast is not eaten later; the other meals keep their size
+        total_share = ((1.0 if t.skip_drop else (1 - t.skip_breakfast)) * sB + sL + sD) / 0.286 * main_w + t.snack_rate
         draws = [share * float(np.exp(r.normal(0, t.meal_cv) - t.meal_cv ** 2 / 2)) for _, _, share, _ in slots]
         comp = (total_share / max(sum(draws), 1e-9)) ** t.intake_comp
         for (kind, mt, share, k), w in zip(slots, draws):
