@@ -262,6 +262,7 @@ class World:
             if not np.isfinite(resc): resc = 0.0
             bt = self.beh_traits = copy.deepcopy(bt)
             bt.carbs_day = max(0.5 * bt.carbs_day, bt.carbs_day - graze - resc)
+            self.beh.t = bt                                  # the Behavior was built above with the old traits
         # every day planned now: the export writes the planned Temporary Overrides into the therapy timeline, and
         # the plant's re-simulation reproduces the identical plan (LESSONS 40)
         gi = (lambda d: 0.7 if self.mods.illness(d * DAY + 720)[2] else 1.0) if self.mod_traits.enabled.get("illness") else None
