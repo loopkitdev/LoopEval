@@ -210,7 +210,7 @@ def _formulation(brand: str, rng) -> str:
 
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
-                  csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = False,
+                  csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0) -> Person:
     rng = np.random.default_rng(seed)
