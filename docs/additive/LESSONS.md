@@ -3642,3 +3642,19 @@ statistic here, but it is the controller donors ran.
      - **Adopted as default: posture at half the measured contrast** (0.5 × the same draws; `--set posture_mult=1.0`
        restores the full step). Self-approved under Pete's standing permission for additive-model updates
        (2026-10-18). Remaining night excess 46% vs 22%.
+
+170. **Real dinners rise a second time; the sim's do not, and neither meal composition nor evening grazing alone
+     fixes the night.** Entry-anchored CGM change after isolated dinners (≥ 20 g, local 17–21 h, no other entry −3 h /
+     +8 h; `dinner_traj.py`), median mg/dL at 1–8 h:
+     - donors (3,301): +15 / +13 / **+26** / +19 / +9 / +1 / −6 / −11 — a second rise at 3–4 h;
+     - c195_base (221): +14 / +12 / +10 / +7 / +2 / −4 / −15 / −22.
+     Unannounced labeled intake 1.5–5 h after announced meals (g-eq per 10 g entered; share with any) by slot
+     breakfast / lunch / dinner: donors 3.08 (0.31) / 2.90 (0.33) / 4.34 (0.50); sim 3.32 (0.39) / 3.63 (0.42) /
+     3.82 (0.49) (`followon_slot.py`). Real unlogged eating concentrates after dinner; the sim's is spread evenly.
+     - `--enable slot_comp` (0331771; fat and protein per carb gram ×0.6 / 1.0 / 1.35 by slot [J sizes]): dinner hump
+       appears at 4 h (+6 → +10), night share of lows 46% → 43%, circadian amplitude 0.169 → 0.159; day/night now fails;
+       36 vs 37 matched.
+     - `--enable graze_eve` (112c642; graze timing ×2 at 19–23 h [J]): dinner +20 / +19 / +16 / +19 at 1–4 h, night
+       share 49%; hurst_long 0.295 and CV 36.1 fail again; 32 matched. Both together: 34.
+     - Not adopted. The dinner shape moves toward the donors' in both arms, yet the night share of lows does not: what
+       keeps real nights out of lows is not the post-dinner glucose level alone. The open question stays lesson 167's.
