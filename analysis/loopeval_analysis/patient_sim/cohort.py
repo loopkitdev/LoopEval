@@ -36,7 +36,7 @@ def _one(args):
                           isf_total=bool(enable.get("isf_total", True)),   # total-drop ISF + full intake budget, the base since 2026-10-18 (Pete; LESSONS 143)
                           kappa_mult=enable.get("kappa_mult", 1.0) if isinstance(enable.get("kappa_mult"), float) else 1.0,
                           ge_var=bool(enable.get("ge_var", True)), basal_own=bool(enable.get("basal_own", False)),
-                          egp_sat=bool(enable.get("egp_sat", False)),
+                          egp_sat=bool(enable.get("egp_sat", True)),   # default since 2026-10-18 (A5 review loop, LESSONS 196)
                           p2e=enable.get("p2e_cal") if isinstance(enable.get("p2e_cal"), float) else None,
                           basal_share=enable.get("basal_share") if isinstance(enable.get("basal_share"), float) else 0.42,
                           isf_blend=enable.get("isf_blend") if isinstance(enable.get("isf_blend"), float) else 0.0)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)

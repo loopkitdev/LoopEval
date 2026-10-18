@@ -4067,3 +4067,19 @@ statistic here, but it is the controller donors ran.
      rate; its evidence now asks for ~0.8, at the cost lesson 194 shows (low duration p90 90 vs 65, meals ending < 70 4.4%
      vs 9.7%: 29 matched). Suppression also fades too early at every share (5-h mean 0.27 vs ~0.45). Refitting A5 to its
      evidence means re-reviewing what then drifts (A9's low durations, the meal-low rate) on that base.
+
+196. **Review loop, step 1–2: A5 refitted to its tracer evidence, then its offset; the old base's lows partly came from a
+     liver too weak and too slow.** (Pete 2026-10-18: adopt the evidence refit, then refit what drifts.)
+     - **Step 1, EGP share U(0.7, 0.9)** (9f73045, default): c218 against c201_base: per-person meal EGP nadir suppression
+       0.50 (median 0.45; Romeres 0.44 ± 0.17), but bg_mean 155.8, CV 37.4, TIR 68.5, hurst_long 0.349 (donors 0.247), low
+       duration p90 80 (65), meals ending < 70 4.7% (9.7%), rise after a night cut 18% (30%): 31 matched. A liver-weighted
+       insulin effect that relaxes at one slow rate makes every excursion persist.
+     - **Step 2, egp_sat on that base** (Rizza 1981 saturation, Gray 1982 offset 0.015; recalibrated; now default): c219:
+       nadir suppression mean 0.45 (0.44), low duration p90 66 (65), CV 34.8 (34.8), night CV 37.2 (passes), night rises
+       0.53 and rise after a night cut 22% (both toward the donors'); low nadirs 44 / 51 / 58 (40 / 50 / 57); but lows
+       0.58/day (1.08), t70 0.73, t54 0.06, P(reach 54) and day/night fail: 28 matched (vs 31 at step 1, 40 on the old
+       base).
+     - Every physiology component now on its own evidence removes lows; the old base's low count leaned on the
+       under-suppressing, slow liver. Next in the loop: the components that make lows (meal-insulin mismatch,
+       LESSONS 185–188; anticipatory defense, whose carbs prevent lows; counter-regulation, fitted to depths only),
+       each against its own target, on this base.
