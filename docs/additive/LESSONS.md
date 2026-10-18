@@ -4250,3 +4250,11 @@ statistic here, but it is the controller donors ran.
      +27 / 22 / 16); but lows 0.58 → 0.42/day (1.08), t54 0.031, low share < 54 0.25: 28 matched (26). **Default median
      0.0045.** Lows remain the largest open gap: every component that brings a body back toward Gb faster removes
      some of them, so the missing lows need their own source (LESSONS 198: within-meal variability).
+     - **Decision (Pete, 2026-10-18): keep searching named sources** for the within-meal variability; gi_cv stays at its
+       Elleri-sized 0.4 and no lumped meal-state term is added (Hengist 2025's duplicate-meal ICC 0.17–0.28 is a target for
+       the named factors together, not an input). Checked so far: carb-count error is already at Brazeau 2013's size
+       (log N(−0.10, 0.20) gives ~19% mean absolute error vs 20.9 ± 9.7%); real-world pre-bolus timing has no measured
+       distribution in the literature found (a 2019 review: timing matters less than dose), and the sim already takes
+       bolus-vs-entry timing from each donor. Remaining named candidates: per-dose insulin absorption in free living
+       (beyond A4's clamp-net 15% and site_cv), post-meal activity (frequency and timing against HealthKit workouts where
+       BDDP holds them), and meals larger than entered (the donors' upward edits).
