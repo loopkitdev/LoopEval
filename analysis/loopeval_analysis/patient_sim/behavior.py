@@ -77,6 +77,7 @@ class BehaviorTraits:
     slot_shares: tuple = (0.22, 0.30, 0.34)   # breakfast / lunch / dinner share of a main-meal day (Camerlingo 2021)
     slot_ann: tuple = (1.0, 1.0, 1.0)         # per-meal entry chance relative to p_entry_meal (donor's own windows)
     p_entry_snack: float = 0.3
+    slot_comp: bool = False              # fat/protein per carb gram by meal slot (LESSONS 170)
     count_size: str = "log"              # "brazeau": the size-dependent mean error of Brazeau 2013 (LESSONS 146)
     count_bias: float = -0.10            # person's mean carb-count error (Brazeau 2013: 63% under)
     count_sd: float = 0.20               # per-meal count error sd
@@ -534,6 +535,10 @@ class Behavior:
             # composition [J]: T1D adults ~40% energy carbohydrate, 40% fat, 18% protein (Snell-Bergeon 2009,
             # unverified) → per carb gram ~0.44 g fat, 0.45 g protein for meals; snacks carry less
             fat_r, pro_r = (0.44, 0.45) if kind == "meal" else (0.2, 0.2)
+            if t.slot_comp and kind == "meal" and k in (0, 1, 2):
+                # breakfasts are the most carbohydrate-heavy meal, dinners the most fat- and protein-heavy (dietary
+                # pattern direction; sizes [J], daily mean kept near 0.44 / 0.45; LESSONS 170)
+                sc = (0.6, 1.0, 1.35)[k]; fat_r *= sc; pro_r *= sc
             fat = grams * fat_r * float(np.exp(r.normal(0, 0.5) - 0.125))
             protein = grams * pro_r * float(np.exp(r.normal(0, 0.5) - 0.125))
             meal = Meal(base + mt, grams, kind, speed, entered, et, bolus, fat=fat, protein=protein)
