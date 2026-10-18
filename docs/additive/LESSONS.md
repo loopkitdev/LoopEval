@@ -3671,3 +3671,10 @@ statistic here, but it is the controller donors ran.
        fast insulin acts once the person lies down. Candidates now: overnight insulin resistance that the sim lacks
        (sleep-phase GH surges are mean-zero in the sim, B8; real early-night GH peaks raise EGP and lower SI for hours),
        and the timing of the supine switch relative to the evening's insulin.
+     - **Evidence check on overnight resistance (not built).** In T1D, insulin requirements fall from ~00:00–03:00 and
+       rise only toward dawn, 05:00–08:00 (dawn-phenomenon reviews, Diabetes Care 2013 "Thirty years of research");
+       nocturnal GH influences overnight requirements, not the early-night period's direction (Edge 1990; Campbell /
+       Diabetes 1985; GH-antagonist study, Diabetologia 2003: overnight requirements fell with GH blockade, clamp SI
+       unchanged). So real bodies are, if anything, more sensitive in the early night, the opposite of a missing
+       resistance. The donors' held early night (lesson 169) then points away from body-side physiology toward
+       behaviour or the controller's interplay with a real body; it stays open.
