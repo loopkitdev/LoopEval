@@ -4026,3 +4026,25 @@ statistic here, but it is the controller donors ran.
        lows than the sim AND fewer night lows. The components still missing are therefore time-specific in opposite
        directions: something that makes days fall more (LESSONS 185–188: bolused meals going low, spread over several
        small parts) and something that makes nights rise more. Adopting a night fix waits for the daytime-lows half.
+
+194. **First component review: the meal EGP arm has drifted, and neither of its parameters refits it alone.**
+     `review.py` (22d78c4; donor targets in runs/2026-10-18-additive-workouts/review_targets.json, the same code both
+     sides) on c201_base, run / target: A5 meal EGP nadir 0.77 at 130 min / 0.56 at ~160 (fitted at 0.54 before the
+     total-drop ISF recalibration and κ); A9 low nadir p10 / p25 / p50 43 / 51 / 58 vs 40 / 50 / 57 (holds), duration p90
+     75 vs 65; bolused-meal 0–2 h drop p10 −85 vs −84 (holds), ending < 70 7.5% vs 9.7%, 3-h change +6.7 vs +21; entries
+     2.81 vs 3.28 (LESSONS 188); night rises 0.48 vs 0.67; rise after a night cut 20% vs 30%.
+
+     | arm (recalibrated) | EGP nadir | 3-h change | meals < 70 | low dur p90 | cut rise | matched |
+     |---|---|---|---|---|---|---|
+     | base (p2e 0.006, share U(0.5, 0.7)) | 0.77 @130 | +6.7 | 7.5% | 75 | 20% | 40 |
+     | p2e 0.010 (c216) | 0.69 @120 | −0.4 | 7.4% | 70 | 24% | 35 |
+     | p2e 0.015 | 0.62 @110 | −3.0 | 8.0% | 75 | 24% | 34 |
+     | share 0.8 (c217) | 0.66 @130 | +16.4 | 4.4% | 90 | 19% | 29 |
+     | share 0.9 | 0.62 @120 | +23.0 | 4.0% | 90 | 16% | 28 |
+     | donors / tracer | 0.56 @160 | +21 | 9.7% | 65 | 30% | |
+
+     - The rate deepens the nadir by making it earlier, and meals end lower; the share deepens it and makes meals end
+       right (+23 vs +21) but lows longer and post-meal lows rarer, since a liver-heavy insulin effect acts slowly. Low
+       depths hold in every arm. No single-parameter refit restores A5 without breaking another target, so the EGP arm
+       (share, rate, and the nadir's 30–50 min early timing, which no arm moves) is refitted jointly with what it
+       trades against, or its form revisited (egp_sat, LESSONS 193). Base unchanged.
