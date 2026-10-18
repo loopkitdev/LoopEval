@@ -3931,3 +3931,23 @@ statistic here, but it is the controller donors ran.
        59% of second boluses with no recorded carbohydrate for which Loop still recommended ~0.8 of the first dose: what
        made the forecast rise (a carb entry before the first bolus missed by the ±15 min window, a pre-bolus taken on a
        correction-only recommendation, the first dose capped) decides how the sim should draw them. Measure that next.
+
+187. **Most of the donors' "second boluses" are a neighbouring entry's; real split meals are second helpings, and
+     modelling them so does not bring the early lows.** For donor bolused entries ≥ 15 g with two boluses within
+     −15..+30 min and no new carbohydrate recorded between them (6,298), the first bolus came before the carb entry in 46%
+     (1% for single-bolus meals) and another entry sat in the prior 90 min in 44% (16%): mostly the previous entry's dose or
+     a correction taken before entering, not half of this meal's. The genuine split is the 9.5% with more carbohydrate
+     entered (or edited up) between the doses: first dose 0.99 U per 10 g entered (single meals 1.03), the second 0.67 of
+     the first, 12.7 min later. LESSONS 47's p_split (boluses per entry − 1) counts both.
+     - **split_full v3** (21b6d8c, `--enable split_full`, off): every meal bolus is the full recommendation (the halved
+       split dropped); 9.5% of bolused meals ≥ 25 g are eaten as two helpings (the second lnN median 20 g, ≤ 60% of the
+       meal, ~13 min later, entered and bolused on its own; grams taken from the meal, so intake is unchanged). c213 against
+       c201_base: ratios match (< 0.95 in 7%), bg_mean 150.5 and TDD pass; lows 0.833/day, early lows after bolused meals
+       0.097 (donors 0.210), t54 0.119 and P(reach 54) fail, user boluses 3.83/day (donors 4.59) fail, zero-delivery
+       fraction 27.6% (donors 33.3%, base 30.1%) fails: 35 vs 40. Not adopted.
+     - Across v1–v3, giving the meal its full recommendation up front does not add early lows; only insulin beyond the
+       recommendation did (v1). The donors' early post-meal lows (0.21/day, BG at entry ~120, ~67 min later) and their
+       larger zero-delivery share are the same signature: the meal's recommendation outruns the body more often in life
+       than in the sim, and Loop then withholds. The settings-to-body carb ratio is the coupling that sets this
+       (person.py, LESSONS 37: an independent draw gave 4× the donors' post-meal lows; the half-weight blend now gives
+       half). Its spread is the next measurement: the donors' per-meal rise per entered gram against their CR.
