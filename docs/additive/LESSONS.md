@@ -3600,3 +3600,11 @@ statistic here, but it is the controller donors ran.
      - **Not targets:** 7% of donors set a night target ≥ 5 higher (median night − day 0).
      Next: the body's basal-need profile, which follows the donor's schedule shape only halfway (B1b, prof_w 0.5 [J])
      while Loop runs the full schedule.
+     - **Not the basal-need profile either:** the body following the donor's full schedule shape (`--set prof_w=1.0`,
+       c190) leaves the night share at 54%; 35 matched.
+     - In rates, the sim has 0.44 night lows per person-night against the donors' 0.16 (2.8×) and 0.40 daytime lows
+       per day against 0.56: its lows are misplaced, not too many. Five candidates on the insulin and settings side are
+       now ruled out. Open: what keeps real nights out of lows. Candidates not yet measured are the overnight
+       defense (urgent-low-soon alarms waking the person, and bedtime snacks taken against a predicted fall; the
+       sim's p_wake_alarm N(0.45, 0.2) is a judgement), and how the donors' own CGM data cover nights (phones out of
+       range overnight remove night readings and with them night lows).
