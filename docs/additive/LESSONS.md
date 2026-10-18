@@ -2800,3 +2800,18 @@ statistic here, but it is the controller donors ran.
      0.61–0.62 of the mean hourly rate), with daily manual units matching. The sim spreads its bolus insulin more
      evenly across the day than donors, who concentrate it at lunch and dinner. Next: bolus size per meal by
      slot, sim vs own donor (twin), and the per-slot share of entered grams (dinner 0.38 vs 0.44, lesson 123).
+
+135. **Donors' logged workouts are not meal-avoiding; the meal clock trades day/night against CV.**
+     - **Workouts in BDDP.** device_data has `physicalActivity` records: HealthKit workouts with name, duration and
+       energy; time is epoch ms in a JSON string. Overall 5.25 M records from ~5,200 users. For the pilot, 30 of 168
+       donors have any (24,595 records), and 18 have workouts inside their export window (669; median 22 per donor
+       over 4 months; median 35 min; yoga, pilates, strength, running). No step counts, so everyday activity is
+       not measurable this way.
+     - **Workout start time since the last carb entry, against random times at the same local hours** (same donors,
+       same window): 0–1 h 18% vs 23%; 1–2 h 22% vs 18%; 2–3 h 11% vs 11%; 3–6 h 13% vs 15%. Start hours 06–12 /
+       12–18 / 18–24: 50% / 29% / 21%. At most a slight shift out of the first hour after eating, within noise.
+       Intentional exercise is not meal-coupled. The sim's independent timing is consistent with it.
+     - **own_clock on the current defaults** (c150, templates_pilot_clock.csv; base reproduces c145, 35):
+       - 30 matched; day/night 1.83 (passes, KS 0.06; donors 2.06); night entered share 0.03 (0.04);
+       - CV 39.2 (38.3), lows/day 1.50, TDD CV fails.
+       It fixes the meal timing statistics and moves others further off, as on the earlier defaults. Off.
