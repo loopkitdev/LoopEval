@@ -265,7 +265,10 @@ class World:
         # posture (LESSONS 163; --disable posture): insulin clamps, the PK's reference, are done supine; sitting up cuts
         # subcutaneous blood flow 29–47% and insulin absorption 19–44% (Hildebrandt 1985, 17 patients with diabetes).
         # Awake = upright: absorption × (1 − p), p per person U(0.19, 0.44) on its own stream; asleep = supine
-        self.posture_p = (float(enable["posture_mult"]) if enable and isinstance(enable.get("posture_mult"), float) else 1.0) \
+        # half of Hildebrandt's sitting-vs-flat-supine contrast by default: real evenings include reclining and real
+        # sleep is not constant flat supine, so the full step at bedtime overstated the night/day contrast [J]
+        # (LESSONS 169: night lows 53% -> 46%, CV and Hurst pass, 37 of 51)
+        self.posture_p = (float(enable["posture_mult"]) if enable and isinstance(enable.get("posture_mult"), float) else 0.5) \
             * float(np.random.default_rng(int(person.seed) + 1907).uniform(0.19, 0.44)) \
             if (enable or {}).get("posture", True) else 0.0                   # default since 2026-10-18 (Pete, LESSONS 163)
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,
