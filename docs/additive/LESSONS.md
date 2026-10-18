@@ -4240,3 +4240,13 @@ statistic here, but it is the controller donors ran.
        (median 1.04 vs 1.19 U), CGM at entry +7. With the same bolus for the same entry from a similar state, the
        longer tail (+8 at 3–4 h) is the body's handling of breakfast: what is eaten beyond what is entered at
        breakfast, or how fast it appears.
+
+208. **Glucose effectiveness at the top of its evidence range puts the level on the donors'.** Real meals and
+     excursions return faster than the sim's (donors have more unentered rises after meals, 0.47 vs 0.38 per isolated
+     breakfast, `post_slot_rises.py`, yet lower tails; the breakfast's starting state matches). SG ×1.5 (median
+     0.0045/min; evidence range 0.0013–0.0047, UVA/Padova; Pete 2026-10-16: calibratable within it), c232 on the own-clock
+     base: mean 151.7 (donors 151.4, passes), CV 33.2 (passes), low duration p90 65 (65), hurst_long 0.322 → 0.299,
+     afternoon 12–19 h 162–168 (donors 151–166), breakfast tail +30 / 26 / 21 at 3–4 h (+36 / 30 / 23 before; donors
+     +27 / 22 / 16); but lows 0.58 → 0.42/day (1.08), t54 0.031, low share < 54 0.25: 28 matched (26). **Default median
+     0.0045.** Lows remain the largest open gap: every component that brings a body back toward Gb faster removes
+     some of them, so the missing lows need their own source (LESSONS 198: within-meal variability).

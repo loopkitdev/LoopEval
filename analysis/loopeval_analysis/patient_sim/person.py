@@ -242,7 +242,9 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         bw=bw,
         kd=float(np.exp(rng.normal(-3.509, 0.619 * 0.5))),     # half the ReplayBG log-sd: its prior is for identification, not a population
         ka2=float(np.exp(rng.normal(math.log(0.018), 0.427 * 0.5))),   # centre refit to the clamp profile
-        sg=float(sg_mult * np.exp(rng.normal(math.log(0.003), 0.5))),
+        # insulin-independent glucose effectiveness: median 0.0045/min, inside the 0.0013–0.0047 UVA/Padova range Pete allowed
+        # for calibration (2026-10-16); 0.003 left the evidence base's level +6 and its excursions too persistent (LESSONS 208)
+        sg=float(sg_mult * np.exp(rng.normal(math.log(0.0045), 0.5))),
         gb=float(np.clip(rng.normal(119, 7.1), 95, 150)),
         egp_b=float(np.clip(rng.normal(2.5, 0.33), 1.5, 3.5)),
         vg=float(np.exp(rng.normal(math.log(1.88), 0.15))),
