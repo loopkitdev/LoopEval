@@ -1164,3 +1164,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Change test on the new base (two seeds averaged per edit): slope TIR 0.88, t<70 1.27, mean 0.68, t<54 0.63 (Spearman
     0.32), t<54 |error| 0.33 (no-change baseline 0.30); previous base 0.63 / 1.34 / 0.62 / 0.48 (0.23), 0.34. Best t<54
     change prediction so far.
+123. **On the falling-glucose meal-start base the averaged early meal surge no longer costs TIR; kept.** The averaged
+    kernel of LESSONS 119 (8.3 mg/dL of food, both seeds) on v32of{0,1}TcB2FGUCGLBGGS, held-out clean time, seeds 0 / 1
+    (base in brackets; field TIR 74.1, t<54 0.12, t<70 0.86, mean 152): TIR 73.4 / 72.5 (73.1 / 73.1), t<54 0.24 / 0.16
+    (0.31 / 0.21), t<70 1.57 / 1.50 (1.66 / 1.80), mean 152 / 153 (149 / 152), lows per meal bolus 0.103 / 0.094 (0.131 /
+    0.121; field 0.064). Per-person pass TIR 29 / 21% (29 / 33), t<54 25 / 46% (33 / 33), mean 33 / 38% (29 / 33); the
+    worst TIR donor, i044 (field 83, generated 62-66), is the same in both. Change test, two seeds averaged per edit: slope
+    TIR 0.91, t<70 1.29, mean 0.68, t<54 0.66 (Spearman 0.40), t<54 |error| 0.32, t<70 |error| 1.20 (base 0.88 / 1.27 /
+    0.68 / 0.63 (0.32), 0.33, 1.23; no-change 0.30, 1.41). On the old base the falling-glucose eating the generator lacked
+    left meal-surge food to land on top of lows; with it calibrated, the surge's food fills the early rise instead.
+    New base v32of{0,1}TcB2FGUCGLBGGSKa. Ensemble scorer: runs/2026-10-13-ice-change/score_ens.py.
