@@ -79,6 +79,9 @@ class BodyParams:
                                    # (0 = off, plain first-order): emptying is energy-rate limited, so a big meal empties
                                    # for hours (Hunt 1985, Brener 1983, Calbet 1997; evidence/09). Vmax 3 is the review's
                                    # central value and the only setting that gives the donors' lognormal glucose (LESSONS 33)
+    dose_beta: float = 0.0         # > 0: bolus depots absorb faster when small, rate × (dose / 15 U)^(−β), capped 0.7–3
+                                   # (depot surface-to-volume; donors' corrections act 2–3× sooner than the 15-U clamp
+                                   # timing at 0.5–3 U, LESSONS 154–155)
     ge_cap_speed: float = 0.0      # 1 = the energy ceiling scales with the energy-weighted speed of the meals in the stomach,
                                    # so a meal's composition (liquid, fibre, viscosity) changes its own Vmax; 0 = one ceiling per
                                    # person, under which per-meal speed vanishes once a meal saturates it (LESSONS 150)
@@ -185,11 +188,15 @@ class Body:
         return p.ib * p.vi * p.ke * p.bw * 60.0 / 1000.0
 
     # ------------------------------------------------------------------ inputs
-    def infuse(self, units: float, minute: float, omega: float | None = None):
+    def infuse(self, units: float, minute: float, omega: float | None = None, dose: float | None = None):
         """Deliver `units` U at `minute`. A bolus with `omega` gets its own depot with kd, ka2 scaled
-        by omega (per-dose absorption variability); otherwise it joins the basal depot."""
+        by omega (per-dose absorption variability); otherwise it joins the basal depot. `dose` is the whole bolus the
+        units belong to: with dose_beta > 0 its depot absorbs at (dose / 15 U)^(−β), 1 at the 15-U clamp dose the
+        timing was fitted to (LESSONS 114, 155)."""
         if units <= 0: return
         p = self.p
+        if omega is not None and p.dose_beta > 0 and dose:
+            omega *= min(3.0, max(0.7, (max(dose, 0.05) / 15.0) ** (-p.dose_beta)))
         mu = units * 1000.0 / p.bw
         dep = self.basal if omega is None else self._depot(omega)
         if omega is not None and dep not in self.depots: self.depots.append(dep)
