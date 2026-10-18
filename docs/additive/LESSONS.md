@@ -2783,3 +2783,10 @@ statistic here, but it is the controller donors ran.
        No source gives the activity level in the 1–3 h after meals relative to other waking hours, which is the
        quantity a meal-coupled schedule needs. Not built. A BDDP measurement is possible where donors carry
        step or workout data (HealthKit physicalActivity records in device_data) and is the way to get it.
+     - **The structure statistics move the other way.** ACF zero-crossing across the calibration arms: peak (c145)
+       and blend 0.3 at 65 min, blend 0.5 at 70, total at 75 (donors 42.5). Between-day fraction (0.125 → 0.155) and
+       circadian amplitude (0.167 → 0.200) worsen with weaker insulin too. Donors combine long meal plateaus with fast
+       reversal of 5-min steps, which points to a fast-reverting (~40 min) source of step variance in real glucose
+       that the sim lacks. Lesson 76 measured simulated quiet stretches decorrelating at 20 min (sensor noise)
+       against the donors' 40 (physiological wander). The two failures, meal plateau and ACF zero-crossing, have
+       separate causes; fixing the first with insulin strength worsens the second.
