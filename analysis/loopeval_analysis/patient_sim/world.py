@@ -236,6 +236,14 @@ class World:
             k_ = float(enable["graze_split"])
             self.beh_traits.graze_per_day = self.beh_traits.graze_per_day * k_
             self.beh_traits.graze_g = self.beh_traits.graze_g / k_
+        if enable and enable.get("skip_own"):
+            # experiment (LESSONS 182): the donor's own breakfast-skip share (days with no labeled pulse >= 10 g-eq at
+            # 05:00-10:30 local; donors median 0.18, the sim's constant 0.10)
+            try:
+                sk_ = float(person.traits.get("template_rates", {}).get("skip_bfast"))
+                if np.isfinite(sk_): self.beh_traits.skip_breakfast = float(np.clip(sk_, 0.0, 0.9))
+            except (TypeError, ValueError):
+                pass
         if enable and enable.get("log_own"):
             # experiment (LESSONS 179): the donor's own treatment-logging rate (carb entries with no bolus within 30 min at
             # CGM < 130, per day) over the sim's median 1.4 treatments a day, as the person's logging probability

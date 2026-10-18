@@ -35,7 +35,7 @@ BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "
                  "clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd"] + \
                 [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h")] + \
                 ["edit_basal_day", "edit_isf_day", "edit_cr_day", "corr_exposure", "slot_g", "slot_ann", "offline_day", "perr_day",
-                 "treat_log_day", "low_entered_share"]
+                 "treat_log_day", "low_entered_share", "skip_bfast"]
 # ice L54 measures 1.30 g-eq of meal pulse per entered gram (1.21 for the pilot donors through the same
 # labeler, meal_response/ice_check). Run through that labeler, simulated people at 1.30 read 0.91 —
 # glucose effectiveness erodes the pulse before ICE sees it — so the constant is set by the labeler:
