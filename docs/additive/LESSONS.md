@@ -4235,3 +4235,8 @@ statistic here, but it is the controller donors ran.
      - Morning truth (c226): EGP 0.93–0.95 of basal at 06–08 h against 0.70 at midday; insulin delivered 1.13–1.76 U/h.
        Next: the breakfast bolus's own timing relative to eating under the own clock, and the overnight-to-morning IOB
        the sim starts breakfast with (paired, the sim delivers 0.92× the donor's insulin at 00–06 h).
+     - **The breakfast's starting state matches** (`bfast_state.py`, first entry ≥ 15 g at 04:00–10:30, paired, 44 people
+       with ≥ 5 breakfasts): insulin delivered in the prior 3 h 0.93× the donor's, manual bolus per 10 g ratio 1.00
+       (median 1.04 vs 1.19 U), CGM at entry +7. With the same bolus for the same entry from a similar state, the
+       longer tail (+8 at 3–4 h) is the body's handling of breakfast: what is eaten beyond what is entered at
+       breakfast, or how fast it appears.
