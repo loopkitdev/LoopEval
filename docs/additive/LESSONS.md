@@ -3090,3 +3090,23 @@ statistic here, but it is the controller donors ran.
        directions: highs to ~720 and, after stacked entries (~96 g within 15 min, bolused at once), falls to the
        10 mg/dL floor. A quiet body reaching 10 mg/dL despite counter-regulation is an open physiology item for the
        low end (A9), separate from units.
+
+144. **On the new base the level excess belongs to the heavy enterers and the automatic-bolus group; it is not their
+     carb ratio.** c162_base (= c161_tb42, verified identical) against c156 (old base), per person minus own donor
+     (`twin_split.py`), median:
+
+     | group | old base Δ mean / Δ TIR / Δ CV | new base Δ mean / Δ TIR / Δ CV |
+     |---|---|---|
+     | automatic bolus | −2.1 / −1.0 / +2.6 | +16.1 / −10.1 / −1.4 |
+     | temp basal | −2.6 / −5.0 / +9.3 | +7.8 / −8.2 / +5.4 |
+     | donor entries/day, low tercile | −4.6 / −0.2 / +2.3 | +7.9 / −4.3 / −1.1 |
+     | mid | −5.1 / +0.2 / +3.1 | +8.5 / −9.0 / +0.7 |
+     | high | +8.1 / −8.3 / +8.8 | +25.9 / −13.5 / +4.4 |
+
+     - The temp-basal CV gap halves (+9.3 → +5.4); the heavy enterers' excess, already the worst on the old base
+       (+8), grows to +26.
+     - **Not their CR.** Settings ÷ body CR (`cr_cover.py`): low / mid / high tercile 1.30 / 1.21 / 1.18 (old base
+       1.51 / 1.40 / 1.37); ISF ratio 0.99–1.07 in every tercile. The heavy enterers are the best covered in the
+       ratio sense.
+     - Heavy enterers are the hands-on, tight-control donors (many small entries and boluses). Next: what those
+       donors do that the sim's people do not, per meal (pre-bolus lead, bolus per gram, top-ups), on the new base.
