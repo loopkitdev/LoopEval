@@ -469,7 +469,9 @@ class Behavior:
         b = float(np.exp(r.normal(t.breakfast_mu, t.breakfast_sd))) * 60 + shift
         main_w = t.main_weight
         sB, sL, sD = t.slot_shares
+        skipped_b = False
         if r.random() > t.skip_breakfast: slots.append(("meal", b, sB / 0.286 * main_w, 0))
+        else: skipped_b = True
         if t.meal_gap_gev:
             # Camerlingo 2021 (32 adults, 17,111 meals): breakfast→lunch GEV(μ 282.9, σ 79.98, ξ −0.32), lunch→dinner
             # GEV(μ 374.9, σ 84.86, ξ −0.47) minutes. The negative shape bounds the late tail (LESSONS 96)
@@ -512,12 +514,16 @@ class Behavior:
         sd = math.sqrt(math.log(1 + t.intake_cv ** 2))
         self.day_z = t.intake_rho * self.day_z + math.sqrt(1 - t.intake_rho ** 2) * float(r.normal(0, sd))
         day_factor = math.exp(self.day_z - sd ** 2 / 2)
-        # skip_drop (experiment, LESSONS 183): a skipped breakfast is not eaten later; the other meals keep their size
-        total_share = ((1.0 if t.skip_drop else (1 - t.skip_breakfast)) * sB + sL + sD) / 0.286 * main_w + t.snack_rate
+        total_share = ((1 - t.skip_breakfast) * sB + sL + sD) / 0.286 * main_w + t.snack_rate
         draws = [share * float(np.exp(r.normal(0, t.meal_cv) - t.meal_cv ** 2 / 2)) for _, _, share, _ in slots]
         comp = (total_share / max(sum(draws), 1e-9)) ** t.intake_comp
         for (kind, mt, share, k), w in zip(slots, draws):
             grams = t.carbs_day * carb_scale * day_factor * w / max(total_share, 1e-9) * comp
+            if t.skip_drop and skipped_b:
+                # the day's regulation renormalises meals to the day total, so a skip is dropped here explicitly:
+                # the other meals keep the size they would have had with breakfast eaten (LESSONS 183)
+                full_share = (sB + sL + sD) / 0.286 * main_w + t.snack_rate
+                grams *= (full_share - sB / 0.286 * main_w) / max(full_share, 1e-9)
             grams = max(3.0, grams)
             speed = float(np.exp(r.normal(0, t.gi_cv)))
             p_e = min(1.0, t.p_entry_meal * t.slot_ann[k]) if kind == "meal" else t.p_entry_snack
