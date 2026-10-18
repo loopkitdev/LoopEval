@@ -3343,3 +3343,20 @@ statistic here, but it is the controller donors ran.
      - This is the timing that sets how fast every excursion is reversed, so it bears on the ACF zero-crossing (70 vs
        42.5) and long-range Hurst gaps. Next: dose-dependent absorption as a named A2 term, fitted to this observed
        correction timing by dose band (Pete: fit to observed data), checked against the 15 U clamp it must still match.
+
+155. **Faster absorption of small doses does not give the real correction timing, and it re-opens the meal dip.**
+     `--set dose_beta=β` (bc4b07a; off): each bolus depot absorbs at (dose / 15 U)^(−β), capped 0.7–3, so the 15-U clamp
+     fit is unchanged (1 U at β 0.3: plasma insulin peak 56 → 33 min, 50% of exposure 85 → 45 min). c174 with rc_own,
+     against c172_rc:
+     - corrections 0.5–1.5 U, ΔCGM per U at 60 / 90 / 180 min: β 0.25 −12.8 / −26.0 / −60.0, β 0.4 −16.0 / −35.1 /
+       −63.0 (base −11.2 / −32.0 / −68.8; donors −29.0 / −45.5 / −67.3). Plasma insulin arrives sooner but the effect
+       still lags it through the action compartment (p2 0.025, ~40 min).
+     - meals: automatic ΔCGM per 10 g at 120 / 150 min −1.0 / −1.2 (β 0.25) and −1.5 / −1.7 (β 0.4), against +1.1 /
+       +0.5 — meal boluses of 2–8 U absorb faster too and the plateau goes.
+     - acf_zero 70 / 65, hurst_long 0.370 / 0.374, lows 0.67 / 0.67 per day; 24 / 25 matched (24). Not adopted.
+     - Reading: real corrections take effect sooner while real meals hold for 2–4 h. Faster insulin action alone
+       cannot give both; together they say the late part of a real meal keeps glucose arriving after the bolus has
+       acted (a longer appearance tail than the sim's energy-limited stomach produces, lesson 139), or that the
+       action delay itself (p2) is shorter than the clamp fit and the meal tail longer. Both are candidates for one
+       joint, evidence-bounded fit to two observed targets: the correction timing by dose and the entry-anchored
+       meal trajectory.
