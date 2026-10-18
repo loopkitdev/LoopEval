@@ -4211,3 +4211,15 @@ statistic here, but it is the controller donors ran.
      - Next, on the amplitude: what moves glucose from night to late morning in the simulated body with donor-level
        insulin by hour (paired insulin by hour still to compute; the donor column of pair_hour_don.py is wrong and
        must not be used).
+
+206. **Each donor's own meal clock, on by default: insulin by time of day now matches, and the excess moves to the
+     afternoon.** Paired insulin by hour (fixed donor column: per-step rate, `pair_hour_don.py`): daily 0.975 of the
+     donor's, but 00–06 h 0.92× and 06–11 h 1.24–1.52× while the sim's first morning entry came ~1 h earlier (median
+     8.67 vs 9.65 h; `bfast_time.py`). The templates had lost the meal-clock columns (`templates.add_meal_clock`,
+     LESSONS 123; restored to templates_pilot_logs.csv: breakfast / lunch / dinner medians 8.79 / 12.77 / 19.04 h), and
+     `own_clock` was off (LESSONS 135: 30 vs 35 on an older base). c229 (columns, switch off) reproduced c226 exactly.
+     - **`own_clock` on** (c230, now default): day/night insulin ratio 2.025 (donors 2.057, KS 0.79; failed on every
+       earlier base); 09–11 h 148–165 (was 156–166; donors 142–148); 12–15 h 173–179 (donors 151–165); 24-h amplitude
+       0.193 (0.131); lows 0.58/day; 26 matched (29). Adopted as each person's own measured behaviour; the afternoon
+       excess after correctly timed lunches is the next measurement (lunch response amplitude per entered gram and the
+       insulin given for it, paired).

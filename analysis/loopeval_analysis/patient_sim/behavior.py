@@ -105,7 +105,8 @@ class BehaviorTraits:
     graze_fast: bool = True              # grazes absorb as liquid sugar (juice, sweetened coffee; evidence/14 §2; LESSONS 117); default since 2026-10-18 (Pete, LESSONS 158)
     snack_entry_w: Optional[tuple] = None   # hour-of-day weight on p_entry_snack (donor entries / eating; LESSONS 123)
     meal_clock: Optional[tuple] = None   # donor's own (b_med, b_sd, l_med, l_sd, d_med, d_sd), hours (LESSONS 123)
-    own_clock: bool = False              # switch: main meals on the donor's own clock
+    own_clock: bool = True               # main meals on the donor's own clock (default since 2026-10-18: day/night insulin
+                                         # ratio 2.03 vs donors 2.06; LESSONS 206)
     entry_clock: bool = False            # switch: use snack_entry_w
     graze_keep: float = 1.0              # share of planned grazes kept (thinning experiment, LESSONS 109)
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
