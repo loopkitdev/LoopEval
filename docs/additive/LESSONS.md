@@ -3658,3 +3658,16 @@ statistic here, but it is the controller donors ran.
        share 49%; hurst_long 0.295 and CV 36.1 fail again; 32 matched. Both together: 34.
      - Not adopted. The dinner shape moves toward the donors' in both arms, yet the night share of lows does not: what
        keeps real nights out of lows is not the post-dinner glucose level alone. The open question stays lesson 167's.
+
+171. **Real Loops deliver more insulin overnight than the sim's, and their nights still stay out of lows.** Insulin
+     delivered ÷ scheduled basal, median person over nights (`night_ratio.py`; sim received doses vs settings; donors
+     doses.json vs the therapy basal timeline, local time): night 00–06 donors 1.32 (80 people), c195_base 1.24; afternoon
+     12–18 (boluses included) 2.67 vs 2.32.
+     - The sim's Loop is not over-dosing its nights; the simulated body reaches lows on less insulin than real bodies
+       take without them. So real nights carry something that keeps glucose arriving or insulin acting less than the
+       sim's night does, and it is not the post-dinner level (lesson 170), the basal share or profile (167), the
+       circadian profile (168) or settings and targets (167).
+     - The one lever that moved the night share was posture's bedtime step (off: 40%; half: 46%; full: 53%), i.e. how
+       fast insulin acts once the person lies down. Candidates now: overnight insulin resistance that the sim lacks
+       (sleep-phase GH surges are mean-zero in the sim, B8; real early-night GH peaks raise EGP and lower SI for hours),
+       and the timing of the supine switch relative to the evening's insulin.
