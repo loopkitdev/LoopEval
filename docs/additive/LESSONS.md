@@ -4279,3 +4279,13 @@ statistic here, but it is the controller donors ran.
      duration p90 70 (65), per-person meal EGP nadir on the tracer's; open: lows 0.50/day (1.08) and t54 0.031 (0.215),
      24-h amplitude 0.187 (0.131), night unentered rises 0.49 (0.67), within-person meal drop SD 30.4 (36.7), lunch rise
      +19 / 22 at 1–1.5 h (+34 / 36). Validation convention unchanged (`--enable rc_own`).
+
+211. **An hours-scale sensor bias for G7, on its own sensor evidence.** `slow_bias` (OU, sd at 130 mg/dL, τ 180 min;
+     Breton & Kovatchev 2008: CGM error autocorrelated "up to several hours") was left at sd 0 in LESSONS 49 because it
+     lowered an already-low Hurst. On the c235 bodies the G7 fit to its own FDA targets (sensor_fit.py, K213919) has
+     drifted: loss 10.89 (in-range MARD 6.75 vs 8.6, < 54 MARD 26.1 vs 14.0, elasticity 0.53 vs 0.70). sd 5: loss 7.86
+     (in-range MARD 8.56, < 54 12.6, elasticity 0.69; PARD 10.6 vs 8.9 worse); sd 8: 14.70.
+     - c236 cohorts on the c235 defaults, sd 5 / 8: hurst_long 0.280 / 0.274 (KS 0.16 / 0.25, now pass; donors 0.247), low
+       nadirs 44 / 51 / 57 (40 / 50 / 57), share of lows reaching < 54 0.35 / 0.34 (0.37), night unentered rises 0.51 /
+       0.57 (0.67), lows 0.54/day either way, 27 matched each (28). **G7 default sd 5.0, τ 180** (the sensor-target
+       optimum). G6 and Libre 3 stay at 0 until each is refitted against its own FDA table on these bodies.
