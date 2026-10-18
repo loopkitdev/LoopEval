@@ -3207,3 +3207,14 @@ statistic here, but it is the controller donors ran.
        their current sizes. What differs per meal remains open: candidates are the meal composition actually eaten
        (the share of the entry that is glucose-available, per meal rather than per person) and Loop's own dosing
        response, which differs between real and simulated bodies early in a meal.
+
+148. **The people's own meal insulin matches; what is left is Loop's automatic dosing after meals.** Bolus insulin
+     per 10 g entered around isolated entries ≥ 20 g (no other entry ±3 h; `meal_bolus_iso.py`), mean:
+     - manual, −15 to +60 min: donors 1.15 (p10 / p90 0.57 / 2.14 including automatic), new base 1.14 (0.47 / 1.90);
+     - manual, +60 to +180 min: donors 0.12, new base 0.05;
+     - automatic, +60 to +180 min: donors 0.21 (p90 0.70); the sim books automatic boluses inside its temp-basal
+       segments (lesson 99), so they do not appear in this count.
+     Top-up events realize at the donors' rate on the new base (cohort 84.7 vs 90.1/day). Meal-time behavior is not
+     where the first-hour spread or the early lows come from. The open comparison is Loop's own automatic insulin in
+     the first 3 h after meals, measured as delivery above the scheduled rate on both sides (lesson 92's method,
+     last run on the old base).
