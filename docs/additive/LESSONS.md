@@ -2953,3 +2953,41 @@ statistic here, but it is the controller donors ran.
        the sim's 111; Elleri 2013's
        121 g meals 130 / 178 min. Appearance stays at its default.
      Default unchanged (0.15).
+
+140. **Glucocorticoid courses (B14) built; and the ISF semantics trade, re-measured with the right constant.**
+     - **B14, oral glucocorticoids** (catalog D13, the largest unbuilt effect). Per person 0.09 courses/year (Waljee
+       2017: 21.1% of US adults had ≥ 1 short course in 3 years; half were a 6-day dose pack). A course lasts U(4, 7)
+       days with a morning dose N(08:00, 45 min). SI loss is zero until 2 h after the dose, ramps in to 6 h, holds to
+       12 h and is gone by 22 h: fasting near normal, highs in the afternoon and evening (hospital guidance,
+       PMC8157052). The peak loss is U(0.35, 0.60) on day 1, tapering linearly; Bevier 2008 needed +69% insulin
+       (30–100%) from 6 h after the first prednisone dose, back to baseline by day 4 [J for the peak]. Day 1 averages
+       SI 0.78 (about +29% insulin need, the guidance's "≥ 30%"), with a 0.51 peak. On its own stream (seed + 303).
+       The default cohort is unchanged (c156 = c153: 33 matched, same people).
+     - **Scenario `--enable steroid_course`** (one course from day 3; c156_ster paired with c156_base, 112 people):
+
+       | window | Δ mean | Δ t>180, pts | Δ t<70, pts | insulin ratio |
+       |---|---|---|---|---|
+       | day 3 | +20.6 | +10.1 | 0.0 | 1.12 |
+       | day 3, 14–22 h | +47.6 | +22.2 | 0.0 | 1.12 |
+       | days 3–8 | +11.1 | +5.7 | −0.45 | 1.06 |
+       | days 9–13 | +0.3 | +0.1 | 0.0 | 1.00 |
+
+       Loop's own feedback adds 12% insulin on day 1, against Bevier's 69%. The rest shows as afternoon-evening
+       highs, the clinical pattern. People who raise basal or set an override for a course are not modeled
+       (no steroid-aware behavior); a candidate that adapts faster should show its gain here.
+     - **ISF semantics, re-measured.** The `isf_total` switch had run with the peak calibration's labeler constant
+       (1.25); lesson 75 requires 1.08 under total-drop, now wired (df55f5e). c157 against c156:
+       - temp entry-anchored ΔCGM per 10 g at 60 / 120 / 180 min: +2.8 / +3.3 / +1.5 (peak +2.6 / −2.8 / −3.3;
+         donors +6.4 / +5.2 / +5.5); automatic +2.2 / +1.6 / +0.6 (+1.1 / −2.6 / −4.4; donors +4.3 / +4.3 / +5.4);
+       - CV 35.0 passes (peak 38.4; donors 34.8); but mean 177.6, TIR 56, t70 0.44, TDD 46.0 (38.8); 23 vs 33 matched.
+       The constant was not why lesson 132's arm ran high: total-drop semantics still under-insulinise the bodies.
+     - **The self-check reads the same trade from the other side.** A perfect person (every gram entered and
+       bolused, disturbances off) on the default: nights 50 below rest (median), 3 of 8 within 40. Under total-drop
+       with the linear CR, all 8 pass (−16 to −27). On the default bodies the linear-part total drop per unit is a
+       median 2.16× the calibrated (peak) ISF (q25/75 1.82 / 2.49; 24 people), while the intake balance (carbs =
+       non-basal TDD × ISF ÷ linear CSF) books that ISF as a total. That is lesson 40's bookkeeping gap: it is kept
+       because it alone holds the cohort's TDD (38.9 vs 38.8). The failing self-check is that known gap, deeper since
+       the slower EGP arm (p2e 0.010 gives nights −45; 0.006 −50), not a B14 regression (identical at 17c4c51).
+     - Reading: peak semantics give the levels and TDD and over-cover meals; total semantics give the meal plateau
+       and CV and under-insulinise everything. The donors have both, so the missing piece acts at meals only and is
+       not a scalar on insulin action (lesson 133). Scripts: `runs/2026-10-18-additive-workouts/`.

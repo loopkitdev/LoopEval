@@ -51,6 +51,7 @@ estimates (LESSONS 2).
 | B4 Intraday OU / slow drift | — | **off**: no controlled-condition evidence | 07; LESSONS 1 | off |
 | B5 Menstrual cycle | SI falls through the late luteal phase to a low at menses onset, holds 2 days, recovers by day 3 (shape "late"); cycle N(28, 3) d, 63% of people respond | amplitude lnN(0.08, 0.5) | 02; BDDP Dexcom G7 cycle logs (493 events, 125 users): glucose ~+2 to +4.7 mg/dL up to onset, ~−3.5 a week after (LESSONS 136); population-wide screens show no rhythm because cycles are unlogged and unaligned | wired, **on by default** (Pete 2026-10-18) |
 | B6 Illness | Poisson episodes (3/yr adults, 5/yr children), 1.5–15 d; SI dip 10–35% with ramps, EGP +0–15%; 20% gastrointestinal (SI up 5–15%, intake ×0.7) | — | 02 illness (Mehta 2010; Tinti 2025) | wired |
+| B14 Oral glucocorticoids | courses at 0.09/yr per person; 4–7 days, morning dose ~08:00; SI × (1 − loss·w(t)), w 0 to +2 h, ramps to 1 by +6 h, holds to +12 h, gone by +22 h; loss U(0.35, 0.60) on day 1, linear taper | — | 00 D13; Bevier 2008 (insulin +69%, 30–100%, from 6 h; baseline by day 4); Waljee 2017 (21.1% of adults per 3 years); PMC8157052 (afternoon–evening pattern); LESSONS 140 | wired, on at the population rate; `--enable steroid_course` forces one from day 3 |
 | B11 Hyperglycaemia-induced resistance | SI × (1 − H), H → 0.26·clip((G − 140)/220, 0, 1), τ 12 h [J] | — | Vuorinen-Markkola 1992; Yki-Järvinen 1987 (LESSONS 43) | wired |
 
 ## C. Exercise (`exercise.py`)
