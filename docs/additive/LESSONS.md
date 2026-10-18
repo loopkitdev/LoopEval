@@ -3360,3 +3360,26 @@ statistic here, but it is the controller donors ran.
        action delay itself (p2) is shorter than the clamp fit and the meal tail longer. Both are candidates for one
        joint, evidence-bounded fit to two observed targets: the correction timing by dose and the entry-anchored
        meal trajectory.
+
+156. **Neither a shorter action delay nor a slow meal tail gives the two targets, alone or together.** c175 (rc_own,
+     bc4b07a) against c172_rc; corrections 0.5–1.5 U ΔCGM per U at 60 / 90 / 180 min (donors −29.0 / −45.5 / −67.3)
+     and temp entry-anchored ΔCGM per 10 g at 60 / 120 / 180 min (donors +6.4 / +5.2 / +5.5):
+
+     | arm | corrections | meals (temp) | CV | lows / day | hurst_long | acf_zero | matched |
+     |---|---|---|---|---|---|---|---|
+     | base (c172_rc) | −11.2 / −32.0 / −68.8 | +3.6 / +3.2 / +2.6 | 35.6 | 0.63 | 0.368 | 70 | 24 |
+     | p2 0.04 | −14.0 / −18.5 / −46.3 | +3.7 / +2.3 / +2.4 | 35.7 | 0.63 | 0.362 | 65 | 25 |
+     | slow tail (30% at kmin 0.003) | −17.6 / −30.7 / −55.2 | +3.6 / +2.5 / +0.7 | 32.1 | 0.46 | 0.350 | 65 | 24 |
+     | both | −20.0 / −38.5 / −64.2 | +2.9 / +0.5 / +0.6 | 31.6 | 0.42 | 0.339 | 60 | 19 |
+
+     - A shorter action delay moves the small-correction drop only part of the way (−11 → −14 at 60 min) and costs the
+       total by 3 h; the slow tail, taken out of the meal's main parcel, lowers its 2–3 h hold rather than raising it,
+       and it smooths the trace (CV 32, fewer lows, day/night 1.63). Together: closest correction timing yet (−20) but
+       no meal hold and 19 matched. Not adopted.
+     - Every insulin-timing and meal-shape lever tried so far moves the correction timing, the meal hold and the
+       spread in fixed proportion to one another; the donors' combination (fast corrections, held meals, wide
+       first-hour spread, more lows) is not on that line. That points at something the model lacks rather than a
+       parameter: a source of glucose that rises during the 1–4 h after real meals and is independent of the bolus
+       (food eaten after the entry and not entered; lesson 130's follow-on check counted labeled pulses, not their
+       size), or real insulin action that is faster at corrections because correction-time glucose is falling from a
+       peak the CGM has not shown yet.
