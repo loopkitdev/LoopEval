@@ -3292,3 +3292,14 @@ statistic here, but it is the controller donors ran.
        (0.1 g glucose per g protein, ~4.5% of carbohydrate grams) also sits outside the TDD budget, the same
        bookkeeping question; fat off entirely (157) bounds the two together.
      - **Adopted (Pete, 2026-10-18): `fat_rel` is the default** (`--disable fat_rel` restores the absolute term).
+
+152. **Every simulated person ran standard RC; running their donor's deployed RC mode halves the automatic-bolus
+     gap.** The plant export passed only the dosing strategy, so the 29 template donors who deployed integral RC with
+     the clamp (rc_mode.csv, DTR forecast match per day; 20 automatic-bolus, 9 temp-basal; 36 "mixed" stay standard)
+     were simulated with a weaker controller than their own. `--enable rc_own` (4141fbf; off) adds
+     `--candidate-integral-rc --candidate-integral-rc-clamp` for them (19 people in the 112). c172 against c171:
+     - twin Δ mean automatic +12.9 → +7.7, temp +2.4 → 0.0; entries tercile low / mid / high +5.7 / +2.2 / +18.4 →
+       +3.2 / +2.0 / +16.5;
+     - mean 159.0 → 158.8, TIR 65.4 → 66.6, lows 0.58 → 0.63/day (onsets 0.70 → 0.72), TDD 39.7; 24 → 24 matched.
+     It is the deployment-faithful configuration, the same rule the replays follow (AGENTS: RC mode per dataset).
+     What remains of the level excess is the heavy enterers (+16.5).
