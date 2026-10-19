@@ -44,7 +44,8 @@ CSF_PER_GEQ = 1.85      # re-read through the labeler under saturating gastric e
 CSF_BLEND_CAL = 1.25    # re-read through the labeler: 1.18 read 1.025 (LESSONS 37), then 1.15 as other components changed (c39); under the
                         # total-drop ISF option it must be 1.08 (labeler 1.40 → 1.21; LESSONS 75)
 CSF_BLEND_CAL_TOTAL = 1.05   # labeler g-eq per entered gram 1.21 on the share-0.8 + egp_sat base (1.08 read 1.247; LESSONS 197)
-ISF_W = 0.5      # weight of the yardstick against the person's own ISF setting in the truth (open, see sample_person)
+ISF_W = 1.0      # weight of the yardstick against the person's own ISF setting in the truth: the body follows the data-fitted
+                 # value, not the entered setting (Pete 2026-10-19; LESSONS 259; was 0.5)
 
 
 @dataclass
