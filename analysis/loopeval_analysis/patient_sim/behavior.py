@@ -161,6 +161,7 @@ class BehaviorTraits:
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
+    entry_size_b: float = 0.0            # main-meal entry chance × (grams / the person's usual meal)^b (experiment, LESSONS 289)
     unent_split: bool = False            # an unentered, unbolused main meal eaten as ~20 g portions over 3 h (experiment, LESSONS 285)
     unent_light: bool = False            # a main meal eaten unentered and unbolused carries snack composition (experiment, LESSONS 284)
     corr_trend: bool = True              # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237; default 2026-10-19)
@@ -604,6 +605,11 @@ class Behavior:
             grams = max(3.0, grams)
             speed = float(np.exp(r.normal(0, t.gi_cv)))
             p_e = min(1.0, t.p_entry_meal * t.slot_ann[k]) if kind == "meal" else t.p_entry_snack
+            if t.entry_size_b > 0 and kind == "meal":
+                # experiment: a bigger meal is likelier to be entered (missed boluses are most common for small eating,
+                # PMC2827497); the donors' evening entries track their night insulin, the twins' did not (LESSONS 288–289)
+                ref_g = t.carbs_day * carb_scale * float(np.mean([sh_ for kd_, _, sh_, _ in slots if kd_ == "meal"])) / max(total_share, 1e-9)
+                p_e = min(1.0, p_e * (grams / max(ref_g, 1.0)) ** t.entry_size_b)
             if kind == "snack" and t.entry_clock and t.snack_entry_w is not None:
                 p_e = min(1.0, p_e * t.snack_entry_w[int(((mt + base) % DAY) // 60) % 24])
             entered = None; bolus = None; et = base + mt
