@@ -5908,3 +5908,8 @@ outputs in gamepc ~/additive/runs/c290–c312).
      GIR peak ~100 min); boluses and Loop's automatic doses run ~0.05 U/kg, and smaller s.c. doses act sooner (direction known;
      no source sizes it for analogues at these doses), so 0.04 (peak ~80 min) is data-calibrated in an evidenced direction.
      Adopted as the BodyParams default (Pete: weigh primary outcomes and soundness over count). New reference c321_p2a.
+     Component review on c321_p2a (`review.py`): low nadir p10 / p25 / p50 45 / 52 / 57 (40 / 50 / 57), share < 54 0.33 (0.37),
+     duration p90 65 (65), entries 3.09 / day (3.28), bolused ≥ 15 g 2.07 (2.33), unentered rises day / night 2.66 / 0.70 (2.75
+     / 0.67), rise after a night cut 0.27 (0.30) — all within ~15%. Off: 3-h meal change +2 (+21) and 0–2 h meal drop p50 −17
+     (−11), the open meal-shape gap; meal EGP nadir 0.66 at 120 min (Romeres 0.56 at 160), off since before p2 changed — a
+     deeper, later EGP suppression would lower hours 2–3 and widen the late-phase gap, so it is left.
