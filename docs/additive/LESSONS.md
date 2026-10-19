@@ -4378,3 +4378,27 @@ statistic here, but it is the controller donors ran.
        without a top-up). Everything named that acts inside 2 h is now at the donors' or at its evidence; what remains is
        how much carbohydrate actually arrives in the first 2 h relative to the entry, meal to meal (the appearance spread
        Pete chose to keep at its Elleri size, LESSONS 208).
+
+217. **Meal carbohydrate arrival matches the donors' on this base; what does not transfer is each person's own meal fit.**
+     (Pete 2026-10-18: estimate meal carbohydrate arrival from real data.) Labeled pulses (ice labeler, same code both sides;
+     `arrival.py`), announced bolused entries ≥ 15 g, per-person medians / within-person SDs:
+
+     | | donors (152) | c219_es | c241_tu (current) |
+     |---|---|---|---|
+     | peak arrival per entered g per h | 1.10 | 0.96 | 1.05 |
+     | time to peak (h) | 0.75 | 0.83 | 0.78 |
+     | duration (h) | 2.08 | 2.43 | 2.15 |
+     | size / entry | 1.11 | 1.18 | 1.14 |
+     | within-person SD of log peak / log size | 0.47 / 0.61 | 0.49 / 0.56 | 0.49 / 0.54 |
+
+     The refits since c219 brought arrival onto the donors'; its meal-to-meal spread was right all along.
+     - **The person level does not transfer.** Per person (79 paired), the median 3-h meal change has the donors' spread
+       across people (SD 29.1 vs 28.4) but no link to the person's own donor (r −0.01; 2-h nadir r 0.19). The post-meal low
+       share per person: sim p50 / p75 / p90 0 / 0.035 / 0.10, donors 0.058 / 0.11 / 0.275, r 0.07 — the low-prone quarter
+       of donors (22% of meals) maps to people with none.
+     - **`csf_own`** (302451b, off; template column csf_own_mult, 55 donors): each body's carb sensitivity × a closed-form
+       factor (k p10 / p50 / p90 0.82 / 1.08 / 1.45) solved from the donor's median 3-h change. c242: r for the 3-h change
+       −0.01 → 0.24, nadir 0.19 → 0.21; lows 0.375/day, meals ending < 70 2.9%: 24 matched. A one-pass factor transfers
+       part of the 3-h fit and none of the nadir: the low-prone donors' lows sit inside the 2 h, not at the 3-h end.
+       Next: the person-level driver of the 2-h nadir (their ISF and CR against the body, their own bolus and correction
+       habits around meals), measured per donor.
