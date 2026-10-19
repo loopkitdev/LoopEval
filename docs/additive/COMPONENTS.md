@@ -60,6 +60,8 @@ estimates (LESSONS 2).
 | B11 Hyperglycaemia-induced resistance | SI × (1 − H), H → 0.26·clip((G − 140)/220, 0, 1), τ 12 h [J] | — | Vuorinen-Markkola 1992; Yki-Järvinen 1987 (LESSONS 43) | wired |
 | B1c Per-donor circadian pattern | B / L / D SI levels drawn from the donor's posterior (`fit_body --segments`, reliability-shrunk mean + posterior SD), replacing the random Visentin class (`circ_own`) | split-half reliability B 0.53, L 0.08, D 0.37 | donors' true B/D log SD 0.56 vs Visentin-as-simulated 0.59; LESSONS 335 | built, off |
 | X12 Thyrotoxicosis (scenario) | plasma insulin clearance ke × `thyro_clear` (1.41), settings kept euthyroid | — | PubMed 3887944 (MCR 1144 vs 812 ml/min); Arch Intern Med 1980 (+25–100% insulin); LESSONS 336 | built, off (scenario) |
+| D14 Niacin (scenario) | SI × `niacin_si` (0.37) | — | Kahn 1989 (minimal-model SI ×0.37 at 2 g/day); Blond 2014; LESSONS 354 | built, off (scenario) |
+| D34 Damaged insulin (scenario) | delivered bioactivity × `insulin_potency` | — | BMJ DRC 2022 e003105 (−14–18% at 28 d, 32–37 °C); LESSONS 354 | built, off (scenario) |
 
 ## C. Exercise (`exercise.py`)
 
