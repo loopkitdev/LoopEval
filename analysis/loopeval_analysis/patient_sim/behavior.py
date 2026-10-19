@@ -290,7 +290,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         p_free_bolus=p_free, p_topup=p_topup, p_split=p_split,
         glances_per_day=lj(6.0, 0.6),
         low_alert=float(rng.normal(76, 8)), high_alert=float(rng.normal(240, 25)),
-        p_wake_alarm=float(np.clip(rng.normal(0.45, 0.2), 0.05, 0.95)),
+        p_wake_alarm=float(np.clip(rng.normal(0.72, 0.2), 0.05, 0.98)),   # mean 0.45 -> 0.72: donors' night rescue timing and low duration (adults wake more than Buckingham 2005's children; LESSONS 274)
         pro_onset=float(rng.normal(80, 20)), pro_grams=lj(12, 0.4),
         treat_thr=float(np.clip(rbg - 5, 55, 85)) if np.isfinite(rbg) else float(rng.normal(70, 6)),
         treat_grams=float(np.clip(rsz, 8, 60)) if np.isfinite(rsz) else lj(25, 0.5),
