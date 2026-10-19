@@ -268,7 +268,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         bed=float(rng.normal(23 * 60, 50)), wake=float(rng.normal(7 * 60, 50)),
         snack_rate=snack_rate, carbs_day=person.truth["carbs_g_day"],
         p_entry_meal=p_meal, p_entry_snack=p_snack,
-        count_bias=count_bias, count_sd=lj(0.2, 0.3),
+        count_bias=count_bias, count_sd=lj(0.3, 0.3),
         bolus_timing=timing, lead_med=float(lead - 2.0) if np.isfinite(lead) else float("nan"),
         p_bolus_with_entry=float(np.clip(pb, 0.05, 1.0)) if np.isfinite(pb) else 0.85,
         p_free_bolus=p_free, p_topup=p_topup, p_split=p_split,

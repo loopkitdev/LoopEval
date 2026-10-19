@@ -4553,3 +4553,13 @@ statistic here, but it is the controller donors ran.
      i003 / i056 / i010, low anchor 98 / 109 / 118 (lower target + 10), high anchor 200, factor 0.2 → 0.8, automatic-bolus
      people only (the 24-donor screen found no others). Too few people to move the cohort gap; it removes a known
      controller mismatch for their twins. The code default (no rc_own) stays stock.
+
+228. **Meals that turn out smaller (or larger) than entered: the per-meal count error, sized from the donors' measured
+     arrival.** Labeled pulses, arrival ÷ entered grams (`arrival_tail.py`, announced bolused pulses, same labeler both sides):
+     donors p5 / p10 / p25 / p50 / p75 / p90 0.30 / 0.39 / 0.64 / 1.06 / 1.66 / 2.43, share < 0.5 / < 0.33 / > 2 16.6 / 6.6 /
+     16.5%; c241_tu 0.34 / 0.43 / 0.70 / 1.10 / 1.72 / 2.45, 13.4 / 4.7 / 18.2%. Meals arriving < 0.5× start at CGM 131 in
+     donors vs 149 in the sim. Brazeau 2013's clinic error (log SD 0.20 → ~19% mean absolute error) cannot see meals left
+     unfinished or added to at home.
+     - `--set count_sd_mult=1.5` (c251): arrival / entry 0.31 / 0.41 / 0.63 / 1.05 / 1.64 / 2.40, 16.2 / 5.7 / 16.6% (on the
+       donors'); meals ending < 70 3.9 → 4.5%, lows 0.42 → 0.46/day, hurst_long and day/night pass; 29 matched (the best on
+       the current physiology). **Default per-person count_sd median 0.30** (was 0.20), shaped from data (Pete 2026-10-18).
