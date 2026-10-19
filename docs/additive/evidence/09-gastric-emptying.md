@@ -210,7 +210,7 @@ min) followed by near-linear (zero-order-like) emptying.
 | Km | **60 kcal (30–120)** | [I] Gives a 25 g snack an initial k = Vmax/Km ≈ 0.05/min, which matches the current kempt for small loads. Calibrated so that 50→100 g cuts the fractional rate by about 30% (Schirra: 27.5%). |
 | t_lag (solid or mixed meals) | **10 min (0–40)**; 0 for liquids | Lag then linear [M Collins 1983]. Breath-test Tlag is longer (~80 min, Hellmig) but includes post-gastric steps. The lag grows with liquid kcal [M Collins]. |
 | Between-person Vmax | lognormal, **CV ≈ 30%** | [I] From the SDs in Samsom 2003 (28% in controls, 36% in diabetes) and Hellmig. |
-| Gastroparesis subgroup | **~25–30% of T1D** with Vmax ×0.6–0.8 | [M] 28% delayed (Samsom). [I] T50 1.3× the control mean. 30–50% in long-standing T1D [R]. |
+| Gastroparesis subgroup | **~25–30% of T1D** with Vmax ×0.6–0.8 | [M] 28% delayed (Samsom). [I] T50 1.3× the control mean. 30–50% in long-standing T1D [R].  DCCT/EDIC year-20 breath test (Bharucha 2015, n 78): 50% normal, 47% delayed, 3% rapid; scintigraphy reviews 25–55% in T1D. The model's 28% is at the low end; LESSONS 286 (c293 ablation) found the spread carries part of the twins' slow post-peak fall, but no evidence argues for a smaller share. |
 | Day-to-day (within person) | small, **CV ~10–20%** | Not significant in Collins 1983 [M]. Wilinska uses 20% inter-occasion variability on tmax [M-model]. A precise figure: not found. |
 | m_BG | 1 at 4–6 mmol/L; about **0.75 at 8 mmol/L**; **~0.5–0.6 at 15–20 mmol/L**; **~1.3–1.5 below 3 mmol/L** | Retention 44 vs 36% in T1D at 8 vs 4 mmol/L [M Schvarcz]. Delay "substantial" at 15 [R]. Acceleration [M Russo]. Every magnitude here is [I]; the effect sizes are poorly pinned. |
 | Bioavailability f | 0.9 (0.7–1.0) | Dalla Man / simglucose 0.9. Wilinska U(0.7, 1.2). |
@@ -239,3 +239,6 @@ as fat and protein moves 100 g to t50 = 143 min.
 
 **Caveat.** Ra-vs-dose has not been measured directly by tracer in T1D (§3). The size scaling
 rests on gastric-emptying studies plus one 121 g T1D tracer study.
+
+- Bharucha AE et al. Delayed gastric emptying is associated with early and long-term hyperglycemia in type 1 diabetes
+  mellitus. *Gastroenterology* 2015 (DCCT/EDIC; https://pmc.ncbi.nlm.nih.gov/articles/PMC4516593).
