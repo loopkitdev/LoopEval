@@ -39,7 +39,10 @@ class BodyParams:
     ke: float = 0.127
     vi: float = 0.126              # L/kg
     # insulin action
-    p2: float = 0.025              # 1/min, disposal-action rate from the lispro clamp fit (GIR peak ~100 min, 50% by ~140; LESSONS 9).
+    p2: float = 0.04               # 1/min, disposal-action rate. 0.025 was the 0.2 U/kg (~15 U) lispro clamp fit (GIR peak ~100 min,
+                                   # LESSONS 9); typical boluses and Loop's automatic doses are ~0.05 U/kg and act sooner (smaller s.c.
+                                   # doses act earlier — direction known, size not found for analogues). 0.04 is data-calibrated: t54,
+                                   # p_reach54 and CV onto the donors' (LESSONS 324; 2026-10-19). Was: disposal-action rate from the lispro clamp fit (GIR peak ~100 min, 50% by ~140; LESSONS 9).
                                    # Not Loop's curve: the body follows evidence about patients (Pete 2026-10-17; LESSONS 114)
     si_d: float = 5.0e-4           # disposal sensitivity, 1/min per (mU/L)  — calibrated to ISF
     p2e: float = 0.012             # 1/min, EGP-suppression onset rate: clamp GIR peak 108 min on the share-0.8 base (target ~100; 0.006 gave 125;
