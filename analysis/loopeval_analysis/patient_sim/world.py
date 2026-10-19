@@ -408,6 +408,8 @@ class World:
                 bt.carbs_day = max(0.2 * bt.carbs_day, bt.carbs_day - graze - resc - pro)
             else:
                 bt.carbs_day = max(0.5 * bt.carbs_day, bt.carbs_day - graze - resc)
+            if enable and isinstance(enable.get("meal_budget"), float):
+                bt.carbs_day *= enable["meal_budget"]       # experiment (LESSONS 327): meals' share of the TDD budget × this
             self.beh.t = bt                                  # the Behavior was built above with the old traits
         # every day planned now: the export writes the planned Temporary Overrides into the therapy timeline, and
         # the plant's re-simulation reproduces the identical plan (LESSONS 40)
