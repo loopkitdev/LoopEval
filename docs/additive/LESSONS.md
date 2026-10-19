@@ -5112,3 +5112,8 @@ statistic here, but it is the controller donors ran.
      15–21 h too low — insulin follows food, and this is the breakfast-high / evening-low intake of LESSONS 231 (window
      g-eq → grams did not fix it, `slot_true`). Next: the intake split by hour against the donors' entered grams by hour
      (entries carry the meal sizes the donors bolused for), before touching the eating clock.
+     - **Entered grams by 3-h block** (`entry_hourly.py`, g/day, mean over people) 06 / 09 / 12 / 15 / 18 / 21 h: donors
+       9.3 / 16.0 / 22.8 / 16.4 / 24.5 / 9.6 (total 101.6), c278 9.1 / 19.5 / 30.4 / 16.3 / 26.2 / 9.3 (111.8). The entered
+       excess is late morning and lunch (+3.5 and +7.6 g/day); the evening entries match. So the evening insulin deficit
+       (15–21 h) is not entered meals — it lies in what follows them or in unentered eating and its corrections — and
+       the morning / midday excess is lunch-sized entries, which the slot shares (labeled window g-eq, LESSONS 51) set.
