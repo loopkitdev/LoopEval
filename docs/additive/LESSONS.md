@@ -4649,6 +4649,6 @@ statistic here, but it is the controller donors ran.
 
        Under Loop the component makes a +3.4 mg/dL onset excess and a ~6 mg/dL swing in responders, against the loggers'
        +4.7 and 6–8 (people who log their cycle are plausibly the responders). The post-onset low comes at days 3–6, not
-       7–10: in the sim it is Loop's carried-over insulin once SI recovers on day 3; the donors' later low may be a
-       follicular rise in SI that the component does not have. With 18 people and the donors' own noise (medians run 1–2
+       7–10. Not measured: the sim's is plausibly Loop's carried-over insulin once SI recovers on day 3, and the donors'
+       later low a follicular rise in SI that the component does not have. With 18 people and the donors' own noise (medians run 1–2
        mg/dL under the means), no reshaping; a follicular SI term would need its own evidence first.
