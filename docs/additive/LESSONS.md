@@ -4977,4 +4977,4 @@ statistic here, but it is the controller donors ran.
      (donors ~2.4); 31 matched; t70 1.45% (KS 0.945), lows 0.92/day (1.08), 24-h median range 40 (39); day / night 1.80
      fails again (KS 0.007). The temp-basal twins' remaining excess is by day (untreated no-bolus daytime lows 0.457 vs
      0.286; t70 day mean 2.64): with the 24-h basal total held, a higher night need lowers the daytime one, and a
-     temp-basal Loop cannot add insulin below zero. New reference c270.
+     temp-basal Loop can only cut basal to zero, not take insulin back. New reference c270.
