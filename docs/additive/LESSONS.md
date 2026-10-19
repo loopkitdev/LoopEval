@@ -4918,3 +4918,11 @@ statistic here, but it is the controller donors ran.
      h: temp 0.236 → 0.296 (0.286), automatic 0.100 → 0.154 (0.308). By strategy t70 temp 1.16 → 1.30 (0.97), automatic
      0.67 → 0.76 (1.20). The quiet-hour drift itself stays upward in the sim (+2.5 / +1.5), so between-meal eating or need
      is not settled. New reference c266.
+     - **Review after adoption: where circadian_amp fails** (`hourly.py`; CGM by local hour minus the person's mean, median
+       over people; 00 / 03 / 05 / 07 / 10 / 12 / 15 / 18 / 21 h): donors +5 / −11 / −20 / −21 / −3 / +1 / +12 / +5 / +15
+       (range 39); c264 +7 / −21 / −29 / −26 / +8 / +10 / +15 / +6 / +12 (44); c266 +7 / −25 / −34 / −27 / +9 / +13 / +15 /
+       +5 / +13 (49). Two separate misfits: the overnight descent is too deep (00 → 05 h −41 vs −25), and the delivered
+       shape deepens it — quiet-night delivery carries insulin for late evening eating and night corrections, which
+       LESSONS 125 already showed overstates night need; and late morning runs high (10–12 h +8..+15 vs −3..+1), the
+       breakfast-intake excess of LESSONS 231. Next: a night-need measure free of evening carbohydrate (donors' clean
+       nights, LESSONS 125's split) for the delivered shape's night hours.
