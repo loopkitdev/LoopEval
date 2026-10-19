@@ -4698,3 +4698,25 @@ statistic here, but it is the controller donors ran.
      - The missing lows stay where LESSONS 236 put them: daytime descents slower than donors' at every context (falls
        through 140, 30-min rate p90 2.2 vs 2.9; > 3 mg/dL/min 0.39 vs 1.26% of falling readings), with the same count of
        falls and the same peaks.
+
+238. **The missing short-scale motion is after entered meals: the sim's meal excursion is ~20% smaller per entered gram,
+     with the same insulin around the meal.**
+     - **Rises are slow too, not only falls** (`rate_dist.py`, daytime 30-min change): rising p50 / p90 / p99 c257 0.47 /
+       1.57 / 3.60 vs donors 0.58 / 1.94 / 3.72 mg/dL/min, > 2 5.7 vs 9.3%; 5-min |step| p50 / p90 3.0 / 9.6 vs 3.5 / 12.0.
+     - **Structure function** (`structfn.py`; SD of the CGM change over lag 5 / 15 / 30 / 60 / 120 / 240 min, daytime, per
+       person median): c257 6.9 / 16.7 / 27.4 / 43.4 / 64.7 / 72.1 (true BG 4.1 / 12.0 / 23.2 / 41.6 / 62.5 / 71.5), donors
+       7.1 / 18.4 / 31.3 / 49.0 / 64.5 / 77.2 — 9–12% short at 15–60 min, matched at 5 and 120 min.
+     - **By context** (`structctx.py`): quiet daytime (no entry or labeled onset −240..+60 min) 30 / 60-min SD 21.5 / 34.3 vs
+       21.7 / 35.5, matched; 0–120 min after an entry 29.4 / 45.4 vs 35.4 / 53.7.
+     - **Per isolated entered meal** (≥ 15 g, daytime, no other entry −120..+240; `meal_speed.py`): rise to peak p50 49 vs 64
+       mg/dL, per 10 g 13.1 vs 16.7, fastest 30-min rise p50 / p90 1.16 / 2.61 vs 1.52 / 3.11, fastest fall 1.25 / 2.37 vs
+       1.45 / 2.85, minutes to peak 85 vs 90, CGM at entry 144 vs 133.
+     - **Insulin around the meal matches.** Delivered per 10 g entered (all insulin), −30..+60 min 1.37 vs 1.44 U, to +240
+       2.38 vs 2.54 (the donors' "before entry" share is their 5-min steps carrying a bolus from the step start). Carb entry
+       and bolus are simultaneous on both sides (`entry_vs_bolus.py`, median 0 min; donors 5% dated > 5 min after).
+     - Labeled arrival per entered gram matched (LESSONS 228), the insulin matches, the CGM excursion does not: the
+       difference lies between them — how much glucose a gram makes (carb sensitivity against the settings' CSF) or how
+       fast insulin acts in the first 90 min. Correction time course at a flat trend (|30-min change| ≤ 10; `corr_fall.py`):
+       donors (268) −0.02 / −0.07 / −0.13 / −0.22 / −0.39 / −0.53 / −0.72 per U per ISF at 15 / 30 / 45 / 60 / 90 / 120 /
+       180 min; the sim arms have 11–18 such corrections each, too few to separate onset speed. Next: a probe of the body's
+       insulin and carbohydrate impulse responses against the donors' flat-trend corrections and isolated meals.
