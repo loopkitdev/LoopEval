@@ -378,6 +378,7 @@ class World:
         self.sleep_util = float(np.random.default_rng(int(person.seed) + 2011).uniform(0.05, 0.12)) \
             if (enable or {}).get("sleep_util", True) else 0.0     # default since 2026-10-18 (LESSONS 214)
         self._sleep_since = None
+        self.ex_gut = bool((enable or {}).get("ex_gut", False))      # experiment (LESSONS 344)
         self.ge_circ = bool((enable or {}).get("ge_circ", True))     # default since 2026-10-19 (LESSONS 339)
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,
                                           frag=self.act_frag, frag_seed=int(person.seed) + 1811,
@@ -632,6 +633,14 @@ class World:
             def _seg(h):
                 return 1.25 if 6 <= h < 11 else 0.8 if 17 <= h < 23 else 1.0
             gm = 0.5 * (_seg(hh) + _seg((hh - 1.0) % 24))
+        if self.ex_gut:
+            # C8 activity and the gut (experiment, off; LESSONS 344): slow walking after a 576-kcal meal shortened
+            # half-emptying 123 → 107 min (×1.15; Franke 2008, J Gastrointestin Liver Dis 17:27); emptying of liquids is
+            # reduced above ~70% VO2max (≈ 0.65 of VO2-reserve) and splanchnic flow can fall ≥ 80% in hard or long
+            # exercise (PubMed 22517770). Speed-up ramps in to 0.3 intensity, holds to 0.6, then falls to ×0.5 at 0.8 [J depth];
+            # it follows the filtered intensity, so emptying resumes as a session ends
+            I_ = float(ex["ex_intensity"])
+            gm *= (1.0 + 0.15 * min(I_ / 0.3, 1.0)) if I_ <= 0.6 else float(np.interp(I_, [0.6, 0.8], [1.15, 0.5]))
         self.body.step(1.0, si_mult=si, egp_mult=egp, util_drop=ud, ge_mult=gm, ex_intensity=ex["ex_intensity"],
                        ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"],
                        abs_mult=absm_env * absm_site * ex["abs_mult"] * self._posture_mult(m), bio=bio)
