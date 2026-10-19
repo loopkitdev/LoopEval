@@ -5913,3 +5913,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      / 0.67), rise after a night cut 0.27 (0.30) — all within ~15%. Off: 3-h meal change +2 (+21) and 0–2 h meal drop p50 −17
      (−11), the open meal-shape gap; meal EGP nadir 0.66 at 120 min (Romeres 0.56 at 160), off since before p2 changed — a
      deeper, later EGP suppression would lower hours 2–3 and widen the late-phase gap, so it is left.
+
+325. **On the p2 0.04 base the post-meal window and under-entry still trade the late phase against level and lows.** c322 vs
+     c321_p2a: `ppr_a` 0.3 → 3-h change +14.8 (closest yet; donors +21), mid meals +23 to 150 min, ICE 120–180 min 95.5
+     (donors 104); bg_mean 160.4, TIR 69.1, time > 180 29.1%, t54 0.090%, p_reach54 0.15, lows 0.75 / day; 31 matched (34).
+     `count_shift` −0.2 → 3-h change +4.5, t54 0.105%, p_reach54 0.18, lows 0.83; 30 matched. Neither adopted: each gains
+     the late phase only by lifting the daytime level (hourly 10–15 h 169–184 with ppr) and losing what p2 fixed. The late
+     phase stays the main open gap; the donors combine it with a lower daytime level and more lows, which no single
+     addition reproduces.
