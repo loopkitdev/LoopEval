@@ -24,8 +24,9 @@ import numpy as np
 @dataclass
 class ExerciseParams:
     alpha: float = 2.0          # acute SI boost per unit intensity (Romeres 2021, linearised) [I]
-    b: float = 0.018            # delayed-state build per minute per unit drive [J]
-    z_power: float = 1.0        # drive = ((Y − threshold)/(1 − threshold))^power. 2.0 with b 0.134 keeps everyday walking
+    b: float = 0.134            # delayed-state build per minute per unit drive; default since 2026-10-19 with z_power 2
+                                # (LESSONS 246: donors' HealthKit workouts pin what LESSONS 57 could not; was 0.018 linear)
+    z_power: float = 2.0        # drive = ((Y − threshold)/(1 − threshold))^power. 2.0 with b 0.134 keeps everyday walking
                                 # (I ~0.25) at the T1DEXI-sized build of b 0.018 linear and gives a 45-min moderate session
                                 # (I ~0.5) McMahon 2007's late-phase size, ≈ +0.6 mg/kg/min at 7–11 h; muscle glycogen use,
                                 # which the delayed sensitivity repletes, rises steeply with intensity (LESSONS 57)
