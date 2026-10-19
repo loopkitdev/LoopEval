@@ -370,16 +370,20 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     nr_ = float(row.get("night_need_ratio", np.nan)) if hasattr(row, "get") else np.nan
     if night_own and np.isfinite(nr_) and nr_ > 0:
         # the body's 02-05 h need = the donor's steady-night delivered / scheduled × the schedule there (165 donors, median
-        # 1.13; LESSONS 251): hours 00-06 of the body's shape × m, renormalised to mean 1 (the 24-h basal total, and with
-        # it the intake budget, unchanged). m solves m·p25 / ((6·m·n + 18·d)/24) = q, q = R·S_25 / B
-        hN = list(range(0, 6)); h25 = [2, 3, 4]
-        S25 = float(row.basal) * j_basal * float(np.mean(prof[h25]))
-        q = nr_ * S25 / max(basal_true, 1e-6)
-        n_ = float(np.mean(prof_true[hN])); d_ = float(np.mean(np.delete(prof_true, hN))); p25 = float(np.mean(prof_true[h25]))
-        den = 24 * p25 - 6 * q * n_
-        if den > 0:
-            m_ = float(np.clip(18 * q * d_ / den, 0.5, 3.0))
-            pt = prof_true.copy(); pt[hN] *= m_; prof_true = pt / pt.mean()
+        # 1.13; LESSONS 251), applied as a smooth bump: weight 1 at 02-05 h, cosine taper to 0 at 22 and 08 h; the shape is
+        # renormalised to mean 1 (the 24-h basal total, and with it the intake budget, unchanged); m by bisection
+        hh = np.arange(24); dist = np.minimum(np.abs(((hh - 3.5 + 12) % 24) - 12), 12.0)
+        wgt = np.where(dist <= 1.5, 1.0, np.where(dist >= 5.5, 0.0, 0.5 * (1 + np.cos(np.pi * (dist - 1.5) / 4.0))))
+        h25 = [2, 3, 4]
+        q = nr_ * float(row.basal) * j_basal * float(np.mean(prof[h25])) / max(basal_true, 1e-6)
+        f_ = lambda m: (lambda pt: float(np.mean((pt / pt.mean())[h25])))(prof_true * (1 + (m - 1) * wgt)) - q
+        lo_, hi_ = 0.3, 4.0
+        if f_(lo_) < 0 < f_(hi_):
+            for _ in range(40):
+                mid = 0.5 * (lo_ + hi_)
+                if f_(mid) < 0: lo_ = mid
+                else: hi_ = mid
+            pt = prof_true * (1 + (0.5 * (lo_ + hi_) - 1) * wgt); prof_true = pt / pt.mean()
     settings = dict(
         basal_profile=[float(x) for x in prof],
         basal_uh=float(row.basal) * j_basal, isf=float(row.isf) * j_isf, cr=float(row.cr) * j_isf / j_basal ** 0,
