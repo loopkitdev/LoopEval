@@ -5498,3 +5498,10 @@ statistic here, but it is the controller donors ran.
      The same signature as LESSONS 286's slower post-peak descent and the thin 5-min down-step tail. Posture (A4b,
      upright absorption × (1 − p), half Hildebrandt's contrast) is the component that slows the body's daytime insulin
      timing; its ablation c297 measures how much of this it carries.
+     **c297 (`--disable posture`, ablation):** post-max fall at matched height −26.5 / −28.5 (c289 −26.0 / −27.0; donors
+     −36.9 / −33.5), flat bolused entries at 100–140 reaching < 70 within 60 min 0.0% (0.3; donors 3.3), lows 0.67 / day
+     (0.83; 1.08), paired hypo-day OR 0.78 against c294, night CV 25.8 (29.4; 36.0), 29 matched. Faster daytime absorption
+     removes lows under Loop (as B15 heat did, LESSONS 290) and does not speed the falls: posture does not carry the
+     timing gap and stays on. Left for the faster real falls at the same insulin: the insulin-dependent disposal's
+     glucose dependence (κ 0.675, Best 1981) and anything that makes real meals' early appearance sometimes smaller than
+     the bolus expects — both to be measured against their own evidence first.
