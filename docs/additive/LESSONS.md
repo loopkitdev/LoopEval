@@ -5275,3 +5275,11 @@ statistic here, but it is the controller donors ran.
        than the sim's cannot be read from CGM alone (the donors' true glucose is unobserved): the reversal gap of the step
        ACF is a shape difference at 40–60 min, not a count of turns. Left open; the disturbance-frequency reading is a
        hypothesis, not a finding.
+
+277. **The sensor's low range is already on the FDA table; time below 54 is short for body or behaviour reasons.** On c287's
+     true glucose (`sensor_fit`, G7 with σ 1.8): CGM-binned < 54 bias −9.95 (FDA K213919 −9.3), MARD 18.5 (16.0); true < 54
+     bias +4.5 (+4.0); in-range MARD 8.56 (8.6); PARD 9.72 (8.9); loss 0.99. (LESSONS 269's −6.7 was on c282's different
+     true-glucose distribution; the noise-floor variants printed identical columns — `sensor_hetero` is not a key
+     sensor_fit applies — so the floor itself was not scanned.) With depth (LESSONS 272) and night duration (LESSONS 274)
+     on the donors', the t54 shortfall (0.13 vs 0.22%) and p_reach54 (0.17 vs 0.20) are in how often lows start and how
+     far the deepest go, not in how the sensor reads them.
