@@ -33,6 +33,7 @@ TPL = Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/templates_pil
 KS = np.exp(np.linspace(math.log(0.1), math.log(3.0), 18))
 ES = np.array([0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.35])
 HIST, PRED, EVAL = 360, 180, (30, 60, 90, 120, 150, 180)
+SEGMENTS = False      # --segments: the regression also per clock segment (N 0–6, B 6–11, L 11–17, D 17–24 local)
 
 
 def _ts(s):
@@ -215,9 +216,14 @@ def fit_alias_regression(alias: str):
         dv = np.nan_to_num(dg[:n]).reshape(-1, 12).sum(1); de = np.nan_to_num(e_step[:n]).reshape(-1, 12).sum(1)
         week = (((t0s[:n:12]) - t0s[0]) // (7 * 1440)).astype(int)
         out = dict(alias=alias, isf_template=float(P.truth["isf"]), formulation=P.formulation)
-        for name, sel in (("all", np.ones(len(dv), bool)), ("h1", week % 2 == 0), ("h2", week % 2 == 1)):
+        hr = s.hour.to_numpy()[:n:12] % 24
+        seg = np.select([hr < 6, hr < 11, hr < 17], ["N", "B", "L"], "D")     # Visentin's B / L / D segments plus night
+        sels = [("all", np.ones(len(dv), bool)), ("h1", week % 2 == 0), ("h2", week % 2 == 1)]
+        if SEGMENTS:     # per clock segment, and per segment by alternate-week halves (split-half reliability, LESSONS 335)
+            sels += [(f"{g}{h}", (seg == g) & hs) for g in "NBLD" for h, hs in (("", np.ones(len(dv), bool)), ("_h1", week % 2 == 0), ("_h2", week % 2 == 1))]
+        for name, sel in sels:
             mm_ = mblk & sel
-            if mm_.sum() < 100 or np.std(de[mm_]) == 0: continue
+            if mm_.sum() < (30 if len(name) <= 4 and name[0] in "NBLD" else 100) or np.std(de[mm_]) == 0: continue
             X = np.column_stack([np.ones(mm_.sum()), de[mm_]]); beta = np.linalg.lstsq(X, dv[mm_], rcond=None)[0]
             r = dv[mm_] - X @ beta; s2 = r @ r / (mm_.sum() - 2); se = np.sqrt(s2 * np.linalg.inv(X.T @ X)[1, 1])
             out[f"b_{name}"] = float(beta[1]); out[f"se_{name}"] = float(se); out[f"nblk_{name}"] = int(mm_.sum())
@@ -239,6 +245,8 @@ def main_regression():
 
 if __name__ == "__main__":
     import sys as _s
+    if "--segments" in _s.argv:
+        _s.argv.remove("--segments"); SEGMENTS = True
     if "--regression" in _s.argv:
         _s.argv.remove("--regression"); main_regression()
     else:
