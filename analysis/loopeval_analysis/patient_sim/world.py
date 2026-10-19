@@ -168,6 +168,10 @@ class World:
             self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.dawn = False
         if enable:
             self.mod_traits.enabled.update({k: v for k, v in enable.items() if k in self.mod_traits.enabled})
+            if isinstance(enable.get("heat_a"), float) or isinstance(enable.get("heat_T"), float):
+                self.mod_traits = copy.deepcopy(self.mod_traits)
+                if isinstance(enable.get("heat_a"), float): self.mod_traits.heat_a = enable["heat_a"]; self.mod_traits.enabled["heat"] = True
+                if isinstance(enable.get("heat_T"), float): self.mod_traits.heat_T = enable["heat_T"]
             if enable.get("menstrual_late"):
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.menstrual_shape = "late"
                 self.mod_traits.enabled["menstrual"] = True
