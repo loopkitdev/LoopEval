@@ -212,7 +212,7 @@ def _formulation(brand: str, rng) -> str:
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
-                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False,
+                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
@@ -229,6 +229,11 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # loop). ISF_W is an open parameter, settled by per-donor twin validation [J 0.5].
     r_isf = float(np.clip(row.isf_true / row.isf, 0.5, 2.0))
     isf_true = float(row.isf) * r_isf ** (ISF_W if isf_w is None else isf_w) * j_isf
+    if twin:
+        # per-person twin calibration (Pete 2026-10-18, LESSONS 219): body ISF × the donor's fitted multiplier, so the
+        # twin reproduces its donor's time < 70 (template column twin_isf_mult, iterated from cohort runs)
+        k_ = row.get("twin_isf_mult") if hasattr(row, "get") else None
+        if k_ is not None and np.isfinite(float(k_)): isf_true *= float(k_)
     fasting_rate = float(row.basal_true) * j_basal          # measured; kept as a validation quantity
     # body weight: the age prior blended with what TDD implies at an age-banded U/kg (a profile age can
     # belong to the account holder, eda L47, so neither alone is trusted)
@@ -290,6 +295,9 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # (LESSONS 75); the isf_total switch ran with 1.25 until 2026-10-18 (LESSONS 140)
     cal = CSF_BLEND_CAL_TOTAL if isf_total else CSF_BLEND_CAL
     csf_target = cal * csf_target ** (1 - w) * (csf_set * float(np.exp(rng.normal(0, 0.15)))) ** w
+    if twin:
+        k_ = row.get("twin_csf_mult") if hasattr(row, "get") else None    # the donor's median 3-h meal change (LESSONS 219)
+        if k_ is not None and np.isfinite(float(k_)): csf_target *= float(k_)
     if csf_own:
         # per-person carbohydrate-to-insulin fit from data (LESSONS 217, Pete 2026-10-18: shape meal arrival from real
         # data): each donor's median 3-h meal outcome against their sim's, solved for the body's carb sensitivity
