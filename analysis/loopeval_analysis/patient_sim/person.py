@@ -212,7 +212,7 @@ def _formulation(brand: str, rng) -> str:
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
-                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False,
+                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
@@ -371,7 +371,9 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         basal_profile=[float(x) for x in prof],
         basal_uh=float(row.basal) * j_basal, isf=float(row.isf) * j_isf, cr=float(row.cr) * j_isf / j_basal ** 0,
         target=float(row.target), max_basal=float(row.max_basal) * j_basal, max_bolus=float(row.max_bolus),
-        suspend=70.0)
+        # the donor's own glucose safety limit (Loop suspends and withholds dosing below it; template median 80, 70 on 50
+        # of 168): the sampler had given every person 70 since 79d7de3 (LESSONS 232)
+        suspend=float(row.suspend) if suspend_own and np.isfinite(float(row.get("suspend", np.nan))) else 70.0)
     return Person(
         name=name or f"v{seed:05d}", seed=seed, template=str(row.alias), age=age,
         sex="F" if rng.random() < 0.5 else "M", bw=bw, formulation=formulation,
