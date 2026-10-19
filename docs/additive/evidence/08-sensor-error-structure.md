@@ -495,3 +495,13 @@ These are concrete, evidence-tied changes. Where a number is not in the literatu
 - Per-day rates of noise flags (`excessNoise`).
 
 Each needs an eda measurement on BDDP CGM data, split by sensor family (eda lesson 33). The literature above supplies the structure and the validation tables, not these parameters.
+
+## Body vs co-located sensor error at the 5–15 min scale (LESSONS 298–299)
+
+- The donors' fast coherent CGM moves cannot be assigned to body or sensor from CGM alone; one donor's two simultaneous
+  sensors (p03) share 69–75% of them, as simulated G7 pairs share 81% — body plus co-located interstitial error.
+- Separating the two needs a CGM-vs-reference (YSI / venous) time series with frequent sampling. Searched 2026-10-19:
+  no public raw dataset found; FDA submissions (e.g. PRECISION / PRECISE II tables, https://fda.gov/media/112139/download)
+  and trial SAPs (e.g. NCT03710083) give per-range agreement summaries only; a Zenodo hypoglycaemia error-grid repository
+  (https://zenodo.org/records/6979569) pairs CGM with SMBG, not a lab reference. Open: access to a manufacturer or
+  academic in-clinic dataset.
