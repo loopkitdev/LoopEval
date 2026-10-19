@@ -4432,3 +4432,12 @@ statistic here, but it is the controller donors ran.
        lows still short, with ~10% of donors at the 2.5 ISF cap; hurst_long falls to 0.21 (0.247) and day/night fails.
        Individual fidelity is up sharply while the cohort count dips; the capped donors and the persistence drop are
        the next items.
+     - **The capped donors are the low-prone ones, and ISF is the wrong lever for them.** 24 of 78 donors sit at the 2.5
+       ISF cap: their time < 70 is 1.5–12.8% (uncapped donors: twin 0.85% vs donor 0.80%, matched), 17 of 24 run
+       automatic boluses, and at 2.5× most twins stay far short (e.g. donor 6.8% → twin 0.9%). Their lows are neither more
+       nocturnal (night share 0.23 vs 0.28) nor compression-flagged (0.2% of low readings in both). A body 2.5× as
+       insulin-sensitive as the person's own yardstick ISF (measured from their data, LESSONS 204) contradicts that
+       measurement, so for these donors the low-maker is something else: candidates per donor are their correction and
+       top-up habits, their targets and target overrides, and their automatic-bolus behaviour. The twin ISF multiplier
+       should stay inside the yardstick's uncertainty (~±25%), with the remaining low-proneness carried by those
+       behavioural traits.
