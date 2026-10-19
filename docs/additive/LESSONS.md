@@ -5945,3 +5945,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      27 / 26 matched. With the window on, the lows stay away whatever the insulin timing (LESSONS 321–328). Late-phase
      search closed: the reference stays c321_p2a (34 of 51, every primary outcome passing), the late phase its documented
      limit.
+
+329. **`min_below70` fails on substance, not the 5-min grid: the twins' lows last longer.** Per-person median minutes below
+     70 per crossing (`validate.lows_anatomy`, every crossing): donors (205) p10 / p25 / p50 / p75 / p90 11.3 / 15.0 / 20.0 /
+     23.8 / 27.5, c321_p2a (101) 10 / 15 / 25 / 30 / 35; KS raw 3e-7, with the donors rounded onto the twins' 5-min grid
+     1e-4. The donors have more short crossings and recover faster — the same "real glucose moves harder" signature as the
+     faster falls (LESSONS 291, 297). Still open; the review's ≥ 15-min episodes match (p90 65 vs 65), so the gap is in the
+     short crossings.
