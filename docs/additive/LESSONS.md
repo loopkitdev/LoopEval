@@ -5869,3 +5869,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      glucose holds; in every twin arm added glucose draws more insulin and glucose falls. The donors' extra 1–3 h
      counteraction comes without a matching rise in what Loop gives. Late-phase arms paused here (LESSONS 301–320); the gap
      stays the documented main limit.
+
+321. **A post-meal insulin-action window sized from the donors' counteraction gives part of the late phase but costs the
+     primary outcomes.** `ppr_a` (experiment, off: after each eaten main meal SI × (1 − a·w), w in over 30–60 min, full 60–180,
+     out by 240; sized from the BDDP counteraction gap, LESSONS 313–320 — no tracer study sizes it). c318 a 0.2 / 0.35:
+     3-h change +9.0 / +12.6 (donors +21); mid meals +23–25 at 90–120 min (0.35); ICE 60–120 / 120–180 min 110 / 88 and 121 /
+     92 (donors 124 / 104), glucose velocity at 120–180 still −12 / −13.5 (donors +1.5); bg_mean 159.2 / 162.1, TIR 69.6 /
+     68.6, time > 180 28.3 / 29.8%, t54 0.089 / 0.045%, lows 0.75 / day; 29 / 30 matched. The donors carry this phase at a
+     mean of 151; added on top of the twins' body it lifts the whole level, so whatever offsets it in real people is
+     missing as well. Not adopted (Pete's rule: primary outcomes weigh most). Late-phase arms paused (301–321).
