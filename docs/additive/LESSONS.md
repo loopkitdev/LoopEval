@@ -5760,3 +5760,6 @@ statistic here, but it is the controller donors ran.
      less and stay up longer, like Elleri's low-GL meal. One shape — more peaked, shorter meals — makes both the daytime CV
      excess and the missing late phase; c301 / c305–c308 show that slowing appearance alone only lowers meals under a
      full bolus. Open with Pete (TIDEPOOL-70).
+
+Scripts and launchers for LESSONS 282–312: `runs/2026-10-19-additive-measures/` (copies of gamepc ~/additive; cohort
+outputs in gamepc ~/additive/runs/c290–c312).
