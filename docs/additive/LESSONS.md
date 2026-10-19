@@ -4606,7 +4606,7 @@ statistic here, but it is the controller donors ran.
        5.4 → 5.1%, every other statistic within run noise. The twin's time < 70 still does not follow the limit (r −0.05):
        the donors' link is who sets a high limit (cautious people), not what the limit does. Adopted for deployment
        fidelity, not for the statistics.
-     - Sim pulses with no true intake within −90..+30 min of onset (`phantom.py`, `phantom_h.py`): 66 g-eq/day, spread over
+     - [Onsets misaligned by a day; corrected in LESSONS 240.] Sim pulses with no true intake within −90..+30 min of onset (`phantom.py`, `phantom_h.py`): 66 g-eq/day, spread over
        the day at 2–4.6 g-eq/h with a 05–08 h shoulder (EGP peaks at 07); donors' equivalent is not observable.
 
 233. **Low-prone donors are not measurably more insulin-sensitive than their settings; the unbounded twin multiplier makes
@@ -4655,7 +4655,7 @@ statistic here, but it is the controller donors ran.
 
 236. **Measured like for like, the missing lows are descents that are too slow and stop too soon — in the body, not the
      sensor.**
-     - **The untreated-lows comparison was lopsided.** `untreated.py` counted any true eating event near a simulated low as
+     - [The `--like` numbers below used labeled onsets misaligned by a day; corrected in LESSONS 240.] **The untreated-lows comparison was lopsided.** `untreated.py` counted any true eating event near a simulated low as
        treatment, but only carb entries and labeled pulses for donors. Like for like (`--like`: entries + labeled pulse
        onsets on both sides), c254 untreated lows are 0.425/day (day 0.253, night 0.172) vs donors 0.611 (0.459 / 0.151); the
        0.09-vs-0.46 daytime figure of LESSONS 220–226 was mostly the asymmetry. All onsets (same detector): 0.58 vs 1.06/day,
@@ -4685,8 +4685,7 @@ statistic here, but it is the controller donors ran.
        (falls, rates, lows) does not use bolus timing.
      - **Corrected (c254, `late_bolus.py`, daytime):** user boluses on a steep rise (CGM ≥ 180, +40 in 60 min) 1.05 vs donors
        1.09/day; steep rises through 180 1.49 vs 1.61/day, bolused 44 vs 45%; rises with no entry nearby 0.82 vs 0.81/day,
-       bolused 20 vs 23%. No-entry boluses after an unannounced pulse onset (`free_lag.py`): 0.50 vs 0.38/day per person,
-       lag p50 38 vs 39 min, but CGM at the bolus 192 vs 204 and 30-min rise +8 vs +29.
+       bolused 20 vs 23%. [free_lag onsets misaligned; corrected in LESSONS 240.]
      - **Trend dependence** (`corr_hazard.py`; no-entry boluses per hour at CGM 180–280 by 30-min trend falling / flat /
        +10–30 / > +30): donors 0.043 / 0.085 / 0.167 / 0.301 (relative to flat 0.50 / 1 / 1.96 / 3.52; people correct on a
        rising arrow — trend-arrow dosing guidance, Aleppo 2017, Pettus & Edelman 2017), c254 0.062 / 0.115 / 0.141 / 0.208
@@ -4706,7 +4705,7 @@ statistic here, but it is the controller donors ran.
      - **Structure function** (`structfn.py`; SD of the CGM change over lag 5 / 15 / 30 / 60 / 120 / 240 min, daytime, per
        person median): c257 6.9 / 16.7 / 27.4 / 43.4 / 64.7 / 72.1 (true BG 4.1 / 12.0 / 23.2 / 41.6 / 62.5 / 71.5), donors
        7.1 / 18.4 / 31.3 / 49.0 / 64.5 / 77.2 — 9–12% short at 15–60 min, matched at 5 and 120 min.
-     - **By context** (`structctx.py`): quiet daytime (no entry or labeled onset −240..+60 min) 30 / 60-min SD 21.5 / 34.3 vs
+     - [Quiet-window onsets misaligned; corrected in LESSONS 240: quiet periods do NOT match.] **By context** (`structctx.py`): quiet daytime (no entry or labeled onset −240..+60 min) 30 / 60-min SD 21.5 / 34.3 vs
        21.7 / 35.5, matched; 0–120 min after an entry 29.4 / 45.4 vs 35.4 / 53.7.
      - **Per isolated entered meal** (≥ 15 g, daytime, no other entry −120..+240; `meal_speed.py`): rise to peak p50 49 vs 64
        mg/dL, per 10 g 13.1 vs 16.7, fastest 30-min rise p50 / p90 1.16 / 2.61 vs 1.52 / 3.11, fastest fall 1.25 / 2.37 vs
@@ -4740,3 +4739,24 @@ statistic here, but it is the controller donors ran.
      - Open: labeled arrival per entered gram matched the donors (LESSONS 228) while the isolated-meal CGM rise per entered
        gram is 20% short. Next: reconcile the two on the same meals (labeled g-eq vs CGM rise, sim vs donors) to find
        which side of the labeler's conversion differs.
+
+240. **Correction: the sim's labeled onsets were a day off in seven scripts.** `meals_labeled.csv` onsets are datetimes from
+     world.EPOCH (2026-01-05); the scripts anchored them on the first onset's own midnight and fixed only the time of day, so
+     in most people every labeled onset sat 1,440 min off the CGM and truth clocks (sim-side only; donors unaffected).
+     Fixed to `(onset − EPOCH)` in falls, free_lag, geq_rise, phantom, phantom_h, structctx and untreated (`--like`).
+     Corrected on c257:
+     - **Untreated lows** (like for like): 0.321/day (day 0.179, night 0.142) vs donors 0.611 (0.459 / 0.151). Carbs within
+       −10..+30 min of a low onset 45 vs 42%; near-miss dips with carbs at the bottom 0.32 vs 0.39/day (share 52 vs 53%).
+       The treated share matches: the missing lows are untreated daytime lows (0.18 vs 0.46/day), as LESSONS 220–226 had it.
+     - **Quiet periods are less variable in the sim, not equal**: 30 / 60-min SD 14.8 / 22.2 vs donors 21.7 / 35.5 (no
+       entry or labeled onset −240..+60 min; 13 vs 249 h per person). Post-entry (entries only, unaffected) 29.4 / 45.4 vs
+       35.4 / 53.7. Motion is short both after meals and away from them.
+     - **Labeled announced pulses** (`geq_rise.py`): CGM rise p50 60 vs 68, per labeled g-eq 1.59 vs 1.66, per 10 g
+       entered 16.7 vs 18.1, insulin −30..+120 per 10 g 1.64 vs 1.64 — close; the isolated-meal shortfall of LESSONS 238
+       (13.1 vs 16.7 per 10 g, entries only) is in meals with no other entry around, not in labeled meals generally.
+     - **No-entry boluses after an unannounced onset**: 0.75 vs 0.38/day per person, lag p50 26 vs 39 min, CGM at the bolus
+       203 vs 204, 30-min rise +21 vs +29.
+     - Pulses with no true intake (`phantom.py`): 16.5 / 5.8 / 9.3 / 13.1 g-eq/day in the breakfast / lunch / dinner / rest
+       windows (was 22.2 / 10.2 / 16.5 / 16.0).
+     - Unaffected: falls counts and rates (LESSONS 236), rate distributions, structure function, corr_hazard, late_bolus,
+       meal_speed, corr_fall, the cycle and illness checks.
