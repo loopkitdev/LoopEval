@@ -5139,3 +5139,12 @@ statistic here, but it is the controller donors ran.
        hardly move glucose. The sim's excess is rises, logged and unlogged, overnight and in the morning (06–15 h announced
        +0.08 to +0.17/day; 00–12 h unannounced +0.09 to +0.13/day) — the morning excess of LESSONS 231 again, now counted
        in occasions rather than grams.
+
+266. **The sim's extra night and early-morning rises have no eating behind them.** Labeled pulses by true source within
+     −60..+15 min of onset (`pulse_src.py`, c278, per day, blocks 00 / 03 / 06 / 09 / 12 / 15 / 18 / 21 h): unannounced
+     with no eating 0.58 / 0.54 / 0.35 / 0.21 / 0.16 / 0.21 / 0.20 / 0.37; announced meals 0 / 0 / 0.08 / 0.15 / 0.26 /
+     0.11 / 0.18 / 0.06; grazes, snacks and proactive carbs 0.03–0.16 each by day. Against the donors' unannounced 0.54 /
+     0.43 / 0.42 / 0.41 (whose night pulses are also mostly not eating, LESSONS 58), the sim's night excess (+0.09 / +0.12)
+     is non-eating rises: sensor, posture, Loop's overnight suspend-and-resume and the low-need night shape. The morning
+     announced excess (+0.08 to +0.17 at 06–15 h) is meals. Next: the overnight non-eating rises against their sources
+     (sensor noise and compression, Loop's temp-basal oscillation at the new night need) before the meal count.
