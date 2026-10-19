@@ -28,6 +28,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+from typing import Optional
 import numpy as np
 
 DAY = 1440.0
@@ -51,6 +52,7 @@ class ModTraits:
                                                        gh=True, alcohol=True, stress=True, caffeine=False,
                                                        steroid=True, heat=False))
     circ_class: str = "llh"
+    circ_levels: Optional[tuple] = None  # (B, L, D) relative SI from the donor's own data (circ_own, LESSONS 335); replaces the class
     circ_low: float = 0.4               # low segment SI as a fraction of high (Visentin: 0.40 ± 0.23)
     circ_raw: float = 0.4               # the person's Visentin draw before the swing scale
     circ_swing: float = 1.0             # share of Visentin's measured swing: full (LESSONS 38; the halving of LESSONS 10 compensated for fixed-rate emptying)
@@ -136,6 +138,8 @@ class Modulators:
         # B1 circadian: segment levels per day, normalised so the day-average SI is 1
         hi_lo = {c: (1.0 if c == "h" else traits.circ_low) for c in "hl"}
         base = np.array([hi_lo[c] for c in traits.circ_class])
+        if traits.circ_levels is not None:
+            base = np.asarray(traits.circ_levels, float)
         hours = np.array([4.0, 6.0, 14.0])              # B 07–11, L 11–17, D 17–07
         base = base / (base @ hours / 24.0)
         self.circ = base[None, :] * np.exp(r.normal(0, traits.circ_noise, (self.days, 3)) - traits.circ_noise ** 2 / 2)

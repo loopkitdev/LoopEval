@@ -168,6 +168,8 @@ class World:
         ss = np.random.SeedSequence(seed)
         r_mod, r_beh, r_sen, r_pump, r_abs, r_misc = [np.random.default_rng(s) for s in ss.spawn(6)]
         self.mod_traits = person.traits.get("mod") or sample_mod_traits(r_misc, person.age, person.sex)
+        if (enable or {}).get("circ_own") and person.truth.get("circ_levels") is not None:
+            self.mod_traits.circ_levels = tuple(person.truth["circ_levels"])
         if person.truth.get("basal_profile") and self.mod_traits.dawn:
             # a donor's own basal profile already carries their dawn need (the body's EGP follows it); on quiet mornings
             # donors' delivered insulin falls 05–07 vs 01–03 (0.92) and glucose drifts −7 mg/dL 03→07, which the

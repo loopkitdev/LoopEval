@@ -440,6 +440,30 @@ def add_strategy_share(path: str, ice_root: Path = Path.home() / ".loop-eval/ice
     return t
 
 
+def add_circ_own(path: str, seg_csv: str):
+    """Per donor, the breakfast / lunch / dinner sensitivity pattern from `fit_body --regression --segments` (b per clock
+    segment B 06–11, L 11–17, D 17–24 local): log b minus the donor's mean over segments, centred on the cohort median
+    (no population pattern, Hinshaw 2013). Reliability w per segment from alternate-week halves (Spearman–Brown); stored as
+    the posterior mean w·dev (`circ_mu_*`) and SD sqrt((1−w)·τ²) with τ² = w·var(dev) (`circ_sd_*`); donors without a fit
+    get mean 0 and SD τ (the prior). person.py draws each twin's levels from these (LESSONS 335)."""
+    d = pd.read_csv(seg_csv).set_index("alias")
+    def dev(sfx):
+        L = np.log(d[[f"b_{g}{sfx}" for g in "BLD"]].where(lambda x: x > 0))
+        return L.sub(L.mean(axis=1), axis=0)
+    full, h1, h2 = dev(""), dev("_h1"), dev("_h2")
+    t = pd.read_csv(path)
+    for i, g in enumerate("BLD"):
+        a, b = h1.iloc[:, i], h2.iloc[:, i]; ok = a.notna() & b.notna()
+        r = float(np.cov(a[ok], b[ok])[0, 1] / np.sqrt(a[ok].var() * b[ok].var())); w = max(0.0, 2 * r / (1 + r))
+        f = full.iloc[:, i] - full.iloc[:, i].median(); tau2 = w * float(f.var())
+        mu = (w * f).rename(f"circ_mu_{g}"); t = t.drop(columns=[c for c in (f"circ_mu_{g}", f"circ_sd_{g}") if c in t])
+        t = t.merge(mu, left_on="alias", right_index=True, how="left")
+        t[f"circ_sd_{g}"] = np.where(t[f"circ_mu_{g}"].notna(), np.sqrt((1 - w) * tau2), np.sqrt(tau2))
+        t[f"circ_mu_{g}"] = t[f"circ_mu_{g}"].fillna(0.0)
+    t.to_csv(path, index=False)
+    return t
+
+
 def add_gap_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
     """Per donor, CGM gaps per day over the whole record: short (7–32 min between readings) and long (32 min–12 h),
     the bins of sensor.MEASURED_GAPS. Donors differ several-fold (G7 short gaps p10/p90 0.6/8.6 a day), which the
