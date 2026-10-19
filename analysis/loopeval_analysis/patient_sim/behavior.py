@@ -161,6 +161,7 @@ class BehaviorTraits:
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
+    unent_split: bool = False            # an unentered, unbolused main meal eaten as ~20 g portions over 3 h (experiment, LESSONS 285)
     unent_light: bool = False            # a main meal eaten unentered and unbolused carries snack composition (experiment, LESSONS 284)
     corr_trend: bool = True              # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237; default 2026-10-19)
     p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
@@ -456,6 +457,7 @@ class Behavior:
         self.ex_met_person = float(np.exp(np.random.default_rng(int(getattr(person, "seed", 0)) + 5011).normal(1.657, 0.357)))
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
+        self.r_usplit = np.random.default_rng(int(getattr(person, "seed", 0)) + 2851)     # unent_split portion times
         self.r_drink = np.random.default_rng(int(getattr(person, "seed", 0)) + 1601)      # meal_drink draws
         self.r_clock = np.random.default_rng(int(getattr(person, "seed", 0)) + 1709)      # own_clock meal times
         self.r_logp = np.random.default_rng(int(getattr(person, "seed", 0)) + 2113)       # proactive logging draws
@@ -652,6 +654,7 @@ class Behavior:
                               fat=fat * sh, protein=protein * sh)
                 grams -= g2; entered = max(1.0, round(entered * (1 - sh))); fat *= 1 - sh; protein *= 1 - sh
             meal = Meal(base + mt, grams, kind, speed, entered, et, bolus, fat=fat, protein=protein)
+            n_pl = len(self.planned)
             self.planned.append((base + mt, ("eat_meal", meal)))
             if second is not None:
                 self.planned.append((second.t, ("eat_meal", second))); self.planned.append((second.entry_t, ("enter_meal", second)))
@@ -664,6 +667,18 @@ class Behavior:
                 off = self._bolus_off(r)
                 if units >= 0.5:
                     self.planned.append((base + mt + off, ("free_bolus", units)))
+            if t.unent_split and kind == "meal" and entered is None and not dropped and grams >= 30 \
+                    and not any(x[1][0] == "free_bolus" for x in self.planned[n_pl:]):
+                # experiment: what goes unentered is eaten in small portions, not as one meal — the donors' unannounced
+                # rises last like the sim's < 24 g eating (LESSONS 285); same grams and composition, own RNG stream
+                k_ = int(max(2, round(grams / 20.0)))
+                ts_ = np.sort(self.r_usplit.uniform(0.0, 180.0, k_)); ts_[0] = 0.0
+                self.planned[n_pl] = (base + mt, ("eat_meal", Meal(base + mt, grams / k_, kind, speed, None, base + mt, None,
+                                                                  fat=fat / k_, protein=protein / k_)))
+                for dt_ in ts_[1:]:
+                    self.planned.append((base + mt + float(dt_), ("eat_meal", Meal(base + mt + float(dt_), grams / k_, kind, speed,
+                                                                                    None, base + mt + float(dt_), None,
+                                                                                    fat=fat / k_, protein=protein / k_))))
         # everyday activity episodes (evidence/10 §7.2): day-level gamma noise (shape 3) on the person's rate; start
         # times on the UK Biobank day profile (00–06 / 06–12 / 12–18 / 18–24: 0.04 / 0.34 / 0.39 / 0.23), awake only,
         # a share after eating [J]; duration lnN(18 min, 0.75) in 5–150; intensity = (MET − 1)/(METmax − 1) × duty 0.7

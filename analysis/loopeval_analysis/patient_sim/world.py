@@ -261,6 +261,8 @@ class World:
             self.beh_traits.ex_no_eat = True
         if enable and enable.get("unent_light"):
             self.beh_traits.unent_light = True
+        if enable and enable.get("unent_split"):
+            self.beh_traits.unent_split = True
         if enable and enable.get("ex_mets"):
             self.beh_traits.ex_mets = True
         if enable and isinstance(enable.get("wake_mult"), float):
