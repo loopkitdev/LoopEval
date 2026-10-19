@@ -4502,3 +4502,11 @@ statistic here, but it is the controller donors ran.
        automatic boluses against the extra IOB, and in the sim that suffices; in the donors it does not. The difference is in
        how the body falls once insulin outruns need (steeper real falls), which is the next measurement: the fall rate after a
        correction bolus at matched IOB, donors vs sim.
+     - **Provenance of the over-recommendation figures** (checked against raw records): bolus_decisions.parquet rows are
+       Loop's bolus-screen dosingDecision records (reason normalBolus) — the person's requestedBolus and the
+       recommendedBolus shown at that moment; for i002, 192 / 192 table rows match a raw record within 60 s with both values
+       identical. Caveats: requested, not delivered (cancellations count at the requested amount); "lone" = no carb entry
+       within 30 min; per-donor spread is wide (i002 7.4% over the recommendation, median donor 29%).
+     - **corr_own + dose_beta 0.5** (c247): untreated lows after a bolus 0.022 → 0.037/day (donors 0.160), meals ending < 70
+       3.8 → 4.9%, within-person drop SD 32.0 (36.7), 26 matched; CV 32.3 fails. Faster small-dose action helps a little;
+       the body still falls more gently than real ones after extra insulin.
