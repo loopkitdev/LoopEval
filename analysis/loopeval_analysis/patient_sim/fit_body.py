@@ -14,7 +14,7 @@ change follows the body's prediction at a slope ~0.4–0.55 (i001 / i002 / i005,
 every donor — the same attenuation the ICE yardstick corrects with its cohort level factor (2.0). As there, the
 per-person k carries the ranking and one cohort factor sets the level (LESSONS 262).
 
-    python -m loopeval_analysis.patient_sim.fit_body OUT.csv [--aliases i001,i002] [--par 12] [--halves]
+    python -m loopeval_analysis.patient_sim.fit_body OUT.csv [--aliases i001,i002] [--par 12] [--regression]
 """
 from __future__ import annotations
 
@@ -160,4 +160,84 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys as _s
+    if "--regression" in _s.argv:
+        _s.argv.remove("--regression"); main_regression()
+    else:
+        main()
+
+
+# ---------------------------------------------------------------- regression form (LESSONS 262)
+def body_effect_series(alias: str, P=None):
+    """Run the donor's body over the whole record with glucose held on the CGM (observer), driven by the insulin the donor
+    received (ice steps). Per minute, the insulin-driven glucose rate in the body's own terms at sensitivity 1:
+    −(X_D·M(G)·risk − SI_D·Ib·Gb) + (EGP_ins − EGP_b)/VG, mg/dL/min (tissue uptake and EGP suppression relative to basal).
+    Returns minute grid (absolute minutes) and the effect series."""
+    from .physiology import Body
+    P = P or person_body(alias)
+    s = pd.read_parquet(ICE / "steps" / f"{alias}.parquet").sort_values("t1")
+    tm = (s.t1.astype("int64") / 6e10).to_numpy(); g = s.bg1.to_numpy(float); k = np.isfinite(g); tg, gg = tm[k], g[k]
+    off = float(np.median(((s.hour.to_numpy() * 60 - (tm % 1440)) + 720) % 1440 - 720))
+    t_lo, t_hi = float(np.floor(tm[0])), float(np.floor(tm[-1]))
+    basal, bol = insulin_minutes(alias, t_lo, t_hi)
+    bmap = {}
+    for (mm_, u) in bol: bmap.setdefault(mm_, []).append(u)
+    prof = np.asarray(P.truth["basal_profile"], float)
+    b = Body(P.body, P.formulation); b.prime(b.basal_rate_u_per_h()); p = b.p
+    n = len(basal); eff = np.zeros(n)
+    gi = np.interp(t_lo + np.arange(n), tg, gg)
+    for m in range(n):
+        if basal[m] > 0: b.infuse(basal[m], b.minute)
+        for u in bmap.get(m, ()): b.infuse(u, b.minute, omega=1.0, dose=u)
+        b.g = float(gi[m])
+        b.step(1.0, egp_mult=prof[int(((t_lo + m + off) % 1440) // 60)])
+        G = b.g; mmv = p.gb + p.kappa * (G - p.gb) if (G >= p.gb or not p.low_prop) else G
+        egp_ins = p.egp_b * min(max(1.0 - p.se * b.xe, 0.0), 1.0 + p.se)
+        eff[m] = -(b.xd * mmv * b.risk(G) - p.si_d * p.ib * p.gb) + (egp_ins - p.egp_b) / p.vg
+    return t_lo + np.arange(n), eff, s, tm
+
+
+def fit_alias_regression(alias: str):
+    """OLS over fasting hourly blocks (the yardstick's mask): glucose change = a + b × the body's insulin-driven change.
+    b = 1 when the donor's glucose follows the template body's insulin action exactly; b's spread across donors is the
+    per-person information (closed-loop attenuation lowers every b alike). Also halves by alternate weeks."""
+    try:
+        P = person_body(alias)
+        mins, eff, s, tm = body_effect_series(alias, P)
+        ev_c = tm[(s.carbs_g.fillna(0) > 0).to_numpy()]; ev_b = tm[(s.bolus_manual_u.fillna(0) > 0).to_numpy()]
+        def recent(ev):
+            if not len(ev): return np.zeros(len(tm), bool)
+            i = np.searchsorted(ev, tm, side="right") - 1
+            return (i >= 0) & (tm - ev[np.maximum(i, 0)] < 240)
+        v = s.v.to_numpy(float)
+        q = (~recent(ev_c) & ~recent(ev_b) & ~s.disrupted.fillna(False).to_numpy(bool) & np.isfinite(v) & (np.abs(v) < 600)
+             & s.clean.fillna(False).to_numpy(bool))
+        dg = v * s.dt.to_numpy(float) / 60.0
+        t0s = (s.t0.astype("int64") / 6e10).to_numpy(); dts = s.dt.to_numpy(float)
+        ce = np.r_[0.0, np.cumsum(eff)]
+        e_step = np.array([ce[int(min(max(a_ + d_ - mins[0], 0), len(eff)))] - ce[int(min(max(a_ - mins[0], 0), len(eff)))]
+                           for a_, d_ in zip(t0s, dts)])
+        n = len(s) // 12 * 12; mblk = q[:n].reshape(-1, 12).all(1)
+        dv = np.nan_to_num(dg[:n]).reshape(-1, 12).sum(1); de = np.nan_to_num(e_step[:n]).reshape(-1, 12).sum(1)
+        week = (((t0s[:n:12]) - t0s[0]) // (7 * 1440)).astype(int)
+        out = dict(alias=alias, isf_template=float(P.truth["isf"]), formulation=P.formulation)
+        for name, sel in (("all", np.ones(len(dv), bool)), ("h1", week % 2 == 0), ("h2", week % 2 == 1)):
+            mm_ = mblk & sel
+            if mm_.sum() < 100 or np.std(de[mm_]) == 0: continue
+            X = np.column_stack([np.ones(mm_.sum()), de[mm_]]); beta = np.linalg.lstsq(X, dv[mm_], rcond=None)[0]
+            r = dv[mm_] - X @ beta; s2 = r @ r / (mm_.sum() - 2); se = np.sqrt(s2 * np.linalg.inv(X.T @ X)[1, 1])
+            out[f"b_{name}"] = float(beta[1]); out[f"se_{name}"] = float(se); out[f"nblk_{name}"] = int(mm_.sum())
+        return out
+    except Exception as ex:                                       # noqa: BLE001
+        return dict(alias=alias, error=repr(ex)[:200])
+
+
+def main_regression():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("out"); ap.add_argument("--aliases", default=""); ap.add_argument("--par", type=int, default=8)
+    a = ap.parse_args()
+    al = [x for x in a.aliases.split(",") if x] or list(pd.read_csv(TPL).alias)
+    with Pool(a.par) as pool:
+        rows = pool.map(fit_alias_regression, al)
+    pd.DataFrame(rows).to_csv(a.out, index=False)
+    print(pd.DataFrame(rows).describe().round(3).to_string())
