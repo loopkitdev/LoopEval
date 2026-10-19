@@ -245,6 +245,8 @@ class World:
             self.beh_traits.split_full = True
         if enable and enable.get("corr_own"):
             self.beh_traits.corr_own = True
+        if enable and enable.get("corr_size_own"):
+            self.beh_traits.corr_size_own = True
         if enable and enable.get("skip_own"):
             # experiment (LESSONS 182): the donor's own breakfast-skip share (days with no labeled pulse >= 10 g-eq at
             # 05:00-10:30 local; donors median 0.18, the sim's constant 0.10)
@@ -664,8 +666,11 @@ class World:
                         self.pump.command(m + 1, m + 1, units, bolus=True)
                         self.int_doses.append(("bolus", m + 1, m + 1, units, False))
                     self.bolus_requests.append((a[1], -units))
-                elif a[0] in ("bolus", "bolus_units"):
-                    units = float(a[2]) if a[0] == "bolus_units" else round(max(0.0, a[2] * self._internal_rec(a[1])) / 0.05) * 0.05
+                elif a[0] in ("bolus", "bolus_units", "bolus_min"):
+                    if a[0] == "bolus_min":     # the larger of the person's own dialled size and the recommendation (LESSONS 224)
+                        units = round(max(float(a[2]), self._internal_rec(a[1])) / 0.05) * 0.05
+                    else:
+                        units = float(a[2]) if a[0] == "bolus_units" else round(max(0.0, a[2] * self._internal_rec(a[1])) / 0.05) * 0.05
                     if units > 0:
                         self.pump.command(m + 1, m + 1, units, bolus=True)
                         self.int_doses.append(("bolus", m + 1, m + 1, units, False))
@@ -715,6 +720,12 @@ class World:
                 elif a[0] == "bolus_units":
                     boluses.append(dict(t=ts(a[1]), units=float(a[2])))
                     self.bolus_requests.append((a[1], -float(a[2])))     # negative = absolute units
+                elif a[0] == "bolus_min":
+                    # plant mode: the internal history is empty (LoopEval doses), so _internal_rec would ignore real IOB; the
+                    # person's dialled amount is sent as is (donor requested sizes already include those at/below Loop's)
+                    u_ = round(float(a[2]) / 0.05) * 0.05
+                    boluses.append(dict(t=ts(a[1]), units=u_))
+                    self.bolus_requests.append((a[1], -u_))
                 elif a[0] == "split_units":
                     # LoopEval delivered the first part as a bolus dose starting within a few minutes of the request
                     first = sum(u for (typ, s0, e0, u) in self.received if typ == "bolus" and a[2] - 1 <= s0 <= a[2] + 10)

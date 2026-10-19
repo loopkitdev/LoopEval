@@ -161,6 +161,10 @@ class BehaviorTraits:
     corr_over_share: float = 0.0         # with corr_own: share of corrections dosed BEYOND Loop's recommendation (donor lone boluses:
                                          # median 0.29; 39% given when Loop recommended ~0; LESSONS 223)
     corr_own: bool = False               # switch for the two traits above
+    corr_size_own: bool = False          # corrections at the donor's own dialled size: max(recommendation, U), U ~ lnN(corr_u_med,
+                                         # corr_u_lsd) from their lone boluses (median 1.45 U; LESSONS 224)
+    corr_u_med: float = 1.0
+    corr_u_lsd: float = 0.8
     corr_over_u: float = 1.0             # median extra units beyond the recommendation on those (donor median 1.0 U)
     corr_wait: float = 10.0              # min since their last bolus: donors give 26% of no-entry boluses within 20 min of the
                                          # previous one and 66% within 120 (44,777 boluses); the earlier 120 [J] forbade them (LESSONS 64)
@@ -281,6 +285,8 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         # / 0.64: a share of intended corrections deliver 0 U (Loop's recommendation already covered by IOB); sized
         # so the realized lone-bolus rate reaches the donor's (LESSONS 47)
         corr_over_share=float(_num(rates, 'corr_over_share')) if np.isfinite(_num(rates, 'corr_over_share')) else 0.0,
+        corr_u_med=float(_num(rates, 'corr_u_med')) if np.isfinite(_num(rates, 'corr_u_med')) else 1.0,
+        corr_u_lsd=float(_num(rates, 'corr_u_lsd')) if np.isfinite(_num(rates, 'corr_u_lsd')) else 0.8,
         corr_over_u=float(_num(rates, 'corr_over_u')) if np.isfinite(_num(rates, 'corr_over_u')) else 1.0,
         p_correct=float(np.clip(corr_rate / (16 * 60 * (corr_exp if np.isfinite(corr_exp) else hi_frac) * 0.46 * 0.64), 0.0, 0.05))
                   if np.isfinite(corr_rate) else float(rng.uniform(0.0005, 0.005)),
@@ -783,8 +789,13 @@ class Behavior:
             self.log.append((m, "override_more", t.ov_more_f, cgm))
         if not asleep and cgm > t.corr_thr and self.trend() > -0.5 and m - self.last_bolus > t.corr_wait \
                 and r.random() < t.p_correct:
-            acts.append(("bolus", m, 1.0)); self.last_bolus = m
-            if t.corr_own and t.corr_over_share > 0 and self.r_corr.random() < t.corr_over_share:
+            if t.corr_size_own:
+                u_ = round(float(np.exp(self.r_corr.normal(math.log(max(t.corr_u_med, 0.1)), max(t.corr_u_lsd, 0.1)))) * 20) / 20
+                acts.append(("bolus_min", m, u_))
+            else:
+                acts.append(("bolus", m, 1.0))
+            self.last_bolus = m
+            if not t.corr_size_own and t.corr_own and t.corr_over_share > 0 and self.r_corr.random() < t.corr_over_share:
                 # a hand-dosed correction beyond what Loop recommends (the donor's own share and size)
                 extra = round(float(np.exp(self.r_corr.normal(math.log(max(t.corr_over_u, 0.1)), 0.6))) * 20) / 20
                 if extra >= 0.05: acts.append(("bolus_units", m, extra))
