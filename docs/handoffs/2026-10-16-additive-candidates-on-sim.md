@@ -189,3 +189,20 @@ The simulator no longer supports the 10-16 positive readings for any of them.
 **Read with the current limits** (role overlay, *Known limits*): the simulator's time < 54 under-reads the donors'
 (0.09% vs 0.22%), real meals stay ~20 mg/dL higher at 3 h than simulated ones, and faster insulin absorption removes
 lows under Loop — any candidate acting on post-meal or low-side behaviour is read here as a second opinion.
+
+## Update 2026-10-19 (late): re-run on reference c339_gecirc — still neutral
+
+The simulator gained circadian gastric emptying (Goo 1987), measured meal-slot composition (Vetrani 2022) and each
+twin's donor dosing strategy by its share of autobolus days (`docs/additive/LESSONS.md` 331, 338–339; 38 of 51 eda
+statistics). Same recipes as above (112 people × 14 days, donor-deployed RC, σ-gated flags from each person's own
+baseline; `runs/c344_*` on gamepc), 95% CI over people:
+
+| vs baseline | aIRC | C30 | C31 |
+|---|---|---|---|
+| ΔTIR | −0.89 [−1.41, −0.37] | −0.30 [−0.80, +0.16] | +0.12 [−0.43, +0.67] |
+| Δt<54 | −0.03 [−0.08, +0.01] | −0.03 [−0.06, +0.01] | +0.00 [−0.04, +0.05] |
+| Δt<70 | −0.19 [−0.33, −0.04] | −0.10 [−0.22, +0.03] | −0.02 [−0.14, +0.09] |
+| lift over the dial, CGM | +0.08 [−1.43, +1.61] | +0.50 [−0.64, +1.65] | +0.01 [−1.26, +1.39] |
+| lift over the dial, true glucose | −0.46 [−1.68, +1.17] | −0.31 [−1.43, +0.95] | −0.63 [−1.94, +0.78] |
+
+No lift outside its interval for any of the three, as on c311/c312: the verdicts hold across the body changes since.
