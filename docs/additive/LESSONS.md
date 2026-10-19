@@ -5720,3 +5720,13 @@ statistic here, but it is the controller donors ran.
      recomputes ICE from FINAL data and over-absorbs COB against deployed Loop's live-cached ICE). In the closed-loop
      plant runs the controller sees CGM only up to each step, so its ICE is computed live; that replay artefact does not
      carry over to the twins. Mechanism question open with Pete (TIDEPOOL-70).
+
+308. **The donors' late meal phase is broad, not a subgroup, and follows control style rather than insulin or settings.**
+     Per donor (G7, ≥ 8 isolated bolused meals ≥ 15 g; `d3_corr.py`, 119 donors): median 3-h change +20.1 (p25 / p75 +7.1 /
+     +30.7) — even the lowest quarter sits well above the twins' −2. By insulin brand Humalog +20.3, Fiasp +19.7, Lyumjev
+     +27.0; automatic-bolus +20.9, temp-basal +14.3. Spearman with template traits: csf_own_mult 0.69 / twin_csf_mult 0.50
+     (fitted to this very outcome, circular), corrections per day 0.32, lone boluses 0.32, top-ups 0.26, meal-size
+     spread 0.33, rescues per day −0.29, t70 −0.24, t54 −0.23; settings-vs-data ISF and CR do not appear among the leading
+     correlates. Real meals stay up for most people; those whose stay up most correct and top up more and go low less —
+     a person-level pattern of running meals high and correcting later, which the twins (whose meals come back by
+     2.5 h) do not carry. Mechanism still open (TIDEPOOL-70).
