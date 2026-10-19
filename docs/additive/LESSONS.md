@@ -6065,3 +6065,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
        16.8 vs 16.0 U/day, user boluses 6.8 vs 6.4) and the corrections are drawn at the donor's threshold, yet run 30
        mg/dL higher by day on more insulin with a larger labelled load (LESSONS 334). Not body sensitivity, intake,
        circadian pattern or dosing rate: still unnamed.
+
+336. **Catalog dispositions with evidence: thyrotoxicosis built as a scenario; dehydration and damaged insulin settled.**
+     - X12 `thyro_clear` (scenario, off; 24834e1): plasma insulin clearance (`ke`) × 1.41, the thyrotoxic patients'
+       measured metabolic clearance (1144 vs 812 ml/min, sensitivity unchanged; PubMed 3887944); insulin-treated people
+       need 25–100% more insulin while hyperthyroid (mean 50%, 11 of 48; Arch Intern Med 1980), about 31% in a mixed
+       cohort (0.72 vs 0.55 U/kg; Endocrine Abstracts 2006 ea0011p401). Settings stay euthyroid. Paired 48 × 10 days
+       (s337): TDD ×1.11, mean +18.6 mg/dL, TIR −9.8, time > 180 +11.4, time < 70 −0.9 points. Loop raises delivery by a
+       quarter of the body's added need on unchanged settings — a test bed for controllers facing a sudden need change.
+     - D8 dehydration: no size in T1D (one fluid-restriction thesis found less hyperglycaemia afterwards); D34 damaged
+       insulin: rapid analogues are stable 6 days at 37 °C in pumps, so in-wear loss is the existing site-age decline.
+       Both recorded as not built, with sources, in evidence/00.

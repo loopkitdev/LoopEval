@@ -103,7 +103,7 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | D5 | Caffeine | B-modulator, mean-zero around habit | switch | — |
 | D6 | Alcohol | B9 evening SI, morning-after EGP | on | BDDP logs (LESSONS 138) |
 | D7 | Meal timing | donor eating clock; `own_clock`, `graze_eve` | on (clock); switches | LESSONS 123, 135, 170 |
-| D8 | Dehydration | — | not built (Tier 3) | — |
+| D8 | Dehydration | — | not built: in T1D the only controlled test (Stirling MPhil, fluid restriction around exercise, 1.1% body-mass loss) found LESS mild hyperglycaemia over the next 48 h than control, with no mechanism measured; the vasopressin → glycogenolysis route is rat-hepatocyte and mouse work (Exp Biol Med 1981; Am J Physiol Endocrinol Metab 2025, doi:10.1152/ajpendo.00505.2024). No size to build on (LESSONS 336) | — |
 | D9 | Microbiome | per-person meal response spread | implicit | — |
 | D10 | Settings mismatch | settings = donor's (incl. glucose safety limit, `suspend_own`); body halfway to the TDD yardstick (ISF_W); twins bounded to the measured ISF | on | LESSONS 144, 164, 232–233 |
 | D11 | Bolus timing | per-person lead from the labeler (`lead_own`) | on | LESSONS 106 |
@@ -129,7 +129,8 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | D38 | Altitude | — (exercise C1–C5 carries the main route) | not built: de Mol 2014 (Diabetes Care, 8 T1D, Kilimanjaro) insulin need −14% below 5,000 m, not significant, back to sea level above it with mountain sickness; glucose lower after 1 h exercise at 4,200 m (7 T1D) — the exercise effect, already modelled | — |
 | D33 | Smoking | implicit: chronic smoker resistance is in each donor's data-fitted ISF (body follows data, 2026-10-19) | no acute term: nicotine infusion impaired insulin sensitivity in T2D but not in healthy controls (Axelsson 2001); T1D smokers have lower eGDR (PoProStu 2018, doi:10.5603/DK.2018.0007) — a chronic level, not a within-day driver | — |
 | D32 | Coeliac disease | implicit in the donor-fitted body | not built: on a gluten-free diet CGM metrics match T1D alone (Italian youth, 86 vs 167, Diabetol Metab Syndr 2023); non-adherence raises hyperglycaemia, a level in the donor's own data; adult CGM data sparse (Saudi cross-sectional, 48) | — |
-| D34, D37, D39–42 | Damaged insulin, sunburn, decision biases | — | not built (Tier 3) or implicit in behavior | — |
+| D34 | Damaged insulin | in-wear decline: device `bio_decline` 2.5%/day after day 1 (Sampson Perrin 2015) | not built as its own term: lispro / aspart / glulisine keep full potency 6 days at 37 °C in a pump (PMC2825630) and lispro 48 h in infusion systems (PubMed 9203437); heat-ruined vials (32–37 °C for weeks: human insulin −14–18% at 28 days, BMJ DRC 2022 e003105) have no frequency data (LESSONS 336) | — |
+| D37, D39–42 | Sunburn, decision biases | — | not built (no study, Tier 3) or implicit in behavior traits | — |
 | X1 | Rescue carbs / over-treatment | defense: per-person threshold and size from donors | on | LESSONS 166 |
 | X2 | Missed / unannounced boluses | per-person announcement and bolus rates | on | LESSONS 127, 145 |
 | X3 | Insulin absorption variability | A4 jitter, posture A4b | on | LESSONS 163, 169 |
@@ -141,7 +142,7 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | X9 | Pregnancy | X9 need by gestational week | scenario (`preg_week`) | LESSONS 141 |
 | X10 | Menopause | implicit: each twin inherits its donor's insulin need; the menstrual cycle (B5) ends at 50 | not built: German pump registry (548 post- vs 630 premenopausal T1D) lower TDD / kg and basal / kg, similar HbA1c and severe-hypo rates — a level the donor's data already carries; more fluctuation is self-reported only (Dutch survey, 159; PMC12534243) | — |
 | X11 | Gastroparesis | between-person emptying, 28% delayed | on | — |
-| X12 | Thyroid | — | not built (treated → settings) | — |
+| X12 | Thyroid | X12 plasma insulin clearance × `thyro_clear` (1.41 measured: 1144 vs 812 ml/min, PubMed 3887944) | scenario (off): euthyroid settings kept; c337 TDD ×1.11, mean +19 mg/dL, TIR −10 (insulin needs +25–100% hyperthyroid, Arch Intern Med 1980); treated thyroid disease is a level in the donor's data | LESSONS 336 |
 | X13 | Impaired hypo awareness | rescue timing per donor | implicit | — |
 | X14 | Long-term drift | — | not built (14-day cohorts) | — |
 | X15 | Correction stacking | per-person corrections, size, top-ups; hazard by CGM trend (`corr_trend`) | on | LESSONS 164, 224, 237 |
