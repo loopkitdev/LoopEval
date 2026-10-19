@@ -381,6 +381,10 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
             ratio = np.where(hs > 0.004, e / np.maximum(hs, 1e-9), 0.0)
             norm = float((ratio * hs).sum())
             if norm > 0: t.snack_entry_w = tuple(float(x) for x in np.clip(ratio / norm, 0.0, 4.0))
+            if person.traits.get("snack_entry_hours", False) and e.sum() > 0:
+                # experiment (LESSONS 279): snacks on the donor's own carb-entry clock — where they log and bolus small
+                # snacks (afternoon and evening) — instead of the all-eating clock; the snack count is unchanged
+                t.snack_hours = e / e.sum()
     if isinstance(sg, str) and getattr(t, "snack_hours", None) is not None and np.isfinite(g).all() and g.sum() > 0:
         # the donor's window grams include their snacks, and snacks are placed on the donor's clock too: each main meal
         # takes its window's share less the snack grams expected there (waking hours, weekday) (LESSONS 59)
