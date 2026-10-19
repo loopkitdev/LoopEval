@@ -258,7 +258,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         rcl=float(np.exp(rng.normal(math.log(0.003), 0.3))),
         # counter-regulation gain, mg/kg/min: half the judged lnN(1.0) — fitted to the donors' low nadirs as evidence/01 §4.4
         # prescribes (T1D loses glucagon early; Pete 2026-10-18, LESSONS 166)
-        cr_max=float(0.5 * np.exp(rng.normal(0.0, 0.5))),
+        cr_max=float(0.3 * np.exp(rng.normal(0.0, 0.5))),   # median 0.5 -> 0.3: refitted to the donors' low depths on the current body (LESSONS 272; was LESSONS 166)
         cr_g=float(rng.normal(65, 5)),
         # κ: insulin-mediated uptake's glucose dependence. Best 1981 (fixed-insulin clamps): doubling glucose raises
         # disposal ×1.24 / ×1.68 / ×1.78 at low / mid / high insulin, κ ≈ 0.24 / 0.68 / 0.78; the median is the mid-insulin

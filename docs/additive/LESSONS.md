@@ -5208,3 +5208,11 @@ statistic here, but it is the controller donors ran.
      status changes: G7 v_kurtosis, vol_cluster_60m, lows_per_day, tdd_cv now pass; bg_skew (1.00 vs 0.89) and hurst_long
      (0.224, KS 0.047) now fail; 31 matched (29). Drinks: kurtosis 1.80, steps > 15 3.7%, 28 matched. Default
      meal_fast_sd 0.40; new reference c285_sd40.
+
+272. **Counter-regulation refitted to the donors' low depths on the current body: CRmax median 0.5 → 0.3.** LESSONS 166
+     fitted it on a much older base; the review rule asks for a refit after the body changes of LESSONS 246–271. c286 on
+     c285_sd40 (`--set cr_mult`), review targets donors / ×1.0 / ×0.6 / ×1.5: low nadir p10 40 / 44 / 42 / 45, share of low
+     time < 54 0.37 / 0.30 / 0.35 / 0.28, p_reach54 0.20 / 0.14 / 0.17 / 0.12, t54 0.22 / 0.14 / 0.15 / 0.09, lows/day 1.08
+     / 0.75 / 0.83 / 0.79, meals ending < 70 9.7 / 9.7 / 10.0 / 9.5%, low duration p90 65 / 75 / 80 / 75 min; 31 / 32 / 29
+     matched. ×0.6 puts the low depths on the donors'; the long-low excess (p90 duration) is not counter-regulation (it
+     grows as CR weakens) — treatment timing and size, next. Default CRmax lnN median 0.3 (sd 0.5); new reference c286_cr06.
