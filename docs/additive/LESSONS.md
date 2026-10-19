@@ -4608,3 +4608,12 @@ statistic here, but it is the controller donors ran.
        fidelity, not for the statistics.
      - Sim pulses with no true intake within −90..+30 min of onset (`phantom.py`, `phantom_h.py`): 66 g-eq/day, spread over
        the day at 2–4.6 g-eq/h with a 05–08 h shoulder (EGP peaks at 07); donors' equivalent is not observable.
+
+233. **Low-prone donors are not measurably more insulin-sensitive than their settings; the unbounded twin multiplier makes
+     lows by a mechanism the data does not show.** Donors (168, `mismatch.py`): measured (yardstick) / settings ISF vs time
+     < 70, Spearman −0.15 (ratio p10 / p50 / p90 0.59 / 0.91 / 1.33); the twin ISF multiplier fitted to time < 70 is
+     unrelated to that measured ratio (−0.05). Sim (c254): body / settings ISF vs time < 70 +0.09, ratio 0.72 / 0.98 / 1.09.
+     A twin made low-prone by a body ×2.5 more sensitive reproduces the donor's lows through a mismatch the low-prone donors
+     do not carry. Whatever makes them low-prone is outside the measured ISF fit and the user-dosing behaviours (LESSONS
+     226): candidates still open are the timing of insulin against intake within the meal (2-h nadir, LESSONS 217) and the
+     body's fall once insulin outruns need (LESSONS 223).
