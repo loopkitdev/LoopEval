@@ -206,3 +206,22 @@ baseline; `runs/c344_*` on gamepc), 95% CI over people:
 | lift over the dial, true glucose | −0.46 [−1.68, +1.17] | −0.31 [−1.43, +0.95] | −0.63 [−1.94, +0.78] |
 
 No lift outside its interval for any of the three, as on c311/c312: the verdicts hold across the body changes since.
+
+## Update 2026-10-19 (night): stress scenarios re-run on reference c362_g6s
+
+Same five scenarios as LESSONS 85–86 (one ground-truth event on day 4, every arm alike), moderate size, 112 people × 8
+days, each on their donor's deployed RC (`rc_own`); C30 / C31 flags rebuilt from each person's c362 baseline σ5
+(`runs/s365_*` on gamepc). Δ vs baseline on TRUE glucose over 72 h, 95% bootstrap CI over people; * excludes zero.
+
+| scenario | baseline TIR | C30 ΔTIR | C31 ΔTIR | aIRC ΔTIR | other |
+|---|---|---|---|---|---|
+| illness | 60.6 | −0.26 | +0.71 | **−1.61*** | C31 >250 **−0.88***, t70 +0.16* |
+| exercise | 70.2 | **+1.47*** | **+1.37*** | +0.28 | t54 n.s. for all |
+| missed bolus | 68.3 | **+1.49*** | **+1.33*** | −0.58 | C30 t70 −0.21 (n.s.) |
+| site failure | 59.4 | −0.28 | +0.33 | −1.34 | aIRC t70 **−0.25*** |
+| false CGM low | 67.6 | +1.01 | **+1.98*** | +0.05 | C31 >250 **−0.90*** |
+
+Changes from the 10-16 readings (older body model): C30 and C31 now gain TIR on exercise and missed-bolus days with no
+lows cost; the deep-false-low losses of C30 (−1.38*) and aIRC (−1.25*) are gone (C30 +1.01 n.s., aIRC +0.05); aIRC's
+exercise-day lows benefit is gone and it costs TIR during illness. Read with the overlay's Known limits (post-meal late
+phase, short-scale shape); the low side now matches the donors on every statistic (LESSONS 360–362).
