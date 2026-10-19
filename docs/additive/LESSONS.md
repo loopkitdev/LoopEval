@@ -4622,3 +4622,12 @@ statistic here, but it is the controller donors ran.
        corrections (0.60) and correction threshold (0.39) — those read partly as consequences of running high, not causes —
        and their reduced-insulin overrides (0.36, which the twin does follow, 0.44). Body size (TDD +0.26, ISF −0.26) sets
        the mean in both. The person-level gap (LESSONS 217–218) starts at the level, before the lows.
+
+234. **`basal_own` re-tested on the current base (review of LESSONS 125): still worse.** Since c133 the sim's overnight
+     delivered ÷ scheduled has come onto the donors' (c254 p25 / p50 / p75 1.10 / 1.36 / 1.73 vs 1.13 / 1.36 / 1.63;
+     `night_tr.py`), and the twin follows its donor's at Spearman 0.40; the donor's ratio goes with the donor's mean at 0.63.
+     c255 (basal_own): body basal share p50 0.41 → 0.61, twin night ratio vs donor 0.56, twin mean vs donor 0.26 → 0.30,
+     time < 70 vs donor 0.12 → 0.25 — but 23 matched (29): CV 28.6 (35.1), TIR 77.5, lows 0.25/day, meals ending < 70
+     2.5%, day/night 1.67 (2.06). As in LESSONS 125, the donor's night delivery overstates basal need (it carries night
+     corrections and evening carbohydrate), and a basal-heavy body leaves less of the TDD to meals, which takes the
+     variability and the lows with it. The person-level link is real but this is not its carrier; stays off.
