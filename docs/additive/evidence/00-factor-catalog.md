@@ -127,7 +127,8 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | D35 | CGM error | sensor families (G6, G7, Libre 3, Medtronic) | on | LESSONS 45, 174 |
 | D36 | Heat / sauna | B15 absorption speed above 13 °C (`heat_a`) | built, off: absorption alone lowers lows under Loop (paired OR 0.59–0.75 vs observed 1.26, Diabetes Care 2026) | LESSONS 290 |
 | D38 | Altitude | — | not built (Tier 3) | — |
-| D32–34, D37, D39–42 | Coeliac, smoking, damaged insulin, sunburn, decision biases | — | not built (Tier 3) or implicit in behavior | — |
+| D33 | Smoking | implicit: chronic smoker resistance is in each donor's data-fitted ISF (body follows data, 2026-10-19) | no acute term: nicotine infusion impaired insulin sensitivity in T2D but not in healthy controls (Axelsson 2001); T1D smokers have lower eGDR (PoProStu 2018, doi:10.5603/DK.2018.0007) — a chronic level, not a within-day driver | — |
+| D32, D34, D37, D39–42 | Coeliac, damaged insulin, sunburn, decision biases | — | not built (Tier 3) or implicit in behavior | — |
 | X1 | Rescue carbs / over-treatment | defense: per-person threshold and size from donors | on | LESSONS 166 |
 | X2 | Missed / unannounced boluses | per-person announcement and bolus rates | on | LESSONS 127, 145 |
 | X3 | Insulin absorption variability | A4 jitter, posture A4b | on | LESSONS 163, 169 |
