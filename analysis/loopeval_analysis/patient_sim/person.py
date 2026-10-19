@@ -212,7 +212,7 @@ def _formulation(brand: str, rng) -> str:
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
-                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False,
+                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
@@ -376,7 +376,8 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         wgt = np.where(dist <= 1.5, 1.0, np.where(dist >= 5.5, 0.0, 0.5 * (1 + np.cos(np.pi * (dist - 1.5) / 4.0))))
         h25 = [2, 3, 4]
         q = nr_ * float(row.basal) * j_basal * float(np.mean(prof[h25])) / max(basal_true, 1e-6)
-        f_ = lambda m: (lambda pt: float(np.mean((pt / pt.mean())[h25])))(prof_true * (1 + (m - 1) * wgt)) - q
+        f_ = (lambda m: float(np.mean((prof_true * (1 + (m - 1) * wgt) / prof_true.mean())[h25])) - q) if night_add else \
+             (lambda m: (lambda pt: float(np.mean((pt / pt.mean())[h25])))(prof_true * (1 + (m - 1) * wgt)) - q)
         lo_, hi_ = 0.3, 20.0
         if f_(lo_) >= 0: m_ = lo_                     # target below reach: the lowest bump
         elif f_(hi_) <= 0: m_ = hi_                   # bodies whose basal level is far under the schedule: the highest
@@ -386,7 +387,13 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                 if f_(mid) < 0: lo_ = mid
                 else: hi_ = mid
             m_ = 0.5 * (lo_ + hi_)
-        pt = prof_true * (1 + (m_ - 1) * wgt); prof_true = pt / pt.mean()
+        pt = prof_true * (1 + (m_ - 1) * wgt)
+        if night_add:
+            # experiment (LESSONS 255): the night need is added on top, the daytime shape kept; the body's 24-h basal rises by
+            # the bump (the intake budget, set above from the unbumped basal, is not changed)
+            prof_true = pt / prof_true.mean()
+        else:
+            prof_true = pt / pt.mean()
     settings = dict(
         basal_profile=[float(x) for x in prof],
         basal_uh=float(row.basal) * j_basal, isf=float(row.isf) * j_isf, cr=float(row.cr) * j_isf / j_basal ** 0,
