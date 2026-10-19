@@ -568,3 +568,50 @@ def add_insulin_from_iob(path: str, ice_root: Path = Path.home() / ".loop-eval/i
     t.loc[relabel, "insulin_brand"] = "fiasp"
     t.to_csv(path, index=False)
     return t
+
+
+def add_isf_yardstick(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32",
+                      params: Path = Path.home() / ".loop-eval/runs/2026-08-25-distributions/ice/isf_yardstick_params.json"):
+    """isf_true from each donor's own glucose response: the ICE ISF yardstick (dist_views/ice/isf_basal_prior.py with the
+    distribution cohort's fitted parameters) on the ice_v32 steps (LESSONS 261). Fasting steps (ice screen `clean`,
+    |v| < 600 mg/dL/h, no carb entry and no manual bolus in the prior 4 h, not disrupted); hourly blocks: OLS of glucose
+    change on insulin absorbed, C = −slope with its relative SE; shrunk toward the basal rule K·fb^b (fb = median absorbed
+    U/h while fasting); levelled by the cohort factor. The previous value (the TDD rule, isf_tdd) is kept as isf_true_tdd."""
+    import json
+    import numpy as np
+    prm = json.loads(Path(params).read_text())
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        f = ice_root / "steps" / f"{a}.parquet"
+        if not f.exists():
+            out.append(dict(alias=a)); continue
+        s = pd.read_parquet(f).sort_values("t1"); tm = (s.t1.astype("int64") / 6e10).to_numpy()
+
+        def recent(ev):
+            if not len(ev): return np.zeros(len(tm), bool)
+            i = np.searchsorted(ev, tm, side="right") - 1
+            return (i >= 0) & (tm - ev[np.maximum(i, 0)] < 240)
+        v = s.v.to_numpy(float)
+        q = (~recent(tm[(s.carbs_g.fillna(0) > 0).to_numpy()]) & ~recent(tm[(s.bolus_manual_u.fillna(0) > 0).to_numpy()])
+             & ~s.disrupted.fillna(False).to_numpy(bool) & np.isfinite(v) & (np.abs(v) < 600) & s.clean.fillna(False).to_numpy(bool))
+        dg = v * s.dt.to_numpy(float) / 60.0; du = s.absorbed.to_numpy(float)
+        n = len(s) // 12 * 12; m = q[:n].reshape(-1, 12).all(1)
+        dv = np.nan_to_num(dg[:n]).reshape(-1, 12).sum(1)[m]; dd = np.nan_to_num(du[:n]).reshape(-1, 12).sum(1)[m]
+        fb = float(np.median(du[q] * 12)) if q.sum() > 500 else np.nan
+        c = se = np.nan
+        if len(dv) >= prm["min_blocks"] and np.std(dd) > 0:
+            x = np.column_stack([np.ones_like(dd), dd]); beta = np.linalg.lstsq(x, dv, rcond=None)[0]
+            r = dv - x @ beta; s2 = r @ r / (len(dv) - 2); sl = np.sqrt(s2 * np.linalg.inv(x.T @ x)[1, 1])
+            c = -beta[1]; se = sl / c if c > 0 else np.nan
+        prior = np.log(prm["basal_rule_K"] * fb ** prm["basal_rule_b"]) + prm["slope_offset_log"] if fb > 0 else np.nan
+        tau2 = prm["tau_log"] ** 2
+        w = tau2 / (tau2 + (se * prm["se_calibration"]) ** 2) if (c > 0 and np.isfinite(se)) else 0.0
+        est = np.exp(prior + w * ((np.log(c) if c > 0 else prior) - prior)) * prm["level_factor"] if np.isfinite(prior) else np.nan
+        out.append(dict(alias=a, isf_ys=est))
+    r = pd.DataFrame(out)
+    if "isf_true_tdd" not in t: t["isf_true_tdd"] = t.isf_true
+    t = t.drop(columns=[c_ for c_ in ("isf_ys",) if c_ in t]).merge(r, on="alias", how="left")
+    t["isf_true"] = t.isf_ys.fillna(t.isf_true_tdd)
+    t.to_csv(path, index=False)
+    return t
