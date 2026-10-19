@@ -163,6 +163,7 @@ class BehaviorTraits:
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     entry_size_b: float = 0.0            # main-meal entry chance × (grams / the person's usual meal)^b (experiment, LESSONS 289)
     unent_split: bool = False            # an unentered, unbolused main meal eaten as ~20 g portions over 3 h (experiment, LESSONS 285)
+    ge_full_kcal: bool = False           # experiment (LESSONS 305): the meal's whole fat / protein energy on the main parcel
     unent_light: bool = False            # a main meal eaten unentered and unbolused carries snack composition (experiment, LESSONS 284)
     corr_trend: bool = True              # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237; default 2026-10-19)
     p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
@@ -802,7 +803,13 @@ class Behavior:
                 if ff > 0:
                     acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * ff, kempt=0.08 * meal.speed, kabs=0.08 * meal.speed,
                                                f=bp.f, label=meal.kind + "_liquid", kcal_per_g=0.0)))
-                acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * (1 - ff), kempt=bp.kempt * meal.speed * phi_fat, kabs=bp.kabs * meal.speed,
+                g_main = meal.grams * (1 - sf) * (1 - ff)
+                if t.ge_full_kcal and g_main > 0:
+                    # all of the meal's fat and protein energy sits in the stomach with its solid part: kcal_g above spreads
+                    # it over the whole meal's carbohydrate, so the main parcel (≈ 55% of the grams) carried only ≈ 55% of it
+                    # to the energy ceiling (Hunt & Stubbs 1975: per kcal, fat and protein slow emptying as carbohydrate; LESSONS 305)
+                    kcal_g = 4.0 + (9.0 * meal.fat + 4.0 * meal.protein) / g_main
+                acts.append(("eat", Parcel(m, g_main, kempt=bp.kempt * meal.speed * phi_fat, kabs=bp.kabs * meal.speed,
                                            f=bp.f, label=meal.kind, kcal_per_g=kcal_g, speed=meal.speed)))
                 # protein → late glucose appearance: 0.1 g glucose per g protein, delayed ~90 min, peak 3–5 h
                 # (Smart 2013; Paterson 2017; evidence/01 §6.3); it is glucose, so fast-glucose bioavailability
