@@ -5022,3 +5022,10 @@ statistic here, but it is the controller donors ran.
        other way too (high glucose → Loop delivers above schedule). Correction BG (0.60 in donors, twins 0.10) is the same
        kind of consequence. A per-person level cause needs a donor feature that precedes the glucose, not one Loop or the
        person produces in answer to it.
+
+257. **Wider bolus absorption variability is not the missing fast falls.** dose_cv 0.15 → 0.35 (c274; the low end of
+     free-living estimates, Schiavon 2020, against the clamp-net 0.15 of LESSONS 209): falling readings > 3 mg/dL/min
+     0.49% (c270 0.4–0.5; donors 1.26), true BG > 3 0.32%; lows 0.92 → 0.83/day, t70 1.45 → 1.32%, CV 34.5, 30 matched;
+     per-person transfer unchanged (mean 0.24, t70 0.21). Stays 0.15. Ruled out for the fast-fall gap so far: glucose
+     effectiveness, meal speed, early insulin action, carb sensitivity, formulation, counter-regulation, sensor share,
+     absorption variability (LESSONS 236–239, 248, 257).
