@@ -5179,3 +5179,12 @@ statistic here, but it is the controller donors ran.
      At 0.5 the true BG under a large CGM step moves 9 mg/dL (c278 6); twins' means by strategy 158 / 153 vs donors 158 /
      153; TIR 69.3 (71.7); G7 v_sd 7.32 (7.02) now slightly over — the sensor white noise can come down next (LESSONS
      267). Default meal_fast_frac 0.5; new reference c281_mf50.
+
+269. **G7 white noise 2.4 → 1.8, now that meals make the fast moves.** With the meal fast share at 0.5 (LESSONS 268) G7
+     v_sd ran over the donors' (7.32 vs 7.02). c282 (`--set sensor_sigma`, read on G7 rows only; the override also moved
+     G6 / Libre 3), donors / 2.4 / 2.0 / 1.8: v_sd 7.02 / 7.32 / 6.99 / 6.85, v_kurtosis 2.52 / 1.85 / 1.99 / 2.08, v_skew
+     0.33 / 0.21 / 0.25 / 0.28, sigma_meas 1.41 / 1.34 / 1.32 / 1.43, high-frequency SD day 4.12 / – / 4.51 / 4.37, night
+     3.40 / – / 3.77 / 3.72; 30 / 30 / 29 matched. Against the FDA iCGM table (K213919; `sensor_fit` on the c282_s18 true
+     glucose) 1.8 fits as well or better: in-range MARD 8.55 (FDA 8.6; 2.4 gave 9.02), two-sensor PARD 9.76 (8.9; 10.63),
+     loss 2.09 (2.45). The G7 family's sigma is now (1.8, 0.8); G6 and Libre 3 unchanged. The noise left above the
+     donors' at night (3.72 vs 3.40) is the next sensor item (night quieter than day: noise vs glucose level, hetero_q).
