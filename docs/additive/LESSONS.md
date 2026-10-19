@@ -5148,3 +5148,15 @@ statistic here, but it is the controller donors ran.
      is non-eating rises: sensor, posture, Loop's overnight suspend-and-resume and the low-need night shape. The morning
      announced excess (+0.08 to +0.17 at 06–15 h) is meals. Next: the overnight non-eating rises against their sources
      (sensor noise and compression, Loop's temp-basal oscillation at the new night need) before the meal count.
+
+267. **The sim's night non-eating rises are sensor noise, and the G7 white noise is standing in for missing fast
+     physiology.** c278's unannounced night pulses with no eating (`night_none.py`, 1,175): CGM rise p50 +6, true BG rise
+     p50 0 (73% under 10), 5% after a low, 10% after a suspension. High-frequency CGM noise (SD of the 5-min step minus
+     its 30-min mean; `night_steps.py`, G7): night donors 3.40, c278 4.25 (true BG 0.25); day 09–21 h 4.12 vs 4.61 — the
+     real night is quieter than the day (0.83) and the sim's barely (0.92). White noise 2.4 → 1.6 (c280, `--set
+     sensor_sigma=1.6`): high-frequency SD day 4.14 (donors 4.12), night 3.73 (3.40); night unannounced pulses 0.58 / 0.52
+     (0.54 / 0.43); but G7 v_sd 6.71 → 6.24 (7.02), sigma_meas 1.37 → 1.22 (1.41), v_kurtosis 1.91 (2.52); 28 matched.
+     The white noise fills 5-min motion the body does not make (LESSONS 236's fast falls, 238's short-scale gap): lowered
+     alone it moves the CGM's motion under the donors'. Sensor stays at 2.4; the fast body motion comes first, then the
+     noise refit against the donors' high-frequency SD by day and night (its night quietness may be noise scaling with
+     glucose level, hetero_q).
