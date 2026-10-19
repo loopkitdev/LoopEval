@@ -5466,3 +5466,16 @@ statistic here, but it is the controller donors ran.
      The direction is confirmed by a target both sides record, but b has no evidence of its own and every arm takes lows
      away. Stays off. Open: what produces the donors' lows that a size-matched entry removes — a big entered meal is
      bolused, an unentered one is chased by Loop, and the chase makes the twins' lows (LESSONS 242).
+
+290. **Faster insulin absorption in heat removes lows under closed loop; the heat–hypoglycaemia association needs another
+     mechanism.** Diabetes Care 2026 (679 T1D adults, 33 M CGM readings, residential daily temperature): hypoglycaemia
+     (< 70 mg/dL ≥ 15 min) odds rise above 13 °C, OR 1.26 at 25 vs 13 °C, same day. The proposed mechanism is faster
+     subcutaneous absorption (skin blood flow; sauna +110%, Koivisto 1980) — untested in that study. B15 (`modulators`,
+     off): absorption × (1 + heat_a·max(0, T − 13)), daily temperature AR(1) around a per-person climate [J]. Calibration
+     arms c296 at a fixed 25 °C against c294 (= 13 °C, multiplier 1), paired person-days (`heat_or.py`, 1344 days, hypo-day
+     share 0.416): heat_a 0.02 (+24%) → 0.394, paired OR 0.75 (discordant 87 / 116); 0.04 (+48%) → 0.374, OR 0.59
+     (81 / 137). Under Loop, faster absorption means less insulin still acting after each correction (as faster
+     formulations do), so the absorption mechanism alone moves lows the wrong way for this population. Candidates that
+     could carry the observed association, each needing its own evidence before building: heat-raised insulin-independent
+     glucose use or sensitivity (passive heating studies), less eating on hot days, more outdoor activity, and the study's
+     treatment mix (how many were on closed loop). B15 stays off; no default change.
