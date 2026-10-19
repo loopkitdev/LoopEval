@@ -295,7 +295,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # the labeler-calibrated constant depends on the ISF semantics: 1.25 for the peak calibration, 1.08 for total-drop
     # (LESSONS 75); the isf_total switch ran with 1.25 until 2026-10-18 (LESSONS 140)
     cal = CSF_BLEND_CAL_TOTAL if isf_total else CSF_BLEND_CAL
-    # csf_w (experiment, LESSONS 300): weight of the DATA branch in the carb sensitivity, set apart from ISF_W. The form above
+    # csf_w (default 0.5 via cohort since 2026-10-19, LESSONS 300): weight of the DATA branch in the carb sensitivity, set apart from ISF_W. The form above
     # weights the SETTINGS by w, so ISF_W 1.0 (body ISF on the data) put the body's carb sensitivity fully on the settings
     if csf_w is not None: w = 1.0 - csf_w
     csf_target = cal * csf_target ** (1 - w) * (csf_set * float(np.exp(rng.normal(0, 0.15)))) ** w
