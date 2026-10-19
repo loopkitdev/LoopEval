@@ -5968,3 +5968,30 @@ outputs in gamepc ~/additive/runs/c290–c312).
        scoring showed.
      - Still failing on substance under either scoring: `med_nonzero`, `night_cv`, `sigma_disp`, `circadian_amp`,
        `min_below70`, `hurst_long`, `acf_zero_min`, G7 short-scale shape.
+
+331. **Loop doses the twins as it dosed their donors once the donor's own dosing strategy is matched day by day; twins
+     now draw it from the donor's share of autobolus days.** Autobolus twins (c321_p2a) got 1.78× their donor's
+     automatic-bolus insulin and 0.80× the basal (paired, delivered, trace `delivery[]` vs doses.json; donor manual
+     insulin 12.0 vs twins 12.2 U/day, so not a labelling artefact). The excess sat at every distance from a carb entry
+     (> 6 h: 7.95 vs 4.17 U/day) and was 1.90× for G7, 1.33× for G6.
+     - **Cause: strategy composition, not the controller or the sensor.** A template is "autobolus" when the whole record
+       averages > 2 automatic boluses a day; 40 of the 50 donors behind the 73 autobolus twins spent ≥ 10% of days in
+       temp-basal mode. Consistent donors (< 10% such days, 33 pairs): automatic 1.08×, basal 0.95×, zero bins 36 vs 33%.
+       Mixed donors: 2.66× / 0.60×. Against the donors' autobolus days only (≥ 5 automatic boluses, ≥ 20 dose records):
+       automatic 1.14×, basal 0.87×, automated total 1.04× (c321_p2a and c331 alike).
+     - **The sensor noise is right for Loop.** Noise-free ablation (c330: `sensor_sigma`, `sensor_common`, `sensor_trate`
+       0): consistent pairs automatic 0.91×, basal 1.15×, zero bins 25 vs 33% — worse than with the fitted noise; t54
+       0.03% (sensor-reported lows, as LESSONS 140s). Quiet-period 15-min CGM slope SD (Loop's momentum window), G7
+       0.93 vs donors 0.92, 30-min change SD 23.0 vs 23.2.
+     - **Fix** (`templates.add_strategy_share` → `auto_day_share`; person.py draws autobolus with that probability on
+       its own stream, so no other trait moves): pilot donors' share p10 / p25 / p50 0.39 / 0.76 / 1.0; expected
+       autobolus share of twins 0.67 → 0.56. Controller configuration from the donor's deployment, as `rc_own`.
+       c331_strat: 37 of 51 (c321_p2a re-scored 38; neutral band), t54 p 0.040, TDD 40.8. Adopted as the reference
+       for soundness.
+     - **`med_nonzero` stays failing (0.097 vs 0.085) on a small delivery detail.** Engine and field truncate short
+       temps alike (donor temps of 3–12 min: volume / floor-to-pulses 1.005; 97.5% of sub-pulse temps deliver 0).
+       Autobolus pairs, donors' autobolus days: zero 5-min bins 0.419 vs 0.333, taken from the smallest bins (≤ 0.025 U
+       0.019 vs 0.049); basal time at a commanded 0 rate 35.2 vs 32.3%, floored 6.3 vs 6.6%. The rest is where automatic
+       boluses fall relative to zero temps. Left as is.
+     - Scripts: gamepc `~/additive/blocks/` (`ab_lump2.py`, `ab_daymode.py`, `quiet_slope.py`, `bins_hist.py`,
+       `zero_cause.py`).
