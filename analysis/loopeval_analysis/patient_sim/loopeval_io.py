@@ -169,7 +169,7 @@ def save_truth(world: World, path: Path):
     pickle.dump(dict(truth=tr, cgm=cgm, behavior=world.beh.log, entries=world.entries, sent_overrides=world.sent_overrides,
                      bolus_requests=world.bolus_requests, pump=world.pump.log, ex_boost=world.ex_log,
                      illness=world.mods.ill, sensor_log=None, received=world.received,
-                     person=world.person.name), open(path, "wb"))
+                     person=world.person.name, fat_log=world.fat_log, fat_rho=world.fat_rho), open(path, "wb"))
 
 
 # ------------------------------------------------------------------------------------------ run
