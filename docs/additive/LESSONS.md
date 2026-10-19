@@ -6200,3 +6200,9 @@ outputs in gamepc ~/additive/runs/c290–c312).
        1.72 (c331 1.00 / 1.26 / 1.71) — the median holds, the upper quarter runs ~12% high. The window excess is a wider
        per-meal spread (count error, per-meal emptying speed and fast share), not the level; each of those has its own
        evidence to re-check before any change.
+     - **Correction to the addendum: the spread is close.** On a log scale the people's interquartile range of labelled
+       g-eq per entered gram is 0.58 (twins) vs 0.54 (donors). Per announced pulse (c346, 1,185 pulses) the response
+       quartile does not follow the meal's count error (eaten / entered 0.85 / 0.90 / 0.92 / 0.94, Spearman 0.12) or other
+       eating within −30..+120 min (60–73% in every quartile). The carb sensitivity is right in level and close in spread;
+       what remains is a breakfast-specific excess (1.27 vs 1.13 per entered gram), the direction of the evidenced
+       morning emptying speed-up (ge_circ ×1.25, Goo 1987). Left as is.
