@@ -5751,3 +5751,12 @@ statistic here, but it is the controller donors ran.
      0.00, lift −0.57 [−1.40, +0.49] (CGM) / +0.01 (true); C31 ΔTIR −0.09, Δt<54 0.00, lift −0.02 [−0.67, +0.91] / +0.37
      (10-16: +1.31 and +1.11). With aIRC (LESSONS 310), no candidate shows a lift outside its interval; the 10-16 readings
      were properties of the earlier body. Handoff updated.
+
+312. **The twins' excess CV is daytime, and it is the late-phase gap seen from the other side.** Paired with their own
+     donors (`cv_split.py`, c311 baseline = c306 defaults, G7, donors' first 13 days; per person, medians): CV 36.7 vs 33.0
+     (paired +1.5), day 08–22 h 37.7 vs 34.1, night 00–06 h 26.4 vs 28.5 (nights quieter in the twins), between-day SD of
+     daily means 13.2 vs 12.1 % of mean; automatic-bolus day 37.7 vs 35.1, temp-basal 37.6 vs 32.8. The twins' meals swing
+     higher and come back sooner (LESSONS 301: breakfast peak +38–40 vs +29–33, back near 0 by 2.5 h); the donors' rise
+     less and stay up longer, like Elleri's low-GL meal. One shape — more peaked, shorter meals — makes both the daytime CV
+     excess and the missing late phase; c301 / c305–c308 show that slowing appearance alone only lowers meals under a
+     full bolus. Open with Pete (TIDEPOOL-70).
