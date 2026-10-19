@@ -5763,3 +5763,21 @@ statistic here, but it is the controller donors ran.
 
 Scripts and launchers for LESSONS 282–312: `runs/2026-10-19-additive-measures/` (copies of gamepc ~/additive; cohort
 outputs in gamepc ~/additive/runs/c290–c312).
+
+313. **Loop doses the same after meals in the field and in the sim; the difference is the body's appearance in hours
+     1–3.** Pete (2026-10-19): "We should be able to simulate loop exactly ... If you see loop dosing more or less in our
+     simulations than in the field, then we need to see what's missing in our simulation." Measured, isolated bolused
+     meals ≥ 15 g, G7:
+     - **Loop's own view of the meal matches.** Recorded COB (reason='loop' dosingDecision.carbsOnBoard; 30 donors, 361
+       meals; `donor_cob.py`) as a fraction of entered grams at 60 / 120 / 180 min: donors p50 0.53 / 0 / 0 (p75 0.72 /
+       0.27 / 0); twins (trace candidateCOB, c311) 0.50 / 0.03 / 0 (0.70 / 0.29 / 0.04). Loop treats the meal as absorbed by
+       ~2 h on both sides.
+     - **The insulin acting matches.** On the ice role's own definition for both (`ice_gen.extract`; twins exported as
+       donors, `twin_ice_export.py` / `twin_ice_extract2.py`), insulin effect ia (mg/dL/h) at 0–60 / 60–120 / 120–180 /
+       180–240 / 240–360 min: donors 90 / 122 / 100 / 80 / 63, twins 91 / 119 / 100 / 76 / 62.
+     - **The counteraction does not.** ICE donors 112 / 124 / 104 / 73 / 54, twins 111 / 105 / 87 / 75 / 58; glucose velocity
+       donors +19 / −1 / +1.5 / −8 / −9, twins +17 / −9 / −12.5 / 0 / −3.5. The donors' ICE holds at its first-hour level to
+       3 h; the twins' falls after the first hour, ~17–19 mg/dL/h short in 60–180 min. c309 (fast share 0.2) moves ICE to
+       106 / 114 / 96 / 80 / 59 but cuts the first-hour rise (v +11.5): what is missing is MORE appearance in hours 1–3, on
+       top of an unchanged first hour. Pulse g-eq per entered gram (current ice_v32) donors 1.19, twins 1.11 (LESSONS 302).
+       Testing c313: carb sensitivity ×1.07 (to the measured 1.19) with and without the stomach energy accounting fix.
