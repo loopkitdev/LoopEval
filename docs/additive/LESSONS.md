@@ -5716,3 +5716,7 @@ statistic here, but it is the controller donors ran.
      10 g), is a need that rises after eating and outlasts the meal's appearance — a postprandial resistance or EGP
      return the body model does not have. Next: the evidence for that (postprandial glucagon / EGP in T1D, evidence/13;
      second-meal and post-meal insulin resistance), before any arm.
+     Checked and set aside: the subtractive roles' carb-absorption finding (memory bddp07-meal-tail-cob-deficit: replay
+     recomputes ICE from FINAL data and over-absorbs COB against deployed Loop's live-cached ICE). In the closed-loop
+     plant runs the controller sees CGM only up to each step, so its ICE is computed live; that replay artefact does not
+     carry over to the twins. Mechanism question open with Pete (TIDEPOOL-70).
