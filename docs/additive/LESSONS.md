@@ -4528,3 +4528,13 @@ statistic here, but it is the controller donors ran.
        person-day. The sim corrects lower and half as often: corr_thr = donor corr_bg_med − 20 and the old-base realization
        constants (0.46 × 0.64, LESSONS 42 / 47) are the next calibration, against each donor's lone-bolus rate by glucose
        band.
+
+225. **Correction frequency is capped by opportunity, not by the hazard.** Per-person correction calibration (f055728;
+     template columns corr_p_mult on the hazard, corr_thr_adj on the threshold; targets the donor's lone boluses ≥ 0.5 U per
+     day, median 1.07, and CGM at them, median 199): round 0 / 1 / 2 lone rate sim ÷ donor median 0.68 / 0.61 / 0.67
+     (Spearman 0.74 / 0.76 / 0.78), CGM at them 187 / 191 / 193 vs 206, while the hazard multiplier rose 1.32 → 1.79 → 2.5 and
+     the threshold +12 → +29. Corrections already fire at nearly every allowed moment: the gates (above threshold, not
+     falling, no bolus within corr_wait) bound the rate, and raising the threshold removes opportunities. c249_cr2: 28
+     matched; untreated daytime lows 0.10/day (donors 0.46), after a bolus 0.023 (0.160). The donors' extra lone boluses
+     also include hand-dosed food boluses; separating corrections from unentered-food boluses in the donor record, and the
+     corr_wait gate's own evidence, come next.
