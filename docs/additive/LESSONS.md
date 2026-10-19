@@ -6242,3 +6242,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      00–02 h +7 / +5 (c346 +0.7); dinner gains a late rise at 3.5–6 h (+11 to +15) where the donors' peaks at 2.5–3 h (+14 /
      +17); lunch unchanged (−10 at 2.5–3 h); t54 0.088 / 0.089%, lows / day 0.67 / 0.83, day / night insulin 1.63 / 1.70
      (worse); circadian_amp passes; 34 / 34 of 51 (34). Not adopted; default split kept.
+
+352. **Fat-induced resistance starts during the meal, not 2 h after it (Laxminarayan 2015): onset 0.5 h is the default.**
+     Laxminarayan et al. 2015 (Diabetes Technol Ther, doi:10.1089/dia.2015.0118) fitted Wolpert's high- vs low-fat dinners
+     (7 T1D, identical carbohydrate): SI already 17% lower in the DINNER window (7.25 vs 8.72 ×10⁻⁴ mL/µU/min) and the meal's
+     appearance peak later (102 vs 71 min). A12's fat SI dip ramped in from 2 h (full 3–6 h, gone by 10 h). `fat_on`
+     (895be9b): onset 1.0 / 0.5 h, full one hour later, on c346_st (c352): 36 / 35 of 51 (34); lunch at 3–4.5 h −4 / −8 to
+     +7 (c346 −8 to −10), dinner +2 to +10 through 2.5–4.5 h; 3-h meal change +0.9 / +1.6; t54 0.090 / 0.120%, lows 0.67 /
+     0.79 per day, P(reach 54) 0.143 / 0.167. Adopted at 0.5 h (the lows hold; 1 h loses them); reference now c352_fat05.
+     The fat term stays relative to the person's usual diet (fat_rel), so its average effect on the level is unchanged.
