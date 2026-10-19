@@ -5550,3 +5550,15 @@ statistic here, but it is the controller donors ran.
      motion and less slow sensor wiggle. With LESSONS 293 (quiet periods noisier, active periods calmer), the sensor's
      slow-error components are the next sensor item to check against their own evidence (FDA two-sensor PARD, eda
      lesson 33 per-family statistics) — not a fit to these counts.
+
+296. **The G7 common sensor error carries real short-scale roughness; lowering it trades the donors' 5-min statistics for
+     their turn rate.** `sensor_shape.py` (new: `sensor_fit`'s FDA score beside the 5-min increment ACF and the daytime
+     turn rate of the 15-min mean, on simulated true glucose; 20 c294 bodies). G7 base: loss 1.90, PARD 9.5, in-range
+     MARD 8.9, ACF lag 1 / 2 0.63 / 0.40, turns 0.45 / 0.79 per h (donors' quiet hours 0.51 / 0.26 and 0.375 / 0.614).
+     Common (co-located) error σ 2.0 → 1.0 (the 2.0 is Biagi 2017 on Enlite): loss 1.59, turns 0.38 / 0.64, MARD 8.0,
+     lag 2 0.47; whiter per-sensor AR (0.6, 0): lag 1 0.51, loss 1.53, turns unchanged; the two together, with σ or slow
+     bias raised to restore MARD, lose the FDA fit (loss 1.8–2.7). Cohort c299 (G7 common 1.0, other families unchanged):
+     28 matched (30): G7 v_sd, σ_meas, acf_min and kurtosis all fail (KS p ≤ 0.001), t54 and lows/day fail; quiet turns
+     0.41 / 0.56, σ_meas 1.16 / 1.22 (donors 1.30 / 1.37). Reverted. The donors' CGM is rough at 5 min, not over
+     15–60 min; the AR(3) common term makes both. A component whose noise is rough at one step but does not wander over
+     tens of minutes is what the shape asks for — a structure question for the sensor evidence (evidence/08), not a size.
