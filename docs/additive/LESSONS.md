@@ -4847,3 +4847,11 @@ statistic here, but it is the controller donors ran.
      unentered meals), which the donors' entry-free windows cannot show: comparing post-exercise falls needs a measure
      that does not condition on entries (all workouts: 4–6 METs end → +180 donors −4 vs c257 +30), or the donors'
      labeled pulses around workouts (+0..60 min 1.24× vs sim 1.40×).
+
+246. **The delayed exercise sensitivity is now McMahon-sized (quadratic drive, b 0.134): the donors' workouts pin what
+     LESSONS 57 could not.** c261 (`--set ex_b=0.134,ex_zp=2.0` on c257): all sessions 4–6 METs end → +180 min +30 → +25
+     (donors' workouts −4), < 70 within 4 h after 10 → 14% (40%); 6–8 METs +24 → +17, 12 → 17% (0, 27%); 28 matched (27),
+     lows 0.50 → 0.58/day, untreated daytime lows 0.18 → 0.22, mean 152 → 149, t70 0.67 → 0.74. LESSONS 57 kept the
+     linear default because the McMahon size then added lows the cohort did not show; on the current base the cohort is
+     short of lows and the donors' post-workout falls ask for it. Default in ExerciseParams (b 0.134, z_power 2); everyday
+     walking keeps its old size by the quadratic drive. The post-exercise gap is narrowed, not closed.
