@@ -381,6 +381,8 @@ class World:
             if (enable or {}).get("sleep_util", True) else 0.0     # default since 2026-10-18 (LESSONS 214)
         self._sleep_since = None
         self.ex_gut = bool((enable or {}).get("ex_gut", False))      # experiment (LESSONS 344)
+        self.potency = float(enable["insulin_potency"]) if enable and isinstance(enable.get("insulin_potency"), float) else 1.0
+        self.niacin_si = float(enable["niacin_si"]) if enable and isinstance(enable.get("niacin_si"), float) else 1.0
         self.ge_am = float(enable["ge_am"]) if enable and isinstance(enable.get("ge_am"), float) else 1.25
         self.ge_pm = float(enable["ge_pm"]) if enable and isinstance(enable.get("ge_pm"), float) else 0.8
         self.ge_circ = bool((enable or {}).get("ge_circ", True))     # default since 2026-10-19 (LESSONS 339)
@@ -606,6 +608,11 @@ class World:
             hh = (m % DAY) / 60.0; k = int(hh) % 24; f = hh - int(hh)
             egp *= bprof[k] * (1 - f) + bprof[(k + 1) % 24] * f
         si *= self._fat_si(m)
+        if self.niacin_si != 1.0:
+            # D14 niacin (scenario, off): 2 g/day nicotinic acid for 2 weeks cut minimal-model SI 6.72 → 2.47 (×0.37) in 11
+            # normal men, fasting insulin doubled (Kahn 1989, Diabetes 38:562); hepatic insulin sensitivity −33% on 2 g/day
+            # Niaspan (Blond 2014, Horm Metab Res 46:390). The settings stay the person's pre-niacin ones (LESSONS 354)
+            si *= self.niacin_si
         if self.ppr_a > 0: si *= self._ppr_si(m)
         if self.glp1 is not None: si *= self.glp1.si_mult(m)
         if self.hyper_on:
@@ -618,6 +625,11 @@ class World:
         gi_ill = self.mods.illness(m)[2] if self.mod_traits.enabled.get("illness") else False
         ex = self.ex.at(m, awake=not self.beh.asleep(m)) if self.enable["exercise"] else dict(ex_intensity=0, ex_anaerobic=0, ex_si_boost=0, abs_mult=1)
         absm_site, bio = self.pump.site_state(m)
+        if self.potency != 1.0:
+            # D34 damaged insulin (scenario, off): bioactivity of every delivered unit × insulin_potency — human insulin
+            # lost 14–18% after 28 days at 32–37 °C (BMJ Open Diabetes Res Care 2022, 10:e003105); analogues in a pump are
+            # stable 6 days at 37 °C (PMC2825630), so this is heat-ruined stock, not pod wear (LESSONS 354)
+            bio *= self.potency
         u_basal, u_bolus = self.pump.deliver(m)
         if u_basal > 0:
             self.body.infuse(u_basal, m)
