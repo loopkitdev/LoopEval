@@ -339,7 +339,13 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # degenerate under glucose effectiveness (LESSONS 40)
     csf = csf_of(bp)
     cr_true = isf_true / csf
-    carbs = max(20.0, tdd * (1 - share) * cr_true)
+    k_isf_twin = 1.0
+    if twin:
+        k_ = row.get("twin_isf_mult") if hasattr(row, "get") else None
+        if k_ is not None and np.isfinite(float(k_)): k_isf_twin = float(k_)
+    # the intake budget is the donor's, not a consequence of the twin's ISF fit: divide the twin multiplier back out
+    # (raising body ISF had raised cr_true and with it the carbs eaten; LESSONS 219)
+    carbs = max(20.0, tdd * (1 - share) * cr_true / k_isf_twin)
     strategy = "temp" if str(row.strategy).startswith("temp") else "autobolus"
     # the donor's tuned 24-h basal shape (local hour, mean 1): Loop's schedule uses it as is; the body's basal need
     # follows it shrunk halfway (log), the same weight as ISF and CSF — people tune it on their body (LESSONS 48)
