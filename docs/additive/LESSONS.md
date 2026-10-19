@@ -4563,3 +4563,12 @@ statistic here, but it is the controller donors ran.
      - `--set count_sd_mult=1.5` (c251): arrival / entry 0.31 / 0.41 / 0.63 / 1.05 / 1.64 / 2.40, 16.2 / 5.7 / 16.6% (on the
        donors'); meals ending < 70 3.9 → 4.5%, lows 0.42 → 0.46/day, hurst_long and day/night pass; 29 matched (the best on
        the current physiology). **Default per-person count_sd median 0.30** (was 0.20), shaped from data (Pete 2026-10-18).
+
+229. **Meals start higher because the hours they fall in run higher; the meal bolus then nets out more IOB.** Entry state by
+     slot (`slot_state.py`, isolated entries ≥ 20 g; donors recomputed today): CGM at entry breakfast / lunch / dinner donors
+     122 / 128 / 138, c251 128 / 140 / 146; manual bolus per 10 g within ±30 min 1.13 / 1.08 / 1.01 vs 0.96 / 0.93 / 0.89
+     (−13%: Loop's recommendation nets out the larger pre-meal IOB, paired 1.3–1.5× the donor's insulin at 08–11 h,
+     LESSONS 214). Not glucose-dependent meal timing (`entry_rel.py`): entries sit 5.4 vs 5.6 mg/dL below the person's own
+     usual for that hour, top / bottom quartile shares 0.21 / 0.29 vs 0.20 / 0.29. The late-morning excess (paired +5 to +11
+     at 09–12 h) remains the lever behind both the higher meal starts and the smaller meal boluses; every morning component
+     tested so far is on its evidence (B1, B1b, B2, slot composition, own clock, sleep_util).
