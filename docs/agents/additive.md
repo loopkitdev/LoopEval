@@ -119,6 +119,7 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   (LESSONS 294).
 - **Short-scale shape is partly unresolvable**: the donors' fast 5-min moves could be body or co-located sensor error;
   the simulated sensor pair matches the one real paired record (LESSONS 299). Do not tune the sensor to CGM shape.
+- **Real meals keep counteracting for 1–3 h after the bolus** (ICE above pre-meal at 120–180 min ~2× the twins'; 3-h change +21 vs ~−2), with Loop's COB, IOB and the insulin effect matched (LESSONS 313–319); no evidenced component reproduces it yet. Candidates acting after meals are read here as a second opinion.
 - **Night-to-night insulin varies less** (night CV 29 vs 36) and does not follow evening entries as the donors' does
   (LESSONS 288–289).
 - Off-by-default experiments with their verdicts: `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,

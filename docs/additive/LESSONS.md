@@ -5846,3 +5846,16 @@ outputs in gamepc ~/additive/runs/c290–c312).
        Less bolus per meal keeps meals up, but the appearance at 2–3 h stays half the donors' in every arm so far (c309 the
        closest, 7.6). Next: the sim's own appearance curve (truth Ra) against Elleri's measured fractions, to find which
        gut-model part cuts hours 2–3 short.
+
+319. **The twins' meals appear like Elleri's high-GL meal; slowing only the solid part still does not fill hours 2–3.**
+     Truth Ra of isolated 54-g meals (c311): 25 / 50 / 75% at 53 / 96 / 163 min, shares of 8-h appearance 0–60 / 60–120 /
+     120–180 / 180–240 / 240–480 min 0.24 / 0.26 / 0.16 / 0.10 / 0.09 — Elleri's HG meal (56 / 100 / 153), not LG (88 / 175 /
+     270). `main_speed` (experiment, off: the solid main parcel's emptying and absorption × s, liquid share unchanged): c316
+     s 0.6 / 0.45 → ICE above pre-meal per 10 g at 0–60 / 60–120 / 120–180 min 10.4 / 10.3 / 6.8 and 9.9 / 9.3 / 6.0 (c311
+     12.1 / 11.4 / 5.7; donors 13.0 / 15.4 / 10.5); first-hour velocity +11 (donors +19); 3-h change −1.8 / −2.0; CV 34.6 /
+     34.4 now pass, lows 0.75 / day fail; 32 / 31 matched. The 120–180-min counteraction stays ~half the donors' in every
+     gut arm (fast share, ceiling, energy accounting, protein glucose, carb sensitivity, under-entry, solid speed).
+     Cross-check: the dose-dependent bolus route was tested in LESSONS 155–156 (evidence form: small doses absorb FASTER
+     than the 15-U clamp, so 2–8 U meal boluses act sooner and the plateau goes; a shorter action delay or slow tail gave
+     neither target). The donors' extra 1–3 h counteraction, with Loop and the insulin matched (LESSONS 313), remains
+     unexplained by any evidenced component; documented as the simulator's main limit (overlay, known limits).
