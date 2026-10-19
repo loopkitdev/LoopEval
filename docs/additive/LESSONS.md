@@ -4760,3 +4760,19 @@ statistic here, but it is the controller donors ran.
        windows (was 22.2 / 10.2 / 16.5 / 16.0).
      - Unaffected: falls counts and rates (LESSONS 236), rate distributions, structure function, corr_hazard, late_bolus,
        meal_speed, corr_fall, the cycle and illness checks.
+
+241. **Away from carb entries the sim moves almost as much as donors; the shortfall is below 140. Within-day SI noise (B4)
+     stays off.**
+     - **Entry-quiet windows** (no carb entry −240..+60 min, daytime; no labeler involved; `quiet2.py`): c257 6.6 h/day at
+       median CGM 136, 30 / 60-min SD 25.5 / 39.0 vs donors 7.4 h/day, 133.8, 26.4 / 41.1. By start level < 140 / 140–200 /
+       ≥ 200: 30-min 20.8 / 26.6 / 31.8 vs 23.7 / 27.0 / 34.5; 60-min 33.7 / 38.6 / 43.5 vs 35.6 / 39.2 / 51.1. Sim true BG
+       20.0 / 35.6. The labeler-defined quiet gap of LESSONS 240 (14.8 vs 21.7) was the selection: the sim's labeled
+       onsets leave it fewer, stiller windows.
+     - **Night-to-night insulin** (`night_cv.py`, per person CV across nights of insulin 00–06 / of TDD): c257 0.33 / 0.16
+       vs donors 0.40 / 0.17; Ruan 2016 (32 adults, 12 weeks of closed loop) 0.31 / 0.17. The sim sits at the published
+       value and below the donors, whose nights also carry snacks, sensor faults and settings edits.
+     - B4 (intraday OU on SI, `intra_sd` 0.12, τ 4 h) stays off: no measured within-day SI variability was found (the
+       UVA/Padova circadian patterns, already B1, are meal-test estimates; simulator studies assume ±30–40%), and the
+       night variability it would raise is already at the published closed-loop value.
+     - The open low-side gap is untreated daytime lows at ordinary insulin and with no user bolus in 5 h (LESSONS 240),
+       where the sim's glucose below 140 moves ~12% less over 30 min.
