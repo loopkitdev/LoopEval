@@ -651,9 +651,12 @@ class Behavior:
                 # PMC2827497); tests whether the meal's fat / protein tail is what keeps unannounced rises up (LESSONS 284)
                 fat_r, pro_r = 0.2, 0.2
             if t.slot_comp and kind == "meal" and k in (0, 1, 2):
-                # breakfasts are the most carbohydrate-heavy meal, dinners the most fat- and protein-heavy (dietary
-                # pattern direction; sizes [J], daily mean kept near 0.44 / 0.45; LESSONS 170)
-                sc = (0.6, 1.0, 1.35)[k]; fat_r *= sc; pro_r *= sc
+                # breakfasts are the most carbohydrate-heavy meal, dinners the most fat- and protein-heavy. Measured: Vetrani 2022
+                # (Diabetologia, doi:10.1007/s00125-021-05587-0, Table 1; 1,264 7-day-record meals, 25 adults on hybrid closed loop):
+                # fat / carbohydrate g 0.21 / 0.28 / 0.33, protein / carbohydrate 0.32 / 0.32 / 0.46 at breakfast / lunch / dinner,
+                # relative to the day's 0.29 / 0.37: fat 0.72 / 0.97 / 1.14, protein 0.86 / 0.86 / 1.24 (the earlier [J] 0.6 / 1.0 /
+                # 1.35 on both; LESSONS 170, 338)
+                fat_r *= (0.72, 0.97, 1.14)[k]; pro_r *= (0.86, 0.86, 1.24)[k]
             fat = grams * fat_r * float(np.exp(r.normal(0, 0.5) - 0.125))
             protein = grams * pro_r * float(np.exp(r.normal(0, 0.5) - 0.125))
             second = None
