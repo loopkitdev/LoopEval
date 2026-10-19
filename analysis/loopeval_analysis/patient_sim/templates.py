@@ -511,6 +511,32 @@ def add_entry_hours(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v3
     return t
 
 
+def add_entry_windows(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Per donor, entered carbohydrate grams per day in the three meal windows (local 04–10.5 / 10.5–15.5 / 15.5–22 h,
+    carbs.json, grams > 0) as `ent_win` (JSON triple): the like-for-like target for the per-window entry chance (LESSONS 341)."""
+    import json
+    from .quiet import local_offset, to_local
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        p = ice_root / "full" / a / "carbs.json"
+        if p.exists():
+            c = [x for x in json.load(open(p)) if (x.get("grams") or 0) > 0]
+            g = json.load(open(ice_root / "full" / a / "glucose.json"))
+            days = (pd.Timestamp(g[-1]["startDate"]) - pd.Timestamp(g[0]["startDate"])).total_seconds() / 86400
+            if len(c) >= 20 and days > 7:
+                lt = to_local(pd.to_datetime([x["startDate"] for x in c], utc=True, format="ISO8601"), local_offset(a, ice_root))
+                h = np.asarray(lt.hour + lt.minute / 60.0); gr = np.array([x["grams"] for x in c], float)
+                w = [float(gr[(h >= lo) & (h < hi)].sum() / days) for lo, hi in ((4, 10.5), (10.5, 15.5), (15.5, 22))]
+                row["ent_win"] = json.dumps([round(x, 2) for x in w])
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
+
+
 def add_meal_clock(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
     """Per donor, the median and SD (hours) of the day's largest carb ENTRY in each window, local time:
     B 04–10.5 h (≥ 15 g), L 10.5–15.5 h (≥ 20 g), D ≥ 15.5 h (≥ 30 g; no upper bound, so late dinners count).

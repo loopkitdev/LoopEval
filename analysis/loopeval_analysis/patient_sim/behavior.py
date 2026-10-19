@@ -399,6 +399,14 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
                 me, se, seh = _num(rates, "meal_e_day"), _num(rates, "snack_e_day"), rates.get("snack_e_hours")
                 if np.isfinite(me) and np.isfinite(se):
                     t.p_entry_meal = float(np.clip(me / 3.0, 0.0, 1.0)); t.slot_ann = (1.0, 1.0, 1.0)
+                    ew = rates.get("ent_win")
+                    if person.traits.get("entry_win", False) and isinstance(ew, str) and getattr(t, "slot_shares", None):
+                        # experiment (LESSONS 341): per-window entry chance so the twin's entered grams per window follow the
+                        # donor's carbs.json shares: chance ∝ entered share / eaten share, mean 1 (overall entry rate kept)
+                        e_ = np.array(_json.loads(ew), dtype=float); s_ = np.array(t.slot_shares, dtype=float)
+                        if np.isfinite(e_).all() and e_.sum() > 0 and (s_ > 0).all():
+                            q_ = (e_ / e_.sum()) / (s_ / s_.sum()); q_ = np.clip(q_ / q_.mean(), 0.25, 3.0)
+                            t.slot_ann = tuple(float(x) for x in q_ / q_.mean())
                     t.snack_rate = float(max(t.snack_rate, se)); t.p_entry_snack = float(np.clip(se / max(t.snack_rate, 0.1), 0.0, 1.0))
                     if isinstance(seh, str):
                         sh_ = np.array(_json.loads(seh), dtype=float)
