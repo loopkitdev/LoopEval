@@ -5642,3 +5642,22 @@ statistic here, but it is the controller donors ran.
      Open, to measure before building: how the donors' late phase scales with meal size (it grows: +12 / +23 / +34 at
      180 min for 25 / 42 / 68 g) and time of day (dinner vs breakfast, LESSONS 170), against the fat-protein evidence
      (Wolpert 2013, Smart 2013, Paterson 2017).
+
+303. **Best 1981 read in full: insulin-mediated uptake is about proportional to glucose (κ ≈ 1), not 0.68; at κ 1 the
+     twins' level and spread improve but four statistics and the low side are lost.** The paper (Pete supplied the PDF):
+     plasma insulin clamped at 1 / 18 / 46 µU/mL (basal 6–8), glucose 85–89 → 193–206; Rd 1.62 → 2.30, 2.72 → 5.07,
+     4.64 → 9.63 mg/kg/min; its model is a fixed ~1 mg/kg/min (brain) plus proportional uptake. The insulin-mediated part
+     (Rd minus the no-insulin Rd at the same glucose) rises ×2.52 / ×2.43 for glucose ×2.17 / ×2.31: κ ≈ 1.3 / 1.1.
+     LESSONS 165's 0.24 / 0.68 / 0.78 were read from the TOTAL clearance fall, which the fixed brain uptake makes, and
+     `kappa_ins` (LESSONS 292) followed that misreading — retired. Elleri 2013 (also supplied) confirms the evidence
+     note's 56 / 100 / 153 and 88 / 175 / 270 min; its low-GL meal holds ~75% of peak appearance to 4 h and still appears
+     at 8 h — the donors' late phase (LESSONS 301) in a tracer study (evidence/09).
+     - **c305 `kappa_mult` 1.48** (κ median 1.0) vs c300: bg_mean 156.6 (KS 0.024 → 0.050), CV 35.2 (passes), TIR 71.5
+       (donors 71.7); bg_skew, boxcox, hurst_long (0.175 vs 0.247) and lows / day (KS 0.048) fail; 3-h meal change +1.2,
+       meals ending < 70 6.7% (9.7%); matched-height fall unchanged; 28 matched (32).
+     - Also negative on the meal-slot gap (LESSONS 301): c303 `slot_comp` (fat / protein by slot) leaves every slot's
+       trajectory as it was, 31 matched; c304 `act_after_meal` 0 (everyday activity away from meals, the 0.4 a [J])
+       leaves lunch as it was, lows down, 29 matched.
+     Best's men were healthy; T1D's insulin-independent mass action is ~1/3 of normal at basal insulin (Del Prato 1997)
+     and no T1D clamp sizes κ at raised insulin. Default left at 0.675 pending Pete (TIDEPOOL-65): the evidence value
+     against four statistics and the low side.
