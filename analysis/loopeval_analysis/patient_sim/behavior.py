@@ -381,6 +381,18 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
             ratio = np.where(hs > 0.004, e / np.maximum(hs, 1e-9), 0.0)
             norm = float((ratio * hs).sum())
             if norm > 0: t.snack_entry_w = tuple(float(x) for x in np.clip(ratio / norm, 0.0, 4.0))
+            if person.traits.get("entry_split", False):
+                # experiment (LESSONS 280): the donor's own split of carb entries into main-meal entries (within 60 min of
+                # their meal clock) and snack entries (median 1.72 / 1.69 per day; snack entries peak 14-16 and 20-22 h,
+                # 25 g): p_entry_meal = meal entries / 3, at least as many snack occasions as snack entries, p_entry_snack =
+                # snack entries / snack occasions, and snacks half on the donor's snack-entry clock
+                me, se, seh = _num(rates, "meal_e_day"), _num(rates, "snack_e_day"), rates.get("snack_e_hours")
+                if np.isfinite(me) and np.isfinite(se):
+                    t.p_entry_meal = float(np.clip(me / 3.0, 0.0, 1.0)); t.slot_ann = (1.0, 1.0, 1.0)
+                    t.snack_rate = float(max(t.snack_rate, se)); t.p_entry_snack = float(np.clip(se / max(t.snack_rate, 0.1), 0.0, 1.0))
+                    if isinstance(seh, str):
+                        sh_ = np.array(_json.loads(seh), dtype=float)
+                        if sh_.sum() > 0: t.snack_hours = 0.5 * t.snack_hours + 0.5 * sh_ / sh_.sum()
             if person.traits.get("snack_entry_hours", False) and e.sum() > 0:
                 # experiment (LESSONS 279): snacks on the donor's own carb-entry clock — where they log and bolus small
                 # snacks (afternoon and evening) — instead of the all-eating clock; the snack count is unchanged
