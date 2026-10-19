@@ -199,6 +199,7 @@ class World:
         if enable and isinstance(enable.get("snack_minus"), float):
             person.traits["snack_minus"] = float(enable["snack_minus"])   # labeled pulses that are not eating (LESSONS 127)
         if enable and "slot_true" in enable: person.traits["slot_true"] = bool(enable["slot_true"])
+        if enable and "snack_entry_hours" in enable: person.traits["snack_entry_hours"] = bool(enable["snack_entry_hours"])
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
         if enable and isinstance(enable.get("meal_slow"), float):
             self.beh_traits.meal_slow_frac = enable["meal_slow"]
