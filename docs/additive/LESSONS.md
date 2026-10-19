@@ -4978,3 +4978,11 @@ statistic here, but it is the controller donors ran.
      fails again (KS 0.007). The temp-basal twins' remaining excess is by day (untreated no-bolus daytime lows 0.457 vs
      0.286; t70 day mean 2.64): with the 24-h basal total held, a higher night need lowers the daytime one, and a
      temp-basal Loop can only cut basal to zero, not take insulin back. New reference c270.
+
+254. **Daytime basal need cannot be read the way night need can.** The drift-corrected need (delivered + ΔCGM / ISF,
+     against the schedule; `day_need_all.py`) in windows with no entry or manual bolus in the 4 h before or during:
+     02–05 h 1.05 (168 donors), 10–13 h 1.34 (112), 14–17 h 1.25 (102), 19–22 h 1.42 (96), medians. Daytime windows
+     free of entries still hold unentered eating, which the same insulin covers, so these are upper bounds on daytime
+     basal need, not measurements of it; nights carry the least unentered eating and stay the clean reference. The body's
+     24-h basal level therefore stays set by the TDD balance (share 0.42) with unentered eating modelled apart, and the
+     temp-basal twins' daytime low excess (LESSONS 253) is not settled by moving basal between day and night.
