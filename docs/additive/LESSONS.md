@@ -5316,3 +5316,12 @@ statistic here, but it is the controller donors ran.
      0.10 / 0.09 (donors 0.16 / 0.18 / 0.14): bolused small snacks were not what makes the donors' evening lows
      (LESSONS 278's reading falls). Open: what does — evening activity, alcohol, the dinner bolus's tail. New reference
      c289_split.
+
+281. **The missing evening lows split into two kinds: right after a bolus, and after hours with nothing logged.** Evening
+     (15–24 h) low onsets per day by time since the last carb entry / user bolus, < 1 / 1–3 / 3–5 / > 5 h (`eve_lows.py`):
+     since entry donors 0.074 / 0.140 / 0.072 / 0.154, c289 0.030 / 0.098 / 0.057 / 0.077; since user bolus donors 0.073 /
+     0.178 / 0.076 / 0.134, c289 0.042 / 0.157 / 0.052 / 0.048. (1) Lows within an hour of an entry or bolus run at half the
+     donors' rate: a bolus acting before the food arrives, or food arriving smaller than entered — the per-meal count error
+     and bolus lead (LESSONS 228, 106) are where to look. (2) Lows with no user action for 5 h run at a third to a half
+     of the donors' rate: the evening's own physiology and Loop, with nothing the person did — evening activity and the
+     body's evening need (the delivered-shape basal profile) are where to look. Neither is the snack bolus of LESSONS 278.
