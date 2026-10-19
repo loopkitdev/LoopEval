@@ -4510,3 +4510,16 @@ statistic here, but it is the controller donors ran.
      - **corr_own + dose_beta 0.5** (c247): untreated lows after a bolus 0.022 → 0.037/day (donors 0.160), meals ending < 70
        3.8 → 4.9%, within-person drop SD 32.0 (36.7), 26 matched; CV 32.3 fails. Faster small-dose action helps a little;
        the body still falls more gently than real ones after extra insulin.
+
+224. **Real people dial their corrections; the sim's took Loop's (usually small) number. Each person's own correction size
+     is now the default.** Sizeable lone corrections (≥ 1 U at CGM 150–250 not falling, no carbohydrate −30..+180 min;
+     `corr_fall.py`): per unit, scaled by the person's ISF, the CGM change at 3 h and the share reaching < 70 within 3 h match
+     the donors' once corrections can exceed the recommendation (c246 / c247: −0.54 / −0.64 vs −0.63; 9.1 / 10.0% vs 8.1%), but
+     they are rare: ~0.04 per person-day vs 0.14. The sim's corrections ran at the donors' count (0.83 vs 0.86/day) but at
+     Loop's recommendation net of IOB, so most were small. Donor lone boluses (bolus-screen requestedBolus, LESSONS 223):
+     per-donor median 1.45 U (p25 / p75 0.8 / 2.5), within-person log-SD 0.83 (template columns corr_u_med, corr_u_lsd).
+     - **`corr_size_own`** (b28a895, now default): a correction doses U ~ lnN(corr_u_med, corr_u_lsd), sent to LoopEval as
+       absolute units (`bolus_min`; the plant's own recommendation estimate cannot see LoopEval's delivered insulin, so the
+       dialled amount goes as is). c248: sizeable corrections 57 (base 20), ~0.065 per person-day; untreated daytime lows
+       0.099 → 0.120/day, low onsets 0.58 → 0.63/day; CV 33.3, hurst_long 0.266 and day/night pass, 24-h amplitude 0.157;
+       28 matched (25). The remaining correction shortfall is how often people correct at moderate highs (150–250).
