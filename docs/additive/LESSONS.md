@@ -5103,3 +5103,12 @@ statistic here, but it is the controller donors ran.
      (41.35 vs 41.37 U/day; donors 38.8): the extra night need does not push the body past what Loop delivers, which
      answers LESSONS 255's objection; night-to-night CV 27.6 → 30.5 (36.0), day / night 1.75 → 1.78 (2.06). New
      reference c278.
+
+264. **The day / night insulin gap is mostly the daytime distribution: too much in the morning, too little in the
+     evening.** Delivered insulin by local hour as a share of the daily total (×24; `deliv_hourly.py`, median over
+     people), 03 / 05 / 08 / 10 / 12 / 15 / 18 / 20 h: donors 0.55 / 0.52 / 0.88 / 1.01 / 1.35 / 1.10 / 1.26 / 1.28, c278
+     0.62 / 0.60 / 0.99 / 1.10 / 1.35 / 0.89 / 1.12 / 1.09; day (06–24) / night (00–06) per hour 1.81 vs 1.64. The night
+     need added in LESSONS 263 lifts 03–06 h a little (0.59–0.67 vs 0.52–0.58), but most of the gap is 08–11 h too high and
+     15–21 h too low — insulin follows food, and this is the breakfast-high / evening-low intake of LESSONS 231 (window
+     g-eq → grams did not fix it, `slot_true`). Next: the intake split by hour against the donors' entered grams by hour
+     (entries carry the meal sizes the donors bolused for), before touching the eating clock.
