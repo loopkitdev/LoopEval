@@ -4538,3 +4538,12 @@ statistic here, but it is the controller donors ran.
      matched; untreated daytime lows 0.10/day (donors 0.46), after a bolus 0.023 (0.160). The donors' extra lone boluses
      also include hand-dosed food boluses; separating corrections from unentered-food boluses in the donor record, and the
      corr_wait gate's own evidence, come next.
+
+226. **Donors stack boluses on rises; modelling it does not make the missing lows.** At lone boluses ≥ 0.5 U (`lone_gate.py`):
+     minutes since the previous user bolus p10 / p25 / p50 donors 8 / 30 / 97 vs sim 30 / 50 / 130; within 60 min 39% vs 29%;
+     30-min trend median +20 vs +13, falling 8% vs 18%. Per donor, a no-entry follow-up 2–30 min after a user bolus: median 3%
+     of user boluses (p75 7%, p90 13%; template stack_p). **`stack_own`** (53c560d, off): after a user bolus, the donor's share
+     schedules a follow-up at +2–30 min, given if CGM is above the correction level and rising, sized from corr_u_med. c250:
+     lone-bolus p10 interval 20 min, untreated daytime lows 0.089/day, after a bolus 0.018 (donors 0.46, 0.160), 28 matched.
+     Every user-side dosing behaviour measured now matches or has been tried at its donor size (size, over-recommendation,
+     frequency, stacking, top-ups) without producing the donors' untreated daytime lows.
