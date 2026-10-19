@@ -420,11 +420,18 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         # the donor's own glucose safety limit (Loop suspends and withholds dosing below it; template median 80, 70 on 50
         # of 168): the sampler had given every person 70 since 79d7de3 (LESSONS 232)
         suspend=float(row.suspend) if suspend_own and np.isfinite(float(row.get("suspend", np.nan))) else 70.0)
+    # circ_own: the donor's breakfast / lunch / dinner sensitivity pattern (fit_body --segments, reliability-shrunk mean and
+    # posterior SD per segment in the template), drawn on its own stream; donors without a fit draw from the prior (LESSONS 335)
+    circ_levels = None
+    if hasattr(row, "get") and row.get("circ_sd_B") is not None and np.isfinite(float(row.get("circ_sd_B"))):
+        rc = np.random.default_rng(seed + 335)
+        circ_levels = tuple(float(np.exp(rc.normal(float(row.get(f"circ_mu_{g}") if np.isfinite(float(row.get(f"circ_mu_{g}"))) else 0.0),
+                                                   float(row.get(f"circ_sd_{g}"))))) for g in "BLD")
     return Person(
         name=name or f"v{seed:05d}", seed=seed, template=str(row.alias), age=age,
         sex="F" if rng.random() < 0.5 else "M", bw=bw, formulation=formulation,
         sensor=str(row.sensor), pump=str(row.pump), strategy=strategy, body=bp,
-        truth=dict(tdd=tdd, basal_uh=basal_true, fasting_rate=fasting_rate, isf=isf_true, csf=csf, cr=cr_true,
+        truth=dict(circ_levels=circ_levels, tdd=tdd, basal_uh=basal_true, fasting_rate=fasting_rate, isf=isf_true, csf=csf, cr=cr_true,
                    basal_profile=[float(x) for x in prof_true],
                    carbs_g_day=carbs, egp_share=egp_share),
         settings=settings,
