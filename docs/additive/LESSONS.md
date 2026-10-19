@@ -5585,3 +5585,15 @@ statistic here, but it is the controller donors ran.
      from body motion or from coherent sensor error, and the donors' record does not say which. Settling it needs data
      where both are seen — paired sensors (FDA two-sensor precision bounds the sensor-specific part, already fitted) or
      sensor-vs-reference time series — not more donor CGM statistics.
+
+299. **Two real sensors on one body share as much of their fast motion as the twins' simulated pairs do.** Donor p03
+     wore two CGMs at once from 2026-06-03 (AGENTS.md lesson 21); the upload interleaves them and they separate cleanly
+     by clock (one stream stamped on whole milliseconds): 13,467 and 12,751 readings, both on a 5.00-min cadence,
+     means 150 / 162 mg/dL. Coherent fast moves (two 5-min steps of one sign, each ≥ 7) on one sensor that the other
+     repeats (≥ 10 the same way over [t − 5, t + 15]) and the lag-0 correlation of the two sensors' 5-min increments
+     (`pair_moves.py`): p03 0.75 / 0.69 (A→B / B→A; 15.8 / 25.0 moves per day), increment r 0.60. Simulated G7 pairs on
+     20 c294 bodies (shared co-located error, independent sensor-specific streams, as the FDA precision arm): 0.81, r
+     0.65, 16.0 moves per day. The sim's split between motion two sensors share and motion one sensor makes alone sits
+     close to the only paired record we have (one donor, sensor models unknown), slightly more shared. The shared part
+     is body plus co-located interstitial error, which paired sensors cannot separate (LESSONS 298); a sensor-vs-
+     venous reference time series would. Sensor structure stays as fitted.
