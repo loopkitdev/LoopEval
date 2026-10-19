@@ -4572,3 +4572,13 @@ statistic here, but it is the controller donors ran.
      usual for that hour, top / bottom quartile shares 0.21 / 0.29 vs 0.20 / 0.29. The late-morning excess (paired +5 to +11
      at 09–12 h) remains the lever behind both the higher meal starts and the smaller meal boluses; every morning component
      tested so far is on its evidence (B1, B1b, B2, slot composition, own clock, sleep_util).
+
+230. **Grazes on the donor's own unentered-eating clock: 30 of 51.** Labeled unannounced (no entry, not rescue) g-eq per day by
+     3-h block (`unann_hour.py`), donors 00 / 03 / 06 / 09 / 12 / 15 / 18 / 21 h 11.3 / 8.8 / 10.2 / 10.3 / 12.6 / 10.9 / 12.8 /
+     15.4 (total 94.7), c251 9.9 / 7.9 / 14.2 / 14.1 / 10.7 / 13.5 / 12.2 / 16.2 (104.1); announced 85.6 vs 98.7. The template's
+     eating clock `meal_hours` counts all non-rescue pulses, announced meals included, so never-entered grazes inherited the
+     meal-time peaks. **`graze_unann`** (787dcf5, now default; template column unann_hours = the donor's unannounced-pulse
+     hour histogram): c252: 30 matched (29), lows 0.46 → 0.54/day, meals ending < 70 4.5 → 5.4%, t54 0.029, CV / hurst_long /
+     day-night pass; entry CGM breakfast / lunch / dinner 124 / 141 / 143 (donors 122 / 128 / 138). The labeled morning
+     unannounced intake is unchanged (14.0 / 14.8 at 06–12 h vs 10.2 / 10.3): it is not the grazes but unentered meals and
+     snacks in the morning, the next item; total labeled intake still ~10% above the donors'.
