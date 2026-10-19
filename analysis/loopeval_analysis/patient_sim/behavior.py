@@ -398,9 +398,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
                 # snack entries / snack occasions, and snacks half on the donor's snack-entry clock
                 me, se, seh = _num(rates, "meal_e_day"), _num(rates, "snack_e_day"), rates.get("snack_e_hours")
                 if np.isfinite(me) and np.isfinite(se):
-                    # the donor's per-window entry chance (slot_ann, mean 1) is kept: resetting it to 1 had every twin enter
-                    # breakfast, lunch and dinner alike — dinners 8.7–9.6 g/h entered by donors vs 5.2–5.7 by twins (LESSONS 340)
-                    t.p_entry_meal = float(np.clip(me / 3.0, 0.0, 1.0))
+                    t.p_entry_meal = float(np.clip(me / 3.0, 0.0, 1.0)); t.slot_ann = (1.0, 1.0, 1.0)
                     t.snack_rate = float(max(t.snack_rate, se)); t.p_entry_snack = float(np.clip(se / max(t.snack_rate, 0.1), 0.0, 1.0))
                     if isinstance(seh, str):
                         sh_ = np.array(_json.loads(seh), dtype=float)
