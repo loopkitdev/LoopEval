@@ -270,6 +270,8 @@ class World:
             self.beh_traits.corr_trend = True
         if enable and enable.get("ex_no_eat"):
             self.beh_traits.ex_no_eat = True
+        if enable and isinstance(enable.get("pro_glc"), float):
+            self.beh_traits.pro_glc = enable["pro_glc"]
         if enable and enable.get("ge_full_kcal"):
             self.beh_traits.ge_full_kcal = True
         if enable and enable.get("unent_light"):
