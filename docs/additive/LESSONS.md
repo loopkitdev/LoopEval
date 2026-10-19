@@ -6139,3 +6139,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      c339_gecirc: 36 of 51 (38); t54 0.122% (p 0.069), P(reach 54) 0.167 pass, lows/day p 0.069; 3-h meal change −5.6;
      breakfast 0 / 11 / 32 / 40 / 36 / 1 at 0–2.5 h, lunch −14 at 3 h, dinner flat; 09–11 h 156 / 166 / 164. Which meals
      are entered is not what shapes lunch and dinner; their late counteraction remains the open item (LESSONS 301–341).
+
+342. **The twins' liver is not over-suppressed after meals; if anything less than Romeres measured.** Truth EGP over
+     isolated entered meals ≥ 25 g (no eating −240..+300 min except the meal; c339_gecirc, 47 meals), relative to the
+     30 min before: 0.99 / 0.83 / 0.66 / 0.68 / 0.66 / 0.78 / 0.84 / 0.91 at 20 / 60 / 100 / 120 / 160 / 200 / 240 / 300 min;
+     mean suppression 0–300 min 20%, nadir 35% at 140 min. Romeres 2025 (T1D adults, 75 g mixed breakfast, usual bolus,
+     triple tracer; evidence/13): mean 44%, nadir to 4.2 from 12.8 µmol/kgFFM/min (−67%) at 160 ± 110 min. The nadir time
+     matches; the depth is about half (the twins' meals are smaller, median ~35–40 g). More liver output in hours 2–3
+     would need LESS suppression than the twins already have, against the tracer evidence: not the late phase.
