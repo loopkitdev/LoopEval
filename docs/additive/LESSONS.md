@@ -6046,3 +6046,22 @@ outputs in gamepc ~/additive/runs/c290–c312).
        mismatch with the Loop schedule makes part of the realistic lows; its randomness costs person-level fidelity. Kept
        at full: no measurement contradicts Visentin's swing, and Hinshaw 2013 says the pattern is individual — a
        per-donor fit of the segment pattern from their own data, not a smaller swing, is the evidenced next step.
+
+335. **Each donor's daily sensitivity pattern is partly measurable and the Visentin swing is the right size; drawing it
+     from the donor does not move the low-runners' level.**
+     - `fit_body --regression --segments` (168 pilot donors): body-model slope b per clock segment N 0–6 / B 06–11 /
+       L 11–17 / D 17–24 local, p50 0.41 / 0.52 / 0.56 / 0.53 (night lower: closed-loop attenuation differs by segment;
+       left out). No population pattern (B/D p50 0.93, L/D 1.00; Hinshaw 2013). Split-half (alternate weeks) Spearman of
+       the donor's pattern B/D 0.39, B/L 0.31, L/D 0.22; true between-person SD of log(B/D) from the halves' covariance
+       0.56 — Visentin's classes as simulated give 0.59. The swing size is right; only its assignment is random.
+     - `circ_own` (experiment, off; `templates.add_circ_own`, `circ_mu_*` / `circ_sd_*`): each twin's B / L / D levels
+       drawn from its donor's posterior (deviation from the donor's mean over segments, cohort-centred, shrunk by the
+       Spearman–Brown reliability B 0.53, L 0.08, D 0.37; posterior SD keeps the population variance; donors without a
+       fit draw from the prior). c336: per-person mean Spearman morning 0.13 (0.09), afternoon 0.42 (0.32), evening 0.29
+       (0.28); circadian_amp 0.151 (fails); t54 0.102% (p 0.016), p_reach54 0.14; Q4 morning 155 (donors 124); 34 of 51.
+     - The low-runners (Q4 by donor t54) are the active managers: correction threshold 173 mg/dL (others 207–221), 2.3
+       corrections/day, carbs entered in full (estimate ratio 1.01 vs 0.61–0.82), safety limit 70, reduced-insulin
+       overrides 0.01/day (Q1 0.68), pre-meal target presets 0.11/day. Their twins reproduce the dosing rates (manual
+       16.8 vs 16.0 U/day, user boluses 6.8 vs 6.4) and the corrections are drawn at the donor's threshold, yet run 30
+       mg/dL higher by day on more insulin with a larger labelled load (LESSONS 334). Not body sensitivity, intake,
+       circadian pattern or dosing rate: still unnamed.
