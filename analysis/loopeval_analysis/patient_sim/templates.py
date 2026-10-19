@@ -519,3 +519,51 @@ def add_delivered_profile(path: str, ice_root: Path = Path.home() / ".loop-eval/
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_insulin_from_iob(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32", margin: float = 0.2):
+    """Which insulin curve each donor's Loop ran, from Loop's own recorded IOB (LESSONS 248). Net-basal IOB is rebuilt from
+    doses.json minus the therapy basal over 10 days (export days 3–13) with Loop's exponential model (10-min delay, DIA 360)
+    at peak 75 (rapid-acting adult) and peak 55 (ultra-rapid), against loop_iob.parquet. A donor recorded as rapid-acting
+    whose ultra-rapid RMSE is lower by more than `margin` (relative) is relabelled fiasp; column insulin_iob_infer holds the
+    pick for every donor. Recorded Fiasp/Lyumjev donors matched the ultra-rapid curve 51 of 52."""
+    import json
+    import numpy as np
+
+    def kernel(peak, dia=360.0, delay=10.0):
+        tau = peak * (1 - peak / dia) / (1 - 2 * peak / dia); a = 2 * tau / dia
+        s_ = 1 / (1 - a + (1 + a) * np.exp(-dia / tau)); t = np.arange(0, dia + delay + 1) - delay
+        f = np.where(t <= 0, 1.0, 1 - s_ * (1 - a) * ((t ** 2 / (tau * dia * (1 - a)) - t / tau - 1) * np.exp(-t / tau) + 1))
+        return np.where(t >= dia, 0.0, f)
+
+    ks = {"adult": kernel(75.0), "fast": kernel(55.0)}
+    ts = lambda s: pd.Timestamp(s).value / 6e10
+    li = pd.read_parquet(ice_root / "loop_iob.parquet"); li["tm"] = li.t.astype("int64") / 6e10
+    t = pd.read_csv(path); picks = {}
+    for a in t.alias:
+        d = ice_root / "full" / a; x = li[li.alias == a]
+        if len(x) < 500 or not (d / "doses.json").exists(): continue
+        th = json.load(open(d / "therapy.json")); ds = json.load(open(d / "doses.json"))
+        t0 = np.floor(x.tm.min() / 1440) * 1440 + 2 * 1440; t1 = t0 + 12 * 1440; n = int(t1 - t0 + 1); net = np.zeros(n)
+        for z in ds:
+            s, e, v = ts(z["startDate"]), ts(z["endDate"]), float(z.get("volume") or 0)
+            if e < t0 - 400 or s > t1: continue
+            if z["deliveryType"] == "bolus":
+                i = int(round(s - t0))
+                if 0 <= i < n: net[i] += v
+            else:
+                i0, i1 = int(np.floor(max(s, t0) - t0)), int(np.ceil(min(e, t1) - t0))
+                if i1 > i0 and e > s: net[i0:i1] += v / (e - s)
+        for b in th["basal"]:
+            s, e = ts(b["startDate"]), ts(b["endDate"]); i0, i1 = int(np.floor(max(s, t0) - t0)), int(np.ceil(min(e, t1) - t0))
+            if i1 > i0: net[i0:i1] -= float(b["value"]) / 60.0
+        y = x[(x.tm >= t0 + 400) & (x.tm <= t1)]
+        if len(y) < 300: continue
+        r = {k: float(np.sqrt(np.mean((np.interp(y.tm.to_numpy() - t0, np.arange(n), np.convolve(net, kk)[:n]) - y.iob.to_numpy()) ** 2)))
+             for k, kk in ks.items()}
+        picks[a] = ("fast" if r["fast"] < r["adult"] else "adult", (r["adult"] - r["fast"]) / min(r.values()))
+    t["insulin_iob_infer"] = t.alias.map({a: p for a, (p, _) in picks.items()})
+    relabel = t.alias.map(lambda a: a in picks and picks[a][1] > margin) & (t.insulin_brand == "humalog")
+    t.loc[relabel, "insulin_brand"] = "fiasp"
+    t.to_csv(path, index=False)
+    return t
