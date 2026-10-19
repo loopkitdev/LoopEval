@@ -515,6 +515,8 @@ class World:
         self.received: list = []                           # every dose LoopEval sent, as received: (type, start, end, U)
         self.fat_events: list = []                         # (minute, fat g) — transient fat-induced insulin resistance
         self.fat_log: list = []                            # every fat event, kept for the truth file (LESSONS 288)
+        self.ppr_events: list = []                         # main-meal times for the post-meal insulin-action window (LESSONS 321)
+        self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.0
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
@@ -584,6 +586,7 @@ class World:
             hh = (m % DAY) / 60.0; k = int(hh) % 24; f = hh - int(hh)
             egp *= bprof[k] * (1 - f) + bprof[(k + 1) % 24] * f
         si *= self._fat_si(m)
+        if self.ppr_a > 0: si *= self._ppr_si(m)
         if self.glp1 is not None: si *= self.glp1.si_mult(m)
         if self.hyper_on:
             target = self.hyper_max * min(1.0, max(0.0, (self.body.g - 140.0) / 220.0))
@@ -636,6 +639,7 @@ class World:
             elif kind == "exercise": self.ex.add(*a[1:])
             elif kind == "site_change": self.pump.change_site(m)
             elif kind == "fat": self.fat_events.append((a[1], a[2])); self.fat_log.append((a[1], a[2]))
+            elif kind == "ppr": self.ppr_events.append(a[1])
             else: pending_actions.append(a)
         # a failing site the person notices: a long high that corrections did not move (eda L52) [J: ~3 h]
         # (checked every minute on the latest reading the person can see: gated on report minutes only, the
@@ -660,6 +664,19 @@ class World:
             tb = self.beh.minutes_to_bed(m)
             if tb < 180.0: return 1.0 - self.posture_p * tb / 180.0
         return 1.0 - self.posture_p
+
+    def _ppr_si(self, m: float) -> float:
+        """Post-meal insulin action window (experiment, LESSONS 321): after each eaten main meal, SI × (1 − a·w), w ramping
+        in 30–60 min, full 60–180, out by 240 — sized from the donors' Loop-measured counteraction at 1–3 h (BDDP, LESSONS
+        313–320), no tracer study sizes it."""
+        keep, w = [], 0.0
+        for t in self.ppr_events:
+            x = m - t
+            if x > 240: continue
+            keep.append(t)
+            w = max(w, 0.0 if x < 30 else (x - 30) / 30 if x < 60 else 1.0 if x < 180 else (240 - x) / 60)
+        self.ppr_events = keep
+        return 1.0 - self.ppr_a * w
 
     def _fat_si(self, m: float) -> float:
         """Fat-induced insulin resistance: 1 − ρ·fat/50 at full effect, ramping in from 2 h, full 3–6 h,
