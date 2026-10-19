@@ -38,7 +38,7 @@ def _one(args):
                           ge_var=bool(enable.get("ge_var", True)), basal_own=bool(enable.get("basal_own", False)),
                           egp_sat=bool(enable.get("egp_sat", True)),   # default since 2026-10-18 (A5 review loop, LESSONS 196)
                           p2e=enable.get("p2e_cal") if isinstance(enable.get("p2e_cal"), float) else None,
-                          prof_deliv=bool(enable.get("prof_deliv", False)),
+                          prof_deliv=bool(enable.get("prof_deliv", True)),   # default since 2026-10-19 (LESSONS 250)
                           csf_own=bool(enable.get("csf_own", False)),
                           twin=bool(enable.get("twin", False)),
                           suspend_own=bool(enable.get("suspend_own", True)),   # default since 2026-10-19 (LESSONS 232)

@@ -4905,3 +4905,16 @@ statistic here, but it is the controller donors ran.
        from a rise, not a daily activity pattern. Candidates with their own evidence still to measure: basal need below the
        schedule between meals (Loop's net IOB reads zero while delivery exceeds need), and the low-range bias of the real
        sensor against the sim's FDA-fitted one.
+
+250. **The body's hourly basal need now follows the donor's own quiet-hour delivery (`prof_deliv`, default): 31 of 51, and
+     the lows statistics pass.** Quiet daytime hours (no entry and no user bolus −240..+120 min, 08–22 h; `quiet_deliv.py`):
+     delivered / scheduled p50 donors 1.13 (automatic) / 1.07 (temp), CGM drift −0.8 / −3.1 mg/dL/h; c264 1.36 / 1.31,
+     +1.2 / +1.0. Nights deliver ~1.36× schedule on both sides (LESSONS 234): real bodies need relatively less between meals
+     and more at night than the sim's, whose need followed the schedule's shape shrunk halfway (LESSONS 48). The
+     experiment of LESSONS 214 (body need = the donor's quiet-hour delivered shape, full weight, mean 1; Loop keeps the
+     donor's schedule) re-run on the current base, c266 vs c264: 31 matched (29) — lows/day 0.58 → 0.75 (donors 1.08, KS
+     0.000 → 0.066 pass), t70 0.75 → 1.10% (1.67, KS 0.074 pass), CV 33.6 → 34.7 (34.8, KS 0.93), day / night 1.95 →
+     2.08 (2.06), t54 0.03 → 0.06; circadian_amp now fails (0.168 vs 0.131). Untreated daytime lows with no user bolus in 5
+     h: temp 0.236 → 0.296 (0.286), automatic 0.100 → 0.154 (0.308). By strategy t70 temp 1.16 → 1.30 (0.97), automatic
+     0.67 → 0.76 (1.20). The quiet-hour drift itself stays upward in the sim (+2.5 / +1.5), so between-meal eating or need
+     is not settled. New reference c266.

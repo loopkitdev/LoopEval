@@ -145,10 +145,10 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | X15 | Correction stacking | per-person corrections, size, top-ups; hazard by CGM trend (`corr_trend`) | on | LESSONS 164, 224, 237 |
 | X16 | Insulin formulation | body and Loop curve per donor, ultra-rapid inferred from Loop's recorded IOB | on | LESSONS 248 |
 
-### Fit against the donors (reference c264, 2026-10-19)
+### Fit against the donors (reference c266, 2026-10-19)
 
 112 simulated people × 14 days against the eda statistics of their own donors (`cmp_full.py`, `review.py`): 29 of 51
-statistics matched (KS). Matched: mean, CV, hurst_long, day/night insulin, low depth and duration, meal arrival shape,
+statistics matched (KS) at c264, 31 at c266 (body basal need from the donor's delivered shape, LESSONS 250, which adds lows/day and t70 to the matched set; numbers below are c264's unless noted). Matched: mean, CV, hurst_long, day/night insulin, low depth and duration, meal arrival shape,
 quiet-period motion, night-to-night insulin, correction behaviour by trend, exercise response by intensity. Open, in
 order of size:
 - **Lows:** 0.58/day vs 1.08, time < 70 0.75 vs 1.67%. Temp-basal twins match their donors; the gap is in
