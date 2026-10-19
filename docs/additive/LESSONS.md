@@ -4582,3 +4582,15 @@ statistic here, but it is the controller donors ran.
      day-night pass; entry CGM breakfast / lunch / dinner 124 / 141 / 143 (donors 122 / 128 / 138). The labeled morning
      unannounced intake is unchanged (14.0 / 14.8 at 06–12 h vs 10.2 / 10.3): it is not the grazes but unentered meals and
      snacks in the morning, the next item; total labeled intake still ~10% above the donors'.
+
+231. **Morning intake: the excess is eating, not entering; window g-eq → grams does not close it (experiment, off).** Labeled
+     non-rescue g-eq per day in the template windows 04–10:30 / 10:30–15:30 / 15:30–22 / rest (`slot_win.py`): donors 40.7 /
+     52.2 / 64.7 / 32.1, c252 52.0 / 56.3 / 68.5 / 28.7. The entered share at breakfast matches (37 vs 38%), so the excess
+     is eaten grams. Labeled g-eq per entered gram of announced pulses (`slot_ratio.py`): donors 1.32 / 1.15 / 1.05 / 1.19,
+     c252 1.42 / 1.11 / 1.13 / 1.23 — a breakfast gram reads as more than a dinner gram on both sides, and `slot_g` (window
+     g-eq) was being eaten as window grams. **`slot_true`** (3d5e810; template column `slot_lr` = the donor's own ratio per
+     window, pooled below 10 pulses) divides it out: c253 true breakfast meal grams 27.1 → 22.1, labeled 52.0 → 48.5 (still
+     +7.8), dinner 68.5 → 70.8 (+6.1), matched 30 → 28, lows 0.54 → 0.42/day. Not adopted: it moves grams into dinner, which
+     is already high, and leaves most of the breakfast excess. What remains is the sim reading more g-eq per gram than the
+     donors at breakfast (1.42 vs 1.32) and dinner (1.13 vs 1.05) — the response per gram, not the meal plan. Lows/day moved
+     0.42–0.54 between arms with no low-side change: treat differences of that size as within run noise.
