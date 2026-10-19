@@ -6147,3 +6147,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      triple tracer; evidence/13): mean 44%, nadir to 4.2 from 12.8 µmol/kgFFM/min (−67%) at 160 ± 110 min. The nadir time
      matches; the depth is about half (the twins' meals are smaller, median ~35–40 g). More liver output in hours 2–3
      would need LESS suppression than the twins already have, against the tracer evidence: not the late phase.
+
+343. **Removing the double-counted morning load trades the late morning against the night.** The twins' meal split by
+     window (`slot_g`) is the donor's labelled g-eq there, which includes body-made morning rises (LESSONS 333) the twin's
+     own body adds again. `slot_true` (switch; LESSONS 231: window g-eq ÷ the donor's labelled-per-entered-gram ratio) on
+     c339_gecirc, c343: 08–11 h 141 / 150 / 156 / 155 (c339 147 / 160 / 167 / 160; donors 135 / 140 / 146 / 146), but 02–03 h
+     133 / 128 (c339 141 / 132; donors 147 / 141), circadian_amp 0.167 (p 0.001, fails again), meal shapes unchanged; 38 of
+     51 (38). Not adopted. The day's shape moves as one: morning grams taken away come off the night too, through Loop and
+     the evening meal they move to.
