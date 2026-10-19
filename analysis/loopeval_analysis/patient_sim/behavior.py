@@ -164,6 +164,9 @@ class BehaviorTraits:
     corr_size_own: bool = True           # corrections at the donor's own dialled size: max(recommendation, U), U ~ lnN(corr_u_med,
                                          # corr_u_lsd) from their lone boluses (median 1.45 U; LESSONS 224)
     corr_u_med: float = 1.0
+    stack_own: bool = False              # bolus stacking: a no-entry follow-up 2-30 min after a user bolus while CGM is above the
+                                         # correction level and rising, at the donor's share per bolus (median 0.03; LESSONS 226)
+    stack_p: float = 0.0
     corr_u_lsd: float = 0.8
     corr_over_u: float = 1.0             # median extra units beyond the recommendation on those (donor median 1.0 U)
     corr_wait: float = 10.0              # min since their last bolus: donors give 26% of no-entry boluses within 20 min of the
@@ -286,6 +289,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         # so the realized lone-bolus rate reaches the donor's (LESSONS 47)
         corr_over_share=float(_num(rates, 'corr_over_share')) if np.isfinite(_num(rates, 'corr_over_share')) else 0.0,
         corr_u_med=float(_num(rates, 'corr_u_med')) if np.isfinite(_num(rates, 'corr_u_med')) else 1.0,
+        stack_p=float(_num(rates, 'stack_p')) if np.isfinite(_num(rates, 'stack_p')) else 0.0,
         corr_u_lsd=float(_num(rates, 'corr_u_lsd')) if np.isfinite(_num(rates, 'corr_u_lsd')) else 0.8,
         corr_over_u=float(_num(rates, 'corr_over_u')) if np.isfinite(_num(rates, 'corr_over_u')) else 1.0,
         # × the person's lone-bolus calibration (LESSONS 225): iterated so their lone boluses/day match the donor's
@@ -403,6 +407,7 @@ class Behavior:
         self.r_abs_entry = np.random.default_rng(int(getattr(person, "seed", 0)) + 911)   # entered absorption time
         self.r_split2 = np.random.default_rng(int(getattr(person, "seed", 0)) + 3137)    # split second helpings
         self.r_corr = np.random.default_rng(int(getattr(person, "seed", 0)) + 4241)      # corrections beyond the recommendation
+        self.r_stack = np.random.default_rng(int(getattr(person, "seed", 0)) + 4507)     # bolus stacking
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
         self.r_drink = np.random.default_rng(int(getattr(person, "seed", 0)) + 1601)      # meal_drink draws
@@ -754,6 +759,11 @@ class Behavior:
                 if self.readings and self.readings[-1][1] > 120 and self.trend() >= 0:
                     acts.append(("bolus", m, 1.0)); self.last_bolus = m
                     self.log.append((m, "topup", 0, self.readings[-1][1]))
+            elif kind == "stack":
+                if self.readings and self.readings[-1][1] > t.corr_thr and self.trend() > 0:
+                    u_ = round(float(np.exp(self.r_corr.normal(math.log(max(t.corr_u_med, 0.1)), max(t.corr_u_lsd, 0.1)))) * 20) / 20
+                    acts.append(("bolus_min", m, u_)); self.last_bolus = m
+                    self.log.append((m, "stack", u_, self.readings[-1][1]))
             elif kind == "free_bolus":
                 acts.append(("bolus_units", m, rest[0])); self.last_bolus = m
                 self.log.append((m, "free_bolus", rest[0], None))
@@ -769,6 +779,9 @@ class Behavior:
             self.readings.append((m, reading))
             if len(self.readings) > 12: self.readings.pop(0)
         acts += self._defense_and_corrections(m, state)
+        if t.stack_own and t.stack_p > 0 and any(a[0] in ("bolus", "bolus_min", "bolus_units") for a in acts) \
+                and self.r_stack.random() < t.stack_p:
+            self.planned.append((m + float(self.r_stack.uniform(2, 30)), ("stack",))); self.planned.sort(key=lambda x: x[0])
         return acts
 
     def _defense_and_corrections(self, m: float, state: dict) -> list:
