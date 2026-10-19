@@ -5886,3 +5886,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      3-h change +10.6, mid meals +36 at 90 min, +23 at 150, but bg_mean 160.4, TDD 43.5 (38.8), lows 0.71 / day, t54 0.077%,
      32 matched. Neither adopted (graze_keep has no evidence for its size; the window costs level and lows). The late phase
      stays the documented main limit (LESSONS 301–322).
+
+323. **Over the day the twins' glucose is the same on average but shaped differently: higher around breakfast and lunch,
+     much lower in the early night.** Median CGM by local hour (`hour_bg.py`, G7, per person then median; donors' first 13
+     days) 00–23 h: donors 158 152 147 141 136 130 127 127 135 140 146 146 151 161 161 158 157 158 156 160 161 165 166 165
+     (mean 150.7); c311 148 133 124 125 123 123 126 133 144 151 161 161 160 164 167 167 158 158 156 159 158 164 159 155
+     (149.6); c318 ppr 0.35: 156 141 134 127 124 125 126 132 143 154 167 171 172 177 178 183 … (157.0). The twins run 11–15
+     higher at 08–11 h and 15–24 lower at 01–04 h; the donors descend ~4 / h overnight from 158 at midnight, dinner's late
+     phase carrying into the night. The day-scale picture of LESSONS 301–322: real meals peak lower and last longer, the
+     twins' peak higher and end sooner — adding a late phase alone lifts the daytime level (c318), so the peaks have to come
+     down with it; slowing the solid part (c316) lowered peaks but cut the first-hour rise. The meal shape stays the
+     documented main limit.
