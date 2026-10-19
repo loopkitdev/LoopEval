@@ -4464,3 +4464,15 @@ statistic here, but it is the controller donors ran.
        ≥ 4 quiet hours): donors 8.4 mg/dL/h (p25 / p75 6.6 / 10.4, 168), sim c243_tw9 7.76 (6.0 / 10.0, 111). Ruan's 38–79% is
        mostly estimation noise; the named day-level factors are about the donors' size. The untreated, event-free lows
        remain unexplained by every measured mechanism (LESSONS 212–220).
+
+221. **Real lows depend on sensor age; a first-day noise term gives the gradient.** Sessions inferred from CGM gaps
+     (20–180 min, ≥ 7 days after the previous start; `sess_lows.py`), donors G7: low onsets per CGM-day by session day 1..10
+     1.39 / 1.20 / 1.19 / 1.10 / 1.05 / 1.03 / 1.09 / 0.98 / 0.93 / 0.91, with median CGM flat across the session (−0.5 to
+     +1 mg/dL): more error variance on a young sensor, not a level drift. The sim (c243_tw9) had none (0.57 on day 1, ~0.65
+     after). Evidence: G7 pivotal (Garg 2022, Diabetes Technol Ther, PMC9208857, Table 2): MARD day 1 11.9 / 12.9% (arm /
+     abdomen), day 2 8.4 / 8.6%, days 4–7 7.2–8.1%, day 10–10.5 6.9–9.3%.
+     - **`early_noise`** (G7 default (1.35, 900 min)): noise SD × (1 + c·exp(−age/τ)), from the day-1 / day-2 / mid MARD
+       ratios. c244: lows by session day 0.83 / 0.66 / 0.65 / 0.67 / 0.74 / 0.68 / 0.74 (+25% on day 1; donors +33%), low
+       onsets 0.55 → 0.64/day, low duration p90 65 (65); 28 matched (24–26 on the recent bases).
+     - Whole-session FDA fit with early noise (sensor_fit, K213919): loss 3.97 → 6.49 at sigma 2.8; **sigma 2.4** restores it
+       (4.63; CGM < 54 bias −9.4 vs −9.3, in-range MARD 8.8 vs 8.6). G6 / Libre 3 day-of-wear tables are the next sensor step.
