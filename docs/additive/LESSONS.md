@@ -4817,3 +4817,23 @@ statistic here, but it is the controller donors ran.
      the next 3 h — the catecholamine pattern of Marliss & Vranic 2002 and the Riddell 2017 consensus that C4 was built
      for (0 until calibrated). This is the calibration target for C4's size by intensity. At ~0.2 recorded workouts per
      donor-day (≥ 8 METs ~0.04), the surge cannot carry the 0.2/day of missing untreated daytime lows (LESSONS 242).
+
+244. **After moderate exercise donors stay down and go low; the sim rebounds. The eating-around-exercise fix does not yet
+     take hold (experiment, off).**
+     - **Structured sessions vs donors' HealthKit workouts** (`sim_workouts.py`, `workout_mets.py`, c257; MET ≈ 1 +
+       intensity × 8 in the sim): 4–6 METs, change during −13 vs −22, end → +180 min +30 vs −4, < 70 within 4 h after 10
+       vs 40%; insulin rate vs usual during 0.63 vs 0.62, after 1.32 vs 1.30. With no carb entry −60..end+240: sim (127)
+       +32, 8% vs donors (63) −8, 52%; insulin after 1.17 vs 0.74× usual. The sim has no sessions ≥ 8 METs (intensity
+       N(0.5, 0.12)); a quarter of donors' recorded workouts are. LESSONS 137's match does not hold on the current base.
+     - **The sim's people eat during exercise.** Carb entries around sessions / the same clock hours' rate
+       (`eat_around_ex.py`): donors −120..−60 / −60..0 / during / 0..+60 / +60..+180 1.20 / 1.04 / 0.18 / 1.44 / 1.10, sim
+       0.91 / 0.93 / 1.05 / 1.05 / 0.94. In "entry-free" windows simulated people still eat 49 g on average without entering
+       it (22.9 g of it unentered meals). Exercise appetite suppression and scheduling workouts away from meals [J; King
+       1994, Schubert 2013 for acute suppression].
+     - **`ex_no_eat`** (df158c0, off): a session that would overlap a planned meal or snack ends 0–30 min before it;
+       grazes inside move to its end. c259: entries during 1.05 → 0.90 (target 0.18), after 1.43 (1.44); post-exercise
+       +33 and 10% lows unchanged; 28 matched, lows 0.46/day. The plan keeps meals at their clock and moves sessions only
+       for the meal they hit first, so most during-session entries remain. Next: carry the measured during / after rates
+       directly (eating events planned inside a session are deferred to its end), and size the post-exercise fall
+       (insulin-independent uptake and the delayed sensitivity) against the entry-free donor table once the eating
+       matches; then the C4 surge with an intensity distribution from the donors' METs.
