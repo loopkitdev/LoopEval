@@ -6194,3 +6194,9 @@ outputs in gamepc ~/additive/runs/c290–c312).
      produce 12–22% more measured load per entered gram, dinners match. The two parts to separate next: the twin's eaten /
      entered ratio by window (count error, Brazeau) and its rise per eaten gram by window (carb sensitivity, morning
      emptying ×1.25 under ge_circ), each against its own evidence.
+     - **Not under-entry, and not the carb-sensitivity level.** Twins' eaten / entered grams for entered meals by window
+       0.86 / 0.92 / 0.95 (they eat a little less than they enter). The carb sensitivity's own target, labelled g-eq per
+       entered gram per announced pulse (`geq_cmp.py`, G7): donors p25 / 50 / 75 0.89 / 1.19 / 1.53, c346 0.96 / 1.22 /
+       1.72 (c331 1.00 / 1.26 / 1.71) — the median holds, the upper quarter runs ~12% high. The window excess is a wider
+       per-meal spread (count error, per-meal emptying speed and fast share), not the level; each of those has its own
+       evidence to re-check before any change.
