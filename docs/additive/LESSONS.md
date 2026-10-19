@@ -5995,3 +5995,19 @@ outputs in gamepc ~/additive/runs/c290–c312).
        boluses fall relative to zero temps. Left as is.
      - Scripts: gamepc `~/additive/blocks/` (`ab_lump2.py`, `ab_daymode.py`, `quiet_slope.py`, `bins_hist.py`,
        `zero_cause.py`).
+
+332. **The donors' extra lows sit in people who run low, and the twins do not inherit the level; real nights sit at
+     more varied levels, each night afresh.** c331_strat paired to its donors (block medians):
+     - By the donor's t54 quartile, donor / twin mean: Q1 164 / 155, Q2 165 / 156, Q3 158 / 159, Q4 131 / 153; t54 Q4 1.18
+       / 0.20%, time < 70 6.2 / 2.0%. Per-person Spearman twin vs donor: mean 0.25, TIR 0.26, t70 0.22, CV 0.18, TDD 0.90
+       (LESSONS 233's 0.26 unchanged). Q4 settings ISF / yardstick ISF 0.83 (Q1–Q2 1.07–1.15) — but the twins of Q4 do not
+       go low on it (LESSONS 233: not a measured sensitivity mismatch).
+     - By clock (local), Spearman of twin vs donor mean: 01–06 0.29, 06–12 0.09, 12–18 0.32, 18–01 0.28. Q4 donors run
+       120 / 124 / 134 / 137 across the four, their twins 129 / 154 / 163 / 154: the low-runners' twins are high from the
+       morning on.
+     - Night 01–06 (`night_decomp.py`, donors in 13-day blocks): SD of night means across nights 32.2 vs 21.9 mg/dL, SD
+       within a night 20.8 vs 21.9, |06 − 01 h| 39.5 vs 37.0, SD of the 01-h level 51.3 vs 42.5. No persistence across
+       nights inside a block (lag-1 / 2 / 3 r donors −0.04 / −0.09 / −0.08, twins 0.01 / −0.08 / −0.12; `night_acf.py`) —
+       not settings edits or multi-day states (those would carry over), but a fresh per-night level set by the evening,
+       as LESSONS 288 found for night insulin (night_cv 35 vs 27). Both point at the evening's carry-over, where every
+       lever tried (288–289) cost lows. Open.
