@@ -6235,3 +6235,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      both ruled out, every body term that could clear raised glucose faster has been tested against the meal shape:
      the twins' lunches and dinners keep falling back by 2–3 h whatever the body's disposal, gut, liver, entries or
      behaviour. The documented limit stands (Known limits, role overlay).
+
+351. **How the circadian emptying ratio splits around the day moves the gaps, it does not close them.** Goo 1987 gives
+     only the evening / morning half-time ratio (~1.54); `ge_am` / `ge_pm` (aec33ae; default 1.25 / 0.8). c351 on c346_st,
+     1.0 / 0.65 and 1.1 / 0.71: 08–11 h excess over the donors 10.5 / 11.8 mg/dL (c346 12.5); 18–21 h −15 / −13 (c346 −8);
+     00–02 h +7 / +5 (c346 +0.7); dinner gains a late rise at 3.5–6 h (+11 to +15) where the donors' peaks at 2.5–3 h (+14 /
+     +17); lunch unchanged (−10 at 2.5–3 h); t54 0.088 / 0.089%, lows / day 0.67 / 0.83, day / night insulin 1.63 / 1.70
+     (worse); circadian_amp passes; 34 / 34 of 51 (34). Not adopted; default split kept.
