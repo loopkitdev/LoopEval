@@ -258,6 +258,9 @@ class World:
             self.beh_traits.ex_no_eat = True
         if enable and enable.get("ex_mets"):
             self.beh_traits.ex_mets = True
+        if enable and isinstance(enable.get("wake_mult"), float):
+            # experiment (LESSONS 274): the chance a night alarm wakes the person, scaled
+            self.beh_traits.p_wake_alarm = float(min(0.98, self.beh_traits.p_wake_alarm * enable["wake_mult"]))
         if enable and isinstance(enable.get("ex_surge"), float):
             # C4 calibration: catecholamine EGP surge, mg/kg/min at intensity 1 for fully anaerobic work (LESSONS 247)
             person = copy.deepcopy(person); person.body = person.body.scaled(ex_egp_surge=enable["ex_surge"]); self.person = person
@@ -462,6 +465,7 @@ class World:
         if enable and enable.get("risk") is False: bp = bp.scaled(risk_lambda=0.0)
         if enable and enable.get("counterreg") is False: bp = bp.scaled(cr_max=0.0)
         if enable and isinstance(enable.get("cr_mult"), float): bp = bp.scaled(cr_max=bp.cr_max * enable["cr_mult"])   # LESSONS 166
+        if enable and isinstance(enable.get("cr_tau"), float): bp = bp.scaled(cr_tau=enable["cr_tau"])   # experiment, LESSONS 274
         self.body = Body(bp, person.formulation)
         br = self.body.basal_rate_u_per_h()
         self.body.prime(br)
