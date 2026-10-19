@@ -4402,3 +4402,14 @@ statistic here, but it is the controller donors ran.
        part of the 3-h fit and none of the nadir: the low-prone donors' lows sit inside the 2 h, not at the 3-h end.
        Next: the person-level driver of the 2-h nadir (their ISF and CR against the body, their own bolus and correction
        habits around meals), measured per donor.
+
+218. **Simulated people do not inherit their donor's control outcomes; that is where the missing lows live.** A donor's
+     post-meal low share (143 donors, ≥ 30 bolused meals) tracks their overall time < 70 (Spearman +0.79) and TIR (+0.50),
+     then carbohydrate and entries (+0.32), user boluses and corrections (+0.27), bolus scaling up (+0.22), an earlier
+     bolus (lead −0.21) and settings ISF / yardstick ISF (+0.20): post-meal lows come with each person's control style.
+     Paired person to donor (c241_tu, 112): time < 70 Spearman −0.02, TIR 0.19; time < 70 p25 / p50 / p75 0.08 / 0.46 /
+     1.29% vs donors 0.65 / 1.15 / 3.83%. The templates carry each donor's settings, behaviour
+     rates and clocks, but the body is drawn around cohort constants and blended halfway to the settings (ISF_W 0.5), so
+     the person-level combination that makes a donor tight and low-prone is not reproduced. Cohort-level statistics can
+     match while individuals do not (LESSONS 217's r ≈ 0). Next: decide what of each donor's individuality the body must
+     carry (their measured insulin and carbohydrate fit, their target and how hard they push it), measured per donor.
