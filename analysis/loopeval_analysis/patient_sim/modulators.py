@@ -15,7 +15,7 @@ B2 dawn          EGP bump from onset (02:00–04:30) peaking ~07:00, gone ~10:00
 B3 day level     intrinsic day-to-day SI, CV 8%, independent days (repeat clamps, evidence/07);
                  intraday OU OFF (no controlled-condition evidence)
 B4 slow drift    OU on log SI — OFF, same reason (weight, season, growth are to be named instead)
-B5 menstrual     luteal SI dip on a 24–35 d cycle, responders only (OFF default) 02 menstrual; 05 lesson 22
+B5 menstrual     SI low at menses onset (BDDP-log "late" shape), 21–38 d cycle, responders only (ON default; LESSONS 136, 235)
 B6 illness       Poisson episodes, SI dip with ramps, EGP rise                  02 illness; 00 D21a
 B14 steroids     oral glucocorticoid courses: morning dose, SI loss from 2 h, full 6–12 h, gone by 22 h; taper over the course
                  (Bevier 2008: insulin +69%, 30–100%, from 6 h after the first dose, baseline by day 4; Waljee 2017: 21.1%

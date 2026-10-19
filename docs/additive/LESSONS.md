@@ -4631,3 +4631,24 @@ statistic here, but it is the controller donors ran.
      2.5%, day/night 1.67 (2.06). As in LESSONS 125, the donor's night delivery overstates basal need (it carries night
      corrections and evening carbohydrate), and a basal-heavy body leaves less of the TDD to meals, which takes the
      variability and the lows with it. The person-level link is real but this is not its carrier; stays off.
+
+235. **Review of illness (B6) and the menstrual cycle (B5) on the current base: both inside their evidence.**
+     - **Illness** (c254, `audit_ill.py`; 18 episodes starting in 1,568 person-days): 4.2 episodes per person-year
+       (registry 3 adults / 5 children), duration p10 / p50 / p90 2.2 / 3.4 / 6.2 d, gastrointestinal 28% (20%), SI drop
+       12 / 20 / 26% (10–35%), EGP +4% median (0–15%). The 24-h glucose response was validated against donors' logged
+       illness in LESSONS 136 (+4.4 vs +3.1 median).
+     - **Cycle over full cycles** (the check LESSONS 136 left open): c256, 48 people × 60 days, paired cycle on / off
+       (`--disable menstrual`, same seeds), 18 menstruating, 10 responders (luteal amplitude p50 0.106); daily CGM mean
+       minus the person's mean, by day from onset (`cycle_prof.py`), bins −10..−2 / −1 / 0 / +1..+2 / +3..+6 / +7..+10:
+
+       | | −10..−2 | −1 | 0 | +1..+2 | +3..+6 | +7..+10 |
+       |---|---|---|---|---|---|---|
+       | donors who log "cycle" (493 events) | ~+2 | +4.0 | +4.7 | −0.9 | ~+2 | −3.4 |
+       | sim paired on − off, responders | +1.0 | +1.8 | +3.4 | −0.3 | −2.9 | −0.5 |
+       | sim paired on − off, all menstruating | +0.6 | +1.0 | +1.8 | −0.2 | −1.5 | −0.2 |
+
+       Under Loop the component makes a +3.4 mg/dL onset excess and a ~6 mg/dL swing in responders, against the loggers'
+       +4.7 and 6–8 (people who log their cycle are plausibly the responders). The post-onset low comes at days 3–6, not
+       7–10: in the sim it is Loop's carried-over insulin once SI recovers on day 3; the donors' later low may be a
+       follicular rise in SI that the component does not have. With 18 people and the donors' own noise (medians run 1–2
+       mg/dL under the means), no reshaping; a follicular SI term would need its own evidence first.
