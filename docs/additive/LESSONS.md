@@ -5479,3 +5479,22 @@ statistic here, but it is the controller donors ran.
      could carry the observed association, each needing its own evidence before building: heat-raised insulin-independent
      glucose use or sensitivity (passive heating studies), less eating on hot days, more outdoor activity, and the study's
      treatment mix (how many were on closed loop). B15 stays off; no default change.
+
+291. **The donors' extra lows after a meal bolus are a fast early fall the twins rarely make; their insulin acts later.**
+     Like for like, G7, c294 / c289 against donors:
+     - Low onsets with an entry in the 60 min before (`low_entry.py`): per 100 bolused entries donors 3.5, twins 2.2; per
+       100 unbolused entries 7.2 vs 22.1 (the twins' logged treatment carbs at ~75 mg/dL). The donors' bolused-entry lows
+       start flat (15-min trend −1) at 110 mg/dL (p25–75 88–139) and reach < 70 a median 39 min later; the twins' start
+       falling (−16) at 84, 20 min later.
+     - Bolused entries at 100–140 mg/dL on a flat trend (donors 5124, twins 322): < 70 within 60 min 3.3% vs 0.3%; CGM
+       change p10 / p50 / p90 at +30 −15 / +14 / +57 vs −15 / +8 / +39, at +45 −18 / +25 / +83 vs −16 / +15 / +70.
+     - Not uneaten entries: bolused entries ≥ 15 g with no labeled pulse −60..+120 min 18.3% vs 14.5% (`entry_nopulse.py`).
+       The fall's tail is deeper for donors with or without a pulse: CGM +60 p10 −60 / −58 vs −34 / −43; any < 70 within
+       2 h 12.9 / 11.6% vs 7.6 / 8.4%. Bolus lead to the labeled rise matches (p10–p90 −47..+48 vs −45..+50 min).
+     - Correction boluses at a flat trend (`corr_fall.py`, pooled over seven arms on the same body: 84 vs donors 268), CGM
+       change per U per ISF at 15 / 30 / 45 / 60 / 90 / 120 / 180 min: donors −0.02 / −0.07 / −0.13 / −0.22 / −0.39 /
+       −0.53 / −0.72, twins −0.05 / −0.11 / −0.13 / −0.16 / −0.32 / −0.44 / −0.65 — ~20% weaker at 60–120 min, near level
+       by 180: the timing, not the size.
+     The same signature as LESSONS 286's slower post-peak descent and the thin 5-min down-step tail. Posture (A4b,
+     upright absorption × (1 − p), half Hildebrandt's contrast) is the component that slows the body's daytime insulin
+     timing; its ablation c297 measures how much of this it carries.
