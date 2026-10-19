@@ -5696,3 +5696,10 @@ statistic here, but it is the controller donors ran.
        (donors user / auto −15..120 min 1.19 / 0.74, c306 0.79 / 0.89) and its sim-side user / auto attribution
        (request-time matching) is not yet trustworthy — next: attribute the twins' early insulin from the trace's own
        dose records (user bolus, split remainder, top-up, automatic), then compare with the donors' manual / automatic.
+     **Correction (same day):** attributed from the trace (user = the plant's own bolus requests `plantBolusU`; automatic
+     = all other candidate delivery; the trace's `automatic` flag marks most plant boluses automatic and cannot be
+     used; `meal_ins3.py`), means per 10 g entered, −15..120 / 120..240 min: donors user 1.19 / 0.11, automatic 0.74 /
+     0.77; c306 user 1.01 / 0.14, automatic 0.68 / 0.62. By means the twins get LESS insulin early; the medians above
+     say more. Means and medians disagree, so the insulin side does not explain the twins' early return to baseline;
+     the donors' extra automatic insulin at 2–4 h is Loop answering their late rise. The late phase stays open: neither
+     emptying speed, fat normalisation, protein glucose, post-meal eating, carb sensitivity nor meal insulin makes it.
