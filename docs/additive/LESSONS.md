@@ -4617,3 +4617,8 @@ statistic here, but it is the controller donors ran.
      do not carry. Whatever makes them low-prone is outside the measured ISF fit and the user-dosing behaviours (LESSONS
      226): candidates still open are the timing of insulin against intake within the meal (2-h nadir, LESSONS 217) and the
      body's fall once insulin outruns need (LESSONS 223).
+     - **Even the mean does not transfer** (`meanlink.py`, c254): twin vs donor mean glucose Spearman 0.26, |difference|
+       p50 / p90 18 / 42 mg/dL (median bias −1). The donor's mean goes with the night / day ratio (0.63), the CGM at their
+       corrections (0.60) and correction threshold (0.39) — those read partly as consequences of running high, not causes —
+       and their reduced-insulin overrides (0.36, which the twin does follow, 0.44). Body size (TDD +0.26, ISF −0.26) sets
+       the mean in both. The person-level gap (LESSONS 217–218) starts at the level, before the lows.
