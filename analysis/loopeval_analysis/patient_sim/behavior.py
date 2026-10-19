@@ -159,6 +159,7 @@ class BehaviorTraits:
     p_log_rescue: float = 0.25           # rescues entered in the app [J; was 0.05, "very under-represented" — Pete; LESSONS 175]
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
+    corr_trend: bool = False             # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237)
     p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
     corr_over_share: float = 0.0         # with corr_own: share of corrections dosed BEYOND Loop's recommendation (donor lone boluses:
                                          # median 0.29; 39% given when Loop recommended ~0; LESSONS 223)
@@ -194,6 +195,17 @@ class BehaviorTraits:
     # site changes
     site_days: float = 3.0
     site_hour: float = 19.5
+
+
+# no-entry user boluses per hour at CGM 180–280, by 30-min trend (falling < −10 / flat / +10–30 / > +30 mg/dL): donors
+# 0.043 / 0.085 / 0.167 / 0.301 (`corr_hazard.py`, 160 donors) — people correct on a rising arrow (trend-arrow dosing guidance,
+# Aleppo 2017, Pettus & Edelman 2017). Relative to flat 0.50 / 1 / 1.96 / 3.52, renormalised to mean 1 over the sim's own
+# exposure at those trends (1173 / 1105 / 945 / 870 h, c254) so each person's correction rate stays their donor's (LESSONS 237)
+CORR_TREND_W = (0.31, 0.62, 1.21, 2.18)
+
+
+def _corr_trend_w(d30: float) -> float:
+    return CORR_TREND_W[0] if d30 < -10 else CORR_TREND_W[1] if d30 < 10 else CORR_TREND_W[2] if d30 < 30 else CORR_TREND_W[3]
 
 
 def _num(rates, k):
@@ -820,7 +832,7 @@ class Behavior:
             acts.append(("override", ov)); self.more_until = m + dur
             self.log.append((m, "override_more", t.ov_more_f, cgm))
         if not asleep and cgm > t.corr_thr and self.trend() > -0.5 and m - self.last_bolus > t.corr_wait \
-                and r.random() < t.p_correct:
+                and r.random() < t.p_correct * (_corr_trend_w(self.trend() * 30.0) if t.corr_trend else 1.0):
             if t.corr_size_own:
                 u_ = round(float(np.exp(self.r_corr.normal(math.log(max(t.corr_u_med, 0.1)), max(t.corr_u_lsd, 0.1)))) * 20) / 20
                 acts.append(("bolus_min", m, u_))
