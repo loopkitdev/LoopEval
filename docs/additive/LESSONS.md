@@ -5539,3 +5539,14 @@ statistic here, but it is the controller donors ran.
      60–120 min" was a subset reading. The robust gaps stay those measured on many events: the post-peak fall at matched
      height (286), the early-fall tail after bolused meals (291) and the volatility dispersion (293) — all meal- and
      disturbance-side as much as insulin-side.
+
+295. **The twins' CGM turns more often than the donors' in quiet hours, but their bodies barely turn: the sensor's slow
+     components make the turns.** Quiet daytime (no entry −240..+60, 06–24 h), turning points of the 15-min centred mean
+     per hour (`turns.py`, G7): donors 5–15 mg/dL 0.375, > 15 0.614; c294 CGM 0.473 / 0.693, c294 true BG 0.084 / 0.319.
+     5-min increment autocorrelation lag 1 / 2 (`inc_acf.py`, eda `_acf` over runs): donors 0.511 / 0.263, c294 CGM
+     0.615 / 0.390, true BG 0.946 / 0.859. The twins' CGM is smoother step to step than the donors' yet turns more over
+     15–60 min, so the extra turns are not white noise; a smooth body (few turns of its own) under slow sensor error
+     (wander, slow bias; sensor.py `noise_wander`, `slow_bias`) would give both. The donors' CGM carries more fast real
+     motion and less slow sensor wiggle. With LESSONS 293 (quiet periods noisier, active periods calmer), the sensor's
+     slow-error components are the next sensor item to check against their own evidence (FDA two-sensor PARD, eda
+     lesson 33 per-family statistics) — not a fit to these counts.
