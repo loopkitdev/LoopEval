@@ -78,7 +78,7 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. Arms of a neutral change scatter 27–31 matched: read differences
   inside that band as noise.
-- **Current reference** (2026-10-19): c281_mf50 — meal fast-emptying share 0.5 (LESSONS 268), yardstick ISF × the body-model sensitivity fit (`fit_body --regression`), night need added on top of the day (`night_add`), delivered-shape basal need with the night level from steady
+- **Current reference** (2026-10-19): c284_ref — meal fast-emptying share 0.35 and G7 white noise 1.8 (LESSONS 268–270), yardstick ISF × the body-model sensitivity fit (`fit_body --regression`), night need added on top of the day (`night_add`), delivered-shape basal need with the night level from steady
   nights, donor-MET exercise intensity with the C4 surge; 29 of 51; t70 1.73 vs 1.67%, t54 passes.
 
 ## Match targets: eda's statistics
@@ -88,23 +88,21 @@ The goal's primary test. `validate.py` scores every simulated person with the ed
 compares the distribution across people with the donors' (206 pilot donors) by a two-sample KS test, per sensor family
 where the statistic depends on the instrument (eda lesson 33). Each cohort run writes `compare_pilot.csv`;
 `python -m loopeval_analysis.patient_sim.compare_runs RUN_A RUN_B` sets two runs side by side. **Matched = KS p > 0.05;
-51 rows (37 statistics, 7 of them split by G6 / G7 / Libre 3).** Status at the reference c278 (donor p50 / sim p50):
+51 rows (37 statistics, 7 of them split by G6 / G7 / Libre 3).** Status at the reference c284 (donor p50 / sim p50):
 
-| Area | Statistic | What it measures | c278 |
+| Area | Statistic | What it measures | c284 |
 |---|---|---|---|
-| Level and spread | `bg_mean`, `bg_cv`, `tir`, `t70`, `t180` | mean, CV, time in 70–180, < 70, > 180 | pass |
-| | `bg_skew`, `boxcox_lambda` | shape of the glucose distribution | fail (0.89 / 0.82) |
-| Lows | `lows_per_day` | crossings below 70 per day | pass (1.08 / 0.75) |
-| | `t54`, `p_reach54`, `min_below70` | time < 54, share of lows reaching 54, minutes per low | fail (0.22 / 0.09%) |
-| Short-scale motion (per sensor) | `v_sd`, `hurst_short`, `acf_min` | 5-min velocity SD, short-range persistence, ACF minimum | pass |
-| | `sd_over_mad`, `v_kurtosis`, `v_skew`, `sigma_meas` | velocity tails and asymmetry, measurement noise | fail on G6 / G7 except G6 skew (kurtosis 2.5 / 1.7 on G7: the missing fast moves) |
+| Level and spread | `bg_mean`, `bg_cv`, `bg_skew`, `tir`, `t70`, `t180` | mean, CV, skew, time in 70–180, < 70, > 180 | pass (CV 34.8 / 35.2) |
+| | `boxcox_lambda` | distribution shape | fail |
+| Lows | `t54`, `lows_per_day`, `p_reach54`, `min_below70` | time < 54, crossings below 70 per day, share reaching 54, minutes per low | fail (0.22 / 0.09%; 1.08 / 0.75 per day) |
+| Short-scale motion (per sensor) | `v_sd`, `sd_over_mad`, `v_kurtosis`, `v_skew`, `hurst_short`, `sigma_meas`, `acf_min` | 5-min velocity spread, tails and asymmetry, short persistence, measurement noise, ACF minimum | Libre 3 all pass, G6 most pass; G7 only `sigma_meas` passes (v_sd 7.02 / 6.56, kurtosis 2.52 / 1.90: the large 5-min moves, LESSONS 268) |
 | Long-scale structure | `hurst_long`, `wear` | long-range persistence, sensor coverage | pass |
-| | `acf_zero_min`, `vol_cluster_60m`, `sigma_disp`, `between_day_frac`, `circadian_amp` | ACF zero crossing, volatility clustering, dispersion, between-day share, 24-h amplitude | fail |
-| Insulin delivered | `tdd`, `zero_frac`, `conc1` | daily total, share of zero-delivery bins, concentration in the top 1% | pass |
-| | `tdd_cv`, `med_nonzero`, `p99`, `ac1`, `day_night`, `night_cv` | day-to-day CV (15.7 / 15.7, KS 0.023), typical and peak delivery, day-to-day autocorrelation, day / night split, night-to-night CV | fail (day / night 2.06 / 1.78) |
+| | `acf_zero_min`, `vol_cluster_60m`, `sigma_disp`, `between_day_frac`, `circadian_amp` | ACF zero crossing, volatility clustering, dispersion, between-day share, 24-h amplitude per person | fail |
+| Insulin delivered | `tdd`, `zero_frac`, `p99`, `conc1`, `day_night` | daily total, zero-delivery share, peak, concentration, day / night split | pass (day / night 2.06 / 1.90) |
+| | `tdd_cv`, `med_nonzero`, `ac1`, `night_cv` | day-to-day CV and autocorrelation, typical delivery, night-to-night CV | fail |
 | Behaviour | `carb_entries_per_day`, `user_boluses_per_day`, `manual_u_day` | entries, user boluses, hand-dosed units | pass |
 
-c278: 29 of 51. Neutral changes move the count within 27–31; read single-statistic changes against that band, and check
+c284: 29 of 51. Neutral changes move the count within 27–31; read single-statistic changes against that band, and check
 the lows by dosing strategy (temp-basal vs automatic-bolus twins against their own donors) beside the cohort count.
 
 ## Analysis traps (each cost a session)
