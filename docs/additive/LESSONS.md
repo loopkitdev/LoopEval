@@ -5821,3 +5821,6 @@ outputs in gamepc ~/additive/runs/c290–c312).
      c311 +3.0 / +0.2 / −1.8 / −6.4 / −20.0 (1,242); but the donors' corrections start from ICE 132 vs 101 — given in strong
      rises (unlogged eating) whose decay dominates the after-window. Confounded; no conclusion on resistance. The donors'
      hours-1–3 meal counteraction remains the measured gap (TIDEPOOL-70).
+     Evidence search (same day): no T1D study measures insulin sensitivity hour by hour after a mixed meal. Hinshaw 2013
+     (PMC3712033, triple tracer) finds no breakfast / lunch / dinner SI difference in T1D (P 0.34) and less EGP suppression
+     at breakfast; Romeres 2025 compares age groups. A post-meal resistance stays unsized — not built.
