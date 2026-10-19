@@ -381,6 +381,8 @@ class World:
             if (enable or {}).get("sleep_util", True) else 0.0     # default since 2026-10-18 (LESSONS 214)
         self._sleep_since = None
         self.ex_gut = bool((enable or {}).get("ex_gut", False))      # experiment (LESSONS 344)
+        self.ge_am = float(enable["ge_am"]) if enable and isinstance(enable.get("ge_am"), float) else 1.25
+        self.ge_pm = float(enable["ge_pm"]) if enable and isinstance(enable.get("ge_pm"), float) else 0.8
         self.ge_circ = bool((enable or {}).get("ge_circ", True))     # default since 2026-10-19 (LESSONS 339)
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,
                                           frag=self.act_frag, frag_seed=int(person.seed) + 1811,
@@ -632,8 +634,11 @@ class World:
             # circadian gastric emptying (Goo 1987: evening half-time ~54% longer than morning for the same solid meal):
             # x1.25 06-11 h, x0.8 17-23 h, x1.0 otherwise, ramped over an hour at each boundary [J shape] (LESSONS 180)
             hh = (m % DAY) / 60.0
+            # Goo measured the evening / morning half-time RATIO (~1.54); how it splits around the day's baseline is [J]:
+            # ge_am / ge_pm set the morning and evening factors (default 1.25 / 0.8; LESSONS 351)
+            am, pm = self.ge_am, self.ge_pm
             def _seg(h):
-                return 1.25 if 6 <= h < 11 else 0.8 if 17 <= h < 23 else 1.0
+                return am if 6 <= h < 11 else pm if 17 <= h < 23 else 1.0
             gm = 0.5 * (_seg(hh) + _seg((hh - 1.0) % 24))
         if self.ex_gut:
             # C8 activity and the gut (experiment, off; LESSONS 344): slow walking after a 576-kcal meal shortened
