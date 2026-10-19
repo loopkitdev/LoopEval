@@ -4967,3 +4967,14 @@ statistic here, but it is the controller donors ran.
      (1.08), CV 34.3 → 34.7 (34.8), day / night 1.79 → 1.83 (2.06, KS 0.051 passes); 05 h −30 → −33 (−29). By strategy t70
      automatic 1.11 → 1.43 (1.20), temp 1.29 → 1.77 (0.97): the 39 temp-basal twins overshoot their donors — next item.
      New reference c269.
+
+253. **`night_own` skipped the bodies that needed it most; fixed.** The bisection for the bump size searched 0.3–4 and
+     left a person unchanged when the target lay outside: bodies whose basal level sits far under their schedule
+     (body / schedule at 02–05 h 0.23–0.56 against donor ratios 0.85–1.81) kept their low night need and made the tail of
+     simulated night lows (v01003 / v01085 / v01007: 34–35% of night time < 70; `night_tail.py`). The search now runs to
+     20 and takes the bound when the target is out of reach (79d94c3). c270 vs c269: body / schedule at 02–05 h p10 / p50 /
+     p90 0.61 / 1.08 / 1.66 (donor ratios 0.66 / 1.08 / 1.66); night t70 mean automatic 4.26 → 3.11%, temp 4.78 → 2.72%
+     (donors ~2.4); 31 matched; t70 1.45% (KS 0.945), lows 0.92/day (1.08), 24-h median range 40 (39); day / night 1.80
+     fails again (KS 0.007). The temp-basal twins' remaining excess is by day (untreated no-bolus daytime lows 0.457 vs
+     0.286; t70 day mean 2.64): with the 24-h basal total held, a higher night need lowers the daytime one, and a
+     temp-basal Loop cannot add insulin below zero. New reference c270.
