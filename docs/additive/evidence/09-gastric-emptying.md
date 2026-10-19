@@ -235,6 +235,9 @@ as fat and protein moves 100 g to t50 = 143 min.
 - Hunt 1985: +0.7 kcal/min per volume doubling.
 - Schirra: −27.5% fractional rate at 100 vs 50 g.
 - Elleri 121 g, 25/50/75% appearance times: 56/100/153 min (high GL) and 88/175/270 min (low GL).
+  **Unverified:** `ra_traj.py` (run dir) quotes 72/130/197 (high GL) and 95/178/270 (low GL) for the same study; the
+  full text (doi:10.1007/s00125-013-2852-x) is paywalled and the discrepancy is unresolved (LESSONS 287). Check the
+  paper before using either set as a calibration target.
 - Ferrannini: ~73% appeared by 3.5 h at ~1 g/kg.
 
 **Caveat.** Ra-vs-dose has not been measured directly by tracer in T1D (§3). The size scaling

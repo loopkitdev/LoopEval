@@ -5419,3 +5419,13 @@ statistic here, but it is the controller donors ran.
      slow emptiers make lows (a bolus ahead of slow absorption). The late maximum is not the spread. Stays on; open: the
      time to maximum at matched height, and whether Samsom's delayed share (long-standing T1D, scintigraphy) applies to
      this AID population — a literature question before any change.
+
+287. **The twins' mid-sized meals appear about as slowly as a 121 g tracer meal; the evidence to act on is unsettled.**
+     c289 isolated entered meals (≥ 20 g, no other eating −180..+360 min; `ra_traj.py`, true appearance normalised over
+     6 h; 49 meals, median 63 g): 25 / 50 / 75% at 56 / 100 / 144 min, Ra peak 50 min, 59% by 120 min. Elleri 2013 (T1D,
+     121 g evening meal) is recorded in evidence/09 as 56 / 100 / 153 (high glycaemic load) — the twins' 63 g meals at a
+     121 g meal's timing, consistent with LESSONS 286's late maximum at matched height (110–128 vs 95–110 min). But
+     `ra_traj.py` quotes the same study as 72 / 130 / 197, the paper is paywalled, and the note itself says appearance
+     against meal size has never been measured by tracer in T1D (§3). The donors' matched-height time to maximum is the
+     like-for-like evidence in hand; the size scaling of the energy-limited emptying (A10: Vmax 3 kcal/min against
+     Brener's 2.13 plateau) needs the Elleri figures checked first. No change.
