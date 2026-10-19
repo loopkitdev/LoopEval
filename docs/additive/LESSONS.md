@@ -6300,3 +6300,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      124 / 134 / 137), Q3 morning 145 (154; donors 144); TDD 39.2 (40.5; donors 38.7); 3-h meal change +4.2 (+1.6); t54
      0.118%, lows / day 0.79; 35 of 51 (35). Adopted (per-person data over a cohort constant); reference now c358_csfgeq.
      A second fitting round (the weight took half of each difference) is next.
+
+359. **Second `csf_geq` round, pooled rather than iterated.** Re-fitting each round on one twin's noisy ratio widens the
+     multipliers (a naive round 2 gave 0.50 / 0.95 / 1.58, hitting the clip): each round adds w × noise. Pooled instead:
+     every donor's needed multiplier estimated from both runs (round 1 at × 1, round 2 at × m₁: log(donor / twin) + log m₁),
+     averaged (2 observations, weight p50 0.63), clipped 0.6–1.5: × 0.60 / 0.96 / 1.44 at p10 / 50 / 90. c359 vs c358:
+     Q4 morning / afternoon / evening 146 / 148 / 141 (148 / 149 / 144; donors 124 / 134 / 137), Q1–Q3 unchanged; 34 of 51
+     (35; noise band), t54 0.123%, lows 0.67 / day, TDD 39.7. Kept (more evidence per donor); round 1 saved as
+     templates_pilot_logs_csfgeq_r1.csv. The low-runners' day is still 10–22 mg/dL above their donors': per-person meal
+     response is now on its donor's, so what remains is outside the meal size response.
