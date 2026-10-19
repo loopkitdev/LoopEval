@@ -5000,3 +5000,13 @@ statistic here, but it is the controller donors ran.
        c270 time < 70 0.14 → 0.21, CV −0.04 → 0.05, mean 0.26 → 0.25 (|difference| p50 17.0 mg/dL). The donor's own night
        need carries a little of the low-proneness; the person's level does not move. What sets a donor's mean among
        people with the same settings and behaviour rates stays the open per-person question (LESSONS 217–218, 233).
+
+256. **The sim's per-person level hangs on the measured ISF mismatch; the donors' does not. Scaling ISF_W cannot fix
+     that.** Donors (168, `mean_isf.py`): mean vs yardstick / settings ISF Spearman −0.13, t70 −0.15, TIR +0.19 — the
+     measured mismatch says little about a donor's level. c270 twins: mean vs body / settings ISF −0.38. ISF_W 0.25
+     (c272, `--set isf_w=0.25`, against 0.5): twin mean vs ratio −0.37 (the exponent shrinks the mismatch but keeps the
+     ranking), per-person transfer mean 0.25 → 0.29, t70 0.21 → 0.12, CV 0.05 → 0.11; cohort 29 matched (31), lows 0.96/day,
+     t70 1.48% (both pass), day / night 1.83 fails. ISF_W stays 0.5. What orders the donors by level is not in their
+     measured insulin sensitivity against their settings, and the twins currently order by exactly that. The next
+     per-person candidates must come from data that does rank donors by level: the night need (LESSONS 251, carried),
+     the correction threshold and the reduced-insulin overrides (LESSONS 233).
