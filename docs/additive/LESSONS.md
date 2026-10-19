@@ -4837,3 +4837,13 @@ statistic here, but it is the controller donors ran.
        directly (eating events planned inside a session are deferred to its end), and size the post-exercise fall
        (insulin-independent uptake and the delayed sensitivity) against the entry-free donor table once the eating
        matches; then the C4 surge with an intensity distribution from the donors' METs.
+
+245. **Deferring eating out of sessions does not reproduce the donors' exercise pattern; `ex_no_eat` stays off.** The
+     reworked switch (0a51574: meals, snacks and grazes planned inside a session move to its end + U(0, 20) min, entry and
+     bolus with them). c260: carb entries during / hour after 0.69 / 1.50× the clock rate (donors 0.18 / 1.44; c257 1.05 /
+     1.05); the post-exercise rebound in entry-free windows grows (4–6 METs end → +180 +45, < 70 within 4 h 8%; donors −8,
+     52%); 28 matched, lows 0.46/day. Entries during sessions remain from meals begun before the session with a late bolus.
+     What dominates the sim's entry-free post-exercise windows is unentered eating (≈ 49 g per session, half of it
+     unentered meals), which the donors' entry-free windows cannot show: comparing post-exercise falls needs a measure
+     that does not condition on entries (all workouts: 4–6 METs end → +180 donors −4 vs c257 +30), or the donors'
+     labeled pulses around workouts (+0..60 min 1.24× vs sim 1.40×).
