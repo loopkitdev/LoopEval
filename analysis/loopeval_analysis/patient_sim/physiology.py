@@ -102,7 +102,8 @@ class BodyParams:
                                    # h 0.45 gives ×0.74 at 8 mmol/L (Schvarcz 1997) and ×0.56 at 15–20 (Fraser 1990) [J]
     # exercise
     ex_uptake: float = 0.0         # mg/kg/min insulin-independent uptake at intensity 1
-    ex_egp_surge: float = 0.0      # mg/kg/min EGP rise at intensity 1 for anaerobic work
+    ex_egp_surge: float = 28.0     # mg/kg/min EGP rise at intensity 1 for anaerobic work, above the 60% threshold; calibrated
+                                   # on donors' ≥ 8-MET workouts (rise ≥ 20 during in 46%; LESSONS 247; was 0)
 
     def scaled(self, **kw) -> "BodyParams":
         return replace(self, **kw)

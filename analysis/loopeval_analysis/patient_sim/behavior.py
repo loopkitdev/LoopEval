@@ -159,7 +159,7 @@ class BehaviorTraits:
     p_log_rescue: float = 0.25           # rescues entered in the app [J; was 0.05, "very under-represented" — Pete; LESSONS 175]
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
-    ex_mets: bool = False                # session intensity from donors' workout METs (LESSONS 247)
+    ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     corr_trend: bool = True              # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237; default 2026-10-19)
     p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
