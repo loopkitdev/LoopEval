@@ -159,6 +159,7 @@ class BehaviorTraits:
     p_log_rescue: float = 0.25           # rescues entered in the app [J; was 0.05, "very under-represented" — Pete; LESSONS 175]
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
+    ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     corr_trend: bool = True              # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237; default 2026-10-19)
     p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
     corr_over_share: float = 0.0         # with corr_own: share of corrections dosed BEYOND Loop's recommendation (donor lone boluses:
@@ -432,6 +433,7 @@ class Behavior:
         self.r_split2 = np.random.default_rng(int(getattr(person, "seed", 0)) + 3137)    # split second helpings
         self.r_corr = np.random.default_rng(int(getattr(person, "seed", 0)) + 4241)      # corrections beyond the recommendation
         self.r_stack = np.random.default_rng(int(getattr(person, "seed", 0)) + 4507)     # bolus stacking
+        self.r_exeat = np.random.default_rng(int(getattr(person, "seed", 0)) + 4813)     # eating kept out of exercise
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
         self.r_drink = np.random.default_rng(int(getattr(person, "seed", 0)) + 1601)      # meal_drink draws
@@ -690,6 +692,21 @@ class Behavior:
         if r.random() < t.ex_per_week / 7.0:
             st = base + (t.ex_hour * 60 + r.normal(0, 45)) + shift
             dur = max(10.0, float(np.exp(r.normal(math.log(t.ex_minutes), 0.3))))
+            if t.ex_no_eat:
+                # people do not eat during a workout and eat after it: donors' carb entries during HealthKit workouts run
+                # at 0.18x the same clock hours' rate, in the hour after at 1.44x (eat_around_ex.py; LESSONS 244). A
+                # session that would overlap a planned meal or snack ends 0-30 min before it; grazes inside move to its end
+                re_ = self.r_exeat
+                eats = sorted(x[0] for x in self.planned if x[1][0] == "eat_meal" and base <= x[0] < base + DAY)
+                hit = [e for e in eats if st - 15 <= e <= st + dur]
+                if hit:
+                    st = hit[0] - dur - float(re_.uniform(0, 30))
+                moved = []
+                for i_, (tt, it_) in enumerate(self.planned):
+                    if it_[0] == "graze" and st <= tt <= st + dur:
+                        moved.append(i_)
+                for i_ in moved:
+                    tt, it_ = self.planned[i_]; self.planned[i_] = (st + dur + float(re_.uniform(0, 20)), it_)
             self.planned.append((st, ("exercise", st, dur, t.ex_intensity, t.ex_anaerobic)))
             if r.random() < t.p_ex_carbs:
                 self.planned.append((st - 10, ("ex_carbs", t.ex_carbs)))
