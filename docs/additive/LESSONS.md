@@ -6122,3 +6122,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.050), P(reach 54) 0.176 (p 0.061); day / night insulin 1.85 (p 0.08). Costs: 08–10 h 147 / 160 / 167 (donors 135 /
      140 / 146); lunch and dinner shapes unchanged (lunch 3-h −7, dinner +4 at 4 h). Adopted (evidence, night level,
      amplitude); reference now c339_gecirc. The late-morning excess is the next item.
+
+340. **Twins under-enter dinner (−4 g/h at 18–20 h) and slightly over-enter late breakfast; restoring the donor's
+     per-window entry chance under `entry_split` makes it worse.** Entered grams by local hour (c339_gecirc vs donors'
+     carbs.json): 08–09 h 4.9 / 5.7 vs 3.8 / 4.8; 18–20 h 5.5 / 5.7 / 5.2 vs 8.7 / 9.6 / 8.7; total 87 vs 103 g/day; entries
+     per hour 18–20 h 0.19–0.21 vs 0.25–0.26. `entry_split` (default, LESSONS 280) resets the per-window chance `slot_ann`
+     to 1. Keeping it (c340, c3f99f6, reverted): 34 of 51 (38), t54 0.108% (p 0.021), P(reach 54) 0.14, 3-h meal change
+     −9, lunch −24 at 3 h, hourly 09–11 h 159 / 168 / 168. `slot_ann` is the share of the donor's LABELLED pulses per window
+     that carry an entry, and labelled pulses include body-made rises (LESSONS 333), so it is not the entry chance of an
+     eating occasion. The dinner shortfall stays open; a direct per-window entered-grams target (carbs.json, both sides)
+     is the like-for-like quantity to calibrate the entry chance on.
