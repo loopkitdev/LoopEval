@@ -5659,5 +5659,7 @@ statistic here, but it is the controller donors ran.
        trajectory as it was, 31 matched; c304 `act_after_meal` 0 (everyday activity away from meals, the 0.4 a [J])
        leaves lunch as it was, lows down, 29 matched.
      Best's men were healthy; T1D's insulin-independent mass action is ~1/3 of normal at basal insulin (Del Prato 1997)
-     and no T1D clamp sizes κ at raised insulin. Default left at 0.675 pending Pete (TIDEPOOL-65): the evidence value
-     against four statistics and the low side.
+     and no T1D clamp sizes κ at raised insulin. Pete (2026-10-19): weigh how important and how fundamental each match is,
+     not the count — a sounder model may regress on it. Adopted: κ median 1.0 (lnN(0, 0.4)); TIR, mean, CV and time > 180
+     move onto the donors' (the primary outcome), t54 0.148 → 0.092% (0.215) and p_reach54 fail — lows now under-read
+     further, which the missing post-bolus fall and late meal phase (LESSONS 286, 291, 301) must close. New reference c305_k1.

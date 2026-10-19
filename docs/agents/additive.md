@@ -78,7 +78,7 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. Arms of a neutral change scatter 27–31 matched: read differences
   inside that band as noise.
-- **Current reference** (2026-10-19): c300_csfw0.5 — the body's carb sensitivity weighted halfway between the data branch and the settings (`csf_w` 0.5) while its ISF stays on the data (LESSONS 300); 32 of 51, p_reach54 on the donors', bg_mean 157 vs 151 now fails. Built on c289_split — carb entries split into meals and snacks as each donor does (LESSONS 280), and c287_wake's night alarm-wake chance from the donors' night lows (LESSONS 274), counter-regulation refitted (CRmax median 0.3, LESSONS 272), meal fast-emptying share 0.35 with per-meal SD 0.40, G7 white noise 1.8 (LESSONS 268–271), yardstick ISF × the body-model sensitivity fit (`fit_body --regression`), night need added on top of the day (`night_add`), delivered-shape basal need with the night level from steady
+- **Current reference** (2026-10-19): c305_k1 — κ median 1.0 from Best 1981 read in full (LESSONS 303; Pete: a sounder model may match fewer statistics), TIR 71.5 vs 71.7, mean / CV pass, 28 of 51, t54 0.09% vs 0.22% (lows under-read further). On c300_csfw0.5 — the body's carb sensitivity weighted halfway between the data branch and the settings (`csf_w` 0.5) while its ISF stays on the data (LESSONS 300); 32 of 51, p_reach54 on the donors', bg_mean 157 vs 151 now fails. Built on c289_split — carb entries split into meals and snacks as each donor does (LESSONS 280), and c287_wake's night alarm-wake chance from the donors' night lows (LESSONS 274), counter-regulation refitted (CRmax median 0.3, LESSONS 272), meal fast-emptying share 0.35 with per-meal SD 0.40, G7 white noise 1.8 (LESSONS 268–271), yardstick ISF × the body-model sensitivity fit (`fit_body --regression`), night need added on top of the day (`night_add`), delivered-shape basal need with the night level from steady
   nights, donor-MET exercise intensity with the C4 surge.
 
 ## Match targets: eda's statistics
@@ -109,7 +109,7 @@ the lows by dosing strategy (temp-basal vs automatic-bolus twins against their o
 
 Measured like for like against the donors (LESSONS 282–299); read a candidate's result against them.
 
-- **Lows run short.** t54 ~0.15% vs 0.22% (c300), lows 0.83 vs 1.08 / day. The missing part is the early low after a
+- **Lows run short.** t54 0.09% vs 0.22% (c305; 0.15% on c300 before κ 1), lows 0.83 vs 1.08 / day. The missing part is the early low after a
   bolused meal from a steady start (< 70 within 60 min: 0.3% vs 3.3% of flat-start meals at 100–140 mg/dL) and a slower
   fall after any peak (matched-height fall in the hour after the maximum −26 vs −37 mg/dL). Treat absolute
   hypoglycaemia as a lower bound; rank candidates on deltas.
