@@ -5269,3 +5269,9 @@ statistic here, but it is the controller donors ran.
        insulin's effects: real glucose turns more often because it is pushed more often (small snacks, activity bouts,
        brief stress, posture) — the sim's disturbances are fewer and slower. Next: the rate of small (5–15 mg/dL) turning
        points in quiet periods, donors vs sim true BG, against the candidate disturbance sources.
+     - **Turning points do not settle it.** Quiet-daytime turns per hour (`turns.py`; extrema of the 15-min mean, excursion
+       5–15 / > 15 mg/dL): donors' CGM 0.38 / 0.61; c287 CGM 0.48 / 0.69, true BG 0.10 / 0.31. The sim's CGM turns at least
+       as often as the donors', mostly through sensor noise; its true glucose turns rarely. Whether real bodies turn more
+       than the sim's cannot be read from CGM alone (the donors' true glucose is unobserved): the reversal gap of the step
+       ACF is a shape difference at 40–60 min, not a count of turns. Left open; the disturbance-frequency reading is a
+       hypothesis, not a finding.
