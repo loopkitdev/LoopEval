@@ -335,6 +335,7 @@ class World:
             t.ex_per_week = 0.0; t.p_free_bolus = 0.0
         if not self.enable["graze"]: self.beh_traits.graze_per_day = 0.0
         if enable and enable.get("act_day_var") is False: self.beh_traits.act_day_var = False
+        if enable and isinstance(enable.get("act_after_meal"), float): self.beh_traits.act_after_meal = enable["act_after_meal"]   # experiment (LESSONS 303)
         if enable and enable.get("intake_var") is False: self.beh_traits.intake_cv = 1e-6
         self.beh = Behavior(self.beh_traits, person, r_beh)
         self.beh.defense = self.enable["behavior_defense"]      # rescues and proactive snacks (switch was unwired before)
