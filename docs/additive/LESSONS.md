@@ -5878,3 +5878,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      68.6, time > 180 28.3 / 29.8%, t54 0.089 / 0.045%, lows 0.75 / day; 29 / 30 matched. The donors carry this phase at a
      mean of 151; added on top of the twins' body it lifts the whole level, so whatever offsets it in real people is
      missing as well. Not adopted (Pete's rule: primary outcomes weigh most). Late-phase arms paused (301–321).
+
+322. **Fewer grazes (moved into meals) fix the level but not the late phase; with the post-meal window the late phase
+     improves and the level breaks.** The TDD budget pays for expected grazing first, so `graze_keep` thins grazes and moves
+     their grams into meals and snacks (intake unchanged). c319: graze_keep 0.5 → bg_mean 152.2 (donors 151.4, KS 0.39), CV
+     35.3 (passes), TIR 74.6, time > 180 24.2%, t54 0.108%, lows 0.83 / day, 3-h change −4.3, 30 matched; with ppr_a 0.35 too →
+     3-h change +10.6, mid meals +36 at 90 min, +23 at 150, but bg_mean 160.4, TDD 43.5 (38.8), lows 0.71 / day, t54 0.077%,
+     32 matched. Neither adopted (graze_keep has no evidence for its size; the window costs level and lows). The late phase
+     stays the documented main limit (LESSONS 301–322).
