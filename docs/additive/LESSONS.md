@@ -6251,3 +6251,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      +7 (c346 −8 to −10), dinner +2 to +10 through 2.5–4.5 h; 3-h meal change +0.9 / +1.6; t54 0.090 / 0.120%, lows 0.67 /
      0.79 per day, P(reach 54) 0.143 / 0.167. Adopted at 0.5 h (the lows hold; 1 h loses them); reference now c352_fat05.
      The fat term stays relative to the person's usual diet (fat_rel), so its average effect on the level is unchanged.
+
+353. **Review after the fat-onset change: the post-meal EGP nadir reads shallow, and the suppression rate is not its
+     lever.** `review.py` on c352_fat05: low depths, entries, bolused entries, day and night rises all within 2–15% of their
+     targets; EGP nadir 0.708 (target 0.56, Romeres 2025) at 130 min (160). `--set ins_p2e` 0.008 / 0.010 (c353): nadir
+     0.758 / 0.730 at 150 / 140 min — not deeper — with t54 0.090 / 0.059%, lows 0.75 / day, P(reach 54) failing; 33 / 34
+     of 51 (35). The nadir moves ±0.05 run to run (c346 0.67, c352 0.71); its depth is set by the EGP share of insulin
+     action (A6), fitted per person to the tracer-comparable nadir (LESSONS 195), not by p2e. p2e stays 0.006.
