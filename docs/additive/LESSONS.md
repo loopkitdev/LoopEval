@@ -4720,3 +4720,23 @@ statistic here, but it is the controller donors ran.
        donors (268) −0.02 / −0.07 / −0.13 / −0.22 / −0.39 / −0.53 / −0.72 per U per ISF at 15 / 30 / 45 / 60 / 90 / 120 /
        180 min; the sim arms have 11–18 such corrections each, too few to separate onset speed. Next: a probe of the body's
        insulin and carbohydrate impulse responses against the donors' flat-trend corrections and isolated meals.
+
+239. **The small post-meal excursion is not glucose effectiveness, meal speed, early insulin or a low carb sensitivity.**
+     Diagnostic arms on c257 (`c258.sh`; not candidates):
+
+     | | rise per 10 g (p50) | post-entry 30 / 60-min SD | TIR | lows/day | matched |
+     |---|---|---|---|---|---|
+     | c257 | 13.1 | 29.4 / 45.4 | 74.2 | 0.50 | 27 |
+     | SG × 0.5 (c258_sg5) | 13.7 | 31.2 / 48.1 | 68.3 | 0.67 | 31 |
+     | meal_k × 1.4 (c258_mk14) | 14.3 | 31.3 / 48.4 | 74.0 | 0.58 | 29 |
+     | donors | 16.7 | 35.4 / 53.7 | 71.7 | 1.08 | |
+
+     Both move it a sixth to a quarter of the way at the edge of their evidence (SG × 0.5 also moves the level: TIR 68).
+     - Body carb sensitivity against the settings' ISF / CR (`csf_ratio.py`, c257): p10 / p50 / p90 0.82 / 1.12 / 1.61 — the
+       bodies already make more glucose per gram than the settings assume. Body ISF / settings 0.98, body CR / settings 0.82.
+     - Body insulin impulse response (`ins_course.py`, 40 people, 1 U vs control): share of the maximum drop at 30 / 60 / 90 /
+       120 / 180 min, from 180 mg/dL 0.02 / 0.17 / 0.40 / 0.63 / 0.94 (at rest 0.01 / 0.08 / 0.21 / 0.37 / 0.65). Not fast
+       early; slower in the first hour than Loop's own adult curve.
+     - Open: labeled arrival per entered gram matched the donors (LESSONS 228) while the isolated-meal CGM rise per entered
+       gram is 20% short. Next: reconcile the two on the same meals (labeled g-eq vs CGM rise, sim vs donors) to find
+       which side of the labeler's conversion differs.
