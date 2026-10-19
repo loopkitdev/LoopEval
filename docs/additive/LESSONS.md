@@ -6267,3 +6267,9 @@ outputs in gamepc ~/additive/runs/c290–c312).
      this is heat-ruined stock. Paired 48 × 10 days on unchanged settings (s354): niacin 0.37 TDD ×1.27, mean +43 mg/dL,
      TIR −23, time > 180 +25; potency 0.85 TDD ×1.07, mean +10, TIR −4. Test beds for a controller facing a large lasting
      need increase (niacin) or quietly weaker insulin (potency). D8 dehydration stays unbuilt: no size in T1D.
+
+355. **Dehydration (D8) is an evidenced null, not a gap.** Carroll et al. 2019 (J Appl Physiol 126:422; randomized
+     crossover, 16 healthy adults): acute mild hypohydration (−1.9% body mass, −2.9% cell volume, copeptin up) left the
+     OGTT glucose and insulin responses unchanged. With the T1D fluid-restriction thesis (less mild hyperglycaemia after)
+     and an unsized small worsening in T2D (Johnson 2017), the model carries no dehydration term, by evidence. Every row
+     of the factor catalog now has a built component, a scenario, or an evidenced reason for none.
