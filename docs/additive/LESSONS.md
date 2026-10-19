@@ -5396,3 +5396,19 @@ statistic here, but it is the controller donors ran.
      explains the long unbolused rises. Left to measure: how fast the twins' bodies and Loop bring an unbolused rise down
      against the donors' at matched excursion — the post-peak fall per unit of automatic insulin, on excursions of the
      same height.
+
+286. **At the same height, the twins' rises peak later and come down slower than the donors' — bolused or not.** Isolated
+     daytime pulses, CGM excursion over 4 h in 40–80 mg/dL (`pulse_tail.py` MATCHED / BAND, G7; announced pulses allow
+     their own entry and bolus in the first 45 min), fall in the 60 min after the CGM maximum, p50:
+     - Unannounced: donors −36.9 / −33.5 (automatic-bolus / temp) at max 105 / 110 min, c289 −26.0 / −27.0 at 110 / 110,
+       delivered / scheduled after the max 1.02 / 1.33 vs 1.17 / 1.10; minutes ≥ +20 equal (120 / 120).
+     - Announced: donors −36.6 / −38.3 at 95 / 95 min, c289 −28.0 / −26.0 at 110 / 128.
+     - Every band above 20 mg/dL: donors fall faster (automatic-bolus 20–40 / 40–80 / > 80: −31 / −37 / −44 vs −23 / −26
+       / −35). Donors carry more tiny pulses (excursion ≤ 20: 28–30% vs 23–24%), which is most of LESSONS 284's median-
+       duration gap; the slower descent is the robust difference.
+     - By the person's gastric-emptying ceiling (c289 truth, pulse level, 40–80 band, ~50–60 pulses per tercile, noisy):
+       unannounced slow / mid / fast Vmax 1.8 / 2.7 / 3.6 kcal/min → max at 130 / 105 / 100 min, fall −23 / −37 / −28;
+       announced 1.9 / 2.8 / 4.3 → 120 / 142 / 92 min, −27 / −22 / −40. The slow-emptying people peak late.
+     Insulin action already sits on the clamp literature (LESSONS 276), so the meal side is where to look: the energy-
+     limited emptying and its between-person spread (A10: Vmax CV 30%, 28% delayed ×0.6–0.8, Samsom 2003). Ablation c293
+     (`--disable ge_var`) measures how much of the late, slow descent the spread carries.
