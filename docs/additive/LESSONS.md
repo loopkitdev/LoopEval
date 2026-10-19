@@ -5356,3 +5356,25 @@ statistic here, but it is the controller donors ran.
      So the twins carry intake after a labeled pulse that keeps glucose up on more insulin, where the donors' glucose
      comes down. Measured next: the unentered meal's appearance after its labeled peak (sim truth, by meal size), against
      the donors' post-peak fall of unannounced pulses at matched delivery.
+
+284. **The twins' unannounced daytime rises last longer than the donors', at the same height; it is not the unentered
+     meal's fat and protein.** Isolated unannounced non-rescue pulses (no entry, user bolus or other pulse from onset − 60
+     to labeled peak + 150 min; `pulse_tail.py`, G7, same labeler both sides), 08–22 h local:
+     - CGM excursion over 4 h p50 / p75 / p90: donors 46 / 86 / 130 (automatic-bolus), 40 / 75 / 115 (temp); c289
+       48 / 85 / 125, 54 / 82 / 114 — the heights match. Minutes ≥ +20 above onset p50: donors 75 / 75, c289 105 / 105;
+       share lasting ≥ 2 h 0.38 / 0.35 vs 0.46 / 0.47; delivered / scheduled from the peak 1.60 / 1.38 vs 1.82 / 1.44.
+       Announced pulses, by contrast, come down at least as fast as the donors' (per g-eq 1.33 / 1.43 vs 1.21 / 1.28).
+     - `peak_h` is the peak of carb appearance, not of glucose: CGM still rises after it, donors +7.5 / +9.9 in the next
+       hour, c289 +20 / +21.
+     - Behind c289's daytime pulses (truth): 88–93% follow eating; unentered main meals are the largest share, 56–60 true g
+       labeled as 24–26 g-eq (ratio ~0.43), excursion 58–60 at ~110 min; unentered snacks and grazes return within ~3 h.
+       Night pulses (02–06 h) are 67–71% without food: true glucose flat while the CGM rises — a sensor-side thread.
+     - In quiet hours the twins revert like the donors per 100 mg/dL of start glucose (−36 to −43 vs −27 to −43 per h);
+       after a pulse they sit ~+4 /h higher at the same start — an offset, consistent with intake still arriving.
+     - **c291 `unent_light`** (experiment, off): unentered main meals with snack composition (fat / protein 0.2 per g, from
+       0.44 / 0.45; missed boluses are most common for snacks, PMC2827497). Excursion p50 58 / 52 (taller), minutes
+       ≥ +20 p50 105 / 105, share ≥ 2 h 0.48 / 0.45 (unchanged); evening lows by time since entry unchanged; 31 matched
+       (30), t54 0.15% (0.10; donors 0.22). The fat and protein tail is not what keeps the rises up. Stays off.
+     Open: the sim's unentered meals are drawn at the entered meals' size (an assumption with no donor measurement: the
+     labeler reads an unbolused meal at ~0.43 of its grams, a bolused one at ~1.3, so g-eq cannot recover donors' true
+     unentered grams). The duration of unannounced rises is the like-for-like target for it.
