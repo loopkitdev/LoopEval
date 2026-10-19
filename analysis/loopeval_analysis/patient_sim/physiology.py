@@ -51,6 +51,8 @@ class BodyParams:
     # glucose
     vg: float = 1.88               # dL/kg (UVA/Padova; ReplayBG's 1.45 gives ~2x the carb sensitivity people's settings imply)
     sg: float = 0.003              # insulin-INDEPENDENT glucose effectiveness, 1/min (see COMPONENTS: physiology)
+    kappa_ins: float = 0.0         # experiment (LESSONS 292): 1 = κ follows plasma insulin per Best 1981 (0.24 / 0.68 / 0.78 at low /
+                                   # mid / high insulin; mapped [J] to 1 / 3 / 8× basal), scaled by the person's κ / 0.68
     kappa: float = 0.15            # glucose-dependence of insulin-mediated uptake: 1 = Bergman (X·G), 0 = linear (Loop) [J]
     low_prop: bool = True          # below Gb, uptake ∝ G (vanishes with glucose); False only for the linear calibration part
     gb: float = 119.0              # mg/dL, rest point at true basal insulin
@@ -342,7 +344,12 @@ class Body:
         renal = p.rcl * (g - p.rthr) if g > p.rthr else 0.0
         # insulin-mediated uptake's glucose dependence: weak above Gb (κ), proportional below it so
         # uptake vanishes with glucose (Bergman / UVA Michaelis–Menten at low G; LESSONS 7)
-        mm = p.gb + p.kappa * (g - p.gb) if (g >= p.gb or not p.low_prop) else g
+        kap = p.kappa
+        if p.kappa_ins > 0:
+            r_ = I / p.ib
+            kr = 0.24 if r_ <= 1.0 else 0.24 + 0.44 * (r_ - 1.0) / 2.0 if r_ <= 3.0 else 0.68 + 0.10 * min(r_ - 3.0, 5.0) / 5.0
+            kap = p.kappa * kr / 0.68
+        mm = p.gb + kap * (g - p.gb) if (g >= p.gb or not p.low_prop) else g
         dg = (-p.sg * (g - p.gb) - (self.xd * mm * self.risk(g) - p.si_d * p.ib * p.gb)
               + (egp - p.egp_b - uex + ra + util_drop) / p.vg - renal)
         self.g = max(10.0, g + dt * dg)

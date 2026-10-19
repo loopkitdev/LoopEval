@@ -128,6 +128,9 @@ class World:
         if enable and isinstance(enable.get("dose_beta"), float):
             # experiment (LESSONS 155): dose-dependent bolus absorption
             person = copy.copy(person); person.body = person.body.scaled(dose_beta=enable["dose_beta"])
+        if enable and enable.get("kappa_ins"):
+            # experiment (LESSONS 292): insulin-dependent κ (Best 1981)
+            person = copy.copy(person); person.body = person.body.scaled(kappa_ins=1.0)
         if enable and enable.get("ceiling_speed"):
             # experiment (LESSONS 150): the meal's own speed scales the stomach's energy ceiling
             person = copy.copy(person); person.body = person.body.scaled(ge_cap_speed=1.0)
