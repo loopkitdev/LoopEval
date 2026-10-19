@@ -170,7 +170,21 @@ with their donor's deployed RC; `runs/c311_*` on gamepc):
 | lift over the dial, true glucose | +0.15 [−1.28, +2.29] |
 
 aIRC now trades TIR for fewer lows at about the dial's rate: **neutral**, in line with the ledger on most replay beds.
-The 10-16 "+1.43 lift" above should not be cited. C30 / C31 (σ-gated, per-person flags) were not re-run.
+The 10-16 "+1.43 lift" above should not be cited.
+
+C30 and C31 re-run the same way, their per-person flags rebuilt from each simulated person's own baseline σ5 by the
+ledger's recipes (C30: band k = min(1, 6.7 / σ_p50), calm-high σ max = σ_p50; C31: target −20 with the same σ max;
+`runs/c312_*`):
+
+| vs baseline | C30 | C31 |
+|---|---|---|
+| ΔTIR | −0.66 [−1.09, −0.23] | −0.09 [−0.43, +0.26] |
+| Δt<54 | −0.00 [−0.04, +0.04] | −0.00 [−0.03, +0.03] |
+| lift over the dial, CGM | −0.57 [−1.40, +0.49] | −0.02 [−0.67, +0.91] |
+| lift over the dial, true glucose | +0.01 | +0.37 |
+
+**On the current body none of the three shows a lift outside its interval** (10-16: C30 +1.31, C31 +1.11, aIRC +1.43).
+The simulator no longer supports the 10-16 positive readings for any of them.
 
 **Read with the current limits** (role overlay, *Known limits*): the simulator's time < 54 under-reads the donors'
 (0.09% vs 0.22%), real meals stay ~20 mg/dL higher at 3 h than simulated ones, and faster insulin absorption removes

@@ -5745,3 +5745,9 @@ statistic here, but it is the controller donors ran.
      on CGM, +0.15 on true glucose (10-16: +1.43 [+0.18, +2.48]). Handoff updated
      (docs/handoffs/2026-10-16-additive-candidates-on-sim.md). The sim now agrees with the ledger's neutral reading on
      most beds; a candidate verdict from the simulator is only as current as its body.
+
+311. **C30 and C31 are also neutral on the current body.** Per-person σ-gated flags rebuilt from each person's own
+     baseline σ5 (`mk_sigma_flags.py`, ledger recipes), paired against c311's baseline and dial: C30 ΔTIR −0.66, Δt<54
+     0.00, lift −0.57 [−1.40, +0.49] (CGM) / +0.01 (true); C31 ΔTIR −0.09, Δt<54 0.00, lift −0.02 [−0.67, +0.91] / +0.37
+     (10-16: +1.31 and +1.11). With aIRC (LESSONS 310), no candidate shows a lift outside its interval; the 10-16 readings
+     were properties of the earlier body. Handoff updated.
