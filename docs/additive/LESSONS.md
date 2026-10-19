@@ -4996,3 +4996,7 @@ statistic here, but it is the controller donors ran.
      cohort on the donors' lows while temp-basal twins overshoot and automatic-bolus twins run close; the additive form
      matches each strategy's median twin while the cohort falls short — the lows sit in different people in the two forms,
      which is the per-person question of LESSONS 217–218 again.
+     - **Per-person transfer after the night work** (`cvmean.py`, `meanlink.py`; twin vs own donor, Spearman): c257 →
+       c270 time < 70 0.14 → 0.21, CV −0.04 → 0.05, mean 0.26 → 0.25 (|difference| p50 17.0 mg/dL). The donor's own night
+       need carries a little of the low-proneness; the person's level does not move. What sets a donor's mean among
+       people with the same settings and behaviour rates stays the open per-person question (LESSONS 217–218, 233).
