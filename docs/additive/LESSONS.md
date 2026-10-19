@@ -4776,3 +4776,22 @@ statistic here, but it is the controller donors ran.
        night variability it would raise is already at the published closed-loop value.
      - The open low-side gap is untreated daytime lows at ordinary insulin and with no user bolus in 5 h (LESSONS 240),
        where the sim's glucose below 140 moves ~12% less over 30 min.
+
+242. **The missing lows are in the automatic-bolus people, and they follow unentered rises.**
+     - **By strategy** (`by_strat.py`, c257 paired to donors): automatic-bolus twins (73) mean 154 vs 158, time < 70 0.57 vs
+       1.20%, CV 32.5 vs 36.9; temp-basal twins (39) 147 vs 153, 1.07 vs 0.97%, 34.0 vs 32.9. The temp-basal side matches.
+     - **Untreated daytime lows with no user bolus in 5 h** (`nobolus_lows.py`, per person-day): temp 0.152 vs donors
+       0.286, automatic 0.090 vs 0.308; most at ordinary insulin (prior 3 h < 1× the person's usual: 0.078 vs 0.235
+       automatic) and from moderate levels (prior-3-h max < 200: 0.064 vs 0.230 automatic).
+     - **After an unentered rise** (`unent_ins.py`; +30 within 60 min from ≥ 80, no entry −60..+30, no user bolus
+       −60..+120): Loop's insulin 0–2 h vs the person's usual p50 1.30 vs 1.20 (automatic), 1.30 vs 1.15 (temp); rise 57
+       vs 59; but the share reaching < 70 within 4 h 3.0 vs 9.9% (automatic), 3.9 vs 9.3% (temp); nadir p25 106 vs 91.
+       Rises that end low look alike on both sides (start 104, +48 vs +50, peak at 65 min, insulin 1.07 vs 1.06× usual);
+       donors' come back to the start level sooner (p50 110 vs 128 min) and reach < 70 sooner (155 vs 190 min).
+     - **Not a longer simulated rise source**: labeled unannounced pulses are shorter in the sim (dur_h p50 1.41 vs
+       1.67, peak_h 0.54 vs 0.67, size 22.5 vs 24.6 g-eq; `unann_shape.py`).
+     - With the same insulin and the same rise, real glucose falls through the start level faster and further — the fall
+       speed of LESSONS 236 again, here at its most consequential. Open: whether real unentered rises are partly not
+       carbohydrate (a rise with no glucose appearance behind it leaves Loop's added insulin uncovered) — 56% of the
+       sim's own unannounced pulses have no true eating event −60..+15 min of onset, so the labeler already reads
+       non-eating rises in the sim too.
