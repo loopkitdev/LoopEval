@@ -377,7 +377,7 @@ class World:
         self.sleep_util = float(np.random.default_rng(int(person.seed) + 2011).uniform(0.05, 0.12)) \
             if (enable or {}).get("sleep_util", True) else 0.0     # default since 2026-10-18 (LESSONS 214)
         self._sleep_since = None
-        self.ge_circ = bool((enable or {}).get("ge_circ", False))
+        self.ge_circ = bool((enable or {}).get("ge_circ", True))     # default since 2026-10-19 (LESSONS 339)
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,
                                           frag=self.act_frag, frag_seed=int(person.seed) + 1811,
                                           **({"frag_on_med": float(enable["frag_on"])} if enable and isinstance(enable.get("frag_on"), float) else {}),
