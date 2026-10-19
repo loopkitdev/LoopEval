@@ -6087,3 +6087,25 @@ outputs in gamepc ~/additive/runs/c290–c312).
      dip), every evidenced route to the donors' hours-2–3 counteraction has been tried. What would settle it is data this
      project does not hold: meal-time tracer appearance at 2–3 h for ordinary (not test) meals, or sensor-vs-reference
      series after meals.
+
+338. **Real meals: an early peak at breakfast, a slow rise to ~4 h at lunch and dinner (Vetrani 2022); the twins'
+     shortfall is lunch and dinner, and their glucose is shifted from the night into the late morning.**
+     - Evidence: Vetrani et al. 2022 (Diabetologia, doi:10.1007/s00125-021-05587-0, open access; 25 adults on hybrid closed
+       loop, 1,264 meals with 7-day food records, 6-h CGM): "an earlier peak after breakfast and a slow increase until 4 h
+       after lunch and dinner"; postprandial TIR 79 / 71 / 70%. Scidà 2025 (JDST, doi:10.1177/19322968241256475; 120 adults,
+       670G / 780G / Control-IQ): the same response whatever the carbohydrate / fat-plus-protein ratio.
+     - Donors (isolated bolused entries ≥ 15 g, G7, `meal_traj_tod.py`), 0–3 h every 30 min: breakfast 0 / 16 / 29 / 33 /
+       28 / 25 / 21, lunch 0 / 17 / 27 / 27 / 28 / 27 / 26, dinner 0 / 13 / 10 / 5 / 9 / 14 / 17 — Vetrani's pattern.
+       c331_strat: breakfast 0 / 9 / 25 / 29 / 16 / 16 / 12, lunch 0 / 4 / 7 / 6 / −2 / −8 / −12, dinner 0 / 7 / 12 / 9 / 2
+       / 1 / 1. As LESSONS 180–181: twins' lunches start higher (151 vs 134) with more insulin from the 3 h before (3.9 vs
+       2.8 U) and get slightly less per gram after (0.196 vs 0.213 U/g; `lunch_ins.py`).
+     - Hourly mean (local): donors 00–03 h 158 / 152 / 147 / 141, 08–11 h 135 / 140 / 146 / 146; twins 149 / 134 / 132 / 131
+       and 143 / 153 / 162 / 157 (equal daily mean 150.7). Truth by hour (60 twins): gut appearance peaks at 21–22 h (2.6
+       mg/kg/min) and collapses at bedtime (1.85 / 0.94 / 0.50 at 23 / 01 / 03 h); glucose follows it down 30 mg/dL in two
+       hours. The donors' nights decline slowly — consistent with dinners that keep appearing for ~4 h.
+     - Meal composition by slot is now Vetrani's measured ratio (default `slot_comp`; e41216a): fat per carbohydrate gram ×
+       0.72 / 0.97 / 1.14 and protein × 0.86 / 0.86 / 1.24 at breakfast / lunch / dinner (was [J] 0.6 / 1.0 / 1.35 on both).
+       c338: 37 of 51 (37); lunch and dinner shapes unchanged; t54 0.090% (p 0.032), P(reach 54) 0.16 fails. Adopted for
+       the evidence: reference now c338_slotv.
+     - The twins' breakfast hump at 3.5–4.5 h (+16 / +17 vs donors' steady decline) is selection: "isolated" excludes
+       only entered meals, and 45% of twins' isolated breakfasts have an unentered meal (~15 g) 2.5–5 h later.
