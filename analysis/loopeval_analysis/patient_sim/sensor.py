@@ -75,6 +75,8 @@ class Family:
     trans_amp: tuple = (10.0, 0.4)  # mg/dL amplitude (median, log-sd)
     trans_tau: float = 10.0       # min, recovery time constant
     trans_down: float = 0.55      # share of events that read low first
+    early_noise: tuple = (0.0, 900.0)  # (c, tau min): noise SD x (1 + c·exp(-age/tau)) — first-day CGM error is ~1.6x mid-session
+                                  # (G7 Garg 2022 Table 2: MARD day 1 11.9 / 12.9%, day 2 8.4 / 8.6%, days 4-7 7.2-8.1%; LESSONS 221)
     trans_prop: float = 0.0       # 0 = transient in absolute mg/dL; 1 = scaled with IG/130 like the noise (CGM error is close to
                                   # proportional: a fixed 12 mg/dL at 60 mg/dL made false lows the FDA tables do not show; LESSONS 213)
     common_sigma: float = 0.0     # innovation sd of the error COMMON to co-located sensors (interstitial physiology):
@@ -102,7 +104,7 @@ FAMILIES = {
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
                         brand_gain=1.0, sigma=(2.8, 0.8), df=30.0, hetero_q=0.5, a0=(0.98, 0.04), b0=(3.0, 3.0),
                         common_sigma=2.0, trans_rate=(8.0, 0.9), trans_amp=(8.0, 0.4), noise_wander=(0.2, 480.0),
-                        slow_bias=(5.0, 180.0)),   # refit on the c235 bodies against K213919 (LESSONS 211): slow bias sd 5 (Breton &
+                        slow_bias=(5.0, 180.0), early_noise=(1.35, 900.0)),   # refit on the c235 bodies against K213919 (LESSONS 211): slow bias sd 5 (Breton &
                                                    # Kovatchev 2008), transient amplitude 12 -> 8, noise wander 0.6 -> 0.2; loss 10.9 -> 4.0
     # Libre 3 fitted to K212132 (bias 7.4/1.4/−4.5/−7.3/−11.5, MARD 15.5/10.3/9.7/7.5/6.9, PARD 6.8): MARD 11/10/8/7.6/7.5,
     # PARD 6.8; it reads too little high at true < 54 (+0.4 vs +7.4) [open]
@@ -168,6 +170,7 @@ class Sensor:
                 kw["trans_amp"] = (overrides.get("sensor_tamp", self.f.trans_amp[0]), overrides.get("sensor_tampsd", self.f.trans_amp[1]))
             if "sensor_ttau" in overrides: kw["trans_tau"] = overrides["sensor_ttau"]
             if "sensor_tprop" in overrides: kw["trans_prop"] = overrides["sensor_tprop"]
+            if "sensor_enoise" in overrides: kw["early_noise"] = (overrides["sensor_enoise"], overrides.get("sensor_entau", self.f.early_noise[1]))
             if "sensor_sbias" in overrides or "sensor_sbtau" in overrides:
                 kw["slow_bias"] = (overrides.get("sensor_sbias", self.f.slow_bias[0]), overrides.get("sensor_sbtau", self.f.slow_bias[1]))
             if "sensor_wander" in overrides or "sensor_wtau" in overrides:
@@ -272,6 +275,8 @@ class Sensor:
             a = math.exp(-f.cadence / wtau)
             self.wz = a * self.wz + math.sqrt(1 - a * a) * float(self.rng.normal(0.0, wsd))
         nu = math.exp(self.wz - wsd ** 2) if wsd > 0 else 1.0      # E[ν²] = 1: the noise variance is unchanged on average
+        if f.early_noise[0] > 0:
+            nu *= 1.0 + f.early_noise[0] * math.exp(-max(0.0, minute - s.start) / f.early_noise[1])
         sbsd, sbtau = f.slow_bias
         if sbsd > 0:
             a2 = math.exp(-f.cadence / sbtau)
