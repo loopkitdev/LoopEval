@@ -5016,3 +5016,9 @@ statistic here, but it is the controller donors ran.
        mismatch. Cohort: lows 1.00/day (KS 0.91), t70 1.43%, meals ending < 70 8.6% (9.7), CV 35.6, 29 matched; day / night
        1.90 (KS 0.043). The closest lows yet, but no per-person gain and a stronger stance (the body equal to the settings
        on average) than this evidence carries: not adopted; ISF_W stays 0.5, open for Pete.
+     - **The donor's night need does not carry their level.** Twin mean vs the donor's overnight delivered / scheduled
+       (night_ratio, donors' own mean 0.63): c257 0.17 → c270 0.21, with the donor's night need now in each body. The
+       twin's Loop delivers what that need asks, so the level does not follow; in the donors the 0.63 plausibly runs the
+       other way too (high glucose → Loop delivers above schedule). Correction BG (0.60 in donors, twins 0.10) is the same
+       kind of consequence. A per-person level cause needs a donor feature that precedes the glucose, not one Loop or the
+       person produces in answer to it.
