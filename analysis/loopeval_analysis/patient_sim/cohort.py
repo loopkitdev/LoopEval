@@ -41,7 +41,7 @@ def _one(args):
                           prof_deliv=bool(enable.get("prof_deliv", False)),
                           csf_own=bool(enable.get("csf_own", False)),
                           twin=bool(enable.get("twin", False)),
-                          suspend_own=bool(enable.get("suspend_own", False)),
+                          suspend_own=bool(enable.get("suspend_own", True)),   # default since 2026-10-19 (LESSONS 232)
                           basal_share=enable.get("basal_share") if isinstance(enable.get("basal_share"), float) else 0.42,
                           isf_blend=enable.get("isf_blend") if isinstance(enable.get("isf_blend"), float) else 0.0)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
