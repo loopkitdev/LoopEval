@@ -6165,3 +6165,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      39ab1b1): emptying × up to 1.15 by 0.3 VO2-reserve, held to 0.6, falling to × 0.5 at 0.8 [J depth], on the filtered
      intensity so emptying resumes after a session. c345 vs c339_gecirc: 38 of 51 (38); breakfast peak +41 at 1 h (+32);
      lunch −7 at 3 h, dinner +4 to +7 at 3.5–5 h, 3-h meal change +0.2 (donors +21); t54 0.120% (p 0.023). Not adopted.
+
+345. **The twins skipped the dinner entry twice as often as their donors; `entry_win` is now the default.** Entered grams
+     17–23 h per day (donors in 12-day blocks, carbs.json local; twins' entries): donors p50 34.7 g, day-to-day CV 0.65,
+     evenings with no entry 17%; c339_gecirc 24.0 g, 0.97, 33%; c341 (`entry_win`, LESSONS 341) 30.6 g, 0.84, 25%. The
+     per-window entry chance calibrated on the donors' own entered grams is a measured behaviour, so it is adopted
+     (Pete: soundness over count). Its cohort result (c341 vs c339): 36 of 51 (38) — gains carb_entries_per_day (3.25,
+     p 0.135), ac1 and t54 (p 0.069); loses day / night insulin (1.73 vs donors 2.0, p 0.010, the one substantive cost),
+     and G7 v_sd / kurtosis / skew and min_below70 at pass shares 0.28–0.50 (borderline). Night-to-night glucose on
+     c339: between-night SD 25.7 (c331 21.9; donors 32.2), 01-h level SD 42.9 (51.3) — circadian emptying closed part of
+     LESSONS 332's gap. Reference now c341_entwin.
