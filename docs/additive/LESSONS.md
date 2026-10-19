@@ -6206,3 +6206,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
        eating within −30..+120 min (60–73% in every quartile). The carb sensitivity is right in level and close in spread;
        what remains is a breakfast-specific excess (1.27 vs 1.13 per entered gram), the direction of the evidenced
        morning emptying speed-up (ge_circ ×1.25, Goo 1987). Left as is.
+
+348. **Same carbs, same insulin, same labelled load — the twins' meals still rise less: disposal at meal glucose is the
+     common thread.** Bolused entries ≥ 15 g, no other entry −120..+180 min, flat start 100–160 mg/dL (|30-min trend| <
+     10), G7 (`norise*.py`; donors 3,591 meals, c346_st 168): rise to the 2-h maximum p25 / p50 29 / 58 vs 14 / 46; no rise
+     (< 10) 11.2% vs 20.2%; < 70 within 90 min 4.5% vs 1.8%. Insulin −15..+30 min 1.33 vs 1.24 U per 10 g, +30..+150 min
+     0.45 vs 0.44 U per 10 g; labelled g-eq per entered gram p50 1.19 vs 1.22 (LESSONS 347). After no-rise meals the
+     median fall matches (60 / 90 min −24 / −27 vs −20 / −25) and the fast tail is shallower (p10 −58 / −62 vs −46 / −56):
+     the "fast falls" limit (LESSONS 238). With intake, entry, insulin and labelled load matched, a smaller net rise and
+     a smaller late phase (LESSONS 301–347) both say the twins' bodies clear glucose faster while it is raised — glucose
+     effectiveness (A1, SG lnN(0.003, 0.5)) and the glucose-dependence of insulin action (A5, κ ≈ 1, Best 1981; LESSONS 303)
+     are the components to re-examine against their own evidence, not the gut or the behaviour.
