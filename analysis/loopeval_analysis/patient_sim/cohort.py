@@ -46,7 +46,7 @@ def _one(args):
                           night_own=bool(enable.get("night_own", True)),   # body night need from the donor's steady nights; default since 2026-10-19 (LESSONS 251)
                           basal_share=enable.get("basal_share") if isinstance(enable.get("basal_share"), float) else 0.42,
                           isf_blend=enable.get("isf_blend") if isinstance(enable.get("isf_blend"), float) else 0.0,
-                          csf_w=enable.get("csf_w") if isinstance(enable.get("csf_w"), float) else None)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
+                          csf_w=enable.get("csf_w") if isinstance(enable.get("csf_w"), float) else 0.5)   # default since 2026-10-19 (LESSONS 300)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
         if isinstance(enable.get("preg_week"), float) and P.sex == "F" and 13 <= P.age <= 50:

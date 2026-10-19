@@ -5597,3 +5597,19 @@ statistic here, but it is the controller donors ran.
      close to the only paired record we have (one donor, sensor models unknown), slightly more shared. The shared part
      is body plus co-located interstitial error, which paired sensors cannot separate (LESSONS 298); a sensor-vs-
      venous reference time series would. Sensor structure stays as fitted.
+
+300. **ISF_W 1.0 had put the body's carb sensitivity fully on the entered settings; restoring its data weight to 0.5
+     gives 32 of 51 and the donors' share of people reaching 54.** The component review (`review.py`, targets rebuilt
+     and identical) on c289 showed the 3-h change after isolated bolused meals at −2.6 vs the donors' +21.2 (it was +16 to
+     +23 after LESSONS 195). In `person.sample_person`, ISF is `settings × (data / settings)^w` (w weights the data) but
+     the carb sensitivity is `cal × CSF_data^(1−w) × CSF_settings^w` (w weights the settings): at the old 0.5 the two
+     agreed; LESSONS 259's ISF_W 1.0 (body ISF on the data, Pete) silently moved the carb sensitivity onto the settings'
+     ISF/CR. `csf_w` (cohort `--set csf_w`, default now 0.5) sets the carb sensitivity's data weight apart from ISF_W.
+     - c300, csf_w 1.0 (TDD-rule data branch alone): 23 matched — an independent CSF breaks the meals (LESSONS 37).
+     - c300, csf_w 0.5 (the pre-259 coupling, ISF still fully on the data): 32 matched (c289 30); p_reach54 0.20
+       (donors 0.20, KS 0.011 → 0.15), t54 0.148% (0.097; 0.215), low depths and durations on the donors', G7 v_skew,
+       volatility clustering, between-day share and day / night now pass; bg_mean 157 (151; KS 0.34 → 0.02), CV,
+       hurst_long and p99 now fail. Several flips sit near p 0.05.
+     Adopted: the change undoes an unintended side effect, moves the carb sensitivity toward the data, and helps the
+     low side the simulator runs short on; the +6 mg/dL level is the cost to work next. The 3-h meal change barely
+     moves (+3.2 vs +21.2), so its drift is elsewhere — the next review item. New reference c300_csfw0.5.
