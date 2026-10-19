@@ -88,7 +88,7 @@ The "Freq." column is my estimate for a typical adult on AID, unless a source is
 
 ---
 
-## 1b. Simulator coverage (2026-10-18)
+## 1b. Simulator coverage (2026-10-19)
 
 Where each factor lives in the additive simulator. **On** = default; **switch** = built, off by default;
 **scenario** = forced by a scenario switch; **implicit** = carried by a donor-measured trait or the TDD budget rather
@@ -105,16 +105,16 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | D7 | Meal timing | donor eating clock; `own_clock`, `graze_eve` | on (clock); switches | LESSONS 123, 135, 170 |
 | D8 | Dehydration | — | not built (Tier 3) | — |
 | D9 | Microbiome | per-person meal response spread | implicit | — |
-| D10 | Settings mismatch | settings = donor's; body halfway to the TDD yardstick (ISF_W) | on | LESSONS 144, 164 |
+| D10 | Settings mismatch | settings = donor's (incl. glucose safety limit, `suspend_own`); body halfway to the TDD yardstick (ISF_W); twins bounded to the measured ISF | on | LESSONS 144, 164, 232–233 |
 | D11 | Bolus timing | per-person lead from the labeler (`lead_own`) | on | LESSONS 106 |
 | D12 | Adjunct medication | B12 GLP-1 RA | switch | ADJUST-T1D split (LESSONS 87) |
 | D13 | Glucocorticoids | B14 courses | on (population rate); scenario | Bevier 2008 (LESSONS 140) |
 | D14 | Niacin | — | not built (Tier 3) | — |
 | D15 | Light activity | C6 episodes + C7 fragmented bouts (`act_frag`) | on | — |
-| D16 | Exercise | C1–C5 sessions, uptake, acute and delayed SI, absorption | on | BDDP workouts (LESSONS 137) |
+| D16 | Exercise | C1–C5 sessions (intensity from donors' workout METs), uptake, acute and McMahon-sized delayed SI, absorption, C4 surge above 60% effort | on | BDDP HealthKit workouts (LESSONS 243–247); post-moderate-session fall still short of donors' |
 | D17–18 | Fitness, exercise timing | per-person gain; session slot | on (as parameters) | — |
 | D20 | Insufficient sleep | B7 prior-night sleep loss; `sleep_util` (sleep-lowered glucose use) | on; switch | quiet-night balance (LESSONS 173) |
-| D21a | Illness | B6 episodes | on | BDDP logs (LESSONS 136) |
+| D21a | Illness | B6 episodes | on | BDDP logs (LESSONS 136); rate, duration, size re-checked (LESSONS 235) |
 | D21b | Stress | B10 reactive third | on | BDDP logs (LESSONS 138) |
 | D22 | Recent hypoglycaemia | A9 HAAF | on | — |
 | D24 | Dawn phenomenon | B1b basal-need profile (donor schedule), B2 dawn, B8 GH | on | LESSONS 48, 51 |
@@ -122,7 +122,7 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | D26 | Lipohypertrophy | device LH sites | on | — |
 | D27 | Intramuscular delivery | absorption jitter A4 | implicit | — |
 | D29 | Hyperglycaemia resistance | B11 | on | LESSONS 153 |
-| D30 | Menstrual cycle | B5 late-luteal shape | on | BDDP cycle logs (LESSONS 136) |
+| D30 | Menstrual cycle | B5 late-luteal shape | on | BDDP cycle logs (LESSONS 136); onset size checked over full cycles, post-onset low earlier than donors' (LESSONS 235) |
 | D31 | Puberty | age-banded U/kg | implicit | — |
 | D35 | CGM error | sensor families (G6, G7, Libre 3, Medtronic) | on | LESSONS 45, 174 |
 | D36 | Heat / sauna | — | not built (rare; evidence [U]) | — |
@@ -133,7 +133,7 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | X3 | Insulin absorption variability | A4 jitter, posture A4b | on | LESSONS 163, 169 |
 | X4 | Day-to-day need variation | B3 day SI, named nightly factors | on | — |
 | X5 | Circadian SI | B1 Visentin classes | on | LESSONS 168 |
-| X6 | Post-exercise late sensitivity | C2 delayed state | on | LESSONS 137 |
+| X6 | Post-exercise late sensitivity | C2 delayed state, McMahon-sized (quadratic drive) | on | LESSONS 57, 246 |
 | X7 | Compression / dropouts | sensor compression, gaps | on | LESSONS 45, 167 |
 | X8 | Loop not running | outages, pump faults | on | — |
 | X9 | Pregnancy | X9 need by gestational week | scenario (`preg_week`) | LESSONS 141 |
@@ -142,7 +142,23 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | X12 | Thyroid | — | not built (treated → settings) | — |
 | X13 | Impaired hypo awareness | rescue timing per donor | implicit | — |
 | X14 | Long-term drift | — | not built (14-day cohorts) | — |
-| X15 | Correction stacking | per-person corrections and top-ups | on | LESSONS 164 |
+| X15 | Correction stacking | per-person corrections, size, top-ups; hazard by CGM trend (`corr_trend`) | on | LESSONS 164, 224, 237 |
+| X16 | Insulin formulation | body and Loop curve per donor, ultra-rapid inferred from Loop's recorded IOB | on | LESSONS 248 |
+
+### Fit against the donors (reference c264, 2026-10-19)
+
+112 simulated people × 14 days against the eda statistics of their own donors (`cmp_full.py`, `review.py`): 29 of 51
+statistics matched (KS). Matched: mean, CV, hurst_long, day/night insulin, low depth and duration, meal arrival shape,
+quiet-period motion, night-to-night insulin, correction behaviour by trend, exercise response by intensity. Open, in
+order of size:
+- **Lows:** 0.58/day vs 1.08, time < 70 0.75 vs 1.67%. Temp-basal twins match their donors; the gap is in
+  automatic-bolus people (time < 70 0.67 vs 1.20%), after unentered rises: same insulin, same rise, but real glucose
+  falls through the start level faster and further (LESSONS 236, 242).
+- **Fast falls:** falling readings > 3 mg/dL/min 0.4–0.5 vs 1.26%; not glucose effectiveness, meal speed, early insulin,
+  carb sensitivity or formulation (LESSONS 238–239, 248).
+- **Per person:** twins do not inherit their donor's mean (Spearman 0.26) or low-proneness (0.12); low-prone donors are
+  not measurably more insulin-sensitive than their settings (LESSONS 233).
+- **Breakfast intake** ~8 g-eq/day above the donors' (LESSONS 231).
 
 ## 2. Ranking and justification
 
