@@ -39,6 +39,7 @@ def _one(args):
                           egp_sat=bool(enable.get("egp_sat", True)),   # default since 2026-10-18 (A5 review loop, LESSONS 196)
                           p2e=enable.get("p2e_cal") if isinstance(enable.get("p2e_cal"), float) else None,
                           prof_deliv=bool(enable.get("prof_deliv", False)),
+                          csf_own=bool(enable.get("csf_own", False)),
                           basal_share=enable.get("basal_share") if isinstance(enable.get("basal_share"), float) else 0.42,
                           isf_blend=enable.get("isf_blend") if isinstance(enable.get("isf_blend"), float) else 0.0)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
