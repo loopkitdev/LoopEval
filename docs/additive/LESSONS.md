@@ -5122,3 +5122,12 @@ statistic here, but it is the controller donors ran.
        30 g. Lunch entries are a little too frequent and too big; afternoon and late-evening entries too few and too big —
        donors log small snacks there (20–28 g) that the sim's people mostly eat unentered. Total entries 2.9 vs 3.3/day
        (review `entries_day`). Next: the snack-entry chance and snack size by hour against these donor numbers.
+
+265. **The donor's own entry clock (`entry_clock`) does not move when the sim's people enter snacks.** `templates.add_entry_hours`
+     restored the column (152 of 168 donors; it had dropped out of templates_pilot_logs.csv, so the switch was a no-op);
+     c279 = the c277 configuration + entry_clock (its script dropped night_add — compare with c277, not c278): entries/day
+     by block 15 / 21 h 0.41 / 0.23 (c277 0.38 / 0.24; donors 0.55 / 0.35), entered g/day unchanged (112.0), median entry
+     size 33 / 28 g; 31 matched (29, inside the 27–31 band), t70 1.75%, lows 1.00/day. The weight scales the snack-entry
+     chance by hour, but snacks entered there are few either way; the donors' afternoon and late entries are small items
+     the sim's people eat as unentered grazes or not at all. Stays off. Next: the size and count of afternoon / evening
+     eating occasions themselves (snack_rate by clock, graze vs snack split) against donor entries and labeled pulses.
