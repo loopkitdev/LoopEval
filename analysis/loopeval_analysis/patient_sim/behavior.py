@@ -110,7 +110,7 @@ class BehaviorTraits:
     own_clock: bool = True               # main meals on the donor's own clock (default since 2026-10-18: day/night insulin
                                          # ratio 2.03 vs donors 2.06; LESSONS 206)
     entry_clock: bool = False            # switch: use snack_entry_w
-    graze_unann: bool = False            # grazes on the donor's unannounced-pulse clock (LESSONS 230)
+    graze_unann: bool = True             # grazes on the donor's unannounced-pulse clock (LESSONS 230)
     unann_hours: Optional[object] = None
     graze_keep: float = 1.0              # share of planned grazes kept (thinning experiment, LESSONS 109)
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
