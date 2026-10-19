@@ -4986,3 +4986,13 @@ statistic here, but it is the controller donors ran.
      basal need, not measurements of it; nights carry the least unentered eating and stay the clean reference. The body's
      24-h basal level therefore stays set by the TDD balance (share 0.42) with unentered eating modelled apart, and the
      temp-basal twins' daytime low excess (LESSONS 253) is not settled by moving basal between day and night.
+
+255. **Adding the night need on top (`night_add`, off) fixes the twins by strategy but loses the cohort's lows.** c271
+     (night bump without renormalising; the body's 24-h basal rises, the intake budget does not) vs c270: t70 by
+     strategy temp 1.77 → 1.00 (donors 0.97), automatic 1.43 → 1.00 (1.20); means 150 / 155 vs 153 / 158; temp untreated
+     no-bolus daytime lows 0.457 → 0.224 (0.286). But cohort lows/day 0.92 → 0.75 (1.08, KS fails), t70 1.45 → 1.00%
+     (1.67), 29 matched (31); day / night 1.85 (KS 0.051). It also takes the body's daily insulin past the donor's TDD,
+     the measured constraint since LESSONS 143. c270 (renormalised) stays the reference. The renormalised form puts the
+     cohort on the donors' lows while temp-basal twins overshoot and automatic-bolus twins run close; the additive form
+     matches each strategy's median twin while the cohort falls short — the lows sit in different people in the two forms,
+     which is the per-person question of LESSONS 217–218 again.
