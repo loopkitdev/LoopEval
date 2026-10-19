@@ -4870,3 +4870,14 @@ statistic here, but it is the controller donors ran.
        surge. 29 matched, lows 0.58/day, meals ending < 70 7.0% (9.7; was 4.4–5.4), mean 147, TIR 74.9, t70 0.75.
        By strategy: temp twins t70 1.16 vs donors 0.97, automatic 0.67 vs 1.20; untreated no-bolus daytime lows temp
        0.236 vs 0.286, automatic 0.100 vs 0.308 — the automatic-bolus gap (LESSONS 242) remains.
+
+248. **Insulin per donor from Loop's own IOB: 16 templates relabelled to ultra-rapid; little cohort effect.** The export's
+     insulinType defaults to rapid-acting adult when no formulation is recorded, so the 126 "humalog" templates included
+     unknowns. `templates.add_insulin_from_iob` rebuilds net-basal IOB from doses.json (delivered − therapy basal) with
+     Loop's exponential curve at peak 75 and peak 55 and compares it with loop_iob.parquet (Loop's recorded IOB), 10 days
+     per donor. 206 pilot donors: recorded Fiasp / Lyumjev match the ultra-rapid curve 37 / 38 and 14 / 14 (RMSE p50
+     0.32 / 0.44 vs adult 0.58 / 0.74); of 154 recorded rapid-acting, 118 match the adult curve (0.35 vs 0.52), 36 the
+     ultra-rapid one, 19 by > 20%. 16 of those are pilot templates: humalog 126 → 110, fiasp 31 → 47 (body and Loop's
+     curve both follow). c265 on the relabelled templates vs c264: 27 matched (29), lows 0.58/day (0.58), meals ending < 70
+     7.2% (7.0); falling readings > 3 mg/dL/min 0.52% (0.39; donors 1.26). A fidelity fix; the fast-fall gap stays.
+     The 74% ultra-rapid share of the 2026-08-25 formulation screen is the known-brand subset, not the pool: here 34–42%.
