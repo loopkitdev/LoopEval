@@ -6026,3 +6026,23 @@ outputs in gamepc ~/additive/runs/c290–c312).
        event in −90..+30 min of onset (c331_strat): 58 / 49 / 52 / 58 g-eq/day for Q1–Q4 (morning 04–12 h 25 / 16 / 23 /
        25), ~2 a day; food pulses 163 / 146 / 142 / 144. Body-made rises do not single out the low-runners' twins; what
        keeps those twins high is still unnamed (LESSONS 218–233, 332).
+
+334. **The low-runners' twins face a bigger daytime load than their donors and get more insulin for it; per-person
+     calibration and the circadian class each move part of the gap, neither the level.**
+     - Delivered insulin by local window (`clock_ins.py`, c331_strat), donor / twin U/day, Q4 by donor t54: night 4.1 /
+       5.0, 06–12 h 9.8 / 11.8, 12–18 h 11.5 / 11.7, evening 12.6 / 12.2. Q4 twins run 30 mg/dL higher in the morning on
+       MORE insulin: their morning load is larger, not Loop timid.
+     - Labelled load by window (ice labeler both sides), donor / twin g-eq per day, morning: Q1 54 / 57, Q2 44 / 51, Q3
+       48 / 58, Q4 42 / 58; afternoon Q4 47 / 66. The donors' rises vary by person; the twins' are nearly the same
+       whoever their donor (51–58 in the morning). Each donor's meal response does not transfer.
+     - `--enable twin` (LESSONS 219 per-donor ISF / CSF multipliers, round-9 values, bounded) on the current base, c334:
+       every low statistic on the donors' (t54 0.207 vs 0.190%, lows/day 1.17 vs 1.00, P(reach 54) 0.22 vs 0.21,
+       per-person time < 70 Spearman 0.33), but CV 37.8 (34.6) fails, mean 157.8, Q4 morning 152 (124); 33 of 51. The
+       multipliers sit at the bound LESSONS 233 found unsupported by the measured ISF. Stays off.
+     - The Visentin circadian class is a random per-person draw: twins run 10–13 mg/dL above their donor in a segment
+       drawn low-SI, −14 to +3 in one drawn high. `circ_swing` 0.5 / 0 (c335): per-person mean Spearman night / morning /
+       afternoon / evening 0.33 / 0.12 / 0.38 / 0.32 and 0.34 / 0.15 / 0.42 / 0.34 (full swing 0.29 / 0.09 / 0.32 / 0.28);
+       circadian_amp p 0.05 / 0.20 (full 0.008); but t54 0.146 / 0.090% (p 0.041 / 0.003), 36 / 35 of 51. The class's
+       mismatch with the Loop schedule makes part of the realistic lows; its randomness costs person-level fidelity. Kept
+       at full: no measurement contradicts Visentin's swing, and Hinshaw 2013 says the pattern is individual — a
+       per-donor fit of the segment pattern from their own data, not a smaller swing, is the evidenced next step.
