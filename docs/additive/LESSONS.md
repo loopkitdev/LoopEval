@@ -5529,3 +5529,13 @@ statistic here, but it is the controller donors ran.
      missing fast moves as the 5-min step tail (LESSONS 268), the slower post-peak descent (286) and the post-bolus early
      fall (291), with lower volatility clustering (0.110 vs 0.124). The body side carries the larger part; the sensor
      part (FDA table vs donors' own noise estimate) is a second, smaller conflict to resolve on its own evidence.
+
+294. **Correction to LESSONS 291: the twins' correction response is not weaker overall.** Pooling all nine arms on the same
+     body (`corr_fall_multi.py`; c289, c290–c293, c295 ×2, c297, c298): all lone corrections at 150–250 mg/dL (473 vs
+     donors 1463), change per U per ISF p50 at 60 / 90 / 120 / 180 min −0.063 / −0.246 / −0.41 / −0.60 vs donors
+     −0.032 / −0.215 / −0.35 / −0.63 — equal or a little stronger. Only the flat-trend subset (110 vs 268) reads weaker
+     (−0.16 / −0.31 / −0.42 / −0.65 vs −0.22 / −0.39 / −0.53 / −0.72), and the subset choice decides the sign. So the
+     correction data do not show the body's insulin action too late or too small; LESSONS 291's "~20% weaker at
+     60–120 min" was a subset reading. The robust gaps stay those measured on many events: the post-peak fall at matched
+     height (286), the early-fall tail after bolused meals (291) and the volatility dispersion (293) — all meal- and
+     disturbance-side as much as insulin-side.
