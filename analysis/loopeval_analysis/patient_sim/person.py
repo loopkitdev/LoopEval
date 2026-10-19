@@ -34,7 +34,7 @@ BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "
                  "abs_fast_s", "abs_slow_s", "abs_fast_l", "abs_slow_l", "gap_short", "gap_long", "entry_hours",
                  "clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd"] + \
                 [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h")] + \
-                ["edit_basal_day", "edit_isf_day", "edit_cr_day", "corr_exposure", "slot_g", "slot_ann", "slot_lr", "offline_day", "perr_day",
+                ["edit_basal_day", "edit_isf_day", "edit_cr_day", "corr_exposure", "slot_g", "slot_ann", "slot_lr", "night_need_ratio", "offline_day", "perr_day",
                  "treat_log_day", "low_entered_share", "skip_bfast"]
 # ice L54 measures 1.30 g-eq of meal pulse per entered gram (1.21 for the pilot donors through the same
 # labeler, meal_response/ice_check). Run through that labeler, simulated people at 1.30 read 0.91 —
@@ -212,7 +212,7 @@ def _formulation(brand: str, rng) -> str:
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
-                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False,
+                  kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
@@ -367,6 +367,19 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
             import json as _json
             d_ = np.asarray(_json.loads(dv), dtype=float)
             if np.isfinite(d_).all() and d_.mean() > 0: prof_true = d_ / d_.mean()
+    nr_ = float(row.get("night_need_ratio", np.nan)) if hasattr(row, "get") else np.nan
+    if night_own and np.isfinite(nr_) and nr_ > 0:
+        # the body's 02-05 h need = the donor's steady-night delivered / scheduled × the schedule there (165 donors, median
+        # 1.13; LESSONS 251): hours 00-06 of the body's shape × m, renormalised to mean 1 (the 24-h basal total, and with
+        # it the intake budget, unchanged). m solves m·p25 / ((6·m·n + 18·d)/24) = q, q = R·S_25 / B
+        hN = list(range(0, 6)); h25 = [2, 3, 4]
+        S25 = float(row.basal) * j_basal * float(np.mean(prof[h25]))
+        q = nr_ * S25 / max(basal_true, 1e-6)
+        n_ = float(np.mean(prof_true[hN])); d_ = float(np.mean(np.delete(prof_true, hN))); p25 = float(np.mean(prof_true[h25]))
+        den = 24 * p25 - 6 * q * n_
+        if den > 0:
+            m_ = float(np.clip(18 * q * d_ / den, 0.5, 3.0))
+            pt = prof_true.copy(); pt[hN] *= m_; prof_true = pt / pt.mean()
     settings = dict(
         basal_profile=[float(x) for x in prof],
         basal_uh=float(row.basal) * j_basal, isf=float(row.isf) * j_isf, cr=float(row.cr) * j_isf / j_basal ** 0,
