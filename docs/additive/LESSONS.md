@@ -5505,3 +5505,15 @@ statistic here, but it is the controller donors ran.
      timing gap and stays on. Left for the faster real falls at the same insulin: the insulin-dependent disposal's
      glucose dependence (κ 0.675, Best 1981) and anything that makes real meals' early appearance sometimes smaller than
      the bolus expects — both to be measured against their own evidence first.
+
+292. **κ that follows insulin (Best 1981) speeds the falls by half the gap but is not settled enough to adopt.** Best
+     1981's fixed-insulin clamps: doubling glucose raised disposal ×1.24 / ×1.68 / ×1.78 at low / mid / high insulin
+     (κ ≈ 0.24 / 0.68 / 0.78); the model holds κ at the mid value (lnN(0.675, 0.4), LESSONS 165). `kappa_ins`
+     (experiment, off): κ × (0.24 / 0.68 / 0.78 at plasma insulin 1 / 3 / ≥ 8× basal) / 0.68 — the mapping of Best's
+     low / mid / high to multiples of basal is a judgement (the concentrations are not in our notes). c298 vs c289:
+     matched-height fall after the max −31.0 / −30.0 (−26.0 / −27.0; donors −36.9 / −33.5); flat bolused entries at
+     100–140 reaching < 70 within 60 min 0.6% (0.3; 3.3); t54 0.118% (0.097; 0.215), p_reach54 0.14 (0.17; 0.20), lows
+     0.75 / day (0.83; 1.08), night CV 26.9 (29.4; 36.0); paired hypo-day OR 1.03 against c294; 30 matched (30). The
+     direction is the evidence's and half the descent gap closes, but the low counts and night CV move away and the
+     mapping is unmeasured. Stays off until Best's insulin concentrations are checked (Diabetes 30:847,
+     doi:10.2337/diab.30.10.847).
