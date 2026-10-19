@@ -163,6 +163,8 @@ class BehaviorTraits:
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     entry_size_b: float = 0.0            # main-meal entry chance × (grams / the person's usual meal)^b (experiment, LESSONS 289)
     unent_split: bool = False            # an unentered, unbolused main meal eaten as ~20 g portions over 3 h (experiment, LESSONS 285)
+    pro_glc: float = 0.1                 # g glucose per g dietary protein (late parcel). Elleri 2013: the LG meal (+15 g protein,
+                                         # +22 g fat) appeared ~18 g beyond its carbohydrate, ~0.4-0.5 g/g (experiment, LESSONS 305)
     ge_full_kcal: bool = False           # experiment (LESSONS 305): the meal's whole fat / protein energy on the main parcel
     unent_light: bool = False            # a main meal eaten unentered and unbolused carries snack composition (experiment, LESSONS 284)
     corr_trend: bool = True              # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237; default 2026-10-19)
@@ -814,7 +816,7 @@ class Behavior:
                 # protein → late glucose appearance: 0.1 g glucose per g protein, delayed ~90 min, peak 3–5 h
                 # (Smart 2013; Paterson 2017; evidence/01 §6.3); it is glucose, so fast-glucose bioavailability
                 if meal.protein > 0:
-                    acts.append(("eat", Parcel(m, 0.1 * meal.protein, kempt=1 / 60.0, kabs=1 / 60.0, delay=90.0,
+                    acts.append(("eat", Parcel(m, t.pro_glc * meal.protein, kempt=1 / 60.0, kabs=1 / 60.0, delay=90.0,
                                                f=self._f_glucose(), hypo_sensitive=False, label="protein", kcal_per_g=0.0)))
                 if meal.fat > 0:
                     acts.append(("fat", m, meal.fat))
