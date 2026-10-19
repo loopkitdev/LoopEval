@@ -4675,3 +4675,26 @@ statistic here, but it is the controller donors ran.
        donors' upper tail is plausibly unlogged eating). Reaching < 70 within 3 h 3.6 vs 8.1% (55 sim corrections).
      - Next: the context of the donors' fast falls (insulin in the prior 2 h against the person's own median, time since a
        user bolus, the level the fall starts from), sim vs donors.
+
+237. **Simulated bolus requests carry two units; scripts that kept only positive values dropped every hand-dialled bolus.
+     Corrected, the sim's reactive boluses match the donors'; their trend dependence is now the donors' too.**
+     - `truth.pkl` `bolus_requests`: + = a ratio of Loop's recommendation (entered meals), − = absolute units (corrections,
+       top-ups, free and stacked boluses; world.py). Filters `f > 0` (review.py; scratch scripts bol_occ, bolus_ratio,
+       corr_drop, entry_bolus_split, low_ctx3) and `v >= 0.3` (this session's first drafts) left the hand-dialled ones out.
+       review.py now keeps both (`f > 0 or f <= −0.05`). Conclusions drawn from those scripts need a re-check; LESSONS 236
+       (falls, rates, lows) does not use bolus timing.
+     - **Corrected (c254, `late_bolus.py`, daytime):** user boluses on a steep rise (CGM ≥ 180, +40 in 60 min) 1.05 vs donors
+       1.09/day; steep rises through 180 1.49 vs 1.61/day, bolused 44 vs 45%; rises with no entry nearby 0.82 vs 0.81/day,
+       bolused 20 vs 23%. No-entry boluses after an unannounced pulse onset (`free_lag.py`): 0.50 vs 0.38/day per person,
+       lag p50 38 vs 39 min, but CGM at the bolus 192 vs 204 and 30-min rise +8 vs +29.
+     - **Trend dependence** (`corr_hazard.py`; no-entry boluses per hour at CGM 180–280 by 30-min trend falling / flat /
+       +10–30 / > +30): donors 0.043 / 0.085 / 0.167 / 0.301 (relative to flat 0.50 / 1 / 1.96 / 3.52; people correct on a
+       rising arrow — trend-arrow dosing guidance, Aleppo 2017, Pettus & Edelman 2017), c254 0.062 / 0.115 / 0.141 / 0.208
+       (0.54 / 1 / 1.22 / 1.81). **`corr_trend`** (ae34914, now default): the correction hazard × the donors' relative
+       hazard, renormalised over the sim's trend exposure (0.31 / 0.62 / 1.21 / 2.18) so each person's rate is their
+       donor's. c257: 0.038 / 0.103 / 0.154 / 0.332 (0.37 / 1 / 1.49 / 3.22); 27 matched (29, within the 27–30 band of
+       neutral arms), lows 0.50/day unchanged, fast falls 0.26 vs 0.25 (donors 0.60). Adopted for its own evidence; it does
+       not carry the missing lows.
+     - The missing lows stay where LESSONS 236 put them: daytime descents slower than donors' at every context (falls
+       through 140, 30-min rate p90 2.2 vs 2.9; > 3 mg/dL/min 0.39 vs 1.26% of falling readings), with the same count of
+       falls and the same peaks.

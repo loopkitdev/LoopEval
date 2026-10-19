@@ -159,7 +159,7 @@ class BehaviorTraits:
     p_log_rescue: float = 0.25           # rescues entered in the app [J; was 0.05, "very under-represented" — Pete; LESSONS 175]
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
-    corr_trend: bool = False             # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237)
+    corr_trend: bool = True              # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237; default 2026-10-19)
     p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
     corr_over_share: float = 0.0         # with corr_own: share of corrections dosed BEYOND Loop's recommendation (donor lone boluses:
                                          # median 0.29; 39% given when Loop recommended ~0; LESSONS 223)
