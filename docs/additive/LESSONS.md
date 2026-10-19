@@ -4523,3 +4523,8 @@ statistic here, but it is the controller donors ran.
        dialled amount goes as is). c248: sizeable corrections 57 (base 20), ~0.065 per person-day; untreated daytime lows
        0.099 → 0.120/day, low onsets 0.58 → 0.63/day; CV 33.3, hurst_long 0.266 and day/night pass, 24-h amplitude 0.157;
        28 matched (25). The remaining correction shortfall is how often people correct at moderate highs (150–250).
+     - **Where corrections happen** (`corr_bg.py`, lone boluses ≥ 1 U): CGM at the bolus p10 / p25 / p50 / p75 / p90 donors 141 /
+       181 / 227 / 282 / 340 (3,752), c248 148 / 167 / 194 / 248 / 284 (106); sizeable lone boluses ~0.25 vs ~0.12 per
+       person-day. The sim corrects lower and half as often: corr_thr = donor corr_bg_med − 20 and the old-base realization
+       constants (0.46 × 0.64, LESSONS 42 / 47) are the next calibration, against each donor's lone-bolus rate by glucose
+       band.
