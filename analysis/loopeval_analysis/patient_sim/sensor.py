@@ -102,7 +102,7 @@ FAMILIES = {
     # σ 2.0) carries the rest of the accuracy error. The G6 Vettoretti values (σ 3.19, a0 0.95 ± 0.063, b0 6.35 ± 6)
     # gave G7 MARD 17% at 54–69 and PARD 14%.
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
-                        brand_gain=1.0, sigma=(2.8, 0.8), df=30.0, hetero_q=0.5, a0=(0.98, 0.04), b0=(3.0, 3.0),
+                        brand_gain=1.0, sigma=(2.4, 0.8), df=30.0, hetero_q=0.5, a0=(0.98, 0.04), b0=(3.0, 3.0),   # sigma 2.8 -> 2.4 with early_noise (LESSONS 221)
                         common_sigma=2.0, trans_rate=(8.0, 0.9), trans_amp=(8.0, 0.4), noise_wander=(0.2, 480.0),
                         slow_bias=(5.0, 180.0), early_noise=(1.35, 900.0)),   # refit on the c235 bodies against K213919 (LESSONS 211): slow bias sd 5 (Breton &
                                                    # Kovatchev 2008), transient amplitude 12 -> 8, noise wander 0.6 -> 0.2; loss 10.9 -> 4.0
