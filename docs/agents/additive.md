@@ -78,7 +78,7 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. Arms of a neutral change scatter 27–31 matched: read differences
   inside that band as noise.
-- **Current reference** (2026-10-19): c277 — yardstick ISF × the body-model sensitivity fit (`fit_body --regression`), delivered-shape basal need with the night level from steady
+- **Current reference** (2026-10-19): c278 — yardstick ISF × the body-model sensitivity fit (`fit_body --regression`), night need added on top of the day (`night_add`), delivered-shape basal need with the night level from steady
   nights, donor-MET exercise intensity with the C4 surge; 29 of 51; t70 1.73 vs 1.67%, t54 passes.
 
 ## Match targets: eda's statistics
@@ -88,23 +88,23 @@ The goal's primary test. `validate.py` scores every simulated person with the ed
 compares the distribution across people with the donors' (206 pilot donors) by a two-sample KS test, per sensor family
 where the statistic depends on the instrument (eda lesson 33). Each cohort run writes `compare_pilot.csv`;
 `python -m loopeval_analysis.patient_sim.compare_runs RUN_A RUN_B` sets two runs side by side. **Matched = KS p > 0.05;
-51 rows (37 statistics, 7 of them split by G6 / G7 / Libre 3).** Status at the reference c277 (donor p50 / sim p50):
+51 rows (37 statistics, 7 of them split by G6 / G7 / Libre 3).** Status at the reference c278 (donor p50 / sim p50):
 
 | Area | Statistic | What it measures | c277 |
 |---|---|---|---|
 | Level and spread | `bg_mean`, `bg_cv`, `tir`, `t70`, `t180` | mean, CV, time in 70–180, < 70, > 180 | pass |
 | | `bg_skew`, `boxcox_lambda` | shape of the glucose distribution | fail (0.89 / 0.82) |
-| Lows | `lows_per_day` | crossings below 70 per day | pass (1.08 / 0.96) |
-| | `t54`, `p_reach54`, `min_below70` | time < 54, share of lows reaching 54, minutes per low | fail (0.22 / 0.12%; 0.20 / 0.11) |
+| Lows | `lows_per_day` | crossings below 70 per day | pass (1.08 / 0.75) |
+| | `t54`, `p_reach54`, `min_below70` | time < 54, share of lows reaching 54, minutes per low | fail (0.22 / 0.09%) |
 | Short-scale motion (per sensor) | `v_sd`, `hurst_short`, `acf_min` | 5-min velocity SD, short-range persistence, ACF minimum | pass |
-| | `sd_over_mad`, `v_kurtosis`, `v_skew`, `sigma_meas` | velocity tails and asymmetry, measurement noise | fail on G6 / G7 (kurtosis 2.5 / 1.7 on G7: the missing fast moves) |
+| | `sd_over_mad`, `v_kurtosis`, `v_skew`, `sigma_meas` | velocity tails and asymmetry, measurement noise | fail on G6 / G7 except G6 skew (kurtosis 2.5 / 1.7 on G7: the missing fast moves) |
 | Long-scale structure | `hurst_long`, `wear` | long-range persistence, sensor coverage | pass |
 | | `acf_zero_min`, `vol_cluster_60m`, `sigma_disp`, `between_day_frac`, `circadian_amp` | ACF zero crossing, volatility clustering, dispersion, between-day share, 24-h amplitude | fail |
-| Insulin delivered | `tdd`, `tdd_cv`, `zero_frac`, `conc1` | daily total and its CV, share of zero-delivery bins, concentration in the top 1% | pass |
-| | `med_nonzero`, `p99`, `ac1`, `day_night`, `night_cv` | typical and peak delivery, day-to-day autocorrelation, day / night split, night-to-night CV | fail (day / night 2.06 / 1.75) |
+| Insulin delivered | `tdd`, `zero_frac`, `conc1` | daily total, share of zero-delivery bins, concentration in the top 1% | pass |
+| | `tdd_cv`, `med_nonzero`, `p99`, `ac1`, `day_night`, `night_cv` | day-to-day CV (15.7 / 15.7, KS 0.023), typical and peak delivery, day-to-day autocorrelation, day / night split, night-to-night CV | fail (day / night 2.06 / 1.78) |
 | Behaviour | `carb_entries_per_day`, `user_boluses_per_day`, `manual_u_day` | entries, user boluses, hand-dosed units | pass |
 
-c277: 29 of 51. Neutral changes move the count within 27–31; read single-statistic changes against that band, and check
+c278: 29 of 51. Neutral changes move the count within 27–31; read single-statistic changes against that band, and check
 the lows by dosing strategy (temp-basal vs automatic-bolus twins against their own donors) beside the cohort count.
 
 ## Analysis traps (each cost a session)
