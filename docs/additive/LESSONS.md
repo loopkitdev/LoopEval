@@ -5336,3 +5336,23 @@ statistic here, but it is the controller donors ran.
      shaped body, so it is not inherited from the profile; the temp-basal twins still rise in quiet evening hours where
      donors fall. Measured next: what the twins are absorbing in those "quiet" hours (unentered intake from `graze_unann`
      and meal tails) against the body's own need. `prof_deliv` stays on; reference stays c289_split.
+
+283. **Like for like, the twins' quiet hours differ from the donors' after an unannounced pulse, not in the body's
+     reversion.** Quiet hours (no entry or user bolus −240..+120 min) split by whether a LABELED unannounced non-rescue
+     pulse began in −240..+60 min, the same labeler on both sides (`quiet_pulse.py`, G7; sim pulses from `ice_check`):
+     - Share of quiet hours after a pulse: evening (15–22 h) donors 0.74 / 0.73 (automatic-bolus / temp), c289 0.84 /
+       0.84; waking (06–24 h) 0.67 / 0.70 vs 0.76 / 0.75. The sim's true intake is no guide here: 84–88% of its quiet
+       evening hours hold unentered eating, which the donors cannot show.
+     - After a pulse, waking hours, delivered / scheduled and drift per h: donors 1.22 / −1.7 and 1.13 / −3.6, c289
+       1.43 / +2.0 and 1.24 / 0.0. No pulse: donors 1.00 / −1.2 and 1.00 / −2.6, c289 1.07 / −2.0 and 1.04 / +0.5.
+     - By starting glucose (waking, all quiet hours), temp-basal: 70–120 / 120–180 / 180–250 drift donors +5.1 / −9.0 /
+       −24.3 at 0.96 / 1.09 / 1.34 delivered, c289 +9.0 / −5.5 / −28.8 at 1.03 / 1.24 / 1.46. Over the waking day the
+       twins revert about as the donors do; the evening alone (15–22 h) shows the weak reversion (donors +10.3 / −10.2 /
+       −28.4, c289 +1.8 / −2.0 / −12.2), so it is not glucose effectiveness (already 0.0045 /min, the top of its range).
+     - The labeled unannounced pulses themselves match: per day by 3-h block 0.47–0.63 (donors 0.41–0.59), size 17–26 g-eq
+       (18–27), but shorter and earlier-peaking (dur 1.6 vs 1.75–1.9 h, peak 0.6 vs 0.75 h; `pulse_shape.py`).
+     - Behind the sim's quiet hours (truth, `quiet_kinds.py`): unentered meals 21–31 g per 5-h window, snacks 5–8,
+       grazes 5–7; hours rising ≥ 5 /h hold ~10 g more unentered meal than the rest.
+     So the twins carry intake after a labeled pulse that keeps glucose up on more insulin, where the donors' glucose
+     comes down. Measured next: the unentered meal's appearance after its labeled peak (sim truth, by meal size), against
+     the donors' post-peak fall of unannounced pulses at matched delivery.
