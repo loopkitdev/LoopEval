@@ -4480,3 +4480,9 @@ statistic here, but it is the controller donors ran.
        (the first-day excess holds), low onsets 0.58/day (c244 0.64; donors 1.06), low duration p90 65 (65), hurst_long 0.271
        (passes); CV 33.1 (34.8, KS 0.031); 25 matched. Keeping the whole-session FDA fit gives back part of the lows: the
        sensor term explains the session-age shape of donors' lows, not their number. Reference base now c245_base.
+
+222. **G6 first-day noise from its day-of-wear accuracy.** G6 Pro real-world accuracy: MARD 13.6% in the first 12 h, 10.5% at
+     12–24 h, 10.1% after 24 h (the closest G6 day-of-wear source found; the standard G6 pivotal reports %20/20 88.6 / 90.6%
+     on days 1 / 10 without a day-level MARD). Fitted `early_noise` (1.0, 330 min). DEN170088 whole-session fit on the c235
+     bodies: loss 9.88 (no early noise) → 10.51 (early noise, sigma 1.8) → **8.63 at sigma 1.4** (CGM < 54 bias −13.3 vs −6.9,
+     MARD 17.8 vs 13.8, PARD 8.86 vs 9.0); adopted. Libre 3 keeps no early-noise term (no day-of-wear table found).
