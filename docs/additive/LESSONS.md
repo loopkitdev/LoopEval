@@ -4932,3 +4932,11 @@ statistic here, but it is the controller donors ran.
        night; the body now needs less than Loop's schedule gives overnight, and the deeper simulated night dip is how the
        sim's Loop and body meet that, not a contaminated measure. Open: why the donors' nights descend less (00 → 05 h −25
        vs −41) under the same shape — their Loop's overnight temp basals against the sim's.
+     - **Overnight, hour by hour** (`night_hourly.py`; 22 / 00 / 02 / 03 / 04 / 05 / 07 h): delivered / scheduled donors 1.31 /
+       1.17 / 1.10 / 1.03 / 1.04 / 1.05 / 1.24, c266 1.50 / 1.12 / 1.00 / 0.95 / 0.95 / 1.02 / 1.20; CGM − mean donors +6 /
+       −9 / −19 / −23 / −28 / −29 / −24, c266 +12 / −1 / −20 / −30 / −36 / −38 / −30. The sim's Loop gives a little less
+       and the glucose falls further: the simulated body needs less than the donors' at 02–06 h. Body need / Loop schedule
+       (`need_vs_sched.py`, median) 00 / 04 / 08 / 12 / 16 / 20 h: c264 0.96 / 0.95 / 0.86 / 0.88 / 0.87 / 0.86, c266 0.95 /
+       0.88 / 0.82 / 0.91 / 0.85 / 0.89; 24-h mean 0.91 both. The donors' Loop at ~1.05× schedule with a mild drift
+       down puts their 03–05 h need near the schedule; the sim's sits ~12% under. Next: the level of the body's night need
+       against the schedule from donors' clean nights (delivered at steady CGM), not only its shape.
