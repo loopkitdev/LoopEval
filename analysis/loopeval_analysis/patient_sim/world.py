@@ -488,6 +488,7 @@ class World:
         self.ex_log: list = []
         self.received: list = []                           # every dose LoopEval sent, as received: (type, start, end, U)
         self.fat_events: list = []                         # (minute, fat g) — transient fat-induced insulin resistance
+        self.fat_log: list = []                            # every fat event, kept for the truth file (LESSONS 288)
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
@@ -608,7 +609,7 @@ class World:
                 self.body.eat(a[1])
             elif kind == "exercise": self.ex.add(*a[1:])
             elif kind == "site_change": self.pump.change_site(m)
-            elif kind == "fat": self.fat_events.append((a[1], a[2]))
+            elif kind == "fat": self.fat_events.append((a[1], a[2])); self.fat_log.append((a[1], a[2]))
             else: pending_actions.append(a)
         # a failing site the person notices: a long high that corrections did not move (eda L52) [J: ~3 h]
         # (checked every minute on the latest reading the person can see: gated on report minutes only, the
