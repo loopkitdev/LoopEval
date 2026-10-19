@@ -4795,3 +4795,9 @@ statistic here, but it is the controller donors ran.
        carbohydrate (a rise with no glucose appearance behind it leaves Loop's added insulin uncovered) — 56% of the
        sim's own unannounced pulses have no true eating event −60..+15 min of onset, so the labeler already reads
        non-eating rises in the sim too.
+     - **The sim's own non-eating rises are not low-prone** (`unent_ins.py` with truth): of c257's unentered rises, 33% have
+       no true eating event −60..+30 min of the start (sensor, EGP, posture), and they reach < 70 within 4 h 2.8% of the
+       time — as often as meal-sourced (2.8%) and graze-sourced (4.9%) rises; only rescue rebounds are low-prone (21.6%).
+       A rise without glucose appearance behind it does not by itself make the low in the sim, so the non-carbohydrate
+       reading of the donors' lows needs a mechanism with its own evidence (a transient EGP surge — catecholamines from
+       stress or intense exercise — ending while Loop's added insulin acts), not a relabelling.
