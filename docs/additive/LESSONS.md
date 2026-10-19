@@ -5041,6 +5041,6 @@ statistic here, but it is the controller donors ran.
      +120 min (mg/dL), p25 / p50 / p75: donors no low 0 / +47 / +112, ending < 70 −49 / −7 / +45; c270 no low 8 / +51 /
      +113, ending < 70 −48 / −28 / 0; ICE during the rise donors +106 / +80, sim +99 / +75. The rises that do not end low
      match closely. The sim's low-ending ones need a strongly negative ICE (−28 median: a body falling faster than its
-     insulin explains); the donors' get there with ICE near zero — insulin as Loop models it brings them down, and what
-     the sim lacks is the share of rises whose post-peak ICE is near zero rather than positive (the absorbing tail of
-     the rise's source ending sooner), consistent with LESSONS 242's shorter-lived real sources at the same rise size.
+     insulin explains); the donors' get there with ICE near zero — insulin as Loop models it brings them down. Open:
+     why more donor rises have a post-peak ICE near zero rather than positive; the labeled pulse durations do not say
+     (the sim's unannounced pulses are if anything shorter, LESSONS 242).
