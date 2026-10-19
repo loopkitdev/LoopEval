@@ -5378,3 +5378,21 @@ statistic here, but it is the controller donors ran.
      Open: the sim's unentered meals are drawn at the entered meals' size (an assumption with no donor measurement: the
      labeler reads an unbolused meal at ~0.43 of its grams, a bolused one at ~1.3, so g-eq cannot recover donors' true
      unentered grams). The duration of unannounced rises is the like-for-like target for it.
+
+285. **How long an unannounced rise lasts follows the grams that arrive in its window, and the twins' extra grams there are
+     not visible in their insulin.** In c289 truth, daytime unannounced food pulses by quartile of true grams eaten from
+     onset − 120 to peak + 60 min: < 24 / 24–44 / 44–70 / > 70 g → minutes ≥ +20 p50 75 / 90 / 120 / 135, share ≥ 2 h
+     0.37 / 0.42 / 0.57 / 0.59, excursion 41 / 49 / 63 / 59, while the labeled size stays 22–27 g-eq (the labeler cannot
+     size unbolused intake). The donors' pulses (75 min, 0.35–0.38, 40–46) look like the sim's < 24 g windows.
+     - **c292 `unent_split`** (experiment, off): unentered, unbolused main meals eaten as ~20 g portions over 3 h (same
+       grams and composition). Minutes ≥ +20 105 / 90, share ≥ 2 h 0.46 / 0.44 — unchanged: portions inside one window merge
+       into one rise. Unannounced pulses per 3-h block 0.50–0.66 (c289 0.47–0.63; donors 0.41–0.59); 26 matched (CV 34.4,
+       lows 0.71 / day). Stays off.
+     - **Insulin accounting, twin vs its own donor** (`tdd_split.py`, G7, per day): total − user boluses − scheduled basal
+       = automatic excess; twin − donor p50 +1.5 U (automatic-bolus, donor 4.4) and +0.5 U (temp, donor 3.0); TDD +0.4 /
+       +2.7, scheduled +0.2 / −0.2, user −0.5 / +0.1. About 15 g/day of extra unentered intake at most — not the half
+       of 137 g/day that a size reading of the durations would imply.
+     So neither the unentered meal's composition (284), its portioning, nor (by the insulin balance) a large surplus of it
+     explains the long unbolused rises. Left to measure: how fast the twins' bodies and Loop bring an unbolused rise down
+     against the donors' at matched excursion — the post-peak fall per unit of automatic insulin, on excursions of the
+     same height.
