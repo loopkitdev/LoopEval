@@ -5429,3 +5429,23 @@ statistic here, but it is the controller donors ran.
      against meal size has never been measured by tracer in T1D (§3). The donors' matched-height time to maximum is the
      like-for-like evidence in hand; the size scaling of the energy-limited emptying (A10: Vmax 3 kcal/min against
      Brener's 2.13 plateau) needs the Elleri figures checked first. No change.
+
+288. **Night-to-night insulin varies less in the twins on ordinary nights, and does not follow the evening's carbs.**
+     Overnight (00–06 local) delivered insulin per night, 12-day blocks for donors as `validate` scores them (`night_var.py`,
+     G7; donors 844 / 415 person-blocks automatic-bolus / temp, c289 59 / 29 people):
+     - Night CV p50: donors 35.8 / 32.6, c289 33.7 / 27.9. On nights without a CGM reading < 70: 33.8 / 30.8 vs 27.9 /
+       24.5 — night lows are not the gap (nights with a low 17 / 10% vs 11 / 8%, night t70 2.3 / 2.25 vs 3.2 / 2.9).
+     - Night-mean CGM CV between nights: donors 20.8 / 19.4, c289 18.7 / 15.1; midnight CGM SD equal (53 / 46 vs 53 / 44),
+       its persistence into the night equal (r 0.55 / 0.52 vs 0.52 / 0.45). Night insulin follows night glucose r 0.81 /
+       0.85 vs 0.72 / 0.73.
+     - Evening entered carbs (17–24 h) → night insulin: donors r +0.14 / +0.19, c289 +0.01 / −0.07 (the twins' evening
+       carbs vary more, SD 29 / 19 vs 23 / 20 g). In c289 truth the night's insulin follows the night's own carb appearance
+       (r +0.67 / +0.53) and eating after midnight (+0.33 / +0.24), not the evening before.
+     - Sim truth, night-to-night CV of mean SI 12.6 / 11.6%, EGP 16.6 / 16.0%; day-to-day SI 11 / 10%. Free-living
+       evidence is weak: Ruan 2017's 38–79% passes home data through a model (anything unmodelled lands in SI); children on
+       closed loop show ~23% day-to-day insulin-requirement CV; the twins' TDD CV already matches the donors' (16.5 / 15.7).
+     The dinner's carry-over into the night is where the twins and donors differ in a way both sides record. Wired and
+     evidenced already: fat-induced resistance (Wolpert 2013, ρ U(0.1, 0.6), full 2–6 h after the meal, normalised to the
+     person's usual diet), late protein glucose, alcohol, GH night-to-night CV 0.32. Next: log each meal's fat in the
+     truth and measure the night insulin's response to the dinner's fat and size in the twins, then against what the
+     donors' entered evening carbs imply.
