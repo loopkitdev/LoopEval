@@ -6186,3 +6186,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      day / night 1.79 (p 0.012). On c339 the same switch sagged the night (LESSONS 343); with the donors' evening entries
      the grams it moves out of the morning now land where the donors eat them. Adopted (it removes a measured double
      count and gives the closest daily profile so far); reference now c346_st.
+
+347. **The remaining late-morning excess is a larger response per entered gram at breakfast and lunch.** Labelled load
+     by hour (ice labeler both sides, c346_st): 06–11 h twins 46.2 g-eq/day vs donors 38.4, peaked at 08–09 h (11.5 / 11.0
+     vs 8.4 / 8.7); daily total 200 vs 191. Announced labelled g-eq per entered gram by window, breakfast / lunch /
+     dinner (p50 over people): donors 1.13 / 0.87 / 0.82, twins 1.27 / 1.06 / 0.86 — the twins' breakfasts and lunches
+     produce 12–22% more measured load per entered gram, dinners match. The two parts to separate next: the twin's eaten /
+     entered ratio by window (count error, Brazeau) and its rise per eaten gram by window (carb sensitivity, morning
+     emptying ×1.25 under ge_circ), each against its own evidence.
