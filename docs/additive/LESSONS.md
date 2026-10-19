@@ -4801,3 +4801,19 @@ statistic here, but it is the controller donors ran.
        A rise without glucose appearance behind it does not by itself make the low in the sim, so the non-carbohydrate
        reading of the donors' lows needs a mechanism with its own evidence (a transient EGP surge — catecholamines from
        stress or intense exercise — ending while Loop's added insulin acts), not a relabelling.
+
+243. **First donor evidence for C4 (the intense-exercise EGP surge); too rare to be the missing lows.** BDDP HealthKit
+     workouts with CGM (`workout_mets.py`; 884 workouts, 37 donors, 10–240 min; activity type is not in the extract, average
+     METs on 623):
+
+     | average METs | n | dur p50 | CGM start | change during | rise ≥ 20 during | end → +180 min | < 70 within 4 h after |
+     |---|---|---|---|---|---|---|---|
+     | < 4 | 168 | 29 | 122 | −6 | 16% | +10 | 29% |
+     | 4–6 | 231 | 50 | 154 | −22 | 19% | −4 | 40% |
+     | 6–8 | 71 | 53 | 166 | −22 | 30% | 0 | 27% |
+     | ≥ 8 | 153 | 47 | 167 | −8 | 46% | −17 | 25% |
+
+     Moderate workouts lower glucose during; the hardest ones raise it during in nearly half the cases and lower it over
+     the next 3 h — the catecholamine pattern of Marliss & Vranic 2002 and the Riddell 2017 consensus that C4 was built
+     for (0 until calibrated). This is the calibration target for C4's size by intensity. At ~0.2 recorded workouts per
+     donor-day (≥ 8 METs ~0.04), the surge cannot carry the 0.2/day of missing untreated daytime lows (LESSONS 242).
