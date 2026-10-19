@@ -5795,3 +5795,20 @@ outputs in gamepc ~/additive/runs/c290–c312).
      simulator's late parts — protein parcel (delay 90 min, peak 3–5 h), slow tail (15%), energy-limited main parcel — put
      too little in hours 1–3. Next: the per-meal appearance profile itself, set against Elleri's measured LG / HG curves
      (25 / 50 / 75% at 88 / 175 / 270 and 56 / 100 / 153 min), as the component's own target.
+
+315. **By Loop's own ICE, the donors' meals carry ~15% more counteraction per entered gram, all in hours 1–3; adding
+     carb sensitivity does not supply it, and the TDD balance argues against more meal glucose.** ICE above the pre-meal
+     baseline (median −60..0 min), integrated per window, per 10 g entered, same ice-role extraction both sides
+     (`ice_integral.py`): donors 13.0 / 15.4 / 10.5 / 3.7 / 0.3 mg/dL in 0–60 / 60–120 / 120–180 / 180–240 / 240–360 min, total
+     p50 47.4; c311 12.1 / 11.4 / 5.7 / 3.2 / 1.5, total 40.4; c309 (fast 0.2) 9.7 / 12.6 / 7.6 / 4.8 / 1.1; c307 (energy fix)
+     9.6 / 12.3 / 7.0 / 4.0 / 1.2; c301 (ceiling ×0.71) 10.3 / 10.2 / 6.3 / 3.6 / 1.6. (The labeler's pulse g-eq, LESSONS 314,
+     reads the twins larger because a pulse ends early on a plateau; the integral has no segmentation.)
+     - **c314**: `csf_mult` 1.17 with fast 0.2 / with the energy fix: ICE 11.5 / 14.0 / 6.0 / 4.1 and 9.7 / 11.9 / 5.5 / 3.3 —
+       hours 2–3 unchanged; t54 0.06%, lows 0.75 / day, 27 / 26 matched. Not adopted. `csf_mult` scales only the data branch
+       of the CSF blend (effective ×1.17^0.5 ≈ 1.08 at csf_w 0.5), and the intake budget (carbs = TDD·(1 − share)·CR_true)
+       takes the factor back out of the grams eaten.
+     - The donors carry MORE meal counteraction yet LESS insulin per day (TDD 38.8 vs the twins' 41.2): adding meal glucose
+       would push TDD further off. Part of their hours-1–3 counteraction is likely not meal carbohydrate — a rise in
+       non-insulin glucose supply or a fall in insulin action after eating that Loop's model counts as counteraction.
+       Next: compare the pre-meal ICE baselines (a falling pre-meal glucose inflates "above baseline") and the donors'
+       counteraction after BOLUS-ONLY corrections at matched insulin, to separate meal glucose from a post-dose resistance.
