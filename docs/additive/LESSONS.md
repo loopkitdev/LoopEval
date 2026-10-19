@@ -5044,3 +5044,12 @@ statistic here, but it is the controller donors ran.
      insulin explains); the donors' get there with ICE near zero — insulin as Loop models it brings them down. Open:
      why more donor rises have a post-peak ICE near zero rather than positive; the labeled pulse durations do not say
      (the sim's unannounced pulses are if anything shorter, LESSONS 242).
+
+259. **The body's ISF is the donor's data-fitted value (ISF_W 1.0, default; Pete 2026-10-19: "Would take fitting to data
+     over a users entered settings").** c275 (ISF_W 1.0) vs c270 (0.5): lows 0.92 → 1.04/day (donors 1.08, KS 0.54),
+     t70 1.45 → 1.64% (1.67), t54 0.06 → 0.09 (0.22), CV 34.1, 30 matched (31); day / night 1.80 → 1.65 (2.06, fails);
+     by strategy t70 automatic 1.43 → 1.63 (1.20), temp 1.77 → 2.02 (0.97), temp mean 148 → 142 (153); per-person
+     transfer mean 0.24, t70 0.13 (twin mean vs the yardstick ratio −0.44, the donors' −0.22). The cohort's lows land on
+     the donors'; the temp-basal twins' excess and the day / night split are the costs, and the per-person ordering by
+     the yardstick ratio (LESSONS 256) is now at full weight. New reference c275. Where a body parameter has a data-fitted
+     value, it takes it over the setting (memory: additive-fit-data-over-settings).
