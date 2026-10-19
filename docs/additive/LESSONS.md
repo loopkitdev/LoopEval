@@ -5812,3 +5812,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
        non-insulin glucose supply or a fall in insulin action after eating that Loop's model counts as counteraction.
        Next: compare the pre-meal ICE baselines (a falling pre-meal glucose inflates "above baseline") and the donors'
        counteraction after BOLUS-ONLY corrections at matched insulin, to separate meal glucose from a post-dose resistance.
+
+316. **Pre-meal baselines and lone corrections do not separate meal glucose from a post-dose resistance.** `ice_ctx.py`,
+     same ice-role extraction: pre-meal ICE baseline (median −60..0 min) donors 53.4, c311 59.2 mg/dL/h — the donors' lower
+     baseline inflates their above-baseline integral (part of LESSONS 315's +15%), but their absolute ICE in hours 1–3 stays
+     higher (124 / 104 vs 105 / 87), so the late gap stands. Lone user boluses ≥ 1 U with no carb entry −60..+240 min:
+     ICE above the pre-dose baseline per U at 0–60 … 240–360 min, donors −11.7 / −11.1 / −14.6 / −21.6 / −50.2 (9,485),
+     c311 +3.0 / +0.2 / −1.8 / −6.4 / −20.0 (1,242); but the donors' corrections start from ICE 132 vs 101 — given in strong
+     rises (unlogged eating) whose decay dominates the after-window. Confounded; no conclusion on resistance. The donors'
+     hours-1–3 meal counteraction remains the measured gap (TIDEPOOL-70).
