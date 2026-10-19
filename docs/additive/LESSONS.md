@@ -6273,3 +6273,9 @@ outputs in gamepc ~/additive/runs/c290–c312).
      OGTT glucose and insulin responses unchanged. With the T1D fluid-restriction thesis (less mild hyperglycaemia after)
      and an unsized small worsening in T2D (Johnson 2017), the model carries no dehydration term, by evidence. Every row
      of the factor catalog now has a built component, a scenario, or an evidenced reason for none.
+
+356. **Earlier fat resistance and lower glucose effectiveness together do not add up.** c356 on c352_fat05, `fat_on`
+     1.0 with `sg_mult` 0.6 / 0.75: 35 / 33 of 51 (35); t54 0.150 / 0.119% (p 0.204 / 0.126), lows / day 0.83, P(reach 54)
+     pass, hurst_long passes; bg_mean 162.0 / 161.0, TIR 67.8 / 70.3, circadian_amp 0.168 / 0.165 and day / night insulin
+     fail; 3-h meal change 0.0 / +4.2, lunch −8 / −16 at 2–2.5 h. Each lever lifts the level, and together the level
+     cost outruns the lows gain. Not adopted.
