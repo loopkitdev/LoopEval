@@ -5283,3 +5283,14 @@ statistic here, but it is the controller donors ran.
      sensor_fit applies — so the floor itself was not scanned.) With depth (LESSONS 272) and night duration (LESSONS 274)
      on the donors', the t54 shortfall (0.13 vs 0.22%) and p_reach54 (0.17 vs 0.20) are in how often lows start and how
      far the deepest go, not in how the sensor reads them.
+
+278. **The missing lows are evening lows, where the donors bolus small snacks the sim's people eat unentered.** Low onsets
+     per day by 3-h block 00 / 03 / 06 / 09 / 12 / 15 / 18 / 21 h (`low_blocks.py`, G7, mean over people): donors 0.121 /
+     0.105 / 0.108 / 0.121 / 0.132 / 0.164 / 0.178 / 0.137 (1.07), c287 0.127 / 0.124 / 0.080 / 0.115 / 0.129 / 0.140 /
+     0.116 / 0.089 (0.92); reaching 54 donors 0.035 / 0.026 / 0.023 / 0.028 / 0.032 / 0.043 / 0.045 / 0.038, c287 0.048 /
+     0.027 / 0.013 / 0.029 / 0.033 / 0.017 / 0.029 / 0.020. Nights match or exceed; the shortfall is 15–24 h (−0.13 onsets
+     and −0.06 reaching 54 per day), the same hours where donors enter and bolus small snacks (LESSONS 264: 0.55 vs 0.38
+     entries/day at 15–18 h, 0.35 vs 0.24 at 21–24 h, 20–28 g) and get more insulin (LESSONS 264's 15–21 h deficit). The
+     donor's own entry clock (LESSONS 265) could not move it: the sim's people have too few snack occasions there to
+     enter. Next: the evening snack occasions themselves — count by hour from the donors' entries plus unannounced pulses,
+     with the chance of a bolus — so that small bolused evening snacks exist to go low after.
