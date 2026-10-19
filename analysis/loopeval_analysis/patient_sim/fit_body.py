@@ -159,12 +159,6 @@ def main():
     print(pd.DataFrame(rows).describe().round(3).to_string())
 
 
-if __name__ == "__main__":
-    import sys as _s
-    if "--regression" in _s.argv:
-        _s.argv.remove("--regression"); main_regression()
-    else:
-        main()
 
 
 # ---------------------------------------------------------------- regression form (LESSONS 262)
@@ -241,3 +235,11 @@ def main_regression():
         rows = pool.map(fit_alias_regression, al)
     pd.DataFrame(rows).to_csv(a.out, index=False)
     print(pd.DataFrame(rows).describe().round(3).to_string())
+
+
+if __name__ == "__main__":
+    import sys as _s
+    if "--regression" in _s.argv:
+        _s.argv.remove("--regression"); main_regression()
+    else:
+        main()
