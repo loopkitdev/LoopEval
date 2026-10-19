@@ -4594,3 +4594,17 @@ statistic here, but it is the controller donors ran.
      is already high, and leaves most of the breakfast excess. What remains is the sim reading more g-eq per gram than the
      donors at breakfast (1.42 vs 1.32) and dinner (1.13 vs 1.05) — the response per gram, not the meal plan. Lows/day moved
      0.42–0.54 between arms with no low-side change: treat differences of that size as within run noise.
+
+232. **Loop now runs each donor's own glucose safety limit; the low-prone donors are a person-level style, not their
+     settings.** Over the simulated people paired to their donor's template (`lowprone.py`, c252), the donor's time < 70 goes
+     with rescues/day (Spearman 0.93), mean (−0.60), night ratio (−0.45), CV (+0.39), safety limit (−0.39), Loop-offline
+     time (+0.38) and correction exposure (−0.37); the twin's time < 70 goes with none of them (|r| ≤ 0.16 except mean −0.30)
+     and with its donor's at 0.12. Inside the sim, CV and lows go together as in the donors (+0.45 vs +0.39; `cvmean.py`), but
+     the low-prone tail is missing: time < 70 p75 / p90 1.8 / 2.8% vs 3.8 / 6.9%.
+     - The sampler had given every person a 70 mg/dL safety limit since 79d7de3; donors run 80 (104 of 168), 70 (50), 90
+       (8), 100 (6). **`suspend_own`** (7d80863, now default): c254 29 matched (30), lows 0.54 → 0.50/day, meals ending < 70
+       5.4 → 5.1%, every other statistic within run noise. The twin's time < 70 still does not follow the limit (r −0.05):
+       the donors' link is who sets a high limit (cautious people), not what the limit does. Adopted for deployment
+       fidelity, not for the statistics.
+     - Sim pulses with no true intake within −90..+30 min of onset (`phantom.py`, `phantom_h.py`): 66 g-eq/day, spread over
+       the day at 2–4.6 g-eq/h with a 05–08 h shoulder (EGP peaks at 07); donors' equivalent is not observable.
