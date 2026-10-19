@@ -163,6 +163,7 @@ class BehaviorTraits:
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     entry_size_b: float = 0.0            # main-meal entry chance × (grams / the person's usual meal)^b (experiment, LESSONS 289)
     unent_split: bool = False            # an unentered, unbolused main meal eaten as ~20 g portions over 3 h (experiment, LESSONS 285)
+    main_speed: float = 1.0              # experiment (LESSONS 319): main (solid) parcel emptying / absorption speed × this
     count_shift: float = 0.0             # experiment (LESSONS 318): extra mean log under-entry at entered meals, intake unchanged
     pro_glc: float = 0.1                 # g glucose per g dietary protein (late parcel). Elleri 2013: the LG meal (+15 g protein,
                                          # +22 g fat) appeared ~18 g beyond its carbohydrate, ~0.4-0.5 g/g (experiment, LESSONS 305)
@@ -812,7 +813,8 @@ class Behavior:
                     # it over the whole meal's carbohydrate, so the main parcel (≈ 55% of the grams) carried only ≈ 55% of it
                     # to the energy ceiling (Hunt & Stubbs 1975: per kcal, fat and protein slow emptying as carbohydrate; LESSONS 305)
                     kcal_g = 4.0 + (9.0 * meal.fat + 4.0 * meal.protein) / g_main
-                acts.append(("eat", Parcel(m, g_main, kempt=bp.kempt * meal.speed * phi_fat, kabs=bp.kabs * meal.speed,
+                ms_ = t.main_speed                       # experiment (LESSONS 319): the solid main parcel only; liquid share unchanged
+                acts.append(("eat", Parcel(m, g_main, kempt=bp.kempt * meal.speed * phi_fat * ms_, kabs=bp.kabs * meal.speed * ms_,
                                            f=bp.f, label=meal.kind, kcal_per_g=kcal_g, speed=meal.speed)))
                 # protein → late glucose appearance: 0.1 g glucose per g protein, delayed ~90 min, peak 3–5 h
                 # (Smart 2013; Paterson 2017; evidence/01 §6.3); it is glucose, so fast-glucose bioavailability
