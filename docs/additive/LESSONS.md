@@ -4441,3 +4441,21 @@ statistic here, but it is the controller donors ran.
        top-up habits, their targets and target overrides, and their automatic-bolus behaviour. The twin ISF multiplier
        should stay inside the yardstick's uncertainty (~±25%), with the remaining low-proneness carried by those
        behavioural traits.
+
+220. **With entered grams matched and ISF kept inside its yardstick uncertainty, the low-prone donors' lows still do
+     not appear; what is left is untreated lows from no event.**
+     - Capped donors enter far more than their twins (118 vs 78 g/day, 0.75×; others 0.90×): heavy announcers whose meal
+       grams the sim's random graze draw had taken. **`entry_g_own`** (0ece141, off): meals and unentered grazing
+       rebalanced on a dry-run plan so entered grams/day match the donor's, total intake fixed (i039: 94.5 → 137.1 vs 136.8).
+     - Twin rounds 7–9 with entry_g_own and ISF bounded 0.75–1.33 (multipliers reset): Spearman t70 vs donor 0.11 → 0.38 →
+       0.37 (0.71 with the unbounded 0.5–2.5 of LESSONS 219), cohort t70 0.59% (1.67), lows 0.38/day, meals < 70 4.1%;
+       hurst_long 0.258 and day/night pass; 26 matched. ISF multipliers sit at the bound (median 1.32).
+     - Not sensor-style lows: short untreated self-recovering lows (≤ 20 min, no carbs within −10..+30, nadir ≥ 55) 0.178
+       vs 0.144/day (`low_kind.py`). Not the defense: pre-emptive pulses (labeled, unannounced, onset 70–110) 1.04 vs
+       1.00/day, size 23 vs 20 g (`preempt.py`). The gap is lows with no carbohydrate nearby: ~0.55 vs 0.32/day.
+     - Day-to-day true SI variation from all named factors: within-person CV 10% (p10–p90 6.5–14.6%; 4-h blocks 23.5%),
+       against Ruan 2017's model-estimated free-living 38–79% (estimation noise included; TDD day-to-day CV already
+       passes). A like-for-like daily-sensitivity estimator on both sides is the test of whether day-level variation in
+       the body is the missing source.
+     - twin stays off by default; templates hold the bounded round-9 multipliers (snapshots .twin_r6.csv unbounded,
+       .twin_r9_bounded.csv).
