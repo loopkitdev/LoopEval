@@ -6022,3 +6022,7 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.35 (c331 0.29 / 0.09 / 0.32 / 0.28). Cohort 37 of 51 (37): t54 (p 0.04 → 0.18) and min_below70 (0.058) pass, TDD
      39.3, mean 152.4; G7 v_sd / v_skew and ac1 flip the other way — run-noise flips. A person's level under Loop is set
      by what Loop is aimed at and what it cannot see in time, not by how much is eaten. Not adopted.
+     - **Labelled rises with no food behind them are the same in every quartile.** Twins' labelled pulses with no eating
+       event in −90..+30 min of onset (c331_strat): 58 / 49 / 52 / 58 g-eq/day for Q1–Q4 (morning 04–12 h 25 / 16 / 23 /
+       25), ~2 a day; food pulses 163 / 146 / 142 / 144. Body-made rises do not single out the low-runners' twins; what
+       keeps those twins high is still unnamed (LESSONS 218–233, 332).
