@@ -147,19 +147,18 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | X15 | Correction stacking | per-person corrections, size, top-ups; hazard by CGM trend (`corr_trend`) | on | LESSONS 164, 224, 237 |
 | X16 | Insulin formulation | body and Loop curve per donor, ultra-rapid inferred from Loop's recorded IOB | on | LESSONS 248 |
 
-### Fit against the donors (reference c268, 2026-10-19)
+### Fit against the donors (reference c331_strat, 2026-10-19)
 
-112 simulated people × 14 days against the eda statistics of their own donors (`cmp_full.py`, `review.py`): 29 of 51
-statistics matched (KS) at c264, 31 at c266 (body basal need from the donor's delivered shape, LESSONS 250, which adds lows/day and t70 to the matched set) and 29 at c268 (night need level from the donor's steady nights, LESSONS 251: automatic-bolus t70 1.11 vs 1.20, overnight profile on the donors'; day/night insulin now fails). Numbers below are c264's unless noted. Matched: mean, CV, hurst_long, day/night insulin, low depth and duration, meal arrival shape,
-quiet-period motion, night-to-night insulin, correction behaviour by trend, exercise response by intensity. Open, in
+112 simulated people × 14 days against their own donors, each donor scored one 13-day block at a time (LESSONS 330): 37 of
+51 statistics matched (KS). Matched: mean, CV, TIR, skew, time < 70 and > 180, lows per day, P(reach 54), TDD and its
+day-to-day CV and autocorrelation, day/night insulin, behaviour rates, most G6 / Libre 3 short-scale statistics. Loop's
+dosing matches the field once each twin runs its donor's strategy days (automated insulin 1.04×, LESSONS 331). Open, in
 order of size:
-- **Lows:** 0.58/day vs 1.08, time < 70 0.75 vs 1.67%. Temp-basal twins match their donors; the gap is in
-  automatic-bolus people (time < 70 0.67 vs 1.20%), after unentered rises: same insulin, same rise, but real glucose
-  falls through the start level faster and further (LESSONS 236, 242).
-- **Fast falls:** falling readings > 3 mg/dL/min 0.4–0.5 vs 1.26%; not glucose effectiveness, meal speed, early insulin,
-  carb sensitivity or formulation (LESSONS 238–239, 248).
-- **Per person:** twins do not inherit their donor's mean (Spearman 0.26) or low-proneness (0.12); low-prone donors are
-  not measurably more insulin-sensitive than their settings (LESSONS 233).
+- **Person-level level and lows:** twins do not inherit their donor's mean (Spearman 0.25) or lows; the low-prone
+  quarter of donors runs 131 mg/dL against their twins' 153, t54 1.18 vs 0.20% (LESSONS 218–233, 332).
+- **Night-to-night level:** night means vary 32 vs 22 mg/dL between nights, afresh each night (LESSONS 288, 332).
+- **Late meal phase:** donors' 3-h change +21 vs twins ~+2 (LESSONS 301–328).
+- **Fast falls:** falling readings > 3 mg/dL/min below the donors' (LESSONS 238–239, 248).
 - **Breakfast intake** ~8 g-eq/day above the donors' (LESSONS 231).
 
 ## 2. Ranking and justification
