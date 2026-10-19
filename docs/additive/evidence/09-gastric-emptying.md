@@ -235,9 +235,14 @@ as fat and protein moves 100 g to t50 = 143 min.
 - Hunt 1985: +0.7 kcal/min per volume doubling.
 - Schirra: −27.5% fractional rate at 100 vs 50 g.
 - Elleri 121 g, 25/50/75% appearance times: 56/100/153 min (high GL) and 88/175/270 min (low GL).
-  **Unverified:** `ra_traj.py` (run dir) quotes 72/130/197 (high GL) and 95/178/270 (low GL) for the same study; the
-  full text (doi:10.1007/s00125-013-2852-x) is paywalled and the discrepancy is unresolved (LESSONS 287). Check the
-  paper before using either set as a calibration target.
+  **Verified (full text, 2026-10-19):** Table 2 gives 56 ± 12 / 100 ± 25 / 153 ± 39 (HG) and 88 ± 21 / 175 ± 39 / 270 ± 54
+  (LG); `ra_traj.py`'s 72/130/197 was wrong. Further: both meals' appearance peaks at 40–45 min (HG 62, LG 40 µmol/kg/min);
+  the LG meal (macaroni cheese, C:P:F 121:35:31 g, 899 kcal) then holds ~75% of its peak (~28 µmol/kg/min) to ~240 min
+  and is still appearing at 8 h, plasma glucose a sustained plateau ~11.7 mmol/L that never returns to basal; the HG meal
+  (vegetable shepherd's pie, 121:20:9 g, 615 kcal) is done within 6 h. Apparent bioavailability LG 102 ± 14% vs HG 87 ±
+  12% (+20 g, attributed in part to gluconeogenesis from dietary precursors). Young T1D (16–24 y), evening meal, i.v.
+  insulin mimicking a s.c. bolus by individual ICR. An energy ceiling of 3 kcal/min at the LG meal's 54% carbohydrate
+  energy gives ~0.4 g/min ≈ 30 µmol/kg/min at 70 kg — the LG plateau.
 - Ferrannini: ~73% appeared by 3.5 h at ~1 g/kg.
 
 **Caveat.** Ra-vs-dose has not been measured directly by tracer in T1D (§3). The size scaling

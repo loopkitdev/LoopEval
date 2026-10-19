@@ -74,6 +74,13 @@ Reading: onset is probably **on the order of 3–6 h**, faster than 12 h, and th
   with glucose; Best 1981's fixed-insulin clamps size it: doubling glucose cut clearance 38 / 16 / 11% at low / mid /
   high insulin, i.e. disposal ×1.24 / ×1.68 / ×1.78, κ ≈ 0.24 / 0.68 / 0.78. The sim's κ 0.15 was below even the
   low-insulin value; meal- and correction-level insulin sits at mid to high, κ ≈ 0.7.
+- **Correction (2026-10-19, full text read, LESSONS 303):** Best 1981's clamps held plasma insulin at **1 / 18 / 46 µU/mL**
+  (basal 6–8; somatostatin ± insulin 200 / 500 µU/kg/min), glucose 85–89 → 193–206 mg/dL, six healthy men. Rd euglycaemic
+  → hyperglycaemic: no insulin 1.62 → 2.30, mid 2.72 → 5.07, high 4.64 → 9.63 mg/kg/min. The paper's own model: a
+  **fixed, glucose-independent uptake ≈ 1 mg/kg/min (brain) plus uptake proportional to glucose** (Table 2 fits all three
+  levels). The insulin-mediated part (Rd − the no-insulin Rd at the same glucose) rises 1.10 → 2.77 (mid) and 3.02 → 7.33
+  (high) for glucose ×2.17 / ×2.31 — **κ ≈ 1.3 / 1.1, at least proportional**. The 0.24 / 0.68 / 0.78 above came from the
+  TOTAL clearance fall, which the fixed brain uptake causes; it is not κ. κ for insulin-mediated uptake ≈ 1 (Bergman X·G).
 
 ### Other mechanisms that slow correction of highs
 
