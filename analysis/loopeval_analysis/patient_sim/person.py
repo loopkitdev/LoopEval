@@ -354,6 +354,12 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # (raising body ISF had raised cr_true and with it the carbs eaten; LESSONS 219)
     carbs = max(20.0, tdd * (1 - share) * cr_true / k_isf_twin)
     strategy = "temp" if str(row.strategy).startswith("temp") else "autobolus"
+    # the donor's deployed strategy in proportion: a twin stands for one ~2-week window of its donor, and 40 of 50
+    # "autobolus" pilot donors spent days in temp-basal mode (a whole-record rate > 2 automatic boluses a day made them
+    # autobolus); drawn on its own stream so no other trait moves (LESSONS 331)
+    sh = row.get("auto_day_share") if hasattr(row, "get") else None
+    if sh is not None and np.isfinite(float(sh)):
+        strategy = "autobolus" if np.random.default_rng(seed + 331).random() < float(sh) else "temp"
     # the donor's tuned 24-h basal shape (local hour, mean 1): Loop's schedule uses it as is; the body's basal need
     # follows it shrunk halfway (log), the same weight as ISF and CSF — people tune it on their body (LESSONS 48)
     prof = np.ones(24)
