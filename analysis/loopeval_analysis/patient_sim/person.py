@@ -214,7 +214,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
-                  basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None) -> Person:
+                  basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -230,6 +230,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # loop). ISF_W is an open parameter, settled by per-donor twin validation [J 0.5].
     r_isf = float(np.clip(row.isf_true / row.isf, 0.5, 2.0))
     isf_true = float(row.isf) * r_isf ** (ISF_W if isf_w is None else isf_w) * j_isf
+    isf_true *= isf_level          # experiment (LESSONS 326): cohort level of the body's insulin sensitivity
     if twin:
         # per-person twin calibration (Pete 2026-10-18, LESSONS 219): body ISF × the donor's fitted multiplier, so the
         # twin reproduces its donor's time < 70 (template column twin_isf_mult, iterated from cohort runs)
