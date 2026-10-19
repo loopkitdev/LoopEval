@@ -830,6 +830,8 @@ class Behavior:
                 if meal.protein > 0:
                     acts.append(("eat", Parcel(m, t.pro_glc * meal.protein, kempt=1 / 60.0, kabs=1 / 60.0, delay=90.0,
                                                f=self._f_glucose(), hypo_sensitive=False, label="protein", kcal_per_g=0.0)))
+                if meal.kind == "meal":
+                    acts.append(("ppr", m))          # post-meal insulin-action window (LESSONS 321)
                 if meal.fat > 0:
                     acts.append(("fat", m, meal.fat))
                 self.log.append((m, meal.kind, meal.grams, meal.entered))
