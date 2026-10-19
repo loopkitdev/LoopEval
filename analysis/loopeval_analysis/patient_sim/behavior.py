@@ -161,7 +161,7 @@ class BehaviorTraits:
     corr_over_share: float = 0.0         # with corr_own: share of corrections dosed BEYOND Loop's recommendation (donor lone boluses:
                                          # median 0.29; 39% given when Loop recommended ~0; LESSONS 223)
     corr_own: bool = False               # switch for the two traits above
-    corr_size_own: bool = False          # corrections at the donor's own dialled size: max(recommendation, U), U ~ lnN(corr_u_med,
+    corr_size_own: bool = True           # corrections at the donor's own dialled size: max(recommendation, U), U ~ lnN(corr_u_med,
                                          # corr_u_lsd) from their lone boluses (median 1.45 U; LESSONS 224)
     corr_u_med: float = 1.0
     corr_u_lsd: float = 0.8
