@@ -6109,3 +6109,16 @@ outputs in gamepc ~/additive/runs/c290–c312).
        the evidence: reference now c338_slotv.
      - The twins' breakfast hump at 3.5–4.5 h (+16 / +17 vs donors' steady decline) is selection: "isolated" excludes
        only entered meals, and 45% of twins' isolated breakfasts have an unentered meal (~15 g) 2.5–5 h later.
+
+339. **Circadian gastric emptying (Goo 1987) is now the default: it brings the night up to the donors' and the 24-h
+     amplitude passes.** The twins' glucose sat 10–20 mg/dL low at 00–04 h and high at 08–11 h with an equal daily mean
+     (LESSONS 338): their evening meals finished absorbing at bedtime (gut appearance 2.6 → 0.9 mg/kg/min from 22 to 01 h).
+     Twins' labelled load by hour vs donors' (g-eq/h): 07–10 h 8.4 / 11.2 / 11.3 / 10.3 vs 7.4 / 8.4 / 8.7 / 8.6, 00–03 h
+     4.8 / 4.0 / 3.4 / 3.5 vs 5.6 / 4.8 / 4.0 / 3.7 (total 204 vs 191). The dawn term is already off where a donor basal
+     profile exists (LESSONS 51); the night's rising EGP follows Loop delivering less to a low night.
+     `ge_circ` (emptying ×1.25 at 06–11 h, ×0.8 at 17–23 h; Goo 1987: the same solid meal's half-time ~54% longer in the
+     evening; LESSONS 180 tested it on c201 at 31 vs 40), c339 on c338_slotv: 38 of 51 (37); 00–03 h 157 / 146 / 141 / 132
+     (donors 158 / 152 / 147 / 141; c338 151 / 132 / 127 / 127); circadian_amp 0.148 (p 0.17, was 0.002), t54 0.134% (p
+     0.050), P(reach 54) 0.176 (p 0.061); day / night insulin 1.85 (p 0.08). Costs: 08–10 h 147 / 160 / 167 (donors 135 /
+     140 / 146); lunch and dinner shapes unchanged (lunch 3-h −7, dinner +4 at 4 h). Adopted (evidence, night level,
+     amplitude); reference now c339_gecirc. The late-morning excess is the next item.
