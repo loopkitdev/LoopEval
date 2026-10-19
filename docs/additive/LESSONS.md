@@ -6328,3 +6328,5 @@ outputs in gamepc ~/additive/runs/c290–c312).
      5.77 / 6.77. Set G7 0.7, G6 0.8 (06af1d6), fitted to the sensors' own evidence, not to CGM shape. c361 vs c360: 35 of 51
      (33); t54 0.106% (p 0.077), lows / day 0.75 (p 0.070), P(reach 54) 0.179 (p 0.163), min_below70 (p 0.005 → 0.156),
      share of lows < 54 0.356 (target 0.37); cost: G6 sigma_meas 1.65 vs donors 1.24 (p 0.010). Reference now c361_hq.
+     - Crossings on c361 (same measure): ≤ 15 min 0.45 / day (c360 0.37; donors 0.58), 15–45 min 0.48 (0.43; 0.52), > 45
+       min 0.13 (0.16; 0.17), nadir ≥ 60 0.62 (0.54; 0.74): the brief shallow dips came about halfway to the donors'.
