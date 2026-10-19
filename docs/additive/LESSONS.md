@@ -4926,3 +4926,9 @@ statistic here, but it is the controller donors ran.
        LESSONS 125 already showed overstates night need; and late morning runs high (10–12 h +8..+15 vs −3..+1), the
        breakfast-intake excess of LESSONS 231. Next: a night-need measure free of evening carbohydrate (donors' clean
        nights, LESSONS 125's split) for the delivered shape's night hours.
+     - **Not late-evening eating in the measure.** `add_delivered_profile(quiet_min=360)` (6 h without entry or manual
+       bolus instead of 4): median delivered shape at 00 / 03 / 05 / 07 / 13 / 20 h 0.87 / 0.76 / 0.67 / 0.85 / 1.18 / 1.28
+       vs 0.90 / 0.80 / 0.68 / 0.84 / 1.16 / 1.21 (50 vs 62 donors with every hour covered). The delivered shape is low at
+       night; the body now needs less than Loop's schedule gives overnight, and the deeper simulated night dip is how the
+       sim's Loop and body meet that, not a contaminated measure. Open: why the donors' nights descend less (00 → 05 h −25
+       vs −41) under the same shape — their Loop's overnight temp basals against the sim's.
