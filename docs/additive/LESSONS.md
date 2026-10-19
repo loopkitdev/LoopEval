@@ -5229,3 +5229,13 @@ statistic here, but it is the controller donors ran.
      ends real night lows (counter-regulation that acts on duration rather than depth — its 15-min time constant —,
      the residual insulin tail at night, unlogged small treatments); and the night rescue is slower in the sim (alarm-
      and-wake model, p_wake_alarm) than the donors' 12 min.
+
+274. **Night lows end when people wake: the alarm-wake chance, calibrated on the donors' night lows (mean 0.45 → 0.72).**
+     c287 on c286_cr06, donors / c286 / wake ×1.6 / CR time constant 5 min: night low duration p90 70 / 100 / 80 / 105 min,
+     untreated gradual night lows p90 70 / 110 / 80 / 120, review low duration p90 65 / 80 / 65 / 80, night low start →
+     rescue p50 12 / 20 / 15 / 15 min, night lows treated 27 / 27 / 35 / 29%, nadir p10 40 / 42 / 44 / 45, t54 0.22 /
+     0.15 / 0.13 / 0.06; matched 32 / 30 / 32. A faster counter-regulation does not end night lows (it shortens nothing and
+     makes them shallower); waking does. The per-alarm wake chance was drawn around Buckingham 2005's children and
+     adolescents (29 / 53%); the donors are mostly adults, and their own night timing and duration set it: p_wake_alarm
+     N(0.72, 0.2) (clip 0.05–0.98). Cost: more night lows treated than the donors' (35 vs 27%) and 30 matched (within the
+     27–31 band). New reference c287_wake. `wake_mult` and `cr_tau` stay as experiment overrides.

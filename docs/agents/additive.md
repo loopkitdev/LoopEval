@@ -78,7 +78,7 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. Arms of a neutral change scatter 27–31 matched: read differences
   inside that band as noise.
-- **Current reference** (2026-10-19): c286_cr06 — counter-regulation refitted (CRmax median 0.3, LESSONS 272), meal fast-emptying share 0.35 with per-meal SD 0.40, G7 white noise 1.8 (LESSONS 268–271), yardstick ISF × the body-model sensitivity fit (`fit_body --regression`), night need added on top of the day (`night_add`), delivered-shape basal need with the night level from steady
+- **Current reference** (2026-10-19): c287_wake — night alarm-wake chance from the donors' night lows (LESSONS 274), counter-regulation refitted (CRmax median 0.3, LESSONS 272), meal fast-emptying share 0.35 with per-meal SD 0.40, G7 white noise 1.8 (LESSONS 268–271), yardstick ISF × the body-model sensitivity fit (`fit_body --regression`), night need added on top of the day (`night_add`), delivered-shape basal need with the night level from steady
   nights, donor-MET exercise intensity with the C4 surge; 29 of 51; t70 1.73 vs 1.67%, t54 passes.
 
 ## Match targets: eda's statistics
@@ -102,7 +102,7 @@ where the statistic depends on the instrument (eda lesson 33). Each cohort run w
 | | `tdd_cv`, `med_nonzero`, `ac1`, `night_cv` | day-to-day CV and autocorrelation, typical delivery, night-to-night CV | fail |
 | Behaviour | `carb_entries_per_day`, `user_boluses_per_day`, `manual_u_day` | entries, user boluses, hand-dosed units | pass |
 
-c284: 29 of 51; c285_sd40 31; c286_cr06 32 (low depths on the donors', LESSONS 272) (G7 kurtosis, volatility clustering, lows/day and TDD CV now pass; bg_skew and hurst_long now fail, LESSONS 271). Neutral changes move the count within 27–31; read single-statistic changes against that band, and check
+c284: 29 of 51; c285_sd40 31; c286_cr06 32 (low depths on the donors', LESSONS 272); c287_wake 30 (night low duration on the donors', LESSONS 274) (G7 kurtosis, volatility clustering, lows/day and TDD CV now pass; bg_skew and hurst_long now fail, LESSONS 271). Neutral changes move the count within 27–31; read single-statistic changes against that band, and check
 the lows by dosing strategy (temp-basal vs automatic-bolus twins against their own donors) beside the cohort count.
 
 ## Analysis traps (each cost a session)
