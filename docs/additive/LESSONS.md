@@ -5015,7 +5015,7 @@ statistic here, but it is the controller donors ran.
        the twins through what it correlates with in the template (the settings ISF itself, TDD), not through the body's
        mismatch. Cohort: lows 1.00/day (KS 0.91), t70 1.43%, meals ending < 70 8.6% (9.7), CV 35.6, 29 matched; day / night
        1.90 (KS 0.043). The closest lows yet, but no per-person gain and a stronger stance (the body equal to the settings
-       on average) than this evidence carries: not adopted. Pete 2026-10-19: keep ISF_W 0.5.
+       on average) than this evidence carries: not adopted. Pete 2026-10-19: keep ISF_W 0.5 — then, the same day, fit to data over settings: ISF_W 1.0 (LESSONS 259).
      - **The donor's night need does not carry their level.** Twin mean vs the donor's overnight delivered / scheduled
        (night_ratio, donors' own mean 0.63): c257 0.17 → c270 0.21, with the donor's night need now in each body. The
        twin's Loop delivers what that need asks, so the level does not follow; in the donors the 0.63 plausibly runs the
