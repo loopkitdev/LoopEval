@@ -90,7 +90,7 @@ where the statistic depends on the instrument (eda lesson 33). Each cohort run w
 `python -m loopeval_analysis.patient_sim.compare_runs RUN_A RUN_B` sets two runs side by side. **Matched = KS p > 0.05;
 51 rows (37 statistics, 7 of them split by G6 / G7 / Libre 3).** Status at the reference c278 (donor p50 / sim p50):
 
-| Area | Statistic | What it measures | c277 |
+| Area | Statistic | What it measures | c278 |
 |---|---|---|---|
 | Level and spread | `bg_mean`, `bg_cv`, `tir`, `t70`, `t180` | mean, CV, time in 70–180, < 70, > 180 | pass |
 | | `bg_skew`, `boxcox_lambda` | shape of the glucose distribution | fail (0.89 / 0.82) |
