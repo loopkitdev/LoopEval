@@ -5921,3 +5921,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      the late phase only by lifting the daytime level (hourly 10–15 h 169–184 with ppr) and losing what p2 fixed. The late
      phase stays the main open gap; the donors combine it with a lower daytime level and more lows, which no single
      addition reproduces.
+
+326. **A higher overall sensitivity does not offset the post-meal window: the intake budget eats it.** `isf_level`
+     (experiment, off: cohort multiplier on each body's ISF; CR_true = ISF / CSF, so a more sensitive body eats more at the
+     same TDD) with `ppr_a` 0.3, c323 vs c321_p2a: ×1.15 → 3-h change +10.9, bg_mean 160.9, TDD 44.0 (donors 38.8), t54
+     0.090%, lows 0.75; ×1.3 → +6.4, bg_mean 162.2, TDD 45.1, t54 0.121% and p_reach54 0.20 pass, CV 37.2 / TIR 68.8 fail; 30
+     matched (34). Not adopted. The donors' combination (late phase, lower daytime level, more lows, LOWER TDD) is not
+     reached by any additive combination tried (LESSONS 301–326); the late phase stays the documented main limit, with the
+     reference at c321_p2a.
