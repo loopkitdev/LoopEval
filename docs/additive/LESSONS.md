@@ -6330,3 +6330,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      share of lows < 54 0.356 (target 0.37); cost: G6 sigma_meas 1.65 vs donors 1.24 (p 0.010). Reference now c361_hq.
      - Crossings on c361 (same measure): ≤ 15 min 0.45 / day (c360 0.37; donors 0.58), 15–45 min 0.48 (0.43; 0.52), > 45
        min 0.13 (0.16; 0.17), nadir ≥ 60 0.62 (0.54; 0.74): the brief shallow dips came about halfway to the donors'.
+
+362. **The FDA tables do not identify the G6's white noise; the donors' measurement noise does.** With q 0.8, the G6's FDA
+     loss falls monotonically as white-noise sigma falls (1.6 / 1.4 / 1.2 / 1.0 / 0.8 / 0.6 / 0.4 / 0.2 / 0.05 → 5.26 /
+     5.18 / 5.14 / 4.91 / 4.77 / 4.67 / 4.26 / 4.20 / 4.15): the tables' accuracy is carried by the AR, calibration and
+     bias components, leaving white noise unidentified there. The donors' high-frequency measurement noise (sigma_meas,
+     the quantity LESSONS 222 / 269 set it from) does identify it. G6 sigma 1.4 → 1.0 (655aecf; FDA loss 4.91). c362 vs
+     c361: G6 sigma_meas p 0.010 → 0.662 (1.56 vs 1.24); hurst_short G6 p 0.081 → 0.043; t54 0.093% (p 0.052), lows /
+     day p 0.054, P(reach 54) 0.083, min_below70 0.098 — every low statistic still passing; 35 of 51 (35). Reference now
+     c362_g6s.
