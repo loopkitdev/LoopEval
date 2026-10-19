@@ -5562,3 +5562,14 @@ statistic here, but it is the controller donors ran.
      0.41 / 0.56, σ_meas 1.16 / 1.22 (donors 1.30 / 1.37). Reverted. The donors' CGM is rough at 5 min, not over
      15–60 min; the AR(3) common term makes both. A component whose noise is rough at one step but does not wander over
      tens of minutes is what the shape asks for — a structure question for the sensor evidence (evidence/08), not a size.
+
+297. **No sensor structure gives the donors' CGM over a smooth body: the missing piece is fast, coherent body motion.**
+     `sensor_shape.py` with step SD added (20 c294 bodies, G7; base step SD 7.26 is the value whose cohort v_sd matches):
+     common σ 1.0 alone 6.56 (too smooth; c299 failed on it), small turns 0.38; restoring the step SD with whiter
+     per-sensor noise and slow bias (common 1.0 / 1.4, AR (0.3–0.8, 0 to −0.1), σ 2.2–2.6, slow bias 6–7): step SD
+     7.07–7.50 but small turns back to 0.47–0.50 and lag-1 ACF 0.26–0.48, loss 1.68–2.85 (base 1.90). White noise makes
+     small turns as readily as the common term. The donors' combination — 5-min roughness (v_sd 7.02), lag-1 increment
+     ACF 0.51 and few small turns (0.375 / h quiet) — is what real, coherent glucose moves give: steps that are large
+     and persist for several readings. The twins' true glucose is too smooth for it (lag-1 0.946, 0.08 small turns / h).
+     This joins LESSONS 268 (step tail), 286 (post-peak fall), 291 (early post-bolus fall) and 293 (volatility
+     dispersion): one missing body property, fast coherent moves, not a sensor size. Sensor stays as fitted.
