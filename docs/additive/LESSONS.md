@@ -5412,3 +5412,10 @@ statistic here, but it is the controller donors ran.
      Insulin action already sits on the clamp literature (LESSONS 276), so the meal side is where to look: the energy-
      limited emptying and its between-person spread (A10: Vmax CV 30%, 28% delayed ×0.6–0.8, Samsom 2003). Ablation c293
      (`--disable ge_var`) measures how much of the late, slow descent the spread carries.
+     **c293 (`--disable ge_var`, ablation, not a candidate):** matched-height fall after the max, unannounced −33.0 / −30.0
+     (c289 −26.0 / −27.0; donors −36.9 / −33.5), announced automatic-bolus −32.0 (−28.0; −36.6); time to max unchanged
+     (110–125 vs donors 95–110). Lows 0.67 / day (0.83; donors 1.08), t70 1.07 (1.29; 1.67), 29 matched. The between-person
+     emptying spread carries part of the slow descent, but it is evidenced (Samsom 2003) and removing it loses lows — the
+     slow emptiers make lows (a bolus ahead of slow absorption). The late maximum is not the spread. Stays on; open: the
+     time to maximum at matched height, and whether Samsom's delayed share (long-standing T1D, scintigraphy) applies to
+     this AID population — a literature question before any change.
