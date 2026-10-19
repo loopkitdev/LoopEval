@@ -5952,3 +5952,19 @@ outputs in gamepc ~/additive/runs/c290–c312).
      1e-4. The donors have more short crossings and recover faster — the same "real glucose moves harder" signature as the
      faster falls (LESSONS 291, 297). Still open; the review's ≥ 15-min episodes match (p90 65 vs 65), so the gap is in the
      short crossings.
+
+330. **Donors are now scored one 13-day block at a time, as each twin is; the reference reads 38 of 51.** The donor table
+     (`real_pilot.csv`) held each donor's MEDIAN over its ~8 blocks (1,724 blocks, 206 donors), against which every twin
+     contributes one 13-day window. A median of eight has a narrower spread across people than any single window, so
+     noisy statistics read "too wide" in the twins and a genuinely narrow twin spread was half hidden. `ac1` donors p10 /
+     p50 / p90: median of blocks −0.11 / 0.08 / 0.29, single blocks −0.30 / 0.09 / 0.50, twins −0.32 / 0.03 / 0.36.
+     `validate.compare_blocks` (used when `real_pilot_blocks.csv` sits beside `real_pilot.csv`; built by `validate
+     realpilotblocks`): KS against one random block per donor, the median p over 40 draws; `pass_share` is the share of
+     draws passing, quantiles pool all blocks; the old table is kept as `compare_pilot_medblocks.csv`. Re-scored: c321_p2a
+     34 → 38, c321_p2b 31 → 38, c324_p3b85 31 → 34, c322_ppr3 31 → 34, c326_q5 27 → 33.
+     - Now pass: `ac1` (the window-length question answered: donors' full-record 0.21 is 0.03–0.09 in 13-day windows),
+       `bg_skew`, `boxcox_lambda`, `between_day_frac`. `t54` now fails (p 0.03, 38% of draws): the twins' upper tail is
+       short — p90 0.75% vs single blocks 1.31%, lows per day p90 2.17 vs 2.77. The lows deficit is sharper than the old
+       scoring showed.
+     - Still failing on substance under either scoring: `med_nonzero`, `night_cv`, `sigma_disp`, `circadian_amp`,
+       `min_below70`, `hurst_long`, `acf_zero_min`, G7 short-scale shape.
