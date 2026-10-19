@@ -35,6 +35,9 @@ Code: `analysis/loopeval_analysis/patient_sim/`.
 | A12 Fat / protein | early: kempt × 1/(1 + fat/60); late: slow glucose parcel 0.1·protein g, chain 1/60, delay 90 min; fat SI dip 1 − ρ·fat/50 ramping in 2→3 h, full to 6 h, gone by 10 h | per meal 0.44 g fat and 0.45 g protein per carb gram (snacks 0.2), ±50% (T1D adults, n = 470: fat 75 g, carbohydrate 162 g, protein 70 g/day → 0.46 / 0.43 per carb g; PMC11446970); ρ U(0, 0.35) per person | 01 §6.3 (Smart 2013, Wolpert 2013, Bell 2020, Paterson 2017) | wired; the fat SI term is relative to the person's usual diet (mean 1 over the window, `fat_rel`, default since 2026-10-18; LESSONS 151) |
 | A10b Fast liquid phase | 35% of each meal's carbohydrate empties fast (0.08/min) outside the energy ceiling | share 0.35: 0.5 fits the donors' 5-min CGM step tail but overshoots CV; one share for all meals cannot fit both (a per-meal distribution is next) | Hunt 1985; Calbet 1997; LESSONS 44 (increment skew), 268, 270 | calibrated (0.2 → 0.35 on 2026-10-19) |
 | A13 Rescue / fast glucose | fast parcel kempt = kabs ≈ 0.06–0.08, with A11; bioavailability = the person's calibrated meal f × 1.25 (never a fixed 1.0) | — | 01 §6.5 (Brodows 1984: ~3–4 mg/dL per g); LESSONS 18 | wired |
+| A14 Circadian gastric emptying | emptying × 1.25 at 06–11 h, × 0.8 at 17–23 h, 1-h ramps (`ge_circ`) | — | Goo 1987 (same solid meal's half-time ~54% longer in the evening); night 00–03 h on the donors', circadian_amp passes (LESSONS 180, 339) | calibrated, default since 2026-10-19 |
+| A15 Meal-slot composition | fat / protein per carb gram × 0.72 / 0.97 / 1.14 and 0.86 / 0.86 / 1.24 at breakfast / lunch / dinner (`slot_comp`) | — | Vetrani 2022 Diabetologia Table 1 (1,264 records, 25 adults on HCL); LESSONS 338 | wired, default (measured values since 2026-10-19; were [J] 0.6 / 1.0 / 1.35) |
+| A16 Activity and the gut | emptying × up to 1.15 at walking intensity, × 0.5 by 0.8 VO2-reserve, on filtered intensity (`ex_gut`) | depth above 0.6 [J] | Franke 2008 (walking: half-emptying 123 → 107 min); PubMed 22517770 (> 70% VO2max, splanchnic flow ≥ −80%); LESSONS 344 | built, off (neutral) |
 
 **Per-person calibration** (`person.calibrate`): Ib comes from the true basal rate; SI_D and sE are
 solved so a 0.1 U probe on the *linear part* (A1 SG, A5 κ and low-end, A8, A9 all off) gives the
@@ -55,6 +58,8 @@ estimates (LESSONS 2).
 | B14 Oral glucocorticoids | courses at 0.09/yr per person; 4–7 days, morning dose ~08:00; SI × (1 − loss·w(t)), w 0 to +2 h, ramps to 1 by +6 h, holds to +12 h, gone by +22 h; loss U(0.35, 0.60) on day 1, linear taper | — | 00 D13; Bevier 2008 (insulin +69%, 30–100%, from 6 h; baseline by day 4); Waljee 2017 (21.1% of adults per 3 years); PMC8157052 (afternoon–evening pattern); LESSONS 140 | wired, on at the population rate; `--enable steroid_course` forces one from day 3 |
 | X9 Pregnancy (scenario) | SI ÷ need(week): +10% to week 9, 0.95 at 16, +5%/week to 36, falling after 37; settings titrated to the starting week | need shape; early sizes [J] | García-Patterson 2010 (n = 65 T1D); ADA Standards 2023 §15; J Perinatol 2021 (late fall); LESSONS 141 (SI form realizes ~90% of the need) | built, off (`--set preg_week=W`) |
 | B11 Hyperglycaemia-induced resistance | SI × (1 − H), H → 0.26·clip((G − 140)/220, 0, 1), τ 12 h [J] | — | Vuorinen-Markkola 1992; Yki-Järvinen 1987 (LESSONS 43) | wired |
+| B1c Per-donor circadian pattern | B / L / D SI levels drawn from the donor's posterior (`fit_body --segments`, reliability-shrunk mean + posterior SD), replacing the random Visentin class (`circ_own`) | split-half reliability B 0.53, L 0.08, D 0.37 | donors' true B/D log SD 0.56 vs Visentin-as-simulated 0.59; LESSONS 335 | built, off |
+| X12 Thyrotoxicosis (scenario) | plasma insulin clearance ke × `thyro_clear` (1.41), settings kept euthyroid | — | PubMed 3887944 (MCR 1144 vs 812 ml/min); Arch Intern Med 1980 (+25–100% insulin); LESSONS 336 | built, off (scenario) |
 
 ## C. Exercise (`exercise.py`)
 
@@ -129,6 +134,9 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 | F11 Eating pulses | carbs/day spread over the person's measured pulse count (~5.6/day) with their measured size spread | ice meals tables (LESSONS 16) | wired |
 | F12 Temporary Overrides | less-insulin with activity episodes, lowered target before entries, raised target at random; donor rates and median factor / target / duration; exported to the therapy timeline (causal) | 19,732 donor windows; templates.add_override_rates; LESSONS 40 | wired (reactive more-insulin class pending plant-sent overrides) |
 | F13 Settings edits | dated multiplicative edits to basal/ISF/CR at the donor's rate per setting; size lnN(3.6%, 1.06), random sign [J]; exported as schedule eras | donor therapy timelines (templates.add_edit_rates; LESSONS 41) | wired |
+| F14 Per-window entry chance | each window's entry chance ∝ the donor's entered grams there (carbs.json) / the twin's eaten share, mean 1 (`entry_win`, under `entry_split`) | donors' carbs.json by local window (`templates.add_entry_windows`); evening no-entry share 33% → 25% (donors 17%); LESSONS 341, 345 | wired, default since 2026-10-19 |
+| F15 Window grams from labelled load | each window's eaten grams = the donor's labelled g-eq ÷ their labelled-per-entered ratio there (`slot_true`), so body-made dawn rises are not eaten again | LESSONS 231, 343, 346 (hourly glucose RMS 9.6 → 7.7 mg/dL) | wired, default since 2026-10-19 |
+| F16 Intake per donor load | intake budget × donor / twin labelled load (`intake_own`) | LESSONS 333: Loop absorbs it, level unmoved | built, off |
 
 ## G. Truth and settings (`person.py`)
 
@@ -142,6 +150,7 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 | G8 Effective ISF | the person's ISF is the EFFECTIVE drop per unit at ~180 mg/dL on the full body, as the yardstick measures it | LESSONS 15 | calibrated |
 | G5 Settings | the donor's own ISF, CR, basal, target and limits | templates | wired |
 | G6 Devices | sensor family, pump, dosing strategy, formulation from the donor | sensor_month (Databricks per-reading deviceId) | wired |
+| G6b Dosing strategy share | each twin runs autobolus with probability = its donor's share of autobolus days (`auto_day_share`; ≥ 5 automatic boluses, ≥ 20 dose records), own RNG stream | 40 of 50 'autobolus' pilot donors spent days in temp-basal mode; Loop's automated insulin then matches the donors' days 1.04× (LESSONS 331) | wired, default since 2026-10-19 |
 
 ---
 
@@ -159,7 +168,7 @@ deciding the automatic dose and forwards it to the plant (8e86860 alone dropped 
 `validate.py` computes, with **one code path for simulated people and real donors**, eda's glucose
 features (`traits.block_features`), outcomes, delivered-insulin statistics, behavior rates and low
 anatomy. For the pilot templates the reference is the pilot donors themselves in 13-day blocks
-(`real_pilot.csv`), split by sensor family; for the eda templates it is the eda cohort tables.
+(`real_pilot.csv`), split by sensor family — scored one block per donor against each twin's one window (`compare_blocks`, `real_pilot_blocks.csv`, median KS p over 40 draws; LESSONS 330); for the eda templates it is the eda cohort tables.
 `twin.csv` sets each simulated person against the donor it came from (median difference and rank
 agreement). A gap means a missing or mis-specified component. It never means adding a fitted term.
 | G9 Loop not acting | offline / merged windows run scheduled basal, pump errors keep the last command; written to the export's disruptions.csv, which LoopEval honours | donors' disruptions.csv: 0.9/day, lnN(32 min, 0.86) ≤ 6 h; errors 2.45/day × 3 min (LESSONS 60) | wired |
