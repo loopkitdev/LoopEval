@@ -5683,3 +5683,16 @@ statistic here, but it is the controller donors ran.
      slower appearance of the same glucose under a full bolus only lowers the meal. Held off until the late glucose it
      should carry is in: Elleri's LG meal appeared ~18 g beyond its 121 g carbohydrate (bioavailability 102% vs the HG
      meal's 87%; +15 g protein, +22 g fat), ~0.4–0.5 g glucose per g protein against the model's 0.1 (`pro_glc`, c308).
+
+306. **More late glucose does not make the late phase either; the twins may simply get more insulin early.**
+     - **c308 `pro_glc` 0.4** (protein → glucose at Elleri's ~0.4–0.5 g/g, against the model's 0.1) vs c306: bg_mean
+       159.5, time > 180 29.4%, lows 0.67 / day, 29 matched; mid meals still ~0 at 180 min (donors +23). With
+       `ge_full_kcal` too: large meals rise late but at 240–300 min (+19 to +21; donors' peak 150–210), t54 0.044%, 25
+       matched. The extra glucose spreads through the day and Loop answers it; neither adopted.
+     - **Insulin after isolated bolused meals ≥ 15 g, per 10 g entered** (all delivery, medians; `meal_ins.py`): to 60 /
+       120 / 180 / 240 / 360 min donors 1.11 / 1.36 / 1.72 / 2.07 / 2.71 U, c306 1.29 / 1.58 / 1.83 / 2.20 / 2.88 — the
+       twins get ~16% more in the first two hours, converging by 6 h. Over-covering early would return meals to baseline
+       by 3 h, the twins' shape. The split into user and automatic insulin (`meal_ins2.py`, means) reads the other way
+       (donors user / auto −15..120 min 1.19 / 0.74, c306 0.79 / 0.89) and its sim-side user / auto attribution
+       (request-time matching) is not yet trustworthy — next: attribute the twins' early insulin from the trace's own
+       dose records (user bolus, split remainder, top-up, automatic), then compare with the donors' manual / automatic.
