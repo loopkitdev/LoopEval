@@ -6011,3 +6011,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
        not settings edits or multi-day states (those would carry over), but a fresh per-night level set by the evening,
        as LESSONS 288 found for night insulin (night_cv 35 vs 27). Both point at the evening's carry-over, where every
        lever tried (288–289) cost lows. Open.
+
+333. **The low-running donors' twins carry ~18% more glucose load than their donors, but less food does not lower them:
+     Loop takes the difference out of the insulin.** ice labeler on c331_strat (`ice_check`, both sides): labelled g-eq
+     per day twin / donor by the donor's t54 quartile 1.08 / 1.01 / 1.00 / 1.18 (Q4: 208 vs 173; announced 95 vs 76,
+     unannounced 110 vs 79). `intake_own` (experiment, off): intake budget × the donor's load over the twin's, shrunk by
+     reliability (one twin's log SE 0.10, between-donor τ 0.24, weight p50 0.85, clipped 0.7–1.3; `intake_mult` in
+     templates_pilot_logs.csv, 78 donors). c333_intake: Q4 twins' meals 119 → 84 g/day, snacks 39 → 31, yet labelled load
+     1.18 → 1.15 and the Q4 morning level 154 → 155 (donors 124); per-person mean Spearman by clock 0.31 / 0.11 / 0.35 /
+     0.35 (c331 0.29 / 0.09 / 0.32 / 0.28). Cohort 37 of 51 (37): t54 (p 0.04 → 0.18) and min_below70 (0.058) pass, TDD
+     39.3, mean 152.4; G7 v_sd / v_skew and ac1 flip the other way — run-noise flips. A person's level under Loop is set
+     by what Loop is aimed at and what it cannot see in time, not by how much is eaten. Not adopted.
