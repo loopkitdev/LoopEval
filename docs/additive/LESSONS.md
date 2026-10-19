@@ -6132,3 +6132,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      that carry an entry, and labelled pulses include body-made rises (LESSONS 333), so it is not the entry chance of an
      eating occasion. The dinner shortfall stays open; a direct per-window entered-grams target (carbs.json, both sides)
      is the like-for-like quantity to calibrate the entry chance on.
+
+341. **Entries calibrated per window to the donors' entered grams do not change the meal shapes.** `entry_win`
+     (experiment, off; 7c1586f): under `entry_split`, each window's entry chance ∝ the donor's entered share there
+     (`ent_win`, carbs.json local 04–10.5 / 10.5–15.5 / 15.5–22 h; 152 donors) over the twin's eaten share, mean 1. c341 vs
+     c339_gecirc: 36 of 51 (38); t54 0.122% (p 0.069), P(reach 54) 0.167 pass, lows/day p 0.069; 3-h meal change −5.6;
+     breakfast 0 / 11 / 32 / 40 / 36 / 1 at 0–2.5 h, lunch −14 at 3 h, dinner flat; 09–11 h 156 / 166 / 164. Which meals
+     are entered is not what shapes lunch and dinner; their late counteraction remains the open item (LESSONS 301–341).
