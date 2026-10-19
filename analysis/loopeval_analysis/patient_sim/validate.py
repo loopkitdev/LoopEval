@@ -141,10 +141,11 @@ GAP_MIN = 30
 MASK_GAPS = True     # donors: no-record stretches are unknown insulin (LESSONS 95)
 
 
-def real_stats(export: Path, block_days: int = 13) -> dict | None:
+def real_stats(export: Path, block_days: int = 13, per_block: bool = False):
     """A real donor scored like a simulated person: per non-overlapping block of `block_days` (the
     simulated window's length — tail and day-level statistics depend on window length, eda L7), then the
-    median across blocks."""
+    median across blocks; `per_block` returns every block's statistics instead (the like-for-like sample
+    for a simulated person's single window, LESSONS 330)."""
     g = json.load(open(export / "glucose.json"))
     cgm = pd.Series([x["quantity"] for x in g], index=pd.to_datetime([x["startDate"] for x in g]), dtype=float).sort_index()
     cgm = cgm[~cgm.index.duplicated()]
@@ -169,6 +170,7 @@ def real_stats(export: Path, block_days: int = 13) -> dict | None:
             rows.append(core_stats(c, delivered_5min(doses, s, e, mask_gaps=MASK_GAPS), block_days))
         s = e
     if not rows: return None
+    if per_block: return [dict(block=i, **r) for i, r in enumerate(rows)]
     return pd.DataFrame(rows).median(numeric_only=True).to_dict()
 
 
@@ -294,9 +296,16 @@ def main():
             tt = tt.drop(columns=["carb_entries_per_day", "user_boluses_per_day"]).rename(
                 columns={"entries_raw": "carb_entries_per_day", "boluses_raw": "user_boluses_per_day"})
         cols = ["alias", "sensor", "strategy", "carb_entries_per_day", "user_boluses_per_day"] + (["manual_u_day"] if "manual_u_day" in tt else [])
-        rr = pd.read_csv(rp).merge(tt[cols], on="alias", how="left")
-        rr["strategy"] = rr["strategy"].map(lambda s: "temp" if str(s).startswith("temp") else "autobolus")
-        cp = compare(sim, real=rr)
+        def merged(path):
+            rr = pd.read_csv(path).merge(tt[cols], on="alias", how="left")
+            rr["strategy"] = rr["strategy"].map(lambda s: "temp" if str(s).startswith("temp") else "autobolus")
+            return rr
+        rb = rp.parent / "real_pilot_blocks.csv"
+        if rb.exists():    # one 13-day block per donor against each simulated 13-day window (LESSONS 330)
+            compare(sim, real=merged(rp)).to_csv(root / "compare_pilot_medblocks.csv", index=False)
+            cp = compare_blocks(sim, merged(rb))
+        else:
+            cp = compare(sim, real=merged(rp))
         cp.to_csv(root / "compare_pilot.csv", index=False)
     cj = root / "cohort.json"
     tw = twin(sim, json.load(open(cj)).get("templates") if cj.exists() else None)
@@ -317,26 +326,46 @@ def main():
 
 
 def _real_one(a):
-    root, alias = a
+    root, alias, per_block = a
     try:
-        r = real_stats(Path(root) / alias)
-        return dict(alias=alias, **r) if r else None
+        r = real_stats(Path(root) / alias, per_block=per_block)
+        if not r: return []
+        return [dict(alias=alias, **x) for x in r] if per_block else [dict(alias=alias, **r)]
     except Exception:                       # noqa: BLE001
-        return None
+        return []
 
 
-def real_pilot(root: str, out: str, par: int = 6):
-    """Score every donor export under `root` with the simulated people's own statistics."""
+def real_pilot(root: str, out: str, par: int = 6, per_block: bool = False):
+    """Score every donor export under `root` with the simulated people's own statistics: one row per donor
+    (median of its blocks), or with `per_block` one row per 13-day block (real_pilot_blocks.csv)."""
     from concurrent.futures import ProcessPoolExecutor
     aliases = sorted(p.name for p in Path(root).iterdir() if (p / "glucose.json").exists())
     with ProcessPoolExecutor(par) as ex:
-        rows = [r for r in ex.map(_real_one, [(root, a) for a in aliases]) if r]
+        rows = [r for rs in ex.map(_real_one, [(root, a, per_block) for a in aliases]) for r in rs]
     pd.DataFrame(rows).to_csv(out, index=False)
-    print(f"{len(rows)} donors -> {out}")
+    print(f"{len(rows)} rows, {len({r['alias'] for r in rows})} donors -> {out}")
+
+
+def compare_blocks(sim: pd.DataFrame, blocks: pd.DataFrame, ndraw: int = 40, seed: int = 0) -> pd.DataFrame:
+    """Like `compare`, with each donor represented by ONE of its 13-day blocks, as each simulated person is by
+    its one 13-day window. A donor's median over its ~8 blocks has a narrower spread across people than any
+    single window, so against it the simulated cohort reads too wide on every noisy statistic (ac1, skew,
+    between-day share) and too narrow is hidden (LESSONS 330). The KS p is the median over `ndraw` random
+    draws of one block per donor; `pass_share` is the share of draws with p > 0.05; quantiles pool all blocks."""
+    rng = np.random.default_rng(seed)
+    draws = [compare(sim, real=blocks.groupby("alias").sample(1, random_state=int(rng.integers(1 << 30))))
+             .set_index(["stat", "group"]).ks_p for _ in range(ndraw)]
+    P = pd.concat(draws, axis=1)
+    out = compare(sim, real=blocks).set_index(["stat", "group"])
+    out["ks_p_pooled"] = out.pop("ks_p")
+    out["ks_p"] = P.median(axis=1)
+    out["pass_share"] = (P > 0.05).mean(axis=1)
+    return out.reset_index()
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "realpilot":
-        real_pilot(sys.argv[2], sys.argv[3], int(sys.argv[4]) if len(sys.argv) > 4 else 6)
+    if len(sys.argv) > 1 and sys.argv[1] in ("realpilot", "realpilotblocks"):
+        real_pilot(sys.argv[2], sys.argv[3], int(sys.argv[4]) if len(sys.argv) > 4 else 6,
+                   per_block=sys.argv[1] == "realpilotblocks")
     else:
         main()
