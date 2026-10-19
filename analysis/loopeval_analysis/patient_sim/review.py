@@ -60,7 +60,9 @@ def _sim_people(run: Path):
         e = [(m, gg) for (m, k, gg, x) in tr["behavior"] if k == "entry" and m >= 2880]
         T = tr["truth"]; m = T.m.to_numpy(float); cd = np.r_[0, np.cumsum(T.delivered.to_numpy(float))]
         deliv = np.diff(np.interp(np.r_[grid, grid[-1] + 5], np.r_[m, m[-1] + 1], cd))
-        bol = np.array(sorted(mm for mm, f in tr["bolus_requests"] if f > 0))
+        # bolus_requests: + = a ratio of Loop's recommendation, − = absolute units (hand-dialled: corrections, top-ups,
+        # free and stacked boluses); both are user boluses (LESSONS 237)
+        bol = np.array(sorted(mm for mm, f in tr["bolus_requests"] if f > 0 or f <= -0.05))
         yield p.name, grid, g, np.array([x for x, _ in e], float), np.array([x for _, x in e], float), bol, deliv, tr
 
 

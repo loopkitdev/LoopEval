@@ -252,6 +252,8 @@ class World:
             self.beh_traits.stack_own = True
         if enable and enable.get("graze_unann"):
             self.beh_traits.graze_unann = True
+        if enable and enable.get("corr_trend"):
+            self.beh_traits.corr_trend = True
         if enable and enable.get("skip_own"):
             # experiment (LESSONS 182): the donor's own breakfast-skip share (days with no labeled pulse >= 10 g-eq at
             # 05:00-10:30 local; donors median 0.18, the sim's constant 0.10)
