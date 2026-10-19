@@ -6348,3 +6348,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      tables do not identify the tail. With LESSONS 298–299 (body vs co-located sensor error not separable from CGM; the
      simulated sensor pair matches the one real paired record), the sensor stays as fitted; these statistics remain the
      documented short-scale limit (Known limits).
+
+364. **Longer meals come out flatter, not later (Pete: "can we make meals last longer?").** On c362_g6s, the Dalla Man
+     slow-phase share (`meal_slow`, 0.15 [J]) at 0.30 / 0.45 and 0.30 with the solid part × 0.7 (`main_speed`), c364:
+     3-h meal change +0.2 / −1.2 / 0.0 (c362 +2; donors +21); lunch at 2.5–3 h −15 / −18, −8 / −13, −11 / −17; breakfast
+     peak +25 / +22 / +19 (+33); late morning 08–11 h 140–157 / 139–155 / 140–155 (141–160; donors 135–146); CV 32.8 / 31.1 /
+     32.8 (fails; 34.6); t54 0.059 / 0.059 / 0.064%, lows 0.67 / 0.54 / 0.54 per day (all low statistics fail); 32 / 32 / 32
+     of 51 (35). The bolus still covers the whole meal up front: spreading the same glucose over more hours over-covers
+     the early part (lower peak, a dip) and Loop doses the late part as it arrives, so no late rise appears and the swings
+     shrink. The donors show a full early rise AND glucose above the start at 3 h with insulin and load per entered gram
+     matched (LESSONS 347–348): glucose must keep arriving late on top of a normal early rise — intake continuing after
+     the logged meal is the candidate (the course arm of LESSONS 313 did not show it; data on what is eaten after logged
+     meals would settle it). Not adopted.
