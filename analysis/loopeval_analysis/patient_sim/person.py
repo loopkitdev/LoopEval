@@ -30,7 +30,7 @@ BEHAVIOR_COLS = ["carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "
                  "bolus_lead_min", "p_bolus_ann", "bolus_ratio", "corrections_per_day", "corr_bg_med", "corr_ratio",
                  "rescues_per_day", "rescue_size_med", "rescue_bg_med", "free_boluses_per_day",
                  "free_bolus_u_med", "true_corrections_per_day", "tir", "t70",
-                 "entries_raw", "entered_g_raw", "boluses_raw", "bolus_entry_raw", "topups_raw", "lone_raw", "manual_u_day",
+                 "entries_raw", "entered_g_raw", "corr_over_share", "corr_over_u", "boluses_raw", "bolus_entry_raw", "topups_raw", "lone_raw", "manual_u_day",
                  "abs_fast_s", "abs_slow_s", "abs_fast_l", "abs_slow_l", "gap_short", "gap_long", "entry_hours",
                  "clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd"] + \
                 [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h")] + \

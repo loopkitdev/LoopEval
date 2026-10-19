@@ -158,6 +158,10 @@ class BehaviorTraits:
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
+    corr_over_share: float = 0.0         # with corr_own: share of corrections dosed BEYOND Loop's recommendation (donor lone boluses:
+                                         # median 0.29; 39% given when Loop recommended ~0; LESSONS 223)
+    corr_own: bool = False               # switch for the two traits above
+    corr_over_u: float = 1.0             # median extra units beyond the recommendation on those (donor median 1.0 U)
     corr_wait: float = 10.0              # min since their last bolus: donors give 26% of no-entry boluses within 20 min of the
                                          # previous one and 66% within 120 (44,777 boluses); the earlier 120 [J] forbade them (LESSONS 64)
     # exercise (T1DEXI is an active cohort; scale down)
@@ -276,6 +280,8 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         # not-falling / no-recent-bolus conditions (0.46, measured on simulated people; LESSONS 42)
         # / 0.64: a share of intended corrections deliver 0 U (Loop's recommendation already covered by IOB); sized
         # so the realized lone-bolus rate reaches the donor's (LESSONS 47)
+        corr_over_share=float(_num(rates, 'corr_over_share')) if np.isfinite(_num(rates, 'corr_over_share')) else 0.0,
+        corr_over_u=float(_num(rates, 'corr_over_u')) if np.isfinite(_num(rates, 'corr_over_u')) else 1.0,
         p_correct=float(np.clip(corr_rate / (16 * 60 * (corr_exp if np.isfinite(corr_exp) else hi_frac) * 0.46 * 0.64), 0.0, 0.05))
                   if np.isfinite(corr_rate) else float(rng.uniform(0.0005, 0.005)),
         ex_per_week=float(rng.choice([0, 0.5, 1, 2, 3, 4, 5], p=[0.2, 0.1, 0.15, 0.2, 0.15, 0.1, 0.1])),
@@ -388,6 +394,7 @@ class Behavior:
         self.r_ff = np.random.default_rng(int(getattr(person, "seed", 0)) + 777)   # per-meal fast share; own stream
         self.r_abs_entry = np.random.default_rng(int(getattr(person, "seed", 0)) + 911)   # entered absorption time
         self.r_split2 = np.random.default_rng(int(getattr(person, "seed", 0)) + 3137)    # split second helpings
+        self.r_corr = np.random.default_rng(int(getattr(person, "seed", 0)) + 4241)      # corrections beyond the recommendation
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
         self.r_drink = np.random.default_rng(int(getattr(person, "seed", 0)) + 1601)      # meal_drink draws
@@ -777,6 +784,10 @@ class Behavior:
         if not asleep and cgm > t.corr_thr and self.trend() > -0.5 and m - self.last_bolus > t.corr_wait \
                 and r.random() < t.p_correct:
             acts.append(("bolus", m, 1.0)); self.last_bolus = m
+            if t.corr_own and t.corr_over_share > 0 and self.r_corr.random() < t.corr_over_share:
+                # a hand-dosed correction beyond what Loop recommends (the donor's own share and size)
+                extra = round(float(np.exp(self.r_corr.normal(math.log(max(t.corr_over_u, 0.1)), 0.6))) * 20) / 20
+                if extra >= 0.05: acts.append(("bolus_units", m, extra))
             self.log.append((m, "correction", 0, cgm))
             return acts
         # what draws the person's attention this minute

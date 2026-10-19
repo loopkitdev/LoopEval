@@ -243,6 +243,8 @@ class World:
             self.beh_traits.skip_drop = True
         if enable and enable.get("split_full"):
             self.beh_traits.split_full = True
+        if enable and enable.get("corr_own"):
+            self.beh_traits.corr_own = True
         if enable and enable.get("skip_own"):
             # experiment (LESSONS 182): the donor's own breakfast-skip share (days with no labeled pulse >= 10 g-eq at
             # 05:00-10:30 local; donors median 0.18, the sim's constant 0.10)
