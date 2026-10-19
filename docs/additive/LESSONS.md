@@ -6175,3 +6175,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      and G7 v_sd / kurtosis / skew and min_below70 at pass shares 0.28–0.50 (borderline). Night-to-night glucose on
      c339: between-night SD 25.7 (c331 21.9; donors 32.2), 01-h level SD 42.9 (51.3) — circadian emptying closed part of
      LESSONS 332's gap. Reference now c341_entwin.
+
+346. **With evening entries on the donors', removing the double-counted morning load now fixes the night instead of
+     sagging it: `slot_true` is the default.** The day / night insulin failure under `entry_win` (1.73 vs 2.0) is where the
+     daytime insulin goes, not the night total (hourly medians: night 0–6 h 6.9 U both; twins 08–10 h 1.72 / 1.94 / 2.08
+     vs donors 1.49 / 1.58 / 1.78 U/h, 12 h 1.82 vs 2.16, 18–19 h 1.65 / 1.98 vs 1.93 / 2.24). `slot_true` (LESSONS 231,
+     343) on c341_entwin, c346: hourly glucose RMS against the donors 7.7 mg/dL (c341 9.6, c339 9.5); 00–03 h mean
+     difference −0.2 (−5.0), 08–11 h +12.5 (+16.0), 18–23 h −8.2 (−10.7); circadian_amp passes (p 0.072). Cohort 34 of 51
+     (36): t54 0.129% (p 0.043) and P(reach 54) 0.151 (p 0.044) dip under 0.05 with values barely moved, lows / day 0.75,
+     day / night 1.79 (p 0.012). On c339 the same switch sagged the night (LESSONS 343); with the donors' evening entries
+     the grams it moves out of the morning now land where the donors eat them. Adopted (it removes a measured double
+     count and gives the closest daily profile so far); reference now c346_st.

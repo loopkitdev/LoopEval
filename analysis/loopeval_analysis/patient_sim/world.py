@@ -211,7 +211,9 @@ class World:
             self.mod_traits.enabled["steroid"] = True
         if enable and isinstance(enable.get("snack_minus"), float):
             person.traits["snack_minus"] = float(enable["snack_minus"])   # labeled pulses that are not eating (LESSONS 127)
-        if enable and "slot_true" in enable: person.traits["slot_true"] = bool(enable["slot_true"])
+        # window g-eq → grams by the donor's labelled-per-entered ratio: the donor's labelled morning load holds body-made
+        # dawn rises the twin's own body adds again; default since 2026-10-19 (LESSONS 346); --disable slot_true
+        person.traits["slot_true"] = bool((enable or {}).get("slot_true", True))
         if enable and "snack_entry_hours" in enable: person.traits["snack_entry_hours"] = bool(enable["snack_entry_hours"])
         # the donor's own meal / snack split of carb entries, default since 2026-10-19 (LESSONS 280); --disable entry_split
         person.traits["entry_split"] = bool(enable.get("entry_split", True)) if enable else True
