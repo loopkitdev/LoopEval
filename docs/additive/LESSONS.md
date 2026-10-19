@@ -6339,3 +6339,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      c361: G6 sigma_meas p 0.010 → 0.662 (1.56 vs 1.24); hurst_short G6 p 0.081 → 0.043; t54 0.093% (p 0.052), lows /
      day p 0.054, P(reach 54) 0.083, min_below70 0.098 — every low statistic still passing; 35 of 51 (35). Reference now
      c362_g6s.
+
+363. **The short-scale shape statistics fail together, and the sensor evidence cannot place their tails.** Failing on
+     c362_g6s, all saying the twins' 5-min changes are too Gaussian and too even: sd_over_mad G7 1.34 vs 1.41, G6 1.35 vs
+     1.44; v_kurtosis G7 1.99 vs 2.51, G6 2.40 vs 3.30; vol_cluster_60m 0.098 vs 0.122; sigma_disp 2.67 vs 3.57; with
+     acf_zero_min 55 vs 40, hurst_short and hurst_long. The G7 noise is near-Gaussian (Student-t df 30; G6 df 4). Its FDA
+     loss by df (`sensor_shape.py`, c362 bodies): 30 / 8 / 4 / 3 → 3.40 / 5.51 / 3.49 / 5.52 — seed noise, no trend: the FDA
+     tables do not identify the tail. With LESSONS 298–299 (body vs co-located sensor error not separable from CGM; the
+     simulated sensor pair matches the one real paired record), the sensor stays as fitted; these statistics remain the
+     documented short-scale limit (Known limits).
