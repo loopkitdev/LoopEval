@@ -5730,3 +5730,11 @@ statistic here, but it is the controller donors ran.
      correlates. Real meals stay up for most people; those whose stay up most correct and top up more and go low less —
      a person-level pattern of running meals high and correcting later, which the twins (whose meals come back by
      2.5 h) do not carry. Mechanism still open (TIDEPOOL-70).
+
+309. **The circadian sensitivity classes do not make the twins' meals return early.** The body is fitted (`fit_body`)
+     without the circadian pattern on fasting windows, then runs with Visentin's B / L / D classes (low = 0.4 of high,
+     seven classes equally likely, day-average 1), so a lunch-high person's lunch is up to 1.5–1.8× as sensitive as the day
+     average against a constant CR. c310 `--disable circadian` (ablation) vs c306: 3-h change −0.1 (−2.4; donors +21);
+     lunch −5 at 180 min; circadian amplitude 0.149 (0.161; donors 0.131, still fails) — most of the twins' excess daily
+     amplitude is not the sensitivity pattern; CV 35.1 (KS 0.046), lows 0.79 / day, t54 0.088%, 30 matched (31). Stays on
+     (Hinshaw 2013: individual B / L / D patterns, no population difference). The late phase remains open (TIDEPOOL-70).
