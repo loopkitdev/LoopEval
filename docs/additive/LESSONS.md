@@ -5063,3 +5063,18 @@ statistic here, but it is the controller donors ran.
      regression of hourly glucose change on insulin absorbed, shrunk toward a fasting-basal rule) — exists for the
      distribution-study cohort (159 people), of whom 21 are pilot donors. Next: compute the yardstick on all pilot donors
      from ice_v32 steps and use it as isf_true, so "fit to data" is a fit to the person's own glucose response.
+
+261. **The body's ISF from each donor's own glucose response (the ICE yardstick on the pilot donors): t54 passes for
+     the first time.** `templates.add_isf_yardstick` ports dist_views/ice/isf_basal_prior.py to the ice_v32 steps with
+     the distribution cohort's fitted parameters (fasting hourly blocks, OLS of glucose change on insulin absorbed,
+     shrunk toward the basal rule, levelled): fits for 202 of 206 donors, weight on the own fit p50 0.89, blocks p50 725;
+     against the distribution cohort's yardstick on the 14 shared donors Spearman 0.84, median ratio 1.04 (the TDD rule
+     0.62). Ratio to the settings p25 / p50 / p75 0.74 / 1.02 / 1.33 (TDD rule 0.73 / 0.91 / 1.09); temp-basal donors 1.18,
+     automatic 0.95 — temp-basal donors are measured more sensitive than their settings, not an artefact of the TDD rule.
+     c276 (yardstick isf_true, ISF_W 1.0) vs c275 (TDD rule): t70 1.64 → 1.73% (donors 1.67), t54 0.09 → 0.13 (0.22, KS
+     0.004 → 0.110, passes), lows 1.04 → 0.92/day (KS 0.96), meals ending < 70 7.1 → 11.2% (9.7); twin mean vs the
+     ratio −0.44 → −0.12 (donors −0.04 to −0.13): the twins no longer order by a quantity the donors do not; per-person
+     transfer mean 0.27, t70 0.21; 29 matched; day / night 1.73 (fails); temp twins t70 2.11 vs 0.97 remains. New
+     reference c276. The yardstick still reads the insulin through Loop's curve; Pete (2026-10-19) asks whether the
+     body's own model can do the fit: the body has no ISF term — si_d (disposal) and se (EGP suppression) are calibrated
+     to an ISF target, and the effective ISF varies with glucose, insulin, time of day and the named modulators.
