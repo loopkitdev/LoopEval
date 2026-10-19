@@ -5325,3 +5325,14 @@ statistic here, but it is the controller donors ran.
      and bolus lead (LESSONS 228, 106) are where to look. (2) Lows with no user action for 5 h run at a third to a half
      of the donors' rate: the evening's own physiology and Loop, with nothing the person did — evening activity and the
      body's evening need (the delivered-shape basal profile) are where to look. Neither is the snack bolus of LESSONS 278.
+
+282. **The evening excess is not the delivered-shape basal profile.** c290 runs the c289 defaults with the body's hourly
+     need taken from the schedule (`--disable prof_deliv`; the overnight level from clean nights stays). Quiet evening
+     hours (15–22 h, no entry or bolus; `quiet_deliv2.py`), delivered / scheduled and CGM drift per h: automatic-bolus
+     twins 1.42 / −3.0 (c289 1.43 / −1.5; donors 1.17 / −2.1), temp-basal twins 1.04 / +1.0 (1.10 / +1.0; donors 1.06 /
+     −4.0). Evening lows by time since last entry < 1 / 1–3 / 3–5 / > 5 h 0.031 / 0.095 / 0.054 / 0.082 (c289 0.030 /
+     0.098 / 0.057 / 0.077; donors 0.074 / 0.140 / 0.072 / 0.154). 30 matched (30), but day_night 1.76 (1.82; donors
+     2.06, KS p 0.049 → 0.006), p_reach54 and t54 KS worse. Loop's evening over-delivery in quiet hours survives a flat-
+     shaped body, so it is not inherited from the profile; the temp-basal twins still rise in quiet evening hours where
+     donors fall. Measured next: what the twins are absorbing in those "quiet" hours (unentered intake from `graze_unann`
+     and meal tails) against the body's own need. `prof_deliv` stays on; reference stays c289_split.
