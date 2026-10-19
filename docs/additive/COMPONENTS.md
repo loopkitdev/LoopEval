@@ -166,3 +166,37 @@ agreement). A gap means a missing or mis-specified component. It never means add
 | B7–B10 Nightly factors | prior-night sleep loss (−5% SI/h lost, SD 77 min), nocturnal GH variability (CV 0.32 on a 20% dawn increment, mean-zero), evening alcohol (63% drink, 3–20% of nights; −12% SI, morning EGP ×0.85), stress (1/3 react, 40% of days, −10% SI 1–5 h) | Donga 2010; Messman 2022; Edge 1990; Campbell 1985; Kerr; Turner 2001; Riazi 2004; Moberg 1994; evidence/12 (LESSONS 77) | wired |
 | B12 GLP-1 RA adjunct | per-person trait (agent, dose escalation, weeks on drug, injection weekday/hour); one-compartment PK → level (1 = maintenance steady-state mean); Emax effects: carbs eaten −25% (sema) / −32% (tirz), gastric emptying ÷(1.42 + 0.25 after a dose step), SI direct +10/+20% and weight-mediated +11% over ~20 wk; settings re-tuned after 11 wk | Pasqua 2025; ADJUST-T1D; TIRTLE1; Ozempic/Mounjaro labels; evidence/16 (LESSONS 87) | built, off (`--enable glp1`, agent `glp1_sema`/`glp1_tirz`/`glp1_lira`); semaglutide matches ADJUST-T1D dose split untuned; within-week rhythm derived from PK, unmeasured |
 | B13 Entered absorption time | per entry: 0.5 h / 5 h / 3 h from the person's own shares, split ≤ 20 g vs larger | donor carbs.json absorptionTime (67,499 entries); rescues excluded | LESSONS 101–102 | wired (template columns abs_fast_s/l, abs_slow_s/l) |
+
+## Physiology review against the goal (2026-10-19)
+
+The goal sets the depth: beyond Loop's own effect model and Tidepool's SimpleMetabolismModel, short of maximal fidelity.
+
+**Depth against the two reference models.** Loop's model and the Tidepool simulator act on glucose through two linear
+effects — insulin by ISF along a fixed activity curve, carbohydrate by CSF along a fixed absorption curve. The additive
+body replaces each with named mechanisms:
+
+| Area | Loop / SimpleMetabolismModel | Additive body | Evidence |
+|---|---|---|---|
+| Insulin PK | one fixed activity curve per preset | per-dose depot chain (A2) with formulation-specific delay and fast route (A3), per-dose jitter (A4), posture (A4b), per donor formulation from Loop's IOB (LESSONS 248) | lispro / Fiasp / Lyumjev clamps (LESSONS 9), Heise 2017, Hildebrandt 1985 |
+| Insulin action | ISF × activity | separate disposal (A5) and EGP suppression (A6) arms, saturating hepatic signal, glucose effectiveness (A1), renal loss (A7) | clamp fits, Romeres 2025 tracer EGP share, post-meal EGP nadir (LESSONS 193–196) |
+| Lows | none | counter-regulation with HAAF (A9), gut acceleration in hypoglycaemia (A11), rescue glucose (A13) | donor low nadirs and durations (LESSONS 166), Schvarcz 1995, Brodows 1984 |
+| Carbohydrate | CSF × absorption curve | stomach-gut chain with an energy-limited emptying ceiling (A10), fast liquid share (A10b), fat-slowed emptying and late protein parcel (A12), per-meal speed | Brener 1983, Hunt 1985, Calbet 1997, Bell 2020; donor labeled arrival shape (LESSONS 228) |
+| Time-varying need | schedule only | circadian SI classes (B1), basal need from the donor's delivered shape and night level (B1b, LESSONS 250–252), dawn, GH, sleep, alcohol, stress, illness, cycle, glucocorticoids, hyperglycaemic resistance (B2–B14) | Visentin 2015, BDDP life-factor logs (LESSONS 136, 235), donor steady nights |
+| Exercise | none | intensity filter, insulin-independent uptake, acute and delayed sensitivity, absorption, intensity-gated EGP surge (C1–C5) | Romeres 2021, McMahon 2007, Marliss & Vranic 2002; BDDP HealthKit workouts (LESSONS 243–247) |
+
+Not built, by the goal's depth limit: separate liver glycogen stores, glucagon kinetics (counter-regulation is an EGP
+boost, not a hormone), insulin degradation by site, ketones, multi-compartment glucose beyond one pool.
+
+**Checks against the donors that the physiology passes** (reference c270 unless noted): meal arrival per entered gram
+and its spread (LESSONS 228), insulin around meals (LESSONS 238/240), correction response time course at 60–180 min
+(LESSONS 236), low nadirs and durations, overnight glucose profile and need (LESSONS 251–253), quiet-period motion away
+from meals (LESSONS 241), exercise response by intensity (LESSONS 247), night-to-night insulin variability against
+Ruan 2016 (LESSONS 241), illness and cycle sizes (LESSONS 235).
+
+**Where physiology is still the suspect.** (1) Fast falls: falling readings > 3 mg/dL/min 0.49% vs donors 1.26%, the body
+not the sensor (LESSONS 236), with glucose effectiveness, meal speed, early insulin action, carb sensitivity,
+formulation, counter-regulation and absorption variability ruled out (LESSONS 238–239, 248, 257); in the donors these
+falls come after unentered rises at below-usual IOB (LESSONS 249), so a mechanism that lowers need after a rise without
+an insulin excess is missing. (2) Person-level level: twins do not inherit their donor's mean (Spearman 0.25), and
+nothing measured in the body (ISF mismatch, night need) orders donors by level (LESSONS 233, 256). (3) The cycle's
+post-onset low arrives earlier than the donors' (LESSONS 235): a follicular sensitivity term would need its own evidence.
