@@ -5094,3 +5094,12 @@ statistic here, but it is the controller donors ran.
      0.002); temp twins t70 2.11 → 1.87 (0.97), automatic 1.42 → 1.57 (1.20); per-person transfer unchanged (0.27 /
      0.20); twin mean vs the ratio −0.07. New reference c277. The temp-basal twins' daytime excess (no-bolus daytime lows
      0.586 vs 0.286) is not in their sensitivity.
+
+263. **On the body-model ISF, adding the night need on top (`night_add`, now default) fixes the temp-basal twins without
+     the cost LESSONS 255 saw.** c278 vs c277: temp-basal untreated no-bolus daytime lows 0.586 → 0.213/day (donors
+     0.286), temp twins' mean 144 → 151 (153), t70 1.87 → 1.66 (0.97); automatic t70 1.57 → 1.28 (1.20); meals ending
+     < 70 11.5 → 10.6% (9.7); cohort t70 1.81 → 1.34% (1.67, KS passes), lows 0.96 → 0.75/day (1.08, KS 0.147 passes);
+     29 matched both (v_skew G6 now passes, tdd_cv now fails at the same p50 15.7 vs 15.7). Delivered TDD is unchanged
+     (41.35 vs 41.37 U/day; donors 38.8): the extra night need does not push the body past what Loop delivers, which
+     answers LESSONS 255's objection; night-to-night CV 27.6 → 30.5 (36.0), day / night 1.75 → 1.78 (2.06). New
+     reference c278.
