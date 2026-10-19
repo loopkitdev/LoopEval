@@ -200,7 +200,8 @@ class World:
             person.traits["snack_minus"] = float(enable["snack_minus"])   # labeled pulses that are not eating (LESSONS 127)
         if enable and "slot_true" in enable: person.traits["slot_true"] = bool(enable["slot_true"])
         if enable and "snack_entry_hours" in enable: person.traits["snack_entry_hours"] = bool(enable["snack_entry_hours"])
-        if enable and "entry_split" in enable: person.traits["entry_split"] = bool(enable["entry_split"])
+        # the donor's own meal / snack split of carb entries, default since 2026-10-19 (LESSONS 280); --disable entry_split
+        person.traits["entry_split"] = bool(enable.get("entry_split", True)) if enable else True
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
         if enable and isinstance(enable.get("meal_slow"), float):
             self.beh_traits.meal_slow_frac = enable["meal_slow"]
