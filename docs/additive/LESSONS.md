@@ -5199,3 +5199,12 @@ statistic here, but it is the controller donors ran.
      every meal: real meals are plausibly a mix — a few very fast (drinks, sweets) and most slower — so the fast share
      should vary by meal rather than shift for all. Default meal_fast_frac 0.35 meanwhile; next: a per-meal fast share
      drawn from a distribution, fitted to the step tail and the CV together.
+
+271. **A wider per-meal fast share (Beta SD 0.25 → 0.40, mean 0.35) gives the donors' G7 velocity kurtosis; 31 of 51.**
+     LESSONS 270's mix of a few very fast meals among slower ones, tested two ways on c284 (c285): a wider per-meal share
+     (`meal_fast_sd` 0.40), and a lower mean with more sugary drinks (fast 0.3, drink_p 0.3, drink share 0.6). Wider
+     share: G7 v_kurtosis 1.90 → 2.48 (donors 2.52), v_skew 0.23 → 0.27 (0.33), sigma_meas 1.46 (1.41), 5-min steps > 15
+     3.2 → 4.0% (6.3), up-steps within 60 min of an entry 0.96 → 1.62/day (2.12), t54 0.09 → 0.14 (0.22), CV 35.9 (34.8);
+     status changes: G7 v_kurtosis, vol_cluster_60m, lows_per_day, tdd_cv now pass; bg_skew (1.00 vs 0.89) and hurst_long
+     (0.224, KS 0.047) now fail; 31 matched (29). Drinks: kurtosis 1.80, steps > 15 3.7%, 28 matched. Default
+     meal_fast_sd 0.40; new reference c285_sd40.
