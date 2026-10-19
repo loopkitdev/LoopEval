@@ -214,7 +214,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
-                  basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0) -> Person:
+                  basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0, intake_own: bool = False) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -353,6 +353,12 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # the intake budget is the donor's, not a consequence of the twin's ISF fit: divide the twin multiplier back out
     # (raising body ISF had raised cr_true and with it the carbs eaten; LESSONS 219)
     carbs = max(20.0, tdd * (1 - share) * cr_true / k_isf_twin)
+    # intake_own (experiment, off): the budget × the donor's measured glucose load over the twin's (labelled g-eq per day,
+    # ice labeler on both sides, `intake_mult` in the templates); the budget over-feeds low-running donors' twins by ~18%
+    # (LESSONS 333)
+    im = row.get("intake_mult") if hasattr(row, "get") else None
+    if intake_own and im is not None and np.isfinite(float(im)):
+        carbs = max(20.0, carbs * float(im))
     strategy = "temp" if str(row.strategy).startswith("temp") else "autobolus"
     # the donor's deployed strategy in proportion: a twin stands for one ~2-week window of its donor, and 40 of 50
     # "autobolus" pilot donors spent days in temp-basal mode (a whole-record rate > 2 automatic boluses a day made them
