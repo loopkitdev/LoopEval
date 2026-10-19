@@ -47,7 +47,7 @@ def main():
     rows = {}
     for v in variants:
         sc = score(bgs, family, parse(v)); sh = shape(bgs, family, parse(v))
-        rows[v] = dict(loss=sc["loss"], pard=sc["pard"], mard_70_180=sc.get("true70-180_mard", np.nan), **sh)
+        rows[v] = dict(loss=sc["loss"], pard=sc["pard"], mard_70_180=sc.get("true70-180_mard", np.nan), step_sd=sc["step_sd"], **sh)
     pd.set_option("display.width", 250)
     print(pd.DataFrame(rows).T.round(3).to_string())
 
