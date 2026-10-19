@@ -4899,3 +4899,9 @@ statistic here, but it is the controller donors ran.
      these rises acts without an insulin excess: a need that falls after the rise (activity after eating, the source of
      the rise ending into a lower basal need) rather than Loop's dosing. Next: the hour-of-day and post-meal-activity
      context of these rises in the donors (HealthKit workouts are too sparse; time of day and day-of-week are not).
+     - **Not a time of day.** Share of these rises ending < 70 by 3-h start block 06 / 09 / 12 / 15 / 18 / 21 h: donors 10.6 /
+       10.2 / 10.6 / 11.3 / 8.8 / 8.1%, c264 2.7 / 4.6 / 2.2 / 5.6 / 2.3 / 3.4%. The donors' higher conversion of an
+       unentered rise into a low, at below-usual IOB, holds all day — a general property of how real glucose comes down
+       from a rise, not a daily activity pattern. Candidates with their own evidence still to measure: basal need below the
+       schedule between meals (Loop's net IOB reads zero while delivery exceeds need), and the low-range bias of the real
+       sensor against the sim's FDA-fitted one.
