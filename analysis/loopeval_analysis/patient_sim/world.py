@@ -215,7 +215,7 @@ class World:
         if enable and "snack_entry_hours" in enable: person.traits["snack_entry_hours"] = bool(enable["snack_entry_hours"])
         # the donor's own meal / snack split of carb entries, default since 2026-10-19 (LESSONS 280); --disable entry_split
         person.traits["entry_split"] = bool(enable.get("entry_split", True)) if enable else True
-        person.traits["entry_win"] = bool((enable or {}).get("entry_win", False))     # experiment (LESSONS 341)
+        person.traits["entry_win"] = bool((enable or {}).get("entry_win", True))      # default since 2026-10-19 (LESSONS 345)
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
         if enable and isinstance(enable.get("meal_slow"), float):
             self.beh_traits.meal_slow_frac = enable["meal_slow"]
