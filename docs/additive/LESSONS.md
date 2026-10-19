@@ -4413,3 +4413,22 @@ statistic here, but it is the controller donors ran.
      the person-level combination that makes a donor tight and low-prone is not reproduced. Cohort-level statistics can
      match while individuals do not (LESSONS 217's r ≈ 0). Next: decide what of each donor's individuality the body must
      carry (their measured insulin and carbohydrate fit, their target and how hard they push it), measured per donor.
+
+219. **Per-person twin calibration (Pete 2026-10-18): each twin now tracks its donor.** `--enable twin` (ecd43c0 / 493b5fd):
+     per-donor body ISF × `twin_isf_mult` (target: the donor's time < 70) and body CSF × `twin_csf_mult` (target: the
+     donor's median 3-h meal change), iterated from cohort runs (`twin_collect.py`, `twin_update.py`; damped steps, ISF
+     clipped 0.5–2.5, CSF 0.5–2.0). The intake budget divides the twin ISF multiplier back out (rounds 1–3 had let a more
+     sensitive body eat more, mean 160, TIR 66). Multipliers live in templates_pilot_logs.csv (snapshot
+     templates_pilot_logs.twin_r6.csv).
+
+     | round | Spearman t70 vs donor | median abs log t70 error | mean | TIR | meals < 70 in 2 h | lows/day | matched |
+     |---|---|---|---|---|---|---|---|
+     | base (c241) | −0.02 | 0.94 | 153 | 71.0 | 3.9% | 0.42 | 24 |
+     | 3 (coupled intake) | 0.44 | 0.47 | 160 | 66.1 | 6.6% | 0.58 | 22 |
+     | 6 (c243_tw6) | 0.71 | 0.27 | 149.6 | 73.6 | 7.1% | 0.63 | 21 |
+     | donors | | | 151.4 | 71.7 | 9.7% | 1.08 | |
+
+     - Round 6: CV 35.0 and TIR pass; low nadir p10 43 (40), share of lows < 54 0.32 (0.37); cohort t70 0.91 (1.67) and
+       lows still short, with ~10% of donors at the 2.5 ISF cap; hurst_long falls to 0.21 (0.247) and day/night fails.
+       Individual fidelity is up sharply while the cohort count dips; the capped donors and the persistence drop are
+       the next items.
