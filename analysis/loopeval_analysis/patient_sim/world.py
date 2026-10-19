@@ -519,6 +519,7 @@ class World:
         self.fat_log: list = []                            # every fat event, kept for the truth file (LESSONS 288)
         self.ppr_events: list = []                         # main-meal times for the post-meal insulin-action window (LESSONS 321)
         self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.0
+        self.ppr_shift = float(enable["ppr_shift"]) if enable and isinstance(enable.get("ppr_shift"), float) else 0.0
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
@@ -673,7 +674,7 @@ class World:
         313–320), no tracer study sizes it."""
         keep, w = [], 0.0
         for t in self.ppr_events:
-            x = m - t
+            x = m - t - self.ppr_shift
             if x > 240: continue
             keep.append(t)
             w = max(w, 0.0 if x < 30 else (x - 30) / 30 if x < 60 else 1.0 if x < 180 else (240 - x) / 60)
