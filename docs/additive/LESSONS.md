@@ -5303,3 +5303,16 @@ statistic here, but it is the controller donors ran.
      the afternoon and late evening. The donors' small evening entries need occasions of their own — counted from their
      entries outside the main-meal windows, with their sizes (20–28 g) and bolus rate — not a re-timed share of the
      existing snacks. Stays off.
+
+280. **Carb entries split as the donors split them: half are snacks.** Donors' entries within 60 min of their own meal
+     clock (clk_*_med) vs the rest (`entry_split.py`, 130 donors; template columns meal_e_day, snack_e_day, snack_g_med,
+     snack_e_hours): meal entries p25 / p50 / p75 1.14 / 1.72 / 2.41 per day, snack entries 1.04 / 1.69 / 2.69, sizes 34 vs
+     25 g, snack entries peaking 14–16 and 20–22 h. The sampler gave main meals entries / 3 (capped at 1), so a donor with
+     3.4 entries entered every meal and ~0.4 snacks. **`entry_split`** (default): p_entry_meal = meal entries / 3, at least
+     as many snack occasions as snack entries, p_entry_snack from the snack entries, snacks half on the snack-entry clock.
+     c289 vs c287: entries/day by block 06 / 09 / 12 / 15 / 18 / 21 h 0.30 / 0.63 / 0.70 / 0.55 / 0.62 / 0.36 (c287 0.28 /
+     0.54 / 0.78 / 0.38 / 0.67 / 0.24; donors 0.32 / 0.51 / 0.69 / 0.55 / 0.75 / 0.35), entered g 99 (112; 102), median
+     entry 21–30 g; temp-basal twins t70 1.31 → 1.10 (0.97); 30 matched. But evening low onsets 15 / 18 / 21 h stay 0.11 /
+     0.10 / 0.09 (donors 0.16 / 0.18 / 0.14): bolused small snacks were not what makes the donors' evening lows
+     (LESSONS 278's reading falls). Open: what does — evening activity, alcohol, the dinner bolus's tail. New reference
+     c289_split.
