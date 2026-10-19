@@ -5131,3 +5131,11 @@ statistic here, but it is the controller donors ran.
      chance by hour, but snacks entered there are few either way; the donors' afternoon and late entries are small items
      the sim's people eat as unentered grazes or not at all. Stays off. Next: the size and count of afternoon / evening
      eating occasions themselves (snack_rate by clock, graze vs snack split) against donor entries and labeled pulses.
+     - **Labeled pulses by block** (same labeler; `pulse_blocks.py`, per day, blocks 00 / 03 / 06 / 09 / 12 / 15 / 18 / 21 h):
+       announced donors 0.04 / 0.02 / 0.21 / 0.32 / 0.42 / 0.31 / 0.44 / 0.20, c278 0.02 / 0.03 / 0.29 / 0.44 / 0.59 / 0.34
+       / 0.53 / 0.21; unannounced donors 0.54 / 0.43 / 0.42 / 0.41 / 0.45 / 0.44 / 0.48 / 0.59, c278 0.63 / 0.55 / 0.57 /
+       0.54 / 0.42 / 0.51 / 0.50 / 0.68; median size announced ~35 g-eq both, unannounced 18–27 vs 17–23. The donors'
+       extra afternoon entries (0.55/day at 15–18 h) barely show as pulses (0.31): small snacks entered and bolused that
+       hardly move glucose. The sim's excess is rises, logged and unlogged, overnight and in the morning (06–15 h announced
+       +0.08 to +0.17/day; 00–12 h unannounced +0.09 to +0.13/day) — the morning excess of LESSONS 231 again, now counted
+       in occasions rather than grams.
