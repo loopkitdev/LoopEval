@@ -5117,3 +5117,8 @@ statistic here, but it is the controller donors ran.
        excess is late morning and lunch (+3.5 and +7.6 g/day); the evening entries match. So the evening insulin deficit
        (15–21 h) is not entered meals — it lies in what follows them or in unentered eating and its corrections — and
        the morning / midday excess is lunch-sized entries, which the slot shares (labeled window g-eq, LESSONS 51) set.
+     - **Count and size by block** (entries/day; median entry g, median over people) 09 / 12 / 15 / 18 / 21 h: donors
+       0.51 / 0.69 / 0.55 / 0.75 / 0.35, 30 / 30 / 28 / 30 / 20 g; c278 0.54 / 0.78 / 0.38 / 0.67 / 0.24, 30 / 34 / 34 / 34 /
+       30 g. Lunch entries are a little too frequent and too big; afternoon and late-evening entries too few and too big —
+       donors log small snacks there (20–28 g) that the sim's people mostly eat unentered. Total entries 2.9 vs 3.3/day
+       (review `entries_day`). Next: the snack-entry chance and snack size by hour against these donor numbers.
