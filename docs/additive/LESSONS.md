@@ -5738,3 +5738,10 @@ statistic here, but it is the controller donors ran.
      lunch −5 at 180 min; circadian amplitude 0.149 (0.161; donors 0.131, still fails) — most of the twins' excess daily
      amplitude is not the sensitivity pattern; CV 35.1 (KS 0.046), lows 0.79 / day, t54 0.088%, 30 matched (31). Stays on
      (Hinshaw 2013: individual B / L / D patterns, no population difference). The late phase remains open (TIDEPOOL-70).
+
+310. **On the current body aIRC is neutral: the 10-16 positive lift does not survive the model changes.** Paired arms
+     on c306's defaults (`--enable rc_own`; baseline, insulin-needs dial ×0.95 / ×1.05, aIRC; `candidates.py`): aIRC ΔTIR
+     −1.13 [−1.63, −0.67], Δt<54 −0.02 (n.s.), Δt<70 −0.17, ΔTDD −1.1 U / day; lift over the dial −0.68 [−1.64, +0.72]
+     on CGM, +0.15 on true glucose (10-16: +1.43 [+0.18, +2.48]). Handoff updated
+     (docs/handoffs/2026-10-16-additive-candidates-on-sim.md). The sim now agrees with the ledger's neutral reading on
+     most beds; a candidate verdict from the simulator is only as current as its body.

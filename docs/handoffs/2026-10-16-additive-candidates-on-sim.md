@@ -154,3 +154,24 @@ missed dinner bolus, a dislodged site, or a 45-min false low. Replay cannot stag
   distribution now sits on the donors' at every percentile (mean ~149, TIR ~73), with lows unchanged.
 - Also from 2026-10-18: counter-regulation is half as strong (CRmax median 0.5, fitted to the donors' low nadirs;
   LESSONS 166), so lows reach the donors' depth (t<54 ~0.15%, P(reach 54) ~0.19).
+
+## Update 2026-10-19: aIRC on the current simulator — the positive lift is gone
+
+The simulator's body has changed since 10-16 (κ ≈ 1 from Best 1981, Brazeau carb-count error, data-fitted ISF, carb
+sensitivity weight; `docs/additive/LESSONS.md` 300–304). Re-run on the current reference (112 people × 14 days, each
+with their donor's deployed RC; `runs/c311_*` on gamepc):
+
+| aIRC vs baseline | value [95% CI over people] |
+|---|---|
+| ΔTIR | −1.13 [−1.63, −0.67] |
+| Δt<54 | −0.02 [−0.07, +0.02] |
+| Δt<70 | −0.17 [−0.29, −0.06] |
+| lift over the insulin-needs dial, CGM | −0.68 [−1.64, +0.72] |
+| lift over the dial, true glucose | +0.15 [−1.28, +2.29] |
+
+aIRC now trades TIR for fewer lows at about the dial's rate: **neutral**, in line with the ledger on most replay beds.
+The 10-16 "+1.43 lift" above should not be cited. C30 / C31 (σ-gated, per-person flags) were not re-run.
+
+**Read with the current limits** (role overlay, *Known limits*): the simulator's time < 54 under-reads the donors'
+(0.09% vs 0.22%), real meals stay ~20 mg/dL higher at 3 h than simulated ones, and faster insulin absorption removes
+lows under Loop — any candidate acting on post-meal or low-side behaviour is read here as a second opinion.
