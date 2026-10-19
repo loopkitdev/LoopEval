@@ -5834,3 +5834,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      / +9 / −17. The start mix cannot make a 13–23 mg/dL gap present in every band from 100 up; the twins match only below 100,
      where Loop has cut insulin before the meal — the gap grows with the insulin already in play. Delaying a meal when high
      (+11 min above 180) is a small behaviour trait to add later; not the late phase.
+
+318. **The gap is a constant per meal across start glucose, trend and insulin on board; under-entering meals raises the
+     3-h level but not the hours-2–3 appearance.** Loop's recorded IOB at entry (dosingDecision.insulinOnBoard, 60 donors,
+     720 isolated bolused meals; `donor_cob_iob.py`): p50 4.34 U (twins' candidateIOB 4.18); 3-h change by IOB ≤ 0 / 0–1 /
+     1–2.5 / > 2.5 U donors +39 / +17 / +32 / +9, twins +23 / +20 / −1 / −6 — present at every level, as by start CGM and trend
+     (LESSONS 317). Pete (2026-10-19): TIDEPOOL-70 is this role's research, not a question for him.
+     - **`count_shift`** (experiment, off: extra mean log under-entry at entered meals, intake unchanged): −0.15 / −0.25 →
+       3-h change +7.1 / +6.4 (c311 −2; donors +21), mid meals at −0.25 hold +31 → +16 to 150 min; ICE above pre-meal per
+       10 g in 120–180 min 5.2 / 4.4 (donors 10.5), totals 41.7 / 37.6 (47.4); t54 0.12%, lows 0.79 / day, 29 / 28 matched.
+       Less bolus per meal keeps meals up, but the appearance at 2–3 h stays half the donors' in every arm so far (c309 the
+       closest, 7.6). Next: the sim's own appearance curve (truth Ra) against Elleri's measured fractions, to find which
+       gut-model part cuts hours 2–3 short.
