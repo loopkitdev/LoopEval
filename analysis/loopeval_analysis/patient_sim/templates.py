@@ -615,3 +615,22 @@ def add_isf_yardstick(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_
     t["isf_true"] = t.isf_ys.fillna(t.isf_true_tdd)
     t.to_csv(path, index=False)
     return t
+
+
+def add_isf_body_fit(path: str, fit_csv: str):
+    """isf_true × the donor's body-model sensitivity (LESSONS 262): `fit_csv` from `fit_body --regression` (per donor, the
+    slope b of fasting hourly glucose change on the body's own insulin-driven effect, with SE). b is attenuated alike for
+    everyone by closed-loop dosing, so only its spread is used: log b shrunk toward the cohort median by its reliability
+    (tau² = var(log b) − mean(SE_rel²)), multiplier = shrunk b / median b, applied to the yardstick ISF (kept as isf_true_ys)."""
+    import numpy as np
+    d = pd.read_csv(fit_csv)
+    d = d[d.b_all > 0]
+    lb = np.log(d.b_all); rse = d.se_all / d.b_all
+    tau2 = max(float(np.var(lb) - np.mean(rse ** 2)), 1e-4); w = tau2 / (tau2 + rse ** 2); med = float(np.median(lb))
+    mult = dict(zip(d.alias, np.exp(med + w * (lb - med)) / np.exp(med)))
+    t = pd.read_csv(path)
+    if "isf_true_ys" not in t: t["isf_true_ys"] = t.isf_true
+    t["isf_body_mult"] = t.alias.map(mult)
+    t["isf_true"] = t.isf_true_ys * t.isf_body_mult.fillna(1.0)
+    t.to_csv(path, index=False)
+    return t
