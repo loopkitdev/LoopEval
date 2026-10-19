@@ -5517,3 +5517,15 @@ statistic here, but it is the controller donors ran.
      direction is the evidence's and half the descent gap closes, but the low counts and night CV move away and the
      mapping is unmeasured. Stays off until Best's insulin concentrations are checked (Diabetes 30:847,
      doi:10.2337/diab.30.10.847).
+
+293. **The twins' volatility is too even at both ends: quiet periods a little noisy, active periods not volatile
+     enough.** `sigma_disp` (p90 / p10 of eda's EWMA local volatility, λ 0.875, floored at the measured noise) fails
+     every recent arm (c289 2.77 vs donors 3.62). Its parts, per person, G7, same estimator (`vol_parts.py`; donors' first
+     13 days): p10 / p50 / p90 donors 3.08 / 6.08 / 11.06 (automatic-bolus) and 2.80 / 5.44 / 10.07 (temp), c294 3.45 /
+     5.42 / 9.00 and 3.35 / 5.67 / 9.89; dispersion 3.55 / 3.42 vs 2.73 / 3.00. The estimated measurement noise sits
+     higher in the twins (σ_meas 1.39 / 1.46 vs 1.30 / 1.37, floor 3.84 / 4.28 vs 3.38 / 3.73), though G7's σ 1.8 is
+     pinned by the FDA accuracy table (in-range MARD 8.55 vs 8.6; LESSONS 269, 277) and the twins' G7 v_sd already runs
+     under the donors' (6.76 vs 7.02). Real glucose is quieter when quiet and moves harder when it moves: the same
+     missing fast moves as the 5-min step tail (LESSONS 268), the slower post-peak descent (286) and the post-bolus early
+     fall (291), with lower volatility clustering (0.110 vs 0.124). The body side carries the larger part; the sensor
+     part (FDA table vs donors' own noise estimate) is a second, smaller conflict to resolve on its own evidence.
