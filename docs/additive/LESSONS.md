@@ -5672,3 +5672,14 @@ statistic here, but it is the controller donors ran.
      short; 31 matched (28). It does not make the late meal phase (3-h change −2.4; donors +21). Adopted on its evidence
      and the primary outcomes (Pete: soundness over count). New reference c306_brz. Also checked and matched: entered
      absorption times (donors 3 h on 78% of meals ≥ 15 g, 0.5 h on 12%; c305 77% / 18%; `abs_time.py`) — not the cause.
+
+305. **The stomach counted only ~55% of a meal's fat and protein energy; correcting it slows emptying but, under a full
+     bolus, lowers meals rather than adding the late phase.** `behavior.py` gives the main (solid) parcel kcal / g = 4 +
+     (9·fat + 4·protein) / meal grams, but that parcel holds only (1 − slow 0.15)(1 − fast 0.35) ≈ 55% of the grams, and
+     the ceiling counts energy as parcel grams × kcal / g — so ~45% of the fat and protein energy never loaded it (Hunt &
+     Stubbs 1975: per kcal, fat and protein slow emptying as carbohydrate). `ge_full_kcal` (switch) puts the whole fat /
+     protein energy on the main parcel. c307 vs c306: lunch −13 at 120 min (c306 −5), dinner flat, no late phase;
+     t54 0.062% (0.089; 0.215), lows 0.75 / day (KS 0.012), CV 33.6 (36.7; 34.8), TIR 72.7; 27 matched (31). Like c301:
+     slower appearance of the same glucose under a full bolus only lowers the meal. Held off until the late glucose it
+     should carry is in: Elleri's LG meal appeared ~18 g beyond its 121 g carbohydrate (bioavailability 102% vs the HG
+     meal's 87%; +15 g protein, +22 g fat), ~0.4–0.5 g glucose per g protein against the model's 0.1 (`pro_glc`, c308).
