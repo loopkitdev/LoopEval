@@ -161,6 +161,7 @@ class BehaviorTraits:
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
+    unent_light: bool = False            # a main meal eaten unentered and unbolused carries snack composition (experiment, LESSONS 284)
     corr_trend: bool = True              # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237; default 2026-10-19)
     p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
     corr_over_share: float = 0.0         # with corr_own: share of corrections dosed BEYOND Loop's recommendation (donor lone boluses:
@@ -629,6 +630,10 @@ class Behavior:
             # composition [J]: T1D adults ~40% energy carbohydrate, 40% fat, 18% protein (Snell-Bergeon 2009,
             # unverified) → per carb gram ~0.44 g fat, 0.45 g protein for meals; snacks carry less
             fat_r, pro_r = (0.44, 0.45) if kind == "meal" else (0.2, 0.2)
+            if t.unent_light and kind == "meal" and entered is None:
+                # experiment: what goes unentered is lighter food, as snacks are (missed boluses run highest for snacks,
+                # PMC2827497); tests whether the meal's fat / protein tail is what keeps unannounced rises up (LESSONS 284)
+                fat_r, pro_r = 0.2, 0.2
             if t.slot_comp and kind == "meal" and k in (0, 1, 2):
                 # breakfasts are the most carbohydrate-heavy meal, dinners the most fat- and protein-heavy (dietary
                 # pattern direction; sizes [J], daily mean kept near 0.44 / 0.45; LESSONS 170)
