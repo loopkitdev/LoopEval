@@ -5781,3 +5781,17 @@ outputs in gamepc ~/additive/runs/c290–c312).
        106 / 114 / 96 / 80 / 59 but cuts the first-hour rise (v +11.5): what is missing is MORE appearance in hours 1–3, on
        top of an unchanged first hour. Pulse g-eq per entered gram (current ice_v32) donors 1.19, twins 1.11 (LESSONS 302).
        Testing c313: carb sensitivity ×1.07 (to the measured 1.19) with and without the stomach energy accounting fix.
+
+314. **More carb sensitivity is not the fix: the twins already make more meal glucose per entered gram than the donors;
+     what is missing is its spread into hours 1–3.** c313 (paired against c311): carb sensitivity ×1.07 → 32 matched
+     (32), t70 1.65 (1.47; donors 1.67), t54 0.146% (0.105; 0.215), p_reach54 0.187 (0.143; 0.20), lows 0.92 / day; ICE
+     114 / 107 / 87 in 0–60 / 60–120 / 120–180 min (donors 112 / 124 / 104), glucose velocity +18 / −11 / −16 (donors +19 /
+     −1 / +1.5); 3-h change −1.0. With `ge_full_kcal` too: 26 matched, lows 0.75 / day. But the calibration target says
+     no: pulse g-eq per entered gram (same labeler, `geq_cmp.py`) c311 1.27, c313 ×1.07 1.37, donors 1.19 — LESSONS
+     302's 1.11 was on the c289 base, before κ 1, Brazeau and csf_w. The lows came from over-sized meals. Not adopted.
+     Consistent picture (LESSONS 313–314): the first hour matches in absolute terms (ICE 112 vs 111, insulin effect 90 vs
+     91, velocity +19 vs +17); total meal size per entered gram is, if anything, larger in the twins; the donors' meal keeps
+     appearing at near its first-hour rate to 3 h (Elleri's low-GL plateau, evidence/09) where the twins' falls away. The
+     simulator's late parts — protein parcel (delay 90 min, peak 3–5 h), slow tail (15%), energy-limited main parcel — put
+     too little in hours 1–3. Next: the per-meal appearance profile itself, set against Elleri's measured LG / HG curves
+     (25 / 50 / 75% at 88 / 175 / 270 and 56 / 100 / 153 min), as the component's own target.
