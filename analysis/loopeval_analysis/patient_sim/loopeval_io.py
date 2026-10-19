@@ -187,7 +187,14 @@ def _rc_flags(person, enable) -> list[str]:
         calls = {r["alias"]: r["call"] for r in csv.DictReader(open(RC_MODE_CSV))}
     except OSError:
         return []
-    return ["--candidate-integral-rc", "--candidate-integral-rc-clamp"] if calls.get(person.template) == "ircc" else []
+    f = ["--candidate-integral-rc", "--candidate-integral-rc-clamp"] if calls.get(person.template) == "ircc" else []
+    # the pilot donors who deploy Loop's glucose-based application factor (24-donor screen, 2026-10-12): low anchor = lower
+    # target + 10, high anchor 200, factor 0.2 -> 0.8 (memory pilot-replay-fixes; LESSONS 227). Automatic-bolus people only.
+    gbaf = {"i003": 98, "i056": 109, "i010": 118}.get(person.template)
+    if gbaf is not None and person.strategy == "autobolus":
+        f += ["--candidate-gbaf", "--candidate-gbaf-low-anchor", str(gbaf), "--candidate-gbaf-high-anchor", "200",
+              "--candidate-gbaf-factor-low", "0.2", "--candidate-gbaf-factor-high", "0.8"]
+    return f
 
 def run(person, days: int, out: Path, bin_path: str = DEFAULT_BIN, enable: dict | None = None,
         extra_flags: list[str] | None = None, python: str = sys.executable, controller: str = "loop-main") -> dict:

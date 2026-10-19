@@ -4547,3 +4547,9 @@ statistic here, but it is the controller donors ran.
      lone-bolus p10 interval 20 min, untreated daytime lows 0.089/day, after a bolus 0.018 (donors 0.46, 0.160), 28 matched.
      Every user-side dosing behaviour measured now matches or has been tried at its donor size (size, over-recommendation,
      frequency, stacking, top-ups) without producing the donors' untreated daytime lows.
+
+227. **Controller fidelity for validation: the three GBAF donors.** Under `rc_own` (the validation convention: each person's
+     controller runs what their donor deployed), the pilot donors with Loop's glucose-based application factor now get it:
+     i003 / i056 / i010, low anchor 98 / 109 / 118 (lower target + 10), high anchor 200, factor 0.2 → 0.8, automatic-bolus
+     people only (the 24-donor screen found no others). Too few people to move the cohort gap; it removes a known
+     controller mismatch for their twins. The code default (no rc_own) stays stock.
