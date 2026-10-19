@@ -110,6 +110,8 @@ class BehaviorTraits:
     own_clock: bool = True               # main meals on the donor's own clock (default since 2026-10-18: day/night insulin
                                          # ratio 2.03 vs donors 2.06; LESSONS 206)
     entry_clock: bool = False            # switch: use snack_entry_w
+    graze_unann: bool = False            # grazes on the donor's unannounced-pulse clock (LESSONS 230)
+    unann_hours: Optional[object] = None
     graze_keep: float = 1.0              # share of planned grazes kept (thinning experiment, LESSONS 109)
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
     # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
@@ -342,6 +344,11 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     ck = [_num(rates, k) for k in ("clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd")]
     if any(np.isfinite(ck)):
         t.meal_clock = tuple(float(x) for x in ck)          # NaN pairs fall back to the population draw
+    uh = rates.get("unann_hours")
+    if isinstance(uh, str):
+        import json as _json
+        _u = np.array(_json.loads(uh), dtype=float)
+        if _u.sum() > 0: t.unann_hours = _u / _u.sum()
     mh = rates.get("meal_hours")
     if isinstance(mh, str):
         import json as _json
@@ -647,6 +654,11 @@ class Behavior:
             # on the person's own eating clock over waking hours, like snacks (evening-heavy for most donors), not uniform
             # across the day [LESSONS 82]
             pg = sh_day
+            if t.graze_unann and sh is not None and getattr(t, "unann_hours", None) is not None:
+                # grazes are never entered: on the donor's UNANNOUNCED pulse clock over waking hours, not the all-eating
+                # clock with its meal-time peaks (LESSONS 230)
+                ua = t.unann_hours * awake
+                if ua.sum() > 0: pg = ua / ua.sum()
             if t.graze_eve and sh is not None:
                 # unlogged eating concentrates after dinner (donors' unannounced intake 1.5-5 h after dinner is 1.5x
                 # lunch's; LESSONS 170): evening hours 19-23 weighted x2 [J size], daily count unchanged
