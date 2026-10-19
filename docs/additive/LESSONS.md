@@ -6155,3 +6155,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      133 / 128 (c339 141 / 132; donors 147 / 141), circadian_amp 0.167 (p 0.001, fails again), meal shapes unchanged; 38 of
      51 (38). Not adopted. The day's shape moves as one: morning grams taken away come off the night too, through Loop and
      the evening meal they move to.
+
+344. **Activity's effect on the gut, at its evidenced direction, does not make the late meal rise (Pete's question:
+     meals that pause while people move and resume after).** Nothing in the model linked activity to gastric emptying.
+     Evidence: slow walking after a 576-kcal meal shortened half-emptying 123 → 107 min (Franke 2008, J Gastrointestin
+     Liver Dis 17:27, 10 healthy men, ultrasound); emptying of liquids is reduced above ~70% VO2max and splanchnic flow can
+     fall ≥ 80% in hard or long exercise (PubMed 22517770); exercise before a glucose drink left emptying unchanged (Evans
+     2015). So everyday movement after meals speeds the gut; only vigorous exercise pauses it. `ex_gut` (experiment, off;
+     39ab1b1): emptying × up to 1.15 by 0.3 VO2-reserve, held to 0.6, falling to × 0.5 at 0.8 [J depth], on the filtered
+     intensity so emptying resumes after a session. c345 vs c339_gecirc: 38 of 51 (38); breakfast peak +41 at 1 h (+32);
+     lunch −7 at 3 h, dinner +4 to +7 at 3.5–5 h, 3-h meal change +0.2 (donors +21); t54 0.120% (p 0.023). Not adopted.
