@@ -6258,3 +6258,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.758 / 0.730 at 150 / 140 min — not deeper — with t54 0.090 / 0.059%, lows 0.75 / day, P(reach 54) failing; 33 / 34
      of 51 (35). The nadir moves ±0.05 run to run (c346 0.67, c352 0.71); its depth is set by the EGP share of insulin
      action (A6), fitted per person to the tracer-comparable nadir (LESSONS 195), not by p2e. p2e stays 0.006.
+
+354. **Niacin and damaged insulin built as scenarios (catalog D14, D34).** `niacin_si` (2e3c816; off): insulin sensitivity
+     × 0.37 — 2 g/day nicotinic acid for 2 weeks took minimal-model SI from 6.72 to 2.47 ×10⁻⁵ min⁻¹/pM in 11 normal men
+     with fasting insulin doubled (Kahn 1989, Diabetes 38:562); hepatic insulin sensitivity fell a third on 2 g/day
+     Niaspan (Blond 2014). `insulin_potency` (off): the bioactivity of every delivered unit × p — human insulin lost 14–18%
+     after 28 days at 32–37 °C (BMJ Open Diabetes Res Care 2022, 10:e003105); pumped analogues hold 6 days at 37 °C, so
+     this is heat-ruined stock. Paired 48 × 10 days on unchanged settings (s354): niacin 0.37 TDD ×1.27, mean +43 mg/dL,
+     TIR −23, time > 180 +25; potency 0.85 TDD ×1.07, mean +10, TIR −4. Test beds for a controller facing a large lasting
+     need increase (niacin) or quietly weaker insulin (potency). D8 dehydration stays unbuilt: no size in T1D.
