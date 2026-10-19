@@ -5261,3 +5261,11 @@ statistic here, but it is the controller donors ran.
      curve (17% of the peak drop at 60 min from 180 mg/dL, 8% at rest). Next: the body's insulin action time course
      against the clamp literature for each formulation (time to peak GIR and the share by 60 min), and whether a faster
      action shortens the reversal time toward 40 min without breaking the correction response (LESSONS 236's 60–180 min).
+     - **Not insulin speed.** The body's insulin action at rest (0.2 U/kg probe on the linear part, glucose-lowering rate
+       as a clamp-GIR analogue, 30 sampled people): peak at 100 min for lispro (21), 79 for Fiasp (7), 98 for Lyumjev (2);
+       share of the drop by 60 min 0.29 / 0.41 / 0.35. Clamp studies put rapid analogues' GIR peak near 100–120 min and the
+       fast ones earlier, so the body sits on its evidence, and a faster action would leave it. LESSONS 239's "slow first
+       hour" was from 180 mg/dL with glucose effectiveness on. The reversal gap then lies in what moves glucose between
+       insulin's effects: real glucose turns more often because it is pushed more often (small snacks, activity bouts,
+       brief stress, posture) — the sim's disturbances are fewer and slower. Next: the rate of small (5–15 mg/dL) turning
+       points in quiet periods, donors vs sim true BG, against the candidate disturbance sources.
