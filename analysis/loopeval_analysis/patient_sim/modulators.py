@@ -49,7 +49,7 @@ class ModTraits:
     enabled: dict = field(default_factory=lambda: dict(circadian=True, dawn=True, day=True, intraday=False,
                                                        drift=False, menstrual=True, illness=True, sleep=True,
                                                        gh=True, alcohol=True, stress=True, caffeine=False,
-                                                       steroid=True))
+                                                       steroid=True, heat=False))
     circ_class: str = "llh"
     circ_low: float = 0.4               # low segment SI as a fraction of high (Visentin: 0.40 ± 0.23)
     circ_raw: float = 0.4               # the person's Visentin draw before the swing scale
@@ -87,6 +87,15 @@ class ModTraits:
                                         # is 7.4%/yr for a first course; repeats lift it a little [J]
     preg_week: float = float("nan")     # gestational week at the simulation's start (scenario X9); nan = not pregnant
     caffeine_si: float = 0.15           # SI loss at the plasma peak of a ~200 mg dose (Keijzers 2002, IV clamp; evidence/11 §4.2)
+    # B15 ambient heat (00 D36): insulin absorption × (1 + heat_a·max(0, T − 13 °C)) on the day's mean residential temperature.
+    # Hypoglycaemia odds rise above 13 °C, OR 1.26 at 25 vs 13 °C, same-day (Diabetes Care 2026, 679 T1D adults, 33 M CGM
+    # readings); the leading mechanism is faster subcutaneous absorption from skin blood flow (sauna: +110%, Koivisto 1980).
+    # heat_a is calibrated to that OR in paired fixed-temperature arms (LESSONS 290)
+    heat_a: float = 0.0
+    temp_mean: float = 21.0             # the person's mean daily temperature over the window [J: US late-spring/summer normals]
+    temp_sd: float = 3.0                # day-to-day SD around it [J]
+    temp_rho: float = 0.7               # day-to-day persistence [J]
+    heat_T: float = float("nan")        # fixed temperature for calibration arms (nan = the person's climate)
     seed: int = 0
 
 
@@ -155,6 +164,11 @@ class Modulators:
         # B3 intraday OU and B4 drift, advanced minute by minute
         self.rng = r
         self.caf = self._caffeine(traits) if traits.enabled.get("caffeine") else None
+        # B15 daily mean temperature: AR(1) around the person's climate mean, own stream
+        rt = np.random.default_rng(traits.seed + 1511)
+        tz = np.zeros(self.days); tz[0] = rt.normal()
+        for d in range(1, self.days): tz[d] = traits.temp_rho * tz[d - 1] + math.sqrt(1 - traits.temp_rho ** 2) * rt.normal()
+        self.temp = (getattr(traits, "temp_mean", 21.0) + rt.normal(0, 4.0)) + getattr(traits, "temp_sd", 3.0) * tz
         self.gc = self._glucocorticoid(traits)
         self.ou = r.normal(0, traits.intra_sd)
         self.day_ou = r.normal(0, traits.day_sd)
@@ -334,4 +348,8 @@ class Modulators:
         if en["illness"]:
             s_ill, e_ill, _ = self.illness(m)
             si *= s_ill; egp *= e_ill
-        return si, egp, 1.0
+        ab = 1.0
+        if en.get("heat") and getattr(self.t, "heat_a", 0.0) > 0:
+            T = self.t.heat_T if self.t.heat_T == self.t.heat_T else float(self.temp[dd])
+            ab = 1.0 + self.t.heat_a * max(0.0, T - 13.0)
+        return si, egp, ab
