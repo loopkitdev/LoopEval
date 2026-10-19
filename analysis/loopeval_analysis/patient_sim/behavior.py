@@ -163,6 +163,8 @@ class BehaviorTraits:
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     entry_size_b: float = 0.0            # main-meal entry chance × (grams / the person's usual meal)^b (experiment, LESSONS 289)
     unent_split: bool = False            # an unentered, unbolused main meal eaten as ~20 g portions over 3 h (experiment, LESSONS 285)
+    course_p: float = 0.0                # experiment (LESSONS 320): P(unentered later course per logged main meal)
+    course_f: float = 0.3                # its size as a fraction of the meal
     main_speed: float = 1.0              # experiment (LESSONS 319): main (solid) parcel emptying / absorption speed × this
     count_shift: float = 0.0             # experiment (LESSONS 318): extra mean log under-entry at entered meals, intake unchanged
     pro_glc: float = 0.1                 # g glucose per g dietary protein (late parcel). Elleri 2013: the LG meal (+15 g protein,
@@ -464,6 +466,7 @@ class Behavior:
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
         self.r_usplit = np.random.default_rng(int(getattr(person, "seed", 0)) + 2851)     # unent_split portion times
+        self.r_course = np.random.default_rng(int(getattr(person, "seed", 0)) + 3119)     # unentered later course
         self.r_drink = np.random.default_rng(int(getattr(person, "seed", 0)) + 1601)      # meal_drink draws
         self.r_clock = np.random.default_rng(int(getattr(person, "seed", 0)) + 1709)      # own_clock meal times
         self.r_logp = np.random.default_rng(int(getattr(person, "seed", 0)) + 2113)       # proactive logging draws
@@ -667,6 +670,12 @@ class Behavior:
             meal = Meal(base + mt, grams, kind, speed, entered, et, bolus, fat=fat, protein=protein)
             n_pl = len(self.planned)
             self.planned.append((base + mt, ("eat_meal", meal)))
+            if t.course_p > 0 and kind == "meal" and entered is not None and self.r_course.random() < t.course_p:
+                # experiment (LESSONS 320): an unentered later course (dessert, second helping, sweet drink) 30-60 min into a
+                # logged meal — extra intake the entry does not carry; composition as a snack
+                gc = grams * t.course_f; dtc = float(self.r_course.uniform(30.0, 60.0))
+                self.planned.append((base + mt + dtc, ("eat_meal", Meal(base + mt + dtc, gc, "snack", speed, None, base + mt + dtc, None,
+                                                                        fat=gc * 0.2, protein=gc * 0.2))))
             if second is not None:
                 self.planned.append((second.t, ("eat_meal", second))); self.planned.append((second.entry_t, ("enter_meal", second)))
             if entered is not None:
