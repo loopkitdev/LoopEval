@@ -5053,3 +5053,13 @@ statistic here, but it is the controller donors ran.
      the donors'; the temp-basal twins' excess and the day / night split are the costs, and the per-person ordering by
      the yardstick ratio (LESSONS 256) is now at full weight. New reference c275. Where a body parameter has a data-fitted
      value, it takes it over the setting (memory: additive-fit-data-over-settings).
+
+260. **The templates' "measured" ISF is the 1800 rule, not a per-person fit.** Template isf_true = ice_v32 persons.csv
+     isf_tdd; isf_tdd × TDD across the 206 pilot donors p5 / p25 / p50 / p75 / p95 1402 / 1679 / 1798 / 1936 / 2099 — a
+     TDD rule with small adjustments. Its ratio to the settings runs 1.06 for temp-basal donors and 0.86 for automatic
+     (who use more insulin per setting), which is where c275's temp-basal twins get bodies more sensitive than their
+     settings while their donors have fewer lows (t70 1.28 vs 1.77%). ISF_W 1.0 (LESSONS 259) therefore puts the body on a
+     population rule of each donor's TDD. The per-person fit — the ICE yardstick (dist_views/ice/isf_yardstick.py: fasting
+     regression of hourly glucose change on insulin absorbed, shrunk toward a fasting-basal rule) — exists for the
+     distribution-study cohort (159 people), of whom 21 are pilot donors. Next: compute the yardstick on all pilot donors
+     from ice_v32 steps and use it as isf_true, so "fit to data" is a fit to the person's own glucose response.
