@@ -5859,3 +5859,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      than the 15-U clamp, so 2–8 U meal boluses act sooner and the plateau goes; a shorter action delay or slow tail gave
      neither target). The donors' extra 1–3 h counteraction, with Loop and the insulin matched (LESSONS 313), remains
      unexplained by any evidenced component; documented as the simulator's main limit (overlay, known limits).
+
+320. **An unentered later course does not make it either: extra glucose is answered by Loop, the donors' late counteraction
+     is not.** `course_p` / `course_f` (experiment, off: an unentered course of f × the meal, 30–60 min into p of logged main
+     meals, snack composition; lesson 187's merged courses are real, their unlogged share unmeasured). c317 p 0.5, f 0.3:
+     mid meals +13 / +17 / +25 at 30 / 60 / 90 min then ~0 by 150; 3-h change +3.4; ICE 0–60 / 60–120 / 120–180 / 180–240 113.6 /
+     107.7 / 85.7 / 78.3 mg/dL/h with insulin effect 92 / 120 / 104 / 80 (donors ICE 112 / 124 / 104 / 73, insulin effect 90 /
+     122 / 100 / 80); 31 matched, lows 0.88 / day. In the donors 2–3 h counteraction (104) sits on an insulin effect of 100 and
+     glucose holds; in every twin arm added glucose draws more insulin and glucose falls. The donors' extra 1–3 h
+     counteraction comes without a matching rise in what Loop gives. Late-phase arms paused here (LESSONS 301–320); the gap
+     stays the documented main limit.
