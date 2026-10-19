@@ -6360,3 +6360,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      matched (LESSONS 347–348): glucose must keep arriving late on top of a normal early rise — intake continuing after
      the logged meal is the candidate (the course arm of LESSONS 313 did not show it; data on what is eaten after logged
      meals would settle it). Not adopted.
+
+365. **Insulin action back at the clamp evidence (p2 0.025): 37 of 51.** p2 was raised to 0.04 in LESSONS 324 because
+     lows ran short; the lows now come from their own evidenced components (counter-regulation refitted, LESSONS 360;
+     sensor low-range noise from the FDA tables, 361–362). `--set ins_p2` 0.025 / 0.03 on c362_g6s (c365): 37 / 34 of 51
+     (35); t54 0.128 / 0.117% (p 0.297 / 0.021), P(reach 54) 0.193 / 0.167 (p 0.440 / 0.005), lows / day p 0.094 / 0.086,
+     min_below70 p 0.145 / 0.199; mean 154.1 / 155.3, CV 34.2 / 34.6, TIR 71.7 / 71.4 pass; 3-h meal change +0.2 / +4.0
+     (unchanged — insulin speed is not the late phase either); hurst_long fails. p2 0.025 is the default again (the
+     0.2 U/kg lispro clamp fit, GIR peak ~100 min); reference now c365_p2025.
