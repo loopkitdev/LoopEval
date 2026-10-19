@@ -5626,3 +5626,19 @@ statistic here, but it is the controller donors ran.
        flattens (mid peak +14), no late phase, meals below 0 by 150 min; lows 0.63 / day, t54 0.03%; 27 matched (32).
        Slower appearance under a full bolus only means the bolus over-covers early. The donors' late phase is glucose —
        or resistance — arriving later on top, not the same glucose emptied more slowly. Stays off.
+
+302. **The donors' late meal phase belongs to the meal and is not fat normalisation, post-meal eating or carb
+     sensitivity.** Against LESSONS 301's target (donors +20 at 3 h after isolated bolused meals; c300 +3):
+     - **c302 `--disable fat_rel`** (Wolpert's fat resistance applied absolutely on top of the fasting-fitted ISF, since
+       the body's ISF now comes from fasting data, not from settings tuned with fat included): 3-h change +6.8; mid meals
+       still back to ~0 by 180 min (no late phase); bg_mean 161.6, lows 0.67 / day, t54 0.064%, 29 matched (32). Stays on.
+     - **Post-meal unlogged eating** (labeled unannounced pulse 30–120 / 120–240 min after the entry; `post_meal_unann.py`):
+       donors 0.29 / 0.33 of meals, c289 0.24 / 0.36; donors' 3-h change is +20.5 even with no later pulse (c289 −3.8).
+     - **Carb sensitivity per entered gram** (ice's pulse g-eq per entered g, per person median; `geq_cmp.py`, current
+       ice_v32 G7): donors 1.19 (automatic-bolus 1.16, temp 1.24), c289 1.11 (1.07 / 1.21) — 7% short, a few mg/dL at 3 h.
+       The 1.30 quoted for CSF_PER_GEQ is an older export's value; today's donors read 1.19.
+     So the donors' meals stay up for hours after a full bolus with nothing else logged, the twins' do not, and the
+     simulator's late meal parts (slow phase, protein parcel, fat resistance) are too small or too early to make it.
+     Open, to measure before building: how the donors' late phase scales with meal size (it grows: +12 / +23 / +34 at
+     180 min for 25 / 42 / 68 g) and time of day (dinner vs breakfast, LESSONS 170), against the fat-protein evidence
+     (Wolpert 2013, Smart 2013, Paterson 2017).
