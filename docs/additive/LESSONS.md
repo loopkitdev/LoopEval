@@ -5160,3 +5160,22 @@ statistic here, but it is the controller donors ran.
      alone it moves the CGM's motion under the donors'. Sensor stays at 2.4; the fast body motion comes first, then the
      noise refit against the donors' high-frequency SD by day and night (its night quietness may be noise scaling with
      glucose level, hetero_q).
+
+268. **Real glucose makes large 5-min moves twice as often; a meal's fast-emptying share of 0.5 (was 0.2) reproduces
+     them.** Daytime 5-min CGM steps (`step_tail.py`, G7, per person then median): donors |step| > 10 / 15 / 20 mg/dL 15.3
+     / 6.3 / 2.5%, up / down > 15 3.9 / 2.3%, reversed by the next step 3% (real directional moves, not sensor jumps);
+     large up-steps 7.9/day, 2.1 within 60 min of a carb entry, 3.3 with no entry in 3 h. c278: 11.6 / 3.6 / 1.2%, 2.1 /
+     1.6%, up-steps 4.3/day (0.8 within 60 min) — and under a large simulated CGM step the true BG moved only ~6 mg/dL: the
+     sim's tail was sensor noise (LESSONS 267). The meal's fast-emptying share (A10b, a [J] of 0.2 chosen by cohort count
+     in LESSONS 44) against this direct target (c281, --set meal_fast):
+
+     | share | > 15 | up / down > 15 | up-steps/day (0–60 min) | bg_skew | G7 v_skew / v_kurt / σ_meas | t70 / lows/day | matched |
+     |---|---|---|---|---|---|---|---|
+     | 0.2 (c278) | 3.6% | 2.1 / 1.6 | 4.3 (0.8) | 0.76 | 0.13 / 1.68 / 1.28 | 1.34 / 0.75 | 29 |
+     | 0.35 | 4.0 | 2.4 / 1.7 | 5.1 (1.1) | 0.84 | 0.17 / 1.79 / 1.30 | 1.37 / 0.92 | 31 |
+     | 0.5 | 5.5 | 3.2 / 2.2 | 6.8 (1.6) | 0.91 | 0.21 / 1.85 / 1.34 | 1.53 / 0.88 | 30 |
+     | donors | 6.3 | 3.9 / 2.3 | 7.9 (2.1) | 0.89 | 0.33 / 2.52 / 1.41 | 1.67 / 1.08 | |
+
+     At 0.5 the true BG under a large CGM step moves 9 mg/dL (c278 6); twins' means by strategy 158 / 153 vs donors 158 /
+     153; TIR 69.3 (71.7); G7 v_sd 7.32 (7.02) now slightly over — the sensor white noise can come down next (LESSONS
+     267). Default meal_fast_frac 0.5; new reference c281_mf50.
