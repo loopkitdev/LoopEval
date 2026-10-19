@@ -163,6 +163,7 @@ class BehaviorTraits:
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     entry_size_b: float = 0.0            # main-meal entry chance × (grams / the person's usual meal)^b (experiment, LESSONS 289)
     unent_split: bool = False            # an unentered, unbolused main meal eaten as ~20 g portions over 3 h (experiment, LESSONS 285)
+    count_shift: float = 0.0             # experiment (LESSONS 318): extra mean log under-entry at entered meals, intake unchanged
     pro_glc: float = 0.1                 # g glucose per g dietary protein (late parcel). Elleri 2013: the LG meal (+15 g protein,
                                          # +22 g fat) appeared ~18 g beyond its carbohydrate, ~0.4-0.5 g/g (experiment, LESSONS 305)
     ge_full_kcal: bool = False           # experiment (LESSONS 305): the meal's whole fat / protein energy on the main parcel
@@ -618,7 +619,7 @@ class Behavior:
             entered = None; bolus = None; et = base + mt
             n_ov = len(self.overrides)
             if r.random() < p_e:
-                err = t.count_bias + r.normal(0, t.count_sd) + _count_size_err(t, grams)
+                err = t.count_bias + r.normal(0, t.count_sd) + _count_size_err(t, grams) + t.count_shift
                 entered = max(1.0, round(grams * math.exp(err)))
                 off = self._bolus_off(r)
                 et = base + mt + off
