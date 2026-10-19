@@ -94,6 +94,7 @@ One parameter set per session; per family (G6, G7, Libre 3, Libre 2, Medtronic).
 | D5 Compression lows | personal rate Gamma(2.37, 1/75.7)/day while asleep; depth lnN(35), 45 min; gap 72% / dip 25% / floor 3% | — | run:2026-10-11-ice-compression; 03 §2.6 (literature rate ~10× higher: the donor detector is strict) | wired |
 | D6 Availability | warm-up per session; session length (+ grace); early failure 5% [J]; random gaps at the measured per-family rates by length | G7 4.4 gaps/day, Libre 3 1.5, G6 1.7 (wear ~96%) | runs/2026-10-15-additive-sensor/gaps.py (153 donors) | wired |
 | D7 Reporting | 5-min grid, integer mg/dL, clamps 39 / 401 | — | eda L3, L6, L43 | wired |
+| D-low Low-range noise scale | noise × √(q² + (1 − q²)(IG/130)²); q G7 0.7, G6 0.8 (was 0.5) | FDA accuracy tables via sensor_fit.score on the current bodies (LESSONS 361) | calibrated |
 
 ## E. Pump and infusion site (`device.py`)
 

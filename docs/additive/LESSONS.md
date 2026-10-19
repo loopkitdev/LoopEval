@@ -6317,3 +6317,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.079 / 0.164), lows 0.75 / day; min_below70 p 0.095 / 0.005 (median 20 both; donors 20); 33 / 33 of 51 (34). The
      component's own target is the low depth, met at 0.65: CRmax lnN(0.195, 0.5) is the default (was 0.3, LESSONS 272).
      Reference now c360_cr065.
+
+361. **The missing lows were brief shallow dips; refitting the sensors' low-range noise to their FDA tables brings every
+     low statistic onto the donors' (35 of 51).** Crossings below 70 per day by duration (`cross_dur.py`, G7, mean over
+     people): donors ≤ 15 min 0.58, 15–45 min 0.52, > 45 min 0.17, nadir ≥ 60 0.74; c360_cr065 0.37 / 0.43 / 0.16 / 0.54 —
+     long lows match, brief shallow ones are missing. Noise scale at low glucose is √(q² + (1 − q²)(IG/130)²): at q 0.5,
+     noise at 70 mg/dL was 68% of that at 130. `sensor_shape.py` FDA loss on the current bodies (sensor_fit.score against
+     the FDA accuracy tables; it had drifted from 1.90 in LESSONS 296): G7 q 0.5 / 0.6 / 0.65 / 0.7 / 0.75 / 0.8 / 0.9 →
+     4.52 / 4.15 / 3.90 / 3.88 / 4.03 / 4.46 / 6.12; G6 q 0.5 / 0.6 / 0.7 / 0.8 / 0.9 / 0.99 → 7.51 / 6.62 / 5.90 / 5.70 /
+     5.77 / 6.77. Set G7 0.7, G6 0.8 (06af1d6), fitted to the sensors' own evidence, not to CGM shape. c361 vs c360: 35 of 51
+     (33); t54 0.106% (p 0.077), lows / day 0.75 (p 0.070), P(reach 54) 0.179 (p 0.163), min_below70 (p 0.005 → 0.156),
+     share of lows < 54 0.356 (target 0.37); cost: G6 sigma_meas 1.65 vs donors 1.24 (p 0.010). Reference now c361_hq.
