@@ -377,13 +377,16 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         h25 = [2, 3, 4]
         q = nr_ * float(row.basal) * j_basal * float(np.mean(prof[h25])) / max(basal_true, 1e-6)
         f_ = lambda m: (lambda pt: float(np.mean((pt / pt.mean())[h25])))(prof_true * (1 + (m - 1) * wgt)) - q
-        lo_, hi_ = 0.3, 4.0
-        if f_(lo_) < 0 < f_(hi_):
-            for _ in range(40):
+        lo_, hi_ = 0.3, 20.0
+        if f_(lo_) >= 0: m_ = lo_                     # target below reach: the lowest bump
+        elif f_(hi_) <= 0: m_ = hi_                   # bodies whose basal level is far under the schedule: the highest
+        else:                                         # (a silent skip here left them at 0.2-0.6x schedule; LESSONS 252)
+            for _ in range(50):
                 mid = 0.5 * (lo_ + hi_)
                 if f_(mid) < 0: lo_ = mid
                 else: hi_ = mid
-            pt = prof_true * (1 + (0.5 * (lo_ + hi_) - 1) * wgt); prof_true = pt / pt.mean()
+            m_ = 0.5 * (lo_ + hi_)
+        pt = prof_true * (1 + (m_ - 1) * wgt); prof_true = pt / pt.mean()
     settings = dict(
         basal_profile=[float(x) for x in prof],
         basal_uh=float(row.basal) * j_basal, isf=float(row.isf) * j_isf, cr=float(row.cr) * j_isf / j_basal ** 0,
