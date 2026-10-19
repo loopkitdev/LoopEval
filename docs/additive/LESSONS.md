@@ -5250,3 +5250,14 @@ statistic here, but it is the controller donors ran.
      missing piece is short, self-reversing glucose bursts of physiological origin (fast meal and snack rises that the
      insulin and Loop then cut short; LESSONS 268's large steps), not more slow day-level variation. Next: the step ACF
      and volatility bursts around meals, donors vs sim, before adding any component.
+
+276. **Real glucose reverses sooner than the simulated body's, after meals and away from them; the persistence is in the
+     body.** ACF of 5-min CGM steps (`step_acf.py`, daytime, per person then median) at 5 / 10 / 20 / 30 / 45 / 60 min, first
+     negative lag: post-entry (0–180 min) donors 0.73 / 0.43 / 0.22 / 0.08 / −0.05 / −0.11, 40 min; c287 0.70 / 0.51 / 0.28 /
+     0.14 / 0.01 / −0.07, 50 min. Quiet daytime donors 0.66 / 0.34 / 0.19 / 0.08 / −0.05 / −0.09, 40 min; c287 0.63 / 0.39 /
+     0.16 / 0.09 / 0.03 / −0.03, 55 min. On the sim's true BG (`--true`) the zero crossing is the same (50 / 55 min, ACF
+     0.96 at 5 min): not the sensor's slow error components but the body's own dynamics under Loop. A slower plant under
+     the same controller swings more slowly, and LESSONS 239 found the body's insulin slower in its first hour than Loop's
+     curve (17% of the peak drop at 60 min from 180 mg/dL, 8% at rest). Next: the body's insulin action time course
+     against the clamp literature for each formulation (time to peak GIR and the share by 60 min), and whether a faster
+     action shortens the reversal time toward 40 min without breaking the correction response (LESSONS 236's 60–180 min).
