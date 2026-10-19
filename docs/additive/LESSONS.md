@@ -4486,3 +4486,19 @@ statistic here, but it is the controller donors ran.
      on days 1 / 10 without a day-level MARD). Fitted `early_noise` (1.0, 330 min). DEN170088 whole-session fit on the c235
      bodies: loss 9.88 (no early noise) → 10.51 (early noise, sigma 1.8) → **8.63 at sigma 1.4** (CGM < 54 bias −13.3 vs −6.9,
      MARD 17.8 vs 13.8, PARD 8.86 vs 9.0); adopted. Libre 3 keeps no early-noise term (no day-of-wear table found).
+
+223. **The missing lows are daytime, after user boluses and heavy insulin, on steeper falls; hand-dosed corrections alone do
+     not make them in the sim.** Untreated low onsets (no carbohydrate −10..+30 min; `untreated.py`), donors G7 vs c245_base:
+     total 0.611 vs 0.268/day; night 0.151 vs 0.169 (matched); **day 0.459 vs 0.099**; user bolus < 2 h before 0.160 vs 0.025,
+     2–5 h 0.148 vs 0.057, none in 5 h 0.303 vs 0.187; prior-2-h insulin ≥ 1.5× the person's usual 0.144 vs 0.020; fall in the
+     prior 30 min median 29 vs 18 mg/dL.
+     - Donor lone boluses (no entry within 30 min; bolus_decisions, 44,906): 39% given when Loop recommended ~0, 52% above the
+       recommendation, median 1.0 U; per donor the over-share p25 / p50 / p75 0.07 / 0.29 / 0.68, extra beyond the
+       recommendation 0.6 / 1.0 / 2.0 U (template columns corr_over_share, corr_over_u). The sim's corrections were exactly
+       Loop's recommendation.
+     - **`corr_own`** (2235461, off): at each correction, the donor's share is dosed with extra units (lnN around their
+       median). c246: corrections 0.83/day (donors 0.86), extras ~0.75/day, lone + top-up boluses 1.54 vs 1.00/day — the insulin
+       is there — yet untreated daytime lows 0.098, after a bolus 0.022 (unchanged), 25 matched. Loop withdraws basal and
+       automatic boluses against the extra IOB, and in the sim that suffices; in the donors it does not. The difference is in
+       how the body falls once insulin outruns need (steeper real falls), which is the next measurement: the fall rate after a
+       correction bolus at matched IOB, donors vs sim.
