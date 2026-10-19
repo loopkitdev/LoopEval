@@ -159,6 +159,7 @@ class BehaviorTraits:
     p_log_rescue: float = 0.25           # rescues entered in the app [J; was 0.05, "very under-represented" — Pete; LESSONS 175]
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
+    ex_mets: bool = False                # session intensity from donors' workout METs (LESSONS 247)
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     corr_trend: bool = True              # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237; default 2026-10-19)
     p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
@@ -434,6 +435,8 @@ class Behavior:
         self.r_corr = np.random.default_rng(int(getattr(person, "seed", 0)) + 4241)      # corrections beyond the recommendation
         self.r_stack = np.random.default_rng(int(getattr(person, "seed", 0)) + 4507)     # bolus stacking
         self.r_exeat = np.random.default_rng(int(getattr(person, "seed", 0)) + 4813)     # eating kept out of exercise
+        self.r_exmet = np.random.default_rng(int(getattr(person, "seed", 0)) + 5003)     # session intensity (ex_mets)
+        self.ex_met_person = float(np.exp(np.random.default_rng(int(getattr(person, "seed", 0)) + 5011).normal(1.657, 0.357)))
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
         self.r_drink = np.random.default_rng(int(getattr(person, "seed", 0)) + 1601)      # meal_drink draws
@@ -709,7 +712,15 @@ class Behavior:
                 for i_, (tt, it_) in enumerate(self.planned):
                     if it_[0] == "enter_meal" and id(it_[1]) in shift_of:
                         self.planned[i_] = (it_[1].entry_t, it_)
-            self.planned.append((st, ("exercise", st, dur, t.ex_intensity, t.ex_anaerobic)))
+            it_ = t.ex_intensity
+            if t.ex_mets:
+                # session intensity from the donors' HealthKit workouts (LESSONS 247): the person's typical average METs
+                # lnN(1.657, 0.357) (29 donors, median 5.2, p10 / p90 3.4 / 8.6), each session ± N(0, 1.5) METs
+                # (within-donor SD), as %VO2-reserve on the person's METmax; own streams, other draws stay paired
+                rm_ = self.r_exmet
+                met = max(1.5, self.ex_met_person + float(rm_.normal(0, 1.5)))
+                it_ = float(np.clip((met - 1.0) / max(t.metmax - 1.0, 1.0), 0.1, 1.0))
+            self.planned.append((st, ("exercise", st, dur, it_, t.ex_anaerobic)))
             if r.random() < t.p_ex_carbs:
                 self.planned.append((st - 10, ("ex_carbs", t.ex_carbs)))
         self.planned.sort(key=lambda x: x[0])

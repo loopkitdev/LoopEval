@@ -256,6 +256,11 @@ class World:
             self.beh_traits.corr_trend = True
         if enable and enable.get("ex_no_eat"):
             self.beh_traits.ex_no_eat = True
+        if enable and enable.get("ex_mets"):
+            self.beh_traits.ex_mets = True
+        if enable and isinstance(enable.get("ex_surge"), float):
+            # C4 calibration: catecholamine EGP surge, mg/kg/min at intensity 1 for fully anaerobic work (LESSONS 247)
+            person = copy.deepcopy(person); person.body = person.body.scaled(ex_egp_surge=enable["ex_surge"]); self.person = person
         if enable and enable.get("skip_own"):
             # experiment (LESSONS 182): the donor's own breakfast-skip share (days with no labeled pulse >= 10 g-eq at
             # 05:00-10:30 local; donors median 0.18, the sim's constant 0.10)
