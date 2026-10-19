@@ -694,19 +694,21 @@ class Behavior:
             dur = max(10.0, float(np.exp(r.normal(math.log(t.ex_minutes), 0.3))))
             if t.ex_no_eat:
                 # people do not eat during a workout and eat after it: donors' carb entries during HealthKit workouts run
-                # at 0.18x the same clock hours' rate, in the hour after at 1.44x (eat_around_ex.py; LESSONS 244). A
-                # session that would overlap a planned meal or snack ends 0-30 min before it; grazes inside move to its end
-                re_ = self.r_exeat
-                eats = sorted(x[0] for x in self.planned if x[1][0] == "eat_meal" and base <= x[0] < base + DAY)
-                hit = [e for e in eats if st - 15 <= e <= st + dur]
-                if hit:
-                    st = hit[0] - dur - float(re_.uniform(0, 30))
-                moved = []
+                # at 0.18x the same clock hours' rate, in the hour after at 1.44x (eat_around_ex.py; LESSONS 244). Eating
+                # planned inside the session (meals, snacks, grazes) is deferred to its end + U(0, 20) min; a meal's entry
+                # and its bolus move with it (same delta), so the person's own timing around the meal is kept
+                re_ = self.r_exeat; end_ = st + dur
+                shift_of = {}
                 for i_, (tt, it_) in enumerate(self.planned):
-                    if it_[0] == "graze" and st <= tt <= st + dur:
-                        moved.append(i_)
-                for i_ in moved:
-                    tt, it_ = self.planned[i_]; self.planned[i_] = (st + dur + float(re_.uniform(0, 20)), it_)
+                    if it_[0] == "eat_meal" and st - 5 <= tt <= end_:
+                        mm = it_[1]; dlt = end_ + float(re_.uniform(0, 20)) - mm.t
+                        shift_of[id(mm)] = dlt; mm.t += dlt; mm.entry_t += dlt
+                        self.planned[i_] = (mm.t, it_)
+                    elif it_[0] == "graze" and st - 5 <= tt <= end_:
+                        self.planned[i_] = (end_ + float(re_.uniform(0, 20)), it_)
+                for i_, (tt, it_) in enumerate(self.planned):
+                    if it_[0] == "enter_meal" and id(it_[1]) in shift_of:
+                        self.planned[i_] = (it_[1].entry_t, it_)
             self.planned.append((st, ("exercise", st, dur, t.ex_intensity, t.ex_anaerobic)))
             if r.random() < t.p_ex_carbs:
                 self.planned.append((st - 10, ("ex_carbs", t.ex_carbs)))
