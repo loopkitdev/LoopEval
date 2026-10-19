@@ -4476,3 +4476,7 @@ statistic here, but it is the controller donors ran.
        onsets 0.55 → 0.64/day, low duration p90 65 (65); 28 matched (24–26 on the recent bases).
      - Whole-session FDA fit with early noise (sensor_fit, K213919): loss 3.97 → 6.49 at sigma 2.8; **sigma 2.4** restores it
        (4.63; CGM < 54 bias −9.4 vs −9.3, in-range MARD 8.8 vs 8.6). G6 / Libre 3 day-of-wear tables are the next sensor step.
+     - **Validation with sigma 2.4** (c245_base, 48ed052): lows by session day 0.82 / 0.63 / 0.51 / 0.61 / 0.69 / 0.72 / 0.69
+       (the first-day excess holds), low onsets 0.58/day (c244 0.64; donors 1.06), low duration p90 65 (65), hurst_long 0.271
+       (passes); CV 33.1 (34.8, KS 0.031); 25 matched. Keeping the whole-session FDA fit gives back part of the lows: the
+       sensor term explains the session-age shape of donors' lows, not their number. Reference base now c245_base.
