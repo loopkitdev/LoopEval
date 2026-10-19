@@ -105,6 +105,25 @@ where the statistic depends on the instrument (eda lesson 33). Each cohort run w
 c284: 29 of 51; c285_sd40 31; c286_cr06 32 (low depths on the donors', LESSONS 272); c287_wake 30 (night low duration on the donors', LESSONS 274) (G7 kurtosis, volatility clustering, lows/day and TDD CV now pass; bg_skew and hurst_long now fail, LESSONS 271). Neutral changes move the count within 27–31; read single-statistic changes against that band, and check
 the lows by dosing strategy (temp-basal vs automatic-bolus twins against their own donors) beside the cohort count.
 
+## Known limits of the current reference (read before using its numbers)
+
+Measured like for like against the donors (LESSONS 282–299); read a candidate's result against them.
+
+- **Lows run short.** t54 ~0.10% vs 0.22%, lows 0.83 vs 1.08 / day. The missing part is the early low after a
+  bolused meal from a steady start (< 70 within 60 min: 0.3% vs 3.3% of flat-start meals at 100–140 mg/dL) and a slower
+  fall after any peak (matched-height fall in the hour after the maximum −26 vs −37 mg/dL). Treat absolute
+  hypoglycaemia as a lower bound; rank candidates on deltas.
+- **Faster insulin absorption removes lows under Loop.** Heat (B15) and posture-off both lower hypo-day odds (paired OR
+  0.59–0.78). A candidate that speeds absorption will read safer here than the evidence may support.
+- **The insulin response itself matches**: pooled lone corrections per U per ISF equal the donors' at 60–180 min
+  (LESSONS 294).
+- **Short-scale shape is partly unresolvable**: the donors' fast 5-min moves could be body or co-located sensor error;
+  the simulated sensor pair matches the one real paired record (LESSONS 299). Do not tune the sensor to CGM shape.
+- **Night-to-night insulin varies less** (night CV 29 vs 36) and does not follow evening entries as the donors' does
+  (LESSONS 288–289).
+- Off-by-default experiments with their verdicts: `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
+  `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
+
 ## Analysis traps (each cost a session)
 
 - `truth.pkl` `bolus_requests`: **+ = a ratio of Loop's recommendation, − = absolute units**. Count user boluses with
