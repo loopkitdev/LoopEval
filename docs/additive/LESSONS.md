@@ -5010,3 +5010,9 @@ statistic here, but it is the controller donors ran.
      measured insulin sensitivity against their settings, and the twins currently order by exactly that. The next
      per-person candidates must come from data that does rank donors by level: the night need (LESSONS 251, carried),
      the correction threshold and the reduced-insulin overrides (LESSONS 233).
+     - **ISF_W 0** (c273: the body's ISF = the settings' × the person jitter): per-person transfer mean 0.28, t70 0.12, CV
+       0.13; twin mean still ranks by the donor's yardstick ratio (−0.33) with the body ratio constant — the ratio reaches
+       the twins through what it correlates with in the template (the settings ISF itself, TDD), not through the body's
+       mismatch. Cohort: lows 1.00/day (KS 0.91), t70 1.43%, meals ending < 70 8.6% (9.7), CV 35.6, 29 matched; day / night
+       1.90 (KS 0.043). The closest lows yet, but no per-person gain and a stronger stance (the body equal to the settings
+       on average) than this evidence carries: not adopted; ISF_W stays 0.5, open for Pete.
