@@ -5449,3 +5449,20 @@ statistic here, but it is the controller donors ran.
      person's usual diet), late protein glucose, alcohol, GH night-to-night CV 0.32. Next: log each meal's fat in the
      truth and measure the night insulin's response to the dinner's fat and size in the twins, then against what the
      donors' entered evening carbs imply.
+
+289. **The twins' night insulin follows what they ate in the evening, not what they entered; size-dependent entry moves
+     that the right way but costs lows.** `night_fat.py` (within-person, centred per person; overnight 00–06 U per +10 g
+     of the evening's 17–24 h grams, G7). Donors (15,082 nights): +0.135 / +0.118 U per 10 g ENTERED (automatic-bolus /
+     temp, r +0.12 / +0.12). c294 (= c289 with every fat event kept in the truth, `fat_log`; identical statistics): per 10
+     g entered +0.041 / −0.008, per 10 g true evening grams +0.119 / +0.063, per 10 g evening fat +0.145 / +0.225. The sim
+     enters a meal on a draw independent of its size, so a twin's entries carry little of its evening intake; a donor's do.
+     Missed boluses are most common for small eating (PMC2827497), and LESSONS 285 found the twins' unentered eating
+     includes large meals the donors' rises do not show.
+     - **`entry_size_b`** (experiment, off): main-meal entry chance × (grams / the person's usual meal)^b. c295, b = 1 / 2:
+       night U per 10 g entered +0.056 / +0.080 and +0.088 / +0.077; night CV 30.8 / 31.2 (c289 29.4; donors 36.0);
+       entries/day 3.25 (3.33; 2.97), entered g/day 106 / 111 (99; donors 102); unannounced daytime rises ≥ 2 h 0.46 /
+       0.44 (0.46; donors 0.36). 33 / 27 matched (30): b = 1 gains borderline flips (bg_skew, boxcox, G7 kurtosis,
+       day / night) and loses t54 (KS p 0.021 → 0.001; 0.077%, donors 0.215%) and p_reach54; b = 2 loses more lows.
+     The direction is confirmed by a target both sides record, but b has no evidence of its own and every arm takes lows
+     away. Stays off. Open: what produces the donors' lows that a size-matched entry removes — a big entered meal is
+     bolused, an unentered one is chased by Loop, and the chase makes the twins' lows (LESSONS 242).
