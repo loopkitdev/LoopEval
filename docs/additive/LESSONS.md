@@ -4459,3 +4459,8 @@ statistic here, but it is the controller donors ran.
        the body is the missing source.
      - twin stays off by default; templates hold the bounded round-9 multipliers (snapshots .twin_r6.csv unbounded,
        .twin_r9_bounded.csv).
+     - **Like-for-like, day-level variation in the body is close** (`sim_daydrift.py` / `don_daydrift.py`): per quiet hour,
+       the CGM change minus the person's own fitted insulin slope; the day-to-day SD of each day's mean residual (days with
+       ≥ 4 quiet hours): donors 8.4 mg/dL/h (p25 / p75 6.6 / 10.4, 168), sim c243_tw9 7.76 (6.0 / 10.0, 111). Ruan's 38–79% is
+       mostly estimation noise; the named day-level factors are about the donors' size. The untreated, event-free lows
+       remain unexplained by every measured mechanism (LESSONS 212–220).
