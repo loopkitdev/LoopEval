@@ -5239,3 +5239,14 @@ statistic here, but it is the controller donors ran.
      adolescents (29 / 53%); the donors are mostly adults, and their own night timing and duration set it: p_wake_alarm
      N(0.72, 0.2) (clip 0.05–0.98). Cost: more night lows treated than the donors' (35 vs 27%) and 30 matched (within the
      27–31 band). New reference c287_wake. `wake_mult` and `cr_tau` stay as experiment overrides.
+
+275. **Three of the failing structure statistics describe the same thing: the sim's glucose changes are smoother and more
+     evenly spread than real ones.** From eda's definitions (traits.block_features): `sigma_disp` = p90 / p10 of the local
+     volatility (a filtered SD of the 5-min steps) — donors 3.62, sim ~2.8: real glucose alternates between quiet stretches
+     and bursts more than the sim's; `acf_zero_min` = first lag at which the ACF of 5-min steps turns negative — donors 42.5
+     min, sim 55–60: a real move reverses sooner, the sim's runs on; `between_day_frac` = variance of daily means over the
+     total — donors 0.102, sim 0.12–0.13: the sim's variance sits slightly more between days, less within them.
+     `vol_cluster_60m` (now passing) and G7 kurtosis (LESSONS 271) moved the same way as the meal fast share widened. The
+     missing piece is short, self-reversing glucose bursts of physiological origin (fast meal and snack rises that the
+     insulin and Loop then cut short; LESSONS 268's large steps), not more slow day-level variation. Next: the step ACF
+     and volatility bursts around meals, donors vs sim, before adding any component.
