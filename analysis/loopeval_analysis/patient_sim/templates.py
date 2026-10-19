@@ -315,11 +315,15 @@ def add_basal_profile(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_
 
 
 SLOTS = (("B", 4.0, 10.5), ("L", 10.5, 15.5), ("D", 15.5, 22.0))
+# labeled g-eq per entered gram of announced pulses by window, pooled over the G7 donors (LESSONS 231): the labeler reads a
+# breakfast gram as more than a dinner gram (morning insulin resistance, fat / protein), so window g-eq is not window grams
+SLOT_LR_POOLED = (1.32, 1.15, 1.05)
 
 
 def add_slot_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
     """Per donor and main-meal window (local 04–10:30 / 10:30–15:30 / 15:30–22), from their labeled non-rescue
-    pulses: grams eaten per day (`slot_g`) and the share of pulses that carried a carb entry (`slot_ann`). Through
+    pulses: grams eaten per day (`slot_g`), the share of pulses that carried a carb entry (`slot_ann`) and labeled g-eq per
+    entered gram of the announced ones (`slot_lr`; pooled value below 10 pulses). Through
     the same labeler, simulated people ate the donors' grams at lunch and dinner but announced breakfast more and
     lunch and dinner less (17/19/23 vs 10/27/31 g/day entered; LESSONS 51)."""
     import json
@@ -333,15 +337,20 @@ def add_slot_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32
             m = pd.read_parquet(p); m = m[~m.rescue]
             days = (m.onset.max() - m.onset.min()).total_seconds() / 86400 if len(m) > 1 else 0
             h = m.hour.to_numpy() % 24
-            g, ann = [], []
-            for _, lo, hi in SLOTS:
+            g, ann, lr = [], [], []
+            ent = m.entry_g.fillna(0).to_numpy() if "entry_g" in m else np.zeros(len(m))
+            for (_, lo, hi), lr0 in zip(SLOTS, SLOT_LR_POOLED):
                 s = (h >= lo) & (h < hi)
                 g.append(float(m.size_g.fillna(0).to_numpy()[s].sum() / days) if days > 0 else np.nan)
                 ann.append(float(m.announced.to_numpy()[s].astype(bool).mean()) if s.sum() >= 5 else np.nan)
+                a = s & m.announced.to_numpy().astype(bool) & (ent > 0)
+                lr.append(float(m.size_g.fillna(0).to_numpy()[a].sum() / ent[a].sum()) if a.sum() >= 10 else lr0)
             if days >= 7 and np.isfinite(g).all() and sum(g) > 0:
                 row["slot_g"] = json.dumps([round(x, 2) for x in g])
             if np.isfinite(ann).all():
                 row["slot_ann"] = json.dumps([round(x, 3) for x in ann])
+            if np.isfinite(lr).all():
+                row["slot_lr"] = json.dumps([round(x, 3) for x in lr])
         out.append(row)
     r = pd.DataFrame(out)
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")

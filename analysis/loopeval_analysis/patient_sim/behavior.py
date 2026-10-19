@@ -331,6 +331,11 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     if isinstance(sg, str):
         import json as _json
         g = np.array(_json.loads(sg), dtype=float)
+        lr = rates.get("slot_lr")
+        if person.traits.get("slot_true", False) and isinstance(lr, str):
+            # window g-eq → window grams: divide by the donor's own labeled-per-entered-gram ratio there (LESSONS 231)
+            _lr = np.array(_json.loads(lr), dtype=float)
+            if np.isfinite(_lr).all() and (_lr > 0).all(): g = g / _lr
         if np.isfinite(g).all() and g.sum() > 0: t.slot_shares = tuple(float(x) for x in g / g.sum() * 0.86)
     if isinstance(sa, str):
         import json as _json
