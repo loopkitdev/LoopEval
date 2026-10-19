@@ -5663,3 +5663,12 @@ statistic here, but it is the controller donors ran.
      not the count — a sounder model may regress on it. Adopted: κ median 1.0 (lnN(0, 0.4)); TIR, mean, CV and time > 180
      move onto the donors' (the primary outcome), t54 0.148 → 0.092% (0.215) and p_reach54 fail — lows now under-read
      further, which the missing post-bolus fall and late meal phase (LESSONS 286, 291, 301) must close. New reference c305_k1.
+
+304. **Brazeau's size-dependent carb counting error is now the default: on the κ 1 base it puts TIR, time > 180 and lows
+     per day on the donors'.** `count_brazeau` (LESSONS 146: estimate − actual = 10.54 − 0.28·g, 692 T1D adult meals; small
+     meals over-counted, large under-counted; held at the 20-g value below 20 g [J]) on c305_k1 (c306): TIR 72.4 (c305
+     71.5; donors 71.7), time > 180 25.8% (27.0; 25.6), bg_mean 155.7 (156.6; 151.4, passes), lows 0.875 / day (0.833;
+     1.08, KS 0.048 → 0.24), t70 1.47 (1.33; 1.67); CV 36.7 (35.2; 34.8) now fails; t54 0.089% and p_reach54 0.15 stay
+     short; 31 matched (28). It does not make the late meal phase (3-h change −2.4; donors +21). Adopted on its evidence
+     and the primary outcomes (Pete: soundness over count). New reference c306_brz. Also checked and matched: entered
+     absorption times (donors 3 h on 78% of meals ≥ 15 g, 0.5 h on 12%; c305 77% / 18%; `abs_time.py`) — not the cause.
