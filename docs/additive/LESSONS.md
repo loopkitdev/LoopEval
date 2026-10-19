@@ -5613,3 +5613,16 @@ statistic here, but it is the controller donors ran.
      Adopted: the change undoes an unintended side effect, moves the carb sensitivity toward the data, and helps the
      low side the simulator runs short on; the +6 mg/dL level is the cost to work next. The 3-h meal change barely
      moves (+3.2 vs +21.2), so its drift is elsewhere — the next review item. New reference c300_csfw0.5.
+
+301. **The donors' meals have a late phase the twins lack; slower gastric emptying is not it.** Median CGM change after
+     isolated bolused entries ≥ 15 g (no other entry −180..+360 min; `meal_traj6.py`, review's meal set, G7), 0..360 min
+     by 30, by size tercile. Donors (25 / 42 / 68 g): small +13 +15 +12 +12 +13 +10 +5 … −12; mid +16 +19 +15 +19 +22 +23
+     +21 +17 +10 … −2; large +15 +23 +22 +21 +27 +34 +33 +30 +24 +17 +12 +9 — a quick early rise, then a second, larger
+     phase peaking at 3–3.5 h and still up at 5–6 h. c300 (21 / 35 / 60 g): one hump peaking at 60–90 min (+19 / +26 /
+     +21), back near 0 by 150–180 min; only large meals rise again, later (+16 / +19 at 240–270). The 3-h change drifted
+     with every ISF step since LESSONS 195 (review on the old runs: c270 +11, c275 ISF_W 1.0 +3, c276 yardstick −1.5, c277
+     body fit −4, c278 night_add −6.8, c300 +3.2; donors +21; the pre-ISF bases c235–c268 +9 to +12).
+     - **c301 `ge_kcal_mult` 0.71** (energy ceiling to Brener's 2.13 kcal/min, spread kept; experiment): the first phase
+       flattens (mid peak +14), no late phase, meals below 0 by 150 min; lows 0.63 / day, t54 0.03%; 27 matched (32).
+       Slower appearance under a full bolus only means the bolus over-covers early. The donors' late phase is glucose —
+       or resistance — arriving later on top, not the same glucose emptied more slowly. Stays off.
