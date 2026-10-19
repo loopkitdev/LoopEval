@@ -5703,3 +5703,16 @@ statistic here, but it is the controller donors ran.
      say more. Means and medians disagree, so the insulin side does not explain the twins' early return to baseline;
      the donors' extra automatic insulin at 2–4 h is Loop answering their late rise. The late phase stays open: neither
      emptying speed, fat normalisation, protein glucose, post-meal eating, carb sensitivity nor meal insulin makes it.
+
+307. **A gentler first hour does not bring the late phase either.** c309, meal fast liquid share 0.35 → 0.2 (the 0.35 was
+     fitted to the donors' 5-min step tail, which LESSONS 298 showed cannot separate body from sensor): mid meals peak
+     +18 at 90 min and are below 0 by 150 (donors +23 at 180); 3-h change −2.2 (+21); post-meal insulin unchanged (user /
+     auto −15..120 min 0.99 / 0.67 U per 10 g); step tail 3.1% > 15 (c306 ~4; donors 6.3); lows 0.67 / day, CV 33.9
+     (34.8), TIR 74.0; 28 matched (31). Not adopted. Tried and not the late phase (LESSONS 301–307): slower emptying
+     (×0.71 ceiling), full fat / protein energy on the ceiling, absolute fat resistance, protein glucose ×4, slot
+     composition, activity away from meals, carb sensitivity weight, the fast share, and post-meal eating; meal insulin
+     does not clearly differ. Each either lowers meals or spreads glucose Loop then answers. What holds real meals up
+     for 3 h after a full bolus, with Loop giving MORE automatic insulin at 2–4 h than the twins' (0.77 vs 0.62–0.71 U per
+     10 g), is a need that rises after eating and outlasts the meal's appearance — a postprandial resistance or EGP
+     return the body model does not have. Next: the evidence for that (postprandial glucagon / EGP in T1D, evidence/13;
+     second-meal and post-meal insulin resistance), before any arm.
