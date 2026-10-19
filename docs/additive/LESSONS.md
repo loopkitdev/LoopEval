@@ -4881,3 +4881,21 @@ statistic here, but it is the controller donors ran.
      curve both follow). c265 on the relabelled templates vs c264: 27 matched (29), lows 0.58/day (0.58), meals ending < 70
      7.2% (7.0); falling readings > 3 mg/dL/min 0.52% (0.39; donors 1.26). A fidelity fix; the fast-fall gap stays.
      The 74% ultra-rapid share of the 2026-08-25 formulation screen is the known-brand subset, not the pool: here 34–42%.
+
+249. **The donors' lows after unentered rises are not stacked insulin.** Automatic-bolus people, unentered rises
+     (LESSONS 242 selection; `iob_peak.py`), net IOB / TDD — donors from Loop's recorded IOB, the sim rebuilt from delivered
+     minus scheduled basal with the person's Loop curve:
+
+     | | rises | IOB at start | IOB at peak p50 / p75 | max IOB to peak + 60 min |
+     |---|---|---|---|---|
+     | donors, no low | 19,848 | 0.025 | 0.050 / 0.082 | 0.070 |
+     | donors, ends < 70 | 2,185 | 0.018 | 0.039 / 0.071 | 0.055 |
+     | c264, no low | 1,306 | 0.019 | 0.046 / 0.075 | 0.064 |
+     | c264, ends < 70 | 47 | 0.042 | 0.059 / 0.098 | 0.076 |
+
+     In the sim a rise ends low when insulin stacked on it; in the donors the low-ending rises carry less insulin than the
+     others. Rebounds explain a part: rises within 2 h of a low are 11.1% of donors' (sim 7.5%) and end low 17.6% (5.9%),
+     20% of the donors' low-ending rises (13%); the rest still end low at 9.0% vs 3.3%. What brings the donors down after
+     these rises acts without an insulin excess: a need that falls after the rise (activity after eating, the source of
+     the rise ending into a lower basal need) rather than Loop's dosing. Next: the hour-of-day and post-meal-activity
+     context of these rises in the donors (HealthKit workouts are too sparse; time of day and day-of-week are not).
