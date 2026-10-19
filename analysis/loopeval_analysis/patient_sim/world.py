@@ -537,6 +537,9 @@ class World:
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
         self.fat_rho = float(r_misc.uniform(0.1, 0.6))
+        # onset of the fat resistance, hours after the meal (default 2, ramp to full over 1 h): Laxminarayan 2015 (DTT,
+        # doi:10.1089/dia.2015.0118) found SI 17% lower already in the high-fat DINNER window (LESSONS 352)
+        self.fat_on = float(enable["fat_on"]) if enable and isinstance(enable.get("fat_on"), float) else 2.0
         # fat_rel (default since 2026-10-18, Pete; LESSONS 151; --disable fat_rel): the fat resistance relative to the person's own usual diet. Their ISF, CR and
         # TDD were tuned on their ordinary meals, average fat included, so the term is normalised to a mean of 1 over the
         # planned days (as caffeine is, relative to the person's habitual intake); fattier than usual still dips SI
@@ -547,7 +550,8 @@ class World:
                 grid = np.arange(DAY, days * DAY, 5.0); mult = np.ones_like(grid)
                 for (t0, fat) in ev:
                     x = (grid - t0) / 60.0
-                    w = np.where(x < 2, 0.0, np.where(x < 3, x - 2, np.where(x < 6, 1.0, np.where(x < 10, (10 - x) / 4, 0.0))))
+                    a_ = self.fat_on
+                    w = np.where(x < a_, 0.0, np.where(x < a_ + 1, x - a_, np.where(x < 6, 1.0, np.where(x < 10, (10 - x) / 4, 0.0))))
                     mult *= 1.0 - self.fat_rho * min(fat, 80.0) / 50.0 * w
                 self.fat_norm = float(np.maximum(mult, 0.4).mean())
         # hyperglycaemia-induced insulin resistance (B11): 24 h at ~360 mg/dL lowers insulin-stimulated glucose uptake by
@@ -716,7 +720,8 @@ class World:
             x = (m - t) / 60.0
             if x > 10: continue
             keep.append((t, fat))
-            w = 0.0 if x < 2 else (x - 2) if x < 3 else 1.0 if x < 6 else (10 - x) / 4
+            a_ = self.fat_on
+            w = 0.0 if x < a_ else (x - a_) if x < a_ + 1 else 1.0 if x < 6 else (10 - x) / 4
             mult *= 1.0 - self.fat_rho * min(fat, 80.0) / 50.0 * w
         self.fat_events = keep
         return max(mult, 0.4) / self.fat_norm
