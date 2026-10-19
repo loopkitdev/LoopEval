@@ -5029,3 +5029,8 @@ statistic here, but it is the controller donors ran.
      per-person transfer unchanged (mean 0.24, t70 0.21). Stays 0.15. Ruled out for the fast-fall gap so far: glucose
      effectiveness, meal speed, early insulin action, carb sensitivity, formulation, counter-regulation, sensor share,
      absorption variability (LESSONS 236–239, 248, 257).
+     - **Not too-small proactive snacks.** Unentered rises (automatic-bolus people; `iob_peak.py`) by the 30-min change
+       before they start: donors 53% follow a fall ≥ 10 (sim 42%); share ending < 70 after a prior fall 10.8% vs 9.0%
+       without (sim 5.7 vs 2.7%). A rise that interrupts a fall is only slightly more low-prone in the donors, and the
+       donor–sim gap is as large on rises with no fall before (9.0 vs 2.7%): the missing post-rise descent is not a
+       treated-too-little fall resuming.
