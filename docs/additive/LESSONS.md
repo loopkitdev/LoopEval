@@ -6226,3 +6226,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      change −0.8 / −3.0, lunch −12 / −19 at 2.5 h; 33 / 33 of 51 (34). Not adopted. The meal-rise gap of LESSONS 348 is not
      glucose effectiveness either; κ (A5) is the remaining disposal term. The lows and Hurst gains say SG's level shapes
      the low side; the level cost needs an evidenced counterpart before SG moves.
+
+350. **A smaller glucose-dependence of insulin action lifts the meal peak but not the late phase; disposal is not the
+     whole answer either.** `--set kappa_mult` 0.675 / 0.45 on c346_st (κ median 1.0 → 0.675, Best 1981's mid-insulin
+     value, and 0.45), c350: flat-start meal rise p50 51 / 45 (c346 46; donors 58); 3-h meal change −0.2 / +2.7 (+21);
+     lunch −17 / −18 at 2.5 h; bg_mean 160.2 / 162.4 and TIR 69.4 / 68.3 fail; t54 0.090 / 0.121%, lows 0.75 / day,
+     P(reach 54) fails; hurst_long passes; 31 / 30 of 51 (34). Not adopted. With glucose effectiveness (LESSONS 349) and κ
+     both ruled out, every body term that could clear raised glucose faster has been tested against the meal shape:
+     the twins' lunches and dinners keep falling back by 2–3 h whatever the body's disposal, gut, liver, entries or
+     behaviour. The documented limit stands (Known limits, role overlay).
