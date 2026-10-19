@@ -109,7 +109,7 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | D11 | Bolus timing | per-person lead from the labeler (`lead_own`) | on | LESSONS 106 |
 | D12 | Adjunct medication | B12 GLP-1 RA | switch | ADJUST-T1D split (LESSONS 87) |
 | D13 | Glucocorticoids | B14 courses | on (population rate); scenario | Bevier 2008 (LESSONS 140) |
-| D14 | Niacin | — | not built (Tier 3) | — |
+| D14 | Niacin | implicit: a chronic level in the donor's data-fitted body | not built: high-dose niacin raised fasting glucose by single-digit mg/dL in diabetic participants with HbA1c unchanged (ADMIT, Elam 2000 JAMA 284:1263); lipid use has fallen since AIM-HIGH (2011) — a level, not a within-day driver (LESSONS 336) | — |
 | D15 | Light activity | C6 episodes + C7 fragmented bouts (`act_frag`) | on | — |
 | D16 | Exercise | C1–C5 sessions (intensity from donors' workout METs), uptake, acute and McMahon-sized delayed SI, absorption, C4 surge above 60% effort | on | BDDP HealthKit workouts (LESSONS 243–247); post-moderate-session fall still short of donors' |
 | D17–18 | Fitness, exercise timing | per-person gain; session slot | on (as parameters) | — |
