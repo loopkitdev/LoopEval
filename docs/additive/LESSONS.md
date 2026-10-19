@@ -5897,3 +5897,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      twins' peak higher and end sooner — adding a late phase alone lifts the daytime level (c318), so the peaks have to come
      down with it; slowing the solid part (c316) lowered peaks but cut the first-hour rise. The meal shape stays the
      documented main limit.
+
+324. **Faster insulin action (p2 0.025 → 0.04) puts time below 54, the share reaching 54 and CV on the donors' for the
+     first time; adopted.** Late-phase arms c320 (`main_speed` 0.5 with fast share 0.5 / 0.6): lows 0.92 / day, t54 0.12 /
+     0.15%, but CV 37.1 / 37.6 fails, 3-h change −2.6 / −6.8, 31 / 28 matched; ICE at 120–180 min stayed ~6 per 10 g in every
+     gut arm (donors 10.5). c321 `ins_p2` (disposal-action rate, set after calibration, so each body's total drop per unit is
+     unchanged; timing only) vs c311: 0.04 → t54 0.147% (KS 0.005 → 0.110, passes; donors 0.215), p_reach54 0.18 (0.001 →
+     0.137, passes; 0.20), CV 35.1 (passes), TIR 71.9 (71.7), bg_mean 155.1, lows 0.83 / day, 34 matched (32); 0.06 → 31. ICE at
+     120–180 min unchanged (5.3) — the late phase is not this. Basis: 0.025 was fitted to a lispro clamp at 0.2 U/kg (~15 U,
+     GIR peak ~100 min); boluses and Loop's automatic doses run ~0.05 U/kg, and smaller s.c. doses act sooner (direction known;
+     no source sizes it for analogues at these doses), so 0.04 (peak ~80 min) is data-calibrated in an evidenced direction.
+     Adopted as the BodyParams default (Pete: weigh primary outcomes and soundness over count). New reference c321_p2a.
