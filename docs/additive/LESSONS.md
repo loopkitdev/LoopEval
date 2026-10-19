@@ -4940,3 +4940,20 @@ statistic here, but it is the controller donors ran.
        0.88 / 0.82 / 0.91 / 0.85 / 0.89; 24-h mean 0.91 both. The donors' Loop at ~1.05× schedule with a mild drift
        down puts their 03–05 h need near the schedule; the sim's sits ~12% under. Next: the level of the body's night need
        against the schedule from donors' clean nights (delivered at steady CGM), not only its shape.
+
+251. **The body's night need level from the donor's own steady nights (`night_own`, default): the automatic-bolus lows
+     gap closes.** Donors' steady nights (02–05 h, no carb entry or manual bolus since 22 h, CGM within ±15 mg/dL over the
+     3 h; `steady_night.py`, 165 donors, median 23 nights): delivered / scheduled p10 / p25 / p50 / p75 / p90 0.78 / 0.95 /
+     1.13 / 1.35 / 1.87 — the body's 02–05 h need against the schedule. The sim's body sat at 0.88–0.95 there (LESSONS 250).
+     `night_own` scales the body's hourly shape by a bump (1 at 02–05 h, cosine taper to 0 at 22 and 08 h), renormalised to
+     mean 1 (24-h basal and intake budget unchanged), solved so the 02–05 h need = the donor's ratio × schedule (template
+     column night_need_ratio). A first form, a step on 00–06 h (c267), overshot temp-basal lows (t70 1.88 vs 0.97) and
+     made an artificial 05→07 h fall. c268 (smooth) vs c266:
+     - 05 h CGM − mean −38 → −30 (donors −29); 24-h range of the median profile 49 → 37 (39);
+     - t70 automatic 0.76 → 1.11 (1.20), temp 1.30 → 1.29 (0.97); overall 1.10 → 1.15 (1.67, KS passes), lows 0.75/day;
+     - quiet daytime delivered / scheduled automatic 1.38 → 1.28, temp 1.29 → 1.05 (donors 1.13 / 1.07), drift temp
+       +1.5 → −1.5 (−3.1);
+     - untreated no-bolus daytime lows temp 0.296 → 0.353 (0.286), automatic 0.154 → 0.170 (0.308);
+     - 29 matched (31): day / night insulin 2.08 → 1.79 fails (2.06) — the taper adds early-night insulin (00–01 h
+       delivered 1.40 vs donors 1.12–1.17); circadian_amp still fails per person (0.161 vs 0.131).
+     New reference c268. Next: the bump's early-night start against the donors' hourly delivery.
