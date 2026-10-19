@@ -539,7 +539,7 @@ class World:
         self.fat_rho = float(r_misc.uniform(0.1, 0.6))
         # onset of the fat resistance, hours after the meal (default 2, ramp to full over 1 h): Laxminarayan 2015 (DTT,
         # doi:10.1089/dia.2015.0118) found SI 17% lower already in the high-fat DINNER window (LESSONS 352)
-        self.fat_on = float(enable["fat_on"]) if enable and isinstance(enable.get("fat_on"), float) else 2.0
+        self.fat_on = float(enable["fat_on"]) if enable and isinstance(enable.get("fat_on"), float) else 0.5   # default since 2026-10-19 (was 2)
         # fat_rel (default since 2026-10-18, Pete; LESSONS 151; --disable fat_rel): the fat resistance relative to the person's own usual diet. Their ISF, CR and
         # TDD were tuned on their ordinary meals, average fat included, so the term is normalised to a mean of 1 over the
         # planned days (as caffeine is, relative to the person's habitual intake); fattier than usual still dips SI
