@@ -65,7 +65,7 @@ class BehaviorTraits:
     snack_fast_frac: float = -1.0        # < 0: as meal_fast_frac; snacks lean on sugary drinks, candy and desserts
                                          # (Piernas & Popkin 2010) so their fast share may be higher [J] (LESSONS 159)
     meal_fast_frac: float = 0.35         # share of a meal's carbohydrate in its fast-emptying phase: 0.5 fits the donors' 5-min step tail but overshoots CV; 0.35 balances (LESSONS 268, 270; was 0.2 [J], LESSONS 44)
-    meal_fast_sd: float = 0.25           # per-meal SD of that share (Beta, same mean): foods differ in rapidly available glucose
+    meal_fast_sd: float = 0.40           # per-meal SD of that share (Beta, same mean): foods differ in rapidly available glucose; 0.25 -> 0.40 gives the donors' G7 5-min velocity kurtosis (LESSONS 271)
                                          # (Englyst 1999; SD a judgement) [Pete 2026-10-17, LESSONS 120]
                                          # (Englyst 1999: RAG explains 70% of the glycaemic-response variance) [switch, LESSONS 88]
     main_weight: float = 1.9             # a main meal's expected size relative to a snack: Camerlingo 2021 (B 41 / L 49 / D 53 vs
