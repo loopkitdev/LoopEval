@@ -376,6 +376,22 @@ class World:
             g0 = gi
             gi = (lambda d, g0=g0: (g0(d) if g0 else 1.0) * self.glp1.carb_mult(d * DAY + 720))
         tgt_e = person.traits.get("template_rates", {}).get("entered_g_raw")
+        if (enable or {}).get("entry_g_own") and tgt_e is not None and np.isfinite(float(tgt_e)) and float(tgt_e) > 0:
+            # experiment (LESSONS 220): move grams between meals and unentered grazing so the planned ENTERED grams/day match
+            # the donor's own, total intake unchanged (heavy announcers enter most of what they eat; the graze draw is not
+            # from data and was taking their meal grams)
+            bt = self.beh.t
+            g_tot = bt.graze_per_day * bt.graze_g * float(np.exp(0.4 ** 2 / 2))
+            for _ in range(3):
+                tmp = copy.deepcopy(self.beh); tmp.plan_all(days, gi)
+                got = sum(x[1][1].entered or 0.0 for x in tmp.planned if x[1][0] == "enter_meal") / max(days + 1, 1)
+                if got <= 0: break
+                k = float(np.clip(float(tgt_e) / got, 0.67, 1.5))
+                add = bt.carbs_day * (k - 1.0)
+                if add > 0: add = min(add, g_tot)                    # only as much as grazing can give up
+                bt.carbs_day += add; g_tot = max(g_tot - add, 0.0)
+                bt.graze_per_day = g_tot / max(bt.graze_g * float(np.exp(0.4 ** 2 / 2)), 1e-9)
+                if abs(k - 1) < 0.03: break
         if (enable or {}).get("entry_own") and tgt_e is not None and np.isfinite(float(tgt_e)) and float(tgt_e) > 0:
             # experiment (LESSONS 205): entry probabilities scaled so the planned ENTERED grams/day match the donor's own
             # raw entered grams (paired, the sim entered 0.84× its donors'), measured on a dry-run copy of the plan, so
