@@ -6217,3 +6217,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      a smaller late phase (LESSONS 301–347) both say the twins' bodies clear glucose faster while it is raised — glucose
      effectiveness (A1, SG lnN(0.003, 0.5)) and the glucose-dependence of insulin action (A5, κ ≈ 1, Best 1981; LESSONS 303)
      are the components to re-examine against their own evidence, not the gut or the behaviour.
+
+349. **Lower glucose effectiveness brings the lows and long-range persistence onto the donors' but not the meals, and
+     raises the level.** SG median 0.0045 /min (lnN sd 0.5) sits at the top of the UVA/Padova impulse-fit range 0.0013–
+     0.0047 (registry A1 still read 0.003). `--set sg_mult` 0.7 / 0.5 on c346_st (c349): t54 0.123 / 0.190% (donors 0.190;
+     p 0.131 / 0.377), lows/day 0.92 / 1.00, P(reach 54) p 0.074 / 0.152, hurst_long 0.210 / 0.242 (0.253; passes) — but
+     bg_mean 160.9 / 163.9 and TIR 69.2 / 67.0 fail, CV 37.4 at 0.5; meal rise p50 36 / 34 (c346 46; donors 58), 3-h meal
+     change −0.8 / −3.0, lunch −12 / −19 at 2.5 h; 33 / 33 of 51 (34). Not adopted. The meal-rise gap of LESSONS 348 is not
+     glucose effectiveness either; κ (A5) is the remaining disposal term. The lows and Hurst gains say SG's level shapes
+     the low side; the level cost needs an evidenced counterpart before SG moves.

@@ -20,7 +20,7 @@ Code: `analysis/loopeval_analysis/patient_sim/`.
 
 | Component | Model form | Parameters (population prior) | Evidence | Status |
 |---|---|---|---|---|
-| A1 Glucose kinetics | One compartment, insulin-independent glucose effectiveness SG(G−Gb) | VG lnN(1.88 dL/kg, 0.15); SG lnN(0.003 /min, 0.5); Gb N(119, 7) | 01 §1.2, §4.2; UVA/Padova-plant impulse fits 0.0013–0.0047 /min (LESSONS 3) | wired |
+| A1 Glucose kinetics | One compartment, insulin-independent glucose effectiveness SG(G−Gb) | VG lnN(1.88 dL/kg, 0.15); SG lnN(0.0045 /min, 0.5) (LESSONS 349: 0.5–0.7× brings lows on, raises level); Gb N(119, 7) | 01 §1.2, §4.2; UVA/Padova-plant impulse fits 0.0013–0.0047 /min (LESSONS 3) | wired |
 | A2 SC insulin PK | Per-dose depot: delay τ → Isc1 →kd→ Isc2 →ka2→ plasma, ke 0.127 | kd lnN(0.030, 0.31), ka2 lnN(0.018, 0.21), VI 0.126 L/kg | 01 §3; ka2 centre refit to the lispro clamp profile (LESSONS 9) | calibrated |
 | A3 Insulin formulations | τ, kd/ka2 multipliers, fast-route fraction ψ | lispro/aspart = reference; Fiasp and Lyumjev FITTED to clamp contrasts (Lyumjev AUC0–15 ×7.2, >3 h ×0.60; Fiasp AUC0–30 ×2.0, >3 h ×0.80); glulisine; regular human insulin | 01 §3.2; `insulins.fit_formulations` | calibrated |
 | A4 Per-dose absorption jitter | ω per bolus scales kd, ka2, k_fast | lnN CV 15% | 07 (Heise 2017 repeat clamps, net of the SI share) | wired |
