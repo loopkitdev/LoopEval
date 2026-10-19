@@ -5573,3 +5573,15 @@ statistic here, but it is the controller donors ran.
      and persist for several readings. The twins' true glucose is too smooth for it (lag-1 0.946, 0.08 small turns / h).
      This joins LESSONS 268 (step tail), 286 (post-peak fall), 291 (early post-bolus fall) and 293 (volatility
      dispersion): one missing body property, fast coherent moves, not a sensor size. Sensor stays as fitted.
+
+298. **Correction to LESSONS 297: the twins' CGM already makes the donors' coherent fast moves, mostly through the
+     sensor; whether the donors' are body or sensor is not separable from CGM.** Coherent fast moves (two consecutive
+     5-min steps of one sign, each ≥ 7 mg/dL; `fast_moves.py`, G7, per person-day, up / down): after an entry donors 1.84
+     / 1.15, c294 CGM 1.66 / 0.93, c294 true BG 0.82 / 0.32; after a user bolus 1.41 / 1.91, 1.28 / 2.46, 0.39 / 0.75;
+     quiet day 3.15 / 2.57, 2.69 / 2.28, 0.90 / 0.39; night 0.88 / 0.97, 0.97 / 1.24, 0.11 / 0.05. The counts are within
+     ~15% (the twins fall faster after boluses, rise a little less in quiet hours), and two thirds of the twins' come
+     from the sensor's per-sensor AR(2) noise (1.30, −0.42), which is itself coherent over consecutive readings. LESSONS
+     297's "the missing piece is fast coherent body motion" is a hypothesis, not a finding: the same CGM shape can come
+     from body motion or from coherent sensor error, and the donors' record does not say which. Settling it needs data
+     where both are seen — paired sensors (FDA two-sensor precision bounds the sensor-specific part, already fitted) or
+     sensor-vs-reference time series — not more donor CGM statistics.
