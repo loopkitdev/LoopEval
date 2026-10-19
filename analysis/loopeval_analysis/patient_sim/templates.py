@@ -414,6 +414,32 @@ def add_disruption_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/i
     return t
 
 
+def add_strategy_share(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32", min_auto: int = 5):
+    """Per donor, the share of active days (>= 20 dose records) run on the automatic-bolus strategy: days with at least
+    `min_auto` automatic boluses (autobolus days carry a median 60; temp-basal days none). The template's `strategy`
+    is a whole-record call (> 2 automatic boluses a day), so a donor who switched mid-record is all one or the other;
+    person.py draws each twin's strategy from this share (LESSONS 331)."""
+    import json
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        p = ice_root / "full" / a / "doses.json"
+        if p.exists():
+            d = pd.DataFrame([(x["startDate"], x["deliveryType"] == "bolus" and bool(x.get("automatic")) and (x.get("volume") or 0) > 0)
+                              for x in json.load(open(p))], columns=["t", "auto"])
+            d["day"] = pd.to_datetime(d.t, format="ISO8601").dt.floor("D")
+            g = d.groupby("day").agg(n=("auto", "size"), auto=("auto", "sum"))
+            g = g[g.n >= 20]
+            if len(g) >= 7:
+                row["auto_day_share"] = float((g.auto >= min_auto).mean())
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
+
+
 def add_gap_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
     """Per donor, CGM gaps per day over the whole record: short (7–32 min between readings) and long (32 min–12 h),
     the bins of sensor.MEASURED_GAPS. Donors differ several-fold (G7 short gaps p10/p90 0.6/8.6 a day), which the
