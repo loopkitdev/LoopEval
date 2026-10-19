@@ -5929,3 +5929,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      matched (34). Not adopted. The donors' combination (late phase, lower daytime level, more lows, LOWER TDD) is not
      reached by any additive combination tried (LESSONS 301–326); the late phase stays the documented main limit, with the
      reference at c321_p2a.
+
+327. **With the TDD budget corrected, the post-meal window gives the donors' level, TDD and much of the late phase — and
+     loses the lows wherever it sits.** `meal_budget` (experiment: meals' share of the TDD budget × b) and `ppr_shift`
+     (window delayed by s min). c324 ppr_a 0.3 with b 0.85: TDD 39.7 (donors 38.8), bg_mean 157.5 (passes), hourly mean
+     151.8 (150.7), CV 35.2 and TIR 70.8 pass, 3-h change +11.6, mid meals ~+20 to 150 min, large +31; but t54 0.104%,
+     p_reach54 0.17, lows 0.75 / day fail; 31 matched (34). b 0.75: level 152, t54 0.060%; 27. c325 the same window 30 min
+     later (in 60–90, full to 210): +11.4 / +14.8 (a 0.3 / 0.4), mean 154.8 / 156.5, t54 0.124 / 0.092%, lows 0.75; 28 / 29.
+     Lows fall across the day whenever the window is on, not only after meals — the late phase and the donors' lows are
+     not reached together by an SI window. Not adopted; reference stays c321_p2a.
