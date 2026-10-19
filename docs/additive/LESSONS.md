@@ -5216,3 +5216,16 @@ statistic here, but it is the controller donors ran.
      / 0.75 / 0.83 / 0.79, meals ending < 70 9.7 / 9.7 / 10.0 / 9.5%, low duration p90 65 / 75 / 80 / 75 min; 31 / 32 / 29
      matched. ×0.6 puts the low depths on the donors'; the long-low excess (p90 duration) is not counter-regulation (it
      grows as CR weakens) — treatment timing and size, next. Default CRmax lnN median 0.3 (sd 0.5); new reference c286_cr06.
+
+273. **Long lows are a night problem: gradual untreated night lows last too long; daytime lows match.** Low episodes and
+     the first labeled rescue pulse −15..+60 min of their start (`low_treat.py`, same labeler both sides): day — donors
+     duration p50 / p75 / p90 20 / 35 / 50 min, 22% treated, start → rescue p50 8 min, rescue 29 g-eq; c286 25 / 36 / 50,
+     23%, 10 min, 25 g-eq. Night — donors 20 / 45 / 70, 27% treated, 12 min, 25 g-eq; c286 30 / 55 / 100, 27%, 20 min, 21
+     g-eq; untreated p90 65 vs 110. The long untreated night lows are real (`night_untreated.py`: true BG < 70 for 89% of
+     the episode, minimum 54, Loop delivering 0, unlabeled eating in 60%). Not compression: sharp in-and-out untreated
+     night lows (15-min drop ≥ 20, recovery ≥ 20) 13% donors vs 11% sim; the rest last 15 vs 20 min (p50), 70 vs 110 (p90).
+     Real gradual night lows recover faster than the sim's body does at zero insulin, and the weaker counter-regulation of
+     LESSONS 272 (which matched depth) slows that recovery: depth and recovery pull apart under one CRmax. Open: what
+     ends real night lows (counter-regulation that acts on duration rather than depth — its 15-min time constant —,
+     the residual insulin tail at night, unlogged small treatments); and the night rescue is slower in the sim (alarm-
+     and-wake model, p_wake_alarm) than the donors' 12 min.
