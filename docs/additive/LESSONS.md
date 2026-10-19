@@ -5294,3 +5294,12 @@ statistic here, but it is the controller donors ran.
      donor's own entry clock (LESSONS 265) could not move it: the sim's people have too few snack occasions there to
      enter. Next: the evening snack occasions themselves — count by hour from the donors' entries plus unannounced pulses,
      with the chance of a bolus — so that small bolused evening snacks exist to go low after.
+
+279. **Snacks on the donor's entry clock do not create the evening snack entries (experiment, off).** `snack_entry_hours`
+     (d961c7c: each person's snacks placed by their donor's carb-entry hour histogram instead of the all-eating clock; snack
+     count unchanged) with `entry_clock`, c288 vs c287: entries/day 15–18 / 21–24 h 0.43 / 0.22 (c287 0.41 / 0.24, donors
+     0.55 / 0.35); low onsets 15 / 18 / 21 h 0.12 / 0.11 / 0.10 (0.14 / 0.12 / 0.09; donors 0.16 / 0.18 / 0.14); 31
+     matched (30). The entry clock is dominated by lunch and dinner, so snacks follow the main meals rather than filling
+     the afternoon and late evening. The donors' small evening entries need occasions of their own — counted from their
+     entries outside the main-meal windows, with their sizes (20–28 g) and bolus rate — not a re-timed share of the
+     existing snacks. Stays off.
