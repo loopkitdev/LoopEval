@@ -5938,3 +5938,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      later (in 60–90, full to 210): +11.4 / +14.8 (a 0.3 / 0.4), mean 154.8 / 156.5, t54 0.124 / 0.092%, lows 0.75; 28 / 29.
      Lows fall across the day whenever the window is on, not only after meals — the late phase and the donors' lows are
      not reached together by an SI window. Not adopted; reference stays c321_p2a.
+
+328. **Faster insulin action does not bring the lows back under the post-meal window.** c326, ppr_a 0.3 with meal_budget
+     0.85, ins_p2 0.05 / 0.06: t54 0.074 / 0.094%, p_reach54 0.16 / 0.12, lows 0.71 / 0.79 per day (all fail; donors 0.215%,
+     0.20, 1.08); level, TDD and TIR on the donors' (mean 155, TDD 39.6 / 40.3, TIR 71.1 / 72.1); 3-h change +8.2 / +11.1;
+     27 / 26 matched. With the window on, the lows stay away whatever the insulin timing (LESSONS 321–328). Late-phase
+     search closed: the reference stays c321_p2a (34 of 51, every primary outcome passing), the late phase its documented
+     limit.
