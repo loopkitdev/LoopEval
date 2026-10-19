@@ -6076,3 +6076,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      - D8 dehydration: no size in T1D (one fluid-restriction thesis found less hyperglycaemia afterwards); D34 damaged
        insulin: rapid analogues are stable 6 days at 37 °C in pumps, so in-wear loss is the existing site-age decline.
        Both recorded as not built, with sources, in evidence/00.
+
+337. **Two more late-phase checks, both negative.** Per-donor calibration (`--enable twin`, c334, carb sensitivity per
+     donor fitted to their own 3-h meal change, LESSONS 219) leaves the median 3-h meal change at +2.4 (c331 +1.0, donors
+     +21.2), the drop deeper (p10 −110 vs −84) and meals ending < 70 at the donors' (0.095 vs 0.097). The twins are not
+     over-bolused for their bodies: true CR / settings CR p10 / p50 / p90 0.57 / 0.85 / 1.28 (body needs ~15% MORE insulin
+     per gram than the setting gives), true ISF / settings ISF 0.56 / 1.03 / 1.96. With LESSONS 301–328 (gut shape,
+     carb sensitivity, energy, protein, under-entry, courses, solid speed, post-meal SI window, p2), 317 (eating by
+     glucose), evidence/13 (paradoxical glucagon, 0–10 mg/dL) and 151 (fat normalised to the usual diet keeps the post-meal
+     dip), every evidenced route to the donors' hours-2–3 counteraction has been tried. What would settle it is data this
+     project does not hold: meal-time tracer appearance at 2–3 h for ordinary (not test) meals, or sensor-vs-reference
+     series after meals.
