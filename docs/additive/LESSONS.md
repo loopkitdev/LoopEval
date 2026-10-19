@@ -4957,3 +4957,13 @@ statistic here, but it is the controller donors ran.
      - 29 matched (31): day / night insulin 2.08 → 1.79 fails (2.06) — the taper adds early-night insulin (00–01 h
        delivered 1.40 vs donors 1.12–1.17); circadian_amp still fails per person (0.161 vs 0.131).
      New reference c268. Next: the bump's early-night start against the donors' hourly delivery.
+
+252. **The night need from every clean night, drift-corrected: 1.05× schedule, not 1.13; 31 of 51.** Steady nights
+     (|ΔCGM| ≤ 15 over 02–05 h) are a selection: Loop holds a night flat when it delivers what the body needs, which
+     favours nights of higher need. Over every clean night (no entry or manual bolus since 22 h; median 80 per donor vs 23
+     steady), need = delivered + ΔCGM / ISF (settings ISF): p10 / p25 / p50 / p75 / p90 0.65 / 0.86 / 1.05 / 1.25 / 1.70
+     (`night_need_all.py`; delivered alone 1.14). Template column night_need_ratio now holds this (the steady values in
+     templates_pilot_logs.steady.csv). c269 vs c268: 31 matched (29); t70 1.15 → 1.45% (1.67), lows 0.75 → 0.88/day
+     (1.08), CV 34.3 → 34.7 (34.8), day / night 1.79 → 1.83 (2.06, KS 0.051 passes); 05 h −30 → −33 (−29). By strategy t70
+     automatic 1.11 → 1.43 (1.20), temp 1.29 → 1.77 (0.97): the 39 temp-basal twins overshoot their donors — next item.
+     New reference c269.
