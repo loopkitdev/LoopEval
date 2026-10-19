@@ -36,7 +36,7 @@ The "Freq." column is my estimate for a typical adult on AID, unless a source is
 | D5 | Caffeine | food | ↑ | IV caffeine −15 % insulin sensitivity [P, **ND**, n=12] | ~hours | daily | **2** |
 | D6 | Alcohol | food | ↓ (delayed), ↑ (mixers) | 0.75 g/kg evening wine → 5/6 next-morning hypos, post-breakfast peak 8.9 vs 15 mmol/L [P, T1D, n=6] | 10–15 h later | weekly (varies) | **2** |
 | D7 | Meal timing (late, large dinner) | food | ↑ overnight | anecdote only [Brown n=1]; diurnal SI lower at dinner (ND) [U] | overnight | daily | **3** (captured by D1–D3 + X5) |
-| D8 | Dehydration | food | ↑ | 4.1 % body-weight loss ↑ glucose during insulin withdrawal [P, T1D]; no magnitude with insulin present | hours | rare | **3** |
+| D8 | Dehydration | none: modelled as no effect (an evidenced null) | mild hypohydration (−1.9% body mass, cell volume −2.9%, copeptin up) left the glucose and insulin responses to an OGTT unchanged in a randomized crossover of 16 healthy adults (Carroll 2019, J Appl Physiol 126:422); in T1D a fluid-restriction thesis found LESS mild hyperglycaemia afterwards (Stirling MPhil); in T2D a small unsized worsening (Johnson 2017, Nutrition Research); no size on which to build a term (LESSONS 336, 355) | — |
 | D9 | Microbiome | food | ~ | large inter-person response spread to identical meals [P, **ND**] | chronic | — | **3** (fold into D2 per-person params) |
 | D10 | Insulin dose / settings mismatch | med | ↕ | no single study; set by therapy settings [I] | persistent | continuous | **1** |
 | D11 | Bolus timing (pre-bolus) | med | ↕ | 20-min pre-bolus vs at meal: lower 1 h/2 h BG and peak [P, T1D, n=23] | 0–2 h | every meal | **1** |
