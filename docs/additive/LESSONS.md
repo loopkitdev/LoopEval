@@ -6309,3 +6309,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      (35; noise band), t54 0.123%, lows 0.67 / day, TDD 39.7. Kept (more evidence per donor); round 1 saved as
      templates_pilot_logs_csfgeq_r1.csv. The low-runners' day is still 10–22 mg/dL above their donors': per-person meal
      response is now on its donor's, so what remains is outside the meal size response.
+
+360. **Review after `csf_geq`: counter-regulation refitted to the low depths (CRmax median 0.3 → 0.195).** `review.py` on
+     c359_csfp: nadirs within 2–7% of the donors' but the share of lows reaching < 54 0.315 vs 0.370 (target), t54 p 0.008,
+     lows 0.67 / day. `--set cr_mult` 0.8 / 0.65 (c360): share < 54 0.327 / 0.368, nadir p25 / p50 51 / 58 and 50.3 / 57.0
+     (donors 50.0 / 57.0), duration p90 65 / 70 (65); t54 0.119 / 0.121% (p 0.016 / 0.063), P(reach 54) 0.167 / 0.172 (p
+     0.079 / 0.164), lows 0.75 / day; min_below70 p 0.095 / 0.005 (median 20 both; donors 20); 33 / 33 of 51 (34). The
+     component's own target is the low depth, met at 0.65: CRmax lnN(0.195, 0.5) is the default (was 0.3, LESSONS 272).
+     Reference now c360_cr065.
