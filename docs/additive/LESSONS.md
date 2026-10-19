@@ -5188,3 +5188,14 @@ statistic here, but it is the controller donors ran.
      glucose) 1.8 fits as well or better: in-range MARD 8.55 (FDA 8.6; 2.4 gave 9.02), two-sensor PARD 9.76 (8.9; 10.63),
      loss 2.09 (2.45). The G7 family's sigma is now (1.8, 0.8); G6 and Libre 3 unchanged. The noise left above the
      donors' at night (3.72 vs 3.40) is the next sensor item (night quieter than day: noise vs glucose level, hetero_q).
+
+270. **One fast share cannot fit both the step tail and the CV: 0.35 balances; new reference c284.** With G7 noise 1.8
+     (LESSONS 269), fast share 0.5 (c283): CV 37.0 (donors 34.8, fails), hurst_long 0.20 (0.25, fails), day / night 1.93
+     (passes), per-person t70 p25 / p50 / p75 / p90 0.44 / 1.36 / 3.27 / 6.18 (donors 0.65 / 1.15 / 3.83 / 6.85); 29
+     matched. Fast share 0.35 (c284): CV 35.2, hurst_long 0.226, bg_skew 0.87, day / night 1.90 all pass; TIR 72.4; 24-h
+     median profile range 40 (39); twins by strategy mean 157 / 158 and 153 / 153, t70 automatic 1.23 / 1.20, temp 1.31 /
+     0.97; lows 0.75/day (KS 0.035, just fails), t54 0.09; 5-min steps > 15 3.2% (6.3), G7 v_sd 6.56 (7.02); 29 matched.
+     The fast moves the donors make (LESSONS 268) arrive at 0.5 only with too much overall variance at that share for
+     every meal: real meals are plausibly a mix — a few very fast (drinks, sweets) and most slower — so the fast share
+     should vary by meal rather than shift for all. Default meal_fast_frac 0.35 meanwhile; next: a per-meal fast share
+     drawn from a distribution, fitted to the step tail and the CV together.
