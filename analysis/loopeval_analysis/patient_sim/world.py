@@ -270,6 +270,8 @@ class World:
             self.beh_traits.corr_trend = True
         if enable and enable.get("ex_no_eat"):
             self.beh_traits.ex_no_eat = True
+        if enable and isinstance(enable.get("main_speed"), float):
+            self.beh_traits.main_speed = enable["main_speed"]
         if enable and isinstance(enable.get("count_shift"), float):
             self.beh_traits.count_shift = enable["count_shift"]
         if enable and isinstance(enable.get("pro_glc"), float):
