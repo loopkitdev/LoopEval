@@ -125,7 +125,7 @@ than a named mechanism; **not built**. Component codes refer to `docs/additive/C
 | D30 | Menstrual cycle | B5 late-luteal shape | on | BDDP cycle logs (LESSONS 136); onset size checked over full cycles, post-onset low earlier than donors' (LESSONS 235) |
 | D31 | Puberty | age-banded U/kg | implicit | — |
 | D35 | CGM error | sensor families (G6, G7, Libre 3, Medtronic) | on | LESSONS 45, 174 |
-| D36 | Heat / sauna | — | not built (rare; evidence [U]) | — |
+| D36 | Heat / sauna | B15 absorption speed above 13 °C (`heat_a`) | built, off: absorption alone lowers lows under Loop (paired OR 0.59–0.75 vs observed 1.26, Diabetes Care 2026) | LESSONS 290 |
 | D38 | Altitude | — | not built (Tier 3) | — |
 | D32–34, D37, D39–42 | Coeliac, smoking, damaged insulin, sunburn, decision biases | — | not built (Tier 3) or implicit in behavior | — |
 | X1 | Rescue carbs / over-treatment | defense: per-person threshold and size from donors | on | LESSONS 166 |
