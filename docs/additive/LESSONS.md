@@ -6279,3 +6279,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      pass, hurst_long passes; bg_mean 162.0 / 161.0, TIR 67.8 / 70.3, circadian_amp 0.168 / 0.165 and day / night insulin
      fail; 3-h meal change 0.0 / +4.2, lunch −8 / −16 at 2–2.5 h. Each lever lifts the level, and together the level
      cost outruns the lows gain. Not adopted.
+
+357. **The day's changes put most people's nights on their donor's; the low-runners and the morning still do not
+     transfer.** Per-person level by local window on c352_fat05 vs donors (`level_split.py`): night 01–06 h by the donor's
+     t54 quartile Q1–Q3 142 / 156 / 140 vs 148 / 156 / 140 (c331 127 / 144 / 132), Q4 134 vs 120; within-person night SD
+     41.3 vs 45.7 (c331 36.6); morning Q4 154 vs 124, Spearman of twin vs donor morning mean 0.05, afternoon 0.31, evening
+     0.29. Circadian emptying, measured slot composition, the donors' entry windows and the morning load correction
+     (LESSONS 339, 338, 345, 346) fixed the population night and most individual nights; the low-running quarter's
+     daytime level remains the person-level gap of LESSONS 218–233, 332–335.
