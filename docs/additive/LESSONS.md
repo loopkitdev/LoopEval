@@ -5824,3 +5824,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Evidence search (same day): no T1D study measures insulin sensitivity hour by hour after a mixed meal. Hinshaw 2013
      (PMC3712033, triple tracer) finds no breakfast / lunch / dinner SI difference in T1D (P 0.34) and less EGP suppression
      at breakfast; Romeres 2025 compares age groups. A post-meal resistance stays unsized — not built.
+
+317. **Eating by glucose (Pete's hypothesis) is real but small, and does not make the late phase: the gap is in every
+     starting band except below 100.** Bolused entries ≥ 15 g, G7, local clock (`meal_start.py`; donors 35,722, c311 2,128):
+     entry time vs the person's own median for that slot, by CGM at entry < 100 / 100–140 / 140–180 / > 180: donors −1 / −4 /
+     0 / +11 min (Spearman with CGM 0.05, with 30-min trend 0.01); twins 0 throughout (no such component). Starts: CGM p50
+     139 vs 145; rising ≥ 10 / 30 min at entry 39% vs 34%, falling 28% vs 35%. 3-h change after isolated meals by start CGM:
+     donors +51 / +34 / +14 / −39, twins +49 / +21 / 0 / −62; by trend falling / flat / rising donors +27 / +32 / +7, twins +14
+     / +9 / −17. The start mix cannot make a 13–23 mg/dL gap present in every band from 100 up; the twins match only below 100,
+     where Loop has cut insulin before the meal — the gap grows with the insulin already in play. Delaying a meal when high
+     (+11 min above 180) is a small behaviour trait to add later; not the late phase.
