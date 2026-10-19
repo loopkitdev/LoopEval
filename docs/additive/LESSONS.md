@@ -4652,3 +4652,26 @@ statistic here, but it is the controller donors ran.
        7–10. Not measured: the sim's is plausibly Loop's carried-over insulin once SI recovers on day 3, and the donors'
        later low a follicular rise in SI that the component does not have. With 18 people and the donors' own noise (medians run 1–2
        mg/dL under the means), no reshaping; a follicular SI term would need its own evidence first.
+
+236. **Measured like for like, the missing lows are descents that are too slow and stop too soon — in the body, not the
+     sensor.**
+     - **The untreated-lows comparison was lopsided.** `untreated.py` counted any true eating event near a simulated low as
+       treatment, but only carb entries and labeled pulses for donors. Like for like (`--like`: entries + labeled pulse
+       onsets on both sides), c254 untreated lows are 0.425/day (day 0.253, night 0.172) vs donors 0.611 (0.459 / 0.151); the
+       0.09-vs-0.46 daytime figure of LESSONS 220–226 was mostly the asymmetry. All onsets (same detector): 0.58 vs 1.06/day,
+       64% vs 79% by day; carbs within −10..+30 min 27% vs 42%. Dips bottoming at 70–85 after a ≥ 20 mg/dL fall: 0.62 vs
+       0.74/day, with carbs at the bottom 0.16 vs 0.39 — the sim does not pre-empt lows more than donors do.
+     - **Falls through a level from ≥ 20 above** (`falls.py`, daytime): count through 180 / 140 / 100 1.16 / 1.61 / 1.14 vs
+       donors 1.10 / 1.59 / 1.55 per day; share of falls through 140 reaching < 70 9.0 vs 14.7%, < 54 1.7 vs 4.2%; 30-min
+       rate at the crossing p50 / p90 1.10 / 2.20 vs 1.30 / 2.90 mg/dL/min. The same in every context: food 0–2 h before
+       2.3 vs 3.07 (p90), 2–4 h 2.1 vs 2.73, no food for 4 h 1.87 vs 2.67, night 1.69 vs 2.07. Not meal-specific.
+     - **Rate distribution** (`rate_dist.py`, daytime falling readings < 180): p50 / p90 / p99 sim CGM 0.47 / 1.30 / 2.47,
+       sim true BG 0.32 / 0.99 / 2.05, donors 0.48 / 1.53 / 3.17; > 3 mg/dL/min 0.40% vs 1.26%. The median matches; the
+       tail is missing. Fast falls (> 2.5 over 30 min) that rebound ≥ 20 within 30 min: sim 14%, donors 14%. In the sim
+       that rebound marks sensor-made falls (51% of falls with true BG < 0.75 mg/dL/min, 2% of falls with true BG > 1.5),
+       so the donors' fast falls are mostly real glucose falls: the sim's sensor already adds its share of fast falls.
+     - **Not the mean insulin action.** Lone corrections ≥ 1 U (`corr_fall.py`), change per U per ISF at 60 / 120 / 180
+       min: c254 −0.08 / −0.36 / −0.68 vs donors −0.03 / −0.35 / −0.63; at 180 p10 −1.74 vs −1.83, p90 −0.09 vs +0.46 (the
+       donors' upper tail is plausibly unlogged eating). Reaching < 70 within 3 h 3.6 vs 8.1% (55 sim corrections).
+     - Next: the context of the donors' fast falls (insulin in the prior 2 h against the person's own median, time since a
+       user bolus, the level the fall starts from), sim vs donors.
