@@ -78,7 +78,7 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `cmp_full.py` (eda's 51 statistics, KS against the donors), `review.py` (each component against its own
   target), plus the measure scripts beside the run. Arms of a neutral change scatter 27–31 matched: read differences
   inside that band as noise.
-- **Current reference** (2026-10-19): c276 — yardstick ISF, delivered-shape basal need with the night level from steady
+- **Current reference** (2026-10-19): c277 — yardstick ISF × the body-model sensitivity fit (`fit_body --regression`), delivered-shape basal need with the night level from steady
   nights, donor-MET exercise intensity with the C4 surge; 29 of 51; t70 1.73 vs 1.67%, t54 passes.
 
 ## Analysis traps (each cost a session)
