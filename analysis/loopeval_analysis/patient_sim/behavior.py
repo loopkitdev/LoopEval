@@ -276,7 +276,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         treat_thr=float(np.clip(rbg - 5, 55, 85)) if np.isfinite(rbg) else float(rng.normal(70, 6)),
         treat_grams=float(np.clip(rsz, 8, 60)) if np.isfinite(rsz) else lj(25, 0.5),
         treat_latency=lj(5, 0.6), p_retreat=float(np.clip(rng.normal(0.34, 0.1), 0, 1)),
-        corr_thr=float(np.clip(cbg - 20, 130, 300)) if np.isfinite(cbg) else float(rng.normal(200, 30)),
+        corr_thr=float(np.clip((cbg - 20) + (_num(rates, 'corr_thr_adj') if np.isfinite(_num(rates, 'corr_thr_adj')) else 0.0), 120, 320)) if np.isfinite(cbg) else float(rng.normal(200, 30)),
         # a qualifying glance corrects with this chance; sized so the person's measured rate is reachable
         # [J: ~4 qualifying glances a day for a person who runs high; refined by twin validation]
         # hazard per qualifying awake minute: the donor's rate over the donor's own waking exposure above THEIR
@@ -288,7 +288,9 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         corr_u_med=float(_num(rates, 'corr_u_med')) if np.isfinite(_num(rates, 'corr_u_med')) else 1.0,
         corr_u_lsd=float(_num(rates, 'corr_u_lsd')) if np.isfinite(_num(rates, 'corr_u_lsd')) else 0.8,
         corr_over_u=float(_num(rates, 'corr_over_u')) if np.isfinite(_num(rates, 'corr_over_u')) else 1.0,
-        p_correct=float(np.clip(corr_rate / (16 * 60 * (corr_exp if np.isfinite(corr_exp) else hi_frac) * 0.46 * 0.64), 0.0, 0.05))
+        # × the person's lone-bolus calibration (LESSONS 225): iterated so their lone boluses/day match the donor's
+        p_correct=float(np.clip(corr_rate / (16 * 60 * (corr_exp if np.isfinite(corr_exp) else hi_frac) * 0.46 * 0.64)
+                                * (_num(rates, 'corr_p_mult') if np.isfinite(_num(rates, 'corr_p_mult')) else 1.0), 0.0, 0.1))
                   if np.isfinite(corr_rate) else float(rng.uniform(0.0005, 0.005)),
         ex_per_week=float(rng.choice([0, 0.5, 1, 2, 3, 4, 5], p=[0.2, 0.1, 0.15, 0.2, 0.15, 0.1, 0.1])),
         ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
