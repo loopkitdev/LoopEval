@@ -6287,3 +6287,16 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.29. Circadian emptying, measured slot composition, the donors' entry windows and the morning load correction
      (LESSONS 339, 338, 345, 346) fixed the population night and most individual nights; the low-running quarter's
      daytime level remains the person-level gap of LESSONS 218–233, 332–335.
+
+358. **The low-runners' twins carried their donors' meals 38% too large; each body's carb sensitivity now follows its
+     donor's own measured meal response (`csf_geq`, default).** Settings vs body by the donor's t54 quartile (c352):
+     body ISF / settings ISF 0.94 / 0.87 / 1.14 / 1.21, true CR / settings CR 0.96 / 0.79 / 0.92 / 0.86 — the low-runners'
+     bodies are more insulin-sensitive than their settings (which alone would run them low) but under-bolused per gram.
+     Labelled g-eq per entered gram on announced pulses (the carb sensitivity's own calibration quantity, ice labeler both
+     sides) twin / donor by quartile 1.33 / 1.52, 1.10 / 1.22, 1.26 / 1.32, **1.37 / 0.99**; across people Spearman 0.42.
+     `csf_geq` (cca3dbc): carb sensitivity × the donor's ratio over the twin's (log difference shrunk by reliability: one
+     twin's SE 0.36, between-donor τ 0.34, weight p50 0.46; × 0.70 / 0.97 / 1.28 at p10 / 50 / 90, 69 donors), the intake
+     budget divided back out. c358 vs c352_fat05: Q4 morning / afternoon / evening 148 / 149 / 144 (154 / 160 / 150; donors
+     124 / 134 / 137), Q3 morning 145 (154; donors 144); TDD 39.2 (40.5; donors 38.7); 3-h meal change +4.2 (+1.6); t54
+     0.118%, lows / day 0.79; 35 of 51 (35). Adopted (per-person data over a cohort constant); reference now c358_csfgeq.
+     A second fitting round (the weight took half of each difference) is next.
