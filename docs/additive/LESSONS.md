@@ -5078,3 +5078,19 @@ statistic here, but it is the controller donors ran.
      reference c276. The yardstick still reads the insulin through Loop's curve; Pete (2026-10-19) asks whether the
      body's own model can do the fit: the body has no ISF term — si_d (disposal) and se (EGP suppression) are calibrated
      to an ISF target, and the effective ISF varies with glucose, insulin, time of day and the named modulators.
+
+262. **Sensitivity fitted through the body's own model (`fit_body --regression`, Pete 2026-10-19), adopted.** A free 3-h
+     replay of each fasting window with a grid on the sensitivity scale degenerated (k at the 0.1 floor for most donors):
+     across windows the observed change follows the body's prediction at slope 0.38–0.55 (r 0.43–0.69), and shrinking
+     insulin action flattens every prediction. The regression form keeps the yardstick's robustness and replaces Loop's
+     curve with the body: each donor's body runs over the whole record with glucose held on the CGM, driven by the insulin
+     the donor received (ice steps, export gaps filled), and gives the insulin-driven glucose rate in its own terms
+     (−(X_D·M(G) − SI_D·Ib·Gb) + (EGP_ins − EGP_b)/VG); OLS over fasting hourly blocks of glucose change on that effect,
+     with an intercept for the block's drift. 168 donors: slope b p10 / p50 / p90 0.39 / 0.46 / 0.62 (SE 0.047), halves
+     Spearman 0.36; temp-basal b 0.43 vs automatic 0.49. b is attenuated for everyone by closed-loop dosing, so its
+     spread is used: shrunk by reliability (tau 0.18, weight p50 0.77) and applied as a multiplier on the yardstick ISF
+     (p10 / p50 / p90 0.90 / 1.00 / 1.28; `templates.add_isf_body_fit`). Ratio to settings temp / automatic 1.07 / 1.04
+     (yardstick 1.18 / 0.95). c277 vs c276: 29 matched; t70 1.81% (1.67), lows 0.96/day, t54 0.12 (KS fails again,
+     0.002); temp twins t70 2.11 → 1.87 (0.97), automatic 1.42 → 1.57 (1.20); per-person transfer unchanged (0.27 /
+     0.20); twin mean vs the ratio −0.07. New reference c277. The temp-basal twins' daytime excess (no-bolus daytime lows
+     0.586 vs 0.286) is not in their sensitivity.
