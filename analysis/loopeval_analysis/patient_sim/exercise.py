@@ -32,6 +32,7 @@ class ExerciseParams:
                                 # which the delayed sensitivity repletes, rises steeply with intensity (LESSONS 57)
     tau_z: float = 600.0        # min (ETH / UVA)
     absorb: float = 0.5         # absorption speed-up per unit intensity
+    surge_thr: float = 0.6      # intensity above which the C4 EGP surge builds (LESSONS 247)
     z_threshold: float = 0.12   # intensity above which delayed sensitivity builds (UVA / Deichmann) [I]
     filt_tau: float = 7.0       # min, intensity → physiological activity lag
     gain: float = 1.0           # per-person responsiveness (set from behavior traits)
@@ -82,6 +83,9 @@ class Exercise:
         self.z += self.p.b * self.p.gain * drive - self.z / self.p.tau_z
         while self.sessions and self.sessions[0][1] < m - 2000:
             self.sessions.pop(0)
+        # C4: the catecholamine EGP surge appears only at hard effort (above ~60% of reserve; Marliss & Vranic 2002) —
+        # zero below, linear to full at 100% (LESSONS 247); the session's anaerobic share scales it
+        anaerobic = anaerobic * min(1.0, max(0.0, (intensity - self.p.surge_thr) / (1.0 - self.p.surge_thr)))
         return dict(ex_intensity=self.p.gain * self.y, ex_anaerobic=anaerobic,
                     ex_si_boost=self.p.alpha * self.p.gain * self.y + self.z,
                     abs_mult=1.0 + self.p.absorb * self.y)
