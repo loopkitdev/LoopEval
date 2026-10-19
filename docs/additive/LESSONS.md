@@ -4855,3 +4855,18 @@ statistic here, but it is the controller donors ran.
      linear default because the McMahon size then added lows the cohort did not show; on the current base the cohort is
      short of lows and the donors' post-workout falls ask for it. Default in ExerciseParams (b 0.134, z_power 2); everyday
      walking keeps its old size by the quadratic drive. The post-exercise gap is narrowed, not closed.
+
+247. **Session intensity from the donors' workouts, and the C4 surge calibrated on them.**
+     - **Intensity** (24,498 HealthKit workouts with average METs, 29 donors with ≥ 5): per-donor median METs p10 / p25 /
+       p50 / p75 / p90 3.4 / 4.2 / 5.1 / 7.0 / 8.6 (lnN(1.657, 0.357)), within-donor SD 1.5 METs. The sim drew one
+       intensity per person, N(0.5, 0.12) of reserve (≈ 5 ± 1 METs), with no session ≥ 8 METs. **`ex_mets`** (default):
+       the person's typical METs from that lognormal, each session ± N(0, 1.5), intensity = (MET − 1)/(METmax − 1).
+     - **C4 needs a threshold.** Applied at every intensity (anaerobic share × intensity), the surge raised easy sessions
+       before hard ones (c262, surge 12: < 4 METs rise ≥ 20 during 33% vs donors 16%; ≥ 8 METs 22% vs 46%). The surge
+       now ramps from 60% of reserve to full at 100% (Marliss & Vranic 2002: catecholamines rise at hard effort).
+     - **Size** (≥ 8-MET sessions; rise ≥ 20 during / change during / end → +180 / < 70 within 4 h): donors 46% / −8 /
+       −17 / 25%; surge 20 35% / −3 / −5 / 35%; surge 40 61% / +29 / −25 / 35%. **Default 28.**
+     - **c264 (new reference, defaults: rc_own validation)**: ≥ 8 METs 49% / +9 / −13 / 36%; < 6 METs unchanged by the
+       surge. 29 matched, lows 0.58/day, meals ending < 70 7.0% (9.7; was 4.4–5.4), mean 147, TIR 74.9, t70 0.75.
+       By strategy: temp twins t70 1.16 vs donors 0.97, automatic 0.67 vs 1.20; untreated no-bolus daytime lows temp
+       0.236 vs 0.286, automatic 0.100 vs 0.308 — the automatic-bolus gap (LESSONS 242) remains.
