@@ -64,7 +64,7 @@ class BehaviorTraits:
     meal_slow_k: float = 0.008           # /min, Dalla Man kmin
     snack_fast_frac: float = -1.0        # < 0: as meal_fast_frac; snacks lean on sugary drinks, candy and desserts
                                          # (Piernas & Popkin 2010) so their fast share may be higher [J] (LESSONS 159)
-    meal_fast_frac: float = 0.2          # share of a meal's carbohydrate in its fast-emptying liquid phase [J; 0.2 vs 0.35 by cohort, LESSONS 44]
+    meal_fast_frac: float = 0.5          # share of a meal's carbohydrate in its fast-emptying phase: fitted to the donors' 5-min step tail (LESSONS 268; was 0.2 [J], LESSONS 44)
     meal_fast_sd: float = 0.25           # per-meal SD of that share (Beta, same mean): foods differ in rapidly available glucose
                                          # (Englyst 1999; SD a judgement) [Pete 2026-10-17, LESSONS 120]
                                          # (Englyst 1999: RAG explains 70% of the glycaemic-response variance) [switch, LESSONS 88]
