@@ -276,3 +276,9 @@ glp1: {
 - DTS consensus: 10.1177/19322968241291512
 - Hiramoto 2024: PMID 38634551
 - Garg 2024 DTT: 10.1089/dia.2023.0490 (not read)
+
+- **Snaith JR, Frampton R, Samocha-Bonet D, Greenfield JR. Tirzepatide in adults with type 1 diabetes: a phase 2 randomized
+  placebo-controlled trial. *Diabetes Care* 2026;49:161–170. doi:10.2337/dc25-2379** **[checked, full text, 2026-10-20]**: 24
+  adults (BMI 33.7, TDD 0.68 U/kg, 54% pumps), 2.5 mg weekly for 4 weeks then 5 mg for 8: TDD −35.1% vs placebo (95% CI
+  −46.5 to −21.3), bolus −49%, basal −25%, pump users −42% at week 6; weight −8.7 kg (−8.8%); intake −429 kcal/day; HbA1c
+  −0.4%; TIR, TBR unchanged; no severe hypoglycaemia.

@@ -558,6 +558,9 @@ class World:
         self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.2   # Pete 2026-10-20: meal shape over lows (LESSONS 408)
         self.ppr_shift = float(enable["ppr_shift"]) if enable and isinstance(enable.get("ppr_shift"), float) else 0.0
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
+        self.flow_sd = float(enable["flow_sd"]) if enable and isinstance(enable.get("flow_sd"), float) else 0.0   # A4c (LESSONS 417)
+        self.flow_tau = float(enable["flow_tau"]) if enable and isinstance(enable.get("flow_tau"), float) else 60.0
+        self._flow_rng = np.random.default_rng(int(person.seed) + 4421); self._flow_z = 0.0; self._flow_last = None
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
@@ -692,7 +695,7 @@ class World:
             gm *= (1.0 + 0.15 * min(I_ / 0.3, 1.0)) if I_ <= 0.6 else float(np.interp(I_, [0.6, 0.8], [1.15, 0.5]))
         self.body.step(1.0, si_mult=si, si_d_mult=si_d_only, egp_mult=egp, util_drop=ud, ge_mult=gm, ex_intensity=ex["ex_intensity"],
                        ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"],
-                       abs_mult=absm_env * absm_site * ex["abs_mult"] * self._posture_mult(m), bio=bio)
+                       abs_mult=absm_env * absm_site * ex["abs_mult"] * self._posture_mult(m) * self._flow_mult(m), bio=bio)
         if int(m) % 5 == 0: self.ex_log.append((m, ex["ex_si_boost"]))     # exercise sensitivity, saved as truth ex_boost
         asleep = self.beh.asleep(m)
         reading = self.sensor.step(m, self.body.g, asleep=asleep)
@@ -733,6 +736,20 @@ class World:
             tb = self.beh.minutes_to_bed(m)
             if tb < 180.0: return 1.0 - self.posture_p * tb / 180.0
         return 1.0 - self.posture_p
+
+    def _flow_mult(self, m: float) -> float:
+        """A4c subcutaneous blood-flow fluctuation (experiment, off): absorption rate × exp(z − sd²/2), z a log-OU (sd, τ)
+        on its own stream. Heinemann 2002: under clamps the glucose infusion rate at each time 60–360 min after a dose
+        varies 25–30% across occasions against 10–20% for the dose's summary measures, i.e. insulin action fluctuates
+        along the curve, not only per dose (local blood flow: temperature, activity, massage; Table 1). sd and τ [J]
+        (LESSONS 417)."""
+        if self.flow_sd <= 0: return 1.0
+        if self._flow_last is None or m > self._flow_last:
+            dt = 1.0 if self._flow_last is None else m - self._flow_last
+            a = math.exp(-dt / self.flow_tau)
+            self._flow_z = a * self._flow_z + math.sqrt(1 - a * a) * float(self._flow_rng.normal(0.0, self.flow_sd))
+            self._flow_last = m
+        return math.exp(self._flow_z - self.flow_sd ** 2 / 2)
 
     def _ppr_si(self, m: float) -> float:
         """Post-meal insulin action window (experiment, LESSONS 321): after each eaten main meal, SI × (1 − a·w), w ramping

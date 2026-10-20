@@ -261,3 +261,8 @@ trial); OpenAPS Autosens estimates a sensitivity ratio from the last 8–24 h of
 validation of its persistence. `day_rho` stays 0 (no evidence); the donors' TDD ac1 (0.09 in 13-day blocks) and night CV
 are targets the named multi-day factors (illness, menstrual cycle, intake persistence, settings edits) must reproduce
 together (LESSONS 330, 363).
+
+- **Heinemann L. Variability of insulin absorption and insulin action. *Diabetes Technol Ther* 2002;4:673–682** **[checked,
+  full text, 2026-10-20]**: rapid-acting / regular insulin intra-individual CV 10–20% for summary measures (healthy, clamps),
+  inter-individual 5–20% higher; GIR at each time 60–360 min CV 25–30% across occasions; daily-life T1D identical meals:
+  post-meal excursion CV 48–79%. Basis of A4c (LESSONS 417).
