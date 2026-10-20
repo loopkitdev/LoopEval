@@ -7191,3 +7191,16 @@ outputs in gamepc ~/additive/runs/c290–c312).
      loose end logs 41 g / day), the effectiveness of their hands-on dosing (bolus timing, size relative to the
      recommendation), and their response to highs. Switch and fitted templates (templates_pilot_lvl.r1–r3.csv, outside the
      repo) kept for reference; off.
+
+448. **What separates a tight donor's twin from the donor is unlogged load far from any logged meal, and the twins' is
+     generic.** Labelled pulses on c446_npu, twin vs own donor by the twin's level-gap tercile (`load_pair.py`,
+     `tail_pair.py`, `far_src.py`, `nofood_src.py`): unannounced g-eq/day low / mid / high gap — twins 112 / 101 / 119,
+     donors 110 / 90 / 80. By time since the last logged meal the 0.5–3 h and 3–6 h windows match (twins 15 / 19, donors
+     19 / 16); the gap is > 6 h or with no logged meal before: twins 70 / 58 / 80, donors 80 / 47 / 50. The twins' far
+     load is the same in every tercile — by true source (high / low): unentered meals 14.8 / 15.7, their gut tails with no
+     eating near the onset 30.2 / 27.3, EGP rises 6.9 / 6.1, other body 9.2 / 8.1, proactive 10.0 / 4.9, snacks 4.6 / 5.7,
+     grazing 2.7 / 3.0 — while the donors' differs by 30 g-eq/day between the ends. Meal tails are not the cause (they
+     match). Tight donors eat little that they do not log; their twins eat what the cohort-shaped budget leaves after the
+     logged grams. Next: each twin's unlogged eating sized from its donor's own far-from-meal unannounced load (a template
+     measure, like for like with the labeller), in place of the budget remainder — LESSONS 333's `intake_own` scaled the
+     whole budget (meals included) and so moved the logged meals rather than this.
