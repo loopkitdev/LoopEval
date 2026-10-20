@@ -571,6 +571,7 @@ class World:
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
         self.ppr_end = float(enable["ppr_end"]) if enable and isinstance(enable.get("ppr_end"), float) else 240.0   # window out by (min; LESSONS 423)
         self.ppr_w = tuple(float(enable[k]) if enable and isinstance(enable.get(k), float) else 1.0 for k in ("ppr_b", "ppr_l", "ppr_d"))   # per-slot window weights (LESSONS 429)
+        self.night_si = float(enable["night_si"]) if enable and isinstance(enable.get("night_si"), float) else 1.0
         self.dawn_si = float(enable["dawn_si"]) if enable and isinstance(enable.get("dawn_si"), float) else 0.0
         _bpf = person.truth.get("basal_profile")
         self._bp_night = float(np.mean(_bpf[0:3])) if _bpf else 1.0
@@ -664,6 +665,12 @@ class World:
             hh = (m % DAY) / 60.0; k = int(hh) % 24; f = hh - int(hh)
             bp_ = bprof[k] * (1 - f) + bprof[(k + 1) % 24] * f
             egp *= bp_
+            if self.night_si != 1.0:
+                # night_si (experiment, LESSONS 440): the donors' quiet-hour insulin gain at night is 0.71 of the day's,
+                # the twins' 0.83 (night_gain.py). SI and EGP × k over 00–06 h with 1-h ramps (need unchanged, gain × k)
+                r_ = 1.0 if 0 <= hh < 6 else (hh - 23) if hh >= 23 else (7 - hh) if 6 <= hh < 7 else 0.0
+                k_ = 1.0 + (self.night_si - 1.0) * r_
+                si *= k_; egp *= k_
             if self.dawn_si > 0 and 3 <= hh < 11:
                 # dawn_si (experiment, LESSONS 438): Perriello 1988 measured the GH-driven dawn as ~30% more hepatic output AND
                 # ~25% less peripheral uptake; the basal profile carries all of it as EGP. Share s of the profile's rise over
