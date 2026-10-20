@@ -7279,3 +7279,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.106 (0.085); matched 40 / 34 → 39 / 34. The volume scoring had trimmed the twins' TDD by pulse rounding; read like for
      like, the twins need more insulin than their donors, which fits the level gap (LESSONS 445: high-gap twins take more
      insulin and still run high). Delivery rows in lessons 406–454 used the volume scoring.
+
+456. **The twins' insulin excess is not meal glucose; part of it may be the template TDD read at record rates.** `csf_lvl`
+     1.0 (from 1.05) on both draws (c453_cl1 / c454_cl1s vs c446_npu / c447_rs, rate scoring): TDD 42.4 / 45.1 (41.8 /
+     44.3; donors 38.7), mean 155.0 / 158.8 (155.5 / 158.9), 3-h meal change +13.4 / +13.3, 38 / 34 of 51 (39 / 34) — not
+     adopted. Donors' Omnipod basal records deliver a median 94.2% of rate × time (p10 / p90 86.7 / 99.1%, 60 donors), so a
+     TDD read at rates overstates what the donor's body received by ~3% (basal ~half of TDD; up to ~7%). The twin's body is
+     built so its need equals the template TDD (`persons.csv` tdd, ice role); if that is rate-based, the body is ~3% larger
+     than its donor's, and Loop asks for the difference. Check the definition with the ice role before changing it; it
+     explains at most a third of the 8–14% excess.
