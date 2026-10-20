@@ -6614,3 +6614,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      appearance is answered by Loop and lowers the 3-h level (as LESSONS 366–367). Not adopted. With LESSONS 385 the
      reversal time resists every named body lever tried (insulin speed L 276, within-day sensitivity, meal shape) and the
      sensor's error processes reverse too fast to carry it; it stays open with the 3-h meal level.
+
+387. **`med_nonzero` (typical nonzero 5-min delivery) fails on the automatic-bolus twins only, and not by measurement.**
+     c384_sB vs each twin's donor (all Omnipod): temp-basal twins 0.097 vs 0.100 U, automatic-bolus twins 0.105 vs 0.080
+     (61 twins; TDD 39.7 vs 42.4). Their bin distributions otherwise agree (zero share 0.37 / 0.34, q25 0.050 / 0.050, q75
+     0.21 / 0.19, share < 0.06 U 0.32 / 0.28). Binning the twins' commanded doses the way the donors' dose records are binned
+     gives 0.10 as well, so the pump's flow and bolus error are not the cause. Open: where automatic-bolus delivery sits
+     between basal-only and bolus bins.
