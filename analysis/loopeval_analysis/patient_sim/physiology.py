@@ -244,7 +244,8 @@ class Body:
     # ------------------------------------------------------------------ dynamics
     def step(self, dt: float = 1.0, si_mult: float = 1.0, egp_mult: float = 1.0,
              ex_intensity: float = 0.0, ex_anaerobic: float = 0.0, ex_si_boost: float = 0.0,
-             abs_mult: float = 1.0, bio: float = 1.0, util_drop: float = 0.0, ge_mult: float = 1.0):
+             abs_mult: float = 1.0, bio: float = 1.0, util_drop: float = 0.0, ge_mult: float = 1.0,
+             si_d_mult: float = 1.0):
         """Advance `dt` minutes (explicit midpoint for the fast states; dt ≤ 1 recommended).
 
         si_mult: product of sensitivity modulators (circadian, daily, cycle, illness, stress,
@@ -324,7 +325,7 @@ class Body:
         self.ra = ra
 
         # --- insulin action
-        si = p.si_d * si_mult * (1.0 + ex_si_boost)
+        si = p.si_d * si_mult * si_d_mult * (1.0 + ex_si_boost)   # si_d_mult: peripheral disposal only (LESSONS 410)
         self.xd += dt * p.p2 * (si * I - self.xd)
         se = p.se * si_mult
         u_h = (I - p.ib) / p.ib

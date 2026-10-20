@@ -553,6 +553,7 @@ class World:
         self.ppr_events: list = []                         # main-meal times for the post-meal insulin-action window (LESSONS 321)
         self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.2   # Pete 2026-10-20: meal shape over lows (LESSONS 408)
         self.ppr_shift = float(enable["ppr_shift"]) if enable and isinstance(enable.get("ppr_shift"), float) else 0.0
+        self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
@@ -631,7 +632,10 @@ class World:
             # normal men, fasting insulin doubled (Kahn 1989, Diabetes 38:562); hepatic insulin sensitivity −33% on 2 g/day
             # Niaspan (Blond 2014, Horm Metab Res 46:390). The settings stay the person's pre-niacin ones (LESSONS 354)
             si *= self.niacin_si
-        if self.ppr_a > 0: si *= self._ppr_si(m)
+        si_d_only = 1.0
+        if self.ppr_a > 0:
+            if self.ppr_periph: si_d_only = self._ppr_si(m)      # disposal only: the liver stays suppressed (Romeres 2025; LESSONS 410)
+            else: si *= self._ppr_si(m)
         if self.glp1 is not None: si *= self.glp1.si_mult(m)
         if self.hyper_on:
             target = self.hyper_max * min(1.0, max(0.0, (self.body.g - 140.0) / 220.0))
@@ -682,7 +686,7 @@ class World:
             # it follows the filtered intensity, so emptying resumes as a session ends
             I_ = float(ex["ex_intensity"])
             gm *= (1.0 + 0.15 * min(I_ / 0.3, 1.0)) if I_ <= 0.6 else float(np.interp(I_, [0.6, 0.8], [1.15, 0.5]))
-        self.body.step(1.0, si_mult=si, egp_mult=egp, util_drop=ud, ge_mult=gm, ex_intensity=ex["ex_intensity"],
+        self.body.step(1.0, si_mult=si, si_d_mult=si_d_only, egp_mult=egp, util_drop=ud, ge_mult=gm, ex_intensity=ex["ex_intensity"],
                        ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"],
                        abs_mult=absm_env * absm_site * ex["abs_mult"] * self._posture_mult(m), bio=bio)
         if int(m) % 5 == 0: self.ex_log.append((m, ex["ex_si_boost"]))     # exercise sensitivity, saved as truth ex_boost
