@@ -273,9 +273,9 @@ Off by default (`--enable`): `rc_own` (on in every validation run), `night_own`,
 
 1. **Meals still come down sooner than the donors'**: 3-h meal change +11 vs +21; lunch ~10 short at 2.5–4 h, breakfast
    peaks ~12 high (L 366–375). Loop's response at each glucose band matches the donors' day and night (L 368, 373).
-2. **Hourly profile**: 00–06 h −5 mg/dL, 06–12 h +8 (basal-need shape, L 371).
-3. **TDD persistence (`ac1`)**: not in logged eating or the week (L 372); site life is the named candidate, and only
-   11 pilot donors upload site changes.
+2. **Late evening and night**: 00–06 h ~10 mg/dL low. The twins enter ~86 g/day against the donors' 101, their dinner
+   insulin acts later and their nights fall twice as fast (L 379–381).
+3. **TDD persistence (`ac1`)**: not in logged eating, the week or site age (L 372, 376); no named candidate left to test.
 4. **Short-scale shape**: not identified by the sensor evidence (L 298–299, 363).
 
 ## Key references
