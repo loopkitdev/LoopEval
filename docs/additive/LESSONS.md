@@ -6991,3 +6991,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      the night lows follow from what raises the twins' late evening — after-dinner appearance and resistance (the post-meal
      window, fat, protein, late snacks) against the donors' — not from too little night need (LESSONS 421–422). Next: the
      twins' evening glucose and ICE after dinner vs the donors', by component.
+
+425. **The late-evening counteraction excess is not the dinner protein parcel.** ICE by hour, c418_f5 vs donors 19–00 h:
+     85 / 89 / 97 / 96 / 86 / 72 vs 88 / 99 / 96 / 93 / 78 / 67 (twins low early in the evening, high at 23–00 h). `pro_glc`
+     0.2 / 0.1 (0.3; c425): 23 h ICE 85 / 86, 00 h 73 / 73; 03–06 h glucose 133 / 126 / 123 / 120 and 134 / 125 / 120 / 121;
+     t54 0.165 / 0.224%; 3-h meal change +18.9 / +17.8; 39 / 38 of 51 (40). Not adopted; protein stays 0.3. The 23–00 h excess
+     is something else that arrives 3–5 h after dinner or later in the evening: candidates are the late-evening unannounced
+     intake (grazing, snacks, bedtime eating) against the donors' labelled late-evening load, and the fat resistance window.
