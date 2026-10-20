@@ -7056,8 +7056,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      a personal trait. 03–06 h 143 / 135 / 130 / 132 (donors 141 / 136 / 130 / 127; c418_f5 ~7 under), dinner +7 / +13 / +18 /
      +20 at 30–120 min (+28 at 120), 3-h meal change +17.9. But mean 164.5 (152 donors), TIR 62.1, 33 of 51: the TDD budget
      still paid for protein glucose at the population ratio (`budget_pro` 0.39), so low-carb people got protein glucose the
-     budget never paid for. With no slot composition on top (c433_mons): 32. Rerun with the budget on the person's own ratio
-     (c435_mob).
+     budget never paid for. With no slot composition on top (c433_mons): 32. With the budget on the person's own protein
+     ratio (c435_mob): mean 161.9, TIR 64.3, lows 0.67 / day, night 37% of lows, 32 of 51 — the protein budget is not
+     the main excess. The fat resistance is absolute (`fat_rel` off since LESSONS 370) while the donor's TDD already covered
+     the donor's own diet, so a personal mix needs the fat resistance relative to the person's usual fat too (c436_mofr).
 
 433. **Heise 2017's dose dependence of aspart absorption costs lows and does not move the meal.** `dose_beta` 0.1 (tmax
      ∝ (dose / 0.1 U/kg)^β; Heise 2017: 65.7 / 72.1 / 75.2 min at 0.1 / 0.2 / 0.4 U/kg; c434_db10 on c418_f5): 3-h meal
