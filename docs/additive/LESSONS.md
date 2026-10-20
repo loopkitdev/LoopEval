@@ -6649,3 +6649,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      reversals moved little (G6 56% low first, 5.2; G7 50%, 8.2): since LESSONS 384 most of them come from the wandering
      noise, not from the transient process, so the G7 excess (8.2 vs 6.9) is the wander's. Adopted for the measured
      per-family direction and rate. Reference c390_trev.
+
+391. **The simulated G7 was more accurate in falls than the real one; a longer lag while glucose falls fixes it (adopted,
+     42 of 51).** G7 MARD by true rate of change (Garg 2022 Table 5, arm; `roc.py` on 40 c390 bodies, 15-min pairs):
+     < −2 / −2..−1 / −1..0 / 0..1 / 1..2 / > 2 mg/dL/min, Garg 9.3 / 8.4 / 8.1 / 7.8 / 8.3 / 9.7, sim 8.1 / 7.9 / 8.2 / 8.1
+     / 8.3 / 9.8: rises carried by the lag, falls too clean. Two forms sized on the falling bins:
+     - noise × (1 + 0.3·max(0, −rate − 1)) (`fall_k`): 9.4 / 8.2 in falls; cohort c391_fall: G7 v_skew 0.25 → 0.20 (donors
+       0.33), 43 of 51. Off.
+     - the BG → IG time constant × 1.5 while glucose is below IG (`fall_lag`; a longer interstitial lag in falls, Cengiz &
+       Tamborlane 2009): 9.4 / 8.6 / 8.4; cohort c391_flag: G7 v_skew 0.25, kurtosis 2.65 (p 0.31), lows and depths on the
+       donors' (t54 0.128%, nadirs 41 / 50 / 57); between-day share and circadian amplitude turn to failing (p 0.003 /
+       0.040, borderline rows that move with the G7 twins' closed-loop runs); 42 of 51 (43). Adopted for the sensor's fit
+       to its own accuracy evidence; reference c391_flag. Neither form moves G7 skew toward the donors.
