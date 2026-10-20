@@ -6847,3 +6847,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      +21); t54 0.116 / 0.091%, lows 0.83 / 0.71 per day; 38 / 39 of 51 (39). The nadir stays above the tracer value with
      the window off the liver, so the window is not its only cause; and the meal shape Pete chose (LESSONS 408) needs the
      window on both arms. Off (code kept). The liver nadir joins the open review items.
+
+412. **A steeper glucose dependence of uptake (κ × 1.5) does not make the fast falls.** `kappa_mult` 1.5 on c409_ps20
+     (c412): quiet-fall 15-min drop at 90–130 p50 −15.0, p10 −25.7 (−26; donors −29); falls reaching < 70 within 30 min
+     1.7% (1.8; 3.9); t54 0.093%, lows 0.71 / day, P(reach 54) 0.167 (fail); mean 149.7, TIR 73.8; 3-h meal change +12.6
+     (+17.5); 38 of 51 (39). κ brings highs down without steepening the falls near the low band. Not adopted. The fast-fall
+     tail stays open alongside the papers that could size it (Prager 1986 hepatic on/off rates; Heinemann 2002 absorption
+     variability).
