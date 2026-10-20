@@ -6628,3 +6628,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      30-min change SD 24.4 / 22.5 (23.0); 43 / 40 of 51 (45), mean 153.7 / 154.0. Not adopted. With LESSONS 276, 385 and
      386, insulin speed, within-day sensitivity, meal shape and everyday movement all leave the twins' true glucose turning
      at 50–55 min under Loop; the donors' CGM turns at 40.
+
+389. **Loop gain does not set the reversal time either.** Body sensitivity × 1.3 / × 0.8 (`isf_level`; Loop's settings
+     unchanged, so Loop's effective gain moves with it), c389 on c384_sB: acf_zero_min 50 / 50; post-entry CGM turn 45 / 50
+     min, true glucose 50 / 50 (quiet day 55 / 60); mean 156.8 / 148.7, TDD 42.9 / 36.9, 3-h meal change −3.2 / +9.8; 39 /
+     38 of 51 (45). Not adopted. Across LESSONS 276 and 385–389 the twins' true glucose turns at 50–60 min whatever the
+     body does: insulin speed, within-day sensitivity and EGP, meal shape, movement, and loop gain. The 40-min turn of the
+     donors' CGM is either a body process outside these (none named yet) or sensor error with a ~35-min persistence,
+     which the FDA tables and the one paired-sensor record cannot separate (LESSONS 299). A CGM-vs-reference time series
+     at 5-min resolution (clamp or inpatient YSI traces) would decide it.
