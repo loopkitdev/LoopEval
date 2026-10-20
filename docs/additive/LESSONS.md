@@ -7108,3 +7108,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      as EGP. Within-night SD 29.1 vs 23.8, 00→06 h change −32 vs −26: the night is too responsive. Perriello 1988 measured
      the dawn as ~30% more hepatic output and ~25% less peripheral uptake; `dawn_si` moves share s of the profile's rise
      over 00–03 h into SI with EGP divided alike (need unchanged); arms s 0.5 / 1.0 (c441_ds5, c442_ds10).
+
+439. **Carrying part of the dawn as lower SI does not move the night share and adds day lows.** `dawn_si` 0.5 / 1.0 on
+     c440_db (c441_ds5 / c442_ds10): night share of lows 34 / 34% (36; donors 22), lows 1.17 / 1.25 per day (1.00), t54
+     0.294 / 0.258%, breakfast held up late (+29–32 at 4–6 h vs +25), CV and circadian_amp failing, 37 / 35 of 51 (40).
+     Lower morning SI makes Loop give more in the morning, which lands as day lows; the night's own responsiveness is not
+     set at dawn. Not adopted (switch kept, off). The night excess stays open: the gain question is the hours 00–05, where
+     no daytime resistance acts and the body's SI is still the day-fitted level.
