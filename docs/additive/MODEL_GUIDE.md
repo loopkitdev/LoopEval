@@ -7,7 +7,7 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c403_cl105** (2026-10-20): 112 people × 14 days, 41 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
+**c403_cl105** (2026-10-20): 112 people × 14 days, 40 of eda's 51 statistics matched (delivery scored as pump records, L 406) (KS p > 0.05 against the 206 pilot
 donors in 13-day blocks); mean, TIR and TDD on the donors'.
 
 **Personal basis legend**
@@ -252,12 +252,12 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
 - **Component targets** (`review.py`): low nadirs and depths, meal drops and 3-h change, behaviour rates, each against
   the donors with the same code. Measure scripts beside each run (`meal_traj_tod.py`, `hour_bg.py`, `ice_integral.py`,
   `ice_since.py`, `loop_resp.py`, `clock_ins.py`, `unann_hour.py`).
-- **c403_cl105, passing (41)**: mean, CV, skew, Box-Cox λ, TIR, t70, t180, t54 (narrowly), lows / day, P(reach 54),
-  long-range Hurst, volatility clustering, wear, TDD, TDD CV, zero share, p99, top-1% share, day / night insulin,
+- **c403_cl105, passing (40)**: mean, CV, skew, Box-Cox λ, TIR, t70, t180, t54 (narrowly), lows / day, P(reach 54),
+  long-range Hurst, volatility clustering, wear, TDD, TDD CV, p99, top-1% share, day / night insulin,
   night-to-night CV, carb entries, user boluses, manual units; per family (G6 / Libre 3 throughout, G7 where noted): v_sd,
   sd/mad, kurtosis, v_skew (G7 too), short Hurst, measurement noise (G7 too) and ACF minimum.
 - **Failing (11)**: minutes per low; G7 v_sd (6.3 vs 7.2), kurtosis, short Hurst, sd/mad; ACF zero crossing (55 vs 40 min,
-  L 385–389); volatility dispersion; circadian amplitude; typical nonzero delivery (`med_nonzero`, L 387); between-day
+  L 385–389); volatility dispersion; circadian amplitude; typical nonzero delivery (`med_nonzero`, L 387) and zero-delivery share (36.9 vs 32.5%: the twins' Loop withholds more, L 398, 406); between-day
   fraction and TDD persistence (`ac1`). True lows run at about 60% of the donors' time below 54 (0.118 vs 0.190%; L 393–394, 401).
 
 ## 11. Switches (`cohort.py`)

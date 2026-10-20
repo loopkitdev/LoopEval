@@ -6791,3 +6791,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      each 5 min (0 / 0.05 U alternating at low rates), so equal-rate runs do not merge. Reverted. The like-for-like fix
      would bin the commanded rate per Loop decision, quantised per record, from the controller's own dose record (the
      trace's rate stream, LESSONS 404, read with record-level pulse quantisation) — open.
+
+406. **Scored like the donors' pump records, the twins deliver zero insulin more often: the post-meal suspension gap
+     shows across the day (adopted scoring; c403_cl105 re-scored 40 of 51).** `validate._record_delivery`: Loop's
+     commanded basal rate from the trace (delivery[], candidate), equal consecutive rates merged into one record, volume
+     pulse-truncated per record (0.05 U) and spread over its span as Tidepool's Omnipod records are (LESSONS 405); boluses
+     in their minute. c403_rec3 against the physical scoring: zero_frac 36.9% (33.7; donors 32.5, p 0.018 now failing),
+     med_nonzero 0.100 (0.098; 0.085), TDD 39.5, day / night 1.89, night CV 33.1, others unchanged; 40 of 51 (41). The
+     pulse-placed physical delivery filled zero bins with stray pulses; on the donors' representation the twins' Loop
+     withholds insulin more, as after meals (90 vs 65 min, LESSONS 398). Adopted as the scoring (sounder comparison, a
+     real gap shown rather than masked); the reference stays c403_cl105, scored 40 of 51.
