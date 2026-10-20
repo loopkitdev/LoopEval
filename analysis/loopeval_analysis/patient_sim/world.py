@@ -47,8 +47,10 @@ OUTAGE_HOURS = [0.03, 0.027, 0.018, 0.017, 0.017, 0.019, 0.027, 0.037, 0.041, 0.
                 0.056, 0.054, 0.06, 0.06, 0.058, 0.055, 0.056, 0.046, 0.033]
 
 
-def plan_outages(person, days: int, rng) -> list:
-    """[(start_min, end_min, reason)] for the whole run, at the donor's own rates (templates.add_disruption_rates)."""
+def plan_outages(person, days: int, rng, missed: bool = False) -> list:
+    """[(start_min, end_min, reason)] for the whole run, at the donor's own rates (templates.add_disruption_rates).
+    `missed` (LESSONS 377): also the donor's short missed Loop cycles (gaps of 1 and 2–3 five-minute slots without a
+    dosing decision, templates.add_missed_cycles) as pump_error windows — the pump keeps its last command."""
     rates = person.traits.get("template_rates", {})
     def num(k, default):
         v = rates.get(k)
@@ -60,6 +62,7 @@ def plan_outages(person, days: int, rng) -> list:
     off_day, perr_day = num("offline_day", 0.75), num("perr_day", 2.4)
     h = np.array(OUTAGE_HOURS); h = h / h.sum()
     out = []
+    rm = np.random.default_rng(int(getattr(person, "seed", 0)) + 29)     # own stream: the other outages are unchanged
     for d in range(days):
         for _ in range(rng.poisson(off_day)):
             st = d * DAY + (rng.choice(24, p=h) + rng.random()) * 60
@@ -68,6 +71,11 @@ def plan_outages(person, days: int, rng) -> list:
         for _ in range(rng.poisson(perr_day)):
             st = d * DAY + (rng.choice(24, p=h) + rng.random()) * 60
             out.append((st, st + 3.0, "pump_error"))
+        if missed:
+            for k, n_slots in (("miss1_day", (1,)), ("miss23_day", (2, 3))):
+                for _ in range(rm.poisson(num(k, 0.0))):
+                    st = d * DAY + (rm.choice(24, p=h) + rm.random()) * 60
+                    out.append((st, st + 5.0 * float(rm.choice(n_slots)), "pump_error"))
     return sorted(out)
 
 
@@ -472,7 +480,7 @@ class World:
                 if abs(k - 1) < 0.03: break
         self.beh.plan_all(days, gi)
         self._scenarios(enable or {})
-        self.outages = plan_outages(person, days, np.random.default_rng(person.seed + 23)) if (enable or {}).get("outages", True) is not False else []
+        self.outages = plan_outages(person, days, np.random.default_rng(person.seed + 23), missed=bool((enable or {}).get("missed_own"))) if (enable or {}).get("outages", True) is not False else []
         youth = 3.0 if person.age < 18 else 1.0          # Kanapka 2022: 5.8% of sets at 14–17 vs 1.9% in adults
         lh = bool(self.enable.get("lipohypertrophy", True)
                   and np.random.default_rng(person.seed + 31).random() < (0.42 if person.age < 18 else 0.26))

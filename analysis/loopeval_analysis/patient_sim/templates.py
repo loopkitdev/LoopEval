@@ -727,3 +727,38 @@ def add_isf_body_fit(path: str, fit_csv: str):
     t["isf_true"] = t.isf_true_ys * t.isf_body_mult.fillna(1.0)
     t.to_csv(path, index=False)
     return t
+
+
+def add_missed_cycles(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Short missed Loop cycles per donor (LESSONS 377): five-minute slots with no dosing decision (decision_times.csv),
+    in gaps of exactly 1 slot (`miss1_day`) and of 2–3 slots (`miss23_day`) where every missed slot has a CGM reading, per
+    day of the export. Longer gaps are the
+    offline windows (add_disruption_rates). Donors' Loop decides in a median 92% of slots; single misses 6.6 / day."""
+    import numpy as np
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        f = ice_root / "full" / a / "decision_times.csv"
+        if f.exists():
+            d = pd.read_csv(f)
+            s_ = np.unique((pd.to_datetime(d.t, utc=True).astype("int64") // (300 * 10 ** 9)).to_numpy())
+            gl = ice_root / "full" / a / "glucose.json"
+            if len(s_) > 288 and gl.exists():
+                import json as _json
+                cg = set((pd.to_datetime([x["date"] if "date" in x else x["startDate"] for x in _json.load(open(gl))], utc=True)
+                          .astype("int64") // (300 * 10 ** 9)).tolist())
+                days = (s_.max() - s_.min() + 1) / 288.0
+                n1 = n23 = 0
+                for a0, b0 in zip(s_[:-1], s_[1:]):
+                    k = int(b0 - a0 - 1)
+                    # only cycles Loop missed with a CGM reading present (the twin's sensor gaps make their own misses)
+                    if 1 <= k <= 3 and all((a0 + j) in cg for j in range(1, k + 1)):
+                        if k == 1: n1 += 1
+                        else: n23 += 1
+                row["miss1_day"] = float(n1 / days); row["miss23_day"] = float(n23 / days)
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
