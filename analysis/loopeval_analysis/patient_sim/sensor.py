@@ -91,7 +91,8 @@ FAMILIES = {
     # 0.7 -> 0.2, slow bias sd 3 (Breton & Kovatchev 2008); loss 23.7 -> 9.9 (a0 0.98 traded the high range, kept 0.96)
     "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(1.0, 0.8), hetero_q=0.8,   # q 0.5 -> 0.8: FDA loss 7.51 -> 5.70 (LESSONS 361); sigma 1.4 -> 1.0: FDA tables do not identify white noise (loss falls to 0), donors' sigma_meas does (LESSONS 362);   # 1.8 -> 1.4 with early_noise (LESSONS 222)
                         a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(6.0, 0.9), trans_amp=(8.0, 0.4),
-                        noise_wander=(0.2, 480.0), slow_bias=(3.0, 180.0), early_noise=(1.0, 330.0)),   # G6 Pro MARD 13.6 / 10.5 / 10.1% at 0-12 h / 12-24 h / after (LESSONS 222)
+                        noise_wander=(0.7, 120.0), slow_bias=(3.0, 180.0), early_noise=(1.0, 330.0)),   # wander 0.2/480 -> 0.7/120: the donors'
+                                                   # 5-min step tails, clustering and dispersion (sensor_eda 9 of 10; FDA loss 11.4 -> 7.1; LESSONS 384)   # G6 Pro MARD 13.6 / 10.5 / 10.1% at 0-12 h / 12-24 h / after (LESSONS 222)
     # G7 innovations near-Gaussian (df 30): with the noise level wandering and transient biases, df 4 double-counted
     # the tails (step kurtosis 3.1 vs donors 2.48; FDA loss 1.5 → 0.7; LESSONS 42).
     # G7 fitted to sensor-only targets, never to donor roughness (LESSONS 31; sensor_fit.py, evidence/08): FDA K213919
@@ -102,8 +103,9 @@ FAMILIES = {
     # σ 2.0) carries the rest of the accuracy error. The G6 Vettoretti values (σ 3.19, a0 0.95 ± 0.063, b0 6.35 ± 6)
     # gave G7 MARD 17% at 54–69 and PARD 14%.
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
-                        brand_gain=1.0, sigma=(1.8, 0.8), df=30.0, hetero_q=0.7, a0=(0.98, 0.04), b0=(3.0, 3.0),   # hetero_q 0.5 -> 0.7: FDA loss 4.52 -> 3.88 (LESSONS 361); sigma 2.4 -> 1.8: donors' high-frequency CGM noise once meals move fast (LESSONS 269; was 2.8 -> 2.4, LESSONS 221)
-                        common_sigma=2.0, trans_rate=(8.0, 0.9), trans_amp=(8.0, 0.4), noise_wander=(0.2, 480.0),
+                        brand_gain=1.0, sigma=(2.4, 0.8), df=30.0, hetero_q=0.7, a0=(0.98, 0.04), b0=(3.0, 3.0),   # hetero_q 0.5 -> 0.7: FDA loss 4.52 -> 3.88 (LESSONS 361); sigma 2.4 -> 1.8: donors' high-frequency CGM noise once meals move fast (LESSONS 269; was 2.8 -> 2.4, LESSONS 221)
+                        common_sigma=2.0, trans_rate=(8.0, 0.9), trans_amp=(8.0, 0.4), noise_wander=(0.4, 120.0),   # sigma 1.8 -> 2.4, wander
+                        # 0.2/480 -> 0.4/120: the donors' 5-min step spread, tails and clustering (sensor_eda 7 of 10; LESSONS 384)
                         slow_bias=(5.0, 180.0), early_noise=(1.35, 900.0)),   # refit on the c235 bodies against K213919 (LESSONS 211): slow bias sd 5 (Breton &
                                                    # Kovatchev 2008), transient amplitude 12 -> 8, noise wander 0.6 -> 0.2; loss 10.9 -> 4.0
     # Libre 3 fitted to K212132 (bias 7.4/1.4/−4.5/−7.3/−11.5, MARD 15.5/10.3/9.7/7.5/6.9, PARD 6.8): MARD 11/10/8/7.6/7.5,
