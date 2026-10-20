@@ -354,8 +354,8 @@ class World:
             self.beh_traits.p_log_pro = enable["p_log_pro"]
         if enable and isinstance(enable.get("p_log_rescue"), float):
             self.beh_traits.p_log_rescue = enable["p_log_rescue"]
-        for k_ in ("night_pro", "uls"):
-            if enable and enable.get(k_):
+        for k_ in ("night_pro", "uls"):     # default since 2026-10-20 (LESSONS 442–443; --disable night_pro,uls)
+            if (enable or {}).get(k_, True):
                 self.beh_traits = copy.deepcopy(self.beh_traits); setattr(self.beh_traits, k_, True)
         if enable and enable.get("graze_eve"):
             self.beh_traits.graze_eve = True

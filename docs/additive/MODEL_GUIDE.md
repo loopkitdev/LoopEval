@@ -7,8 +7,8 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c440_db** (2026-10-20): 112 people × 14 days, 40 of eda's 51 statistics matched (delivery scored as pump records, L 406; personal meal mix with relative fat resistance, L 432; relative post-meal window 0.4, L 436; dose-dependent bolus absorption, L 437) (KS p > 0.05 against the 206 pilot
-donors in 13-day blocks); mean, TIR, TDD, the pre-dawn level, the 24-h amplitude and the low statistics on the donors' (lows 1.00 / day), 3-h meal change +16.9 (+21).
+**c446_npu** (2026-10-20): 112 people × 14 days, 40 of eda's 51 statistics matched (delivery scored as pump records, L 406; personal meal mix with relative fat resistance, L 432; relative post-meal window 0.4, L 436; dose-dependent bolus absorption, L 437; night alarm defence, L 443) (KS p > 0.05 against the 206 pilot
+donors in 13-day blocks); mean, TIR, TDD, the pre-dawn level and every low statistic on the donors', minutes per low included; 3-h meal change +13.6–16.9 across arms (+21).
 
 **Personal basis legend**
 
@@ -216,7 +216,7 @@ Traits come from the donor wherever the ice pilot measured them; otherwise from 
 | F3 Meal bolus and top-ups | bolus with entry, timing class, split second bolus, top-ups 20–60 min later if high | rates from the donor's raw boluses-with-entry and top-ups; timing from the donor's measured lead | raw record; L 42, 47, 64, 216 | **Donor** |
 | F4 Corrections | hazard per awake minute above the donor's correction level, weighted by CGM trend; size from the donor's | rate from the donor's exposure-normalised corrections, iterated per person (`corr_p_mult`) | ice corrections; L 225, 237 | **Donor** |
 | F5 Low defense | proactive snack on a projected low; rescue at the donor's threshold and size; re-check 15 min, re-treat 34% | onset N(60, 20) (fitted to the donors' lows, L 409); proactive lnN(12 g) | ice L34, L69; Savard 2016 | **Donor** (rescue) + Drawn |
-| F6 Monitoring and sleep | glances lnN(6 / day); alerts 76 / 240; alarm wakes p N(0.72, 0.2) | bed / wake N(23 h / 7 h, 50 min) | Puhr 2020; donors' night rescues (L 274) | **Drawn** |
+| F6 Monitoring and sleep | glances lnN(6 / day); alerts 76 / 240, Dexcom Urgent Low Soon (projected 55 in 20 min); alarm wakes p N(0.72, 0.2); woken, the person may act proactively | bed / wake N(23 h / 7 h, 50 min) | Puhr 2020; Dexcom user guides; donors' night rescues and pre-emptive carbs (L 274, 442) | **Drawn** |
 | F9 Grazing | unlogged small intake on the donor's unannounced-pulse clock, absorbed fast | lnN(2 / day, 1.0) × lnN(10 g, 0.4), a quarter kept (`graze_keep` 0.25) | rate set by the donors' unannounced labelled load (97.3 vs 94.7 g-eq / day) and g-eq per entered gram (1.18 vs 1.19); Piernas & Popkin 2010; L 78, 158, 230, 382 | Drawn rate, **Donor** clock |
 | F10 Food dosed by hand | an unentered eating event bolused from the person's estimate ÷ CR | the donor's lone-bolus rate × its food share | pilot lone boluses; Groat 2017 | **Donor** |
 | F12 Temporary Overrides | less-insulin with activity, lowered target before entries, raised target, reactive more-insulin on rising highs | the donor's rates, factor, target and duration per class | 19,732 donor windows; L 40 | **Donor** |
@@ -267,7 +267,7 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
 
 `--enable a,b` / `--disable a,b` / `--set k=v`. On by default (`--disable` to ablate): `isf_total`, `egp_sat`,
 `prof_deliv`, `suspend_own`, `csf_geq`, `ge_var`, `ge_circ`, `fat`, `slot_true`, `entry_split`, `entry_win`,
-`skip_own`, `missed_own`, `macro_own`, `fat_rel`, `ppr_rel`, `posture`, `act_frag`, `lipohypertrophy`, `outages`, `overrides`, `edits`, `counterreg`, `glucotox`.
+`skip_own`, `missed_own`, `macro_own`, `fat_rel`, `ppr_rel`, `night_pro`, `uls`, `posture`, `act_frag`, `lipohypertrophy`, `outages`, `overrides`, `edits`, `counterreg`, `glucotox`.
 Off by default (`--enable`): `rc_own` (on in every validation run), `night_own`, `circ_own`, `intake_own`,
 `prof_np`, `csf_lvl`, scenarios. Numeric: `ins_p2`, `pro_glc`, `meal_slow`, `ge_am` / `ge_pm`, `cr_mult`, `sg_mult`,
 `kappa_mult`, `csf_lvl`, sensor fit parameters (`sensor_*`).
