@@ -6703,3 +6703,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      than entered are not 2.7× rarer in the twins. Twins also split their user boluses differently (more lone, more meal
      boluses per day than donors' 1.96 / 2.83). Open: what makes a real bolused meal outrun its glucose 2.7 times as
      often — the insulin side of the meal (bolus relative to the body's need, its timing against eating) is next.
+
+396. **Not the meal bolus either: bolus per entered gram matches.** All bolus insulin −15..+30 min around isolated entries ≥
+     15 g, × the template CR / entered grams (`bolratio.py`, G7): donors 22,980 meals p10 / 25 / 50 / 75 / 90 0.69 / 0.89 /
+     1.03 / 1.27 / 1.61, share > 1.3 23%; c396_cr7 1,260 meals 0.60 / 0.86 / 1.03 / 1.23 / 1.54, 20%; person medians 1.02 /
+     1.02. With the meal glucose (LESSONS 395) and the dose matching, the 2.7× lows-per-bolused-meal gap lies in what
+     happens to the body in the 1–4 h after a bolused meal. Candidates already measured without a base rate: post-meal
+     activity (LESSONS 133: effect evidenced, no source for its rate after meals; BDDP workouts are not meal-coupled).
+     Step or accelerometer data paired with CGM would settle it.
