@@ -101,7 +101,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 | G7 Carb sensitivity (CSF) | CSF = 1.05 · [1.85 · ISF_data · TDD / 500]^0.5 · [settings ISF/CR]^0.5, each ×lnN(0, 0.15); f = CSF·BW·VG/1000 | `csf_w` 0.5 (half data, half settings) | constant 1.05 calibrated to the labeler's g-eq per entered gram (1.21 vs donors 1.19) | ice L54; L 197, 300 | Donor + Drawn |
 | G7b Per-donor meal response | CSF × the donor's labelled g-eq per entered gram over its twin's, reliability-shrunk, pooled over two rounds; intake grams held | multiplier p10 / 50 / 90 0.60 / 0.96 / 1.44 | ice labeler on donor and twin (`csf_geq_mult`) | L 358–359 | **Donor** |
 | G8 Effective-ISF calibration | SI_D and the EGP-arm gain solved so the TOTAL drop per unit on the linear body equals the true ISF; Ib from true basal | EGP share of the effect U(0.7, 0.9) | per-person probe; share centred on Romeres 2025 (meal EGP nadir 44 ± 17%) | L 143, 195 | Derived per person |
-| G9 Loop not acting | offline windows run scheduled basal; pump errors keep the last command | 0.9 / day, lnN(32 min, 0.86); errors 2.45 / day × 3 min | donors' disruptions.csv | L 60 | Cohort rates, Event draws |
+| G9 Loop not acting | offline windows run scheduled basal; pump errors and short missed cycles keep the last command | offline 0.9 / day, lnN(32 min, 0.86); errors 2.45 / day × 3 min; missed cycles with CGM present, single 4.4 / day and 2–3-slot 0.5 / day (median) | donors' disruptions.csv; decision_times.csv (`add_missed_cycles`) | Loop decides in 92% of donors' 5-min slots (L 60, 377) | **Donor** rates, Event draws |
 
 ---
 

@@ -480,7 +480,7 @@ class World:
                 if abs(k - 1) < 0.03: break
         self.beh.plan_all(days, gi)
         self._scenarios(enable or {})
-        self.outages = plan_outages(person, days, np.random.default_rng(person.seed + 23), missed=bool((enable or {}).get("missed_own"))) if (enable or {}).get("outages", True) is not False else []
+        self.outages = plan_outages(person, days, np.random.default_rng(person.seed + 23), missed=bool((enable or {}).get("missed_own", True))) if (enable or {}).get("outages", True) is not False else []
         youth = 3.0 if person.age < 18 else 1.0          # Kanapka 2022: 5.8% of sets at 14–17 vs 1.9% in adults
         lh = bool(self.enable.get("lipohypertrophy", True)
                   and np.random.default_rng(person.seed + 31).random() < (0.42 if person.age < 18 else 0.26))
