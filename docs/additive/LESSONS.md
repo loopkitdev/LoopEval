@@ -6387,3 +6387,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      The carb-sensitivity level was calibrated to the labeler's pulse g-eq per entered gram (CSF_BLEND_CAL_TOTAL), which ends
      a pulse at a plateau and so under-reads the donors' long meals (LESSONS 315); the unsegmented integral says ~1.2×.
      Testing `csf_lvl` 1.2 (c367), budget held in glucose and with grams kept.
+
+367. **More meal glucose per entered gram, and more of it late, does not lift the 1–3 h counteraction; the twins' meals
+     already last.** `csf_lvl` (carb-sensitivity level × k, budget held in glucose unless `csf_lvl_keepg`) and the slow
+     share, on c365_p2025. ICE by time since entry 1–2 / 2–3 h (donors 114 / 97, c365 102 / 82), 3-h meal change (donors +21,
+     c365 +2.6), matched of 51:
+     - c367 ×1.2: 98 / 78, +3.3, 31; ICE above pre-meal per 10 g 12.1 / 13.9 / 7.5 / 4.2 / 0.4, total 45.0 (donors 47.4).
+     - c367 ×1.2 grams kept: 102 / 78, +3.6, 29 (bg_mean 164.9, TIR 65.8 fail; TDD 42.5).
+     - c368 ×1.2 + slow share 0.30: 99 / 81, +4.0, 29 (t54 fails); ×1.3 + 0.35: 98 / 79, +4.8, 31 (t54 0.059%, fails).
+     - The 10+ h excess stays (59 vs 46) in every arm.
+     Truth after isolated entered meals ≥ 15 g (`meal_truth.py`), per 10 g entered, 0–1 / 1–2 / 2–3 / 3–4 / 4–6 h: c365 Ra 31.6
+     / 25.7 / 20.4 / 19.6 / 14.8 mg/dL/h, true dBG/dt +33 / −13 / −13 / +2 / −3; ×1.3 + 0.35 Ra 37.8 / 31.1 / 27.0 / 26.7 /
+     19.3, dBG/dt +35 / −12 / −8 / +4 / −6, with insulin absorbed per 10 g unchanged (0.30 / 0.35 / 0.10 vs 0.31 / 0.36 / 0.09).
+     The appearance is still a fifth of its peak rate at 3–4 h: the meals already last. The added late glucose is
+     neither answered by Loop's insulin nor kept as glucose. Not adopted; the body-side fate of glucose arriving 1–3 h
+     after a meal is the next thing to trace (mass balance per term, same meals in both arms).
