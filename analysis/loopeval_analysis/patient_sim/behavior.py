@@ -83,7 +83,7 @@ class BehaviorTraits:
                                          # (donors: 9.5% of bolused entries ≥ 15 g, second ~13 min later after more carbs; LESSONS 186)
     split_full: bool = False             # no halved split bolus: every meal bolus is the full recommendation, and second
                                          # boluses come from second helpings (donors 1.0 of the recommendation in 96%; LESSONS 186)
-    macro_own: bool = False              # fat / protein per carb gram from the person's own carb share of energy (LESSONS 431)
+    macro_own: bool = False              # fat / protein per carb gram from the person's own carb share of energy (LESSONS 432; on by default in World)
     bw: float = 75.0                     # body weight (kg), for macro_own's energy estimate
     slot_comp: bool = True               # fat/protein per carb gram by meal slot (LESSONS 170)  # default since 2026-10-18: breakfast's shape matches the donors' (LESSONS 213)
     count_size: str = "log"              # "brazeau": the size-dependent mean error of Brazeau 2013 (LESSONS 146)

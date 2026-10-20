@@ -7066,3 +7066,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      change +17.0 (+17.4), slot shapes unchanged, t54 0.120% (0.175; donors 0.190; other arms 0.175–0.206), lows 0.83 / day
      (0.92), 38 of 51. Larger boluses peak later and lower, so the post-meal undershoot that carries some lows shrinks. The
      effect is evidenced but small next to the missing lows; kept off until the low side is closed, then retested.
+
+434. **A personal meal mix with the fat resistance relative to the person's own diet fixes the pre-dawn trough and the 24-h
+     amplitude; adopted.** `macro_own` + `fat_rel` (c436_mofr on c418_f5): mean 156.7 (157.5; donors 151.9), TIR 69.7,
+     03–06 h 140 / 133 / 129 / 128 (donors 141 / 136 / 130 / 127; c418_f5 ~7 under), `circadian_amp` passing for the first
+     time (0.136 vs 0.128), t54 0.181% (0.190), lows 0.88 / day, night 35% of lows (39; donors 22), 39 of 51 (40). Cost:
+     3-h meal change +13.6 (+17.4; donors +21) — lunch now falls by 150 min and breakfast peaks at +39. The donor's TDD paid
+     for the donor's own diet, so the fat term has to be relative once the diet is personal (the same reasoning as
+     `budget_pro`, LESSONS 378); absolute fat on a personal mix over-reads low-carb people (c435, LESSONS 432). Defaults on
+     (`--disable macro_own,fat_rel`). Open: the meal tail (lunch above all), night share of lows, short-scale structure.
