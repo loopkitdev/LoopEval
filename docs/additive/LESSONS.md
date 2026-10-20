@@ -6591,3 +6591,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      donors' do. G6 skew grew (0.46 → 0.60): the wander scales a symmetric noise; the skew may come from the body's fast
      rises standing out in quiet stretches (not measured) — open.
 
+
+385. **A within-day oscillation of sensitivity and EGP (Wilinska 2010's form) does not supply the donors' faster
+     reversals; off.** Where the gap is (`step_acf_n.py`, G7, c384_sB vs donors): the donors' CGM steps stay positively
+     correlated to ~35 min and turn at 40 (20-min ACF 0.22 after entries, 0.19 quiet day, 0.10 at night); the sim's CGM
+     turns at 50 (0.14 / 0.07 / −0.06) and its true glucose at 50 / 55 / never within 60 min at night. The sim's CGM moves
+     as much as the donors' at every lag (SD of 5 / 15 / 30 / 60-min change, night 5.8 / 13.6 / 19.8 / 27.5 vs 4.8 / 11.3 /
+     17.9 / 27.6), but more of it is short sensor noise and less is body: night true glucose 1.9 / 5.4 / 10.4 / 18.6. The
+     sensor's own error processes (AR(2) sensor-specific, Biagi AR(3) common) reverse within 15 min, so they cannot carry a
+     35-min persistence. B4b (`ultradian`, SI and EGP × 1 + A·sin(2πt/3 h + φ), own phase each; Wilinska 2010, the
+     Cambridge simulator's intra-individual variability, A 5%) at A 0.05 / 0.15 / 0.30, c385: acf_zero_min 50 / 50 / 50,
+     night true-glucose 60-min change SD 20.6 / 21.9 / 25.4, night CGM 20-min ACF −0.05 / −0.06 / −0.02; 42 / 39 / 38 of 51
+     (45), t54 0.235 / 0.242 / 0.264%, 3-h meal change +7.5 / +8.0 / +4.5. Loop answers a 3-h sensitivity cycle before it
+     shows in the 5-min steps. Not adopted (code kept, off). The donors' turn at ~40 min after entries points at the meal's
+     own shape: an earlier fast peak that partly reverses, with the slow part holding glucose up at 3 h (the other open gap,
+     +7 vs +21) — next.
