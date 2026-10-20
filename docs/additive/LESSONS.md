@@ -6606,3 +6606,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      shows in the 5-min steps. Not adopted (code kept, off). The donors' turn at ~40 min after entries points at the meal's
      own shape: an earlier fast peak that partly reverses, with the slow part holding glucose up at 3 h (the other open gap,
      +7 vs +21) — next.
+
+386. **A faster early peak with a bigger slow tail does not give the donors' 40-min reversal or their 3-h meal level
+     either.** On c384_sB, c386: `meal_fast` 0.5 (0.35) / + `meal_slow` 0.25 (0.15) / + `meal_slow_k` 0.005 (0.008):
+     acf_zero_min 50 / 50 / 50 (post-entry CGM turn 45 / 50 / 45 min; donors 40), 3-h meal change +5.8 / +4.9 / −0.9
+     (+7.5; donors +21), CV 35.9 / 34.6 / 33.8, t54 0.251 / 0.183 / 0.150%; 39 / 40 / 39 of 51 (45). A larger late
+     appearance is answered by Loop and lowers the 3-h level (as LESSONS 366–367). Not adopted. With LESSONS 385 the
+     reversal time resists every named body lever tried (insulin speed L 276, within-day sensitivity, meal shape) and the
+     sensor's error processes reverse too fast to carry it; it stays open with the 3-h meal level.
