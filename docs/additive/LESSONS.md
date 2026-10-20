@@ -7024,3 +7024,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      circadian amplitude 0.183 / 0.170 fails; 36 / 37 of 51 (40). Not adopted. Across LESSONS 420–428 the night gap traces
      back to a late evening that is too high (glucose 21–23 h +6–10, ICE 22–00 h +3–8, Loop's automatic insulin 22–01 h +40–50%)
      with none of the night levers (need, GH, protein, window end, emptying) reaching it. Open.
+
+429. **By meal slot the twins' meals are wrong in opposite directions; weighting the post-meal window by slot fixes dinner
+     and the late evening but not the pre-dawn trough.** Change from entry (mg/dL, 30-min steps to 6 h; `meal_traj_tod.py`,
+     isolated bolused entries ≥ 15 g, G7), donors vs c418_f5: breakfast peak +33 at 90 min vs +50 at 60; lunch a +27 plateau
+     60–180 min vs a +29 peak at 90 falling to +15 by 180; dinner +13 / +10 / +5 / +9 / +14 / +17 (small early peak, dip, late
+     rise) vs +8 / +16 / +24 / +28 / +24 / +22. Glucose per entered gram by slot matches (dinner 0.97 vs 1.04, breakfast 1.24
+     vs 1.30, lunch 1.13 vs 1.17; bolus ratio 1.00 throughout; `geq_slot.py`), so the gap is timing and insulin action.
+     Visentin swing 0.5 / 0 (c429): slot shapes unchanged; 39 / 39. Window weights by slot (`ppr_b` / `ppr_l` / `ppr_d`; c430)
+     0.5 / 1.5 / 0: dinner +6 / +10 / +15 / +12 / +11 / +11, 21–23 h glucose 164 / 166 / 160 (donors 165 / 166 / 165), but
+     03–06 h 134 / 126 / 123 / 122 (141 / 136 / 130 / 127), lunch still falls by 180 min, pooled 3-h change +13.3 (+21); 37 of
+     51. Lunch-only: 36. Not adopted (switch kept). The trough stays when the late evening matches, so it is not only the
+     evening's insulin (LESSONS 424); and the lunch tail needs something the window cannot give.
