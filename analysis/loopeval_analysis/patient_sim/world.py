@@ -551,7 +551,7 @@ class World:
         self.fat_events: list = []                         # (minute, fat g) — transient fat-induced insulin resistance
         self.fat_log: list = []                            # every fat event, kept for the truth file (LESSONS 288)
         self.ppr_events: list = []                         # main-meal times for the post-meal insulin-action window (LESSONS 321)
-        self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.0
+        self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.2   # Pete 2026-10-20: meal shape over lows (LESSONS 408)
         self.ppr_shift = float(enable["ppr_shift"]) if enable and isinstance(enable.get("ppr_shift"), float) else 0.0
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,

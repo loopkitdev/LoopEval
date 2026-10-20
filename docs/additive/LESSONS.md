@@ -6810,3 +6810,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      158.2, TIR 70.4 / 68.7; 37 / 37 of 51 (40). The sensor, counter-regulation and meal-level changes since LESSONS 328
      do not change the trade: the window gives the donors' meal shape and takes lows away across the day. Off (Pete's
      LESSONS 321 ruling: primary outcomes weigh most).
+
+408. **Pete (2026-10-20): take the meal shape at the cost of the lows — the post-meal window is on (`ppr_a` 0.2, default),
+     reference c407_pp2 (37 of 51).** From LESSONS 407: 3-h meal change +17.6 (donors +21), ICE 2–3 h 7.7, Loop insulin
+     after meals 4.62 (4.71); t54 0.089% (0.190), lows 0.71 / day (1.00), P(reach 54) 0.161 (0.212), mean 156.4 (151.9),
+     TIR 70.4 (71.9). This supersedes the LESSONS 321 ruling for this trade. The lows are now chased through the low-side
+     components on their own evidence, first the behavioural defense (proactive treatment of a predicted low: onset
+     N(80, 20) mg/dL and 12 g, both [J]).
