@@ -7007,3 +7007,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      breakfast slots, dawn; `slot_true`, LESSONS 346). Open: what the donors' 00–03 h unannounced pulses are (night eating,
      rebound after treated lows, hormonal rises) — split the donors' night pulses by context (preceded by a low / treatment,
      during sleep, size) before adding a component.
+
+427. **The donors' extra night glucose is rises from normal glucose, not rebounds from lows.** Unannounced labelled pulses
+     starting 00–03 h (`night_pulse.py`, G7), donors vs c407_pp2: 13.7 vs 11.2 g-eq/day (0.585 vs 0.538 pulses/day); after a
+     low / rescue-flagged 1.16 vs 1.07; starting below 100 mg/dL 3.45 vs 2.50, 100–160 5.07 vs 3.32, ≥ 160 4.56 vs 4.92; size
+     p50 19.5 vs 17.0 g-eq, duration 2.2 vs 1.6 h. The excess (+2.7 g-eq/day, ~+0.08 pulses a night) is ~20 g-eq rises over
+     ~2 h from 70–160 mg/dL. Candidates with their evidence: GH-driven need (Pal 1992: rise 2–4 h after each pulse; B2b as a
+     dips-only form adds such rises, LESSONS 420 — measure its night pulses on this metric) and night eating (no BDDP
+     marker). Next: B2b `gh_pulse_net` scored on this night-pulse measure and on night lows together.
