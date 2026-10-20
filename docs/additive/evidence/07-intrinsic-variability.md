@@ -266,3 +266,10 @@ together (LESSONS 330, 363).
   full text, 2026-10-20]**: rapid-acting / regular insulin intra-individual CV 10–20% for summary measures (healthy, clamps),
   inter-individual 5–20% higher; GIR at each time 60–360 min CV 25–30% across occasions; daily-life T1D identical meals:
   post-meal excursion CV 48–79%. Basis of A4c (LESSONS 417).
+
+- **Heise T, Stender-Petersen K, Hövelmann U, et al. Pharmacokinetic and pharmacodynamic properties of faster-acting insulin
+  aspart versus insulin aspart across a clinically relevant dose range in subjects with type 1 diabetes. *Clin Pharmacokinet*
+  2017;56:649–660. doi:10.1007/s40262-016-0473-5** **[checked, ESM Table S2, 2026-10-20]**: 46 T1D, clamps, insulin aspart at
+  0.1 / 0.2 / 0.4 U/kg: tmax 65.7 / 72.1 / 75.2 min, t(early 50% Cmax) 29.9 / 32.0 / 36.1 min, onset of appearance 10.0 / 8.8 / 7.3
+  min, Cmax 155 / 287 / 691 pmol/L (slightly more than dose-proportional). Larger doses peak later, weakly: time ∝ dose^~0.1
+  (0.13 for 0.1→0.2, 0.06 for 0.2→0.4). Sizes A4's dose dependence (`dose_beta`) at β ≈ 0.1 (LESSONS 155 tested 0.25 / 0.4).
