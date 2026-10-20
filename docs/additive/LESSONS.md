@@ -7211,3 +7211,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      snacks and grazes × `unl_mult` = clip((far_unann − 16) / 56, 0.3, 2.0): the twins' far load is ~16 g-eq/day of
      body-made rises plus ~56 of unlogged eating whatever the donor (LESSONS 448); logged meals are untouched, fat and
      protein follow the grams. unl_mult p10 / p50 / p90 0.30 / 0.57 / 2.0. Arms on both draws (c451_ul, c452_uls).
+
+450. **Less unlogged eating barely lowers a twin; more raises it steeply — so the tight donors' extra load is real but does
+     not set their level.** `unl_own` on both draws (c451_ul / c452_uls vs c446_npu / c447_rs): mean 158.2 / 161.8 (155.5 /
+     158.9), TDD 41.7 / 42.6, 39 / 32 of 51 (40 / 34), meal +19.8 / +15.6, twin–donor mean corr 0.46 / 0.43 (0.42 / 0.39).
+     Change in the twin's mean by its multiplier: 0.3 (the tightest donors) −5.0 / −4.7, 0.3–0.7 −5.9 / −7.3, 0.7–1.2 −1.3
+     / −2.8, 1.2–2.0 +14.8 / +17.5, 2.0 +34.5 / +30.5; the 0.3 group still runs +11.5 / +15.2 above its donors. Loop takes
+     removed glucose out of its insulin (as LESSONS 333 found for the whole budget) but cannot keep up with added unlogged
+     glucose. Not adopted (switch and `far_unann` column kept). With LESSONS 445–448: a tight donor reaches ~135 on the same
+     settings and controller with less food and more lows, and neither their body sensitivity (LESSONS 447) nor their
+     unlogged load explains it under Loop. What remains is how the person drives the controller: overrides and temporary
+     targets, the timing and size of their own boluses against the recommendation, and how they act on highs — each to be
+     measured per donor against its twin next.
