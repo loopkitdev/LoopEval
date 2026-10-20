@@ -6532,3 +6532,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      min_below70 p 0.037; day / night 1.94, night_cv 33.2 pass; 3-h meal change +11.1; hourly error 00–06 / 06–12 / 12–18 /
      18–24 h −10.3 / +5.0 / +1.3 / −5.0 (RMS 8.0); 34 of 51 (36). Adopted: the insulin balance must cover all glucose eaten.
      Reference now c378_bpro.
+
+379. **The night trough on c378_bpro is a late evening: glucose and the insulin answering it arrive later than the
+     donors'.** By local hour (`ice_hour.py`, G7, p50 over people), ICE / Loop's insulin effect, 18–23 h: donors 81 / 80, 88 / 87,
+     99 / 93, 96 / 96, 93 / 93, 78 / 85; twins 76 / 79, 85 / 81, 94 / 85, 94 / 88, 93 / 89, 87 / 86. 00–05 h: donors ICE 67 / 60
+     / 50 / 45 / 43 / 40, effect 74 / 64 / 55 / 50 / 47 / 44 (glucose −4 to −7 mg/dL/h); twins ICE 71 / 58 / 47 / 41 / 37 / 41,
+     effect 77 / 68 / 59 / 49 / 43 / 39 (−10 to −12 at 01–03 h). Hourly glucose 00–06 h 156 / 148 / 136 / 126 / 118 / 118 vs
+     158 / 152 / 147 / 141 / 136 / 130. The twins' insulin effect is lower than the donors' at 19–21 h and higher at 00–02 h;
+     their glucose input is higher at 23 h (87 vs 78). Candidate parts acting in the late evening: the protein parcel (peak
+     ~3.5 h after the meal), fat resistance (to 10 h), and the dinner clock. Open.
