@@ -43,7 +43,7 @@ def _one(args):
                           twin=bool(enable.get("twin", False)),
                           suspend_own=bool(enable.get("suspend_own", True)),   # default since 2026-10-19 (LESSONS 232)
                           night_add=bool(enable.get("night_add", True)),   # night need added on top; default since 2026-10-19 (LESSONS 263)
-                          night_own=bool(enable.get("night_own", True)),   # body night need from the donor's steady nights; default since 2026-10-19 (LESSONS 251)
+                          night_own=bool(enable.get("night_own", False)),   # body night need from the donor's steady nights (LESSONS 251); off since 2026-10-19: the evening's own fat carries it (LESSONS 370)
                           basal_share=enable.get("basal_share") if isinstance(enable.get("basal_share"), float) else 0.42,
                           isf_blend=enable.get("isf_blend") if isinstance(enable.get("isf_blend"), float) else 0.0,
                           csf_w=enable.get("csf_w") if isinstance(enable.get("csf_w"), float) else 0.5,

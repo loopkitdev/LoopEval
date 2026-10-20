@@ -6440,3 +6440,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      The donors' measured night need (steady-night delivery / schedule, median 1.13) varies night to night with the evening
      (LESSONS 288–289); built as a fixed bump it makes the night too regular. Next: no bump, with the evening's own glucose
      carrying into the night (fat resistance unnormalised; protein glucose).
+
+370. **No fixed night bump, the dinner's fat carrying the night instead: day / night insulin and night CV on the donors',
+     meals lasting longer (adopted).** On c369_skip, `night_own` off with:
+     - absolute fat resistance (`fat_rel` off; Wolpert 2013 sizing, ρ U(0.1, 0.6)), c371_nofrel: day / night 2.02 (p 0.490),
+       night_cv 34.8 (p 0.534), t54 0.154% (p 0.480), lows 0.92 / day, P(reach 54) 0.200, bg_mean 154.0 (p 0.273), TIR 71.4;
+       dinner at 0.5–4.5 h +8 / +17 / +17 / +18 / +17 / +14 / +13 / +13 / +12, lunch +4 / +23 / +21 / +9 / 0 / −6; 3-h meal
+       change +11.7 (c369 +6.2; donors +21); 20–23 h 153 / 157 / 166 / 167 (donors 160 / 165 / 166 / 165); 03–05 h 125 / 118
+       / 118 (141 / 136 / 130); circadian_amp 0.164 (p 0.005); 35 of 51 (35).
+     - protein glucose 0.3 (c371_nopro3): day / night 1.91, night_cv 35.0 pass, 3-h change +5.9, 34 of 51.
+     Why: the night bump was the donors' measured night need booked as a fixed body term; with fat_rel normalising the fat
+     term to a mean of 1, the evening's fat resistance could not carry it. The donors' night need varies with the evening
+     (LESSONS 288–289): built from the dinner's own fat it varies too, and the 24-h insulin balance is not double-booked
+     (fat_rel's reason in LESSONS 151 was the fat booked on top of a basal that already held it). Adopted: `night_own` and
+     `fat_rel` off by default (`--enable night_own,fat_rel` restores them). Reference now c371_nofrel. Open: the 03–06 h
+     trough and circadian_amp.
