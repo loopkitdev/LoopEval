@@ -6726,3 +6726,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      glucose 1–3 h after a meal sits lower against Loop's forecast, so Loop withholds insulin and the meal ends higher
      relative to the low threshold; real meals keep glucose up longer, Loop doses into it, and more of them end low.
      Pete's earlier reading (more glucose arriving later in meals) is this mechanism.
+
+399. **Moving meal glucose from the fast to the slow phase does not keep Loop dosing after meals.** `meal_fast` 0.35 → 0.2
+     with `meal_slow` 0.15 → 0.25 / 0.35, c398 on c396_cr7: post-meal zero-delivery p50 85 / 85 min (c396 90; donors 65),
+     Loop insulin 30–180 min 4.22 / 4.08 (4.10; 4.71), low within 4 h of an isolated bolused meal 11.0 / 9.4% (13.5; 16.8),
+     3-h meal change +6.0 / +4.1 (+3.2; +21); CV 30.4 / 29.3 (34.0; 34.6), t54 0.031 / 0.044%, lows 0.50 / day; 32 / 33 of
+     51 (40). Not adopted. A slower meal flattens the whole trace and Loop still withholds as long: what keeps the donors'
+     Loop dosing for 25 more minutes after a meal is not the timing of the meal's own glucose. Open, with the candidates
+     outside the meal: Loop not running (scheduled basal continues, LESSONS 377 models only the short misses) and the
+     body's insulin effect after meals.
