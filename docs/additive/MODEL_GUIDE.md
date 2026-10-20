@@ -252,13 +252,13 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
 - **Component targets** (`review.py`): low nadirs and depths, meal drops and 3-h change, behaviour rates, each against
   the donors with the same code. Measure scripts beside each run (`meal_traj_tod.py`, `hour_bg.py`, `ice_integral.py`,
   `ice_since.py`, `loop_resp.py`, `clock_ins.py`, `unann_hour.py`).
-- **c376_miss, passing (36)**: CV, skew, Box-Cox λ, minutes per low, TIR, t70, t180, t54, lows / day, P(reach 54), long-range
-  Hurst, between-day fraction, wear, TDD, TDD CV, zero share, p99, top-1% share, day / night insulin, night-to-night
-  CV, carb entries, user boluses, manual units; per family: v_sd (G6, Libre 3), sd/mad, kurtosis and short Hurst
-  (Libre 3), v_skew (G7, Libre 3), measurement noise and ACF minimum (all three).
-- **Failing (15)**: short-scale shape (v_sd G7; sd/mad, velocity kurtosis and short Hurst G6 and G7; v_skew G6; ACF zero
-  crossing; volatility clustering; dispersion; L 363), circadian amplitude, mean glucose (158.8 vs 151.9, p 0.045), typical
-  nonzero delivery (`med_nonzero`), TDD day-to-day persistence (`ac1`).
+- **c378_bpro, passing (34)**: mean, CV, skew, Box-Cox λ, TIR, t70, t180, t54, lows / day, P(reach 54), long-range
+  Hurst, between-day fraction, wear, TDD, TDD CV, zero share, top-1% share, day / night insulin, night-to-night CV, carb
+  entries, user boluses, manual units; per family: v_sd (G6, Libre 3), sd/mad, kurtosis and short Hurst (Libre 3), v_skew
+  (G7, Libre 3), measurement noise (all three), ACF minimum (G6, Libre 3).
+- **Failing (17)**: short-scale shape (v_sd G7; sd/mad, velocity kurtosis and short Hurst G6 and G7; v_skew G6; ACF minimum
+  G7; ACF zero crossing; volatility clustering; dispersion; L 363), circadian amplitude, minutes per low (`min_below70`),
+  typical nonzero delivery (`med_nonzero`), largest 5-min doses (`p99`), TDD day-to-day persistence (`ac1`).
 
 ## 11. Switches (`cohort.py`)
 
