@@ -7178,3 +7178,16 @@ outputs in gamepc ~/additive/runs/c290–c312).
      by rounds on both draws (`lvl_update.py`: per-donor mean gap, log k += clip(gap / 80, ±0.35), bounds 0.5–2; round 1
      from c446_npu / c447_rs: |gap| p50 14.5, k p10 / p50 / p90 0.84 / 1.00 / 1.42), three rounds (lv1–lv3, templates
      templates_pilot_lvl.r*.csv outside the repo).
+
+447. **A per-donor sensitivity fitted to each donor's level tracks them better but pins both ends at the bounds; not
+     adopted.** `lvl_own`, three rounds on two draws (lv1–lv3): twin–donor mean corr 0.42 / 0.39 → 0.57 / 0.56 → 0.67 /
+     0.68 → 0.70 / 0.69, per-donor |gap| p50 14.5 → 10.3 → 7.8 → 5.9 mg/dL; pooled at round 3: 39 / 33 of 51 (40 / 34),
+     mean 154.8 / 156.8 (155.5 / 158.9), lows 1.00 / 1.08 per day, t54 0.228 / 0.244% (donors 0.190). But 43 of 121 donors
+     sit at a bound after round 3: 32 at 2.0 (donors mean 135, TIR 80, t70 2.7%, 4.4 user boluses / day) and 11 at 0.5
+     (mean 190, TIR 49, t70 0.6%, 1.9 boluses, 41 g logged carbs / day); the rest (125) mean 155. The twins compress the
+     cohort's spread at both ends, and a body twice (or half) as sensitive as the donor's measured yardstick contradicts
+     that measurement (as LESSONS 233 found for the time < 70 target). What separates a tight donor from a loose one at the
+     same settings and controller is not body sensitivity within 2×; candidates are each donor's unlogged load (the
+     loose end logs 41 g / day), the effectiveness of their hands-on dosing (bolus timing, size relative to the
+     recommendation), and their response to highs. Switch and fitted templates (templates_pilot_lvl.r1–r3.csv, outside the
+     repo) kept for reference; off.
