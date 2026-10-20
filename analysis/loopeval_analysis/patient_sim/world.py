@@ -443,7 +443,12 @@ class World:
             if (enable or {}).get("budget_pro", True):
                 # default since 2026-10-19 (LESSONS 378; --disable budget_pro): the TDD budget also pays for the meals' protein glucose (A12, pro_glc g per g of
                 # protein; ~0.39 g protein per carbohydrate gram over meals and snacks, slot composition included)
-                bt.carbs_day /= 1.0 + bt.pro_glc * 0.39
+                pr_ = 0.39
+                if getattr(bt, "macro_own", False):
+                    # the person's own protein per carb gram (LESSONS 431), meals and snacks (~0.87 of the meal ratio, as 0.39 / 0.45)
+                    e_ = 30.0 * bt.bw; ec = float(np.clip(4.0 * bt.carbs_day, 0.15 * e_, 0.65 * e_))
+                    pr_ = 0.87 * 0.31 * (e_ - ec) / 4.0 / (ec / 4.0)
+                bt.carbs_day /= 1.0 + bt.pro_glc * pr_
             if enable and isinstance(enable.get("meal_budget"), float):
                 bt.carbs_day *= enable["meal_budget"]       # experiment (LESSONS 327): meals' share of the TDD budget × this
             self.beh.t = bt                                  # the Behavior was built above with the old traits
