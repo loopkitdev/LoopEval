@@ -6467,3 +6467,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
        `basal_profile_deliv_np`, switch `prof_np`, off) leaves enough quiet hours for 61 of 168 donors (≥ 6 h per clock
        hour, gaps interpolated); for them the shape moves little (07–11 h 0.84–0.94 either way). Not run as a cohort arm.
      Kept: the delivered shape (data over the [J] exponent). Open: the night trough (−11) and the morning excess (+8).
+
+372. **The donors' day-to-day insulin persistence is not in their logged eating or the week.** On c371_nofrel, per twin
+     over days 2–14: corr(eaten g, delivered U) same day 0.85, eaten → next-day delivered 0.04; ac1 of delivered 0.05, of
+     eaten 0.04, of mean SI 0.15 (cycle, illness), corr(SI, delivered) 0.13 — the twins' insulin follows their eating.
+     Entered carbs per local day, ac1 on 13-day blocks: donors p50 0.005 (168), twins 0.007 (112) — matched, ~0. Donor TDD
+     by day of week / mean, p50: 0.99–1.006, mean |deviation| 0.04 — no weekly pattern. So the donors' TDD ac1 (0.091 vs
+     twins −0.058) comes from something outside logged eating and the week: unlogged intake, or a multi-day body state
+     (site life E5, cycle, illness and stress are wired). The exports carry no site-change records (Databricks
+     deviceEvent would: reservoir change / prime), so site life cannot yet be checked against the donors. Left open.
