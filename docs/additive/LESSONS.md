@@ -6927,3 +6927,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      - **Snaith et al. 2026, Diabetes Care 49:161** (TIRTLE1, 24 T1D adults BMI > 30, tirzepatide 2.5 → 5 mg weekly, 12 weeks):
        TDD −35.1% vs placebo (bolus −49%, basal −25%), −42% by week 6 in pump users; weight −8.7 kg; energy intake −429
        kcal/day; TIR unchanged. Sizes the X tirzepatide scenario (evidence/16).
+
+418. **Moberg-sized stress is neutral (kept); within-night GH pulses fix night low durations but not their number, and the
+     mean-preserving offset lowers the evening meal tail.** c417 on c409_ps20 with stress SI −18% over 1–6 h (LESSONS 415,
+     default): c417_st 39 of 51, lows 0.67 / day, 3-h meal change +18.2 — reference c417_st. B2b `gh_pulse` amplitude 0.4 /
+     0.8: night lows share 37 / 37% (st 39; donors 22), night duration p50 / p75 / p90 40 / 60 / 84 and 35 / 55 / 78 (st 40 /
+     65 / 90; donors 35 / 55 / 80), low duration p90 65 / 70 (75; 65); t54 0.117 / 0.091%, lows 0.75 / 0.67 per day; 3-h
+     meal change +13.2 / +14.2; 39 / 37 of 51. The duration gains are real; the meal loss is the form: SI is raised by the
+     mean-preserving offset from 22:00 until the first pulse acts, which is the third hour after dinner. Off; next form
+     keeps the compensation after 00:00 (or on the pulse-free hours after the last pulse) so evening meals are untouched.
