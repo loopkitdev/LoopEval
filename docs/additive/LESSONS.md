@@ -6742,3 +6742,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Loop is off. What remains is that real glucose 1–3 h after a meal stays higher against Loop's forecast for the same
      bolus and the same labelled meal size: the body's insulin effect after meals or glucose the labeler does not attribute
      to the meal.
+
+401. **The twins' meals were ~10% short of the donors' post-meal counteraction, all of it 1–3 h after eating; meal glucose
+     set between the two meal measures (`csf_lvl` 1.05, adopted, 41 of 51).** ICE above pre-meal per 10 g, windows 0–1 /
+     1–2 / 2–3 / 3–4 / 4–6 h (`ice_integral.py`): c396_cr7 12.5 / 12.5 / 6.8 / 3.6 / 0.6, total 42.8; donors 13.0 / 15.4 /
+     10.5 / 3.7 / 0.3, 47.4 — while labelled glucose per entered gram matched (1.18 vs 1.19), the quantity the carb
+     sensitivity is calibrated to (`csf_geq`). The two measures of a meal's glucose disagree by ~10% on the twins.
+     - A larger slow phase (`meal_slow` 0.3 / 0.45, c401): 1–3 h ICE 12.6 / 6.6 and 12.5 / 7.8 (unchanged; the calibration
+       holds the total and the tail lands past 3 h), CV 32.0 / 30.5, t54 0.059 / 0.030%; 36 / 31 of 51. Not adopted.
+     - Meal glucose × 1.1 (`csf_lvl`, c402): ICE total 46.3, 13.2 / 12.4 / 7.0 / 4.2; labelled g-eq per entered gram 1.27
+       (1.19); t54 0.117%, P(reach 54) 0.20, share of lows < 54 0.358; Loop insulin 30–180 min after meals 4.55 (4.10; donors
+       4.71); 41 of 51. With the grams scaled too (`csf_lvl_keepg`): 39.
+     - × 1.05 (c403_cl105): ICE total 45.6, 12.8 / 13.8 / 7.3 / 4.3; t54 0.118%, P(reach 54) 0.186, share < 54 0.355, lows
+       0.83 / day; Loop insulin after meals 4.46; mean 152.7, TDD 38.3; 41 of 51 (40). Adopted: each meal measure within
+       ~5% (ICE −4%, labelled g-eq ~+3% interpolated). Post-meal suspension stays 90 min (donors 65) and the 3-h meal change
+       +6.7 (+21): the 1–3 h shape of the real meal response is still open. Reference c403_cl105.

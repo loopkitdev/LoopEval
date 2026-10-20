@@ -7,7 +7,7 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c396_cr7** (2026-10-20): 112 people × 14 days, 40 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
+**c403_cl105** (2026-10-20): 112 people × 14 days, 41 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
 donors in 13-day blocks); mean, TIR and TDD on the donors'.
 
 **Personal basis legend**
@@ -99,7 +99,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 | G6 Devices | sensor family, pump, insulin formulation | formulation from the recorded brand, relabelled from Loop's recorded IOB (`add_insulin_from_iob`); unrecorded: rapid 52 : ultra-rapid 20 | IOB-curve RMSE per donor (51 of 52 recorded ultra-rapid matched) | L 248 | **Donor** |
 | G6b Dosing strategy | autobolus with probability = donor's share of autobolus days | own stream | donor dose records | 40 of 50 "autobolus" donors spent days in temp mode; Loop's automated total then 1.04× (L 331) | **Donor** |
 | G7 Carb sensitivity (CSF) | CSF = 1.05 · [1.85 · ISF_data · TDD / 500]^0.5 · [settings ISF/CR]^0.5, each ×lnN(0, 0.15); f = CSF·BW·VG/1000 | `csf_w` 0.5 (half data, half settings) | constant 1.05 calibrated to the labeler's g-eq per entered gram (1.21 vs donors 1.19) | ice L54; L 197, 300 | Donor + Drawn |
-| G7b Per-donor meal response | CSF × the donor's labelled g-eq per entered gram over its twin's, reliability-shrunk, pooled over two rounds; intake grams held | multiplier p10 / 50 / 90 0.60 / 0.96 / 1.44 | ice labeler on donor and twin (`csf_geq_mult`) | L 358–359 | **Donor** |
+| G7b Per-donor meal response | CSF × the donor's labelled g-eq per entered gram over its twin's, reliability-shrunk, pooled over two rounds; intake grams held | multiplier p10 / 50 / 90 0.60 / 0.96 / 1.44 | ice labeler on donor and twin (`csf_geq_mult`); cohort level × 1.05 (`csf_lvl`) set between the labelled g-eq per gram and the post-meal ICE integral | L 358–359, 401 | **Donor** |
 | G8 Effective-ISF calibration | SI_D and the EGP-arm gain solved so the TOTAL drop per unit on the linear body equals the true ISF; Ib from true basal | EGP share of the effect U(0.7, 0.9) | per-person probe; share centred on Romeres 2025 (meal EGP nadir 44 ± 17%) | L 143, 195 | Derived per person |
 | G9 Loop not acting | offline windows run scheduled basal; pump errors and short missed cycles keep the last command | offline 0.9 / day, lnN(32 min, 0.86); errors 2.45 / day × 3 min; missed cycles with CGM present, single 4.4 / day and 2–3-slot 0.5 / day (median) | donors' disruptions.csv; decision_times.csv (`add_missed_cycles`) | Loop decides in 92% of donors' 5-min slots (L 60, 377) | **Donor** rates, Event draws |
 
@@ -252,13 +252,13 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
 - **Component targets** (`review.py`): low nadirs and depths, meal drops and 3-h change, behaviour rates, each against
   the donors with the same code. Measure scripts beside each run (`meal_traj_tod.py`, `hour_bg.py`, `ice_integral.py`,
   `ice_since.py`, `loop_resp.py`, `clock_ins.py`, `unann_hour.py`).
-- **c396_cr7, passing (40)**: mean, CV, skew, Box-Cox λ, TIR, t70, t180, t54 (narrowly), lows / day, P(reach 54),
+- **c403_cl105, passing (41)**: mean, CV, skew, Box-Cox λ, TIR, t70, t180, t54 (narrowly), lows / day, P(reach 54),
   long-range Hurst, volatility clustering, wear, TDD, TDD CV, zero share, p99, top-1% share, day / night insulin,
   night-to-night CV, carb entries, user boluses, manual units; per family (G6 / Libre 3 throughout, G7 where noted): v_sd,
   sd/mad, kurtosis, v_skew (G7 too), short Hurst, measurement noise (G7 too) and ACF minimum.
 - **Failing (11)**: minutes per low; G7 v_sd (6.3 vs 7.2), kurtosis, short Hurst, sd/mad; ACF zero crossing (55 vs 40 min,
   L 385–389); volatility dispersion; circadian amplitude; typical nonzero delivery (`med_nonzero`, L 387); between-day
-  fraction and TDD persistence (`ac1`). True lows run at about half the donors' time below 54 (0.092 vs 0.190%; L 393–394).
+  fraction and TDD persistence (`ac1`). True lows run at about 60% of the donors' time below 54 (0.118 vs 0.190%; L 393–394, 401).
 
 ## 11. Switches (`cohort.py`)
 
