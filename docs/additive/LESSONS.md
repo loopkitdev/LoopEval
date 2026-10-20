@@ -6902,3 +6902,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
        infusion test): glucose higher from 1 h (8.0 vs 6.8 mmol/L) to 5.5 h (11.4 vs 8.9), steady state 3–6.5 h 10.6 vs 8.7
        (SI ×0.82 at fixed infusion); no subject fell; adrenaline, cortisol and GH rose. B (stress) set to SI −18% over 1–6 h
        (was −10% over 1–5 h [J]); the responder share (1/3, Riazi 2004, everyday stressors) is kept.
+
+416. **A hepatic onset at Prager's i.v. rate does not make the fast falls under subcutaneous insulin.** `p2e_cal` 0.025 /
+     0.035 (0.012; Prager 1986 HGO half-suppression 18–22 min ≈ 0.035/min, LESSONS 413), people recalibrated, c414 on
+     c409_ps20: quiet-fall 15-min drop at 90–130 p10 −25.8 / −25.0 (−26; donors −29), falls reaching < 70 in 30 min 1.7 /
+     1.6% (1.8; 3.9); t54 0.088 / 0.061% (0.118; 0.190), lows 0.67 / 0.67 per day; meal EGP nadir 0.81 / 0.80 at 120 / 100
+     min (0.81 at 240; Romeres 2025 0.56 at 160); 3-h meal change +15.8 / +13.8; 37 / 37 of 51 (39). Not adopted. Prager's
+     rates are for a stepped i.v. insulin (plasma at steady state in minutes); under subcutaneous delivery absorption paces
+     the hepatic signal, and the faster onset moves the meal nadir earlier than the tracer without deepening it or
+     steepening falls. The fast-fall tail stays open; Heinemann 2002 (real-life absorption variability) is the next source.
