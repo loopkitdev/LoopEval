@@ -198,6 +198,12 @@ class World:
                 # scenario X9: menstruating people are pregnant at this gestational week from day 0; no menstrual cycle
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.preg_week = enable["preg_week"]
                 self.mod_traits.menstruating = False
+            if isinstance(enable.get("ultra_amp"), float) or isinstance(enable.get("ultra_per"), float):
+                self.mod_traits = copy.deepcopy(self.mod_traits)
+                if isinstance(enable.get("ultra_amp"), float): self.mod_traits.ultra_amp = enable["ultra_amp"]
+                if isinstance(enable.get("ultra_per"), float): self.mod_traits.ultra_per = enable["ultra_per"]
+            if "ultradian" in enable and "ultradian" not in self.mod_traits.enabled:   # persons sampled before B4b
+                self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.enabled["ultradian"] = bool(enable["ultradian"])
             if isinstance(enable.get("day_tau"), float):
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.day_tau = enable["day_tau"]
             if isinstance(enable.get("circ_uniform"), float) and enable["circ_uniform"] > 0:
