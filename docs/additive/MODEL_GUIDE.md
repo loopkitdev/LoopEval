@@ -7,8 +7,8 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c439_pr4** (2026-10-20): 112 people × 14 days, 38 of eda's 51 statistics matched (delivery scored as pump records, L 406; personal meal mix with relative fat resistance, L 432; relative post-meal window 0.4, L 436) (KS p > 0.05 against the 206 pilot
-donors in 13-day blocks); mean, TIR, TDD, the pre-dawn level, the 24-h amplitude and the low statistics on the donors', 3-h meal change +17.9 (+21).
+**c440_db** (2026-10-20): 112 people × 14 days, 40 of eda's 51 statistics matched (delivery scored as pump records, L 406; personal meal mix with relative fat resistance, L 432; relative post-meal window 0.4, L 436; dose-dependent bolus absorption, L 437) (KS p > 0.05 against the 206 pilot
+donors in 13-day blocks); mean, TIR, TDD, the pre-dawn level, the 24-h amplitude and the low statistics on the donors' (lows 1.00 / day), 3-h meal change +16.9 (+21).
 
 **Personal basis legend**
 
@@ -113,6 +113,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 | A2 Subcutaneous insulin PK | per-dose depot: delay → Isc1 →kd→ Isc2 →ka2→ plasma, ke 0.127 | kd lnN(0.030, 0.31), ka2 lnN(0.018, 0.21), VI 0.126 L/kg | ka2 centre refit to the lispro clamp profile; half the ReplayBG log-SD | L 9 | **Drawn** |
 | A3 Formulations | delay, kd/ka2 multipliers, fast-route share | lispro/aspart reference; Fiasp, Lyumjev fitted to clamp contrasts; glulisine; regular | `insulins.fit_formulations` | evidence/01 §3.2 | **Donor** (via G6) |
 | A4 Per-dose absorption jitter | ω scales kd, ka2, fast route per bolus | lnN CV 15% | Heise 2017 repeat clamps net of the SI share | evidence/07 | **Event** |
+| A4d Dose-dependent bolus absorption | bolus depot rate × (dose / 15 U)^(−β), capped 0.7–3 | β 0.1 | Heise 2017 (aspart tmax 65.7 / 72.1 / 75.2 min at 0.1 / 0.2 / 0.4 U/kg) | L 433, 437 | **Event** |
 | A4c Absorption-rate fluctuation | absorption rate × exp(log-OU), along each dose's curve | sd 0.5, τ 60 min [J] | Heinemann 2002: GIR at each time varies 25–30% across occasions vs 10–20% for summary measures (local blood flow) | L 417, 419 | **Event** |
 | A4b Posture | upright absorption × (1 − p), asleep supine | p = 0.5 × U(0.19, 0.44) [J half-size] | Hildebrandt 1985 | L 163, 169 | **Drawn** |
 | A5 Insulin action — disposal | X_D (rate p2) on absolute insulin; uptake X_D·M(G) − X_b·Gb; M = Gb + κ(G − Gb) above Gb, ∝ G below | p2 0.025 /min; κ lnN(1.0, 0.4) | p2: 0.2 U/kg lispro clamp (GIR peak ~100 min); κ: Best 1981 full text (uptake ∝ glucose) | L 303, 365 | Cohort p2; **Drawn** κ |
