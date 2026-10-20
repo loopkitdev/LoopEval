@@ -6566,3 +6566,9 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.136% (p 0.31 / 0.24), P(reach 54) p 0.290 / 0.039; hourly RMS 7.2 / 6.2 (8.0), 00–06 h −9.2 / −7.3; 3-h meal change
      +7.0 / +8.1 (+11.1); 36 / 38 of 51 (34). Adopted 0.25 (the meal response per entered gram, the carb-sensitivity
      calibration quantity, and the unannounced load are this component's own targets). Reference now c382_gk25.
+
+383. **Review after grazing: the low depths drifted shallow, and counter-regulation is not the lever.** `review.py` on
+     c382_gk25: share of lows reaching < 54 0.314 (target 0.370), nadir p10 / 25 / 50 45 / 52 / 58 (40 / 50 / 57), P(reach 54)
+     p 0.039. `cr_mult` 0.8 / 0.65 (CRmax median 0.156 / 0.127), c383: share < 54 0.308 / 0.319, nadirs 45 / 52 / 58 and 44 / 52 /
+     57, P(reach 54) p 0.020 / 0.050, t54 p 0.046 / 0.110, min_below70 p 0.051 / 0.006; 35 / 37 of 51 (38). The depth no longer
+     follows CRmax; what is short is the fall into the low (the fast-falls limit, LESSONS 236–249). CRmax stays 0.195.
