@@ -7115,3 +7115,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Lower morning SI makes Loop give more in the morning, which lands as day lows; the night's own responsiveness is not
      set at dawn. Not adopted (switch kept, off). The night excess stays open: the gain question is the hours 00–05, where
      no daytime resistance acts and the body's SI is still the day-fitted level.
+
+440. **The donors respond less to insulin at night than by day; the twins much less so.** Quiet hourly blocks (no carbs or
+     user bolus in the prior 4 h, clean steps), glucose change regressed on insulin activity per person, G7, ice-role steps
+     both sides (`night_gain.py`): donors (119 people, 378 / 187 night / day blocks) slope 22.3 / 31.8 mg/dL per U, night /
+     day ratio p50 0.71 (IQR 0.57–0.95), intercept 19.1 / 37.9 mg/dL/h; twins c440_db (41 people, 60 / 59 blocks) 24.4 /
+     26.6, ratio 0.83 (0.51–1.08), intercept 16.8 / 40.7. No literature sizes a night-specific SI in T1D beyond the dawn;
+     fitted from these data (Pete 2026-10-20): `night_si` multiplies SI and EGP by k over 00–06 h (ramps 23–00, 06–07) so
+     the night's need is unchanged and only its gain moves; arms k 0.85 (0.71 / 0.83) and 0.70 (closed-loop attenuation)
+     (c443_ns85, c444_ns70).
