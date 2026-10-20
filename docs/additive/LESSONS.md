@@ -7204,3 +7204,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      logged grams. Next: each twin's unlogged eating sized from its donor's own far-from-meal unannounced load (a template
      measure, like for like with the labeller), in place of the budget remainder — LESSONS 333's `intake_own` scaled the
      whole budget (meals included) and so moved the logged meals rather than this.
+
+449. **`unl_own` (experiment): each twin's unlogged eating sized from its donor's own far-from-meal unannounced load.**
+     Template column `far_unann` (`add_far.py`): the donor's unannounced non-rescue labelled g-eq/day more than 6 h after
+     the last announced pulse or with none before — 168 donors, p10 / p50 / p90 22.5 / 47.7 / 145.9. Unentered meals and
+     snacks and grazes × `unl_mult` = clip((far_unann − 16) / 56, 0.3, 2.0): the twins' far load is ~16 g-eq/day of
+     body-made rises plus ~56 of unlogged eating whatever the donor (LESSONS 448); logged meals are untouched, fat and
+     protein follow the grams. unl_mult p10 / p50 / p90 0.30 / 0.57 / 2.0. Arms on both draws (c451_ul, c452_uls).
