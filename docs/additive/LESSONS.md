@@ -6512,3 +6512,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      i074 1.00 / 1.02 / 0.97 (3.0 d), i012 0.99 / 0.98 / 0.90 / 1.25 (1.9 d, few day-3 days); their TDD ac1 p50 −0.10. The
      simulated site life (E5, absorption 0.9 → 1.15 by day 4; E5b) stays on its literature evidence. TDD persistence (ac1)
      stays open; no named candidate remains with data to test it.
+
+377. **Automatic-bolus twins get more automatic boluses than their donors; the donors' Loop misses cycles, adopted as
+     measured, neutral on the statistics.** `med_nonzero` (0.103 vs 0.085 U per 5 min) by strategy: temp twins 0.0985 vs
+     donors 0.100 (matched), autobolus 0.107 vs 0.077. Automatic boluses on autobolus days (`autob.py`; twins from the trace's
+     candidate automatic records): size p50 0.15 U both sides; donors 71 / day, 14.7 U / day; twins 86 / day, 19.3 U / day.
+     Donors' Loop decides in a median 92% of five-minute slots (decision_times.csv; p10 78%); missed slots are mostly single
+     (6.6 / day) or 2–3 long (1.4 / day); with a CGM reading present 4.4 and 0.5 / day (`templates.add_missed_cycles`).
+     `missed_own` (those as pump_error windows, last command kept; own RNG stream) on c374_pro3, c376: med_nonzero 0.102,
+     ac1 −0.017, bg_mean 158.8 (p 0.045), min_below70 passes (p 0.125), 36 of 51 (36). Loop recovers on the next cycle, so
+     the automatic-bolus excess is not missed cycles; it follows the twins' glucose (Loop's response per band matches,
+     LESSONS 368). Adopted as measured device reality: `missed_own` default. Reference now c376_miss.
