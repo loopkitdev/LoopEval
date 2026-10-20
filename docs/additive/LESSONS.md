@@ -7238,3 +7238,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      the twins' rises are flatter, so a correction rarely meets a rise that is about to turn. Ruled out for the tight
      donors' level gap so far: body sensitivity (447), unlogged load (450), correction rate and trend response (this);
      open: how peaked the rises are (the twins' appearance is ~15–20% flatter at its peak).
+
+452. **The twins' flatter labelled peaks are not slow gut appearance.** True appearance after isolated main meals (no
+     eating 3 h before, 4 h after; `ra_timing2.py`, c446_npu): 25 / 50 / 75% appeared at 41 / 68 / 112 min (10–40 g), 50 /
+     86 / 140 (40–70 g), 46 / 87 / 150 (70–100 g), 53 / 98 / 162 (100–200 g; 75% truncated by the 4-h window); peak 1.7–4.7
+     mg/kg/min at ~40 min. Elleri 2013: high-glycaemic 56 / 100 / 153, low-glycaemic 88 / 175 / 270 — the twins sit at the
+     fast end. So the ~15–20% lower peak of the labelled (ICE-measured) rises (LESSONS 451) arises between appearance and
+     the label: insulin acting during the rise, the sensor's smoothing and lag, or the labeller's baseline on a twin's
+     day. Not a gut lever.
