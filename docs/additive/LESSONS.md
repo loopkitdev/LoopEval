@@ -6735,3 +6735,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Loop dosing for 25 more minutes after a meal is not the timing of the meal's own glucose. Open, with the candidates
      outside the meal: Loop not running (scheduled basal continues, LESSONS 377 models only the short misses) and the
      body's insulin effect after meals.
+
+400. **Not Loop going offline after meals.** Donors' share of 5-min slots with a Loop decision (decision_times.csv, G7, 129
+     people): 0.936 over 0–180 min after isolated entries ≥ 15 g vs 0.933 overall. Real Loop runs as often after meals as at
+     any time, so the donors' shorter post-meal suspension (65 vs 90 min, LESSONS 398) is not scheduled basal running while
+     Loop is off. What remains is that real glucose 1–3 h after a meal stays higher against Loop's forecast for the same
+     bolus and the same labelled meal size: the body's insulin effect after meals or glucose the labeler does not attribute
+     to the meal.
