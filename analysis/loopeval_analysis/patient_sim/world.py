@@ -593,6 +593,20 @@ class World:
                     w = np.where(x < a_, 0.0, np.where(x < a_ + 1, x - a_, np.where(x < 6, 1.0, np.where(x < 10, (10 - x) / 4, 0.0))))
                     mult *= 1.0 - self.fat_rho * min(fat, 80.0) / 50.0 * w
                 self.fat_norm = float(np.maximum(mult, 0.4).mean())
+        # ppr_rel (experiment, LESSONS 435; --enable ppr_rel): the post-meal insulin-action window relative to the person's
+        # own meals, as fat_rel is — the donor's TDD already covered their post-meal need, so the window moves need into the
+        # hours after meals instead of adding to it (mean 1 over the planned days)
+        self.ppr_norm = 1.0
+        if (enable or {}).get("ppr_rel", False) and self.ppr_a > 0:
+            ev = sorted(tm for (tm, a) in self.beh.planned if a[0] == "eat_meal" and getattr(a[1], "kind", "") == "meal")
+            if ev:
+                grid = np.arange(DAY, days * DAY, 5.0); w = np.zeros_like(grid); end = self.ppr_end
+                for t0 in ev:
+                    x = grid - t0 - self.ppr_shift; hh = (t0 % 1440) / 60.0
+                    sw = self.ppr_w[0] if hh < 10.5 else self.ppr_w[1] if hh < 16.0 else self.ppr_w[2]
+                    wi = sw * np.where(x < 30, 0.0, np.where(x < 60, (x - 30) / 30, np.where(x < 180, 1.0, np.where(x < end, (end - x) / (end - 180), 0.0))))
+                    w = np.maximum(w, wi)
+                self.ppr_norm = float((1.0 - self.ppr_a * w).mean())
         # hyperglycaemia-induced insulin resistance (B11): 24 h at ~360 mg/dL lowers insulin-stimulated glucose uptake by
         # 26% in T1D (Vuorinen-Markkola 1992; Yki-Järvinen 1987). State H relaxes toward 0.26·clip((G − 140)/220, 0, 1)
         # with τ 12 h [J, both ways]; insulin sensitivity × (1 − H) (LESSONS 43)
@@ -776,7 +790,7 @@ class World:
             sw = self.ppr_w[0] if hh < 10.5 else self.ppr_w[1] if hh < 16.0 else self.ppr_w[2]
             w = max(w, sw * (0.0 if x < 30 else (x - 30) / 30 if x < 60 else 1.0 if x < 180 else (end - x) / (end - 180)))
         self.ppr_events = keep
-        return 1.0 - self.ppr_a * w
+        return (1.0 - self.ppr_a * w) / self.ppr_norm
 
     def _fat_si(self, m: float) -> float:
         """Fat-induced insulin resistance: 1 − ρ·fat/50 at full effect, ramping in from 2 h, full 3–6 h,
