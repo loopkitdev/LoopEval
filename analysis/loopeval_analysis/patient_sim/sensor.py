@@ -172,6 +172,7 @@ class Sensor:
             if "sensor_tamp" in overrides or "sensor_tampsd" in overrides:
                 kw["trans_amp"] = (overrides.get("sensor_tamp", self.f.trans_amp[0]), overrides.get("sensor_tampsd", self.f.trans_amp[1]))
             if "sensor_ttau" in overrides: kw["trans_tau"] = overrides["sensor_ttau"]
+            if "sensor_tdown" in overrides: kw["trans_down"] = overrides["sensor_tdown"]
             if "sensor_tprop" in overrides: kw["trans_prop"] = overrides["sensor_tprop"]
             if "sensor_enoise" in overrides: kw["early_noise"] = (overrides["sensor_enoise"], overrides.get("sensor_entau", self.f.early_noise[1]))
             if "sensor_sbias" in overrides or "sensor_sbtau" in overrides:
