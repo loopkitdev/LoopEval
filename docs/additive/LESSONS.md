@@ -7133,3 +7133,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      levers so far (need shape, GH, protein, emptying, window end, dawn SI, night SI), none moves the share toward 22%;
      the next place to look is what the donors do at night that the twins do not — night eating and pre-emptive treatment
      (`night_rescue.py`), and Loop's own night suspension pattern.
+
+442. **At night the donors act before a low twice as often as they rescue one; the twins cannot act early once woken.**
+     `night_rescue.py`, per person-night: donors pre-emptive unannounced rises from BG < 100 0.222 (onset p50 88 mg/dL),
+     flagged rescues 0.075 (onset 64); twins c418_f5 0.149 / 0.115 (onset 87 / 59). In the behaviour code a sleeping person
+     woken by the low alert (~76 mg/dL) rescues only below `treat_thr` 70 and the proactive check requires being awake, so a
+     woken twin at 76 and falling goes back to sleep and reaches the low. `night_pro`: someone an alarm has woken may act
+     proactively; `uls`: Dexcom's predictive Urgent Low Soon alert (projected 55 mg/dL within 20 min; G6 / G7 default on;
+     Libre 3 has none). Arms night_pro / night_pro + uls on c440_db (c445_np / c446_npu).
