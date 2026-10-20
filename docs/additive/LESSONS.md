@@ -7155,6 +7155,6 @@ outputs in gamepc ~/additive/runs/c290–c312).
      donors 151.9 / 38.7), 3-h meal change +15.4 (+13.6), lows 0.83 / day, night share 32%. The earlier "neutral changes
      scatter 27–31" band was measured on one draw with differing seeds inside it; the draw of donors behind the twins
      dominates. Post-meal window 0.5 (c448_pr5): meal +18.0, minutes per low failing again (22.5), 38 of 51 — not adopted,
-     its meal gain is inside the draw scatter. From here, an arm that changes the count or a single statistic by less than
+     its meal gain is inside the draw scatter. On draw 2 (c449_pr5s vs c447_rs): meal +18.0 (+15.4), mean 159.5 (158.9), TIR 65.5, 30 of 51 (34) — the same trade on both draws (meal +2.6–4.4, count −2 to −4, mean up); not adopted. From here, an arm that changes the count or a single statistic by less than
      the draw scatter is scored on two draws (seed0 1000 and 5000) before adoption; components already adopted on mechanism
      and evidence (macro_own, the relative window, dose_beta, night_pro, uls) stand on those, not on their single-draw counts.
