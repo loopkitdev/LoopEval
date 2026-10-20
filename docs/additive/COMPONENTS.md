@@ -86,7 +86,7 @@ One parameter set per session; per family (G6, G7, Libre 3, Libre 2, Medtronic).
 
 | Component | Model form | Parameters | Evidence | Status |
 |---|---|---|---|---|
-| D1 BG→IG + device lag | first-order filter | τ lnN per family: G6 3.78, G7 3.5, Libre 3 1.8, Medtronic 8.4 min | 03 §2.2 (Vettoretti 2019; device studies) | wired |
+| D1 BG→IG + device lag | first-order filter; G7 τ × 1.5 while glucose falls | τ lnN per family: G6 3.78, G7 3.5, Libre 3 1.8, Medtronic 8.4 min | 03 §2.2 (Vettoretti 2019; device studies); fall factor on G7 MARD by rate of change (Garg 2022 Table 5; LESSONS 391) | wired |
 | D2 Calibration drift | gain a0·(drift over the session, sampled jointly)·day-1 deficit + offset b0 | G7 a0 N(0.98, 0.04), b0 N(3, 3); G6 a0 N(0.96, 0.05), b0 N(2, 3); Libre 3 a0 N(0.965, 0.03), b0 N(0, 2); Libre 2 / Medtronic keep Vettoretti / Biagi values; day-1 deficit N(0.06, 0.05) decaying 12 h | FITTED to FDA iCGM bias/MARD by range and two-sensor PARD (sensor_fit.py; evidence/08; LESSONS 31) | calibrated |
 | D3 Noise, sensor-specific | AR(2) on the reporting grid, Student-t df 4, scale √(q² + (1 − q²)(IG/130)²) (floor ⊕ proportional) | α (1.30, −0.42); σ G7 N(1.8, 0.8) (donors' high-frequency CGM noise and FDA K213919, LESSONS 269), G6 N(1.4, 0.8), Libre 3 N(1.5, 0.5); q 0.5 | Vettoretti 2019 shape; size fitted with D2 and D3b | calibrated |
 | D3b Noise, common to co-located sensors | AR(3) (1.584, −0.884, 0.180), continuous across sessions (interstitial physiology) | σ G7 2.8, G6 2.5, Libre 3 3.0 | Biagi 2017 (Enlite: common var 3.98 > sensor-specific 2.54); raises YSI error without raising PARD; G7 σ fitted to the donors' 5-min steps (LESSONS 384) | calibrated |
