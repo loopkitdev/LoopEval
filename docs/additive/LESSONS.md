@@ -7286,5 +7286,7 @@ outputs in gamepc ~/additive/runs/c290–c312).
      adopted. Donors' Omnipod basal records deliver a median 94.2% of rate × time (p10 / p90 86.7 / 99.1%, 60 donors), so a
      TDD read at rates overstates what the donor's body received by ~3% (basal ~half of TDD; up to ~7%). The twin's body is
      built so its need equals the template TDD (`persons.csv` tdd, ice role); if that is rate-based, the body is ~3% larger
-     than its donor's, and Loop asks for the difference. Check the definition with the ice role before changing it; it
-     explains at most a third of the 8–14% excess.
+     than its donor's, and Loop asks for the difference. Checked: the ice extractor builds TDD from record volumes (`extract.insulin_grid`, `volume`), so the body is already
+     built on what the donor received and the rounding is not the cause. Read either way (twin volume TDD 39.5 vs donors'
+     ~37.5 by volume; 41.8 vs 38.7 by rate) the twins need ~5–8% more insulin than their donors: a real gap, open with the
+     level gap (LESSONS 445).
