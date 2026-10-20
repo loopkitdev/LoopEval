@@ -7149,3 +7149,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Failing at c446: G7 one short-scale row (0.245 vs 0.331) and between_day_frac (borderline). 3-h meal change 15.3 / 13.6
      (16.9): these switches act only on lows, so read it as the arms' scatter (13.6–17.9 over this session). Both defaults
      on: each is a mechanism, not a fit — someone woken is awake, and Urgent Low Soon is on by default on G6 / G7.
+
+444. **A different draw of people moves the matched count by up to 6; single-draw differences of 1–3 are noise.** c446_npu's
+     model on seed 5000 (c447_rs; templates drawn afresh): 34 of 51 (40), mean 158.9 and TDD 42.3 failing (155.5 / 39.5;
+     donors 151.9 / 38.7), 3-h meal change +15.4 (+13.6), lows 0.83 / day, night share 32%. The earlier "neutral changes
+     scatter 27–31" band was measured on one draw with differing seeds inside it; the draw of donors behind the twins
+     dominates. Post-meal window 0.5 (c448_pr5): meal +18.0, minutes per low failing again (22.5), 38 of 51 — not adopted,
+     its meal gain is inside the draw scatter. From here, an arm that changes the count or a single statistic by less than
+     the draw scatter is scored on two draws (seed0 1000 and 5000) before adoption; components already adopted on mechanism
+     and evidence (macro_own, the relative window, dose_beta, night_pro, uls) stand on those, not on their single-draw counts.
