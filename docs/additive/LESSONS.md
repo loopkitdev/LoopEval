@@ -7266,3 +7266,16 @@ outputs in gamepc ~/additive/runs/c290–c312).
      checks (LESSONS 445–454: body ISF, unlogged load, corrections, timing, gut, sensor, insulin term); what is left
      unmeasured is everything the donors do that leaves no record — eating they did not log at all being smaller and
      earlier-treated than the labeller can see, and how they handle highs outside the app.
+
+455. **Twin delivery is now scored as the donors' statistics read records — by rate, not pulse-rounded volume; like for
+     like, the twins' Loop commands 8–14% more insulin than the donors'.** The zero-delivery gap (36.5 vs 32.5%) was a
+     scoring mismatch, not withholding (LESSONS 406's reading): the twins' physical delivery has 31–32.5% zero bins, and
+     both sides through the ice extractor give 30.7 vs 31.6%. Real pods round each temp down to whole pulses — 94.8% of the
+     donors' 3–7-min temps below 0.6 U/h record floor(rate·dur / 0.05) pulses, almost always 0 U — but eda's delivery
+     statistics read each record's RATE (`dists._effective_basal_rate`, `rate_uhr`, last writer wins), so such a temp
+     counts as delivering at 0.45 U/h; `validate._record_delivery` floored the volume. Now it lays each record's rate over
+     its span (zero-rate records overwrite). Rescored c446_npu / c447_rs (old → new; donors): zero_frac 36.5 / 36.8 → 29.6 /
+     29.9 (32.5), TDD 39.5 / 42.3 → 41.8 / 44.3 (38.7), day / night 1.85 / 1.91 → 1.77 / 1.86 (2.00), med_nonzero 0.100 →
+     0.106 (0.085); matched 40 / 34 → 39 / 34. The volume scoring had trimmed the twins' TDD by pulse rounding; read like for
+     like, the twins need more insulin than their donors, which fits the level gap (LESSONS 445: high-gap twins take more
+     insulin and still run high). Delivery rows in lessons 406–454 used the volume scoring.
