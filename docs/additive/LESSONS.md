@@ -7036,3 +7036,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      03–06 h 134 / 126 / 123 / 122 (141 / 136 / 130 / 127), lunch still falls by 180 min, pooled 3-h change +13.3 (+21); 37 of
      51. Lunch-only: 36. Not adopted (switch kept). The trough stays when the late evening matches, so it is not only the
      evening's insulin (LESSONS 424); and the lunch tail needs something the window cannot give.
+
+430. **Slower morning emptying brings breakfast and the pooled meal change toward the donors', at the cost of Goo's
+     morning–evening ratio.** `ge_am` 1.0 / 1.1 (1.25 with `ge_pm` 0.8, Goo 1987's ~1.5× morning–evening ratio; c431 on
+     c418_f5): breakfast peak +40 / +47 (c418_f5 +50; donors +33 at 90 min); lunch +33 / +38 peak, tail unchanged; dinner +23 /
+     +20 at 120 min (+28; donors +9); 3-h meal change +19.8 / +16.2 (+17.4; +21); t54 0.196 / 0.205%; 38 / 37 of 51 (40).
+     Not adopted: 1.0 halves the measured morning–evening ratio and costs two rows. With LESSONS 429, the slot shapes say
+     breakfast arrives too fast, lunch leaves too soon and dinner rises too much; no single emptying or sensitivity term
+     carries all three. Next: the slot composition itself (Vetrani 2022 fat / protein per carb gram: breakfast 0.72 / 0.86,
+     lunch 0.97 / 0.86, dinner 1.14 / 1.24) and the per-slot fast liquid share.
