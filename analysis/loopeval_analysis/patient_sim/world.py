@@ -354,6 +354,8 @@ class World:
             self.beh_traits.p_log_rescue = enable["p_log_rescue"]
         if enable and enable.get("graze_eve"):
             self.beh_traits.graze_eve = True
+        if enable and enable.get("macro_own"):
+            self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.macro_own = True
         if enable and "slot_comp" in enable:
             self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.slot_comp = bool(enable["slot_comp"])
         if enable and isinstance(enable.get("snack_fast"), float):

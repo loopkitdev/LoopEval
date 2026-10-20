@@ -83,6 +83,8 @@ class BehaviorTraits:
                                          # (donors: 9.5% of bolused entries ≥ 15 g, second ~13 min later after more carbs; LESSONS 186)
     split_full: bool = False             # no halved split bolus: every meal bolus is the full recommendation, and second
                                          # boluses come from second helpings (donors 1.0 of the recommendation in 96%; LESSONS 186)
+    macro_own: bool = False              # fat / protein per carb gram from the person's own carb share of energy (LESSONS 431)
+    bw: float = 75.0                     # body weight (kg), for macro_own's energy estimate
     slot_comp: bool = True               # fat/protein per carb gram by meal slot (LESSONS 170)  # default since 2026-10-18: breakfast's shape matches the donors' (LESSONS 213)
     count_size: str = "log"              # "brazeau": the size-dependent mean error of Brazeau 2013 (LESSONS 146)
     count_bias: float = -0.10            # person's mean carb-count error (Brazeau 2013: 63% under)
@@ -292,7 +294,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     rbg = _num(rates, "rescue_bg_med")
     t = BehaviorTraits(
         bed=float(rng.normal(23 * 60, 50)), wake=float(rng.normal(7 * 60, 50)),
-        snack_rate=snack_rate, carbs_day=person.truth["carbs_g_day"],
+        snack_rate=snack_rate, carbs_day=person.truth["carbs_g_day"], bw=float(getattr(person, "bw", 75.0)),
         p_entry_meal=p_meal, p_entry_snack=p_snack,
         count_bias=count_bias, count_sd=lj(0.3, 0.3),
         bolus_timing=timing, lead_med=float(lead - 2.0) if np.isfinite(lead) else float("nan"),
@@ -654,6 +656,14 @@ class Behavior:
             # composition [J]: T1D adults ~40% energy carbohydrate, 40% fat, 18% protein (Snell-Bergeon 2009,
             # unverified) → per carb gram ~0.44 g fat, 0.45 g protein for meals; snacks carry less
             fat_r, pro_r = (0.44, 0.45) if kind == "meal" else (0.2, 0.2)
+            if t.macro_own:
+                # the person's own mix (Pete 2026-10-20: an individual trait): energy ≈ 30 kcal/kg [J]; carbohydrate takes its
+                # share from the person's eaten carbs (clipped 15–65%); the rest is fat : protein 69 : 31 by energy (T1D adults,
+                # n = 470: fat 75 g, protein 70 g/day; PMC11446970). At 40% carbohydrate this gives the cohort's 0.44 / 0.45
+                e_ = 30.0 * t.bw; ec = float(np.clip(4.0 * t.carbs_day, 0.15 * e_, 0.65 * e_)); cg = ec / 4.0
+                f_day, p_day = 0.69 * (e_ - ec) / 9.0 / cg, 0.31 * (e_ - ec) / 4.0 / cg
+                if kind == "meal": fat_r, pro_r = f_day, p_day
+                else: fat_r, pro_r = 0.2 * f_day / 0.44, 0.2 * p_day / 0.45
             if t.unent_light and kind == "meal" and entered is None:
                 # experiment: what goes unentered is lighter food, as snacks are (missed boluses run highest for snacks,
                 # PMC2827497); tests whether the meal's fat / protein tail is what keeps unannounced rises up (LESSONS 284)
