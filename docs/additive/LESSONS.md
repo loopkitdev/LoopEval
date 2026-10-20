@@ -6881,3 +6881,24 @@ outputs in gamepc ~/additive/runs/c290–c312).
      low duration p90 70 / 65 (65), night share 38 / 37%; min_below70 still fails (p 0.001); 39 / 39 of 51. Not adopted:
      ~0.97 is beyond any evidence (Buckingham 2005 29–53% in youth), and the night share — the larger gap — does not move.
      Open: why the twins go low at night 1.7× as often as the donors (LESSONS 167 found the same on an older base).
+
+415. **Four more papers read in full (Pete, 2026-10-20).**
+     - **Edge, Matthews & Dunger 1990, Clin Endocrinol 33:729** (26 adolescents, overnight euglycaemic clamp, i.v. insulin):
+       insulin requirement 05–08 h 15.22 vs 01–04 h 12.42 mU/kg/h (+25%); per person −20% to +150%, correlated with mean
+       overnight GH (r 0.63); pirenzepine GH suppression removed the dawn rise in proportion. Supports B2 / gh (dawn from the
+       donor's basal profile, its night-to-night size tracking GH).
+     - **Pal, Phillips, Matthews & Dunger 1992, Diabetologia 35:542** (6 young T1D adults, somatostatin, GH as three 1-h
+       pulses 3 h apart, peaks ~30 mU/L, vs the same dose continuous): insulin requirement oscillated ~0.1–0.8 mU/kg/min,
+       rising ~2 h after each pulse, peak at 3 h, back by 4 h (cross-correlation maximum at 135 min lag, r 0.21); night mean
+       0.17 vs 0.09 mU/kg/min (+88%); continuous GH no change. The within-night GH pulse rhythm, not its mean, moves insulin
+       need on a ~3-h scale. The model has no within-night GH pulses (gh acts as a night-level dawn increment) — a named,
+       evidenced candidate for night insulin-need structure, to test against the night lows (LESSONS 414).
+     - **Perriello … Bolli 1991, Diabetologia 34:21** (114 T1D, i.v. insulin by Harvard pump overnight): need falls to 0.102
+       mU/kg/min at 02:40, rises 30% to 0.135 at 06:40; dawn (05–07 vs 01–03 h) 19.4 ± 0.5% (6–31%), present in 89%, larger
+       with shorter duration and worse HbA1c; in 29 people on three nights the curves are superimposable and the CV of each
+       hour's insulin rate across nights never exceeds 10%. Intrinsic night-to-night variation is small (B3's day-level CV 8%
+       agrees); Pal's pulses must repeat within a person from night to night.
+     - **Moberg, Kollind, Lins & Adamson 1994, Diabetologia 37:247** (10 T1D adults, 20-min Stroop stress, insulin-glucose
+       infusion test): glucose higher from 1 h (8.0 vs 6.8 mmol/L) to 5.5 h (11.4 vs 8.9), steady state 3–6.5 h 10.6 vs 8.7
+       (SI ×0.82 at fixed infusion); no subject fell; adrenaline, cortisol and GH rose. B (stress) set to SI −18% over 1–6 h
+       (was −10% over 1–5 h [J]); the responder share (1/3, Riazi 2004, everyday stressors) is kept.

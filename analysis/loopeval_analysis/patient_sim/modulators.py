@@ -89,7 +89,7 @@ class ModTraits:
     p_drink: float = 0.0                # nights with ≥ 2 drinks (≤ 20%) [J within range]
     stress_reactive: bool = False       # ~1/3 of people raise glucose under stress (Riazi 2004)
     p_stress: float = 0.4               # days with a stressor (NSDE ~40%)
-    stress_si: float = 0.10             # SI loss 1–5 h after onset (Moberg 1994; low end for everyday stress)
+    stress_si: float = 0.18             # SI loss 1–6 h after onset: Moberg 1994 full text, steady-state glucose 10.6 vs 8.7 mmol/L under a fixed insulin-glucose infusion (SI ×0.82), from 1 h to the end at 6.5 h (LESSONS 415; was 0.10 over 1–5 h)
     steroid_rate: float = 0.09          # oral glucocorticoid courses per year: Waljee 2017's 21.1% of adults with >= 1 in 3 years
                                         # is 7.4%/yr for a first course; repeats lift it a little [J]
     preg_week: float = float("nan")     # gestational week at the simulation's start (scenario X9); nan = not pregnant
@@ -346,7 +346,7 @@ class Modulators:
             si *= float(self.caf[min(int(m), len(self.caf) - 1)])
         if en.get("stress") and self.t.stress_reactive and self.stress_on[dd] >= 0:
             x = mm - self.stress_on[dd]
-            if 60 <= x < 300: si *= 1.0 - self.t.stress_si
+            if 60 <= x < 360: si *= 1.0 - self.t.stress_si
         if en.get("alcohol") and self.t.drinker:
             if mm >= 21 * 60 and self.drink[dd]: si *= 0.88                      # ethanol present (Kerr: −12%)
             if mm < 3 * 60 and d >= 1 and self.drink[max(0, d - 1)]: si *= 0.88
