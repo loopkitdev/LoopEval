@@ -175,10 +175,10 @@ def real_stats(export: Path, block_days: int = 13, per_block: bool = False):
 
 
 def _record_delivery(run: Path, truth: pd.DataFrame) -> pd.Series:
-    """Delivered insulin in 5-min bins built like the donors' pump records (LESSONS 404–406): Loop's commanded basal rate
-    from the trace (delivery[], source candidate), consecutive equal rates merged into one record whose volume is pulse-
-    truncated (0.05 U) and spread evenly over its span, as Tidepool's Omnipod basal records are; boluses in their minute.
-    Falls back to the physical per-minute delivery when the trace has no candidate stream."""
+    """Delivered insulin in 5-min bins built the way the donors' statistics are (LESSONS 404–406, 455): each basal record's
+    RATE over its span, as dists._effective_basal_rate reads the donors' records (rate_uhr, last writer wins), not its
+    pulse-truncated volume — a 5-min Omnipod temp at 0.45 U/h records 0 U but its rate counts in the donors' basal_eff;
+    boluses in their minute. Falls back to the physical per-minute delivery when the trace has no candidate stream."""
     idx = _series(truth.m)
     tp = run / "trace.json"
     d = [x for x in json.load(open(tp)).get("delivery", []) if x.get("source") == "candidate"] if tp.exists() else []
@@ -192,11 +192,10 @@ def _record_delivery(run: Path, truth: pd.DataFrame) -> pd.Series:
         if recs and abs(recs[-1][1] - s_) < 0.5 and abs(recs[-1][2] - r) < 1e-6: recs[-1][1] = e_
         else: recs.append([s_, e_, r])
     for s_, e_, r in recs:
-        v = np.floor(r * (e_ - s_) / 60.0 / 0.05 + 1e-9) * 0.05
         i0, i1 = int(np.floor(s_)), int(np.floor(e_))
-        if v <= 0 or i1 <= i0: continue
+        if i1 <= i0: continue
         lo, hi = max(i0, 0), min(i1, n)
-        if hi > lo: u[lo:hi] += v / (i1 - i0)
+        if hi > lo: u[lo:hi] = max(r, 0.0) / 60.0           # rate per minute; a later record overwrites (last writer wins)
     for x in d:
         if x["kind"] == "bolus" and float(x.get("amountU") or 0) > 0:
             i0 = int(np.floor(mins(x["t"])))
