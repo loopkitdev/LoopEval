@@ -7,7 +7,7 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c403_cl105** (2026-10-20): 112 people × 14 days, 40 of eda's 51 statistics matched (delivery scored as pump records, L 406) (KS p > 0.05 against the 206 pilot
+**c407_pp2** (2026-10-20): 112 people × 14 days, 37 of eda's 51 statistics matched (delivery scored as pump records, L 406; post-meal window on, L 408) (KS p > 0.05 against the 206 pilot
 donors in 13-day blocks); mean, TIR and TDD on the donors'.
 
 **Personal basis legend**
@@ -124,6 +124,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 | A10c Slow late phase | 15% of each meal empties at Dalla Man kmin 0.008 /min | share [J] | Dalla Man 2007 | L 120; raising it flattens meals (L 364) | Cohort |
 | A11 Hypoglycaemic acceleration | emptying × (1 + 1.5σ((70 − G)/5)) | ×2.5 below ~60 | Schvarcz 1995 | evidence/01 §6.4 | Cohort |
 | A12 Fat and protein | early: fat slows emptying (via the energy ceiling); late: protein glucose 0.3 g / g, delay 90 min, chain 1/60; fat SI dip 1 − ρ·fat/50 from 0.5 h, full 1.5–6 h, gone by 10 h (absolute) | fat / protein per carb gram 0.44 / 0.45 (snacks 0.2), ±50% per meal; ρ U(0.1, 0.6) | Wolpert 2013 (+42% insulin after a high-fat dinner); Laxminarayan 2015 onset; Elleri 2013 LG meal (~0.49 g glucose per g protein + fat); Paterson 2017 | L 151, 352, 370, 373 — the dinner's fat now carries the night need | **Drawn** ρ, **Event** composition |
+| A12b Post-meal insulin action | SI × (1 − a·w) after each main meal; w in over 30–60 min, full 60–180, out by 240 | a 0.2 | fitted to the donors' post-meal counteraction; no tracer study sizes it | L 321, 407, 408 (Pete: meal shape over lows) | Cohort |
 | A13 Fast glucose | rescue, proactive snack, exercise carbs, grazing: fast parcel, bioavailability f × 1.25 | — | Brodows 1984 (~3–4 mg/dL per g) | L 18 | Derived per person |
 | A14 Circadian gastric emptying | emptying ×1.25 at 06–11 h, ×0.8 at 17–23 h, 1-h ramps | Goo 1987 ratio 1.54; split [J] | the split with the morning at 1.0 breaks dinner (L 375) | L 180, 339, 351 | Cohort |
 | A15 Meal-slot composition | fat ×0.72 / 0.97 / 1.14, protein ×0.86 / 0.86 / 1.24 at breakfast / lunch / dinner | — | Vetrani 2022 (1,264 records, HCL) | L 338 | Cohort |
