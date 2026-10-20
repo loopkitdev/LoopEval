@@ -174,39 +174,6 @@ def real_stats(export: Path, block_days: int = 13, per_block: bool = False):
     return pd.DataFrame(rows).median(numeric_only=True).to_dict()
 
 
-def _record_delivery(tr: dict, truth: pd.DataFrame) -> pd.Series:
-    """Delivered insulin in 5-min bins built like the donors' pump records (LESSONS 405): consecutive basal segments the
-    plant received at one rate are merged into one record and its volume spread evenly over its span, as Tidepool basal
-    records are (pulse-quantised volumes over 5–50 min); boluses stay in their minute. The per-minute physical delivery
-    (pulse-placed) is the fallback when no received stream exists."""
-    idx = _series(truth.m)
-    rec = tr.get("received")
-    if not rec:
-        return pd.Series(truth.delivered.to_numpy(), index=idx).resample("5min").sum()
-    m0 = float(truth.m.min()); n = len(truth); u = np.zeros(n)
-    segs = sorted((float(s_), float(e_), float(v)) for typ, s_, e_, v in rec if typ != "bolus")
-    merged = []
-    for s_, e_, v in segs:
-        r = v / max(e_ - s_, 1e-9)
-        if merged and abs(merged[-1][1] - s_) < 1e-6 and abs(merged[-1][3] - r) < 1e-9:
-            merged[-1][1] = e_; merged[-1][2] += v
-        else:
-            merged.append([s_, e_, v, r])
-    for s_, e_, v, _ in merged:
-        if v <= 0: continue
-        i0, i1 = int(np.floor(s_ - m0)), int(np.floor(e_ - m0))
-        if i1 <= i0:
-            if 0 <= i0 < n: u[i0] += v
-            continue
-        lo, hi = max(i0, 0), min(i1, n)
-        if hi > lo: u[lo:hi] += v / (i1 - i0)
-    for typ, s_, e_, v in rec:
-        if typ == "bolus" and v > 0:
-            i0 = int(np.floor(float(s_) - m0))
-            if 0 <= i0 < n: u[i0] += float(v)
-    return pd.Series(u, index=idx).resample("5min").sum()
-
-
 def person_stats(run: Path) -> dict | None:
     tp = run / "truth.pkl"
     if not tp.exists(): return None
@@ -222,7 +189,7 @@ def person_stats(run: Path) -> dict | None:
     days = (truth.m.max() - truth.m.min()) / 1440.0
     out = dict(name=person.name, template=person.template, sensor=person.sensor, strategy=person.strategy,
                formulation=person.formulation, days=days)
-    out.update(core_stats(cgm, _record_delivery(tr, truth), days))
+    out.update(core_stats(cgm, pd.Series(truth.delivered.to_numpy(), index=_series(truth.m)).resample("5min").sum(), days))
     # transport check: what LoopEval sent must reach the pump (LESSONS 19); faults lose only a little
     rec = tr.get("received")
     if rec:
