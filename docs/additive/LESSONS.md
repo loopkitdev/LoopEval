@@ -7246,3 +7246,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      fast end. So the ~15–20% lower peak of the labelled (ICE-measured) rises (LESSONS 451) arises between appearance and
      the label: insulin acting during the rise, the sensor's smoothing and lag, or the labeller's baseline on a twin's
      day. Not a gut lever.
+
+453. **The sensor does not flatten the twins' rises either.** Steepest 30-min climb within 3 h of a labelled onset, G7
+     twins (`peak_sensor.py`, c446_npu): unannounced CGM 35.0 vs true 17.4 mg/dL (ratio p50 1.69), announced 42.0 vs 32.2
+     (1.24) — sensor noise steepens the reported climbs. With LESSONS 452 (gut appearance at Elleri's fast end), the lower
+     labelled peak g-eq/h (LESSONS 451) comes from the labeller's insulin term: ICE adds back the insulin effect from Loop's
+     own model with the person's settings ISF, so where the body's insulin acts earlier or harder during a rise than Loop's
+     model says (fast-acting PK, dose_beta, the post-meal window), the label adds back too little and the rise reads
+     flatter. Next: the twins' body insulin action against Loop's model over 0–2 h after meal boluses (truth disposal vs
+     the model's predicted effect), on the donors' measured counterpart where one exists.
