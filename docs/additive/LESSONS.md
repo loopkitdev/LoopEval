@@ -6911,3 +6911,19 @@ outputs in gamepc ~/additive/runs/c290–c312).
      rates are for a stepped i.v. insulin (plasma at steady state in minutes); under subcutaneous delivery absorption paces
      the hepatic signal, and the faster onset moves the meal nadir earlier than the tracer without deepening it or
      steepening falls. The fast-fall tail stays open; Heinemann 2002 (real-life absorption variability) is the next source.
+
+417. **Heinemann 2002, Asplin 1989 and Snaith 2026 read in full (Pete, 2026-10-20); two components built from them.**
+     - **Heinemann 2002, Diabetes Technol Ther 4:673** (review): rapid-acting and regular insulin, healthy subjects under
+       clamps, intra-individual CV of summary measures 10–20% (aspart ≈ regular); but the GIR at each time 60–360 min varies
+       25–30% across occasions — insulin action fluctuates along the curve, not only per dose. Local blood flow drives it
+       (Table 1: temperature, activity, massage, injection depth, region, lipodystrophy). In daily life with T1D, identical
+       test meals: post-meal glucose excursions intra-individual CV 48–79% (lispro 48–79%, regular 65–77%). A4 (per-dose
+       absorption CV 15%, Heise 2017) carries the summary part; the within-curve part is new: **A4c `flow_sd`** (log-OU on
+       the absorption rate, off; sd and τ [J]), the evidenced candidate for the missing fast falls (c418).
+     - **Asplin et al. 1989, J Clin Endocrinol Metab 69:239** (24-h GH at 10-min sampling, adults with T1D aged 25–29,
+       HbA1c 12–14%): GH pulses 7.2 / 11.1 per 24 h (men / women; non-DM 4.6 / 7.4), maximal pulse amplitude 27 / 14 µg/L,
+       width 133 / 96 min, interpulse valley higher, circadian acrophase ~01:00, pulses day and night. Pal 1992's 30 mU/L
+       pulses (~10–12 µg/L) are within the adult T1D range: B2b's three night pulses 3 h apart are a conservative adult form.
+     - **Snaith et al. 2026, Diabetes Care 49:161** (TIRTLE1, 24 T1D adults BMI > 30, tirzepatide 2.5 → 5 mg weekly, 12 weeks):
+       TDD −35.1% vs placebo (bolus −49%, basal −25%), −42% by week 6 in pump users; weight −8.7 kg; energy intake −429
+       kcal/day; TIR unchanged. Sizes the X tirzepatide scenario (evidence/16).
