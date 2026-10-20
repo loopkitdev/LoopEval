@@ -6936,3 +6936,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      meal change +13.2 / +14.2; 39 / 37 of 51. The duration gains are real; the meal loss is the form: SI is raised by the
      mean-preserving offset from 22:00 until the first pulse acts, which is the third hour after dinner. Off; next form
      keeps the compensation after 00:00 (or on the pulse-free hours after the last pulse) so evening meals are untouched.
+
+419. **Within-curve absorption fluctuation (Heinemann 2002) brings the lows near the donors' with the meal shape kept
+     (adopted, 40 of 51).** A4c `flow_sd` (log-OU on the subcutaneous absorption rate, τ 60 min [J]) 0.3 / 0.5, c418 on
+     c417_st: t54 0.123 / 0.175% (0.118; donors 0.190), lows 0.83 / 0.92 per day (0.67; 1.00), P(reach 54) 0.21 / 0.22,
+     share of lows < 54 0.355 / 0.352 (0.370); day episodes 451 / 524 (420), night share 41 / 39%; falls at 90–130 reaching
+     < 70 within 30 min 2.0 / 2.4% (1.8; 3.9), fall tail p10 −26.0 / −26.2 (unchanged; −29); 3-h meal change +15.5 / +17.4;
+     mean 156.2 / 157.5 (151.9), CV 35.4 / 35.7; minutes per low 22.5 / 25 (fails); 38 / 40 of 51 (39). The lows return by
+     day through ordinary falls carried further by hours-scale swings in insulin action, not through a steeper tail. An
+     absorption-rate sd of 0.5 is in keeping with Heinemann's 25–30% GIR variation along the action curve once insulin's
+     own kinetics smooth it. Adopted 0.5 (default); reference c418_f5.

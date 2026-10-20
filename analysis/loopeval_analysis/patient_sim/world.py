@@ -558,7 +558,7 @@ class World:
         self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.2   # Pete 2026-10-20: meal shape over lows (LESSONS 408)
         self.ppr_shift = float(enable["ppr_shift"]) if enable and isinstance(enable.get("ppr_shift"), float) else 0.0
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
-        self.flow_sd = float(enable["flow_sd"]) if enable and isinstance(enable.get("flow_sd"), float) else 0.0   # A4c (LESSONS 417)
+        self.flow_sd = float(enable["flow_sd"]) if enable and isinstance(enable.get("flow_sd"), float) else 0.5   # A4c, default since 2026-10-20 (Heinemann 2002; LESSONS 419)
         self.flow_tau = float(enable["flow_tau"]) if enable and isinstance(enable.get("flow_tau"), float) else 60.0
         self._flow_rng = np.random.default_rng(int(person.seed) + 4421); self._flow_z = 0.0; self._flow_last = None
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)

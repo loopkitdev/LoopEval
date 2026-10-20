@@ -7,7 +7,7 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c417_st** (2026-10-20): 112 people × 14 days, 39 of eda's 51 statistics matched (delivery scored as pump records, L 406; post-meal window on, L 408) (KS p > 0.05 against the 206 pilot
+**c418_f5** (2026-10-20): 112 people × 14 days, 40 of eda's 51 statistics matched (delivery scored as pump records, L 406; post-meal window on, L 408) (KS p > 0.05 against the 206 pilot
 donors in 13-day blocks); mean, TIR and TDD on the donors'.
 
 **Personal basis legend**
@@ -113,6 +113,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 | A2 Subcutaneous insulin PK | per-dose depot: delay → Isc1 →kd→ Isc2 →ka2→ plasma, ke 0.127 | kd lnN(0.030, 0.31), ka2 lnN(0.018, 0.21), VI 0.126 L/kg | ka2 centre refit to the lispro clamp profile; half the ReplayBG log-SD | L 9 | **Drawn** |
 | A3 Formulations | delay, kd/ka2 multipliers, fast-route share | lispro/aspart reference; Fiasp, Lyumjev fitted to clamp contrasts; glulisine; regular | `insulins.fit_formulations` | evidence/01 §3.2 | **Donor** (via G6) |
 | A4 Per-dose absorption jitter | ω scales kd, ka2, fast route per bolus | lnN CV 15% | Heise 2017 repeat clamps net of the SI share | evidence/07 | **Event** |
+| A4c Absorption-rate fluctuation | absorption rate × exp(log-OU), along each dose's curve | sd 0.5, τ 60 min [J] | Heinemann 2002: GIR at each time varies 25–30% across occasions vs 10–20% for summary measures (local blood flow) | L 417, 419 | **Event** |
 | A4b Posture | upright absorption × (1 − p), asleep supine | p = 0.5 × U(0.19, 0.44) [J half-size] | Hildebrandt 1985 | L 163, 169 | **Drawn** |
 | A5 Insulin action — disposal | X_D (rate p2) on absolute insulin; uptake X_D·M(G) − X_b·Gb; M = Gb + κ(G − Gb) above Gb, ∝ G below | p2 0.025 /min; κ lnN(1.0, 0.4) | p2: 0.2 U/kg lispro clamp (GIR peak ~100 min); κ: Best 1981 full text (uptake ∝ glucose) | L 303, 365 | Cohort p2; **Drawn** κ |
 | A6 Insulin action — EGP | X_E (rate p2E) on relative insulin through a saturating hepatic signal; EGP = EGP_b · c(t) · clip(1 − sE·X_E) | EGP_b N(2.5, 0.33) mg/kg/min; p2E 0.012, faster offset 0.015; sE from G8's share | clamp GIR peak 108 min; post-meal EGP nadir vs Romeres 2025 | L 131, 193–196 | **Drawn** |
@@ -259,7 +260,7 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
   sd/mad, kurtosis, v_skew (G7 too), short Hurst, measurement noise (G7 too) and ACF minimum.
 - **Failing (11)**: minutes per low (borderline); G7 v_sd (6.3 vs 7.2), kurtosis, short Hurst, sd/mad; ACF zero crossing (55 vs 40 min,
   L 385–389); volatility dispersion; circadian amplitude; typical nonzero delivery (`med_nonzero`, L 387) and zero-delivery share (36.9 vs 32.5%: the twins' Loop withholds more, L 398, 406); between-day
-  fraction and TDD persistence (`ac1`). True lows run at about 60% of the donors' time below 54 (0.118 vs 0.190%; L 393–394, 401).
+  fraction and TDD persistence (`ac1`). Time below 54 0.175 vs 0.190% since the absorption fluctuation (L 419).
 
 ## 11. Switches (`cohort.py`)
 
