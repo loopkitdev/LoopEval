@@ -198,6 +198,8 @@ class World:
                 # scenario X9: menstruating people are pregnant at this gestational week from day 0; no menstrual cycle
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.preg_week = enable["preg_week"]
                 self.mod_traits.menstruating = False
+            if enable.get("gh_pulse_net"):
+                self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.gh_pulse_net = True
             if isinstance(enable.get("gh_pulse_amp"), float):
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.gh_pulse_amp = enable["gh_pulse_amp"]
             if "gh_pulse" in enable and "gh_pulse" not in self.mod_traits.enabled:      # persons sampled before B2b
