@@ -6572,3 +6572,22 @@ outputs in gamepc ~/additive/runs/c290–c312).
      p 0.039. `cr_mult` 0.8 / 0.65 (CRmax median 0.156 / 0.127), c383: share < 54 0.308 / 0.319, nadirs 45 / 52 / 58 and 44 / 52 /
      57, P(reach 54) p 0.020 / 0.050, t54 p 0.046 / 0.110, min_below70 p 0.051 / 0.006; 35 / 37 of 51 (38). The depth no longer
      follows CRmax; what is short is the fall into the low (the fast-falls limit, LESSONS 236–249). CRmax stays 0.195.
+
+384. **The sensor's noise level wanders faster and further than the FDA fit set it; fitted on the donors' 5-min steps it
+     takes the cohort to 45 of 51 (adopted).** Pete (2026-10-20): fit from the literature first, then from our data. The FDA
+     accuracy tables do not identify how the noise level varies over hours; the donors' 5-min steps do. `sensor_eda.py`
+     re-senses each c382_gk25 twin's true glucose with a variant and scores eda's ten short-scale statistics against the
+     donors' blocks (base G6: 4 of 10 — kurtosis 2.13 vs 3.30, SD/MAD 1.34 vs 1.44, clustering 0.07 vs 0.13, dispersion 2.5
+     vs 3.8). Transient rate or amplitude and heavier innovation tails (df 3) do not move the tails or clustering; the noise
+     level's wander (F noise_wander, Facchinetti 2011) does. G6 wander 0.2 / 480 min → 0.7 / 120 min: 9 of 10, FDA loss 11.4
+     → 7.1, PARD 8.9 (9.0). G7 wants more step spread with milder tails (donors v_sd 7.2, kurtosis 2.5); arm A (white σ 1.8 →
+     2.4, wander 0.4 / 120) 7 of 10, FDA loss 6.0 → 8.5, PARD 10.3; arm B (co-located common error σ 2.0 → 2.8, wander 0.5 /
+     120) 6 of 10, FDA loss 9.2, PARD 9.9 (8.9). Cohort, c384 (vs c382_gk25 38): A 42, B 45 of 51. B: CV 34.1 (34.6), t54
+     0.205% (0.190), lows 0.92 / day (1.00), P(reach 54) p 0.536, low depths on the donors' (nadir p10 / 25 / 50 41 / 50 / 56 vs
+     40 / 50 / 57, share < 54 0.368 vs 0.370), clustering 0.126 (0.122), G7 v_sd / kurtosis pass, ac1 and between-day share
+     now pass. Still failing: G7 SD/MAD 1.39 (1.41), v_skew G6 / G7 (0.60 / 0.25 vs 0.26 / 0.33), dispersion 3.17 (3.57),
+     acf_zero_min 50 (40; not a sensor property — no variant moved it below 47.5), med_nonzero. Adopted B; reference
+     c384_sB. The shallow low depths of LESSONS 383 were part sensor: noisier readings carry the CGM into < 54 as the
+     donors' do. G6 skew grew (0.46 → 0.60): the wander scales a symmetric noise; the skew may come from the body's fast
+     rises standing out in quiet stretches (not measured) — open.
+
