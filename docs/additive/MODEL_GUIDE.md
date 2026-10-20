@@ -7,7 +7,7 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c374_pro3** (2026-10-19): 112 people × 14 days, 36 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
+**c376_miss** (2026-10-19): 112 people × 14 days, 36 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
 donors in 13-day blocks), every low statistic passing.
 
 **Personal basis legend**
@@ -264,7 +264,7 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
 
 `--enable a,b` / `--disable a,b` / `--set k=v`. On by default (`--disable` to ablate): `isf_total`, `egp_sat`,
 `prof_deliv`, `suspend_own`, `csf_geq`, `ge_var`, `ge_circ`, `fat`, `slot_true`, `entry_split`, `entry_win`,
-`skip_own`, `posture`, `act_frag`, `lipohypertrophy`, `outages`, `overrides`, `edits`, `counterreg`, `glucotox`.
+`skip_own`, `missed_own`, `posture`, `act_frag`, `lipohypertrophy`, `outages`, `overrides`, `edits`, `counterreg`, `glucotox`.
 Off by default (`--enable`): `rc_own` (on in every validation run), `night_own`, `fat_rel`, `circ_own`, `intake_own`,
 `prof_np`, `csf_lvl`, scenarios. Numeric: `ins_p2`, `pro_glc`, `meal_slow`, `ge_am` / `ge_pm`, `cr_mult`, `sg_mult`,
 `kappa_mult`, `csf_lvl`, sensor fit parameters (`sensor_*`).
