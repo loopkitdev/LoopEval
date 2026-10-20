@@ -6557,3 +6557,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      / 13.0 / 6.7 / 3.7, 41.7; 10+ h 56.8 / 58.8; 3-h meal change +11.0 / +11.7; t54 0.123 / 0.150% (p 0.32 / 0.79), lows 1.08
      / 1.17 per day, P(reach 54) p 0.035 / 0.318; CV 35.9 / 36.8 (p 0.118 / 0.026); hourly 00–06 h −9.7 / −8.2 (RMS 8.0 / 8.5);
      34 / 35 of 51 (34). Not adopted: the shifts are inside the noise band and the centre is Pete's.
+
+382. **Grazing at a quarter of its judged rate puts the unannounced load and the meal response per entered gram on the
+     donors' (adopted, 38 of 51).** Grazing (F9, lnN(2 / day, 1.0) × lnN(10 g, 0.4), [J] rate) took ~35 g/day of the intake
+     budget. `graze_keep` 0.5 / 0.25 on c378_bpro, c382 (the budget gives the freed grams to meals): unannounced labelled load
+     95.1 / 97.3 g-eq/day (c378 104.6; donors 94.7), announced 92.2 / 92.6 (91.9; 85.6), labelled g-eq per entered gram p50
+     1.28 / 1.18 (1.33; 1.19); circadian_amp 0.147 / 0.147 (p 0.063 / 0.055, now passing), min_below70 passes, t54 0.159 /
+     0.136% (p 0.31 / 0.24), P(reach 54) p 0.290 / 0.039; hourly RMS 7.2 / 6.2 (8.0), 00–06 h −9.2 / −7.3; 3-h meal change
+     +7.0 / +8.1 (+11.1); 36 / 38 of 51 (34). Adopted 0.25 (the meal response per entered gram, the carb-sensitivity
+     calibration quantity, and the unannounced load are this component's own targets). Reference now c382_gk25.

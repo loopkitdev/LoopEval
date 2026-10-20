@@ -134,7 +134,7 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 | F6 Monitoring and sleep | glances lnN(6/day); alerts; asleep: alarm wakes with p ~0.45, unaided 1/16 | 04 (Puhr 2020; Buckingham 2005; Schultes 2007) | wired |
 | F7 Exercise habits | C5 | 02; 04 | wired |
 | F8 Site changes | every ~3 days in the evening; early on a long unexplained high or an occlusion alarm | eda L52; 06 | wired |
-| F9 Grazing | small unlogged intake below the ice labeler's 12 g-eq gate: lnN(2)/day of lnN(6 g), fast | quiet-window evidence [J rates] | wired; absorbs as liquid sugar outside the energy ceiling (`graze_fast`, default since 2026-10-18; LESSONS 158) |
+| F9 Grazing | small unlogged intake: lnN(2)/day of lnN(10 g), a quarter kept (`graze_keep` 0.25), fast | rate set by the donors' unannounced labelled load and labelled g-eq per entered gram (LESSONS 382) | wired; absorbs as liquid sugar outside the energy ceiling (`graze_fast`, default since 2026-10-18; LESSONS 158) |
 | F10 Hand-dosed food boluses | an un-entered eating event gets a bolus of the person's own grams estimate ÷ their CR, at the person's measured rate | pilot lone boluses above Loop's recommendation or below 140 mg/dL (templates._free); Groat 2017 | wired |
 | F11 Eating pulses | carbs/day spread over the person's measured pulse count (~5.6/day) with their measured size spread | ice meals tables (LESSONS 16) | wired |
 | F12 Temporary Overrides | less-insulin with activity episodes, lowered target before entries, raised target at random; donor rates and median factor / target / duration; exported to the therapy timeline (causal) | 19,732 donor windows; templates.add_override_rates; LESSONS 40 | wired (reactive more-insulin class pending plant-sent overrides) |

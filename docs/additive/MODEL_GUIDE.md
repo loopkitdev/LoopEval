@@ -7,7 +7,7 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c378_bpro** (2026-10-19): 112 people × 14 days, 34 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
+**c382_gk25** (2026-10-19): 112 people × 14 days, 38 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
 donors in 13-day blocks); mean, TIR and TDD on the donors'.
 
 **Personal basis legend**
@@ -214,7 +214,7 @@ Traits come from the donor wherever the ice pilot measured them; otherwise from 
 | F4 Corrections | hazard per awake minute above the donor's correction level, weighted by CGM trend; size from the donor's | rate from the donor's exposure-normalised corrections, iterated per person (`corr_p_mult`) | ice corrections; L 225, 237 | **Donor** |
 | F5 Low defense | proactive snack on a projected low; rescue at the donor's threshold and size; re-check 15 min, re-treat 34% | onset N(80, 20); proactive lnN(12 g) | ice L34, L69; Savard 2016 | **Donor** (rescue) + Drawn |
 | F6 Monitoring and sleep | glances lnN(6 / day); alerts 76 / 240; alarm wakes p N(0.72, 0.2) | bed / wake N(23 h / 7 h, 50 min) | Puhr 2020; donors' night rescues (L 274) | **Drawn** |
-| F9 Grazing | unlogged small intake on the donor's unannounced-pulse clock, absorbed fast | lnN(2 / day, 1.0) × lnN(10 g, 0.4) | Piernas & Popkin 2010; L 78, 158, 230 | Drawn rate, **Donor** clock |
+| F9 Grazing | unlogged small intake on the donor's unannounced-pulse clock, absorbed fast | lnN(2 / day, 1.0) × lnN(10 g, 0.4), a quarter kept (`graze_keep` 0.25) | rate set by the donors' unannounced labelled load (97.3 vs 94.7 g-eq / day) and g-eq per entered gram (1.18 vs 1.19); Piernas & Popkin 2010; L 78, 158, 230, 382 | Drawn rate, **Donor** clock |
 | F10 Food dosed by hand | an unentered eating event bolused from the person's estimate ÷ CR | the donor's lone-bolus rate × its food share | pilot lone boluses; Groat 2017 | **Donor** |
 | F12 Temporary Overrides | less-insulin with activity, lowered target before entries, raised target, reactive more-insulin on rising highs | the donor's rates, factor, target and duration per class | 19,732 donor windows; L 40 | **Donor** |
 | F13 Settings edits | dated multiplicative edits to basal / ISF / CR | the donor's rate per setting; size lnN(3.6%, 1.06) [J] | donor therapy timelines; L 41 | **Donor** rate |
