@@ -561,6 +561,7 @@ class World:
         self.ppr_shift = float(enable["ppr_shift"]) if enable and isinstance(enable.get("ppr_shift"), float) else 0.0
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
         self.ppr_end = float(enable["ppr_end"]) if enable and isinstance(enable.get("ppr_end"), float) else 240.0   # window out by (min; LESSONS 423)
+        self.ppr_w = tuple(float(enable[k]) if enable and isinstance(enable.get(k), float) else 1.0 for k in ("ppr_b", "ppr_l", "ppr_d"))   # per-slot window weights (LESSONS 429)
         self.flow_sd = float(enable["flow_sd"]) if enable and isinstance(enable.get("flow_sd"), float) else 0.5   # A4c, default since 2026-10-20 (Heinemann 2002; LESSONS 419)
         self.flow_tau = float(enable["flow_tau"]) if enable and isinstance(enable.get("flow_tau"), float) else 60.0
         self._flow_rng = np.random.default_rng(int(person.seed) + 4421); self._flow_z = 0.0; self._flow_last = None
@@ -764,7 +765,9 @@ class World:
             end = self.ppr_end
             if x > end: continue
             keep.append(t)
-            w = max(w, 0.0 if x < 30 else (x - 30) / 30 if x < 60 else 1.0 if x < 180 else (end - x) / (end - 180))
+            hh = (t % 1440) / 60.0                                   # the meal's local hour → slot weight (LESSONS 429)
+            sw = self.ppr_w[0] if hh < 10.5 else self.ppr_w[1] if hh < 16.0 else self.ppr_w[2]
+            w = max(w, sw * (0.0 if x < 30 else (x - 30) / 30 if x < 60 else 1.0 if x < 180 else (end - x) / (end - 180)))
         self.ppr_events = keep
         return 1.0 - self.ppr_a * w
 
