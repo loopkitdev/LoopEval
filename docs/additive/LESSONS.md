@@ -6772,3 +6772,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      output 2–4 h after meals, the candidate behind the donors' higher 1–3 h counteraction (LESSONS 401–402), runs against
      this. Late glucagon (Basu 2025, Diabetes 75:256, paywalled) is raised early in T1D; its 2–4 h effect on EGP is not
      available. The donors' extra 1–3 h counteraction stays without a sized mechanism.
+
+404. **`med_nonzero` is partly the delivery representation, but scoring the twins from their dose records does not match
+     the donors either.** The automatic-bolus twins' physical delivery is pulse-quantised (5-min bins 0.05 / 0.10 / 0.15 U)
+     while donors' Tidepool basal records are rate segments (basal-only bins median 0.062 U; 33% of their nonzero bins
+     hold an automatic bolus, median 0.15 U). From the trace's record stream (delivery[], source candidate: basal as rate
+     segments, automatic boluses separate) the automatic-bolus twins' med_nonzero is 0.092 (physical 0.105; donors 0.080),
+     temp-basal twins 0.10 (0.10). Re-scoring c403_cl105 that way (c403_rec): med_nonzero 0.100 (p 0.016), zero_frac 36.97
+     vs 32.49 now failing (p 0.019), others unchanged; 40 of 51 (41). Reverted: neither representation is clearly the
+     donors' (how Omnipod temp basals are written to Tidepool records would decide it).
