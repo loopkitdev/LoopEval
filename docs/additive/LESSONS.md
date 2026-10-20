@@ -6505,3 +6505,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      / 45 / 37); dinner peaks late, +19 / +25 / +21 at 4–5 h (donors +10 / +6 / +1); t54 0.088%, lows 0.83 / day, P(reach 54)
      0.150 fail; day / night 1.75 fails; bg_mean 157.7 (p 0.034); circadian_amp passes (p 0.149); hourly RMS 8.2; 32 of 51
      (36). Not adopted; moving the morning alone would break Goo's measured ratio. The breakfast peak stays open.
+
+376. **Site age does not carry the donors' TDD persistence, as far as the few uploading donors show.** Databricks
+     deviceEvent `reservoirChange` / `prime` since 2026-05: 11 of 207 pilot donors upload them; 3 overlap their exports
+     with ≥ 20 usable days. Daily TDD / mean by day of site age 0 / 1 / 2 / 3: i001 0.99 / 1.01 / 0.99 / 0.98 (interval 3.8 d),
+     i074 1.00 / 1.02 / 0.97 (3.0 d), i012 0.99 / 0.98 / 0.90 / 1.25 (1.9 d, few day-3 days); their TDD ac1 p50 −0.10. The
+     simulated site life (E5, absorption 0.9 → 1.15 by day 4; E5b) stays on its literature evidence. TDD persistence (ac1)
+     stays open; no named candidate remains with data to test it.
