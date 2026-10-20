@@ -560,6 +560,7 @@ class World:
         self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.2   # Pete 2026-10-20: meal shape over lows (LESSONS 408)
         self.ppr_shift = float(enable["ppr_shift"]) if enable and isinstance(enable.get("ppr_shift"), float) else 0.0
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
+        self.ppr_end = float(enable["ppr_end"]) if enable and isinstance(enable.get("ppr_end"), float) else 240.0   # window out by (min; LESSONS 423)
         self.flow_sd = float(enable["flow_sd"]) if enable and isinstance(enable.get("flow_sd"), float) else 0.5   # A4c, default since 2026-10-20 (Heinemann 2002; LESSONS 419)
         self.flow_tau = float(enable["flow_tau"]) if enable and isinstance(enable.get("flow_tau"), float) else 60.0
         self._flow_rng = np.random.default_rng(int(person.seed) + 4421); self._flow_z = 0.0; self._flow_last = None
@@ -760,9 +761,10 @@ class World:
         keep, w = [], 0.0
         for t in self.ppr_events:
             x = m - t - self.ppr_shift
-            if x > 240: continue
+            end = self.ppr_end
+            if x > end: continue
             keep.append(t)
-            w = max(w, 0.0 if x < 30 else (x - 30) / 30 if x < 60 else 1.0 if x < 180 else (240 - x) / 60)
+            w = max(w, 0.0 if x < 30 else (x - 30) / 30 if x < 60 else 1.0 if x < 180 else (end - x) / (end - 180))
         self.ppr_events = keep
         return 1.0 - self.ppr_a * w
 
