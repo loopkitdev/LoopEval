@@ -6667,3 +6667,19 @@ outputs in gamepc ~/additive/runs/c290–c312).
      / 3.22. The twins draw 0.5 h / 5 h on each donor's own shares and 3 h otherwise (templates.add_absorption_rates), so
      Loop sees the donors' absorption settings; the 3-h meal level (+3–8 vs +21) does not come from Loop being told a
      shorter meal.
+
+393. **The donor-fitted sensor made false lows; held to the FDA tables, the CGM lows come from true glucose and run
+     short (adopted, 37 of 51).** FDA cells on c391 bodies (`sensor_fit`): the c391_flag G7 read CGM < 54 at bias −23.5 /
+     MARD 27.9% (K213919 −9.3 / 16.0) and CGM 54–69 −11.5 / 16.3 (−2.3 / 9.1), loss 14.1; the G6 CGM < 54 −16.4 / 19.8
+     (DEN170088 −6.9 / 13.8), loss 9.2. LESSONS 384's wander and co-located error, fitted to the donors' 5-min steps on a
+     floor-heavy noise scale (G7 q 0.7), put extra noise into the low range, and with it readings below 54 from bodies
+     that were not there: part of the lows matched since c384 were sensor error. G7 refit to K213919 with the donor wander
+     kept where it fits both: `hetero_q` 0.7 → 0.55, σ 1.8 → 1.3, wander 0.5 → 0.45 (τ 2 h), co-located σ 2.8 → 2.2; loss
+     2.3–3.8, PARD 8.8–9.0, true < 54 MARD 13.7 (14.0), CGM < 54 bias ≈ −5 (−9.3). G6: `hetero_q` 0.8 → 0.6, wander kept at
+     0.7 (the donors' G6 step shape needs it, 9 of 10 open loop; its FDA evidence is CGM-binned only, loss ≈ 9.7 vs 6.0 at
+     wander 0.4). Arms (vs c391_flag 42): G7 q 0.3 39 → 41 (c393_hq); G7 FDA refit 38 (c393_fda); both families FDA-led 34
+     (c394_fda); joint (G7 FDA-led, G6 donor shape) 37 (c395_joint): t54 0.074% (0.190), P(reach 54) 0.14 (0.21), lows 0.83
+     / day (1.00), minutes per low and low depths shallower (share < 54 0.32 vs 0.37); G7 v_skew 0.29 passes, G7 v_sd 6.32
+     (7.19) and kurtosis 2.94 (2.51) fail. Adopted c395_joint: a reference whose CGM manufactures lows biases every
+     t < 54 comparison. What it exposes is the body: true lows and fast true-glucose motion are short (LESSONS 236–249,
+     276), now without sensor cover.
