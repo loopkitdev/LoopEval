@@ -79,6 +79,9 @@ class Family:
                                   # (G7 Garg 2022 Table 2: MARD day 1 11.9 / 12.9%, day 2 8.4 / 8.6%, days 4-7 7.2-8.1%; LESSONS 221)
     trans_prop: float = 0.0       # 0 = transient in absolute mg/dL; 1 = scaled with IG/130 like the noise (CGM error is close to
                                   # proportional: a fixed 12 mg/dL at 60 mg/dL made false lows the FDA tables do not show; LESSONS 213)
+    fall_k: float = 0.0           # noise × (1 + fall_k·max(0, −rate − 1)) with rate the IG change in mg/dL/min: CGM error grows in
+                                  # falls (G7 pivotal, Garg 2022 Table 5: MARD 9.3 / 8.4% at < −2 / −2..−1 vs 7.8–8.1 when slower;
+                                  # rises are carried by the lag alone, LESSONS 391)
     common_sigma: float = 0.0     # innovation sd of the error COMMON to co-located sensors (interstitial physiology):
                                   # AR(3) (1.584, −0.8842, 0.1798), var(w) 3.98 → σ 2.0 on Enlite (Biagi 2017).
                                   # Continues across sessions; YSI comparison sees it, two-sensor precision does not
@@ -174,6 +177,7 @@ class Sensor:
             if "sensor_tamp" in overrides or "sensor_tampsd" in overrides:
                 kw["trans_amp"] = (overrides.get("sensor_tamp", self.f.trans_amp[0]), overrides.get("sensor_tampsd", self.f.trans_amp[1]))
             if "sensor_ttau" in overrides: kw["trans_tau"] = overrides["sensor_ttau"]
+            if "sensor_fallk" in overrides: kw["fall_k"] = overrides["sensor_fallk"]
             if "sensor_tdown" in overrides: kw["trans_down"] = overrides["sensor_tdown"]
             if "sensor_tprop" in overrides: kw["trans_prop"] = overrides["sensor_tprop"]
             if "sensor_enoise" in overrides: kw["early_noise"] = (overrides["sensor_enoise"], overrides.get("sensor_entau", self.f.early_noise[1]))
@@ -261,7 +265,9 @@ class Sensor:
     def step(self, minute: float, bg: float, asleep: bool = False):
         f = self.f
         if self.ig is None: self.ig = bg
+        ig0 = self.ig
         self.ig += (bg - self.ig) / max(self.session.tau, 1.0)    # dt = 1 min
+        self.ig_rate = 0.9 * getattr(self, "ig_rate", 0.0) + 0.1 * (self.ig - ig0)   # mg/dL/min, ~10-min smoothing
         self._maybe_compress(minute, asleep)
         if self.trans != 0.0:
             self.trans *= math.exp(-1.0 / f.trans_tau)
@@ -283,6 +289,8 @@ class Sensor:
         nu = math.exp(self.wz - wsd ** 2) if wsd > 0 else 1.0      # E[ν²] = 1: the noise variance is unchanged on average
         if f.early_noise[0] > 0:
             nu *= 1.0 + f.early_noise[0] * math.exp(-max(0.0, minute - s.start) / f.early_noise[1])
+        if f.fall_k > 0:
+            nu *= 1.0 + f.fall_k * max(0.0, -self.ig_rate - 1.0)
         sbsd, sbtau = f.slow_bias
         if sbsd > 0:
             a2 = math.exp(-f.cadence / sbtau)
