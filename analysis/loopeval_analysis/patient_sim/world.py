@@ -354,7 +354,7 @@ class World:
             self.beh_traits.p_log_rescue = enable["p_log_rescue"]
         if enable and enable.get("graze_eve"):
             self.beh_traits.graze_eve = True
-        if enable and enable.get("macro_own"):
+        if (enable or {}).get("macro_own", True):   # default since 2026-10-20 (Pete: the mix is a personal trait; LESSONS 432; --disable macro_own)
             self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.macro_own = True
         if enable and "slot_comp" in enable:
             self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.slot_comp = bool(enable["slot_comp"])
@@ -583,7 +583,7 @@ class World:
         # TDD were tuned on their ordinary meals, average fat included, so the term is normalised to a mean of 1 over the
         # planned days (as caffeine is, relative to the person's habitual intake); fattier than usual still dips SI
         self.fat_norm = 1.0
-        if (enable or {}).get("fat_rel", False) and self.enable.get("fat", True):   # off since 2026-10-19 with night_own (LESSONS 370)
+        if (enable or {}).get("fat_rel", True) and self.enable.get("fat", True):   # on again since 2026-10-20 with macro_own (LESSONS 432; --disable fat_rel)
             ev = sorted((tm, a[1].fat) for (tm, a) in self.beh.planned if a[0] == "eat_meal" and getattr(a[1], "fat", 0) > 0)
             if ev:
                 grid = np.arange(DAY, days * DAY, 5.0); mult = np.ones_like(grid)
