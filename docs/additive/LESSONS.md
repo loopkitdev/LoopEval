@@ -7015,3 +7015,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      ~2 h from 70–160 mg/dL. Candidates with their evidence: GH-driven need (Pal 1992: rise 2–4 h after each pulse; B2b as a
      dips-only form adds such rises, LESSONS 420 — measure its night pulses on this metric) and night eating (no BDDP
      marker). Next: B2b `gh_pulse_net` scored on this night-pulse measure and on night lows together.
+
+428. **Neither GH pulses nor evening gastric emptying is the night gap; the twins' night rises start from a higher glucose
+     because the late evening runs high.** Night pulses 00–03 h on the GH arms (c420, labelled): c418_f5 12.8 g-eq/day (< 160
+     mg/dL 6.3, ≥ 160 5.8), gn2 13.0 (6.0 / 6.5), gn4 12.8 (5.2 / 7.0); donors 13.7 (8.5 / 4.6). Total night arrival is near the
+     donors'; the twins' starts higher. GH pulses add rises from ≥ 160, not from normal glucose. Evening emptying `ge_pm` 1.0
+     / 0.9 (0.8, Goo 1987; c428): 21–22 h glucose 175 / 179 and 173 / 179 (c418_f5 168 / 172; donors ~161–166), 04 h 117 / 122,
+     circadian amplitude 0.183 / 0.170 fails; 36 / 37 of 51 (40). Not adopted. Across LESSONS 420–428 the night gap traces
+     back to a late evening that is too high (glucose 21–23 h +6–10, ICE 22–00 h +3–8, Loop's automatic insulin 22–01 h +40–50%)
+     with none of the night levers (need, GH, protein, window end, emptying) reaching it. Open.
