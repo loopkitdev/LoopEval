@@ -6981,3 +6981,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      / 121 / 121 (c418_f5 135 / 126 / 122 / 120; donors 141 / 136 / 130 / 127); t54 0.196 / 0.147%; 38 / 37 of 51 (40). Not
      adopted. Open with LESSONS 420–422: the twins' evening insulin reaching into 00–03 h (the late evening dosing itself:
      dinner timing, evening corrections, Loop's response to the evening rise) is the next thing to measure, donors vs twins.
+
+424. **The pre-dawn trough is Loop answering a late-evening high: the twins' Loop gives 40–50% more automatic insulin at
+     22–01 h than the donors'.** Delivered insulin by local hour (`dose_hour.py`, ICE step tables, G7; the twin export puts
+     automatic boluses into basal, so compare basal + automatic): 22 / 23 / 00 / 01 / 02 / 03 / 04 / 05 h donors 0.80 / 0.82 /
+     0.83 / 0.81 / 0.76 / 0.76 / 0.71 / 0.71 U/h, c418_f5 1.21 / 1.18 / 1.11 / 0.98 / 0.88 / 0.84 / 0.74 / 0.78; daytime 09–17
+     h ~+20%; manual boluses by hour on the donors' (19–20 h 0.84 / 0.78 vs 0.89 / 0.91). Late-evening glucose 21–23 h 168–172 vs
+     161–166. The extra insulin lands at 00–03 h (insulin effect +3–9 mg/dL/h, LESSONS 423) and makes the 03–06 h trough. So
+     the night lows follow from what raises the twins' late evening — after-dinner appearance and resistance (the post-meal
+     window, fat, protein, late snacks) against the donors' — not from too little night need (LESSONS 421–422). Next: the
+     twins' evening glucose and ICE after dinner vs the donors', by component.
