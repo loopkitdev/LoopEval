@@ -6757,3 +6757,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
        0.83 / day; Loop insulin after meals 4.46; mean 152.7, TDD 38.3; 41 of 51 (40). Adopted: each meal measure within
        ~5% (ICE −4%, labelled g-eq ~+3% interpolated). Post-meal suspension stays 90 min (donors 65) and the 3-h meal change
        +6.7 (+21): the 1–3 h shape of the real meal response is still open. Reference c403_cl105.
+
+402. **Protein glucose 0.4 on the honest sensor does not fill the 2–3 h window.** `pro_glc` 0.4 (0.3; within Elleri 2013's
+     ~0.49 g per g protein + fat), c404 on c403_cl105: ICE above pre-meal per 10 g 13.0 / 13.2 / 6.4 / 4.4 / 1.1 (c403 12.8
+     / 13.8 / 7.3 / 4.3 / −0.5; donors 13.0 / 15.4 / 10.5 / 3.7 / 0.3); post-meal zero delivery 90 min (65), Loop insulin
+     4.39 (4.71); 3-h meal change +6.2 (+21); t54 0.119%, lows 0.71 / day; 39 of 51 (41). Not adopted. Across LESSONS
+     386, 399, 401 and this one, adding meal glucose late (slow emptying, slow share, protein) moves it past 3 h or gets
+     answered by Loop; the donors' 1–2 and 2–3 h counteraction stays 2–3 mg/dL per 10 g above every twin arm.
