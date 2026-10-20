@@ -6621,3 +6621,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.21 / 0.19, share < 0.06 U 0.32 / 0.28). Binning the twins' commanded doses the way the donors' dose records are binned
      gives 0.10 as well, so the pump's flow and bolus error are not the cause. Open: where automatic-bolus delivery sits
      between basal-only and bolus bins.
+
+388. **Longer everyday movement bouts do not give the daytime wander either.** C7 fragmented movement with light bouts of
+     median 10 / 20 min (`frag_on`; 4 min default, same waking mean), c388 on c384_sB: acf_zero_min 50 / 50; quiet-day CGM
+     step ACF at 20 min 0.10 / 0.09 (c384 0.07, donors 0.19), true glucose 0.65 / 0.67 (0.64); quiet-day true-glucose
+     30-min change SD 24.4 / 22.5 (23.0); 43 / 40 of 51 (45), mean 153.7 / 154.0. Not adopted. With LESSONS 276, 385 and
+     386, insulin speed, within-day sensitivity, meal shape and everyday movement all leave the twins' true glucose turning
+     at 50–55 min under Loop; the donors' CGM turns at 40.
