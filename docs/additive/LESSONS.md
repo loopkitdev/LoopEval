@@ -7169,3 +7169,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      more insulin than that donor took. The suspect is the per-donor body calibration for low-runners (yardstick ISF and
      carb sensitivity under closed-loop attenuation, LESSONS 332–335), which pooled statistics hide because the cohort's
      high and low gaps cancel. The second draw's +11 median is this, with more such donors drawn.
+
+446. **The stored twin calibration does not fix the level gap; a per-donor level fit is running.** `--enable twin` (round-9
+     ISF / CSF multipliers, fitted to each donor's time < 70 on an old base) on c446_npu (c450_tw): twin–donor mean corr
+     0.42 (0.42), gap IQR −9.5 to +24.7 (−11 to +25), 38 of 51. `lvl_own` (experiment): body ISF × a per-donor
+     `lvl_isf_mult` fitted so the twin's mean glucose reaches its donor's, the intake budget dividing it back out as twin
+     does; a more sensitive body lowers both the twin's glucose and its insulin, toward the donor on both (LESSONS 445). Fit
+     by rounds on both draws (`lvl_update.py`: per-donor mean gap, log k += clip(gap / 80, ±0.35), bounds 0.5–2; round 1
+     from c446_npu / c447_rs: |gap| p50 14.5, k p10 / p50 / p90 0.84 / 1.00 / 1.42), three rounds (lv1–lv3, templates
+     templates_pilot_lvl.r*.csv outside the repo).
