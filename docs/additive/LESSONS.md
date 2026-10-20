@@ -6541,3 +6541,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      158 / 152 / 147 / 141 / 136 / 130. The twins' insulin effect is lower than the donors' at 19–21 h and higher at 00–02 h;
      their glucose input is higher at 23 h (87 vs 78). Candidate parts acting in the late evening: the protein parcel (peak
      ~3.5 h after the meal), fat resistance (to 10 h), and the dinner clock. Open.
+
+380. **The twins enter fewer grams than the donors since the budget fix; entering larger meals more often flattens the
+     meals.** Entered g/h by local hour, c378_bpro vs donors: 17–20 h 4.8 / 6.2 / 7.0 / 5.9 vs 6.7 / 8.3 / 9.0 / 7.6; ~86 vs
+     ~101 g/day; evening centroid 18.61 vs 18.53 h (the clock matches). `entry_size_b` (entry chance ∝ (grams / mean meal)^b)
+     on c378, c380, b 1.0 / 0.5: 3-h meal change +3.0 / +6.9 (c378 +11.1; donors +21), dinner at 2–3 h −4 … +6 / +1 … +9 (c378
+     +9 … +16); t54 p 0.078 / 0.124, P(reach 54) p 0.329 / 0.263, min_below70 20 / 25 min (p 0.047 / 0.000); 00–06 h −11; 34 /
+     36 of 51 (34). Bigger entered meals carry bigger boluses and come down sooner. Not adopted (the meal late phase is the
+     main target). The entered-gram shortfall stays open: the TDD budget sets eaten grams, the donor's count sets entries,
+     and their product falls short of the donors' entered grams once protein glucose is paid for.
