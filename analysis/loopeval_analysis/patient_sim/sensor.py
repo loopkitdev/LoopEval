@@ -109,7 +109,8 @@ FAMILIES = {
     # σ 2.0) carries the rest of the accuracy error. The G6 Vettoretti values (σ 3.19, a0 0.95 ± 0.063, b0 6.35 ± 6)
     # gave G7 MARD 17% at 54–69 and PARD 14%.
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
-                        brand_gain=1.0, sigma=(1.8, 0.8), df=30.0, hetero_q=0.7, a0=(0.98, 0.04), b0=(3.0, 3.0),   # hetero_q 0.5 -> 0.7: FDA loss 4.52 -> 3.88 (LESSONS 361); sigma 2.4 -> 1.8: donors' high-frequency CGM noise once meals move fast (LESSONS 269; was 2.8 -> 2.4, LESSONS 221)
+                        brand_gain=1.0, sigma=(1.5, 0.8), df=30.0, hetero_q=0.3,   # q 0.7 -> 0.3, sigma 1.8 -> 1.5: FDA loss 12.6 -> 4.3 on the c391 bodies (LESSONS 393)
+                        a0=(0.98, 0.04), b0=(3.0, 3.0),   # hetero_q 0.5 -> 0.7: FDA loss 4.52 -> 3.88 (LESSONS 361); sigma 2.4 -> 1.8: donors' high-frequency CGM noise once meals move fast (LESSONS 269; was 2.8 -> 2.4, LESSONS 221)
                         common_sigma=2.8, trans_rate=(6.5, 0.9), trans_amp=(8.0, 0.4), trans_down=0.62, noise_wander=(0.5, 120.0), fall_lag=1.5,   # fall_lag: Garg 2022 Table 5 falls (LESSONS 391)
                           # transients: G7 donors' reversals
                         # 55% low first, 6.9 per 1,000 steps; the twins read 49% / 8.5 at 0.55 / 8 (LESSONS 390)   # common 2.0 -> 2.8,
