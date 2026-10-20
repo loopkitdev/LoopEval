@@ -215,7 +215,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0, intake_own: bool = False, csf_geq: bool = False,
-                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False) -> Person:
+                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -237,6 +237,13 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         # twin reproduces its donor's time < 70 (template column twin_isf_mult, iterated from cohort runs)
         k_ = row.get("twin_isf_mult") if hasattr(row, "get") else None
         if k_ is not None and np.isfinite(float(k_)): isf_true *= float(k_)
+    k_lvl = 1.0
+    if lvl_own:
+        # lvl_own (experiment, LESSONS 446): body ISF × the donor's level multiplier, fitted over cohort rounds so the twin's
+        # mean glucose reaches its donor's (template column lvl_isf_mult, bounded 0.5–2; twins of tight-control donors ran
+        # 30–90 mg/dL above them on more insulin, LESSONS 445). The intake budget divides it back out, as twin does
+        k_ = row.get("lvl_isf_mult") if hasattr(row, "get") else None
+        if k_ is not None and np.isfinite(float(k_)): k_lvl = float(np.clip(float(k_), 0.5, 2.0)); isf_true *= k_lvl
     fasting_rate = float(row.basal_true) * j_basal          # measured; kept as a validation quantity
     # body weight: the age prior blended with what TDD implies at an age-banded U/kg (a profile age can
     # belong to the account holder, eda L47, so neither alone is trusted)
@@ -364,7 +371,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         if k_ is not None and np.isfinite(float(k_)): k_isf_twin = float(k_)
     # the intake budget is the donor's, not a consequence of the twin's ISF fit: divide the twin multiplier back out
     # (raising body ISF had raised cr_true and with it the carbs eaten; LESSONS 219)
-    carbs = max(20.0, tdd * (1 - share) * cr_true / k_isf_twin * k_csf_geq)
+    carbs = max(20.0, tdd * (1 - share) * cr_true / k_isf_twin / k_lvl * k_csf_geq)
     if csf_lvl_keepg: carbs *= csf_lvl
     # intake_own (experiment, off): the budget × the donor's measured glucose load over the twin's (labelled g-eq per day,
     # ice labeler on both sides, `intake_mult` in the templates); the budget over-feeds low-running donors' twins by ~18%
