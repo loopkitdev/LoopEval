@@ -6382,7 +6382,7 @@ outputs in gamepc ~/additive/runs/c290–c312).
        entered snacks 25 g, unentered snacks 20 g, rescue 11 g. At entered events they enter 1.16× what they eat (p50; 1.28
        below 20 g, where Brazeau's regression is held at its 20-g value; 0.81 above 60 g). Entries p50 20 g vs the donors'
        25 g (share < 20 g 0.48 vs 0.34); entered g/day match.
-     - **Protein glucose (`pro_glc`) 0.2 / 0.4** (c366; Elleri's LG meal implies ~0.4–0.5): 36 / — of 51 (bg_mean 155 / 159,
+     - **Protein glucose (`pro_glc`) 0.2 / 0.4** (c366; Elleri's LG meal implies ~0.4–0.5): 36 / 30 of 51 (bg_mean 155 / 159,
        fails at 0.4); 3-h meal change unchanged. Late glucose added on top is answered by Loop (as LESSONS 306, 320).
      The carb-sensitivity level was calibrated to the labeler's pulse g-eq per entered gram (CSF_BLEND_CAL_TOTAL), which ends
      a pulse at a plateau and so under-reads the donors' long meals (LESSONS 315); the unsegmented integral says ~1.2×.
