@@ -6402,3 +6402,24 @@ outputs in gamepc ~/additive/runs/c290–c312).
      The appearance is still a fifth of its peak rate at 3–4 h: the meals already last. The added late glucose is
      neither answered by Loop's insulin nor kept as glucose. Not adopted; the body-side fate of glucose arriving 1–3 h
      after a meal is the next thing to trace (mass balance per term, same meals in both arms).
+
+368. **Loop answers the same glucose the same way in twins and donors; the patient side moves the meals: breakfast skipped
+     on the donor's own share puts the day's glucose into longer lunches and dinners (adopted).** Pete (2026-10-19): "Loop
+     is a fixed known process ... If patients don't behave the way in the simulator that we see in real life, then we need
+     to update something on the patient side."
+     - **Loop's response matches.** Automatic delivery (basal + automatic bolus) / scheduled basal by CGM band
+       (`loop_resp.py`, G7, p50 over people), < 100 / 100–140 / 140–180 / 180–220 / 220–260 / > 260: donors 0.31 / 1.06 /
+       1.51 / 1.84 / 2.22 / 2.62, c365 0.36 / 1.06 / 1.48 / 1.76 / 2.23 / 2.51; zero delivery above 180 0.23 vs 0.25.
+     - **The body keeps added late glucose.** Open loop (`fate.py`, 40 bodies, 50-g meal with the settings bolus): +71 at
+       2 h, +49 at 3 h; of 10 g extra glucose over 60–180 min, 56 / 33 / 14% still in the pool at 3 / 4 / 6 h.
+     - **The twins' unannounced load sits in the morning.** Labelled g-eq per day (`unann_hour.py`, 3-h blocks from 00 h),
+       unannounced: donors 11.3 / 8.8 / 10.2 / 10.3 / 12.6 / 10.9 / 12.8 / 15.4 (94.7), c365 10.4 / 10.8 / 15.4 / 14.7 / 13.8 /
+       11.8 / 12.7 / 15.2 (108.6); announced 85.6 vs 92.7. Half the twins' main meals go unentered in every slot (25–37 g).
+     - **`skip_own`** (LESSONS 182; the donor's share of days without a morning pulse, median 0.18 vs the constant 0.10;
+       the skipped grams carried by the day's other meals) on c365, c369: lunch at 0.5–3 h +5 / +18 / +18 / +6 / +2 / −4
+       (c365 +5 / +9 / +8 / 0 / −2 / −15), dinner +8 / +14 / +14 / +13 / +6 / +8 (+6 / +9 / +8 / +4 / −1 / −1); 3-h meal change
+       +6.2 (+2.6); day / night insulin p 0.005 → 0.025; bg_mean p 0.151, t54 0.139% (p 0.085), lows / day p 0.178; 35 of 51
+       (37; noise band). With the skipped grams dropped (`skip_drop`): 33, P(reach 54) fails — dropping them breaks the
+       TDD intake balance. ICE by time since entry 1–2 / 2–3 h 101 / 81 (donors 114 / 97). Hours 08–11 still 141–158
+       (donors 135–146), 18–22 h 149–159 (156–165).
+     Adopted: `skip_own` is the default (`--disable skip_own`). Reference now c369_skip.
