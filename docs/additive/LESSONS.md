@@ -6499,3 +6499,9 @@ outputs in gamepc ~/additive/runs/c290–c312).
      2.5 h (79) 11 / 28 / 28 / 23 / 21 / 9 / 12 / 8, without (122) 12 / 32 / 24 / 24 / 16 / 16 / 13 / 8. Per-slot SI (circ_own)
      sits at 1.00 / 1.00 / 1.00 (median); midday emptying is the neutral 1.0. Open: the lunch late phase (~10 short at 2.5–4 h)
      and the breakfast peak (+12 at 1–1.5 h, the direction of ge_am 1.25).
+
+375. **Goo's emptying ratio split with the morning at baseline fixes breakfast and breaks dinner.** `ge_am` 1.0, `ge_pm`
+     0.65 (ratio 1.54 kept) on c374_pro3, c375: breakfast at 0.5–2 h 15 / 32 / 32 / 21 (donors 16 / 29 / 33 / 28; c374 16 / 37
+     / 45 / 37); dinner peaks late, +19 / +25 / +21 at 4–5 h (donors +10 / +6 / +1); t54 0.088%, lows 0.83 / day, P(reach 54)
+     0.150 fail; day / night 1.75 fails; bg_mean 157.7 (p 0.034); circadian_amp passes (p 0.149); hourly RMS 8.2; 32 of 51
+     (36). Not adopted; moving the morning alone would break Goo's measured ratio. The breakfast peak stays open.
