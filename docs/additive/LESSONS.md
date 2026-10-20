@@ -7255,3 +7255,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      model says (fast-acting PK, dose_beta, the post-meal window), the label adds back too little and the rise reads
      flatter. Next: the twins' body insulin action against Loop's model over 0–2 h after meal boluses (truth disposal vs
      the model's predicted effect), on the donors' measured counterpart where one exists.
+
+454. **The labeller's insulin term would steepen the twins' rises, not flatten them: the body's insulin acts later than
+     Loop's model.** Isolated boluses ≥ 1 U (`ins_vs_model.py`, c446_npu), share acting by 30 / 60 / 90 / 120 / 180 min —
+     rapid-acting body remote action (absorbed through the p2 lag) 0.02 / 0.12 / 0.27 / 0.42 / 0.63 vs Loop's model 0.07 /
+     0.22 / 0.39 / 0.55 / 0.79; fast-acting 0.03 / 0.14 / 0.29 / 0.42 / 0.65 vs 0.11 / 0.32 / 0.53 / 0.69 / 0.89 (the body
+     follows the clamp PK, whose action peaks after Loop's 75 / 55-min curves; LESSONS 9, 365). ICE adds back more than the
+     body applied early in a rise, which raises a labelled peak. So the twins' lower labelled peak g-eq/h (LESSONS 451) is
+     not gut speed (452), sensor (453) or the insulin term (this). The tight donors' level gap stays open after seven
+     checks (LESSONS 445–454: body ISF, unlogged load, corrections, timing, gut, sensor, insulin term); what is left
+     unmeasured is everything the donors do that leaves no record — eating they did not log at all being smaller and
+     earlier-treated than the labeller can see, and how they handle highs outside the app.
