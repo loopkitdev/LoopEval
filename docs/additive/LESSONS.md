@@ -6839,3 +6839,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      it. This is the fast-fall gap of LESSONS 236–249, not over-defence. The proactive onset change (LESSONS 409) moved
      lows through fewer snacks, not through this measure.
 
+
+411. **The post-meal window weakens the liver's meal suppression, but confining it to peripheral disposal loses the
+     meal shape.** Review on c409_ps20: meal EGP nadir 0.81 of basal at 240 min (Romeres 2025 0.56 at 160), low duration
+     p90 75 min (65), meals ending < 70 5.2% (9.7). `ppr_periph` (window on disposal only, liver suppression untouched; new
+     `si_d_mult`), a 0.2 / 0.35 (c410): EGP nadir 0.73 / 0.76 at 140 min; 3-h meal change +11.8 / +11.9 (c409 +17.5; donors
+     +21); t54 0.116 / 0.091%, lows 0.83 / 0.71 per day; 38 / 39 of 51 (39). The nadir stays above the tracer value with
+     the window off the liver, so the window is not its only cause; and the meal shape Pete chose (LESSONS 408) needs the
+     window on both arms. Off (code kept). The liver nadir joins the open review items.
