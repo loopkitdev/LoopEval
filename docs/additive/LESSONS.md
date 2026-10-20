@@ -6490,3 +6490,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Evidence: Elleri 2013's low-GL meal appeared ~18 g beyond its carbohydrate with +15 g protein and +22 g fat (0.49 g per g
      of both; the model's fat acts on SI, not as glucose); Paterson 2017 dose-dependent late rises; the 0.1 prior was [J].
      Adopted: `pro_glc` 0.3. Reference now c374_pro3.
+
+374. **By slot on c374_pro3, dinner is on the donors', breakfast peaks high, lunch falls short after 2 h.** CGM above entry
+     at 0.5–4 h, isolated bolused entries ≥ 15 g (`meal_traj_tod.py`): breakfast donors 16 / 29 / 33 / 28 / 25 / 21 / 19 / 16,
+     twins 16 / 37 / 45 / 37 / 22 / 17 / 16 / 13; lunch donors 17 / 27 / 27 / 28 / 27 / 26 / 22 / 16, twins 7 / 21 / 24 / 8 / −3 /
+     −2 / 1 / 2 (n 156; with no other entry within 4 h, n 201: 12 / 32 / 24 / 24 / 16 / 16 / 13 / 8); dinner donors 13 / 10 / 5 /
+     9 / 14 / 17 / 14 / 10, twins 8 / 15 / 17 / 16 / 14 / 16 / 17 / 16. Not walks: twins' lunches with a walk or exercise within
+     2.5 h (79) 11 / 28 / 28 / 23 / 21 / 9 / 12 / 8, without (122) 12 / 32 / 24 / 24 / 16 / 16 / 13 / 8. Per-slot SI (circ_own)
+     sits at 1.00 / 1.00 / 1.00 (median); midday emptying is the neutral 1.0. Open: the lunch late phase (~10 short at 2.5–4 h)
+     and the breakfast peak (+12 at 1–1.5 h, the direction of ge_am 1.25).
