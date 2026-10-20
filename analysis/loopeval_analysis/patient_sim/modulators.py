@@ -15,6 +15,11 @@ B2 dawn          EGP bump from onset (02:00–04:30) peaking ~07:00, gone ~10:00
 B3 day level     intrinsic day-to-day SI, CV 8%, independent days (repeat clamps, evidence/07);
                  intraday OU OFF (no controlled-condition evidence)
 B4 slow drift    OU on log SI — OFF, same reason (weight, season, growth are to be named instead)
+B2b GH pulses    within-night insulin resistance after each nocturnal GH pulse: three pulses 180 min apart from a per-person
+                 start (22:00–23:30, the same each night: Perriello 1991, hourly need CV < 10% across nights); SI dips from 60
+                 min after a pulse to its deepest at 180 and recovers by 240 (Pal 1992: need peaks 3 h after a pulse, gone by
+                 4 h); mean-preserving over 22–08 h (the donor's basal profile carries the night's mean and dawn). Off
+                 (`gh_pulse`); amplitude [J] (Pal's young adults under somatostatin swing ~0.1–0.8 mU/kg/min; LESSONS 417)
 B4b ultradian    within-day oscillation of SI and EGP: 1 + A·sin(2πt/P + φ), own random phase per parameter (Wilinska 2010,
                  the Cambridge closed-loop simulator: A 5%, P 3 h, φ ~ U[0, P]); A and P fitted to the donors' CGM step
                  structure where the literature gives no measurement (LESSONS 385)
@@ -50,7 +55,7 @@ class ModTraits:
     # day / intraday / drift are UNNAMED variability: off unless a controlled-condition source sizes them
     # (Pete 2026-10-15: no mystery terms fitted to field data; free-living CVs are targets for the named
     # factors, not inputs). circ_noise likewise.
-    enabled: dict = field(default_factory=lambda: dict(circadian=True, dawn=True, day=True, intraday=False, ultradian=False,
+    enabled: dict = field(default_factory=lambda: dict(circadian=True, dawn=True, day=True, intraday=False, ultradian=False, gh_pulse=False,
                                                        drift=False, menstrual=True, illness=True, sleep=True,
                                                        gh=True, alcohol=True, stress=True, caffeine=False,
                                                        steroid=True, heat=False))
@@ -73,6 +78,7 @@ class ModTraits:
     intra_tau: float = 240.0            # min
     drift_sd: float = 0.08
     ultra_amp: float = 0.05             # B4b amplitude (Wilinska 2010 5%)
+    gh_pulse_amp: float = 0.3           # B2b depth of the SI dip at a pulse's peak effect [J; LESSONS 417]
     ultra_per: float = 180.0            # B4b period, min (Wilinska 2010 3 h)
     drift_tau: float = 20 * DAY
     cycle_len: float = 28.0             # days
@@ -185,6 +191,10 @@ class Modulators:
         self.last = None
         ru = np.random.default_rng(traits.seed + 181)                              # B4b phases, own stream
         self.ultra_ph = ru.uniform(0, 2 * math.pi, 2)
+        rg = np.random.default_rng(traits.seed + 1917)                             # B2b pulse start, own stream
+        self.gh_t0 = float(rg.uniform(22 * 60, 23.5 * 60))                         # local minute, the same each night
+        xs = np.arange(22 * 60, 32 * 60, 5.0)                                      # 22:00 → 08:00 next day
+        self.gh_rbar = float(np.mean([self._gh_r(x) for x in xs]))
 
     # ---------------------------------------------------------------- pieces
     def circadian(self, m: float) -> float:
@@ -271,6 +281,16 @@ class Modulators:
         if w < 37: return 0.95 * (1.0 + 0.05 * (w - 16.0))
         return 0.95 * (1.0 + 0.05 * 21.0) * max(0.8, 1.0 - 0.05 * (w - 37.0))
 
+    def _gh_r(self, mm: float) -> float:
+        """B2b: summed response (0–1 per pulse) at local minute mm measured from the evening's midnight-1 day frame
+        (22:00 = 1320 … 08:00 = 1920)."""
+        r = 0.0
+        for k in range(3):
+            x = mm - (self.gh_t0 + 180.0 * k)
+            if 60 <= x < 180: r += (x - 60) / 120.0
+            elif 180 <= x < 240: r += (240 - x) / 60.0
+        return r
+
     def dawn(self, m: float) -> float:
         if not self.t.dawn: return 0.0
         mm = m % DAY
@@ -331,6 +351,11 @@ class Modulators:
         if en["intraday"]: log_si += self.ou
         if en["drift"]: log_si += self.drift
         si = math.exp(log_si)
+        if en.get("gh_pulse"):
+            mm = m % DAY
+            x = mm if mm >= 12 * 60 else mm + DAY                                  # evening frame: 22:00 → 08:00 is 1320 → 1920
+            if 22 * 60 <= x < 32 * 60:
+                si *= 1.0 - getattr(self.t, "gh_pulse_amp", 0.3) * (self._gh_r(x) - self.gh_rbar)
         if en.get("ultradian"):
             w = 2 * math.pi * m / getattr(self.t, "ultra_per", 180.0); A = getattr(self.t, "ultra_amp", 0.05)
             si *= 1.0 + A * math.sin(w + self.ultra_ph[0])
