@@ -124,7 +124,7 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 
 | Component | Model form | Source | Status |
 |---|---|---|---|
-| F1 Meal schedule | 3 main meals (Camerlingo timing; donor's own breakfast/lunch/dinner split and per-window announcement, LESSONS 51) + snacks at the person's measured pulse rate, placed on their own hour-of-day distribution; weekend shift [J] | ice meals tables; 04 (Camerlingo 2021) | wired |
+| F1 Meal schedule | 3 main meals (Camerlingo timing; donor's own breakfast/lunch/dinner split and per-window announcement, LESSONS 51; breakfast skipped on the donor's own share of days with no morning pulse ≥ 10 g-eq, median 0.18, the day's grams carried by its other meals — `skip_own`, default since 2026-10-19, LESSONS 182, 368) + snacks at the person's measured pulse rate, placed on their own hour-of-day distribution; weekend shift [J] | ice meals tables; 04 (Camerlingo 2021) | wired |
 | F2 Announcement and carb count | P(entry) from the donor's RAW entries/day (2.97 median); person bias N(−0.10, 0.10); per-meal sd lnN(0.2, 0.3); big meals under-counted | raw record (templates.add_raw_rates); Brazeau 2013; LESSONS 35–36 | wired |
 | F3 Meal bolus + top-ups | P(bolus \| entry) from raw boluses-with-entry; timing class from the measured lead; calculator acceptance (7.4% up / 6.9% down); top-ups at the donor's raw rate, 20–60 min later if CGM > 120 and not falling [J] | raw record; Groat 2017; Datye 2018 | wired |
 | F4 Corrections | at a glance, CGM above the person's measured correction level and not falling | ice corrections tables | wired; rate per glance [J] |
