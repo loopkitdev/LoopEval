@@ -150,8 +150,8 @@ class BehaviorTraits:
     # defense
     pro_onset: float = 60.0              # projected glucose (mg/dL) below which they act proactively (person draw N(60, 20), fitted to the donors' lows, LESSONS 409)
     pro_grams: float = 12.0              # proactive snack size [J]
-    night_pro: bool = False              # woken by an alarm, the person may act proactively (LESSONS 442)
-    uls: bool = False                    # Dexcom Urgent Low Soon predictive alert (LESSONS 442)
+    night_pro: bool = False              # woken by an alarm, the person may act proactively (LESSONS 442; on by default in World)
+    uls: bool = False                    # Dexcom Urgent Low Soon predictive alert (LESSONS 442; on by default in World)
     pro_refractory: float = 45.0         # min
     treat_thr: float = 70.0              # CGM level that triggers a rescue [J; alert 74–78]
     treat_grams: float = 25.0            # lnN median; Savard 2016: 32 ± 24 g
@@ -967,7 +967,7 @@ class Behavior:
         alarm = False
         if cgm <= t.urgent_low or (cgm <= t.low_alert and m - self.last_alarm >= 30):
             alarm = m - self.last_alarm >= 15
-        # uls (experiment, LESSONS 442): Dexcom's predictive Urgent Low Soon alert — glucose projected to reach 55 mg/dL within
+        # uls (default since 2026-10-20, LESSONS 442–443): Dexcom's predictive Urgent Low Soon alert — glucose projected to reach 55 mg/dL within
         # 20 min (G6 / G7, on by default)
         elif t.uls and "Dexcom" in str(getattr(self.p, "sensor", "")) and cgm + 20.0 * self.trend() <= t.urgent_low and m - self.last_alarm >= 30:
             alarm = True
@@ -1001,7 +1001,7 @@ class Behavior:
             self.log.append((m, "rescue", g, cgm))
             return acts
         # proactive snack: projected glucose from what Loop shows (IOB) and the trend
-        # night_pro (experiment, LESSONS 442): someone an alarm has woken is awake and can act before the low, as the donors'
+        # night_pro (default since 2026-10-20, LESSONS 442–443): someone an alarm has woken is awake and can act before the low, as the donors'
         # night pre-emptive carbs do (onset p50 88 mg/dL, 0.22 per night vs the twins' 0.15)
         if (not asleep or (t.night_pro and looking)) and m - self.last_pro > t.pro_refractory and m - self.last_treat > 30:
             iob = float(state.get("iob", 0.0) or 0.0)

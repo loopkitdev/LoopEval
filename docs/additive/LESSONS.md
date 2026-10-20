@@ -7141,3 +7141,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      woken twin at 76 and falling goes back to sleep and reaches the low. `night_pro`: someone an alarm has woken may act
      proactively; `uls`: Dexcom's predictive Urgent Low Soon alert (projected 55 mg/dL within 20 min; G6 / G7 default on;
      Libre 3 has none). Arms night_pro / night_pro + uls on c440_db (c445_np / c446_npu).
+
+443. **Letting a woken person act, with Dexcom's Urgent Low Soon, brings minutes per low onto the donors'; adopted.**
+     On c440_db, `night_pro` / `night_pro` + `uls` (c445_np / c446_npu): minutes per low p50 20 / 20 (25; donors 20) —
+     passing for the first time since c376 — night lows p50 30 / 35 min (40; donors 35), night share 35 / 31% (36; 22),
+     t54 0.147 / 0.148% (0.223; 0.190), lows 1.00 / 0.79 per day (1.00), bg_skew passing at c446, 40 / 40 of 51 (40).
+     Failing at c446: G7 one short-scale row (0.245 vs 0.331) and between_day_frac (borderline). 3-h meal change 15.3 / 13.6
+     (16.9): these switches act only on lows, so read it as the arms' scatter (13.6–17.9 over this session). Both defaults
+     on: each is a mechanism, not a fit — someone woken is awake, and Urgent Low Soon is on by default on G6 / G7.
