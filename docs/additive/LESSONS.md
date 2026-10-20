@@ -6550,3 +6550,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      36 of 51 (34). Bigger entered meals carry bigger boluses and come down sooner. Not adopted (the meal late phase is the
      main target). The entered-gram shortfall stays open: the TDD budget sets eaten grams, the donor's count sets entries,
      and their product falls short of the donors' entered grams once protein glucose is paid for.
+
+381. **A lower true basal share moves meal and fasting counteraction the right way, but only a little.** On c378_bpro (meal
+     ICE above pre-meal per 10 g 12.2 / 12.7 / 6.4 / 3.4, total 37.7; 10+ h since entry 59.3; donors 13.0 / 15.4 / 10.5 / 3.7,
+     47.4; 46), `basal_share` 0.36 / 0.32 (Pete's [J] centre 0.42), c381: meal ICE 12.7 / 13.8 / 7.2 / 4.2, total 43.3 and 12.7
+     / 13.0 / 6.7 / 3.7, 41.7; 10+ h 56.8 / 58.8; 3-h meal change +11.0 / +11.7; t54 0.123 / 0.150% (p 0.32 / 0.79), lows 1.08
+     / 1.17 per day, P(reach 54) p 0.035 / 0.318; CV 35.9 / 36.8 (p 0.118 / 0.026); hourly 00–06 h −9.7 / −8.2 (RMS 8.0 / 8.5);
+     34 / 35 of 51 (34). Not adopted: the shifts are inside the noise band and the centre is Pete's.
