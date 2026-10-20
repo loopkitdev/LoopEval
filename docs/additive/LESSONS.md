@@ -6476,3 +6476,17 @@ outputs in gamepc ~/additive/runs/c290–c312).
      twins −0.058) comes from something outside logged eating and the week: unlogged intake, or a multi-day body state
      (site life E5, cycle, illness and stress are wired). The exports carry no site-change records (Databricks
      deviceEvent would: reservoir change / prime), so site life cannot yet be checked against the donors. Left open.
+
+373. **The donors' nights carry more glucose at the same Loop response; protein glucose 0.3 g / g supplies part of it
+     (adopted, 36 of 51).** Night (00–06 h) automatic delivery / schedule by CGM band 100–140 / 140–180 / 180–220: donors
+     0.99 / 1.43 / 1.86, c371 1.00 / 1.43 / 1.89 — Loop answers alike. Time share < 100 / 100–140 / 140–180 / 180–220 / 220–260
+     / > 260: donors 0.146 / 0.371 / 0.224 / 0.111 / 0.043 / 0.024, c371 0.196 / 0.377 / 0.182 / 0.081 / 0.031 / 0.007.
+     - c373 night level renormalised (`night_own` on, `night_add` off) with absolute fat: 00–06 h +0.8, RMS 6.9, but day / night
+       1.74 and night_cv 28.0 fail, P(reach 54) fails; 34 of 51. A fixed night term makes night insulin too regular in any form.
+     - c374 `pro_glc` 0.3 / 0.45 on c371: 36 / 35 of 51; day / night 2.01 / 1.93, night_cv 34.2 / 35.8 pass; t54 0.119 /
+       0.117%, lows 0.83 / 0.88 per day, P(reach 54) pass; bg_mean 157.3 / 159.1 (p 0.075 / 0.031); hourly error 00–06 /
+       06–12 / 12–18 / 18–24 h −5.3 / +7.7 / +5.5 / +0.3 and −1.8 / +8.3 / +7.2 / +1.0 (c371 −11.0 / +8.3 / +2.2 / −3.3), RMS 8.1
+       / 7.9 (8.8); dinner +15 … +17 to 4.5 h; 3-h meal change +11.1 / +10.4.
+     Evidence: Elleri 2013's low-GL meal appeared ~18 g beyond its carbohydrate with +15 g protein and +22 g fat (0.49 g per g
+     of both; the model's fat acts on SI, not as glucose); Paterson 2017 dose-dependent late rises; the 0.1 prior was [J].
+     Adopted: `pro_glc` 0.3. Reference now c374_pro3.
