@@ -167,7 +167,7 @@ class BehaviorTraits:
     course_f: float = 0.3                # its size as a fraction of the meal
     main_speed: float = 1.0              # experiment (LESSONS 319): main (solid) parcel emptying / absorption speed × this
     count_shift: float = 0.0             # experiment (LESSONS 318): extra mean log under-entry at entered meals, intake unchanged
-    pro_glc: float = 0.1                 # g glucose per g dietary protein (late parcel). Elleri 2013: the LG meal (+15 g protein,
+    pro_glc: float = 0.3                 # 0.1 until 2026-10-19 (LESSONS 373). g glucose per g dietary protein (late parcel). Elleri 2013: the LG meal (+15 g protein,
                                          # +22 g fat) appeared ~18 g beyond its carbohydrate, ~0.4-0.5 g/g (experiment, LESSONS 305)
     ge_full_kcal: bool = False           # experiment (LESSONS 305): the meal's whole fat / protein energy on the main parcel
     unent_light: bool = False            # a main meal eaten unentered and unbolused carries snack composition (experiment, LESSONS 284)
