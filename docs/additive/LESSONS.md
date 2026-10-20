@@ -6691,3 +6691,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      (44; 40); 40 / 41 of 51 (37). The depths move little with CRmax (as LESSONS 383): the low statistics return to the
      pass band, but the body's true lows still run at about half the donors' time below 54. Adopted 0.7 (the smaller move
      that passes t54); reference c396_cr7.
+
+395. **On the honest sensor the missing lows are after bolused meals: twins go low after 3.0% of meal boluses within 2 h,
+     donors after 8.0%; not lone boluses, and not the spread of meal glucose.** Low onsets by last manual bolus
+     (`low_ctx2c.py`, G7; user boluses counted as `f > 0 or f <= −0.05`, the earlier `f > 0` dropped every hand-dialled
+     bolus and put the twins' corrections among the meals), c396_cr7 vs donors: meal boluses 3.73 vs 2.83 per day, lows
+     < 2 h after one 0.111 vs 0.227 per day (per meal bolus 0.030 vs 0.080; < 4 h 0.053 vs 0.126); lone boluses 3.15 vs
+     1.96 per day, lows within 4 h 0.197 vs 0.159 per day (per lone bolus 0.063 vs 0.082). Per-meal labelled glucose per
+     entered gram relative to the person's own median (`geq_spread.py`, c396_cr7 labelled): p05 / 10 / 25 0.34 / 0.44 /
+     0.67 vs 0.31 / 0.40 / 0.63, share < 0.5 13.6 vs 16.6%, medians 1.18 vs 1.19 — close, so meals that deliver much less
+     than entered are not 2.7× rarer in the twins. Twins also split their user boluses differently (more lone, more meal
+     boluses per day than donors' 1.96 / 2.83). Open: what makes a real bolused meal outrun its glucose 2.7 times as
+     often — the insulin side of the meal (bolus relative to the body's need, its timing against eating) is next.
