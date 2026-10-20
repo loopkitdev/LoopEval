@@ -599,7 +599,14 @@ def add_delivered_profile(path: str, ice_root: Path = Path.home() / ".loop-eval/
             rate = ((s.basal_u.fillna(0) + s.bolus_auto_u.fillna(0)) / (s.dt / 60.0)).to_numpy()
             q = pd.DataFrame(dict(h=np.floor(s.hour.to_numpy()[quiet]).astype(int) % 24, r=rate[quiet], dt=s.dt.to_numpy()[quiet]))
             g = q.groupby("h"); hrs = g.dt.sum() / 60.0; prof = g.r.mean().reindex(range(24))
-            if (hrs.reindex(range(24)).fillna(0) >= 20).all() and prof.mean() > 0:
+            need = 20.0
+            if no_pulse:                     # pulses cover much of the day: thinner hours, gaps filled around the clock
+                need = 0.0; hh = hrs.reindex(range(24)).fillna(0)
+                prof = prof.where(hh >= 6.0)
+                if prof.notna().sum() >= 16:
+                    x = np.arange(72); y = np.tile(prof.to_numpy(), 3); k_ = np.isfinite(y)
+                    prof = pd.Series(np.interp(x, x[k_], y[k_])[24:48], index=range(24))
+            if (hrs.reindex(range(24)).fillna(0) >= need).all() and prof.notna().all() and prof.mean() > 0:
                 row["basal_profile_deliv_np" if no_pulse else "basal_profile_deliv"] = json.dumps((prof / prof.mean()).round(4).tolist())
         out.append(row)
     r = pd.DataFrame(out)
