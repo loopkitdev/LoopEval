@@ -7089,3 +7089,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      60–180), 03–06 h 135 / 130 / 127 / 127 and 138 / 130 / 128 / 126 (donors 141 / 136 / 130 / 127), t54 0.234 / 0.237%
      (0.190), lows 1.00 / 1.13 per day (1.00), both passing; 40 / 38 of 51 (39). 0.4 adopted for the meal (Pete: meal
      shape over lows); its lows now run slightly over the donors'. Failing at 0.4: zero_frac, vol_cluster_60m (borderline).
+
+437. **On the relative-window base, Heise's dose-dependent absorption brings the lows onto the donors'; adopted.**
+     `dose_beta` 0.1 on c439_pr4 (c440_db): lows 1.00 / day (1.13; donors 1.00), t54 0.223% (0.237; 0.190), mean 155.6,
+     TIR 69.6, 3-h meal change +16.9 (+17.9; +21), vol_cluster_60m and between_day_frac now passing, 40 of 51 (38). On
+     c418_f5 the same change took lows below the donors' (LESSONS 433); with the meal window now carrying more post-meal
+     insulin need, the slower peak of a large meal bolus is what the evidence asks for. Default on (A4d; `--set
+     dose_beta=0` turns it off). Open: night share of lows 36% (donors 22%), night lows 40 min p50 (35).

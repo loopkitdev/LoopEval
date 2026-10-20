@@ -133,9 +133,11 @@ def _gap_mult(person):
 
 class World:
     def __init__(self, person, days: int, seed: Optional[int] = None, enable: Optional[dict] = None):
-        if enable and isinstance(enable.get("dose_beta"), float):
-            # experiment (LESSONS 155): dose-dependent bolus absorption
-            person = copy.copy(person); person.body = person.body.scaled(dose_beta=enable["dose_beta"])
+        # A4d dose-dependent bolus absorption, default since 2026-10-20 (LESSONS 155, 433, 437): Heise 2017 aspart tmax 65.7 /
+        # 72.1 / 75.2 min at 0.1 / 0.2 / 0.4 U/kg → β ≈ 0.1; --set dose_beta=0 turns it off
+        _db = float(enable["dose_beta"]) if enable and isinstance(enable.get("dose_beta"), float) else 0.1
+        if _db != person.body.dose_beta:
+            person = copy.copy(person); person.body = person.body.scaled(dose_beta=_db)
         if enable and enable.get("kappa_ins"):
             # experiment (LESSONS 292): insulin-dependent κ (Best 1981)
             person = copy.copy(person); person.body = person.body.scaled(kappa_ins=1.0)
