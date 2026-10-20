@@ -7096,3 +7096,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      c418_f5 the same change took lows below the donors' (LESSONS 433); with the meal window now carrying more post-meal
      insulin need, the slower peak of a large meal bolus is what the evidence asks for. Default on (A4d; `--set
      dose_beta=0` turns it off). Open: night share of lows 36% (donors 22%), night lows 40 min p50 (35).
+
+438. **The twins' night lows are real, build toward dawn, and sit where the twins' insulin sensitivity peaks.** c440_db,
+     G7 (`nightlow.py`, `nightconc.py`, `nightpair.py`, `truelow.py`, `sihour.py`, `nightsd.py`): night low onsets by
+     00–01 / 02–03 / 04–05 h 108 / 139 / 179 (donors 1,746 / 1,448 / 1,414, falling); true glucose at CGM low onsets p50 69
+     (sensor not the cause); night lows per night p75 0.59 (donors 0.38), and they track the person's day lows weakly
+     (corr 0.37; donors 0.81) and their own donor's not at all (0.18). No twin trait predicts them. Delivered insulin by hour
+     matches the donors' shape (day / night 1.71 vs 1.81). SI / the person's median climbs through the night to 1.30 at
+     05–06 h (c418_f5 1.21, before the relative normalisations): every daytime resistance (fat, post-meal window, caffeine,
+     sleep loss, stress) is absent at night, and nothing lowers SI at dawn — the basal profile carries the whole dawn need
+     as EGP. Within-night SD 29.1 vs 23.8, 00→06 h change −32 vs −26: the night is too responsive. Perriello 1988 measured
+     the dawn as ~30% more hepatic output and ~25% less peripheral uptake; `dawn_si` moves share s of the profile's rise
+     over 00–03 h into SI with EGP divided alike (need unchanged); arms s 0.5 / 1.0 (c441_ds5, c442_ds10).
