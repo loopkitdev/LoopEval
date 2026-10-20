@@ -15,6 +15,9 @@ B2 dawn          EGP bump from onset (02:00–04:30) peaking ~07:00, gone ~10:00
 B3 day level     intrinsic day-to-day SI, CV 8%, independent days (repeat clamps, evidence/07);
                  intraday OU OFF (no controlled-condition evidence)
 B4 slow drift    OU on log SI — OFF, same reason (weight, season, growth are to be named instead)
+B4b ultradian    within-day oscillation of SI and EGP: 1 + A·sin(2πt/P + φ), own random phase per parameter (Wilinska 2010,
+                 the Cambridge closed-loop simulator: A 5%, P 3 h, φ ~ U[0, P]); A and P fitted to the donors' CGM step
+                 structure where the literature gives no measurement (LESSONS 385)
 B5 menstrual     SI low at menses onset (BDDP-log "late" shape), 21–38 d cycle, responders only (ON default; LESSONS 136, 235)
 B6 illness       Poisson episodes, SI dip with ramps, EGP rise                  02 illness; 00 D21a
 B14 steroids     oral glucocorticoid courses: morning dose, SI loss from 2 h, full 6–12 h, gone by 22 h; taper over the course
@@ -47,7 +50,7 @@ class ModTraits:
     # day / intraday / drift are UNNAMED variability: off unless a controlled-condition source sizes them
     # (Pete 2026-10-15: no mystery terms fitted to field data; free-living CVs are targets for the named
     # factors, not inputs). circ_noise likewise.
-    enabled: dict = field(default_factory=lambda: dict(circadian=True, dawn=True, day=True, intraday=False,
+    enabled: dict = field(default_factory=lambda: dict(circadian=True, dawn=True, day=True, intraday=False, ultradian=False,
                                                        drift=False, menstrual=True, illness=True, sleep=True,
                                                        gh=True, alcohol=True, stress=True, caffeine=False,
                                                        steroid=True, heat=False))
@@ -69,6 +72,8 @@ class ModTraits:
     intra_sd: float = 0.12              # stationary log-SI sd within a day [J]
     intra_tau: float = 240.0            # min
     drift_sd: float = 0.08
+    ultra_amp: float = 0.05             # B4b amplitude (Wilinska 2010 5%)
+    ultra_per: float = 180.0            # B4b period, min (Wilinska 2010 3 h)
     drift_tau: float = 20 * DAY
     cycle_len: float = 28.0             # days
     cycle_phase: float = 0.0            # days
@@ -178,6 +183,8 @@ class Modulators:
         self.day_ou = r.normal(0, traits.day_sd)
         self.drift = r.normal(0, traits.drift_sd)
         self.last = None
+        ru = np.random.default_rng(traits.seed + 181)                              # B4b phases, own stream
+        self.ultra_ph = ru.uniform(0, 2 * math.pi, 2)
 
     # ---------------------------------------------------------------- pieces
     def circadian(self, m: float) -> float:
@@ -324,6 +331,12 @@ class Modulators:
         if en["intraday"]: log_si += self.ou
         if en["drift"]: log_si += self.drift
         si = math.exp(log_si)
+        if en.get("ultradian"):
+            w = 2 * math.pi * m / getattr(self.t, "ultra_per", 180.0); A = getattr(self.t, "ultra_amp", 0.05)
+            si *= 1.0 + A * math.sin(w + self.ultra_ph[0])
+            ultra_egp = 1.0 + A * math.sin(w + self.ultra_ph[1])
+        else:
+            ultra_egp = 1.0
         if en["circadian"]: si *= self.circadian(m)
         si *= self.menstrual(m)
         d = int(m // DAY); mm = m % DAY; dd = max(0, min(d, self.days - 1))
@@ -342,6 +355,7 @@ class Modulators:
             # mean-zero night-to-night GH variation of the dawn increment (the mean dawn lives in the basal profile)
             shape = (mm - 180) / 180.0 if mm < 360 else 1.0 if mm < 480 else (600 - mm) / 120.0
             egp += self.t.gh_dawn * (self.gh[dd] - 1.0) * shape
+        egp *= ultra_egp
         if en.get("alcohol") and self.t.drinker and d >= 1 and self.drink[d - 1] and 6 * 60 <= mm < 12 * 60:
             egp *= 0.85                                                            # morning after (Turner 2001) [I size]
         pw = getattr(self.t, "preg_week", float("nan"))
