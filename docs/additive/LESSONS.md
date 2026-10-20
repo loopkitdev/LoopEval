@@ -6946,3 +6946,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      day through ordinary falls carried further by hours-scale swings in insulin action, not through a steeper tail. An
      absorption-rate sd of 0.5 is in keeping with Heinemann's 25–30% GIR variation along the action curve once insulin's
      own kinetics smooth it. Adopted 0.5 (default); reference c418_f5.
+
+420. **The night excess of lows is real glucose, and GH pulses that add night need (Pal's +88% form) do not lift the
+     pre-dawn trough.** c418_f5: CGM lows < 70 with true glucose < 70 in 58% by day and 66% at night (`nightlow_true.py`) —
+     the night excess (39 vs 22% of lows) is not sensor-made. B2b with the mean-preserving offset removed (`gh_pulse_net`,
+     dips only), amplitude 0.2 / 0.4 (c420): hourly glucose 03–06 h 141 / 127 / 121 / 121 and 141 / 131 / 124 / 123 (c418_f5
+     135 / 126 / 122 / 120; donors 141 / 136 / 130 / 127); lows 0.83 / 0.75 per day (0.92), t54 0.140 / 0.135%; mean 159.8 /
+     158.6; 39 / 35 of 51 (40). Not adopted (B2b stays off in both forms). The 24-h profile (c418_f5 hourly RMS vs donors):
+     12–16 h ~+8 high, 03–06 h ~−7 low — the body's need across the day (B1/B1b), not night pulses, is the lever for the
+     night share of lows.
