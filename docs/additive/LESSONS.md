@@ -6423,3 +6423,20 @@ outputs in gamepc ~/additive/runs/c290–c312).
        TDD intake balance. ICE by time since entry 1–2 / 2–3 h 101 / 81 (donors 114 / 97). Hours 08–11 still 141–158
        (donors 135–146), 18–22 h 149–159 (156–165).
      Adopted: `skip_own` is the default (`--disable skip_own`). Reference now c369_skip.
+
+369. **The twins' extra morning load is the body, not food; the fixed night bump makes night insulin too regular and too
+     large.** On c369_skip:
+     - Unannounced labelled load by 3-h block (`unann_hour.py`): 10.6 / 10.6 / 14.1 / 14.2 / 13.5 / 12.2 / 13.0 / 15.0 (108.8;
+       donors 94.7): 06–12 h still +8 g-eq / day. Attributed from the truth log (eating within −45..+60 min of onset), 06–12 h
+       unannounced pulses per twin-day: no eating 10.4 g-eq (0.40 pulses), unentered meal 7.7, graze 5.5, exercise 1.9, snack
+       1.9. Body EGP / its mean by hour runs 1.10–1.22 at 03–10 h (still 1.16 at 08–10 h).
+     - Delivered insulin by window, donor vs twin, by the donor's t54 quartile (`clock_ins.py`): night 01–06 h Q1–Q4 3.6 /
+       5.8 / 4.7 / 4.1 vs 3.6 / 6.6 / 4.8 / 5.5 U; evening 11.0 / 17.0 / 12.0 / 12.6 vs 10.2 / 15.9 / 13.4 / 12.0.
+     - c370 `--disable night_add` (bump renormalised, 24-h need kept): lunch +9 / +27 / +26 / +19 at 0.5–2 h, 3-h meal change
+       +8.0, lows / day 1.13 (passes), day / night 1.78 (p 0.009), night_cv 28.4; 34 of 51.
+     - c370 `--disable night_own` (no night bump): day / night 1.97 (p 0.655, passes), night_cv 34.5 (p 0.577, passes), t54
+       0.223%, lows 1.17 / day, bg_mean 149.8, TIR 73.5; but 02–06 h 123 / 117 / 118 / 122 (donors 141 / 136 / 130 / 127),
+       circadian_amp p 0.022; 33 of 51.
+     The donors' measured night need (steady-night delivery / schedule, median 1.13) varies night to night with the evening
+     (LESSONS 288–289); built as a fixed bump it makes the night too regular. Next: no bump, with the evening's own glucose
+     carrying into the night (fat resistance unnormalised; protein glucose).
