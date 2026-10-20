@@ -6717,3 +6717,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.030 per bolus (c396 0.030; donors 0.080), < 4 h 0.055 / 0.050 (0.053; 0.126); t54 0.160 / 0.134% (0.092; 0.190),
      P(reach 54) 0.21 / 0.18; 3-h meal change +1.1 / −1.6 (+3.2; +21); 43 / 37 of 51 (40). The low rate after meal boluses
      does not move, so the 0.7 arm's t54 is not this mechanism (and does not grow at 1.0). Not adopted.
+
+398. **After the twins' meals Loop suspends longer and doses less: the missing lows and the low 3-h meal level are one
+     gap.** Isolated bolused entries ≥ 15 g (no other entry ± 3 h; `postmeal_loop.py`, G7), donors 15,627 vs c396_cr7 866:
+     low (< 70) within 4 h 16.8 vs 13.5%; Loop's zero-delivery minutes over 0–180 min p50 65 vs 90; Loop insulin 30–180 min
+     per 10 g × CR p50 4.71 vs 4.10; BG at entry 131 vs 138. Meals that end low: zero-delivery 100 vs 125 min, Loop insulin
+     2.61 vs 2.08; meals that do not: 55 vs 85 min, 5.24 vs 4.57. With the bolus matching (LESSONS 396), the twins'
+     glucose 1–3 h after a meal sits lower against Loop's forecast, so Loop withholds insulin and the meal ends higher
+     relative to the low threshold; real meals keep glucose up longer, Loop doses into it, and more of them end low.
+     Pete's earlier reading (more glucose arriving later in meals) is this mechanism.
