@@ -214,7 +214,8 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
-                  basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0, intake_own: bool = False, csf_geq: bool = False) -> Person:
+                  basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0, intake_own: bool = False, csf_geq: bool = False,
+                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -317,6 +318,10 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         # reliability (template csf_geq_mult); the intake budget is the donor's, so it is divided back out below
         k_ = row.get("csf_geq_mult") if hasattr(row, "get") else None
         if k_ is not None and np.isfinite(float(k_)): k_csf_geq = float(k_); csf_target *= k_csf_geq
+    # csf_lvl (experiment, LESSONS 366): the carb-sensitivity level × this, read from the unsegmented meal counteraction (ICE
+    # above pre-meal over 0-360 min per entered gram, donors 47.4 vs twins 38.5) instead of the labeler's pulse g-eq, which
+    # ends a pulse at a plateau; the intake budget stays in glucose (fewer grams eaten) unless csf_lvl_keepg
+    csf_target *= csf_lvl
     f_cal = csf_target * bw * bp.vg / 1000.0
     if f_cal > 1.0:
         bp = bp.scaled(f=1.0, vg=float(1000.0 / (bw * csf_target)))
@@ -360,6 +365,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # the intake budget is the donor's, not a consequence of the twin's ISF fit: divide the twin multiplier back out
     # (raising body ISF had raised cr_true and with it the carbs eaten; LESSONS 219)
     carbs = max(20.0, tdd * (1 - share) * cr_true / k_isf_twin * k_csf_geq)
+    if csf_lvl_keepg: carbs *= csf_lvl
     # intake_own (experiment, off): the budget × the donor's measured glucose load over the twin's (labelled g-eq per day,
     # ice labeler on both sides, `intake_mult` in the templates); the budget over-feeds low-running donors' twins by ~18%
     # (LESSONS 333)
