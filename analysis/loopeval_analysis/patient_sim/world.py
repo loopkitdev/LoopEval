@@ -354,6 +354,14 @@ class World:
             self.beh_traits.p_log_pro = enable["p_log_pro"]
         if enable and isinstance(enable.get("p_log_rescue"), float):
             self.beh_traits.p_log_rescue = enable["p_log_rescue"]
+        if enable and enable.get("unl_own"):
+            # unl_own (experiment, LESSONS 449): unlogged eating sized from the donor's own unannounced load more than 6 h from
+            # a logged meal (labelled, like for like): the twins' far load is ~16 g-eq/day of body-made rises plus ~56 of
+            # unlogged eating whatever the donor (LESSONS 448), so the eating part is scaled to the donor's far load less 16
+            fu = person.traits.get("template_rates", {}).get("far_unann")
+            if fu is not None and np.isfinite(float(fu)):
+                self.beh_traits = copy.deepcopy(self.beh_traits)
+                self.beh_traits.unl_mult = float(np.clip((float(fu) - 16.0) / 56.0, 0.3, 2.0))
         for k_ in ("night_pro", "uls"):     # default since 2026-10-20 (LESSONS 442–443; --disable night_pro,uls)
             if (enable or {}).get(k_, True):
                 self.beh_traits = copy.deepcopy(self.beh_traits); setattr(self.beh_traits, k_, True)

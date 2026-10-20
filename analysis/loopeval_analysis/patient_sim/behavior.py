@@ -150,6 +150,7 @@ class BehaviorTraits:
     # defense
     pro_onset: float = 60.0              # projected glucose (mg/dL) below which they act proactively (person draw N(60, 20), fitted to the donors' lows, LESSONS 409)
     pro_grams: float = 12.0              # proactive snack size [J]
+    unl_mult: float = 1.0                # unlogged eating × this (unl_own: from the donor's far-from-meal unannounced load, LESSONS 449)
     night_pro: bool = False              # woken by an alarm, the person may act proactively (LESSONS 442; on by default in World)
     uls: bool = False                    # Dexcom Urgent Low Soon predictive alert (LESSONS 442; on by default in World)
     pro_refractory: float = 45.0         # min
@@ -655,6 +656,8 @@ class Behavior:
             if entered is not None and t.announce_mult < 1.0 and self.r_ann.random() >= t.announce_mult:
                 dropped = True; entered = None; bolus = None; et = base + mt
                 del self.overrides[n_ov:]
+            if entered is None and t.unl_mult != 1.0:
+                grams = max(3.0, grams * t.unl_mult)     # unl_own (LESSONS 449): the person's own amount of unlogged eating
             # composition [J]: T1D adults ~40% energy carbohydrate, 40% fat, 18% protein (Snell-Bergeon 2009,
             # unverified) → per carb gram ~0.44 g fat, 0.45 g protein for meals; snacks carry less
             fat_r, pro_r = (0.44, 0.45) if kind == "meal" else (0.2, 0.2)
@@ -766,7 +769,7 @@ class Behavior:
                 wv = np.ones(24); wv[19:23] = 2.0; pg = sh_day * wv; pg = pg / pg.sum()
             st = (base + (float(r.choice(24, p=pg)) + r.random()) * 60 + shift) if sh is not None \
                 else base + float(r.uniform(t.wake + 30, t.bed)) + shift
-            gz = max(1.0, float(np.exp(r.normal(math.log(t.graze_g), 0.4))))
+            gz = max(1.0, float(np.exp(r.normal(math.log(t.graze_g), 0.4)))) * t.unl_mult
             if t.graze_keep < 1.0 and self.r_gz.random() >= t.graze_keep:
                 continue                                    # thinned on its own stream: every other draw stays paired
             self.planned.append((st, ("graze", gz)))
