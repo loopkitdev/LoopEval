@@ -542,11 +542,11 @@ class World:
         # onset of the fat resistance, hours after the meal (default 2, ramp to full over 1 h): Laxminarayan 2015 (DTT,
         # doi:10.1089/dia.2015.0118) found SI 17% lower already in the high-fat DINNER window (LESSONS 352)
         self.fat_on = float(enable["fat_on"]) if enable and isinstance(enable.get("fat_on"), float) else 0.5   # default since 2026-10-19 (was 2)
-        # fat_rel (default since 2026-10-18, Pete; LESSONS 151; --disable fat_rel): the fat resistance relative to the person's own usual diet. Their ISF, CR and
+        # fat_rel (default 2026-10-18 to 2026-10-19, Pete; LESSONS 151, 370; --enable fat_rel): the fat resistance relative to the person's own usual diet. Their ISF, CR and
         # TDD were tuned on their ordinary meals, average fat included, so the term is normalised to a mean of 1 over the
         # planned days (as caffeine is, relative to the person's habitual intake); fattier than usual still dips SI
         self.fat_norm = 1.0
-        if (enable or {}).get("fat_rel", True) and self.enable.get("fat", True):
+        if (enable or {}).get("fat_rel", False) and self.enable.get("fat", True):   # off since 2026-10-19 with night_own (LESSONS 370)
             ev = sorted((tm, a[1].fat) for (tm, a) in self.beh.planned if a[0] == "eat_meal" and getattr(a[1], "fat", 0) > 0)
             if ev:
                 grid = np.arange(DAY, days * DAY, 5.0); mult = np.ones_like(grid)
