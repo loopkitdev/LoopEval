@@ -82,6 +82,8 @@ class Family:
     fall_k: float = 0.0           # noise × (1 + fall_k·max(0, −rate − 1)) with rate the IG change in mg/dL/min: CGM error grows in
                                   # falls (G7 pivotal, Garg 2022 Table 5: MARD 9.3 / 8.4% at < −2 / −2..−1 vs 7.8–8.1 when slower;
                                   # rises are carried by the lag alone, LESSONS 391)
+    fall_lag: float = 1.0         # BG → IG time constant × this while glucose falls below IG (interstitial lag longer in falls;
+                                  # Cengiz & Tamborlane 2009 review), sized on Garg 2022 Table 5's falling bins (LESSONS 391)
     common_sigma: float = 0.0     # innovation sd of the error COMMON to co-located sensors (interstitial physiology):
                                   # AR(3) (1.584, −0.8842, 0.1798), var(w) 3.98 → σ 2.0 on Enlite (Biagi 2017).
                                   # Continues across sessions; YSI comparison sees it, two-sensor precision does not
@@ -108,7 +110,7 @@ FAMILIES = {
     # gave G7 MARD 17% at 54–69 and PARD 14%.
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
                         brand_gain=1.0, sigma=(1.8, 0.8), df=30.0, hetero_q=0.7, a0=(0.98, 0.04), b0=(3.0, 3.0),   # hetero_q 0.5 -> 0.7: FDA loss 4.52 -> 3.88 (LESSONS 361); sigma 2.4 -> 1.8: donors' high-frequency CGM noise once meals move fast (LESSONS 269; was 2.8 -> 2.4, LESSONS 221)
-                        common_sigma=2.8, trans_rate=(6.5, 0.9), trans_amp=(8.0, 0.4), trans_down=0.62, noise_wander=(0.5, 120.0), fall_k=0.3,   # fall_k: Garg 2022 Table 5 falls (LESSONS 391)   # transients: G7 donors' reversals
+                        common_sigma=2.8, trans_rate=(6.5, 0.9), trans_amp=(8.0, 0.4), trans_down=0.62, noise_wander=(0.5, 120.0),   # transients: G7 donors' reversals
                         # 55% low first, 6.9 per 1,000 steps; the twins read 49% / 8.5 at 0.55 / 8 (LESSONS 390)   # common 2.0 -> 2.8,
                         # wander 0.2/480 -> 0.5/120: the donors' 5-min step spread, tails and clustering, fitted on donor data where the FDA
                         # tables do not identify them (sensor_eda 6 of 10; FDA loss 6.0 -> 9.2, PARD 9.4 -> 9.9 vs 8.9; LESSONS 384)
@@ -177,6 +179,7 @@ class Sensor:
             if "sensor_tamp" in overrides or "sensor_tampsd" in overrides:
                 kw["trans_amp"] = (overrides.get("sensor_tamp", self.f.trans_amp[0]), overrides.get("sensor_tampsd", self.f.trans_amp[1]))
             if "sensor_ttau" in overrides: kw["trans_tau"] = overrides["sensor_ttau"]
+            if "sensor_falllag" in overrides: kw["fall_lag"] = overrides["sensor_falllag"]
             if "sensor_fallk" in overrides: kw["fall_k"] = overrides["sensor_fallk"]
             if "sensor_tdown" in overrides: kw["trans_down"] = overrides["sensor_tdown"]
             if "sensor_tprop" in overrides: kw["trans_prop"] = overrides["sensor_tprop"]
@@ -266,7 +269,8 @@ class Sensor:
         f = self.f
         if self.ig is None: self.ig = bg
         ig0 = self.ig
-        self.ig += (bg - self.ig) / max(self.session.tau, 1.0)    # dt = 1 min
+        tau_ = self.session.tau * (f.fall_lag if bg < self.ig else 1.0)
+        self.ig += (bg - self.ig) / max(tau_, 1.0)    # dt = 1 min
         self.ig_rate = 0.9 * getattr(self, "ig_rate", 0.0) + 0.1 * (self.ig - ig0)   # mg/dL/min, ~10-min smoothing
         self._maybe_compress(minute, asleep)
         if self.trans != 0.0:
