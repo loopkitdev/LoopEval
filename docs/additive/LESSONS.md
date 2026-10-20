@@ -6998,3 +6998,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      t54 0.165 / 0.224%; 3-h meal change +18.9 / +17.8; 39 / 38 of 51 (40). Not adopted; protein stays 0.3. The 23–00 h excess
      is something else that arrives 3–5 h after dinner or later in the evening: candidates are the late-evening unannounced
      intake (grazing, snacks, bedtime eating) against the donors' labelled late-evening load, and the fat resistance window.
+
+426. **The donors carry more unannounced glucose at 00–03 h and less in the morning than the twins.** Labelled unannounced
+     g-eq per day by 3-h block (`unann_hour.py`, G7), donors vs c407_pp2: 00 / 03 / 06 / 09 / 12 / 15 / 18 / 21 h 11.3 / 8.8 /
+     10.2 / 10.3 / 12.6 / 10.9 / 12.8 / 15.4 vs 8.7 / 8.4 / 14.5 / 14.2 / 13.0 / 9.9 / 13.8 / 14.0. Late evening matches (not
+     the source of the 23–00 h ICE excess, LESSONS 425). At 00–03 h the donors have +2.6 g-eq/day of glucose arriving that
+     keeps their nights up without more Loop insulin; at 06–12 h the twins have ~+4 g-eq/day per block (morning appearance —
+     breakfast slots, dawn; `slot_true`, LESSONS 346). Open: what the donors' 00–03 h unannounced pulses are (night eating,
+     rebound after treated lows, hormonal rises) — split the donors' night pulses by context (preceded by a low / treatment,
+     during sleep, size) before adding a component.
