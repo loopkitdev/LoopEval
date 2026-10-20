@@ -564,7 +564,7 @@ class World:
         self.fat_events: list = []                         # (minute, fat g) — transient fat-induced insulin resistance
         self.fat_log: list = []                            # every fat event, kept for the truth file (LESSONS 288)
         self.ppr_events: list = []                         # main-meal times for the post-meal insulin-action window (LESSONS 321)
-        self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.2   # Pete 2026-10-20: meal shape over lows (LESSONS 408)
+        self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.4   # Pete 2026-10-20: meal shape over lows (LESSONS 408); 0.4 relative since 2026-10-20 (LESSONS 436)
         self.ppr_shift = float(enable["ppr_shift"]) if enable and isinstance(enable.get("ppr_shift"), float) else 0.0
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
         self.ppr_end = float(enable["ppr_end"]) if enable and isinstance(enable.get("ppr_end"), float) else 240.0   # window out by (min; LESSONS 423)
@@ -593,11 +593,11 @@ class World:
                     w = np.where(x < a_, 0.0, np.where(x < a_ + 1, x - a_, np.where(x < 6, 1.0, np.where(x < 10, (10 - x) / 4, 0.0))))
                     mult *= 1.0 - self.fat_rho * min(fat, 80.0) / 50.0 * w
                 self.fat_norm = float(np.maximum(mult, 0.4).mean())
-        # ppr_rel (experiment, LESSONS 435; --enable ppr_rel): the post-meal insulin-action window relative to the person's
+        # ppr_rel (default since 2026-10-20, LESSONS 435–436; --disable ppr_rel): the post-meal insulin-action window relative to the person's
         # own meals, as fat_rel is — the donor's TDD already covered their post-meal need, so the window moves need into the
         # hours after meals instead of adding to it (mean 1 over the planned days)
         self.ppr_norm = 1.0
-        if (enable or {}).get("ppr_rel", False) and self.ppr_a > 0:
+        if (enable or {}).get("ppr_rel", True) and self.ppr_a > 0:
             ev = sorted(tm for (tm, a) in self.beh.planned if a[0] == "eat_meal" and getattr(a[1], "kind", "") == "meal")
             if ev:
                 grid = np.arange(DAY, days * DAY, 5.0); w = np.zeros_like(grid); end = self.ppr_end
