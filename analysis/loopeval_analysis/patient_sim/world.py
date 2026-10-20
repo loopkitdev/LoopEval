@@ -426,8 +426,8 @@ class World:
                 bt.carbs_day = max(0.2 * bt.carbs_day, bt.carbs_day - graze - resc - pro)
             else:
                 bt.carbs_day = max(0.5 * bt.carbs_day, bt.carbs_day - graze - resc)
-            if (enable or {}).get("budget_pro"):
-                # experiment (LESSONS 378): the TDD budget also pays for the meals' protein glucose (A12, pro_glc g per g of
+            if (enable or {}).get("budget_pro", True):
+                # default since 2026-10-19 (LESSONS 378; --disable budget_pro): the TDD budget also pays for the meals' protein glucose (A12, pro_glc g per g of
                 # protein; ~0.39 g protein per carbohydrate gram over meals and snacks, slot composition included)
                 bt.carbs_day /= 1.0 + bt.pro_glc * 0.39
             if enable and isinstance(enable.get("meal_budget"), float):
