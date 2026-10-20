@@ -51,7 +51,8 @@ def _one(args):
                           intake_own=bool(enable.get("intake_own")),
                           csf_geq=bool(enable.get("csf_geq", True)),
                           csf_lvl=enable.get("csf_lvl") if isinstance(enable.get("csf_lvl"), float) else 1.0,
-                          csf_lvl_keepg=bool(enable.get("csf_lvl_keepg")))   # default since 2026-10-19 (LESSONS 358)   # default since 2026-10-19 (LESSONS 300)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
+                          csf_lvl_keepg=bool(enable.get("csf_lvl_keepg")),
+                          prof_np=bool(enable.get("prof_np")))   # default since 2026-10-19 (LESSONS 358)   # default since 2026-10-19 (LESSONS 300)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
         if isinstance(enable.get("preg_week"), float) and P.sex == "F" and 13 <= P.age <= 50:
