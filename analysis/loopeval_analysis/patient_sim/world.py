@@ -191,6 +191,10 @@ class World:
                 self.mod_traits = copy.deepcopy(self.mod_traits)
                 if isinstance(enable.get("heat_a"), float): self.mod_traits.heat_a = enable["heat_a"]; self.mod_traits.enabled["heat"] = True
                 if isinstance(enable.get("heat_T"), float): self.mod_traits.heat_T = enable["heat_T"]
+            if isinstance(enable.get("day_rho"), float):
+                # experiment (LESSONS 457): persistence of the intrinsic day-level SI (B3, sd from repeat clamps), which no
+                # controlled study sizes; fitted to the donors' TDD day-to-day autocorrelation (Pete 2026-10-20: fit from data)
+                self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.day_rho = enable["day_rho"]
             if enable.get("menstrual_late"):
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.menstrual_shape = "late"
                 self.mod_traits.enabled["menstrual"] = True
