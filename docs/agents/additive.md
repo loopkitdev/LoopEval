@@ -63,8 +63,11 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **The patient is independent of the controller** (2026-10-18): controller configuration (RC mode, GBAF, strategy) is
   never a patient trait; validation runs give each person their donor's deployed controller (`--enable rc_own`), the
   code default stays stock.
-- **No mystery terms**: a divergence is closed by fixing or adding a named, evidenced component, never by a fitted noise
+- **No mystery terms**: a divergence is closed by fixing or adding a named, evidenced component, never by an unnamed fitted noise
   or offset term.
+- **Fit from literature first, then from our data** (2026-10-20): a named component's parameters come from the literature
+  where it identifies them; where it does not, fitting them to the donor data is fine (the sensor included), kept inside
+  the component's own evidence (e.g. a sensor fit keeps its FDA accuracy loss).
 - **Publishing**: updates to this model are self-approved (merge to `main`, move the board task to Done); changes to
   general LoopEval code still go to Pete first.
 
@@ -118,7 +121,7 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 - **The insulin response itself matches**: pooled lone corrections per U per ISF equal the donors' at 60–180 min
   (LESSONS 294).
 - **Short-scale shape is partly unresolvable**: the donors' fast 5-min moves could be body or co-located sensor error;
-  the simulated sensor pair matches the one real paired record (LESSONS 299). Do not tune the sensor to CGM shape.
+  the simulated sensor pair matches the one real paired record (LESSONS 299).
 - **Meals still come down sooner than the donors'**: 3-h meal change +11.7 vs +21 (was +2 before breakfast skipping, the dinner fat carrying the night, LESSONS 368–370). Loop's delivery at each glucose band matches the donors' (LESSONS 368); adding meal glucose by carb sensitivity, slow share or protein is answered at the meal (LESSONS 366–367). The hourly profile runs 5 mg/dL low at 00–06 h and 8 high at 06–12 h (basal-need shape, LESSONS 371, 373); TDD day-to-day persistence (ac1) is ~0 against the donors' 0.09. Candidates acting after meals are read here as a second opinion.
 - **Night-to-night insulin varies less** (night CV 29 vs 36) and does not follow evening entries as the donors' does
   (LESSONS 288–289).
