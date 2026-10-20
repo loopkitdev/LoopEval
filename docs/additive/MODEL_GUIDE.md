@@ -7,7 +7,7 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c409_ps20** (2026-10-20): 112 people × 14 days, 39 of eda's 51 statistics matched (delivery scored as pump records, L 406; post-meal window on, L 408) (KS p > 0.05 against the 206 pilot
+**c417_st** (2026-10-20): 112 people × 14 days, 39 of eda's 51 statistics matched (delivery scored as pump records, L 406; post-meal window on, L 408) (KS p > 0.05 against the 206 pilot
 donors in 13-day blocks); mean, TIR and TDD on the donors'.
 
 **Personal basis legend**
@@ -142,7 +142,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 | B3 Day-level SI | independent lognormal per day | CV 8%, no persistence | repeat clamps 6–15% (evidence/07) | no measured day-to-day persistence (evidence/07) | **Event** (day) |
 | B5 Menstrual cycle | SI falls through the late luteal phase to a low at onset, recovers by day 3 | 63% respond; amp lnN(0.08, 0.5); cycle N(28, 3) d | BDDP G7 cycle logs (493 events): +2 to +4.7 mg/dL to onset | L 136 | **Drawn** (F 13–50) |
 | B6 Illness | Poisson episodes 1.5–15 d; SI −10 to −35%, EGP +0–15%; 20% GI (SI up, intake ×0.7) | 3 / yr adults, 5 / yr children | Mehta 2010; Tinti 2025 | evidence/02 | **Event** |
-| B7–B10 Nightly factors | sleep loss (−5% SI / h), nocturnal GH (CV 0.32 on a 20% dawn increment), evening alcohol (63% drink, 3–20% of nights), stress (1/3 react) | — | Donga 2010, Edge 1990, Turner 2001, Riazi 2004 | evidence/12; L 77 | **Drawn** + Event |
+| B7–B10 Nightly factors | sleep loss (−5% SI / h), nocturnal GH (CV 0.32 on a 20% dawn increment), evening alcohol (63% drink, 3–20% of nights), stress (1/3 react; −18% SI 1–6 h, Moberg 1994) | — | Donga 2010, Edge 1990, Turner 2001, Riazi 2004 | evidence/12; L 77 | **Drawn** + Event |
 | B11 Hyperglycaemic resistance | SI × (1 − H), H → 0.26·clip((G − 140)/220), τ 12 h [J τ] | — | Vuorinen-Markkola 1992; Yki-Järvinen 1987 | L 43 | Cohort |
 | B14 Oral glucocorticoids | courses 0.09 / yr; morning dose; SI loss U(0.35, 0.60) tapering | — | Bevier 2008; Waljee 2017 | L 140 | **Event** |
 | Scenarios (off) | pregnancy (X9), thyrotoxicosis (X12), niacin (D14), damaged insulin (D34), GLP-1 RA (B12) | `--set` / `--enable` | per factor catalog | L 87, 141, 336, 354 | — |
