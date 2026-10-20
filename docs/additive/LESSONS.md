@@ -7082,3 +7082,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      donor's TDD never paid for, as absolute fat did (LESSONS 432). `ppr_rel` (experiment) normalises the window to mean 1
      over the person's planned meals, moving need into the post-meal hours instead of adding it; arms at 0.3 / 0.4
      (c438_pr3, c439_pr4).
+
+436. **The post-meal window relative to the person's own meals restores the meal shape with the mean on the donors';
+     adopted at 0.4.** `ppr_rel` on c436_mofr, `ppr_a` 0.3 / 0.4 (c438_pr3 / c439_pr4): mean 154.7 / 155.7 (156.7; donors
+     151.9), 3-h meal change +14.2 / +17.9 (+13.6; +21), lunch +18 / +24 at 90 min and +12 / +25 at 120 (donors +27 plateau
+     60–180), 03–06 h 135 / 130 / 127 / 127 and 138 / 130 / 128 / 126 (donors 141 / 136 / 130 / 127), t54 0.234 / 0.237%
+     (0.190), lows 1.00 / 1.13 per day (1.00), both passing; 40 / 38 of 51 (39). 0.4 adopted for the meal (Pete: meal
+     shape over lows); its lows now run slightly over the donors'. Failing at 0.4: zero_frac, vol_cluster_60m (borderline).
