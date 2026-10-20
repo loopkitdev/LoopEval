@@ -6455,3 +6455,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      (fat_rel's reason in LESSONS 151 was the fat booked on top of a basal that already held it). Adopted: `night_own` and
      `fat_rel` off by default (`--enable night_own,fat_rel` restores them). Reference now c371_nofrel. Open: the 03–06 h
      trough and circadian_amp.
+
+371. **The body's basal-need shape sets where the day's error falls; none of the available shapes is right
+     everywhere.** On c371_nofrel, hourly mean against the donors' (RMS; mean error 00–06 / 06–12 / 12–18 / 18–24 h):
+     c371 (delivered quiet-hour shape) 8.8; −11.0 / +8.3 / +2.2 / −3.3 — t54 0.154%, 35 of 51. `--disable prof_deliv`
+     (schedule shape^0.5), c372: 7.5; −8.0 / +7.5 / +0.7 / −5.7 — circadian_amp passes (p 0.068), lows 0.67 / day fails,
+     35. Flat need (`prof_w` 0): 6.1; −0.8 / +4.0 / −0.2 / −8.2 — nights on the donors' but t54 0.044%, lows 0.50 / day,
+     night_cv 31.2 fail, 31. The night lows come from the shaped need; the night trough and morning excess too.
+     - The delivered shape's quiet steps (no entry or manual bolus in 4 h) include Loop's answer to unlogged eating.
+       Excluding labelled pulses (onset to end + 2 h; `add_delivered_profile(no_pulse=True)`, column
+       `basal_profile_deliv_np`, switch `prof_np`, off) leaves enough quiet hours for 61 of 168 donors (≥ 6 h per clock
+       hour, gaps interpolated); for them the shape moves little (07–11 h 0.84–0.94 either way). Not run as a cohort arm.
+     Kept: the delivered shape (data over the [J] exponent). Open: the night trough (−11) and the morning excess (+8).
