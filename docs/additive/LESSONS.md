@@ -6523,3 +6523,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      ac1 −0.017, bg_mean 158.8 (p 0.045), min_below70 passes (p 0.125), 36 of 51 (36). Loop recovers on the next cycle, so
      the automatic-bolus excess is not missed cycles; it follows the twins' glucose (Loop's response per band matches,
      LESSONS 368). Adopted as measured device reality: `missed_own` default. Reference now c376_miss.
+
+378. **The TDD budget now pays for protein glucose: level and TDD back on the donors' (adopted).** With `pro_glc` 0.3 the
+     protein parcel added ~12% glucose outside the intake budget (LESSONS 151's open bookkeeping), so both strategies ran
+     high: bg_mean autobolus / temp twins 160.1 / 157.3 vs donors 151.8 / 150.7, temp TDD 39.7 vs 35.6. `budget_pro` (carbs
+     eaten ÷ (1 + pro_glc × 0.39), 0.39 g protein per carbohydrate gram over meals and snacks) on c376_miss, c378: bg_mean
+     152.7 (151.9), TDD 38.75 (38.70), TIR 72.6 (71.9), CV 34.5; t54 0.089% (p 0.057), P(reach 54) p 0.055, lows 1.00 / day,
+     min_below70 p 0.037; day / night 1.94, night_cv 33.2 pass; 3-h meal change +11.1; hourly error 00–06 / 06–12 / 12–18 /
+     18–24 h −10.3 / +5.0 / +1.3 / −5.0 (RMS 8.0); 34 of 51 (36). Adopted: the insulin balance must cover all glucose eaten.
+     Reference now c378_bpro.

@@ -7,8 +7,8 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c376_miss** (2026-10-19): 112 people × 14 days, 36 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
-donors in 13-day blocks), every low statistic passing.
+**c378_bpro** (2026-10-19): 112 people × 14 days, 34 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
+donors in 13-day blocks); mean, TIR and TDD on the donors'.
 
 **Personal basis legend**
 
@@ -94,7 +94,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 | G1 Template | a donor row, lightly jittered | TDD, ISF, basal ×lnN(0, 0.10) each | — | a twin stands for one ~2-week window of its donor | **Donor** |
 | G2 True ISF | body ISF = the donor's data-fitted ISF | ISF_W 1.0 (fully on the data); clip 0.5–2× settings | ICE ISF yardstick (fasting OLS of glucose change on insulin absorbed, shrunk to the basal rule) × the body-model fit (`fit_body --regression`) | body follows data (rule 3); L 261 | **Donor** |
 | G3 Body weight | ½ log age prior + ½ log TDD / U-per-kg(age), ×lnN(0, 0.12) | clip 15–160 kg | — | a profile age can belong to the account holder (eda L47) | **Donor** (age, TDD) + Drawn |
-| G4 Insulin balance | true basal = share × TDD / 24; carbs eaten = TDD (1 − share) CR_true, covering all intake (meals, snacks, grazing, rescues) | share N(0.5, 0.07) shifted to centre 0.42, clip 0.25–0.7 | judgement centre below the scheduled share (donors' Loop trims night basal) | TDD is the measured constraint; L 124–125, 143 | **Donor** (TDD) + Drawn (share) |
+| G4 Insulin balance | true basal = share × TDD / 24; carbs eaten = TDD (1 − share) CR_true, covering all intake (meals, snacks, grazing, rescues, protein glucose) | share N(0.5, 0.07) shifted to centre 0.42, clip 0.25–0.7 | judgement centre below the scheduled share (donors' Loop trims night basal) | TDD is the measured constraint; L 124–125, 143 | **Donor** (TDD) + Drawn (share) |
 | G5 Settings | the donor's own ISF, CR, basal schedule, target, limits, suspend threshold | — | donor therapy.json (eras) | Loop runs what the donor ran | **Donor** |
 | G6 Devices | sensor family, pump, insulin formulation | formulation from the recorded brand, relabelled from Loop's recorded IOB (`add_insulin_from_iob`); unrecorded: rapid 52 : ultra-rapid 20 | IOB-curve RMSE per donor (51 of 52 recorded ultra-rapid matched) | L 248 | **Donor** |
 | G6b Dosing strategy | autobolus with probability = donor's share of autobolus days | own stream | donor dose records | 40 of 50 "autobolus" donors spent days in temp mode; Loop's automated total then 1.04× (L 331) | **Donor** |
