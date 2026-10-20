@@ -50,7 +50,7 @@ def _one(args):
                           isf_level=enable.get("isf_level") if isinstance(enable.get("isf_level"), float) else 1.0,
                           intake_own=bool(enable.get("intake_own")),
                           csf_geq=bool(enable.get("csf_geq", True)),
-                          csf_lvl=enable.get("csf_lvl") if isinstance(enable.get("csf_lvl"), float) else 1.0,
+                          csf_lvl=enable.get("csf_lvl") if isinstance(enable.get("csf_lvl"), float) else 1.05,   # LESSONS 401
                           csf_lvl_keepg=bool(enable.get("csf_lvl_keepg")),
                           prof_np=bool(enable.get("prof_np")))   # default since 2026-10-19 (LESSONS 358)   # default since 2026-10-19 (LESSONS 300)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
