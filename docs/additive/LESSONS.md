@@ -6873,3 +6873,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
        measured; its offset (0.015/min, Gray 1982) is right; its disposal rate (p2 0.025, t½ ~28 min, fitted to the
        subcutaneous lispro clamp) is if anything faster than Prager's i.v. values. A hepatic onset at Prager's rate (~0.035)
        is the evidenced candidate for the missing fast falls and early post-meal lows (c414).
+
+414. **The twins' night lows are too many, not only too long; waking to more alarms fixes the duration only at an
+     implausible wake rate.** Lows split by local night (`lowdur.py`, G7), c409_ps20 vs donors: night share 37 vs 22%;
+     night duration p50 / p75 / p90 45 / 65 / 90 vs 35 / 55 / 80 min; day lows fewer and shallower (nadir p10 47 vs 41).
+     `wake_mult` 1.2 / 1.35 (p_wake_alarm mean 0.72 → ~0.86 / ~0.97), c413: night duration 40 / 55 / 85 and 40 / 55 / 75 min,
+     low duration p90 70 / 65 (65), night share 38 / 37%; min_below70 still fails (p 0.001); 39 / 39 of 51. Not adopted:
+     ~0.97 is beyond any evidence (Buckingham 2005 29–53% in youth), and the night share — the larger gap — does not move.
+     Open: why the twins go low at night 1.7× as often as the donors (LESSONS 167 found the same on an older base).
