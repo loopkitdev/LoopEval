@@ -6854,3 +6854,22 @@ outputs in gamepc ~/additive/runs/c290–c312).
      (+17.5); 38 of 51 (39). κ brings highs down without steepening the falls near the low band. Not adopted. The fast-fall
      tail stays open alongside the papers that could size it (Prager 1986 hepatic on/off rates; Heinemann 2002 absorption
      variability).
+
+413. **Three papers read in full (Pete supplied them, 2026-10-20).**
+     - **Ruchi … Basu 2026, Diabetes 75:256** (doi:10.2337/db25-0587; [13C9,15N1]glucagon tracer, 16 T1D / 16 non-diabetic,
+       mixed meal 50/15/30%, 75 g glucose, customary bolus): plasma glucagon higher in T1D for the first ~150 min (AUC 0–120
+       1,908 vs −94 pg/mL·120 min), from higher glucagon Ra (3.39 vs −3.95 ng/kg·120 min); lower thereafter (~25 vs 35–40
+       pg/mL at 180–360 min); no difference over 6 h. No late glucagon surge — not a source for the donors' 2–4 h
+       counteraction (LESSONS 401–403). The early excess is inside Romeres 2025's measured EGP, which A6 is fitted to.
+       Their T1D glucose under a customary bolus: +6.5 mmol/L at 90 min, still ~+4 mmol/L (~70 mg/dL) at 180 min.
+     - **Elleri 2013, Diabetologia 56:1108** (Table 2): meal-attributable appearance 25 / 50 / 75% at 88 / 175 / 270 min
+       (LG, macaroni cheese, 121 g carbohydrate, 35 g protein, 31 g fat) and 56 / 100 / 153 min (HG, shepherd's pie, 20 g
+       protein, 9 g fat); apparent bioavailability 102 vs 87%; LG appearance continues past 8 h and its glucose was still
+       rising at 480 min. Confirms evidence/09 (`ra_traj.py`'s 72 / 130 / 197 is wrong) and A10/A12 as fitted.
+     - **Prager, Wallace & Olefsky 1986, J Clin Invest 78:472** (euglycaemic clamps, 12 lean / 10 obese, i.v. insulin at
+       15 / 40 / 120 mU/m²/min): hepatic glucose output half-suppressed in 22 / 18 / 11 min (obese 21 / 23 / 15), recovered
+       half-way in 54 / 59 / 119 min after insulin stopped; peripheral disposal half-activated in 52 / 44 / 29 min,
+       half-deactivated in 34 / 43 / 78 min. The model's hepatic onset (p2e 0.012/min, t½ ~58 min) is ~3× slower than
+       measured; its offset (0.015/min, Gray 1982) is right; its disposal rate (p2 0.025, t½ ~28 min, fitted to the
+       subcutaneous lispro clamp) is if anything faster than Prager's i.v. values. A hepatic onset at Prager's rate (~0.035)
+       is the evidenced candidate for the missing fast falls and early post-meal lows (c414).
