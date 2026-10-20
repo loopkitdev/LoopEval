@@ -6711,3 +6711,9 @@ outputs in gamepc ~/additive/runs/c290–c312).
      happens to the body in the 1–4 h after a bolused meal. Candidates already measured without a base rate: post-meal
      activity (LESSONS 133: effect evidenced, no source for its rate after meals; BDDP workouts are not meal-coupled).
      Step or accelerometer data paired with CGM would settle it.
+
+397. **More activity after meals does not make bolused meals go low.** `act_after_meal` 0.7 / 1.0 (0.4 [J]; the share of
+     everyday activity episodes starting 10–120 min after eating), c397 on c396_cr7: lows < 2 h after a meal bolus 0.032 /
+     0.030 per bolus (c396 0.030; donors 0.080), < 4 h 0.055 / 0.050 (0.053; 0.126); t54 0.160 / 0.134% (0.092; 0.190),
+     P(reach 54) 0.21 / 0.18; 3-h meal change +1.1 / −1.6 (+3.2; +21); 43 / 37 of 51 (40). The low rate after meal boluses
+     does not move, so the 0.7 arm's t54 is not this mechanism (and does not grow at 1.0). Not adopted.
