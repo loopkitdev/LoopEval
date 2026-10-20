@@ -6683,3 +6683,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      (7.19) and kurtosis 2.94 (2.51) fail. Adopted c395_joint: a reference whose CGM manufactures lows biases every
      t < 54 comparison. What it exposes is the body: true lows and fast true-glucose motion are short (LESSONS 236–249,
      276), now without sensor cover.
+
+394. **Review after the sensor correction: counter-regulation refitted on the honest sensor (CRmax median 0.195 → 0.137,
+     adopted, 40 of 51).** LESSONS 360 and 383 sized CRmax on low depths read through the false-low sensor. On c395_joint,
+     `cr_mult` 0.7 / 0.5 (c396): t54 0.092 / 0.089% (c395 0.074; donors 0.190; p 0.054 / 0.023), P(reach 54) 0.167 / 0.187
+     (0.143; 0.212), lows 0.83 / 0.75 per day, share of lows reaching < 54 0.338 / 0.335 (0.324; 0.370), nadir p10 43 / 42
+     (44; 40); 40 / 41 of 51 (37). The depths move little with CRmax (as LESSONS 383): the low statistics return to the
+     pass band, but the body's true lows still run at about half the donors' time below 54. Adopted 0.7 (the smaller move
+     that passes t54); reference c396_cr7.
