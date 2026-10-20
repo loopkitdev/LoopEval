@@ -7223,3 +7223,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      unlogged load explains it under Loop. What remains is how the person drives the controller: overrides and temporary
      targets, the timing and size of their own boluses against the recommendation, and how they act on highs — each to be
      measured per donor against its twin next.
+
+451. **Donors' corrections look twice as strong as the twins' only because donors correct at a peak that is about to
+     end; Loop then withholds on the fall.** Isolated manual corrections (no carbs −2..+3 h, no other manual bolus −1..+3
+     h), CGM change per U ÷ yardstick ISF at 60 / 120 / 180 min (`corr_gap.py`, c446_npu + c447_rs vs donors, by gap
+     tercile high / mid / low): donors −0.22 / −0.46 / −0.51, −0.23 / −0.45 / −0.53, −0.06 / −0.21 / −0.33; twins −0.06 /
+     −0.17 / −0.22, −0.07 / −0.17 / −0.20, 0.00 / −0.04 / −0.08 — flat across references since c306 (not drift). Twin
+     body ISF / yardstick p50 1.00 (0.93–1.07). Like for like on ice steps (`corr_net.py`): Loop's automatic insulin over
+     0–180 min vs its prior rate, per bolus U, donors −1.24 / −0.66 / −0.38, twins −0.74 / −0.35 / −0.35 — the donors'
+     Loop withholds more than the bolus in the high group, so their larger drop is not the insulin: donors correct during a
+     rise (+14 mg/dL over the prior 15 min vs the twins' +5–7) that ends, and Loop answers the fall. The correction hazard
+     by 30-min trend still matches (relative to flat 0.51 / 1 / 1.47 / 3.61 vs 0.50 / 1 / 1.96 / 3.52; `corr_hazard.py`).
+     Labelled pulse shapes (G7): peak g-eq/h unannounced 25.9 vs 30.2, announced 33.3 vs 41.0, timing and duration alike —
+     the twins' rises are flatter, so a correction rarely meets a rise that is about to turn. Ruled out for the tight
+     donors' level gap so far: body sensitivity (447), unlogged load (450), correction rate and trend response (this);
+     open: how peaked the rises are (the twins' appearance is ~15–20% flatter at its peak).
