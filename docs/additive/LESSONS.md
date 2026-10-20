@@ -6764,3 +6764,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      4.39 (4.71); 3-h meal change +6.2 (+21); t54 0.119%, lows 0.71 / day; 39 of 51 (41). Not adopted. Across LESSONS
      386, 399, 401 and this one, adding meal glucose late (slow emptying, slow share, protein) moves it past 3 h or gets
      answered by Loop; the donors' 1–2 and 2–3 h counteraction stays 2–3 mg/dL per 10 g above every twin arm.
+
+403. **The tracer literature does not size a late post-meal glucose source in T1D; it shows the liver suppressed through
+     the 2–4 h window.** Romeres 2025 (PMC12054727, triple tracer, 13 T1D adults, mixed breakfast 0.91 g/kg carbohydrate,
+     customary bolus): EGP nadir −44 ± 17% at 160 ± 110 min; EGP iAUC 0–120 −626, 0–300 −1,711 µmol/kgFFM/min·min (so
+     −1,085 after 2 h); meal Ra iAUC 0–120 7,975 of 10,845 to 300 min (27% after 2 h); Rd peak at 60 min. A rebound of liver
+     output 2–4 h after meals, the candidate behind the donors' higher 1–3 h counteraction (LESSONS 401–402), runs against
+     this. Late glucagon (Basu 2025, Diabetes 75:256, paywalled) is raised early in T1D; its 2–4 h effect on EGP is not
+     available. The donors' extra 1–3 h counteraction stays without a sized mechanism.
