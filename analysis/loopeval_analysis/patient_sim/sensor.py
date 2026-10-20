@@ -94,10 +94,11 @@ FAMILIES = {
     # the Vettoretti 2019 values, and it carries the transients G6 donors show (reversals 5.7 per 1,000 quiet steps)
     # refit on the c235 bodies against DEN170088 (LESSONS 213): sigma 2.5 -> 1.8, transient amplitude 12 -> 8, noise wander
     # 0.7 -> 0.2, slow bias sd 3 (Breton & Kovatchev 2008); loss 23.7 -> 9.9 (a0 0.98 traded the high range, kept 0.96)
-    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(1.0, 0.8), hetero_q=0.8,   # q 0.5 -> 0.8: FDA loss 7.51 -> 5.70 (LESSONS 361); sigma 1.4 -> 1.0: FDA tables do not identify white noise (loss falls to 0), donors' sigma_meas does (LESSONS 362);   # 1.8 -> 1.4 with early_noise (LESSONS 222)
+    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(1.0, 0.8), hetero_q=0.6,   # q 0.8 -> 0.6, wander 0.7 -> 0.4: FDA loss 9.2 -> 6.0, CGM < 54 bias −16 -> −9.5 (DEN170088 −6.9; LESSONS 393)
+                          # q 0.5 -> 0.8: FDA loss 7.51 -> 5.70 (LESSONS 361); sigma 1.4 -> 1.0: FDA tables do not identify white noise (loss falls to 0), donors' sigma_meas does (LESSONS 362);   # 1.8 -> 1.4 with early_noise (LESSONS 222)
                         a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(7.5, 0.9), trans_amp=(8.0, 0.4), trans_down=0.72,   # G6 donors'
                         # own quiet reversals: 65% low first, 5.6 per 1,000 steps (LESSONS 390; rate 6 -> 7.5, low-first 0.55 -> 0.72)
-                        noise_wander=(0.7, 120.0), slow_bias=(3.0, 180.0), early_noise=(1.0, 330.0)),   # wander 0.2/480 -> 0.7/120: the donors'
+                        noise_wander=(0.4, 120.0), slow_bias=(3.0, 180.0), early_noise=(1.0, 330.0)),   # wander 0.2/480 -> 0.7/120: the donors'
                                                    # 5-min step tails, clustering and dispersion (sensor_eda 9 of 10; FDA loss 11.4 -> 7.1; LESSONS 384)   # G6 Pro MARD 13.6 / 10.5 / 10.1% at 0-12 h / 12-24 h / after (LESSONS 222)
     # G7 innovations near-Gaussian (df 30): with the noise level wandering and transient biases, df 4 double-counted
     # the tails (step kurtosis 3.1 vs donors 2.48; FDA loss 1.5 → 0.7; LESSONS 42).
