@@ -79,6 +79,7 @@ class ModTraits:
     drift_sd: float = 0.08
     ultra_amp: float = 0.05             # B4b amplitude (Wilinska 2010 5%)
     gh_pulse_amp: float = 0.3           # B2b depth of the SI dip at a pulse's peak effect [J; LESSONS 417]
+    gh_pulse_net: bool = False          # B2b without the mean-preserving offset (LESSONS 420)
     ultra_per: float = 180.0            # B4b period, min (Wilinska 2010 3 h)
     drift_tau: float = 20 * DAY
     cycle_len: float = 28.0             # days
@@ -355,7 +356,8 @@ class Modulators:
             mm = m % DAY
             x = mm if mm >= 12 * 60 else mm + DAY                                  # evening frame: 22:00 → 08:00 is 1320 → 1920
             if 22 * 60 <= x < 32 * 60:
-                si *= 1.0 - getattr(self.t, "gh_pulse_amp", 0.3) * (self._gh_r(x) - self.gh_rbar)
+                rb = 0.0 if getattr(self.t, "gh_pulse_net", False) else self.gh_rbar   # net: dips only, the night's need rises (Pal 1992 +88%)
+                si *= 1.0 - getattr(self.t, "gh_pulse_amp", 0.3) * (self._gh_r(x) - rb)
         if en.get("ultradian"):
             w = 2 * math.pi * m / getattr(self.t, "ultra_per", 180.0); A = getattr(self.t, "ultra_amp", 0.05)
             si *= 1.0 + A * math.sin(w + self.ultra_ph[0])
