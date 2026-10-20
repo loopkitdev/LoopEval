@@ -6820,11 +6820,22 @@ outputs in gamepc ~/additive/runs/c290–c312).
 
 409. **The twins defended predicted lows more than real people: a later proactive onset brings the lows back with the
      meal shape kept (adopted, 39 of 51).** Low-side labelled pulses (unannounced, unbolused, `pulse_low.py`, G7), c407_pp2
-     vs donors per day by onset glucose < 70 / 70–90 / 90–110: 0.197 / 0.347 / 0.465 vs 0.191 / 0.453 / 0.623 — the
-     twins do not eat more at low-normal glucose; but from truth they take ~1.0 proactive snacks a day (1.25 mean, ~12 g)
+     vs donors per day by onset glucose < 70 / 70–90 / 90–110: 0.197 / 0.347 / 0.465 vs 0.191 / 0.453 / 0.623 (Pete: a
+     proactive treatment slows a fall rather than making a pulse, so this cannot see it; LESSONS 410 measures falls); from truth they take ~1.0 proactive snacks a day (1.25 mean, ~12 g)
      plus 0.36 rescues, 26 g/day of defence. The proactive onset (projected glucose below N(80, 20) mg/dL) was a
      judgement. `pro_shift` −20 / −40 (c409, on c407_pp2): proactive 0.58 / 0.25 per day; t54 0.118 / 0.132% (0.089;
      donors 0.190), P(reach 54) 0.24 / 0.22 (0.16; 0.21), lows 0.79 / 0.83 per day (0.71; 1.00), share of lows < 54
      0.381 / 0.395 (0.370); mean 154.5 / 153.3 (156.4; 151.9); 3-h meal change +17.5 / +14.1 (+17.6; +21); minutes per low
      fails at both (20 / 25); 39 / 40 of 51 (37). Adopted onset N(60, 20) (−20 keeps the meal shape; −40 starts to lose it).
      Reference c409_ps20.
+
+410. **Measured on falls, the twins do not defend more than real people: their falls reach 70 half as often because the
+     fastest falls are missing.** Pete: a proactive defence shows as a fall that slows, not a pulse. Quiet falls (no entry
+     in 3 h, CGM down > 10 mg/dL over 15 min; `fall_ice.py`, G7, clean steps), donors vs c407_pp2 / c409_ps20 / c409_ps40:
+     ICE during falls at 70–90 / 90–110 mg/dL −7 / −4 vs −14 / −4, −11 / −6, −10 / −5 mg/dL/h (no more counteraction in
+     the twins, slightly less at 70–90); share of falls at 90–130 reaching < 70 within 30 min 3.9% vs 2.0 / 1.8 / 2.4%;
+     15-min drop in those falls p50 −15 vs −15, p10 −29 vs −26 (c409_ps20); insulin effect during them 55 vs 52 mg/dL/h.
+     The typical fall and its insulin match; the fast tail is thinner, and crossing 70 from 90–130 within 30 min lives in
+     it. This is the fast-fall gap of LESSONS 236–249, not over-defence. The proactive onset change (LESSONS 409) moved
+     lows through fewer snacks, not through this measure.
+
