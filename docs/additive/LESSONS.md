@@ -7045,3 +7045,22 @@ outputs in gamepc ~/additive/runs/c290–c312).
      breakfast arrives too fast, lunch leaves too soon and dinner rises too much; no single emptying or sensitivity term
      carries all three. Next: the slot composition itself (Vetrani 2022 fat / protein per carb gram: breakfast 0.72 / 0.86,
      lunch 0.97 / 0.86, dinner 1.14 / 1.24) and the per-slot fast liquid share.
+
+431. **Removing the slot composition (Vetrani 2022) changes nothing it should.** `slot_comp` off (c432_nosc on c418_f5):
+     breakfast +46 at 60 min (+50), lunch +30 at 90, dinner +27 at 120 (+28; donors +9); 3-h meal change +17.4 (+17.4);
+     t54 0.206%; 37 of 51 (40). The slot shapes do not come from the measured composition; kept on.
+
+432. **Giving each person their own carb / fat / protein mix fixes the pre-dawn trough but raises the mean.** `macro_own`
+     (c433_mo): fat and protein per carb gram from the person's carb share of energy (energy 30 kcal/kg, carbs 4 × carbs per
+     day clipped to 15–65%, the rest split 69 / 31% fat / protein by energy) instead of one population ratio — Pete: the mix is
+     a personal trait. 03–06 h 143 / 135 / 130 / 132 (donors 141 / 136 / 130 / 127; c418_f5 ~7 under), dinner +7 / +13 / +18 /
+     +20 at 30–120 min (+28 at 120), 3-h meal change +17.9. But mean 164.5 (152 donors), TIR 62.1, 33 of 51: the TDD budget
+     still paid for protein glucose at the population ratio (`budget_pro` 0.39), so low-carb people got protein glucose the
+     budget never paid for. With no slot composition on top (c433_mons): 32. Rerun with the budget on the person's own ratio
+     (c435_mob).
+
+433. **Heise 2017's dose dependence of aspart absorption costs lows and does not move the meal.** `dose_beta` 0.1 (tmax
+     ∝ (dose / 0.1 U/kg)^β; Heise 2017: 65.7 / 72.1 / 75.2 min at 0.1 / 0.2 / 0.4 U/kg; c434_db10 on c418_f5): 3-h meal
+     change +17.0 (+17.4), slot shapes unchanged, t54 0.120% (0.175; donors 0.190; other arms 0.175–0.206), lows 0.83 / day
+     (0.92), 38 of 51. Larger boluses peak later and lower, so the post-meal undershoot that carries some lows shrinks. The
+     effect is evidenced but small next to the missing lows; kept off until the low side is closed, then retested.
