@@ -98,7 +98,7 @@ FAMILIES = {
                           # q 0.5 -> 0.8: FDA loss 7.51 -> 5.70 (LESSONS 361); sigma 1.4 -> 1.0: FDA tables do not identify white noise (loss falls to 0), donors' sigma_meas does (LESSONS 362);   # 1.8 -> 1.4 with early_noise (LESSONS 222)
                         a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(7.5, 0.9), trans_amp=(8.0, 0.4), trans_down=0.72,   # G6 donors'
                         # own quiet reversals: 65% low first, 5.6 per 1,000 steps (LESSONS 390; rate 6 -> 7.5, low-first 0.55 -> 0.72)
-                        noise_wander=(0.4, 120.0), slow_bias=(3.0, 180.0), early_noise=(1.0, 330.0)),   # wander 0.2/480 -> 0.7/120: the donors'
+                        noise_wander=(0.7, 120.0), slow_bias=(3.0, 180.0), early_noise=(1.0, 330.0)),   # wander 0.2/480 -> 0.7/120: the donors'
                                                    # 5-min step tails, clustering and dispersion (sensor_eda 9 of 10; FDA loss 11.4 -> 7.1; LESSONS 384)   # G6 Pro MARD 13.6 / 10.5 / 10.1% at 0-12 h / 12-24 h / after (LESSONS 222)
     # G7 innovations near-Gaussian (df 30): with the noise level wandering and transient biases, df 4 double-counted
     # the tails (step kurtosis 3.1 vs donors 2.48; FDA loss 1.5 → 0.7; LESSONS 42).
@@ -112,7 +112,7 @@ FAMILIES = {
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
                         brand_gain=1.0, sigma=(1.3, 0.8), df=30.0, hetero_q=0.55,   # FDA K213919 refit with the donor-fitted wander (LESSONS 393): loss 14.1 -> 2.3
                         a0=(0.98, 0.04), b0=(3.0, 3.0),   # hetero_q 0.5 -> 0.7: FDA loss 4.52 -> 3.88 (LESSONS 361); sigma 2.4 -> 1.8: donors' high-frequency CGM noise once meals move fast (LESSONS 269; was 2.8 -> 2.4, LESSONS 221)
-                        common_sigma=2.2, trans_rate=(6.5, 0.9), trans_amp=(8.0, 0.4), trans_down=0.62, noise_wander=(0.35, 120.0), fall_lag=1.5,   # fall_lag: Garg 2022 Table 5 falls (LESSONS 391)
+                        common_sigma=2.2, trans_rate=(6.5, 0.9), trans_amp=(8.0, 0.4), trans_down=0.62, noise_wander=(0.45, 120.0), fall_lag=1.5,   # fall_lag: Garg 2022 Table 5 falls (LESSONS 391)
                           # transients: G7 donors' reversals
                         # 55% low first, 6.9 per 1,000 steps; the twins read 49% / 8.5 at 0.55 / 8 (LESSONS 390)   # common 2.0 -> 2.8,
                         # wander 0.2/480 -> 0.5/120: the donors' 5-min step spread, tails and clustering, fitted on donor data where the FDA
