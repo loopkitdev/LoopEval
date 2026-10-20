@@ -250,3 +250,7 @@ rests on gastric-emptying studies plus one 121 g T1D tracer study.
 
 - Bharucha AE et al. Delayed gastric emptying is associated with early and long-term hyperglycemia in type 1 diabetes
   mellitus. *Gastroenterology* 2015 (DCCT/EDIC; https://pmc.ncbi.nlm.nih.gov/articles/PMC4516593).
+
+- **Elleri 2013 re-read in full (2026-10-20, LESSONS 413)**: Table 2 confirms 88 ± 21 / 175 ± 39 / 270 ± 54 min (LG) and
+  56 ± 12 / 100 ± 25 / 153 ± 39 min (HG) for 25 / 50 / 75% of meal-attributable appearance; peak rate 40 ± 6 vs 62 ± 8
+  µmol/kg/min at 45 vs 40 min; apparent bioavailability 102 ± 14 vs 87 ± 12%. Any other figure quoted for this study is wrong.

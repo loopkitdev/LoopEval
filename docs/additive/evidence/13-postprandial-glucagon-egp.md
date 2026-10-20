@@ -209,3 +209,18 @@ EGP_gcg  = ξ · X · (1 − suppression_by_insulin)   # gated by hepatic insuli
 - S2013 equation and parameter values.
 - Elleri 2013 absolute bioavailability.
 - Full text of Romeres Fig 2B (EGP time course).
+
+## Added 2026-10-20 (full texts supplied by Pete; LESSONS 413)
+
+- **Ruchi FNU, Schiavon M, Pandey A, Dalla Man C, Cobelli C, Basu R, Basu A. Postprandial glucagon metabolism in healthy
+  and type 1 diabetes. *Diabetes* 2026;75:256–263. doi:10.2337/db25-0587** **[checked, full text]**. 16 T1D (C-peptide <
+  33 pmol/L, pumps) and 16 non-diabetic; [13C9,15N1]glucagon infusion; mixed meal (50% carbohydrate, 15% protein, 30% fat,
+  75 g glucose) with the customary bolus. Glucagon kinetics alike (Vd 47 vs 36 mL/kg, t½ 2.8 min). Plasma glucagon higher
+  in T1D over 0–120 min (AUC 1,907.9 ± 373.4 vs −93.6 ± 240.5 pg/mL·120 min), from higher glucagon Ra; after ~150 min lower
+  in T1D than controls; no difference over 6 h. No late post-meal glucagon rise in T1D.
+- **Prager R, Wallace P, Olefsky JM. In vivo kinetics of insulin action on peripheral glucose disposal and hepatic glucose
+  output in normal and obese subjects. *J Clin Invest* 1986;78:472–481. doi:10.1172/JCI112599** **[checked, full text]**.
+  Table III: HGO half-maximal suppression 22 ± 3 / 18 ± 6 / 11 ± 3 min (lean) and 21 / 23 / 15 min (obese) at 15 / 40 / 120
+  mU/m²/min; half-recovery 54 ± 2 / 59 ± 8 / 119 ± 6 min (lean), 35 / 35 / 59 min (obese). Table II: disposal half-activation
+  52 / 44 / 29 min, half-deactivation 34 / 43 / 78 min (lean). Hepatic suppression is faster than peripheral activation at
+  every dose. Sets A6's onset rate (the model's 0.012/min is ~3× slower).
