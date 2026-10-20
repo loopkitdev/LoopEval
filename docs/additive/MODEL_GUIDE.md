@@ -172,7 +172,7 @@ calibration, noise level and transient rate.
 | D1 BG → IG lag | first-order filter | τ 3.5 / 3.78 / 1.8 min | Vettoretti 2019; device studies | **Event** (session) |
 | D2 Calibration | gain a0 × drift × day-1 deficit + offset b0 | a0 N(0.98, 0.04) / N(0.96, 0.05) / N(0.965, 0.03); b0 N(3, 3) / N(2, 3) / N(0, 2) | fitted to FDA accuracy by range and two-sensor PARD (`sensor_fit.py`) | **Event** |
 | D3 Sensor-specific noise | AR(2) (1.30, −0.42), Student-t (df 30 / 4 / 4), scale √(q² + (1 − q²)(IG/130)²) | σ N(1.8, 0.8) / N(1.0, 0.8) / N(1.5, 0.5); q 0.7 / 0.8 / 0.5 | σ from donors' high-frequency noise (L 269, 362); q from the FDA tables (L 361) | **Event** |
-| D3b Common (interstitial) noise | AR(3), continuous across sessions | σ 2.0 / 2.5 / 3.0 | Biagi 2017 | per person |
+| D3b Common (interstitial) noise | AR(3), continuous across sessions | σ 2.0 / 2.5 / 3.0 | Biagi 2017 | **Drawn** (one process per person) |
 | D3c Transient biases | ±lnN(8 mg/dL, 0.4), 55% low, τ 10 min | 8 / 6 / 4 per day [J], session lnN(0.9) | donor quiet-window reversals (L 32) | **Event** |
 | D3d Noise wander, slow bias, early noise | log-OU sd 0.2, τ 8 h; slow bias sd 5 / 3 / 5 (τ 3 h); day-1 extra noise | — | Facchinetti 2011; Breton & Kovatchev 2008; G6 Pro day-1 MARD | **Event** |
 | D4 Device smoothing | causal EMA | Libre 3 0.35 [J] | eda L33 | Cohort |
