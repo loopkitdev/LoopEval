@@ -571,6 +571,9 @@ class World:
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
         self.ppr_end = float(enable["ppr_end"]) if enable and isinstance(enable.get("ppr_end"), float) else 240.0   # window out by (min; LESSONS 423)
         self.ppr_w = tuple(float(enable[k]) if enable and isinstance(enable.get(k), float) else 1.0 for k in ("ppr_b", "ppr_l", "ppr_d"))   # per-slot window weights (LESSONS 429)
+        self.dawn_si = float(enable["dawn_si"]) if enable and isinstance(enable.get("dawn_si"), float) else 0.0
+        _bpf = person.truth.get("basal_profile")
+        self._bp_night = float(np.mean(_bpf[0:3])) if _bpf else 1.0
         self.flow_sd = float(enable["flow_sd"]) if enable and isinstance(enable.get("flow_sd"), float) else 0.5   # A4c, default since 2026-10-20 (Heinemann 2002; LESSONS 419)
         self.flow_tau = float(enable["flow_tau"]) if enable and isinstance(enable.get("flow_tau"), float) else 60.0
         self._flow_rng = np.random.default_rng(int(person.seed) + 4421); self._flow_z = 0.0; self._flow_last = None
@@ -659,7 +662,14 @@ class World:
         bprof = self.person.truth.get("basal_profile")
         if bprof:                                   # basal need by local hour (EGP at basal insulin), LESSONS 48
             hh = (m % DAY) / 60.0; k = int(hh) % 24; f = hh - int(hh)
-            egp *= bprof[k] * (1 - f) + bprof[(k + 1) % 24] * f
+            bp_ = bprof[k] * (1 - f) + bprof[(k + 1) % 24] * f
+            egp *= bp_
+            if self.dawn_si > 0 and 3 <= hh < 11:
+                # dawn_si (experiment, LESSONS 438): Perriello 1988 measured the GH-driven dawn as ~30% more hepatic output AND
+                # ~25% less peripheral uptake; the basal profile carries all of it as EGP. Share s of the profile's rise over
+                # its 00–03 h level moves into SI, EGP divided by the same factor, so the need at each hour is unchanged
+                e_ = max(0.0, bp_ / self._bp_night - 1.0) * self.dawn_si
+                si /= 1.0 + e_; egp /= 1.0 + e_
         si *= self._fat_si(m)
         if self.niacin_si != 1.0:
             # D14 niacin (scenario, off): 2 g/day nicotinic acid for 2 weeks cut minimal-model SI 6.72 → 2.47 (×0.37) in 11
