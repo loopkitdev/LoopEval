@@ -6955,3 +6955,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      158.6; 39 / 35 of 51 (40). Not adopted (B2b stays off in both forms). The 24-h profile (c418_f5 hourly RMS vs donors):
      12–16 h ~+8 high, 03–06 h ~−7 low — the body's need across the day (B1/B1b), not night pulses, is the lever for the
      night share of lows.
+
+421. **A night need bump lifts the pre-dawn trough onto the donors' but costs the level and the lows; the donors' own
+     B / L / D sensitivity does not lift it.** On c418_f5 (c421): `night_own` (each donor's steady-night delivered / scheduled
+     at 02–05 h, LESSONS 251): 03–06 h 149 / 135 / 131 / 133 (c418_f5 135 / 126 / 122 / 120; donors 141 / 136 / 130 / 127),
+     but mean 164.4 (151.9), TIR 65.8, lows 0.67 / day, t54 0.107%, night insulin CV 28.0 (35.4) and day / night 1.66 (2.0)
+     fail; 32 of 51. `circ_own` (donor-measured meal-segment SI, LESSONS 335): 03–06 h 137 / 128 / 124 / 117, t54 0.224%,
+     circadian amplitude 0.146 (0.128); 34 of 51. Neither adopted (40). The trough is the night's need, as LESSONS 370 found
+     on an older base; a fixed bump overshoots the 24-h level. Open: a night need that the evening's own intake sets, as the
+     fat term was meant to (LESSONS 370), sized now on the honest sensor and the post-meal window.
