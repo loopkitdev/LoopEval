@@ -7158,3 +7158,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      its meal gain is inside the draw scatter. On draw 2 (c449_pr5s vs c447_rs): meal +18.0 (+15.4), mean 159.5 (158.9), TIR 65.5, 30 of 51 (34) — the same trade on both draws (meal +2.6–4.4, count −2 to −4, mean up); not adopted. From here, an arm that changes the count or a single statistic by less than
      the draw scatter is scored on two draws (seed0 1000 and 5000) before adoption; components already adopted on mechanism
      and evidence (macro_own, the relative window, dose_beta, night_pro, uls) stand on those, not on their single-draw counts.
+
+445. **Twins regress toward the middle: tight-control donors get twins that run 30–90 mg/dL above them, with more insulin
+     and more boluses than the donor.** Twin vs its own donor (`twin_level.py`, `twin_beh.py`; c446_npu and c447_rs, 224
+     twins of 121 donors): mean gap p50 +2.9 / +11.3 mg/dL (IQR −11 to +25), corr(twin mean, donor mean) 0.42 / 0.39, gap
+     vs donor mean −0.52 / −0.57, gap vs twin/donor TDD ratio +0.62 / +0.45. Across donors the gap rises with the donor's
+     TIR (+0.50), t70 (+0.46), t54 (+0.39), rescues (+0.37), entries and announced share (+0.35), user boluses (+0.34). By
+     gap tercile the twins enter carbs and bolus as often as or more than their donors (high-gap: entries 3.5 vs 2.3 / day,
+     user boluses 8.8 vs 4.4), so behaviour volume is not what is missing: the body built for a tight, hands-on donor needs
+     more insulin than that donor took. The suspect is the per-donor body calibration for low-runners (yardstick ISF and
+     carb sensitivity under closed-loop attenuation, LESSONS 332–335), which pooled statistics hide because the cohort's
+     high and low gaps cancel. The second draw's +11 median is this, with more such donors drawn.
