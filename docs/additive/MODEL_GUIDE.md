@@ -7,7 +7,7 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c384_sB** (2026-10-20): 112 people × 14 days, 45 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
+**c390_trev** (2026-10-20): 112 people × 14 days, 43 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
 donors in 13-day blocks); mean, TIR and TDD on the donors'.
 
 **Personal basis legend**
@@ -173,7 +173,7 @@ calibration, noise level and transient rate.
 | D2 Calibration | gain a0 × drift × day-1 deficit + offset b0 | a0 N(0.98, 0.04) / N(0.96, 0.05) / N(0.965, 0.03); b0 N(3, 3) / N(2, 3) / N(0, 2) | fitted to FDA accuracy by range and two-sensor PARD (`sensor_fit.py`) | **Event** |
 | D3 Sensor-specific noise | AR(2) (1.30, −0.42), Student-t (df 30 / 4 / 4), scale √(q² + (1 − q²)(IG/130)²) | σ N(1.8, 0.8) / N(1.0, 0.8) / N(1.5, 0.5); q 0.7 / 0.8 / 0.5 | σ from donors' high-frequency noise (L 269, 362); q from the FDA tables (L 361) | **Event** |
 | D3b Common (interstitial) noise | AR(3), continuous across sessions | σ 2.8 / 2.5 / 3.0 | Biagi 2017 form; G7 σ fitted to the donors' 5-min steps (L 384) | **Drawn** (one process per person) |
-| D3c Transient biases | ±lnN(8 mg/dL, 0.4), 55% low, τ 10 min | 8 / 6 / 4 per day [J], session lnN(0.9) | donor quiet-window reversals (L 32) | **Event** |
+| D3c Transient biases | ±lnN(8 mg/dL, 0.4), τ 10 min; low first 62% / 72% / 55% | 6.5 / 7.5 / 4 per day, session lnN(0.9) | each family's own donor quiet-window reversals (L 32, 390) | **Event** |
 | D3d Noise wander, slow bias, early noise | noise level × exp(log-OU); slow bias (τ 3 h); day-1 extra noise | wander sd 0.5 / 0.7 / 0.7, τ 2 / 2 / 8 h; slow bias sd 5 / 3 / 5 | form Facchinetti 2011; wander fitted to the donors' 5-min step tails, clustering and dispersion where the FDA tables do not identify it (`sensor_eda.py`, L 384); Breton & Kovatchev 2008; G6 Pro day-1 MARD | **Event** |
 | D4 Device smoothing | causal EMA | Libre 3 0.35 [J] | eda L33 | Cohort |
 | D5 Compression lows | while asleep; depth lnN(35), 45 min | rate Gamma(2.37, 1/75.7) / day | donor detector (ice compression run) | **Drawn** |
@@ -252,13 +252,14 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
 - **Component targets** (`review.py`): low nadirs and depths, meal drops and 3-h change, behaviour rates, each against
   the donors with the same code. Measure scripts beside each run (`meal_traj_tod.py`, `hour_bg.py`, `ice_integral.py`,
   `ice_since.py`, `loop_resp.py`, `clock_ins.py`, `unann_hour.py`).
-- **c384_sB, passing (45)**: mean, CV, skew, Box-Cox λ, TIR, t70, t180, t54, lows / day, P(reach 54), minutes per low,
-  long-range Hurst, volatility clustering, between-day fraction, circadian amplitude, wear, TDD, TDD CV, TDD day-to-day
-  persistence, zero share, p99, top-1% share, day / night insulin, night-to-night CV, carb entries, user boluses, manual
-  units; per family: v_sd, velocity kurtosis, short Hurst, measurement noise and ACF minimum (all three), sd/mad (G6,
-  Libre 3), v_skew (Libre 3).
-- **Failing (6)**: sd/mad (G7, 1.39 vs 1.41), v_skew (G6 0.60 vs 0.26, G7 0.25 vs 0.33), ACF zero crossing (50 vs 40 min;
-  no sensor variant moves it), volatility dispersion (3.17 vs 3.57), typical nonzero delivery (`med_nonzero`).
+- **c390_trev, passing (43)**: mean, CV, skew, TIR, t70, t180, t54, lows / day, P(reach 54), minutes per low, long-range
+  Hurst, volatility clustering, circadian amplitude, wear, TDD, TDD CV, zero share, p99, top-1% share, day / night insulin,
+  night-to-night CV, carb entries, user boluses, manual units; per family: v_sd, velocity kurtosis, short Hurst,
+  measurement noise and ACF minimum (all three), sd/mad (G6, Libre 3), v_skew (G6, Libre 3).
+- **Failing (8)**: sd/mad (G7, 1.38 vs 1.41), v_skew (G7 0.25 vs 0.33), ACF zero crossing (50 vs 40 min; no body or
+  sensor lever tried moves it, L 385–389), volatility dispersion (3.17 vs 3.57), typical nonzero delivery (`med_nonzero`,
+  automatic-bolus twins, L 387); borderline and moving between runs: Box-Cox λ, between-day fraction, TDD day-to-day
+  persistence (`ac1`).
 
 ## 11. Switches (`cohort.py`)
 
@@ -275,8 +276,9 @@ Off by default (`--enable`): `rc_own` (on in every validation run), `night_own`,
    peaks ~12 high (L 366–375). Loop's response at each glucose band matches the donors' day and night (L 368, 373).
 2. **Late evening and night**: 00–06 h ~7 mg/dL low. The twins enter ~86 g/day against the donors' 101, their dinner
    insulin acts later and their nights fall twice as fast (L 379–381).
-3. **Short-scale shape left**: G6 velocity skew, the ACF zero crossing and volatility dispersion (L 384); the zero
-   crossing is not a sensor property.
+3. **Reversal time**: the donors' CGM steps turn at 40 min, the twins' at 50; insulin speed, within-day sensitivity,
+   meal shape, movement and loop gain leave the twins' true glucose turning at 50–60 min (L 276, 385–389). A 5-min
+   CGM-vs-reference series would say whether the donors' turn is body or sensor.
 
 ## Key references
 

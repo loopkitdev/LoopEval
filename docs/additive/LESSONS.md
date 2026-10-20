@@ -6637,3 +6637,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      donors' CGM is either a body process outside these (none named yet) or sensor error with a ~35-min persistence,
      which the FDA tables and the one paired-sensor record cannot separate (LESSONS 299). A CGM-vs-reference time series
      at 5-min resolution (clamp or inpatient YSI traces) would decide it.
+
+390. **Each family's transient sensor biases sized on its own donors' quiet reversals: G6 step skew passes (adopted,
+     43 of 51).** The transient direction (55% low first) was measured on G7 donors (LESSONS 32) and copied to G6. Measured
+     per family with the same detector (`quiet.reversal_events`, quiet-window ≥ 12 mg/dL steps undone within 15 min): G6
+     donors 768 reversals, 65% low first, 5.6 per 1,000 steps; G7 6,455, 55%, 6.9. c384_sB twins: G6 54%, 4.5; G7 49%, 8.5.
+     Set G6 rate 6 → 7.5 / day, low first 0.55 → 0.72; G7 rate 8 → 6.5, low first 0.55 → 0.62. c390_trev: G6 v_skew 0.44
+     (0.60; donors 0.26, p 0.087 now passing), G6 kurtosis 3.78 (4.13; 3.30), lows and depths on the donors' (t54 0.147%,
+     nadirs 40 / 50 / 57, share < 54 0.372); Box-Cox λ, between-day share and ac1 turn to failing (p 0.029 / 0.032 /
+     0.003 from 0.090 / 0.090 / 0.072, rows the sensor's transients do not drive); 43 of 51 (45). The twins' detected
+     reversals moved little (G6 56% low first, 5.2; G7 50%, 8.2): since LESSONS 384 most of them come from the wandering
+     noise, not from the transient process, so the G7 excess (8.2 vs 6.9) is the wander's. Adopted for the measured
+     per-family direction and rate. Reference c390_trev.
