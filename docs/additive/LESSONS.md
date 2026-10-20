@@ -6781,3 +6781,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      temp-basal twins 0.10 (0.10). Re-scoring c403_cl105 that way (c403_rec): med_nonzero 0.100 (p 0.016), zero_frac 36.97
      vs 32.49 now failing (p 0.019), others unchanged; 40 of 51 (41). Reverted: neither representation is clearly the
      donors' (how Omnipod temp basals are written to Tidepool records would decide it).
+
+405. **Donors' basal records are pulse-quantised volumes over 5–50-min spans; the twins' received stream carries pulses
+     per 5 min, not rates, so record-like binning cannot be rebuilt from it.** Donor doses.json basal records (30 donors
+     per strategy): automatic-bolus 143,472 records, duration p10 / 50 / 90 5 / 10 / 50 min, 98.1% of volumes multiples of
+     0.05 U; temp-basal 440,300, 4.9 / 5.0 / 10.1 min, 99.7%. Spreading a long record evenly is what smooths the donors'
+     5-min bins (a 50-min 0.40 U record bins at 0.04). Merging the twins' consecutive equal-rate received segments
+     (c403_rec2): zero_frac 40.5 (donors 32.5), med_nonzero 0.100; 40 of 51 — the plant reports the pulses that fell in
+     each 5 min (0 / 0.05 U alternating at low rates), so equal-rate runs do not merge. Reverted. The like-for-like fix
+     would bin the commanded rate per Loop decision, quantised per record, from the controller's own dose record (the
+     trace's rate stream, LESSONS 404, read with record-level pulse quantisation) — open.
