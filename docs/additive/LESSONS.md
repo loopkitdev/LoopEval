@@ -6973,3 +6973,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      less insulin. So the twins' pre-dawn trough is not too little night need but something that lowers night glucose
      without Loop's extra insulin — the evening's insulin action carrying into the night (the post-meal window ends at 4 h,
      the fat resistance at 6–10 h) is the next candidate.
+
+423. **The twins carry more insulin action into the early night, but a slower end to the post-meal window does not move the
+     trough.** ICE and insulin effect by local hour (`ice_hour.py`, G7), c418_f5 vs donors: ia 00–06 h 77 / 71 / 64 / 54 / 45 /
+     40 / 38 vs 74 / 64 / 55 / 50 / 47 / 44 / 42, and 19–21 h 81 / 83 / 87 vs 87 / 93 / 96 — the twins' evening insulin acts
+     later; ICE at 04 h 34 vs 43. `ppr_end` 360 / 480 (window out by 6 / 8 h; 240): 03–06 h 136 / 126 / 124 / 121 and 136 / 127
+     / 121 / 121 (c418_f5 135 / 126 / 122 / 120; donors 141 / 136 / 130 / 127); t54 0.196 / 0.147%; 38 / 37 of 51 (40). Not
+     adopted. Open with LESSONS 420–422: the twins' evening insulin reaching into 00–03 h (the late evening dosing itself:
+     dinner timing, evening corrections, Loop's response to the evening rise) is the next thing to measure, donors vs twins.
