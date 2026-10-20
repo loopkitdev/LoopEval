@@ -6817,3 +6817,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      TIR 70.4 (71.9). This supersedes the LESSONS 321 ruling for this trade. The lows are now chased through the low-side
      components on their own evidence, first the behavioural defense (proactive treatment of a predicted low: onset
      N(80, 20) mg/dL and 12 g, both [J]).
+
+409. **The twins defended predicted lows more than real people: a later proactive onset brings the lows back with the
+     meal shape kept (adopted, 39 of 51).** Low-side labelled pulses (unannounced, unbolused, `pulse_low.py`, G7), c407_pp2
+     vs donors per day by onset glucose < 70 / 70–90 / 90–110: 0.197 / 0.347 / 0.465 vs 0.191 / 0.453 / 0.623 — the
+     twins do not eat more at low-normal glucose; but from truth they take ~1.0 proactive snacks a day (1.25 mean, ~12 g)
+     plus 0.36 rescues, 26 g/day of defence. The proactive onset (projected glucose below N(80, 20) mg/dL) was a
+     judgement. `pro_shift` −20 / −40 (c409, on c407_pp2): proactive 0.58 / 0.25 per day; t54 0.118 / 0.132% (0.089;
+     donors 0.190), P(reach 54) 0.24 / 0.22 (0.16; 0.21), lows 0.79 / 0.83 per day (0.71; 1.00), share of lows < 54
+     0.381 / 0.395 (0.370); mean 154.5 / 153.3 (156.4; 151.9); 3-h meal change +17.5 / +14.1 (+17.6; +21); minutes per low
+     fails at both (20 / 25); 39 / 40 of 51 (37). Adopted onset N(60, 20) (−20 keeps the meal shape; −40 starts to lose it).
+     Reference c409_ps20.

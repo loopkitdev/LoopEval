@@ -146,7 +146,7 @@ class BehaviorTraits:
     p_wake_alarm: float = 0.4            # asleep, per alarm (Buckingham 2005: 29% children / 53% adolescents)
     p_wake_unaided: float = 1.0 / 16     # per low episode (Schultes 2007)
     # defense
-    pro_onset: float = 80.0              # projected glucose (mg/dL) below which they act proactively [J]
+    pro_onset: float = 60.0              # projected glucose (mg/dL) below which they act proactively (person draw N(60, 20), fitted to the donors' lows, LESSONS 409)
     pro_grams: float = 12.0              # proactive snack size [J]
     pro_refractory: float = 45.0         # min
     treat_thr: float = 70.0              # CGM level that triggers a rescue [J; alert 74–78]
@@ -301,7 +301,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         glances_per_day=lj(6.0, 0.6),
         low_alert=float(rng.normal(76, 8)), high_alert=float(rng.normal(240, 25)),
         p_wake_alarm=float(np.clip(rng.normal(0.72, 0.2), 0.05, 0.98)),   # mean 0.45 -> 0.72: donors' night rescue timing and low duration (Buckingham 2005 measured children and adolescents; the mostly adult donors set it; LESSONS 274)
-        pro_onset=float(rng.normal(80, 20)), pro_grams=lj(12, 0.4),
+        pro_onset=float(rng.normal(60, 20)), pro_grams=lj(12, 0.4),   # onset 80 -> 60: fitted to the donors' lows (LESSONS 409; was [J])
         treat_thr=float(np.clip(rbg - 5, 55, 85)) if np.isfinite(rbg) else float(rng.normal(70, 6)),
         treat_grams=float(np.clip(rsz, 8, 60)) if np.isfinite(rsz) else lj(25, 0.5),
         treat_latency=lj(5, 0.6), p_retreat=float(np.clip(rng.normal(0.34, 0.1), 0, 1)),
