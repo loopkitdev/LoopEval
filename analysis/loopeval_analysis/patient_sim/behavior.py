@@ -112,7 +112,7 @@ class BehaviorTraits:
     entry_clock: bool = False            # switch: use snack_entry_w
     graze_unann: bool = True             # grazes on the donor's unannounced-pulse clock (LESSONS 230)
     unann_hours: Optional[object] = None
-    graze_keep: float = 1.0              # share of planned grazes kept (thinning experiment, LESSONS 109)
+    graze_keep: float = 0.25             # share of planned grazes kept: 0.25 puts unannounced labelled load (97.3 vs donors 94.7 g-eq/day) and the labelled g-eq per entered gram (1.18 vs 1.19) on the donors' (LESSONS 382; was 1.0, thinning tested in LESSONS 109)
     announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
     # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
     ov_less_day: float = 0.0             # less-insulin overrides/day (activity, low prevention)
