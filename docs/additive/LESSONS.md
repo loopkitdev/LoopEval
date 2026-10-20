@@ -7075,3 +7075,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      for the donor's own diet, so the fat term has to be relative once the diet is personal (the same reasoning as
      `budget_pro`, LESSONS 378); absolute fat on a personal mix over-reads low-carb people (c435, LESSONS 432). Defaults on
      (`--disable macro_own,fat_rel`). Open: the meal tail (lunch above all), night share of lows, short-scale structure.
+
+435. **A stronger post-meal window restores the meal shape but raises the mean.** `ppr_a` 0.3 on c436_mofr (c437_pp3):
+     3-h meal change +17.2 (+13.6; donors +21), lunch +27 at 90 min with a second rise at 210–240, t54 0.193% (0.181;
+     donors 0.190), but mean 158.3 (156.7; 151.9) and TIR 66.6 now fail, 37 of 51 (39). The window adds resistance the
+     donor's TDD never paid for, as absolute fat did (LESSONS 432). `ppr_rel` (experiment) normalises the window to mean 1
+     over the person's planned meals, moving need into the post-meal hours instead of adding it; arms at 0.3 / 0.4
+     (c438_pr3, c439_pr4).
