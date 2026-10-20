@@ -6964,3 +6964,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      circadian amplitude 0.146 (0.128); 34 of 51. Neither adopted (40). The trough is the night's need, as LESSONS 370 found
      on an older base; a fixed bump overshoots the 24-h level. Open: a night need that the evening's own intake sets, as the
      fat term was meant to (LESSONS 370), sized now on the honest sensor and the post-meal window.
+
+422. **Shifting need from day to night (renormalised night bump) fixes the pre-dawn trough and the low count but not the
+     night insulin the donors' Loop gives.** `night_own` with `night_add` off (c422 on c418_f5): 03–06 h 143 / 136 / 133 /
+     133 (donors 141 / 136 / 130 / 127), lows 1.00 / day (1.00), t54 0.155%, ac1 passes; but 00–02 h 167 / 165 / 160 (158 /
+     152 / 147), day / night insulin 1.58 (2.0) and night CV 29.2 (35.4) fail; 38 of 51 (40). Not adopted. A higher night
+     need is met by more night insulin, which the donors' Loop does not deliver: their nights run at the donors' level on
+     less insulin. So the twins' pre-dawn trough is not too little night need but something that lowers night glucose
+     without Loop's extra insulin — the evening's insulin action carrying into the night (the post-meal window ends at 4 h,
+     the fat resistance at 6–10 h) is the next candidate.
