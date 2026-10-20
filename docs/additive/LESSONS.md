@@ -7124,3 +7124,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      fitted from these data (Pete 2026-10-20): `night_si` multiplies SI and EGP by k over 00–06 h (ramps 23–00, 06–07) so
      the night's need is unchanged and only its gain moves; arms k 0.85 (0.71 / 0.83) and 0.70 (closed-loop attenuation)
      (c443_ns85, c444_ns70).
+
+441. **Lowering the night insulin gain adds night lows; the gain gap is not their cause.** `night_si` 0.85 / 0.70 on c440_db
+     (c443_ns85 / c444_ns70): night share of lows 37 / 46% (36; donors 22), lows 1.08 / 1.25 per day (1.00), t54 0.267 /
+     0.308%, night CV 39.0 at 0.70 (32.6; donors 35.4), 37 / 32 of 51 (40). With SI and EGP scaled together the night's
+     level is held only when insulin equals the scheduled need; Loop's own swings around it (and the evening's carried
+     insulin) then pull glucose with lower EGP to stand on, so lows rise. Not adopted (switch kept, off). Of the night
+     levers so far (need shape, GH, protein, emptying, window end, dawn SI, night SI), none moves the share toward 22%;
+     the next place to look is what the donors do at night that the twins do not — night eating and pre-emptive treatment
+     (`night_rescue.py`), and Loop's own night suspension pattern.
