@@ -6661,3 +6661,9 @@ outputs in gamepc ~/additive/runs/c290–c312).
        donors' (t54 0.128%, nadirs 41 / 50 / 57); between-day share and circadian amplitude turn to failing (p 0.003 /
        0.040, borderline rows that move with the G7 twins' closed-loop runs); 42 of 51 (43). Adopted for the sensor's fit
        to its own accuracy evidence; reference c391_flag. Neither form moves G7 skew toward the donors.
+
+392. **Not the absorption time entered with each carb entry.** Donors' entries > 20 g (37,258; carbs.json absorptionTime):
+     3 h 78.6%, 0.5 h 8.6%, 5 h 5.4%, 1 / 1.5 / 2 / 2.5 h 6.6%, 4 h 0.5%; mean 2.81 h, per-donor mean p10 / 50 / 90 1.99 / 2.99
+     / 3.22. The twins draw 0.5 h / 5 h on each donor's own shares and 3 h otherwise (templates.add_absorption_rates), so
+     Loop sees the donors' absorption settings; the 3-h meal level (+3–8 vs +21) does not come from Loop being told a
+     shorter meal.
