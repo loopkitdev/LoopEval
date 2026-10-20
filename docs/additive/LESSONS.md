@@ -6368,3 +6368,22 @@ outputs in gamepc ~/additive/runs/c290–c312).
      min_below70 p 0.145 / 0.199; mean 154.1 / 155.3, CV 34.2 / 34.6, TIR 71.7 / 71.4 pass; 3-h meal change +0.2 / +4.0
      (unchanged — insulin speed is not the late phase either); hurst_long fails. p2 0.025 is the default again (the
      0.2 U/kg lispro clamp fit, GIR peak ~100 min); reference now c365_p2025.
+
+366. **The twins' glucose arrives in the wrong place: as much over the day as the donors', too little in the 1–3 h after
+     entries, too much in long fasts and the late morning (Pete: "Loop only reacts to glucose ... we need to have more
+     glucose arriving at those times").** Measured on c365_p2025 against the donors, G7, same ice-role extraction:
+     - ICE above the pre-meal level per 10 g entered, isolated bolused entries ≥ 15 g (`ice_integral.py`), 0–60 / 60–120 /
+       120–180 / 180–240 / 240–360 min: donors 13.0 / 15.4 / 10.5 / 3.7 / 0.3, total p50 47.4; c365 10.1 / 12.7 / 6.6 / 3.6 /
+       −3.3, total 38.5 — about 20% short per entered gram, from the first hour on.
+     - ICE by time since the last entry ≥ 5 g (`ice_since.py`), 0–1 / 1–2 / 2–3 / 3–4 / 4–6 / 6–10 / 10+ h: donors 119 / 114 /
+       97 / 72 / 57 / 46 / 46 mg/dL/h, c365 114 / 102 / 82 / 70 / 59 / 51 / 58; per day 1633 vs 1673 mg/dL. By local hour
+       (`ice_hour.py`) the twins run high at 08–11 h (68 / 77 / 86 / 80 vs 59 / 64 / 69 / 72) and low at 16–21 h.
+     - What the twins eat (truth, per day): entered meals 52 g (1.5), unentered meals 57 g (1.4), grazes 35 g (2.8),
+       entered snacks 25 g, unentered snacks 20 g, rescue 11 g. At entered events they enter 1.16× what they eat (p50; 1.28
+       below 20 g, where Brazeau's regression is held at its 20-g value; 0.81 above 60 g). Entries p50 20 g vs the donors'
+       25 g (share < 20 g 0.48 vs 0.34); entered g/day match.
+     - **Protein glucose (`pro_glc`) 0.2 / 0.4** (c366; Elleri's LG meal implies ~0.4–0.5): 36 / — of 51 (bg_mean 155 / 159,
+       fails at 0.4); 3-h meal change unchanged. Late glucose added on top is answered by Loop (as LESSONS 306, 320).
+     The carb-sensitivity level was calibrated to the labeler's pulse g-eq per entered gram (CSF_BLEND_CAL_TOTAL), which ends
+     a pulse at a plateau and so under-reads the donors' long meals (LESSONS 315); the unsegmented integral says ~1.2×.
+     Testing `csf_lvl` 1.2 (c367), budget held in glucose and with grams kept.
