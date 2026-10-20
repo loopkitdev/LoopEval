@@ -256,7 +256,7 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
   long-range Hurst, volatility clustering, wear, TDD, TDD CV, p99, top-1% share, day / night insulin,
   night-to-night CV, carb entries, user boluses, manual units; per family (G6 / Libre 3 throughout, G7 where noted): v_sd,
   sd/mad, kurtosis, v_skew (G7 too), short Hurst, measurement noise (G7 too) and ACF minimum.
-- **Failing (11)**: minutes per low; G7 v_sd (6.3 vs 7.2), kurtosis, short Hurst, sd/mad; ACF zero crossing (55 vs 40 min,
+- **Failing (11)**: minutes per low (borderline); G7 v_sd (6.3 vs 7.2), kurtosis, short Hurst, sd/mad; ACF zero crossing (55 vs 40 min,
   L 385–389); volatility dispersion; circadian amplitude; typical nonzero delivery (`med_nonzero`, L 387) and zero-delivery share (36.9 vs 32.5%: the twins' Loop withholds more, L 398, 406); between-day
   fraction and TDD persistence (`ac1`). True lows run at about 60% of the donors' time below 54 (0.118 vs 0.190%; L 393–394, 401).
 
