@@ -6801,3 +6801,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      pulse-placed physical delivery filled zero bins with stray pulses; on the donors' representation the twins' Loop
      withholds insulin more, as after meals (90 vs 65 min, LESSONS 398). Adopted as the scoring (sounder comparison, a
      real gap shown rather than masked); the reference stays c403_cl105, scored 40 of 51.
+
+407. **On the current base the post-meal window nearly closes the meal shape and still costs the lows.** `ppr_a` 0.2 /
+     0.3 (LESSONS 321) on c403_cl105, record-scored (c407 vs c403_rec3): 3-h meal change +17.6 / +17.2 (+6.7; donors +21);
+     ICE 2–3 h 7.7 / 8.7 per 10 g (7.3; 10.5), total 46.8 / 50.3 (45.6; 47.4); Loop insulin 30–180 min after meals 4.62 /
+     5.12 (4.46; 4.71), zero-delivery after meals 85 min (90; 65); t54 0.089 / 0.075% (0.118; 0.190), lows 0.71 / 0.58
+     per day (0.83; 1.00), P(reach 54) 0.161 / 0.182, low within 4 h of a meal 10.7 / 9.1% (13.9; 16.8); mean 156.4 /
+     158.2, TIR 70.4 / 68.7; 37 / 37 of 51 (40). The sensor, counter-regulation and meal-level changes since LESSONS 328
+     do not change the trade: the window gives the donors' meal shape and takes lows away across the day. Off (Pete's
+     LESSONS 321 ruling: primary outcomes weigh most).
