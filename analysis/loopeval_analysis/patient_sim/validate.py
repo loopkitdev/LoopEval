@@ -174,6 +174,36 @@ def real_stats(export: Path, block_days: int = 13, per_block: bool = False):
     return pd.DataFrame(rows).median(numeric_only=True).to_dict()
 
 
+def _record_delivery(run: Path, truth: pd.DataFrame) -> pd.Series:
+    """Delivered insulin in 5-min bins built like the donors' pump records (LESSONS 404–406): Loop's commanded basal rate
+    from the trace (delivery[], source candidate), consecutive equal rates merged into one record whose volume is pulse-
+    truncated (0.05 U) and spread evenly over its span, as Tidepool's Omnipod basal records are; boluses in their minute.
+    Falls back to the physical per-minute delivery when the trace has no candidate stream."""
+    idx = _series(truth.m)
+    tp = run / "trace.json"
+    d = [x for x in json.load(open(tp)).get("delivery", []) if x.get("source") == "candidate"] if tp.exists() else []
+    if not d:
+        return pd.Series(truth.delivered.to_numpy(), index=idx).resample("5min").sum()
+    m0 = float(truth.m.min()); n = len(truth); u = np.zeros(n)
+    mins = lambda t: (pd.Timestamp(t) - EPOCH).total_seconds() / 60.0 - m0
+    bas = sorted((mins(x["t"]), mins(x.get("tEnd", x["t"])), float(x.get("rateUhr") or 0.0)) for x in d if x["kind"] == "basal")
+    recs = []
+    for s_, e_, r in bas:
+        if recs and abs(recs[-1][1] - s_) < 0.5 and abs(recs[-1][2] - r) < 1e-6: recs[-1][1] = e_
+        else: recs.append([s_, e_, r])
+    for s_, e_, r in recs:
+        v = np.floor(r * (e_ - s_) / 60.0 / 0.05 + 1e-9) * 0.05
+        i0, i1 = int(np.floor(s_)), int(np.floor(e_))
+        if v <= 0 or i1 <= i0: continue
+        lo, hi = max(i0, 0), min(i1, n)
+        if hi > lo: u[lo:hi] += v / (i1 - i0)
+    for x in d:
+        if x["kind"] == "bolus" and float(x.get("amountU") or 0) > 0:
+            i0 = int(np.floor(mins(x["t"])))
+            if 0 <= i0 < n: u[i0] += float(x["amountU"])
+    return pd.Series(u, index=idx).resample("5min").sum()
+
+
 def person_stats(run: Path) -> dict | None:
     tp = run / "truth.pkl"
     if not tp.exists(): return None
@@ -189,7 +219,7 @@ def person_stats(run: Path) -> dict | None:
     days = (truth.m.max() - truth.m.min()) / 1440.0
     out = dict(name=person.name, template=person.template, sensor=person.sensor, strategy=person.strategy,
                formulation=person.formulation, days=days)
-    out.update(core_stats(cgm, pd.Series(truth.delivered.to_numpy(), index=_series(truth.m)).resample("5min").sum(), days))
+    out.update(core_stats(cgm, _record_delivery(run, truth), days))
     # transport check: what LoopEval sent must reach the pump (LESSONS 19); faults lose only a little
     rec = tr.get("received")
     if rec:
