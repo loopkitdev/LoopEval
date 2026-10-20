@@ -7,7 +7,7 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c395_joint** (2026-10-20): 112 people × 14 days, 37 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
+**c396_cr7** (2026-10-20): 112 people × 14 days, 40 of eda's 51 statistics matched (KS p > 0.05 against the 206 pilot
 donors in 13-day blocks); mean, TIR and TDD on the donors'.
 
 **Personal basis legend**
@@ -118,7 +118,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 | A6 Insulin action — EGP | X_E (rate p2E) on relative insulin through a saturating hepatic signal; EGP = EGP_b · c(t) · clip(1 − sE·X_E) | EGP_b N(2.5, 0.33) mg/kg/min; p2E 0.012, faster offset 0.015; sE from G8's share | clamp GIR peak 108 min; post-meal EGP nadir vs Romeres 2025 | L 131, 193–196 | **Drawn** |
 | A7 Renal excretion | Rcl(G − Rthr) above Rthr | Rthr N(180, 25); Rcl lnN(0.003, 0.3) | literature | evidence/01 §4.3 | **Drawn** |
 | A8 Hypo risk amplification | S2013 form | λ 0 (off) | at 0.5 gave t<54 8.5% vs 0.13% | L 10 | Cohort (off) |
-| A9 Counter-regulation + HAAF | EGP boost CRmax · h · σ((cr_g − G)/5), τ 15 min; h falls under 54 and recovers over 60 h | CRmax lnN(0.195, 0.5) mg/kg/min; cr_g N(65, 5) | fitted to the share of donor lows reaching 54 and nadir depths | L 166, 272, 360 | **Drawn** |
+| A9 Counter-regulation + HAAF | EGP boost CRmax · h · σ((cr_g − G)/5), τ 15 min; h falls under 54 and recovers over 60 h | CRmax lnN(0.137, 0.5) mg/kg/min; cr_g N(65, 5) | fitted to the share of donor lows reaching 54 and nadir depths | L 166, 272, 360, 394 (on the FDA-held sensor) | **Drawn** |
 | A10 Gut — mixed meals | per-meal parcels through stomach 1 → stomach 2 → gut; saturating energy ceiling (Vmax 3 kcal/min, Km 60 kcal) shared by everything in the stomach | f N(0.9, 0.05); per-meal speed lnN(0, 0.4); between-person Vmax lnN CV 30% and 28% delayed ×0.6–0.8 | Brener 1983, Hunt 1985, Calbet 1997; Samsom 2003 | evidence/09; L 33, 88 | **Drawn** person, **Event** meal |
 | A10b Fast liquid phase | a share of each meal empties fast (0.08 /min) outside the ceiling | mean 0.35, per-meal Beta SD 0.40; 12% of main meals carry a sugary drink | donors' 5-min CGM step tail and G7 velocity kurtosis | L 268–271 | **Event** |
 | A10c Slow late phase | 15% of each meal empties at Dalla Man kmin 0.008 /min | share [J] | Dalla Man 2007 | L 120; raising it flattens meals (L 364) | Cohort |
@@ -252,14 +252,13 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
 - **Component targets** (`review.py`): low nadirs and depths, meal drops and 3-h change, behaviour rates, each against
   the donors with the same code. Measure scripts beside each run (`meal_traj_tod.py`, `hour_bg.py`, `ice_integral.py`,
   `ice_since.py`, `loop_resp.py`, `clock_ins.py`, `unann_hour.py`).
-- **c395_joint, passing (37)**: mean, CV, skew, Box-Cox λ, TIR, t70, t180, long-range Hurst, volatility clustering,
-  circadian amplitude, wear, TDD, TDD CV, zero share, p99, top-1% share, day / night insulin, night-to-night CV, carb
-  entries, user boluses, manual units; per family (G6 / Libre 3 throughout, G7 where noted): v_sd, sd/mad, kurtosis,
-  v_skew (G7 too), short Hurst, measurement noise and ACF minimum.
-- **Failing (14)**: every low statistic (t54 0.074 vs 0.190%, lows / day, P(reach 54), minutes per low) — the CGM lows now
-  come from true glucose, which runs short (L 393); G7 v_sd (6.32 vs 7.19), kurtosis, short Hurst, measurement noise and
-  sd/mad; ACF zero crossing (55 vs 40 min, L 385–389); volatility dispersion; typical nonzero delivery (`med_nonzero`,
-  L 387); between-day fraction and TDD persistence (`ac1`).
+- **c396_cr7, passing (40)**: mean, CV, skew, Box-Cox λ, TIR, t70, t180, t54 (narrowly), lows / day, P(reach 54),
+  long-range Hurst, volatility clustering, wear, TDD, TDD CV, zero share, p99, top-1% share, day / night insulin,
+  night-to-night CV, carb entries, user boluses, manual units; per family (G6 / Libre 3 throughout, G7 where noted): v_sd,
+  sd/mad, kurtosis, v_skew (G7 too), short Hurst, measurement noise (G7 too) and ACF minimum.
+- **Failing (11)**: minutes per low; G7 v_sd (6.3 vs 7.2), kurtosis, short Hurst, sd/mad; ACF zero crossing (55 vs 40 min,
+  L 385–389); volatility dispersion; circadian amplitude; typical nonzero delivery (`med_nonzero`, L 387); between-day
+  fraction and TDD persistence (`ac1`). True lows run at about half the donors' time below 54 (0.092 vs 0.190%; L 393–394).
 
 ## 11. Switches (`cohort.py`)
 
