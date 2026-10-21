@@ -7534,3 +7534,31 @@ outputs in gamepc ~/additive/runs/c290–c312).
      shifting effect onto it raises the meal and the level while the nadir barely moves. With LESSONS 411 (window off the
      liver: 0.73–0.76), neither the window nor the arm's share sets the nadir. The candidates left are the saturating
      hepatic signal (`egp_sat`, LESSONS 196) and the meal's own glucagon response. Open review item.
+
+480. **Removing the hepatic saturation fixes the level and the insulin but discards an evidenced part; not adopted.**
+     `--disable egp_sat` on both draws (c463_nosat / c464_nosats vs c446_npu / c447_rs). Donors in brackets where given.
+
+     | | draw 1 | draw 2 |
+     |---|---|---|
+     | mean | 151.0 (155.5) | 154.3 (158.9) |
+     | TDD | 38.8 (41.8) | 41.3 (44.3); donors 38.7 |
+     | lows / day | 1.08 | 1.21 |
+     | t54 | 0.212% | 0.191% |
+     | meals ending < 70 | 0.103 | 0.091; donors 0.097 |
+     | low depths, share < 54 | | on the review targets |
+     | day / night | | 1.95, passing |
+     | CV | 36.4, failing | 37.5, failing |
+     | zero_frac | | 39.0 (32.5), failing |
+     | minutes per low | 22.5, failing | |
+     | meal EGP nadir | 0.77 at 240 min | 0.78 |
+     | matched | 36 (39) | 33 (34) |
+
+     The cap is Rizza 1981's dose-response saturation with Gray 1982's offset. At c219, where it was adopted (LESSONS 196),
+     the meal nadir was 0.45 against Romeres 2025's 0.44. It has drifted to 0.84 through later components acting on the
+     liver after meals. These are the post-meal window, the relative fat term, and their normalisations, which lower SI
+     after meals and raise it fasting (LESSONS 411, 432–436). Taking out the evidenced cap to offset that drift does not
+     reach the nadir either.
+
+     Next on the review list: make those meal-time SI terms act on disposal only, with the cap kept. `ppr_periph` alone
+     gave 0.73–0.76 and lost the meal shape (LESSONS 411); the fat term has no such switch yet. The level and insulin
+     gains seen here say the liver is the place to look.
