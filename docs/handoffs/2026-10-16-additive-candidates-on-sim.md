@@ -256,3 +256,29 @@ This is consistent with the ledger's neutral readings, and slightly negative for
 c362 matter here: the personal meal mix, the relative post-meal window, the Heise dose absorption and the night alarm
 defence (LESSONS 432–443). Candidates act in the open gaps (twins of tight-control donors run high, LESSONS 445–456;
 the pre-dawn excess of lows, LESSONS 438–441, 458), so treat these as a second opinion.
+
+## Update 2026-10-20: stress scenarios re-run on reference c446_npu
+
+These are the same five scenarios, at moderate size, as the c362 run. One ground-truth event lands on day 4 and is the
+same in every arm. 112 people × 8 days, each on their donor's deployed RC. C30 and C31 flags are rebuilt from each
+person's c446 baseline σ5 (`runs/s446_*` on gamepc). Each Δ is against the baseline on true glucose over 72 h, with a
+95% bootstrap CI over people; * means the interval excludes zero.
+
+| scenario | baseline TIR | C30 ΔTIR | C31 ΔTIR | aIRC ΔTIR | other |
+|---|---|---|---|---|---|
+| illness | 60.0 | +0.64 | −0.03 | **−1.14*** | C30 >250 **−0.45***; aIRC >250 **+0.56*** |
+| exercise | 69.7 | +0.07 | +0.57 | **−1.09*** | aIRC >250 **+0.76*** |
+| missed bolus | 67.5 | +0.50 | +0.51 | −0.74 | C30 t70 **−0.42*** |
+| site failure | 56.3 | +0.11 | −0.10 | −1.34 | C30 t70 **−0.35***; aIRC t70 **−0.30***, >250 **+1.92*** |
+| false CGM low | 67.8 | +0.23 | +0.06 | **−1.52*** | C31 t70 **+0.27***; aIRC >250 **+0.76*** |
+
+**What changed since c362:**
+- **aIRC** now costs TIR in four of five scenarios (−1.1 to −1.5) and adds time > 250. It is the same direction as its
+  everyday reading on c446 (LESSONS 459).
+- **C30 and C31** lose their c362 gains on exercise and missed-bolus days; their TIR changes are now inside their
+  intervals.
+- **C30** keeps a lows benefit on missed-bolus and site-failure days (t70 −0.42*, −0.35*).
+- **C31** picks up a small lows cost on the false-low day (t70 +0.27*).
+
+The body changes since c362 are the personal meal mix, the relative post-meal window, the Heise dose absorption and the
+night alarm defence. Read these results with the overlay's Known limits.
