@@ -7504,3 +7504,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      cohort-wide offset. Left from LESSONS 474: schedule eras (already per era in the comparison) and the real sensor's
      noise in Loop's momentum and retrospective correction. The second has no direct test without a sensor-free donor
      reference. The neutral gap and the level gap stay documented limits.
+
+477. **Sensor noise raises Loop's neutral glucose by only 2–5 mg/dL.** c461_quiet is draw 1 with the sensor's white
+     noise, common error and wander off (`sensor_sigma` 0.01, `sensor_common` 0, `sensor_wander` 0; calibration drift and
+     transient biases kept). Twins' neutral glucose by gap tercile high / mid / low is 118.4 / 114.8 / 117.5 (IQR
+     107–131), against 122.4 / 116.9 / 122.5 with the fitted noise (c446_npu) and the donors' 128.9 / 136.8 / 142.5.
+     Noise moves the point the right way but covers at most a quarter of the gap. The candidates of LESSONS 474–476 are
+     now tested (bolus IOB, missed cycles, clock shifts, sensor noise), and none carries it. The donors' higher and wider
+     neutral glucose, like the level gap it accompanies, stays a documented limit, with no simulator lever left to test.
