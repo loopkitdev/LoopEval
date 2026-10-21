@@ -215,7 +215,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0, intake_own: bool = False, csf_geq: bool = False,
-                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False) -> Person:
+                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -349,6 +349,12 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # than the sim's did at 0.5, i.e. real bodies need less than their schedule (median scheduled share 0.45) [J centre]
     if basal_share is not None:
         share = float(np.clip(share - 0.5 + basal_share, 0.25, 0.7))
+    if basal_fit:
+        # basal_fit (experiment, LESSONS 471–472): the body's basal share fitted over cohort rounds so the twin's Loop reaches
+        # its scheduled basal at the donor's own neutral glucose (quiet-hour automatic / scheduled = 1), template column
+        # basal_share_fit, bounded 0.25–0.7
+        k_ = row.get("basal_share_fit") if hasattr(row, "get") else None
+        if k_ is not None and np.isfinite(float(k_)): share = float(np.clip(float(k_), 0.25, 0.7))
     nr = float(row.get("night_ratio", np.nan)) if "night_ratio" in row.index else np.nan
     if basal_own and np.isfinite(nr) and float(row.basal) > 0:
         # the body's basal need from the donor's own overnight delivery: automatic delivery / scheduled basal on the
