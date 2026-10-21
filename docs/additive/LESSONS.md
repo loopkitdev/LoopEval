@@ -7599,3 +7599,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      - lift over the insulin-needs dial −2.02 (CGM) / −2.18 (true).
 
      This sizes the target for reduced-entry candidates (the 2026-10-17 goal). Handoff updated.
+
+484. **At half the meal entries, C31 recovers about a quarter of the loss and C30 cuts lows.** C31 / C30 with
+     `announce_mult` 0.5, paired against c468_ann5 (c469_ann5_*):
+     - ΔTIR +0.51 [+0.12, +0.91] (true +0.47) / −0.01;
+     - Δt70 +0.02 / −0.24 [−0.35, −0.12];
+     - Δmean −0.8 / +0.8.
+
+     At full entries both were neutral (LESSONS 459). The candidates act where entries are missing, as the 2026-10-17
+     goal expects. The lift intervals use full-entry dial arms, so they are approximate. Handoff updated.

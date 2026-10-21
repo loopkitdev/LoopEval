@@ -296,3 +296,16 @@ people.
 Entering half the meals costs about 2 TIR points under stock Loop, with no lows benefit and 1.9 U / day less insulin.
 That is the gap a reduced-entry candidate (the 2026-10-17 goal) would have to close. Read it with the overlay's Known
 limits; meal-time behaviour sits near the meal-tail gap.
+
+**Candidates at half the entries** (C31 and C30 with each person's c446 σ flags, `announce_mult` 0.5; paired against the
+half-entries baseline c468_ann5):
+
+| | ΔTIR | Δt<70 | Δmean | ΔTDD |
+|---|---|---|---|---|
+| C31 | **+0.51** [+0.12, +0.91] (true +0.47) | +0.02 | −0.8 | +0.26 |
+| C30 | −0.01 | **−0.24** [−0.35, −0.12] (true −0.23) | +0.8 | −0.43 |
+
+- **C31** wins back about a quarter of the 2.1-point cost of entering half the meals, with no lows cost.
+- **C30** keeps its lows benefit there, though it is neutral at full entries.
+
+Lift over the dial is only approximate here: the dial arms ran at full entries, and its intervals are wide.
