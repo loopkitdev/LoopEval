@@ -7576,3 +7576,16 @@ outputs in gamepc ~/additive/runs/c290–c312).
      the meal. No arrangement of the existing parts gives both. The level and insulin gains of `egp_sat` off (LESSONS 480)
      come from the liver suppressing more between meals, not at the nadir. Both switches are kept; off. The liver nadir
      stays an open review item, held at 0.84 for the meal shape.
+
+482. **Slower gut appearance does not rescue the meal with the meal-time terms off the liver.** `ppr_periph` +
+     `fat_periph` + `meal_k` 0.7 (emptying and absorption × 0.7, toward Elleri 2013's low-glycaemic meal; LESSONS 452) on
+     draw 1 (c467_perk7 vs c446_npu):
+     - 3-h meal change +8.2 (+9.0 with the switches alone; reference +13.6; donors +21);
+     - meal EGP nadir 0.69 at 120 min;
+     - t54 0.091%, lows 0.75 per day, P(reach 54) 0.154, all failing;
+     - night_cv and TDD CV failing;
+     - 35 of 51 (39).
+
+     Not adopted. Slower appearance spreads the meal without lifting its 3-h level. The conflict of LESSONS 481 stands:
+     the model's post-meal rise needs meal-time resistance on the liver. The liver nadir (0.84) is held there for the meal
+     shape (Pete, LESSONS 408) and stays an open review item.
