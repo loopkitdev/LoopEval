@@ -7498,3 +7498,9 @@ outputs in gamepc ~/additive/runs/c290–c312).
      neutral glucose is 129.0 / 136.8 / 138.3, against 128.9 / 136.8 / 142.5 on all steps. Of LESSONS 474's candidates,
      bolus IOB and missed cycles are now out; schedule eras, pump-clock shifts and sensor noise in Loop's momentum and
      retrospective correction remain. None is a body lever. The level gap stays a documented limit (LESSONS 470).
+
+476. **Pump-clock shifts are too rare to carry the neutral-glucose gap.** 23 of 206 donor therapy files hold
+     `scheduleShifts`, each over a limited window (e.g. 2026-07-07 → 07-11, +60 min). They cannot make a 6–20 mg/dL
+     cohort-wide offset. Left from LESSONS 474: schedule eras (already per era in the comparison) and the real sensor's
+     noise in Loop's momentum and retrospective correction. The second has no direct test without a sensor-free donor
+     reference. The neutral gap and the level gap stay documented limits.
