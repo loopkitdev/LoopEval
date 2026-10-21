@@ -7323,3 +7323,16 @@ outputs in gamepc ~/additive/runs/c290–c312).
      +0.56* to +1.92*. C30: t70 −0.42* missed bolus, −0.35* site failure, > 250 −0.45* illness, TIR changes n.s. C31: TIR
      n.s. everywhere, t70 +0.27* on the false-low day. Compared with c362 (LESSONS 365-era handoff), C30 / C31's exercise
      and missed-bolus TIR gains are gone and aIRC's costs widen. Handoff updated.
+
+461. **The day / night insulin gap is the twins' afternoon automatic insulin.** By local hour, as a share of the
+     person's mean hourly total (`hour_split.py`, ice steps both sides, G7; c446_npu):
+     - **Automatic (basal + automatic boluses):** twins 0.54–0.64 against donors 0.67–0.71 at 14–20 h; twins higher at
+       00–01 h (0.69 / 0.66 vs 0.63 / 0.60) and 06–07 h (0.59 / 0.65 vs 0.50 / 0.55).
+     - **User boluses:** close through the day, but twins higher at 10–13 h (0.44 / 0.42 / 0.55 / 0.68 vs 0.31 / 0.42 /
+       0.57 / 0.55). Twins give none at 00–02 h, where donors give 0.05 / 0.03.
+
+     Unannounced labelled load by 3-h block (`unann_hour.py`): twins 12.1 / 10.7 / 14.1 / 13.5 / 14.6 / 9.9 / 12.1 / 16.6
+     g-eq/day against donors 11.3 / 8.8 / 10.2 / 10.3 / 12.6 / 10.9 / 12.8 / 15.4 (total 108.9 vs 94.7). The excess is in
+     the morning and midday; the afternoon and evening match. So the afternoon automatic shortfall is not less load.
+     Candidates: Loop holding back after the twins' heavier late-morning and lunch boluses, and the morning excess load
+     shifting where Loop works. The night share follows. Open.
