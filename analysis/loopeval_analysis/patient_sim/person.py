@@ -455,9 +455,13 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         rc = np.random.default_rng(seed + 335)
         circ_levels = tuple(float(np.exp(rc.normal(float(row.get(f"circ_mu_{g}") if np.isfinite(float(row.get(f"circ_mu_{g}"))) else 0.0),
                                                    float(row.get(f"circ_sd_{g}"))))) for g in "BLD")
+    sex = "F" if rng.random() < 0.5 else "M"
+    # the donor's own sex where the template knows it (a twin of one named person); BDDP has none, so the pilot draws
+    s_ = row.get("sex") if hasattr(row, "get") else None
+    if isinstance(s_, str) and s_ in ("F", "M"): sex = s_
     return Person(
         name=name or f"v{seed:05d}", seed=seed, template=str(row.alias), age=age,
-        sex="F" if rng.random() < 0.5 else "M", bw=bw, formulation=formulation,
+        sex=sex, bw=bw, formulation=formulation,
         sensor=str(row.sensor), pump=str(row.pump), strategy=strategy, body=bp,
         truth=dict(circ_levels=circ_levels, tdd=tdd, basal_uh=basal_true, fasting_rate=fasting_rate, isf=isf_true, csf=csf, cr=cr_true,
                    basal_profile=[float(x) for x in prof_true],
