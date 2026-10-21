@@ -7512,3 +7512,17 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Noise moves the point the right way but covers at most a quarter of the gap. The candidates of LESSONS 474–476 are
      now tested (bolus IOB, missed cycles, clock shifts, sensor noise), and none carries it. The donors' higher and wider
      neutral glucose, like the level gap it accompanies, stays a documented limit, with no simulator lever left to test.
+
+478. **Component review on c446_npu after today's adoptions: nothing newly drifted.** `review.py`, run / target:
+     - **Low depths:** nadir p10 / p25 / p50 45.0 / 52.0 / 58.5 against 40.0 / 50.0 / 57.0; share of lows reaching < 54
+       0.31 against 0.37; duration p90 60 against 65 min.
+     - **Meals:** drop p10 / p50 −80.6 / −12.3 against −84.0 / −10.7; meals ending < 70 0.065 against 0.097; 3-h change
+       +13.6 against +21.2.
+     - **Behaviour:** entries 3.15 against 3.28 / day; bolused ≥ 15 g 2.16 against 2.33; rises 06–24 h 2.42 against
+       2.75; rises 00–06 h 0.71 against 0.67; night cut-rise share 0.30 against 0.30.
+     - **Liver:** meal EGP nadir 0.84 at 250 min against 0.56 at 160 (Romeres 2025).
+
+     Within ~15% everywhere except the liver nadir and the meal tail, both already open items (LESSONS 411; 429–436). The
+     post-meal window still weakens the liver's meal suppression. Taking it off the liver (`ppr_periph`) moved the nadir
+     only to 0.73–0.76 and lost the meal shape (LESSONS 411). Meals ending < 70 (0.065) and the share of lows reaching
+     54 (0.31) read low, with the meal tail.
