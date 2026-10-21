@@ -586,6 +586,10 @@ class World:
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
         self.ppr_end = float(enable["ppr_end"]) if enable and isinstance(enable.get("ppr_end"), float) else 240.0   # window out by (min; LESSONS 423)
         self.ppr_w = tuple(float(enable[k]) if enable and isinstance(enable.get(k), float) else 1.0 for k in ("ppr_b", "ppr_l", "ppr_d"))   # per-slot window weights (LESSONS 429)
+        # si_norm: the ISF yardstick measures the donor's average sensitivity across their real life (stress, sleep loss,
+        # illness, cycle, glucose-induced resistance included), so the life-factor modulators should average 1 around it;
+        # c446_npu's twins average 0.919 (LESSONS 468). Cohort-level test of the size; the per-person form is the next step
+        self.si_norm = float(enable["si_norm"]) if enable and isinstance(enable.get("si_norm"), float) else 1.0
         self.night_si = float(enable["night_si"]) if enable and isinstance(enable.get("night_si"), float) else 1.0
         self.dawn_si = float(enable["dawn_si"]) if enable and isinstance(enable.get("dawn_si"), float) else 0.0
         _bpf = person.truth.get("basal_profile")
@@ -693,6 +697,7 @@ class World:
                 e_ = max(0.0, bp_ / self._bp_night - 1.0) * self.dawn_si
                 si /= 1.0 + e_; egp /= 1.0 + e_
         si *= self._fat_si(m)
+        si *= self.si_norm   # si_norm (experiment, LESSONS 468): life-factor SI relative to the yardstick's own average
         if self.niacin_si != 1.0:
             # D14 niacin (scenario, off): 2 g/day nicotinic acid for 2 weeks cut minimal-model SI 6.72 → 2.47 (×0.37) in 11
             # normal men, fasting insulin doubled (Kahn 1989, Diabetes 38:562); hepatic insulin sensitivity −33% on 2 g/day
