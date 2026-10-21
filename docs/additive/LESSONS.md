@@ -7367,3 +7367,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      wander read as rises (~2.4 g-eq/day; the donors' G7s make the same kind). With a body signal (243): CGM +16.0, true
      +14.6 (~3.7 g-eq/day). With unentered meals (6.5) these make the ~7 g-eq/day morning excess (LESSONS 461–462); none
      is large enough alone to be the afternoon automatic-insulin shortfall's cause. The day / night row stays open.
+
+465. **`med_nonzero`, `zero_frac` and `tdd` are one gap: the twins' Loop gives more insulin, in both strategies.** Rate
+     scoring, c446_npu + c447_rs vs the donors (`sim_stats.csv`, `real_pilot.csv`, strategy by `auto_day_share` ≥ 0.5):
+     typical nonzero 5-min delivery temp-basal 0.117 vs 0.100 U, automatic-bolus 0.096 vs 0.080 (+17–20% both);
+     zero-delivery share 26.6 vs 29.4%, 32.1 vs 35.3% (−3 points both). With TDD +8–14% (LESSONS 455) this is the
+     same excess seen per bin and per day: no longer the automatic-bolus-only pattern of LESSONS 377 (volume scoring had
+     hidden the temp-basal side). It goes with the level gap (LESSONS 445–456: twins of tight donors run high on more
+     insulin), so the three delivery rows close with it, not separately.
