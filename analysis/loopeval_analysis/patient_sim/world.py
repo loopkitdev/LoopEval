@@ -584,6 +584,7 @@ class World:
         self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.4   # Pete 2026-10-20: meal shape over lows (LESSONS 408); 0.4 relative since 2026-10-20 (LESSONS 436)
         self.ppr_shift = float(enable["ppr_shift"]) if enable and isinstance(enable.get("ppr_shift"), float) else 0.0
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
+        self.fat_periph = bool((enable or {}).get("fat_periph", False))   # experiment (LESSONS 481): fat resistance on disposal only
         self.ppr_end = float(enable["ppr_end"]) if enable and isinstance(enable.get("ppr_end"), float) else 240.0   # window out by (min; LESSONS 423)
         self.ppr_w = tuple(float(enable[k]) if enable and isinstance(enable.get(k), float) else 1.0 for k in ("ppr_b", "ppr_l", "ppr_d"))   # per-slot window weights (LESSONS 429)
         # si_norm: the ISF yardstick measures the donor's average sensitivity across their real life (stress, sleep loss,
@@ -696,16 +697,17 @@ class World:
                 # its 00–03 h level moves into SI, EGP divided by the same factor, so the need at each hour is unchanged
                 e_ = max(0.0, bp_ / self._bp_night - 1.0) * self.dawn_si
                 si /= 1.0 + e_; egp /= 1.0 + e_
-        si *= self._fat_si(m)
+        fat_m = self._fat_si(m)
+        if not self.fat_periph: si *= fat_m
         si *= self.si_norm   # si_norm (experiment, LESSONS 468): life-factor SI relative to the yardstick's own average
         if self.niacin_si != 1.0:
             # D14 niacin (scenario, off): 2 g/day nicotinic acid for 2 weeks cut minimal-model SI 6.72 → 2.47 (×0.37) in 11
             # normal men, fasting insulin doubled (Kahn 1989, Diabetes 38:562); hepatic insulin sensitivity −33% on 2 g/day
             # Niaspan (Blond 2014, Horm Metab Res 46:390). The settings stay the person's pre-niacin ones (LESSONS 354)
             si *= self.niacin_si
-        si_d_only = 1.0
+        si_d_only = fat_m if self.fat_periph else 1.0   # fat_periph (experiment, LESSONS 481): lipid resistance on disposal only
         if self.ppr_a > 0:
-            if self.ppr_periph: si_d_only = self._ppr_si(m)      # disposal only: the liver stays suppressed (Romeres 2025; LESSONS 410)
+            if self.ppr_periph: si_d_only *= self._ppr_si(m)      # disposal only: the liver stays suppressed (Romeres 2025; LESSONS 410)
             else: si *= self._ppr_si(m)
         if self.glp1 is not None: si *= self.glp1.si_mult(m)
         if self.hyper_on:
