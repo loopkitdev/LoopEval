@@ -7608,3 +7608,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
 
      At full entries both were neutral (LESSONS 459). The candidates act where entries are missing, as the 2026-10-17
      goal expects. The lift intervals use full-entry dial arms, so they are approximate. Handoff updated.
+
+485. **Against a dial matched at half the entries, neither candidate lifts.** Dial arms ×0.95 / ×1.05 at
+     `announce_mult` 0.5 (c470_ann5_*); lift over the dial:
+     - C31 −0.01 [−1.15, +1.44] on CGM, −0.24 on true glucose;
+     - C30 +0.71 [−0.30, +2.41] on CGM, +0.85 [−0.40, +3.01] on true glucose.
+
+     C31's +0.5 TIR at half entries (LESSONS 484) is what more insulin gives. C30's lows benefit leans positive but its
+     interval includes zero. Handoff updated.
