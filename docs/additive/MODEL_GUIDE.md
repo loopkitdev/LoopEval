@@ -196,7 +196,11 @@ The sensor is fitted only to sensor evidence (FDA tables, donors' measurement no
 
 ## 7. Pump and infusion site (`device.py`)
 
-LoopEval records what was commanded; the body receives what the device delivered (phantom IOB is ground truth).
+LoopEval records what was commanded; the body receives what the device delivered. Loop computes insulin on board from
+the commanded doses, so any insulin lost on the way (flow error, a failing or occluded site, a dislodged cannula,
+lipohypertrophy) is still counted by Loop. This is phantom IOB: insulin Loop believes is acting but the body never got.
+The simulator logs commanded, delivered and absorbed insulin for every dose, so phantom IOB is known exactly. Real donor
+records carry only the commanded side.
 
 | Component | Form | Settings | Evidence | Personal basis |
 |---|---|---|---|---|
