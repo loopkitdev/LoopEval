@@ -309,3 +309,10 @@ half-entries baseline c468_ann5):
 - **C30** keeps its lows benefit there, though it is neutral at full entries.
 
 Lift over the dial is only approximate here: the dial arms ran at full entries, and its intervals are wide.
+
+**With the dial matched at half entries** (×0.95 / ×1.05 at `announce_mult` 0.5, c470), lift over the dial:
+- **C31:** −0.01 [−1.15, +1.44] on CGM, −0.24 on true glucose. Its +0.5 TIR is no more than giving more insulin would do.
+- **C30:** +0.71 [−0.30, +2.41] on CGM, +0.85 [−0.40, +3.01] on true glucose. Its lows reduction is what moves it; the
+  interval includes zero.
+
+At half the entries, neither candidate shows a lift that excludes zero.
