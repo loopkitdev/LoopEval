@@ -7442,3 +7442,21 @@ outputs in gamepc ~/additive/runs/c290–c312).
      With LESSONS 445–469 the level gap stays documented as a limit. It is a person-level set point the templates do not
      carry: neither their ISF (447), their unlogged load (450), their corrections (451) nor their basal share (this)
      reproduces it.
+
+471. **A per-person measure the templates lack: the glucose at which a person's Loop reaches its scheduled basal.**
+     `neutral_bg.py` uses ice steps on both sides, G7. In quiet steps (no carbs or manual bolus in the prior 3 h),
+     automatic delivery over scheduled basal is binned by 5-mg/dL CGM band; the measure is the CGM where the binned median
+     crosses 1. By the donor's level-gap tercile, high / mid / low:
+     - donors 128.9 / 136.8 / 142.5 (IQR 118–149 / 125–147 / 132–167);
+     - twins (c446_npu) 122.4 / 116.9 / 122.5 (IQR 114–133 / 109–131 / 112–130);
+     - template targets 107.5 / 105.2 / 107.2, override time 2–4%, effective target with overrides 107–110 in every
+       group (corr with the gap ~0).
+
+     So it is not where the target is set. The donors' Loops reach the schedule 7–20 mg/dL higher, and they spread far
+     wider: their schedules sit further above their bodies' basal need, differently per person. The twins' basal share,
+     drawn N(0.42, 0.07), carries none of that.
+
+     Unlike the donor's overnight delivery (`basal_own`, biased by night corrections, LESSONS 125 / 234), this is read
+     like for like in quiet hours. Next: fit each body's basal share to its donor's neutral glucose over rounds on both
+     draws, as `lvl_own` did for ISF (LESSONS 446–447). The budget re-balances meals against the basal share, so read the
+     mean, the lows and the meal shape beside the per-person tracking.
