@@ -7426,3 +7426,19 @@ outputs in gamepc ~/additive/runs/c290–c312).
      twins sitting above target more (the level gap, LESSONS 445–456), not a separate insulin mechanism. LESSONS 468's
      result fits: a more sensitive body lowered glucose but left automatic delivery near the schedule-driven level.
      `med_nonzero`, `zero_frac` and `tdd` (LESSONS 465) close with the level gap.
+
+470. **The level gap is a whole-day offset, and no single basal measure carries it.**
+     - **Whole-day offset:** twin minus own donor mean CGM by 6-h block, 00 / 06 / 12 / 18 h (`gap_clock.py`, c446_npu):
+       high-gap tercile +33.4 / +32.7 / +38.5 / +30.4, low −18.9 / −15.2 / −25.5 / −31.1, mid +0.9 / +2.6 / +5.1 / +1.9.
+       Fasting nights carry it as much as meal hours: the twins' personal level is pulled toward the cohort's at every
+       hour.
+     - **Basal measures:** across 121 donors (`gap` from both draws), the gap correlates with the donor's share of
+       insulin delivered automatically at −0.39. By tercile low / mid / high: automatic share 0.73 / 0.64 / 0.52,
+       basal-only share 0.35 / 0.44 / 0.31 (not monotonic), scheduled basal × 24 / TDD 0.47 / 0.50 / 0.44 (corr 0.07).
+     - **Why it stays open:** the body's basal share is drawn at random, N(0.42, 0.07). The donor's own overnight
+       delivery (`basal_own`) overstates it and was worse twice (LESSONS 125, 234). The automatic share mixes in the
+       dosing strategy (automatic boluses).
+
+     With LESSONS 445–469 the level gap stays documented as a limit. It is a person-level set point the templates do not
+     carry: neither their ISF (447), their unlogged load (450), their corrections (451) nor their basal share (this)
+     reproduces it.
