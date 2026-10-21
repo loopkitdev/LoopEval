@@ -7290,3 +7290,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      built on what the donor received and the rounding is not the cause. Read either way (twin volume TDD 39.5 vs donors'
      ~37.5 by volume; 41.8 vs 38.7 by rate) the twins need ~5–8% more insulin than their donors: a real gap, open with the
      level gap (LESSONS 445).
+
+457. **Persistence of the intrinsic day-level SI barely moves TDD persistence and not the volatility dispersion.** `day_rho`
+     0.4 (the field lag-1-day correlation, ice L19; B3 day-level SI sd 0.08 from repeat clamps; no controlled study sizes
+     its persistence) on both draws (c455_dr4 / c456_dr4s vs c446_npu / c447_rs, rate scoring): ac1 0.006 / 0.024 (−0.029 /
+     −0.038; donors 0.091), sigma_disp 3.00 / 3.09 (3.02 / 3.04; 3.57), between_day_frac 0.116 / 0.123 (0.105), night_cv
+     31.2 at draw 1 now failing, 37 / 31 of 51 (39 / 34) — not adopted (override kept, default 0). An 8% day-level SI, even
+     persistent, is small next to eating in a day's insulin (LESSONS 372: same-day corr eaten–delivered 0.85). Failing on
+     both draws now: boxcox_lambda, G7 v_sd / sd_over_mad / hurst_short, acf_zero_min, sigma_disp, med_nonzero, ac1,
+     day_night; with the tight-donor level gap (445–456). Each has had evidenced levers tried (LESSONS 293–299, 372, 376,
+     385–389, 445–457).
