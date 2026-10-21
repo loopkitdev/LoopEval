@@ -110,6 +110,15 @@ the lows by dosing strategy (temp-basal vs automatic-bolus twins against their o
 
 ## Known limits of the current reference (read before using its numbers)
 
+**Status (Pete 2026-10-20): usable with LoopEval.** The limits below are documented, not blocking. They are:
+- twins of tight-control donors run high, and twins need 5–8% more insulin than their donors (LESSONS 445–456);
+- night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458);
+- failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
+  (LESSONS 457);
+- the 3-h meal change is +13 to +18 against +21.
+
+Score close calls on two draws (LESSONS 444).
+
 Measured like for like against the donors (LESSONS 282–299); read a candidate's result against them.
 
 - **Lows run short** (c395_joint: t54 0.074% vs 0.190%, P(reach 54) 0.14 vs 0.21, LESSONS 393). c384–c391 matched them partly through false sensor lows. Earlier: t54 0.147% vs 0.215%, lows 0.83 vs 1.08 / day. The missing part is the early low after a

@@ -225,3 +225,34 @@ Changes from the 10-16 readings (older body model): C30 and C31 now gain TIR on 
 lows cost; the deep-false-low losses of C30 (−1.38*) and aIRC (−1.25*) are gone (C30 +1.01 n.s., aIRC +0.05); aIRC's
 exercise-day lows benefit is gone and it costs TIR during illness. Read with the overlay's Known limits (post-meal late
 phase, short-scale shape); the low side now matches the donors on every statistic (LESSONS 360–362).
+
+## Update 2026-10-20: the simulator is usable with LoopEval (Pete); candidates re-run on reference c446_npu
+
+Pete, 2026-10-20: the additive simulator is usable with LoopEval. The reference, c446_npu, matches 39 of eda's 51
+statistics. It matches 34 on a second draw of people; draws scatter by up to 6. It matches the donors on these:
+- mean, CV, TIR and time > 180;
+- every low statistic, including minutes per low;
+- the pre-dawn level, the 24-h amplitude and TDD.
+
+Read its known limits in `docs/agents/additive.md` before using its numbers.
+
+Same 112 people as c446_npu, each on their donor's deployed RC (`rc_own`). The C30 and C31 flags were rebuilt from
+each person's own c446 baseline σ5 (`runs/k446_*` on gamepc). Deltas are against the c446_npu baseline, with 95%
+bootstrap intervals over people:
+
+| | ΔTIR | Δt<54 | Δmean | lift over dial (CGM) | lift (true glucose) |
+|---|---|---|---|---|---|
+| aIRC | −0.99 [−1.49, −0.53] | −0.01 | +2.4 | −0.92 [−1.47, −0.07] | −1.08 [−1.65, −0.09] |
+| C30 | −0.44 [−0.84, −0.05] | +0.01 | +0.9 | −0.55 [−1.08, +0.39] | −0.84 [−1.64, −0.03] |
+| C31 | +0.08 [−0.39, +0.55] | +0.01 | −0.2 | −0.05 [−0.63, +0.73] | −0.23 [−0.91, +0.71] |
+
+- No candidate lifts.
+- aIRC now sits below the dial on both CGM and true glucose. It gives less insulin (TDD −1.0 U/day) for a higher mean,
+  with lows unchanged.
+- C30 is below the dial on true glucose.
+- C31 is neutral.
+
+This is consistent with the ledger's neutral readings, and slightly negative for aIRC and C30. The body changes since
+c362 matter here: the personal meal mix, the relative post-meal window, the Heise dose absorption and the night alarm
+defence (LESSONS 432–443). Candidates act in the open gaps (twins of tight-control donors run high, LESSONS 445–456;
+the pre-dawn excess of lows, LESSONS 438–441, 458), so treat these as a second opinion.
