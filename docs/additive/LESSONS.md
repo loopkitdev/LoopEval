@@ -7617,14 +7617,22 @@ outputs in gamepc ~/additive/runs/c290–c312).
      C31's +0.5 TIR at half entries (LESSONS 484) is what more insulin gives. C30's lows benefit leans positive but its
      interval includes zero. Handoff updated.
 
-486. **A Loop user's Nightscout record exports to the pilot spec and matches the same person's Tidepool export.**
-     `nightscout_export.py` turns Loop's Nightscout uploads into the ICE export: four streams, decision times,
-     disruptions and the side tables. The schedule fills between temps; overrides come from Loop's Temporary Override
-     treatments; tz_daily comes from the pump's offset.
+486. **A Loop user's Nightscout record exports to the pilot spec and matches the same person's Tidepool export.** One
+     superset export, in the Tidepool shape, serves replay, the ICE pipeline and the templates, in two layers:
+     - `loop-eval export` writes the four streams through NightscoutEvalDataSource, the conversion
+       `simulate --nightscout-url` replays.
+     - `nightscout_export.py` adds what the Tidepool export carries beyond them:
+       - Tidepool's glucose representation;
+       - basal records labelled temp / suspend;
+       - the scheduled basal between temps, as records marked `inferred: true`, scaled by an active override's
+         factor and left out where Loop reported no pod;
+       - the schedules as set, with overrides as windows inside the export window;
+       - decision times, disruptions (outage.py's schema and suspend rule) and the ICE side tables;
+       - a manifest listing what was inferred.
 
      Both exports of one user's two-month overlap, through the same pipeline:
      - IOB rebuilt from the doses against Loop's recorded IOB: MAE about 0.05 U, correlation 0.99.
-     - Glucose, boluses and carb entries identical.
+     - Glucose values, boluses and carb entries identical.
      - Daily insulin and zero-delivery share within 0.2%.
      - Override windows ending within a second of each other.
      - 32 of 34 donor statistics within 1%.
@@ -7636,12 +7644,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
        normalBolus decisions on 95% of boluses.
      - Labeller-derived columns differ by 2–10%.
 
-     Three export details mattered:
-     - Close sub-minute gaps between uploaded temps. Filled with the schedule, they read as slivers (zero-delivery
-       share 4 points low).
-     - Take overrides from the treatments. A target-free preset's `currentCorrectionRange` follows the schedule and
-       split one override into three.
-     - Keep Tidepool's mmol round trip on glucose (mg/dL / 18.01559 x 18.0182).
+     What the comparison forced:
+     - the Tidepool shape keeps the schedules as set. With overrides applied, Swift bakes them into the schedules,
+       and they read as settings edits;
+     - override windows are trimmed to the export window (Swift scans 180 days back);
+     - contiguous equal-value schedule segments are merged. Swift cuts at every profile save, and a cut moves weight
+       between days for anything that averages by segment start;
+     - Tidepool's mmol round trip on glucose (mg/dL / 18.01559 x 18.0182) is kept;
+     - the fill skips gaps under a minute.
 
 487. **The ICE pipeline counts a week of pre-window boluses as corrections.** pull_bolus_decisions starts 7 days before
      the export window. The labeller turns those requests into corrections at a clamped glucose: every such row carries
@@ -7676,3 +7686,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
 
      Age moves the twin through body weight: the age-banded U/kg prior changes at 18, and the 2-year age jitter
      crosses it. A known body weight would serve a twin better than the age rule.
+
+490. **A `--data-dir` export of a Nightscout site replays bit-identically to the site.** `simulate --data-dir` on
+     `loop-eval export`'s output matches `simulate --nightscout-url` on every cycle (one week, default
+     counterfactual), after one reader fix: JSONFileDataSource now keeps doses that start up to 2 h before the
+     requested window, as NightscoutEvalDataSource fetches them. Before the fix it dropped 15 doses a week. The golden
+     suite moves by at most 3e-12 (summation order), and 16 cases were re-recorded.
+
+     Two path differences are by design and worth knowing:
+     - Given a data dir, simulate also loads its decision_times.csv, disruptions.csv and carb_revisions.json. The
+       full export therefore replays on Loop's recorded cycle times, with delivery clamped in disruptions, as
+       Tidepool exports do.
+     - The live path's first replay of a window uses freshly converted data. Later replays read DataCache, which
+       writes whole-second timestamps, so the first and later replays of the same window differ: doses 99.5%
+       identical, IOB up to 0.1 U. `loop-eval export` keeps milliseconds. The cache's precision is open.
+
