@@ -7484,3 +7484,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      donors' higher and wider neutral points (LESSONS 471) are therefore about how their Loops ran or were recorded, not
      their bodies. Candidates are missed cycles, where Loop did not decide in ~8% of slots (LESSONS 377), schedule eras,
      and pump-clock shifts. The switch and the r1–r3 templates are kept; off.
+
+474. **The donors' higher neutral glucose is not leftover bolus insulin.** `neutral_bg6.py` uses a 6-h quiet window in
+     place of 3 h (no carbs or manual bolus in the prior 6 h). By gap tercile high / mid / low, donors 127.5 / 129.3 /
+     137.5 against twins 121.2 / 112.0 / 117.7; at 3 h it was 128.9 / 136.8 / 142.5 against 122.4 / 116.9 / 122.5. Both
+     sides drop a little and the gap of 6–20 mg/dL stays. With LESSONS 473 (the twin's neutral point does not follow its
+     body's basal need), it is a controller or record difference. Candidates left: missed cycles, schedule eras,
+     pump-clock shifts, and the real sensor's noise in Loop's momentum and retrospective correction. Open, and not a
+     body lever.
