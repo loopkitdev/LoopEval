@@ -7352,3 +7352,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      already contains Loop's answer to their morning rises, so part of the dawn may count twice. LESSONS 346
      (`slot_true`) removed one form of this; `prof_np` (the profile from pulse-free hours, LESSONS 371) is the existing
      test of the rest, so far measured only on 61 donors. Next: a `prof_np` arm on both draws.
+
+463. **The basal-need profile from pulse-free hours does not move the day / night split.** `prof_np` on both draws
+     (c457_np / c458_nps vs c446_npu / c447_rs): day / night 1.77 / 1.86 (1.77 / 1.86; donors 2.00), TDD 41.9 / 44.3,
+     mean 155.5 / 158.6, 39 / 30 of 51 (39 / 34; draw 2 loses bg_cv, hurst_long, between_day_frac and conc1, all
+     borderline) — not adopted. Only 61 donors have enough pulse-free hours, so most twins keep the delivered profile;
+     where it applies the morning shape moves little (LESSONS 371). The dawn double count of LESSONS 462 is not tested
+     by this. The afternoon automatic-insulin shortfall (LESSONS 461) stays open.
