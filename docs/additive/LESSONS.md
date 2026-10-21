@@ -7399,3 +7399,19 @@ outputs in gamepc ~/additive/runs/c290–c312).
      beyond the donors'. With LESSONS 448 (body-made rises ~16 g-eq/day, far from meals) and 445 (twins of tight donors
      run high on more insulin), the candidates are the body's glucose production and its use at rest in particular
      people. Open.
+
+468. **The life-factor modulators average SI × 0.92, but dividing it out lowers glucose, not insulin.** The twins'
+     combined SI multiplier (truth `si`, days 2–14, c446_npu, 80 twins) has mean 0.919 and median 0.892 (p10 / p90
+     0.46 / 1.40), against the yardstick ISF that measured each donor's average life. `si_norm` 1.088 on both draws
+     (c459_sn / c460_sns vs c446_npu / c447_rs):
+     - mean 152.0 / 155.8 (155.5 / 158.9; donors 151.9);
+     - TIR 71.2 / 68.3;
+     - TDD 41.5 / 44.0 (41.8 / 44.3; donors 38.7), barely moved;
+     - med_nonzero 0.101 / 0.100;
+     - 3-h meal change +14.0 / +10.4 (+13.6 / +13.3), worse;
+     - lows 0.92 / 1.04 per day;
+     - 36 / 32 of 51 (39 / 34).
+
+     Not adopted (switch kept, off). A more sensitive body runs lower, but its Loop gives about the same insulin. So the
+     twins' 5–10% insulin excess (LESSONS 466–467) is not the modulators' mean, nor food. What the twins' Loop sees that
+     the donors' did not is still unnamed.
