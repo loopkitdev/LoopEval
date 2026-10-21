@@ -7300,3 +7300,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      both draws now: boxcox_lambda, G7 v_sd / sd_over_mad / hurst_short, acf_zero_min, sigma_disp, med_nonzero, ac1,
      day_night; with the tight-donor level gap (445–456). Each has had evidenced levers tried (LESSONS 293–299, 372, 376,
      385–389, 445–457).
+
+458. **With the night defence on, the twins' night treatment matches the donors'; post-exercise nights carry lows at the
+     evidenced ratio; the pre-dawn build-up is on ordinary nights.** c446_npu labelled (`night_rescue.py`): pre-emptive
+     unannounced rises from BG < 100 0.234 per night (donors 0.222), flagged rescues 0.088 (0.075), onsets 86 / 62 (88 /
+     64) — the gap of LESSONS 442 is closed. Night low onsets 00–01 / 02–03 / 04–05 h 84 / 123 / 156 (donors falling,
+     1,746 / 1,448 / 1,414). By the day before (`night_ex.py`): after an exercise day (exercise 12–24 h) 0.47 lows per night
+     (239 nights), other nights 0.29 (972) — ×1.6, as DirecNet 2005 found after afternoon exercise in children (48 vs 28% of
+     nights, ×1.7); by 00–02 / 02–04 / 04–06 h 24 / 48 / 40 vs 57 / 87 / 138, so the build toward dawn sits on ordinary
+     nights, with the SI climb of LESSONS 438 (dawn-SI and night-SI arms, 439–441, made it worse). Open.
