@@ -104,7 +104,8 @@ One parameter set per session; per family (G6, G7, Libre 3, Libre 2, Medtronic).
 ## E. Pump and infusion site (`device.py`)
 
 LoopEval's trace records what was **commanded**. The body receives what the device **delivered**.
-The difference is ground truth the plant logs, and Loop never sees it (phantom IOB).
+Loop counts the commanded insulin in its IOB; whatever the device did not deliver is phantom IOB, which Loop never
+sees. The plant logs commanded, delivered and absorbed insulin, so the simulator knows it exactly.
 
 | Component | Model form | Parameters | Evidence | Status |
 |---|---|---|---|---|
