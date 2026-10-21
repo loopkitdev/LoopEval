@@ -7309,3 +7309,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      (239 nights), other nights 0.29 (972) — ×1.6, as DirecNet 2005 found after afternoon exercise in children (48 vs 28% of
      nights, ×1.7); by 00–02 / 02–04 / 04–06 h 24 / 48 / 40 vs 57 / 87 / 138, so the build toward dawn sits on ordinary
      nights, with the SI climb of LESSONS 438 (dawn-SI and night-SI arms, 439–441, made it worse). Open.
+
+459. **Pete, 2026-10-20: the simulator is usable with LoopEval; the candidates re-run on c446_npu.** Paired arms on c446_npu
+     (`runs/k446_*`; dial ×0.95 / ×1.05; C30 / C31 flags rebuilt from each person's own c446 σ5): aIRC ΔTIR −0.99
+     [−1.49, −0.53], lift over the dial −0.92 [−1.47, −0.07] (true −1.08), TDD −1.0 U / day, t54 unchanged; C30 ΔTIR −0.44,
+     lift −0.55 (true −0.84 [−1.64, −0.03]); C31 +0.08, lift −0.05 [−0.63, +0.73]. No candidate lifts, as on c311 / c312;
+     aIRC and C30 now read slightly negative. Handoff updated (docs/handoffs/2026-10-16-additive-candidates-on-sim.md);
+     the overlay's Known limits now carry the status line.
