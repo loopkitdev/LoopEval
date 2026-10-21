@@ -7492,3 +7492,9 @@ outputs in gamepc ~/additive/runs/c290–c312).
      body's basal need), it is a controller or record difference. Candidates left: missed cycles, schedule eras,
      pump-clock shifts, and the real sensor's noise in Loop's momentum and retrospective correction. Open, and not a
      body lever.
+
+475. **Missed Loop cycles do not raise the donors' neutral glucose.** Restricted to 5-min steps holding a Loop decision
+     with no dose guard (`neutral_dec.py`; decided share 0.97 / 0.94 / 0.93 by gap tercile high / mid / low), the donors'
+     neutral glucose is 129.0 / 136.8 / 138.3, against 128.9 / 136.8 / 142.5 on all steps. Of LESSONS 474's candidates,
+     bolus IOB and missed cycles are now out; schedule eras, pump-clock shifts and sensor noise in Loop's momentum and
+     retrospective correction remain. None is a body lever. The level gap stays a documented limit (LESSONS 470).
