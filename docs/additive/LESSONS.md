@@ -7469,3 +7469,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
        10.0 / 32.6 mg/dL, |gap| p50 14.1. The share's p10 / p50 / p90 falls from ~0.42 to 0.29 / 0.35 / 0.51. Twins sit
        below their donors' neutral points, so most bodies need less basal than drawn, as LESSONS 125 found for the cohort.
      - **Run:** three rounds on both draws (bf1–bf3), then the full comparison.
+
+473. **Loop's neutral glucose does not respond to the body's basal need; `basal_fit` not adopted.** Three rounds on both
+     draws (bf1–bf3):
+     - **The fit went to its bound:** body basal share p50 0.35 → 0.29 → 0.25 → 0.25, with 22 / 54 / 61 of 90 donors at a
+       bound.
+     - **The target didn't move:** neutral-glucose gap (donor − twin) |p50| 16.4 / 13.4 / 14.3 (round 0: 14.1).
+     - **Tracking didn't move:** twin–donor mean corr 0.41 / 0.40 / 0.40 on draw 1 and 0.38 / 0.37 / 0.37 on draw 2
+       (0.42 / 0.39 before).
+     - **Pooled, against c446_npu / c447_rs:** 37 / 34 of 51 (39 / 34), mean 154.8 / 159.0, CV 36.9 / 37.3 now failing,
+       t54 0.205 / 0.206%, lows 1.08 / 0.92 per day, day / night 1.82 / 1.91 (passing on both).
+
+     The twin's neutral point is set by the controller (settings, model, RC), not by how much basal its body needs. The
+     donors' higher and wider neutral points (LESSONS 471) are therefore about how their Loops ran or were recorded, not
+     their bodies. Candidates are missed cycles, where Loop did not decide in ~8% of slots (LESSONS 377), schedule eras,
+     and pump-clock shifts. The switch and the r1–r3 templates are kept; off.
