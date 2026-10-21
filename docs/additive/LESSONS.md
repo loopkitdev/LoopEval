@@ -7316,3 +7316,10 @@ outputs in gamepc ~/additive/runs/c290–c312).
      lift −0.55 (true −0.84 [−1.64, −0.03]); C31 +0.08, lift −0.05 [−0.63, +0.73]. No candidate lifts, as on c311 / c312;
      aIRC and C30 now read slightly negative. Handoff updated (docs/handoffs/2026-10-16-additive-candidates-on-sim.md);
      the overlay's Known limits now carry the status line.
+
+460. **Stress scenarios on c446_npu: aIRC costs TIR under stress, C30 keeps a lows benefit, C31 is neutral.** Five
+     scenarios at moderate size, 112 people × 8 days, Δ on true glucose over 72 h (`runs/s446_*`, `stress2_an.py`). aIRC:
+     TIR −1.14* illness, −1.09* exercise, −1.52* false CGM low (−0.74 / −1.34 n.s. missed bolus / site failure), > 250
+     +0.56* to +1.92*. C30: t70 −0.42* missed bolus, −0.35* site failure, > 250 −0.45* illness, TIR changes n.s. C31: TIR
+     n.s. everywhere, t70 +0.27* on the false-low day. Compared with c362 (LESSONS 365-era handoff), C30 / C31's exercise
+     and missed-bolus TIR gains are gone and aIRC's costs widen. Handoff updated.
