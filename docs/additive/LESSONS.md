@@ -7562,3 +7562,17 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Next on the review list: make those meal-time SI terms act on disposal only, with the cap kept. `ppr_periph` alone
      gave 0.73–0.76 and lost the meal shape (LESSONS 411); the fat term has no such switch yet. The level and insulin
      gains seen here say the liver is the place to look.
+
+481. **Keeping the meal-time SI terms off the liver brings the nadir on time but collapses the meal; not adopted.**
+     `ppr_periph` + `fat_periph` with the hepatic cap kept, on both draws (c465_per / c466_pers vs c446_npu / c447_rs):
+     - meal EGP nadir 0.69 / 0.71 at 130 min (0.84 at 250; Romeres 2025 0.56 at 160);
+     - 3-h meal change +9.0 / +6.2 (+13.6 / +13.3; donors +21);
+     - mean 153.2 / 155.7, TDD 41.5 / 43.8 (barely moved);
+     - night_cv 30.0 failing on draw 1, P(reach 54) 0.143 failing on draw 2;
+     - 37 / 34 of 51 (39 / 34).
+
+     With LESSONS 411 and 480 this is a real conflict, not a drift to undo. The donors' post-meal rise (Pete's priority,
+     LESSONS 408) needs meal-time resistance that reaches the liver. The tracer nadir needs the liver suppressed through
+     the meal. No arrangement of the existing parts gives both. The level and insulin gains of `egp_sat` off (LESSONS 480)
+     come from the liver suppressing more between meals, not at the nadir. Both switches are kept; off. The liver nadir
+     stays an open review item, held at 0.84 for the meal shape.
