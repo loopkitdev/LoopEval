@@ -1215,3 +1215,19 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     80-90 0.18 vs 0.18, 90-100 0.09 vs 0.08), while generated people spend 36% more time at 70-90. So the excess lows come
     from how often a person is near low - the calm-people spread of LESSONS 104-106 (i003 alone t<70 12.5 vs 3.6) - not from
     what a bolus does or from the defense once there.
+127. **The background path's excess 1-3 h persistence is its own, not closed loop's, and it is not the previous-value
+    channel feeding back draws.** Open loop (openloop_vt.py): the background path run 7 held-out days on its own draws with
+    every other input real, variance-time ratio Var(sum of k steps) / (k Var) on observed slots, 24 donors, base
+    v32of0TcB2FGUCGLBGGSKa, three sampling seeds: 30 min 2.25 / 2.04 / 2.04 (field 2.03), 1 h 2.74 / 2.79 / 2.67 (2.13), 3 h
+    4.81 / 4.98 / 5.15 (3.60); 5-min sd 69-76 (79); closed-loop rollouts 4.65 at 3 h against the closed-loop field's 2.76.
+    Per-donor values move by up to +-1.5 at 3 h between sampling seeds, so single-seed per-donor reads are noise. Feeding the
+    previous-value channel the predicted mean instead of the draw (8 donors) raises the 3 h ratio from 3.9 to 8.7 and halves
+    the sd (37 vs 70): the draw's noise decorrelates the path rather than building persistence. The EMA channel is not an
+    input of the background path (ICE_DROP), so ema_mean equals draw exactly. The excess therefore sits in the recurrent
+    state's own slow drift beyond an hour.
+128. **Pre-window bolus decisions were labelled as corrections at a clamped glucose (additive handoff 2026-10-21).**
+    bolus_decisions.parquet starts 7 days before the export window; meals.label turned every unmatched row before the first
+    step into a correction with bg = the first step's glucose. Fixed in meals.label (unmatched rows outside the steps are
+    skipped; a pre-window bolus that matches a meal still attaches). Against HEAD: meals unchanged; corrections i003 502 ->
+    463, i044 123 -> 109, i012 361 -> 290 (62 rows at one bg), median correction glucose i044 151 -> 185, i012 90 -> 234.
+    Takes effect on the next relabel and retrain, with the meal-target mask owed from LESSONS 124.

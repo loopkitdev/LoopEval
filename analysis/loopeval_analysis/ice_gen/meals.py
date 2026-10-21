@@ -130,6 +130,10 @@ def label(steps: pd.DataFrame, carbs: list, bolus_dec: pd.DataFrame, tdd: float,
             continue
         j = nearest(r.t)
         if j < 0:
+            # bolus_decisions starts 7 days before the export window: outside the steps a bolus has no glucose, and
+            # clamping it to the first step's put a constant bg on ~5% of the pilot's corrections (additive, 2026-10-21)
+            if not len(g) or r.t < g.index[0] or r.t >= g.index[-1] + pd.Timedelta(minutes=5):
+                continue
             k = g.index.searchsorted(r.t.floor("5min"))
             corr.append(dict(t=r.t, units=r.requested, rec=r.rec,
                              bg=float(g.bg.iloc[min(k, len(g) - 1)]) if len(g) else np.nan))
