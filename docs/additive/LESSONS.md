@@ -7616,3 +7616,63 @@ outputs in gamepc ~/additive/runs/c290–c312).
 
      C31's +0.5 TIR at half entries (LESSONS 484) is what more insulin gives. C30's lows benefit leans positive but its
      interval includes zero. Handoff updated.
+
+486. **A Loop user's Nightscout record exports to the pilot spec and matches the same person's Tidepool export.**
+     `nightscout_export.py` turns Loop's Nightscout uploads into the ICE export: four streams, decision times,
+     disruptions and the side tables. The schedule fills between temps; overrides come from Loop's Temporary Override
+     treatments; tz_daily comes from the pump's offset.
+
+     Both exports of one user's two-month overlap, through the same pipeline:
+     - IOB rebuilt from the doses against Loop's recorded IOB: MAE about 0.05 U, correlation 0.99.
+     - Glucose, boluses and carb entries identical.
+     - Daily insulin and zero-delivery share within 0.2%.
+     - Override windows ending within a second of each other.
+     - 32 of 34 donor statistics within 1%.
+
+     Differences that remain:
+     - Nightscout reads more Loop-offline time (about a third more here). Loop's Nightscout status uploads are not
+       backfilled, and Tidepool records Loop cycles inside the status gaps.
+     - Manual-bolus recommendations come from the status record Loop uploads at the bolus. They match Tidepool's
+       normalBolus decisions on 95% of boluses.
+     - Labeller-derived columns differ by 2–10%.
+
+     Three export details mattered:
+     - Close sub-minute gaps between uploaded temps. Filled with the schedule, they read as slivers (zero-delivery
+       share 4 points low).
+     - Take overrides from the treatments. A target-free preset's `currentCorrectionRange` follows the schedule and
+       split one override into three.
+     - Keep Tidepool's mmol round trip on glucose (mg/dL / 18.01559 x 18.0182).
+
+487. **The ICE pipeline counts a week of pre-window boluses as corrections.** pull_bolus_decisions starts 7 days before
+     the export window. The labeller turns those requests into corrections at a clamped glucose: every such row carries
+     the first step's value. On a two-month window this inflated corrections per day by about half and replaced the
+     median correction glucose. On the pilot's ~128-day windows it is about a 5% overcount, plus contaminated correction
+     glucose. Trimming bolus_decisions to the export window removes it. Reported to ice.
+
+488. **`sigma_meas` is fragile.** On one two-month record:
+     - dropping 9 of ~17,000 readings moves its block median by a quarter;
+     - the mmol round trip on the values moves it by 15% when the timestamps differ by 1 ms.
+
+     It is the intercept of the structure-function fit. Read its KS result as weak evidence.
+
+489. **A twin can be fitted to one Nightscout user.** Method:
+     - template from the Nightscout export (lesson 486);
+     - the correction fit in two rounds (LESSONS 249);
+     - 16 seeds x 14 days, scored against the user's own 13-day blocks.
+
+     It matches about two thirds of the statistics, with level, 24-h amplitude, TDD and the low statistics on the
+     user's.
+
+     The meal-response fit (`csf_geq_mult`) has to be read on like-sized entries. A user who enters only full meals
+     reads about half the twins' g-eq per entered gram, because the twins also enter small snacks. On entries of 30 g
+     or more the two agree, so the body needs no change. The template's snack_g_med is not read by the simulator: the
+     entry-size trait is missing.
+
+     Gaps this twin shows:
+     - less glucose variability (CV, dispersion, 5-min velocity spread);
+     - delivery smoother than the user's (lower zero-delivery share, peak and concentration);
+     - fewer hand-dosed units;
+     - days that differ from each other more than the user's.
+
+     Age moves the twin through body weight: the age-banded U/kg prior changes at 18, and the 2-year age jitter
+     crosses it. A known body weight would serve a twin better than the age rule.
