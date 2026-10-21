@@ -7460,3 +7460,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      like for like in quiet hours. Next: fit each body's basal share to its donor's neutral glucose over rounds on both
      draws, as `lvl_own` did for ISF (LESSONS 446–447). The budget re-balances meals against the basal share, so read the
      mean, the lows and the meal shape beside the per-person tracking.
+
+472. **`basal_fit` (experiment): each body's basal share fitted to its donor's Loop neutral glucose.**
+     - **Switch:** template column `basal_share_fit` (templates_pilot_bf*.csv, outside the repo), bounded 0.25–0.7.
+     - **Rounds** (`basal_update.py`, `neutral_core.py`): the per-donor mean (donor − twin) neutral glucose drives
+       share ← share × exp(−clip(gap / 60, ±0.25)), starting from the twin's own current share.
+     - **Round 0**, from c446_npu / c447_rs (90 donors with a neutral point on both sides): gap p25 / p50 / p75 3.4 /
+       10.0 / 32.6 mg/dL, |gap| p50 14.1. The share's p10 / p50 / p90 falls from ~0.42 to 0.29 / 0.35 / 0.51. Twins sit
+       below their donors' neutral points, so most bodies need less basal than drawn, as LESSONS 125 found for the cohort.
+     - **Run:** three rounds on both draws (bf1–bf3), then the full comparison.
