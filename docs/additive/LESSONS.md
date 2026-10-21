@@ -7336,3 +7336,19 @@ outputs in gamepc ~/additive/runs/c290–c312).
      the morning and midday; the afternoon and evening match. So the afternoon automatic shortfall is not less load.
      Candidates: Loop holding back after the twins' heavier late-morning and lunch boluses, and the morning excess load
      shifting where Loop works. The night share follows. Open.
+
+462. **The twins' morning excess of unannounced load includes ~8.5 g-eq/day of body-made rises with no eating in the
+     prior 3 h.** Twins' unannounced labelled load by true source and 6-h block, g-eq/day for 00–06 / 06–12 / 12–18 /
+     18–24 h (`un_src2.py`, c446_npu):
+     - **No food in the prior 3 h:** 15.4 / 8.5 / 2.6 / 4.9.
+     - **Within 3 h of eating:** 5.0 / 6.8 / 9.4 / 11.9.
+     - **Unentered meals:** 0.4 / 6.5 / 5.4 / 4.6.
+     - **Proactive snacks:** 2.3 / 3.2 / 2.2 / 1.7.
+     - **Snacks:** 0.1 / 1.8 / 3.1 / 3.2.
+     - **Grazing:** 0.1 / 1.1 / 1.5 / 2.3.
+
+     The donors carry 20.5 g-eq/day unannounced at 06–12 h, the twins 27.6 (LESSONS 461). The body-made morning rises
+     come from the dawn in the basal-need profile. That profile is shaped from the donors' delivered insulin, which
+     already contains Loop's answer to their morning rises, so part of the dawn may count twice. LESSONS 346
+     (`slot_true`) removed one form of this; `prof_np` (the profile from pulse-free hours, LESSONS 371) is the existing
+     test of the rest, so far measured only on 61 donors. Next: a `prof_np` arm on both draws.
