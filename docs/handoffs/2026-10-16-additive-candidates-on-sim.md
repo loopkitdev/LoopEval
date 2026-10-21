@@ -282,3 +282,17 @@ person's c446 baseline σ5 (`runs/s446_*` on gamepc). Each Δ is against the bas
 
 The body changes since c362 are the personal meal mix, the relative post-meal window, the Heise dose absorption and the
 night alarm defence. Read these results with the overlay's Known limits.
+
+## Update 2026-10-20: half the meal entries on reference c446_npu
+
+`announce_mult` 0.5 drops each meal entry the person would have made with probability 0.5. The meal is still eaten,
+unentered and unbolused, and settings are unchanged. Paired against c446_npu: same 112 people, `rc_own`, 95% CIs over
+people.
+
+| | ΔTIR | Δt<54 | Δt<70 | Δmean | ΔTDD | lift over dial (CGM / true) |
+|---|---|---|---|---|---|---|
+| half the entries | −2.13 [−2.67, −1.62] | −0.01 | −0.07 | +3.7 | −1.9 U / day | −2.02 / −2.18 TIR |
+
+Entering half the meals costs about 2 TIR points under stock Loop, with no lows benefit and 1.9 U / day less insulin.
+That is the gap a reduced-entry candidate (the 2026-10-17 goal) would have to close. Read it with the overlay's Known
+limits; meal-time behaviour sits near the meal-tail gap.

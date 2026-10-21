@@ -7589,3 +7589,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Not adopted. Slower appearance spreads the meal without lifting its 3-h level. The conflict of LESSONS 481 stands:
      the model's post-meal rise needs meal-time resistance on the liver. The liver nadir (0.84) is held there for the meal
      shape (Pete, LESSONS 408) and stays an open review item.
+
+483. **Half the meal entries cost ~2 TIR points under stock Loop on the current model.** `announce_mult` 0.5 paired
+     against c446_npu (c468_ann5):
+     - ΔTIR −2.13 [−2.67, −1.62], true −2.00;
+     - Δt54 −0.01, Δt70 −0.07 (no lows benefit);
+     - Δmean +3.7;
+     - ΔTDD −1.9 U / day;
+     - lift over the insulin-needs dial −2.02 (CGM) / −2.18 (true).
+
+     This sizes the target for reduced-entry candidates (the 2026-10-17 goal). Handoff updated.
