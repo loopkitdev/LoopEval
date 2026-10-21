@@ -7415,3 +7415,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Not adopted (switch kept, off). A more sensitive body runs lower, but its Loop gives about the same insulin. So the
      twins' 5–10% insulin excess (LESSONS 466–467) is not the modulators' mean, nor food. What the twins' Loop sees that
      the donors' did not is still unnamed.
+
+469. **By delivered volume, twin against its own donor, the insulin excess is +3%, all automatic.** The comparison uses
+     ice steps on both sides, G7, 88 twins of c446_npu (`tdd_pair.py`). Twin / donor, p50:
+     - automatic +5.8% (×1.058), manual −3.4% (×0.966), total +3% (×1.03);
+     - automatic delivery over scheduled basal: donors 1.22, twins 1.32.
+
+     The +7 / +12% read at record rates (LESSONS 466) is this +3% plus the twins' larger pulse-rounding loss (90.5 vs
+     94.2% of basal kept) and the draw. So the excess is the twins' Loop running more often above schedule, which is the
+     twins sitting above target more (the level gap, LESSONS 445–456), not a separate insulin mechanism. LESSONS 468's
+     result fits: a more sensitive body lowered glucose but left automatic delivery near the schedule-driven level.
+     `med_nonzero`, `zero_frac` and `tdd` (LESSONS 465) close with the level gap.
