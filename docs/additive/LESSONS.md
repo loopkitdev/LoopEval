@@ -7375,3 +7375,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      same excess seen per bin and per day: no longer the automatic-bolus-only pattern of LESSONS 377 (volume scoring had
      hidden the temp-basal side). It goes with the level gap (LESSONS 445–456: twins of tight donors run high on more
      insulin), so the three delivery rows close with it, not separately.
+
+466. **Paired to their own donors, the twins' TDD runs +7 / +12% on eda's definitions; ~2 points of it is extra pulse
+     rounding.** Each twin's rate-read TDD (`sim_stats.csv`) over its donor's (`real_pilot.csv`, the same definition):
+     p25 / p50 / p75 0.93 / 1.07 / 1.28 on draw 1, 0.99 / 1.12 / 1.31 on draw 2. The twin-vs-template ratio of
+     `twin_level.py` (0.97 / 1.03–1.06, LESSONS 445) reads delivered volume against the template TDD (ice clean days), a
+     different window and definition, so it does not contradict. The twins' pods keep a median 90.5% of programmed basal
+     (p10 / p90 81.9 / 93.8%; donors 94.2%), and 20% of their basal records are short (≤ 7 min) temps below 0.6 U/h,
+     against the donors' 17%. That is about 2 points of TDD. The rest of the excess is genuine: the twins' Loop gives
+     more, with the level gap (LESSONS 445–456, 465).
