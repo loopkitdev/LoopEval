@@ -7526,3 +7526,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      post-meal window still weakens the liver's meal suppression. Taking it off the liver (`ppr_periph`) moved the nadir
      only to 0.73–0.76 and lost the meal shape (LESSONS 411). Meals ending < 70 (0.065) and the share of lows reaching
      54 (0.31) read low, with the meal tail.
+
+479. **More of insulin's effect through the liver does not deepen the meal EGP nadir; it moves glucose up.** `egp_share`
+     0.95 for everyone (drawn U(0.7, 0.9) by default) on draw 1 (c462_eg95 vs c446_npu): meal EGP nadir 0.79 at 310 min
+     (0.84 at 250; Romeres 2025 0.56 at 160); mean 169.6 (155.5); TIR 60.8; lows 0.58 per day (0.79); t54 0.106%; 3-h
+     meal change +30.4 (+13.6; donors +21); 29 of 51 (39). Not adopted. The liver path acts more slowly than disposal, so
+     shifting effect onto it raises the meal and the level while the nadir barely moves. With LESSONS 411 (window off the
+     liver: 0.73–0.76), neither the window nor the arm's share sets the nadir. The candidates left are the saturating
+     hepatic signal (`egp_sat`, LESSONS 196) and the meal's own glucagon response. Open review item.
