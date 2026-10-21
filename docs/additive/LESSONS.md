@@ -7384,3 +7384,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      (p10 / p90 81.9 / 93.8%; donors 94.2%), and 20% of their basal records are short (≤ 7 min) temps below 0.6 U/h,
      against the donors' 17%. That is about 2 points of TDD. The rest of the excess is genuine: the twins' Loop gives
      more, with the level gap (LESSONS 445–456, 465).
+
+467. **The intake budget closes; the twins' extra insulin is not unpaid food.** Glucose eaten per day by kind, days
+     2–14, median over twins (`eat_budget.py`), c440_db / c446_npu:
+     - meals 91.4 / 91.4;
+     - snacks 40.3 / 40.3;
+     - grazing 5.5 / 5.5;
+     - rescues 7.7 / 5.6;
+     - pre-emptive 9.2 / 13.9 (the night defence; the budget's 8% allowance ≈ 14 g);
+     - exercise carbs 1.3 / 1.3;
+     - total 172.8 / 177.3 against the budget 176.4 (×1.02 / 1.03).
+
+     So the 5–10% insulin excess beyond pulse rounding (LESSONS 466) is on the body side: glucose produced or not used
+     beyond the donors'. With LESSONS 448 (body-made rises ~16 g-eq/day, far from meals) and 445 (twins of tight donors
+     run high on more insulin), the candidates are the body's glucose production and its use at rest in particular
+     people. Open.
