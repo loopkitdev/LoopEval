@@ -7359,3 +7359,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      borderline) — not adopted. Only 61 donors have enough pulse-free hours, so most twins keep the delivered profile;
      where it applies the morning shape moves little (LESSONS 371). The dawn double count of LESSONS 462 is not tested
      by this. The afternoon automatic-insulin shortfall (LESSONS 461) stays open.
+
+464. **The twins' morning excess of unannounced load splits into small parts with no single lever.** No-food (> 3 h)
+     unannounced rises by 6-h block (`nofood_hr.py`, c446_npu): at 06–12 h, 422 pulses — gut appearance present 29%
+     (night 64%, evening 84%), EGP ≥ 1.15× same-hour 33%, none of the body signals 32%. Morning rises with no body signal
+     (`morning_none.py`, 186): CGM +12.2 mg/dL to the labelled peak but true glucose +4.5, half under +5 — G7 noise and
+     wander read as rises (~2.4 g-eq/day; the donors' G7s make the same kind). With a body signal (243): CGM +16.0, true
+     +14.6 (~3.7 g-eq/day). With unentered meals (6.5) these make the ~7 g-eq/day morning excess (LESSONS 461–462); none
+     is large enough alone to be the afternoon automatic-insulin shortfall's cause. The day / night row stays open.
