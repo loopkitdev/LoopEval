@@ -7656,8 +7656,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
 487. **The ICE pipeline counts a week of pre-window boluses as corrections.** pull_bolus_decisions starts 7 days before
      the export window. The labeller turns those requests into corrections at a clamped glucose: every such row carries
      the first step's value. On a two-month window this inflated corrections per day by about half and replaced the
-     median correction glucose. On the pilot's ~128-day windows it is about a 5% overcount, plus contaminated correction
-     glucose. Trimming bolus_decisions to the export window removes it. Reported to ice.
+     median correction glucose. On the pilot, ice measured corrections 8–20% fewer once they are trimmed (i003 502 → 463, i012 361 →
+     290 with 62 rows at one bg), and the median correction glucose moves (i012 90 → 234). Meals are unchanged.
+     Fixed in ice's meals.label (ice 9b2c009, ice LESSONS 128), taking effect at its next relabel. The pilot
+     templates' correction columns (corrections_per_day, corr_bg_med, corr_rate_d, corr_bg_d, corr_*) were built
+     before the fix.
 
 488. **`sigma_meas` is fragile.** On one two-month record:
      - dropping 9 of ~17,000 readings moves its block median by a quarter;
