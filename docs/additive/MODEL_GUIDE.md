@@ -7,8 +7,15 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c446_npu** (2026-10-20): 112 people × 14 days, 40 of eda's 51 statistics matched (delivery scored as pump records, L 406; personal meal mix with relative fat resistance, L 432; relative post-meal window 0.4, L 436; dose-dependent bolus absorption, L 437; night alarm defence, L 443) (KS p > 0.05 against the 206 pilot
-donors in 13-day blocks); mean, TIR, TDD, the pre-dawn level and every low statistic on the donors', minutes per low included; 3-h meal change +13.6–16.9 across arms (+21).
+**c446_npu** (2026-10-20): 112 people × 14 days, 39 of eda's 51 statistics matched (34 on a second draw of people;
+§ 10 lists all 51). The run carries:
+- a personal meal mix with relative fat resistance (L 432);
+- the relative post-meal window 0.4 (L 436);
+- dose-dependent bolus absorption (L 437);
+- the night alarm defence (L 443).
+
+Delivery is scored by record rate, as eda reads the donors' records (L 455). Mean, CV, TIR, TDD, the pre-dawn level and
+every low statistic are on the donors'.
 
 **Personal basis legend**
 
@@ -248,20 +255,103 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
 
 ---
 
-## 10. Validation (`validate.py`, `compare_runs.py`, `review.py`)
+## 10. Validation: the 51 statistics (`validate.py`, `compare_runs.py`, `review.py`)
 
-- **Reference**: 206 pilot donors, one 13-day block each against each twin's window; median KS p over 40 block draws
-  (`real_pilot_blocks.csv`, L 330); glucose-shape statistics split by sensor family. 51 rows.
-- **Component targets** (`review.py`): low nadirs and depths, meal drops and 3-h change, behaviour rates, each against
-  the donors with the same code. Measure scripts beside each run (`meal_traj_tod.py`, `hour_bg.py`, `ice_integral.py`,
-  `ice_since.py`, `loop_resp.py`, `clock_ins.py`, `unann_hour.py`).
-- **c403_cl105, passing (40)**: mean, CV, skew, Box-Cox λ, TIR, t70, t180, t54 (narrowly), lows / day, P(reach 54),
-  long-range Hurst, volatility clustering, wear, TDD, TDD CV, p99, top-1% share, day / night insulin,
-  night-to-night CV, carb entries, user boluses, manual units; per family (G6 / Libre 3 throughout, G7 where noted): v_sd,
-  sd/mad, kurtosis, v_skew (G7 too), short Hurst, measurement noise (G7 too) and ACF minimum.
-- **Failing (11)**: minutes per low (borderline); G7 v_sd (6.3 vs 7.2), kurtosis, short Hurst, sd/mad; ACF zero crossing (55 vs 40 min,
-  L 385–389); volatility dispersion; circadian amplitude; typical nonzero delivery (`med_nonzero`, L 387) and zero-delivery share (36.9 vs 32.5%: the twins' Loop withholds more, L 398, 406); between-day
-  fraction and TDD persistence (`ac1`). Time below 54 0.175 vs 0.190% since the absorption fluctuation (L 419).
+**How a statistic is scored.**
+- **Reference:** 206 pilot donors, one 13-day block each against each twin's 14-day window. The median KS p over 40 block
+  draws is used (`real_pilot_blocks.csv`, L 330).
+- **Same code on both sides:** every twin is scored by the eda study's own code, on the CGM its sensor reported and the
+  insulin its pump delivered. Delivery is read by record rate, as eda reads the donors' records (L 455).
+- **Matched** means KS p > 0.05: the twins' distribution across people is not distinguishable from the donors'.
+- **Sensor split:** short-scale glucose shape depends on the instrument, so those rows are split by sensor family (G6,
+  G7, Libre 3; eda L33). That gives 37 statistics, 51 rows.
+
+**Two draws of people.** The status below is on the reference model c446_npu, run on two different draws of 112 people:
+draw 1 (seed 1000, c446_npu) and draw 2 (seed 5000, c447_rs). A different draw moves the count by up to 6 (L 444). So a
+row passing on both is solid, and a row passing on one sits at the edge.
+
+**Totals:** 39 of 51 on draw 1, 34 on draw 2. 31 rows pass on both, 11 on one, 9 on neither.
+
+| Area | Statistic | What it measures | Donors p50 | Twins draw 1 / 2 | Matched |
+|---|---|---|---|---|---|
+| Level and spread | `bg_mean` | mean glucose (mg/dL) | 151.9 | 155.5 / 158.9 | one draw |
+| | `bg_cv` | coefficient of variation (%) | 34.6 | 34.4 / 35.9 | ✓ both |
+| | `bg_skew` | skew of the glucose distribution | 0.87 | 0.81 / 0.78 | ✓ both |
+| | `boxcox_lambda` | distribution shape (0 = log-normal) | 0.00 | 0.05 / 0.10 | ✗ |
+| | `tir` | time 70–180 (%) | 71.9 | 70.4 / 66.9 | one draw |
+| | `t70` | time < 70 (%) | 1.60 | 1.26 / 1.34 | ✓ both |
+| | `t180` | time > 180 (%) | 25.9 | 28.3 / 30.7 | one draw |
+| Lows | `t54` | time < 54 (%) | 0.190 | 0.148 / 0.149 | ✓ both |
+| | `lows_per_day` | crossings below 70 per day | 1.00 | 0.79 / 0.83 | ✓ both |
+| | `p_reach54` | share of lows that reach 54 | 0.21 | 0.18 / 0.20 | ✓ both |
+| | `min_below70` | minutes per low | 20 | 20 / 20 | one draw |
+| 5-min motion, G6 | `v_sd` | SD of the 5-min CGM change | 6.37 | 6.11 / 6.32 | ✓ both |
+| | `sd_over_mad` | tail weight of 5-min changes | 1.44 | 1.42 / 1.42 | ✓ both |
+| | `v_kurtosis` | kurtosis of 5-min changes | 3.30 | 3.76 / 3.59 | ✓ both |
+| | `v_skew` | rises vs falls asymmetry | 0.26 | 0.27 / 0.45 | ✓ both |
+| | `hurst_short` | short-range persistence | 0.75 | 0.76 / 0.76 | ✓ both |
+| | `sigma_meas` | measurement noise | 1.24 | 1.35 / 1.09 | ✓ both |
+| | `acf_min` | minimum of the step autocorrelation | −0.11 | −0.12 / −0.12 | ✓ both |
+| 5-min motion, G7 | `v_sd` | SD of the 5-min CGM change | 7.19 | 6.47 / 6.80 | ✗ |
+| | `sd_over_mad` | tail weight of 5-min changes | 1.41 | 1.38 / 1.38 | ✗ |
+| | `v_kurtosis` | kurtosis of 5-min changes | 2.51 | 2.82 / 2.51 | ✓ both |
+| | `v_skew` | rises vs falls asymmetry | 0.33 | 0.25 / 0.32 | one draw |
+| | `hurst_short` | short-range persistence | 0.74 | 0.76 / 0.77 | ✗ |
+| | `sigma_meas` | measurement noise | 1.36 | 1.27 / 1.39 | ✓ both |
+| | `acf_min` | minimum of the step autocorrelation | −0.11 | −0.13 / −0.12 | ✓ both |
+| 5-min motion, Libre 3 | `v_sd` | SD of the 5-min CGM change | 5.72 | 6.34 / 5.71 | ✓ both |
+| | `sd_over_mad` | tail weight of 5-min changes | 1.38 | 1.40 / 1.38 | ✓ both |
+| | `v_kurtosis` | kurtosis of 5-min changes | 2.35 | 3.50 / 2.70 | ✓ both |
+| | `v_skew` | rises vs falls asymmetry | 0.09 | 0.20 / −0.03 | ✓ both |
+| | `hurst_short` | short-range persistence | 0.80 | 0.82 / 0.79 | ✓ both |
+| | `sigma_meas` | measurement noise | 1.27 | 1.63 / 1.28 | ✓ both |
+| | `acf_min` | minimum of the step autocorrelation | −0.14 | −0.17 / −0.10 | ✓ both |
+| Longer-scale structure | `hurst_long` | long-range persistence | 0.25 | 0.27 / 0.28 | ✓ both |
+| | `acf_zero_min` | minutes until the step autocorrelation first crosses zero | 40 | 55 / 60 | ✗ |
+| | `vol_cluster_60m` | volatility clustering at 60 min | 0.122 | 0.113 / 0.119 | ✓ both |
+| | `sigma_disp` | dispersion of volatility across days | 3.57 | 3.02 / 3.04 | ✗ |
+| | `between_day_frac` | share of glucose variance between days | 0.105 | 0.118 / 0.122 | one draw |
+| | `circadian_amp` | 24-h amplitude, per person | 0.128 | 0.143 / 0.155 | one draw |
+| | `wear` | sensor coverage | 0.974 | 0.976 / 0.972 | ✓ both |
+| Insulin delivered | `tdd` | total daily dose (U) | 38.7 | 41.8 / 44.3 | one draw |
+| | `tdd_cv` | day-to-day CV of TDD (%) | 15.9 | 15.2 / 14.9 | ✓ both |
+| | `ac1` | day-to-day autocorrelation of TDD | 0.091 | −0.029 / −0.038 | ✗ |
+| | `zero_frac` | share of 5-min bins with no insulin (%) | 32.5 | 29.6 / 29.9 | one draw |
+| | `med_nonzero` | typical nonzero 5-min delivery (U) | 0.085 | 0.106 / 0.104 | ✗ |
+| | `p99` | 99th percentile of 5-min delivery (U) | 1.83 | 1.55 / 1.88 | ✓ both |
+| | `conc1` | share of insulin in the busiest 1% of bins (%) | 28.0 | 26.3 / 27.1 | ✓ both |
+| | `day_night` | day / night insulin per hour | 2.00 | 1.77 / 1.86 | ✗ |
+| | `night_cv` | night-to-night CV of night insulin (%) | 35.4 | 34.1 / 33.1 | ✓ both |
+| Behaviour | `carb_entries_per_day` | carb entries per day | 2.96 | 3.29 / 3.96 | one draw |
+| | `user_boluses_per_day` | user boluses per day | 4.58 | 4.63 / 5.58 | one draw |
+| | `manual_u_day` | hand-dosed units per day | 12.2 | 11.7 / 13.9 | ✓ both |
+
+**Where the misses are.**
+- **Level, the one-draw rows:**
+  - These are `bg_mean`, `tir`, `t180`, `tdd` and the behaviour rates.
+  - Draw 2 holds more donors who keep tight control. Their twins run 30–90 mg/dL above them on more insulin.
+  - Body sensitivity, unlogged load, corrections, gut speed, the sensor and the insulin term are all ruled out
+    (L 445–456).
+- **G7 short-scale motion and the ACF zero crossing:**
+  - The twins' 5-min moves are a little smaller and turn later (55–60 min vs 40). No body lever moves the turn
+    (L 385–389). G6 and Libre 3 match on every row.
+  - A 5-min CGM-vs-reference series would say whether the donors' turn comes from the body or the sensor.
+- **Day-to-day structure:**
+  - The rows are `sigma_disp`, `ac1`, `between_day_frac` and `circadian_amp`.
+  - Donors' days differ more and persist; persistent day-level sensitivity barely moves it (L 372, 376, 457).
+- **Delivery shape:**
+  - `med_nonzero`: the twins' nonzero 5-min deliveries are larger.
+  - `day_night`: the twins' day / night insulin split is 1.8 against 2.0.
+  - `zero_frac` sits 3 points under on rate scoring (L 377, 455).
+- **Box-Cox λ:** the distribution's shape, slightly less log-normal than the donors'.
+
+**Component targets** (`review.py`) check each component against the donors with the same code:
+- low nadirs and depths;
+- meal drops and the 3-h change;
+- behaviour rates.
+
+The measure scripts sit beside each run (`meal_traj_tod.py`, `hour_bg.py`, `ice_integral.py`, `ice_since.py`,
+`loop_resp.py`, `lowdur.py`, `night_rescue.py`, `twin_level.py`).
 
 ## 11. Switches (`cohort.py`)
 
@@ -274,13 +364,14 @@ Off by default (`--enable`): `rc_own` (on in every validation run), `night_own`,
 
 ## 12. Open items
 
-1. **Meals still come down sooner than the donors'**: 3-h meal change +11 vs +21; lunch ~10 short at 2.5–4 h, breakfast
-   peaks ~12 high (L 366–375). Loop's response at each glucose band matches the donors' day and night (L 368, 373).
-2. **Late evening and night**: 00–06 h ~7 mg/dL low. The twins enter ~86 g/day against the donors' 101, their dinner
-   insulin acts later and their nights fall twice as fast (L 379–381).
-3. **Reversal time**: the donors' CGM steps turn at 40 min, the twins' at 50; insulin speed, within-day sensitivity,
-   meal shape, movement and loop gain leave the twins' true glucose turning at 50–60 min (L 276, 385–389). A 5-min
-   CGM-vs-reference series would say whether the donors' turn is body or sensor.
+**Status (Pete 2026-10-20): usable with LoopEval.** The items below are documented limits, not blockers.
+
+1. **Twins of tight-control donors run high, and twins need 5–8% more insulin than their donors** (L 445–456).
+2. **Night lows build toward dawn:** 31% of lows fall at night, against the donors' 22%. Night treatment and
+   post-exercise nights now match (L 438–443, 458).
+3. **Meals:** the 3-h meal change is +13 to +18 against +21 (L 429–436).
+4. **Reversal time and G7 short-scale motion** (§ 10).
+5. **Day-to-day structure:** `sigma_disp`, `ac1` (§ 10).
 
 ## Key references
 
