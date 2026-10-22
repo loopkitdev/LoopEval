@@ -7704,3 +7704,45 @@ outputs in gamepc ~/additive/runs/c290–c312).
        writes whole-second timestamps, so the first and later replays of the same window differ: doses 99.5%
        identical, IOB up to 0.1 U. `loop-eval export` keeps milliseconds. The cache's precision is open.
 
+
+492. **A weighted gap score ranks runs on what matters to an algorithm comparison; the KS count does not.** The
+     count ("matched of 51") weights a sensor's kurtosis like time below 54. Its p 0.05 cut also depends on the
+     sample size, so on 16 twins of one person it mostly measures how many runs were made. `patient_sim/score.py`
+     instead scores each statistic by its gap:
+     - the median gap in units of the donors' between-window spread (S = 10–90% width / 2.563);
+     - plus half the log ratio of the two 10–90% spreads;
+     - with a bootstrap SE.
+
+     Statistics are tiered by how directly a mismatch would change a candidate's TIR / t<54 delta, weighted 3 / 2 / 1:
+     - Tier 1, outcome and what Loop sees: level, time in ranges, lows, TDD, carb entries, the labelled meal's 3-h
+       change.
+     - Tier 2, dynamics the controller reacts to: CV, 5-min rate spread, day-to-day and circadian structure, delivery
+       shape.
+     - Tier 3, the sensor fingerprint and distribution shape.
+
+     The tiers are a judgement. The check that would earn each one its weight is whether a candidate's delta moves
+     on twins that differ in that statistic alone; that check is still owed.
+
+     Rescored cohort references:
+
+     | Run | Score | Tier 1 | Tier 2 | Tier 3 |
+     |---|---|---|---|---|
+     | c446_npu | 0.303 | 0.215 | 0.341 | 0.443 |
+     | c447_rs (draw 2) | 0.344 | 0.282 | 0.363 | 0.463 |
+     | c440_db | 0.294 | 0.210 | 0.330 | 0.422 |
+     | c448_pr5 | 0.310 | 0.239 | 0.333 | 0.444 |
+     | c449_pr5s | 0.338 | 0.279 | 0.340 | 0.506 |
+
+     - The draw of people moves the score by 0.04, and tier 1 by 0.07. Every c44x arm sits inside that scatter of
+       its own draw.
+     - Paired on the same draw, pr5 is neutral (+0.007 / −0.006); the KS count had it −2 to −4.
+     - c446's largest tier-1 gaps are lows per day (0.36), t54 (0.34) and the meal's 3-h change (0.29), the known
+       limits.
+     - On the one-user twin, gaps run 0.6–0.8. The twins spread wider than the user's own 13-day windows, because
+       their traits differ.
+     - The second draw moves the twin's score by up to 0.12, more than any entry-size or unlogged-eating arm
+       differs. Only an over-scaled unlogged-eating arm and a carb-sensitivity refit are clearly worse.
+     - The twin's tier-1 fault is the lows: none of its 14-day runs' medians reaches 54. Tier 2 shows dispersion,
+       between-day share, CV and zero-delivery share.
+
+     Score close calls with the score's draw scatter, as with the count's (LESSONS 444).
