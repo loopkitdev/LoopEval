@@ -19,6 +19,8 @@ Inputs as dataset_v3m.FEATURES_M2; meal history counts the anchors above.
 """
 from __future__ import annotations
 
+import os
+
 import numpy as np
 import pandas as pd
 
@@ -140,6 +142,9 @@ def build(steps, meals, bolus_dec, carbs, geq, features=FEATURES_M3, isf=None, d
         dow_sin=np.sin(2 * np.pi * g.dow / 7), dow_cos=np.cos(2 * np.pi * g.dow / 7))
     X = np.column_stack([np.asarray(cols[f], float) for f in features]).astype(np.float32)
     Y[:, ti("bgice")] = np.r_[bgice[1:], np.nan] / ICE_SCALE
+    if os.environ.get("MEALMASK") == "1":
+        # meals are labeled only where ICE is observed: elsewhere "no meal" is unknown, not 0 (LESSONS 124)
+        Y[np.isnan(Y[:, ti("bgice")]) & (Y[:, ti("meal")] == 0), ti("meal")] = np.nan
     utc = pd.Series(idx.tz_convert("UTC") if idx.tz is not None else idx.tz_localize("UTC"))
     if decision_days is not None:
         off = ~utc.dt.floor("D").isin(decision_days).to_numpy()
