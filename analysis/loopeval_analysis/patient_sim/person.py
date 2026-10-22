@@ -35,7 +35,7 @@ BEHAVIOR_COLS = ["far_unann", "carb_entries_per_day", "user_boluses_per_day", "c
                  "clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd"] + \
                 [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h")] + \
                 ["edit_basal_day", "edit_isf_day", "edit_cr_day", "corr_exposure", "slot_g", "slot_ann", "ent_win", "slot_lr", "night_need_ratio", "meal_e_day", "snack_e_day", "snack_e_hours", "offline_day", "perr_day",
-                 "treat_log_day", "low_entered_share", "skip_bfast", "miss1_day", "miss23_day"]
+                 "treat_log_day", "low_entered_share", "skip_bfast", "miss1_day", "miss23_day", "entry_b", "unl_mult"]
 # ice L54 measures 1.30 g-eq of meal pulse per entered gram (1.21 for the pilot donors through the same
 # labeler, meal_response/ice_check). Run through that labeler, simulated people at 1.30 read 0.91 —
 # glucose effectiveness erodes the pulse before ICE sees it — so the constant is set by the labeler:
@@ -249,7 +249,12 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # belong to the account holder, eda L47, so neither alone is trusted)
     bw_age = _bw_median(age)
     bw_tdd = tdd / _upk(age)
-    bw = float(np.clip(math.exp(0.5 * math.log(bw_age) + 0.5 * math.log(bw_tdd) + rng.normal(0, 0.12)), 15, 160))
+    z_bw = rng.normal(0, 0.12)
+    bw = float(np.clip(math.exp(0.5 * math.log(bw_age) + 0.5 * math.log(bw_tdd) + z_bw), 15, 160))
+    # a known weight (template column bw_kg, e.g. a one-user twin) replaces the prior, with a 3% spread for the
+    # uncertainty of a stated weight; the draw above is still made so the person's other draws do not shift
+    k_ = row.get("bw_kg") if hasattr(row, "get") else None
+    if k_ is not None and np.isfinite(float(k_)): bw = float(k_) * math.exp(0.25 * z_bw)
     formulation = _formulation(row.insulin_brand, rng)
 
     # physiology priors (COMPONENTS §A)
