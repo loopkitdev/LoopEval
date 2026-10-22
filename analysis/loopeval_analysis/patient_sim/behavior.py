@@ -167,6 +167,9 @@ class BehaviorTraits:
     ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     entry_size_b: float = 0.0            # main-meal entry chance × (grams / the person's usual meal)^b (experiment, LESSONS 289)
+    entry_b: float = 0.0                 # entry_size_own: the person's own size preference in what they enter — within each eating window and
+                                         # kind, entry chance ∝ (grams / the window's usual grams)^entry_b, the window's expected entries kept (LESSONS 491)
+    entry_norm: Optional[dict] = None    # (kind, window) -> (usual grams, normaliser), solved by World on a dry run of the plan
     unent_split: bool = False            # an unentered, unbolused main meal eaten as ~20 g portions over 3 h (experiment, LESSONS 285)
     course_p: float = 0.0                # experiment (LESSONS 320): P(unentered later course per logged main meal)
     course_f: float = 0.3                # its size as a fraction of the meal
@@ -436,6 +439,31 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     return t
 
 
+
+def _entry_window(minute: float) -> int:
+    """The eating window of a clock time: breakfast 4–10.5 h, lunch 10.5–15.5, dinner 15.5–22, night."""
+    h = (minute % DAY) / 60.0
+    return 0 if 4 <= h < 10.5 else 1 if h < 15.5 and h >= 10.5 else 2 if 15.5 <= h < 22 else 3
+
+
+def entry_norms(log: list, b: float) -> dict:
+    """entry_size_own (LESSONS 491): per (kind, window), the usual grams (median) and the normaliser n that keeps the
+    window's expected entries, Σ min(1, p·(g/m)^b / n) = Σ p, over a dry run of the person's plan. Missed boluses are
+    most common for small eating (PMC2827497); how steeply is the person's own trait, fitted to what they enter."""
+    out = {}
+    for key in {k for k, _, _ in log}:
+        g = np.array([x for k, x, _ in log if k == key], float); p = np.array([q for k, _, q in log if k == key], float)
+        if p.sum() <= 0 or len(g) < 3: continue
+        m = float(np.median(g)); w = p * (g / m) ** b; tgt = float(p.sum())
+        lo, hi = 1e-6, 1e6
+        for _ in range(80):
+            n = math.sqrt(lo * hi)
+            if np.minimum(1.0, w / n).sum() > tgt: lo = n
+            else: hi = n
+        out[key] = (m, math.sqrt(lo * hi))
+    return out
+
+
 @dataclass
 class Meal:
     t: float
@@ -467,6 +495,7 @@ class Behavior:
     def __init__(self, traits: BehaviorTraits, person, rng: np.random.Generator):
         self.t = traits
         self.p = person
+        self.pe_log = None                 # entry_size_own dry run: (kind, window), grams, base entry chance per planned event
         self.rng = rng
         self.r_ff = np.random.default_rng(int(getattr(person, "seed", 0)) + 777)   # per-meal fast share; own stream
         self.r_abs_entry = np.random.default_rng(int(getattr(person, "seed", 0)) + 911)   # entered absorption time
@@ -616,6 +645,8 @@ class Behavior:
         total_share = ((1 - t.skip_breakfast) * sB + sL + sD) / 0.286 * main_w + t.snack_rate
         draws = [share * float(np.exp(r.normal(0, t.meal_cv) - t.meal_cv ** 2 / 2)) for _, _, share, _ in slots]
         comp = (total_share / max(sum(draws), 1e-9)) ** t.intake_comp
+        # each event's grams and entry chance, before any of the day's entry draws (no RNG here)
+        G, PE = [], []
         for (kind, mt, share, k), w in zip(slots, draws):
             grams = t.carbs_day * carb_scale * day_factor * w / max(total_share, 1e-9) * comp
             if t.skip_drop and skipped_b:
@@ -624,7 +655,6 @@ class Behavior:
                 full_share = (sB + sL + sD) / 0.286 * main_w + t.snack_rate
                 grams *= (full_share - sB / 0.286 * main_w) / max(full_share, 1e-9)
             grams = max(3.0, grams)
-            speed = float(np.exp(r.normal(0, t.gi_cv)))
             p_e = min(1.0, t.p_entry_meal * t.slot_ann[k]) if kind == "meal" else t.p_entry_snack
             if t.entry_size_b > 0 and kind == "meal":
                 # experiment: a bigger meal is likelier to be entered (missed boluses are most common for small eating,
@@ -633,6 +663,16 @@ class Behavior:
                 p_e = min(1.0, p_e * (grams / max(ref_g, 1.0)) ** t.entry_size_b)
             if kind == "snack" and t.entry_clock and t.snack_entry_w is not None:
                 p_e = min(1.0, p_e * t.snack_entry_w[int(((mt + base) % DAY) // 60) % 24])
+            G.append(grams); PE.append(p_e)
+        if t.entry_b > 0:
+            for i, ((kind, mt, _, _), g_) in enumerate(zip(slots, G)):
+                key = (kind, _entry_window(mt + base))
+                if self.pe_log is not None: self.pe_log.append((key, g_, PE[i]))
+                elif t.entry_norm and key in t.entry_norm:
+                    gm, nz = t.entry_norm[key]
+                    PE[i] = min(1.0, PE[i] * (g_ / gm) ** t.entry_b / nz)
+        for (kind, mt, share, k), grams, p_e in zip(slots, G, PE):
+            speed = float(np.exp(r.normal(0, t.gi_cv)))
             entered = None; bolus = None; et = base + mt
             n_ov = len(self.overrides)
             if r.random() < p_e:

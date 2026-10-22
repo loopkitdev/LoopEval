@@ -363,9 +363,21 @@ class World:
             # a logged meal (labelled, like for like): the twins' far load is ~16 g-eq/day of body-made rises plus ~56 of
             # unlogged eating whatever the donor (LESSONS 448), so the eating part is scaled to the donor's far load less 16
             fu = person.traits.get("template_rates", {}).get("far_unann")
-            if fu is not None and np.isfinite(float(fu)):
+            um = person.traits.get("template_rates", {}).get("unl_mult")
+            if um is not None and np.isfinite(float(um)):
+                # a multiplier fitted on the person's own twins (template unl_mult, LESSONS 491): their far load measured
+                # like for like against the donor's, instead of the cohort-average mapping below
+                self.beh_traits = copy.deepcopy(self.beh_traits)
+                self.beh_traits.unl_mult = float(np.clip(float(um), 0.3, 3.0))
+            elif fu is not None and np.isfinite(float(fu)):
                 self.beh_traits = copy.deepcopy(self.beh_traits)
                 self.beh_traits.unl_mult = float(np.clip((float(fu) - 16.0) / 56.0, 0.3, 2.0))
+        if enable and enable.get("entry_size_own"):
+            # entry_size_own (experiment, LESSONS 491): the person's own size preference in what they enter (template entry_b)
+            eb = person.traits.get("template_rates", {}).get("entry_b")
+            if eb is not None and np.isfinite(float(eb)) and float(eb) > 0:
+                self.beh_traits = copy.deepcopy(self.beh_traits)
+                self.beh_traits.entry_b = float(eb)
         for k_ in ("night_pro", "uls"):     # default since 2026-10-20 (LESSONS 442–443; --disable night_pro,uls)
             if (enable or {}).get(k_, True):
                 self.beh_traits = copy.deepcopy(self.beh_traits); setattr(self.beh_traits, k_, True)
@@ -518,6 +530,12 @@ class World:
                 self.beh.t.p_entry_meal = float(min(1.0, self.beh.t.p_entry_meal * k))
                 self.beh.t.p_entry_snack = float(min(1.0, self.beh.t.p_entry_snack * k))
                 if abs(k - 1) < 0.03: break
+        if self.beh.t.entry_b > 0:
+            # entry_size_own (LESSONS 491): solve each window's normaliser on a dry run of the plan (a copy, so every random
+            # stream of the real plan is unchanged)
+            from .behavior import entry_norms
+            tmp = copy.deepcopy(self.beh); tmp.pe_log = []; tmp.plan_all(max(days, 90), gi)
+            self.beh.t.entry_norm = entry_norms(tmp.pe_log, self.beh.t.entry_b)
         self.beh.plan_all(days, gi)
         self._scenarios(enable or {})
         self.outages = plan_outages(person, days, np.random.default_rng(person.seed + 23), missed=bool((enable or {}).get("missed_own", True))) if (enable or {}).get("outages", True) is not False else []

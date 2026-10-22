@@ -7705,6 +7705,26 @@ outputs in gamepc ~/additive/runs/c290–c312).
        identical, IOB up to 0.1 U. `loop-eval export` keeps milliseconds. The cache's precision is open.
 
 
+491. **Entry chance by meal size works per eating window, not per day.** People enter big meals more often than
+     small ones. `entry_size_own` (template column `entry_b`, off by default) makes the entry chance proportional to
+     (grams / the usual grams for that kind and window)^entry_b, inside each eating window (04–10.5, 10.5–15.5,
+     15.5–22 h, night) and meal kind. The window's expected entries are kept.
+     - World solves the normaliser once, on a dry run of the plan (90 days or more), because a window holds about one
+       event a day. Normalising per day changed nothing.
+     - The whole-day form also failed. It moved entries toward the largest meals of the day, which on a one-user twin
+       over-entered evenings and under-entered mornings against the user's own entries. The per-window form put both
+       on the user's.
+     - The planned meals and the RNG order are unchanged, so with the switch off a run is bit-identical.
+
+     Two template columns go with it:
+     - `bw_kg`: a known body weight replaces the age / TDD prior, with a 3% spread.
+     - `unl_mult`: a per-person unlogged-eating multiplier overriding `unl_own`'s formula from the far-unannounced
+       load. The far load moves weakly with it (about +7% for ×1.5), against the slope the formula assumes (LESSONS
+       448). On the one-user twin ×1.5 beat ×1 on the KS count, but not on the weighted score (LESSONS 492), so treat
+       it as a twin setting, not a fitted value.
+
+     Not yet adopted for the cohort. That needs `entry_b` fitted per pilot donor and a two-draw check.
+
 492. **A weighted gap score ranks runs on what matters to an algorithm comparison; the KS count does not.** The
      count ("matched of 51") weights a sensor's kurtosis like time below 54. Its p 0.05 cut also depends on the
      sample size, so on 16 twins of one person it mostly measures how many runs were made. `patient_sim/score.py`
