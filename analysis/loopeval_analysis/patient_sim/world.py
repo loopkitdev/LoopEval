@@ -814,7 +814,7 @@ class World:
                        abs_mult=absm_env * absm_site * ex["abs_mult"] * self._posture_mult(m) * self._flow_mult(m), bio=bio)
         if int(m) % 5 == 0: self.ex_log.append((m, ex["ex_si_boost"]))     # exercise sensitivity, saved as truth ex_boost
         asleep = self.beh.asleep(m)
-        reading = self.sensor.step(m, self.body.g, asleep=asleep)
+        reading = self.sensor.step(m, self.body.g, asleep=asleep, activity=float(ex["ex_intensity"]))
         if reading is not False:
             self.readings[int(round(m))] = reading
         acts = self.beh.minute(m, reading, self.loop_state, carb_scale=0.7 if gi_ill else 1.0)
