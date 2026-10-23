@@ -171,6 +171,10 @@ class PlantV3:
         self.bwith_state = (np.asarray(ws["bands"]), np.asarray(ws["trends"]), np.asarray(ws["offset"])) if ws else None
         mk = ck.get("calib_meal_kernel")   # closed-loop meal-response kernel after each meal bolus (calibrate_meal_kernel.py, LESSONS 111)
         self.meal_kernel = np.asarray(mk["k"], float) if mk else None; self.mk_step = (mk or {}).get("step_min", 5); self.meal_bolus_t = []
+        lk = ck.get("calib_low_kernel")   # closed-loop low-response kernel after each entry below 70 (calibrate_low_kernel.py, LESSONS 136)
+        self.low_kernel = np.asarray(lk["k"], float) * float(os.environ.get("PLANT_LOW_KERNEL_SCALE", "1")) if lk else None
+        self.lk_thr = float((lk or {}).get("thr", 70.0)); self.lk_ref = pd.Timedelta(minutes=(lk or {}).get("ref_min", 120))
+        self.lk_t = None; self.lk_prev_bg = None
         Net = {"v3j": ICEGenV3J, "v3k": ICEGenV3K, "v3m": ICEGenV3M, "v3m3": ICEGenV3M3, "v3m4": ICEGenV3M4, "v3m5": ICEGenV3M5, "v3m6": ICEGenV3M6, "v3m7": ICEGenV3M7, "v3m8": ICEGenV3M8, "v3m9": ICEGenV3M9, "v3m10": ICEGenV3M10, "v3m11": ICEGenV3M11, "v3m12": ICEGenV3M12, "v3m13": ICEGenV3M13, "v3m14": ICEGenV3M14, "v3m15": ICEGenV3M15, "v3m16": ICEGenV3M16, "v3m17": ICEGenV3M17, "v3m18": ICEGenV3M18, "v3m19": ICEGenV3M19, "v3m20": ICEGenV3M20, "v3m21": ICEGenV3M21, "v3m22": ICEGenV3M22, "v3m23": ICEGenV3M23, "v3m24": ICEGenV3M24, "v4": ICEGenV4, "v4r": ICEGenV4R}.get(ck.get("arch"), ICEGenV3)
         self.v3m = ck.get("arch") in ("v3m", "v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v3m16", "v3m17", "v3m18", "v3m19", "v3m20", "v3m21", "v3m22", "v3m23", "v3m24", "v4", "v4r"); self.v3m3 = ck.get("arch") in ("v3m3", "v3m4", "v3m5", "v3m6", "v3m7", "v3m8", "v3m9", "v3m10", "v3m11", "v3m12", "v3m13", "v3m14", "v3m15", "v3m16", "v3m17", "v3m18", "v3m19", "v3m20", "v3m21", "v3m22", "v3m23", "v3m24", "v4", "v4r")
         self.v4 = ck.get("arch") in ("v4", "v4r")     # entries and boluses drawn as their own events (dataset_v3m)
@@ -619,6 +623,16 @@ class PlantV3:
                 self.meal_bolus_t = [tb for tb in self.meal_bolus_t if (t - tb).total_seconds() < len(self.meal_kernel) * self.mk_step * 60]
                 for tb in self.meal_bolus_t:
                     bgice += float(self.meal_kernel[min(int((t - tb).total_seconds() // (self.mk_step * 60)), len(self.meal_kernel) - 1)]) / ICE_SCALE
+            if self.low_kernel is not None and float(x[0, -1, self.F["bg_ok"]]) > 0.5:
+                bg_in = float(x[0, -1, self.F["bg"]]) * 100
+                if (self.lk_prev_bg is not None and bg_in < self.lk_thr <= self.lk_prev_bg
+                        and (self.lk_t is None or t - self.lk_t >= self.lk_ref)):
+                    self.lk_t = t
+                self.lk_prev_bg = bg_in
+            if self.low_kernel is not None and self.lk_t is not None:
+                i_ = int((t - self.lk_t).total_seconds() // 300)
+                if i_ < len(self.low_kernel):
+                    bgice += float(self.low_kernel[i_]) / ICE_SCALE
             ice = bgice * ICE_SCALE + u + pulse
             mc = self.mc_amp * self.isf * self.act_typ * np.sin(2 * np.pi * (t.value / 8.64e13) / 28.0 + self.mc_phase) if self.mc_amp else 0.0
             ice += mc
