@@ -39,7 +39,7 @@ FAST = -150.0          # mg/dL/h over 15 min
 DIP = 70.0             # mg/dL/h below the block's median ICE, 30-min mean, >= 20 min
 LIFE_STATS = ["unann_pulses_day", "pulse_peak_h", "pulse_dur_h", "pulse_peak_per_g", "unl_rises_day", "unl_rise_rate",
               "entry_fast_fall", "fast_fall_share", "ice_dip_day", "ice_dip_day_share", "workouts_week", "workout_dur",
-              "workout_mets", "workout_after_meal", "act_net20", "act_net20_hi"]
+              "workout_mets", "workout_after_meal"]   # + act_net20 / act_net20_hi, pooled (act_rows)
 LIFE_INSTRUMENT = {"fast_fall_share"}
 
 
@@ -135,11 +135,11 @@ def life_stats(tm, g, t0, t1, ent_t, ent_g, iob_t=None, iob_v=None, pulses=None,
     nw = workouts if net_workouts is None else net_workouts
     if nw is not None and iob_t is not None:
         w = nw[(nw.start >= t0) & (nw.start < t1 - 20)]
-        if len(w): out["act_net20"], out["act_net20_hi"] = _net20(G, T, w, nw, et5, np.asarray(iob_t, float), np.asarray(iob_v, float))
+        if len(w): out["_bouts"] = _net20(G, T, w, nw, et5, np.asarray(iob_t, float), np.asarray(iob_v, float))
     return out
 
 
-def _net20(G, T, w, allw, et5, iob_t, iob_v) -> float:
+def _net20(G, T, w, allw, et5, iob_t, iob_v) -> list[dict]:
     """Pemberton 2025's matched net: workout ΔCGM over 20 min less matched non-workout windows (start CGM ±15, 15-min
     ROC ±0.5 mg/dL/min, IOB ±0.5 U; no workout from -30 to +10 min of either end, no entry from -20 to +30 min)."""
     def at(t):
@@ -153,17 +153,15 @@ def _net20(G, T, w, allw, et5, iob_t, iob_v) -> float:
     io = np.interp(T[k], iob_t, iob_v)
     ok = np.isfinite(g0) & np.isfinite(roc) & np.isfinite(dc) & np.isfinite(io)
     g0, roc, dc, io = g0[ok], roc[ok], dc[ok], io[ok]
-    nets, hi = [], []
+    bouts = []
     for s_ in w.start:
         a, b, c = at(s_), at(s_ - 15), at(s_ + 20)
         if not (np.isfinite(a) and np.isfinite(b) and np.isfinite(c)) or a <= 100: continue
         if np.any((et5 > s_ - 30) & (et5 < s_ + 20)): continue
         i0 = float(np.interp(s_, iob_t, iob_v))
         m = (np.abs(g0 - a) <= 15) & (np.abs(roc - (a - b) / 15) <= 0.5) & (np.abs(io - i0) <= 0.5)
-        if m.sum() >= 5:
-            nets.append((c - a) - dc[m].mean())
-            if a > 150 and i0 >= 2.0: hi.append(nets[-1])
-    return (float(np.mean(nets)) if nets else np.nan), (float(np.mean(hi)) if hi else np.nan)
+        if m.sum() >= 5: bouts.append(dict(net=(c - a) - dc[m].mean(), g0=a, iob=i0))
+    return bouts
 
 
 # ---------------------------------------------------------------------------------------------------------- donors
@@ -212,17 +210,23 @@ def donor_blocks(alias: str, A: pd.DataFrame | None, block_days: int = 13) -> li
     while s_ + block_days * 1440 <= t1:
         e = s_ + block_days * 1440
         if ((tm >= s_) & (tm < e)).sum() > 0.7 * block_days * 288:   # the same blocks validate.real_stats keeps
-            rows.append(dict(alias=alias, block=b, **life_stats(tm, gv, s_, e, ct, cg, iob_t, iob_v, pulses, W, st)))
+            r = life_stats(tm, gv, s_, e, ct, cg, iob_t, iob_v, pulses, W, st)
+            for x in r.pop("_bouts", []): _BOUTS.append(dict(alias=alias, **x))
+            rows.append(dict(alias=alias, block=b, **r))
             b += 1
         s_ = e
     return rows
 
 
+_BOUTS: list = []
+
+
 def _donor_one(a):
+    _BOUTS.clear()
     try:
-        return donor_blocks(a, _A)
+        return donor_blocks(a, _A), list(_BOUTS)
     except Exception as ex:              # noqa: BLE001
-        print(a, "skipped:", repr(ex)[:200]); return []
+        print(a, "skipped:", repr(ex)[:200]); return [], []
 
 
 _A = None
@@ -234,9 +238,10 @@ def donors(out: str, par: int = 6):
     T = pd.read_csv(Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/templates_pilot.csv")
     _A = _workouts_all() if ACTIVITY.exists() else None
     with ProcessPoolExecutor(par) as ex:
-        rows = [r for rs in ex.map(_donor_one, sorted(T.alias)) for r in rs]
-    D = pd.DataFrame(rows)
+        res = list(ex.map(_donor_one, sorted(T.alias)))
+    D = pd.DataFrame([r for rs, _ in res for r in rs])
     D.to_csv(out, index=False)
+    pd.DataFrame([b for _, bs in res for b in bs]).to_csv(Path(out).with_name("life_bouts.csv"), index=False)
     print(f"{len(D)} blocks, {D.alias.nunique()} donors -> {out}")
 
 
@@ -278,9 +283,10 @@ def person_life(run: Path, recorders: set | None = None, with_steps: bool = True
                              mets=[1.0 + float(x[3]) * (mm - 1.0) if mm else np.nan for x in b]))
     W = Wall if recorders is None or person.template in recorders else None   # habit rows: twins of recording donors only
     steps = _sim_steps(run) if with_steps else None
-    return dict(name=person.name, template=person.template, sensor=person.sensor,
-                **life_stats(c.index.to_numpy(float), c.to_numpy(float), t0, t1, [e[0] for e in ent], [e[1] for e in ent],
-                             iob_t, iob_v, pulses, W, steps, net_workouts=Wall))
+    r = life_stats(c.index.to_numpy(float), c.to_numpy(float), t0, t1, [e[0] for e in ent], [e[1] for e in ent],
+                   iob_t, iob_v, pulses, W, steps, net_workouts=Wall)
+    bouts = [dict(alias=person.name, **x) for x in r.pop("_bouts", [])]
+    return dict(name=person.name, template=person.template, sensor=person.sensor, **r), bouts
 
 
 def _sim_one(a):
@@ -288,7 +294,7 @@ def _sim_one(a):
     try:
         return person_life(Path(run), rec)
     except Exception as ex:              # noqa: BLE001
-        print(Path(run).name, "skipped:", repr(ex)[:200]); return None
+        print(Path(run).name, "skipped:", repr(ex)[:200]); return None, []
 
 
 def sim(root: str, par: int = 6, donor_csv: str | None = None):
@@ -298,8 +304,9 @@ def sim(root: str, par: int = 6, donor_csv: str | None = None):
     rec = set(_workouts_all().alias) if ACTIVITY.exists() else None
     runs = sorted(str(p) for p in root.glob("v*") if (p / "truth.pkl").exists())
     with ProcessPoolExecutor(par) as ex:
-        rows = [r for r in ex.map(_sim_one, [(r, rec) for r in runs]) if r]
-    S = pd.DataFrame(rows); S.to_csv(root / "life_stats.csv", index=False)
+        res = list(ex.map(_sim_one, [(r, rec) for r in runs]))
+    S = pd.DataFrame([r for r, _ in res if r]); S.to_csv(root / "life_stats.csv", index=False)
+    pd.DataFrame([b for _, bs in res for b in bs]).to_csv(root / "life_bouts.csv", index=False)
     dpath = Path(donor_csv) if donor_csv else Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/life_blocks.csv"
     if dpath.exists():
         D = pd.read_csv(dpath)
@@ -310,6 +317,31 @@ def sim(root: str, par: int = 6, donor_csv: str | None = None):
         cp.to_csv(root / "compare_life.csv", index=False)
         pd.set_option("display.width", 200)
         print(cp[["stat", "group", "n_real", "n_sim", "real_p50", "sim_p50", "ks_p", "pass_share"]].round(3).to_string(index=False))
+        print(pd.DataFrame(act_rows(root / "life_bouts.csv", dpath.with_name("life_bouts.csv")))[["stat", "real_p50", "sim_p50", "d50", "se"]].round(2).to_string(index=False))
+
+
+ACT = {"act_net20": lambda b: b, "act_net20_hi": lambda b: b[(b.g0 > 150) & (b.iob >= 2.0)]}
+
+
+def act_rows(sim_bouts: Path, donor_bouts: Path, seed: int = 0) -> list[dict]:
+    """The activity response POOLED over bouts (a person has a handful per window, too few for a per-person median):
+    the simulated cohort's mean net against the donors', in units of the donors' between-person spread (10–90% of the
+    per-donor means, donors with >= 3 bouts), with a bootstrap SE over simulated people."""
+    if not (sim_bouts.exists() and donor_bouts.exists()): return []
+    Sb, Db = pd.read_csv(sim_bouts), pd.read_csv(donor_bouts)
+    rng = np.random.default_rng(seed); out = []
+    for st, f in ACT.items():
+        s, d = f(Sb), f(Db)
+        if len(s) < 10 or len(d) < 10: continue
+        pm = d.groupby("alias").net.agg(["mean", "size"]); pm = pm[pm["size"] >= 3]["mean"]
+        q = np.percentile(pm, [10, 50, 90]) if len(pm) >= 5 else np.array([np.nan] * 3)
+        S_ = (q[2] - q[0]) / 2.563
+        ppl = s.alias.unique(); g = s.groupby("alias").net
+        boot = [np.mean(np.concatenate([g.get_group(a).to_numpy() for a in rng.choice(ppl, len(ppl))])) for _ in range(300)]
+        out.append(dict(stat=st, group="all", n_sim=int(s.alias.nunique()), real_p10=q[0], real_p50=float(d.net.mean()),
+                        real_p90=q[2], sim_p10=np.nan, sim_p50=float(s.net.mean()), sim_p90=np.nan, S=S_,
+                        d50=(float(s.net.mean()) - float(d.net.mean())) / S_, spread=np.nan, se=float(np.std(boot)) / S_))
+    return out
 
 
 if __name__ == "__main__":
