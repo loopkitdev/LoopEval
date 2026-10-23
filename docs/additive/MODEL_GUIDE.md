@@ -387,6 +387,9 @@ donor), so they drop out of this joint table. On draw 2 they pass (35 vs 45 min,
   - Entries ending in a fast fall: 7 vs 14%.
   - Labelled pulses peak earlier and lower: 0.62–0.67 vs 0.75 h, 1.05 vs 1.18 g-eq/h per g.
   - Unlogged rises climb slower: 45–50 vs 55 mg/dL/h (L 494).
+- **Fast falls:** the twins have two thirds of the donors' (0.97 vs 1.47 / day), all of the gap at 12–24 h and at short
+  scales (15–30 min); their true glucose almost never falls faster than 2.5 mg/dL/min. No single body component restores
+  it (L 498).
 - **Unexplained falls:**
   - The twins have about twice the donors' rate, all of the surplus at 00–12 h, peaking 04–08 h. That is the dawn /
     night-lows limit (L 438, 495). The afternoon and evening match.
@@ -408,7 +411,7 @@ meal drops and the 3-h change, behaviour rates. The measure scripts sit beside e
 `skip_own`, `missed_own`, `macro_own`, `fat_rel`, `ppr_rel`, `night_pro`, `uls`, `posture`, `act_frag`, `lipohypertrophy`, `outages`, `overrides`, `edits`, `counterreg`, `glucotox`.
 Off by default (`--enable`): `rc_own` (on in every validation run), `night_own`, `circ_own`, `intake_own`,
 `prof_np`, `csf_lvl`, scenarios. Numeric: `ins_p2`, `pro_glc`, `meal_slow`, `ge_am` / `ge_pm`, `cr_mult`, `sg_mult`,
-`kappa_mult`, `csf_lvl`, `ex_sat` (C2 saturation, default 0.1; 0 = linear), `ex_alpha`, `ex_up_mult`, `ex_surge_thr` (C4 threshold, default 0.6), sensor fit
+`kappa_mult`, `csf_lvl`, `ex_sat` (C2 saturation, default 0.1; 0 = linear), `ex_alpha`, `ex_up_mult`, `ex_surge_thr` (C4 threshold, default 0.6), `sensor_act_k` (activity-dependent CGM noise, off), sensor fit
 parameters (`sensor_*`).
 
 ## 12. Open items
