@@ -148,6 +148,11 @@ class PlantV3:
         # near white (lag-5 autocorrelation 0.26-0.31, lag-10 ~0) where real background ICE is 0.48 / 0.19 (median of 41
         # donors), and integrated they made generated glucose 1.3-2.3x rougher than real CGM at 5 min
         self.bgice_rho = float(os.environ.get("BGICE_RHO", "0")); self.bg_z = 0.0
+        # PLANT_DAMP_K / PLANT_DAMP_TAU (LESSONS 135): mean reversion of the background's slow drift. Each draw minus K x an EMA
+        # (time constant TAU min) of its deviation from the exogenous baseline + defense, fed back and seen by the body; the
+        # 5-min structure is left alone. Off by default.
+        self.damp_k = float(os.environ.get("PLANT_DAMP_K", "0")); self.damp_tau = float(os.environ.get("PLANT_DAMP_TAU", "180"))
+        self.damp_e = 0.0
         self.rng_z = np.random.default_rng(seed + 104729)
         self.rng_v4 = np.random.default_rng(seed + 7_368_787); self.seed_v4 = seed % 2_147_483_647
         self.xlog = [] if os.environ.get("PLANT_XLOG") else None   # PLANT_XLOG=1: write the inputs fed each step beside the log
@@ -570,6 +575,10 @@ class PlantV3:
                 rho = self.bgice_rho ** (dt_h * 12)
                 self.bg_z = rho * self.bg_z + np.sqrt(1 - rho ** 2) * self.rng_z.standard_normal()
                 bgice = mdn_quantile(out["bgice"][0, -1], self.net.K_ICE, float(ndtr(self.bg_z)))
+            if self.damp_k > 0 and "base" in out:
+                dev = bgice - float(out["base"][0, -1]) - (float(out["defense"][0, -1]) if "defense" in out else 0.0)
+                self.damp_e += (1.0 - np.exp(-dt_h * 60.0 / self.damp_tau)) * (dev - self.damp_e)
+                bgice -= self.damp_k * self.damp_e
             if self.near_low_bgice and (float(x[0, -1, self.F["heading_low"]]) > 0.5 or float(x[0, -1, self.F["bg"]]) * 100 < 70):
                 bgice += self.near_low_bgice / ICE_SCALE
             bb_off = (float(self.bg_band[1][int(np.searchsorted(self.bg_band[0], float(x[0, -1, self.F["bg"]]) * 100, side="right"))]) / ICE_SCALE
