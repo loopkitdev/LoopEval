@@ -12,7 +12,8 @@ window (like for like; LESSONS 494). The validate.py rows describe glucose and i
                                                activity (2026-10-22)
   activity   workouts_week, workout_dur, workout_mets, workout_after_meal (share starting 0-2 h after a carb entry),
              act_net20 (Pemberton 2025's design: ΔCGM over a workout's first 20 min less matched non-workout windows of
-             the same block — start CGM ±15, 15-min ROC ±0.5 mg/dL/min, IOB ±0.5 U). Donors: HealthKit workouts, only
+             the same block — start CGM ±15, 15-min ROC ±0.5 mg/dL/min, IOB ±0.5 U); act_net20_hi the same for bouts starting
+             above 150 mg/dL with IOB >= 2 U, where the donors' response lives (−19 above 180, −20 at IOB >= 3 U). Donors: HealthKit workouts, only
              for donors who record any; simulated people: structured sessions, only for twins of those donors.
 
     python -m loopeval_analysis.patient_sim.lifestats donors <out.csv> [par]     # per-block donor table (once)
@@ -38,7 +39,7 @@ FAST = -150.0          # mg/dL/h over 15 min
 DIP = 70.0             # mg/dL/h below the block's median ICE, 30-min mean, >= 20 min
 LIFE_STATS = ["unann_pulses_day", "pulse_peak_h", "pulse_dur_h", "pulse_peak_per_g", "unl_rises_day", "unl_rise_rate",
               "entry_fast_fall", "fast_fall_share", "ice_dip_day", "ice_dip_day_share", "workouts_week", "workout_dur",
-              "workout_mets", "workout_after_meal", "act_net20"]
+              "workout_mets", "workout_after_meal", "act_net20", "act_net20_hi"]
 LIFE_INSTRUMENT = {"fast_fall_share"}
 
 
@@ -134,7 +135,7 @@ def life_stats(tm, g, t0, t1, ent_t, ent_g, iob_t=None, iob_v=None, pulses=None,
     nw = workouts if net_workouts is None else net_workouts
     if nw is not None and iob_t is not None:
         w = nw[(nw.start >= t0) & (nw.start < t1 - 20)]
-        if len(w): out["act_net20"] = _net20(G, T, w, nw, et5, np.asarray(iob_t, float), np.asarray(iob_v, float))
+        if len(w): out["act_net20"], out["act_net20_hi"] = _net20(G, T, w, nw, et5, np.asarray(iob_t, float), np.asarray(iob_v, float))
     return out
 
 
@@ -152,15 +153,17 @@ def _net20(G, T, w, allw, et5, iob_t, iob_v) -> float:
     io = np.interp(T[k], iob_t, iob_v)
     ok = np.isfinite(g0) & np.isfinite(roc) & np.isfinite(dc) & np.isfinite(io)
     g0, roc, dc, io = g0[ok], roc[ok], dc[ok], io[ok]
-    nets = []
+    nets, hi = [], []
     for s_ in w.start:
         a, b, c = at(s_), at(s_ - 15), at(s_ + 20)
         if not (np.isfinite(a) and np.isfinite(b) and np.isfinite(c)) or a <= 100: continue
         if np.any((et5 > s_ - 30) & (et5 < s_ + 20)): continue
         i0 = float(np.interp(s_, iob_t, iob_v))
         m = (np.abs(g0 - a) <= 15) & (np.abs(roc - (a - b) / 15) <= 0.5) & (np.abs(io - i0) <= 0.5)
-        if m.sum() >= 5: nets.append((c - a) - dc[m].mean())
-    return float(np.mean(nets)) if nets else np.nan
+        if m.sum() >= 5:
+            nets.append((c - a) - dc[m].mean())
+            if a > 150 and i0 >= 2.0: hi.append(nets[-1])
+    return (float(np.mean(nets)) if nets else np.nan), (float(np.mean(hi)) if hi else np.nan)
 
 
 # ---------------------------------------------------------------------------------------------------------- donors
