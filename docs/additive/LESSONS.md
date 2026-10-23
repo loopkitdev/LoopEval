@@ -8029,3 +8029,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      (0.89). The count model (person bias −0.10, Brazeau size error) holds against the donors; the raw-entry gap is the mix
      of entry sizes, and it costs only a few midday entries and their boluses (+0.23 / day at 12–16 h, L 499). Closed.
 
+502. **Taking the meal-time resistance off the liver does not bring back the fast falls; the lesson 408 trade is liver
+     timing against the 3-h meal level only.** `ppr_periph` + `fat_periph` on lg12's settings, both draws (per / per5k vs
+     lg12 / lg12_5k):
+     - meal EGP nadir 0.66 / 0.73 at 110 / 130 min (0.83 at 250; Romeres 2025 0.56 at 160);
+     - 3-h meal change gap 0.35 → 0.69, 0.11 → 0.27; review meal_d3 +7 / +6 (+12.4; donors +21);
+     - fast falls 0.97 / 1.01 per day (0.97 / 1.0; donors 1.47), entries ending in a fast fall 8.3 / 8.0% (7.4 / 7.3;
+       donors 14.3), G6 / G7 fast-fall shares unchanged within the scatter;
+     - mean 151.2 / 154.6, TIR 73.0 / 69.3, TDD 41.7 / 43.6, t54 0.176 / 0.153;
+     - score 0.371 → 0.376, 0.413 → 0.406; tier 1 0.237 → 0.254, 0.278 → 0.298.
+     Not adopted. The liver's suppression timing is not what holds the falls back (with L 498's single-lever diagnostics,
+     no part of the post-meal or circadian SI chain does); the missing fast falls are not a reason to revisit L 408.
+
