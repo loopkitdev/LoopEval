@@ -1278,3 +1278,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     the real series' even for a perfect model (the real series carries the covariance between past innovations and later
     means that independent draws drop). So tf below the field (2.51 vs 3.60) is expected, and only free-running against the
     field (4.81 vs 3.60) shows the excess; the excess is the free-running dynamics, which 129's conclusion still holds.
+133. **The change test is near its noise ceiling on insulin and underpowered on TIR.** Per edit, field change in insulin
+    delivered (U/day, CGM steps outside disruptions, post - pre) has sd 6.35 across the 62 edits against 5.79 across 162
+    pseudo-edits on the same donors: the edits carry about 2.6 U/day of signal, so a perfect predictor correlates at about
+    0.41. The base predicts it at r 0.24 / 0.32 (of0 / of1; slope 0.74 / 0.55; insulin_change.py), carbs entered r 0.07 /
+    0.23 (field sd 26 g/day against a predicted 3-4: entries move with things the settings are not). TIR's ceiling is about
+    0.67, and with 62 edits r has a standard error near 0.12, so variants within about 0.15 of each other cannot be told
+    apart on this test. Only 5 of the 70 screened edits fall on the 38 untrained pilot donors; a sharper test needs more
+    edits (a wider donor pull) or longer windows, not more seeds.
