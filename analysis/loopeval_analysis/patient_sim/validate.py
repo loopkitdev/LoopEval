@@ -1,0 +1,400 @@
+"""Score simulated people with the eda study's own statistics and compare against the donor cohort.
+
+Per simulated person (`person_stats`), computed only on the closed-loop part (after LoopEval's
+burn-in), the same quantities the eda tables hold for real donors:
+  glucose   traits.block_features on the CGM the person's sensor reported (wholerecord.csv)
+  outcomes  TIR, t<70, t<54, mean, CV (cohort.csv)
+  insulin   delivery.py's definitions on what the pump DELIVERED in 5-min bins (delivery.csv),
+            plus the day/night delivery ratio (eda L45: 1.65×, p10–p90 1.20–2.46)
+  behavior  carb entries/day, user boluses/day (cohort.csv)
+  lows      crossings below 70 per day, P(reach 54), minutes below 70 per crossing (ice L60)
+  truth     true-BG TIR vs CGM TIR, carbs eaten, rescue grams — diagnostics with no field counterpart
+
+`compare(sim, by="sensor")` sets each statistic's simulated distribution across people beside the
+real one (same sensor family where the statistic is instrument-dependent, eda L33) and reports
+p10 / p50 / p90 and a two-sample KS p-value. A gap is a missing or mis-specified component — never
+a reason to add a fitted term (memory: no-mystery-terms).
+"""
+from __future__ import annotations
+
+import json
+import pickle
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from .. import traits as T
+from .world import EPOCH
+
+DIST = Path.home() / ".loop-eval/runs/2026-08-25-distributions"
+INSTRUMENT = {"v_sd", "sd_over_mad", "v_kurtosis", "v_skew", "sigma_meas", "acf_min", "hurst_short"}
+GLUCOSE_FEATS = ["bg_mean", "bg_cv", "bg_skew", "boxcox_lambda", "tir", "t70", "t180", "v_sd", "sd_over_mad",
+                 "v_kurtosis", "v_skew", "hurst_short", "hurst_long", "sigma_meas", "acf_zero_min", "acf_min",
+                 "vol_cluster_60m", "sigma_disp", "between_day_frac", "circadian_amp"]
+
+
+def _series(minutes: pd.Series) -> pd.DatetimeIndex:
+    return EPOCH + pd.to_timedelta(minutes, unit="m")
+
+
+def lows_anatomy(cgm: pd.Series) -> dict:
+    """Crossings below 70 on the reported CGM (ice L60's definitions, approximately)."""
+    v = cgm.dropna()
+    below = (v < 70).astype(int).to_numpy()
+    starts = np.where(np.diff(below) == 1)[0] + 1
+    days = (v.index[-1] - v.index[0]).total_seconds() / 86400 if len(v) > 1 else np.nan
+    reach, mins = [], []
+    vals = v.to_numpy(); tmin = (v.index - v.index[0]).total_seconds().to_numpy() / 60
+    for s in starts:
+        e = s
+        while e < len(vals) and vals[e] < 70: e += 1
+        seg = vals[s:e]
+        reach.append(float(seg.min() < 54)); mins.append(tmin[min(e, len(vals) - 1)] - tmin[s])
+    return dict(lows_per_day=len(starts) / days if days else np.nan,
+                p_reach54=float(np.mean(reach)) if reach else np.nan,
+                min_below70=float(np.median(mins)) if mins else np.nan)
+
+
+def core_stats(cgm: pd.Series, d: pd.Series, days: float) -> dict:
+    """Everything computable from a CGM series (datetime index, NaN = missing) and delivered insulin in
+    5-min bins — the SAME code for simulated people and real donors."""
+    out = {}
+    b = T.block_features(cgm.dropna(), block=f"{int(days) + 3}D", min_samples=min(1200, int(len(cgm) * 0.5)))
+    if len(b):
+        r = b.iloc[b["n"].to_numpy().argmax()]
+        out.update({k: float(r[k]) for k in GLUCOSE_FEATS})
+    v = cgm.dropna()
+    # wear = reading coverage of the record's span on the 5-min grid, the same for donors (whose series holds only
+    # the readings that exist, so notna() always read 1.0) and simulated people (whose withheld slots are NaN).
+    # Counted as distinct 5-min slots: 21% of G7 donors carry > 5% near-duplicate readings (< 2 min apart, the same
+    # reading uploaded twice), which counted as extra coverage (LESSONS 107)
+    span_min = (v.index.max() - v.index.min()).total_seconds() / 60.0 if len(v) > 1 else np.nan
+    slots = v.index.floor("5min").nunique() if len(v) else 0
+    out.update(t54=100 * float((v < 54).mean()), wear=float(min(1.0, slots * 5.0 / span_min)) if span_min and span_min > 0 else np.nan)
+    out.update(lows_anatomy(cgm))
+    tot = d.to_numpy(); tot = tot[np.isfinite(tot)]      # donors: unknown-insulin bins are NaN (LESSONS 95)
+    if len(tot) < 288:                                   # no known insulin in this block: glucose statistics only
+        return out
+    srt = np.sort(tot)[::-1]; k = max(int(0.01 * len(srt)), 1)
+    day = d.resample("1D").sum(); nb = d.resample("1D").count(); day = day[nb > 240]
+    hour = d.groupby(d.index.hour).mean()
+    # night-to-night variation of overnight (00–06 local) delivered insulin: Ruan 2016 31% under closed loop (LESSONS 55)
+    nt = d[d.index.hour < 6]; nn = nt.resample("1D").sum(); nc = nt.resample("1D").count(); nn = nn[nc >= 66]
+    out.update(zero_frac=100 * float(np.mean(tot <= 1e-9)), med_nonzero=float(np.median(tot[tot > 1e-9])) if (tot > 1e-9).any() else np.nan,
+               p99=float(np.percentile(tot, 99)), conc1=100 * float(srt[:k].sum() / srt.sum()) if srt.sum() > 0 else np.nan,
+               tdd=float(day.median()) if len(day) else np.nan,
+               tdd_cv=100 * float(day.std() / day.mean()) if len(day) > 2 else np.nan,
+               ac1=float(np.corrcoef(day[:-1], day[1:])[0, 1]) if len(day) > 5 else np.nan,
+               day_night=float(hour.loc[10:22].mean() / hour.loc[0:6].mean()) if hour.loc[0:6].mean() > 0 else np.nan,
+               night_cv=100 * float(nn.std() / nn.mean()) if len(nn) > 4 and nn.mean() > 0 else np.nan)
+    return out
+
+
+def delivered_5min(doses: list, t0: pd.Timestamp, t1: pd.Timestamp, mask_gaps: bool = False) -> pd.Series:
+    """A donor's delivered insulin (doses.json records) in 5-min bins over [t0, t1).
+
+    mask_gaps: stretches of >= GAP_MIN with no basal record at all are unknown insulin, not zero: memory "pumpless
+    disruptions", LESSONS 94 (60% of donor windows reading < 2% of TDD have no record). Their bins come back NaN."""
+    idx = pd.date_range(t0, t1, freq="1min", inclusive="left")
+    u = np.zeros(len(idx))
+    cover = np.zeros(len(idx), dtype=bool)
+    base = t0.value // 60_000_000_000
+    for x in doses:
+        s = pd.Timestamp(x["startDate"]); e = pd.Timestamp(x["endDate"])
+        if e < t0 or s >= t1: continue
+        vol = float(x.get("volume") or 0.0)
+        if vol <= 0: continue
+        i0 = int(s.value // 60_000_000_000 - base); i1 = int(e.value // 60_000_000_000 - base)
+        if x["deliveryType"] == "bolus" or i1 <= i0:
+            if 0 <= i0 < len(u): u[i0] += vol
+        else:
+            lo, hi = max(i0, 0), min(i1, len(u))
+            if hi > lo: u[lo:hi] += vol / (i1 - i0)
+    if mask_gaps:
+        for x in doses:     # every basal record covers its span, zero-volume temps included
+            if x["deliveryType"] != "basal": continue
+            s = pd.Timestamp(x["startDate"]); e = pd.Timestamp(x["endDate"])
+            lo, hi = max(int(s.value // 60_000_000_000 - base), 0), min(int(e.value // 60_000_000_000 - base), len(u))
+            if hi > lo: cover[lo:hi] = True
+    out = pd.Series(u, index=idx).resample("5min").sum()
+    if mask_gaps:
+        unk = np.zeros(len(idx), dtype=bool)
+        i = 0
+        while i < len(cover):
+            if not cover[i]:
+                j = i
+                while j < len(cover) and not cover[j]: j += 1
+                if j - i >= GAP_MIN: unk[i:j] = True
+                i = j
+            else:
+                i += 1
+        bad = pd.Series(unk, index=idx).resample("5min").max()
+        out[bad.to_numpy()] = np.nan
+    return out
+
+
+GAP_MIN = 30
+
+
+MASK_GAPS = True     # donors: no-record stretches are unknown insulin (LESSONS 95)
+
+
+def real_stats(export: Path, block_days: int = 13, per_block: bool = False):
+    """A real donor scored like a simulated person: per non-overlapping block of `block_days` (the
+    simulated window's length — tail and day-level statistics depend on window length, eda L7), then the
+    median across blocks; `per_block` returns every block's statistics instead (the like-for-like sample
+    for a simulated person's single window, LESSONS 330)."""
+    g = json.load(open(export / "glucose.json"))
+    cgm = pd.Series([x["quantity"] for x in g], index=pd.to_datetime([x["startDate"] for x in g]), dtype=float).sort_index()
+    cgm = cgm[~cgm.index.duplicated()]
+    doses = json.load(open(export / "doses.json"))
+    # the export is UTC; day boundaries and clock-hour statistics (day_night) need the donor's local time
+    from .quiet import local_offset, to_local
+    ice_root = export.parent.parent
+    off = local_offset(export.name, ice_root) if (ice_root / "steps" / f"{export.name}.parquet").exists() else None
+    if off is not None:
+        cgm.index = to_local(cgm.index, off)
+        st = to_local(pd.to_datetime([x["startDate"] for x in doses], utc=True), off)
+        en = to_local(pd.to_datetime([x["endDate"] for x in doses], utc=True), off)
+        doses = [dict(x, startDate=a, endDate=b) for x, a, b in zip(doses, st, en)]
+    t0, t1 = cgm.index[0].floor("D") + pd.Timedelta(days=1), cgm.index[-1].floor("D")
+    rows = []
+    s = t0
+    while s + pd.Timedelta(days=block_days) <= t1:
+        e = s + pd.Timedelta(days=block_days)
+        c = cgm[(cgm.index >= s) & (cgm.index < e)]
+        if len(c) > 0.7 * block_days * 288:
+            grid = pd.date_range(s, e, freq="5min", inclusive="left")
+            rows.append(core_stats(c, delivered_5min(doses, s, e, mask_gaps=MASK_GAPS), block_days))
+        s = e
+    if not rows: return None
+    if per_block: return [dict(block=i, **r) for i, r in enumerate(rows)]
+    return pd.DataFrame(rows).median(numeric_only=True).to_dict()
+
+
+def _record_delivery(run: Path, truth: pd.DataFrame) -> pd.Series:
+    """Delivered insulin in 5-min bins built the way the donors' statistics are (LESSONS 404–406, 455): each basal record's
+    RATE over its span, as dists._effective_basal_rate reads the donors' records (rate_uhr, last writer wins), not its
+    pulse-truncated volume — a 5-min Omnipod temp at 0.45 U/h records 0 U but its rate counts in the donors' basal_eff;
+    boluses in their minute. Falls back to the physical per-minute delivery when the trace has no candidate stream."""
+    idx = _series(truth.m)
+    tp = run / "trace.json"
+    d = [x for x in json.load(open(tp)).get("delivery", []) if x.get("source") == "candidate"] if tp.exists() else []
+    if not d:
+        return pd.Series(truth.delivered.to_numpy(), index=idx).resample("5min").sum()
+    m0 = float(truth.m.min()); n = len(truth); u = np.zeros(n)
+    mins = lambda t: (pd.Timestamp(t) - EPOCH).total_seconds() / 60.0 - m0
+    bas = sorted((mins(x["t"]), mins(x.get("tEnd", x["t"])), float(x.get("rateUhr") or 0.0)) for x in d if x["kind"] == "basal")
+    recs = []
+    for s_, e_, r in bas:
+        if recs and abs(recs[-1][1] - s_) < 0.5 and abs(recs[-1][2] - r) < 1e-6: recs[-1][1] = e_
+        else: recs.append([s_, e_, r])
+    for s_, e_, r in recs:
+        i0, i1 = int(np.floor(s_)), int(np.floor(e_))
+        if i1 <= i0: continue
+        lo, hi = max(i0, 0), min(i1, n)
+        if hi > lo: u[lo:hi] = max(r, 0.0) / 60.0           # rate per minute; a later record overwrites (last writer wins)
+    for x in d:
+        if x["kind"] == "bolus" and float(x.get("amountU") or 0) > 0:
+            i0 = int(np.floor(mins(x["t"])))
+            if 0 <= i0 < n: u[i0] += float(x["amountU"])
+    return pd.Series(u, index=idx).resample("5min").sum()
+
+
+def person_stats(run: Path) -> dict | None:
+    tp = run / "truth.pkl"
+    if not tp.exists(): return None
+    tr = pickle.load(open(tp, "rb"))
+    meta = json.load(open(run / "meta.json"))
+    person = pickle.load(open(run / "person.pkl", "rb"))
+    start = meta.get("burn_end", 18 * 60)
+    start = float(np.ceil(start / 1440.0) * 1440.0)     # whole days only: a partial first day (no night) biases daily means
+    cgm = tr["cgm"].sort_index()
+    cgm = cgm[cgm.index >= start]
+    cgm.index = _series(cgm.index.to_series())
+    truth = tr["truth"]; truth = truth[truth.m >= start]
+    days = (truth.m.max() - truth.m.min()) / 1440.0
+    out = dict(name=person.name, template=person.template, sensor=person.sensor, strategy=person.strategy,
+               formulation=person.formulation, days=days)
+    out.update(core_stats(cgm, _record_delivery(run, truth), days))
+    # transport check: what LoopEval sent must reach the pump (LESSONS 19); faults lose only a little
+    rec = tr.get("received")
+    if rec:
+        R = pd.DataFrame(rec, columns=["typ", "s", "e", "u"])
+        sent = float(R[R.s >= start].u.sum())
+        out["received_u"] = sent / days
+        out["delivered_over_received"] = float(truth.delivered.sum()) / sent if sent > 0 else np.nan
+    beh = pd.DataFrame(tr["behavior"], columns=["m", "kind", "g", "x"])
+    beh = beh[beh.m >= start]
+    ent = [e for e in tr["entries"] if e[0] >= start]
+    bol = [b for b in tr["bolus_requests"] if b[0] >= start]
+    # user boluses as DELIVERED person boluses (nonzero), like the donors' raw manual dose records (LESSONS 36)
+    if rec:
+        pb = R[(R.typ == "bolus") & (R.s >= start) & (R.u > 0)]
+        n_bol, man_u = len(pb), float(pb.u.sum())
+    else:
+        n_bol, man_u = len(bol), np.nan
+    out.update(carb_entries_per_day=len(ent) / days, user_boluses_per_day=n_bol / days, manual_u_day=man_u / days,
+               carbs_eaten_day=float(beh[beh.kind.isin(["meal", "snack"])].g.sum() / days),
+               rescue_g_day=float(beh[beh.kind.isin(["rescue", "retreat", "proactive"])].g.sum() / days),
+               proactive_per_day=float((beh.kind == "proactive").sum() / days),
+               rescues_per_day=float(beh.kind.isin(["rescue", "retreat"]).sum() / days),
+               true_tir=100 * float(((truth.bg >= 70) & (truth.bg <= 180)).mean()),
+               true_t54=100 * float((truth.bg < 54).mean()),
+               true_min=float(truth.bg.min()))
+    return out
+
+
+def real_table() -> pd.DataFrame:
+    w = pd.read_csv(DIST / "wholerecord.csv")
+    c = pd.read_csv(DIST / "cohort.csv")[["alias", "sensor", "strategy", "t54", "carb_entries_per_day",
+                                          "user_boluses_per_day"]]
+    d = pd.read_csv(DIST / "delivery.csv")[["alias", "zero_frac", "med_nonzero", "p99", "conc1", "tdd", "tdd_cv", "ac1"]]
+    r = w.merge(c, on="alias", how="left").merge(d, on="alias", how="left")
+    r["strategy"] = r["strategy"].map(lambda s: "temp" if str(s).startswith("temp") else "autobolus")
+    return r
+
+
+def compare(sim: pd.DataFrame, by_sensor: bool = True, real: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Simulated vs real distributions across people. `real` defaults to the eda cohort tables; pass a
+    real_pilot table (same population as pilot templates, same window, same code) to compare like with like."""
+    from scipy.stats import ks_2samp
+    real = real_table() if real is None else real
+    rows = []
+    stats = [c for c in sim.columns if c in real.columns and c not in ("alias", "sensor", "strategy")]
+    groups = sorted(sim.sensor.unique()) if by_sensor else ["all"]
+    for st in stats:
+        for g in groups:
+            if by_sensor and st in INSTRUMENT:
+                rs = real.loc[real.sensor == g, st].dropna(); ss = sim.loc[sim.sensor == g, st].dropna(); lab = g
+            else:
+                if g != groups[0]: continue
+                rs = real[st].dropna(); ss = sim[st].dropna(); lab = "all"
+            if len(rs) < 3 or len(ss) < 3: continue
+            q = lambda x: np.percentile(x, [10, 50, 90])
+            rq, sq = q(rs), q(ss)
+            rows.append(dict(stat=st, group=lab, n_real=len(rs), n_sim=len(ss),
+                             real_p10=rq[0], real_p50=rq[1], real_p90=rq[2],
+                             sim_p10=sq[0], sim_p50=sq[1], sim_p90=sq[2],
+                             ks_p=ks_2samp(rs, ss).pvalue))
+    return pd.DataFrame(rows)
+
+
+def twin(sim: pd.DataFrame, templates: str | None = None) -> pd.DataFrame:
+    """Each simulated person against the donor it was drawn from: median difference and Spearman
+    rank agreement across people. A simulator that only matches the cohort's marginals but not each
+    donor's own level is getting the spread from the wrong place."""
+    from scipy.stats import spearmanr
+    real = real_table().rename(columns={"alias": "template"})
+    if templates and Path(templates).exists():       # templates carry each donor's own outcomes (pilot)
+        tp = pd.read_csv(templates).rename(columns={"alias": "template"})
+        if not set(sim.template) & set(real.template):
+            real = tp
+            if "entries_raw" in real:   # raw-record behavior rates (LESSONS 36)
+                real = real.drop(columns=["carb_entries_per_day", "user_boluses_per_day"]).rename(
+                    columns={"entries_raw": "carb_entries_per_day", "boluses_raw": "user_boluses_per_day"})
+    m = sim.merge(real, on="template", suffixes=("_sim", "_real"))
+    rows = []
+    for st in ["tir", "t70", "t54", "bg_mean", "bg_cv", "tdd", "carb_entries_per_day", "user_boluses_per_day",
+               "manual_u_day", "v_sd", "acf_zero_min", "zero_frac", "conc1"]:
+        a, b = m.get(f"{st}_sim"), m.get(f"{st}_real")
+        if a is None or b is None: continue
+        ok = a.notna() & b.notna()
+        if ok.sum() < 5: continue
+        rho = spearmanr(a[ok], b[ok]).correlation
+        rows.append(dict(stat=st, n=int(ok.sum()), med_sim=float(a[ok].median()), med_real=float(b[ok].median()),
+                         med_diff=float((a[ok] - b[ok]).median()), spearman=float(rho)))
+    return pd.DataFrame(rows)
+
+
+def main():
+    root = Path(sys.argv[1])
+    rows = [s for s in (person_stats(p) for p in sorted(root.glob("v*"))) if s]
+    sim = pd.DataFrame(rows)
+    sim.to_csv(root / "sim_stats.csv", index=False)
+    cmp = compare(sim)
+    cmp.to_csv(root / "compare.csv", index=False)
+    cj = root / "cohort.json"
+    tp = json.load(open(cj)).get("templates") if cj.exists() else None
+    rp = Path(tp).parent / "real_pilot.csv" if tp else None
+    if rp is not None and rp.exists() and "pilot" in str(tp):
+        tt = pd.read_csv(tp)
+        if "entries_raw" in tt:   # the raw-record rates, counted like the simulator's own (templates.add_raw_rates)
+            tt = tt.drop(columns=["carb_entries_per_day", "user_boluses_per_day"]).rename(
+                columns={"entries_raw": "carb_entries_per_day", "boluses_raw": "user_boluses_per_day"})
+        cols = ["alias", "sensor", "strategy", "carb_entries_per_day", "user_boluses_per_day"] + (["manual_u_day"] if "manual_u_day" in tt else [])
+        def merged(path):
+            rr = pd.read_csv(path).merge(tt[cols], on="alias", how="left")
+            rr["strategy"] = rr["strategy"].map(lambda s: "temp" if str(s).startswith("temp") else "autobolus")
+            return rr
+        rb = rp.parent / "real_pilot_blocks.csv"
+        if rb.exists():    # one 13-day block per donor against each simulated 13-day window (LESSONS 330)
+            compare(sim, real=merged(rp)).to_csv(root / "compare_pilot_medblocks.csv", index=False)
+            cp = compare_blocks(sim, merged(rb))
+        else:
+            cp = compare(sim, real=merged(rp))
+        cp.to_csv(root / "compare_pilot.csv", index=False)
+    cj = root / "cohort.json"
+    tw = twin(sim, json.load(open(cj)).get("templates") if cj.exists() else None)
+    try:   # post-meal response vs donors (meal_response.py); donor table built once on the Mac
+        from .meal_response import simulated as _ms, summarize as _msum
+        S = pd.concat([_ms(p) for p in sorted(root.glob("v*")) if (p / "truth.pkl").exists()])
+        dpath = Path(tp).parent / "meal_response_donors.csv" if tp else None
+        mr = {"sim": _msum(S)}
+        if dpath is not None and dpath.exists(): mr["donors"] = _msum(pd.read_csv(dpath))
+        pd.DataFrame(mr).to_csv(root / "meal_response.csv")
+    except Exception as e:                     # noqa: BLE001
+        print("meal response skipped:", e)
+    tw.to_csv(root / "twin.csv", index=False)
+    pd.set_option("display.width", 220)
+    print(cmp.round(3).to_string(index=False))
+    print(tw.round(3).to_string(index=False))
+
+
+
+def _real_one(a):
+    root, alias, per_block = a
+    try:
+        r = real_stats(Path(root) / alias, per_block=per_block)
+        if not r: return []
+        return [dict(alias=alias, **x) for x in r] if per_block else [dict(alias=alias, **r)]
+    except Exception:                       # noqa: BLE001
+        return []
+
+
+def real_pilot(root: str, out: str, par: int = 6, per_block: bool = False):
+    """Score every donor export under `root` with the simulated people's own statistics: one row per donor
+    (median of its blocks), or with `per_block` one row per 13-day block (real_pilot_blocks.csv)."""
+    from concurrent.futures import ProcessPoolExecutor
+    aliases = sorted(p.name for p in Path(root).iterdir() if (p / "glucose.json").exists())
+    with ProcessPoolExecutor(par) as ex:
+        rows = [r for rs in ex.map(_real_one, [(root, a, per_block) for a in aliases]) for r in rs]
+    pd.DataFrame(rows).to_csv(out, index=False)
+    print(f"{len(rows)} rows, {len({r['alias'] for r in rows})} donors -> {out}")
+
+
+def compare_blocks(sim: pd.DataFrame, blocks: pd.DataFrame, ndraw: int = 40, seed: int = 0) -> pd.DataFrame:
+    """Like `compare`, with each donor represented by ONE of its 13-day blocks, as each simulated person is by
+    its one 13-day window. A donor's median over its ~8 blocks has a narrower spread across people than any
+    single window, so against it the simulated cohort reads too wide on every noisy statistic (ac1, skew,
+    between-day share) and too narrow is hidden (LESSONS 330). The KS p is the median over `ndraw` random
+    draws of one block per donor; `pass_share` is the share of draws with p > 0.05; quantiles pool all blocks."""
+    rng = np.random.default_rng(seed)
+    draws = [compare(sim, real=blocks.groupby("alias").sample(1, random_state=int(rng.integers(1 << 30))))
+             .set_index(["stat", "group"]).ks_p for _ in range(ndraw)]
+    P = pd.concat(draws, axis=1)
+    out = compare(sim, real=blocks).set_index(["stat", "group"])
+    out["ks_p_pooled"] = out.pop("ks_p")
+    out["ks_p"] = P.median(axis=1)
+    out["pass_share"] = (P > 0.05).mean(axis=1)
+    return out.reset_index()
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] in ("realpilot", "realpilotblocks"):
+        real_pilot(sys.argv[2], sys.argv[3], int(sys.argv[4]) if len(sys.argv) > 4 else 6,
+                   per_block=sys.argv[1] == "realpilotblocks")
+    else:
+        main()

@@ -36,7 +36,11 @@ public struct JSONFileDataSource: EvalDataSource {
 
     public func getDoses(interval: DateInterval) async throws -> [EvalInsulinDose] {
         let all: [EvalInsulinDose] = try load(file: "doses.json")
-        return all.filter { interval.contains($0.startDate) || interval.contains($0.endDate) }
+        // The same 2-h lookback NightscoutEvalDataSource fetches with, so a temp basal (or any dose) started just
+        // before the window is complete and both sources hand the engine the same doses (a --data-dir export of a
+        // Nightscout site replayed 15 fewer doses per week than the site itself, LESSONS 490).
+        let lookback = DateInterval(start: interval.start.addingTimeInterval(-2 * 3600), end: interval.end)
+        return all.filter { lookback.contains($0.startDate) || interval.contains($0.endDate) }
     }
 
     public func getCarbEntries(interval: DateInterval) async throws -> [EvalCarbEntry] {

@@ -1,0 +1,1062 @@
+"""The person as a second controller: eating, entering, bolusing, correcting, defending against lows,
+sleeping, exercising, changing sites.
+
+Two kinds of behavior (evidence/05 §3 lessons 1–3):
+  OFFENSE — exogenous, planned per day, blind to glucose: meals and snacks, exercise, sleep.
+  DEFENSE — reacts to what the person SEES (CGM readings, trend, Loop's IOB on screen, alarms),
+            never to true glucose or to anything the person could not know:
+            * proactive snack: projected glucose (CGM + 30·trend − ISF_setting·IOB) below a personal
+              onset while awake and looking → a small fast snack. Almost never logged. The trait
+              (onset, size) is the most stable one measured in donors (ice L34: alternate-week
+              reliability 0.76) and a large share of between-person outcome spread.
+            * rescue treatment: CGM below the person's treat threshold → fast carbs, latency, re-check
+              at ~15 min and re-treat if not rising (ice meals.py: 34% vs 25%); over-treaters exist
+              (73% take > 20 g; Savard 2016).
+            * asleep: only an alarm (or rarely the low itself) wakes them (Buckingham 2005: 29% of
+              alarms in children; Schultes 2007: 1 in 16 wake unaided).
+            * corrections: a manual bolus for a high seen at a glance.
+Every trait is drawn per person; rates come from the person's donor template where measured
+(carb entries / day, user boluses / day), else literature priors (evidence/04 summary table).
+Nothing here is fitted to outcomes; a mismatch with donor statistics means a component is wrong
+or missing (memory: no-mystery-terms).
+"""
+from __future__ import annotations
+
+import math
+from statistics import NormalDist
+from dataclasses import dataclass, field
+from typing import Optional
+
+import numpy as np
+
+from .physiology import Parcel
+
+DAY = 1440.0
+
+
+def _count_size_err(t, grams: float) -> float:
+    """Mean log carb-count error by meal size. "log" (default): −0.1·ln(g/45) on top of the person's bias (centre
+    −0.10). "brazeau": Brazeau 2013's regression on 692 T1D adult meals (re-analysed in PMC7594710), estimate − actual =
+    10.54 − 0.28·g, so small meals are over-counted (+25% at 20 g) and large ones under-counted (−15% at 80 g); the
+    person's bias then carries only the between-person spread (its −0.10 centre is in the regression)."""
+    if t.count_sd <= 0: return 0.0
+    if t.count_size == "brazeau":
+        g = max(grams, 20.0)            # below 20 g held at the 20-g value: outside the study's meal sizes [J]
+        return math.log(max(1.0 + (10.54 - 0.28 * g) / g, 0.5)) + 0.10
+    return -0.1 * math.log(max(grams, 5) / 45.0)
+
+
+@dataclass
+class BehaviorTraits:
+    # sleep
+    bed: float = 23 * 60.0               # local minute
+    wake: float = 7 * 60.0
+    weekend_shift: float = 60.0          # later wake and meals on weekends [J; no literature, evidence/04 gap]
+    # meals (Camerlingo 2021 timing; carbs scaled to the person's diet)
+    breakfast_mu: float = 2.078          # lognormal of breakfast hour
+    breakfast_sd: float = 0.175
+    meal_gap_gev: bool = True            # meal gaps from Camerlingo's GEV (negative shape); False = the old Gumbel × 0.9
+    skip_breakfast: float = 0.1
+    snack_rate: float = 1.2              # snacks per day (Camerlingo: ≥1 snack on 71% of days)
+    carbs_day: float = 190.0             # grams eaten per day (truth)
+    meal_cv: float = 0.35                # within-person per-event size spread (log sd); the person's measured pulse spread when known
+    meal_slow_frac: float = 0.15         # share of a meal emptied in the Dalla Man slow late phase (kmin) [J share; Pete 2026-10-17, LESSONS 120]
+    meal_slow_k: float = 0.008           # /min, Dalla Man kmin
+    snack_fast_frac: float = -1.0        # < 0: as meal_fast_frac; snacks lean on sugary drinks, candy and desserts
+                                         # (Piernas & Popkin 2010) so their fast share may be higher [J] (LESSONS 159)
+    meal_fast_frac: float = 0.35         # share of a meal's carbohydrate in its fast-emptying phase: 0.5 fits the donors' 5-min step tail but overshoots CV; 0.35 balances (LESSONS 268, 270; was 0.2 [J], LESSONS 44)
+    meal_fast_sd: float = 0.40           # per-meal SD of that share (Beta, same mean): foods differ in rapidly available glucose; 0.25 -> 0.40 gives the donors' G7 5-min velocity kurtosis (LESSONS 271)
+                                         # (Englyst 1999; SD a judgement) [Pete 2026-10-17, LESSONS 120]
+                                         # (Englyst 1999: RAG explains 70% of the glycaemic-response variance) [switch, LESSONS 88]
+    main_weight: float = 1.9             # a main meal's expected size relative to a snack: Camerlingo 2021 (B 41 / L 49 / D 53 vs
+                                         # snack 25 g). Entered grams per entry then match donors (32.3 vs 32.6; LESSONS 47);
+                                         # lesson 16's 1.0 compensated for fixed-rate emptying with three meals carrying all carbs
+    gi_cv: float = 0.4                   # per-meal absorption-speed CV (01 §6.2)
+    # announcement and bolusing
+    p_entry_meal: float = 0.7
+    slot_shares: tuple = (0.22, 0.30, 0.34)   # breakfast / lunch / dinner share of a main-meal day (Camerlingo 2021)
+    slot_ann: tuple = (1.0, 1.0, 1.0)         # per-meal entry chance relative to p_entry_meal (donor's own windows)
+    p_entry_snack: float = 0.3
+    graze_eve: bool = False              # graze timing weighted to the evening (LESSONS 170)
+    skip_drop: bool = False              # skipped breakfast grams dropped, not redistributed (LESSONS 183)
+    p_helping: float = 0.095             # with split_full: P(a bolused meal is eaten in two helpings, each entered and bolused)
+                                         # (donors: 9.5% of bolused entries ≥ 15 g, second ~13 min later after more carbs; LESSONS 186)
+    split_full: bool = False             # no halved split bolus: every meal bolus is the full recommendation, and second
+                                         # boluses come from second helpings (donors 1.0 of the recommendation in 96%; LESSONS 186)
+    macro_own: bool = False              # fat / protein per carb gram from the person's own carb share of energy (LESSONS 432; on by default in World)
+    bw: float = 75.0                     # body weight (kg), for macro_own's energy estimate
+    slot_comp: bool = True               # fat/protein per carb gram by meal slot (LESSONS 170)  # default since 2026-10-18: breakfast's shape matches the donors' (LESSONS 213)
+    count_size: str = "log"              # "brazeau": the size-dependent mean error of Brazeau 2013 (LESSONS 146)
+    count_bias: float = -0.10            # person's mean carb-count error (Brazeau 2013: 63% under)
+    count_sd: float = 0.20               # per-meal count error sd
+    bolus_timing: str = "before"         # before | immediate | during | after (Datye 2018)
+    p_bolus_with_entry: float = 0.85     # ice L41: 0.67–0.87
+    calc_up: float = 0.074               # Groat 2017: 7.4% larger, 6.9% smaller
+    calc_down: float = 0.069
+    absorption_entry_h: float = 3.0      # what they tell Loop
+    abs_fast: tuple = (0.0, 0.0)         # P(0.5 h entry) for small (≤ 20 g) / larger entries: the donor's own (LESSONS 102)
+    abs_slow: tuple = (0.0, 0.0)         # P(5 h entry), same split
+    lead_shift: float = 0.0              # minutes added to every bolus-timing window: the donor lead is measured against the
+                                         # labeler's onset, which reads the sim's boluses ~6.5 min later than true (LESSONS 105)
+    lead_med: float = float("nan")       # the donor's own median bolus lead, less the labeler's +2 min bias (LESSONS 106)
+    lead_sd: float = 23.0                # within-person SD of the bolus lead, min (0 = ± 4 uniform); donors' labeled
+                                         # spread less the labeler's 28-min onset error (LESSONS 106; default 2026-10-17)
+    lead_own: bool = True                # bolus at lead_med instead of the four category windows (Pete 2026-10-17)
+    meal_drink_p: float = 0.12           # share of main meals with a sugary drink; the food keeps its own fast share. US adults with
+                                         # diabetes: 22% drink a sugar-sweetened beverage >= 1/day (BRFSS 2013), 45% on a surveyed day
+                                         # (2003-06), ~0.10-0.15 per main meal (default since 2026-10-18, LESSONS 209)
+    meal_drink_share: float = 0.4        # the drink's share of that meal's carbohydrate [J]
+    graze_fast: bool = True              # grazes absorb as liquid sugar (juice, sweetened coffee; evidence/14 §2; LESSONS 117); default since 2026-10-18 (Pete, LESSONS 158)
+    snack_entry_w: Optional[tuple] = None   # hour-of-day weight on p_entry_snack (donor entries / eating; LESSONS 123)
+    meal_clock: Optional[tuple] = None   # donor's own (b_med, b_sd, l_med, l_sd, d_med, d_sd), hours (LESSONS 123)
+    own_clock: bool = True               # main meals on the donor's own clock (default since 2026-10-18: day/night insulin
+                                         # ratio 2.03 vs donors 2.06; LESSONS 206)
+    entry_clock: bool = False            # switch: use snack_entry_w
+    graze_unann: bool = True             # grazes on the donor's unannounced-pulse clock (LESSONS 230)
+    unann_hours: Optional[object] = None
+    graze_keep: float = 0.25             # share of planned grazes kept: 0.25 puts unannounced labelled load (97.3 vs donors 94.7 g-eq/day) and the labelled g-eq per entered gram (1.18 vs 1.19) on the donors' (LESSONS 382; was 1.0, thinning tested in LESSONS 109)
+    announce_mult: float = 1.0           # scales every entry the person would make (meals and snacks); 0 = none (LESSONS 103)
+    # Temporary Overrides, planned with the events they serve (LESSONS 40; templates.add_override_rates)
+    ov_less_day: float = 0.0             # less-insulin overrides/day (activity, low prevention)
+    ov_less_f: float = 0.6
+    ov_less_lo: float = float("nan")
+    ov_less_hi: float = float("nan")
+    ov_less_h: float = 1.4
+    ov_more_day: float = 0.0             # more-insulin overrides/day, started in reaction to a rising high (plant-sent)
+    ov_more_f: float = 1.33
+    ov_more_lo: float = float("nan")
+    ov_more_hi: float = float("nan")
+    ov_more_h: float = 1.0
+    p_more: float = 0.0                  # per qualifying awake minute (CGM > 180 and rising)
+    ov_tgt_day: float = 0.0              # target-only overrides/day (pre-meal when the target is lowered)
+    ov_tgt_lo: float = float("nan")
+    ov_tgt_hi: float = float("nan")
+    ov_tgt_h: float = 1.0
+    intake_cv: float = 0.22              # day-to-day CV of food eaten (Tarasuk & Beaton 1992; ~20% for carbohydrate)
+    intake_rho: float = 0.29             # next-day intake correlation (Levitsky 2017)
+    intake_comp: float = 1.0             # 24-h regulation of the day total across its eating events (1 = full) [J]
+    act_day_var: bool = True             # day-level gamma(3) on the activity rate (ablation switch)
+    p_topup: float = 0.0                 # planned top-ups per meal bolus (≤ 1: a chance; > 1: Poisson mean), each 20–60 min after the last
+    p_split: float = 0.0                 # P(a meal bolus is split: 60% at the entry, the rest 10–30 min later) [J split]
+    p_free_bolus: float = 0.0            # P(an un-entered eating event gets a hand-dosed bolus)
+    # monitoring and alerts
+    glances_per_day: float = 8.0         # Puhr 2020: <3.3 to >8.25 trend-screen views/day
+    low_alert: float = 75.0              # Akturk 2021: 74–78.5 mg/dL
+    urgent_low: float = 55.0
+    high_alert: float = 250.0
+    p_respond_alert: float = 0.8         # awake [J]
+    p_wake_alarm: float = 0.4            # asleep, per alarm (Buckingham 2005: 29% children / 53% adolescents)
+    p_wake_unaided: float = 1.0 / 16     # per low episode (Schultes 2007)
+    # defense
+    pro_onset: float = 60.0              # projected glucose (mg/dL) below which they act proactively (person draw N(60, 20), fitted to the donors' lows, LESSONS 409)
+    pro_grams: float = 12.0              # proactive snack size [J]
+    unl_mult: float = 1.0                # unlogged eating × this (unl_own: from the donor's far-from-meal unannounced load, LESSONS 449)
+    night_pro: bool = False              # woken by an alarm, the person may act proactively (LESSONS 442; on by default in World)
+    uls: bool = False                    # Dexcom Urgent Low Soon predictive alert (LESSONS 442; on by default in World)
+    pro_refractory: float = 45.0         # min
+    treat_thr: float = 70.0              # CGM level that triggers a rescue [J; alert 74–78]
+    treat_grams: float = 25.0            # lnN median; Savard 2016: 32 ± 24 g
+    treat_latency: float = 5.0           # min after seeing it
+    retreat_wait: float = 15.0
+    p_retreat: float = 0.34
+    p_log_pro: float = 0.25              # proactive (pre-emptive) carbs entered in the app [J share; donors log treatment
+                                         # carbs ~3.6x as often as the sim did (LESSONS 175)]
+    p_log_rescue: float = 0.25           # rescues entered in the app [J; was 0.05, "very under-represented" — Pete; LESSONS 175]
+    # corrections
+    corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
+    ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
+    ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
+    entry_size_b: float = 0.0            # main-meal entry chance × (grams / the person's usual meal)^b (experiment, LESSONS 289)
+    entry_b: float = 0.0                 # entry_size_own: the person's own size preference in what they enter — within each eating window and
+                                         # kind, entry chance ∝ (grams / the window's usual grams)^entry_b, the window's expected entries kept (LESSONS 491)
+    entry_norm: Optional[dict] = None    # (kind, window) -> (usual grams, normaliser), solved by World on a dry run of the plan
+    unent_split: bool = False            # an unentered, unbolused main meal eaten as ~20 g portions over 3 h (experiment, LESSONS 285)
+    course_p: float = 0.0                # experiment (LESSONS 320): P(unentered later course per logged main meal)
+    course_f: float = 0.3                # its size as a fraction of the meal
+    main_speed: float = 1.0              # experiment (LESSONS 319): main (solid) parcel emptying / absorption speed × this
+    count_shift: float = 0.0             # experiment (LESSONS 318): extra mean log under-entry at entered meals, intake unchanged
+    pro_glc: float = 0.3                 # 0.1 until 2026-10-19 (LESSONS 373). g glucose per g dietary protein (late parcel). Elleri 2013: the LG meal (+15 g protein,
+                                         # +22 g fat) appeared ~18 g beyond its carbohydrate, ~0.4-0.5 g/g (experiment, LESSONS 305)
+    ge_full_kcal: bool = False           # experiment (LESSONS 305): the meal's whole fat / protein energy on the main parcel
+    unent_light: bool = False            # a main meal eaten unentered and unbolused carries snack composition (experiment, LESSONS 284)
+    corr_trend: bool = True              # correction hazard weighted by the CGM trend, donors' measured ratios (LESSONS 237; default 2026-10-19)
+    p_correct: float = 0.002             # per awake minute above the correction level (exposure-sized from the donor)
+    corr_over_share: float = 0.0         # with corr_own: share of corrections dosed BEYOND Loop's recommendation (donor lone boluses:
+                                         # median 0.29; 39% given when Loop recommended ~0; LESSONS 223)
+    corr_own: bool = False               # switch for the two traits above
+    corr_size_own: bool = True           # corrections at the donor's own dialled size: max(recommendation, U), U ~ lnN(corr_u_med,
+                                         # corr_u_lsd) from their lone boluses (median 1.45 U; LESSONS 224)
+    corr_u_med: float = 1.0
+    stack_own: bool = False              # bolus stacking: a no-entry follow-up 2-30 min after a user bolus while CGM is above the
+                                         # correction level and rising, at the donor's share per bolus (median 0.03; LESSONS 226)
+    stack_p: float = 0.0
+    corr_u_lsd: float = 0.8
+    corr_over_u: float = 1.0             # median extra units beyond the recommendation on those (donor median 1.0 U)
+    corr_wait: float = 10.0              # min since their last bolus: donors give 26% of no-entry boluses within 20 min of the
+                                         # previous one and 66% within 120 (44,777 boluses); the earlier 120 [J] forbade them (LESSONS 64)
+    # exercise (T1DEXI is an active cohort; scale down)
+    ex_per_week: float = 2.0
+    ex_minutes: float = 40.0
+    ex_intensity: float = 0.5            # fraction of max effort above rest
+    ex_anaerobic: float = 0.1
+    ex_hour: float = 17.5
+    p_ex_carbs: float = 0.3
+    ex_carbs: float = 15.0
+    # everyday activity (walks, errands, chores) as episodes, plus a waking background (evidence/10 §7; LESSONS 34)
+    act_rate: float = 2.0                # episodes/day (person; T1DEXI ~0.8 logged ≥15-min sessions + shorter unlogged)
+    act_dur: float = 18.0                # min, lnN median; σ_log 0.75, truncated 5–150
+    metmax: float = 9.0                  # T1D adults VO2max 32 ± 9 mL/kg/min → METmax ≈ 9 (Muñoz-Hernandez 2025)
+    act_bg: float = 0.06                 # waking background intensity [J; NHANES light-activity minutes]
+    act_gain: float = 1.0                # responsiveness of glucose to activity (lnN σ 0.5; Jaloli)
+    act_after_meal: float = 0.4          # share of episodes starting 10–120 min after eating [J; not found]
+    # grazing: small unlogged intake below the ice labeler's 12 g-eq gate (drinks, bites) (COMPONENTS F9) [J]
+    graze_per_day: float = 2.0
+    graze_g: float = 6.0
+    # site changes
+    site_days: float = 3.0
+    site_hour: float = 19.5
+
+
+# no-entry user boluses per hour at CGM 180–280, by 30-min trend (falling < −10 / flat / +10–30 / > +30 mg/dL): donors
+# 0.043 / 0.085 / 0.167 / 0.301 (`corr_hazard.py`, 160 donors) — people correct on a rising arrow (trend-arrow dosing guidance,
+# Aleppo 2017, Pettus & Edelman 2017). Relative to flat 0.50 / 1 / 1.96 / 3.52, renormalised to mean 1 over the sim's own
+# exposure at those trends (1173 / 1105 / 945 / 870 h, c254) so each person's correction rate stays their donor's (LESSONS 237)
+CORR_TREND_W = (0.31, 0.62, 1.21, 2.18)
+
+
+def _corr_trend_w(d30: float) -> float:
+    return CORR_TREND_W[0] if d30 < -10 else CORR_TREND_W[1] if d30 < 10 else CORR_TREND_W[2] if d30 < 30 else CORR_TREND_W[3]
+
+
+def _num(rates, k):
+    v = rates.get(k, np.nan)
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        return np.nan
+    return v if np.isfinite(v) else np.nan
+
+
+POOLED_ESTIMATE_RATIO = 0.77      # ice pilot median entered grams per pulse g-eq (pulse/entered 1.30, ice L54)
+
+
+def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
+    """Literature priors (evidence/04), replaced by the person's own MEASURED behavior wherever the
+    donor template carries it (ice pilot meals tables: pulses, entries, boluses, corrections, rescues)."""
+    rates = person.traits.get("template_rates", {})
+    lj = lambda mu, sd: float(np.exp(rng.normal(math.log(mu), sd)))
+    mpd = _num(rates, "meals_per_day")
+    snack_rate = max(0.3, mpd - 3.0 - float(person.traits.get("snack_minus", 0.0))) if np.isfinite(mpd) else lj(1.2, 0.4)
+    n_eat = 3.0 + snack_rate
+    # rates from the RAW record where present (templates.add_raw_rates; LESSONS 36): the ice-labeled entry count
+    # keeps only entries attached to a labeled pulse (2.07 vs 2.97/day)
+    entries = _num(rates, "entries_raw")
+    if not np.isfinite(entries): entries = _num(rates, "carb_entries_per_day")
+    if np.isfinite(entries):
+        p_meal = float(np.clip(entries / 3.0, 0.0, 1.0))
+        p_snack = float(np.clip((entries - 3.0 * p_meal) / max(snack_rate, 0.1), 0.0, 1.0))
+    else:
+        p_meal = float(rng.uniform(0.2, 0.9)); p_snack = p_meal * 0.4
+    er = _num(rates, "estimate_ratio")
+    # person-level carb-count bias from the literature (Brazeau 2013: 63% under-estimated, ±9.7% per person). The
+    # donor's labeled entered/pulse ratio is NOT a count bias: the labeler alone spreads per-person medians by ~0.46
+    # log-sd (sim: 0.67 labeled vs 0.49 true), which is all of the donors' 0.45 (LESSONS 35)
+    count_bias = float(rng.normal(-0.10, 0.10))
+    lead = _num(rates, "bolus_lead_min")
+    if np.isfinite(lead):
+        timing = "before" if lead < -5 else "immediate" if lead < 1 else "during" if lead < 15 else "after"
+    else:
+        timing = str(rng.choice(["before", "immediate", "during", "after"], p=[0.21, 0.44, 0.10, 0.25]))
+    pb = _num(rates, "p_bolus_ann")
+    be_raw, lone_raw, top_raw = _num(rates, "bolus_entry_raw"), _num(rates, "lone_raw"), _num(rates, "topups_raw")
+    p_split = 0.0
+    if np.isfinite(be_raw) and np.isfinite(entries) and entries > 0:
+        k = be_raw / entries                      # boluses per entry (donors: 1.09 median, 1.22 mean)
+        pb = float(np.clip(k, 0.05, 1.0))
+        p_split = float(np.clip(k - 1.0, 0.0, 1.0))   # the excess: a second bolus for the same meal (LESSONS 47)
+    corr_rate = _num(rates, "true_corrections_per_day")
+    if not np.isfinite(corr_rate): corr_rate = _num(rates, "corrections_per_day")
+    free = _num(rates, "free_boluses_per_day")
+    if np.isfinite(lone_raw):
+        # the raw lone-bolus rate, split into hand-dosed food and corrections by the donor's own labeled split
+        fr = free / (free + corr_rate) if np.isfinite(free) and np.isfinite(corr_rate) and free + corr_rate > 0 else 0.5
+        free, corr_rate = lone_raw * fr, lone_raw * (1 - fr)
+    # planned top-ups execute only when the meal is running high (~38% of plans, measured on simulated people), so the
+    # plan rate is the donor's realized rate / 0.38 (LESSONS 42)
+    # expected planned top-ups per meal bolus (several for donors who chain small boluses: 24% of donors exceed one per
+    # meal after the 0.38 realization; LESSONS 64), capped at 6
+    # realization share re-measured on the current base (c240): 0.485 (was 0.38 from LESSONS 42; LESSONS 216)
+    p_topup = float(np.clip(top_raw / be_raw / 0.485, 0.0, 6.0)) if np.isfinite(top_raw) and np.isfinite(be_raw) and be_raw > 0 else 0.0
+    unentered = max(n_eat - (entries if np.isfinite(entries) else n_eat * p_meal), 0.5)
+    p_free = float(np.clip(free / unentered, 0.0, 1.0)) if np.isfinite(free) else 0.0
+    ub = _num(rates, "user_boluses_per_day")
+    if not np.isfinite(corr_rate) and np.isfinite(ub):
+        corr_rate = max(0.0, ub - entries) if np.isfinite(entries) else ub / 2
+    cbg = _num(rates, "corr_bg_med")
+    corr_exp = _num(rates, "corr_exposure")
+    tir_d, t70_d = _num(rates, "tir"), _num(rates, "t70")
+    hi_frac = max((100 - tir_d - t70_d) / 100, 0.05) if np.isfinite(tir_d) and np.isfinite(t70_d) else 0.25
+    rsz = _num(rates, "rescue_size_med")
+    rbg = _num(rates, "rescue_bg_med")
+    t = BehaviorTraits(
+        bed=float(rng.normal(23 * 60, 50)), wake=float(rng.normal(7 * 60, 50)),
+        snack_rate=snack_rate, carbs_day=person.truth["carbs_g_day"], bw=float(getattr(person, "bw", 75.0)),
+        p_entry_meal=p_meal, p_entry_snack=p_snack,
+        count_bias=count_bias, count_sd=lj(0.3, 0.3),
+        bolus_timing=timing, lead_med=float(lead - 2.0) if np.isfinite(lead) else float("nan"),
+        p_bolus_with_entry=float(np.clip(pb, 0.05, 1.0)) if np.isfinite(pb) else 0.85,
+        p_free_bolus=p_free, p_topup=p_topup, p_split=p_split,
+        glances_per_day=lj(6.0, 0.6),
+        low_alert=float(rng.normal(76, 8)), high_alert=float(rng.normal(240, 25)),
+        p_wake_alarm=float(np.clip(rng.normal(0.72, 0.2), 0.05, 0.98)),   # mean 0.45 -> 0.72: donors' night rescue timing and low duration (Buckingham 2005 measured children and adolescents; the mostly adult donors set it; LESSONS 274)
+        pro_onset=float(rng.normal(60, 20)), pro_grams=lj(12, 0.4),   # onset 80 -> 60: fitted to the donors' lows (LESSONS 409; was [J])
+        treat_thr=float(np.clip(rbg - 5, 55, 85)) if np.isfinite(rbg) else float(rng.normal(70, 6)),
+        treat_grams=float(np.clip(rsz, 8, 60)) if np.isfinite(rsz) else lj(25, 0.5),
+        treat_latency=lj(5, 0.6), p_retreat=float(np.clip(rng.normal(0.34, 0.1), 0, 1)),
+        corr_thr=float(np.clip((cbg - 20) + (_num(rates, 'corr_thr_adj') if np.isfinite(_num(rates, 'corr_thr_adj')) else 0.0), 120, 320)) if np.isfinite(cbg) else float(rng.normal(200, 30)),
+        # a qualifying glance corrects with this chance; sized so the person's measured rate is reachable
+        # [J: ~4 qualifying glances a day for a person who runs high; refined by twin validation]
+        # hazard per qualifying awake minute: the donor's rate over the donor's own waking exposure above THEIR
+        # correction level (templates.add_corr_exposure), divided by the share of those minutes that pass the
+        # not-falling / no-recent-bolus conditions (0.46, measured on simulated people; LESSONS 42)
+        # / 0.64: a share of intended corrections deliver 0 U (Loop's recommendation already covered by IOB); sized
+        # so the realized lone-bolus rate reaches the donor's (LESSONS 47)
+        corr_over_share=float(_num(rates, 'corr_over_share')) if np.isfinite(_num(rates, 'corr_over_share')) else 0.0,
+        corr_u_med=float(_num(rates, 'corr_u_med')) if np.isfinite(_num(rates, 'corr_u_med')) else 1.0,
+        stack_p=float(_num(rates, 'stack_p')) if np.isfinite(_num(rates, 'stack_p')) else 0.0,
+        corr_u_lsd=float(_num(rates, 'corr_u_lsd')) if np.isfinite(_num(rates, 'corr_u_lsd')) else 0.8,
+        corr_over_u=float(_num(rates, 'corr_over_u')) if np.isfinite(_num(rates, 'corr_over_u')) else 1.0,
+        # × the person's lone-bolus calibration (LESSONS 225): iterated so their lone boluses/day match the donor's
+        p_correct=float(np.clip(corr_rate / (16 * 60 * (corr_exp if np.isfinite(corr_exp) else hi_frac) * 0.46 * 0.64)
+                                * (_num(rates, 'corr_p_mult') if np.isfinite(_num(rates, 'corr_p_mult')) else 1.0), 0.0, 0.1))
+                  if np.isfinite(corr_rate) else float(rng.uniform(0.0005, 0.005)),
+        ex_per_week=float(rng.choice([0, 0.5, 1, 2, 3, 4, 5], p=[0.2, 0.1, 0.15, 0.2, 0.15, 0.1, 0.1])),
+        ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
+        ex_anaerobic=float(np.clip(rng.beta(1.2, 6), 0, 1)), ex_hour=float(rng.choice([7.0, 12.5, 17.5, 19.0])),
+        site_days=float(np.clip(rng.normal(3.0, 0.4), 2.0, 4.0)),
+        act_rate=lj(2.0, 0.55), metmax=float(np.clip(lj(9.0, 0.25) * (1 - 0.0075 * max(0.0, person.age - 30)), 4.0, 16.0)),
+        act_bg=lj(0.06, 0.4), act_gain=lj(1.0, 0.5),
+        # unlogged small intake (drinks, sweets): 5–15 g each (Piernas & Popkin 2010: 97% of adults snack daily, 24% of
+        # energy; Groat 2017: carbs logged on 77% of pump-user days); per-person rate heavy-tailed, a minority grazes a lot
+        # (Pete 2026-10-16) — donors' daytime quiet-window changes skew upward +0.76 vs the sim's −0.12 at 6 g (LESSONS 78)
+        graze_per_day=lj(2.0, 1.0), graze_g=lj(10.0, 0.4),
+    )
+    for k in ("ov_less_day", "ov_less_f", "ov_less_lo", "ov_less_hi", "ov_less_h", "ov_tgt_day", "ov_tgt_lo", "ov_tgt_hi", "ov_tgt_h",
+              "ov_more_day", "ov_more_f", "ov_more_lo", "ov_more_hi", "ov_more_h"):
+        v = _num(rates, k)
+        if np.isfinite(v) or k.endswith(("_lo", "_hi")):
+            setattr(t, k, v if np.isfinite(v) else (0.0 if k.endswith("_day") else getattr(t, k)))
+    # more-insulin overrides react to a rising high (donors: started at ~210, +11 per 20 min; LESSONS 40): a hazard per
+    # awake minute with CGM > 180 and rising, sized over the donor's waking time above 180 × ~0.4 rising [J share]
+    if t.ov_more_day > 0:
+        t.p_more = float(np.clip(t.ov_more_day / (16 * 60 * max(hi_frac, 0.05) * 0.4), 0.0, 0.05))
+    fs, fl, ss, sl = (_num(rates, k) for k in ("abs_fast_s", "abs_fast_l", "abs_slow_s", "abs_slow_l"))
+    if np.isfinite(fs) or np.isfinite(fl):
+        t.abs_fast = (float(fs) if np.isfinite(fs) else float(fl), float(fl) if np.isfinite(fl) else float(fs))
+        t.abs_slow = (float(ss) if np.isfinite(ss) else float(sl), float(sl) if np.isfinite(sl) else float(ss))
+    lsd = _num(rates, "meal_size_logsd")
+    if np.isfinite(lsd): t.meal_cv = float(np.clip(lsd, 0.2, 0.9))
+    # main meals by the donor's own windows (templates.add_slot_rates; LESSONS 51): the breakfast / lunch / dinner
+    # split of eaten grams, and each meal's chance of a carb entry scaled by how the donor announces that window
+    # relative to their own average (the overall entry rate stays the donor's)
+    sg, sa = rates.get("slot_g"), rates.get("slot_ann")
+    if isinstance(sg, str):
+        import json as _json
+        g = np.array(_json.loads(sg), dtype=float)
+        lr = rates.get("slot_lr")
+        if person.traits.get("slot_true", False) and isinstance(lr, str):
+            # window g-eq → window grams: divide by the donor's own labeled-per-entered-gram ratio there (LESSONS 231)
+            _lr = np.array(_json.loads(lr), dtype=float)
+            if np.isfinite(_lr).all() and (_lr > 0).all(): g = g / _lr
+        if np.isfinite(g).all() and g.sum() > 0: t.slot_shares = tuple(float(x) for x in g / g.sum() * 0.86)
+    if isinstance(sa, str):
+        import json as _json
+        a = np.array(_json.loads(sa), dtype=float)
+        if np.isfinite(a).all() and a.mean() > 0:
+            t.slot_ann = tuple(float(x) for x in a / a.mean())
+            if np.isfinite(entries):
+                # the per-meal chance caps at 1, so the snacks carry whatever the main meals no longer take
+                main = sum(min(1.0, t.p_entry_meal * x) for x in t.slot_ann)
+                t.p_entry_snack = float(np.clip((entries - main) / max(snack_rate, 0.1), 0.0, 1.0))
+    ck = [_num(rates, k) for k in ("clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd")]
+    if any(np.isfinite(ck)):
+        t.meal_clock = tuple(float(x) for x in ck)          # NaN pairs fall back to the population draw
+    uh = rates.get("unann_hours")
+    if isinstance(uh, str):
+        import json as _json
+        _u = np.array(_json.loads(uh), dtype=float)
+        if _u.sum() > 0: t.unann_hours = _u / _u.sum()
+    mh = rates.get("meal_hours")
+    if isinstance(mh, str):
+        import json as _json
+        h = np.array(_json.loads(mh), dtype=float)
+        if h.sum() > 0: t.snack_hours = h / h.sum()
+        eh = rates.get("entry_hours")
+        if isinstance(eh, str) and h.sum() > 0:
+            # entry chance by hour ∝ entries / eating at that hour, normalised to mean 1 over the snack clock, so the
+            # person's overall snack-entry rate is unchanged (LESSONS 123)
+            e = np.array(_json.loads(eh), dtype=float); hs = h / h.sum()
+            ratio = np.where(hs > 0.004, e / np.maximum(hs, 1e-9), 0.0)
+            norm = float((ratio * hs).sum())
+            if norm > 0: t.snack_entry_w = tuple(float(x) for x in np.clip(ratio / norm, 0.0, 4.0))
+            if person.traits.get("entry_split", False):
+                # experiment (LESSONS 280): the donor's own split of carb entries into main-meal entries (within 60 min of
+                # their meal clock) and snack entries (median 1.72 / 1.69 per day; snack entries peak 14-16 and 20-22 h,
+                # 25 g): p_entry_meal = meal entries / 3, at least as many snack occasions as snack entries, p_entry_snack =
+                # snack entries / snack occasions, and snacks half on the donor's snack-entry clock
+                me, se, seh = _num(rates, "meal_e_day"), _num(rates, "snack_e_day"), rates.get("snack_e_hours")
+                if np.isfinite(me) and np.isfinite(se):
+                    t.p_entry_meal = float(np.clip(me / 3.0, 0.0, 1.0)); t.slot_ann = (1.0, 1.0, 1.0)
+                    ew = rates.get("ent_win")
+                    if person.traits.get("entry_win", False) and isinstance(ew, str) and getattr(t, "slot_shares", None):
+                        # experiment (LESSONS 341): per-window entry chance so the twin's entered grams per window follow the
+                        # donor's carbs.json shares: chance ∝ entered share / eaten share, mean 1 (overall entry rate kept)
+                        e_ = np.array(_json.loads(ew), dtype=float); s_ = np.array(t.slot_shares, dtype=float)
+                        if np.isfinite(e_).all() and e_.sum() > 0 and (s_ > 0).all():
+                            q_ = (e_ / e_.sum()) / (s_ / s_.sum()); q_ = np.clip(q_ / q_.mean(), 0.25, 3.0)
+                            t.slot_ann = tuple(float(x) for x in q_ / q_.mean())
+                    t.snack_rate = float(max(t.snack_rate, se)); t.p_entry_snack = float(np.clip(se / max(t.snack_rate, 0.1), 0.0, 1.0))
+                    if isinstance(seh, str):
+                        sh_ = np.array(_json.loads(seh), dtype=float)
+                        if sh_.sum() > 0: t.snack_hours = 0.5 * t.snack_hours + 0.5 * sh_ / sh_.sum()
+            if person.traits.get("snack_entry_hours", False) and e.sum() > 0:
+                # experiment (LESSONS 279): snacks on the donor's own carb-entry clock — where they log and bolus small
+                # snacks (afternoon and evening) — instead of the all-eating clock; the snack count is unchanged
+                t.snack_hours = e / e.sum()
+    if isinstance(sg, str) and getattr(t, "snack_hours", None) is not None and np.isfinite(g).all() and g.sum() > 0:
+        # the donor's window grams include their snacks, and snacks are placed on the donor's clock too: each main meal
+        # takes its window's share less the snack grams expected there (waking hours, weekday) (LESSONS 59)
+        hh = np.arange(24) + 0.5
+        wk, bd = t.wake / 60.0, (t.bed / 60.0) % 24
+        awake = (hh >= wk) & (hh < bd) if bd > wk else (hh >= wk) | (hh < bd)
+        sh = t.snack_hours * awake; sh = sh / sh.sum() if sh.sum() > 0 else t.snack_hours
+        pw = np.array([sh[(hh >= lo) & (hh < hi)].sum() for lo, hi in ((4, 10.5), (10.5, 15.5), (15.5, 22))])
+        M = 0.86 / 0.286 * t.main_weight
+        f = g / g.sum()
+        m = np.maximum(f * (M + t.snack_rate * pw.sum()) - t.snack_rate * pw, 0.05 * M)
+        m = m * M / m.sum()
+        t.slot_shares = tuple(float(x) for x in m * 0.286 / t.main_weight)
+    return t
+
+
+
+def _entry_window(minute: float) -> int:
+    """The eating window of a clock time: breakfast 4–10.5 h, lunch 10.5–15.5, dinner 15.5–22, night."""
+    h = (minute % DAY) / 60.0
+    return 0 if 4 <= h < 10.5 else 1 if h < 15.5 and h >= 10.5 else 2 if 15.5 <= h < 22 else 3
+
+
+def entry_norms(log: list, b: float) -> dict:
+    """entry_size_own (LESSONS 491): per (kind, window), the usual grams (median) and the normaliser n that keeps the
+    window's expected entries, Σ min(1, p·(g/m)^b / n) = Σ p, over a dry run of the person's plan. Missed boluses are
+    most common for small eating (PMC2827497); how steeply is the person's own trait, fitted to what they enter."""
+    out = {}
+    for key in {k for k, _, _ in log}:
+        g = np.array([x for k, x, _ in log if k == key], float); p = np.array([q for k, _, q in log if k == key], float)
+        if p.sum() <= 0 or len(g) < 3: continue
+        m = float(np.median(g)); w = p * (g / m) ** b; tgt = float(p.sum())
+        lo, hi = 1e-6, 1e6
+        for _ in range(80):
+            n = math.sqrt(lo * hi)
+            if np.minimum(1.0, w / n).sum() > tgt: lo = n
+            else: hi = n
+        out[key] = (m, math.sqrt(lo * hi))
+    return out
+
+
+@dataclass
+class Meal:
+    t: float
+    grams: float
+    kind: str                 # "meal" | "snack"
+    speed: float              # kabs multiplier
+    entered: Optional[float]  # grams entered in Loop (None = not announced)
+    entry_t: float
+    bolus: Optional[float]    # ratio of the calculator recommendation (None = no bolus)
+    fat: float = 0.0          # g
+    protein: float = 0.0      # g
+
+
+def _gev(r: np.random.Generator, mu: float, sigma: float, xi: float) -> float:
+    """One draw from a generalized extreme value distribution by inverse CDF (xi ≠ 0)."""
+    u = min(max(r.random(), 1e-12), 1 - 1e-12)
+    return float(mu + sigma / xi * ((-math.log(u)) ** (-xi) - 1.0))
+
+
+class Behavior:
+    """Call `minute(m, reading, state)` every minute. It returns a list of actions:
+        ("eat", Parcel)                       — into the body
+        ("carb", minute, grams, absorption_s) — a carb entry in Loop
+        ("bolus", minute, ratio)              — a manual bolus as ratio × Loop's recommendation
+        ("exercise", minute, minutes, intensity, anaerobic)
+        ("site_change", minute)
+    """
+
+    def __init__(self, traits: BehaviorTraits, person, rng: np.random.Generator):
+        self.t = traits
+        self.p = person
+        self.pe_log = None                 # entry_size_own dry run: (kind, window), grams, base entry chance per planned event
+        self.rng = rng
+        self.r_ff = np.random.default_rng(int(getattr(person, "seed", 0)) + 777)   # per-meal fast share; own stream
+        self.r_abs_entry = np.random.default_rng(int(getattr(person, "seed", 0)) + 911)   # entered absorption time
+        self.r_split2 = np.random.default_rng(int(getattr(person, "seed", 0)) + 3137)    # split second helpings
+        self.r_corr = np.random.default_rng(int(getattr(person, "seed", 0)) + 4241)      # corrections beyond the recommendation
+        self.r_stack = np.random.default_rng(int(getattr(person, "seed", 0)) + 4507)     # bolus stacking
+        self.r_exeat = np.random.default_rng(int(getattr(person, "seed", 0)) + 4813)     # eating kept out of exercise
+        self.r_exmet = np.random.default_rng(int(getattr(person, "seed", 0)) + 5003)     # session intensity (ex_mets)
+        self.ex_met_person = float(np.exp(np.random.default_rng(int(getattr(person, "seed", 0)) + 5011).normal(1.657, 0.357)))
+        self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
+        self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
+        self.r_usplit = np.random.default_rng(int(getattr(person, "seed", 0)) + 2851)     # unent_split portion times
+        self.r_course = np.random.default_rng(int(getattr(person, "seed", 0)) + 3119)     # unentered later course
+        self.r_drink = np.random.default_rng(int(getattr(person, "seed", 0)) + 1601)      # meal_drink draws
+        self.r_clock = np.random.default_rng(int(getattr(person, "seed", 0)) + 1709)      # own_clock meal times
+        self.r_logp = np.random.default_rng(int(getattr(person, "seed", 0)) + 2113)       # proactive logging draws
+        self.readings: list[tuple[float, float]] = []
+        self.planned: list = []                 # (minute, action) sorted
+        self.planned_day = -1
+        self.day_z = 0.0
+        self.overrides: list[dict] = []        # planned Temporary Overrides: start, end (min), factor, lo, hi
+        self.defense = True                     # rescues and proactive snacks (World's behavior_defense switch)
+        self.more_until = -1e9                  # a reactive more-insulin override is running until this minute
+        self.last_pro = -1e9
+        self.last_treat = -1e9
+        self.treat_check: Optional[float] = None
+        self.last_bolus = -1e9
+        self.last_alarm = -1e9
+        self.in_low = False
+        self.low_seen = False
+        self.next_site = (rng.uniform(0, traits.site_days) * DAY // DAY) * DAY + traits.site_hour * 60
+        self.log = []                           # ground truth of every behavior event
+
+    # ------------------------------------------------------------------ helpers
+    def _bolus_off(self, r: np.random.Generator) -> float:
+        """Minutes from eating start to the bolus. Always four draws (as the window table always took), so the default
+        reproduces earlier runs and a lead_own arm stays paired with it."""
+        t = self.t
+        w = {"before": r.uniform(-20, -5), "immediate": r.uniform(-3, 0),
+             "during": r.uniform(3, 15), "after": r.uniform(15, 45)}
+        if t.lead_own and np.isfinite(t.lead_med):
+            if t.lead_sd > 0:                                   # normal within-person spread, from the same draw
+                u = min(max((w["immediate"] + 3.0) / 3.0, 1e-6), 1 - 1e-6)
+                return t.lead_med + t.lead_sd * NormalDist().inv_cdf(u) + t.lead_shift
+            return t.lead_med + (w["immediate"] + 1.5) * 8 / 3 + t.lead_shift      # lead_med ± 4 min
+        return w[t.bolus_timing] + t.lead_shift
+
+    def _f_glucose(self) -> float:
+        """Bioavailability of fast glucose (tabs, juice): the person's calibrated per-gram meal value
+        × 1.25 — pure glucose vs mixed carbohydrate [J] — never a fixed 1.0, which on a small glucose
+        space made 1 g of rescue raise 13 mg/dL against 3–4 in Brodows 1984 (LESSONS 18)."""
+        return min(1.0, self.p.body.f * 1.25)
+
+    def minutes_to_bed(self, m: float) -> float:
+        """Minutes until tonight's bedtime (large when bedtime is far away or the person is asleep)."""
+        mm = m % DAY
+        wknd = int(m // DAY) % 7 in (5, 6)
+        bed = (self.t.bed + (self.t.weekend_shift / 2 if wknd else 0)) % DAY
+        d = (bed - mm) % DAY
+        return d
+
+    def asleep(self, m: float) -> bool:
+        mm = m % DAY
+        wknd = int(m // DAY) % 7 in (5, 6)
+        wake = self.t.wake + (self.t.weekend_shift if wknd else 0)
+        bed = self.t.bed + (self.t.weekend_shift / 2 if wknd else 0)
+        bed_mm = bed % DAY
+        if bed_mm > wake:                        # bed before midnight
+            return mm >= bed_mm or mm < wake
+        return bed_mm <= mm < wake
+
+    def trend(self) -> float:
+        """mg/dL/min over the last ~15 min of readings the person can see."""
+        r = self.readings[-4:]
+        if len(r) < 2: return 0.0
+        return (r[-1][1] - r[0][1]) / max(r[-1][0] - r[0][0], 1.0)
+
+    # ------------------------------------------------------------------ the day's plan (offense)
+    def plan_all(self, days: int, carb_scale_of=None):
+        """Plan every day up front, so the exported history and the plant's re-simulation see the same plan and
+        the Temporary Overrides that go with it can be written into the therapy timeline (LESSONS 40)."""
+        for d in range(days + 1):
+            self.plan_day(d, carb_scale_of(d) if carb_scale_of else 1.0)
+        self.planned_day = days
+
+    def _override(self, start: float, hours: float, factor: float, lo: float, hi: float):
+        r = self.rng
+        dur = 60.0 * float(np.clip(np.exp(r.normal(math.log(max(hours, 0.25)), 0.6)), 0.25, 12.0))
+        w = dict(start=start, end=start + dur, factor=factor)
+        if np.isfinite(lo) and np.isfinite(hi): w.update(lo=lo, hi=max(hi, lo))
+        self.overrides.append(w)
+
+    def plan_day(self, day: int, carb_scale: float = 1.0):
+        t, r = self.t, self.rng
+        base = day * DAY
+        wknd = day % 7 in (5, 6)
+        shift = t.weekend_shift if wknd else 0.0
+        slots = []
+        b = float(np.exp(r.normal(t.breakfast_mu, t.breakfast_sd))) * 60 + shift
+        main_w = t.main_weight
+        sB, sL, sD = t.slot_shares
+        skipped_b = False
+        if r.random() > t.skip_breakfast: slots.append(("meal", b, sB / 0.286 * main_w, 0))
+        else: skipped_b = True
+        if t.meal_gap_gev:
+            # Camerlingo 2021 (32 adults, 17,111 meals): breakfast→lunch GEV(μ 282.9, σ 79.98, ξ −0.32), lunch→dinner
+            # GEV(μ 374.9, σ 84.86, ξ −0.47) minutes. The negative shape bounds the late tail (LESSONS 96)
+            lunch = b + max(120.0, _gev(r, 282.9, 79.98, -0.32))
+            dinner = lunch + max(150.0, _gev(r, 374.9, 84.86, -0.47))
+        else:   # the original draw: Gumbel (ξ 0, a long late tail) × 0.9, no source
+            lunch = b + max(120.0, r.gumbel(282.9, 80.0) * 0.9)
+            dinner = lunch + max(150.0, r.gumbel(374.9, 85.0) * 0.9)
+        if t.own_clock and t.meal_clock is not None:
+            # the donor's own meal clock, on its own stream (the gap draws above were still taken: other draws stay
+            # paired). Within-person SDs include the labeler's onset noise (~0.45 h), so they are upper bounds [J]
+            bm, bs, lm, ls, dm, ds = t.meal_clock
+            rc = self.r_clock
+            zb, zl, zd = rc.normal(size=3)
+            b_new = (bm + bs * zb) * 60 + shift if np.isfinite(bm) and np.isfinite(bs) else b
+            lunch = max(b_new + 120.0, (lm + ls * zl) * 60 + shift) if np.isfinite(lm) and np.isfinite(ls) else max(b_new + 120.0, lunch)
+            dinner = max(lunch + 150.0, (dm + ds * zd) * 60 + shift) if np.isfinite(dm) and np.isfinite(ds) else max(lunch + 150.0, dinner)
+            if slots and slots[0][3] == 0: slots[0] = ("meal", b_new, slots[0][2], 0)
+        slots += [("meal", lunch, sL / 0.286 * main_w, 1), ("meal", dinner, sD / 0.286 * main_w, 2)]
+        n_snack = r.poisson(t.snack_rate)
+        sh = getattr(t, "snack_hours", None)
+        if sh is not None:
+            # the person's own eating clock (ice pulses by hour), over the hours they are awake: ~18% of donors'
+            # labeled pulses start 00–06, where donors' raw carb records show eating on 7% of nights against the
+            # simulated 48% (LESSONS 58) — rises the labeler reads as pulses are not all eating
+            awake = np.array([0.0 if self.asleep(base + h * 60 + 30) else 1.0 for h in range(24)])
+            sh_day = sh * awake
+            sh_day = sh_day / sh_day.sum() if sh_day.sum() > 0 else sh
+        for _ in range(n_snack):
+            if sh is not None:
+                st = (float(r.choice(24, p=sh_day)) + r.random()) * 60
+            else:
+                st = float(r.uniform(t.wake + 60, t.bed + 30))
+            slots.append(("snack", st + shift, 1.0, -1))
+        # daily intake is regulated over 24 h more tightly than per eating occasion: a day total T_d = carbs_day ×
+        # exp(z_d), z AR(1) across days (CV 0.22, ρ 0.29: within-person day-to-day carbohydrate CV ~20%, Tarasuk &
+        # Beaton 1992 and dietary-record studies; next-day intake r 0.29, Levitsky 2017), shared by the day's events in
+        # proportion to their drawn sizes with compensation exponent γ (1 = full 24-h regulation). Without it, simulated
+        # entered carbs/day had CV 0.52 (donors 0.40) and daily means no day-to-day persistence (LESSONS 39)
+        sd = math.sqrt(math.log(1 + t.intake_cv ** 2))
+        self.day_z = t.intake_rho * self.day_z + math.sqrt(1 - t.intake_rho ** 2) * float(r.normal(0, sd))
+        day_factor = math.exp(self.day_z - sd ** 2 / 2)
+        total_share = ((1 - t.skip_breakfast) * sB + sL + sD) / 0.286 * main_w + t.snack_rate
+        draws = [share * float(np.exp(r.normal(0, t.meal_cv) - t.meal_cv ** 2 / 2)) for _, _, share, _ in slots]
+        comp = (total_share / max(sum(draws), 1e-9)) ** t.intake_comp
+        # each event's grams and entry chance, before any of the day's entry draws (no RNG here)
+        G, PE = [], []
+        for (kind, mt, share, k), w in zip(slots, draws):
+            grams = t.carbs_day * carb_scale * day_factor * w / max(total_share, 1e-9) * comp
+            if t.skip_drop and skipped_b:
+                # the day's regulation renormalises meals to the day total, so a skip is dropped here explicitly:
+                # the other meals keep the size they would have had with breakfast eaten (LESSONS 183)
+                full_share = (sB + sL + sD) / 0.286 * main_w + t.snack_rate
+                grams *= (full_share - sB / 0.286 * main_w) / max(full_share, 1e-9)
+            grams = max(3.0, grams)
+            p_e = min(1.0, t.p_entry_meal * t.slot_ann[k]) if kind == "meal" else t.p_entry_snack
+            if t.entry_size_b > 0 and kind == "meal":
+                # experiment: a bigger meal is likelier to be entered (missed boluses are most common for small eating,
+                # PMC2827497); the donors' evening entries track their night insulin, the twins' did not (LESSONS 288–289)
+                ref_g = t.carbs_day * carb_scale * float(np.mean([sh_ for kd_, _, sh_, _ in slots if kd_ == "meal"])) / max(total_share, 1e-9)
+                p_e = min(1.0, p_e * (grams / max(ref_g, 1.0)) ** t.entry_size_b)
+            if kind == "snack" and t.entry_clock and t.snack_entry_w is not None:
+                p_e = min(1.0, p_e * t.snack_entry_w[int(((mt + base) % DAY) // 60) % 24])
+            G.append(grams); PE.append(p_e)
+        if t.entry_b > 0:
+            for i, ((kind, mt, _, _), g_) in enumerate(zip(slots, G)):
+                key = (kind, _entry_window(mt + base))
+                if self.pe_log is not None: self.pe_log.append((key, g_, PE[i]))
+                elif t.entry_norm and key in t.entry_norm:
+                    gm, nz = t.entry_norm[key]
+                    PE[i] = min(1.0, PE[i] * (g_ / gm) ** t.entry_b / nz)
+        for (kind, mt, share, k), grams, p_e in zip(slots, G, PE):
+            speed = float(np.exp(r.normal(0, t.gi_cv)))
+            entered = None; bolus = None; et = base + mt
+            n_ov = len(self.overrides)
+            if r.random() < p_e:
+                err = t.count_bias + r.normal(0, t.count_sd) + _count_size_err(t, grams) + t.count_shift
+                entered = max(1.0, round(grams * math.exp(err)))
+                off = self._bolus_off(r)
+                et = base + mt + off
+                # a target-only override ahead of eating ("pre-meal") at the donor's rate per entry, when the donor's
+                # target-only overrides lower the target; raised-target ones go at random waking times below
+                if t.ov_tgt_day > 0 and np.isfinite(t.ov_tgt_lo) and t.ov_tgt_lo < 110 \
+                        and r.random() < min(1.0, t.ov_tgt_day / max(t.p_entry_meal * 3 + t.p_entry_snack * t.snack_rate, 0.1)):
+                    self._override(et - float(r.uniform(15, 60)), t.ov_tgt_h, 1.0, t.ov_tgt_lo, t.ov_tgt_hi)
+                if r.random() < t.p_bolus_with_entry:
+                    u = r.random()
+                    bolus = 1.0 if u > t.calc_up + t.calc_down else (float(r.uniform(1.1, 1.5)) if u < t.calc_up else float(r.uniform(0.5, 0.9)))
+            # announce_mult < 1 (frontier: people who announce less, settings unchanged): an entry the person would have
+            # made is dropped with probability 1 − announce_mult on its own stream, after every draw above, so the rest of
+            # the plan (and the paired arm's RNG) is unchanged. The meal is eaten unentered and unbolused, with no hand-dosed
+            # bolus in its place, and the pre-meal override that went with the entry is dropped too
+            dropped = False
+            if entered is not None and t.announce_mult < 1.0 and self.r_ann.random() >= t.announce_mult:
+                dropped = True; entered = None; bolus = None; et = base + mt
+                del self.overrides[n_ov:]
+            if entered is None and t.unl_mult != 1.0:
+                grams = max(3.0, grams * t.unl_mult)     # unl_own (LESSONS 449): the person's own amount of unlogged eating
+            # composition [J]: T1D adults ~40% energy carbohydrate, 40% fat, 18% protein (Snell-Bergeon 2009,
+            # unverified) → per carb gram ~0.44 g fat, 0.45 g protein for meals; snacks carry less
+            fat_r, pro_r = (0.44, 0.45) if kind == "meal" else (0.2, 0.2)
+            if t.macro_own:
+                # the person's own mix (Pete 2026-10-20: an individual trait): energy ≈ 30 kcal/kg [J]; carbohydrate takes its
+                # share from the person's eaten carbs (clipped 15–65%); the rest is fat : protein 69 : 31 by energy (T1D adults,
+                # n = 470: fat 75 g, protein 70 g/day; PMC11446970). At 40% carbohydrate this gives the cohort's 0.44 / 0.45
+                e_ = 30.0 * t.bw; ec = float(np.clip(4.0 * t.carbs_day, 0.15 * e_, 0.65 * e_)); cg = ec / 4.0
+                f_day, p_day = 0.69 * (e_ - ec) / 9.0 / cg, 0.31 * (e_ - ec) / 4.0 / cg
+                if kind == "meal": fat_r, pro_r = f_day, p_day
+                else: fat_r, pro_r = 0.2 * f_day / 0.44, 0.2 * p_day / 0.45
+            if t.unent_light and kind == "meal" and entered is None:
+                # experiment: what goes unentered is lighter food, as snacks are (missed boluses run highest for snacks,
+                # PMC2827497); tests whether the meal's fat / protein tail is what keeps unannounced rises up (LESSONS 284)
+                fat_r, pro_r = 0.2, 0.2
+            if t.slot_comp and kind == "meal" and k in (0, 1, 2):
+                # breakfasts are the most carbohydrate-heavy meal, dinners the most fat- and protein-heavy. Measured: Vetrani 2022
+                # (Diabetologia, doi:10.1007/s00125-021-05587-0, Table 1; 1,264 7-day-record meals, 25 adults on hybrid closed loop):
+                # fat / carbohydrate g 0.21 / 0.28 / 0.33, protein / carbohydrate 0.32 / 0.32 / 0.46 at breakfast / lunch / dinner,
+                # relative to the day's 0.29 / 0.37: fat 0.72 / 0.97 / 1.14, protein 0.86 / 0.86 / 1.24 (the earlier [J] 0.6 / 1.0 /
+                # 1.35 on both; LESSONS 170, 338)
+                fat_r *= (0.72, 0.97, 1.14)[k]; pro_r *= (0.86, 0.86, 1.24)[k]
+            fat = grams * fat_r * float(np.exp(r.normal(0, 0.5) - 0.125))
+            protein = grams * pro_r * float(np.exp(r.normal(0, 0.5) - 0.125))
+            second = None
+            if t.split_full and kind == "meal" and entered is not None and bolus is not None and grams >= 25 \
+                    and self.r_split2.random() < t.p_helping:
+                # a second helping: part of the same meal's grams, eaten ~13 min after the first and entered and bolused
+                # on its own (median 20 g in donors) [J lognormal spread]
+                g2 = min(float(np.exp(self.r_split2.normal(math.log(20.0), 0.5))), 0.6 * grams)
+                gap = float(np.clip(np.exp(self.r_split2.normal(math.log(13.0), 0.6)), 3.0, 40.0))
+                sh = g2 / grams
+                second = Meal(base + mt + gap, g2, kind, speed, max(1.0, round(entered * sh)), max(et, base + mt) + gap, 1.0,
+                              fat=fat * sh, protein=protein * sh)
+                grams -= g2; entered = max(1.0, round(entered * (1 - sh))); fat *= 1 - sh; protein *= 1 - sh
+            meal = Meal(base + mt, grams, kind, speed, entered, et, bolus, fat=fat, protein=protein)
+            n_pl = len(self.planned)
+            self.planned.append((base + mt, ("eat_meal", meal)))
+            if t.course_p > 0 and kind == "meal" and entered is not None and self.r_course.random() < t.course_p:
+                # experiment (LESSONS 320): an unentered later course (dessert, second helping, sweet drink) 30-60 min into a
+                # logged meal — extra intake the entry does not carry; composition as a snack
+                gc = grams * t.course_f; dtc = float(self.r_course.uniform(30.0, 60.0))
+                self.planned.append((base + mt + dtc, ("eat_meal", Meal(base + mt + dtc, gc, "snack", speed, None, base + mt + dtc, None,
+                                                                        fat=gc * 0.2, protein=gc * 0.2))))
+            if second is not None:
+                self.planned.append((second.t, ("eat_meal", second))); self.planned.append((second.entry_t, ("enter_meal", second)))
+            if entered is not None:
+                self.planned.append((et, ("enter_meal", meal)))
+            elif not dropped and r.random() < t.p_free_bolus:
+                # food dosed by hand: their own estimate of the grams over their own CR setting
+                est = grams * math.exp(t.count_bias + r.normal(0, t.count_sd) + (_count_size_err(t, grams) if t.count_size == "brazeau" else 0.0))
+                units = round(est / self.p.settings["cr"] * 2) / 2
+                off = self._bolus_off(r)
+                if units >= 0.5:
+                    self.planned.append((base + mt + off, ("free_bolus", units)))
+            if t.unent_split and kind == "meal" and entered is None and not dropped and grams >= 30 \
+                    and not any(x[1][0] == "free_bolus" for x in self.planned[n_pl:]):
+                # experiment: what goes unentered is eaten in small portions, not as one meal — the donors' unannounced
+                # rises last like the sim's < 24 g eating (LESSONS 285); same grams and composition, own RNG stream
+                k_ = int(max(2, round(grams / 20.0)))
+                ts_ = np.sort(self.r_usplit.uniform(0.0, 180.0, k_)); ts_[0] = 0.0
+                self.planned[n_pl] = (base + mt, ("eat_meal", Meal(base + mt, grams / k_, kind, speed, None, base + mt, None,
+                                                                  fat=fat / k_, protein=protein / k_)))
+                for dt_ in ts_[1:]:
+                    self.planned.append((base + mt + float(dt_), ("eat_meal", Meal(base + mt + float(dt_), grams / k_, kind, speed,
+                                                                                    None, base + mt + float(dt_), None,
+                                                                                    fat=fat / k_, protein=protein / k_))))
+        # everyday activity episodes (evidence/10 §7.2): day-level gamma noise (shape 3) on the person's rate; start
+        # times on the UK Biobank day profile (00–06 / 06–12 / 12–18 / 18–24: 0.04 / 0.34 / 0.39 / 0.23), awake only,
+        # a share after eating [J]; duration lnN(18 min, 0.75) in 5–150; intensity = (MET − 1)/(METmax − 1) × duty 0.7
+        # with MET lnN(3.0, 0.2) and 10% brisk episodes MET U(4.5, 6) (2024 Compendium; Pemberton 2025 mix)
+        eat_times = sorted(base + st for _, st, _, _ in slots)
+        day_act = r.gamma(3.0, 1 / 3.0)
+        n_act = r.poisson(t.act_rate * (day_act if t.act_day_var else 1.0))
+        for _ in range(n_act):
+            st = None
+            if eat_times and r.random() < t.act_after_meal:
+                st = float(r.choice(eat_times)) + float(r.uniform(10, 120))
+            else:
+                for _try in range(10):
+                    blk = int(r.choice(4, p=[0.04, 0.34, 0.39, 0.23]))
+                    cand = base + (blk * 6 + r.uniform(0, 6)) * 60
+                    if not self.asleep(cand): st = cand; break
+            if st is None: continue
+            dur = float(np.clip(np.exp(r.normal(math.log(t.act_dur), 0.75)), 5.0, 150.0))
+            met = float(r.uniform(4.5, 6.0)) if r.random() < 0.1 else float(np.exp(r.normal(math.log(3.0), 0.2)))
+            inten = float(np.clip((met - 1.0) / (t.metmax - 1.0), 0.05, 0.9)) * 0.7
+            self.planned.append((st, ("walk", st, dur, inten, 0.0)))
+            # a less-insulin override set ahead of the activity, at the donor's rate per episode
+            if t.ov_less_day > 0 and r.random() < min(1.0, t.ov_less_day / max(t.act_rate, 0.1)):
+                self._override(st - float(r.uniform(0, 30)), t.ov_less_h, t.ov_less_f, t.ov_less_lo, t.ov_less_hi)
+        # raised-target-only overrides (the donor's target-only windows sit at >= 110): random waking times [J timing]
+        if t.ov_tgt_day > 0 and np.isfinite(t.ov_tgt_lo) and t.ov_tgt_lo >= 110:
+            for _ in range(r.poisson(t.ov_tgt_day)):
+                self._override(base + float(r.uniform(t.wake, t.bed)), t.ov_tgt_h, 1.0, t.ov_tgt_lo, t.ov_tgt_hi)
+        # grazing: never entered, never bolused
+        for _ in range(r.poisson(t.graze_per_day)):
+            # on the person's own eating clock over waking hours, like snacks (evening-heavy for most donors), not uniform
+            # across the day [LESSONS 82]
+            pg = sh_day
+            if t.graze_unann and sh is not None and getattr(t, "unann_hours", None) is not None:
+                # grazes are never entered: on the donor's UNANNOUNCED pulse clock over waking hours, not the all-eating
+                # clock with its meal-time peaks (LESSONS 230)
+                ua = t.unann_hours * awake
+                if ua.sum() > 0: pg = ua / ua.sum()
+            if t.graze_eve and sh is not None:
+                # unlogged eating concentrates after dinner (donors' unannounced intake 1.5-5 h after dinner is 1.5x
+                # lunch's; LESSONS 170): evening hours 19-23 weighted x2 [J size], daily count unchanged
+                wv = np.ones(24); wv[19:23] = 2.0; pg = sh_day * wv; pg = pg / pg.sum()
+            st = (base + (float(r.choice(24, p=pg)) + r.random()) * 60 + shift) if sh is not None \
+                else base + float(r.uniform(t.wake + 30, t.bed)) + shift
+            gz = max(1.0, float(np.exp(r.normal(math.log(t.graze_g), 0.4)))) * t.unl_mult
+            if t.graze_keep < 1.0 and self.r_gz.random() >= t.graze_keep:
+                continue                                    # thinned on its own stream: every other draw stays paired
+            self.planned.append((st, ("graze", gz)))
+        # exercise
+        if r.random() < t.ex_per_week / 7.0:
+            st = base + (t.ex_hour * 60 + r.normal(0, 45)) + shift
+            dur = max(10.0, float(np.exp(r.normal(math.log(t.ex_minutes), 0.3))))
+            if t.ex_no_eat:
+                # people do not eat during a workout and eat after it: donors' carb entries during HealthKit workouts run
+                # at 0.18x the same clock hours' rate, in the hour after at 1.44x (eat_around_ex.py; LESSONS 244). Eating
+                # planned inside the session (meals, snacks, grazes) is deferred to its end + U(0, 20) min; a meal's entry
+                # and its bolus move with it (same delta), so the person's own timing around the meal is kept
+                re_ = self.r_exeat; end_ = st + dur
+                shift_of = {}
+                for i_, (tt, it_) in enumerate(self.planned):
+                    if it_[0] == "eat_meal" and st - 5 <= tt <= end_:
+                        mm = it_[1]; dlt = end_ + float(re_.uniform(0, 20)) - mm.t
+                        shift_of[id(mm)] = dlt; mm.t += dlt; mm.entry_t += dlt
+                        self.planned[i_] = (mm.t, it_)
+                    elif it_[0] == "graze" and st - 5 <= tt <= end_:
+                        self.planned[i_] = (end_ + float(re_.uniform(0, 20)), it_)
+                for i_, (tt, it_) in enumerate(self.planned):
+                    if it_[0] == "enter_meal" and id(it_[1]) in shift_of:
+                        self.planned[i_] = (it_[1].entry_t, it_)
+            it_ = t.ex_intensity
+            if t.ex_mets:
+                # session intensity from the donors' HealthKit workouts (LESSONS 247): the person's typical average METs
+                # lnN(1.657, 0.357) (29 donors, median 5.2, p10 / p90 3.4 / 8.6), each session ± N(0, 1.5) METs
+                # (within-donor SD), as %VO2-reserve on the person's METmax; own streams, other draws stay paired
+                rm_ = self.r_exmet
+                met = max(1.5, self.ex_met_person + float(rm_.normal(0, 1.5)))
+                it_ = float(np.clip((met - 1.0) / max(t.metmax - 1.0, 1.0), 0.1, 1.0))
+            self.planned.append((st, ("exercise", st, dur, it_, t.ex_anaerobic)))
+            if r.random() < t.p_ex_carbs:
+                self.planned.append((st - 10, ("ex_carbs", t.ex_carbs)))
+        self.planned.sort(key=lambda x: x[0])
+
+    # ------------------------------------------------------------------ per minute
+    def minute(self, m: float, reading, state: dict, carb_scale: float = 1.0) -> list:
+        acts = []
+        t, r = self.t, self.rng
+        day = int(m // DAY)
+        if day > self.planned_day:
+            self.plan_day(day, carb_scale); self.planned_day = day
+        while self.planned and self.planned[0][0] <= m:
+            _, (kind, *rest) = self.planned.pop(0)
+            if kind == "eat_meal":
+                meal = rest[0]
+                bp = self.p.body
+                # fat slows gastric emptying (Bell 2020, Paterson 2017): kempt × 1/(1 + fat/60)
+                phi_fat = 1.0 / (1.0 + meal.fat / 60.0)
+                kcal_g = 4.0 + (9.0 * meal.fat + 4.0 * meal.protein) / max(meal.grams, 1.0)
+                if bp.ge_kcal_max > 0:
+                    phi_fat = 1.0      # the energy ceiling carries fat's slowing (its kcal), so no separate factor
+                # gastric emptying slows as the stomach empties (Dalla Man 2007: kmax 0.056 → kmin 0.008 /min);
+                # the linear chain keeps the fast phase, a slow fraction carries the tail (LESSONS 27) [J size]
+                sf = t.meal_slow_frac
+                if sf > 0:
+                    acts.append(("eat", Parcel(m, meal.grams * sf, kempt=t.meal_slow_k * meal.speed, kabs=bp.kabs,
+                                               f=bp.f, label=meal.kind + "_tail")))
+                # the liquid part of a mixed meal empties first and fast (nutrient liquids: early delivery 3–8 kcal/min,
+                # glucose t½ ~9 min; Calbet 1997, Hunt 1985): a share of the carbohydrate bypasses the energy-limited
+                # solid phase [J share] (LESSONS 44)
+                ff = t.snack_fast_frac if (meal.kind == "snack" and t.snack_fast_frac >= 0) else t.meal_fast_frac
+                if t.meal_fast_sd > 0 and 0 < ff < 1:
+                    k = ff * (1 - ff) / t.meal_fast_sd ** 2 - 1
+                    if k > 0: ff = float(self.r_ff.beta(ff * k, (1 - ff) * k))
+                if t.meal_drink_p > 0 and meal.kind == "meal" and self.r_drink.random() < t.meal_drink_p:
+                    ff = t.meal_drink_share + (1 - t.meal_drink_share) * ff     # a sugary drink with the food (LESSONS 119)
+                if ff > 0:
+                    acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * ff, kempt=0.08 * meal.speed, kabs=0.08 * meal.speed,
+                                               f=bp.f, label=meal.kind + "_liquid", kcal_per_g=0.0)))
+                g_main = meal.grams * (1 - sf) * (1 - ff)
+                if t.ge_full_kcal and g_main > 0:
+                    # all of the meal's fat and protein energy sits in the stomach with its solid part: kcal_g above spreads
+                    # it over the whole meal's carbohydrate, so the main parcel (≈ 55% of the grams) carried only ≈ 55% of it
+                    # to the energy ceiling (Hunt & Stubbs 1975: per kcal, fat and protein slow emptying as carbohydrate; LESSONS 305)
+                    kcal_g = 4.0 + (9.0 * meal.fat + 4.0 * meal.protein) / g_main
+                ms_ = t.main_speed                       # experiment (LESSONS 319): the solid main parcel only; liquid share unchanged
+                acts.append(("eat", Parcel(m, g_main, kempt=bp.kempt * meal.speed * phi_fat * ms_, kabs=bp.kabs * meal.speed * ms_,
+                                           f=bp.f, label=meal.kind, kcal_per_g=kcal_g, speed=meal.speed)))
+                # protein → late glucose appearance: 0.1 g glucose per g protein, delayed ~90 min, peak 3–5 h
+                # (Smart 2013; Paterson 2017; evidence/01 §6.3); it is glucose, so fast-glucose bioavailability
+                if meal.protein > 0:
+                    acts.append(("eat", Parcel(m, t.pro_glc * meal.protein, kempt=1 / 60.0, kabs=1 / 60.0, delay=90.0,
+                                               f=self._f_glucose(), hypo_sensitive=False, label="protein", kcal_per_g=0.0)))
+                if meal.kind == "meal":
+                    acts.append(("ppr", m))          # post-meal insulin-action window (LESSONS 321)
+                if meal.fat > 0:
+                    acts.append(("fat", m, meal.fat))
+                self.log.append((m, meal.kind, meal.grams, meal.entered))
+            elif kind == "enter_meal":
+                meal = rest[0]
+                k = 0 if meal.entered <= 20 else 1
+                u = self.r_abs_entry.random()      # own stream: the other draws are unchanged
+                h = 0.5 if u < t.abs_fast[k] else 5.0 if u < t.abs_fast[k] + t.abs_slow[k] else t.absorption_entry_h
+                acts.append(("carb", m, float(meal.entered), h * 3600))
+                if meal.bolus is not None:
+                    if t.p_split > 0 and r.random() < t.p_split and not t.split_full:
+                        # two boluses on one entry: donors' second dose is about as big as the first (second/first median
+                        # 0.93, quartiles 0.42–2.0) a median 12 min later (10–90%: 2–26 min); 17,898 pairs. A planned
+                        # remainder in units, not a fresh recommendation, which was 0 U for 36% of remainders (LESSONS 54)
+                        ratio = float(np.exp(r.normal(math.log(0.93), 1.16)))
+                        f = 1.0 if t.split_full else 1.0 / (1.0 + ratio)
+                        acts.append(("bolus", m, f * meal.bolus))
+                        gap = float(np.clip(np.exp(r.normal(math.log(12.0), 0.8)), 2.0, 30.0))
+                        self.planned.append((m + gap, ("split_rest", m, ratio)))
+                        self.planned.sort(key=lambda x: x[0])
+                    else:
+                        acts.append(("bolus", m, meal.bolus))
+                    self.last_bolus = m
+                    k_top = int(r.poisson(t.p_topup)) if t.p_topup > 1 else int(r.random() < t.p_topup)
+                    tt = m
+                    for _ in range(k_top):
+                        tt += float(r.uniform(20, 60))
+                        self.planned.append((tt, ("topup",)))
+                    if k_top: self.planned.sort(key=lambda x: x[0])
+                self.log.append((m, "entry", meal.entered, meal.bolus))
+            elif kind == "walk":
+                acts.append(("exercise",) + tuple(rest)); self.log.append((m, "walk", rest[1], rest[2]))
+            elif kind == "graze":
+                bp = self.p.body
+                k = (0.08, 0.08) if t.graze_fast else (bp.kempt * 1.5, bp.kabs * 1.5)   # fast: liquid sugar, as rescues
+                # a fast graze is liquid sugar: like a meal's liquid share it empties outside the energy ceiling (LESSONS 158)
+                acts.append(("eat", Parcel(m, rest[0], kempt=k[0], kabs=k[1], f=self._f_glucose(), label="graze",
+                                           kcal_per_g=0.0 if t.graze_fast else 4.0)))
+                self.log.append((m, "graze", rest[0], None))
+            elif kind == "split_rest":
+                # the planned rest of a split meal bolus, in units of the first part (the world reads what was delivered);
+                # skipped if the person sees a low coming (CGM < 80) [J]
+                if not (self.readings and self.readings[-1][1] < 80):
+                    acts.append(("split_units", m, rest[0], rest[1]))
+                    self.last_bolus = m
+                self.log.append((m, "split_rest", 0, None))
+            elif kind == "topup":
+                # a top-up when the meal is running high: CGM above 120 and not falling [J on the condition]
+                if self.readings and self.readings[-1][1] > 120 and self.trend() >= 0:
+                    acts.append(("bolus", m, 1.0)); self.last_bolus = m
+                    self.log.append((m, "topup", 0, self.readings[-1][1]))
+            elif kind == "stack":
+                if self.readings and self.readings[-1][1] > t.corr_thr and self.trend() > 0:
+                    u_ = round(float(np.exp(self.r_corr.normal(math.log(max(t.corr_u_med, 0.1)), max(t.corr_u_lsd, 0.1)))) * 20) / 20
+                    acts.append(("bolus_min", m, u_)); self.last_bolus = m
+                    self.log.append((m, "stack", u_, self.readings[-1][1]))
+            elif kind == "free_bolus":
+                acts.append(("bolus_units", m, rest[0])); self.last_bolus = m
+                self.log.append((m, "free_bolus", rest[0], None))
+            elif kind == "exercise":
+                acts.append(("exercise",) + tuple(rest)); self.log.append((m, "exercise", rest[1], rest[2]))
+            elif kind == "ex_carbs":
+                acts.append(("eat", Parcel(m, rest[0], kempt=0.06, kabs=0.06, f=self._f_glucose(), label="ex_carbs")))
+                self.log.append((m, "ex_carbs", rest[0], None))
+        if m >= self.next_site:
+            acts.append(("site_change", m)); self.log.append((m, "site_change", 0, None))
+            self.next_site += t.site_days * DAY
+        if reading:                                  # a new reading (None = withheld, False = no report)
+            self.readings.append((m, reading))
+            if len(self.readings) > 12: self.readings.pop(0)
+        acts += self._defense_and_corrections(m, state)
+        if t.stack_own and t.stack_p > 0 and any(a[0] in ("bolus", "bolus_min", "bolus_units") for a in acts) \
+                and self.r_stack.random() < t.stack_p:
+            self.planned.append((m + float(self.r_stack.uniform(2, 30)), ("stack",))); self.planned.sort(key=lambda x: x[0])
+        return acts
+
+    def _defense_and_corrections(self, m: float, state: dict) -> list:
+        t, r = self.t, self.rng
+        if not self.readings: return []
+        cgm = self.readings[-1][1]
+        if m - self.readings[-1][0] > 15: return []          # nothing current to see
+        asleep = self.asleep(m)
+        acts = []
+        # correction: while awake and above the person's correction level (not falling, nothing bolused for
+        # corr_wait), a per-minute hazard sized so the donor's measured correction rate is reached over the
+        # donor's own time above 180 (LESSONS 26). The app shows CGM on the lock screen and alerts on highs,
+        # so this is not gated on a discrete glance.
+        # reactive more-insulin override (plant-sent; engine 14b2d58): a rising high while awake, one at a time
+        if not asleep and t.p_more > 0 and m >= self.more_until and cgm > 180 and self.trend() > 0 and r.random() < t.p_more:
+            dur = 60.0 * float(np.clip(np.exp(r.normal(math.log(max(t.ov_more_h, 0.25)), 0.6)), 0.25, 12.0))
+            ov = dict(start=m, end=m + dur, factor=t.ov_more_f)
+            if np.isfinite(t.ov_more_lo) and np.isfinite(t.ov_more_hi): ov.update(lo=t.ov_more_lo, hi=max(t.ov_more_hi, t.ov_more_lo))
+            acts.append(("override", ov)); self.more_until = m + dur
+            self.log.append((m, "override_more", t.ov_more_f, cgm))
+        if not asleep and cgm > t.corr_thr and self.trend() > -0.5 and m - self.last_bolus > t.corr_wait \
+                and r.random() < t.p_correct * (_corr_trend_w(self.trend() * 30.0) if t.corr_trend else 1.0):
+            if t.corr_size_own:
+                u_ = round(float(np.exp(self.r_corr.normal(math.log(max(t.corr_u_med, 0.1)), max(t.corr_u_lsd, 0.1)))) * 20) / 20
+                acts.append(("bolus_min", m, u_))
+            else:
+                acts.append(("bolus", m, 1.0))
+            self.last_bolus = m
+            if not t.corr_size_own and t.corr_own and t.corr_over_share > 0 and self.r_corr.random() < t.corr_over_share:
+                # a hand-dosed correction beyond what Loop recommends (the donor's own share and size)
+                extra = round(float(np.exp(self.r_corr.normal(math.log(max(t.corr_over_u, 0.1)), 0.6))) * 20) / 20
+                if extra >= 0.05: acts.append(("bolus_units", m, extra))
+            self.log.append((m, "correction", 0, cgm))
+            return acts
+        # what draws the person's attention this minute
+        alarm = False
+        if cgm <= t.urgent_low or (cgm <= t.low_alert and m - self.last_alarm >= 30):
+            alarm = m - self.last_alarm >= 15
+        # uls (default since 2026-10-20, LESSONS 442–443): Dexcom's predictive Urgent Low Soon alert — glucose projected to reach 55 mg/dL within
+        # 20 min (G6 / G7, on by default)
+        elif t.uls and "Dexcom" in str(getattr(self.p, "sensor", "")) and cgm + 20.0 * self.trend() <= t.urgent_low and m - self.last_alarm >= 30:
+            alarm = True
+        if alarm: self.last_alarm = m
+        if asleep:
+            looking = alarm and r.random() < t.p_wake_alarm
+            if not looking and cgm < 60 and not self.low_seen and r.random() < t.p_wake_unaided / 30:
+                looking = True
+        else:
+            looking = r.random() < t.glances_per_day / (16 * 60) or (alarm and r.random() < t.p_respond_alert)
+        if not looking and self.treat_check is None:
+            return acts
+        if not self.defense:
+            return acts
+        # rescue re-check
+        if self.treat_check is not None and m >= self.treat_check:
+            self.treat_check = None
+            if cgm < t.treat_thr + 10 and self.trend() <= 0.2 and r.random() < t.p_retreat / 0.5 * 0.5:
+                g = max(5.0, t.treat_grams * float(np.exp(r.normal(0, 0.3))))
+                acts.append(("eat", Parcel(m + t.treat_latency, g, kempt=0.08, kabs=0.08, f=self._f_glucose(), label="rescue")))
+                self.log.append((m, "retreat", g, None)); self.treat_check = m + t.retreat_wait
+            return acts
+        if not looking: return acts
+        self.low_seen = cgm < t.treat_thr
+        # rescue
+        if cgm < t.treat_thr and m - self.last_treat > 20:
+            g = max(5.0, t.treat_grams * float(np.exp(r.normal(0, 0.3))))
+            acts.append(("eat", Parcel(m + t.treat_latency, g, kempt=0.08, kabs=0.08, f=self._f_glucose(), label="rescue")))
+            if r.random() < t.p_log_rescue: acts.append(("carb", m, round(g), 1800.0))
+            self.last_treat = m; self.treat_check = m + t.treat_latency + t.retreat_wait
+            self.log.append((m, "rescue", g, cgm))
+            return acts
+        # proactive snack: projected glucose from what Loop shows (IOB) and the trend
+        # night_pro (default since 2026-10-20, LESSONS 442–443): someone an alarm has woken is awake and can act before the low, as the donors'
+        # night pre-emptive carbs do (onset p50 88 mg/dL, 0.22 per night vs the twins' 0.15)
+        if (not asleep or (t.night_pro and looking)) and m - self.last_pro > t.pro_refractory and m - self.last_treat > 30:
+            iob = float(state.get("iob", 0.0) or 0.0)
+            proj = cgm + 30 * self.trend() - self.p.settings["isf"] * max(iob, 0.0)
+            # the defense state ice measured (L34, L69): near the low band and not rising — a person at
+            # 220 with lots of IOB does not snack, however low the projection (LESSONS 11)
+            if proj < t.pro_onset and cgm < t.pro_onset + 50 and self.trend() <= 0.0:
+                g = max(3.0, t.pro_grams * float(np.exp(r.normal(0, 0.3))))
+                acts.append(("eat", Parcel(m + 2, g, kempt=0.06, kabs=0.06, f=self._f_glucose(), label="proactive")))
+                if t.p_log_pro > 0 and self.r_logp.random() < t.p_log_pro:
+                    acts.append(("carb", m, round(g), 1800.0))   # pre-emptive carbs entered in the app (LESSONS 175)
+                self.last_pro = m
+                self.log.append((m, "proactive", g, proj))
+                return acts
+        return acts
