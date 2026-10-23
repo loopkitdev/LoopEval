@@ -8008,3 +8008,16 @@ outputs in gamepc ~/additive/runs/c290–c312).
        "review before adding" — refitting the drifted components on their own evidence — before the two-draw comparison,
        not instead of it.
 
+500. **The twins logged treatment carbs at five times the donors' rate; logging 12% of rescues and proactive snacks is
+     adopted (both draws better, tier 1 included).**
+     - **Like for like** (`runs/2026-10-23-additive-falls/treat_log.py`: entries merged within 30 min, no user bolus within
+       ±30 min, CGM < 130 at entry): donors median 0.063 / mean 0.218 per day, twins at `p_log` 0.25 0.333 / 0.418. On
+       LESSONS 175's own measure (isolated entries ≥ 20 g with no bolus within ±30 min) the twins now run above the donors
+       too, 11.6% vs 7.6% (the proactive onset of L 409 raised the treatments since L 175 sized 0.25).
+     - The donors' raw entry rate (`entries_raw`) already counts their logged treatments, so the twins' logs came on top
+       of a full meal-entry rate: carb entries 3.42 / 3.88 vs 2.96.
+     - **`p_log_pro` = `p_log_rescue` 0.12** (lg12 / lg12_5k vs m_base / m_base5k): logged treatments 0.209 / 0.217 per
+       day (donors 0.218); carb entries 3.04 / 3.67 (gaps 0.28 → 0.09, 0.50 → 0.38); score 0.380 → 0.371, 0.428 → 0.413;
+       tier 1 0.245 → 0.237, 0.313 → 0.278; t54 0.186 / 0.204, lows 0.92 / 1.00 per day. Component review: every target
+       unchanged within noise. **Default.** New reference lg12 / lg12_5k (scored jointly 0.371 / 0.400).
+

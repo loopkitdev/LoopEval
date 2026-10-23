@@ -159,9 +159,10 @@ class BehaviorTraits:
     treat_latency: float = 5.0           # min after seeing it
     retreat_wait: float = 15.0
     p_retreat: float = 0.34
-    p_log_pro: float = 0.25              # proactive (pre-emptive) carbs entered in the app [J share; donors log treatment
+    p_log_pro: float = 0.12              # 0.25 until 2026-10-23: sized on the donors' logged treatments like for like (LESSONS 500)
+                                         # proactive (pre-emptive) carbs entered in the app [donors log treatment
                                          # carbs ~3.6x as often as the sim did (LESSONS 175)]
-    p_log_rescue: float = 0.25           # rescues entered in the app [J; was 0.05, "very under-represented" — Pete; LESSONS 175]
+    p_log_rescue: float = 0.12           # rescues entered in the app (LESSONS 500; 0.25 since LESSONS 175, 0.05 before)
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
