@@ -799,3 +799,34 @@ def add_ex_timing(path: str, life_blocks: str, ice_root: Path = Path.home() / ".
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_sleep_mid(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32", window_h: float = 7.0):
+    """The donor's sleep midpoint (`sleep_mid_h`, local hours) from their own record (LESSONS 499): user actions (carb entries
+    and manual boluses >= 0.05 U) in 10-min bins of the local day over the export, and the midpoint of the circular
+    `window_h` window with the fewest. Pilot donors: median 3.8 h (p10 / p90 2.8 / 5.8); the prior bed 23 / wake 7 puts it
+    at 3.0."""
+    import numpy as np
+    from . import lifestats as L
+    from .quiet import local_offset, to_local
+    t = pd.read_csv(path)
+    out = []
+    w = int(round(window_h * 6))
+    for a in t.alias:
+        row = dict(alias=a)
+        try:
+            off = local_offset(a, ice_root)
+            s = pd.read_parquet(ice_root / "steps" / f"{a}.parquet", columns=["t1", "bolus_manual_u", "carbs_g"])
+            m = L._mins(to_local(s.t1, off))
+            act = m[(s.bolus_manual_u.to_numpy(float) > 0.05) | (s.carbs_g.fillna(0).to_numpy(float) > 0)]
+            if len(act) >= 50:
+                h = np.bincount(((act % 1440) // 10).astype(int), minlength=144).astype(float)
+                c = np.array([np.take(h, range(i, i + w), mode="wrap").sum() for i in range(144)])
+                row["sleep_mid_h"] = float(((int(np.argmin(c)) + w / 2) * 10 / 60) % 24)
+        except Exception:
+            pass
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
