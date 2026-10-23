@@ -1313,3 +1313,23 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     outside noise, and the t<54 gain is not. The remaining closed-loop persistence (about 4 against the field's 2.76) has to
     come from elsewhere in the closed loop: behavior and defense responses, or how the model's state feeds back. Damping
     the background past what keeps the level does not reach it.
+136. **A closed-loop low-response kernel brings held-out lows to the field without a TIR cost, but does not improve change
+    prediction; held as a candidate, not the base.** Event average on held-out clean time after glucose enters < 70 (from
+    >= 70), base v32of{0,1}TcB2FGUCGLBGGSKa: total ICE at 15 / 30 / 45 / 60 min 105 / 146 / 120 / 81 mg/dL/h (field) vs
+    79-83 / 82-87 / 76-85 / 67-69 (generated), glucose at 60 min 132 vs 96-99. Same-step background ICE by glucose band
+    matches the field in every band (calibrate_closed_bg on the train-window rollouts: shifts within +-6 above 60), so the
+    gap is the time course: the defense ramp follows projected glucose and stops once Loop's suspension lifts the
+    projection, while a rescue, once eaten, absorbs for an hour. Generated background rises about 62 at 15 min and fades;
+    its pulses build to about 33 by 45 min. After a crossing of 250 the generated ICE runs about 10-20 above the field for
+    3 h (glucose 200-206 vs 182 at 3 h), the smaller gap. calibrate_low_kernel.py (runs/2026-10-09-ice-gen-v1/): field
+    minus generated total ICE after each entry, 2 h refractory, from the 28 days before the hold-out; both trainings agree
+    (+44 / +41 and +54 / +38 at 30 / 45 min, zero after 60 min; area 25 / 21 mg/dL). The plant adds it after feedback
+    (plant_v3 calib_low_kernel). Held-out clean time, of0 / of1 (base 73.4 / 72.5, 1.57 / 1.50, 0.24 / 0.16, 152 / 153;
+    field 74.1 / 0.86 / 0.12 / 152): TIR 74.5 / 72.9, t<70 1.14 / 1.32, t<54 0.13 / 0.10, mean 153 / 153; glucose at 60
+    min after a low 118 / 113; per-person pass t<54 25 -> 50% / 46 -> 62%, TIR 29 -> 33% / 21 -> 25%, insulin 33 -> 21%
+    / 33 -> 29%. Persistence barely moves (3 h bgice vt 4.81 -> 4.69 / 4.72 -> 4.49; sd ratio 1.14 -> 1.11 / 1.13). Change
+    test, ensemble (base): TIR r 0.21 (0.27; paired bootstrap of the change, 90% -0.12 to -0.00), t<70 0.57 (0.55), t<54
+    0.29 (0.26; Spearman 0.38 vs 0.40), mean 0.28 (0.32). The ensemble's predicted changes correlate 0.94 / 0.89 / 0.65 /
+    0.98 with the base's: a state-triggered rescue moves the level of lows, and both arms of an edit carry it. Better
+    absolute fidelity on the primary safety metric, change prediction level to slightly worse; which one the base serves
+    is Pete's call. Checkpoints icegen_v32of{0,1}TcB2FGUCGLBGGSKaLK.pt on both machines.
