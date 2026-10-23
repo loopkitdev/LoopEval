@@ -1286,3 +1286,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     0.67, and with 62 edits r has a standard error near 0.12, so variants within about 0.15 of each other cannot be told
     apart on this test. Only 5 of the 70 screened edits fall on the 38 untrained pilot donors; a sharper test needs more
     edits (a wider donor pull) or longer windows, not more seeds.
+134. **A level band for every change-test donor does not fix their level or their change prediction, not kept; the
+    per-person TIR bias is excess glucose variability, not a background offset.** lb_rollouts.py + lb_many.py
+    (runs/2026-10-23-ice-lball/): train-window rollouts (3 seeds) for the 43 change-test donors without a band, offsets set
+    as for the hosts (median shift from '_median' -0.4 / +2.7 / -5.1 / -0.3 and +4.7 / +1.5 / +0.1 / +2.0 by clock band,
+    10-90% about +-15), then the change test on v32of{0,1}…SKaP. Pre-window |level error| median 7.4 -> 7.6; ensemble r
+    TIR 0.27 -> 0.25, t<70 0.55 -> 0.53, t<54 0.26 -> 0.34 (Spearman 0.40 -> 0.22), mean 0.32 -> 0.36; paired bootstrap of
+    the TIR gain 5/50/95% -0.15 / -0.02 / +0.10. On the 30 edits whose windows do not overlap the calibration window, TIR r
+    0.41 -> 0.44, mean 0.62 -> 0.59. The bias is a stable trait (a donor's train-window TIR gap against their edit
+    pre-window gap: r 0.83 / 0.79 by training) but not a level: per donor (88 donor-trainings, train window) the TIR gap
+    tracks the generated-minus-field glucose sd (Spearman -0.70; generated sd a median 16% wider) and the ICE mean gap
+    (-0.65), with insulin within 6-8% and carbs unrelated (+0.01). The background-ICE offset the band corrects was already
+    near zero. The excess slow variability of LESSONS 127-129 is the cause to fix; under test: mean reversion of the
+    background's slow drift (runs/2026-10-23-ice-damp/).
