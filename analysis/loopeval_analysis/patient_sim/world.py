@@ -424,7 +424,9 @@ class World:
         if enable and isinstance(enable.get("ex_up_mult"), float):
             person.body = person.body.scaled(ex_uptake=person.body.ex_uptake * enable["ex_up_mult"])
         self.ex_alpha = float(enable["ex_alpha"]) if enable and isinstance(enable.get("ex_alpha"), float) else None
-        self.ex_sat = float(enable["ex_sat"]) if enable and isinstance(enable.get("ex_sat"), float) else None   # LESSONS 495
+        # C2 saturating in intensity, k 0.1 (default since 2026-10-23, LESSONS 495; --set ex_sat=0 restores the linear α·Y)
+        self.ex_sat = float(enable["ex_sat"]) if enable and isinstance(enable.get("ex_sat"), float) else 0.1
+        if self.ex_sat <= 0: self.ex_sat = None
         self.act_frag = bool((enable or {}).get("act_frag", True))     # default since 2026-10-18 (Pete, LESSONS 163)
         # posture (LESSONS 163; --disable posture): insulin clamps, the PK's reference, are done supine; sitting up cuts
         # subcutaneous blood flow 29–47% and insulin absorption 19–44% (Hildebrandt 1985, 17 patients with diabetes).

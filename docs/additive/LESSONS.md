@@ -7862,3 +7862,50 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Score 0.442 (tier 1 0.322) on 54 statistics; earlier scores are not comparable. Rows need the labelling step
      (`meal_response.labeled_cohort`) and `lifestats sim <run>` after a cohort. Run dirs: gamepc
      ~/additive/runs/c471–c478, scratch scripts ~/ff/.
+
+495. **A saturating acute exercise sensitivity brings the lows onto the donors' on both draws; adopted. The twins'
+     surplus unexplained falls are at 00–12 h, not in the active afternoon.**
+     - **Form.** C2's acute SI boost α·Y becomes α·(0.6 + k)·Y/(Y + k), with k 0.1 (`ex_sat`; `--set ex_sat=0` gives
+       the linear form back). It equals the linear boost at Romeres 2021's clamp point (intensity 0.6, α 2.0) and is
+       about 2.5× larger at walking intensity (~0.175).
+     - **Evidence for the shape.** Pemberton 2025 finds no intensity dependence. The donors' HealthKit workouts by
+       METs (< 4 / 4–6 / ≥ 6) net −7 / −13 / −9 mg/dL over the first 20 min.
+     - **What was not adopted.** α 3 with k 0.1 scores better on draw 1 (0.389), but it lies outside Romeres' measured
+       range (+81–155% at 0.6, i.e. α 1.35–2.6).
+
+     Paired arms (k 0.3 lies between):
+
+     | | d1 base | d1 k 0.1 | d2 base | d2 k 0.1 | donors |
+     |---|---|---|---|---|---|
+     | score | 0.442 | 0.403 | 0.440 | 0.427 | |
+     | lows / day | 0.79 | 0.88 | 0.83 | 1.00 | 1.00 |
+     | t54 % | 0.148 | 0.197 | 0.149 | 0.176 | 0.190 |
+     | t70 % | 1.26 | 1.56 | 1.34 | 1.57 | 1.60 |
+     | TIR | 70.4 | 71.0 | 66.9 | 67.8 | 71.9 |
+     | activity response, IOB ≥ 2 U | −2.5 | −4.1 | −6.3 | −6.8 | −12.6 |
+
+     - **The response rows are noisy between draws:** base reads −2.5 vs −6.3 (bootstrap SE 0.3–0.4 spreads). Read
+       them pooled over both draws.
+     - **Change prediction** (LESSONS 493 test, on the Mac, 65 events): field / twin ratio for mean BG 1.93 → 2.04,
+       t70 3.96 → 3.58, t54 unmeasurable; neutral within the CIs. The damping of the lows' response to a settings
+       change stays open.
+
+     Unexplained falls (`ice_dip_day`), per day of clean steps, by 4-h block from midnight:
+
+     | | 00–04 | 04–08 | 08–12 | 12–16 | 16–20 | 20–24 |
+     |---|---|---|---|---|---|---|
+     | donors | 0.20 | 0.24 | 0.31 | 0.30 | 0.38 | 0.29 |
+     | twins (c446) | 0.46 | 0.66 | 0.50 | 0.28 | 0.34 | 0.23 |
+
+     The afternoon and evening match. A 70 mg/dL/h threshold cannot see a −20 vs −60 mg/dL/h activity effect, so
+     everyday activity is fitted on the matched response rows, not on the dips.
+     - **Night-time causes in the twins' truth:** sensor 37% (in 45% of night dips the sensor's part exceeds the body's),
+       after a treated low 16%, SI rising 13%.
+     - **The sensor's slow part is mostly D3b** (Biagi's AR(3) co-located error): off, the night windows whose sensor
+       error falls > 17 mg/dL in 30 min drop from 8.6 to 3.2%. Yet quiet-night 30-min CGM change matches the donors'
+       (SD 19.5 vs 18.7, falls > 20 mg/dL 17 vs 15%).
+     - The dawn dip surplus is the body falling faster than Loop's settings model: the night-lows limit (LESSONS 438),
+       now a scored row.
+
+     Additive runs move to the Mac (Pete); the reference cohorts c446 / c447 / c478–c483 and the donor tables are under
+     runs/2026-10-23-additive-activity/cohort.
