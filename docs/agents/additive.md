@@ -108,6 +108,11 @@ where the statistic depends on the instrument (eda lesson 33). Each cohort run w
 c284: 29 of 51; c285_sd40 31; c286_cr06 32 (low depths on the donors', LESSONS 272); c287_wake 30 (night low duration on the donors', LESSONS 274) (G7 kurtosis, volatility clustering, lows/day and TDD CV now pass; bg_skew and hurst_long now fail, LESSONS 271). Neutral changes move the count within 27–31; read single-statistic changes against that band, and check
 the lows by dosing strategy (temp-basal vs automatic-bolus twins against their own donors) beside the cohort count.
 
+**What moves glucose (LESSONS 494):** `python -m loopeval_analysis.patient_sim.lifestats sim <run>` after the labelling
+step adds meal-absorption, unlogged-rise, fast-fall, unexplained-dip and workout rows (tier 2) and the pooled activity
+response (tier 1) against `life_blocks.csv` / `life_bouts.csv`; `score.py` picks them up. Scores with and without these
+rows do not compare.
+
 ## Known limits of the current reference (read before using its numbers)
 
 **Status (Pete 2026-10-20): usable with LoopEval.** The limits below are documented, not blocking. They are:
