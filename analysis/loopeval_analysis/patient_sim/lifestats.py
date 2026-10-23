@@ -53,7 +53,7 @@ def _grid(tm: np.ndarray, g: np.ndarray, t0: float, t1: float) -> np.ndarray:
 
 
 def life_stats(tm, g, t0, t1, ent_t, ent_g, iob_t=None, iob_v=None, pulses=None, workouts=None, steps=None,
-               hour0: float = 0.0) -> dict:
+               hour0: float = 0.0, net_workouts=None) -> dict:
     """All rows for one window [t0, t1) in minutes (local clock: minute % 1440 is the time of day, after `hour0` hours).
     ent_t / ent_g: carb entries; iob_t / iob_v: Loop's IOB; pulses: DataFrame (onset_m, size_g, peak_h, dur_h,
     peak_geq_h, announced, rescue); workouts: DataFrame (start, dur, mets) or None (not a recorder); steps: DataFrame
@@ -130,8 +130,11 @@ def life_stats(tm, g, t0, t1, ent_t, ent_g, iob_t=None, iob_v=None, pulses=None,
             out["workout_dur"] = float(w.dur.median())
             out["workout_mets"] = float(w.mets.median()) if w.mets.notna().any() else np.nan
             out["workout_after_meal"] = float(np.mean([np.any((et5 < s_) & (et5 >= s_ - 120)) for s_ in w.start]))
-            if iob_t is not None:
-                out["act_net20"] = _net20(G, T, w, workouts, et5, np.asarray(iob_t, float), np.asarray(iob_v, float))
+    # the response is physiology, not habit: a simulated person's sessions count whether or not its donor records them
+    nw = workouts if net_workouts is None else net_workouts
+    if nw is not None and iob_t is not None:
+        w = nw[(nw.start >= t0) & (nw.start < t1 - 20)]
+        if len(w): out["act_net20"] = _net20(G, T, w, nw, et5, np.asarray(iob_t, float), np.asarray(iob_v, float))
     return out
 
 
@@ -266,16 +269,15 @@ def person_life(run: Path, recorders: set | None = None, with_steps: bool = True
     if (run / "meals_labeled.csv").exists():
         ml = pd.read_csv(run / "meals_labeled.csv")
         pulses = ml.assign(onset_m=((pd.to_datetime(ml.onset, utc=True) - EPOCH).dt.total_seconds() / 60).to_numpy())
-    W = None
-    if recorders is None or person.template in recorders:
-        b = [x for x in tr["behavior"] if x[1] == "exercise"]
-        mm = tr.get("metmax")
-        W = pd.DataFrame(dict(start=[x[0] for x in b], dur=[float(x[2]) for x in b],
-                              mets=[1.0 + float(x[3]) * (mm - 1.0) if mm else np.nan for x in b]))
+    b = [x for x in tr["behavior"] if x[1] == "exercise"]
+    mm = tr.get("metmax")
+    Wall = pd.DataFrame(dict(start=[x[0] for x in b], dur=[float(x[2]) for x in b],
+                             mets=[1.0 + float(x[3]) * (mm - 1.0) if mm else np.nan for x in b]))
+    W = Wall if recorders is None or person.template in recorders else None   # habit rows: twins of recording donors only
     steps = _sim_steps(run) if with_steps else None
     return dict(name=person.name, template=person.template, sensor=person.sensor,
                 **life_stats(c.index.to_numpy(float), c.to_numpy(float), t0, t1, [e[0] for e in ent], [e[1] for e in ent],
-                             iob_t, iob_v, pulses, W, steps))
+                             iob_t, iob_v, pulses, W, steps, net_workouts=Wall))
 
 
 def _sim_one(a):
