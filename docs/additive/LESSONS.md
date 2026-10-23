@@ -7801,3 +7801,64 @@ outputs in gamepc ~/additive/runs/c290–c312).
      `beh_set` on `Person.traits` (world.py, inert when absent) overrides behaviour traits from a driver: the plant
      runs in its own process, so a driver's patch of world never reaches it. Run dir
      runs/2026-10-22-additive-dial-damping/ (dial.py, analyze.py, change/score_change.py).
+
+494. **The missing fast falls follow the missing sharp rises and a weak activity response; both are now scored rows.**
+     Fast falls (> 2.5 mg/dL/min over 15 min, ending 70–180) are 2.6% of the donors' falling windows (G7) and 1.6% of
+     the twins'. Nights match (0.91% both); the gap is daytime, within 2 h of an entry (17.6% of donor entries end in one,
+     7.5% of twins') and at 12–24 h. Given the speed of the rise before it, a fast fall is as likely in twins as in donors
+     (7.1 / 11.4 / 20.1 / 29.9% vs 7.2 / 12.6 / 17.4 / 26.1% by rise rate); the twins' unlogged rises are slower (median
+     45 vs 55 mg/dL/h), mostly unentered main meals.
+
+     Ruled out as the cause:
+     - **Bolus timing:** already modelled (`lead_sd` 23).
+     - **The post-meal SI window and evening gastric slowing:** off, the rises are just as slow (c473, c474).
+     - **Fast share 0.5:** helps the lows but costs CV and TIR on draw 2 (c471 / c472).
+     - **Recorded workouts as the direct cause:** only 2.4% of donor fast falls sit near one.
+
+     About half of the twins' fast CGM falls are sensor-made (true glucose falling < 100 mg/dL/h); the rebound signature
+     says the donors' are too (rebound ≥ 20 in 30 min: 20% vs 18%).
+
+     **The activity response is 3× too small at high glucose and IOB.** Pemberton 2025's design (T1DEXI): ΔCGM over a
+     bout's first 20 min less matched windows (start ±15 mg/dL, ROC ±0.5 mg/dL/min, IOB ±0.5 U), controls excluding
+     logged entries only on both sides. Pooled over bouts:
+
+     | | Donors' HealthKit workouts (21 donors, deduplicated) | Twins' sessions | Twins' everyday walks |
+     |---|---|---|---|
+     | start > 180 | −19.7 [−27, −13] | −6.5 [−14, +2] | −2.9 |
+     | IOB ≥ 3 U | −20.0 | −5.0 | −4.1 |
+     | IOB < 1 U | −1.9 | +4.6 | −1.8 |
+
+     Pemberton reports −34 for logged T1DEXI activity. The extract repeats each workout up to 7×; deduplicate on
+     (alias, start, duration). A control that excludes the twins' unlogged eating too reads the twins weaker still; it
+     is not like for like.
+
+     The response is insulin-dependent. Neither existing size reproduces that:
+     - **C1 uptake ×3** (`ex_up_mult`, c475): −12.4 above 180, but as large at low IOB.
+     - **C2 α 6** (`ex_alpha`, c476): −3.6. At a walk's intensity (~0.175) the linear boost stays small and Loop takes
+       it back.
+
+     Next: an acute-sensitivity form that saturates at light effort (Pemberton: no intensity dependence), sized on the
+     IOB split.
+
+     **New rows** (`lifestats.py`, one function for a donor's 13-day block and a twin's window; donor table
+     `life_blocks.csv` / `life_bouts.csv` beside the templates):
+     - Tier 1: `act_net20`, `act_net20_hi` (> 150 mg/dL, IOB ≥ 2 U), pooled over bouts, since a window holds too few
+       for a per-person median.
+     - Tier 2: `unann_pulses_day`, `pulse_peak_h`, `pulse_dur_h`, `pulse_peak_per_g`, `unl_rises_day`, `unl_rise_rate`,
+       `entry_fast_fall`, `fast_fall_share` (per sensor), `ice_dip_day` / `ice_dip_day_share`, and `workouts_week`,
+       `workout_dur`, `workout_mets`, `workout_after_meal`. The workout rows are scored on the twins of donors who record
+       workouts.
+     - `ice_dip_*` are unexplained falls: 30-min mean ICE 70 mg/dL/h below the window's median for ≥ 20 min. They are
+       the target for fitting everyday activity (Pete).
+
+     c478_base (= c446_npu, bit-identical) reads:
+     - activity response −5.7 vs +0.1 (gap 0.67), high-IOB −12.6 vs −2.5 (1.08);
+     - entries ending in a fast fall 14.3 vs 5.0%, unlogged rise rate 55 vs 45 mg/dL/h;
+     - pulse time to peak 0.75 vs 0.62 h, with less peak per gram (1.18 vs 1.08);
+     - unexplained dips 0.69 vs 1.46 / day, 66 vs 50% of them by day: the twins carry MORE unexplained falls than the
+       donors, more of them at night;
+     - workout duration, METs and the share starting within 2 h of a meal (0.50 vs 0.55) all pass.
+
+     Score 0.442 (tier 1 0.322) on 54 statistics; earlier scores are not comparable. Rows need the labelling step
+     (`meal_response.labeled_cohort`) and `lifestats sim <run>` after a cohort. Run dirs: gamepc
+     ~/additive/runs/c471–c478, scratch scripts ~/ff/.
