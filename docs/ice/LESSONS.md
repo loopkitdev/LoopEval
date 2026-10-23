@@ -1231,3 +1231,23 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     skipped; a pre-window bolus that matches a meal still attaches). Against HEAD: meals unchanged; corrections i003 502 ->
     463, i044 123 -> 109, i012 361 -> 290 (62 rows at one bg), median correction glucose i044 151 -> 185, i012 90 -> 234.
     Takes effect on the next relabel and retrain, with the meal-target mask owed from LESSONS 124.
+    The v3m21 training targets do not read the correction labels: the fix reaches only the plant and calibrate_closed.
+129. **Correcting 127: feeding the background path its own draws through the previous-value input does build the excess
+    persistence.** openloop_vt.py OL_MODE=tf (teacher forcing: the previous-value input gets the real value, the path still
+    draws) against draw on the same base and donors: the deviation part's 3 h variance-time ratio 5.06 -> 3.01, the total
+    4.81 -> 2.51 (field 3.60). The exogenous baseline alone (3 h ratio 8.77, sd 19) moves too slowly to carry it. 127's
+    prev_mean test swapped the draw for the predicted mean, which removes the draw's noise as well, so it could not separate
+    the two. The persistence is therefore the closed recursion through the previous value, the same family as LESSONS 86
+    (self-feeding 30%) and 107 (FREERUN), both not kept; a fix has to train the path on its own draws without losing the
+    level, not drop the channel.
+130. **Meal-target mask (MEALMASK=1, LESSONS 124) through the full chain: not kept; change prediction worse.** v3m21
+    retrained with meal = unknown wherever ICE is unobserved (v32om0/1, gamepc), then the base's 13-step calibration
+    chain (side files rebuilt from om0 train-window rollouts). Held-out, clean time, seeds 0 / 1 against the base (TIR 73.4
+    / 72.5, t<70 1.57 / 1.50, t<54 0.24 / 0.16, mean 152 / 153): 72.0 / 71.9, 1.47 / 1.85, 0.22 / 0.28, 152 / 150; median
+    per-person |mean gap| 10.2 / 10.0 against 7.8 / 6.1. The donors it targets move unevenly: i056 -27 -> -21, i012 -16 ->
+    +15; i044 +30 unchanged. Settings-edit change test (62 edits), two-seed ensemble, r against the base ensemble: TIR 0.16
+    (0.27), t<70 0.51 (0.55), t<54 0.22 (0.26; Spearman 0.21 against 0.40), mean 0.30 (0.32); per seed TIR r 0.14 / 0.15
+    against the base's 0.30 / 0.21. The calibration chain absorbs the meal-rate difference (generated 5.43 vs labeled 4.01
+    a day before F), so what the mask changes is where meals fall, and the net loses rank on t<54. Method: the chain now
+    runs on gamepc (chain_pc.sh, engine 11d1b77 built for Linux); one donor's replay reproduces the Mac's bit for bit and
+    its model run within 0.001 mg/dL, so PC and Mac arms compare directly.
