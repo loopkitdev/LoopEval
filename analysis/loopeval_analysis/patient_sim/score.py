@@ -34,10 +34,14 @@ from .validate import INSTRUMENT
 
 TIER = {
     1: ["bg_mean", "tir", "t180", "t70", "t54", "lows_per_day", "p_reach54", "min_below70", "tdd",
-        "carb_entries_per_day", "meal_d3h"],
+        "carb_entries_per_day", "meal_d3h", "act_net20"],
     2: ["bg_cv", "bg_skew", "v_sd", "between_day_frac", "circadian_amp", "vol_cluster_60m", "sigma_disp", "zero_frac",
         "med_nonzero", "p99", "conc1", "day_night", "tdd_cv", "ac1", "night_cv", "user_boluses_per_day",
-        "manual_u_day"],
+        "manual_u_day",
+        # what moves glucose (lifestats.py, LESSONS 494): meal absorption, unlogged rises, falls, activity and its coupling
+        "unann_pulses_day", "pulse_peak_h", "pulse_dur_h", "pulse_peak_per_g", "unl_rises_day", "unl_rise_rate",
+        "entry_fast_fall", "fast_fall_share", "ice_dip_day", "ice_dip_day_share", "workouts_week", "workout_dur",
+        "workout_mets", "workout_after_meal"],
     3: ["boxcox_lambda", "sd_over_mad", "v_kurtosis", "v_skew", "hurst_short", "hurst_long", "sigma_meas",
         "acf_zero_min", "acf_min", "wear"],
 }
@@ -116,7 +120,12 @@ def summarize(G: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
 def score_run(run: Path, real: Path | None = None, yardstick: Path | None = None, donor_meals: Path | None = None):
     sim = pd.read_csv(run / "sim_stats.csv")
     if real is None:
-        cp = pd.read_csv(run / "compare_pilot.csv"); ref, yard = cp, cp
+        cp = pd.read_csv(run / "compare_pilot.csv")
+        if (run / "life_stats.csv").exists() and (run / "compare_life.csv").exists():   # lifestats.py rows
+            ls = pd.read_csv(run / "life_stats.csv").drop(columns=["template", "sensor"], errors="ignore")
+            sim = sim.merge(ls, on="name", how="left")
+            cp = pd.concat([cp, pd.read_csv(run / "compare_life.csv")], ignore_index=True)
+        ref, yard = cp, cp
     else:
         B = pd.read_csv(real)
         yard = pd.read_csv(yardstick)
