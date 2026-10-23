@@ -762,3 +762,40 @@ def add_missed_cycles(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_ex_timing(path: str, life_blocks: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Recorded workout habit for donors who record consistently (a HealthKit workout in >= half their 13-day blocks,
+    lifestats._recorders; LESSONS 496-497): workouts per week over the export (`ex_week_own`), median duration
+    (`ex_dur_own`), the share starting 0-120 min after a carb entry (`ex_am_own`) and the local start hours
+    (`ex_hours_own`, space-separated). Other donors stay NaN (their twins use the recorders' pooled timing)."""
+    import json as _json
+    import numpy as np
+    from . import lifestats as L
+    from .quiet import local_offset, to_local
+    t = pd.read_csv(path)
+    rec = L._recorders(pd.read_csv(life_blocks))
+    A = L._workouts_all()
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        if a in rec:
+            off = local_offset(a, ice_root)
+            c = _json.load(open(ice_root / "full" / a / "carbs.json"))
+            ct = np.sort(L._mins(to_local(pd.to_datetime([x["startDate"] for x in c], utc=True), off))) if c else np.array([])
+            s = pd.read_parquet(ice_root / "steps" / f"{a}.parquet", columns=["t1"])
+            it = L._mins(to_local(s.t1, off)); t0, t1 = it.min(), it.max()
+            w = A[A.alias == a]
+            st = L._mins(to_local(w.t, off)); keep = (st >= t0) & (st <= t1)
+            st, du = st[keep], w.dur.to_numpy()[keep]
+            if len(st):
+                k = np.searchsorted(ct, st) - 1
+                since = np.where(k >= 0, st - ct[np.clip(k, 0, None)], np.inf)
+                row.update(ex_week_own=float(len(st) / ((t1 - t0) / 1440) * 7), ex_dur_own=float(np.median(du)),
+                           ex_am_own=float(np.mean(since <= 120)),
+                           ex_hours_own=" ".join(f"{(x % 1440) / 60:.2f}" for x in st))
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t

@@ -166,6 +166,11 @@ class BehaviorTraits:
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
+    ex_time: bool = False                # sessions timed as the donors' recorded workouts (LESSONS 497): a share start 0–120 min after a
+                                         # carb entry (own, else the recorders' 0.51), the rest on the person's own workout clock (own,
+                                         # else the recorders' pooled clock), outside those 2 h
+    ex_am: float = 0.51
+    ex_hours: Optional[list] = None      # the donor's recorded workout start hours (local), or None for the pooled clock
     entry_size_b: float = 0.0            # main-meal entry chance × (grams / the person's usual meal)^b (experiment, LESSONS 289)
     entry_b: float = 0.0                 # entry_size_own: the person's own size preference in what they enter — within each eating window and
                                          # kind, entry chance ∝ (grams / the window's usual grams)^entry_b, the window's expected entries kept (LESSONS 491)
@@ -222,6 +227,13 @@ class BehaviorTraits:
 # Aleppo 2017, Pettus & Edelman 2017). Relative to flat 0.50 / 1 / 1.96 / 3.52, renormalised to mean 1 over the sim's own
 # exposure at those trends (1173 / 1105 / 945 / 870 h, c254) so each person's correction rate stays their donor's (LESSONS 237)
 CORR_TREND_W = (0.31, 0.62, 1.21, 2.18)
+
+# the 11 consistent workout recorders' (a HealthKit workout in >= half their 13-day blocks; LESSONS 496-497) start clock,
+# each donor's hour histogram weighted equally, and the delay of the 249 workouts that start 0-120 min after a carb entry
+# (10-min bins): a rise over the first 40 min, then flat (ex_timing.csv beside runs/2026-10-23-additive-activity/extime)
+EX_CLOCK = (0.002, 0.0, 0.002, 0.0, 0.0, 0.0, 0.008, 0.055, 0.081, 0.106, 0.063, 0.091, 0.046, 0.028, 0.055, 0.053,
+            0.124, 0.065, 0.08, 0.064, 0.056, 0.018, 0.002, 0.0)
+EX_DELAY = (8, 12, 19, 34, 29, 27, 22, 22, 22, 24, 16, 14)
 
 
 def _corr_trend_w(d30: float) -> float:
@@ -504,6 +516,7 @@ class Behavior:
         self.r_stack = np.random.default_rng(int(getattr(person, "seed", 0)) + 4507)     # bolus stacking
         self.r_exeat = np.random.default_rng(int(getattr(person, "seed", 0)) + 4813)     # eating kept out of exercise
         self.r_exmet = np.random.default_rng(int(getattr(person, "seed", 0)) + 5003)     # session intensity (ex_mets)
+        self.r_extime = np.random.default_rng(int(getattr(person, "seed", 0)) + 5107)    # session timing (ex_time)
         self.ex_met_person = float(np.exp(np.random.default_rng(int(getattr(person, "seed", 0)) + 5011).normal(1.657, 0.357)))
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
@@ -817,6 +830,8 @@ class Behavior:
         if r.random() < t.ex_per_week / 7.0:
             st = base + (t.ex_hour * 60 + r.normal(0, 45)) + shift
             dur = max(10.0, float(np.exp(r.normal(math.log(t.ex_minutes), 0.3))))
+            if t.ex_time:
+                st = self._ex_start(base, shift, st)
             if t.ex_no_eat:
                 # people do not eat during a workout and eat after it: donors' carb entries during HealthKit workouts run
                 # at 0.18x the same clock hours' rate, in the hour after at 1.44x (eat_around_ex.py; LESSONS 244). Eating
@@ -846,6 +861,29 @@ class Behavior:
             if r.random() < t.p_ex_carbs:
                 self.planned.append((st - 10, ("ex_carbs", t.ex_carbs)))
         self.planned.sort(key=lambda x: x[0])
+
+    def _ex_start(self, base: float, shift: float, fallback: float) -> float:
+        """A structured session's start, timed as the donors' recorded workouts (ex_time, LESSONS 497): with the person's
+        after-meal share, 0-120 min after one of the day's carb entries (delay on EX_DELAY); otherwise an hour on the
+        person's own workout clock (the donor's recorded start hours ± 30 min, else EX_CLOCK), awake and outside the
+        2 h after any entry. Own stream: every other draw stays paired."""
+        t, re_ = self.t, self.r_extime
+        ents = sorted(tt for tt, it_ in self.planned if it_[0] == "enter_meal" and base <= tt < base + DAY)
+        w = np.asarray(EX_DELAY, float); w = w / w.sum()
+        if ents and re_.random() < t.ex_am:
+            return float(re_.choice(ents)) + 10.0 * (int(re_.choice(len(w), p=w)) + float(re_.random()))
+        own = t.ex_hours
+        pc = np.asarray(EX_CLOCK, float); pc = pc / pc.sum()
+        for _try in range(20):
+            if own:
+                h = float(re_.choice(own)) + float(re_.normal(0, 0.5))
+            else:
+                h = int(re_.choice(24, p=pc)) + float(re_.random())
+            cand = base + (h % 24) * 60 + shift
+            if self.asleep(cand): continue
+            if any(0 <= cand - e <= 120 for e in ents): continue
+            return cand
+        return fallback
 
     # ------------------------------------------------------------------ per minute
     def minute(self, m: float, reading, state: dict, carb_scale: float = 1.0) -> list:

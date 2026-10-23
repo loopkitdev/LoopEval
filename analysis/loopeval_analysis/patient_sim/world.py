@@ -326,6 +326,20 @@ class World:
             self.beh_traits.entry_size_b = enable["entry_size_b"]
         if enable and enable.get("ex_mets"):
             self.beh_traits.ex_mets = True
+        if enable and enable.get("ex_time"):
+            # experiment (LESSONS 497): sessions timed, counted and sized as the donor's recorded workouts where the donor
+            # records consistently (templates.add_ex_timing), else on the recorders' pooled timing
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            bt_, tr_ = self.beh_traits, person.traits.get("template_rates", {})
+            bt_.ex_time = True
+            def _f(k):
+                try: v = float(tr_.get(k)); return v if np.isfinite(v) else None
+                except (TypeError, ValueError): return None
+            if _f("ex_am_own") is not None: bt_.ex_am = _f("ex_am_own")
+            if _f("ex_week_own") is not None: bt_.ex_per_week = _f("ex_week_own")
+            if _f("ex_dur_own") is not None: bt_.ex_minutes = _f("ex_dur_own")
+            hs = tr_.get("ex_hours_own")
+            if isinstance(hs, str) and hs.strip(): bt_.ex_hours = [float(x) for x in hs.split()]
         if enable and isinstance(enable.get("wake_mult"), float):
             # experiment (LESSONS 274): the chance a night alarm wakes the person, scaled
             self.beh_traits.p_wake_alarm = float(min(0.98, self.beh_traits.p_wake_alarm * enable["wake_mult"]))
