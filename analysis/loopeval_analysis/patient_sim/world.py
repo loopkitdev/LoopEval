@@ -326,6 +326,16 @@ class World:
             self.beh_traits.entry_size_b = enable["entry_size_b"]
         if enable and enable.get("ex_mets"):
             self.beh_traits.ex_mets = True
+        if enable and enable.get("sleep_own"):
+            # experiment (LESSONS 499): the sleep window centred on the donor's own quietest hours of user actions
+            # (templates.add_sleep_mid), keeping the person's drawn sleep length
+            try: sm_ = float(person.traits.get("template_rates", {}).get("sleep_mid_h"))
+            except (TypeError, ValueError): sm_ = float("nan")
+            if np.isfinite(sm_):
+                self.beh_traits = copy.deepcopy(self.beh_traits); bt_ = self.beh_traits
+                dur_ = (bt_.wake - bt_.bed) % 1440.0
+                bt_.wake = (sm_ * 60.0 + dur_ / 2.0) % 1440.0
+                bt_.bed = bt_.wake - dur_ + 1440.0       # the priors' convention: bed > wake, past 1440 after midnight
         if enable and enable.get("ex_time"):
             # experiment (LESSONS 497): sessions timed, counted and sized as the donor's recorded workouts where the donor
             # records consistently (templates.add_ex_timing), else on the recorders' pooled timing
