@@ -8021,3 +8021,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
        tier 1 0.245 → 0.237, 0.313 → 0.278; t54 0.186 / 0.204, lows 0.92 / 1.00 per day. Component review: every target
        unchanged within noise. **Default.** New reference lg12 / lg12_5k (scored jointly 0.371 / 0.400).
 
+501. **The twins' smaller carb entries are not a counting error: per labelled meal they enter what their donors do.** On
+     lg12, raw entries per twin over its own donor's run 0.80 / 0.85 / 0.90 at q25 / q50 / q75 (treatment-like entries
+     excluded), and entered grams per day match within 3 g by 4-h block, the window calibration (`entry_win`, grams)
+     adding +0.13 entries / day at 12–16 h. Through the ice labeller on announced, non-rescue pulses ≥ 10 g-eq (102 pairs):
+     entered / pulse grams 0.82 vs 0.82 (pair ratio 0.97), pulse size 37.0 vs 36.9 g-eq (0.965), entry size 30.0 vs 33.5 g
+     (0.89). The count model (person bias −0.10, Brazeau size error) holds against the donors; the raw-entry gap is the mix
+     of entry sizes, and it costs only a few midday entries and their boluses (+0.23 / day at 12–16 h, L 499). Closed.
+
