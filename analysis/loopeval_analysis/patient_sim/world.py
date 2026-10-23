@@ -245,6 +245,9 @@ class World:
         person.traits["entry_split"] = bool(enable.get("entry_split", True)) if enable else True
         person.traits["entry_win"] = bool((enable or {}).get("entry_win", True))      # default since 2026-10-19 (LESSONS 345)
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
+        if person.traits.get("beh_set"):     # diagnostic trait overrides carried on the Person (the plant runs in its own process)
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            for k_, v_ in person.traits["beh_set"].items(): setattr(self.beh_traits, k_, v_)
         if enable and isinstance(enable.get("meal_slow"), float):
             self.beh_traits.meal_slow_frac = enable["meal_slow"]
         if enable and isinstance(enable.get("main_w"), float):

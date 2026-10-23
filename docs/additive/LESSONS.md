@@ -7766,3 +7766,38 @@ outputs in gamepc ~/additive/runs/c290–c312).
        between-day share, CV and zero-delivery share.
 
      Score close calls with the score's draw scatter, as with the count's (LESSONS 444).
+
+493. **The twins under-predict the change a settings edit makes, and the lows most; removing damping does not fix it
+     without breaking the static match.** Test: the 108 real change events of the tool comparison (63 settings edits,
+     38 strategy switches, 5 RC switches; runs/2026-10-21-tool-change). Each event's twin is run on its settings before
+     and after. The response is the OLS slope of the outcome change on the insulin index log(basal ratio) − log(ISF
+     ratio), with the CR change and target change as covariates. On the field side it also controls for the need
+     shift and the pre level. A plain regression of field change on predicted change is attenuated by prediction
+     noise and so favours a noisy generator; the structural slope is not.
+
+     Field / twin ratio of the slopes, per log unit of insulin (90% CI):
+
+     | Arm | Mean BG | t<70 | t<54 | Static score |
+     |---|---|---|---|---|
+     | c446 defaults | 1.93 (1.02–2.94) | 3.96 (1.85–7.04) | 8.4 (3.3–22) | 0.303 |
+     | proactive onset −20 mg/dL | 1.98 | 3.66 | 5.2 | 0.297 |
+     | glucose effectiveness × 0.5 | 2.02 | 4.15 | 5.2 | 0.397 |
+     | both | 1.85 | 2.40 | 2.6 | 0.449 |
+
+     TIR scales correctly (1.06). The CR change has no effect on the field once the covariates are in.
+
+     Which components damp the response (32 pilot twins, settings ISF × 0.8 / 1 / 1.25, two seeds, one component
+     ablated; base slope of mean BG +15.5 and of t<70 −1.0 per log ISF):
+     - mean BG: SG off ×1.66, SG 0.5 ×1.26, κ off ×1.24, behavioural defense off ×1.15; EGP saturation and
+       counter-regulation ×0.96–0.99.
+     - lows: behavioural defense off ×3.3 on t<70 (t<54 slope −1.9 vs −0.2). Proactive snacks alone carry most of it
+       (off ×1.7; rescues rise 0.27 → 0.89 / day); rescues off alone ×0.77. Proactive snacks barely follow the dial
+       (1.68 → 1.41 / day over it).
+
+     Reading: the defense absorbs extra insulin pressure because the twins' falls are slow (LESSONS 410: half the
+     donors' rate of reaching 70 from a fall). Weakening the damping only helps where it also costs the static match.
+     The next target is the fast-fall tail, accepted on the lows' change ratio without a static loss.
+
+     `beh_set` on `Person.traits` (world.py, inert when absent) overrides behaviour traits from a driver: the plant
+     runs in its own process, so a driver's patch of world never reaches it. Run dir
+     runs/2026-10-22-additive-dial-damping/ (dial.py, analyze.py, change/score_change.py).
