@@ -142,7 +142,11 @@ def score_run(run: Path, real: Path | None = None, yardstick: Path | None = None
         sim = sim.assign(sensor=sim.sensor)
     G = gaps(sim, ref, yard)
     if real is None:
-        G = pd.concat([G, pd.DataFrame(_meal_rows(run, donor_meals))], ignore_index=True)
+        from .lifestats import act_rows
+        G = pd.concat([G, pd.DataFrame(_meal_rows(run, donor_meals)),
+                       pd.DataFrame(act_rows(run / "life_bouts.csv",
+                                             Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/life_bouts.csv"))],
+                      ignore_index=True)
     return G
 
 
