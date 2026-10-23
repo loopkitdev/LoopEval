@@ -1251,3 +1251,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     a day before F), so what the mask changes is where meals fall, and the net loses rank on t<54. Method: the chain now
     runs on gamepc (chain_pc.sh, engine 11d1b77 built for Linux); one donor's replay reproduces the Mac's bit for bit and
     its model run within 0.001 mg/dL, so PC and Mac arms compare directly.
+131. **Averaging more trainings does not sharpen change prediction: past two, the error is the model's, not training
+    noise.** Two more trainings of the base recipe (v32of2/3, same v3m21 recipe, seeds 2-3) through the full 13-step chain
+    on gamepc, then the 62-edit change test. Held-out clean time: TIR 74.1 / 74.6, t<70 2.04 / 1.90, t<54 0.39 / 0.35, mean
+    149 / 149, |mean gap| 7.9 / 6.2 (of0/1: 73.4 / 72.5, 1.57 / 1.50, 0.24 / 0.16, 152 / 153, 7.8 / 6.1), so t<54 spread
+    between trainings of one recipe is about 2x. Change test, r against the field averaged over every subset of the four
+    trainings, by subset size 1 / 2 / 3 / 4: TIR 0.23 / 0.25 / 0.26 / 0.26, t<70 0.52 / 0.55 / 0.56 / 0.57, t<54 0.24 /
+    0.24 / 0.25 / 0.25 (Spearman 0.30 / 0.34 / 0.36 / 0.36), mean 0.34 / 0.35 / 0.36 / 0.36; TIR slope 0.80 / 0.91 / 0.96 /
+    0.99, mean |error| 7.91 / 7.86 / 7.86 / 7.85 (zero 7.78). Yet the predictions are stable: two-training averages agree
+    with each other at r 0.84 (TIR), 0.87, 0.81, 0.84 (single trainings 0.69, 0.76, 0.55, 0.78). Averaging removes the
+    training noise and leaves the field correlation flat at about 0.26 against a field-noise ceiling near 0.66 (LESSONS
+    change-test notes), so what limits it is shared by every training of the recipe: the model's structure or calibration,
+    not its seed. Two trainings stay the working ensemble; the next lever is structural (the previous-value recursion,
+    LESSONS 129).
