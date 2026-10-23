@@ -152,7 +152,10 @@ class PlantV3:
         # (time constant TAU min) of its deviation from the exogenous baseline + defense, fed back and seen by the body; the
         # 5-min structure is left alone. Off by default.
         self.damp_k = float(os.environ.get("PLANT_DAMP_K", "0")); self.damp_tau = float(os.environ.get("PLANT_DAMP_TAU", "180"))
-        self.damp_e = 0.0
+        # PLANT_DAMP_SLOW_H > 0: band-pass, damp only the EMA's departure from a slower EMA (hours) of the same deviation, so the
+        # day-scale level the closed-loop calibrations were fitted on stays (LESSONS 135: plain damping moved it 22 mg/dL down)
+        self.damp_slow_h = float(os.environ.get("PLANT_DAMP_SLOW_H", "0"))
+        self.damp_e = 0.0; self.damp_s = None
         self.rng_z = np.random.default_rng(seed + 104729)
         self.rng_v4 = np.random.default_rng(seed + 7_368_787); self.seed_v4 = seed % 2_147_483_647
         self.xlog = [] if os.environ.get("PLANT_XLOG") else None   # PLANT_XLOG=1: write the inputs fed each step beside the log
@@ -578,7 +581,11 @@ class PlantV3:
             if self.damp_k > 0 and "base" in out:
                 dev = bgice - float(out["base"][0, -1]) - (float(out["defense"][0, -1]) if "defense" in out else 0.0)
                 self.damp_e += (1.0 - np.exp(-dt_h * 60.0 / self.damp_tau)) * (dev - self.damp_e)
-                bgice -= self.damp_k * self.damp_e
+                if self.damp_slow_h > 0:
+                    self.damp_s = dev if self.damp_s is None else self.damp_s + (1.0 - np.exp(-dt_h / self.damp_slow_h)) * (dev - self.damp_s)
+                    bgice -= self.damp_k * (self.damp_e - self.damp_s)
+                else:
+                    bgice -= self.damp_k * self.damp_e
             if self.near_low_bgice and (float(x[0, -1, self.F["heading_low"]]) > 0.5 or float(x[0, -1, self.F["bg"]]) * 100 < 70):
                 bgice += self.near_low_bgice / ICE_SCALE
             bb_off = (float(self.bg_band[1][int(np.searchsorted(self.bg_band[0], float(x[0, -1, self.F["bg"]]) * 100, side="right"))]) / ICE_SCALE
