@@ -34,7 +34,7 @@ from .validate import INSTRUMENT
 
 TIER = {
     1: ["bg_mean", "tir", "t180", "t70", "t54", "lows_per_day", "p_reach54", "min_below70", "tdd",
-        "carb_entries_per_day", "meal_d3h", "act_net20"],
+        "carb_entries_per_day", "meal_d3h", "act_net20", "act_net20_hi"],
     2: ["bg_cv", "bg_skew", "v_sd", "between_day_frac", "circadian_amp", "vol_cluster_60m", "sigma_disp", "zero_frac",
         "med_nonzero", "p99", "conc1", "day_night", "tdd_cv", "ac1", "night_cv", "user_boluses_per_day",
         "manual_u_day",
