@@ -80,7 +80,7 @@ def plan_outages(person, days: int, rng, missed: bool = False) -> list:
 
 
 def activity_carbs(person, bt, g_clamp: float = 140.0, ex_b: float | None = None, frag: bool = False,
-                   frag_on: float | None = None, alpha: float | None = None) -> float:
+                   frag_on: float | None = None, alpha: float | None = None, sat_k: float | None = None) -> float:
     """Grams of glucose per day the person's EXPECTED everyday activity disposes of: the same body over one day
     at its true basal insulin, glucose clamped at g_clamp, with and without the activity (episodes at the person's
     rate and mean duration, mid-day; waking background), difference of the glucose the clamp had to add."""
@@ -92,6 +92,7 @@ def activity_carbs(person, bt, g_clamp: float = 140.0, ex_b: float | None = None
         b = Body(bp, person.formulation); br = b.basal_rate_u_per_h(); b.prime(br)
         kw = {} if ex_b is None else dict(b=ex_b[0], z_power=ex_b[1])
         if alpha is not None: kw["alpha"] = alpha
+        if sat_k is not None: kw["sat_k"] = sat_k
         ex = Exercise(ExerciseParams(gain=bt.act_gain, background=bt.act_bg if active else 0.0, frag=frag,
                                      frag_seed=int(person.seed) + 1811, **({"frag_on_med": frag_on} if frag_on else {}), **kw))
         if active:
@@ -423,6 +424,7 @@ class World:
         if enable and isinstance(enable.get("ex_up_mult"), float):
             person.body = person.body.scaled(ex_uptake=person.body.ex_uptake * enable["ex_up_mult"])
         self.ex_alpha = float(enable["ex_alpha"]) if enable and isinstance(enable.get("ex_alpha"), float) else None
+        self.ex_sat = float(enable["ex_sat"]) if enable and isinstance(enable.get("ex_sat"), float) else None   # LESSONS 495
         self.act_frag = bool((enable or {}).get("act_frag", True))     # default since 2026-10-18 (Pete, LESSONS 163)
         # posture (LESSONS 163; --disable posture): insulin clamps, the PK's reference, are done supine; sitting up cuts
         # subcutaneous blood flow 29–47% and insulin absorption 19–44% (Hildebrandt 1985, 17 patients with diabetes).
@@ -451,12 +453,13 @@ class World:
                                           frag=self.act_frag, frag_seed=int(person.seed) + 1811,
                                           **({"frag_on_med": float(enable["frag_on"])} if enable and isinstance(enable.get("frag_on"), float) else {}),
                                           **({} if self.ex_b is None else dict(b=self.ex_b[0], z_power=self.ex_b[1])),
-                                          **({} if self.ex_alpha is None else dict(alpha=self.ex_alpha))))
+                                          **({} if self.ex_alpha is None else dict(alpha=self.ex_alpha)),
+                                          **({} if self.ex_sat is None else dict(sat_k=self.ex_sat))))
         # energy balance: a person eats for their activity. The donor's TDD (the measured constraint, G4) was spent
         # in a life that included it, so the glucose their everyday activity uses is added to what they eat
         # (activity_carbs: clamp probe, active day vs rest day; LESSONS 34)
         if self.enable["exercise"] and not (enable or {}).get("perfect_person") and "act_carbs" not in person.traits:
-            person.traits["act_carbs"] = activity_carbs(person, self.beh_traits, ex_b=self.ex_b, frag=self.act_frag, alpha=self.ex_alpha,
+            person.traits["act_carbs"] = activity_carbs(person, self.beh_traits, ex_b=self.ex_b, frag=self.act_frag, alpha=self.ex_alpha, sat_k=self.ex_sat,
                                                         frag_on=float(enable["frag_on"]) if enable and isinstance(enable.get("frag_on"), float) else None)
         if self.enable["exercise"]:
             self.beh_traits.carbs_day += person.traits.get("act_carbs", 0.0)

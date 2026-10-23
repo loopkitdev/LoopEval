@@ -35,6 +35,9 @@ class ExerciseParams:
     surge_thr: float = 0.6      # intensity above which the C4 EGP surge builds (LESSONS 247)
     z_threshold: float = 0.12   # intensity above which delayed sensitivity builds (UVA / Deichmann) [I]
     filt_tau: float = 7.0       # min, intensity → physiological activity lag
+    sat_k: float = 0.0          # > 0: the acute SI boost saturates in intensity, α·(0.6 + k)·Y/(Y + k), equal to the linear α·Y at
+                                # Y 0.6 (Romeres 2021's clamp point) and larger at light effort (Pemberton 2025: no intensity
+                                # dependence of the 20-min drop; donors' workouts by METs < 4 / 4–6 / ≥ 6: −7 / −13 / −9; LESSONS 495)
     gain: float = 1.0           # per-person responsiveness (set from behavior traits)
     background: float = 0.0     # waking-hours background intensity (set from behavior traits)
     frag: bool = False          # the waking background as alternating sitting and short light-activity bouts with the
@@ -46,6 +49,12 @@ class ExerciseParams:
 
 
 class Exercise:
+    def _acute(self) -> float:
+        p = self.p
+        if p.sat_k > 0:
+            return p.alpha * (0.6 + p.sat_k) * p.gain * self.y / (self.y + p.sat_k)
+        return p.alpha * p.gain * self.y
+
     def __init__(self, params: ExerciseParams | None = None):
         self.p = params or ExerciseParams()
         self.sessions: list[tuple[float, float, float, float]] = []   # start, end, intensity, anaerobic
@@ -87,5 +96,5 @@ class Exercise:
         # zero below, linear to full at 100% (LESSONS 247); the session's anaerobic share scales it
         anaerobic = anaerobic * min(1.0, max(0.0, (intensity - self.p.surge_thr) / (1.0 - self.p.surge_thr)))
         return dict(ex_intensity=self.p.gain * self.y, ex_anaerobic=anaerobic,
-                    ex_si_boost=self.p.alpha * self.p.gain * self.y + self.z,
+                    ex_si_boost=self._acute() + self.z,
                     abs_mult=1.0 + self.p.absorb * self.y)
