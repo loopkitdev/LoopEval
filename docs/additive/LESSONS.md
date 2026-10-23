@@ -7964,3 +7964,30 @@ outputs in gamepc ~/additive/runs/c290–c312).
 
      Run dir runs/2026-10-23-additive-activity/extime (m_base / m_base5k are the reference re-run on the Mac binary,
      0.380 / 0.428).
+
+498. **The missing fast falls are an afternoon-and-evening gap in short-scale motion: the twins' true glucose almost never
+     falls fast, and no single named component restores it; an activity-dependent sensor error helps one draw only.**
+     - **Where** (`runs/2026-10-23-additive-falls`; `fall_ctx.py`, ice steps both sides, falls < −150 mg/dL/h over 15 min
+       ending 70–180): donors 1.47 / day, twins 0.97, short by about the same share after entries (0.64 vs 0.40), after
+       unlogged rises (0.36 vs 0.23), with automatic insulin only (0.23 vs 0.15) and after hand boluses (0.23 vs 0.19).
+       By clock the twins match 00–12 h and have half the donors' 12–24 h: 15-min slope SD 65–72 vs 79–81 mg/dL/h and fast
+       share 1.3–1.6 vs 2.3–2.8% (`hourly_motion.py`), with level matched in every block. 08–12 h is slightly over.
+     - **By timescale** (`fall_scales.py`): falls of ≥ 2.5 / 2.0 / 1.5 / 1.2 mg/dL/min over 15 / 30 / 60 / 90 min, twins /
+       donors 0.90 / 1.59, 0.80 / 1.31, 0.76 / 1.04, 0.76 / 0.87 per day. Long falls nearly match; steep short ones are
+       missing (the ACF zero-crossing row's short-scale gap, L 385–389).
+     - **The twins' true glucose falls fast 0.09 times a day** (G6 / G7 twins; `true_vs_cgm.py`): their CGM fast falls are
+       sensor noise on slower true falls. Twins' effective SI runs 0.76–0.88 of the person's median at 12–24 h against
+       1.05–1.27 at 00–12 h (fat, post-meal window, high-glucose resistance).
+     - **Single-lever diagnostics on draw 1** (fast falls / day; score vs 0.380): `ppr_a` 0 1.01, 0.371 (3-h meal change
+       gap 0.37 → 0.64; Pete's L 408 call stands); `ins_p2` 0.04 0.97 true 0.09, 0.381; `sg_mult` 2 true 0.08, 0.485;
+       `ge_pm` 1.0 1.00, 0.391; `ge_circ` off 0.97, 0.427 (circadian amplitude breaks); fat off 1.01, 0.388; `glucotox`
+       off 1.03, 0.367. Each moves the evening by ≤ 20%; none adopted.
+     - **Activity-dependent CGM error** (`--set sensor_act_k`, off; noise level × (1 + k · activity intensity); CGM MARD
+       9.5 → 16.5 → 9.3% before / during / 1 h after aerobic exercise, PMC5872070): k 1.35 d1 0.380 → 0.362 (tier 1 0.245 →
+       0.220; fast falls 1.19 / day, G6 / G7 fast-fall gaps 0.81 / 0.72 → 0.49 / 0.50) but d2 0.428 → 0.449 (tier 1 0.313 →
+       0.355); k 0.7 d1 0.379, d2 0.423 (tier 1 worse). It over-fills 08–12 h and leaves the evening short. Stays off.
+     - **Reading.** The donors' afternoons and evenings move faster on short scales than any body change here produces,
+       across every eating and dosing context. What is not in the model or not observable: daytime activity timing (the
+       extract holds workouts only, no step counts), daytime sensor error beyond exercise, and evening behaviour (snacking
+       with hand boluses). Settling body against sensor needs a sensor-vs-reference series (L 298–299).
+
