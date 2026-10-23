@@ -1334,7 +1334,7 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     absolute fidelity on the primary safety metric, change prediction level to slightly worse (within the test's power,
     LESSONS 133); Pete chose it as the base. New base v32of{0,1}TcB2FGUCGLBGGSKaLK, checkpoints icegen_v32of{0,1}TcB2FGUCGLBGGSKaLK.pt on both machines.
 137. **Strategy switches (temp basal <-> autobolus) are the generator's best change test so far: it ranks them better than
-    replay, but both overstate the strategy effect about twofold; and a high-side kernel is not needed.** 55 switches on 47
+    replay, and the size of the strategy effect is right within noise; a high-side kernel is not needed.** 55 switches on 47
     pilot donors (switches.csv in runs/2026-10-13-ice-change/, from the per-cycle mode in the decision log; a switch is a
     lasting flip of the automatic-bolus share, two near an edit dropped), 37 on 32 donors scored (7 donors lack a meals
     file), same pre/post windows as the edit test. The engine takes the dosing strategy cycle by cycle from the export's
@@ -1346,12 +1346,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     |err| 12.8 (16.3; zero 13.1); t<54 r 0.24 (0.08), Spearman negative for both. Pearson is carried by one switch to temp
     basal with a field TIR drop of 69 points (both tools predict a large drop there); without it, TIR r 0.45 (0.32),
     Spearman 0.51 (0.21), |err| 6.70 (7.62). Within direction, the generator ranks switches to temp basal (r 0.60, replay
-    0.28) but not switches to autobolus (0.08, replay -0.09). The level is where both fail: mean TIR change to autobolus
-    +2.7 field vs +5.5 generated (replay similar), to temp basal -2.6 vs -4.4, so the predicted strategy effect is about
-    1.9x the field's (medians: field -0.6 / -3.3, generated +5.0 / -5.0). Single trainings: TIR r 0.70 / 0.60. Next: the
-    too-large autobolus gain, likely what people change around a switch (fewer manual boluses or entries after moving to
-    autobolus, lesson 40's unseen shifts in need) or the plant's response to earlier, larger doses; measure the field's
-    behavior change at switches before changing the model. Separately, a mirror of the low kernel after each crossing
+    0.28) but not switches to autobolus (0.08, replay -0.09). The level: signed strategy effect (autobolus minus temp basal, per
+    switch) +4.4 TIR field vs +5.5 generated (replay +5.7); overstatement +1.0, donor-cluster bootstrap 90% -2.0 to +4.0.
+    Without the largest switch, +2.6 vs +5.0 (90% -0.0 to +4.7), borderline. The simulator adds less insulin at a switch
+    to autobolus than the field did (+1.0 vs +2.0 U/day, medians), so any excess gain would come from dose timing, not
+    amount. Around a switch the field's behavior barely moves (manual boluses, carb entries and the share of meals bolused
+    flat); the per-switch residual tracks the change in need (field minus predicted TIR vs change in mean clean ICE,
+    Spearman -0.64; vs change in total insulin -0.58), lesson 40's unseen shifts again. Single trainings: TIR r 0.70 / 0.60.
+    No model change follows; the switch set is a second change test beside the edits, scored the same way. Separately, a mirror of the low kernel after each crossing
     above 250 (plant_v3 calib_high_kernel, PLANT_HIGH_KERNEL_SCALE) finds no gap on the train window (area 0.7-2.6 mg/dL,
     both trainings), against the 10-20 mg/dL/h excess seen on held-out time, so it is not calibrated in; the hook stays and
     does nothing unless a checkpoint carries the kernel.
