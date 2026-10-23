@@ -7910,8 +7910,8 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Additive runs move to the Mac (Pete); the reference cohorts c446 / c447 / c478–c483 and the donor tables are under
      runs/2026-10-23-additive-activity/cohort.
 
-496. **Most donors who record workouts barely do, and the twins exercise at lower IOB than the donors who do; with bouts at
-     every IOB, the saturating form tracks the donors' response.**
+496. **Most donors who record workouts barely do. (Corrected by 497: the IOB comparison below set the donors' total insulin
+     on board against the twins' net-of-basal IOB; on one measure the twins exercise at higher IOB.)**
      - **Recording habit, not exercise.** Of the donors with any HealthKit workout, the median records 0.15 a week and
        78% of a typical donor's blocks hold none. The workout habit rows now use only donors with a workout in ≥ half
        of their blocks, and their twins (`lifestats._recorders`): 11 donors, 93 blocks, 1.62 workouts / week vs the
@@ -7934,3 +7934,33 @@ outputs in gamepc ~/additive/runs/c290–c312).
 
      The model guide's § 10 now carries every scored row with its tier, weight and gap on both draws; the role overlay
      points to it. Run dir runs/2026-10-23-additive-activity (probe.py, probe/).
+
+497. **The activity shortfall is eating around sessions, not their timing or IOB; timing (`ex_time`), a later C4 surge and
+     `ex_no_eat` are all rejected or mixed on two draws.**
+     - **IOB bug (fixed, cc32d1f).** The donors' bout IOB is the ice extractor's total insulin on board (basal
+       included); the twins' was Loop's net-of-basal `candidateIOB`. Waking IOB per person p50 3.28 vs 1.64 U. The twins
+       now take the same extractor's IOB. On it the twins' sessions start at **higher** IOB than the donors' workouts
+       (p50 2.9–3.1 vs 2.2 U), so lesson 496's IOB reading and its daily-session IOB-band table do not hold.
+       `act_net20` / `act_net20_hi` barely move (base d1 −1.3 / −4.2, d2 +0.3 / −4.8; donors −5.7 / −12.6).
+     - **Donors' workout timing** (11 recorders, 523 workouts, `extime/donor_extime.py`): 48% start 0–120 min after a
+       carb entry (delay rising over the first 40 min, then flat), clock peaks 08–12 and 16–20 h.
+       **`ex_time`** (5031f0c, off; `templates.add_ex_timing` writes `ex_week_own`, `ex_dur_own`, `ex_am_own`,
+       `ex_hours_own` for recorders): score d1 0.380 → 0.413, d2 0.428 → 0.418; tier 1 worse on both (0.245 → 0.285,
+       0.313 → 0.328). Rejected.
+     - **C4 against its own target** (L243 table, change during by METs; donors −6 / −22 / −22 / −8 at < 4 / 4–6 / 6–8 /
+       ≥ 8): base twins −2 / −6 / +3 / −6 (d1), −6 / −13 / −4 / −7 (d2). Moving the surge threshold to 0.75–0.8 of reserve
+       (`--set ex_surge_thr`, size 28 / 35 / 42) leaves 6–8 METs at −1 to −5; scores 0.380–0.399 (d1) and 0.424–0.438
+       (d2) vs 0.380 / 0.428. Default kept.
+     - **What lifts the twins' sessions: eating from −30 min to the end** (`extime/sess_eat.py`). 60% of sessions; mostly
+       the unlogged pre-exercise carbs (p 0.3, 15 g, 10 min before; RAPPID, Joubert 2025: 36% of sessions, median 20 g),
+       then meals and snacks inside or just before, and proactive snacks. Sessions with no eating fall like the donors'
+       workouts (4–6 METs −16 / −20 vs −22; < 4 METs −5 / −10 vs −6). **`ex_no_eat`** (meals, snacks and grazes planned
+       inside a session move to its end) lowers the eating share to 51%: d1 0.380 → 0.375, d2 0.428 → 0.450. Mixed, stays
+       off.
+     - **Reading.** The donors' bouts exclude logged entries only; whether they too eat unlogged before workouts is not
+       visible, so the pre-exercise carbs' share sits on RAPPID. The pooled activity rows move by their draw scatter
+       (bootstrap SE 0.2–0.4 in gap units) under every arm here; they cannot rank exercise changes on 112 twins. Next
+       candidates belong elsewhere (entries ending in a fast fall, pulse shape, dawn dips).
+
+     Run dir runs/2026-10-23-additive-activity/extime (m_base / m_base5k are the reference re-run on the Mac binary,
+     0.380 / 0.428).

@@ -7,8 +7,8 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**c479_sat10** (2026-10-23): 112 people × 14 days, weighted match score 0.379 (0.415 on a second draw of people) over 51
-statistics, tier 1 0.243 / 0.295 (§ 10 lists every row, its tier and its gap). It is c446_npu (2026-10-20) with the
+**c479_sat10** (2026-10-23): 112 people × 14 days, weighted match score 0.380 (0.422 on a second draw of people) over 51
+statistics, tier 1 0.245 / 0.313 (§ 10 lists every row, its tier and its gap). It is c446_npu (2026-10-20) with the
 saturating acute exercise sensitivity (L 495). The run carries:
 - a personal meal mix with relative fat resistance (L 432);
 - the relative post-meal window 0.4 (L 436);
@@ -301,16 +301,16 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
 
 | | Tier 1 | Tier 2 | Tier 3 | Score | Close (of 51) |
 |---|---|---|---|---|---|
-| draw 1 | 0.243 | 0.465 | 0.431 | 0.379 | 22 |
-| draw 2 | 0.295 | 0.488 | 0.474 | 0.415 | 16 |
+| draw 1 | 0.245 | 0.465 | 0.431 | 0.380 | 22 |
+| draw 2 | 0.313 | 0.488 | 0.474 | 0.422 | 16 |
 
 The workout duration, METs and after-meal rows have too few twins on draw 1 (4 of 112 have a consistently recording
 donor), so they drop out of this joint table. On draw 2 they pass (35 vs 45 min, 5.6 vs 5.5 METs, 0.50 vs 0.33).
 
 | Tier | Statistic | What it measures | Donors p50 | Twins draw 1 / 2 | Gap draw 1 / 2 |
 |---|---|---|---|---|---|
-| 1 | `act_net20` | activity response: 20-min ΔCGM of a bout less matched windows (mg/dL), pooled over bouts | -5.71 | -1.69 / 0.182 | 0.46 / 0.68 |
-| 1 | `act_net20_hi` | the same, bouts from > 150 mg/dL with IOB ≥ 2 U | -12.6 | -4.12 / -6.80 | 0.90 / 0.62 |
+| 1 | `act_net20` | activity response: 20-min ΔCGM of a bout less matched windows (mg/dL), pooled over bouts | -5.71 | -1.32 / 0.35 | 0.51 / 0.70 |
+| 1 | `act_net20_hi` | the same, bouts from > 150 mg/dL with IOB ≥ 2 U | -12.6 | -4.25 / -4.79 | 0.89 / 0.83 |
 | 1 | `bg_mean` | mean glucose (mg/dL) | 151.9 | 154.2 / 156.5 | 0.13 / 0.31 |
 | 1 | `carb_entries_per_day` | carb entries per day | 2.96 | 3.42 / 3.88 | 0.27 / 0.50 |
 | 1 | `lows_per_day` | crossings below 70 per day | 1.00 | 0.875 / 1.00 | 0.22 / 0.12 |
@@ -378,10 +378,11 @@ donor), so they drop out of this joint table. On draw 2 they pass (35 vs 45 min,
 | 3 | `wear` | sensor coverage | 0.974 | 0.976 / 0.972 | 0.09 / 0.10 |
 
 **Where the gaps are** (gap ≥ 0.5 on both draws, or tier 1 ≥ 0.4):
-- **Activity response:** short at high IOB. The twins' sessions happen at lower IOB than the donors' recorded workouts
-  (half of which start within 2 h of a meal, a third at IOB ≥ 3 U). In a daily-session probe the saturating C2 form tracks
-  the donors' response by IOB band, except at 3–5 U (−8 vs −16 on 31 donor bouts). So the coupling of exercise to meals
-  and insulin is the next lever (L 496).
+- **Activity response:** the twins' sessions fall less in their first 20 min, most of all from high glucose and IOB.
+  Sessions with no eating fall like the donors' workouts; 60% of the twins' sessions have eating from 30 min before to the
+  end, mostly the unlogged pre-exercise carbs (RAPPID's 36% of sessions). Session timing, the C4 threshold and deferring
+  eating out of sessions do not move it beyond the draw scatter (L 497). IOB is the ice extractor's total insulin on board
+  on both sides.
 - **Meals:**
   - Entries ending in a fast fall: 7 vs 14%.
   - Labelled pulses peak earlier and lower: 0.62–0.67 vs 0.75 h, 1.05 vs 1.18 g-eq/h per g.
@@ -407,7 +408,7 @@ meal drops and the 3-h change, behaviour rates. The measure scripts sit beside e
 `skip_own`, `missed_own`, `macro_own`, `fat_rel`, `ppr_rel`, `night_pro`, `uls`, `posture`, `act_frag`, `lipohypertrophy`, `outages`, `overrides`, `edits`, `counterreg`, `glucotox`.
 Off by default (`--enable`): `rc_own` (on in every validation run), `night_own`, `circ_own`, `intake_own`,
 `prof_np`, `csf_lvl`, scenarios. Numeric: `ins_p2`, `pro_glc`, `meal_slow`, `ge_am` / `ge_pm`, `cr_mult`, `sg_mult`,
-`kappa_mult`, `csf_lvl`, `ex_sat` (C2 saturation, default 0.1; 0 = linear), `ex_alpha`, `ex_up_mult`, sensor fit
+`kappa_mult`, `csf_lvl`, `ex_sat` (C2 saturation, default 0.1; 0 = linear), `ex_alpha`, `ex_up_mult`, `ex_surge_thr` (C4 threshold, default 0.6), sensor fit
 parameters (`sensor_*`).
 
 ## 12. Open items
@@ -420,7 +421,7 @@ parameters (`sensor_*`).
 3. **Meals:** the 3-h meal change is +13 to +18 against +21 (L 429–436).
 4. **Reversal time and G7 short-scale motion** (§ 10).
 5. **Day-to-day structure:** `sigma_disp`, `ac1` (§ 10).
-6. **What moves glucose** (§ 10, L 494–496): the activity response at high IOB, entries ending in a fast fall (7 vs
+6. **What moves glucose** (§ 10, L 494–497): the activity response at high IOB, entries ending in a fast fall (7 vs
    14%), slower unlogged rises, flatter meal pulses, and twice the donors' unexplained falls at 00–12 h.
 
 ## Key references
