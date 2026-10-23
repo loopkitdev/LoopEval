@@ -397,7 +397,7 @@ struct InputWindowBuilder: Sendable {
         if applyOv { sensitivitySlice = TemporaryOverrides.applyISF(sensitivitySlice, gatedRateWindows) }
 
         // Apply ISF multiplier (no-op when multiplier == 1.0)
-        sensitivitySlice = applyISFMultiplier(sensitivitySlice)
+        sensitivitySlice = applyISFMultiplier(sensitivitySlice, from: isfBackStart, to: isfFwdEnd)
 
         // Apply basal rate multiplier (no-op when multiplier == 1.0)
         basalSlice = applyBasalMultiplier(basalSlice)
@@ -516,11 +516,18 @@ struct InputWindowBuilder: Sendable {
     /// slice. When hourly multipliers are present, each entry is split at
     /// local-hour boundaries (per `config.localTimezone`) so the appropriate
     /// per-hour multiplier applies to each piece.
+    /// The hourly split walks every hour of every entry, and a flat profile is ONE entry spanning the
+    /// whole dataset (90 days: ~2,000 local hours per call, several calls per step), so on that path
+    /// the entries are clipped to the slice's own span first. Values inside the span are unchanged.
     private func applyISFMultiplier(
-        _ slice: [AbsoluteScheduleValue<LoopQuantity>]
+        _ slice: [AbsoluteScheduleValue<LoopQuantity>], from: Date, to: Date
     ) -> [AbsoluteScheduleValue<LoopQuantity>] {
+        let clipped = config.sensitivityHourlyMultipliers == nil ? slice : slice.compactMap { e in
+            let s = max(e.startDate, from), t = min(e.endDate, to)
+            return s < t ? AbsoluteScheduleValue(startDate: s, endDate: t, value: e.value) : nil
+        }
         return EvaluationEngine.applySensitivityScaling(
-            slice,
+            clipped,
             globalMultiplier: config.sensitivityMultiplier,
             hourlyMultipliers: config.sensitivityHourlyMultipliers,
             timezone: config.localTimezone
