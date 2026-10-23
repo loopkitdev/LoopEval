@@ -12,7 +12,8 @@ window (like for like; LESSONS 494). The validate.py rows describe glucose and i
                                                activity (2026-10-22)
   activity   workouts_week, workout_dur, workout_mets, workout_after_meal (share starting 0-2 h after a carb entry),
              act_net20 (Pemberton 2025's design: ΔCGM over a workout's first 20 min less matched non-workout windows of
-             the same block — start CGM ±15, 15-min ROC ±0.5 mg/dL/min, IOB ±0.5 U); act_net20_hi the same for bouts starting
+             the same block — start CGM ±15, 15-min ROC ±0.5 mg/dL/min, IOB ±0.5 U; IOB is the ice extractor's total
+             insulin on board on both sides); act_net20_hi the same for bouts starting
              above 150 mg/dL with IOB >= 2 U, where the donors' response lives (−19 above 180, −20 at IOB >= 3 U). Donors: HealthKit workouts, only
              for donors who record any; simulated people: structured sessions, only for twins of those donors.
 
@@ -251,7 +252,7 @@ def _sim_steps(run: Path) -> pd.DataFrame | None:
     import subprocess, tempfile
     from .ice_check import export_sim
     code = ("import sys, pandas as pd; sys.path.insert(0, sys.argv[1]); from loopeval_analysis.ice_gen import extract as X; "
-            "s, _ = X.extract(sys.argv[2]); s[['t1','ice','clean']].to_parquet(sys.argv[3])")
+            "s, _ = X.extract(sys.argv[2]); s[['t1','ice','clean','iob']].to_parquet(sys.argv[3])")
     with tempfile.TemporaryDirectory() as d:
         export_sim(run, Path(d))
         r = subprocess.run([sys.executable, "-W", "ignore", "-c", code, str(ICE_ANALYSIS), d, d + "/s.parquet"],
@@ -259,7 +260,7 @@ def _sim_steps(run: Path) -> pd.DataFrame | None:
         if r.returncode != 0: return None
         s = pd.read_parquet(d + "/s.parquet")
     return pd.DataFrame(dict(t=((s.t1 - EPOCH).dt.total_seconds() / 60).to_numpy(), ice=s.ice.to_numpy(float),
-                             clean=s.clean.to_numpy(bool)))
+                             clean=s.clean.to_numpy(bool), iob=s.iob.to_numpy(float)))
 
 
 def person_life(run: Path, recorders: set | None = None, with_steps: bool = True) -> dict | None:
@@ -283,6 +284,10 @@ def person_life(run: Path, recorders: set | None = None, with_steps: bool = True
                              mets=[1.0 + float(x[3]) * (mm - 1.0) if mm else np.nan for x in b]))
     W = Wall if recorders is None or person.template in recorders else None   # habit rows: twins of recording donors only
     steps = _sim_steps(run) if with_steps else None
+    if steps is not None and "iob" in steps:
+        # the donors' IOB is the ice extractor's TOTAL insulin on board (basal included), not Loop's net-of-basal value:
+        # the twins take the same extractor's, so the IOB match and the IOB >= 2 U cut read alike (LESSONS 497)
+        iob_t, iob_v = steps.t.to_numpy(), steps.iob.to_numpy()
     r = life_stats(c.index.to_numpy(float), c.to_numpy(float), t0, t1, [e[0] for e in ent], [e[1] for e in ent],
                    iob_t, iob_v, pulses, W, steps, net_workouts=Wall)
     bouts = [dict(alias=person.name, **x) for x in r.pop("_bouts", [])]
