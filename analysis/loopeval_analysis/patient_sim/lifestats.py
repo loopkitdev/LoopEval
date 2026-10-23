@@ -297,19 +297,32 @@ def _sim_one(a):
         print(Path(run).name, "skipped:", repr(ex)[:200]); return None, []
 
 
+HABIT = ["workouts_week", "workout_dur", "workout_mets", "workout_after_meal"]
+
+
+def _recorders(D: pd.DataFrame) -> set:
+    """Donors whose HealthKit record measures their exercise: a workout in at least half of their 13-day blocks. Most
+    donors with any workout record one rarely (median 0.15 / week, 78% of blocks empty); their rate is a recording
+    habit, not an exercise frequency (LESSONS 496)."""
+    w = D.dropna(subset=["workouts_week"])
+    s = w.groupby("alias").workouts_week.apply(lambda x: (x > 0).mean())
+    return set(s[s >= 0.5].index)
+
+
 def sim(root: str, par: int = 6, donor_csv: str | None = None):
     from concurrent.futures import ProcessPoolExecutor
     from .validate import compare_blocks, INSTRUMENT
     root = Path(root)
-    rec = set(_workouts_all().alias) if ACTIVITY.exists() else None
+    dpath = Path(donor_csv) if donor_csv else Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/life_blocks.csv"
+    rec = _recorders(pd.read_csv(dpath)) if dpath.exists() else None
     runs = sorted(str(p) for p in root.glob("v*") if (p / "truth.pkl").exists())
     with ProcessPoolExecutor(par) as ex:
         res = list(ex.map(_sim_one, [(r, rec) for r in runs]))
     S = pd.DataFrame([r for r, _ in res if r]); S.to_csv(root / "life_stats.csv", index=False)
     pd.DataFrame([b for _, bs in res for b in bs]).to_csv(root / "life_bouts.csv", index=False)
-    dpath = Path(donor_csv) if donor_csv else Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/life_blocks.csv"
     if dpath.exists():
         D = pd.read_csv(dpath)
+        D.loc[~D.alias.isin(rec), HABIT] = np.nan
         tt = pd.read_csv(Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/templates_pilot.csv")[["alias", "sensor"]]
         D = D.merge(tt, on="alias", how="left")
         INSTRUMENT.update(LIFE_INSTRUMENT)
