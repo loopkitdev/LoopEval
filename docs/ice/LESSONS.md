@@ -1299,3 +1299,17 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     (-0.65), with insulin within 6-8% and carbs unrelated (+0.01). The background-ICE offset the band corrects was already
     near zero. The excess slow variability of LESSONS 127-129 is the cause to fix; under test: mean reversion of the
     background's slow drift (runs/2026-10-23-ice-damp/).
+135. **Damping the background's slow drift narrows glucose a little but makes TIR change prediction worse; not kept.
+    The closed-loop excess persistence is not mostly background drift.** plant_v3 PLANT_DAMP_K / _TAU / _SLOW_H
+    (runs/2026-10-23-ice-damp/) subtracts kappa times an exponential mean (tau minutes) of the background's deviation from
+    its exogenous base. Plain damping pulled mean glucose down about 22 mg/dL and raised lows: it removes the day-scale
+    level along with the drift. The band-pass form (fast mean minus a 24 h mean) keeps the level. At kappa 0.25, tau 180,
+    on the 24 held-out hosts (3 seeds, clean time), of0 / of1: TIR 73.4 / 72.5 -> 73.9 / 71.3, t<54 0.24 / 0.16 -> 0.17 /
+    0.19, mean 152 / 153 -> 152 / 155 (field 74.1 / 0.12 / 152), glucose sd ratio 1.14 -> 1.09 / 1.12, closed-loop 3 h vt
+    4.8 -> 4.07 / 4.41 (field 2.76). Stronger is worse: on of0, kappa 0.6 gives TIR 72.2, t<54 0.32, |mean gap| 14.5;
+    kappa 1.0 gives 66.7, 0.47, 17.1, with two donors running away high (mean 305 and 325). Vt reaches only 3.8 at kappa 1.0.
+    Change test (62 edits, two-training ensemble against the base): TIR r 0.27 -> 0.16 (paired bootstrap of the change, 90%
+    interval -0.18 to -0.03), t<70 0.55 -> 0.55, t<54 0.26 -> 0.38 (-0.05 to +0.25), mean 0.32 -> 0.35. The TIR loss is
+    outside noise, and the t<54 gain is not. The remaining closed-loop persistence (about 4 against the field's 2.76) has to
+    come from elsewhere in the closed loop: behavior and defense responses, or how the model's state feeds back. Damping
+    the background past what keeps the level does not reach it.
