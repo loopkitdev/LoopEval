@@ -7909,3 +7909,28 @@ outputs in gamepc ~/additive/runs/c290–c312).
 
      Additive runs move to the Mac (Pete); the reference cohorts c446 / c447 / c478–c483 and the donor tables are under
      runs/2026-10-23-additive-activity/cohort.
+
+496. **Most donors who record workouts barely do, and the twins exercise at lower IOB than the donors who do; with bouts at
+     every IOB, the saturating form tracks the donors' response.**
+     - **Recording habit, not exercise.** Of the donors with any HealthKit workout, the median records 0.15 a week and
+       78% of a typical donor's blocks hold none. The workout habit rows now use only donors with a workout in ≥ half
+       of their blocks, and their twins (`lifestats._recorders`): 11 donors, 93 blocks, 1.62 workouts / week vs the
+       twins' 1.75–2.33. Only 4–7 twins per draw qualify, so these rows are thin.
+     - **Different conditions.** The donors' recorded workouts start at high IOB: 62 of 171 bouts at ≥ 3 U, half
+       within 2 h of a meal. The twins' clock-timed sessions mostly start at IOB < 1 U (94 of 207).
+     - **The daily-session probe** (measurement only, never scored): every twin does a session daily at its usual hour
+       (`beh_set` ex_per_week 7), about 690 bouts per arm. Net ΔCGM over 20 min by IOB band:
+
+       | | < 1 U | 1–2 | 2–3 | 3–5 | ≥ 5 U |
+       |---|---|---|---|---|---|
+       | donors' workouts | +3.0 (20) | −1.8 (58) | −0.5 (31) | −15.5 (31) | −14.1 (31) |
+       | twins, saturating (k 0.1) | −0.7 (329) | −5.7 (190) | −7.7 (86) | −7.8 (58) | −12.4 (24) |
+       | twins, linear | +0.3 | −7.8 | −8.1 | −2.1 | −7.9 |
+
+       The saturating form follows the donors' shape except at 3–5 U, on 31 donor bouts.
+     - **Reading.** The pooled shortfall in `act_net20` comes mostly from when the twins exercise, not how their body
+       responds. The next lever is exercise's coupling to meals and insulin: each twin's sessions timed after meals as
+       its donor's are, where the donor records consistently.
+
+     The model guide's § 10 now carries every scored row with its tier, weight and gap on both draws; the role overlay
+     points to it. Run dir runs/2026-10-23-additive-activity (probe.py, probe/).
