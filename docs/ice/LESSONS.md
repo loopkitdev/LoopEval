@@ -1314,7 +1314,7 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     come from elsewhere in the closed loop: behavior and defense responses, or how the model's state feeds back. Damping
     the background past what keeps the level does not reach it.
 136. **A closed-loop low-response kernel brings held-out lows to the field without a TIR cost, but does not improve change
-    prediction; held as a candidate, not the base.** Event average on held-out clean time after glucose enters < 70 (from
+    prediction; adopted as the base (Pete, 2026-10-23).** Event average on held-out clean time after glucose enters < 70 (from
     >= 70), base v32of{0,1}TcB2FGUCGLBGGSKa: total ICE at 15 / 30 / 45 / 60 min 105 / 146 / 120 / 81 mg/dL/h (field) vs
     79-83 / 82-87 / 76-85 / 67-69 (generated), glucose at 60 min 132 vs 96-99. Same-step background ICE by glucose band
     matches the field in every band (calibrate_closed_bg on the train-window rollouts: shifts within +-6 above 60), so the
@@ -1331,5 +1331,5 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     test, ensemble (base): TIR r 0.21 (0.27; paired bootstrap of the change, 90% -0.12 to -0.00), t<70 0.57 (0.55), t<54
     0.29 (0.26; Spearman 0.38 vs 0.40), mean 0.28 (0.32). The ensemble's predicted changes correlate 0.94 / 0.89 / 0.65 /
     0.98 with the base's: a state-triggered rescue moves the level of lows, and both arms of an edit carry it. Better
-    absolute fidelity on the primary safety metric, change prediction level to slightly worse; which one the base serves
-    is Pete's call. Checkpoints icegen_v32of{0,1}TcB2FGUCGLBGGSKaLK.pt on both machines.
+    absolute fidelity on the primary safety metric, change prediction level to slightly worse (within the test's power,
+    LESSONS 133); Pete chose it as the base. New base v32of{0,1}TcB2FGUCGLBGGSKaLK, checkpoints icegen_v32of{0,1}TcB2FGUCGLBGGSKaLK.pt on both machines.
