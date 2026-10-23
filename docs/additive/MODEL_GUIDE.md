@@ -411,7 +411,7 @@ meal drops and the 3-h change, behaviour rates. The measure scripts sit beside e
 `skip_own`, `missed_own`, `macro_own`, `fat_rel`, `ppr_rel`, `night_pro`, `uls`, `posture`, `act_frag`, `lipohypertrophy`, `outages`, `overrides`, `edits`, `counterreg`, `glucotox`.
 Off by default (`--enable`): `rc_own` (on in every validation run), `night_own`, `circ_own`, `intake_own`,
 `prof_np`, `csf_lvl`, scenarios. Numeric: `ins_p2`, `pro_glc`, `meal_slow`, `ge_am` / `ge_pm`, `cr_mult`, `sg_mult`,
-`kappa_mult`, `csf_lvl`, `ex_sat` (C2 saturation, default 0.1; 0 = linear), `ex_alpha`, `ex_up_mult`, `ex_surge_thr` (C4 threshold, default 0.6), `sensor_act_k` (activity-dependent CGM noise, off), sensor fit
+`kappa_mult`, `csf_lvl`, `ex_sat` (C2 saturation, default 0.1; 0 = linear), `ex_alpha`, `ex_up_mult`, `ex_surge_thr` (C4 threshold, default 0.6), `sensor_act_k` (activity-dependent CGM noise, off), `sleep_own` (donor-own sleep window, off), sensor fit
 parameters (`sensor_*`).
 
 ## 12. Open items
