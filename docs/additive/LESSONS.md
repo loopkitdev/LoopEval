@@ -7991,3 +7991,20 @@ outputs in gamepc ~/additive/runs/c290–c312).
        extract holds workouts only, no step counts), daytime sensor error beyond exercise, and evening behaviour (snacking
        with hand boluses). Settling body against sensor needs a sensor-vs-reference series (L 298–299).
 
+499. **Paired against their own donors the twins' entries match by clock; their user boluses run high at 08–16 h and low
+     at night. A donor-own sleep window brings the night boluses closer and worsens tier 1 on both draws (off).**
+     - **Paired clock** (`runs/2026-10-23-additive-falls/paired_clock.py`, each twin against its own donor, per day by 4-h
+       block from 00 h): entries twin − donor median 0.00 / 0.07 / 0.06 / 0.16 / −0.02 / 0.02 (the cohort-wide evening
+       entry "deficit" of L 498 was a comparison with all donors, not each twin's own); user boluses −0.12 / −0.02 /
+       +0.22 / +0.20 / −0.01 / −0.03 (means −0.22 at 00–04 h, +0.41 / +0.36 at 08–16 h).
+     - **Sleep from the donor's record** (`templates.add_sleep_mid`, `sleep_mid_h`: midpoint of the circular 7-h window with
+       the fewest user actions, carb entries plus manual boluses): pilot median 3.8 h (p10 / p90 2.8 / 5.8) against the
+       prior's 3.0 (bed N(23 h, 50 min), wake N(07 h, 50 min)). **`sleep_own`** (b14e104, off) centres the person's
+       drawn sleep length on it: night user boluses 00–04 h −0.22 → −0.09 / −0.12 (means), user boluses / day 4.71 / 5.50
+       (donors 4.58); score d1 0.380 → 0.397, d2 0.428 → 0.415, tier 1 0.245 → 0.332 and 0.313 → 0.342 (d1 TIR 71.0 →
+       68.9, mean 154 → 156). Off: tier 1 worse on both draws.
+     - **Reading.** As with `ex_time`, `ex_no_eat` and `sensor_act_k` (L 497–498), a change that moves its own target
+       toward the donors costs the outcome rows the other components were fitted to. Adopting one needs the review of L
+       "review before adding" — refitting the drifted components on their own evidence — before the two-draw comparison,
+       not instead of it.
+
