@@ -470,7 +470,9 @@ class World:
                                           **({"frag_on_med": float(enable["frag_on"])} if enable and isinstance(enable.get("frag_on"), float) else {}),
                                           **({} if self.ex_b is None else dict(b=self.ex_b[0], z_power=self.ex_b[1])),
                                           **({} if self.ex_alpha is None else dict(alpha=self.ex_alpha)),
-                                          **({} if self.ex_sat is None else dict(sat_k=self.ex_sat))))
+                                          **({} if self.ex_sat is None else dict(sat_k=self.ex_sat)),
+                                          # experiment (LESSONS 497): the C4 surge threshold, share of reserve (default 0.6)
+                                          **({"surge_thr": float(enable["ex_surge_thr"])} if enable and isinstance(enable.get("ex_surge_thr"), float) else {})))
         # energy balance: a person eats for their activity. The donor's TDD (the measured constraint, G4) was spent
         # in a life that included it, so the glucose their everyday activity uses is added to what they eat
         # (activity_carbs: clamp probe, active day vs rest day; LESSONS 34)
