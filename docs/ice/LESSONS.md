@@ -1264,3 +1264,17 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     change-test notes), so what limits it is shared by every training of the recipe: the model's structure or calibration,
     not its seed. Two trainings stay the working ensemble; the next lever is structural (the previous-value recursion,
     LESSONS 129).
+132. **Change prediction is limited by per-person level error on donors who never got a level band; and a caveat on 129.**
+    (a) On the 62-edit change test (of0/1 ensemble), 57 edits are on trained donors who are not among the 24 hosts and so run
+    on calib_level_band['_median']: their own-settings arm misses the field's pre-window TIR by a median 7.5 points (hosts
+    3.4; replay 0.6), the miss is the same in both trainings (r 0.95 across of0/of1), and their predicted change correlates
+    with the field at r 0.11 against 0.66 on the five host edits. Over all edits, |level error| and |change error| correlate
+    (Spearman 0.24); the half with the smaller level error predicts at r 0.40, the other half 0.19. Edits with larger settings
+    moves predict better (r 0.36 vs 0.06). Field TIR change itself tracks the edit only weakly (Spearman 0.15 with a
+    more-insulin axis log basal - log ISF/2 - log CR/2, against 0.54 for the model's prediction): most of what moves the
+    field across an edit is not the settings. Next: a level band for every change-test donor from their own train-window
+    rollouts, as the hosts have (runs/2026-10-23-ice-lball/). (b) 129's teacher-forced comparison is weaker evidence than
+    it read: fed the real previous value, the output is a one-step prediction series, whose long-lag variance is below
+    the real series' even for a perfect model (the real series carries the covariance between past innovations and later
+    means that independent draws drop). So tf below the field (2.51 vs 3.60) is expected, and only free-running against the
+    field (4.81 vs 3.60) shows the excess; the excess is the free-running dynamics, which 129's conclusion still holds.
