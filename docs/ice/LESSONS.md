@@ -1418,3 +1418,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     shares) and -0.69/h against glucose 15 min earlier. That this is steeper, not shallower, shows excursion dynamics, not
     uptake. No SG reading is possible from these data, so SG's prior rests on the literature. Next: step 0c, the eda ISF
     yardstick with an SG term removed.
+141. **Engine basal gaps (main 8fa8411) in plant rollouts sit on no-dose-guard cycles, not on compression nulls; small,
+    common to both arms of an edit.** The engine skipped steps without sending basal, so the external plant received no
+    insulin over those spans. runs/2026-10-24-ice-ge/basal_gaps.py, 668 change-test rollouts (x and pilot, build 11d1b77),
+    spans of 10 min or more with no basal: a withheld compression reading in 0% of gap steps. About 35 min/day (2.4-2.5% of
+    time) where most field cycles are no_dose_guard. The field delivered 0.40-0.50 U/h there on average; some are truly
+    pumpless (x334, 0.05 U/h), others ran the schedule. Field basal running outside guard spans: 2-3 min/day, 0.02-0.03
+    U/day missed. Under 1% of TDD pooled, but 10-60 h stretches for a few donors, and both arms of an edit share them, so
+    change deltas are mostly unaffected. The engine fix (last command 30 min, then schedule) would add insulin in truly
+    pumpless spans; reported to simulator. Adopt with the next frozen build, not under running chains.
