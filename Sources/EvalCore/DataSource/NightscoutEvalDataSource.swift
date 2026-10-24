@@ -35,6 +35,19 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     /// preset whose target isn't in the notes (e.g. "No smbs"). Off ⇒ legacy behavior.
     public let trioOverrides: Bool
 
+    /// Trio override presets translated into Loop Temporary Overrides, by preset name: the
+    /// preset's target becomes the override's correction range, its percentage the insulin-needs
+    /// factor. Each Nightscout `Exercise` event naming a preset becomes an override window; a
+    /// later event ends the one before it. Lets a Loop replay of a Trio user see the overrides
+    /// the user set. Empty ⇒ off. Needs `applyOverrides`.
+    public let trioOverridesAsLoop: [String: TrioPresetAsLoop]
+
+    public struct TrioPresetAsLoop: Sendable {
+        public let target: Double?
+        public let percentage: Double?
+        public init(target: Double?, percentage: Double?) { self.target = target; self.percentage = percentage }
+    }
+
     /// How far before `interval.start` to scan for Temporary Override events, so a
     /// long/indefinite override that began before the analysis window is still
     /// captured while it is active inside it. 180 days comfortably covers the
@@ -51,7 +64,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         defaultMaxBasalRate: Double = 3.0,
         applyOverrides: Bool = true,
         presetTargets: [String: Double] = [:],
-        trioOverrides: Bool = false
+        trioOverrides: Bool = false,
+        trioOverridesAsLoop: [String: TrioPresetAsLoop] = [:]
     ) {
         self.client = client
         self.cache = cache
@@ -61,6 +75,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         self.applyOverrides = applyOverrides
         self.presetTargets = presetTargets
         self.trioOverrides = trioOverrides
+        self.trioOverridesAsLoop = trioOverridesAsLoop
     }
 
     // MARK: – EvalDataSource
@@ -87,7 +102,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // so the cache key MUST include the model — otherwise --insulin-type silently
         // reuses the first model's cached doses.
         // v2: temp-basal volume now uses the pump's delivered `amount` (not rate*duration).
-        let cacheKey = DataCache.key(for: "doses_v5ext_\(insulinType)", url: client.baseURL, interval: lookback)
+        // v6: Trio PumpSuspend/PumpResume notes become zero-rate basal doses.
+        let cacheKey = DataCache.key(for: "doses_v6_\(insulinType)", url: client.baseURL, interval: lookback)
         if let cached: [EvalInsulinDose] = try await cache.load(key: cacheKey) {
             return Self.clipOverlappingBasals(cached)
         }
@@ -169,7 +185,11 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // long/indefinite override starting before the window is still captured.
         // Bump so caches written before the deep fetch are rebuilt.
         let trTag = trioOverrides ? "_trov" : ""
-        let cacheKey = DataCache.key(for: "therapy_v9ex_\(insulinType)\(ovTag)\(ptTag)\(trTag)", url: client.baseURL, interval: interval)
+        let tlTag = (trioOverridesAsLoop.isEmpty || !applyOverrides) ? "" : "_trloop" + trioOverridesAsLoop
+            .sorted { $0.key < $1.key }
+            .map { "\($0.key)=\($0.value.target.map { "\($0)" } ?? "-")@\($0.value.percentage.map { "\($0)" } ?? "-")" }
+            .joined(separator: ",")
+        let cacheKey = DataCache.key(for: "therapy_v9ex_\(insulinType)\(ovTag)\(ptTag)\(trTag)\(tlTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -190,6 +210,12 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             let ovStart = interval.start.addingTimeInterval(-Self.overrideLookback)
             let treatments = try await client.fetchTreatments(from: ovStart, to: interval.end, eventType: "Temporary Override")
             overrides = TemporaryOverrides.windows(from: treatments, parse: makeISOParser().date(from:))
+            if !trioOverridesAsLoop.isEmpty {
+                let ex = try await client.fetchTreatments(from: ovStart, to: interval.end, eventType: "Exercise")
+                overrides = (overrides + Self.trioOverrideWindows(from: ex, presets: trioOverridesAsLoop,
+                                                                  parse: makeISOParser().date(from:)))
+                    .sorted { $0.start < $1.start }
+            }
         }
         var timeline: TherapyTimeline
         if history.count > 1 {
@@ -232,6 +258,30 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         }.sorted { $0.start < $1.start }
         try await cache.save(timeline, key: cacheKey)
         return timeline
+    }
+
+    /// Trio `Exercise` events → Loop override windows. Every event ends the one before it (Trio runs
+    /// one override at a time), including events for presets missing from `presets`; only events
+    /// whose preset sets a target or a percentage other than 100 produce a window.
+    static func trioOverrideWindows(from treatments: [NightscoutTreatment], presets: [String: TrioPresetAsLoop],
+                                    parse: (String) -> Date?) -> [OverrideWindow] {
+        let byName = Dictionary(presets.map { ($0.key.lowercased(), $0.value) }, uniquingKeysWith: { a, _ in a })
+        let evs: [(start: Date, end: Date, preset: TrioPresetAsLoop?)] = treatments.compactMap { t in
+            guard t.eventType.trimmingCharacters(in: .whitespaces) == "Exercise",
+                  let start = parse(t.created_at) else { return nil }
+            let name = (t.notes ?? "").trimmingCharacters(in: .whitespaces).lowercased()
+            return (start, start.addingTimeInterval((t.duration ?? 0) * 60), byName[name])
+        }.sorted { $0.start < $1.start }
+        var out: [OverrideWindow] = []
+        for (i, e) in evs.enumerated() {
+            guard let p = e.preset else { continue }
+            let factor = p.percentage.flatMap { $0 == 100 ? nil : $0 / 100 }
+            guard p.target != nil || factor != nil else { continue }
+            let end = (i + 1 < evs.count) ? min(e.end, evs[i + 1].start) : e.end
+            guard end > e.start else { continue }
+            out.append(OverrideWindow(start: e.start, end: end, factor: factor, targetLo: p.target, targetHi: p.target))
+        }
+        return out
     }
 
     /// Parse a temp-target value (mg/dL) from a Trio note like "130 mg/dL @ 100%"
@@ -305,6 +355,31 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // rather than treated as auto and replaced. Loop datasets are untouched.
         let hasSMB = treatments.contains { $0.eventType.trimmingCharacters(in: .whitespaces) == "SMB" }
         let bolusAutomaticDefault = hasSMB ? false : true
+
+        // Trio logs a pump suspend as a "Note" with notes "PumpSuspend" and the resume as
+        // "PumpResume", and writes no temp basal in between. Left alone, the gap reads as
+        // scheduled basal and the last temp before the suspend runs on past it. Each suspend
+        // becomes a zero-rate basal dose up to the first resume after it; the overlap clip then
+        // ends the earlier temp at the suspend. A suspend with no resume before the next suspend
+        // is left out.
+        let pumpNotes: [(date: Date, resume: Bool)] = treatments.compactMap { t in
+            guard t.eventType.trimmingCharacters(in: .whitespaces) == "Note",
+                  let note = t.notes?.trimmingCharacters(in: .whitespaces),
+                  note == "PumpSuspend" || note == "PumpResume",
+                  let d = Self.robustISODate(t.created_at) else { return nil }
+            return (d, note == "PumpResume")
+        }.sorted { $0.date < $1.date }
+        for (i, n) in pumpNotes.enumerated() where !n.resume {
+            guard i + 1 < pumpNotes.count, pumpNotes[i + 1].resume else { continue }
+            doses.append(EvalInsulinDose(
+                deliveryType: .basal,
+                startDate: n.date,
+                endDate: pumpNotes[i + 1].date,
+                volume: 0,
+                insulinType: insulinType,
+                tempRate: 0
+            ))
+        }
 
         for t in treatments {
             guard let date = Self.robustISODate(t.created_at) else { continue }
