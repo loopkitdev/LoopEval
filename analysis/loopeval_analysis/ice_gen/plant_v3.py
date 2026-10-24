@@ -164,6 +164,8 @@ class PlantV3:
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
+        self.ge_sg = float(os.environ.get("PLANT_GE_SG", ck.get("ge_sg", 0.0)))
+        os.environ["GE_SG"] = str(ck.get("ge_sg", 0.0))   # the warm-up history is built as the network was trained
         self.bg_bolus = ck.get("calib_bg_bolus")   # bolus heads by glucose band (calibrate_bolus_bg.py)
         es = ck.get("calib_entry_state")
         self.entry_state = (np.asarray(es["bands"]), np.asarray(es["trends"]), np.asarray(es["offset"])) if es else None
@@ -643,7 +645,9 @@ class PlantV3:
                 i_ = int((t - self.lk_t).total_seconds() // 300)
                 if i_ < len(self.low_kernel):
                     bgice += float(self.low_kernel[i_]) / ICE_SCALE
-            ice = bgice * ICE_SCALE + u + pulse
+            # glucose effectiveness (GE_SG, from the checkpoint; PLANT_GE_SG overrides, 0 = off): the network drew the residual
+            ge = 60.0 * self.ge_sg * self.bg if self.ge_sg else 0.0
+            ice = bgice * ICE_SCALE + u + pulse - ge
             mc = self.mc_amp * self.isf * self.act_typ * np.sin(2 * np.pi * (t.value / 8.64e13) / 28.0 + self.mc_phase) if self.mc_amp else 0.0
             ice += mc
             act = absorbed / dt_h
@@ -669,13 +673,13 @@ class PlantV3:
                 self.c, self.c_miss = self.comp.step(t, dt_h, hour)
                 ice += (self.c - c0) / dt_h
             # smoothed background as the CGM would show it (what dataset_v3 computes from real data)
-            self.ema = D3.ema_step(self.ema, ice - pulse - (0.0 if self.slow_in_input else u))
+            self.ema = D3.ema_step(self.ema, ice + ge - pulse - (0.0 if self.slow_in_input else u))   # of the residual, as in training
             self.bg_hist = [(tt, b) for tt, b in self.bg_hist if t - tt < pd.Timedelta(minutes=35)] + [(t, min(max(self.bg + self.e + self.c, LOW), HIGH))]
             self.pulses = [p for p in self.pulses if (t - p[0]) < pd.Timedelta(hours=12)]
             self.anchor_times = [a for a in self.anchor_times if (t - a) < pd.Timedelta(hours=3)]
             self.entries = [e for e in self.entries if (t - e[0]) < pd.Timedelta(hours=3)]
             self.bols = [b for b in self.bols if (t - b[0]) < pd.Timedelta(hours=3)]
-            self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bgice=bgice * ICE_SCALE + u + mc, pulse=pulse, slow=u, cycle=mc, bg1=self.bg + self.e + self.c, e=self.e, comp=self.c, comp_missing=self.c_miss,
+            self.log.append(dict(t1=t, dt=dt_h * 60, ice=ice, bgice=bgice * ICE_SCALE + u + mc - ge, ge=ge, pulse=pulse, slow=u, cycle=mc, bg1=self.bg + self.e + self.c, e=self.e, comp=self.c, comp_missing=self.c_miss,
                                  iob=self.ins.iob(t), ins_activity_uhr=absorbed / dt_h, hour=hour, dow=dow))
             self.t = t
             if len(self.log) % 288 == 0:

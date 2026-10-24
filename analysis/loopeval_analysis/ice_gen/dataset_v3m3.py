@@ -42,6 +42,11 @@ def build(steps, meals, bolus_dec, carbs, geq, features=FEATURES_M3, isf=None, d
     T, idx = len(g), g.index
     pulses = reconstruct(idx, meals, geq) if len(meals) else np.zeros(T)
     bgice = (g.ice - pulses).to_numpy()
+    # GE_SG > 0 (1/min): glucose effectiveness is modeled in the plant (-60*SG*G mg/dL/h), so the network learns the residual,
+    # measured background ICE plus that term (handoff 2026-10-24-simulator-ice-mechanistic-reply.md); 0 = the learned part is ICE
+    ge_sg = float(os.environ.get("GE_SG", "0"))
+    if ge_sg:
+        bgice = bgice + 60.0 * ge_sg * g.bg.to_numpy()
     slot = lambda t: int(idx.searchsorted(pd.Timestamp(t).floor("5min")))
     ti = TARGETS.index
     Y = np.full((T, len(TARGETS)), np.nan, np.float32)
