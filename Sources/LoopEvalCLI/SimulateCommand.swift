@@ -371,9 +371,10 @@ struct SimulateCommand: AsyncParsableCommand {
         candidateConfig.oapsSmoothGlucose = candidateOapsSmoothGlucose
         candidateConfig.oapsPumpPulse = candidateOapsPumpPulse
         if let pj = candidateOapsPrefsJson {
-            candidateConfig.oapsPrefsJson = pj.hasPrefix("@")
-                ? (try? String(contentsOfFile: String(pj.dropFirst()), encoding: .utf8)) ?? pj
-                : pj
+            candidateConfig.oapsPrefsJson = try Self.jsonObjectArgument(pj, flag: "--candidate-oaps-prefs-json")
+        }
+        if let op = candidateOapsOverridePresets {
+            candidateConfig.oapsOverridePresets = try Self.jsonObjectArgument(op, flag: "--candidate-oaps-override-presets")
         }
         if let afc = candidateOapsAfCsv {
             candidateConfig.oapsAfScheduleCSV = (try? String(contentsOfFile: afc, encoding: .utf8)) ?? nil
@@ -404,7 +405,8 @@ struct SimulateCommand: AsyncParsableCommand {
                 let parts = spec.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
                 if parts.count == 2, let tgt = Double(parts[1]) { presetTargets[parts[0]] = tgt }
             }
-            dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset, applyOverrides: applyOverrides, presetTargets: presetTargets)
+            dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset, applyOverrides: applyOverrides, presetTargets: presetTargets,
+                                                  trioOverrides: candidateOapsOverridePresets != nil)
         }
         let engine = EvaluationEngine(dataSource: dataSource)
 
@@ -668,6 +670,26 @@ struct SimulateCommand: AsyncParsableCommand {
     ///  * `replay_config.json` (optional, next to the export) -- `{"required_flags": ["--flag",
     ///    "--flag value", ...], "notes": "..."}`: the flags that make THIS donor deployment-faithful.
     ///    Each entry must appear in the command line as that exact token sequence.
+    /// A JSON-object flag value, inline or `@path`. Throws unless it parses as an object,
+    /// so a bare path (or a typo) can't be silently ignored by the adapter's merge.
+    static func jsonObjectArgument(_ value: String, flag: String) throws -> String {
+        let text: String
+        if value.hasPrefix("@") {
+            let path = String(value.dropFirst())
+            guard let s = try? String(contentsOfFile: path, encoding: .utf8) else {
+                throw ValidationError("\(flag): cannot read \(path)")
+            }
+            text = s
+        } else {
+            text = value
+        }
+        guard let data = text.data(using: .utf8),
+              (try? JSONSerialization.jsonObject(with: data)) is [String: Any] else {
+            throw ValidationError("\(flag): not a JSON object (pass inline JSON or @path/to/file.json)")
+        }
+        return text
+    }
+
     static func checkExportProvenance(dataDir: String, arguments: [String]) -> (version: Int?, warnings: [String]) {
         var warnings: [String] = []
         var version: Int? = nil
