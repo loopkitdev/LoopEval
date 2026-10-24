@@ -105,6 +105,9 @@ struct SimulateDeploymentFlags: ParsableArguments {
     @Flag(name: .customLong("apply-overrides"), inversion: .prefixedNo, help: "Apply Loop Temporary Overrides to the therapy timeline over their active windows (basal ×f, ISF ÷f, CR ÷f, target ← override range; f = insulinNeedsScaleFactor). Fidelity feature — applies to BOTH arms. DEFAULT ON; pass --no-apply-overrides to ignore overrides.")
     var applyOverrides: Bool = true
 
+    @Option(name: .customLong("loop-trio-overrides"), help: "Trio override presets as Loop Temporary Overrides, for a Loop replay of a Trio user. Same JSON as --candidate-oaps-override-presets (inline or @path); each preset's target becomes the correction range and its percentage the insulin-needs factor, over the windows of the Nightscout `Exercise` events naming it. Applies to both arms, like --apply-overrides. Not with --candidate-openaps, which reads the presets itself.")
+    var loopTrioOverrides: String?
+
     @Flag(name: .customLong("mid-absorption-isf"), inversion: .prefixedNo,
           help: "Mid-absorption ISF: re-evaluate ALL active IOB at the CURRENT sensitivity (current LoopAlgorithm default). Pass --no-mid-absorption-isf for the OLD/deployed-Loop behavior: each dose keeps the sensitivity in effect at its delivery time for its lifetime (matters when ISF changes mid-absorption, e.g. a Temporary Override). Applies to BOTH arms.")
     var midAbsorptionIsf: Bool = true
@@ -746,6 +749,7 @@ extension SimulateCommand {
     var integralRC: Bool { get { deployment.integralRC } set { deployment.integralRC = newValue } }
     var integralRCClamp: Bool { get { deployment.integralRCClamp } set { deployment.integralRCClamp = newValue } }
     var applyOverrides: Bool { get { deployment.applyOverrides } set { deployment.applyOverrides = newValue } }
+    var loopTrioOverrides: String? { get { deployment.loopTrioOverrides } set { deployment.loopTrioOverrides = newValue } }
     var midAbsorptionIsf: Bool { get { deployment.midAbsorptionIsf } set { deployment.midAbsorptionIsf = newValue } }
     var legacyBasalIob: Bool { get { deployment.legacyBasalIob } set { deployment.legacyBasalIob = newValue } }
     var basalPulseQuantum: Double { get { deployment.basalPulseQuantum } set { deployment.basalPulseQuantum = newValue } }

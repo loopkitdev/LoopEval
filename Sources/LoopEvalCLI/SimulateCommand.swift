@@ -405,8 +405,23 @@ struct SimulateCommand: AsyncParsableCommand {
                 let parts = spec.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
                 if parts.count == 2, let tgt = Double(parts[1]) { presetTargets[parts[0]] = tgt }
             }
+            var trioAsLoop: [String: NightscoutEvalDataSource.TrioPresetAsLoop] = [:]
+            if let spec = loopTrioOverrides {
+                guard !candidateOpenaps else {
+                    throw ValidationError("--loop-trio-overrides is for a Loop candidate; oref reads presets from --candidate-oaps-override-presets")
+                }
+                guard applyOverrides else { throw ValidationError("--loop-trio-overrides needs --apply-overrides") }
+                let json = try Self.jsonObjectArgument(spec, flag: "--loop-trio-overrides")
+                let obj = (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any] ?? [:]
+                for (name, v) in obj {
+                    let d = v as? [String: Any] ?? [:]
+                    trioAsLoop[name] = .init(target: (d["target"] as? NSNumber)?.doubleValue,
+                                             percentage: (d["percentage"] as? NSNumber)?.doubleValue)
+                }
+            }
             dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset, applyOverrides: applyOverrides, presetTargets: presetTargets,
-                                                  trioOverrides: candidateOapsOverridePresets != nil)
+                                                  trioOverrides: candidateOapsOverridePresets != nil,
+                                                  trioOverridesAsLoop: trioAsLoop)
         }
         let engine = EvaluationEngine(dataSource: dataSource)
 
