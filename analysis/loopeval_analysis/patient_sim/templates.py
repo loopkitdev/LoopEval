@@ -830,3 +830,39 @@ def add_sleep_mid(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_gb_own(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32", quiet_min: float = 240.0,
+               pulse_tail: float = 120.0, min_hours: float = 20.0):
+    """The donor's glucose on quiet nights (`gb_own`, LESSONS 503): median CGM on steps at 00–06 h local with no carb entry
+    or manual bolus in the prior `quiet_min`, not disrupted, outside labelled pulses (onset to end + `pulse_tail`). There the
+    insulin their Loop delivered is what holds a fasting body, so this is the body's rest point at its basal need."""
+    import numpy as np
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        sp = ice_root / "steps" / f"{a}.parquet"
+        if sp.exists():
+            s = pd.read_parquet(sp, columns=["t1", "dt", "hour", "bg1", "carbs_g", "bolus_manual_u", "disrupted"]).sort_values("t1")
+            tm = (s.t1.astype("int64") / 6e10).to_numpy()
+            ev = np.sort(tm[(s.carbs_g.fillna(0) > 0).to_numpy() | (s.bolus_manual_u.fillna(0) > 0).to_numpy()])
+            k = np.searchsorted(ev, tm, side="right") - 1
+            q = ~s.disrupted.fillna(False).to_numpy(bool)
+            if len(ev): q &= ~((k >= 0) & (tm - np.where(k >= 0, ev[np.clip(k, 0, None)], -1e18) < quiet_min))
+            mp = ice_root / "meals" / f"{a}.parquet"
+            if mp.exists():
+                M = pd.read_parquet(mp)
+                on = (M.onset.astype("int64") / 6e10).to_numpy(); en = (M.end.astype("int64") / 6e10).to_numpy() + pulse_tail
+                o = np.argsort(on); on, en = on[o], np.maximum.accumulate(en[o])
+                j = np.searchsorted(on, tm, side="right") - 1
+                q &= ~((j >= 0) & (tm <= np.where(j >= 0, en[np.clip(j, 0, None)], -1e18)))
+            q &= (s.hour.to_numpy(float) % 24) < 6.0
+            g = s.bg1.to_numpy(float)[q]
+            if s.dt.to_numpy(float)[q].sum() / 60.0 >= min_hours and np.isfinite(g).sum() > 0:
+                row["gb_own"] = float(np.nanmedian(g))
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
