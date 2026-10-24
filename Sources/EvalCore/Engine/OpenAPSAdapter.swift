@@ -35,6 +35,9 @@ struct OpenAPSAdapter: DosingEngine {
             // NS temp targets the user had ALREADY set by decision time t (oref
             // temptargets). Empty ("[]") when none — the prior hardcoded behavior.
             let tempTargetsJSON = orefTempTargetsJSON(req: req)
+            // Trio 1.0 floors every rate to the paired pump's table (profile.supportedBasalRates).
+            // Flat table at the pump pulse, 0...30 U/h: Omnipod Dash / Medtrum at the 0.05 default.
+            let rates = Self.supportedBasalRates(pulse: req.config.oapsPumpPulse)
 
             // LEGACY path (OAPS_LEGACY env set): 5 separate JSON-bridged calls that
             // re-parse profile/pumpHistory/glucose each call. Kept only for the
@@ -44,7 +47,8 @@ struct OpenAPSAdapter: DosingEngine {
                     preferences: inputs.preferences, pumpSettings: inputs.pumpSettings,
                     bgTargets: inputs.bgTargets, basalProfile: inputs.basalProfile,
                     isf: inputs.isf, carbRatio: inputs.carbRatio, tempTargets: tempTargetsJSON,
-                    model: "\"X22\"", trioSettings: "{}", clock: req.t).returnOrThrow()
+                    model: "\"X22\"", trioSettings: "{}", clock: req.t,
+                    supportedBasalRates: rates).returnOrThrow()
                 let clockStr = inputs.clockString
                 let meal = try OpenAPSSwift.meal(
                     pumphistory: inputs.pumpHistory, profile: profile,
@@ -79,7 +83,7 @@ struct OpenAPSAdapter: DosingEngine {
                 currentTemp: inputs.currentTemp, reservoir: "100", microBolusAllowed: true,
                 trioCustomOrefVariables: inputs.trioCustomOref,
                 clockDate: req.t, clockJSON: inputs.clockString,
-                tempTargets: tempTargetsJSON)
+                tempTargets: tempTargetsJSON, supportedBasalRates: rates)
 
             let comps = Calendar(identifier: .gregorian).dateComponents([.hour, .minute], from: req.t)
             if (comps.hour ?? 0) % 6 == 0 && (comps.minute ?? 0) < 5 {
@@ -90,6 +94,12 @@ struct OpenAPSAdapter: DosingEngine {
             FileHandle.standardError.write(Data("OpenAPSAdapter error at \(req.t): \(error)\n".utf8))
             return fallbackResult(req: req, scheduledBasalUhr: activeBasal(at: req.t, req: req))
         }
+    }
+
+    static func supportedBasalRates(pulse: Double) -> [Decimal] {
+        guard pulse > 0 else { return [] }
+        let step = Decimal(string: String(format: "%.4f", pulse)) ?? 0.05
+        return (0...Int((30 / pulse).rounded())).map { Decimal($0) * step }
     }
 
     // Build the oref `temptargets` JSON from the therapy timeline, gated to the
@@ -120,6 +130,34 @@ struct OpenAPSAdapter: DosingEngine {
             return "{\"_id\":\"\(id)\",\"created_at\":\"\(ts)\",\"targetTop\":\(tgt),\"targetBottom\":\(tgt),\"duration\":\(dur)}"
         }
         return "[" + items.joined(separator: ",") + "]"
+    }
+
+    private struct TrioOverride {
+        var target: Double?
+        var percentage: Double
+        var smbIsOff: Bool
+        var isfAndCr: Bool
+    }
+
+    // Trio semantics: the most recently STARTED override is the current one (starting an
+    // override ends the previous), active while t is within its duration; when it expires
+    // the profile applies — an older, longer override does not resume. A started override
+    // whose name isn't in the preset map still ends the previous one but applies nothing.
+    private func activeTrioOverride(req: EngineStepRequest) -> TrioOverride? {
+        guard let presetsJSON = req.config.oapsOverridePresets,
+              let data = presetsJSON.data(using: .utf8),
+              let presets = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let latest = req.therapy.orefOverrides.filter({ $0.start <= req.t })
+                  .max(by: { $0.start < $1.start }),
+              req.t < latest.start.addingTimeInterval(latest.durationMin * 60)
+        else { return nil }
+        guard let p = presets.first(where: { $0.key.lowercased() == latest.name.lowercased() })?.value
+                as? [String: Any] else { return nil }
+        return TrioOverride(
+            target: (p["target"] as? NSNumber)?.doubleValue,
+            percentage: (p["percentage"] as? NSNumber)?.doubleValue ?? 100,
+            smbIsOff: (p["smbIsOff"] as? Bool) ?? false,
+            isfAndCr: (p["isfAndCr"] as? Bool) ?? true)
     }
 
     // MARK: – Input translation
@@ -399,8 +437,9 @@ struct OpenAPSAdapter: DosingEngine {
         let weightPct = 0.65
         let weightedTdd = weightPct * past2h + (1 - weightPct) * avgTotalData
 
-        // ── TrioCustomOrefVariables (overrides off) ───────────────────────────
-        let trioCustom: [String: Any] = [
+        // ── TrioCustomOrefVariables (Trio override, when presets are supplied) ──
+        let ov = activeTrioOverride(req: req)
+        var trioCustom: [String: Any] = [
             "average_total_data": avgTotalData,
             "currentTDD": estimatedTdd,
             "weightedAverage": weightedTdd,
@@ -422,6 +461,13 @@ struct OpenAPSAdapter: DosingEngine {
             "smbMinutes": 0,
             "uamMinutes": 0
         ]
+        if let ov {
+            trioCustom["useOverride"] = true
+            trioCustom["overridePercentage"] = ov.percentage
+            trioCustom["overrideTarget"] = ov.target ?? 0
+            trioCustom["smbIsOff"] = ov.smbIsOff
+            trioCustom["isfAndCr"] = ov.isfAndCr
+        }
         let trioCustomJSON = String(data: try JSONSerialization.data(withJSONObject: trioCustom),
                                     encoding: .utf8)!
 
