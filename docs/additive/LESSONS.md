@@ -8061,3 +8061,20 @@ outputs in gamepc ~/additive/runs/c290–c312).
      the body's rest point Gb is drawn from the population (N(119, 7)), not the donor, and is the untested per-person
      lever for the level. Next, when the Mac is free: Gb from the donor's own steady-night level, scored on the static
      match, the L 493 change test and `field_gradient.py`.
+
+504. **The body's rest point from the donor's quiet nights makes twins track their donors' level better, but not their
+     response to a settings change, and costs the static match; not adopted.** `gb_own` (template column from
+     `templates.add_gb_own`: median CGM 00–06 h local on quiet steps, outside labelled pulses; 165 of 168 donors, p25 / p50
+     / p75 109 / 121 / 136, corr 0.77 with the donor's mean, 101 at donor means ≤ 130 and 146 above 185) in place of the
+     population N(119, 7). Both draws on lg12's settings (runs/2026-10-24-additive-control, gb / gb5k vs lg12 / lg12_5k):
+     - level: twin–donor mean slope 0.44 → 0.68, 0.38 → 0.58 (corr 0.42 → 0.57, 0.39 → 0.54); twins of donors < 140 run
+       +9.5 / +16.1 above them (+20.4 / +16.3), the rest +3.2 / +5.5 (−2.2 / +1.2); TDD 43.7 / 44.7 (43.2 / 44.4);
+     - static: mean 156.9 / 159.6, TIR 69.0 / 65.8, score 0.371 → 0.398, 0.413 → 0.455, tier 1 0.237 → 0.277, 0.278 → 0.382;
+     - change test (65 events, 4 seeds, current code, lg = ex_sat 0.1 vs gb): field / twin ratio mean BG 2.14 → 2.09, t70
+       4.18 → 3.69, t54 10.0 → 5.5; frontier's control-level gradient per 10% more aggressive, tight | rest (field
+       −1.64 | +5.55 TIR, +4.35 | +0.08 t70): lg +1.78 | +2.09 TIR, +0.45 | +0.19 t70; gb +1.61 | +1.87, +0.58 | +0.24.
+     Twins of tight donors on the current code no longer gain more TIR than the rest (the handoff's +3.4 | +2.2 was the
+     tool comparison's 2026-10-21 code; ex_sat accounts for it): the remaining gap is size — the twins' lows barely
+     respond at the tight end and their TIR does not turn flat or negative. The rest point only moves the level; the
+     damping (L 493: SG, κ, proactive defence) is what holds the response, and it is not in the rest point. Switch and
+     column kept, off.
