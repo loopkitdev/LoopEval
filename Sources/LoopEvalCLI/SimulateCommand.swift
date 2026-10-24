@@ -660,7 +660,8 @@ struct SimulateCommand: AsyncParsableCommand {
             data: data,
             to: URL(fileURLWithPath: traceOut),
             exportDataVersion: exportProvenance?.version,
-            provenanceWarnings: exportProvenance?.warnings ?? []
+            provenanceWarnings: exportProvenance?.warnings ?? [],
+            cfIdentity: cfIdentity
         )
         printStderr("Closed-loop trace → \(traceOut)\n")
     }
@@ -740,7 +741,8 @@ struct SimulateCommand: AsyncParsableCommand {
         data: PreloadedData,
         to url: URL,
         exportDataVersion: Int? = nil,
-        provenanceWarnings: [String] = []
+        provenanceWarnings: [String] = [],
+        cfIdentity: Bool = false
     ) throws {
         let mgdlUnit = LoopUnit.milligramsPerDeciliter
         let formatter = ISO8601DateFormatter()
@@ -792,7 +794,7 @@ struct SimulateCommand: AsyncParsableCommand {
         // Canonical insulin-delivery stream — uniform for both arms so a renderer
         // can plot ACTUAL delivery (basal rate + boluses, auto vs manual) without
         // reconstructing it from caches. `source` = "field" (real pump history) or
-        // "candidate" (what the candidate controller delivered). `kind` = "basal"
+        // "candidate" (what the candidate's body received). `kind` = "basal"
         // or "bolus". For basal, `rateUhr` is the delivered rate and `amountU` the
         // units over [t, tEnd]; for bolus, `amountU` is the bolus and `rateUhr` nil.
         // NOTE: `Pred.baselineDose` is a decision-time RECOMMENDATION, NOT delivery —
@@ -908,56 +910,66 @@ struct SimulateCommand: AsyncParsableCommand {
                 source: "field", kind: "basal", automatic: true,
                 amountU: d.volume, rateUhr: rate))
         }
-        // CANDIDATE: what the candidate controller delivered each step — the temp
-        // basal it set (rate) plus any auto-bolus. Emitted per 5-min step. In CF
-        // mode all candidate delivery is automatic. Basal records are run-length
-        // compacted (one span per unchanged rate) to keep the trace small.
-        // amountU is what the pump DELIVERED (whole pulses), not the commanded rate × time --
-        // this stream is documented as actual delivery and is compared against the field's
-        // delivered volumes. rateUhr keeps the commanded rate for reference. Steps without a
-        // recorded delivery (burn-in) fall back to rate × time.
-        let stepDur: TimeInterval = 5 * 60
-        var runStart: Date? = nil
-        var runRate = Double.nan
-        var runDelivered = 0.0
-        var runAllMeasured = true
-        func flushBasalRun(endingAt end: Date) {
-            guard let s = runStart, runRate.isFinite else { return }
-            let hours = max(end.timeIntervalSince(s), 0) / 3600.0
-            delivery.append(DeliveryRecord(
-                t: formatter.string(from: s), tEnd: formatter.string(from: end),
-                source: "candidate", kind: "basal", automatic: true,
-                amountU: runAllMeasured ? runDelivered : runRate * hours, rateUhr: runRate))
-        }
-        for step in simResult.steps {
-            let r = step.candidateTempRate
-            if !(r.isFinite && r == runRate) {
-                flushBasalRun(endingAt: step.t)
-                runStart = r.isFinite ? step.t : nil
-                runRate = r
-                runDelivered = 0; runAllMeasured = true
-            }
-            if step.candidateBasalDeliveredU.isFinite { runDelivered += step.candidateBasalDeliveredU }
-            else { runAllMeasured = false }
-            if step.candidateBolus > 0 {
-                delivery.append(DeliveryRecord(
-                    t: formatter.string(from: step.t), tEnd: nil,
-                    source: "candidate", kind: "bolus", automatic: true,
-                    amountU: step.candidateBolus, rateUhr: nil))
+        // CANDIDATE: what the candidate's body received -- counterfactualDoses, the history the
+        // physics and the patient IOB integrate, gap-filled with scheduled basal exactly as the
+        // field side. Burn-in, --cf-identity and runs with no counterfactual (DTR, open loop) ran on
+        // the real record, so there the candidate stream is the field's. The pump folds each step's
+        // auto-bolus into that step's temp segment (CandidatePump.StepDelivery.tempVolume); it is
+        // taken back out here and emitted as a bolus. amountU is what the pump DELIVERED (whole
+        // pulses); rateUhr is the commanded rate on the candidate's own temp segments and
+        // volume/time elsewhere. Basal records are run-length compacted (one span per rate).
+        let candDoses = simResult.counterfactualDoses.isEmpty ? data.doses : simResult.counterfactualDoses
+        // Steps whose temp segment (starting at step.t) the candidate's pump delivered.
+        var ownStep: [Date: (rate: Double, bolus: Double)] = [:]
+        if !cfIdentity {
+            for step in simResult.steps where step.candidateBasalDeliveredU.isFinite {
+                ownStep[step.t] = (step.candidateTempRate, step.candidateBolus)
             }
         }
-        if let last = simResult.steps.last { flushBasalRun(endingAt: last.t.addingTimeInterval(stepDur)) }
-        // Candidate MANUAL boluses: the user's manual boluses are passed through
-        // (and possibly resized) into the candidate's actual delivery. They live
-        // in counterfactualDoses (automatic == false), NOT in candidateBolus
-        // (auto-only). Emit them so the candidate stream is complete.
-        for d in simResult.counterfactualDoses
-        where d.deliveryType == .bolus && !d.automatic
-              && d.startDate >= dLo && d.startDate <= simResult.intervalEnd {
+        var ownSegs: [(s: Date, e: Date, rate: Double)] = []
+        let candBasal: [EvalInsulinDose] = candDoses.map { d in
+            guard d.deliveryType == .basal, let own = ownStep[d.startDate] else { return d }
+            ownSegs.append((d.startDate, d.endDate, own.rate))
+            var b = d; b.volume = max(d.volume - own.bolus, 0); return b
+        }
+        ownSegs.sort { $0.s < $1.s }
+        func ownRate(at t: Date) -> Double? {
+            var lo = 0, hi = ownSegs.count
+            while lo < hi { let m = (lo + hi) / 2; if ownSegs[m].s <= t { lo = m + 1 } else { hi = m } }
+            guard lo > 0, t < ownSegs[lo - 1].e else { return nil }
+            return ownSegs[lo - 1].rate
+        }
+        var run: (s: Date, e: Date, rate: Double, u: Double)? = nil
+        func flushRun() {
+            guard let r = run else { return }
             delivery.append(DeliveryRecord(
-                t: formatter.string(from: d.startDate), tEnd: nil,
-                source: "candidate", kind: "bolus", automatic: false,
-                amountU: d.volume, rateUhr: nil))
+                t: formatter.string(from: r.s), tEnd: formatter.string(from: r.e),
+                source: "candidate", kind: "basal", automatic: true, amountU: r.u, rateUhr: r.rate))
+            run = nil
+        }
+        let candAnnotated = candBasal.annotated(with: data.therapyTimeline.basal, fillBasalGaps: true)
+            .sorted { $0.startDate < $1.startDate }
+        for d in candAnnotated {
+            guard case .basal = d.type, d.endDate > dLo, d.startDate <= simResult.intervalEnd,
+                  d.endDate.timeIntervalSince(d.startDate) >= 60 else { continue }   // as the field side
+            let hours = d.endDate.timeIntervalSince(d.startDate) / 3600.0
+            let rate = ownRate(at: d.startDate) ?? d.volume / hours
+            if let r = run, abs(r.rate - rate) < 1e-9, abs(d.startDate.timeIntervalSince(r.e)) < 1 {
+                run = (r.s, d.endDate, r.rate, r.u + d.volume)
+            } else {
+                flushRun(); run = (d.startDate, d.endDate, rate, d.volume)
+            }
+        }
+        flushRun()
+        var candBoluses: [(t: Date, tEnd: Date?, automatic: Bool, u: Double)] = candDoses.compactMap { d in
+            guard d.deliveryType == .bolus, d.startDate >= dLo, d.startDate <= simResult.intervalEnd else { return nil }
+            return (d.startDate, d.endDate, d.automatic, d.volume)
+        }
+        for (t, own) in ownStep where own.bolus > 0 { candBoluses.append((t, nil, true, own.bolus)) }
+        for b in candBoluses.sorted(by: { $0.t < $1.t }) {
+            delivery.append(DeliveryRecord(
+                t: formatter.string(from: b.t), tEnd: b.tEnd.map { formatter.string(from: $0) },
+                source: "candidate", kind: "bolus", automatic: b.automatic, amountU: b.u, rateUhr: nil))
         }
 
         let trace = Trace(

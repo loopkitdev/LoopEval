@@ -849,7 +849,9 @@ are separate and used by the `evaluate` mode.
 
 > [!NOTE]
 > **Trace outputs for case studies.** Every `--trace-out` JSON also carries the canonical
-> `delivery[]` stream (both arms, basal + bolus, auto vs manual) and per-step `patientIOBField /
+> `delivery[]` stream (both arms, basal + bolus, auto vs manual; the candidate side is what the
+> candidate's body received, so it equals the field record wherever the body ran on it: burn-in,
+> `--cf-identity`, DTR and open loop) and per-step `patientIOBField /
 > patientIOBCandidate` — both arms' delivered doses run through one shared patient insulin model, so
 > the IOB comparison is fair and independent of any candidate IOB experiment. These feed the
 > standard case-study panels (`loopeval_analysis.case_study.plot_case`; see
