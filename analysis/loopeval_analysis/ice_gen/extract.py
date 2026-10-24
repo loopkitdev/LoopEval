@@ -156,6 +156,8 @@ def extract(data_dir: str | Path, tz_daily: pd.DataFrame | None = None,
     # The person dosed with a device Tidepool does not see (simulator handoff 2026-10-13-ice-pumpless-disruptions), so
     # insulin there is unknown: no schedule fill, and Loop's IOB cannot confirm one (it is Loop's own schedule assumption,
     # ~0 net throughout i061's 13 days). Flagged `unrecorded` with one insulin duration after, while that insulin acts.
+    # Delivery the record does cover stays: the pump often kept running and logging (suspends, boluses) while Loop read
+    # it as too old, and ICE with the record's basal sits near the person's clean level there (LESSONS 142).
     pumpless = []
     if (d / "decision_times.csv").exists():
         dtm = pd.read_csv(d / "decision_times.csv", usecols=["t", "no_dose_guard"])
@@ -166,7 +168,7 @@ def extract(data_dir: str | Path, tz_daily: pd.DataFrame | None = None,
             if b_ - a_ >= 12:                                   # an hour or more
                 s_, e_ = sl.index[a_].value, sl.index[min(b_, len(sl) - 1)].value
                 lo, hi = np.searchsorted(gm, s_), np.searchsorted(gm, e_, side="right")
-                basal[lo:hi] = 0.0; covered[lo:hi] = True
+                basal[lo:hi] = np.where(covered[lo:hi], basal[lo:hi], 0.0); covered[lo:hi] = True
                 pumpless.append((s_, e_ + int(model.effect_duration_min) * 60_000_000_000))
     # ---- the remaining long gaps: did the schedule run? (Loop's own IOB decides; see gapcheck)
     sched = _schedule(therapy.get("rawBasal") or therapy["basal"], grid) / 60.0

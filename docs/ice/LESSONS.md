@@ -1427,3 +1427,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     U/day missed. Under 1% of TDD pooled, but 10-60 h stretches for a few donors, and both arms of an edit share them, so
     change deltas are mostly unaffected. The engine fix (last command 30 min, then schedule) would add insulin in truly
     pumpless spans; reported to simulator. Adopt with the next frozen build, not under running chains.
+142. **extract.py's pumpless rule zeroed recorded basal; fixed to block only the schedule fill.** Raised by simulator from
+    lesson 141: inside x334's guard span, steps.basal_u read 2.45-6.97 U/day against the record's 7.77-9.31. The rule (>=
+    90% no_dose_guard cycles over >= 1 h -> basal 0) was meant to stop a schedule fill where no record exists (i061). It
+    also overwrote delivery the record covers: the pump kept running and logging (suspends, boluses) while Loop read its
+    data as too old. pumpless_zeroed.py (runs/2026-10-24-ice-ge): recorded basal zeroed is 0.65% of all insulin on the
+    pilot, 0.80% on x and 0.17% on e. 15 / 23 / 3 donors lost > 2% of their insulin, up to 36% (x432, months of guard
+    cycles). The record was real (pumpless_real.py). Inside those spans, mean ICE with the record's basal vs zeroed, against
+    the person's clean mean: i126 +61 / +10 vs +79, i171 +83 / +24 vs +61, x334 +59 / +51 vs +62, and i061 (the rule's own
+    case) +42 / +1 vs +70. Zeroing is the worse reading everywhere. The record is a lower bound where some doses are unseen,
+    so the `unrecorded` flag and its one-insulin-duration tail stay. Re-extracting x334 / x001 / x432 with the fix leaves
+    clean steps, clean ICE and TDD identical. Training targets do not move; insulin inputs (iob, activity, basal) inside
+    the spans and in the lookback after them do, as does the plant's warm-up IOB. Adopt at the next re-extraction, with the
+    GE base retrain, not under the running chains.
