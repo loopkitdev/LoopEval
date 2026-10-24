@@ -78,8 +78,7 @@ struct OpenAPSAdapter: DosingEngine {
                 preferences: inputs.preferences, pumpSettings: inputs.pumpSettings,
                 bgTargets: inputs.bgTargets, basalProfile: inputs.basalProfile,
                 isf: inputs.isf, carbRatio: inputs.carbRatio,
-                model: "\"X22\"", trioSettings: "{}",
-                pumpHistory: inputs.pumpHistory, carbs: inputs.carbs, glucose: inputs.glucose,
+                pumpHistory: inputs.pumpHistoryModels, carbs: inputs.carbModels, glucose: inputs.glucoseModels,
                 currentTemp: inputs.currentTemp, reservoir: "100", microBolusAllowed: true,
                 trioCustomOrefVariables: inputs.trioCustomOref,
                 clockDate: req.t, clockJSON: inputs.clockString,
@@ -169,9 +168,14 @@ struct OpenAPSAdapter: DosingEngine {
         let basalProfile: String
         let isf: String
         let carbRatio: String
+        // Glucose, pump history and carbs go to oref as models (OrefNative: equal to the JSON
+        // path); the JSON strings are built only for the OAPS_LEGACY A/B path.
         let glucose: String
         let pumpHistory: String
         let carbs: String
+        let glucoseModels: [BloodGlucose]
+        let pumpHistoryModels: [PumpHistoryEvent]
+        let carbModels: [CarbsEntry]
         let currentTemp: String
         let trioCustomOref: String
         let clockString: String
@@ -355,10 +359,13 @@ struct OpenAPSAdapter: DosingEngine {
         let glucoseForOref = req.config.oapsSmoothGlucose
             ? Self.aapsSmoothGlucose(dedupGlucose)
             : dedupGlucose
-        let glucoseJSON = encodeGlucose(glucoseForOref, iso: iso)
+        let legacy = ProcessInfo.processInfo.environment["OAPS_LEGACY"] != nil
+        let glucoseJSON = legacy ? encodeGlucose(glucoseForOref, iso: iso) : ""
+        let glucoseModels = nativeGlucose(glucoseForOref, iso: iso)
 
         // ── Carbs ─────────────────────────────────────────────────────────────
-        let carbsJSON = encodeCarbs(req.input.carbs, iso: iso)
+        let carbsJSON = legacy ? encodeCarbs(req.input.carbs, iso: iso) : ""
+        let carbModels = nativeCarbs(req.input.carbs, iso: iso)
 
         // ── Pump history (boluses + temp basal pairs derived from doses) ──────
         // Trio fetches `pumpHistoryLast1440Minutes` (24h) and feeds that SAME history
@@ -376,8 +383,9 @@ struct OpenAPSAdapter: DosingEngine {
         let orefPumpDoses = req.orefPumpHistoryDoses.isEmpty
             ? req.input.doses
             : req.orefPumpHistoryDoses.filter { $0.startDate >= orefWindowStart && $0.startDate <= req.t }
-        let pumpHistoryJSON = encodePumpHistory(orefPumpDoses, iso: iso,
-                                                scheduledBasalUhr: scheduledBasalUhr)
+        let pumpHistoryJSON = legacy ? encodePumpHistory(orefPumpDoses, iso: iso,
+                                                         scheduledBasalUhr: scheduledBasalUhr) : ""
+        let pumpHistoryModels = nativePumpHistory(orefPumpDoses, iso: iso, scheduledBasalUhr: scheduledBasalUhr)
 
         // ── Current temp ──────────────────────────────────────────────────────
         // Last temp basal that is still active at `t`, else neutral 0.
@@ -481,6 +489,9 @@ struct OpenAPSAdapter: DosingEngine {
             glucose: glucoseJSON,
             pumpHistory: pumpHistoryJSON,
             carbs: carbsJSON,
+            glucoseModels: glucoseModels,
+            pumpHistoryModels: pumpHistoryModels,
+            carbModels: carbModels,
             currentTemp: currentTempJSON,
             trioCustomOref: trioCustomJSON,
             clockString: iso.string(from: req.t),
@@ -812,6 +823,61 @@ struct OpenAPSAdapter: DosingEngine {
             }
         }
         return String(data: try! JSONSerialization.data(withJSONObject: events), encoding: .utf8)!
+    }
+
+    // Native twins of encodeGlucose / encodeCarbs / encodePumpHistory: the same fields, with dates
+    // and Doubles converted by OrefNative so oref sees what it decoded from the JSON.
+    private func nativeGlucose(_ samples: [EvalGlucoseSample], iso: ISO8601DateFormatter) -> [BloodGlucose] {
+        let mgdl = LoopUnit.milligramsPerDeciliter
+        return samples
+            .sorted { $0.startDate > $1.startDate }
+            .enumerated().map { i, s in
+                let val = Int(s.quantity.doubleValue(for: mgdl).rounded())
+                return BloodGlucose(
+                    id: "g\(i)", legacyId: "g\(i)", sgv: val, direction: .flat,
+                    date: Decimal(Int(s.startDate.timeIntervalSince1970 * 1000)),
+                    dateString: OrefNative.date(s.startDate, formatted: iso.string(from:)),
+                    noise: 1, glucose: val, type: "sgv"
+                )
+            }
+    }
+
+    private func nativeCarbs(_ carbs: [EvalCarbEntry], iso: ISO8601DateFormatter) -> [CarbsEntry] {
+        carbs.enumerated().map { i, c in
+            CarbsEntry(
+                id: "c\(i)",
+                createdAt: OrefNative.date(c.dosingVisibleDate, formatted: iso.string(from:)),
+                actualDate: OrefNative.date(c.startDate, formatted: iso.string(from:)),
+                carbs: OrefNative.decimal(c.quantity.doubleValue(for: .gram)),
+                enteredBy: "loopeval"
+            )
+        }
+    }
+
+    private func nativePumpHistory(
+        _ doses: [EvalInsulinDose],
+        iso: ISO8601DateFormatter,
+        scheduledBasalUhr: Double
+    ) -> [PumpHistoryEvent] {
+        var events: [PumpHistoryEvent] = []
+        events.reserveCapacity(doses.count * 2)
+        for (i, d) in doses.enumerated() {
+            let ts = OrefNative.date(d.startDate, formatted: iso.string(from:))
+            switch d.deliveryType {
+            case .bolus:
+                events.append(PumpHistoryEvent(id: "b\(i)", type: .bolus, timestamp: ts,
+                                               amount: OrefNative.decimal(d.volume)))
+            case .basal:
+                let seconds = d.endDate.timeIntervalSince(d.startDate)
+                let durationMin = max(1, Int(seconds / 60.0))
+                let rate = seconds > 0 ? d.volume / (seconds / 3600.0) : scheduledBasalUhr
+                events.append(PumpHistoryEvent(id: "tb\(i)", type: .tempBasal, timestamp: ts,
+                                               rate: OrefNative.decimal(rate), temp: .absolute))
+                events.append(PumpHistoryEvent(id: "tbd\(i)", type: .tempBasalDuration, timestamp: ts,
+                                               durationMin: durationMin))
+            }
+        }
+        return events
     }
 
     // MARK: – Schedule helpers
