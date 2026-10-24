@@ -1400,3 +1400,21 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     chunks of about 94 plus the band, …SKaLKEL) for a ~500-edit pooled scorecard; then the excess lows left after the band.
     Runs: runs/2026-10-23-ice-enrol/ (fit_many.py, lb_many.py, enrol_x.sh, lb_x.sh, enrol_e.sh, change_e.sh),
     runs/2026-10-13-ice-change/ (score_pool.py, score_win.py, pboot.py, lvl.py).
+140. **Glucose effectiveness, step 0 (docs/handoffs/2026-10-24-simulator-ice-mechanistic-reply.md): the base already has
+    a strong restoring force near lows and almost none at high glucose; the field's insulin-free stretches cannot read SG.**
+    (a) probe_bg.py (runs/2026-10-24-ice-ge/): held-out points on 60 trained donors (1,363 points), real inputs. The glucose
+    input is raised D mg/dL over the last H hours, the rest held, including the teacher-forced previous value. Slope of the
+    predicted mean background on glucose (1/h), D = +40, H = 3, of0 / of1, by glucose band: below 90 -0.17 / -0.16, 90-130
+    -0.07 / -0.06, 130-180 -0.04 / -0.03, 180-250 -0.02 / -0.01, above 250 0.00 / -0.03. Lowering glucose (D = -40) gives
+    about twice that below 130. The AR slope on the previous value is 0.37; the sustained median b/(1-a) is -0.09/h
+    (0.0015/min). A linear -SG*G gives one slope everywhere; additive's prior (median 0.0045/min, UVA/Padova 0.0013-0.0047)
+    is -0.27/h. The learned force is defense-shaped: large near lows, about 10x below the prior above 180. Where Loop
+    doses to glucose, the TDD ISF rule likely absorbed any high-side uptake (insulin activity rises with glucose), so the
+    ISF consistency check (step 0c) decides whether a literature-strength term double-counts. (b) sg_free.py: steps flagged
+    no_insulin, insulin activity < 0.1 U/h, no carbs or labeled meal within 3 h, stretches >= 1 h. That is 2,503 stretches,
+    19,013 h on 33 pilot donors (e: 379, 3,010 h), with median velocity 0.0 mg/dL/h at median glucose 156. A real
+    zero-insulin stretch drifts up, so most of these are delivery off the record (pumpless Loop), not zero insulin. The
+    within-stretch slope is -0.23/h against glucose at the same reading (biased negative by the CGM noise the velocity
+    shares) and -0.69/h against glucose 15 min earlier. That this is steeper, not shallower, shows excursion dynamics, not
+    uptake. No SG reading is possible from these data, so SG's prior rests on the literature. Next: step 0c, the eda ISF
+    yardstick with an SG term removed.
