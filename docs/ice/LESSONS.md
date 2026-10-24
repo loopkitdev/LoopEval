@@ -1357,3 +1357,19 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     above 250 (plant_v3 calib_high_kernel, PLANT_HIGH_KERNEL_SCALE) finds no gap on the train window (area 0.7-2.6 mg/dL,
     both trainings), against the 10-20 mg/dL/h excess seen on held-out time, so it is not calibrated in; the hook stays and
     does nothing unless a checkpoint carries the kernel.
+
+138. **Labelling every delivered manual bolus fixes the meal-bolus share but does not improve change prediction; held as a
+    candidate, base unchanged.** The bolus labels came only from bolus decisions (requested > 0), so a manual bolus
+    delivered with no decision near it read as "no bolus"; about a quarter of delivered manual boluses pool-wide, and
+    nearly all of them for a few donors. The ice_v32b root adds each such bolus (>= 0.05 U, no decision within 15 min) as
+    a decision with the delivered amount, and the base recipe was retrained on it (two seeds, same chain plus the low
+    kernel). Share of carb entries bolused within 40 min on the donors where the gap was largest: field 0.91-1.00, base
+    0.24-0.67, new 0.88-1.00, so the behavior now matches. Held-out clean-time level, seed 0 / 1 (base): TIR 75.8 / 74.4
+    (74.5 / 72.9), t<70 1.19 / 1.38 (1.14 / 1.32), t<54 0.14 / 0.17 (0.13 / 0.10), mean 151 / 151 (153 / 153), field
+    74.1 / 0.86 / 0.12 / 152; pass rates move both ways by seed, within noise. Change prediction, two-seed ensemble r
+    (base): edits TIR 0.21 (0.21), t<70 0.53 (0.57), t<54 0.17 (0.29), mean 0.36 (0.28); switches TIR 0.73 (0.66),
+    Spearman 0.49 (0.55), |err| 7.53 (7.75), t<54 0.14 (0.24), mean 0.57 (0.61). Paired bootstrap over edits/switches of the
+    ensemble r difference, 90%: every interval spans zero (edit t<54 -0.40 to +0.06, the nearest to a loss; both seeds
+    lower than both base seeds there, 0.16 / 0.13 vs 0.20 / 0.37). Not adopted: no change metric gains beyond noise and
+    edit t<54 leans worse. The labels are more faithful, so the root stays available (mk_v32b.py) for a retrain once a
+    larger edit pool can separate the two.
