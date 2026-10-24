@@ -699,6 +699,9 @@ struct SimulateOpenAPSFlags: ParsableArguments {
     @Option(name: .long, help: "Path to a CSV of time-varying dynISF adjustmentFactor: rows 'ISO8601,af' ascending. Per decision cycle the adapter uses the last row whose start <= t, overriding the prefs AF (reproduces a user who re-tuned AF over the replay period).")
     var candidateOapsAfCsv: String?
 
+    @Option(name: .long, help: "Trio override presets, JSON object (inline or @path): preset name → {\"target\": mg/dL, \"percentage\": 100, \"smbIsOff\": false, \"isfAndCr\": true}. Reads Nightscout `Exercise` events as Trio overrides (latest started wins, active for its duration) instead of temp targets, and feeds the active one to oref. Infer each preset's settings from the field's devicestatus during its windows.")
+    var candidateOapsOverridePresets: String?
+
     @Flag(name: .long, help: "Apply Trio's AAPS double-exponential glucose smoothing to the oref candidate's glucose feed (matches Trio's smoothGlucose; oref doses on smoothed, NS stores raw).")
     var candidateOapsSmoothGlucose: Bool = false
 
@@ -941,6 +944,7 @@ extension SimulateCommand {
     var candidateOapsMaxIob: Double? { get { openaps.candidateOapsMaxIob } set { openaps.candidateOapsMaxIob = newValue } }
     var candidateOapsPrefsJson: String? { get { openaps.candidateOapsPrefsJson } set { openaps.candidateOapsPrefsJson = newValue } }
     var candidateOapsAfCsv: String? { get { openaps.candidateOapsAfCsv } set { openaps.candidateOapsAfCsv = newValue } }
+    var candidateOapsOverridePresets: String? { get { openaps.candidateOapsOverridePresets } set { openaps.candidateOapsOverridePresets = newValue } }
     var candidateOapsSmoothGlucose: Bool { get { openaps.candidateOapsSmoothGlucose } set { openaps.candidateOapsSmoothGlucose = newValue } }
     var candidateOapsPumpPulse: Double { get { openaps.candidateOapsPumpPulse } set { openaps.candidateOapsPumpPulse = newValue } }
     var candidateOapsNoUam: Bool { get { openaps.candidateOapsNoUam } set { openaps.candidateOapsNoUam = newValue } }

@@ -29,6 +29,12 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     /// case-insensitively against `notes`. Empty ⇒ no preset mapping (default).
     public let presetTargets: [String: Double]
 
+    /// Read Trio `Exercise` events as OVERRIDES (timeline.orefOverrides, by preset name)
+    /// instead of as temp targets. Trio uploads its overrides as `Exercise` with only the
+    /// preset name and duration; as temp targets they set `temptargetSet` and lose every
+    /// preset whose target isn't in the notes (e.g. "No smbs"). Off ⇒ legacy behavior.
+    public let trioOverrides: Bool
+
     /// How far before `interval.start` to scan for Temporary Override events, so a
     /// long/indefinite override that began before the analysis window is still
     /// captured while it is active inside it. 180 days comfortably covers the
@@ -44,7 +50,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         defaultMaxBolus: Double = 10.0,
         defaultMaxBasalRate: Double = 3.0,
         applyOverrides: Bool = true,
-        presetTargets: [String: Double] = [:]
+        presetTargets: [String: Double] = [:],
+        trioOverrides: Bool = false
     ) {
         self.client = client
         self.cache = cache
@@ -53,6 +60,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         self.defaultMaxBasalRate = defaultMaxBasalRate
         self.applyOverrides = applyOverrides
         self.presetTargets = presetTargets
+        self.trioOverrides = trioOverrides
     }
 
     // MARK: – EvalDataSource
@@ -160,7 +168,8 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // forecasts). v5 fetches override treatments over a DEEP look-back so a
         // long/indefinite override starting before the window is still captured.
         // Bump so caches written before the deep fetch are rebuilt.
-        let cacheKey = DataCache.key(for: "therapy_v9ex_\(insulinType)\(ovTag)\(ptTag)", url: client.baseURL, interval: interval)
+        let trTag = trioOverrides ? "_trov" : ""
+        let cacheKey = DataCache.key(for: "therapy_v9ex_\(insulinType)\(ovTag)\(ptTag)\(trTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -203,7 +212,14 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // sensitivity, over-dosing exercise windows (see memory 2026-06-30).
         let exTreatments = (try? await client.fetchTreatments(from: ttStart, to: interval.end, eventType: "Exercise")) ?? []
         let isoTT = makeISOParser()
-        timeline.orefTempTargets = (ttTreatments + exTreatments).compactMap { t in
+        if trioOverrides {
+            timeline.orefOverrides = exTreatments.compactMap { t in
+                guard let start = isoTT.date(from: t.created_at) else { return nil }
+                return EvalOrefOverride(start: start, durationMin: t.duration ?? 0,
+                                        name: (t.notes ?? "").trimmingCharacters(in: .whitespaces))
+            }.sorted { $0.start < $1.start }
+        }
+        timeline.orefTempTargets = (ttTreatments + (trioOverrides ? [] : exTreatments)).compactMap { t in
             guard let start = isoTT.date(from: t.created_at) else { return nil }
             // explicit bounds first; then the target embedded in notes ("130 mg/dL
             // @ 100%"); finally a preset-name → target map for named presets whose

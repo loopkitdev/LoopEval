@@ -122,6 +122,34 @@ struct OpenAPSAdapter: DosingEngine {
         return "[" + items.joined(separator: ",") + "]"
     }
 
+    private struct TrioOverride {
+        var target: Double?
+        var percentage: Double
+        var smbIsOff: Bool
+        var isfAndCr: Bool
+    }
+
+    // Trio semantics: the most recently STARTED override is the current one (starting an
+    // override ends the previous), active while t is within its duration; when it expires
+    // the profile applies — an older, longer override does not resume. A started override
+    // whose name isn't in the preset map still ends the previous one but applies nothing.
+    private func activeTrioOverride(req: EngineStepRequest) -> TrioOverride? {
+        guard let presetsJSON = req.config.oapsOverridePresets,
+              let data = presetsJSON.data(using: .utf8),
+              let presets = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let latest = req.therapy.orefOverrides.filter({ $0.start <= req.t })
+                  .max(by: { $0.start < $1.start }),
+              req.t < latest.start.addingTimeInterval(latest.durationMin * 60)
+        else { return nil }
+        guard let p = presets.first(where: { $0.key.lowercased() == latest.name.lowercased() })?.value
+                as? [String: Any] else { return nil }
+        return TrioOverride(
+            target: (p["target"] as? NSNumber)?.doubleValue,
+            percentage: (p["percentage"] as? NSNumber)?.doubleValue ?? 100,
+            smbIsOff: (p["smbIsOff"] as? Bool) ?? false,
+            isfAndCr: (p["isfAndCr"] as? Bool) ?? true)
+    }
+
     // MARK: – Input translation
 
     private struct InputBundle {
@@ -399,8 +427,9 @@ struct OpenAPSAdapter: DosingEngine {
         let weightPct = 0.65
         let weightedTdd = weightPct * past2h + (1 - weightPct) * avgTotalData
 
-        // ── TrioCustomOrefVariables (overrides off) ───────────────────────────
-        let trioCustom: [String: Any] = [
+        // ── TrioCustomOrefVariables (Trio override, when presets are supplied) ──
+        let ov = activeTrioOverride(req: req)
+        var trioCustom: [String: Any] = [
             "average_total_data": avgTotalData,
             "currentTDD": estimatedTdd,
             "weightedAverage": weightedTdd,
@@ -422,6 +451,13 @@ struct OpenAPSAdapter: DosingEngine {
             "smbMinutes": 0,
             "uamMinutes": 0
         ]
+        if let ov {
+            trioCustom["useOverride"] = true
+            trioCustom["overridePercentage"] = ov.percentage
+            trioCustom["overrideTarget"] = ov.target ?? 0
+            trioCustom["smbIsOff"] = ov.smbIsOff
+            trioCustom["isfAndCr"] = ov.isfAndCr
+        }
         let trioCustomJSON = String(data: try JSONSerialization.data(withJSONObject: trioCustom),
                                     encoding: .utf8)!
 
