@@ -8041,3 +8041,23 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Not adopted. The liver's suppression timing is not what holds the falls back (with L 498's single-lever diagnostics,
      no part of the post-meal or circadian SI chain does); the missing fast falls are not a reason to revisit L 408.
 
+
+503. **Frontier's control-level gradient (handoff 2026-10-24) is two open limits together: tight donors' twins are not
+     tight (L 445), and the twins' glucose barely moves with a dose change (L 493).** Read-only on existing runs
+     (scratch `own_level.py`, `bins.py`, `absorb.py`, `near70.py`):
+     - **Level.** In the tool comparison (code of 2026-10-21), the twins of the 20 tight edits (donor pre-edit mean < 140)
+       run at mean 157 / TIR 69.6 against their donors' 125 / 88.1; 3 of 65 twins are below 140. On lg12 the twin–donor
+       mean slope is 0.44 / 0.38, and twins of donors below 140 run +20 / +16 mg/dL above them. Split by the twin's own
+       level (< 150, 10 edits) the gradient is unchanged: ΔTIR +3.4, Δt70 +0.7 per 10% more aggressive.
+     - **Response at equal level.** Frontier's insulin needs × 1.05 on lg12 against donor replay, cross-fitted halves, by
+       base mean: Δmean twins −1.3 / −1.4 / −1.6 / −2.0 / −2.0 / −3.5 at ≤ 130 / 130–140 / … / > 185, replay −4.8 / −6.1 /
+       −6.2 / −6.7 / −7.6 / −8.1; Δt70 at ≤ 140 twins +0.28, replay +2.1–2.3, at equal base t70 (4.0 vs 6.3, 2.9 vs 3.1)
+       and equal time at 70–80 (5.8 vs 6.4%, 3.6 vs 4.1%). In the field edits, mean change per 10% more aggressive is
+       −8.1 [−14.0, −3.7] (need-adjusted) against the twins' −4.4 [−5.7, −3.6].
+     - **Where the twin's extra 5% goes.** Delivered +0.8–1.3 U/day (~3%: Loop takes most of it back), defence carbs
+       +1.7–3.6 g/day (+0.1 events), counter-regulation EGP unchanged, true dips below 80 +0.1 per day.
+     The damping is at every level (mean response half the field's), and at the tight end it costs the lows response most.
+     Frontier's test cannot pass until both limits move. The damping components are L 493's (SG, κ, proactive defense);
+     the body's rest point Gb is drawn from the population (N(119, 7)), not the donor, and is the untested per-person
+     lever for the level. Next, when the Mac is free: Gb from the donor's own steady-night level, scored on the static
+     match, the L 493 change test and `field_gradient.py`.

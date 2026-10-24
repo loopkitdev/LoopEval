@@ -105,6 +105,8 @@ reference changes.
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (LESSONS 457);
 - the 3-h meal change is +13 to +18 against +21.
+- response to a settings change is damped (mean half the field's, lows 4–8× under) and twins of tight donors are not
+  tight, so control-level heterogeneity is wrong in the tight group (frontier handoff 2026-10-24, LESSONS 493, 503).
 
 Score close calls on two draws (LESSONS 444).
 
