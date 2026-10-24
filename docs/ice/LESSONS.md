@@ -1373,3 +1373,30 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     lower than both base seeds there, 0.16 / 0.13 vs 0.20 / 0.37). Not adopted: no change metric gains beyond noise and
     edit t<54 leans worse. The labels are more faithful, so the root stays available (mk_v32b.py) for a retrain once a
     larger edit pool can separate the two.
+139. **The pooled change test (159 edits, then 194) and a level band for enrolled donors: the band is kept as an enrolment
+    step; the generator beats replay on lows from the pre-edit window alone.** Expansion donors with a settings edit
+    (edits_x.csv, screen2.py on ice_v32x: 114 edits on 95 donors) were enrolled in the frozen base v32of{0,1}…SKaLK by
+    fit_many.py, a batched fit_person: network and pooled calibrations fixed; profile, trait and defense rows fitted on
+    training days under fit_person's prior ratio, then the T step. Three donors were skipped for non-finite inputs (no TDD).
+    97 edits scored on both trainings. (a) Enrolled donors ran high: pre-window own-settings mean glucose +15.5 mg/dL
+    (median), t>180 +8 points, TIR -8 to -13, concentrated where the field is well controlled (+24 / +16 / +1 by tertile
+    of field mean, cuts 127 / 144; trained donors +9 / +6 / -10). It is regression toward the population level plus an
+    upward shift. Their profiles sit outside the trained cloud (Mahalanobis median 7.2 vs 3.8; enrolment has no profile
+    prior), but distance tracks the bias only weakly (Spearman 0.19). (b) Per-person level band and pulse-size factor from
+    train-window rollouts (lb_many.py, 3 seeds; band shift median +8 to +10 mg/dL/h, size factor median 0.87) ->
+    v32of{0,1}…SKaLKXL. Two-training ensemble r, without -> with: TIR 0.17 -> 0.31 (per training 0.16 / 0.17 -> 0.28 /
+    0.30), mean 0.23 -> 0.38 (0.16 / 0.30 -> 0.37 / 0.38), t<70 0.48 -> 0.46, t<54 0.32 -> 0.26 (0.18 / 0.38 -> 0.28 /
+    0.21). Paired bootstrap of the r difference, 90%: TIR +0.03 to +0.23, mean +0.05 to +0.24, t<70 -0.17 to +0.11, t<54
+    -0.22 to +0.10. Mean |error| TIR 6.47 -> 5.68 (zero 6.08, replay 5.76), mean 11.33 -> 9.95 (zero 10.68, replay
+    11.02), t<54 0.30 -> 0.36 (+0.00 to +0.12). Level: mean-glucose bias +15.5 -> -0.7, but own-settings t<70 +1.1 and
+    t<54 +0.33 above the field; the band trades the high bias for excess lows. Kept for enrolment: TIR and mean gain on both
+    trainings beyond noise, the low side within it. Unlike 134 (trained donors, bias was variability), enrolled donors
+    carry a real background offset. (c) Scored by window, predicted change from the pre-edit window alone (the honest
+    "before trying it" case) against both windows averaged: replay gains most from seeing the post-edit window. Pre-window
+    r, replay vs generator, pilot 62 edits (base): TIR 0.13 vs 0.22, t<70 0.30 vs 0.51, t<54 -0.09 vs 0.18, mean 0.27 vs
+    0.34; x 97 edits (with band): TIR 0.28 vs 0.29, t<70 0.23 vs 0.45, t<54 0.06 vs 0.29, mean 0.42 vs 0.36. Field change
+    at a real edit is barely wider than at a pseudo-edit (x: TIR sd 8.1 vs 9.3, t<54 0.46 vs 0.43), so per-edit r stays
+    noise-limited. Next: the e-cohort edits (355 on 280 donors, ice_e32, pilot labeler 21b2c3c; enrolled in three chained
+    chunks of about 94 plus the band, …SKaLKEL) for a ~500-edit pooled scorecard; then the excess lows left after the band.
+    Runs: runs/2026-10-23-ice-enrol/ (fit_many.py, lb_many.py, enrol_x.sh, lb_x.sh, enrol_e.sh, change_e.sh),
+    runs/2026-10-13-ice-change/ (score_pool.py, score_win.py, pboot.py, lvl.py).
