@@ -23,8 +23,21 @@ Damping (135) and the low-response kernel (136) were each added on top of a trai
 each component goes into the plant **and** the training target: the network is retrained on ICE with the component's
 modeled contribution removed. If it isn't retrained, the network still carries the effect and it gets counted twice. If
 the component's parameters are fitted freely to the same data, the network and the component trade the effect between
-them, and the split means nothing. So parameters come from evidence, not from a free fit. Additive's component
+them, and the split means nothing. So parameters start from evidence, not from a free fit. Additive's component
 library, with its literature sources, is the place to take them from.
+
+**No hard wall (Pete, 2026-10-24).** The mechanistic side and the learned side don't need a strict separation. A
+component's parameters can be fitted jointly with the network: per person, or modulated by state. They start at the
+literature value with a prior that holds them near it, so they can move where the data clearly asks for it, but can't
+simply hand the effect over to the network. Two things keep the joint fit honest:
+- each component can still be switched off for an ablation;
+- its fitted values are reported beside the literature range.
+
+**Terms.** ICE stays what Loop means by it: the measured counteraction, observed glucose change minus the insulin
+effect, everything but insulin. Static replay still replays it, and it stays the input the training data is built
+from. Once the plant models more than insulin, what the network learns is no longer ICE. It is the **residual**: ICE
+minus the modeled non-insulin components. Docs and lessons should use "residual" for the network's output from the
+first component on, and keep "ICE" for the measured quantity.
 
 ## Suggested order
 
