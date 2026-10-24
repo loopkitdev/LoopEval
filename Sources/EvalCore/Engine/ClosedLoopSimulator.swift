@@ -765,6 +765,28 @@ extension EvaluationEngine {
                                                counter: &counterMgdl, missing: &counterMissing)
             return plantBehavior ? plantPerson.receive(reply, carbs: &candidateCarbs, therapy: &candTherapy) : 0.0
         }
+        // A cycle with no decision (no CGM near t, the field's no-dose guard, or a candidate CGM with
+        // no reading): the pump does not stop, it runs its last command until that expires, then the
+        // schedule; manual boluses still happen. Until 2026-10-24 nothing was appended, so an external
+        // plant, which delivers only what it is sent, got no insulin across a CGM gap (additive
+        // v05073: 0.01 U over a 23 h sensor gap, BG to 442). --cf-identity keeps the real record.
+        func runUnattended(_ t: Date, _ stepEnd: Date) {
+            guard counterfactualMode && t >= cfActiveStart else { return }
+            if !cfIdentity {
+                let (running, _) = pump.lastCommandRate(at: t, schedule: candTherapy.basal)
+                let d = pump.deliver(from: t, to: stepEnd, rate: running, bolus: 0, fieldRecord: nil,
+                                     fieldSchedule: data.therapyTimeline.basal, schedule: candTherapy.basal)
+                counterfactualDoses.append(EvalInsulinDose(
+                    deliveryType: .basal, startDate: t, endDate: d.tempSegEnd, volume: d.tempVolume,
+                    insulinType: data.therapyTimeline.insulinType, automatic: true))
+                if d.tempSegEnd < stepEnd {
+                    counterfactualDoses.append(EvalInsulinDose(
+                        deliveryType: .basal, startDate: d.tempSegEnd, endDate: stepEnd, volume: d.schedRemainder,
+                        insulinType: data.therapyTimeline.insulinType, automatic: true))
+                }
+            }
+            fieldBoluses.passThroughSkipped(t: t, stepEnd: stepEnd, identity: cfIdentity, into: &counterfactualDoses)
+        }
         // Plant carbs entered during a catch-up call, counted into the step that made it.
         var catchUpPlantCarbsG = 0.0
         for stepIdx in 0..<timing.stepTimes.count {
@@ -803,10 +825,7 @@ extension EvaluationEngine {
             // ----- SKIPPED CYCLES: no CGM near t, or the field controller couldn't dose -----
             // Manual boluses still happened and pass through into the candidate's history.
             if timing.skip(at: t) != nil {
-                if counterfactualMode && t >= cfActiveStart {
-                    fieldBoluses.passThroughSkipped(t: t, stepEnd: stepEnd, identity: cfIdentity,
-                                                    into: &counterfactualDoses)
-                }
+                runUnattended(t, stepEnd)
                 continue
             }
             let timeBasedAFScale = timing.timeBasedAFScale(at: t)
@@ -941,6 +960,7 @@ extension EvaluationEngine {
                 config: candidateConfig
             )
             guard let candidateInput = candidateBuilder.buildInput(at: t, decisionAnchor: t) else {
+                runUnattended(t, stepEnd)
                 continue
             }
             // ----- CANDIDATE step: candidate's Loop sees the per-step ISF
