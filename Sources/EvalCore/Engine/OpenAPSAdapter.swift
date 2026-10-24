@@ -35,6 +35,9 @@ struct OpenAPSAdapter: DosingEngine {
             // NS temp targets the user had ALREADY set by decision time t (oref
             // temptargets). Empty ("[]") when none — the prior hardcoded behavior.
             let tempTargetsJSON = orefTempTargetsJSON(req: req)
+            // Trio 1.0 floors every rate to the paired pump's table (profile.supportedBasalRates).
+            // Flat table at the pump pulse, 0...30 U/h: Omnipod Dash / Medtrum at the 0.05 default.
+            let rates = Self.supportedBasalRates(pulse: req.config.oapsPumpPulse)
 
             // LEGACY path (OAPS_LEGACY env set): 5 separate JSON-bridged calls that
             // re-parse profile/pumpHistory/glucose each call. Kept only for the
@@ -44,7 +47,8 @@ struct OpenAPSAdapter: DosingEngine {
                     preferences: inputs.preferences, pumpSettings: inputs.pumpSettings,
                     bgTargets: inputs.bgTargets, basalProfile: inputs.basalProfile,
                     isf: inputs.isf, carbRatio: inputs.carbRatio, tempTargets: tempTargetsJSON,
-                    model: "\"X22\"", trioSettings: "{}", clock: req.t).returnOrThrow()
+                    model: "\"X22\"", trioSettings: "{}", clock: req.t,
+                    supportedBasalRates: rates).returnOrThrow()
                 let clockStr = inputs.clockString
                 let meal = try OpenAPSSwift.meal(
                     pumphistory: inputs.pumpHistory, profile: profile,
@@ -79,7 +83,7 @@ struct OpenAPSAdapter: DosingEngine {
                 currentTemp: inputs.currentTemp, reservoir: "100", microBolusAllowed: true,
                 trioCustomOrefVariables: inputs.trioCustomOref,
                 clockDate: req.t, clockJSON: inputs.clockString,
-                tempTargets: tempTargetsJSON)
+                tempTargets: tempTargetsJSON, supportedBasalRates: rates)
 
             let comps = Calendar(identifier: .gregorian).dateComponents([.hour, .minute], from: req.t)
             if (comps.hour ?? 0) % 6 == 0 && (comps.minute ?? 0) < 5 {
@@ -90,6 +94,12 @@ struct OpenAPSAdapter: DosingEngine {
             FileHandle.standardError.write(Data("OpenAPSAdapter error at \(req.t): \(error)\n".utf8))
             return fallbackResult(req: req, scheduledBasalUhr: activeBasal(at: req.t, req: req))
         }
+    }
+
+    static func supportedBasalRates(pulse: Double) -> [Decimal] {
+        guard pulse > 0 else { return [] }
+        let step = Decimal(string: String(format: "%.4f", pulse)) ?? 0.05
+        return (0...Int((30 / pulse).rounded())).map { Decimal($0) * step }
     }
 
     // Build the oref `temptargets` JSON from the therapy timeline, gated to the
