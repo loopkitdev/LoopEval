@@ -1,6 +1,6 @@
 # External plant protocol v2: plant-generated carb entries and manual boluses
 
-**Status:** proposal from the ice role to the simulator role, 2026-10-09. Nothing implemented.
+**Status:** implemented in the engine (`simulate --external-plant … --plant-behavior`, `Sources/EvalCore/Engine/ExternalPlant.swift`, commit 464f2d2); the ice generator's plants (`ice_gen/plant_v3.py`) speak it. Proposed by the ice role to the simulator role 2026-10-09.
 
 ## Why
 
