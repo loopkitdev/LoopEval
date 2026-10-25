@@ -78,9 +78,22 @@ frontier).
   prefs and presets, Loop with the Trio overrides as Loop overrides), oref leads at equal t<54 by
   as much as Loop leads on Loop hosts, the other way round: oref ×1.0 +18.2 TIR on orefuser
   (1 week, Trio 1.0.2 field) and +15.6 on orefuser2 (May, field 0.7.0); +7 to +10 at ×1.1. Each
-  engine wins on data its own dosing shaped, so the replay gives no host-neutral ranking. The only
-  host-neutral evidence is the field switchers (+1.45 TIR, t<54 flat). Runs:
+  engine wins on data its own dosing shaped, so replay on either kind of host gives no ranking. Runs:
   `runs/2026-10-24-trio102-orefuser/host2x2/`, `runs/2026-10-23-trio-orefuser2/host2x2/`.
+- **Host-neutral: the additive simulator** (112 simulated people × 14 d, seed0 1000, patient components
+  night_pro / uls / ex_sat 0.1; Loop with each person's own RC and GBAF, oref with the pilot prefs; both on
+  the insulin-needs dial, Loop ×0.7…1.2, oref ×0.8…1.6). **At equal lows oref's TIR is about 3 lower**
+  across the whole range where the dials overlap: at equal t<54, −2.3 to −4.1 on CGM (×1.2 −2.8
+  [−5.0, −1.0], ×1.5 −4.0 [−5.6, −1.8]) and −1.6 to −4.3 on true glucose (CIs touch 0 at ×1.0–1.4); at equal
+  t<70, −3.0 to −4.7 on CGM, every CI below 0. At the same oref setting oref delivers about 10 U/day less;
+  it needs ×1.4 to reach Loop ×1.0's lows (0.43 vs 0.41), and there it is −3.0 TIR (median −2.5; 68% of people
+  worse). The loss grows with insulin need (Loop-TDD terciles −1.5 / −3.6 / −4.1). Worst person −36.9 TIR:
+  78 U/day under Loop, 52 under oref, runs high. Worst true t<54 +1.7. Only at the gentle end (oref ×1.0 vs
+  Loop ×0.7, t<54 0.23 vs 0.21) do they tie (+0.06). These people aren't shaped by either engine's dosing,
+  so this direction is not host bias, within the simulator's own known limits. Runs:
+  `runs/2026-10-25-trio-additive/` (`score.py`).
+- **Field switchers** (below) are the other host-neutral evidence: +1.73 TIR for Trio, t<54 flat, settings
+  changes at the switch mixed in.
 - **Trio → Loop candidates measured, none helps:** oref dynISF on Loop rides the dial (lift −0.05
   [−0.92, +0.58] at ×1.0, −2.57 at ×1.05); autosens and C14 were negative on bddp11; C38 (deviation
   autosens analog) was already NEUTRAL in the ledger.
