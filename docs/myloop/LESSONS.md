@@ -16,3 +16,9 @@
    often unbolused food. Over 25 g they add 7–9 points above 180 in the hours after. A CamAPS-style
    flag only helps if it carries the user's intent, which no rule over glucose can recover. See
    `E2-rescue-carbs.md`.
+4. **A time-of-day rise response is the dial again, even with no meal entries (E3, 2026-10-25).** 189 donors, gr harness,
+   no carb entries and no user boluses. The same-clock habit adds +0.08 holdout R² to Loop's 2-h rise prediction (73 % of
+   donors ≥ 0.03), but scaling the rise response by it adds nothing over an additive term (14 % ≥ 0.02, median 0).
+   Closed loop, the additive term (C39 `habrelr`) costs 0.51 TIR for 0.04 points of t<54, no better than the needs dial.
+   This reading of CamAPS Liberty's "recognises insulin need depending on time of day" has no lever in Loop. See
+   `E3-liberty-mode.md`.

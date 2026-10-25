@@ -90,3 +90,22 @@ before any verdict (M11).
 - Replay's lows axis is unvalidated (ledger M11). A Stage B pass goes to the ICE generator or the additive plant before any
   verdict.
 - R² on closed-loop data is not therapy evidence (C19, O1). Stage A only decides what is worth simulating.
+
+### Result (2026-10-25): FAILS, closed
+
+Run: `runs/2026-10-25-myloop-e3/` (`run_b.py`, `score_b.py`, `e3b_per_donor.csv`). 189 donors. Reference (`gr`, no
+entries, needs 1.00): TIR 52.0, t<54 1.01, t<70 3.09.
+
+| | `nc_hab` − `nc`, 95 % CI | Bar |
+|---|---|---|
+| ΔTIR | −0.51 [−0.83, −0.21] | CI lo > 0: **fails** |
+| Δt<54 | −0.038 [−0.081, +0.005] | mean ≤ 0, hi < +0.05: passes |
+| Δt<70 | −0.20 [−0.30, −0.10] | — |
+| Δ mean glucose | +0.4 mg/dL [+0.0, +0.8] | — |
+| t<54 lift vs needs dial | −0.19 [−0.70, +0.33] | CI lo > 0: **fails** |
+| t<70 lift | +0.05 [−0.41, +0.51] | — |
+
+- It trades TIR for lows at about the dial's rate (dial 0.95: −2.2 TIR, −0.22 t<54; the habit: −0.5, −0.04).
+- Announcers (145) and hands-off donors (44) read the same way: ΔTIR −0.57 / −0.32, t<54 lift −0.23 / −0.08.
+- A habit that predicts a rise's size (Stage A) does not turn into dosing that beats the dial. This is C39's natural-regime
+  answer again, now in the regime Liberty is built for.
