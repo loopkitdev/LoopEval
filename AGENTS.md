@@ -34,6 +34,7 @@ for that checkout (copy `ROLE.example.md`, exactly like `PRIVATE.md`).
 | ice | `docs/agents/ice.md` | Generative models of the insulin counteraction effect: learn realistic ICE, behavior included, from the donor pool and drive the simulator with it. |
 | additive | `docs/agents/additive.md` | Forward patient simulator composed from named, evidenced factors (physiology, meals, exercise, illness, cycle, sensor, pump, behavior traits), run closed-loop through the external plant. |
 | trio | `docs/agents/trio.md` | Trio (oref) under LoopEval: oref fidelity on Trio donors, and Loop vs Trio on the same people. |
+| myloop | `docs/agents/myloop.md` | CamAPS FX (Cambridge adaptive MPC, mylife myLoop) as a source of ideas: verified evidence base, CamAPS-inspired candidates for Loop and for simulation. |
 | — | `docs/agents/verification.md` | Faithful replay and identity checks; read by frontier **and** simulator. |
 
 **Keep to your own overlay.** One file, one owner: roles never edit each other's overlay, so

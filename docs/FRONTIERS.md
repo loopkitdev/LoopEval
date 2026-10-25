@@ -148,7 +148,8 @@ Numbers don't transfer between datasets as absolutes.
   retrospective correction (C20) and a correction reserve (C40). It is in the LoopAlgorithm experiments PR, landing in
   Loop's development branch, and its constants are frozen; new candidates stack on top of it.
 - **Asymmetric IRC** (C01) and the deployable stack (C30) beat the person's own setting on most of the long beds.
-- **Double-low prevention** (C08) is closed: no lift, and worse at the stronger setting.
+- **Double lows** (a second low after Loop doses into the rebound from a first one) are handled by guard + runway's
+  post-low cut (C20). An earlier attempt at the same problem, raising ISF after recent drops, is closed as worse (C08).
 - **GBAF, flat ISF, application factor and oref's dynISF ramp** move along the dial. They are useful as dials but have
   no lift.
 - The lows side of every replay verdict is unvalidated (M11): static replay overstates hypo changes about tenfold on real
