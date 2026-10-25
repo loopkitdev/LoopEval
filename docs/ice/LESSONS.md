@@ -1505,3 +1505,25 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     As a test-time switch, cob1 lowers glucose across the board and adds lows. The calibrations after training (level
     band, low band, low kernel) were fit with the old input, so they no longer offset it. Not kept as a switch. The
     retrain, with the whole calibration chain rerun on the new input, is the test (arm oc, `runs/2026-10-25-ice-cob/`).
+146. **Glucose effectiveness, arm A (SG 0.0045/min, the prior median), does not beat the base; not kept.** The of recipe was
+    retrained with GE_SG on both seeds (gb arm, chain_ge.sh in runs/2026-10-24-ice-ge/, frozen ice-ge). The plant subtracts
+    60·SG·G and the network learns the residual. Results, gb vs of, seed 0 / 1:
+    - **held-out (88 pilot donors, 3 seeds):** TIR bias −5.3 / −6.5 vs −0.7 / −3.0; t70 bias +1.24 / +1.73 vs +0.45 /
+      +0.36; mean +6.4 / +3.4. Worse on both trainings.
+    - **pilot change test (62 edits), model r:**
+
+      | metric | gb | of |
+      |---|---|---|
+      | TIR | 0.23 / 0.21 | 0.24 / 0.16 |
+      | t70 | 0.54 / 0.48 | 0.51 / 0.62 |
+      | t54 | 0.51 / 0.20 | 0.20 / 0.37 |
+      | mean | 0.39 / 0.36 | 0.40 / 0.17 |
+
+      Each gap is smaller than the gap between the two of trainings (mean 0.40 vs 0.17), and the |err| figures match to
+      within 0.4. The own-settings level check is worse: TIR median −4.9 / −6.2 vs +1.6 / −2.7.
+    - **switch test (52 switches), model r:** TIR 0.69 / 0.65 vs 0.70 / 0.60; mean 0.49 / 0.60 vs 0.58 / 0.62; t54
+      0.25 / 0.20 vs 0.20 / 0.26. No difference.
+    A literature-strength SG adds a restoring force the TDD-ISF ICE already holds, as lesson 140 suspected. It pulls the
+    distribution's level and tails out of place without making changes any more predictable. GE stays off (GE_SG 0, the
+    default) until the ISF yardstick check (step 0c) says how much uptake the TDD ISF absorbed. The change-prediction
+    gap that matters is lesson 145's cancellation, which GE does not touch.
