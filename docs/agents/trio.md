@@ -87,7 +87,10 @@ frontier).
 - **Field, Tidepool 2026-05-15→10-13** (≥30 closed-loop days, single-app days): Trio users median
   TIR 81.5 vs Loop 74.8, t<54 equal (0.34 vs 0.36). Within 28 Loop→Trio switchers the gain is +1.45
   TIR [+0.22, +2.63], t<54 −0.05 [−0.18, +0.06]: most of the group gap is who chooses Trio, and the
-  remainder is uncontrolled (season, settings changes at the switch). Runs:
+  remainder, net of the calendar change Loop-only users show over the same dates
+  (difference-in-differences), is **+1.73 TIR [+0.50, +2.94]** with t<54 −0.03 [−0.15, +0.09];
+  +2.31 [+0.52, +3.89] after a 14-day washout (25 switchers). Worst switcher −6.2 TIR, +0.78 t<54.
+  Not controlled: selection into switching, and settings changed at the switch. Runs (`did.py`):
   `runs/2026-10-24-trio-vs-loop-field/`.
 
 ## Status (2026-10-23)

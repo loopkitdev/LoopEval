@@ -16,8 +16,10 @@ Loop TIR at oref's t<54, with Loop interpolated along its rising-lows branch.
 
 Each engine wins on the data its own dosing shaped. So a replay on either kind of host can't settle
 which algorithm is better; it shows the size of the host bias, about 20 TIR points from one kind of host to
-the other. Suggest C17's verdict says that and carries the field switchers (+1.45 TIR [+0.22, +2.63], t<54
-flat) as the only host-neutral number. Two people over 1 and 4 weeks, so no confidence interval.
+the other. Suggest C17's verdict says that and carries the field switchers as the only host-neutral number:
+net of Loop-only users' change over the same dates, +1.73 TIR [+0.50, +2.94], t<54 −0.03 [−0.15, +0.09]
+(28 switchers; +2.31 [+0.52, +3.89] after a 14-day washout). Settings changed at the switch remain
+mixed in. Two people over 1 and 4 weeks, so no confidence interval.
 
 Note: `--loop-trio-overrides` used to fail on any preset name containing "/" (the cache key became a path).
 Fixed in `DataCache.key` on main.
