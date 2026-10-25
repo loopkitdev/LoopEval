@@ -141,16 +141,21 @@ insulin-needs curve, it isn't frontier.
 
 ## Current picture (qualitative)
 
-Regenerate numbers for your dataset — they do not transfer as absolutes. As of the last
-broad re-baseline:
+The [candidate ledger](candidates/README.md) is the record and its index holds each verdict; this is the summary.
+Numbers don't transfer between datasets as absolutes.
 
-- **Asymmetric IRC** (drop-scale > rise-scale) — genuine lift; the drop side of
-  retrospective correction cleans up developing lows without amplifying rise-chasing.
-- **Double-low prevention** (`sensitive-mode`) — genuine lift; damps re-dosing into the
-  post-low rebound, preventing the delayed second low.
-- **GBAF, flat ISF, application factor** — sliders. Useful dials, no lift.
-- The largest factor by far is **meal announcement** (user behavior, not algorithm):
-  announcing users operate far above anything hands-off automation reaches.
+- **Guard + runway** is the leading candidate. It combines a volatility-aware lower forecast band (C29), a post-low cut to
+  retrospective correction (C20) and a correction reserve (C40). It is in the LoopAlgorithm experiments PR, landing in
+  Loop's development branch, and its constants are frozen; new candidates stack on top of it.
+- **Asymmetric IRC** (C01) and the deployable stack (C30) beat the person's own setting on most of the long beds.
+- **Double lows** (a second low after Loop doses into the rebound from a first one) are handled by guard + runway's
+  post-low cut (C20). An earlier attempt at the same problem, raising ISF after recent drops, is closed as worse (C08).
+- **GBAF, flat ISF, application factor and oref's dynISF ramp** move along the dial. They are useful as dials but have
+  no lift.
+- The lows side of every replay verdict is unvalidated (M11): static replay overstates hypo changes about tenfold on real
+  edits. Rank on ΔTIR and take the lows side from the ICE generator ([OVERVIEW.md](OVERVIEW.md)).
+- **Meal announcement** is the largest factor by far, and it is user behavior, not algorithm: announcing users operate
+  far above anything hands-off automation reaches.
 
 ---
 

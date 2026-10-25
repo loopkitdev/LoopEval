@@ -8,8 +8,10 @@ Inside `with batch(users):`, a per-donor query whose only donor-specific part is
 `_userId='<uid>'` (uid in the block) is rewritten to `_userId IN (<block>)`, run ONCE for the
 block, and each donor's call is served its own rows from the cached result. Order is preserved
 (the block result keeps the query's ORDER BY, and a donor's rows are a stable subset of it).
-Queries that can't be split that way (GROUP BY, COUNT, LIMIT) run per donor as before; they are
-cheap. The ETL's logic is untouched: `export_donor` inside a block writes the same files it writes
+A single-SELECT aggregate (COUNT, GROUP BY, LIMIT k) is batched too: the donor joins the GROUP BY, LIMIT k becomes
+the first k rows per donor (the ORDER BY is kept), and a donor with no rows in a pure aggregate gets its zero row.
+They are not cheap: each still scans ~85 GB (13 s on the Small warehouse), two per donor. Other queries that
+can't be split run per donor as before. The ETL's logic is untouched: `export_donor` inside a block writes the same files it writes
 outside one.
 
 Donors in a block must share the export window: time bounds are part of every query's text, so a
@@ -79,6 +81,34 @@ def _rewrite(q: str, uid: str, users) -> str:
     return "".join(out)
 
 
+_LIMIT = re.compile(r"\s+LIMIT\s+(\d+)\s*$", re.IGNORECASE)
+_GROUP = re.compile(r"\bGROUP\s+BY\s+", re.IGNORECASE)
+_ORDER = re.compile(r"\s+ORDER\s+BY\b", re.IGNORECASE)
+
+
+def _agg_rewrite(q: str, uid: str, users):
+    """Block form of a single-SELECT aggregate for one donor -> (query, per-donor limit or None, pure aggregate),
+    or None when the query has a subquery or a LIMIT that is not the last clause."""
+    if len(re.findall(r"\bSELECT\b", q, re.IGNORECASE)) != 1 or re.search(r"FROM\s*\(", q, re.IGNORECASE):
+        return None
+    if re.search(r"\bLIMIT\b", q, re.IGNORECASE) and not _LIMIT.search(q):
+        return None
+    limit = None
+    lm = _LIMIT.search(q)
+    if lm:
+        limit = int(lm.group(1)); q = q[:lm.start()]
+    in_list = ", ".join(f"'{u}'" for u in users)
+    q = _UID.sub(lambda m: f"_userId IN ({in_list})", q)
+    q = re.sub(r"\bSELECT\s+", "SELECT _userId AS __uid, ", q, count=1, flags=re.IGNORECASE)
+    pure = not _GROUP.search(q)
+    if pure:
+        om = _ORDER.search(q)
+        q = (q[:om.start()] + " GROUP BY _userId" + q[om.start():]) if om else q + " GROUP BY _userId"
+    else:
+        q = _GROUP.sub("GROUP BY _userId, ", q, count=1)
+    return q, limit, pure
+
+
 def _canonical(df):
     """Deterministic row order. SQL leaves rows tied on the ORDER BY key in any order, and the ETL
     keeps the FIRST row per key in several places (glucose by timestamp, boluses by second and
@@ -106,20 +136,30 @@ def _query(q, params=None):
     if blk is None or params:
         return _direct_query(q, params)
     m = _UID.search(q)
-    if not m or m.group(1) not in blk.users or _UNSPLITTABLE.search(q) \
-            or len(set(_UID.findall(q))) != 1:
+    if not m or m.group(1) not in blk.users or len(set(_UID.findall(q))) != 1 \
+            or (_UNSPLITTABLE.search(q) and _agg_rewrite(q, m.group(1), blk.users) is None):
         blk.direct += 1
         return _direct_query(q)
     uid = m.group(1)
+    agg = bool(_UNSPLITTABLE.search(q))
     key = q.replace(uid, "\x00")
     with blk.lock:
         if key not in blk.cache:
             blk.misses += 1
-            df = _direct_query(_rewrite(q, uid, blk.users))
+            if agg:
+                bq, limit, pure = _agg_rewrite(q, uid, blk.users)
+                df = _direct_query(bq)
+            else:
+                df = _direct_query(_rewrite(q, uid, blk.users)); limit, pure = None, False
             cols = [c for c in df.columns if c != "__uid"]
             blk.columns[key] = cols
-            blk.cache[key] = {u: g.drop(columns="__uid").reset_index(drop=True)
-                              for u, g in df.groupby("__uid", sort=False)}
+            parts = {u: g.drop(columns="__uid").reset_index(drop=True) for u, g in df.groupby("__uid", sort=False)}
+            if limit is not None:
+                parts = {u: g.head(limit) for u, g in parts.items()}
+            if pure:                                      # COUNT(*) with no group: every donor has one row
+                zero = pd.DataFrame([{c: 0 for c in cols}])
+                parts = {u: parts.get(u, zero.copy()) for u in blk.users}
+            blk.cache[key] = parts
         else:
             blk.hits += 1
         freed = blk.cache[key] is None

@@ -50,6 +50,7 @@ still reproduces that hand-checked result exactly.
 """
 import argparse
 import os
+import numpy as np
 import pandas as pd
 
 # The pull's own artefacts, plus the hand-checked cut `--verify` measures against. Outputs
@@ -73,9 +74,16 @@ def _out(run_dir, name):
     return os.path.join(run_dir, name)
 
 
+def coarse_age(s):
+    """Whole years, 90+ as 90 (Tidepool de-identification): a fractional age at a known date
+    recovers the birthday."""
+    return np.floor(pd.to_numeric(s, errors="coerce").clip(upper=90)).astype("Int64")
+
+
 def load(run_dir):
-    """Read the two raw CSVs out of a pull's run dir."""
+    """Read the two raw CSVs out of a pull's run dir. Donors are keyed by alias, never `_userId`."""
     ages = pd.read_csv(os.path.join(run_dir, "model_vs_age.csv"))
+    ages["age"] = coarse_age(ages["age"])
     periods = pd.read_csv(os.path.join(run_dir, "formulation_periods.csv"))
     return ages, periods
 
@@ -206,6 +214,7 @@ def per_donor(ages, periods, windows):
     unresolved, or what the person switched between and when.
     """
     w = windows.rename(columns={"_userId": "uid"}).copy()
+    if "age_years" in w: w["age_years"] = coarse_age(w["age_years"])
     w["win_start"] = pd.to_datetime(w.transition_window_start)
     w["win_end"] = pd.to_datetime(w.transition_window_end)
 

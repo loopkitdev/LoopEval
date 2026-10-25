@@ -127,6 +127,13 @@ with more suspicion than differences: compression lows and the CGM 40-floor infl
 `t<54` in both arms ([§14](#14-metrics--scoring)).
 
 
+> [!NOTE]
+> **This guide covers measured-ICE replay.** With `--external-plant`, a patient model replaces the
+> one step that advances the counterfactual glucose, and everything else in this guide is unchanged:
+> the controller, the pump model, decision timing and scoring. The two plants in use are the ICE
+> generator and the additive simulator. [OVERVIEW.md](../OVERVIEW.md) compares the three bodies and
+> shows how natural experiments test each one.
+
 This guide is about `simulate` — the closed-loop counterfactual — which is the primary tool for
 therapy-outcome questions. It is one of three *outcome* modes:
 
@@ -849,7 +856,9 @@ are separate and used by the `evaluate` mode.
 
 > [!NOTE]
 > **Trace outputs for case studies.** Every `--trace-out` JSON also carries the canonical
-> `delivery[]` stream (both arms, basal + bolus, auto vs manual) and per-step `patientIOBField /
+> `delivery[]` stream (both arms, basal + bolus, auto vs manual; the candidate side is what the
+> candidate's body received, so it equals the field record wherever the body ran on it: burn-in,
+> `--cf-identity`, DTR and open loop) and per-step `patientIOBField /
 > patientIOBCandidate` — both arms' delivered doses run through one shared patient insulin model, so
 > the IOB comparison is fair and independent of any candidate IOB experiment. These feed the
 > standard case-study panels (`loopeval_analysis.case_study.plot_case`; see

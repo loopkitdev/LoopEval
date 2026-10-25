@@ -1,0 +1,836 @@
+"""v3m generator: meal pulses, carb entries and manual boluses as separate events (dataset_v3m), drawn in order
+within a slot, each conditioned on the earlier draws:
+  state            background ICE (mixture of 8), meal start (P), pulse size (mixture of 3)
+  peak | size, duration | size + peak
+  entry, log grams | meal drawn, its size
+  bolus, override, log ratio, log units | meal, size, entry, grams
+Per-person traits: an explicit logit offset per person on the meal, entry and bolus heads, trained jointly with a
+Gaussian prior (sd TRAIT_SD) instead of left to the profile vector, which pulled every person's rates toward the
+middle (ice LESSONS 39). The profile vector still feeds the GRU for everything else.
+"""
+from __future__ import annotations
+
+import os
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from .model_v2 import mdn_nll, mdn_sample
+from .dataset_v3m import TARGETS
+
+B = ["meal", "entry", "bolus", "b_mode"]
+G = ["m_lpeak", "m_ldur"]
+M = ["m_lsize", "e_lg", "b_lr", "b_lu"]
+TRAITS = ["meal", "entry", "bolus"]
+
+
+class ICEGenV3M(nn.Module):
+    arch = "v3m"
+    K_ICE, K = 8, 3
+    MAIN = ["bgice", "meal", "m_lsize"]
+    STAGES = [  # (drawn here, conditioned on these earlier draws; *_ok = presence flags)
+        (["m_lpeak"], ["m_lsize"]),
+        (["m_ldur"], ["m_lsize", "m_lpeak"]),
+        (["entry", "e_lg"], ["meal", "m_lsize"]),
+        (["bolus", "b_mode", "b_lr", "b_lu"], ["meal", "m_lsize", "entry", "e_lg"]),
+    ]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2):
+        super().__init__()
+        self.profile = nn.Embedding(n_people, profile_dim)
+        nn.init.normal_(self.profile.weight, std=0.1)
+        self.trait = nn.Embedding(n_people, len(TRAITS))
+        nn.init.zeros_(self.trait.weight)
+        self.inp = nn.Linear(n_features + profile_dim, hidden)
+        self.gru = nn.GRU(hidden, hidden, num_layers=layers, batch_first=True)
+        self.sizes = {"bgice": 3 * self.K_ICE, **{k: 1 for k in B}, **{k: 2 for k in G}, **{k: 3 * self.K for k in M}}
+        self.head = nn.Linear(hidden, sum(self.sizes[k] for k in self.MAIN))
+        self.stage_heads = nn.ModuleList(
+            nn.Sequential(nn.Linear(hidden + len(cond), 128), nn.ReLU(), nn.Linear(128, sum(self.sizes[k] for k in tgt)))
+            for tgt, cond in self.STAGES)
+
+    def forward(self, x, person, h=None):
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        z, h = self.gru(torch.relu(self.inp(torch.cat([x, p], -1))), h)
+        out = dict(zip(self.MAIN, self.head(z).split([self.sizes[k] for k in self.MAIN], -1)))
+        out["z"] = z
+        out["trait"] = self.trait(person)[:, None, :].expand(-1, x.shape[1], -1)
+        out["meal"] = out["meal"] + out["trait"][..., 0:1]
+        return out, h
+
+    def _stage(self, i, out, vals):
+        tgt, cond = self.STAGES[i]
+        c = []
+        for k in cond:   # a value absent (no meal drawn, no entry) enters as 0; meal/entry are the flags
+            c.append(torch.nan_to_num(vals[k], nan=0.0))
+        o = dict(zip(tgt, self.stage_heads[i](torch.cat([out["z"], torch.stack(c, -1)], -1)).split([self.sizes[k] for k in tgt], -1)))
+        if "entry" in o:
+            o["entry"] = o["entry"] + out["trait"][..., 1:2]
+        if "bolus" in o:
+            o["bolus"] = o["bolus"] + out["trait"][..., 2:3]
+        return o
+
+    def teacher(self, out, Y):
+        y = {k: Y[..., TARGETS.index(k)] for k in TARGETS}
+        vals = dict(y)
+        vals["m_lsize"] = torch.where(y["meal"] > 0.5, y["m_lsize"], torch.zeros_like(y["m_lsize"]))
+        vals["e_lg"] = torch.where(y["entry"] > 0.5, y["e_lg"], torch.zeros_like(y["e_lg"]))
+        vals["meal"] = torch.nan_to_num(y["meal"]); vals["entry"] = torch.nan_to_num(y["entry"])
+        o = dict(out)
+        for i in range(len(self.STAGES)):
+            o.update(self._stage(i, out, vals))
+        return o
+
+    def loss(self, out, Y, w=None, w_bgice=False, trait_frac=0.0, trait_sd=1.0):
+        """trait_frac: this batch's share of all training steps, so the Gaussian prior on the per-person offsets
+        (sd trait_sd) is spread over the batches as in a full-data MAP fit."""
+        o = self.teacher(out, Y)
+        y = {k: Y[..., TARGETS.index(k)] for k in TARGETS}
+        z = lambda v, m: torch.where(m, v, torch.zeros_like(v))      # never 0 * v (LESSONS 8)
+        parts = {}
+        m = torch.isfinite(y["bgice"])
+        nll = mdn_nll(o["bgice"], z(y["bgice"], m), self.K_ICE)
+        parts["bgice"] = (nll * w)[m].sum() / w[m].sum() if (w_bgice and w is not None) else nll[m].mean()
+        given = {"m_": y["meal"] > 0.5, "e_": y["entry"] > 0.5, "b_": y["bolus"] > 0.5}
+        cond = lambda k: torch.isfinite(y[k]) & (given[k[:2]] if k[:2] in given else torch.ones_like(m))
+        for k in B:
+            c = cond(k)
+            if c.any():
+                ww = w[c] if (w is not None and k in TRAITS) else None
+                parts[k] = F.binary_cross_entropy_with_logits(o[k][..., 0][c], y[k][c], weight=ww)
+        for k in G:
+            c = cond(k)
+            if c.any():
+                mu, ls = o[k].unbind(-1); ls = ls.clamp(-5, 3)
+                parts[k] = (0.5 * ((z(y[k], c) - mu) / ls.exp()) ** 2 + ls)[c].mean()
+        for k in M:
+            c = cond(k)
+            if c.any():
+                parts[k] = mdn_nll(o[k], z(y[k], c), self.K)[c].mean()
+        loss = sum(parts.values())
+        if trait_frac > 0:
+            loss = loss + trait_frac * 0.5 * (self.trait.weight ** 2).sum() / trait_sd ** 2
+        return loss, parts
+
+    @torch.no_grad()
+    def sample(self, out, calib=None):
+        """calib: {head: logit offset} applied to meal / entry / bolus before drawing (closed-loop calibrations)."""
+        calib = calib or {}
+        o = {k: v[:, -1] for k, v in out.items()}
+        s = {"bgice": mdn_sample(o["bgice"], self.K_ICE)}
+        u = lambda: torch.rand_like(s["bgice"])
+        draw = lambda k, oo: (u() < torch.sigmoid(oo[k][:, 0] + calib.get(k, 0.0))) if k in B else \
+            (oo[k][:, 0] + oo[k][:, 1].clamp(-5, 3).exp() * torch.randn_like(s["bgice"])) if k in G else mdn_sample(oo[k], self.K)
+        s["meal"] = draw("meal", o); s["m_lsize"] = draw("m_lsize", o)
+        vals = {"meal": s["meal"].float(), "m_lsize": torch.where(s["meal"], s["m_lsize"], torch.zeros_like(s["m_lsize"]))}
+        for i, (tgt, _) in enumerate(self.STAGES):
+            oo = self._stage(i, o, vals)
+            for k in tgt:
+                s[k] = draw(k, oo)
+            if "m_lpeak" in tgt:
+                vals["m_lpeak"] = s["m_lpeak"].float()
+            if "entry" in tgt:
+                vals["entry"] = s["entry"].float(); vals["e_lg"] = torch.where(s["entry"], s["e_lg"], torch.zeros_like(s["e_lg"]))
+        return s
+
+
+class ICEGenV3M3(ICEGenV3M):
+    """v3m3 (dataset_v3m3): an entry that starts a meal draws its pulse with it. Stages, in order within a slot:
+      peak | size, duration | size + peak                 (a pulse begun without an entry)
+      entry, log grams | meal, size
+      starts a meal (P), minutes to onset, pulse size | entry, grams
+      peak, duration of that pulse: the same heads as a meal's, fed its size
+      bolus, override, log ratio, log units | meal, size, entry, grams
+    """
+    arch = "v3m3"
+    STAGES = [  # (drawn here, conditioned on, head index; a stage reusing a head renames its outputs in order)
+        (["m_lpeak"], ["m_lsize"], 0),
+        (["m_ldur"], ["m_lsize", "m_lpeak"], 1),
+        (["entry", "e_lg"], ["meal", "m_lsize"], 2),
+        (["e_new", "e_off", "e_lsize"], ["entry", "e_lg"], 3),
+        (["e_lpeak"], ["e_lsize"], 0),
+        (["e_ldur"], ["e_lsize", "e_lpeak"], 1),
+        (["bolus", "b_mode", "b_lr", "b_lu"], ["meal", "m_lsize", "entry", "e_lg"], 4),
+    ]
+    HEADS = [0, 1, 2, 3, 6]   # the stages that own a head
+    GIVEN = {"m_": "meal", "e_": "entry", "b_": "bolus"}
+    NEW = ["e_off", "e_lsize", "e_lpeak", "e_ldur"]   # given entry AND e_new
+    BERN = B + ["e_new"]
+    TRAIT_NAMES = TRAITS
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2):
+        nn.Module.__init__(self)
+        self.profile = nn.Embedding(n_people, profile_dim)
+        nn.init.normal_(self.profile.weight, std=0.1)
+        self.trait = nn.Embedding(n_people, len(self.TRAIT_NAMES))
+        nn.init.zeros_(self.trait.weight)
+        self.inp = nn.Linear(n_features + profile_dim, hidden)
+        self.gru = nn.GRU(hidden, hidden, num_layers=layers, batch_first=True)
+        self.B = self.BERN; self.G = G + ["e_off", "e_lpeak", "e_ldur"]; self.M = M + ["e_lsize"]
+        self.sizes = {"bgice": 3 * self.K_ICE, **{k: 1 for k in self.B}, **{k: 2 for k in self.G}, **{k: 3 * self.K for k in self.M}}
+        self.head = nn.Linear(hidden, sum(self.sizes[k] for k in self.MAIN))
+        self.stage_heads = nn.ModuleList(
+            nn.Sequential(nn.Linear(hidden + len(self.STAGES[i][1]), 128), nn.ReLU(), nn.Linear(128, sum(self.sizes[k] for k in self.STAGES[i][0])))
+            for i in self.HEADS)
+
+    def _stage(self, i, out, vals):
+        tgt, cond, h = self.STAGES[i]
+        c = torch.stack([torch.nan_to_num(vals[k], nan=0.0) for k in cond], -1)
+        o = dict(zip(tgt, self.stage_heads[h](torch.cat([out["z"], c], -1)).split([self.sizes[k] for k in tgt], -1)))
+        if "entry" in o:
+            o["entry"] = o["entry"] + out["trait"][..., 1:2]
+        if "bolus" in o:
+            o["bolus"] = o["bolus"] + out["trait"][..., 2:3]
+        return o
+
+    def teacher(self, out, Y):
+        from .dataset_v3m3 import TARGETS as T3
+        y = {k: Y[..., T3.index(k)] for k in T3}
+        vals = dict(y)
+        for flag, keys in (("meal", ["m_lsize", "m_lpeak"]), ("entry", ["e_lg"])):
+            for k in keys:
+                vals[k] = torch.where(y[flag] > 0.5, y[k], torch.zeros_like(y[k]))
+        new = (y["entry"] > 0.5) & (y["e_new"] > 0.5)
+        for k in ("e_lsize", "e_lpeak"):
+            vals[k] = torch.where(new, y[k], torch.zeros_like(y[k]))
+        vals["meal"] = torch.nan_to_num(y["meal"]); vals["entry"] = torch.nan_to_num(y["entry"])
+        o = dict(out)
+        for i in range(len(self.STAGES)):
+            o.update(self._stage(i, out, vals))
+        return o
+
+    def loss(self, out, Y, w=None, w_bgice=False, trait_frac=0.0, trait_sd=1.0):
+        from .dataset_v3m3 import TARGETS as T3
+        o = self.teacher(out, Y)
+        y = {k: Y[..., T3.index(k)] for k in T3}
+        z = lambda v, m: torch.where(m, v, torch.zeros_like(v))
+        parts = {}
+        m = torch.isfinite(y["bgice"])
+        nll = mdn_nll(o["bgice"], z(y["bgice"], m), self.K_ICE)
+        parts["bgice"] = (nll * w)[m].sum() / w[m].sum() if (w_bgice and w is not None) else nll[m].mean()
+        new = (y["entry"] > 0.5) & (y["e_new"] > 0.5)
+
+        def cond(k):
+            c = torch.isfinite(y[k])
+            if k in self.NEW:
+                return c & new
+            if k[:2] in self.GIVEN and k not in ("meal", "entry", "bolus"):
+                return c & (y[self.GIVEN[k[:2]]] > 0.5)
+            return c
+        for k in self.B:
+            c = cond(k)
+            if c.any():
+                ww = w[c] if (w is not None and k in TRAITS) else None
+                parts[k] = F.binary_cross_entropy_with_logits(o[k][..., 0][c], y[k][c], weight=ww)
+        for k in self.G:
+            c = cond(k)
+            if c.any():
+                mu, ls = o[k].unbind(-1); ls = ls.clamp(-5, 3)
+                parts[k] = (0.5 * ((z(y[k], c) - mu) / ls.exp()) ** 2 + ls)[c].mean()
+        for k in self.M:
+            c = cond(k)
+            if c.any():
+                parts[k] = mdn_nll(o[k], z(y[k], c), self.K)[c].mean()
+        loss = sum(parts.values())
+        if trait_frac > 0:
+            loss = loss + trait_frac * 0.5 * (self.trait.weight ** 2).sum() / trait_sd ** 2
+        return loss, parts
+
+    @torch.no_grad()
+    def sample(self, out, calib=None):
+        calib = calib or {}
+        o = {k: v[:, -1] for k, v in out.items()}
+        s = {"bgice": mdn_sample(o["bgice"], self.K_ICE)}
+        u = lambda: torch.rand_like(s["bgice"])
+        draw = lambda k, oo: (u() < torch.sigmoid(oo[k][:, 0] + calib.get(k, 0.0))) if k in self.B else \
+            (oo[k][:, 0] + oo[k][:, 1].clamp(-5, 3).exp() * torch.randn_like(s["bgice"])) if k in self.G else mdn_sample(oo[k], self.K)
+        s["meal"] = draw("meal", o); s["m_lsize"] = draw("m_lsize", o)
+        zero = torch.zeros_like(s["bgice"])
+        vals = {"meal": s["meal"].float(), "m_lsize": torch.where(s["meal"], s["m_lsize"], zero)}
+        for i, (tgt, _, _) in enumerate(self.STAGES):
+            oo = self._stage(i, o, vals)
+            for k in tgt:
+                s[k] = draw(k, oo); vals[k] = s[k].float()
+            if "m_lpeak" in tgt:
+                vals["m_lpeak"] = torch.where(s["meal"], s["m_lpeak"], zero)
+            if "e_lg" in tgt:
+                vals["entry"] = s["entry"].float(); vals["e_lg"] = torch.where(s["entry"], s["e_lg"], zero)
+        return s
+
+
+class ICEGenV3M4(ICEGenV3M3):
+    """v3m4: the bolus decision split by whether an entry was drawn this step, each its own head and per-person trait:
+      b_with   P(bolus | entry)     scored on entry steps only    (meal-bolus habit)
+      b_alone  P(bolus | no entry)  scored on the other steps     (corrections, top-ups: rare on an automated system)
+    v3m3's single head, averaged over all steps (entries ~1% of them), learned P(bolus | entry) 0.23-0.38 where the data
+    has 0.76 (i005) and over-predicted boluses with no entry (0.016 vs 0.008), so generated meals went unbolused."""
+    arch = "v3m4"
+    TRAIT_NAMES = ["meal", "entry", "b_with", "b_alone"]
+    STAGES = ICEGenV3M3.STAGES[:-1] + [(["b_with", "b_alone", "b_mode", "b_lr", "b_lu"], ["meal", "m_lsize", "entry", "e_lg"], 4)]
+    BERN = ["meal", "entry", "b_mode", "e_new", "b_with", "b_alone"]
+
+    def _stage(self, i, out, vals):
+        tgt, cond, h = self.STAGES[i]
+        c = torch.stack([torch.nan_to_num(vals[k], nan=0.0) for k in cond], -1)
+        o = dict(zip(tgt, self.stage_heads[h](torch.cat([out["z"], c], -1)).split([self.sizes[k] for k in tgt], -1)))
+        for k, j in (("entry", 1), ("b_with", 2), ("b_alone", 3)):
+            if k in o:
+                o[k] = o[k] + out["trait"][..., j:j + 1]
+        return o
+
+    def loss(self, out, Y, w=None, w_bgice=False, trait_frac=0.0, trait_sd=1.0):
+        from .dataset_v3m3 import TARGETS as T3
+        o = self.teacher(out, Y)
+        y = {k: Y[..., T3.index(k)] for k in T3}
+        z = lambda v, m: torch.where(m, v, torch.zeros_like(v))
+        parts = {}
+        m = torch.isfinite(y["bgice"])
+        nll = mdn_nll(o["bgice"], z(y["bgice"], m), self.K_ICE)
+        parts["bgice"] = (nll * w)[m].sum() / w[m].sum() if (w_bgice and w is not None) else nll[m].mean()
+        ent = y["entry"] > 0.5; new = ent & (y["e_new"] > 0.5); bol = y["bolus"] > 0.5; fb = torch.isfinite(y["bolus"])
+        conds = {"meal": torch.isfinite(y["meal"]), "entry": torch.isfinite(y["entry"]), "e_new": ent & torch.isfinite(y["e_new"]),
+                 "b_with": ent & fb, "b_alone": ~ent & fb, "b_mode": bol & torch.isfinite(y["b_mode"])}
+        tgt = {"b_with": y["bolus"], "b_alone": y["bolus"]}
+        for k in self.B:
+            c = conds[k]
+            if c.any():
+                ww = w[c] if (w is not None and k in ("meal", "entry", "b_alone")) else None
+                parts[k] = F.binary_cross_entropy_with_logits(o[k][..., 0][c], tgt.get(k, y.get(k))[c], weight=ww)
+        given = lambda k: torch.isfinite(y[k]) & (new if k in self.NEW else (y["meal"] > 0.5) if k.startswith("m_") else ent if k.startswith("e_") else bol)
+        for k in self.G:
+            c = given(k)
+            if c.any():
+                mu, ls = o[k].unbind(-1); ls = ls.clamp(-5, 3)
+                parts[k] = (0.5 * ((z(y[k], c) - mu) / ls.exp()) ** 2 + ls)[c].mean()
+        for k in self.M:
+            c = given(k)
+            if c.any():
+                parts[k] = mdn_nll(o[k], z(y[k], c), self.K)[c].mean()
+        loss = sum(parts.values())
+        if trait_frac > 0:
+            loss = loss + trait_frac * 0.5 * (self.trait.weight ** 2).sum() / trait_sd ** 2
+        return loss, parts
+
+    @torch.no_grad()
+    def sample(self, out, calib=None):
+        s = super().sample(out, calib)
+        s["bolus"] = torch.where(s["entry"], s["b_with"], s["b_alone"])
+        return s
+
+
+class ICEGenV3M5(ICEGenV3M4):
+    """v3m5: background ICE from its own recurrent path that does not see the CGM-trend inputs. The trend is mostly the last
+    15 min of background ICE itself (plus CGM noise): in training it carries real, smooth ICE; in generation the model's own
+    near-independent draws, so a wide draw read as a volatile state and widened the next (exposure bias). Swap test,
+    2026-10-13: moving bg_trend alone onto its closed-loop distribution added 13.8 mg/dL/h to v3m4's predicted sd (5.6 for v3k);
+    every other input < 3. Behavior heads keep the full inputs (low response lives there)."""
+    arch = "v3m5"
+    ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers)
+        self.ice_mask = torch.ones(n_features)
+        if features is not None:
+            for f in self.ICE_DROP:
+                if f in features:
+                    self.ice_mask[features.index(f)] = 0.0
+        self.register_buffer("ice_keep", self.ice_mask)
+        self.inp_ice = nn.Linear(n_features + profile_dim, hidden)
+        self.gru_ice = nn.GRU(hidden, hidden, num_layers=layers, batch_first=True)
+        self.head_ice = nn.Linear(hidden, self.sizes["bgice"])
+
+    def forward(self, x, person, h=None):
+        h1, h2 = h if isinstance(h, tuple) else (None, None)
+        out, h1 = super().forward(x, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        out["bgice"] = self.head_ice(z2)
+        return out, (h1, h2)
+
+
+class ICEGenV3M6(ICEGenV3M5):
+    """v3m6: background ICE sees its own history through one exact channel only: its previous value (FEATURES_M2A, fed back as
+    the draw in generation). Its path drops every indirect own-ICE input (CGM trend, 30-min projection, heading-low, minutes
+    below 70, the 30-min background EMA), which carry real ICE in training and the model's draws in generation (LESSONS 42).
+    With the exact channel the model follows its last value as real data does (slope 0.38 vs 0.38, v3m4 + M2A), but the
+    indirect channels kept widening its closed-loop draws (input sd 112 mg/dL/h). Behavior heads keep every input."""
+    arch = "v3m6"
+    ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30", "bgice_ema"]
+
+
+class ICEGenV3M10(ICEGenV3M6):
+    """v3m10: v3m6 with the behavior path blind to background ICE. A person sees glucose, not ICE. The labeler places a pulse
+    onset where ICE starts to rise, so in real data a meal-head start is preceded by a dip in background ICE (-0.6 sd 10 min
+    before onset, 40 donors): a trough-then-rise is read as a meal start. The behavior heads learned that cue, and in closed
+    loop read it off the model's own draws: expected meal starts 4.36/day on real inputs, 5.13 on the rollout's own, and 5.32
+    with only the background-ICE channels taken from the rollout (swap test, v32es0c, 2026-10-14). Glucose, trend, meals and
+    actions stay."""
+    arch = "v3m10"
+    BEH_DROP = ["bgice", "bgice_ok", "bgice_ema", "bgice_6h", "bgice_24h"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        keep = torch.ones(n_features)
+        if features is not None:
+            for f in self.BEH_DROP:
+                if f in features:
+                    keep[features.index(f)] = 0.0
+        self.register_buffer("beh_keep", keep)
+
+    def forward(self, x, person, h=None):
+        h1, h2 = h if isinstance(h, tuple) else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        out["bgice"] = self.head_ice(z2)
+        return out, (h1, h2)
+
+
+class ICEGenV3M11(ICEGenV3M10):
+    """v3m11: v3m10 with the previous background value at the output head only, not in the recurrent ICE path. One step is
+    calibrated (real values above the predicted 90/95/99th: 9.9 / 5.0 / 1.0%), but fed its own draws the recurrent path
+    accumulated them: generated background stays correlated at 35-60 min (0.08-0.10 vs 0.04-0.06 real) and the predicted
+    mean's hourly sd is 33.5 on the rollout's inputs vs 28.2 on real ones, 26.3 with only the previous value restored
+    (swap test, v3m10 seed 0, 2026-10-14). At the head it keeps the one-step dependence and carries no memory."""
+    arch = "v3m11"
+    ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30", "bgice_ema", "bgice", "bgice_ok"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.register_buffer("prev_idx", torch.tensor([features.index("bgice"), features.index("bgice_ok")]))
+        self.head_ice = nn.Sequential(nn.Linear(hidden + 2, 128), nn.ReLU(), nn.Linear(128, self.sizes["bgice"]))
+
+    def forward(self, x, person, h=None):
+        h1, h2 = h if isinstance(h, tuple) else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        out["bgice"] = self.head_ice(torch.cat([z2, x.index_select(-1, self.prev_idx)], -1))
+        return out, (h1, h2)
+
+
+class ICEGenV3M12(ICEGenV3M10):
+    """v3m12: v3m10 with the pending-insulin input (FEATURES_M2I, iob_net) seen by the behavior path only. With it on both
+    paths (v3m10 + M2I) generated lows began with half the excess insulin (0.32-0.35 vs 0.56 U above basal, field 0.15) and
+    t<54 fell (1.54 / 1.05 vs 1.77 / 1.52), but one training ran high (TIR 59.4, mean 171): the background path read high
+    insulin as a reason for more ICE everywhere, a resistance, where the anticipatory defense is a behavior (a snack before
+    a low, LESSONS 66)."""
+    arch = "v3m12"
+    ICE_DROP = ICEGenV3M10.ICE_DROP + ["iob_net"]
+
+
+class ICEGenV3M13(ICEGenV3M12):
+    """v3m13: v3m12 + an explicit defense term on background ICE, keyed to where glucose is heading. Projected glucose =
+    glucose - ISF x IOB above basal (bg - iob_net, both /100). The defense adds to every mixture component's mean
+        d = exp(gain_p) * sum_k exp(w_k) * tau * softplus((c_k - (proj - on_p)) / tau)
+    a monotone ramp, zero when heading into range or above and growing as the projected departure deepens, with a per-person
+    onset shift on_p and strength gain_p (weak prior). The field's defense ramps from -17 to +30 mg/dL/h as projected glucose
+    goes from 180-250 to below 0 in everyone, with the onset personal; v3m10 squashed people toward the middle (strongest 10%
+    +31 vs +57 when heading far below, onset rank agreement 0.25, LESSONS 69). The background path still does not see
+    pending insulin directly, so the term cannot become a general resistance (LESSONS 68)."""
+    arch = "v3m13"
+    DEF_C = (0.0, 0.4, 0.8)        # ramp knots, projected glucose /100 (0, 40, 80 mg/dL)
+    DEF_TAU = 0.15
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.i_bg_, self.i_ok_, self.i_iob_ = features.index("bg"), features.index("bg_ok"), features.index("iob_net")
+        self.def_c = nn.Parameter(torch.tensor(self.DEF_C))
+        self.def_w = nn.Parameter(torch.full((len(self.DEF_C),), -2.0))
+        self.def_on = nn.Embedding(n_people, 1); nn.init.zeros_(self.def_on.weight)
+        self.def_gain = nn.Embedding(n_people, 1); nn.init.zeros_(self.def_gain.weight)
+
+    def defense(self, x, person):
+        proj = x[..., self.i_bg_] - x[..., self.i_iob_]
+        u = proj - self.def_on(person)[:, None, 0]
+        r = (self.def_w.exp() * self.DEF_TAU * F.softplus((self.def_c - u[..., None]) / self.DEF_TAU)).sum(-1)
+        return self.def_gain(person)[:, None, 0].exp() * r * x[..., self.i_ok_]
+
+    def forward(self, x, person, h=None):
+        out, h = super().forward(x, person, h)
+        lg, mu, ls = out["bgice"].split(self.K_ICE, -1)
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + d[..., None], ls], -1); out["defense"] = d
+        return out, h
+
+    def loss(self, out, Y, w=None, w_bgice=False, trait_frac=0.0, trait_sd=1.0):
+        loss, parts = super().loss(out, Y, w, w_bgice, trait_frac, trait_sd)
+        if trait_frac > 0:   # weak prior on the per-person onset (sd 0.3 = 30 mg/dL) and log-strength (sd 0.7)
+            loss = loss + trait_frac * 0.5 * ((self.def_on.weight / 0.3) ** 2 + (self.def_gain.weight / 0.7) ** 2).sum()
+        return loss, parts
+
+
+class ICEGenV3M14(ICEGenV3M13):
+    """v3m14: v3m13 + the defense's high side, the mirror of its low ramp: a monotone downward push on background ICE that
+    grows as projected glucose climbs (walks, skipped snacks, glucosuria), zero below the knots,
+        d_high = - sum_k exp(v_k) * tau * softplus((proj - h_k) / tau)
+    Away from meals v3m13 spends 9.4% of all time above 180 vs the field's 4.3% (LESSONS 72) and its background pushes down
+    less as projected glucose heads high (-7 / -10 / -12 vs -9 / -12 / -17 mg/dL/h at 100-140 / 140-180 / 180-250).
+    Pete (2026-10-14): the defense strengthens as excursions widen, on either side."""
+    arch = "v3m14"
+    DEF_H = (1.6, 2.0, 2.5)
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.def_h = nn.Parameter(torch.tensor(self.DEF_H))
+        self.def_v = nn.Parameter(torch.full((len(self.DEF_H),), -2.5))
+
+    def defense(self, x, person):
+        low = super().defense(x, person)
+        proj = x[..., self.i_bg_] - x[..., self.i_iob_]
+        high = (self.def_v.exp() * self.DEF_TAU * F.softplus((proj[..., None] - self.def_h) / self.DEF_TAU)).sum(-1)
+        return low - high * x[..., self.i_ok_]
+
+
+class ICEGenV3M15(ICEGenV3M13):
+    """v3m15: v3m13 + an exogenous baseline for background ICE. A separate recurrent net reads only exogenous inputs (clock,
+    meals, entries, boluses, the person's profile; never glucose, pending insulin or background ICE) and gives a baseline
+    b_t, added to every mixture mean; the background path reads its previous value as the deviation from the previous
+    baseline (bgice - b_{t-1}) instead of the raw level. In closed loop v3m13's level ratchets ~10 mg/dL/h up on its own
+    noise through the previous-value channel (overnight 46.6 vs 23.7, LESSONS 76-77), while the two-stream generator's
+    exogenous level holds (28.9-29.2) but loses the defense (LESSONS 73, 78): here the level is anchored exogenously and
+    v3m13's defense ramp stays."""
+    arch = "v3m15"
+    BASE_KEEP = ["pulse", "since_meal", "last_size", "n_3h", "carbs", "bolus", "since_bolus", "hour_sin", "hour_cos", "dow_sin",
+                 "dow_cos", "since_entry", "unbolused", "bolus_3h", "entered_unabsorbed"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.register_buffer("base_keep", torch.tensor([1.0 if f in self.BASE_KEEP else 0.0 for f in features]))
+        self.i_prev_ = features.index("bgice"); self.i_prevok_ = features.index("bgice_ok")
+        self.inp_base = nn.Linear(n_features + profile_dim, 64)
+        self.gru_base = nn.GRU(64, 64, num_layers=1, batch_first=True)
+        self.head_base = nn.Linear(64, 1)
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last = h3 if h3 is not None else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        xi = x.clone()
+        xi[..., self.i_prev_] = (x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_]
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([xi * self.ice_keep, p], -1))), h2)
+        lg, mu, ls = self.head_ice(z2).split(self.K_ICE, -1)
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + (b + d)[..., None], ls], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, h2, (hb, b[:, -1]))
+
+
+class ICEGenV3M16(ICEGenV3M15):
+    """v3m16: v3m15 with the previous deviation from the baseline at the output head only, not in the recurrent background
+    path. v3m15's baseline halved the closed-loop level excess (+4.8 vs +9.8 mg/dL/h) and what is left still runs through the
+    previous-value channel (restoring it: 34.2 vs real 33.3, LESSONS 80). With the level carried by the exogenous baseline,
+    the recurrent path no longer needs a memory of its own draws (v3m11 lost the level without one, LESSONS 55); the head
+    keeps the one-step dependence."""
+    arch = "v3m16"
+    ICE_DROP = ICEGenV3M15.ICE_DROP + ["bgice", "bgice_ok"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.head_ice = nn.Sequential(nn.Linear(hidden + 2, 128), nn.ReLU(), nn.Linear(128, self.sizes["bgice"]))
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last = h3 if h3 is not None else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        dev = ((x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_])[..., None]
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        lg, mu, ls = self.head_ice(torch.cat([z2, dev, x[..., self.i_prevok_:self.i_prevok_ + 1]], -1)).split(self.K_ICE, -1)
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + (b + d)[..., None], ls], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, h2, (hb, b[:, -1]))
+
+
+class ICEGenV3M17(ICEGenV3M15):
+    """v3m17: v3m15 with the background's memory of its own recent deviations from the baseline as a LINEAR autoregression
+    added to every mixture mean (last AR_K steps, learned coefficients), and none in the recurrent path. The level ratchet
+    is an asymmetric response to the model's own previous values (LESSONS 76-77); a linear term responds symmetrically, so
+    its own noise cannot push the level, and unlike v3m16 (LESSONS 81) the persistent part of the deviation is still carried
+    forward, so the draws need not widen to cover it."""
+    arch = "v3m17"
+    ICE_DROP = ICEGenV3M15.ICE_DROP + ["bgice", "bgice_ok"]
+    AR_K = 6
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        a0 = torch.zeros(self.AR_K); a0[0] = 0.3
+        self.ar = nn.Parameter(a0)
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last, dhist = h3 if h3 is not None else (None, None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        dev = (x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_]          # deviation at t-1, seen at t
+        B, T = dev.shape
+        past = dhist if dhist is not None else torch.zeros(B, self.AR_K - 1, device=x.device)
+        full = torch.cat([past, dev], 1)                                       # [B, K-1+T]
+        lags = torch.stack([full[:, self.AR_K - 1 - k: self.AR_K - 1 - k + T] for k in range(self.AR_K)], -1)   # lag k+1
+        ar = (lags * self.ar).sum(-1)
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        lg, mu, ls = self.head_ice(z2).split(self.K_ICE, -1)
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + (b + d + ar)[..., None], ls], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, h2, (hb, b[:, -1], full[:, -(self.AR_K - 1):]))
+
+
+class ICEGenV3M18(ICEGenV3M17):
+    """v3m18: the mixture's means and its shape from separate sources. Means: v3m17's (exogenous baseline + defense ramp +
+    linear AR on recent deviations) plus per-component offsets from the exogenous baseline path only, so nothing nonlinear in
+    the model's own draws can move the level. Weights and scales: a recurrent net that does see the recent deviation (as in
+    v3m15), so the spread follows whether the person is in a calm or a volatile stretch. v3m17 removed the level excess
+    (+0.4 mg/dL/h, overnight 28.6 vs 23.7) but, blind to its own deviations, widened every draw (5-min sd 110 vs 56,
+    quantile distance 47.7 vs ceiling 27.9, LESSONS 82)."""
+    arch = "v3m18"
+    ICE_DROP = ICEGenV3M15.ICE_DROP            # the shape path sees the previous value (as a deviation), as in v3m15
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.head_mu_exo = nn.Linear(64, self.K_ICE)
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last, dhist = h3 if h3 is not None else (None, None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        dev = (x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_]
+        B, T = dev.shape
+        past = dhist if dhist is not None else torch.zeros(B, self.AR_K - 1, device=x.device)
+        full = torch.cat([past, dev], 1)
+        lags = torch.stack([full[:, self.AR_K - 1 - k: self.AR_K - 1 - k + T] for k in range(self.AR_K)], -1)
+        ar = (lags * self.ar).sum(-1)
+        xi = x.clone(); xi[..., self.i_prev_] = dev
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([xi * self.ice_keep, p], -1))), h2)
+        lg, _, ls = self.head_ice(z2).split(self.K_ICE, -1)
+        mu = self.head_mu_exo(zb)
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + (b + d + ar)[..., None], ls], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, h2, (hb, b[:, -1], full[:, -(self.AR_K - 1):]))
+
+
+class ICEGenV3M19(ICEGenV3M18):
+    """v3m19: v3m18 with the mixture centred: the deviation-aware path sets the weights, the scales and the component means
+    RELATIVE to the mixture's mean, and the mixture's mean is pinned to the non-ratcheting parts (an exogenous mean + the
+    baseline + the defense ramp + the linear memory of recent deviations). v3m18 took its weights from the deviation-aware
+    path and the level ratchet came back through them (shifting weight to a higher component raises the mean: closed-loop
+    excess +4.3 mg/dL/h, overnight 45.9), though its shape was right (5-min distance 15.9). Here shape cannot move the level."""
+    arch = "v3m19"
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.head_m_exo = nn.Linear(64, 1)
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last, dhist = h3 if h3 is not None else (None, None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        dev = (x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_]
+        B, T = dev.shape
+        past = dhist if dhist is not None else torch.zeros(B, self.AR_K - 1, device=x.device)
+        full = torch.cat([past, dev], 1)
+        lags = torch.stack([full[:, self.AR_K - 1 - k: self.AR_K - 1 - k + T] for k in range(self.AR_K)], -1)
+        ar = (lags * self.ar).sum(-1)
+        xi = x.clone(); xi[..., self.i_prev_] = dev
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([xi * self.ice_keep, p], -1))), h2)
+        lg, mu_rel, ls = self.head_ice(z2).split(self.K_ICE, -1)
+        mu_rel = mu_rel - (torch.softmax(lg, -1) * mu_rel).sum(-1, keepdim=True)   # mixture mean of the shape part = 0
+        d = self.defense(x, person)
+        m = self.head_m_exo(zb)[..., 0] + b + d + ar
+        out["bgice"] = torch.cat([lg, mu_rel + m[..., None], ls], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, h2, (hb, b[:, -1], full[:, -(self.AR_K - 1):]))
+
+
+class ICEGenV3M20(ICEGenV3M17):
+    """v3m20: v3m17 (mixture means and weights from the non-ratcheting parts: exogenous inputs, baseline, defense ramp,
+    linear memory of recent deviations) + a common log-scale shift on every mixture component, from the SIZE of the recent
+    deviations (|deviation| over the last AR_K steps, no sign) and the recurrent state. Scaling every component about its
+    own centre leaves the mixture's mean unchanged, and an unsigned input cannot push the level, so the spread can follow
+    calm and volatile stretches without the ratchet. v3m17 had no ratchet (+0.4 / +1.0 mg/dL/h) but draws twice too wide
+    (5-min sd 110 / 99 vs 56, LESSONS 82); v3m18 / v3m19 let the deviations reach the weights or offsets and the ratchet
+    came back or the mixture blew up (LESSONS 83-84)."""
+    arch = "v3m20"
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.scale_mlp = nn.Sequential(nn.Linear(hidden + self.AR_K, 64), nn.Tanh(), nn.Linear(64, 1))
+        nn.init.zeros_(self.scale_mlp[-1].weight); nn.init.zeros_(self.scale_mlp[-1].bias)
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last, dhist = h3 if h3 is not None else (None, None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        dev = (x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_]
+        B, T = dev.shape
+        past = dhist if dhist is not None else torch.zeros(B, self.AR_K - 1, device=x.device)
+        full = torch.cat([past, dev], 1)
+        lags = torch.stack([full[:, self.AR_K - 1 - k: self.AR_K - 1 - k + T] for k in range(self.AR_K)], -1)
+        ar = (lags * self.ar).sum(-1)
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        lg, mu, ls = self.head_ice(z2).split(self.K_ICE, -1)
+        sc = self.scale_mlp(torch.cat([z2, lags.abs()], -1))
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + (b + d + ar)[..., None], ls + sc], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, h2, (hb, b[:, -1], full[:, -(self.AR_K - 1):]))
+
+
+class ICEGenV3M21(ICEGenV3M15):
+    """v3m21: v3m15 with the offense routed through the exogenous baseline only. Every input driven by outside events (meals,
+    entries, boluses, the clock) feeds the baseline (now 128 wide), and the recurrent background path sees only the glucose
+    state and its own deviation from the baseline. On real inputs v3m15 predicts a +16 mg/dL/h rise in the 30 min after a
+    meal bolus (real +16), but its baseline carries only +5 of it and the rest sits in the recurrent path, which loses it in
+    closed loop (generated background rises +18 vs the field's +38; meal boluses run into a low within 3 h 17.8% vs 7.8%).
+    Pete's frame: offense (meals, exercise) is exogenous; the defense responds to state."""
+    arch = "v3m21"
+    ICE_DROP = ICEGenV3M15.ICE_DROP + ICEGenV3M15.BASE_KEEP
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.inp_base = nn.Linear(n_features + profile_dim, 128)
+        self.gru_base = nn.GRU(128, 128, num_layers=1, batch_first=True)
+        self.head_base = nn.Linear(128, 1)
+
+
+class ICEGenV3M22(ICEGenV3M21):
+    """v3m22: v3m21 with the recurrent background path made symmetric in its own deviations. The path runs twice, on the
+    deviation history as it is and with its sign flipped (glucose unchanged); component means take half the DIFFERENCE of
+    the two heads (odd in the deviations: a run above the baseline pushes up exactly as much as the mirrored run below
+    pushes down, so the model's own noise cannot build a level), mixture weights and scales the AVERAGE (even: the spread
+    follows how volatile the recent stretch was, not its sign). v3m21's remaining excess is a night-time ratchet through the
+    deviation channel (+5 mg/dL/h on its own inputs vs real, removed by restoring the real previous value, LESSONS 91); a
+    linear memory removed the ratchet but could not shape the spread (LESSONS 82, 85)."""
+    arch = "v3m22"
+
+    def forward(self, x, person, h=None):
+        h1, h2, h3 = h if isinstance(h, tuple) and len(h) == 3 else (None, None, None)
+        hb, b_last = h3 if h3 is not None else (None, None)
+        h2p, h2m = h2 if isinstance(h2, tuple) else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x * self.beh_keep, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        zb, hb = self.gru_base(torch.relu(self.inp_base(torch.cat([x * self.base_keep, p], -1))), hb)
+        b = self.head_base(zb)[..., 0]
+        b_prev = torch.cat([(b[:, :1] if b_last is None else b_last[:, None]), b[:, :-1]], 1)
+        dev = (x[..., self.i_prev_] - b_prev) * x[..., self.i_prevok_]
+        xp = x.clone(); xp[..., self.i_prev_] = dev
+        xm = x.clone(); xm[..., self.i_prev_] = -dev
+        zp, h2p = self.gru_ice(torch.relu(self.inp_ice(torch.cat([xp * self.ice_keep, p], -1))), h2p)
+        zm, h2m = self.gru_ice(torch.relu(self.inp_ice(torch.cat([xm * self.ice_keep, p], -1))), h2m)
+        lgp, mup, lsp = self.head_ice(zp).split(self.K_ICE, -1)
+        lgm, mum, lsm = self.head_ice(zm).split(self.K_ICE, -1)
+        lg, ls, mu = (lgp + lgm) / 2, (lsp + lsm) / 2, (mup - mum) / 2
+        d = self.defense(x, person)
+        out["bgice"] = torch.cat([lg, mu + (b + d)[..., None], ls], -1); out["defense"] = d; out["base"] = b
+        return out, (h1, (h2p, h2m), (hb, b[:, -1]))
+
+
+class ICEGenV3M7(ICEGenV3M6):
+    """v3m7: v3m6 + exact own-history channels per timescale (FEATURES_M2B): last value, own 6-h and 24-h background means.
+    The day-level pull-back is learned from real days instead of being forced through the last-value channel (LESSONS 47)."""
+    arch = "v3m7"
+
+
+class ICEGenV3M8(ICEGenV3M5):
+    """v3m8: background ICE from exogenous inputs only (meals, actions, clock, profile) plus the glucose level (the push near
+    lows is physiology; restoring real glucose changed nothing in the swap tests). No input built from the person's own recent
+    background ICE: every such channel (CGM trend, the EMA, the previous value, own 6/24-h means) carried the model's own draws
+    back in generation and its level drifted (open loop on its own draws, glucose and meals real: day-to-day sd 20-28 vs 10,
+    level +18 to +38 mg/dL/h; LESSONS 42-48). Step-to-step dependence comes from the plant's correlated draws (BGICE_RHO,
+    fitted to real data) and the day level from the slow-level process, both stationary by construction."""
+    arch = "v3m8"
+    ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30", "bgice_ema", "bgice", "bgice_ok", "bgice_6h", "bgice_24h"]
+
+
+class ICEGenV3M9(ICEGenV3M5):
+    """v3m9: the recurrent background-ICE path sees exogenous inputs only (meals, actions, clock, profile) and no glucose:
+    glucose is the running integral of background ICE minus insulin, so a recurrent net fed the glucose sequence can recover
+    its recent ICE by differencing, and in generation that carried its own draws back (v3m8, glucose the only own-history
+    route left: closed-loop / real predicted spread 1.55, t<54 4.75). Glucose enters only at the output, as the CURRENT reading
+    into a small head beside the recurrent state: the push near lows (physiology) is learned, but one value carries no history.
+    Step-to-step dependence: the plant's correlated draws (BGICE_RHO); day level: the slow process."""
+    arch = "v3m9"
+    ICE_DROP = ["bg_trend", "bg_pred30", "heading_low", "low30", "bgice_ema", "bgice", "bgice_ok", "bgice_6h", "bgice_24h", "bg", "bg_ok"]
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.i_bg = features.index("bg") if features is not None else 0
+        self.i_bgok = features.index("bg_ok") if features is not None else 1
+        self.register_buffer("bg_idx", torch.tensor([self.i_bg, self.i_bgok]))
+        self.head_ice = nn.Sequential(nn.Linear(hidden + 2, 128), nn.ReLU(), nn.Linear(128, self.sizes["bgice"]))
+
+    def forward(self, x, person, h=None):
+        h1, h2 = h if isinstance(h, tuple) else (None, None)
+        out, h1 = ICEGenV3M4.forward(self, x, person, h1)
+        p = self.profile(person)[:, None, :].expand(-1, x.shape[1], -1)
+        z2, h2 = self.gru_ice(torch.relu(self.inp_ice(torch.cat([x * self.ice_keep, p], -1))), h2)
+        now = x.index_select(-1, self.bg_idx)                         # the current glucose reading only
+        out["bgice"] = self.head_ice(torch.cat([z2, now], -1))
+        return out, (h1, h2)
+
+
+class ICEGenV3M23(ICEGenV3M21):
+    """v3m23: v3m21 with the baseline made to explain background ICE on its own. Trained one step ahead, v3m21's recurrent path
+    follows the meal-locked rise as it happens, so its baseline never learns it (teacher-forced after a meal bolus: predicted
+    46 -> 56 mg/dL/h at 30-40 min, real 47 -> 63, baseline -12 at 10 min); in closed loop there is no real rise to follow and
+    the rise is lost (total ICE at 30 min 101 vs 124 in the field). An auxiliary Gaussian loss on the baseline alone,
+        AUX * [0.5 ((y - b) / s)^2 + log s],   s learned,
+    makes b the expected background given exogenous inputs, and the recurrent path models deviations around it."""
+    arch = "v3m23"
+    AUX = float(os.environ.get("ICE_AUX", "0.5"))   # training only
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.aux_ls = nn.Parameter(torch.tensor(0.0))
+
+    def loss(self, out, Y, w=None, w_bgice=False, trait_frac=0.0, trait_sd=1.0):
+        from .dataset_v3m3 import TARGETS as T3
+        loss, parts = super().loss(out, Y, w, w_bgice, trait_frac, trait_sd)
+        y = Y[..., T3.index("bgice")]; m = torch.isfinite(y)
+        if m.any():
+            ls = self.aux_ls.clamp(-5, 3)
+            parts["base_aux"] = (0.5 * ((y[m] - out["base"][m]) / ls.exp()) ** 2 + ls).mean()
+            loss = loss + self.AUX * parts["base_aux"]
+        return loss, parts
+
+
+class ICEGenV3M24(ICEGenV3M21):
+    """v3m24: v3m21 with an explicit per-person scale for background ICE: a learned log-scale offset per person added to every
+    mixture component's log-sd (zero-init, weak prior sd 0.3). The profile vector alone compresses people's spread toward the
+    population's (hourly-mean sd generated / real 1.23-1.28 for calm low-insulin people, 0.72-0.75 for volatile ones; LESSONS
+    104), and a post-hoc per-person factor fitted on another period does not carry over."""
+    arch = "v3m24"
+
+    def __init__(self, n_features, n_people, profile_dim=16, hidden=256, layers=2, features=None):
+        super().__init__(n_features, n_people, profile_dim, hidden, layers, features)
+        self.sp = nn.Embedding(n_people, 1); nn.init.zeros_(self.sp.weight)
+
+    def forward(self, x, person, h=None):
+        out, h = super().forward(x, person, h)
+        lg, mu, ls = out["bgice"].split(self.K_ICE, -1)
+        out["bgice"] = torch.cat([lg, mu, ls + self.sp(person)[:, None, :]], -1)
+        return out, h
+
+    def loss(self, out, Y, w=None, w_bgice=False, trait_frac=0.0, trait_sd=1.0):
+        loss, parts = super().loss(out, Y, w, w_bgice, trait_frac, trait_sd)
+        if trait_frac > 0:
+            loss = loss + trait_frac * 0.5 * ((self.sp.weight / 0.3) ** 2).sum()
+        return loss, parts
