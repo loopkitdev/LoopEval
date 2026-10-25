@@ -127,6 +127,13 @@ with more suspicion than differences: compression lows and the CGM 40-floor infl
 `t<54` in both arms ([§14](#14-metrics--scoring)).
 
 
+> [!NOTE]
+> **This guide covers measured-ICE replay.** With `--external-plant`, a patient model replaces the
+> one step that advances the counterfactual glucose, and everything else in this guide is unchanged:
+> the controller, the pump model, decision timing and scoring. The two plants in use are the ICE
+> generator and the additive simulator. [OVERVIEW.md](../OVERVIEW.md) compares the three bodies and
+> shows how natural experiments test each one.
+
 This guide is about `simulate` — the closed-loop counterfactual — which is the primary tool for
 therapy-outcome questions. It is one of three *outcome* modes:
 
