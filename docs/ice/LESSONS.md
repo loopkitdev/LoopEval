@@ -1440,3 +1440,21 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     clean steps, clean ICE and TDD identical. Training targets do not move; insulin inputs (iob, activity, basal) inside
     the spans and in the lookback after them do, as does the plant's warm-up IOB. Adopt at the next re-extraction, with the
     GE base retrain, not under the running chains.
+143. **The 496-edit pooled change test: on the e cohort replay beats the generator, and the loss tracks enrolment level
+    error.** Base …SKaLK with enrolled donors plus level band (…LKXL, …LKEL), ensemble of two trainings. 62 pilot + 97 x +
+    337 e edits; 9 e edits on unenrolled donors drop out. Pre-window r, model / replay, paired bootstrap 90% of the
+    difference (pool3.py):
+    - **Pooled:** TIR 0.25 / 0.27 (-0.10 to +0.05), t70 0.34 / 0.35 (-0.11 to +0.07), t54 0.15 / 0.20 (-0.13 to +0.05),
+      mean 0.36 / 0.44 (-0.16 to -0.01).
+    - **e alone:** TIR 0.25 / 0.31, t70 0.29 / 0.41 (-0.24 to -0.02), t54 0.12 / 0.26 (-0.23 to -0.04), mean 0.36 / 0.48
+      (-0.20 to -0.03).
+    - **Both windows, pooled:** replay ahead on all four (TIR 0.24 / 0.31, t70 0.36 / 0.45, t54 0.20 / 0.28, mean 0.34 /
+      0.46).
+    The pilot and x lead on lows (lesson 139) does not carry to e. The model's |error| is lower than replay's everywhere
+    (t70 1.40 vs 2.44), but its predictions are compressed (sd 0.16-0.64 of replay's), and on t54 its |error| of 0.39 is
+    worse than predicting no change (0.31). The e edits carry little signal: field TIR change sd 8.7 at real edits vs 8.3
+    at pseudo-edits. **The loss tracks enrolment fidelity** (e_diag.py). By tertile of the model's own-settings pre-window
+    TIR level error, t70 r model / replay is 0.57 / 0.58 (low error), 0.25 / 0.35 and 0.08 / 0.30 (high); on x 0.72 / 0.45
+    down to 0.19 / 0.06. The model's level error is a median 7.4 TIR points on e against replay's 1.0, after the level band.
+    Lesson 134 ties per-person TIR bias to glucose-sd excess, not offset, so this is the variability fault glucose
+    effectiveness targets. The GE arm's gate now includes the e pool and, per set, the tertile split by level error.
