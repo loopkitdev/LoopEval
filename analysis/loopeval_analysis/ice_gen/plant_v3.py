@@ -198,6 +198,7 @@ class PlantV3:
         # (mg/dL/h) measured on the TRAINING window is subtracted from each draw. Drawn people get the population median.
         cl = ck.get("calib_level", {})
         self.level_off = float(os.environ.get("LEVEL_OFF", cl.get("_median", 0.0) if self.drawn else cl.get(alias, cl.get("_median", 0.0))))
+        self.level_off += float(os.environ.get("LEVEL_ADD", "0"))   # per-run shift on top (pre-window enrolment, LESSONS 144)
         # by clock band (calib_level_band: {alias or "_median": [offset 00-06, 06-12, 12-18, 18-24]}); added to level_off
         # behavior-head logit offsets by clock band (00-06 / 06-12 / 12-18 / 18-24), pooled (calibrate_band.py): the pooled
         # calibration matches each head's daily total but not its daily profile (night meals 1.13x, entries 5x, LESSONS 94)
