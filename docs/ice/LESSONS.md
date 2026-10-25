@@ -1458,3 +1458,22 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     down to 0.19 / 0.06. The model's level error is a median 7.4 TIR points on e against replay's 1.0, after the level band.
     Lesson 134 ties per-person TIR bias to glucose-sd excess, not offset, so this is the variability fault glucose
     effectiveness targets. The GE arm's gate now includes the e pool and, per set, the tertile split by level error.
+144. **Enrolling the level on the pre-window fixes the level but not the change prediction; level corrections add lows.**
+    Test of lesson 143's lead. Per edit, the model's own-settings level is shifted by Δ = d_mean / 1.40 mg/dL/h of ICE
+    offset (closed-loop sensitivity, pw_sens.py: +1 mg/dL/h → mean −1.40, q10 −1.98 / q90 −0.75), measured on the 13 days
+    before the edit only (LEVEL_ADD in plant_v3, pw.sh, pw_score.py; |Δ| median 7.5-8.6). The level then sits right:
+    |TIR err| median 4.5 (x) / 4.6 (e), mean err median −0.3 / −0.5. Pre-window r, shifted / unshifted / replay, 90% of
+    shifted − unshifted:
+    - **x (97 edits):** TIR 0.25 / 0.29 / 0.28, t70 0.37 / 0.45 / 0.23, t54 0.10 / 0.29 / 0.06 (−0.35 to −0.03), mean
+      0.37 / 0.36 / 0.42. |err| up on t54, 0.37 → 0.46.
+    - **e (337 edits):** TIR 0.20 / 0.25 / 0.31, t70 0.32 / 0.29 / 0.41, t54 0.17 / 0.12 / 0.26, mean 0.35 / 0.36 / 0.48;
+      no difference beats noise, and replay stays ahead of the shifted model on all four.
+    Not kept. The level error marks the edits the model gets wrong but is not their cause. The held-out check of the level
+    band (…LKX vs …LKXL, 88 x donors, 3 seeds, two trainings) reads the same way: the band takes the mean bias from +13.5 /
+    +18.1 to +0.3 / +1.9 and TIR bias from −5.4 / −9.2 to −1.8 / −4.2, but t70 bias goes from −0.3 / −0.5 to +1.1 / +1.0
+    and t54 |bias| from 0.23 / 0.16 to 0.44 / 0.41 (worst 29.9). Pulling a too-wide distribution down to the right mean
+    pushes its lower tail into lows. Splitting the change test by the generated / field glucose sd ratio (sd_diag.py)
+    finds the high-ratio third poor for replay as well (x t54 r −0.11 / −0.15), and e's model deficit in every third, so
+    spread error marks hard people too, not the e gap. The x switch test (52 strategy switches) agrees: replay leads on TIR
+    (0.57 vs 0.47 / 0.38) and mean (0.61 vs 0.49 / 0.43); on t70 / t54 neither predicts (r < 0), the field change at a
+    switch being no larger than at a pseudo-edit.
