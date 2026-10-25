@@ -45,10 +45,44 @@ setting. Per M1 that is where forecast information can pay.
 - Also reported: the realised-to-known ratio Y / `known` by habit tercile (the "rise scale" the habit would imply), and the
   same for announcers vs hands-off donors (manual-bolus share from the field).
 
-## Stage B — closed loop (outline; pre-registered in full once Stage A reads)
+### Result (2026-10-25): A1 passes, A2 fails
 
-No-entry regime on the same 189 donors. Arms: `gr`; `gr` + the time-of-day lever from Stage A; each at needs 0.95 / 1.00 /
-1.05 for the lift. The bar is the frontier one: ΔTIR > 0 and Δt<54 ≤ 0 at the operating point, plus positive lift against the dial.
+Run: `runs/2026-10-25-myloop-e3/` (`run_a.py`, `score_a.py`, `e3a_per_donor.csv`). 189 donors, 182 qualify.
+
+| | median holdout R² gain | donors past the bar | Bar |
+|---|---|---|---|
+| A1: `+habit` over `b·known` | +0.080 (IQR +0.026 to +0.148) | 73 % ≥ 0.03 | ≥ 50 %: **passes** |
+| A2: `×habit` over `+habit` | +0.000 (IQR −0.011 to +0.006) | 14 % ≥ 0.02 | ≥ 33 % and median > 0: **fails** |
+
+- With no entries, the same-clock habit predicts how far a rise runs on most donors, more on announcers (median gain
+  +0.090, 142 donors with ≥ 1 entry a day) than on hands-off donors (+0.045, 40).
+- Scaling the rise response by the habit carries nothing the additive term does not. The implied rise scale does climb
+  with the habit (realised / `known` 2.26 → 2.75 → 3.20 across terciles), but the additive term captures the same thing.
+- Per the reading above, Stage B scores the additive form.
+
+## Stage B — closed loop: additive habit with no entries (pre-registration)
+
+Written 2026-10-25, after Stage A and before any Stage B trace.
+
+- **Cohort, regime, binary, window:** as Stage A.
+- **Offset** (C39 `habrelr`, unchanged): habit as in Stage A from the donor's `gr` no-entry trace at needs 1.00; mean-zero
+  form, habit minus its own trailing 24-h mean; ×0.4, clipped [−60, +80] mg/dL. Negative side always applied, positive
+  side only while that trace's `known` > +10. Fed through `--candidate-forecast-offset-csv`. The habit and the gate come
+  from the needs-1.00 trace and are fed unchanged to every arm (C39's approximation).
+- **Arms:** `nc` = `gr` with no entries at needs 0.95 / 1.00 / 1.05; `nc_hab` = `nc` + the offset at needs 1.00.
+- **Measures:** paired `nc_hab` − `nc` at 1.00, 95 % person-bootstrap CI: ΔTIR, Δt<54, Δt<70, Δ mean, Δ insulin.
+  Lift on t<54 = ΔTIR − slope × Δt<54, slope through the dial points; t<70 lift reported too.
+
+### Bar (fixed before running)
+
+**Pass (replay)** needs all three:
+
+1. ΔTIR CI lower bound > 0.
+2. Δt<54 mean ≤ 0 and CI upper bound < +0.05.
+3. t<54 lift CI lower bound > 0.
+
+Also reported: the same split by announcers vs hands-off donors. A pass goes to the ICE generator or the additive plant
+before any verdict (M11).
 
 ## Limits that bound the claim
 
