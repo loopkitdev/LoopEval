@@ -1495,4 +1495,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Hiding the input fixes the response but drops the level 23 mg/dL; netting carbs out keeps the level error the same
     size and gets two thirds of the response, without retraining. Not kept yet. Both are test-time edits to an input the
     network was trained on. The fix to keep is a carbs-aware projection in the dataset (dataset_v3m), retrained on both
-    seeds. cob1 is first being checked on the 350 non-CR edits for regressions.
+    seeds.
+    On all 434 edits (pw_score.py on the cob1 runs; x 97 / e 337 scored), cob1 against base, pre-window r:
+    - **mean:** 0.41 / 0.36 (x) and 0.42 / 0.36 (e), both 90% intervals −0.01 to +0.13; |err| 9.8 / 10.0 and 10.0 / 10.5.
+    - **TIR and t70:** no difference beyond noise on either set.
+    - **t54:** r 0.31 / 0.29 (x) and 0.07 / 0.12 (e), but |err| rises 0.37 → 0.50 and 0.40 → 0.68. Predicting no change
+      scores 0.30 / 0.31.
+    - **own-settings level:** mean error median −11 mg/dL on both sets, against near zero for base.
+    As a test-time switch, cob1 lowers glucose across the board and adds lows. The calibrations after training (level
+    band, low band, low kernel) were fit with the old input, so they no longer offset it. Not kept as a switch. The
+    retrain, with the whole calibration chain rerun on the new input, is the test (arm oc, `runs/2026-10-25-ice-cob/`).
