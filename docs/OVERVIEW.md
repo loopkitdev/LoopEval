@@ -82,12 +82,16 @@ models the person as a second controller.
   rescue, which is exactly where static replay is weakest.
 - **Limit:** a learned model interpolates. Where a candidate drives a person into states the data rarely visited, the
   model is extrapolating. A new person must be **enrolled**, with their profile fitted onto a frozen checkpoint and
-  checked against held-out days, before the model can stand in for them. Mechanistic components (glucose
-  effectiveness, counter-regulation) are being added one at a time to improve extrapolation
-  (`docs/handoffs/2026-10-24-ice-mechanistic-components.md`).
-- **Run it:** `simulate --candidate-counterfactual --external-plant '<generator plant>' --plant-behavior`. The code
-  is in `analysis/loopeval_analysis/ice_gen/`. Owner: the **ice** role
-  (`docs/agents/ice.md`).
+  checked against held-out days, before the model can stand in for them. How well a change is predicted tracks how
+  well the person's own level was enrolled.
+- **Known defect:** the generated person eats back most of a carb-ratio change. Its low defense reads the insulin
+  of a meal bolus as a low on the way and ignores the carbs. A carbs-aware retrain is the fix in progress.
+- **Direction:** named physiology goes in one component at a time, glucose effectiveness first, then
+  counter-regulation. Each comes out of the training target, so the network then learns the **residual**: ICE minus
+  the modeled components (`docs/handoffs/2026-10-24-ice-mechanistic-components.md` and the reply beside it).
+- **Run it:** `simulate --candidate-counterfactual --external-plant '<plant_v3 command>' --plant-behavior`. The code
+  is in `analysis/loopeval_analysis/ice_gen/` (the plant is `plant_v3.py`), and the lessons are in
+  `docs/ice/LESSONS.md`. Owner: the **ice** role (`docs/agents/ice.md`).
 
 ### 3. Additive simulator: compose the person
 
@@ -122,8 +126,9 @@ only in the body.
 | Physiology beyond insulin | measured, frozen | learned (plus named components as they land) | named components, evidenced |
 | Person's reactions | inherited from the record | generated from the simulated state | generated from traits |
 | People | the real donors | enrolled donors | twins and synthetic people |
-| Ranks ΔTIR | yes | yes | weaker |
-| Size of Δ lows | overstated, roughly tenfold | about right | understated |
+| Ranks ΔTIR and Δmean | best so far | close behind | weaker |
+| Ranks Δ lows | weakly | weakly; ahead of replay on two of three donor pools | weakly |
+| Size of changes | overstated: insulin response ~1.7× the field's, lows ~10× | closest, slightly under; carb-ratio changes mostly cancelled | understated ~2× |
 | Situations nobody recorded | no | partly | yes |
 | Cost | cheap, deterministic | GPU training, seeds, two checkpoints | CPU, seeds, many draws |
 
@@ -160,8 +165,8 @@ donor record contains real changes made by real people, so we test against those
 
 **Design.** Take 14 days before and after each event. In each window, simulate the person on both the old and the new
 settings: their own, then the other window's settings applied to the controller only. The predicted change is new
-minus old, averaged over the two windows. The field change is the recorded after minus before. Three guards make the
-comparison fair:
+minus old, averaged over the two windows; it is also scored from the pre-edit window alone, the honest "before
+trying it" case. The field change is the recorded after minus before. Three guards make the comparison fair:
 
 - A **faithful filter**: the run on the person's own settings must reproduce their field within a set tolerance.
 - A **need-shift covariate**: the change in mean ICE between windows. People mostly edit settings because their needs
@@ -169,25 +174,31 @@ comparison fair:
 - A **noise floor**: the same scoring around random dates with no event.
 
 Each tool's predicted change is regressed on the field change. A coefficient of 1 means right-sized; below 1, the tool
-overstates the change; above 1, it understates it. The same events are run through all three simulators and scored by
-one scorer (`runs/2026-10-21-tool-change/`).
+overstates the change; above 1, it understates it. Replay and the generator are scored on about 500 edits from three
+donor pools; the additive simulator on the first 62.
+
+**How to read the numbers.** Field changes at these events are mostly need and noise: on the largest pool, TIR changes
+at real edits are barely more spread out than at random dates. No tool predicts a single edit much better than "no
+change". The comparison is about ranking and size across many events.
 
 **Current position.**
 
-- **Field changes at these events are mostly need and noise.** No tool predicts a single edit much better than
-  "no change". The comparison is about ranking and size across many events.
-- **Measured-ICE replay** ranks ΔTIR and Δmean usefully, with a need-adjusted coefficient near 0.9 for TIR. It has
-  **no skill on Δt<70 or Δt<54**: its hypo changes are about ten times the field's, and their sign is right only about
-  half the time. The likely cause is the frozen rescue carbs described above.
-- **The ICE generator** ranks as well or better, and is the only tool whose hypo changes come out about the right size.
+- **Measured-ICE replay** ranks ΔTIR and Δmean best of the three, and leads on the pooled ~500 edits. It overstates
+  every change: glucose moves about 1.7 times as much per unit of insulin change as in the field. On lows it is
+  **weak and badly oversized**: its hypo changes are about ten times the field's, and it ranks them only weakly. The
+  likely cause is the frozen rescue carbs described above.
+- **The ICE generator** gets the size of changes closest to the field, slightly under. Its ranking is close to
+  replay's: ahead on lows in two of the three donor pools, behind on the largest, and worst where the person's level
+  was poorly enrolled. Its predictions are compressed, and it cancels most of a carb-ratio change (the defect above).
 - **The additive simulator** understates changes about twofold. It also gets the field's control-level pattern wrong:
   in the field, people already in tight control gain no TIR and more lows from extra insulin, while everyone else gains
   TIR at no cost in lows (`docs/handoffs/2026-10-24-additive-response-by-control-level.md`).
 
 The practical rule is to **rank candidates on ΔTIR from replay, and never accept or reject a candidate on replay's
-lows delta alone.** The lows side goes to the generator, with research's synthetic worlds as a check where the true
-answer is known. Evidence: `docs/handoffs/2026-10-15-frontier-replay-predicts-change.md` and ledger entries M11 and
-E56.
+lows delta alone.** Read the size of a lows change from the generator, and research's synthetic worlds where the true
+answer is known. No tool yet ranks lows changes reliably, so a lows verdict needs agreement across tools. Evidence:
+`docs/handoffs/2026-10-15-frontier-replay-predicts-change.md`, ledger entries M11 and E56, and `docs/ice/LESSONS.md`
+143–145.
 
 ## How a candidate earns a verdict
 
@@ -208,7 +219,8 @@ candidate tried, failed ones included, is the [candidate ledger](candidates/READ
    person-bootstrap CIs, the worst donors, and the split by **typical glucose** (tight, middle, high). Who gains often
    differs by control level. A multi-donor result is the only headline; a single-donor or single-window win is a
    hypothesis.
-5. **Cross-check across tools.** Use replay for ΔTIR ranking and the generator for the lows side. Use the additive
+5. **Cross-check across tools.** Use replay for ΔTIR ranking and the generator for the size of the lows change; a
+   lows verdict needs the tools to agree. Use the additive
    simulator for situations no donor recorded, such as reduced carb entry or a strategy switch, and for ablations,
    reading its numbers as category means.
 6. **Robustness.** Run the full date range, the operating band, both directions of the dial, the alternative

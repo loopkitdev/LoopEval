@@ -153,7 +153,8 @@ Numbers don't transfer between datasets as absolutes.
 - **GBAF, flat ISF, application factor and oref's dynISF ramp** move along the dial. They are useful as dials but have
   no lift.
 - The lows side of every replay verdict is unvalidated (M11): static replay overstates hypo changes about tenfold on real
-  edits. Rank on ΔTIR and take the lows side from the ICE generator ([OVERVIEW.md](OVERVIEW.md)).
+  edits. Rank on ΔTIR; read the size of a lows change from the ICE generator, and require the tools to agree before a
+  lows verdict ([OVERVIEW.md](OVERVIEW.md)).
 - **Meal announcement** is the largest factor by far, and it is user behavior, not algorithm: announcing users operate
   far above anything hands-off automation reaches.
 
