@@ -8078,3 +8078,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      respond at the tight end and their TIR does not turn flat or negative. The rest point only moves the level; the
      damping (L 493: SG, κ, proactive defence) is what holds the response, and it is not in the rest point. Switch and
      column kept, off.
+
+505. **Delivering through skipped and sensor-less cycles barely moves the cohort; lg13 replaces lg12 as the reference.**
+     Before main 8fa8411 (rewritten 4c80c60c) the engine sent the plant no basal for a cycle with no decision (skipped,
+     or no glucose in the input window), so a twin with a sensor gap got no insulin across it: on gb / gb5k
+     (2026-10-24-additive-control) 16–23 of 112 twins had an uncommanded stretch ≥ 4 h and 3–4 ≥ 12 h (v05073: 23 h, 0.01 U,
+     BG 442). lg12's model rerun on a build of main 7272515 (runs/2026-10-25-additive-rebuild, lg13 / lg13_5k vs lg12 /
+     lg12_5k): no zero-delivery run ≥ 12 h is left (the 22 / 25 twins with one ≥ 4 h are Loop's own zero temps); score
+     0.371 → 0.376, 0.413 → 0.415 (within draw scatter, L 444); mean 154.9 → 154.1, 156.5 → 157.2; TIR 70.6 → 71.2,
+     68.0 → 67.5; t54 0.186 → 0.180, 0.204 → 0.208; zero_frac 30.2 → 30.1, 30.6 → 30.9; meal_d3h 31.5 → 34.0, 36.0 → 34.0;
+     act_net20 −1.8 → −0.3, +0.13 → +0.38. Change test (65 events, 4 seeds): field / twin ratio mean 2.14 → 1.97, t70
+     4.18 → 3.89, t54 10.0 → 8.3; control-level gradient per 10% more aggressive, tight | rest: TIR +2.26 | +1.84 (was
+     +1.78 | +2.09), t70 +0.40 | +0.27 (+0.45 | +0.19); field −1.64 | +5.55, +4.35 | +0.08. Twins of tight donors still
+     sit at mean 153 against their donors' 126 (L 503): the gaps were not where the level gap lives. The same build also
+     carries main 07d91f3 (the trace's candidate delivery[] = what the body received; scoring reads it only after burn-in).
+
