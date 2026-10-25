@@ -658,7 +658,10 @@ glucose, not the story of how it was measured. Therefore:
 47. **Age is available for 151 of 159, and a rank correlation hides what it does**
     (2026-09-16, `pull_age.py` → `age.csv`, `age_views.py` → figure 28). `seagull_profiles.birthday`
     and `patients.birthDate` between them cover 156 donors and **agree to the day for 58 of the
-    60 who have both** — far better coverage than [[lesson 36]]'s 45-of-84 suggested. Median age
+    60 who have both** — far better coverage than [[lesson 36]]'s 45-of-84 suggested.
+    **`age.csv` holds whole years, capped at 90** (Tidepool de-identification rules,
+    2026-10-25): a fractional age at the fixed window midpoint recovers the birthday to the
+    day. Never write an age finer than a year, or a birth/diagnosis date finer than a month. Median age
     **35**, p10–p90 16–60, **27 under 18 and seven under 13**, nine at 65+. Demographic columns
     only; the identity columns sit in the same tables ([[lesson 41]]).
 
