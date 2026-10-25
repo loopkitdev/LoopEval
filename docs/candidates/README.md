@@ -41,7 +41,7 @@ hash have no surviving traces.
 | [C14](#c14-autosens-term) | Autosens (multi-hour BG-vs-target) | learned (short memory) | built, unswept | — |
 | [C15](#c15-rc-window-knobs) | RC window knobs (retro / duration) | dial-like | scored (panel) | no lift; dur120 harmful |
 | [C16](#c16-manual-bolus-rec-scaling) | Manual-bolus rec scaling | announcer behaviour | scored | +0.185 ISF-dial → +0.036 needs-dial (cautionary case) |
-| [C17](#c17-oref-as-candidate-engine) | oref/OpenAPS as candidate engine | engine | fidelity only | no frontier number |
+| [C17](#c17-oref-as-candidate-engine) | oref/OpenAPS as candidate engine | engine | scored (40 pilot donors, 2 Trio hosts, 112 additive people) | **Host-dependent in replay** — each engine wins on its own host (Loop donors −4.1 TIR at equal t<54; Trio hosts +18.2 / +15.6). Host-neutral: additive sim **oref 3–5 TIR behind at equal t<54** (Trio 1.0.2 defaults; replicated on a second draw); field Loop→Trio switchers +1.7 TIR, t<54 flat |
 | [C18](#c18-asymmetric-standard-rc) | Asymmetric **standard** RC (rise-cut without integral RC) | pull-back | scored (4 donors) | **NEUTRAL / dial-like** — closed |
 | [C20](#c20-post-low-gated-rc-rise-cut) | Post-low-gated RC rise-cut (corner candidate) | pull-back, gated | scored (7 beds) | **IMPROVES on 3/7 beds** at (0.3,720,180) — b11_90d +0.019, bddp03 +0.014 (TIR up AND t54 down at op), bddp08 +0.008 — and positive on all 7 (mean ≈ +0.02); best multi-donor result so far |
 | [C21](#c21-fast-rise-gated-rc-rise-cut) | Fast-rise-gated RC rise-cut (meal-rise-stacking corner) | pull-back, gated | scored (bddp11) | NEUTRAL (+0.007 best) — closed |
@@ -83,6 +83,10 @@ hash have no surviving traces.
 | [E55](#e55--c01-and-c30-with-manual-boluses-as-given) | *Experiment*: the PR's two experiments (C01 aIRC, C30 stack) re-scored with manual boluses passed through as given (M11's variant B) instead of replaced by the candidate's recommendation | — | done | **Verdicts hold.** Cohort lift C01 +0.027 → +0.035, C30 +0.018 → +0.027, both 90 % CIs above 0, no WORSE bed under either. Per-bed @op ΔTIR moves at most 0.6. Per-bed labels shuffle at the margin (C30 bddp08/03 → NEUTRAL; C01 bddp11/08/06 → IMPROVES). The lows side remains unvalidated (M11) |
 | [E56](#e56--c01-c20-and-c30-in-researchs-synthetic-oracle-worlds) | *Experiment*: C01, C20 and C30 against stock in research's synthetic worlds, where the true closed-loop outcome (generated rescues) is known, vs static and dynamic replay of the same worlds | — | done (research) | **True gains are small; static replay inflates the lows benefit 2–3× and mis-ranks.** True Δt<70 at ×1.00 −0.18 to −0.32, Δt<54 ≈ −0.02; TIR at matched t<70 +0.06 (C01) / +0.16 (C20) / +0.20 (C30). Static gives +0.62 / +0.46 / +0.34 — order reversed. Dynamic replay restores the order, magnitudes still 2–3× |
 | [E57](#e57--the-additive-simulator-896-people-reduced-carb-entry-and-the-temp-basal--automatic-bolus-switch) | *Experiment*: paired arms on the additive simulator (896 people × 14 d, frozen code), split by carb-entry habit and dosing strategy; announce_mult 1 / 0.5 / 0 on the same people; temp-basal people forced to automatic bolus | — | done | **C31(−30) + guard (C29 band + C20) is the reduced-entry pairing: TIR +0.70 / +1.00 at half / no entry with t<54 −0.03 / 0.00, safe at full entry (+0.28, −0.02).** C01 and the licence fail people who skip entry. IRC + guard: +3 to +4.5 TIR but adds lows. Switching temp → automatic bolus: TIR +3.5, t<54 +0.36; trouble is predicted by pre-switch t<70 and CV; the guard halves the added lows at no TIR cost |
+| [C41](#c41--oref-style-dynisf-ramp-on-loop) | oref-style dose-sizing dynISF ramp on Loop (`--candidate-dynisf-mult-high 0.65`) | dial-like | scored (40 pilot donors, trio) | **NEUTRAL** — lift −0.05 [−0.92, +0.58] at ×1.0, −2.57 at ×1.05; it is the dial |
+| [C42](#c42--faster-carb-expiry-on-guard--runway) | Faster carb expiry on guard + runway: absorption overrun 1.0 / 1.2 (stock 1.5), adaptive absorption | pull-back | scored (189 donors) | **WORSE** — every arm loses TIR to gr (−1.23 / −0.62 / −0.32) at no better t<54 or t<70; cuts post-meal lows by acting on every meal. Closed in blanket form |
+| [C43](#c43--outcome-keyed-insulin-needs-rule-r2) | Outcome-keyed insulin needs (R2): per-person needs ×0.95–1.10 from the prior 28 days' CGM, on gr | personalisation, dial-like per person | scored (189 donors, replay); generator check requested | **Promising, unconfirmed** — +1.98 TIR [+1.59, +2.40], t<54 +0.16 [+0.08, +0.24] vs gr: fails the pre-registered replay bar (≤ +0.02), but +1.2 TIR above the uniform dial at equal t<54; gains are in the middle/high tertiles, tight ≈ 0 / 0. Field edits by eligible people agree in direction |
+| [E61](#e61--switching-from-irc--gbaf-to-guard--runway) | *Experiment*: what a person running IRC + GBAF sees if they move to guard + runway (189 donors) | — | done | **Keep IRC and GBAF on top of gr.** gr alone vs IRC + GBAF: −2.21 TIR, t<54 −0.66 (high tertile −5.0); gr + IRC + GBAF: −0.21 [−0.57, +0.26], t<54 +0.03 |
 
 ---
 
@@ -358,6 +362,26 @@ unannounced-meal lever (needs a bolus to scale).
 `--candidate-openaps …`. All surviving oref work is fidelity reproduction (orefuser/orefuser2);
 UAM/SMB ablation flags exist (`bc52ede`) but only a single divergence case study survives —
 no frontier number. Cross-engine: user1 90 d `iob_cross54_possum` 8.6 (Loop) vs 41.7 (OAPS).
+
+**2026-10-24/25 (trio role; handoffs `2026-10-25-frontier-loop-vs-oref.md`, `…-trio-hosts.md`).** oref is Trio 1.0.2
+(Swift oref) with Trio defaults plus SMB-always, UAM, dynISF logarithmic AF 0.8; both engines on the insulin-needs dial;
+gap = oref TIR − Loop TIR at oref's t<54, Loop interpolated along its dial, person bootstrap.
+
+| host | oref ×1.0 t<54 | gap at ×1.0 | gap at ×1.2 |
+|---|---|---|---|
+| 39 Loop pilot donors (replay) | 1.87 | −4.1 [−6.8, −1.9] | −2.1 [−4.1, −0.4] |
+| orefuser (Trio host, 1 wk) | 1.04 | +18.2 | +8.2 (×1.1) |
+| orefuser2 (Trio host, May) | 1.98 | +15.6 | +9.5 (×1.1) |
+| 112 additive people × 14 d (host-neutral) | 0.23 | −2.3 [−5.3, +0.3] | −2.8 [−5.0, −1.0] |
+| 112 more additive people (second draw) | | | −4.6 [−7.5, −2.5] |
+
+Replay ranks the engines by host: each wins on the data its own dosing shaped, a bias of about 20 TIR points. The
+additive simulator, built from neither engine's dosing, puts oref 3–5 TIR behind at equal t<54 on two independent draws of
+112 people (second draw −4.1 to −4.7 across ×1.2–1.6, every CI below 0 on CGM, true glucose and t<70);
+oref gives ~10 U/day less insulin at the same setting and the loss grows with insulin need. Field: 28 Loop→Trio
+switchers, net of Loop-only users over the same dates, +1.73 TIR [+0.50, +2.94], t<54 −0.03 [−0.15, +0.09]; settings
+changed at the switch are mixed in. **Verdict:** with Trio 1.0.2 defaults oref is not better than Loop; the switchers'
+gain is the counterweight and is not attributable to the engine.
 
 ## C18 · Asymmetric standard RC
 `--candidate-asymmetric-std-rc --candidate-irc-drop-scale D --candidate-irc-rise-scale R`
@@ -1793,3 +1817,109 @@ need a running median with a population default (σ5 median 5.5, 10–90% 4.3–
 constant; data older than 2 h carries < 5% weight, so the reserve is usable within about an hour of a sensor start.
 
 **Limits.** As E57: one simulator; not yet checked on replay; not in the LoopAlgorithm experiments PR.
+
+## E59 · E57/E58 re-checked on the new additive defaults
+Additive simulator at c903ef3: body insulin action from the lispro clamp (p2 0.025), per-person bolus lead and CGM gap
+rates, `templates_pilot_abs.csv`; engine d33875c; σ constants from each level's own new baseline (median 5.6–5.7).
+Same 896 people. All-people ΔTIR / Δt<54 / lift, old → new:
+
+| | full entry | half entry, people who enter |
+|---|---|---|
+| guard | −0.74 / −0.03 / −0.01 → −0.47 / −0.06 / +0.69 | −0.61 / −0.04 / +0.64 → −0.42 / −0.05 / +0.75 |
+| C31(−30) + guard | +0.28 / −0.02 / +0.64 → +0.42 / −0.05 / +1.44 | +0.70 / −0.03 / +1.74 → +0.69 / −0.03 / +1.33 |
+| runway 0.7 from 150 + guard | +1.28 / −0.02 / +1.66 → +1.17 / −0.03 / +1.77 | +1.73 / −0.02 / +2.20 → +1.55 / −0.01 / +1.90 |
+
+Every sign holds. Runway's one soft group is temp-basal people who enter, at half entry: TIR +0.98, lift +0.48
+[−0.65, +1.63], true t<54 +0.04 [+0.01, +0.08]; at full entry the same group is +0.37 / −0.02 / lift +1.05. Runs:
+gamepc `~/frozen/c903ef3/runs` (full), Mac scratch `fz5/runs` (half); script `score.py`.
+
+## E60 · E59 and the lows-budget frontier on the new additive base
+Additive simulator at e1e0bcb: total-drop ISF with the full intake budget, fat resistance relative to the person's
+usual diet, posture and fragmented movement, κ 0.675 (Best 1981); `templates_pilot_night.csv`; engine unchanged since
+d33875c. Baseline: TIR 69.6 / t<54 0.35 / t<70 2.18 at full entry, 66.6 / 0.29 / 1.84 at half entry. Same 896 people.
+All-people ΔTIR / Δt<54 / lift, E59 → E60:
+
+| | full entry | half entry |
+|---|---|---|
+| guard | −0.47 / −0.06 / +0.69 → +0.03 / −0.05 / +1.09 | −0.30 / −0.04 / +0.95 |
+| C31(−30) + guard | +0.42 / −0.05 / +1.44 → +0.55 / −0.05 / +1.55 | +0.62 / −0.03 / +1.50 |
+| runway 0.7 from 150 + guard | +1.17 / −0.03 / +1.77 → +1.24 / −0.04 / +2.17 | +1.50 / −0.03 / +2.38 |
+
+Every sign holds, and E59's soft group is gone: temp-basal people who enter, at half entry, runway TIR +0.86,
+lift +1.63 [+0.59, +2.76], true t<54 −0.00 [−0.03, +0.03]. Runway + guard adds +0.1 (full) / +0.3 (half) U/day.
+
+Frontier (best ΔTIR within a Δt<54 budget, all people; dial alone vs runway + guard along the dial):
+
+| budget | full: dial | full: runway + guard | half: dial | half: runway + guard |
+|---|---|---|---|---|
+| no increase | 0 | +2.1 | 0 | +2.2 |
+| +0.05 | +1.0 | +3.0 | +1.1 | +3.1 |
+| +0.10 | +1.9 | +3.8 | +2.2 | +4.1 |
+| +0.20 | +3.2 | +4.9 | +3.7 | +5.5 |
+
+The same shift right as E59's frontier, slightly larger. At needs ×1.05 runway + guard gives ΔTIR +2.4 / +2.5 for
+Δt<54 +0.02 (true +0.03). Runs: Mac scratch `fz6/runs`; scripts `score.py`, `front.py`.
+
+## C41 · oref-style dynISF ramp on Loop
+`--candidate-dynisf-mult-high 0.65`: Trio's dose-sizing dynISF as a level ramp on Loop's ISF (trio role, 40 v32 pilot
+donors, `runs/2026-10-24-trio-pilot/`). Lift −0.05 [−0.92, +0.58] at ×1.0, −2.57 [−4.25, −1.48] at ×1.05: it moves
+along the needs dial. **NEUTRAL.** Autosens and C14 were negative on bddp11; C38 is already NEUTRAL. Host-neutral check on the additive simulator
+(2 draws × 112 people): dynISF +1.87 [+0.31, +3.58] and autosens +1.51 on the first draw, −0.09 / −0.01 on the second —
+NEUTRAL there too; UAM projection (C05) and slow RC neutral.
+
+## C42 · Faster carb expiry on guard + runway
+Target: post-meal lows in the tight tertile under gr — 24.5 % of real meals (≥ 10 g, entered at ≥ 100 mg/dL) are
+followed by a low 60–240 min later (middle 9 %, high 6 %). At onset Loop is already near-suspended (net automatic
+insulin over the prior hour −0.54 U), COB ~20 g remains and the meal bolus equals carbs / CR, so the forecast still holds
+carbs that did not arrive. Arms on gr: `--carb-absorption-overrun 1.0` (ov10) / `1.2` (ov12), stock 1.5, and deployed
+Loop's adaptive absorption (adp). 189 donors, 28 d each, paired vs gr, person bootstrap (`hetero/vsgr.py`,
+`hetero/postmeal.py` in `runs/2026-10-23-frontier-dosing/`).
+
+| arm | ΔTIR | Δt<54 | Δt<70 | tight ΔTIR |
+|---|---|---|---|---|
+| ov10 | −1.23 [−1.54, −0.94] | +0.01 | −0.05 | −1.63 |
+| ov12 | −0.62 [−0.81, −0.45] | −0.00 | −0.07 | −0.81 |
+| adp | −0.32 [−0.43, −0.22] | +0.02 | −0.02 | −0.29 |
+
+ov10 cuts tight post-meal lows from 24.5 % to 18.3 % of meals but costs TIR on every meal, at no better t<70 than the
+needs dial. **WORSE — closed in blanket form.** The remaining form is a targeted write-down only when absorption lags the
+entry; headroom ≈ 0.7 U in the 2–1 h before onset.
+
+## C43 · Outcome-keyed insulin needs (R2)
+Per-person insulin-needs multiplier on gr, chosen from field CGM over the 28 days before the window (pre-registered
+2026-10-24 in `hetero/needs_rules.md`, before the arms finished): ×1.10 if t<70 < 2 % and mean ≥ 160; else ×1.05 if
+t<70 < 4 % and mean ≥ 140; ×0.95 if t<70 ≥ 5 %; else ×1.00. Share 0.10 / 0.27 / 0.32 / 0.31 at ×0.95 / 1.00 / 1.05 / 1.10.
+R1 = R2 without the back-off; R0 = ×1.05 for mean ≥ 140 (control: no lows condition). 189 donors,
+vs gr, person bootstrap (`hetero/rules.py`).
+
+| rule | ΔTIR | Δt<54 | Δt<70 | tight / middle / high ΔTIR |
+|---|---|---|---|---|
+| R0 | +1.50 [+1.27, +1.74] | +0.16 | +0.65 | +0.08 / +1.43 / +3.00 |
+| R1 | +2.07 [+1.72, +2.45] | +0.24 | +0.87 | +0.03 / +1.61 / +4.58 |
+| **R2** | **+1.98 [+1.59, +2.40]** | **+0.16 [+0.08, +0.24]** | +0.68 | −0.06 / +1.51 / +4.48 |
+| all ×1.05 | +1.50 [+1.22, +1.78] | +0.32 | +1.25 | −0.24 / +1.69 / +3.05 |
+| all ×1.10 | +2.32 [+1.78, +2.87] | +0.83 | +2.78 | −1.21 / +2.70 / +5.48 |
+| all ×0.95 | −2.84 [−3.14, −2.54] | −0.19 | −0.76 | −1.49 / −2.93 / −4.08 |
+
+R2 fails its own pre-registered replay bar (Δt<54 ≤ +0.02). Against the uniform dial it is ahead: at R2's Δt<54 the
+interpolated uniform dial gives about +0.75 TIR, so R2 is about +1.2 TIR better at equal replay lows, and it leaves the
+tight tertile flat on both axes (t<54 −0.06 [−0.20, +0.08]). The lows condition matters: R0 raises a similar share (69 %
+vs 63 %) at the same Δt<54 for 0.5 TIR less. Field check: 25 real settings edits by people R1 would raise, ~6 % stronger,
+gained TIR +5.7, t<70 +0.53, t<54 +0.12 (replay predicted +0.68 t<54, the ICE generator +0.14); stronger edits by
+non-eligible people lost −5.3 TIR. Replay t<54 is overstated on edits (M11), so the field and generator numbers carry the
+lows side. **Promising, unconfirmed** — ICE-generator check requested (handoff 2026-10-25 ice-needs-rule-r2).
+
+## E61 · Switching from IRC + GBAF to guard + runway
+Question: does someone running IRC and GBAF lose TIR by moving to gr? Arms irc_gbaf (IRC for standard-RC donors,
+Loop's GBAF lower target + 10 → 200, 0.2 → 0.8; donors already deploying either keep their own), gr, gr_gbaf,
+gr_irc_gbaf. 189 donors, paired, person bootstrap (`hetero/vsgr.py`). irc_gbaf vs stock: +2.98 TIR, t<54 +0.64.
+
+| vs irc_gbaf | ΔTIR | Δt<54 | Δt<70 | tight / middle / high ΔTIR |
+|---|---|---|---|---|
+| gr | −2.21 [−2.84, −1.62] | −0.66 | −1.91 | −0.00 / −1.60 / −5.04 |
+| gr_gbaf | −1.30 [−1.83, −0.77] | −0.55 | −1.52 | +0.07 / −0.88 / −3.10 |
+| gr_irc_gbaf | −0.21 [−0.57, +0.26] | +0.03 [−0.04, +0.09] | −0.05 | −0.47 / −0.68 / +0.52 |
+
+Yes: gr alone gives back IRC + GBAF's TIR, almost all of it in the high tertile, in exchange for its lows. Keeping IRC
+and GBAF on and adding gr is TIR- and lows-neutral against IRC + GBAF. **Recommendation:** people already on IRC + GBAF
+keep both when they turn on guard + runway.

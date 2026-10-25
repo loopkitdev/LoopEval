@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "LoopEval",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS(.v14)],
     products: [
         .executable(name: "loop-eval", targets: ["LoopEvalCLI"]),
         .library(name: "EvalCore", targets: ["EvalCore"]),

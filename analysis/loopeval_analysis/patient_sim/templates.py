@@ -762,3 +762,107 @@ def add_missed_cycles(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_ex_timing(path: str, life_blocks: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32"):
+    """Recorded workout habit for donors who record consistently (a HealthKit workout in >= half their 13-day blocks,
+    lifestats._recorders; LESSONS 496-497): workouts per week over the export (`ex_week_own`), median duration
+    (`ex_dur_own`), the share starting 0-120 min after a carb entry (`ex_am_own`) and the local start hours
+    (`ex_hours_own`, space-separated). Other donors stay NaN (their twins use the recorders' pooled timing)."""
+    import json as _json
+    import numpy as np
+    from . import lifestats as L
+    from .quiet import local_offset, to_local
+    t = pd.read_csv(path)
+    rec = L._recorders(pd.read_csv(life_blocks))
+    A = L._workouts_all()
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        if a in rec:
+            off = local_offset(a, ice_root)
+            c = _json.load(open(ice_root / "full" / a / "carbs.json"))
+            ct = np.sort(L._mins(to_local(pd.to_datetime([x["startDate"] for x in c], utc=True), off))) if c else np.array([])
+            s = pd.read_parquet(ice_root / "steps" / f"{a}.parquet", columns=["t1"])
+            it = L._mins(to_local(s.t1, off)); t0, t1 = it.min(), it.max()
+            w = A[A.alias == a]
+            st = L._mins(to_local(w.t, off)); keep = (st >= t0) & (st <= t1)
+            st, du = st[keep], w.dur.to_numpy()[keep]
+            if len(st):
+                k = np.searchsorted(ct, st) - 1
+                since = np.where(k >= 0, st - ct[np.clip(k, 0, None)], np.inf)
+                row.update(ex_week_own=float(len(st) / ((t1 - t0) / 1440) * 7), ex_dur_own=float(np.median(du)),
+                           ex_am_own=float(np.mean(since <= 120)),
+                           ex_hours_own=" ".join(f"{(x % 1440) / 60:.2f}" for x in st))
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
+
+
+def add_sleep_mid(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32", window_h: float = 7.0):
+    """The donor's sleep midpoint (`sleep_mid_h`, local hours) from their own record (LESSONS 499): user actions (carb entries
+    and manual boluses >= 0.05 U) in 10-min bins of the local day over the export, and the midpoint of the circular
+    `window_h` window with the fewest. Pilot donors: median 3.8 h (p10 / p90 2.8 / 5.8); the prior bed 23 / wake 7 puts it
+    at 3.0."""
+    import numpy as np
+    from . import lifestats as L
+    from .quiet import local_offset, to_local
+    t = pd.read_csv(path)
+    out = []
+    w = int(round(window_h * 6))
+    for a in t.alias:
+        row = dict(alias=a)
+        try:
+            off = local_offset(a, ice_root)
+            s = pd.read_parquet(ice_root / "steps" / f"{a}.parquet", columns=["t1", "bolus_manual_u", "carbs_g"])
+            m = L._mins(to_local(s.t1, off))
+            act = m[(s.bolus_manual_u.to_numpy(float) > 0.05) | (s.carbs_g.fillna(0).to_numpy(float) > 0)]
+            if len(act) >= 50:
+                h = np.bincount(((act % 1440) // 10).astype(int), minlength=144).astype(float)
+                c = np.array([np.take(h, range(i, i + w), mode="wrap").sum() for i in range(144)])
+                row["sleep_mid_h"] = float(((int(np.argmin(c)) + w / 2) * 10 / 60) % 24)
+        except Exception:
+            pass
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t
+
+
+def add_gb_own(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32", quiet_min: float = 240.0,
+               pulse_tail: float = 120.0, min_hours: float = 20.0):
+    """The donor's glucose on quiet nights (`gb_own`, LESSONS 503): median CGM on steps at 00–06 h local with no carb entry
+    or manual bolus in the prior `quiet_min`, not disrupted, outside labelled pulses (onset to end + `pulse_tail`). There the
+    insulin their Loop delivered is what holds a fasting body, so this is the body's rest point at its basal need."""
+    import numpy as np
+    t = pd.read_csv(path)
+    out = []
+    for a in t.alias:
+        row = dict(alias=a)
+        sp = ice_root / "steps" / f"{a}.parquet"
+        if sp.exists():
+            s = pd.read_parquet(sp, columns=["t1", "dt", "hour", "bg1", "carbs_g", "bolus_manual_u", "disrupted"]).sort_values("t1")
+            tm = (s.t1.astype("int64") / 6e10).to_numpy()
+            ev = np.sort(tm[(s.carbs_g.fillna(0) > 0).to_numpy() | (s.bolus_manual_u.fillna(0) > 0).to_numpy()])
+            k = np.searchsorted(ev, tm, side="right") - 1
+            q = ~s.disrupted.fillna(False).to_numpy(bool)
+            if len(ev): q &= ~((k >= 0) & (tm - np.where(k >= 0, ev[np.clip(k, 0, None)], -1e18) < quiet_min))
+            mp = ice_root / "meals" / f"{a}.parquet"
+            if mp.exists():
+                M = pd.read_parquet(mp)
+                on = (M.onset.astype("int64") / 6e10).to_numpy(); en = (M.end.astype("int64") / 6e10).to_numpy() + pulse_tail
+                o = np.argsort(on); on, en = on[o], np.maximum.accumulate(en[o])
+                j = np.searchsorted(on, tm, side="right") - 1
+                q &= ~((j >= 0) & (tm <= np.where(j >= 0, en[np.clip(j, 0, None)], -1e18)))
+            q &= (s.hour.to_numpy(float) % 24) < 6.0
+            g = s.bg1.to_numpy(float)[q]
+            if s.dt.to_numpy(float)[q].sum() / 60.0 >= min_hours and np.isfinite(g).sum() > 0:
+                row["gb_own"] = float(np.nanmedian(g))
+        out.append(row)
+    r = pd.DataFrame(out)
+    t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
+    t.to_csv(path, index=False)
+    return t

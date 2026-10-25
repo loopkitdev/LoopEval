@@ -35,7 +35,8 @@ BEHAVIOR_COLS = ["far_unann", "carb_entries_per_day", "user_boluses_per_day", "c
                  "clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd"] + \
                 [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h")] + \
                 ["edit_basal_day", "edit_isf_day", "edit_cr_day", "corr_exposure", "slot_g", "slot_ann", "ent_win", "slot_lr", "night_need_ratio", "meal_e_day", "snack_e_day", "snack_e_hours", "offline_day", "perr_day",
-                 "treat_log_day", "low_entered_share", "skip_bfast", "miss1_day", "miss23_day", "entry_b", "unl_mult"]
+                 "treat_log_day", "low_entered_share", "skip_bfast", "miss1_day", "miss23_day", "entry_b", "unl_mult",
+                 "ex_week_own", "ex_dur_own", "ex_am_own", "ex_hours_own", "sleep_mid_h"]
 # ice L54 measures 1.30 g-eq of meal pulse per entered gram (1.21 for the pilot donors through the same
 # labeler, meal_response/ice_check). Run through that labeler, simulated people at 1.30 read 0.91 —
 # glucose effectiveness erodes the pulse before ICE sees it — so the constant is set by the labeler:
@@ -215,7 +216,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0, intake_own: bool = False, csf_geq: bool = False,
-                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False) -> Person:
+                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False, gb_own: bool = False) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -286,6 +287,12 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         f=float(np.clip(rng.normal(0.9, 0.05), 0.7, 1.0)),
     )
     if bp.ka2 >= bp.kd: bp = bp.scaled(ka2=0.9 * bp.kd)
+    if gb_own:
+        # gb_own (experiment, LESSONS 503): the body's rest point is the donor's own glucose on quiet nights (template column
+        # gb_own: median CGM 00–06 h local, no carb entry or manual bolus in the prior 4 h, outside labelled pulses), where
+        # what their Loop delivered is the fasting body's need; the population prior N(119, 7) is still drawn above
+        k_ = row.get("gb_own") if hasattr(row, "get") else None
+        if k_ is not None and np.isfinite(float(k_)): bp = bp.scaled(gb=float(np.clip(float(k_), 90.0, 170.0)))
     if ge_var:
         # between-person gastric emptying (evidence/09 §parameters): Vmax lognormal CV 30% (Samsom 2003 SDs 28% controls,
         # 36% diabetes; Hellmig 2006), and the 28% of T1D adults with delayed emptying at ×0.6–0.8 (Samsom 2003). Km stays

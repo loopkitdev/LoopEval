@@ -206,6 +206,7 @@ def load_outages_from_nightscout(
     doses: Optional[pd.DataFrame] = None,
     lookback_hours: float = 12.0,
     min_zero_run_min: float = 30.0,
+    token: Optional[str] = None,
 ) -> list[Outage]:
     """Pull pump-change events from a Nightscout treatments collection.
 
@@ -226,6 +227,7 @@ def load_outages_from_nightscout(
             "find[created_at][$gte]": win_start_utc,
             "find[created_at][$lt]":  win_end_utc,
             "count": 500,
+            **({"token": token} if token else {}),
         })
         try:
             treatments += json.loads(urllib.request.urlopen(url, timeout=30).read())
@@ -274,6 +276,7 @@ def load_outages_from_suspend_doses(
     win_end: pd.Timestamp,
     *,
     min_duration_min: float = 1.0,
+    token: Optional[str] = None,
 ) -> list[Outage]:
     """Pull *suspend* doses (DoseType.suspend) from a Nightscout treatments
     collection and turn each into an outage window.
@@ -297,6 +300,7 @@ def load_outages_from_suspend_doses(
         "find[created_at][$gte]": win_start_utc,
         "find[created_at][$lt]":  win_end_utc,
         "count": 100000,
+        **({"token": token} if token else {}),
     })
     try:
         treatments = json.loads(urllib.request.urlopen(url, timeout=120).read())
@@ -321,6 +325,55 @@ def load_outages_from_suspend_doses(
             source="nightscout/suspend_dose",
             notes=f"suspend dose {dur:.0f}min (automatic={tr.get('automatic')})",
         ))
+    return merge_overlapping(out)
+
+
+def load_outages_from_trio_suspend_notes(
+    host: str,
+    win_start: pd.Timestamp,
+    win_end: pd.Timestamp,
+    *,
+    token: Optional[str] = None,
+) -> list[Outage]:
+    """Pull Trio pump suspends from a Nightscout treatments collection.
+
+    Trio logs a suspend as ``eventType:"Note"`` with notes ``"PumpSuspend"`` and the resume as
+    a Note ``"PumpResume"``. Each suspend pairs with the first resume after it, and the window
+    is ``[suspend, resume]``. A suspend followed by another suspend before any resume is left
+    out. Loop sites carry no such notes, so this returns nothing there.
+    """
+    if not host.startswith("http"):
+        host = "https://" + host
+    win_start_utc = win_start.tz_convert("UTC").isoformat().replace("+00:00", ".000Z")
+    win_end_utc = win_end.tz_convert("UTC").isoformat().replace("+00:00", ".000Z")
+    url = host.rstrip("/") + "/api/v1/treatments.json?" + urllib.parse.urlencode({
+        "find[eventType]": "Note",
+        "find[created_at][$gte]": win_start_utc,
+        "find[created_at][$lt]":  win_end_utc,
+        "count": 100000,
+        **({"token": token} if token else {}),
+    })
+    try:
+        treatments = json.loads(urllib.request.urlopen(url, timeout=120).read())
+    except Exception as exc:  # noqa: BLE001
+        print(f"  [outage] Nightscout Trio suspend-note fetch failed: {exc}", file=sys.stderr)
+        return []
+
+    notes = sorted(
+        (pd.to_datetime(tr["created_at"]).tz_convert("UTC"), (tr.get("notes") or "").strip())
+        for tr in treatments
+        if (tr.get("notes") or "").strip() in ("PumpSuspend", "PumpResume")
+    )
+    out: list[Outage] = []
+    for (t0, n0), (t1, n1) in zip(notes, notes[1:]):
+        if n0 == "PumpSuspend" and n1 == "PumpResume":
+            out.append(Outage(
+                start=t0,
+                end=t1,
+                reason="suspend",
+                source="nightscout/trio_suspend_note",
+                notes=f"Trio PumpSuspend→PumpResume {(t1 - t0).total_seconds() / 60:.0f}min",
+            ))
     return merge_overlapping(out)
 
 
@@ -500,6 +553,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p_ns = sub.add_parser("from-nightscout",
                           help="generate an outage CSV from Nightscout Site Change events")
     p_ns.add_argument("--host", default="https://your-ns.example.com")
+    p_ns.add_argument("--token", default=None, help="Nightscout read token, for sites that need one")
     p_ns.add_argument("--start", required=True, help="window start (e.g. 2026-03-01)")
     p_ns.add_argument("--end", required=True, help="window end")
     p_ns.add_argument("--tz", default="America/Chicago")
@@ -546,14 +600,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         ws = _parse_ts(args.start, tz)
         we = _parse_ts(args.end, tz)
         outs = load_outages_from_nightscout(args.host, ws, we,
-                                            event_types=args.event_types, doses=doses)
+                                            event_types=args.event_types, doses=doses,
+                                            token=args.token)
         n_sitechange = len(outs)
         if not args.no_suspend_doses:
             sus = load_outages_from_suspend_doses(args.host, ws, we,
-                                                  min_duration_min=args.suspend_min_dur)
-            print(f"  [outage] {len(sus)} suspend-dose windows merged "
+                                                  min_duration_min=args.suspend_min_dur,
+                                                  token=args.token)
+            trio = load_outages_from_trio_suspend_notes(args.host, ws, we, token=args.token)
+            print(f"  [outage] {len(sus)} suspend-dose + {len(trio)} Trio suspend-note windows merged "
                   f"(with {n_sitechange} site/pod-change windows)", file=sys.stderr)
-            outs = merge_overlapping(outs + sus)
+            outs = merge_overlapping(outs + sus + trio)
         if not args.no_dose_gap_detection and doses is not None:
             glucose = None
             try:

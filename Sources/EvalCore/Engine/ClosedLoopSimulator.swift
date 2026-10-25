@@ -765,6 +765,35 @@ extension EvaluationEngine {
                                                counter: &counterMgdl, missing: &counterMissing)
             return plantBehavior ? plantPerson.receive(reply, carbs: &candidateCarbs, therapy: &candTherapy) : 0.0
         }
+        // A cycle with no decision still delivers; manual boluses still happen. Until 2026-10-24 nothing
+        // was appended, so an external plant, which delivers only what it is sent, got no insulin
+        // (additive v05073: 0.01 U over a 23 h sensor gap, BG to 442). What the pump does depends on why:
+        // - no CGM near t, or a candidate CGM with no reading: the pump is fine, Loop can't decide; it
+        //   runs its last command until that expires, then the schedule;
+        // - the field's no-dose guard: the pump's own state is the question (pump data too old, a
+        //   suspend, the pod off), so it runs what the field recorded, as in a disruption (x334 07-14:
+        //   a 4.3 h field suspend inside a 92%-guard span).
+        // --cf-identity keeps the real record.
+        func runUnattended(_ t: Date, _ stepEnd: Date, fieldRecord: Bool) {
+            guard counterfactualMode && t >= cfActiveStart else { return }
+            if !cfIdentity {
+                let (running, _) = fieldRecord
+                    ? pump.fieldRecordRate(at: t, fieldDoses: data.doses, fieldSchedule: data.therapyTimeline.basal)
+                    : pump.lastCommandRate(at: t, schedule: candTherapy.basal)
+                let d = pump.deliver(from: t, to: stepEnd, rate: running, bolus: 0,
+                                     fieldRecord: fieldRecord ? realAutoOnlyDoses : nil,
+                                     fieldSchedule: data.therapyTimeline.basal, schedule: candTherapy.basal)
+                counterfactualDoses.append(EvalInsulinDose(
+                    deliveryType: .basal, startDate: t, endDate: d.tempSegEnd, volume: d.tempVolume,
+                    insulinType: data.therapyTimeline.insulinType, automatic: true))
+                if d.tempSegEnd < stepEnd {
+                    counterfactualDoses.append(EvalInsulinDose(
+                        deliveryType: .basal, startDate: d.tempSegEnd, endDate: stepEnd, volume: d.schedRemainder,
+                        insulinType: data.therapyTimeline.insulinType, automatic: true))
+                }
+            }
+            fieldBoluses.passThroughSkipped(t: t, stepEnd: stepEnd, identity: cfIdentity, into: &counterfactualDoses)
+        }
         // Plant carbs entered during a catch-up call, counted into the step that made it.
         var catchUpPlantCarbsG = 0.0
         for stepIdx in 0..<timing.stepTimes.count {
@@ -802,11 +831,8 @@ extension EvaluationEngine {
 
             // ----- SKIPPED CYCLES: no CGM near t, or the field controller couldn't dose -----
             // Manual boluses still happened and pass through into the candidate's history.
-            if timing.skip(at: t) != nil {
-                if counterfactualMode && t >= cfActiveStart {
-                    fieldBoluses.passThroughSkipped(t: t, stepEnd: stepEnd, identity: cfIdentity,
-                                                    into: &counterfactualDoses)
-                }
+            if let why = timing.skip(at: t) {
+                runUnattended(t, stepEnd, fieldRecord: why == .noDoseGuard)
                 continue
             }
             let timeBasedAFScale = timing.timeBasedAFScale(at: t)
@@ -941,6 +967,7 @@ extension EvaluationEngine {
                 config: candidateConfig
             )
             guard let candidateInput = candidateBuilder.buildInput(at: t, decisionAnchor: t) else {
+                runUnattended(t, stepEnd, fieldRecord: false)
                 continue
             }
             // ----- CANDIDATE step: candidate's Loop sees the per-step ISF

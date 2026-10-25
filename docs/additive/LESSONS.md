@@ -7910,8 +7910,8 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Additive runs move to the Mac (Pete); the reference cohorts c446 / c447 / c478–c483 and the donor tables are under
      runs/2026-10-23-additive-activity/cohort.
 
-496. **Most donors who record workouts barely do, and the twins exercise at lower IOB than the donors who do; with bouts at
-     every IOB, the saturating form tracks the donors' response.**
+496. **Most donors who record workouts barely do. (Corrected by 497: the IOB comparison below set the donors' total insulin
+     on board against the twins' net-of-basal IOB; on one measure the twins exercise at higher IOB.)**
      - **Recording habit, not exercise.** Of the donors with any HealthKit workout, the median records 0.15 a week and
        78% of a typical donor's blocks hold none. The workout habit rows now use only donors with a workout in ≥ half
        of their blocks, and their twins (`lifestats._recorders`): 11 donors, 93 blocks, 1.62 workouts / week vs the
@@ -7934,3 +7934,147 @@ outputs in gamepc ~/additive/runs/c290–c312).
 
      The model guide's § 10 now carries every scored row with its tier, weight and gap on both draws; the role overlay
      points to it. Run dir runs/2026-10-23-additive-activity (probe.py, probe/).
+
+497. **The activity shortfall is eating around sessions, not their timing or IOB; timing (`ex_time`), a later C4 surge and
+     `ex_no_eat` are all rejected or mixed on two draws.**
+     - **IOB bug (fixed, cc32d1f).** The donors' bout IOB is the ice extractor's total insulin on board (basal
+       included); the twins' was Loop's net-of-basal `candidateIOB`. Waking IOB per person p50 3.28 vs 1.64 U. The twins
+       now take the same extractor's IOB. On it the twins' sessions start at **higher** IOB than the donors' workouts
+       (p50 2.9–3.1 vs 2.2 U), so lesson 496's IOB reading and its daily-session IOB-band table do not hold.
+       `act_net20` / `act_net20_hi` barely move (base d1 −1.3 / −4.2, d2 +0.3 / −4.8; donors −5.7 / −12.6).
+     - **Donors' workout timing** (11 recorders, 523 workouts, `extime/donor_extime.py`): 48% start 0–120 min after a
+       carb entry (delay rising over the first 40 min, then flat), clock peaks 08–12 and 16–20 h.
+       **`ex_time`** (5031f0c, off; `templates.add_ex_timing` writes `ex_week_own`, `ex_dur_own`, `ex_am_own`,
+       `ex_hours_own` for recorders): score d1 0.380 → 0.413, d2 0.428 → 0.418; tier 1 worse on both (0.245 → 0.285,
+       0.313 → 0.328). Rejected.
+     - **C4 against its own target** (L243 table, change during by METs; donors −6 / −22 / −22 / −8 at < 4 / 4–6 / 6–8 /
+       ≥ 8): base twins −2 / −6 / +3 / −6 (d1), −6 / −13 / −4 / −7 (d2). Moving the surge threshold to 0.75–0.8 of reserve
+       (`--set ex_surge_thr`, size 28 / 35 / 42) leaves 6–8 METs at −1 to −5; scores 0.380–0.399 (d1) and 0.424–0.438
+       (d2) vs 0.380 / 0.428. Default kept.
+     - **What lifts the twins' sessions: eating from −30 min to the end** (`extime/sess_eat.py`). 60% of sessions; mostly
+       the unlogged pre-exercise carbs (p 0.3, 15 g, 10 min before; RAPPID, Joubert 2025: 36% of sessions, median 20 g),
+       then meals and snacks inside or just before, and proactive snacks. Sessions with no eating fall like the donors'
+       workouts (4–6 METs −16 / −20 vs −22; < 4 METs −5 / −10 vs −6). **`ex_no_eat`** (meals, snacks and grazes planned
+       inside a session move to its end) lowers the eating share to 51%: d1 0.380 → 0.375, d2 0.428 → 0.450. Mixed, stays
+       off.
+     - **Reading.** The donors' bouts exclude logged entries only; whether they too eat unlogged before workouts is not
+       visible, so the pre-exercise carbs' share sits on RAPPID. The pooled activity rows move by their draw scatter
+       (bootstrap SE 0.2–0.4 in gap units) under every arm here; they cannot rank exercise changes on 112 twins. Next
+       candidates belong elsewhere (entries ending in a fast fall, pulse shape, dawn dips).
+
+     Run dir runs/2026-10-23-additive-activity/extime (m_base / m_base5k are the reference re-run on the Mac binary,
+     0.380 / 0.428).
+
+498. **The missing fast falls are an afternoon-and-evening gap in short-scale motion: the twins' true glucose almost never
+     falls fast, and no single named component restores it; an activity-dependent sensor error helps one draw only.**
+     - **Where** (`runs/2026-10-23-additive-falls`; `fall_ctx.py`, ice steps both sides, falls < −150 mg/dL/h over 15 min
+       ending 70–180): donors 1.47 / day, twins 0.97, short by about the same share after entries (0.64 vs 0.40), after
+       unlogged rises (0.36 vs 0.23), with automatic insulin only (0.23 vs 0.15) and after hand boluses (0.23 vs 0.19).
+       By clock the twins match 00–12 h and have half the donors' 12–24 h: 15-min slope SD 65–72 vs 79–81 mg/dL/h and fast
+       share 1.3–1.6 vs 2.3–2.8% (`hourly_motion.py`), with level matched in every block. 08–12 h is slightly over.
+     - **By timescale** (`fall_scales.py`): falls of ≥ 2.5 / 2.0 / 1.5 / 1.2 mg/dL/min over 15 / 30 / 60 / 90 min, twins /
+       donors 0.90 / 1.59, 0.80 / 1.31, 0.76 / 1.04, 0.76 / 0.87 per day. Long falls nearly match; steep short ones are
+       missing (the ACF zero-crossing row's short-scale gap, L 385–389).
+     - **The twins' true glucose falls fast 0.09 times a day** (G6 / G7 twins; `true_vs_cgm.py`): their CGM fast falls are
+       sensor noise on slower true falls. Twins' effective SI runs 0.76–0.88 of the person's median at 12–24 h against
+       1.05–1.27 at 00–12 h (fat, post-meal window, high-glucose resistance).
+     - **Single-lever diagnostics on draw 1** (fast falls / day; score vs 0.380): `ppr_a` 0 1.01, 0.371 (3-h meal change
+       gap 0.37 → 0.64; Pete's L 408 call stands); `ins_p2` 0.04 0.97 true 0.09, 0.381; `sg_mult` 2 true 0.08, 0.485;
+       `ge_pm` 1.0 1.00, 0.391; `ge_circ` off 0.97, 0.427 (circadian amplitude breaks); fat off 1.01, 0.388; `glucotox`
+       off 1.03, 0.367. Each moves the evening by ≤ 20%; none adopted.
+     - **Activity-dependent CGM error** (`--set sensor_act_k`, off; noise level × (1 + k · activity intensity); CGM MARD
+       9.5 → 16.5 → 9.3% before / during / 1 h after aerobic exercise, PMC5872070): k 1.35 d1 0.380 → 0.362 (tier 1 0.245 →
+       0.220; fast falls 1.19 / day, G6 / G7 fast-fall gaps 0.81 / 0.72 → 0.49 / 0.50) but d2 0.428 → 0.449 (tier 1 0.313 →
+       0.355); k 0.7 d1 0.379, d2 0.423 (tier 1 worse). It over-fills 08–12 h and leaves the evening short. Stays off.
+     - **Reading.** The donors' afternoons and evenings move faster on short scales than any body change here produces,
+       across every eating and dosing context. What is not in the model or not observable: daytime activity timing (the
+       extract holds workouts only, no step counts), daytime sensor error beyond exercise, and evening behaviour (snacking
+       with hand boluses). Settling body against sensor needs a sensor-vs-reference series (L 298–299).
+
+499. **Paired against their own donors the twins' entries match by clock; their user boluses run high at 08–16 h and low
+     at night. A donor-own sleep window brings the night boluses closer and worsens tier 1 on both draws (off).**
+     - **Paired clock** (`runs/2026-10-23-additive-falls/paired_clock.py`, each twin against its own donor, per day by 4-h
+       block from 00 h): entries twin − donor median 0.00 / 0.07 / 0.06 / 0.16 / −0.02 / 0.02 (the cohort-wide evening
+       entry "deficit" of L 498 was a comparison with all donors, not each twin's own); user boluses −0.12 / −0.02 /
+       +0.22 / +0.20 / −0.01 / −0.03 (means −0.22 at 00–04 h, +0.41 / +0.36 at 08–16 h).
+     - **Sleep from the donor's record** (`templates.add_sleep_mid`, `sleep_mid_h`: midpoint of the circular 7-h window with
+       the fewest user actions, carb entries plus manual boluses): pilot median 3.8 h (p10 / p90 2.8 / 5.8) against the
+       prior's 3.0 (bed N(23 h, 50 min), wake N(07 h, 50 min)). **`sleep_own`** (b14e104, off) centres the person's
+       drawn sleep length on it: night user boluses 00–04 h −0.22 → −0.09 / −0.12 (means), user boluses / day 4.71 / 5.50
+       (donors 4.58); score d1 0.380 → 0.397, d2 0.428 → 0.415, tier 1 0.245 → 0.332 and 0.313 → 0.342 (d1 TIR 71.0 →
+       68.9, mean 154 → 156). Off: tier 1 worse on both draws.
+     - **Reading.** As with `ex_time`, `ex_no_eat` and `sensor_act_k` (L 497–498), a change that moves its own target
+       toward the donors costs the outcome rows the other components were fitted to. Adopting one needs the review of L
+       "review before adding" — refitting the drifted components on their own evidence — before the two-draw comparison,
+       not instead of it.
+
+500. **The twins logged treatment carbs at five times the donors' rate; logging 12% of rescues and proactive snacks is
+     adopted (both draws better, tier 1 included).**
+     - **Like for like** (`runs/2026-10-23-additive-falls/treat_log.py`: entries merged within 30 min, no user bolus within
+       ±30 min, CGM < 130 at entry): donors median 0.063 / mean 0.218 per day, twins at `p_log` 0.25 0.333 / 0.418. On
+       LESSONS 175's own measure (isolated entries ≥ 20 g with no bolus within ±30 min) the twins now run above the donors
+       too, 11.6% vs 7.6% (the proactive onset of L 409 raised the treatments since L 175 sized 0.25).
+     - The donors' raw entry rate (`entries_raw`) already counts their logged treatments, so the twins' logs came on top
+       of a full meal-entry rate: carb entries 3.42 / 3.88 vs 2.96.
+     - **`p_log_pro` = `p_log_rescue` 0.12** (lg12 / lg12_5k vs m_base / m_base5k): logged treatments 0.209 / 0.217 per
+       day (donors 0.218); carb entries 3.04 / 3.67 (gaps 0.28 → 0.09, 0.50 → 0.38); score 0.380 → 0.371, 0.428 → 0.413;
+       tier 1 0.245 → 0.237, 0.313 → 0.278; t54 0.186 / 0.204, lows 0.92 / 1.00 per day. Component review: every target
+       unchanged within noise. **Default.** New reference lg12 / lg12_5k (scored jointly 0.371 / 0.400).
+
+501. **The twins' smaller carb entries are not a counting error: per labelled meal they enter what their donors do.** On
+     lg12, raw entries per twin over its own donor's run 0.80 / 0.85 / 0.90 at q25 / q50 / q75 (treatment-like entries
+     excluded), and entered grams per day match within 3 g by 4-h block, the window calibration (`entry_win`, grams)
+     adding +0.13 entries / day at 12–16 h. Through the ice labeller on announced, non-rescue pulses ≥ 10 g-eq (102 pairs):
+     entered / pulse grams 0.82 vs 0.82 (pair ratio 0.97), pulse size 37.0 vs 36.9 g-eq (0.965), entry size 30.0 vs 33.5 g
+     (0.89). The count model (person bias −0.10, Brazeau size error) holds against the donors; the raw-entry gap is the mix
+     of entry sizes, and it costs only a few midday entries and their boluses (+0.23 / day at 12–16 h, L 499). Closed.
+
+502. **Taking the meal-time resistance off the liver does not bring back the fast falls; the lesson 408 trade is liver
+     timing against the 3-h meal level only.** `ppr_periph` + `fat_periph` on lg12's settings, both draws (per / per5k vs
+     lg12 / lg12_5k):
+     - meal EGP nadir 0.66 / 0.73 at 110 / 130 min (0.83 at 250; Romeres 2025 0.56 at 160);
+     - 3-h meal change gap 0.35 → 0.69, 0.11 → 0.27; review meal_d3 +7 / +6 (+12.4; donors +21);
+     - fast falls 0.97 / 1.01 per day (0.97 / 1.0; donors 1.47), entries ending in a fast fall 8.3 / 8.0% (7.4 / 7.3;
+       donors 14.3), G6 / G7 fast-fall shares unchanged within the scatter;
+     - mean 151.2 / 154.6, TIR 73.0 / 69.3, TDD 41.7 / 43.6, t54 0.176 / 0.153;
+     - score 0.371 → 0.376, 0.413 → 0.406; tier 1 0.237 → 0.254, 0.278 → 0.298.
+     Not adopted. The liver's suppression timing is not what holds the falls back (with L 498's single-lever diagnostics,
+     no part of the post-meal or circadian SI chain does); the missing fast falls are not a reason to revisit L 408.
+
+
+503. **Frontier's control-level gradient (handoff 2026-10-24) is two open limits together: tight donors' twins are not
+     tight (L 445), and the twins' glucose barely moves with a dose change (L 493).** Read-only on existing runs
+     (scratch `own_level.py`, `bins.py`, `absorb.py`, `near70.py`):
+     - **Level.** In the tool comparison (code of 2026-10-21), the twins of the 20 tight edits (donor pre-edit mean < 140)
+       run at mean 157 / TIR 69.6 against their donors' 125 / 88.1; 3 of 65 twins are below 140. On lg12 the twin–donor
+       mean slope is 0.44 / 0.38, and twins of donors below 140 run +20 / +16 mg/dL above them. Split by the twin's own
+       level (< 150, 10 edits) the gradient is unchanged: ΔTIR +3.4, Δt70 +0.7 per 10% more aggressive.
+     - **Response at equal level.** Frontier's insulin needs × 1.05 on lg12 against donor replay, cross-fitted halves, by
+       base mean: Δmean twins −1.3 / −1.4 / −1.6 / −2.0 / −2.0 / −3.5 at ≤ 130 / 130–140 / … / > 185, replay −4.8 / −6.1 /
+       −6.2 / −6.7 / −7.6 / −8.1; Δt70 at ≤ 140 twins +0.28, replay +2.1–2.3, at equal base t70 (4.0 vs 6.3, 2.9 vs 3.1)
+       and equal time at 70–80 (5.8 vs 6.4%, 3.6 vs 4.1%). In the field edits, mean change per 10% more aggressive is
+       −8.1 [−14.0, −3.7] (need-adjusted) against the twins' −4.4 [−5.7, −3.6].
+     - **Where the twin's extra 5% goes.** Delivered +0.8–1.3 U/day (~3%: Loop takes most of it back), defence carbs
+       +1.7–3.6 g/day (+0.1 events), counter-regulation EGP unchanged, true dips below 80 +0.1 per day.
+     The damping is at every level (mean response half the field's), and at the tight end it costs the lows response most.
+     Frontier's test cannot pass until both limits move. The damping components are L 493's (SG, κ, proactive defense);
+     the body's rest point Gb is drawn from the population (N(119, 7)), not the donor, and is the untested per-person
+     lever for the level. Next, when the Mac is free: Gb from the donor's own steady-night level, scored on the static
+     match, the L 493 change test and `field_gradient.py`.
+
+504. **The body's rest point from the donor's quiet nights makes twins track their donors' level better, but not their
+     response to a settings change, and costs the static match; not adopted.** `gb_own` (template column from
+     `templates.add_gb_own`: median CGM 00–06 h local on quiet steps, outside labelled pulses; 165 of 168 donors, p25 / p50
+     / p75 109 / 121 / 136, corr 0.77 with the donor's mean, 101 at donor means ≤ 130 and 146 above 185) in place of the
+     population N(119, 7). Both draws on lg12's settings (runs/2026-10-24-additive-control, gb / gb5k vs lg12 / lg12_5k):
+     - level: twin–donor mean slope 0.44 → 0.68, 0.38 → 0.58 (corr 0.42 → 0.57, 0.39 → 0.54); twins of donors < 140 run
+       +9.5 / +16.1 above them (+20.4 / +16.3), the rest +3.2 / +5.5 (−2.2 / +1.2); TDD 43.7 / 44.7 (43.2 / 44.4);
+     - static: mean 156.9 / 159.6, TIR 69.0 / 65.8, score 0.371 → 0.398, 0.413 → 0.455, tier 1 0.237 → 0.277, 0.278 → 0.382;
+     - change test (65 events, 4 seeds, current code, lg = ex_sat 0.1 vs gb): field / twin ratio mean BG 2.14 → 2.09, t70
+       4.18 → 3.69, t54 10.0 → 5.5; frontier's control-level gradient per 10% more aggressive, tight | rest (field
+       −1.64 | +5.55 TIR, +4.35 | +0.08 t70): lg +1.78 | +2.09 TIR, +0.45 | +0.19 t70; gb +1.61 | +1.87, +0.58 | +0.24.
+     Twins of tight donors on the current code no longer gain more TIR than the rest (the handoff's +3.4 | +2.2 was the
+     tool comparison's 2026-10-21 code; ex_sat accounts for it): the remaining gap is size — the twins' lows barely
+     respond at the tight end and their TIR does not turn flat or negative. The rest point only moves the level; the
+     damping (L 493: SG, κ, proactive defence) is what holds the response, and it is not in the rest point. Switch and
+     column kept, off.

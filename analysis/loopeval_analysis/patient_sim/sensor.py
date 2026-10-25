@@ -204,6 +204,7 @@ class Sensor:
         self.c = [0.0, 0.0, 0.0]
         self.trans = 0.0                                    # current transient bias, mg/dL
         self.wz = 0.0                                       # log noise-level wander (OU)
+        self.act_k = float((overrides or {}).get("sensor_act_k", 0.0)) if isinstance(overrides, dict) else 0.0
         self.sb = 0.0                                       # slow bias (OU), mg/dL at 130
         self.out_prev: Optional[float] = None
         self.gap_until = -1.0
@@ -268,7 +269,7 @@ class Sensor:
             self.comp = None
 
     # ------------------------------------------------------------------ step
-    def step(self, minute: float, bg: float, asleep: bool = False):
+    def step(self, minute: float, bg: float, asleep: bool = False, activity: float = 0.0):
         f = self.f
         if self.ig is None: self.ig = bg
         ig0 = self.ig
@@ -298,6 +299,10 @@ class Sensor:
             nu *= 1.0 + f.early_noise[0] * math.exp(-max(0.0, minute - s.start) / f.early_noise[1])
         if f.fall_k > 0:
             nu *= 1.0 + f.fall_k * max(0.0, -self.ig_rate - 1.0)
+        if self.act_k > 0 and activity > 0:
+            # experiment (LESSONS 498): CGM error grows during aerobic exercise and recovers within the hour (MARD 9.5 → 16.5 →
+            # 9.3% before / during / 1 h after; Biagi 2018, PMC5872070): the noise level × (1 + k · activity intensity) [J k]
+            nu *= 1.0 + self.act_k * activity
         sbsd, sbtau = f.slow_bias
         if sbsd > 0:
             a2 = math.exp(-f.cadence / sbtau)

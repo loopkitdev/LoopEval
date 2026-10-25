@@ -19,7 +19,7 @@ A Swift CLI that **evaluates and simulates insulin-dosing algorithms against rea
 
 - Pulls CGM readings, insulin doses, carb entries, and therapy settings from Nightscout (Loop- or Trio-populated) or Tidepool (via the ETL)
 - **Evaluate** — runs the algorithm's forecast at every 5-minute step across a date range and compares predictions at configurable horizons (30 min → 6 hours) against actual CGM; computes RMSE, MAE, bias, percentiles, LBGI/HBGI/BGRI risk metrics
-- **Simulate** — closed-loop counterfactual replay: re-runs the chosen algorithm cycle-by-cycle on a person's history to estimate therapy outcomes (TIR, time-below-54, etc.) under a candidate change
+- **Simulate** — closed-loop counterfactual replay: re-runs the chosen algorithm cycle-by-cycle on a person's history to estimate therapy outcomes (TIR, time-below-54, etc.) under a candidate change. The body is the person's measured ICE by default, or an external patient model (`--external-plant`) such as the ICE generator or the additive simulator
 - Parameter sweeps to find optimal therapy settings or algorithm tuning parameters
 - Optional 2D Kalman / AAPS glucose smoothing (for comparison or to match a system's input pipeline)
 
@@ -46,15 +46,25 @@ It also builds on Linux (tested with Swift 6.3 on Ubuntu under WSL), with the sa
 Mac build to within 1e-12. Two things run differently there: the parallel per-step loops run serially,
 and messages are not localized.
 
+## Start here
+
+**[docs/OVERVIEW.md](docs/OVERVIEW.md)** is the newcomer's map:
+- the three ways LoopEval simulates a person:
+  - measured-ICE replay;
+  - a learned ICE generator;
+  - an additive patient simulator built from named components;
+- how real settings edits and strategy switches check each simulator against the field;
+- how a candidate algorithm change earns a verdict.
+
 ## The two main workflows
 
 Most work with LoopEval is one of these — each has a full walkthrough:
 
 **1. Frontier experiments — [docs/FRONTIERS.md](docs/FRONTIERS.md).** Run a candidate
 algorithm/settings change through the closed-loop counterfactual simulator over real
-data, score TIR and time-below-54, and compare against a stock-algorithm ISF sweep (the
-*reference curve*). A change matters only if it has **lift** — better outcomes than
-aggressiveness tuning alone reaches.
+data, score TIR and time-below-54, and compare against the stock algorithm swept along
+the insulin-needs dial (the *reference curve*). A change matters only if it has **lift** —
+better outcomes than aggressiveness tuning alone reaches.
 
 ```bash
 loop-eval simulate --nightscout-url $NS --start 2026-05-01 --end 2026-07-01 \

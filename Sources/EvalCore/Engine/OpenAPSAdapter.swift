@@ -35,6 +35,9 @@ struct OpenAPSAdapter: DosingEngine {
             // NS temp targets the user had ALREADY set by decision time t (oref
             // temptargets). Empty ("[]") when none — the prior hardcoded behavior.
             let tempTargetsJSON = orefTempTargetsJSON(req: req)
+            // Trio 1.0 floors every rate to the paired pump's table (profile.supportedBasalRates).
+            // Flat table at the pump pulse, 0...30 U/h: Omnipod Dash / Medtrum at the 0.05 default.
+            let rates = Self.supportedBasalRates(pulse: req.config.oapsPumpPulse)
 
             // LEGACY path (OAPS_LEGACY env set): 5 separate JSON-bridged calls that
             // re-parse profile/pumpHistory/glucose each call. Kept only for the
@@ -44,7 +47,8 @@ struct OpenAPSAdapter: DosingEngine {
                     preferences: inputs.preferences, pumpSettings: inputs.pumpSettings,
                     bgTargets: inputs.bgTargets, basalProfile: inputs.basalProfile,
                     isf: inputs.isf, carbRatio: inputs.carbRatio, tempTargets: tempTargetsJSON,
-                    model: "\"X22\"", trioSettings: "{}", clock: req.t).returnOrThrow()
+                    model: "\"X22\"", trioSettings: "{}", clock: req.t,
+                    supportedBasalRates: rates).returnOrThrow()
                 let clockStr = inputs.clockString
                 let meal = try OpenAPSSwift.meal(
                     pumphistory: inputs.pumpHistory, profile: profile,
@@ -74,12 +78,11 @@ struct OpenAPSAdapter: DosingEngine {
                 preferences: inputs.preferences, pumpSettings: inputs.pumpSettings,
                 bgTargets: inputs.bgTargets, basalProfile: inputs.basalProfile,
                 isf: inputs.isf, carbRatio: inputs.carbRatio,
-                model: "\"X22\"", trioSettings: "{}",
-                pumpHistory: inputs.pumpHistory, carbs: inputs.carbs, glucose: inputs.glucose,
+                pumpHistory: inputs.pumpHistoryModels, carbs: inputs.carbModels, glucose: inputs.glucoseModels,
                 currentTemp: inputs.currentTemp, reservoir: "100", microBolusAllowed: true,
                 trioCustomOrefVariables: inputs.trioCustomOref,
                 clockDate: req.t, clockJSON: inputs.clockString,
-                tempTargets: tempTargetsJSON)
+                tempTargets: tempTargetsJSON, supportedBasalRates: rates)
 
             let comps = Calendar(identifier: .gregorian).dateComponents([.hour, .minute], from: req.t)
             if (comps.hour ?? 0) % 6 == 0 && (comps.minute ?? 0) < 5 {
@@ -90,6 +93,12 @@ struct OpenAPSAdapter: DosingEngine {
             FileHandle.standardError.write(Data("OpenAPSAdapter error at \(req.t): \(error)\n".utf8))
             return fallbackResult(req: req, scheduledBasalUhr: activeBasal(at: req.t, req: req))
         }
+    }
+
+    static func supportedBasalRates(pulse: Double) -> [Decimal] {
+        guard pulse > 0 else { return [] }
+        let step = Decimal(string: String(format: "%.4f", pulse)) ?? 0.05
+        return (0...Int((30 / pulse).rounded())).map { Decimal($0) * step }
     }
 
     // Build the oref `temptargets` JSON from the therapy timeline, gated to the
@@ -122,6 +131,34 @@ struct OpenAPSAdapter: DosingEngine {
         return "[" + items.joined(separator: ",") + "]"
     }
 
+    private struct TrioOverride {
+        var target: Double?
+        var percentage: Double
+        var smbIsOff: Bool
+        var isfAndCr: Bool
+    }
+
+    // Trio semantics: the most recently STARTED override is the current one (starting an
+    // override ends the previous), active while t is within its duration; when it expires
+    // the profile applies — an older, longer override does not resume. A started override
+    // whose name isn't in the preset map still ends the previous one but applies nothing.
+    private func activeTrioOverride(req: EngineStepRequest) -> TrioOverride? {
+        guard let presetsJSON = req.config.oapsOverridePresets,
+              let data = presetsJSON.data(using: .utf8),
+              let presets = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let latest = req.therapy.orefOverrides.filter({ $0.start <= req.t })
+                  .max(by: { $0.start < $1.start }),
+              req.t < latest.start.addingTimeInterval(latest.durationMin * 60)
+        else { return nil }
+        guard let p = presets.first(where: { $0.key.lowercased() == latest.name.lowercased() })?.value
+                as? [String: Any] else { return nil }
+        return TrioOverride(
+            target: (p["target"] as? NSNumber)?.doubleValue,
+            percentage: (p["percentage"] as? NSNumber)?.doubleValue ?? 100,
+            smbIsOff: (p["smbIsOff"] as? Bool) ?? false,
+            isfAndCr: (p["isfAndCr"] as? Bool) ?? true)
+    }
+
     // MARK: – Input translation
 
     private struct InputBundle {
@@ -131,9 +168,14 @@ struct OpenAPSAdapter: DosingEngine {
         let basalProfile: String
         let isf: String
         let carbRatio: String
+        // Glucose, pump history and carbs go to oref as models (OrefNative: equal to the JSON
+        // path); the JSON strings are built only for the OAPS_LEGACY A/B path.
         let glucose: String
         let pumpHistory: String
         let carbs: String
+        let glucoseModels: [BloodGlucose]
+        let pumpHistoryModels: [PumpHistoryEvent]
+        let carbModels: [CarbsEntry]
         let currentTemp: String
         let trioCustomOref: String
         let clockString: String
@@ -317,10 +359,13 @@ struct OpenAPSAdapter: DosingEngine {
         let glucoseForOref = req.config.oapsSmoothGlucose
             ? Self.aapsSmoothGlucose(dedupGlucose)
             : dedupGlucose
-        let glucoseJSON = encodeGlucose(glucoseForOref, iso: iso)
+        let legacy = ProcessInfo.processInfo.environment["OAPS_LEGACY"] != nil
+        let glucoseJSON = legacy ? encodeGlucose(glucoseForOref, iso: iso) : ""
+        let glucoseModels = nativeGlucose(glucoseForOref, iso: iso)
 
         // ── Carbs ─────────────────────────────────────────────────────────────
-        let carbsJSON = encodeCarbs(req.input.carbs, iso: iso)
+        let carbsJSON = legacy ? encodeCarbs(req.input.carbs, iso: iso) : ""
+        let carbModels = nativeCarbs(req.input.carbs, iso: iso)
 
         // ── Pump history (boluses + temp basal pairs derived from doses) ──────
         // Trio fetches `pumpHistoryLast1440Minutes` (24h) and feeds that SAME history
@@ -338,8 +383,9 @@ struct OpenAPSAdapter: DosingEngine {
         let orefPumpDoses = req.orefPumpHistoryDoses.isEmpty
             ? req.input.doses
             : req.orefPumpHistoryDoses.filter { $0.startDate >= orefWindowStart && $0.startDate <= req.t }
-        let pumpHistoryJSON = encodePumpHistory(orefPumpDoses, iso: iso,
-                                                scheduledBasalUhr: scheduledBasalUhr)
+        let pumpHistoryJSON = legacy ? encodePumpHistory(orefPumpDoses, iso: iso,
+                                                         scheduledBasalUhr: scheduledBasalUhr) : ""
+        let pumpHistoryModels = nativePumpHistory(orefPumpDoses, iso: iso, scheduledBasalUhr: scheduledBasalUhr)
 
         // ── Current temp ──────────────────────────────────────────────────────
         // Last temp basal that is still active at `t`, else neutral 0.
@@ -399,8 +445,9 @@ struct OpenAPSAdapter: DosingEngine {
         let weightPct = 0.65
         let weightedTdd = weightPct * past2h + (1 - weightPct) * avgTotalData
 
-        // ── TrioCustomOrefVariables (overrides off) ───────────────────────────
-        let trioCustom: [String: Any] = [
+        // ── TrioCustomOrefVariables (Trio override, when presets are supplied) ──
+        let ov = activeTrioOverride(req: req)
+        var trioCustom: [String: Any] = [
             "average_total_data": avgTotalData,
             "currentTDD": estimatedTdd,
             "weightedAverage": weightedTdd,
@@ -422,6 +469,13 @@ struct OpenAPSAdapter: DosingEngine {
             "smbMinutes": 0,
             "uamMinutes": 0
         ]
+        if let ov {
+            trioCustom["useOverride"] = true
+            trioCustom["overridePercentage"] = ov.percentage
+            trioCustom["overrideTarget"] = ov.target ?? 0
+            trioCustom["smbIsOff"] = ov.smbIsOff
+            trioCustom["isfAndCr"] = ov.isfAndCr
+        }
         let trioCustomJSON = String(data: try JSONSerialization.data(withJSONObject: trioCustom),
                                     encoding: .utf8)!
 
@@ -435,6 +489,9 @@ struct OpenAPSAdapter: DosingEngine {
             glucose: glucoseJSON,
             pumpHistory: pumpHistoryJSON,
             carbs: carbsJSON,
+            glucoseModels: glucoseModels,
+            pumpHistoryModels: pumpHistoryModels,
+            carbModels: carbModels,
             currentTemp: currentTempJSON,
             trioCustomOref: trioCustomJSON,
             clockString: iso.string(from: req.t),
@@ -766,6 +823,61 @@ struct OpenAPSAdapter: DosingEngine {
             }
         }
         return String(data: try! JSONSerialization.data(withJSONObject: events), encoding: .utf8)!
+    }
+
+    // Native twins of encodeGlucose / encodeCarbs / encodePumpHistory: the same fields, with dates
+    // and Doubles converted by OrefNative so oref sees what it decoded from the JSON.
+    private func nativeGlucose(_ samples: [EvalGlucoseSample], iso: ISO8601DateFormatter) -> [BloodGlucose] {
+        let mgdl = LoopUnit.milligramsPerDeciliter
+        return samples
+            .sorted { $0.startDate > $1.startDate }
+            .enumerated().map { i, s in
+                let val = Int(s.quantity.doubleValue(for: mgdl).rounded())
+                return BloodGlucose(
+                    id: "g\(i)", legacyId: "g\(i)", sgv: val, direction: .flat,
+                    date: Decimal(Int(s.startDate.timeIntervalSince1970 * 1000)),
+                    dateString: OrefNative.date(s.startDate, formatted: iso.string(from:)),
+                    noise: 1, glucose: val, type: "sgv"
+                )
+            }
+    }
+
+    private func nativeCarbs(_ carbs: [EvalCarbEntry], iso: ISO8601DateFormatter) -> [CarbsEntry] {
+        carbs.enumerated().map { i, c in
+            CarbsEntry(
+                id: "c\(i)",
+                createdAt: OrefNative.date(c.dosingVisibleDate, formatted: iso.string(from:)),
+                actualDate: OrefNative.date(c.startDate, formatted: iso.string(from:)),
+                carbs: OrefNative.decimal(c.quantity.doubleValue(for: .gram)),
+                enteredBy: "loopeval"
+            )
+        }
+    }
+
+    private func nativePumpHistory(
+        _ doses: [EvalInsulinDose],
+        iso: ISO8601DateFormatter,
+        scheduledBasalUhr: Double
+    ) -> [PumpHistoryEvent] {
+        var events: [PumpHistoryEvent] = []
+        events.reserveCapacity(doses.count * 2)
+        for (i, d) in doses.enumerated() {
+            let ts = OrefNative.date(d.startDate, formatted: iso.string(from:))
+            switch d.deliveryType {
+            case .bolus:
+                events.append(PumpHistoryEvent(id: "b\(i)", type: .bolus, timestamp: ts,
+                                               amount: OrefNative.decimal(d.volume)))
+            case .basal:
+                let seconds = d.endDate.timeIntervalSince(d.startDate)
+                let durationMin = max(1, Int(seconds / 60.0))
+                let rate = seconds > 0 ? d.volume / (seconds / 3600.0) : scheduledBasalUhr
+                events.append(PumpHistoryEvent(id: "tb\(i)", type: .tempBasal, timestamp: ts,
+                                               rate: OrefNative.decimal(rate), temp: .absolute))
+                events.append(PumpHistoryEvent(id: "tbd\(i)", type: .tempBasalDuration, timestamp: ts,
+                                               durationMin: durationMin))
+            }
+        }
+        return events
     }
 
     // MARK: – Schedule helpers

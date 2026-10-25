@@ -33,6 +33,7 @@ for that checkout (copy `ROLE.example.md`, exactly like `PRIVATE.md`).
 | research | `docs/agents/research.md` | Literature review: how the field builds and evaluates AID algorithms, set against our work; proposes new paths. |
 | ice | `docs/agents/ice.md` | Generative models of the insulin counteraction effect: learn realistic ICE, behavior included, from the donor pool and drive the simulator with it. |
 | additive | `docs/agents/additive.md` | Forward patient simulator composed from named, evidenced factors (physiology, meals, exercise, illness, cycle, sensor, pump, behavior traits), run closed-loop through the external plant. |
+| trio | `docs/agents/trio.md` | Trio (oref) under LoopEval: oref fidelity on Trio donors, and Loop vs Trio on the same people. |
 | — | `docs/agents/verification.md` | Faithful replay and identity checks; read by frontier **and** simulator. |
 
 **Keep to your own overlay.** One file, one owner: roles never edit each other's overlay, so
@@ -197,6 +198,7 @@ not in second-guessing the dose.
 | `Sources/EvalCore/Engine/ClosedLoopSimulator.swift` | The core sim: substrate, counterfactual, closed loop, fidelity, disruption clamps, patient IOB |
 | `Sources/EvalCore/Engine/DosingEngine.swift` | Pluggable controller: `LoopAdapter` / `OpenAPSAdapter` |
 | `analysis/loopeval_analysis/` | Python: scoring, frontier, case_study, iob, disruption CSVs, carb reconstruction |
+| `docs/OVERVIEW.md` | Newcomer's map: the three simulators, natural-experiment validation, how candidates are judged |
 | `docs/FRONTIERS.md` | Frontier-experiment walkthrough |
 | `docs/CASE_STUDIES.md` | Case-study walkthrough |
 | `docs/simulator-guide/README.md` | Deep technical guide to the simulator (GitHub-rendered) |

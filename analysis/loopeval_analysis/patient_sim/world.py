@@ -326,6 +326,30 @@ class World:
             self.beh_traits.entry_size_b = enable["entry_size_b"]
         if enable and enable.get("ex_mets"):
             self.beh_traits.ex_mets = True
+        if enable and enable.get("sleep_own"):
+            # experiment (LESSONS 499): the sleep window centred on the donor's own quietest hours of user actions
+            # (templates.add_sleep_mid), keeping the person's drawn sleep length
+            try: sm_ = float(person.traits.get("template_rates", {}).get("sleep_mid_h"))
+            except (TypeError, ValueError): sm_ = float("nan")
+            if np.isfinite(sm_):
+                self.beh_traits = copy.deepcopy(self.beh_traits); bt_ = self.beh_traits
+                dur_ = (bt_.wake - bt_.bed) % 1440.0
+                bt_.wake = (sm_ * 60.0 + dur_ / 2.0) % 1440.0
+                bt_.bed = bt_.wake - dur_ + 1440.0       # the priors' convention: bed > wake, past 1440 after midnight
+        if enable and enable.get("ex_time"):
+            # experiment (LESSONS 497): sessions timed, counted and sized as the donor's recorded workouts where the donor
+            # records consistently (templates.add_ex_timing), else on the recorders' pooled timing
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            bt_, tr_ = self.beh_traits, person.traits.get("template_rates", {})
+            bt_.ex_time = True
+            def _f(k):
+                try: v = float(tr_.get(k)); return v if np.isfinite(v) else None
+                except (TypeError, ValueError): return None
+            if _f("ex_am_own") is not None: bt_.ex_am = _f("ex_am_own")
+            if _f("ex_week_own") is not None: bt_.ex_per_week = _f("ex_week_own")
+            if _f("ex_dur_own") is not None: bt_.ex_minutes = _f("ex_dur_own")
+            hs = tr_.get("ex_hours_own")
+            if isinstance(hs, str) and hs.strip(): bt_.ex_hours = [float(x) for x in hs.split()]
         if enable and isinstance(enable.get("wake_mult"), float):
             # experiment (LESSONS 274): the chance a night alarm wakes the person, scaled
             self.beh_traits.p_wake_alarm = float(min(0.98, self.beh_traits.p_wake_alarm * enable["wake_mult"]))
@@ -456,7 +480,9 @@ class World:
                                           **({"frag_on_med": float(enable["frag_on"])} if enable and isinstance(enable.get("frag_on"), float) else {}),
                                           **({} if self.ex_b is None else dict(b=self.ex_b[0], z_power=self.ex_b[1])),
                                           **({} if self.ex_alpha is None else dict(alpha=self.ex_alpha)),
-                                          **({} if self.ex_sat is None else dict(sat_k=self.ex_sat))))
+                                          **({} if self.ex_sat is None else dict(sat_k=self.ex_sat)),
+                                          # experiment (LESSONS 497): the C4 surge threshold, share of reserve (default 0.6)
+                                          **({"surge_thr": float(enable["ex_surge_thr"])} if enable and isinstance(enable.get("ex_surge_thr"), float) else {})))
         # energy balance: a person eats for their activity. The donor's TDD (the measured constraint, G4) was spent
         # in a life that included it, so the glucose their everyday activity uses is added to what they eat
         # (activity_carbs: clamp probe, active day vs rest day; LESSONS 34)
@@ -798,7 +824,7 @@ class World:
                        abs_mult=absm_env * absm_site * ex["abs_mult"] * self._posture_mult(m) * self._flow_mult(m), bio=bio)
         if int(m) % 5 == 0: self.ex_log.append((m, ex["ex_si_boost"]))     # exercise sensitivity, saved as truth ex_boost
         asleep = self.beh.asleep(m)
-        reading = self.sensor.step(m, self.body.g, asleep=asleep)
+        reading = self.sensor.step(m, self.body.g, asleep=asleep, activity=float(ex["ex_intensity"]))
         if reading is not False:
             self.readings[int(round(m))] = reading
         acts = self.beh.minute(m, reading, self.loop_state, carb_scale=0.7 if gi_ill else 1.0)

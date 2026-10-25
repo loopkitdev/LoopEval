@@ -74,7 +74,9 @@ enum SimulateConfig {
         guard let n = v as? NSNumber, CFGetTypeID(n) == CFBooleanGetTypeID() else { return nil }
         return n.boolValue
         #else
-        return type(of: v) == Bool.self ? (v as! Bool) : nil
+        // swift-corelibs: JSON booleans are an NSNumber subclass with objCType "c"; integers are "i"/"q".
+        guard let n = v as? NSNumber, String(cString: n.objCType) == "c" else { return nil }
+        return n.boolValue
         #endif
     }
 
