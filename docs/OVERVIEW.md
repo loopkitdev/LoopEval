@@ -86,7 +86,7 @@ models the person as a second controller.
   effectiveness, counter-regulation) are being added one at a time to improve extrapolation
   (`docs/handoffs/2026-10-24-ice-mechanistic-components.md`).
 - **Run it:** `simulate --candidate-counterfactual --external-plant '<generator plant>' --plant-behavior`. The code
-  is in `analysis/loopeval_analysis/ice_gen/` on the `ice` branch. Owner: the **ice** role
+  is in `analysis/loopeval_analysis/ice_gen/`. Owner: the **ice** role
   (`docs/agents/ice.md`).
 
 ### 3. Additive simulator: compose the person
