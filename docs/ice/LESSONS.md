@@ -1477,3 +1477,22 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     spread error marks hard people too, not the e gap. The x switch test (52 strategy switches) agrees: replay leads on TIR
     (0.57 vs 0.47 / 0.38) and mean (0.61 vs 0.49 / 0.43); on t70 / t54 neither predicts (r < 0), the field change at a
     switch being no larger than at a pseudo-edit.
+145. **The generated person cancels a carb-ratio change: the defense reads every meal bolus as an oncoming low.** Over a
+    window, the model's mean ICE change is ≈ 0.97 × the change in ISF × insulin activity for every edit kind (cancel.py);
+    the generated person eats the extra insulin back. The instrument is replay's pre-window Δ(ISF·activity) (replay_dins,
+    gain.py); glucose response per unit, field / replay / model: all edits −2.26 (90% −2.86 to −1.75) / −3.77 / −1.66;
+    CR edits −2.28 / −3.83 / −0.63; basal −1.30 / – / −2.02; ISF −2.38 / – / −1.81; target −5.23 / – / −3.63. Replay
+    overshoots everywhere; the model is close except on CR edits, where it gives a quarter of the field response.
+    Cause, by ablation of the pending-insulin input the network sees (iob_net, PLANT_IOBNET_SCALE, iob.sh, iob_score.py;
+    113 CR-dominant edits, x + e, pre window, two trainings agreeing within 0.1 on every figure). The v3m13 defense
+    projects bg − iob_net and ignores carbs on board, so the insulin of a meal bolus looks like a low on its way. Base /
+    hidden (iob0) / net of entered carbs on board (cob1, PLANT_IOBNET_COB, linear 3 h absorption at the person's g-eq):
+    - **response per unit:** −0.54 / −2.46 / −1.53 (field −2.28); cancellation 0.99 / 0.68 / 0.94;
+    - **pre-window r vs field:** mean 0.15 / 0.41 / 0.32, TIR −0.01 / 0.08 / 0.20, t70 0.18 / 0.35 / 0.16;
+    - **|err|:** mean 10.7 / 10.0 / 9.9, TIR 6.7 / 6.5 / 6.1;
+    - **own-settings level vs field pre-window (lvl_check.py):** mean bias +8.7 / −14.5 / −8.8, |.| median 13.2 / 18.4 /
+      13.1; TIR bias −7.0 / −7.4 / −4.7.
+    Hiding the input fixes the response but drops the level 23 mg/dL; netting carbs out keeps the level error the same
+    size and gets two thirds of the response, without retraining. Not kept yet. Both are test-time edits to an input the
+    network was trained on. The fix to keep is a carbs-aware projection in the dataset (dataset_v3m), retrained on both
+    seeds. cob1 is first being checked on the 350 non-CR edits for regressions.

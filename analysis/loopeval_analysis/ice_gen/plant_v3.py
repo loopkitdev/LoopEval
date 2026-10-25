@@ -39,7 +39,6 @@ from .dataset import ICE_SCALE
 REC_ZERO_U = D3.REC_ZERO
 # PLANT_IOBNET_SCALE (diagnostic): scales the pending-insulin input the network sees (iob_net); 0 hides it (LESSONS 145)
 IOBNET_SCALE = float(os.environ.get("PLANT_IOBNET_SCALE", "1"))
-IOBNET_COB = os.environ.get("PLANT_IOBNET_COB") == "1"   # diagnostic: iob_net net of entered carbs on board (LESSONS 145)
 from .extract import MODELS, RAPID_ACTING_ADULT
 from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
@@ -169,6 +168,9 @@ class PlantV3:
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
         self.ge_sg = float(os.environ.get("PLANT_GE_SG", ck.get("ge_sg", 0.0)))
         os.environ["GE_SG"] = str(ck.get("ge_sg", 0.0))   # the warm-up history is built as the network was trained
+        # iob_net net of entered carbs on board (dataset_v3m3.iob_net, LESSONS 145): as trained; PLANT_IOBNET_COB overrides
+        self.iobnet_cob = os.environ.get("PLANT_IOBNET_COB", "1" if ck.get("iobnet_cob") else "0") == "1"
+        os.environ["IOBNET_COB"] = "1" if ck.get("iobnet_cob") else "0"
         self.bg_bolus = ck.get("calib_bg_bolus")   # bolus heads by glucose band (calibrate_bolus_bg.py)
         es = ck.get("calib_entry_state")
         self.entry_state = (np.asarray(es["bands"]), np.asarray(es["trends"]), np.asarray(es["offset"])) if es else None
@@ -379,7 +381,7 @@ class PlantV3:
                 x[F["eventual"]] = float(D3.eventual(np.array([now]), np.array([self.ins.iob(t)]), self.isf, self.base_iob, to_come)[0]) / 100
         if "iob_net" in F:
             net_ = self.isf * (self.ins.iob(t) - self.base_iob)
-            if IOBNET_COB:   # diagnostic: pending insulin net of the glucose entered carbs still to absorb add (linear over 3 h)
+            if self.iobnet_cob:   # pending insulin net of the glucose entered carbs still to absorb add (linear over 3 h)
                 net_ -= sum(g * self.geq * (1 - (t - te).total_seconds() / 10800) for te, g in self.entries
                             if pd.Timedelta(0) <= t - te < pd.Timedelta(hours=3))
             x[F["iob_net"]] = IOBNET_SCALE * max(net_, 0.0) / 100

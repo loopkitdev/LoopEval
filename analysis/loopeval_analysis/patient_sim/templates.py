@@ -148,6 +148,7 @@ def build_pilot() -> pd.DataFrame:
     t = pd.DataFrame(rows)
     age = pd.read_csv(PILOT / "age.csv")
     acol = next(c for c in age.columns if "age" in c.lower() and "group" not in c.lower())
+    age[acol] = np.minimum(np.floor(pd.to_numeric(age[acol], errors="coerce")), 90)   # whole years, 90+ as 90: a fractional age dates a birthday
     t = t.drop(columns="age_years").merge(age[["alias", acol]].rename(columns={acol: "age_years"}), on="alias", how="left")
     return t
 
