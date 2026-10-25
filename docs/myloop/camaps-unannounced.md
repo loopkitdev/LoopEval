@@ -14,6 +14,33 @@ Verified 2026-10-25. Board: TIDEPOOL-95.
 | Post-meal learning | Learns from bolused meals and adds insulin after meals that are persistently under-covered. SMASH credits it for why coarse announcement holds up | manufacturer + trial discussion | PMC11732900; mylife |
 | Slowly absorbed meal | Insulin for the flagged carbs goes in over 3–4 h, given only while glucose rises | published (manual) | user manual §7 |
 
+## Liberty's meal handling: everything public, 2026-10-25
+
+- **Mechanism, as the makers describe it:**
+  - a "more proactive version" of the FX algorithm that "predicts what is about to happen and
+    increases or decreases insulin delivery early enough to respond";
+  - an "accelerated response to changing glucose trends within the same safety limits" that are
+    pre-set in the pump;
+  - learning that is the same as FX (total daily need and time-of-day needs), and it "recognises
+    insulin need depending on time of day";
+  - the personal target as the main lever.
+
+  No meal detection, no automatic meal bolus and no meal model is described anywhere.
+- **Sources searched:**
+  - mylife and CamDiab pages, the Liberty HCP guide, and the 2026-03 launch release;
+  - Breakthrough T1D UK coverage;
+  - every open-access Cambridge FCL paper (CLEAR adults and adolescents, type 2, inpatient,
+    ultra-rapid missed-bolus);
+  - Google Patents: CamDiab's only filing is GB202510447D0, filed 2025-06 and unpublished.
+    Hovorka's granted patents cover the 2006–2009 core MPC and nothing on FCL.
+- **Outcomes:**
+  - Liberty itself: none published. About 1,200 early-access users since 2026-05; European launch
+    2026-09-01.
+  - HX trials: TIR +13–14 pp against pump + CGM in people with suboptimal control. These are not
+    comparisons with hybrid mode or with other FCL systems.
+  - User reports are informal: "more aggressive" than hybrid, corrects faster, copes better with
+    hard-to-count meals.
+
 ## What LoopEval has already tested along these lines
 
 - **Faster response to rising trends:**
