@@ -61,6 +61,25 @@ frontier).
 - **Host bias.** Loop donors' ICE was shaped by Loop's dosing, and Trio donors' by oref's. Check
   each engine on both kinds of host before reading a winner.
 
+## Status (2026-10-24)
+
+- **Loop vs oref, 40-donor v32 pilot** (39 scored; Loop-era ICE, manual boluses verbatim, oref = Trio
+  1.0.2 defaults + SMB-always + UAM + dynISF log AF 0.8, dial = insulin-needs ×0.7…1.2). oref is
+  dominated: no dial point reaches Loop's t<54 (×0.7: ΔTIR −15.9, Δt54 +0.25; ×1.0: −1.8 / +1.28).
+  At Loop's t<70, oref's TIR is −14.4 [−17.6, −6.6]. Worst donor +6.6 t<54 at ×0.7. Summed IOB at
+  the 54 crossing 289 U Loop vs 828 U oref ×1.0. oref's ΔTIR tracks scheduled basal (Spearman 0.67):
+  SMB and temp caps scale with basal, so low-basal donors under-dose highs. SMB cap 30→120 min
+  removes that pattern but lands on oref's own dial (×0.9 cap-120 ≈ ×1.2 default). Runs:
+  `runs/2026-10-24-trio-pilot/` (`score.py`).
+- **Trio → Loop candidates measured, none helps:** oref dynISF on Loop rides the dial (lift −0.05
+  [−0.92, +0.58] at ×1.0, −2.57 at ×1.05); autosens and C14 were negative on bddp11; C38 (deviation
+  autosens analog) was already NEUTRAL in the ledger.
+- **Field, Tidepool 2026-05-15→10-13** (≥30 closed-loop days, single-app days): Trio users median
+  TIR 81.5 vs Loop 74.8, t<54 equal (0.34 vs 0.36). Within 28 Loop→Trio switchers the gain is +1.45
+  TIR [+0.22, +2.63], t<54 −0.05 [−0.18, +0.06]: most of the group gap is who chooses Trio, and the
+  remainder is uncontrolled (season, settings changes at the switch). Runs:
+  `runs/2026-10-24-trio-vs-loop-field/`.
+
 ## Status (2026-10-23)
 
 - Pete approved the plan. First step under way: re-validate orefuser2 on the current simulator.
