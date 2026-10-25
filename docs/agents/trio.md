@@ -90,7 +90,10 @@ frontier).
   remainder, net of the calendar change Loop-only users show over the same dates
   (difference-in-differences), is **+1.73 TIR [+0.50, +2.94]** with t<54 −0.03 [−0.15, +0.09];
   +2.31 [+0.52, +3.89] after a 14-day washout (25 switchers). Worst switcher −6.2 TIR, +0.78 t<54.
-  Not controlled: selection into switching, and settings changed at the switch. Runs (`did.py`):
+  Switchers' daily insulin barely changed (Trio/Loop median ratio 1.02; basal share 0.34 → 0.28,
+  automatic-bolus share 0.34 → 0.36), and the gain doesn't track it (Spearman 0.16). Among the 14
+  whose insulin stayed within ±10%: +1.0 [−0.7, +2.7]. Not controlled: selection into switching.
+  Runs (`did.py`, `tdd.py`):
   `runs/2026-10-24-trio-vs-loop-field/`.
 
 ## Status (2026-10-23)
