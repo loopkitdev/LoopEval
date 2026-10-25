@@ -64,13 +64,16 @@ frontier).
 ## Status (2026-10-24)
 
 - **Loop vs oref, 40-donor v32 pilot** (39 scored; Loop-era ICE, manual boluses verbatim, oref = Trio
-  1.0.2 defaults + SMB-always + UAM + dynISF log AF 0.8, dial = insulin-needs ×0.7…1.2). oref is
-  dominated: no dial point reaches Loop's t<54 (×0.7: ΔTIR −15.9, Δt54 +0.25; ×1.0: −1.8 / +1.28).
-  At Loop's t<70, oref's TIR is −14.4 [−17.6, −6.6]. Worst donor +6.6 t<54 at ×0.7. Summed IOB at
-  the 54 crossing 289 U Loop vs 828 U oref ×1.0. oref's ΔTIR tracks scheduled basal (Spearman 0.67):
-  SMB and temp caps scale with basal, so low-basal donors under-dose highs. SMB cap 30→120 min
-  removes that pattern but lands on oref's own dial (×0.9 cap-120 ≈ ×1.2 default). Runs:
-  `runs/2026-10-24-trio-pilot/` (`score.py`).
+  1.0.2 defaults + SMB-always + UAM + dynISF log AF 0.8; both on the insulin-needs dial, oref ×0.7…1.2,
+  Loop ×0.95…1.5). **At equal t<54, oref's TIR is lower** (Loop interpolated along its dial at
+  oref's lows): ×0.7 −17.8 [−22.5, −12.5] at t<54 0.83; ×0.9 −7.1 [−10.6, −4.3] at 1.38;
+  ×1.0 −4.1 [−6.8, −1.9] at 1.87; ×1.2 −2.1 [−4.1, −0.4] at 2.96. The gap closes only where both
+  run t<54 ≥ 3%, past Loop's TIR peak (Loop ×1.2 = 73.4 / 2.67). oref never reaches Loop's ×1.0
+  lows (0.59). Worst donor i167 +6.6 t<54 at ×0.7. Summed IOB at the 54 crossing 289 U Loop vs
+  828 U oref ×1.0. oref's ΔTIR tracks scheduled basal (Spearman 0.67): SMB and temp caps scale
+  with basal, so low-basal donors under-dose highs. SMB cap 30→120 min removes that pattern and
+  moves oref along a slightly better curve (×0.9 −2.1, ×1.0 −0.9 [−2.7, +0.7]), but only at t<54
+  3–3.5%. Runs: `runs/2026-10-24-trio-pilot/` (`score.py`; Loop dial arms `lneedNNN`).
 - **Trio → Loop candidates measured, none helps:** oref dynISF on Loop rides the dial (lift −0.05
   [−0.92, +0.58] at ×1.0, −2.57 at ×1.05); autosens and C14 were negative on bddp11; C38 (deviation
   autosens analog) was already NEUTRAL in the ledger.
