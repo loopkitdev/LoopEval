@@ -74,6 +74,13 @@ frontier).
   with basal, so low-basal donors under-dose highs. SMB cap 30→120 min removes that pattern and
   moves oref along a slightly better curve (×0.9 −2.1, ×1.0 −0.9 [−2.7, +0.7]), but only at t<54
   3–3.5%. Runs: `runs/2026-10-24-trio-pilot/` (`score.py`; Loop dial arms `lneedNNN`).
+- **Host bias decides the winner.** On the two Trio hosts (Trio-era ICE, oref at the site's own
+  prefs and presets, Loop with the Trio overrides as Loop overrides), oref leads at equal t<54 by
+  as much as Loop leads on Loop hosts, the other way round: oref ×1.0 +18.2 TIR on orefuser
+  (1 week, Trio 1.0.2 field) and +15.6 on orefuser2 (May, field 0.7.0); +7 to +10 at ×1.1. Each
+  engine wins on data its own dosing shaped, so the replay gives no host-neutral ranking. The only
+  host-neutral evidence is the field switchers (+1.45 TIR, t<54 flat). Runs:
+  `runs/2026-10-24-trio102-orefuser/host2x2/`, `runs/2026-10-23-trio-orefuser2/host2x2/`.
 - **Trio → Loop candidates measured, none helps:** oref dynISF on Loop rides the dial (lift −0.05
   [−0.92, +0.58] at ×1.0, −2.57 at ×1.05); autosens and C14 were negative on bddp11; C38 (deviation
   autosens analog) was already NEUTRAL in the ledger.
