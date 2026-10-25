@@ -198,6 +198,7 @@ not in second-guessing the dose.
 | `Sources/EvalCore/Engine/ClosedLoopSimulator.swift` | The core sim: substrate, counterfactual, closed loop, fidelity, disruption clamps, patient IOB |
 | `Sources/EvalCore/Engine/DosingEngine.swift` | Pluggable controller: `LoopAdapter` / `OpenAPSAdapter` |
 | `analysis/loopeval_analysis/` | Python: scoring, frontier, case_study, iob, disruption CSVs, carb reconstruction |
+| `docs/OVERVIEW.md` | Newcomer's map: the three simulators, natural-experiment validation, how candidates are judged |
 | `docs/FRONTIERS.md` | Frontier-experiment walkthrough |
 | `docs/CASE_STUDIES.md` | Case-study walkthrough |
 | `docs/simulator-guide/README.md` | Deep technical guide to the simulator (GitHub-rendered) |
