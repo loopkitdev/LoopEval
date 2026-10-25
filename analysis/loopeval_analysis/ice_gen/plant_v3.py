@@ -39,6 +39,7 @@ from .dataset import ICE_SCALE
 REC_ZERO_U = D3.REC_ZERO
 # PLANT_IOBNET_SCALE (diagnostic): scales the pending-insulin input the network sees (iob_net); 0 hides it (LESSONS 145)
 IOBNET_SCALE = float(os.environ.get("PLANT_IOBNET_SCALE", "1"))
+IOBNET_COB = os.environ.get("PLANT_IOBNET_COB") == "1"   # diagnostic: iob_net net of entered carbs on board (LESSONS 145)
 from .extract import MODELS, RAPID_ACTING_ADULT
 from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
@@ -377,7 +378,11 @@ class PlantV3:
                 to_come = sum(float(remaining([(t - on).total_seconds() / 3600], sz, m, s_)[0]) for on, sz, m, s_ in self.pulses)
                 x[F["eventual"]] = float(D3.eventual(np.array([now]), np.array([self.ins.iob(t)]), self.isf, self.base_iob, to_come)[0]) / 100
         if "iob_net" in F:
-            x[F["iob_net"]] = IOBNET_SCALE * self.isf * max(self.ins.iob(t) - self.base_iob, 0.0) / 100
+            net_ = self.isf * (self.ins.iob(t) - self.base_iob)
+            if IOBNET_COB:   # diagnostic: pending insulin net of the glucose entered carbs still to absorb add (linear over 3 h)
+                net_ -= sum(g * self.geq * (1 - (t - te).total_seconds() / 10800) for te, g in self.entries
+                            if pd.Timedelta(0) <= t - te < pd.Timedelta(hours=3))
+            x[F["iob_net"]] = IOBNET_SCALE * max(net_, 0.0) / 100
         x[F["pulse"]] = self._pulse_rate(t) / ICE_SCALE
         x[F["since_meal"]] = min(self.since_meal, 24) / 24; x[F["last_size"]] = self.last_size / 50; x[F["n_3h"]] = n3 / 3
         x[F["carbs"]] = self.slot_carbs / 50; x[F["bolus"]] = self.slot_bolus / 5
