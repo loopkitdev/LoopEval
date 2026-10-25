@@ -41,7 +41,7 @@ hash have no surviving traces.
 | [C14](#c14-autosens-term) | Autosens (multi-hour BG-vs-target) | learned (short memory) | built, unswept | — |
 | [C15](#c15-rc-window-knobs) | RC window knobs (retro / duration) | dial-like | scored (panel) | no lift; dur120 harmful |
 | [C16](#c16-manual-bolus-rec-scaling) | Manual-bolus rec scaling | announcer behaviour | scored | +0.185 ISF-dial → +0.036 needs-dial (cautionary case) |
-| [C17](#c17-oref-as-candidate-engine) | oref/OpenAPS as candidate engine | engine | scored (40 pilot donors, 2 Trio hosts, 112 additive people) | **Host-dependent in replay** — each engine wins on its own host (Loop donors −4.1 TIR at equal t<54; Trio hosts +18.2 / +15.6). Host-neutral: additive sim **oref ≈ −3 TIR at equal t<54** (Trio 1.0.2 defaults); field Loop→Trio switchers +1.7 TIR, t<54 flat |
+| [C17](#c17-oref-as-candidate-engine) | oref/OpenAPS as candidate engine | engine | scored (40 pilot donors, 2 Trio hosts, 112 additive people) | **Host-dependent in replay** — each engine wins on its own host (Loop donors −4.1 TIR at equal t<54; Trio hosts +18.2 / +15.6). Host-neutral: additive sim **oref 3–5 TIR behind at equal t<54** (Trio 1.0.2 defaults; replicated on a second draw); field Loop→Trio switchers +1.7 TIR, t<54 flat |
 | [C18](#c18-asymmetric-standard-rc) | Asymmetric **standard** RC (rise-cut without integral RC) | pull-back | scored (4 donors) | **NEUTRAL / dial-like** — closed |
 | [C20](#c20-post-low-gated-rc-rise-cut) | Post-low-gated RC rise-cut (corner candidate) | pull-back, gated | scored (7 beds) | **IMPROVES on 3/7 beds** at (0.3,720,180) — b11_90d +0.019, bddp03 +0.014 (TIR up AND t54 down at op), bddp08 +0.008 — and positive on all 7 (mean ≈ +0.02); best multi-donor result so far |
 | [C21](#c21-fast-rise-gated-rc-rise-cut) | Fast-rise-gated RC rise-cut (meal-rise-stacking corner) | pull-back, gated | scored (bddp11) | NEUTRAL (+0.007 best) — closed |
@@ -373,9 +373,11 @@ gap = oref TIR − Loop TIR at oref's t<54, Loop interpolated along its dial, pe
 | orefuser (Trio host, 1 wk) | 1.04 | +18.2 | +8.2 (×1.1) |
 | orefuser2 (Trio host, May) | 1.98 | +15.6 | +9.5 (×1.1) |
 | 112 additive people × 14 d (host-neutral) | 0.23 | −2.3 [−5.3, +0.3] | −2.8 [−5.0, −1.0] |
+| 112 more additive people (second draw) | | | −4.6 [−7.5, −2.5] |
 
 Replay ranks the engines by host: each wins on the data its own dosing shaped, a bias of about 20 TIR points. The
-additive simulator, built from neither engine's dosing, puts oref about 3 TIR behind at equal t<54 (every t<70 CI below 0);
+additive simulator, built from neither engine's dosing, puts oref 3–5 TIR behind at equal t<54 on two independent draws of
+112 people (second draw −4.1 to −4.7 across ×1.2–1.6, every CI below 0 on CGM, true glucose and t<70);
 oref gives ~10 U/day less insulin at the same setting and the loss grows with insulin need. Field: 28 Loop→Trio
 switchers, net of Loop-only users over the same dates, +1.73 TIR [+0.50, +2.94], t<54 −0.03 [−0.15, +0.09]; settings
 changed at the switch are mixed in. **Verdict:** with Trio 1.0.2 defaults oref is not better than Loop; the switchers'
@@ -1861,7 +1863,9 @@ The same shift right as E59's frontier, slightly larger. At needs ×1.05 runway 
 ## C41 · oref-style dynISF ramp on Loop
 `--candidate-dynisf-mult-high 0.65`: Trio's dose-sizing dynISF as a level ramp on Loop's ISF (trio role, 40 v32 pilot
 donors, `runs/2026-10-24-trio-pilot/`). Lift −0.05 [−0.92, +0.58] at ×1.0, −2.57 [−4.25, −1.48] at ×1.05: it moves
-along the needs dial. **NEUTRAL.** Autosens and C14 were negative on bddp11; C38 is already NEUTRAL.
+along the needs dial. **NEUTRAL.** Autosens and C14 were negative on bddp11; C38 is already NEUTRAL. Host-neutral check on the additive simulator
+(2 draws × 112 people): dynISF +1.87 [+0.31, +3.58] and autosens +1.51 on the first draw, −0.09 / −0.01 on the second —
+NEUTRAL there too; UAM projection (C05) and slow RC neutral.
 
 ## C42 · Faster carb expiry on guard + runway
 Target: post-meal lows in the tight tertile under gr — 24.5 % of real meals (≥ 10 g, entered at ≥ 100 mg/dL) are
