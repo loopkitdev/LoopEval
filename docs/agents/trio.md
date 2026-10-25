@@ -90,11 +90,18 @@ frontier).
   worse). The loss grows with insulin need (Loop-TDD terciles −1.5 / −3.6 / −4.1). Worst person −36.9 TIR:
   78 U/day under Loop, 52 under oref, runs high. Worst true t<54 +1.7. Only at the gentle end (oref ×1.0 vs
   Loop ×0.7, t<54 0.23 vs 0.21) do they tie (+0.06). These people aren't shaped by either engine's dosing,
-  so this direction is not host bias, within the simulator's own known limits. Runs:
-  `runs/2026-10-25-trio-additive/` (`score.py`).
+  so this direction is not host bias, within the simulator's own known limits. **A second draw of 112
+  people (seed0 5000) replicates it, larger:** at equal t<54 ×1.2 −4.6 [−7.5, −2.5], ×1.4 −4.7 [−7.0, −1.6],
+  ×1.6 −4.1 [−6.1, −1.8]; every CI below 0 on CGM, true glucose and t<70. Worst person −38.6 TIR, worst true
+  t<54 +4.3 (×1.6). Runs: `runs/2026-10-25-trio-additive/` (`score.py`; `score_cand.py`, `SUF=_5k` for the
+  second draw).
+- **Trio mechanisms on Loop, host-neutral (additive sim, ×1.0 against Loop's dial):** none survives a second
+  draw. Dynamic ISF ramp (×0.65 at 200 mg/dL) +1.87 [+0.31, +3.58] at equal t<54 on seed 1000, −0.09
+  [−1.26, +0.95] on seed 5000; autosens (gain 0.004, 6 h) +1.51 [−0.16, +3.10] then −0.01 [−1.51, +1.56];
+  UAM projection 45 min +0.42 and slow RC 6 h +0.38, both CIs across 0, first draw only.
 - **Field switchers** (below) are the other host-neutral evidence: +1.73 TIR for Trio, t<54 flat, settings
   changes at the switch mixed in.
-- **Trio → Loop candidates measured, none helps:** oref dynISF on Loop rides the dial (lift −0.05
+- **Trio → Loop candidates on donor replay, none helps:** oref dynISF on Loop rides the dial (lift −0.05
   [−0.92, +0.58] at ×1.0, −2.57 at ×1.05); autosens and C14 were negative on bddp11; C38 (deviation
   autosens analog) was already NEUTRAL in the ledger.
 - **Field, Tidepool 2026-05-15→10-13** (≥30 closed-loop days, single-app days): Trio users median
