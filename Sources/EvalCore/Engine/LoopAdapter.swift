@@ -24,7 +24,8 @@ struct LoopAdapter: DosingEngine {
             perStepIsfMultByTime: req.perStepIsfMultByTime,
             isfBoostActiveOnly: req.isfBoostActiveOnly,
             egpPhysicalDecomposition: req.egpPhysicalDecomposition,
-            timeBasedAFScale: req.timeBasedAFScale
+            timeBasedAFScale: req.timeBasedAFScale,
+            lastAutoBolusAt: req.lastAutoBolusAt
         )
         return EngineStepResult(
             dose: r.dose,

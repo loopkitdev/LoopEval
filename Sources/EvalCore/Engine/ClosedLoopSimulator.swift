@@ -385,6 +385,7 @@ extension EvaluationEngine {
         var baselineConfig = baselineConfig
         var candidateConfig = candidateConfig
         var counterfactualDoses: [EvalInsulinDose] = []
+        var candLastAutoBolusAt: Date? = nil   // Control-IQ reference arm's lockout
         counterfactualDoses.reserveCapacity(2048)
         // The candidate's pump (CandidatePump.swift): temp expiry, basal pulses, disruptions.
         var pump = CandidatePump(pulseQuantum: candidateConfig.basalPulseQuantum)
@@ -1085,7 +1086,8 @@ extension EvaluationEngine {
                         egpPhysicalDecomposition: egpPhysicalDecomposition,
                         tddDoses: data.doses,
                         orefPumpHistoryDoses: stepOrefHist,
-                        timeBasedAFScale: timeBasedAFScale))
+                        timeBasedAFScale: timeBasedAFScale,
+                        lastAutoBolusAt: candLastAutoBolusAt))
                 }
                 // Forecast-gated boost (lows-protection): a boost (mult<1) is only
                 // applied if the candidate's UNBOOSTED forecast PEAK (highest BG
@@ -1146,6 +1148,7 @@ extension EvaluationEngine {
                 }
                 candidateDose = result.dose
                 candidateBolus = result.bolus
+                if candidateBolus > 0 { candLastAutoBolusAt = t }
                 candidateManualBolusRec = calcRecShown ?? result.manualBolusRec
                 candidateTempRate = result.tempRate
                 candidateTempAction = result.tempAction
@@ -2106,7 +2109,8 @@ extension EvaluationEngine {
         perStepIsfMultByTime: [Date: Double]? = nil,
         isfBoostActiveOnly: Bool = false,
         egpPhysicalDecomposition: Bool = false,
-        timeBasedAFScale: Double = 1.0
+        timeBasedAFScale: Double = 1.0,
+        lastAutoBolusAt: Date? = nil
     ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>, manualBolusRec: Double, tempAction: String) {
         let momentumCap: LoopQuantity? = config.positiveVelocityCap.map {
             LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: $0)
@@ -2682,6 +2686,12 @@ extension EvaluationEngine {
                 }
             }
         }
+        // Control-IQ reference trigger: the 30-min point of the forecast, read before any σ band.
+        let pred30: Double = {
+            guard config.autoBolusPred30Min > 0, let t0 = prediction.glucose.first?.startDate else { return .nan }
+            return prediction.glucose.first(where: { $0.startDate.timeIntervalSince(t0) >= 30 * 60 })?
+                .quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter) ?? .nan
+        }()
         let sigmaBandAllowed = (!config.sigmaBandCobGate || (prediction.activeCarbs ?? 0) <= 0) && descentAllowed
         var guardPrediction: [PredictedGlucoseValue]? = nil   // guard-only band: the banded curve, for the guard alone
         if config.sigmaBandK > 0, sigmaBandAllowed, sigma5.isFinite || config.sigmaBandFixedSigma > 0,
@@ -2791,6 +2801,14 @@ extension EvaluationEngine {
         if config.calmHighAfScale != 1.0, calmHighActive {
             appFactor = min(1.0, appFactor * config.calmHighAfScale)
         }
+        // Control-IQ reference arm: an automatic bolus only when the 30-min forecast exceeds the
+        // trigger, and never within the interval after the candidate's last bolus. Output-side by
+        // design: it reproduces another system's rule, it is not a candidate mechanism.
+        if config.autoBolusPred30Min > 0, !(pred30 > config.autoBolusPred30Min) { appFactor = 0 }
+        if config.autoBolusMinIntervalMin > 0, let lastBolus = lastAutoBolusAt,
+           t.timeIntervalSince(lastBolus) < config.autoBolusMinIntervalMin * 60 {
+            appFactor = 0
+        }
         // Calm-high TARGET shift: the temp-basal-reachable form of the same licence. The application
         // factor above only scales an automatic BOLUS, so it is inert on a temp-basal donor (bddp02 and
         // bddp07 issue none). Lowering the correction target enlarges the correction whichever way it is
@@ -2811,6 +2829,23 @@ extension EvaluationEngine {
                             ... LoopQuantity(unit: mgdl, doubleValue: Swift.max(80.0, hi - d)))
                 })
         }
+        // Rise-gated low gate (780G meal detection): while glucose rises steadily, the predicted
+        // minimum may sit up to lowGateRiseDrop below the correction-range floor before the automatic
+        // bolus is gated off, never below the suspend threshold. The forecast and the suspend guard
+        // are unchanged; only the bolus gate loosens.
+        var riseLowGate: Double? = nil
+        if config.lowGateRiseDrop > 0, curBG >= config.lowGateRiseBgMin, let last = effectiveInput.glucose.last,
+           let floor = doseInput.target.last(where: { $0.startDate <= t })?.value.lowerBound.doubleValue(for: mgdl) {
+            let window = last.startDate.addingTimeInterval(-30 * 60 - 150)
+            if let first = effectiveInput.glucose.first(where: { $0.startDate >= window }) {
+                let dtMin = last.startDate.timeIntervalSince(first.startDate) / 60.0
+                if dtMin >= 20.0, (last.quantity.doubleValue(for: mgdl) - first.quantity.doubleValue(for: mgdl)) / dtMin
+                    >= config.lowGateRiseSlope {
+                    let theta = therapy.suspendThreshold(at: t)?.doubleValue(for: mgdl) ?? 70.0
+                    riseLowGate = Swift.max(theta, floor - config.lowGateRiseDrop)
+                }
+            }
+        }
         let doseRec = EvaluationEngine.computeDoseRecommendation(
             prediction: prediction,
             at: t,
@@ -2824,7 +2859,7 @@ extension EvaluationEngine {
             softLowGate: config.softLowGate,
             guardPrediction: guardPrediction,
             basalLockBg: config.basalLockBg,
-            lowGateThreshold: config.lowGateThresholdMgdl,
+            lowGateThreshold: riseLowGate ?? config.lowGateThresholdMgdl,
             uncertaintyCap: config.uncertaintyCapEnabled
                 ? (k: config.uncertaintyK, fmax: config.uncertaintyFmax, low: config.uncertaintyLow,
                    autosensFactor: config.uncertaintyDecoupleAutosens ? autosensFactor : 1.0)

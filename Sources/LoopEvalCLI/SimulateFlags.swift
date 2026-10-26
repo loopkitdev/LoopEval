@@ -588,6 +588,21 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Option(name: .long, help: "Calm-high TARGET shift (mg/dL): in the calm-high state, lower the correction target range by this much. Reaches temp-basal donors, where the application-factor form is inert (they issue no automatic boluses). Suspend threshold untouched. 0 = off.")
     var candidateCalmHighTargetDelta: Double = 0
 
+    @Option(name: .long, help: "Rise-gated low gate (780G meal detection): while glucose rises steadily, let the predicted minimum sit this many mg/dL below the correction-range floor before the automatic bolus is gated off (never below the suspend threshold). 0 = off.")
+    var candidateLowGateRiseDrop: Double = 0
+
+    @Option(name: .long, help: "Rise-gated low gate: trailing 30-min glucose slope (mg/dL/min) that counts as a rise.")
+    var candidateLowGateRiseSlope: Double = 1.0
+
+    @Option(name: .long, help: "Rise-gated low gate: current BG (mg/dL) at or above which it may engage.")
+    var candidateLowGateRiseBgMin: Double = 120.0
+
+    @Option(name: .long, help: "Control-IQ reference arm: no automatic bolus within this many minutes of the candidate's last bolus. 0 = off.")
+    var candidateAutoBolusMinIntervalMin: Double = 0
+
+    @Option(name: .long, help: "Control-IQ reference arm: automatic bolus only when the 30-min forecast exceeds this (mg/dL). 0 = off.")
+    var candidateAutoBolusPred30Min: Double = 0
+
     @Option(name: .long, help: "Runway reserve (C40): spend this fraction of the extra correction that suspending scheduled basal could still take back before a plausible fall (forecast minus z*sigma5 band) reaches the suspend threshold. Delivered as an internal lowering of the correction aim; the user's target is not changed. 0 = off.")
     var candidateRunwayFraction: Double = 0
 
@@ -910,6 +925,11 @@ extension SimulateCommand {
     var candidateCalmHighCobGate: Bool { get { loopExperiments.candidateCalmHighCobGate } set { loopExperiments.candidateCalmHighCobGate = newValue } }
     var candidateCalmHighMinSlope: Double? { get { loopExperiments.candidateCalmHighMinSlope } set { loopExperiments.candidateCalmHighMinSlope = newValue } }
     var candidateCalmHighTargetDelta: Double { get { loopExperiments.candidateCalmHighTargetDelta } set { loopExperiments.candidateCalmHighTargetDelta = newValue } }
+    var candidateLowGateRiseDrop: Double { get { loopExperiments.candidateLowGateRiseDrop } set { loopExperiments.candidateLowGateRiseDrop = newValue } }
+    var candidateLowGateRiseSlope: Double { get { loopExperiments.candidateLowGateRiseSlope } set { loopExperiments.candidateLowGateRiseSlope = newValue } }
+    var candidateLowGateRiseBgMin: Double { get { loopExperiments.candidateLowGateRiseBgMin } set { loopExperiments.candidateLowGateRiseBgMin = newValue } }
+    var candidateAutoBolusMinIntervalMin: Double { get { loopExperiments.candidateAutoBolusMinIntervalMin } set { loopExperiments.candidateAutoBolusMinIntervalMin = newValue } }
+    var candidateAutoBolusPred30Min: Double { get { loopExperiments.candidateAutoBolusPred30Min } set { loopExperiments.candidateAutoBolusPred30Min = newValue } }
     var candidateRunwayFraction: Double { get { loopExperiments.candidateRunwayFraction } set { loopExperiments.candidateRunwayFraction = newValue } }
     var candidateSigmaPrior: Double { get { loopExperiments.candidateSigmaPrior } set { loopExperiments.candidateSigmaPrior = newValue } }
     var candidateSigmaPriorSteps: Double { get { loopExperiments.candidateSigmaPriorSteps } set { loopExperiments.candidateSigmaPriorSteps = newValue } }
