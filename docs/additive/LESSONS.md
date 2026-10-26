@@ -8206,3 +8206,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      ceiling, kabs). Both make the pulse lower and later, and fast falls rise with the peak (L 509). Candidates: meal glucose
      to the ICE integral (`csf_lvl` ~1.2) and a faster main-parcel rise, each scored on two draws, watching the lows
      and the 3-h tail.
+
+512. **Matching the meal pulse's size per entered gram does not bring back the fast falls; a faster main parcel does
+     not move the rise, which the energy ceiling sets. Neither adopted.** Draw 1 on lg13's settings
+     (runs/2026-10-26-additive-pulse; meal_shape.py on each arm):
+     - mA `csf_lvl` 1.2: ICE area 0–4 h per entered g 5.88 → 6.21 (donors 6.41), peak 5.12 → 5.40 (5.49), meal_d3h 34 → 38
+       (38), pulse_peak_per_g 1.05 → 1.08 (1.18). Fast falls after entries 8.9 → 9.4% (16.6); entry_fast_fall 7.1 (14.3).
+       TIR 71.2 → 69.7, t54 0.180 → 0.136, TDD 42.3 → 40.5. Score 0.376 → 0.390, tier 1 0.233 → 0.268.
+     - mB `main_speed` 1.4: onset 20 min and onset-to-peak 45 min unchanged (donors 15 / 35), meal_d3h 32. Score 0.374.
+       The main parcel's emptying runs at the energy ceiling (Vmax 3 kcal/min, L 33), so its own rate constants do not set
+       the rise.
+     - mC both: area 6.33, peak 5.57 (donors'), fast falls 9.8%. Score 0.402, tier 1 0.257.
+     Reading: with the pulse at the donors' size, fast falls rise only as far as L 509's peak mix predicted (10.8%). At a
+     given pulse the twins' bodies still fall fast about half as often, so the missing piece is on the fall side of the
+     meal (how fast glucose is cleared as the pulse ends), not in the pulse. The slower rise sits under the energy
+     ceiling, which L 33 fixed on the donors' glucose distribution.
