@@ -8156,3 +8156,24 @@ outputs in gamepc ~/additive/runs/c290–c312).
      The fast falls need a faster end to the donors' rises, and their rises are steeper too (L 494, 498). That is a
      sharper appearance pulse that L 452 found the gut does not lack in truth, so the missing piece sits between
      appearance and what the CGM shows, or in a mechanism not modelled. Knob kept, default 1.
+
+509. **The twins' meals end like the donors': same relative sharpness, duration, re-rises and per-meal spread. The
+     missing fast falls are not a smoother or later end of appearance, and recorded workouts carry few of them.** Per
+     carb entry (≥ 5 g, first of a 3-h cluster), ICE relative to the person's median, 15-min mean, 0–300 min, on the ice
+     extractor's steps, both sides (runs/2026-10-26-additive-mealshape; donors 29,407 meals / 156 people, lg13 2,184 / 112):
+     - Shape matches. Peak → back to 10% of peak: p10/50/90 15 / 40 / 120 min vs 15 / 35 / 105 (still up at 5 h: 3% both).
+       Largest 30-min drop over the peak: 0.52 / 0.88 / 1.42 vs 0.53 / 0.92 / 1.52. Re-rise 71% both; later entry within
+       5 h 62 vs 56%. Within-person IQR: duration 45 vs 41 min, sharpness 0.43 both.
+     - Size differs. Peak ICE 92 / 176 / 280 vs 62 / 143 / 260 mg/dL/h, at 65 vs 80 min (pulse_peak_per_g 1.18 vs 1.05,
+       failing). Fast falls rise with peak on both sides (donors 6 → 28%, twins 3 → 24% from < 100 to > 300), but twins
+       fall less at the same peak (200–300: 13 vs 22%). Twins' rates on the donors' peak mix give 10.8%, against 9.1%
+       actual and the donors' 16.7%: the smaller peaks explain about a fifth of the gap.
+     - At the fall both sides look alike: 61 vs 65 min after the entry, ICE −112 vs −121, ia 112 vs 114, ICE ≤ 0 in 91 vs
+       88%. The twins' true ra is then a median 27% of the meal's ra peak (< 20% in 39%).
+     - Sensor: the gap is wider on G7 (17.3 vs 8.8%) than G6 (14.1 vs 10.2), where the twins' 5-min steps are also too
+       small (v_sd G7 6.6 vs 7.7, L 457).
+     - Workouts (recorders, 28 donors): meals with a workout in 0–3 h fall fast 17.8 vs 12.8% without, but only 3% of
+       their fast falls have a workout in the hour before (twins 7%). Casual walking is not recorded, so walking stays open.
+     Reading: Pete's hypothesis (gaps or early ends in the upward effect) is not visible in ICE: the twins' pulses end as
+     abruptly and vary as much. What differs is a larger, earlier pulse and a larger share of fast falls at the same pulse,
+     most on G7. Next candidates: the size and timing of the pulse per entered gram, and the G7 short-scale motion.
