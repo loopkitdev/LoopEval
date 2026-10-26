@@ -6,8 +6,11 @@ The goal is to estimate the therapy impact of an algorithm or settings change **
 is ever tried on a person**. It is safety-critical work: insulin dosing errors cause
 hypoglycemia, which can be immediately dangerous.
 
-**Optimization target: TIR ↑ (70–180 mg/dL) AND time-below-54 ↓.** A win on one metric
-that costs the other is not a win.
+**Optimization target: TIR ↑ (70–180 mg/dL) AND time-below-70 ↓.** A win on one metric
+that costs the other is not a win. Time below 54 is a guard, not a target: report it beside
+every result, and treat an unusually large rise in it as disqualifying. Time below 70 is the
+low-side measure because change in it can be predicted; change in t<54 is too rare to rank
+candidates on (ice LESSONS 147).
 
 **Privacy:** Nightscout data is a real person's medical data. Never commit or publish a
 Nightscout URL, hostname, token, or anything identifying. Use placeholders
@@ -136,7 +139,7 @@ instead live fully outside the repo in `~/.loop-eval/<alias>/site.json`.
 
 ## Metrics
 
-- **Primary:** TIR 70–180, time <54. Secondary: time <70, time >180/>250, AUC<70,
+- **Primary:** TIR 70–180, time <70. Guard: time <54. Secondary: time >180/>250, AUC<70,
   AUC>180, mean BG, dose deltas, `kept_frac`.
 - **IOB-at-crossing-54** (`iob_cross54_*` from `score_counterfactual`): committed insulin
   carried into severe lows — a danger axis t<54 duration can't see (rescue carbs
