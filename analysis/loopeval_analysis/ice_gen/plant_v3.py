@@ -169,8 +169,9 @@ class PlantV3:
         self.ge_sg = float(os.environ.get("PLANT_GE_SG", ck.get("ge_sg", 0.0)))
         os.environ["GE_SG"] = str(ck.get("ge_sg", 0.0))   # the warm-up history is built as the network was trained
         # iob_net net of entered carbs on board (dataset_v3m3.iob_net, LESSONS 145): as trained; PLANT_IOBNET_COB overrides
-        self.iobnet_cob = os.environ.get("PLANT_IOBNET_COB", "1" if ck.get("iobnet_cob") else "0") == "1"
-        os.environ["IOBNET_COB"] = "1" if ck.get("iobnet_cob") else "0"
+        cm = {True: "1", False: "0", None: "0"}.get(ck.get("iobnet_cob"), str(ck.get("iobnet_cob")))   # older checkpoints: bool
+        self.iobnet_cob = os.environ.get("PLANT_IOBNET_COB", cm)
+        os.environ["IOBNET_COB"] = cm
         self.bg_bolus = ck.get("calib_bg_bolus")   # bolus heads by glucose band (calibrate_bolus_bg.py)
         es = ck.get("calib_entry_state")
         self.entry_state = (np.asarray(es["bands"]), np.asarray(es["trends"]), np.asarray(es["offset"])) if es else None
@@ -381,9 +382,11 @@ class PlantV3:
                 x[F["eventual"]] = float(D3.eventual(np.array([now]), np.array([self.ins.iob(t)]), self.isf, self.base_iob, to_come)[0]) / 100
         if "iob_net" in F:
             net_ = self.isf * (self.ins.iob(t) - self.base_iob)
-            if self.iobnet_cob:   # pending insulin net of the glucose entered carbs still to absorb add (linear over 3 h)
+            if self.iobnet_cob == "1":   # pending insulin net of the glucose entered carbs still to absorb add (linear over 3 h)
                 net_ -= sum(g * self.geq * (1 - (t - te).total_seconds() / 10800) for te, g in self.entries
                             if pd.Timedelta(0) <= t - te < pd.Timedelta(hours=3))
+            elif self.iobnet_cob == "2":  # net of the meal glucose still to come from the drawn pulses (dataset_v3m3.iob_net)
+                net_ -= sum(float(remaining([(t - on).total_seconds() / 3600], sz, m, s_)[0]) for on, sz, m, s_ in self.pulses)
             x[F["iob_net"]] = IOBNET_SCALE * max(net_, 0.0) / 100
         x[F["pulse"]] = self._pulse_rate(t) / ICE_SCALE
         x[F["since_meal"]] = min(self.since_meal, 24) / 24; x[F["last_size"]] = self.last_size / 50; x[F["n_3h"]] = n3 / 3
