@@ -30,7 +30,8 @@
    - (D) a locked hold-out donor set plus a multiplicity budget;
    - (E) make the operating-point recommender a first-class deliverable;
    - (F) a Loop-vs-oref frontier, which nobody has published on the same patients;
-   - (G) a short list of literature-informed mechanisms that haven't been tried: probability-scaled capped meal priming plus habit prior, late-announcement handling, calibrated (conformal) lower bands, and pooled rather than per-patient learned forecasters.
+   - (G) a short list of literature-informed mechanisms that haven't been tried: probability-scaled capped meal priming plus habit prior, late-announcement handling, calibrated (conformal) lower bands, and pooled rather than per-patient learned forecasters;
+   - (I) the menstrual cycle as the test bed for multi-day needs adaptation, with a BDDP cohort of 177 Loop users who self-label it with overrides.
 
 ---
 
@@ -222,6 +223,69 @@ Three contributions the literature lacks:
 
 Venues: JDST or DT&T for (1) and (2); a short methods note could pair with GluPredKit / MetaboNet, which share our forecasting-isn't-control view (Wolff et al. DT&T 2025).
 
+### I. Multi-day shifts in insulin need: the menstrual cycle
+
+The one multi-day change in insulin need that is both well documented and recurrent. It is also the subgroup where
+our cohort-wide nulls for slow adaptation (C14 autosens, C38 slow RC, the lookback study) may not hold.
+
+**What the literature establishes** [pub]:
+
+- **Direction.** Insulin need is higher in the luteal phase, in every AID cohort of ≥15 people. The one null study is
+  Levy 2022 (Control-IQ, n = 16).
+- **Size.** On AID, TDD rises 3–11% from early follicular to late luteal (López 2026, Takagi 2026, Monroy 2025,
+  Struckmeyer 2026, Hossmann 2026). Hossmann's latent-SI model gives about ±2.6% around each person's mean.
+  - Part of the TDD rise is carbs: +6–7% in Hossmann and Takagi.
+  - The rise survives adjustment for carbs in basal and automatic correction (Takagi).
+- **Timing.**
+  - Need peaks somewhere from mid to late luteal.
+  - It drops sharply at bleeding onset (Tatulashvili 2022).
+  - Early follicular is the hypoglycaemia window: higher time below 70 in Hossmann, López, Mesa and Tatulashvili.
+  - t<54 shows no phase difference where it is reported.
+- **Adaptive AID absorbs only part of it.**
+  - 780G, with nightly TDD-based adaptation, delivers the extra through auto-correction (Takagi; Elhenawy 2024), yet
+    still loses 2–3.5 TIR points in the luteal phase.
+  - On hypo-prone users, 780G turned a follicular-low pattern into a luteal-high one (Mesa 2024).
+  - Hossmann and Takagi both point to learning horizons that lag the change.
+- **Heterogeneity.** A minority go the other way: Widom 1992, 9 of 16; Mewes 2023, 5 of 12 cut insulin at onset. A
+  population-fixed schedule would mis-dose them.
+- **What has never been tested.**
+  - No cycle-aware dosing has been tested in humans. The only test is in silico: Diaz 2022, an SI multiplier keyed to
+    phase on UVA/Padova, which "stabilized" metrics with no extra hypoglycaemia.
+  - Within-person consistency from cycle to cycle is unmeasured.
+  - No method infers the phase from CGM and insulin alone.
+- **Phase anchors.** Wearable temperature dates ovulation to about ±1.2–1.6 days (Apple wrist temperature,
+  Wang 2025; Oura, Thigpen 2025). HealthKit exposes `menstrualFlow` and sleeping wrist temperature, and Loop already
+  reads HealthKit.
+
+**What BDDP shows** [meas, 2026-10-25]:
+
+- **The cohort.** 177 Loop users have used an override named for their cycle, at a median ×1.2. 64 of them have 193
+  multi-day runs, lasting a median 5 days.
+- **Timing is irregular.** The per-person SD of the gap between runs is a median 10 days.
+- **Before switch-on**, glucose rises for about 3 days. On the day before, it runs +11.5 mg/dL [8.1, 14.9] even
+  though Loop already delivers +12% TDD. Loop's own feedback absorbs part of the shift, not all of it.
+- **Under the override**, glucose returns to baseline at +11% TDD, with t<70 and t<54 unchanged. It is still
+  under-covered late in the run.
+- **Switching off** brings no lows over the next 7 days.
+- **Dexcom G7 "cycle" logs** are a weak anchor by comparison. Measured person-weighted, glucose shows no reliable
+  change around them.
+
+**Paths** [hyp; candidates belong to frontier]:
+
+1. **Replay the override runs with and without the recorded override.** This measures how much of the person's
+   correction Loop would find unaided. Under way as TIDEPOOL-96.
+2. **A multi-day needs adapter**, scored on this cohort rather than cohort-wide. Does it catch the 2–3 day rise before
+   the person did? Does it release at onset without follicular lows?
+   - The person's own ×1.1–1.2 is a known-good reference.
+   - The safety test is t<54 and IOB at the 54 crossing in the 7 days after release.
+3. **Prompt the person, rather than schedule.** Timing this irregular argues against a calendar schedule. A "suggest
+   your cycle preset" prompt, triggered by the multi-day pattern, matches the data better.
+4. **Anchor the phase from HealthKit** (flow, wrist temperature). BDDP does not carry these, so it is a design input
+   rather than something we can replay.
+
+Full report with 68 verified references: `runs/2026-10-25-cycle/cycle-lit-report.md`. Additive-side evidence is in
+`docs/handoffs/2026-10-25-additive-cycle-and-site-failures.md`.
+
 ---
 
 ## 6. Corrections to watch for when reading the agents' source notes
@@ -277,3 +341,19 @@ Venues: JDST or DT&T for (1) and (2); a short methods note could pair with GluPr
 - Lal RA et al. AAPS vs Loop in diabetic pigs. *Clin Transl Med* 2021. doi:10.1002/ctm2.387
 - Lal R, Braune K, Lewis DM et al. Open-source fully closed loop review. *Diabetologia* 2026. doi:10.1007/s00125-025-06644-8
 - Ibrahim M et al. Meal detection systematic review. *PLOS Digit Health* 2026.
+
+**Menstrual cycle** (DOIs resolved 2026-10-25)
+- Hossmann S et al. Menstrual cycle and insulin sensitivity on AID. *Diabetes Care* 2026;49:1673–1680. doi:10.2337/dc26-0692
+- Takagi E et al. Menstrual insulin requirements on AHCL. *J Diabetes Investig* 2026. doi:10.1111/jdi.70463
+- López TR et al. Glycemic control across the cycle on AID. *Diabetes Obes Metab* 2026;28:4884–4889. doi:10.1111/dom.70673
+- Monroy G et al. 780MENS. *DT&T* 2025;27:395–401. doi:10.1089/dia.2024.0522
+- Struckmeyer N et al. Cycle and insulin needs on AID in adolescents. *J Pediatr Endocrinol Metab* 2026;39:990–999. doi:10.1515/jpem-2026-0309
+- Elhenawy YI et al. 780G and cycle-dependent variability. *Diabetes Obes Metab* 2024;26:4916–4923. doi:10.1111/dom.15891
+- Mesa A et al. AHCL across the cycle in hypo-prone women. *DT&T* 2024;26:667–672. doi:10.1089/dia.2023.0571
+- Levy CJ et al. Insulin delivery across the cycle on closed loop. *DT&T* 2022;24:357–361. doi:10.1089/dia.2021.0431
+- Tatulashvili S et al. AGP by cycle phase. *J Clin Endocrinol Metab* 2022;107:2793–2800. doi:10.1210/clinem/dgac443
+- Widom B et al. Glucose metabolism across the cycle in IDDM. *Diabetes Care* 1992;15:213–220. doi:10.2337/diacare.15.2.213
+- Diaz C JL et al. Insulin replacement across the cycle: in silico. *DT&T* 2022;24:832–841. doi:10.1089/dia.2022.0154
+- Mewes D et al. Cycle and open-source AID: qualitative study. *JDST* 2023;17:1304–1316. doi:10.1177/19322968221080199
+- Wang Y et al. Wrist temperature for ovulation and next-menses estimates. *Hum Reprod* 2025;40:469–478. doi:10.1093/humrep/deaf005
+- Thigpen N et al. Oura ring ovulation detection. *J Med Internet Res* 2025;27:e60667. doi:10.2196/60667
