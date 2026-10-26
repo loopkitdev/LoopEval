@@ -58,6 +58,8 @@ class BodyParams:
                                    # mid / high insulin; mapped [J] to 1 / 3 / 8× basal), scaled by the person's κ / 0.68
     kappa: float = 0.15            # glucose-dependence of insulin-mediated uptake: 1 = Bergman (X·G), 0 = linear (Loop) [J]
     low_prop: bool = True          # below Gb, uptake ∝ G (vanishes with glucose); False only for the linear calibration part
+    ex_post: bool = False          # experiment: the exercise sensitivity boost multiplies insulin's action on glucose (after the remote
+                                   # compartment, Breton 2008 / Dalla Man 2009) instead of the insulin entering it (40-min p2 lag)
     gb: float = 119.0              # mg/dL, rest point at true basal insulin
     egp_b: float = 2.5             # mg/kg/min at basal insulin
     rthr: float = 180.0            # renal threshold, mg/dL
@@ -325,7 +327,7 @@ class Body:
         self.ra = ra
 
         # --- insulin action
-        si = p.si_d * si_mult * si_d_mult * (1.0 + ex_si_boost)   # si_d_mult: peripheral disposal only (LESSONS 410)
+        si = p.si_d * si_mult * si_d_mult * (1.0 + (0.0 if p.ex_post else ex_si_boost))   # si_d_mult: peripheral disposal only (LESSONS 410)
         self.xd += dt * p.p2 * (si * I - self.xd)
         se = p.se * si_mult
         u_h = (I - p.ib) / p.ib
@@ -354,7 +356,8 @@ class Body:
             kr = 0.24 if r_ <= 1.0 else 0.24 + 0.44 * (r_ - 1.0) / 2.0 if r_ <= 3.0 else 0.68 + 0.10 * min(r_ - 3.0, 5.0) / 5.0
             kap = p.kappa * kr / 0.68
         mm = p.gb + kap * (g - p.gb) if (g >= p.gb or not p.low_prop) else g
-        dg = (-p.sg * (g - p.gb) - (self.xd * mm * self.risk(g) - p.si_d * p.ib * p.gb)
+        xact = self.xd * (1.0 + ex_si_boost) if p.ex_post else self.xd
+        dg = (-p.sg * (g - p.gb) - (xact * mm * self.risk(g) - p.si_d * p.ib * p.gb)
               + (egp - p.egp_b - uex + ra + util_drop) / p.vg - renal)
         self.g = max(10.0, g + dt * dg)
         self.minute = m + dt

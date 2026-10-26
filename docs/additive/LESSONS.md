@@ -8078,3 +8078,81 @@ outputs in gamepc ~/additive/runs/c290–c312).
      respond at the tight end and their TIR does not turn flat or negative. The rest point only moves the level; the
      damping (L 493: SG, κ, proactive defence) is what holds the response, and it is not in the rest point. Switch and
      column kept, off.
+
+505. **Delivering through skipped and sensor-less cycles barely moves the cohort; lg13 replaces lg12 as the reference.**
+     Before main 8fa8411 (rewritten 4c80c60c) the engine sent the plant no basal for a cycle with no decision (skipped,
+     or no glucose in the input window), so a twin with a sensor gap got no insulin across it: on gb / gb5k
+     (2026-10-24-additive-control) 16–23 of 112 twins had an uncommanded stretch ≥ 4 h and 3–4 ≥ 12 h (v05073: 23 h, 0.01 U,
+     BG 442). lg12's model rerun on a build of main 7272515 (runs/2026-10-25-additive-rebuild, lg13 / lg13_5k vs lg12 /
+     lg12_5k): no zero-delivery run ≥ 12 h is left (the 22 / 25 twins with one ≥ 4 h are Loop's own zero temps); score
+     0.371 → 0.376, 0.413 → 0.415 (within draw scatter, L 444); mean 154.9 → 154.1, 156.5 → 157.2; TIR 70.6 → 71.2,
+     68.0 → 67.5; t54 0.186 → 0.180, 0.204 → 0.208; zero_frac 30.2 → 30.1, 30.6 → 30.9; meal_d3h 31.5 → 34.0, 36.0 → 34.0;
+     act_net20 −1.8 → −0.3, +0.13 → +0.38. Change test (65 events, 4 seeds): field / twin ratio mean 2.14 → 1.97, t70
+     4.18 → 3.89, t54 10.0 → 8.3; control-level gradient per 10% more aggressive, tight | rest: TIR +2.26 | +1.84 (was
+     +1.78 | +2.09), t70 +0.40 | +0.27 (+0.45 | +0.19); field −1.64 | +5.55, +4.35 | +0.08. Twins of tight donors still
+     sit at mean 153 against their donors' 126 (L 503): the gaps were not where the level gap lives. The same build also
+     carries main 07d91f3 (the trace's candidate delivery[] = what the body received; scoring reads it only after burn-in).
+
+
+506. **After a settings edit the donors' Loop gives about as much extra insulin as the twins' Loop; the donors' glucose
+     moves about 1.6× further per unit of it.** Read-only, the 65 edits of the change test on lg13's change arm
+     (runs/2026-10-25-additive-rebuild/analysis/tdd_resp.py; field delivery from the ice_v32 steps, 13 days before / days
+     1–14 after, disrupted steps out). Per log unit of the insulin index x, with the CR and target changes as covariates:
+     - delivered log TDD: field +0.30 [+0.12, +0.55], twins +0.24 [+0.20, +0.29]; field basal +0.35, boluses +0.30;
+     - mean BG: field −34, twins −17, i.e. −114 vs −71 mg/dL per log unit of extra delivered insulin;
+     - field IOB +1.3 U, and a smaller share of insulin delivered above 180 (−0.17): their extra insulin arrives before the
+       highs; entered carbs and entries do not change (+0.18, −0.06, CIs over zero).
+     Controlling for the need shift d_ice takes the field's delivery response to +0.07, and to −0.12 in the half with the
+     smallest shift, while the glucose slope stays at −34 / −40. d_ice is not independent of the edit, though: ICE is
+     computed with the settings ISF (corr with x 0.36, with delivery 0.59), so this split is not identified. Delivered
+     insulin explains none of the field's glucose change once x is in (coefficient −1 [−61, +17]); in the twins it carries
+     a quarter of it (x alone −16.7, with t_dl −12.7).
+     So Loop taking back the extra insulin is not what damps the twins (L 503's "~3%" was frontier's ×1.05, or 0.24 per
+     log unit, as in the field). What damps them is glucose moved per unit of insulin sustained over days. Over 60–180 min
+     single corrections already match the donors' (L 294), so the gap is in the slow restoring force toward the rest point
+     (SG, κ) and the defence (L 493), not in ISF.
+
+507. **The missing fast falls are not dosing and not the average insulin response. They come where the twins' insulin is
+     weakest, after meals they did not enter, and moving the exercise boost does not supply them.** Run dir
+     runs/2026-10-25-additive-fastfall (ice steps both sides, lg13 vs the pilot donors, CGM 120–250 unless stated):
+     - **Exposure matches.** Hours / day at Loop's insulin effect ia (settings ISF × activity) < 40 / 40–70 / 70–100 /
+       100–140 / > 140 mg/dL/h: donors 2.25 / 4.57 / 3.70 / 2.28 / 0.96, twins 1.79 / 5.04 / 4.05 / 2.34 / 1.02
+       (`ia_states.py`). A fast fall (< −150 mg/dL/h over 15 min) looks the same on both sides: ia 96, ICE −78 / −85, IOB
+       4.2 / 3.9, start 189 / 198 (`fall_decomp.py`); the twins' true glucose falls only −84 in theirs.
+     - **Medians match, spread does not** (`ia_spread.py`): 15-min slope median −8 / −16 / −30 vs −8 / −16 / −32 in the
+       three top ia bins, SD 72 / 80 / 87 vs 60 / 66 / 74, both tails.
+     - **Two places** (`ia_spread_ctx.py`): within 3 h of an entry the donors' spread is wider, mostly rises (p90 148 / 120
+       vs 108 / 84 at ia 40–100). In quiet periods (no entry for 5 h, CGM 100–200) the donors' fall grows with ia, −28 /
+       −52 / −66 / −84 at 70–100 / 100–130 / 130–170 / > 170, and the twins' flattens, −24 / −36 / −44 / −48 (`ia_spread_g2.py`).
+     - **Not the body's insulin terms.** Clamp probe at 150 mg/dL on 12 twin bodies: disposal above basal +0.80 / +1.45 /
+       +2.01 / +3.04 / +3.57 mg/kg/min at 2 / 3 / 4 / 6 / 8 × basal insulin, near linear to 4×; EGP 2.56 → 1.13 at 4×.
+     - **The twins' quiet high-insulin windows are not quiet** (`quiet_truth.py`). True appearance runs at 1.2–1.5
+       mg/kg/min (unentered meals and grazing), and effective SI is 0.70–0.74 of the person's against 1.06 at low ia.
+       After-meal resistance off (`ppr_a` 0), fat off and glucotoxicity off each lift it, to 0.77–0.80, 0.68–0.85 and
+       0.72–0.75 (32 twins × 10 days, 4–12 people in the top bins, slopes too noisy to read). No single term carries it,
+       and causation runs both ways: resistance keeps glucose up, so Loop doses more.
+     - **Activity is not the source.** The fragmented waking background (sitting / short bouts, LESSONS 161) swings the
+       SI boost 0.1–1.0 within 15 min. But the boost entered the remote-insulin compartment (p2, ~40-min lag), so the
+       swings were smoothed away: frag off leaves the 15-min SD unchanged (55–71 vs 55–69). `ex_post` (the boost on
+       insulin's action, as in Breton 2008 / Dalla Man 2009; off) also leaves it unchanged (54–68), with mean and TIR
+       unchanged and t54 within the small sample's noise. Stays off.
+     Reading: the fast falls the twins lack come at the end of meals (logged or not), when the donors' insulin acts at
+     full strength. The twins' after-meal and fat resistance, which carry the 3-h meal tail (L 408, 436), are what hold
+     their insulin at ~70% then. A tail made by late appearance instead of resistance would allow both. Whether the donors'
+     tail is appearance or resistance cannot be read from CGM; it needs Pete's call or tracer evidence (L 452 found the
+     twins' appearance already at the fast end of Elleri 2013).
+
+508. **A meal tail made by slower late appearance in place of after-meal and fat resistance does not bring back the
+     fast falls and loses the tail; not adopted.** Draw 1 on lg13's settings (runs/2026-10-25-additive-tail, `fat_rho_mult`
+     scales the per-person fat ρ):
+     - tA: `ppr_a` 0.2, fat ρ × 0.75, slow late share 0.3. Score 0.376 → 0.436, tier 1 0.233 → 0.341; meal_d3h 34 → 27
+       (donors 38), lows 0.92 → 0.83 / day, t54 0.180 → 0.119, TIR 72.9.
+     - tB: `ppr_a` 0, fat ρ × 0.5, slow late share 0.35 at kmin 0.005. Score 0.494, tier 1 0.456; meal_d3h 18, lows 0.75,
+       t54 0.088, TIR 75.9, CV 31.8.
+     - Neither arm moves the fall rows. entry_fast_fall 7.3 / 7.7 vs 7.9% (donors 14.3); fast_fall_share G7 1.31 / 1.51 vs
+       1.53 (2.80); unl_rise_rate 46 / 44 vs 47 (55).
+     With insulin at full strength after meals, Loop absorbs a slow late appearance easily: the tail goes and the lows go
+     with it, and no fast fall appears. L 507's ~70% insulin in the quiet high-ia windows is a consequence, not the cause.
+     The fast falls need a faster end to the donors' rises, and their rises are steeper too (L 494, 498). That is a
+     sharper appearance pulse that L 452 found the gut does not lack in truth, so the missing piece sits between
+     appearance and what the CGM shows, or in a mechanism not modelled. Knob kept, default 1.

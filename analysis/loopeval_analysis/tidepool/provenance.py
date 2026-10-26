@@ -21,8 +21,10 @@ as a staleness verdict.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
+import secrets
 import shutil
 import sys
 import time
@@ -47,10 +49,30 @@ def etl_source_hash() -> str:
     return h.hexdigest()[:12]
 
 
+_SALT_FILE = os.path.expanduser("~/.loop-eval/uid_salt")
+
+
+def _uid_salt() -> bytes:
+    """Secret key for the fingerprint: $LOOPEVAL_UID_SALT, else ~/.loop-eval/uid_salt, created on
+    first use (owner-only). It never enters the repo, so the fingerprint can't be matched back to
+    a `_userId` by anyone holding a list of them."""
+    env = os.environ.get("LOOPEVAL_UID_SALT")
+    if env:
+        return env.encode()
+    if not os.path.exists(_SALT_FILE):
+        os.makedirs(os.path.dirname(_SALT_FILE), exist_ok=True)
+        fd = os.open(_SALT_FILE, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w") as fh:
+            fh.write(secrets.token_hex(32))
+    with open(_SALT_FILE) as fh:
+        return fh.read().strip().encode()
+
+
 def _uid_fingerprint(user: str) -> str:
-    """Never store the raw `_userId` — it is a pseudonymous access key. A hash still lets
-    an export be matched to a donor without carrying the key around."""
-    return hashlib.sha256(str(user).encode()).hexdigest()[:12]
+    """Never store the raw `_userId` — it is a pseudonymous access key. A keyed hash (HMAC-SHA-256
+    with a secret salt, as Tidepool's own export does) still lets an export be matched to a donor
+    without carrying the key around."""
+    return hmac.new(_uid_salt(), str(user).encode(), hashlib.sha256).hexdigest()[:16]
 
 
 def write_manifest(outdir, user, start, end, counts=None):

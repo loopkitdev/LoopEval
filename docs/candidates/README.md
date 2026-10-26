@@ -85,7 +85,7 @@ hash have no surviving traces.
 | [E57](#e57--the-additive-simulator-896-people-reduced-carb-entry-and-the-temp-basal--automatic-bolus-switch) | *Experiment*: paired arms on the additive simulator (896 people × 14 d, frozen code), split by carb-entry habit and dosing strategy; announce_mult 1 / 0.5 / 0 on the same people; temp-basal people forced to automatic bolus | — | done | **C31(−30) + guard (C29 band + C20) is the reduced-entry pairing: TIR +0.70 / +1.00 at half / no entry with t<54 −0.03 / 0.00, safe at full entry (+0.28, −0.02).** C01 and the licence fail people who skip entry. IRC + guard: +3 to +4.5 TIR but adds lows. Switching temp → automatic bolus: TIR +3.5, t<54 +0.36; trouble is predicted by pre-switch t<70 and CV; the guard halves the added lows at no TIR cost |
 | [C41](#c41--oref-style-dynisf-ramp-on-loop) | oref-style dose-sizing dynISF ramp on Loop (`--candidate-dynisf-mult-high 0.65`) | dial-like | scored (40 pilot donors, trio) | **NEUTRAL** — lift −0.05 [−0.92, +0.58] at ×1.0, −2.57 at ×1.05; it is the dial |
 | [C42](#c42--faster-carb-expiry-on-guard--runway) | Faster carb expiry on guard + runway: absorption overrun 1.0 / 1.2 (stock 1.5), adaptive absorption | pull-back | scored (189 donors) | **WORSE** — every arm loses TIR to gr (−1.23 / −0.62 / −0.32) at no better t<54 or t<70; cuts post-meal lows by acting on every meal. Closed in blanket form |
-| [C43](#c43--outcome-keyed-insulin-needs-rule-r2) | Outcome-keyed insulin needs (R2): per-person needs ×0.95–1.10 from the prior 28 days' CGM, on gr | personalisation, dial-like per person | scored (189 donors, replay); generator check requested | **Promising, unconfirmed** — +1.98 TIR [+1.59, +2.40], t<54 +0.16 [+0.08, +0.24] vs gr: fails the pre-registered replay bar (≤ +0.02), but +1.2 TIR above the uniform dial at equal t<54; gains are in the middle/high tertiles, tight ≈ 0 / 0. Field edits by eligible people agree in direction |
+| [C43](#c43--outcome-keyed-insulin-needs-rule-r2) | Outcome-keyed insulin needs (R2): per-person needs ×0.95–1.10 from the prior 28 days' CGM, on gr | personalisation, dial-like per person | scored (189 donors replay; 166 donors ICE generator) | **Passes on the generator** — generator +1.29 TIR, t<54 +0.034 (bar +0.05), tight t<70 flat; replay +1.98 TIR [+1.59, +2.40], t<54 +0.16 [+0.08, +0.24] vs gr: fails the pre-registered replay bar (≤ +0.02), but +1.2 TIR above the uniform dial at equal t<54; gains are in the middle/high tertiles, tight ≈ 0 / 0. Field edits by eligible people agree in direction |
 | [E61](#e61--switching-from-irc--gbaf-to-guard--runway) | *Experiment*: what a person running IRC + GBAF sees if they move to guard + runway (189 donors) | — | done | **Keep IRC and GBAF on top of gr.** gr alone vs IRC + GBAF: −2.21 TIR, t<54 −0.66 (high tertile −5.0); gr + IRC + GBAF: −0.21 [−0.57, +0.26], t<54 +0.03 |
 
 ---
@@ -1907,7 +1907,22 @@ tight tertile flat on both axes (t<54 −0.06 [−0.20, +0.08]). The lows condit
 vs 63 %) at the same Δt<54 for 0.5 TIR less. Field check: 25 real settings edits by people R1 would raise, ~6 % stronger,
 gained TIR +5.7, t<70 +0.53, t<54 +0.12 (replay predicted +0.68 t<54, the ICE generator +0.14); stronger edits by
 non-eligible people lost −5.3 TIR. Replay t<54 is overstated on edits (M11), so the field and generator numbers carry the
-lows side. **Promising, unconfirmed** — ICE-generator check requested (handoff 2026-10-25 ice-needs-rule-r2).
+lows side.
+
+**ICE generator** (ice reply `2026-10-25-frontier-needs-rule-r2-ice-reply.md`, `runs/2026-10-25-ice-r2/`): 166 donors in
+both the CSV and the checkpoint, two trainings, last 28 pilot days, deployed controller config, gr flags as above;
+paired vs gr, person bootstrap 90 %.
+
+| arm | ΔTIR | Δt<54 | Δt<70 | tight ΔTIR / Δt<54 / Δt<70 |
+|---|---|---|---|---|
+| **R2** | **+1.29 [+1.05, +1.54]** | **+0.034 [+0.018, +0.049]** | +0.15 | +0.10 / −0.016 / −0.03 [−0.09, +0.02] |
+| all ×1.05 | +0.94 [+0.77, +1.12] | +0.049 [+0.035, +0.062] | +0.19 | +0.42 / +0.057 / +0.23 [+0.16, +0.29] |
+
+Both bars set in the handoff hold: Δt<54 under +0.05 and the tight tertile's t<70 flat. R2 beats the uniform ×1.05 on
+both axes, and the back-off is what spares the tight tertile. The high tertile carries most of the gain (+2.68) and the
+largest lows cost (+0.071). Limit: the generator's response to delivered insulin runs about 0.7 of the field's (ice
+LESSONS 145); scaled up, R2's Δt<54 reads about +0.05, at the line. **Verdict: passes on the generator, the tool that
+sizes lows changes correctly; re-score pending on ice's carbs-aware retrain.**
 
 ## E61 · Switching from IRC + GBAF to guard + runway
 Question: does someone running IRC and GBAF lose TIR by moving to gr? Arms irc_gbaf (IRC for standard-RC donors,
