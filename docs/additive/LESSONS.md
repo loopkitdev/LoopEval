@@ -8093,3 +8093,21 @@ outputs in gamepc ~/additive/runs/c290–c312).
      sit at mean 153 against their donors' 126 (L 503): the gaps were not where the level gap lives. The same build also
      carries main 07d91f3 (the trace's candidate delivery[] = what the body received; scoring reads it only after burn-in).
 
+
+506. **After a settings edit the donors' Loop gives about as much extra insulin as the twins' Loop; the donors' glucose
+     moves about 1.6× further per unit of it.** Read-only, the 65 edits of the change test on lg13's change arm
+     (runs/2026-10-25-additive-rebuild/analysis/tdd_resp.py; field delivery from the ice_v32 steps, 13 days before / days
+     1–14 after, disrupted steps out). Per log unit of the insulin index x, with the CR and target changes as covariates:
+     - delivered log TDD: field +0.30 [+0.12, +0.55], twins +0.24 [+0.20, +0.29]; field basal +0.35, boluses +0.30;
+     - mean BG: field −34, twins −17, i.e. −114 vs −71 mg/dL per log unit of extra delivered insulin;
+     - field IOB +1.3 U, and a smaller share of insulin delivered above 180 (−0.17): their extra insulin arrives before the
+       highs; entered carbs and entries do not change (+0.18, −0.06, CIs over zero).
+     Controlling for the need shift d_ice takes the field's delivery response to +0.07, and to −0.12 in the half with the
+     smallest shift, while the glucose slope stays at −34 / −40. d_ice is not independent of the edit, though: ICE is
+     computed with the settings ISF (corr with x 0.36, with delivery 0.59), so this split is not identified. Delivered
+     insulin explains none of the field's glucose change once x is in (coefficient −1 [−61, +17]); in the twins it carries
+     a quarter of it (x alone −16.7, with t_dl −12.7).
+     So Loop taking back the extra insulin is not what damps the twins (L 503's "~3%" was frontier's ×1.05, or 0.24 per
+     log unit, as in the field). What damps them is glucose moved per unit of insulin sustained over days. Over 60–180 min
+     single corrections already match the donors' (L 294), so the gap is in the slow restoring force toward the rest point
+     (SG, κ) and the defence (L 493), not in ISF.
