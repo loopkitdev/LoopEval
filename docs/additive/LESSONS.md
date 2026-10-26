@@ -8177,3 +8177,16 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Reading: Pete's hypothesis (gaps or early ends in the upward effect) is not visible in ICE: the twins' pulses end as
      abruptly and vary as much. What differs is a larger, earlier pulse and a larger share of fast falls at the same pulse,
      most on G7. Next candidates: the size and timing of the pulse per entered gram, and the G7 short-scale motion.
+
+510. **Most of the twins' after-meal CGM fast falls are already made by the sensor; their bodies seldom fall fast.
+     A noisier G7 would close the count with sensor falls, so the body is where the gap is.** Same meals as L 509,
+     twins' true glucose on the same rule (runs/2026-10-26-additive-mealshape, sensor_split.py):
+     - Twins: 194 meals with a CGM fast fall, 75 of them also fast in truth (true fast fall within 2 h: G6 2.9%, G7 4.3%,
+       against CGM 9.7 / 8.6%). At a G7 fall the true slope is a median −123 mg/dL/h; at a G6 fall −56 (CGM − true −18).
+     - Aftermath tells them apart in twins: sensor-made falls rebound within 15 min in 27% and lose 17 mg/dL over 30 min;
+       true falls rebound in none and lose 68.
+     - Donors: rebound 16% on G6 and G7 alike, 30-min change −23 / −27. Twins' G7 −31 and 15% (like the donors); twins' G6
+       −12 and 35% (mostly sensor). On the twins' signatures the donors' falls are a mix, not mostly artifacts.
+     Reading: matching G7 v_sd (L 457) by sensor noise alone would add falls that rebound, the false-lows trap of
+     c384–c391 (L 393). The donors' falls need true fast falls in the body: L 509's larger, earlier pulse per entered
+     gram is the lead.
