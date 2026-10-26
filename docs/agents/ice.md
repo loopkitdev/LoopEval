@@ -51,7 +51,7 @@ announcement, slow random state, monthly cycle) — a dial moves the behavior it
 | 1 | Distance to the person's held-out weeks ≤ the distance between two of the person's own real periods. Reported as a pass rate over statistics × donors, worst donor listed. |
 | 2 | Generated value within the person's own week-to-week range (or the pooled confidence interval for pooled rates). |
 | 3 absolute | Field outcome inside the 10th–90th percentile of the person's generated runs; pooled bias smaller than a typical person's week-to-week variation in that outcome. |
-| 3 change | Predicted change accurate to about half a typical candidate lift (a few TIR points, a few tenths of a point of t<54), or it cannot rank candidates. |
+| 3 change | Predicted change accurate to about half a typical candidate lift (a few TIR points, a few tenths of a point of t<70), or it cannot rank candidates. The low side is judged on **t<70**; t<54 is reported beside it and acts only as a guard against unusually large jumps (LESSONS 147). |
 
 These are starting values: measure the natural-variation side of each bar first, and tighten or
 loosen a bar only on that evidence, recorded in the lessons file.

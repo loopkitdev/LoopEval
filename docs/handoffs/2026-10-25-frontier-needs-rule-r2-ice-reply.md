@@ -20,7 +20,7 @@ shows exactly what R2's back-off avoids: t<70 +0.23 [+0.16, +0.29] and t<54 +0.0
   multipliers are taken as given from the CSV.
 - **Controller:** each donor's deployed config, with RC from `rc_mode.csv`, GBAF where deployed, and their strategy.
   gr flags exactly as in `dr/run.py`, with σ5 from `SIG`.
-- **Engine:** main f0ebf9b, Linux release build on gamepc.
+- **Engine:** main d0fd0d0 (f0ebf9b before the 2026-10-25 history rewrite), Linux release build on gamepc.
 - **Scores:** CGM and true glucose, all time and clean time. The four readings agree to within 0.15 TIR and 0.005 t<54,
   so only CGM, all time is shown.
 

@@ -1495,4 +1495,44 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Hiding the input fixes the response but drops the level 23 mg/dL; netting carbs out keeps the level error the same
     size and gets two thirds of the response, without retraining. Not kept yet. Both are test-time edits to an input the
     network was trained on. The fix to keep is a carbs-aware projection in the dataset (dataset_v3m), retrained on both
-    seeds. cob1 is first being checked on the 350 non-CR edits for regressions.
+    seeds.
+    On all 434 edits (pw_score.py on the cob1 runs; x 97 / e 337 scored), cob1 against base, pre-window r:
+    - **mean:** 0.41 / 0.36 (x) and 0.42 / 0.36 (e), both 90% intervals −0.01 to +0.13; |err| 9.8 / 10.0 and 10.0 / 10.5.
+    - **TIR and t70:** no difference beyond noise on either set.
+    - **t54:** r 0.31 / 0.29 (x) and 0.07 / 0.12 (e), but |err| rises 0.37 → 0.50 and 0.40 → 0.68. Predicting no change
+      scores 0.30 / 0.31.
+    - **own-settings level:** mean error median −11 mg/dL on both sets, against near zero for base.
+    As a test-time switch, cob1 lowers glucose across the board and adds lows. The calibrations after training (level
+    band, low band, low kernel) were fit with the old input, so they no longer offset it. Not kept as a switch. The
+    retrain, with the whole calibration chain rerun on the new input, is the test (arm oc, `runs/2026-10-25-ice-cob/`).
+146. **Glucose effectiveness, arm A (SG 0.0045/min, the prior median), does not beat the base; not kept.** The of recipe was
+    retrained with GE_SG on both seeds (gb arm, chain_ge.sh in runs/2026-10-24-ice-ge/, frozen ice-ge). The plant subtracts
+    60·SG·G and the network learns the residual. Results, gb vs of, seed 0 / 1:
+    - **held-out (88 pilot donors, 3 seeds):** TIR bias −5.3 / −6.5 vs −0.7 / −3.0; t70 bias +1.24 / +1.73 vs +0.45 /
+      +0.36; mean +6.4 / +3.4. Worse on both trainings.
+    - **pilot change test (62 edits), model r:**
+
+      | metric | gb | of |
+      |---|---|---|
+      | TIR | 0.23 / 0.21 | 0.24 / 0.16 |
+      | t70 | 0.54 / 0.48 | 0.51 / 0.62 |
+      | t54 | 0.51 / 0.20 | 0.20 / 0.37 |
+      | mean | 0.39 / 0.36 | 0.40 / 0.17 |
+
+      Each gap is smaller than the gap between the two of trainings (mean 0.40 vs 0.17), and the |err| figures match to
+      within 0.4. The own-settings level check is worse: TIR median −4.9 / −6.2 vs +1.6 / −2.7.
+    - **switch test (52 switches), model r:** TIR 0.69 / 0.65 vs 0.70 / 0.60; mean 0.49 / 0.60 vs 0.58 / 0.62; t54
+      0.25 / 0.20 vs 0.20 / 0.26. No difference.
+    A literature-strength SG adds a restoring force the TDD-ISF ICE already holds, as lesson 140 suspected. It pulls the
+    distribution's level and tails out of place without making changes any more predictable. GE stays off (GE_SG 0, the
+    default) until the ISF yardstick check (step 0c) says how much uptake the TDD ISF absorbed. The change-prediction
+    gap that matters is lesson 145's cancellation, which GE does not touch.
+
+147. **The low side of change prediction is judged on t<70; t<54 is a guard only (Pete, 2026-10-26).** On the pilot
+    change test (62 edits) no model beats predicting zero change on t<54: zero |err| 0.30, of 0.33 / 0.31, oc 0.37 /
+    0.33, replay 0.67. Its model r runs 0.12–0.37 and swings between two trainings of one recipe (of 0.20 / 0.37), so it
+    cannot separate two models. t<70 carries signal: zero |err| 1.41, of 1.25 / 1.20, model r 0.48–0.62 on every
+    training. Keep/drop and candidate ranking now read TIR and t<70; t<54 is still reported, and a change is flagged when
+    it raises predicted or scored t<54 by more than the spread between two trainings. t<54 stays the safety target in
+    AGENTS.md. On the switch test (52 switches) t<70 is near r 0 for replay and both of trainings, so strategy switches
+    remain a gap on the low side.

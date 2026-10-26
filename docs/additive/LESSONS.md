@@ -8156,3 +8156,53 @@ outputs in gamepc ~/additive/runs/c290–c312).
      The fast falls need a faster end to the donors' rises, and their rises are steeper too (L 494, 498). That is a
      sharper appearance pulse that L 452 found the gut does not lack in truth, so the missing piece sits between
      appearance and what the CGM shows, or in a mechanism not modelled. Knob kept, default 1.
+
+509. **The twins' meals end like the donors': same relative sharpness, duration, re-rises and per-meal spread. The
+     missing fast falls are not a smoother or later end of appearance, and recorded workouts carry few of them.** Per
+     carb entry (≥ 5 g, first of a 3-h cluster), ICE relative to the person's median, 15-min mean, 0–300 min, on the ice
+     extractor's steps, both sides (runs/2026-10-26-additive-mealshape; donors 29,407 meals / 156 people, lg13 2,184 / 112):
+     - Shape matches. Peak → back to 10% of peak: p10/50/90 15 / 40 / 120 min vs 15 / 35 / 105 (still up at 5 h: 3% both).
+       Largest 30-min drop over the peak: 0.52 / 0.88 / 1.42 vs 0.53 / 0.92 / 1.52. Re-rise 71% both; later entry within
+       5 h 62 vs 56%. Within-person IQR: duration 45 vs 41 min, sharpness 0.43 both.
+     - Size differs. Peak ICE 92 / 176 / 280 vs 62 / 143 / 260 mg/dL/h, at 65 vs 80 min (pulse_peak_per_g 1.18 vs 1.05,
+       failing). Fast falls rise with peak on both sides (donors 6 → 28%, twins 3 → 24% from < 100 to > 300), but twins
+       fall less at the same peak (200–300: 13 vs 22%). Twins' rates on the donors' peak mix give 10.8%, against 9.1%
+       actual and the donors' 16.7%: the smaller peaks explain about a fifth of the gap.
+     - At the fall both sides look alike: 61 vs 65 min after the entry, ICE −112 vs −121, ia 112 vs 114, ICE ≤ 0 in 91 vs
+       88%. The twins' true ra is then a median 27% of the meal's ra peak (< 20% in 39%).
+     - Sensor: the gap is wider on G7 (17.3 vs 8.8%) than G6 (14.1 vs 10.2), where the twins' 5-min steps are also too
+       small (v_sd G7 6.6 vs 7.7, L 457).
+     - Workouts (recorders, 28 donors): meals with a workout in 0–3 h fall fast 17.8 vs 12.8% without, but only 3% of
+       their fast falls have a workout in the hour before (twins 7%). Casual walking is not recorded, so walking stays open.
+     Reading: Pete's hypothesis (gaps or early ends in the upward effect) is not visible in ICE: the twins' pulses end as
+     abruptly and vary as much. What differs is a larger, earlier pulse and a larger share of fast falls at the same pulse,
+     most on G7. Next candidates: the size and timing of the pulse per entered gram, and the G7 short-scale motion.
+
+510. **Most of the twins' after-meal CGM fast falls are already made by the sensor; their bodies seldom fall fast.
+     A noisier G7 would close the count with sensor falls, so the body is where the gap is.** Same meals as L 509,
+     twins' true glucose on the same rule (runs/2026-10-26-additive-mealshape, sensor_split.py):
+     - Twins: 194 meals with a CGM fast fall, 75 of them also fast in truth (true fast fall within 2 h: G6 2.9%, G7 4.3%,
+       against CGM 9.7 / 8.6%). At a G7 fall the true slope is a median −123 mg/dL/h; at a G6 fall −56 (CGM − true −18).
+     - Aftermath tells them apart in twins: sensor-made falls rebound within 15 min in 27% and lose 17 mg/dL over 30 min;
+       true falls rebound in none and lose 68.
+     - Donors: rebound 16% on G6 and G7 alike, 30-min change −23 / −27. Twins' G7 −31 and 15% (like the donors); twins' G6
+       −12 and 35% (mostly sensor). On the twins' signatures the donors' falls are a mix, not mostly artifacts.
+     Reading: matching G7 v_sd (L 457) by sensor noise alone would add falls that rebound, the false-lows trap of
+     c384–c391 (L 393). The donors' falls need true fast falls in the body: L 509's larger, earlier pulse per entered
+     gram is the lead.
+
+511. **The twins' smaller meal pulse is less glucose per entered gram (~14% over 4 h) and a slower rise (onset to peak
+     45 vs 30–35 min); the pulse's shape is otherwise the donors'.** Entries ≥ 10 g with ICE peak ≥ 30, same tables as
+     L 509 (donors 26,761, lg13 1,903; peak_decomp.py on the twins' truth):
+     - ICE area over 0–4 h per entered gram: 6.41 vs 5.88 mg/dL per g (10–20 g 11.6 vs 9.3, 20–35 g 7.4 vs 6.3, 35–60 g
+       5.4 vs 4.7, > 60 g 4.1 vs 3.5). Peak over area 0.84 vs 0.83 / h at every size: the peak follows the area.
+     - Timing: onset (30% of peak) 15 vs 20 min after the entry, onset to peak 30–40 vs 45–50 min. ICE in the first
+       10 min after the entry +8 vs −7 mg/dL/h: some donors start eating before they enter.
+     - Twins' chain (medians of per-meal ratios): eaten / entered 0.87, CSF 7.0 mg/dL per g, true ra peak at 60 min,
+       drive (ra + EGP change) peak 0.89 of the ra peak (EGP suppression), extractor ICE peak 1.07 of the true drive,
+       20 min after it.
+     Reading: the glucose shortfall is L 401's again (the ICE integral and the labelled g-eq per gram disagree by ~10%;
+     `csf_lvl` 1.05 split them), now 14% on lg13. The slower rise is the front of the main parcel (stomach chain, energy
+     ceiling, kabs). Both make the pulse lower and later, and fast falls rise with the peak (L 509). Candidates: meal glucose
+     to the ICE integral (`csf_lvl` ~1.2) and a faster main-parcel rise, each scored on two draws, watching the lows
+     and the 3-h tail.
