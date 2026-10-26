@@ -8204,5 +8204,5 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Reading: the glucose shortfall is L 401's again (the ICE integral and the labelled g-eq per gram disagree by ~10%;
      `csf_lvl` 1.05 split them), now 14% on lg13. The slower rise is the front of the main parcel (stomach chain, energy
      ceiling, kabs). Both make the pulse lower and later, and fast falls rise with the peak (L 509). Candidates: meal glucose
-     to the ICE integral (`csf_lvl` ~1.2) and a faster main-parcel rise, each scored on two draws with L 395's caution
-     that faster absorption removes lows under Loop.
+     to the ICE integral (`csf_lvl` ~1.2) and a faster main-parcel rise, each scored on two draws, watching the lows
+     and the 3-h tail.
