@@ -664,6 +664,7 @@ class World:
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
         self.fat_rho = float(r_misc.uniform(0.1, 0.6))
+        if enable and isinstance(enable.get("fat_rho_mult"), float): self.fat_rho *= enable["fat_rho_mult"]   # experiment (LESSONS 508)
         # onset of the fat resistance, hours after the meal (default 2, ramp to full over 1 h): Laxminarayan 2015 (DTT,
         # doi:10.1089/dia.2015.0118) found SI 17% lower already in the high-fat DINNER window (LESSONS 352)
         self.fat_on = float(enable["fat_on"]) if enable and isinstance(enable.get("fat_on"), float) else 0.5   # default since 2026-10-19 (was 2)
