@@ -285,6 +285,24 @@ struct SimulateBodyFlags: ParsableArguments {
     @Option(name: .long, help: "Counter-regulation max rate (mg/dL/min), the saturating defense ceiling. Default 6.0.")
     var counterRegMax: Double = 6.0
 
+    @Flag(name: .customLong("counter-reg-absolute"), help: "Research: apply the counter-regulation rate in full whenever the counterfactual is below onset, instead of its difference from the field's. Only for a substrate whose field low responses (rescue carbs and physiological rebound) were subtracted (--low-response-subtract-csv).")
+    var counterRegAbsolute: Bool = false
+
+    @Option(name: .customLong("counter-reg-tau-min"), help: "Research: first-order lag (min) on the absolute counter-regulation rate; 0 = instantaneous. With --counter-reg-absolute.")
+    var counterRegTauMin: Double = 0
+
+    @Option(name: .customLong("glucose-effectiveness"), help: "Research: glucose effectiveness SG (1/min). The counterfactual relaxes toward the field trace at -SG·(counter − field) per minute, the body's own pull the frozen trace carries only at the field's glucose. Zero at identity. 0 = off.")
+    var glucoseEffectiveness: Double = 0
+
+    @Option(name: .customLong("low-response-model"), help: "JSON LowResponseModel (research): re-generate low-driven upward effects — rescue carbs and the physiological rebound — only where the COUNTERFACTUAL goes low, by a seeded hazard on its own CGM / trend / IOB / local night (LowResponse.swift). Meant for a substrate whose field low responses were subtracted beforehand; turn the counter-regulation term off with it (--counter-reg-onset 0). Requires --candidate-counterfactual.")
+    var lowResponseModel: String? = nil
+
+    @Option(name: .customLong("high-response-model"), help: "JSON LowResponseModel with mirror: true (research): the high-side defense (walks, unlogged corrections) in the expected-value difference form — h(counterfactual) minus h(field), subtracted. Requires --candidate-counterfactual.")
+    var highResponseModel: String? = nil
+
+    @Option(name: .customLong("low-response-subtract-csv"), help: "CSV (t ISO8601, delta mg/dL) of the FIELD's low-response effect per CGM sample (change since the previous sample), removed from the field's glucose change in the counterfactual advance — an ICE adjustment, never an absolute-CGM edit. Pair with --low-response-model. Requires --candidate-counterfactual.")
+    var lowResponseSubtractCsv: String? = nil
+
     @Option(name: .long, help: "CGM-gap re-anchor threshold (minutes). Across a CGM gap longer than this the counterfactual has no ground truth and the single big-step physiological advance is unreliable (manual boluses given during the gap are on the field side but not the candidate history ⇒ runaway asymmetry that blew the counter to 700+). Re-anchor the counter to the real CGM at gap-end. Identity-safe. Default 30. 0 disables (legacy).")
     var cfGapReanchorMin: Double = 30
 
@@ -809,6 +827,12 @@ extension SimulateCommand {
     var counterRegOnset: Double { get { body.counterRegOnset } set { body.counterRegOnset = newValue } }
     var counterRegGain: Double { get { body.counterRegGain } set { body.counterRegGain = newValue } }
     var counterRegMax: Double { get { body.counterRegMax } set { body.counterRegMax = newValue } }
+    var counterRegAbsolute: Bool { get { body.counterRegAbsolute } set { body.counterRegAbsolute = newValue } }
+    var counterRegTauMin: Double { get { body.counterRegTauMin } set { body.counterRegTauMin = newValue } }
+    var glucoseEffectiveness: Double { get { body.glucoseEffectiveness } set { body.glucoseEffectiveness = newValue } }
+    var lowResponseModel: String? { get { body.lowResponseModel } set { body.lowResponseModel = newValue } }
+    var highResponseModel: String? { get { body.highResponseModel } set { body.highResponseModel = newValue } }
+    var lowResponseSubtractCsv: String? { get { body.lowResponseSubtractCsv } set { body.lowResponseSubtractCsv = newValue } }
     var cfGapReanchorMin: Double { get { body.cfGapReanchorMin } set { body.cfGapReanchorMin = newValue } }
     var patientIsf: Double? { get { body.patientIsf } set { body.patientIsf = newValue } }
     var patientInsulinModel: String? { get { body.patientInsulinModel } set { body.patientInsulinModel = newValue } }

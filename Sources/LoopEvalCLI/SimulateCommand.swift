@@ -570,6 +570,32 @@ struct SimulateCommand: AsyncParsableCommand {
             candidateConfig.decisionTimesAreAuthoritative = true
         }
 
+        let lowResponse: LowResponseModel?
+        if let path = lowResponseModel {
+            guard candidateCounterfactual else { throw ValidationError("--low-response-model requires --candidate-counterfactual") }
+            lowResponse = try JSONDecoder().decode(LowResponseModel.self, from: Data(contentsOf: URL(fileURLWithPath: path)))
+            printStderr("Low-response model: \(path)\n")
+        } else {
+            lowResponse = nil
+        }
+        let highResponse: LowResponseModel? = try highResponseModel.map {
+            guard candidateCounterfactual else { throw ValidationError("--high-response-model requires --candidate-counterfactual") }
+            return try JSONDecoder().decode(LowResponseModel.self, from: Data(contentsOf: URL(fileURLWithPath: $0)))
+        }
+        var lrSubtract: [Int: Double]? = nil
+        if let path = lowResponseSubtractCsv {
+            guard candidateCounterfactual else { throw ValidationError("--low-response-subtract-csv requires --candidate-counterfactual") }
+            let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            var m: [Int: Double] = [:]
+            for line in try String(contentsOfFile: path, encoding: .utf8).split(whereSeparator: { $0.isNewline }) {
+                let c = line.split(separator: ",")
+                guard c.count >= 2, let d = iso.date(from: String(c[0])) ?? ISO8601DateFormatter().date(from: String(c[0])),
+                      let v = Double(c[1].trimmingCharacters(in: .whitespaces)) else { continue }
+                m[Int(d.timeIntervalSince1970.rounded()), default: 0] += v
+            }
+            lrSubtract = m
+            printStderr("Low-response subtraction: \(m.count) samples, total \(String(format: "%.0f", m.values.reduce(0, +))) mg/dL\n")
+        }
         let plant: ExternalPlant?
         if let cmd = externalPlant {
             guard candidateCounterfactual else {
@@ -632,6 +658,9 @@ struct SimulateCommand: AsyncParsableCommand {
             counterRegOnsetMgdl: counterRegOnset,
             counterRegGain: counterRegGain,
             counterRegMaxRate: counterRegMax,
+            counterRegAbsolute: counterRegAbsolute,
+            counterRegTauMin: counterRegTauMin,
+            glucoseEffectivenessPerMin: glucoseEffectiveness,
             cfGapReanchorSec: cfGapReanchorMin * 60,
             patientISF: patientIsf,
             patientInsulinType: parsedPatientInsulinModel,
@@ -647,6 +676,9 @@ struct SimulateCommand: AsyncParsableCommand {
             externalPlant: plant,
             plantBehavior: plantBehavior,
             candidateTherapy: candidateTherapy,
+            lowResponse: lowResponse,
+            highResponse: highResponse,
+            lowResponseSubtract: lrSubtract,
             progress: Self.makeProgressReporter()
         )
         plant?.finish()

@@ -183,6 +183,10 @@ extension EvaluationEngine {
         counterRegOnsetMgdl: Double = 0,
         counterRegGain: Double = 0.2,
         counterRegMaxRate: Double = 6.0,
+        // Research terms of the ICE replay body; see ICEReplayBody (CandidateBody.swift). Off by default.
+        counterRegAbsolute: Bool = false,
+        counterRegTauMin: Double = 0,
+        glucoseEffectivenessPerMin: Double = 0,
         // CGM-gap re-anchor: across a CGM gap longer than this, the counterfactual
         // has no ground truth and the single big-step physiological advance is
         // unreliable — manual boluses the user gave DURING the gap are in the field
@@ -246,6 +250,14 @@ extension EvaluationEngine {
         // pump also runs this basal schedule wherever it falls back to scheduled basal.
         // nil = the field's.
         candidateTherapy: TherapyTimeline? = nil,
+        // LOW RESPONSE (research): re-generate low-driven upward effects (rescue carbs + physiological rebound)
+        // only where the counterfactual itself goes low (see LowResponse.swift). nil = off.
+        lowResponse: LowResponseModel? = nil,
+        // HIGH-side defense (research): a mirrored LowResponseModel (mirror: true, expected: true). nil = off.
+        highResponse: LowResponseModel? = nil,
+        // The field's own low responses per CGM sample (mg/dL, whole Unix seconds), removed from the field's
+        // glucose change in the ICE replay. nil = off.
+        lowResponseSubtract: [Int: Double]? = nil,
         progress: (@Sendable (Double) -> Void)? = nil
     ) throws -> ClosedLoopSimResult {
         // var: --plant-behavior adds the plant person's Temporary Overrides to its override windows.
@@ -695,12 +707,17 @@ extension EvaluationEngine {
         // The candidate's body in counterfactual mode (CandidateBody.swift): the ICE replay, or an
         // external plant in its place. Without a counterfactual the candidate decides open loop on
         // the field's glucose and doses, and its glucose is the field's.
-        let iceBody = ICEReplayBody(
+        let lrState = lowResponse.map { LowResponseState($0) }
+        let hrState = highResponse.map { LowResponseState($0) }
+        var iceBody = ICEReplayBody(
             substrate: counterGlucose, realPhysDelta: realPhysDelta, m: mByIndex,
             sensitivity: physiologySensitivity, insulinModel: insulinModel,
             patientInsulinType: patientInsulinType, counterRegOnsetMgdl: counterRegOnsetMgdl,
             counterRegGain: counterRegGain, counterRegMaxRate: counterRegMaxRate,
-            gapReanchorSec: cfGapReanchorSec, evalStep: candidateConfig.evalStep)
+            gapReanchorSec: cfGapReanchorSec, evalStep: candidateConfig.evalStep,
+            counterRegAbsolute: counterRegAbsolute, counterRegTauMin: counterRegTauMin,
+            glucoseEffectivenessPerMin: glucoseEffectivenessPerMin,
+            lowResponse: lrState, highResponse: hrState, lowResponseSubtract: lowResponseSubtract)
 
         // Pre-compute expected step count for progress reporting
         let totalDuration = max(0, interval.end.timeIntervalSince(evalStart))
@@ -1420,6 +1437,31 @@ extension EvaluationEngine {
                 while advIdx < counterGlucose.count && counterGlucose[advIdx].startDate <= t {
                     advIdx += 1
                 }
+                for lr in [lrState, hrState].compactMap({ $0 }) {
+                    // Decide from the counterfactual's own state at t (CGM, 15-min trend, IOB, local night).
+                    let ci = Self.latestGlucoseIndex(at: t, in: counterGlucose)
+                    let bgNow = counterMgdl[ci]
+                    let pi = Self.latestGlucoseIndex(at: t.addingTimeInterval(-900), in: counterGlucose)
+                    let dtMin = counterGlucose[ci].startDate.timeIntervalSince(counterGlucose[pi].startDate) / 60
+                    let trend = dtMin > 1 ? (bgNow - counterMgdl[pi]) / dtMin : .nan
+                    let sched = data.therapyTimeline.basal.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                        ?? data.therapyTimeline.basal.closestPrior(to: t)?.value ?? 1
+                    let isfP = (physiologySensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                        ?? physiologySensitivity.closestPrior(to: t)?.value)?.doubleValue(for: mgdlUnit) ?? 0
+                    let crv = data.therapyTimeline.carbRatio.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                        ?? data.therapyTimeline.carbRatio.closestPrior(to: t)?.value ?? 0
+                    var cal = Calendar(identifier: .gregorian); cal.timeZone = candidateConfig.localTimezone
+                    let night = cal.component(.hour, from: t) < 6
+                    let fNow = counterGlucose[ci].quantity.doubleValue(for: mgdlUnit)
+                    let fTrend = dtMin > 1 ? (fNow - counterGlucose[pi].quantity.doubleValue(for: mgdlUnit)) / dtMin : .nan
+                    let isfS = (data.therapyTimeline.sensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                        ?? data.therapyTimeline.sensitivity.closestPrior(to: t)?.value)?.doubleValue(for: mgdlUnit) ?? 0
+                    let proj = lr.projected(bg: bgNow, trend: trend, iob: candidateIOB, cob: candidateCOB, isf: isfS, cr: crv)
+                    let fproj = lr.projected(bg: fNow, trend: fTrend, iob: baselineIOB, cob: baselineCOB, isf: isfS, cr: crv)
+                    lr.step(t: t, bg: bgNow, trend: trend, iobn: candidateIOB / max(sched, 0.1), night: night,
+                            csf: crv > 0 ? isfP / crv : 0, fieldBg: fNow, fieldTrend: fTrend, projected: proj,
+                            fieldIobn: baselineIOB / max(sched, 0.1), fieldProjected: fproj, isf: isfS)
+                }
                 if let pb = plantBody {
                     // The plant, not the ICE replay, decides what the candidate's insulin does.
                     stepPlantCarbsG += try advancePlant(through: stepEnd, now: t, state: [
@@ -1572,6 +1614,13 @@ extension EvaluationEngine {
             FileHandle.standardError.write(Data(String(format: "plant behavior: %d carb entries (%.0f g), %d boluses (%.1f U), %d overrides from the plant's person; real candidate carbs/manual boluses after cfActiveStart ignored\n",
                 plantPerson.carbCount, plantPerson.carbsTotalG, plantPerson.bolusCount, plantPerson.bolusTotalU,
                 plantPerson.overrideCount).utf8))
+        }
+        if let lr = lrState, ProcessInfo.processInfo.environment["LOW_RESPONSE_DUMP"] != nil {
+            let f = ISO8601DateFormatter()
+            let rows = lr.started.map { "\(f.string(from: $0.t)),\($0.grams)" }.joined(separator: "\n")
+            FileHandle.standardError.write("LOW_RESPONSE_STARTS \(lr.started.count)\n\(rows)\nLOW_RESPONSE_END\n".data(using: .utf8)!)
+            let g = lr.gated.map { "\(f.string(from: $0.t)),\($0.w)" }.joined(separator: "\n")
+            FileHandle.standardError.write("LOW_RESPONSE_GATED \(lr.gated.count)\n\(g)\nLOW_RESPONSE_GATED_END\n".data(using: .utf8)!)
         }
         return ClosedLoopSimResult(
             steps: stepsWithPatientIOB,
