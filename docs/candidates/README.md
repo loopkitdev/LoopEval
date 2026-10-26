@@ -13,6 +13,20 @@ reference), **NEUTRAL**, **WORSE**. "lift" is in-band mean lift unless marked
 *whole-sweep* / *ISF-dial* (older runs — ISF-dial lift is known to overstate, see FRONTIERS §4).
 `ΔTIR@op / Δt54@op` = candidate − reference at the operating multiplier.
 
+**Low side, from 2026-10-26** (AGENTS.md → *Optimization target*): candidates rank on **TIR and t<70**;
+t<54 is reported in every table as a **guard**. Verdicts above this line were ranked on t<54 and are
+being re-read on t<70. A candidate **fails the guard** if any of these holds:
+
+1. **Population:** Δt<54 > +0.05 points with CI lower bound > 0.
+2. **Any tertile** (by prior control): Δt<54 > +0.10 points with CI lower bound > 0 — a subgroup
+   win must not buy new severe lows elsewhere.
+3. **Worse than the dial:** more t<54 than the uniform insulin-needs dial costs for the same ΔTIR.
+
+Rules 1–2 are judged on the ICE generator and fail only when **both** trainings cross the line;
+replay only flags (it overstates Δt<54 5–10×) and sends the candidate to the generator. The
+generator does not beat predicting zero change in t<54 on real edits, so this guard catches large
+rises, not small ones.
+
 Families: **dose-more** = act sooner/harder when a meal is under way; **pull-back** = withhold
 in a situation class that makes lows (lets needs go up); **dial-like** = moves along the
 reference; **learned** = fitted from patient history (must carry data-needed / drift /
