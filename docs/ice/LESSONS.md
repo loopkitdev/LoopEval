@@ -1560,3 +1560,23 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       Held-out (24 donors): t70 bias +0.45 / +0.36 → +1.32 / +0.71, TIR bias −0.7 / −3.0 → −2.1 / −2.7. Own-settings
       level before the edit, TIR median, e: −3.0 / −6.6 → −6.0 / −5.3. The low-side calibrations (level band, defense
       gain) were fit on the old input; refitting them on oc is the next step, aimed at the held-out t70 bias.
+
+149. **The generator's extra lows sit 1–4 h after meals, where the field catches its falls; next arm: the defense nets
+    the meal glucose still to come (IOBNET_COB=2).** Held-out rollouts (24 donors, both trainings, 3 seeds), isolated
+    meals (≥15 g, none 2 h before or 6 h after; low_where.py, abs_gen.py, meal_spread.py in runs/2026-10-25-ice-cob/):
+    - **t<70 by hours since the last entry:** field is flat, 0.9–1.7 % in every bin. of reaches 3.2–3.8 % at 2–4 h and
+      oc 3.5–4.9 %; beyond 6 h of matches the field (1.6 vs 1.5). The excess lows are a post-meal feature.
+    - **per isolated meal, low within 1–4 h:** field 6.8 % (<54 1.6 %), of 14.5 % (4.6 %), oc 15.1 % (5.8 %). The field's
+      glucose change at +2 h is wider than the generator's (q10/q90 −78/+149 vs −64/+114), so the generator's falls are
+      not larger; they are caught less. Its lows concentrate where the drawn meal is small against the entry (low
+      tercile of drawn size / entered g: 19–21 % vs 7–11 % in the high tercile).
+    - **absorption:** field ICE excess per entered g runs about flat for 2 h and reaches zero by 3–3.25 h (per-donor time
+      to 90 %, median 2.25 h), so the 3 h linear window of IOBNET_COB=1 has the right length. ICE excess per g over the
+      first 3 h matches (field 3.3, of 3.4, oc 3.5 mg/dL per g); insulin activity 1.5–4 h after the meal is higher in
+      the generator (per 100 g, 2.17/1.69/1.17/0.71 vs field 1.96/1.30/0.69/0.26).
+    With IOBNET_COB=1 the defense subtracts the entered carbs whether or not the drawn meal delivers them, so a meal
+    smaller or later than its entry leaves a fall the defense does not see; oc deepened what of already had. The arm
+    under test, oq (chain_cob2.sh / pool_oq.sh in runs/2026-10-26-ice-cob2/, frozen ice-cob2 at eaa6da04): the pending
+    insulin net of the glucose still to come from the meal pulses, reconstructed pulses in training and drawn pulses
+    in the plant. On i001's training data it nets more than mode 1 (mean 0.29 vs 0.41, corr 0.72), since unannounced
+    meals count too. (The arm name od was already taken by a 10-15 checkpoint; train_v32od0.log was overwritten.)
