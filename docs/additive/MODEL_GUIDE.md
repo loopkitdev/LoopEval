@@ -7,8 +7,9 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults at reference
-**lg12** (2026-10-23): 112 people × 14 days, weighted match score 0.371 (0.400 on a second draw of people, lg12_5k) over
-51 statistics, tier 1 0.237 / 0.278 (§ 10 lists every row, its tier and its gap). It is c446_npu (2026-10-20) with the
+**lg13** (2026-10-25): 112 people × 14 days, weighted match score 0.376 (0.415 on a second draw of people, lg13_5k) over
+51 statistics, tier 1 0.233 / 0.305 (§ 10 lists every row, its tier and its gap). It is lg12's model rerun on the engine
+that delivers through skipped and sensor-less cycles (L 505); lg12 is c446_npu (2026-10-20) with the
 saturating acute exercise sensitivity (L 495) and treatment carbs logged at the donors' rate (L 500). The run carries:
 - a personal meal mix with relative fat resistance (L 432);
 - the relative post-meal window 0.4 (L 436);
@@ -297,84 +298,84 @@ exercise sensitivity sizes, hyperglycaemic resistance, protein-to-glucose 0.3 g 
   `python -m loopeval_analysis.patient_sim.lifestats sim <run>`, then `python -m loopeval_analysis.patient_sim.score
   <run> [<run> ...] --detail`. Scores from before L 494's rows do not compare with later ones.
 
-**Status at the reference lg12 (draw 1) / lg12_5k (draw 2):**
+**Status at the reference lg13 (draw 1) / lg13_5k (draw 2):**
 
 | | Tier 1 | Tier 2 | Tier 3 | Score | Close (of 51) |
 |---|---|---|---|---|---|
-| draw 1 | 0.237 | 0.456 | 0.413 | 0.371 | 22 |
-| draw 2 | 0.278 | 0.473 | 0.471 | 0.400 | 16 |
+| draw 1 | 0.233 | 0.467 | 0.423 | 0.376 | 22 |
+| draw 2 | 0.305 | 0.478 | 0.457 | 0.415 | 15 |
 
 The workout duration, METs and after-meal rows have too few twins on draw 1 (4 of 112 have a consistently recording
 donor), so they drop out of this joint table. On draw 2 they pass (35 vs 45 min, 5.6 vs 5.5 METs, 0.50 vs 0.33).
 
 | Tier | Statistic | What it measures | Donors p50 | Twins draw 1 / 2 | Gap draw 1 / 2 |
 |---|---|---|---|---|---|
-| 1 | `act_net20` | activity response: 20-min ΔCGM of a bout less matched windows (mg/dL), pooled over bouts | -5.71 | -1.82 / 0.133 | 0.45 / 0.67 |
-| 1 | `act_net20_hi` | the same, bouts from > 150 mg/dL with IOB ≥ 2 U | -12.6 | -5.26 / -7.13 | 0.78 / 0.58 |
-| 1 | `bg_mean` | mean glucose (mg/dL) | 151.9 | 154.9 / 156.5 | 0.15 / 0.30 |
-| 1 | `carb_entries_per_day` | carb entries per day | 2.96 | 3.04 / 3.67 | 0.09 / 0.38 |
-| 1 | `lows_per_day` | crossings below 70 per day | 1.00 | 0.917 / 1.00 | 0.24 / 0.12 |
-| 1 | `meal_d3h` | bolused isolated meal: glucose change at 3 h (mg/dL) | 38.0 | 31.5 / 36.0 | 0.35 / 0.11 |
-| 1 | `min_below70` | minutes per low | 20.0 | 20.0 / 20.0 | 0.02 / 0.03 |
-| 1 | `p_reach54` | share of lows that reach 54 | 0.212 | 0.200 / 0.192 | 0.10 / 0.16 |
-| 1 | `t180` | time > 180 (%) | 25.9 | 27.2 / 29.9 | 0.10 / 0.32 |
-| 1 | `t54` | time < 54 (%) | 0.190 | 0.186 / 0.204 | 0.23 / 0.14 |
-| 1 | `t70` | time < 70 (%) | 1.60 | 1.72 / 1.71 | 0.17 / 0.15 |
-| 1 | `tdd` | total daily dose (U) | 38.7 | 42.3 / 44.8 | 0.31 / 0.37 |
-| 1 | `tir` | time 70–180 (%) | 71.9 | 70.6 / 68.0 | 0.11 / 0.28 |
-| 2 | `ac1` | day-to-day autocorrelation of TDD | 0.091 | -0.033 / -0.008 | 0.48 / 0.34 |
-| 2 | `between_day_frac` | share of glucose variance between days | 0.105 | 0.125 / 0.120 | 0.50 / 0.44 |
-| 2 | `bg_cv` | coefficient of variation (%) | 34.6 | 35.0 / 36.1 | 0.19 / 0.29 |
-| 2 | `bg_skew` | skew of the glucose distribution | 0.873 | 0.827 / 0.818 | 0.19 / 0.19 |
-| 2 | `circadian_amp` | 24-h amplitude, per person | 0.128 | 0.135 / 0.152 | 0.20 / 0.41 |
-| 2 | `conc1` | share of insulin in the busiest 1% of bins (%) | 28.0 | 26.7 / 28.2 | 0.23 / 0.22 |
-| 2 | `day_night` | day / night insulin per hour | 2.00 | 1.68 / 1.87 | 0.49 / 0.26 |
-| 2 | `entry_fast_fall` | carb entries followed within 2 h by a fast fall (%) | 14.3 | 7.41 / 7.28 | 0.76 / 0.70 |
-| 2 | `fast_fall_share` Dexcom G6 | falling 15-min windows faster than 2.5 mg/dL/min (%) | 2.41 | 1.71 / 1.85 | 0.71 / 0.34 |
-| 2 | `fast_fall_share` Dexcom G7 | falling 15-min windows faster than 2.5 mg/dL/min (%) | 2.80 | 1.62 / 1.98 | 0.66 / 0.46 |
-| 2 | `fast_fall_share` Libre 3 | falling 15-min windows faster than 2.5 mg/dL/min (%) | 2.63 | 3.81 / 2.99 | 0.65 / 0.20 |
-| 2 | `ice_dip_day` | unexplained falls per day (ICE 70 mg/dL/h below the window median, ≥ 20 min) | 0.692 | 1.42 / 1.71 | 1.22 / 1.70 |
-| 2 | `ice_dip_day_share` | share of unexplained falls between 08 and 22 h | 0.660 | 0.523 / 0.470 | 0.69 / 1.09 |
-| 2 | `manual_u_day` | hand-dosed units per day | 12.2 | 11.7 / 14.5 | 0.12 / 0.30 |
-| 2 | `med_nonzero` | typical nonzero 5-min delivery (U) | 0.085 | 0.098 / 0.100 | 0.30 / 0.35 |
-| 2 | `night_cv` | night-to-night CV of night insulin (%) | 35.4 | 31.6 / 34.1 | 0.28 / 0.20 |
-| 2 | `p99` | 99th percentile of 5-min delivery (U) | 1.83 | 1.51 / 1.96 | 0.33 / 0.21 |
-| 2 | `pulse_dur_h` | meal pulse: duration (h) | 1.92 | 1.86 / 1.84 | 0.20 / 0.22 |
-| 2 | `pulse_peak_h` | meal pulse: time to peak appearance (h) | 0.750 | 0.622 / 0.622 | 1.04 / 1.15 |
-| 2 | `pulse_peak_per_g` | meal pulse: peak g-eq/h per g | 1.18 | 1.06 / 1.07 | 0.85 / 0.79 |
-| 2 | `sigma_disp` | dispersion of volatility across days | 3.57 | 3.03 / 3.13 | 1.06 / 0.89 |
-| 2 | `tdd_cv` | day-to-day CV of TDD (%) | 15.9 | 15.8 / 15.2 | 0.09 / 0.34 |
-| 2 | `unann_pulses_day` | unannounced meal pulses per day (ice labeller) | 3.46 | 4.00 / 4.04 | 0.52 / 0.52 |
-| 2 | `unl_rise_rate` | unlogged rise: climb rate (mg/dL/h) | 54.9 | 47.8 / 50.9 | 0.52 / 0.27 |
-| 2 | `unl_rises_day` | unlogged CGM rises ≥ 40 mg/dL per day | 1.62 | 1.96 / 1.75 | 0.41 / 0.32 |
-| 2 | `user_boluses_per_day` | user boluses per day | 4.58 | 4.75 / 5.42 | 0.08 / 0.28 |
-| 2 | `v_sd` Dexcom G6 | SD of the 5-min CGM change | 6.37 | 6.10 / 6.35 | 0.39 / 0.20 |
-| 2 | `v_sd` Dexcom G7 | SD of the 5-min CGM change | 7.19 | 6.45 / 6.81 | 0.59 / 0.39 |
-| 2 | `v_sd` Libre 3 | SD of the 5-min CGM change | 5.72 | 6.43 / 5.91 | 0.58 / 0.28 |
-| 2 | `vol_cluster_60m` | volatility clustering at 60 min | 0.122 | 0.109 / 0.122 | 0.37 / 0.09 |
+| 1 | `act_net20` | activity response: 20-min ΔCGM of a bout less matched windows (mg/dL), pooled over bouts | -5.71 | -0.303 / 0.378 | 0.62 / 0.70 |
+| 1 | `act_net20_hi` | the same, bouts from > 150 mg/dL with IOB ≥ 2 U | -12.6 | -4.76 / -6.51 | 0.83 / 0.65 |
+| 1 | `bg_mean` | mean glucose (mg/dL) | 151.9 | 154.1 / 157.2 | 0.10 / 0.34 |
+| 1 | `carb_entries_per_day` | carb entries per day | 2.96 | 3.04 / 3.67 | 0.08 / 0.38 |
+| 1 | `lows_per_day` | crossings below 70 per day | 1.00 | 0.917 / 0.958 | 0.22 / 0.08 |
+| 1 | `meal_d3h` | bolused isolated meal: glucose change at 3 h (mg/dL) | 38.0 | 34.0 / 34.0 | 0.21 / 0.21 |
+| 1 | `min_below70` | minutes per low | 20.0 | 20.0 / 20.0 | 0.01 / 0.03 |
+| 1 | `p_reach54` | share of lows that reach 54 | 0.212 | 0.222 / 0.174 | 0.11 / 0.26 |
+| 1 | `t180` | time > 180 (%) | 25.9 | 26.3 / 29.9 | 0.07 / 0.32 |
+| 1 | `t54` | time < 54 (%) | 0.190 | 0.180 / 0.208 | 0.26 / 0.16 |
+| 1 | `t70` | time < 70 (%) | 1.60 | 1.55 / 1.70 | 0.15 / 0.18 |
+| 1 | `tdd` | total daily dose (U) | 38.7 | 42.3 / 44.0 | 0.29 / 0.33 |
+| 1 | `tir` | time 70–180 (%) | 71.9 | 71.2 / 67.5 | 0.06 / 0.31 |
+| 2 | `ac1` | day-to-day autocorrelation of TDD | 0.091 | -0.047 / 0.013 | 0.47 / 0.31 |
+| 2 | `between_day_frac` | share of glucose variance between days | 0.105 | 0.126 / 0.112 | 0.53 / 0.26 |
+| 2 | `bg_cv` | coefficient of variation (%) | 34.6 | 35.2 / 36.0 | 0.20 / 0.32 |
+| 2 | `bg_skew` | skew of the glucose distribution | 0.873 | 0.833 / 0.831 | 0.19 / 0.15 |
+| 2 | `circadian_amp` | 24-h amplitude, per person | 0.128 | 0.138 / 0.153 | 0.19 / 0.41 |
+| 2 | `conc1` | share of insulin in the busiest 1% of bins (%) | 28.0 | 26.9 / 28.0 | 0.22 / 0.22 |
+| 2 | `day_night` | day / night insulin per hour | 2.00 | 1.73 / 1.84 | 0.50 / 0.32 |
+| 2 | `entry_fast_fall` | carb entries followed within 2 h by a fast fall (%) | 14.3 | 7.87 / 7.41 | 0.72 / 0.73 |
+| 2 | `fast_fall_share` Dexcom G6 | falling 15-min windows faster than 2.5 mg/dL/min (%) | 2.41 | 1.72 / 1.71 | 0.72 / 0.61 |
+| 2 | `fast_fall_share` Dexcom G7 | falling 15-min windows faster than 2.5 mg/dL/min (%) | 2.80 | 1.53 / 1.76 | 0.72 / 0.49 |
+| 2 | `fast_fall_share` Libre 3 | falling 15-min windows faster than 2.5 mg/dL/min (%) | 2.63 | 3.83 / 2.99 | 0.67 / 0.28 |
+| 2 | `ice_dip_day` | unexplained falls per day (ICE 70 mg/dL/h below the window median, ≥ 20 min) | 0.692 | 1.38 / 1.75 | 1.19 / 1.74 |
+| 2 | `ice_dip_day_share` | share of unexplained falls between 08 and 22 h | 0.660 | 0.5 / 0.467 | 0.82 / 1.06 |
+| 2 | `manual_u_day` | hand-dosed units per day | 12.2 | 11.6 / 14.3 | 0.13 / 0.28 |
+| 2 | `med_nonzero` | typical nonzero 5-min delivery (U) | 0.085 | 0.104 / 0.1 | 0.43 / 0.34 |
+| 2 | `night_cv` | night-to-night CV of night insulin (%) | 35.4 | 31.0 / 34.1 | 0.32 / 0.18 |
+| 2 | `p99` | 99th percentile of 5-min delivery (U) | 1.83 | 1.56 / 1.87 | 0.29 / 0.13 |
+| 2 | `pulse_dur_h` | meal pulse: duration (h) | 1.92 | 1.89 / 1.82 | 0.15 / 0.28 |
+| 2 | `pulse_peak_h` | meal pulse: time to peak appearance (h) | 0.750 | 0.622 / 0.622 | 1.04 / 1.05 |
+| 2 | `pulse_peak_per_g` | meal pulse: peak g-eq/h per g | 1.18 | 1.05 / 1.07 | 0.86 / 0.72 |
+| 2 | `sigma_disp` | dispersion of volatility across days | 3.57 | 3.03 / 3.11 | 1.07 / 0.89 |
+| 2 | `tdd_cv` | day-to-day CV of TDD (%) | 15.9 | 14.8 / 15.0 | 0.30 / 0.34 |
+| 2 | `unann_pulses_day` | unannounced meal pulses per day (ice labeller) | 3.46 | 4.00 / 3.88 | 0.48 / 0.37 |
+| 2 | `unl_rise_rate` | unlogged rise: climb rate (mg/dL/h) | 54.9 | 47.0 / 50.2 | 0.61 / 0.35 |
+| 2 | `unl_rises_day` | unlogged CGM rises ≥ 40 mg/dL per day | 1.62 | 1.92 / 1.75 | 0.38 / 0.31 |
+| 2 | `user_boluses_per_day` | user boluses per day | 4.58 | 4.58 / 5.33 | 0.00 / 0.26 |
+| 2 | `v_sd` Dexcom G6 | SD of the 5-min CGM change | 6.37 | 6.02 / 6.17 | 0.43 / 0.34 |
+| 2 | `v_sd` Dexcom G7 | SD of the 5-min CGM change | 7.19 | 6.41 / 6.81 | 0.61 / 0.39 |
+| 2 | `v_sd` Libre 3 | SD of the 5-min CGM change | 5.72 | 6.26 / 6.01 | 0.45 / 0.37 |
+| 2 | `vol_cluster_60m` | volatility clustering at 60 min | 0.122 | 0.113 / 0.123 | 0.24 / 0.13 |
 | 2 | `workouts_week` | workouts per week (consistent recorders and their twins) | 1.62 | 1.75 / 2.33 | 0.13 / 0.54 |
-| 2 | `zero_frac` | share of 5-min bins with no insulin (%) | 32.5 | 30.2 / 30.6 | 0.28 / 0.34 |
-| 3 | `acf_min` Dexcom G6 | minimum of the step autocorrelation | -0.110 | -0.114 / -0.115 | 0.19 / 0.24 |
-| 3 | `acf_min` Dexcom G7 | minimum of the step autocorrelation | -0.110 | -0.128 / -0.129 | 0.34 / 0.44 |
-| 3 | `acf_min` Libre 3 | minimum of the step autocorrelation | -0.143 | -0.269 / -0.112 | 2.17 / 0.89 |
-| 3 | `acf_zero_min` | minutes until the step autocorrelation first crosses zero | 40.0 | 55.0 / 60.0 | 1.28 / 1.59 |
-| 3 | `boxcox_lambda` | distribution shape (0 = log-normal) | 0.000 | 0.050 / 0.050 | 0.18 / 0.26 |
-| 3 | `hurst_long` | long-range persistence | 0.253 | 0.249 / 0.270 | 0.10 / 0.15 |
-| 3 | `hurst_short` Dexcom G6 | short-range persistence | 0.746 | 0.771 / 0.770 | 0.67 / 0.58 |
-| 3 | `hurst_short` Dexcom G7 | short-range persistence | 0.735 | 0.764 / 0.772 | 0.50 / 0.67 |
-| 3 | `hurst_short` Libre 3 | short-range persistence | 0.800 | 0.832 / 0.793 | 1.10 / 0.46 |
-| 3 | `sd_over_mad` Dexcom G6 | tail weight of 5-min changes | 1.44 | 1.43 / 1.42 | 0.31 / 0.52 |
-| 3 | `sd_over_mad` Dexcom G7 | tail weight of 5-min changes | 1.41 | 1.38 / 1.38 | 0.81 / 1.01 |
-| 3 | `sd_over_mad` Libre 3 | tail weight of 5-min changes | 1.38 | 1.43 / 1.38 | 2.04 / 0.62 |
-| 3 | `sigma_meas` Dexcom G6 | measurement noise | 1.24 | 1.14 / 1.42 | 0.33 / 0.37 |
-| 3 | `sigma_meas` Dexcom G7 | measurement noise | 1.36 | 1.22 / 1.36 | 0.25 / 0.01 |
-| 3 | `sigma_meas` Libre 3 | measurement noise | 1.27 | 1.31 / 1.72 | 0.43 / 1.40 |
-| 3 | `v_kurtosis` Dexcom G6 | kurtosis of 5-min changes | 3.30 | 3.36 / 3.41 | 0.09 / 0.16 |
-| 3 | `v_kurtosis` Dexcom G7 | kurtosis of 5-min changes | 2.51 | 2.66 / 2.48 | 0.17 / 0.14 |
-| 3 | `v_kurtosis` Libre 3 | kurtosis of 5-min changes | 2.35 | 3.72 / 2.27 | 1.71 / 0.76 |
-| 3 | `v_skew` Dexcom G6 | rises vs falls asymmetry | 0.257 | 0.222 / 0.379 | 0.37 / 0.51 |
-| 3 | `v_skew` Dexcom G7 | rises vs falls asymmetry | 0.331 | 0.259 / 0.271 | 0.33 / 0.29 |
-| 3 | `v_skew` Libre 3 | rises vs falls asymmetry | 0.086 | 0.215 / -0.039 | 0.78 / 1.75 |
+| 2 | `zero_frac` | share of 5-min bins with no insulin (%) | 32.5 | 30.1 / 30.9 | 0.31 / 0.32 |
+| 3 | `acf_min` Dexcom G6 | minimum of the step autocorrelation | -0.110 | -0.111 / -0.125 | 0.10 / 0.40 |
+| 3 | `acf_min` Dexcom G7 | minimum of the step autocorrelation | -0.110 | -0.132 / -0.128 | 0.44 / 0.42 |
+| 3 | `acf_min` Libre 3 | minimum of the step autocorrelation | -0.143 | -0.254 / -0.125 | 1.52 / 0.82 |
+| 3 | `acf_zero_min` | minutes until the step autocorrelation first crosses zero | 40.0 | 55.0 / 60.0 | 1.32 / 1.59 |
+| 3 | `boxcox_lambda` | distribution shape (0 = log-normal) | 0.000 | 0.050 / 0.050 | 0.22 / 0.25 |
+| 3 | `hurst_long` | long-range persistence | 0.253 | 0.248 / 0.262 | 0.03 / 0.08 |
+| 3 | `hurst_short` Dexcom G6 | short-range persistence | 0.746 | 0.764 / 0.776 | 0.54 / 0.73 |
+| 3 | `hurst_short` Dexcom G7 | short-range persistence | 0.735 | 0.766 / 0.769 | 0.56 / 0.61 |
+| 3 | `hurst_short` Libre 3 | short-range persistence | 0.800 | 0.834 / 0.786 | 1.49 / 0.57 |
+| 3 | `sd_over_mad` Dexcom G6 | tail weight of 5-min changes | 1.44 | 1.43 / 1.43 | 0.36 / 0.37 |
+| 3 | `sd_over_mad` Dexcom G7 | tail weight of 5-min changes | 1.41 | 1.38 / 1.38 | 0.74 / 0.97 |
+| 3 | `sd_over_mad` Libre 3 | tail weight of 5-min changes | 1.38 | 1.40 / 1.37 | 0.97 / 0.51 |
+| 3 | `sigma_meas` Dexcom G6 | measurement noise | 1.24 | 1.13 / 1.23 | 0.48 / 0.16 |
+| 3 | `sigma_meas` Dexcom G7 | measurement noise | 1.36 | 1.15 / 1.35 | 0.39 / 0.02 |
+| 3 | `sigma_meas` Libre 3 | measurement noise | 1.27 | 1.68 / 1.30 | 1.01 / 0.36 |
+| 3 | `v_kurtosis` Dexcom G6 | kurtosis of 5-min changes | 3.30 | 3.63 / 3.49 | 0.32 / 0.25 |
+| 3 | `v_kurtosis` Dexcom G7 | kurtosis of 5-min changes | 2.51 | 2.75 / 2.51 | 0.26 / 0.11 |
+| 3 | `v_kurtosis` Libre 3 | kurtosis of 5-min changes | 2.35 | 2.79 / 2.57 | 0.76 / 1.22 |
+| 3 | `v_skew` Dexcom G6 | rises vs falls asymmetry | 0.257 | 0.238 / 0.39 | 0.12 / 0.56 |
+| 3 | `v_skew` Dexcom G7 | rises vs falls asymmetry | 0.331 | 0.29 / 0.254 | 0.21 / 0.35 |
+| 3 | `v_skew` Libre 3 | rises vs falls asymmetry | 0.086 | 0.193 / -0.025 | 0.52 / 1.98 |
 | 3 | `wear` | sensor coverage | 0.974 | 0.976 / 0.972 | 0.09 / 0.10 |
 
 **Where the gaps are** (gap ≥ 0.5 on both draws, or tier 1 ≥ 0.4):

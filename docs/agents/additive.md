@@ -81,7 +81,11 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. A different draw of people (seed0) moves the count by up to 6 (LESSONS 444): score an arm whose
   effect is within that scatter on two draws (seed0 1000 and 5000) before adopting it.
-- **Current reference** (2026-10-23): lg12 (draw 2 lg12_5k; runs/2026-10-23-additive-falls) — c446_npu with the saturating
+- **Current reference** (2026-10-25): lg13 (draw 2 lg13_5k; runs/2026-10-25-additive-rebuild) — lg12's model on the engine that
+  keeps delivering through skipped and sensor-less cycles (main 8fa8411 → 4c80c60c; before it twins got no insulin across their
+  own CGM gaps, up to 23 h; LESSONS 505). Score 0.376 / 0.415, tier 1 0.233 / 0.305; mean 154.1 / 157.2, TIR 71.2 / 67.5, t54
+  0.180 / 0.208%, lows 0.92 / 0.96 per day. Run additive cohorts on a build of current main.
+- **lg12** (2026-10-23; runs/2026-10-23-additive-falls) — c446_npu with the saturating
   acute exercise sensitivity (C2, k 0.1; LESSONS 495) and treatment carbs logged at 0.12 (LESSONS 500). Score 0.371 / 0.400; lows 0.88 / 1.00 per day, t54
   0.197 / 0.176%, TIR 71.0 / 67.8. Open: the activity response (−4.2 / −4.8 vs −12.6 at high IOB; eating around sessions, LESSONS 497), entries ending in a fast
   fall (7 vs 14%), slow unlogged rises, dawn unexplained falls. Run additive cohorts on the Mac (Pete 2026-10-23).
