@@ -8111,3 +8111,33 @@ outputs in gamepc ~/additive/runs/c290–c312).
      log unit, as in the field). What damps them is glucose moved per unit of insulin sustained over days. Over 60–180 min
      single corrections already match the donors' (L 294), so the gap is in the slow restoring force toward the rest point
      (SG, κ) and the defence (L 493), not in ISF.
+
+507. **The missing fast falls are not dosing and not the average insulin response. They come where the twins' insulin is
+     weakest, after meals they did not enter, and moving the exercise boost does not supply them.** Run dir
+     runs/2026-10-25-additive-fastfall (ice steps both sides, lg13 vs the pilot donors, CGM 120–250 unless stated):
+     - **Exposure matches.** Hours / day at Loop's insulin effect ia (settings ISF × activity) < 40 / 40–70 / 70–100 /
+       100–140 / > 140 mg/dL/h: donors 2.25 / 4.57 / 3.70 / 2.28 / 0.96, twins 1.79 / 5.04 / 4.05 / 2.34 / 1.02
+       (`ia_states.py`). A fast fall (< −150 mg/dL/h over 15 min) looks the same on both sides: ia 96, ICE −78 / −85, IOB
+       4.2 / 3.9, start 189 / 198 (`fall_decomp.py`); the twins' true glucose falls only −84 in theirs.
+     - **Medians match, spread does not** (`ia_spread.py`): 15-min slope median −8 / −16 / −30 vs −8 / −16 / −32 in the
+       three top ia bins, SD 72 / 80 / 87 vs 60 / 66 / 74, both tails.
+     - **Two places** (`ia_spread_ctx.py`): within 3 h of an entry the donors' spread is wider, mostly rises (p90 148 / 120
+       vs 108 / 84 at ia 40–100). In quiet periods (no entry for 5 h, CGM 100–200) the donors' fall grows with ia, −28 /
+       −52 / −66 / −84 at 70–100 / 100–130 / 130–170 / > 170, and the twins' flattens, −24 / −36 / −44 / −48 (`ia_spread_g2.py`).
+     - **Not the body's insulin terms.** Clamp probe at 150 mg/dL on 12 twin bodies: disposal above basal +0.80 / +1.45 /
+       +2.01 / +3.04 / +3.57 mg/kg/min at 2 / 3 / 4 / 6 / 8 × basal insulin, near linear to 4×; EGP 2.56 → 1.13 at 4×.
+     - **The twins' quiet high-insulin windows are not quiet** (`quiet_truth.py`). True appearance runs at 1.2–1.5
+       mg/kg/min (unentered meals and grazing), and effective SI is 0.70–0.74 of the person's against 1.06 at low ia.
+       After-meal resistance off (`ppr_a` 0), fat off and glucotoxicity off each lift it, to 0.77–0.80, 0.68–0.85 and
+       0.72–0.75 (32 twins × 10 days, 4–12 people in the top bins, slopes too noisy to read). No single term carries it,
+       and causation runs both ways: resistance keeps glucose up, so Loop doses more.
+     - **Activity is not the source.** The fragmented waking background (sitting / short bouts, LESSONS 161) swings the
+       SI boost 0.1–1.0 within 15 min. But the boost entered the remote-insulin compartment (p2, ~40-min lag), so the
+       swings were smoothed away: frag off leaves the 15-min SD unchanged (55–71 vs 55–69). `ex_post` (the boost on
+       insulin's action, as in Breton 2008 / Dalla Man 2009; off) also leaves it unchanged (54–68), with mean and TIR
+       unchanged and t54 within the small sample's noise. Stays off.
+     Reading: the fast falls the twins lack come at the end of meals (logged or not), when the donors' insulin acts at
+     full strength. The twins' after-meal and fat resistance, which carry the 3-h meal tail (L 408, 436), are what hold
+     their insulin at ~70% then. A tail made by late appearance instead of resistance would allow both. Whether the donors'
+     tail is appearance or resistance cannot be read from CGM; it needs Pete's call or tracer evidence (L 452 found the
+     twins' appearance already at the fast end of Elleri 2013).
