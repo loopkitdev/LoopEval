@@ -8190,3 +8190,19 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Reading: matching G7 v_sd (L 457) by sensor noise alone would add falls that rebound, the false-lows trap of
      c384–c391 (L 393). The donors' falls need true fast falls in the body: L 509's larger, earlier pulse per entered
      gram is the lead.
+
+511. **The twins' smaller meal pulse is less glucose per entered gram (~14% over 4 h) and a slower rise (onset to peak
+     45 vs 30–35 min); the pulse's shape is otherwise the donors'.** Entries ≥ 10 g with ICE peak ≥ 30, same tables as
+     L 509 (donors 26,761, lg13 1,903; peak_decomp.py on the twins' truth):
+     - ICE area over 0–4 h per entered gram: 6.41 vs 5.88 mg/dL per g (10–20 g 11.6 vs 9.3, 20–35 g 7.4 vs 6.3, 35–60 g
+       5.4 vs 4.7, > 60 g 4.1 vs 3.5). Peak over area 0.84 vs 0.83 / h at every size: the peak follows the area.
+     - Timing: onset (30% of peak) 15 vs 20 min after the entry, onset to peak 30–40 vs 45–50 min. ICE in the first
+       10 min after the entry +8 vs −7 mg/dL/h: some donors start eating before they enter.
+     - Twins' chain (medians of per-meal ratios): eaten / entered 0.87, CSF 7.0 mg/dL per g, true ra peak at 60 min,
+       drive (ra + EGP change) peak 0.89 of the ra peak (EGP suppression), extractor ICE peak 1.07 of the true drive,
+       20 min after it.
+     Reading: the glucose shortfall is L 401's again (the ICE integral and the labelled g-eq per gram disagree by ~10%;
+     `csf_lvl` 1.05 split them), now 14% on lg13. The slower rise is the front of the main parcel (stomach chain, energy
+     ceiling, kabs). Both make the pulse lower and later, and fast falls rise with the peak (L 509). Candidates: meal glucose
+     to the ICE integral (`csf_lvl` ~1.2) and a faster main-parcel rise, each scored on two draws with L 395's caution
+     that faster absorption removes lows under Loop.
