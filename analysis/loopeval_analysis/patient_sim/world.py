@@ -451,6 +451,8 @@ class World:
         # C2 saturating in intensity, k 0.1 (default since 2026-10-23, LESSONS 495; --set ex_sat=0 restores the linear α·Y)
         self.ex_sat = float(enable["ex_sat"]) if enable and isinstance(enable.get("ex_sat"), float) else 0.1
         if self.ex_sat <= 0: self.ex_sat = None
+        if (enable or {}).get("ex_post"):    # experiment (LESSONS 507): exercise boost on insulin's action, not its input
+            person.body = person.body.scaled(ex_post=True)
         self.act_frag = bool((enable or {}).get("act_frag", True))     # default since 2026-10-18 (Pete, LESSONS 163)
         # posture (LESSONS 163; --disable posture): insulin clamps, the PK's reference, are done supine; sitting up cuts
         # subcutaneous blood flow 29–47% and insulin absorption 19–44% (Hildebrandt 1985, 17 patients with diabetes).
