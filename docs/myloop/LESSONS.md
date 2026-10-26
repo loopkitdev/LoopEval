@@ -22,3 +22,9 @@
    Closed loop, the additive term (C39 `habrelr`) costs 0.51 TIR for 0.04 points of t<54, no better than the needs dial.
    This reading of CamAPS Liberty's "recognises insulin need depending on time of day" has no lever in Loop. See
    `E3-liberty-mode.md`.
+5. **The 780G's meal-time gate loosening has nothing to release in Loop (E4, 2026-10-26).** 189 donors, no entries,
+   automatic bolus AF 0.4 + gr. Letting the automatic bolus through down to 30 mg/dL below the correction floor (or to the
+   suspend threshold) while glucose rises: ΔTIR +0.06, t<54 lift +0.07, less than the same loosening applied at every cycle
+   (+0.25, lift +0.21). The rise condition adds nothing. As bolus rules on Loop's forecast, Control-IQ's hourly 60 %
+   correction is −12.8 TIR without its basal boost, and the 780G's full 5-min correction is −1.2 lift. See
+   `E4-rise-gated-guard.md`.

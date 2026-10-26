@@ -61,3 +61,36 @@ before any verdict (M11). `ciq` and `mdt` have no bar: they are reported as ΔTI
   rules sit, not how those systems would do.
 - Replay's lows axis is unvalidated (ledger M11). The plant's response to extra insulin is the donor's measured ISF
   through counterfactual replay.
+
+## Result (2026-10-26): `rg30` and `rgmax` FAIL bar 4, closed
+
+Run: `runs/2026-10-25-myloop-e4/` (`run_e4.py`, `score_e4.py`, `e4_per_donor.csv`). 189 donors, 1,890 sims, none failed.
+Reference (`ab`, needs 1.00): TIR 51.8, t<54 1.00, t<70 3.07, 41.3 U/day. Dial, ΔTIR / Δt<54: 0.90 −4.73 / −0.40;
+0.95 −2.24 / −0.21; 1.05 +1.57 / +0.23; 1.10 +2.89 / +0.50.
+
+| vs `ab` @ 1.00, 95 % CI | `rg30` | `rgmax` | `lg30` (control) |
+|---|---|---|---|
+| ΔTIR | +0.06 [+0.03, +0.11] | +0.07 [+0.03, +0.12] | +0.25 [+0.18, +0.33] |
+| Δt<54 | −0.002 [−0.008, +0.003] | −0.002 [−0.009, +0.003] | +0.004 [−0.012, +0.019] |
+| Δt<70 | −0.006 [−0.030, +0.009] | −0.007 [−0.033, +0.010] | +0.063 [+0.025, +0.100] |
+| Δ insulin (U/day) | +0.001 | +0.001 | +0.010 |
+| Δ IOB-at-crossing-54 (U) | +0.001 [−0.004, +0.007] | +0.002 [−0.004, +0.008] | +0.010 [−0.009, +0.031] |
+| t<54 lift | +0.07 [+0.01, +0.17] | +0.08 [+0.02, +0.20] | +0.21 [+0.06, +0.40] |
+| t<70 lift | +0.08 [+0.01, +0.19] | +0.08 [+0.01, +0.21] | +0.07 [−0.07, +0.24] |
+
+- Bars 1–3 pass for both; bar 4 fails: the always-on looser gate earns more t<54 lift than the rise-gated one. The rise
+  condition does not matter, so per the pre-registration this is a looser gate, not a meal mechanism.
+- The effect is a few hundredths of a TIR point. Depth is not the constraint (`rgmax` ≈ `rg30`): Loop's automatic bolus
+  is rarely held back by this gate during a rise, so the 780G's threshold drop has almost nothing to release.
+
+### Reference arms (descriptive)
+
+| vs `ab` @ 1.00 | ΔTIR | Δt<54 | Δt<70 | Δ insulin (U/day) | t<54 lift |
+|---|---|---|---|---|---|
+| `ciq` | −12.8 [−14.5, −11.3] | −0.43 [−0.56, −0.32] | −1.22 | −0.91 | −9.2 [−10.6, −7.9] |
+| `mdt` | +0.11 [−0.45, +0.73] | +0.16 [+0.09, +0.24] | +0.32 | +0.08 | −1.2 [−2.0, −0.5] |
+
+- Control-IQ's bolus rule alone (hourly, only above a 180 forecast) leaves unannounced meals far undertreated (median
+  Δ mean glucose +43 mg/dL). Its basal increase, which is not modelled here, is what carries Control-IQ between boluses.
+- The 780G's full correction every 5 min buys no TIR over Loop's AF 0.4 and adds lows and IOB at 54 crossings
+  (+0.10 U [+0.03, +0.16]): on Loop's forecast it sits below the dial.
