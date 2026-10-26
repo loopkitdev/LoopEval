@@ -1536,3 +1536,27 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     it raises predicted or scored t<54 by more than the spread between two trainings. t<54 stays the safety target in
     AGENTS.md. On the switch test (52 switches) t<70 is near r 0 for replay and both of trainings, so strategy switches
     remain a gap on the low side.
+
+148. **The carbs-aware iob_net retrain (oc) is kept: change prediction improves on both trainings and the response to
+    insulin moves toward the field.** oc = the of recipe retrained with IOBNET_COB=1 (lesson 145; chain_cob.sh and
+    pool_oc.sh in runs/2026-10-25-ice-cob/, frozen ice-cobt), scored against of on both trainings, seed 0 / 1, judged on
+    TIR and t<70 with t<54 as a guard (lesson 147).
+    - **Glucose response per unit of implied insulin** (iob_oc.py, replay d ISF·act as instrument; ensemble, s0 / s1):
+      CR edits (113) −0.54 → **−1.59** (−1.77 / −1.40), field −2.28; all edits (434) −1.47 → **−1.82** (−1.91 / −1.74),
+      field −2.26. The meal-bolus share of the cancellation was the defense reading a bolus as a low; with carbs on board
+      netted out, about two thirds of the CR gap closes.
+    - **Change test, model r, of → oc:**
+
+      | | x (97) | e (337) | pilot (62) | switches (52) |
+      |---|---|---|---|---|
+      | TIR | 0.28 / 0.30 → 0.35 / 0.39 | 0.25 / 0.20 → 0.31 / 0.32 | 0.24 / 0.16 → 0.25 / 0.20 | 0.70 / 0.60 → 0.70 / 0.67 |
+      | t70 | 0.50 / 0.39 → 0.48 / 0.38 | 0.30 / 0.28 → 0.29 / 0.31 | 0.51 / 0.62 → 0.57 / 0.48 | 0.07 / 0.00 → 0.29 / 0.02 |
+      | mean | 0.37 / 0.38 → 0.44 / 0.42 | 0.41 / 0.28 → 0.48 / 0.38 | 0.40 / 0.17 → 0.37 / 0.38 | 0.58 / 0.62 → 0.66 / 0.57 |
+
+      TIR |err| on e 6.18 / 6.24 → 5.89 / 5.90, below zero-change (6.21) and replay (6.27); the first TIR change
+      prediction that beats both on the large pool. t<70 is flat everywhere.
+    - **Guard and costs.** t<54 |err| on e 0.40 / 0.41 → 0.52 / 0.46 (zero 0.31): predicted t<54 changes spread wider
+      (sd 0.46 → 0.72) with r unchanged, the expected side of a larger insulin response; flagged, not disqualifying.
+      Held-out (24 donors): t70 bias +0.45 / +0.36 → +1.32 / +0.71, TIR bias −0.7 / −3.0 → −2.1 / −2.7. Own-settings
+      level before the edit, TIR median, e: −3.0 / −6.6 → −6.0 / −5.3. The low-side calibrations (level band, defense
+      gain) were fit on the old input; refitting them on oc is the next step, aimed at the held-out t70 bias.
