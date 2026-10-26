@@ -8141,3 +8141,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      their insulin at ~70% then. A tail made by late appearance instead of resistance would allow both. Whether the donors'
      tail is appearance or resistance cannot be read from CGM; it needs Pete's call or tracer evidence (L 452 found the
      twins' appearance already at the fast end of Elleri 2013).
+
+508. **A meal tail made by slower late appearance in place of after-meal and fat resistance does not bring back the
+     fast falls and loses the tail; not adopted.** Draw 1 on lg13's settings (runs/2026-10-25-additive-tail, `fat_rho_mult`
+     scales the per-person fat ρ):
+     - tA: `ppr_a` 0.2, fat ρ × 0.75, slow late share 0.3. Score 0.376 → 0.436, tier 1 0.233 → 0.341; meal_d3h 34 → 27
+       (donors 38), lows 0.92 → 0.83 / day, t54 0.180 → 0.119, TIR 72.9.
+     - tB: `ppr_a` 0, fat ρ × 0.5, slow late share 0.35 at kmin 0.005. Score 0.494, tier 1 0.456; meal_d3h 18, lows 0.75,
+       t54 0.088, TIR 75.9, CV 31.8.
+     - Neither arm moves the fall rows. entry_fast_fall 7.3 / 7.7 vs 7.9% (donors 14.3); fast_fall_share G7 1.31 / 1.51 vs
+       1.53 (2.80); unl_rise_rate 46 / 44 vs 47 (55).
+     With insulin at full strength after meals, Loop absorbs a slow late appearance easily: the tail goes and the lows go
+     with it, and no fast fall appears. L 507's ~70% insulin in the quiet high-ia windows is a consequence, not the cause.
+     The fast falls need a faster end to the donors' rises, and their rises are steeper too (L 494, 498). That is a
+     sharper appearance pulse that L 452 found the gut does not lack in truth, so the missing piece sits between
+     appearance and what the CGM shows, or in a mechanism not modelled. Knob kept, default 1.
