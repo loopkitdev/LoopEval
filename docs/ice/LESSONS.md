@@ -1527,3 +1527,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     distribution's level and tails out of place without making changes any more predictable. GE stays off (GE_SG 0, the
     default) until the ISF yardstick check (step 0c) says how much uptake the TDD ISF absorbed. The change-prediction
     gap that matters is lesson 145's cancellation, which GE does not touch.
+
+147. **The low side of change prediction is judged on t<70; t<54 is a guard only (Pete, 2026-10-26).** On the pilot
+    change test (62 edits) no model beats predicting zero change on t<54: zero |err| 0.30, of 0.33 / 0.31, oc 0.37 /
+    0.33, replay 0.67. Its model r runs 0.12–0.37 and swings between two trainings of one recipe (of 0.20 / 0.37), so it
+    cannot separate two models. t<70 carries signal: zero |err| 1.41, of 1.25 / 1.20, model r 0.48–0.62 on every
+    training. Keep/drop and candidate ranking now read TIR and t<70; t<54 is still reported, and a change is flagged when
+    it raises predicted or scored t<54 by more than the spread between two trainings. t<54 stays the safety target in
+    AGENTS.md. On the switch test (52 switches) t<70 is near r 0 for replay and both of trainings, so strategy switches
+    remain a gap on the low side.
