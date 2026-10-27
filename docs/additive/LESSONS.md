@@ -8271,3 +8271,23 @@ outputs in gamepc ~/additive/runs/c290–c312).
        (lg13 0.37 / 0.13 / 0.39). The outcome is mostly the level, and the twins' glucose level follows the donor's at
        ρ 0.39. Matching the quiet ICE mean (ρ 0.85) is no test of it: in quiet hours ICE is mostly settings ISF × basal
        activity. Next: the level as a per-person residual drive (L 515).
+
+515. **A per-person residual level, fitted to each donor's mean glucose, makes the twins follow their donors and puts the
+     settings-edit response by control level on the field's side.** `resid_m` (mg/dL/h, constant, on the template;
+     `lvl_resid.py`: resid_m += gap / slope, slope measured between rounds 0.86 → 0.58 mg/dL per mg/dL/h, both draws
+     pooled per template), on res3 (core + skewed residual). Two rounds (lv1, lv2; templates_pilot_resid_r1–r3.csv
+     outside the repo); resid_m p10 / p50 / p90 −48 / 0 / +24 at r3.
+     - Person level (draw 1 / draw 2; in-sample, the level is fitted to the donor's own mean): mean ρ 0.39 → 0.77 /
+       0.82, TIR 0.37 → 0.66 / 0.73, t70 0.29 → 0.46 / 0.37, t54 0.17 → 0.36 / 0.36; CV 0.11 / 0.22 (not carried);
+       |gap| p50 16.3 → 3.4 mg/dL.
+     - Cohort (lv2): score 0.413 / 0.473 (lg13 0.376 / 0.415); lows 1.17 / 1.17, t54 0.25 / 0.27, TIR 68.7 / 67.0, meal_d3h
+       27 / 27, TDD 41.9 / 44.8 (38.7).
+     - Natural experiments (change test on r3, `arm2.py`, 63 edits / 38 switches / 5 RC, 4 seeds): control level TIR per
+       +10% insulin tight | rest +0.26 | +2.30, tight − rest −2.03 [−3.58, −0.64] (field −7.18 [−14.85, −0.21]; lg13
+       +0.42 [−0.58, +1.46]); t70 tight +1.05 | rest +0.20 (field +4.35 | +0.08; lg13 +0.40 | +0.27); tight twins' pre-edit
+       mean 133 (field 126, lg13 153). Field / twin response per log unit of insulin: mean 2.03 → 1.84, TIR 1.33 → 1.19,
+       t70 3.96 → 3.70, t54 8.30 → 3.31 [1.42, 6.53]. Strategy switches ρ TIR 0.21 → 0.43 (generator 0.51), mean 0.37 →
+       0.48; RC (5) mean 0.50 → 0.70.
+     Reading: what separates a tight donor from a loose one at the same settings is carried once each twin has its own
+     unexplained level (L 448's far-from-meal load), and the twins then answer a settings change by control level as the
+     field does, at about a third of its size. The cohort rows that got worse (lows, meal tail, TIR) are next.
