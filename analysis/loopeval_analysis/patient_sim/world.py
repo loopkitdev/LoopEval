@@ -660,6 +660,24 @@ class World:
         self.flow_sd = float(enable["flow_sd"]) if enable and isinstance(enable.get("flow_sd"), float) else 0.5   # A4c, default since 2026-10-20 (Heinemann 2002; LESSONS 419)
         self.flow_tau = float(enable["flow_tau"]) if enable and isinstance(enable.get("flow_tau"), float) else 60.0
         self._flow_rng = np.random.default_rng(int(person.seed) + 4421); self._flow_z = 0.0; self._flow_last = None
+        # data-driven residual (experiment, off; Pete 2026-10-27, LESSONS 514): the variability the named core does not carry,
+        # as an exogenous glucose rate with no causal source, sized per person on the donor's own unexplained drive (ICE by
+        # time scale). Fast and block parts are OU processes, the day part one level per local day (04:00), ramped in over 2 h.
+        # Amplitudes (mg/dL/h SD) from the template (resid_f / resid_b / resid_d) or cohort-wide floats, × resid_mult
+        rz = person.traits.get("resid") or {}
+        en_ = enable or {}
+        self.resid_on = bool(en_.get("resid"))
+        mult_ = float(en_["resid_mult"]) if isinstance(en_.get("resid_mult"), float) else 1.0
+        self.resid_a = tuple(mult_ * float(rz.get(k, en_.get(k, 0.0)) if isinstance(rz.get(k, en_.get(k, 0.0)), (int, float)) else 0.0)
+                             for k in ("resid_f", "resid_b", "resid_d"))
+        self.resid_tau = (float(en_["resid_tf"]) if isinstance(en_.get("resid_tf"), float) else 20.0,
+                          float(en_["resid_tb"]) if isinstance(en_.get("resid_tb"), float) else 180.0)
+        # a constant per-person drive (mg/dL/h) fitted to the donor's own glucose level (LESSONS 515): the unlogged load far
+        # from meals that separates a tight donor from a loose one at the same settings (LESSONS 448), source unnamed
+        self.resid_m = float(rz["resid_m"]) if "resid_m" in rz else (float(en_["resid_m"]) if isinstance(en_.get("resid_m"), float) else 0.0)
+        self.resid_skew = float(en_["resid_skew"]) if isinstance(en_.get("resid_skew"), float) else 0.0
+        self._resid_rng = np.random.default_rng(int(person.seed) + 5137)
+        self._resid_x = [0.0, 0.0]; self._resid_last = None; self._resid_day = {}
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
@@ -803,6 +821,7 @@ class World:
                 ud = self.sleep_util * 1.0 * min(1.0, (m - self._sleep_since) / 30.0)
             else:
                 self._sleep_since = None
+        if self.resid_on: ud += self._resid(m) * self.body.p.vg        # mg/dL/min → mg/kg/min, as util_drop enters
         gm = 1.0
         if self.ge_circ:
             # circadian gastric emptying (Goo 1987: evening half-time ~54% longer than morning for the same solid meal):
@@ -865,6 +884,27 @@ class World:
             tb = self.beh.minutes_to_bed(m)
             if tb < 180.0: return 1.0 - self.posture_p * tb / 180.0
         return 1.0 - self.posture_p
+
+    def _resid(self, m: float) -> float:
+        """The data-driven residual's glucose rate at minute m, mg/dL/min (0 when off)."""
+        if not self.resid_on or not (any(self.resid_a) or self.resid_m): return 0.0
+        if self._resid_last is None or m > self._resid_last:
+            dt = 1.0 if self._resid_last is None else m - self._resid_last
+            for i, tau in enumerate(self.resid_tau):
+                a = math.exp(-dt / tau)
+                self._resid_x[i] = a * self._resid_x[i] + math.sqrt(1 - a * a) * float(self._resid_rng.normal())
+            self._resid_last = m
+        def lvl(d):
+            if d not in self._resid_day: self._resid_day[d] = float(self._resid_rng.normal())
+            return self._resid_day[d]
+        x = (m - 240.0) / DAY; d = int(math.floor(x)); w = min(1.0, (x - d) * DAY / 120.0)
+        day = w * lvl(d) + (1 - w) * lvl(d - 1)
+        af, ab, ad = self.resid_a
+        z = self._resid_x[0]
+        s = self.resid_skew
+        if s > 0:    # standardised lognormal of the OU state: mean 0, SD 1, skewed toward rises as the donors' drive is
+            z = (math.exp(s * z) - math.exp(s * s / 2)) / math.sqrt((math.exp(s * s) - 1) * math.exp(s * s))
+        return (self.resid_m + af * z + ab * self._resid_x[1] + ad * day) / 60.0
 
     def _flow_mult(self, m: float) -> float:
         """A4c subcutaneous blood-flow fluctuation (experiment, off): absorption rate × exp(z − sd²/2), z a log-OU (sd, τ)

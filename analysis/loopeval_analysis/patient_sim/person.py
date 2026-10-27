@@ -480,4 +480,8 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                    carbs_g_day=carbs, egp_share=egp_share),
         settings=settings,
         traits=dict(template_rates={k: (row[k] if not isinstance(row[k], float) or np.isfinite(row[k]) else np.nan)
-                                    for k in BEHAVIOR_COLS if k in row.index}))
+                                    for k in BEHAVIOR_COLS if k in row.index},
+                    # the donor's own unexplained-drive amplitudes (mg/dL/h; templates add_residual), read by world's
+                    # data-driven residual (`resid`, LESSONS 514)
+                    resid={k: float(row[k]) for k in ("resid_f", "resid_b", "resid_d", "resid_m")
+                           if k in row.index and np.isfinite(float(row[k]))}))

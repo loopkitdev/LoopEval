@@ -8245,3 +8245,29 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Reading: the twins' variability is drawn from cohort trait distributions, so it lands on the wrong person. Pete
      (2026-10-27) set the direction: hold the well-evidenced components fixed and model the rest of the variability from
      the donors' own data, causal source or not.
+
+514. **A data-driven residual carries each donor's volatility to the twin, but not the donor's outcomes; the core
+     without the replaced components loses lows and the meal tail.** Pete (2026-10-27) chose the split: the residual
+     replaces the weakly evidenced stochastic parts (grazing F9, day SI B3, stress, illness B6, cycle B5, steroids B14,
+     waking fragments C7, absorption fluctuation A4c); everything else is the fixed core. `resid` (world.py, off): an
+     exogenous glucose rate, fast OU (τ 20 min) + block OU (3 h) + one level per day (04:00), per-person amplitudes
+     `resid_f / resid_b / resid_d` (mg/dL/h) on the template, `resid_skew` a standardised-lognormal transform of the fast
+     part. Draw 1, runs/2026-10-27-additive-natexp:
+     - core (replaced parts off, no residual): volatility barely falls (quiet fast SD 45.8 → 43.3, block 19.5 → 18.4,
+       day 13.1 → 12.4): the twins' variability comes from the core (unlogged eating pulses, sensor, behaviour). Lows
+       0.75 / day, t54 0.087, TIR 74.8, meal_d3h 27 (34; donors 38). Score 0.428 (lg13 0.376). The modulators had held the
+       twins' sensitivity at 0.92 of the yardstick (L 468); the core sits on it.
+     - Fit (`fit_resid.py`): the bare process through ice_var's statistics gives the transfer (variance per unit²: fast
+       0.46 / 0.09 / 0.00, block 0.13 / 0.42 / 0.15, day 0.03 / 0.21 / 0.42); targets = donor medians shrunk by
+       block-to-block reliability (0.82 / 0.65 / 0.34); NNLS on target² − core². Need is almost all fast: resid_f median
+       28, resid_b / resid_d 0 for most; 21% of donors need none (their core twin is already more volatile).
+     - res1 (Gaussian): twin–donor fast-SD ρ 0.15 → 0.73 (ceiling 0.83), cohort amplitude on the donors'. But lows 1.33
+       / day, t54 0.39, ice_dip_day 2.0 (0.69): the core already has the donors' lower tail (5th percentile −68 vs −72
+       mg/dL/h) and lacks the upper (95th 70 vs 79; skew 0.10 vs 0.30), so a symmetric drive over-deepens the dips.
+       Score 0.455. Short-scale rows improve: G7 fast-fall share gap −0.54 → −0.31, unl_rise_rate 47 → 52 (55),
+       acf_zero_min 55 → 50 (40), zero_frac 30 → 32 (32.5).
+     - res2 / res3 (skew 0.35 / 0.7): score 0.433 / 0.395, lows 1.17 / 1.13, t54 0.25, TIR 70.3 / 71.3; meal_d3h 24.
+     - Person-level outcomes do not follow: TIR ρ 0.41 / 0.38 / 0.38, CV 0.18 / 0.20 / 0.21, mean 0.41 / 0.39 / 0.38
+       (lg13 0.37 / 0.13 / 0.39). The outcome is mostly the level, and the twins' glucose level follows the donor's at
+       ρ 0.39. Matching the quiet ICE mean (ρ 0.85) is no test of it: in quiet hours ICE is mostly settings ISF × basal
+       activity. Next: the level as a per-person residual drive (L 515).
