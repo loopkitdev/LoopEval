@@ -8221,3 +8221,27 @@ outputs in gamepc ~/additive/runs/c290–c312).
      given pulse the twins' bodies still fall fast about half as often, so the missing piece is on the fall side of the
      meal (how fast glucose is cleared as the pulse ends), not in the pulse. The slower rise sits under the energy
      ceiling, which L 33 fixed on the donors' glucose distribution.
+
+513. **Natural-experiment scorecard on lg13: the cohort is right, the person is not.** Each twin carries its donor's
+     inputs but not its donor's outcomes or its donor's volatility; changes in dosing move the twins half as much as the
+     field; site changes cost too little (runs/2026-10-27-additive-natexp).
+     - **Person level** (twin against its own donor, Spearman, draw 1 / draw 2; ceiling = the same donor's two 13-day
+       blocks): TIR 0.37 / 0.41 (0.85), mean 0.39 / 0.41 (0.86), CV 0.13 / 0.15 (0.77), t70 0.29 / 0.17 (0.80), t54
+       0.17 / 0.24 (0.64); TDD 0.83 / 0.77 (0.92), carb entries 0.97, boluses 0.93, manual U 0.80.
+     - **Unexplained drive (ICE by time scale, `ice_var.py`, same extractor both sides).** Cohort amplitudes match: day-mean
+       SD 11.8 vs 11.6 mg/dL/h, 4-h block SD 25.6 vs 23.0, 15-min-vs-2-h SD 48 vs 55 (quiet 46 vs 47). Per person only
+       the level carries over (quiet mean ρ 0.85, ratio 1.00); the volatility does not: block ρ 0.03 (donor's own blocks
+       0.69), fast ρ 0.19 (0.83), day ρ 0.15 (0.36). Volatility drives outcomes on both sides (TIR against quiet fast SD:
+       donors −0.53, twins −0.55; CV +0.60 / +0.52), so twins drawing it at random is why their TIR and CV do not follow
+       their donors'.
+     - **Settings edits** (63, insulin index slope, lg13's exact settings — truth identical to the 2026-10-25 arm, so the
+       extra switches are defaults): field / twin mean 2.03 [1.04, 3.24], TIR 1.33, t70 3.96, t54 8.3; tight | rest TIR per
+       +10% insulin field −1.6 | +5.6, twins +2.3 | +1.8; twins of tight donors at mean 153 vs 126.
+     - **Strategy switches** (38): ρ TIR 0.21, mean 0.37, t70 0.23 (10-21 comparison: generator 0.51, replay 0.29).
+       **RC switches** (5): TIR ρ 0.90.
+     - **Site changes** (`site_sim.py`, field eda L 52, twiist): routine change +11 mg/dL at hours 0–3 vs +28; early
+       changes 3% vs 26%; the 12 h before a routine change +1 vs +9; twins change at any hour (median 13.9 h), donors at
+       17–22 h.
+     Reading: the twins' variability is drawn from cohort trait distributions, so it lands on the wrong person. Pete
+     (2026-10-27) set the direction: hold the well-evidenced components fixed and model the rest of the variability from
+     the donors' own data, causal source or not.
