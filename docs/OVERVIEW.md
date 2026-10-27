@@ -10,8 +10,9 @@ ends with where the detail lives.
 retrospective-correction rule, or to the settings, such as a lower ISF in the evenings. The aim is a number, with
 uncertainty, before anyone runs the change on their body.
 
-The score always has two sides: **time in range (70–180 mg/dL) up, and time below 54 mg/dL down.** A change that buys
-one by spending the other hasn't improved anything. It has only moved along the aggressiveness trade-off, which any
+The score always has two sides: **time in range (70–180 mg/dL) up, and time below 70 mg/dL down.** A change that buys
+one by spending the other hasn't improved anything. Time below 54 is reported beside every result as a guard: an
+unusually large rise in it disqualifies a change, but it is too rare to rank changes on. It has only moved along the aggressiveness trade-off, which any
 user can already do by turning their insulin up or down.
 
 ## The pieces
@@ -127,8 +128,9 @@ only in the body.
 | Person's reactions | inherited from the record | generated from the simulated state | generated from traits |
 | People | the real donors | enrolled donors | twins and synthetic people |
 | Ranks ΔTIR and Δmean | best so far | close behind | weaker |
-| Ranks Δ lows | weakly | weakly; ahead of replay on two of three donor pools | weakly |
-| Size of changes | overstated: insulin response ~1.7× the field's, lows ~10× | closest, slightly under; carb-ratio changes mostly cancelled | understated ~2× |
+| Ranks Δt<70 | tied with the generator; ahead on the largest pool | tied with replay; ahead on the other two pools | weaker (pilot edits only) |
+| Size of changes | overstated: insulin response ~1.7× the field's, t<70 ~2× | closest, slightly under; carb-ratio changes partly cancelled | understated: mean ~2×, t<70 ~2–4× |
+| Δt<54 | no tool beats predicting no change | same | same |
 | Situations nobody recorded | no | partly | yes |
 | Cost | cheap, deterministic | GPU training, seeds, two checkpoints | CPU, seeds, many draws |
 
@@ -179,26 +181,29 @@ donor pools; the additive simulator on the first 62.
 
 **How to read the numbers.** Field changes at these events are mostly need and noise: on the largest pool, TIR changes
 at real edits are barely more spread out than at random dates. No tool predicts a single edit much better than "no
-change". The comparison is about ranking and size across many events.
+change". The comparison is about ranking and size across many events. Change in time below 54 is too rare to measure
+at single edits: no tool predicts it better than "no change", which is why time below 70 is the low-side axis.
 
 **Current position.**
 
 - **Measured-ICE replay** ranks ΔTIR and Δmean best of the three, and leads on the pooled ~500 edits. It overstates
-  every change: glucose moves about 1.7 times as much per unit of insulin change as in the field. On lows it is
-  **weak and badly oversized**: its hypo changes are about ten times the field's, and it ranks them only weakly. The
-  likely cause is the frozen rescue carbs described above.
+  every change: glucose moves about 1.7 times as much per unit of insulin change as in the field, and t<70 changes
+  come out about twice the field's, so its error on t<70 is worse than predicting no change. It ranks t<70 changes as
+  well as the generator pooled, and better on the largest pool.
 - **The ICE generator** gets the size of changes closest to the field, slightly under. Its ranking is close to
-  replay's: ahead on lows in two of the three donor pools, behind on the largest, and worst where the person's level
-  was poorly enrolled. Its predictions are compressed, and it cancels most of a carb-ratio change (the defect above).
-- **The additive simulator** understates changes about twofold. It also gets the field's control-level pattern wrong:
+  replay's: ahead on t<70 in two of the three donor pools, behind on the largest, and worst where the person's level
+  was poorly enrolled. It has the lowest t<70 error of the three. Its predictions are compressed, it cancels part of a
+  carb-ratio change (the defect above), and it adds lows 1–4 hours after meals that the field catches.
+- **The additive simulator** understates changes: about twofold on mean glucose, two- to fourfold on t<70. It also gets the field's control-level pattern wrong:
   in the field, people already in tight control gain no TIR and more lows from extra insulin, while everyone else gains
   TIR at no cost in lows (`docs/handoffs/2026-10-24-additive-response-by-control-level.md`).
 
-The practical rule is to **rank candidates on ΔTIR from replay, and never accept or reject a candidate on replay's
-lows delta alone.** Read the size of a lows change from the generator, and research's synthetic worlds where the true
-answer is known. No tool yet ranks lows changes reliably, so a lows verdict needs agreement across tools. Evidence:
-`docs/handoffs/2026-10-15-frontier-replay-predicts-change.md`, ledger entries M11 and E56, and `docs/ice/LESSONS.md`
-143–145.
+The practical rule is to **rank candidates on ΔTIR and Δt<70 from replay and the generator, and read the size of a
+change from the generator**, never from replay's raw delta. Where the two tools disagree on the direction of a t<70
+change, there is no verdict. Δt<54 is a guard, not a ranking: no tool predicts it better than no change. Strategy
+switches remain a gap: no tool ranks their t<70 change. Evidence:
+`docs/handoffs/2026-10-15-frontier-replay-predicts-change.md`, `docs/handoffs/2026-10-26-frontier-low-side-t70.md`,
+ledger entries M11 and E56, and `docs/ice/LESSONS.md` 143–148.
 
 ## How a candidate earns a verdict
 
@@ -219,12 +224,12 @@ candidate tried, failed ones included, is the [candidate ledger](candidates/READ
    person-bootstrap CIs, the worst donors, and the split by **typical glucose** (tight, middle, high). Who gains often
    differs by control level. A multi-donor result is the only headline; a single-donor or single-window win is a
    hypothesis.
-5. **Cross-check across tools.** Use replay for ΔTIR ranking and the generator for the size of the lows change; a
-   lows verdict needs the tools to agree. Use the additive
+5. **Cross-check across tools.** Rank ΔTIR and Δt<70 on replay and the generator, take the size of the change from
+   the generator, and give no verdict where they disagree on the direction of t<70. Use the additive
    simulator for situations no donor recorded, such as reduced carb entry or a strategy switch, and for ablations,
    reading its numbers as category means.
 6. **Robustness.** Run the full date range, the operating band, both directions of the dial, the alternative
-   manual-bolus handling, and ±10% patient sensitivity. Check IOB at the moment of crossing 54 alongside t<54.
+   manual-bolus handling, and ±10% patient sensitivity. Check IOB at the moment of crossing 54 alongside the t<54 guard.
 
 Candidates that pass go to the upstream algorithm as opt-in experiments. Guard + runway is in the LoopAlgorithm
 experiments PR and landing in Loop's development branch. It is a volatility-aware lower forecast band, a post-low cut
