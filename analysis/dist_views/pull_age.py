@@ -17,7 +17,9 @@ date or the reverse. Treat an individual age as a hint and the distribution as
 approximate. `consent_records.ageGroup` is an independent check — it is what the
 consenting party stated — and `grantorType` says whether a parent consented.
 
-Writes age.csv: alias, age_years, source, age_group, grantor.
+Writes age.csv: alias, age_years, source, age_group, grantor. age_years is WHOLE
+years (floored) and capped at 90, per Tidepool's de-identification rules: a
+fractional age at a known fixed date recovers the birthday to the day.
 
 Run:  python3 pull_age.py                   (needs Databricks credentials)
 """
@@ -37,6 +39,7 @@ from loopeval_analysis.tidepool.conn import query             # noqa: E402
 
 # Ages are computed at the midpoint of the analysis window, not today.
 MID_MS = (SC.START + SC.END) // 2
+AGE_CAP = 90                                                 # 90+ written as 90
 
 
 def main() -> int:
@@ -88,6 +91,8 @@ def main() -> int:
                            np.where(d["age_pat"].notna(), "clinic", ""))
     d["alias"] = d["uid"].map(rev)
 
+    # Coarsen only at the write: the agreement check above needs the fine values.
+    d["age_years"] = np.minimum(np.floor(d["age_years"]), AGE_CAP).astype("Int64")
     out = d[["alias", "age_years", "source", "ageGroup", "grantor"]].rename(
         columns={"ageGroup": "age_group"}).sort_values("alias")
     out.to_csv(S.OUT / "age.csv", index=False)

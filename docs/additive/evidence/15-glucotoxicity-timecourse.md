@@ -69,7 +69,18 @@ Reading: onset is probably **on the order of 3–6 h**, faster than 12 h, and th
 - Verdonk et al. 1981, *Diabetes* 30:535, doi:10.2337/diab.30.6.535: at fixed ~18 µU/mL insulin, utilisation rose linearly (+0.4 mg/kg/min per +35 mg/dL) while clearance fell. [checked]
 - **Del Prato et al. 1997**, *Diabetologia* 40:687, doi:10.1007/s001250050735 ("glucose resistance" in IDDM): with insulin clamped at basal, raising glucose by +11.2 mM raised disposal in controls by +13.2 µmol/kg/min but in **T1D by only +4.4**. That is about one-third of the normal mass-action effect. NEFA was also not suppressed by hyperglycaemia in T1D. [checked]
   - **Direct relevance:** any glucose-effectiveness (SG) term calibrated to healthy minimal-model values over-states how fast T1D highs self-correct.
-- The sim already uses κ = 0.15 (weak glucose dependence above Gb), which is consistent with this literature.
+- **Correction (2026-10-18, LESSONS 165):** Del Prato's clamp held insulin at *basal*, so it measures the glucose
+  dependence of disposal without added insulin (the sim's SG term), not κ. κ scales the *insulin-mediated* uptake
+  with glucose; Best 1981's fixed-insulin clamps size it: doubling glucose cut clearance 38 / 16 / 11% at low / mid /
+  high insulin, i.e. disposal ×1.24 / ×1.68 / ×1.78, κ ≈ 0.24 / 0.68 / 0.78. The sim's κ 0.15 was below even the
+  low-insulin value; meal- and correction-level insulin sits at mid to high, κ ≈ 0.7.
+- **Correction (2026-10-19, full text read, LESSONS 303):** Best 1981's clamps held plasma insulin at **1 / 18 / 46 µU/mL**
+  (basal 6–8; somatostatin ± insulin 200 / 500 µU/kg/min), glucose 85–89 → 193–206 mg/dL, six healthy men. Rd euglycaemic
+  → hyperglycaemic: no insulin 1.62 → 2.30, mid 2.72 → 5.07, high 4.64 → 9.63 mg/kg/min. The paper's own model: a
+  **fixed, glucose-independent uptake ≈ 1 mg/kg/min (brain) plus uptake proportional to glucose** (Table 2 fits all three
+  levels). The insulin-mediated part (Rd − the no-insulin Rd at the same glucose) rises 1.10 → 2.77 (mid) and 3.02 → 7.33
+  (high) for glucose ×2.17 / ×2.31 — **κ ≈ 1.3 / 1.1, at least proportional**. The 0.24 / 0.68 / 0.78 above came from the
+  TOTAL clearance fall, which the fixed brain uptake causes; it is not κ. κ for insulin-mediated uptake ≈ 1 (Bergman X·G).
 
 ### Other mechanisms that slow correction of highs
 

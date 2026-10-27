@@ -522,3 +522,14 @@ the restoring-force work from LESSONS 49, or the 2-h SD will overshoot.
    - If GH is the driver, the excess over the simulator should concentrate 2–8 h after typical
      sleep onset and in the morning.
    - If stress is the driver, it should sit in waking hours.
+
+## Obtained 2026-10-20 (full texts supplied by Pete; LESSONS 415)
+
+- **Edge 1990** [checked, full text]: dawn +25% in adolescents (15.22 vs 12.42 mU/kg/h), −20 to +150% between people,
+  r 0.63 with mean overnight GH.
+- **Pal 1992** [checked, full text]: GH pulses (peak ~30 mU/L, 1 h, every 3 h) make insulin need oscillate ~0.1–0.8
+  mU/kg/min in young T1D adults, lagging each pulse by ~135 min (peak 3 h, gone by 4 h); +88% mean; continuous GH no
+  effect. This is the hours-scale controlled measurement item 1 above asked for.
+- **Perriello 1991** [checked, full text]: overnight need reproducible across three nights, hourly CV < 10% per person;
+  dawn 19.4% (6–31%), nadir 02:40, peak 06:40.
+- **Moberg 1994** [checked, full text]: acute mental stress, SI ×~0.82 from 1 h to ≥ 6.5 h in every subject.

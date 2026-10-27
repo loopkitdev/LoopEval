@@ -210,7 +210,7 @@ min) followed by near-linear (zero-order-like) emptying.
 | Km | **60 kcal (30–120)** | [I] Gives a 25 g snack an initial k = Vmax/Km ≈ 0.05/min, which matches the current kempt for small loads. Calibrated so that 50→100 g cuts the fractional rate by about 30% (Schirra: 27.5%). |
 | t_lag (solid or mixed meals) | **10 min (0–40)**; 0 for liquids | Lag then linear [M Collins 1983]. Breath-test Tlag is longer (~80 min, Hellmig) but includes post-gastric steps. The lag grows with liquid kcal [M Collins]. |
 | Between-person Vmax | lognormal, **CV ≈ 30%** | [I] From the SDs in Samsom 2003 (28% in controls, 36% in diabetes) and Hellmig. |
-| Gastroparesis subgroup | **~25–30% of T1D** with Vmax ×0.6–0.8 | [M] 28% delayed (Samsom). [I] T50 1.3× the control mean. 30–50% in long-standing T1D [R]. |
+| Gastroparesis subgroup | **~25–30% of T1D** with Vmax ×0.6–0.8 | [M] 28% delayed (Samsom). [I] T50 1.3× the control mean. 30–50% in long-standing T1D [R].  DCCT/EDIC year-20 breath test (Bharucha 2015, n 78): 50% normal, 47% delayed, 3% rapid; scintigraphy reviews 25–55% in T1D. The model's 28% is at the low end; LESSONS 286 (c293 ablation) found the spread carries part of the twins' slow post-peak fall, but no evidence argues for a smaller share. |
 | Day-to-day (within person) | small, **CV ~10–20%** | Not significant in Collins 1983 [M]. Wilinska uses 20% inter-occasion variability on tmax [M-model]. A precise figure: not found. |
 | m_BG | 1 at 4–6 mmol/L; about **0.75 at 8 mmol/L**; **~0.5–0.6 at 15–20 mmol/L**; **~1.3–1.5 below 3 mmol/L** | Retention 44 vs 36% in T1D at 8 vs 4 mmol/L [M Schvarcz]. Delay "substantial" at 15 [R]. Acceleration [M Russo]. Every magnitude here is [I]; the effect sizes are poorly pinned. |
 | Bioavailability f | 0.9 (0.7–1.0) | Dalla Man / simglucose 0.9. Wilinska U(0.7, 1.2). |
@@ -235,7 +235,22 @@ as fat and protein moves 100 g to t50 = 143 min.
 - Hunt 1985: +0.7 kcal/min per volume doubling.
 - Schirra: −27.5% fractional rate at 100 vs 50 g.
 - Elleri 121 g, 25/50/75% appearance times: 56/100/153 min (high GL) and 88/175/270 min (low GL).
+  **Verified (full text, 2026-10-19):** Table 2 gives 56 ± 12 / 100 ± 25 / 153 ± 39 (HG) and 88 ± 21 / 175 ± 39 / 270 ± 54
+  (LG); `ra_traj.py`'s 72/130/197 was wrong. Further: both meals' appearance peaks at 40–45 min (HG 62, LG 40 µmol/kg/min);
+  the LG meal (macaroni cheese, C:P:F 121:35:31 g, 899 kcal) then holds ~75% of its peak (~28 µmol/kg/min) to ~240 min
+  and is still appearing at 8 h, plasma glucose a sustained plateau ~11.7 mmol/L that never returns to basal; the HG meal
+  (vegetable shepherd's pie, 121:20:9 g, 615 kcal) is done within 6 h. Apparent bioavailability LG 102 ± 14% vs HG 87 ±
+  12% (+20 g, attributed in part to gluconeogenesis from dietary precursors). Young T1D (16–24 y), evening meal, i.v.
+  insulin mimicking a s.c. bolus by individual ICR. An energy ceiling of 3 kcal/min at the LG meal's 54% carbohydrate
+  energy gives ~0.4 g/min ≈ 30 µmol/kg/min at 70 kg — the LG plateau.
 - Ferrannini: ~73% appeared by 3.5 h at ~1 g/kg.
 
 **Caveat.** Ra-vs-dose has not been measured directly by tracer in T1D (§3). The size scaling
 rests on gastric-emptying studies plus one 121 g T1D tracer study.
+
+- Bharucha AE et al. Delayed gastric emptying is associated with early and long-term hyperglycemia in type 1 diabetes
+  mellitus. *Gastroenterology* 2015 (DCCT/EDIC; https://pmc.ncbi.nlm.nih.gov/articles/PMC4516593).
+
+- **Elleri 2013 re-read in full (2026-10-20, LESSONS 413)**: Table 2 confirms 88 ± 21 / 175 ± 39 / 270 ± 54 min (LG) and
+  56 ± 12 / 100 ± 25 / 153 ± 39 min (HG) for 25 / 50 / 75% of meal-attributable appearance; peak rate 40 ± 6 vs 62 ± 8
+  µmol/kg/min at 45 vs 40 min; apparent bioavailability 102 ± 14 vs 87 ± 12%. Any other figure quoted for this study is wrong.

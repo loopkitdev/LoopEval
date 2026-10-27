@@ -33,11 +33,38 @@ def _one(args):
                           sg_mult=enable.get("sg_mult", 1.0) if isinstance(enable.get("sg_mult"), float) else 1.0,
                           prof_w=enable.get("prof_w") if isinstance(enable.get("prof_w"), float) else None,
                           egp_share=enable.get("egp_share") if isinstance(enable.get("egp_share"), float) else None,
-                          isf_total=bool(enable.get("isf_total", False)),
+                          isf_total=bool(enable.get("isf_total", True)),   # total-drop ISF + full intake budget, the base since 2026-10-18 (Pete; LESSONS 143)
                           kappa_mult=enable.get("kappa_mult", 1.0) if isinstance(enable.get("kappa_mult"), float) else 1.0,
-                          ge_var=bool(enable.get("ge_var", True)))   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
+                          ge_var=bool(enable.get("ge_var", True)), basal_own=bool(enable.get("basal_own", False)),
+                          egp_sat=bool(enable.get("egp_sat", True)),   # default since 2026-10-18 (A5 review loop, LESSONS 196)
+                          p2e=enable.get("p2e_cal") if isinstance(enable.get("p2e_cal"), float) else None,
+                          prof_deliv=bool(enable.get("prof_deliv", True)),   # default since 2026-10-19 (LESSONS 250)
+                          csf_own=bool(enable.get("csf_own", False)),
+                          twin=bool(enable.get("twin", False)),
+                          lvl_own=bool(enable.get("lvl_own", False)),
+                          basal_fit=bool(enable.get("basal_fit", False)),
+                          gb_own=bool(enable.get("gb_own", False)),
+                          suspend_own=bool(enable.get("suspend_own", True)),   # default since 2026-10-19 (LESSONS 232)
+                          night_add=bool(enable.get("night_add", True)),   # night need added on top; default since 2026-10-19 (LESSONS 263)
+                          night_own=bool(enable.get("night_own", False)),   # body night need from the donor's steady nights (LESSONS 251); off since 2026-10-19: the evening's own fat carries it (LESSONS 370)
+                          basal_share=enable.get("basal_share") if isinstance(enable.get("basal_share"), float) else 0.42,
+                          isf_blend=enable.get("isf_blend") if isinstance(enable.get("isf_blend"), float) else 0.0,
+                          csf_w=enable.get("csf_w") if isinstance(enable.get("csf_w"), float) else 0.5,
+                          isf_level=enable.get("isf_level") if isinstance(enable.get("isf_level"), float) else 1.0,
+                          intake_own=bool(enable.get("intake_own")),
+                          csf_geq=bool(enable.get("csf_geq", True)),
+                          csf_lvl=enable.get("csf_lvl") if isinstance(enable.get("csf_lvl"), float) else 1.05,   # LESSONS 401
+                          csf_lvl_keepg=bool(enable.get("csf_lvl_keepg")),
+                          prof_np=bool(enable.get("prof_np")))   # default since 2026-10-19 (LESSONS 358)   # default since 2026-10-19 (LESSONS 300)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
+        if isinstance(enable.get("preg_week"), float) and P.sex == "F" and 13 <= P.age <= 50:
+            # X9: settings titrated to the need at the starting week (clinic care adjusts doses as pregnancy goes on), so
+            # only the change inside the window is new to the controller
+            from .modulators import Modulators
+            n = Modulators.pregnancy_need(enable["preg_week"])
+            P.settings.update(basal_uh=P.settings["basal_uh"] * n, isf=P.settings["isf"] / n, cr=P.settings["cr"] / n,
+                              max_basal=P.settings["max_basal"] * n)
         run(P, days, out, binp, enable=enable, controller=controller, extra_flags=flags.get(P.name, flags.get("*", [])))
         return seed, "ok"
     except Exception as e:                                       # noqa: BLE001

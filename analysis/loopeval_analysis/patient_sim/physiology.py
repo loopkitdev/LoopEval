@@ -39,18 +39,27 @@ class BodyParams:
     ke: float = 0.127
     vi: float = 0.126              # L/kg
     # insulin action
-    p2: float = 0.025              # 1/min, disposal-action rate from the lispro clamp fit (GIR peak ~100 min, 50% by ~140; LESSONS 9).
+    p2: float = 0.025              # 1/min, disposal-action rate; back to the clamp fit since 2026-10-19 (LESSONS 365: with lows now carried by counter-regulation and sensor low-range noise, 0.025 matches 37 of 51). Was 0.04 (LESSONS 324). 0.025 was the 0.2 U/kg (~15 U) lispro clamp fit (GIR peak ~100 min,
+                                   # LESSONS 9); typical boluses and Loop's automatic doses are ~0.05 U/kg and act sooner (smaller s.c.
+                                   # doses act earlier — direction known, size not found for analogues). 0.04 is data-calibrated: t54,
+                                   # p_reach54 and CV onto the donors' (LESSONS 324; 2026-10-19). Was: disposal-action rate from the lispro clamp fit (GIR peak ~100 min, 50% by ~140; LESSONS 9).
                                    # Not Loop's curve: the body follows evidence about patients (Pete 2026-10-17; LESSONS 114)
     si_d: float = 5.0e-4           # disposal sensitivity, 1/min per (mU/L)  — calibrated to ISF
-    p2e: float = 0.010             # 1/min, EGP-suppression action rate (slower than disposal): T1D meal EGP suppression is
+    p2e: float = 0.012             # 1/min, EGP-suppression onset rate: clamp GIR peak 108 min on the share-0.8 base (target ~100; 0.006 gave 125;
+                                   # LESSONS 197). Was 0.006 (Pete 2026-10-17, LESSONS 131: post-meal EGP nadir depth
+                                   # 0.54 vs the Romeres 2025 tracer's 0.56; 0.010 gave 0.41). T1D meal EGP suppression is
                                    # sustained with its nadir at ~160 min (Romeres 2025); ReplayBG prior 0.008 (LESSONS 70, 75)
     se: float = 1.0                # EGP suppression per unit relative insulin above basal
     ib: float = 10.0               # basal plasma insulin, mU/L — set from the true basal rate
     # glucose
     vg: float = 1.88               # dL/kg (UVA/Padova; ReplayBG's 1.45 gives ~2x the carb sensitivity people's settings imply)
     sg: float = 0.003              # insulin-INDEPENDENT glucose effectiveness, 1/min (see COMPONENTS: physiology)
+    kappa_ins: float = 0.0         # experiment (LESSONS 292): 1 = κ follows plasma insulin per Best 1981 (0.24 / 0.68 / 0.78 at low /
+                                   # mid / high insulin; mapped [J] to 1 / 3 / 8× basal), scaled by the person's κ / 0.68
     kappa: float = 0.15            # glucose-dependence of insulin-mediated uptake: 1 = Bergman (X·G), 0 = linear (Loop) [J]
     low_prop: bool = True          # below Gb, uptake ∝ G (vanishes with glucose); False only for the linear calibration part
+    ex_post: bool = False          # experiment: the exercise sensitivity boost multiplies insulin's action on glucose (after the remote
+                                   # compartment, Breton 2008 / Dalla Man 2009) instead of the insulin entering it (40-min p2 lag)
     gb: float = 119.0              # mg/dL, rest point at true basal insulin
     egp_b: float = 2.5             # mg/kg/min at basal insulin
     rthr: float = 180.0            # renal threshold, mg/dL
@@ -78,16 +87,30 @@ class BodyParams:
                                    # (0 = off, plain first-order): emptying is energy-rate limited, so a big meal empties
                                    # for hours (Hunt 1985, Brener 1983, Calbet 1997; evidence/09). Vmax 3 is the review's
                                    # central value and the only setting that gives the donors' lognormal glucose (LESSONS 33)
+    dose_beta: float = 0.0         # > 0: bolus depots absorb faster when small, rate × (dose / 15 U)^(−β), capped 0.7–3
+                                   # (depot surface-to-volume; donors' corrections act 2–3× sooner than the 15-U clamp
+                                   # timing at 0.5–3 U, LESSONS 154–155)
+    ge_cap_speed: float = 0.0      # 1 = the energy ceiling scales with the energy-weighted speed of the meals in the stomach,
+                                   # so a meal's composition (liquid, fibre, viscosity) changes its own Vmax; 0 = one ceiling per
+                                   # person, under which per-meal speed vanishes once a meal saturates it (LESSONS 150)
     ge_gamma: float = 0.0          # > 0: power-law emptying instead of Michaelis–Menten: the stomach's energy outflow is
                                    # ge_kcal_max·(S/400 kcal)^γ, capped by each parcel's first-order kempt rate. The absolute
                                    # kcal/min keeps rising with load — doubling the load: ×1.45 (Schirra 1996, γ 0.54),
                                    # +0.72 on 2.5 kcal/min (Hunt 1985, γ ≈ 0.37) — where Km 60 kcal had flattened it to
                                    # ×1.07 above ~300 kcal (LESSONS 53)
+    egp_vs: float = 0.0            # > 0: the hepatic insulin signal saturates, in suppression units v = sE·(I − Ib)/Ib:
+                                   # v_eff = vs·v / (vs + v). 2.57 puts half suppression at v 0.62 and full at 1.64, the
+                                   # 29 / 60 µU/mL of Rizza 1981 (half-max / complete HGO suppression) scaled to the T1D arm,
+                                   # so clamp-level insulin no longer drives X_E far past full suppression (LESSONS 192–193)
+    p2e_off: float = 0.0           # > 0: X_E's rate when the hepatic signal is falling (insulin withdrawn); p2e stays the onset
+                                   # rate (meal tracer nadir, Romeres 2025). Gray 1982 HGO recovery half-times 59 / 119 min
+                                   # after 40 / 120 mU/m²/min give 0.012–0.020 through egp_vs (LESSONS 193)
     ge_hyper: float = 0.0          # maximal slowing of emptying in hyperglycaemia: rate × (1 − h·(1 − e^(−(G−100)/50)));
                                    # h 0.45 gives ×0.74 at 8 mmol/L (Schvarcz 1997) and ×0.56 at 15–20 (Fraser 1990) [J]
     # exercise
     ex_uptake: float = 0.0         # mg/kg/min insulin-independent uptake at intensity 1
-    ex_egp_surge: float = 0.0      # mg/kg/min EGP rise at intensity 1 for anaerobic work
+    ex_egp_surge: float = 28.0     # mg/kg/min EGP rise at intensity 1 for anaerobic work, above the 60% threshold; calibrated
+                                   # on donors' ≥ 8-MET workouts (rise ≥ 20 during in 46%; LESSONS 247; was 0)
 
     def scaled(self, **kw) -> "BodyParams":
         return replace(self, **kw)
@@ -104,6 +127,8 @@ class Parcel:
     f: float = 0.9
     hypo_sensitive: bool = True    # gastric emptying speeds up in hypoglycaemia
     label: str = "meal"
+    speed: float = 1.0             # the meal's own emptying-speed factor (composition), seen by the energy ceiling when
+                                   # ge_cap_speed is on (LESSONS 150)
     kcal_per_g: float = 4.0        # energy leaving the stomach per gram of this parcel's carbohydrate (fat and protein
                                    # eaten with it included); used only by the energy-rate ceiling
     q: list = field(default_factory=lambda: [0.0, 0.0, 0.0])   # mg/kg in sto1, sto2, gut
@@ -179,11 +204,15 @@ class Body:
         return p.ib * p.vi * p.ke * p.bw * 60.0 / 1000.0
 
     # ------------------------------------------------------------------ inputs
-    def infuse(self, units: float, minute: float, omega: float | None = None):
+    def infuse(self, units: float, minute: float, omega: float | None = None, dose: float | None = None):
         """Deliver `units` U at `minute`. A bolus with `omega` gets its own depot with kd, ka2 scaled
-        by omega (per-dose absorption variability); otherwise it joins the basal depot."""
+        by omega (per-dose absorption variability); otherwise it joins the basal depot. `dose` is the whole bolus the
+        units belong to: with dose_beta > 0 its depot absorbs at (dose / 15 U)^(−β), 1 at the 15-U clamp dose the
+        timing was fitted to (LESSONS 114, 155)."""
         if units <= 0: return
         p = self.p
+        if omega is not None and p.dose_beta > 0 and dose:
+            omega *= min(3.0, max(0.7, (max(dose, 0.05) / 15.0) ** (-p.dose_beta)))
         mu = units * 1000.0 / p.bw
         dep = self.basal if omega is None else self._depot(omega)
         if omega is not None and dep not in self.depots: self.depots.append(dep)
@@ -217,7 +246,8 @@ class Body:
     # ------------------------------------------------------------------ dynamics
     def step(self, dt: float = 1.0, si_mult: float = 1.0, egp_mult: float = 1.0,
              ex_intensity: float = 0.0, ex_anaerobic: float = 0.0, ex_si_boost: float = 0.0,
-             abs_mult: float = 1.0, bio: float = 1.0):
+             abs_mult: float = 1.0, bio: float = 1.0, util_drop: float = 0.0, ge_mult: float = 1.0,
+             si_d_mult: float = 1.0):
         """Advance `dt` minutes (explicit midpoint for the fast states; dt ≤ 1 recommended).
 
         si_mult: product of sensitivity modulators (circadian, daily, cycle, illness, stress,
@@ -270,11 +300,15 @@ class Body:
         # energy-rate ceiling: the stomach's total outflow (kcal/min) is shared by every parcel in it
         scale = 1.0
         if p.ge_kcal_max > 0:
-            kcal = 0.0
+            kcal = 0.0; wsp = 0.0; wk = 0.0
             for pc in self.parcels:
                 if pc.entered:
                     kcal += pc.kempt * (phi if pc.hypo_sensitive else 1.0) * pc.q[1] * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g
-            cap = p.ge_kcal_max * phi
+                    w_ = pc.q[1] * pc.kcal_per_g
+                    wsp += w_ * pc.speed; wk += w_
+            cap = p.ge_kcal_max * phi * ge_mult
+            if p.ge_cap_speed > 0 and wk > 0:
+                cap *= 1.0 + p.ge_cap_speed * (wsp / wk - 1.0)
             if p.ge_gamma > 0:
                 load = sum((pc.q[0] + pc.q[1]) * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g for pc in self.parcels if pc.entered)
                 allowed = cap * (max(load, 1e-9) / 400.0) ** p.ge_gamma
@@ -283,7 +317,7 @@ class Body:
                 scale = cap / (cap + kcal)     # saturating (Michaelis–Menten in energy): ~first-order for small meals, toward cap for big
         for pc in self.parcels:
             if not pc.entered: continue
-            ke_ = pc.kempt * (phi if pc.hypo_sensitive else 1.0)
+            ke_ = pc.kempt * (phi if pc.hypo_sensitive else 1.0) * (ge_mult if pc.kcal_per_g > 0 else 1.0)
             s1, s2, gut = pc.q
             e1 = ke_ * s1; e2 = ke_ * s2 * scale; a = pc.kabs * gut
             pc.q = [s1 - dt * e1, s2 + dt * (e1 - e2), gut + dt * (e2 - a)]
@@ -293,10 +327,14 @@ class Body:
         self.ra = ra
 
         # --- insulin action
-        si = p.si_d * si_mult * (1.0 + ex_si_boost)
+        si = p.si_d * si_mult * si_d_mult * (1.0 + (0.0 if p.ex_post else ex_si_boost))   # si_d_mult: peripheral disposal only (LESSONS 410)
         self.xd += dt * p.p2 * (si * I - self.xd)
-        self.xe += dt * p.p2e * ((I - p.ib) / p.ib - self.xe)
         se = p.se * si_mult
+        u_h = (I - p.ib) / p.ib
+        if p.egp_vs > 0 and u_h > 0 and p.se > 0:
+            v_h = p.se * u_h; u_h = p.egp_vs * v_h / (p.egp_vs + v_h) / p.se
+        r_e = p.p2e_off if (p.p2e_off > 0 and u_h < self.xe) else p.p2e
+        self.xe += dt * r_e * (u_h - self.xe)
         egp_ins = p.egp_b * egp_mult * min(max(1.0 - se * self.xe, 0.0), 1.0 + se)
 
         # --- counter-regulation and HAAF memory
@@ -312,8 +350,14 @@ class Body:
         renal = p.rcl * (g - p.rthr) if g > p.rthr else 0.0
         # insulin-mediated uptake's glucose dependence: weak above Gb (κ), proportional below it so
         # uptake vanishes with glucose (Bergman / UVA Michaelis–Menten at low G; LESSONS 7)
-        mm = p.gb + p.kappa * (g - p.gb) if (g >= p.gb or not p.low_prop) else g
-        dg = (-p.sg * (g - p.gb) - (self.xd * mm * self.risk(g) - p.si_d * p.ib * p.gb)
-              + (egp - p.egp_b - uex + ra) / p.vg - renal)
+        kap = p.kappa
+        if p.kappa_ins > 0:
+            r_ = I / p.ib
+            kr = 0.24 if r_ <= 1.0 else 0.24 + 0.44 * (r_ - 1.0) / 2.0 if r_ <= 3.0 else 0.68 + 0.10 * min(r_ - 3.0, 5.0) / 5.0
+            kap = p.kappa * kr / 0.68
+        mm = p.gb + kap * (g - p.gb) if (g >= p.gb or not p.low_prop) else g
+        xact = self.xd * (1.0 + ex_si_boost) if p.ex_post else self.xd
+        dg = (-p.sg * (g - p.gb) - (xact * mm * self.risk(g) - p.si_d * p.ib * p.gb)
+              + (egp - p.egp_b - uex + ra + util_drop) / p.vg - renal)
         self.g = max(10.0, g + dt * dg)
         self.minute = m + dt

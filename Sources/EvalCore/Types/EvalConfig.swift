@@ -474,6 +474,12 @@ public struct EvalConfig: Codable, Sendable {
     /// row for earlier t). Reproduces a user who RE-TUNED AF over the replay period
     /// (config history, like time-varying ISF). Set post-construction; nil = fixed AF.
     public var oapsAfScheduleCSV: String? = nil
+    /// Trio override presets as a JSON object: preset name → {"target": mg/dL,
+    /// "percentage": 100, "smbIsOff": false, "isfAndCr": true}. Applied to the latest
+    /// `TherapyTimeline.orefOverrides` event started by t while within its duration.
+    /// A name missing from the map still ends the previous override (Trio semantics)
+    /// but applies nothing. nil = overrides off (legacy).
+    public var oapsOverridePresets: String? = nil
     /// Apply Trio's AAPS double-exponential glucose smoothing to the oref
     /// candidate's glucose feed (matches Trio's `smoothGlucose`; oref doses on
     /// the smoothed series while NS stores raw). Candidate-only; off = raw.
@@ -1035,7 +1041,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsThresholdSetting, oapsSmbDeliveryRatio, oapsMaxSmbBasalMinutes
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
-        case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsSmoothGlucose, oapsPumpPulse
+        case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsOverridePresets, oapsSmoothGlucose, oapsPumpPulse
         case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, runwayFraction, sigmaPrior, sigmaPriorSteps, runwayZ, runwayHorizonMin, runwayMaxMgdl, runwayBgMin, runwayCobGate, splitCurvePeakMin, splitCurveDurationMin, splitCurvePart, splitRiseMgdl, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly, negativeInsulinDamper, nidAnchorAlpha, nidMarginalSlope, nidLagMin, basalLockBg
         case descentRcRiseScale, descentHighBgMin, descentWindowMin, descentSlopeMax, sigmaBandDescentGate
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
@@ -1166,6 +1172,7 @@ public struct EvalConfig: Codable, Sendable {
         self.oapsMaxIob = try c.decodeIfPresent(Double.self, forKey: .oapsMaxIob)
         self.oapsPrefsJson = try c.decodeIfPresent(String.self, forKey: .oapsPrefsJson)
         self.oapsAfScheduleCSV = try c.decodeIfPresent(String.self, forKey: .oapsAfScheduleCSV)
+        self.oapsOverridePresets = try c.decodeIfPresent(String.self, forKey: .oapsOverridePresets)
         self.oapsSmoothGlucose = (try c.decodeIfPresent(Bool.self, forKey: .oapsSmoothGlucose)) ?? false
         self.oapsPumpPulse = (try c.decodeIfPresent(Double.self, forKey: .oapsPumpPulse)) ?? 0.05
         self.postlowSuppressMgdl = try c.decodeIfPresent(Double.self, forKey: .postlowSuppressMgdl) ?? 0.0
@@ -1338,6 +1345,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encodeIfPresent(oapsMaxIob, forKey: .oapsMaxIob)
         try c.encodeIfPresent(oapsPrefsJson, forKey: .oapsPrefsJson)
         try c.encodeIfPresent(oapsAfScheduleCSV, forKey: .oapsAfScheduleCSV)
+        try c.encodeIfPresent(oapsOverridePresets, forKey: .oapsOverridePresets)
         try c.encode(oapsSmoothGlucose, forKey: .oapsSmoothGlucose)
         try c.encode(oapsPumpPulse, forKey: .oapsPumpPulse)
         try c.encode(postlowSuppressMgdl, forKey: .postlowSuppressMgdl)

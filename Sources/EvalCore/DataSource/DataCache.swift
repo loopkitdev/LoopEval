@@ -61,7 +61,9 @@ public actor DataCache {
         let end   = Int(interval.end.timeIntervalSince1970)
         // Replace characters that are invalid in file names
         let safeHost = host.replacingOccurrences(of: "/", with: "_")
-        return "\(dataType)_\(safeHost)_\(start)_\(end)"
+        // dataType can carry preset names ("130 mg/dL"), and a "/" there names a folder that doesn't exist
+        let safeType = dataType.replacingOccurrences(of: "/", with: "_")
+        return "\(safeType)_\(safeHost)_\(start)_\(end)"
     }
 
     // MARK: – Private

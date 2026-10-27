@@ -46,9 +46,29 @@ struct ICEReplayBody {
     let counterRegMaxRate: Double
     let gapReanchorSec: TimeInterval
     let evalStep: TimeInterval
+    // ABSOLUTE counter-regulation (research): apply the full rate whenever the counterfactual is below
+    // onset, not the difference from the field's. For a substrate whose field low responses (rescue carbs
+    // AND the physiological rebound) were subtracted beforehand, so the field ICE no longer carries them.
+    var counterRegAbsolute = false
+    // First-order lag (min) on the absolute rate; 0 = instantaneous. Absolute mode only.
+    var counterRegTauMin = 0.0
+    // Glucose effectiveness (research, 1/min): the body's own pull back toward its operating point. The field
+    // trace already carries it at the field's glucose; a counterfactual at a different glucose gets the extra
+    // -SG·(counter − field) per minute. Zero at identity. 0 = off.
+    var glucoseEffectivenessPerMin = 0.0
+    // LOW RESPONSE (research): low-driven upward effects (rescue carbs + physiological rebound) generated
+    // where the counterfactual itself goes low (LowResponse.swift); the caller steps it each cycle. nil = off.
+    var lowResponse: LowResponseState? = nil
+    // HIGH-side defense (research): a mirrored LowResponseModel, stepped by the caller like `lowResponse`. nil = off.
+    var highResponse: LowResponseState? = nil
+    // Per-sample amounts (mg/dL, keyed by whole Unix seconds of the CGM sample) removed from the FIELD's
+    // glucose change: the field's own low responses, subtracted as an ICE adjustment (never from absolute
+    // CGM, which would drift). nil = off.
+    var lowResponseSubtract: [Int: Double]? = nil
+    var crLevel = 0.0                           // absolute counter-reg rate (mg/dL/min), lagged; state
 
     /// Advance every sample in (substrate[advIdx-1], stepEnd]; returns the next unadvanced index.
-    func advance(from advIdx: Int, through stepEnd: Date, doses: [EvalInsulinDose],
+    mutating func advance(from advIdx: Int, through stepEnd: Date, doses: [EvalInsulinDose],
                  basal: [AbsoluteScheduleValue<Double>], counter: inout [Double]) -> Int {
         let mgdlUnit = LoopUnit.milligramsPerDeciliter
         var advIdx = advIdx
@@ -65,7 +85,9 @@ struct ICEReplayBody {
                 from: prevT, to: nextT,
                 insulinModel: insulinModel,
                 patientInsulinType: patientInsulinType)
-            let stepDelta = realBGdelta + m[advIdx] * (candPhys - realPhysDelta[advIdx])
+            let lrSub = lowResponseSubtract?[Int(nextT.timeIntervalSince1970.rounded())] ?? 0
+            let stepDelta = realBGdelta - lrSub + m[advIdx] * (candPhys - realPhysDelta[advIdx])
+                + (lowResponse?.delta(from: prevT, to: nextT) ?? 0) + (highResponse?.delta(from: prevT, to: nextT) ?? 0)
             // Counter-regulation (glucagon/epinephrine) is a BG velocity that ramps with depth
             // below onset, capped. It integrates at the step cadence: an interval spanning a
             // CGM gap is split into <= 1-step sub-intervals, the base change spread linearly,
@@ -88,15 +110,26 @@ struct ICEReplayBody {
             var bg = counter[prevIdx]
             for k in 0..<nSub {
                 var crSub = 0.0
-                if counterRegOnsetMgdl > 0 {
+                let aSub = aPrev + (aNext - aPrev) * (Double(k) / Double(nSub))
+                if counterRegOnsetMgdl > 0 && counterRegAbsolute {
+                    let dtMin = totalSec * subFrac / 60.0
+                    let belowC = counterRegOnsetMgdl - bg
+                    let target = belowC > 0 ? Swift.min(counterRegGain * belowC, counterRegMaxRate) : 0.0
+                    let prevLevel = crLevel
+                    crLevel = counterRegTauMin > 0
+                        ? target + (crLevel - target) * exp(-dtMin / counterRegTauMin) : target
+                    crSub = 0.5 * (prevLevel + crLevel) * dtMin
+                } else if counterRegOnsetMgdl > 0 {
                     let belowC = counterRegOnsetMgdl - bg
                     if belowC > 0 {
                         let rateC = Swift.min(counterRegGain * belowC, counterRegMaxRate)
-                        let aSub = aPrev + (aNext - aPrev) * (Double(k) / Double(nSub))
                         let belowA = counterRegOnsetMgdl - aSub
                         let rateA = belowA > 0 ? Swift.min(counterRegGain * belowA, counterRegMaxRate) : 0.0
                         crSub = (rateC - rateA) * (totalSec * subFrac / 60.0)
                     }
+                }
+                if glucoseEffectivenessPerMin > 0 {
+                    crSub -= glucoseEffectivenessPerMin * (bg - aSub) * (totalSec * subFrac / 60.0)
                 }
                 bg += stepDelta * subFrac + crSub
             }

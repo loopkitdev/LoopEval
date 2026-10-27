@@ -75,6 +75,15 @@ class Family:
     trans_amp: tuple = (10.0, 0.4)  # mg/dL amplitude (median, log-sd)
     trans_tau: float = 10.0       # min, recovery time constant
     trans_down: float = 0.55      # share of events that read low first
+    early_noise: tuple = (0.0, 900.0)  # (c, tau min): noise SD x (1 + c·exp(-age/tau)) — first-day CGM error is ~1.6x mid-session
+                                  # (G7 Garg 2022 Table 2: MARD day 1 11.9 / 12.9%, day 2 8.4 / 8.6%, days 4-7 7.2-8.1%; LESSONS 221)
+    trans_prop: float = 0.0       # 0 = transient in absolute mg/dL; 1 = scaled with IG/130 like the noise (CGM error is close to
+                                  # proportional: a fixed 12 mg/dL at 60 mg/dL made false lows the FDA tables do not show; LESSONS 213)
+    fall_k: float = 0.0           # noise × (1 + fall_k·max(0, −rate − 1)) with rate the IG change in mg/dL/min: CGM error grows in
+                                  # falls (G7 pivotal, Garg 2022 Table 5: MARD 9.3 / 8.4% at < −2 / −2..−1 vs 7.8–8.1 when slower;
+                                  # rises are carried by the lag alone, LESSONS 391)
+    fall_lag: float = 1.0         # BG → IG time constant × this while glucose falls below IG (interstitial lag longer in falls;
+                                  # Cengiz & Tamborlane 2009 review), sized on Garg 2022 Table 5's falling bins (LESSONS 391)
     common_sigma: float = 0.0     # innovation sd of the error COMMON to co-located sensors (interstitial physiology):
                                   # AR(3) (1.584, −0.8842, 0.1798), var(w) 3.98 → σ 2.0 on Enlite (Biagi 2017).
                                   # Continues across sessions; YSI comparison sees it, two-sensor precision does not
@@ -83,9 +92,14 @@ class Family:
 FAMILIES = {
     # G6 with the G7 structure (sensor_fit.py vs DEN170088 CGM-binned bias/MARD and PARD 9.0%): loss 7.4 against 6.7 for
     # the Vettoretti 2019 values, and it carries the transients G6 donors show (reversals 5.7 per 1,000 quiet steps)
-    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(2.5, 0.8), hetero_q=0.5,
-                        a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(6.0, 0.9), trans_amp=(12.0, 0.4),
-                        noise_wander=(0.7, 480.0)),
+    # refit on the c235 bodies against DEN170088 (LESSONS 213): sigma 2.5 -> 1.8, transient amplitude 12 -> 8, noise wander
+    # 0.7 -> 0.2, slow bias sd 3 (Breton & Kovatchev 2008); loss 23.7 -> 9.9 (a0 0.98 traded the high range, kept 0.96)
+    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(1.0, 0.8), hetero_q=0.6,   # q 0.8 -> 0.6, wander 0.7 -> 0.4: FDA loss 9.2 -> 6.0, CGM < 54 bias −16 -> −9.5 (DEN170088 −6.9; LESSONS 393)
+                          # q 0.5 -> 0.8: FDA loss 7.51 -> 5.70 (LESSONS 361); sigma 1.4 -> 1.0: FDA tables do not identify white noise (loss falls to 0), donors' sigma_meas does (LESSONS 362);   # 1.8 -> 1.4 with early_noise (LESSONS 222)
+                        a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(7.5, 0.9), trans_amp=(8.0, 0.4), trans_down=0.72,   # G6 donors'
+                        # own quiet reversals: 65% low first, 5.6 per 1,000 steps (LESSONS 390; rate 6 -> 7.5, low-first 0.55 -> 0.72)
+                        noise_wander=(0.7, 120.0), slow_bias=(3.0, 180.0), early_noise=(1.0, 330.0)),   # wander 0.2/480 -> 0.7/120: the donors'
+                                                   # 5-min step tails, clustering and dispersion (sensor_eda 9 of 10; FDA loss 11.4 -> 7.1; LESSONS 384)   # G6 Pro MARD 13.6 / 10.5 / 10.1% at 0-12 h / 12-24 h / after (LESSONS 222)
     # G7 innovations near-Gaussian (df 30): with the noise level wandering and transient biases, df 4 double-counted
     # the tails (step kurtosis 3.1 vs donors 2.48; FDA loss 1.5 → 0.7; LESSONS 42).
     # G7 fitted to sensor-only targets, never to donor roughness (LESSONS 31; sensor_fit.py, evidence/08): FDA K213919
@@ -96,13 +110,21 @@ FAMILIES = {
     # σ 2.0) carries the rest of the accuracy error. The G6 Vettoretti values (σ 3.19, a0 0.95 ± 0.063, b0 6.35 ± 6)
     # gave G7 MARD 17% at 54–69 and PARD 14%.
     "Dexcom G7": Family("Dexcom G7", warmup=27, session_days=10, grace_days=0.5, tau_med=3.5,
-                        brand_gain=1.0, sigma=(2.8, 0.8), df=30.0, hetero_q=0.5, a0=(0.98, 0.04), b0=(3.0, 3.0),
-                        common_sigma=2.0, trans_rate=(8.0, 0.9), trans_amp=(12.0, 0.4), noise_wander=(0.6, 480.0)),
+                        brand_gain=1.0, sigma=(1.3, 0.8), df=30.0, hetero_q=0.55,   # FDA K213919 refit with the donor-fitted wander (LESSONS 393): loss 14.1 -> 2.3
+                        a0=(0.98, 0.04), b0=(3.0, 3.0),   # hetero_q 0.5 -> 0.7: FDA loss 4.52 -> 3.88 (LESSONS 361); sigma 2.4 -> 1.8: donors' high-frequency CGM noise once meals move fast (LESSONS 269; was 2.8 -> 2.4, LESSONS 221)
+                        common_sigma=2.2, trans_rate=(6.5, 0.9), trans_amp=(8.0, 0.4), trans_down=0.62, noise_wander=(0.45, 120.0), fall_lag=1.5,   # fall_lag: Garg 2022 Table 5 falls (LESSONS 391)
+                          # transients: G7 donors' reversals
+                        # 55% low first, 6.9 per 1,000 steps; the twins read 49% / 8.5 at 0.55 / 8 (LESSONS 390)   # common 2.0 -> 2.8,
+                        # wander 0.2/480 -> 0.5/120: the donors' 5-min step spread, tails and clustering, fitted on donor data where the FDA
+                        # tables do not identify them (sensor_eda 6 of 10; FDA loss 6.0 -> 9.2, PARD 9.4 -> 9.9 vs 8.9; LESSONS 384)
+                        slow_bias=(5.0, 180.0), early_noise=(1.35, 900.0)),   # refit on the c235 bodies against K213919 (LESSONS 211): slow bias sd 5 (Breton &
+                                                   # Kovatchev 2008), transient amplitude 12 -> 8, noise wander 0.6 -> 0.2; loss 10.9 -> 4.0
     # Libre 3 fitted to K212132 (bias 7.4/1.4/−4.5/−7.3/−11.5, MARD 15.5/10.3/9.7/7.5/6.9, PARD 6.8): MARD 11/10/8/7.6/7.5,
     # PARD 6.8; it reads too little high at true < 54 (+0.4 vs +7.4) [open]
     "Libre 3":   Family("Libre 3", warmup=60, session_days=14, tau_med=1.8, brand_gain=1.0, smooth=0.35, df=4.0,
                         sigma=(1.5, 0.5), hetero_q=0.5, a0=(0.965, 0.03), b0=(0.0, 2.0), common_sigma=3.0,
-                        trans_rate=(4.0, 0.9), trans_amp=(12.0, 0.4), noise_wander=(0.7, 480.0)),
+                        trans_rate=(4.0, 0.9), trans_amp=(12.0, 0.4), noise_wander=(0.7, 480.0),
+                        slow_bias=(5.0, 180.0)),   # K212132 loss 20.2 -> 14.7 on the c235 bodies (LESSONS 211)
     "Libre 2":   Family("Libre 2", warmup=60, session_days=14, tau_med=2.4),
     "Medtronic": Family("Medtronic", warmup=120, session_days=7, tau_med=8.4, a0=(1.0, 0.1),
                         ar=(1.367, -0.4816), sigma=(1.59, 0.5), brand_gain=0.94),
@@ -160,6 +182,11 @@ class Sensor:
             if "sensor_tamp" in overrides or "sensor_tampsd" in overrides:
                 kw["trans_amp"] = (overrides.get("sensor_tamp", self.f.trans_amp[0]), overrides.get("sensor_tampsd", self.f.trans_amp[1]))
             if "sensor_ttau" in overrides: kw["trans_tau"] = overrides["sensor_ttau"]
+            if "sensor_falllag" in overrides: kw["fall_lag"] = overrides["sensor_falllag"]
+            if "sensor_fallk" in overrides: kw["fall_k"] = overrides["sensor_fallk"]
+            if "sensor_tdown" in overrides: kw["trans_down"] = overrides["sensor_tdown"]
+            if "sensor_tprop" in overrides: kw["trans_prop"] = overrides["sensor_tprop"]
+            if "sensor_enoise" in overrides: kw["early_noise"] = (overrides["sensor_enoise"], overrides.get("sensor_entau", self.f.early_noise[1]))
             if "sensor_sbias" in overrides or "sensor_sbtau" in overrides:
                 kw["slow_bias"] = (overrides.get("sensor_sbias", self.f.slow_bias[0]), overrides.get("sensor_sbtau", self.f.slow_bias[1]))
             if "sensor_wander" in overrides or "sensor_wtau" in overrides:
@@ -177,6 +204,7 @@ class Sensor:
         self.c = [0.0, 0.0, 0.0]
         self.trans = 0.0                                    # current transient bias, mg/dL
         self.wz = 0.0                                       # log noise-level wander (OU)
+        self.act_k = float((overrides or {}).get("sensor_act_k", 0.0)) if isinstance(overrides, dict) else 0.0
         self.sb = 0.0                                       # slow bias (OU), mg/dL at 130
         self.out_prev: Optional[float] = None
         self.gap_until = -1.0
@@ -241,10 +269,13 @@ class Sensor:
             self.comp = None
 
     # ------------------------------------------------------------------ step
-    def step(self, minute: float, bg: float, asleep: bool = False):
+    def step(self, minute: float, bg: float, asleep: bool = False, activity: float = 0.0):
         f = self.f
         if self.ig is None: self.ig = bg
-        self.ig += (bg - self.ig) / max(self.session.tau, 1.0)    # dt = 1 min
+        ig0 = self.ig
+        tau_ = self.session.tau * (f.fall_lag if bg < self.ig else 1.0)
+        self.ig += (bg - self.ig) / max(tau_, 1.0)    # dt = 1 min
+        self.ig_rate = 0.9 * getattr(self, "ig_rate", 0.0) + 0.1 * (self.ig - ig0)   # mg/dL/min, ~10-min smoothing
         self._maybe_compress(minute, asleep)
         if self.trans != 0.0:
             self.trans *= math.exp(-1.0 / f.trans_tau)
@@ -264,6 +295,14 @@ class Sensor:
             a = math.exp(-f.cadence / wtau)
             self.wz = a * self.wz + math.sqrt(1 - a * a) * float(self.rng.normal(0.0, wsd))
         nu = math.exp(self.wz - wsd ** 2) if wsd > 0 else 1.0      # E[ν²] = 1: the noise variance is unchanged on average
+        if f.early_noise[0] > 0:
+            nu *= 1.0 + f.early_noise[0] * math.exp(-max(0.0, minute - s.start) / f.early_noise[1])
+        if f.fall_k > 0:
+            nu *= 1.0 + f.fall_k * max(0.0, -self.ig_rate - 1.0)
+        if self.act_k > 0 and activity > 0:
+            # experiment (LESSONS 498): CGM error grows during aerobic exercise and recovers within the hour (MARD 9.5 → 16.5 →
+            # 9.3% before / during / 1 h after; Biagi 2018, PMC5872070): the noise level × (1 + k · activity intensity) [J k]
+            nu *= 1.0 + self.act_k * activity
         sbsd, sbtau = f.slow_bias
         if sbsd > 0:
             a2 = math.exp(-f.cadence / sbtau)
@@ -298,7 +337,8 @@ class Sensor:
             hs = math.sqrt(f.hetero_q ** 2 + (1 - f.hetero_q ** 2) * x * x)
         else:
             hs = (f.hetero_a + (1 - f.hetero_a) * max(self.ig, 20.0) / 130.0) if f.hetero_a < 1 else 1.0
-        raw = self.gain(minute) * self.ig + s.b0 + (v_all + self.sb) * hs + self.trans - self.comp_level
+        tr = self.trans * (1.0 + f.trans_prop * (max(self.ig, 20.0) / 130.0 - 1.0)) if self.trans != 0.0 else 0.0
+        raw = self.gain(minute) * self.ig + s.b0 + (v_all + self.sb) * hs + tr - self.comp_level
         c = self.comp
         withheld = minute < self.gap_until or (c is not None and c["kind"] == "gap" and self.comp_level > 0.5 * c["depth"])
         if c is not None and c["kind"] == "floor" and self.comp_level > 0.5 * c["depth"]:

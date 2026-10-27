@@ -475,3 +475,17 @@ here so it is not double-counted.
 
 Page ranges and volume numbers not shown in the abstracts checked are [unverified]. DOIs were
 checked via Europe PMC except for refs 25 and 57.
+
+## Ambient heat (D36, B15; LESSONS 290)
+
+- [M] Diabetes Care 2026 case time series (679 T1D adults, mostly UK, 33 M CGM readings, residential daily temperature):
+  hypoglycaemia (< 3.9 mmol/L ≥ 15 min) odds rise non-linearly above 13 °C, OR 1.26 at 25 vs 13 °C, strongest on the
+  same day; cold raises it ~10% at 0 °C. Mechanism not tested; insulin dosing and behaviour not recorded. Summaries:
+  https://www.lshtm.ac.uk/research/centres/centre-data-and-statistical-science-health/news/490691/warmer-temperatures-increase-risk-hypoglycemia-people-type-1-diabetes
+- [M] Faster subcutaneous absorption in heat (sauna +110%, Koivisto 1980). In the simulator under Loop, faster absorption
+  REMOVES lows (paired OR 0.59–0.75 at +24–48%; LESSONS 290): it cannot carry the association for closed-loop users alone.
+- [M] Passive heating does not raise glucose use acutely: 60 min hot-water immersion at 39 °C raised the glucose iAUC of a
+  later OGTT in healthy adults (233 vs 156 mmol·L⁻¹·2 h); single sessions have not improved insulin sensitivity
+  (reviews of T2D / overweight studies; e.g. https://pubmed.ncbi.nlm.nih.gov/30335579/). No T1D study found.
+- Open: behaviour on hot days (eating less, outdoor activity) and the study's treatment mix. B15 stays off until a
+  closed-loop-relevant mechanism has evidence.

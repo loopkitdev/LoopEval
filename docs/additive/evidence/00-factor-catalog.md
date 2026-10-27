@@ -36,7 +36,7 @@ The "Freq." column is my estimate for a typical adult on AID, unless a source is
 | D5 | Caffeine | food | ↑ | IV caffeine −15 % insulin sensitivity [P, **ND**, n=12] | ~hours | daily | **2** |
 | D6 | Alcohol | food | ↓ (delayed), ↑ (mixers) | 0.75 g/kg evening wine → 5/6 next-morning hypos, post-breakfast peak 8.9 vs 15 mmol/L [P, T1D, n=6] | 10–15 h later | weekly (varies) | **2** |
 | D7 | Meal timing (late, large dinner) | food | ↑ overnight | anecdote only [Brown n=1]; diurnal SI lower at dinner (ND) [U] | overnight | daily | **3** (captured by D1–D3 + X5) |
-| D8 | Dehydration | food | ↑ | 4.1 % body-weight loss ↑ glucose during insulin withdrawal [P, T1D]; no magnitude with insulin present | hours | rare | **3** |
+| D8 | Dehydration | none: modelled as no effect (an evidenced null) | mild hypohydration (−1.9% body mass, cell volume −2.9%, copeptin up) left the glucose and insulin responses to an OGTT unchanged in a randomized crossover of 16 healthy adults (Carroll 2019, J Appl Physiol 126:422); in T1D a fluid-restriction thesis found LESS mild hyperglycaemia afterwards (Stirling MPhil); in T2D a small unsized worsening (Johnson 2017, Nutrition Research); no size on which to build a term (LESSONS 336, 355) | — |
 | D9 | Microbiome | food | ~ | large inter-person response spread to identical meals [P, **ND**] | chronic | — | **3** (fold into D2 per-person params) |
 | D10 | Insulin dose / settings mismatch | med | ↕ | no single study; set by therapy settings [I] | persistent | continuous | **1** |
 | D11 | Bolus timing (pre-bolus) | med | ↕ | 20-min pre-bolus vs at meal: lower 1 h/2 h BG and peak [P, T1D, n=23] | 0–2 h | every meal | **1** |
@@ -87,6 +87,80 @@ The "Freq." column is my estimate for a typical adult on AID, unless a source is
 | **X16** | Cannabis / recreational drugs, fasting (Ramadan), travel and jet lag | beh. | ↕ | not searched in depth; no magnitude [I] | — | rare | **3** |
 
 ---
+
+## 1b. Simulator coverage (2026-10-19)
+
+Where each factor lives in the additive simulator. **On** = default; **switch** = built, off by default;
+**scenario** = forced by a scenario switch; **implicit** = carried by a donor-measured trait or the TDD budget rather
+than a named mechanism; **not built**. Component codes refer to `docs/additive/COMPONENTS.md`.
+
+| # | Factor | Component | Status | Data check |
+|---|---|---|---|---|
+| D1 | Carb quantity + counting error | behavior entries, count bias (person + meal, Brazeau) | on; `count_brazeau` switch | entry-anchored meals (LESSONS 130, 144) |
+| D2 | Carb type | A10 per-meal speed, fast share, slow phase; `ceiling_speed` | on (speed, fast share); switches | first-hour spread open (LESSONS 147–150, 174) |
+| D3 | Fat | A12 fat SI dip relative to the usual diet (`fat_rel`), kcal-slowed emptying | on | dinner second rise open (LESSONS 170) |
+| D4 | Protein | A12 late glucose parcel | on | — |
+| D5 | Caffeine | B-modulator, mean-zero around habit | switch | — |
+| D6 | Alcohol | B9 evening SI, morning-after EGP | on | BDDP logs (LESSONS 138) |
+| D7 | Meal timing | donor eating clock; `own_clock`, `graze_eve` | on (clock); switches | LESSONS 123, 135, 170 |
+| D8 | Dehydration | — | not built: in T1D the only controlled test (Stirling MPhil, fluid restriction around exercise, 1.1% body-mass loss) found LESS mild hyperglycaemia over the next 48 h than control, with no mechanism measured; the vasopressin → glycogenolysis route is rat-hepatocyte and mouse work (Exp Biol Med 1981; Am J Physiol Endocrinol Metab 2025, doi:10.1152/ajpendo.00505.2024). No size to build on (LESSONS 336) | — |
+| D9 | Microbiome | per-person meal response spread | implicit | — |
+| D10 | Settings mismatch | settings = donor's (incl. glucose safety limit, `suspend_own`); body halfway to the TDD yardstick (ISF_W); twins bounded to the measured ISF | on | LESSONS 144, 164, 232–233 |
+| D11 | Bolus timing | per-person lead from the labeler (`lead_own`) | on | LESSONS 106 |
+| D12 | Adjunct medication | B12 GLP-1 RA | switch | ADJUST-T1D split (LESSONS 87) |
+| D13 | Glucocorticoids | B14 courses | on (population rate); scenario | Bevier 2008 (LESSONS 140) |
+| D14 | Niacin | D14 scenario: insulin sensitivity × `niacin_si` (0.37 measured), settings kept | built, off: 2 g/day nicotinic acid for 2 weeks cut minimal-model SI 6.72 → 2.47 ×10⁻⁵ min⁻¹/pM in 11 normal men, fasting insulin doubled (Kahn 1989, Diabetes 38:562); hepatic insulin sensitivity −33% on 2 g/day Niaspan (Blond 2014, Horm Metab Res 46:390); ADMIT (Elam 2000) small FPG rise with usual-dose therapy. s354: TDD ×1.27, mean +43 mg/dL, TIR −23 on unchanged settings (LESSONS 354) | — |
+| D15 | Light activity | C6 episodes + C7 fragmented bouts (`act_frag`) | on | — |
+| D16 | Exercise | C1–C5 sessions (intensity from donors' workout METs), uptake, acute and McMahon-sized delayed SI, absorption, C4 surge above 60% effort | on | BDDP HealthKit workouts (LESSONS 243–247); post-moderate-session fall still short of donors' |
+| D17–18 | Fitness, exercise timing | per-person gain; session slot | on (as parameters) | — |
+| D20 | Insufficient sleep | B7 prior-night sleep loss; `sleep_util` (sleep-lowered glucose use) | on; switch | quiet-night balance (LESSONS 173) |
+| D21a | Illness | B6 episodes | on | BDDP logs (LESSONS 136); rate, duration, size re-checked (LESSONS 235) |
+| D21b | Stress | B10 reactive third | on | BDDP logs (LESSONS 138) |
+| D22 | Recent hypoglycaemia | A9 HAAF | on | — |
+| D24 | Dawn phenomenon | B1b basal-need profile (donor schedule), B2 dawn, B8 GH | on | LESSONS 48, 51 |
+| D25 | Infusion-set wear / failure | device site age, failures, occlusion | on | — |
+| D26 | Lipohypertrophy | device LH sites | on | — |
+| D27 | Intramuscular delivery | absorption jitter A4 | implicit | — |
+| D29 | Hyperglycaemia resistance | B11 | on | LESSONS 153 |
+| D30 | Menstrual cycle | B5 late-luteal shape | on | BDDP cycle logs (LESSONS 136); onset size checked over full cycles, post-onset low earlier than donors' (LESSONS 235) |
+| D31 | Puberty | age-banded U/kg | implicit | — |
+| D35 | CGM error | sensor families (G6, G7, Libre 3, Medtronic) | on | LESSONS 45, 174 |
+| D36 | Heat / sauna | B15 absorption speed above 13 °C (`heat_a`) | built, off: absorption alone lowers lows under Loop (paired OR 0.59–0.75 vs observed 1.26, Diabetes Care 2026) | LESSONS 290 |
+| D38 | Altitude | — (exercise C1–C5 carries the main route) | not built: de Mol 2014 (Diabetes Care, 8 T1D, Kilimanjaro) insulin need −14% below 5,000 m, not significant, back to sea level above it with mountain sickness; glucose lower after 1 h exercise at 4,200 m (7 T1D) — the exercise effect, already modelled | — |
+| D33 | Smoking | implicit: chronic smoker resistance is in each donor's data-fitted ISF (body follows data, 2026-10-19) | no acute term: nicotine infusion impaired insulin sensitivity in T2D but not in healthy controls (Axelsson 2001); T1D smokers have lower eGDR (PoProStu 2018, doi:10.5603/DK.2018.0007) — a chronic level, not a within-day driver | — |
+| D32 | Coeliac disease | implicit in the donor-fitted body | not built: on a gluten-free diet CGM metrics match T1D alone (Italian youth, 86 vs 167, Diabetol Metab Syndr 2023); non-adherence raises hyperglycaemia, a level in the donor's own data; adult CGM data sparse (Saudi cross-sectional, 48) | — |
+| D34 | Damaged insulin | D34 scenario: bioactivity of delivered insulin × `insulin_potency`; in-wear decline stays the device `bio_decline` | built, off: human insulin −14–18% after 28 days at 32–37 °C (BMJ Open Diabetes Res Care 2022, 10:e003105); analogues stable 6 days at 37 °C in a pump (PMC2825630), so it is heat-ruined stock, without a measured frequency. s354 at 0.85: TDD ×1.07, mean +10 mg/dL, TIR −4 (LESSONS 354) | — |
+| D37, D39–42 | Sunburn, decision biases | — | not built (no study, Tier 3) or implicit in behavior traits | — |
+| X1 | Rescue carbs / over-treatment | defense: per-person threshold and size from donors | on | LESSONS 166 |
+| X2 | Missed / unannounced boluses | per-person announcement and bolus rates | on | LESSONS 127, 145 |
+| X3 | Insulin absorption variability | A4 jitter, posture A4b | on | LESSONS 163, 169 |
+| X4 | Day-to-day need variation | B3 day SI, named nightly factors | on | — |
+| X5 | Circadian SI | B1 Visentin classes | on | LESSONS 168 |
+| X6 | Post-exercise late sensitivity | C2 delayed state, McMahon-sized (quadratic drive) | on | LESSONS 57, 246 |
+| X7 | Compression / dropouts | sensor compression, gaps | on | LESSONS 45, 167 |
+| X8 | Loop not running | outages, pump faults | on | — |
+| X9 | Pregnancy | X9 need by gestational week | scenario (`preg_week`) | LESSONS 141 |
+| X10 | Menopause | implicit: each twin inherits its donor's insulin need; the menstrual cycle (B5) ends at 50 | not built: German pump registry (548 post- vs 630 premenopausal T1D) lower TDD / kg and basal / kg, similar HbA1c and severe-hypo rates — a level the donor's data already carries; more fluctuation is self-reported only (Dutch survey, 159; PMC12534243) | — |
+| X11 | Gastroparesis | between-person emptying, 28% delayed | on | — |
+| X12 | Thyroid | X12 plasma insulin clearance × `thyro_clear` (1.41 measured: 1144 vs 812 ml/min, PubMed 3887944) | scenario (off): euthyroid settings kept; c337 TDD ×1.11, mean +19 mg/dL, TIR −10 (insulin needs +25–100% hyperthyroid, Arch Intern Med 1980); treated thyroid disease is a level in the donor's data | LESSONS 336 |
+| X13 | Impaired hypo awareness | rescue timing per donor | implicit | — |
+| X14 | Long-term drift | — | not built (14-day cohorts) | — |
+| X15 | Correction stacking | per-person corrections, size, top-ups; hazard by CGM trend (`corr_trend`) | on | LESSONS 164, 224, 237 |
+| X16 | Insulin formulation | body and Loop curve per donor, ultra-rapid inferred from Loop's recorded IOB | on | LESSONS 248 |
+
+### Fit against the donors (reference c331_strat, 2026-10-19)
+
+112 simulated people × 14 days against their own donors, each donor scored one 13-day block at a time (LESSONS 330): 37 of
+51 statistics matched (KS). Matched: mean, CV, TIR, skew, time < 70 and > 180, lows per day, P(reach 54), TDD and its
+day-to-day CV and autocorrelation, day/night insulin, behaviour rates, most G6 / Libre 3 short-scale statistics. Loop's
+dosing matches the field once each twin runs its donor's strategy days (automated insulin 1.04×, LESSONS 331). Open, in
+order of size:
+- **Person-level level and lows:** twins do not inherit their donor's mean (Spearman 0.25) or lows; the low-prone
+  quarter of donors runs 131 mg/dL against their twins' 153, t54 1.18 vs 0.20% (LESSONS 218–233, 332).
+- **Night-to-night level:** night means vary 32 vs 22 mg/dL between nights, afresh each night (LESSONS 288, 332).
+- **Late meal phase:** donors' 3-h change +21 vs twins ~+2 (LESSONS 301–328).
+- **Fast falls:** falling readings > 3 mg/dL/min below the donors' (LESSONS 238–239, 248).
+- **Breakfast intake** ~8 g-eq/day above the donors' (LESSONS 231).
 
 ## 2. Ranking and justification
 

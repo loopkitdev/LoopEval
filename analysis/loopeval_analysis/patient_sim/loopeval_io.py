@@ -169,10 +169,34 @@ def save_truth(world: World, path: Path):
     pickle.dump(dict(truth=tr, cgm=cgm, behavior=world.beh.log, entries=world.entries, sent_overrides=world.sent_overrides,
                      bolus_requests=world.bolus_requests, pump=world.pump.log, ex_boost=world.ex_log,
                      illness=world.mods.ill, sensor_log=None, received=world.received,
-                     person=world.person.name), open(path, "wb"))
+                     person=world.person.name, fat_log=world.fat_log, fat_rho=world.fat_rho,
+                     metmax=float(world.beh_traits.metmax)), open(path, "wb"))
 
 
 # ------------------------------------------------------------------------------------------ run
+
+RC_MODE_CSV = Path.home() / ".loop-eval/runs/2026-10-15-replay-change/rc/rc_mode.csv"
+
+
+def _rc_flags(person, enable) -> list[str]:
+    """rc_own (experiment, LESSONS 152): the controller runs the RC mode the person's template donor deployed —
+    integral RC with the deployed clamp for donors called "ircc" in rc_mode.csv (DTR forecast match per day,
+    2026-10-15; "mixed" stays standard). Without it every person ran standard RC."""
+    if not (enable or {}).get("rc_own"): return []
+    try:
+        import csv
+        calls = {r["alias"]: r["call"] for r in csv.DictReader(open(RC_MODE_CSV))}
+    except OSError:
+        return []
+    f = ["--candidate-integral-rc", "--candidate-integral-rc-clamp"] if calls.get(person.template) == "ircc" else []
+    # the pilot donors who deploy Loop's glucose-based application factor (24-donor screen, 2026-10-12): low anchor = lower
+    # target + 10, high anchor 200, factor 0.2 -> 0.8 (memory pilot-replay-fixes; LESSONS 227). Automatic-bolus people only.
+    gbaf = {"i003": 98, "i056": 109, "i010": 118}.get(person.template)
+    if gbaf is not None and person.strategy == "autobolus":
+        f += ["--candidate-gbaf", "--candidate-gbaf-low-anchor", str(gbaf), "--candidate-gbaf-high-anchor", "200",
+              "--candidate-gbaf-factor-low", "0.2", "--candidate-gbaf-factor-high", "0.8"]
+    return f
+
 def run(person, days: int, out: Path, bin_path: str = DEFAULT_BIN, enable: dict | None = None,
         extra_flags: list[str] | None = None, python: str = sys.executable, controller: str = "loop-main") -> dict:
     out.mkdir(parents=True, exist_ok=True)
@@ -195,7 +219,7 @@ def run(person, days: int, out: Path, bin_path: str = DEFAULT_BIN, enable: dict 
            # through every simulated sensor gap (LESSONS 61)
            "--cgm-stale-guard-min", "15",
            "--trace-out", str(out / "trace.json")] + flags \
-        + CONTROLLER_FLAGS[controller] + (extra_flags or [])
+        + CONTROLLER_FLAGS[controller] + _rc_flags(person, enable) + (extra_flags or [])
     t = time.time()
     r = subprocess.run(cmd, capture_output=True, text=True)
     (out / "simulate.log").write_text(" ".join(cmd) + "\n\n" + r.stderr[-20000:])
