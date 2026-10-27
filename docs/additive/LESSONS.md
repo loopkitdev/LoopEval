@@ -8306,3 +8306,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
        TIR 68.8 / 67.7, TDD 41.2 / 43.1 (38.7), meal_d3h 25 / 27 (38).
      Reading: the residual model matches lg13's cohort score while each twin now tracks its own donor. Open: the meal
      tail (lost when the replaced components went, L 514), TIR 3–4 points under, CV not carried per person.
+
+517. **Waking-movement fragments (C7) belong in the core; the insulin-absorption fluctuation (A4c) carries the meal tail but
+     adds lows the residual cannot take back.** Adding each replaced component back to f4 (r4 templates, draw 1):
+     - C7 `act_frag` (tl_frag): score 0.379 → 0.352 (lg13 0.376), tier 1 0.232, TIR 70.6, mean 151.9 (donors 151.9),
+       lows 1.08, t54 0.29. Back in the core: it is UK Biobank–sized, not a free term.
+     - stress 0.377, day SI 0.378, grazing (`graze_keep` 0.25) 0.407, illness / cycle / steroids 0.366: none moves
+       meal_d3h (24–26) or the score beyond scatter; they stay in the residual.
+     - A4c `flow_sd` 0.5 on top of C7 (t2_flow): meal_d3h 26 → 33 (38), but lows 1.17, t54 0.39, TIR 67.1, score 0.416.
+       Refitting the fast amplitudes on a core with C7 and A4c (core2; resid_f median 21, 27% need none) and one level
+       round (g1, g2): score 0.428 / 0.456 (draw 2 0.484 / 0.494), lows 1.2–1.4, t54 0.27–0.45. Not adopted.
+     - meal_d3h moves 33 → 25 between g1 and g2, whose only difference is a level step of |3.7| mg/dL: at 112 twins the
+       row's median is noisy by several mg/dL; read it on two draws.
