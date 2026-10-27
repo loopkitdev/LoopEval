@@ -27,6 +27,11 @@ replay only flags (it overstates Δt<54 5–10×) and sends the candidate to the
 generator does not beat predicting zero change in t<54 on real edits, so this guard catches large
 rises, not small ones.
 
+**The lines scale with the generator's own lows.** The +0.05 and +0.10 are set for a generator whose gr arm runs
+t<54 = 0.43 %. On a generator, each training's line is multiplied by that training's mean gr t<54 ÷ 0.43, so the
+guard holds a fixed relative rise (about 12 %) rather than a fixed absolute one. A training that runs twice the
+lows gets twice the line, so the scaled guard is only as good as the generator's baseline low level.
+
 Families: **dose-more** = act sooner/harder when a meal is under way; **pull-back** = withhold
 in a situation class that makes lows (lets needs go up); **dial-like** = moves along the
 reference; **learned** = fitted from patient history (must carry data-needed / drift /
@@ -99,7 +104,7 @@ hash have no surviving traces.
 | [E57](#e57--the-additive-simulator-896-people-reduced-carb-entry-and-the-temp-basal--automatic-bolus-switch) | *Experiment*: paired arms on the additive simulator (896 people × 14 d, frozen code), split by carb-entry habit and dosing strategy; announce_mult 1 / 0.5 / 0 on the same people; temp-basal people forced to automatic bolus | — | done | **C31(−30) + guard (C29 band + C20) is the reduced-entry pairing: TIR +0.70 / +1.00 at half / no entry with t<54 −0.03 / 0.00, safe at full entry (+0.28, −0.02).** C01 and the licence fail people who skip entry. IRC + guard: +3 to +4.5 TIR but adds lows. Switching temp → automatic bolus: TIR +3.5, t<54 +0.36; trouble is predicted by pre-switch t<70 and CV; the guard halves the added lows at no TIR cost |
 | [C41](#c41--oref-style-dynisf-ramp-on-loop) | oref-style dose-sizing dynISF ramp on Loop (`--candidate-dynisf-mult-high 0.65`) | dial-like | scored (40 pilot donors, trio) | **NEUTRAL** — lift −0.05 [−0.92, +0.58] at ×1.0, −2.57 at ×1.05; it is the dial |
 | [C42](#c42--faster-carb-expiry-on-guard--runway) | Faster carb expiry on guard + runway: absorption overrun 1.0 / 1.2 (stock 1.5), adaptive absorption | pull-back | scored (189 donors) | **WORSE** — every arm loses TIR to gr (−1.23 / −0.62 / −0.32) at no better t<54 or t<70; cuts post-meal lows by acting on every meal. Closed in blanket form |
-| [C43](#c43--outcome-keyed-insulin-needs-rule-r2) | Outcome-keyed insulin needs (R2): per-person needs ×0.95–1.10 from the prior 28 days' CGM, on gr | personalisation, dial-like per person | scored (189 donors replay; 166 donors ICE generator) | **Passes on the generator** — generator +1.29 TIR, t<54 +0.034 (bar +0.05), tight t<70 flat; replay +1.98 TIR [+1.59, +2.40], t<54 +0.16 [+0.08, +0.24] vs gr: fails the pre-registered replay bar (≤ +0.02), but +1.2 TIR above the uniform dial at equal t<54; gains are in the middle/high tertiles, tight ≈ 0 / 0. Field edits by eligible people agree in direction |
+| [C43](#c43--outcome-keyed-insulin-needs-rule-r2) | Outcome-keyed insulin needs (R2): per-person needs ×0.95–1.10 from the prior 28 days' CGM, on gr | personalisation, dial-like per person | scored (189 donors replay; 166 donors ICE generator, two versions) | **Passes the scaled guard; confirm on the meal-aware generator** — retrain +1.15 TIR, t<54 +0.085 against scaled lines ~0.10–0.12 (crosses the unscaled +0.05); first generator +1.29 TIR, t<54 +0.034; tight t<70 flat on both; replay +1.98 TIR [+1.59, +2.40], t<54 +0.16 [+0.08, +0.24] vs gr: fails the pre-registered replay bar (≤ +0.02), but +1.2 TIR above the uniform dial at equal t<54; gains are in the middle/high tertiles, tight ≈ 0 / 0. Field edits by eligible people agree in direction |
 | [E61](#e61--switching-from-irc--gbaf-to-guard--runway) | *Experiment*: what a person running IRC + GBAF sees if they move to guard + runway (189 donors) | — | done | **Keep IRC and GBAF on top of gr.** gr alone vs IRC + GBAF: −2.21 TIR, t<54 −0.66 (high tertile −5.0); gr + IRC + GBAF: −0.21 [−0.57, +0.26], t<54 +0.03 |
 | [E62](#e62--cycle-override-cohort-what-loop-recovers-without-the-override) | *Experiment*: menstrual-cycle override cohort — replay each cycle run with the person's insulin-up cycle override removed, on stock and on gr, with slow RC (C38) as the stand-in adapter (194 runs, 61 people) | — | done | **Loop does not recover the override: TIR −7.6 [−10.3, −5.5] on override days without it.** Slow RC recovers about a third (24 h: −5.2; 6 h: −4.7, but t<54 +0.12 on every other phase — guard flag). On gr the same: −7.0 → −5.0 with 24 h. Not a substitute; the 3-day run-up (field TIR −2.1) is the opening |
 
@@ -1938,6 +1943,20 @@ both axes, and the back-off is what spares the tight tertile. The high tertile c
 largest lows cost (+0.071). Limit: the generator's response to delivered insulin runs about 0.7 of the field's (ice
 LESSONS 145); scaled up, R2's Δt<54 reads about +0.05, at the line. **Verdict: passes on the generator, the tool that
 sizes lows changes correctly; re-score pending on ice's carbs-aware retrain.**
+
+**Retrained generator** (ice reply `2026-10-26-frontier-needs-rule-r2-ice-reply-2.md`, arm oc; same 166 donors and
+setup). The retrain responds more strongly to extra insulin (−1.82 per unit against the field's −2.26, up from −1.47)
+and runs about twice the baseline lows (gr t<54 0.85–1.01 % by training, against 0.43).
+
+| arm | ΔTIR | Δt<54 | Δt<70 | tight Δt<54 / Δt<70 |
+|---|---|---|---|---|
+| **R2** | **+1.15 [+0.92, +1.38]** | **+0.085 [+0.052, +0.121]** (by training +0.105 / +0.066) | +0.20 | −0.047 / −0.07 |
+| all ×1.05 | +0.83 [+0.66, +1.00] | +0.110 [+0.084, +0.137] | +0.29 | +0.076 / +0.30 |
+
+Both trainings cross the unscaled +0.05. Scaled to each training's baseline, the lines are about +0.118 and +0.098,
+and R2 is under both. Its relative t<54 rise is 10–14 % on both generator versions, about the same as the uniform
+×1.05; its advantage is the TIR for the same lows and the protected tight tertile. **Verdict: passes the scaled
+guard; the meal-aware retrain (ice arm oq), which should bring the baseline lows back down, decides it.**
 
 ## E61 · Switching from IRC + GBAF to guard + runway
 Question: does someone running IRC and GBAF lose TIR by moving to gr? Arms irc_gbaf (IRC for standard-RC donors,
