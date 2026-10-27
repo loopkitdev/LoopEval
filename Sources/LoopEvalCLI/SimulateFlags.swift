@@ -417,6 +417,24 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Option(name: .long, help: "Slow RC ISF-multiplier ceiling (default 1.3; oref autosens_max is 1.2).")
     var candidateSlowRcMax: Double = 1.3
 
+    @Option(name: .long, help: "Slow RC form: ewma (default; multiplier = clamp(1 - gain*level)) or integral (log multiplier steps by -gain*residual every cycle until the residual averages zero, so it does not settle short of the shift; gain is per mg/dL per 5-min step, try 0.0005-0.002).")
+    var candidateSlowRcMode: String = "ewma"
+
+    @Option(name: .long, help: "Slow RC: clip each step's residual to +/- this many mg/dL before it enters the level, so meal and rescue excursions count as at most this (0 = off). Try 2-3.")
+    var candidateSlowRcClipMgdl: Double = 0
+
+    @Option(name: .long, help: "Slow RC integral form: leak the log multiplier back toward 1 with this time constant, minutes (0 = no leak). A long leak (e.g. 10080 = 7 d) keeps it to day-scale shifts and leaves the person's level to settings.")
+    var candidateSlowRcLeakMin: Double = 0
+
+    @Option(name: .long, help: "Slow RC: freeze the level for this many minutes after glucose was below 70, so rescue carbs are not read as resistance (0 = off). Try 720 (C20's window).")
+    var candidateSlowRcPostlowFreezeMin: Double = 0
+
+    @Option(name: .long, help: "Slow RC timing gate: JSON {\"windows\": [{\"start\", \"end\", \"min\"}], \"resets\": [ISO dates]}. Inside a window the multiplier's lower clamp is that window's min, outside it --candidate-slow-rc-min; at each reset the level returns to 0 (a user switching the adjustment off).")
+    var candidateSlowRcGateJson: String?
+
+    @Flag(name: .long, help: "Slow RC needs form: the multiplier scales basal and carb ratio as well as ISF, like an insulin-needs override (basal x 1/m, ISF x m, CR x m).")
+    var candidateSlowRcNeeds = false
+
     @Option(name: .long, help: "Cross-cycle sensitive-mode gain k: effective ISF is scaled by (1 + k*R) where R is the EWMA of recent negative discrepancy (mg/dL). 0 = off. Try 0.01-0.05.")
     var candidateSensitiveModeGain: Double = 0
 
@@ -608,6 +626,22 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
 
     @Flag(name: .long, help: "Runway reserve only with no carbs on board.")
     var candidateRunwayCobGate: Bool = false
+
+    @Option(name: .long, help: "Curve-split diagnostic: peak (min) of a second curve used by one part of the controller only (see --split-curve-part). 0 = off.")
+    var splitCurvePeakMin: Double = 0
+
+    @Option(name: .long, help: "Curve-split diagnostic: duration (min) of the second curve (default 360).")
+    var splitCurveDurationMin: Double = 360
+
+    @Option(name: .long, help: "Curve-split diagnostic: which part uses the second curve: ice (counteraction → RC, carb absorption), correction (dose sizing), projection-cob or projection-rise (forward projection of past doses, only while carbs are on board / glucose is rising).")
+    var splitCurvePart: String = "ice"
+
+    @Option(name: .long, help: "Curve-split projection-rise: glucose rise over the last 15 min (mg/dL) that counts as rising (default 3).")
+    var splitRiseMgdl: Double = 3
+    @Option(name: .long, help: "Experiment: plateau UAM (minutes). Project recent unexplained appearance (ICE minus modeled carbs) forward as tapering absorption, but only while BG is flat or falling (15-min slope ramps the term from full at <= 0.2 to off at >= 0.5 mg/dL/min) and BG >= 100 (ramp 100-130). 0 = off.")
+    var candidatePlateauUamMinutes: Double = 0
+    @Option(name: .long, help: "Experiment: plateau UAM gain on the projected appearance rate. Default 1.")
+    var candidatePlateauUamGain: Double = 1
 
     @Option(name: .long, help: "sigma-band BASELINE (mg/dL per 5 min): widen by k*max(0, sigma5 - baseline) instead of k*sigma5. Set to the donor's own median sigma5 so the band is zero in their typical state and carries no per-donor level offset. 0 = original absolute-sigma behaviour.")
     var candidateSigmaBandBaseline: Double = 0
@@ -847,6 +881,12 @@ extension SimulateCommand {
     var candidateSlowRcGain: Double { get { loopExperiments.candidateSlowRcGain } set { loopExperiments.candidateSlowRcGain = newValue } }
     var candidateSlowRcMin: Double { get { loopExperiments.candidateSlowRcMin } set { loopExperiments.candidateSlowRcMin = newValue } }
     var candidateSlowRcMax: Double { get { loopExperiments.candidateSlowRcMax } set { loopExperiments.candidateSlowRcMax = newValue } }
+    var candidateSlowRcMode: String { get { loopExperiments.candidateSlowRcMode } set { loopExperiments.candidateSlowRcMode = newValue } }
+    var candidateSlowRcClipMgdl: Double { get { loopExperiments.candidateSlowRcClipMgdl } set { loopExperiments.candidateSlowRcClipMgdl = newValue } }
+    var candidateSlowRcLeakMin: Double { get { loopExperiments.candidateSlowRcLeakMin } set { loopExperiments.candidateSlowRcLeakMin = newValue } }
+    var candidateSlowRcPostlowFreezeMin: Double { get { loopExperiments.candidateSlowRcPostlowFreezeMin } set { loopExperiments.candidateSlowRcPostlowFreezeMin = newValue } }
+    var candidateSlowRcGateJson: String? { get { loopExperiments.candidateSlowRcGateJson } set { loopExperiments.candidateSlowRcGateJson = newValue } }
+    var candidateSlowRcNeeds: Bool { get { loopExperiments.candidateSlowRcNeeds } set { loopExperiments.candidateSlowRcNeeds = newValue } }
     var candidateSensitiveModeGain: Double { get { loopExperiments.candidateSensitiveModeGain } set { loopExperiments.candidateSensitiveModeGain = newValue } }
     var candidateIceRiseBoostGain: Double { get { loopExperiments.candidateIceRiseBoostGain } set { loopExperiments.candidateIceRiseBoostGain = newValue } }
     var candidateIceRiseBoostBgLo: Double { get { loopExperiments.candidateIceRiseBoostBgLo } set { loopExperiments.candidateIceRiseBoostBgLo = newValue } }
@@ -911,6 +951,12 @@ extension SimulateCommand {
     var candidateRunwayMaxMgdl: Double { get { loopExperiments.candidateRunwayMaxMgdl } set { loopExperiments.candidateRunwayMaxMgdl = newValue } }
     var candidateRunwayBgMin: Double { get { loopExperiments.candidateRunwayBgMin } set { loopExperiments.candidateRunwayBgMin = newValue } }
     var candidateRunwayCobGate: Bool { get { loopExperiments.candidateRunwayCobGate } set { loopExperiments.candidateRunwayCobGate = newValue } }
+    var splitCurvePeakMin: Double { get { loopExperiments.splitCurvePeakMin } set { loopExperiments.splitCurvePeakMin = newValue } }
+    var splitCurveDurationMin: Double { get { loopExperiments.splitCurveDurationMin } set { loopExperiments.splitCurveDurationMin = newValue } }
+    var splitCurvePart: String { get { loopExperiments.splitCurvePart } set { loopExperiments.splitCurvePart = newValue } }
+    var splitRiseMgdl: Double { get { loopExperiments.splitRiseMgdl } set { loopExperiments.splitRiseMgdl = newValue } }
+    var candidatePlateauUamMinutes: Double { get { loopExperiments.candidatePlateauUamMinutes } set { loopExperiments.candidatePlateauUamMinutes = newValue } }
+    var candidatePlateauUamGain: Double { get { loopExperiments.candidatePlateauUamGain } set { loopExperiments.candidatePlateauUamGain = newValue } }
     var candidateSigmaBandBaseline: Double { get { loopExperiments.candidateSigmaBandBaseline } set { loopExperiments.candidateSigmaBandBaseline = newValue } }
     var candidateSigmaBandFixedSigma: Double { get { loopExperiments.candidateSigmaBandFixedSigma } set { loopExperiments.candidateSigmaBandFixedSigma = newValue } }
     var candidateSigmaBandGuardOnly: Bool { get { loopExperiments.candidateSigmaBandGuardOnly } set { loopExperiments.candidateSigmaBandGuardOnly = newValue } }

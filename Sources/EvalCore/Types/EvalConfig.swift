@@ -569,6 +569,31 @@ public struct EvalConfig: Codable, Sendable {
     public var runwayMaxMgdl: Double
     public var runwayBgMin: Double
     public var runwayCobGate: Bool
+    /// Curve-split diagnostic: when splitCurvePeakMin > 0, one part of the controller uses a second curve
+    /// (custom2: this peak, splitCurveDurationMin) — "ice" (insulin counteraction → RC, carb absorption) or
+    /// "correction" (the dose-sizing model in insulinCorrection). Everything else keeps the controller curve.
+    public var splitCurvePeakMin: Double
+    public var splitCurveDurationMin: Double
+    public var splitCurvePart: String
+    public var splitRiseMgdl: Double
+    /// Experiment: plateau UAM. Project unexplained appearance forward over this many minutes only when BG is NOT rising (0 = off). Set post-construction.
+    public var plateauUamMinutes: Double = 0
+    /// Experiment: plateau UAM gain on the projected appearance rate. Set post-construction.
+    public var plateauUamGain: Double = 1
+    /// Slow RC integral form: log multiplier integrates -slowRcGain * residual each cycle. Set post-construction.
+    public var slowRcIntegral: Bool = false
+    /// Slow RC: per-step residual clip, mg/dL (0 = off). Set post-construction.
+    public var slowRcClipMgdl: Double = 0
+    /// Slow RC integral form: leak of the log multiplier toward 0, seconds (0 = none). Set post-construction.
+    public var slowRcLeakSec: TimeInterval = 0
+    /// Slow RC: no level updates for this long after counter glucose < 70, seconds (0 = off). Set post-construction.
+    public var slowRcPostlowFreezeSec: TimeInterval = 0
+    /// Slow RC timing gate: inside a window the lower clamp is the window's min. Set post-construction.
+    public var slowRcGateWindows: [SlowRcGateWindow] = []
+    /// Slow RC: the level returns to 0 at each of these times. Set post-construction.
+    public var slowRcResets: [Date] = []
+    /// Slow RC needs form: the multiplier also scales basal (x 1/m) and carb ratio (x m). Set post-construction.
+    public var slowRcNeeds: Bool = false
     /// DESCENT-gated RC rise-cut (C32). When BG reached >= descentHighBgMin within
     /// descentWindowMin AND the trailing 60-min slope is <= descentSlopeMax (falling),
     /// scale the POSITIVE (unexplained-rise) RC discrepancy by descentRcRiseScale.
@@ -731,6 +756,10 @@ public struct EvalConfig: Codable, Sendable {
         runwayMaxMgdl: Double = 60,
         runwayBgMin: Double = 0,
         runwayCobGate: Bool = false,
+        splitCurvePeakMin: Double = 0,
+        splitCurveDurationMin: Double = 360,
+        splitCurvePart: String = "ice",
+        splitRiseMgdl: Double = 3,
         descentRcRiseScale: Double = 1.0,
         sigmaBandDescentGate: Bool = false,
         descentHighBgMin: Double = 180,
@@ -898,6 +927,10 @@ public struct EvalConfig: Codable, Sendable {
         self.runwayMaxMgdl                  = runwayMaxMgdl
         self.runwayBgMin                    = runwayBgMin
         self.runwayCobGate                  = runwayCobGate
+        self.splitCurvePeakMin              = splitCurvePeakMin
+        self.splitCurveDurationMin          = splitCurveDurationMin
+        self.splitCurvePart                 = splitCurvePart
+        self.splitRiseMgdl                  = splitRiseMgdl
         self.descentRcRiseScale             = descentRcRiseScale
         self.sigmaBandDescentGate           = sigmaBandDescentGate
         self.descentHighBgMin               = descentHighBgMin
@@ -1003,7 +1036,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
         case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsSmoothGlucose, oapsPumpPulse
-        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, runwayFraction, sigmaPrior, sigmaPriorSteps, runwayZ, runwayHorizonMin, runwayMaxMgdl, runwayBgMin, runwayCobGate, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly, negativeInsulinDamper, nidAnchorAlpha, nidMarginalSlope, nidLagMin, basalLockBg
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, runwayFraction, sigmaPrior, sigmaPriorSteps, runwayZ, runwayHorizonMin, runwayMaxMgdl, runwayBgMin, runwayCobGate, splitCurvePeakMin, splitCurveDurationMin, splitCurvePart, splitRiseMgdl, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly, negativeInsulinDamper, nidAnchorAlpha, nidMarginalSlope, nidLagMin, basalLockBg
         case descentRcRiseScale, descentHighBgMin, descentWindowMin, descentSlopeMax, sigmaBandDescentGate
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
@@ -1166,6 +1199,10 @@ public struct EvalConfig: Codable, Sendable {
         self.runwayMaxMgdl = try c.decodeIfPresent(Double.self, forKey: .runwayMaxMgdl) ?? 60
         self.runwayBgMin = try c.decodeIfPresent(Double.self, forKey: .runwayBgMin) ?? 0
         self.runwayCobGate = try c.decodeIfPresent(Bool.self, forKey: .runwayCobGate) ?? false
+        self.splitCurvePeakMin = try c.decodeIfPresent(Double.self, forKey: .splitCurvePeakMin) ?? 0
+        self.splitCurveDurationMin = try c.decodeIfPresent(Double.self, forKey: .splitCurveDurationMin) ?? 360
+        self.splitCurvePart = try c.decodeIfPresent(String.self, forKey: .splitCurvePart) ?? "ice"
+        self.splitRiseMgdl = try c.decodeIfPresent(Double.self, forKey: .splitRiseMgdl) ?? 3
         self.descentRcRiseScale = try c.decodeIfPresent(Double.self, forKey: .descentRcRiseScale) ?? 1.0
         self.sigmaBandDescentGate = try c.decodeIfPresent(Bool.self, forKey: .sigmaBandDescentGate) ?? false
         self.descentHighBgMin = try c.decodeIfPresent(Double.self, forKey: .descentHighBgMin) ?? 180
@@ -1334,6 +1371,10 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(runwayMaxMgdl, forKey: .runwayMaxMgdl)
         try c.encode(runwayBgMin, forKey: .runwayBgMin)
         try c.encode(runwayCobGate, forKey: .runwayCobGate)
+        try c.encode(splitCurvePeakMin, forKey: .splitCurvePeakMin)
+        try c.encode(splitCurveDurationMin, forKey: .splitCurveDurationMin)
+        try c.encode(splitCurvePart, forKey: .splitCurvePart)
+        try c.encode(splitRiseMgdl, forKey: .splitRiseMgdl)
         try c.encode(descentRcRiseScale, forKey: .descentRcRiseScale)
         try c.encode(sigmaBandDescentGate, forKey: .sigmaBandDescentGate)
         try c.encode(descentHighBgMin, forKey: .descentHighBgMin)
@@ -1352,4 +1393,12 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(sensDampGain, forKey: .sensDampGain)
         try c.encode(sensDampMax, forKey: .sensDampMax)
     }
+}
+
+/// A period in which the slow RC multiplier may go down to `min` (more insulin) instead of the configured slowRcMin.
+public struct SlowRcGateWindow: Sendable, Equatable {
+    public var start: Date
+    public var end: Date
+    public var min: Double
+    public init(start: Date, end: Date, min: Double) { self.start = start; self.end = end; self.min = min }
 }

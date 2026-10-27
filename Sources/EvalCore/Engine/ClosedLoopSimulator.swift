@@ -741,8 +741,14 @@ extension EvaluationEngine {
         // Slow (autosense-scope) RC (EvalConfig.slowRc*): EWMA of the SIGNED per-step
         // discrepancy over hours; positive level (BG running above forecast) lowers
         // effective ISF, negative raises it, clamped to [slowRcMin, slowRcMax]. Off when tau==0 or gain==0.
-        let slowRcOn = candidateConfig.slowRcTauSec > 0 && candidateConfig.slowRcGain != 0
-        var slowRcLevel = 0.0
+        let slowRcOn = (candidateConfig.slowRcTauSec > 0 || candidateConfig.slowRcIntegral) && candidateConfig.slowRcGain != 0
+        var slowRcLevel = 0.0          // ewma: EWMA of the residual; integral: log of the ISF multiplier
+        var slowRcLastLow: Date? = nil
+        var slowRcResetIdx = 0
+        let slowRcGated = !candidateConfig.slowRcGateWindows.isEmpty
+        func slowRcMinAt(_ t: Date) -> Double {
+            candidateConfig.slowRcGateWindows.first { $0.start <= t && t < $0.end }?.min ?? candidateConfig.slowRcMin
+        }
 
         // When decisions happen and which are skipped (DecisionTiming.swift).
         var timing = DecisionTiming(
@@ -980,8 +986,9 @@ extension EvaluationEngine {
                 // Cross-cycle sensitive-mode ISF bump (>=1 damp; always safe to apply).
                 let sensModeMult = sensModeOn ? Swift.min(2.0, 1.0 + candidateConfig.sensitiveModeGain * sensModeLevel) : 1.0
                 candidateSensModeMult = sensModeMult
+                let slowRcRaw = candidateConfig.slowRcIntegral ? exp(slowRcLevel) : 1.0 - candidateConfig.slowRcGain * slowRcLevel
                 let slowRcMult = slowRcOn
-                    ? Swift.max(candidateConfig.slowRcMin, Swift.min(candidateConfig.slowRcMax, 1.0 - candidateConfig.slowRcGain * slowRcLevel))
+                    ? Swift.max(slowRcGated ? slowRcMinAt(t) : candidateConfig.slowRcMin, Swift.min(candidateConfig.slowRcMax, slowRcRaw))
                     : 1.0
                 // ICE RISE-BOOST (rise side of the unified ICE-response term): attack a
                 // SUSTAINED, actively-driven high. A positive forecast offset when BG is
@@ -1045,7 +1052,9 @@ extension EvaluationEngine {
                 } else {
                     orefHistDoses = data.doses
                 }
-                var stepInput = candidateInput, stepOrefHist = orefHistDoses
+                // Needs form: the slow RC level scales basal and carb ratio with ISF, like an insulin-needs override.
+                let slowRcNeeds = candidateConfig.slowRcNeeds && slowRcOn ? 1.0 / slowRcMult : 1.0
+                var stepInput = Self.scaledNeeds(candidateInput, slowRcNeeds), stepOrefHist = orefHistDoses
                 func doStep(_ map: [Date: Double]?) -> EngineStepResult {
                     candidateEngine.step(EngineStepRequest(
                         t: t, input: stepInput, config: candidateConfig,
@@ -1111,7 +1120,7 @@ extension EvaluationEngine {
                             glucose: candidateSensorSamples, doses: EvaluationEngine.mergeSorted(combinedDoses, [pb]),
                             carbs: suppressCarbs ? [] : candidateCarbs, therapyTimeline: candTherapy, config: candidateConfig)
                         if let inp = withBolus.buildInput(at: t, decisionAnchor: t) {
-                            stepInput = inp
+                            stepInput = Self.scaledNeeds(inp, slowRcNeeds)
                             calcRecShown = result.manualBolusRec   // what the calculator showed the person
                             result = decide()
                         }
@@ -1157,7 +1166,7 @@ extension EvaluationEngine {
                         if coEntered,
                            let relaxedInput = candidateBuilder.buildInput(at: t, carbVisibilityCutoff: visCut, decisionAnchor: t) {
                             let rr = EvaluationEngine.simStepDose(
-                                t: t, input: relaxedInput, config: candidateConfig,
+                                t: t, input: Self.scaledNeeds(relaxedInput, slowRcNeeds), config: candidateConfig,
                                 therapy: candTherapy, glucoseMgdl: candMomentumMgdl,
                                 glucoseSamples: candMomentumSamples,
                                 extraISFMultiplier: sensModeMult * slowRcMult,
@@ -1171,6 +1180,20 @@ extension EvaluationEngine {
                 candidateEventualBG = result.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
                 candidateIOB = result.prediction.activeInsulin ?? .nan
                 candidateCOB = result.prediction.activeCarbs ?? .nan
+                // Diagnostic: CAND_FC_DUMP=1 prints the candidate forecast at +30/60/90/120/180 min and eventual,
+                // one line per cycle to stderr ("CANDFC <epoch> v30 v60 v90 v120 v180 eventual").
+                if ProcessInfo.processInfo.environment["CAND_FC_DUMP"] != nil {
+                    let g = result.prediction.glucose
+                    func at(_ m: Double) -> Double {
+                        g.first(where: { $0.startDate >= t.addingTimeInterval(m * 60 - 1) })?.quantity.doubleValue(for: mgdlUnit) ?? .nan
+                    }
+                    let line = "CANDFC \(Int(t.timeIntervalSince1970)) \(at(30)) \(at(60)) \(at(90)) \(at(120)) \(at(180)) \(g.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan)\n"
+                    let args = CommandLine.arguments
+                    let dd = args.firstIndex(of: "--data-dir").map { args[$0 + 1] } ?? "x"
+                    let path = dd + ".candfc"
+                    if !FileManager.default.fileExists(atPath: path) { FileManager.default.createFile(atPath: path, contents: nil) }
+                    if let fh = FileHandle(forWritingAtPath: path) { fh.seekToEndOfFile(); fh.write(Data(line.utf8)); fh.closeFile() }
+                }
                 func netEff(_ a: [GlucoseEffect]) -> Double {
                     guard let f = a.first, let l = a.last else { return 0.0 }
                     return l.quantity.doubleValue(for: mgdlUnit) - f.quantity.doubleValue(for: mgdlUnit)
@@ -1246,8 +1269,26 @@ extension EvaluationEngine {
                 if sensModeOn && rcResidualFeed.isFinite {
                     sensModeLevel = sensModeDecayStep * sensModeLevel + (1.0 - sensModeDecayStep) * Swift.max(0.0, -rcResidualFeed)
                 }
-                if slowRcOn && rcResidualFeed.isFinite {
-                    slowRcLevel = slowRcDecayStep * slowRcLevel + (1.0 - slowRcDecayStep) * rcResidualFeed
+                if slowRcOn, !counterMgdl.isEmpty, counterMgdl[Self.latestGlucoseIndex(at: t, in: counterGlucose)] < 70 {
+                    slowRcLastLow = t
+                }
+                let slowRcFrozen = candidateConfig.slowRcPostlowFreezeSec > 0
+                    && slowRcLastLow.map { t.timeIntervalSince($0) < candidateConfig.slowRcPostlowFreezeSec } == true
+                let resets = candidateConfig.slowRcResets
+                while slowRcResetIdx < resets.count && resets[slowRcResetIdx] <= t { slowRcLevel = 0; slowRcResetIdx += 1 }
+                if slowRcOn && rcResidualFeed.isFinite && !slowRcFrozen {
+                    let c = candidateConfig.slowRcClipMgdl
+                    let r = c > 0 ? Swift.max(-c, Swift.min(c, rcResidualFeed)) : rcResidualFeed
+                    if candidateConfig.slowRcIntegral {
+                        // Integral form: step the log multiplier against the residual until the residual averages
+                        // zero; clamp it to [ln min, ln max] so it cannot wind up past the clamp.
+                        let leak = candidateConfig.slowRcLeakSec > 0 ? exp(-stepDur / candidateConfig.slowRcLeakSec) : 1.0
+                        let lo = slowRcGated ? slowRcMinAt(t) : candidateConfig.slowRcMin
+                        slowRcLevel = Swift.max(log(lo), Swift.min(log(candidateConfig.slowRcMax),
+                            leak * slowRcLevel - candidateConfig.slowRcGain * r * stepDur / 300))
+                    } else {
+                        slowRcLevel = slowRcDecayStep * slowRcLevel + (1.0 - slowRcDecayStep) * r
+                    }
                 }
             }
 
@@ -2382,10 +2423,11 @@ extension EvaluationEngine {
         let maxAbsorbOverrun: Double = config.carbAbsorptionOverrun
         let momProjDuration: TimeInterval = config.momentumProjectionMinutes * 60
         let momDataIntervalSec: TimeInterval = config.momentumDataIntervalMinutes * 60
-        var prediction: LoopPrediction<EvalCarbEntry> = LoopAlgorithm.generatePrediction(
+        func predictWith(_ predDoses: [EvalInsulinDose], _ iceDoses: [EvalInsulinDose]?) -> LoopPrediction<EvalCarbEntry> {
+        return LoopAlgorithm.generatePrediction(
             start: predStart,
             glucoseHistory: effectiveInput.glucose,
-            doses: effectiveInput.doses,
+            doses: predDoses,
             carbEntries: effectiveInput.carbs,
             basal: effectiveInput.basal,
             sensitivity: effectiveInput.sensitivity,
@@ -2422,7 +2464,11 @@ extension EvaluationEngine {
             momentumDataInterval: momDataIntervalSec,
             useAsymmetricMomentum: config.useAsymmetricMomentum,
             momentumAlphaSlow: config.momentumAlphaSlow,
-            momentumAlphaFast: config.momentumAlphaFast
+            momentumAlphaFast: config.momentumAlphaFast,
+            iceDoses: iceDoses,
+            plateauUamMinutes: config.plateauUamMinutes,
+            plateauUamGain: config.plateauUamGain
+
             // NB: `highCorrectionEnabled` / `*RiseGain` / `*EffectDurationMinutes`
             // / `*FastOffVelocity` came from the abandoned
             // `experiment/asymmetric-high-correction` LoopAlgorithm branch.
@@ -2431,6 +2477,28 @@ extension EvaluationEngine {
             // LoopAlgorithm fork does not accept them. Removing the EvalConfig
             // fields + CLI flags is a separate cleanup.
         )
+        }
+        let splitIce: [EvalInsulinDose]? = (config.splitCurvePeakMin > 0 && config.splitCurvePart == "ice")
+            ? effectiveInput.doses.map { var c = $0; c.insulinType = .custom2; return c } : nil
+        var prediction: LoopPrediction<EvalCarbEntry> = predictWith(effectiveInput.doses, splitIce)
+        // Curve-split "projection-cob" / "projection-rise": past doses are projected forward on the second curve
+        // (custom2) only while carbs are on board / glucose is rising; insulin counteraction keeps the controller
+        // curve. Otherwise the controller curve throughout.
+        if config.splitCurvePeakMin > 0, config.splitCurvePart.hasPrefix("projection") {
+            var on = false
+            if config.splitCurvePart == "projection-cob" {
+                on = (prediction.activeCarbs ?? 0) > 0
+            } else if let last = effectiveInput.glucose.last {
+                let mg = LoopUnit.milligramsPerDeciliter
+                if let prior = effectiveInput.glucose.last(where: { last.startDate.timeIntervalSince($0.startDate) >= 15 * 60 }),
+                   last.startDate.timeIntervalSince(prior.startDate) <= 25 * 60 {
+                    on = last.quantity.doubleValue(for: mg) - prior.quantity.doubleValue(for: mg) >= config.splitRiseMgdl
+                }
+            }
+            if on {
+                prediction = predictWith(effectiveInput.doses.map { var c = $0; c.insulinType = .custom2; return c }, effectiveInput.doses)
+            }
+        }
 
         // Sustained-sensitivity (post-low) forecast SUPPRESSION: a SELECTIVE
         // lows-protector. When a recent low occurred (strong evidence of elevated
@@ -2791,7 +2859,7 @@ extension EvaluationEngine {
             suspendThreshold: therapy.suspendThreshold(at: t),
             maxBolus: therapy.maxBolus(at: t),
             maxBasalRate: therapy.maxBasalRate(at: t),
-            insulinType: therapy.insulinType(at: t),
+            insulinType: (config.splitCurvePeakMin > 0 && config.splitCurvePart == "correction") ? .custom2 : therapy.insulinType(at: t),
             evalStep: config.evalStep,
             applicationFactor: appFactor,
             softLowGate: config.softLowGate,
@@ -2818,6 +2886,18 @@ extension EvaluationEngine {
             manualBolusRec: doseRec?.manualBolusRec ?? 0,
             tempAction: doseRec?.tempAction ?? "set"
         )
+    }
+
+    /// Insulin-needs scaling of a step's schedules: basal x n, carb ratio / n (ISF is scaled through
+    /// extraISFMultiplier). n == 1 returns the input unchanged.
+    static func scaledNeeds(_ i: PredictionInput, _ n: Double) -> PredictionInput {
+        guard n != 1 else { return i }
+        return PredictionInput(
+            glucose: i.glucose, doses: i.doses, carbs: i.carbs,
+            basal: i.basal.map { AbsoluteScheduleValue(startDate: $0.startDate, endDate: $0.endDate, value: $0.value * n) },
+            sensitivity: i.sensitivity,
+            carbRatio: i.carbRatio.map { AbsoluteScheduleValue(startDate: $0.startDate, endDate: $0.endDate, value: $0.value / n) },
+            target: i.target)
     }
 
     /// Find the index of the glucose sample closest to `t` (binary-search).
