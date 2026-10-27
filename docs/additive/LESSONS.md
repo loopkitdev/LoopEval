@@ -8291,3 +8291,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Reading: what separates a tight donor from a loose one at the same settings is carried once each twin has its own
      unexplained level (L 448's far-from-meal load), and the twins then answer a settings change by control level as the
      field does, at about a third of its size. The cohort rows that got worse (lows, meal tail, TIR) are next.
+
+516. **With the fast residual at 0.6× and the cohort sensitivity at the modulators' old level, the residual model scores
+     level with lg13 and keeps the person-level gain; the meal tail is the open cohort gap.** On the r3 templates, draw 1
+     (runs/2026-10-27-additive-natexp):
+     - `csf_lvl` 1.2 with one level refit (cs3 / cs4, both draws): meal_d3h 26 / 27 (no gain, unlike L 512 on lg13), t54
+       0.37 / 0.30, score 0.467 / 0.459 (draw 2 0.520 / 0.515). Not adopted.
+     - fxA `resid_mult` 0.6: score 0.388, lows 1.17, TIR 70.6. fxB `si_norm` 0.92 (the twins' average sensitivity under the
+       old modulators, L 468; the yardstick's cohort level is attenuated by closed loop, so one cohort factor sets it):
+       0.415, mean 158. fxC both: 0.383, lows 0.83, t54 0.156, t70 1.55 (donors 1.60), TIR 68.7, mean 155.7.
+     - f4 = fxC with one level refit (r4, gain 1.2; |gap| p50 2.9, resid_m p10 / p50 / p90 −53 / 0 / +20): score 0.379 /
+       0.440 (lg13 0.376 / 0.415), tier 1 0.266 / 0.379; person level TIR ρ 0.71 / 0.73, mean 0.83 / 0.88, t70 0.47 /
+       0.35, t54 0.37 / 0.27, CV 0.02 / 0.13 (lg13 TIR 0.37 / 0.41, mean 0.39 / 0.41). Lows 0.83 / 1.25, t54 0.19 / 0.27,
+       TIR 68.8 / 67.7, TDD 41.2 / 43.1 (38.7), meal_d3h 25 / 27 (38).
+     Reading: the residual model matches lg13's cohort score while each twin now tracks its own donor. Open: the meal
+     tail (lost when the replaced components went, L 514), TIR 3–4 points under, CV not carried per person.
