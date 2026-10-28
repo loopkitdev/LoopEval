@@ -675,6 +675,12 @@ class World:
         # a constant per-person drive (mg/dL/h) fitted to the donor's own glucose level (LESSONS 515): the unlogged load far
         # from meals that separates a tight donor from a loose one at the same settings (LESSONS 448), source unnamed
         self.resid_m = float(rz["resid_m"]) if "resid_m" in rz else (float(en_["resid_m"]) if isinstance(en_.get("resid_m"), float) else 0.0)
+        # the residual's down side (experiment; LESSONS 521): after a carb entry (>= 5 g), with probability resid_drop_p, a
+        # sharp negative drive from 40-90 min after it (the donors' fast falls come a median 61 min after an entry, at the
+        # end of the rise; LESSONS 509-511), amplitude resid_drop_a x lnN(0, 0.3) mg/dL/h decaying with tau resid_drop_tau
+        f_ = lambda k, d: float(en_[k]) if isinstance(en_.get(k), float) else d
+        self.drop_p, self.drop_a, self.drop_tau = f_("resid_drop_p", 0.0), f_("resid_drop_a", 100.0), f_("resid_drop_tau", 25.0)
+        self._drop_rng = np.random.default_rng(int(person.seed) + 5141); self._drop_seen = 0; self._drops: list = []
         self.resid_skew = float(en_["resid_skew"]) if isinstance(en_.get("resid_skew"), float) else 0.0
         self._resid_rng = np.random.default_rng(int(person.seed) + 5137)
         self._resid_x = [0.0, 0.0]; self._resid_last = None; self._resid_day = {}
@@ -887,7 +893,16 @@ class World:
 
     def _resid(self, m: float) -> float:
         """The data-driven residual's glucose rate at minute m, mg/dL/min (0 when off)."""
-        if not self.resid_on or not (any(self.resid_a) or self.resid_m): return 0.0
+        if not self.resid_on or not (any(self.resid_a) or self.resid_m or self.drop_p): return 0.0
+        drop = 0.0
+        if self.drop_p > 0:
+            while self._drop_seen < len(self.entries):
+                e = self.entries[self._drop_seen]; self._drop_seen += 1
+                if e[1] >= 5 and self._drop_rng.random() < self.drop_p:
+                    self._drops.append((e[0] + float(self._drop_rng.uniform(40, 90)),
+                                        self.drop_a * float(np.exp(self._drop_rng.normal(0, 0.3)))))
+            self._drops = [d for d in self._drops if m - d[0] < 8 * self.drop_tau]
+            drop = sum(a * math.exp(-(m - t0) / self.drop_tau) for t0, a in self._drops if m >= t0)
         if self._resid_last is None or m > self._resid_last:
             dt = 1.0 if self._resid_last is None else m - self._resid_last
             for i, tau in enumerate(self.resid_tau):
@@ -904,7 +919,7 @@ class World:
         s = self.resid_skew
         if s > 0:    # standardised lognormal of the OU state: mean 0, SD 1, skewed toward rises as the donors' drive is
             z = (math.exp(s * z) - math.exp(s * s / 2)) / math.sqrt((math.exp(s * s) - 1) * math.exp(s * s))
-        return (self.resid_m + af * z + ab * self._resid_x[1] + ad * day) / 60.0
+        return (self.resid_m + af * z + ab * self._resid_x[1] + ad * day - drop) / 60.0
 
     def _flow_mult(self, m: float) -> float:
         """A4c subcutaneous blood-flow fluctuation (experiment, off): absorption rate × exp(z − sd²/2), z a log-OU (sd, τ)

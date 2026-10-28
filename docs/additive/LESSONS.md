@@ -8365,3 +8365,16 @@ outputs in gamepc ~/additive/runs/c290–c312).
      twins low in the first place. Loop suspends in time on the twins' smoother falls; the donors' fast falls (L 509–510:
      true fast falls after meals 4% in twins) are where extra insulin turns into lows. The low-side response is the fast-fall
      gap again, now the lead for the residual's down side.
+
+521. **An entry-anchored downward drive brings back post-meal fast falls but takes the meal tail with it; not adopted. The
+     reference's short meal tail is a shift of the whole 3-h distribution, not a narrow spread.** `resid_drop_p / _a /
+     _tau` (world, off): after a carb entry ≥ 5 g, with probability p, a negative drive from U(40, 90) min (the donors'
+     median fast fall 61 min after the entry, L 509), amplitude a × lnN(0, 0.3) mg/dL/h, decaying τ 25 min. On f4, draw 1:
+     - p 0.25 / 0.5 at a 100, p 0.25 at a 180 (dA / dB / dC): entry_fast_fall 5.6 → 6.7 / 8.3 / 11.1% (donors 14.3), true
+       fast falls after entries 3.3 → 4.5 / 5.3 / 9.2%; meal_d3h 25 → 23 / 20 / 22 (38), t54 0.19 → 0.26 / 0.29 / 0.42,
+       score 0.379 → 0.395 / 0.397 / 0.388.
+     - Per-meal 3-h change (`meal_response.simulated_labeled`), p10 / 25 / 50 / 75 / 90: donors −39 / −2 / 36 / 78 / 121
+       (IQR 80); lg13 −44 / −4 / 33 / 74 / 124 (78); f4 −50 / −12 / 23 / 67 / 113 (79); dC −58 / −17 / 22 / 61 / 108. The
+       spread is the donors' in every arm; f4 sits ~10 mg/dL low throughout. A meal-end drive that is zero-mean would not
+       fix it either: the donors have more fast falls AND the same spread, so their fast falls come at the same 3-h
+       change, i.e. they fall fast and stop.
