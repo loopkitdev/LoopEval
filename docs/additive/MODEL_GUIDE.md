@@ -7,8 +7,10 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults except where the reference run sets
-them. The reference is **f4** (2026-10-27): 112 people × 14 days, weighted match score 0.379 (0.440 on a second draw,
-f4_5k) over 51 statistics, tier 1 0.266 / 0.379 (§ 10 lists every row, its tier and its gap). It is lg13's evidenced
+them. The reference is **sd3** (2026-10-28): 112 people × 14 days, weighted match score 0.370 (0.454 on a second draw,
+sd3_5k) over 51 statistics, tier 1 0.243 / 0.401. It is f4 (2026-10-27; 0.379 / 0.440, tier 1 0.266 / 0.379) with each
+person's meal glucose fitted to their donor's glucose spread (`csf_sd_mult`, L 529–530) and site changes on the evening
+clock (L 523) (§ 10 lists every row, its tier and its gap). It is lg13's evidenced
 core with a **data-driven residual** in place of the weakly evidenced stochastic parts (Pete 2026-10-27, L 513–519):
 - **core switched off:** day-level SI (B3), stress, illness (B6), cycle (B5), steroids (B14), waking fragments (C7),
   grazing (F9), absorption fluctuation (A4c);
@@ -276,6 +278,7 @@ entering the glucose equation as `util_drop` does.
 | Level `resid_m` | constant, mg/dL/h | p10 / p50 / p90 −53 / 0 / +20 | rounds of `lvl_resid.py` on the donor's mean glucose (slope 0.6–1.0 mg/dL per mg/dL/h); held out on the odd / even blocks it predicts ρ 0.93 (L 519) | Donor |
 | Fast `resid_f` | OU τ 20 min, standardised-lognormal skew 0.7 | median 28 mg/dL/h × `resid_mult` 0.6; 0 for 21% | NNLS on the donor's quiet 15-min-vs-2-h ICE SD over the core twin's, through the bare process's transfer (L 514) | Donor |
 | Block `resid_b`, day `resid_d` | OU τ 3 h; one level per day from 04:00 | 0 for most | as above | Donor |
+| Meal glucose `csf_sd_mult` (person.py, a core scale) | each meal's glucose ×, grams held | p10 / 50 / 90 0.50 / 1.00 / 1.64 | rounds of `sd_fit.py` on the donor's glucose SD, alternating with the level; held out, CV ρ 0.63 (L 529) | Donor |
 
 The level is what carries a donor's control level (L 448's far-from-meal load); the fast part carries their volatility
 (twin–donor ρ 0.15 → 0.73) but not their outcomes. At full size the fast part adds too many dips (L 514), hence 0.6×.
@@ -323,7 +326,7 @@ The level is what carries a donor's control level (L 448's far-from-meal load); 
 | draw 1 | 0.266 | 0.460 | 0.368 | 0.379 | 25 |
 | draw 2 | 0.379 | 0.478 | 0.444 | 0.440 | 20 |
 
-**Running it:** `--templates templates_pilot_resid_r4.csv --enable rc_own,night_pro,uls,resid,site_clock --disable
+**Running it:** `--templates templates_pilot_resid_sd3.csv --enable rc_own,night_pro,uls,resid,site_clock --disable
 day,stress,illness,menstrual,steroid,act_frag --set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.6,si_norm=0.92`.
 The template file (outside the repo, beside the others) is built by `patient_sim/resid_tools/`: `ice_var.py` (the
 unexplained drive by time scale, donors and a core run), `fit_resid.py` (fast / block / day amplitudes), `lvl_resid.py`

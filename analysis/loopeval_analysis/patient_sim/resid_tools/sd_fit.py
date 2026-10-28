@@ -9,6 +9,7 @@ tin, tout, runs = sys.argv[1], sys.argv[2], sys.argv[3:]
 B = pd.read_csv(H / ".loop-eval/runs/2026-10-15-additive-templates/real_pilot_blocks.csv")
 if os.environ.get("LVL_BLOCKS") == "odd": B = B[B.block % 2 == 1]
 B["sd"] = B.bg_cv * B.bg_mean / 100; D = B.groupby("alias").sd.median()
+if os.environ.get("LVL_TARGET") == "template": _t = pd.read_csv(tin).set_index("alias"); D = _t.bg_cv * _t.bg_mean / 100   # a pool without block tables
 fr = []
 for r in runs:
     S = pd.read_csv(Path(r) / "sim_stats.csv"); k = [c for c in S.columns if c in ("name", "who", "alias")][0]

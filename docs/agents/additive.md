@@ -83,7 +83,9 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. A different draw of people (seed0) moves the count by up to 6 (LESSONS 444): score an arm whose
   effect is within that scatter on two draws (seed0 1000 and 5000) before adopting it.
-- **Current reference** (2026-10-27, Pete): **f4** (draw 2 f4_5k; runs/2026-10-27-additive-natexp) — lg13's evidenced core
+- **Current reference** (2026-10-28): **sd3** (draw 2 sd3_5k; runs/2026-10-27-additive-natexp) — f4 with each person's meal
+  glucose fitted to their donor's spread (`csf_sd_mult`, LESSONS 529–530) and the evening site-change clock; score 0.370 /
+  0.454, held-out CV ρ 0.63, TIR 0.89. Before it **f4** (2026-10-27, Pete) — lg13's evidenced core
   with a data-driven residual in place of the weakly evidenced stochastic parts: a per-person level fitted to the donor's
   mean glucose and a fast drive sized on the donor's unexplained motion (MODEL_GUIDE § 9–10, LESSONS 513–519). Score
   0.379 / 0.440, tier 1 0.266 / 0.379; twin follows its donor's held-out weeks at TIR ρ 0.80 (lg13 0.45); settings-edit

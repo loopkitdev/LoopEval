@@ -8470,3 +8470,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
        (38.7; sc 41.5 / 43.6), lows 0.92 / 1.17, t54 0.225 / 0.222, TIR 68.7 / 69.6, meal_d3h 27 / 24.
      Reading: what makes a tight donor tight, beyond their level, is smaller meal excursions for the same entries; carried
      per person, the twins' lows and CV follow their donors'. Change test pending.
+
+530. **The spread fit holds on the x pool's change test and is adopted (sd3 replaces f4 as the reference).** x pool, the
+     same alternating fit on each donor's whole record (`sd_fit.py`, LVL_TARGET=template; SD ρ 0.41 → 0.92, csf_sd_mult
+     p10 / 50 / 90 0.54 / 0.99 / 1.71), 147 edits, 2 seeds:
+     - field / twin per log unit: TIR lg13 0.65 / f4 0.91 / sd3 1.08; mean 0.55 / 0.72 / 0.81; ρ TIR 0.14 / 0.21 / 0.26,
+       mean 0.26 / 0.29 / 0.30, t70 0.11 / 0.22 / 0.15, t54 −0.08 / 0.11 / 0.08.
+     - control level tight − rest, TIR per +10%: field −1.25, lg13 −1.05, f4 −2.17, sd3 −0.35; t70: field +0.19, sd3 +0.19.
+     - On the pilot's 63 edits (4 seeds) sd3 sizes the response worse than f4 (mean 1.98 vs 1.68, TIR 1.32 vs 0.99, t54 7.7
+       vs 4.6; tight − rest −0.77 vs −1.64; field −7.18), with ρ a little better (mean 0.32, t54 0.20, RC mean 0.90).
+     Reading: across the two pools (210 edits) neither residual variant is consistently closer on response size; sd3 adds
+     the held-out per-person spread (CV 0.03 → 0.63), the best cohort score on draw 1 and TDD 41.7. Adopted; the pilot's
+     larger, steeper field response stays the case it under-reads.
