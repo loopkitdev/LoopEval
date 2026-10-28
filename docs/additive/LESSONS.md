@@ -8396,3 +8396,152 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.440, within draw scatter); routine change hours 0–3 peak +6 / +12 mg/dL (field +28), first-hour insulin 0.46–0.62×
      usual (field 1.5×), the 12 h before +1–3 (field +9). The size gap is the start-up transient E4 (±5%) or the change's
      own handling; the field figure is twiist (tubed sets) while most twins wear Omnipod, so E4 is not refitted on it.
+
+524. **A per-person fast-residual size fitted to each donor's CV carries a little of it, at a cost in lows the cohort
+     cannot take; not adopted.** `cv_resid.py` (resid_f ×= (donor CV / twin CV)², odd blocks), alternating with the level
+     (LVL_BLOCKS=odd), three rounds on both draws from ho3/ho4, f4 + site_clock (cv1–cv3):
+     - CV twin–donor ρ 0.05 → 0.18 → 0.26; held out (even blocks) 0.25 (ceiling 0.92; f4 0.03); TIR held out 0.85, mean
+       0.95. resid_f p90 124.
+     - cv3: score 0.484 / 0.538 (sc 0.375 / 0.457), lows 1.50 / 1.50, t54 0.41 / 0.34, t70 2.9 / 2.5.
+     - The same sizes at skew 1.5 (sk): lows 1.33, t54 0.27 / 0.21, score 0.415 / 0.499, but CV held out back to 0.11.
+     Reading: a donor's CV lives in their highs, and the fast drive cannot raise it without deepening dips unless it is
+     strongly skewed, which then no longer moves CV. CV is set by the shape of the person's excursions (meals, unlogged
+     rises), not by a stationary drive; left open.
+
+525. **Scope for twins of the expansion pools (the ~500 pooled settings edits).** The x pool (ice_x32, ~226 donors,
+     97 scored edits) has the ice extractions on the Mac in the pilot's format (persons.csv, steps, meals, full exports);
+     the e pool (ice_e32, 478 donors, 337 edits) is on gamepc. A template set needs, in order: (1) per-donor sensor family
+     and age, which are not in the extracts (the pilot's came from Databricks: `2026-10-15-additive-sensor/pull_sensor.py`,
+     ice `age.csv`) — a shared-warehouse pull; (2) `templates.build_pilot` with the pool root (same persons.csv columns);
+     (3) the `add_*` chain on the pool root (raw / override / edit / slot / absorption / disruption / gap / entry /
+     meal-clock rates, strategy share, basal and delivered profiles, insulin from IOB, ISF yardstick, missed cycles, sleep,
+     gb); (4) `fit_body --regression` and the per-donor carb sensitivity (`csf_geq`, pooled over cohort rounds, L 359);
+     (5) the residual: a core run, `resid_tools/fit_resid.py`, three level rounds on two draws. Then `arm2.py` on the pool's
+     edits and switches. Steps 2–5 are local; step 1 needs the warehouse.
+
+526. **On an independent pool the residual model again reproduces the settings-edit response better than lg13, and the
+     pilot's "lows respond 4–6× too little" does not replicate.** x pool (ice_x32): base templates for 430 donors
+     (`templates.build_pilot` with a root, sensor family and age pulled from the warehouse — `2026-10-28-additive-xpool/
+     pull_sensor_age.py`), the rest of the columns by the ns3 builder (`build_template.py`, `--sensor-csv/--age-csv`),
+     body fits (`run_fit.py` reg then seg); cohort-round calibrations left at 1. Edits from the pooled screen that map to x
+     aliases, held ≥ 14 days, inside the export: 152 on 120 donors (147 scored), field change with the tool comparison's
+     scorer (`make_events_x.py`). Residual for the 120 event donors: core run (240 twins), `fit_resid` (resid_f median 14,
+     16% none), three level rounds on each donor's whole-record mean (ρ 0.49 → 0.96, |gap| 1.9). Change test, 2 seeds:
+     - field / twin per log unit of insulin: TIR lg13 0.65 [0.22, 1.17] → f4 0.91 [0.32, 1.67]; mean 0.55 → 0.72; ρ TIR
+       0.14 → 0.21, mean 0.26 → 0.29, t70 0.11 → 0.22, t54 −0.08 → 0.11.
+     - control level (92 of 147 tight): TIR per +10% tight − rest field −1.25 [−3.79, +0.48], lg13 −1.05, f4 −2.17; tight
+       twins' pre-edit mean 155 (lg13), 145 (f4), field 124.
+     - the field's response here is a third of the pilot's (mean −10 vs −34 per log unit) and its lows do not move (t70
+       −0.51, t54 −0.20); both twin arms move them slightly (+0.8 to +1.0). The pilot's low-side gap (L 518, 520) was its
+       own (wide CIs), not a property of the model.
+     Reading: the residual model's right-sized TIR response holds on a second, larger, tighter pool, where lg13 now
+     over-responds. Open: tight twins' level before an edit (fitted on the whole record, edits follow atypical weeks).
+
+527. **Fitting the residual level to each event's own pre-edit weeks puts the twins at their donors' level before an edit,
+     and shows that tight twins swing too widely: at the donors' mean they have twice the donors' time below 70.** x pool,
+     per-event `resid_m` (`change_x/evlvl.py`, `arm2.py` ARM_EVM: the before arm's mean against the donor's fieldpre_mean,
+     gain 1.2, two rounds ev1 / ev2; 2 seeds):
+     - pre-edit mean tight | rest: field 124 | 157; f4x 145 | 172; ev1 132 | 162; ev2 129 | 159 (|gap| p50 18 → 6 → 2).
+     - pre-edit t70 in the tight group: field 3.5%, f4x 3.4, ev1 5.6, ev2 6.3.
+     - field / twin per log unit: mean 0.72 → 0.90 / 0.91; TIR 0.91 → 1.13 / 1.32; ρ mean 0.29 → 0.30 / 0.27, TIR 0.21 →
+       0.20 / 0.19, t70 0.22 → −0.11 / 0.07. Tight − rest TIR per +10%: field −1.25, f4x −2.17, ev1 −1.86, ev2 −2.83.
+     Reading: the level can be matched per event, but a tight donor's twin then goes low far more often than the donor —
+     the per-person spread (L 524: CV not carried) is what a tight person's twin gets wrong, and it costs the low-side
+     ranking. Not adopted for the change test; the next lever is per-person excursion size, tight donors first.
+
+528. **The twins' glucose spread barely follows their control level; the donors' does.** f4 / f4_5k, twin against its
+     donor (median per template, 121), by the donor's mean: tight (< 140, 38) SD 49 vs 43, CV 36.6 vs 32.9, t70 4.6 vs
+     3.8%; middle (61) SD 55 vs 52; high (> 170, 22) SD 61 vs 72, CV 34.1 vs 36.4. Means match in every group (the level
+     residual). Tight donors' twins swing too wide and loose donors' too narrow, so a per-person residual (which can only
+     add spread to the core's) cannot fix the tight end (L 524, 527). What sets a person's excursion size in the core —
+     meal glucose per gram (`csf_geq_mult`, NaN for 59% of the pilot), bolus timing and size, unlogged load — is the next
+     place to fit per person.
+
+529. **A per-person meal-glucose multiplier fitted to each donor's glucose SD carries their spread and their outcomes, held
+     out, and improves the cohort score.** `csf_sd_mult` (template; person.py: each meal's glucose × it, grams eaten held
+     — Pete 2026-10-28 chose this over a damping residual), `resid_tools/sd_fit.py` (× (donor SD / twin SD)^1.5 per round,
+     step 0.8–1.25, total 0.4–2.5), alternating with the level, both fitted on the donor's ODD blocks (LVL_BLOCKS=odd),
+     three rounds on both draws from ho4, f4 + site_clock (sd1–sd3; templates_pilot_resid_sd1–sd4.csv outside the repo):
+     - SD twin–donor ρ 0.26 → 0.60 → 0.83 → 0.93 (twin / donor p10–p90 0.92–1.11); csf_sd_mult p10 / 50 / 90 0.50 / 1.00
+       / 1.64.
+     - Held out (even blocks; ceiling in brackets): CV 0.63 (0.92; f4 0.03), TIR 0.89 (0.96; 0.80), t70 0.48 (0.94; 0.38),
+       t54 0.42 (0.86; 0.33), mean 0.87 (0.96; 0.93).
+     - Cohort sd3: score 0.370 / 0.454 (sc 0.375 / 0.457, lg13 0.376 / 0.415), tier 1 0.243 / 0.401; TDD 41.7 / 41.7
+       (38.7; sc 41.5 / 43.6), lows 0.92 / 1.17, t54 0.225 / 0.222, TIR 68.7 / 69.6, meal_d3h 27 / 24.
+     Reading: what makes a tight donor tight, beyond their level, is smaller meal excursions for the same entries; carried
+     per person, the twins' lows and CV follow their donors'. Change test pending.
+
+530. **The spread fit holds on the x pool's change test and is adopted (sd3 replaces f4 as the reference).** x pool, the
+     same alternating fit on each donor's whole record (`sd_fit.py`, LVL_TARGET=template; SD ρ 0.41 → 0.92, csf_sd_mult
+     p10 / 50 / 90 0.54 / 0.99 / 1.71), 147 edits, 2 seeds:
+     - field / twin per log unit: TIR lg13 0.65 / f4 0.91 / sd3 1.08; mean 0.55 / 0.72 / 0.81; ρ TIR 0.14 / 0.21 / 0.26,
+       mean 0.26 / 0.29 / 0.30, t70 0.11 / 0.22 / 0.15, t54 −0.08 / 0.11 / 0.08.
+     - control level tight − rest, TIR per +10%: field −1.25, lg13 −1.05, f4 −2.17, sd3 −0.35; t70: field +0.19, sd3 +0.19.
+     - On the pilot's 63 edits (4 seeds) sd3 sizes the response worse than f4 (mean 1.98 vs 1.68, TIR 1.32 vs 0.99, t54 7.7
+       vs 4.6; tight − rest −0.77 vs −1.64; field −7.18), with ρ a little better (mean 0.32, t54 0.20, RC mean 0.90).
+     Reading: across the two pools (210 edits) neither residual variant is consistently closer on response size; sd3 adds
+     the held-out per-person spread (CV 0.03 → 0.63), the best cohort score on draw 1 and TDD 41.7. Adopted; the pilot's
+     larger, steeper field response stays the case it under-reads.
+
+531. **Every change-test arm so far ran each event's twin on the same seeds, so every twin carried the same person jitter: a
+     common level bias that shrinks with the number of seeds.** `sample_person` jitters the donor's row per seed (±10%
+     on TDD, ISF, …); the arms (`additive_arm.py` → `arm2.py`) used seeds 1000–1003 for every event, while the cohort runs
+     the level was fitted on use one seed per twin. Own-settings level against the field's pre-edit mean, median: pilot
+     (4 seeds) +9 mg/dL, x pool (2) +17, e pool (1) +22–27 — after fitting the residual level, and +17 / +26 / +30 on lg13.
+     On the e pool the twins' before arm averaged 168 mg/dL against their records' 146 (the level fit had them within a
+     few mg/dL in the cohort runs), with the residual level applied exactly as fitted. `arm2.py` ARM_EVSEED: each event's
+     seed offset by md5(eid) (both arms share it). Also `cohort` `tmpl_cycle`: twin i takes template row seed mod n, so a
+     fitting round covers every donor once (the random draw had fitted 284 of the e pool's 457 event donors). The change
+     tests of L 513–530 are being rerun with per-event seeds; their sizes and the control-level split may move.
+
+532. **With per-event seeds (L 531) the residual model is not better than lg13 at predicting the response to a settings
+     edit; it is better at each twin's state before it.** Three pools, lg13 settings against sd3, field / twin per log
+     unit of insulin (pilot 63 edits 2 seeds; x 147, 2 seeds; e 580, 1 seed):
+     - before-edit level vs field (median): lg13 +9 / +19 / +19, sd3 +2 / +6 / +5; tight twins' pre mean (field 126 / 124 /
+       126): lg13 141 / 148 / 151, sd3 124 / 135 / 134, sd3's tight t70 3.1 / 3.8 / 3.9 (field 2.9 / 3.5 / 2.8).
+     - mean: lg13 2.06 / 0.71 / 1.33, sd3 2.11 / 0.94 / 1.77; TIR: 1.15 / 0.77 / 1.14 vs 1.56 / 1.55 / 1.53 (sd3 under-responds
+       on TIR on every pool); t54: 2.59 / — / 1.27 vs 3.25 / — / 1.00.
+     - ρ mean 0.35 / 0.31 / 0.34 vs 0.20 / 0.27 / 0.26; ρ TIR 0.17 / 0.13 / 0.17 vs −0.03 / 0.25 / 0.13.
+     - control level, tight − rest TIR per +10% (field −7.18 / −1.25 / −1.55): lg13 +0.83 / −0.77 / −0.53, sd3 −0.86 /
+       −0.76 / −0.78.
+     Corrects L 515–518, 526, 530: their "right-sized TIR response" and "better ranking" were partly the shared-jitter level
+     bias, which moved the arms unequally. What stands: the residual model puts each twin at its donor's level and spread
+     (held out, L 519, 529) and gives the control-level split the field's sign on all three pools; a stationary residual
+     does not make the twins respond more like the field to a change in their settings (TIR response ~2/3 of the field's).
+
+533. **The donors' unexplained drive rises with the aggressiveness of their edits far more than the twins'; it is the
+     selection the scorer adjusts for, not a response the twins lack.** Clean-ICE mean after − before (field: post − pre
+     weeks; twins: after arm − before arm, same weeks; ice extractor on both, `change_x/twin_dice.py`), per log unit of the
+     insulin index: pilot field +20.2 vs twins +3.0 (sd3) / +3.7 (lg13); x pool +4.3 vs +3.9; e pool field +11.0. The twins'
+     +3–4 is the extractor's own mechanics (ICE uses the settings ISF the edit changes). Across edits the field's shift has
+     SD 10–13 against the twins' 1.4–2.2: people edit because their need moved, and it stays moved. The change test
+     regresses the field's change on the edit with this shift as a covariate, so the twins should not carry it. What
+     makes sd3's TIR response ~2/3 of the field's is being taken apart on the x pool (ablations of the spread fit, the fast
+     drive and the replaced modulators).
+
+534. **sd3's damped TIR response to edits comes from the spread fit; the replaced modulators carry change ranking.** x pool,
+     147 edits, per-event seeds, 2 seeds, each arm sd3 with one part changed (field / twin per log unit; ρ; tight − rest
+     TIR per +10%, field −1.25):
+     - sd3: TIR 1.55, mean 0.94; ρ TIR 0.25, mean 0.27; −0.76.
+     - without the spread fit (csf_sd_mult 1, level only): TIR 0.90, mean 0.84; ρ 0.26 / 0.29; −2.09.
+     - without the fast drive: TIR 1.50, mean 0.98; ρ 0.18 / 0.28; −0.70.
+     - with the replaced modulators back on (day SI, stress, illness, cycle, steroids, C7, grazing, A4c): TIR 1.43, mean
+       0.89; ρ 0.30 / 0.43; −0.25. lg13: TIR 0.77, mean 0.71; ρ 0.13 / 0.31; −0.77.
+     Reading: matching each donor's spread by scaling meal size puts the twin's spread in a form insulin settings barely
+     touch, so their TIR moves less; the donors' spread responds to insulin. The sensitivity modulators make the response
+     vary from person to person as the field's does (best ranking), so they are not just noise to replace.
+
+535. **On the e pool (580 edits) every variant of the residual level damps the response to an edit more than lg13; at the
+     donor's own level the twins move less than the field.** Per-event seeds, 1 seed, field / twin per log unit (mean / TIR /
+     t70 / t54) and ρ (mean / TIR / t70 / t54):
+     - lg13 (pre-edit level +18.5 vs field): 1.33 / 1.14 / 1.49 / 1.27; 0.34 / 0.17 / 0.13 / −0.04.
+     - sd3 (+5.4): 1.77 / 1.53 / 1.55 / 1.00; 0.26 / 0.13 / 0.15 / 0.06.
+     - level only, no spread fit (+7.2): 1.51 / 1.41 / 1.28 / 0.86; 0.32 / 0.13 / 0.16 / 0.09.
+     - sd3 + modulators (+5.9): 1.63 / 1.39 / 1.28 / 0.62; 0.32 / 0.14 / 0.18 / 0.10.
+     - level + modulators (+8.3): 1.61 / 1.71 / 1.02 / 0.63; 0.32 / 0.19 / 0.22 / 0.08.
+     The x pool's ablation (L 534) pointed the same way within wide CIs. Reading: lg13's closer sizes come partly from its
+     twins running high, with more glucose for insulin to move; at the right level the twins' response is ~2/3 of the
+     field's. The residual variants rank the lows better (t70 ρ to 0.22) but none closes the size. The damping is in how
+     the twins' closed loop absorbs a settings change — L 506's field glucose moving ~1.6× more per unit of extra insulin —
+     not in the stationary variability the residual carries. Next: the per-unit insulin effect after an edit, field vs
+     twin, at matched level.

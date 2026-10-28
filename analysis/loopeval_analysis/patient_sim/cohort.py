@@ -28,7 +28,9 @@ def _one(args):
         return seed, "cached"
     try:
         T = pd.read_csv(tmpl)
-        P = sample_person(T, seed, isf_w=enable.get("isf_w") if isinstance(enable.get("isf_w"), float) else None,
+        # tmpl_cycle: twin i takes template row seed mod len(T), so n = len(T) seeds cover every template once (per-donor fits;
+        # LESSONS 531) instead of drawing templates at random
+        P = sample_person(T, seed, alias=(T.alias.iloc[seed % len(T)] if enable.get("tmpl_cycle") else None), isf_w=enable.get("isf_w") if isinstance(enable.get("isf_w"), float) else None,
                           csf_mult=enable.get("csf_mult", 1.0) if isinstance(enable.get("csf_mult"), float) else 1.0,
                           sg_mult=enable.get("sg_mult", 1.0) if isinstance(enable.get("sg_mult"), float) else 1.0,
                           prof_w=enable.get("prof_w") if isinstance(enable.get("prof_w"), float) else None,

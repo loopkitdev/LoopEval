@@ -83,13 +83,13 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. A different draw of people (seed0) moves the count by up to 6 (LESSONS 444): score an arm whose
   effect is within that scatter on two draws (seed0 1000 and 5000) before adopting it.
-- **Current reference** (2026-10-27, Pete): **f4** (draw 2 f4_5k; runs/2026-10-27-additive-natexp) — lg13's evidenced core
-  with a data-driven residual in place of the weakly evidenced stochastic parts: a per-person level fitted to the donor's
-  mean glucose and a fast drive sized on the donor's unexplained motion (MODEL_GUIDE § 9–10, LESSONS 513–519). Score
-  0.379 / 0.440, tier 1 0.266 / 0.379; twin follows its donor's held-out weeks at TIR ρ 0.80 (lg13 0.45); settings-edit
-  TIR response field / twin 0.91 (1.33), tight − rest TIR per +10% insulin −1.6 (field −7.2, lg13 +0.4). Open: low-side
-  response to edits 4–6× under (the missing fast falls, L 520), meal tail 25–27 (38), per-person CV, lows on draw 2 1.25 /
-  day. Run command and template build in MODEL_GUIDE § 10.
+- **Current reference** (2026-10-28): **sd3** (draw 2 sd3_5k; runs/2026-10-27-additive-natexp) — lg13's evidenced core with a
+  data-driven residual (per-person level and fast drive) and each person's meal glucose fitted to their donor's spread
+  (MODEL_GUIDE § 9–10, LESSONS 513–532). Score 0.370 / 0.454; held-out twin–donor TIR ρ 0.89, CV 0.63 (lg13 0.45 / 0.11).
+  Natural experiments (pilot, x, e pools; 790 edits): twins start at their donor's pre-edit level and the tight / rest
+  split has the field's sign, but the TIR response to an edit is ~2/3 of the field's and ranks no better than lg13 (L 532).
+  Change-test arms need per-event seeds (ARM_EVSEED, L 531). Open: response size to edits, meal tail 24–27 (38),
+  site-change cost.
 - **Previous reference** lg13 (2026-10-25; runs/2026-10-25-additive-rebuild) — lg12's model on the engine that
   keeps delivering through skipped and sensor-less cycles (main 8fa8411 → 4c80c60c; LESSONS 505). Score 0.376 / 0.415,
   tier 1 0.233 / 0.305; mean 154.1 / 157.2, TIR 71.2 / 67.5, t54 0.180 / 0.208%, lows 0.92 / 0.96 per day.
