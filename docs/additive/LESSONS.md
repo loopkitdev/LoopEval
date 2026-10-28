@@ -8530,3 +8530,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Reading: matching each donor's spread by scaling meal size puts the twin's spread in a form insulin settings barely
      touch, so their TIR moves less; the donors' spread responds to insulin. The sensitivity modulators make the response
      vary from person to person as the field's does (best ranking), so they are not just noise to replace.
+
+535. **On the e pool (580 edits) every variant of the residual level damps the response to an edit more than lg13; at the
+     donor's own level the twins move less than the field.** Per-event seeds, 1 seed, field / twin per log unit (mean / TIR /
+     t70 / t54) and ρ (mean / TIR / t70 / t54):
+     - lg13 (pre-edit level +18.5 vs field): 1.33 / 1.14 / 1.49 / 1.27; 0.34 / 0.17 / 0.13 / −0.04.
+     - sd3 (+5.4): 1.77 / 1.53 / 1.55 / 1.00; 0.26 / 0.13 / 0.15 / 0.06.
+     - level only, no spread fit (+7.2): 1.51 / 1.41 / 1.28 / 0.86; 0.32 / 0.13 / 0.16 / 0.09.
+     - sd3 + modulators (+5.9): 1.63 / 1.39 / 1.28 / 0.62; 0.32 / 0.14 / 0.18 / 0.10.
+     - level + modulators (+8.3): 1.61 / 1.71 / 1.02 / 0.63; 0.32 / 0.19 / 0.22 / 0.08.
+     The x pool's ablation (L 534) pointed the same way within wide CIs. Reading: lg13's closer sizes come partly from its
+     twins running high, with more glucose for insulin to move; at the right level the twins' response is ~2/3 of the
+     field's. The residual variants rank the lows better (t70 ρ to 0.22) but none closes the size. The damping is in how
+     the twins' closed loop absorbs a settings change — L 506's field glucose moving ~1.6× more per unit of extra insulin —
+     not in the stationary variability the residual carries. Next: the per-unit insulin effect after an edit, field vs
+     twin, at matched level.
