@@ -1314,6 +1314,7 @@ extension EvaluationEngine {
                     sensModeLevel = sensModeDecayStep * sensModeLevel + (1.0 - sensModeDecayStep) * Swift.max(0.0, -rcResidualFeed)
                 }
                 if slowRcOn, !counterMgdl.isEmpty, counterMgdl[Self.latestGlucoseIndex(at: t, in: counterGlucose)] < 70 {
+                    if slowRcLastLow.map({ t.timeIntervalSince($0) >= 1800 }) ?? true { slowRcLevel *= candidateConfig.slowRcLowShrink }
                     slowRcLastLow = t
                 }
                 let slowRcFrozen = candidateConfig.slowRcPostlowFreezeSec > 0

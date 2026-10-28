@@ -600,6 +600,8 @@ public struct EvalConfig: Codable, Sendable {
     public var slowRcResets: [Date] = []
     /// Slow RC needs form: the multiplier also scales basal (x 1/m) and carb ratio (x m). Set post-construction.
     public var slowRcNeeds: Bool = false
+    /// Slow RC: at each low onset (< 70 after >= 30 min above) the level is multiplied by this (1 = off). Set post-construction.
+    public var slowRcLowShrink: Double = 1
     /// DESCENT-gated RC rise-cut (C32). When BG reached >= descentHighBgMin within
     /// descentWindowMin AND the trailing 60-min slope is <= descentSlopeMax (falling),
     /// scale the POSITIVE (unexplained-rise) RC discrepancy by descentRcRiseScale.

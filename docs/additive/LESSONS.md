@@ -8221,3 +8221,178 @@ outputs in gamepc ~/additive/runs/c290–c312).
      given pulse the twins' bodies still fall fast about half as often, so the missing piece is on the fall side of the
      meal (how fast glucose is cleared as the pulse ends), not in the pulse. The slower rise sits under the energy
      ceiling, which L 33 fixed on the donors' glucose distribution.
+
+513. **Natural-experiment scorecard on lg13: the cohort is right, the person is not.** Each twin carries its donor's
+     inputs but not its donor's outcomes or its donor's volatility; changes in dosing move the twins half as much as the
+     field; site changes cost too little (runs/2026-10-27-additive-natexp).
+     - **Person level** (twin against its own donor, Spearman, draw 1 / draw 2; ceiling = the same donor's two 13-day
+       blocks): TIR 0.37 / 0.41 (0.85), mean 0.39 / 0.41 (0.86), CV 0.13 / 0.15 (0.77), t70 0.29 / 0.17 (0.80), t54
+       0.17 / 0.24 (0.64); TDD 0.83 / 0.77 (0.92), carb entries 0.97, boluses 0.93, manual U 0.80.
+     - **Unexplained drive (ICE by time scale, `ice_var.py`, same extractor both sides).** Cohort amplitudes match: day-mean
+       SD 11.8 vs 11.6 mg/dL/h, 4-h block SD 25.6 vs 23.0, 15-min-vs-2-h SD 48 vs 55 (quiet 46 vs 47). Per person only
+       the level carries over (quiet mean ρ 0.85, ratio 1.00); the volatility does not: block ρ 0.03 (donor's own blocks
+       0.69), fast ρ 0.19 (0.83), day ρ 0.15 (0.36). Volatility drives outcomes on both sides (TIR against quiet fast SD:
+       donors −0.53, twins −0.55; CV +0.60 / +0.52), so twins drawing it at random is why their TIR and CV do not follow
+       their donors'.
+     - **Settings edits** (63, insulin index slope, lg13's exact settings — truth identical to the 2026-10-25 arm, so the
+       extra switches are defaults): field / twin mean 2.03 [1.04, 3.24], TIR 1.33, t70 3.96, t54 8.3; tight | rest TIR per
+       +10% insulin field −1.6 | +5.6, twins +2.3 | +1.8; twins of tight donors at mean 153 vs 126.
+     - **Strategy switches** (38): ρ TIR 0.21, mean 0.37, t70 0.23 (10-21 comparison: generator 0.51, replay 0.29).
+       **RC switches** (5): TIR ρ 0.90.
+     - **Site changes** (`site_sim.py`, field eda L 52, twiist): routine change +11 mg/dL at hours 0–3 vs +28; early
+       changes 3% vs 26%; the 12 h before a routine change +1 vs +9; twins change at any hour (median 13.9 h), donors at
+       17–22 h.
+     Reading: the twins' variability is drawn from cohort trait distributions, so it lands on the wrong person. Pete
+     (2026-10-27) set the direction: hold the well-evidenced components fixed and model the rest of the variability from
+     the donors' own data, causal source or not.
+
+514. **A data-driven residual carries each donor's volatility to the twin, but not the donor's outcomes; the core
+     without the replaced components loses lows and the meal tail.** Pete (2026-10-27) chose the split: the residual
+     replaces the weakly evidenced stochastic parts (grazing F9, day SI B3, stress, illness B6, cycle B5, steroids B14,
+     waking fragments C7, absorption fluctuation A4c); everything else is the fixed core. `resid` (world.py, off): an
+     exogenous glucose rate, fast OU (τ 20 min) + block OU (3 h) + one level per day (04:00), per-person amplitudes
+     `resid_f / resid_b / resid_d` (mg/dL/h) on the template, `resid_skew` a standardised-lognormal transform of the fast
+     part. Draw 1, runs/2026-10-27-additive-natexp:
+     - core (replaced parts off, no residual): volatility barely falls (quiet fast SD 45.8 → 43.3, block 19.5 → 18.4,
+       day 13.1 → 12.4): the twins' variability comes from the core (unlogged eating pulses, sensor, behaviour). Lows
+       0.75 / day, t54 0.087, TIR 74.8, meal_d3h 27 (34; donors 38). Score 0.428 (lg13 0.376). The modulators had held the
+       twins' sensitivity at 0.92 of the yardstick (L 468); the core sits on it.
+     - Fit (`fit_resid.py`): the bare process through ice_var's statistics gives the transfer (variance per unit²: fast
+       0.46 / 0.09 / 0.00, block 0.13 / 0.42 / 0.15, day 0.03 / 0.21 / 0.42); targets = donor medians shrunk by
+       block-to-block reliability (0.82 / 0.65 / 0.34); NNLS on target² − core². Need is almost all fast: resid_f median
+       28, resid_b / resid_d 0 for most; 21% of donors need none (their core twin is already more volatile).
+     - res1 (Gaussian): twin–donor fast-SD ρ 0.15 → 0.73 (ceiling 0.83), cohort amplitude on the donors'. But lows 1.33
+       / day, t54 0.39, ice_dip_day 2.0 (0.69): the core already has the donors' lower tail (5th percentile −68 vs −72
+       mg/dL/h) and lacks the upper (95th 70 vs 79; skew 0.10 vs 0.30), so a symmetric drive over-deepens the dips.
+       Score 0.455. Short-scale rows improve: G7 fast-fall share gap −0.54 → −0.31, unl_rise_rate 47 → 52 (55),
+       acf_zero_min 55 → 50 (40), zero_frac 30 → 32 (32.5).
+     - res2 / res3 (skew 0.35 / 0.7): score 0.433 / 0.395, lows 1.17 / 1.13, t54 0.25, TIR 70.3 / 71.3; meal_d3h 24.
+     - Person-level outcomes do not follow: TIR ρ 0.41 / 0.38 / 0.38, CV 0.18 / 0.20 / 0.21, mean 0.41 / 0.39 / 0.38
+       (lg13 0.37 / 0.13 / 0.39). The outcome is mostly the level, and the twins' glucose level follows the donor's at
+       ρ 0.39. Matching the quiet ICE mean (ρ 0.85) is no test of it: in quiet hours ICE is mostly settings ISF × basal
+       activity. Next: the level as a per-person residual drive (L 515).
+
+515. **A per-person residual level, fitted to each donor's mean glucose, makes the twins follow their donors and puts the
+     settings-edit response by control level on the field's side.** `resid_m` (mg/dL/h, constant, on the template;
+     `lvl_resid.py`: resid_m += gap / slope, slope measured between rounds 0.86 → 0.58 mg/dL per mg/dL/h, both draws
+     pooled per template), on res3 (core + skewed residual). Two rounds (lv1, lv2; templates_pilot_resid_r1–r3.csv
+     outside the repo); resid_m p10 / p50 / p90 −48 / 0 / +24 at r3.
+     - Person level (draw 1 / draw 2; in-sample, the level is fitted to the donor's own mean): mean ρ 0.39 → 0.77 /
+       0.82, TIR 0.37 → 0.66 / 0.73, t70 0.29 → 0.46 / 0.37, t54 0.17 → 0.36 / 0.36; CV 0.11 / 0.22 (not carried);
+       |gap| p50 16.3 → 3.4 mg/dL.
+     - Cohort (lv2): score 0.413 / 0.473 (lg13 0.376 / 0.415); lows 1.17 / 1.17, t54 0.25 / 0.27, TIR 68.7 / 67.0, meal_d3h
+       27 / 27, TDD 41.9 / 44.8 (38.7).
+     - Natural experiments (change test on r3, `arm2.py`, 63 edits / 38 switches / 5 RC, 4 seeds): control level TIR per
+       +10% insulin tight | rest +0.26 | +2.30, tight − rest −2.03 [−3.58, −0.64] (field −7.18 [−14.85, −0.21]; lg13
+       +0.42 [−0.58, +1.46]); t70 tight +1.05 | rest +0.20 (field +4.35 | +0.08; lg13 +0.40 | +0.27); tight twins' pre-edit
+       mean 133 (field 126, lg13 153). Field / twin response per log unit of insulin: mean 2.03 → 1.84, TIR 1.33 → 1.19,
+       t70 3.96 → 3.70, t54 8.30 → 3.31 [1.42, 6.53]. Strategy switches ρ TIR 0.21 → 0.43 (generator 0.51), mean 0.37 →
+       0.48; RC (5) mean 0.50 → 0.70.
+     Reading: what separates a tight donor from a loose one at the same settings is carried once each twin has its own
+     unexplained level (L 448's far-from-meal load), and the twins then answer a settings change by control level as the
+     field does, at about a third of its size. The cohort rows that got worse (lows, meal tail, TIR) are next.
+
+516. **With the fast residual at 0.6× and the cohort sensitivity at the modulators' old level, the residual model scores
+     level with lg13 and keeps the person-level gain; the meal tail is the open cohort gap.** On the r3 templates, draw 1
+     (runs/2026-10-27-additive-natexp):
+     - `csf_lvl` 1.2 with one level refit (cs3 / cs4, both draws): meal_d3h 26 / 27 (no gain, unlike L 512 on lg13), t54
+       0.37 / 0.30, score 0.467 / 0.459 (draw 2 0.520 / 0.515). Not adopted.
+     - fxA `resid_mult` 0.6: score 0.388, lows 1.17, TIR 70.6. fxB `si_norm` 0.92 (the twins' average sensitivity under the
+       old modulators, L 468; the yardstick's cohort level is attenuated by closed loop, so one cohort factor sets it):
+       0.415, mean 158. fxC both: 0.383, lows 0.83, t54 0.156, t70 1.55 (donors 1.60), TIR 68.7, mean 155.7.
+     - f4 = fxC with one level refit (r4, gain 1.2; |gap| p50 2.9, resid_m p10 / p50 / p90 −53 / 0 / +20): score 0.379 /
+       0.440 (lg13 0.376 / 0.415), tier 1 0.266 / 0.379; person level TIR ρ 0.71 / 0.73, mean 0.83 / 0.88, t70 0.47 /
+       0.35, t54 0.37 / 0.27, CV 0.02 / 0.13 (lg13 TIR 0.37 / 0.41, mean 0.39 / 0.41). Lows 0.83 / 1.25, t54 0.19 / 0.27,
+       TIR 68.8 / 67.7, TDD 41.2 / 43.1 (38.7), meal_d3h 25 / 27 (38).
+     Reading: the residual model matches lg13's cohort score while each twin now tracks its own donor. Open: the meal
+     tail (lost when the replaced components went, L 514), TIR 3–4 points under, CV not carried per person.
+
+517. **Waking-movement fragments (C7) belong in the core; the insulin-absorption fluctuation (A4c) carries the meal tail but
+     adds lows the residual cannot take back.** Adding each replaced component back to f4 (r4 templates, draw 1):
+     - C7 `act_frag` (tl_frag): score 0.379 → 0.352 (lg13 0.376), tier 1 0.232, TIR 70.6, mean 151.9 (donors 151.9),
+       lows 1.08, t54 0.29. Back in the core: it is UK Biobank–sized, not a free term.
+     - stress 0.377, day SI 0.378, grazing (`graze_keep` 0.25) 0.407, illness / cycle / steroids 0.366: none moves
+       meal_d3h (24–26) or the score beyond scatter; they stay in the residual.
+     - A4c `flow_sd` 0.5 on top of C7 (t2_flow): meal_d3h 26 → 33 (38), but lows 1.17, t54 0.39, TIR 67.1, score 0.416.
+       Refitting the fast amplitudes on a core with C7 and A4c (core2; resid_f median 21, 27% need none) and one level
+       round (g1, g2): score 0.428 / 0.456 (draw 2 0.484 / 0.494), lows 1.2–1.4, t54 0.27–0.45. Not adopted.
+     - meal_d3h moves 33 → 25 between g1 and g2, whose only difference is a level step of |3.7| mg/dL: at 112 twins the
+       row's median is noisy by several mg/dL; read it on two draws.
+
+518. **Where the residual model stands against lg13: better on every natural experiment and on the person, slightly worse
+     on the cohort's 51 statistics.** f4 (core + fast residual 0.6×, skew 0.7, si_norm 0.92, per-person level r4) and h
+     (f4 with C7 back), both draws and the 108-event change test:
+
+     | | lg13 | f4 | h | field |
+     |---|---|---|---|---|
+     | score draw 1 / 2 (sum) | 0.376 / 0.415 (0.791) | 0.379 / 0.440 (0.819) | 0.352 / 0.461 (0.813) | |
+     | twin–donor ρ TIR, d1 / d2 | 0.37 / 0.41 | 0.71 / 0.73 | — / 0.70 | ceiling 0.85 |
+     | twin–donor ρ mean | 0.39 / 0.41 | 0.83 / 0.88 | — / 0.87 | 0.86 |
+     | edits field / twin: mean, TIR | 2.03, 1.33 | 1.70, 0.91 | 1.74, 0.88 | 1 |
+     | edits field / twin: t70, t54 | 3.96, 8.30 | 4.39, 5.00 | 5.74, 6.00 | 1 |
+     | TIR per +10%, tight − rest | +0.42 | −1.64 [−2.93, −0.34] | −1.01 [−2.32, +0.32] | −7.18 |
+     | tight twins' pre-edit mean | 153 | 131 | 131 | 126 |
+     | strategy switches ρ TIR / mean | 0.21 / 0.37 | 0.31 / 0.40 | 0.38 / 0.44 | (generator 0.51 TIR) |
+     | lows / day d1 / d2 | 0.92 / 0.96 | 0.83 / 1.25 | 1.08 / 1.25 | 1.00 |
+     | meal_d3h d1 / d2 | 34 / 34 | 25 / 27 | 26 / 24 | 38 |
+
+     Reading: carrying each donor's unexplained level (and fast volatility) is what the natural experiments needed: the
+     TIR response to settings edits is now right-sized and the tight / rest split has the field's sign. Still open: the
+     size of the low-side response (t70 / t54 4–6× under), the tight group's lost TIR (field −1.6, twins +0.7), the meal
+     tail, and per-person CV (ρ ≤ 0.13). The level is fitted in sample to each donor's mean; a held-out check (fit on
+     half the donor's blocks) is owed before reading person-level ρ as prediction.
+
+519. **Held out, the per-person level still predicts each donor: fitted on the odd 13-day blocks, the twins match the even
+     blocks nearly as well as the fitted ones.** f4's settings, level refitted from zero (LVL_BLOCKS=odd, gain 0.8 then
+     1.2, three rounds on both draws; ho0–ho3, `heldout.py`). Spearman, twin (both draws pooled per template, 121) against
+     the donor's even blocks (fitted / held out), with the ceiling the donor's odd against even blocks:
+     - mean 0.96 / 0.93 (ceiling 0.96; lg13 0.45), |twin − even| p50 4.1 mg/dL (donor's own 3.4; lg13 14.6)
+     - TIR 0.82 / 0.80 (0.96; lg13 0.45), t70 0.43 / 0.38 (0.94; 0.22), t54 0.32 / 0.33 (0.86; 0.19)
+     - CV 0.05 / 0.03 (0.92; lg13 0.11): variability is not carried by the level, and the fast residual does not carry it
+       either (L 514).
+     - No residual level (ho0): 0.47 / 0.49 / 0.22 / 0.28 / 0.15, lg13's.
+     Reading: a donor's unexplained level is a stable trait, so a twin fitted on part of the record reproduces the rest.
+     Open, in order: the low side (t70 / t54 per person and their response to edits, 4–6× under; the twins add ~1
+     treatment a day per log unit of insulin, mostly proactive snacks, where the donors' labelled rescues add +0.37), CV,
+     the meal tail.
+
+520. **The twins' weak low-side response to edits is not their low defence absorbing the insulin: labelled like the
+     donors, they add fewer rescues, not more.** f4's change runs through ice's labeller (520 runs, `ice_check`), donors'
+     from their ice meals tables over the same 14-day windows (65 edits). Per log unit of insulin index: labelled rescues
+     +0.24 / day (+6.2 g) in the twins (baseline 0.40 / day, 12.6 g), +0.37 / day (+14.7 g) in the donors (0.25, 7.6 g);
+     field t70 +4.0. In truth the twins add +0.72 proactive snacks and +0.31 rescues a day (+18 g), most of it too small
+     for the labeller, as the donors' own proactive eating would be. Reading: the extra insulin mostly does not take the
+     twins low in the first place. Loop suspends in time on the twins' smoother falls; the donors' fast falls (L 509–510:
+     true fast falls after meals 4% in twins) are where extra insulin turns into lows. The low-side response is the fast-fall
+     gap again, now the lead for the residual's down side.
+
+521. **An entry-anchored downward drive brings back post-meal fast falls but takes the meal tail with it; not adopted. The
+     reference's short meal tail is a shift of the whole 3-h distribution, not a narrow spread.** `resid_drop_p / _a /
+     _tau` (world, off): after a carb entry ≥ 5 g, with probability p, a negative drive from U(40, 90) min (the donors'
+     median fast fall 61 min after the entry, L 509), amplitude a × lnN(0, 0.3) mg/dL/h, decaying τ 25 min. On f4, draw 1:
+     - p 0.25 / 0.5 at a 100, p 0.25 at a 180 (dA / dB / dC): entry_fast_fall 5.6 → 6.7 / 8.3 / 11.1% (donors 14.3), true
+       fast falls after entries 3.3 → 4.5 / 5.3 / 9.2%; meal_d3h 25 → 23 / 20 / 22 (38), t54 0.19 → 0.26 / 0.29 / 0.42,
+       score 0.379 → 0.395 / 0.397 / 0.388.
+     - Per-meal 3-h change (`meal_response.simulated_labeled`), p10 / 25 / 50 / 75 / 90: donors −39 / −2 / 36 / 78 / 121
+       (IQR 80); lg13 −44 / −4 / 33 / 74 / 124 (78); f4 −50 / −12 / 23 / 67 / 113 (79); dC −58 / −17 / 22 / 61 / 108. The
+       spread is the donors' in every arm; f4 sits ~10 mg/dL low throughout. A meal-end drive that is zero-mean would not
+       fix it either: the donors have more fast falls AND the same spread, so their fast falls come at the same 3-h
+       change, i.e. they fall fast and stop.
+
+522. **The insulin-absorption fluctuation (A4c) back in the core does not beat f4 once the level is refitted; f4 stays.**
+     On f4 with `flow_sd` 0.5, the fast residual at 0.3× (a4x) or off (a4y), one level round on both draws (gain 1.2):
+     score 0.402 / 0.477 and 0.405 / 0.461 (f4 0.379 / 0.440); lows 1.13–1.29 / day, t54 0.24–0.31 (f4 0.19 / 0.27),
+     meal_d3h 30 / 25 and 28 / 26 (f4 25 / 27; donors 38); person level unchanged (TIR ρ 0.70–0.73, mean 0.82–0.88).
+     Before the refit, a4y on draw 1 had lows 0.92 and t54 0.18 at mean 157.6: the lows come back as the level is pulled
+     down to the donors'. Reading: the meal-tail shift (L 521) and the lows trade against each other through the same
+     insulin-absorption variability; neither the residual's down side (L 521) nor A4c closes it. Open for the next round:
+     the meal-tail shift, the low-side edit response, per-person CV.
+
+523. **Site changes now fall on whole days at the person's evening hour, as the donors' do; their glucose cost is still
+     half the field's.** F8 drew a continuous interval N(3.0, 0.4) days, so each change slid hours later and the twins
+     changed at any hour (median 13.8 h; field 17–22 h, eda L 52). `site_clock` (behavior, on in the reference flags):
+     the next change k = round(site_days + N(0, 0.4)) ≥ 2 days later at the person's hour N(19.5, 1.5) clipped 16–23
+     (± N(0, 1) h). On f4 (sc / sc_5k): clock hour p10 / 50 / 90 17.1 / 19.5 / 21.7; score 0.375 / 0.457 (f4 0.379 /
+     0.440, within draw scatter); routine change hours 0–3 peak +6 / +12 mg/dL (field +28), first-hour insulin 0.46–0.62×
+     usual (field 1.5×), the 12 h before +1–3 (field +9). The size gap is the start-up transient E4 (±5%) or the change's
+     own handling; the field figure is twiist (tubed sets) while most twins wear Omnipod, so E4 is not refitted on it.

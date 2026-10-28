@@ -263,6 +263,7 @@ struct SimulateCommand: AsyncParsableCommand {
         candidateConfig.slowRcLeakSec = candidateSlowRcLeakMin * 60
         candidateConfig.slowRcPostlowFreezeSec = candidateSlowRcPostlowFreezeMin * 60
         candidateConfig.slowRcNeeds = candidateSlowRcNeeds
+        candidateConfig.slowRcLowShrink = candidateSlowRcLowShrink
         if let path = candidateSlowRcGateJson {
             let obj = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: path))) as? [String: Any] ?? [:]
             let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

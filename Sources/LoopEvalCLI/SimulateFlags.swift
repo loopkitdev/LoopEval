@@ -456,6 +456,9 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Flag(name: .long, help: "Slow RC needs form: the multiplier scales basal and carb ratio as well as ISF, like an insulin-needs override (basal x 1/m, ISF x m, CR x m).")
     var candidateSlowRcNeeds = false
 
+    @Option(name: .long, help: "Slow RC: at the onset of each low (glucose below 70 after at least 30 min above), multiply the level by this factor, so a multiplier pushed toward more insulin backs off when lows start (1 = off, 0 = reset to no adjustment).")
+    var candidateSlowRcLowShrink: Double = 1
+
     @Option(name: .long, help: "Cross-cycle sensitive-mode gain k: effective ISF is scaled by (1 + k*R) where R is the EWMA of recent negative discrepancy (mg/dL). 0 = off. Try 0.01-0.05.")
     var candidateSensitiveModeGain: Double = 0
 
@@ -918,6 +921,7 @@ extension SimulateCommand {
     var candidateSlowRcPostlowFreezeMin: Double { get { loopExperiments.candidateSlowRcPostlowFreezeMin } set { loopExperiments.candidateSlowRcPostlowFreezeMin = newValue } }
     var candidateSlowRcGateJson: String? { get { loopExperiments.candidateSlowRcGateJson } set { loopExperiments.candidateSlowRcGateJson = newValue } }
     var candidateSlowRcNeeds: Bool { get { loopExperiments.candidateSlowRcNeeds } set { loopExperiments.candidateSlowRcNeeds = newValue } }
+    var candidateSlowRcLowShrink: Double { get { loopExperiments.candidateSlowRcLowShrink } set { loopExperiments.candidateSlowRcLowShrink = newValue } }
     var candidateSensitiveModeGain: Double { get { loopExperiments.candidateSensitiveModeGain } set { loopExperiments.candidateSensitiveModeGain = newValue } }
     var candidateIceRiseBoostGain: Double { get { loopExperiments.candidateIceRiseBoostGain } set { loopExperiments.candidateIceRiseBoostGain = newValue } }
     var candidateIceRiseBoostBgLo: Double { get { loopExperiments.candidateIceRiseBoostBgLo } set { loopExperiments.candidateIceRiseBoostBgLo = newValue } }
