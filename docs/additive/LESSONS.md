@@ -8456,3 +8456,17 @@ outputs in gamepc ~/additive/runs/c290–c312).
      add spread to the core's) cannot fix the tight end (L 524, 527). What sets a person's excursion size in the core —
      meal glucose per gram (`csf_geq_mult`, NaN for 59% of the pilot), bolus timing and size, unlogged load — is the next
      place to fit per person.
+
+529. **A per-person meal-glucose multiplier fitted to each donor's glucose SD carries their spread and their outcomes, held
+     out, and improves the cohort score.** `csf_sd_mult` (template; person.py: each meal's glucose × it, grams eaten held
+     — Pete 2026-10-28 chose this over a damping residual), `resid_tools/sd_fit.py` (× (donor SD / twin SD)^1.5 per round,
+     step 0.8–1.25, total 0.4–2.5), alternating with the level, both fitted on the donor's ODD blocks (LVL_BLOCKS=odd),
+     three rounds on both draws from ho4, f4 + site_clock (sd1–sd3; templates_pilot_resid_sd1–sd4.csv outside the repo):
+     - SD twin–donor ρ 0.26 → 0.60 → 0.83 → 0.93 (twin / donor p10–p90 0.92–1.11); csf_sd_mult p10 / 50 / 90 0.50 / 1.00
+       / 1.64.
+     - Held out (even blocks; ceiling in brackets): CV 0.63 (0.92; f4 0.03), TIR 0.89 (0.96; 0.80), t70 0.48 (0.94; 0.38),
+       t54 0.42 (0.86; 0.33), mean 0.87 (0.96; 0.93).
+     - Cohort sd3: score 0.370 / 0.454 (sc 0.375 / 0.457, lg13 0.376 / 0.415), tier 1 0.243 / 0.401; TDD 41.7 / 41.7
+       (38.7; sc 41.5 / 43.6), lows 0.92 / 1.17, t54 0.225 / 0.222, TIR 68.7 / 69.6, meal_d3h 27 / 24.
+     Reading: what makes a tight donor tight, beyond their level, is smaller meal excursions for the same entries; carried
+     per person, the twins' lows and CV follow their donors'. Change test pending.

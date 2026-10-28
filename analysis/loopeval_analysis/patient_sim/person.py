@@ -337,6 +337,10 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         # reliability (template csf_geq_mult); the intake budget is the donor's, so it is divided back out below
         k_ = row.get("csf_geq_mult") if hasattr(row, "get") else None
         if k_ is not None and np.isfinite(float(k_)): k_csf_geq = float(k_); csf_target *= k_csf_geq
+    # per-person meal glucose fitted to the donor's glucose spread (LESSONS 529; Pete 2026-10-28): a tight donor's twin
+    # swung too widely and a loose one's too narrowly (L 528); grams eaten stay the donor's, each meal's glucose x this
+    k_ = row.get("csf_sd_mult") if hasattr(row, "get") else None
+    if k_ is not None and np.isfinite(float(k_)): k_csf_geq *= float(k_); csf_target *= float(k_)
     # csf_lvl (experiment, LESSONS 366): the carb-sensitivity level × this, read from the unsegmented meal counteraction (ICE
     # above pre-meal over 0-360 min per entered gram, donors 47.4 vs twins 38.5) instead of the labeler's pulse g-eq, which
     # ends a pulse at a plateau; the intake budget stays in glucose (fewer grams eaten) unless csf_lvl_keepg
