@@ -87,9 +87,9 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   with a data-driven residual in place of the weakly evidenced stochastic parts: a per-person level fitted to the donor's
   mean glucose and a fast drive sized on the donor's unexplained motion (MODEL_GUIDE § 9–10, LESSONS 513–519). Score
   0.379 / 0.440, tier 1 0.266 / 0.379; twin follows its donor's held-out weeks at TIR ρ 0.80 (lg13 0.45); settings-edit
-  TIR response field / twin 0.91 (1.33), tight − rest TIR per +10% insulin −1.6 (field −7.2, lg13 +0.4). Open: low-side
-  response to edits 4–6× under (the missing fast falls, L 520), meal tail 25–27 (38), per-person CV, lows on draw 2 1.25 /
-  day. Run command and template build in MODEL_GUIDE § 10.
+  TIR response field / twin 0.91 (1.33), tight − rest TIR per +10% insulin −1.6 (field −7.2, lg13 +0.4). On the x pool (152 edits, L 526) the TIR response
+  is right-sized again (0.91; lg13 over-responds, 0.65). Open: meal tail 25–27 (38), per-person CV (L 524), tight twins
+  high before an edit, lows on draw 2 1.25 / day. Run command and template build in MODEL_GUIDE § 10.
 - **Previous reference** lg13 (2026-10-25; runs/2026-10-25-additive-rebuild) — lg12's model on the engine that
   keeps delivering through skipped and sensor-less cycles (main 8fa8411 → 4c80c60c; LESSONS 505). Score 0.376 / 0.415,
   tier 1 0.233 / 0.305; mean 154.1 / 157.2, TIR 71.2 / 67.5, t54 0.180 / 0.208%, lows 0.92 / 0.96 per day.
