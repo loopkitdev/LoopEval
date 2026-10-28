@@ -8436,3 +8436,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
        own (wide CIs), not a property of the model.
      Reading: the residual model's right-sized TIR response holds on a second, larger, tighter pool, where lg13 now
      over-responds. Open: tight twins' level before an edit (fitted on the whole record, edits follow atypical weeks).
+
+527. **Fitting the residual level to each event's own pre-edit weeks puts the twins at their donors' level before an edit,
+     and shows that tight twins swing too widely: at the donors' mean they have twice the donors' time below 70.** x pool,
+     per-event `resid_m` (`change_x/evlvl.py`, `arm2.py` ARM_EVM: the before arm's mean against the donor's fieldpre_mean,
+     gain 1.2, two rounds ev1 / ev2; 2 seeds):
+     - pre-edit mean tight | rest: field 124 | 157; f4x 145 | 172; ev1 132 | 162; ev2 129 | 159 (|gap| p50 18 → 6 → 2).
+     - pre-edit t70 in the tight group: field 3.5%, f4x 3.4, ev1 5.6, ev2 6.3.
+     - field / twin per log unit: mean 0.72 → 0.90 / 0.91; TIR 0.91 → 1.13 / 1.32; ρ mean 0.29 → 0.30 / 0.27, TIR 0.21 →
+       0.20 / 0.19, t70 0.22 → −0.11 / 0.07. Tight − rest TIR per +10%: field −1.25, f4x −2.17, ev1 −1.86, ev2 −2.83.
+     Reading: the level can be matched per event, but a tight donor's twin then goes low far more often than the donor —
+     the per-person spread (L 524: CV not carried) is what a tight person's twin gets wrong, and it costs the low-side
+     ranking. Not adopted for the change test; the next lever is per-person excursion size, tight donors first.
