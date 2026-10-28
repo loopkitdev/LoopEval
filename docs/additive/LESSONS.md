@@ -8586,3 +8586,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      correct 44% less often per log unit: the handover is a change in how often they step in, not in what Loop shows
      them. It is behaviour with no visible trigger in the data we have; a per-person correction-rate response to the
      settings themselves (fitted on the donors' edits) is the data-driven form left.
+
+539. **A correction rate that responds to the settings themselves does not change the response to an edit either; the
+     handover is real but too small a share of insulin to matter.** `corr_x_beta` (behavior, off): correction hazard ×
+     exp(β·x), x = log(basal / basal0) − log(ISF / ISF0) against the person's own settings (`settings0`, kept on the
+     person at sampling); β −0.45 (the donors' −44% per log unit less the twins' own −24%). e pool, 580 edits: field / twin
+     (mean / TIR / t70 / t54) lg13 1.33 / 1.14 / 1.49 / 1.27 → 1.40 / 1.25 / 1.37 / 1.14; sd3 1.77 / 1.53 / 1.55 / 1.00
+     → 1.81 / 1.53 / 1.83 / 1.09; ρ unchanged; tight − rest −0.53 → −0.41 and −0.78 → −0.90. Reading: the field's
+     larger glucose response at the same delivered insulin (L 536) is not its correction habit. What remains is the
+     per-unit insulin effect itself (L 506: ~1.6× in the field); the cohort level of the body's sensitivity, which the
+     closed-loop yardstick attenuates, is being probed (isf_level 1.3 on lg13, e pool).
