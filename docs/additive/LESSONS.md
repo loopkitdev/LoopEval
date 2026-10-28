@@ -8605,3 +8605,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      field −25.7). Closed for now, in order tried: the residual (L 532–535), the spread fit (L 534), the correction habit
      (L 537–539), the sensitivity level (here). Remaining candidates: the field side's need adjustment (the shift the
      scorer removes, L 533, is itself measured with the ISF the edit changes) and Loop's own compensation in the twins.
+
+541. **The change test's need adjustment over-corrects the field by the ICE extractor's own mechanics; with that removed,
+     lg13's TIR response on the e pool is right-sized and the residual variants remain short.** The field's need shift
+     d_ice includes +3–4 mg/dL/h per log unit of insulin index that the twins share (L 533: ICE uses the settings ISF the
+     edit changes), and the scorer removes all of d_ice from the field. e pool, field response per log unit (x, CR,
+     target, pre level as covariates): no d_ice −18.0 mean / +7.1 TIR; full d_ice −25.7 / +10.7; d_ice less 3.5·x
+     −23.5 / +9.6; less 5·x −22.6 / +9.2. Against −23.5 / +9.6: lg13 (−19.5 / +9.3) 1.21 / 1.03; level-only residual
+     (−17.4 / +7.6) 1.35 / 1.26; sd3 (−14.7 / +7.0) 1.60 / 1.37. Reading: for predicting the size of a change, lg13 is the
+     closer twin; the residual's per-person level and spread make each twin's state right and its response smaller. The
+     scorer should adjust the field for d_ice net of the twins' own d_ice slope (twin_dice.py) rather than all of it.
