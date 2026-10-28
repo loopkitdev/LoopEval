@@ -1590,12 +1590,17 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       glucose within noise.
     - **the other pools agree in direction:** pilot TIR |err| +0.44 [+0.11, +0.81]; switch TIR r −0.11 [−0.16, +0.07];
       x pool TIR within noise and t<70 r +0.11 [+0.01, +0.21], t<54 |err| −0.05 [−0.09, −0.01].
-    - **what it fixes:** held-out t<70 bias on clean time +1.01 / +0.77 → +0.39 / +0.33 and t<54 +0.20 / +0.15 →
-      +0.04 / +0.06; own-settings TIR level on e −6.0 / −5.3 → −4.4 / −4.9. Consistent with lesson 149 (post-meal low rate on oq not yet
-      re-measured).
+    - **what it changes on the low side:** held-out t<70 bias on clean time +1.01 / +0.77 → +0.39 / +0.33 and t<54
+      +0.20 / +0.15 → +0.04 / +0.06; own-settings TIR level on e −6.0 / −5.3 → −4.4 / −4.9. But it does not remove the
+      post-meal lows lesson 149 aimed at (meal_spread_oq.py, low_where_oq.py in runs/2026-10-25-ice-cob/): low within
+      1–4 h of an isolated meal 15.1 % → 14.1 % (field 6.8 %); t<70 at 2–4 h after an entry 4.9 / 4.7 and 3.9 / 3.5
+      (oc, two trainings) → 4.0 / 3.8 and 4.0 / 3.7 (field 1.3). Overall t<70 falls on training 0 only (2.88 → 2.29;
+      training 1 2.37 → 2.43; field 1.41), spread over every bin. The defense's input was not what held those falls.
     - **where TIR is lost (e, by edit kind):** spread across kinds, largest on ISF-only edits (75; r 0.39 → 0.26, with
       predicted changes wider, sd 3.7 → 4.2). Basal-only edits (87) carry no TIR signal under either arm (r ≈ 0; field
       mean +2.0, predicted 0), the largest single hole in change prediction.
-    A gain on one target paid for with the other is not a keep (AGENTS.md). The low-side fix is real, so the next arm
-    keeps oq's meal netting only where the defense reads a pending low (the fall it failed to catch) and leaves the
-    insulin response elsewhere at oc's, aimed at keeping both the t<70 gain and oc's TIR.
+    A gain on one target paid for with the other is not a keep (AGENTS.md). Arm under test, or (IOBNET_COB=3, ice
+    684b19d4; chain_cob3.sh / pool_or.sh in runs/2026-10-28-ice-cob3/): net of the smaller of the entered carbs still
+    to add and the pulse glucose still to come, so unannounced meals net nothing, as in oc (on i001 iob_net mean 0.45,
+    against oc 0.41 and oq 0.29). It tests whether oq's TIR loss came from netting unannounced meals; given the above,
+    the post-meal lows need a cause outside the defense's input.
