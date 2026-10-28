@@ -8378,3 +8378,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
        spread is the donors' in every arm; f4 sits ~10 mg/dL low throughout. A meal-end drive that is zero-mean would not
        fix it either: the donors have more fast falls AND the same spread, so their fast falls come at the same 3-h
        change, i.e. they fall fast and stop.
+
+522. **The insulin-absorption fluctuation (A4c) back in the core does not beat f4 once the level is refitted; f4 stays.**
+     On f4 with `flow_sd` 0.5, the fast residual at 0.3× (a4x) or off (a4y), one level round on both draws (gain 1.2):
+     score 0.402 / 0.477 and 0.405 / 0.461 (f4 0.379 / 0.440); lows 1.13–1.29 / day, t54 0.24–0.31 (f4 0.19 / 0.27),
+     meal_d3h 30 / 25 and 28 / 26 (f4 25 / 27; donors 38); person level unchanged (TIR ρ 0.70–0.73, mean 0.82–0.88).
+     Before the refit, a4y on draw 1 had lows 0.92 and t54 0.18 at mean 157.6: the lows come back as the level is pulled
+     down to the donors'. Reading: the meal-tail shift (L 521) and the lows trade against each other through the same
+     insulin-absorption variability; neither the residual's down side (L 521) nor A4c closes it. Open for the next round:
+     the meal-tail shift, the low-side edit response, per-person CV.
