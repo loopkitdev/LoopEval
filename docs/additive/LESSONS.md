@@ -8656,3 +8656,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Reading: the modulators carry part of the post-meal glucose and make each person's lows more like their donor's, but on
      top of the per-person spread fit they push the cohort's lows past the donors'. The meal tail and the lows trade through
      the same sensitivity variability (as A4c did, L 522).
+
+546. **The twins eat 10–15% more labelled glucose than their donors at every control level; fitting each twin's intake to
+     its donor's labelled load gives the best two-draw score of the residual variants.** Labelled pulses per day and load
+     (ice labeller both sides; f4 twins vs pilot donors), tight / middle / high: load 202 / 189 / 208 vs 181 / 182 / 186
+     g-eq / day, unannounced 86 / 108 / 132 vs 75 / 97 / 114; pulse shape per gram equal by group (peak per g 1.07–1.16 vs
+     1.15–1.24, time to peak 0.62–0.67 vs 0.75 h), so absorption speed does not separate tight from loose donors, and
+     twins' bolus lead is already earlier than donors' (−5 vs −1.3 min, tight). `intake_own` (L 333) with `intake_mult` =
+     donor / twin labelled load (0.6–1.5, median 0.94) on f4 + site_clock, one level refit (in1): score 0.384 / 0.435
+     (sum 0.819; sd3 0.824, f4 0.832, lg13 0.791), TDD 40.9 / 42.7 (38.7), lows 1.00 / 1.20, t54 0.20 / 0.29, meal_d3h
+     26 / 26; person level TIR ρ 0.76 / 0.73, mean 0.86 / 0.88, CV 0.10 / 0.08 (spread not carried). Change test pending.
