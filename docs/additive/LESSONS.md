@@ -8355,3 +8355,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Open, in order: the low side (t70 / t54 per person and their response to edits, 4–6× under; the twins add ~1
      treatment a day per log unit of insulin, mostly proactive snacks, where the donors' labelled rescues add +0.37), CV,
      the meal tail.
+
+520. **The twins' weak low-side response to edits is not their low defence absorbing the insulin: labelled like the
+     donors, they add fewer rescues, not more.** f4's change runs through ice's labeller (520 runs, `ice_check`), donors'
+     from their ice meals tables over the same 14-day windows (65 edits). Per log unit of insulin index: labelled rescues
+     +0.24 / day (+6.2 g) in the twins (baseline 0.40 / day, 12.6 g), +0.37 / day (+14.7 g) in the donors (0.25, 7.6 g);
+     field t70 +4.0. In truth the twins add +0.72 proactive snacks and +0.31 rescues a day (+18 g), most of it too small
+     for the labeller, as the donors' own proactive eating would be. Reading: the extra insulin mostly does not take the
+     twins low in the first place. Loop suspends in time on the twins' smoother falls; the donors' fast falls (L 509–510:
+     true fast falls after meals 4% in twins) are where extra insulin turns into lows. The low-side response is the fast-fall
+     gap again, now the lead for the residual's down side.
