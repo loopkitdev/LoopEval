@@ -8666,3 +8666,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      donor / twin labelled load (0.6–1.5, median 0.94) on f4 + site_clock, one level refit (in1): score 0.384 / 0.435
      (sum 0.819; sd3 0.824, f4 0.832, lg13 0.791), TDD 40.9 / 42.7 (38.7), lows 1.00 / 1.20, t54 0.20 / 0.29, meal_d3h
      26 / 26; person level TIR ρ 0.76 / 0.73, mean 0.86 / 0.88, CV 0.10 / 0.08 (spread not carried). Change test pending.
+
+547. **The intake-fitted twin (in1) sizes the TIR response and splits tight from loose better than the others on the
+     pilot, but its lows barely answer an edit.** Pilot change test, 63 edits, per-event seeds, corrected scorer, field /
+     twin: TIR lg13 0.95, sd3 1.32, in1 0.84; mean 1.89 / 1.93 / 1.75; t70 3.3 / 2.6 / 5.1; t54 2.5 / 3.2 / 10 (CI
+     −56 to 85); ρ TIR 0.17 / −0.03 / 0.17, t70 0.18 / 0.06 / 0.30; tight − rest TIR per +10% +0.83 / −0.86 / −1.87 (field
+     −7.18); pre-edit level +9.4 / +1.9 / +4.0. Reading: less food at the donor's level makes the twin's response to an
+     edit TIR-sized, ranks its t70 best, and moves the control-level split furthest toward the field, but with less
+     glucose to cover the extra insulin rarely reaches a low (t54 response a tenth of the field's) — the low side again
+     (L 520), now on the variant that is otherwise closest. Not adopted over sd3; a candidate for change work beside lg13.
