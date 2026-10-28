@@ -8387,3 +8387,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      down to the donors'. Reading: the meal-tail shift (L 521) and the lows trade against each other through the same
      insulin-absorption variability; neither the residual's down side (L 521) nor A4c closes it. Open for the next round:
      the meal-tail shift, the low-side edit response, per-person CV.
+
+523. **Site changes now fall on whole days at the person's evening hour, as the donors' do; their glucose cost is still
+     half the field's.** F8 drew a continuous interval N(3.0, 0.4) days, so each change slid hours later and the twins
+     changed at any hour (median 13.8 h; field 17–22 h, eda L 52). `site_clock` (behavior, on in the reference flags):
+     the next change k = round(site_days + N(0, 0.4)) ≥ 2 days later at the person's hour N(19.5, 1.5) clipped 16–23
+     (± N(0, 1) h). On f4 (sc / sc_5k): clock hour p10 / 50 / 90 17.1 / 19.5 / 21.7; score 0.375 / 0.457 (f4 0.379 /
+     0.440, within draw scatter); routine change hours 0–3 peak +6 / +12 mg/dL (field +28), first-hour insulin 0.46–0.62×
+     usual (field 1.5×), the 12 h before +1–3 (field +9). The size gap is the start-up transient E4 (±5%) or the change's
+     own handling; the field figure is twiist (tubed sets) while most twins wear Omnipod, so E4 is not refitted on it.

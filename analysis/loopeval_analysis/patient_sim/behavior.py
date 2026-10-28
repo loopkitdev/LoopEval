@@ -221,6 +221,7 @@ class BehaviorTraits:
     # site changes
     site_days: float = 3.0
     site_hour: float = 19.5
+    site_clock: bool = False             # experiment (LESSONS 523): site changes on whole days at the person's hour
 
 
 # no-entry user boluses per hour at CGM 180–280, by 30-min trend (falling < −10 / flat / +10–30 / > +30 mg/dL): donors
@@ -541,6 +542,8 @@ class Behavior:
         self.in_low = False
         self.low_seen = False
         self.next_site = (rng.uniform(0, traits.site_days) * DAY // DAY) * DAY + traits.site_hour * 60
+        self.r_site = np.random.default_rng(int(getattr(person, "seed", 0)) + 1517)     # site_clock's own stream
+        self.site_hour_p = float(np.clip(self.r_site.normal(19.5, 1.5), 16.0, 23.0))    # the person's habitual hour
         self.log = []                           # ground truth of every behavior event
 
     # ------------------------------------------------------------------ helpers
@@ -1003,7 +1006,13 @@ class Behavior:
                 self.log.append((m, "ex_carbs", rest[0], None))
         if m >= self.next_site:
             acts.append(("site_change", m)); self.log.append((m, "site_change", 0, None))
-            self.next_site += t.site_days * DAY
+            if getattr(t, "site_clock", False):
+                # whole days at the person's evening hour (eda L 52: twiist changes a median 72 h apart, clustered 17-22 h;
+                # LESSONS 523): a continuous interval drifted each change by hours round the clock
+                k = max(2, int(round(t.site_days + self.r_site.normal(0, 0.4))))
+                self.next_site = (m // DAY + k) * DAY + float(np.clip(self.site_hour_p + self.r_site.normal(0, 1.0), 15.0, 23.9)) * 60
+            else:
+                self.next_site += t.site_days * DAY
         if reading:                                  # a new reading (None = withheld, False = no report)
             self.readings.append((m, reading))
             if len(self.readings) > 12: self.readings.pop(0)
