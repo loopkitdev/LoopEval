@@ -232,6 +232,12 @@ class World:
         self.enable = dict(exercise=True, site_failure=True, pump_faults=True, compression=True, behavior_defense=True, graze=True,
                            perfect_person=False, fat=True, lipohypertrophy=True)
         if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable and isinstance(v, bool)})
+        if enable and enable.get("si_var_own"):
+            # the residual in a form insulin acts on (LESSONS 543): the intraday log-SI OU (B4 slot), its size per person from
+            # the template (`si_var`, fitted on the donor's glucose SD), in place of the meal-size spread fit (L 534)
+            sv = (person.traits.get("resid") or {}).get("si_var")
+            self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.enabled["intraday"] = True
+            if sv is not None and np.isfinite(sv): self.mod_traits.intra_sd = float(sv)
         self.mods = Modulators(self.mod_traits, days)
         if enable and enable.get("steroid_course"):
             # scenario: one glucocorticoid course starting on day 3 (B14), whatever the person's own draw

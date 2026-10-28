@@ -490,5 +490,5 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                     # the settings the person lives with (their donor's), kept before any experiment edits them: behaviour that
                     # adapts to a settings change reads the change against these (LESSONS 539)
                     settings0={k: float(settings[k]) for k in ("basal_uh", "isf", "cr", "target") if k in settings},
-                    resid={k: float(row[k]) for k in ("resid_f", "resid_b", "resid_d", "resid_m")
+                    resid={k: float(row[k]) for k in ("resid_f", "resid_b", "resid_d", "resid_m", "si_var")
                            if k in row.index and np.isfinite(float(row[k]))}))

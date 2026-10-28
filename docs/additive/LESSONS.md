@@ -8623,3 +8623,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.17 / 0.13 / 0.13, t54 −0.04 / 0.09 / 0.06. Use: the size of a change from lg13, or f4 when the twin must start at its
      donor's own level (pre-edit +7 vs lg13's +19); each person's state and spread from sd3. Harness (arm2.py with
      ARM_EVSEED and ARM_EVM, score_change.py, twin_dice.py) copied to `patient_sim/resid_tools/`.
+
+543. **Carrying each donor's spread through a per-person sensitivity wander keeps the response size but carries little of
+     the spread; the tight end cannot be narrowed by a term that only adds variability.** `si_var_own` (world, off): the
+     intraday log-SI OU (B4 slot, τ 240 min) on, its SD per person from the template (`si_var`, `si_fit.py`: × (donor SD /
+     twin SD)³ per round), alternating with the level, three rounds on the x pool's 120 event donors (`tmpl_cycle`): SD
+     twin–donor ρ 0.38 → 0.42 → 0.44 (sd3's meal-size fit 0.92), si_var p10 / 50 / 90 0.03 / 0.13 / 0.49 (twin / donor SD
+     p10–p90 still 0.72–1.46). Change test (147 edits, per-event seeds, corrected scorer): TIR field / twin 0.73, mean
+     0.60; ρ TIR 0.15, t54 0.19 (f4 0.76 / 0.68, ρ 0.26 / 0.25; sd3 1.29 / 0.81). Reading: the donors' spread differs most
+     at the tight end, where the twins are too wide, and only the meal size narrows it there — and narrowing meals is what
+     damps the response (L 534). A twin right on both needs the tight donors' smaller excursions to come from something that
+     still answers insulin: their bolus timing and dosing before meals are the named candidates (F3).
