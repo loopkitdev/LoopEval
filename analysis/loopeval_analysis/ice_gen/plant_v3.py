@@ -387,6 +387,10 @@ class PlantV3:
                             if pd.Timedelta(0) <= t - te < pd.Timedelta(hours=3))
             elif self.iobnet_cob == "2":  # net of the meal glucose still to come from the drawn pulses (dataset_v3m3.iob_net)
                 net_ -= sum(float(remaining([(t - on).total_seconds() / 3600], sz, m, s_)[0]) for on, sz, m, s_ in self.pulses)
+            elif self.iobnet_cob == "3":  # net of the smaller of entered carbs still to add and drawn pulse glucose to come
+                net_ -= min(sum(g * self.geq * (1 - (t - te).total_seconds() / 10800) for te, g in self.entries
+                                if pd.Timedelta(0) <= t - te < pd.Timedelta(hours=3)),
+                            sum(float(remaining([(t - on).total_seconds() / 3600], sz, m, s_)[0]) for on, sz, m, s_ in self.pulses))
             x[F["iob_net"]] = IOBNET_SCALE * max(net_, 0.0) / 100
         x[F["pulse"]] = self._pulse_rate(t) / ICE_SCALE
         x[F["since_meal"]] = min(self.since_meal, 24) / 24; x[F["last_size"]] = self.last_size / 50; x[F["n_3h"]] = n3 / 3

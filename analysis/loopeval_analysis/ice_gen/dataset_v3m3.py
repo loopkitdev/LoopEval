@@ -44,6 +44,8 @@ COB_SLOTS = 36
 
 # IOBNET_COB=2: net of the meal glucose still to come from the meal pulses instead (reconstructed here, drawn in the plant),
 # so a meal that turns out smaller or later than its entry no longer hides the low it leaves (LESSONS 149).
+# IOBNET_COB=3: net of the smaller of the two, glucose both entered and still to come from the pulses, so an unannounced
+# meal nets nothing (as in mode 1) and a meal smaller or later than its entry nets only what it delivers (LESSONS 150).
 def iob_net(g, steps, isf, carb_g, geq, T, to_come=None):
     if not isf:
         return np.zeros(T)
@@ -53,6 +55,8 @@ def iob_net(g, steps, isf, carb_g, geq, T, to_come=None):
         net = net - np.convolve(carb_g, 1 - np.arange(COB_SLOTS) / COB_SLOTS)[:T] * float(geq)
     elif mode == "2":
         net = net - to_come
+    elif mode == "3":
+        net = net - np.minimum(np.convolve(carb_g, 1 - np.arange(COB_SLOTS) / COB_SLOTS)[:T] * float(geq), to_come)
     return np.maximum(net, 0) / 100
 
 
