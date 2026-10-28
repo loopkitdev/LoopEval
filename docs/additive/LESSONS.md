@@ -8407,3 +8407,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Reading: a donor's CV lives in their highs, and the fast drive cannot raise it without deepening dips unless it is
      strongly skewed, which then no longer moves CV. CV is set by the shape of the person's excursions (meals, unlogged
      rises), not by a stationary drive; left open.
+
+525. **Scope for twins of the expansion pools (the ~500 pooled settings edits).** The x pool (ice_x32, ~226 donors,
+     97 scored edits) has the ice extractions on the Mac in the pilot's format (persons.csv, steps, meals, full exports);
+     the e pool (ice_e32, 478 donors, 337 edits) is on gamepc. A template set needs, in order: (1) per-donor sensor family
+     and age, which are not in the extracts (the pilot's came from Databricks: `2026-10-15-additive-sensor/pull_sensor.py`,
+     ice `age.csv`) — a shared-warehouse pull; (2) `templates.build_pilot` with the pool root (same persons.csv columns);
+     (3) the `add_*` chain on the pool root (raw / override / edit / slot / absorption / disruption / gap / entry /
+     meal-clock rates, strategy share, basal and delivered profiles, insulin from IOB, ISF yardstick, missed cycles, sleep,
+     gb); (4) `fit_body --regression` and the per-donor carb sensitivity (`csf_geq`, pooled over cohort rounds, L 359);
+     (5) the residual: a core run, `resid_tools/fit_resid.py`, three level rounds on two draws. Then `arm2.py` on the pool's
+     edits and switches. Steps 2–5 are local; step 1 needs the warehouse.
