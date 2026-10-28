@@ -8596,3 +8596,12 @@ outputs in gamepc ~/additive/runs/c290–c312).
      larger glucose response at the same delivered insulin (L 536) is not its correction habit. What remains is the
      per-unit insulin effect itself (L 506: ~1.6× in the field); the cohort level of the body's sensitivity, which the
      closed-loop yardstick attenuates, is being probed (isf_level 1.3 on lg13, e pool).
+
+540. **The cohort level of the body's sensitivity does not set the size of the response to an edit.** lg13 on the e pool
+     with `isf_level` 1.3 (body ISF × 1.3; the closed-loop yardstick attenuates it): field / twin mean 1.33 → 1.32, TIR
+     1.14 → 1.22, t70 1.49 → 1.27, t54 1.27 → 0.85; ρ mean 0.34 → 0.38, TIR 0.17 → 0.21; pre-edit level +18.5 → +19.1;
+     tight − rest −0.53 → −0.72. The intake budget is the donor's insulin total, so a more sensitive body eats more and the
+     twin's glucose per unit of extra insulin barely changes (twins −19.5 mg/dL per log unit in every lg13-based arm,
+     field −25.7). Closed for now, in order tried: the residual (L 532–535), the spread fit (L 534), the correction habit
+     (L 537–539), the sensitivity level (here). Remaining candidates: the field side's need adjustment (the shift the
+     scorer removes, L 533, is itself measured with the ISF the edit changes) and Loop's own compensation in the twins.
