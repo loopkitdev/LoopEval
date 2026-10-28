@@ -8448,3 +8448,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Reading: the level can be matched per event, but a tight donor's twin then goes low far more often than the donor —
      the per-person spread (L 524: CV not carried) is what a tight person's twin gets wrong, and it costs the low-side
      ranking. Not adopted for the change test; the next lever is per-person excursion size, tight donors first.
+
+528. **The twins' glucose spread barely follows their control level; the donors' does.** f4 / f4_5k, twin against its
+     donor (median per template, 121), by the donor's mean: tight (< 140, 38) SD 49 vs 43, CV 36.6 vs 32.9, t70 4.6 vs
+     3.8%; middle (61) SD 55 vs 52; high (> 170, 22) SD 61 vs 72, CV 34.1 vs 36.4. Means match in every group (the level
+     residual). Tight donors' twins swing too wide and loose donors' too narrow, so a per-person residual (which can only
+     add spread to the core's) cannot fix the tight end (L 524, 527). What sets a person's excursion size in the core —
+     meal glucose per gram (`csf_geq_mult`, NaN for 59% of the pilot), bolus timing and size, unlogged load — is the next
+     place to fit per person.
