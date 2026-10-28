@@ -232,6 +232,12 @@ class World:
         self.enable = dict(exercise=True, site_failure=True, pump_faults=True, compression=True, behavior_defense=True, graze=True,
                            perfect_person=False, fat=True, lipohypertrophy=True)
         if enable: self.enable.update({k: v for k, v in enable.items() if k in self.enable and isinstance(v, bool)})
+        if enable and enable.get("si_var_own"):
+            # the residual in a form insulin acts on (LESSONS 543): the intraday log-SI OU (B4 slot), its size per person from
+            # the template (`si_var`, fitted on the donor's glucose SD), in place of the meal-size spread fit (L 534)
+            sv = (person.traits.get("resid") or {}).get("si_var")
+            self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.enabled["intraday"] = True
+            if sv is not None and np.isfinite(sv): self.mod_traits.intra_sd = float(sv)
         self.mods = Modulators(self.mod_traits, days)
         if enable and enable.get("steroid_course"):
             # scenario: one glucocorticoid course starting on day 3 (B14), whatever the person's own draw
@@ -278,6 +284,10 @@ class World:
             self.beh_traits.graze_fast = bool(enable["graze_fast"])      # default on (LESSONS 158); --disable graze_fast
         if enable and isinstance(enable.get("graze_keep"), float):
             self.beh_traits.graze_keep = float(np.clip(enable["graze_keep"], 0.0, 1.0))
+        if enable and isinstance(enable.get("corr_x_beta"), float):
+            self.beh_traits.corr_x_beta = float(enable["corr_x_beta"])     # experiment (LESSONS 539)
+        if enable and enable.get("corr_rec_gate"):
+            self.beh_traits.corr_rec_gate = True       # experiment (LESSONS 538)
         if enable and enable.get("site_clock"):
             self.beh_traits.site_clock = True          # experiment (LESSONS 523)
         if enable and isinstance(enable.get("announce_mult"), float):

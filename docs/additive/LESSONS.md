@@ -8545,3 +8545,133 @@ outputs in gamepc ~/additive/runs/c290–c312).
      the twins' closed loop absorbs a settings change — L 506's field glucose moving ~1.6× more per unit of extra insulin —
      not in the stationary variability the residual carries. Next: the per-unit insulin effect after an edit, field vs
      twin, at matched level.
+
+536. **After a more aggressive edit the field lowers glucose without more insulin: people bolus less by hand and let Loop
+     dose; the twins keep their manual dosing, so their insulin rises and their glucose falls less.** e pool (580 edits),
+     `change_e/tdd_resp.py` (L 506's script with the pool's root), per log unit of the insulin index:
+     - delivered log TDD: field +0.25 [0.10, 0.44] (+0.16 net of the need shift), lg13 twins +0.24, sd3 twins +0.25.
+     - edits whose need shift is below the median (292): field delivered +0.01 while field mean −29.5; twins +0.22 / +0.24.
+     - field manual bolus units (log, need-adjusted) −0.32 [−0.54, −0.07]; field scheduled basal +0.36; carbs −0.04, entries
+       +0.00 (unchanged).
+     - glucose: field mean −25.7; twins −19.5 (lg13) / −14.7 (sd3), and with their own delivered change as covariate the
+       twins' per-unit effect is +17–20 mg/dL per log unit of delivered insulin against the field's +13.
+     Reading: the response the twins lack is a behaviour change, not a body or a residual one. The donors hand dosing over
+     to Loop after an edit (the same daily insulin, given by Loop earlier and around meals), and the twins, whose manual
+     boluses follow Loop's recommendation, add insulin instead. Next: the twins' manual bolus habit — how much of it is a
+     fixed personal amount rather than a share of Loop's recommendation (F3 / F4 / F10), and its response to an edit, from
+     the donors' own boluses around their edits.
+
+537. **The handover is in corrections: after a more aggressive edit the donors correct far less often, the twins barely
+     less.** e pool, 13 days before against days 1–14 after, per log unit of the insulin index (CR change as covariate):
+     - donors (`_corrections.parquet`, ice labeller): corrections −0.84 / day from 1.92 (−44%); each correction's size +0.40
+       (log) and its ratio to Loop's recommendation −0.02, so they still follow the recommendation; correction units / day
+       −0.11 (log). Meal boluses unchanged: bolus ÷ recommendation +0.00, units per gram −0.82 per log CR (−1 would be
+       following the recommendation fully).
+     - sd3 twins (trace delivery[], behaviour log): corrections −0.28 / day from 1.17; manual units −0.05 (log); automatic
+       units +0.32.
+     Reading: the donors stop stepping in when Loop is handling highs (its recommendation stays small), the twins' F4 rule
+     fires on their CGM level and barely notices the edit. F4's trigger as a function of Loop's own recommendation, fitted
+     on the donors' corrections (rate by recommendation size, before and after their edits), is the next component to fit.
+
+538. **Gating corrections on Loop's recommendation does not reproduce the donors' handover; not adopted.**
+     `corr_rec_gate` (behavior, off): with Loop recommending < 0.1 U a twin corrects only at its donor's own share of such
+     corrections (`corr_rec0`, template; median 0.09). e pool, 580 edits, per-event seeds:
+     - field / twin per log unit (mean / TIR / t70 / t54): lg13 1.33 / 1.14 / 1.49 / 1.27 → gated 1.44 / 1.23 / 1.53 /
+       0.98; sd3 1.77 / 1.53 / 1.55 / 1.00 → gated 1.75 / 1.59 / 1.36 / 0.89. ρ t54 −0.04 → 0.03 (lg13), 0.06 → 0.14
+       (sd3); tight − rest TIR −0.53 → −0.83 and −0.78 → −0.93 (field −1.55).
+     - gated sd3 twins: corrections 0.83 / day before (from 1.17), −0.08 / day per log unit (ungated −0.28; donors −0.84);
+       manual units +0.02 (log).
+     Reading: in the twins Loop's recommendation grows after a more aggressive edit, so the gate holds back fewer
+     corrections afterwards, not more. The donors' recommendation at a correction grows too (size +0.40, L 537), yet they
+     correct 44% less often per log unit: the handover is a change in how often they step in, not in what Loop shows
+     them. It is behaviour with no visible trigger in the data we have; a per-person correction-rate response to the
+     settings themselves (fitted on the donors' edits) is the data-driven form left.
+
+539. **A correction rate that responds to the settings themselves does not change the response to an edit either; the
+     handover is real but too small a share of insulin to matter.** `corr_x_beta` (behavior, off): correction hazard ×
+     exp(β·x), x = log(basal / basal0) − log(ISF / ISF0) against the person's own settings (`settings0`, kept on the
+     person at sampling); β −0.45 (the donors' −44% per log unit less the twins' own −24%). e pool, 580 edits: field / twin
+     (mean / TIR / t70 / t54) lg13 1.33 / 1.14 / 1.49 / 1.27 → 1.40 / 1.25 / 1.37 / 1.14; sd3 1.77 / 1.53 / 1.55 / 1.00
+     → 1.81 / 1.53 / 1.83 / 1.09; ρ unchanged; tight − rest −0.53 → −0.41 and −0.78 → −0.90. Reading: the field's
+     larger glucose response at the same delivered insulin (L 536) is not its correction habit. What remains is the
+     per-unit insulin effect itself (L 506: ~1.6× in the field); the cohort level of the body's sensitivity, which the
+     closed-loop yardstick attenuates, is being probed (isf_level 1.3 on lg13, e pool).
+
+540. **The cohort level of the body's sensitivity does not set the size of the response to an edit.** lg13 on the e pool
+     with `isf_level` 1.3 (body ISF × 1.3; the closed-loop yardstick attenuates it): field / twin mean 1.33 → 1.32, TIR
+     1.14 → 1.22, t70 1.49 → 1.27, t54 1.27 → 0.85; ρ mean 0.34 → 0.38, TIR 0.17 → 0.21; pre-edit level +18.5 → +19.1;
+     tight − rest −0.53 → −0.72. The intake budget is the donor's insulin total, so a more sensitive body eats more and the
+     twin's glucose per unit of extra insulin barely changes (twins −19.5 mg/dL per log unit in every lg13-based arm,
+     field −25.7). Closed for now, in order tried: the residual (L 532–535), the spread fit (L 534), the correction habit
+     (L 537–539), the sensitivity level (here). Remaining candidates: the field side's need adjustment (the shift the
+     scorer removes, L 533, is itself measured with the ISF the edit changes) and Loop's own compensation in the twins.
+
+541. **The change test's need adjustment over-corrects the field by the ICE extractor's own mechanics; with that removed,
+     lg13's TIR response on the e pool is right-sized and the residual variants remain short.** The field's need shift
+     d_ice includes +3–4 mg/dL/h per log unit of insulin index that the twins share (L 533: ICE uses the settings ISF the
+     edit changes), and the scorer removes all of d_ice from the field. e pool, field response per log unit (x, CR,
+     target, pre level as covariates): no d_ice −18.0 mean / +7.1 TIR; full d_ice −25.7 / +10.7; d_ice less 3.5·x
+     −23.5 / +9.6; less 5·x −22.6 / +9.2. Against −23.5 / +9.6: lg13 (−19.5 / +9.3) 1.21 / 1.03; level-only residual
+     (−17.4 / +7.6) 1.35 / 1.26; sd3 (−14.7 / +7.0) 1.60 / 1.37. Reading: for predicting the size of a change, lg13 is the
+     closer twin; the residual's per-person level and spread make each twin's state right and its response smaller. The
+     scorer should adjust the field for d_ice net of the twins' own d_ice slope (twin_dice.py) rather than all of it.
+
+542. **With the corrected scorer, lg13 sizes the TIR response to an edit on all three pools; the level-only residual (f4)
+     is close; the spread fit (sd3) under-responds everywhere.** `score_change.py` now adjusts the field for d_ice − 3.5·x
+     (NEED_MECH; L 541). Field / twin TIR (mean) per log unit: lg13 pilot 0.95 (1.89), x 0.64 (0.60), e 1.03 (1.21);
+     level-only residual x 0.76 (0.68), e 1.27 (1.37); sd3 pilot 1.32 (1.93), x 1.29 (0.81), e 1.39 (1.62). ρ TIR on e
+     0.17 / 0.13 / 0.13, t54 −0.04 / 0.09 / 0.06. Use: the size of a change from lg13, or f4 when the twin must start at its
+     donor's own level (pre-edit +7 vs lg13's +19); each person's state and spread from sd3. Harness (arm2.py with
+     ARM_EVSEED and ARM_EVM, score_change.py, twin_dice.py) copied to `patient_sim/resid_tools/`.
+
+543. **Carrying each donor's spread through a per-person sensitivity wander keeps the response size but carries little of
+     the spread; the tight end cannot be narrowed by a term that only adds variability.** `si_var_own` (world, off): the
+     intraday log-SI OU (B4 slot, τ 240 min) on, its SD per person from the template (`si_var`, `si_fit.py`: × (donor SD /
+     twin SD)³ per round), alternating with the level, three rounds on the x pool's 120 event donors (`tmpl_cycle`): SD
+     twin–donor ρ 0.38 → 0.42 → 0.44 (sd3's meal-size fit 0.92), si_var p10 / 50 / 90 0.03 / 0.13 / 0.49 (twin / donor SD
+     p10–p90 still 0.72–1.46). Change test (147 edits, per-event seeds, corrected scorer): TIR field / twin 0.73, mean
+     0.60; ρ TIR 0.15, t54 0.19 (f4 0.76 / 0.68, ρ 0.26 / 0.25; sd3 1.29 / 0.81). Reading: the donors' spread differs most
+     at the tight end, where the twins are too wide, and only the meal size narrows it there — and narrowing meals is what
+     damps the response (L 534). A twin right on both needs the tight donors' smaller excursions to come from something that
+     still answers insulin: their bolus timing and dosing before meals are the named candidates (F3).
+
+544. **Narrowing only the tight donors' meals and widening the rest by sensitivity wander keeps the response and the
+     level, but carries about half the spread: the trade-off holds.** x pool, hybrid templates (csf_sd_mult from sd3
+     capped at 1 for the 60 donors it narrows; si_var from L 543 for the 42 it widened, 0 otherwise), two level rounds
+     (|gap| p50 4.4, mean ρ 0.92): SD twin–donor ρ 0.52 (sd3 0.92, wander alone 0.44). Change test (147 edits, per-event
+     seeds, corrected scorer): TIR field / twin 0.73, mean 0.61; ρ mean 0.35 (best of all arms; lg13 0.31, f4 0.29, sd3
+     0.27), TIR 0.24, t54 0.16; pre-edit level +4.6; tight − rest −2.93 (field −1.25). Reading: with the components we
+     have, a twin's spread is carried faithfully only by meal size, and meal size is what damps its response; the other
+     carriers keep the response and leave most of the spread. Each use keeps its twin (L 542): lg13 / f4 or this hybrid
+     for the size and ranking of a change, sd3 for each person's own state.
+
+545. **The replaced modulators restored on sd3 recover part of the meal tail and sharpen the per-person lows, but add lows
+     the cohort cannot take; not adopted.** sd3 templates with every replaced component back on (day SI, stress, illness,
+     cycle, steroids, C7, grazing, A4c; no si_norm), one level refit (sdm1), then the same without the fast drive (sdn):
+     - meal_d3h draw 1 / 2: sd3 24 / 26 → sdm1 30 / 27 → sdn 30 / 28 (donors 38).
+     - lows / day: sd3 1.08 / 1.21 → sdm1 1.33 / 1.75 → sdn 1.29 / 1.58; t54 0.26 / 0.26 → 0.42 / 0.41 → 0.27 / 0.40.
+     - score: sd3 0.370 / 0.454 → sdm1 0.413 / 0.509 → sdn 0.362 / 0.483 (sum 0.824 / 0.922 / 0.845).
+     - person level (sdn): t70 ρ 0.66 / 0.46, t54 0.50 / 0.45, CV 0.57 / 0.55, TIR 0.80 / 0.83 (sd3: TIR 0.89 held out,
+       t70 0.48, t54 0.42).
+     Reading: the modulators carry part of the post-meal glucose and make each person's lows more like their donor's, but on
+     top of the per-person spread fit they push the cohort's lows past the donors'. The meal tail and the lows trade through
+     the same sensitivity variability (as A4c did, L 522).
+
+546. **The twins eat 10–15% more labelled glucose than their donors at every control level; fitting each twin's intake to
+     its donor's labelled load gives the best two-draw score of the residual variants.** Labelled pulses per day and load
+     (ice labeller both sides; f4 twins vs pilot donors), tight / middle / high: load 202 / 189 / 208 vs 181 / 182 / 186
+     g-eq / day, unannounced 86 / 108 / 132 vs 75 / 97 / 114; pulse shape per gram equal by group (peak per g 1.07–1.16 vs
+     1.15–1.24, time to peak 0.62–0.67 vs 0.75 h), so absorption speed does not separate tight from loose donors, and
+     twins' bolus lead is already earlier than donors' (−5 vs −1.3 min, tight). `intake_own` (L 333) with `intake_mult` =
+     donor / twin labelled load (0.6–1.5, median 0.94) on f4 + site_clock, one level refit (in1): score 0.384 / 0.435
+     (sum 0.819; sd3 0.824, f4 0.832, lg13 0.791), TDD 40.9 / 42.7 (38.7), lows 1.00 / 1.20, t54 0.20 / 0.29, meal_d3h
+     26 / 26; person level TIR ρ 0.76 / 0.73, mean 0.86 / 0.88, CV 0.10 / 0.08 (spread not carried). Change test pending.
+
+547. **The intake-fitted twin (in1) sizes the TIR response and splits tight from loose better than the others on the
+     pilot, but its lows barely answer an edit.** Pilot change test, 63 edits, per-event seeds, corrected scorer, field /
+     twin: TIR lg13 0.95, sd3 1.32, in1 0.84; mean 1.89 / 1.93 / 1.75; t70 3.3 / 2.6 / 5.1; t54 2.5 / 3.2 / 10 (CI
+     −56 to 85); ρ TIR 0.17 / −0.03 / 0.17, t70 0.18 / 0.06 / 0.30; tight − rest TIR per +10% +0.83 / −0.86 / −1.87 (field
+     −7.18); pre-edit level +9.4 / +1.9 / +4.0. Reading: less food at the donor's level makes the twin's response to an
+     edit TIR-sized, ranks its t70 best, and moves the control-level split furthest toward the field, but with less
+     glucose to cover the extra insulin rarely reaches a low (t54 response a tenth of the field's) — the low side again
+     (L 520), now on the variant that is otherwise closest. Not adopted over sd3; a candidate for change work beside lg13.

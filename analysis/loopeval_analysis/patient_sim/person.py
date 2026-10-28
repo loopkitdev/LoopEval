@@ -25,7 +25,7 @@ import pandas as pd
 from .physiology import Body, BodyParams, Parcel
 from .insulins import BRAND_TO_FORMULATION, FORMULATIONS
 
-BEHAVIOR_COLS = ["far_unann", "carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "archetype", "meals_per_day",
+BEHAVIOR_COLS = ["far_unann", "corr_rec0", "carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "archetype", "meals_per_day",
                  "meal_hours", "meal_size_med", "meal_size_logsd", "announced_share", "estimate_ratio",
                  "bolus_lead_min", "p_bolus_ann", "bolus_ratio", "corrections_per_day", "corr_bg_med", "corr_ratio",
                  "rescues_per_day", "rescue_size_med", "rescue_bg_med", "free_boluses_per_day",
@@ -487,5 +487,8 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                                     for k in BEHAVIOR_COLS if k in row.index},
                     # the donor's own unexplained-drive amplitudes (mg/dL/h; templates add_residual), read by world's
                     # data-driven residual (`resid`, LESSONS 514)
-                    resid={k: float(row[k]) for k in ("resid_f", "resid_b", "resid_d", "resid_m")
+                    # the settings the person lives with (their donor's), kept before any experiment edits them: behaviour that
+                    # adapts to a settings change reads the change against these (LESSONS 539)
+                    settings0={k: float(settings[k]) for k in ("basal_uh", "isf", "cr", "target") if k in settings},
+                    resid={k: float(row[k]) for k in ("resid_f", "resid_b", "resid_d", "resid_m", "si_var")
                            if k in row.index and np.isfinite(float(row[k]))}))
