@@ -487,5 +487,8 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                                     for k in BEHAVIOR_COLS if k in row.index},
                     # the donor's own unexplained-drive amplitudes (mg/dL/h; templates add_residual), read by world's
                     # data-driven residual (`resid`, LESSONS 514)
+                    # the settings the person lives with (their donor's), kept before any experiment edits them: behaviour that
+                    # adapts to a settings change reads the change against these (LESSONS 539)
+                    settings0={k: float(settings[k]) for k in ("basal_uh", "isf", "cr", "target") if k in settings},
                     resid={k: float(row[k]) for k in ("resid_f", "resid_b", "resid_d", "resid_m")
                            if k in row.index and np.isfinite(float(row[k]))}))
