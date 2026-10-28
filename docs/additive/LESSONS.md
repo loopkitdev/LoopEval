@@ -8545,3 +8545,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      the twins' closed loop absorbs a settings change — L 506's field glucose moving ~1.6× more per unit of extra insulin —
      not in the stationary variability the residual carries. Next: the per-unit insulin effect after an edit, field vs
      twin, at matched level.
+
+536. **After a more aggressive edit the field lowers glucose without more insulin: people bolus less by hand and let Loop
+     dose; the twins keep their manual dosing, so their insulin rises and their glucose falls less.** e pool (580 edits),
+     `change_e/tdd_resp.py` (L 506's script with the pool's root), per log unit of the insulin index:
+     - delivered log TDD: field +0.25 [0.10, 0.44] (+0.16 net of the need shift), lg13 twins +0.24, sd3 twins +0.25.
+     - edits whose need shift is below the median (292): field delivered +0.01 while field mean −29.5; twins +0.22 / +0.24.
+     - field manual bolus units (log, need-adjusted) −0.32 [−0.54, −0.07]; field scheduled basal +0.36; carbs −0.04, entries
+       +0.00 (unchanged).
+     - glucose: field mean −25.7; twins −19.5 (lg13) / −14.7 (sd3), and with their own delivered change as covariate the
+       twins' per-unit effect is +17–20 mg/dL per log unit of delivered insulin against the field's +13.
+     Reading: the response the twins lack is a behaviour change, not a body or a residual one. The donors hand dosing over
+     to Loop after an edit (the same daily insulin, given by Loop earlier and around meals), and the twins, whose manual
+     boluses follow Loop's recommendation, add insulin instead. Next: the twins' manual bolus habit — how much of it is a
+     fixed personal amount rather than a share of Loop's recommendation (F3 / F4 / F10), and its response to an edit, from
+     the donors' own boluses around their edits.
