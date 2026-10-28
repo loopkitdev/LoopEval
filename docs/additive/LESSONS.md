@@ -8418,3 +8418,21 @@ outputs in gamepc ~/additive/runs/c290–c312).
      gb); (4) `fit_body --regression` and the per-donor carb sensitivity (`csf_geq`, pooled over cohort rounds, L 359);
      (5) the residual: a core run, `resid_tools/fit_resid.py`, three level rounds on two draws. Then `arm2.py` on the pool's
      edits and switches. Steps 2–5 are local; step 1 needs the warehouse.
+
+526. **On an independent pool the residual model again reproduces the settings-edit response better than lg13, and the
+     pilot's "lows respond 4–6× too little" does not replicate.** x pool (ice_x32): base templates for 430 donors
+     (`templates.build_pilot` with a root, sensor family and age pulled from the warehouse — `2026-10-28-additive-xpool/
+     pull_sensor_age.py`), the rest of the columns by the ns3 builder (`build_template.py`, `--sensor-csv/--age-csv`),
+     body fits (`run_fit.py` reg then seg); cohort-round calibrations left at 1. Edits from the pooled screen that map to x
+     aliases, held ≥ 14 days, inside the export: 152 on 120 donors (147 scored), field change with the tool comparison's
+     scorer (`make_events_x.py`). Residual for the 120 event donors: core run (240 twins), `fit_resid` (resid_f median 14,
+     16% none), three level rounds on each donor's whole-record mean (ρ 0.49 → 0.96, |gap| 1.9). Change test, 2 seeds:
+     - field / twin per log unit of insulin: TIR lg13 0.65 [0.22, 1.17] → f4 0.91 [0.32, 1.67]; mean 0.55 → 0.72; ρ TIR
+       0.14 → 0.21, mean 0.26 → 0.29, t70 0.11 → 0.22, t54 −0.08 → 0.11.
+     - control level (92 of 147 tight): TIR per +10% tight − rest field −1.25 [−3.79, +0.48], lg13 −1.05, f4 −2.17; tight
+       twins' pre-edit mean 155 (lg13), 145 (f4), field 124.
+     - the field's response here is a third of the pilot's (mean −10 vs −34 per log unit) and its lows do not move (t70
+       −0.51, t54 −0.20); both twin arms move them slightly (+0.8 to +1.0). The pilot's low-side gap (L 518, 520) was its
+       own (wide CIs), not a property of the model.
+     Reading: the residual model's right-sized TIR response holds on a second, larger, tighter pool, where lg13 now
+     over-responds. Open: tight twins' level before an edit (fitted on the whole record, edits follow atypical weeks).

@@ -91,11 +91,14 @@ def _free(corr: pd.DataFrame):
     return (corr.units > 1.2 * corr.rec.fillna(0) + 0.2) | (corr.bg < 140)
 
 
-def build_pilot() -> pd.DataFrame:
+def build_pilot(root: Path | None = None, sensor_csv: str | None = None, age_csv: str | None = None) -> pd.DataFrame:
+    """The base template per donor of an ice root (default the pilot, ice_v32). Another pool (e.g. ice_x32) passes its
+    root and its own sensor-family and age tables (LESSONS 525)."""
     import json
     import numpy as np
+    PILOT = root or globals()["PILOT"]
     P = pd.read_csv(PILOT / "persons.csv")
-    sm = pd.read_csv(runs_root() / SENSOR_MONTH)
+    sm = pd.read_csv(sensor_csv or (runs_root() / SENSOR_MONTH))
     sm = sm[~sm.kind.isin(["unlabeled"]) & ~sm.kind.str.startswith("other")]
     sensor = sm.groupby(["alias", "kind"]).n.sum().reset_index().sort_values("n").groupby("alias").tail(1)
     sensor = dict(zip(sensor.alias, sensor.kind.replace({"Libre 3 (twiist)": "Libre 3", "Libre (other)": "Libre 3"})))
@@ -110,6 +113,7 @@ def build_pilot() -> pd.DataFrame:
             doses = json.load(open(d / "doses.json"))
         except Exception:                                      # noqa: BLE001
             continue
+        if "rescue" not in meals or not len(meals): continue          # no labelled pulses (an empty table)
         days = max(float(p.clean_days), 1.0)
         span = (pd.Timestamp(th["basal"][-1]["endDate"]) - pd.Timestamp(th["basal"][0]["startDate"])).days or days
         auto = sum(1 for x in doses if x["deliveryType"] == "bolus" and x.get("automatic"))
@@ -146,7 +150,7 @@ def build_pilot() -> pd.DataFrame:
                  t54=float(100 * (g < 54).mean()), bg_mean=float(g.mean()), bg_cv=float(100 * g.std() / g.mean()))
         rows.append(r)
     t = pd.DataFrame(rows)
-    age = pd.read_csv(PILOT / "age.csv")
+    age = pd.read_csv(age_csv or (PILOT / "age.csv"))
     acol = next(c for c in age.columns if "age" in c.lower() and "group" not in c.lower())
     age[acol] = np.minimum(np.floor(pd.to_numeric(age[acol], errors="coerce")), 90)   # whole years, 90+ as 90: a fractional age dates a birthday
     t = t.drop(columns="age_years").merge(age[["alias", acol]].rename(columns={acol: "age_years"}), on="alias", how="left")
