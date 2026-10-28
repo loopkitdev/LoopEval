@@ -8615,3 +8615,11 @@ outputs in gamepc ~/additive/runs/c290–c312).
      (−17.4 / +7.6) 1.35 / 1.26; sd3 (−14.7 / +7.0) 1.60 / 1.37. Reading: for predicting the size of a change, lg13 is the
      closer twin; the residual's per-person level and spread make each twin's state right and its response smaller. The
      scorer should adjust the field for d_ice net of the twins' own d_ice slope (twin_dice.py) rather than all of it.
+
+542. **With the corrected scorer, lg13 sizes the TIR response to an edit on all three pools; the level-only residual (f4)
+     is close; the spread fit (sd3) under-responds everywhere.** `score_change.py` now adjusts the field for d_ice − 3.5·x
+     (NEED_MECH; L 541). Field / twin TIR (mean) per log unit: lg13 pilot 0.95 (1.89), x 0.64 (0.60), e 1.03 (1.21);
+     level-only residual x 0.76 (0.68), e 1.27 (1.37); sd3 pilot 1.32 (1.93), x 1.29 (0.81), e 1.39 (1.62). ρ TIR on e
+     0.17 / 0.13 / 0.13, t54 −0.04 / 0.09 / 0.06. Use: the size of a change from lg13, or f4 when the twin must start at its
+     donor's own level (pre-edit +7 vs lg13's +19); each person's state and spread from sd3. Harness (arm2.py with
+     ARM_EVSEED and ARM_EVM, score_change.py, twin_dice.py) copied to `patient_sim/resid_tools/`.

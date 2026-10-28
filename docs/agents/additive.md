@@ -88,9 +88,9 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   (MODEL_GUIDE § 9–10, LESSONS 513–532). Score 0.370 / 0.454; held-out twin–donor TIR ρ 0.89, CV 0.63 (lg13 0.45 / 0.11).
   Natural experiments (pilot, x, e pools; 790 edits): twins start at their donor's pre-edit level and the tight / rest
   split has the field's sign, but the TIR response to an edit is ~2/3 of the field's and ranks no better than lg13 (L 532).
-  Change-test arms need per-event seeds (ARM_EVSEED, L 531). For the SIZE of a change use lg13's settings: with the
-  need adjustment net of the extractor's mechanics its TIR response on the e pool is right-sized (field / twin 1.03),
-  sd3's 1.37 (L 541). Ruled out as the cause of sd3's smaller response: the residual, the correction habit, the
+  Change-test arms need per-event seeds (ARM_EVSEED, L 531). For the SIZE of a change use lg13's settings (TIR field /
+  twin 0.95 / 0.64 / 1.03 on pilot / x / e with the corrected scorer), or f4 (level-only residual, 0.76 / 1.27) when the
+  twin must start at its donor's level; sd3 under-responds (1.32 / 1.29 / 1.39; L 542). Ruled out as the cause of sd3's smaller response: the residual, the correction habit, the
   sensitivity level (L 534–540); the spread fit damps it (L 534). Open: meal tail 24–27 (38), site-change cost.
 - **Previous reference** lg13 (2026-10-25; runs/2026-10-25-additive-rebuild) — lg12's model on the engine that
   keeps delivering through skipped and sensor-less cycles (main 8fa8411 → 4c80c60c; LESSONS 505). Score 0.376 / 0.415,
