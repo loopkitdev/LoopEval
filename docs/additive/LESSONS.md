@@ -8482,3 +8482,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Reading: across the two pools (210 edits) neither residual variant is consistently closer on response size; sd3 adds
      the held-out per-person spread (CV 0.03 → 0.63), the best cohort score on draw 1 and TDD 41.7. Adopted; the pilot's
      larger, steeper field response stays the case it under-reads.
+
+531. **Every change-test arm so far ran each event's twin on the same seeds, so every twin carried the same person jitter: a
+     common level bias that shrinks with the number of seeds.** `sample_person` jitters the donor's row per seed (±10%
+     on TDD, ISF, …); the arms (`additive_arm.py` → `arm2.py`) used seeds 1000–1003 for every event, while the cohort runs
+     the level was fitted on use one seed per twin. Own-settings level against the field's pre-edit mean, median: pilot
+     (4 seeds) +9 mg/dL, x pool (2) +17, e pool (1) +22–27 — after fitting the residual level, and +17 / +26 / +30 on lg13.
+     On the e pool the twins' before arm averaged 168 mg/dL against their records' 146 (the level fit had them within a
+     few mg/dL in the cohort runs), with the residual level applied exactly as fitted. `arm2.py` ARM_EVSEED: each event's
+     seed offset by md5(eid) (both arms share it). Also `cohort` `tmpl_cycle`: twin i takes template row seed mod n, so a
+     fitting round covers every donor once (the random draw had fitted 284 of the e pool's 457 event donors). The change
+     tests of L 513–530 are being rerun with per-event seeds; their sizes and the control-level split may move.
