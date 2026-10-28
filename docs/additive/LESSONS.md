@@ -8572,3 +8572,17 @@ outputs in gamepc ~/additive/runs/c290–c312).
      Reading: the donors stop stepping in when Loop is handling highs (its recommendation stays small), the twins' F4 rule
      fires on their CGM level and barely notices the edit. F4's trigger as a function of Loop's own recommendation, fitted
      on the donors' corrections (rate by recommendation size, before and after their edits), is the next component to fit.
+
+538. **Gating corrections on Loop's recommendation does not reproduce the donors' handover; not adopted.**
+     `corr_rec_gate` (behavior, off): with Loop recommending < 0.1 U a twin corrects only at its donor's own share of such
+     corrections (`corr_rec0`, template; median 0.09). e pool, 580 edits, per-event seeds:
+     - field / twin per log unit (mean / TIR / t70 / t54): lg13 1.33 / 1.14 / 1.49 / 1.27 → gated 1.44 / 1.23 / 1.53 /
+       0.98; sd3 1.77 / 1.53 / 1.55 / 1.00 → gated 1.75 / 1.59 / 1.36 / 0.89. ρ t54 −0.04 → 0.03 (lg13), 0.06 → 0.14
+       (sd3); tight − rest TIR −0.53 → −0.83 and −0.78 → −0.93 (field −1.55).
+     - gated sd3 twins: corrections 0.83 / day before (from 1.17), −0.08 / day per log unit (ungated −0.28; donors −0.84);
+       manual units +0.02 (log).
+     Reading: in the twins Loop's recommendation grows after a more aggressive edit, so the gate holds back fewer
+     corrections afterwards, not more. The donors' recommendation at a correction grows too (size +0.40, L 537), yet they
+     correct 44% less often per log unit: the handover is a change in how often they step in, not in what Loop shows
+     them. It is behaviour with no visible trigger in the data we have; a per-person correction-rate response to the
+     settings themselves (fitted on the donors' edits) is the data-driven form left.
