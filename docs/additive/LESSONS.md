@@ -8644,3 +8644,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      have, a twin's spread is carried faithfully only by meal size, and meal size is what damps its response; the other
      carriers keep the response and leave most of the spread. Each use keeps its twin (L 542): lg13 / f4 or this hybrid
      for the size and ranking of a change, sd3 for each person's own state.
+
+545. **The replaced modulators restored on sd3 recover part of the meal tail and sharpen the per-person lows, but add lows
+     the cohort cannot take; not adopted.** sd3 templates with every replaced component back on (day SI, stress, illness,
+     cycle, steroids, C7, grazing, A4c; no si_norm), one level refit (sdm1), then the same without the fast drive (sdn):
+     - meal_d3h draw 1 / 2: sd3 24 / 26 → sdm1 30 / 27 → sdn 30 / 28 (donors 38).
+     - lows / day: sd3 1.08 / 1.21 → sdm1 1.33 / 1.75 → sdn 1.29 / 1.58; t54 0.26 / 0.26 → 0.42 / 0.41 → 0.27 / 0.40.
+     - score: sd3 0.370 / 0.454 → sdm1 0.413 / 0.509 → sdn 0.362 / 0.483 (sum 0.824 / 0.922 / 0.845).
+     - person level (sdn): t70 ρ 0.66 / 0.46, t54 0.50 / 0.45, CV 0.57 / 0.55, TIR 0.80 / 0.83 (sd3: TIR 0.89 held out,
+       t70 0.48, t54 0.42).
+     Reading: the modulators carry part of the post-meal glucose and make each person's lows more like their donor's, but on
+     top of the per-person spread fit they push the cohort's lows past the donors'. The meal tail and the lows trade through
+     the same sensitivity variability (as A4c did, L 522).
