@@ -8508,3 +8508,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      bias, which moved the arms unequally. What stands: the residual model puts each twin at its donor's level and spread
      (held out, L 519, 529) and gives the control-level split the field's sign on all three pools; a stationary residual
      does not make the twins respond more like the field to a change in their settings (TIR response ~2/3 of the field's).
+
+533. **The donors' unexplained drive rises with the aggressiveness of their edits far more than the twins'; it is the
+     selection the scorer adjusts for, not a response the twins lack.** Clean-ICE mean after − before (field: post − pre
+     weeks; twins: after arm − before arm, same weeks; ice extractor on both, `change_x/twin_dice.py`), per log unit of the
+     insulin index: pilot field +20.2 vs twins +3.0 (sd3) / +3.7 (lg13); x pool +4.3 vs +3.9; e pool field +11.0. The twins'
+     +3–4 is the extractor's own mechanics (ICE uses the settings ISF the edit changes). Across edits the field's shift has
+     SD 10–13 against the twins' 1.4–2.2: people edit because their need moved, and it stays moved. The change test
+     regresses the field's change on the edit with this shift as a covariate, so the twins should not carry it. What
+     makes sd3's TIR response ~2/3 of the field's is being taken apart on the x pool (ablations of the spread fit, the fast
+     drive and the replaced modulators).
