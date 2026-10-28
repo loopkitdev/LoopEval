@@ -8634,3 +8634,13 @@ outputs in gamepc ~/additive/runs/c290–c312).
      at the tight end, where the twins are too wide, and only the meal size narrows it there — and narrowing meals is what
      damps the response (L 534). A twin right on both needs the tight donors' smaller excursions to come from something that
      still answers insulin: their bolus timing and dosing before meals are the named candidates (F3).
+
+544. **Narrowing only the tight donors' meals and widening the rest by sensitivity wander keeps the response and the
+     level, but carries about half the spread: the trade-off holds.** x pool, hybrid templates (csf_sd_mult from sd3
+     capped at 1 for the 60 donors it narrows; si_var from L 543 for the 42 it widened, 0 otherwise), two level rounds
+     (|gap| p50 4.4, mean ρ 0.92): SD twin–donor ρ 0.52 (sd3 0.92, wander alone 0.44). Change test (147 edits, per-event
+     seeds, corrected scorer): TIR field / twin 0.73, mean 0.61; ρ mean 0.35 (best of all arms; lg13 0.31, f4 0.29, sd3
+     0.27), TIR 0.24, t54 0.16; pre-edit level +4.6; tight − rest −2.93 (field −1.25). Reading: with the components we
+     have, a twin's spread is carried faithfully only by meal size, and meal size is what damps its response; the other
+     carriers keep the response and leave most of the spread. Each use keeps its twin (L 542): lg13 / f4 or this hybrid
+     for the size and ranking of a change, sd3 for each person's own state.
