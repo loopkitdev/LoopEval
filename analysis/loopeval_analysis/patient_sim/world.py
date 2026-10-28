@@ -278,6 +278,8 @@ class World:
             self.beh_traits.graze_fast = bool(enable["graze_fast"])      # default on (LESSONS 158); --disable graze_fast
         if enable and isinstance(enable.get("graze_keep"), float):
             self.beh_traits.graze_keep = float(np.clip(enable["graze_keep"], 0.0, 1.0))
+        if enable and enable.get("corr_rec_gate"):
+            self.beh_traits.corr_rec_gate = True       # experiment (LESSONS 538)
         if enable and enable.get("site_clock"):
             self.beh_traits.site_clock = True          # experiment (LESSONS 523)
         if enable and isinstance(enable.get("announce_mult"), float):

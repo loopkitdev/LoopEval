@@ -193,6 +193,9 @@ class BehaviorTraits:
     corr_size_own: bool = True           # corrections at the donor's own dialled size: max(recommendation, U), U ~ lnN(corr_u_med,
                                          # corr_u_lsd) from their lone boluses (median 1.45 U; LESSONS 224)
     corr_u_med: float = 1.0
+    corr_rec_gate: bool = False          # experiment (LESSONS 538): with Loop recommending < 0.1 U, correct only at the donor's own
+    corr_rec0: float = 0.09              # share of corrections given then (median 0.09 of 469 e-pool donors); the donors stop
+                                         # stepping in when Loop is handling a high, so their corrections fall after an edit (L 537)
     stack_own: bool = False              # bolus stacking: a no-entry follow-up 2-30 min after a user bolus while CGM is above the
                                          # correction level and rising, at the donor's share per bolus (median 0.03; LESSONS 226)
     stack_p: float = 0.0
@@ -337,6 +340,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         # so the realized lone-bolus rate reaches the donor's (LESSONS 47)
         corr_over_share=float(_num(rates, 'corr_over_share')) if np.isfinite(_num(rates, 'corr_over_share')) else 0.0,
         corr_u_med=float(_num(rates, 'corr_u_med')) if np.isfinite(_num(rates, 'corr_u_med')) else 1.0,
+        corr_rec0=float(_num(rates, 'corr_rec0')) if np.isfinite(_num(rates, 'corr_rec0')) else 0.09,
         stack_p=float(_num(rates, 'stack_p')) if np.isfinite(_num(rates, 'stack_p')) else 0.0,
         corr_u_lsd=float(_num(rates, 'corr_u_lsd')) if np.isfinite(_num(rates, 'corr_u_lsd')) else 0.8,
         corr_over_u=float(_num(rates, 'corr_over_u')) if np.isfinite(_num(rates, 'corr_over_u')) else 1.0,
@@ -1041,7 +1045,8 @@ class Behavior:
             acts.append(("override", ov)); self.more_until = m + dur
             self.log.append((m, "override_more", t.ov_more_f, cgm))
         if not asleep and cgm > t.corr_thr and self.trend() > -0.5 and m - self.last_bolus > t.corr_wait \
-                and r.random() < t.p_correct * (_corr_trend_w(self.trend() * 30.0) if t.corr_trend else 1.0):
+                and r.random() < t.p_correct * (_corr_trend_w(self.trend() * 30.0) if t.corr_trend else 1.0) \
+                and not (t.corr_rec_gate and float(state.get("rec_bolus") or 0.0) < 0.1 and self.r_corr.random() >= t.corr_rec0):
             if t.corr_size_own:
                 u_ = round(float(np.exp(self.r_corr.normal(math.log(max(t.corr_u_med, 0.1)), max(t.corr_u_lsd, 0.1)))) * 20) / 20
                 acts.append(("bolus_min", m, u_))
