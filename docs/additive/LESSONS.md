@@ -8318,3 +8318,26 @@ outputs in gamepc ~/additive/runs/c290–c312).
        round (g1, g2): score 0.428 / 0.456 (draw 2 0.484 / 0.494), lows 1.2–1.4, t54 0.27–0.45. Not adopted.
      - meal_d3h moves 33 → 25 between g1 and g2, whose only difference is a level step of |3.7| mg/dL: at 112 twins the
        row's median is noisy by several mg/dL; read it on two draws.
+
+518. **Where the residual model stands against lg13: better on every natural experiment and on the person, slightly worse
+     on the cohort's 51 statistics.** f4 (core + fast residual 0.6×, skew 0.7, si_norm 0.92, per-person level r4) and h
+     (f4 with C7 back), both draws and the 108-event change test:
+
+     | | lg13 | f4 | h | field |
+     |---|---|---|---|---|
+     | score draw 1 / 2 (sum) | 0.376 / 0.415 (0.791) | 0.379 / 0.440 (0.819) | 0.352 / 0.461 (0.813) | |
+     | twin–donor ρ TIR, d1 / d2 | 0.37 / 0.41 | 0.71 / 0.73 | — / 0.70 | ceiling 0.85 |
+     | twin–donor ρ mean | 0.39 / 0.41 | 0.83 / 0.88 | — / 0.87 | 0.86 |
+     | edits field / twin: mean, TIR | 2.03, 1.33 | 1.70, 0.91 | 1.74, 0.88 | 1 |
+     | edits field / twin: t70, t54 | 3.96, 8.30 | 4.39, 5.00 | 5.74, 6.00 | 1 |
+     | TIR per +10%, tight − rest | +0.42 | −1.64 [−2.93, −0.34] | −1.01 [−2.32, +0.32] | −7.18 |
+     | tight twins' pre-edit mean | 153 | 131 | 131 | 126 |
+     | strategy switches ρ TIR / mean | 0.21 / 0.37 | 0.31 / 0.40 | 0.38 / 0.44 | (generator 0.51 TIR) |
+     | lows / day d1 / d2 | 0.92 / 0.96 | 0.83 / 1.25 | 1.08 / 1.25 | 1.00 |
+     | meal_d3h d1 / d2 | 34 / 34 | 25 / 27 | 26 / 24 | 38 |
+
+     Reading: carrying each donor's unexplained level (and fast volatility) is what the natural experiments needed: the
+     TIR response to settings edits is now right-sized and the tight / rest split has the field's sign. Still open: the
+     size of the low-side response (t70 / t54 4–6× under), the tight group's lost TIR (field −1.6, twins +0.7), the meal
+     tail, and per-person CV (ρ ≤ 0.13). The level is fitted in sample to each donor's mean; a held-out check (fit on
+     half the donor's blocks) is owed before reading person-level ρ as prediction.
