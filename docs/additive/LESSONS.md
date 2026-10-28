@@ -8518,3 +8518,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      regresses the field's change on the edit with this shift as a covariate, so the twins should not carry it. What
      makes sd3's TIR response ~2/3 of the field's is being taken apart on the x pool (ablations of the spread fit, the fast
      drive and the replaced modulators).
+
+534. **sd3's damped TIR response to edits comes from the spread fit; the replaced modulators carry change ranking.** x pool,
+     147 edits, per-event seeds, 2 seeds, each arm sd3 with one part changed (field / twin per log unit; ρ; tight − rest
+     TIR per +10%, field −1.25):
+     - sd3: TIR 1.55, mean 0.94; ρ TIR 0.25, mean 0.27; −0.76.
+     - without the spread fit (csf_sd_mult 1, level only): TIR 0.90, mean 0.84; ρ 0.26 / 0.29; −2.09.
+     - without the fast drive: TIR 1.50, mean 0.98; ρ 0.18 / 0.28; −0.70.
+     - with the replaced modulators back on (day SI, stress, illness, cycle, steroids, C7, grazing, A4c): TIR 1.43, mean
+       0.89; ρ 0.30 / 0.43; −0.25. lg13: TIR 0.77, mean 0.71; ρ 0.13 / 0.31; −0.77.
+     Reading: matching each donor's spread by scaling meal size puts the twin's spread in a form insulin settings barely
+     touch, so their TIR moves less; the donors' spread responds to insulin. The sensitivity modulators make the response
+     vary from person to person as the field's does (best ranking), so they are not just noise to replace.
