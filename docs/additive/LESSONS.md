@@ -8396,3 +8396,14 @@ outputs in gamepc ~/additive/runs/c290–c312).
      0.440, within draw scatter); routine change hours 0–3 peak +6 / +12 mg/dL (field +28), first-hour insulin 0.46–0.62×
      usual (field 1.5×), the 12 h before +1–3 (field +9). The size gap is the start-up transient E4 (±5%) or the change's
      own handling; the field figure is twiist (tubed sets) while most twins wear Omnipod, so E4 is not refitted on it.
+
+524. **A per-person fast-residual size fitted to each donor's CV carries a little of it, at a cost in lows the cohort
+     cannot take; not adopted.** `cv_resid.py` (resid_f ×= (donor CV / twin CV)², odd blocks), alternating with the level
+     (LVL_BLOCKS=odd), three rounds on both draws from ho3/ho4, f4 + site_clock (cv1–cv3):
+     - CV twin–donor ρ 0.05 → 0.18 → 0.26; held out (even blocks) 0.25 (ceiling 0.92; f4 0.03); TIR held out 0.85, mean
+       0.95. resid_f p90 124.
+     - cv3: score 0.484 / 0.538 (sc 0.375 / 0.457), lows 1.50 / 1.50, t54 0.41 / 0.34, t70 2.9 / 2.5.
+     - The same sizes at skew 1.5 (sk): lows 1.33, t54 0.27 / 0.21, score 0.415 / 0.499, but CV held out back to 0.11.
+     Reading: a donor's CV lives in their highs, and the fast drive cannot raise it without deepening dips unless it is
+     strongly skewed, which then no longer moves CV. CV is set by the shape of the person's excursions (meals, unlogged
+     rises), not by a stationary drive; left open.
