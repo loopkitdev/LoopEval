@@ -8341,3 +8341,17 @@ outputs in gamepc ~/additive/runs/c290–c312).
      size of the low-side response (t70 / t54 4–6× under), the tight group's lost TIR (field −1.6, twins +0.7), the meal
      tail, and per-person CV (ρ ≤ 0.13). The level is fitted in sample to each donor's mean; a held-out check (fit on
      half the donor's blocks) is owed before reading person-level ρ as prediction.
+
+519. **Held out, the per-person level still predicts each donor: fitted on the odd 13-day blocks, the twins match the even
+     blocks nearly as well as the fitted ones.** f4's settings, level refitted from zero (LVL_BLOCKS=odd, gain 0.8 then
+     1.2, three rounds on both draws; ho0–ho3, `heldout.py`). Spearman, twin (both draws pooled per template, 121) against
+     the donor's even blocks (fitted / held out), with the ceiling the donor's odd against even blocks:
+     - mean 0.96 / 0.93 (ceiling 0.96; lg13 0.45), |twin − even| p50 4.1 mg/dL (donor's own 3.4; lg13 14.6)
+     - TIR 0.82 / 0.80 (0.96; lg13 0.45), t70 0.43 / 0.38 (0.94; 0.22), t54 0.32 / 0.33 (0.86; 0.19)
+     - CV 0.05 / 0.03 (0.92; lg13 0.11): variability is not carried by the level, and the fast residual does not carry it
+       either (L 514).
+     - No residual level (ho0): 0.47 / 0.49 / 0.22 / 0.28 / 0.15, lg13's.
+     Reading: a donor's unexplained level is a stable trait, so a twin fitted on part of the record reproduces the rest.
+     Open, in order: the low side (t70 / t54 per person and their response to edits, 4–6× under; the twins add ~1
+     treatment a day per log unit of insulin, mostly proactive snacks, where the donors' labelled rescues add +0.37), CV,
+     the meal tail.
