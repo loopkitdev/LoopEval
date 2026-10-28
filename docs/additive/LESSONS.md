@@ -8493,3 +8493,18 @@ outputs in gamepc ~/additive/runs/c290–c312).
      seed offset by md5(eid) (both arms share it). Also `cohort` `tmpl_cycle`: twin i takes template row seed mod n, so a
      fitting round covers every donor once (the random draw had fitted 284 of the e pool's 457 event donors). The change
      tests of L 513–530 are being rerun with per-event seeds; their sizes and the control-level split may move.
+
+532. **With per-event seeds (L 531) the residual model is not better than lg13 at predicting the response to a settings
+     edit; it is better at each twin's state before it.** Three pools, lg13 settings against sd3, field / twin per log
+     unit of insulin (pilot 63 edits 2 seeds; x 147, 2 seeds; e 580, 1 seed):
+     - before-edit level vs field (median): lg13 +9 / +19 / +19, sd3 +2 / +6 / +5; tight twins' pre mean (field 126 / 124 /
+       126): lg13 141 / 148 / 151, sd3 124 / 135 / 134, sd3's tight t70 3.1 / 3.8 / 3.9 (field 2.9 / 3.5 / 2.8).
+     - mean: lg13 2.06 / 0.71 / 1.33, sd3 2.11 / 0.94 / 1.77; TIR: 1.15 / 0.77 / 1.14 vs 1.56 / 1.55 / 1.53 (sd3 under-responds
+       on TIR on every pool); t54: 2.59 / — / 1.27 vs 3.25 / — / 1.00.
+     - ρ mean 0.35 / 0.31 / 0.34 vs 0.20 / 0.27 / 0.26; ρ TIR 0.17 / 0.13 / 0.17 vs −0.03 / 0.25 / 0.13.
+     - control level, tight − rest TIR per +10% (field −7.18 / −1.25 / −1.55): lg13 +0.83 / −0.77 / −0.53, sd3 −0.86 /
+       −0.76 / −0.78.
+     Corrects L 515–518, 526, 530: their "right-sized TIR response" and "better ranking" were partly the shared-jitter level
+     bias, which moved the arms unequally. What stands: the residual model puts each twin at its donor's level and spread
+     (held out, L 519, 529) and gives the control-level split the field's sign on all three pools; a stationary residual
+     does not make the twins respond more like the field to a change in their settings (TIR response ~2/3 of the field's).

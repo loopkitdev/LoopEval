@@ -18,9 +18,10 @@ core with a **data-driven residual** in place of the weakly evidenced stochastic
   a constant level fitted to the donor's mean glucose (`resid_m`, L 515, 519) and a fast drive (OU, τ 20 min, skewed
   toward rises) sized on the donor's unexplained 15-min motion (`resid_f`, L 514), run at 0.6×;
 - **cohort sensitivity** at 0.92 of the yardstick (`si_norm`, the level the old modulators held, L 516).
-Against lg13 (0.376 / 0.415) it gives up ~0.03 on the cohort score and gains on every natural experiment and on the
-person: each twin's TIR follows its own donor's held-out weeks at ρ 0.80 (lg13 0.45), the TIR response to settings
-edits is right-sized (field / twin 0.91 vs 1.33), and the response by control level has the field's sign (L 518–519).
+Against lg13 (0.376 / 0.415) each twin follows its own donor's held-out weeks far better (TIR ρ 0.89 vs 0.45, CV
+0.63 vs 0.11; L 519, 529) and sits at its donor's level before a settings edit on all three natural-experiment pools.
+It does not predict the response to an edit better than lg13: its TIR response is about two thirds of the field's on
+every pool and its ranking is no better (L 531–532). The control-level split has the field's sign.
 
 Delivery is scored by record rate, as eda reads the donors' records (L 455). Mean, CV, TIR, TDD and every low statistic
 are on the donors' or close (gap < 0.35).
