@@ -1580,3 +1580,22 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     insulin net of the glucose still to come from the meal pulses, reconstructed pulses in training and drawn pulses
     in the plant. On i001's training data it nets more than mode 1 (mean 0.29 vs 0.41, corr 0.72), since unannounced
     meals count too. (The arm name od was already taken by a 10-15 checkpoint; train_v32od0.log was overwritten.)
+
+150. **The meal-netted defense (oq, IOBNET_COB=2) fixes the generator's lows but costs TIR change prediction beyond
+    noise; not kept, oc stays the base.** Four change pools, both trainings, paired person bootstrap of oq − oc (90 %),
+    mean over trainings (oq_vs_oc_boot.py in runs/2026-10-13-ice-change/):
+    - **e pool (337 edits, 265 donors), the deciding test:** TIR r −0.05 [−0.10, −0.00], |err| +0.15 [+0.01, +0.29],
+      worse on both trainings (r 0.31 / 0.32 → 0.25 / 0.27; zero-change |err| 6.21). t<70 r +0.05 [+0.01, +0.09],
+      |err| −0.08 [−0.13, −0.03] (1.56 / 1.46 → 1.42 / 1.44, zero 1.41); t<54 |err| −0.08 [−0.12, −0.05]; mean
+      glucose within noise.
+    - **the other pools agree in direction:** pilot TIR |err| +0.44 [+0.11, +0.81]; switch TIR r −0.11 [−0.16, +0.07];
+      x pool TIR within noise and t<70 r +0.11 [+0.01, +0.21], t<54 |err| −0.05 [−0.09, −0.01].
+    - **what it fixes:** held-out t<70 bias on clean time +1.01 / +0.77 → +0.39 / +0.33 and t<54 +0.20 / +0.15 →
+      +0.04 / +0.06; own-settings TIR level on e −6.0 / −5.3 → −4.4 / −4.9. Consistent with lesson 149 (post-meal low rate on oq not yet
+      re-measured).
+    - **where TIR is lost (e, by edit kind):** spread across kinds, largest on ISF-only edits (75; r 0.39 → 0.26, with
+      predicted changes wider, sd 3.7 → 4.2). Basal-only edits (87) carry no TIR signal under either arm (r ≈ 0; field
+      mean +2.0, predicted 0), the largest single hole in change prediction.
+    A gain on one target paid for with the other is not a keep (AGENTS.md). The low-side fix is real, so the next arm
+    keeps oq's meal netting only where the defense reads a pending low (the fall it failed to catch) and leaves the
+    insulin response elsewhere at oc's, aimed at keeping both the t<70 gain and oc's TIR.
