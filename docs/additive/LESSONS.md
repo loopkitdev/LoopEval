@@ -8560,3 +8560,15 @@ outputs in gamepc ~/additive/runs/c290–c312).
      boluses follow Loop's recommendation, add insulin instead. Next: the twins' manual bolus habit — how much of it is a
      fixed personal amount rather than a share of Loop's recommendation (F3 / F4 / F10), and its response to an edit, from
      the donors' own boluses around their edits.
+
+537. **The handover is in corrections: after a more aggressive edit the donors correct far less often, the twins barely
+     less.** e pool, 13 days before against days 1–14 after, per log unit of the insulin index (CR change as covariate):
+     - donors (`_corrections.parquet`, ice labeller): corrections −0.84 / day from 1.92 (−44%); each correction's size +0.40
+       (log) and its ratio to Loop's recommendation −0.02, so they still follow the recommendation; correction units / day
+       −0.11 (log). Meal boluses unchanged: bolus ÷ recommendation +0.00, units per gram −0.82 per log CR (−1 would be
+       following the recommendation fully).
+     - sd3 twins (trace delivery[], behaviour log): corrections −0.28 / day from 1.17; manual units −0.05 (log); automatic
+       units +0.32.
+     Reading: the donors stop stepping in when Loop is handling highs (its recommendation stays small), the twins' F4 rule
+     fires on their CGM level and barely notices the edit. F4's trigger as a function of Loop's own recommendation, fitted
+     on the donors' corrections (rate by recommendation size, before and after their edits), is the next component to fit.
