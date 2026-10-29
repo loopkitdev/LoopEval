@@ -92,4 +92,6 @@ replayed or checked for fidelity. Every CamAPS idea is tested as a mechanism on 
 - Ideas in order: (1) multi-model forecast ranking with forgetting; (2) a daily-updated needs
   multiplier with forgetting (C43 made continuous); (3) per-person post-meal learning for
   announcers; (4) a rescue-carb flag; (5) a glucose-dependent cap on delivery rate. Not pursued:
-  diurnal learning (C12 closed), gains keyed to weight or TDD, Boost / Ease-off, segmented targets.
+  diurnal learning (C12 closed), gains keyed to weight or TDD, Boost / Ease-off, segmented targets, basal-modulating
+  controllers (Pete 2026-10-29: Loop is phone-remote, a high temp runs on for 30 min after a disconnect; automatic
+  boluses can shape the same delivery).
