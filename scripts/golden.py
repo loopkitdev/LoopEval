@@ -37,6 +37,11 @@ FRONTIER = ["--candidate-counterfactual", "--candidate-infer-sensitivity", "--co
 VERBATIM_BOLUS = ["--no-candidate-manual-bolus-from-recommendation", "--no-candidate-iob-adjust-manual-boluses"]
 DTR = ["--decision-time-replay", "--no-clip-in-progress-temp-basal"] + CLASS1
 IRCC = ["--integral-rc", "--integral-rc-clamp"]
+# Guard + runway (C20 + C29 + C40), the frozen arm of runs/2026-10-23-frontier-dosing/dr/run.py arm_flags("gr"),
+# band depth k = min(1, 6.7 / σ5 median) pinned at i008's value so the case does not depend on that file.
+GR = ["--candidate-sigma-band-k", "0.964", "--candidate-sigma-band-cob-gate", "--candidate-postlow-rc-rise-scale", "0.3",
+      "--candidate-postlow-window", "720", "--candidate-runway-fraction", "0.7", "--candidate-runway-cob-gate",
+      "--candidate-runway-bg-min", "150"]
 W = ("2026-09-04T02:00:00Z", "2026-09-08T00:00:00Z")      # 22 h lead + 3 days, as the frontier harness
 
 # Each case: donor export (alias, or "@input" for a dir under GOLDEN/inputs), window, flags. "{in}" in a
@@ -57,6 +62,7 @@ CASES = {
     "frontier_curve":    dict(alias="i009", flags=FRONTIER + [
         "--controller-insulin-model", "custom", "--custom-insulin-duration-min", "180",
         "--custom-insulin-peak-min", "80", "--candidate-insulin-needs", "0.9"]),
+    "frontier_gr":       dict(alias="i008", flags=FRONTIER + GR),
     # Settings edit replayed: the candidate runs the other window's schedules (Experiment 1).
     "candidate_schedules": dict(alias="i005", window=("2026-06-09T02:00:00Z", "2026-06-13T00:00:00Z"),
                                 flags=FRONTIER + ["--candidate-schedules-json", "{in}/i005_0619_pre.json"]),
@@ -72,6 +78,7 @@ CASES = {
     # Decision-time replay (open loop on the field's inputs), both RC modes.
     "dtr":               dict(alias="i008", flags=DTR),
     "dtr_ircc":          dict(alias="i014", flags=DTR + IRCC),
+    "dtr_gr":            dict(alias="i008", flags=DTR + GR),
     # Other controllers for the candidate.
     "openaps":           dict(alias="i008", flags=FRONTIER + ["--candidate-openaps"]),
     "loop_mimic":        dict(alias="i008", flags=FRONTIER + ["--candidate-loop-mimic-oaps"]),
