@@ -399,6 +399,7 @@ extension EvaluationEngine {
         var counterfactualDoses: [EvalInsulinDose] = []
         var candLastAutoBolusAt: Date? = nil   // Control-IQ reference arm's lockout
         var candLastPrimerAt: Date? = nil      // E6 primer lockout
+        var primerTempUntil: Date? = nil, primerTempRate = 0.0   // E6 retractable primer (temp-basal form)
         counterfactualDoses.reserveCapacity(2048)
         // The candidate's pump (CandidatePump.swift): temp expiry, basal pulses, disruptions.
         var pump = CandidatePump(pulseQuantum: candidateConfig.basalPulseQuantum)
@@ -1354,12 +1355,33 @@ extension EvaluationEngine {
                         ?? candidateInput.sensitivity.closestPrior(to: t)?.value)?.doubleValue(for: mgdlUnit) ?? 0
                     if isfNow > 0 {
                         let u = (candidateConfig.primerMgdl / isfNow * 20).rounded() / 20   // pump's 0.05 U steps
-                        candidateBolus += u; candLastPrimerAt = t
+                        candLastPrimerAt = t
+                        if candidateConfig.primerTempMin > 0 {
+                            primerTempUntil = t.addingTimeInterval(candidateConfig.primerTempMin * 60)
+                            primerTempRate = u / (candidateConfig.primerTempMin / 60)
+                        } else { candidateBolus += u }
                         if ProcessInfo.processInfo.environment["PRIMER_LOG"] != nil {
                             FileHandle.standardError.write("PRIMER \(t) \(u) U bg \(last.1)\n".data(using: .utf8)!)
                         }
                     }
                 }
+            }
+
+            // Retractable form: the primer runs as extra temp basal until primerTempMin is up, and is cancelled for good
+            // at the first cycle where the rise stalls (CGM up < 5 mg/dL over the last 15 min).
+            if let until = primerTempUntil {
+                let g = candidateInput.glucose.filter { $0.startDate > t.addingTimeInterval(-1800) && $0.startDate <= t }
+                    .map { ($0.startDate, $0.quantity.doubleValue(for: mgdlUnit)) }
+                let rising: Bool = {
+                    guard let last = g.last, let ref = g.last(where: { $0.0 <= last.0.addingTimeInterval(-900 + 150) }) else { return false }
+                    return last.1 - ref.1 >= 5
+                }()
+                if t < until && rising && cfActive {
+                    candidateTempRate += primerTempRate
+                    if ProcessInfo.processInfo.environment["PRIMER_LOG"] != nil {
+                        FileHandle.standardError.write("PRIMERT \(t) \(primerTempRate * stepDur / 3600) U\n".data(using: .utf8)!)
+                    }
+                } else { primerTempUntil = nil }
             }
 
             // ----- DELIVERABILITY / DATA-AVAILABILITY CLAMPS -----

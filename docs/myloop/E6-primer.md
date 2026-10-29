@@ -86,3 +86,19 @@ Run: `runs/2026-10-28-myloop-e6/` (`run_e6.py`, `score_e6.py`, `e6_per_donor.csv
   - Its t<54 lift is the largest of any no-entry candidate in this role (E3 `nc_hab` −0.19, E4 `lg30` +0.21).
 - **Likely source of the IOB-at-54 signal (not yet measured):** the detector fires on any rise, not only on meals, and
   some rises turn back down while the primer is still on board.
+
+## Stage 2 — retractable primer (pre-registration)
+
+Written 2026-10-29, before the cohort ran.
+
+- **Mechanism (`--candidate-primer-temp-min 30`):**
+  - Same detector and size as `pr60`.
+  - The primer is delivered as extra temp basal at X / ISF per 30 min, on top of Loop's rate.
+  - It is cancelled for good at the first cycle where CGM rose < 5 mg/dL over the last 15 min.
+  - Loop sees what was delivered.
+- **Identity and smoke:**
+  - With the new flag off, the binary reproduces `ab` and `pr60` bit for bit on i001, i003 and i005.
+  - i001: 46 detections; 88 % of the bolus form's primer insulin was delivered before cancellation or the 30 min ran out.
+- **Arm:** `pr60t`, scored against `ab` and the dial exactly as stage 1, with the same bar 1 and bar 2.
+- **Also against `pr60`:** Δ IOB-at-crossing-54 and Δt<54 for `pr60t` − `pr60`, paired. The retractable form is meant to
+  carry less insulin into lows.

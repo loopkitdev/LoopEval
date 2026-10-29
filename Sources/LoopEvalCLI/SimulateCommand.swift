@@ -188,6 +188,7 @@ struct SimulateCommand: AsyncParsableCommand {
             primerSlope: candidatePrimerSlope,
             primerRise: candidatePrimerRise,
             primerLockoutMin: candidatePrimerLockoutMin,
+            primerTempMin: candidatePrimerTempMin,
             runwayFraction: candidateRunwayFraction,
             sigmaPrior: candidateSigmaPrior,
             sigmaPriorSteps: candidateSigmaPriorSteps,

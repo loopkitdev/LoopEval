@@ -650,6 +650,8 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     var candidatePrimerRise: Double = 30
     @Option(name: .long, help: "E6 primer: minutes before another primer.")
     var candidatePrimerLockoutMin: Double = 180
+    @Option(name: .long, help: "E6 primer, retractable form: deliver it as extra temp basal over this many minutes, cancelled when CGM rises < 5 mg/dL over 15 min. 0 = bolus.")
+    var candidatePrimerTempMin: Double = 0
 
     @Option(name: .long, help: "Runway reserve (C40): spend this fraction of the extra correction that suspending scheduled basal could still take back before a plausible fall (forecast minus z*sigma5 band) reaches the suspend threshold. Delivered as an internal lowering of the correction aim; the user's target is not changed. 0 = off.")
     var candidateRunwayFraction: Double = 0
@@ -1011,6 +1013,7 @@ extension SimulateCommand {
     var candidatePrimerSlope: Double { get { loopExperiments.candidatePrimerSlope } set { loopExperiments.candidatePrimerSlope = newValue } }
     var candidatePrimerRise: Double { get { loopExperiments.candidatePrimerRise } set { loopExperiments.candidatePrimerRise = newValue } }
     var candidatePrimerLockoutMin: Double { get { loopExperiments.candidatePrimerLockoutMin } set { loopExperiments.candidatePrimerLockoutMin = newValue } }
+    var candidatePrimerTempMin: Double { get { loopExperiments.candidatePrimerTempMin } set { loopExperiments.candidatePrimerTempMin = newValue } }
     var candidateRunwayFraction: Double { get { loopExperiments.candidateRunwayFraction } set { loopExperiments.candidateRunwayFraction = newValue } }
     var candidateSigmaPrior: Double { get { loopExperiments.candidateSigmaPrior } set { loopExperiments.candidateSigmaPrior = newValue } }
     var candidateSigmaPriorSteps: Double { get { loopExperiments.candidateSigmaPriorSteps } set { loopExperiments.candidateSigmaPriorSteps = newValue } }
