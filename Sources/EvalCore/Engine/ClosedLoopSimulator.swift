@@ -398,6 +398,7 @@ extension EvaluationEngine {
         var candidateConfig = candidateConfig
         var counterfactualDoses: [EvalInsulinDose] = []
         var candLastAutoBolusAt: Date? = nil   // Control-IQ reference arm's lockout
+        var candLastPrimerAt: Date? = nil      // E6 primer lockout
         counterfactualDoses.reserveCapacity(2048)
         // The candidate's pump (CandidatePump.swift): temp expiry, basal pulses, disruptions.
         var pump = CandidatePump(pulseQuantum: candidateConfig.basalPulseQuantum)
@@ -1336,6 +1337,27 @@ extension EvaluationEngine {
                             leak * slowRcLevel - candidateConfig.slowRcGain * r * stepDur / 300))
                     } else {
                         slowRcLevel = slowRcDecayStep * slowRcLevel + (1.0 - slowRcDecayStep) * r
+                    }
+                }
+            }
+
+            // ----- E6 PRIMER: one extra automatic bolus at a rise on the candidate's own CGM -----
+            if candidateConfig.primerMgdl > 0, cfActive, !decisionTimeReplay,
+               candLastPrimerAt.map({ t.timeIntervalSince($0) >= candidateConfig.primerLockoutMin * 60 }) ?? true {
+                let recent = candidateInput.glucose.filter { $0.startDate > t.addingTimeInterval(-3600 - 150) && $0.startDate <= t }
+                    .map { ($0.startDate, $0.quantity.doubleValue(for: mgdlUnit)) }
+                if let last = recent.last, let lo = recent.map({ $0.1 }).min(), lo >= 80, last.1 - lo >= candidateConfig.primerRise,
+                   let ref = recent.last(where: { $0.0 <= last.0.addingTimeInterval(-1800 + 150) }),
+                   last.0.timeIntervalSince(ref.0) >= 1200,
+                   (last.1 - ref.1) / (last.0.timeIntervalSince(ref.0) / 60) >= candidateConfig.primerSlope {
+                    let isfNow = (candidateInput.sensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                        ?? candidateInput.sensitivity.closestPrior(to: t)?.value)?.doubleValue(for: mgdlUnit) ?? 0
+                    if isfNow > 0 {
+                        let u = (candidateConfig.primerMgdl / isfNow * 20).rounded() / 20   // pump's 0.05 U steps
+                        candidateBolus += u; candLastPrimerAt = t
+                        if ProcessInfo.processInfo.environment["PRIMER_LOG"] != nil {
+                            FileHandle.standardError.write("PRIMER \(t) \(u) U bg \(last.1)\n".data(using: .utf8)!)
+                        }
                     }
                 }
             }
