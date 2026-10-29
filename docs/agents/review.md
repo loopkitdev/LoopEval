@@ -84,4 +84,6 @@ the owner; the owner changes their own files.
 | Golden suite (`scripts/golden.py check`) | 2026-10-29, clean main 7c3eae3a | 19 / 19 identical. References recorded 2026-10-24 from dirty builds (8fa8411 / 9b522d8 / 07d91f3). |
 | DTR forecast vs field, NS next-dev site (rloop, gr) | 2026-10-29, after 398cb426 | median 0.50, p99 2.65 mg/dL, 1,655 uploads; two open (5.7, 8.4), unproven. |
 | DTR forecast vs field, bddp cohort | 2026-08 (ETL v14–v15) | worst-case table; residuals open on several donors. Not re-run on the current engine. |
-| DTR forecast vs field, pilot `ice_v32` (the beds frontier / ice / myloop score on) | never by the step-1 procedure | RC mode chosen by lowest 2-h forecast RMSE (ice `config_recover.py`); outcome-level paired Δt<54 only. |
+| DTR forecast vs field, pilot `ice_v32` (the beds frontier / ice / myloop score on) | 2026-10-29, 6 donors × 3 days, main 7c3eae3a | **fails worst case**: median 0.6–2.4 mg/dL, but 7–19 % of IOB-aligned cycles > 5, p99 15–38, worst 17–74; t0 agrees on 99 %, so the residual is in glucose history or insulin inputs. Unexplained; simulator's to chase. `runs/2026-10-29-review-gr/fidelity/`. |
+| Shipped LoopAlgorithm ≡ LoopEval gr flags | 2026-10-29, main e3f5e3c | constants and formulas match; per-cycle equivalence unproven (the harnesses build different stock inputs). `runs/2026-10-29-review-gr/xcheck/`. |
+| gr in the golden suite | — | no case. |
