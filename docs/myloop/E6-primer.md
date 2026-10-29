@@ -60,3 +60,29 @@ it. That is the "moved" path: nothing stops Loop giving it back except the meal 
 - The primer is an output change, against the forecast-first principle. That is on purpose: the test needs a known amount
   of insulin moved, not a forecast change whose dose is unknown.
 - Replay's lows axis is unvalidated (ledger M11).
+
+## Result (2026-10-29): it moves insulin and beats the dial, but fails the IOB-at-54 condition
+
+Run: `runs/2026-10-28-myloop-e6/` (`run_e6.py`, `score_e6.py`, `e6_per_donor.csv`, per-run `*.primer.txt`). 189 donors,
+378 sims, none failed. Reference `ab` @ 1.00: TIR 51.8, t<54 1.00, t<70 3.07.
+
+| vs `ab` @ 1.00, 95 % CI | `pr30` | `pr60` | dial 1.05 (for scale) |
+|---|---|---|---|
+| Primer delivered | 1.60 U/day | 3.23 U/day | — |
+| Net Δ insulin | +0.04 U/day (2 % kept) | +0.08 U/day (2 % kept) | — |
+| ΔTIR | +0.85 [+0.72, +1.00] | +1.54 [+1.32, +1.77] | +1.57 |
+| Δt<54 | +0.024 [+0.012, +0.037] | +0.062 [+0.040, +0.085] | +0.234 |
+| Δt<70 | +0.11 [+0.07, +0.15] | +0.28 [+0.21, +0.35] | — |
+| Δ mean glucose | −3.0 mg/dL | −5.9 mg/dL | — |
+| t<54 lift | +0.65 [+0.48, +0.82] | +1.03 [+0.76, +1.32] | 0 by definition |
+| t<70 lift | +0.56 [+0.37, +0.73] | +0.75 [+0.45, +1.04] | — |
+| Δ IOB-at-crossing-54 | +0.045 U [+0.017, +0.076] | +0.090 U [+0.046, +0.138] | −0.068 U |
+
+- **Bar 1 passes:** Loop takes back 98 % of the primer. This is moved insulin.
+- **Bar 2 fails on its third condition:** ΔTIR and t<54 lift pass with wide margins, but more insulin is on board when
+  glucose crosses 54 (CI lower bound > 0). Under the pre-registered reading the arm fails.
+- **Against the dial:**
+  - `pr60` buys the same TIR as needs 1.05 at about a quarter of its t<54 cost.
+  - Its t<54 lift is the largest of any no-entry candidate in this role (E3 `nc_hab` −0.19, E4 `lg30` +0.21).
+- **The IOB-at-54 signal is the primer itself:** some rises it fires on turn back down while it is still on board. The
+  detector fires on any rise, not only on meals.
