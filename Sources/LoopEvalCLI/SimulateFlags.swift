@@ -149,6 +149,9 @@ struct SimulateDeploymentFlags: ParsableArguments {
     @Flag(name: .long, help: "Emulate Loop-main: use the pre-#33 step-by-step RC decayEffect (a small discontinuity at delta boundaries for unaligned CGM) instead of the LoopAlgorithm continuous-quadratic reformulation (LoopKit#556). Pass for donors whose deployed Loop predates that change. Applies to both arms.")
     var legacyRcDecay: Bool = false
 
+    @Option(name: .long, help: "Where the dose correction starts reading the forecast: first-glucose (the CGM reading; deployed Loop-main), prediction-start (LoopAlgorithm run(), Loop next-dev), or auto (default): first-glucose when class-1 emulation is on (--no-mid-absorption-isf, --no-gradual-transitions-gate or --legacy-rc-decay), else prediction-start. Both arms.")
+    var correctionAnchor: String = "auto"
+
     @Flag(name: .long, help: "Replay with Loop's TEMP-BASAL dosing strategy (AutomaticDosingStrategy.tempBasal): every correction is a 30-min temp basal, never an automatic bolus. Deployment-faithful for donors whose loop cycles record recommendations only in recommendedBasal (a temp-only deployment records ZERO recommendedBolus over months). Applies to both arms.")
     var tempBasalStrategy: Bool = false
 
@@ -846,6 +849,7 @@ extension SimulateCommand {
     var clipInProgressTempBasal: Bool { get { deployment.clipInProgressTempBasal } set { deployment.clipInProgressTempBasal = newValue } }
     var noGradualTransitionsGate: Bool { get { deployment.noGradualTransitionsGate } set { deployment.noGradualTransitionsGate = newValue } }
     var legacyRcDecay: Bool { get { deployment.legacyRcDecay } set { deployment.legacyRcDecay = newValue } }
+    var correctionAnchor: String { get { deployment.correctionAnchor } set { deployment.correctionAnchor = newValue } }
     var tempBasalStrategy: Bool { get { deployment.tempBasalStrategy } set { deployment.tempBasalStrategy = newValue } }
     var carbAbsorptionOverrun: Double { get { deployment.carbAbsorptionOverrun } set { deployment.carbAbsorptionOverrun = newValue } }
     var timeBasedAf: Bool { get { deployment.timeBasedAf } set { deployment.timeBasedAf = newValue } }

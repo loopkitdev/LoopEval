@@ -182,6 +182,22 @@ public struct EvalConfig: Codable, Sendable {
     /// Emulate Loop-main (pre-#33): step-by-step RC decayEffect instead of the continuous quadratic.
     public var useLegacyRCDecay: Bool = false
 
+    /// Where the dose correction starts reading the forecast. Deployed Loop-main (class 1) corrects from the
+    /// forecast's first point, the CGM reading; LoopAlgorithm's run() (class 2, Loop next-dev) from the
+    /// prediction start, a few seconds later, so a current reading below the correction range neither gates
+    /// the automatic bolus nor suspends. auto = first glucose under class-1 emulation, else prediction start.
+    public enum CorrectionAnchor: String, Codable, Sendable { case auto, firstGlucose = "first-glucose", predictionStart = "prediction-start" }
+    public var correctionAnchor: CorrectionAnchor = .auto
+    /// Class-1 (Loop-main) emulation is on: any of the D1/D2/D5 flags of docs/loop-algo-classes.md.
+    public var emulatesLoopMain: Bool { !useMidAbsorptionISF || momentumGradualTransitionsThreshold == nil || useLegacyRCDecay }
+    public var anchorsCorrectionAtFirstGlucose: Bool {
+        switch correctionAnchor {
+        case .firstGlucose: return true
+        case .predictionStart: return false
+        case .auto: return emulatesLoopMain
+        }
+    }
+
     /// Use mid-absorption ISF for insulin effects computation.
     /// Default: true — propagates per-future-time ISF schedule changes into
     /// the BG prediction, which is needed for `--candidate-isf-csv` oracles
@@ -1074,7 +1090,7 @@ public struct EvalConfig: Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
         case decisionTimesAreAuthoritative
-        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, asymmetricStandardRC, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, slowRcTauSec, slowRcGain, slowRcMin, slowRcMax, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, useTempBasalStrategy, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay
+        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, asymmetricStandardRC, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, slowRcTauSec, slowRcGain, slowRcMin, slowRcMax, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, useTempBasalStrategy, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay, correctionAnchor
         case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec, carbAbsorptionOverrun, carbRevisionsPath, overrideTargetsPath
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
@@ -1135,6 +1151,7 @@ public struct EvalConfig: Codable, Sendable {
         self.horizons             = try c.decode([TimeInterval].self, forKey: .horizons)
         self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
         self.useLegacyRCDecay = try c.decodeIfPresent(Bool.self, forKey: .useLegacyRCDecay) ?? false
+        self.correctionAnchor = try c.decodeIfPresent(CorrectionAnchor.self, forKey: .correctionAnchor) ?? .auto
         self.useMidAbsorptionISF  = try c.decode(Bool.self,         forKey: .useMidAbsorptionISF)
         self.carbAbsorptionModel  = try c.decode(CarbAbsorptionModel.self, forKey: .carbAbsorptionModel)
         self.adaptiveCarbAbsorption = try c.decodeIfPresent(Bool.self, forKey: .adaptiveCarbAbsorption) ?? false
@@ -1327,6 +1344,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(horizons, forKey: .horizons)
         try c.encode(includingPositiveVelocityAndRC, forKey: .includingPositiveVelocityAndRC)
         try c.encode(useLegacyRCDecay, forKey: .useLegacyRCDecay)
+        try c.encode(correctionAnchor, forKey: .correctionAnchor)
         try c.encode(useMidAbsorptionISF, forKey: .useMidAbsorptionISF)
         try c.encode(carbAbsorptionModel, forKey: .carbAbsorptionModel)
         try c.encode(adaptiveCarbAbsorption, forKey: .adaptiveCarbAbsorption)

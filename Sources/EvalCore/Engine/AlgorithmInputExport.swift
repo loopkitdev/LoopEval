@@ -113,7 +113,9 @@ extension EvaluationEngine {
         }
         // Standing engine-vs-package differences, measured on 6 pilot donors x 3 days (2026-10-29): with these
         // the stock package reproduces the engine's forecast to 1e-9 mg/dL and every dose but these cases.
-        notes.append("engine sizes the correction from the forecast's first point (the CGM reading); run() from predictionStart")
+        if config.anchorsCorrectionAtFirstGlucose {
+            notes.append("engine sizes the correction from the forecast's first point (the CGM reading); run() from predictionStart")
+        }
         if config.bolusIncrement > 0 || config.tempBasalIncrement > 0 {
             notes.append("engine floors doses to the pump's increments (bolus \(config.bolusIncrement), temp \(config.tempBasalIncrement)); the package returns them unrounded")
         }
@@ -135,8 +137,7 @@ extension EvaluationEngine {
         if let s = therapy.suspendThreshold(at: t) { root["suspendThreshold"] = s.doubleValue(for: mg) }
         if let g = config.momentumGradualTransitionsThreshold { root["gradualTransitionsThreshold"] = g }
         if gr {
-            notes.append("package thins glucose to >= 4 min apart before volatility; the engine skips the short increment but measures from its later reading")
-            root["experiments"] = ["guardAndRunway"]
+                root["experiments"] = ["guardAndRunway"]
             // The package's depth is min(1, 6.7 / baseline); a missing baseline is full depth.
             if config.sigmaBandK < 1 { root["volatilityBaseline"] = 6.7 / config.sigmaBandK }
         }

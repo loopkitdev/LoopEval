@@ -2771,7 +2771,15 @@ extension EvaluationEngine {
             // so sigma5 stayed NaN, calmHighActive was never true, and all three cht arms scored
             // EXACTLY 0.000 on both donors -- a silent no-op that looked like a clean negative result.
             let unit = LoopUnit.milligramsPerDeciliter
-            let g = effectiveInput.glucose.suffix(60)   // last ~5 h of samples
+            // As the shipped package (GlucoseVolatility.sigma5): thin to readings >= 4 min after the last one
+            // kept, then the last 60 (~5 h). Without the thinning a near-duplicate reading shortens the next
+            // increment and halves the window (i058's 17-s duplicates: σ5 ~5 % high).
+            var thinned: [EvalGlucoseSample] = []
+            for s in effectiveInput.glucose {
+                if let last = thinned.last, s.startDate.timeIntervalSince(last.startDate) < 240 { continue }
+                thinned.append(s)
+            }
+            let g = thinned.suffix(60)
             let floorVar = 2.0 * config.sigmaNoiseMgdl * config.sigmaNoiseMgdl
             var v = Double.nan
             var nInc = 0.0            // valid increments since the start of the window or the last gap
@@ -3053,7 +3061,8 @@ extension EvaluationEngine {
             useTempBasalStrategy: config.useTempBasalStrategy,
             basalOverrideActive: OverrideWindow.resolved(therapy.overrideWindows, at: t).contains {
                 $0.start <= t && t < $0.end && ($0.factor ?? 1.0) != 1.0
-            }
+            },
+            correctionAnchor: config.anchorsCorrectionAtFirstGlucose ? nil : predStart
         )
         let fixture: Data? = config.algorithmInputExportDir == nil ? nil : algorithmInputFixtureJSON(
             t: t, predictionStart: predStart, input: effectiveInput, config: config, therapy: therapy,

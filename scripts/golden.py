@@ -38,10 +38,13 @@ VERBATIM_BOLUS = ["--no-candidate-manual-bolus-from-recommendation", "--no-candi
 DTR = ["--decision-time-replay", "--no-clip-in-progress-temp-basal"] + CLASS1
 IRCC = ["--integral-rc", "--integral-rc-clamp"]
 # Guard + runway (C20 + C29 + C40), the frozen arm of runs/2026-10-23-frontier-dosing/dr/run.py arm_flags("gr"),
-# band depth k = min(1, 6.7 / σ5 median) pinned at i008's value so the case does not depend on that file.
-GR = ["--candidate-sigma-band-k", "0.964", "--candidate-sigma-band-cob-gate", "--candidate-postlow-rc-rise-scale", "0.3",
-      "--candidate-postlow-window", "720", "--candidate-runway-fraction", "0.7", "--candidate-runway-cob-gate",
-      "--candidate-runway-bg-min", "150"]
+# band depth k = min(1, 6.7 / σ5 median) pinned per donor so the case does not depend on that file.
+def gr(k): return ["--candidate-sigma-band-k", k, "--candidate-sigma-band-cob-gate", "--candidate-postlow-rc-rise-scale", "0.3",
+                   "--candidate-postlow-window", "720", "--candidate-runway-fraction", "0.7", "--candidate-runway-cob-gate",
+                   "--candidate-runway-bg-min", "150"]
+GR = gr("0.964")   # i008
+# Decision-time replay at package defaults (class 2): the correction anchors at the prediction start.
+DTR_PKG = ["--decision-time-replay", "--no-clip-in-progress-temp-basal"]
 W = ("2026-09-04T02:00:00Z", "2026-09-08T00:00:00Z")      # 22 h lead + 3 days, as the frontier harness
 
 # Each case: donor export (alias, or "@input" for a dir under GOLDEN/inputs), window, flags. "{in}" in a
@@ -79,6 +82,9 @@ CASES = {
     "dtr":               dict(alias="i008", flags=DTR),
     "dtr_ircc":          dict(alias="i014", flags=DTR + IRCC),
     "dtr_gr":            dict(alias="i008", flags=DTR + GR),
+    "dtr_pkg":           dict(alias="i001", window=("2026-09-18T08:00:00Z", "2026-09-20T00:00:00Z"), flags=DTR_PKG),
+    # gr on CGM with near-duplicate readings (i058, ~17 s apart): σ5 thins them as the shipped package does.
+    "dtr_gr_dup":        dict(alias="i058", window=("2026-09-18T02:00:00Z", "2026-09-20T00:00:00Z"), flags=DTR_PKG + gr("1.000")),
     # Other controllers for the candidate.
     "openaps":           dict(alias="i008", flags=FRONTIER + ["--candidate-openaps"]),
     "loop_mimic":        dict(alias="i008", flags=FRONTIER + ["--candidate-loop-mimic-oaps"]),
