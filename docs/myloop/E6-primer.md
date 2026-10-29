@@ -121,26 +121,32 @@ Written 2026-10-29, before the cohort ran.
 - The cancellation rarely bites: a rise that has already run 30 mg/dL keeps going for the next 30 min. Retracting a
   primer that has already been confirmed does not separate the rises that turn.
 
-## Generator check (2026-10-29): half replay's TIR, the same insulin into lows
+## Generator check (2026-10-29): no better than the dial
 
 Run on workmac with ice's generator as frozen for `docs/handoffs/2026-10-28-frontier-basal-vs-isf-ice.md` (plant
 ice-cobt-nb, checkpoints `v32oc{0,1}TcB2FGUCGLBGGSKaLK`, the same 166 donors, windows and deployed config), engine main
-7c3eae3a. Arms `gr_p30` and `gr_p60` (primer 30 / 60 mg/dL) against `gr_p0`, with no carb entries and no user boluses.
-Run dir `runs/2026-10-29-myloop-e6-gen/` (`spr.sh`, `analyze.py`, `r2/spr_scores_*.csv`). 996 runs, none failed. Paired,
+7c3eae3a. Arms `gr_p30` and `gr_p60` (primer 30 / 60 mg/dL) and the dial `gr_pn105` (needs 1.05) against `gr_p0`, all
+with no carb entries and no user boluses.
+Run dir `runs/2026-10-29-myloop-e6-gen/` (`spr.sh`, `analyze.py`, `r2/spr_scores_*.csv`). 1,328 runs, none failed. Paired,
 person bootstrap 90 %, mean over two trainings. Reference: TIR 68.6, t<70 2.00, t<54 0.46, 32.9 U/day.
 
-| vs `gr_p0` | `gr_p30` | `gr_p60` | replay `pr60` |
-|---|---|---|---|
-| ΔTIR (CGM) | +0.39 [+0.28, +0.51] | +0.79 [+0.64, +0.95] | +1.54 |
-| ΔTIR (true glucose, clean time) | +0.41 [+0.25, +0.57] | +0.75 [+0.57, +0.93] | — |
-| Δt<70 | +0.085 [+0.063, +0.108] | +0.146 [+0.115, +0.178] | +0.28 |
-| Δt<54 | +0.024 [+0.011, +0.038] | +0.048 [+0.032, +0.064] | +0.062 |
-| Δ IOB at downward 54 crossings | +0.027 U [+0.000, +0.053] | +0.088 U [+0.051, +0.126] | +0.090 U |
-| Δ insulin | +0.27 U/day | +0.58 U/day | +0.08 U/day |
+| vs `gr_p0` | `gr_p30` | `gr_p60` | dial 1.05 | replay `pr60` |
+|---|---|---|---|---|
+| ΔTIR (CGM) | +0.39 [+0.28, +0.51] | +0.79 [+0.64, +0.95] | +0.95 [+0.80, +1.10] | +1.54 |
+| ΔTIR (true glucose, clean time) | +0.41 [+0.25, +0.57] | +0.75 [+0.57, +0.93] | +0.93 [+0.74, +1.12] | — |
+| Δt<70 | +0.085 [+0.063, +0.108] | +0.146 [+0.115, +0.178] | +0.206 [+0.175, +0.238] | +0.28 |
+| Δt<54 | +0.024 [+0.011, +0.038] | +0.048 [+0.032, +0.064] | +0.050 [+0.034, +0.066] | +0.062 |
+| Δ IOB at downward 54 crossings | +0.027 U [+0.000, +0.053] | +0.088 U [+0.051, +0.126] | +0.061 U [+0.030, +0.093] | +0.090 U |
+| Δ insulin | +0.27 U/day | +0.58 U/day | +0.76 U/day | +0.08 U/day |
 
 - **Still moved insulin, less completely.** In a 12-donor sample of `gr_p60` (training 0, primer logged) the primer
   delivered 3.6 U/day and net insulin rose 0.40 U/day: 11 % kept (per donor −9 % to 39 %). Bar 1 (≤ 25 %) holds.
 - **Δt<54 is inside the scaled guard lines** (+0.118 / +0.098) for both arms.
 - **IOB at 54 crossings rises as in replay.** This is the body's insulin on board in the generator and the controller's
   in replay, so the two are not the same measure, but both fail bar 2's third condition by the same amount.
-- **Against the dial:** pending a needs-1.05 arm run in the same no-entry setup (`gr_pn105`).
+- **Against the dial in the same setup, the primer is indistinguishable from it.** TIR against the dial line at the
+  primer's t<70: `gr_p60` +0.12 [−0.08, +0.31], `gr_p30` +0.00 [−0.15, +0.16]; at its t<54: −0.11 [−0.54, +0.20] and
+  −0.06 [−0.32, +0.19]. IOB at 54 crossings, `gr_p60` − dial: +0.027 U [−0.010, +0.069]. The dial line runs through
+  `gr_p0` and `gr_pn105`, recomputed in each bootstrap draw.
+- Replay's margin over the dial (t<54 lift +1.03) does not appear on the generator. Replay prices moved insulin as nearly
+  free on lows; the generator charges it about the dial's rate.
