@@ -121,7 +121,7 @@ Written 2026-10-29, before the cohort ran.
 - The cancellation rarely bites: a rise that has already run 30 mg/dL keeps going for the next 30 min. Retracting a
   primer that has already been confirmed does not separate the rises that turn.
 
-## Generator check (2026-10-29): half replay's TIR, the same insulin into lows, little better than the dial
+## Generator check (2026-10-29): half replay's TIR, the same insulin into lows
 
 Run on workmac with ice's generator as frozen for `docs/handoffs/2026-10-28-frontier-basal-vs-isf-ice.md` (plant
 ice-cobt-nb, checkpoints `v32oc{0,1}TcB2FGUCGLBGGSKaLK`, the same 166 donors, windows and deployed config), engine main
