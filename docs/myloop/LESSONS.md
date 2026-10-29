@@ -44,8 +44,7 @@
    30-min temp basal cancelled when the rise stalls, 85 % of the primer is still delivered. IOB at 54 crossings is no
    lower than with the bolus form (−0.014 U [−0.056, +0.024]), and TIR falls 0.30. Rises that have already run 30 mg/dL
    rarely stall within 30 min, so this cancellation rule cannot sort the rises that will turn. See `E6-primer.md`.
-9. **On the ice generator the primer keeps half its TIR and none of its margin over the dial (E6, 2026-10-29).** `gr_p60`
+9. **On the ice generator the primer keeps half its TIR and all of its IOB-at-54 cost (E6, 2026-10-29).** `gr_p60`
    gives +0.79 TIR for +0.146 t<70 and +0.048 t<54 (inside the scaled guard). It still mostly moves insulin (11 % kept, in
-   a 12-donor sample) but carries as much extra insulin into 54 crossings as in replay (+0.088 U). Its t<70 per TIR point
-   is 0.18 against the dial's 0.23–0.24 in ice's run: a small edge, where replay showed several times the dial's. Replay
-   prices moved insulin as nearly free on lows; the generator charges it most of the dial's rate. See `E6-primer.md`.
+   a 12-donor sample) but carries as much extra insulin into 54 crossings as in replay (+0.088 U). The comparison with
+   the dial waits for a needs-1.05 arm in the same no-entry setup. See `E6-primer.md`.

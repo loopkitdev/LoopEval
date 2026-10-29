@@ -143,6 +143,4 @@ person bootstrap 90 %, mean over two trainings. Reference: TIR 68.6, t<70 2.00, 
 - **Δt<54 is inside the scaled guard lines** (+0.118 / +0.098) for both arms.
 - **IOB at 54 crossings rises as in replay.** This is the body's insulin on board in the generator and the controller's
   in replay, so the two are not the same measure, but both fail bar 2's third condition by the same amount.
-- **Against the dial** (ice's 2026-10-28 run: same donors, trainings and generator, engine ca5bbfc4), needs 1.05 gives
-  +0.82 TIR for +0.19 t<70 and +0.76 U/day. `gr_p60` buys the same TIR for about three quarters of the t<70: t<70 per
-  TIR point 0.18 against the dial's 0.23–0.24. In replay the primer's margin over the dial was several times larger.
+- **Against the dial:** pending a needs-1.05 arm run in the same no-entry setup (`gr_pn105`).
