@@ -102,3 +102,21 @@ Written 2026-10-29, before the cohort ran.
 - **Arm:** `pr60t`, scored against `ab` and the dial exactly as stage 1, with the same bar 1 and bar 2.
 - **Also against `pr60`:** Δ IOB-at-crossing-54 and Δt<54 for `pr60t` − `pr60`, paired. The retractable form is meant to
   carry less insulin into lows.
+
+### Stage 2 result (2026-10-29): the retractable form fails the same way, with less TIR
+
+189 donors, none failed. 2.73 U/day of primer delivered (85 % of the bolus form's), net +0.07 U/day (2 % kept).
+
+| `pr60t`, 95 % CI | vs `ab` @ 1.00 | vs `pr60` (paired) |
+|---|---|---|
+| ΔTIR | +1.25 [+1.06, +1.44] | −0.30 [−0.39, −0.20] |
+| Δt<54 | +0.035 [−0.017, +0.070] | −0.027 [−0.075, +0.004] |
+| Δt<70 | +0.21 [+0.14, +0.29] | −0.07 [−0.12, −0.01] |
+| Δ IOB-at-crossing-54 | +0.058 U [+0.026, +0.094] | −0.014 U [−0.056, +0.024] |
+| t<54 lift | +0.96 [+0.58, +1.45] | — |
+
+- Bar 1 passes, and bar 2 fails on IOB at 54, as for `pr60`.
+- Against `pr60` it carries no detectably less insulin into lows. It gives up TIR roughly in proportion to the smaller
+  primer it delivers.
+- The cancellation rarely bites: a rise that has already run 30 mg/dL keeps going for the next 30 min. Retracting a
+  primer that has already been confirmed does not separate the rises that turn.

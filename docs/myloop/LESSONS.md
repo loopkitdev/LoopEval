@@ -40,3 +40,7 @@
    It fails the pre-registered bar on IOB at 54 crossings (+0.09 U [+0.05, +0.14]), probably because the detector also
    fires on rises that turn (not yet measured). This is the first mechanism on the meal track to beat the dial by a clear margin. The lever is timing,
    bought with a known dose, which E5's after-the-fact split could only hint at. See `E6-primer.md`.
+8. **Making the primer retractable does not remove the insulin it carries into lows (E6 stage 2, 2026-10-29).** As a
+   30-min temp basal cancelled when the rise stalls, 85 % of the primer is still delivered. IOB at 54 crossings is no
+   lower than with the bolus form (−0.014 U [−0.056, +0.024]), and TIR falls 0.30. Rises that have already run 30 mg/dL
+   rarely stall within 30 min, so this cancellation rule cannot sort the rises that will turn. See `E6-primer.md`.
