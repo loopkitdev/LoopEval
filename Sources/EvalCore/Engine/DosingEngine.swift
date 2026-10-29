@@ -106,6 +106,8 @@ struct EngineStepResult {
     var manualBolusRec: Double = 0
     /// Temp-basal-strategy ifNecessary action ("set" | "cancel" | "none"); "set" on the bolus path.
     var tempAction: String = "set"
+    /// This decision's AlgorithmInputFixture JSON, when EvalConfig.algorithmInputExportDir is set (Loop only).
+    var algorithmInputFixture: Data? = nil
 }
 
 protocol DosingEngine: Sendable {

@@ -384,6 +384,10 @@ public struct EvalConfig: Codable, Sendable {
     /// against field devicestatus predicted.values). Off by default (trace-size).
     public var exportForecastCurve: Bool = false
 
+    /// Directory to write each decision's exact algorithm input to, as a LoopAlgorithm
+    /// AlgorithmInputFixture (AlgorithmInputExport.swift). nil = off. Not part of the encoded config.
+    public var algorithmInputExportDir: String? = nil
+
     /// Flat (global) auto-bolus application factor — fraction of the recommended
     /// correction applied per cycle when GBAF is off. Loop default 0.4. The auto-bolus
     /// is FLOORED to the pump increment AFTER this factor (see EvaluationEngine), which

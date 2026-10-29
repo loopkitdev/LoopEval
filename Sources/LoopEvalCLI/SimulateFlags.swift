@@ -46,6 +46,9 @@ struct SimulateDataFlags: ParsableArguments {
 
     @Flag(name: .long, help: "Export the full baseline and candidate forecast curves per step (baselinePredCurve, candidatePredCurve) into the trace, for point-by-point comparison against field devicestatus predicted.values.")
     var exportForecastCurve: Bool = false
+
+    @Option(name: .long, help: "Write each decision's exact algorithm input to this directory as a LoopAlgorithm AlgorithmInputFixture (<time>_baseline.json, <time>_candidate.json), with the engine's own dose and forecast and every config setting the fixture can't express in a `loopEval` block. Loop arms only.")
+    var exportAlgorithmInputs: String?
 }
 
 // Run mode and decision timing
@@ -813,6 +816,7 @@ extension SimulateCommand {
     var localTimezone: String? { get { data.localTimezone } set { data.localTimezone = newValue } }
     var traceOut: String { get { data.traceOut } set { data.traceOut = newValue } }
     var exportForecastCurve: Bool { get { data.exportForecastCurve } set { data.exportForecastCurve = newValue } }
+    var exportAlgorithmInputs: String? { get { data.exportAlgorithmInputs } set { data.exportAlgorithmInputs = newValue } }
     // Run mode and decision timing
     var stepMinutes: Int { get { mode.stepMinutes } set { mode.stepMinutes = newValue } }
     var oracleFutureInputs: Bool { get { mode.oracleFutureInputs } set { mode.oracleFutureInputs = newValue } }

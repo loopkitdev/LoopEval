@@ -615,6 +615,11 @@ struct SimulateCommand: AsyncParsableCommand {
             candidateConfig.decisionTimesAreAuthoritative = true
         }
 
+        if let dir = exportAlgorithmInputs {
+            try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+            baselineConfig.algorithmInputExportDir = dir
+            candidateConfig.algorithmInputExportDir = dir
+        }
         let lowResponse: LowResponseModel?
         if let path = lowResponseModel {
             guard candidateCounterfactual else { throw ValidationError("--low-response-model requires --candidate-counterfactual") }

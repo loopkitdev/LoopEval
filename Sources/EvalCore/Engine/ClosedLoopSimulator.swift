@@ -902,6 +902,7 @@ extension EvaluationEngine {
                 ))
                 baselineDose = br.dose
                 baselineTempAction = br.tempAction
+                Self.writeAlgorithmInput(br.algorithmInputFixture, dir: baselineConfig.algorithmInputExportDir, t: t, arm: "baseline")
                 baselineEventualBG = br.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
                 if baselineConfig.exportForecastCurve {
                     baselinePredCurve = br.prediction.glucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
@@ -1177,6 +1178,7 @@ extension EvaluationEngine {
                         }
                     }
                 }
+                Self.writeAlgorithmInput(result.algorithmInputFixture, dir: candidateConfig.algorithmInputExportDir, t: t, arm: "candidate")
                 candidateDose = result.dose
                 candidateBolus = result.bolus
                 if candidateBolus > 0 { candLastAutoBolusAt = t }
@@ -2230,6 +2232,14 @@ extension EvaluationEngine {
 
     // MARK: – Helpers
 
+    /// One decision's AlgorithmInputFixture, as <dir>/<decision time>_<arm>.json.
+    static func writeAlgorithmInput(_ data: Data?, dir: String?, t: Date, arm: String) {
+        guard let data, let dir else { return }
+        let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime]
+        let name = iso.string(from: t).replacingOccurrences(of: ":", with: "") + "_\(arm).json"
+        try? data.write(to: URL(fileURLWithPath: dir).appendingPathComponent(name))
+    }
+
     /// Canonical "compute one step's recommended Δdose" used for BOTH baseline
     /// and candidate inside the closed-loop sim. Keeping the two sides on the
     /// same code path is what makes the identity case (configs equal) produce
@@ -2253,7 +2263,7 @@ extension EvaluationEngine {
         egpPhysicalDecomposition: Bool = false,
         timeBasedAFScale: Double = 1.0,
         lastAutoBolusAt: Date? = nil
-    ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>, manualBolusRec: Double, tempAction: String) {
+    ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>, manualBolusRec: Double, tempAction: String, fixture: Data?) {
         let momentumCap: LoopQuantity? = config.positiveVelocityCap.map {
             LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: $0)
         }
@@ -3045,13 +3055,18 @@ extension EvaluationEngine {
                 $0.start <= t && t < $0.end && ($0.factor ?? 1.0) != 1.0
             }
         )
+        let fixture: Data? = config.algorithmInputExportDir == nil ? nil : algorithmInputFixtureJSON(
+            t: t, predictionStart: predStart, input: effectiveInput, config: config, therapy: therapy,
+            applicationFactor: appFactor, prediction: prediction, bolus: doseRec?.bolus ?? 0,
+            tempRate: doseRec?.tempBasalRate ?? 0, deltaU: doseRec?.deltaU ?? 0, tempAction: doseRec?.tempAction ?? "set")
         return (
             dose: doseRec?.deltaU ?? 0,
             bolus: doseRec?.bolus ?? 0,
             tempRate: doseRec?.tempBasalRate ?? 0,
             prediction: prediction,
             manualBolusRec: doseRec?.manualBolusRec ?? 0,
-            tempAction: doseRec?.tempAction ?? "set"
+            tempAction: doseRec?.tempAction ?? "set",
+            fixture: fixture
         )
     }
 
