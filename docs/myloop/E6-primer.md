@@ -84,5 +84,5 @@ Run: `runs/2026-10-28-myloop-e6/` (`run_e6.py`, `score_e6.py`, `e6_per_donor.csv
 - **Against the dial:**
   - `pr60` buys the same TIR as needs 1.05 at about a quarter of its t<54 cost.
   - Its t<54 lift is the largest of any no-entry candidate in this role (E3 `nc_hab` −0.19, E4 `lg30` +0.21).
-- **The IOB-at-54 signal is the primer itself:** some rises it fires on turn back down while it is still on board. The
-  detector fires on any rise, not only on meals.
+- **Likely source of the IOB-at-54 signal (not yet measured):** the detector fires on any rise, not only on meals, and
+  some rises turn back down while the primer is still on board.

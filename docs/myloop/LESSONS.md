@@ -37,6 +37,6 @@
 7. **Deliberately moved insulin beats the dial in replay, but carries insulin into some lows (E6, 2026-10-29).** One
    extra automatic bolus at each CGM rise (X / ISF, 3-h lockout), with no entries and Loop left to take it back: it does,
    98 %. At X = 60 mg/dL the primer gives +1.54 TIR for +0.06 t<54 (the dial gives +1.57 for +0.23), t<54 lift +1.03 [+0.76, +1.32].
-   It fails the pre-registered bar on IOB at 54 crossings (+0.09 U [+0.05, +0.14]), because the detector also fires on rises
-   that turn. This is the first mechanism on the meal track to beat the dial by a clear margin. The lever is timing,
+   It fails the pre-registered bar on IOB at 54 crossings (+0.09 U [+0.05, +0.14]), probably because the detector also
+   fires on rises that turn (not yet measured). This is the first mechanism on the meal track to beat the dial by a clear margin. The lever is timing,
    bought with a known dose, which E5's after-the-fact split could only hint at. See `E6-primer.md`.
