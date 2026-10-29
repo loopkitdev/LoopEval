@@ -1627,7 +1627,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       (3.3 U, field 3.35) match the field. On the larger field sample (1,061 meals, every day of the same donors) the
       early ICE peak is about 15 % short (+58–63 against +69 at 30–45 min) and the glucose rise at 1–1.5 h matches
       (+20–22 against +22–24). The 250-meal held-out field sample showed a 30 % shortfall that did not hold.
-    - **Where the excess is:** the generator sits at or below 90 mg/dL two hours after a meal on 10 % of meals, field
-      5.8 % (1,061 meals). From 90–110 mg/dL at +2 h it goes below 70 in the next two hours on 28–35 % of meals, field
-      9 % (23 meals, too few to trust). The next test is that conditional rate on the full field sample: if it holds,
-      the gap is in what follows a moderate post-meal level (falls not caught), not in the meal or the bolus.
+    - **Where the excess is (ms_cond_all.py, full field sample of the same donors, 1,067 meals):** on every day, not
+      only the held-out windows, the field goes low within 1–4 h of an isolated meal on 10.5 % of meals (held-out
+      windows 6.8 %), so the gap is about 1.4×, not 2×. What follows a given level at +2 h matches: from ≤90, 90–110,
+      110–130 and 130–160 mg/dL the generator goes below 70 on 76 / 31 / 16 / 6 % of meals, the field 73 / 26 / 14 / 7 %.
+      The falls are caught as often as in the field. The excess is in where meals start and end up: the generator
+      starts 30 % of meals below 110 mg/dL (field 24 %), rises less from there (+48 against +56 at 2 h), and from a
+      110–140 start goes low on 18 % of meals against the field's 9 %. The 23-meal held-out field sample had put the
+      fall from 90–110 at 9 %, which did not hold.
