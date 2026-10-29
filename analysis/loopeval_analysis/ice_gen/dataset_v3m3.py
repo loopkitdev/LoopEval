@@ -42,12 +42,21 @@ BEFORE, AFTER, LEAD = 24, 12, 1        # slots: an entry claims a pulse starting
 COB_SLOTS = 36
 
 
-def iob_net(g, steps, isf, carb_g, geq, T):
+# IOBNET_COB=2: net of the meal glucose still to come from the meal pulses instead (reconstructed here, drawn in the plant),
+# so a meal that turns out smaller or later than its entry no longer hides the low it leaves (LESSONS 149).
+# IOBNET_COB=3: net of the smaller of the two, glucose both entered and still to come from the pulses, so an unannounced
+# meal nets nothing (as in mode 1) and a meal smaller or later than its entry nets only what it delivers (LESSONS 150).
+def iob_net(g, steps, isf, carb_g, geq, T, to_come=None):
     if not isf:
         return np.zeros(T)
     net = float(isf) * (g.iob.ffill().fillna(0).to_numpy() - D3.basal_iob(steps))
-    if os.environ.get("IOBNET_COB") == "1":
+    mode = os.environ.get("IOBNET_COB", "0")
+    if mode == "1":
         net = net - np.convolve(carb_g, 1 - np.arange(COB_SLOTS) / COB_SLOTS)[:T] * float(geq)
+    elif mode == "2":
+        net = net - to_come
+    elif mode == "3":
+        net = net - np.minimum(np.convolve(carb_g, 1 - np.arange(COB_SLOTS) / COB_SLOTS)[:T] * float(geq), to_come)
     return np.maximum(net, 0) / 100
 
 
@@ -156,7 +165,7 @@ def build(steps, meals, bolus_dec, carbs, geq, features=FEATURES_M3, isf=None, d
         pulse=pulses / ICE_SCALE, since_meal=since_meal / 24, last_size=last_size / 50, n_3h=n3 / 3,
         carbs=carb_g / 50, bolus=bol_u / 5, since_bolus=sb / 24, since_entry=se / 24, unbolused=ub / 50, bolus_3h=b3 / 5,
         entered_unabsorbed=eu / 50,
-        iob_net=iob_net(g, steps, isf, carb_g, geq, T),
+        iob_net=iob_net(g, steps, isf, carb_g, geq, T, to_come),
         **{k: np.nan_to_num(pd.Series(bgice / ICE_SCALE).rolling(n, min_periods=n // 6).mean().to_numpy()) for k, n in OWN_MEANS.items()},
         hour_sin=np.sin(2 * np.pi * g.hour / 24), hour_cos=np.cos(2 * np.pi * g.hour / 24),
         dow_sin=np.sin(2 * np.pi * g.dow / 7), dow_cos=np.cos(2 * np.pi * g.dow / 7))

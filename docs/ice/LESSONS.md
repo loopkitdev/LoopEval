@@ -1495,4 +1495,112 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Hiding the input fixes the response but drops the level 23 mg/dL; netting carbs out keeps the level error the same
     size and gets two thirds of the response, without retraining. Not kept yet. Both are test-time edits to an input the
     network was trained on. The fix to keep is a carbs-aware projection in the dataset (dataset_v3m), retrained on both
-    seeds. cob1 is first being checked on the 350 non-CR edits for regressions.
+    seeds.
+    On all 434 edits (pw_score.py on the cob1 runs; x 97 / e 337 scored), cob1 against base, pre-window r:
+    - **mean:** 0.41 / 0.36 (x) and 0.42 / 0.36 (e), both 90% intervals −0.01 to +0.13; |err| 9.8 / 10.0 and 10.0 / 10.5.
+    - **TIR and t70:** no difference beyond noise on either set.
+    - **t54:** r 0.31 / 0.29 (x) and 0.07 / 0.12 (e), but |err| rises 0.37 → 0.50 and 0.40 → 0.68. Predicting no change
+      scores 0.30 / 0.31.
+    - **own-settings level:** mean error median −11 mg/dL on both sets, against near zero for base.
+    As a test-time switch, cob1 lowers glucose across the board and adds lows. The calibrations after training (level
+    band, low band, low kernel) were fit with the old input, so they no longer offset it. Not kept as a switch. The
+    retrain, with the whole calibration chain rerun on the new input, is the test (arm oc, `runs/2026-10-25-ice-cob/`).
+146. **Glucose effectiveness, arm A (SG 0.0045/min, the prior median), does not beat the base; not kept.** The of recipe was
+    retrained with GE_SG on both seeds (gb arm, chain_ge.sh in runs/2026-10-24-ice-ge/, frozen ice-ge). The plant subtracts
+    60·SG·G and the network learns the residual. Results, gb vs of, seed 0 / 1:
+    - **held-out (88 pilot donors, 3 seeds):** TIR bias −5.3 / −6.5 vs −0.7 / −3.0; t70 bias +1.24 / +1.73 vs +0.45 /
+      +0.36; mean +6.4 / +3.4. Worse on both trainings.
+    - **pilot change test (62 edits), model r:**
+
+      | metric | gb | of |
+      |---|---|---|
+      | TIR | 0.23 / 0.21 | 0.24 / 0.16 |
+      | t70 | 0.54 / 0.48 | 0.51 / 0.62 |
+      | t54 | 0.51 / 0.20 | 0.20 / 0.37 |
+      | mean | 0.39 / 0.36 | 0.40 / 0.17 |
+
+      Each gap is smaller than the gap between the two of trainings (mean 0.40 vs 0.17), and the |err| figures match to
+      within 0.4. The own-settings level check is worse: TIR median −4.9 / −6.2 vs +1.6 / −2.7.
+    - **switch test (52 switches), model r:** TIR 0.69 / 0.65 vs 0.70 / 0.60; mean 0.49 / 0.60 vs 0.58 / 0.62; t54
+      0.25 / 0.20 vs 0.20 / 0.26. No difference.
+    A literature-strength SG adds a restoring force the TDD-ISF ICE already holds, as lesson 140 suspected. It pulls the
+    distribution's level and tails out of place without making changes any more predictable. GE stays off (GE_SG 0, the
+    default) until the ISF yardstick check (step 0c) says how much uptake the TDD ISF absorbed. The change-prediction
+    gap that matters is lesson 145's cancellation, which GE does not touch.
+
+147. **The low side of change prediction is judged on t<70; t<54 is a guard only (Pete, 2026-10-26).** On the pilot
+    change test (62 edits) no model beats predicting zero change on t<54: zero |err| 0.30, of 0.33 / 0.31, oc 0.37 /
+    0.33, replay 0.67. Its model r runs 0.12–0.37 and swings between two trainings of one recipe (of 0.20 / 0.37), so it
+    cannot separate two models. t<70 carries signal: zero |err| 1.41, of 1.25 / 1.20, model r 0.48–0.62 on every
+    training. Keep/drop and candidate ranking now read TIR and t<70; t<54 is still reported, and a change is flagged when
+    it raises predicted or scored t<54 by more than the spread between two trainings. t<54 stays the safety target in
+    AGENTS.md. On the switch test (52 switches) t<70 is near r 0 for replay and both of trainings, so strategy switches
+    remain a gap on the low side.
+
+148. **The carbs-aware iob_net retrain (oc) is kept: change prediction improves on both trainings and the response to
+    insulin moves toward the field.** oc = the of recipe retrained with IOBNET_COB=1 (lesson 145; chain_cob.sh and
+    pool_oc.sh in runs/2026-10-25-ice-cob/, frozen ice-cobt), scored against of on both trainings, seed 0 / 1, judged on
+    TIR and t<70 with t<54 as a guard (lesson 147).
+    - **Glucose response per unit of implied insulin** (iob_oc.py, replay d ISF·act as instrument; ensemble, s0 / s1):
+      CR edits (113) −0.54 → **−1.59** (−1.77 / −1.40), field −2.28; all edits (434) −1.47 → **−1.82** (−1.91 / −1.74),
+      field −2.26. The meal-bolus share of the cancellation was the defense reading a bolus as a low; with carbs on board
+      netted out, about two thirds of the CR gap closes.
+    - **Change test, model r, of → oc:**
+
+      | | x (97) | e (337) | pilot (62) | switches (52) |
+      |---|---|---|---|---|
+      | TIR | 0.28 / 0.30 → 0.35 / 0.39 | 0.25 / 0.20 → 0.31 / 0.32 | 0.24 / 0.16 → 0.25 / 0.20 | 0.70 / 0.60 → 0.70 / 0.67 |
+      | t70 | 0.50 / 0.39 → 0.48 / 0.38 | 0.30 / 0.28 → 0.29 / 0.31 | 0.51 / 0.62 → 0.57 / 0.48 | 0.07 / 0.00 → 0.29 / 0.02 |
+      | mean | 0.37 / 0.38 → 0.44 / 0.42 | 0.41 / 0.28 → 0.48 / 0.38 | 0.40 / 0.17 → 0.37 / 0.38 | 0.58 / 0.62 → 0.66 / 0.57 |
+
+      TIR |err| on e 6.18 / 6.24 → 5.89 / 5.90, below zero-change (6.21) and replay (6.27); the first TIR change
+      prediction that beats both on the large pool. t<70 is flat everywhere.
+    - **Guard and costs.** t<54 |err| on e 0.40 / 0.41 → 0.52 / 0.46 (zero 0.31): predicted t<54 changes spread wider
+      (sd 0.46 → 0.72) with r unchanged, the expected side of a larger insulin response; flagged, not disqualifying.
+      Held-out (24 donors): t70 bias +0.45 / +0.36 → +1.32 / +0.71, TIR bias −0.7 / −3.0 → −2.1 / −2.7. Own-settings
+      level before the edit, TIR median, e: −3.0 / −6.6 → −6.0 / −5.3. The low-side calibrations (level band, defense
+      gain) were fit on the old input; refitting them on oc is the next step, aimed at the held-out t70 bias.
+
+149. **The generator's extra lows sit 1–4 h after meals, where the field catches its falls; next arm: the defense nets
+    the meal glucose still to come (IOBNET_COB=2).** Held-out rollouts (24 donors, both trainings, 3 seeds), isolated
+    meals (≥15 g, none 2 h before or 6 h after; low_where.py, abs_gen.py, meal_spread.py in runs/2026-10-25-ice-cob/):
+    - **t<70 by hours since the last entry:** field is flat, 0.9–1.7 % in every bin. of reaches 3.2–3.8 % at 2–4 h and
+      oc 3.5–4.9 %; beyond 6 h of matches the field (1.6 vs 1.5). The excess lows are a post-meal feature.
+    - **per isolated meal, low within 1–4 h:** field 6.8 % (<54 1.6 %), of 14.5 % (4.6 %), oc 15.1 % (5.8 %). The field's
+      glucose change at +2 h is wider than the generator's (q10/q90 −78/+149 vs −64/+114), so the generator's falls are
+      not larger; they are caught less. Its lows concentrate where the drawn meal is small against the entry (low
+      tercile of drawn size / entered g: 19–21 % vs 7–11 % in the high tercile).
+    - **absorption:** field ICE excess per entered g runs about flat for 2 h and reaches zero by 3–3.25 h (per-donor time
+      to 90 %, median 2.25 h), so the 3 h linear window of IOBNET_COB=1 has the right length. ICE excess per g over the
+      first 3 h matches (field 3.3, of 3.4, oc 3.5 mg/dL per g); insulin activity 1.5–4 h after the meal is higher in
+      the generator (per 100 g, 2.17/1.69/1.17/0.71 vs field 1.96/1.30/0.69/0.26).
+    With IOBNET_COB=1 the defense subtracts the entered carbs whether or not the drawn meal delivers them, so a meal
+    smaller or later than its entry leaves a fall the defense does not see; oc deepened what of already had. The arm
+    under test, oq (chain_cob2.sh / pool_oq.sh in runs/2026-10-26-ice-cob2/, frozen ice-cob2 at eaa6da04): the pending
+    insulin net of the glucose still to come from the meal pulses, reconstructed pulses in training and drawn pulses
+    in the plant. On i001's training data it nets more than mode 1 (mean 0.29 vs 0.41, corr 0.72), since unannounced
+    meals count too. (The arm name od was already taken by a 10-15 checkpoint; train_v32od0.log was overwritten.)
+
+150. **The meal-netted defense (oq, IOBNET_COB=2) fixes the generator's lows but costs TIR change prediction beyond
+    noise; not kept, oc stays the base.** Four change pools, both trainings, paired person bootstrap of oq − oc (90 %),
+    mean over trainings (oq_vs_oc_boot.py in runs/2026-10-13-ice-change/):
+    - **e pool (337 edits, 265 donors), the deciding test:** TIR r −0.05 [−0.10, −0.00], |err| +0.15 [+0.01, +0.29],
+      worse on both trainings (r 0.31 / 0.32 → 0.25 / 0.27; zero-change |err| 6.21). t<70 r +0.05 [+0.01, +0.09],
+      |err| −0.08 [−0.13, −0.03] (1.56 / 1.46 → 1.42 / 1.44, zero 1.41); t<54 |err| −0.08 [−0.12, −0.05]; mean
+      glucose within noise.
+    - **the other pools agree in direction:** pilot TIR |err| +0.44 [+0.11, +0.81]; switch TIR r −0.11 [−0.16, +0.07];
+      x pool TIR within noise and t<70 r +0.11 [+0.01, +0.21], t<54 |err| −0.05 [−0.09, −0.01].
+    - **what it changes on the low side:** held-out t<70 bias on clean time +1.01 / +0.77 → +0.39 / +0.33 and t<54
+      +0.20 / +0.15 → +0.04 / +0.06; own-settings TIR level on e −6.0 / −5.3 → −4.4 / −4.9. But it does not remove the
+      post-meal lows lesson 149 aimed at (meal_spread_oq.py, low_where_oq.py in runs/2026-10-25-ice-cob/): low within
+      1–4 h of an isolated meal 15.1 % → 14.1 % (field 6.8 %); t<70 at 2–4 h after an entry 4.9 / 4.7 and 3.9 / 3.5
+      (oc, two trainings) → 4.0 / 3.8 and 4.0 / 3.7 (field 1.3). Overall t<70 falls on training 0 only (2.88 → 2.29;
+      training 1 2.37 → 2.43; field 1.41), spread over every bin. The defense's input was not what held those falls.
+    - **where TIR is lost (e, by edit kind):** spread across kinds, largest on ISF-only edits (75; r 0.39 → 0.26, with
+      predicted changes wider, sd 3.7 → 4.2). Basal-only edits (87) carry no TIR signal under either arm (r ≈ 0; field
+      mean +2.0, predicted 0), the largest single hole in change prediction.
+    A gain on one target paid for with the other is not a keep (AGENTS.md). Arm under test, or (IOBNET_COB=3, ice
+    684b19d4; chain_cob3.sh / pool_or.sh in runs/2026-10-28-ice-cob3/): net of the smaller of the entered carbs still
+    to add and the pulse glucose still to come, so unannounced meals net nothing, as in oc (on i001 iob_net mean 0.45,
+    against oc 0.41 and oq 0.29). It tests whether oq's TIR loss came from netting unannounced meals; given the above,
+    the post-meal lows need a cause outside the defense's input.

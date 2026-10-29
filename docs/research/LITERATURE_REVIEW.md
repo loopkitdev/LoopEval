@@ -30,7 +30,9 @@
    - (D) a locked hold-out donor set plus a multiplicity budget;
    - (E) make the operating-point recommender a first-class deliverable;
    - (F) a Loop-vs-oref frontier, which nobody has published on the same patients;
-   - (G) a short list of literature-informed mechanisms that haven't been tried: probability-scaled capped meal priming plus habit prior, late-announcement handling, calibrated (conformal) lower bands, and pooled rather than per-patient learned forecasters.
+   - (G) a short list of literature-informed mechanisms that haven't been tried: probability-scaled capped meal priming plus habit prior, late-announcement handling, calibrated (conformal) lower bands, and pooled rather than per-patient learned forecasters;
+   - (I) the menstrual cycle as the test bed for multi-day needs adaptation, with a BDDP cohort of 177 Loop users who self-label it with overrides;
+   - (J) what Boost, the most developed community fully closed loop, measured: insulin moved earlier is harm-neutral where insulin added is not, a meal commitment carries its own low risk, and insulin acts faster than configured.
 
 ---
 
@@ -222,11 +224,131 @@ Three contributions the literature lacks:
 
 Venues: JDST or DT&T for (1) and (2); a short methods note could pair with GluPredKit / MetaboNet, which share our forecasting-isn't-control view (Wolff et al. DT&T 2025).
 
+### I. Multi-day shifts in insulin need: the menstrual cycle
+
+The one multi-day change in insulin need that is both well documented and recurrent. It is also the subgroup where
+our cohort-wide nulls for slow adaptation (C14 autosens, C38 slow RC, the lookback study) may not hold.
+
+**What the literature establishes** [pub]:
+
+- **Direction.** Insulin need is higher in the luteal phase, in every AID cohort of ≥15 people. The one null study is
+  Levy 2022 (Control-IQ, n = 16).
+- **Size.** On AID, TDD rises 3–11% from early follicular to late luteal (López 2026, Takagi 2026, Monroy 2025,
+  Struckmeyer 2026, Hossmann 2026). Hossmann's latent-SI model gives about ±2.6% around each person's mean.
+  - Part of the TDD rise is carbs: +6–7% in Hossmann and Takagi.
+  - The rise survives adjustment for carbs in basal and automatic correction (Takagi).
+- **Timing.**
+  - Need peaks somewhere from mid to late luteal.
+  - It drops sharply at bleeding onset (Tatulashvili 2022).
+  - Early follicular is the hypoglycaemia window: higher time below 70 in Hossmann, López, Mesa and Tatulashvili.
+  - t<54 shows no phase difference where it is reported.
+- **Adaptive AID absorbs only part of it.**
+  - 780G, with nightly TDD-based adaptation, delivers the extra through auto-correction (Takagi; Elhenawy 2024), yet
+    still loses 2–3.5 TIR points in the luteal phase.
+  - On hypo-prone users, 780G turned a follicular-low pattern into a luteal-high one (Mesa 2024).
+  - Hossmann and Takagi both point to learning horizons that lag the change.
+- **Heterogeneity.** A minority go the other way: Widom 1992, 9 of 16; Mewes 2023, 5 of 12 cut insulin at onset. A
+  population-fixed schedule would mis-dose them.
+- **What has never been tested.**
+  - No cycle-aware dosing has been tested in humans. The only test is in silico: Diaz 2022, an SI multiplier keyed to
+    phase on UVA/Padova, which "stabilized" metrics with no extra hypoglycaemia.
+  - Within-person consistency from cycle to cycle is unmeasured.
+  - No method infers the phase from CGM and insulin alone.
+- **Phase anchors.** Wearable temperature dates ovulation to about ±1.2–1.6 days (Apple wrist temperature,
+  Wang 2025; Oura, Thigpen 2025). HealthKit exposes `menstrualFlow` and sleeping wrist temperature, and Loop already
+  reads HealthKit.
+
+**What BDDP shows** [meas, 2026-10-25]:
+
+- **The cohort.** 177 Loop users have used an override named for their cycle, at a median ×1.2. 64 of them have 193
+  multi-day runs, lasting a median 5 days.
+- **Timing is irregular.** The per-person SD of the gap between runs is a median 10 days.
+- **Before switch-on**, glucose rises for about 3 days. On the day before, it runs +11.5 mg/dL [8.1, 14.9] even
+  though Loop already delivers +12% TDD. Loop's own feedback absorbs part of the shift, not all of it.
+- **Under the override**, glucose returns to baseline at +11% TDD, with t<70 and t<54 unchanged. It is still
+  under-covered late in the run.
+- **Switching off** brings no lows over the next 7 days.
+- **Dexcom G7 "cycle" logs** are a weak anchor by comparison. Measured person-weighted, glucose shows no reliable
+  change around them.
+
+**Paths** [hyp; candidates belong to frontier]:
+
+1. **Replay the override runs with and without the recorded override.** This measures how much of the person's
+   correction Loop would find unaided. Under way as TIDEPOOL-96.
+2. **A multi-day needs adapter**, scored on this cohort rather than cohort-wide. Does it catch the 2–3 day rise before
+   the person did? Does it release at onset without follicular lows?
+   - The person's own ×1.1–1.2 is a known-good reference.
+   - The safety test is t<54 and IOB at the 54 crossing in the 7 days after release.
+3. **Prompt the person, rather than schedule.** Timing this irregular argues against a calendar schedule. A "suggest
+   your cycle preset" prompt, triggered by the multi-day pattern, matches the data better.
+4. **Anchor the phase from HealthKit** (flow, wrist temperature). BDDP does not carry these, so it is a design input
+   rather than something we can replay.
+
+Full report with 68 verified references: `runs/2026-10-25-cycle/cycle-lit-report.md`. Additive-side evidence is in
+`docs/handoffs/2026-10-25-additive-cycle-and-site-failures.md`.
+
+### J. Boost: what the most developed community fully closed loop measured
+
+Boost is Tim Street's fork of AndroidAPS, and since 2026 of Trio, for fully closed loop with no meal announcement.
+It keeps all of oref (basal, dynamic ISF, predictions, safety gates) and replaces only the decision on SMB size.
+Alongside it he publishes analyses of Nightscout and Jaeb data. None of this is peer reviewed. Sources are the
+code, its backtesting reports and four analysis repositories (§7); [pub] below means published there.
+
+**The design** [pub]:
+
+- **A meal hypothesis carried across cycles.** The states are idle, observing, confirmed, committed and recovering,
+  with dose multipliers ×1.0, ×0.3, ×1.8, ×1.0 and ×0.4 on oref's insulin requirement.
+  - A 0–1 meal score moves it between states. The score blends rate of rise, acceleration, a learned
+    meal-likelihood, a time-of-day prior, the cumulative 30-min rise, and penalties for a recent low and for
+    exercise.
+  - There is one catch-up shot per meal, after which the session is locked for 90 minutes.
+  - Recovering is entered on deceleration and winds dosing down, rather than re-deciding from scratch each cycle.
+- **Confidence is separate from restraint.** A budget tied to oref's requirement sets the size; brakes that can only
+  reduce sit outside the meal logic.
+  - Outside a confirmed meal it never doses more than oref would.
+  - For 45 minutes after a low, catch-up shots are blocked and fallback doses are scaled down by glucose.
+  - Sleep, detected from heart rate and steps, switches the meal logic off overnight.
+- **Outcome.**
+  - About 87 ± 6% TIR without announcement in a self-selected user group.
+  - His own adjusted comparison finds the move from the tiered version to the state machine outcome-neutral:
+    +0.2 TIR within person [−6.3, +4.7].
+  - His conclusion is that oref fully closed loop is near its ceiling.
+
+**Findings that bear on our work** [pub, his data; the application to Loop is hyp]:
+
+| Finding | Number | Why it matters here |
+|---|---|---|
+| Insulin moved earlier within a meal vs insulin added | moved ≈ harm-neutral; added "approximately fifteen percentage points of additional lows". Associational, priced by the share of insulin sitting before a low; the denominator is not stated | Our dose-more candidates (C05–C07, E1–E8) added insulin. None tested moving it |
+| Lows after a meal commitment, against within-person controls matched on hour, BG and IOB | t<70 within 3 h 22.8% vs 14.0%; t<54 7.6% vs 1.9% (1,074 commitments, 11 people). Which commitments crash: AUC 0.518 | A counterfactual-free field check on large automatic boluses. It also says the risk is in the commitment, not in a detectable subclass |
+| Insulin action peak, deconvolved from closed-loop data (31 oref users) | median 42 min (28–112) vs configured 55; r = +0.03; per person −8 min | Loop's adult curve peaks at 75 min. A body faster than the belief is the stacking mechanism |
+| Dynamic ISF against overnight glucose (1,684 people in public study archives, 842 on Loop) | Neither dynamic-ISF equation predicted overnight falls better than a person-calibrated static ISF. Measured effect per unit runs the other way, 0.64× at 90–120 relative to 120–150. His own audit holds the predictive result and withdraws the physiological reading: residual carbs may explain part of it | Against glucose-dependent ISF candidates for Loop. The near-target dip is a check on our glucose-effectiveness/defense terms, not a calibration target |
+| His oref twin (fixed meals and rescues, profile ISF) against a UVA/Padova re-run | Δt<70 slope 0.35, Δt<54 0.26; ranking good (ρ 0.86) | The same over-prediction of low changes as our replay (4–6×), from the same structure |
+| Learned forecasters and twins off-policy | Error flat across an 8× ISF range; a GBM forecaster implied ≈ zero dose response | A check owed by C19 and the ice generator before trusting their insulin response |
+
+**Paths** [hyp; candidates belong to frontier]:
+
+1. **Decompose every candidate's per-meal delivery change into moved and added insulin.** It can be run on existing
+   traces and gives a new reading of the dose-more nulls.
+2. **One bounded catch-up per meal, then an explicit wind-down,** expressed as a forecast term spent once per
+   session and stacked on guard+runway. This is the bounded, retiming form §5 G1 asks for.
+   - The retractable variant uses temp basal for the early, low-precision part. His early detector leads by
+     15 min at 98% recall but 15% precision, which suits a dose that can be withdrawn, not an automatic bolus.
+3. **A belief/body insulin-curve test.** Measure the BDDP peak with his method (automatic-bolus donors; temp-basal
+   insulin is mostly controller reaction). If it is fast, re-score the controller-curve choice with the body set to
+   it (`--patient-insulin-model`), on TIR and t<70.
+4. **Two validation steps.**
+   - A null arm (a trivial change through every cohort run) so harm thresholds come from noise.
+   - A same-period test: ICE-replay a forward-simulator baseline under a change and compare with the simulator's own
+     re-run. This separates replay error from period-to-period variation.
+
+Our notes, with code references: `runs/2026-10-28-boost/boost-findings.md`.
+
 ---
 
 ## 6. Corrections to watch for when reading the agents' source notes
 
 - One literature summary described LoopEval as dose-only replay. It is not: it simulates counterfactual glucose. Our *field* comparators (APS-what-if, trio-algorithm-validator) are dose-only.
+- Report 05 could not source the AAPS "Boost" fork. It is Tim Street's; see §5 J.
 - Another described our counter-reg mechanism as "a hard 54 mg/dL floor." It is a gated defense-velocity term (onset/gain/max), off by default. The literature critique (unphysical shape, no behavioral rescue model) still applies.
 
 ---
@@ -277,3 +399,26 @@ Venues: JDST or DT&T for (1) and (2); a short methods note could pair with GluPr
 - Lal RA et al. AAPS vs Loop in diabetic pigs. *Clin Transl Med* 2021. doi:10.1002/ctm2.387
 - Lal R, Braune K, Lewis DM et al. Open-source fully closed loop review. *Diabetologia* 2026. doi:10.1007/s00125-025-06644-8
 - Ibrahim M et al. Meal detection systematic review. *PLOS Digit Health* 2026.
+
+**Boost and its analyses** (not peer reviewed; repositories read 2026-10-28)
+- Street T. Boost for AndroidAPS 3.4 and Trio: code, design docs and backtesting reports. github.com/Tim2000s/Boost-in-AAPS_3.4
+- Street T. Beyond carb counting: Boost's evolution and the limits of "fully closed loop". diabettech.com, 2026.
+- Street T. Estimating insulin action peak time and duration from ordinary closed-loop data (preprint in repository). github.com/Tim2000s/Insulin-Kinetics
+- Street T. Dynamic ISF calculations: empirical ISF in open-source AID and Jaeb archives. github.com/Tim2000s/dynamic-isf-calculations
+- Street T. oref digital twin: advisory settings tuning by oref replay. github.com/Tim2000s/oref-digital-twin
+
+**Menstrual cycle** (DOIs resolved 2026-10-25)
+- Hossmann S et al. Menstrual cycle and insulin sensitivity on AID. *Diabetes Care* 2026;49:1673–1680. doi:10.2337/dc26-0692
+- Takagi E et al. Menstrual insulin requirements on AHCL. *J Diabetes Investig* 2026. doi:10.1111/jdi.70463
+- López TR et al. Glycemic control across the cycle on AID. *Diabetes Obes Metab* 2026;28:4884–4889. doi:10.1111/dom.70673
+- Monroy G et al. 780MENS. *DT&T* 2025;27:395–401. doi:10.1089/dia.2024.0522
+- Struckmeyer N et al. Cycle and insulin needs on AID in adolescents. *J Pediatr Endocrinol Metab* 2026;39:990–999. doi:10.1515/jpem-2026-0309
+- Elhenawy YI et al. 780G and cycle-dependent variability. *Diabetes Obes Metab* 2024;26:4916–4923. doi:10.1111/dom.15891
+- Mesa A et al. AHCL across the cycle in hypo-prone women. *DT&T* 2024;26:667–672. doi:10.1089/dia.2023.0571
+- Levy CJ et al. Insulin delivery across the cycle on closed loop. *DT&T* 2022;24:357–361. doi:10.1089/dia.2021.0431
+- Tatulashvili S et al. AGP by cycle phase. *J Clin Endocrinol Metab* 2022;107:2793–2800. doi:10.1210/clinem/dgac443
+- Widom B et al. Glucose metabolism across the cycle in IDDM. *Diabetes Care* 1992;15:213–220. doi:10.2337/diacare.15.2.213
+- Diaz C JL et al. Insulin replacement across the cycle: in silico. *DT&T* 2022;24:832–841. doi:10.1089/dia.2022.0154
+- Mewes D et al. Cycle and open-source AID: qualitative study. *JDST* 2023;17:1304–1316. doi:10.1177/19322968221080199
+- Wang Y et al. Wrist temperature for ovulation and next-menses estimates. *Hum Reprod* 2025;40:469–478. doi:10.1093/humrep/deaf005
+- Thigpen N et al. Oura ring ovulation detection. *J Med Internet Res* 2025;27:e60667. doi:10.2196/60667

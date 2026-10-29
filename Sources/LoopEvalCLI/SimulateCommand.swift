@@ -192,6 +192,10 @@ struct SimulateCommand: AsyncParsableCommand {
             runwayMaxMgdl: candidateRunwayMaxMgdl,
             runwayBgMin: candidateRunwayBgMin,
             runwayCobGate: candidateRunwayCobGate,
+            splitCurvePeakMin: splitCurvePeakMin,
+            splitCurveDurationMin: splitCurveDurationMin,
+            splitCurvePart: splitCurvePart,
+            splitRiseMgdl: splitRiseMgdl,
             descentRcRiseScale: candidateDescentRcRiseScale,
             sigmaBandDescentGate: candidateSigmaBandDescentGate,
             descentHighBgMin: candidateDescentHighBgMin,
@@ -259,6 +263,26 @@ struct SimulateCommand: AsyncParsableCommand {
         candidateConfig.slowRcGain = candidateSlowRcGain
         candidateConfig.slowRcMin = candidateSlowRcMin
         candidateConfig.slowRcMax = candidateSlowRcMax
+        candidateConfig.slowRcIntegral = candidateSlowRcMode == "integral"
+        candidateConfig.slowRcClipMgdl = candidateSlowRcClipMgdl
+        candidateConfig.slowRcLeakSec = candidateSlowRcLeakMin * 60
+        candidateConfig.slowRcPostlowFreezeSec = candidateSlowRcPostlowFreezeMin * 60
+        candidateConfig.slowRcNeeds = candidateSlowRcNeeds
+        candidateConfig.slowRcLowShrink = candidateSlowRcLowShrink
+        if let path = candidateSlowRcGateJson {
+            let obj = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: path))) as? [String: Any] ?? [:]
+            let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let isoPlain = ISO8601DateFormatter()
+            func date(_ v: Any?) -> Date? { (v as? String).flatMap { iso.date(from: $0) ?? isoPlain.date(from: $0) } }
+            candidateConfig.slowRcGateWindows = (obj["windows"] as? [[String: Any]] ?? []).compactMap { w in
+                guard let s = date(w["start"]), let e = date(w["end"]), let m = w["min"] as? Double else { return nil }
+                return SlowRcGateWindow(start: s, end: e, min: m)
+            }.sorted { $0.start < $1.start }
+            candidateConfig.slowRcResets = (obj["resets"] as? [Any] ?? []).compactMap(date).sorted()
+        }
+        guard candidatePlateauUamMinutes >= 0, candidatePlateauUamGain >= 0 else { throw ValidationError("--candidate-plateau-uam-minutes/-gain must be >= 0.") }
+        candidateConfig.plateauUamMinutes = candidatePlateauUamMinutes
+        candidateConfig.plateauUamGain = candidatePlateauUamGain
         // Set post-construction to keep the EvalConfig(...) literal under the
         // Swift type-checker's expression-complexity limit. Property assignment is
         // also order-free — prefer adding NEW candidate flags here rather than
@@ -301,6 +325,17 @@ struct SimulateCommand: AsyncParsableCommand {
             printStderr("custom insulin model: peak \(Int(peak)) min, action duration \(Int(dur)) min (+10 min delay)\n")
         } else if customInsulinDurationMin != nil || customInsulinPeakMin != nil {
             throw ValidationError("--custom-insulin-duration-min/--custom-insulin-peak-min only apply with `--controller-insulin-model custom` or `--patient-insulin-model custom`.")
+        }
+        if splitCurvePeakMin > 0 {
+            guard controllerInsulinSwitch.isEmpty else {
+                throw ValidationError("--split-curve-peak-min uses the custom2 curve slot; it cannot be combined with --controller-insulin-switch.")
+            }
+            guard ["ice", "correction", "projection-cob", "projection-rise"].contains(splitCurvePart) else { throw ValidationError("--split-curve-part must be ice, correction, projection-cob or projection-rise.") }
+            guard splitCurveDurationMin > 2 * splitCurvePeakMin else {
+                throw ValidationError("--split-curve-duration-min must exceed twice --split-curve-peak-min.")
+            }
+            ExponentialInsulinModelPreset.custom2ActionDuration = splitCurveDurationMin * 60
+            ExponentialInsulinModelPreset.custom2PeakActivity = splitCurvePeakMin * 60
         }
         // Dated controller curve changes. A `DURATION/PEAK` spec takes the first free custom slot.
         var insulinTypeChanges: [InsulinTypeChange] = []
@@ -575,6 +610,32 @@ struct SimulateCommand: AsyncParsableCommand {
             candidateConfig.decisionTimesAreAuthoritative = true
         }
 
+        let lowResponse: LowResponseModel?
+        if let path = lowResponseModel {
+            guard candidateCounterfactual else { throw ValidationError("--low-response-model requires --candidate-counterfactual") }
+            lowResponse = try JSONDecoder().decode(LowResponseModel.self, from: Data(contentsOf: URL(fileURLWithPath: path)))
+            printStderr("Low-response model: \(path)\n")
+        } else {
+            lowResponse = nil
+        }
+        let highResponse: LowResponseModel? = try highResponseModel.map {
+            guard candidateCounterfactual else { throw ValidationError("--high-response-model requires --candidate-counterfactual") }
+            return try JSONDecoder().decode(LowResponseModel.self, from: Data(contentsOf: URL(fileURLWithPath: $0)))
+        }
+        var lrSubtract: [Int: Double]? = nil
+        if let path = lowResponseSubtractCsv {
+            guard candidateCounterfactual else { throw ValidationError("--low-response-subtract-csv requires --candidate-counterfactual") }
+            let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            var m: [Int: Double] = [:]
+            for line in try String(contentsOfFile: path, encoding: .utf8).split(whereSeparator: { $0.isNewline }) {
+                let c = line.split(separator: ",")
+                guard c.count >= 2, let d = iso.date(from: String(c[0])) ?? ISO8601DateFormatter().date(from: String(c[0])),
+                      let v = Double(c[1].trimmingCharacters(in: .whitespaces)) else { continue }
+                m[Int(d.timeIntervalSince1970.rounded()), default: 0] += v
+            }
+            lrSubtract = m
+            printStderr("Low-response subtraction: \(m.count) samples, total \(String(format: "%.0f", m.values.reduce(0, +))) mg/dL\n")
+        }
         let plant: ExternalPlant?
         if let cmd = externalPlant {
             guard candidateCounterfactual else {
@@ -637,6 +698,9 @@ struct SimulateCommand: AsyncParsableCommand {
             counterRegOnsetMgdl: counterRegOnset,
             counterRegGain: counterRegGain,
             counterRegMaxRate: counterRegMax,
+            counterRegAbsolute: counterRegAbsolute,
+            counterRegTauMin: counterRegTauMin,
+            glucoseEffectivenessPerMin: glucoseEffectiveness,
             cfGapReanchorSec: cfGapReanchorMin * 60,
             patientISF: patientIsf,
             patientInsulinType: parsedPatientInsulinModel,
@@ -652,6 +716,9 @@ struct SimulateCommand: AsyncParsableCommand {
             externalPlant: plant,
             plantBehavior: plantBehavior,
             candidateTherapy: candidateTherapy,
+            lowResponse: lowResponse,
+            highResponse: highResponse,
+            lowResponseSubtract: lrSubtract,
             progress: Self.makeProgressReporter()
         )
         plant?.finish()

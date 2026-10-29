@@ -193,6 +193,12 @@ class BehaviorTraits:
     corr_size_own: bool = True           # corrections at the donor's own dialled size: max(recommendation, U), U ~ lnN(corr_u_med,
                                          # corr_u_lsd) from their lone boluses (median 1.45 U; LESSONS 224)
     corr_u_med: float = 1.0
+    corr_x_beta: float = 0.0             # experiment (LESSONS 539): correction hazard x exp(beta * x), x = log(basal / basal0) -
+                                         # log(ISF / ISF0) against the person's own settings; donors -0.58 (corrections -44% per
+                                         # log unit of a more aggressive edit, L 537); 0 = off
+    corr_rec_gate: bool = False          # experiment (LESSONS 538): with Loop recommending < 0.1 U, correct only at the donor's own
+    corr_rec0: float = 0.09              # share of corrections given then (median 0.09 of 469 e-pool donors); the donors stop
+                                         # stepping in when Loop is handling a high, so their corrections fall after an edit (L 537)
     stack_own: bool = False              # bolus stacking: a no-entry follow-up 2-30 min after a user bolus while CGM is above the
                                          # correction level and rising, at the donor's share per bolus (median 0.03; LESSONS 226)
     stack_p: float = 0.0
@@ -221,6 +227,7 @@ class BehaviorTraits:
     # site changes
     site_days: float = 3.0
     site_hour: float = 19.5
+    site_clock: bool = False             # experiment (LESSONS 523): site changes on whole days at the person's hour
 
 
 # no-entry user boluses per hour at CGM 180–280, by 30-min trend (falling < −10 / flat / +10–30 / > +30 mg/dL): donors
@@ -336,6 +343,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         # so the realized lone-bolus rate reaches the donor's (LESSONS 47)
         corr_over_share=float(_num(rates, 'corr_over_share')) if np.isfinite(_num(rates, 'corr_over_share')) else 0.0,
         corr_u_med=float(_num(rates, 'corr_u_med')) if np.isfinite(_num(rates, 'corr_u_med')) else 1.0,
+        corr_rec0=float(_num(rates, 'corr_rec0')) if np.isfinite(_num(rates, 'corr_rec0')) else 0.09,
         stack_p=float(_num(rates, 'stack_p')) if np.isfinite(_num(rates, 'stack_p')) else 0.0,
         corr_u_lsd=float(_num(rates, 'corr_u_lsd')) if np.isfinite(_num(rates, 'corr_u_lsd')) else 0.8,
         corr_over_u=float(_num(rates, 'corr_over_u')) if np.isfinite(_num(rates, 'corr_over_u')) else 1.0,
@@ -541,6 +549,8 @@ class Behavior:
         self.in_low = False
         self.low_seen = False
         self.next_site = (rng.uniform(0, traits.site_days) * DAY // DAY) * DAY + traits.site_hour * 60
+        self.r_site = np.random.default_rng(int(getattr(person, "seed", 0)) + 1517)     # site_clock's own stream
+        self.site_hour_p = float(np.clip(self.r_site.normal(19.5, 1.5), 16.0, 23.0))    # the person's habitual hour
         self.log = []                           # ground truth of every behavior event
 
     # ------------------------------------------------------------------ helpers
@@ -1003,7 +1013,13 @@ class Behavior:
                 self.log.append((m, "ex_carbs", rest[0], None))
         if m >= self.next_site:
             acts.append(("site_change", m)); self.log.append((m, "site_change", 0, None))
-            self.next_site += t.site_days * DAY
+            if getattr(t, "site_clock", False):
+                # whole days at the person's evening hour (eda L 52: twiist changes a median 72 h apart, clustered 17-22 h;
+                # LESSONS 523): a continuous interval drifted each change by hours round the clock
+                k = max(2, int(round(t.site_days + self.r_site.normal(0, 0.4))))
+                self.next_site = (m // DAY + k) * DAY + float(np.clip(self.site_hour_p + self.r_site.normal(0, 1.0), 15.0, 23.9)) * 60
+            else:
+                self.next_site += t.site_days * DAY
         if reading:                                  # a new reading (None = withheld, False = no report)
             self.readings.append((m, reading))
             if len(self.readings) > 12: self.readings.pop(0)
@@ -1012,6 +1028,16 @@ class Behavior:
                 and self.r_stack.random() < t.stack_p:
             self.planned.append((m + float(self.r_stack.uniform(2, 30)), ("stack",))); self.planned.sort(key=lambda x: x[0])
         return acts
+
+    def _corr_x(self) -> float:
+        """Correction hazard multiplier for settings more or less aggressive than the person's own (corr_x_beta)."""
+        if not self.t.corr_x_beta: return 1.0
+        if getattr(self, "_corr_xm", None) is None:
+            s, s0 = self.p.settings, (self.p.traits.get("settings0") or {})
+            try: x = math.log(s["basal_uh"] / s0["basal_uh"]) - math.log(s["isf"] / s0["isf"])
+            except (KeyError, ZeroDivisionError, ValueError): x = 0.0
+            self._corr_xm = math.exp(self.t.corr_x_beta * x)
+        return self._corr_xm
 
     def _defense_and_corrections(self, m: float, state: dict) -> list:
         t, r = self.t, self.rng
@@ -1032,7 +1058,8 @@ class Behavior:
             acts.append(("override", ov)); self.more_until = m + dur
             self.log.append((m, "override_more", t.ov_more_f, cgm))
         if not asleep and cgm > t.corr_thr and self.trend() > -0.5 and m - self.last_bolus > t.corr_wait \
-                and r.random() < t.p_correct * (_corr_trend_w(self.trend() * 30.0) if t.corr_trend else 1.0):
+                and r.random() < t.p_correct * self._corr_x() * (_corr_trend_w(self.trend() * 30.0) if t.corr_trend else 1.0) \
+                and not (t.corr_rec_gate and float(state.get("rec_bolus") or 0.0) < 0.1 and self.r_corr.random() >= t.corr_rec0):
             if t.corr_size_own:
                 u_ = round(float(np.exp(self.r_corr.normal(math.log(max(t.corr_u_med, 0.1)), max(t.corr_u_lsd, 0.1)))) * 20) / 20
                 acts.append(("bolus_min", m, u_))
