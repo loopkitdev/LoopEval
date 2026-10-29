@@ -81,6 +81,8 @@ public struct ClosedLoopSimResult: Codable, Sendable {
         // Full baseline forecast curve (sim Loop on REAL BG), mg/dL, 5-min spaced from t.
         // For point-by-point comparison against field devicestatus predicted.values. Empty unless requested.
         public var baselinePredCurve: [Double] = []
+        // The candidate's forecast curve, same spacing; empty unless requested.
+        public var candidatePredCurve: [Double] = []
     }
     public let steps: [Step]
     public let baselineLabel: String
@@ -1003,6 +1005,7 @@ extension EvaluationEngine {
             var candidateTempRate: Double
             var candidateTempAction = "set"
             var candidateEventualBG = Double.nan
+            var candidatePredCurve: [Double] = []
             var candidateIOB = Double.nan
             var candidateCOB = Double.nan
             var candidateMomentum = Double.nan
@@ -1222,6 +1225,9 @@ extension EvaluationEngine {
                     }
                 }
                 candidateEventualBG = result.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
+                if baselineConfig.exportForecastCurve {
+                    candidatePredCurve = result.prediction.glucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
+                }
                 candidateIOB = result.prediction.activeInsulin ?? .nan
                 candidateCOB = result.prediction.activeCarbs ?? .nan
                 // Diagnostic: CAND_FC_DUMP=1 prints the candidate forecast at +30/60/90/120/180 min and eventual,
@@ -1564,7 +1570,8 @@ extension EvaluationEngine {
                 candidateManualBolusRecOut: candidateManualBolusRec,
                 plantBolusU: stepPlantBolusU,
                 plantCarbsG: stepPlantCarbsG,
-                baselinePredCurve: baselinePredCurve
+                baselinePredCurve: baselinePredCurve,
+                candidatePredCurve: candidatePredCurve
             ))
             steps[steps.count - 1].candidateBasalDeliveredU = delivered?.basal ?? .nan
         }

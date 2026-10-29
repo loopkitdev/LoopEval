@@ -63,8 +63,10 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **The patient is independent of the controller** (2026-10-18): controller configuration (RC mode, GBAF, strategy) is
   never a patient trait; validation runs give each person their donor's deployed controller (`--enable rc_own`), the
   code default stays stock.
-- **No mystery terms**: a divergence is closed by fixing or adding a named, evidenced component, never by an unnamed fitted noise
-  or offset term.
+- **No mystery terms — except the residual layer** (Pete 2026-10-27): a divergence in the evidenced core is closed by fixing
+  or adding a named component, never by an unnamed term. The variability the core cannot carry is modelled by the
+  data-driven residual (`resid`), fitted per person to the donor's own data and kept separate from the core; the core is
+  not retuned to chase a statistic.
 - **Fit from literature first, then from our data** (2026-10-20): a named component's parameters come from the literature
   where it identifies them; where it does not, fitting them to the donor data is fine (the sensor included), kept inside
   the component's own evidence (e.g. a sensor fit keeps its FDA accuracy loss).
@@ -81,10 +83,18 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. A different draw of people (seed0) moves the count by up to 6 (LESSONS 444): score an arm whose
   effect is within that scatter on two draws (seed0 1000 and 5000) before adopting it.
-- **Current reference** (2026-10-25): lg13 (draw 2 lg13_5k; runs/2026-10-25-additive-rebuild) — lg12's model on the engine that
-  keeps delivering through skipped and sensor-less cycles (main 8fa8411 → 4c80c60c; before it twins got no insulin across their
-  own CGM gaps, up to 23 h; LESSONS 505). Score 0.376 / 0.415, tier 1 0.233 / 0.305; mean 154.1 / 157.2, TIR 71.2 / 67.5, t54
-  0.180 / 0.208%, lows 0.92 / 0.96 per day. Run additive cohorts on a build of current main.
+- **Current reference** (2026-10-28): **sd3** (draw 2 sd3_5k; runs/2026-10-27-additive-natexp) — lg13's evidenced core with a
+  data-driven residual (per-person level and fast drive) and each person's meal glucose fitted to their donor's spread
+  (MODEL_GUIDE § 9–10, LESSONS 513–532). Score 0.370 / 0.454; held-out twin–donor TIR ρ 0.89, CV 0.63 (lg13 0.45 / 0.11).
+  Natural experiments (pilot, x, e pools; 790 edits): twins start at their donor's pre-edit level and the tight / rest
+  split has the field's sign, but the TIR response to an edit is ~2/3 of the field's and ranks no better than lg13 (L 532).
+  Change-test arms need per-event seeds (ARM_EVSEED, L 531). For the SIZE of a change use lg13's settings (TIR field /
+  twin 0.95 / 0.64 / 1.03 on pilot / x / e with the corrected scorer), or f4 (level-only residual, 0.76 / 1.27) when the
+  twin must start at its donor's level; sd3 under-responds (1.32 / 1.29 / 1.39; L 542). Ruled out as the cause of sd3's smaller response: the residual, the correction habit, the
+  sensitivity level (L 534–540); the spread fit damps it (L 534). Open: meal tail 24–27 (38), site-change cost.
+- **Previous reference** lg13 (2026-10-25; runs/2026-10-25-additive-rebuild) — lg12's model on the engine that
+  keeps delivering through skipped and sensor-less cycles (main 8fa8411 → 4c80c60c; LESSONS 505). Score 0.376 / 0.415,
+  tier 1 0.233 / 0.305; mean 154.1 / 157.2, TIR 71.2 / 67.5, t54 0.180 / 0.208%, lows 0.92 / 0.96 per day.
 - **lg12** (2026-10-23; runs/2026-10-23-additive-falls) — c446_npu with the saturating
   acute exercise sensitivity (C2, k 0.1; LESSONS 495) and treatment carbs logged at 0.12 (LESSONS 500). Score 0.371 / 0.400; lows 0.88 / 1.00 per day, t54
   0.197 / 0.176%, TIR 71.0 / 67.8. Open: the activity response (−4.2 / −4.8 vs −12.6 at high IOB; eating around sessions, LESSONS 497), entries ending in a fast

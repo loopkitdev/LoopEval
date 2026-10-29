@@ -854,6 +854,7 @@ struct SimulateCommand: AsyncParsableCommand {
             let patientIOBField: Double
             let patientIOBCandidate: Double
             let baselinePredCurve: [Double]?       // full baseline forecast curve (mg/dL, 5-min spaced from t); nil unless --export-forecast-curve
+            let candidatePredCurve: [Double]?      // the candidate's, same spacing and flag
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
         struct CounterSample: Codable { let t: String; let bg: Double? }   // nil: the plant's CGM gave no reading
@@ -925,7 +926,8 @@ struct SimulateCommand: AsyncParsableCommand {
                  plantCarbsG: $0.plantCarbsG,
                  patientIOBField: $0.patientIOBField.isFinite ? $0.patientIOBField : 0.0,
                  patientIOBCandidate: $0.patientIOBCandidate.isFinite ? $0.patientIOBCandidate : 0.0,
-                 baselinePredCurve: $0.baselinePredCurve.isEmpty ? nil : $0.baselinePredCurve)
+                 baselinePredCurve: $0.baselinePredCurve.isEmpty ? nil : $0.baselinePredCurve,
+                 candidatePredCurve: $0.candidatePredCurve.isEmpty ? nil : $0.candidatePredCurve)
         }
         let actualOut = data.glucose.sorted { $0.startDate < $1.startDate }.map {
             ActualSample(t: formatter.string(from: $0.startDate),

@@ -25,7 +25,7 @@ import pandas as pd
 from .physiology import Body, BodyParams, Parcel
 from .insulins import BRAND_TO_FORMULATION, FORMULATIONS
 
-BEHAVIOR_COLS = ["far_unann", "carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "archetype", "meals_per_day",
+BEHAVIOR_COLS = ["far_unann", "corr_rec0", "carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "archetype", "meals_per_day",
                  "meal_hours", "meal_size_med", "meal_size_logsd", "announced_share", "estimate_ratio",
                  "bolus_lead_min", "p_bolus_ann", "bolus_ratio", "corrections_per_day", "corr_bg_med", "corr_ratio",
                  "rescues_per_day", "rescue_size_med", "rescue_bg_med", "free_boluses_per_day",
@@ -337,6 +337,10 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         # reliability (template csf_geq_mult); the intake budget is the donor's, so it is divided back out below
         k_ = row.get("csf_geq_mult") if hasattr(row, "get") else None
         if k_ is not None and np.isfinite(float(k_)): k_csf_geq = float(k_); csf_target *= k_csf_geq
+    # per-person meal glucose fitted to the donor's glucose spread (LESSONS 529; Pete 2026-10-28): a tight donor's twin
+    # swung too widely and a loose one's too narrowly (L 528); grams eaten stay the donor's, each meal's glucose x this
+    k_ = row.get("csf_sd_mult") if hasattr(row, "get") else None
+    if k_ is not None and np.isfinite(float(k_)): k_csf_geq *= float(k_); csf_target *= float(k_)
     # csf_lvl (experiment, LESSONS 366): the carb-sensitivity level × this, read from the unsegmented meal counteraction (ICE
     # above pre-meal over 0-360 min per entered gram, donors 47.4 vs twins 38.5) instead of the labeler's pulse g-eq, which
     # ends a pulse at a plateau; the intake budget stays in glucose (fewer grams eaten) unless csf_lvl_keepg
@@ -480,4 +484,11 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                    carbs_g_day=carbs, egp_share=egp_share),
         settings=settings,
         traits=dict(template_rates={k: (row[k] if not isinstance(row[k], float) or np.isfinite(row[k]) else np.nan)
-                                    for k in BEHAVIOR_COLS if k in row.index}))
+                                    for k in BEHAVIOR_COLS if k in row.index},
+                    # the donor's own unexplained-drive amplitudes (mg/dL/h; templates add_residual), read by world's
+                    # data-driven residual (`resid`, LESSONS 514)
+                    # the settings the person lives with (their donor's), kept before any experiment edits them: behaviour that
+                    # adapts to a settings change reads the change against these (LESSONS 539)
+                    settings0={k: float(settings[k]) for k in ("basal_uh", "isf", "cr", "target") if k in settings},
+                    resid={k: float(row[k]) for k in ("resid_f", "resid_b", "resid_d", "resid_m", "si_var")
+                           if k in row.index and np.isfinite(float(row[k]))}))

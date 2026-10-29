@@ -44,7 +44,7 @@ struct SimulateDataFlags: ParsableArguments {
     @Option(name: .long, help: "Output trace JSON path (compatible with tir_methodology_report.py)")
     var traceOut: String
 
-    @Flag(name: .long, help: "Export the full baseline forecast curve per step (sim Loop on real BG) into the trace, for point-by-point comparison against field devicestatus predicted.values.")
+    @Flag(name: .long, help: "Export the full baseline and candidate forecast curves per step (baselinePredCurve, candidatePredCurve) into the trace, for point-by-point comparison against field devicestatus predicted.values.")
     var exportForecastCurve: Bool = false
 }
 
