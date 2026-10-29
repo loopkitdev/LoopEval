@@ -120,3 +120,29 @@ Written 2026-10-29, before the cohort ran.
   primer it delivers.
 - The cancellation rarely bites: a rise that has already run 30 mg/dL keeps going for the next 30 min. Retracting a
   primer that has already been confirmed does not separate the rises that turn.
+
+## Generator check (2026-10-29): half replay's TIR, the same insulin into lows, little better than the dial
+
+Run on workmac with ice's generator as frozen for `docs/handoffs/2026-10-28-frontier-basal-vs-isf-ice.md` (plant
+ice-cobt-nb, checkpoints `v32oc{0,1}TcB2FGUCGLBGGSKaLK`, the same 166 donors, windows and deployed config), engine main
+7c3eae3a. Arms `gr_p30` and `gr_p60` (primer 30 / 60 mg/dL) against `gr_p0`, with no carb entries and no user boluses.
+Run dir `runs/2026-10-29-myloop-e6-gen/` (`spr.sh`, `analyze.py`, `r2/spr_scores_*.csv`). 996 runs, none failed. Paired,
+person bootstrap 90 %, mean over two trainings. Reference: TIR 68.6, t<70 2.00, t<54 0.46, 32.9 U/day.
+
+| vs `gr_p0` | `gr_p30` | `gr_p60` | replay `pr60` |
+|---|---|---|---|
+| ΔTIR (CGM) | +0.39 [+0.28, +0.51] | +0.79 [+0.64, +0.95] | +1.54 |
+| ΔTIR (true glucose, clean time) | +0.41 [+0.25, +0.57] | +0.75 [+0.57, +0.93] | — |
+| Δt<70 | +0.085 [+0.063, +0.108] | +0.146 [+0.115, +0.178] | +0.28 |
+| Δt<54 | +0.024 [+0.011, +0.038] | +0.048 [+0.032, +0.064] | +0.062 |
+| Δ IOB at downward 54 crossings | +0.027 U [+0.000, +0.053] | +0.088 U [+0.051, +0.126] | +0.090 U |
+| Δ insulin | +0.27 U/day | +0.58 U/day | +0.08 U/day |
+
+- **Still moved insulin, less completely.** In a 12-donor sample of `gr_p60` (training 0, primer logged) the primer
+  delivered 3.6 U/day and net insulin rose 0.40 U/day: 11 % kept (per donor −9 % to 39 %). Bar 1 (≤ 25 %) holds.
+- **Δt<54 is inside the scaled guard lines** (+0.118 / +0.098) for both arms.
+- **IOB at 54 crossings rises as in replay.** This is the body's insulin on board in the generator and the controller's
+  in replay, so the two are not the same measure, but both fail bar 2's third condition by the same amount.
+- **Against the dial** (ice's 2026-10-28 run: same donors, trainings and generator, engine ca5bbfc4), needs 1.05 gives
+  +0.82 TIR for +0.19 t<70 and +0.76 U/day. `gr_p60` buys the same TIR for about three quarters of the t<70: t<70 per
+  TIR point 0.18 against the dial's 0.23–0.24. In replay the primer's margin over the dial was several times larger.
