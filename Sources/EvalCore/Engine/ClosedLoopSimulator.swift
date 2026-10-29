@@ -2475,7 +2475,11 @@ extension EvaluationEngine {
         // the scheduled ISF (physicalDelivery split) so the reduction scales
         // ONLY the active-insulin term — never amplifies the sub-basal EGP
         // credit (per the asym-IRC low-side "preserve EGP separately" design).
-        let postlowActive = abs(effExtraISF - extraISFMultiplier) > 1e-12
+        // Autosens is NOT a boost-active case: it estimates a sustained whole-body sensitivity change, so it rescales
+        // the schedule like the needs dial (classic split). Under the physical split, scheduled basal itself carried a
+        // (f − 1)·ISF·volume effect against an unscaled EGP credit: a sensitive factor made Loop forecast a fall from
+        // ordinary basal and suspend (pinned f = 1.25: mean 203 vs 170 for plain ISF × 1.25, 23 donors, 2026-10-29).
+        let postlowActive = abs(extraISFMultiplier * dampFactor - extraISFMultiplier) > 1e-12
         let scheduleBaseline: [AbsoluteScheduleValue<LoopQuantity>]? =
             (isfBoostActiveOnly || postlowActive) ? input.sensitivity : nil
         // Phase-2: with `egpPhysicalDecomposition`, the active-insulin term is
