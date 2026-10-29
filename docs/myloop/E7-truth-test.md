@@ -67,3 +67,65 @@ Replay sees exactly what happened and is asked to predict a change whose true an
 - Only changes Loop makes in this no-entry regime. Meals announced by the person, and manual boluses, are not tested.
 - One seed per training. The generator's behaviour sampling responds to glucose, so a changed arm can draw different
   meals and rescues. That is part of the truth being predicted, and part of the null arm's noise.
+
+## Result (2026-10-29): replay overstates low-side change about 8× on a known body; the primer edge came from the records
+
+Run: `runs/2026-10-29-myloop-e7-truth/` (`build.py`, `replay.py`, `score_e7.py`, `replay_scores.csv`). 166 donors × 2
+trainings × 5 arms, 1,660 replays and 332 null-arm generator runs, none failed.
+
+**Identity.** Replay `gr_p0` against the generator CGM it was built from: per-run median |difference| 0.19 mg/dL, p95
+5.6 (median run), 19 at the 95th-percentile run, worst 43. Dropping the 73 runs with p95 > 10 mg/dL changes no slope by
+more than 0.07.
+
+**Cohort mean change** (mean over trainings, 95 % person bootstrap):
+
+| | replay | generator (truth) | replay ÷ truth |
+|---|---|---|---|
+| needs 1.05, ΔTIR | +1.17 [+0.99, +1.36] | +0.95 [+0.77, +1.14] | 1.2 |
+| needs 1.05, Δt<70 | +0.92 [+0.84, +1.02] | +0.21 [+0.17, +0.25] | 4.5 |
+| needs 1.05, Δt<54 | +0.32 [+0.28, +0.37] | +0.05 [+0.03, +0.07] | 6.5 |
+| needs 1.05, ΔU/day | +0.06 | +0.76 | 0.08 |
+| primer 60, ΔTIR | +0.58 [+0.41, +0.75] | +0.79 [+0.62, +0.98] | 0.7 |
+| primer 60, Δt<70 | +1.11 [+0.98, +1.25] | +0.15 [+0.11, +0.18] | 7.6 |
+| primer 60, Δt<54 | +0.53 [+0.45, +0.61] | +0.05 [+0.03, +0.07] | 11 |
+| primer 30, Δt<70 | +0.40 | +0.09 | 4.7 |
+
+**Per person** (slope of the generator's change on replay's, the three real arms pooled, 95 % person bootstrap):
+
+| | slope | r |
+|---|---|---|
+| ΔTIR | 0.62 [0.53, 0.71] | 0.59 |
+| Δt<70 | 0.12 [0.08, 0.17] | 0.37 |
+| Δt<54 | 0.06 [0.01, 0.10] | 0.18 |
+| Δ mean glucose | 0.60 [0.47, 0.72] | 0.56 |
+
+- **Bar 1 holds:** replay overstates low-side change on a body whose answer is known. Δt<70 slope 0.12, CI upper bound
+  0.17. TIR is overstated far less (0.62). This is the error of replay's method alone: same period, same meals, same
+  engine, with the generator as the body. Tim Street's oref twin showed 0.35 against UVA/Padova.
+- **Replay barely changes the insulin delivered** (+0.06 U/day for needs 1.05, against +0.76 on the generator). Loop takes
+  back almost all of a change in replay, and the lows come from timing within that near-zero net. Why the generator's
+  body lets Loop keep the extra insulin is not measured here. Candidates are its learned low response, which sits inside
+  its ICE, and its insulin sensitivity. The behaviour channel is small: the dial arm draws 2 more meals (73 g) per
+  28 days.
+- **Bar 2: the primer's edge is not replay's method.** On generator records replay prices the primer *worse* than the
+  dial, against a generator answer of no difference:
+
+  | TIR at matched … | replay on generator records | generator (truth) |
+  |---|---|---|
+  | t<70, `gr_p60` | −0.81 [−1.10, −0.55] | +0.12 [−0.13, +0.35] |
+  | t<54, `gr_p60` | −1.32 [−1.77, −0.96] | −0.11 [−0.62, +0.28] |
+  | t<70, `gr_p30` | −0.06 [−0.18, +0.04] | +0.00 [−0.18, +0.19] |
+
+  So the large edge in E6's donor replay came from the donor records, not from the method. What in real records makes
+  the primer look good to replay (real meal shapes, rescue carbs, CGM character) is not separated here.
+- **Bar 3, null arm (needs 1.005):** cohort mean ΔTIR +0.14 in replay and +0.11 on the generator, about a tenth of the
+  dial step in each, as expected. Per-person noise floor (95th percentile of |Δ|, one training):
+
+  | | replay | generator |
+  |---|---|---|
+  | ΔTIR | 0.47 | 1.75 |
+  | Δt<70 | 0.36 | 0.43 |
+  | Δt<54 | 0.18 | 0.26 |
+
+  A single person's generator change below these is not readable. Replay's own floor is lower, but its per-person
+  changes track the truth weakly (r 0.37 on Δt<70).
