@@ -28,3 +28,9 @@
    (+0.25, lift +0.21). The rise condition adds nothing. As bolus rules on Loop's forecast, Control-IQ's hourly 60 %
    correction is −12.8 TIR without its basal boost, and the 780G's full 5-min correction is −1.2 lift. See
    `E4-rise-gated-guard.md`.
+6. **In replay, moving insulin within a meal is free on lows; adding it costs them (E5, 2026-10-28).** 36 same-binary
+   contrasts, 340,200 meal-event contrasts. Each arm's low cost tracks its net added insulin (r 0.82–0.86); the insulin it
+   moves earlier and repays by 4 h carries none (no-entry contrasts: −7 [−24, +12] min < 70 per U, against +47 per U
+   added). Event-level regressions show added insulin with *more* time high, so read prices at the contrast level only.
+   Past movers bought nothing: C39's habit term moved 0.48 U a meal at net −0.06 U and changed neither lows nor highs. A
+   pure dial step moves ≈ 0.2 U a meal through feedback alone. See `E5-moved-vs-added.md`.

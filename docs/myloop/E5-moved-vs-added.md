@@ -57,3 +57,42 @@ event are reported beside its ΔTIR and Δt<70.
   assigned doses.
 - Replay's lows axis is unvalidated (ledger M11), and replay overstates low changes (the ice generator shows 15–50 %).
   A pass says how replay prices the two forms, not how a body would.
+
+## Result (2026-10-28): H1 and H2 pass; moved insulin is free on lows, but the movers so far bought nothing
+
+Run: `runs/2026-10-28-myloop-e5/` (`events.py`, `score.py`, `armlevel.py`, `per_contrast.csv`). 180 donors with carb
+records, 9,450 meal events each, 36 contrasts, 340,200 event-contrasts. Per event: M 0.28 U, A⁺ 0.19 U, A⁻ −0.20 U.
+
+**Primary (event level, pooled, donor fixed effects), minutes per U:**
+
+| | moved M | added A⁺ | withheld A⁻ |
+|---|---|---|---|
+| Δmin<70 | +0.03 [−0.16, +0.19] | +0.86 [+0.35, +1.50] | −0.14 [−0.60, +0.20] |
+| Δmin<54 | +0.08 [−0.01, +0.16] | +0.47 [+0.12, +0.87] | +0.20 [+0.02, +0.38] |
+| Δmin>180 | −0.02 [−0.69, +0.73] | +5.40 [+3.86, +7.22] | −1.00 [−2.11, −0.04] |
+
+H1 passes (βA⁺ lo +0.35 > 0); H2 passes (βM hi +0.19 < βA⁺/3 = 0.29). Per the reading, Boost experiment 2 goes ahead.
+
+**The event-level coefficients are not prices.** Added insulin goes with *more* time above 180, and in the E4 set alone
+with fewer lows: the controller adds insulin where a meal runs high, so the within-event regression mixes cause and
+response. The sign and size of the effect are read at the contrast level, where each arm is an assigned change.
+
+**Contrast level** (cohort mean per event against the arm's mean M, A⁺, A⁻, set intercepts, donor bootstrap), minutes per U:
+
+| | moved M | added A⁺ | withheld A⁻ |
+|---|---|---|---|
+| No entries (E3 + E4, 12 contrasts), Δmin<70 | −7 [−24, +12] | +47 [+16, +70] | +28 [+22, +34] |
+| No entries, Δmin>180 | −38 [−113, +44] | −126 [−248, +7] | −173 [−200, −144] |
+| c47 grid (24), Δmin<70 | −109 [−137, −76] | +126 [+97, +157] | +11 [−2, +26] |
+
+- Net insulin explains each arm's low cost (r 0.82–0.86 between mean N and Δmin<70). Moved insulin never carries a low
+  cost.
+- Moved insulin bought no clear reduction in time high in the no-entry sets (CI spans zero).
+- **The candidates read this way:**
+  - `nc_hab` (C39 form) moved the most of any candidate apart from `ciq`: 0.48 U per meal against 0.22–0.27 for the
+    dial at 0.95–1.05, with net −0.06 U. Lows and highs were unchanged (Δmin>180 +0.5 per event). It failed because what
+    it moved bought nothing, not because it added insulin.
+  - `rg30`, `rgmax` and `lg30` moved and added almost nothing (M ≤ 0.10 U).
+  - `ciq` moved 0.62 U but withheld 0.31 U net, and paid for it in highs (+51 min per event).
+- Every change moves some insulin through feedback alone: a pure dial step shows M ≈ 0.2 U per meal. Read a candidate's
+  M against the dial's at matched net.
