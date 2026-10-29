@@ -1604,3 +1604,30 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     to add and the pulse glucose still to come, so unannounced meals net nothing, as in oc (on i001 iob_net mean 0.45,
     against oc 0.41 and oq 0.29). It tests whether oq's TIR loss came from netting unannounced meals; given the above,
     the post-meal lows need a cause outside the defense's input.
+
+151. **Gating the netting on the smaller of entered and drawn carbs (or, IOBNET_COB=3) loses TIR change prediction as
+    oq did; not kept, oc stays the base.** Paired person bootstrap of or − oc (90 %), mean over both trainings
+    (or_vs_oc_boot.py in runs/2026-10-13-ice-change/):
+    - **e pool (337 edits, 265 donors):** TIR |err| +0.16 [+0.03, +0.30] (r −0.03 [−0.07, +0.01]); t<70 |err| −0.06
+      [−0.12, −0.01] (r −0.02, within noise); t<54 |err| −0.10 [−0.13, −0.06]; mean glucose within noise. oq had TIR
+      |err| +0.15 and t<70 |err| −0.08 on the same pool.
+    - **pilot, switch, x:** within noise on TIR and t<70 r. On x, t<70 |err| is −0.09 [−0.17, −0.01]; on switch, t<54
+      |err| is −0.06 [−0.09, −0.02].
+    - **The netting is not what costs TIR.** or nets less pending insulin than oc (on i001 iob_net 0.45 against 0.41)
+      and oq nets more (0.29), yet both lose the same TIR |err| on e, on both trainings. The loss tracks a retrain
+      away from oc, not the direction of the netting. Training-to-training noise in TIR |err| on e has not been
+      measured against a second oc retrain at a different seed; until it is, 0.15 on e is about the smallest change a
+      two-training comparison can resolve.
+    - **Lows:** held-out overall t<70 2.88 / 2.37 (oc) → 2.16 / 2.29 (or), field 1.41; low within 1–4 h of an isolated
+      meal 15.1 % → 14.1 %, field 6.8 %; t<70 at 2–4 h after an entry still about 3.3–4.1, field 1.3. Of these
+      post-meal lows, 33 % come from entries where the generator drew no meal (25 % of entries; low rate 18 % against
+      12.7 % with a meal drawn), so both kinds of entry run about twice the field's rate (ms_nomeal.py).
+    - **What the meal looks like (ice_after_entry.py, ice_profile.py, runs/2026-10-25-ice-cob/):** over 0–3 h after an
+      isolated entry, the ICE rise per entered gram (median 0.06), IOB at entry (2.0–2.2 U, field 2.4) and IOB at +2 h
+      (3.3 U, field 3.35) match the field. On the larger field sample (1,061 meals, every day of the same donors) the
+      early ICE peak is about 15 % short (+58–63 against +69 at 30–45 min) and the glucose rise at 1–1.5 h matches
+      (+20–22 against +22–24). The 250-meal held-out field sample showed a 30 % shortfall that did not hold.
+    - **Where the excess is:** the generator sits at or below 90 mg/dL two hours after a meal on 10 % of meals, field
+      5.8 % (1,061 meals). From 90–110 mg/dL at +2 h it goes below 70 in the next two hours on 28–35 % of meals, field
+      9 % (23 meals, too few to trust). The next test is that conditional rate on the full field sample: if it holds,
+      the gap is in what follows a moderate post-meal level (falls not caught), not in the meal or the bolus.
