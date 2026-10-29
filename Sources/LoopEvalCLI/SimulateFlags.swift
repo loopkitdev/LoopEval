@@ -46,6 +46,9 @@ struct SimulateDataFlags: ParsableArguments {
 
     @Flag(name: .long, help: "Export the full baseline and candidate forecast curves per step (baselinePredCurve, candidatePredCurve) into the trace, for point-by-point comparison against field devicestatus predicted.values.")
     var exportForecastCurve: Bool = false
+
+    @Option(name: .long, help: "Write each decision's exact algorithm input to this directory as a LoopAlgorithm AlgorithmInputFixture (<time>_baseline.json, <time>_candidate.json), with the engine's own dose and forecast and every config setting the fixture can't express in a `loopEval` block. Loop arms only.")
+    var exportAlgorithmInputs: String?
 }
 
 // Run mode and decision timing
@@ -145,6 +148,9 @@ struct SimulateDeploymentFlags: ParsableArguments {
 
     @Flag(name: .long, help: "Emulate Loop-main: use the pre-#33 step-by-step RC decayEffect (a small discontinuity at delta boundaries for unaligned CGM) instead of the LoopAlgorithm continuous-quadratic reformulation (LoopKit#556). Pass for donors whose deployed Loop predates that change. Applies to both arms.")
     var legacyRcDecay: Bool = false
+
+    @Option(name: .long, help: "Where the dose correction starts reading the forecast: first-glucose (the CGM reading; deployed Loop-main), prediction-start (LoopAlgorithm run(), Loop next-dev), or auto (default): first-glucose when class-1 emulation is on (--no-mid-absorption-isf, --no-gradual-transitions-gate or --legacy-rc-decay), else prediction-start. Both arms.")
+    var correctionAnchor: String = "auto"
 
     @Flag(name: .long, help: "Replay with Loop's TEMP-BASAL dosing strategy (AutomaticDosingStrategy.tempBasal): every correction is a 30-min temp basal, never an automatic bolus. Deployment-faithful for donors whose loop cycles record recommendations only in recommendedBasal (a temp-only deployment records ZERO recommendedBolus over months). Applies to both arms.")
     var tempBasalStrategy: Bool = false
@@ -813,6 +819,7 @@ extension SimulateCommand {
     var localTimezone: String? { get { data.localTimezone } set { data.localTimezone = newValue } }
     var traceOut: String { get { data.traceOut } set { data.traceOut = newValue } }
     var exportForecastCurve: Bool { get { data.exportForecastCurve } set { data.exportForecastCurve = newValue } }
+    var exportAlgorithmInputs: String? { get { data.exportAlgorithmInputs } set { data.exportAlgorithmInputs = newValue } }
     // Run mode and decision timing
     var stepMinutes: Int { get { mode.stepMinutes } set { mode.stepMinutes = newValue } }
     var oracleFutureInputs: Bool { get { mode.oracleFutureInputs } set { mode.oracleFutureInputs = newValue } }
@@ -842,6 +849,7 @@ extension SimulateCommand {
     var clipInProgressTempBasal: Bool { get { deployment.clipInProgressTempBasal } set { deployment.clipInProgressTempBasal = newValue } }
     var noGradualTransitionsGate: Bool { get { deployment.noGradualTransitionsGate } set { deployment.noGradualTransitionsGate = newValue } }
     var legacyRcDecay: Bool { get { deployment.legacyRcDecay } set { deployment.legacyRcDecay = newValue } }
+    var correctionAnchor: String { get { deployment.correctionAnchor } set { deployment.correctionAnchor = newValue } }
     var tempBasalStrategy: Bool { get { deployment.tempBasalStrategy } set { deployment.tempBasalStrategy = newValue } }
     var carbAbsorptionOverrun: Double { get { deployment.carbAbsorptionOverrun } set { deployment.carbAbsorptionOverrun = newValue } }
     var timeBasedAf: Bool { get { deployment.timeBasedAf } set { deployment.timeBasedAf = newValue } }
