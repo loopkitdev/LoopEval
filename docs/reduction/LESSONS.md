@@ -16,3 +16,13 @@
    (0.4 × max(0, (eventual − target) / ISF)), the rest being guard/runway and the dose floors. Yet on one donor
    (i001, 28 d) a TDD-only controller on glucose, slope and automatic-insulin IOB came within 2 TIR points of gr in
    closed loop at the same daily insulin. Closed-loop outcomes, not dose fit, decide. `runs/2026-10-30-reduction-imitate/`.
+3. **A fixed TDD scale fails across people: needs in the scored window are 0.1–4.6× the pre-window TDD (iteration 1,
+   2026-10-30).** 35 pilot donors (fixed stratified subset, i202 dropped: no clean pre-window days), 28 days, dr
+   harness. tdd_pd (glucose + 15-min slope + automatic-insulin IOB, every scale from pre-window TDD, meal-bolus IOB
+   ignored) at TDD × 1.0 against gr: TIR 59.9 vs 70.0 (−10.1 [−15.3, −5.0]), t<70 8.9 vs 1.8 (+7.1 [+4.1, +10.6]),
+   t<54 +3.3; no point of its TDD sweep (×0.8–1.25) or of the aggressive / half-meal-bolus / carbs variants reaches
+   the needs-dial curve. Same total insulin as gr (feedback catches up), delivered late. The losses sit with the
+   donors whose window need departs from their history (i018 31 → 64 U/day: −63 TIR; a broken-looking record,
+   i050, 80 → 7: t<70 44 %). Loop survives these through RC and the person's own settings edits; a surrogate needs
+   its own adaptation, keyed to glucose outcomes. Low announcers lose most (−20 TIR), high announcers least (−4).
+   `runs/2026-10-30-reduction-ec/` (`batch.py`, `it1_cohort.txt`, `per_donor.csv`).
