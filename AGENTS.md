@@ -39,7 +39,7 @@ for that checkout (copy `ROLE.example.md`, exactly like `PRIVATE.md`).
 | trio | `docs/agents/trio.md` | Trio (oref) under LoopEval: oref fidelity on Trio donors, and Loop vs Trio on the same people. |
 | myloop | `docs/agents/myloop.md` | CamAPS FX (Cambridge adaptive MPC, mylife myLoop) as a source of ideas: verified evidence base, CamAPS-inspired candidates for Loop and for simulation. |
 | reduction | `docs/agents/reduction.md` | Surrogate dosing functions with far fewer inputs and no settings to manage, judged on closed-loop outcomes against LoopAlgorithm. |
-| review | `docs/agents/review.md` | Independent check of the other roles' results before they reach Pete: claims, statistics, reproducibility, and faithful replay. |
+| review | `docs/agents/review.md` | Independent check of the other roles' results before they reach Pete: claims, statistics, reproducibility, and faithful replay; finds what to simplify, merge or remove. |
 | — | `docs/agents/verification.md` | Faithful replay and identity checks: the standard every role self-checks against; run independently by review. |
 
 **Keep to your own overlay.** One file, one owner: roles never edit each other's overlay, so
