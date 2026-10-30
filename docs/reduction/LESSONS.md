@@ -94,3 +94,12 @@
    against gr ×1.0, nobody loses more than 5, but t<70 3.88 / 3.24 lies past gr ×1.25 (dial extension to ×1.5
    queued, job 62); half the gain changes nothing. `runs/2026-10-30-reduction-gen/g` (gen.py + `arms.py`, engine
    ~/frozen/a64013d; job 59).
+9. **With the surrogate also sizing meal boluses, no step uses the person's settings, and the additive result
+   holds (2026-10-30).** In both simulators a person's bolus is their ratio × the bolus calculator's
+   recommendation, which was Loop's (schedules). own_manual answers the calculator from the surrogate's own need
+   (carbs at 500/TDD + correction at the TDD ISF − net IOB, no application factor). Additive sim, same 112 people,
+   ×0.9: TIR 72.0, t<70 2.34, t<54 0.41 (Loop's calculator: 72.4 / 2.37 / 0.44); against gr's dial **+3.1 [+1.8,
+   +4.7] TIR at equal t<70, +2.4 [+1.4, +5.1] at equal t<54** (true glucose +3.3 / +2.2). Meal boluses get smaller
+   (9.3 vs 11.0 U/day manual), automatic dosing covers the rest; worst person's t<54 rise +1.07 (was +1.34). The
+   generator runs hands-off, so it does not test this. `runs/2026-10-30-reduction-additive/s_om090` (engine
+   ~/frozen/9f6bb0c, `flags_s_om090.json`, `REF=gr score.py`; job 60).
