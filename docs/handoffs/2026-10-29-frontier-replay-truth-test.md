@@ -1,4 +1,4 @@
-# Replay against a known answer: low-side change is overstated 4–8×, mostly for want of a restoring force
+# Replay against a known answer: low-side change is overstated 4–8×; a restoring force fixes it on the generator, not on real records
 
 From **myloop** to **frontier** and **ice** · 2026-10-29. Board: TIDEPOOL-101 (Boost experiment 5).
 Write-up: `docs/myloop/E7-truth-test.md`. Evidence: `runs/2026-10-29-myloop-e7-truth/` (`build.py`, `replay.py`,
@@ -55,7 +55,14 @@ Replay's own per-person noise barely dilutes these slopes (null-arm reliability 
   about 4.5× to about 1.8×, and the no-change identity tightens (p95 5.6 → 2.1 mg/dL). TIR then reads about 1.35× the
   generator's in the other direction. Per-person agreement does not improve (Δt<70 r 0.21 → 0.16), so the fix is
   cohort-level only. SG 0.01 was chosen after seeing these numbers, and the generator's restoring force is itself a
-  model; whether the force is real is not settled (see *Open*).
+  model.
+- **On real records the restoring force sizes TIR but not the low side** (ice, 2026-10-30, field settings edits, 102
+  edits / 72 donors, `runs/2026-10-30-ice-sg-edits/` on gamepc, ice LESSONS 152). Coefficient of field change on
+  replay's prediction, SG 0 → 0.003 → 0.01: TIR 0.55 → 0.68 → 0.95 [0.38, 1.54]; t<70 0.13 → 0.16 → 0.21 [0.03, 0.41];
+  t<54 0.12 → 0.18. At SG 0.01 replay's t<70 error (1.70) is still worse than predicting no change (1.25), and ranking
+  does not improve (r 0.32 → 0.30). On the same edits the generator's coefficient is 1.35. So against the field,
+  replay at SG 0.01 still overstates low-side change about 5×; most of the low-side gap on real records is something
+  other than glucose effectiveness.
 - **Replay's ranking of candidates on lows is weak per person** (r 0.37 on Δt<70, 0.18 on Δt<54).
 - **The primer's edge over the dial in donor replay (E6) did not come from the method.** On generator records, replay
   ranks the 60 mg/dL primer *worse* than the dial: −0.81 TIR at matched t<70 [−1.10, −0.55], against a true difference
@@ -66,7 +73,8 @@ Replay's own per-person noise barely dilutes these slopes (null-arm reliability 
 
 ## For frontier
 
-- Read replay's Δt<70 and Δt<54 as overstated 4–8× against the generator, more for mechanisms that move insulin in
+- Read replay's Δt<70 and Δt<54 as overstated 4–8× against the generator, and about 5–8× against field edits even with
+  `--glucose-effectiveness 0.01`, more for mechanisms that move insulin in
   time (the primer) than for a needs change. A replay low cost that sits near a guard line is not evidence of harm on
   its own. A replay low *benefit* is overstated the same way.
 - Replay's TIR change is closer (slope 0.62) but still overstated.
@@ -76,12 +84,6 @@ Replay's own per-person noise barely dilutes these slopes (null-arm reliability 
 ## For ice
 
 - No action needed. The null-arm floors above are yours to use. `gr_pn1005` is in the workmac copy of `r2_run.py`.
-
-## Open
-
-- **Is the restoring force real?** Replay at SG 0.01 on the field settings-edit set (2026-10-15 / 10-21 study): if
-  replay's hypo coefficient moves from about 0.1 toward 0.5–1, the force is not specific to the generator and replay's
-  default should change. That is simulator's or ice's call; review offered to run it if Pete wants.
 
 ## Limits
 

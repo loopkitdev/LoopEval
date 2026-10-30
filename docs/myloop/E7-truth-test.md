@@ -116,7 +116,9 @@ more than 0.07.
 
   At SG 0.01 replay keeps the generator's insulin and matches its mean-BG change, and the identity tightens (p95 5.6 →
   2.1 mg/dL). Per-person Δt<70 agreement does not improve (r 0.21 → 0.16). SG 0.01 was picked after seeing the numbers,
-  and the generator's force is a model; replay at SG 0.01 on the field settings-edit set would settle whether it is real.
+  and the generator's force is a model. On the field settings-edit set (ice, 2026-10-30, ice LESSONS 152) SG 0.01
+  brings replay's TIR coefficient to 0.95 but its t<70 coefficient only to 0.21 (from 0.13; the generator's is 1.35).
+  On real records the low-side gap is mostly something else.
 - **Bar 2: the primer's edge is not replay's method.** On generator records replay prices the primer *worse* than the
   dial, against a generator answer of no difference:
 

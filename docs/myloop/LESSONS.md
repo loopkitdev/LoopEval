@@ -59,4 +59,6 @@
     7.6× for the primer). Review (2026-10-30) traced most of it to replay's missing glucose effectiveness: at
     `--glucose-effectiveness 0.01` replay keeps the generator's insulin and the dial's overstatement falls to about 1.8×,
     with per-person agreement no better. I called the gap "replay's method alone"; it was mostly one absent restoring
-    force, and the generator's force is a model too. See `E7-truth-test.md`.
+    force, and the generator's force is a model too. On field settings edits SG 0.01 sizes TIR (coefficient 0.95) but
+    leaves t<70 at 0.21, still about 5× overstated (ice LESSONS 152): the generator agrees with replay-plus-SG, the field
+    does not, so the force is not the whole low-side story. See `E7-truth-test.md`.
