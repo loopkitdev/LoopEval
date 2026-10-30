@@ -1352,13 +1352,13 @@ extension EvaluationEngine {
 
             // ----- E6 PRIMER: one extra automatic bolus at a rise on the candidate's own CGM -----
             if candidateConfig.primerMgdl > 0, cfActive, !decisionTimeReplay,
-               candLastPrimerAt.map({ t.timeIntervalSince($0) >= candidateConfig.primerLockoutMin * 60 }) ?? true {
+               candLastPrimerAt.map({ t.timeIntervalSince($0) >= 180 * 60 }) ?? true {
                 let recent = candidateInput.glucose.filter { $0.startDate > t.addingTimeInterval(-3600 - 150) && $0.startDate <= t }
                     .map { ($0.startDate, $0.quantity.doubleValue(for: mgdlUnit)) }
-                if let last = recent.last, let lo = recent.map({ $0.1 }).min(), lo >= 80, last.1 - lo >= candidateConfig.primerRise,
+                if let last = recent.last, let lo = recent.map({ $0.1 }).min(), lo >= 80, last.1 - lo >= 30,
                    let ref = recent.last(where: { $0.0 <= last.0.addingTimeInterval(-1800 + 150) }),
                    last.0.timeIntervalSince(ref.0) >= 1200,
-                   (last.1 - ref.1) / (last.0.timeIntervalSince(ref.0) / 60) >= candidateConfig.primerSlope {
+                   (last.1 - ref.1) / (last.0.timeIntervalSince(ref.0) / 60) >= 1.5 {
                     let isfNow = (candidateInput.sensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
                         ?? candidateInput.sensitivity.closestPrior(to: t)?.value)?.doubleValue(for: mgdlUnit) ?? 0
                     if isfNow > 0 {

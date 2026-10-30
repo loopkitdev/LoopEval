@@ -590,13 +590,10 @@ public struct EvalConfig: Codable, Sendable {
     /// and none unless the 30-min forecast exceeds autoBolusPred30Min mg/dL (0 = off).
     public var autoBolusMinIntervalMin: Double
     public var autoBolusPred30Min: Double
-    /// E6 primer (moved-insulin test): at a rise seen on the candidate's own CGM (trailing 30-min slope >= primerSlope
-    /// mg/dL/min, BG at least primerRise above its 60-min minimum, no BG < 80 in the last 60 min), deliver one extra
-    /// automatic bolus of primerMgdl / ISF U, then none for primerLockoutMin. Loop sees it as IOB. 0 (default) = off.
+    /// E6 primer (moved-insulin test): at a rise seen on the candidate's own CGM (trailing 30-min slope >= 1.5
+    /// mg/dL/min, BG at least 30 above its 60-min minimum, no BG < 80 in the last 60 min), deliver one extra
+    /// automatic bolus of primerMgdl / ISF U, then none for 180 min. Loop sees it as IOB. 0 (default) = off.
     public var primerMgdl: Double
-    public var primerSlope: Double
-    public var primerRise: Double
-    public var primerLockoutMin: Double
     /// > 0: deliver the primer as extra temp basal over this many minutes, cancelled when the rise stalls. 0 = bolus.
     public var primerTempMin: Double
     /// Runway reserve (C40). The extra correction is bounded by what Loop can still undo: with the
@@ -802,9 +799,6 @@ public struct EvalConfig: Codable, Sendable {
         autoBolusMinIntervalMin: Double = 0,
         autoBolusPred30Min: Double = 0,
         primerMgdl: Double = 0,
-        primerSlope: Double = 1.5,
-        primerRise: Double = 30,
-        primerLockoutMin: Double = 180,
         primerTempMin: Double = 0,
         runwayFraction: Double = 0,
         sigmaPrior: Double = 0,
@@ -983,9 +977,6 @@ public struct EvalConfig: Codable, Sendable {
         self.autoBolusMinIntervalMin = autoBolusMinIntervalMin
         self.autoBolusPred30Min = autoBolusPred30Min
         self.primerMgdl = primerMgdl
-        self.primerSlope = primerSlope
-        self.primerRise = primerRise
-        self.primerLockoutMin = primerLockoutMin
         self.primerTempMin = primerTempMin
         self.runwayFraction                 = runwayFraction
         self.sigmaPrior                     = sigmaPrior
@@ -1104,7 +1095,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
         case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsOverridePresets, oapsSmoothGlucose, oapsPumpPulse
-        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, lowGateRiseDrop, lowGateRiseSlope, lowGateRiseBgMin, autoBolusMinIntervalMin, autoBolusPred30Min, primerMgdl, primerSlope, primerRise, primerLockoutMin, primerTempMin, runwayFraction, sigmaPrior, sigmaPriorSteps, runwayZ, runwayHorizonMin, runwayMaxMgdl, runwayBgMin, runwayCobGate, splitCurvePeakMin, splitCurveDurationMin, splitCurvePart, splitRiseMgdl, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly, negativeInsulinDamper, nidAnchorAlpha, nidMarginalSlope, nidLagMin, basalLockBg
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, lowGateRiseDrop, lowGateRiseSlope, lowGateRiseBgMin, autoBolusMinIntervalMin, autoBolusPred30Min, primerMgdl, primerTempMin, runwayFraction, sigmaPrior, sigmaPriorSteps, runwayZ, runwayHorizonMin, runwayMaxMgdl, runwayBgMin, runwayCobGate, splitCurvePeakMin, splitCurveDurationMin, splitCurvePart, splitRiseMgdl, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly, negativeInsulinDamper, nidAnchorAlpha, nidMarginalSlope, nidLagMin, basalLockBg
         case descentRcRiseScale, descentHighBgMin, descentWindowMin, descentSlopeMax, sigmaBandDescentGate
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
@@ -1267,9 +1258,6 @@ public struct EvalConfig: Codable, Sendable {
         self.autoBolusMinIntervalMin = try c.decodeIfPresent(Double.self, forKey: .autoBolusMinIntervalMin) ?? 0
         self.autoBolusPred30Min = try c.decodeIfPresent(Double.self, forKey: .autoBolusPred30Min) ?? 0
         self.primerMgdl = try c.decodeIfPresent(Double.self, forKey: .primerMgdl) ?? 0
-        self.primerSlope = try c.decodeIfPresent(Double.self, forKey: .primerSlope) ?? 1.5
-        self.primerRise = try c.decodeIfPresent(Double.self, forKey: .primerRise) ?? 30
-        self.primerLockoutMin = try c.decodeIfPresent(Double.self, forKey: .primerLockoutMin) ?? 180
         self.primerTempMin = try c.decodeIfPresent(Double.self, forKey: .primerTempMin) ?? 0
         self.runwayFraction = try c.decodeIfPresent(Double.self, forKey: .runwayFraction) ?? 0
         self.sigmaPrior = try c.decodeIfPresent(Double.self, forKey: .sigmaPrior) ?? 0
@@ -1451,9 +1439,6 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(autoBolusMinIntervalMin, forKey: .autoBolusMinIntervalMin)
         try c.encode(autoBolusPred30Min, forKey: .autoBolusPred30Min)
         try c.encode(primerMgdl, forKey: .primerMgdl)
-        try c.encode(primerSlope, forKey: .primerSlope)
-        try c.encode(primerRise, forKey: .primerRise)
-        try c.encode(primerLockoutMin, forKey: .primerLockoutMin)
         try c.encode(primerTempMin, forKey: .primerTempMin)
         try c.encode(runwayFraction, forKey: .runwayFraction)
         try c.encode(sigmaPrior, forKey: .sigmaPrior)
