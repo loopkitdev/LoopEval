@@ -1635,3 +1635,24 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       starts 30 % of meals below 110 mg/dL (field 24 %), rises less from there (+48 against +56 at 2 h), and from a
       110–140 start goes low on 18 % of meals against the field's 9 %. The 23-meal held-out field sample had put the
       fall from 90–110 at 9 %, which did not hold.
+
+152. **A restoring force in replay (glucose effectiveness) fixes the size of replay's TIR and mean-glucose predictions
+    on real settings edits, but not its low side (Pete's ask, 2026-10-30; the open item in
+    `docs/handoffs/2026-10-29-frontier-replay-truth-test.md`).** The field settings-edit study (102 edits / 72 donors,
+    41 strategy switches / 37 donors; frontier harness, manual boluses verbatim) re-run on engine 7c3eae3a with
+    `--glucose-effectiveness` 0, 0.003 and 0.01 (runs/2026-10-30-ice-sg-edits/, boot.py). Coefficient of the field
+    change on replay's predicted change, with the ICE level shift in the regression, person bootstrap 95 %:
+    - **Edits:** TIR 0.55 [0.24, 0.81] → 0.68 → 0.95 [0.38, 1.54]; mean glucose 0.33 → 0.44 → 0.68; t<70 0.13 [0.03,
+      0.25] → 0.16 → 0.21 [0.03, 0.41]; t<54 0.12 → 0.14 → 0.18 [−0.28, 0.82]. SG 0.01 minus SG 0: TIR +0.40 [+0.12,
+      +0.77], t<70 +0.08 [−0.00, +0.16].
+    - **Strategy switches:** TIR 0.73 → 0.99 → 1.61 [1.16, 2.13]; mean 0.47 → 0.70 → 1.19; t<70 0.07 → 0.10 → 0.16.
+      One SG does not size both kinds of event: 0.01 sizes edit TIR about right and overshoots switch TIR 1.6×.
+    - **Low side stays overstated about 5×.** At SG 0.01, replay's t<70 |err| falls from 2.49 to 1.70 on edits and from
+      2.83 to 1.38 on switches, still worse than predicting no change (1.25 / 0.86). Ranking does not improve (edit
+      t<70 r 0.32 → 0.30). The same coefficient for the generator on the field edits is 1.35 [0.83, 2.23] (2026-10-21
+      tool comparison), so the generator sizes the low-side change and replay with a restoring force still does not.
+    - **Identity improves:** own-settings replay within 10 mg/dL and 5 TIR of the field on 84 → 93 of 102 edits.
+    - On generator records (E7) SG 0.01 cut replay's t<70 overstatement from about 4.5× to 1.8×; on field records it
+      cuts it from about 8× to 5×. What replay misses on the low side of real people is mostly not a missing restoring
+      force. Not measured: what it is. The generator responds to state (rescue and snack behaviour from the
+      counterfactual glucose); replay keeps the field's reactive intake frozen in ICE.
