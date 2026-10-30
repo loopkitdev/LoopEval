@@ -26,6 +26,11 @@ Families
            rc_k > 0: retrospective correction, D = ΔG_30 + ISF_T * (U absorbed in 30 min - b/2), G_h += clamp(rc_k D, ±rc_cap)
            iob_cap_h > 0: a bolus never lifts net IOB above iob_cap_h * TDD/24 (hours of average delivery)
            the correction ISF follows m ** ad_isf; the basal follows m ** ad_basal (0 = basal stays at its TDD0 value, only ISF adapts).
+           User inputs (the only settings a surrogate may take; Pete 2026-10-30):
+           use_target: T = midpoint of the request's "user_target" (the person's own target) instead of `target`;
+           use_override: an active override's needs factor f scales the dose (b x f, ISF / f, carb ratio / f, as Loop's
+           insulin-needs factor does) and its target replaces T. Either target is floored at target_min. t_bolus and
+           ad_sp move with T (T - `target`); t_low does not. The adaptive scale does not learn while an override is on.
 """
 import json, math, sys
 from datetime import datetime, timezone
@@ -107,30 +112,46 @@ class TddPD:
                     manual_w=0.0, cr_k=0.0,
                     manual_tau=0.0, prop_temp=0, temp_floor_bg=80.0,
                     basal_uh=0.0, ad_basal=1.0, ad_isf=1.0, iob_cap_h=0.0, rc_k=0.0, rc_cap=150.0,
-                    ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0)
+                    ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0,
+                    use_target=0, use_override=0, target_min=87.0)
     def __init__(self, **p):
         self.p = {**self.defaults, **p}
         self.curve = ExpCurve(peak=self.p["peak"])
         self.ieq = self.curve.iob_eq()
         self.logm, self.last_t = 0.0, None
-    def adapt(self, t, G):
+    def adapt(self, t, G, sp_shift=0.0, frozen=False):
         """Outcome-keyed scale: log m integrates glucose above the set point (+ad_k per mg/dL·day) and below ad_lo
         (ad_klo times faster, downward). Reads glucose only, never delivered insulin."""
         p = self.p
         if p["ad_sp"] <= 0: return 1.0
-        if self.last_t is not None:
+        if self.last_t is not None and not frozen:
+            sp = p["ad_sp"] + sp_shift
             dt = min(max(t - self.last_t, 0), 1800) / 86400.0
-            self.logm += dt * p["ad_k"] * ((G - p["ad_sp"]) if G >= p["ad_lo"] else -p["ad_klo"] * (p["ad_lo"] - G) + (p["ad_lo"] - p["ad_sp"]))
+            self.logm += dt * p["ad_k"] * ((G - sp) if G >= p["ad_lo"] else -p["ad_klo"] * (p["ad_lo"] - G) + (p["ad_lo"] - sp))
             self.logm = min(max(self.logm, math.log(p["ad_min"])), math.log(p["ad_max"]))
         self.last_t = t
         return math.exp(self.logm)
+    def target_and_factor(self, m):
+        """Correction target and the active override's needs factor (None = no override): the person's target when
+        use_target, else `target`; an override's target and factor when use_override. Targets floored at target_min."""
+        p = self.p; T = p["target"]; fac = None
+        ut = m.get("user_target")
+        if p["use_target"] and ut: T = (ut[0] + ut[1]) / 2
+        ov = m.get("override") if p["use_override"] else None
+        if ov:
+            if ov.get("target_lo") is not None and ov.get("target_hi") is not None: T = (ov["target_lo"] + ov["target_hi"]) / 2
+            fac = ov["factor"] if ov.get("factor") else 1.0
+        return max(T, p["target_min"]), fac
     def __call__(self, m):
         p = self.p; f = features(m, self.curve, p["manual_tau"]); st = m["settings"]
-        tdd = p["tdd"] * self.adapt(ts(m["t"]), f["G"])
-        f["scale"] = tdd / p["tdd"]
-        isf = p["isf_k"] / (p["tdd"] * f["scale"] ** p["ad_isf"]) ** p["isf_e"]
+        T, fac = self.target_and_factor(m)
+        dT = T - p["target"]
+        tdd = p["tdd"] * self.adapt(ts(m["t"]), f["G"], dT, frozen=fac is not None)
+        fac = fac or 1.0
+        f["scale"] = tdd / p["tdd"]; f["T"] = T; f["factor"] = fac
+        isf = p["isf_k"] / (p["tdd"] * f["scale"] ** p["ad_isf"]) ** p["isf_e"] / fac
         b0 = p["basal_uh"] if p["basal_uh"] > 0 else p["basal_frac"] * p["tdd"] / 24.0
-        b = b0 * f["scale"] ** p["ad_basal"]
+        b = b0 * f["scale"] ** p["ad_basal"] * fac
         s = max(-p["slope_cap"], min(p["slope_cap"], f["s15"]))
         Gh = f["G"] + s * p["h"]
         net = f["iob"] - p["manual_w"] * f["iob_manual"] - b * self.ieq
@@ -142,17 +163,17 @@ class TddPD:
             rc = max(-p["rc_cap"], min(p["rc_cap"], p["rc_k"] * D))
         f["rc"] = rc
         Gh = Gh + rc
-        carb_u = f["cob"] / (p["cr_k"] / tdd) if p["cr_k"] > 0 else 0.0
-        need = (min(Gh, f["G"] + p["rise_cap"]) - p["target"]) / isf - net + carb_u
+        carb_u = f["cob"] / (p["cr_k"] / (tdd * fac)) if p["cr_k"] > 0 else 0.0
+        need = (min(Gh, f["G"] + p["rise_cap"]) - T) / isf - net + carb_u
         bolus = 0.0
-        if need > 0 and f["G"] >= p["t_bolus"] and s > p["fall_gate"]:
+        if need > 0 and f["G"] >= p["t_bolus"] + dT and s > p["fall_gate"]:
             bolus = min(p["af"] * need, st.get("max_bolus") or 1e9)
             if p["iob_cap_h"] > 0:   # net insulin on board never above iob_cap_h hours of average delivery
                 bolus = max(0.0, min(bolus, p["iob_cap_h"] * tdd / 24.0 - net))
         if p["prop_temp"]:
             # basal in proportion to where the IOB-aware forecast lands between temp_floor_bg and target
             Gev = min(Gh, f["G"] + p["rise_cap"]) - (net - carb_u) * isf
-            temp = b * min(1.0, max(0.0, (Gev - p["temp_floor_bg"]) / (p["target"] - p["temp_floor_bg"])))
+            temp = b * min(1.0, max(0.0, (Gev - p["temp_floor_bg"]) / max(T - p["temp_floor_bg"], 5.0)))
             if f["G"] < p["t_low"] or Gh < p["t_low"]: temp = 0.0
         else:
             temp = 0.0 if (Gh < p["t_low"] or need < -p["withhold_u"] or f["G"] < p["t_low"]) else b

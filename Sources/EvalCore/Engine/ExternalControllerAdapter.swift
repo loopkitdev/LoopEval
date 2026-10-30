@@ -21,6 +21,8 @@
 //            "carbs": [[ISO start, g, absorption s | null], ...],  // entries visible to this decision
 //            "settings": {"basal": U/h, "isf": mg/dL/U, "cr": g/U, "target_lo": mg/dL, "target_hi": mg/dL,
 //                         "suspend": mg/dL, "max_basal": U/h, "max_bolus": U, "bolus_inc": U, "temp_inc": U/h},
+//            "user_target": [lo, hi] | null,                       // the person's target schedule at t, no override
+//            "override": {"factor": x | null, "target_lo": mg/dL | null, "target_hi": mg/dL | null} | null,  // active at t
 //            "loop": {"bolus": U, "temp_rate": U/h, "iob": U, "cob": g}}
 //   reply   {"bolus": U, "temp_rate": U/h}
 // The reply is clamped to [0, max bolus] and [0, max basal] and floored to the pump's increments,
@@ -75,6 +77,10 @@ public final class ExternalController: @unchecked Sendable {
             "bolus_inc": req.config.bolusIncrement,
             "temp_inc": req.config.tempBasalIncrement,
         ]
+        // The person's own target (the schedule without overrides) and the override active at t, sent apart from
+        // "settings" (where both are already folded in) so a controller can take them as its only user inputs.
+        let userTarget = at(req.therapy.rawTarget.isEmpty ? req.therapy.target : req.therapy.rawTarget)
+        let active = OverrideWindow.resolved(req.therapy.overrideWindows, at: t).last { $0.start <= t && t < $0.end }
         let p = loop.prediction
         let msg: [String: Any] = [
             "t": iso.string(from: t),
@@ -88,6 +94,11 @@ public final class ExternalController: @unchecked Sendable {
                  $0.absorptionTime.map { $0 as Any } ?? NSNull()] as [Any]
             },
             "settings": settings.mapValues { $0.isFinite ? $0 as Any : NSNull() },
+            "user_target": userTarget.map { [$0.lowerBound.doubleValue(for: mg), $0.upperBound.doubleValue(for: mg)] as Any } ?? NSNull(),
+            "override": active.map { w -> Any in
+                ["factor": w.factor.map { $0 as Any } ?? NSNull(), "target_lo": w.targetLo.map { $0 as Any } ?? NSNull(),
+                 "target_hi": w.targetHi.map { $0 as Any } ?? NSNull()] as [String: Any]
+            } ?? NSNull(),
             "loop": ["bolus": loop.bolus, "temp_rate": loop.tempRate,
                      "iob": (p.activeInsulin ?? 0).isFinite ? (p.activeInsulin ?? 0) : 0,
                      "cob": (p.activeCarbs ?? 0).isFinite ? (p.activeCarbs ?? 0) : 0],
