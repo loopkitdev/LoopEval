@@ -31,6 +31,9 @@ Families
            use_override: an active override's needs factor f scales the dose (b x f, ISF / f, carb ratio / f, as Loop's
            insulin-needs factor does) and its target replaces T. Either target is floored at target_min. t_bolus and
            ad_sp move with T (T - `target`); t_low does not. The adaptive scale does not learn while an override is on.
+           own_manual: also answer the bolus calculator ("manual_rec" = max(0, need), the full need with no
+           application factor or glucose gate), so a user's meal bolus is sized from the TDD carb ratio and ISF,
+           not the person's schedules.
 """
 import json, math, sys
 from datetime import datetime, timezone
@@ -113,7 +116,7 @@ class TddPD:
                     manual_tau=0.0, prop_temp=0, temp_floor_bg=80.0,
                     basal_uh=0.0, ad_basal=1.0, ad_isf=1.0, iob_cap_h=0.0, rc_k=0.0, rc_cap=150.0,
                     ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0,
-                    use_target=0, use_override=0, target_min=87.0)
+                    use_target=0, use_override=0, target_min=87.0, own_manual=0)
     def __init__(self, **p):
         self.p = {**self.defaults, **p}
         self.curve = ExpCurve(peak=self.p["peak"])
@@ -177,8 +180,9 @@ class TddPD:
             if f["G"] < p["t_low"] or Gh < p["t_low"]: temp = 0.0
         else:
             temp = 0.0 if (Gh < p["t_low"] or need < -p["withhold_u"] or f["G"] < p["t_low"]) else b
-        return dict(bolus=floor_to(bolus, st.get("bolus_inc")), temp_rate=temp,
-                    _f=f, _need=need)
+        r = dict(bolus=floor_to(bolus, st.get("bolus_inc")), temp_rate=temp, _f=f, _need=need)
+        if p["own_manual"]: r["manual_rec"] = max(0.0, need)
+        return r
 
 FAMILIES = {"tdd_pd": TddPD}
 
@@ -191,7 +195,7 @@ def main():
         if log: log.write(json.dumps({"t": m["t"], **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in r["_f"].items()},
                                       "need": round(r["_need"], 4), "bolus": r["bolus"], "temp": r["temp_rate"],
                                       "loop_bolus": m["loop"]["bolus"], "loop_temp": m["loop"]["temp_rate"], "loop_iob": m["loop"]["iob"]}) + "\n")
-        sys.stdout.write(json.dumps({"bolus": r["bolus"], "temp_rate": r["temp_rate"]}) + "\n"); sys.stdout.flush()
+        sys.stdout.write(json.dumps({k: r[k] for k in ("bolus", "temp_rate", "manual_rec") if k in r}) + "\n"); sys.stdout.flush()
 
 if __name__ == "__main__":
     main()

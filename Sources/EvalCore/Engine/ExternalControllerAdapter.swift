@@ -24,7 +24,9 @@
 //            "user_target": [lo, hi] | null,                       // the person's target schedule at t, no override
 //            "override": {"factor": x | null, "target_lo": mg/dL | null, "target_hi": mg/dL | null} | null,  // active at t
 //            "loop": {"bolus": U, "temp_rate": U/h, "iob": U, "cob": g}}
-//   reply   {"bolus": U, "temp_rate": U/h}
+//   reply   {"bolus": U, "temp_rate": U/h [, "manual_rec": U]}
+// manual_rec, when present, replaces Loop's bolus-calculator recommendation: the dose a user's bolus is sized from
+// (the plant's person, or --candidate-manual-bolus-from-recommendation), so a controller can own meal boluses too.
 // The reply is clamped to [0, max bolus] and [0, max basal] and floored to the pump's increments,
 // as Loop's own decision is.
 
@@ -58,7 +60,7 @@ public final class ExternalController: @unchecked Sendable {
         output = outPipe.fileHandleForReading
     }
 
-    func decide(_ req: EngineStepRequest, loop: EngineStepResult) throws -> (bolus: Double, tempRate: Double) {
+    func decide(_ req: EngineStepRequest, loop: EngineStepResult) throws -> (bolus: Double, tempRate: Double, manualRec: Double?) {
         let mg = LoopUnit.milligramsPerDeciliter
         let t = req.t
         func at<T>(_ s: [AbsoluteScheduleValue<T>]) -> T? {
@@ -112,7 +114,8 @@ public final class ExternalController: @unchecked Sendable {
               let r = (obj["temp_rate"] as? NSNumber)?.doubleValue, r.isFinite else {
             throw ControllerError(description: "external controller: bad reply \(String(data: reply, encoding: .utf8) ?? "?")")
         }
-        return (b, r)
+        let mr = (obj["manual_rec"] as? NSNumber)?.doubleValue
+        return (b, r, (mr?.isFinite ?? false) ? mr : nil)
     }
 
     private func readLine() throws -> Data {
@@ -141,7 +144,7 @@ struct ExternalControllerAdapter: DosingEngine {
 
     func step(_ req: EngineStepRequest) -> EngineStepResult {
         let r = loop.step(req)
-        let reply: (bolus: Double, tempRate: Double)
+        let reply: (bolus: Double, tempRate: Double, manualRec: Double?)
         do { reply = try controller.decide(req, loop: r) } catch {
             FileHandle.standardError.write(Data("\(error)\n".utf8))
             exit(1)
@@ -157,7 +160,7 @@ struct ExternalControllerAdapter: DosingEngine {
             bolus: bolus,
             tempRate: tempRate,
             prediction: r.prediction,
-            manualBolusRec: r.manualBolusRec,
+            manualBolusRec: reply.manualRec.map { pump.supportedBolusVolume(min(max($0, 0), req.therapy.maxBolus(at: t))) } ?? r.manualBolusRec,
             tempAction: "set",
             algorithmInputFixture: nil
         )
