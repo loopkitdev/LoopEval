@@ -663,6 +663,19 @@ struct SimulateCommand: AsyncParsableCommand {
             guard !plantBehavior else { throw ValidationError("--plant-behavior requires --external-plant") }
             plant = nil
         }
+        let controller: ExternalController?
+        if let cmd = candidateExternalController {
+            guard candidateCounterfactual else {
+                throw ValidationError("--candidate-external-controller requires --candidate-counterfactual")
+            }
+            guard !candidateOpenaps && !candidateLoopMimicOaps else {
+                throw ValidationError("--candidate-external-controller replaces the candidate engine; drop --candidate-openaps / --candidate-loop-mimic-oaps")
+            }
+            controller = try ExternalController(command: cmd)
+            printStderr("External controller: \(cmd)\n")
+        } else {
+            controller = nil
+        }
         printStderr("Running closed-loop simulation (sequential, ~10× slower than bench)...\n")
         var candidateTherapy: TherapyTimeline? = nil
         if let path = candidateSchedulesJson {
@@ -729,6 +742,7 @@ struct SimulateCommand: AsyncParsableCommand {
             useLoopMimicForCandidate: candidateLoopMimicOaps,
             sensorCapMgdl: sensorCapMgdl,
             externalPlant: plant,
+            externalController: controller,
             plantBehavior: plantBehavior,
             candidateTherapy: candidateTherapy,
             lowResponse: lowResponse,
@@ -737,6 +751,7 @@ struct SimulateCommand: AsyncParsableCommand {
             progress: Self.makeProgressReporter()
         )
         plant?.finish()
+        controller?.finish()
         printStderr("Progress: 100%\n")
 
         // Emit trace JSON in the same shape as bench --trace-out so the

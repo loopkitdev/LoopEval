@@ -241,6 +241,9 @@ extension EvaluationEngine {
         // advance with a patient model in another process (see ExternalPlant.swift).
         // nil = the ICE replay, unchanged.
         externalPlant: ExternalPlant? = nil,
+        // EXTERNAL CONTROLLER: the candidate's dose decision comes from another process
+        // (ExternalControllerAdapter.swift). nil = the engine chosen by the flags above.
+        externalController: ExternalController? = nil,
         // PLANT BEHAVIOR (protocol v2): the plant's person makes the carb entries and manual
         // boluses. From cfActiveStart the candidate ignores the REAL ones; carbs the plant returns
         // join the candidate's carb store, boluses are delivered at the next decision as
@@ -289,7 +292,9 @@ extension EvaluationEngine {
         // candidate to share the SAME engine instance.
         let baselineEngine: DosingEngine = LoopAdapter()
         let candidateEngine: DosingEngine
-        if useLoopMimicForCandidate {
+        if let controller = externalController {
+            candidateEngine = ExternalControllerAdapter(controller: controller)
+        } else if useLoopMimicForCandidate {
             candidateEngine = LoopMimicViaOpenAPSAdapter()
         } else if useOpenAPSForCandidate {
             candidateEngine = OpenAPSAdapter()
