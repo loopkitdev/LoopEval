@@ -9,7 +9,7 @@ true_* also reported for the gap at t<70."""
 import sys
 import numpy as np, pandas as pd
 
-REF = ["gr_pn095", "gr_p0", "gr_pn105"]
+REF = ["gr_pn095", "gr_p0", "gr_pn105", "gr_pn110", "gr_pn115", "gr_pn125"]
 
 def interp(xr, yr, x):
     o = np.argsort(xr); xs, ys = np.asarray(xr)[o], np.asarray(yr)[o]

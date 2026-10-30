@@ -65,3 +65,18 @@
    (memory: response by control level) and the surrogate adds ~2.5 U/day. The ICE generator decides between them.
    `runs/2026-10-30-reduction-additive/` (`run_loop.sh`, `run_gr.sh`, `run_surr.sh`, `traits.py`, `score.py`,
    `score_gr.txt`).
+7. **The ICE generator sides with the additive sim: the settings-free surrogate beats gr's needs dial at equal
+   lows, on both trainings (2026-10-30).** Same surrogate as lesson 6 (TDD and background rate from the 14 days
+   before each held-out window, ×0.9 / ×1.0), hands-off regime (no entries, no user boluses), 163 donors × 28 d,
+   trainings v32oc{0,1}TcB2FGUCGLBGGSKaLK; gr dial = needs ×0.95–1.25 (the surrogate's lows lie past ×1.05, so the
+   dial had to be extended to read the gap). At ×0.9: TIR +3.3 / +2.8 against gr ×1.0, t<70 +0.48 / +0.19, t<54
+   +0.17 / +0.07 (training 0 / 1; gr t<54 baselines 0.54 / 0.38, guard lines ×1.26 / ×0.88), insulin within 1 %
+   of gr's. **Against the dial: +1.4 TIR [+0.4, +2.3] / +1.9 [+0.9, +2.9] at equal t<70, +1.0 [−0.1, +2.2] / +1.4
+   [+0.3, +2.5] at equal t<54**; true glucose identical. ×1.0, training 1: +2.4 [+1.6, +3.2] at equal t<70; on
+   training 0 its t<70 (3.38) is just past ×1.25 (3.31). Per donor at ×0.9: 52–54 gain more than 5 TIR, 12–15
+   lose more than 5; the losers are under-dosed, not over-dosed (i181: mean 181 vs 152 mg/dL, fewer lows, same
+   insulin; i043 likewise) — the TDD-rule ISF is too weak for them. So two of three tools, including the one with
+   the best record on change (memory: replay predicts change), say the surrogate is better than Loop at matched
+   lows; replay's −12 is most likely its known bias against timing that departs from the field. Scale of the
+   claim: ~+1.5–2 TIR on the generator, +3.4 on the additive sim. `runs/2026-10-30-reduction-gen/` (`spr.sh`,
+   `r2/r2_run.py` arms sx_bh090/100, gr_pn095..125; jobs 57, 58), scored by `analysis/reduction/gen_score.py`.
