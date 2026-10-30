@@ -82,3 +82,15 @@
    `r2/r2_run.py` arms sx_bh090/100, gr_pn095..125; jobs 57, 58), scored by `analysis/reduction/gen_score.py`. Engine: the run dir's `loop-eval-ec` (branch build before b06edb5e);
    reruns go through `scripts/gen/gen.py` with `arms.py` on frozen `~/frozen/a64013d`, which reproduces i090's scores
    exactly for gr_p0 and sx_bh090.
+8. **The under-dosed people were a background-rate offset; an adaptive background rate fixes it (2026-10-30).**
+   i181 (−21.6 TIR against gr on training 0) ran 30–40 mg/dL above gr around the clock, overnight included, on the
+   same insulin: with the background rate b below the person's need, insulin that only covers that need counts as
+   correction on board, and with no integral action glucose settles high. Fix: let the adaptive scale act on b only
+   (ad_basal 1, ad_isf 0 — strengthening the ISF is what stacked IOB in replay, lesson 4), integrating glucose
+   against a set point, 3× faster below 80, b clipped to [0.5, 2]× its pre-window value. Generator, 163 donors,
+   both trainings (0 / 1): set point 150 lifts the gap against gr's needs dial to **+2.7 [+1.9, +3.7] / +2.1 [+1.1,
+   +3.1] TIR at equal t<70 and +2.4 [+1.4, +3.5] / +1.4 [+0.4, +2.5] at equal t<54** (fixed b: +1.4 / +1.9 and
+   +1.0 / +1.4); people losing more than 5 TIR 10 / 9 (fixed b 12 / 15), i181 −2.9. Set point 130: +6.8 / +7.1 TIR
+   against gr ×1.0, nobody loses more than 5, but t<70 3.88 / 3.24 lies past gr ×1.25 (dial extension to ×1.5
+   queued, job 62); half the gain changes nothing. `runs/2026-10-30-reduction-gen/g` (gen.py + `arms.py`, engine
+   ~/frozen/a64013d; job 59).

@@ -1,7 +1,7 @@
 """Score surrogate arms against the gr needs dial on the ICE generator (tier B).
 
 usage: python gen_score.py <red_scores csv> [<red_scores csv> ...]
-Per training: donors common to every arm; reference curve = gr_pn095, gr_p0, gr_pn105 (pooled means, in
+Per training: donors common to every arm; reference curve = every gr_p0 / gr_pnXXX arm present (pooled means, in
 needs order). For each sx arm: pooled means, paired difference against gr_p0, TIR gap at the arm's t<70 and
 at its t<54 against the interpolated dial (positive = more TIR at equal lows; "out" when the arm's low
 lies outside the dial's range), 2,000 donor bootstrap draws, and the worst donor. Columns cgm_* (sensor),
@@ -9,7 +9,8 @@ true_* also reported for the gap at t<70."""
 import sys
 import numpy as np, pandas as pd
 
-REF = ["gr_pn095", "gr_p0", "gr_pn105", "gr_pn110", "gr_pn115", "gr_pn125"]
+def needs(arm):   # gr_p0 = x1.00, gr_pnXXX = xXXX/100
+    return 1.0 if arm == "gr_p0" else int(arm[5:]) / 100
 
 def interp(xr, yr, x):
     o = np.argsort(xr); xs, ys = np.asarray(xr)[o], np.asarray(yr)[o]
@@ -18,6 +19,7 @@ def interp(xr, yr, x):
 def score(path):
     d = pd.read_csv(path)
     d = d.groupby(["alias", "arm"]).mean(numeric_only=True).reset_index()
+    REF = sorted((a for a in d.arm.unique() if a == "gr_p0" or a.startswith("gr_pn")), key=needs)
     arms = sorted(a for a in d.arm.unique() if a not in REF)
     n_arm = d.groupby("alias").arm.nunique(); keep = n_arm[n_arm == n_arm.max()].index
     d = d[d.alias.isin(keep)]
