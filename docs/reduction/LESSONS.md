@@ -38,3 +38,16 @@
    Case (i081, unannounced meal 100 → 249 mg/dL in 30 min): six consecutive 1.1–1.75 U boluses stack IOB from 3 to
    10.5 U, then 53 mg/dL two hours later; the adaptive scale had climbed to 1.5× and strengthened the correction ISF
    with it. Same daily insulin as gr, front-loaded. `it2..it5_cohort.txt`, `traces/i081_case7.*`.
+5. **In replay, every settings-free form sits far above Loop's curve; the scale is not the cause (iterations 6–8,
+   2026-10-30).** Same 35 donors. Oracle check (future data, diagnostic only): with each donor's true in-window TDD
+   as a fixed scale the surrogate is 20–26 TIR below the needs dial at equal t<70 (×0.8: TIR 43.2 at t<70 1.7;
+   gr ×1.0: 70.0 at 1.8). A net-IOB cap (2/3/4 h of average delivery) and a correction ISF held at TDD0 change
+   nothing. Two real gaps found by case study (i018, Loop TIR 90): no retrospective correction (glucose held at
+   220–240 for hours while the surrogate trusted its IOB) and a background rate set at 0.45 TDD/24 = 1.1 U/h against
+   a person whose schedule is 1.7–2.4 U/h. Adding both (RC on the 30-min glucose change insulin did not explain;
+   background rate = median pre-window hourly automatic delivery) moves the curve right: ×1.0 TIR 69.4, t<70 7.0;
+   ×0.9 65.3 / 4.7 — still ~3× gr's t<70 at equal TIR. Across 55 arms, total insulin per arm stays within ±4 % of
+   gr's: over days, any controller that keeps glucose bounded delivers what the person's ICE demands (mass
+   balance), so arms differ only in timing. That every law, gain and cap leaves t<70 at 4–9 suggests a replay
+   bias against controllers whose timing departs from the field's (myloop lesson 10); this is untested until the
+   same arms run on a body with a known answer. `sweeps_t70.png`, `sweeps_t54.png`, `per_donor_all.csv`.

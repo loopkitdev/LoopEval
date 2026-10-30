@@ -22,6 +22,8 @@ Families
            prop_temp: temp = b * clip((G_ev - temp_floor_bg) / (T - temp_floor_bg), 0, 1), G_ev = G_h - (net - carb) * ISF_T
            adaptive scale (ad_sp > 0): TDD above is TDD0 * m(t), log m integrating glucose error against the set
            point ad_sp (ad_k per mg/dL per day), ad_klo times faster below ad_lo, clipped to [ad_min, ad_max];
+           basal_uh > 0: b = basal_uh (the person's pre-window background rate, tdd.basal_hat) instead of basal_frac TDD/24
+           rc_k > 0: retrospective correction, D = ΔG_30 + ISF_T * (U absorbed in 30 min - b/2), G_h += clamp(rc_k D, ±rc_cap)
            iob_cap_h > 0: a bolus never lifts net IOB above iob_cap_h * TDD/24 (hours of average delivery)
            the correction ISF follows m ** ad_isf; the basal follows m ** ad_basal (0 = basal stays at its TDD0 value, only ISF adapts).
 """
@@ -60,6 +62,21 @@ def features(m, curve, manual_tau=0.0):
         x = (gt[k] - gt[-1]) / 60.0; y = gv[k]
         return float(np.polyfit(x, y, 1)[0]) if np.ptp(x) > 0 else 0.0   # mg/dL per min
     # absolute insulin on board: boluses at their time, basal segments spread in 5-min pieces
+    def absorbed(t0, t1):
+        """U absorbed in (t0, t1] from every dose in the window."""
+        tot = 0.0
+        for s0, s1, u, kind, _a in m["doses"]:
+            a0, a1 = ts(s0), ts(s1)
+            if kind == "bolus" or a1 - a0 < 1: pts, w = np.array([a0]), u
+            else:
+                n = max(1, int(round((a1 - a0) / 300))); pts = a0 + (np.arange(n) + 0.5) * (a1 - a0) / n; w = u / n
+            pts = pts[pts < t1]
+            if len(pts): tot += w * float((curve.remaining((t0 - pts) / 60.0) - curve.remaining((t1 - pts) / 60.0)).sum())
+        return tot
+    k30 = gt >= gt[-1] - 30 * 60 - 30
+    dG30 = float(gv[-1] - gv[k30][0]) if k30.sum() >= 2 else 0.0
+    span30 = float((gt[-1] - gt[k30][0]) / 60.0) if k30.sum() >= 2 else 0.0
+    ab30 = absorbed(gt[-1] - span30 * 60, gt[-1]) if span30 > 0 else 0.0
     iob = iob_manual = 0.0
     for s0, s1, u, kind, auto in m["doses"]:
         a0, a1 = ts(s0), ts(s1)
@@ -78,7 +95,8 @@ def features(m, curve, manual_tau=0.0):
         el = (t - ts(c0)) / 60.0; dur = (ab or 10800) / 60.0
         if 0 <= el < dur: cob += g_ * (1 - el / dur)
         elif el < 0: cob += g_
-    return dict(G=G, s15=slope(15), s30=slope(30), iob=iob, iob_manual=iob_manual, cob=cob, age=(t - gt[-1]) / 60.0)
+    return dict(G=G, s15=slope(15), s30=slope(30), iob=iob, iob_manual=iob_manual, cob=cob, age=(t - gt[-1]) / 60.0,
+                dG30=dG30, span30=span30, ab30=ab30)
 
 def floor_to(x, inc):
     return math.floor(x / inc + 1e-9) * inc if inc and inc > 0 else x
@@ -88,7 +106,7 @@ class TddPD:
                     h=30.0, slope_cap=3.0, rise_cap=80.0, af=0.4, fall_gate=-1.0, withhold_u=0.3, peak=75.0,
                     manual_w=0.0, cr_k=0.0,
                     manual_tau=0.0, prop_temp=0, temp_floor_bg=80.0,
-                    ad_basal=1.0, ad_isf=1.0, iob_cap_h=0.0,
+                    basal_uh=0.0, ad_basal=1.0, ad_isf=1.0, iob_cap_h=0.0, rc_k=0.0, rc_cap=150.0,
                     ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0)
     def __init__(self, **p):
         self.p = {**self.defaults, **p}
@@ -111,10 +129,19 @@ class TddPD:
         tdd = p["tdd"] * self.adapt(ts(m["t"]), f["G"])
         f["scale"] = tdd / p["tdd"]
         isf = p["isf_k"] / (p["tdd"] * f["scale"] ** p["ad_isf"]) ** p["isf_e"]
-        b = p["basal_frac"] * p["tdd"] * f["scale"] ** p["ad_basal"] / 24.0
+        b0 = p["basal_uh"] if p["basal_uh"] > 0 else p["basal_frac"] * p["tdd"] / 24.0
+        b = b0 * f["scale"] ** p["ad_basal"]
         s = max(-p["slope_cap"], min(p["slope_cap"], f["s15"]))
         Gh = f["G"] + s * p["h"]
         net = f["iob"] - p["manual_w"] * f["iob_manual"] - b * self.ieq
+        # retrospective correction: 30-min glucose change the insulin model did not explain (insulin absorbed above
+        # the basal need b lowers glucose by ISF_T per U), carried into the forecast like Loop's RC (effect ≈ rc_k x D)
+        rc = 0.0
+        if p["rc_k"] > 0 and f["span30"] >= 20:
+            D = f["dG30"] + isf * (f["ab30"] - b * f["span30"] / 60.0)
+            rc = max(-p["rc_cap"], min(p["rc_cap"], p["rc_k"] * D))
+        f["rc"] = rc
+        Gh = Gh + rc
         carb_u = f["cob"] / (p["cr_k"] / tdd) if p["cr_k"] > 0 else 0.0
         need = (min(Gh, f["G"] + p["rise_cap"]) - p["target"]) / isf - net + carb_u
         bolus = 0.0
