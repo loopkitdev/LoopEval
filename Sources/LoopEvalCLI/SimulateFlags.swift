@@ -651,6 +651,27 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Flag(name: .long, help: "Runway reserve only with no carbs on board.")
     var candidateRunwayCobGate: Bool = false
 
+    @Option(name: .long, help: "Runway COB gate threshold: the runway stays open while carbs on board are at most this (g, default 0 = any carbs close it).")
+    var candidateRunwayCobMaxG: Double = 0
+
+    @Option(name: .long, help: "Runway COB gate fade: above --candidate-runway-cob-max-g the runway scales down linearly to zero over this many grams (default 0 = closes at once).")
+    var candidateRunwayCobFadeG: Double = 0
+
+    @Option(name: .long, help: "Post-exercise mitigation: CSV of exercise windows (header start,end; ISO-8601 UTC). The mitigation starts at each window's end.")
+    var candidateExerciseWindowsCsv: String?
+
+    @Option(name: .long, help: "Post-exercise mitigation: ISF multiplier after an exercise window ends (default 1 = off; >1 = more sensitive).")
+    var candidatePostExerciseIsfMult: Double = 1.0
+
+    @Option(name: .long, help: "Post-exercise mitigation: hours after the window ends that it lasts (default 0 = off).")
+    var candidatePostExerciseHours: Double = 0
+
+    @Option(name: .long, help: "Post-exercise mitigation: the ISF multiplier fades linearly to 1 over the last this-many hours (default 0 = step).")
+    var candidatePostExerciseFadeHours: Double = 0
+
+    @Flag(name: .long, help: "Post-exercise mitigation: close the runway reserve inside the post-exercise period.")
+    var candidatePostExerciseRunwayOff: Bool = false
+
     @Option(name: .long, help: "Curve-split diagnostic: peak (min) of a second curve used by one part of the controller only (see --split-curve-part). 0 = off.")
     var splitCurvePeakMin: Double = 0
 
@@ -986,6 +1007,13 @@ extension SimulateCommand {
     var candidateRunwayMaxMgdl: Double { get { loopExperiments.candidateRunwayMaxMgdl } set { loopExperiments.candidateRunwayMaxMgdl = newValue } }
     var candidateRunwayBgMin: Double { get { loopExperiments.candidateRunwayBgMin } set { loopExperiments.candidateRunwayBgMin = newValue } }
     var candidateRunwayCobGate: Bool { get { loopExperiments.candidateRunwayCobGate } set { loopExperiments.candidateRunwayCobGate = newValue } }
+    var candidateRunwayCobMaxG: Double { get { loopExperiments.candidateRunwayCobMaxG } set { loopExperiments.candidateRunwayCobMaxG = newValue } }
+    var candidateRunwayCobFadeG: Double { get { loopExperiments.candidateRunwayCobFadeG } set { loopExperiments.candidateRunwayCobFadeG = newValue } }
+    var candidateExerciseWindowsCsv: String? { get { loopExperiments.candidateExerciseWindowsCsv } set { loopExperiments.candidateExerciseWindowsCsv = newValue } }
+    var candidatePostExerciseIsfMult: Double { get { loopExperiments.candidatePostExerciseIsfMult } set { loopExperiments.candidatePostExerciseIsfMult = newValue } }
+    var candidatePostExerciseHours: Double { get { loopExperiments.candidatePostExerciseHours } set { loopExperiments.candidatePostExerciseHours = newValue } }
+    var candidatePostExerciseFadeHours: Double { get { loopExperiments.candidatePostExerciseFadeHours } set { loopExperiments.candidatePostExerciseFadeHours = newValue } }
+    var candidatePostExerciseRunwayOff: Bool { get { loopExperiments.candidatePostExerciseRunwayOff } set { loopExperiments.candidatePostExerciseRunwayOff = newValue } }
     var splitCurvePeakMin: Double { get { loopExperiments.splitCurvePeakMin } set { loopExperiments.splitCurvePeakMin = newValue } }
     var splitCurveDurationMin: Double { get { loopExperiments.splitCurveDurationMin } set { loopExperiments.splitCurveDurationMin = newValue } }
     var splitCurvePart: String { get { loopExperiments.splitCurvePart } set { loopExperiments.splitCurvePart = newValue } }

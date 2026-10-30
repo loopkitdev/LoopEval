@@ -2288,6 +2288,19 @@ extension EvaluationEngine {
                 autosensFactor = Swift.max(config.autosensMin, Swift.min(config.autosensMax, f))
             }
         }
+        // Post-exercise mitigation: inside postExerciseHours after the latest exercise window that has ended, ISF × mult
+        // (fading to 1 over the last postExerciseFadeHours). It joins autosens: a whole-body sensitivity change, classic split.
+        var postExerciseActive = false
+        if config.postExerciseHours > 0, !config.exerciseWindows.isEmpty,
+           let last = config.exerciseWindows.last(where: { $0.end <= t }) {
+            let h = t.timeIntervalSince(last.end) / 3600.0
+            if h < config.postExerciseHours {
+                postExerciseActive = true
+                let fadeStart = config.postExerciseHours - config.postExerciseFadeHours
+                let w = h <= fadeStart ? 1.0 : Swift.max(0, (config.postExerciseHours - h) / Swift.max(config.postExerciseFadeHours, 1e-9))
+                autosensFactor *= 1.0 + (config.postExerciseIsfMult - 1.0) * w
+            }
+        }
         let effExtraISF = extraISFMultiplier * dampFactor * autosensFactor
         let effectiveSensitivity: [AbsoluteScheduleValue<LoopQuantity>]
 
@@ -2771,8 +2784,11 @@ extension EvaluationEngine {
         // Runway reserve (C40): how much extra correction suspending basal could still take back.
         // Uses the forecast before the sigma band lowers it (the band term here is its own).
         var runwayDelta = 0.0
-        if config.runwayFraction > 0, sigma5.isFinite,
-           !config.runwayCobGate || (prediction.activeCarbs ?? 0) <= 0,
+        // COB gate: open up to runwayCobMaxG g, then fade out linearly over runwayCobFadeG g (0 = close at once).
+        let runwayCob = prediction.activeCarbs ?? 0
+        let runwayCobScale = !config.runwayCobGate || runwayCob <= config.runwayCobMaxG ? 1.0
+            : config.runwayCobFadeG > 0 ? Swift.max(0, 1 - (runwayCob - config.runwayCobMaxG) / config.runwayCobFadeG) : 0.0
+        if config.runwayFraction > 0, sigma5.isFinite, runwayCobScale > 0, !(config.postExerciseRunwayOff && postExerciseActive),
            let t0 = prediction.glucose.first?.startDate,
            let eventual = prediction.glucose.last?.quantity.doubleValue(for: .milligramsPerDeciliter) {
             let mg = LoopUnit.milligramsPerDeciliter
@@ -2807,7 +2823,7 @@ extension EvaluationEngine {
                     eMin = Swift.min(eMin, (path + isf * withheld - theta) / (isf * d))
                 }
                 if eMin.isFinite {
-                    runwayDelta = Swift.min(config.runwayMaxMgdl, config.runwayFraction * isf * Swift.max(0, eMin))
+                    runwayDelta = runwayCobScale * Swift.min(config.runwayMaxMgdl, config.runwayFraction * isf * Swift.max(0, eMin))
                 }
             }
         }
