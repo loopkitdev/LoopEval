@@ -79,4 +79,6 @@
    the best record on change (memory: replay predicts change), say the surrogate is better than Loop at matched
    lows; replay's −12 is most likely its known bias against timing that departs from the field. Scale of the
    claim: ~+1.5–2 TIR on the generator, +3.4 on the additive sim. `runs/2026-10-30-reduction-gen/` (`spr.sh`,
-   `r2/r2_run.py` arms sx_bh090/100, gr_pn095..125; jobs 57, 58), scored by `analysis/reduction/gen_score.py`.
+   `r2/r2_run.py` arms sx_bh090/100, gr_pn095..125; jobs 57, 58), scored by `analysis/reduction/gen_score.py`. Engine: the run dir's `loop-eval-ec` (branch build before b06edb5e);
+   reruns go through `scripts/gen/gen.py` with `arms.py` on frozen `~/frozen/a64013d`, which reproduces i090's scores
+   exactly for gr_p0 and sx_bh090.
