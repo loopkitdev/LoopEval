@@ -103,3 +103,12 @@
    (9.3 vs 11.0 U/day manual), automatic dosing covers the rest; worst person's t<54 rise +1.07 (was +1.34). The
    generator runs hands-off, so it does not test this. `runs/2026-10-30-reduction-additive/s_om090` (engine
    ~/frozen/9f6bb0c, `flags_s_om090.json`, `REF=gr score.py`; job 60).
+10. **Loop's needs dial flattens out where the adaptive surrogate keeps gaining; every set point beats it (2026-10-30).**
+   Generator, 163 donors, gr extended to insulin needs ×1.35 / ×1.5: Loop's TIR stops rising past ×1.25 (training 0:
+   71.3 → 71.4 → 70.9 while t<70 climbs 3.3 → 4.4), so no needs setting reaches the surrogate's TIR. Gap at equal
+   t<70 / equal t<54, trainings 0 / 1: set point 150 +2.7 / +2.1 and +2.4 / +1.4; **140 +2.5 [+1.8, +3.3] / +2.3
+   [+1.5, +3.2] and +2.4 / +1.9**; 130 +3.5 [+2.8, +4.4] / +2.8 [+2.1, +3.5] and +3.5 / +2.8. People losing more
+   than 5 TIR against gr ×1.0: 10 / 9, 4 / 2, 0 / 0. Set point 130 sits at Loop-×1.35 lows (t<54 1.07 / 0.74 vs
+   0.54 / 0.38 at gr ×1.0), so the set point is an operating-point choice along a curve that lies above Loop's;
+   140 is the default candidate (t<70 +0.9 / +0.8 vs gr ×1.0). Half gain (130h) changes nothing. `runs/2026-10-30-
+   reduction-gen/g` (job 62; training 1 rescored by hand after `gen.py`'s `os.nice` raised EPERM under the queue).
