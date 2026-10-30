@@ -51,3 +51,17 @@
    balance), so arms differ only in timing. That every law, gain and cap leaves t<70 at 4–9 suggests a replay
    bias against controllers whose timing departs from the field's (myloop lesson 10); this is untested until the
    same arms run on a body with a known answer. `sweeps_t70.png`, `sweeps_t54.png`, `per_donor_all.csv`.
+6. **Replay and the additive sim disagree by ~15 TIR points on the same settings-free surrogate (2026-10-30).**
+   tdd_pd with background rate + RC (glucose, 15-min slope, own automatic IOB, 30-min unexplained glucose change,
+   entered carbs at a TDD carb ratio; TDD and background rate learned, nothing user-set but limits). Replay, 35
+   donors × 28 d: ~12 TIR below gr's needs dial at equal t<70. Additive sim (current reference, rc_own / gb_own /
+   night_pro / uls / ex_sat 0.1; 112 people × 14 d, seed0 1000), at ×0.9: TIR 72.4, t<70 2.37, t<54 0.44, 44.7
+   U/day; against gr's dial (σ-band k 1.0 flat: the twins have no σ5 baseline) **+3.4 TIR [+2.2, +4.9] at equal t<70,
+   +2.4 [+1.5, +4.5] at equal t<54** (true glucose +3.1 / +2.3); against stock Loop +4.6 / +3.4. At the TDD of
+   Loop ×1.1 it has more TIR and fewer lows. 20 % of people lose TIR, 49 % gain t<54; worst person +1.3 points t<54.
+   The surrogate's ×1.0 and up, and both adaptive-scale forms, leave the dial's range on the lows side. Caveats:
+   traits were read from Loop's delivery in the same 14 days (the simulated people are stationary, so this stands
+   in for history, but it is not held out); the additive sim is known to reward added insulin more than the field
+   (memory: response by control level) and the surrogate adds ~2.5 U/day. The ICE generator decides between them.
+   `runs/2026-10-30-reduction-additive/` (`run_loop.sh`, `run_gr.sh`, `run_surr.sh`, `traits.py`, `score.py`,
+   `score_gr.txt`).
