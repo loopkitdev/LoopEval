@@ -85,6 +85,20 @@ def exclusion_mask(index: pd.DatetimeIndex,
     return mask
 
 
+def clean_mask(st, cut):
+    """Clean time on a donor's steps table (columns t1, dt, clean): drop every 30-min window with >= 50% excluded ICE
+    and the 4.5 h after it (ice LESSONS 16). Returns keep(times) -> bool array. Used by the generator and additive scorers."""
+    te = st[st.t1 > cut - pd.Timedelta(hours=5)].assign(slot=lambda x: x.t1.dt.floor("30min"))
+    un = (te.dt * ~te.clean).groupby(te.slot).sum() / te.dt.groupby(te.slot).sum()
+    bad = un[un >= 0.5].index.to_numpy()
+    def keep(times):
+        t = times.to_numpy(); c = np.zeros(len(t), bool)
+        for b in bad:
+            c |= (t >= b) & (t <= b + np.timedelta64(270, "m"))
+        return ~c
+    return keep
+
+
 def score_counterfactual(trace_path: str,
                          outages_csv: Optional[str] = None,
                          cgm_gaps_csv: Optional[str] = None,

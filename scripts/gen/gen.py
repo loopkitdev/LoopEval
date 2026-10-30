@@ -16,7 +16,7 @@ import json, os, subprocess, sys, warnings
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np, pandas as pd
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../analysis"))
-from loopeval_analysis.scoring import crossing_iob_stats
+from loopeval_analysis.scoring import clean_mask, crossing_iob_stats
 warnings.filterwarnings("ignore")
 H = os.path.expanduser
 GEN = H(os.environ.get("GEN_DATA", "~/frozen/gen-v32")); RUNS = H("~/.loop-eval/runs")
@@ -142,19 +142,6 @@ def run(a, arm, seed):
     if os.path.exists(f"{log}.trace.json"): os.remove(f"{log}.trace.json")
     if not os.path.exists(log): raise RuntimeError(f"{a} {arm}: {p.stderr[-400:]}")
     return log
-
-
-def clean_mask(st, cut):
-    """Clean time: drop every 30-min window with >= 50% excluded ICE and the 4.5 h after it (ice LESSONS 16)"""
-    te = st[st.t1 > cut - pd.Timedelta(hours=5)].assign(slot=lambda x: x.t1.dt.floor("30min"))
-    un = (te.dt * ~te.clean).groupby(te.slot).sum() / te.dt.groupby(te.slot).sum()
-    bad = un[un >= 0.5].index.to_numpy()
-    def keep(times):
-        t = times.to_numpy(); c = np.zeros(len(t), bool)
-        for b in bad:
-            c |= (t >= b) & (t <= b + np.timedelta64(270, "m"))
-        return ~c
-    return keep
 
 
 def outc(bg, keep):
