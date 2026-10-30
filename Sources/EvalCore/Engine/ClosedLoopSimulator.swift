@@ -399,6 +399,9 @@ extension EvaluationEngine {
         var baselineConfig = baselineConfig
         var candidateConfig = candidateConfig
         var counterfactualDoses: [EvalInsulinDose] = []
+        var candLastAutoBolusAt: Date? = nil   // Control-IQ reference arm's lockout
+        var candLastPrimerAt: Date? = nil      // E6 primer lockout
+        var primerTempUntil: Date? = nil, primerTempRate = 0.0   // E6 retractable primer (temp-basal form)
         counterfactualDoses.reserveCapacity(2048)
         // The candidate's pump (CandidatePump.swift): temp expiry, basal pulses, disruptions.
         var pump = CandidatePump(pulseQuantum: candidateConfig.basalPulseQuantum)
@@ -899,6 +902,7 @@ extension EvaluationEngine {
                 ))
                 baselineDose = br.dose
                 baselineTempAction = br.tempAction
+                Self.writeAlgorithmInput(br.algorithmInputFixture, dir: baselineConfig.algorithmInputExportDir, t: t, arm: "baseline")
                 baselineEventualBG = br.prediction.glucose.last?.quantity.doubleValue(for: mgdlUnit) ?? .nan
                 if baselineConfig.exportForecastCurve {
                     baselinePredCurve = br.prediction.glucose.map { $0.quantity.doubleValue(for: mgdlUnit) }
@@ -1114,7 +1118,8 @@ extension EvaluationEngine {
                         egpPhysicalDecomposition: egpPhysicalDecomposition,
                         tddDoses: data.doses,
                         orefPumpHistoryDoses: stepOrefHist,
-                        timeBasedAFScale: timeBasedAFScale))
+                        timeBasedAFScale: timeBasedAFScale,
+                        lastAutoBolusAt: candLastAutoBolusAt))
                 }
                 // Forecast-gated boost (lows-protection): a boost (mult<1) is only
                 // applied if the candidate's UNBOOSTED forecast PEAK (highest BG
@@ -1173,8 +1178,10 @@ extension EvaluationEngine {
                         }
                     }
                 }
+                Self.writeAlgorithmInput(result.algorithmInputFixture, dir: candidateConfig.algorithmInputExportDir, t: t, arm: "candidate")
                 candidateDose = result.dose
                 candidateBolus = result.bolus
+                if candidateBolus > 0 { candLastAutoBolusAt = t }
                 candidateManualBolusRec = calcRecShown ?? result.manualBolusRec
                 candidateTempRate = result.tempRate
                 candidateTempAction = result.tempAction
@@ -1341,6 +1348,48 @@ extension EvaluationEngine {
                         slowRcLevel = slowRcDecayStep * slowRcLevel + (1.0 - slowRcDecayStep) * r
                     }
                 }
+            }
+
+            // ----- E6 PRIMER: one extra automatic bolus at a rise on the candidate's own CGM -----
+            if candidateConfig.primerMgdl > 0, cfActive, !decisionTimeReplay,
+               candLastPrimerAt.map({ t.timeIntervalSince($0) >= candidateConfig.primerLockoutMin * 60 }) ?? true {
+                let recent = candidateInput.glucose.filter { $0.startDate > t.addingTimeInterval(-3600 - 150) && $0.startDate <= t }
+                    .map { ($0.startDate, $0.quantity.doubleValue(for: mgdlUnit)) }
+                if let last = recent.last, let lo = recent.map({ $0.1 }).min(), lo >= 80, last.1 - lo >= candidateConfig.primerRise,
+                   let ref = recent.last(where: { $0.0 <= last.0.addingTimeInterval(-1800 + 150) }),
+                   last.0.timeIntervalSince(ref.0) >= 1200,
+                   (last.1 - ref.1) / (last.0.timeIntervalSince(ref.0) / 60) >= candidateConfig.primerSlope {
+                    let isfNow = (candidateInput.sensitivity.first(where: { $0.startDate <= t && $0.endDate > t })?.value
+                        ?? candidateInput.sensitivity.closestPrior(to: t)?.value)?.doubleValue(for: mgdlUnit) ?? 0
+                    if isfNow > 0 {
+                        let u = (candidateConfig.primerMgdl / isfNow * 20).rounded() / 20   // pump's 0.05 U steps
+                        candLastPrimerAt = t
+                        if candidateConfig.primerTempMin > 0 {
+                            primerTempUntil = t.addingTimeInterval(candidateConfig.primerTempMin * 60)
+                            primerTempRate = u / (candidateConfig.primerTempMin / 60)
+                        } else { candidateBolus += u }
+                        if ProcessInfo.processInfo.environment["PRIMER_LOG"] != nil {
+                            FileHandle.standardError.write("PRIMER \(t) \(u) U bg \(last.1)\n".data(using: .utf8)!)
+                        }
+                    }
+                }
+            }
+
+            // Retractable form: the primer runs as extra temp basal until primerTempMin is up, and is cancelled for good
+            // at the first cycle where the rise stalls (CGM up < 5 mg/dL over the last 15 min).
+            if let until = primerTempUntil {
+                let g = candidateInput.glucose.filter { $0.startDate > t.addingTimeInterval(-1800) && $0.startDate <= t }
+                    .map { ($0.startDate, $0.quantity.doubleValue(for: mgdlUnit)) }
+                let rising: Bool = {
+                    guard let last = g.last, let ref = g.last(where: { $0.0 <= last.0.addingTimeInterval(-900 + 150) }) else { return false }
+                    return last.1 - ref.1 >= 5
+                }()
+                if t < until && rising && cfActive {
+                    candidateTempRate += primerTempRate
+                    if ProcessInfo.processInfo.environment["PRIMER_LOG"] != nil {
+                        FileHandle.standardError.write("PRIMERT \(t) \(primerTempRate * stepDur / 3600) U\n".data(using: .utf8)!)
+                    }
+                } else { primerTempUntil = nil }
             }
 
             // ----- DELIVERABILITY / DATA-AVAILABILITY CLAMPS -----
@@ -2183,6 +2232,14 @@ extension EvaluationEngine {
 
     // MARK: – Helpers
 
+    /// One decision's AlgorithmInputFixture, as <dir>/<decision time>_<arm>.json.
+    static func writeAlgorithmInput(_ data: Data?, dir: String?, t: Date, arm: String) {
+        guard let data, let dir else { return }
+        let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime]
+        let name = iso.string(from: t).replacingOccurrences(of: ":", with: "") + "_\(arm).json"
+        try? data.write(to: URL(fileURLWithPath: dir).appendingPathComponent(name))
+    }
+
     /// Canonical "compute one step's recommended Δdose" used for BOTH baseline
     /// and candidate inside the closed-loop sim. Keeping the two sides on the
     /// same code path is what makes the identity case (configs equal) produce
@@ -2204,8 +2261,9 @@ extension EvaluationEngine {
         perStepIsfMultByTime: [Date: Double]? = nil,
         isfBoostActiveOnly: Bool = false,
         egpPhysicalDecomposition: Bool = false,
-        timeBasedAFScale: Double = 1.0
-    ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>, manualBolusRec: Double, tempAction: String) {
+        timeBasedAFScale: Double = 1.0,
+        lastAutoBolusAt: Date? = nil
+    ) -> (dose: Double, bolus: Double, tempRate: Double, prediction: LoopPrediction<EvalCarbEntry>, manualBolusRec: Double, tempAction: String, fixture: Data?) {
         let momentumCap: LoopQuantity? = config.positiveVelocityCap.map {
             LoopQuantity(unit: .milligramsPerDeciliterPerMinute, doubleValue: $0)
         }
@@ -2726,7 +2784,15 @@ extension EvaluationEngine {
             // so sigma5 stayed NaN, calmHighActive was never true, and all three cht arms scored
             // EXACTLY 0.000 on both donors -- a silent no-op that looked like a clean negative result.
             let unit = LoopUnit.milligramsPerDeciliter
-            let g = effectiveInput.glucose.suffix(60)   // last ~5 h of samples
+            // As the shipped package (GlucoseVolatility.sigma5): thin to readings >= 4 min after the last one
+            // kept, then the last 60 (~5 h). Without the thinning a near-duplicate reading shortens the next
+            // increment and halves the window (i058's 17-s duplicates: σ5 ~5 % high).
+            var thinned: [EvalGlucoseSample] = []
+            for s in effectiveInput.glucose {
+                if let last = thinned.last, s.startDate.timeIntervalSince(last.startDate) < 240 { continue }
+                thinned.append(s)
+            }
+            let g = thinned.suffix(60)
             let floorVar = 2.0 * config.sigmaNoiseMgdl * config.sigmaNoiseMgdl
             var v = Double.nan
             var nInc = 0.0            // valid increments since the start of the window or the last gap
@@ -2827,6 +2893,12 @@ extension EvaluationEngine {
                 }
             }
         }
+        // Control-IQ reference trigger: the 30-min point of the forecast, read before any σ band.
+        let pred30: Double = {
+            guard config.autoBolusPred30Min > 0, let t0 = prediction.glucose.first?.startDate else { return .nan }
+            return prediction.glucose.first(where: { $0.startDate.timeIntervalSince(t0) >= 30 * 60 })?
+                .quantity.doubleValue(for: LoopUnit.milligramsPerDeciliter) ?? .nan
+        }()
         let sigmaBandAllowed = (!config.sigmaBandCobGate || (prediction.activeCarbs ?? 0) <= 0) && descentAllowed
         var guardPrediction: [PredictedGlucoseValue]? = nil   // guard-only band: the banded curve, for the guard alone
         if config.sigmaBandK > 0, sigmaBandAllowed, sigma5.isFinite || config.sigmaBandFixedSigma > 0,
@@ -2936,6 +3008,14 @@ extension EvaluationEngine {
         if config.calmHighAfScale != 1.0, calmHighActive {
             appFactor = min(1.0, appFactor * config.calmHighAfScale)
         }
+        // Control-IQ reference arm: an automatic bolus only when the 30-min forecast exceeds the
+        // trigger, and never within the interval after the candidate's last bolus. Output-side by
+        // design: it reproduces another system's rule, it is not a candidate mechanism.
+        if config.autoBolusPred30Min > 0, !(pred30 > config.autoBolusPred30Min) { appFactor = 0 }
+        if config.autoBolusMinIntervalMin > 0, let lastBolus = lastAutoBolusAt,
+           t.timeIntervalSince(lastBolus) < config.autoBolusMinIntervalMin * 60 {
+            appFactor = 0
+        }
         // Calm-high TARGET shift: the temp-basal-reachable form of the same licence. The application
         // factor above only scales an automatic BOLUS, so it is inert on a temp-basal donor (bddp02 and
         // bddp07 issue none). Lowering the correction target enlarges the correction whichever way it is
@@ -2956,6 +3036,23 @@ extension EvaluationEngine {
                             ... LoopQuantity(unit: mgdl, doubleValue: Swift.max(80.0, hi - d)))
                 })
         }
+        // Rise-gated low gate (780G meal detection): while glucose rises steadily, the predicted
+        // minimum may sit up to lowGateRiseDrop below the correction-range floor before the automatic
+        // bolus is gated off, never below the suspend threshold. The forecast and the suspend guard
+        // are unchanged; only the bolus gate loosens.
+        var riseLowGate: Double? = nil
+        if config.lowGateRiseDrop > 0, curBG >= config.lowGateRiseBgMin, let last = effectiveInput.glucose.last,
+           let floor = doseInput.target.last(where: { $0.startDate <= t })?.value.lowerBound.doubleValue(for: mgdl) {
+            let window = last.startDate.addingTimeInterval(-30 * 60 - 150)
+            if let first = effectiveInput.glucose.first(where: { $0.startDate >= window }) {
+                let dtMin = last.startDate.timeIntervalSince(first.startDate) / 60.0
+                if dtMin >= 20.0, (last.quantity.doubleValue(for: mgdl) - first.quantity.doubleValue(for: mgdl)) / dtMin
+                    >= config.lowGateRiseSlope {
+                    let theta = therapy.suspendThreshold(at: t)?.doubleValue(for: mgdl) ?? 70.0
+                    riseLowGate = Swift.max(theta, floor - config.lowGateRiseDrop)
+                }
+            }
+        }
         let doseRec = EvaluationEngine.computeDoseRecommendation(
             prediction: prediction,
             at: t,
@@ -2969,7 +3066,7 @@ extension EvaluationEngine {
             softLowGate: config.softLowGate,
             guardPrediction: guardPrediction,
             basalLockBg: config.basalLockBg,
-            lowGateThreshold: config.lowGateThresholdMgdl,
+            lowGateThreshold: riseLowGate ?? config.lowGateThresholdMgdl,
             uncertaintyCap: config.uncertaintyCapEnabled
                 ? (k: config.uncertaintyK, fmax: config.uncertaintyFmax, low: config.uncertaintyLow,
                    autosensFactor: config.uncertaintyDecoupleAutosens ? autosensFactor : 1.0)
@@ -2980,15 +3077,21 @@ extension EvaluationEngine {
             useTempBasalStrategy: config.useTempBasalStrategy,
             basalOverrideActive: OverrideWindow.resolved(therapy.overrideWindows, at: t).contains {
                 $0.start <= t && t < $0.end && ($0.factor ?? 1.0) != 1.0
-            }
+            },
+            correctionAnchor: config.anchorsCorrectionAtFirstGlucose ? nil : predStart
         )
+        let fixture: Data? = config.algorithmInputExportDir == nil ? nil : algorithmInputFixtureJSON(
+            t: t, predictionStart: predStart, input: effectiveInput, config: config, therapy: therapy,
+            applicationFactor: appFactor, prediction: prediction, bolus: doseRec?.bolus ?? 0,
+            tempRate: doseRec?.tempBasalRate ?? 0, deltaU: doseRec?.deltaU ?? 0, tempAction: doseRec?.tempAction ?? "set")
         return (
             dose: doseRec?.deltaU ?? 0,
             bolus: doseRec?.bolus ?? 0,
             tempRate: doseRec?.tempBasalRate ?? 0,
             prediction: prediction,
             manualBolusRec: doseRec?.manualBolusRec ?? 0,
-            tempAction: doseRec?.tempAction ?? "set"
+            tempAction: doseRec?.tempAction ?? "set",
+            fixture: fixture
         )
     }
 

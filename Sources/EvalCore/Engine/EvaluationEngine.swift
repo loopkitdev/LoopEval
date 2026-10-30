@@ -896,7 +896,10 @@ public actor EvaluationEngine {
         // scheduledBasalRateMatchesPump = !override-active into ifNecessary, so
         // while an override runs, an at-neutral recommendation is an EXPLICIT temp
         // at the scaled rate (never cancel/none).
-        basalOverrideActive: Bool = false
+        basalOverrideActive: Bool = false,
+        // Where the correction starts reading the forecast (EvalConfig.correctionAnchor). nil = the forecast's
+        // first point, as deployed Loop-main.
+        correctionAnchor anchorOverride: Date? = nil
     ) -> DoseOutput? {
         guard let scheduledBasalEntry = input.basal.first(where: { $0.startDate <= t && $0.endDate > t })
             ?? input.basal.closestPrior(to: t) else { return nil }
@@ -921,7 +924,7 @@ public actor EvaluationEngine {
         // AFTER the CGM in the times-csv path) the current/now point would be dropped from
         // minGlucose, mis-sizing the correction and mis-firing the predicted-min auto-bolus
         // gate. On the CGM-driven path t == this anchor, so it's a no-op there.
-        let correctionAnchor = prediction.glucose.first?.startDate ?? t
+        let correctionAnchor = anchorOverride ?? prediction.glucose.first?.startDate ?? t
         // Deployed Loop computes the correction against a SINGLE dose-time ISF (the ISF at
         // the decision anchor, held across the whole absorption); the fork otherwise
         // integrates the time-varying ISF timeline (a mid-absorption-ISF leak in the

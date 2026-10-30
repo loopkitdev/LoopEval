@@ -182,6 +182,22 @@ public struct EvalConfig: Codable, Sendable {
     /// Emulate Loop-main (pre-#33): step-by-step RC decayEffect instead of the continuous quadratic.
     public var useLegacyRCDecay: Bool = false
 
+    /// Where the dose correction starts reading the forecast. Deployed Loop-main (class 1) corrects from the
+    /// forecast's first point, the CGM reading; LoopAlgorithm's run() (class 2, Loop next-dev) from the
+    /// prediction start, a few seconds later, so a current reading below the correction range neither gates
+    /// the automatic bolus nor suspends. auto = first glucose under class-1 emulation, else prediction start.
+    public enum CorrectionAnchor: String, Codable, Sendable { case auto, firstGlucose = "first-glucose", predictionStart = "prediction-start" }
+    public var correctionAnchor: CorrectionAnchor = .auto
+    /// Class-1 (Loop-main) emulation is on: any of the D1/D2/D5 flags of docs/loop-algo-classes.md.
+    public var emulatesLoopMain: Bool { !useMidAbsorptionISF || momentumGradualTransitionsThreshold == nil || useLegacyRCDecay }
+    public var anchorsCorrectionAtFirstGlucose: Bool {
+        switch correctionAnchor {
+        case .firstGlucose: return true
+        case .predictionStart: return false
+        case .auto: return emulatesLoopMain
+        }
+    }
+
     /// Use mid-absorption ISF for insulin effects computation.
     /// Default: true — propagates per-future-time ISF schedule changes into
     /// the BG prediction, which is needed for `--candidate-isf-csv` oracles
@@ -392,6 +408,10 @@ public struct EvalConfig: Codable, Sendable {
     /// against field devicestatus predicted.values). Off by default (trace-size).
     public var exportForecastCurve: Bool = false
 
+    /// Directory to write each decision's exact algorithm input to, as a LoopAlgorithm
+    /// AlgorithmInputFixture (AlgorithmInputExport.swift). nil = off. Not part of the encoded config.
+    public var algorithmInputExportDir: String? = nil
+
     /// Flat (global) auto-bolus application factor — fraction of the recommended
     /// correction applied per cycle when GBAF is off. Loop default 0.4. The auto-bolus
     /// is FLOORED to the pump increment AFTER this factor (see EvaluationEngine), which
@@ -567,6 +587,26 @@ public struct EvalConfig: Codable, Sendable {
     /// A target shift acts through both delivery paths. The suspend threshold is untouched, so the
     /// low guard is unchanged. 0 (default) = off.
     public var calmHighTargetDelta: Double
+    /// Rise-gated low gate (780G meal detection): while the trailing 30-min glucose slope is at least
+    /// lowGateRiseSlope mg/dL/min and BG >= lowGateRiseBgMin, the automatic-bolus gate engages only when the
+    /// predicted minimum falls lowGateRiseDrop below the correction-range floor (never below the suspend
+    /// threshold). 0 (default) = off.
+    public var lowGateRiseDrop: Double
+    public var lowGateRiseSlope: Double
+    public var lowGateRiseBgMin: Double
+    /// Control-IQ reference arm: no automatic bolus within this many minutes of the last bolus (0 = off),
+    /// and none unless the 30-min forecast exceeds autoBolusPred30Min mg/dL (0 = off).
+    public var autoBolusMinIntervalMin: Double
+    public var autoBolusPred30Min: Double
+    /// E6 primer (moved-insulin test): at a rise seen on the candidate's own CGM (trailing 30-min slope >= primerSlope
+    /// mg/dL/min, BG at least primerRise above its 60-min minimum, no BG < 80 in the last 60 min), deliver one extra
+    /// automatic bolus of primerMgdl / ISF U, then none for primerLockoutMin. Loop sees it as IOB. 0 (default) = off.
+    public var primerMgdl: Double
+    public var primerSlope: Double
+    public var primerRise: Double
+    public var primerLockoutMin: Double
+    /// > 0: deliver the primer as extra temp basal over this many minutes, cancelled when the rise stalls. 0 = bolus.
+    public var primerTempMin: Double
     /// Runway reserve (C40). The extra correction is bounded by what Loop can still undo: with the
     /// correction it already makes, plus an extra E, the plausible path (forecast minus runwayZ*sigma5
     /// (tau/5)^H) with scheduled basal withheld from now must stay above the suspend threshold out to
@@ -768,6 +808,16 @@ public struct EvalConfig: Codable, Sendable {
         calmHighCobGate: Bool = false,
         calmHighMinSlope: Double = -.infinity,
         calmHighTargetDelta: Double = 0,
+        lowGateRiseDrop: Double = 0,
+        lowGateRiseSlope: Double = 1.0,
+        lowGateRiseBgMin: Double = 120.0,
+        autoBolusMinIntervalMin: Double = 0,
+        autoBolusPred30Min: Double = 0,
+        primerMgdl: Double = 0,
+        primerSlope: Double = 1.5,
+        primerRise: Double = 30,
+        primerLockoutMin: Double = 180,
+        primerTempMin: Double = 0,
         runwayFraction: Double = 0,
         sigmaPrior: Double = 0,
         sigmaPriorSteps: Double = 12,
@@ -941,6 +991,16 @@ public struct EvalConfig: Codable, Sendable {
         self.calmHighCobGate                = calmHighCobGate
         self.calmHighMinSlope               = calmHighMinSlope
         self.calmHighTargetDelta            = calmHighTargetDelta
+        self.lowGateRiseDrop = lowGateRiseDrop
+        self.lowGateRiseSlope = lowGateRiseSlope
+        self.lowGateRiseBgMin = lowGateRiseBgMin
+        self.autoBolusMinIntervalMin = autoBolusMinIntervalMin
+        self.autoBolusPred30Min = autoBolusPred30Min
+        self.primerMgdl = primerMgdl
+        self.primerSlope = primerSlope
+        self.primerRise = primerRise
+        self.primerLockoutMin = primerLockoutMin
+        self.primerTempMin = primerTempMin
         self.runwayFraction                 = runwayFraction
         self.sigmaPrior                     = sigmaPrior
         self.sigmaPriorSteps                = sigmaPriorSteps
@@ -1046,7 +1106,7 @@ public struct EvalConfig: Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case evalStep, includeFutureInsulin, includeFutureCarbs, insulinLookbackHours, glucoseLookbackHours
         case decisionTimesAreAuthoritative
-        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, asymmetricStandardRC, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, slowRcTauSec, slowRcGain, slowRcMin, slowRcMax, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, useTempBasalStrategy, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay
+        case useIntegralRC, useIntegralRCClamp, ircDropGainScale, ircRiseGainScale, asymmetricStandardRC, ircLowMemoryScale, ircDropDurationScale, ircRiseDurationScale, sensitiveModeTauSec, sensitiveModeGain, slowRcTauSec, slowRcGain, slowRcMin, slowRcMax, iceRiseBoostGain, iceRiseBoostBgLo, iceRiseBoostBgHi, iceRiseBoostTauSec, iceRiseBoostThresh, iceRiseBoostSensSuppress, iceRiseBoostIsfFadeLo, iceRiseBoostIsfFadeHi, bolusIncrement, tempBasalIncrement, basalPulseQuantum, correctionRangeOverrideLow, correctionRangeOverrideHigh, kalmanSmoothing, simRawGlucose, clipInProgressTempBasal, useTempBasalStrategy, horizons, includingPositiveVelocityAndRC, useLegacyRCDecay, correctionAnchor
         case useMidAbsorptionISF, carbAbsorptionModel, adaptiveCarbAbsorption, carbAbsorptionTimeCapSec, carbAbsorptionOverrun, carbRevisionsPath, overrideTargetsPath, exerciseWindows, postExerciseIsfMult, postExerciseHours, postExerciseFadeHours, postExerciseRunwayOff
         case sensitivityMultiplier, carbRatioMultiplier, basalRateMultiplier
         case targetLow, targetHigh, dangerLow, dangerHigh
@@ -1060,7 +1120,7 @@ public struct EvalConfig: Codable, Sendable {
         case oapsUseNewFormula, oapsSigmoid, oapsAdjustmentFactor, oapsAdjustmentFactorSigmoid
         case oapsEnableUAM, oapsEnableSMB
         case oapsAutosensMax, oapsAutosensMin, oapsInsulinPeakTime, oapsDia, oapsCurve, oapsMaxIob, oapsPrefsJson, oapsAfScheduleCSV, oapsOverridePresets, oapsSmoothGlucose, oapsPumpPulse
-        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, runwayFraction, sigmaPrior, sigmaPriorSteps, runwayZ, runwayHorizonMin, runwayMaxMgdl, runwayBgMin, runwayCobGate, runwayCobMaxG, runwayCobFadeG, splitCurvePeakMin, splitCurveDurationMin, splitCurvePart, splitRiseMgdl, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly, negativeInsulinDamper, nidAnchorAlpha, nidMarginalSlope, nidLagMin, basalLockBg
+        case postlowSuppressMgdl, postlowWindowMin, postlowThresholdMgdl, postlowTrendGain, postlowIsfMult, postlowRcRiseScale, postlowRcBgMax, riseGateSlope, riseGateRcRiseScale, riseGateBgMax, sigmaBandK, sigmaBandHorizonMin, sigmaBandTaperMin, sigmaScalingH, sigmaEwmaLambda, sigmaNoiseMgdl, calmHighAfScale, calmHighBgMin, calmHighSigmaMax, sigmaBandCobGate, calmHighCobGate, calmHighMinSlope, calmHighTargetDelta, lowGateRiseDrop, lowGateRiseSlope, lowGateRiseBgMin, autoBolusMinIntervalMin, autoBolusPred30Min, primerMgdl, primerSlope, primerRise, primerLockoutMin, primerTempMin, runwayFraction, sigmaPrior, sigmaPriorSteps, runwayZ, runwayHorizonMin, runwayMaxMgdl, runwayBgMin, runwayCobGate, runwayCobMaxG, runwayCobFadeG, splitCurvePeakMin, splitCurveDurationMin, splitCurvePart, splitRiseMgdl, sigmaBandBaseline, sigmaBandFixedSigma, sigmaBandGuardOnly, negativeInsulinDamper, nidAnchorAlpha, nidMarginalSlope, nidLagMin, basalLockBg
         case descentRcRiseScale, descentHighBgMin, descentWindowMin, descentSlopeMax, sigmaBandDescentGate
         case sensDampWindowMin, sensDampThresholdRate, sensDampGain, sensDampMax
     }
@@ -1107,6 +1167,7 @@ public struct EvalConfig: Codable, Sendable {
         self.horizons             = try c.decode([TimeInterval].self, forKey: .horizons)
         self.includingPositiveVelocityAndRC = try c.decode(Bool.self, forKey: .includingPositiveVelocityAndRC)
         self.useLegacyRCDecay = try c.decodeIfPresent(Bool.self, forKey: .useLegacyRCDecay) ?? false
+        self.correctionAnchor = try c.decodeIfPresent(CorrectionAnchor.self, forKey: .correctionAnchor) ?? .auto
         self.useMidAbsorptionISF  = try c.decode(Bool.self,         forKey: .useMidAbsorptionISF)
         self.carbAbsorptionModel  = try c.decode(CarbAbsorptionModel.self, forKey: .carbAbsorptionModel)
         self.adaptiveCarbAbsorption = try c.decodeIfPresent(Bool.self, forKey: .adaptiveCarbAbsorption) ?? false
@@ -1221,6 +1282,16 @@ public struct EvalConfig: Codable, Sendable {
         self.calmHighCobGate = try c.decodeIfPresent(Bool.self, forKey: .calmHighCobGate) ?? false
         self.calmHighMinSlope = try c.decodeIfPresent(Double.self, forKey: .calmHighMinSlope) ?? -.infinity
         self.calmHighTargetDelta = try c.decodeIfPresent(Double.self, forKey: .calmHighTargetDelta) ?? 0
+        self.lowGateRiseDrop = try c.decodeIfPresent(Double.self, forKey: .lowGateRiseDrop) ?? 0
+        self.lowGateRiseSlope = try c.decodeIfPresent(Double.self, forKey: .lowGateRiseSlope) ?? 1.0
+        self.lowGateRiseBgMin = try c.decodeIfPresent(Double.self, forKey: .lowGateRiseBgMin) ?? 120.0
+        self.autoBolusMinIntervalMin = try c.decodeIfPresent(Double.self, forKey: .autoBolusMinIntervalMin) ?? 0
+        self.autoBolusPred30Min = try c.decodeIfPresent(Double.self, forKey: .autoBolusPred30Min) ?? 0
+        self.primerMgdl = try c.decodeIfPresent(Double.self, forKey: .primerMgdl) ?? 0
+        self.primerSlope = try c.decodeIfPresent(Double.self, forKey: .primerSlope) ?? 1.5
+        self.primerRise = try c.decodeIfPresent(Double.self, forKey: .primerRise) ?? 30
+        self.primerLockoutMin = try c.decodeIfPresent(Double.self, forKey: .primerLockoutMin) ?? 180
+        self.primerTempMin = try c.decodeIfPresent(Double.self, forKey: .primerTempMin) ?? 0
         self.runwayFraction = try c.decodeIfPresent(Double.self, forKey: .runwayFraction) ?? 0
         self.sigmaPrior = try c.decodeIfPresent(Double.self, forKey: .sigmaPrior) ?? 0
         self.sigmaPriorSteps = try c.decodeIfPresent(Double.self, forKey: .sigmaPriorSteps) ?? 12
@@ -1296,6 +1367,7 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(horizons, forKey: .horizons)
         try c.encode(includingPositiveVelocityAndRC, forKey: .includingPositiveVelocityAndRC)
         try c.encode(useLegacyRCDecay, forKey: .useLegacyRCDecay)
+        try c.encode(correctionAnchor, forKey: .correctionAnchor)
         try c.encode(useMidAbsorptionISF, forKey: .useMidAbsorptionISF)
         try c.encode(carbAbsorptionModel, forKey: .carbAbsorptionModel)
         try c.encode(adaptiveCarbAbsorption, forKey: .adaptiveCarbAbsorption)
@@ -1401,6 +1473,16 @@ public struct EvalConfig: Codable, Sendable {
         try c.encode(calmHighCobGate, forKey: .calmHighCobGate)
         try c.encode(calmHighMinSlope.isFinite ? calmHighMinSlope : -1e30, forKey: .calmHighMinSlope)
         try c.encode(calmHighTargetDelta, forKey: .calmHighTargetDelta)
+        try c.encode(lowGateRiseDrop, forKey: .lowGateRiseDrop)
+        try c.encode(lowGateRiseSlope, forKey: .lowGateRiseSlope)
+        try c.encode(lowGateRiseBgMin, forKey: .lowGateRiseBgMin)
+        try c.encode(autoBolusMinIntervalMin, forKey: .autoBolusMinIntervalMin)
+        try c.encode(autoBolusPred30Min, forKey: .autoBolusPred30Min)
+        try c.encode(primerMgdl, forKey: .primerMgdl)
+        try c.encode(primerSlope, forKey: .primerSlope)
+        try c.encode(primerRise, forKey: .primerRise)
+        try c.encode(primerLockoutMin, forKey: .primerLockoutMin)
+        try c.encode(primerTempMin, forKey: .primerTempMin)
         try c.encode(runwayFraction, forKey: .runwayFraction)
         try c.encode(sigmaPrior, forKey: .sigmaPrior)
         try c.encode(sigmaPriorSteps, forKey: .sigmaPriorSteps)

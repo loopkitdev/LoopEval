@@ -179,6 +179,16 @@ struct SimulateCommand: AsyncParsableCommand {
             calmHighCobGate: candidateCalmHighCobGate,
             calmHighMinSlope: candidateCalmHighMinSlope ?? -.infinity,
             calmHighTargetDelta: candidateCalmHighTargetDelta,
+            lowGateRiseDrop: candidateLowGateRiseDrop,
+            lowGateRiseSlope: candidateLowGateRiseSlope,
+            lowGateRiseBgMin: candidateLowGateRiseBgMin,
+            autoBolusMinIntervalMin: candidateAutoBolusMinIntervalMin,
+            autoBolusPred30Min: candidateAutoBolusPred30Min,
+            primerMgdl: candidatePrimerMgdl,
+            primerSlope: candidatePrimerSlope,
+            primerRise: candidatePrimerRise,
+            primerLockoutMin: candidatePrimerLockoutMin,
+            primerTempMin: candidatePrimerTempMin,
             runwayFraction: candidateRunwayFraction,
             sigmaPrior: candidateSigmaPrior,
             sigmaPriorSteps: candidateSigmaPriorSteps,
@@ -623,6 +633,16 @@ struct SimulateCommand: AsyncParsableCommand {
             candidateConfig.decisionTimesAreAuthoritative = true
         }
 
+        guard let anchor = EvalConfig.CorrectionAnchor(rawValue: correctionAnchor) else {
+            throw ValidationError("--correction-anchor must be auto, first-glucose or prediction-start")
+        }
+        baselineConfig.correctionAnchor = anchor
+        candidateConfig.correctionAnchor = anchor
+        if let dir = exportAlgorithmInputs {
+            try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+            baselineConfig.algorithmInputExportDir = dir
+            candidateConfig.algorithmInputExportDir = dir
+        }
         let lowResponse: LowResponseModel?
         if let path = lowResponseModel {
             guard candidateCounterfactual else { throw ValidationError("--low-response-model requires --candidate-counterfactual") }

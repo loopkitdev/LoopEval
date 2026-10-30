@@ -46,6 +46,9 @@ struct SimulateDataFlags: ParsableArguments {
 
     @Flag(name: .long, help: "Export the full baseline and candidate forecast curves per step (baselinePredCurve, candidatePredCurve) into the trace, for point-by-point comparison against field devicestatus predicted.values.")
     var exportForecastCurve: Bool = false
+
+    @Option(name: .long, help: "Write each decision's exact algorithm input to this directory as a LoopAlgorithm AlgorithmInputFixture (<time>_baseline.json, <time>_candidate.json), with the engine's own dose and forecast and every config setting the fixture can't express in a `loopEval` block. Loop arms only.")
+    var exportAlgorithmInputs: String?
 }
 
 // Run mode and decision timing
@@ -145,6 +148,9 @@ struct SimulateDeploymentFlags: ParsableArguments {
 
     @Flag(name: .long, help: "Emulate Loop-main: use the pre-#33 step-by-step RC decayEffect (a small discontinuity at delta boundaries for unaligned CGM) instead of the LoopAlgorithm continuous-quadratic reformulation (LoopKit#556). Pass for donors whose deployed Loop predates that change. Applies to both arms.")
     var legacyRcDecay: Bool = false
+
+    @Option(name: .long, help: "Where the dose correction starts reading the forecast: first-glucose (the CGM reading; deployed Loop-main), prediction-start (LoopAlgorithm run(), Loop next-dev), or auto (default): first-glucose when class-1 emulation is on (--no-mid-absorption-isf, --no-gradual-transitions-gate or --legacy-rc-decay), else prediction-start. Both arms.")
+    var correctionAnchor: String = "auto"
 
     @Flag(name: .long, help: "Replay with Loop's TEMP-BASAL dosing strategy (AutomaticDosingStrategy.tempBasal): every correction is a 30-min temp basal, never an automatic bolus. Deployment-faithful for donors whose loop cycles record recommendations only in recommendedBasal (a temp-only deployment records ZERO recommendedBolus over months). Applies to both arms.")
     var tempBasalStrategy: Bool = false
@@ -627,6 +633,32 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Option(name: .long, help: "Calm-high TARGET shift (mg/dL): in the calm-high state, lower the correction target range by this much. Reaches temp-basal donors, where the application-factor form is inert (they issue no automatic boluses). Suspend threshold untouched. 0 = off.")
     var candidateCalmHighTargetDelta: Double = 0
 
+    @Option(name: .long, help: "Rise-gated low gate (780G meal detection): while glucose rises steadily, let the predicted minimum sit this many mg/dL below the correction-range floor before the automatic bolus is gated off (never below the suspend threshold). 0 = off.")
+    var candidateLowGateRiseDrop: Double = 0
+
+    @Option(name: .long, help: "Rise-gated low gate: trailing 30-min glucose slope (mg/dL/min) that counts as a rise.")
+    var candidateLowGateRiseSlope: Double = 1.0
+
+    @Option(name: .long, help: "Rise-gated low gate: current BG (mg/dL) at or above which it may engage.")
+    var candidateLowGateRiseBgMin: Double = 120.0
+
+    @Option(name: .long, help: "Control-IQ reference arm: no automatic bolus within this many minutes of the candidate's last bolus. 0 = off.")
+    var candidateAutoBolusMinIntervalMin: Double = 0
+
+    @Option(name: .long, help: "Control-IQ reference arm: automatic bolus only when the 30-min forecast exceeds this (mg/dL). 0 = off.")
+    var candidateAutoBolusPred30Min: Double = 0
+
+    @Option(name: .long, help: "E6 primer: one extra automatic bolus of this many mg/dL / ISF at a rise seen on the candidate's CGM (slope >= primer-slope, rise >= primer-rise over the 60-min minimum, no BG < 80 in 60 min), then a lockout. 0 = off.")
+    var candidatePrimerMgdl: Double = 0
+    @Option(name: .long, help: "E6 primer: trailing 30-min slope threshold, mg/dL/min.")
+    var candidatePrimerSlope: Double = 1.5
+    @Option(name: .long, help: "E6 primer: rise above the 60-min minimum, mg/dL.")
+    var candidatePrimerRise: Double = 30
+    @Option(name: .long, help: "E6 primer: minutes before another primer.")
+    var candidatePrimerLockoutMin: Double = 180
+    @Option(name: .long, help: "E6 primer, retractable form: deliver it as extra temp basal over this many minutes, cancelled when CGM rises < 5 mg/dL over 15 min. 0 = bolus.")
+    var candidatePrimerTempMin: Double = 0
+
     @Option(name: .long, help: "Runway reserve (C40): spend this fraction of the extra correction that suspending scheduled basal could still take back before a plausible fall (forecast minus z*sigma5 band) reaches the suspend threshold. Delivered as an internal lowering of the correction aim; the user's target is not changed. 0 = off.")
     var candidateRunwayFraction: Double = 0
 
@@ -808,6 +840,7 @@ extension SimulateCommand {
     var localTimezone: String? { get { data.localTimezone } set { data.localTimezone = newValue } }
     var traceOut: String { get { data.traceOut } set { data.traceOut = newValue } }
     var exportForecastCurve: Bool { get { data.exportForecastCurve } set { data.exportForecastCurve = newValue } }
+    var exportAlgorithmInputs: String? { get { data.exportAlgorithmInputs } set { data.exportAlgorithmInputs = newValue } }
     // Run mode and decision timing
     var stepMinutes: Int { get { mode.stepMinutes } set { mode.stepMinutes = newValue } }
     var oracleFutureInputs: Bool { get { mode.oracleFutureInputs } set { mode.oracleFutureInputs = newValue } }
@@ -837,6 +870,7 @@ extension SimulateCommand {
     var clipInProgressTempBasal: Bool { get { deployment.clipInProgressTempBasal } set { deployment.clipInProgressTempBasal = newValue } }
     var noGradualTransitionsGate: Bool { get { deployment.noGradualTransitionsGate } set { deployment.noGradualTransitionsGate = newValue } }
     var legacyRcDecay: Bool { get { deployment.legacyRcDecay } set { deployment.legacyRcDecay = newValue } }
+    var correctionAnchor: String { get { deployment.correctionAnchor } set { deployment.correctionAnchor = newValue } }
     var tempBasalStrategy: Bool { get { deployment.tempBasalStrategy } set { deployment.tempBasalStrategy = newValue } }
     var carbAbsorptionOverrun: Double { get { deployment.carbAbsorptionOverrun } set { deployment.carbAbsorptionOverrun = newValue } }
     var timeBasedAf: Bool { get { deployment.timeBasedAf } set { deployment.timeBasedAf = newValue } }
@@ -999,6 +1033,16 @@ extension SimulateCommand {
     var candidateCalmHighCobGate: Bool { get { loopExperiments.candidateCalmHighCobGate } set { loopExperiments.candidateCalmHighCobGate = newValue } }
     var candidateCalmHighMinSlope: Double? { get { loopExperiments.candidateCalmHighMinSlope } set { loopExperiments.candidateCalmHighMinSlope = newValue } }
     var candidateCalmHighTargetDelta: Double { get { loopExperiments.candidateCalmHighTargetDelta } set { loopExperiments.candidateCalmHighTargetDelta = newValue } }
+    var candidateLowGateRiseDrop: Double { get { loopExperiments.candidateLowGateRiseDrop } set { loopExperiments.candidateLowGateRiseDrop = newValue } }
+    var candidateLowGateRiseSlope: Double { get { loopExperiments.candidateLowGateRiseSlope } set { loopExperiments.candidateLowGateRiseSlope = newValue } }
+    var candidateLowGateRiseBgMin: Double { get { loopExperiments.candidateLowGateRiseBgMin } set { loopExperiments.candidateLowGateRiseBgMin = newValue } }
+    var candidateAutoBolusMinIntervalMin: Double { get { loopExperiments.candidateAutoBolusMinIntervalMin } set { loopExperiments.candidateAutoBolusMinIntervalMin = newValue } }
+    var candidateAutoBolusPred30Min: Double { get { loopExperiments.candidateAutoBolusPred30Min } set { loopExperiments.candidateAutoBolusPred30Min = newValue } }
+    var candidatePrimerMgdl: Double { get { loopExperiments.candidatePrimerMgdl } set { loopExperiments.candidatePrimerMgdl = newValue } }
+    var candidatePrimerSlope: Double { get { loopExperiments.candidatePrimerSlope } set { loopExperiments.candidatePrimerSlope = newValue } }
+    var candidatePrimerRise: Double { get { loopExperiments.candidatePrimerRise } set { loopExperiments.candidatePrimerRise = newValue } }
+    var candidatePrimerLockoutMin: Double { get { loopExperiments.candidatePrimerLockoutMin } set { loopExperiments.candidatePrimerLockoutMin = newValue } }
+    var candidatePrimerTempMin: Double { get { loopExperiments.candidatePrimerTempMin } set { loopExperiments.candidatePrimerTempMin = newValue } }
     var candidateRunwayFraction: Double { get { loopExperiments.candidateRunwayFraction } set { loopExperiments.candidateRunwayFraction = newValue } }
     var candidateSigmaPrior: Double { get { loopExperiments.candidateSigmaPrior } set { loopExperiments.candidateSigmaPrior = newValue } }
     var candidateSigmaPriorSteps: Double { get { loopExperiments.candidateSigmaPriorSteps } set { loopExperiments.candidateSigmaPriorSteps = newValue } }

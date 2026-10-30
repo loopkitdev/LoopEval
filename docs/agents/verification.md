@@ -2,10 +2,11 @@
 
 # Faithful replay and verification
 
-Shared by the **frontier** and **simulator** roles. Nothing downstream of a failed
-identity check or an unverified replay means anything.
+The shared standard every role checks its own work against before reporting it. The **review** role
+(`docs/agents/review.md`) runs the same checks independently, on top of that self-check, never instead of it.
+Nothing downstream of a failed identity check or an unverified replay means anything.
 
-### 2. Case studies — "is the simulator (and the candidate) behaving correctly?"
+## Case studies — "is the simulator (and the candidate) behaving correctly?"
 
 Plot a specific scenario — BG, insulin delivery (basal staircase + boluses,
 auto vs manual), patient IOB, and algorithm state (COB, RC, momentum, forecast) — for a
