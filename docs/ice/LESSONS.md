@@ -1656,3 +1656,27 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       cuts it from about 8× to 5×. What replay misses on the low side of real people is mostly not a missing restoring
       force. Not measured: what it is. The generator responds to state (rescue and snack behaviour from the
       counterfactual glucose); replay keeps the field's reactive intake frozen in ICE.
+
+153. **Retrain noise in change prediction is larger than the person bootstrap shows. On it, the TIR losses that sank
+    oq and or (lessons 150, 151) are noise, and or's low-side gain is not; or is the base candidate, pending a third
+    training.** Four oc trainings (same recipe, seeds 0–3) on all four change pools (oc_noise.py, vsnoise.py in
+    runs/2026-10-13-ice-change/):
+    - **Two more oc retrains lose what oq and or lost.** On e (337 edits / 265 donors), mean(oc2, oc3) − mean(oc0, oc1):
+      TIR |err| +0.16 [+0.04, +0.28], r −0.05 [−0.09, −0.01], paired person bootstrap 90 %. That is the same size and
+      the same "significance" as oq (+0.15) and or (+0.16) against oc0/oc1. A person bootstrap holds the trainings
+      fixed, so it does not measure training noise. oc0 and oc1 were the two best oc trainings on e TIR.
+    - **Training-to-training SD (4 trainings), TIR |err| / t<70 |err| / t<70 r:** pilot 0.19 / 0.07 / 0.05; switch
+      0.15 / 0.09 / 0.11; x 0.09 / 0.03 / 0.06; e 0.10 / 0.05 / 0.04. A two-against-two comparison resolves about
+      2× these. These SDs come from 4 values, so a z built on one is rough, more so where the SD is tiny (switch t<54
+      |err| 0.004).
+    - **or against the 4-oc spread (z = difference / (SD × √(1/2 + 1/4))):** TIR |err| within noise on every pool
+      (pilot +0.7, switch +0.2, x +0.9, e +1.0); TIR r within noise except switch (0.64 against oc 0.67–0.71, z −2.7).
+      t<70 |err| better on x (1.28 against oc 1.32–1.38, z −3.8) and e (1.45 against 1.46–1.56, z −1.8); t<54 |err|
+      better on e (0.39 against 0.46–0.52, z −4.3), x and switch. Pilot and switch t<70 within noise.
+    - **oq against the same spread:** low side as good as or (e t<70 |err| 1.43, z −2.2; t<54 0.40, z −3.9), but TIR r
+      falls beyond noise on pilot (0.13 against oc 0.20–0.25, z −5.0) and switch (0.57 against 0.67–0.71, z −7.4).
+      Not kept.
+    - **So the rule for keeping a change needs the training spread.** Compare a variant's trainings against the base's
+      training-to-training SD, not against a person bootstrap of two trainings. Below 4 base trainings that SD is a
+      guess. oc4 (seed 4, in progress) firms it. A third or training (or2, in progress) decides whether or replaces oc:
+      or would be kept if or2 holds the low-side gain on e and x and its switch TIR r is inside the oc range.
