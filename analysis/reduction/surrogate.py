@@ -18,6 +18,12 @@ Families
            need  = (min(G_h, G + rise_cap) - T) / ISF_T - net + carb   U still owed to bring G_h to T
            bolus = af * need       when need > 0 and G >= T_bolus and slope > fall_gate
            temp  = 0               when G_h < T_low or need < -withhold_u ; else b
+           manual_tau > 0: the meal-bolus discount fades linearly to zero over manual_tau minutes from each bolus
+           prop_temp: temp = b * clip((G_ev - temp_floor_bg) / (T - temp_floor_bg), 0, 1), G_ev = G_h - (net - carb) * ISF_T
+           adaptive scale (ad_sp > 0): TDD above is TDD0 * m(t), log m integrating glucose error against the set
+           point ad_sp (ad_k per mg/dL per day), ad_klo times faster below ad_lo, clipped to [ad_min, ad_max];
+           iob_cap_h > 0: a bolus never lifts net IOB above iob_cap_h * TDD/24 (hours of average delivery)
+           the correction ISF follows m ** ad_isf; the basal follows m ** ad_basal (0 = basal stays at its TDD0 value, only ISF adapts).
 """
 import json, math, sys
 from datetime import datetime, timezone
@@ -43,7 +49,7 @@ class ExpCurve:
         t = np.arange(0, self.td + self.delay + 5, 1.0)
         return float(self.remaining(t).sum() / 60.0)
 
-def features(m, curve):
+def features(m, curve, manual_tau=0.0):
     t = ts(m["t"])
     g = m["glucose"]
     gt = np.array([ts(x[0]) for x in g]); gv = np.array([x[1] for x in g], float)
@@ -60,7 +66,7 @@ def features(m, curve):
         if kind == "bolus" or a1 - a0 < 1:
             r = u * float(curve.remaining((t - a0) / 60.0))
             iob += r
-            if not auto: iob_manual += r
+            if not auto: iob_manual += r * (max(0.0, 1 - (t - a0) / 60.0 / manual_tau) if manual_tau > 0 else 1.0)
         else:
             n = max(1, int(round((a1 - a0) / 300)))
             mids = a0 + (np.arange(n) + 0.5) * (a1 - a0) / n
@@ -80,24 +86,49 @@ def floor_to(x, inc):
 class TddPD:
     defaults = dict(tdd=40.0, isf_k=688.0, isf_e=0.74, basal_frac=0.45, target=110.0, t_low=80.0, t_bolus=120.0,
                     h=30.0, slope_cap=3.0, rise_cap=80.0, af=0.4, fall_gate=-1.0, withhold_u=0.3, peak=75.0,
-                    manual_w=0.0, cr_k=0.0)
+                    manual_w=0.0, cr_k=0.0,
+                    manual_tau=0.0, prop_temp=0, temp_floor_bg=80.0,
+                    ad_basal=1.0, ad_isf=1.0, iob_cap_h=0.0,
+                    ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0)
     def __init__(self, **p):
         self.p = {**self.defaults, **p}
         self.curve = ExpCurve(peak=self.p["peak"])
         self.ieq = self.curve.iob_eq()
+        self.logm, self.last_t = 0.0, None
+    def adapt(self, t, G):
+        """Outcome-keyed scale: log m integrates glucose above the set point (+ad_k per mg/dL·day) and below ad_lo
+        (ad_klo times faster, downward). Reads glucose only, never delivered insulin."""
+        p = self.p
+        if p["ad_sp"] <= 0: return 1.0
+        if self.last_t is not None:
+            dt = min(max(t - self.last_t, 0), 1800) / 86400.0
+            self.logm += dt * p["ad_k"] * ((G - p["ad_sp"]) if G >= p["ad_lo"] else -p["ad_klo"] * (p["ad_lo"] - G) + (p["ad_lo"] - p["ad_sp"]))
+            self.logm = min(max(self.logm, math.log(p["ad_min"])), math.log(p["ad_max"]))
+        self.last_t = t
+        return math.exp(self.logm)
     def __call__(self, m):
-        p = self.p; f = features(m, self.curve); st = m["settings"]
-        isf = p["isf_k"] / p["tdd"] ** p["isf_e"]
-        b = p["basal_frac"] * p["tdd"] / 24.0
+        p = self.p; f = features(m, self.curve, p["manual_tau"]); st = m["settings"]
+        tdd = p["tdd"] * self.adapt(ts(m["t"]), f["G"])
+        f["scale"] = tdd / p["tdd"]
+        isf = p["isf_k"] / (p["tdd"] * f["scale"] ** p["ad_isf"]) ** p["isf_e"]
+        b = p["basal_frac"] * p["tdd"] * f["scale"] ** p["ad_basal"] / 24.0
         s = max(-p["slope_cap"], min(p["slope_cap"], f["s15"]))
         Gh = f["G"] + s * p["h"]
         net = f["iob"] - p["manual_w"] * f["iob_manual"] - b * self.ieq
-        carb_u = f["cob"] / (p["cr_k"] / p["tdd"]) if p["cr_k"] > 0 else 0.0
+        carb_u = f["cob"] / (p["cr_k"] / tdd) if p["cr_k"] > 0 else 0.0
         need = (min(Gh, f["G"] + p["rise_cap"]) - p["target"]) / isf - net + carb_u
         bolus = 0.0
         if need > 0 and f["G"] >= p["t_bolus"] and s > p["fall_gate"]:
             bolus = min(p["af"] * need, st.get("max_bolus") or 1e9)
-        temp = 0.0 if (Gh < p["t_low"] or need < -p["withhold_u"] or f["G"] < p["t_low"]) else b
+            if p["iob_cap_h"] > 0:   # net insulin on board never above iob_cap_h hours of average delivery
+                bolus = max(0.0, min(bolus, p["iob_cap_h"] * tdd / 24.0 - net))
+        if p["prop_temp"]:
+            # basal in proportion to where the IOB-aware forecast lands between temp_floor_bg and target
+            Gev = min(Gh, f["G"] + p["rise_cap"]) - (net - carb_u) * isf
+            temp = b * min(1.0, max(0.0, (Gev - p["temp_floor_bg"]) / (p["target"] - p["temp_floor_bg"])))
+            if f["G"] < p["t_low"] or Gh < p["t_low"]: temp = 0.0
+        else:
+            temp = 0.0 if (Gh < p["t_low"] or need < -p["withhold_u"] or f["G"] < p["t_low"]) else b
         return dict(bolus=floor_to(bolus, st.get("bolus_inc")), temp_rate=temp,
                     _f=f, _need=need)
 

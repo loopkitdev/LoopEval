@@ -26,3 +26,15 @@
    i050, 80 → 7: t<70 44 %). Loop survives these through RC and the person's own settings edits; a surrogate needs
    its own adaptation, keyed to glucose outcomes. Low announcers lose most (−20 TIR), high announcers least (−4).
    `runs/2026-10-30-reduction-ec/` (`batch.py`, `it1_cohort.txt`, `per_donor.csv`).
+4. **An outcome-keyed scale fixes the high side; the lows are the control law's, not the settings' (iterations 2–5,
+   2026-10-30).** Same 35 donors. A slow integral on glucose above a set point (faster down below 80) moves the
+   TDD scale: at set point 140 TIR 69.2 vs gr 70.0 (−0.9 [−3.5, +1.9]), but t<70 8.5 vs 1.8 and t<54 +2.9. The
+   set point is a dial (130 → 160: TIR 71.6 → 62.3, t<70 10.1 → 4.1); at 160 the arm sits 10.8 TIR below the needs
+   dial at equal t<70. None of these moved t<70 off 5.7–8.6: entered carbs offsetting meal boluses, a fading
+   meal-bolus discount, proportional basal, slope horizon 0/15/30, application factor 0.25, slope cap, bolus
+   threshold, basal fraction 0.25/0.35, basal decoupled from the scale, 10× faster cut on lows. The excess is broad
+   (28 of 35 donors), unrelated to manual-bolus share (r 0.04). Before a crossing of 70 the surrogate has given
+   2.6 U automatic in the prior 1–3 h against gr's 1.75, and carries 0.54 U IOB at the crossing against 0.07.
+   Case (i081, unannounced meal 100 → 249 mg/dL in 30 min): six consecutive 1.1–1.75 U boluses stack IOB from 3 to
+   10.5 U, then 53 mg/dL two hours later; the adaptive scale had climbed to 1.5× and strengthened the correction ISF
+   with it. Same daily insulin as gr, front-loaded. `it2..it5_cohort.txt`, `traces/i081_case7.*`.
