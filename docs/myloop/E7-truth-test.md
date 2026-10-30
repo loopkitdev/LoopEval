@@ -68,7 +68,7 @@ Replay sees exactly what happened and is asked to predict a change whose true an
 - One seed per training. The generator's behaviour sampling responds to glucose, so a changed arm can draw different
   meals and rescues. That is part of the truth being predicted, and part of the null arm's noise.
 
-## Result (2026-10-29): replay overstates low-side change about 8× on a known body; the primer edge came from the records
+## Result (2026-10-29): replay overstates low-side change 4–8× on a known body; the primer edge came from the records
 
 Run: `runs/2026-10-29-myloop-e7-truth/` (`build.py`, `replay.py`, `score_e7.py`, `replay_scores.csv`). 166 donors × 2
 trainings × 5 arms, 1,660 replays and 332 null-arm generator runs, none failed.
@@ -100,13 +100,23 @@ more than 0.07.
 | Δ mean glucose | 0.60 [0.47, 0.72] | 0.56 |
 
 - **Bar 1 holds:** replay overstates low-side change on a body whose answer is known. Δt<70 slope 0.12, CI upper bound
-  0.17. TIR is overstated far less (0.62). This is the error of replay's method alone: same period, same meals, same
+  0.17 (per arm: needs 1.05 0.16, primer 60 0.10). TIR is overstated far less (0.62). Same period, same meals, same
   engine, with the generator as the body. Tim Street's oref twin showed 0.35 against UVA/Padova.
 - **Replay barely changes the insulin delivered** (+0.06 U/day for needs 1.05, against +0.76 on the generator). Loop takes
-  back almost all of a change in replay, and the lows come from timing within that near-zero net. Why the generator's
-  body lets Loop keep the extra insulin is not measured here. Candidates are its learned low response, which sits inside
-  its ICE, and its insulin sensitivity. The behaviour channel is small: the dial arm draws 2 more meals (73 g) per
-  28 days.
+  back almost all of a change in replay, and the lows come from timing within that near-zero net. The behaviour channel
+  is small: the dial arm draws 2 more meals (73 g) per 28 days.
+- **Most of the gap is replay's missing glucose effectiveness** (loopeval-review, 2026-10-30,
+  `runs/2026-10-30-review-e7/`). Re-running the dial step on training 0 with replay's `--glucose-effectiveness`:
+
+  | SG | ΔU/day kept, replay / generator | Δ mean BG, replay / generator | Δt<70, generator ÷ replay | ΔTIR, generator ÷ replay |
+  |---|---|---|---|---|
+  | 0 | +0.06 / +0.71 | −4.5 / −2.2 | 0.22 | 0.89 |
+  | 0.003 | +0.37 / +0.71 | −3.5 / −2.2 | 0.31 | 1.02 |
+  | 0.01 | +0.72 / +0.71 | −2.3 / −2.2 | 0.56 | 1.35 |
+
+  At SG 0.01 replay keeps the generator's insulin and matches its mean-BG change, and the identity tightens (p95 5.6 →
+  2.1 mg/dL). Per-person Δt<70 agreement does not improve (r 0.21 → 0.16). SG 0.01 was picked after seeing the numbers,
+  and the generator's force is a model; replay at SG 0.01 on the field settings-edit set would settle whether it is real.
 - **Bar 2: the primer's edge is not replay's method.** On generator records replay prices the primer *worse* than the
   dial, against a generator answer of no difference:
 

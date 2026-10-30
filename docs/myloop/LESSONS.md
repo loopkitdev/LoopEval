@@ -50,9 +50,13 @@
    the dial line; at matched t<54 it is −0.11 [−0.54, +0.20]. Replay's large lift (+1.03) does not survive:
    replay treats moved insulin as nearly free on lows, while the generator charges it about the dial's rate. The dial
    comparison has to be run in the same regime: ice's deployed-regime dial gave a misleading edge. See `E6-primer.md`.
-10. **On a body with a known answer, replay overstates low-side change about 8× (E7, 2026-10-29).** Generator reference
+10. **On a body with a known answer, replay overstates low-side change 4–8× (E7, 2026-10-29).** Generator reference
     runs, replayed as records under needs 1.05 and two primers, against the generator's own re-runs: slope of true on
     predicted Δt<70 0.12 [0.08, 0.17], Δt<54 0.06, ΔTIR 0.62. Replay adds almost no net insulin (+0.06 U/day for needs
     1.05, truth +0.76): Loop takes the change back, and the lows come from timing. On these records replay ranks the
     primer worse than the dial, so E6's donor-replay edge came from the records, not the method. Null-arm floors for one
-    person on the generator: ΔTIR 1.75, Δt<70 0.43. See `E7-truth-test.md`.
+    person on the generator: ΔTIR 1.75, Δt<70 0.43. The size depends on the arm (cohort Δt<70 ratio 4.5× for the dial,
+    7.6× for the primer). Review (2026-10-30) traced most of it to replay's missing glucose effectiveness: at
+    `--glucose-effectiveness 0.01` replay keeps the generator's insulin and the dial's overstatement falls to about 1.8×,
+    with per-person agreement no better. I called the gap "replay's method alone"; it was mostly one absent restoring
+    force, and the generator's force is a model too. See `E7-truth-test.md`.
