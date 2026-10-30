@@ -112,3 +112,12 @@
    0.54 / 0.38 at gr ×1.0), so the set point is an operating-point choice along a curve that lies above Loop's;
    140 is the default candidate (t<70 +0.9 / +0.8 vs gr ×1.0). Half gain (130h) changes nothing. `runs/2026-10-30-
    reduction-gen/g` (job 62; training 1 rescored by hand after `gen.py`'s `os.nice` raised EPERM under the queue).
+11. **On the additive sim Loop's needs dial keeps rising, and the adaptive rate is movement along it, not lift (2026-10-30).**
+   gr to ×1.5 on the additive sim (112 × 14 d, same binary as gr..gr110): TIR 72.5 / 73.6 / 74.5 at ×1.25 / 1.35 / 1.5,
+   no plateau (the generator plateaus past ×1.25, lesson 10). Surrogate with own meal boluses, gap at equal t<70 /
+   equal t<54: fixed rate ×0.9 +3.1 / +2.4; adaptive set point 150 +3.0 [+1.2, +4.7] / +0.6 [−1.0, +3.0]; 140 +3.0
+   [+1.4, +4.6] / +2.0 [+0.8, +3.9]; 130 +2.5 / +2.3. So the beds agree the surrogate sits ~2–3 TIR above Loop at equal
+   lows, but disagree on what adaptation adds: on the generator it raises the gap (+1.4/+1.9 → +2.5/+2.3 at 140), on
+   the additive sim it does not, and at set point 150 its t<54 efficiency is no better than Loop's. v01041 is the
+   worst t<54 rise in every adaptive arm (+1.8 to +2.1; true +3.1 to +3.6) — to look at. `runs/2026-10-30-reduction-
+   additive` (job 64; `REF=gr score.py`).
