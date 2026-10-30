@@ -17,15 +17,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-REPO = Path("/Users/pete/dev/loopeval-additive/analysis")
-sys.path.insert(0, str(REPO))
+sys.path.insert(0, str(Path(__file__).resolve().parents[4]))   # this tree's analysis/ (live or frozen)
 from loopeval_analysis.patient_sim import templates as TP          # noqa: E402
 from loopeval_analysis.patient_sim import quiet as Q               # noqa: E402
 
 H = Path.home()
 TDIR = H / ".loop-eval/runs/2026-10-15-additive-templates"
 LIVE = TDIR / "templates_pilot_logs.csv"
-HERE = Path(__file__).resolve().parent
 CLASS_B = ["csf_own_mult", "twin_isf_mult", "twin_csf_mult", "corr_p_mult", "corr_thr_adj", "intake_mult", "csf_geq_mult"]
 
 

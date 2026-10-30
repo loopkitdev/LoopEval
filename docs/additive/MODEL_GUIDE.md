@@ -329,7 +329,8 @@ The level is what carries a donor's control level (L 448's far-from-meal load); 
 
 **Running it:** `--templates templates_pilot_resid_sd3.csv --enable rc_own,night_pro,uls,resid,site_clock --disable
 day,stress,illness,menstrual,steroid,act_frag --set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.6,si_norm=0.92`.
-The template file (outside the repo, beside the others) is built by `patient_sim/resid_tools/`: `ice_var.py` (the
+The template file (outside the repo, beside the others) is built by `patient_sim/resid_tools/` (one copy, run by path
+from the run's frozen tree with the run dir as the working directory): `ice_var.py` (the
 unexplained drive by time scale, donors and a core run), `fit_resid.py` (fast / block / day amplitudes), `lvl_resid.py`
 (one round of the level; three rounds on both draws), `heldout.py` (the odd / even block check).
 

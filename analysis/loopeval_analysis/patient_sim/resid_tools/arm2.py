@@ -7,15 +7,15 @@ controller, paired (same template row, same seeds, so the same person, meals and
 
 The body is never touched: template settings columns also feed the body (isf_true, CSF), so settings are changed on the
 sampled Person, after sampling. Cohort defaults + --enable rc_own (additive's canonical twin, 2026-10-21) and
---disable edits (no random settings edits of the person's own). Code and binary frozen in the parent dir (9285e51); ARM_NAME / ARM_ENABLE (JSON) name the variant.
+--disable edits (no random settings edits of the person's own). Code and binary frozen in the run dir (the change dir's parent); ARM_NAME / ARM_ENABLE (JSON) name the variant.
 Usage: additive_arm.py <events.csv> <seeds> <par>"""
 import json, os, sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 import pandas as pd
 
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parent / "frozen2/analysis"))
+HERE = Path.cwd()                  # the change dir; the run dir above it holds the binary
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))   # this tree's analysis/ (live or frozen)
 import json as _json
 EXTRA = _json.loads(os.environ.get("ARM_ENABLE", "{}"))   # the variant's enable additions
 TEMPLATES = Path(os.environ.get("ARM_TEMPLATES", str(Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/templates_pilot_logs.csv")))

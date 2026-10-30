@@ -1037,7 +1037,7 @@ class World:
         bg = next((v for k, v in sorted(self.readings.items(), reverse=True) if v), st["target"])
         if self.enable.get("perfect_person"):
             # the diagnostic person doses each meal's own carbs exactly; netting the previous meal's bolus as IOB
-            # (the calculator's way) under-doses stacked meals and reads as a units fault in selfcheck (LESSONS 40)
+            # (the calculator's way) under-doses stacked meals and reads as a units fault in the self-consistency check (LESSONS 40)
             return max(0.0, carbs / st["cr"])
         return max(0.0, carbs / st["cr"] + (bg - st["target"]) / st["isf"] - max(self._calc_iob(m), 0.0))
 
