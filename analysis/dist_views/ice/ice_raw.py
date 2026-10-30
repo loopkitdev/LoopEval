@@ -19,18 +19,18 @@ Flags (an interval can carry several):
               >= 2 mg/dL/min over the 15 min before and left at >= 2 mg/dL/min
               over the 15 min after
   unrecorded  inside a stretch of 60 min or more with no basal record at all
-              (basal_coverage.py) — the grid assumes the schedule there, so
+              (basal_coverage.py, in git history) — the grid assumes the schedule there, so
               insulin is unknown, not scheduled
   pre_early   within 12 h before a site change (twiist cannula prime) or pod
               change (Omnipod, "No pod paired" run) made when the previous
               site/pod had lasted under 0.6x the person's median life — a
-              failing site or a faulted pod (ice_site.py, ice_pod.py)
+              failing site or a faulted pod (ice_site.py, ice_pod.py; in git history)
   change      from 1 h before to 3 h after every site or pod change: the swap
               itself (no delivery, then a catch-up burst) distorts ICE
   fast        inside a ~30-min span whose glucose moves faster than 4 mg/dL/min
-              (beyond what CGM trend arrows encode; ice_rate_check.py)
+              (beyond what CGM trend arrows encode; ice_rate_check.py, in git history)
   occlusion   from 1 h before to 3 h after a twiist occlusion-alarm episode
-              (alarms within 30 min merged; ice_occlusion.py)
+              (alarms within 30 min merged; ice_occlusion.py, in git history)
   alternating within a 2-h stretch whose increments alternate in sign
               (lag-1 autocorrelation < -0.6) — two interleaved sensors
 Intervals whose spacing is off the native cadence (gaps) carry no ICE and are
@@ -106,7 +106,7 @@ def _event_anchors():
         ts = np.sort(np.asarray(lst, dtype=np.int64))
         age = np.r_[np.nan, np.diff(ts)] / 3.6e12
         life = np.nanmedian(age) if len(ts) > 2 else 72.0
-        early[a] = list(ts[age < 0.6 * life])            # same definition as ice_site.EARLY_FRAC
+        early[a] = list(ts[age < 0.6 * life])            # the failing-site cut
         allc[a] = list(ts)
     p = S.OUT / "ice" / "alarms.pkl"
     if p.exists():
@@ -127,20 +127,6 @@ def doses_b(ds):
     doses = D._load_doses(ds.doses_path)
     b = doses[doses.delivery_type == "basal"].sort_index()
     return list(zip(b.index.asi8, b.endDate.dt.tz_convert("UTC").astype("int64")))
-
-
-def disruption_windows(ds):
-    out = []
-    p = ds.disruptions_path
-    if not p or not Path(p).exists():
-        return out
-    for r in csv.DictReader(open(p)):
-        try:
-            out.append((pd.Timestamp(r["start"]).tz_convert("UTC").value,
-                        pd.Timestamp(r["end"]).tz_convert("UTC").value))
-        except Exception:
-            pass
-    return out
 
 
 def build(alias, isf):
@@ -165,7 +151,7 @@ def build(alias, isf):
     d["clamp"] = (d.bg0 <= LOW) | (d.bg1 <= LOW) | (d.bg0 >= HIGH) | (d.bg1 >= HIGH)
     mid = ((d.t0.astype("int64") + d.t1.astype("int64")) // 2).to_numpy()
     dis = np.zeros(len(d), bool)
-    for s, e in disruption_windows(ds):
+    for s, e in ((a.value, b.value) for a, b in D.disruption_windows(ds)):
         lo, hi = np.searchsorted(d.t1.astype("int64").to_numpy(), s), np.searchsorted(d.t0.astype("int64").to_numpy(), e)
         dis[lo:hi] = True
     d["disrupted"] = dis
@@ -238,7 +224,7 @@ def build(alias, isf):
 FLAGS = ["jump", "clamp", "disrupted", "unrecorded", "no_insulin", "post_gap", "compression", "alternating",
          "pre_early", "occlusion", "change", "fast"]
 # what a clean interval must be free of: every flag except post_gap, which
-# marked ICE no different from clean (flag_effects.py)
+# marked ICE no different from clean (flag_effects.py, in git history)
 EXCLUDE = [f for f in FLAGS if f != "post_gap"]
 
 
