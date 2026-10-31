@@ -1680,3 +1680,30 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       training-to-training SD, not against a person bootstrap of two trainings. Below 4 base trainings that SD is a
       guess. oc4 (seed 4, in progress) firms it. A third or training (or2, in progress) decides whether or replaces oc:
       or would be kept if or2 holds the low-side gain on e and x and its switch TIR r is inside the oc range.
+
+154. **Per-edit error against zero is the wrong reading of the change test. Averaged by edit direction, the generator
+    sizes the t<70 change; it is too pessimistic on TIR and about 2× too strong on t<54.** e pool, 337 edits / 265
+    donors, model = mean of oc0–4, person bootstrap 90 % (dirmeans.py in runs/2026-10-13-ice-change/). Direction =
+    log basal ratio − log ISF ratio − log CR ratio, + = more insulin.
+    - **The per-edit slope of 0.5 is field noise, not over-response.** Predicting no change has a lower per-edit
+      |err| than every model on e and switch for t<70 (e: 1.41 against oc 1.52, or 1.45), and the field-on-model
+      slope is about 0.5. But the generator's predictions spread half as widely as the field changes (SD 1.15 against
+      2.15) at r 0.29: each person's before/after difference carries week-to-week variation the edit did not cause,
+      and any predictor at that r shows that slope. A lower |err| can also come from smaller predictions alone (or's
+      t<54 |err| gain is mostly that: prediction SD 0.37 against oc 0.61 on e). Judge mean response by edit class,
+      plus r and sign agreement; |err| against zero only bounds the per-edit noise.
+    - **t<70 by direction:** more insulin by >10 % (161 edits) field +0.71 [+0.47, +0.97], generator +0.76 [+0.64,
+      +0.92], replay +2.28; less by >10 % (139) field −0.85 [−1.19, −0.61], generator −0.71 [−0.87, −0.57], replay
+      −2.26. The generator sizes it; replay is 3× too strong.
+    - **TIR by direction:** more insulin field +3.73 [+2.62, +4.91], generator +2.08 [+1.72, +2.44]; less insulin field
+      −1.24 [−2.26, −0.18], generator −1.87 [−2.33, −1.43]; all edits field +1.25, generator +0.20. The generator is
+      1–1.5 TIR too pessimistic in both directions. Part of that may be field drift after any edit (people edit when
+      things go badly); the 37 edits within ±10 % are too few to separate it.
+    - **t<54 by direction:** more insulin field +0.15 [+0.08, +0.23], generator +0.32 [+0.26, +0.40], replay +1.04;
+      less insulin field −0.12 [−0.19, −0.06], generator −0.28 [−0.36, −0.22]. About 2× too strong (replay 7×).
+      Per-edit t<54 is still not predicted: zero beats both models on every pool and sign agreement is 0.50–0.56
+      except x (0.64–0.66). One lead: on switch, or's t<54 slope is 0.57–1.13 on all three trainings against oc
+      −0.19–0.31 (r 0.33 against 0.07), on 37 switches.
+    - **With oc4 the oc spread widens and or's x gain goes inside noise:** oc4 x t<70 |err| 1.26 (oc0–3 1.32–1.38);
+      or x 1.30 (z −1.2), or2 alone 1.34. or's switch TIR r 0.649 is inside oc 0.60–0.71. e awaits or2.
+    - **Next gap:** TIR on the more-insulin edits (generator gives 56 % of the field's gain) and the 2× t<54 response.
