@@ -648,14 +648,8 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Option(name: .long, help: "Control-IQ reference arm: automatic bolus only when the 30-min forecast exceeds this (mg/dL). 0 = off.")
     var candidateAutoBolusPred30Min: Double = 0
 
-    @Option(name: .long, help: "E6 primer: one extra automatic bolus of this many mg/dL / ISF at a rise seen on the candidate's CGM (slope >= primer-slope, rise >= primer-rise over the 60-min minimum, no BG < 80 in 60 min), then a lockout. 0 = off.")
+    @Option(name: .long, help: "E6 primer: one extra automatic bolus of this many mg/dL / ISF at a rise seen on the candidate's CGM (30-min slope >= 1.5 mg/dL/min, >= 30 mg/dL over the 60-min minimum, no BG < 80 in 60 min), then none for 180 min. 0 = off.")
     var candidatePrimerMgdl: Double = 0
-    @Option(name: .long, help: "E6 primer: trailing 30-min slope threshold, mg/dL/min.")
-    var candidatePrimerSlope: Double = 1.5
-    @Option(name: .long, help: "E6 primer: rise above the 60-min minimum, mg/dL.")
-    var candidatePrimerRise: Double = 30
-    @Option(name: .long, help: "E6 primer: minutes before another primer.")
-    var candidatePrimerLockoutMin: Double = 180
     @Option(name: .long, help: "E6 primer, retractable form: deliver it as extra temp basal over this many minutes, cancelled when CGM rises < 5 mg/dL over 15 min. 0 = bolus.")
     var candidatePrimerTempMin: Double = 0
 
@@ -1018,9 +1012,6 @@ extension SimulateCommand {
     var candidateAutoBolusMinIntervalMin: Double { get { loopExperiments.candidateAutoBolusMinIntervalMin } set { loopExperiments.candidateAutoBolusMinIntervalMin = newValue } }
     var candidateAutoBolusPred30Min: Double { get { loopExperiments.candidateAutoBolusPred30Min } set { loopExperiments.candidateAutoBolusPred30Min = newValue } }
     var candidatePrimerMgdl: Double { get { loopExperiments.candidatePrimerMgdl } set { loopExperiments.candidatePrimerMgdl = newValue } }
-    var candidatePrimerSlope: Double { get { loopExperiments.candidatePrimerSlope } set { loopExperiments.candidatePrimerSlope = newValue } }
-    var candidatePrimerRise: Double { get { loopExperiments.candidatePrimerRise } set { loopExperiments.candidatePrimerRise = newValue } }
-    var candidatePrimerLockoutMin: Double { get { loopExperiments.candidatePrimerLockoutMin } set { loopExperiments.candidatePrimerLockoutMin = newValue } }
     var candidatePrimerTempMin: Double { get { loopExperiments.candidatePrimerTempMin } set { loopExperiments.candidatePrimerTempMin = newValue } }
     var candidateRunwayFraction: Double { get { loopExperiments.candidateRunwayFraction } set { loopExperiments.candidateRunwayFraction = newValue } }
     var candidateSigmaPrior: Double { get { loopExperiments.candidateSigmaPrior } set { loopExperiments.candidateSigmaPrior = newValue } }

@@ -9,7 +9,9 @@ the parts that might transfer into testable candidates. Those candidates are cha
 dosing, or to how LoopEval simulates and models a person.
 
 Read with **AGENTS.md** (shared) and **docs/agents/verification.md**. A CamAPS idea counts as an
-improvement only when the frontier harness says it is: TIR up AND t<54 down against the needs dial.
+improvement only when the frontier harness says it is: TIR up AND t<70 down against the needs dial, run on top of
+**gr** (guard + runway, now in Loop next-dev). Only experiments and candidates that can show lift over gr are considered
+(Pete, 2026-10-31).
 That a commercial system ships the idea is not evidence that it helps.
 
 ## What this role owns, and what it does not

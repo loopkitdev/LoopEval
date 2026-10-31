@@ -49,7 +49,9 @@
    the same no-entry setup gives +0.95 TIR for +0.206 t<70. At matched t<70 the primer is +0.12 TIR [−0.08, +0.31] over
    the dial line; at matched t<54 it is −0.11 [−0.54, +0.20]. Replay's large lift (+1.03) does not survive:
    replay treats moved insulin as nearly free on lows, while the generator charges it about the dial's rate. The dial
-   comparison has to be run in the same regime: ice's deployed-regime dial gave a misleading edge. See `E6-primer.md`.
+   comparison has to be run in the same regime: ice's deployed-regime dial gave a misleading edge. Per training the
+   matched-t70 lift is +0.29 (oc0) and −0.03 (oc1), a sign flip, which ice's rule (LESSONS 153) reads as noise. E7's
+   Δt<70 ratios hold in both trainings (dial 0.22 / 0.23, primer 0.11 / 0.15). See `E6-primer.md`.
 10. **On a body with a known answer, replay overstates low-side change 4–8× (E7, 2026-10-29).** Generator reference
     runs, replayed as records under needs 1.05 and two primers, against the generator's own re-runs: slope of true on
     predicted Δt<70 0.12 [0.08, 0.17], Δt<54 0.06, ΔTIR 0.62. Replay adds almost no net insulin (+0.06 U/day for needs
