@@ -22,6 +22,7 @@ Families
            prop_temp: temp = b * clip((G_ev - temp_floor_bg) / (T - temp_floor_bg), 0, 1), G_ev = G_h - (net - carb) * ISF_T
            adaptive scale (ad_sp > 0): TDD above is TDD0 * m(t), log m integrating glucose error against the set
            point ad_sp (ad_k per mg/dL per day), ad_klo times faster below ad_lo, clipped to [ad_min, ad_max];
+           ad_brake_h > 0: the scale does not rise for ad_brake_h hours after any glucose below 70 (it may still fall).
            basal_uh > 0: b = basal_uh (the person's pre-window background rate, tdd.basal_hat) instead of basal_frac TDD/24
            rc_k > 0: retrospective correction, D = ΔG_30 + ISF_T * (U absorbed in 30 min - b/2), G_h += clamp(rc_k D, ±rc_cap)
            iob_cap_h > 0: a bolus never lifts net IOB above iob_cap_h * TDD/24 (hours of average delivery)
@@ -115,13 +116,13 @@ class TddPD:
                     manual_w=0.0, cr_k=0.0,
                     manual_tau=0.0, prop_temp=0, temp_floor_bg=80.0,
                     basal_uh=0.0, ad_basal=1.0, ad_isf=1.0, iob_cap_h=0.0, rc_k=0.0, rc_cap=150.0,
-                    ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0,
+                    ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0, ad_brake_h=0.0,
                     use_target=0, use_override=0, target_min=87.0, own_manual=0)
     def __init__(self, **p):
         self.p = {**self.defaults, **p}
         self.curve = ExpCurve(peak=self.p["peak"])
         self.ieq = self.curve.iob_eq()
-        self.logm, self.last_t = 0.0, None
+        self.logm, self.last_t, self.last_low = 0.0, None, None
     def adapt(self, t, G, sp_shift=0.0, frozen=False):
         """Outcome-keyed scale: log m integrates glucose above the set point (+ad_k per mg/dL·day) and below ad_lo
         (ad_klo times faster, downward). Reads glucose only, never delivered insulin."""
@@ -130,7 +131,10 @@ class TddPD:
         if self.last_t is not None and not frozen:
             sp = p["ad_sp"] + sp_shift
             dt = min(max(t - self.last_t, 0), 1800) / 86400.0
-            self.logm += dt * p["ad_k"] * ((G - sp) if G >= p["ad_lo"] else -p["ad_klo"] * (p["ad_lo"] - G) + (p["ad_lo"] - sp))
+            if G < 70: self.last_low = t
+            d = dt * p["ad_k"] * ((G - sp) if G >= p["ad_lo"] else -p["ad_klo"] * (p["ad_lo"] - G) + (p["ad_lo"] - sp))
+            if d > 0 and self.last_low is not None and t - self.last_low < p["ad_brake_h"] * 3600: d = 0.0
+            self.logm += d
             self.logm = min(max(self.logm, math.log(p["ad_min"])), math.log(p["ad_max"]))
         self.last_t = t
         return math.exp(self.logm)
