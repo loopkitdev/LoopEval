@@ -146,3 +146,13 @@
    the signature expected when the recorded glucose (shaped by Loop's timing) is kept and only dose differences are
    modelled, but it is not proven to be that. `runs/2026-10-30-reduction-ec/ab_cohort.txt` (batch.py arms
    tdd_pd_f090_bab140, _bab140b12; job 67; code 8545e57e).
+14. **One set point serves either the tightly controlled or the variable people, not both (2026-10-31).** 12 h brake
+   at set points 140 / 130 / 120. Generator, training 0 / 1: TIR +4.2 / +3.8, +5.5 / +5.5, +6.3 / +6.5 against gr ×1.0;
+   gap at equal t<70 +3.0 / +2.5, +2.8 / +2.7, +3.1 / +2.5. Additive: 72.4 / 73.9 / 75.4 TIR (gr 68.7), gap +3.5 /
+   +3.5 / +3.2. The gap holds; who pays moves. People running below 140 under gr: median dTIR −2.1 / −1.2 / +0.7
+   (generator training 0; additive −1.5 / −0.7 / +0.1), and people losing more than 5 TIR fall (generator 5 / 0 / 0
+   and 8 / 1 / 1; additive 5 / 2 / 1), while people with t<54 up more than 0.5 rise (generator 22 / 37 / 59 and 11 /
+   23 / 39; additive 11 / 17 / 23) and the brake holds v01041 less well (t<54 0.38 / 0.62 / 1.12). A fixed set point
+   pulls tight people up to it. Pre-window mean CGM predicts who they are (generator: r 0.5 with gr's mean; people with
+   history below 140 have median dTIR −0.1 at set point 140, the rest +4.1), so the next arm takes a personal set point
+   = pre-window mean clipped to [120, 140] (`tdd.bg_hat`; job 69). Runs: job 68.

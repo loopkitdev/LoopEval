@@ -25,3 +25,13 @@ def basal_hat(alias, w0, days=14, q=0.5):
     g = s.groupby("hr").agg(u=("u", "sum"), mins=("dt", "sum"), bad=("unrecorded", "any"))
     g = g[(g.mins >= 54) & ~g.bad]
     return float(g.u.quantile(q)) if len(g) else float("nan")
+
+def bg_hat(alias, w0, days=14):
+    """Pre-window mean CGM glucose (mg/dL) over the same `days` local days as tdd(): the level the person already ran at."""
+    s = pd.read_parquet(f"{STEPS}/{alias}.parquet", columns=["t0", "dt", "bg1", "local_day", "unrecorded"])
+    w0 = pd.Timestamp(w0); w0 = w0.tz_localize("UTC") if w0.tzinfo is None else w0
+    s = s[(s.t0 < w0) & (s.t0 >= w0 - pd.Timedelta(days=days + 1))]
+    g = s.groupby("local_day").agg(mins=("dt", "sum"), bad=("unrecorded", "any"))
+    keep = g[(g.mins >= 0.9 * 1440) & ~g.bad].tail(days).index
+    v = s[s.local_day.isin(keep)].bg1
+    return float(v.mean()) if len(v) else float("nan")
