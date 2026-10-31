@@ -32,6 +32,7 @@ import os
 B_ = pd.read_csv(H / ".loop-eval/runs/2026-10-15-additive-templates/real_pilot_blocks.csv")
 if os.environ.get("LVL_BLOCKS") == "odd": B_ = B_[B_.block % 2 == 1]      # held-out check: fit on odd blocks only
 D = B_.groupby("alias").bg_mean.median()
+if os.environ.get("LVL_TARGET") == "template": D = pd.read_csv(tin).set_index("alias").bg_mean   # a pool without block tables: the whole record
 now = twin_means(runs)
 gap = (D.reindex(now.index) - now).dropna()
 gain = GAIN0

@@ -397,9 +397,20 @@ UVA/Padova delay-based fast-analogue model (n = 116).
 - In linear-effect terms, SG damps every perturbation with a time constant of about 45 min. A fixed
   rescue-carb effect fades, which matches LoopEval's ICE finding that "treatment kernel is
   transient". This is the term that makes rescue kernels non-permanent.
-- Non-insulin-dependent uptake (brain) is about 1–1.2 mg/kg/min (F01 ≈ 0.0097–0.0111 mmol/kg/min).
+- Non-insulin-dependent uptake: about 1 mg/kg/min for the brain (Best 1981's fixed term; UVA/Padova Fsnc 1).
+  Hovorka's F01 0.0097–0.0111 mmol/kg/min is 1.75–2.0 mg/kg/min, his total non-insulin-dependent flux.
   It *saturates and falls* below about 80 mg/dL (Hovorka F01c rule), which slightly slows falls into
   hypo.
+- **Parts of glucose effectiveness in T1D** (used by `ge_split`, LESSONS 548):
+  - Peripheral, at basal insulin: Del Prato 1997 (doi:10.1007/s001250050735), +4.4 µmol/kg/min of disposal per
+    +11.2 mmol/L in T1D (controls +13.2), i.e. 0.0039 dL/kg/min; abstract: hepatic output fell with glucose similarly in
+    all groups [full text not read].
+  - Liver, above basal: UVA/Padova T1D adults' kp2 median 0.0038 /min (0.0024–0.0080, log-SD 0.40; simglucose
+    `vpatient_params.csv`). Healthy: G 90 → 180 at basal hormones cut EGP 42% (Mevorach 1998, JCI 102:744). T1D at
+    constant basal insulin: glucose infusion gave only partial, transient EGP suppression (Bruce 2025, Diabetes
+    74:898, doi:10.2337/db24-0388) [abstract only].
+  - Liver, below basal: the hormone-independent EGP rise at 3.9 mmol/L seen in healthy subjects (×2) is absent in T1D
+    (Mevorach 2000, Am J Physiol 278:E421, doi:10.1152/ajpendo.2000.278.3.e421; hyperinsulinaemic clamp).
 
 ### 4.3 Renal glucose excretion
 - The threshold is about 160–200 mg/dL:

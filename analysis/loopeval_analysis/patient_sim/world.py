@@ -734,7 +734,7 @@ class World:
                 self.ppr_norm = float((1.0 - self.ppr_a * w).mean())
         # hyperglycaemia-induced insulin resistance (B11): 24 h at ~360 mg/dL lowers insulin-stimulated glucose uptake by
         # 26% in T1D (Vuorinen-Markkola 1992; Yki-Järvinen 1987). State H relaxes toward 0.26·clip((G − 140)/220, 0, 1)
-        # with τ 12 h [J, both ways]; insulin sensitivity × (1 − H) (LESSONS 43)
+        # building with τ 6 h, fading with τ 24 h (below); insulin sensitivity × (1 − H) (LESSONS 43, 80)
         self.hyper_res = 0.0
         self.hyper_on = not (enable and enable.get("glucotox") is False)
         # size at 360 mg/dL: 0.26 fits the T1D clamps (Vuorinen-Markkola 1992, Yki-Järvinen 1987); Boden 1996 measured −55%
@@ -1037,7 +1037,7 @@ class World:
         bg = next((v for k, v in sorted(self.readings.items(), reverse=True) if v), st["target"])
         if self.enable.get("perfect_person"):
             # the diagnostic person doses each meal's own carbs exactly; netting the previous meal's bolus as IOB
-            # (the calculator's way) under-doses stacked meals and reads as a units fault in selfcheck (LESSONS 40)
+            # (the calculator's way) under-doses stacked meals and reads as a units fault in the self-consistency check (LESSONS 40)
             return max(0.0, carbs / st["cr"])
         return max(0.0, carbs / st["cr"] + (bg - st["target"]) / st["isf"] - max(self._calc_iob(m), 0.0))
 

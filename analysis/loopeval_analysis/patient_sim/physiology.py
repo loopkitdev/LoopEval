@@ -41,8 +41,8 @@ class BodyParams:
     # insulin action
     p2: float = 0.025              # 1/min, disposal-action rate; back to the clamp fit since 2026-10-19 (LESSONS 365: with lows now carried by counter-regulation and sensor low-range noise, 0.025 matches 37 of 51). Was 0.04 (LESSONS 324). 0.025 was the 0.2 U/kg (~15 U) lispro clamp fit (GIR peak ~100 min,
                                    # LESSONS 9); typical boluses and Loop's automatic doses are ~0.05 U/kg and act sooner (smaller s.c.
-                                   # doses act earlier — direction known, size not found for analogues). 0.04 is data-calibrated: t54,
-                                   # p_reach54 and CV onto the donors' (LESSONS 324; 2026-10-19). Was: disposal-action rate from the lispro clamp fit (GIR peak ~100 min, 50% by ~140; LESSONS 9).
+                                   # doses act earlier — direction known, size not found for analogues). 0.04 (LESSONS 324) put t54,
+                                   # p_reach54 and CV onto the donors' before counter-regulation and the sensor's low range were refitted.
                                    # Not Loop's curve: the body follows evidence about patients (Pete 2026-10-17; LESSONS 114)
     si_d: float = 5.0e-4           # disposal sensitivity, 1/min per (mU/L)  — calibrated to ISF
     p2e: float = 0.012             # 1/min, EGP-suppression onset rate: clamp GIR peak 108 min on the share-0.8 base (target ~100; 0.006 gave 125;
@@ -54,6 +54,13 @@ class BodyParams:
     # glucose
     vg: float = 1.88               # dL/kg (UVA/Padova; ReplayBG's 1.45 gives ~2x the carb sensitivity people's settings imply)
     sg: float = 0.003              # insulin-INDEPENDENT glucose effectiveness, 1/min (see COMPONENTS: physiology)
+    # ge_split (A1a–c, LESSONS 548): sg replaced by its named parts (sg is then unused)
+    ge_split: bool = False
+    sg_p: float = 0.0012           # A1a peripheral insulin-independent mass action, 1/min on (G − Gb), both sides (Del Prato 1997 T1D)
+    sg_h: float = 0.0038           # A1b liver glucose autoregulation, 1/min on (G − Gb) ABOVE Gb only (UVA/Padova T1D kp2;
+                                   # absent below Gb in T1D, Mevorach 2000); EGP floored at 0
+    f_ii: float = 1.0              # A1c fixed insulin-independent uptake (brain, red cells), mg/kg/min (Best 1981, UVA Fsnc);
+    g_ii: float = 81.0             # it falls ∝ G below g_ii (Hovorka 2004 F01c, 4.5 mmol/L), sparing glucose in a low
     kappa_ins: float = 0.0         # experiment (LESSONS 292): 1 = κ follows plasma insulin per Best 1981 (0.24 / 0.68 / 0.78 at low /
                                    # mid / high insulin; mapped [J] to 1 / 3 / 8× basal), scaled by the person's κ / 0.68
     kappa: float = 0.15            # glucose-dependence of insulin-mediated uptake: 1 = Bergman (X·G), 0 = linear (Loop) [J]
@@ -357,7 +364,13 @@ class Body:
             kap = p.kappa * kr / 0.68
         mm = p.gb + kap * (g - p.gb) if (g >= p.gb or not p.low_prop) else g
         xact = self.xd * (1.0 + ex_si_boost) if p.ex_post else self.xd
-        dg = (-p.sg * (g - p.gb) - (xact * mm * self.risk(g) - p.si_d * p.ib * p.gb)
+        if p.ge_split:
+            hep = min(p.sg_h * p.vg * (g - p.gb), max(egp, 0.0)) if g > p.gb else 0.0     # mg/kg/min the liver withholds
+            spare = p.f_ii * (1.0 - g / p.g_ii) if g < p.g_ii else 0.0                    # mg/kg/min the brain no longer takes
+            ge = p.sg_p * (g - p.gb) + (hep - spare) / p.vg
+        else:
+            ge = p.sg * (g - p.gb)
+        dg = (-ge - (xact * mm * self.risk(g) - p.si_d * p.ib * p.gb)
               + (egp - p.egp_b - uex + ra + util_drop) / p.vg - renal)
         self.g = max(10.0, g + dt * dg)
         self.minute = m + dt

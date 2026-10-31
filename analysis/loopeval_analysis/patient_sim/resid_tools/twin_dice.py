@@ -4,10 +4,10 @@ with the field's.   python twin_dice.py <arm>"""
 import sys, subprocess, tempfile, glob, numpy as np, pandas as pd
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
-H = Path.home(); sys.path.insert(0, str(H / "dev/loopeval-additive/analysis"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))   # this tree's analysis/ (live or frozen)
 from loopeval_analysis.patient_sim import lifestats as L
 from loopeval_analysis.patient_sim.world import EPOCH
-HERE = Path(__file__).resolve().parent
+HERE = Path.cwd()                  # the change dir
 
 
 def ice_mean(d):
@@ -26,8 +26,12 @@ def ice_mean(d):
 
 if __name__ == "__main__":
     arm = HERE / sys.argv[1]
-    dirs = sorted(glob.glob(str(arm / "*" / "v0*")))
-    with ProcessPoolExecutor(8) as ex: res = dict(ex.map(ice_mean, dirs))
+    cache = HERE / f"ice_{sys.argv[1]}.csv"
+    if cache.exists(): res = dict(pd.read_csv(cache).values)
+    else:
+        dirs = sorted(glob.glob(str(arm / "*" / "v0*")))
+        with ProcessPoolExecutor(8) as ex: res = dict(ex.map(ice_mean, dirs))
+        pd.DataFrame(list(res.items()), columns=["d", "ice"]).to_csv(cache, index=False)
     rows = []
     for d, v in res.items():
         p = Path(d); eid, a = p.parent.name.rsplit("_", 1); rows.append(dict(eid=eid, arm=a, seed=p.name, ice=v))
@@ -35,6 +39,7 @@ if __name__ == "__main__":
     D = (R["after"] - R["before"]).groupby("eid").mean().rename("twin_dice")
     E = pd.read_csv(HERE / "events.csv"); F = pd.read_csv(HERE / "field_and_tools.csv")
     m = F.merge(E[["eid", "basal_before", "basal_after", "isf_before", "isf_after", "cr_before", "cr_after", "target_before", "target_after"]], on="eid").join(D, on="eid").dropna(subset=["d_ice", "twin_dice"])
+    m = m[(m.kind == "edit") & m[["basal_before", "basal_after", "isf_before", "isf_after", "cr_before", "cr_after"]].gt(0).all(axis=1)]
     m["x"] = np.log(m.basal_after / m.basal_before) - np.log(m.isf_after / m.isf_before); m["lcr"] = np.log(m.cr_after / m.cr_before)
     X = np.column_stack([m.x, m.lcr, m.target_after - m.target_before, np.ones(len(m))])
     for c in ["d_ice", "twin_dice"]:

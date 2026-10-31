@@ -856,7 +856,7 @@ glucose, not the story of how it was measured. Therefore:
       carbs moves the yardstick x0.95 (n.s.) and the rule of 1800 x0.83 (p < 0.001), holding the
       fasting rate (`isf_diet_check.py`). Testing against meal insulin in UNITS is unfair — units per
       gram carry sensitivity through the carb ratio, so even a perfect estimator tracks it.
-    - **An ICE meal mask is possible but not adopted** (`isf_icemask.py`): masks built at ISF x0.35-1.25
+    - **An ICE meal mask is possible but not adopted** (`isf_icemask.py`, in git history): masks built at ISF x0.35-1.25
       give slope elasticity 0.13 to the mask ISF; a 3/7-day-shifted placebo mask moves the slope only
       x1.01-1.06 while the real one lifts it x1.33 (meals in "quiet" hours, ~3 a day). It does not
       reduce diet dependence (already ~0) and costs ~30% more days for the same precision.

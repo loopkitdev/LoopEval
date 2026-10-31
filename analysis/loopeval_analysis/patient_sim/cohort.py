@@ -46,6 +46,7 @@ def _one(args):
                           lvl_own=bool(enable.get("lvl_own", False)),
                           basal_fit=bool(enable.get("basal_fit", False)),
                           gb_own=bool(enable.get("gb_own", False)),
+                          ge_split=bool(enable.get("ge_split", False)),   # glucose effectiveness from named parts (LESSONS 548)
                           suspend_own=bool(enable.get("suspend_own", True)),   # default since 2026-10-19 (LESSONS 232)
                           night_add=bool(enable.get("night_add", True)),   # night need added on top; default since 2026-10-19 (LESSONS 263)
                           night_own=bool(enable.get("night_own", False)),   # body night need from the donor's steady nights (LESSONS 251); off since 2026-10-19: the evening's own fat carries it (LESSONS 370)
