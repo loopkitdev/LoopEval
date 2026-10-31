@@ -1745,3 +1745,7 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       too strong, is the one measure that shrinkage helps. That is the case lesson 154's caveat names: lower error from
       shrinkage, not from the right mechanism. The fix for the weak TIR and glucose response is the push-back of
       lesson 155 (arm on), which should move t<54 too; or3 stopped as no longer informative.
+    - **Design rule (Pete, 2026-10-31):** the person's reactive inputs are what a real person knows: entered carbs,
+      Loop's insulin on board, glucose. The meal-netted and meal-capped variants netted the drawn meal, which no person
+      sees, and unannounced carbs, which Loop and people underreact to. oc's netting of entered carbs is the principled
+      form; arm on is a test of the push-back's cause, not a candidate base by default.
