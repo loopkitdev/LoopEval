@@ -39,9 +39,9 @@ Build a patient simulator usable with LoopEval, by additive modeling.
 | Path | What |
 |---|---|
 | `analysis/loopeval_analysis/patient_sim/` | The simulator (Python): components, person sampler, plant server. Shared code → `main` when a piece is finished. |
-| `docs/additive/evidence/` | Literature + measured-evidence notes per area (factor catalog, physiology, life factors, sensor & device, behavior, LoopEval findings). |
+| `docs/additive/evidence/` | Literature notes per area (00–16) and `17-measured.md`, the donor-data measurements behind each component's parameters. |
 | `docs/additive/COMPONENTS.md` | The component registry: every factor, its model form, parameters, evidence and status. |
-| `docs/additive/LESSONS.md` | This role's lessons file. |
+| `docs/additive/LESSONS.md` | This role's standing lessons (original numbers; new ones from 548). The full record of 1–547 is `docs/additive/archive/LESSONS-001-547.md`, where every "LESSONS N" citation resolves. |
 | `runs/YYYY-MM-DD-additive-*/` | Experiment outputs, with the driving script beside them. |
 
 ## How a virtual person runs in LoopEval

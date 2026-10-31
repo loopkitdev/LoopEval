@@ -8,8 +8,8 @@ Per family, one parameter set per SESSION (evidence/03 §2.1, Vettoretti 2019 st
     out    device smoothing (EMA, twiist Libre stream), integer mg/dL, clamped to 39 / 401, or None
 
 Availability: warm-up after every session start; session length (+ optional grace); early
-failure; random gaps drawn at the measured per-family rates (runs/2026-10-15-additive-sensor/gaps.py,
-eda cohort, 153 donors), less the explicit warm-ups.
+failure; random gaps drawn at the measured per-family rates (runs/2026-10-15-additive-sensor/gaps.py; G6 / G7 from the
+pilot donors, LESSONS 45), scaled to the donor's own by `gap_own`, less the explicit warm-ups.
 
 Compression lows (evidence/05 §1d; evidence/03 §2.6): a person-level rate, only while asleep,
 first-order response to a rectangular pressure pulse (Facchinetti 2016 shape); 72% of events
@@ -94,7 +94,7 @@ FAMILIES = {
     # the Vettoretti 2019 values, and it carries the transients G6 donors show (reversals 5.7 per 1,000 quiet steps)
     # refit on the c235 bodies against DEN170088 (LESSONS 213): sigma 2.5 -> 1.8, transient amplitude 12 -> 8, noise wander
     # 0.7 -> 0.2, slow bias sd 3 (Breton & Kovatchev 2008); loss 23.7 -> 9.9 (a0 0.98 traded the high range, kept 0.96)
-    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(1.0, 0.8), hetero_q=0.6,   # q 0.8 -> 0.6, wander 0.7 -> 0.4: FDA loss 9.2 -> 6.0, CGM < 54 bias −16 -> −9.5 (DEN170088 −6.9; LESSONS 393)
+    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(1.0, 0.8), hetero_q=0.6,   # q 0.8 -> 0.6 (wander kept 0.7): FDA loss 9.2 -> 6.0, CGM < 54 bias −16 -> −9.5 (DEN170088 −6.9; LESSONS 393)
                           # q 0.5 -> 0.8: FDA loss 7.51 -> 5.70 (LESSONS 361); sigma 1.4 -> 1.0: FDA tables do not identify white noise (loss falls to 0), donors' sigma_meas does (LESSONS 362);   # 1.8 -> 1.4 with early_noise (LESSONS 222)
                         a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(7.5, 0.9), trans_amp=(8.0, 0.4), trans_down=0.72,   # G6 donors'
                         # own quiet reversals: 65% low first, 5.6 per 1,000 steps (LESSONS 390; rate 6 -> 7.5, low-first 0.55 -> 0.72)

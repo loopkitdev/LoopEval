@@ -229,7 +229,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # TRUE ISF: the person's own setting (tuned against their real body) moved part of the way toward
     # the eda yardstick. The yardstick/settings ratio spreads 0.41–2.69 but barely tracks lows (Spearman
     # −0.13 with t<70), so much of it is estimation noise (eda L53: ISF is not identifiable in closed
-    # loop). ISF_W is an open parameter, settled by per-donor twin validation [J 0.5].
+    # loop). ISF_W 1.0: the body takes the data fit (Pete 2026-10-19, LESSONS 259).
     r_isf = float(np.clip(row.isf_true / row.isf, 0.5, 2.0))
     isf_true = float(row.isf) * r_isf ** (ISF_W if isf_w is None else isf_w) * j_isf
     isf_true *= isf_level          # experiment (LESSONS 326): cohort level of the body's insulin sensitivity
