@@ -136,3 +136,13 @@
    the default candidate. Code 56da70b; `runs/2026-10-30-reduction-additive` (s_ab140b*, job 66),
    `runs/2026-10-30-reduction-gen/g` (sx_ab140b, b12, k; jobs 66; gen.py run with os.nice disabled — it raises EPERM
    under the queue).
+13. **Replay still disagrees with the adaptive surrogate, and broadly, at Loop's own insulin (2026-10-31).**
+   36-donor subset (35 scored; i202 fails on both new arms), ×0.9, set point 140 as on the generator: no brake TIR
+   69.7 / t<70 6.9 / t<54 2.3, 12 h brake 66.2 / 4.6 / 1.28 (gr 70.0 / 1.77 / 0.41); TIR −0.4 and −3.8 against gr.
+   With the brake, total insulin equals gr's (47.5 vs 47.2 U/day; automatic insulin within 1 % both in the 4 h after a
+   meal event and outside it), yet both lows and highs rise: t<70 within 4 h of a meal event 0.73 → 1.94, outside
+   1.04 → 2.66; >180 17.7 → 18.0 and 10.5 → 11.2. 30 of 35 donors get more lows; the top 5 carry 42 % of the excess.
+   So replay penalizes how the surrogate times the same insulin, everywhere, not a few people or one context. That is
+   the signature expected when the recorded glucose (shaped by Loop's timing) is kept and only dose differences are
+   modelled, but it is not proven to be that. `runs/2026-10-30-reduction-ec/ab_cohort.txt` (batch.py arms
+   tdd_pd_f090_bab140, _bab140b12; job 67; code 8545e57e).
