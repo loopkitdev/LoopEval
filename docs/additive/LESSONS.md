@@ -743,6 +743,9 @@ evidence to the evidence files.
    54 are unchanged; between 81 and Gb only A1a remains. Paired on sd3 (gs0 reproduces sd3 exactly): score 0.370 →
    0.396 / 0.454 → 0.511; lows per day 1.08 → 1.38 / 1.21 → 1.58 (donors 1.00), t70 2.37 → 2.71 / 2.26 → 2.98 (1.60),
    t54 0.255 → 0.293 / 0.258 → 0.332 (0.190); mean 148.7 → 149.8 / 143.9 → 146.0 (151.9), TIR on the donors'; the
-   activity fall weakens (act_net20 −3.2 → −1.5 / +0.9 → +2.8, donors −5.7). Counter-regulation and the residual were
-   fitted under the old term. Open: A1b's size in T1D (Bruce 2025: partial, transient suppression at basal insulin),
-   and whether the liver answers below Gb at basal insulin. Run dir runs/2026-10-31-additive-gesplit/.
+   activity fall weakens (act_net20 −3.2 → −1.5 / +0.9 → +2.8, donors −5.7). Counter-regulation needs no refit: under
+   the split the share of lows reaching 54 stays on the donors' (0.200 / 0.222 vs 0.212); CRmax × 1.5 / 2.2 pushes it
+   under (0.189 / 0.178, 0.167 / 0.168) and leaves lows per day at 1.38–1.54. The extra lows are shallow and come from
+   the 81–Gb band, so a fix belongs in A1 (whether the liver answers below Gb at basal insulin), not in A9 or the
+   residual. Open: A1b's size in T1D (Bruce 2025: partial, transient suppression at basal insulin), and the liver below
+   Gb at basal insulin (Mevorach 2000 measured at raised insulin). Run dir runs/2026-10-31-additive-gesplit/.
