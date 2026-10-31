@@ -1731,3 +1731,17 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       calibrate_bolus_bg.py rebuilt inputs without the checkpoint's drop list; patched to zero it (no-op for every
       earlier checkpoint, whose list is empty). Kept if more-insulin edits get the field's extra insulin and ICE without
       losing level, t<70 sizing or TIR r beyond the oc spread.
+
+156. **The meal-capped variant (or, IOBNET_COB=3) sizes t<54 right by responding less to everything, so the base
+    stays oc.** e pool, 337 edits, direction means per training (dirspread.py, vsnoise.py in runs/2026-10-13-ice-change/;
+    or0–2 against oc0–4, z on the training spread):
+    - **t<54 is sized and reliable:** more-insulin edits field +0.15, oc +0.32 ± 0.04, or +0.17 (z −5.4); less −0.12,
+      oc −0.28, or −0.16 (z +4.0); all three or trainings within 0.02. Per-edit |err| lower on all four pools (z −0.3
+      pilot, −19.8 switch, −1.5 x, −5.5 e); switch t<54 r 0.33 against oc 0.07 ± 0.13; e r unchanged (0.13 vs 0.12).
+    - **The primary measures weaken by the same move:** t<70 more +0.64 vs field +0.71 and oc +0.76 (z −2.0), less −0.59
+      vs field −0.85 and oc −0.71 (z +2.0), total direction error 0.33 against oc's 0.19; TIR more +1.82 vs oc +2.08
+      (field +3.73, z −1.6); mean glucose more −5.3 vs oc −6.5 (field −8.5). TIR r inside oc's range on switch, x, e.
+    - **Reading:** or shrinks the generated person's whole response to a settings change, and t<54, where oc was 2×
+      too strong, is the one measure that shrinkage helps. That is the case lesson 154's caveat names: lower error from
+      shrinkage, not from the right mechanism. The fix for the weak TIR and glucose response is the push-back of
+      lesson 155 (arm on), which should move t<54 too; or3 stopped as no longer informative.
