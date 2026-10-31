@@ -1707,3 +1707,27 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - **With oc4 the oc spread widens and or's x gain goes inside noise:** oc4 x t<70 |err| 1.26 (oc0–3 1.32–1.38);
       or x 1.30 (z −1.2), or2 alone 1.34. or's switch TIR r 0.649 is inside oc 0.60–0.71. e awaits or2.
     - **Next gap:** TIR on the more-insulin edits (generator gives 56 % of the field's gain) and the 2× t<54 response.
+
+155. **The generated person pushes back on extra insulin about 5× harder than real people: a more aggressive setting
+    gets twice the field's extra insulin for less glucose drop.** e pool, edits that moved insulin more than 10 %, oc0,
+    clean time (ins_change.py, pseudo_drift.py, ice_parts.py in runs/2026-10-13-ice-change/):
+    - **Regression to the mean is small.** Pseudo-edits (no edit within 14 d, 827) fitted on the pre-window level predict
+      a drift at the real edits' levels of −1.2 mg/dL / +0.7 TIR (more insulin) and +0.9 / −0.4 (less). Edit effect after
+      drift, field: more insulin −7.2 mg/dL / +2.8 TIR, less +4.0 / −0.7; generator (oc0–4) −6.3 / +2.1 and +5.1 / −1.9.
+    - **Delivered insulin and ICE:** more-insulin edits (162), absorbed U/day field +0.83 [+0.04, +1.63], generator +1.92
+      [+1.65, +2.25]; mean ICE field +0.66 mg/dL/h [−0.46, +1.85], generator +3.54 [+3.07, +3.99]. Less-insulin edits
+      (140): −1.15 / −1.52 U/day, ICE −1.95 / −2.91. Only the settings differ between the generator's arms, so its ICE
+      change is the person's response to the new state; it raises glucose appearance enough that Loop must deliver twice
+      the extra insulin. Pooled, field glucose moves about 5 mg/dL per U/day, the generator 3.3.
+    - **Where:** of the +3.54, the network background gives +2.54 and meal pulses +1.00; glucose effectiveness, slow
+      state and cycle 0 (off in oc). oq0 (pending insulin net of reconstructed meals) +3.88 (+2.85 / +1.04) and or0
+      +2.10 U/day, −5.4 mg/dL: netting meals out of the input does not remove it.
+    - **Reading:** in closed-loop data Loop raises insulin because glucose is arriving (unannounced meals, rising
+      background), so high pending insulin goes with high ICE even net of entered or reconstructed meals, and the
+      network learns more insulin → more glucose. Lesson 145 hid the input at test time and got the field's response
+      per unit, but the calibrations, fit with the input, lost 23 mg/dL of level.
+    - **Test (in progress):** arm on = oc retrained with iob_net zeroed in training, calibration, enrolment and the
+      plant (FEATURE_DROP=iob_net; runs/2026-10-31-ice-noiob/, seeds 0 and 1). fit_traits.py, calibrate_band.py and
+      calibrate_bolus_bg.py rebuilt inputs without the checkpoint's drop list; patched to zero it (no-op for every
+      earlier checkpoint, whose list is empty). Kept if more-insulin edits get the field's extra insulin and ICE without
+      losing level, t<70 sizing or TIR r beyond the oc spread.
