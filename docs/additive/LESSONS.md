@@ -88,10 +88,12 @@ evidence to the evidence files.
     that vanishes twin-wise (e.g. zero-delivery time, entries per day) is which templates were drawn, not a missing
     component.
 
-68. **Glucose effectiveness (SG) is not a dial for structure statistics.** Within its evidenced range it trades level
-    and lows against long-range structure (×0.7: Hurst up, mean and TIR worse; ×1.5–2: shorter excursions, t<54 doubles,
-    Hurst falls, L 98). Choosing it by cohort statistics is tuning a free parameter. ReplayBG's identified SG (median
-    0.022) is not a population value: closed-loop identification loads unmodelled dynamics into damping (L 3).
+68. **Glucose effectiveness (SG) may be calibrated within its evidence range against slow structure (Pete
+    2026-10-16, L 75).** It is a named parameter the evidence leaves unpinned, so choosing it inside the range is not a
+    mystery term. It trades level and lows against long-range structure, so read every statistic it moves, not one:
+    ×0.7 raises Hurst but worsens mean and TIR; ×1.4–2 shortens excursions, lowers Hurst and doubles t<54 (L 75, 98).
+    The range in the code is UVA/Padova's 0.0013–0.0047 /min; ReplayBG's identified median 0.022 (L 75 used it as the
+    top) comes from closed-loop identification, which loads unmodelled dynamics into damping (L 3).
 
 83. **Candidate arms run paired on the same simulated people.** Same people, seeds and life events under the deployed
     controller and each candidate's flags (`cohort.py --flags-json`); σ-gated flags use each person's own σ5 median from

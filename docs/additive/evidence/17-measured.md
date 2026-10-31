@@ -10,7 +10,7 @@ name (c135, lg12, sd3) is a run under the matching dated run dir. Values are the
 
 ## A. Physiology
 
-- **A1 Glucose kinetics.** SG lnN(0.0045 /min, 0.5), inside UVA/Padova's 0.0013–0.0047 (Pete 2026-10-16: calibratable
+- **A1 Glucose kinetics.** SG lnN(0.0045 /min, 0.5), inside UVA/Padova's 0.0013–0.0047 (Pete 2026-10-16: calibratable against slow structure
   in that range); VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
   the donors' (151.7 vs 151.4), CV 33.2 (34.8), breakfast tail +30 / 26 / 21 at 3–4 h (+27 / 22 / 16), lows 0.58 → 0.42 /
   day (L 208). Lower SG brings lows on but raises the level: `sg_mult` 0.7 / 0.5 (c349) t54 0.123 / 0.190% (0.190), but
