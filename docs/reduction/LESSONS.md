@@ -121,3 +121,18 @@
    the additive sim it does not, and at set point 150 its t<54 efficiency is no better than Loop's. v01041 is the
    worst t<54 rise in every adaptive arm (+1.8 to +2.1; true +3.1 to +3.6) — to look at. `runs/2026-10-30-reduction-
    additive` (job 64; `REF=gr score.py`).
+12. **A low brake on the adaptive rate gives Loop's lows with ~4 more TIR on both simulators (2026-10-31).**
+   The adaptive rate integrates mean glucose, so for a high-variability person (additive v01041: mean 190 under gr,
+   yet t<54 0.73) it climbs to its 2× clip while lows keep coming (t<54 2.32 at set point 140); weighting lows 10×
+   instead of 3× barely helps (1.65). `ad_brake_h`: the scale may not rise for N hours after any glucose < 70.
+   Set point 140, own meal boluses on the additive sim; TIR / t<70 / t<54 against gr ×1.0, and gap at equal t<70 /
+   equal t<54:
+   additive (gr 68.7 / 2.30 / 0.38): brake 6 h 73.9 / 2.60 / 0.51, +3.8 / +2.7; **12 h 72.4 / 2.34 / 0.42, +3.5
+   [+1.9, +5.4] / +2.6 [+1.1, +5.0]**; 24 h 70.9 / 2.04 / 0.37, +4.2 / +3.4 (61 % of draws inside the dial).
+   generator, training 0 / 1: **12 h TIR +4.2 / +3.8, t<70 +0.22 / +0.28, gap +3.0 [+2.2, +4.0] / +2.5 [+1.5, +3.4] at
+   equal t<70, +2.8 / +2.1 at equal t<54**; 24 h TIR +3.0 / +2.3 at Loop's t<70 (−0.08 / −0.01), gap +3.4 / +2.4.
+   People losing more than 5 TIR rise with the brake (additive 2 → 5 → 10 for none / 12 h / 24 h; generator 4 / 2 →
+   5 / 8 → 7 / 12), people with t<54 up more than 0.5 fall (additive 24 → 11 → 8); v01041 t<54 0.38 at 12 h. 12 h is
+   the default candidate. Code 56da70b; `runs/2026-10-30-reduction-additive` (s_ab140b*, job 66),
+   `runs/2026-10-30-reduction-gen/g` (sx_ab140b, b12, k; jobs 66; gen.py run with os.nice disabled — it raises EPERM
+   under the queue).

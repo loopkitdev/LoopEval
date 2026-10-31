@@ -32,5 +32,7 @@ surrogate's t<70 (or t<54); positive = more TIR at equal lows. 95 % donor-bootst
 The generator runs hands-off (no meal entries, no user boluses); the replay and additive beds have entries on.
 Adaptive background rate (lesson 10), gap at equal t<70 on the generator, trainings 0 / 1: set point 150 +2.7 / +2.1,
 140 +2.5 / +2.3, 130 +3.5 / +2.8; people losing more than 5 TIR 10 / 9, 4 / 2, 0 / 0.
+With a 12 h low brake (lesson 12), set point 140: generator TIR +4.2 / +3.8 at t<70 +0.2 / +0.3 vs gr ×1.0, gap
++3.0 / +2.5 at equal t<70; additive 72.4 / 2.34 / 0.42 (gr 68.7 / 2.30 / 0.38), gap +3.5.
 Failure mode on the generator (fixed rate): 12–15 of 163 people lose more than 5 TIR, all under-dosed (high mean, few lows) —
 the TDD-rule correction factor is too weak for them. The person sets nothing but the safety limits.
