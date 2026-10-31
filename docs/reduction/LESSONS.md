@@ -156,3 +156,12 @@
    pulls tight people up to it. Pre-window mean CGM predicts who they are (generator: r 0.5 with gr's mean; people with
    history below 140 have median dTIR −0.1 at set point 140, the rest +4.1), so the next arm takes a personal set point
    = pre-window mean clipped to [120, 140] (`tdd.bg_hat`; job 69). Runs: job 68.
+15. **A personal set point from history improves on 140 everywhere, a little (2026-10-31).** 12 h brake, set point =
+   pre-window 14-day mean CGM clipped to [120, 140]. Generator training 0 / 1 against set point 140: TIR +4.7 / +4.3
+   vs +4.2 / +3.8 against gr ×1.0; t<70 +0.35 / +0.39 vs +0.22 / +0.28; gap at equal t<70 +3.1 [+2.3, +3.9] / +2.5
+   [+1.6, +3.5], at equal t<54 +3.0 / +2.2; people losing more than 5 TIR 3 / 4 (was 5 / 8), people with t<54 up more
+   than 0.5 unchanged (23 / 11 vs 22 / 11); tight people (gr mean < 140) median dTIR −1.0 / −1.0 (was −2.1 / −3.1).
+   Additive (history = the same 14 days under stock Loop): 72.6 / 2.42 / 0.44, gap +3.3, losers 4 (was 5), tight
+   people −1.0 (was −1.5). It needs no input beyond the history TDD already uses; it is the current default
+   candidate. Tight people still lose about 1 TIR: the brake and the 40 % application factor, not the set point, now
+   limit them. Jobs 69 (additive), 70 (generator; 3 donors without pre-window glucose left out).
