@@ -734,3 +734,15 @@ evidence to the evidence files.
    the pilot but its lows barely answer an edit.** The twins eat 10–15% more labelled glucose than their donors at every
    control level (L 546). in1: TIR field / twin 0.84, tight − rest −1.87 (field −7.18), t54 response a tenth of the
    field's. Not adopted over sd3; a candidate twin for change work beside lg13.
+
+548. **Glucose effectiveness split into named parts (`ge_split`) is sounder but brings on too many lows: not adopted
+   yet.** A1's lumped SG(G − Gb) replaced by A1a tissue uptake without insulin, 0.0022 dL/kg/min both sides (Del Prato
+   1997 T1D at basal insulin, net of the body's own κ part); A1b the liver's own glucose suppression, UVA/Padova T1D
+   kp2 lnN(0.0038, 0.40), above Gb only (absent in T1D at mild lows, Mevorach 2000); A1c brain uptake 1 mg/kg/min,
+   falling ∝ G below 81 (Best 1981, Hovorka 2004). The median rate above Gb (0.0046 vs 0.0047 /min) and the push at
+   54 are unchanged; between 81 and Gb only A1a remains. Paired on sd3 (gs0 reproduces sd3 exactly): score 0.370 →
+   0.396 / 0.454 → 0.511; lows per day 1.08 → 1.38 / 1.21 → 1.58 (donors 1.00), t70 2.37 → 2.71 / 2.26 → 2.98 (1.60),
+   t54 0.255 → 0.293 / 0.258 → 0.332 (0.190); mean 148.7 → 149.8 / 143.9 → 146.0 (151.9), TIR on the donors'; the
+   activity fall weakens (act_net20 −3.2 → −1.5 / +0.9 → +2.8, donors −5.7). Counter-regulation and the residual were
+   fitted under the old term. Open: A1b's size in T1D (Bruce 2025: partial, transient suppression at basal insulin),
+   and whether the liver answers below Gb at basal insulin. Run dir runs/2026-10-31-additive-gesplit/.
