@@ -940,8 +940,24 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      TIME-localised one can — more insulin action after the peak specifically. A12b is time-localised but
      mean-preserving, so Loop doses against the new baseline and it nets out (L 573). **So the remaining candidate is
      insulin action peaking LATER — A5's p2, the one lever of L 512's list never tested against this statistic.**
-     p2 0.025 is the lispro clamp fit, so a slower value needs its own justification; test it as a diagnostic first,
-     the way κ was tested here.
+     p2 0.025 is the lispro clamp fit, so a slower value needs its own justification; tested as a diagnostic, 0.018 /
+     0.015 leave the fall at 46 / 44 / 46 against 47 / 43 — **also unmoved**. So every candidate of L 512's list is now
+     eliminated by measurement: appearance, glucose-dependence (κ), post-meal sensitivity (A12b), dose, the
+     controller's response, and action timing (p2).
+   - **And the statistic itself is ~40% sensor** (`true_vs_cgm.py`), which is why every body lever read as diluted:
+
+     | ad3, after a meal peak | rise | fall |
+     |---|---|---|
+     | the twins' CGM | 64 / 61 | **48 / 45** |
+     | the twins' TRUE glucose | 60 / 57 | **37.9 / 34.2** |
+
+     Our own sensor adds ~10 mg/dL of apparent fall (+27%). If the donors' sensors add a similar amount, their CGM 57
+     is a TRUE fall near 47, so **the body gap is ~9 mg/dL in truth terms, not the 16 the CGM statistic shows** — and
+     a body change of 9 is diluted to ~7 by the time it reaches the CGM comparison. This is the meal-window form of
+     the false-lows trap (L 393, 498: half the twins' fast CGM falls are sensor-made and the donors' look the same).
+     **Before any further work on this gap, re-measure it on truth against a sensor-matched donor basis** — the
+     current target overstates the body-side deficit by about 40%, which is enough to explain why six levers each
+     read as "no effect".
 
 577. **TDD, not bg_mean, is the diagnostic for a core sensitivity error: `resid_m` absorbs core level errors.**
    `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the yardstick averages over the donor's

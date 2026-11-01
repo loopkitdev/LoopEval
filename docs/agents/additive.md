@@ -166,8 +166,10 @@ reference changes.
   (A10c), A12b, and κ (an 80% steepening leaves the fall unmoved and lowers the peak) are all ruled out, as are dose and Loop compensation
   (L 575: raising ppr_a made Loop spend LESS, not more). At MATCHED spend — ad0 and the donors both 1.98 U — the twins fall
   43 against 57, a pure 75% potency gap. Every GLUCOSE-localised lever lowers the peak instead of deepening the fall, so the
-  effect must be TIME-localised: the remaining candidate is insulin action peaking LATER (A5's p2), and it may be the same
-  defect as the twins' 5-8% insulin surplus (L 445-456).
+  effect must be TIME-localised — but p2 (action timing) is unmoved too, so EVERY candidate of L 512's list is eliminated.
+  **And ~40% of the statistic is sensor**: the twins' CGM falls 48 / 45 where their TRUE glucose falls 37.9 / 34.2, so the
+  body gap is ~9 mg/dL in truth terms, not 16. Re-measure on truth against a sensor-matched donor basis before working it
+  further (L 575); the current target overstates the body deficit by enough to explain six null levers.
 - **the excess lows are shallow ones that linger, and counter-regulation cannot fix them** (L 559, 560): at a 60–70 nadir
   the twins rise +21 in 30 min against the donors' +26 and dwell 15 min against 10. A9 can supply at most 2.4 mg/dL over
   that window, so the lever is the sub-basal shape of glucose disposal (A5's M(G) / κ below basal, or A1c brain sparing),
