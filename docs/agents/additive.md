@@ -225,7 +225,9 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   The 6–8 shortfall is now understood as a REGIME SWITCH the smooth terms cannot make (L 565): the donors fall deepest at
   6–8 METs and rise at ≥ 8, so any setting that deepens one deepens the other. It needs a form change (a steeper anaerobic
   share), not a parameter.
-- Off-by-default experiments with their verdicts: `meal_wave2` (A10c delayed gastric pulse: preserves the peak where a slow
+- Off-by-default experiments with their verdicts: `resid_day_ar` 0.35 (the residual's day level as AR(1):
+  variance-preserving and level on score, but `ac1` does not move at all — TDD's day-to-day persistence is driven by eating
+  and dosing, not by the residual, so the route to it is day-to-day persistence in EATING, L 581), `meal_wave2` (A10c delayed gastric pulse: preserves the peak where a slow
   tail destroys it and lifts the second rise, but the trough is unmoved — it is not limited by appearance, L 571),
   `meal_slow` 0.30 (A10's slow share cannot make the second wave — it lowers
   the peak instead of deepening the trough, because kmin 0.008 dribbles rather than pulsing, L 571), `resid_meal` (redistributing the residual across the meal cycle: null, and
