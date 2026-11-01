@@ -2361,3 +2361,33 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **This closes the thread as far as measurement can take it.** The appearance dispersion is evidenced (L 619), the
      dosing is per-donor (L 618), insulin action is defensible at meal doses (L 621), and the residual TIR cost is now
      explained in mechanism if not resolved in value.
+
+623. **The "two compensating errors" hypothesis is REFUTED: cutting the twins' excess glucose load does not pay for
+     `ge_order` 3's TIR cost, because the two defects live in different moments of the distribution.** The hypothesis
+     (run script `run_ol.sh`, job 152) was that order 2 matches TIR with the wrong appearance dispersion while order 3
+     has the right dispersion and the wrong TIR — two errors cancelling in one row — and that L 603's measured 1.10×
+     labelled-load excess was the other one. Tested as `ge_order` 3 + `unl_mult` 0.85 / 0.70 on `rf2`, two draws:
+
+     | arm | score d1 / d2 | tier1 d1 / d2 | TIR | bg_mean | t180 | t70 |
+     |---|---|---|---|---|---|---|
+     | rf2 (order 2) | 0.332 / 0.371 | 0.135 / 0.209 | 72.2 / 71.3 | 151.0 / 148.2 | 25.8 / 24.3 | 1.76 / 2.12 |
+     | go3 (order 3) | 0.336 / 0.385 | 0.162 / 0.225 | 68.5 / 67.4 | **151.5 / 151.5** | 28.6 / 27.1 | 2.39 / 2.06 |
+     | ol85 | 0.337 / 0.399 | 0.166 / 0.245 | 70.7 / 70.1 | 150.7 / 149.6 | 26.3 / 25.7 | 2.35 / 2.24 |
+     | ol70 | 0.361 / 0.397 | 0.204 / 0.257 | **72.8 / 71.7** | 147.5 / 145.9 | 23.7 / 22.6 | **2.51 / 2.50** |
+     | donors | — | — | 71.9 | 151.9 | 25.9 | 1.60 |
+
+     - **The load cut DOES recover TIR** (ol70 72.8 / 71.7, the donors' 71.9) **and still scores worse than order 3
+       alone on both draws.** Every arm in the ladder is worse than the one before it on score and on tier 1, so the
+       two errors are not compensating in any useful sense.
+     - **Why: order 3 widens the distribution at a CORRECT mean; the load cut moves the MEAN.** go3 has the best
+       bg_mean of any arm (151.5 both draws, gap 0.037 / 0.062 — essentially exact) with t180 AND t70 both raised
+       (28.6 / 2.39 against the donors' 25.9 / 1.60). That is a spread defect. `unl_mult` is a level lever: it buys
+       the highs back (t180 23.7) by pushing glucose down 4.4 mg/dL and spending the low side (t70 2.51, the worst of
+       any arm tested; t54 up too). ol70's TIR is a coincidence of that trade netting out, not a repair.
+     - **Read TIR with bg_mean and t70 beside it, never alone.** On this ladder TIR is non-monotonic in load while
+       every structural row degrades monotonically — an arm can land on the donors' TIR from a distribution that is
+       wrong on both sides at once.
+     - A level refit (L 525) would re-absorb the mean drop, but it cannot help: it would restore the level and hand
+       back the highs, returning to go3. The lever for a spread defect at a correct mean is not load.
+     - **`ge_order` stays at 2** and the judgement posted to Pete (four cohort rows better vs 3.7 TIR points,
+       prediction neutral, L 622) stands unchanged — this test adds no third option.
