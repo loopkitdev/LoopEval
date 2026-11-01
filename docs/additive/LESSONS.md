@@ -2208,3 +2208,35 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **And the pooling itself is the reusable part:** the pools can be combined by Fisher z on their correlations and
      by inverse-variance on their ratios, as long as poorly-conditioned pools are excluded on their FIELD response
      rather than on their results. That is how to get the most out of 790 edits without letting one bad pool dominate.
+
+617. **The stomach\'s transit DISPERSION is one defect behind four standing limits: raising the Erlang order closes
+   the 3-hour meal change, gives `acf_zero_min` its best value ever and moves the fall / rise ratio furthest — at the
+   cost of running high.** L 615 specified a mechanism in the appearance path that sharpens the finish without
+   compressing the pulse. The stomach has been Erlang-2 (Dalla Man / UVA-Padova); `ge_order` raises the transit order
+   with `kempt` scaled by order / 2, so the MEAN transit is unchanged by construction and only the dispersion falls.
+   Order 2 is bit-identical to the previous model.
+
+   | | meal_d3h (38.0) | `acf_zero_min` (40) | fall / rise (0.89) | TIR (71.9) | t180 (25.9) | score |
+   |---|---|---|---|---|---|---|
+   | rf2 | 31.0 / 31.0 | 60 / 55 | 0.63 | 72.2 / 71.3 | 25.8 / 24.3 | 0.332 / 0.371 |
+   | order 3 | **37.0 / 35.0** | 55 / 55 | 0.63 | 68.5 / 67.4 | 28.6 / 27.1 | 0.336 / 0.385 |
+   | order 4 | **39.0 / 36.0** | 55 / **50** | **0.69** | 68.6 / 67.1 | 28.1 / 28.0 | 0.412 / 0.442 |
+
+   - **The meal tail is closed.** "Meals come down sooner than the donors\'" has stood since L 368-370: meal_d3h 31.0
+     against 38.0 (gap 0.373). Order 3 gives 37.0 and order 4 gives 39.0 — gap **0.053**. Every previous attempt
+     (`meal_wave2`, `meal_slow`, `ppr_a`, `csf_lvl`, protein) moved it by a point or two or traded the peak.
+   - **`acf_zero_min` reaches 50** (gap 1.320 -> 0.739 on draw 2), its best value in the model\'s history; `ge_beta`
+     managed 55 and nothing else moved it at all. The fall / rise ratio reaches 0.69, also the furthest yet.
+   - **So transit dispersion unifies four rows** — the meal tail, the reversal-speed pair, and the pulse decay shape.
+     This is the unification L 594 claimed on weaker grounds and L 615 had to retract: here one parameter moves all
+     four in the right direction at once, which is what a shared cause looks like.
+   - **The cost is a high-side one and it is large**: TIR 72.2 -> 68.6 and t180 25.8 -> 28.1 (donors 25.9), because
+     less dispersion delivers the same carbohydrate in a shorter window and Loop cannot cover the peak. The score
+     rejects it (0.412 / 0.442 at order 4). **Not adopted.**
+   - **Where it points:** the twins\' appearance is too dispersed AND their dosing cannot cover a sharper one. If the
+     transit order is right at 3-4, the missing partner is on the dosing side — earlier or larger meal boluses — which
+     is a behaviour trait (`bolus_lead_min`, `p_bolus_ann`) fitted per donor, not a physiology change. **Test
+     `ge_order` 3 together with the donors\' own bolus timing before judging either.**
+   - **Method note, third instance:** the labelled `peak_h` moved 43 -> 37 while the isolated-parcel peak did not move
+     at all, because `peak_h` is onset-relative (L 595) and a sharper rise shifts the detected onset later. Measure
+     absolute appearance time on the parcel; measure `peak_h` only against another `peak_h`.
