@@ -1091,3 +1091,19 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      gain as **~0.010–0.029, not 0.049**. Tier 1 holds up far better than the aggregate (0.075 on the fresh draw),
      which is the more meaningful claim: the rows that carry physiological meaning improved, the weighted total much
      less than draw 1 suggested.
+   - **Decomposed on the fresh draw, the two kinds of change behave completely differently** (all three runs already
+     existed; no new compute):
+
+     | draw 3 (seed0 9000, never used for development) | score | tier 1 |
+     |---|---|---|
+     | sd3 | 0.420 | 0.236 |
+     | + C4 keying fix + `ppr_a` 0.6 (= ad2) | **0.430** | **0.154** |
+     | + `resid_diurnal` 0.9 (= ad3) | **0.410** | 0.161 |
+
+     The two SOUNDNESS adoptions — C4 keyed to absolute METs with the session cap, and A12b at its own target — cost
+     **0.010 of weighted score** on a draw they were never tuned on, while cutting **tier 1 from 0.236 to 0.154**.
+     The one DISTRIBUTIONAL adoption (`resid_diurnal`) pays 0.020 of score and leaves tier 1 flat. So the whole
+     aggregate gain on the fresh draw comes from the distributional fix, and the soundness adoptions buy tier-1
+     accuracy at a small aggregate cost — exactly what L 556 and L 558 said they were doing, now confirmed
+     out-of-sample rather than on the development draw. **That is the honest summary of 2026-11-01: the components
+     are more correct and the weighted score is barely moved; only the distributional fix improved both.**
