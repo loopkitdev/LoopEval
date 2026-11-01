@@ -1749,3 +1749,21 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       Loop's insulin on board, glucose. The meal-netted and meal-capped variants netted the drawn meal, which no person
       sees, and unannounced carbs, which Loop and people underreact to. oc's netting of entered carbs is the principled
       form; arm on is a test of the push-back's cause, not a candidate base by default.
+
+157. **Retrained without pending insulin (arm on), the generated person cancels a settings change completely; the
+    push-back is not learned through iob_net, and the input reduces it.** e pool, on0–1 against oc0–4, the 331 edits
+    without a blown-up run (6 edits had one run with |Δmean| > 60 mg/dL, up to −2185; dirspread_on.py,
+    vsnoise_on.py in runs/2026-10-13-ice-change/; chain runs/2026-10-31-ice-noiob/):
+    - **More-insulin edits:** mean glucose field −8.5, oc −5.7, on +1.1 [+0.7, +1.6]; TIR +3.7 / +2.0 / −0.4; t<70
+      +0.70 / +0.77 / −0.18. Less-insulin edits mirror it (mean +5.1 / +5.1 / −0.8). Both trainings agree within 0.1 on
+      every t<70 and t<54 figure. Per-edit r on TIR, t<70 and mean drops to about 0 on every pool.
+    - **Meals grow without the input:** in the meal-kernel calibration the generated glucose after an isolated entry
+      runs 112–142 mg/dL against the field's 76–124 (oc 89–112), so the fitted kernel is negative everywhere and
+      clips to zero. Pending insulin is how the network tells a bolused meal from an unbolused one.
+    - **Reading:** lesson 145's test-time hiding gave the field's response per unit because the network then saw no
+      pending insulin and did not raise its defense; retrained without it, the network finds another route to the
+      same push-back. Remaining candidates: the network's response to glucose itself, and the calibrations fit to the
+      cross-sectional ICE-by-glucose curve (calib_bg_band +5–8 mg/dL/h below 90, the post-low kernel), which a
+      settings change moves along although the field's ICE barely moves (+0.7 mg/dL/h, lesson 155). Under test: arm
+      ns = oc0/oc1 e checkpoints with those removed (runs/2026-11-01-ice-stateabl/). Seed 2 of on stopped; its chain
+      had waited 22 h on a partner seed (O = 1 − S; now pairs seed 2+ with 1).
