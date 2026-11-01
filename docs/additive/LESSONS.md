@@ -1213,3 +1213,50 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      twins' own basal/bolus decomposition against the table above — their basal CV and its lag-1 — which needs the
      delivery split from `trace.json` or the plant stream, NOT a threshold on `truth["delivered"]` (L 575's trap).
      If the twins' basal CV is far below 0.23, that is the defect and it is a named one.
+585. **`ac1`'s target was measured over 128-day records and is three times too large; the part a fixed-settings twin
+   could reproduce is +0.118, the twins already carry +0.064 of it, and the remaining gap is in the bolus limb.**
+   L 584's basal/bolus table (+0.303 / +0.265 / +0.251) is a **long-record** lag-1: it contains the drift between
+   13-day blocks — settings eras, seasonal need — which a 14-day twin neither can nor should reproduce. Measured like
+   for like, within 13-day blocks (`resid_tools/tdd_blocks.py`, 205 donors, a median 9 blocks each):
+
+   | donors' daily insulin | long record | within 13 days | drift removed |
+   |---|---|---|---|
+   | basal | +0.305 | **+0.075** | +0.115 |
+   | bolus | +0.265 | **+0.066** | +0.084 |
+   | total | +0.253 | **+0.085** | +0.104 |
+
+   The within-block total (+0.085) is the scored row's donor value (+0.091), which confirms the score was always
+   measuring within-block and that **three quarters of what I decomposed was drift**. L 584's qualitative reading
+   survives (the persistence is in both limbs, about equally); its sizes do not.
+   - **Half of what remains is the donors' SETTINGS, not their bodies.** A basal or ISF edit persists by construction
+     — every day after it shares the new level — and an override lasting days does the same. Pooled over
+     block-demeaned adjacent day pairs (`resid_tools/tdd_clean_ac.py`; demeaning inside a 13-day block puts this
+     estimator's null at about −0.083 too), split by whether either day carries a settings change or >30 min of
+     override:
+
+     | limb | all pairs | clean pairs | edit / override pairs |
+     |---|---|---|---|
+     | basal | +0.111 above null | **+0.063** | +0.189 |
+     | bolus | +0.177 | **+0.166** | +0.191 |
+     | total | +0.139 | **+0.118** | +0.169 |
+
+     The **basal** limb's persistence is three times smaller on clean days: it is mostly the schedule changing, which
+     is why no body mechanism reached it. The **bolus** limb is untouched by the cut, so it is genuine. **The honest
+     target for a twin holding one era and running no overrides is +0.118, against the +0.177 recorded in L 583.**
+   - **The genuine part is day-level glucose, and the twins already carry 60% of it.** It is not entered carbs
+     (donors' daily carbs persist at only +0.066 above null within a block, while their bolus persists at +0.166 —
+     the twins have that inversion the other way round, carbs +0.155 and insulin +0.106). It shows instead as a day
+     that runs high being followed by a day that runs high: donors' daily mean glucose **+0.168** above null on clean
+     days, twins **+0.105** (ad3) and +0.094 (dr2). Remaining gap about +0.06.
+   - **And no sensitivity-amplitude arm can close it, because the transmission is capped.** `day_rho` 0.45 on B3's
+     intrinsic day factor (`day_sd` 0.08, the 6–15% repeat-clamp evidence) scored level with ad3 (0.338 / 0.387 /
+     0.427 against 0.321 / 0.425 / 0.410, mean 0.384 vs 0.385) and moved twin basal persistence by +0.031 / −0.018.
+     The chain, measured on the twins' own `truth` (scratchpad `trans.py`): the day factor is about half the variance
+     of the daily-mean SI series, so a ρ of 0.45 realizes a lag-1 of +0.051 there; that series reaches delivered
+     insulin at **r −0.32**, i.e. 10% of variance. A day-level sensitivity driver can therefore contribute at most
+     about **+0.02** of delivered-insulin persistence whatever ρ is — below the +0.05 gap. Reaching it by amplitude
+     would need a day-to-day SI CV near 25%, far outside the clamp evidence.
+   - **Verdict: `ac1` is closed as a body target.** Five mechanisms null (residual day level L 581, life modulators
+     L 582, `act_rho` and `intake_rho` L 584, `day_rho` here); the target is a third of what was recorded; two thirds
+     of the reproducible part is already carried; and the obvious lever's ceiling is below the remainder. The row
+     stays on the scorecard as a known limit, not a defect to chase. `day_rho` stays 0 (unevidenced), `act_rho` 0.

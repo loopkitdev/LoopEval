@@ -147,13 +147,15 @@ reference changes.
 - twins of tight-control donors run high, and twins need 5–8% more insulin than their donors (LESSONS 445–456);
 - night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458);
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
-  (**read `ac1` against the independent-day null of −0.086, not 0**; the twins sit AT that null and the donors carry a real
-  +0.18. **Not reachable through day-level drivers** — four tried and all null: the residual's day level, the life modulators
-  with B3's own AR(1), and everyday activity, which raised CARB persistence +0.04 with no effect on insulin. Treat it as a
-  documented limit; the donors' persistence is in BOTH limbs and their BASAL carries most of it (37% of TDD, day-to-day
-  CV 0.230, lag-1 +0.303 over 128-day series) while all four null mechanisms acted on meals, activity or the residual and
-  none touched basal. Next: the twins' own basal/bolus split against that table, from `trace.json`, not a threshold on
-  `truth["delivered"]`; L 583, 584)
+  (**read `ac1` against the independent-day null of −0.086, not 0**, and against **+0.118, not +0.18**: half the donors'
+  persistence is their SETTINGS — a basal / ISF edit or a multi-day override persists by construction, and on day pairs
+  free of both, the basal limb falls from +0.189 to +0.063 above null while the bolus limb stays at +0.166. A twin holding
+  one era cannot and should not reproduce the rest. **CLOSED as a body target** (L 585): the twins carry +0.064 of the
+  reproducible +0.118, the genuine remainder is day-level glucose persistence (donors +0.168 above null, twins +0.105,
+  gap ~+0.06), and five mechanisms are null — the residual's day level, the life modulators with B3's own AR(1),
+  everyday activity, `intake_rho` (carbs only) and `day_rho`, whose ceiling is **+0.02** of delivered-insulin persistence
+  whatever ρ is, since the day factor is half of daily-mean SI variance and that series reaches delivered insulin at
+  r −0.32. Closing it by amplitude would need a day-to-day SI CV near 25%, far outside the 6–15% clamp evidence; L 583–585)
   (LESSONS 457);
 - **the shallow-low recovery gap is down to one named, unevidenced mechanism** (L 563): a glucose-dependent hepatic
   response below Gb, worth ~0.34 mg/kg/min at G 65. Insulin is ruled out (the twins carry LESS IOB at the nadir, 1.09 vs
@@ -238,7 +240,10 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   The 6–8 shortfall is now understood as a REGIME SWITCH the smooth terms cannot make (L 565): the donors fall deepest at
   6–8 METs and rise at ≥ 8, so any setting that deepens one deepens the other. It needs a form change (a steeper anaerobic
   share), not a parameter.
-- Off-by-default experiments with their verdicts: `resid_day_ar` 0.35 (the residual's day level as AR(1):
+- Off-by-default experiments with their verdicts: `day_rho` 0.45 (B3's intrinsic day-level sensitivity as AR(1):
+  level on score and its delivered-insulin persistence ceiling is +0.02, a fifth of what `ac1` would need, L 585),
+  `act_rho` 0.4 (day-to-day persistence of everyday activity: raises CARB persistence +0.04, no effect on insulin or
+  `ac1`, L 584), `resid_day_ar` 0.35 (the residual's day level as AR(1):
   variance-preserving and level on score, but `ac1` does not move at all — TDD's day-to-day persistence is driven by eating
   and dosing, not by the residual, so the route to it is day-to-day persistence in EATING, L 581), `meal_wave2` (A10c delayed gastric pulse: preserves the peak where a slow
   tail destroys it and lifts the second rise, but the trough is unmoved — it is not limited by appearance, L 571),
@@ -254,6 +259,12 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
 
 ## Analysis traps (each cost a session)
+
+- **A donor statistic must be measured over the twins' OWN window length.** A lag-1 autocorrelation over a 128-day donor
+  record contains the drift between blocks and reads 3–4× the within-13-day value (TDD +0.251 against +0.085); chasing
+  the long-record figure sent five mechanisms after a target that did not exist (L 585). Block the donor series to the
+  twins' length first, and where the statistic can be moved by the donor's SETTINGS, split it by whether a settings
+  change or override falls on those days (`resid_tools/tdd_clean_ac.py`) — a twin holds one era and runs no overrides.
 
 - **Donor carb entries are keyed `grams` in `carbs.json`, not `carbInput`** — the wrong key gives 0 g for every entry, and
   any size filter then drops them all with no error (L 571).
