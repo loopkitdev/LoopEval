@@ -1402,5 +1402,20 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      matched together: size from `low_pro_g` and rate via `pro_shift` on the onset (L 409 fitted that onset to the
      donors' lows, but to their ONSET distribution, not to their pulse RATE). Under test at −10 and −20 mg/dL. The
      weighted score has now rejected this direction twice while **tier 1, the outcome tier at weight 3, preferred it
-     on all three draws** — if the joint match keeps tier 1 and returns tier 2, it is the adoption; if not, the
-     low-side limits are not reachable by eating granularity and that is the finding.
+     on all three draws**.
+   - **`pro_onset` does not control the rate either, and lowering it is clearly bad.** −10 mg/dL: score 0.337 / 0.414,
+     tier 1 0.193 / 0.289. −20: 0.401 / 0.433, tier 1 **0.352** / 0.343. The true rate fell only 1.154 -> 1.107 ->
+     0.963 against the donors' 0.548, so a 20 mg/dL shift buys 17% of rate for a doubling of the tier-1 gap — it does
+     not stop the eating, it delays it into a deeper low.
+   - **Verdict and the one path left.** Four arms: size (tier 1 better on all three draws, tier 2 worse, score worse),
+     refractory (no effect on rate), onset −10 and −20 (worse everywhere). None reaches the donors' 0.548 pulses/h
+     below 80. Since neither the threshold nor the refractory sets the rate, what does is **how many events one low
+     episode produces**: the proactive snack, the rescue at `treat_thr` on a 20-min gate, and the retreat at
+     `p_retreat` 0.34 can all fire inside a single episode, and the twins' 2x rate per hour below 80 is about what
+     two events per episode against the donors' one would give. That repeat-treatment path is the next lever and the
+     only one not yet tried; it is also the one that would lower the rate WITHOUT delaying the first response, which
+     is what wrecked pg3 and pg4.
+   - **Nothing adopted.** `pro_g_own`, `pro_carb_fix` and `pro_shift` all stay off; `ov0` remains the reference. The
+     finding that stands is the measurement: the twins' low-side eating carries the donors' carbohydrate per hour
+     below 80 at 1.23x the labelled pulse rate and 0.80x the size, the outcome rows respond to its granularity, and
+     the dip-dynamics rows respond the other way.

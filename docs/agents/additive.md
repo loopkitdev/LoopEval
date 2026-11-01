@@ -251,7 +251,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   The 6–8 shortfall is now understood as a REGIME SWITCH the smooth terms cannot make (L 565): the donors fall deepest at
   6–8 METs and rise at ≥ 8, so any setting that deepens one deepens the other. It needs a form change (a steeper anaerobic
   share), not a parameter.
-- Off-by-default experiments with their verdicts: `ov_dur_own` (each override class's own log-duration SD, 0.70-0.78,
+- Off-by-default experiments with their verdicts: `pro_g_own` / `pro_carb_fix` / `pro_shift` (the low-side eating
+  granularity: the twins' labelled low-onset pulses run 1.23x the donors' rate at 0.80x the size with the
+  carbohydrate per hour below 80 already equal. Sizing from the donor improves TIER 1 on all three draws — t70
+  1.803 -> 1.597 against the donors' 1.599, P(reach 54) and t54 toward them — and costs the dip-dynamics rows and
+  the weighted score; the refractory does not bind at ~1 event per hour below 80, and lowering the onset only
+  delays the response into a deeper low. The untried lever is how many events ONE low episode produces
+  (`p_retreat` 0.34, the 20-min rescue gate), L 588), `ov_dur_own` (each override class's own log-duration SD, 0.70-0.78,
   instead of the fixed 0.6: score-neutral at mean 0.374 against 0.372, slightly worse on change prediction, and it
   halves the share of twins who never override — 42% to 27% against the donors' 42% — so better explained is not
   enough here, L 586), `day_rho` 0.45 (B3's intrinsic day-level sensitivity as AR(1):
