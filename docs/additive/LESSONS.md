@@ -1145,3 +1145,25 @@ evidence to the evidence files.
    - **Use `--set ex_headroom=1.5` for exercise-focused work**, where the session-intensity tail and the ≥ 8 MET band
      matter; the reference keeps 0. The 6–8 MET band is unaffected and still short (−12.7 / −4.0 vs −21.5), which
      remains a C1 / C2 gap needing measured capacity (L 557).
+565. **C1 keyed to absolute work rate improves the 6–8 MET band on both draws but breaks the ≥ 8 one: the donors'
+   curve is a regime switch that smooth terms cannot make.** Same argument as L 556 for C4 — muscle glucose uptake
+   follows the work being done, not the strain relative to the ceiling, so C1's %VO2-reserve keying gave a fit person
+   LESS uptake for the same 7 METs (×0.55 at METmax 12 against ×1.00 at METmax 7). `ex_abs` keys it to absolute METs
+   on a reference METmax of 9, so a median-fitness person is unchanged (ab0 reproduces ad2 exactly).
+
+   | C4's by-METs table | Donors | ad2 | `ex_abs` | `ex_abs` + headroom |
+   |---|---|---|---|---|
+   | 6–8 METs | **−21.5** | −14.4 / −6.1 | **−17.8 / −7.4** | −16.4 / −7.1 |
+   | ≥ 8 METs | **+1.2** | +12.8 / −5.1 | −13.3 / −7.1 | −13.6 / −8.7 |
+   | score | — | 0.340 / 0.444 | 0.368 / 0.426 | 0.376 / 0.437 |
+
+   The 6–8 band improves on both draws and draw 1 reaches −17.8 against −21.5, the closest yet. But the extra uptake
+   at high absolute work also deepens the ≥ 8 bouts, which the donors have RISING (+1.2) — so the fix trades one band
+   for the other, and the score is worse on draw 1. Not adopted; `ex_abs` stays off beside `ex_headroom`.
+   - **The structural reading.** The donors fall deepest at 6–8 METs and rise at ≥ 8: a sharp switch from
+     uptake-dominated to surge-dominated within about two METs. C1 (uptake) and C4 (surge) are both smooth in
+     intensity, so any setting that deepens 6–8 also deepens ≥ 8, and any setting that lifts ≥ 8 lifts 6–8. Keying
+     both to absolute METs (L 556 + this) makes them compete on the same axis rather than reproducing the switch.
+     Closing it needs a sharper transition — the anaerobic SHARE rising steeply with intensity rather than the
+     surge's ramp alone — which is a form change, and sizing it needs the per-person capacity the whole exercise
+     thread is short of (L 551, 564).
