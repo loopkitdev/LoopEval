@@ -1837,3 +1837,28 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **Caveat on the method:** three draws give an sd with two degrees of freedom, so "noise-dominated" means "not
      established as a bias at n = 3", not "proven zero". The right response is more draws before spending another arm
      on those rows — not another mechanism.
+
+603. **The one real outcome bias is a LOAD bias, not a sensitivity one: the twins' labelled glucose load is 1.10x the
+   donors' and their TDD excess is +9.5%.** L 602 left TDD as the only tier-1 row whose gap exceeds its across-draw
+   scatter (+3.69 U/day at 8x the sd) and L 597 showed a sensitivity scalar cannot fix it, because the `resid_m` refit
+   converts any such gain back into insulin. Load is the mechanism the refit CANNOT absorb: excess glucose in raises
+   the level, the refit cancels the level with a negative `resid_m`, and the insulin that covered the excess stays.
+   - **`resid_m`'s negative mean is the fingerprint.** L 593 measured it at −7.69 mg/dL/h — a glucose SINK worth
+     −3.0 U/day. That is what a refit produces when the load is too high, and it matches the TDD excess in size.
+   - **Measured, same labeller both sides:** total labelled load 210.6 / 214.8 / 209.0 g-eq/day against the donors'
+     189.2 — **1.10 / 1.14 / 1.10**, tight across draws where the low rows scatter. Split by the labeller's classes:
+
+     | | announced | rescue | UNannounced | total |
+     |---|---|---|---|---|
+     | donors | 93.6 | 6.3 | **94.7** | 189.2 |
+     | rf2 (three draws) | 95.2 / 106.5 / 94.5 | 5.9 / 8.4 / 7.3 | **104.2 / 101.8 / 110.5** | 210.6 / 214.8 / 209.0 |
+
+     The announced load matches on draws 1 and 3 (1.02, 1.01); the **unannounced load is high on all three**
+     (1.10 / 1.08 / 1.17).
+   - **And it is DRIFT, not a missing component.** The unannounced labelled load was calibrated at c378 —
+     97.3 against the donors' 94.7 (L 382) — and now reads 102-110. This is exactly the standing caution that a
+     component fitted to an emergent target drifts as others change, so the prescribed response is to refit
+     `unl_mult` against its own evidence (the donor's far-from-meal unannounced load, L 449), not to add a mechanism.
+   - **Trap found doing it:** `unl_mult` was readable only through the off-by-default `unl_own` experiment and only
+     from the template, so `--set unl_mult` was a silent no-op — the fourth instance of that shape this session, after
+     `ex_cap_fit`, `ov_dur_own` and the `BEHAVIOR_COLS` allowlist. A direct hook is now wired.
