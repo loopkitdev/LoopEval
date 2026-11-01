@@ -153,7 +153,10 @@ reference changes.
 - response to a settings change is damped (mean half the field's, lows 4–8× under) and twins of tight donors are not
   tight, so control-level heterogeneity is wrong in the tight group (frontier handoff 2026-10-24, LESSONS 493, 503).
 
-Score close calls on two draws (LESSONS 444).
+**Score close calls on THREE draws — seed0 1000, 5000 and 9000 — and read the mean (L 567).** Draws 2 and 3 agree with each
+other while draw 1 is the reference lineage's own development draw and scores anomalously well on it (ad2: 0.340 vs 0.444 /
+0.430), so a candidate that gives up draw-1 fit looks worse than it is. Where the three disagree, discount 1000.
+The two-draw rule (LESSONS 444) still rejects noise, but with 1000 as one of the two it also protects that fit.
 
 Measured like for like against the donors (LESSONS 282–299); read a candidate's result against them.
 

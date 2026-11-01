@@ -1191,3 +1191,27 @@ evidence to the evidence files.
      curve. The reference keeps the score-optimal settings.
    - **Still short:** the 6–8 band on draw 2 (−5.4 against −21.5) even with every fix on. That is C1 / C2's size at
      moderate intensity, the one exercise quantity that still needs a measured per-person capacity (L 551).
+567. **Draw 1 (seed0 1000) is the reference lineage's OWN draw, and two draws are not enough when one of them is the
+   development draw.** Every arm of 2026-11-01 scored better on draw 1 than on draw 2, and nearly every candidate read
+   worse on draw 1 and better on draw 2 — ten changes failing the same way on the same draw are not ten independent
+   facts. A third draw (seed0 9000; donor targets are draw-independent, so only the sim arms re-run):
+
+   | arm | d1 (1000) | d2 (5000) | d3 (9000) | mean | vs ref |
+   |---|---|---|---|---|---|
+   | ad2 (reference) | **0.340** | 0.444 | 0.430 | 0.405 | — |
+   | `ge_spare` | 0.356 | 0.426 | **0.421** | **0.401** | −0.004 |
+   | `ex_abs` | 0.368 | 0.426 | 0.427 | 0.407 | +0.002 |
+   | `ex_min` 31 | 0.355 | 0.419 | 0.441 | 0.405 | ±0.000 |
+
+   **Draws 2 and 3 agree with each other (0.444, 0.430) and draw 1 is the outlier (0.340).** The reference is partly
+   fitted to seed0 1000, which it was developed on, so a candidate that gives up draw-1 fit looks worse than it is.
+   - **What this changes.** L 444's two-draw rule was written to reject noise, and it does — but with seed0 1000 as
+     one of the two, it also protects the development draw's fit. **Score close calls on seed0 1000, 5000 AND 9000,
+     and read the mean**; where the three disagree, 1000 is the one to discount. Several of today's rejections were
+     rejecting draw-1 overfit, not the change.
+   - **`ge_spare` is better on 2 of 3 draws, including both draws the reference was not developed on, and better on
+     the mean.** With its tier-1 gains (t70 1.97 / 2.16 → 1.67 / 1.71, TIR and lows per day on both draws, L 561)
+     that now favours adoption; the depth cost (p_reach54 0.212 → ~0.17) still stands against it. Pete's call, with
+     this added.
+   - `ex_abs` and `ex_min` 31 are level on the mean, so both stay flags: `ex_abs` in the exercise-faithful
+     configuration (L 566), `ex_min` 31 for `workout_dur` (34.8 against the donors' 35.4, from ad2's 44.9).
