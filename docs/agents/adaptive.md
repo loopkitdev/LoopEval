@@ -1,12 +1,12 @@
 <!-- Role overlay. Loaded via ROLE.md; see AGENTS.md → Roles. -->
 
-# Role: reduction — the Loop Adaptive Algorithm: dosing with far fewer inputs
+# Role: adaptive — the Loop Adaptive Algorithm: dosing with far fewer inputs
 
 LoopAlgorithm reads more than 24 h of glucose, every dose, every carb entry and a full set of
 schedules, and returns one number: the insulin for the next 5 minutes. This role looks for much
 simpler functions g of a small input set — the recent glucose trajectory, a long-term scale such as
 TDD, a variability measure, a little insulin state, carbs only as an optional extra — that reach the
-same or better outcomes. Mandate: Pete's brief, `REDUCTION-BRIEF.md` in this checkout (git-ignored).
+same or better outcomes. Mandate: Pete's brief, `ADAPTIVE-BRIEF.md` in this checkout (git-ignored).
 
 Read with **AGENTS.md** (shared) and **docs/agents/verification.md**. A candidate is judged by what it
 does in closed loop, never by how closely its doses match Loop's: TIR up AND t<70 down, t<54 as the
@@ -49,7 +49,7 @@ boluses with the temp basal used only to withhold (Pete 2026-10-29: no basal con
 - `docs/reduction/LESSONS.md` — this role's lessons file; `docs/reduction/TABLE.md` — the living
   comparison table (inputs, form, metrics, failure modes) once there is something to put in it.
 - `analysis/reduction/` — algorithm definitions (`adaptive.py`), feature extraction, fitting and scoring drivers.
-- `runs/YYYY-MM-DD-reduction-*/` — experiment outputs, with the driving script beside them.
+- `runs/YYYY-MM-DD-adaptive-*/` (before 2026-11-01: `-reduction-`) — experiment outputs, with the driving script beside them.
 
 ## Standing cautions
 
