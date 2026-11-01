@@ -2240,3 +2240,23 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **Method note, third instance:** the labelled `peak_h` moved 43 -> 37 while the isolated-parcel peak did not move
      at all, because `peak_h` is onset-relative (L 595) and a sharper rise shifts the detected onset later. Measure
      absolute appearance time on the parcel; measure `peak_h` only against another `peak_h`.
+
+618. **Correction to L 617\'s next step: the dosing side is ALREADY per-donor, so the high-side cost of a sharper
+   transit is a clash between two independently calibrated components, not a missing behaviour fit.** L 617 proposed
+   testing `ge_order` 3 "with the donors\' own bolus timing". That premise is false — `bolus_lead_min`, `p_bolus_ann`
+   and `bolus_ratio` are all in `person.BEHAVIOR_COLS` and read per donor (`behavior.py` 323, 328), so each twin
+   already boluses at its donor\'s own lead time, announces at its donor\'s rate and doses at its donor\'s ratio. The
+   test as stated would have been a no-op, and checking the premise cost two minutes against a 20-minute arm.
+   - **What the cost therefore means.** With the donors\' own dosing habits AND a less dispersed appearance, the twins
+     run high (TIR 72.2 -> 68.6, t180 25.8 -> 28.1). The donors do not. So either their appearance is not actually
+     sharper than the model\'s — and the labelled decay evidence (67 against 60 min) misled me — or the twins\' insulin
+     cannot cover a sharper peak that the donors\' insulin does.
+   - **The second reading names a specific clash:** `ge_order` would be fitted to the donors\' labelled pulse shape,
+     while insulin action is fitted to the lispro clamp (`p2` 0.025, L 362-365). If appearance sharpens at fixed
+     insulin speed, the mismatch shows up exactly as a high-side cost. **Both parameters are independently calibrated
+     to their own evidence, so the clash says one of the two calibrations is wrong, and the cohort cannot say which.**
+     That is a genuine evidence question, not a tuning one: it needs a study with simultaneous appearance and insulin
+     kinetics after a mixed meal.
+   - **So `ge_order` stays at 2** with its result recorded: it is the only lever that moves four limits at once
+     (L 617) and its cost is diagnostic rather than disqualifying. Anyone revisiting the meal tail should start here
+     and should pair it with the insulin-action question, not with a behaviour refit.

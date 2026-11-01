@@ -372,8 +372,10 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   31.0 -> 37.0-39.0 against the donors' 38.0 (gap 0.373 -> 0.053), `acf_zero_min` 60 -> 50 (its best ever) and the
   fall / rise ratio 0.63 -> 0.69 — four standing limits moving together, which is what a shared cause looks like. The
   cost is high-side: TIR 72.2 -> 68.6, t180 25.8 -> 28.1, because less dispersion delivers the same carbohydrate in a
-  shorter window and Loop cannot cover the peak, so the score rejects it. **Next: `ge_order` 3 WITH the donors' own
-  bolus timing**, since the missing partner is on the dosing side.
+  shorter window and Loop cannot cover the peak, so the score rejects it. **NOT a behaviour refit (L 618)**: `bolus_lead_min`, `p_bolus_ann` and
+  `bolus_ratio` are already per-donor, so the twins already dose like their donors. The cost is a clash between two
+  independently calibrated components — appearance dispersion against insulin action (`p2` 0.025, the lispro clamp)
+  — which the cohort cannot adjudicate; it needs simultaneous appearance and insulin kinetics after a mixed meal.
 - **Meals still come down sooner than the donors'**: 3-h meal change +11.7 vs +21 (was +2 before breakfast skipping, the dinner fat carrying the night, LESSONS 368–370). Loop's delivery at each glucose band matches the donors' (LESSONS 368); adding meal glucose by carb sensitivity, slow share or protein is answered at the meal (LESSONS 366–367). The hourly profile runs 5 mg/dL low at 00–06 h and 8 high at 06–12 h (basal-need shape, LESSONS 371, 373); TDD day-to-day persistence (ac1) is ~0 against the donors' 0.09. Candidates acting after meals are read here as a second opinion.
 - **Night-to-night insulin varies less** (night CV 29 vs 36) and does not follow evening entries as the donors' does
   (LESSONS 288–289).
