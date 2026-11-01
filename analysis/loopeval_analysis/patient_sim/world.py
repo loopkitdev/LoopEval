@@ -351,6 +351,9 @@ class World:
             # `--disable ex_cap_fit` a silent no-op, so the previous reference could not be reproduced (L 580)
             self.beh_traits = copy.deepcopy(self.beh_traits)
             self.beh_traits.ex_cap_fit = bool(enable["ex_cap_fit"])
+        if enable and isinstance(enable.get("meal_lag"), float):    # gastric lag phase, minutes (L 595)
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.meal_lag = float(enable["meal_lag"])
         if enable and enable.get("pro_g_own"):       # proactive snack size from the donor's own low-onset pulse (L 588)
             # the assignment happens HERE, not in sample_behavior_traits: that has already returned by now, so a
             # flag-only branch there would never fire (the ex_cap_fit / ov_dur_own wiring bug, L 580, 586)

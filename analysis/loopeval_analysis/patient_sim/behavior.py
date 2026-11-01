@@ -169,6 +169,13 @@ class BehaviorTraits:
     p_wake_unaided: float = 1.0 / 16     # per low episode (Schultes 2007)
     # defense
     pro_onset: float = 60.0              # projected glucose (mg/dL) below which they act proactively (person draw N(60, 20), fitted to the donors' lows, LESSONS 409)
+    meal_lag: float = 0.0                # gastric LAG PHASE before a meal's carbohydrate starts to empty, minutes.
+                                         # Emptying of a mixed solid meal does not begin at once (Siegel 1988: a lag
+                                         # of ~20-30 min for solids; it is what Elashoff's beta > 1 represents
+                                         # implicitly). Every carb parcel has had delay 0, so appearance started the
+                                         # instant food was eaten, and the twins' labelled pulses peak at 37 min
+                                         # against the donors' 50 (L 595). A lag shifts appearance later WITHOUT
+                                         # changing any rate, so it cannot compress the pulse the way ge_beta did.
     pro_grams: float = 12.0              # proactive snack size [J]; `pro_g_own` takes it from the donor instead
     low_pro_g: float = float('nan')       # the donor's measured value, applied when pro_g_own is on
     pro_g_own: bool = False              # the donor's own pre-emptive low-side pulse size (`low_pro_g`), halved for
@@ -983,7 +990,7 @@ class Behavior:
                 # the linear chain keeps the fast phase, a slow fraction carries the tail (LESSONS 27) [J size]
                 sf = t.meal_slow_frac
                 if sf > 0:
-                    acts.append(("eat", Parcel(m, meal.grams * sf, kempt=t.meal_slow_k * meal.speed, kabs=bp.kabs,
+                    acts.append(("eat", Parcel(m, meal.grams * sf, kempt=t.meal_slow_k * meal.speed, kabs=bp.kabs, delay=t.meal_lag,
                                                f=bp.f, label=meal.kind + "_tail")))
                 # the liquid part of a mixed meal empties first and fast (nutrient liquids: early delivery 3–8 kcal/min,
                 # glucose t½ ~9 min; Calbet 1997, Hunt 1985): a share of the carbohydrate bypasses the energy-limited
@@ -995,7 +1002,7 @@ class Behavior:
                 if t.meal_drink_p > 0 and meal.kind == "meal" and self.r_drink.random() < t.meal_drink_p:
                     ff = t.meal_drink_share + (1 - t.meal_drink_share) * ff     # a sugary drink with the food (LESSONS 119)
                 if ff > 0:
-                    acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * ff, kempt=0.08 * meal.speed, kabs=0.08 * meal.speed,
+                    acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * ff, kempt=0.08 * meal.speed, kabs=0.08 * meal.speed, delay=t.meal_lag,
                                                f=bp.f, label=meal.kind + "_liquid", kcal_per_g=0.0)))
                 g_main = meal.grams * (1 - sf) * (1 - ff)
                 if t.ge_full_kcal and g_main > 0:
@@ -1005,7 +1012,7 @@ class Behavior:
                     kcal_g = 4.0 + (9.0 * meal.fat + 4.0 * meal.protein) / g_main
                 ms_ = t.main_speed                       # experiment (LESSONS 319): the solid main parcel only; liquid share unchanged
                 w2 = t.meal_wave2 if meal.kind == "meal" else 0.0
-                acts.append(("eat", Parcel(m, g_main * (1 - w2), kempt=bp.kempt * meal.speed * phi_fat * ms_, kabs=bp.kabs * meal.speed * ms_,
+                acts.append(("eat", Parcel(m, g_main * (1 - w2), kempt=bp.kempt * meal.speed * phi_fat * ms_, kabs=bp.kabs * meal.speed * ms_, delay=t.meal_lag,
                                            f=bp.f, label=meal.kind, kcal_per_g=kcal_g, speed=meal.speed)))
                 if w2 > 0:
                     # A10c second gastric wave (experiment; LESSONS 573): a share of the solid phase held back and then
