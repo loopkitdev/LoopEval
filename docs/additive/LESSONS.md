@@ -1782,3 +1782,29 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      ratio and L 594 for reversal speed — three limits, one missing shape, now stated in three independent ways.
      A delayed (rate-of-change or time-since-nadir) hepatic or counter-regulatory response is the form to try; a
      level-proportional one is not, and this lesson is the reason to stop proposing them.
+
+601. **An asymmetric counter-regulatory decay is the first low-side mechanism that improves the outcome rows without
+   trading one for another — tier 1 better on BOTH draws, t54 nearly exact, the low-episode count preserved.** L 600
+   specified the shape: shorten the recovery limb WITHOUT raising the nadir, which no (Gb − G)-proportional term can
+   do. `self.cr` relaxed toward its target with a single time constant, so the counter-regulatory EGP effect faded as
+   fast as it built. `cr_tau_off` gives the OFF limb its own constant — the glycogenolytic response outlasts the
+   catecholamine / glucagon pulse that triggers it (clearance plus post-receptor effects run 20-60 min). Verified
+   before running: on a V-shaped 90-62-90 excursion the peak `cr` is IDENTICAL at `cr_tau_off` 0 / 30 / 60 (0.3971 at
+   min 47) while the climb-phase mean rises 0.2511 -> 0.3050 -> 0.3446.
+
+   | | t54 (0.190) | t70 (1.599) | lows/day (1.00) | dwell < 70 (15) | tier 1 | score |
+   |---|---|---|---|---|---|---|
+   | rf2 | 0.124 / 0.232 | 1.764 / 2.119 | 1.000 / 1.250 | 20 min | 0.135 / 0.209 | 0.332 / 0.371 |
+   | `cr_tau_off` 60 | **0.175 / 0.177** | **1.688 / 1.843** | 0.958 / 1.126 | **15 min** | **0.132 / 0.201** | 0.334 / 0.383 |
+
+   - **t54's gap goes 0.146 -> 0.090 and 0.134 -> 0.038**, t70 improves on both draws, the low-episode count is
+     preserved (2978 -> 2980 against every `sg_h_lo` variant's drop), and the nadir dwell under 70 matches the donors
+     exactly. **Tier 1, weight 3, improves on both draws** — the first low-side candidate to do that.
+   - **It works on a different window than I predicted.** The 80-excursion duration is UNCHANGED at 25 min, so
+     L 600's stated target is untouched: `cr_g` is 65, so counter-regulation acts below ~70 and shortens the sub-70
+     portion, not the 70-80 band. The L 600 specification should therefore read "shorten the time below 70", which
+     this does, and the 70-80 band remains unaddressed.
+   - **Cost:** tier 2/3 damage is draw-INCONSISTENT (ac1 +0.154 on draw 1 but −0.093 on draw 2; `between_day_frac`
+     the reverse), i.e. mostly noise, with one consistent exception — `ice_dip_day_share` (+0.100, +0.116), the
+     expected signature of counter-regulation persisting into the climb. The weighted score is level on draw 1 and
+     worse on draw 2 (mean 0.359 against 0.352), so draw 3 decides it under the three-draw rule and is running.
