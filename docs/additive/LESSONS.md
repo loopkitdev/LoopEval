@@ -1192,8 +1192,24 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      "about half" the donors' persistence was wrong — it supplies the carb persistence, which does not reach the
      insulin total. Most likely TDD is dominated by components with no day-to-day structure at all (basal is roughly
      half of it), diluting any day-level driver below detection in a 13-day block.
-   - **Verdict on `ac1`: not reachable through day-level drivers.** Four mechanisms tried and all null — the
-     residual's day level (L 581), the life modulators including B3's own AR(1) (L 582), and now everyday activity.
-     Treat it as a documented limit, not a target, unless someone first measures **what fraction of the donors' own
-     TDD variance is day-driven at all**; that is the measurement that would say whether the row is reachable, and it
-     needs the donors' insulin decomposed into basal and bolus, not another twin-side arm.
+   - **The donors' persistence is in BOTH limbs, and their BASAL carries the most of it**
+     (`resid_tools/tdd_decomp.py`, 204 donors, a median 128 days each — long enough that the short-series bias is
+     negligible):
+
+     | donors' daily insulin | share of TDD | day-to-day CV | lag-1 autocorr |
+     |---|---|---|---|
+     | basal | 0.37 | **0.230** | **+0.303** |
+     | bolus | 0.63 | 0.348 | +0.265 |
+     | total | — | — | +0.251 |
+
+     So day-to-day persistence is not a meal phenomenon the twins are missing: the donors' **basal** varies with a CV
+     of 0.23 and persists at +0.30, and it is 37% of their TDD. (Their delivered basal is Loop-modulated, so part of
+     that variation is the controller answering glucose rather than need — which is itself reproducible, since the
+     twins run the same controller.) **The four null twin-side mechanisms all acted on meals, activity or the
+     residual; none of them touched basal.**
+   - **Verdict on `ac1`: not reachable through the day-level drivers tried, and the next step is the basal split.**
+     Four mechanisms null (the residual's day level, L 581; the life modulators with B3's own AR(1), L 582; everyday
+     activity, above; and `intake_rho`, which moves carbs but not insulin). The measurement that would close it is the
+     twins' own basal/bolus decomposition against the table above — their basal CV and its lag-1 — which needs the
+     delivery split from `trace.json` or the plant stream, NOT a threshold on `truth["delivered"]` (L 575's trap).
+     If the twins' basal CV is far below 0.23, that is the defect and it is a named one.

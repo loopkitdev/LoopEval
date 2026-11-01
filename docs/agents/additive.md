@@ -150,7 +150,10 @@ reference changes.
   (**read `ac1` against the independent-day null of −0.086, not 0**; the twins sit AT that null and the donors carry a real
   +0.18. **Not reachable through day-level drivers** — four tried and all null: the residual's day level, the life modulators
   with B3's own AR(1), and everyday activity, which raised CARB persistence +0.04 with no effect on insulin. Treat it as a
-  documented limit until someone measures what fraction of the DONORS' TDD variance is day-driven; L 583, 584)
+  documented limit; the donors' persistence is in BOTH limbs and their BASAL carries most of it (37% of TDD, day-to-day
+  CV 0.230, lag-1 +0.303 over 128-day series) while all four null mechanisms acted on meals, activity or the residual and
+  none touched basal. Next: the twins' own basal/bolus split against that table, from `trace.json`, not a threshold on
+  `truth["delivered"]`; L 583, 584)
   (LESSONS 457);
 - **the shallow-low recovery gap is down to one named, unevidenced mechanism** (L 563): a glucose-dependent hepatic
   response below Gb, worth ~0.34 mg/kg/min at G 65. Insulin is ruled out (the twins carry LESS IOB at the nadir, 1.09 vs
