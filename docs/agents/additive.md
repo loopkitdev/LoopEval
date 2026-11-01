@@ -200,6 +200,9 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 
 ## Analysis traps (each cost a session)
 
+- **Donor carb entries are keyed `grams` in `carbs.json`, not `carbInput`** — the wrong key gives 0 g for every entry, and
+  any size filter then drops them all with no error (L 571).
+
 - **A `score --detail` log's first arm is the first ARGUMENT, not the donors**, so fixed awk column indices are off by one
   arm and silently report the wrong arm's numbers (it happened three times on 2026-11-01). Read them with
   `resid_tools/score_read.py`, which keys on the header names.

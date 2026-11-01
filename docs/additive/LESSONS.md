@@ -1297,3 +1297,31 @@ evidence to the evidence files.
      directions, and no setting of a single term serves both. Closing the fast-fall row needs something that makes
      glucose fall fast WITHOUT flattening the 3-h rise — a faster fall from a HIGHER peak, not a lower peak. That is
      the peak-shape problem of L 512 (the missing fast falls are on the fall side of the meal), still open.
+571. **The meal-shape gap is a SECOND WAVE, not elevation at 3 h: donors fall further after the peak and rise again
+   harder, and the twins do neither.** Measured per carb entry >= 20 g over the 4 h after it, same code both sides
+   (`resid_tools/meal_shape2.py`; 37,694 donor entries, ad3 on two draws):
+
+   | | Donors | ad3 (d1 / d2) |
+   |---|---|---|
+   | peak at | 85 min | 95 / 90 |
+   | rise to the peak | 64.0 | **63 / 61** |
+   | fall in the 90 min after the peak | **57.0** | 47 / 43 |
+   | second rise after that trough | **28.0** | 18 / 20 |
+   | change at 3 h | 28.0 | 32 / 30 |
+   | fall >= 30 mg/dL | 0.76 | 0.68 / 0.65 |
+   | second rise >= 20 mg/dL | 0.58 | 0.49 / 0.51 |
+   | **BOTH** | **0.43** | **0.28 / 0.29** |
+
+   The rise and the peak timing already match. What differs is the second oscillation: the donors' meals fall 10–14
+   mg/dL further and then rise 8–10 further, and 43% show both against the twins' 28%.
+   - **This corrects the framing of L 569–570.** I had read the conflict as "high at 3 h AND fast falls", which would
+     be contradictory. On this statistic the donors are NOT higher at 3 h (28 against the twins' 30–32) — the 3-h row
+     `meal_d3h` is a per-person median over labelled meals, a different measurement. So nothing contradictory is being
+     asked: the model needs MORE AMPLITUDE in the post-peak oscillation, a deeper trough and a bigger second wave.
+     One mechanism can serve both `entry_fast_fall` (the deeper fall) and the meal tail (the second rise), which is why
+     every single-sided term traded them against each other.
+   - **Sized for whoever builds it:** the trough wants about 10–14 mg/dL more fall in the 90 min after the peak, and
+     the second wave about 8–10 mg/dL more rise after it. A12's late parcel and L 170's twice-rising dinners are the
+     existing hooks.
+   - **Trap:** donor carb entries are keyed `grams` in `carbs.json`, not `carbInput`. Reading the wrong key returns 0
+     for every entry and a size filter then silently drops all of them — the first run of this script measured nothing.
