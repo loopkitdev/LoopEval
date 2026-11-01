@@ -680,6 +680,7 @@ class World:
         if enable and enable.get("counterreg") is False: bp = bp.scaled(cr_max=0.0)
         if enable and isinstance(enable.get("cr_mult"), float): bp = bp.scaled(cr_max=bp.cr_max * enable["cr_mult"])   # LESSONS 166
         if enable and isinstance(enable.get("sg_h_lo"), float): bp = bp.scaled(sg_h_lo=float(enable["sg_h_lo"]))  # A1b below basal (L 596)
+        if enable and "sg_h_lo_ins" in enable: bp = bp.scaled(sg_h_lo_ins=bool(enable["sg_h_lo_ins"]))   # L 599
         if enable and isinstance(enable.get("cr_g"), float): bp = bp.scaled(cr_g=float(enable["cr_g"]))   # A9 half-activation glucose (L 559)
         if enable and isinstance(enable.get("cr_tau"), float): bp = bp.scaled(cr_tau=enable["cr_tau"])   # experiment, LESSONS 274
         # X12 thyrotoxicosis (scenario, off): plasma insulin clearance × thyro_clear — 1.41 measured (1144 vs 812 ml/min,

@@ -58,6 +58,7 @@ class BodyParams:
     ge_split: bool = False
     ge_spare: bool = False         # A1c alone on the lumped SG: insulin-independent uptake falling below g_ii (L 561)
     sg_p: float = 0.0012           # A1a peripheral insulin-independent mass action, 1/min on (G − Gb), both sides (Del Prato 1997 T1D)
+    sg_h_lo_ins: bool = True       # the below-basal hepatic term carries basal EGP's own insulin suppression (L 599)
     sg_h_lo: float = 0.0           # A1b BELOW basal: extra hepatic release as glucose falls under Gb, 1/min on
                                    # (Gb − G). A1b as implemented is one-sided — the liver withholds when high and
                                    # never releases when low (see `hep` below, gated on g > gb) — so below basal the
@@ -380,7 +381,14 @@ class Body:
         self.haaf += dt * ((1.0 - self.haaf) / p.haaf_tau_rec - p.haaf_kappa * below * self.haaf)
         self.haaf = max(p.haaf_min, min(1.0, self.haaf))
 
-        hep_lo = p.sg_h_lo * p.vg * max(p.gb - g, 0.0) if p.sg_h_lo > 0 else 0.0   # A1b below basal (L 596)
+        # A1b below basal (L 596). Hepatic glucose output is INSULIN-SUPPRESSED, so the autoregulatory increase
+        # carries the same suppression factor as basal EGP (L 599): at full strength it acted on the way INTO a low,
+        # while insulin was still high, and so prevented lows instead of shortening them (counts 1.00 -> 0.75).
+        # Suppressed, it is quiet while IOB is high and acts once insulin has fallen, which is the low itself.
+        hep_lo = 0.0
+        if p.sg_h_lo > 0:
+            hep_lo = p.sg_h_lo * p.vg * max(p.gb - g, 0.0)
+            if p.sg_h_lo_ins: hep_lo *= min(max(1.0 - se * self.xe, 0.0), 1.0 + se)
         egp = egp_ins + self.cr + hep_lo + p.ex_egp_surge * ex_intensity * ex_anaerobic
         self.egp = egp
         uex = p.ex_uptake * (ex_work if p.ex_abs else ex_intensity) * g / p.gb   # mass action: fades as glucose falls (evidence/10 §7.3)
