@@ -90,6 +90,12 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75` on the reference. It reproduces C4's own by-METs table —
   the ≥ 8 MET band reads +0.9 against the donors' +1.2 where the band has enough bouts — against the reference's +12.8 / −5.1.
   Use it whenever the response to a workout matters; the reference keeps the score-optimal settings.
+- **Judge adoptions on PAIRED per-person differences** (L 610): on the sum of |median(twin − its own donor)| over
+  TIR, bg_mean, t70, t54 and TDD, **rf2 scores 2.28 against ov0's 5.36 — a 57% improvement**, where the cohort score
+  called the same change level (0.372 → 0.370). Every rejection of 2026-11-01 holds on this instrument
+  (`cr_tau_off` 2.34, joint fit 2.40, `sg_h_lo` 2.93/3.57, `pro_g_own` 5.41), and `unl_mult` 0.70 + refit is confirmed
+  as the only real TDD lever (paired TDD +0.40 against +1.49) at the cost of the level (bg_mean −1.63).
+
 - **Current reference** (2026-11-01): **rf2** (runs/2026-10-31-additive-gesplit; templates
   `templates_pilot_resid_rf1.csv`, `--set resid_mult=0.0`) — ov0 with the residual's DYNAMIC part off, keeping only its
   per-person level `resid_m` (L 592). Score **0.332 / 0.371 / 0.406**, mean **0.370** against ov0's 0.372 — level —

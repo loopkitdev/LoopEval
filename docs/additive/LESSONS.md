@@ -2027,3 +2027,34 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      rather than on cohort medians. The second is far cheaper and is what `twin.csv` already computes.
    - **A latent bug found doing this:** `lvl_resid.py` and `tdd_isf.py` glob `v0*`, which matches seeds 1000-9999 but
      NOT seeds >= 10000 (v13000, v17000). Any fit run on a high seed silently sees zero people.
+
+610. **Re-judged on paired per-person differences — the instrument L 609 says to use — `rf2`\'s adoption was a 57%
+   improvement, not the "level" the cohort score reported, and every rejection this session holds.** Sum of
+   |median(twin − its own donor)| over TIR, bg_mean, t70, t54 and TDD, averaged over the available draws
+   (`twin.csv`; this removes the trait-draw variance that L 609 showed dominates cohort medians):
+
+   | arm | TIR | bg_mean | t70 | t54 | TDD | total |
+   |---|---|---|---|---|---|---|
+   | **rf2 (adopted)** | −0.51 | +0.20 | −0.03 | −0.05 | +1.49 | **2.28** |
+   | `cr_tau_off` 60 | −0.26 | −0.54 | −0.06 | −0.06 | +1.42 | 2.34 |
+   | joint fit | −0.77 | +0.13 | −0.04 | −0.06 | +1.40 | 2.40 |
+   | `unl_mult` 0.70 + refit | +0.61 | −1.63 | −0.21 | −0.07 | **+0.40** | 2.92 |
+   | `sg_h_lo` suppressed | +0.48 | −0.95 | −0.10 | −0.07 | +1.32 | 2.93 |
+   | `sg_h_lo` unsuppressed | +0.50 | −1.73 | −0.11 | −0.07 | +1.15 | 3.57 |
+   | ov0 (previous reference) | −2.03 | +1.66 | +0.07 | −0.05 | +1.56 | 5.36 |
+   | `pro_g_own` | −1.84 | +1.73 | −0.05 | −0.04 | +1.75 | 5.41 |
+
+   - **`rf2` is the best arm on the low-variance instrument and by a wide margin over ov0** — 2.28 against 5.36, a
+     57% cut, carried by TIR (−2.03 → −0.51) and the glucose level (+1.66 → +0.20). The cohort score read that change
+     as "level" (0.372 → 0.370) because the trait-draw variance swamps it. **Dropping the residual\'s dynamic part was
+     a much bigger win than it was credited with**, and the per-person rho table of L 592 was pointing at the same
+     thing.
+   - **Every rejection holds.** `cr_tau_off` (2.34) and the joint fit (2.40) sit just behind the reference, and the
+     `sg_h_lo` variants and `pro_g_own` are clearly worse. None was rejected on trait-draw noise.
+   - **And the load cut is confirmed as the only real TDD lever:** `unl_mult` 0.70 + refit gives paired TDD **+0.40**
+     against the reference\'s +1.49, a 73% reduction of the one bias that exceeds its own between-draw sd — at the cost
+     of the level (bg_mean −1.63). That is L 604\'s trade stated on the right instrument: the level and TDD cannot both
+     be matched, and which to spend is a judgement, not a measurement.
+   - **Standing guidance:** quote paired per-person differences for any adoption decision. Three of this session\'s
+     conclusions (`rf2` level-vs-large, the TIR "bias", the low-side limits) came out differently on cohort medians
+     than on paired diffs, and the paired ones are right by construction.
