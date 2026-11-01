@@ -293,6 +293,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   arm and silently report the wrong arm's numbers (it happened three times on 2026-11-01). Read them with
   `resid_tools/score_read.py`, which keys on the header names.
 
+- **`trace.json`'s md5 is NOT an identity check.** Two identical invocations of the same frozen code produce
+  byte-different `trace.json` (key order and float formatting) with content and trajectory identical. Compare
+  `truth.pkl`'s `truth.bg` series instead — that IS bit-stable, and it is stable across `--n` and `--par` too, since
+  every person is drawn and seeded from `seed0 + i` alone. An md5 mismatch "proved" a reversal had failed (L 586).
+
 - **A new template column needs adding to `person.BEHAVIOR_COLS`** — that allowlist is what reaches the person as
   `traits["template_rates"]`, so a column the templates carry and `sample_behavior_traits` reads is silently absent
   without it, and the arm runs as its own control (`ov_dur_own` scored bit-identical to its `--disable` control

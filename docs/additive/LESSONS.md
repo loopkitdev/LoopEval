@@ -1261,8 +1261,8 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      of the reproducible part is already carried; and the obvious lever's ceiling is below the remainder. The row
      stays on the scorecard as a known limit, not a defect to chase. `day_rho` stays 0 (unevidenced), `act_rho` 0.
 
-586. **Measure a donor statistic the same way on both sides, or it will invent a defect: four times in one thread I
-   "found" an override gap that was my own denominator.** Chasing the L 585 question — which scored statistics
+586. **Measure a donor statistic the same way on both sides, or it will invent a defect: five times in one thread a
+   measurement of mine, not the model, was the thing that was wrong.** Chasing the L 585 question — which scored statistics
    the donors' settings contaminate — produced one real negative and one lesson about measurement.
    - **Settings contamination does NOT explain the other failing rows.** `resid_tools/clean_blocks.py` dates every
      block in `real_pilot_blocks.csv` by replaying `real_stats`' walk and flags edit days and override hours. A
@@ -1306,6 +1306,11 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      against ad3's 0.321 / 0.425 / 0.410 — better on both fresh draws, worse only on draw 1, mean **0.372 against
      0.385**. The gain lands where the mechanism predicts: more time at reduced needs, so Loop commands less —
      bg_mean 0.263 -> 0.119 and TDD 0.262 -> 0.177 on draw 2. Realized length goes 72 -> 83 min against the donors' 79.
+   - **(5) And one more, verifying the adoption: `trace.json`'s md5 is not an identity check.** Two identical
+     invocations of the same frozen code give byte-different `trace.json` — key order and float formatting — with
+     every section's content and the whole trajectory identical. Compare `truth.pkl`'s `truth.bg`, which is bit-stable
+     and also invariant to `--n` and `--par` (each person is drawn and seeded from `seed0 + i` alone). On that
+     instrument the reversal is exact: the new default with the new templates reproduces `ov0` to 0.00e+00 on true BG.
    - **`ov_dur_own` (each class's own log-duration SD, 0.70-0.78, instead of the fixed 0.6) is score-neutral**:
      0.324 / 0.391 / 0.408, mean 0.374 against `ov0`'s 0.372. It is better explained, but it moves the share of twins
      with no window at all from 42% to 27% on draw 2 against the donors' 42%, so it is not free. Judge it on the
