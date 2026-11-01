@@ -141,6 +141,14 @@ class BodyParams:
                                    # the twins' peak at 37 and decay for 66 (1.44) — they rise too early and trail
                                    # too long, which is the one time-asymmetric shape L 575 asks for.
     ge_beta_cap: float = 4.0       # clip on the hazard multiplier, so a parcel's first minutes cannot empty instantly
+    ge_order: int = 2              # number of STOMACH compartments (Erlang transit order). 2 is Dalla Man / UVA-Padova
+                                   # and what this model has had; `kempt` is scaled by order / 2 so the MEAN transit
+                                   # time is unchanged, and only the transit-time DISPERSION falls. Raising it moves
+                                   # the appearance peak LATER and shortens the decay — the one form that meets
+                                   # L 615's requirement, where `ge_beta` moved the peak earlier and `meal_lag` was
+                                   # shift-invariant. Isolated 35 g parcel, mean held at 40 min: order 2 gives peak
+                                   # 40 / decay 94, order 3 gives 44 / 82, order 4 gives 46 / 74, against the donors'
+                                   # labelled 50 / 60 and the twins' 43 / 67 (L 617).
     ge_beta_mean: bool = True      # keep the MEAN emptying time while changing its shape: a Weibull's mean is
                                    # Gamma(1 + 1/beta)/k, so k is scaled by that factor. Without it, raising beta also
                                    # empties faster (total pulse 120 -> 98 min against the donors' 125) and the arm
@@ -313,6 +321,8 @@ class Body:
         # meal parcels entering the stomach
         for pc in self.parcels:
             if not pc.entered and m + dt > pc.t + pc.delay:
+                if p.ge_order != 2 and len(pc.q) != p.ge_order + 1:
+                    pc.q = [0.0] * (int(p.ge_order) + 1)      # size the transit chain at entry (L 617)
                 pc.q[0] += pc.grams * pc.f * 1000.0 / p.bw    # mg/kg
                 pc.entered = True
 
@@ -344,14 +354,14 @@ class Body:
             kcal = 0.0; wsp = 0.0; wk = 0.0
             for pc in self.parcels:
                 if pc.entered:
-                    kcal += pc.kempt * (phi if pc.hypo_sensitive else 1.0) * pc.q[1] * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g
-                    w_ = pc.q[1] * pc.kcal_per_g
+                    kcal += pc.kempt * (phi if pc.hypo_sensitive else 1.0) * pc.q[len(pc.q) - 2] * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g
+                    w_ = pc.q[len(pc.q) - 2] * pc.kcal_per_g
                     wsp += w_ * pc.speed; wk += w_
             cap = p.ge_kcal_max * phi * ge_mult
             if p.ge_cap_speed > 0 and wk > 0:
                 cap *= 1.0 + p.ge_cap_speed * (wsp / wk - 1.0)
             if p.ge_gamma > 0:
-                load = sum((pc.q[0] + pc.q[1]) * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g for pc in self.parcels if pc.entered)
+                load = sum(sum(pc.q[:-1]) * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g for pc in self.parcels if pc.entered)
                 allowed = cap * (max(load, 1e-9) / 400.0) ** p.ge_gamma
                 scale = min(1.0, allowed / kcal) if kcal > 0 else 1.0
             else:
@@ -363,9 +373,16 @@ class Body:
                 age = max(m - pc.t - pc.delay, dt)
                 kb = pc.kempt * (math.gamma(1.0 + 1.0 / p.ge_beta) if p.ge_beta_mean else 1.0)
                 ke_ *= min(p.ge_beta_cap, p.ge_beta * (kb * age) ** (p.ge_beta - 1.0)) * (kb / pc.kempt)
-            s1, s2, gut = pc.q
-            e1 = ke_ * s1; e2 = ke_ * s2 * scale; a = pc.kabs * gut
-            pc.q = [s1 - dt * e1, s2 + dt * (e1 - e2), gut + dt * (e2 - a)]
+            n_ = len(pc.q) - 1                      # stomach stages; the last entry is the gut
+            if n_ > 1: ke_ *= n_ / 2.0                 # keep the mean transit time as order rises (L 617)
+            fl = [ke_ * pc.q[i] for i in range(n_)]
+            fl[n_ - 1] *= scale                        # the energy ceiling applies to the final emptying step
+            a = pc.kabs * pc.q[n_]
+            q_ = list(pc.q)
+            q_[0] -= dt * fl[0]
+            for i in range(1, n_): q_[i] += dt * (fl[i - 1] - fl[i])
+            q_[n_] += dt * (fl[n_ - 1] - a)
+            pc.q = q_
             ra += a
         if len(self.parcels) > 8:
             self.parcels = [pc for pc in self.parcels if not pc.entered or sum(pc.q) > 1e-3]
