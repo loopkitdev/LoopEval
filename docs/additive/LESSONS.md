@@ -801,10 +801,21 @@ evidence to the evidence files.
      read this on both draws pooled, never one.
    - **Reading.** This tempers L 497's (eating around sessions) without reversing it: the twins' own fall is too
      shallow whether or not they eat. Drop-to-nadir by starting-glucose band is a usable target where `act_net20`
-     is not (L 497), but it needs both draws and the matched filters. Next candidate: sessions run at one constant
-     intensity, while C2 saturates and C4 has a threshold, so a real session's peaks may reach responses a constant
-     mean never does — a within-session intensity profile, not a parameter resize. C1 ×3 and C2 α 6 are already
-     rejected (L 494: C1 breaks the measured insulin dependence, α is anchored at Romeres' clamp point).
+     is not (L 497), but it needs both draws and the matched filters.
+   - **Insulin is not the explanation, and the attribution is clean** (`ins_in_sess.py`). Delivery over the session
+     against the same clock hour's usual rate: at 120–160 donors 1.03 and twins 1.19 / 1.05, with donors' IOB at
+     start 2.88 U against the twins' 2.9–3.1 (L 497). So in that band duration, intensity, starting glucose,
+     delivery and IOB all agree and eating is excluded on both sides — what is left is the body's exercise response,
+     C1 and C2. At 70–120 donors instead cut delivery hard (0.37× usual, twins 0.88 / 0.75) and still fall only 4:
+     they get the same small fall on far less insulin, which says the same thing independently.
+   - **Ruled out without a run: a within-session intensity profile.** Sessions run at one constant intensity, but the
+     two nonlinearities both point the wrong way — C2 saturates in intensity (concave, so mean-preserving variation
+     lowers the mean boost) and C4's surge has a threshold (convex, so variation raises EGP). Variation would make
+     the fall shallower, not deeper, and the 7-min intensity filter damps it anyway.
+   - **Sizing is bounded by evidence.** C1 ×3 and C2 α 6 are already rejected (L 494: C1 ×3 breaks the measured
+     insulin dependence, being as large at low IOB; α 6 is far past the clamp). α 2.0 is the linearised midpoint of
+     Romeres 2021's +81–155% at intensity ~0.6, whose top end is about 2.6, so α 2.6 and C1 × 1.5 are the arms worth
+     running (runs/2026-10-31-additive-gesplit, `run_ex.sh`).
 
 552. **A9 × sleep (`cr_sleep` 0.5) is evidenced but shows no benefit: off.** The counter-regulatory answer halved while
    asleep (Banarer & Cryer 2003, Diabetes 52:1195). Paired on sd3, two draws (cs0 reproduces sd3 exactly): score
