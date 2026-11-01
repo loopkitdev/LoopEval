@@ -199,6 +199,10 @@ reference changes.
   improves TDD and TIR on all three draws, confirming that the post-meal potency deficit and the twins' 5–8% insulin surplus
   share one cause. It drops the glucose level because `resid_m` was fitted at 0.92, so it needs `lvl_resid.py` re-run after
   it (three rounds per draw, L 525) before it can be judged. One cause behind three documented limits.
+- **the fall / rise ratio has no named mechanism left** (L 591): absorption SHAPE was the last class on L 575's list
+  and it is eliminated — the shape fix works and the ratio does not follow. What remains is a post-peak fall of 52
+  against 57 mg/dL at a matched rise, about 5 mg/dL, with the sensor amplifying a fall ~27% against a rise ~7% on top.
+  Treat it as artefact-bounded unless a mechanism OUTSIDE the meal pathway is proposed.
 - **the shallow post-meal trough is 72% potency, not dose** (L 575): after a meal peak the twins spend nearly the donors'
   insulin (1.78 against 1.98 U over 90 min) but fall 41 against 57 mg/dL — 80% of the donors' mg/dL per unit. Appearance
   (A10c), A12b, and κ (an 80% steepening leaves the fall unmoved and lowers the peak) are all ruled out, as are dose and Loop compensation
@@ -259,7 +263,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   The 6–8 shortfall is now understood as a REGIME SWITCH the smooth terms cannot make (L 565): the donors fall deepest at
   6–8 METs and rise at ≥ 8, so any setting that deepens one deepens the other. It needs a form change (a steeper anaerobic
   share), not a parameter.
-- Off-by-default experiments with their verdicts: `pro_g_own` / `pro_carb_fix` / `pro_shift` (the low-side eating
+- Off-by-default experiments with their verdicts: `ge_beta` 1.3 / 1.6 (Elashoff power-exponential gastric emptying,
+  with and without the mean emptying time kept: the twins' labelled pulses ARE the wrong shape — peak 37 min against
+  the donors' 50, decay/peak 1.44 against 1.21 — and beta fixes that (1.25–1.33) while the fall / rise ratio does not
+  follow at all (0.67 -> 0.70 against 0.89) and the score explodes (0.332 -> 0.43–0.55). Keeping the PARCEL's mean
+  emptying time does not keep the GLUCOSE pulse's duration, which still falls to 102 min against 125. L 591), `pro_g_own` / `pro_carb_fix` / `pro_shift` (the low-side eating
   granularity: the twins' labelled low-onset pulses run 1.23x the donors' rate at 0.80x the size with the
   carbohydrate per hour below 80 already equal. Sizing from the donor improves TIER 1 on all three draws — t70
   1.803 -> 1.597 against the donors' 1.599, P(reach 54) and t54 toward them — and costs the dip-dynamics rows and

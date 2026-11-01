@@ -1501,3 +1501,32 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      hepatic term (L 589) rather than by `si_norm`, and 1.0 is the principled end of a parameter that only stands in
      for life modulators this reference disables.
    - **Method note:** quote an edit-response rho with its n. At n = 63 nothing smaller than about 0.26 is separable.
+
+591. **The post-meal fall / rise ratio is NOT reachable through absorption SHAPE — the last named class on L 575's
+   list, now eliminated by measurement and by a literature-sized implementation.** L 575 required a time-asymmetric,
+   non-mean-preserving mechanism and ruled out every rate-like lever; this session also ruled out the bolus-timing mix
+   (L 588). Gastric emptying SHAPE was the remaining candidate, and it had never been measured.
+   - **The twins' pulses really are the wrong shape.** Labelled both sides at a matched 35 g
+     (`resid_tools/pulse_shape.py`, decay phase = end − peak): the donors peak at **50 min** and decay for 60
+     (decay/peak **1.21**, total 125); the twins peak at **37** and decay for 66 (**1.44**, total 120). They rise too
+     early and trail 19% too long — exactly the asymmetry the ratio deficit implies.
+   - **The model's tail was the wrong form.** The gut empties first-order from Qsto2, so a parcel trails off
+     exponentially. Elashoff 1982 gives emptying as `exp(−(k·t)^beta)` with beta ~1.5–2, whose hazard is
+     `beta·(k·t)^(beta−1)`: flatter start, sharper finish — the one shape that steepens the post-peak fall without
+     lowering the peak. Implemented as `ge_beta` (default 1.0, which skips the branch and is bit-identical).
+   - **The shape moves as designed and the RATIO DOES NOT FOLLOW.** decay/peak 1.44 -> 1.33 (beta 1.3) -> 1.25-1.29
+     (beta 1.6), against the donors' 1.21; the fall / rise ratio goes **0.67 -> 0.67 -> 0.70** against the donors'
+     0.89. Four arms (beta 1.3 / 1.6, with and without the mean kept) and the ratio never leaves 0.66–0.70.
+   - **And it cannot be made score-neutral.** Score 0.332 -> 0.443 / 0.554 (speed-confounded) and 0.434 / 0.547
+     (mean kept) on draw 1, with tier 1 0.178 -> 0.54. **Keeping the parcel's mean emptying time does not keep the
+     glucose pulse's duration** — scaling k by `Gamma(1+1/beta)` holds the emptying mean, but the Weibull hazard still
+     concentrates appearance earlier, so the labelled total falls 120 -> 112 -> 102 against the donors' 125. That is
+     the same conserved-quantity trap as L 588's carb total, one level deeper: the quantity I conserved was not the
+     one the statistic measures.
+   - **Right-sizing what is left.** The ratio deficit is a post-peak fall of 52 against 57 mg/dL at a matched rise
+     (68 against 69) — about **5 mg/dL**, with L 575's sensor caveat on top (the CGM amplifies a fall ~27% against a
+     rise ~7%, so the truth-side gap is smaller still). Every named class is now eliminated: rate, timing mix,
+     appearance shape, dose, Loop compensation, potency localisation. Either the residual 5 mg/dL is sensor and
+     labeller artefact, or the mechanism is not in the meal pathway at all.
+   - `ge_beta` stays at 1.0. The code and the measurement stay, since the pulse-shape gap is real and any future meal
+     work should know the tail is the wrong form AND that fixing it does not pay here.
