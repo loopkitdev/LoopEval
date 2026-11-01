@@ -1089,3 +1089,28 @@ evidence to the evidence files.
      refittable through A9, and rescue behaviour is the wrong direction too (deep lows already rebound HARDER than
      the donors', L 559). So it is a genuine choice between a duration error and a depth error on the
      safety-relevant side, not a calibration still to be done. **Pete's call; `ge_spare` stays off meanwhile.**
+
+563. **The missing shallow-low recovery is not insulin: the twins carry LESS insulin at the nadir and still climb out
+   more slowly, which points at a glucose-dependent hepatic response below Gb — the question L 548 left open.**
+   Measured through the ice extractor's total IOB on both sides (`iob_at_nadir.py`, 60–70 nadirs; 18,271 donor events,
+   336 twin events over 30 people):
+
+   | at a 60–70 nadir | Donors | ad2 |
+   |---|---|---|
+   | IOB | 1.59 U | **1.09 U** |
+   | IOB fall over the next 30 min | 0.18 U | 0.16 U |
+   | glucose rise over the next 30 min | **+26** | **+20** |
+
+   With a third less insulin on board the twins should climb out FASTER, not slower, so insulin still acting is ruled
+   out — as are A9 (too small by an order of magnitude, L 560) and rescue behaviour (deep lows already rebound harder,
+   L 559). In net glucose appearance the gap is **0.34 mg/kg/min at G 65** (donors 1.46, twins 1.12).
+   - **What that leaves.** A6's EGP answers insulin only; nothing in the model raises hepatic output when glucose
+     falls below Gb. `ge_split`'s A1b was deliberately built as suppression ABOVE Gb only, citing Mevorach 2000's
+     absent hormone-independent EGP activation in T1D — which was measured under a hyperinsulinaemic clamp, not at
+     basal insulin. L 548 listed exactly this as open; two independent lines now point at it, and it has a number:
+     a term supplying ~0.34 mg/kg/min at 65 mg/dL would close L 559's +5 mg/dL.
+   - **Why it is not simply added.** The evidence that would size it is the evidence we could not get: Bruce 2025
+     (Diabetes 74:898, abstract only — partial and transient EGP suppression at basal insulin in T1D) and the Del
+     Prato 1997 full text. Adding the term on our own cohort statistics would be fitting an unnamed mechanism to a
+     target, which the no-mystery-terms rule forbids. **The two PDFs are now worth more than any further arm on this
+     thread.**
