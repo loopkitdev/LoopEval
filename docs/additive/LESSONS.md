@@ -1181,8 +1181,19 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      | donors' TDD row | +0.091 | **+0.177** |
 
      A true ρ of 0.29 on 13 days reads about 0.15 after the short-series bias, so the carb figure confirms
-     `intake_rho` (Levitsky 2017) is doing its job. It propagates to insulin but only reaches **about half** the
-     donors' persistence. **So the missing half is not intake — it is day-to-day persistence in insulin NEED
-     (sensitivity or basal), which is `day_rho` (unevidenced, 0) or a named multi-day factor.** That is a much
-     narrower statement than "ac1 fails", and it means a candidate only has to supply ~+0.07 of correlation, not
-     +0.18.
+     `intake_rho` (Levitsky 2017) is doing its job.
+   - **But intake persistence does NOT propagate to TDD, which corrects the reading above and closes the row.**
+     `act_rho` 0.4 (L 584: day-to-day persistence of everyday activity, Gaussian copula keeping the gamma marginal
+     exactly, aimed at need via C2's 600-min delayed sensitivity) raised CARB persistence by +0.04 on both draws
+     (+0.069 / +0.043 → +0.108 / +0.073) — activity drives the intake budget, so that coupling is real — and produced
+     **no systematic change in insulin persistence** (+0.020 / −0.042 → −0.034 / −0.008) or in `ac1`
+     (−0.022 / −0.029 / −0.044 → −0.061 / −0.012 / −0.037). Score level on the mean (0.385 both).
+     So a +0.04 rise in carb persistence buys nothing in TDD, and the earlier inference that `intake_rho` supplies
+     "about half" the donors' persistence was wrong — it supplies the carb persistence, which does not reach the
+     insulin total. Most likely TDD is dominated by components with no day-to-day structure at all (basal is roughly
+     half of it), diluting any day-level driver below detection in a 13-day block.
+   - **Verdict on `ac1`: not reachable through day-level drivers.** Four mechanisms tried and all null — the
+     residual's day level (L 581), the life modulators including B3's own AR(1) (L 582), and now everyday activity.
+     Treat it as a documented limit, not a target, unless someone first measures **what fraction of the donors' own
+     TDD variance is day-driven at all**; that is the measurement that would say whether the row is reachable, and it
+     needs the donors' insulin decomposed into basal and bolus, not another twin-side arm.
