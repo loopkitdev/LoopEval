@@ -1499,3 +1499,28 @@ evidence to the evidence files.
      made on a mixed reading. **Pete's call**, with the architectural point above as the substance: the choice is
      whether to carry the 8% in the core (where it is a named sensitivity) or in `resid_m` (where it is unexplained
      drive that must be dosed for).
+578. **Carrying the 8% in the core instead of in `resid_m` un-damps the response to a settings edit: `si_norm` 1.0 +
+   level refit gives the best response SIZE of the series, while ad2 / ad3 keep the best control-level heterogeneity.**
+   The twins' damped response to an edit is a standing limit (L 493, 532). `resid_m` is an exogenous glucose drive
+   that does NOT scale with insulin, so a person whose level is held up by it responds less to a settings change than
+   one whose sensitivity carries it — the mechanism L 577 exposed, now measured on the 108 events:
+
+   | | Field | sd3 | ad2 | ad3 | **lv3 (`si_norm` 1.0 + refit)** |
+   |---|---|---|---|---|---|
+   | t70 response, field / twin ratio | 1.0 | 2.67 | 3.21 | 3.32 | **2.09 [0.98, 3.83]** |
+   | mean response ratio | 1.0 | 1.97 | 2.11 | 2.24 | **1.97** |
+   | t70 tight | +4.35 | +0.80 | +1.29 | +1.05 | **+1.22** |
+   | t70 tight − rest | +4.27 | +0.51 | **+1.03** | +0.74 | +0.81 [−0.02, +1.68] |
+   | TIR tight − rest | −7.18 | −0.86 | −1.27 | **−1.63** | −1.47 |
+   | mean tight − rest | +1.65 | +0.25 | +0.05 | **+0.93** | −0.04 |
+
+   **lv3 has the smallest response-size deficit of any arm measured** — the t70 ratio 2.09 against ad3's 3.32, and the
+   mean ratio back to sd3's 1.97 from ad3's 2.24. ad2 and ad3 keep the better tight − rest contrasts. So the two
+   representations trade on the prediction side as well: the core carries HOW MUCH a person responds, `resid_m` damps
+   it; ad2 / ad3's residual-heavy form sharpens WHO responds.
+   - **The decision, with both halves now measured.** Carrying the 8% in the core (lv3): better mean cohort score
+     (0.372 vs 0.385), level and TIR better on all three draws, the least damped change response. Carrying it in
+     `resid_m` (ad3): better TDD on all three draws, better control-level contrasts, better per-event mean ρ.
+     **It is a choice about what the model is for** — sizing a change (lv3) against ranking who a change affects
+     (ad3) — and the handoff of L 542 already splits those uses across arms. Pete's call; both are one flag apart
+     (`si_norm` with its matching template).
