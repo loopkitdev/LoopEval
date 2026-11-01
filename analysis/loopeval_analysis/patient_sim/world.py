@@ -342,6 +342,9 @@ class World:
             self.beh_traits.ex_dur_cap = True
         if enable and enable.get("ex_cap_fit"):      # that cap + METmax raised to what the person's sessions need
             self.beh_traits.ex_cap_fit = True
+        if enable and isinstance(enable.get("ex_min"), float):        # usual session length, minutes (L 567)
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.ex_minutes = float(self.beh_traits.ex_minutes * enable["ex_min"] / 40.0)
         if enable and isinstance(enable.get("ex_headroom"), float):   # METs of capacity above the usual session (L 564)
             self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.ex_headroom = float(enable["ex_headroom"])
         if enable and enable.get("sleep_own"):
