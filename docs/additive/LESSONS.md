@@ -1415,3 +1415,30 @@ evidence to the evidence files.
      to the peak) rather than their physiology. **Test before building anything:** re-run one of these arms with the
      plant open-loop, or with the bolus held fixed, and see whether the trough responds then. That is the next real
      question on the meal chain, and it is a question about the harness, not a new component.
+575. **Loop compensation refuted, and at MATCHED insulin spend the post-meal trough is a pure 75% potency gap.** The
+   L 574 hypothesis was that the closed loop absorbs body-side changes in the post-peak window (lower sensitivity →
+   Loop doses more → the fall is restored), which would have made the trough unreachable from the body. Tested on runs
+   already in hand, `ad0` and `pp6` differing only in `ppr_a` (0.4 against 0.6, a ~30% swing in effective post-meal
+   sensitivity):
+
+   | 90 min after the meal peak | IOB spent | fall | mg/dL per U |
+   |---|---|---|---|
+   | **Donors** | **1.98 U** | **57.0** | **28.8** |
+   | ad0, `ppr_a` 0.4 | **1.98 U** | 43.0 | 21.7 |
+   | pp6, `ppr_a` 0.6 | 1.68 U | 41.5 | 24.7 |
+
+   Raising `ppr_a` — LOWERING post-meal sensitivity — made Loop spend **less** (1.98 → 1.68 U), not more. The
+   controller did not compensate; it under-dosed, so the hypothesis is wrong and the trough IS reachable from the body
+   side.
+   - **And ad0 spends exactly the donors' 1.98 U in the same window and falls 43 against their 57** — a pure potency
+     gap of **75%** with no dose difference whatever, at a similar peak height (rise 61 against 64). This is the
+     sharpest statement of L 512 yet: in the 90 min after a meal peak, a unit of the twins' insulin lowers glucose
+     about a quarter less than a unit of the donors' does.
+   - **Where that can come from, given what is ruled out.** Appearance (A10c, ~1 mg/dL), A12b (a 30% sensitivity swing,
+     ~1 mg/dL), dose (matched here), and Loop's response (refuted) are all out. What remains is the body's own
+     glucose-lowering per unit of insulin ACTION in that window — A5's disposal chain (p2, κ, M(G)) or the ISF the
+     body is given (G2's data-fitted value, ISF_W 1.0). Note the twins already command 5–8% more insulin per day than
+     their donors (L 445–456); a potency deficit of this size in the post-meal hours is a candidate explanation for
+     that standing limit, and the two should be worked together.
+   - **Method note:** this cost no new simulation — two existing arms plus the ice extractor. Prefer a decisive
+     measurement on runs in hand over a new arm whenever the arms already differ in the one parameter.
