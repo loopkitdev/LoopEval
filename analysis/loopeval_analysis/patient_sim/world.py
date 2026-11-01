@@ -720,6 +720,7 @@ class World:
         self.resid_skew = float(en_["resid_skew"]) if isinstance(en_.get("resid_skew"), float) else 0.0
         self.resid_diurnal = float(en_["resid_diurnal"]) if isinstance(en_.get("resid_diurnal"), float) else 0.9   # default since 2026-11-01 (L 568)
         self.resid_meal = float(en_["resid_meal"]) if isinstance(en_.get("resid_meal"), float) else 0.0   # L 569
+        self.resid_day_ar = float(en_["resid_day_ar"]) if isinstance(en_.get("resid_day_ar"), float) else 0.0   # L 581
         self._resid_rng = np.random.default_rng(int(person.seed) + 5137)
         self._resid_x = [0.0, 0.0]; self._resid_last = None; self._resid_day = {}
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
@@ -954,7 +955,16 @@ class World:
                 self._resid_x[i] = a * self._resid_x[i] + math.sqrt(1 - a * a) * float(self._resid_rng.normal())
             self._resid_last = m
         def lvl(d):
-            if d not in self._resid_day: self._resid_day[d] = float(self._resid_rng.normal())
+            # The day part was drawn INDEPENDENTLY per day, so nothing in the twin's unexplained drive carries from one
+            # day to the next and TDD has no day-to-day persistence (ac1 ~0 against the donors' 0.09, a row failing on
+            # both draws). resid_day_ar makes it AR(1): x_d = rho*x_{d-1} + sqrt(1-rho^2)*eps, which is exactly
+            # variance-preserving, so the per-person amplitudes fitted on whole-record SD still hold and only the
+            # day-to-day DEPENDENCE changes — the class of fix that worked for the diurnal shape (L 568, 581)
+            if d not in self._resid_day:
+                r_ = self.resid_day_ar
+                prev = self._resid_day.get(d - 1)
+                e_ = float(self._resid_rng.normal())
+                self._resid_day[d] = e_ if (r_ <= 0 or prev is None) else r_ * prev + math.sqrt(1 - r_ * r_) * e_
             return self._resid_day[d]
         x = (m - 240.0) / DAY; d = int(math.floor(x)); w = min(1.0, (x - d) * DAY / 120.0)
         day = w * lvl(d) + (1 - w) * lvl(d - 1)
