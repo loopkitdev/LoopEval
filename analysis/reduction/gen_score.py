@@ -1,4 +1,4 @@
-"""Score surrogate arms against the gr needs dial on the ICE generator (tier B).
+"""Score Loop Adaptive arms against the gr needs dial on the ICE generator (tier B).
 
 usage: python gen_score.py <red_scores csv> [<red_scores csv> ...]
 Per training: donors common to every arm; reference curve = every gr_p0 / gr_pnXXX arm present (pooled means, in

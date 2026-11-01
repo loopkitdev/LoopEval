@@ -1,5 +1,8 @@
 # reduction lessons
 
+The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Algorithm** (Pete 2026-10-31); code
+`analysis/reduction/adaptive.py` (was `surrogate.py`; frozen trees and run flags keep the old path).
+
 1. **Loop's dose is roughly proportional to every schedule it reads, and its history beyond 3 h barely matters
    (ablation, 2026-10-30).** Shipped LoopAlgorithm (main e3f5e3c) on 3,765 exported decisions (6 pilot donors × 3
    days, simulator's fixture export), one channel perturbed at a time; insulin per 5 min = bolus + temp × 5/60, base

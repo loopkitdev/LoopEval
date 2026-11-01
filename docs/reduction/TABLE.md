@@ -1,8 +1,8 @@
-# Surrogate comparison table
+# Loop Adaptive comparison table
 
 Bed: 35 pilot donors (`runs/2026-10-30-reduction-ec/subset36.csv`, i202 out: no clean pre-window days), last 28 days,
 dr harness, deployed config, entries on, replay (ICE counterfactual). Reference = LoopAlgorithm with guard + runway
-(`gr`), insulin-needs dial ×0.90–1.10. Δ = arm − gr, paired, donor-bootstrap 95 % CI. All surrogate inputs below
+(`gr`), insulin-needs dial ×0.90–1.10. Δ = arm − gr, paired, donor-bootstrap 95 % CI. All algorithm inputs below
 are learned from the 14 days before the window; the user sets nothing but the safety limits.
 
 | Arm | Inputs | TIR | t<70 | t<54 | ΔTIR | Δt<70 | U/day | Failure mode |
@@ -15,14 +15,14 @@ are learned from the 14 days before the window; the user sets nothing but the sa
 | background rate + RC ×0.9 | same | 65.3 | 4.73 | 1.49 | −4.7 | +3.0 | 47.5 | ~3× gr's t<70 at equal TIR |
 | oracle TDD ×1.0 (diagnostic) | true in-window TDD (future data) | 58.6 | 4.45 | 1.46 | −11.4 | +2.7 | 47.5 | not the scale |
 
-Replay places every surrogate above Loop's curve; the two simulators with a known answer place the best one below it.
+Replay places every candidate above Loop's curve; the two simulators with a known answer place the best one below it.
 
 ## Across the three tools: background rate + RC, scale ×0.9
 
-The same surrogate on each bed, against gr swept on insulin-needs. Gap = surrogate TIR minus the dial's TIR at the
-surrogate's t<70 (or t<54); positive = more TIR at equal lows. 95 % donor-bootstrap CI.
+The same algorithm on each bed, against gr swept on insulin-needs. Gap = its TIR minus the dial's TIR at the
+its t<70 (or t<54); positive = more TIR at equal lows. 95 % donor-bootstrap CI.
 
-| Bed | People × days | TIR / t<70 / t<54, gr ×1.0 | same, surrogate ×0.9 | Gap at equal t<70 | Gap at equal t<54 |
+| Bed | People × days | TIR / t<70 / t<54, gr ×1.0 | same, Loop Adaptive ×0.9 | Gap at equal t<70 | Gap at equal t<54 |
 |---|---|---|---|---|---|
 | Replay (tier A) | 35 × 28 | 70.0 / 1.77 / 0.41 | 65.3 / 4.73 / 1.49 | ~−12 | below |
 | ICE generator, training 0 (tier B) | 163 × 28 | 68.1 / 2.16 / 0.54 | 71.4 / 2.65 / 0.71 | **+1.4 [+0.4, +2.3]** | +1.0 [−0.1, +2.2] |

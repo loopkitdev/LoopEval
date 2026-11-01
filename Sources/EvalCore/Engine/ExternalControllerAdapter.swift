@@ -6,12 +6,12 @@
 // a temp-basal rate. Everything around the decision (enactment, pump pulses and temp expiry, manual
 // bolus resizing, disruption clamps, the body) is the unchanged simulator, so a run with an external
 // controller differs from an ordinary one ONLY in the dose decision. Built for the reduction role's
-// surrogate dosing functions, which want far fewer inputs than LoopAlgorithm reads.
+// reduced-input dosing algorithms (Loop Adaptive), which want far fewer inputs than LoopAlgorithm reads.
 //
 // Loop still runs inside the adapter at every step: its forecast, IOB and COB fill the trace's
 // diagnostic fields, and its bolus-calculator recommendation sizes the user's manual boluses as it
 // does in any run. Loop's own automatic decision is also sent (as "loop"), so a controller that echoes
-// it reproduces the stock run exactly — the identity check for this path. A surrogate under test must
+// it reproduces the stock run exactly — the identity check for this path. An algorithm under test must
 // not read it.
 //
 // Protocol: one JSON object per line on stdin, one reply per line on stdout.

@@ -1,4 +1,4 @@
-"""Cohort comparison of surrogate arms against the reference needs dial.
+"""Cohort comparison of Loop Adaptive arms against the reference needs dial.
 
 usage: python cohort.py <traces dir> <subset csv> <arm> [<arm> ...]
 Per donor x arm metrics (metrics.stats on traces/<donor>_<arm>.pkl); arms missing for any donor are dropped

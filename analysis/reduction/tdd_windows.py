@@ -5,7 +5,7 @@ For each window w days:
           >= 80 % of its days are clean); median and IQR across people. Reference: the daily CV / sqrt(w), what
           the spread would be if days were independent around a fixed level (the gap above it is slow drift).
   predict |next 14-day mean / previous w-day mean - 1| at every cut point with both windows >= 80 % clean;
-          median per person, then median and IQR across people. This is the surrogate's use (w = 14 now).
+          median per person, then median and IQR across people. This is Loop Adaptive's use (w = 14 now).
 usage: ~/.venv/bin/python3 tdd_windows.py <out dir>"""
 import glob, os, sys
 import numpy as np, pandas as pd

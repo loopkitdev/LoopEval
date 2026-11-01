@@ -1,8 +1,8 @@
-"""Reduced-input surrogate dosing functions, run as a --candidate-external-controller process.
+"""Loop Adaptive Algorithm (and its reduced-input predecessors), run as a --candidate-external-controller process.
 
-usage: python surrogate.py <family> '<json params>'
+usage: python adaptive.py <family> '<json params>'
 The process reads one decision request per line (protocol: Sources/EvalCore/Engine/ExternalControllerAdapter.swift)
-and answers {"bolus": U, "temp_rate": U/h}. A surrogate never reads the request's "loop" block or the person's
+and answers {"bolus": U, "temp_rate": U/h}. The algorithm never reads the request's "loop" block or the person's
 schedules (basal / ISF / CR / target); it may read the safety limits (max bolus, max basal) and the pump increments.
 Everything person-specific comes from `tdd` (U/day, measured on days BEFORE the scored window) and the params.
 
@@ -27,7 +27,7 @@ Families
            rc_k > 0: retrospective correction, D = ΔG_30 + ISF_T * (U absorbed in 30 min - b/2), G_h += clamp(rc_k D, ±rc_cap)
            iob_cap_h > 0: a bolus never lifts net IOB above iob_cap_h * TDD/24 (hours of average delivery)
            the correction ISF follows m ** ad_isf; the basal follows m ** ad_basal (0 = basal stays at its TDD0 value, only ISF adapts).
-           User inputs (the only settings a surrogate may take; Pete 2026-10-30):
+           User inputs (the only settings it may take; Pete 2026-10-30):
            use_target: T = midpoint of the request's "user_target" (the person's own target) instead of `target`;
            use_override: an active override's needs factor f scales the dose (b x f, ISF / f, carb ratio / f, as Loop's
            insulin-needs factor does) and its target replaces T. Either target is floored at target_min. t_bolus and
