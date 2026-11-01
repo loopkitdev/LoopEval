@@ -1862,3 +1862,33 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **Trap found doing it:** `unl_mult` was readable only through the off-by-default `unl_own` experiment and only
      from the template, so `--set unl_mult` was a silent no-op — the fourth instance of that shape this session, after
      `ex_cap_fit`, `ov_dur_own` and the `BEHAVIOR_COLS` allowlist. A direct hook is now wired.
+
+604. **TDD is structurally unfixable by any component while `resid_m` is fitted to the glucose level alone — the fix
+   belongs in the FITTING PROCEDURE, not in a mechanism.** L 603 argued that a LOAD reduction is the one thing the
+   refit cannot absorb. It is wrong, and the test was clean:
+
+   | | TDD (donors 38.7) | bg_mean (151.9) | t70 (1.599) |
+   |---|---|---|---|
+   | rf2 | 41.883 / 42.610 | 151.0 / 148.2 | 1.764 / 2.119 |
+   | `unl_mult` 0.70, NO refit | **39.592 / 40.828** | 145.0 / 143.9 | 1.748 / 1.983 |
+   | same + two-round refit | 41.312 / 42.463 | 148.7 / 149.0 | 1.216 / **1.597** |
+
+   Cutting unlogged eating by 30% takes TDD within 0.9-2.1 U/day of the donors while the level falls 6 mg/dL below
+   them; refitting `resid_m` restores the level and **TDD returns to the reference's value**.
+   - **The law in its general form, now on its fourth sighting:** `resid_m` is fitted per person to the donor's
+     glucose LEVEL, so it will restore whatever net glucose a candidate removes — sensitivity (`si_norm`, L 597),
+     dynamics-via-level (`rs0`, L 592), the pair (`cb2`), and now load. **At a matched level, TDD is pinned by the
+     model's insulin-to-glucose exchange rate, and the fit guarantees the level matches.** No component that changes
+     net glucose input can move TDD; the fit is doing its job and the job precludes the fix.
+   - **What this makes the real statement of the limit:** to reproduce a donor's glucose level with that donor's own
+     settings, the model needs 3.5-4.4% more insulin than the donor used (paired, L 598). That is an exchange-rate
+     error, not an excess of any one input, and it is invisible to every single-component arm.
+   - **The structural fix, well posed:** fit `resid_m` AND a per-person sensitivity factor JOINTLY against TWO
+     observables, the donor's level and the donor's TDD — two parameters, two targets — instead of one parameter
+     against the level alone. That is a change to `lvl_resid`, not to the body, and it would make TDD a fitted
+     quantity rather than a free one. It also predicts what today's arms showed: with one parameter and one target,
+     TDD is whatever the level fit leaves it.
+   - **Worth noting on the side:** the refitted arm has the best t70 of any arm on draw 2 (**1.597** against the
+     donors' 1.599, gap 0.055) — the load cut plus the level refit lands it almost exactly, where every low-side
+     mechanism overshot. The score still reads worse (0.353 / 0.365 / 0.415 against 0.332 / 0.371 / 0.406) on tier 1
+     draws 1 and 3, so it is not an adoption, but it is the second independent route to t70 after `cr_tau_off`.

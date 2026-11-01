@@ -280,9 +280,13 @@ LARGER than their gap to the donors for **t54** (bias −0.022, sd 0.057), **t70
 0.191) and **TIR** (−0.996, 1.484). Only **TDD** is a clear bias (+3.69 at 8x the sd; quote the paired +1.4–1.7 U/day
 of L 598), and **it is a LOAD bias (L 603)**: the twins' labelled glucose load is 1.10 / 1.14 / 1.10 x the donors'
 (against a +9.5% TDD excess), carried by the UNANNOUNCED part (104.2 / 101.8 / 110.5 against 94.7 g-eq/day) which
-was calibrated at c378 and has DRIFTED. Load is the one thing the `resid_m` refit cannot absorb — it cancels the
-level with a negative `resid_m` (−7.69 mg/dL/h, a glucose sink) and the insulin stays. Refit `unl_mult` against
-its own target, do not add a mechanism. A fixed-magnitude term cannot improve a row whose scatter exceeds its bias — it helps on the heavy draw and
+was calibrated at c378 and has DRIFTED. **REFUTED (L 604)**: load is level-mediated too. Cutting unlogged eating 30% brings TDD
+within 0.9–2.1 U/day of the donors with the level 6 mg/dL low, and the refit restores the level and the insulin
+both. **TDD cannot be moved by any component while `resid_m` is fitted to the level alone** — the fit restores
+whatever net glucose a candidate removes (sensitivity, dynamics, the pair, load: four sightings). The limit's real
+statement is an insulin-to-glucose EXCHANGE-RATE error of 3.5–4.4% paired, and the fix belongs in `lvl_resid`:
+fit `resid_m` and a per-person sensitivity factor jointly against the donor's level AND TDD, two parameters for
+two targets. Do not spend further single-component arms on TDD. A fixed-magnitude term cannot improve a row whose scatter exceeds its bias — it helps on the heavy draw and
 overshoots on the light one, which is what `sg_h_lo`, `cr_tau_off` and `pro_g_own` each did. **Do not spend further arms
 on t54 / t70 / lows-per-day without more draws first**; three draws give an sd with two degrees of freedom, so this
 means "not established as a bias at n = 3", not "zero".
