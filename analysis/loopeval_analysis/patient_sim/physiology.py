@@ -58,6 +58,17 @@ class BodyParams:
     ge_split: bool = False
     ge_spare: bool = False         # A1c alone on the lumped SG: insulin-independent uptake falling below g_ii (L 561)
     sg_p: float = 0.0012           # A1a peripheral insulin-independent mass action, 1/min on (G − Gb), both sides (Del Prato 1997 T1D)
+    sg_h_lo: float = 0.0           # A1b BELOW basal: extra hepatic release as glucose falls under Gb, 1/min on
+                                   # (Gb − G). A1b as implemented is one-sided — the liver withholds when high and
+                                   # never releases when low (see `hep` below, gated on g > gb) — so below basal the
+                                   # whole hepatic response is A9 counter-regulation, whose magnitude is pinned by the
+                                   # donors' low DEPTHS (cr_max walked 0.5 -> 0.137 across L 166/272/360/394) and can
+                                   # supply only ~2.6 mg/dL per 30 min against the 5 mg/dL recovery gap of L 559-560.
+                                   # Glucose autoregulation of hepatic output is bidirectional in the literature
+                                   # (Cherrington/Moore: HGP rises as glucose falls, independent of hormones), but
+                                   # A1b's own evidence sizes the ABOVE-basal direction only (L 563), so the symmetric
+                                   # value 0.0038 is the modelling assumption and the data-fitted range is above it:
+                                   # symmetry gives 0.182 mg/kg/min at G 65 against L 589's needed ~0.34.
     sg_h: float = 0.0038           # A1b liver glucose autoregulation, 1/min on (G − Gb) ABOVE Gb only (UVA/Padova T1D kp2;
                                    # absent below Gb in T1D, Mevorach 2000); EGP floored at 0
     f_ii: float = 1.0              # A1c fixed insulin-independent uptake (brain, red cells), mg/kg/min (Best 1981, UVA Fsnc);
@@ -369,7 +380,8 @@ class Body:
         self.haaf += dt * ((1.0 - self.haaf) / p.haaf_tau_rec - p.haaf_kappa * below * self.haaf)
         self.haaf = max(p.haaf_min, min(1.0, self.haaf))
 
-        egp = egp_ins + self.cr + p.ex_egp_surge * ex_intensity * ex_anaerobic
+        hep_lo = p.sg_h_lo * p.vg * max(p.gb - g, 0.0) if p.sg_h_lo > 0 else 0.0   # A1b below basal (L 596)
+        egp = egp_ins + self.cr + hep_lo + p.ex_egp_surge * ex_intensity * ex_anaerobic
         self.egp = egp
         uex = p.ex_uptake * (ex_work if p.ex_abs else ex_intensity) * g / p.gb   # mass action: fades as glucose falls (evidence/10 §7.3)
         renal = p.rcl * (g - p.rthr) if g > p.rthr else 0.0
