@@ -1256,3 +1256,24 @@ evidence to the evidence files.
      sits, so nothing had to be given up. **Look for distributional errors before reaching for a size**: if the
      residual's diurnal shape was wrong, its shape across the meal cycle and its correlation with activity are the
      same class of defect and the same cheap fix.
+569. **Redistributing the residual across the meal cycle is a null: rise-skewed variance cannot make fast falls.** The
+   analogue of L 568's diurnal fix, aimed at `entry_fast_fall` (the donors' entries end in a fast fall 14.3% of the
+   time, the twins' 4.8–5.7%). `resid_meal` 1.0 weights the fast part ×1.21 within 3 h of an entry and ×0.85 outside,
+   variance-preserving (mean w² = 1, with the in-window share estimated from each person's own entries).
+
+   | | Donors | ad3 | `resid_meal` 1.0 |
+   |---|---|---|---|
+   | entry_fast_fall | 14.286 | 4.76 / 5.64 / 5.72 | 5.28 / 5.26 / 4.55 |
+   | score d1 / d2 / d3 | — | 0.321 / 0.425 / 0.410 | 0.328 / 0.413 / 0.410 |
+
+   Target unmoved on all three draws, score level (mean 0.384 against 0.385). Not adopted; the control reproduces ad3
+   exactly.
+   - **Why it cannot work, which L 568's success hid.** The residual is deliberately skewed toward RISES
+     (`resid_skew` 0.7, fitted because the donors' drive is rise-skewed), so redistributing it into the post-meal
+     window produces more post-meal RISES, not falls. `entry_fast_fall` needs an asymmetric DOWN drive — which is
+     exactly `resid_drop_*` (L 521), already tried, and it takes the meal tail. So the distributional trick of L 568
+     works on symmetric statistics (where variance sits) and cannot reach a one-sided one. **Check the sign structure
+     of a target before redistributing variance at it.**
+   - **Tooling:** `resid_tools/score_read.py` reads a `score --detail` log by HEADER NAME. Ad-hoc awk column indexing
+     misread these logs three times in one session, because the first argument to `score` is itself an arm, so every
+     fixed column index is off by one arm. Use the script.

@@ -198,6 +198,10 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 
 ## Analysis traps (each cost a session)
 
+- **A `score --detail` log's first arm is the first ARGUMENT, not the donors**, so fixed awk column indices are off by one
+  arm and silently report the wrong arm's numbers (it happened three times on 2026-11-01). Read them with
+  `resid_tools/score_read.py`, which keys on the header names.
+
 - **An arm rerun into an existing output dir returns the CACHED previous run** (`v0… cached` in its log), so a fixed
   arm can come back byte-identical to the broken one it replaces. Use a fresh arm name, or clear the dir.
 - **A numeric override passed to `--enable` is a switch named `k=v`, so the component keeps its default and the arm
