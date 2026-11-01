@@ -178,3 +178,12 @@
    1.8 / 0.6 % for the personal set point vs 12 / 7 % for gr ×1.25). Per-person 28-day t<54 is a few events and its
    change is not predictable per person (r ≈ 0.2), so the t<54 count carries much of the noise. `analysis/reduction/
    budget.py`; `runs/2026-10-31-reduction-budget/gen_budget.txt`.
+17. **Under the agreed budget the personal set point is the candidate: +3.4 / +2.5 TIR over Loop's best setting
+   (2026-10-31).** Pete: t<54 is a severity guard, individuals are not counted against it; the binding rule is t<70 ≤ 4 %
+   per person with ≤ 5 % of people newly over. Generator, trainings 0 / 1: Loop's best inside is ×1.05 (69.4, 4.2 %
+   newly over) / ×1.10 (70.6, 4.2 %); the only surrogate inside on both is the personal set point + 12 h brake (72.8,
+   3.7 % / 73.1, 4.3 %), so **+3.4 / +2.5** (set point 130 + brake reaches 74.3 on training 1 but has 11 % newly over on
+   training 0). Guards: population Δt<54 +0.12 / +0.10 against gr ×1.0 (Loop ×1.10: +0.14 / +0.09); people with t<54 up
+   more than 1 point 6 / 1 (Loop ×1.10: 1 / 1), max +2.0 / +1.2. The six are high-mean people (gr mean 157–187) who
+   take 1.0–1.4× the insulin and gain 2–14 TIR; i081 is the poor trade (t<54 0.44 → 2.47 for +3.4 TIR, and 2.29 under
+   Loop ×1.25 too: a person whose lows answer strongly to any extra insulin).
