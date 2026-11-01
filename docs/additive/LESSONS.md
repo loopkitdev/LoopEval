@@ -986,9 +986,28 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      non-diabetic, not more. The same objection rules out a portal-signal term. So the ratio-breaking mechanism is
      **not** identified, and the search should start from what is measurable rather than from a named hormone: the
      donors' own fall / rise ratio by meal size, time of day, bolus timing relative to the meal, and insulin type
-     (the per-donor models differ, L 445's cohort). If the ratio varies with bolus TIMING, the mechanism is dosing
-     behaviour rather than physiology, which no body component can supply and which would close this as a limit
-     rather than a gap.
+     (the per-donor models differ, L 445's cohort). **Measured (`resid_tools/ratio_by.py`, 33,138 donor meals ≥ 20 g
+     with a rise ≥ 20 mg/dL, 190 donors): the ratio is a DOSING-TIMING statistic as much as a physiological one.**
+
+     | bolus offset from the entry | n | rise | fall | ratio |
+     |---|---|---|---|---|
+     | 20–60 min BEFORE | 1,477 | 63 | 59 | **0.90** |
+     | 5–20 before | 906 | 66 | 59 | 0.85 |
+     | at the meal (± 5) | 24,554 | 69 | 57 | 0.79 |
+     | 5–20 after | 2,078 | 80 | 60 | 0.74 |
+     | 20–60 after | 2,976 | 97 | 65 | 0.68 |
+     | no bolus within an hour | 1,141 | — | — | **0.62** |
+
+     Pre-bolusing raises the ratio to 0.90 and late or absent bolusing drops it to 0.62–0.68 — a spread of 0.28, which
+     dwarfs the twins' 0.11–0.19 deficit. Meal size matters too (0.82 at 20–35 g falling to 0.64 above 75 g); the clock
+     hour does not (0.76–0.79 throughout).
+     **So before any mechanism is built, the twins' bolus-timing and meal-size distributions must be compared with the
+     donors' and the ratio read WITHIN those strata.** A twin population that boluses later or eats larger meals than
+     its donors would show this whole deficit with no physiological difference at all — and F3 draws bolus timing from
+     each donor's measured lead, so the test is whether that reproduction is faithful in the tail, not on average.
+     **Method note:** 0.89 is the ratio OF MEDIANS (57 / 64) while the per-meal median ratio here is 0.78 on the same
+     donors. Both are valid, they are not the same number, and the twin comparison must use whichever is quoted —
+     mixing them would invent or hide a gap.
 
 577. **TDD, not bg_mean, is the diagnostic for a core sensitivity error: `resid_m` absorbs core level errors.**
    `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the yardstick averages over the donor's
