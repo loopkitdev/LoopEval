@@ -46,7 +46,9 @@ def _count_size_err(t, grams: float) -> float:
     return -0.1 * math.log(max(grams, 5) / 45.0)
 
 
-EX_MET_HEADROOM = 1.5   # METs of capacity above the person's usual session, = the within-donor per-session SD (L 564)
+EX_MET_HEADROOM = 0.0   # METs of capacity above the person's usual session (`ex_headroom`). 1.5 = the within-donor
+                        # per-session SD, which restores the upper tail of sessions and validates C4's size, at a score
+                        # cost on both draws (L 564); 0 keeps the reference ad2's behaviour
 
 
 def _sus(minutes: float) -> float:
@@ -176,6 +178,7 @@ class BehaviorTraits:
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
     ex_dur_cap: bool = False             # cap a session's intensity by what a person holds for its length (L 554)
+    ex_headroom: float = EX_MET_HEADROOM   # METs of capacity above the usual session (L 564)
     ex_cap_fit: bool = True              # that cap, plus METmax raised to what the person's own sessions need.
                                          # Default since 2026-11-01 (LESSONS 554, 556): without it 19% of sessions ran at
                                          # 1.00 of reserve for a median 39 min and their glucose fall was cancelled outright
@@ -550,7 +553,7 @@ class Behavior:
             # exactly meant every session above the mean was clipped back to it, so the upper tail vanished — the
             # twins ran 18% of sessions at >= 7 METs against the donors' 37%, and the >= 8 MET band held too few
             # bouts to refit C4's size (LESSONS 557, 564)
-            need = 1.0 + (self.ex_met_person + EX_MET_HEADROOM - 1.0) / _sus(self.t.ex_minutes)
+            need = 1.0 + (self.ex_met_person + self.t.ex_headroom - 1.0) / _sus(self.t.ex_minutes)
             self.t.metmax = float(min(16.0, max(self.t.metmax, need)))
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning

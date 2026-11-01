@@ -171,7 +171,9 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 - **The exercise side is now limited by a missing measurement, not by a missing mechanism** (L 551, 556, 557): per-person
   aerobic capacity is a prior (METmax lnN(9, 0.25)), and without it C4's threshold keying, C1 / C2's size at moderate
   intensity, and the ≥ 8 MET band cannot be settled. The ≥ 8 band holds 18–25 bouts a draw, too few to rank a parameter.
-- Off-by-default experiments with their verdicts: `ge_spare` (A1c alone: buys t70 1.97 / 2.16 → 1.67 / 1.71 and TIR on both
+- Off-by-default experiments with their verdicts: `ex_headroom` 1.5 (restores the session-intensity tail and validates C4's
+  size of 28 — the ≥ 8 MET band reads +1.8 vs the donors' +1.2 at n 40; costs score on both draws, use it for
+  exercise-focused work, L 564), `ge_spare` (A1c alone: buys t70 1.97 / 2.16 → 1.67 / 1.71 and TIR on both
   draws, costs the share of lows reaching 54, 0.212 → ~0.17, which A9 cannot refit; awaiting Pete, L 561–562), `ge_split` (glucose effectiveness from named parts; too many lows, and superseded by the C4 threshold fix on change prediction too, L 548, 555), `ex_dur_cap` (the cap without the METmax fit — leaves almost no hard session, L 554), `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
   `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
 

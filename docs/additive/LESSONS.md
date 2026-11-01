@@ -1122,3 +1122,26 @@ evidence to the evidence files.
      the term on our own cohort statistics would be fitting an unnamed mechanism to a target, which the
      no-mystery-terms rule forbids. **Needed: a targeted search for sub-basal EGP at basal insulin in T1D — not the
      two PDFs, which answer the other direction.**
+
+564. **C4's surge size of 28 is validated, and the ≥ 8 MET "overshoot" was a thin-n artifact of a cap I had just
+   introduced.** `ex_cap_fit` (L 554) raised METmax to satisfy the person's MEAN session exactly, so every session
+   drawn above that mean was clipped back to it and the upper tail vanished — the cause of both the twins' 18% share
+   of ≥ 7 MET sessions against the donors' 37% (L 551) and the ≥ 8 MET band being too thin to refit C4 (L 557).
+   `ex_headroom` 1.5 METs (one within-donor per-session SD) restores the tail while every session stays at a
+   sustainable fraction of capacity.
+
+   | ≥ 8 MET band (donors **+1.2**, n 51 of 171) | n | value |
+   |---|---|---|
+   | ad2, draw 2 | 22 | −13.4 |
+   | headroom 1.5, draw 2 | **40** | **+1.8** |
+   | headroom 1.5, draw 1 | 19 | +13.3 |
+
+   At n 40 the band reads +1.8 against the donors' +1.2, and C4's pooled bout mean on draw 1 is −5.7, exactly theirs.
+   **So the surge size of 28 mg/kg/min is right** and L 557's inconclusive refit was reading noise, as it suspected:
+   the band's value swings from +13 to +2 with n, not with the parameter.
+   - **Not adopted as a default**: the score is worse on BOTH draws (0.348 / 0.458 against ad2's 0.340 / 0.444), so
+     unlike L 556 this is not level, and Pete's rule (level but better explained) does not cover it. `act_net20`
+     improves sharply on draw 1 (gap 0.265 → 0.081) and worsens on draw 2 — the usual scatter on that row.
+   - **Use `--set ex_headroom=1.5` for exercise-focused work**, where the session-intensity tail and the ≥ 8 MET band
+     matter; the reference keeps 0. The 6–8 MET band is unaffected and still short (−12.7 / −4.0 vs −21.5), which
+     remains a C1 / C2 gap needing measured capacity (L 557).

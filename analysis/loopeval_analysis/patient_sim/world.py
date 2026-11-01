@@ -342,6 +342,8 @@ class World:
             self.beh_traits.ex_dur_cap = True
         if enable and enable.get("ex_cap_fit"):      # that cap + METmax raised to what the person's sessions need
             self.beh_traits.ex_cap_fit = True
+        if enable and isinstance(enable.get("ex_headroom"), float):   # METs of capacity above the usual session (L 564)
+            self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.ex_headroom = float(enable["ex_headroom"])
         if enable and enable.get("sleep_own"):
             # experiment (LESSONS 499): the sleep window centred on the donor's own quietest hours of user actions
             # (templates.add_sleep_mid), keeping the person's drawn sleep length
