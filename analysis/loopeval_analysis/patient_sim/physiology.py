@@ -56,6 +56,7 @@ class BodyParams:
     sg: float = 0.003              # insulin-INDEPENDENT glucose effectiveness, 1/min (see COMPONENTS: physiology)
     # ge_split (A1a–c, LESSONS 548): sg replaced by its named parts (sg is then unused)
     ge_split: bool = False
+    ge_spare: bool = False         # A1c alone on the lumped SG: insulin-independent uptake falling below g_ii (L 561)
     sg_p: float = 0.0012           # A1a peripheral insulin-independent mass action, 1/min on (G − Gb), both sides (Del Prato 1997 T1D)
     sg_h: float = 0.0038           # A1b liver glucose autoregulation, 1/min on (G − Gb) ABOVE Gb only (UVA/Padova T1D kp2;
                                    # absent below Gb in T1D, Mevorach 2000); EGP floored at 0
@@ -368,6 +369,12 @@ class Body:
             hep = min(p.sg_h * p.vg * (g - p.gb), max(egp, 0.0)) if g > p.gb else 0.0     # mg/kg/min the liver withholds
             spare = p.f_ii * (1.0 - g / p.g_ii) if g < p.g_ii else 0.0                    # mg/kg/min the brain no longer takes
             ge = p.sg_p * (g - p.gb) + (hep - spare) / p.vg
+        elif p.ge_spare:
+            # A1c alone on the lumped SG (LESSONS 561): the fixed insulin-independent uptake falls with glucose below
+            # g_ii (Best 1981 ~1 mg/kg/min; Hovorka 2004 F01c falls ∝ G below 4.5 mmol/L), which is the only part of
+            # the L 548 split aimed at the shallow-low recovery gap of L 559-560. The rest of the split stays off, so
+            # the liver's support below Gb is not removed — that is what made the full split add lows.
+            ge = p.sg * (g - p.gb) - (p.f_ii * (1.0 - g / p.g_ii) if g < p.g_ii else 0.0) / p.vg
         else:
             ge = p.sg * (g - p.gb)
         dg = (-ge - (xact * mm * self.risk(g) - p.si_d * p.ib * p.gb)
