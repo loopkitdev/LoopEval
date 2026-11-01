@@ -200,7 +200,13 @@ reference changes.
   during the climb** — the same time-asymmetry L 575 and L 594 ask for. Do not propose level-proportional low-side
   terms; they cannot meet it.
 
-- **`acf_zero_min` is NOT an independent row** (L 594): it is the ACF of the 5-min increments, so it measures when
+- **`acf_zero_min` and the meal ratio are ONE defect, but NOT the same one as low-side recovery** (L 594, corrected
+  by L 615): `cr_tau_off` fixes the recovery rows (t54 0.124/0.232 -> 0.175/0.177, nadir dwell 20 -> 15 min, the
+  donors' exactly) and leaves `acf_zero_min` at 60 and the meal ratio at 0.61-0.65. So counter-regulatory TIMING
+  moves recovery; only gastric emptying SHAPE has ever moved `acf_zero_min` (60 -> 55, `ge_beta`). Two targets,
+  two levers, neither adoptable. The reversal rows need something in the APPEARANCE path that sharpens the finish
+  without compressing the pulse — not `meal_lag` (shift-invariant, L 595) and not `ge_beta` (compressing, L 591).
+- **(superseded framing)** `acf_zero_min` as a reversal-speed row (L 594): it is the ACF of the 5-min increments, so it measures when
   glucose MOMENTUM reverses — donors 40 min, twins 60, about 40% too slow — which is the same defect as the
   post-meal fall / rise ratio and the fast-fall tail. Of every arm run, only the Elashoff emptying shape moves it
   (60 -> 55, gap 1.59 -> 1.22), which corrects L 385–389's "no body lever moves it". Its blocker is that

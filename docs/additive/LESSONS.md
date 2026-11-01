@@ -2159,3 +2159,30 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      insulin first. The e pool\'s −23.50 mean / +2.00 t70 are sensible; the x pool\'s −8.41 / −0.57 are not, and that
      explains why every x-pool ratio in the role doc\'s history reads below 1 while every e-pool and pilot-pool one
      reads above.
+
+615. **L 594\'s unification is too strong, and the correction is useful: low-side RECOVERY and REVERSAL SPEED are two
+   defects with two different levers, not one.** L 594 read `acf_zero_min`, the post-meal fall / rise ratio and the
+   fast-fall tail as one defect — the twins\' glucose reverses too slowly — on the grounds that only gastric emptying
+   shape moved any of them. `cr_tau_off` (L 601) is the time-asymmetric mechanism L 600 specified, and it was judged
+   on the low rows and the cohort score but never on the reversal rows it was ultimately aimed at. Measured now:
+
+   | | `acf_zero_min` (donors 40) | fall / rise ratio (0.89) | low-side rows |
+   |---|---|---|---|
+   | rf2 | 60 / 55 | 0.63 | t54 0.124 / 0.232, dwell < 70 20 min |
+   | `cr_tau_off` 60 | 60 / **60** | 0.65 / 0.61 | **t54 0.175 / 0.177, dwell 15 min** |
+
+   - **It moves the recovery rows and not the reversal rows.** t54 goes from 0.124 / 0.232 to 0.175 / 0.177 against the
+     donors\' 0.190, and the nadir dwell under 70 lands exactly on the donors\' 15 min — while `acf_zero_min` does not
+     move (and is worse on draw 2) and the meal ratio stays at 0.61-0.65.
+   - **So the two are separable**, and L 594\'s "three limits, one missing shape" over-claimed. Low-side recovery
+     responds to counter-regulatory TIMING; the reversal-speed rows respond only to gastric emptying SHAPE (`ge_beta`,
+     the one lever that ever moved `acf_zero_min`, 60 -> 55). Neither is adoptable — `cr_tau_off` loses on five draws
+     and `ge_beta` compresses the meal pulse — but they are two targets, not one, and a mechanism aimed at one should
+     not be expected to pay on the other.
+   - **The practical consequence:** the "three limits rest on one study" framing of L 589 / 594 should read as TWO
+     threads. The sub-basal evidence request covers the low-side recovery rows. `acf_zero_min` and the meal ratio need
+     something in the APPEARANCE path that sharpens the finish without compressing the pulse — which `meal_lag` could
+     not be (shift-invariant, L 595) and `ge_beta` was not (compressing, L 591).
+   - **And the method point, again:** judge a mechanism on the row it was built for. `cr_tau_off` was specified by
+     L 600 from the low-episode duration gap, tested on the low rows, and its headline rejection came from the cohort
+     score — the reversal rows it was nominally aimed at went unmeasured for three turns.
