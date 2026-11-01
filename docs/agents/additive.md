@@ -168,9 +168,10 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 - **Meals still come down sooner than the donors'**: 3-h meal change +11.7 vs +21 (was +2 before breakfast skipping, the dinner fat carrying the night, LESSONS 368–370). Loop's delivery at each glucose band matches the donors' (LESSONS 368); adding meal glucose by carb sensitivity, slow share or protein is answered at the meal (LESSONS 366–367). The hourly profile runs 5 mg/dL low at 00–06 h and 8 high at 06–12 h (basal-need shape, LESSONS 371, 373); TDD day-to-day persistence (ac1) is ~0 against the donors' 0.09. Candidates acting after meals are read here as a second opinion.
 - **Night-to-night insulin varies less** (night CV 29 vs 36) and does not follow evening entries as the donors' does
   (LESSONS 288–289).
-- **The exercise side is now limited by a missing measurement, not by a missing mechanism** (L 551, 556, 557): per-person
-  aerobic capacity is a prior (METmax lnN(9, 0.25)), and without it C4's threshold keying, C1 / C2's size at moderate
-  intensity, and the ≥ 8 MET band cannot be settled. The ≥ 8 band holds 18–25 bouts a draw, too few to rank a parameter.
+- **The exercise side is limited by a missing measurement, not a missing mechanism** (L 551, 556, 557, 564): per-person
+  aerobic capacity is a prior (METmax lnN(9, 0.25)), and without it C1 / C2's size at moderate intensity cannot be settled —
+  the 6–8 MET band is still −13 against the donors' −21.5. C4's threshold and size ARE settled (8 absolute METs, 28
+  mg/kg/min): the ≥ 8 MET band reads +1.8 against the donors' +1.2 once `ex_headroom` gives it enough bouts (L 564).
 - Off-by-default experiments with their verdicts: `ex_headroom` 1.5 (restores the session-intensity tail and validates C4's
   size of 28 — the ≥ 8 MET band reads +1.8 vs the donors' +1.2 at n 40; costs score on both draws, use it for
   exercise-focused work, L 564), `ge_spare` (A1c alone: buys t70 1.97 / 2.16 → 1.67 / 1.71 and TIR on both
