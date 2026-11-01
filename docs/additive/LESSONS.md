@@ -1013,19 +1013,21 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
 
      | | pre (−60, −5] | at (−5, 5] | late (5, 60] | **none within an hour** |
      |---|---|---|---|---|
-     | donors | 0.07 | **0.74** | 0.15 | **0.03** |
-     | twins | 0.06 / 0.07 | 0.61 / 0.59 | 0.19 / 0.17 | **0.14 / 0.17** |
+     | donors | 0.07 | **0.74** | 0.15 | 0.03 |
+     | twins | 0.06 / 0.07 | 0.61 / 0.59 | 0.19 / 0.17 | 0.055 (corrected) |
 
-     **The twins leave 14–17% of meals ≥ 20 g unbolused against the donors' 3%** — and unbolused meals carry the
-     lowest ratio of all (donors 0.62), so that composition alone drags the pooled figure down. Meal size matches
-     (34 / 33 g against 35), so size is not involved. Within the dominant "at the meal" stratum, where detection is
-     reliable on both sides, the twins read 0.71 / 0.67 against the donors' 0.79 — **a real residual gap of about
-     0.08–0.12, roughly 60% of the pooled 0.11–0.16.**
-     So: fix the unbolused share first (it is a measured behaviour defect, F3 draws P(bolus | entry) from each donor's
-     own rate), then re-read the within-stratum gap, which is what any ratio-breaking mechanism must actually close.
-     **Caveat on the 14–17%:** the two sides detect boluses differently — donors from pump records, twins from the
-     delivered stream above a 4× basal threshold — so part of that share may be detection failure on small boluses.
-     Confirm it against `bolus_requests` before treating it as a behaviour bug.
+     Meal size matches (34 / 33 g against 35), so size is not involved. Within the dominant "at the meal" stratum the
+     twins read 0.71 / 0.67 against the donors' 0.79 — **a residual gap of about 0.08–0.12.**
+   - **The composition explanation was a detection artifact, and checking it reversed the split**
+     (`resid_tools/bol_check.py`). A delivered-stream threshold (> max(0.2 U, 4× basal) in a minute) said 11–13% of
+     the twins' meals ≥ 20 g had no bolus; `bolus_requests`, which records user boluses directly, says **5–6%**
+     against the donors' 3%. So the threshold over-counted by about two-fold by missing small boluses. With the
+     corrected share the composition contributes (0.055 − 0.03) × (0.79 − 0.62) ≈ **0.004 of the pooled 0.11–0.16 gap,
+     about 3% — not the 40% an earlier draft of this lesson claimed.** The within-stratum 0.08–0.12 is essentially the
+     whole deficit, so **the post-meal ratio gap IS physiology**, and a ratio-breaking mechanism is genuinely needed.
+     **Trap:** never detect boluses in a sim run from the delivered stream by threshold — basal, small boluses and
+     pump quantisation make it unreliable. Use `truth["bolus_requests"]` (f > 0 is a ratio of Loop's recommendation,
+     f ≤ −0.05 absolute units).
 
 577. **TDD, not bg_mean, is the diagnostic for a core sensitivity error: `resid_m` absorbs core level errors.**
    `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the yardstick averages over the donor's
