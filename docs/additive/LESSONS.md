@@ -2326,3 +2326,31 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      attributable to any evidenced component. **That is a sharper open question than the session started with** —
      "why does matching the donors\' measured appearance dispersion cost time in range?" — and it is a question about
      the controller\'s response, which is where to look next.
+
+622. **`ge_order` 3\'s TIR cost is a DISTRIBUTION effect, not a dosing failure: TDD is flat, so the same insulin meets
+   more peaked glucose — and three other rows improve markedly, two of them to near-exact.** Closing out L 621\'s
+   question about the controller\'s response:
+
+   | at the fitted order 3 | rf2 | order 3 | donors |
+   |---|---|---|---|
+   | TDD | 41.88 / 42.61 | **41.88 / 42.61** | 38.70 |
+   | bg_mean (gap) | 151.0 / 148.2 (0.037 / 0.175) | 151.5 / **151.5** (0.037 / **0.062**) | 151.9 |
+   | zero_frac (gap) | 30.2 / 32.9 (0.238 / 0.092) | **32.5** / 36.2 (**0.061** / 0.313) | 32.5 |
+   | meal_d3h (gap) | 31.0 / 31.0 (0.373) | 37.0 / 35.0 (**0.054**) | 38.0 |
+   | `acf_zero_min` (gap) | 60 / 55 (1.734 / 1.320) | 55 / 55 (1.272 / 1.165) | 40 |
+   | TIR (gap) | 72.2 / 71.3 (0.053 / 0.070) | 68.5 / 67.4 (0.237 / 0.346) | 71.9 |
+
+   - **Loop does not dose more for a sharper meal** — TDD is unchanged to two decimals on both draws — because its
+     dose comes from the carb ENTRY and its own absorption model, not from the realised appearance. So the TIR loss is
+     the same insulin meeting a more peaked glucose curve, which is a distributional consequence of a more correct
+     appearance rather than a failure of any component.
+   - **And the same change takes two rows to near-exact:** bg_mean on draw 2 (gap 0.175 -> 0.062) and zero_frac on
+     draw 1 (0.238 -> 0.061, 32.5 against the donors\' 32.5). With meal_d3h (0.373 -> 0.054) and `acf_zero_min` that
+     is four rows improving, two of them essentially closed, against TIR and t180.
+   - **So the honest characterisation of the fitted transit order:** it is a more correct appearance model that costs
+     3.7 points of TIR, with the cost mechanically attributable (flat TDD, peakier glucose) and not fixable on the
+     body side. Whether to take it is a judgement about which rows the model is FOR — and worth putting to Pete with
+     the table above rather than deciding on the weighted score, which reads it as 0.009 worse.
+   - **This closes the thread as far as measurement can take it.** The appearance dispersion is evidenced (L 619), the
+     dosing is per-donor (L 618), insulin action is defensible at meal doses (L 621), and the residual TIR cost is now
+     explained in mechanism if not resolved in value.
