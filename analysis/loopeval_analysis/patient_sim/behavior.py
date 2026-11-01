@@ -149,6 +149,7 @@ class BehaviorTraits:
     intake_rho: float = 0.29             # next-day intake correlation (Levitsky 2017)
     intake_comp: float = 1.0             # 24-h regulation of the day total across its eating events (1 = full) [J]
     act_day_var: bool = True             # day-level gamma(3) on the activity rate (ablation switch)
+    act_rho: float = 0.0                 # day-to-day persistence of that factor, Gaussian copula on the gamma (L 584)
     p_topup: float = 0.0                 # planned top-ups per meal bolus (≤ 1: a chance; > 1: Poisson mean), each 20–60 min after the last
     p_split: float = 0.0                 # P(a meal bolus is split: 60% at the entry, the rest 10–30 min later) [J split]
     p_free_bolus: float = 0.0            # P(an un-entered eating event gets a hand-dosed bolus)
@@ -568,6 +569,7 @@ class Behavior:
         self.planned: list = []                 # (minute, action) sorted
         self.planned_day = -1
         self.day_z = 0.0
+        self._act_z = 0.0
         self.overrides: list[dict] = []        # planned Temporary Overrides: start, end (min), factor, lo, hi
         self.defense = True                     # rescues and proactive snacks (World's behavior_defense switch)
         self.more_until = -1e9                  # a reactive more-insulin override is running until this minute
@@ -824,7 +826,17 @@ class Behavior:
         # a share after eating [J]; duration lnN(18 min, 0.75) in 5–150; intensity = (MET − 1)/(METmax − 1) × duty 0.7
         # with MET lnN(3.0, 0.2) and 10% brisk episodes MET U(4.5, 6) (2024 Compendium; Pemberton 2025 mix)
         eat_times = sorted(base + st for _, st, _, _ in slots)
-        day_act = r.gamma(3.0, 1 / 3.0)
+        if t.act_rho > 0:
+            # Everyday activity was drawn INDEPENDENTLY each day, so nothing carries across days — yet C2's delayed
+            # sensitivity has tau 600 min and spans into the next day, so persistent activity would give persistent
+            # insulin NEED. That is the half of the donors' TDD persistence `intake_rho` does not supply (~+0.07 of
+            # correlation, L 583); daily activity clusters in accelerometry much as intake does (L 584).
+            # A Gaussian copula keeps the gamma(3, 1/3) marginal EXACTLY and only adds the dependence.
+            from scipy.stats import gamma as _ga, norm as _no
+            self._act_z = t.act_rho * self._act_z + math.sqrt(1 - t.act_rho ** 2) * float(r.normal())
+            day_act = float(_ga.ppf(_no.cdf(self._act_z), 3.0, scale=1 / 3.0))
+        else:
+            day_act = r.gamma(3.0, 1 / 3.0)
         n_act = r.poisson(t.act_rate * (day_act if t.act_day_var else 1.0))
         for _ in range(n_act):
             st = None

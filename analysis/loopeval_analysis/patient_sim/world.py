@@ -352,6 +352,8 @@ class World:
         if enable and isinstance(enable.get("ex_min"), float):        # usual session length, minutes (L 567)
             self.beh_traits = copy.deepcopy(self.beh_traits)
             self.beh_traits.ex_minutes = float(self.beh_traits.ex_minutes * enable["ex_min"] / 40.0)
+        if enable and isinstance(enable.get("act_rho"), float):       # day-to-day persistence of everyday activity (L 584)
+            self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.act_rho = float(enable["act_rho"])
         if enable and isinstance(enable.get("ex_headroom"), float):   # METs of capacity above the usual session (L 564)
             self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.ex_headroom = float(enable["ex_headroom"])
         if enable and enable.get("sleep_own"):
