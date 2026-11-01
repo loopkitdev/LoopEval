@@ -1705,3 +1705,25 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      sensitivity scalar, which the refit neutralises by construction. The decomposition of L 593 stands as a
      measurement (`resid_m` masks 3.0 U/day of it, and its negative tail is the tight-donor limit); its proposed fix
      does not.
+
+598. **Paired against its OWN donor, the insulin surplus is +1.4 to +1.7 U/day (3.5-4.4%), not the 10% a cohort
+   median shows — and basal withholding is not the cause.** L 597 said the surplus needs a mechanism that lowers
+   insulin need AT the donor's level, so I went looking for which limb carries it. Three measurement errors later,
+   this is what survives.
+   - **The matched number** (`twin.csv`, each twin against the donor it was built from, three draws): TDD paired diff
+     **+1.40 / +1.40 / +1.67 U/day** with rho 0.913 / 0.791 / 0.877, against a paired bg_mean diff of
+     −1.38 / +0.21 / +1.77 — i.e. the twins sit at their donors' glucose level and need 3.5-4.4% more insulin to do
+     it. **The standing limit is documented as 5-8%; on the current reference, measured paired, it is 3.5-4.4%.**
+   - **Basal withholding is NOT the defect.** Delivered basal as a share of each person's own SCHEDULED basal:
+     donors median **0.74** (p25 0.59, p75 1.12), twins **0.73 / 0.68**. The twins' Loop suspends and reduces basal
+     just as the donors' did.
+   - **What I got wrong on the way, all one family.** (1) A limb-by-limb U/day table (basal 16.3 against 13.3, "the
+     excess is 23% basal") compares **different populations** — 112 twins drawn from 168 templates against the 206
+     donors with step tables — so it measures cohort composition, not the model. (2) Within that, "donors deliver 67%
+     of schedule, twins 83%" was a **ratio of medians**; the median of per-person ratios is 0.74 against 0.73.
+     (3) TDD first read 47 U/day because I divided a 14-day delivery stream by the 12-day scored window.
+     **Use `twin.csv`'s paired diff for anything per-person; a cohort median mixes populations and cannot localise a
+     per-person defect.**
+   - So the surplus is modest, spread across limbs rather than concentrated in one, and coexists with a matched
+     level — which is consistent with L 597 (no sensitivity scalar can fix it, because the level is held by the refit)
+     and means the remaining work is worth less than the "5-8%" headline implied. Re-state the limit at 3.5-4.4%.

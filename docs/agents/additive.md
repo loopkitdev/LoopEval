@@ -165,7 +165,10 @@ reference changes.
 ## Known limits of the current reference (read before using its numbers)
 
 **Status (Pete 2026-10-20): usable with LoopEval.** The limits below are documented, not blocking. They are:
-- twins of tight-control donors run high, and twins need 5–8% more insulin than their donors (LESSONS 445–456) —
+- twins of tight-control donors run high, and twins need **3.5–4.4%** more insulin than their donors — **measured
+  paired against each twin's own donor on the current reference (L 598): +1.40 / +1.40 / +1.67 U/day at a matched
+  glucose level, where the long-standing "5–8%" and a cohort-median "+10%" both overstate it.** Basal withholding is
+  not the cause (delivered / scheduled basal 0.74 donors against 0.73 / 0.68 twins) (LESSONS 445–456) —
   **both now quantified and attributed (L 593)**: `resid_m`'s mean is a glucose SINK worth −3.0 U/day, masking half
   the core excess (observed +3.9 U/day, underlying ~+6.9 = +18%), and it is −4.47 mg/dL/h for the tight third of
   donors against 0.00 for the rest. The 8% `si_norm` cut predicts +3.1 U/day, essentially the whole observed
@@ -341,6 +344,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   the long-record figure sent five mechanisms after a target that did not exist (L 585). Block the donor series to the
   twins' length first, and where the statistic can be moved by the donor's SETTINGS, split it by whether a settings
   change or override falls on those days (`resid_tools/tdd_clean_ac.py`) — a twin holds one era and runs no overrides.
+
+- **Use `twin.csv`'s paired diff for anything per-person** (L 598): a cohort median compares 112 sampled twins with the
+  206 donors who have step tables, so it measures composition, not the model — it inflated the insulin surplus from
+  +1.4 U/day paired to +3.9, and a ratio of medians turned a matching basal-withholding ratio (0.74 against 0.73) into
+  a fictitious 67%-against-83% defect.
 
 - **Judge every candidate AFTER the `resid_m` refit, and expect level-mediated effects to vanish** (L 597): the refit
   holds the donor's glucose level, so any gain that runs through the mean is converted back. Three gains died this way
