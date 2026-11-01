@@ -1377,3 +1377,30 @@ evidence to the evidence files.
      38 and 28 on the two. Both are like for like, so the meal-tail gain claimed in L 558 holds on one definition and
      reverses on the other — weaker evidence than that lesson states. `ppr_a` 0.6 stays (its score and
      natural-experiment gains are unaffected), but the tail claim should be read as definition-dependent.
+574. **The shallow post-meal trough is mostly POTENCY, not dose: the twins get 80% of the donors' glucose fall per unit
+   of insulin spent in the 90 min after the peak.** Measured through the ice extractor's total IOB on both sides
+   (`iob_at_peak.py`; 37,694 donor entries >= 20 g, ad3 over 30 people), after L 573 ruled out appearance (A10c's
+   wave moves the trough ~1 mg/dL) and A12b (`ppr_a` 0.4 and 0.6 fall identically):
+
+   | at the meal peak, entries >= 20 g | Donors | ad3 |
+   |---|---|---|
+   | grams entered | 35 | 35 |
+   | IOB at the peak | 6.09 U | 5.59 U (−8%) |
+   | IOB per entered gram | 0.161 | 0.144 (−11%) |
+   | IOB spent in the next 90 min | 1.98 U | 1.78 U (−10%) |
+   | **fall in that window** | **57.0** | **41.0 (−28%)** |
+   | **mg/dL per U spent** | **28.8** | **23.0 (80%)** |
+
+   The dose gap is ~10% and the fall gap 28%, so dose cannot be the story. Decomposing: at the donors' spend and their
+   own potency the twins would fall 45.5, so **dose explains 4.5 of the 16 mg/dL gap (28%) and per-unit potency the
+   remaining 11.5 (72%)**.
+   - **What this says.** In the hours after a meal the twins' insulin is present and is being consumed at nearly the
+     donors' rate, but it lowers glucose about a fifth less per unit. That is an effective-sensitivity statement
+     confined to the post-peak window — not a PK question (the insulin is spent) and not an appearance question
+     (L 573). It is the quantified form of L 512's "the missing fast falls are on the fall side of the meal".
+   - **Why `ppr_a` is not the answer even though it is the post-meal sensitivity term:** `ppr_rel` normalises it to a
+     mean of 1 over the person's days, so raising it deepens the post-meal dip but lifts sensitivity elsewhere, and
+     the twins' Loop doses against the new baseline — which is why 0.4 and 0.6 fall identically (L 573). Closing this
+     needs post-meal sensitivity to be lower in ABSOLUTE terms, i.e. a non-mean-preserving version, which changes the
+     person's total insulin need and so collides with the TDD constraint (G4). That collision is the next real
+     question on the meal chain.
