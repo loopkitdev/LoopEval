@@ -165,3 +165,16 @@
    people −1.0 (was −1.5). It needs no input beyond the history TDD already uses; it is the current default
    candidate. Tight people still lose about 1 TIR: the brake and the 40 % application factor, not the set point, now
    limit them. Jobs 69 (additive), 70 (generator; 3 donors without pre-window glucose left out).
+16. **Under a per-person low budget the surrogate's lead shrinks to +1.3–1.7 TIR, and the t<54 line is what binds
+   (2026-10-31).** Budget agreed with Pete: consensus targets per person (t<70 ≤ 4 %, t<54 ≤ 1 %), at most 5 % of people
+   pushed over who were within them under gr ×1.0, generator as the deciding tool (its change predictions are
+   field-sized; replay's low-side change would be scaled by its field coefficient, upper CI 0.41). Under gr ×1.0, 19 %
+   / 10 % of people (training 0 / 1) are already over, almost all on t<54, so the rule is on people newly over.
+   Generator, CGM, newly over (any / t<70 / t<54): best Loop setting inside 5 % is ×1.05 (TIR 69.4 / 69.8; 4.8 / 3.0 %);
+   best surrogate inside is the 24 h brake at set point 140 (71.1 / 71.1; 4.3 / 1.8 %), so **+1.7 / +1.3**. The
+   personal set point (72.8 / 73.1) has 8.0 / 5.5 % newly over, 3.7 / 4.3 % on t<70 alone, 7.4 / 4.3 % on t<54. With
+   the budget on t<70 alone the best are personal set point / 130 + brake vs Loop ×1.05 / ×1.10: **+3.4 / +3.7**.
+   Surrogates make people already over budget worse less often than Loop's dial at similar TIR (t<70 up > 1:
+   1.8 / 0.6 % for the personal set point vs 12 / 7 % for gr ×1.25). Per-person 28-day t<54 is a few events and its
+   change is not predictable per person (r ≈ 0.2), so the t<54 count carries much of the noise. `analysis/reduction/
+   budget.py`; `runs/2026-10-31-reduction-budget/gen_budget.txt`.
