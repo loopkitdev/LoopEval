@@ -774,25 +774,37 @@ evidence to the evidence files.
    error (donors enter carbs during a workout at 0.18× the clock-hour rate against the twins' 1.05×, L 244), see
    L 551: the entry rate measures logging, not eating, and does not support that reading.
 
-551. **Entries do not measure eating during a workout, and the real exercise gap is the size of the fall: matched
-   donor sessions drop 30 mg/dL to their nadir against the twins' 11–13 (Pete 2026-11-01).** Donors' carb entries
-   during workouts run at 0.18× the clock-hour rate (L 244), but exercise is where logging should fail (tabs, sports
-   drink, gels), so the statistic cannot say whether they ate. Measured instead on the shape every CGM shows, the rise
-   from the mid-session nadir (`donor_rev.py`, `sim_rev.py` in runs/2026-11-01-additive-exeat; 464 donor workouts /
-   17 recorders, 89% with no entry in the window):
+551. **Entries do not measure eating during a workout, and matched sessions say the twins' exercise fall is half the
+   donors' (Pete 2026-11-01).** Donors' carb entries during workouts run at 0.18× the clock-hour rate (L 244), but
+   exercise is where logging should fail (tabs, sports drink, gels), so the statistic cannot say whether they ate.
+   Measured instead on the shape every CGM shows (`donor_rev.py`, `match_rev.py` in runs/2026-11-01-additive-exeat;
+   700 donor workouts over 20 donors, 92% with no entry in the window):
    - **Donors' entry-free workouts reverse like the twins that eat, not like the twins that eat nothing.** Reversal
-     ≥ 15 mg/dL after the nadir: donors with no entry 0.51, twins that ate 0.52 / 0.56, twins that ate nothing
-     0.35 / 0.37; ≥ 25 mg/dL 0.38 vs 0.39 / 0.40 vs 0.22 / 0.23. Sessions with a logged entry are barely different
-     from entry-free ones (0.57 vs 0.51), so logged carbs are not what lifts them. Unlogged intake or an endogenous
-     answer fits; the entry rate does not distinguish them.
-   - **Matched on duration and intensity (25–60 min, 3.5–7 METs; 81 donor workouts, 11 donors, no entry), the drop to
-     the nadir is donors 30 mg/dL and net −27, against the twins' 11–13 and −8 / −11 with no eating at all.** The
-     reversal rate nearly agrees once matched (0.44 vs 0.35 / 0.37) and the nadir sits at the same point of the
-     session (0.48 vs 0.48 / 0.49): it is the depth that is wrong, on both limbs of the V.
-   - **Reading.** This reverses L 497's: the twins' sessions are not blunted mainly by eating, their exercise response
-     is about a third of the donors'. Twins also start sessions at higher IOB than the donors' workouts (2.9–3.1 vs
-     2.2 U, L 497) and still fall less. Drop-to-nadir on matched sessions is the target to size C1 / C2 against —
-     a far sharper one than `act_net20`, which cannot rank an exercise change at 112 twins (L 497).
+     ≥ 15 mg/dL after the mid-session nadir: donors with no entry 0.50, twins that ate 0.52 / 0.56, twins that ate
+     nothing 0.35 / 0.37. Sessions with a logged entry are barely different from entry-free ones (0.56 vs 0.50), so
+     logged carbs are not what lifts them. Unlogged intake or an endogenous answer fits; the entry rate cannot tell
+     them apart, so it does not support reading the twins as eating too much.
+   - **Match both sides or the number is meaningless.** C1's uptake is proportional to glucose, so the pooled drop
+     follows the starting-glucose mix. On identical filters — duration 25–60 min, 3.5–7 METs, nothing eaten or
+     entered in [start − 10, end + 10] — and twins pooled over both draws:
+
+     | Starting glucose | Donors (n 128) | Twins (n 129) | Donor − twin [95% CI] |
+     |---|---|---|---|
+     | 70–120 | 4 | 3 | +1 [−9, +10] |
+     | 120–160 | 34 | 18 | **+15 [+7, +35]** |
+     | 160–200 | 43 | 38 | +6 [−15, +36] |
+     | 200–400 | 80 | 52 | +28 [−18, +62] |
+     | pooled | 34 | 17 | **+17 [+6, +29]** |
+
+     The pooled gap and the 120–160 band are the only cells whose interval excludes zero: the twins fall about half as
+     far. At 70–120 the two agree, so it is not a flat shortfall. Per draw the pooled twin figure is 20 and 13, so
+     read this on both draws pooled, never one.
+   - **Reading.** This tempers L 497's (eating around sessions) without reversing it: the twins' own fall is too
+     shallow whether or not they eat. Drop-to-nadir by starting-glucose band is a usable target where `act_net20`
+     is not (L 497), but it needs both draws and the matched filters. Next candidate: sessions run at one constant
+     intensity, while C2 saturates and C4 has a threshold, so a real session's peaks may reach responses a constant
+     mean never does — a within-session intensity profile, not a parameter resize. C1 ×3 and C2 α 6 are already
+     rejected (L 494: C1 breaks the measured insulin dependence, α is anchored at Romeres' clamp point).
 
 552. **A9 × sleep (`cr_sleep` 0.5) is evidenced but shows no benefit: off.** The counter-regulatory answer halved while
    asleep (Banarer & Cryer 2003, Diabetes 52:1195). Paired on sd3, two draws (cs0 reproduces sd3 exactly): score
