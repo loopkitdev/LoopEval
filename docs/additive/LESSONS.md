@@ -1437,3 +1437,23 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      dip-dynamics rows respond the other way. And the redirection: **low-side eating is not a behaviour defect to
      fix — it is approximately right per low episode, and its excess is downstream of lows that run too long.** Do
      not spend further arms on the eating side; the lever is the body's recovery from a shallow low.
+
+589. **A1c brain sparing does not shorten a shallow low either, and it is quantitatively in the same too-small class
+   as A9 — which sizes the missing hepatic term at about 3x both.** L 588 traced the twins' excess low-side eating to
+   episodes that run too long (median 25 min against the donors' 20), and `ge_spare` (A1c: insulin-independent uptake
+   falling proportionally to glucose below `g_ii` 81 mg/dL, `f_ii` 1 mg/kg/min from Best 1981, the fall from
+   Hovorka 2004's F01c) is the evidenced mechanism that should shorten one — the brain stops taking glucose, so the
+   low recovers. It was flagged to Pete on a t70-vs-reach-54 trade (L 561) and **episode duration is the direct target
+   it had never been measured against**.
+   - **It does not move the target at all.** Median low-episode duration stays **25 min** on every arm, episodes per
+     day 1.92 -> 1.83, events per episode 0.62 -> 0.61, share of episodes treated 0.40 -> 0.41, and the low-side eating
+     rate is unchanged (1.051 -> 1.050 per hour below 80). On the ov0 base it also loses on score (0.339 / 0.386 /
+     0.415, mean 0.380 against 0.372) — its L 561 gains were measured on ad3, whose t70 ov0 has since partly fixed.
+   - **The arithmetic says why, and it is the useful part.** At G 65 the sparing is `f_ii x (1 − 65/81)` = 0.20
+     mg/kg/min, about **3.7 mg/dL over 30 min** — the same order as the A9 counter-regulation bound of 2.4 mg/dL/30 min
+     that L 559–560 rejected as too small. **Both named sub-basal mechanisms are now measured too small by the same
+     margin**, and L 563's missing term (a glucose-dependent hepatic response below Gb, ~0.34 mg/kg/min at G 65) is
+     about **3x** either of them. That is the number an evidence request should carry: not "something is missing" but
+     "a term 3x the size of A1c sparing, at basal insulin, below basal glucose".
+   - `ge_spare` stays off. The two sub-basal levers the model HAS are exhausted; the gap is one unimplemented term
+     whose size is now bracketed from below by two independent mechanisms.
