@@ -1260,3 +1260,46 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      L 582, `act_rho` and `intake_rho` L 584, `day_rho` here); the target is a third of what was recorded; two thirds
      of the reproducible part is already carried; and the obvious lever's ceiling is below the remainder. The row
      stays on the scorecard as a known limit, not a defect to chase. `day_rho` stays 0 (unevidenced), `act_rho` 0.
+
+586. **Measure a donor statistic at the twins' window length, or it will invent a defect: three times in one thread I
+   "found" an override under-use that was my own denominator.** Chasing the L 585 question — which scored statistics
+   the donors' settings contaminate — produced one real negative and one lesson about measurement.
+   - **Settings contamination does NOT explain the other failing rows.** `resid_tools/clean_blocks.py` dates every
+     block in `real_pilot_blocks.csv` by replaying `real_stats`' walk and flags edit days and override hours. A
+     clean-versus-contaminated median split looked dramatic (`acf_zero_min` 45.0 clean against 40.0, −0.33 block IQR;
+     `hurst_short`, `night_cv`, `med_nonzero`, `bg_cv` all past 0.15), **but within-donor every effect is |r| ≤ 0.10**
+     — the split was comparing different people, since the donors who edit and override are not the same donors. Only
+     override HOURS carry anything, weakly: v_sd +0.10, t70 +0.09, lows/day +0.08, zero_frac +0.08 (overrides get used
+     in weeks with more lows, plausibly reacting to them). So **retargeting the scorecard to clean blocks is not
+     justified**, and `ac1`'s basal limb stays the one place settings matter, where the effect is within-person and
+     structural — a level change persists by construction, which a block-median split cannot see.
+   - **Then the override thread, and the three errors in order.** (1) Counting `truth["sent_overrides"]` against the
+     donors' full record gave a twin median of 0.0 against 6.0: **that field is the REACTIVE class only**
+     (world.py:728). The planned windows reach the controller through `loopeval_io._override_windows`, which writes
+     `beh.overrides` into the twin's own synthetic `therapy.json` — the same field the donor measurement reads.
+     (2) Dividing a donor's window count by the span of their override RECORDS instead of their export span inflated
+     the donor rate by ~1.5× for anyone whose overrides cluster in part of the record. (3) Taking the donors'
+     "never override" share over their whole ~128-day record (19%) and comparing it with a 14-day twin (38%) is the
+     L 585 error again — over 14-day blocks the donors' share is 42%.
+   - **Measured properly, blocked to 14 days, the rate is right and the DURATION is not:**
+
+     | per 14 days | donors (1791 blocks) | twins (ad3) |
+     |---|---|---|
+     | all windows | median 2.0, mean 12.0 | median 3.0, mean 8.9 |
+     | windows > 30 min | 1.0, mean 8.4 | 2.0, mean 7.1 |
+     | override hours | 2.0, mean **26.0** | 3.3, mean **14.0** |
+     | median window duration | **65 min** | **41 min** |
+     | blocks with no override at all | 42% | 38% |
+
+     Counts, hours at the median and the zero share all match or slightly exceed the donors — the trait is already the
+     donor's own (`templates.add_override_rates`: 18% of templates have all three class rates zero against the donors'
+     19%, rate median 5.0 per 14 d against 3.9). **What is wrong is window length**: the twins' typical override runs
+     41 min against 65, and the donors' long tail is missing (mean hours 14.0 against 26.0, with 8% of donor windows
+     over 4 h). Two contributors, one benign: `_override_windows` clips 15% of twin windows at a following window's
+     start, halving them (31 min against 68 unclipped) — that is faithful to Loop, where a new override replaces the
+     running one — and the duration draw is lognormal around the donor's per-class MEDIAN with a **fixed** σ of 0.6,
+     so it cannot carry a donor whose own windows are heavy-tailed or indefinite.
+   - **Next: `ov_dur_own`** — take each class's duration SPREAD from the donor's own windows instead of the fixed 0.6,
+     and honour `indefinite` windows, which is where the missing tail lives. The gate accounting is sound and needs no
+     change (built all 168 people: the gates deliver 75% of the planned rate, the `less` gate clipping only the 7% who
+     override more often than they exercise).
