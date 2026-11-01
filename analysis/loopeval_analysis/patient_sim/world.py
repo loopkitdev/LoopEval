@@ -711,6 +711,7 @@ class World:
         self.drop_p, self.drop_a, self.drop_tau = f_("resid_drop_p", 0.0), f_("resid_drop_a", 100.0), f_("resid_drop_tau", 25.0)
         self._drop_rng = np.random.default_rng(int(person.seed) + 5141); self._drop_seen = 0; self._drops: list = []
         self.resid_skew = float(en_["resid_skew"]) if isinstance(en_.get("resid_skew"), float) else 0.0
+        self.resid_diurnal = float(en_["resid_diurnal"]) if isinstance(en_.get("resid_diurnal"), float) else 0.0   # L 568
         self._resid_rng = np.random.default_rng(int(person.seed) + 5137)
         self._resid_x = [0.0, 0.0]; self._resid_last = None; self._resid_day = {}
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
@@ -950,6 +951,15 @@ class World:
         x = (m - 240.0) / DAY; d = int(math.floor(x)); w = min(1.0, (x - d) * DAY / 120.0)
         day = w * lvl(d) + (1 - w) * lvl(d - 1)
         af, ab, ad = self.resid_a
+        if self.resid_diurnal > 0.0:
+            # The residual's fast and block parts ran flat over 24 h, but the donors' unexplained drive lives in waking
+            # hours — eating and movement are most of it. Flat, the twins get night dips the donors do not have:
+            # ice_dip_day 1.42 / 1.67 against 0.692, with only 44.9% of them by day against the donors' 66%
+            # (LESSONS 494, 568). Weight by a cosine peaking at 15:00, variance-preserving over the day (the mean of
+            # w^2 is 1), so the per-person amplitudes fitted on whole-record SD still hold.
+            # cos has zero mean over the day, so mean(w^2) = 1 exactly and no renormalisation is needed
+            w = math.sqrt(max(0.0, 1.0 + self.resid_diurnal * math.cos(2 * math.pi * ((m % DAY) / DAY - 15.0 / 24.0))))
+            af, ab = af * w, ab * w
         z = self._resid_x[0]
         s = self.resid_skew
         if s > 0:    # standardised lognormal of the OU state: mean 0, SD 1, skewed toward rises as the donors' drive is
