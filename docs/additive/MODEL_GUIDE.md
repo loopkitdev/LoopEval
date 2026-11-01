@@ -322,8 +322,21 @@ The level is what carries a donor's control level (L 448's far-from-meal load); 
   `python -m loopeval_analysis.patient_sim.lifestats sim <run>`, then `python -m loopeval_analysis.patient_sim.score
   <run> [<run> ...] --detail`. Scores from before L 494's rows do not compare with later ones.
 
-**Status at the reference ov0** (2026-11-01; runs/2026-10-31-additive-gesplit, templates
-`templates_pilot_resid_ov1.csv`, L 586):
+**Status at the reference rf2** (2026-11-01; runs/2026-10-31-additive-gesplit, templates
+`templates_pilot_resid_rf1.csv` with `--set resid_mult=0.0`, L 592):
+
+| | Tier 1 | Tier 2 | Tier 3 | Score | Close |
+|---|---|---|---|---|---|
+| draw 1 (1000) | 0.135 | 0.445 | 0.464 | **0.332** | 27 of 51 |
+| draw 2 (5000) | 0.209 | 0.462 | 0.442 | **0.371** | 24 of 54 |
+| draw 3 (9000) | 0.178 | 0.530 | 0.526 | **0.406** | 21 of 54 |
+
+rf2 is ov0 with the residual's dynamic part off, keeping only its per-person level. Mean score 0.370 against ov0's
+0.372, tier 1 better on all three draws, twin-donor rho better on five of six outcome rows, and the t70 change
+response 3.51 -> 2.17 with its ranking +0.22 -> +0.34 — the best of any arm on both. See L 592 for the costs (TDD,
+and a draw-2 level drift the refit does not fully remove).
+
+**Previous reference ov0** (2026-11-01, L 586):
 
 | | Tier 1 | Tier 2 | Tier 3 | Score | Close |
 |---|---|---|---|---|---|
@@ -362,7 +375,8 @@ while cutting tier 1 from 0.236 to 0.154; the distributional one pays 0.020 and 
 
 | | score mean | best at | L |
 |---|---|---|---|
-| **ov0** (reference) | **0.372** | the mean score, tier 2, and t54 change response (ratio 4.64 vs ad3's 6.22) | 586 |
+| **rf2** (reference) | **0.370** | the t70 change response (2.17) and its ranking (+0.34), tier 1, per-person fidelity | 592 |
+| ov0 | 0.372 | the mean score, tier 2, and t54 change response (ratio 4.64 vs ad3's 6.22) | 586 |
 | ad3 | 0.385 | TDD, and the tight − rest control-level contrasts | 568 |
 | `si_norm` 1.0 + level refit | **0.372** | the mean score, and the LEAST DAMPED change response (t70 ratio 2.09 vs 3.32) | 577 |
 | + life modulators on | 0.386 | the glucose LEVEL (bg_mean gap 0.015 / 0.094 / 0.019, essentially exact) | 582 |

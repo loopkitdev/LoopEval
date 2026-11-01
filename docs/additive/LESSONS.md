@@ -1530,3 +1530,36 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      labeller artefact, or the mechanism is not in the meal pathway at all.
    - `ge_beta` stays at 1.0. The code and the measurement stay, since the pulse-shape gap is real and any future meal
      work should know the tail is the wrong form AND that fixing it does not pay here.
+
+592. **The residual's DYNAMIC part was damping the change response and degrading per-person fidelity; the level-only
+   residual is the new reference (rf2).** `resid_mult` scales only `resid_f` / `resid_b` / `resid_d` and leaves
+   `resid_m` (the per-person level) alone, so `resid_mult` 0 is a level-only residual — the shape the role doc already
+   recorded as responding better (f4: TIR field/twin 0.76 / 1.27 against sd3's 1.32 / 1.29 / 1.39).
+
+   | | cohort score (3 draws) | tier 1 | edit response: mean · TIR · t70 | t70 rho |
+   |---|---|---|---|---|
+   | ov0 | 0.332 / 0.394 / 0.391, mean 0.372 | 0.178 / 0.218 / 0.197 | 2.35 · 1.74 · 3.51 | +0.22 |
+   | `resid_mult` 0, no refit | 0.327 / 0.378 | 0.140 / 0.221 | 2.12 · **1.22** · 3.47 | +0.30 |
+   | **rf2** (0, refitted) | 0.332 / 0.371 / 0.406, mean **0.370** | **0.135 / 0.209 / 0.178** | 2.28 · 1.69 · **2.17** | **+0.34** |
+
+   - **The refit separated a real gain from an artefact, and both halves of that matter.** Unrefitted, the arm looked
+     better on everything — but `resid_m` was fitted with the dynamics present, so removing them drops the glucose
+     level (bg_mean gap 0.119 -> 0.242 on draw 2) and a model running low responds more to an insulin edit for trivial
+     reasons. After the refit the **TIR gain vanishes** (1.22 -> 1.69, i.e. ov0's 1.74) — it WAS level drift — while
+     the **t70 gain survives** (3.51 -> 2.17, the best of any arm, past `si_norm` 1.0's 2.55) with its ranking
+     improving (+0.22 -> +0.34, also the best). `cb2` had already shown a refit can re-absorb these gains entirely
+     (mean 2.76, worse than either lever alone), which is why the unrefitted number could not be trusted.
+   - **And the component was not doing what it was adopted for.** The dynamic residual was taken on for per-person
+     spread; removing it IMPROVES twin-donor rho on five of six outcome rows (TIR 0.795 -> 0.815 and 0.805 -> 0.830,
+     bg_mean 0.850 -> 0.885 and 0.846 -> 0.896, t70 0.593 -> 0.631 and 0.421 -> 0.484, t54 0.471 -> 0.526,
+     bg_cv 0.545 -> 0.616; only TDD is marginally worse), and it contributes almost nothing to the volatility rows it
+     was meant to hold (bg_cv, sigma_disp, vol_cluster_60m all level without it).
+   - **Costs, honestly:** TDD a little worse on every draw (41.2 -> 42.6 on draw 2), and draw 2 keeps a level drift the
+     refit does not fully remove (148.2 against the donors' 151.9) with t70 2.12 against ov0's 1.97. Draws 1 and 3 are
+     clean (draw 3's bg_mean gap 0.076 -> 0.018, nearly exact).
+   - **Adopted** on the documented criteria: level on the weighted score, better tier 1 on all three draws, better
+     per-person fidelity, substantially better change response on the metric change prediction is judged on (TIR and
+     t < 70, Pete 2026-10-26), and one fewer active component — the model carries LESS unnamed dynamics, which is the
+     direction the residual rule points. **The two prediction levers do not compose** (L 590's `si_norm` 1.0 plus this
+     one gives mean 2.76), so `si_norm` remains a separate question, now against a reference whose t70 response is
+     already 2.17.

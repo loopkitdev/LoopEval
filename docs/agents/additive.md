@@ -90,7 +90,17 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75` on the reference. It reproduces C4's own by-METs table —
   the ≥ 8 MET band reads +0.9 against the donors' +1.2 where the band has enough bouts — against the reference's +12.8 / −5.1.
   Use it whenever the response to a workout matters; the reference keeps the score-optimal settings.
-- **Current reference** (2026-11-01): **ov0** (runs/2026-10-31-additive-gesplit; templates
+- **Current reference** (2026-11-01): **rf2** (runs/2026-10-31-additive-gesplit; templates
+  `templates_pilot_resid_rf1.csv`, `--set resid_mult=0.0`) — ov0 with the residual's DYNAMIC part off, keeping only its
+  per-person level `resid_m` (L 592). Score **0.332 / 0.371 / 0.406**, mean **0.370** against ov0's 0.372 — level —
+  with **tier 1 better on all three draws** (0.135 / 0.209 / 0.178 against 0.178 / 0.218 / 0.197), twin-donor rho
+  better on five of six outcome rows (TIR 0.815 / 0.830, bg_mean 0.885 / 0.896, t70 0.631 / 0.484, t54 0.526, bg_cv
+  0.616), and the **t70 change response 3.51 -> 2.17 with its ranking +0.22 -> +0.34**, both the best of any arm. The
+  dynamic residual was adopted for per-person spread and was doing the opposite, while contributing almost nothing to
+  the volatility rows (bg_cv, sigma_disp, vol_cluster_60m all level without it). Costs: TDD a little worse on every
+  draw, and draw 2 keeps a level drift the refit does not fully remove. Revert with `--set resid_mult=0.6` and the
+  `ov1` templates.
+- **Previous reference** **ov0** (runs/2026-10-31-additive-gesplit; templates
   `templates_pilot_resid_ov1.csv`) — ad3 with each Temporary Override class's duration fitted over the windows the
   model can actually produce. A donor record under 5 min is a cancellation (the ETL keeps an edit-version per change),
   and `_override` clips at 15 min, so including those in the per-class median systematically understated the length of
