@@ -855,3 +855,23 @@ evidence to the evidence files.
    0.474 → 0.505) and t54 is mixed (0.255 → 0.219, 0.258 → 0.294; donors 0.190). **Still open:** no arm reproduces the
    donors' positive ≥ 8 MET band (+1.2; twins −7 to −9), and the 6–8 fall is still a third of theirs — the surge's
    shape above the threshold is not right yet, on 15–27 bouts a draw. Run dir runs/2026-10-31-additive-gesplit/.
+
+555. **The C4 threshold change also improves the natural experiments, and it supersedes `ge_split` there.** On the 108
+   events (per-event seeds, `score_change.py` / `gradient.py`), response to +10% insulin by control level, field vs
+   twin:
+
+   | | Field | sd3 | st9 (new reference) | st9 + `ge_split` |
+   |---|---|---|---|---|
+   | t70, tight | +4.35 | +0.80 | +1.13 | +1.20 |
+   | t70, tight − rest | +4.27 | +0.51 [−0.30, +1.46] | **+0.83 [+0.11, +1.70]** | +0.84 [−0.09, +1.69] |
+   | TIR, tight − rest | −7.18 | −0.86 | **−1.51 [−3.24, +0.11]** | −0.90 |
+
+   st9's tight − rest low-side contrast is the first whose interval excludes zero, and its TIR contrast is the closest
+   to the field's sign and size. The intervals overlap sd3's, so read this as consistent with the cohort result rather
+   than as proof on its own. Costs: the size of the mean response is slightly smaller (field / twin 2.14 vs 1.97) and
+   the t54 ratio worse (4.18 vs 3.13).
+   **`ge_split` is superseded.** On the new reference its cohort score is 0.385 / 0.518 against st9's 0.353 / 0.437 —
+   a bigger cost than it carried against sd3 — and on the natural experiments it no longer adds (t70 tight − rest 0.84
+   vs st9's 0.83; TIR tight − rest −0.90, worse than st9's −1.51). L 549's advantage was measured against sd3 and does
+   not survive the C4 fix: what the split was buying on the low side, the threshold buys more cheaply. The split stays
+   off and is no longer the arm to reach for on low-side change work; use st9.
