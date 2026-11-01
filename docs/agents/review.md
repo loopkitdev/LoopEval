@@ -36,6 +36,22 @@ mostly confirms it. This role starts from the other end:
 - Replay fidelity of the beds the fleet relies on (pilot `ice_v32`, bddp, NS sites), on the current
   simulator, by verification.md's procedure.
 
+## Simplify and unify
+
+The project grows by exploration, and exploration leaves residue: parallel harnesses that build the same thing
+differently, flags no arm uses, copies of a script that have drifted apart, rules stated in two docs that disagree.
+Each costs every later session time, and a second copy that differs is a source of wrong numbers. So beside every
+review, this role looks for what can be removed, merged or made one:
+
+- **Repeated:** two implementations of one thing (window rules, σ files, harness drivers, scorers, plant env blocks).
+  Propose the one to keep and what moves onto it.
+- **Conflicting:** two documents, defaults or files that give different answers to the same question. Say which one
+  is current, and which owner fixes the other.
+- **Unused:** flags, arms, modules, overlays and run-dir artefacts that nothing reads any more, and docs about them.
+
+A finding names the duplicates, the evidence that they differ or are unused, and the owner who would change it. This
+role proposes the change; the owner makes it, or Pete assigns it. Removing is a result worth as much as adding.
+
 ## Checklist
 
 1. **The claim follows from the numbers.** Recompute the headline from rows. Is the stated direction,
@@ -62,6 +78,8 @@ mostly confirms it. This role starts from the other end:
    event shows it firing as described (verification.md § case studies).
 10. **Deployed, not just scored.** A rule that re-reads its own effect (needs from recent CGM, an
     adapter) is checked for what repeated application does, not only for one static window.
+11. **One copy.** Does the result rest on a private copy of shared code or data (a forked harness, a local σ file, a
+    re-typed flag list)? If so, does the copy match the shared one, and could the shared one have been used?
 
 ## How results are reported
 

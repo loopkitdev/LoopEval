@@ -77,7 +77,7 @@ def linear_part(bp: BodyParams) -> BodyParams:
     the hypo risk amplification and counter-regulation. ISF and CSF are DEFINED on this linear
     part — the same bookkeeping ISF the eda yardstick estimates (ICE = velocity + ISF·activity) —
     and the full body then adds those terms on top."""
-    return bp.scaled(sg=0.0, kappa=0.0, risk_lambda=0.0, cr_max=0.0, low_prop=False)
+    return bp.scaled(sg=0.0, sg_p=0.0, sg_h=0.0, f_ii=0.0, kappa=0.0, risk_lambda=0.0, cr_max=0.0, low_prop=False)
 
 
 def _probe_isf(bp: BodyParams, formulation: str, dose: float = 0.1, minutes: int = 900) -> float:
@@ -216,7 +216,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0, intake_own: bool = False, csf_geq: bool = False,
-                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False, gb_own: bool = False) -> Person:
+                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False, gb_own: bool = False, ge_split: bool = False) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -229,7 +229,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # TRUE ISF: the person's own setting (tuned against their real body) moved part of the way toward
     # the eda yardstick. The yardstick/settings ratio spreads 0.41–2.69 but barely tracks lows (Spearman
     # −0.13 with t<70), so much of it is estimation noise (eda L53: ISF is not identifiable in closed
-    # loop). ISF_W is an open parameter, settled by per-donor twin validation [J 0.5].
+    # loop). ISF_W 1.0: the body takes the data fit (Pete 2026-10-19, LESSONS 259).
     r_isf = float(np.clip(row.isf_true / row.isf, 0.5, 2.0))
     isf_true = float(row.isf) * r_isf ** (ISF_W if isf_w is None else isf_w) * j_isf
     isf_true *= isf_level          # experiment (LESSONS 326): cohort level of the body's insulin sensitivity
@@ -293,6 +293,14 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         # what their Loop delivered is the fasting body's need; the population prior N(119, 7) is still drawn above
         k_ = row.get("gb_own") if hasattr(row, "get") else None
         if k_ is not None and np.isfinite(float(k_)): bp = bp.scaled(gb=float(np.clip(float(k_), 90.0, 170.0)))
+    if ge_split:
+        # glucose effectiveness from its named parts (A1a–c, LESSONS 548), own stream so the other draws do not shift.
+        # A1a: Del Prato 1997's T1D clamp at basal insulin, +4.4 µmol/kg/min of disposal per +11.2 mmol/L = 0.0039 dL/kg/min,
+        # less the body's own insulin-mediated part at basal (κ·SI_D·Ib·VG, median 0.0017) = 0.0022 dL/kg/min [J spread].
+        # A1b: UVA/Padova T1D adults' kp2, median 0.0038 /min, log-SD 0.40 (simglucose vpatient_params), above Gb only.
+        rg = np.random.default_rng(seed + 517)
+        bp = bp.scaled(ge_split=True, sg_p=float(0.0022 * np.exp(rg.normal(0.0, 0.5)) / bp.vg),
+                       sg_h=float(0.0038 * np.exp(rg.normal(0.0, 0.40))))
     if ge_var:
         # between-person gastric emptying (evidence/09 §parameters): Vmax lognormal CV 30% (Samsom 2003 SDs 28% controls,
         # 36% diabetes; Hellmig 2006), and the 28% of T1D adults with delayed emptying at ×0.6–0.8 (Samsom 2003). Km stays

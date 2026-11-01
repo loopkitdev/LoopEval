@@ -3,7 +3,7 @@ resid_m += gain x gap, starting from the template's resid_m (or the previous rou
     python evlvl.py <arm dir> <templates csv> <out evm csv> [<prev evm csv>]"""
 import sys, glob, pickle, numpy as np, pandas as pd
 from pathlib import Path
-HERE = Path(__file__).resolve().parent
+HERE = Path.cwd()                  # the change dir
 GAIN = 1.2
 arm, tpl, out = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
 prev = dict(pd.read_csv(sys.argv[4]).values) if len(sys.argv) > 4 else None
