@@ -1593,3 +1593,31 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      "better explained" plus a level-versus-lows trade: the parameter is arithmetically the right size for a documented
      defect. Against that, its cost is low-side fidelity, and the low side is dominated by the unimplemented sub-basal
      hepatic term (L 589). Recommendation unchanged and now quantitative: adopt 1.0.
+
+594. **`acf_zero_min`, the fall / rise ratio and "slow falls / missing fast moves" are ONE defect — the twins' glucose
+   reverses direction too slowly — and gastric-emptying SHAPE is the only lever that touches it.** `acf_zero_min` is
+   the ACF of the 5-min INCREMENTS (`traits.py`: `_acf(steps, ...)`, "momentum crosses zero"), so it is the lag at
+   which glucose MOMENTUM first turns negative: the donors reverse at **40 min**, the twins at **60** — momentum
+   persists about 40% too long. Read that way it is not an isolated tier-3 sensor curiosity but the short-scale view
+   of the same thing the post-meal ratio measures at the peak (L 575, 591) and the fast-fall tail measures after it.
+   - **Measured across every arm this session, exactly one moved it:**
+
+     | arm | `acf_zero_min` | gap |
+     |---|---|---|
+     | donors | 40 | — |
+     | rf2 / ov0 / `resid_mult` 0 / `pro_g_own` | 60 | 1.59–1.73 |
+     | `si_norm` 1.0 | 57.5 | 1.46 |
+     | **`ge_beta` 1.3 / 1.6** | **55** | **1.22** |
+
+     So the Elashoff emptying shape (L 591) closes about a quarter of the gap — and it is the ONLY lever found, which
+     **corrects L 385–389's "no body lever moves it"**: those levers were everything except emptying shape.
+   - **Why this matters more than the ratio did.** The ratio deficit is small in amplitude (a post-peak fall of 52
+     against 57 mg/dL, ~5 mg/dL, and sensor-inflated), which is why L 591 left it artefact-bounded. The TIMESCALE
+     deficit is large (+40%) and is not an amplitude artefact, so the defect is better stated as *reversal speed* than
+     as *fall depth*. Three rows move together and should be read together, not chased separately.
+   - **And the blocker is named.** The one lever that touches it is the one whose score penalty is prohibitive
+     (`ge_beta` takes the score 0.332 -> 0.43–0.55, because concentrating appearance earlier also shortens the glucose
+     pulse to 102 min against the donors' 125). So the open question is not "what moves `acf_zero_min`" — emptying
+     shape does — but whether anything speeds glucose reversals WITHOUT compressing the meal pulse. A faster
+     counter-regulation or glucose-effectiveness response would qualify and is where to look next; both are
+     sub-basal terms, and both are currently measured too small (L 589).

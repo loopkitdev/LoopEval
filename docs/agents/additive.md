@@ -171,6 +171,12 @@ reference changes.
   donors against 0.00 for the rest. The 8% `si_norm` cut predicts +3.1 U/day, essentially the whole observed
   excess, so the fix is `si_norm` 1.0 rather than a new component;
 - night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458);
+- **`acf_zero_min` is NOT an independent row** (L 594): it is the ACF of the 5-min increments, so it measures when
+  glucose MOMENTUM reverses — donors 40 min, twins 60, about 40% too slow — which is the same defect as the
+  post-meal fall / rise ratio and the fast-fall tail. Of every arm run, only the Elashoff emptying shape moves it
+  (60 -> 55, gap 1.59 -> 1.22), which corrects L 385–389's "no body lever moves it". Its blocker is that
+  `ge_beta`'s score penalty is prohibitive, so look for a mechanism that speeds reversals WITHOUT compressing the
+  meal pulse.
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (**read `ac1` against the independent-day null of −0.086, not 0**, and against **+0.118, not +0.18**: half the donors'
   persistence is their SETTINGS — a basal / ISF edit or a multi-day override persists by construction, and on day pairs
