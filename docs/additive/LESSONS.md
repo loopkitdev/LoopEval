@@ -2081,3 +2081,29 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      and ov0\'s 3.51, with the least damped mean and TIR of the adopted lineage), and that improvement is not
      separable from noise at n = 63 events. Quote it as "best measured, not established", and spend the next effort on
      the larger event pools rather than on another candidate.
+
+612. **On 580 events the adopted change is confirmed on the prediction half: `rf2` beats ov0 on all four response
+   ratios and all three correlations, with the t70 response at 1.14 against the field\'s 1.0.** L 611 showed the pilot
+   pool\'s 108 events cannot separate the arms (CIs like [1.41, 9.72]) and that only more EVENTS can narrow them. The
+   e pool (built 2026-10-28, its own templates, field reference and harness) has 588; run with the two arms identical
+   but for the single adopted flag:
+
+   | | mean | TIR | t70 | t54 | rho mean / TIR / t70 | level vs field pre |
+   |---|---|---|---|---|---|---|
+   | ov0 (`resid_mult` 0.6) | 1.60 [1.24, 2.00] | 1.37 [0.93, 1.91] | 1.43 [0.77, 2.22] | 0.91 | 0.26 / 0.13 / 0.15 | +5.4 |
+   | **rf2 (`resid_mult` 0.0)** | **1.35 [1.04, 1.69]** | **1.27 [0.92, 1.76]** | **1.14 [0.56, 1.90]** | 0.58 | **0.33 / 0.16 / 0.17** | **+3.3** |
+
+   - **Seven comparisons, all favouring rf2**: four ratios closer to 1.0, three correlations higher, plus a starting
+     level nearer the field\'s pre-edit value (+3.3 against +5.4). The CIs overlap, so no single comparison is
+     individually significant — but the consistency across seven is the evidence, and the e pool\'s intervals are
+     about **twice as tight** as the pilot pool\'s ([1.24, 2.00] against [1.22, 3.79] on the mean), exactly as L 611\'s
+     event-count argument predicted.
+   - **The t70 response is now 1.14 — the field\'s own, within 14%** — on the metric change prediction is judged by
+     (TIR and t < 70, Pete 2026-10-26), against the standing limit that a settings change is damped to about half the
+     field\'s. The mean ratio 1.35 is the least damped of any arm measured on any pool.
+   - **One caveat recorded honestly:** t54 goes 0.91 -> 0.58, i.e. the twins now OVER-respond on t54. With the t54
+     change too rare to rank candidates on (AGENTS.md) and its CI [0.28, 1.05] wide, this is a flag rather than a
+     finding, but it is the one row where the change moved away from the field.
+   - **Absolute levels differ by pool and only the ordering transfers:** the e pool\'s field t70 response is +2.00
+     against the pilot pool\'s +4.46, so the pilot pool\'s ratios (rf2 2.17, ov0 3.51) and the e pool\'s (1.14, 1.43)
+     are not comparable in level — but both rank the arms the same way. Quote ratios with their pool.
