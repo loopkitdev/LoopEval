@@ -2351,6 +2351,13 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      3.7 points of TIR, with the cost mechanically attributable (flat TDD, peakier glucose) and not fixable on the
      body side. Whether to take it is a judgement about which rows the model is FOR — and worth putting to Pete with
      the table above rather than deciding on the weighted score, which reads it as 0.009 worse.
+   - **Two further sub-hypotheses for the TIR cost, both closed.** (1) `ge_order` 3 is **neutral on change
+     prediction** on the e pool's 580 events (mean 1.35 against rf2's 1.33, TIR 1.27 against 1.28, t70 1.14 against
+     1.15, all three rho identical) — so the cost does not extend to the prediction half, and the judgement is four
+     cohort rows against TIR with prediction unchanged. (2) The entered CARB ABSORPTION TIME is not the lever: Loop
+     doses from it, but the twins draw it from each donor's own `abs_fast` / `abs_slow` shares (77% at 10800 s pooled,
+     against the donors' dominant 3-h default), so both sides give Loop the same 3-h assumption against a sharp real
+     appearance. The donors cope with that mismatch at TIR 71.9 and the twins do not.
    - **This closes the thread as far as measurement can take it.** The appearance dispersion is evidenced (L 619), the
      dosing is per-donor (L 618), insulin action is defensible at meal doses (L 621), and the residual TIR cost is now
      explained in mechanism if not resolved in value.
