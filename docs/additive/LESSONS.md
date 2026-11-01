@@ -1563,3 +1563,33 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      direction the residual rule points. **The two prediction levers do not compose** (L 590's `si_norm` 1.0 plus this
      one gives mean 2.76), so `si_norm` remains a separate question, now against a reference whose t70 response is
      already 2.17.
+
+593. **The twins' excess insulin is quantitatively explained, and `resid_m` was masking half of it.** With the
+   level-only residual (L 592) `resid_m` is the ONLY residual term — a constant per-person glucose drive in mg/dL/h —
+   so for the first time the insulin surplus decomposes. Converting each person's `resid_m` at their own fitted ISF
+   (`resid_m` x 24 / `isf_true`, 168 templates):
+
+   | | U/day |
+   |---|---|
+   | observed TDD excess (42.6 against the donors' 38.7) | **+3.9** |
+   | masked by `resid_m`'s mean (−7.69 mg/dL/h, i.e. a glucose SINK) | **+3.0** |
+   | underlying core excess | **about +6.9, or +18%** |
+   | predicted by `si_norm` 0.92 — an 8% sensitivity cut on 38.7 U | **+3.1** |
+
+   - **`resid_m` is not a small correction.** Its median is 0.00 but its mean is −7.69 mg/dL/h (sd 25, p10 −38.5,
+     min −135.5): a heavy negative tail worth −3.00 U/day on average. A −38 mg/dL/h drive is ~920 mg/dL of glucose
+     removed per day, which is no one's "unlogged load" — it is core error being absorbed, exactly as L 577 said
+     qualitatively and now with a size.
+   - **The negative tail is the tight-donor limit.** Split by the donor's own control, `resid_m` is 0.00 for the loose
+     and middle thirds and **−4.47 mg/dL/h (−1.24 U/day) for the tight third**, with corr(donor TIR, `resid_m`) =
+     −0.17. "Twins of tight-control donors run high" (L 445–456) is therefore not an unexplained limit but a measured
+     one: the core runs them high and the residual buys it back as a glucose sink.
+   - **And the arithmetic names the fix.** `si_norm` 0.92 is a deliberate cohort-wide 8% sensitivity cut; a body 8%
+     less sensitive needs 8% more insulin, which on the donors' 38.7 U/day is **+3.1 U/day** — essentially the whole
+     observed excess (+3.9). So the standing limit "twins need 5–8% more insulin than their donors" is not a mystery
+     to be chased: it is the 8% cut, and `si_norm` 1.0 is its removal. L 577 found that 1.0 improves TDD on all three
+     draws; this says why, and by how much.
+   - **Which strengthens the `si_norm` case on grounds the L 590 measurements did not cover.** It is no longer only
+     "better explained" plus a level-versus-lows trade: the parameter is arithmetically the right size for a documented
+     defect. Against that, its cost is low-side fidelity, and the low side is dominated by the unimplemented sub-basal
+     hepatic term (L 589). Recommendation unchanged and now quantitative: adopt 1.0.

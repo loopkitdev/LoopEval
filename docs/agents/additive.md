@@ -165,7 +165,11 @@ reference changes.
 ## Known limits of the current reference (read before using its numbers)
 
 **Status (Pete 2026-10-20): usable with LoopEval.** The limits below are documented, not blocking. They are:
-- twins of tight-control donors run high, and twins need 5–8% more insulin than their donors (LESSONS 445–456);
+- twins of tight-control donors run high, and twins need 5–8% more insulin than their donors (LESSONS 445–456) —
+  **both now quantified and attributed (L 593)**: `resid_m`'s mean is a glucose SINK worth −3.0 U/day, masking half
+  the core excess (observed +3.9 U/day, underlying ~+6.9 = +18%), and it is −4.47 mg/dL/h for the tight third of
+  donors against 0.00 for the rest. The 8% `si_norm` cut predicts +3.1 U/day, essentially the whole observed
+  excess, so the fix is `si_norm` 1.0 rather than a new component;
 - night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458);
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (**read `ac1` against the independent-day null of −0.086, not 0**, and against **+0.118, not +0.18**: half the donors'
