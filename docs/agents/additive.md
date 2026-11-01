@@ -161,7 +161,8 @@ reference changes.
   Awaiting Pete: the core carries how MUCH a person responds, resid_m sharpens WHO does. **It is bigger than one flag**:
   `si_norm` 0.92 stands in for the DISABLED life modulators, and those carry B3's day-to-day sensitivity persistence —
   whose absence is why `ac1` fails (L 581). The package to test is `--enable day,stress,illness,menstrual` + `si_norm` 1.0
-  + a level refit on three draws, which would address the si_norm choice and `ac1` together. Start a session with it. The trade is roughly LINEAR, so the
+  + a level refit on three draws, which would address the si_norm choice and `ac1` together. Start a session with it.
+  The trade is roughly LINEAR, so the
   intermediate (0.96) does not dominate and tuning the value will not settle it (L 577); 1.0 is the principled end, since
   `si_norm` only stands in for life modulators that are off in this reference and should be 1.0 if they are switched on.
 - **superseded by L 577** (L 577): `si_norm` 1.0 (undoing the deliberate cohort-wide 8% sensitivity cut)
