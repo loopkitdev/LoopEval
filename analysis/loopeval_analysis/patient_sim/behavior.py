@@ -166,6 +166,7 @@ class BehaviorTraits:
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
+    ex_dur_cap: bool = False             # cap a session's intensity by what a person holds for its length (L 554)
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     ex_time: bool = False                # sessions timed as the donors' recorded workouts (LESSONS 497): a share start 0–120 min after a
                                          # carb entry (own, else the recorders' 0.51), the rest on the person's own workout clock (own,
@@ -867,7 +868,16 @@ class Behavior:
                 # (within-donor SD), as %VO2-reserve on the person's METmax; own streams, other draws stay paired
                 rm_ = self.r_exmet
                 met = max(1.5, self.ex_met_person + float(rm_.normal(0, 1.5)))
-                it_ = float(np.clip((met - 1.0) / max(t.metmax - 1.0, 1.0), 0.1, 1.0))
+                hi_ = 1.0
+                if t.ex_dur_cap:
+                    # C5 × the person's capacity (LESSONS 554): METs are drawn from the donor's own workouts but
+                    # converted on THIS twin's METmax, which is drawn independently, so a low-capacity twin was given
+                    # sessions at or above its ceiling — 19% of sessions sat at 1.00 of reserve for a median 39 min,
+                    # which no one sustains, and every one of them fired C4's surge. The intensity a person holds for
+                    # a whole session falls with its length (the intensity-duration relation: about all of the reserve
+                    # for a few minutes, ~0.85 for 20 min, ~0.75 for 40) [J constants]
+                    hi_ = float(np.clip(1.0 - 0.14 * math.log(max(dur, 8.0) / 8.0), 0.6, 1.0))
+                it_ = float(np.clip((met - 1.0) / max(t.metmax - 1.0, 1.0), 0.1, hi_))
             self.planned.append((st, ("exercise", st, dur, it_, t.ex_anaerobic)))
             if r.random() < t.p_ex_carbs:
                 self.planned.append((st - 10, ("ex_carbs", t.ex_carbs)))

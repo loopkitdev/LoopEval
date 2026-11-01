@@ -338,6 +338,8 @@ class World:
             self.beh_traits.entry_size_b = enable["entry_size_b"]
         if enable and enable.get("ex_mets"):
             self.beh_traits.ex_mets = True
+        if enable and enable.get("ex_dur_cap"):      # C5 intensity capped by session length (LESSONS 554)
+            self.beh_traits.ex_dur_cap = True
         if enable and enable.get("sleep_own"):
             # experiment (LESSONS 499): the sleep window centred on the donor's own quietest hours of user actions
             # (templates.add_sleep_mid), keeping the person's drawn sleep length
