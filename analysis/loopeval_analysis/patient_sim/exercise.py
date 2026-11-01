@@ -48,6 +48,9 @@ class ExerciseParams:
                                 # 11 that is only 0.70 of reserve, far below any anaerobic threshold in reserve terms.
                                 # Default 8.0 since 2026-11-01 (LESSONS 556): the only keying under which C4's own
                                 # >= 8 MET band takes the donors' sign. 0 restores the %reserve form (surge_thr)
+    surge_width: float = 2.0    # METs over which the surge ramps from nothing to full above surge_mets. The donors
+                                # fall deepest at 6-8 METs and RISE at >= 8, a switch inside about two METs, so the
+                                # width is the form parameter for that transition (LESSONS 565, 566)
     metmax: float = 9.0         # the person's ceiling, needed only to read intensity back as absolute METs
     gain: float = 1.0           # per-person responsiveness (set from behavior traits)
     background: float = 0.0     # waking-hours background intensity (set from behavior traits)
@@ -107,7 +110,7 @@ class Exercise:
         # zero below, linear to full at 100% (LESSONS 247); the session's anaerobic share scales it
         if self.p.surge_mets > 0:
             mets_ = 1.0 + intensity * (self.p.metmax - 1.0)
-            anaerobic = anaerobic * min(1.0, max(0.0, (mets_ - self.p.surge_mets) / 2.0))
+            anaerobic = anaerobic * min(1.0, max(0.0, (mets_ - self.p.surge_mets) / max(self.p.surge_width, 0.1)))
         else:
             anaerobic = anaerobic * min(1.0, max(0.0, (intensity - self.p.surge_thr) / (1.0 - self.p.surge_thr)))
         # C1 keyed to ABSOLUTE work rate (L 565): muscle glucose uptake follows the work being done, not the strain

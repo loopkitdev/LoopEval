@@ -507,6 +507,7 @@ class World:
                                           # experiment (LESSONS 497): the C4 surge threshold, share of reserve (default 0.6)
                                           metmax=float(self.beh_traits.metmax),
                                           **({"surge_mets": float(enable["ex_surge_mets"])} if enable and isinstance(enable.get("ex_surge_mets"), float) else {}),
+                                          **({"surge_width": float(enable["ex_surge_width"])} if enable and isinstance(enable.get("ex_surge_width"), float) else {}),
                                           **({"surge_thr": float(enable["ex_surge_thr"])} if enable and isinstance(enable.get("ex_surge_thr"), float) else {})))
         # energy balance: a person eats for their activity. The donor's TDD (the measured constraint, G4) was spent
         # in a life that included it, so the glucose their everyday activity uses is added to what they eat
