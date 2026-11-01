@@ -1457,3 +1457,30 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      "a term 3x the size of A1c sparing, at basal insulin, below basal glucose".
    - `ge_spare` stays off. The two sub-basal levers the model HAS are exhausted; the gap is one unimplemented term
      whose size is now bracketed from below by two independent mechanisms.
+
+590. **`si_norm` 1.0 buys the change-response SIZE and spends the RANKING — the trade Pete reserved in L 577, now
+   measured on the ov0 reference and in exactly the terms he framed it.** L 577 left it open as "the core carries how
+   MUCH a person responds, `resid_m` sharpens WHO does", on the ad3 base. Re-run on ov0 with the level refit (two
+   rounds), on the cohort and on the same 108 natural experiments as `ad3_s` and `ov0_s`:
+
+   | | cohort score (3 draws) | tier 1 | edit response field/twin: mean · TIR · t70 | t70 rho |
+   |---|---|---|---|---|
+   | ov0 (reference) | 0.332 / 0.394 / 0.391, mean **0.372** | 0.178 / 0.218 / 0.197 | 2.32 · 1.82 · 3.61 | +0.22 |
+   | `si_norm` 1.0 | 0.335 / 0.376 / 0.416, mean 0.376 | **0.134 / 0.201 / 0.176** | **1.84 · 1.37 · 2.54** | **−0.01** |
+
+   - **Size: the least damped response of any arm.** The standing limit is that a settings change is damped to about
+     half the field's mean response with lows 4–8x under; this takes the mean ratio 2.32 -> **1.84** and t70
+     3.61 -> **2.54**, the closest to the field (1.0) yet measured, and TIR 1.82 -> 1.37. (The t54 ratio's CI is
+     [−70.7, +85.2] — uninformative, and AGENTS.md says t < 54 change is too rare to rank candidates on.)
+   - **Ranking: t70's across-event correlation collapses**, +0.22 -> −0.01, and the strategy pool's t70 rho 0.39 ->
+     0.31. So the twins respond by about the right AMOUNT but no longer rank WHICH donor responds — which is the
+     core-versus-residual trade stated precisely: `resid_m` is fitted per person and does not scale with insulin, so
+     carrying the 8% in it sharpens who responds while carrying it in the core sizes how much.
+   - **On the cohort it is level** (mean 0.376 against 0.372, inside the 0.04 draw scatter) with **tier 1 better on all
+     three draws** and the glucose level nearly exact (bg_mean gap 0.076 -> 0.015 on draw 3, TIR 69.29 -> 71.34 against
+     71.88 on draw 1), paid for in lows (t54 0.149 -> 0.259 on draw 3).
+   - **Not adopted: this is the decision Pete reserved**, and the evidence now states it as one question rather than a
+     balance of many — **do we want the response size or the response ranking?** 1.0 is the principled end (`si_norm`
+     only stands in for life modulators that are off in this reference), and if the natural-experiment half of the goal
+     is what matters, 1.0 is the answer; if per-person ranking is, 0.92 is. The trade is roughly linear (L 577), so an
+     intermediate buys a mixture, not an escape.
