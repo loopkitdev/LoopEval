@@ -1382,6 +1382,17 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      twin's 12 g snack reads 24–26 g through the same labeller, so eaten grams per labelled gram at a low onset is
      **0.49** and the donor value corresponds to ~15 g eaten. `pro_g_own` sets it per person from the new template
      column `low_pro_g` (p50 15.3 g, p10 11.2, p90 21.1 — a spread where there was one constant).
-   - **Prediction under test:** fewer, larger low-side treatments should lift t54 and P(reach 54) toward the donors'
-     0.190 / 0.21 (both now under) and bring t70 down toward 1.60 (now over) — the three open low-side limits move
-     together, or the granularity is not their cause.
+   - **Result: the low side moves as predicted, and the carbohydrate is the cost.** `pro_g_own` (size only, 12 ->
+     ~15 g) improves **tier 1 on all three draws** — 0.178 / 0.218 / 0.197 to 0.155 / 0.210 / 0.181 — with the low
+     rows moving exactly where the mechanism says: draw 1 **t70 1.803 -> 1.597 against the donors' 1.599** (gap 0.139
+     -> 0.040) and P(reach 54) 0.200 -> 0.217 against 0.212 (0.112 -> 0.056); draw 3 t54 gap 0.114 -> 0.074 and
+     P(reach 54) 0.367 -> 0.261. **But it does not pay for itself**: carbohydrate per hour below 80 rises ~25%, so
+     TDD goes 0.103 -> 0.230 and 0.239 -> 0.304, bg_mean with it, tier 2 degrades and the weighted score loses
+     (0.359 / 0.394 / 0.411, mean 0.388 against 0.372). `pg0` reproduced `ov0` exactly, so the template column is
+     inert with the switch off — a clean control.
+   - **The arm's own flaw, and the fix under test:** the donors eat bigger AND less often (0.548 pulses/h below 80 at
+     30 g against the twins' 0.672 at 24 g), and what they hold constant is **grams per hour below 80**, 16.4 against
+     16.1. Sizing alone broke that conserved quantity. `pro_carb_fix` stretches the refractory by the same factor the
+     size grew, so the granularity matches the donors' on both axes at unchanged carbohydrate. If tier 1 keeps the
+     gain without the TDD cost, the low-side limits were granularity; if the gain goes with the carbohydrate, they
+     were not, and the t70 improvement was just more food.
