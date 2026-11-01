@@ -1171,3 +1171,18 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      changed nothing. So the model's existing multi-day structure is insufficient, and `day_rho` is unevidenced. The
      honest reading is that **`ac1` needs a named multi-day factor the model does not have**, and the code comment on
      `day_rho` says exactly that — the field's lag-1 of 0.4 "must come from named factors".
+   - **And `intake_rho` is NOT the bug — it works, and delivers about half of what is needed**
+     (`resid_tools/intake_ac.py`, measured directly on the twins' own daily totals):
+
+     | lag-1 autocorrelation | measured | above the −0.086 null |
+     |---|---|---|
+     | twins' daily CARBS | +0.069 / +0.043 | **+0.155 / +0.129** |
+     | twins' daily INSULIN | +0.020 / −0.042 | +0.106 / +0.044 |
+     | donors' TDD row | +0.091 | **+0.177** |
+
+     A true ρ of 0.29 on 13 days reads about 0.15 after the short-series bias, so the carb figure confirms
+     `intake_rho` (Levitsky 2017) is doing its job. It propagates to insulin but only reaches **about half** the
+     donors' persistence. **So the missing half is not intake — it is day-to-day persistence in insulin NEED
+     (sensitivity or basal), which is `day_rho` (unevidenced, 0) or a named multi-day factor.** That is a much
+     narrower statement than "ac1 fails", and it means a candidate only has to supply ~+0.07 of correlation, not
+     +0.18.
