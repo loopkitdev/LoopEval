@@ -1350,3 +1350,38 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **So: no new IOB or forecast term in the correction limb on this evidence.** What would settle it is data where
      the display varies independently of the situation — a controller change that alters what is shown without altering
      the dosing, or a donor's own before/after at a display change.
+
+588. **The twins' low-side eating carries the donors' carbohydrate but in finer grain, and the one low-side size never
+   fitted to the donor is the proactive snack.** Reached from the post-meal fall / rise ratio: it tracks bolus timing
+   over a 0.28 spread (L 575), so the twins' timing MIX could reproduce the whole 0.11–0.19 deficit with identical
+   physiology. Four measurements, each narrowing it, and two of them wrong first.
+   - **The timing mix matches.** On the donors' own strata (`ratio_by.py` counts automatic boluses too, so the twin
+     side must — which rules out `bolus_requests`, the person's requests only; boluses come from `trace.json`'s tagged
+     `delivery[]`, never a threshold on `truth["delivered"]`): at-the-meal share 0.77 / 0.72 against 0.74, pre 0.03
+     against 0.07, late 0.10 / 0.09 against 0.15. Within every stratum the twins still sit below the donors (at the
+     meal 0.74 / 0.68 against 0.79), which is L 575's residual, so the ratio is not a timing artefact.
+   - **But "no bolus within ±60 min of a ≥ 20 g meal" is 0.10 / 0.16 against the donors' 0.03** — and that stratum has
+     the donors' lowest ratio (0.62), so it is a genuine composition term. Of the twins' meals that requested a bolus
+     and received nothing (6%), **97% asked for Loop's recommendation at ratio 1.00 and 67% were entered below
+     100 mg/dL** (49% below 80), against 17% / 5% for the delivered ones. Loop was right to give nothing: the carbs
+     were covering a low. So the composition term is low-glucose eating, not a dosing fault.
+   - **Exposure removed, the divergence is one band.** Carb entries per HOUR spent in each band — donors 0.084 /
+     0.122 / 0.123 / 0.144 for < 80 / 80–120 / 120–180 / > 180, twins 0.189 / 0.133 / 0.123 / 0.111 and 0.255 / 0.163 /
+     0.149 / 0.139. The donors' eagerness is nearly flat in glucose; the twins have a spike below 80 and match
+     everywhere else. (Entries per day match overall, 3.04 / 3.62 against 3.29 — the band mix is what differs.)
+   - **Two errors on the way, both the L 586 family.** A per-donor rate taken over only the donors with ≥ 10 low-glucose
+     entries selected on the very quantity being compared and read 0.30/day where all 182 donors give 0.11. And
+     comparing the twins' TRUE eating events with the donors' LABELLED pulses mixes granularities: the labeller merges
+     acts, so it showed low-side eating "1.9–2.1× too frequent at half the size" where labelled-to-labelled gives
+     **1.23× and 0.80×**. Compare labelled with labelled (`meals_labeled.csv` is the same labeller).
+   - **What survives, like for like:** labelled pulses starting below 80 run 0.672 / 0.690 per hour below 80 against
+     the donors' 0.548, at 24 / 26 g against 30 g, with the rescue share matching (0.37 / 0.40 against 0.34) and the
+     carbohydrate per hour below 80 **identical** (16.1 / 17.9 against 16.4 g). The right amount, in finer grain.
+   - **The lever is `pro_grams`, a fixed `lj(12, 0.4)` for everyone**, while `treat_grams` has always come from the
+     donor (`rescue_size_med`). The donors' labelled non-rescue low-onset pulses are **31 g** (p25 28, p75 36); a
+     twin's 12 g snack reads 24–26 g through the same labeller, so eaten grams per labelled gram at a low onset is
+     **0.49** and the donor value corresponds to ~15 g eaten. `pro_g_own` sets it per person from the new template
+     column `low_pro_g` (p50 15.3 g, p10 11.2, p90 21.1 — a spread where there was one constant).
+   - **Prediction under test:** fewer, larger low-side treatments should lift t54 and P(reach 54) toward the donors'
+     0.190 / 0.21 (both now under) and bring t70 down toward 1.60 (now over) — the three open low-side limits move
+     together, or the granularity is not their cause.
