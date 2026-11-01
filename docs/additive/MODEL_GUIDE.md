@@ -322,7 +322,26 @@ The level is what carries a donor's control level (L 448's far-from-meal load); 
   `python -m loopeval_analysis.patient_sim.lifestats sim <run>`, then `python -m loopeval_analysis.patient_sim.score
   <run> [<run> ...] --detail`. Scores from before L 494's rows do not compare with later ones.
 
-**Status at the reference ad3** (2026-11-01; runs/2026-10-31-additive-gesplit, L 568):
+**Status at the reference ov0** (2026-11-01; runs/2026-10-31-additive-gesplit, templates
+`templates_pilot_resid_ov1.csv`, L 586):
+
+| | Tier 1 | Tier 2 | Tier 3 | Score | Close |
+|---|---|---|---|---|---|
+| draw 1 (1000) | 0.178 | 0.417 | 0.455 | **0.332** | 27 of 51 |
+| draw 2 (5000) | 0.218 | 0.497 | 0.438 | **0.394** | 22 of 54 |
+| draw 3 (9000) | 0.197 | 0.505 | 0.442 | **0.391** | 26 of 54 |
+
+ov0 is ad3 with each override class's duration fitted over the windows the model can produce — a donor record under
+5 min is a cancellation and `_override` clips at 15 min, so including them understated every window the twins ran
+(`ov_less_h` 1.42 → 1.88 h; realized length 72 → 83 min against the donors' comparable 79). Mean score **0.372
+against ad3's 0.385**, better on both fresh draws and on tier 2, worse only on draw 1 — ad3's own development draw.
+The gain is where the mechanism predicts: more time at reduced needs, so Loop commands less (bg_mean gap 0.263 →
+0.119, TDD 0.262 → 0.177 on draw 2). On the natural experiments it is level with ad3 inside the sampling error
+(mean-response ratio 2.32 vs 2.25, t70 3.61 vs 3.38, t54 **4.64 vs 6.22**; the rho differences at n = 63 sit inside
+their CIs). The reversal is exact on true BG (0.00e+00), which is the identity instrument — `trace.json` md5 differs
+between identical runs on key order alone (L 586).
+
+**Previous reference ad3** (2026-11-01, L 568):
 
 | | Tier 1 | Tier 2 | Tier 3 | Score | Close |
 |---|---|---|---|---|---|
@@ -339,11 +358,12 @@ takes the tight − rest TIR and mean contrasts (−1.63, +0.93 against the fiel
 score with 0.075–0.135 in tier 1. Decomposed (L 580): the soundness adoptions cost 0.010 of score on the fresh draw
 while cutting tier 1 from 0.236 to 0.154; the distributional one pays 0.020 and leaves tier 1 flat.
 
-**Four configurations, each best at something — pick by the question** (all one flag plus a template from ad3):
+**Configurations, each best at something — pick by the question** (all one flag plus a template from the reference):
 
 | | score mean | best at | L |
 |---|---|---|---|
-| **ad3** (reference) | 0.385 | TDD, and the tight − rest control-level contrasts | 568 |
+| **ov0** (reference) | **0.372** | the mean score, tier 2, and t54 change response (ratio 4.64 vs ad3's 6.22) | 586 |
+| ad3 | 0.385 | TDD, and the tight − rest control-level contrasts | 568 |
 | `si_norm` 1.0 + level refit | **0.372** | the mean score, and the LEAST DAMPED change response (t70 ratio 2.09 vs 3.32) | 577 |
 | + life modulators on | 0.386 | the glucose LEVEL (bg_mean gap 0.015 / 0.094 / 0.019, essentially exact) | 582 |
 | exercise-faithful (`ex_abs`, `ex_headroom` 1.5, `ex_surge_width` 0.75) | — | C4's by-METs table (≥ 8 MET band +0.9 vs +1.2) | 566 |
