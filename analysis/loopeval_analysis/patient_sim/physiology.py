@@ -121,6 +121,10 @@ class BodyParams:
                                    # the twins' peak at 37 and decay for 66 (1.44) — they rise too early and trail
                                    # too long, which is the one time-asymmetric shape L 575 asks for.
     ge_beta_cap: float = 4.0       # clip on the hazard multiplier, so a parcel's first minutes cannot empty instantly
+    ge_beta_mean: bool = True      # keep the MEAN emptying time while changing its shape: a Weibull's mean is
+                                   # Gamma(1 + 1/beta)/k, so k is scaled by that factor. Without it, raising beta also
+                                   # empties faster (total pulse 120 -> 98 min against the donors' 125) and the arm
+                                   # tests speed as well as shape — which is what wrecked the first ge_beta run (L 591)
     ge_hyper: float = 0.0          # maximal slowing of emptying in hyperglycaemia: rate × (1 − h·(1 − e^(−(G−100)/50)));
                                    # h 0.45 gives ×0.74 at 8 mmol/L (Schvarcz 1997) and ×0.56 at 15–20 (Fraser 1990) [J]
     # exercise
@@ -337,7 +341,8 @@ class Body:
             ke_ = pc.kempt * (phi if pc.hypo_sensitive else 1.0) * (ge_mult if pc.kcal_per_g > 0 else 1.0)
             if p.ge_beta != 1.0:                     # Elashoff power-exponential: hazard beta·(k·age)^(beta−1)
                 age = max(m - pc.t - pc.delay, dt)
-                ke_ *= min(p.ge_beta_cap, p.ge_beta * (pc.kempt * age) ** (p.ge_beta - 1.0))
+                kb = pc.kempt * (math.gamma(1.0 + 1.0 / p.ge_beta) if p.ge_beta_mean else 1.0)
+                ke_ *= min(p.ge_beta_cap, p.ge_beta * (kb * age) ** (p.ge_beta - 1.0)) * (kb / pc.kempt)
             s1, s2, gut = pc.q
             e1 = ke_ * s1; e2 = ke_ * s2 * scale; a = pc.kabs * gut
             pc.q = [s1 - dt * e1, s2 + dt * (e1 - e2), gut + dt * (e2 - a)]
