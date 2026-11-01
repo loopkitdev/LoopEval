@@ -166,6 +166,28 @@ pulses, entries, boluses, corrections, rescues) where present, else literature p
 
 ---
 
+## Couplings between components
+
+Every driver acts on the body through a named channel. This table is what modulates what: a blank is a coupling the
+model does not have. Keep it current — the audit behind it is LESSONS 550, and a rejected coupling stays listed with
+its lesson so it is not retried blind.
+
+| Driver | Insulin sensitivity | EGP | Insulin-independent uptake | SC absorption | Gastric emptying | Counter-regulation | Sensor | Pump / site | Behavior |
+|---|---|---|---|---|---|---|---|---|---|
+| Exercise / activity | C2 acute + delayed | C4 anaerobic surge only | C1 | C3 | `ex_gut` off (L 344) | — | `sensor_act_k` off (L 498) | — | C5 pre-exercise carbs, C6 intake, F12 overrides |
+| Glucose high | B11 | A1b (`ge_split`) | A5 M(G) κ | — | `ge_hyper` off (L 91) | — | — | — | F4 corrections |
+| Glucose low | not needed (L 55) | A9 | A1c sparing, A5 M(G) | — | A11 | A9 + HAAF | D3 low-range | — | F5, F6 |
+| Eating a meal | A12b | — | — | — | A10, A12, A14, A15 | — | — | — | F2, F3 |
+| Sleep / posture | B7 sleep loss | B2 dawn, B2b GH | — | A4b posture | — | — | D5 compression | — | F6 |
+| Illness | B6 | B6 | — | — | B6 gastrointestinal | — | — | — | — |
+| Menstrual cycle | B5 | — | — | — | — | — | — | — | F12 |
+| Site age / wear | — | — | — | E5, E5b | — | — | — | E6–E11 | F8 |
+| Time of day | B1, B1b, B1c | B2 | — | — | A14 | — | — | — | F1, F14 |
+
+**The two uncoupled channels.** A9 counter-regulation answers only its own history of lows, and the pump / site faults
+only wear age. Both are places where a real driver is missing rather than small: see LESSONS 550 for the evidenced
+candidates (sleep and exercise on A9; exercise on site failure).
+
 ## Coupling to LoopEval
 
 `loopeval_io.py` writes a synthetic export (30 h of internally-driven history, then the sensor grid) and

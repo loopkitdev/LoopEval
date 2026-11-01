@@ -254,7 +254,7 @@ class Body:
     def step(self, dt: float = 1.0, si_mult: float = 1.0, egp_mult: float = 1.0,
              ex_intensity: float = 0.0, ex_anaerobic: float = 0.0, ex_si_boost: float = 0.0,
              abs_mult: float = 1.0, bio: float = 1.0, util_drop: float = 0.0, ge_mult: float = 1.0,
-             si_d_mult: float = 1.0):
+             si_d_mult: float = 1.0, cr_mult: float = 1.0):
         """Advance `dt` minutes (explicit midpoint for the fast states; dt ≤ 1 recommended).
 
         si_mult: product of sensitivity modulators (circadian, daily, cycle, illness, stress,
@@ -345,7 +345,7 @@ class Body:
         egp_ins = p.egp_b * egp_mult * min(max(1.0 - se * self.xe, 0.0), 1.0 + se)
 
         # --- counter-regulation and HAAF memory
-        target = p.cr_max * self.haaf * sigmoid((p.cr_g - g) / p.cr_s)
+        target = p.cr_max * self.haaf * cr_mult * sigmoid((p.cr_g - g) / p.cr_s)
         self.cr += dt * (target - self.cr) / p.cr_tau
         below = 1.0 if g < 54.0 else 0.0
         self.haaf += dt * ((1.0 - self.haaf) / p.haaf_tau_rec - p.haaf_kappa * below * self.haaf)

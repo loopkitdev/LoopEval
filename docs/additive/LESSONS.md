@@ -749,3 +749,25 @@ evidence to the evidence files.
    the 81–Gb band, so a fix belongs in A1 (whether the liver answers below Gb at basal insulin), not in A9 or the
    residual. Open: A1b's size in T1D (Bruce 2025: partial, transient suppression at basal insulin), and the liver below
    Gb at basal insulin (Mevorach 2000 measured at raised insulin). Run dir runs/2026-10-31-additive-gesplit/.
+
+549. **The split predicts a settings edit better than sd3 in the tight group, where the model is known to be
+   backwards.** On the 108 natural experiments (per-event seeds, paired before / after; `change/` in the run dir), the
+   response to +10% insulin by control level, field vs twin: TIR tight − rest field −7.18, lg13 +0.83 (wrong sign),
+   sd3 −0.86, `ge_split` −1.14; t70 in the tight group field +4.35, lg13 +0.43, sd3 +0.80, `ge_split` +1.18, and its
+   tight − rest contrast +0.92 [0.00, 1.74] against the field's +4.27 (sd3 +0.51). The split roughly doubles sd3's
+   tight-group low-side response and keeps the TIR sign. It costs a little on the size of the mean response (field /
+   twin 2.24 vs sd3's 1.93) and on the pooled t70 ratio (2.87 vs 2.59). Reading: what holds glucose up below Gb sets
+   how much a tight person's extra insulin costs them, so the lumped SG was part of the documented backwards
+   response by control level. The split is worse on the cohort score (L 548) and better on change prediction; it stays
+   off by default, and is the arm to use for the SIZE of a low-side change in tight people.
+
+550. **Coupling audit (Pete 2026-10-31): counter-regulation and the pump / site chain are modulated by nothing.**
+   Every driver in the model acts through a named channel (COMPONENTS.md § Couplings). Two channels have no driver
+   but their own clock: A9 counter-regulation (only its own HAAF history) and E5–E11 pump / site faults (only wear
+   age). Already tested and rejected, do not repeat: activity → gastric emptying (`ex_gut`, L 344), hyperglycaemic
+   slowing of emptying (`ge_hyper`, L 91: it caps the peak, the wrong way for the meal tail), exercise → sensor error
+   (`sensor_act_k`, L 498), post-hypoglycaemic insulin resistance (L 55: the rebound already matches, so it is not
+   needed). Unmodelled and evidenced: sleep → counter-regulation (Banarer 2003, the asleep epinephrine response
+   roughly halved), exercise → counter-regulation (exercise-associated autonomic failure), exercise → site failure and
+   dislodgement, and the aerobic side of exercise → EGP (C4 only adds the anaerobic surge, so moderate work has no
+   hepatic answer at all).

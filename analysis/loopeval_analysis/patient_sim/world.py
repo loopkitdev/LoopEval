@@ -484,6 +484,7 @@ class World:
             if (enable or {}).get("sleep_util", True) else 0.0     # default since 2026-10-18 (LESSONS 214)
         self._sleep_since = None
         self.ex_gut = bool((enable or {}).get("ex_gut", False))      # experiment (LESSONS 344)
+        self.cr_sleep = float(enable["cr_sleep"]) if enable and isinstance(enable.get("cr_sleep"), float) else 0.0   # A9 × sleep (L 550)
         self.potency = float(enable["insulin_potency"]) if enable and isinstance(enable.get("insulin_potency"), float) else 1.0
         self.niacin_si = float(enable["niacin_si"]) if enable and isinstance(enable.get("niacin_si"), float) else 1.0
         self.ge_am = float(enable["ge_am"]) if enable and isinstance(enable.get("ge_am"), float) else 1.25
@@ -859,8 +860,14 @@ class World:
             # it follows the filtered intensity, so emptying resumes as a session ends
             I_ = float(ex["ex_intensity"])
             gm *= (1.0 + 0.15 * min(I_ / 0.3, 1.0)) if I_ <= 0.6 else float(np.interp(I_, [0.6, 0.8], [1.15, 0.5]))
+        crm = 1.0
+        if self.cr_sleep > 0 and self.beh.asleep(m):
+            # A9 × sleep (experiment, off; LESSONS 550): asleep, the counter-regulatory answer to a low is roughly
+            # halved — epinephrine responses are markedly reduced and people are much less likely to wake (Banarer &
+            # Cryer 2003, Diabetes 52:1195, sleep-related HAAF in T1D). The only driver on A9 besides its own history.
+            crm = 1.0 - self.cr_sleep
         self.body.step(1.0, si_mult=si, si_d_mult=si_d_only, egp_mult=egp, util_drop=ud, ge_mult=gm, ex_intensity=ex["ex_intensity"],
-                       ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"],
+                       ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"], cr_mult=crm,
                        abs_mult=absm_env * absm_site * ex["abs_mult"] * self._posture_mult(m) * self._flow_mult(m), bio=bio)
         if int(m) % 5 == 0: self.ex_log.append((m, ex["ex_si_boost"]))     # exercise sensitivity, saved as truth ex_boost
         asleep = self.beh.asleep(m)
