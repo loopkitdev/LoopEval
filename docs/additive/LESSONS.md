@@ -930,6 +930,18 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    appearance (A10c, ~1 mg/dL), A12b (a 30% effective-sensitivity swing, ~1 mg/dL), dose (matched), Loop's response.
    What remains is the body's glucose-lowering per unit of insulin ACTION — A5's disposal chain or the ISF the body is
    given. This is the quantified form of L 512, and the direction is that the twins need MORE post-meal potency.
+   - **κ is NOT the channel** (diagnostic, `run_kp.sh`): κ scales insulin-mediated uptake with (G − Gb), so it acts
+     only at high glucose and would have dodged the `si_norm` trade entirely. At `kappa_mult` 1.8 — an 80% steepening
+     — the fall after the peak is 45 / 43 against ad3's 47 / 43 and the donors' 57, i.e. **unmoved**, while the rise to
+     the peak drops to 58 / 56 from 63 / 61 (donors 64). Scores 0.353 / 0.412 / 0.414 against 0.321 / 0.425 / 0.410.
+   - **The pattern across every failure on this gap, and the constraint it gives:** anything that adds glucose-lowering
+     at high glucose (κ) or removes appearance (A10c, `meal_slow`) **lowers the PEAK instead of deepening the FALL**.
+     A GLUCOSE-localised effect cannot steepen the descent, because it acts just as strongly during the ascent. Only a
+     TIME-localised one can — more insulin action after the peak specifically. A12b is time-localised but
+     mean-preserving, so Loop doses against the new baseline and it nets out (L 573). **So the remaining candidate is
+     insulin action peaking LATER — A5's p2, the one lever of L 512's list never tested against this statistic.**
+     p2 0.025 is the lispro clamp fit, so a slower value needs its own justification; test it as a diagnostic first,
+     the way κ was tested here.
 
 577. **TDD, not bg_mean, is the diagnostic for a core sensitivity error: `resid_m` absorbs core level errors.**
    `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the yardstick averages over the donor's

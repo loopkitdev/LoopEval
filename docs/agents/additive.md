@@ -163,9 +163,10 @@ reference changes.
   it (three rounds per draw, L 525) before it can be judged. One cause behind three documented limits.
 - **the shallow post-meal trough is 72% potency, not dose** (L 575): after a meal peak the twins spend nearly the donors'
   insulin (1.78 against 1.98 U over 90 min) but fall 41 against 57 mg/dL — 80% of the donors' mg/dL per unit. Appearance
-  (A10c) and A12b are both ruled out (a 30% sensitivity swing moves the trough ~1 mg/dL), as are dose and Loop compensation
+  (A10c), A12b, and κ (an 80% steepening leaves the fall unmoved and lowers the peak) are all ruled out, as are dose and Loop compensation
   (L 575: raising ppr_a made Loop spend LESS, not more). At MATCHED spend — ad0 and the donors both 1.98 U — the twins fall
-  43 against 57, a pure 75% potency gap. What is left is A5's disposal chain or the body's ISF (G2), and it may be the same
+  43 against 57, a pure 75% potency gap. Every GLUCOSE-localised lever lowers the peak instead of deepening the fall, so the
+  effect must be TIME-localised: the remaining candidate is insulin action peaking LATER (A5's p2), and it may be the same
   defect as the twins' 5-8% insulin surplus (L 445-456).
 - **the excess lows are shallow ones that linger, and counter-regulation cannot fix them** (L 559, 560): at a 60–70 nadir
   the twins rise +21 in 30 min against the donors' +26 and dwell 15 min against 10. A9 can supply at most 2.4 mg/dL over
