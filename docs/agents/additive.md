@@ -90,7 +90,11 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75` on the reference. It reproduces C4's own by-METs table —
   the ≥ 8 MET band reads +0.9 against the donors' +1.2 where the band has enough bouts — against the reference's +12.8 / −5.1.
   Use it whenever the response to a workout matters; the reference keeps the score-optimal settings.
-- **Current reference** (2026-11-01): **ad2** (runs/2026-10-31-additive-gesplit) — ad0 with A12b's post-meal window at its own
+- **Current reference** (2026-11-01): **ad3** (runs/2026-10-31-additive-gesplit) — ad2 with the residual's fast and block parts
+  weighted to waking hours (`resid_diurnal` 0.9, LESSONS 568; variance-preserving, so the per-person amplitudes still hold).
+  Score **0.321 / 0.425 / 0.410** on seed0 1000 / 5000 / 9000, tier 1 0.108 / 0.291 / 0.161 — better than ad2 on all three.
+  Revert with `--set resid_diurnal=0`.
+- **Previous reference** **ad2** (runs/2026-10-31-additive-gesplit) — ad0 with A12b's post-meal window at its own
   target (`ppr_a` 0.6, LESSONS 558): score 0.340 / 0.444, tier 1 0.146 / 0.312. The meal tail is now calibrated
   (meal_d3_p50 ratio 0.97) and the 3-h meal change 33 / 31 against the donors' 38; the cost is TIR 68.9 / 70.2 against
   71.9, because the twins' excess time below range is amplified as the spread grows. **Best arm yet on change prediction**:

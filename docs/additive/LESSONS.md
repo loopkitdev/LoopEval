@@ -1215,3 +1215,31 @@ evidence to the evidence files.
      this added.
    - `ex_abs` and `ex_min` 31 are level on the mean, so both stay flags: `ex_abs` in the exercise-faithful
      configuration (L 566), `ex_min` 31 for `workout_dur` (34.8 against the donors' 35.4, from ad2's 44.9).
+568. **The residual's diurnal shape was flat and wrong; weighting it to waking hours improves the score on all three
+   draws — the only unambiguous win of 2026-11-01, and the only change that fixed a DISTRIBUTION rather than a size.**
+   The worst tier-2 row was `ice_dip_day` (unexplained falls per day: twins 1.42 / 1.67 against the donors' 0.692),
+   and its diagnostic was the clock: only 44.9% of the twins' dips fell by day against the donors' 66%, so the excess
+   is at NIGHT — which rules out everyday activity, the row's designated fitting target (L 494). The residual's fast
+   and block OU processes ran flat over 24 h, while the donors' unexplained drive lives in waking hours (eating and
+   movement are most of it). `resid_diurnal` weights those two parts by sqrt(1 + k·cos(2π(t − 15 h)/24 h)); cos has
+   zero mean, so **mean(w²) = 1 exactly** and each person's amplitudes, fitted on whole-record SD, still hold — only
+   WHEN the variance appears changes.
+
+   | | Donors | ad2 | **ad3 (k 0.9)** |
+   |---|---|---|---|
+   | score d1 / d2 / d3 | — | 0.340 / 0.444 / 0.430 | **0.321 / 0.425 / 0.410** |
+   | tier 1 | — | 0.146 / 0.312 / 0.154 | 0.108 / 0.291 / 0.161 |
+   | ice_dip_day | 0.692 | 1.42 / 1.67 / 1.50 | 1.42 / 1.50 / 1.33 |
+   | day share of dips | 0.660 | 0.449 / 0.444 / 0.457 | 0.472 / 0.469 / 0.500 |
+   | t70 | 1.599 | 1.97 / 2.16 | 1.72 / 1.90 |
+   | tir | 71.9 | 68.9 / 70.2 | 69.8 / 71.1 |
+   | night insulin CV | 35.4 | 30.3 / 33.3 | 30.7 / 34.6 |
+
+   **Adopted at k 0.9** (night amplitude ×0.32, afternoon ×1.38); new reference **ad3**, which reproduces the flagged
+   arm. k 0.6 is nearly as good (mean 0.373 against 0.371). It recovers t70 and TIR without `ge_spare`'s depth cost,
+   and the night rows it might have damaged improve instead (night CV, day / night both closer).
+   - **Why this one worked where a dozen size changes were level.** Every other candidate traded one row for another
+     because it changed how MUCH of something there was. This changed only where existing, already-fitted variance
+     sits, so nothing had to be given up. **Look for distributional errors before reaching for a size**: if the
+     residual's diurnal shape was wrong, its shape across the meal cycle and its correlation with activity are the
+     same class of defect and the same cheap fix.
