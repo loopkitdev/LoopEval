@@ -142,6 +142,10 @@ def build_pilot(root: Path | None = None, sensor_csv: str | None = None, age_csv
                  free_bolus_u_med=float(corr.units[_free(corr)].median()) if _free(corr).any() else np.nan,
                  true_corrections_per_day=float((~_free(corr)).sum() / span),
                  rescues_per_day=len(rs) / span, rescue_size_med=float(rs.size_g.median()) if len(rs) else np.nan,
+                 # the donor's own PRE-EMPTIVE low-side eating: labelled pulses starting below 80 that the labeller
+                 # did not call a rescue. `pro_grams` was a fixed 12 g while `treat_grams` came from the donor (L 588)
+                 low_pro_g=(float(nr[nr.bg_onset < 80].size_g.median())
+                            if "bg_onset" in nr.columns and (nr.bg_onset < 80).sum() >= 5 else np.nan),
                  rescue_bg_med=float(rs.bg_onset.median()) if len(rs) else np.nan,
                  carb_entries_per_day=float(meals.entry_g.gt(0).sum() / span),
                  user_boluses_per_day=float((ann.bolus_u > 0).sum() / span + len(corr) / span),

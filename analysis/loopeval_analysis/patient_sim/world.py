@@ -349,6 +349,14 @@ class World:
             # `--disable ex_cap_fit` a silent no-op, so the previous reference could not be reproduced (L 580)
             self.beh_traits = copy.deepcopy(self.beh_traits)
             self.beh_traits.ex_cap_fit = bool(enable["ex_cap_fit"])
+        if enable and enable.get("pro_g_own"):       # proactive snack size from the donor's own low-onset pulse (L 588)
+            # the assignment happens HERE, not in sample_behavior_traits: that has already returned by now, so a
+            # flag-only branch there would never fire (the ex_cap_fit / ov_dur_own wiring bug, L 580, 586)
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.pro_g_own = True
+            if np.isfinite(self.beh_traits.low_pro_g):
+                from .behavior import LABEL_PRO_F
+                self.beh_traits.pro_grams = float(np.clip(self.beh_traits.low_pro_g * LABEL_PRO_F, 6.0, 40.0))
         if enable and "ov_dur_own" in enable:        # override length from the donor's own spread (L 586); default True
             self.beh_traits = copy.deepcopy(self.beh_traits)
             self.beh_traits.ov_dur_own = bool(enable["ov_dur_own"])

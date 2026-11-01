@@ -28,7 +28,7 @@ from .insulins import BRAND_TO_FORMULATION, FORMULATIONS
 BEHAVIOR_COLS = ["far_unann", "corr_rec0", "carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "archetype", "meals_per_day",
                  "meal_hours", "meal_size_med", "meal_size_logsd", "announced_share", "estimate_ratio",
                  "bolus_lead_min", "p_bolus_ann", "bolus_ratio", "corrections_per_day", "corr_bg_med", "corr_ratio",
-                 "rescues_per_day", "rescue_size_med", "rescue_bg_med", "free_boluses_per_day",
+                 "rescues_per_day", "rescue_size_med", "rescue_bg_med", "low_pro_g", "free_boluses_per_day",
                  "free_bolus_u_med", "true_corrections_per_day", "tir", "t70",
                  "entries_raw", "entered_g_raw", "corr_over_share", "corr_over_u", "corr_u_med", "corr_u_lsd", "corr_p_mult", "corr_thr_adj", "stack_p", "unann_hours", "boluses_raw", "bolus_entry_raw", "topups_raw", "lone_raw", "manual_u_day",
                  "abs_fast_s", "abs_slow_s", "abs_fast_l", "abs_slow_l", "gap_short", "gap_long", "entry_hours",
