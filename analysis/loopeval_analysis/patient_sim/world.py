@@ -153,6 +153,8 @@ class World:
             # experiment (LESSONS 301): the energy ceiling × m for everyone, the person's spread kept (Km fixed, so kempt follows)
             person = copy.deepcopy(person); m_ = enable["ge_kcal_mult"]
             person.body = person.body.scaled(ge_kcal_max=person.body.ge_kcal_max * m_, kempt=person.body.kempt * m_)
+        if enable and isinstance(enable.get("ge_beta"), float):   # Elashoff power-exponential emptying shape (L 591)
+            person = copy.copy(person); person.body = person.body.scaled(ge_beta=float(enable["ge_beta"]))
         if enable and isinstance(enable.get("ge_kcal"), float):
             person = copy.deepcopy(person)        # gastric-emptying energy ceiling, kcal/min (the body and behavior both read it)
             person.body = person.body.scaled(ge_kcal_max=enable["ge_kcal"])

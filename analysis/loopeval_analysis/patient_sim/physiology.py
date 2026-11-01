@@ -113,6 +113,14 @@ class BodyParams:
     p2e_off: float = 0.0           # > 0: X_E's rate when the hepatic signal is falling (insulin withdrawn); p2e stays the onset
                                    # rate (meal tracer nadir, Romeres 2025). Gray 1982 HGO recovery half-times 59 / 119 min
                                    # after 40 / 120 mU/m²/min give 0.012–0.020 through egp_vs (LESSONS 193)
+    ge_beta: float = 1.0           # Elashoff 1982 power-exponential emptying: the fraction of a parcel still in the
+                                   # stomach is exp(−(k·t)^beta), so the emptying HAZARD is beta·(k·t)^(beta−1) — a
+                                   # flatter start and a sharper finish. beta = 1 is the first-order tail this model
+                                   # has had, and reproduces it exactly. Measured target (L 591): at a matched 35 g
+                                   # the donors' labelled pulses peak at 50 min and decay for 60 (decay/peak 1.21),
+                                   # the twins' peak at 37 and decay for 66 (1.44) — they rise too early and trail
+                                   # too long, which is the one time-asymmetric shape L 575 asks for.
+    ge_beta_cap: float = 4.0       # clip on the hazard multiplier, so a parcel's first minutes cannot empty instantly
     ge_hyper: float = 0.0          # maximal slowing of emptying in hyperglycaemia: rate × (1 − h·(1 − e^(−(G−100)/50)));
                                    # h 0.45 gives ×0.74 at 8 mmol/L (Schvarcz 1997) and ×0.56 at 15–20 (Fraser 1990) [J]
     # exercise
@@ -327,6 +335,9 @@ class Body:
         for pc in self.parcels:
             if not pc.entered: continue
             ke_ = pc.kempt * (phi if pc.hypo_sensitive else 1.0) * (ge_mult if pc.kcal_per_g > 0 else 1.0)
+            if p.ge_beta != 1.0:                     # Elashoff power-exponential: hazard beta·(k·age)^(beta−1)
+                age = max(m - pc.t - pc.delay, dt)
+                ke_ *= min(p.ge_beta_cap, p.ge_beta * (pc.kempt * age) ** (p.ge_beta - 1.0))
             s1, s2, gut = pc.q
             e1 = ke_ * s1; e2 = ke_ * s2 * scale; a = pc.kabs * gut
             pc.q = [s1 - dt * e1, s2 + dt * (e1 - e2), gut + dt * (e2 - a)]
