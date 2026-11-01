@@ -1315,3 +1315,38 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      0.324 / 0.391 / 0.408, mean 0.374 against `ov0`'s 0.372. It is better explained, but it moves the share of twins
      with no window at all from 42% to 27% on draw 2 against the donors' 42%, so it is not free. Judge it on the
      natural experiments.
+
+587. **The person already sees what the controller shows, and the obvious next use of it — displayed IOB as a brake on
+   correcting — is contradicted by the donors.** (Pete asked whether the behaviour model should have visibility of the
+   forecast or IOB a controller presents.)
+   - **What it already sees.** `Behavior.minute(m, reading, state)` is handed `state["iob"]` and `state["rec_bolus"]`.
+     IOB is used in the proactive snack, which projects `cgm + 30 * trend − ISF * IOB` — a one-step forecast built from
+     what Loop displays. Loop's recommendation scales every meal bolus (`bolus_requests` is a ratio of it) and gates
+     corrections under `corr_rec_gate`. So the identified display channels are in.
+   - **Where there is no term at all: the correction decision.** It fires on `cgm > corr_thr`, trend, a refractory
+     `corr_wait` and the person's own `p_correct` — nothing about IOB. The prior worth testing is anti-stacking: a user
+     who sees 4 U on board and a forecast coming down withholds. That prior also predicts relief for two documented
+     limits, the twins' 5–8% insulin surplus and their excess lows.
+   - **Measured, it is false** (`resid_tools/corr_vs_iob.py`). Manual-correction hazard by IOB tercile, compared inside
+     a cell of (donor, glucose band, 2-h mean glucose tercile, trend sign), away from meals and from any recent manual
+     bolus:
+
+     | controls | 150–180 | 180–220 | 220–300 | paired |
+     |---|---|---|---|---|
+     | ≥ 60 min since last manual bolus | 4.1× | 4.5× | 6.0× | p 5e-60 |
+     | + waking 08–22, ≥ 180 min since | 1.8× | 5.5× | 3.0× | p 9e-24, +0.73 corrections/day |
+
+     At matched glucose, trajectory and time of day the donors correct **2–5× MORE** with insulin on board, not less.
+     Adding an IOB brake would move the model away from the data; adding the amplifier the data shows would raise a TDD
+     that is already 5–8% too high. The model's current silence sits between the two.
+   - **Why the observational test cannot settle it, and what that implies.** IOB is endogenous: at the same glucose and
+     the same 2-h history, more IOB means the controller has been dosing harder, which marks unannounced food or a
+     stubborn high — exactly the occasions a person notices and tops up. So in donor data IOB is a proxy for an active
+     situation, and its sign is dominated by that, not by what the display does to the decision. **A display effect is
+     only identifiable where the displayed quantity is the thing being responded to**, which is the recommendation
+     (accepted as a fraction) — and that channel is already modelled. A forecast term would face the same problem:
+     Loop's eventual-BG is a function of the same glucose and insulin the behaviour already reads, so fitting a
+     response to it from donor data would re-fit the trajectory, not the display.
+   - **So: no new IOB or forecast term in the correction limb on this evidence.** What would settle it is data where
+     the display varies independently of the situation — a controller change that alters what is shown without altering
+     the dosing, or a donor's own before/after at a display change.
