@@ -173,8 +173,11 @@ reference changes.
   differs is the share of episodes treated at all (0.60 against 0.49), and that follows from episode DURATION — median
   25 min against 20, x1.25 against the treated-share's x1.23. Four arms on the eating side (size, refractory, onset
   −10 / −20) were all rejected. Do not spend more there.
-- **the shallow-low recovery gap is down to one named, unevidenced mechanism** (L 563): a glucose-dependent hepatic
-  response below Gb, worth ~0.34 mg/kg/min at G 65. Insulin is ruled out (the twins carry LESS IOB at the nadir, 1.09 vs
+- **the shallow-low recovery gap is down to one named, unevidenced mechanism** (L 563, sized L 589): a
+  glucose-dependent hepatic response below Gb, worth ~0.34 mg/kg/min at G 65 — **about 3x either of the two sub-basal
+  mechanisms the model has**, both now measured too small (A9 counter-regulation 2.4 mg/dL per 30 min, L 559–560; A1c
+  sparing 3.7, L 589). Quote that bracket in any evidence request: the study needed lowers glucose below basal at basal
+  insulin in T1D. Insulin is ruled out (the twins carry LESS IOB at the nadir, 1.09 vs
   1.59 U, and still climb out slower), as are A9 and rescue behaviour. Bruce 2025 and Del Prato 1997 do NOT size it — both
   RAISE glucose above basal (they are A1b's and A1a's evidence); this needs a study that lowers glucose below basal at basal
   insulin in T1D, which only Mevorach 2000 approaches, under a hyperinsulinaemic clamp.
@@ -279,8 +282,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   draws, −14 → −18 against the donors' −21.5, but the ≥ 8 band goes negative where the donors rise; the two bands trade, L 565),
   `ex_headroom` 1.5 (restores the session-intensity tail and validates C4's
   size of 28 — the ≥ 8 MET band reads +1.8 vs the donors' +1.2 at n 40; costs score on both draws, use it for
-  exercise-focused work, L 554), `ge_spare` (A1c alone: buys t70 1.97 / 2.16 → 1.67 / 1.71 and TIR on both
-  draws, costs the share of lows reaching 54, 0.212 → ~0.17, which A9 cannot refit; awaiting Pete, L 561–562), `ge_split` (glucose effectiveness from named parts; too many lows, and superseded by the C4 threshold fix on change prediction too, L 548, 555), `ex_dur_cap` (the cap without the METmax fit — leaves almost no hard session, L 554), `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
+  exercise-focused work, L 554), `ge_spare` (A1c alone — **RESOLVED off, L 589**: re-run on the ov0 base it loses on
+  score (mean 0.380 against 0.372; its L 561 t70 gain was on ad3, whose t70 ov0 has since partly fixed) and it does
+  not move the target L 588 created for it — low-episode duration stays 25 min against the donors' 20, events per
+  episode 0.62 → 0.61, low-side eating rate unchanged. At G 65 its sparing is 0.20 mg/kg/min, ~3.7 mg/dL per 30 min,
+  the same too-small class as A9's 2.4; the missing hepatic term is ~3x either), `ge_split` (glucose effectiveness from named parts; too many lows, and superseded by the C4 threshold fix on change prediction too, L 548, 555), `ex_dur_cap` (the cap without the METmax fit — leaves almost no hard session, L 554), `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
   `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
 
 ## Analysis traps (each cost a session)
