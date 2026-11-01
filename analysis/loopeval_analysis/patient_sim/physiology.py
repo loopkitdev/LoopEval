@@ -116,6 +116,7 @@ class BodyParams:
     ge_hyper: float = 0.0          # maximal slowing of emptying in hyperglycaemia: rate × (1 − h·(1 − e^(−(G−100)/50)));
                                    # h 0.45 gives ×0.74 at 8 mmol/L (Schvarcz 1997) and ×0.56 at 15–20 (Fraser 1990) [J]
     # exercise
+    ex_abs: bool = False           # C1's uptake keyed to absolute work rate, not %VO2-reserve (L 565)
     ex_uptake: float = 0.0         # mg/kg/min insulin-independent uptake at intensity 1
     ex_egp_surge: float = 28.0     # mg/kg/min EGP rise at intensity 1 for anaerobic work, above the 60% threshold; calibrated
                                    # on donors' ≥ 8-MET workouts (rise ≥ 20 during in 46%; LESSONS 247; was 0)
@@ -253,7 +254,7 @@ class Body:
 
     # ------------------------------------------------------------------ dynamics
     def step(self, dt: float = 1.0, si_mult: float = 1.0, egp_mult: float = 1.0,
-             ex_intensity: float = 0.0, ex_anaerobic: float = 0.0, ex_si_boost: float = 0.0,
+             ex_intensity: float = 0.0, ex_anaerobic: float = 0.0, ex_si_boost: float = 0.0, ex_work: float = 0.0,
              abs_mult: float = 1.0, bio: float = 1.0, util_drop: float = 0.0, ge_mult: float = 1.0,
              si_d_mult: float = 1.0, cr_mult: float = 1.0):
         """Advance `dt` minutes (explicit midpoint for the fast states; dt ≤ 1 recommended).
@@ -354,7 +355,7 @@ class Body:
 
         egp = egp_ins + self.cr + p.ex_egp_surge * ex_intensity * ex_anaerobic
         self.egp = egp
-        uex = p.ex_uptake * ex_intensity * g / p.gb          # mass action: fades as glucose falls (evidence/10 §7.3)
+        uex = p.ex_uptake * (ex_work if p.ex_abs else ex_intensity) * g / p.gb   # mass action: fades as glucose falls (evidence/10 §7.3)
         renal = p.rcl * (g - p.rthr) if g > p.rthr else 0.0
         # insulin-mediated uptake's glucose dependence: weak above Gb (κ), proportional below it so
         # uptake vanishes with glucose (Bergman / UVA Michaelis–Menten at low G; LESSONS 7)

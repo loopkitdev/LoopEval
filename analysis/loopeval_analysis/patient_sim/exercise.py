@@ -110,6 +110,10 @@ class Exercise:
             anaerobic = anaerobic * min(1.0, max(0.0, (mets_ - self.p.surge_mets) / 2.0))
         else:
             anaerobic = anaerobic * min(1.0, max(0.0, (intensity - self.p.surge_thr) / (1.0 - self.p.surge_thr)))
-        return dict(ex_intensity=self.p.gain * self.y, ex_anaerobic=anaerobic,
+        # C1 keyed to ABSOLUTE work rate (L 565): muscle glucose uptake follows the work being done, not the strain
+        # relative to the person's ceiling, so a 7-MET effort takes similar glucose whether the person is fit or not.
+        # Expressed on a reference METmax of 9 so a median-fitness person is unchanged.
+        work = self.p.gain * self.y * (self.p.metmax - 1.0) / 8.0
+        return dict(ex_intensity=self.p.gain * self.y, ex_work=work, ex_anaerobic=anaerobic,
                     ex_si_boost=self._acute() + self.z,
                     abs_mult=1.0 + self.p.absorb * self.y)

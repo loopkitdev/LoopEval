@@ -469,6 +469,8 @@ class World:
         # C2 saturating in intensity, k 0.1 (default since 2026-10-23, LESSONS 495; --set ex_sat=0 restores the linear α·Y)
         self.ex_sat = float(enable["ex_sat"]) if enable and isinstance(enable.get("ex_sat"), float) else 0.1
         if self.ex_sat <= 0: self.ex_sat = None
+        if (enable or {}).get("ex_abs"):     # C1 keyed to absolute work rate (LESSONS 565)
+            person.body = person.body.scaled(ex_abs=True)
         if (enable or {}).get("ex_post"):    # experiment (LESSONS 507): exercise boost on insulin's action, not its input
             person.body = person.body.scaled(ex_post=True)
         self.act_frag = bool((enable or {}).get("act_frag", True))     # default since 2026-10-18 (Pete, LESSONS 163)
@@ -877,7 +879,7 @@ class World:
             # Cryer 2003, Diabetes 52:1195, sleep-related HAAF in T1D). The only driver on A9 besides its own history.
             crm = 1.0 - self.cr_sleep
         self.body.step(1.0, si_mult=si, si_d_mult=si_d_only, egp_mult=egp, util_drop=ud, ge_mult=gm, ex_intensity=ex["ex_intensity"],
-                       ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"], cr_mult=crm,
+                       ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"], cr_mult=crm, ex_work=ex.get("ex_work", 0.0),
                        abs_mult=absm_env * absm_site * ex["abs_mult"] * self._posture_mult(m) * self._flow_mult(m), bio=bio)
         if int(m) % 5 == 0: self.ex_log.append((m, ex["ex_si_boost"]))     # exercise sensitivity, saved as truth ex_boost
         asleep = self.beh.asleep(m)
