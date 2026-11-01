@@ -314,18 +314,32 @@ The level is what carries a donor's control level (L 448's far-from-meal load); 
   recording habit (L 496).
 - **The KS count** ("matched of 51", KS p > 0.05) is still written to `compare_pilot.csv` / `compare_life.csv`. Its
   cut depends on the sample size, so the weighted score ranks runs.
-- **Two draws of people:** draw 1 is seed 1000, draw 2 is seed 5000. The draw moves the score by about 0.04 and tier 1 by
-  about 0.07, so adopt a change only when it holds on both draws (L 444, 492).
+- **THREE draws of people:** seed0 1000, 5000 and 9000 — read the mean (L 567). The draw moves the score by about 0.04
+  and tier 1 by about 0.07, so a change is adopted when it holds across them (L 444, 492). **Draw 1 is this lineage's
+  own development draw and scores anomalously well on it** (ad3: 0.321 against 0.425 / 0.410, which agree with each
+  other), so a candidate that gives up draw-1 fit looks worse than it is; where the three disagree, discount 1000.
 - **Running it:** cohort, then `python -m loopeval_analysis.patient_sim.meal_response <run>` (the labeller), then
   `python -m loopeval_analysis.patient_sim.lifestats sim <run>`, then `python -m loopeval_analysis.patient_sim.score
   <run> [<run> ...] --detail`. Scores from before L 494's rows do not compare with later ones.
 
-**Status at the reference sd3 (draw 1) / sd3_5k (draw 2):**
+**Status at the reference ad3** (2026-11-01; runs/2026-10-31-additive-gesplit, L 568):
 
-| | Tier 1 | Tier 2 | Tier 3 | Score | Close (of 51) |
+| | Tier 1 | Tier 2 | Tier 3 | Score | Close |
 |---|---|---|---|---|---|
-| draw 1 | 0.243 | 0.444 | 0.450 | 0.370 | 22 |
-| draw 2 | 0.401 | 0.494 | 0.416 | 0.454 | 19 |
+| draw 1 (1000) | 0.108 | 0.444 | 0.462 | **0.321** | 26 of 51 |
+| draw 2 (5000) | 0.291 | 0.505 | 0.453 | **0.425** | 17 of 54 |
+| draw 3 (9000) | 0.161 | 0.555 | 0.485 | **0.410** | 23 of 54 |
+
+ad3 is sd3 plus, in order: C4's surge threshold keyed to 8 absolute METs with session intensity capped by length and
+METmax made consistent (L 554, 556, 564, 566); A12b's post-meal window at its own target, `ppr_a` 0.6 (L 558); and the
+residual's fast and block parts weighted to waking hours, `resid_diurnal` 0.9 (L 568). On the natural experiments it
+takes the tight − rest TIR and mean contrasts (−1.63, +0.93 against the field's −7.18, +1.65) with t70 +0.74
+[+0.12, +1.39] (L 568). Previous reference sd3 read 0.370 / 0.454 on draws 1 / 2.
+
+**Open at this reference:** the shallow-low recovery (+20 against the donors' +26 mg/dL over 30 min after a 60–70
+nadir, mechanism unevidenced — L 559–563); the 6–8 MET band (−14 against −21.5, reachable only in the
+exercise-faithful configuration at a score cost — L 565, 566); `entry_fast_fall` (4.8 against 14.3, which trades
+against the meal tail through the same window — L 569, 570); and TIR 69.8 / 71.1 / 68.2 against 71.9.
 
 **Running it:** `--templates templates_pilot_resid_sd3.csv --enable rc_own,night_pro,uls,resid,site_clock --disable
 day,stress,illness,menstrual,steroid,act_frag --set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.6,si_norm=0.92`.
