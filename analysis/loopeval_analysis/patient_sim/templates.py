@@ -208,7 +208,14 @@ def add_override_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice
       less  factor < 0.99 — less insulin (activity, low prevention): starts ~126 mg/dL and falling, afternoon
       more  factor > 1.01 — more insulin (reaction to highs): starts ~210 and rising, evening
       tgt   target only — mostly a lowered target ahead of eating (Loop's pre-meal preset), ~0.8 h
-    rate/day, median factor, target low/high and duration (h) per class."""
+    rate/day, median factor, target low/high and duration (h) per class, plus the class's own duration SPREAD
+    (`ov_<cls>_s`, the SD of log duration): the twins' windows ran 41 min against the donors' 65 and missed their long
+    tail because the draw used a fixed log-SD of 0.6 (LESSONS 586).
+
+    A real override is >= 5 min. Shorter records are cancellations — the ETL keeps an edit-version per change — and
+    they are therapy-free but wreck the fit: left in, the log-duration SD reads 2.01 (and a lognormal at that sigma
+    puts 31% of windows under 30 min against the donors' real 18%); dropped, the donors show a median of 79 min with
+    SD 0.83, and lognormal(79 min, 0.8) reproduces both their tails (8% under 30 min, 8% over 4 h)."""
     import json
     import numpy as np
     t = pd.read_csv(path)
@@ -222,6 +229,7 @@ def add_override_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice
             span = (pd.Timestamp(th["basal"][-1]["endDate"]) - pd.Timestamp(th["basal"][0]["startDate"])).total_seconds() / 86400
             W = pd.DataFrame([dict(f=w.get("factor", np.nan), lo=w.get("targetLo", np.nan), hi=w.get("targetHi", np.nan),
                                    d=(pd.Timestamp(w["end"]) - pd.Timestamp(w["start"])).total_seconds() / 3600) for w in ow])
+            W = W[W.d >= 5 / 60.0] if len(W) else W          # a cancellation is not an override
             for cls, m in (("less", W.f < 0.99), ("more", W.f > 1.01),
                            ("tgt", W.f.isna() | ((W.f >= 0.99) & (W.f <= 1.01)))) if len(W) else ():
                 x = W[m]
@@ -229,7 +237,10 @@ def add_override_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice
                             f"ov_{cls}_f": float(x.f.median()) if len(x) and x.f.notna().any() else np.nan,
                             f"ov_{cls}_lo": float(x.lo.median()) if len(x) and x.lo.notna().any() else np.nan,
                             f"ov_{cls}_hi": float(x.hi.median()) if len(x) and x.hi.notna().any() else np.nan,
-                            f"ov_{cls}_h": float(x.d.median()) if len(x) else np.nan})
+                            f"ov_{cls}_h": float(x.d.median()) if len(x) else np.nan,
+                            # the donor's own spread of window length, so a heavy-tailed or indefinite user keeps it
+                            f"ov_{cls}_s": (float(np.clip(np.log(x.d).std(), 0.3, 1.3))
+                                            if len(x) > 2 else np.nan)})
         out.append(row)
     r = pd.DataFrame(out)
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")

@@ -349,6 +349,9 @@ class World:
             # `--disable ex_cap_fit` a silent no-op, so the previous reference could not be reproduced (L 580)
             self.beh_traits = copy.deepcopy(self.beh_traits)
             self.beh_traits.ex_cap_fit = bool(enable["ex_cap_fit"])
+        if enable and "ov_dur_own" in enable:        # override length from the donor's own spread (L 586); default True
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.ov_dur_own = bool(enable["ov_dur_own"])
         if enable and isinstance(enable.get("ex_min"), float):        # usual session length, minutes (L 567)
             self.beh_traits = copy.deepcopy(self.beh_traits)
             self.beh_traits.ex_minutes = float(self.beh_traits.ex_minutes * enable["ex_min"] / 40.0)
