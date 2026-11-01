@@ -1028,3 +1028,20 @@ evidence to the evidence files.
    **Candidate:** A9's half-activation glucose `cr_g`, drawn N(65, 5), leaves counter-regulation only half-engaged at
    a 60–70 nadir. Cryer's glucagon and epinephrine thresholds sit near 68–70 mg/dL in people without severe HAAF, so
    65 is the low end of the evidence rather than its centre. Arms at 70 and 72 in `run_cg.sh`.
+
+560. **A9's threshold is not the shallow-low lever, and A9 is an order of magnitude too small to be: the term can
+   supply at most ~2.4 mg/dL over 30 min against the +5 needed.** `cr_g` 65 → 70 / 72 (arms cg70, cg72 on ad2, two
+   draws) barely moves the target of L 559: the 30-min rise from a 60–70 nadir goes +21 → **+22** (donors +26), the
+   median excursion length stays 15 min (donors 10), and minutes/day below 70 go 45.0 → 46.0 / 44.4. Scores are mixed
+   (0.340 → 0.362 / 0.346 on draw 1, 0.444 → 0.430 / 0.414 on draw 2) and t54 worsens on both, so neither is adopted;
+   `cr_g` stays N(65, 5).
+   - **Why it cannot work, before trying a third value:** CRmax is lnN(0.137, 0.5) mg/kg/min, so at FULL activation
+     sustained for 30 minutes A9 adds 0.137 × 30 ÷ V_G 1.68 = **2.4 mg/dL** — less than half the missing +5, and it is
+     not fully activated at 60–70 at any threshold. CRmax itself is fitted to the low DEPTHS (L 394), which match, so
+     it is not free. No setting of A9 closes this gap.
+   - **What is left, by size.** The lumped SG supplies 0.0045 × 35 × 30 = 4.7 mg/dL over the same window, so the
+     missing recovery is about the size of the whole glucose-effectiveness term at that depth. Candidates that can
+     carry it: insulin action waning faster below Gb (A5's M(G) shape / κ below basal — `ge_split`'s A1c brain-sparing
+     term is exactly this and is still off, L 548), or SG itself, which Pete allows calibrating within
+     0.0013–0.0047 (L 68, 75) — but the median is already 0.0045, near the top of the range, so there is little room.
+     Both point at the sub-basal shape of glucose disposal rather than at counter-regulation.

@@ -134,7 +134,11 @@ reference changes.
 - night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458);
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (LESSONS 457);
-- **the excess lows are now the binding limit on TIR** (L 558): the meal tail is calibrated and CV is on the donors', so
+- **the excess lows are shallow ones that linger, and counter-regulation cannot fix them** (L 559, 560): at a 60–70 nadir
+  the twins rise +21 in 30 min against the donors' +26 and dwell 15 min against 10. A9 can supply at most 2.4 mg/dL over
+  that window, so the lever is the sub-basal shape of glucose disposal (A5's M(G) / κ below basal, or A1c brain sparing),
+  not A9. Deep lows already rebound harder than the donors', so rescue behaviour is not it either.
+- **the excess lows are the binding limit on TIR** (L 558): the meal tail is calibrated and CV is on the donors', so
   as the spread grows the twins' extra time below range (t70 1.97 / 2.16 vs 1.60) is what holds TIR at 68.9 / 70.2 against
   71.9. Work the low side next, not the meal shape.
 - response to a settings change is damped (mean half the field's, lows 4–8× under) and twins of tight donors are not
