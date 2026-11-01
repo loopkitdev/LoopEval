@@ -339,7 +339,7 @@ takes the tight − rest TIR and mean contrasts (−1.63, +0.93 against the fiel
 **Open at this reference:** the shallow-low recovery (+20 against the donors' +26 mg/dL over 30 min after a 60–70
 nadir, mechanism unevidenced — L 559–563); the 6–8 MET band (−14 against −21.5, reachable only in the
 exercise-faithful configuration at a score cost — L 565, 566); `entry_fast_fall` (4.8 against 14.3, which trades
-against the meal tail through the same window — L 569, 570); and TIR 69.8 / 71.1 / 68.2 against 71.9.
+against the meal tail through the same window — L 568, 570); and TIR 69.8 / 71.1 / 68.2 against 71.9.
 
 **Running it:** `--templates templates_pilot_resid_sd3.csv --enable rc_own,night_pro,uls,resid,site_clock --disable
 day,stress,illness,menstrual,steroid,act_frag --set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.6,si_norm=0.92`.

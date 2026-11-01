@@ -735,816 +735,229 @@ evidence to the evidence files.
    control level (L 546). in1: TIR field / twin 0.84, tight − rest −1.87 (field −7.18), t54 response a tenth of the
    field's. Not adopted over sd3; a candidate twin for change work beside lg13.
 
-548. **Glucose effectiveness split into named parts (`ge_split`) is sounder but brings on too many lows: not adopted
-   yet.** A1's lumped SG(G − Gb) replaced by A1a tissue uptake without insulin, 0.0022 dL/kg/min both sides (Del Prato
-   1997 T1D at basal insulin, net of the body's own κ part); A1b the liver's own glucose suppression, UVA/Padova T1D
-   kp2 lnN(0.0038, 0.40), above Gb only (absent in T1D at mild lows, Mevorach 2000); A1c brain uptake 1 mg/kg/min,
-   falling ∝ G below 81 (Best 1981, Hovorka 2004). The median rate above Gb (0.0046 vs 0.0047 /min) and the push at
-   54 are unchanged; between 81 and Gb only A1a remains. Paired on sd3 (gs0 reproduces sd3 exactly): score 0.370 →
-   0.396 / 0.454 → 0.511; lows per day 1.08 → 1.38 / 1.21 → 1.58 (donors 1.00), t70 2.37 → 2.71 / 2.26 → 2.98 (1.60),
-   t54 0.255 → 0.293 / 0.258 → 0.332 (0.190); mean 148.7 → 149.8 / 143.9 → 146.0 (151.9), TIR on the donors'; the
-   activity fall weakens (act_net20 −3.2 → −1.5 / +0.9 → +2.8, donors −5.7). Counter-regulation needs no refit: under
-   the split the share of lows reaching 54 stays on the donors' (0.200 / 0.222 vs 0.212); CRmax × 1.5 / 2.2 pushes it
-   under (0.189 / 0.178, 0.167 / 0.168) and leaves lows per day at 1.38–1.54. The extra lows are shallow and come from
-   the 81–Gb band, so a fix belongs in A1 (whether the liver answers below Gb at basal insulin), not in A9 or the
-   residual. Open: A1b's size in T1D (Bruce 2025: partial, transient suppression at basal insulin), and the liver below
-   Gb at basal insulin (Mevorach 2000 measured at raised insulin). Run dir runs/2026-10-31-additive-gesplit/.
+**Lessons 548–579 were consolidated on 2026-11-01** (the session that produced them added 813 lines to a 734-line
+file). Every standing finding and number is kept; the route was cut. Numbers merged into their neighbours, so older
+citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 → 554 · 562 → 561 · 566 → 565 · 569, 570 → 568 ·
+572, 573 → 571 · 574 → 575 · 576, 578, 579 → 577. The originals are in the commit history (548–579, 2026-11-01).
 
-549. **The split predicts a settings edit better than sd3 in the tight group, where the model is known to be
-   backwards.** On the 108 natural experiments (per-event seeds, paired before / after; `change/` in the run dir), the
-   response to +10% insulin by control level, field vs twin: TIR tight − rest field −7.18, lg13 +0.83 (wrong sign),
-   sd3 −0.86, `ge_split` −1.14; t70 in the tight group field +4.35, lg13 +0.43, sd3 +0.80, `ge_split` +1.18, and its
-   tight − rest contrast +0.92 [0.00, 1.74] against the field's +4.27 (sd3 +0.51). The split roughly doubles sd3's
-   tight-group low-side response and keeps the TIR sign. It costs a little on the size of the mean response (field /
-   twin 2.24 vs sd3's 1.93) and on the pooled t70 ratio (2.87 vs 2.59). Reading: what holds glucose up below Gb sets
-   how much a tight person's extra insulin costs them, so the lumped SG was part of the documented backwards
-   response by control level. The split is worse on the cohort score (L 548) and better on change prediction; it stays
-   off by default, and is the arm to use for the SIZE of a low-side change in tight people.
+548. **Glucose effectiveness split into named parts (`ge_split`) is sounder but not adopted.** A1's lumped SG(G − Gb)
+   replaced by A1a tissue uptake 0.0022 dL/kg/min both sides (Del Prato 1997 T1D at basal insulin), A1b the liver's own
+   suppression above Gb only (UVA T1D kp2 lnN(0.0038, 0.40); absent at mild lows in T1D, Mevorach 2000), A1c brain uptake
+   1 mg/kg/min falling ∝ G below 81 (Best 1981, Hovorka 2004). Paired on sd3: score 0.370 → 0.396 / 0.454 → 0.511; lows
+   per day 1.08 → 1.38 / 1.21 → 1.58 (donors 1.00). Counter-regulation needs no refit — the share of lows reaching 54
+   stays on the donors' and CRmax × 1.5 / 2.2 pushes it under. The extra lows are shallow, from the 81–Gb band, so the
+   fix belongs in A1. It also read better than sd3 on the natural experiments, but that advantage does **not** survive
+   the C4 fix (L 553, 556): on the new reference its cohort cost is larger (0.385 / 0.518) and its tight − rest
+   contrasts are no better. Superseded; use the reference for low-side change work. Run dir
+   runs/2026-10-31-additive-gesplit/. A1c ALONE is a live candidate — see L 561.
 
-550. **Coupling audit (Pete 2026-10-31): counter-regulation and the pump / site chain are modulated by nothing.**
-   Every driver in the model acts through a named channel (COMPONENTS.md § Couplings). Two channels have no driver
-   but their own clock: A9 counter-regulation (only its own HAAF history) and E5–E11 pump / site faults (only wear
-   age). Already tested and rejected, do not repeat: activity → gastric emptying (`ex_gut`, L 344), hyperglycaemic
-   slowing of emptying (`ge_hyper`, L 91: it caps the peak, the wrong way for the meal tail), exercise → sensor error
-   (`sensor_act_k`, L 498), post-hypoglycaemic insulin resistance (L 55: the rebound already matches, so it is not
-   needed). Unmodelled and evidenced: sleep → counter-regulation (Banarer 2003, the asleep epinephrine response
-   roughly halved), exercise → counter-regulation (exercise-associated autonomic failure), exercise → site failure and
-   dislodgement, and the aerobic side of exercise → EGP (C4 only adds the anaerobic surge, so moderate work has no
-   hepatic answer at all). On eating during a session, which the entry rates appear to make the largest coupling
-   error (donors enter carbs during a workout at 0.18× the clock-hour rate against the twins' 1.05×, L 244), see
-   L 551: the entry rate measures logging, not eating, and does not support that reading.
+550. **Coupling audit (Pete 2026-10-31): counter-regulation and the pump / site chain are modulated by nothing but
+   their own clock.** Every driver acts through a named channel; the matrix is COMPONENTS.md § Couplings. Tested and
+   rejected, do not repeat: activity → emptying (`ex_gut`, L 344), hyperglycaemic slowing (`ge_hyper`, L 91 — it caps
+   the peak), exercise → sensor error (`sensor_act_k`, L 498), post-hypoglycaemic resistance (L 55 — the rebound
+   already matches), sleep → counter-regulation (`cr_sleep` 0.5: evidenced by Banarer 2003 but no benefit, its
+   apparent tier-1 gain is in the unrankable activity rows and t54 worsens on both draws). Unmodelled and evidenced:
+   exercise → counter-regulation, exercise → site failure, and the aerobic side of exercise → EGP.
 
-551. **Entries do not measure eating during a workout, and matched sessions say the twins' exercise fall is half the
-   donors' (Pete 2026-11-01).** Donors' carb entries during workouts run at 0.18× the clock-hour rate (L 244), but
-   exercise is where logging should fail (tabs, sports drink, gels), so the statistic cannot say whether they ate.
-   Measured instead on the shape every CGM shows (`donor_rev.py`, `match_rev.py` in runs/2026-11-01-additive-exeat;
-   700 donor workouts over 20 donors, 92% with no entry in the window):
-   - **Donors' entry-free workouts reverse like the twins that eat, not like the twins that eat nothing.** Reversal
-     ≥ 15 mg/dL after the mid-session nadir: donors with no entry 0.50, twins that ate 0.52 / 0.56, twins that ate
-     nothing 0.35 / 0.37. Sessions with a logged entry are barely different from entry-free ones (0.56 vs 0.50), so
-     logged carbs are not what lifts them. Unlogged intake or an endogenous answer fits; the entry rate cannot tell
-     them apart, so it does not support reading the twins as eating too much.
-   - **Match both sides or the number is meaningless.** C1's uptake is proportional to glucose, so the pooled drop
-     follows the starting-glucose mix. On identical filters — duration 25–60 min, 3.5–7 METs, nothing eaten or
-     entered in [start − 10, end + 10] — and twins pooled over both draws:
+551. **Entries do not measure eating during a workout, and the exercise gap is the SIZE of the fall.** Donors enter
+   carbs during a workout at 0.18× the clock-hour rate (L 244), but exercise is where logging fails, so the statistic
+   cannot say whether they ate. Measured on the shape every CGM shows (`donor_rev.py`, `match_rev.py`, `mets_rev.py`
+   in runs/2026-11-01-additive-exeat): donors' entry-free workouts reverse after the nadir as often as the twins that
+   EAT (≥ 15 mg/dL: 0.50 vs 0.52 / 0.56, against 0.35 / 0.37 for twins that eat nothing), and sessions with a logged
+   entry are no different (0.56), so logged carbs are not what lifts them.
+   **Match both sides or the number is meaningless** (C1's uptake is ∝ glucose). On identical filters — 25–60 min,
+   3.5–7 METs, nothing eaten or entered — and twins pooled over both draws, drop to the mid-session nadir:
 
-     | Starting glucose | Donors (n 128) | Twins (n 129) | Donor − twin [95% CI] |
-     |---|---|---|---|
-     | 70–120 | 4 | 3 | +1 [−9, +10] |
-     | 120–160 | 34 | 18 | **+15 [+7, +35]** |
-     | 160–200 | 43 | 38 | +6 [−15, +36] |
-     | 200–400 | 80 | 52 | +28 [−18, +62] |
-     | pooled | 34 | 17 | **+17 [+6, +29]** |
-
-     The pooled gap and the 120–160 band are the only cells whose interval excludes zero: the twins fall about half as
-     far. At 70–120 the two agree, so it is not a flat shortfall. Per draw the pooled twin figure is 20 and 13, so
-     read this on both draws pooled, never one.
-   - **Reading.** This tempers L 497's (eating around sessions) without reversing it: the twins' own fall is too
-     shallow whether or not they eat. Drop-to-nadir by starting-glucose band is a usable target where `act_net20`
-     is not (L 497), but it needs both draws and the matched filters.
-   - **Insulin is not the explanation, and the attribution is clean** (`ins_in_sess.py`). Delivery over the session
-     against the same clock hour's usual rate: at 120–160 donors 1.03 and twins 1.19 / 1.05, with donors' IOB at
-     start 2.88 U against the twins' 2.9–3.1 (L 497). So in that band duration, intensity, starting glucose,
-     delivery and IOB all agree and eating is excluded on both sides — what is left is the body's exercise response,
-     C1 and C2. At 70–120 donors instead cut delivery hard (0.37× usual, twins 0.88 / 0.75) and still fall only 4:
-     they get the same small fall on far less insulin, which says the same thing independently.
-   - **Ruled out without a run: a within-session intensity profile.** Sessions run at one constant intensity, but the
-     two nonlinearities both point the wrong way — C2 saturates in intensity (concave, so mean-preserving variation
-     lowers the mean boost) and C4's surge has a threshold (convex, so variation raises EGP). Variation would make
-     the fall shallower, not deeper, and the 7-min intensity filter damps it anyway.
-   - **Sizing C1 / C2 does not close it, and the gap is not a flat shortfall but an intensity one.** α 2.6 (the top
-     of Romeres 2021's +81–155% at intensity ~0.6; 2.0 is its linearised midpoint) leaves the pooled drop at 16 / 14,
-     and C1 × 1.5 reaches 22 / 21 against the donors' 35 (`run_ex.sh`; scores 0.369 / 0.487 and 0.397 / 0.427, both
-     mixed). C1 ×3 and α 6 were already rejected (L 494: C1 ×3 is as large at low IOB, breaking the measured insulin
-     dependence). By session METs instead (`mets_rev.py`, g0 120–200, twins pooled over both draws):
-
-     | Session METs | Donors | Twins | Donor − twin [95% CI] |
-     |---|---|---|---|
-     | 2.0–3.5 | 12 (n 14) | 20 (n 16) | −8 [−22, +11] |
-     | 3.5–5.0 | 39 (n 59) | 26 (n 22) | +13 [−6, +23] |
-     | 5.0–7.0 | 37 (n 18) | 9 (n 33) | **+28 [+8, +47]** |
-     | ≥ 7 | 28 (n 65) | 0 (n 14) | **+28 [+8, +41]** |
-
-     At light effort there is no gap at all; it opens at 5 METs and the twins' fall collapses above it, while the
-     donors' deepens to 7–9 METs and only shrinks at ≥ 9. **C4's surge threshold is the suspect**: 0.6 of VO2-reserve
-     is about 5.8 METs at the median METmax of 9, exactly where the twins' fall collapses, whereas the donors say the
-     hepatic answer should not dominate until about 9. L 497 tried `ex_surge_thr` 0.75–0.8 against `act_net20`, which
-     cannot rank it; this target can. Arms at 0.9 (≈ 8.2 METs) in `run_st.sh`. Read per-draw MET bands with care —
-     they hold 4–24 sessions each and the 5–7 band swings 20 vs 6 between draws; pool the draws and quote the interval.
-   - **A second, separate mismatch: the twins run half as many hard sessions.** Share of 25–60 min sessions at ≥ 7
-     METs: twins 0.18, donors 0.37 (median METs agree, 5.3 vs 5.1), so `ex_mets` compresses the tail even though
-     `workout_mets` passes as a scored row (L 494).
-
-552. **A9 × sleep (`cr_sleep` 0.5) is evidenced but shows no benefit: off.** The counter-regulatory answer halved while
-   asleep (Banarer & Cryer 2003, Diabetes 52:1195). Paired on sd3, two draws (cs0 reproduces sd3 exactly): score
-   0.370 → 0.371 and 0.454 → 0.444; tier 1 0.243 → 0.236 and 0.401 → 0.362, but the whole d2 tier-1 gain is in
-   `act_net20` / `act_net20_hi`, which move by their own draw scatter (L 497) and are flat on d1. t54 rises on both
-   draws (0.255 → 0.298, 0.258 → 0.301; donors 0.190) and meal_d3h worsens on d2. Kept off; the coupling stays in
-   the code as the only driver on A9 besides its own history. Run dir runs/2026-10-31-additive-gesplit/.
-
-553. **C4's surge threshold was firing at moderate effort and cancelling the fall; 0.9 of VO2-reserve is the new
-   default.** The donors' drop to the mid-session nadir keeps deepening through 7–9 METs and shrinks only at ≥ 9
-   (L 551), and C4's own Pemberton table has them deepest at 6–8 METs (−21.5) and positive only at ≥ 8 (+1.2). The
-   old 0.6 of reserve is about 5.8 METs at the median METmax of 9 — exactly where the twins' fall collapsed. At 0.9
-   (≈ 8.2 METs), paired on sd3 over two draws: score 0.370 → **0.353** and 0.454 → **0.437**, tier 1 0.243 → 0.203
-   and 0.401 → 0.353, better on both draws; `act_net20` −3.22 → −5.33 against the donors' −5.71 on draw 1. C4's own
-   6–8 MET band moves toward the donors on both draws (−1.8 → −6.5, +10.7 → +4.7) and the pooled bout mean reaches
-   −5.3 / −1.3 (donors −5.7). `review.py` shows no component drift against sd3, so nothing needed a refit. 0.85 is
-   nearly identical (0.357 / 0.437); raising the surge to 40 alongside it gives the gain back (0.368 / 0.451), so the
-   threshold, not the size, was wrong. Costs: lows per day rises slightly on both draws (gap 0.189 → 0.240,
-   0.474 → 0.505) and t54 is mixed (0.255 → 0.219, 0.258 → 0.294; donors 0.190). **Still open:** no arm reproduces the
-   donors' positive ≥ 8 MET band (+1.2; twins −7 to −9), and the 6–8 fall is still a third of theirs — the surge's
-   shape above the threshold is not right yet, on 15–27 bouts a draw. Run dir runs/2026-10-31-additive-gesplit/.
-
-555. **The C4 threshold change also improves the natural experiments, and it supersedes `ge_split` there.** On the 108
-   events (per-event seeds, `score_change.py` / `gradient.py`), response to +10% insulin by control level, field vs
-   twin:
-
-   | | Field | sd3 | st9 (new reference) | st9 + `ge_split` |
-   |---|---|---|---|---|
-   | t70, tight | +4.35 | +0.80 | +1.13 | +1.20 |
-   | t70, tight − rest | +4.27 | +0.51 [−0.30, +1.46] | **+0.83 [+0.11, +1.70]** | +0.84 [−0.09, +1.69] |
-   | TIR, tight − rest | −7.18 | −0.86 | **−1.51 [−3.24, +0.11]** | −0.90 |
-
-   st9's tight − rest low-side contrast is the first whose interval excludes zero, and its TIR contrast is the closest
-   to the field's sign and size. The intervals overlap sd3's, so read this as consistent with the cohort result rather
-   than as proof on its own. Costs: the size of the mean response is slightly smaller (field / twin 2.14 vs 1.97) and
-   the t54 ratio worse (4.18 vs 3.13).
-   **`ge_split` is superseded.** On the new reference its cohort score is 0.385 / 0.518 against st9's 0.353 / 0.437 —
-   a bigger cost than it carried against sd3 — and on the natural experiments it no longer adds (t70 tight − rest 0.84
-   vs st9's 0.83; TIR tight − rest −0.90, worse than st9's −1.51). L 549's advantage was measured against sd3 and does
-   not survive the C4 fix: what the split was buying on the low side, the threshold buys more cheaply. The split stays
-   off and is no longer the arm to reach for on low-side change work; use st9.
-
-554. **A quarter of simulated workouts were efforts no one can sustain, and fixing that exposes a contradiction in how
-   C4's threshold is keyed.** `ex_mets` draws a session's absolute METs from the donors' own workouts but converts
-   them on THIS twin's METmax, which is drawn independently (lnN(9, 0.25), median 8.8): 19% of sessions sat at 1.00 of
-   aerobic reserve — the clip ceiling — for a median 39 minutes, and 27% at ≥ 0.85. Every one of those fired C4's
-   surge, and a session that fires it does not fall at all: matched (nothing eaten, start 120–200, 25–60 min) the drop
-   to nadir is 20 mg/dL below the threshold and **0** above it. Two components that must agree did not.
-   - **`ex_dur_cap`** caps intensity by what a person holds for a whole session of that length (`_sus`: ~0.87 at
-     20 min, 0.775 at 40, 0.72 at 60; the intensity-duration relation, constants [J]). Score 0.353 → 0.363 / 0.437 →
-     0.416; matched drop 20 / 16 → **28 / 27** (donors 35) and C4's 6–8 MET band −6.5 / +4.7 → −13.3 / −8.3 (−21.5).
-     But it leaves almost no hard session: 3 and 13 bouts at ≥ 8 METs, against the donors' 51 of 171 (30%).
-   - **`ex_cap_fit`** keeps that cap and instead raises METmax to what the person's own sessions need (a 40-min habit
-     at 8.6 METs forces METmax ≥ 10.8), since session METs are measured and METmax is only a prior. ≥ 8 MET bouts come
-     back (20 and 23) and the 7–9 MET drop reaches 45 against the donors' 50. Score 0.384 / 0.412.
-   - **Neither is adoptable on the standing rule**: both are worse on draw 1 and better on draw 2 (st9 0.353 / 0.437),
-     so neither holds on both draws. They fix a physical impossibility, which is a soundness argument of the kind
-     L 303 settled in favour of soundness, but they are not yet a measured improvement.
-   - **The contradiction.** Keyed in %VO2-reserve, C4's threshold cannot reproduce the donors' positive ≥ 8 MET band
-     (+1.2) once METmax is consistent: for a person whose METmax is 11, 8 METs is 0.70 of reserve, far below any
-     anaerobic threshold, so those bouts fall hard instead (−24.6 / −13.4). The donors' surge signature is in absolute
-     METs; C4's threshold is in %reserve; raising METmax to fix the sessions necessarily moves a given MET load further
-     below the threshold. One of the two framings is wrong. `ex_surge_mets` (off) reads the threshold in absolute METs,
-     ramping to full 2 METs above it, which lets both the cap and the donors' band hold; arms at 7 and 8 METs with
-     `ex_cap_fit` in `run_sm2.sh`. Run dir runs/2026-10-31-additive-gesplit/.
-   - **A numeric override in `--enable` voids the arm in silence** (it cost the first `ex_surge_mets` pair, which came
-     back bit-identical to its own control at both thresholds). `--enable` makes each item a switch NAMED `k=v`, so the
-     code's `isinstance(enable.get(k), float)` is False and the default stands. Numeric overrides go in `--set`;
-     `cohort.py` now fails fast on `=` in `--enable` / `--disable`. The `ex_surge_thr` arms (L 553) passed theirs in
-     `--set` and are unaffected — check `cohort.json` in the run dir when an arm reproduces its control exactly. The
-     corrected rerun then came back identical a second time, for a different reason: **cohort caches per person by
-     output dir**, so rerunning a fixed arm into the same dir re-reads the broken run (`v0… cached` in the log). Give a
-     corrected arm a fresh name.
-
-556. **C4's surge belongs in absolute METs, not in %VO2-reserve: the three exercise fixes adopted together.** Keyed in
-   reserve fraction, no threshold can make hard bouts rise, because raising METmax to make sessions sustainable
-   (L 554) pushes any given MET load further below a reserve-fraction threshold. Keyed in absolute METs the sign
-   flips. C4's own Pemberton table (change over a bout's first 20 min):
-
-   | Session METs | Donors | st9 (%reserve 0.9) | cap + %reserve | cap + 8 METs |
-   |---|---|---|---|---|
-   | 6–8 | −21.5 | −6.5 / +4.7 | −13.3 / −8.3 | −14.4 / −6.1 |
-   | ≥ 8 | **+1.2** | −7.2 / −9.0 | −24.6 / −13.4 | **+12.8 / −5.1** |
-   | pooled | −5.7 | −5.3 / −1.3 | −12.8 / −5.3 | −8.9 / −3.9 |
-
-   A 7-MET threshold is positive on both draws but overshoots (+14.3 / +9.3) and flattens the 6–8 band (−11.6 / −3.2);
-   8 METs is closer in size and matches the evidence, Marliss & Vranic's surge being a hard-exercise phenomenon.
-   **Adopted as one change** (`ex_cap_fit` on, `ex_surge_mets` 8.0; `ex_surge_mets` 0 restores the %reserve form): the
-   three are inseparable, since the cap alone leaves almost no hard session and the contradiction only appears once
-   capacity is consistent. New reference **ad0**, which reproduces the flagged arm exactly.
-   - **For it:** it removes a demonstrated impossibility (19% of sessions at 1.00 of reserve for 39 min, L 554); the
-     matched drop to nadir goes 20 / 16 → 27 / 24 (donors 35); `review.py` shows no component drift and several
-     component-own targets slightly better (low_share_lt54 0.86 → 0.92, meal_drop_p10 0.80 → 0.85, egp_nadir_min
-     1.56 → 1.44); C4's pooled bout mean brackets the donors' on both draws.
-   - **Against it:** the weighted score is a wash, not a win — 0.364 / 0.416 against st9's 0.353 / 0.437, worse on
-     draw 1 and better on draw 2, so it does NOT hold on both draws as L 444 requires. Adopted on the L 303
-     precedent (a sounder model may match fewer statistics) because the evidence is on the component's own targets
-     and the defect it removes is not a matter of degree. Revert with `ex_cap_fit` off and `ex_surge_mets=0`.
-   - **On the natural experiments it is a wash too** (`change7/`, 108 events, per-event seeds): response to +10%
-     insulin, t70 tight − rest, field +4.27 — sd3 +0.51 [−0.30, +1.46], st9 **+0.83 [+0.11, +1.70]**, ad0 +0.63
-     [−0.17, +1.59]; TIR tight − rest (field −7.18) st9 −1.51, ad0 −1.34. So ad0 gives back st9's one contrast whose
-     interval excluded zero. It is better on the per-event correlations (t70 ρ +0.28 vs st9's +0.14, mean ρ +0.26 vs
-     +0.20) and on the t54 response ratio (3.01 vs 4.18), both read without intervals, so treat them as weaker
-     evidence than the contrast. **Net: the adoption is neutral on the cohort score AND on change prediction, and
-     rests entirely on soundness plus the component's own targets.** Pete 2026-11-01, confirming it: a change that is
-     level on the statistics and on prediction power but explains the mechanism better is a win. **Kept.**
-   - **Still open:** the ≥ 8 MET band now overshoots on draw 1 (+12.8 vs +1.2) on 18–22 bouts, and the 6–8 band is
-     still short of −21.5. Both wait on a measured capacity per person rather than a prior — see the Apple Watch data
-     note (VO2max is the one measurement that would settle it).
-
-557. **C4's surge size cannot be refit against the donors' ≥ 8 MET band at this cohort size; 28 mg/kg/min stays.** The
-   standing rule says refit what a structural change drifted (L 196, 499), and the size was calibrated at the old
-   %reserve threshold (L 247), so the keying change (L 556) invalidated it. Arms at 20 and 14 against ad0's 28, two
-   draws, scored and measured on C4's own by-METs table:
-
-   | ≥ 8 MET band (donors **+1.2**) | draw 1 | draw 2 | score |
-   |---|---|---|---|
-   | surge 28 (ad0) | **+12.8** | −5.1 | 0.364 / 0.416 |
-   | surge 20 | −6.5 | −4.2 | 0.377 / 0.419 |
-   | surge 14 | −7.7 | −8.2 | 0.378 / 0.415 |
-
-   Only 28 produces a positive band at all, and only on draw 1; every size is negative on draw 2. The band holds
-   18–25 bouts per draw, so its draw scatter swamps the parameter — it cannot rank a size. Both smaller sizes are
-   worse on draw 1 and level on draw 2, so 28 is kept unchanged.
-   - **The mechanism check passed, and it narrows the remaining gap.** Predicted: the 6–8 MET band sits BELOW the
-     threshold, so the surge size should not touch it. Measured: −14.4 / −6.1 at 28, −14.7 / −6.5 at 20, −14.5 / −7.5
-     at 14 — unchanged. So the 6–8 shortfall against the donors' −21.5 is **not** a C4 problem; it is C1 / C2 too weak
-     at moderate intensity, and both were already shown unfixable inside their evidence (L 551: α 2.6 does nothing,
-     C1 × 1.5 breaks the measured insulin dependence of L 494).
-   - **What it would take.** More hard-session bouts per draw. The twins run 18% of sessions at ≥ 7 METs against the
-     donors' 37% (L 551), so the band is thin on both sides of the comparison; and sizing C1 / C2 honestly needs a
-     measured aerobic capacity per person rather than a prior. Both point at the same missing measurement (VO2max).
-
-558. **A12b was mis-calibrated against its own target; `ppr_a` 0.4 → 0.6 puts the meal tail on the donors', and costs
-   TIR.** The 3-h meal change was the worst tier-1 row on both draws (ad0 25 / 26 vs the donors' 38, gap 0.69 / 0.64),
-   and two more rows pointed the same way — t180 UNDER the donors (24.3 / 22.3 vs 25.9) and t70 OVER (2.16 / 2.11 vs
-   1.60) — so meals running higher for longer moves all three. The reason `ppr_a` was held at 0.4 (it costs lows,
-   L 408, 436) had inverted: the twins now carry more lows than their donors, not fewer.
-
-   | | ad0 (0.4) | **pp6 (0.6)** | pp8 (0.8) | Donors |
-   |---|---|---|---|---|
-   | meal_d3_p50 (A12b's own target) | 12.4 (**0.58**) | 20.6 (**0.97**) | — | 21.2 |
-   | meal_d3h | 25 / 26 (0.69 / 0.64) | 33 / 31 (0.27 / 0.37) | 43 / 45 (0.27 / 0.37) | 38 |
-   | t180 | 24.3 / 22.3 | 26.3 / 22.1 | 29.5 / 29.2 | 25.9 |
-   | t70 | 2.16 / 2.11 | 1.97 / 2.16 | 2.12 / 2.06 | 1.60 |
-   | bg_cv | 33.8 / 34.8 | 34.4 / 35.5 | 35.7 / 37.0 | 34.6 |
-   | **tir** | 70.7 / 71.9 | **68.9 / 70.2** | 65.9 / 67.9 | 71.9 |
-   | score | 0.364 / 0.416 | 0.340 / 0.444 | 0.403 / 0.452 | — |
-
-   **Adopted at 0.6** on the component's own evidence: `meal_d3_p50` is A12b's donor-fitted target and 0.58 was a
-   large miss, which the role's rule (fit from the literature where it identifies a parameter, else from the donor
-   data) says to correct. meal_d3h improves on both draws; bg_mean moves closer on both. 0.8 overshoots the tail
-   (43 / 45 vs 38) and is worse on both draws — rejected.
-   - **The cost, plainly: TIR falls on both draws** (0.136 → 0.246, 0.030 → 0.181), and the net score is mixed
-     (better on draw 1, worse on draw 2), so this does NOT satisfy L 444 as an improvement. `meal_drop_p10` also
-     drifts (0.85 → 0.77). Revert with `--set ppr_a=0.4`.
-   - **What the TIR cost identifies.** CV lands on the donors' (34.4 / 35.5 vs 34.6), so the widening is the right
-     size; TIR still falls because the twins' excess time BELOW range is amplified as the spread grows (t70 1.97 /
-     2.16 vs 1.60). The limiting defect is therefore the excess lows, not A12b — the meal tail can now be read as
-     calibrated, and the low side is what caps TIR.
-   - **It is also the best arm yet on change prediction**, which settles the adoption (`change8/`, 108 events):
-     response to +10% insulin, t70 in the tight group, field +4.35 — sd3 +0.80, ad0 +0.89 [+0.18, +1.87],
-     **ad2 +1.29 [+0.68, +1.86]**; tight − rest (field +4.27) sd3 +0.51, ad0 +0.63 [−0.11, +1.65], **ad2 +1.03
-     [+0.40, +1.64]**, the first contrast of this series clearly away from zero. The strategy-switch correlations are
-     also the best of the three (TIR ρ 0.38, mean ρ 0.47, against sd3's 0.29 / 0.45). Cost: the POOLED t70 response
-     is smaller (field / twin 3.21 vs ad0's 2.61), so ad2 sharpens WHO responds while slightly shrinking HOW MUCH.
-     Reading: the documented backwards response by control level is the dimension that matters here, and it is where
-     ad2 gains.
-
-559. **The excess time below 70 is shallow lows that linger, not deep ones: a quantified target for the low side.**
-   Decomposed like for like on the reported CGM (`depth.py`, `recover.py` in runs/2026-11-01-additive-lows; 206 donors
-   from the ice steps, ad2 on both draws):
-
-   | | Donors | ad2 (draw 1 / 2) |
-   |---|---|---|
-   | minutes/day < 70 | 35.0 | 45.0 / 56.2 |
-   | by band 65–70 / 60–65 / 54–60 / < 54 | 13.0 / 8.6 / 6.2 / 7.2 | 17.2 / 11.3 / 7.9 / 8.6 |
-   | excursions per day | 1.36 | 1.57 / 1.79 |
-   | median excursion length | 17.5 min | 21.8 / 22.6 |
-   | share never reaching 60 | 0.60 | 0.59 / 0.61 |
-
-   The depth MIX is right; the excess splits between about 15–30% too many excursions and 25–29% too long. Matched on
-   nadir depth, the defect is specific to the shallow end:
-   - **nadir 60–70** (55% of events): rise 15 / 30 min after the nadir, donors +12 / **+26**, twins +10 / **+21**;
-     length p50 donors **10 min**, twins **15**. About +5 mg/dL of missing recovery over the 30 min after a shallow
-     nadir — ≈ 0.17 mg/dL/min.
-   - **nadir 54–60**: recovery agrees (+38 vs +37), length 25 vs 30 min.
-   - **nadir < 54**: the twins rebound HARDER than the donors (+55 vs +41 over 30 min) while dwelling slightly longer
-     (45 vs 40 min) — over-treatment, not under-treatment, so rescue behaviour is not the shallow-low lever.
-   - The fall INTO a low is gentler at every depth (−19 / −23 / −30 vs −20 / −29 / −36), the long-standing slow-falls
-     gap (L 494, 512).
-   **Candidate:** A9's half-activation glucose `cr_g`, drawn N(65, 5), leaves counter-regulation only half-engaged at
-   a 60–70 nadir. Cryer's glucagon and epinephrine thresholds sit near 68–70 mg/dL in people without severe HAAF, so
-   65 is the low end of the evidence rather than its centre. Arms at 70 and 72 in `run_cg.sh`.
-
-560. **A9's threshold is not the shallow-low lever, and A9 is an order of magnitude too small to be: the term can
-   supply at most ~2.4 mg/dL over 30 min against the +5 needed.** `cr_g` 65 → 70 / 72 (arms cg70, cg72 on ad2, two
-   draws) barely moves the target of L 559: the 30-min rise from a 60–70 nadir goes +21 → **+22** (donors +26), the
-   median excursion length stays 15 min (donors 10), and minutes/day below 70 go 45.0 → 46.0 / 44.4. Scores are mixed
-   (0.340 → 0.362 / 0.346 on draw 1, 0.444 → 0.430 / 0.414 on draw 2) and t54 worsens on both, so neither is adopted;
-   `cr_g` stays N(65, 5).
-   - **Why it cannot work, before trying a third value:** CRmax is lnN(0.137, 0.5) mg/kg/min, so at FULL activation
-     sustained for 30 minutes A9 adds 0.137 × 30 ÷ V_G 1.68 = **2.4 mg/dL** — less than half the missing +5, and it is
-     not fully activated at 60–70 at any threshold. CRmax itself is fitted to the low DEPTHS (L 394), which match, so
-     it is not free. No setting of A9 closes this gap.
-   - **What is left, by size.** The lumped SG supplies 0.0045 × 35 × 30 = 4.7 mg/dL over the same window, so the
-     missing recovery is about the size of the whole glucose-effectiveness term at that depth. Candidates that can
-     carry it: insulin action waning faster below Gb (A5's M(G) shape / κ below basal — `ge_split`'s A1c brain-sparing
-     term is exactly this and is still off, L 548), or SG itself, which Pete allows calibrating within
-     0.0013–0.0047 (L 68, 75) — but the median is already 0.0045, near the top of the range, so there is little room.
-     Both point at the sub-basal shape of glucose disposal rather than at counter-regulation.
-561. **A1c alone (`ge_spare`) fixes the excess time below 70 but NOT the shallow-low recovery it was built for; it
-   shifts the low depths instead.** The one part of the L 548 split aimed at L 559's gap — fixed insulin-independent
-   uptake falling below 81 mg/dL (Best 1981 ~1 mg/kg/min, Hovorka 2004 F01c) — on the lumped SG, with none of the
-   split's other parts, so the liver's support below Gb is untouched (that is what made the full split add lows).
-   Sized first: 3.5 mg/dL over 30 min at G 65, against the +5 needed and the 2.4 that A9 could supply at most (L 560).
-
-   | | ad2 / sp0 | **sp1 (`ge_spare`)** | Donors |
-   |---|---|---|---|
-   | t70 | 1.97 / 2.16 | **1.67 / 1.71** | 1.60 |
-   | t54 | 0.187 / 0.240 | 0.153 / 0.176 | 0.190 |
-   | lows per day | 1.04 / 1.17 | 1.00 / 1.04 | 1.00 |
-   | tir | 68.9 / 70.2 | **69.8 / 71.0** | 71.9 |
-   | p_reach54 | 0.200 / 0.200 | **0.167 / 0.170** | 0.212 |
-   | minutes/day < 70 | 45.0 / 56.2 | 43.1 / 53.7 | 35.0 |
-   | **rise 30 min from a 60–70 nadir** | **+21 / +20** | **+21 / +20** | **+26** |
-   | score | 0.340 / 0.444 | 0.356 / 0.426 | — |
-
-   - **It works for a different reason than intended.** The per-event recovery slope and excursion length do not move
-     at all (+21 / +20 and 15 min, unchanged). The term is only 0.118 mg/dL/min at G 65, so it resists the DESCENT
-     into a low more than it speeds the climb out: fewer and shallower lows, the same recovery once at the nadir.
-     L 559's +5 mg/dL of missing recovery is still unexplained.
-   - **For it:** t70 improves on both draws (gap 0.198 → 0.045, 0.494 → 0.285) and it was the binding limit on TIR
-     (L 558); TIR and lows per day improve on both draws, recovering part of `ppr_a`'s TIR cost.
-   - **Against it:** `p_reach54` falls to 0.167 / 0.170 against the donors' 0.212 and t54 on draw 1 drops under the
-     donors' (0.153 vs 0.190) — a duration error traded for a depth error, on the safety-relevant side. Tier 2 is
-     worse on both draws and the net score is mixed (0.356 / 0.426 against 0.340 / 0.444).
-   - **The standing review rule applies**: A9's CRmax is fitted to the low DEPTHS (L 394), and A1c changes those
-     depths, so CRmax must be refit before this is judged. Arms with `cr_mult` below 1 (deeper lows) on top of
-     `ge_spare` in `run_sr.sh`. Held off until that refit is in.
-
-562. **A9 cannot refit the depth `ge_spare` costs, for the same reason it could not supply the recovery: it is too
-   small in either direction.** `cr_mult` 0.7 / 0.5 on top of `ge_spare` (weaker counter-regulation, so lows should
-   run deeper) leaves `p_reach54` at 0.182 / 0.170 and 0.167 / 0.171 against the donors' 0.212, from `ge_spare`'s
-   0.167 / 0.170 — essentially unmoved. L 560's arithmetic says why: A9 contributes at most 2.4 mg/dL over 30 min, so
-   removing 30–50% of it can only shift a nadir by about 1 mg/dL. The standing review rule was discharged and the
-   answer is that this component cannot carry the refit.
-   - Scores: sr7 (`cr_mult` 0.7) 0.350 / 0.420, sr5 0.351 / 0.418, against `ge_spare` alone 0.356 / 0.426 and ad2
-     0.340 / 0.444 — every variant is slightly worse than ad2 on draw 1 and clearly better on draw 2. sr5 puts t70 on
-     the donors' exactly on draw 1 (1.608 vs 1.599).
-   - **Where this leaves the low side.** `ge_spare` buys the binding-limit row (t70 1.97 / 2.16 → 1.67 / 1.71, donors
-     1.60) and TIR on both draws, and costs the share of lows reaching 54 (0.212 → ~0.17). That trade is not
-     refittable through A9, and rescue behaviour is the wrong direction too (deep lows already rebound HARDER than
-     the donors', L 559). So it is a genuine choice between a duration error and a depth error on the
-     safety-relevant side, not a calibration still to be done. **Pete's call; `ge_spare` stays off meanwhile.**
-
-563. **The missing shallow-low recovery is not insulin: the twins carry LESS insulin at the nadir and still climb out
-   more slowly, which points at a glucose-dependent hepatic response below Gb — the question L 548 left open.**
-   Measured through the ice extractor's total IOB on both sides (`iob_at_nadir.py`, 60–70 nadirs; 18,271 donor events,
-   336 twin events over 30 people):
-
-   | at a 60–70 nadir | Donors | ad2 |
-   |---|---|---|
-   | IOB | 1.59 U | **1.09 U** |
-   | IOB fall over the next 30 min | 0.18 U | 0.16 U |
-   | glucose rise over the next 30 min | **+26** | **+20** |
-
-   With a third less insulin on board the twins should climb out FASTER, not slower, so insulin still acting is ruled
-   out — as are A9 (too small by an order of magnitude, L 560) and rescue behaviour (deep lows already rebound harder,
-   L 559). In net glucose appearance the gap is **0.34 mg/kg/min at G 65** (donors 1.46, twins 1.12).
-   - **What that leaves.** A6's EGP answers insulin only; nothing in the model raises hepatic output when glucose
-     falls below Gb. `ge_split`'s A1b was deliberately built as suppression ABOVE Gb only, citing Mevorach 2000's
-     absent hormone-independent EGP activation in T1D — which was measured under a hyperinsulinaemic clamp, not at
-     basal insulin. L 548 listed exactly this as open; two independent lines now point at it, and it has a number:
-     a term supplying ~0.34 mg/kg/min at 65 mg/dL would close L 559's +5 mg/dL.
-   - **Why it is not simply added, and a correction to what would settle it.** Checked against the records
-     (Europe PMC): **both papers study the ABOVE-basal direction and would not size this term.** Bruce 2025 is
-     *The Effect of Small Increases in Blood Glucose on Insulin Secretion and Endogenous Glucose Production in
-     Humans* (Diabetes 74(6):898–906, PMID 39508871, closed, no PMC): healthy controls plus a T1D arm at constant
-     basal insulin, with glucose RAISED about 2 mmol/L — evidence for A1b, which is the above-Gb term, which is how
-     L 548 used it. Del Prato 1997 is *Studies on the mass action effect of glucose in NIDDM and IDDM: evidence for
-     glucose resistance* (Diabetologia 40(6):687–697, PMID 9222649, closed): IDDM at basal insulin replacement, again
-     raising glucose — the source for A1a's mass-action size, not for a sub-basal hepatic response.
-     So the below-Gb question needs a study that LOWERS glucose below basal at basal insulin in T1D. Mevorach 2000
-     remains the only direct evidence and it used a hyperinsulinaemic clamp. Until such a source is found, adding
-     the term on our own cohort statistics would be fitting an unnamed mechanism to a target, which the
-     no-mystery-terms rule forbids. **Needed: a targeted search for sub-basal EGP at basal insulin in T1D — not the
-     two PDFs, which answer the other direction.**
-
-564. **C4's surge size of 28 is validated, and the ≥ 8 MET "overshoot" was a thin-n artifact of a cap I had just
-   introduced.** `ex_cap_fit` (L 554) raised METmax to satisfy the person's MEAN session exactly, so every session
-   drawn above that mean was clipped back to it and the upper tail vanished — the cause of both the twins' 18% share
-   of ≥ 7 MET sessions against the donors' 37% (L 551) and the ≥ 8 MET band being too thin to refit C4 (L 557).
-   `ex_headroom` 1.5 METs (one within-donor per-session SD) restores the tail while every session stays at a
-   sustainable fraction of capacity.
-
-   | ≥ 8 MET band (donors **+1.2**, n 51 of 171) | n | value |
-   |---|---|---|
-   | ad2, draw 2 | 22 | −13.4 |
-   | headroom 1.5, draw 2 | **40** | **+1.8** |
-   | headroom 1.5, draw 1 | 19 | +13.3 |
-
-   At n 40 the band reads +1.8 against the donors' +1.2, and C4's pooled bout mean on draw 1 is −5.7, exactly theirs.
-   **So the surge size of 28 mg/kg/min is right** and L 557's inconclusive refit was reading noise, as it suspected:
-   the band's value swings from +13 to +2 with n, not with the parameter.
-   - **Not adopted as a default**: the score is worse on BOTH draws (0.348 / 0.458 against ad2's 0.340 / 0.444), so
-     unlike L 556 this is not level, and Pete's rule (level but better explained) does not cover it. `act_net20`
-     improves sharply on draw 1 (gap 0.265 → 0.081) and worsens on draw 2 — the usual scatter on that row.
-   - **Use `--set ex_headroom=1.5` for exercise-focused work**, where the session-intensity tail and the ≥ 8 MET band
-     matter; the reference keeps 0. The 6–8 MET band is unaffected and still short (−12.7 / −4.0 vs −21.5), which
-     remains a C1 / C2 gap needing measured capacity (L 557).
-565. **C1 keyed to absolute work rate improves the 6–8 MET band on both draws but breaks the ≥ 8 one: the donors'
-   curve is a regime switch that smooth terms cannot make.** Same argument as L 556 for C4 — muscle glucose uptake
-   follows the work being done, not the strain relative to the ceiling, so C1's %VO2-reserve keying gave a fit person
-   LESS uptake for the same 7 METs (×0.55 at METmax 12 against ×1.00 at METmax 7). `ex_abs` keys it to absolute METs
-   on a reference METmax of 9, so a median-fitness person is unchanged (ab0 reproduces ad2 exactly).
-
-   | C4's by-METs table | Donors | ad2 | `ex_abs` | `ex_abs` + headroom |
-   |---|---|---|---|---|
-   | 6–8 METs | **−21.5** | −14.4 / −6.1 | **−17.8 / −7.4** | −16.4 / −7.1 |
-   | ≥ 8 METs | **+1.2** | +12.8 / −5.1 | −13.3 / −7.1 | −13.6 / −8.7 |
-   | score | — | 0.340 / 0.444 | 0.368 / 0.426 | 0.376 / 0.437 |
-
-   The 6–8 band improves on both draws and draw 1 reaches −17.8 against −21.5, the closest yet. But the extra uptake
-   at high absolute work also deepens the ≥ 8 bouts, which the donors have RISING (+1.2) — so the fix trades one band
-   for the other, and the score is worse on draw 1. Not adopted; `ex_abs` stays off beside `ex_headroom`.
-   - **The structural reading.** The donors fall deepest at 6–8 METs and rise at ≥ 8: a sharp switch from
-     uptake-dominated to surge-dominated within about two METs. C1 (uptake) and C4 (surge) are both smooth in
-     intensity, so any setting that deepens 6–8 also deepens ≥ 8, and any setting that lifts ≥ 8 lifts 6–8. Keying
-     both to absolute METs (L 556 + this) makes them compete on the same axis rather than reproducing the switch.
-     Closing it needs a sharper transition — the anaerobic SHARE rising steeply with intensity rather than the
-     surge's ramp alone — which is a form change, and sizing it needs the per-person capacity the whole exercise
-     thread is short of (L 551, 564).
-566. **The donors' exercise curve IS reproducible — but not at the same time as the best cohort score. There is now an
-   exercise-faithful configuration, separate from the reference.** The regime switch of L 565 needed a form change,
-   and a narrower surge ramp is it: below 8 METs nothing changes, so the 6–8 band keeps `ex_abs`'s gain, while ≥ 8
-   bouts reach full surge within a MET instead of two.
-
-   | C4's by-METs table | Donors | ad2 | `ex_abs` | + width 1.0 | + width 0.75 |
+   | start | 70–120 | 120–160 | 160–200 | 200–400 | pooled |
    |---|---|---|---|---|---|
-   | 6–8 METs | −21.5 | −14.4 / −6.1 | −17.8 / −7.4 | −16.6 / −4.6 | −16.7 / −5.4 |
-   | ≥ 8 METs | **+1.2** | +12.8 / −5.1 | −13.3 / −7.1 | −10.3 / −1.5 | −8.9 / **+0.9** |
-   | pooled | −5.7 | — | −9.9 / −4.7 | −9.5 / −3.1 | −9.5 / −3.1 |
-   | score | — | 0.340 / 0.444 | 0.368 / 0.426 | 0.373 / 0.447 | 0.375 / 0.449 |
+   | donors | 4 | **34** | 43 | 80 | **34** |
+   | twins | 3 | **18** | 38 | 52 | **17** |
+   | diff [95% CI] | +1 [−9, +10] | **+15 [+7, +35]** | +6 [−15, +36] | +28 [−18, +62] | **+17 [+6, +29]** |
 
-   On draw 2, where `ex_headroom` gives the band 38 bouts, width 0.75 reads **+0.9 against the donors' +1.2** — the
-   switch reproduced. Draw 1 keeps only 19 bouts there and still reads negative, so read this band pooled or with the
-   headroom on, never on a thin draw (L 564).
-   - **The two targets disagree, and that is the finding.** Every step toward C4's own by-METs table costs the
-     weighted score (0.340 → 0.375 on draw 1, level on draw 2). The exercise detail and the cohort score are not
-     jointly optimal here, so there is no single setting to adopt.
-   - **Exercise-faithful configuration** (documented in the role overlay, not the default):
-     `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75` on the reference. Use it for anything where the
-     response to a workout matters — ablations of exercise, candidate behaviour around activity, the drop-vs-METs
-     curve. The reference keeps the score-optimal settings.
-   - **Still short:** the 6–8 band on draw 2 (−5.4 against −21.5) even with every fix on. That is C1 / C2's size at
-     moderate intensity, the one exercise quantity that still needs a measured per-person capacity (L 551).
-567. **Draw 1 (seed0 1000) is the reference lineage's OWN draw, and two draws are not enough when one of them is the
-   development draw.** Every arm of 2026-11-01 scored better on draw 1 than on draw 2, and nearly every candidate read
-   worse on draw 1 and better on draw 2 — ten changes failing the same way on the same draw are not ten independent
-   facts. A third draw (seed0 9000; donor targets are draw-independent, so only the sim arms re-run):
+   Insulin is not the explanation: at 120–160 delivery over the session is 1.03× usual for donors and 1.05–1.19× for
+   twins, with IOB matched, so what is left is C1 / C2. By METs the gap is an INTENSITY one — none at 2–3.5
+   (−8 [−22, +11]), +28 [+8, +47] at 5–7 and +28 [+8, +41] above 7. Twins also run 18% of sessions at ≥ 7 METs against
+   the donors' 37%. Sizing C1 / C2 does not close it (α 2.6 leaves the pooled drop at 16 / 14, C1 × 1.5 reaches 22 / 21
+   against 35; C1 ×3 and α 6 were already rejected in L 494 for breaking the measured insulin dependence).
 
-   | arm | d1 (1000) | d2 (5000) | d3 (9000) | mean | vs ref |
+553. **C4's surge threshold was firing at moderate effort; keyed in absolute METs at 8, with the session cap, it is
+   settled.** 0.6 of VO2-reserve is ~5.8 METs at the median METmax — exactly where the twins' fall collapsed — while
+   the donors' drop deepens through 7–9 METs and C4's own Pemberton table has them deepest at 6–8 (−21.5) and positive
+   only at ≥ 8 (+1.2). Threshold 0.9 of reserve scored 0.353 / 0.437 against sd3's 0.370 / 0.454, better on both draws
+   with no component drift. But %reserve CANNOT reproduce the ≥ 8 band once METmax is consistent (for METmax 11, 8 METs
+   is 0.70 of reserve): keyed in absolute METs the sign flips, so `ex_surge_mets` 8.0 is the default. The size stays 28
+   mg/kg/min — validated once the band has enough bouts (+1.8 against +1.2 at n 40); L 557's inconclusive refit was
+   reading a band of 18–25 bouts whose value swings from +13 to +2 with n, not with the parameter.
+
+554. **A quarter of simulated workouts were efforts no one can sustain.** `ex_mets` draws session METs from the donors'
+   workouts but converts on THIS twin's METmax, drawn independently: 19% of sessions sat at 1.00 of aerobic reserve for
+   a median 39 min, and a session that fires C4's surge does not fall at all (drop 0 against 20 below the threshold).
+   `ex_cap_fit` (default) caps intensity by what a person holds for that length (`_sus`: ~0.87 at 20 min, 0.775 at 40,
+   0.72 at 60) and raises METmax to what their own sessions need, since session METs are measured and METmax is only a
+   prior. Capping alone leaves almost no hard session (3 bouts at ≥ 8 METs against the donors' 51 of 171), so the two
+   go together. `ex_headroom` 1.5 (off) restores the session tail — tuning METmax to the MEAN clipped every session
+   above it — and is needed whenever the ≥ 8 MET band is read.
+
+556. **Adopted as one change, on soundness: `ex_cap_fit` with C4 keyed to 8 absolute METs.** Score 0.364 / 0.416 against
+   st9's 0.353 / 0.437 — a wash, and neutral on the natural experiments too (t70 tight − rest +0.63 [−0.17, +1.59]
+   against +0.83 [+0.11, +1.70]). Kept because it removes a demonstrated impossibility and keys a term to the units its
+   evidence is measured in; the matched drop goes 20 / 16 → 27 / 24 (donors 35) with no component drift. **Pete
+   2026-11-01: level on the statistics and on prediction power but better explained is a win.** The two-draw rule
+   governs claims of IMPROVEMENT, not this.
+
+558. **A12b was mis-calibrated against its own target; `ppr_a` 0.4 → 0.6.** `meal_d3_p50` is A12b's donor-fitted target
+   and sat at ratio 0.58; 0.6 puts it at 0.97. meal_d3h 25 / 26 → 33 / 31 (donors 38) on both draws, bg_mean closer on
+   both; 0.8 overshoots and is worse on both. **Costs TIR on both draws** (0.136 → 0.246, 0.030 → 0.181) and the net
+   score is mixed (0.340 / 0.444). **Best arm of its series on change prediction**: t70 tight +1.29 [+0.68, +1.86] and
+   tight − rest +1.03 [+0.40, +1.64] against the field's +4.35 / +4.27, with the pooled response slightly smaller — it
+   sharpens WHO responds more than HOW MUCH. **Caveat (L 573):** the two 3-h meal statistics disagree about it — the
+   scored row improves 25 → 33 toward 38 while the per-entry 3-h change moves away, 26 / 23 → 32 / 30 against the
+   donors' 28, because the labeller selects meals that rose. Read the tail claim as definition-dependent.
+
+559. **The excess time below 70 is shallow lows that linger, and the depth mix is already right.** Like for like on the
+   reported CGM (`depth.py`, `recover.py` in runs/2026-11-01-additive-lows): minutes/day < 70 donors 35.0, twins
+   45.0 / 56.2; excursions 1.36 vs 1.57 / 1.79; median length 17.5 vs 21.8 / 22.6; share never reaching 60 matched
+   (0.60 vs 0.59 / 0.61). Matched on nadir depth the defect is confined to the shallow end: at a 60–70 nadir the rise
+   30 min out is donors +26, twins +21, and the excursion lasts 10 min against 15 — **about +5 mg/dL of missing
+   recovery**. At 54–60 recovery agrees; below 54 the twins rebound HARDER (+55 against +41), so rescue behaviour is
+   not the lever. The fall INTO a low is gentler at every depth (L 494, 512).
+
+560. **A9 cannot supply it, in either direction: the term is worth at most 2.4 mg/dL over 30 min.** CRmax lnN(0.137,
+   0.5) mg/kg/min at FULL activation for 30 min is 0.137 × 30 ÷ V_G 1.68 = 2.4 mg/dL, against the +5 needed, and it is
+   not fully activated at 60–70 at any threshold. `cr_g` 65 → 70 / 72 moves the 30-min rise +21 → +22 and leaves the
+   length at 15 min; `cr_mult` 0.7 / 0.5 on top of `ge_spare` leaves `p_reach54` at 0.17–0.18 against 0.212. CRmax is
+   fitted to the low DEPTHS (L 394), which match, so it is not free either. **Check whether a term is large enough
+   before tuning where it switches on.**
+
+561. **`ge_spare` (A1c alone) fixes the excess time below 70 but not the recovery, and trades duration for depth —
+   PETE'S CALL.** The one part of L 548's split aimed at L 559, on the lumped SG, with the liver's support below Gb
+   untouched. Sized first: 3.5 mg/dL over 30 min at G 65.
+
+   | | Donors | ad3-era | `ge_spare` |
+   |---|---|---|---|
+   | t70 | 1.60 | 1.97 / 2.16 | **1.67 / 1.71** |
+   | tir | 71.9 | 68.9 / 70.2 | **69.8 / 71.0** |
+   | lows per day | 1.00 | 1.04 / 1.17 | 1.00 / 1.04 |
+   | p_reach54 | 0.212 | 0.200 | **0.167 / 0.170** |
+   | rise 30 min from a 60–70 nadir | +26 | +21 / +20 | +21 / +20 (unchanged) |
+
+   It works for a different reason than intended — at 0.118 mg/dL/min it resists the DESCENT more than it speeds the
+   climb out. Three draws favour it (better on 2 of 3 and on the mean), and A9 cannot refit the depth it costs (L 560).
+   A genuine duration-vs-depth choice on the safety-relevant side, not a pending calibration. Off meanwhile.
+
+563. **The missing shallow-low recovery is not insulin, and points at a glucose-dependent hepatic response below Gb.**
+   Through the ice extractor's total IOB on both sides (`resid_tools/iob_at_peak.py` family): at a 60–70 nadir the
+   donors hold 1.59 U and rise +26 in 30 min; the twins hold **1.09 U** and rise +20. With a third less insulin aboard
+   they should climb out FASTER. In net appearance the gap is **0.34 mg/kg/min at G 65**. A6's EGP answers insulin only;
+   nothing raises hepatic output when glucose falls below Gb, and A1b was deliberately built as suppression above Gb
+   citing Mevorach 2000 — measured under a hyperinsulinaemic clamp, not at basal insulin. **Correction to an earlier
+   draft:** Bruce 2025 (Diabetes 74(6):898, PMID 39508871, closed) and Del Prato 1997 (Diabetologia 40(6):687, PMID
+   9222649, closed) both RAISE glucose above basal — they are A1b's and A1a's evidence and would NOT size this. It
+   needs a study that lowers glucose below basal at basal insulin in T1D.
+
+565. **C1 keyed to absolute work rate improves the 6–8 MET band but breaks the ≥ 8 one: the donors' curve is a regime
+   switch smooth terms cannot make.** Muscle glucose uptake follows the work done, not the strain relative to the
+   ceiling, so %reserve gave a fit person LESS uptake for the same 7 METs (×0.55 at METmax 12 against ×1.00 at 7).
+   `ex_abs` (off) moves the 6–8 band −14.4 / −6.1 → −17.8 / −7.4 (donors −21.5) on both draws but drives ≥ 8 to
+   −13.3 / −7.1 where the donors RISE. The donors fall deepest at 6–8 and rise at ≥ 8 — a switch inside two METs — so
+   any smooth setting that deepens one deepens the other. A narrower surge ramp is the form that serves both:
+   `ex_surge_width` 0.75 with `ex_abs` and `ex_headroom` reads **+0.9 against the donors' +1.2** at n 38.
+   **Exercise-faithful configuration** (not the default, since every step toward C4's table costs the weighted score):
+   `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75`. Use it whenever the response to a workout matters.
+   Still short: the 6–8 band, which is C1 / C2's size at moderate intensity and needs a measured per-person capacity.
+
+567. **Score close calls on THREE draws — seed0 1000, 5000 and 9000 — and read the mean.** Every arm of 2026-11-01
+   scored better on draw 1 than draw 2, and nearly every candidate read worse on draw 1 and better on draw 2; ten
+   changes failing the same way on the same draw are not ten independent facts. Draws 2 and 3 agree with each other
+   and **draw 1 is the outlier** (ad3: 0.321 against 0.425 / 0.430), because the reference lineage was developed on
+   seed0 1000. L 444's two-draw rule still rejects noise, but with 1000 as one of the two it also protects that fit.
+   Where the three disagree, discount 1000. Several rejections of 2026-11-01 were rejecting draw-1 overfit.
+
+568. **The residual's diurnal shape was flat and wrong; weighting it to waking hours is the reference's largest single
+   gain and the only change of the day better on all three draws.** The worst tier-2 row was `ice_dip_day`
+   (unexplained falls: twins 1.42 / 1.67 against 0.692) and its diagnostic was the clock — only 44.9% of the twins'
+   dips by day against the donors' 66%, so the excess is at NIGHT, which rules out everyday activity (the row's
+   designated target, L 494). `resid_diurnal` weights the fast and block parts by sqrt(1 + k·cos(2π(t − 15 h)/24 h));
+   cos has zero mean, so **mean(w²) = 1 exactly** and each person's fitted amplitudes still hold — only WHEN the
+   variance appears changes. At k 0.9 (reference **ad3**): score 0.340 / 0.444 / 0.430 → **0.321 / 0.425 / 0.410**,
+   ice_dip_day → 1.42 / 1.50 / 1.33, day share 0.449 → 0.472 / 0.469 / 0.500, t70 1.97 / 2.16 → 1.72 / 1.90, tir
+   68.9 / 70.2 → 69.8 / 71.1, night insulin CV 30.3 / 33.3 → 30.7 / 34.6. On the natural experiments it takes the
+   tight − rest TIR and mean contrasts (−1.63, +0.93 against the field's −7.18, +1.65) with t70 +0.74 [+0.12, +1.39].
+   - **Why it worked where a dozen size changes were level: it fixed a DISTRIBUTION, not a magnitude.** Nothing was
+     re-sized, so nothing had to be traded. **Look for distributional errors before reaching for a size.**
+   - **But the trick only reaches symmetric statistics.** Redistributing the residual across the MEAL cycle
+     (`resid_meal`, off) is a null — the residual is skewed toward RISES (`resid_skew` 0.7), so moving it into the
+     post-meal window makes post-meal rises, not falls, and `entry_fast_fall` is one-sided. **Check a target's sign
+     structure before redistributing variance at it.** The asymmetric version, `resid_drop_p` 0.3, does move it
+     (4.8 / 5.6 / 5.7 → 7.1 / 7.9 / 5.9 against 14.3) but spends ~5 points of the nearly-closed meal tail to buy ~2.4
+     of it, on all three draws. L 521's rejection stands.
+
+571. **The meal-shape gap is a SECOND WAVE, not elevation at 3 h, and it is sized.** Per carb entry ≥ 20 g over the
+   following 4 h, same code both sides (`resid_tools/meal_shape2.py`; 37,694 donor entries):
+
+   | | peak at | rise to peak | fall in the 90 min after | second rise | both limbs |
    |---|---|---|---|---|---|
-   | ad2 (reference) | **0.340** | 0.444 | 0.430 | 0.405 | — |
-   | `ge_spare` | 0.356 | 0.426 | **0.421** | **0.401** | −0.004 |
-   | `ex_abs` | 0.368 | 0.426 | 0.427 | 0.407 | +0.002 |
-   | `ex_min` 31 | 0.355 | 0.419 | 0.441 | 0.405 | ±0.000 |
+   | donors | 85 min | 64.0 | **57.0** | **28.0** | **0.43** |
+   | twins | 90–95 | 63 / 61 | 47 / 43 | 18 / 20 | 0.28 / 0.29 |
 
-   **Draws 2 and 3 agree with each other (0.444, 0.430) and draw 1 is the outlier (0.340).** The reference is partly
-   fitted to seed0 1000, which it was developed on, so a candidate that gives up draw-1 fit looks worse than it is.
-   - **What this changes.** L 444's two-draw rule was written to reject noise, and it does — but with seed0 1000 as
-     one of the two, it also protects the development draw's fit. **Score close calls on seed0 1000, 5000 AND 9000,
-     and read the mean**; where the three disagree, 1000 is the one to discount. Several of today's rejections were
-     rejecting draw-1 overfit, not the change.
-   - **`ge_spare` is better on 2 of 3 draws, including both draws the reference was not developed on, and better on
-     the mean.** With its tier-1 gains (t70 1.97 / 2.16 → 1.67 / 1.71, TIR and lows per day on both draws, L 561)
-     that now favours adoption; the depth cost (p_reach54 0.212 → ~0.17) still stands against it. Pete's call, with
-     this added.
-   - `ex_abs` and `ex_min` 31 are level on the mean, so both stay flags: `ex_abs` in the exercise-faithful
-     configuration (L 566), `ex_min` 31 for `workout_dur` (34.8 against the donors' 35.4, from ad2's 44.9).
-568. **The residual's diurnal shape was flat and wrong; weighting it to waking hours improves the score on all three
-   draws — the only unambiguous win of 2026-11-01, and the only change that fixed a DISTRIBUTION rather than a size.**
-   The worst tier-2 row was `ice_dip_day` (unexplained falls per day: twins 1.42 / 1.67 against the donors' 0.692),
-   and its diagnostic was the clock: only 44.9% of the twins' dips fell by day against the donors' 66%, so the excess
-   is at NIGHT — which rules out everyday activity, the row's designated fitting target (L 494). The residual's fast
-   and block OU processes ran flat over 24 h, while the donors' unexplained drive lives in waking hours (eating and
-   movement are most of it). `resid_diurnal` weights those two parts by sqrt(1 + k·cos(2π(t − 15 h)/24 h)); cos has
-   zero mean, so **mean(w²) = 1 exactly** and each person's amplitudes, fitted on whole-record SD, still hold — only
-   WHEN the variance appears changes.
+   The rise and peak timing already match; the second oscillation does not — donors fall 10–14 mg/dL further then rise
+   8–10 further. **This dissolves the apparent contradiction** between fast falls and the meal tail: on this statistic
+   the donors are NOT higher at 3 h (28 against the twins' 30–32; the scored `meal_d3h` is a per-person median over
+   LABELLED meals, a different measurement), so nothing contradictory is being asked — the model needs more amplitude
+   in one oscillation, and one mechanism can serve both limbs.
+   - **Neither existing hook supplies it.** A10's slow share (`meal_slow` 0.30) lowers the peak to 57 instead of
+     deepening the trough — mass at kmin 0.008 dribbles out under the whole curve. A10c, a delayed pulse at the MAIN
+     rate (`meal_wave2`, off), preserves the peak (64) and lifts the second rise (22 / 23), and its delay must be
+     sized off the measured curve — at 100 min it lands ON the peak and the 3-h change overshoots to 34 / 36, at 180
+     min it lands after the trough (31 / 31). But **the trough never moves** (46 / 43), so it is not
+     appearance-limited.
+   - **Trap:** donor carb entries are keyed `grams` in `carbs.json`, not `carbInput`; the wrong key gives 0 g for every
+     entry and a size filter then drops them all with no error.
 
-   | | Donors | ad2 | **ad3 (k 0.9)** |
-   |---|---|---|---|
-   | score d1 / d2 / d3 | — | 0.340 / 0.444 / 0.430 | **0.321 / 0.425 / 0.410** |
-   | tier 1 | — | 0.146 / 0.312 / 0.154 | 0.108 / 0.291 / 0.161 |
-   | ice_dip_day | 0.692 | 1.42 / 1.67 / 1.50 | 1.42 / 1.50 / 1.33 |
-   | day share of dips | 0.660 | 0.449 / 0.444 / 0.457 | 0.472 / 0.469 / 0.500 |
-   | t70 | 1.599 | 1.97 / 2.16 | 1.72 / 1.90 |
-   | tir | 71.9 | 68.9 / 70.2 | 69.8 / 71.1 |
-   | night insulin CV | 35.4 | 30.3 / 33.3 | 30.7 / 34.6 |
-
-   **Adopted at k 0.9** (night amplitude ×0.32, afternoon ×1.38); new reference **ad3**, which reproduces the flagged
-   arm. k 0.6 is nearly as good (mean 0.373 against 0.371). It recovers t70 and TIR without `ge_spare`'s depth cost,
-   and the night rows it might have damaged improve instead (night CV, day / night both closer).
-   - **On the natural experiments it is level with ad2 and clearly better than sd3** (`change9/`, 108 events), so the
-     cohort gain is not bought from the prediction half. Response to +10% insulin, tight − rest, field in brackets:
-
-     | | Field | sd3 | ad2 | ad3 |
-     |---|---|---|---|---|
-     | TIR | −7.18 | −0.86 | −1.27 | **−1.63** |
-     | mean | +1.65 | +0.25 | +0.05 | **+0.93** |
-     | t70 | +4.27 | +0.51 [−0.30, +1.46] | **+1.03 [+0.37, +1.63]** | +0.74 [+0.12, +1.39] |
-
-     ad3 takes the TIR and mean contrasts (both closest to the field of any arm) and gives back part of ad2's t70
-     contrast, whose interval still excludes zero. Its per-event mean ρ is the best of the three (+0.36). The pooled
-     response ratios are slightly worse (mean 2.24 against ad2's 2.11, t70 3.32 against 2.61) — as with ad2, it
-     sharpens WHO responds more than HOW MUCH.
-   - **Why this one worked where a dozen size changes were level.** Every other candidate traded one row for another
-     because it changed how MUCH of something there was. This changed only where existing, already-fitted variance
-     sits, so nothing had to be given up. **Look for distributional errors before reaching for a size**: if the
-     residual's diurnal shape was wrong, its shape across the meal cycle and its correlation with activity are the
-     same class of defect and the same cheap fix.
-569. **Redistributing the residual across the meal cycle is a null: rise-skewed variance cannot make fast falls.** The
-   analogue of L 568's diurnal fix, aimed at `entry_fast_fall` (the donors' entries end in a fast fall 14.3% of the
-   time, the twins' 4.8–5.7%). `resid_meal` 1.0 weights the fast part ×1.21 within 3 h of an entry and ×0.85 outside,
-   variance-preserving (mean w² = 1, with the in-window share estimated from each person's own entries).
-
-   | | Donors | ad3 | `resid_meal` 1.0 |
-   |---|---|---|---|
-   | entry_fast_fall | 14.286 | 4.76 / 5.64 / 5.72 | 5.28 / 5.26 / 4.55 |
-   | score d1 / d2 / d3 | — | 0.321 / 0.425 / 0.410 | 0.328 / 0.413 / 0.410 |
-
-   Target unmoved on all three draws, score level (mean 0.384 against 0.385). Not adopted; the control reproduces ad3
-   exactly.
-   - **Why it cannot work, which L 568's success hid.** The residual is deliberately skewed toward RISES
-     (`resid_skew` 0.7, fitted because the donors' drive is rise-skewed), so redistributing it into the post-meal
-     window produces more post-meal RISES, not falls. `entry_fast_fall` needs an asymmetric DOWN drive — which is
-     exactly `resid_drop_*` (L 521), already tried, and it takes the meal tail. So the distributional trick of L 568
-     works on symmetric statistics (where variance sits) and cannot reach a one-sided one. **Check the sign structure
-     of a target before redistributing variance at it.**
-   - **Tooling:** `resid_tools/score_read.py` reads a `score --detail` log by HEADER NAME. Ad-hoc awk column indexing
-     misread these logs three times in one session, because the first argument to `score` is itself an arm, so every
-     fixed column index is off by one arm. Use the script.
-570. **`resid_drop` does move `entry_fast_fall` — confirming L 569's reasoning — but the exchange rate against the meal
-   tail is bad, on all three draws. L 521's rejection stands, now quantified.** The entry-anchored down drive is the
-   asymmetric term L 569 argued the one-sided target needs, and the constraint that killed it had loosened (the tail
-   was 24 against the donors' 38 in L 521; it is 33 / 32 / 36 under ad3).
-
-   | | Donors | ad3 | `resid_drop_p` 0.3 | 0.5 |
-   |---|---|---|---|---|
-   | entry_fast_fall | 14.29 | 4.76 / 5.64 / 5.72 | **7.14 / 7.85 / 5.88** | 7.14 / 8.00 / 6.35 |
-   | meal_d3h | 38.01 | **33 / 32 / 36** | 27 / 30 / 31 | 27 / 27.5 / 32 |
-   | t54 | 0.190 | 0.197 / 0.255 / 0.149 | 0.237 / 0.255 / 0.205 | 0.323 / 0.282 / 0.249 |
-   | score | — | **0.321 / 0.425 / 0.410** | 0.355 / 0.418 / 0.418 | 0.372 / 0.431 / 0.429 |
-
-   The target improves on all three draws (gap 1.073 / 1.012 / 1.092 → 0.826 / 0.815 / 0.927), so the mechanism is
-   right. But it costs about 5 points of meal_d3h to buy about 2.4 of entry_fast_fall — and meal_d3h's remaining gap
-   is only ~5 points while entry_fast_fall's is ~9, so the term spends a nearly-closed row to half-close an open one.
-   Mean score 0.397 / 0.411 against ad3's 0.385. Not adopted at either probability.
-   - **The general shape**: `entry_fast_fall` and `meal_d3h` trade through the same post-meal window, in opposite
-     directions, and no setting of a single term serves both. Closing the fast-fall row needs something that makes
-     glucose fall fast WITHOUT flattening the 3-h rise — a faster fall from a HIGHER peak, not a lower peak. That is
-     the peak-shape problem of L 512 (the missing fast falls are on the fall side of the meal), still open.
-571. **The meal-shape gap is a SECOND WAVE, not elevation at 3 h: donors fall further after the peak and rise again
-   harder, and the twins do neither.** Measured per carb entry >= 20 g over the 4 h after it, same code both sides
-   (`resid_tools/meal_shape2.py`; 37,694 donor entries, ad3 on two draws):
-
-   | | Donors | ad3 (d1 / d2) |
-   |---|---|---|
-   | peak at | 85 min | 95 / 90 |
-   | rise to the peak | 64.0 | **63 / 61** |
-   | fall in the 90 min after the peak | **57.0** | 47 / 43 |
-   | second rise after that trough | **28.0** | 18 / 20 |
-   | change at 3 h | 28.0 | 32 / 30 |
-   | fall >= 30 mg/dL | 0.76 | 0.68 / 0.65 |
-   | second rise >= 20 mg/dL | 0.58 | 0.49 / 0.51 |
-   | **BOTH** | **0.43** | **0.28 / 0.29** |
-
-   The rise and the peak timing already match. What differs is the second oscillation: the donors' meals fall 10–14
-   mg/dL further and then rise 8–10 further, and 43% show both against the twins' 28%.
-   - **This corrects the framing of L 569–570.** I had read the conflict as "high at 3 h AND fast falls", which would
-     be contradictory. On this statistic the donors are NOT higher at 3 h (28 against the twins' 30–32) — the 3-h row
-     `meal_d3h` is a per-person median over labelled meals, a different measurement. So nothing contradictory is being
-     asked: the model needs MORE AMPLITUDE in the post-peak oscillation, a deeper trough and a bigger second wave.
-     One mechanism can serve both `entry_fast_fall` (the deeper fall) and the meal tail (the second rise), which is why
-     every single-sided term traded them against each other.
-   - **Sized for whoever builds it:** the trough wants about 10–14 mg/dL more fall in the 90 min after the peak, and
-     the second wave about 8–10 mg/dL more rise after it. A12's late parcel and L 170's twice-rising dinners are the
-     existing hooks.
-   - **Trap:** donor carb entries are keyed `grams` in `carbs.json`, not `carbInput`. Reading the wrong key returns 0
-     for every entry and a size filter then silently drops all of them — the first run of this script measured nothing.
-572. **A10's slow late share cannot make the second wave: it is a dribble, not a delayed pulse, so it lowers the peak
-   instead of deepening the trough.** L 571 sized the gap as one oscillation (10–14 mg/dL more fall after the peak,
-   8–10 more rise after the trough), and the slow share is the mass-preserving hook — the main parcel takes
-   grams × (1 − sf) — so raising it redistributes appearance rather than adding any, the class of change that worked
-   for the residual (L 568). At `meal_slow` 0.30 against 0.15:
-
-   | | Donors | ad3 | `meal_slow` 0.30 |
-   |---|---|---|---|
-   | rise to the peak | 64.0 | 63 / 61 | **57 / 57** |
-   | fall after the peak | 57.0 | 47 / 43 | **43 / 41** |
-   | second rise | 28.0 | 18 / 20 | 21 / 22 |
-   | both limbs | 0.43 | 0.28 / 0.29 | 0.29 / 0.30 |
-   | score | — | **0.321 / 0.425 / 0.410** | 0.344 / 0.405 / 0.432 |
-
-   The second rise improves slightly, but the peak falls (64 → 57) and so does the fall after it, because mass moved
-   into a phase emptying at kmin 0.008 (half-life ~90 min) never arrives as a wave — it dribbles out under the whole
-   curve. Both limbs end further from the donors'; mean score 0.394 against 0.385. Not adopted.
-   - **The form the second wave needs, stated for whoever builds it:** mass held back and then released at a NORMAL
-     emptying rate — a delayed pulse, not a slow one. A10's slow phase and A12's late protein parcel are both slow
-     tails and neither can produce a rise after a trough. The donors' second wave peaks within the 4-h window, so its
-     release is on the order of the main phase's rate, delayed by roughly 90–120 min. That is a new parcel shape, not
-     a parameter on an existing one — the one genuinely structural item left in the meal chain.
-573. **A10c's second wave has the right FORM but the trough is not limited by appearance at all; and the two 3-h meal
-   statistics disagree about `ppr_a`, which weakens L 558.** The delayed pulse (a share of the solid phase held back
-   and released at the main rate, mass-preserving) was built because L 572 showed a slow tail cannot make a wave.
-
-   | | Donors | ad3 | wave2 delay 100 | **delay 180** | ad0 (`ppr_a` 0.4) |
-   |---|---|---|---|---|---|
-   | rise to the peak | 64.0 | 63 / 61 | **64 / 63** | **64 / 61** | 61 / 57 |
-   | fall after the peak | **57.0** | 47 / 43 | 45 / 41 | 46 / 43 | 47 / 44 |
-   | second rise | 28.0 | 18 / 20 | 22 / 23 | 22 / 23 | 18 / 22 |
-   | both limbs | 0.43 | 0.28 / 0.29 | 0.29 / 0.30 | 0.30 / 0.31 | 0.29 / 0.32 |
-   | 3-h change (per entry) | 28.0 | 32 / 30 | 34 / 36 | **31 / 31** | 26 / 23 |
-   | score | — | **0.321 / 0.425 / 0.410** | 0.349 / 0.422 / 0.409 | 0.330 / 0.425 / 0.431 | — |
-
-   - **The form works, the delay had to be sized off the measured curve.** At 100 min the wave lands ON the peak (95
-     min) and extends it — the 3-h change overshoots to 34 / 36. At 180 min it lands after the trough and the 3-h
-     change is 31 / 31. Unlike the slow tail, both delays preserve the peak (64 against the tail's 57).
-   - **But the trough never moves**: 46 / 43 against ad3's 47 / 43 and the donors' 57. Withholding a fifth of the
-     solid phase from the post-peak window changes it by ~1 mg/dL, so **the trough is not limited by residual
-     appearance.** Not adopted at either delay (mean 0.395 / 0.393 against ad3's 0.385).
-   - **Nor is it `ppr_a`.** The obvious suspect was A12b: L 558 raised `ppr_a` to 0.6, weakening post-meal insulin
-     action, which should flatten the fall. Measured on the runs already in hand, ad0 (`ppr_a` 0.4) falls 47 / 44 and
-     ad3 (0.6) falls 47 / 43 — identical. So the trough depth is insensitive to both appearance and A12b, and L 512's
-     verdict stands: it is the shape of insulin action on the fall side, which no lever yet found touches.
-   - **A caveat on L 558 that the same measurement exposes.** The two 3-h meal statistics disagree about `ppr_a` 0.6:
-     the scored row `meal_d3h` (ice labeller's meals, per-person median) improved 25 → 33 toward the donors' 38, while
-     the per-entry 3-h change moved AWAY, 26 / 23 → 32 / 30 against the donors' 28. The labeller selects meals that
-     rose (it detects pulses) while the entry measure includes entries that barely moved glucose, so the donors read
-     38 and 28 on the two. Both are like for like, so the meal-tail gain claimed in L 558 holds on one definition and
-     reverses on the other — weaker evidence than that lesson states. `ppr_a` 0.6 stays (its score and
-     natural-experiment gains are unaffected), but the tail claim should be read as definition-dependent.
-574. **The shallow post-meal trough is mostly POTENCY, not dose: the twins get 80% of the donors' glucose fall per unit
-   of insulin spent in the 90 min after the peak.** Measured through the ice extractor's total IOB on both sides
-   (`iob_at_peak.py`; 37,694 donor entries >= 20 g, ad3 over 30 people), after L 573 ruled out appearance (A10c's
-   wave moves the trough ~1 mg/dL) and A12b (`ppr_a` 0.4 and 0.6 fall identically):
-
-   | at the meal peak, entries >= 20 g | Donors | ad3 |
-   |---|---|---|
-   | grams entered | 35 | 35 |
-   | IOB at the peak | 6.09 U | 5.59 U (−8%) |
-   | IOB per entered gram | 0.161 | 0.144 (−11%) |
-   | IOB spent in the next 90 min | 1.98 U | 1.78 U (−10%) |
-   | **fall in that window** | **57.0** | **41.0 (−28%)** |
-   | **mg/dL per U spent** | **28.8** | **23.0 (80%)** |
-
-   The dose gap is ~10% and the fall gap 28%, so dose cannot be the story. Decomposing: at the donors' spend and their
-   own potency the twins would fall 45.5, so **dose explains 4.5 of the 16 mg/dL gap (28%) and per-unit potency the
-   remaining 11.5 (72%)**.
-   - **What this says.** In the hours after a meal the twins' insulin is present and is being consumed at nearly the
-     donors' rate, but it lowers glucose about a fifth less per unit. That is an effective-sensitivity statement
-     confined to the post-peak window — not a PK question (the insulin is spent) and not an appearance question
-     (L 573). It is the quantified form of L 512's "the missing fast falls are on the fall side of the meal".
-   - **Direction, corrected.** The twins get LESS fall per unit, so their effective post-meal sensitivity is too LOW
-     and needs to be HIGHER — the opposite of what an earlier draft of this lesson said. A12b cuts sensitivity in
-     exactly that window (SI × (1 − a·w), a 0.6 at full w), so on its face A12b is the suspect and `ppr_a` should
-     come DOWN, not up.
-   - **But the trough does not respond to it, and that is the finding.** With `ppr_rel`'s normalisation the effective
-     post-meal sensitivity is about 0.47 of baseline at a 0.6 and 0.67 at 0.4 — a 30% difference across the very
-     window measured — and the fall is 47 / 43 against 47 / 44 (L 573). So a 30% swing in post-meal sensitivity moves
-     the trough by ~1 mg/dL. Together with appearance (A10c, ~1 mg/dL) that is three body-side levers in the same
-     window with no effect.
-   - **Hypothesis for why: the closed loop absorbs it.** Lower post-meal sensitivity leaves glucose higher, Loop doses
-     more, and the extra insulin restores the fall — the controller compensating for a body change, which is the
-     mirror of this project's own design principle (change what the controller BELIEVES, not its output). If that is
-     right, the post-meal trough depth is controller-stabilised in closed loop and cannot be set from the body side at
-     all; the donors' deeper trough would then come from their real dosing (size or timing of the meal bolus relative
-     to the peak) rather than their physiology. **Test before building anything:** re-run one of these arms with the
-     plant open-loop, or with the bolus held fixed, and see whether the trough responds then. That is the next real
-     question on the meal chain, and it is a question about the harness, not a new component.
-575. **Loop compensation refuted, and at MATCHED insulin spend the post-meal trough is a pure 75% potency gap.** The
-   L 574 hypothesis was that the closed loop absorbs body-side changes in the post-peak window (lower sensitivity →
-   Loop doses more → the fall is restored), which would have made the trough unreachable from the body. Tested on runs
-   already in hand, `ad0` and `pp6` differing only in `ppr_a` (0.4 against 0.6, a ~30% swing in effective post-meal
-   sensitivity):
+575. **At MATCHED insulin spend the post-meal trough is a pure 75% potency gap — and the closed loop does not absorb a
+   body change in that window.** Through the ice extractor on both sides (`resid_tools/iob_at_peak.py`, entries
+   ≥ 20 g):
 
    | 90 min after the meal peak | IOB spent | fall | mg/dL per U |
    |---|---|---|---|
-   | **Donors** | **1.98 U** | **57.0** | **28.8** |
-   | ad0, `ppr_a` 0.4 | **1.98 U** | 43.0 | 21.7 |
-   | pp6, `ppr_a` 0.6 | 1.68 U | 41.5 | 24.7 |
+   | donors | **1.98 U** | **57.0** | **28.8** |
+   | ad0 (`ppr_a` 0.4) | **1.98 U** | 43.0 | 21.7 |
+   | pp6 (`ppr_a` 0.6) | 1.68 U | 41.5 | 24.7 |
 
-   Raising `ppr_a` — LOWERING post-meal sensitivity — made Loop spend **less** (1.98 → 1.68 U), not more. The
-   controller did not compensate; it under-dosed, so the hypothesis is wrong and the trough IS reachable from the body
-   side.
-   - **And ad0 spends exactly the donors' 1.98 U in the same window and falls 43 against their 57** — a pure potency
-     gap of **75%** with no dose difference whatever, at a similar peak height (rise 61 against 64). This is the
-     sharpest statement of L 512 yet: in the 90 min after a meal peak, a unit of the twins' insulin lowers glucose
-     about a quarter less than a unit of the donors' does.
-   - **Where that can come from, given what is ruled out.** Appearance (A10c, ~1 mg/dL), A12b (a 30% sensitivity swing,
-     ~1 mg/dL), dose (matched here), and Loop's response (refuted) are all out. What remains is the body's own
-     glucose-lowering per unit of insulin ACTION in that window — A5's disposal chain (p2, κ, M(G)) or the ISF the
-     body is given (G2's data-fitted value, ISF_W 1.0). Note the twins already command 5–8% more insulin per day than
-     their donors (L 445–456); a potency deficit of this size in the post-meal hours is a candidate explanation for
-     that standing limit, and the two should be worked together.
-   - **Method note:** this cost no new simulation — two existing arms plus the ice extractor. Prefer a decisive
-     measurement on runs in hand over a new arm whenever the arms already differ in the one parameter.
-576. **The potency deficit is confirmed from a second direction: raising `si_norm` to 1.0 cuts the twins' insulin
-   surplus AND raises TIR on all three draws — but it drops the glucose level, because the residual's level was fitted
-   under the old potency.** `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the ISF yardstick
-   averages over the donor's real life, so the life modulators should average 1 around it, and 0.92 reproduces the
-   level they held while disabled). L 575 measured the twins' post-meal insulin at 75% of the donors' potency per unit
-   at matched spend, so `si_norm` is about a third of that gap and is deliberate.
+   ad0 spends exactly the donors' 1.98 U and falls 43 against 57 — pure potency, no dose difference, at a similar peak
+   height. Raising `ppr_a` (LOWERING post-meal sensitivity) made Loop spend **less**, not more, so the
+   compensation hypothesis is refuted and the trough IS reachable from the body side. Ruled out in that window:
+   appearance (A10c, ~1 mg/dL), A12b (a 30% effective-sensitivity swing, ~1 mg/dL), dose (matched), Loop's response.
+   What remains is the body's glucose-lowering per unit of insulin ACTION — A5's disposal chain or the ISF the body is
+   given. This is the quantified form of L 512, and the direction is that the twins need MORE post-meal potency.
 
-   | | Donors | ad3 (0.92) | **`si_norm` 1.0** |
-   |---|---|---|---|
-   | tdd | 38.70 | 40.9 / 42.7 / 41.8 | **40.3 / 42.2 / 41.2** |
-   | tir | 71.88 | 69.8 / 71.1 / 68.2 | **70.3 / 72.0 / 70.7** |
-   | bg_mean | 151.93 | 151.5 / 147.6 / 151.6 | 149.7 / 145.5 / 150.1 |
-   | t70 | 1.599 | 1.72 / 1.90 / 1.49 | 1.88 / 2.38 / 1.82 |
-   | score | — | 0.321 / 0.425 / 0.410 | 0.312 / 0.444 / 0.409 |
+577. **TDD, not bg_mean, is the diagnostic for a core sensitivity error: `resid_m` absorbs core level errors.**
+   `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the yardstick averages over the donor's
+   real life, so the life modulators should average 1 around it, and 0.92 reproduces the level they held while
+   disabled) — about a third of L 575's potency gap, and deliberate. Raising it to 1.0 improves TDD and TIR on all
+   three draws (the first confirmation that the potency deficit and the twins' standing 5–8% insulin surplus, L 445–456,
+   share one cause) but drops the level, because `resid_m` was fitted at 0.92. Three rounds of `lvl_resid.py`
+   (converging to twin–donor mean ρ 0.99) restore it:
 
-   **TDD improves on all three draws and TIR on all three** — the first direct confirmation of L 575's suggestion that
-   the post-meal potency deficit and the twins' standing 5–8% insulin surplus (L 445–456) share one cause. Score is
-   level (mean 0.388 against 0.385).
-   - **Why it is not adoptable as it stands:** mean glucose undershoots on all three draws (149.7 / 145.5 / 150.1
-     against the donors' 151.9) and t70 rises on all three. That is expected and it names the sequence: the residual's
-     per-person LEVEL (`resid_m`, fitted to each donor's own glucose, L 515) was fitted with `si_norm` at 0.92, so more
-     potency must be followed by a level refit — the standing review rule (L 196, 499). **Next step: `si_norm` 1.0
-     plus `lvl_resid.py` re-run (three rounds on each draw, the sequence of L 525), then score.** Without the refit
-     the change reads as a level regression; with it, TDD, TIR and the post-meal trough should all move together.
-   - **This is the most promising open thread in the model**, because it is one cause behind three documented limits:
-     the post-meal trough (L 512, 574, 575), the insulin surplus (L 445–456), and part of the TIR shortfall (L 558).
-577. **The residual's level term absorbs a core potency change: refitting it after `si_norm` 1.0 restores the level and
-   TIR on all three draws but hands back the insulin-surplus gain. The data-driven layer has been masking the core
-   defect.** Three rounds of `lvl_resid.py` on draws 1 and 2 after raising `si_norm` to 1.0, converging cleanly
-   (twin–donor mean ρ 0.92 → 0.97 → 0.99):
-
-   | | Donors | ad3 | `si_norm` 1.0, no refit | **1.0 + level refit** |
+   | | donors | ad3 (0.92) | 0.96 + refit | 1.0 + refit |
    |---|---|---|---|---|
-   | score | — | 0.321 / 0.425 / 0.410 | 0.312 / 0.444 / 0.409 | **0.333 / 0.373 / 0.409** (mean **0.372** vs 0.385) |
-   | bg_mean | 151.93 | 151.5 / 147.6 / 151.6 | 149.7 / 145.5 / 150.1 | **150.7 / 150.1 / 152.5** |
-   | tir | 71.88 | 69.8 / 71.1 / 68.2 | 70.3 / 72.0 / 70.7 | **71.0 / 72.5 / 69.9** |
-   | tdd | 38.70 | 40.9 / 42.7 / 41.8 | **40.3 / 42.2 / 41.2** | 41.8 / 43.5 / 41.9 |
-   | t70 | 1.599 | 1.72 / 1.90 / 1.49 | 1.88 / 2.38 / 1.82 | 2.14 / 2.11 / 1.84 |
-
-   - **The mean score improves** (0.372 against 0.385) on the strength of draw 2, the best draw-2 score of the session
-     (0.373 against sd3's 0.454); draw 1 is worse and draw 3 level. **bg_mean and TIR improve on all three draws** —
-     both gaps roughly halve.
-   - **But TDD is worse on all three**, giving back exactly the gain `si_norm` 1.0 bought alone. The mechanism is
-     plain: the refit raises `resid_m` (an unexplained glucose drive) to restore the level, and that extra drive needs
-     insulin to cover. So the 8% of potency returned to the core came straight back out as residual drive.
-   - **The architectural consequence, which matters more than the score.** `resid_m` is fitted per person to the
-     donor's own glucose level, so it absorbs whatever the evidenced core gets wrong about level — including a core
-     sensitivity error. A potency deficit therefore does NOT show up in the level statistics; it shows up in **TDD**,
-     because the compensating drive has to be dosed for. That is consistent with the twins' standing 5–8% insulin
-     surplus (L 445–456) having been the visible face of this all along, and it means **TDD is the diagnostic for core
-     sensitivity errors, not bg_mean.** Read `resid_m`'s size as a measure of what the core is missing, not as a
-     nuisance parameter.
-   - **Not adopted.** The mean score favours it and the level and TIR improve on all three draws, but TDD regresses on
-     all three and t70 on two of three, and the change is a cohort-wide sensitivity move — the kind that should not be
-     made on a mixed reading. **Pete's call**, with the architectural point above as the substance: the choice is
-     whether to carry the 8% in the core (where it is a named sensitivity) or in `resid_m` (where it is unexplained
-     drive that must be dosed for).
-578. **Carrying the 8% in the core instead of in `resid_m` un-damps the response to a settings edit: `si_norm` 1.0 +
-   level refit gives the best response SIZE of the series, while ad2 / ad3 keep the best control-level heterogeneity.**
-   The twins' damped response to an edit is a standing limit (L 493, 532). `resid_m` is an exogenous glucose drive
-   that does NOT scale with insulin, so a person whose level is held up by it responds less to a settings change than
-   one whose sensitivity carries it — the mechanism L 577 exposed, now measured on the 108 events:
-
-   | | Field | sd3 | ad2 | ad3 | **lv3 (`si_norm` 1.0 + refit)** |
-   |---|---|---|---|---|---|
-   | t70 response, field / twin ratio | 1.0 | 2.67 | 3.21 | 3.32 | **2.09 [0.98, 3.83]** |
-   | mean response ratio | 1.0 | 1.97 | 2.11 | 2.24 | **1.97** |
-   | t70 tight | +4.35 | +0.80 | +1.29 | +1.05 | **+1.22** |
-   | t70 tight − rest | +4.27 | +0.51 | **+1.03** | +0.74 | +0.81 [−0.02, +1.68] |
-   | TIR tight − rest | −7.18 | −0.86 | −1.27 | **−1.63** | −1.47 |
-   | mean tight − rest | +1.65 | +0.25 | +0.05 | **+0.93** | −0.04 |
-
-   **lv3 has the smallest response-size deficit of any arm measured** — the t70 ratio 2.09 against ad3's 3.32, and the
-   mean ratio back to sd3's 1.97 from ad3's 2.24. ad2 and ad3 keep the better tight − rest contrasts. So the two
-   representations trade on the prediction side as well: the core carries HOW MUCH a person responds, `resid_m` damps
-   it; ad2 / ad3's residual-heavy form sharpens WHO responds.
-   - **The decision, with both halves now measured.** Carrying the 8% in the core (lv3): better mean cohort score
-     (0.372 vs 0.385), level and TIR better on all three draws, the least damped change response. Carrying it in
-     `resid_m` (ad3): better TDD on all three draws, better control-level contrasts, better per-event mean ρ.
-     **It is a choice about what the model is for** — sizing a change (lv3) against ranking who a change affects
-     (ad3) — and the handoff of L 542 already splits those uses across arms. Pete's call; both are one flag apart
-     (`si_norm` with its matching template).
-579. **The core-vs-residual trade is roughly linear, so the intermediate does not dominate: the `si_norm` choice is a
-   question of principle, not an optimisation.** `si_norm` 0.96 with the same three-round level refit (mv3, converging
-   to twin–donor mean ρ 0.98), against 1.0 (lv3) and 0.92 (ad3):
-
-   | | Donors | ad3 (0.92) | mv3 (0.96) | lv3 (1.0) |
-   |---|---|---|---|---|
-   | score d1 / d2 / d3 | — | 0.321 / 0.425 / 0.410 | 0.328 / 0.385 / 0.407 | 0.333 / 0.373 / 0.409 |
-   | **mean score** | — | 0.385 | **0.373** | **0.372** |
+   | mean score | — | 0.385 | **0.373** | **0.372** |
    | bg_mean gap | — | 0.092 / 0.263 / 0.076 | **0.055 / 0.090 / 0.031** | 0.072 / 0.073 / 0.052 |
    | tir gap | — | 0.208 / 0.112 / 0.309 | **0.057 / 0.070 / 0.173** | 0.072 / 0.070 / 0.149 |
-   | tdd gap | — | 0.169 / 0.262 / 0.201 | 0.115 / 0.255 / 0.237 | 0.202 / 0.290 / 0.209 |
+   | tdd gap | — | **0.169 / 0.262 / 0.201** | 0.115 / 0.255 / 0.237 | 0.202 / 0.290 / 0.209 |
    | t70 | 1.599 | **1.72 / 1.90 / 1.49** | 2.14 / 2.17 / 1.82 | 2.14 / 2.11 / 1.84 |
+   | t70 edit-response ratio | 1.0 | 3.32 | — | **2.09** |
 
-   0.96 and 1.0 are within noise of each other on the mean score (0.373, 0.372) and both beat 0.92's 0.385; 0.96 has
-   the best level and TIR gaps and slightly better TDD on draw 1, 1.0 the best change-response size (L 578). Half the
-   move buys roughly half the TDD cost and the same score — no value dominates.
-   - **So the choice stands as L 578 framed it**, and tuning the number will not resolve it: either the cohort-wide 8%
-     cut stays (ad3: fewer lows, better TDD, sharper control-level contrasts) or it goes (1.0: the ISF yardstick taken
-     at face value, best level, TIR and change-response size). **1.0 is the principled end** — it is the only value
-     with no unexplained cohort-wide sensitivity cut in it, and `si_norm` exists only to stand in for life modulators
-     that are switched off in this reference (L 468, 516). If those modulators are ever switched back on, `si_norm`
-     should be 1.0 by construction.
-   - **All three are one flag and one template apart**, so keeping two arms for the two uses (sizing a change vs
-     ranking who it affects, L 542) costs nothing but a template file.
+   - **The architecture.** `resid_m` is fitted per person to the donor's glucose level, so it absorbs whatever the
+     core gets wrong about level — including a core sensitivity error. The 8% returned to the core came straight back
+     out as residual drive. So a potency deficit does not show in the level statistics; it shows in **TDD**. Read
+     `resid_m`'s size as a measure of what the core is missing.
+   - **And `resid_m` does not scale with insulin, so it damps the response to a settings edit.** Carrying the 8% in
+     the core gives the **least damped change response of any arm measured** (t70 ratio 2.09 against ad3's 3.32, mean
+     ratio back to 1.97) while ad2 / ad3's residual-heavy form keeps the better control-level contrasts. The core
+     carries how MUCH a person responds; `resid_m` sharpens WHO does.
+   - **PETE'S CALL, and tuning will not settle it:** the trade is roughly linear, so 0.96 does not dominate (mean
+     score 0.373 against 1.0's 0.372). **1.0 is the principled end** — the only value with no unexplained cohort-wide
+     cut, and `si_norm` exists only to stand in for life modulators that are OFF in this reference; if they are ever
+     switched on it should be 1.0 by construction. All three are one flag and one template apart, so keeping two arms
+     for the two uses (L 542) costs a template file.

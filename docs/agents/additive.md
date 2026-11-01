@@ -86,7 +86,7 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. A different draw of people (seed0) moves the count by up to 6 (LESSONS 444): score an arm whose
   effect is within that scatter on two draws (seed0 1000 and 5000) before adopting it.
-- **Exercise-faithful configuration** (L 566; not the default, because every step toward it costs the weighted score):
+- **Exercise-faithful configuration** (L 565; not the default, because every step toward it costs the weighted score):
   `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75` on the reference. It reproduces C4's own by-METs table —
   the ≥ 8 MET band reads +0.9 against the donors' +1.2 where the band has enough bouts — against the reference's +12.8 / −5.1.
   Use it whenever the response to a workout matters; the reference keeps the score-optimal settings.
@@ -153,15 +153,15 @@ reference changes.
   level, so it absorbs core level errors — a potency deficit shows up as the insulin surplus, not as a level gap. Read
   `resid_m`'s size as what the core is missing. `si_norm` 1.0 + a level refit improves the mean score (0.372 vs 0.385),
   level and TIR on all three draws, and gives the LEAST DAMPED change response of any arm (t70 ratio 2.09 vs ad3's 3.32,
-  L 578) — because resid_m does not scale with insulin. It hands back the TDD gain and some control-level heterogeneity.
+  L 577) — because resid_m does not scale with insulin. It hands back the TDD gain and some control-level heterogeneity.
   Awaiting Pete: the core carries how MUCH a person responds, resid_m sharpens WHO does. The trade is roughly LINEAR, so the
-  intermediate (0.96) does not dominate and tuning the value will not settle it (L 579); 1.0 is the principled end, since
+  intermediate (0.96) does not dominate and tuning the value will not settle it (L 577); 1.0 is the principled end, since
   `si_norm` only stands in for life modulators that are off in this reference and should be 1.0 if they are switched on.
-- **superseded by L 577** (L 576): `si_norm` 1.0 (undoing the deliberate cohort-wide 8% sensitivity cut)
+- **superseded by L 577** (L 577): `si_norm` 1.0 (undoing the deliberate cohort-wide 8% sensitivity cut)
   improves TDD and TIR on all three draws, confirming that the post-meal potency deficit and the twins' 5–8% insulin surplus
   share one cause. It drops the glucose level because `resid_m` was fitted at 0.92, so it needs `lvl_resid.py` re-run after
   it (three rounds per draw, L 525) before it can be judged. One cause behind three documented limits.
-- **the shallow post-meal trough is 72% potency, not dose** (L 574): after a meal peak the twins spend nearly the donors'
+- **the shallow post-meal trough is 72% potency, not dose** (L 575): after a meal peak the twins spend nearly the donors'
   insulin (1.78 against 1.98 U over 90 min) but fall 41 against 57 mg/dL — 80% of the donors' mg/dL per unit. Appearance
   (A10c) and A12b are both ruled out (a 30% sensitivity swing moves the trough ~1 mg/dL), as are dose and Loop compensation
   (L 575: raising ppr_a made Loop spend LESS, not more). At MATCHED spend — ad0 and the donors both 1.98 U — the twins fall
@@ -202,20 +202,20 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 - **The exercise side is limited by a missing measurement, not a missing mechanism** (L 551, 556, 557, 564): per-person
   aerobic capacity is a prior (METmax lnN(9, 0.25)), and without it C1 / C2's size at moderate intensity cannot be settled —
   the 6–8 MET band is still −13 against the donors' −21.5. C4's threshold and size ARE settled (8 absolute METs, 28
-  mg/kg/min): the ≥ 8 MET band reads +1.8 against the donors' +1.2 once `ex_headroom` gives it enough bouts (L 564).
+  mg/kg/min): the ≥ 8 MET band reads +1.8 against the donors' +1.2 once `ex_headroom` gives it enough bouts (L 554).
   The 6–8 shortfall is now understood as a REGIME SWITCH the smooth terms cannot make (L 565): the donors fall deepest at
   6–8 METs and rise at ≥ 8, so any setting that deepens one deepens the other. It needs a form change (a steeper anaerobic
   share), not a parameter.
 - Off-by-default experiments with their verdicts: `meal_wave2` (A10c delayed gastric pulse: preserves the peak where a slow
-  tail destroys it and lifts the second rise, but the trough is unmoved — it is not limited by appearance, L 573),
+  tail destroys it and lifts the second rise, but the trough is unmoved — it is not limited by appearance, L 571),
   `meal_slow` 0.30 (A10's slow share cannot make the second wave — it lowers
-  the peak instead of deepening the trough, because kmin 0.008 dribbles rather than pulsing, L 572), `resid_meal` (redistributing the residual across the meal cycle: null, and
-  rise-skewed variance cannot reach a one-sided target, L 569), `resid_drop_p` (moves entry_fast_fall on all three draws but
-  spends ~5 points of the nearly-closed meal tail to buy ~2.4 of it, L 570), `ex_abs` (C1 keyed to absolute work rate: the 6–8 MET band improves on both
+  the peak instead of deepening the trough, because kmin 0.008 dribbles rather than pulsing, L 571), `resid_meal` (redistributing the residual across the meal cycle: null, and
+  rise-skewed variance cannot reach a one-sided target, L 568), `resid_drop_p` (moves entry_fast_fall on all three draws but
+  spends ~5 points of the nearly-closed meal tail to buy ~2.4 of it, L 568), `ex_abs` (C1 keyed to absolute work rate: the 6–8 MET band improves on both
   draws, −14 → −18 against the donors' −21.5, but the ≥ 8 band goes negative where the donors rise; the two bands trade, L 565),
   `ex_headroom` 1.5 (restores the session-intensity tail and validates C4's
   size of 28 — the ≥ 8 MET band reads +1.8 vs the donors' +1.2 at n 40; costs score on both draws, use it for
-  exercise-focused work, L 564), `ge_spare` (A1c alone: buys t70 1.97 / 2.16 → 1.67 / 1.71 and TIR on both
+  exercise-focused work, L 554), `ge_spare` (A1c alone: buys t70 1.97 / 2.16 → 1.67 / 1.71 and TIR on both
   draws, costs the share of lows reaching 54, 0.212 → ~0.17, which A9 cannot refit; awaiting Pete, L 561–562), `ge_split` (glucose effectiveness from named parts; too many lows, and superseded by the C4 threshold fix on change prediction too, L 548, 555), `ex_dur_cap` (the cap without the METmax fit — leaves almost no hard session, L 554), `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
   `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
 

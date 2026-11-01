@@ -178,7 +178,7 @@ its lesson so it is not retried blind.
 | Glucose high | B11 | A1b (`ge_split`) | A5 M(G) κ | — | `ge_hyper` off (L 91) | — | — | — | F4 corrections |
 | Glucose low | not needed (L 55) | A9 | A1c sparing, A5 M(G) | — | A11 | A9 + HAAF | D3 low-range | — | F5, F6 |
 | Eating a meal | A12b | — | — | — | A10, A12, A14, A15 | — | — | — | F2, F3 |
-| Sleep / posture | B7 sleep loss | B2 dawn, B2b GH | — | A4b posture | — | `cr_sleep` off (L 552) | D5 compression | — | F6 |
+| Sleep / posture | B7 sleep loss | B2 dawn, B2b GH | — | A4b posture | — | `cr_sleep` off (L 550) | D5 compression | — | F6 |
 | Illness | B6 | B6 | — | — | B6 gastrointestinal | — | — | — | — |
 | Menstrual cycle | B5 | — | — | — | — | — | — | — | F12 |
 | Site age / wear | — | — | — | E5, E5b | — | — | — | E6–E11 | F8 |
