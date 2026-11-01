@@ -2431,14 +2431,16 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
        donors' numbers are `label()`'s raw `pk * 5/60` argmax; the twins' are `fit_shapes`'s `mode`. All 168 donor
        files are stale — a uniform version skew, not a mixture. Their lumpy cell histogram (exactly 0.0% in cells 1,
        3, 5 and 8, neighbours at 2–8%) is the raw 5-min lattice seen through the fitted grid, not physiology.
-     - **Re-running the CURRENT labeller on the donors moves every one of them the same way** (8 donors, 6.5k pulses;
-       `resid_tools/relabel_donors.py`): peak_h median 0.667 → **0.536**, dur_h 1.833 → **1.447**, while `size_g`
-       barely moves (25.8 → 25.1), so pulse detection is stable and the change is specifically the shape fit.
+     - **Re-running the CURRENT labeller on the donors moves every one of them the same way** (42 donors, 31.3k
+       pulses; `resid_tools/relabel_donors.py`): peak_h median 0.750 → **0.536**, dur_h 1.833 → **1.463**, while
+       `size_g` barely moves (27.1 → 26.6), so pulse detection is stable and the change is specifically the shape
+       fit. **All 42 donors move down and none up**, and the sample's STORED median is 0.750 — exactly the scored
+       donor target — so the sample reproduces the population statistic and the shift is the whole story.
 
        | row | donors as scored | donors, current labeller | twins (rf2) | verdict |
        |---|---|---|---|---|
-       | `pulse_peak_h` | 0.750 | **0.536** | 0.622 | scored "0.13 h too EARLY"; really ~0.09 h too **LATE** |
-       | `pulse_dur_h` | 1.917 | **1.447** | 1.885 | scored near-passing (0.105); really ~**30% too long** |
+       | `pulse_peak_h` | 0.750 | **0.536** | 0.622 | scored "0.13 h too EARLY"; really 0.086 h (5 min) too **LATE** |
+       | `pulse_dur_h` | 1.917 | **1.463** | 1.885 | scored near-passing (0.105); really ~**29% too long** |
 
      - **The scored median was additionally quantization-pinned**, which is why no arm could move it: the grid spacing
        near the twins' value is 3.4–5.9 min, so a sub-cell shift never changes the median. The MEAN is not pinned and

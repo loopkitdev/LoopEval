@@ -22,16 +22,18 @@ The signature is unambiguous, and it is uniform across all 168 donor files:
 
 ## Size of the error
 
-Re-running the current `label()` on 8 donors (6.5k pulses; driver
+Re-running the current `label()` on 42 donors (31.3k pulses; driver
 `analysis/loopeval_analysis/patient_sim/resid_tools/relabel_donors.py`, in `main`):
 
 | quantity | stored | current labeller | change |
 |---|---|---|---|
-| `peak_h` median | 0.667 h | **0.536 h** | −0.13 h, every donor the same way |
-| `dur_h` median | 1.833 h | **1.447 h** | −0.39 h |
-| `size_g` median | 25.84 g | 25.06 g | ~unchanged — pulse detection is stable |
+| `peak_h` median | 0.750 h | **0.536 h** | −0.21 h; **all 42 donors move down, none up** |
+| `dur_h` median | 1.833 h | **1.463 h** | −0.37 h |
+| `size_g` median | 27.15 g | 26.56 g | ~unchanged — pulse detection is stable |
 
-`size_g` barely moving is the control: this is the shape fit, not the labelling.
+`size_g` barely moving is the control: this is the shape fit, not the labelling. The sample's stored `peak_h`
+median is 0.750, which is exactly the value the additive scorer carries as the donor target, so this sample
+reproduces the population statistic rather than a corner of it.
 
 ## Why it matters beyond additive
 
