@@ -456,6 +456,12 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Option(name: .long, help: "Slow RC: freeze the level for this many minutes after glucose was below 70, so rescue carbs are not read as resistance (0 = off). Try 720 (C20's window).")
     var candidateSlowRcPostlowFreezeMin: Double = 0
 
+    @Flag(name: .long, help: "Slow RC, stateless form: read the residual from a forecast at the scheduled ISF, not the slow-RC-scaled one (as the LoopAlgorithm port recomputes it from history).")
+    var candidateSlowRcScheduleFeed: Bool = false
+
+    @Option(name: .long, help: "Slow RC, stateless form: EWMA over only the last this-many minutes of residuals, from 0 (default 0 = unbounded).")
+    var candidateSlowRcWindowMin: Double = 0
+
     @Option(name: .long, help: "Slow RC timing gate: JSON {\"windows\": [{\"start\", \"end\", \"min\"}], \"resets\": [ISO dates]}. Inside a window the multiplier's lower clamp is that window's min, outside it --candidate-slow-rc-min; at each reset the level returns to 0 (a user switching the adjustment off).")
     var candidateSlowRcGateJson: String?
 
@@ -974,6 +980,8 @@ extension SimulateCommand {
     var candidateSlowRcClipMgdl: Double { get { loopExperiments.candidateSlowRcClipMgdl } set { loopExperiments.candidateSlowRcClipMgdl = newValue } }
     var candidateSlowRcLeakMin: Double { get { loopExperiments.candidateSlowRcLeakMin } set { loopExperiments.candidateSlowRcLeakMin = newValue } }
     var candidateSlowRcPostlowFreezeMin: Double { get { loopExperiments.candidateSlowRcPostlowFreezeMin } set { loopExperiments.candidateSlowRcPostlowFreezeMin = newValue } }
+    var candidateSlowRcScheduleFeed: Bool { get { loopExperiments.candidateSlowRcScheduleFeed } set { loopExperiments.candidateSlowRcScheduleFeed = newValue } }
+    var candidateSlowRcWindowMin: Double { get { loopExperiments.candidateSlowRcWindowMin } set { loopExperiments.candidateSlowRcWindowMin = newValue } }
     var candidateSlowRcGateJson: String? { get { loopExperiments.candidateSlowRcGateJson } set { loopExperiments.candidateSlowRcGateJson = newValue } }
     var candidateSlowRcNeeds: Bool { get { loopExperiments.candidateSlowRcNeeds } set { loopExperiments.candidateSlowRcNeeds = newValue } }
     var candidateSlowRcLowShrink: Double { get { loopExperiments.candidateSlowRcLowShrink } set { loopExperiments.candidateSlowRcLowShrink = newValue } }

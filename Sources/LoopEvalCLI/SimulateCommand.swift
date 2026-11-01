@@ -274,6 +274,8 @@ struct SimulateCommand: AsyncParsableCommand {
         candidateConfig.slowRcClipMgdl = candidateSlowRcClipMgdl
         candidateConfig.slowRcLeakSec = candidateSlowRcLeakMin * 60
         candidateConfig.slowRcPostlowFreezeSec = candidateSlowRcPostlowFreezeMin * 60
+        candidateConfig.slowRcScheduleFeed = candidateSlowRcScheduleFeed
+        candidateConfig.slowRcWindowSec = candidateSlowRcWindowMin * 60
         candidateConfig.slowRcNeeds = candidateSlowRcNeeds
         candidateConfig.slowRcLowShrink = candidateSlowRcLowShrink
         if let path = candidateSlowRcGateJson {

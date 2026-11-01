@@ -646,6 +646,12 @@ public struct EvalConfig: Codable, Sendable {
     public var slowRcLeakSec: TimeInterval = 0
     /// Slow RC: no level updates for this long after counter glucose < 70, seconds (0 = off). Set post-construction.
     public var slowRcPostlowFreezeSec: TimeInterval = 0
+    /// Slow RC, stateless form (the LoopAlgorithm port): the residual is read from a forecast at the SCHEDULED ISF
+    /// (no slow-RC multiplier), as a recompute from history must, instead of from this cycle's scaled forecast. Set post-construction.
+    public var slowRcScheduleFeed: Bool = false
+    /// Slow RC, stateless form: the level is the EWMA of only the residuals of the last this-many seconds, started from 0,
+    /// as a recompute from that much history gives (0 = unbounded, the running EWMA). Set post-construction.
+    public var slowRcWindowSec: TimeInterval = 0
     /// Slow RC timing gate: inside a window the lower clamp is the window's min. Set post-construction.
     public var slowRcGateWindows: [SlowRcGateWindow] = []
     /// Slow RC: the level returns to 0 at each of these times. Set post-construction.

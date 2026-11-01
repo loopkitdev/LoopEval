@@ -767,6 +767,7 @@ extension EvaluationEngine {
         var slowRcLevel = 0.0          // ewma: EWMA of the residual; integral: log of the ISF multiplier
         var slowRcLastLow: Date? = nil
         var slowRcResetIdx = 0
+        var slowRcHistory: [(t: Date, r: Double, decay: Double)] = []   // stateless form: the residuals in the window
         let slowRcGated = !candidateConfig.slowRcGateWindows.isEmpty
         func slowRcMinAt(_ t: Date) -> Double {
             candidateConfig.slowRcGateWindows.first { $0.start <= t && t < $0.end }?.min ?? candidateConfig.slowRcMin
@@ -1106,12 +1107,12 @@ extension EvaluationEngine {
                 // Needs form: the slow RC level scales basal and carb ratio with ISF, like an insulin-needs override.
                 let slowRcNeeds = candidateConfig.slowRcNeeds && slowRcOn ? 1.0 / slowRcMult : 1.0
                 var stepInput = Self.scaledNeeds(candidateInput, slowRcNeeds), stepOrefHist = orefHistDoses
-                func doStep(_ map: [Date: Double]?) -> EngineStepResult {
+                func doStep(_ map: [Date: Double]?, isfMult: Double? = nil) -> EngineStepResult {
                     candidateEngine.step(EngineStepRequest(
                         t: t, input: stepInput, config: candidateConfig,
                         therapy: candTherapy, glucoseMgdl: candMomentumMgdl,
                         glucoseSamples: candMomentumSamples,
-                        extraISFMultiplier: sensModeMult * slowRcMult,
+                        extraISFMultiplier: isfMult ?? sensModeMult * slowRcMult,
                         forecastOffsetMgdl: iceRiseBoostOffset + anticipationOffset,
                         perStepIsfMultByTime: map,
                         isfBoostActiveOnly: isfBoostActiveOnly,
@@ -1323,6 +1324,18 @@ extension EvaluationEngine {
                 // in carb-active steps; C08 results before pinned10 were measured with that feed.)
                 let rcResidualFeed = candidateICE.isFinite
                     ? candidateICE - (candidateCarbEffect.isFinite ? candidateCarbEffect : 0.0) : Double.nan
+                // Stateless slow RC: a recompute from history cannot know past multipliers, so its residual is the
+                // scheduled-ISF forecast's. Read it from a second step at the scheduled ISF (no per-step boost map).
+                var slowRcFeed = rcResidualFeed
+                if slowRcOn && candidateConfig.slowRcScheduleFeed && abs(slowRcMult - 1.0) > 1e-12 {
+                    let plain = doStep(nil, isfMult: sensModeMult).prediction.effects
+                    var ice = Double.nan, carb = Double.nan
+                    if let ki = plain.carbs.lastIndex(where: { $0.startDate <= tEps }), ki > plain.carbs.startIndex {
+                        carb = plain.carbs[ki].quantity.doubleValue(for: mgdlUnit) - plain.carbs[ki - 1].quantity.doubleValue(for: mgdlUnit)
+                    }
+                    if let m = plain.insulinCounteraction.last(where: { $0.endDate <= tEps }) { ice = m.effect.quantity.doubleValue(for: mgdlUnit) }
+                    slowRcFeed = ice.isFinite ? ice - (carb.isFinite ? carb : 0.0) : Double.nan
+                }
                 if sensModeOn && rcResidualFeed.isFinite {
                     sensModeLevel = sensModeDecayStep * sensModeLevel + (1.0 - sensModeDecayStep) * Swift.max(0.0, -rcResidualFeed)
                 }
@@ -1334,10 +1347,16 @@ extension EvaluationEngine {
                     && slowRcLastLow.map { t.timeIntervalSince($0) < candidateConfig.slowRcPostlowFreezeSec } == true
                 let resets = candidateConfig.slowRcResets
                 while slowRcResetIdx < resets.count && resets[slowRcResetIdx] <= t { slowRcLevel = 0; slowRcResetIdx += 1 }
-                if slowRcOn && rcResidualFeed.isFinite && !slowRcFrozen {
+                if slowRcOn && slowRcFeed.isFinite && !slowRcFrozen {
                     let c = candidateConfig.slowRcClipMgdl
-                    let r = c > 0 ? Swift.max(-c, Swift.min(c, rcResidualFeed)) : rcResidualFeed
-                    if candidateConfig.slowRcIntegral {
+                    let r = c > 0 ? Swift.max(-c, Swift.min(c, slowRcFeed)) : slowRcFeed
+                    if candidateConfig.slowRcWindowSec > 0 && !candidateConfig.slowRcIntegral {
+                        // Stateless form: the EWMA of the window's residuals, from 0 at its start.
+                        slowRcHistory.append((t, r, slowRcDecayStep))
+                        let from = slowRcHistory.firstIndex { t.timeIntervalSince($0.t) < candidateConfig.slowRcWindowSec } ?? slowRcHistory.count
+                        slowRcHistory.removeFirst(from)
+                        slowRcLevel = slowRcHistory.reduce(0.0) { $1.decay * $0 + (1.0 - $1.decay) * $1.r }
+                    } else if candidateConfig.slowRcIntegral {
                         // Integral form: step the log multiplier against the residual until the residual averages
                         // zero; clamp it to [ln min, ln max] so it cannot wind up past the clamp.
                         let leak = candidateConfig.slowRcLeakSec > 0 ? exp(-stepDur / candidateConfig.slowRcLeakSec) : 1.0
