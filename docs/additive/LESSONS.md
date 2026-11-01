@@ -770,10 +770,33 @@ evidence to the evidence files.
    needed). Unmodelled and evidenced: sleep → counter-regulation (Banarer 2003, the asleep epinephrine response
    roughly halved), exercise → counter-regulation (exercise-associated autonomic failure), exercise → site failure and
    dislodgement, and the aerobic side of exercise → EGP (C4 only adds the anaerobic surge, so moderate work has no
-   hepatic answer at all). Modelled but mis-sized by a known factor, and the largest single coupling error in the
-   model: eating during a session. Like for like on entries, donors enter carbs during a workout at 0.18× the same
-   clock hours' rate and at 1.44× in the hour after (L 244); the twins enter at about 1.05× during. Two attempts at
-   it failed (`ex_no_eat`, L 245, 497: deferral reaches 0.69–0.90, not 0.18, because entries also come from meals
-   begun before the session and from proactive snacks the exercise fall itself triggers). It is not worth a third
-   attempt on 112 twins: the activity rows move by their own draw scatter and cannot rank an exercise change
-   (L 497), so this coupling needs a larger cohort or a workout-only bed before it can be judged.
+   hepatic answer at all). On eating during a session, which the entry rates appear to make the largest coupling
+   error (donors enter carbs during a workout at 0.18× the clock-hour rate against the twins' 1.05×, L 244), see
+   L 551: the entry rate measures logging, not eating, and does not support that reading.
+
+551. **Entries do not measure eating during a workout, and the real exercise gap is the size of the fall: matched
+   donor sessions drop 30 mg/dL to their nadir against the twins' 11–13 (Pete 2026-11-01).** Donors' carb entries
+   during workouts run at 0.18× the clock-hour rate (L 244), but exercise is where logging should fail (tabs, sports
+   drink, gels), so the statistic cannot say whether they ate. Measured instead on the shape every CGM shows, the rise
+   from the mid-session nadir (`donor_rev.py`, `sim_rev.py` in runs/2026-11-01-additive-exeat; 464 donor workouts /
+   17 recorders, 89% with no entry in the window):
+   - **Donors' entry-free workouts reverse like the twins that eat, not like the twins that eat nothing.** Reversal
+     ≥ 15 mg/dL after the nadir: donors with no entry 0.51, twins that ate 0.52 / 0.56, twins that ate nothing
+     0.35 / 0.37; ≥ 25 mg/dL 0.38 vs 0.39 / 0.40 vs 0.22 / 0.23. Sessions with a logged entry are barely different
+     from entry-free ones (0.57 vs 0.51), so logged carbs are not what lifts them. Unlogged intake or an endogenous
+     answer fits; the entry rate does not distinguish them.
+   - **Matched on duration and intensity (25–60 min, 3.5–7 METs; 81 donor workouts, 11 donors, no entry), the drop to
+     the nadir is donors 30 mg/dL and net −27, against the twins' 11–13 and −8 / −11 with no eating at all.** The
+     reversal rate nearly agrees once matched (0.44 vs 0.35 / 0.37) and the nadir sits at the same point of the
+     session (0.48 vs 0.48 / 0.49): it is the depth that is wrong, on both limbs of the V.
+   - **Reading.** This reverses L 497's: the twins' sessions are not blunted mainly by eating, their exercise response
+     is about a third of the donors'. Twins also start sessions at higher IOB than the donors' workouts (2.9–3.1 vs
+     2.2 U, L 497) and still fall less. Drop-to-nadir on matched sessions is the target to size C1 / C2 against —
+     a far sharper one than `act_net20`, which cannot rank an exercise change at 112 twins (L 497).
+
+552. **A9 × sleep (`cr_sleep` 0.5) is evidenced but shows no benefit: off.** The counter-regulatory answer halved while
+   asleep (Banarer & Cryer 2003, Diabetes 52:1195). Paired on sd3, two draws (cs0 reproduces sd3 exactly): score
+   0.370 → 0.371 and 0.454 → 0.444; tier 1 0.243 → 0.236 and 0.401 → 0.362, but the whole d2 tier-1 gain is in
+   `act_net20` / `act_net20_hi`, which move by their own draw scatter (L 497) and are flat on d1. t54 rises on both
+   draws (0.255 → 0.298, 0.258 → 0.301; donors 0.190) and meal_d3h worsens on d2. Kept off; the coupling stays in
+   the code as the only driver on A9 besides its own history. Run dir runs/2026-10-31-additive-gesplit/.
