@@ -937,9 +937,9 @@ evidence to the evidence files.
      [−0.17, +1.59]; TIR tight − rest (field −7.18) st9 −1.51, ad0 −1.34. So ad0 gives back st9's one contrast whose
      interval excluded zero. It is better on the per-event correlations (t70 ρ +0.28 vs st9's +0.14, mean ρ +0.26 vs
      +0.20) and on the t54 response ratio (3.01 vs 4.18), both read without intervals, so treat them as weaker
-     evidence than the contrast. **Net: the adoption is now known to be neutral on the cohort score AND on change
-     prediction, and rests entirely on soundness plus the component's own targets.** If the one significant contrast
-     is weighted above that, st9 is the arm to keep.
+     evidence than the contrast. **Net: the adoption is neutral on the cohort score AND on change prediction, and
+     rests entirely on soundness plus the component's own targets.** Pete 2026-11-01, confirming it: a change that is
+     level on the statistics and on prediction power but explains the mechanism better is a win. **Kept.**
    - **Still open:** the ≥ 8 MET band now overshoots on draw 1 (+12.8 vs +1.2) on 18–22 bouts, and the 6–8 band is
      still short of −21.5. Both wait on a measured capacity per person rather than a prior — see the Apple Watch data
      note (VO2max is the one measurement that would settle it).
