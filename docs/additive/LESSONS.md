@@ -1008,6 +1008,24 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      **Method note:** 0.89 is the ratio OF MEDIANS (57 / 64) while the per-meal median ratio here is 0.78 on the same
      donors. Both are valid, they are not the same number, and the twin comparison must use whichever is quoted —
      mixing them would invent or hide a gap.
+   - **Stratified (`resid_tools/ratio_twin.py`): the gap is roughly 60% physiology and 40% a behaviour-reproduction
+     defect, and the defect is specific.** Bolus-timing shares, twins against donors:
+
+     | | pre (−60, −5] | at (−5, 5] | late (5, 60] | **none within an hour** |
+     |---|---|---|---|---|
+     | donors | 0.07 | **0.74** | 0.15 | **0.03** |
+     | twins | 0.06 / 0.07 | 0.61 / 0.59 | 0.19 / 0.17 | **0.14 / 0.17** |
+
+     **The twins leave 14–17% of meals ≥ 20 g unbolused against the donors' 3%** — and unbolused meals carry the
+     lowest ratio of all (donors 0.62), so that composition alone drags the pooled figure down. Meal size matches
+     (34 / 33 g against 35), so size is not involved. Within the dominant "at the meal" stratum, where detection is
+     reliable on both sides, the twins read 0.71 / 0.67 against the donors' 0.79 — **a real residual gap of about
+     0.08–0.12, roughly 60% of the pooled 0.11–0.16.**
+     So: fix the unbolused share first (it is a measured behaviour defect, F3 draws P(bolus | entry) from each donor's
+     own rate), then re-read the within-stratum gap, which is what any ratio-breaking mechanism must actually close.
+     **Caveat on the 14–17%:** the two sides detect boluses differently — donors from pump records, twins from the
+     delivered stream above a 4× basal threshold — so part of that share may be detection failure on small boluses.
+     Confirm it against `bolus_requests` before treating it as a behaviour bug.
 
 577. **TDD, not bg_mean, is the diagnostic for a core sensitivity error: `resid_m` absorbs core level errors.**
    `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the yardstick averages over the donor's

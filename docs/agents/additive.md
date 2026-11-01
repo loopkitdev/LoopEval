@@ -176,8 +176,10 @@ reference changes.
   The incretin / portal routes are set aside analytically (they point the wrong way in T1D, L 575), so start from measurement:
   the donors' own ratio by meal size, clock hour, bolus timing and insulin type. **It tracks BOLUS TIMING hard**: 0.90 when
   pre-bolused 20-60 min, 0.79 at the meal, 0.68 late, 0.62 unbolused — a spread of 0.28 against the twins' 0.11-0.19 deficit
-  (L 575). Compare the twins' bolus-timing and meal-size DISTRIBUTIONS with the donors' and read the ratio within strata
-  before building anything; this may be dosing behaviour, not physiology.
+  (L 575). Stratified, the gap is ~60% physiology and ~40% composition: **the twins leave 14-17% of meals >= 20 g unbolused
+  against the donors' 3%**, and unbolused meals carry the lowest ratio. Within the dominant at-the-meal stratum the twins
+  read 0.71 / 0.67 against 0.79 — the real residual. Fix the unbolused share first (confirm it against `bolus_requests`;
+  the two sides detect boluses differently), then re-read the within-stratum gap.
 - **the excess lows are shallow ones that linger, and counter-regulation cannot fix them** (L 559, 560): at a 60–70 nadir
   the twins rise +21 in 30 min against the donors' +26 and dwell 15 min against 10. A9 can supply at most 2.4 mg/dL over
   that window, so the lever is the sub-basal shape of glucose disposal (A5's M(G) / κ below basal, or A1c brain sparing),
