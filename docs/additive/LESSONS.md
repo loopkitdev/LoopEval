@@ -1074,3 +1074,18 @@ evidence to the evidence files.
    - **The standing review rule applies**: A9's CRmax is fitted to the low DEPTHS (L 394), and A1c changes those
      depths, so CRmax must be refit before this is judged. Arms with `cr_mult` below 1 (deeper lows) on top of
      `ge_spare` in `run_sr.sh`. Held off until that refit is in.
+
+562. **A9 cannot refit the depth `ge_spare` costs, for the same reason it could not supply the recovery: it is too
+   small in either direction.** `cr_mult` 0.7 / 0.5 on top of `ge_spare` (weaker counter-regulation, so lows should
+   run deeper) leaves `p_reach54` at 0.182 / 0.170 and 0.167 / 0.171 against the donors' 0.212, from `ge_spare`'s
+   0.167 / 0.170 — essentially unmoved. L 560's arithmetic says why: A9 contributes at most 2.4 mg/dL over 30 min, so
+   removing 30–50% of it can only shift a nadir by about 1 mg/dL. The standing review rule was discharged and the
+   answer is that this component cannot carry the refit.
+   - Scores: sr7 (`cr_mult` 0.7) 0.350 / 0.420, sr5 0.351 / 0.418, against `ge_spare` alone 0.356 / 0.426 and ad2
+     0.340 / 0.444 — every variant is slightly worse than ad2 on draw 1 and clearly better on draw 2. sr5 puts t70 on
+     the donors' exactly on draw 1 (1.608 vs 1.599).
+   - **Where this leaves the low side.** `ge_spare` buys the binding-limit row (t70 1.97 / 2.16 → 1.67 / 1.71, donors
+     1.60) and TIR on both draws, and costs the share of lows reaching 54 (0.212 → ~0.17). That trade is not
+     refittable through A9, and rescue behaviour is the wrong direction too (deep lows already rebound HARDER than
+     the donors', L 559). So it is a genuine choice between a duration error and a depth error on the
+     safety-relevant side, not a calibration still to be done. **Pete's call; `ge_spare` stays off meanwhile.**
