@@ -932,6 +932,14 @@ evidence to the evidence files.
      draw 1 and better on draw 2, so it does NOT hold on both draws as L 444 requires. Adopted on the L 303
      precedent (a sounder model may match fewer statistics) because the evidence is on the component's own targets
      and the defect it removes is not a matter of degree. Revert with `ex_cap_fit` off and `ex_surge_mets=0`.
+   - **On the natural experiments it is a wash too** (`change7/`, 108 events, per-event seeds): response to +10%
+     insulin, t70 tight − rest, field +4.27 — sd3 +0.51 [−0.30, +1.46], st9 **+0.83 [+0.11, +1.70]**, ad0 +0.63
+     [−0.17, +1.59]; TIR tight − rest (field −7.18) st9 −1.51, ad0 −1.34. So ad0 gives back st9's one contrast whose
+     interval excluded zero. It is better on the per-event correlations (t70 ρ +0.28 vs st9's +0.14, mean ρ +0.26 vs
+     +0.20) and on the t54 response ratio (3.01 vs 4.18), both read without intervals, so treat them as weaker
+     evidence than the contrast. **Net: the adoption is now known to be neutral on the cohort score AND on change
+     prediction, and rests entirely on soundness plus the component's own targets.** If the one significant contrast
+     is weighted above that, st9 is the arm to keep.
    - **Still open:** the ≥ 8 MET band now overshoots on draw 1 (+12.8 vs +1.2) on 18–22 bouts, and the 6–8 band is
      still short of −21.5. Both wait on a measured capacity per person rather than a prior — see the Apple Watch data
      note (VO2max is the one measurement that would settle it).

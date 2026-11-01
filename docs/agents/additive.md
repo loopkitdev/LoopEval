@@ -85,7 +85,8 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   effect is within that scatter on two draws (seed0 1000 and 5000) before adopting it.
 - **Current reference** (2026-11-01): **ad0** (runs/2026-10-31-additive-gesplit) — st9 plus the three exercise fixes of LESSONS 554, 556:
   session intensity capped by its length with METmax raised to match (`ex_cap_fit`), and C4's surge keyed to 8 absolute METs
-  (`ex_surge_mets`). Score 0.364 / 0.416, tier 1 0.229 / 0.294. Adopted on soundness, not score (it is worse on draw 1); revert with
+  (`ex_surge_mets`). Score 0.364 / 0.416, tier 1 0.229 / 0.294. Adopted on soundness: neutral on the cohort score AND on the natural experiments (L 556), so
+  st9 remains the arm to keep if the t70 tight − rest contrast is weighted above soundness. Revert with
   `ex_cap_fit` off and `--set ex_surge_mets=0`.
 - **Previous reference** st9 — sd3 with C4's surge threshold at 0.9 of VO2-reserve (LESSONS 553): score 0.353 / 0.437,
   tier 1 0.203 / 0.353. sd3's own numbers now need `--set ex_surge_thr=0.6,ex_surge_mets=0` and `--disable ex_cap_fit`.
