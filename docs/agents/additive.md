@@ -411,6 +411,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   without it, and the arm runs as its own control (`ov_dur_own` scored bit-identical to its `--disable` control
   before this, L 586). Same signature as the `--enable k=v` trap: check a built person's trait, not the CSV.
 
+- **Removing a job from `jobq/pending` does NOT stop it** — the runner may already have moved it to `running/`. Check
+  `jobq/running` and the runner log before assuming a pulled job did not execute: a hookless first version of an arm
+  ran, populated its output dirs, and the corrected re-queue then read them from CACHE and scored bit-identical to its
+  control (L 603). Use fresh arm names for the corrected run.
+
 - **An arm rerun into an existing output dir returns the CACHED previous run** (`v0… cached` in its log), so a fixed
   arm can come back byte-identical to the broken one it replaces. Use a fresh arm name, or clear the dir.
 - **A numeric override passed to `--enable` is a switch named `k=v`, so the component keeps its default and the arm
