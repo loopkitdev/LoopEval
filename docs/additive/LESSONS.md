@@ -2302,3 +2302,27 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      rapid analogues between ~4 U and ~15 U. If it is found, `ge_order` 3 and a dose-scaled `p2` are a pair that close
      the meal tail, `acf_zero_min` and the fall / rise ratio together. Until then both stay at their fitted values,
      and this lesson is the reason to look for that one number rather than to try another mechanism.
+
+621. **The literature answers L 620\'s question and refutes its hypothesis: the dose-dependent action delay for rapid
+   analogues appears at 30-50 U, not between 4 and 15, so `p2`\'s clamp dose does NOT explain `ge_order`\'s cost. And
+   order 3 is the data-fitted value, with a 3.7-point TIR cost that is now unexplained.**
+   - **The evidence** (Gagnon-Auger et al., *Diabetes Care* 2010;33(12):2502-7, lispro at 10 / 30 / 50 U under
+     euglycaemic clamp): at **10 U absorption and glucose-lowering were comparable to controls**; Tmax and GIR_max
+     were delayed only at the **higher doses (30 and 50 U)**, and that in OBESE TYPE 2 subjects, where subcutaneous
+     depot effects are largest. Supporting: URLi vs lispro across 7 / 15 / 30 U found the formulation difference
+     (onset 7-9 min earlier) rather than a dose one. **So between ~4 U and the 15 U clamp dose, in T1D, there is no
+     documented action delay** — L 620\'s proposed mismatch is not there, and `p2` 0.025 is defensible for meal doses.
+   - **Which leaves `ge_order`\'s high-side cost unexplained.** Appearance dispersion is evidenced (ICE-based labelled
+     decay, L 619), dosing is per-donor (L 618), and insulin action is now defensible at meal doses — yet sharpening
+     appearance to the donors\' measured dispersion costs TIR. One of those three is still wrong, or the cost is in
+     Loop\'s response to a sharper rise rather than in the body at all.
+   - **Order 3 is the FITTED order, not a sweep point.** Its labelled decay is 59 min against the donors\' 60
+     (order 2 gives 67, order 4 gives 55), so 3 is what the donors\' dispersion implies. At order 3: `meal_d3h`
+     37.0 / 35.0 against the donors\' 38.0 (gap 0.373 -> 0.054), `acf_zero_min` 55 / 55, score 0.336 / 0.385 against
+     0.332 / 0.371 — **0.009 worse on the mean, where order 4 was 0.060 worse.** The cost is concentrated in TIR
+     (68.5 / 67.4 against 72.2 / 71.3) and t180.
+   - **So the honest final state of this cluster:** the fitted transit order closes the longest-standing meal limit
+     and improves the reversal rows for about 0.009 of score and 3.7 points of TIR, with the TIR cost no longer
+     attributable to any evidenced component. **That is a sharper open question than the session started with** —
+     "why does matching the donors\' measured appearance dispersion cost time in range?" — and it is a question about
+     the controller\'s response, which is where to look next.
