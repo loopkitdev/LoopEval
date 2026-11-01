@@ -2058,3 +2058,26 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **Standing guidance:** quote paired per-person differences for any adoption decision. Three of this session\'s
      conclusions (`rf2` level-vs-large, the TIR "bias", the low-side limits) came out differently on cohort medians
      than on paired diffs, and the paired ones are right by construction.
+
+611. **The paired-instrument lesson does NOT transfer to the natural experiments, and the prediction half is limited by
+   the FIELD\'s measurement error, which no number of draws can fix.** L 610 showed paired per-person differences are
+   the right instrument for cohort adoptions. The obvious next step was to apply it to change prediction — regress
+   each twin\'s change directly on its own event\'s field change, one regression instead of `score_change.py`\'s two.
+   - **It gives slopes of +0.00 to +0.03 for every arm**, including the reference and all candidates, which is not a
+     finding about the model: the field change is a NOISY regressor (one person\'s real two-week difference either side
+     of one edit), so regressing twin on field attenuates the slope toward zero — textbook regression dilution.
+     `score_change.py` regresses each side on the KNOWN, noiseless insulin index x = log(basal ratio) − log(ISF ratio)
+     and compares slopes, which is the correct design and is why it reports ratios near 2 rather than 50.
+   - **So the existing natural-experiment methodology is right and should not be "improved" this way.** The paired
+     trick works for cohort statistics because a donor\'s own 13-day block statistic is a low-noise quantity; it fails
+     here because a single edit\'s field response is not.
+   - **And it bounds what the prediction half can show.** With 63 edit events, each contributing one noisy field
+     response, the field / twin response ratios carry CIs like [1.22, 3.79] (ad3) and [1.41, 9.72] (ov0 on t70). The
+     reference\'s improvement — t70 ratio 3.51 -> 2.17 — sits inside those intervals. **More simulation draws cannot
+     narrow this**: the limiting variance is in the field, which has one realisation per event. Narrowing it needs more
+     EVENTS (the x and e pools exist, 790 edits, L 532) or edits with larger settings changes, not more compute on the
+     108 already used.
+   - **Honest status of the prediction half:** `rf2` is the best arm measured (t70 response 2.17 against ad3\'s 3.38
+     and ov0\'s 3.51, with the least damped mean and TIR of the adopted lineage), and that improvement is not
+     separable from noise at n = 63 events. Quote it as "best measured, not established", and spend the next effort on
+     the larger event pools rather than on another candidate.

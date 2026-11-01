@@ -307,6 +307,13 @@ overshoots on the light one, which is what `sg_h_lo`, `cr_tau_off` and `pro_g_ow
 on t54 / t70 / lows-per-day without more draws first**; three draws give an sd with two degrees of freedom, so this
 means "not established as a bias at n = 3", not "zero".
 
+**The natural-experiment half is limited by the FIELD, not by compute (L 611).** With 63 edit events the field / twin
+response ratios carry CIs like [1.22, 3.79], so `rf2`'s t70 improvement (3.51 -> 2.17) is "best measured, not
+established", and MORE DRAWS CANNOT HELP — the limiting variance is one noisy field response per event. Narrowing it
+needs more EVENTS (the x and e pools, 790 edits, L 532). Do NOT try to replace `score_change.py`'s two-slope design
+with a paired twin-on-field regression: the field change is a noisy regressor and the slope attenuates to ~0.00 for
+every arm (regression dilution, L 611).
+
 **POWER: three draws is not enough for the rows that matter (L 609).** Between-draw sd over five draws is 2.19 for
 TIR, 0.358 for t70 and 1.51 U/day for TDD, so resolving a 1-point TIR effect needs **20 draws**, a 0.2-point t70 effect
 **13**, and a 1 U/day TDD effect **10**. TDD is the only row whose bias (+3.36) exceeds its own between-draw sd. The
