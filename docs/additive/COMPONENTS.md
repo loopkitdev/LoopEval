@@ -174,7 +174,7 @@ its lesson so it is not retried blind.
 
 | Driver | Insulin sensitivity | EGP | Insulin-independent uptake | SC absorption | Gastric emptying | Counter-regulation | Sensor | Pump / site | Behavior |
 |---|---|---|---|---|---|---|---|---|---|
-| Exercise / activity | C2 acute + delayed | C4 anaerobic surge only | C1 | C3 | `ex_gut` off (L 344) | — | `sensor_act_k` off (L 498) | — | C5 pre-exercise carbs, C6 intake, F12 overrides |
+| Exercise / activity | C2 acute + delayed | C4 anaerobic surge only | C1 | C3 | `ex_gut` off (L 344) | — | `sensor_act_k` off (L 498) | — | C5 pre-exercise carbs, C6 intake, F12 overrides; eating during a session 1.05× vs donors' 0.18× (L 550) |
 | Glucose high | B11 | A1b (`ge_split`) | A5 M(G) κ | — | `ge_hyper` off (L 91) | — | — | — | F4 corrections |
 | Glucose low | not needed (L 55) | A9 | A1c sparing, A5 M(G) | — | A11 | A9 + HAAF | D3 low-range | — | F5, F6 |
 | Eating a meal | A12b | — | — | — | A10, A12, A14, A15 | — | — | — | F2, F3 |

@@ -770,4 +770,10 @@ evidence to the evidence files.
    needed). Unmodelled and evidenced: sleep → counter-regulation (Banarer 2003, the asleep epinephrine response
    roughly halved), exercise → counter-regulation (exercise-associated autonomic failure), exercise → site failure and
    dislodgement, and the aerobic side of exercise → EGP (C4 only adds the anaerobic surge, so moderate work has no
-   hepatic answer at all).
+   hepatic answer at all). Modelled but mis-sized by a known factor, and the largest single coupling error in the
+   model: eating during a session. Like for like on entries, donors enter carbs during a workout at 0.18× the same
+   clock hours' rate and at 1.44× in the hour after (L 244); the twins enter at about 1.05× during. Two attempts at
+   it failed (`ex_no_eat`, L 245, 497: deferral reaches 0.69–0.90, not 0.18, because entries also come from meals
+   begun before the session and from proactive snacks the exercise fall itself triggers). It is not worth a third
+   attempt on 112 twins: the activity rows move by their own draw scatter and cannot rank an exercise change
+   (L 497), so this coupling needs a larger cohort or a workout-only bed before it can be judged.
