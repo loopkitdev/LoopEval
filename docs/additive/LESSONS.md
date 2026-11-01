@@ -978,6 +978,17 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      is why six families of lever each read as null. A ratio-breaking term has to act asymmetrically in TIME around
      the peak and not be mean-preserving (A12b is, so Loop doses against its baseline and it nets out). Nothing in the
      model does that. **Read this ratio, not the fall, when testing the next candidate.**
+   - **Candidate physiology considered and set aside analytically, so it is not re-derived:** a meal-induced reduction
+     in hepatic output confined to the post-peak window would break the ratio, and the incretin route (GLP-1 / GIP
+     suppressing glucagon, peaking 60–90 min after the meal) has the right timing. But it points the WRONG way for
+     T1D: post-meal glucagon is inappropriately HIGH in T1D (lost alpha-cell suppression), and with subcutaneous
+     insulin there is no portal insulin gradient, so the donors should have LESS post-meal hepatic suppression than a
+     non-diabetic, not more. The same objection rules out a portal-signal term. So the ratio-breaking mechanism is
+     **not** identified, and the search should start from what is measurable rather than from a named hormone: the
+     donors' own fall / rise ratio by meal size, time of day, bolus timing relative to the meal, and insulin type
+     (the per-donor models differ, L 445's cohort). If the ratio varies with bolus TIMING, the mechanism is dosing
+     behaviour rather than physiology, which no body component can supply and which would close this as a limit
+     rather than a gap.
 
 577. **TDD, not bg_mean, is the diagnostic for a core sensitivity error: `resid_m` absorbs core level errors.**
    `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the yardstick averages over the donor's

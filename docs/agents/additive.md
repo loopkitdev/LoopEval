@@ -173,6 +173,9 @@ reference changes.
   fall / rise RATIO: donors 0.89, every twin arm 0.70-0.78 whatever is changed** (L 575). Appearance scale, emptying speed,
   Vmax, uptake glucose-dependence, insulin-action timing, post-meal sensitivity and dose are all ratio-preserving. The
   missing term must act asymmetrically in TIME around the peak and not be mean-preserving. Read the RATIO, not the fall.
+  The incretin / portal routes are set aside analytically (they point the wrong way in T1D, L 575), so start from measurement:
+  the donors' own ratio by meal size, clock hour, bolus timing and insulin type. If it tracks bolus TIMING the cause is
+  dosing behaviour, not physiology, and this closes as a limit rather than a gap.
 - **the excess lows are shallow ones that linger, and counter-regulation cannot fix them** (L 559, 560): at a 60–70 nadir
   the twins rise +21 in 30 min against the donors' +26 and dwell 15 min against 10. A9 can supply at most 2.4 mg/dL over
   that window, so the lever is the sub-basal shape of glucose disposal (A5's M(G) / κ below basal, or A1c brain sparing),
