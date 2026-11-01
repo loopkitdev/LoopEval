@@ -330,11 +330,26 @@ The level is what carries a donor's control level (L 448's far-from-meal load); 
 | draw 1 (1000) | 0.135 | 0.445 | 0.464 | **0.332** | 27 of 51 |
 | draw 2 (5000) | 0.209 | 0.462 | 0.442 | **0.371** | 24 of 54 |
 | draw 3 (9000) | 0.178 | 0.530 | 0.526 | **0.406** | 21 of 54 |
+| draw 4 (13000) | 0.289 | 0.486 | 0.444 | **0.409** | 14 of 51 |
+| draw 5 (17000) | 0.156 | 0.508 | 0.455 | **0.380** | 25 of 54 |
 
-rf2 is ov0 with the residual's dynamic part off, keeping only its per-person level. Mean score 0.370 against ov0's
-0.372, tier 1 better on all three draws, twin-donor rho better on five of six outcome rows, and the t70 change
-response 3.51 -> 2.17 with its ranking +0.22 -> +0.34 — the best of any arm on both. See L 592 for the costs (TDD,
-and a draw-2 level drift the refit does not fully remove).
+rf2 is ov0 with the residual's dynamic part off, keeping only its per-person level. **Read its standing on three
+instruments, in increasing order of power** (L 609, 610):
+
+| instrument | rf2 against its predecessor |
+|---|---|
+| cohort weighted score | 0.370 against ov0's 0.372 — **level**, and the weakest instrument: the trait-draw sd is 2.19 on TIR, so 20 draws are needed to resolve a 1-point effect |
+| **paired per-person deviation** (`twin.csv`, sum of \|median twin − its own donor\| over TIR, bg_mean, t70, t54, TDD) | **2.28 against ov0's 5.36 — a 57% cut**, carried by TIR (−2.03 → −0.51) and the level (+1.66 → +0.20) |
+| change response, e pool (580 events) | better on **all four** ratios and **all three** rho: mean 1.33 against 1.60, TIR 1.28 against 1.37, **t70 1.15 against 1.43**, rho 0.33 / 0.16 / 0.17 against 0.26 / 0.13 / 0.15 |
+
+Against the reference of three days earlier (sd3, 2026-10-28), scored with the same code on matched draws: score
+0.370 → 0.332 and 0.454 → 0.371, with **tier 1 roughly halved** (0.243 → 0.135 and 0.401 → 0.209).
+
+**Quote change-response ratios with their pool** (L 614): the pilot pool's 108 events give rf2 t70 2.17 against ov0's
+3.51, the e pool's 580 give 1.15 against 1.43 — the ordering is the same, the levels are not comparable, and the x
+pool is poorly conditioned for change questions (its field t70 response is −0.57, the unexpected sign). Pooled by
+Fisher z over the 643 well-conditioned events, rf2 leads all three correlations at 0.5–1.2 SE: **consistent, not
+established** (L 616). Costs: TDD, and a draw-2 level drift the refit does not fully remove (L 592).
 
 **Previous reference ov0** (2026-11-01, L 586):
 
@@ -375,7 +390,7 @@ while cutting tier 1 from 0.236 to 0.154; the distributional one pays 0.020 and 
 
 | | score mean | best at | L |
 |---|---|---|---|
-| **rf2** (reference) | **0.370** | the t70 change response (2.17) and its ranking (+0.34), tier 1, per-person fidelity | 592 |
+| **rf2** (reference) | **0.370** | paired per-person fidelity (2.28 against 5.36), tier 1, and the change response — t70 **1.15** on the e pool, 2.17 on the pilot pool (quote the pool, L 614) | 592, 610, 612 |
 | ov0 | 0.372 | the mean score, tier 2, and t54 change response (ratio 4.64 vs ad3's 6.22) | 586 |
 | ad3 | 0.385 | TDD, and the tight − rest control-level contrasts | 568 |
 | `si_norm` 1.0 + level refit | **0.372** | the mean score, and the LEAST DAMPED change response (t70 ratio 2.09 vs 3.32) | 577 |
