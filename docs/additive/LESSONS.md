@@ -1109,8 +1109,16 @@ evidence to the evidence files.
      absent hormone-independent EGP activation in T1D — which was measured under a hyperinsulinaemic clamp, not at
      basal insulin. L 548 listed exactly this as open; two independent lines now point at it, and it has a number:
      a term supplying ~0.34 mg/kg/min at 65 mg/dL would close L 559's +5 mg/dL.
-   - **Why it is not simply added.** The evidence that would size it is the evidence we could not get: Bruce 2025
-     (Diabetes 74:898, abstract only — partial and transient EGP suppression at basal insulin in T1D) and the Del
-     Prato 1997 full text. Adding the term on our own cohort statistics would be fitting an unnamed mechanism to a
-     target, which the no-mystery-terms rule forbids. **The two PDFs are now worth more than any further arm on this
-     thread.**
+   - **Why it is not simply added, and a correction to what would settle it.** Checked against the records
+     (Europe PMC): **both papers study the ABOVE-basal direction and would not size this term.** Bruce 2025 is
+     *The Effect of Small Increases in Blood Glucose on Insulin Secretion and Endogenous Glucose Production in
+     Humans* (Diabetes 74(6):898–906, PMID 39508871, closed, no PMC): healthy controls plus a T1D arm at constant
+     basal insulin, with glucose RAISED about 2 mmol/L — evidence for A1b, which is the above-Gb term, which is how
+     L 548 used it. Del Prato 1997 is *Studies on the mass action effect of glucose in NIDDM and IDDM: evidence for
+     glucose resistance* (Diabetologia 40(6):687–697, PMID 9222649, closed): IDDM at basal insulin replacement, again
+     raising glucose — the source for A1a's mass-action size, not for a sub-basal hepatic response.
+     So the below-Gb question needs a study that LOWERS glucose below basal at basal insulin in T1D. Mevorach 2000
+     remains the only direct evidence and it used a hyperinsulinaemic clamp. Until such a source is found, adding
+     the term on our own cohort statistics would be fitting an unnamed mechanism to a target, which the
+     no-mystery-terms rule forbids. **Needed: a targeted search for sub-basal EGP at basal insulin in T1D — not the
+     two PDFs, which answer the other direction.**

@@ -136,8 +136,9 @@ reference changes.
   (LESSONS 457);
 - **the shallow-low recovery gap is down to one named, unevidenced mechanism** (L 563): a glucose-dependent hepatic
   response below Gb, worth ~0.34 mg/kg/min at G 65. Insulin is ruled out (the twins carry LESS IOB at the nadir, 1.09 vs
-  1.59 U, and still climb out slower), as are A9 and rescue behaviour. Bruce 2025 (Diabetes 74:898) and Del Prato 1997
-  full texts would size it; without them the no-mystery-terms rule forbids adding it.
+  1.59 U, and still climb out slower), as are A9 and rescue behaviour. Bruce 2025 and Del Prato 1997 do NOT size it — both
+  RAISE glucose above basal (they are A1b's and A1a's evidence); this needs a study that lowers glucose below basal at basal
+  insulin in T1D, which only Mevorach 2000 approaches, under a hyperinsulinaemic clamp.
 - **the excess lows are shallow ones that linger, and counter-regulation cannot fix them** (L 559, 560): at a 60–70 nadir
   the twins rise +21 in 30 min against the donors' +26 and dwell 15 min against 10. A9 can supply at most 2.4 mg/dL over
   that window, so the lever is the sub-basal shape of glucose disposal (A5's M(G) / κ below basal, or A1c brain sparing),
