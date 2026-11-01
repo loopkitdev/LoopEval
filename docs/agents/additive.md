@@ -169,7 +169,9 @@ reference changes.
   **both now quantified and attributed (L 593)**: `resid_m`'s mean is a glucose SINK worth −3.0 U/day, masking half
   the core excess (observed +3.9 U/day, underlying ~+6.9 = +18%), and it is −4.47 mg/dL/h for the tight third of
   donors against 0.00 for the rest. The 8% `si_norm` cut predicts +3.1 U/day, essentially the whole observed
-  excess, so the fix is `si_norm` 1.0 rather than a new component;
+  excess — but **`si_norm` 1.0 is NOT the fix (L 597)**: the level refit raises `resid_m` to hold the donor's level
+  and the insulin comes straight back (TDD 41.6 -> 42.1 with it on). A reference that fits `resid_m` to the level
+  cannot improve TDD through a sensitivity scalar; it needs a mechanism that lowers insulin need AT that level;
 - night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458);
 - **`acf_zero_min` is NOT an independent row** (L 594): it is the ACF of the 5-min increments, so it measures when
   glucose MOMENTUM reverses — donors 40 min, twins 60, about 40% too slow — which is the same defect as the
@@ -339,6 +341,12 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   the long-record figure sent five mechanisms after a target that did not exist (L 585). Block the donor series to the
   twins' length first, and where the statistic can be moved by the donor's SETTINGS, split it by whether a settings
   change or override falls on those days (`resid_tools/tdd_clean_ac.py`) — a twin holds one era and runs no overrides.
+
+- **Judge every candidate AFTER the `resid_m` refit, and expect level-mediated effects to vanish** (L 597): the refit
+  holds the donor's glucose level, so any gain that runs through the mean is converted back. Three gains died this way
+  — `rs0`'s TIR response (1.22 -> 1.69), `cb2`'s whole response, `si_norm`'s TDD. What survives is a change acting on
+  something the level fit cannot see: dynamics (`rf2`'s t70 response) or the shape of excursions below a threshold
+  (`sg_h_lo`'s t70).
 
 - **A statistic conditioned on an event the candidate changes the INCIDENCE of cannot measure that candidate**
   (L 596): `sg_h_lo` prevents the easy lows, so nadir counts fell 1874 -> 1607 and the surviving 60-70 nadirs were a

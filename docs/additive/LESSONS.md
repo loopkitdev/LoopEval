@@ -1675,3 +1675,33 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **Not adopted** — the weighted score is worse and the low counts overshoot — but this is the first mechanism to
      move the t70 limit at all, it is a named component with a literature-supported form, and its magnitude was
      derived before the run rather than swept. It belongs with `si_norm` as a judgement about which row to spend.
+
+597. **`resid_m`'s refit re-absorbs any change whose effect runs through the glucose LEVEL — which retracts L 593's
+   recommendation and explains three dead gains at once.** Testing `si_norm` 1.0 together with `sg_h_lo` 0.0019,
+   whose costs on the low counts have opposite signs and which act on different physiology (insulin need vs hepatic
+   output):
+
+   | | t70 (1.599) | lows/day (1.00) | P(reach 54) (0.212) | TDD (38.7) | score |
+   |---|---|---|---|---|---|
+   | rf2 | 1.764 / 2.119 | 1.000 / 1.250 | 0.195 / 0.194 | 41.9 / 42.6 | 0.332 / 0.371 |
+   | `sg_h_lo` alone | 1.528 / 1.621 | 0.750 / 0.923 | 0.167 / 0.172 | 41.6 / 42.0 | 0.354 / 0.360 |
+   | both | 1.279 / 1.509 | **0.750 / 0.917** | 0.176 / 0.174 | **42.1 / 43.0** | 0.350 / 0.358 |
+
+   - **The costs did not cancel and TDD went the WRONG WAY.** `si_norm` 1.0 restored none of the low count (0.750,
+     unchanged) and made TDD worse (41.6 -> 42.1, 42.0 -> 43.0) where L 593's arithmetic predicted −3.1 U/day.
+   - **Because the level refit converts a sensitivity gain back into insulin.** With `si_norm` 1.0 the body needs less
+     insulin for the same glucose, so `lvl_resid` raises `resid_m` to hold the donor's level — and covering that extra
+     drive takes the insulin straight back. **L 593's +3.1 U/day is real only if `resid_m` is NOT refitted**, and a
+     reference that fits `resid_m` to the donor's level cannot improve TDD through a cohort-wide sensitivity scalar.
+     Recommendation retracted: `si_norm` 1.0 is not the fix for the insulin surplus.
+   - **The general law, and this is its third sighting.** Any candidate whose effect runs through the mean glucose
+     level is re-absorbed by the refit: `rs0`'s TIR-response gain (L 592, 1.22 -> 1.69 after refit), `cb2`'s whole
+     response gain (mean 2.76, worse than either lever), and now `si_norm`'s TDD gain. What SURVIVES a refit is a
+     change that acts on something other than the mean — `rf2`'s t70 response gain did (3.51 -> 2.17), because it
+     changes the DYNAMICS the level fit does not see, and `sg_h_lo`'s t70 gain did, because it changes the shape of
+     excursions below a threshold rather than the average.
+     **Judge a candidate after the refit, and expect level-mediated effects to vanish.**
+   - So the insulin surplus needs a mechanism that makes the twins need less insulin AT their donor's level — not a
+     sensitivity scalar, which the refit neutralises by construction. The decomposition of L 593 stands as a
+     measurement (`resid_m` masks 3.0 U/day of it, and its negative tail is the tight-donor limit); its proposed fix
+     does not.
