@@ -289,14 +289,24 @@ reference changes.
 - response to a settings change is damped (mean half the field's, lows 4–8× under) and twins of tight donors are not
   tight, so control-level heterogeneity is wrong in the tight group (frontier handoff 2026-10-24, LESSONS 493, 503).
 
-**Which limits are REAL (L 607, five draws — supersedes L 602's three-draw version).** With seed0 1000 / 5000 / 9000 /
-13000 / 17000, bias / SE over the draws: **TDD +3.36 (t +4.98, robust)** and **TIR −2.08 (t −2.12)** is marginal AND its decomposition does not close — t70's bias is zero,
-t180's is +0.95 (t +1.06, ns), and the three bands do not sum to 100 on either side while `wear` matches, so
-reconcile the bands before treating TIR as a limit (L 608); **t70's bias is −0.004 (t −0.02) — "excess shallow lows" is NOT a limit and is removed**; t54
-(−0.048, t −1.96) and P(reach 54) (−0.028, t −2.61) have the twins slightly UNDER the donors; lows/day shows nothing.
-Every low-side arm of 2026-11-01 was chasing a gap that is not there. **Check bias / SE before building a mechanism for
-a gap** — at n = 3 a 0.2-point t70 gap and a zero gap are indistinguishable. TDD is real but unreachable by a body
-parameter (L 605).
+**Which limits are REAL — final state (L 602, 607, 609).** Over five draws (seed0 1000 / 5000 / 9000 / 13000 / 17000),
+by bias / SE:
+
+| row | bias | bias / SE | status |
+|---|---|---|---|
+| **TDD** | +3.36 U/day | **+4.98** | **the only robust outcome bias** — and unreachable by any body parameter (L 605) |
+| TIR | −2.08 | −2.12 | **not a defect**: it is trait-draw sampling (L 609), between-draw sd 2.19 |
+| t70 | −0.004 | −0.02 | **no bias — "excess shallow lows" is REMOVED as a limit** |
+| t54 | −0.048 | −1.96 | twins slightly UNDER the donors |
+| P(reach 54) | −0.028 | −2.61 | small, twins under |
+| lows / day | −0.050 | −0.60 | nothing |
+
+Three rules follow. **(1) Check bias / SE before building a mechanism** — at n = 3 a 0.2-point t70 gap and a zero gap
+are indistinguishable, and every low-side arm of 2026-11-01 was chasing a gap that is not there. **(2) A band gap
+cannot be decomposed by comparing medians**: `tir`, `t70` and `t180` are exhaustive per block but the scored values are
+medians, which are not additive — that is why they do not sum to 100 and why TIR's deficit appeared unattributable
+(L 608, 609). **(3) Prefer paired per-person differences** (`twin.csv`), which remove the trait-draw variance entirely
+(L 610).
 
 **Superseded, kept for the method (L 602).** Across seed0 1000 / 5000 / 9000 the reference's own tier-1 rows have a draw scatter
 LARGER than their gap to the donors for **t54** (bias −0.022, sd 0.057), **t70** (+0.199, 0.306), **lows/day** (+0.042,
