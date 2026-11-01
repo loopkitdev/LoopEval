@@ -374,9 +374,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   cost is high-side: TIR 72.2 -> 68.6, t180 25.8 -> 28.1, because less dispersion delivers the same carbohydrate in a
   shorter window and Loop cannot cover the peak, so the score rejects it. **The appearance evidence is insulin-free (L 619)**: the labeller builds every pulse from `ice`,
   not glucose, so the donors' 60-min decay against the twins' 67 IS an appearance difference and `ge_order` 3-4 moves
-  toward measured truth. The cost is therefore an INSULIN-ACTION mismatch — `p2` 0.025 is fitted to a lispro CLAMP,
-  an intravenous steady-state setting — so the open question is **is clamp-derived insulin action too slow for
-  meal-time action?** If yes, `ge_order` 3 + a faster `p2` is a pair of evidenced changes that close the meal tail,
+  toward measured truth. The cost is therefore an INSULIN-ACTION mismatch: `p2` 0.025 is fitted to a 0.2 U/kg
+  (~15 U) SUBCUTANEOUS lispro clamp while meal boluses are ~0.05 U/kg, and while A4d already dose-corrects
+  ABSORPTION (normalised at that clamp dose), nothing dose-corrects the ACTION rate — a limitation `p2`'s own
+  comment records as "direction known, size not found for analogues" (L 620). So the open question is the
+  **dose-dependence of insulin ACTION for rapid analogues between ~4 and ~15 U.** If yes, `ge_order` 3 + a faster `p2` is a pair of evidenced changes that close the meal tail,
   `acf_zero_min` and the fall / rise ratio together. **NOT a behaviour refit (L 618)**: `bolus_lead_min`, `p_bolus_ann` and
   `bolus_ratio` are already per-donor, so the twins already dose like their donors. The cost is a clash between two
   independently calibrated components — appearance dispersion against insulin action (`p2` 0.025, the lispro clamp)

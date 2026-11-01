@@ -2281,3 +2281,24 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **Until then `ge_order` stays at 2** — but it is now the only open limit-cluster with a named mechanism on BOTH
      sides and a single literature question standing between it and an adoption. That is the most actionable state any
      of this session\'s limits reached.
+
+620. **Correction and sharpening of L 619: the clamp behind `p2` is SUBCUTANEOUS at 15 U, not intravenous, the
+   absorption dose-dependence is already modelled, and the un-modelled part — dose-dependence of the ACTION rate — is
+   a limitation the code already flagged. `ge_order`\'s cost is the first quantitative evidence that it bites.**
+   - **Factual correction:** `p2` 0.025 comes from a 0.2 U/kg (~15 U) lispro clamp with GIR peak ~100 min (L 9), a
+     subcutaneous dose, not an IV steady state as L 619 said.
+   - **The absorption side is already dose-corrected.** A4d (`dose_beta`, β 0.1 by default, Heise 2017, L 437) makes a
+     depot absorb at `(dose / 15 U)^(−β)`, normalised to 1 AT the clamp dose — so meal-sized boluses already absorb
+     faster than the clamp in this model.
+   - **What is not corrected is the ACTION rate**, and `p2`\'s own comment says so: "typical boluses and Loop\'s
+     automatic doses are ~0.05 U/kg and act sooner (smaller s.c. doses act earlier — direction known, size not found
+     for analogues)". So the model carries an action rate fitted at 15 U and applies it to ~4 U doses, with the bias
+     in the known direction (too slow) and the magnitude unmeasured.
+   - **`ge_order` supplies the first cohort-level evidence that this matters.** Sharpening appearance to the donors\'
+     measured dispersion closes four limits and produces a high-side cost (TIR 72.2 -> 68.6, t180 25.8 -> 28.1)
+     exactly where an action rate that is too slow for meal-sized doses would produce one. The two are independently
+     evidenced and jointly inconsistent, which is a stronger statement than either alone.
+   - **So the evidence request is now specific and small:** the dose-dependence of insulin ACTION (not absorption) for
+     rapid analogues between ~4 U and ~15 U. If it is found, `ge_order` 3 and a dose-scaled `p2` are a pair that close
+     the meal tail, `acf_zero_min` and the fall / rise ratio together. Until then both stay at their fitted values,
+     and this lesson is the reason to look for that one number rather than to try another mechanism.
