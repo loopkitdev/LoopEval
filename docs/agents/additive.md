@@ -93,6 +93,8 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Current reference** (2026-11-01): **ad3** (runs/2026-10-31-additive-gesplit) — ad2 with the residual's fast and block parts
   weighted to waking hours (`resid_diurnal` 0.9, LESSONS 568; variance-preserving, so the per-person amplitudes still hold).
   Score **0.321 / 0.425 / 0.410** on seed0 1000 / 5000 / 9000, tier 1 0.108 / 0.291 / 0.161 — better than ad2 on all three.
+  On the natural experiments it is level with ad2 and clearly better than sd3: tight − rest TIR −1.63 and mean +0.93 (both the
+  closest of any arm to the field's −7.18 / +1.65), t70 +0.74 [+0.12, +1.39] against ad2's +1.03 (L 568).
   Revert with `--set resid_diurnal=0`.
 - **Previous reference** **ad2** (runs/2026-10-31-additive-gesplit) — ad0 with A12b's post-meal window at its own
   target (`ppr_a` 0.6, LESSONS 558): score 0.340 / 0.444, tier 1 0.146 / 0.312. The meal tail is now calibrated

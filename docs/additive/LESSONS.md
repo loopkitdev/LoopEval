@@ -1238,6 +1238,19 @@ evidence to the evidence files.
    **Adopted at k 0.9** (night amplitude ×0.32, afternoon ×1.38); new reference **ad3**, which reproduces the flagged
    arm. k 0.6 is nearly as good (mean 0.373 against 0.371). It recovers t70 and TIR without `ge_spare`'s depth cost,
    and the night rows it might have damaged improve instead (night CV, day / night both closer).
+   - **On the natural experiments it is level with ad2 and clearly better than sd3** (`change9/`, 108 events), so the
+     cohort gain is not bought from the prediction half. Response to +10% insulin, tight − rest, field in brackets:
+
+     | | Field | sd3 | ad2 | ad3 |
+     |---|---|---|---|---|
+     | TIR | −7.18 | −0.86 | −1.27 | **−1.63** |
+     | mean | +1.65 | +0.25 | +0.05 | **+0.93** |
+     | t70 | +4.27 | +0.51 [−0.30, +1.46] | **+1.03 [+0.37, +1.63]** | +0.74 [+0.12, +1.39] |
+
+     ad3 takes the TIR and mean contrasts (both closest to the field of any arm) and gives back part of ad2's t70
+     contrast, whose interval still excludes zero. Its per-event mean ρ is the best of the three (+0.36). The pooled
+     response ratios are slightly worse (mean 2.24 against ad2's 2.11, t70 3.32 against 2.61) — as with ad2, it
+     sharpens WHO responds more than HOW MUCH.
    - **Why this one worked where a dozen size changes were level.** Every other candidate traded one row for another
      because it changed how MUCH of something there was. This changed only where existing, already-fitted variance
      sits, so nothing had to be given up. **Look for distributional errors before reaching for a size**: if the
