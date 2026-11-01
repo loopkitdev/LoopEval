@@ -1442,3 +1442,29 @@ evidence to the evidence files.
      that standing limit, and the two should be worked together.
    - **Method note:** this cost no new simulation — two existing arms plus the ice extractor. Prefer a decisive
      measurement on runs in hand over a new arm whenever the arms already differ in the one parameter.
+576. **The potency deficit is confirmed from a second direction: raising `si_norm` to 1.0 cuts the twins' insulin
+   surplus AND raises TIR on all three draws — but it drops the glucose level, because the residual's level was fitted
+   under the old potency.** `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the ISF yardstick
+   averages over the donor's real life, so the life modulators should average 1 around it, and 0.92 reproduces the
+   level they held while disabled). L 575 measured the twins' post-meal insulin at 75% of the donors' potency per unit
+   at matched spend, so `si_norm` is about a third of that gap and is deliberate.
+
+   | | Donors | ad3 (0.92) | **`si_norm` 1.0** |
+   |---|---|---|---|
+   | tdd | 38.70 | 40.9 / 42.7 / 41.8 | **40.3 / 42.2 / 41.2** |
+   | tir | 71.88 | 69.8 / 71.1 / 68.2 | **70.3 / 72.0 / 70.7** |
+   | bg_mean | 151.93 | 151.5 / 147.6 / 151.6 | 149.7 / 145.5 / 150.1 |
+   | t70 | 1.599 | 1.72 / 1.90 / 1.49 | 1.88 / 2.38 / 1.82 |
+   | score | — | 0.321 / 0.425 / 0.410 | 0.312 / 0.444 / 0.409 |
+
+   **TDD improves on all three draws and TIR on all three** — the first direct confirmation of L 575's suggestion that
+   the post-meal potency deficit and the twins' standing 5–8% insulin surplus (L 445–456) share one cause. Score is
+   level (mean 0.388 against 0.385).
+   - **Why it is not adoptable as it stands:** mean glucose undershoots on all three draws (149.7 / 145.5 / 150.1
+     against the donors' 151.9) and t70 rises on all three. That is expected and it names the sequence: the residual's
+     per-person LEVEL (`resid_m`, fitted to each donor's own glucose, L 515) was fitted with `si_norm` at 0.92, so more
+     potency must be followed by a level refit — the standing review rule (L 196, 499). **Next step: `si_norm` 1.0
+     plus `lvl_resid.py` re-run (three rounds on each draw, the sequence of L 525), then score.** Without the refit
+     the change reads as a level regression; with it, TDD, TIR and the post-meal trough should all move together.
+   - **This is the most promising open thread in the model**, because it is one cause behind three documented limits:
+     the post-meal trough (L 512, 574, 575), the insulin surplus (L 445–456), and part of the TIR shortfall (L 558).

@@ -149,6 +149,10 @@ reference changes.
   1.59 U, and still climb out slower), as are A9 and rescue behaviour. Bruce 2025 and Del Prato 1997 do NOT size it — both
   RAISE glucose above basal (they are A1b's and A1a's evidence); this needs a study that lowers glucose below basal at basal
   insulin in T1D, which only Mevorach 2000 approaches, under a hyperinsulinaemic clamp.
+- **NEXT THREAD, the most promising open one** (L 576): `si_norm` 1.0 (undoing the deliberate cohort-wide 8% sensitivity cut)
+  improves TDD and TIR on all three draws, confirming that the post-meal potency deficit and the twins' 5–8% insulin surplus
+  share one cause. It drops the glucose level because `resid_m` was fitted at 0.92, so it needs `lvl_resid.py` re-run after
+  it (three rounds per draw, L 525) before it can be judged. One cause behind three documented limits.
 - **the shallow post-meal trough is 72% potency, not dose** (L 574): after a meal peak the twins spend nearly the donors'
   insulin (1.78 against 1.98 U over 90 min) but fall 41 against 57 mg/dL — 80% of the donors' mg/dL per unit. Appearance
   (A10c) and A12b are both ruled out (a 30% sensitivity swing moves the trough ~1 mg/dL), as are dose and Loop compensation
