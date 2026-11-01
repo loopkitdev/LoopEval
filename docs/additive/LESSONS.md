@@ -907,3 +907,31 @@ evidence to the evidence files.
      corrected rerun then came back identical a second time, for a different reason: **cohort caches per person by
      output dir**, so rerunning a fixed arm into the same dir re-reads the broken run (`v0… cached` in the log). Give a
      corrected arm a fresh name.
+
+556. **C4's surge belongs in absolute METs, not in %VO2-reserve: the three exercise fixes adopted together.** Keyed in
+   reserve fraction, no threshold can make hard bouts rise, because raising METmax to make sessions sustainable
+   (L 554) pushes any given MET load further below a reserve-fraction threshold. Keyed in absolute METs the sign
+   flips. C4's own Pemberton table (change over a bout's first 20 min):
+
+   | Session METs | Donors | st9 (%reserve 0.9) | cap + %reserve | cap + 8 METs |
+   |---|---|---|---|---|
+   | 6–8 | −21.5 | −6.5 / +4.7 | −13.3 / −8.3 | −14.4 / −6.1 |
+   | ≥ 8 | **+1.2** | −7.2 / −9.0 | −24.6 / −13.4 | **+12.8 / −5.1** |
+   | pooled | −5.7 | −5.3 / −1.3 | −12.8 / −5.3 | −8.9 / −3.9 |
+
+   A 7-MET threshold is positive on both draws but overshoots (+14.3 / +9.3) and flattens the 6–8 band (−11.6 / −3.2);
+   8 METs is closer in size and matches the evidence, Marliss & Vranic's surge being a hard-exercise phenomenon.
+   **Adopted as one change** (`ex_cap_fit` on, `ex_surge_mets` 8.0; `ex_surge_mets` 0 restores the %reserve form): the
+   three are inseparable, since the cap alone leaves almost no hard session and the contradiction only appears once
+   capacity is consistent. New reference **ad0**, which reproduces the flagged arm exactly.
+   - **For it:** it removes a demonstrated impossibility (19% of sessions at 1.00 of reserve for 39 min, L 554); the
+     matched drop to nadir goes 20 / 16 → 27 / 24 (donors 35); `review.py` shows no component drift and several
+     component-own targets slightly better (low_share_lt54 0.86 → 0.92, meal_drop_p10 0.80 → 0.85, egp_nadir_min
+     1.56 → 1.44); C4's pooled bout mean brackets the donors' on both draws.
+   - **Against it:** the weighted score is a wash, not a win — 0.364 / 0.416 against st9's 0.353 / 0.437, worse on
+     draw 1 and better on draw 2, so it does NOT hold on both draws as L 444 requires. Adopted on the L 303
+     precedent (a sounder model may match fewer statistics) because the evidence is on the component's own targets
+     and the defect it removes is not a matter of degree. Revert with `ex_cap_fit` off and `ex_surge_mets=0`.
+   - **Still open:** the ≥ 8 MET band now overshoots on draw 1 (+12.8 vs +1.2) on 18–22 bouts, and the 6–8 band is
+     still short of −21.5. Both wait on a measured capacity per person rather than a prior — see the Apple Watch data
+     note (VO2max is the one measurement that would settle it).
