@@ -2107,3 +2107,28 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **Absolute levels differ by pool and only the ordering transfers:** the e pool\'s field t70 response is +2.00
      against the pilot pool\'s +4.46, so the pilot pool\'s ratios (rf2 2.17, ov0 3.51) and the e pool\'s (1.14, 1.43)
      are not comparable in level — but both rank the arms the same way. Quote ratios with their pool.
+
+613. **Both pending decisions resolve on 580 events: `si_norm` 1.0 is NO, and `sg_h_lo` is neutral on change
+   prediction so its case rests entirely on the cohort trade.** Both had been judged on the pilot pool\'s 108 events,
+   where L 611 showed the CIs cannot separate arms. On the e pool, all three arms on the rf2 baseline:
+
+   | | mean | TIR | t70 | t54 | rho mean / TIR / t70 | level vs field pre |
+   |---|---|---|---|---|---|---|
+   | **rf2 (reference)** | **1.33 [1.03, 1.68]** | **1.28 [0.87, 1.76]** | 1.15 | 0.56 | **0.33 / 0.16 / 0.17** | +3.3 |
+   | `si_norm` 1.0 | 1.55 [1.12, 2.03] | 1.54 [1.07, 2.27] | 1.33 | 0.75 | 0.31 / **0.09** / 0.14 | +1.6 |
+   | `sg_h_lo` 0.0019 | 1.36 [1.06, 1.67] | 1.29 [0.90, 1.77] | **1.10** | 0.59 | 0.33 / 0.16 / 0.17 | +3.3 |
+
+   - **`si_norm` 1.0: decided NO.** Its TDD rationale was withdrawn in L 597 (the level refit converts the sensitivity
+     gain straight back into insulin) and its ONLY remaining case was the change response — "the least damped of any
+     arm" on the ad3 base, t70 ratio 2.09 against 3.32. At 5.4x the events it is **more** damped on every outcome
+     (mean 1.55 against 1.33, TIR 1.54 against 1.28, t70 1.33 against 1.15) and its TIR ranking is halved (rho 0.09
+     against 0.16). Both rationales are now refuted on the better-powered pool, so the decision does not need Pete:
+     **it stays at 0.92.** What remains in its favour — better per-person rho and "better explained" — does not
+     outweigh worse low-side fidelity AND a worse change response.
+   - **`sg_h_lo`: neutral on change prediction** — within rounding of the reference on all four ratios and all three
+     correlations, which is expected since it acts inside lows rather than shifting the response to an edit. So its
+     case is exactly the cohort trade and nothing else: it closes the t70 cohort gap (draw 2, 0.325 -> 0.034) and
+     overshoots the low counts (lows/day 1.000 -> 0.833, P(reach 54) 0.195 -> 0.200/0.176). **Still Pete\'s call, but
+     now cleanly scoped to one trade with no hidden cost on the prediction side.**
+   - **Method note:** this is what the event pools are for. Two decisions sat open for a session on 108 events; 580
+     settled one outright and scoped the other. Judge a candidate\'s change response on the e pool before asking Pete.

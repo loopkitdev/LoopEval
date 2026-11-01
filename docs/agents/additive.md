@@ -396,7 +396,10 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   draws, −14 → −18 against the donors' −21.5, but the ≥ 8 band goes negative where the donors rise; the two bands trade, L 565),
   `ex_headroom` 1.5 (restores the session-intensity tail and validates C4's
   size of 28 — the ≥ 8 MET band reads +1.8 vs the donors' +1.2 at n 40; costs score on both draws, use it for
-  exercise-focused work, L 554), `ge_spare` (A1c alone — **RESOLVED off, L 589**: re-run on the ov0 base it loses on
+  exercise-focused work, L 554), `si_norm` 1.0 (**RESOLVED off, L 613**: its TDD rationale fell in L 597 and its change-response
+  rationale fell on the e pool's 580 events — more damped on every outcome, mean 1.55 against the reference's 1.33,
+  TIR 1.54 against 1.28, t70 1.33 against 1.15, TIR rho halved to 0.09. Stays at 0.92),
+  `ge_spare` (A1c alone — **RESOLVED off, L 589**: re-run on the ov0 base it loses on
   score (mean 0.380 against 0.372; its L 561 t70 gain was on ad3, whose t70 ov0 has since partly fixed) and it does
   not move the target L 588 created for it — low-episode duration stays 25 min against the donors' 20, events per
   episode 0.62 → 0.61, low-side eating rate unchanged. At G 65 its sparing is 0.20 mg/kg/min, ~3.7 mg/dL per 30 min,
