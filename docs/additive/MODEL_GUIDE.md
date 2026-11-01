@@ -334,7 +334,21 @@ ad3 is sd3 plus, in order: C4's surge threshold keyed to 8 absolute METs with se
 METmax made consistent (L 554, 556, 564, 566); A12b's post-meal window at its own target, `ppr_a` 0.6 (L 558); and the
 residual's fast and block parts weighted to waking hours, `resid_diurnal` 0.9 (L 568). On the natural experiments it
 takes the tight − rest TIR and mean contrasts (−1.63, +0.93 against the field's −7.18, +1.65) with t70 +0.74
-[+0.12, +1.39] (L 568). Previous reference sd3 read 0.370 / 0.454 on draws 1 / 2.
+[+0.12, +1.39] (L 568). Previous reference sd3 reads 0.370 / 0.454 / 0.420 (L 580), so the gain is 0.049 / 0.029 /
+**0.010** — it shrinks from the development draw to the fresh one, and the out-of-sample figure is ~0.010–0.029 in
+score with 0.075–0.135 in tier 1. Decomposed (L 580): the soundness adoptions cost 0.010 of score on the fresh draw
+while cutting tier 1 from 0.236 to 0.154; the distributional one pays 0.020 and leaves tier 1 flat.
+
+**Four configurations, each best at something — pick by the question** (all one flag plus a template from ad3):
+
+| | score mean | best at | L |
+|---|---|---|---|
+| **ad3** (reference) | 0.385 | TDD, and the tight − rest control-level contrasts | 568 |
+| `si_norm` 1.0 + level refit | **0.372** | the mean score, and the LEAST DAMPED change response (t70 ratio 2.09 vs 3.32) | 577 |
+| + life modulators on | 0.386 | the glucose LEVEL (bg_mean gap 0.015 / 0.094 / 0.019, essentially exact) | 582 |
+| exercise-faithful (`ex_abs`, `ex_headroom` 1.5, `ex_surge_width` 0.75) | — | C4's by-METs table (≥ 8 MET band +0.9 vs +1.2) | 566 |
+
+The first two are the `si_norm` decision awaiting Pete (core vs residual, trade roughly linear, L 577, 579).
 
 **Open at this reference:** the shallow-low recovery (+20 against the donors' +26 mg/dL over 30 min after a 60–70
 nadir, mechanism unevidenced — L 559–563); the 6–8 MET band (−14 against −21.5, reachable only in the
