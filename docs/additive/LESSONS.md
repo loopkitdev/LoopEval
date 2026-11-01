@@ -1892,3 +1892,33 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      donors' 1.599, gap 0.055) — the load cut plus the level refit lands it almost exactly, where every low-side
      mechanism overshot. The score still reads worse (0.353 / 0.365 / 0.415 against 0.332 / 0.371 / 0.406) on tier 1
      draws 1 and 3, so it is not an adoption, but it is the second independent route to t70 after `cr_tau_off`.
+
+605. **The joint fit does not move TDD either, and the reason closes the question: Loop doses from the SETTINGS ISF,
+   not the body\'s, so the body\'s sensitivity is not the exchange rate that sets TDD. What the joint fit DOES buy is
+   the level and the low rows.** L 604 proposed two parameters against two observables; `twin_isf_mult` already exists
+   (iterated against each donor\'s t70, L 219) and L 602 showed t70 is noise-dominated while TDD is the real bias, so
+   re-targeting it needed no new parameter: `resid_m` <- level, `twin_isf_mult` <- TDD (`tdd_isf.py`, two rounds).
+
+   | | tier 1 | bg_mean gap | t54 gap | t70 gap | TIR gap | TDD | score |
+   |---|---|---|---|---|---|---|---|
+   | rf2 | 0.135 / 0.209 / 0.178 | 0.037 / 0.175 | 0.146 / 0.134 | 0.086 / 0.325 | 0.053 / 0.070 | 41.9 / 42.6 | 0.332 / 0.371 / 0.406 |
+   | joint fit | **0.148 / 0.167 / 0.130** | **0.014 / 0.079** | **0.100 / 0.062** | **0.071 / 0.261** | **0.027 / 0.035** | 41.4 / 43.3 | 0.344 / 0.373 / 0.407 |
+
+   - **TDD is immovable**: the twin / donor ratio went 1.070 -> 1.092 across two rounds while `twin_isf_mult` spread
+     to its clip bounds [0.70, 1.43]. The parameter moved as hard as it can and the target did not follow.
+   - **Why: Loop computes its doses from the person\'s SETTINGS (therapy.json `isf`, `cr`), not from the body\'s true
+     sensitivity.** Changing the body\'s ISF changes how far glucose moves per unit, so the trajectory changes and the
+     level fit compensates — but the insulin TOTAL is set by the settings against the glucose Loop sees. With
+     `resid_m` holding the level, the total glucose is pinned, so TDD is pinned with it and is invariant to how that
+     glucose is split between pulsed load and smooth drive (which is also why L 604\'s load cut returned). **TDD is a
+     consequence of the level fit plus the donor\'s own settings, and no body parameter is upstream of it.**
+   - **But the joint fit improves four tier-1 rows on both draws** — bg_mean (gap 0.037 -> 0.014 and 0.175 -> 0.079,
+     nearly exact), t54 (0.146 -> 0.100, 0.134 -> 0.062), t70 (0.086 -> 0.071, 0.325 -> 0.261) and TIR (0.053 -> 0.027,
+     0.070 -> 0.035) — and **tier 1 overall is better on the mean (0.148 against 0.174)** and on draws 2 and 3. The
+     score is level (0.3747 against 0.3697) because tier 2/3 degrade. Fitting the per-person multiplier against TDD
+     rather than t70 therefore spends its freedom on signal and lands the level and the low rows better, even though
+     the row it now targets is the one it cannot reach.
+   - **So the honest end state for TDD:** it is not a body defect and not reachable by a body parameter. To make it a
+     fitted quantity one would have to let the fit touch the twin\'s SETTINGS — which the role forbids, since settings
+     are what the person\'s Loop is configured with (calibration rules) — or accept it as the price of matching the
+     level with the donor\'s own settings. Recommend accepting it and re-stating the limit that way.
