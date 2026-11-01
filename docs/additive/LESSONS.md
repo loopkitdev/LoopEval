@@ -2260,3 +2260,24 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **So `ge_order` stays at 2** with its result recorded: it is the only lever that moves four limits at once
      (L 617) and its cost is diagnostic rather than disqualifying. Anyone revisiting the meal tail should start here
      and should pair it with the insulin-action question, not with a behaviour refit.
+
+619. **The labelled pulse shape is ICE-based, so the appearance evidence is insulin-free — which resolves L 618\'s two
+   readings into one: the model\'s insulin action is too slow for the donors\' appearance, or its appearance is right
+   and the insulin fit is wrong.** L 618 left two possibilities for `ge_order`\'s high-side cost. The first — that the
+   donors\' appearance is not really sharper and the labelled decay misled me — is refuted by what the labeller
+   measures: `ice_gen/stats.py` builds every pulse from **`g.ice`**, the insulin counteraction effect, with the
+   insulin effect already removed (`base` from the quiet median, `ex = ice − base` smoothed, `size_g` the ICE integral
+   over `geq_mgdl`). So `dur_h`, `peak_h` and `size_g` are appearance quantities, not glucose ones.
+   - **Therefore the donors\' appearance IS less dispersed than the model\'s** (labelled decay 60 min against the
+     twins\' 67, both through the same ICE labeller), and `ge_order` 3-4 moves the model toward the measured truth.
+   - **And the high-side cost is then specifically an insulin-action mismatch.** The donors carry the sharper
+     appearance without running high; the twins, at their donors\' own bolus timing, rate and ratio (L 618), cannot.
+     With appearance now evidenced, the remaining free component is insulin action speed — `p2` 0.025, fitted to a
+     lispro CLAMP (L 362-365), which is an intravenous steady-state setting rather than a meal one.
+   - **So the evidence request narrows usefully:** not "simultaneous appearance and insulin kinetics" in general, but
+     **is clamp-derived insulin action too slow for meal-time action?** That is a specific, answerable literature
+     question, and if the answer is yes, `ge_order` 3 plus a faster `p2` is a pair of evidenced changes that between
+     them close the meal tail, `acf_zero_min` and the fall / rise ratio without the high-side cost.
+   - **Until then `ge_order` stays at 2** — but it is now the only open limit-cluster with a named mechanism on BOTH
+     sides and a single literature question standing between it and an adoption. That is the most actionable state any
+     of this session\'s limits reached.

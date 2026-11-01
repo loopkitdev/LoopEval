@@ -372,7 +372,12 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   31.0 -> 37.0-39.0 against the donors' 38.0 (gap 0.373 -> 0.053), `acf_zero_min` 60 -> 50 (its best ever) and the
   fall / rise ratio 0.63 -> 0.69 — four standing limits moving together, which is what a shared cause looks like. The
   cost is high-side: TIR 72.2 -> 68.6, t180 25.8 -> 28.1, because less dispersion delivers the same carbohydrate in a
-  shorter window and Loop cannot cover the peak, so the score rejects it. **NOT a behaviour refit (L 618)**: `bolus_lead_min`, `p_bolus_ann` and
+  shorter window and Loop cannot cover the peak, so the score rejects it. **The appearance evidence is insulin-free (L 619)**: the labeller builds every pulse from `ice`,
+  not glucose, so the donors' 60-min decay against the twins' 67 IS an appearance difference and `ge_order` 3-4 moves
+  toward measured truth. The cost is therefore an INSULIN-ACTION mismatch — `p2` 0.025 is fitted to a lispro CLAMP,
+  an intravenous steady-state setting — so the open question is **is clamp-derived insulin action too slow for
+  meal-time action?** If yes, `ge_order` 3 + a faster `p2` is a pair of evidenced changes that close the meal tail,
+  `acf_zero_min` and the fall / rise ratio together. **NOT a behaviour refit (L 618)**: `bolus_lead_min`, `p_bolus_ann` and
   `bolus_ratio` are already per-donor, so the twins already dose like their donors. The cost is a clash between two
   independently calibrated components — appearance dispersion against insulin action (`p2` 0.025, the lispro clamp)
   — which the cohort cannot adjudicate; it needs simultaneous appearance and insulin kinetics after a mixed meal.
