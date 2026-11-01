@@ -344,8 +344,11 @@ class World:
             self.beh_traits.ex_mets = True
         if enable and enable.get("ex_dur_cap"):      # C5 intensity capped by session length (LESSONS 554)
             self.beh_traits.ex_dur_cap = True
-        if enable and enable.get("ex_cap_fit"):      # that cap + METmax raised to what the person's sessions need
-            self.beh_traits.ex_cap_fit = True
+        if enable and "ex_cap_fit" in enable:        # that cap + METmax raised to what the person's sessions need.
+            # Honour an explicit False: the trait defaults True since 2026-11-01, and a set-True-only branch made
+            # `--disable ex_cap_fit` a silent no-op, so the previous reference could not be reproduced (L 580)
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.ex_cap_fit = bool(enable["ex_cap_fit"])
         if enable and isinstance(enable.get("ex_min"), float):        # usual session length, minutes (L 567)
             self.beh_traits = copy.deepcopy(self.beh_traits)
             self.beh_traits.ex_minutes = float(self.beh_traits.ex_minutes * enable["ex_min"] / 40.0)
