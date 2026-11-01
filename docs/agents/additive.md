@@ -178,7 +178,9 @@ reference changes.
   pre-bolused 20-60 min, 0.79 at the meal, 0.68 late, 0.62 unbolused — a spread of 0.28 against the twins' 0.11-0.19 deficit
   (L 575). Stratified, the gap is **essentially all physiology**: the twins' unbolused share is 5-6% against the donors' 3%
   (by `bolus_requests`; a delivered-stream threshold over-counted it as 11-13%), contributing ~0.004 of the 0.11-0.16 gap.
-  The within-stratum residual at the meal is 0.71 / 0.67 against 0.79, so a ratio-breaking mechanism is genuinely needed.
+  The within-stratum residual at the meal is 0.71 / 0.67 against 0.79, so a ratio-breaking mechanism is genuinely needed —
+  but the sensor amplifies the FALL (+27%) far more than the RISE (+7%) and more steeply the faster the fall, so the CGM
+  comparison exaggerates the gap by an amount only donor truth could pin down. Size nothing to the CGM number (L 575).
 - **Never detect boluses in a sim run from the delivered stream by threshold** — use `truth["bolus_requests"]` (L 575).
 - **the excess lows are shallow ones that linger, and counter-regulation cannot fix them** (L 559, 560): at a 60–70 nadir
   the twins rise +21 in 30 min against the donors' +26 and dwell 15 min against 10. A9 can supply at most 2.4 mg/dL over

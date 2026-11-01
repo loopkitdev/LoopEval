@@ -1028,6 +1028,15 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      **Trap:** never detect boluses in a sim run from the delivered stream by threshold — basal, small boluses and
      pump quantisation make it unreliable. Use `truth["bolus_requests"]` (f > 0 is a ratio of Loop's recommendation,
      f ≤ −0.05 absolute units).
+   - **How big the gap really is, and the one thing that cannot be settled from our data.** The sensor amplifies the
+     two limbs VERY unequally: on the twins, rise CGM 64 / 61 against truth 59.8 / 56.9 (+7%), fall CGM 48 / 45
+     against truth 37.9 / 34.2 (+27 / +32%). So the sensor ADDS 0.12–0.14 to the ratio (truth 0.63 / 0.60 → CGM
+     0.75 / 0.74), and because G7 lengthens its lag ×1.5 while glucose falls (D1), the amplification GROWS with fall
+     rate. The donors fall steeper, so their sensor adds more than 0.12, putting their TRUE ratio below 0.77 against
+     the twins' 0.63 — a true gap of under 0.14 and plausibly nearer 0.06–0.11, against the 0.14 the CGM comparison
+     shows. **The CGM comparison therefore exaggerates this gap by an unknown amount, and it cannot be pinned down
+     without donor truth, which does not exist.** Quote the gap as 0.08–0.12 at the meal with that caveat attached;
+     do not size a mechanism to the CGM number.
 
 577. **TDD, not bg_mean, is the diagnostic for a core sensitivity error: `resid_m` absorbs core level errors.**
    `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the yardstick averages over the donor's
