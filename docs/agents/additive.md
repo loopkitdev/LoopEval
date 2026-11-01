@@ -90,7 +90,10 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75` on the reference. It reproduces C4's own by-METs table —
   the ≥ 8 MET band reads +0.9 against the donors' +1.2 where the band has enough bouts — against the reference's +12.8 / −5.1.
   Use it whenever the response to a workout matters; the reference keeps the score-optimal settings.
-- **rf2 on the prediction half: response SIZE replicated on two pools, RANKING e-pool only** (L 612, 614): against ov0 it is better on all four
+- **rf2 on the prediction half: response SIZE replicated on two pools; RANKING consistent but not established**
+  (L 612, 614, 616) — pooled by Fisher z over the 643 well-conditioned events (pilot + e; the x pool excluded for a
+  NEGATIVE field t70 response), rf2 leads on all three correlations (mean 0.326 against 0.265, TIR 0.165 against
+  0.132, t70 0.187 against 0.157) at 0.5-1.2 SE each: against ov0 it is better on all four
   response ratios and all three correlations — mean 1.35 [1.04, 1.69] against 1.60, TIR 1.27 against 1.37, **t70 1.14
   against 1.43** (the field is 1.0), rho 0.33 / 0.16 / 0.17 against 0.26 / 0.13 / 0.15 — and starts nearer the field's
   pre-edit level (+3.3 against +5.4). No single comparison is individually significant; the consistency across seven

@@ -2186,3 +2186,25 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **And the method point, again:** judge a mechanism on the row it was built for. `cr_tau_off` was specified by
      L 600 from the low-episode duration gap, tested on the low rows, and its headline rejection came from the cohort
      score — the reversal rows it was nominally aimed at went unmeasured for three turns.
+
+616. **Pooled over the two well-conditioned pools, rf2 leads on all three change-response correlations — but by
+   0.5-1.2 SE, so "consistent, not established" is the accurate phrasing.** L 612 confirmed the ranking on the e pool
+   and L 614 found the x pool reverses it, leaving the claim resting on one pool. Combining the pilot pool (63 events)
+   and the e pool (580) by Fisher z weighted by n − 3 — the x pool excluded because its field t70 response is −0.57,
+   the unexpected sign (L 614) — over **643 events**:
+
+   | row | ov0 | rf2 | difference in z | SE | z / SE |
+   |---|---|---|---|---|---|
+   | mean | 0.265 | **0.326** | +0.067 | 0.056 | +1.20 |
+   | TIR | 0.132 | **0.165** | +0.034 | 0.056 | +0.60 |
+   | t70 | 0.157 | **0.187** | +0.031 | 0.056 | +0.55 |
+
+   - **rf2 leads on all three, none individually significant.** The three rows are not independent, so the
+     consistency is weaker evidence than three separate tests would be — but the direction is the same on both pools
+     for every row, which is the strongest statement the data support.
+   - **So the final phrasing for rf2\'s prediction claim:** response SIZE replicated on two independent pools
+     (L 612, 614); response RANKING leads on all three correlations pooled over 643 well-conditioned events at
+     0.5-1.2 SE — **consistent, not established**. Neither "confirmed" nor "e-pool only" was right.
+   - **And the pooling itself is the reusable part:** the pools can be combined by Fisher z on their correlations and
+     by inverse-variance on their ratios, as long as poorly-conditioned pools are excluded on their FIELD response
+     rather than on their results. That is how to get the most out of 790 edits without letting one bad pool dominate.
