@@ -24,7 +24,7 @@ extension EvaluationEngine {
     /// The guard + runway arm (dr arm_flags("gr")): the package's `.guardAndRunway` experiment.
     private static let guardAndRunwayKeys: Set<String> = [
         "sigmaBandK", "sigmaBandCobGate", "postlowRcRiseScale", "postlowWindowMin",
-        "runwayFraction", "runwayCobGate", "runwayBgMin",
+        "runwayFraction", "runwayCobGate", "runwayBgMin", "sigmaBandGuardOnly", "runwayCobFadeG",
     ]
 
     static func fixtureInsulinType(_ p: ExponentialInsulinModelPreset) -> String? {
@@ -59,7 +59,8 @@ extension EvaluationEngine {
     static func algorithmInputFixtureJSON(
         t: Date, predictionStart: Date, input: PredictionInput, config: EvalConfig, therapy: TherapyTimeline,
         applicationFactor: Double, prediction: LoopPrediction<EvalCarbEntry>,
-        bolus: Double, tempRate: Double, deltaU: Double, tempAction: String
+        bolus: Double, tempRate: Double, deltaU: Double, tempAction: String,
+        scheduledSensitivity: [AbsoluteScheduleValue<LoopQuantity>]? = nil, isfMultiplier: Double = 1
     ) -> Data? {
         let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         func ds(_ d: Date) -> String { iso.string(from: d) }
@@ -98,7 +99,10 @@ extension EvaluationEngine {
         func sched(_ s: [AbsoluteScheduleValue<Double>]) -> [[String: Any]] {
             s.map { ["startDate": ds($0.startDate), "endDate": ds($0.endDate), "value": $0.value] }
         }
-        let sens: [[String: Any]] = input.sensitivity.map {
+        // The package's slowRetrospectiveCorrection computes its own multiplier, so it gets the scheduled ISF.
+        let slowRC = config.slowRcScheduleFeed && config.slowRcWindowSec == 259200 && config.slowRcTauSec == 86400
+            && config.slowRcGain == 0.05 && config.slowRcMin == 0.7 && config.slowRcMax == 1.3 && !config.slowRcIntegral
+        let sens: [[String: Any]] = (slowRC ? (scheduledSensitivity ?? input.sensitivity) : input.sensitivity).map {
             ["startDate": ds($0.startDate), "endDate": ds($0.endDate), "value": $0.value.doubleValue(for: mg)]
         }
         let target: [[String: Any]] = input.target.map {
@@ -119,8 +123,10 @@ extension EvaluationEngine {
         if config.bolusIncrement > 0 || config.tempBasalIncrement > 0 {
             notes.append("engine floors doses to the pump's increments (bolus \(config.bolusIncrement), temp \(config.tempBasalIncrement)); the package returns them unrounded")
         }
+        // The package's guardAndRunway is gr2: band for the guard only, runway fading over 20 g of carbs.
         let gr = config.sigmaBandK > 0 && config.sigmaBandCobGate && config.runwayFraction > 0
             && config.runwayCobGate && config.postlowRcRiseScale != 1
+            && config.sigmaBandGuardOnly && config.runwayCobMaxG == 0 && config.runwayCobFadeG == 20
         var root: [String: Any] = [
             "predictionStart": ds(predictionStart),
             "glucoseHistory": glucose, "doses": doses, "carbEntries": carbs,
@@ -136,8 +142,10 @@ extension EvaluationEngine {
         ]
         if let s = therapy.suspendThreshold(at: t) { root["suspendThreshold"] = s.doubleValue(for: mg) }
         if let g = config.momentumGradualTransitionsThreshold { root["gradualTransitionsThreshold"] = g }
+        if gr || slowRC {
+            root["experiments"] = (gr ? ["guardAndRunway"] : []) + (slowRC ? ["slowRetrospectiveCorrection"] : [])
+        }
         if gr {
-                root["experiments"] = ["guardAndRunway"]
             // The package's depth is min(1, 6.7 / baseline); a missing baseline is full depth.
             if config.sigmaBandK < 1 { root["volatilityBaseline"] = 6.7 / config.sigmaBandK }
         }
@@ -149,7 +157,9 @@ extension EvaluationEngine {
                        "eventualBG": num(curve.last), "minBG": num(curve.min()),
                        "iob": num(prediction.activeInsulin), "cob": num(prediction.activeCarbs)] as [String: Any],
             "dosesClippedAtPredictionStart": clipped, "basalDosesDroppedAfterPredictionStart": dropped,
-            "nonDefaultConfig": nonDefaultConfigKeys(config, guardAndRunway: gr),
+            "isfMultiplier": isfMultiplier,
+            "nonDefaultConfig": nonDefaultConfigKeys(config, guardAndRunway: gr).filter {
+                !(slowRC && ($0.hasPrefix("slowRc") || $0.hasPrefix("sensitivityMultiplier"))) },
             "notes": notes,
         ] as [String: Any]
         return try? JSONSerialization.data(withJSONObject: root, options: [.sortedKeys])

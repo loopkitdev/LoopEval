@@ -768,6 +768,7 @@ extension EvaluationEngine {
         var slowRcLastLow: Date? = nil
         var slowRcResetIdx = 0
         var slowRcHistory: [(t: Date, r: Double, decay: Double)] = []   // stateless form: the residuals in the window
+        var slowRcLastIceEnd: Date? = nil                                  // stateless form: the last interval counted
         let slowRcGated = !candidateConfig.slowRcGateWindows.isEmpty
         func slowRcMinAt(_ t: Date) -> Double {
             candidateConfig.slowRcGateWindows.first { $0.start <= t && t < $0.end }?.min ?? candidateConfig.slowRcMin
@@ -1324,17 +1325,31 @@ extension EvaluationEngine {
                 // in carb-active steps; C08 results before pinned10 were measured with that feed.)
                 let rcResidualFeed = candidateICE.isFinite
                     ? candidateICE - (candidateCarbEffect.isFinite ? candidateCarbEffect : 0.0) : Double.nan
-                // Stateless slow RC: a recompute from history cannot know past multipliers, so its residual is the
-                // scheduled-ISF forecast's. Read it from a second step at the scheduled ISF (no per-step boost map).
+                // Stateless slow RC (the LoopAlgorithm port): a recompute from history cannot know past multipliers,
+                // so its residual is the scheduled-ISF forecast's, read from a second step at the scheduled ISF (no
+                // per-step boost map). Each counteraction interval counts once, as change per 5 min weighted by its
+                // duration: a step with no new CGM interval adds nothing (the running form re-reads the last one).
                 var slowRcFeed = rcResidualFeed
-                if slowRcOn && candidateConfig.slowRcScheduleFeed && abs(slowRcMult - 1.0) > 1e-12 {
-                    let plain = doStep(nil, isfMult: sensModeMult).prediction.effects
-                    var ice = Double.nan, carb = Double.nan
-                    if let ki = plain.carbs.lastIndex(where: { $0.startDate <= tEps }), ki > plain.carbs.startIndex {
-                        carb = plain.carbs[ki].quantity.doubleValue(for: mgdlUnit) - plain.carbs[ki - 1].quantity.doubleValue(for: mgdlUnit)
+                var slowRcFeedDuration = stepDur
+                let slowRcStateless = candidateConfig.slowRcScheduleFeed || candidateConfig.slowRcWindowSec > 0
+                if slowRcOn && slowRcStateless {
+                    let effects = candidateConfig.slowRcScheduleFeed && abs(slowRcMult - 1.0) > 1e-12
+                        ? doStep(nil, isfMult: sensModeMult).prediction.effects : result.prediction.effects
+                    var carb = Double.nan
+                    if let ki = effects.carbs.lastIndex(where: { $0.startDate <= tEps }), ki > effects.carbs.startIndex {
+                        carb = effects.carbs[ki].quantity.doubleValue(for: mgdlUnit) - effects.carbs[ki - 1].quantity.doubleValue(for: mgdlUnit)
                     }
-                    if let m = plain.insulinCounteraction.last(where: { $0.endDate <= tEps }) { ice = m.effect.quantity.doubleValue(for: mgdlUnit) }
-                    slowRcFeed = ice.isFinite ? ice - (carb.isFinite ? carb : 0.0) : Double.nan
+                    slowRcFeed = .nan
+                    if let m = effects.insulinCounteraction.last(where: { $0.endDate <= tEps }),
+                       slowRcLastIceEnd.map({ m.endDate > $0 }) ?? true {
+                        let duration = m.endDate.timeIntervalSince(m.startDate)
+                        let ice = m.effect.quantity.doubleValue(for: mgdlUnit)
+                        if duration > 0, ice.isFinite {
+                            slowRcFeed = (ice - (carb.isFinite ? carb : 0.0)) * 300 / duration
+                            slowRcFeedDuration = duration
+                            slowRcLastIceEnd = m.endDate
+                        }
+                    }
                 }
                 if sensModeOn && rcResidualFeed.isFinite {
                     sensModeLevel = sensModeDecayStep * sensModeLevel + (1.0 - sensModeDecayStep) * Swift.max(0.0, -rcResidualFeed)
@@ -1352,7 +1367,7 @@ extension EvaluationEngine {
                     let r = c > 0 ? Swift.max(-c, Swift.min(c, slowRcFeed)) : slowRcFeed
                     if candidateConfig.slowRcWindowSec > 0 && !candidateConfig.slowRcIntegral {
                         // Stateless form: the EWMA of the window's residuals, from 0 at its start.
-                        slowRcHistory.append((t, r, slowRcDecayStep))
+                        slowRcHistory.append((t, r, exp(-slowRcFeedDuration / candidateConfig.slowRcTauSec)))
                         let from = slowRcHistory.firstIndex { t.timeIntervalSince($0.t) < candidateConfig.slowRcWindowSec } ?? slowRcHistory.count
                         slowRcHistory.removeFirst(from)
                         slowRcLevel = slowRcHistory.reduce(0.0) { $1.decay * $0 + (1.0 - $1.decay) * $1.r }
@@ -3102,7 +3117,8 @@ extension EvaluationEngine {
         let fixture: Data? = config.algorithmInputExportDir == nil ? nil : algorithmInputFixtureJSON(
             t: t, predictionStart: predStart, input: effectiveInput, config: config, therapy: therapy,
             applicationFactor: appFactor, prediction: prediction, bolus: doseRec?.bolus ?? 0,
-            tempRate: doseRec?.tempBasalRate ?? 0, deltaU: doseRec?.deltaU ?? 0, tempAction: doseRec?.tempAction ?? "set")
+            tempRate: doseRec?.tempBasalRate ?? 0, deltaU: doseRec?.deltaU ?? 0, tempAction: doseRec?.tempAction ?? "set",
+            scheduledSensitivity: input.sensitivity, isfMultiplier: effExtraISF)
         return (
             dose: doseRec?.deltaU ?? 0,
             bolus: doseRec?.bolus ?? 0,
