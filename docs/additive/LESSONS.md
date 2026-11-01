@@ -841,3 +841,17 @@ evidence to the evidence files.
    `act_net20` / `act_net20_hi`, which move by their own draw scatter (L 497) and are flat on d1. t54 rises on both
    draws (0.255 → 0.298, 0.258 → 0.301; donors 0.190) and meal_d3h worsens on d2. Kept off; the coupling stays in
    the code as the only driver on A9 besides its own history. Run dir runs/2026-10-31-additive-gesplit/.
+
+553. **C4's surge threshold was firing at moderate effort and cancelling the fall; 0.9 of VO2-reserve is the new
+   default.** The donors' drop to the mid-session nadir keeps deepening through 7–9 METs and shrinks only at ≥ 9
+   (L 551), and C4's own Pemberton table has them deepest at 6–8 METs (−21.5) and positive only at ≥ 8 (+1.2). The
+   old 0.6 of reserve is about 5.8 METs at the median METmax of 9 — exactly where the twins' fall collapsed. At 0.9
+   (≈ 8.2 METs), paired on sd3 over two draws: score 0.370 → **0.353** and 0.454 → **0.437**, tier 1 0.243 → 0.203
+   and 0.401 → 0.353, better on both draws; `act_net20` −3.22 → −5.33 against the donors' −5.71 on draw 1. C4's own
+   6–8 MET band moves toward the donors on both draws (−1.8 → −6.5, +10.7 → +4.7) and the pooled bout mean reaches
+   −5.3 / −1.3 (donors −5.7). `review.py` shows no component drift against sd3, so nothing needed a refit. 0.85 is
+   nearly identical (0.357 / 0.437); raising the surge to 40 alongside it gives the gain back (0.368 / 0.451), so the
+   threshold, not the size, was wrong. Costs: lows per day rises slightly on both draws (gap 0.189 → 0.240,
+   0.474 → 0.505) and t54 is mixed (0.255 → 0.219, 0.258 → 0.294; donors 0.190). **Still open:** no arm reproduces the
+   donors' positive ≥ 8 MET band (+1.2; twins −7 to −9), and the 6–8 fall is still a third of theirs — the surge's
+   shape above the threshold is not right yet, on 15–27 bouts a draw. Run dir runs/2026-10-31-additive-gesplit/.

@@ -83,7 +83,9 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. A different draw of people (seed0) moves the count by up to 6 (LESSONS 444): score an arm whose
   effect is within that scatter on two draws (seed0 1000 and 5000) before adopting it.
-- **Current reference** (2026-10-28): **sd3** (draw 2 sd3_5k; runs/2026-10-27-additive-natexp) — lg13's evidenced core with a
+- **Current reference** (2026-11-01): **st9** — sd3 with C4's surge threshold at 0.9 of VO2-reserve (LESSONS 553): score 0.353 / 0.437,
+  tier 1 0.203 / 0.353. Everything else as sd3 below; `ex_surge_thr` 0.9 is now the code default, so sd3's own numbers need `--set ex_surge_thr=0.6`.
+- **Previous reference** (2026-10-28): **sd3** (draw 2 sd3_5k; runs/2026-10-27-additive-natexp) — lg13's evidenced core with a
   data-driven residual (per-person level and fast drive) and each person's meal glucose fitted to their donor's spread
   (MODEL_GUIDE § 9–10, LESSONS 513–532). Score 0.370 / 0.454; held-out twin–donor TIR ρ 0.89, CV 0.63 (lg13 0.45 / 0.11).
   Natural experiments (pilot, x, e pools; 790 edits): twins start at their donor's pre-edit level and the tight / rest

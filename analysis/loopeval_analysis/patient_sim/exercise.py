@@ -32,7 +32,11 @@ class ExerciseParams:
                                 # which the delayed sensitivity repletes, rises steeply with intensity (LESSONS 57)
     tau_z: float = 600.0        # min (ETH / UVA)
     absorb: float = 0.5         # absorption speed-up per unit intensity
-    surge_thr: float = 0.6      # intensity above which the C4 EGP surge builds (LESSONS 247)
+    surge_thr: float = 0.9      # intensity above which the C4 EGP surge builds. 0.9 of VO2-reserve is ~8.2 METs at the
+                                # median METmax of 9: below it a session falls, above it the catecholamine surge takes over.
+                                # Default since 2026-11-01 (was 0.6, ~5.8 METs, which cancelled the fall from moderate work;
+                                # LESSONS 553). The donors' own drop-to-nadir keeps deepening through 7-9 METs and shrinks
+                                # only at >=9, and C4's Pemberton table has them deepest at 6-8 METs (LESSONS 247, 551)
     z_threshold: float = 0.12   # intensity above which delayed sensitivity builds (UVA / Deichmann) [I]
     filt_tau: float = 7.0       # min, intensity → physiological activity lag
     sat_k: float = 0.0          # > 0: the acute SI boost saturates in intensity, α·(0.6 + k)·Y/(Y + k), equal to the linear α·Y at
