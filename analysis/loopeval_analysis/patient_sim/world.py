@@ -662,7 +662,8 @@ class World:
         self.fat_events: list = []                         # (minute, fat g) — transient fat-induced insulin resistance
         self.fat_log: list = []                            # every fat event, kept for the truth file (LESSONS 288)
         self.ppr_events: list = []                         # main-meal times for the post-meal insulin-action window (LESSONS 321)
-        self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.4   # Pete 2026-10-20: meal shape over lows (LESSONS 408); 0.4 relative since 2026-10-20 (LESSONS 436)
+        self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.6   # Pete 2026-10-20: meal shape over lows (LESSONS 408); 0.4 relative since 2026-10-20 (LESSONS 436);
+        # 0.6 since 2026-11-01 (LESSONS 558): A12b on its OWN target, meal_d3_p50 ratio 0.58 -> 0.97. Costs TIR on both draws
         self.ppr_shift = float(enable["ppr_shift"]) if enable and isinstance(enable.get("ppr_shift"), float) else 0.0
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
         self.fat_periph = bool((enable or {}).get("fat_periph", False))   # experiment (LESSONS 481): fat resistance on disposal only

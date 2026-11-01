@@ -966,3 +966,31 @@ evidence to the evidence files.
    - **What it would take.** More hard-session bouts per draw. The twins run 18% of sessions at ≥ 7 METs against the
      donors' 37% (L 551), so the band is thin on both sides of the comparison; and sizing C1 / C2 honestly needs a
      measured aerobic capacity per person rather than a prior. Both point at the same missing measurement (VO2max).
+
+558. **A12b was mis-calibrated against its own target; `ppr_a` 0.4 → 0.6 puts the meal tail on the donors', and costs
+   TIR.** The 3-h meal change was the worst tier-1 row on both draws (ad0 25 / 26 vs the donors' 38, gap 0.69 / 0.64),
+   and two more rows pointed the same way — t180 UNDER the donors (24.3 / 22.3 vs 25.9) and t70 OVER (2.16 / 2.11 vs
+   1.60) — so meals running higher for longer moves all three. The reason `ppr_a` was held at 0.4 (it costs lows,
+   L 408, 436) had inverted: the twins now carry more lows than their donors, not fewer.
+
+   | | ad0 (0.4) | **pp6 (0.6)** | pp8 (0.8) | Donors |
+   |---|---|---|---|---|
+   | meal_d3_p50 (A12b's own target) | 12.4 (**0.58**) | 20.6 (**0.97**) | — | 21.2 |
+   | meal_d3h | 25 / 26 (0.69 / 0.64) | 33 / 31 (0.27 / 0.37) | 43 / 45 (0.27 / 0.37) | 38 |
+   | t180 | 24.3 / 22.3 | 26.3 / 22.1 | 29.5 / 29.2 | 25.9 |
+   | t70 | 2.16 / 2.11 | 1.97 / 2.16 | 2.12 / 2.06 | 1.60 |
+   | bg_cv | 33.8 / 34.8 | 34.4 / 35.5 | 35.7 / 37.0 | 34.6 |
+   | **tir** | 70.7 / 71.9 | **68.9 / 70.2** | 65.9 / 67.9 | 71.9 |
+   | score | 0.364 / 0.416 | 0.340 / 0.444 | 0.403 / 0.452 | — |
+
+   **Adopted at 0.6** on the component's own evidence: `meal_d3_p50` is A12b's donor-fitted target and 0.58 was a
+   large miss, which the role's rule (fit from the literature where it identifies a parameter, else from the donor
+   data) says to correct. meal_d3h improves on both draws; bg_mean moves closer on both. 0.8 overshoots the tail
+   (43 / 45 vs 38) and is worse on both draws — rejected.
+   - **The cost, plainly: TIR falls on both draws** (0.136 → 0.246, 0.030 → 0.181), and the net score is mixed
+     (better on draw 1, worse on draw 2), so this does NOT satisfy L 444 as an improvement. `meal_drop_p10` also
+     drifts (0.85 → 0.77). Revert with `--set ppr_a=0.4`.
+   - **What the TIR cost identifies.** CV lands on the donors' (34.4 / 35.5 vs 34.6), so the widening is the right
+     size; TIR still falls because the twins' excess time BELOW range is amplified as the spread grows (t70 1.97 /
+     2.16 vs 1.60). The limiting defect is therefore the excess lows, not A12b — the meal tail can now be read as
+     calibrated, and the low side is what caps TIR.
