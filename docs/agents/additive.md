@@ -293,6 +293,12 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   arm and silently report the wrong arm's numbers (it happened three times on 2026-11-01). Read them with
   `resid_tools/score_read.py`, which keys on the header names.
 
+- **Keep the summary CSVs, drop the traces.** A cohort arm is ~814 MB, of which the `v0*` per-person directories are
+  ~95%; `compare_pilot.csv`, `sim_stats.csv` and the other summaries are a few MB and are all `score.py` reads. A full
+  Mac stops a running job mid-arm (`OSError: No space left on device` writing a person's `.err`), so clear superseded
+  arms with `rm -rf <arm>/v0*` — every arm stays re-scorable and re-comparable, and the traces are reproducible from
+  the frozen tree. This recovered 141 GB from one run dir (177 G to 36 G) on 2026-11-01.
+
 - **`trace.json`'s md5 is NOT an identity check.** Two identical invocations of the same frozen code produce
   byte-different `trace.json` (key order and float formatting) with content and trajectory identical. Compare
   `truth.pkl`'s `truth.bg` series instead — that IS bit-stable, and it is stable across `--n` and `--par` too, since
