@@ -1390,9 +1390,17 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      TDD goes 0.103 -> 0.230 and 0.239 -> 0.304, bg_mean with it, tier 2 degrades and the weighted score loses
      (0.359 / 0.394 / 0.411, mean 0.388 against 0.372). `pg0` reproduced `ov0` exactly, so the template column is
      inert with the switch off — a clean control.
-   - **The arm's own flaw, and the fix under test:** the donors eat bigger AND less often (0.548 pulses/h below 80 at
-     30 g against the twins' 0.672 at 24 g), and what they hold constant is **grams per hour below 80**, 16.4 against
-     16.1. Sizing alone broke that conserved quantity. `pro_carb_fix` stretches the refractory by the same factor the
-     size grew, so the granularity matches the donors' on both axes at unchanged carbohydrate. If tier 1 keeps the
-     gain without the TDD cost, the low-side limits were granularity; if the gain goes with the carbohydrate, they
-     were not, and the t70 improvement was just more food.
+   - **Where tier 2 pays, and it is coherent:** the dip-dynamics rows. On draw 3, `ice_dip_day` 1.052 -> 1.401,
+     `ice_dip_day_share` 0.693 -> 0.801, `night_cv` 0.378 -> 0.529. A bigger low-side pulse amplifies a dip signature
+     the twins ALREADY over-produce, so sizing alone trades the outcome rows for the dynamics rows.
+   - **`pro_carb_fix` (stretch the refractory so grams per hour below 80 are conserved) does not bite**, and the
+     reason names the real knob: the realized rate moved only 1.154 -> 1.091/h and the score got worse again
+     (0.352 / 0.402 / 0.425, mean 0.393 against pg1's 0.388 and ov0's 0.372). At ~1 event per hour BELOW 80, with only
+     ~1.2 h/day spent there, a 45 -> 56 min refractory almost never binds — **the rate is set by the firing CONDITION
+     (`pro_onset`), not the refractory.**
+   - **So the twins' low-side eating is too FREQUENT, not too small**, and the two measured donor quantities must be
+     matched together: size from `low_pro_g` and rate via `pro_shift` on the onset (L 409 fitted that onset to the
+     donors' lows, but to their ONSET distribution, not to their pulse RATE). Under test at −10 and −20 mg/dL. The
+     weighted score has now rejected this direction twice while **tier 1, the outcome tier at weight 3, preferred it
+     on all three draws** — if the joint match keeps tier 1 and returns tier 2, it is the adoption; if not, the
+     low-side limits are not reachable by eating granularity and that is the finding.
