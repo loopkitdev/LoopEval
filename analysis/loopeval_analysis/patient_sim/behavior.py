@@ -46,6 +46,12 @@ def _count_size_err(t, grams: float) -> float:
     return -0.1 * math.log(max(grams, 5) / 45.0)
 
 
+def _sus(minutes: float) -> float:
+    """The fraction of aerobic reserve a person holds for a whole session of this length (LESSONS 554): about all of
+    it for a few minutes, ~0.87 for 20 min, ~0.77 for 40, ~0.72 for an hour (the intensity-duration relation) [J]."""
+    return float(min(1.0, max(0.6, 1.0 - 0.14 * math.log(max(minutes, 8.0) / 8.0))))
+
+
 @dataclass
 class BehaviorTraits:
     # sleep
@@ -167,6 +173,7 @@ class BehaviorTraits:
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
     ex_dur_cap: bool = False             # cap a session's intensity by what a person holds for its length (L 554)
+    ex_cap_fit: bool = False             # that cap, plus METmax raised to what the person's own sessions need (L 554)
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     ex_time: bool = False                # sessions timed as the donors' recorded workouts (LESSONS 497): a share start 0–120 min after a
                                          # carb entry (own, else the recorders' 0.51), the rest on the person's own workout clock (own,
@@ -528,6 +535,14 @@ class Behavior:
         self.r_exmet = np.random.default_rng(int(getattr(person, "seed", 0)) + 5003)     # session intensity (ex_mets)
         self.r_extime = np.random.default_rng(int(getattr(person, "seed", 0)) + 5107)    # session timing (ex_time)
         self.ex_met_person = float(np.exp(np.random.default_rng(int(getattr(person, "seed", 0)) + 5011).normal(1.657, 0.357)))
+        if self.t.ex_cap_fit:
+            # C5 × capacity, the consistent version (LESSONS 554): the person's habitual session METs are MEASURED
+            # (donors' workouts) while METmax is only a prior, so raise the prior to what their own sessions need
+            # rather than squeezing the sessions into it. A 40-min session sits at ~0.775 of reserve (`_sus`), so
+            # someone whose usual workout is 8.6 METs has a METmax of at least 10.8 — capping intensity alone instead
+            # left almost no session above 8 METs, against the donors' 30% of workouts.
+            need = 1.0 + (self.ex_met_person - 1.0) / _sus(self.t.ex_minutes)
+            self.t.metmax = float(min(16.0, max(self.t.metmax, need)))
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
         self.r_usplit = np.random.default_rng(int(getattr(person, "seed", 0)) + 2851)     # unent_split portion times
@@ -869,14 +884,14 @@ class Behavior:
                 rm_ = self.r_exmet
                 met = max(1.5, self.ex_met_person + float(rm_.normal(0, 1.5)))
                 hi_ = 1.0
-                if t.ex_dur_cap:
+                if t.ex_dur_cap or t.ex_cap_fit:
                     # C5 × the person's capacity (LESSONS 554): METs are drawn from the donor's own workouts but
                     # converted on THIS twin's METmax, which is drawn independently, so a low-capacity twin was given
                     # sessions at or above its ceiling — 19% of sessions sat at 1.00 of reserve for a median 39 min,
                     # which no one sustains, and every one of them fired C4's surge. The intensity a person holds for
                     # a whole session falls with its length (the intensity-duration relation: about all of the reserve
                     # for a few minutes, ~0.85 for 20 min, ~0.75 for 40) [J constants]
-                    hi_ = float(np.clip(1.0 - 0.14 * math.log(max(dur, 8.0) / 8.0), 0.6, 1.0))
+                    hi_ = _sus(dur)
                 it_ = float(np.clip((met - 1.0) / max(t.metmax - 1.0, 1.0), 0.1, hi_))
             self.planned.append((st, ("exercise", st, dur, it_, t.ex_anaerobic)))
             if r.random() < t.p_ex_carbs:
