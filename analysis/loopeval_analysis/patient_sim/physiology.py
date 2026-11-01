@@ -95,6 +95,14 @@ class BodyParams:
     cr_g: float = 65.0             # mg/dL, half-activation glucose
     cr_s: float = 5.0              # mg/dL, sigmoid width
     cr_tau: float = 15.0           # min, activation time constant
+    cr_tau_off: float = 0.0        # min, DEACTIVATION time constant; 0 = same as cr_tau (one symmetric lag, as before).
+                                   # With a single tau the counter-regulatory EGP effect fades as fast as it builds, so
+                                   # it peaks just after the nadir and is gone during the climb. The glycogenolytic
+                                   # response outlasts the hormone pulse that triggers it (catecholamine and glucagon
+                                   # clearance plus post-receptor effects run 20-60 min), so the decay is the slower
+                                   # limb. This is the only shape that meets L 600's requirement: shorten the recovery
+                                   # limb of an 80-excursion WITHOUT raising its nadir, since the peak value of `cr`
+                                   # at the nadir is unchanged - only its persistence into the climb grows.
     haaf_tau_rec: float = 60 * 60.0  # min, recovery of the response
     haaf_kappa: float = math.log(1 / 0.6) / 120.0  # per minute below 54: 2 h → response ×0.6 [J; Dagogo-Jack 1993 thresholds shift within ~24 h]
     haaf_min: float = 0.3
@@ -376,7 +384,8 @@ class Body:
 
         # --- counter-regulation and HAAF memory
         target = p.cr_max * self.haaf * cr_mult * sigmoid((p.cr_g - g) / p.cr_s)
-        self.cr += dt * (target - self.cr) / p.cr_tau
+        tau_cr = p.cr_tau if (target >= self.cr or p.cr_tau_off <= 0) else p.cr_tau_off   # slower OFF limb (L 601)
+        self.cr += dt * (target - self.cr) / tau_cr
         below = 1.0 if g < 54.0 else 0.0
         self.haaf += dt * ((1.0 - self.haaf) / p.haaf_tau_rec - p.haaf_kappa * below * self.haaf)
         self.haaf = max(p.haaf_min, min(1.0, self.haaf))
