@@ -91,6 +91,10 @@ def main():
     ap.add_argument("--set", default="", help="numeric component overrides, e.g. meal_k=0.6 (multiplies meal kempt/kabs)")
     a = ap.parse_args()
     enable = {k: False for k in a.disable.split(",") if k}
+    # a numeric override belongs in --set: in --enable it becomes a switch NAMED "k=v", the code's isinstance(..., float)
+    # check fails, and the arm runs as its own control without a word (it voided the ex_surge_mets arms, 2026-11-01)
+    bad = [k for k in (a.enable + "," + a.disable).split(",") if "=" in k]
+    if bad: ap.error(f"--enable/--disable take switch names, not values: {bad}. Pass numeric overrides in --set.")
     enable.update({k: True for k in a.enable.split(",") if k})
     enable.update({kv.split("=")[0]: float(kv.split("=")[1]) for kv in a.set.split(",") if "=" in kv})
     root = Path(a.out); root.mkdir(parents=True, exist_ok=True)
