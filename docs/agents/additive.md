@@ -301,6 +301,12 @@ overshoots on the light one, which is what `sg_h_lo`, `cr_tau_off` and `pro_g_ow
 on t54 / t70 / lows-per-day without more draws first**; three draws give an sd with two degrees of freedom, so this
 means "not established as a bias at n = 3", not "zero".
 
+**POWER: three draws is not enough for the rows that matter (L 609).** Between-draw sd over five draws is 2.19 for
+TIR, 0.358 for t70 and 1.51 U/day for TDD, so resolving a 1-point TIR effect needs **20 draws**, a 0.2-point t70 effect
+**13**, and a 1 U/day TDD effect **10**. TDD is the only row whose bias (+3.36) exceeds its own between-draw sd. The
+cheap alternative is to judge candidates on **paired per-person differences** (`twin.csv`), which remove the trait-draw
+variance by construction. Also: `lvl_resid.py` / `tdd_isf.py` glob `v0*`, which misses seeds >= 10000 entirely.
+
 **Score close calls on THREE draws — seed0 1000, 5000 and 9000 — and read the mean (L 567).** Draws 2 and 3 agree with each
 other while draw 1 is the reference lineage's own development draw and scores anomalously well on it (ad2: 0.340 vs 0.444 /
 0.430), so a candidate that gives up draw-1 fit looks worse than it is. Where the three disagree, discount 1000.

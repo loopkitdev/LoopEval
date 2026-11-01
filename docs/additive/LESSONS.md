@@ -1996,3 +1996,34 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      (t = −2.12) and partly driven by draw 4 (TIR 66.5, t180 29.7).
    - The one outcome bias that is both significant and attributable remains TDD (t = +4.98), and L 605 showed it is
      not reachable by a body parameter.
+
+609. **The band sums were a median artefact, the TIR "bias" is trait-draw sampling, and the session\'s real constraint
+   is statistical power: the cohort needs 10-20 draws to resolve the effects candidates produce.** Finishing L 608\'s
+   reconciliation:
+   - **Why the bands do not sum to 100: medians.** `tir`, `t70` and `t180` are mutually exclusive and exhaustive on
+     the same vector (`traits.py`: 70 <= v <= 180, v < 70, v > 180), so they sum to exactly 100 PER BLOCK. The scored
+     values are medians across blocks and people, and medians are not additive. Nothing is wrong, and a band gap can
+     never be decomposed by comparing medians — use paired per-person differences.
+   - **The TIR deficit is between DRAWS, not a defect.** Paired per-person TIR diff by draw: −0.14 / −0.94 / −0.44 /
+     **−4.50 / −4.48**. Two candidate explanations, both tested and rejected: the level fit\'s coverage (draws 3-5 all
+     have the SAME ~28% of people on templates `lvl_resid` never saw, yet differ 10x in TIR) and fitted-vs-unfitted
+     within a draw (rf2_13k: −5.25 fitted against −6.18 unfitted — the deficit is in both). What remains is the trait
+     draw itself: the per-person trait sampling moves cohort TIR by ~5 points.
+   - **So the real constraint is power.** Between-draw sd and the draws needed for 2 SE to fall under a typical
+     candidate effect:
+
+     | row | sd across 5 draws | bias | draws needed |
+     |---|---|---|---|
+     | TIR | 2.189 | −2.078 | **20** (to resolve 1.0 point) |
+     | t70 | 0.358 | −0.004 | **13** (to resolve 0.2) |
+     | t54 | 0.054 | −0.048 | 5 (to resolve 0.05) |
+     | TDD | 1.508 | +3.359 | **10** (to resolve 1.0 U/day) |
+
+     **TDD is the only row whose bias exceeds its own between-draw sd.** Everything else this session was judged at
+     n = 2-3 draws where 2 SE is 2-4x the effect being tested — which is why candidates kept winning on some draws and
+     losing on others, and why six low-side arms produced six different-looking answers to the same question.
+   - **Practical upshot for the next session:** either run 10+ draws for any candidate touching TIR / t70 / TDD, or
+     judge candidates on paired per-person differences (which remove the trait-draw variance by construction, `twin.csv`)
+     rather than on cohort medians. The second is far cheaper and is what `twin.csv` already computes.
+   - **A latent bug found doing this:** `lvl_resid.py` and `tdd_isf.py` glob `v0*`, which matches seeds 1000-9999 but
+     NOT seeds >= 10000 (v13000, v17000). Any fit run on a high seed silently sees zero people.
