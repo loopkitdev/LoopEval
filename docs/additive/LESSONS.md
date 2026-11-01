@@ -1977,3 +1977,22 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      building a mechanism for a gap, check `bias / SE` over the draws available — at n = 3 the SE is large enough that
      a 0.2-percentage-point t70 gap and a zero gap are indistinguishable. Six arms and most of a session went into a
      gap with bias/SE = −0.02.
+
+608. **Do not promote TIR to a limit yet — its decomposition does not close.** L 607 found TIR the second real
+   outcome bias (−2.08 points, t = −2.12 over five draws). Decomposed over the same five draws:
+
+   | row | twin mean | donors | bias | bias / SE |
+   |---|---|---|---|---|
+   | t70 | 1.595 | 1.599 | −0.004 | −0.02 |
+   | t180 | 26.835 | 25.884 | +0.951 | +1.06 |
+   | TIR | 69.804 | 71.882 | **−2.078** | **−2.12** |
+
+   - **Neither tail accounts for it.** t70's bias is zero and t180's is not significant, yet TIR is down 2.08. And the
+     three bands do not sum to 100 on either side — twins 97.3-99.7, donors 99.4 — so some time is in none of them.
+   - **It is not sensor coverage:** `wear` matches on every draw (0.970-0.980 against the donors' 0.974).
+   - So there is a bookkeeping subtlety in how the bands are computed (different denominators, or a band boundary that
+     is not shared) that I have not resolved, and TIR's −2.08 cannot be attributed to a glucose-distribution defect
+     until it is. **Reconcile the bands before treating TIR as a limit**; on the numbers as they stand it is marginal
+     (t = −2.12) and partly driven by draw 4 (TIR 66.5, t180 29.7).
+   - The one outcome bias that is both significant and attributable remains TDD (t = +4.98), and L 605 showed it is
+     not reachable by a body parameter.

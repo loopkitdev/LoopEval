@@ -277,8 +277,9 @@ reference changes.
   tight, so control-level heterogeneity is wrong in the tight group (frontier handoff 2026-10-24, LESSONS 493, 503).
 
 **Which limits are REAL (L 607, five draws — supersedes L 602's three-draw version).** With seed0 1000 / 5000 / 9000 /
-13000 / 17000, bias / SE over the draws: **TDD +3.36 (t +4.98, robust)** and **TIR −2.08 (t −2.12, marginal and partly
-one draw)** are real; **t70's bias is −0.004 (t −0.02) — "excess shallow lows" is NOT a limit and is removed**; t54
+13000 / 17000, bias / SE over the draws: **TDD +3.36 (t +4.98, robust)** and **TIR −2.08 (t −2.12)** is marginal AND its decomposition does not close — t70's bias is zero,
+t180's is +0.95 (t +1.06, ns), and the three bands do not sum to 100 on either side while `wear` matches, so
+reconcile the bands before treating TIR as a limit (L 608); **t70's bias is −0.004 (t −0.02) — "excess shallow lows" is NOT a limit and is removed**; t54
 (−0.048, t −1.96) and P(reach 54) (−0.028, t −2.61) have the twins slightly UNDER the donors; lows/day shows nothing.
 Every low-side arm of 2026-11-01 was chasing a gap that is not there. **Check bias / SE before building a mechanism for
 a gap** — at n = 3 a 0.2-point t70 gap and a zero gap are indistinguishable. TDD is real but unreachable by a body
