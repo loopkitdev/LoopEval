@@ -1479,8 +1479,25 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **On the cohort it is level** (mean 0.376 against 0.372, inside the 0.04 draw scatter) with **tier 1 better on all
      three draws** and the glucose level nearly exact (bg_mean gap 0.076 -> 0.015 on draw 3, TIR 69.29 -> 71.34 against
      71.88 on draw 1), paid for in lows (t54 0.149 -> 0.259 on draw 3).
-   - **Not adopted: this is the decision Pete reserved**, and the evidence now states it as one question rather than a
-     balance of many — **do we want the response size or the response ranking?** 1.0 is the principled end (`si_norm`
-     only stands in for life modulators that are off in this reference), and if the natural-experiment half of the goal
-     is what matters, 1.0 is the answer; if per-person ranking is, 0.92 is. The trade is roughly linear (L 577), so an
-     intermediate buys a mixture, not an escape.
+   - **CORRECTION, same session: there is no size-versus-ranking trade — I read a noise wobble as a collapse.** The
+     t70 edit-response rho is one correlation at **n = 63**, where a single rho's SE is 0.13: +0.22 -> −0.01 is
+     Fisher z 1.28, **p 0.20**, and the other two edit rhos do not move at all (TIR +0.15 -> +0.17, p 0.91; mean
+     +0.31 -> +0.33, p 0.90). Meanwhile the well-powered ranking evidence — the per-person twin-donor correlations at
+     **n = 112**, in each run's `twin.csv` — moves the OTHER way on every outcome row:
+
+     | twin-donor rho | TIR | bg_mean | t70 | t54 | bg_cv |
+     |---|---|---|---|---|---|
+     | ov0 | 0.795 / 0.805 | 0.850 / 0.846 | 0.593 / 0.421 | 0.471 / 0.438 | 0.545 / 0.535 |
+     | `si_norm` 1.0 | **0.813 / 0.838** | **0.882 / 0.890** | **0.671 / 0.492** | **0.520 / 0.555** | **0.610 / 0.609** |
+
+     So `si_norm` 1.0 ranks WHICH donor a twin resembles better on every outcome, AND sizes the response closer to the
+     field. L 577's framing — the core sizes how much, `resid_m` sharpens who — is not what the data show.
+   - **The real trade is lows.** Against all of that, the low rows get worse: t70 1.803 -> 2.013 (donors 1.599) on
+     draw 1 and 1.490 -> 1.728 on draw 3, t54 0.224 -> 0.264 and 0.149 -> 0.259 — the twins' t70 was already OVER the
+     donors, so this is worse low-side fidelity, and it is why the weighted score reads level-to-slightly-worse.
+   - **Still Pete's call** (he reserved it in L 577), but the basis of the reservation no longer holds, so it is now:
+     better level, TIR, tier 1, per-person fidelity on every row, and the least damped change response — against worse
+     low-side fidelity. Recommendation: adopt 1.0, since the low side is dominated by the unimplemented sub-basal
+     hepatic term (L 589) rather than by `si_norm`, and 1.0 is the principled end of a parameter that only stands in
+     for life modulators this reference disables.
+   - **Method note:** quote an edit-response rho with its n. At n = 63 nothing smaller than about 0.26 is separable.
