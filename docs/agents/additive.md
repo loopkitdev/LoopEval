@@ -92,7 +92,9 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   Use it whenever the response to a workout matters; the reference keeps the score-optimal settings.
 - **Current reference** (2026-11-01): **ad3** (runs/2026-10-31-additive-gesplit) — ad2 with the residual's fast and block parts
   weighted to waking hours (`resid_diurnal` 0.9, LESSONS 568; variance-preserving, so the per-person amplitudes still hold).
-  Score **0.321 / 0.425 / 0.410** on seed0 1000 / 5000 / 9000, tier 1 0.108 / 0.291 / 0.161 — better than ad2 on all three.
+  Score **0.321 / 0.425 / 0.410** on seed0 1000 / 5000 / 9000, tier 1 0.108 / 0.291 / 0.161. Against sd3 (0.370 / 0.454 / 0.420)
+  the gain shrinks from the development draw to the fresh one — 0.049 / 0.029 / **0.010** — so the out-of-sample gain is
+  ~0.010-0.029; tier 1 holds up better (0.135 / 0.110 / 0.075). Quote those, not draw 1's (L 580).
   On the natural experiments it is level with ad2 and clearly better than sd3: tight − rest TIR −1.63 and mean +0.93 (both the
   closest of any arm to the field's −7.18 / +1.65), t70 +0.74 [+0.12, +1.39] against ad2's +1.03 (L 568).
   Revert with `--set resid_diurnal=0`.

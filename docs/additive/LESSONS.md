@@ -1068,3 +1068,26 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      cut, and `si_norm` exists only to stand in for life modulators that are OFF in this reference; if they are ever
      switched on it should be 1.0 by construction. All three are one flag and one template apart, so keeping two arms
      for the two uses (L 542) costs a template file.
+
+580. **An adopted default that could not be switched off, and the session's gain re-stated on three draws.** Checking
+   that sd3 was still recoverable (it is asserted in the overlay and in L 556) found that **`--disable ex_cap_fit` was
+   a silent no-op**: the trait defaults True since 2026-11-01 while `world.py` had a set-True-only branch, so there
+   was no path to False and the "sd3 reversal" still ran with the session cap on, scoring 0.350 instead of 0.370.
+   Fixed to honour an explicit False; the reversal now reproduces sd3 bit-for-bit on draw 1. The other three adopted
+   defaults (`resid_diurnal`, `ppr_a`, `ex_surge_mets`) are floats with an `else` default and revert correctly —
+   `ex_cap_fit` was the only boolean and the only broken one. **When adopting a boolean default, check the revert path
+   runs, not just that the flag exists.**
+   - **The completed comparison** (sd3 had never been run on draw 3, which was introduced mid-session):
+
+     | | d1 (1000) | d2 (5000) | d3 (9000) | mean |
+     |---|---|---|---|---|
+     | sd3 | 0.370 | 0.454 | 0.420 | 0.415 |
+     | **ad3** | **0.321** | **0.425** | **0.410** | **0.385** |
+     | gain | 0.049 | 0.029 | **0.010** | 0.030 |
+     | tier-1 gain | 0.135 | 0.110 | 0.075 | — |
+
+     ad3 is better on all three draws, **but the margin shrinks from the development draw to the fresh one: 0.049 →
+     0.029 → 0.010.** That is L 567's draw-1 effect visible in the session's own result, so quote the out-of-sample
+     gain as **~0.010–0.029, not 0.049**. Tier 1 holds up far better than the aggregate (0.075 on the fresh draw),
+     which is the more meaningful claim: the rows that carry physiological meaning improved, the weighted total much
+     less than draw 1 suggested.
