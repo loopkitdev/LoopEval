@@ -1415,7 +1415,25 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      two events per episode against the donors' one would give. That repeat-treatment path is the next lever and the
      only one not yet tried; it is also the one that would lower the rate WITHOUT delaying the first response, which
      is what wrecked pg3 and pg4.
-   - **Nothing adopted.** `pro_g_own`, `pro_carb_fix` and `pro_shift` all stay off; `ov0` remains the reference. The
-     finding that stands is the measurement: the twins' low-side eating carries the donors' carbohydrate per hour
-     below 80 at 1.23x the labelled pulse rate and 0.80x the size, the outcome rows respond to its granularity, and
-     the dip-dynamics rows respond the other way.
+   - **And the repeat-treatment lever is wrong too — the excess low-side eating is a SYMPTOM, not a cause.** Events
+     per low episode (a run below 80 joined across gaps under 15 min; labelled pulses both sides,
+     `resid_tools/per_episode.py`): donors mean 0.50, twins 0.62 / 0.64, with two-or-more events rare on both sides
+     (0.01 against 0.02 / 0.03). So nothing fires repeatedly inside an episode. What differs is the share of episodes
+     treated at all — the donors leave **51%** of their low episodes alone, the twins 40% — and that share follows
+     from how long an episode lasts:
+
+     | | low episodes / day | median duration | share of episodes treated |
+     |---|---|---|---|
+     | donors | 1.75 | **20 min** | 0.49 |
+     | twins | 1.92 / 2.17 | **25 min** | 0.60 |
+
+     Duration x1.25 against treated-share x1.23: the twins' lows last longer, so more of them cross a treatment
+     condition. **This is the sub-basal recovery gap of L 559–560 seen from the eating side** (at a 60–70 nadir the
+     twins rise +21 in 30 min against +26 and dwell 15 min against 10), which is blocked on evidence — a study that
+     LOWERS glucose below basal at basal insulin in T1D (L 563).
+   - **Nothing adopted.** `pro_g_own`, `pro_carb_fix` and `pro_shift` all stay off; `ov0` remains the reference. Two
+     findings stand. The measurement: the twins' low-side eating carries the donors' carbohydrate per hour below 80 at
+     1.23x the labelled pulse rate and 0.80x the size, the outcome rows respond to its granularity and the
+     dip-dynamics rows respond the other way. And the redirection: **low-side eating is not a behaviour defect to
+     fix — it is approximately right per low episode, and its excess is downstream of lows that run too long.** Do
+     not spend further arms on the eating side; the lever is the body's recovery from a shallow low.

@@ -168,6 +168,11 @@ reference changes.
   whatever ρ is, since the day factor is half of daily-mean SI variance and that series reaches delivered insulin at
   r −0.32. Closing it by amplitude would need a day-to-day SI CV near 25%, far outside the 6–15% clamp evidence; L 583–585)
   (LESSONS 457);
+- **the excess low-side EATING is downstream of this same gap, not a behaviour defect** (L 588): per low episode the
+  twins' low-side eating is about the donors' (0.62 / 0.64 events against 0.50, two-or-more rare on both sides); what
+  differs is the share of episodes treated at all (0.60 against 0.49), and that follows from episode DURATION — median
+  25 min against 20, x1.25 against the treated-share's x1.23. Four arms on the eating side (size, refractory, onset
+  −10 / −20) were all rejected. Do not spend more there.
 - **the shallow-low recovery gap is down to one named, unevidenced mechanism** (L 563): a glucose-dependent hepatic
   response below Gb, worth ~0.34 mg/kg/min at G 65. Insulin is ruled out (the twins carry LESS IOB at the nadir, 1.09 vs
   1.59 U, and still climb out slower), as are A9 and rescue behaviour. Bruce 2025 and Del Prato 1997 do NOT size it — both
