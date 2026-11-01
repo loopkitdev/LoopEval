@@ -1808,3 +1808,32 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      the reverse), i.e. mostly noise, with one consistent exception — `ice_dip_day_share` (+0.100, +0.116), the
      expected signature of counter-regulation persisting into the climb. The weighted score is level on draw 1 and
      worse on draw 2 (mean 0.359 against 0.352), so draw 3 decides it under the three-draw rule and is running.
+
+602. **Of the outcome rows, only TDD is a real bias — t54, t70, lows/day and TIR have a draw-to-draw scatter LARGER
+   than their gap to the donors, which is why six low-side candidates all failed the same way.** `cr_tau_off` 60 lost
+   on draw 3 (score 0.424 against rf2's 0.406, tier 1 0.193 against 0.178) after winning tier 1 on draws 1 and 2, so
+   it is rejected on the three-draw rule (mean 0.380 against 0.370). Looking at WHY turned up the structural point.
+   The reference's own tier-1 rows across seed0 1000 / 5000 / 9000:
+
+   | row | twin mean | bias vs donors | sd across draws | |
+   |---|---|---|---|---|
+   | t54 | 0.168 | −0.022 | **0.057** | scatter 2.6x the bias |
+   | t70 | 1.798 | +0.199 | **0.306** | scatter 1.5x the bias |
+   | lows / day | 1.042 | +0.042 | **0.191** | scatter 4.5x the bias |
+   | TIR | 70.886 | −0.996 | **1.484** | scatter 1.5x the bias |
+   | P(reach 54) | 0.184 | −0.028 | 0.019 | small real bias |
+   | **TDD** | 42.390 | **+3.690** | 0.440 | **real: 8x the sd** |
+
+   - **A fixed-magnitude term cannot improve a row whose draw scatter exceeds its bias** — it helps on the heavy draw
+     and overshoots on the light one. That is precisely what `sg_h_lo` (suppressed and not), `cr_tau_off` and
+     `pro_g_own` each did, and it is a property of the TARGET, not of the mechanisms. Six candidates, one explanation.
+   - **So "the twins run excess shallow lows" is not established as a bias at three draws.** t70's +0.199 sits inside
+     a 0.306 scatter; on draw 3 the reference is already BELOW the donors on both t54 (0.148 against 0.190) and t70
+     (1.510 against 1.599). The limit as written overstates what the data support.
+   - **TDD is the exception and the one genuinely systematic outcome defect**: +3.69 U/day at 8x the across-draw sd,
+     i.e. +9.5% on the cohort medians (and +1.4 to +1.7 U/day paired per person, L 598 — the paired figure is the one
+     to quote). Combined with L 597, it needs a mechanism that lowers insulin need at the donor's level and is NOT
+     level-mediated, since the `resid_m` refit neutralises anything that is.
+   - **Caveat on the method:** three draws give an sd with two degrees of freedom, so "noise-dominated" means "not
+     established as a bias at n = 3", not "proven zero". The right response is more draws before spending another arm
+     on those rows — not another mechanism.

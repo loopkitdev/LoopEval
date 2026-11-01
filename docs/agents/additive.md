@@ -275,6 +275,14 @@ reference changes.
 - response to a settings change is damped (mean half the field's, lows 4–8× under) and twins of tight donors are not
   tight, so control-level heterogeneity is wrong in the tight group (frontier handoff 2026-10-24, LESSONS 493, 503).
 
+**Which limits are REAL (L 602).** Across seed0 1000 / 5000 / 9000 the reference's own tier-1 rows have a draw scatter
+LARGER than their gap to the donors for **t54** (bias −0.022, sd 0.057), **t70** (+0.199, 0.306), **lows/day** (+0.042,
+0.191) and **TIR** (−0.996, 1.484). Only **TDD** is a clear bias (+3.69 at 8x the sd; quote the paired +1.4–1.7 U/day
+of L 598). A fixed-magnitude term cannot improve a row whose scatter exceeds its bias — it helps on the heavy draw and
+overshoots on the light one, which is what `sg_h_lo`, `cr_tau_off` and `pro_g_own` each did. **Do not spend further arms
+on t54 / t70 / lows-per-day without more draws first**; three draws give an sd with two degrees of freedom, so this
+means "not established as a bias at n = 3", not "zero".
+
 **Score close calls on THREE draws — seed0 1000, 5000 and 9000 — and read the mean (L 567).** Draws 2 and 3 agree with each
 other while draw 1 is the reference lineage's own development draw and scores anomalously well on it (ad2: 0.340 vs 0.444 /
 0.430), so a candidate that gives up draw-1 fit looks worse than it is. Where the three disagree, discount 1000.
