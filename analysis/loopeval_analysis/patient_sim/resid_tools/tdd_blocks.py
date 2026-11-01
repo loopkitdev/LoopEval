@@ -32,24 +32,30 @@ for a in sorted({p.stem for p in (L.ICE_ROOT / "steps").glob("*.parquet")}):
     g["blk"] = np.arange(len(g)) // B
     # within-block lag-1, averaged over that donor's blocks (the twins' measurement)
     wb = {k: [] for k in ("bas", "bol", "tot")}
+    cv = {k: [] for k in ("bas", "bol", "tot")}      # within-block CV: the AMPLITUDE counterpart (L 624)
     dem = {k: [] for k in ("bas", "bol", "tot")}     # blocks demeaned, then pooled: drift removed
     for _, blk in g.groupby("blk"):
         if len(blk) < B: continue
         for k in wb:
             v = blk[k].to_numpy(float)
             wb[k].append(ac(v)); dem[k].append(v - v.mean())
+            cv[k].append(v.std() / v.mean() if v.mean() > 0 else float("nan"))
     if not wb["bas"]: continue
     r = dict(alias=a, nday=len(g), nblk=len(wb["bas"]))
     for k in wb:
         r[f"long_{k}"] = ac(g[k])                                  # whole record
         r[f"wblk_{k}"] = np.nanmean(wb[k])                         # inside 13-day blocks
         r[f"pool_{k}"] = ac(np.concatenate(dem[k]))                # drift-removed, pooled
+        r[f"cvwb_{k}"] = np.nanmean(cv[k])                         # within-block CV
+        r[f"cvlong_{k}"] = g[k].std() / g[k].mean()
     rows.append(r)
 
 R = pd.DataFrame(rows)
 print(f"{len(R)} donors, median {R.nday.median():.0f} days / {R.nblk.median():.0f} blocks of {B}")
-print(f"{'limb':>6} {'long record':>12} {'within 13d':>12} {'drift-removed':>14}")
+print(f"{'limb':>6} {'long record':>12} {'within 13d':>12} {'drift-removed':>14}"
+      f" | {'CV within':>10} {'CV long':>8}")
 for k, lab in (("bas", "basal"), ("bol", "bolus"), ("tot", "TOTAL")):
-    print(f"{lab:>6} {R[f'long_{k}'].median():>+12.3f} {R[f'wblk_{k}'].median():>+12.3f} {R[f'pool_{k}'].median():>+14.3f}")
+    print(f"{lab:>6} {R[f'long_{k}'].median():>+12.3f} {R[f'wblk_{k}'].median():>+12.3f} {R[f'pool_{k}'].median():>+14.3f}"
+          f" | {R[f'cvwb_{k}'].median():>10.3f} {R[f'cvlong_{k}'].median():>8.3f}")
 print("\nThe twins' figures are within-14-day. Compare them with the 'within 13d' column, never the long record.")
-print(f"twins (dr2 / dr2_5k): basal -0.052 / -0.042   bolus -0.014 / -0.033   total -0.046 / +0.012")
+print("Twin side: run resid_tools/twin_limb_ac.py on the arm - do NOT hardcode it here (L 624; the figures\n       that used to sit on this line were the superseded dr2 arm's). rf2 / rf2_5k, for reference:\n       basal -0.038 / -0.035   bolus -0.010 / +0.028   total +0.002 / -0.013")

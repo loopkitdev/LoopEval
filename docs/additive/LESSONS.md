@@ -2391,3 +2391,29 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
        back the highs, returning to go3. The lever for a spread defect at a correct mean is not load.
      - **`ge_order` stays at 2** and the judgement posted to Pete (four cohort rows better vs 3.7 TIR points,
        prediction neutral, L 622) stands unchanged — this test adds no third option.
+
+624. **L 584's hanging question is answered and its suspicion refuted: the twins' basal is NOT near-constant. Its
+     day-to-day AMPLITUDE is near-exact; the whole deficit is persistence.** L 584 closed with "if the twins' basal
+     CV is far below 0.23, that is the defect and it is a named one" — and 0.23 was itself a long-record figure
+     (the L 585 trap again). Measured like for like, within 13-day blocks on both sides
+     (`resid_tools/twin_limb_ac.py`, new, and `tdd_blocks.py` + its CV counterpart), basal reconstructed as a
+     per-minute last-writer-wins assignment from `trace.json`'s tagged `delivery[]`:
+
+     | limb | donor CV (within 13 d) | twin CV (rf2 / rf2_5k) | donor ac1 (within 13 d) | twin ac1 |
+     |---|---|---|---|---|
+     | basal | 0.176 (long record 0.229) | **0.170 / 0.172** | +0.075 | −0.038 / −0.035 |
+     | bolus | 0.289 (long record 0.348) | 0.329 / 0.313 | +0.066 | −0.010 / +0.028 |
+     | total | 0.173 | — | +0.085 | +0.002 / −0.013 |
+
+     - **Basal day-to-day variation is already right** (0.170 against 0.176) and the bolus limb varies slightly MORE
+       than the donors' (0.329 against 0.289). There is no missing day-to-day basal-need amplitude to add.
+     - **Both limbs are short of the donors' persistence by a similar absolute amount** (basal 0.11, bolus 0.06–0.08
+       in correlation units), which is the same "variation without persistence" signature L 582 found when the life
+       modulators were switched on with `day_rho` 0 — now confirmed in the delivered insulin itself, limb by limb.
+     - This is consistent with, and does not reopen, L 586's closure: the remaining reproducible `ac1` gap is day-level
+       glucose persistence, and `day_rho`'s transmission ceiling (+0.02) is below it. The value of this measurement is
+       negative and worth having — it **removes the last named candidate** that was still written as a next step, so no
+       future session spends an arm on a day-to-day basal-need driver.
+     - The donors' basal share of TDD (0.37) is reproduced too: twins 0.40 / 0.35.
+     - **`tdd_blocks.py`'s footer previously hardcoded twin figures from the superseded `dr2` arm.** Twin-side numbers
+       now come from `twin_limb_ac.py` on the current reference; never read a hardcoded comparison figure as current.
