@@ -1149,3 +1149,25 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      benefit it was run for. Pete's `si_norm` choice therefore stands exactly as L 577 and L 579 framed it — core
      versus residual, trade roughly linear — and the life modulators are a SEPARATE question with their own cost,
      not a reason to prefer 1.0. L 581's unification was wrong: the two items do not resolve together.
+583. **`ac1` must be read against −0.086, not 0, and on that basis the twins sit exactly at the independent-day null
+   while the donors carry a real +0.18 of persistence.** A lag-1 autocorrelation of 13–14 INDEPENDENT daily values has
+   expectation **−0.086** (short-series bias), not zero, with SD 0.27 per block. The scored row is a median over ~200
+   donor blocks, so its SE is ~0.019 and the medians are well determined — the row IS informative, contrary to a
+   hypothesis I was about to record.
+
+   | | `ac1` | vs the independent-day null (−0.086) |
+   |---|---|---|
+   | donors | **+0.091** | **+0.18** |
+   | twins (ad3, three draws) | −0.022 / −0.029 / −0.044 | +0.06 / +0.06 / +0.04 |
+
+   So the twins have essentially no day-to-day persistence, which is exactly what the model implies (the residual's
+   day level is independent and `day_rho` is 0), and the donors have a real one. **The target is +0.18 in correlation
+   units, not the 0.13 the raw difference suggests**, and a candidate must be read against −0.086 or it will look
+   better than it is. This also explains why `resid_day_ar` 0.35 (L 581) should have shown up and did not: the day
+   level does not drive TDD, so the persistence never reached the statistic.
+   - **Where the persistence can come from, by what persists in the model:** illness episodes (1.5–15 days) and the
+     menstrual cycle (21–38 days) both persist but are too rare or too slow to carry lag-1 within a 14-day window,
+     and enabling them changed nothing (L 582). Site life (E5, a 3-day sawtooth in absorption) is already on and also
+     changed nothing. So the model's existing multi-day structure is insufficient, and `day_rho` is unevidenced. The
+     honest reading is that **`ac1` needs a named multi-day factor the model does not have**, and the code comment on
+     `day_rho` says exactly that — the field's lag-1 of 0.4 "must come from named factors".

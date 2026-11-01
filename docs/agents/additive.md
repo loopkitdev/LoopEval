@@ -147,6 +147,8 @@ reference changes.
 - twins of tight-control donors run high, and twins need 5–8% more insulin than their donors (LESSONS 445–456);
 - night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458);
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
+  (**read `ac1` against the independent-day null of −0.086, not 0** — the twins sit AT that null and the donors carry a real
+  +0.18, so the target is +0.18 not 0.13, and it needs a named multi-day factor the model lacks; L 583)
   (LESSONS 457);
 - **the shallow-low recovery gap is down to one named, unevidenced mechanism** (L 563): a glucose-dependent hepatic
   response below Gb, worth ~0.34 mg/kg/min at G 65. Insulin is ruled out (the twins carry LESS IOB at the nadir, 1.09 vs
