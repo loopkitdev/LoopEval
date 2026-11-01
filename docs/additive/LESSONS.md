@@ -994,6 +994,14 @@ evidence to the evidence files.
      size; TIR still falls because the twins' excess time BELOW range is amplified as the spread grows (t70 1.97 /
      2.16 vs 1.60). The limiting defect is therefore the excess lows, not A12b — the meal tail can now be read as
      calibrated, and the low side is what caps TIR.
+   - **It is also the best arm yet on change prediction**, which settles the adoption (`change8/`, 108 events):
+     response to +10% insulin, t70 in the tight group, field +4.35 — sd3 +0.80, ad0 +0.89 [+0.18, +1.87],
+     **ad2 +1.29 [+0.68, +1.86]**; tight − rest (field +4.27) sd3 +0.51, ad0 +0.63 [−0.11, +1.65], **ad2 +1.03
+     [+0.40, +1.64]**, the first contrast of this series clearly away from zero. The strategy-switch correlations are
+     also the best of the three (TIR ρ 0.38, mean ρ 0.47, against sd3's 0.29 / 0.45). Cost: the POOLED t70 response
+     is smaller (field / twin 3.21 vs ad0's 2.61), so ad2 sharpens WHO responds while slightly shrinking HOW MUCH.
+     Reading: the documented backwards response by control level is the dimension that matters here, and it is where
+     ad2 gains.
 
 559. **The excess time below 70 is shallow lows that linger, not deep ones: a quantified target for the low side.**
    Decomposed like for like on the reported CGM (`depth.py`, `recover.py` in runs/2026-11-01-additive-lows; 206 donors

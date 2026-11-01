@@ -89,7 +89,9 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Current reference** (2026-11-01): **ad2** (runs/2026-10-31-additive-gesplit) — ad0 with A12b's post-meal window at its own
   target (`ppr_a` 0.6, LESSONS 558): score 0.340 / 0.444, tier 1 0.146 / 0.312. The meal tail is now calibrated
   (meal_d3_p50 ratio 0.97) and the 3-h meal change 33 / 31 against the donors' 38; the cost is TIR 68.9 / 70.2 against
-  71.9, because the twins' excess time below range is amplified as the spread grows. Revert with `--set ppr_a=0.4`.
+  71.9, because the twins' excess time below range is amplified as the spread grows. **Best arm yet on change prediction**:
+  t70 tight − rest +1.03 [+0.40, +1.64] against the field's +4.27 (sd3 +0.51, ad0 +0.63), though the pooled t70 response is
+  smaller (3.21× under vs 2.61×). Revert with `--set ppr_a=0.4`.
 - **Previous reference** **ad0** (runs/2026-10-31-additive-gesplit) — st9 plus the three exercise fixes of LESSONS 554, 556:
   session intensity capped by its length with METmax raised to match (`ex_cap_fit`), and C4's surge keyed to 8 absolute METs
   (`ex_surge_mets`). Score 0.364 / 0.416, tier 1 0.229 / 0.294. Adopted on soundness: neutral on the cohort score AND on the natural experiments (L 556).
