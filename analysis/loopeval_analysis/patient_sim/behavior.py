@@ -46,6 +46,9 @@ def _count_size_err(t, grams: float) -> float:
     return -0.1 * math.log(max(grams, 5) / 45.0)
 
 
+EX_MET_HEADROOM = 1.5   # METs of capacity above the person's usual session, = the within-donor per-session SD (L 564)
+
+
 def _sus(minutes: float) -> float:
     """The fraction of aerobic reserve a person holds for a whole session of this length (LESSONS 554): about all of
     it for a few minutes, ~0.87 for 20 min, ~0.77 for 40, ~0.72 for an hour (the intensity-duration relation) [J]."""
@@ -543,7 +546,11 @@ class Behavior:
             # rather than squeezing the sessions into it. A 40-min session sits at ~0.775 of reserve (`_sus`), so
             # someone whose usual workout is 8.6 METs has a METmax of at least 10.8 — capping intensity alone instead
             # left almost no session above 8 METs, against the donors' 30% of workouts.
-            need = 1.0 + (self.ex_met_person - 1.0) / _sus(self.t.ex_minutes)
+            # Headroom of one per-session SD (1.5 METs, the within-donor spread): tuning METmax to the MEAN session
+            # exactly meant every session above the mean was clipped back to it, so the upper tail vanished — the
+            # twins ran 18% of sessions at >= 7 METs against the donors' 37%, and the >= 8 MET band held too few
+            # bouts to refit C4's size (LESSONS 557, 564)
+            need = 1.0 + (self.ex_met_person + EX_MET_HEADROOM - 1.0) / _sus(self.t.ex_minutes)
             self.t.metmax = float(min(16.0, max(self.t.metmax, need)))
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
