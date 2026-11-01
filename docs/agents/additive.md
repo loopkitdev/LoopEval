@@ -90,12 +90,15 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75` on the reference. It reproduces C4's own by-METs table —
   the ≥ 8 MET band reads +0.9 against the donors' +1.2 where the band has enough bouts — against the reference's +12.8 / −5.1.
   Use it whenever the response to a workout matters; the reference keeps the score-optimal settings.
-- **rf2 is CONFIRMED on the prediction half at 580 events** (L 612, e pool): against ov0 it is better on all four
+- **rf2 on the prediction half: response SIZE replicated on two pools, RANKING e-pool only** (L 612, 614): against ov0 it is better on all four
   response ratios and all three correlations — mean 1.35 [1.04, 1.69] against 1.60, TIR 1.27 against 1.37, **t70 1.14
   against 1.43** (the field is 1.0), rho 0.33 / 0.16 / 0.17 against 0.26 / 0.13 / 0.15 — and starts nearer the field's
   pre-edit level (+3.3 against +5.4). No single comparison is individually significant; the consistency across seven
   is. Caveat: t54 goes 0.91 -> 0.58, the one row moving away from the field. Ratios are pool-specific (the e pool's
-  field t70 response is +2.00 against the pilot pool's +4.46) — quote them with their pool.
+  field t70 response is +2.00 against the pilot pool's +4.46) — quote them with their pool. **The x pool (152 events)
+  replicates the ratio ordering but reverses the correlation ordering, and is poorly conditioned for change
+  questions — its field responses are a third of the e pool's and its field t70 response is NEGATIVE (−0.57), so
+  prefer the e pool and report a pool's FIELD response before using it (L 614).**
 
 - **Judge adoptions on PAIRED per-person differences** (L 610): on the sum of |median(twin − its own donor)| over
   TIR, bg_mean, t70, t54 and TDD, **rf2 scores 2.28 against ov0's 5.36 — a 57% improvement**, where the cohort score

@@ -2132,3 +2132,30 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      now cleanly scoped to one trade with no hidden cost on the prediction side.**
    - **Method note:** this is what the event pools are for. Two decisions sat open for a session on 108 events; 580
      settled one outright and scoped the other. Judge a candidate\'s change response on the e pool before asking Pete.
+
+614. **The x pool partially replicates L 612: the RATIO improvement holds, the CORRELATION improvement is e-pool
+   only, and the x pool is too weakly conditioned to settle either.** L 612 confirmed rf2 over ov0 on the e pool\'s
+   580 events across seven comparisons; that rested on one pool, so the same two arms (identical but for
+   `resid_mult`) were run on the x pool — 152 events, different donors, its own templates and field reference.
+
+   | | mean | TIR | t70 | TIR rho | t70 rho |
+   |---|---|---|---|---|---|
+   | ov0 | 0.64 [0.05, 1.34] | 0.62 [0.11, 1.36] | −0.39 | **0.28** | **0.22** |
+   | **rf2** | **0.70 [0.06, 1.54]** | **0.74 [0.14, 1.57]** | −0.58 | 0.19 | 0.05 |
+
+   - **Ratios replicate** (closeness to the field\'s 1.0): rf2 is better on mean (|1 − 0.70| = 0.30 against 0.36) and
+     on TIR (0.26 against 0.38). **Correlations do not**: TIR rho 0.19 against 0.28, t70 rho 0.05 against 0.22 — the
+     opposite of the e pool, where rf2 led on all three.
+   - **But the x pool is poorly conditioned for this question.** Its field responses are a third of the e pool\'s
+     (mean −8.41 against −23.50) and two are NEGATIVE — field t70 **−0.57**, i.e. across these edits more insulin was
+     followed by FEWER lows in the field — so the ratios have the twins over-responding (< 1) and the low-side ratios
+     come out negative with CIs spanning zero ([−2.82, 1.40] and [−14.06, 11.56]). A pool whose field response has
+     the unexpected sign on t70 cannot adjudicate a candidate\'s t70 response.
+   - **So the honest status of rf2\'s prediction claim:** the response-SIZE improvement replicates across two
+     independent pools; the response-RANKING improvement is e-pool only and reverses on the x pool. **Quote it as
+     "size replicated, ranking e-pool only"**, not as confirmed outright, and prefer the e pool for change questions —
+     it has 4x the events and a field response of the expected sign and magnitude.
+   - **Pool conditioning is itself worth checking before using a pool:** report the FIELD response per log-unit
+     insulin first. The e pool\'s −23.50 mean / +2.00 t70 are sensible; the x pool\'s −8.41 / −0.57 are not, and that
+     explains why every x-pool ratio in the role doc\'s history reads below 1 while every e-pool and pilot-pool one
+     reads above.
