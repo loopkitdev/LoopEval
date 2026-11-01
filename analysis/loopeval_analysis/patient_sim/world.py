@@ -712,6 +712,7 @@ class World:
         self._drop_rng = np.random.default_rng(int(person.seed) + 5141); self._drop_seen = 0; self._drops: list = []
         self.resid_skew = float(en_["resid_skew"]) if isinstance(en_.get("resid_skew"), float) else 0.0
         self.resid_diurnal = float(en_["resid_diurnal"]) if isinstance(en_.get("resid_diurnal"), float) else 0.9   # default since 2026-11-01 (L 568)
+        self.resid_meal = float(en_["resid_meal"]) if isinstance(en_.get("resid_meal"), float) else 0.0   # L 569
         self._resid_rng = np.random.default_rng(int(person.seed) + 5137)
         self._resid_x = [0.0, 0.0]; self._resid_last = None; self._resid_day = {}
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
@@ -960,6 +961,19 @@ class World:
             # cos has zero mean over the day, so mean(w^2) = 1 exactly and no renormalisation is needed
             w = math.sqrt(max(0.0, 1.0 + self.resid_diurnal * math.cos(2 * math.pi * ((m % DAY) / DAY - 15.0 / 24.0))))
             af, ab = af * w, ab * w
+        if self.resid_meal > 0.0:
+            # The same distributional argument as resid_diurnal (L 568), now across the MEAL cycle: much of a donor's
+            # unexplained drive is the food they did not log, so the fast part belongs in the hours after an entry.
+            # Flat, the twins' entries end in a fast fall a third as often as the donors' (entry_fast_fall 5.3 against
+            # 14.3). Variance-preserving: dividing by (1 + k·p), with p the long-run share of time in-window, keeps
+            # mean(w^2) = 1, so the per-person amplitudes fitted on whole-record SD still hold (L 569)
+            k = self.resid_meal
+            ent = [e[0] for e in self.entries if e[1] >= 5]
+            inw = any(0.0 <= m - t0 <= 180.0 for t0 in ent)
+            # p, the share of time within 3 h of an entry, estimated from THIS person's own entries so far (they
+            # accumulate as the run proceeds); the 0.375 prior only applies before the first few
+            p_ = min(0.9, len(ent) * 180.0 / max(m - 2880.0, 1440.0)) if len(ent) >= 3 else 0.375
+            af *= math.sqrt((1.0 + k * (1.0 if inw else 0.0)) / (1.0 + k * p_))
         z = self._resid_x[0]
         s = self.resid_skew
         if s > 0:    # standardised lognormal of the OU state: mean 0, SD 1, skewed toward rises as the donors' drive is
