@@ -154,7 +154,9 @@ reference changes.
   `resid_m`'s size as what the core is missing. `si_norm` 1.0 + a level refit improves the mean score (0.372 vs 0.385),
   level and TIR on all three draws, and gives the LEAST DAMPED change response of any arm (t70 ratio 2.09 vs ad3's 3.32,
   L 578) — because resid_m does not scale with insulin. It hands back the TDD gain and some control-level heterogeneity.
-  Awaiting Pete: the core carries how MUCH a person responds, resid_m sharpens WHO does.
+  Awaiting Pete: the core carries how MUCH a person responds, resid_m sharpens WHO does. The trade is roughly LINEAR, so the
+  intermediate (0.96) does not dominate and tuning the value will not settle it (L 579); 1.0 is the principled end, since
+  `si_norm` only stands in for life modulators that are off in this reference and should be 1.0 if they are switched on.
 - **superseded by L 577** (L 576): `si_norm` 1.0 (undoing the deliberate cohort-wide 8% sensitivity cut)
   improves TDD and TIR on all three draws, confirming that the post-meal potency deficit and the twins' 5–8% insulin surplus
   share one cause. It drops the glucose level because `resid_m` was fitted at 0.92, so it needs `lvl_resid.py` re-run after

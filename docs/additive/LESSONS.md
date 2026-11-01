@@ -1524,3 +1524,27 @@ evidence to the evidence files.
      **It is a choice about what the model is for** — sizing a change (lv3) against ranking who a change affects
      (ad3) — and the handoff of L 542 already splits those uses across arms. Pete's call; both are one flag apart
      (`si_norm` with its matching template).
+579. **The core-vs-residual trade is roughly linear, so the intermediate does not dominate: the `si_norm` choice is a
+   question of principle, not an optimisation.** `si_norm` 0.96 with the same three-round level refit (mv3, converging
+   to twin–donor mean ρ 0.98), against 1.0 (lv3) and 0.92 (ad3):
+
+   | | Donors | ad3 (0.92) | mv3 (0.96) | lv3 (1.0) |
+   |---|---|---|---|---|
+   | score d1 / d2 / d3 | — | 0.321 / 0.425 / 0.410 | 0.328 / 0.385 / 0.407 | 0.333 / 0.373 / 0.409 |
+   | **mean score** | — | 0.385 | **0.373** | **0.372** |
+   | bg_mean gap | — | 0.092 / 0.263 / 0.076 | **0.055 / 0.090 / 0.031** | 0.072 / 0.073 / 0.052 |
+   | tir gap | — | 0.208 / 0.112 / 0.309 | **0.057 / 0.070 / 0.173** | 0.072 / 0.070 / 0.149 |
+   | tdd gap | — | 0.169 / 0.262 / 0.201 | 0.115 / 0.255 / 0.237 | 0.202 / 0.290 / 0.209 |
+   | t70 | 1.599 | **1.72 / 1.90 / 1.49** | 2.14 / 2.17 / 1.82 | 2.14 / 2.11 / 1.84 |
+
+   0.96 and 1.0 are within noise of each other on the mean score (0.373, 0.372) and both beat 0.92's 0.385; 0.96 has
+   the best level and TIR gaps and slightly better TDD on draw 1, 1.0 the best change-response size (L 578). Half the
+   move buys roughly half the TDD cost and the same score — no value dominates.
+   - **So the choice stands as L 578 framed it**, and tuning the number will not resolve it: either the cohort-wide 8%
+     cut stays (ad3: fewer lows, better TDD, sharper control-level contrasts) or it goes (1.0: the ISF yardstick taken
+     at face value, best level, TIR and change-response size). **1.0 is the principled end** — it is the only value
+     with no unexplained cohort-wide sensitivity cut in it, and `si_norm` exists only to stand in for life modulators
+     that are switched off in this reference (L 468, 516). If those modulators are ever switched back on, `si_norm`
+     should be 1.0 by construction.
+   - **All three are one flag and one template apart**, so keeping two arms for the two uses (sizing a change vs
+     ranking who it affects, L 542) costs nothing but a template file.
