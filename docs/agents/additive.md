@@ -201,9 +201,12 @@ reference changes.
 - **the sub-basal gap was a missing CODE BRANCH, not missing evidence** (L 596): A1b's `hep` is gated on `g > gb`, so
   the liver never released extra glucose in a low. Extending it symmetrically below basal (`sg_h_lo`, off by default)
   supplies 0.386 mg/kg/min at G 65 against the ~0.34 L 589 derived independently, and at HALF symmetry it closes the
-  t70 limit (draw 2 gap 0.325 -> 0.012, draw 1 1.764 -> 1.528 against the donors' 1.599) with TIR better on both. It
-  costs the low COUNTS (lows/day 1.000 -> 0.750, P(reach 54) 0.195 -> 0.167, both already at or under the donors), so
-  the weighted score is worse and it is not adopted — but it is the first mechanism to move t70 at all.
+  t70 limit — draw 2 gap 0.325 -> **0.034** with the insulin suppression of L 599, draw 1 1.764 -> 1.319. **It must
+  carry basal EGP's insulin suppression** (`sg_h_lo_ins`, default on): unsuppressed it acts on the DESCENT and prevents
+  lows (counts 1.000 -> 0.750, t54 0.124 -> 0.091), suppressed it acts at the NADIR and shortens them (counts 0.833 /
+  1.042, t54 0.181 against the donors' 0.190). Still not adopted: it helps where the reference is weak (draw 2) and
+  overshoots where it is strong (draw 1, where rf2 is already near-perfect), so the weighted mean reads
+  level-to-worse — a genuine which-row-to-spend question for Pete, not a defect.
 - **the shallow-low recovery gap is down to one named, unevidenced mechanism** (L 563, sized L 589): a
   glucose-dependent hepatic response below Gb, worth ~0.34 mg/kg/min at G 65 — **about 3x either of the two sub-basal
   mechanisms the model has**, both now measured too small (A9 counter-regulation 2.4 mg/dL per 30 min, L 559–560; A1c
