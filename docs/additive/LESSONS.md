@@ -1167,3 +1167,27 @@ evidence to the evidence files.
      Closing it needs a sharper transition — the anaerobic SHARE rising steeply with intensity rather than the
      surge's ramp alone — which is a form change, and sizing it needs the per-person capacity the whole exercise
      thread is short of (L 551, 564).
+566. **The donors' exercise curve IS reproducible — but not at the same time as the best cohort score. There is now an
+   exercise-faithful configuration, separate from the reference.** The regime switch of L 565 needed a form change,
+   and a narrower surge ramp is it: below 8 METs nothing changes, so the 6–8 band keeps `ex_abs`'s gain, while ≥ 8
+   bouts reach full surge within a MET instead of two.
+
+   | C4's by-METs table | Donors | ad2 | `ex_abs` | + width 1.0 | + width 0.75 |
+   |---|---|---|---|---|---|
+   | 6–8 METs | −21.5 | −14.4 / −6.1 | −17.8 / −7.4 | −16.6 / −4.6 | −16.7 / −5.4 |
+   | ≥ 8 METs | **+1.2** | +12.8 / −5.1 | −13.3 / −7.1 | −10.3 / −1.5 | −8.9 / **+0.9** |
+   | pooled | −5.7 | — | −9.9 / −4.7 | −9.5 / −3.1 | −9.5 / −3.1 |
+   | score | — | 0.340 / 0.444 | 0.368 / 0.426 | 0.373 / 0.447 | 0.375 / 0.449 |
+
+   On draw 2, where `ex_headroom` gives the band 38 bouts, width 0.75 reads **+0.9 against the donors' +1.2** — the
+   switch reproduced. Draw 1 keeps only 19 bouts there and still reads negative, so read this band pooled or with the
+   headroom on, never on a thin draw (L 564).
+   - **The two targets disagree, and that is the finding.** Every step toward C4's own by-METs table costs the
+     weighted score (0.340 → 0.375 on draw 1, level on draw 2). The exercise detail and the cohort score are not
+     jointly optimal here, so there is no single setting to adopt.
+   - **Exercise-faithful configuration** (documented in the role overlay, not the default):
+     `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75` on the reference. Use it for anything where the
+     response to a workout matters — ablations of exercise, candidate behaviour around activity, the drop-vs-METs
+     curve. The reference keeps the score-optimal settings.
+   - **Still short:** the 6–8 band on draw 2 (−5.4 against −21.5) even with every fix on. That is C1 / C2's size at
+     moderate intensity, the one exercise quantity that still needs a measured per-person capacity (L 551).
