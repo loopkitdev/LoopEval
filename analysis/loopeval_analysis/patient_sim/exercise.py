@@ -42,10 +42,12 @@ class ExerciseParams:
     sat_k: float = 0.0          # > 0: the acute SI boost saturates in intensity, α·(0.6 + k)·Y/(Y + k), equal to the linear α·Y at
                                 # Y 0.6 (Romeres 2021's clamp point) and larger at light effort (Pemberton 2025: no intensity
                                 # dependence of the 20-min drop; donors' workouts by METs < 4 / 4–6 / ≥ 6: −7 / −13 / −9; LESSONS 495)
-    surge_mets: float = 0.0     # > 0: C4's threshold read in ABSOLUTE METs instead of %VO2-reserve, ramping to full
+    surge_mets: float = 8.0     # > 0: C4's threshold read in ABSOLUTE METs instead of %VO2-reserve, ramping to full
                                 # 2 METs above it. The two framings disagree once METmax is drawn consistently
                                 # (LESSONS 554): the donors' bouts rise at >= 8 METs, but for a person whose METmax is
-                                # 11 that is only 0.70 of reserve, far below any anaerobic threshold in reserve terms
+                                # 11 that is only 0.70 of reserve, far below any anaerobic threshold in reserve terms.
+                                # Default 8.0 since 2026-11-01 (LESSONS 556): the only keying under which C4's own
+                                # >= 8 MET band takes the donors' sign. 0 restores the %reserve form (surge_thr)
     metmax: float = 9.0         # the person's ceiling, needed only to read intensity back as absolute METs
     gain: float = 1.0           # per-person responsiveness (set from behavior traits)
     background: float = 0.0     # waking-hours background intensity (set from behavior traits)

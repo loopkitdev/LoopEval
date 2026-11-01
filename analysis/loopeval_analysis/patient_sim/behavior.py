@@ -173,7 +173,9 @@ class BehaviorTraits:
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
     ex_dur_cap: bool = False             # cap a session's intensity by what a person holds for its length (L 554)
-    ex_cap_fit: bool = False             # that cap, plus METmax raised to what the person's own sessions need (L 554)
+    ex_cap_fit: bool = True              # that cap, plus METmax raised to what the person's own sessions need.
+                                         # Default since 2026-11-01 (LESSONS 554, 556): without it 19% of sessions ran at
+                                         # 1.00 of reserve for a median 39 min and their glucose fall was cancelled outright
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     ex_time: bool = False                # sessions timed as the donors' recorded workouts (LESSONS 497): a share start 0–120 min after a
                                          # carb entry (own, else the recorders' 0.51), the rest on the person's own workout clock (own,
