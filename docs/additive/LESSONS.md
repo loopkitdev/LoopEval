@@ -1325,3 +1325,25 @@ evidence to the evidence files.
      existing hooks.
    - **Trap:** donor carb entries are keyed `grams` in `carbs.json`, not `carbInput`. Reading the wrong key returns 0
      for every entry and a size filter then silently drops all of them — the first run of this script measured nothing.
+572. **A10's slow late share cannot make the second wave: it is a dribble, not a delayed pulse, so it lowers the peak
+   instead of deepening the trough.** L 571 sized the gap as one oscillation (10–14 mg/dL more fall after the peak,
+   8–10 more rise after the trough), and the slow share is the mass-preserving hook — the main parcel takes
+   grams × (1 − sf) — so raising it redistributes appearance rather than adding any, the class of change that worked
+   for the residual (L 568). At `meal_slow` 0.30 against 0.15:
+
+   | | Donors | ad3 | `meal_slow` 0.30 |
+   |---|---|---|---|
+   | rise to the peak | 64.0 | 63 / 61 | **57 / 57** |
+   | fall after the peak | 57.0 | 47 / 43 | **43 / 41** |
+   | second rise | 28.0 | 18 / 20 | 21 / 22 |
+   | both limbs | 0.43 | 0.28 / 0.29 | 0.29 / 0.30 |
+   | score | — | **0.321 / 0.425 / 0.410** | 0.344 / 0.405 / 0.432 |
+
+   The second rise improves slightly, but the peak falls (64 → 57) and so does the fall after it, because mass moved
+   into a phase emptying at kmin 0.008 (half-life ~90 min) never arrives as a wave — it dribbles out under the whole
+   curve. Both limbs end further from the donors'; mean score 0.394 against 0.385. Not adopted.
+   - **The form the second wave needs, stated for whoever builds it:** mass held back and then released at a NORMAL
+     emptying rate — a delayed pulse, not a slow one. A10's slow phase and A12's late protein parcel are both slow
+     tails and neither can produce a rise after a trough. The donors' second wave peaks within the 4-h window, so its
+     release is on the order of the main phase's rate, delayed by roughly 90–120 min. That is a new parcel shape, not
+     a parameter on an existing one — the one genuinely structural item left in the meal chain.
