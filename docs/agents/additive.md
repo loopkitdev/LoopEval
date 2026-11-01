@@ -148,6 +148,10 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 
 ## Analysis traps (each cost a session)
 
+- **A numeric override passed to `--enable` is a switch named `k=v`, so the component keeps its default and the arm
+  silently runs as its own control** (L 554). Numeric values go in `--set`; `cohort.py` now rejects `=` in `--enable`.
+  An arm that reproduces its control exactly is the signature — check `cohort.json` in the run dir.
+
 - `truth.pkl` `bolus_requests`: **+ = a ratio of Loop's recommendation, − = absolute units**. Count user boluses with
   `f > 0 or f <= -0.05`; `f > 0` drops every hand-dialled bolus.
 - `meals_labeled.csv` onsets are datetimes from **world.EPOCH** (2026-01-05); convert as `(onset − EPOCH)` minutes, not

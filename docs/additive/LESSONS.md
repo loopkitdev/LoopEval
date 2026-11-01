@@ -898,4 +898,9 @@ evidence to the evidence files.
      METs; C4's threshold is in %reserve; raising METmax to fix the sessions necessarily moves a given MET load further
      below the threshold. One of the two framings is wrong. `ex_surge_mets` (off) reads the threshold in absolute METs,
      ramping to full 2 METs above it, which lets both the cap and the donors' band hold; arms at 7 and 8 METs with
-     `ex_cap_fit` in `run_sm.sh`. Run dir runs/2026-10-31-additive-gesplit/.
+     `ex_cap_fit` in `run_sm2.sh`. Run dir runs/2026-10-31-additive-gesplit/.
+   - **A numeric override in `--enable` voids the arm in silence** (it cost the first `ex_surge_mets` pair, which came
+     back bit-identical to its own control at both thresholds). `--enable` makes each item a switch NAMED `k=v`, so the
+     code's `isinstance(enable.get(k), float)` is False and the default stands. Numeric overrides go in `--set`;
+     `cohort.py` now fails fast on `=` in `--enable` / `--disable`. The `ex_surge_thr` arms (L 553) passed theirs in
+     `--set` and are unaffected — check `cohort.json` in the run dir when an arm reproduces its control exactly.
