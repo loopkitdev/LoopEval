@@ -188,7 +188,9 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   The 6–8 shortfall is now understood as a REGIME SWITCH the smooth terms cannot make (L 565): the donors fall deepest at
   6–8 METs and rise at ≥ 8, so any setting that deepens one deepens the other. It needs a form change (a steeper anaerobic
   share), not a parameter.
-- Off-by-default experiments with their verdicts: `meal_slow` 0.30 (A10's slow share cannot make the second wave — it lowers
+- Off-by-default experiments with their verdicts: `meal_wave2` (A10c delayed gastric pulse: preserves the peak where a slow
+  tail destroys it and lifts the second rise, but the trough is unmoved — it is not limited by appearance, L 573),
+  `meal_slow` 0.30 (A10's slow share cannot make the second wave — it lowers
   the peak instead of deepening the trough, because kmin 0.008 dribbles rather than pulsing, L 572), `resid_meal` (redistributing the residual across the meal cycle: null, and
   rise-skewed variance cannot reach a one-sided target, L 569), `resid_drop_p` (moves entry_fast_fall on all three draws but
   spends ~5 points of the nearly-closed meal tail to buy ~2.4 of it, L 570), `ex_abs` (C1 keyed to absolute work rate: the 6–8 MET band improves on both

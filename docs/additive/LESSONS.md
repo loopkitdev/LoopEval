@@ -1347,3 +1347,33 @@ evidence to the evidence files.
      tails and neither can produce a rise after a trough. The donors' second wave peaks within the 4-h window, so its
      release is on the order of the main phase's rate, delayed by roughly 90–120 min. That is a new parcel shape, not
      a parameter on an existing one — the one genuinely structural item left in the meal chain.
+573. **A10c's second wave has the right FORM but the trough is not limited by appearance at all; and the two 3-h meal
+   statistics disagree about `ppr_a`, which weakens L 558.** The delayed pulse (a share of the solid phase held back
+   and released at the main rate, mass-preserving) was built because L 572 showed a slow tail cannot make a wave.
+
+   | | Donors | ad3 | wave2 delay 100 | **delay 180** | ad0 (`ppr_a` 0.4) |
+   |---|---|---|---|---|---|
+   | rise to the peak | 64.0 | 63 / 61 | **64 / 63** | **64 / 61** | 61 / 57 |
+   | fall after the peak | **57.0** | 47 / 43 | 45 / 41 | 46 / 43 | 47 / 44 |
+   | second rise | 28.0 | 18 / 20 | 22 / 23 | 22 / 23 | 18 / 22 |
+   | both limbs | 0.43 | 0.28 / 0.29 | 0.29 / 0.30 | 0.30 / 0.31 | 0.29 / 0.32 |
+   | 3-h change (per entry) | 28.0 | 32 / 30 | 34 / 36 | **31 / 31** | 26 / 23 |
+   | score | — | **0.321 / 0.425 / 0.410** | 0.349 / 0.422 / 0.409 | 0.330 / 0.425 / 0.431 | — |
+
+   - **The form works, the delay had to be sized off the measured curve.** At 100 min the wave lands ON the peak (95
+     min) and extends it — the 3-h change overshoots to 34 / 36. At 180 min it lands after the trough and the 3-h
+     change is 31 / 31. Unlike the slow tail, both delays preserve the peak (64 against the tail's 57).
+   - **But the trough never moves**: 46 / 43 against ad3's 47 / 43 and the donors' 57. Withholding a fifth of the
+     solid phase from the post-peak window changes it by ~1 mg/dL, so **the trough is not limited by residual
+     appearance.** Not adopted at either delay (mean 0.395 / 0.393 against ad3's 0.385).
+   - **Nor is it `ppr_a`.** The obvious suspect was A12b: L 558 raised `ppr_a` to 0.6, weakening post-meal insulin
+     action, which should flatten the fall. Measured on the runs already in hand, ad0 (`ppr_a` 0.4) falls 47 / 44 and
+     ad3 (0.6) falls 47 / 43 — identical. So the trough depth is insensitive to both appearance and A12b, and L 512's
+     verdict stands: it is the shape of insulin action on the fall side, which no lever yet found touches.
+   - **A caveat on L 558 that the same measurement exposes.** The two 3-h meal statistics disagree about `ppr_a` 0.6:
+     the scored row `meal_d3h` (ice labeller's meals, per-person median) improved 25 → 33 toward the donors' 38, while
+     the per-entry 3-h change moved AWAY, 26 / 23 → 32 / 30 against the donors' 28. The labeller selects meals that
+     rose (it detects pulses) while the entry measure includes entries that barely moved glucose, so the donors read
+     38 and 28 on the two. Both are like for like, so the meal-tail gain claimed in L 558 holds on one definition and
+     reverses on the other — weaker evidence than that lesson states. `ppr_a` 0.6 stays (its score and
+     natural-experiment gains are unaffected), but the tail claim should be read as definition-dependent.
