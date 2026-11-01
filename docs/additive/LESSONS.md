@@ -1948,3 +1948,32 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **`twin_isf_mult` therefore stays on its t70 target** (the status quo), with the caveat recorded that the target
      is noise-dominated, which bounds how much that fit can be trusted. Fitting to noise at least keeps the parameter
      near 1.0 on average; fitting to an unreachable target does not.
+
+607. **At five draws the "excess shallow lows" limit DOES NOT EXIST — t70's bias is −0.004 — and the real outcome
+   biases are TDD and TIR.** L 602 showed the low rows\' three-draw scatter exceeded their bias and prescribed more
+   draws before another arm. Two more (seed0 13000, 17000) of the reference and of `cr_tau_off` 60:
+
+   | row | twin mean (5 draws) | bias vs donors | sd | bias / SE | verdict |
+   |---|---|---|---|---|---|
+   | **t70** | 1.595 | **−0.004** | 0.358 | −0.02 | **no bias** (read +0.199 at n = 3) |
+   | t54 | 0.142 | −0.048 | 0.054 | −1.96 | suggestive, twins UNDER the donors |
+   | lows / day | 0.950 | −0.050 | 0.185 | −0.60 | no bias |
+   | P(reach 54) | 0.184 | −0.028 | 0.019 | −2.61 | small real bias, twins under |
+   | **TIR** | 69.804 | **−2.078** | 2.189 | **−2.12** | **real, and was NOT on the limits list** |
+   | **TDD** | 42.059 | **+3.359** | 1.508 | **+4.98** | **real and robust** |
+
+   - **"The twins run excess shallow lows" is removed from the limits.** It was three-draw noise: draws 4 and 5 came
+     in at t70 1.199 and 1.385, pulling the five-draw mean to 1.595 against the donors\' 1.599. Every low-side arm
+     this session — `pro_g_own`, `pro_carb_fix`, `pro_shift`, `sg_h_lo` suppressed and not, `cr_tau_off` — was
+     chasing a gap that is not there, and if anything the twins now sit slightly BELOW the donors on t54, lows/day
+     and P(reach 54). The rejections were right; the stated reason was wrong.
+   - **TIR is a real bias nobody had listed**: −2.08 points (t = −2.12). It is marginal and partly driven by draw 4
+     (66.5), so it needs confirmation, but it belongs on the list where t70 used to be.
+   - **TDD is confirmed as the one robust outcome bias** (t = +4.98) — and L 605 showed it is not reachable by any
+     body parameter, since Loop doses from the SETTINGS ISF and `resid_m` pins total glucose.
+   - **`cr_tau_off` 60 is properly rejected**: five-draw mean 0.393 against the reference\'s 0.380, losing on draws
+     3, 4 and 5 after winning tier 1 on 1 and 2.
+   - **The method point, which is the transferable part:** a limit quoted from three draws can be pure scatter. Before
+     building a mechanism for a gap, check `bias / SE` over the draws available — at n = 3 the SE is large enough that
+     a 0.2-percentage-point t70 gap and a zero gap are indistinguishable. Six arms and most of a session went into a
+     gap with bias/SE = −0.02.

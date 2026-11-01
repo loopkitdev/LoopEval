@@ -165,6 +165,7 @@ reference changes.
 ## Known limits of the current reference (read before using its numbers)
 
 **Status (Pete 2026-10-20): usable with LoopEval.** The limits below are documented, not blocking. They are:
+- **(t70 / excess shallow lows REMOVED as a limit, L 607: bias −0.004 at five draws.)**
 - twins of tight-control donors run high, and twins need **3.5–4.4%** more insulin than their donors — **measured
   paired against each twin's own donor on the current reference (L 598): +1.40 / +1.40 / +1.67 U/day at a matched
   glucose level, where the long-standing "5–8%" and a cohort-median "+10%" both overstate it.** Basal withholding is
@@ -275,7 +276,15 @@ reference changes.
 - response to a settings change is damped (mean half the field's, lows 4–8× under) and twins of tight donors are not
   tight, so control-level heterogeneity is wrong in the tight group (frontier handoff 2026-10-24, LESSONS 493, 503).
 
-**Which limits are REAL (L 602).** Across seed0 1000 / 5000 / 9000 the reference's own tier-1 rows have a draw scatter
+**Which limits are REAL (L 607, five draws — supersedes L 602's three-draw version).** With seed0 1000 / 5000 / 9000 /
+13000 / 17000, bias / SE over the draws: **TDD +3.36 (t +4.98, robust)** and **TIR −2.08 (t −2.12, marginal and partly
+one draw)** are real; **t70's bias is −0.004 (t −0.02) — "excess shallow lows" is NOT a limit and is removed**; t54
+(−0.048, t −1.96) and P(reach 54) (−0.028, t −2.61) have the twins slightly UNDER the donors; lows/day shows nothing.
+Every low-side arm of 2026-11-01 was chasing a gap that is not there. **Check bias / SE before building a mechanism for
+a gap** — at n = 3 a 0.2-point t70 gap and a zero gap are indistinguishable. TDD is real but unreachable by a body
+parameter (L 605).
+
+**Superseded, kept for the method (L 602).** Across seed0 1000 / 5000 / 9000 the reference's own tier-1 rows have a draw scatter
 LARGER than their gap to the donors for **t54** (bias −0.022, sd 0.057), **t70** (+0.199, 0.306), **lows/day** (+0.042,
 0.191) and **TIR** (−0.996, 1.484). Only **TDD** is a clear bias (+3.69 at 8x the sd; quote the paired +1.4–1.7 U/day
 of L 598), and **it is a LOAD bias (L 603)**: the twins' labelled glucose load is 1.10 / 1.14 / 1.10 x the donors'
