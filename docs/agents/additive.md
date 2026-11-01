@@ -86,7 +86,11 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. A different draw of people (seed0) moves the count by up to 6 (LESSONS 444): score an arm whose
   effect is within that scatter on two draws (seed0 1000 and 5000) before adopting it.
-- **Current reference** (2026-11-01): **ad0** (runs/2026-10-31-additive-gesplit) — st9 plus the three exercise fixes of LESSONS 554, 556:
+- **Current reference** (2026-11-01): **ad2** (runs/2026-10-31-additive-gesplit) — ad0 with A12b's post-meal window at its own
+  target (`ppr_a` 0.6, LESSONS 558): score 0.340 / 0.444, tier 1 0.146 / 0.312. The meal tail is now calibrated
+  (meal_d3_p50 ratio 0.97) and the 3-h meal change 33 / 31 against the donors' 38; the cost is TIR 68.9 / 70.2 against
+  71.9, because the twins' excess time below range is amplified as the spread grows. Revert with `--set ppr_a=0.4`.
+- **Previous reference** **ad0** (runs/2026-10-31-additive-gesplit) — st9 plus the three exercise fixes of LESSONS 554, 556:
   session intensity capped by its length with METmax raised to match (`ex_cap_fit`), and C4's surge keyed to 8 absolute METs
   (`ex_surge_mets`). Score 0.364 / 0.416, tier 1 0.229 / 0.294. Adopted on soundness: neutral on the cohort score AND on the natural experiments (L 556).
   Kept (Pete 2026-11-01: level on the statistics and on prediction power, but better explained, is a win). Revert with
@@ -128,7 +132,9 @@ reference changes.
 - night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458);
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (LESSONS 457);
-- the 3-h meal change is +13 to +18 against +21.
+- **the excess lows are now the binding limit on TIR** (L 558): the meal tail is calibrated and CV is on the donors', so
+  as the spread grows the twins' extra time below range (t70 1.97 / 2.16 vs 1.60) is what holds TIR at 68.9 / 70.2 against
+  71.9. Work the low side next, not the meal shape.
 - response to a settings change is damped (mean half the field's, lows 4–8× under) and twins of tight donors are not
   tight, so control-level heterogeneity is wrong in the tight group (frontier handoff 2026-10-24, LESSONS 493, 503).
 
