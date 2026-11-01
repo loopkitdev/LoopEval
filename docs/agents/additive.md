@@ -283,7 +283,10 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   The 6–8 shortfall is now understood as a REGIME SWITCH the smooth terms cannot make (L 565): the donors fall deepest at
   6–8 METs and rise at ≥ 8, so any setting that deepens one deepens the other. It needs a form change (a steeper anaerobic
   share), not a parameter.
-- Off-by-default experiments with their verdicts: `ge_beta` 1.3 / 1.6 (Elashoff power-exponential gastric emptying,
+- Off-by-default experiments with their verdicts: `meal_lag` 10 / 20 (the gastric lag phase, genuinely missing — every
+  carb parcel had delay 0 against Siegel 1988's ~20–30 min for solids. It works on an isolated parcel and does
+  nothing on the cohort, because `peak_h` is onset-relative and so shift-invariant; the ratio drifts the wrong way,
+  0.63 -> 0.59. Score level, tier 1 a little better at lag 20. L 595), `ge_beta` 1.3 / 1.6 (Elashoff power-exponential gastric emptying,
   with and without the mean emptying time kept: the twins' labelled pulses ARE the wrong shape — peak 37 min against
   the donors' 50, decay/peak 1.44 against 1.21 — and beta fixes that (1.25–1.33) while the fall / rise ratio does not
   follow at all (0.67 -> 0.70 against 0.89) and the score explodes (0.332 -> 0.43–0.55). Keeping the PARCEL's mean
@@ -330,6 +333,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   the long-record figure sent five mechanisms after a target that did not exist (L 585). Block the donor series to the
   twins' length first, and where the statistic can be moved by the donor's SETTINGS, split it by whether a settings
   change or override falls on those days (`resid_tools/tdd_clean_ac.py`) — a twin holds one era and runs no overrides.
+
+- **`peak_h` and `dur_h` in the labelled-meal tables are measured from the LABELLER'S detected onset, not from the
+  carb entry**, so both are invariant to a pure time shift: a gastric lag moved them not at all (peak 43 min at lag 0,
+  10 and 20 alike), and the twins' "peak at 43 against the donors' 50" is a RISE-SHAPE difference, not a timing offset
+  (L 595). Check what a statistic is referenced to before building a component to move it.
 
 - **Donor carb entries are keyed `grams` in `carbs.json`, not `carbInput`** — the wrong key gives 0 g for every entry, and
   any size filter then drops them all with no error (L 571).

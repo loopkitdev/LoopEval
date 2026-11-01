@@ -1621,3 +1621,24 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      shape does — but whether anything speeds glucose reversals WITHOUT compressing the meal pulse. A faster
      counter-regulation or glucose-effectiveness response would qualify and is where to look next; both are
      sub-basal terms, and both are currently measured too small (L 589).
+
+595. **The gastric lag phase was genuinely missing, and it cannot fix the peak-timing gap, because that statistic is
+   shift-invariant.** Every carb parcel had `delay = 0` (only protein glucose carried one, 90 min), so appearance began
+   the instant food was eaten — a real omission against Siegel 1988's ~20–30 min lag for solids. `meal_lag` adds it,
+   applied to the meal parcels only (not the rescue or exercise carbs, where delaying a low treatment would be wrong
+   and unsafe). On an isolated 35 g parcel it behaves exactly as intended: peak 55 -> 65 -> 75 min at lag 0 / 10 / 20
+   with the decay phase UNCHANGED at 111 and decay/peak 2.02 -> 1.71 -> 1.48 — the property `ge_beta` lacked.
+   - **On the cohort it moves the labelled shape not at all.** peak **43 min and decay 67 for lag 0, 10 AND 20**,
+     byte-for-byte the same, with decay/peak 1.44 -> 1.48 and the fall / rise ratio drifting the wrong way
+     (0.63 -> 0.61 -> 0.59 against the donors' 0.89). Score level (0.334 / 0.362 and 0.330 / 0.367 against rf2's
+     0.332 / 0.371), tier 1 a little better at lag 20 (0.127 / 0.142 against 0.135 / 0.209).
+   - **Why, and it is the lesson: `peak_h` is measured from the LABELLER'S OWN detected onset, not from the carb
+     entry.** A pure time shift moves the onset and the peak together, so peak-minus-onset is invariant to it. The
+     statistic cannot see a lag, by construction — which also **corrects this lesson's own framing**: the twins'
+     "peak at 37 against the donors' 50" is not a delay deficit, it is a difference in the RISE SHAPE after onset, and
+     no lag can address it. I should have checked what the statistic was referenced to before building the component.
+   - **A side observation worth keeping:** rf2 is already closer to the donors on pulse shape than ov0 was (peak 43
+     against 37, total 128 against 120, donors 50 / 125) — the dynamic residual was adding fast motion that moved the
+     labeller's onset detection, so dropping it (L 592) improved the meal shape as a by-product.
+   - `meal_lag` stays at 0. The code and the evidence note stay, because the omission is real and a future meal model
+     that measures appearance against the ENTRY (not the detected onset) will need it.
