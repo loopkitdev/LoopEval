@@ -812,10 +812,28 @@ evidence to the evidence files.
      two nonlinearities both point the wrong way — C2 saturates in intensity (concave, so mean-preserving variation
      lowers the mean boost) and C4's surge has a threshold (convex, so variation raises EGP). Variation would make
      the fall shallower, not deeper, and the 7-min intensity filter damps it anyway.
-   - **Sizing is bounded by evidence.** C1 ×3 and C2 α 6 are already rejected (L 494: C1 ×3 breaks the measured
-     insulin dependence, being as large at low IOB; α 6 is far past the clamp). α 2.0 is the linearised midpoint of
-     Romeres 2021's +81–155% at intensity ~0.6, whose top end is about 2.6, so α 2.6 and C1 × 1.5 are the arms worth
-     running (runs/2026-10-31-additive-gesplit, `run_ex.sh`).
+   - **Sizing C1 / C2 does not close it, and the gap is not a flat shortfall but an intensity one.** α 2.6 (the top
+     of Romeres 2021's +81–155% at intensity ~0.6; 2.0 is its linearised midpoint) leaves the pooled drop at 16 / 14,
+     and C1 × 1.5 reaches 22 / 21 against the donors' 35 (`run_ex.sh`; scores 0.369 / 0.487 and 0.397 / 0.427, both
+     mixed). C1 ×3 and α 6 were already rejected (L 494: C1 ×3 is as large at low IOB, breaking the measured insulin
+     dependence). By session METs instead (`mets_rev.py`, g0 120–200, twins pooled over both draws):
+
+     | Session METs | Donors | Twins | Donor − twin [95% CI] |
+     |---|---|---|---|
+     | 2.0–3.5 | 12 (n 14) | 20 (n 16) | −8 [−22, +11] |
+     | 3.5–5.0 | 39 (n 59) | 26 (n 22) | +13 [−6, +23] |
+     | 5.0–7.0 | 37 (n 18) | 9 (n 33) | **+28 [+8, +47]** |
+     | ≥ 7 | 28 (n 65) | 0 (n 14) | **+28 [+8, +41]** |
+
+     At light effort there is no gap at all; it opens at 5 METs and the twins' fall collapses above it, while the
+     donors' deepens to 7–9 METs and only shrinks at ≥ 9. **C4's surge threshold is the suspect**: 0.6 of VO2-reserve
+     is about 5.8 METs at the median METmax of 9, exactly where the twins' fall collapses, whereas the donors say the
+     hepatic answer should not dominate until about 9. L 497 tried `ex_surge_thr` 0.75–0.8 against `act_net20`, which
+     cannot rank it; this target can. Arms at 0.9 (≈ 8.2 METs) in `run_st.sh`. Read per-draw MET bands with care —
+     they hold 4–24 sessions each and the 5–7 band swings 20 vs 6 between draws; pool the draws and quote the interval.
+   - **A second, separate mismatch: the twins run half as many hard sessions.** Share of 25–60 min sessions at ≥ 7
+     METs: twins 0.18, donors 0.37 (median METs agree, 5.3 vs 5.1), so `ex_mets` compresses the tail even though
+     `workout_mets` passes as a scored row (L 494).
 
 552. **A9 × sleep (`cr_sleep` 0.5) is evidenced but shows no benefit: off.** The counter-regulatory answer halved while
    asleep (Banarer & Cryer 2003, Diabetes 52:1195). Paired on sd3, two draws (cs0 reproduces sd3 exactly): score
