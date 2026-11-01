@@ -160,8 +160,10 @@ reference changes.
   L 577) — because resid_m does not scale with insulin. It hands back the TDD gain and some control-level heterogeneity.
   Awaiting Pete: the core carries how MUCH a person responds, resid_m sharpens WHO does. **It is bigger than one flag**:
   `si_norm` 0.92 stands in for the DISABLED life modulators, and those carry B3's day-to-day sensitivity persistence —
-  whose absence is why `ac1` fails (L 581). The package to test is `--enable day,stress,illness,menstrual` + `si_norm` 1.0
-  + a level refit on three draws, which would address the si_norm choice and `ac1` together. Start a session with it.
+  whose absence was thought to explain `ac1` — **tested and refuted** (L 582): the package (modulators on + `si_norm` 1.0 +
+  refit) leaves `ac1` unmoved, because `day_rho` is 0 so it restores day-to-day VARIATION without PERSISTENCE, and it scores
+  0.386 against `si_norm` 1.0 alone at 0.372. It does give the best glucose level of any arm (bg_mean gap 0.015 / 0.094 /
+  0.019). The si_norm choice is therefore unchanged and the modulators are a separate question.
   The trade is roughly LINEAR, so the
   intermediate (0.96) does not dominate and tuning the value will not settle it (L 577); 1.0 is the principled end, since
   `si_norm` only stands in for life modulators that are off in this reference and should be 1.0 if they are switched on.

@@ -1122,3 +1122,30 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      the residual at a target, check that the residual is what moves that target: `resid_meal` failed on the sign
      structure (L 568) and this one fails on attribution. The remaining route to `ac1` is day-to-day persistence in
      EATING (F1's meal sizes or F2's entry rates), which is a behaviour trait, not a residual property.
+582. **The "principled package" (life modulators on + `si_norm` 1.0) does NOT fix `ac1` and scores worse than
+   `si_norm` 1.0 alone: restoring day-to-day sensitivity VARIATION without persistence buys nothing for TDD.**
+   Tested as L 581 specified — `day, stress, illness, menstrual` enabled, `si_norm` 1.0, three rounds of the level
+   refit (converging to twin–donor mean ρ 0.98):
+
+   | | donors | ad3 | `si_norm` 1.0 (lv3) | **package (lf3)** |
+   |---|---|---|---|---|
+   | score d1 / d2 / d3 | — | 0.321 / 0.425 / 0.410 | 0.333 / 0.373 / 0.409 | 0.341 / 0.402 / 0.416 |
+   | **mean score** | — | 0.385 | **0.372** | 0.386 |
+   | bg_mean gap | — | 0.092 / 0.263 / 0.076 | 0.072 / 0.073 / 0.052 | **0.015 / 0.094 / 0.019** |
+   | tir gap | — | 0.208 / 0.112 / 0.309 | 0.072 / 0.070 / 0.149 | **0.074 / 0.035 / 0.230** |
+   | tdd gap | — | **0.169 / 0.262 / 0.201** | 0.202 / 0.290 / 0.209 | 0.213 / 0.305 / 0.225 |
+   | **ac1** | **+0.091** | −0.022 / −0.029 / −0.044 | — | −0.072 / −0.014 / −0.051 |
+   | night_cv | 35.36 | 30.7 / 34.6 / 31.2 | — | 30.4 / 33.3 / 29.2 |
+
+   - **`ac1` is unmoved**, which was the package's whole motivation. `day_rho` defaults to 0, so switching `day` on
+     restores day-to-day sensitivity VARIATION but not its PERSISTENCE — flagged before the run, and confirmed. TDD
+     persistence needs persistence, and the code comment on `day_rho` says the field's lag-1 of 0.4 "must come from
+     named factors", so raising it would be fitting an unevidenced parameter to a target. **`ac1` stays open and its
+     route is NOT this.**
+   - **It gives the best glucose LEVEL of any arm** (bg_mean gaps 0.015 / 0.094 / 0.019 — essentially exact) and the
+     best TIR on two draws, but costs TDD on all three and night_cv on two, and its mean score (0.386) is WORSE than
+     `si_norm` 1.0 alone (0.372) and level with ad3 (0.385).
+   - **So the "principled" configuration is not the better one.** Switching the modulators on costs score without the
+     benefit it was run for. Pete's `si_norm` choice therefore stands exactly as L 577 and L 579 framed it — core
+     versus residual, trade roughly linear — and the life modulators are a SEPARATE question with their own cost,
+     not a reason to prefer 1.0. L 581's unification was wrong: the two items do not resolve together.
