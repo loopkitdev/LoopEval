@@ -188,7 +188,9 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   The 6–8 shortfall is now understood as a REGIME SWITCH the smooth terms cannot make (L 565): the donors fall deepest at
   6–8 METs and rise at ≥ 8, so any setting that deepens one deepens the other. It needs a form change (a steeper anaerobic
   share), not a parameter.
-- Off-by-default experiments with their verdicts: `ex_abs` (C1 keyed to absolute work rate: the 6–8 MET band improves on both
+- Off-by-default experiments with their verdicts: `resid_meal` (redistributing the residual across the meal cycle: null, and
+  rise-skewed variance cannot reach a one-sided target, L 569), `resid_drop_p` (moves entry_fast_fall on all three draws but
+  spends ~5 points of the nearly-closed meal tail to buy ~2.4 of it, L 570), `ex_abs` (C1 keyed to absolute work rate: the 6–8 MET band improves on both
   draws, −14 → −18 against the donors' −21.5, but the ≥ 8 band goes negative where the donors rise; the two bands trade, L 565),
   `ex_headroom` 1.5 (restores the session-intensity tail and validates C4's
   size of 28 — the ≥ 8 MET band reads +1.8 vs the donors' +1.2 at n 40; costs score on both draws, use it for

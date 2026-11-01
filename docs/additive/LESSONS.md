@@ -1277,3 +1277,23 @@ evidence to the evidence files.
    - **Tooling:** `resid_tools/score_read.py` reads a `score --detail` log by HEADER NAME. Ad-hoc awk column indexing
      misread these logs three times in one session, because the first argument to `score` is itself an arm, so every
      fixed column index is off by one arm. Use the script.
+570. **`resid_drop` does move `entry_fast_fall` — confirming L 569's reasoning — but the exchange rate against the meal
+   tail is bad, on all three draws. L 521's rejection stands, now quantified.** The entry-anchored down drive is the
+   asymmetric term L 569 argued the one-sided target needs, and the constraint that killed it had loosened (the tail
+   was 24 against the donors' 38 in L 521; it is 33 / 32 / 36 under ad3).
+
+   | | Donors | ad3 | `resid_drop_p` 0.3 | 0.5 |
+   |---|---|---|---|---|
+   | entry_fast_fall | 14.29 | 4.76 / 5.64 / 5.72 | **7.14 / 7.85 / 5.88** | 7.14 / 8.00 / 6.35 |
+   | meal_d3h | 38.01 | **33 / 32 / 36** | 27 / 30 / 31 | 27 / 27.5 / 32 |
+   | t54 | 0.190 | 0.197 / 0.255 / 0.149 | 0.237 / 0.255 / 0.205 | 0.323 / 0.282 / 0.249 |
+   | score | — | **0.321 / 0.425 / 0.410** | 0.355 / 0.418 / 0.418 | 0.372 / 0.431 / 0.429 |
+
+   The target improves on all three draws (gap 1.073 / 1.012 / 1.092 → 0.826 / 0.815 / 0.927), so the mechanism is
+   right. But it costs about 5 points of meal_d3h to buy about 2.4 of entry_fast_fall — and meal_d3h's remaining gap
+   is only ~5 points while entry_fast_fall's is ~9, so the term spends a nearly-closed row to half-close an open one.
+   Mean score 0.397 / 0.411 against ad3's 0.385. Not adopted at either probability.
+   - **The general shape**: `entry_fast_fall` and `meal_d3h` trade through the same post-meal window, in opposite
+     directions, and no setting of a single term serves both. Closing the fast-fall row needs something that makes
+     glucose fall fast WITHOUT flattening the 3-h rise — a faster fall from a HIGHER peak, not a lower peak. That is
+     the peak-shape problem of L 512 (the missing fast falls are on the fall side of the meal), still open.
