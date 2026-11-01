@@ -955,6 +955,29 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      propagates to the CGM comparison roughly intact. The nulls are genuine nulls.
      Always split this statistic by sensor family: the twins' G7 share differs from the donors', and G7 amplifies
      about three times as much as G6 on one draw.
+   - **The sharpest form: the deficit is in the fall / rise RATIO, which is invariant to every lever tested.** Donors
+     fall 57 on a rise of 64 — a ratio of **0.89**. Every twin arm sits at **0.70–0.78** whatever was changed:
+
+     | | rise | fall | ratio |
+     |---|---|---|---|
+     | donors | 64 | 57 | **0.89** |
+     | ad3 | 63 / 61 | 47 / 43 | 0.75 / 0.70 |
+     | κ 1.8 | 58 | 45 | 0.78 |
+     | p2 0.018 | 61 | 46 | 0.75 |
+     | `meal_k` 1.35 | 63 | 48 | 0.76 |
+     | Vmax × 1.2 / × 1.35 | 68 / 71 | 49 / 51 | 0.72 / 0.72 |
+     | A10c wave, 180 min | 64 | 46 | 0.72 |
+     | `meal_slow` 0.30 | 57 | 43 | 0.75 |
+
+     The energy ceiling (the lever L 512 names for the rise, and the only one that moves the fall at all) scales BOTH
+     limbs, so it raises the rise past the donors' (68 / 71 against 64) and the 3-h change with it (33 / 34 against 28)
+     while the ratio stays at 0.72. `meal_k` does nothing because the ceiling is rate-limiting for a normal meal, as
+     L 512 already said — that run should not have been made.
+     **So the missing mechanism must break the ratio: more fall for the SAME rise.** Appearance scale, emptying speed,
+     uptake's glucose-dependence, insulin-action timing, post-meal sensitivity and dose are all ratio-preserving, which
+     is why six families of lever each read as null. A ratio-breaking term has to act asymmetrically in TIME around
+     the peak and not be mean-preserving (A12b is, so Loop doses against its baseline and it nets out). Nothing in the
+     model does that. **Read this ratio, not the fall, when testing the next candidate.**
 
 577. **TDD, not bg_mean, is the diagnostic for a core sensitivity error: `resid_m` absorbs core level errors.**
    `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the yardstick averages over the donor's

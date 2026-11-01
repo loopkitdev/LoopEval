@@ -169,7 +169,10 @@ reference changes.
   effect must be TIME-localised — but p2 (action timing) is unmoved too, so EVERY candidate of L 512's list is eliminated.
   The sensor adds 24-35% of the apparent fall on BOTH sides (G7 most), so it inflates the level but NOT the gap: family-matched
   the deficit is 9-16 mg/dL in CGM terms and 10-13 in estimated truth terms, so the nulls are genuine (L 575). Always split
-  this statistic by sensor family - G7 amplifies ~3x G6 on one draw and the family mixes differ.
+  this statistic by sensor family - G7 amplifies ~3x G6 on one draw and the family mixes differ. **The deficit is in the
+  fall / rise RATIO: donors 0.89, every twin arm 0.70-0.78 whatever is changed** (L 575). Appearance scale, emptying speed,
+  Vmax, uptake glucose-dependence, insulin-action timing, post-meal sensitivity and dose are all ratio-preserving. The
+  missing term must act asymmetrically in TIME around the peak and not be mean-preserving. Read the RATIO, not the fall.
 - **the excess lows are shallow ones that linger, and counter-regulation cannot fix them** (L 559, 560): at a 60–70 nadir
   the twins rise +21 in 30 min against the donors' +26 and dwell 15 min against 10. A9 can supply at most 2.4 mg/dL over
   that window, so the lever is the sub-basal shape of glucose disposal (A5's M(G) / κ below basal, or A1c brain sparing),
