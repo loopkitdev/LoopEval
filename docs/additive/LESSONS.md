@@ -1727,3 +1727,29 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - So the surplus is modest, spread across limbs rather than concentrated in one, and coexists with a matched
      level — which is consistent with L 597 (no sensitivity scalar can fix it, because the level is held by the refit)
      and means the remaining work is worth less than the "5-8%" headline implied. Re-state the limit at 3.5-4.4%.
+
+599. **The below-basal hepatic term must carry basal EGP's insulin suppression — unsuppressed it PREVENTS lows,
+   suppressed it SHORTENS them.** L 596's `sg_h_lo` closed the t70 limit but cost the low counts (1.000 -> 0.750), and
+   the reason was a flaw in my implementation rather than in the mechanism: hepatic glucose output is
+   insulin-suppressed and the autoregulatory increase was not, so it acted at full strength on the way INTO a low
+   while IOB was still high. It now carries the same factor basal EGP uses, `min(max(1 − sE·xE, 0), 1 + sE)`
+   (`sg_h_lo_ins`, default on, inert while `sg_h_lo` is 0).
+
+   | | lows/day (1.00) | t54 (0.190) | t70 (1.599) | score |
+   |---|---|---|---|---|
+   | rf2 | 1.000 / 1.250 | 0.124 / 0.232 | 1.764 / 2.119 | 0.332 / 0.371 |
+   | unsuppressed (`hl19`) | 0.750 / 0.923 | 0.091 / 0.147 | 1.528 / 1.621 | 0.354 / 0.360 |
+   | **suppressed (`hi19`)** | **0.833 / 1.042** | **0.181 / 0.166** | **1.319 / 1.586** | 0.354 / 0.373 |
+
+   - **The mechanism check passes:** suppression recovers a third of the lost low count and nearly all of t54
+     (0.181 against the donors' 0.190, where unsuppressed gave 0.091), i.e. the term stops intervening on the descent
+     and acts at the nadir, where insulin has fallen. That is the behaviour the physiology implies, and it is a
+     correctness fix regardless of whether `sg_h_lo` is ever switched on.
+   - **It is still not an adoption, and the reason is draw-dependence worth noting.** On draw 2, where rf2 is poor
+     (t70 gap 0.325), it is excellent (0.034). On draw 1, where rf2 is already near-perfect (t70 gap 0.086,
+     lows/day exactly 1.000), any intervention overshoots (t70 1.319). So the candidate helps where the reference is
+     weak and hurts where it is strong, which the weighted mean reads as level-to-worse. A smaller magnitude would fit
+     both, but choosing it from these curves is tuning on the scorecard, not evidence.
+   - **Adopted: the suppression itself** (`sg_h_lo_ins` default on). **Not adopted: `sg_h_lo`**, which stays 0 and
+     remains the "which row do we spend" question for Pete — now with the term behaving as intended, so the question
+     is cleaner: at half symmetry it trades ~0.17 of draw-1 t70 gap and ~0.16 of lows/day for ~0.29 of draw-2 t70 gap.
