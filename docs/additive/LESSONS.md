@@ -1922,3 +1922,29 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      fitted quantity one would have to let the fit touch the twin\'s SETTINGS — which the role forbids, since settings
      are what the person\'s Loop is configured with (calibration rules) — or accept it as the price of matching the
      level with the donor\'s own settings. Recommend accepting it and re-stating the limit that way.
+
+606. **Do not fit a parameter against a target it cannot reach — it runs to its bounds and spends the damage on the
+   rows it CAN affect.** The joint fit of L 605 is rejected, and the way it fails is the lesson. Re-targeting
+   `twin_isf_mult` from t70 to TDD improved four tier-1 rows on both draws and tier 1 overall (0.148 against rf2\'s
+   0.174), but the tier 2/3 cost is **consistent on all three draws**, not noise:
+
+   | row | change in gap, draws 1 / 2 / 3 | mean |
+   |---|---|---|
+   | `acf_zero_min` | +0.032 / +0.366 / +0.330 | **+0.243** |
+   | `circadian_amp` | +0.123 / +0.225 / +0.068 | +0.139 |
+   | `night_cv` | +0.176 / +0.184 / +0.030 | +0.130 |
+   | `ice_dip_day_share` | +0.061 / +0.106 / +0.027 | +0.065 |
+   | `zero_frac` | +0.036 / +0.047 / +0.056 | +0.046 |
+
+   - **The mechanism of the failure:** TDD is unreachable by a body parameter (L 605 — Loop doses from the SETTINGS
+     ISF, and `resid_m` pins total glucose), so the fit pushed `twin_isf_mult` to its clip bounds trying anyway. Its
+     per-person spread went from [0.88, 1.33] to [0.70, 1.43], and a cohort of more extreme sensitivities has more
+     extreme dynamics — which is exactly where the damage appears (`acf_zero_min`, `circadian_amp`, `night_cv`).
+   - **So the diagnosis is not "the joint fit is a bad idea" but "TDD is the wrong target for it".** A second fitted
+     parameter needs a target that is both REACHABLE and signal-bearing. TDD is signal-bearing and unreachable; t70,
+     its current target, is reachable and noise-dominated (L 602). Neither is right, and finding one that is both is
+     the open question — the per-person t54 or TIR are candidates, since the low rows did respond to body parameters
+     all session.
+   - **`twin_isf_mult` therefore stays on its t70 target** (the status quo), with the caveat recorded that the target
+     is noise-dominated, which bounds how much that fit can be trusted. Fitting to noise at least keeps the parameter
+     near 1.0 on average; fitting to an unreachable target does not.

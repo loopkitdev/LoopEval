@@ -371,6 +371,12 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   twins' length first, and where the statistic can be moved by the donor's SETTINGS, split it by whether a settings
   change or override falls on those days (`resid_tools/tdd_clean_ac.py`) — a twin holds one era and runs no overrides.
 
+- **Do not fit a parameter against an unreachable target** (L 606): it runs to its clip bounds and damages the rows it
+  CAN affect. Re-targeting `twin_isf_mult` to TDD improved four tier-1 rows but widened the per-person ISF spread from
+  [0.88, 1.33] to its clips [0.70, 1.43] and consistently worsened `acf_zero_min` (+0.243), `circadian_amp`, `night_cv`
+  and `ice_dip_day_share` on all three draws. TDD is unreachable by a body parameter (L 605); t70, its current target,
+  is reachable but noise-dominated (L 602). A second fitted parameter needs a target that is both.
+
 - **Use `twin.csv`'s paired diff for anything per-person** (L 598): a cohort median compares 112 sampled twins with the
   206 donors who have step tables, so it measures composition, not the model — it inflated the insulin surplus from
   +1.4 U/day paired to +3.9, and a ratio of medians turned a matching basal-withholding ratio (0.74 against 0.73) into
