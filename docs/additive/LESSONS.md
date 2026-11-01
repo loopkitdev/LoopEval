@@ -903,4 +903,7 @@ evidence to the evidence files.
      back bit-identical to its own control at both thresholds). `--enable` makes each item a switch NAMED `k=v`, so the
      code's `isinstance(enable.get(k), float)` is False and the default stands. Numeric overrides go in `--set`;
      `cohort.py` now fails fast on `=` in `--enable` / `--disable`. The `ex_surge_thr` arms (L 553) passed theirs in
-     `--set` and are unaffected — check `cohort.json` in the run dir when an arm reproduces its control exactly.
+     `--set` and are unaffected — check `cohort.json` in the run dir when an arm reproduces its control exactly. The
+     corrected rerun then came back identical a second time, for a different reason: **cohort caches per person by
+     output dir**, so rerunning a fixed arm into the same dir re-reads the broken run (`v0… cached` in the log). Give a
+     corrected arm a fresh name.
