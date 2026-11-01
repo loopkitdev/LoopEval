@@ -2417,3 +2417,41 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      - The donors' basal share of TDD (0.37) is reproduced too: twins 0.40 / 0.35.
      - **`tdd_blocks.py`'s footer previously hardcoded twin figures from the superseded `dr2` arm.** Twin-side numbers
        now come from `twin_limb_ac.py` on the current reference; never read a hardcoded comparison figure as current.
+
+625. **Two scored rows compare two different quantities: the donors' stored pulse labels are STALE and carry the raw
+     argmax peak and the run length, while the twins' carry the fitted lognormal mode and the fitted 90th percentile.
+     Measured like for like, `pulse_peak_h`'s gap REVERSES SIGN and `pulse_dur_h` goes from near-passing to a 30%
+     defect.** Found by pulling the thread on `pulse_peak_h` being **0.622 for every arm tested** — order 2, order 3
+     and both load cuts, identical to three decimals, while the appearance dispersion underneath them changed
+     materially (L 622). A row invariant to the mechanism it is supposed to measure is measuring something else.
+
+     - **The signature.** `ice_gen.meals.fit_shapes` (commit ece70cb1) fits each pulse's lognormal over a 24-cell log
+       grid `FIT_MODES`, so a fitted `peak_h` is one of 24 values. **100% of donor `peak_h` values are exact multiples
+       of 5 min and 0% are grid cells; 99.9% of the twins' are exact grid cells and 0.1% are 5-min multiples.** The
+       donors' numbers are `label()`'s raw `pk * 5/60` argmax; the twins' are `fit_shapes`'s `mode`. All 168 donor
+       files are stale — a uniform version skew, not a mixture. Their lumpy cell histogram (exactly 0.0% in cells 1,
+       3, 5 and 8, neighbours at 2–8%) is the raw 5-min lattice seen through the fitted grid, not physiology.
+     - **Re-running the CURRENT labeller on the donors moves every one of them the same way** (8 donors, 6.5k pulses;
+       `resid_tools/relabel_donors.py`): peak_h median 0.667 → **0.536**, dur_h 1.833 → **1.447**, while `size_g`
+       barely moves (25.8 → 25.1), so pulse detection is stable and the change is specifically the shape fit.
+
+       | row | donors as scored | donors, current labeller | twins (rf2) | verdict |
+       |---|---|---|---|---|
+       | `pulse_peak_h` | 0.750 | **0.536** | 0.622 | scored "0.13 h too EARLY"; really ~0.09 h too **LATE** |
+       | `pulse_dur_h` | 1.917 | **1.447** | 1.885 | scored near-passing (0.105); really ~**30% too long** |
+
+     - **The scored median was additionally quantization-pinned**, which is why no arm could move it: the grid spacing
+       near the twins' value is 3.4–5.9 min, so a sub-cell shift never changes the median. The MEAN is not pinned and
+       did move — rf2 0.878, go3 0.853, ol70 0.840 — so the mechanisms were acting all along, invisibly.
+     - **It changes the `ge_order` reading in its favour.** Order 3 shortens and advances the labelled pulse
+       (mean 0.878 → 0.853, decay 67 → 59), which the stale target scored as moving away from the donors. Against
+       correctly-labelled donors the twins' pulses are too LATE and too LONG, so order 3 moves toward them on this
+       axis as well as closing `meal_d3h`. Pete's pending judgement should be read with this correction.
+     - **Do not re-fit anything to these two rows until the donor labels are regenerated**, and treat any past
+       conclusion that leaned on them as unsupported. The twins' own `run_h` (the run length, 100% 5-min multiples)
+       is already in `meals_labeled.csv` and is the like-for-like partner for the donors' stored `dur_h`.
+     - Regenerating `ice_v32/meals` is the **ice** role's data, shared with the generator, so it goes out as a
+       handoff rather than a unilateral change.
+     - **General trap**: when a statistic is identical across arms that should move it, suspect the measurement, not
+       the model — and check the two sides' values for a lattice (are they all multiples of something? all members of
+       a fitted grid?). That one test found this in a minute after four arms had been spent around it.
