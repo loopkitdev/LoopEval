@@ -148,7 +148,8 @@ class BehaviorTraits:
     ov_tgt_hi: float = float("nan")
     ov_tgt_h: float = 1.0
     ov_tgt_s: float = 0.6
-    ov_dur_own: bool = True              # take each class's duration spread from the donor, not a fixed 0.6 (L 586)
+    ov_dur_own: bool = False             # each class's duration spread from the donor rather than a fixed 0.6:
+                                         # score-neutral and it halves the share of people who never override, so off (L 586)
     intake_cv: float = 0.22              # day-to-day CV of food eaten (Tarasuk & Beaton 1992; ~20% for carbohydrate)
     intake_rho: float = 0.29             # next-day intake correlation (Levitsky 2017)
     intake_comp: float = 1.0             # 24-h regulation of the day total across its eating events (1 = full) [J]

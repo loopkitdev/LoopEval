@@ -90,7 +90,18 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75` on the reference. It reproduces C4's own by-METs table —
   the ≥ 8 MET band reads +0.9 against the donors' +1.2 where the band has enough bouts — against the reference's +12.8 / −5.1.
   Use it whenever the response to a workout matters; the reference keeps the score-optimal settings.
-- **Current reference** (2026-11-01): **ad3** (runs/2026-10-31-additive-gesplit) — ad2 with the residual's fast and block parts
+- **Current reference** (2026-11-01): **ov0** (runs/2026-10-31-additive-gesplit; templates
+  `templates_pilot_resid_ov1.csv`) — ad3 with each Temporary Override class's duration fitted over the windows the
+  model can actually produce. A donor record under 5 min is a cancellation (the ETL keeps an edit-version per change),
+  and `_override` clips at 15 min, so including those in the per-class median systematically understated the length of
+  every window the twins did run; dropping them lifts `ov_less_h` from 1.42 to 1.88 h and realized length from 72 to
+  83 min against the donors' comparable 79 (L 586). Score **0.332 / 0.394 / 0.391** against ad3's 0.321 / 0.425 /
+  0.410 — better on both fresh draws, worse only on draw 1, mean **0.372 against 0.385**; tier 2 improves on both
+  (0.497 / 0.505 against 0.505 / 0.555). The gain is where the mechanism predicts: more time at reduced needs, so Loop
+  commands less — bg_mean 0.263 → 0.119 and TDD 0.262 → 0.177 on draw 2. On the natural experiments it is level with
+  ad3 within the sampling error (mean ratio 2.32 vs 2.25, t70 3.61 vs 3.38, t54 **4.64 vs 6.22**; the rho differences
+  at n = 63 are inside their CIs). Revert by rebuilding the templates without the filter.
+- **Previous reference** **ad3** (runs/2026-10-31-additive-gesplit) — ad2 with the residual's fast and block parts
   weighted to waking hours (`resid_diurnal` 0.9, LESSONS 568; variance-preserving, so the per-person amplitudes still hold).
   Score **0.321 / 0.425 / 0.410** on seed0 1000 / 5000 / 9000, tier 1 0.108 / 0.291 / 0.161. Against sd3 (0.370 / 0.454 / 0.420)
   the gain shrinks from the development draw to the fresh one — 0.049 / 0.029 / **0.010** — so the out-of-sample gain is
@@ -240,7 +251,10 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   The 6–8 shortfall is now understood as a REGIME SWITCH the smooth terms cannot make (L 565): the donors fall deepest at
   6–8 METs and rise at ≥ 8, so any setting that deepens one deepens the other. It needs a form change (a steeper anaerobic
   share), not a parameter.
-- Off-by-default experiments with their verdicts: `day_rho` 0.45 (B3's intrinsic day-level sensitivity as AR(1):
+- Off-by-default experiments with their verdicts: `ov_dur_own` (each override class's own log-duration SD, 0.70-0.78,
+  instead of the fixed 0.6: score-neutral at mean 0.374 against 0.372, slightly worse on change prediction, and it
+  halves the share of twins who never override — 42% to 27% against the donors' 42% — so better explained is not
+  enough here, L 586), `day_rho` 0.45 (B3's intrinsic day-level sensitivity as AR(1):
   level on score and its delivered-insulin persistence ceiling is +0.02, a fifth of what `ac1` would need, L 585),
   `act_rho` 0.4 (day-to-day persistence of everyday activity: raises CARB persistence +0.04, no effect on insulin or
   `ac1`, L 584), `resid_day_ar` 0.35 (the residual's day level as AR(1):
