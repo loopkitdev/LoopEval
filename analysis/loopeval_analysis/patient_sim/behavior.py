@@ -73,6 +73,8 @@ class BehaviorTraits:
     meal_cv: float = 0.35                # within-person per-event size spread (log sd); the person's measured pulse spread when known
     meal_slow_frac: float = 0.15         # share of a meal emptied in the Dalla Man slow late phase (kmin) [J share; Pete 2026-10-17, LESSONS 120]
     meal_slow_k: float = 0.008           # /min, Dalla Man kmin
+    meal_wave2: float = 0.0              # A10c: share of the solid phase held back as a second wave (L 573) [J]
+    meal_wave2_delay: float = 100.0      # min it is held back; the donors' second wave peaks inside the 4-h window [J]
     snack_fast_frac: float = -1.0        # < 0: as meal_fast_frac; snacks lean on sugary drinks, candy and desserts
                                          # (Piernas & Popkin 2010) so their fast share may be higher [J] (LESSONS 159)
     meal_fast_frac: float = 0.35         # share of a meal's carbohydrate in its fast-emptying phase: 0.5 fits the donors' 5-min step tail but overshoots CV; 0.35 balances (LESSONS 268, 270; was 0.2 [J], LESSONS 44)
@@ -975,8 +977,19 @@ class Behavior:
                     # to the energy ceiling (Hunt & Stubbs 1975: per kcal, fat and protein slow emptying as carbohydrate; LESSONS 305)
                     kcal_g = 4.0 + (9.0 * meal.fat + 4.0 * meal.protein) / g_main
                 ms_ = t.main_speed                       # experiment (LESSONS 319): the solid main parcel only; liquid share unchanged
-                acts.append(("eat", Parcel(m, g_main, kempt=bp.kempt * meal.speed * phi_fat * ms_, kabs=bp.kabs * meal.speed * ms_,
+                w2 = t.meal_wave2 if meal.kind == "meal" else 0.0
+                acts.append(("eat", Parcel(m, g_main * (1 - w2), kempt=bp.kempt * meal.speed * phi_fat * ms_, kabs=bp.kabs * meal.speed * ms_,
                                            f=bp.f, label=meal.kind, kcal_per_g=kcal_g, speed=meal.speed)))
+                if w2 > 0:
+                    # A10c second gastric wave (experiment; LESSONS 573): a share of the solid phase held back and then
+                    # released at the SAME rate as the main parcel. L 571 sized the gap as one oscillation — the donors
+                    # fall 10-14 mg/dL further after the peak and rise 8-10 further after that trough, and 43% show both
+                    # against the twins' 28%. L 572 showed why a slow tail cannot do it: mass at kmin 0.008 dribbles out
+                    # under the whole curve and lowers the peak instead. A delayed pulse at the normal rate is the form
+                    # that deepens the trough AND makes a wave. Mass-preserving: the main parcel gives up the share.
+                    acts.append(("eat", Parcel(m, g_main * w2, kempt=bp.kempt * meal.speed * phi_fat * ms_,
+                                               kabs=bp.kabs * meal.speed * ms_, delay=t.meal_wave2_delay,
+                                               f=bp.f, label=meal.kind + "_wave2", kcal_per_g=0.0, speed=meal.speed)))
                 # protein → late glucose appearance: 0.1 g glucose per g protein, delayed ~90 min, peak 3–5 h
                 # (Smart 2013; Paterson 2017; evidence/01 §6.3); it is glucose, so fast-glucose bioavailability
                 if meal.protein > 0:

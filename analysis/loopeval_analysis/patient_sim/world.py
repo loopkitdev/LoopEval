@@ -258,6 +258,10 @@ class World:
             for k_, v_ in person.traits["beh_set"].items(): setattr(self.beh_traits, k_, v_)
         if enable and isinstance(enable.get("meal_slow"), float):
             self.beh_traits.meal_slow_frac = enable["meal_slow"]
+        if enable and isinstance(enable.get("meal_wave2"), float):      # A10c second gastric wave (L 573)
+            self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.meal_wave2 = float(enable["meal_wave2"])
+        if enable and isinstance(enable.get("meal_wave2_delay"), float):
+            self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.meal_wave2_delay = float(enable["meal_wave2_delay"])
         if enable and isinstance(enable.get("main_w"), float):
             self.beh_traits.main_weight = enable["main_w"]
         if enable and isinstance(enable.get("meal_fast"), float):
