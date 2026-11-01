@@ -39,9 +39,9 @@ Build a patient simulator usable with LoopEval, by additive modeling.
 | Path | What |
 |---|---|
 | `analysis/loopeval_analysis/patient_sim/` | The simulator (Python): components, person sampler, plant server. Shared code → `main` when a piece is finished. |
-| `docs/additive/evidence/` | Literature + measured-evidence notes per area (factor catalog, physiology, life factors, sensor & device, behavior, LoopEval findings). |
+| `docs/additive/evidence/` | Literature notes per area (00–16) and `17-measured.md`, the donor-data measurements behind each component's parameters. |
 | `docs/additive/COMPONENTS.md` | The component registry: every factor, its model form, parameters, evidence and status. |
-| `docs/additive/LESSONS.md` | This role's lessons file. |
+| `docs/additive/LESSONS.md` | This role's standing lessons (original numbers; new ones from 548). The full record of 1–547 is `docs/additive/archive/LESSONS-001-547.md`, where every "LESSONS N" citation resolves. |
 | `runs/YYYY-MM-DD-additive-*/` | Experiment outputs, with the driving script beside them. |
 
 ## How a virtual person runs in LoopEval
@@ -141,7 +141,7 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 - **Meals still come down sooner than the donors'**: 3-h meal change +11.7 vs +21 (was +2 before breakfast skipping, the dinner fat carrying the night, LESSONS 368–370). Loop's delivery at each glucose band matches the donors' (LESSONS 368); adding meal glucose by carb sensitivity, slow share or protein is answered at the meal (LESSONS 366–367). The hourly profile runs 5 mg/dL low at 00–06 h and 8 high at 06–12 h (basal-need shape, LESSONS 371, 373); TDD day-to-day persistence (ac1) is ~0 against the donors' 0.09. Candidates acting after meals are read here as a second opinion.
 - **Night-to-night insulin varies less** (night CV 29 vs 36) and does not follow evening entries as the donors' does
   (LESSONS 288–289).
-- Off-by-default experiments with their verdicts: `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
+- Off-by-default experiments with their verdicts: `ge_split` (glucose effectiveness from named parts; too many lows, L 548), `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
   `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
 
 ## Analysis traps (each cost a session)

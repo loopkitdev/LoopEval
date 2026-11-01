@@ -12,8 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-import os
-sys.path.insert(0, os.environ.get("CODE", "/Users/pete/dev/loopeval-additive/analysis"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[4]))   # this tree's analysis/ (live or frozen)
 from loopeval_analysis.patient_sim import fit_body as FB     # noqa: E402
 
 ap = argparse.ArgumentParser()

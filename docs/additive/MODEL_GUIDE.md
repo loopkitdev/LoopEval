@@ -153,7 +153,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 
 | Component | Form | Settings | How set | Rationale / evidence | Personal basis |
 |---|---|---|---|---|---|
-| B1 Circadian sensitivity | one of Visentin's 7 B/L/D classes, switches 04 / 11 / 17 h with 1-h ramps, daily mean 1 | classes equally likely; low/high N(0.40, 0.23) at half the swing | equal classes put 09 h on the donors' (L 59); swing from circadian_amp | Hinshaw 2013 (pattern individual) | **Drawn** |
+| B1 Circadian sensitivity | one of Visentin's 7 B/L/D classes, switches 07 / 11 / 17 h with 1-h ramps, daily mean 1 | classes equally likely; low/high N(0.40, 0.23) at the full swing (L 38) | equal classes put 09 h on the donors' (L 59); swing from circadian_amp | Hinshaw 2013 (pattern individual) | **Drawn** |
 | B1b Basal-need shape | EGP × the donor's quiet-hour delivered-insulin shape (mean 1) | quiet = no entry / manual bolus in 4 h, not disrupted | `add_delivered_profile` | donors' schedule shape over-states quiet need (L 214, 250); flat or schedule^0.5 shapes trade the lows (L 371) | **Donor** |
 | B1c Per-donor circadian SI | the donor's own B / L / D SI posterior (`circ_own`) | — | `fit_body --segments` | reliability B 0.53, L 0.08, D 0.37 (L 335) | Donor, **off** |
 | B2 Dawn phenomenon | EGP ramp to a 07:00 peak | p 0.52; amp lnN(0.3, 0.6) [J] | Ostrovski 2020 | only for people without a donor basal shape (the shape carries dawn, L 51) | Drawn (mostly unused) |
@@ -161,7 +161,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 | B5 Menstrual cycle | SI falls through the late luteal phase to a low at onset, recovers by day 3 | 63% respond; amp lnN(0.08, 0.5); cycle N(28, 3) d | BDDP G7 cycle logs (493 events): +2 to +4.7 mg/dL to onset | L 136 | **Drawn** (F 13–50) |
 | B6 Illness | Poisson episodes 1.5–15 d; SI −10 to −35%, EGP +0–15%; 20% GI (SI up, intake ×0.7) | 3 / yr adults, 5 / yr children | Mehta 2010; Tinti 2025 | evidence/02 | **Event** |
 | B7–B10 Nightly factors | sleep loss (−5% SI / h), nocturnal GH (CV 0.32 on a 20% dawn increment), evening alcohol (63% drink, 3–20% of nights), stress (1/3 react; −18% SI 1–6 h, Moberg 1994) | — | Donga 2010, Edge 1990, Turner 2001, Riazi 2004 | evidence/12; L 77 | **Drawn** + Event |
-| B11 Hyperglycaemic resistance | SI × (1 − H), H → 0.26·clip((G − 140)/220), τ 12 h [J τ] | — | Vuorinen-Markkola 1992; Yki-Järvinen 1987 | L 43 | Cohort |
+| B11 Hyperglycaemic resistance | SI × (1 − H), H → 0.26·clip((G − 140)/220), builds τ 6 h, fades τ 24 h [J τ; L 80] | — | Vuorinen-Markkola 1992; Yki-Järvinen 1987 | L 43 | Cohort |
 | B14 Oral glucocorticoids | courses 0.09 / yr; morning dose; SI loss U(0.35, 0.60) tapering | — | Bevier 2008; Waljee 2017 | L 140 | **Event** |
 | Scenarios (off) | pregnancy (X9), thyrotoxicosis (X12), niacin (D14), damaged insulin (D34), GLP-1 RA (B12) | `--set` / `--enable` | per factor catalog | L 87, 141, 336, 354 | — |
 
@@ -192,11 +192,11 @@ calibration, noise level and transient rate.
 | D2 Calibration | gain a0 × drift × day-1 deficit + offset b0 | a0 N(0.98, 0.04) / N(0.96, 0.05) / N(0.965, 0.03); b0 N(3, 3) / N(2, 3) / N(0, 2) | fitted to FDA accuracy by range and two-sensor PARD (`sensor_fit.py`) | **Event** |
 | D3 Sensor-specific noise | AR(2) (1.30, −0.42), Student-t (df 30 / 4 / 4), scale √(q² + (1 − q²)(IG/130)²) | σ N(1.3, 0.8) / N(1.0, 0.8) / N(1.5, 0.5); q 0.55 / 0.6 / 0.5 | G7 σ and q from the FDA accuracy tables by range (K213919, L 393); G6 q from DEN170088 (L 393), σ from donors' measurement noise (L 362) | **Event** |
 | D3b Common (interstitial) noise | AR(3), continuous across sessions | σ 2.2 / 2.5 / 3.0 | Biagi 2017 form; G7 σ fitted jointly to the FDA tables and the donors' 5-min steps (L 384, 393) | **Drawn** (one process per person) |
-| D3c Transient biases | ±lnN(8 mg/dL, 0.4), τ 10 min; low first 62% / 72% / 55% | 6.5 / 7.5 / 4 per day, session lnN(0.9) | each family's own donor quiet-window reversals (L 32, 390) | **Event** |
+| D3c Transient biases | ±lnN(8 mg/dL, 0.4) (Libre 3 12), τ 10 min; low first 62% / 72% / 55% | 6.5 / 7.5 / 4 per day, session lnN(0.9) | each family's own donor quiet-window reversals (L 32, 390) | **Event** |
 | D3d Noise wander, slow bias, early noise | noise level × exp(log-OU); slow bias (τ 3 h); day-1 extra noise | wander sd 0.45 / 0.7 / 0.7, τ 2 / 2 / 8 h; slow bias sd 5 / 3 / 5 | form Facchinetti 2011; wander fitted to the donors' 5-min step tails, clustering and dispersion where the FDA tables do not identify it (`sensor_eda.py`, L 384); Breton & Kovatchev 2008; G6 Pro day-1 MARD | **Event** |
 | D4 Device smoothing | causal EMA | Libre 3 0.35 [J] | eda L33 | Cohort |
 | D5 Compression lows | while asleep; depth lnN(35), 45 min | rate Gamma(2.37, 1/75.7) / day | donor detector (ice compression run) | **Drawn** |
-| D6 Availability | warm-up, session length, early failure 5% [J], random gaps | gaps 4.4 / 1.7 / 1.5 per day | 153 donors | **Event** |
+| D6 Availability | warm-up, session length, early failure 5% [J], random gaps | gaps 4.11 / 2.10 / 1.50 per day, scaled to the donor's own (`gap_own`) | pilot donors (L 45, 107) | **Event** |
 | D7 Reporting | 5-min grid, integer, 39 / 401 clamps | — | eda L3, L6 | Cohort |
 
 The sensor is fitted only to sensor evidence (FDA tables, donors' measurement noise), never to CGM shape (L 299, 363).
@@ -216,7 +216,7 @@ records carry only the commanded side.
 | E2 Flow error | device bias N(0, 1.5%) + AR(1) τ 45 min | 1-h sd Omnipod 11%, durable 4.5%, twiist 3% at 1 U/h | Freckmann 2019; Ziegler 2021 | **Drawn** (device) |
 | E3 Bolus error | sd c/√U, floor 0.6% | Omnipod c 0.12, durable 0.03 | evidence/06 | **Event** |
 | E4 Start-up transient | after each site change, decays 4 h | Omnipod N(+5%, 5%) | evidence/06 | **Event** |
-| E5 / E5b Site life | absorption 0.9 → 1.15 by day 4; efficacy −2.5% / day after day 1; per-site speed lnN CV 27% | site change every N(3.0, 0.4) d | Swan 2009; Sampson Perrin 2015; Haidar 2013 | **Event** (site), Drawn interval |
+| E5 / E5b Site life | absorption 0.9 → 1.15 by day 4; efficacy −2.5% / day after day 1; per-site speed lnN CV 27% | site change every N(3.0, 0.4) d; `site_clock` (reference): whole days at an evening hour N(19.5, 1.5) (L 523) | Swan 2009; Sampson Perrin 2015; Haidar 2013 | **Event** (site), Drawn interval |
 | E6 Failing site | absorbed fraction → 0.3 (τ 4 h) | p 0.012 per site | Kanapka 2022 | **Event** |
 | E7–E10 Occlusion, bubble, dislodgement | partial (0.4 / wear), full + alarm (0.003), bubble (0.2), dislodge (0.004) | splits [J] | evidence/06; Kanapka 2022 | **Event** |
 | E11 Lipohypertrophy | half of LH people's sites at bioavailability 0.78, dose CV 0.5 | 26% adults, 42% children | Pickup 2014; Famulla 2016 | **Drawn** |
@@ -329,7 +329,8 @@ The level is what carries a donor's control level (L 448's far-from-meal load); 
 
 **Running it:** `--templates templates_pilot_resid_sd3.csv --enable rc_own,night_pro,uls,resid,site_clock --disable
 day,stress,illness,menstrual,steroid,act_frag --set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.6,si_norm=0.92`.
-The template file (outside the repo, beside the others) is built by `patient_sim/resid_tools/`: `ice_var.py` (the
+The template file (outside the repo, beside the others) is built by `patient_sim/resid_tools/` (one copy, run by path
+from the run's frozen tree with the run dir as the working directory): `ice_var.py` (the
 unexplained drive by time scale, donors and a core run), `fit_resid.py` (fast / block / day amplitudes), `lvl_resid.py`
 (one round of the level; three rounds on both draws), `heldout.py` (the odd / even block check).
 
@@ -439,7 +440,7 @@ meal drops and the 3-h change, behaviour rates. The measure scripts sit beside e
 `prof_deliv`, `suspend_own`, `csf_geq`, `ge_var`, `ge_circ`, `fat`, `slot_true`, `entry_split`, `entry_win`,
 `skip_own`, `missed_own`, `macro_own`, `fat_rel`, `ppr_rel`, `night_pro`, `uls`, `posture`, `act_frag`, `lipohypertrophy`, `outages`, `overrides`, `edits`, `counterreg`, `glucotox`.
 Off by default (`--enable`): `rc_own` (on in every validation run), `night_own`, `circ_own`, `intake_own`,
-`prof_np`, `csf_lvl`, scenarios. Numeric: `ins_p2`, `pro_glc`, `meal_slow`, `ge_am` / `ge_pm`, `cr_mult`, `sg_mult`,
+`prof_np`, scenarios. `csf_lvl` defaults to 1.05 (L 401). Numeric: `ins_p2`, `pro_glc`, `meal_slow`, `ge_am` / `ge_pm`, `cr_mult`, `sg_mult`,
 `kappa_mult`, `csf_lvl`, `ex_sat` (C2 saturation, default 0.1; 0 = linear), `ex_alpha`, `ex_up_mult`, `ex_surge_thr` (C4 threshold, default 0.6), `sensor_act_k` (activity-dependent CGM noise, off), `sleep_own` (donor-own sleep window, off), sensor fit
 parameters (`sensor_*`).
 

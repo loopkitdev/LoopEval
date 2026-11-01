@@ -577,11 +577,31 @@ def _carb_absorption(carbs: pd.DataFrame, grid: pd.DatetimeIndex
     return g, cob
 
 
-def _disruption_mask(ds: Dataset, grid: pd.DatetimeIndex) -> np.ndarray:
-    mask = np.zeros(len(grid), dtype=bool)
+def disruption_windows(ds: Dataset) -> list[tuple[pd.Timestamp, pd.Timestamp]]:
+    """(start, end) in UTC for every row of the dataset's disruptions.csv."""
+    out = []
     p = ds.disruptions_path
     if not p or not os.path.exists(p):
-        return mask
+        return out
+    with open(p) as f:
+        for row in csv.DictReader(f):
+            try:
+                out.append((pd.Timestamp(row["start"]).tz_convert("UTC"),
+                            pd.Timestamp(row["end"]).tz_convert("UTC")))
+            except Exception:
+                continue
+    return out
+
+
+def _disruption_mask(ds: Dataset, grid: pd.DatetimeIndex) -> np.ndarray:
+    mask = np.zeros(len(grid), dtype=bool)
+    gv = grid.values
+    for s, e in disruption_windows(ds):
+        lo = np.searchsorted(gv, s.to_datetime64(), side="left")
+        hi = np.searchsorted(gv, e.to_datetime64(), side="right")
+        if lo < hi:
+            mask[lo:hi] = True
+    return mask
     gv = grid.values
     with open(p) as f:
         for row in csv.DictReader(f):

@@ -459,6 +459,12 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Option(name: .long, help: "Slow RC: freeze the level for this many minutes after glucose was below 70, so rescue carbs are not read as resistance (0 = off). Try 720 (C20's window).")
     var candidateSlowRcPostlowFreezeMin: Double = 0
 
+    @Flag(name: .long, help: "Slow RC, stateless form: read the residual from a forecast at the scheduled ISF, not the slow-RC-scaled one (as the LoopAlgorithm port recomputes it from history).")
+    var candidateSlowRcScheduleFeed: Bool = false
+
+    @Option(name: .long, help: "Slow RC, stateless form: EWMA over only the last this-many minutes of residuals, from 0 (default 0 = unbounded).")
+    var candidateSlowRcWindowMin: Double = 0
+
     @Option(name: .long, help: "Slow RC timing gate: JSON {\"windows\": [{\"start\", \"end\", \"min\"}], \"resets\": [ISO dates]}. Inside a window the multiplier's lower clamp is that window's min, outside it --candidate-slow-rc-min; at each reset the level returns to 0 (a user switching the adjustment off).")
     var candidateSlowRcGateJson: String?
 
@@ -651,14 +657,8 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Option(name: .long, help: "Control-IQ reference arm: automatic bolus only when the 30-min forecast exceeds this (mg/dL). 0 = off.")
     var candidateAutoBolusPred30Min: Double = 0
 
-    @Option(name: .long, help: "E6 primer: one extra automatic bolus of this many mg/dL / ISF at a rise seen on the candidate's CGM (slope >= primer-slope, rise >= primer-rise over the 60-min minimum, no BG < 80 in 60 min), then a lockout. 0 = off.")
+    @Option(name: .long, help: "E6 primer: one extra automatic bolus of this many mg/dL / ISF at a rise seen on the candidate's CGM (30-min slope >= 1.5 mg/dL/min, >= 30 mg/dL over the 60-min minimum, no BG < 80 in 60 min), then none for 180 min. 0 = off.")
     var candidatePrimerMgdl: Double = 0
-    @Option(name: .long, help: "E6 primer: trailing 30-min slope threshold, mg/dL/min.")
-    var candidatePrimerSlope: Double = 1.5
-    @Option(name: .long, help: "E6 primer: rise above the 60-min minimum, mg/dL.")
-    var candidatePrimerRise: Double = 30
-    @Option(name: .long, help: "E6 primer: minutes before another primer.")
-    var candidatePrimerLockoutMin: Double = 180
     @Option(name: .long, help: "E6 primer, retractable form: deliver it as extra temp basal over this many minutes, cancelled when CGM rises < 5 mg/dL over 15 min. 0 = bolus.")
     var candidatePrimerTempMin: Double = 0
 
@@ -685,6 +685,27 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
 
     @Flag(name: .long, help: "Runway reserve only with no carbs on board.")
     var candidateRunwayCobGate: Bool = false
+
+    @Option(name: .long, help: "Runway COB gate threshold: the runway stays open while carbs on board are at most this (g, default 0 = any carbs close it).")
+    var candidateRunwayCobMaxG: Double = 0
+
+    @Option(name: .long, help: "Runway COB gate fade: above --candidate-runway-cob-max-g the runway scales down linearly to zero over this many grams (default 0 = closes at once).")
+    var candidateRunwayCobFadeG: Double = 0
+
+    @Option(name: .long, help: "Post-exercise mitigation: CSV of exercise windows (header start,end; ISO-8601 UTC). The mitigation starts at each window's end.")
+    var candidateExerciseWindowsCsv: String?
+
+    @Option(name: .long, help: "Post-exercise mitigation: ISF multiplier after an exercise window ends (default 1 = off; >1 = more sensitive).")
+    var candidatePostExerciseIsfMult: Double = 1.0
+
+    @Option(name: .long, help: "Post-exercise mitigation: hours after the window ends that it lasts (default 0 = off).")
+    var candidatePostExerciseHours: Double = 0
+
+    @Option(name: .long, help: "Post-exercise mitigation: the ISF multiplier fades linearly to 1 over the last this-many hours (default 0 = step).")
+    var candidatePostExerciseFadeHours: Double = 0
+
+    @Flag(name: .long, help: "Post-exercise mitigation: close the runway reserve inside the post-exercise period.")
+    var candidatePostExerciseRunwayOff: Bool = false
 
     @Option(name: .long, help: "Curve-split diagnostic: peak (min) of a second curve used by one part of the controller only (see --split-curve-part). 0 = off.")
     var splitCurvePeakMin: Double = 0
@@ -957,6 +978,8 @@ extension SimulateCommand {
     var candidateSlowRcClipMgdl: Double { get { loopExperiments.candidateSlowRcClipMgdl } set { loopExperiments.candidateSlowRcClipMgdl = newValue } }
     var candidateSlowRcLeakMin: Double { get { loopExperiments.candidateSlowRcLeakMin } set { loopExperiments.candidateSlowRcLeakMin = newValue } }
     var candidateSlowRcPostlowFreezeMin: Double { get { loopExperiments.candidateSlowRcPostlowFreezeMin } set { loopExperiments.candidateSlowRcPostlowFreezeMin = newValue } }
+    var candidateSlowRcScheduleFeed: Bool { get { loopExperiments.candidateSlowRcScheduleFeed } set { loopExperiments.candidateSlowRcScheduleFeed = newValue } }
+    var candidateSlowRcWindowMin: Double { get { loopExperiments.candidateSlowRcWindowMin } set { loopExperiments.candidateSlowRcWindowMin = newValue } }
     var candidateSlowRcGateJson: String? { get { loopExperiments.candidateSlowRcGateJson } set { loopExperiments.candidateSlowRcGateJson = newValue } }
     var candidateSlowRcNeeds: Bool { get { loopExperiments.candidateSlowRcNeeds } set { loopExperiments.candidateSlowRcNeeds = newValue } }
     var candidateSlowRcLowShrink: Double { get { loopExperiments.candidateSlowRcLowShrink } set { loopExperiments.candidateSlowRcLowShrink = newValue } }
@@ -1022,9 +1045,6 @@ extension SimulateCommand {
     var candidateAutoBolusMinIntervalMin: Double { get { loopExperiments.candidateAutoBolusMinIntervalMin } set { loopExperiments.candidateAutoBolusMinIntervalMin = newValue } }
     var candidateAutoBolusPred30Min: Double { get { loopExperiments.candidateAutoBolusPred30Min } set { loopExperiments.candidateAutoBolusPred30Min = newValue } }
     var candidatePrimerMgdl: Double { get { loopExperiments.candidatePrimerMgdl } set { loopExperiments.candidatePrimerMgdl = newValue } }
-    var candidatePrimerSlope: Double { get { loopExperiments.candidatePrimerSlope } set { loopExperiments.candidatePrimerSlope = newValue } }
-    var candidatePrimerRise: Double { get { loopExperiments.candidatePrimerRise } set { loopExperiments.candidatePrimerRise = newValue } }
-    var candidatePrimerLockoutMin: Double { get { loopExperiments.candidatePrimerLockoutMin } set { loopExperiments.candidatePrimerLockoutMin = newValue } }
     var candidatePrimerTempMin: Double { get { loopExperiments.candidatePrimerTempMin } set { loopExperiments.candidatePrimerTempMin = newValue } }
     var candidateRunwayFraction: Double { get { loopExperiments.candidateRunwayFraction } set { loopExperiments.candidateRunwayFraction = newValue } }
     var candidateSigmaPrior: Double { get { loopExperiments.candidateSigmaPrior } set { loopExperiments.candidateSigmaPrior = newValue } }
@@ -1034,6 +1054,13 @@ extension SimulateCommand {
     var candidateRunwayMaxMgdl: Double { get { loopExperiments.candidateRunwayMaxMgdl } set { loopExperiments.candidateRunwayMaxMgdl = newValue } }
     var candidateRunwayBgMin: Double { get { loopExperiments.candidateRunwayBgMin } set { loopExperiments.candidateRunwayBgMin = newValue } }
     var candidateRunwayCobGate: Bool { get { loopExperiments.candidateRunwayCobGate } set { loopExperiments.candidateRunwayCobGate = newValue } }
+    var candidateRunwayCobMaxG: Double { get { loopExperiments.candidateRunwayCobMaxG } set { loopExperiments.candidateRunwayCobMaxG = newValue } }
+    var candidateRunwayCobFadeG: Double { get { loopExperiments.candidateRunwayCobFadeG } set { loopExperiments.candidateRunwayCobFadeG = newValue } }
+    var candidateExerciseWindowsCsv: String? { get { loopExperiments.candidateExerciseWindowsCsv } set { loopExperiments.candidateExerciseWindowsCsv = newValue } }
+    var candidatePostExerciseIsfMult: Double { get { loopExperiments.candidatePostExerciseIsfMult } set { loopExperiments.candidatePostExerciseIsfMult = newValue } }
+    var candidatePostExerciseHours: Double { get { loopExperiments.candidatePostExerciseHours } set { loopExperiments.candidatePostExerciseHours = newValue } }
+    var candidatePostExerciseFadeHours: Double { get { loopExperiments.candidatePostExerciseFadeHours } set { loopExperiments.candidatePostExerciseFadeHours = newValue } }
+    var candidatePostExerciseRunwayOff: Bool { get { loopExperiments.candidatePostExerciseRunwayOff } set { loopExperiments.candidatePostExerciseRunwayOff = newValue } }
     var splitCurvePeakMin: Double { get { loopExperiments.splitCurvePeakMin } set { loopExperiments.splitCurvePeakMin = newValue } }
     var splitCurveDurationMin: Double { get { loopExperiments.splitCurveDurationMin } set { loopExperiments.splitCurveDurationMin = newValue } }
     var splitCurvePart: String { get { loopExperiments.splitCurvePart } set { loopExperiments.splitCurvePart = newValue } }
