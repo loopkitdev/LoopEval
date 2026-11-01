@@ -1045,3 +1045,32 @@ evidence to the evidence files.
      term is exactly this and is still off, L 548), or SG itself, which Pete allows calibrating within
      0.0013–0.0047 (L 68, 75) — but the median is already 0.0045, near the top of the range, so there is little room.
      Both point at the sub-basal shape of glucose disposal rather than at counter-regulation.
+561. **A1c alone (`ge_spare`) fixes the excess time below 70 but NOT the shallow-low recovery it was built for; it
+   shifts the low depths instead.** The one part of the L 548 split aimed at L 559's gap — fixed insulin-independent
+   uptake falling below 81 mg/dL (Best 1981 ~1 mg/kg/min, Hovorka 2004 F01c) — on the lumped SG, with none of the
+   split's other parts, so the liver's support below Gb is untouched (that is what made the full split add lows).
+   Sized first: 3.5 mg/dL over 30 min at G 65, against the +5 needed and the 2.4 that A9 could supply at most (L 560).
+
+   | | ad2 / sp0 | **sp1 (`ge_spare`)** | Donors |
+   |---|---|---|---|
+   | t70 | 1.97 / 2.16 | **1.67 / 1.71** | 1.60 |
+   | t54 | 0.187 / 0.240 | 0.153 / 0.176 | 0.190 |
+   | lows per day | 1.04 / 1.17 | 1.00 / 1.04 | 1.00 |
+   | tir | 68.9 / 70.2 | **69.8 / 71.0** | 71.9 |
+   | p_reach54 | 0.200 / 0.200 | **0.167 / 0.170** | 0.212 |
+   | minutes/day < 70 | 45.0 / 56.2 | 43.1 / 53.7 | 35.0 |
+   | **rise 30 min from a 60–70 nadir** | **+21 / +20** | **+21 / +20** | **+26** |
+   | score | 0.340 / 0.444 | 0.356 / 0.426 | — |
+
+   - **It works for a different reason than intended.** The per-event recovery slope and excursion length do not move
+     at all (+21 / +20 and 15 min, unchanged). The term is only 0.118 mg/dL/min at G 65, so it resists the DESCENT
+     into a low more than it speeds the climb out: fewer and shallower lows, the same recovery once at the nadir.
+     L 559's +5 mg/dL of missing recovery is still unexplained.
+   - **For it:** t70 improves on both draws (gap 0.198 → 0.045, 0.494 → 0.285) and it was the binding limit on TIR
+     (L 558); TIR and lows per day improve on both draws, recovering part of `ppr_a`'s TIR cost.
+   - **Against it:** `p_reach54` falls to 0.167 / 0.170 against the donors' 0.212 and t54 on draw 1 drops under the
+     donors' (0.153 vs 0.190) — a duration error traded for a depth error, on the safety-relevant side. Tier 2 is
+     worse on both draws and the net score is mixed (0.356 / 0.426 against 0.340 / 0.444).
+   - **The standing review rule applies**: A9's CRmax is fitted to the low DEPTHS (L 394), and A1c changes those
+     depths, so CRmax must be refit before this is judged. Arms with `cr_mult` below 1 (deeper lows) on top of
+     `ge_spare` in `run_sr.sh`. Held off until that refit is in.
