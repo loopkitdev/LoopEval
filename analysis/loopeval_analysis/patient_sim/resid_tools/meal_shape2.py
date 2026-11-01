@@ -26,6 +26,7 @@ def show(lab, R):
     print(f"               fall >= 30 mg/dL: {(D.fall >= 30).mean():.2f}   2nd rise >= 20: {(D.rise2 >= 20).mean():.2f}"
           f"   BOTH: {((D.fall >= 30) & (D.rise2 >= 20)).mean():.2f}")
 
+FAM = pd.read_csv(Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/templates_pilot.csv")[["alias", "sensor"]].set_index("alias").sensor.to_dict()
 don = []
 for a in sorted({p.stem for p in (L.ICE_ROOT / "steps").glob("*.parquet")}):
     try:
@@ -43,8 +44,15 @@ for a in sorted({p.stem for p in (L.ICE_ROOT / "steps").glob("*.parquet")}):
         if gm < 20: continue
         i = int(np.searchsorted(t, t0))
         if i < 1 or i + 49 >= len(t) or t[i + 48] - t[i] > 260: continue
-        don.append(shape(g[i:i + 49]))
-print("== DONORS (carb entries >= 20 g)"); show("donors", don)
+        r_ = shape(g[i:i + 49])
+        if r_: don.append(dict(r_, fam=FAM.get(a, "?")))
+print("== DONORS (carb entries >= 20 g), by sensor family")
+_D = pd.DataFrame(don)
+for _f, _g in _D.groupby("fam"):
+    if len(_g) < 200: continue
+    print(f"   {_f:12s} n{len(_g):6d}  rise {_g.rise1.median():5.1f}  fall after peak {_g.fall.median():5.1f}"
+          f"  2nd rise {_g.rise2.median():5.1f}")
+show("donors ALL", don)
 for run in sys.argv[1:]:
     R = []
     for p in sorted(Path(run).glob("v0*")):

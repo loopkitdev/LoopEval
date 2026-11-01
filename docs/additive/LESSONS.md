@@ -944,20 +944,17 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      0.015 leave the fall at 46 / 44 / 46 against 47 / 43 — **also unmoved**. So every candidate of L 512's list is now
      eliminated by measurement: appearance, glucose-dependence (κ), post-meal sensitivity (A12b), dose, the
      controller's response, and action timing (p2).
-   - **And the statistic itself is ~40% sensor** (`true_vs_cgm.py`), which is why every body lever read as diluted:
-
-     | ad3, after a meal peak | rise | fall |
-     |---|---|---|
-     | the twins' CGM | 64 / 61 | **48 / 45** |
-     | the twins' TRUE glucose | 60 / 57 | **37.9 / 34.2** |
-
-     Our own sensor adds ~10 mg/dL of apparent fall (+27%). If the donors' sensors add a similar amount, their CGM 57
-     is a TRUE fall near 47, so **the body gap is ~9 mg/dL in truth terms, not the 16 the CGM statistic shows** — and
-     a body change of 9 is diluted to ~7 by the time it reaches the CGM comparison. This is the meal-window form of
-     the false-lows trap (L 393, 498: half the twins' fast CGM falls are sensor-made and the donors' look the same).
-     **Before any further work on this gap, re-measure it on truth against a sensor-matched donor basis** — the
-     current target overstates the body-side deficit by about 40%, which is enough to explain why six levers each
-     read as "no effect".
+   - **The sensor inflates the fall on BOTH sides and does not dilute the comparison** (`resid_tools/true_vs_cgm.py`,
+     `meal_shape2.py` split by family). Our sensor adds 24–35% of apparent fall (G7 most: +11.5 / +11.9; G6
+     +8.5 / +4.0; twins' CGM 48 / 45 against their TRUE 37.9 / 34.2). The donors' falls show the SAME family ordering
+     — G7 58.0, G6 54.0, Libre 3 45.0 — consistent with similar amplification on their side. Family-matched the gap
+     is G6 10–16 and G7 9–12 mg/dL in CGM terms, and applying the twins' own per-family amplification to the donors'
+     CGM puts it at 10–13 in estimated truth terms. **So the gap is real, body-side, and about the same size however
+     it is read.** An earlier draft of this lesson claimed the sensor diluted a 9 mg/dL body change to ~7 and so
+     explained the null levers — that was wrong: the amplification is similar on both sides, so a body change
+     propagates to the CGM comparison roughly intact. The nulls are genuine nulls.
+     Always split this statistic by sensor family: the twins' G7 share differs from the donors', and G7 amplifies
+     about three times as much as G6 on one draw.
 
 577. **TDD, not bg_mean, is the diagnostic for a core sensitivity error: `resid_m` absorbs core level errors.**
    `si_norm` is a deliberate cohort-wide 8% cut in sensitivity (L 468, 516: the yardstick averages over the donor's

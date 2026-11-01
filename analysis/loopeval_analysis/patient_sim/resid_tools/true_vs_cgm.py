@@ -19,19 +19,24 @@ def shape(t, g, ent):
                         fall=float(seg[k] - np.min(seg[k:min(k + 18, len(seg))]))))
     return out
 
+import pandas as _pd
+FAM = _pd.read_csv(Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/templates_pilot.csv")[["alias", "sensor"]].set_index("alias").sensor.to_dict()
 for run in sys.argv[1:]:
-    C, T = [], []
+    rows = []
     for p in sorted(Path(run).glob("v0*")):
         tr = pickle.load(open(p / "truth.pkl", "rb"))
+        pe = pickle.load(open(p / "person.pkl", "rb"))
+        fam = FAM.get(getattr(pe, "template", None), "?")
         c = tr["cgm"].dropna(); c = c[c.index >= 2880]
         ent = [(e[0], e[1]) for e in tr["entries"]]
-        C += shape(c.index.to_numpy(float), c.to_numpy(float), ent)
-        tt = tr["truth"]
-        m = tt.m.to_numpy(float); bg = tt.bg.to_numpy(float)
-        sel = m >= 2880
-        m5 = m[sel][::5]; b5 = bg[sel][::5]        # truth is per minute; sample to the CGM's 5-min grid
-        T += shape(m5, b5, ent)
-    dc, dt_ = pd.DataFrame(C), pd.DataFrame(T)
+        for r in shape(c.index.to_numpy(float), c.to_numpy(float), ent): rows.append(dict(r, kind="cgm", fam=fam))
+        tt = tr["truth"]; m = tt.m.to_numpy(float); bg = tt.bg.to_numpy(float); sel = m >= 2880
+        for r in shape(m[sel][::5], bg[sel][::5], ent): rows.append(dict(r, kind="truth", fam=fam))
+    D = pd.DataFrame(rows)
     print(f"== {Path(run).name}")
-    print(f"   CGM   n{len(dc):5d}  rise {dc['rise'].median():5.1f}  fall after peak {dc['fall'].median():5.1f}")
-    print(f"   TRUTH n{len(dt_):5d}  rise {dt_['rise'].median():5.1f}  fall after peak {dt_['fall'].median():5.1f}")
+    for fam, g in D.groupby("fam"):
+        cg, tu = g[g.kind == "cgm"], g[g.kind == "truth"]
+        if len(cg) < 40: continue
+        amp = cg["fall"].median() - tu["fall"].median()
+        print(f"   {fam:12s} n{len(cg):5d}  CGM fall {cg['fall'].median():5.1f}  truth {tu['fall'].median():5.1f}"
+              f"  sensor adds {amp:+5.1f} ({amp / tu['fall'].median():+.0%})")
