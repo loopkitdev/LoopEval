@@ -767,6 +767,8 @@ extension EvaluationEngine {
         var slowRcLevel = 0.0          // ewma: EWMA of the residual; integral: log of the ISF multiplier
         var slowRcLastLow: Date? = nil
         var slowRcResetIdx = 0
+        var slowRcHistory: [(t: Date, r: Double, decay: Double)] = []   // stateless form: the residuals in the window
+        var slowRcLastIceEnd: Date? = nil                                  // stateless form: the last interval counted
         let slowRcGated = !candidateConfig.slowRcGateWindows.isEmpty
         func slowRcMinAt(_ t: Date) -> Double {
             candidateConfig.slowRcGateWindows.first { $0.start <= t && t < $0.end }?.min ?? candidateConfig.slowRcMin
@@ -1106,12 +1108,12 @@ extension EvaluationEngine {
                 // Needs form: the slow RC level scales basal and carb ratio with ISF, like an insulin-needs override.
                 let slowRcNeeds = candidateConfig.slowRcNeeds && slowRcOn ? 1.0 / slowRcMult : 1.0
                 var stepInput = Self.scaledNeeds(candidateInput, slowRcNeeds), stepOrefHist = orefHistDoses
-                func doStep(_ map: [Date: Double]?) -> EngineStepResult {
+                func doStep(_ map: [Date: Double]?, isfMult: Double? = nil) -> EngineStepResult {
                     candidateEngine.step(EngineStepRequest(
                         t: t, input: stepInput, config: candidateConfig,
                         therapy: candTherapy, glucoseMgdl: candMomentumMgdl,
                         glucoseSamples: candMomentumSamples,
-                        extraISFMultiplier: sensModeMult * slowRcMult,
+                        extraISFMultiplier: isfMult ?? sensModeMult * slowRcMult,
                         forecastOffsetMgdl: iceRiseBoostOffset + anticipationOffset,
                         perStepIsfMultByTime: map,
                         isfBoostActiveOnly: isfBoostActiveOnly,
@@ -1323,6 +1325,32 @@ extension EvaluationEngine {
                 // in carb-active steps; C08 results before pinned10 were measured with that feed.)
                 let rcResidualFeed = candidateICE.isFinite
                     ? candidateICE - (candidateCarbEffect.isFinite ? candidateCarbEffect : 0.0) : Double.nan
+                // Stateless slow RC (the LoopAlgorithm port): a recompute from history cannot know past multipliers,
+                // so its residual is the scheduled-ISF forecast's, read from a second step at the scheduled ISF (no
+                // per-step boost map). Each counteraction interval counts once, as change per 5 min weighted by its
+                // duration: a step with no new CGM interval adds nothing (the running form re-reads the last one).
+                var slowRcFeed = rcResidualFeed
+                var slowRcFeedDuration = stepDur
+                let slowRcStateless = candidateConfig.slowRcScheduleFeed || candidateConfig.slowRcWindowSec > 0
+                if slowRcOn && slowRcStateless {
+                    let effects = candidateConfig.slowRcScheduleFeed && abs(slowRcMult - 1.0) > 1e-12
+                        ? doStep(nil, isfMult: sensModeMult).prediction.effects : result.prediction.effects
+                    var carb = Double.nan
+                    if let ki = effects.carbs.lastIndex(where: { $0.startDate <= tEps }), ki > effects.carbs.startIndex {
+                        carb = effects.carbs[ki].quantity.doubleValue(for: mgdlUnit) - effects.carbs[ki - 1].quantity.doubleValue(for: mgdlUnit)
+                    }
+                    slowRcFeed = .nan
+                    if let m = effects.insulinCounteraction.last(where: { $0.endDate <= tEps }),
+                       slowRcLastIceEnd.map({ m.endDate > $0 }) ?? true {
+                        let duration = m.endDate.timeIntervalSince(m.startDate)
+                        let ice = m.effect.quantity.doubleValue(for: mgdlUnit)
+                        if duration > 0, ice.isFinite {
+                            slowRcFeed = (ice - (carb.isFinite ? carb : 0.0)) * 300 / duration
+                            slowRcFeedDuration = duration
+                            slowRcLastIceEnd = m.endDate
+                        }
+                    }
+                }
                 if sensModeOn && rcResidualFeed.isFinite {
                     sensModeLevel = sensModeDecayStep * sensModeLevel + (1.0 - sensModeDecayStep) * Swift.max(0.0, -rcResidualFeed)
                 }
@@ -1334,10 +1362,16 @@ extension EvaluationEngine {
                     && slowRcLastLow.map { t.timeIntervalSince($0) < candidateConfig.slowRcPostlowFreezeSec } == true
                 let resets = candidateConfig.slowRcResets
                 while slowRcResetIdx < resets.count && resets[slowRcResetIdx] <= t { slowRcLevel = 0; slowRcResetIdx += 1 }
-                if slowRcOn && rcResidualFeed.isFinite && !slowRcFrozen {
+                if slowRcOn && slowRcFeed.isFinite && !slowRcFrozen {
                     let c = candidateConfig.slowRcClipMgdl
-                    let r = c > 0 ? Swift.max(-c, Swift.min(c, rcResidualFeed)) : rcResidualFeed
-                    if candidateConfig.slowRcIntegral {
+                    let r = c > 0 ? Swift.max(-c, Swift.min(c, slowRcFeed)) : slowRcFeed
+                    if candidateConfig.slowRcWindowSec > 0 && !candidateConfig.slowRcIntegral {
+                        // Stateless form: the EWMA of the window's residuals, from 0 at its start.
+                        slowRcHistory.append((t, r, exp(-slowRcFeedDuration / candidateConfig.slowRcTauSec)))
+                        let from = slowRcHistory.firstIndex { t.timeIntervalSince($0.t) < candidateConfig.slowRcWindowSec } ?? slowRcHistory.count
+                        slowRcHistory.removeFirst(from)
+                        slowRcLevel = slowRcHistory.reduce(0.0) { $1.decay * $0 + (1.0 - $1.decay) * $1.r }
+                    } else if candidateConfig.slowRcIntegral {
                         // Integral form: step the log multiplier against the residual until the residual averages
                         // zero; clamp it to [ln min, ln max] so it cannot wind up past the clamp.
                         let leak = candidateConfig.slowRcLeakSec > 0 ? exp(-stepDur / candidateConfig.slowRcLeakSec) : 1.0
@@ -2346,6 +2380,19 @@ extension EvaluationEngine {
                 autosensFactor = Swift.max(config.autosensMin, Swift.min(config.autosensMax, f))
             }
         }
+        // Post-exercise mitigation: inside postExerciseHours after the latest exercise window that has ended, ISF × mult
+        // (fading to 1 over the last postExerciseFadeHours). It joins autosens: a whole-body sensitivity change, classic split.
+        var postExerciseActive = false
+        if config.postExerciseHours > 0, !config.exerciseWindows.isEmpty,
+           let last = config.exerciseWindows.last(where: { $0.end <= t }) {
+            let h = t.timeIntervalSince(last.end) / 3600.0
+            if h < config.postExerciseHours {
+                postExerciseActive = true
+                let fadeStart = config.postExerciseHours - config.postExerciseFadeHours
+                let w = h <= fadeStart ? 1.0 : Swift.max(0, (config.postExerciseHours - h) / Swift.max(config.postExerciseFadeHours, 1e-9))
+                autosensFactor *= 1.0 + (config.postExerciseIsfMult - 1.0) * w
+            }
+        }
         let effExtraISF = extraISFMultiplier * dampFactor * autosensFactor
         let effectiveSensitivity: [AbsoluteScheduleValue<LoopQuantity>]
 
@@ -2837,8 +2884,11 @@ extension EvaluationEngine {
         // Runway reserve (C40): how much extra correction suspending basal could still take back.
         // Uses the forecast before the sigma band lowers it (the band term here is its own).
         var runwayDelta = 0.0
-        if config.runwayFraction > 0, sigma5.isFinite,
-           !config.runwayCobGate || (prediction.activeCarbs ?? 0) <= 0,
+        // COB gate: open up to runwayCobMaxG g, then fade out linearly over runwayCobFadeG g (0 = close at once).
+        let runwayCob = prediction.activeCarbs ?? 0
+        let runwayCobScale = !config.runwayCobGate || runwayCob <= config.runwayCobMaxG ? 1.0
+            : config.runwayCobFadeG > 0 ? Swift.max(0, 1 - (runwayCob - config.runwayCobMaxG) / config.runwayCobFadeG) : 0.0
+        if config.runwayFraction > 0, sigma5.isFinite, runwayCobScale > 0, !(config.postExerciseRunwayOff && postExerciseActive),
            let t0 = prediction.glucose.first?.startDate,
            let eventual = prediction.glucose.last?.quantity.doubleValue(for: .milligramsPerDeciliter) {
             let mg = LoopUnit.milligramsPerDeciliter
@@ -2873,7 +2923,7 @@ extension EvaluationEngine {
                     eMin = Swift.min(eMin, (path + isf * withheld - theta) / (isf * d))
                 }
                 if eMin.isFinite {
-                    runwayDelta = Swift.min(config.runwayMaxMgdl, config.runwayFraction * isf * Swift.max(0, eMin))
+                    runwayDelta = runwayCobScale * Swift.min(config.runwayMaxMgdl, config.runwayFraction * isf * Swift.max(0, eMin))
                 }
             }
         }
@@ -3067,7 +3117,8 @@ extension EvaluationEngine {
         let fixture: Data? = config.algorithmInputExportDir == nil ? nil : algorithmInputFixtureJSON(
             t: t, predictionStart: predStart, input: effectiveInput, config: config, therapy: therapy,
             applicationFactor: appFactor, prediction: prediction, bolus: doseRec?.bolus ?? 0,
-            tempRate: doseRec?.tempBasalRate ?? 0, deltaU: doseRec?.deltaU ?? 0, tempAction: doseRec?.tempAction ?? "set")
+            tempRate: doseRec?.tempBasalRate ?? 0, deltaU: doseRec?.deltaU ?? 0, tempAction: doseRec?.tempAction ?? "set",
+            scheduledSensitivity: input.sensitivity, isfMultiplier: effExtraISF)
         return (
             dose: doseRec?.deltaU ?? 0,
             bolus: doseRec?.bolus ?? 0,
