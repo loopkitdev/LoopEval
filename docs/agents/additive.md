@@ -151,6 +151,9 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 - **Meals still come down sooner than the donors'**: 3-h meal change +11.7 vs +21 (was +2 before breakfast skipping, the dinner fat carrying the night, LESSONS 368–370). Loop's delivery at each glucose band matches the donors' (LESSONS 368); adding meal glucose by carb sensitivity, slow share or protein is answered at the meal (LESSONS 366–367). The hourly profile runs 5 mg/dL low at 00–06 h and 8 high at 06–12 h (basal-need shape, LESSONS 371, 373); TDD day-to-day persistence (ac1) is ~0 against the donors' 0.09. Candidates acting after meals are read here as a second opinion.
 - **Night-to-night insulin varies less** (night CV 29 vs 36) and does not follow evening entries as the donors' does
   (LESSONS 288–289).
+- **The exercise side is now limited by a missing measurement, not by a missing mechanism** (L 551, 556, 557): per-person
+  aerobic capacity is a prior (METmax lnN(9, 0.25)), and without it C4's threshold keying, C1 / C2's size at moderate
+  intensity, and the ≥ 8 MET band cannot be settled. The ≥ 8 band holds 18–25 bouts a draw, too few to rank a parameter.
 - Off-by-default experiments with their verdicts: `ge_split` (glucose effectiveness from named parts; too many lows, and superseded by the C4 threshold fix on change prediction too, L 548, 555), `ex_dur_cap` (the cap without the METmax fit — leaves almost no hard session, L 554), `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
   `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
 

@@ -943,3 +943,26 @@ evidence to the evidence files.
    - **Still open:** the ≥ 8 MET band now overshoots on draw 1 (+12.8 vs +1.2) on 18–22 bouts, and the 6–8 band is
      still short of −21.5. Both wait on a measured capacity per person rather than a prior — see the Apple Watch data
      note (VO2max is the one measurement that would settle it).
+
+557. **C4's surge size cannot be refit against the donors' ≥ 8 MET band at this cohort size; 28 mg/kg/min stays.** The
+   standing rule says refit what a structural change drifted (L 196, 499), and the size was calibrated at the old
+   %reserve threshold (L 247), so the keying change (L 556) invalidated it. Arms at 20 and 14 against ad0's 28, two
+   draws, scored and measured on C4's own by-METs table:
+
+   | ≥ 8 MET band (donors **+1.2**) | draw 1 | draw 2 | score |
+   |---|---|---|---|
+   | surge 28 (ad0) | **+12.8** | −5.1 | 0.364 / 0.416 |
+   | surge 20 | −6.5 | −4.2 | 0.377 / 0.419 |
+   | surge 14 | −7.7 | −8.2 | 0.378 / 0.415 |
+
+   Only 28 produces a positive band at all, and only on draw 1; every size is negative on draw 2. The band holds
+   18–25 bouts per draw, so its draw scatter swamps the parameter — it cannot rank a size. Both smaller sizes are
+   worse on draw 1 and level on draw 2, so 28 is kept unchanged.
+   - **The mechanism check passed, and it narrows the remaining gap.** Predicted: the 6–8 MET band sits BELOW the
+     threshold, so the surge size should not touch it. Measured: −14.4 / −6.1 at 28, −14.7 / −6.5 at 20, −14.5 / −7.5
+     at 14 — unchanged. So the 6–8 shortfall against the donors' −21.5 is **not** a C4 problem; it is C1 / C2 too weak
+     at moderate intensity, and both were already shown unfixable inside their evidence (L 551: α 2.6 does nothing,
+     C1 × 1.5 breaks the measured insulin dependence of L 494).
+   - **What it would take.** More hard-session bouts per draw. The twins run 18% of sessions at ≥ 7 METs against the
+     donors' 37% (L 551), so the band is thin on both sides of the comparison; and sizing C1 / C2 honestly needs a
+     measured aerobic capacity per person rather than a prior. Both point at the same missing measurement (VO2max).
