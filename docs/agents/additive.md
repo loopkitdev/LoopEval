@@ -149,7 +149,11 @@ reference changes.
   1.59 U, and still climb out slower), as are A9 and rescue behaviour. Bruce 2025 and Del Prato 1997 do NOT size it — both
   RAISE glucose above basal (they are A1b's and A1a's evidence); this needs a study that lowers glucose below basal at basal
   insulin in T1D, which only Mevorach 2000 approaches, under a hyperinsulinaemic clamp.
-- **NEXT THREAD, the most promising open one** (L 576): `si_norm` 1.0 (undoing the deliberate cohort-wide 8% sensitivity cut)
+- **TDD, not bg_mean, is the diagnostic for a core sensitivity error** (L 577): `resid_m` is fitted to each donor's glucose
+  level, so it absorbs core level errors — a potency deficit shows up as the insulin surplus, not as a level gap. Read
+  `resid_m`'s size as what the core is missing. `si_norm` 1.0 + a level refit improves the mean score (0.372 vs 0.385) and
+  level and TIR on all three draws, but hands back the TDD gain; awaiting Pete.
+- **superseded by L 577** (L 576): `si_norm` 1.0 (undoing the deliberate cohort-wide 8% sensitivity cut)
   improves TDD and TIR on all three draws, confirming that the post-meal potency deficit and the twins' 5–8% insulin surplus
   share one cause. It drops the glucose level because `resid_m` was fitted at 0.92, so it needs `lvl_resid.py` re-run after
   it (three rounds per draw, L 525) before it can be judged. One cause behind three documented limits.

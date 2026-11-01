@@ -1468,3 +1468,34 @@ evidence to the evidence files.
      the change reads as a level regression; with it, TDD, TIR and the post-meal trough should all move together.
    - **This is the most promising open thread in the model**, because it is one cause behind three documented limits:
      the post-meal trough (L 512, 574, 575), the insulin surplus (L 445–456), and part of the TIR shortfall (L 558).
+577. **The residual's level term absorbs a core potency change: refitting it after `si_norm` 1.0 restores the level and
+   TIR on all three draws but hands back the insulin-surplus gain. The data-driven layer has been masking the core
+   defect.** Three rounds of `lvl_resid.py` on draws 1 and 2 after raising `si_norm` to 1.0, converging cleanly
+   (twin–donor mean ρ 0.92 → 0.97 → 0.99):
+
+   | | Donors | ad3 | `si_norm` 1.0, no refit | **1.0 + level refit** |
+   |---|---|---|---|---|
+   | score | — | 0.321 / 0.425 / 0.410 | 0.312 / 0.444 / 0.409 | **0.333 / 0.373 / 0.409** (mean **0.372** vs 0.385) |
+   | bg_mean | 151.93 | 151.5 / 147.6 / 151.6 | 149.7 / 145.5 / 150.1 | **150.7 / 150.1 / 152.5** |
+   | tir | 71.88 | 69.8 / 71.1 / 68.2 | 70.3 / 72.0 / 70.7 | **71.0 / 72.5 / 69.9** |
+   | tdd | 38.70 | 40.9 / 42.7 / 41.8 | **40.3 / 42.2 / 41.2** | 41.8 / 43.5 / 41.9 |
+   | t70 | 1.599 | 1.72 / 1.90 / 1.49 | 1.88 / 2.38 / 1.82 | 2.14 / 2.11 / 1.84 |
+
+   - **The mean score improves** (0.372 against 0.385) on the strength of draw 2, the best draw-2 score of the session
+     (0.373 against sd3's 0.454); draw 1 is worse and draw 3 level. **bg_mean and TIR improve on all three draws** —
+     both gaps roughly halve.
+   - **But TDD is worse on all three**, giving back exactly the gain `si_norm` 1.0 bought alone. The mechanism is
+     plain: the refit raises `resid_m` (an unexplained glucose drive) to restore the level, and that extra drive needs
+     insulin to cover. So the 8% of potency returned to the core came straight back out as residual drive.
+   - **The architectural consequence, which matters more than the score.** `resid_m` is fitted per person to the
+     donor's own glucose level, so it absorbs whatever the evidenced core gets wrong about level — including a core
+     sensitivity error. A potency deficit therefore does NOT show up in the level statistics; it shows up in **TDD**,
+     because the compensating drive has to be dosed for. That is consistent with the twins' standing 5–8% insulin
+     surplus (L 445–456) having been the visible face of this all along, and it means **TDD is the diagnostic for core
+     sensitivity errors, not bg_mean.** Read `resid_m`'s size as a measure of what the core is missing, not as a
+     nuisance parameter.
+   - **Not adopted.** The mean score favours it and the level and TIR improve on all three draws, but TDD regresses on
+     all three and t70 on two of three, and the change is a cohort-wide sensitivity move — the kind that should not be
+     made on a mixed reading. **Pete's call**, with the architectural point above as the substance: the choice is
+     whether to carry the 8% in the core (where it is a named sensitivity) or in `resid_m` (where it is unexplained
+     drive that must be dosed for).
