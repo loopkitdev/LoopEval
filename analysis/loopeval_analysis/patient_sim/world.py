@@ -440,6 +440,11 @@ class World:
             self.beh_traits.p_log_pro = enable["p_log_pro"]
         if enable and isinstance(enable.get("p_log_rescue"), float):
             self.beh_traits.p_log_rescue = enable["p_log_rescue"]
+        if enable and isinstance(enable.get("unl_mult"), float):
+            # direct refit hook (L 603): `unl_mult` was readable only through the off-by-default `unl_own`
+            # experiment and only from the template, so `--set unl_mult` was a silent no-op
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.unl_mult = float(enable["unl_mult"])
         if enable and enable.get("unl_own"):
             # unl_own (experiment, LESSONS 449): unlogged eating sized from the donor's own unannounced load more than 6 h from
             # a logged meal (labelled, like for like): the twins' far load is ~16 g-eq/day of body-made rises plus ~56 of
