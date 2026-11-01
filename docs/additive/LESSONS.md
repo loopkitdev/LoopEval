@@ -875,3 +875,27 @@ evidence to the evidence files.
    vs st9's 0.83; TIR tight − rest −0.90, worse than st9's −1.51). L 549's advantage was measured against sd3 and does
    not survive the C4 fix: what the split was buying on the low side, the threshold buys more cheaply. The split stays
    off and is no longer the arm to reach for on low-side change work; use st9.
+
+554. **A quarter of simulated workouts were efforts no one can sustain, and fixing that exposes a contradiction in how
+   C4's threshold is keyed.** `ex_mets` draws a session's absolute METs from the donors' own workouts but converts
+   them on THIS twin's METmax, which is drawn independently (lnN(9, 0.25), median 8.8): 19% of sessions sat at 1.00 of
+   aerobic reserve — the clip ceiling — for a median 39 minutes, and 27% at ≥ 0.85. Every one of those fired C4's
+   surge, and a session that fires it does not fall at all: matched (nothing eaten, start 120–200, 25–60 min) the drop
+   to nadir is 20 mg/dL below the threshold and **0** above it. Two components that must agree did not.
+   - **`ex_dur_cap`** caps intensity by what a person holds for a whole session of that length (`_sus`: ~0.87 at
+     20 min, 0.775 at 40, 0.72 at 60; the intensity-duration relation, constants [J]). Score 0.353 → 0.363 / 0.437 →
+     0.416; matched drop 20 / 16 → **28 / 27** (donors 35) and C4's 6–8 MET band −6.5 / +4.7 → −13.3 / −8.3 (−21.5).
+     But it leaves almost no hard session: 3 and 13 bouts at ≥ 8 METs, against the donors' 51 of 171 (30%).
+   - **`ex_cap_fit`** keeps that cap and instead raises METmax to what the person's own sessions need (a 40-min habit
+     at 8.6 METs forces METmax ≥ 10.8), since session METs are measured and METmax is only a prior. ≥ 8 MET bouts come
+     back (20 and 23) and the 7–9 MET drop reaches 45 against the donors' 50. Score 0.384 / 0.412.
+   - **Neither is adoptable on the standing rule**: both are worse on draw 1 and better on draw 2 (st9 0.353 / 0.437),
+     so neither holds on both draws. They fix a physical impossibility, which is a soundness argument of the kind
+     L 303 settled in favour of soundness, but they are not yet a measured improvement.
+   - **The contradiction.** Keyed in %VO2-reserve, C4's threshold cannot reproduce the donors' positive ≥ 8 MET band
+     (+1.2) once METmax is consistent: for a person whose METmax is 11, 8 METs is 0.70 of reserve, far below any
+     anaerobic threshold, so those bouts fall hard instead (−24.6 / −13.4). The donors' surge signature is in absolute
+     METs; C4's threshold is in %reserve; raising METmax to fix the sessions necessarily moves a given MET load further
+     below the threshold. One of the two framings is wrong. `ex_surge_mets` (off) reads the threshold in absolute METs,
+     ramping to full 2 METs above it, which lets both the cap and the donors' band hold; arms at 7 and 8 METs with
+     `ex_cap_fit` in `run_sm.sh`. Run dir runs/2026-10-31-additive-gesplit/.
