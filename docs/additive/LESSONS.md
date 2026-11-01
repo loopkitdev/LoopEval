@@ -1398,9 +1398,20 @@ evidence to the evidence files.
      donors' rate, but it lowers glucose about a fifth less per unit. That is an effective-sensitivity statement
      confined to the post-peak window — not a PK question (the insulin is spent) and not an appearance question
      (L 573). It is the quantified form of L 512's "the missing fast falls are on the fall side of the meal".
-   - **Why `ppr_a` is not the answer even though it is the post-meal sensitivity term:** `ppr_rel` normalises it to a
-     mean of 1 over the person's days, so raising it deepens the post-meal dip but lifts sensitivity elsewhere, and
-     the twins' Loop doses against the new baseline — which is why 0.4 and 0.6 fall identically (L 573). Closing this
-     needs post-meal sensitivity to be lower in ABSOLUTE terms, i.e. a non-mean-preserving version, which changes the
-     person's total insulin need and so collides with the TDD constraint (G4). That collision is the next real
-     question on the meal chain.
+   - **Direction, corrected.** The twins get LESS fall per unit, so their effective post-meal sensitivity is too LOW
+     and needs to be HIGHER — the opposite of what an earlier draft of this lesson said. A12b cuts sensitivity in
+     exactly that window (SI × (1 − a·w), a 0.6 at full w), so on its face A12b is the suspect and `ppr_a` should
+     come DOWN, not up.
+   - **But the trough does not respond to it, and that is the finding.** With `ppr_rel`'s normalisation the effective
+     post-meal sensitivity is about 0.47 of baseline at a 0.6 and 0.67 at 0.4 — a 30% difference across the very
+     window measured — and the fall is 47 / 43 against 47 / 44 (L 573). So a 30% swing in post-meal sensitivity moves
+     the trough by ~1 mg/dL. Together with appearance (A10c, ~1 mg/dL) that is three body-side levers in the same
+     window with no effect.
+   - **Hypothesis for why: the closed loop absorbs it.** Lower post-meal sensitivity leaves glucose higher, Loop doses
+     more, and the extra insulin restores the fall — the controller compensating for a body change, which is the
+     mirror of this project's own design principle (change what the controller BELIEVES, not its output). If that is
+     right, the post-meal trough depth is controller-stabilised in closed loop and cannot be set from the body side at
+     all; the donors' deeper trough would then come from their real dosing (size or timing of the meal bolus relative
+     to the peak) rather than their physiology. **Test before building anything:** re-run one of these arms with the
+     plant open-loop, or with the bolus held fixed, and see whether the trough responds then. That is the next real
+     question on the meal chain, and it is a question about the harness, not a new component.
