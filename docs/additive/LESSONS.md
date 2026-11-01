@@ -994,3 +994,29 @@ evidence to the evidence files.
      size; TIR still falls because the twins' excess time BELOW range is amplified as the spread grows (t70 1.97 /
      2.16 vs 1.60). The limiting defect is therefore the excess lows, not A12b — the meal tail can now be read as
      calibrated, and the low side is what caps TIR.
+
+559. **The excess time below 70 is shallow lows that linger, not deep ones: a quantified target for the low side.**
+   Decomposed like for like on the reported CGM (`depth.py`, `recover.py` in runs/2026-11-01-additive-lows; 206 donors
+   from the ice steps, ad2 on both draws):
+
+   | | Donors | ad2 (draw 1 / 2) |
+   |---|---|---|
+   | minutes/day < 70 | 35.0 | 45.0 / 56.2 |
+   | by band 65–70 / 60–65 / 54–60 / < 54 | 13.0 / 8.6 / 6.2 / 7.2 | 17.2 / 11.3 / 7.9 / 8.6 |
+   | excursions per day | 1.36 | 1.57 / 1.79 |
+   | median excursion length | 17.5 min | 21.8 / 22.6 |
+   | share never reaching 60 | 0.60 | 0.59 / 0.61 |
+
+   The depth MIX is right; the excess splits between about 15–30% too many excursions and 25–29% too long. Matched on
+   nadir depth, the defect is specific to the shallow end:
+   - **nadir 60–70** (55% of events): rise 15 / 30 min after the nadir, donors +12 / **+26**, twins +10 / **+21**;
+     length p50 donors **10 min**, twins **15**. About +5 mg/dL of missing recovery over the 30 min after a shallow
+     nadir — ≈ 0.17 mg/dL/min.
+   - **nadir 54–60**: recovery agrees (+38 vs +37), length 25 vs 30 min.
+   - **nadir < 54**: the twins rebound HARDER than the donors (+55 vs +41 over 30 min) while dwelling slightly longer
+     (45 vs 40 min) — over-treatment, not under-treatment, so rescue behaviour is not the shallow-low lever.
+   - The fall INTO a low is gentler at every depth (−19 / −23 / −30 vs −20 / −29 / −36), the long-standing slow-falls
+     gap (L 494, 512).
+   **Candidate:** A9's half-activation glucose `cr_g`, drawn N(65, 5), leaves counter-regulation only half-engaged at
+   a 60–70 nadir. Cryer's glucagon and epinephrine thresholds sit near 68–70 mg/dL in people without severe HAAF, so
+   65 is the low end of the evidence rather than its centre. Arms at 70 and 72 in `run_cg.sh`.
