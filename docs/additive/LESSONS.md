@@ -1753,3 +1753,32 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
    - **Adopted: the suppression itself** (`sg_h_lo_ins` default on). **Not adopted: `sg_h_lo`**, which stays 0 and
      remains the "which row do we spend" question for Pete — now with the term behaving as intended, so the question
      is cleaner: at half symmetry it trades ~0.17 of draw-1 t70 gap and ~0.16 of lows/day for ~0.29 of draw-2 t70 gap.
+
+600. **The low-side defect, stated exactly: excursions below 80 last too long while penetrating to 70 at the right
+   rate — so the missing mechanism must act during RECOVERY, not at the nadir, which rules out every
+   (Gb − G)-proportional term including `sg_h_lo`.** The scored `lows_per_day` counts excursions below **70**
+   (`validate.py`: `while vals[e] < 70`); `resid_tools/per_episode` counts runs below **80**. Reading both together
+   separates how OFTEN the twins go low from how DEEP and how LONG:
+
+   | | episodes/day < 80 | of those, reach 70 | median duration < 80 |
+   |---|---|---|---|
+   | donors | 1.75 | **57%** | **20 min** |
+   | rf2 (reference) | 1.67 | **60%** | 25 min |
+   | `sg_h_lo` 0.0019 unsupp. | 1.75 | 43% | 21 min |
+   | `sg_h_lo` 0.0019 supp. | 1.58 | 47% | 22 min |
+   | `sg_h_lo` 0.0038 supp. | 1.58 | 44% | 20 min |
+
+   - **rf2 already matches the penetration rate** (60% against 57%) and the excursion count; its single low-side
+     defect is DURATION, 25 min against 20. Every `sg_h_lo` variant fixes the duration (20-22 min) and breaks the
+     penetration rate (43-47% against 57%), which is what the scored `lows_per_day` 1.000 -> 0.750 was reporting.
+   - **Why, and it is a timing requirement not a magnitude one.** `hep_lo` is proportional to (Gb − G), so it is
+     strongest exactly at the nadir: it LIFTS the nadir rather than shortening the tail. Insulin suppression (L 599)
+     helps because it quiets the term on the descent, but it cannot stop it peaking at the bottom. **What is needed is
+     a term that acts AFTER the nadir, during the climb** — which no glucose-proportional term can be, and which
+     counter-regulation's own 15-min time constant (`cr_tau`) already has the shape of, but at a magnitude the depth
+     fit pins (L 589, 596).
+   - **So the low-side thread ends with a specification rather than a candidate**: shorten the recovery limb of an
+     80-excursion without raising its nadir. That is the same time-asymmetry requirement L 575 wrote for the post-meal
+     ratio and L 594 for reversal speed — three limits, one missing shape, now stated in three independent ways.
+     A delayed (rate-of-change or time-since-nadir) hepatic or counter-regulatory response is the form to try; a
+     level-proportional one is not, and this lesson is the reason to stop proposing them.

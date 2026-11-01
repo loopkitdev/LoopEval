@@ -176,6 +176,13 @@ reference changes.
   and the insulin comes straight back (TDD 41.6 -> 42.1 with it on). A reference that fits `resid_m` to the level
   cannot improve TDD through a sensitivity scalar; it needs a mechanism that lowers insulin need AT that level;
 - night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458);
+- **The low side's one defect is excursion DURATION, not depth or frequency** (L 600): rf2 already matches the donors'
+  excursion count below 80 (1.67 against 1.75) and their penetration rate to 70 (60% against 57%); only the duration
+  is wrong (25 min against 20). Every `sg_h_lo` variant fixes duration and breaks penetration, because a
+  (Gb − G)-proportional term peaks AT the nadir and lifts it. **The requirement is a term acting AFTER the nadir,
+  during the climb** — the same time-asymmetry L 575 and L 594 ask for. Do not propose level-proportional low-side
+  terms; they cannot meet it.
+
 - **`acf_zero_min` is NOT an independent row** (L 594): it is the ACF of the 5-min increments, so it measures when
   glucose MOMENTUM reverses — donors 40 min, twins 60, about 40% too slow — which is the same defect as the
   post-meal fall / rise ratio and the fast-fall tail. Of every arm run, only the Elashoff emptying shape moves it
