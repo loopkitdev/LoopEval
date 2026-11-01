@@ -1261,8 +1261,8 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      of the reproducible part is already carried; and the obvious lever's ceiling is below the remainder. The row
      stays on the scorecard as a known limit, not a defect to chase. `day_rho` stays 0 (unevidenced), `act_rho` 0.
 
-586. **Measure a donor statistic at the twins' window length, or it will invent a defect: three times in one thread I
-   "found" an override under-use that was my own denominator.** Chasing the L 585 question — which scored statistics
+586. **Measure a donor statistic the same way on both sides, or it will invent a defect: four times in one thread I
+   "found" an override gap that was my own denominator.** Chasing the L 585 question — which scored statistics
    the donors' settings contaminate — produced one real negative and one lesson about measurement.
    - **Settings contamination does NOT explain the other failing rows.** `resid_tools/clean_blocks.py` dates every
      block in `real_pilot_blocks.csv` by replaying `real_stats`' walk and flags edit days and override hours. A
@@ -1281,25 +1281,32 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      the donor rate by ~1.5× for anyone whose overrides cluster in part of the record. (3) Taking the donors'
      "never override" share over their whole ~128-day record (19%) and comparing it with a 14-day twin (38%) is the
      L 585 error again — over 14-day blocks the donors' share is 42%.
-   - **Measured properly, blocked to 14 days, the rate is right and the DURATION is not:**
+   - **(4) And a median over per-person medians that folded in the people with NO window as length 0** — 43 of 112
+     twins — which read 41 min where the correct figure is 72. Four errors, one family: both sides of a comparison
+     must be built the same way, over the same window length, with the same denominator and the same empty handling.
+   - **Measured properly, blocked to 14 days, the rate is right and the length is 9% short, not 60%:**
 
      | per 14 days | donors (1791 blocks) | twins (ad3) |
      |---|---|---|
      | all windows | median 2.0, mean 12.0 | median 3.0, mean 8.9 |
      | windows > 30 min | 1.0, mean 8.4 | 2.0, mean 7.1 |
      | override hours | 2.0, mean **26.0** | 3.3, mean **14.0** |
-     | median window duration | **65 min** | **41 min** |
+     | median window length | 65 min all / **79 min over >= 5 min** | **72 min** |
      | blocks with no override at all | 42% | 38% |
 
      Counts, hours at the median and the zero share all match or slightly exceed the donors — the trait is already the
-     donor's own (`templates.add_override_rates`: 18% of templates have all three class rates zero against the donors'
-     19%, rate median 5.0 per 14 d against 3.9). **What is wrong is window length**: the twins' typical override runs
-     41 min against 65, and the donors' long tail is missing (mean hours 14.0 against 26.0, with 8% of donor windows
-     over 4 h). Two contributors, one benign: `_override_windows` clips 15% of twin windows at a following window's
-     start, halving them (31 min against 68 unclipped) — that is faithful to Loop, where a new override replaces the
-     running one — and the duration draw is lognormal around the donor's per-class MEDIAN with a **fixed** σ of 0.6,
-     so it cannot carry a donor whose own windows are heavy-tailed or indefinite.
-   - **Next: `ov_dur_own`** — take each class's duration SPREAD from the donor's own windows instead of the fixed 0.6,
-     and honour `indefinite` windows, which is where the missing tail lives. The gate accounting is sound and needs no
-     change (built all 168 people: the gates deliver 75% of the planned rate, the `less` gate clipping only the 7% who
-     override more often than they exercise).
+     donor's own (18% of templates have all three class rates zero against the donors' 19%, rate median 5.0 per 14 d
+     against 3.9). Two real gaps remain. **Length, by 9%**: the right donor figure is the one over windows the model
+     could produce, since `_override` clips at 15 min and can never emit a sub-5-min record — 79 min, against the
+     twins' 72. **And the long tail**: mean override hours 14.0 against 26.0, with 8% of donor windows over 4 h.
+     (`_override_windows` also clips 15% of twin windows at a following window's start, halving them to 31 min from 68
+     — that one is faithful to Loop, where a new override replaces the running one, and is not a defect.)
+   - **The fix that pays is the comparability one, not the spread.** Dropping sub-5-min records from the per-class
+     duration fit lifts `ov_less_h` from 1.42 to 1.88 h, and that alone (`ov0`) scores **0.332 / 0.394 / 0.391**
+     against ad3's 0.321 / 0.425 / 0.410 — better on both fresh draws, worse only on draw 1, mean **0.372 against
+     0.385**. The gain lands where the mechanism predicts: more time at reduced needs, so Loop commands less —
+     bg_mean 0.263 -> 0.119 and TDD 0.262 -> 0.177 on draw 2. Realized length goes 72 -> 83 min against the donors' 79.
+   - **`ov_dur_own` (each class's own log-duration SD, 0.70-0.78, instead of the fixed 0.6) is score-neutral**:
+     0.324 / 0.391 / 0.408, mean 0.374 against `ov0`'s 0.372. It is better explained, but it moves the share of twins
+     with no window at all from 42% to 27% on draw 2 against the donors' 42%, so it is not free. Judge it on the
+     natural experiments.
