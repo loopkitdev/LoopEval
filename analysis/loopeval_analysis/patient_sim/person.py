@@ -33,7 +33,7 @@ BEHAVIOR_COLS = ["far_unann", "corr_rec0", "carb_entries_per_day", "user_boluses
                  "entries_raw", "entered_g_raw", "corr_over_share", "corr_over_u", "corr_u_med", "corr_u_lsd", "corr_p_mult", "corr_thr_adj", "stack_p", "unann_hours", "boluses_raw", "bolus_entry_raw", "topups_raw", "lone_raw", "manual_u_day",
                  "abs_fast_s", "abs_slow_s", "abs_fast_l", "abs_slow_l", "gap_short", "gap_long", "entry_hours",
                  "clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd"] + \
-                [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h")] + \
+                [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h", "s")] + \
                 ["edit_basal_day", "edit_isf_day", "edit_cr_day", "corr_exposure", "slot_g", "slot_ann", "ent_win", "slot_lr", "night_need_ratio", "meal_e_day", "snack_e_day", "snack_e_hours", "offline_day", "perr_day",
                  "treat_log_day", "low_entered_share", "skip_bfast", "miss1_day", "miss23_day", "entry_b", "unl_mult",
                  "ex_week_own", "ex_dur_own", "ex_am_own", "ex_hours_own", "sleep_mid_h"]

@@ -279,6 +279,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   arm and silently report the wrong arm's numbers (it happened three times on 2026-11-01). Read them with
   `resid_tools/score_read.py`, which keys on the header names.
 
+- **A new template column needs adding to `person.BEHAVIOR_COLS`** — that allowlist is what reaches the person as
+  `traits["template_rates"]`, so a column the templates carry and `sample_behavior_traits` reads is silently absent
+  without it, and the arm runs as its own control (`ov_dur_own` scored bit-identical to its `--disable` control
+  before this, L 586). Same signature as the `--enable k=v` trap: check a built person's trait, not the CSV.
+
 - **An arm rerun into an existing output dir returns the CACHED previous run** (`v0… cached` in its log), so a fixed
   arm can come back byte-identical to the broken one it replaces. Use a fresh arm name, or clear the dir.
 - **A numeric override passed to `--enable` is a switch named `k=v`, so the component keeps its default and the arm
