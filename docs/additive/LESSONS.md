@@ -1107,3 +1107,18 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      accuracy at a small aggregate cost — exactly what L 556 and L 558 said they were doing, now confirmed
      out-of-sample rather than on the development draw. **That is the honest summary of 2026-11-01: the components
      are more correct and the weighted score is barely moved; only the distributional fix improved both.**
+581. **The day-level AR(1) does not reach `ac1`: TDD's day-to-day persistence is not driven by the residual, which
+   bounds L 568's distributional lesson.** The residual's day part was drawn independently per day, so nothing carried
+   across days and TDD had no persistence (`ac1` −0.02 / −0.03 / −0.04 against the donors' +0.091, failing on both
+   draws). `resid_day_ar` 0.35 makes it AR(1) — verified exactly variance-preserving (SD 1.009, lag-1 +0.356) — so
+   only the dependence changes. The control reproduces ad3 exactly and the arm does change the traces (score 0.321 →
+   0.326 on draw 1), but **`ac1` does not move at all: −0.022 → −0.022, −0.029 → −0.029, −0.044 → −0.044.**
+   Score 0.326 / 0.421 / 0.407 against ad3's 0.321 / 0.425 / 0.410 — level on the mean (0.385 both), tier 1 marginally
+   better on all three (0.105 / 0.287 / 0.156). Not adopted.
+   - **Why, and the boundary it draws.** TDD's day-to-day variation is dominated by what the person eats and how Loop
+     answers it, not by the residual's day level, whose amplitude is small beside that. So **a distributional fix only
+     reaches a statistic the residual actually drives** — the diurnal fix worked because unexplained ICE dips ARE the
+     residual's own signature (L 568), while `ac1` is a property of the eating-and-dosing loop. Before redistributing
+     the residual at a target, check that the residual is what moves that target: `resid_meal` failed on the sign
+     structure (L 568) and this one fails on attribution. The remaining route to `ac1` is day-to-day persistence in
+     EATING (F1's meal sizes or F2's entry rates), which is a behaviour trait, not a residual property.
