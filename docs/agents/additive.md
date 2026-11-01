@@ -193,6 +193,12 @@ reference changes.
   differs is the share of episodes treated at all (0.60 against 0.49), and that follows from episode DURATION — median
   25 min against 20, x1.25 against the treated-share's x1.23. Four arms on the eating side (size, refractory, onset
   −10 / −20) were all rejected. Do not spend more there.
+- **the sub-basal gap was a missing CODE BRANCH, not missing evidence** (L 596): A1b's `hep` is gated on `g > gb`, so
+  the liver never released extra glucose in a low. Extending it symmetrically below basal (`sg_h_lo`, off by default)
+  supplies 0.386 mg/kg/min at G 65 against the ~0.34 L 589 derived independently, and at HALF symmetry it closes the
+  t70 limit (draw 2 gap 0.325 -> 0.012, draw 1 1.764 -> 1.528 against the donors' 1.599) with TIR better on both. It
+  costs the low COUNTS (lows/day 1.000 -> 0.750, P(reach 54) 0.195 -> 0.167, both already at or under the donors), so
+  the weighted score is worse and it is not adopted — but it is the first mechanism to move t70 at all.
 - **the shallow-low recovery gap is down to one named, unevidenced mechanism** (L 563, sized L 589): a
   glucose-dependent hepatic response below Gb, worth ~0.34 mg/kg/min at G 65 — **about 3x either of the two sub-basal
   mechanisms the model has**, both now measured too small (A9 counter-regulation 2.4 mg/dL per 30 min, L 559–560; A1c
@@ -333,6 +339,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   the long-record figure sent five mechanisms after a target that did not exist (L 585). Block the donor series to the
   twins' length first, and where the statistic can be moved by the donor's SETTINGS, split it by whether a settings
   change or override falls on those days (`resid_tools/tdd_clean_ac.py`) — a twin holds one era and runs no overrides.
+
+- **A statistic conditioned on an event the candidate changes the INCIDENCE of cannot measure that candidate**
+  (L 596): `sg_h_lo` prevents the easy lows, so nadir counts fell 1874 -> 1607 and the surviving 60-70 nadirs were a
+  harder, insulin-driven subset — the recovery statistic moved the wrong way while the unconditional rows (t70,
+  episode duration) showed the real effect. Prefer unconditional rows when a candidate changes event rates.
 
 - **`peak_h` and `dur_h` in the labelled-meal tables are measured from the LABELLER'S detected onset, not from the
   carb entry**, so both are invariant to a pure time shift: a gastric lag moved them not at all (peak 43 min at lag 0,

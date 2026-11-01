@@ -1642,3 +1642,36 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      labeller's onset detection, so dropping it (L 592) improved the meal shape as a by-product.
    - `meal_lag` stays at 0. The code and the evidence note stay, because the omission is real and a future meal model
      that measures appearance against the ENTRY (not the detected onset) will need it.
+
+596. **A1b was one-sided, and extending it below basal fixes the t70 excess — the sub-basal gap was a missing code
+   branch, not missing evidence.** `hep` is gated on `g > p.gb`, so the liver withheld glucose when high and never
+   released extra when low; below basal the whole hepatic response fell to A9, whose magnitude the donors' low DEPTHS
+   pin (`cr_max` walked 0.5 -> 0.137 across L 166/272/360/394, supplying ~2.6 mg/dL per 30 min). That is why L 589
+   found both sub-basal mechanisms too small: the third was absent by construction. Glucose autoregulation of hepatic
+   output is bidirectional in the literature (Cherrington/Moore: HGP rises as glucose falls, independent of hormones);
+   only the above-basal direction is quantified, so symmetry is the modelling assumption — and it lands on the
+   requirement, `sg_h` 0.0038 below Gb giving **0.386 mg/kg/min at G 65** against L 589's independently derived ~0.34.
+   - **At half symmetry (`sg_h_lo` 0.0019) it closes the t70 limit:**
+
+     | | t70 (donors 1.599) | TIR (71.88) | lows/day (1.00) | P(reach 54) (0.212) |
+     |---|---|---|---|---|
+     | rf2 | 1.764 / **2.119** | 72.15 / 71.25 | 1.000 / 1.250 | 0.195 / 0.194 |
+     | `sg_h_lo` 0.0019 | **1.528 / 1.621** | 72.95 / 72.94 | 0.750 / 0.923 | 0.167 / 0.172 |
+
+     Draw 2's t70 gap goes 0.325 -> **0.012**. The cost is the low COUNTS: `lows_per_day` and `P(reach 54)` were
+     already at or under the donors and go further under, which is why the weighted score reads worse
+     (0.354 / 0.360 against 0.332 / 0.371). Full symmetry (0.0038) overshoots further (t70 1.203 / 1.156).
+   - **The diagnosis the arm sharpens:** at rf2 draw 1 the twins already have exactly the donors' NUMBER of lows
+     (1.000) with too much TIME below 70 (1.764) — their lows last too long, which is the 25-against-20-min episode
+     duration of L 588 seen on the scorecard. `sg_h_lo` shortens lows AND prevents some, because it acts on
+     `(Gb − G)` and so is already working on the way down. A term acting only once low would shorten without
+     preventing, but that is a different claim and needs its own evidence; symmetry is what the literature supports.
+   - **Two of my hypotheses died here, both worth recording.** (1) Controller compensation does NOT explain why
+     doubling the term did not double the recovery: insulin delivered in the 30 min after a nadir is unchanged
+     (0.040 / 0.040 / 0.038 U). (2) The nadir-recovery statistic is **selection-confounded** — the intervention
+     prevents the easy lows, so nadir counts fall 1874 -> 1607 and the surviving 60-70 nadirs are a harder,
+     insulin-driven subset. A statistic conditioned on an event whose incidence the candidate changes cannot measure
+     that candidate. Read the unconditional rows (t70, episode duration) instead.
+   - **Not adopted** — the weighted score is worse and the low counts overshoot — but this is the first mechanism to
+     move the t70 limit at all, it is a named component with a literature-supported form, and its magnitude was
+     derived before the run rather than swept. It belongs with `si_norm` as a judgement about which row to spend.
