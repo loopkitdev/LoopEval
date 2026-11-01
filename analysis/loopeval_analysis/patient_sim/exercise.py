@@ -42,6 +42,11 @@ class ExerciseParams:
     sat_k: float = 0.0          # > 0: the acute SI boost saturates in intensity, α·(0.6 + k)·Y/(Y + k), equal to the linear α·Y at
                                 # Y 0.6 (Romeres 2021's clamp point) and larger at light effort (Pemberton 2025: no intensity
                                 # dependence of the 20-min drop; donors' workouts by METs < 4 / 4–6 / ≥ 6: −7 / −13 / −9; LESSONS 495)
+    surge_mets: float = 0.0     # > 0: C4's threshold read in ABSOLUTE METs instead of %VO2-reserve, ramping to full
+                                # 2 METs above it. The two framings disagree once METmax is drawn consistently
+                                # (LESSONS 554): the donors' bouts rise at >= 8 METs, but for a person whose METmax is
+                                # 11 that is only 0.70 of reserve, far below any anaerobic threshold in reserve terms
+    metmax: float = 9.0         # the person's ceiling, needed only to read intensity back as absolute METs
     gain: float = 1.0           # per-person responsiveness (set from behavior traits)
     background: float = 0.0     # waking-hours background intensity (set from behavior traits)
     frag: bool = False          # the waking background as alternating sitting and short light-activity bouts with the
@@ -98,7 +103,11 @@ class Exercise:
             self.sessions.pop(0)
         # C4: the catecholamine EGP surge appears only at hard effort (above ~60% of reserve; Marliss & Vranic 2002) —
         # zero below, linear to full at 100% (LESSONS 247); the session's anaerobic share scales it
-        anaerobic = anaerobic * min(1.0, max(0.0, (intensity - self.p.surge_thr) / (1.0 - self.p.surge_thr)))
+        if self.p.surge_mets > 0:
+            mets_ = 1.0 + intensity * (self.p.metmax - 1.0)
+            anaerobic = anaerobic * min(1.0, max(0.0, (mets_ - self.p.surge_mets) / 2.0))
+        else:
+            anaerobic = anaerobic * min(1.0, max(0.0, (intensity - self.p.surge_thr) / (1.0 - self.p.surge_thr)))
         return dict(ex_intensity=self.p.gain * self.y, ex_anaerobic=anaerobic,
                     ex_si_boost=self._acute() + self.z,
                     abs_mult=1.0 + self.p.absorb * self.y)
