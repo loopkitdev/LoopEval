@@ -260,6 +260,12 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 
 ## Analysis traps (each cost a session)
 
+- **`truth["sent_overrides"]` is the REACTIVE override class only** (world.py:728). The person's PLANNED overrides
+  reach the controller through `loopeval_io._override_windows`, which writes `beh.overrides` into the twin's own
+  synthetic `therapy.json` — the same field a donor measurement reads, so compare there. Counting the pickle field
+  against a donor record overstated the gap 4× (L 586). A donor override record under 5 min is a cancellation, not
+  therapy: left in the fit it reads as a log-duration SD of 2.01 instead of 0.83.
+
 - **A donor statistic must be measured over the twins' OWN window length.** A lag-1 autocorrelation over a 128-day donor
   record contains the drift between blocks and reads 3–4× the within-13-day value (TDD +0.251 against +0.085); chasing
   the long-record figure sent five mechanisms after a target that did not exist (L 585). Block the donor series to the
