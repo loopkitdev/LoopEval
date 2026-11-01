@@ -356,7 +356,14 @@ class World:
             self.beh_traits.pro_g_own = True
             if np.isfinite(self.beh_traits.low_pro_g):
                 from .behavior import LABEL_PRO_F
+                g0 = self.beh_traits.pro_grams
                 self.beh_traits.pro_grams = float(np.clip(self.beh_traits.low_pro_g * LABEL_PRO_F, 6.0, 40.0))
+                # the donors eat bigger AND less often at a low (0.548 pulses/h below 80 at 30 g against the twins'
+                # 0.672 at 24 g), holding ~16.4 g/h; sizing alone raised the carbohydrate ~25% and the TDD gap with
+                # it (L 588), so the refractory stretches by the same factor to conserve grams per hour below 80
+                if self.beh_traits.pro_carb_fix and g0 > 0:
+                    self.beh_traits.pro_refractory = float(np.clip(
+                        self.beh_traits.pro_refractory * self.beh_traits.pro_grams / g0, 10.0, 240.0))
         if enable and "ov_dur_own" in enable:        # override length from the donor's own spread (L 586); default True
             self.beh_traits = copy.deepcopy(self.beh_traits)
             self.beh_traits.ov_dur_own = bool(enable["ov_dur_own"])

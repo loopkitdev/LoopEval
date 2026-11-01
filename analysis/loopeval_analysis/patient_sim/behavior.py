@@ -178,6 +178,8 @@ class BehaviorTraits:
     night_pro: bool = False              # woken by an alarm, the person may act proactively (LESSONS 442; on by default in World)
     uls: bool = False                    # Dexcom Urgent Low Soon predictive alert (LESSONS 442; on by default in World)
     pro_refractory: float = 45.0         # min
+    pro_carb_fix: bool = True            # with `pro_g_own`, stretch the refractory by the same factor the size grew,
+                                         # so grams per hour below 80 stay at the donors' 16.4 (L 588)
     treat_thr: float = 70.0              # CGM level that triggers a rescue [J; alert 74–78]
     treat_grams: float = 25.0            # lnN median; Savard 2016: 32 ± 24 g
     treat_latency: float = 5.0           # min after seeing it
