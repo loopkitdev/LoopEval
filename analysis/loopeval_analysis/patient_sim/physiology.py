@@ -54,6 +54,10 @@ class BodyParams:
     # glucose
     vg: float = 1.88               # dL/kg (UVA/Padova; ReplayBG's 1.45 gives ~2x the carb sensitivity people's settings imply)
     sg: float = 0.003              # insulin-INDEPENDENT glucose effectiveness, 1/min (see COMPONENTS: physiology)
+    sg_kappa: float = 0.0          # glucose-dependence of INSULIN-INDEPENDENT uptake, by analogy with kappa (L 637):
+                                   # above Gb the excess it acts on rises at this fraction, below Gb full strength.
+                                   # 0 = linear in (G - Gb), as before. ice L 140a's learned background slope falls
+                                   # 0.17 -> 0.02 /h from the low band to 180-250, which a linear term cannot make.
     # ge_split (A1a–c, LESSONS 548): sg replaced by its named parts (sg is then unused)
     ge_split: bool = False
     ge_spare: bool = False         # A1c alone on the lumped SG: insulin-independent uptake falling below g_ii (L 561)
@@ -271,6 +275,18 @@ class Body:
         self.parcels.append(parcel)
 
     # ------------------------------------------------------------------ helpers
+    def _sg_excess(self, g: float) -> float:
+        """The glucose excess the insulin-INDEPENDENT term acts on (L 637).
+
+        `sg_kappa` 0 keeps the linear `g - gb`. Above 0 it saturates ABOVE Gb at that fraction, exactly as
+        `kappa` already does for insulin-mediated uptake (LESSONS 7), and leaves the sub-basal side at full
+        strength. That is the shape ice L 140a measured in the donors' learned background force (slope
+        -0.17/h below 90 against -0.02/h at 180-250), which no linear -SG*(G - Gb) can produce.
+        """
+        p = self.p
+        d = g - p.gb
+        return d if (d <= 0.0 or p.sg_kappa <= 0.0) else p.sg_kappa * d
+
     def risk(self, g: float) -> float:
         p = self.p
         if p.risk_lambda <= 0 or g >= p.gb: return 1.0
@@ -437,9 +453,9 @@ class Body:
             # g_ii (Best 1981 ~1 mg/kg/min; Hovorka 2004 F01c falls ∝ G below 4.5 mmol/L), which is the only part of
             # the L 548 split aimed at the shallow-low recovery gap of L 559-560. The rest of the split stays off, so
             # the liver's support below Gb is not removed — that is what made the full split add lows.
-            ge = p.sg * (g - p.gb) - (p.f_ii * (1.0 - g / p.g_ii) if g < p.g_ii else 0.0) / p.vg
+            ge = p.sg * self._sg_excess(g) - (p.f_ii * (1.0 - g / p.g_ii) if g < p.g_ii else 0.0) / p.vg
         else:
-            ge = p.sg * (g - p.gb)
+            ge = p.sg * self._sg_excess(g)
         dg = (-ge - (xact * mm * self.risk(g) - p.si_d * p.ib * p.gb)
               + (egp - p.egp_b - uex + ra + util_drop) / p.vg - renal)
         self.g = max(10.0, g + dt * dg)

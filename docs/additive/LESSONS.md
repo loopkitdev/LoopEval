@@ -2838,3 +2838,75 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      screened for, and for the right reason — most of a settings edit's glucose response happens in 130-250, exactly
      where the learned force is ~10x below the prior. The uniform screen still answers "does SG magnitude move the
      response at all", which is the question worth one job; the split is the follow-up.
+
+637. **`ge_split` CANNOT make the shape L 636 asked for — its high side is structurally stronger than its low side.
+     The measured shape is a SATURATING insulin-independent uptake, which is the same treatment κ already gives the
+     insulin-mediated path, and at the evidenced parameters it reproduces all five of ice's learned bands without
+     fitting anything to them.** L 636 concluded "cut the high-side term (`sg_h`), not the scalar" and named `ge_split`
+     as the adoption arm. Reading the code settles that it is the wrong arm, and the right one is cheaper.
+
+     - **Why `ge_split` cannot do it** (`physiology.py` 431-434): with it on, the insulin-independent slope is `sg_p`
+       below Gb and `sg_p + sg_h` above, because A1b is modelled as the liver WITHHOLDING output above basal — an
+       ADDITION to disposal. So the high side is ≥ the low side by construction, whatever `sg_h` is set to, while the
+       measured profile falls 8x from the low band to 180-250. Cutting `sg_h` to zero does not make the shape; it only
+       flattens `ge_split` back to its own `sg_p`, which at 0.0022 / vg = **0.00117 /min (0.070 /h)** is 2.4x WEAKER
+       than the measured low band. Tabulated against ice L 140a's learned slopes, `ge_split` is wrong in BOTH
+       directions — 2.4x too weak below Gb and 15x too strong above it — which is exactly why L 548 rejected it for
+       too many lows. The "now the indicated route again" of L 636 is withdrawn.
+
+     - **What the shape actually is.** A force whose slope FALLS with glucose is a saturating uptake, and the model
+       already has that form — for the other path. `kappa` 0.15 makes the glucose that insulin-mediated uptake acts
+       on rise at only 15% of the excursion above Gb, with `low_prop` keeping it proportional below (LESSONS 7,
+       Bergman / UVA Michaelis-Menten). The insulin-INDEPENDENT term next to it is `sg * (g - gb)`, perfectly linear
+       in both directions. That asymmetry is unmotivated: both are glucose-driven uptake into the same tissues.
+
+     - **At the evidenced parameters it fits, with nothing fitted to the target.** `sg_kappa` (new, default 0 =
+       unchanged) applies κ's treatment to the insulin-independent term. Slope per hour, by ice's own bands:
+
+       | band | ice learned (of0) | current (`sg` 0.0045, linear) | `sg` 0.00247 + `sg_kappa` 0.15 |
+       |---|---|---|---|
+       | below 90 | 0.170 | 0.270 | 0.148 |
+       | 90-130 | 0.070 | 0.270 | 0.114 |
+       | 130-180 | 0.040 | 0.270 | 0.022 |
+       | 180-250 | 0.020 | 0.270 | 0.022 |
+       | above 250 | 0.000 | 0.270 | 0.022 |
+
+       Neither parameter was chosen against this table: `sg` 0.00247 is L 635's bracket median from the per-person
+       literature range, and 0.15 is the κ the insulin path already carries. The current linear term is wrong by
+       0.10-0.27 /h in every band and has no gradient at all; the shaped form tracks the profile within 0.044 /h at
+       its worst band. Two parameters from elsewhere landing on a five-band profile is the strongest evidence in this
+       thread so far.
+
+     - **Third independent line, and it is a DIRECT test: ice lesson 146.** A literature-strength SG (0.0045, our
+       prior median) was added to the generator's plant and the network retrained on both seeds: held-out TIR bias
+       -5.3 / -6.5 against -0.7 / -3.0, t70 +1.24 / +1.73 against +0.45 / +0.36, own-settings level -4.9 / -6.2
+       against +1.6 / -2.7, and no change-prediction gain on 62 edits or 52 switches. ice's reading: "a
+       literature-strength SG adds a restoring force the TDD-ISF ICE already holds." **That transfers to additive,
+       because additive's ISF comes from the same ICE yardstick on the same closed-loop pool** — and L 636 measured
+       the mechanism in our own data: corr(G, insulin activity) is +0.53 to +0.71 across donors, which is exactly how
+       glucose-dependent disposal loads onto a fitted insulin effect. So the high-side term is plausibly
+       DOUBLE-COUNTED with our own fitted ISF, and a weak insulin-independent high side is what a model with a
+       data-fitted ISF should have. The double-count argument and the shape argument point the same way.
+
+     - **The honest caveat, stated before the run.** ice flags that the TDD-ISF rule may have absorbed high-side
+       uptake, which biases their LEARNED high-side slope low — and the high bands are where `sg_kappa` mostly acts,
+       so the shape claim rests partly on a lower bound. It is also a KINK at Gb, not a smooth saturation, and it
+       over-predicts the 90-130 band (0.114 against 0.070) for that reason; a Michaelis-Menten form would fit better
+       and needs its own evidence, so it is not built. If the cohort prefers a bigger high side, `sg_kappa` should be
+       larger, not the form abandoned.
+
+     - **The arms, nested with the queued uniform screen.** Job 160 runs `sg_mult` 0.67 / 0.40 at `sg_kappa` 0, so
+       with `sk1` = `sg_kappa` 0.15 alone (shape only, magnitude untouched) and `sk2` = `sg_kappa` 0.15 + `sg_mult`
+       0.55 (both, the table's column), the four arms SEPARATE magnitude from shape, which neither alone can do.
+       Prediction recorded now: the uniform cut buys change response and spends the low side (its cancellation guard
+       covers that); `sk1` buys the same response with LESS low-side cost, because it cuts only where a settings
+       edit's glucose response lives (130-250) and leaves the sub-basal force L 563/589 want strengthened. If `sk1`
+       beats both uniform arms on the e pool AT a smaller low-side cost, the shape reading is right and the scalar
+       reading is wrong.
+     - **Verified to bite in the full step path, not just the CSV** (the L 554 / 633 trap): a body held open-loop from
+       G 200 for 6 h reaches 329 at `sg_kappa` 0 and 431 at 0.15, so the weaker high side is doing what it says. That
+       also previews the cohort cost — highs become less self-correcting, so expect t180 to rise and Loop to spend
+       more, and expect the `resid_m` refit to reabsorb the LEVEL part of it (L 597). The change response is a dG/dI
+       effect, not a level one, so that is the part which should survive the refit.
+     Code: `sg_kappa` in `physiology.py` (`_sg_excess`), plumbed in `world.py` from `--set`; default 0, so every
+     existing run is bit-unchanged.

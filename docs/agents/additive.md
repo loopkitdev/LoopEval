@@ -359,9 +359,23 @@ learned background force says 0.0015/min (3x). **SG is not measurable from this 
 and insulin activity collinear at r +0.5–0.7 so an ICE-against-glucose slope comes out the wrong SIGN, and
 `no_insulin` is a record flag, not an insulin-free state (ice L 140b) — so the prior rests on literature. **The error
 is SHAPED, concentrated on the high side** (ice L 140a: ~10x below our prior above 180, but −0.17/h below 90), so the
-fix is the high-side term (`ge_split`'s A1b `sg_h`), NOT a uniform `sg_mult` cut, which would thin the low side that
+fix is a SATURATING insulin-independent uptake (`sg_kappa`, L 637), NOT a uniform `sg_mult` cut, which would thin the low side that
 L 563/589 want strengthened. Screened uniformly first (`sg_mult` 0.67 / 0.40, bracketing both estimates, 0.40
-central); both prior rejections (L 208, L 349/356) were on the LEVEL and predate `resid_m`, so neither transfers.
+central); both prior rejections (L 208, L 349/356) were on the LEVEL and predate `resid_m`, so neither transfers. **The
+shape has a named form and it already exists in the model for the other path (L 637)**: `kappa` 0.15 makes
+insulin-mediated uptake saturate above Gb (LESSONS 7) while the insulin-INDEPENDENT term beside it is perfectly
+linear, an unmotivated asymmetry. `sg_kappa` (new, default 0 = unchanged) gives it κ's treatment, and at `sg` 0.00247
+(L 635's bracket median) with `sg_kappa` 0.15 it reproduces all five of ice's learned bands within 0.044 /h — 0.148 /
+0.114 / 0.022 / 0.022 against 0.170 / 0.070 / 0.040 / 0.020 — with NEITHER parameter fitted to that table, against a
+linear term that is wrong by 0.10–0.27 /h in every band. **A third line is a direct test: ice L 146** put a
+literature-strength SG in the generator's plant and it was worse on every held-out row with no change-prediction gain
+("a restoring force the TDD-ISF ICE already holds") — which transfers here because additive's ISF comes from the same
+ICE yardstick on the same pool, and the +0.53–0.71 collinearity above is how that disposal loads onto a fitted insulin
+effect. So the high side is plausibly double-counted with our own ISF. Arms `sk1` (`sg_kappa` 0.15 alone) and `sk2`
+(plus `sg_mult` 0.55) nest with job 160's uniform pair to separate MAGNITUDE from SHAPE; the prediction on record is
+that `sk1` buys the uniform cut's change response at a smaller low-side cost. Caveats before reading it: ice's
+high-side slope is biased LOW by their own confound, and `sg_kappa` is a kink at Gb rather than a smooth saturation,
+which is why it over-predicts the 90–130 band.
 
 **The natural-experiment half is limited by the FIELD, not by compute (L 611).** With 63 edit events the field / twin
 response ratios carry CIs like [1.22, 3.79], so `rf2`'s t70 improvement (3.51 -> 2.17) is "best measured, not
@@ -489,10 +503,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   not move the target L 588 created for it — low-episode duration stays 25 min against the donors' 20, events per
   episode 0.62 → 0.61, low-side eating rate unchanged. At G 65 its sparing is 0.20 mg/kg/min, ~3.7 mg/dL per 30 min,
   the same too-small class as A9's 2.4; the missing hepatic term is ~3x either), `ge_split` (glucose effectiveness from named parts: rejected for too many lows and superseded by the C4 threshold
-  fix on change prediction, L 548, 555 — but **now the indicated route again on new evidence**, because ice's learned
-  background force is defense-SHAPED (−0.17/h below 90 against −0.02/h at 180–250) and a linear −SG·(G−Gb) cannot be,
-  so the correction is to the HIGH-side term `sg_h` alone rather than to the scalar; the earlier "too many lows" is
-  consistent with having cut both sides, L 636), `ex_dur_cap` (the cap without the METmax fit — leaves almost no hard session, L 554), `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
+  fix on change prediction, L 548, 555. **It CANNOT carry the defense shape and is withdrawn as the route, L 637**:
+  with it on the slope is `sg_p` below Gb and `sg_p + sg_h` above, because A1b is modelled as the liver WITHHOLDING
+  output above basal, so the high side is ≥ the low side by construction — against ice's learned profile it is 2.4x
+  too WEAK below Gb (0.070 /h against 0.170) and 15x too strong above it, which is exactly why L 548 found too many
+  lows. Cutting `sg_h` alone only flattens it to that too-weak `sg_p`), `ex_dur_cap` (the cap without the METmax fit — leaves almost no hard session, L 554), `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
   `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
 
 ## Analysis traps (each cost a session)
