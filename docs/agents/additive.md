@@ -224,15 +224,20 @@ reference changes.
   model's existing linear SG is what supplies it today. This explains from the other side why every `sg_h_lo`
   variant fixed duration and broke penetration: a term peaking at the nadir acts where there is no leverage. Read
   L 600's requirement as "before or through the nadir, in the mid band", not "after it". **And there is now a second
-  measured gap that fits the requirement exactly (L 644)**: a drop in the twins' non-insulin forces keeps
-  **0.94-0.96** of itself five minutes later, on two draws and with meal minutes excluded, where ice's arm B puts
-  the donors at **~0.45** — so the donors' forces come back with a ~5-min half-life while the twins hold the
-  dropped state, which is what dwelling in a shallow low looks like. It is a DIFFERENT term from A1e: `sg_rate`
-  steepens the level slope while glucose moves and does nothing to restore a force that already dropped. The
-  caveat before it is sized: 0.45 is a one-step conditional mean from a network trained on noisy ICE, and turning
-  0.95 into 0.45 needs a measurement noise as large as the signal (24.3 mg/dL/h against sd 23.1), so the gap is
-  measured here and suggestive across the pair. ice has been asked for the same number on noise-free generated
-  trajectories.
+  measured gap that fits the requirement exactly, in its CORRECTED form (L 644, resized by L 645)**: decomposed as
+  ice's L 163 prescribes — `b_k` = the slope of the force deviation at +5k min on its value at t, with `b1`
+  discarded because differencing biases it and our truth carries no noise — **the donors lose 41% of a force
+  deviation between 5 and 10 min and we lose 1%** (`b2/b1` 0.59 against 0.99, both draws). Every term in our
+  non-insulin force is either level-keyed, so it returns only when glucose does, or slow (gut transit, EGP
+  suppression); nothing of ours dies inside ten minutes, and a deviation that does is exactly a force coming back
+  during the climb out of a shallow low. **ice's own generator has that fast part too** (`b2/b1` 0.56), so the
+  absence is ours alone and is confirmed by an independent model of the same donors. **The SLOW part is a
+  different matter and is NOT ours to size**: our half-life is 39-42 min against ice's generator at 41 and the
+  donors at 21-23, so a component tuned to the donors' slow decay would chase a 2x discrepancy the best learned
+  model of those donors also shows. Persistence has NO state dependence on either side (falling equals flat
+  everywhere), so A1e / `sg_rate` cannot address either half — it steepens the level slope while glucose moves and
+  leaves the decay untouched. L 644's own sizing arithmetic (noise as large as the signal) is withdrawn: it
+  corrected the wrong quantity.
 
 - **`acf_zero_min` and the meal ratio are ONE defect, but NOT the same one as low-side recovery** (L 594, corrected
   by L 615): `cr_tau_off` fixes the recovery rows (t54 0.124/0.232 -> 0.175/0.177, nadir dwell 20 -> 15 min, the

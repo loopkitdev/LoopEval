@@ -3310,3 +3310,43 @@ mechanism that fits the standing low-side limit (excursion DURATION).** `momentu
   gap is MEASURED on my side and SUGGESTIVE across the pair, not established. Asked of ice: the same persistence on
   their noise-free generated trajectories, or a reliability estimate for ICE in the 90-180 band. Do not size a
   component to 0.45 until that comes back.
+
+**645. L 644's gap splits in two under ice's own decomposition, and only ONE half is mine: my body has no fast
+component at all, while on the slow part I agree with ice's GENERATOR (39-42 min half-life) and both forward
+models sit ~2x slower than donor ICE (21-23 min).** ice replied with b_k out to six steps (their L 163, commit
+`b7f94af0`); `momentum.py` now reports the same decomposition on our side, rf2 draws 1 and 2.
+- **L 644's size claim is withdrawn.** The donors' ~0.45 was mostly instrument: differencing makes CGM noise
+  anti-correlated at lag 1, which biases `b1` DOWN and leaves `b2` onward alone, so my "var(noise)/var(signal) =
+  1.11" arithmetic was the wrong correction for the wrong quantity. ice's prescription is right — compare the
+  ratios from `b2` on, which regressor noise cannot touch, and never `b1`, which on our side carries no noise at
+  all.
+
+  | b_k, 90-180, fell >= 20 in the last hour | b1 | b2 | b3 | b4 | b5 | b6 | **b2/b1** | **half-life from b6/b2** |
+  |---|---|---|---|---|---|---|---|---|
+  | donors (ice L 163, n 730k) | 0.56 | 0.33 | 0.30 | 0.25 | 0.21 | 0.17 | **0.59** | **21 min** |
+  | ice's generator, oc0 | 0.50 | 0.28 | 0.27 | 0.24 | 0.21 | 0.20 | **0.56** | **41 min** |
+  | rf2 | 1.055 | 1.047 | 0.995 | 0.920 | 0.834 | 0.735 | **0.99** | **39 min** |
+  | rf2_5k | 1.047 | 1.041 | 0.997 | 0.929 | 0.844 | 0.747 | **0.99** | **42 min** |
+
+- **The real gap is the FAST part, and it is entirely mine.** Between 5 and 10 min the donors lose 41% of a force
+  deviation and ice's generator loses 44%; **we lose 1%.** Two independent models of these donors have a component
+  that dies inside ten minutes and our non-insulin force has nothing of the kind — every term in it is either
+  level-keyed (returns only when glucose returns) or slow (gut transit, EGP suppression). That is a named structural
+  absence, measured, and it is the one that fits the standing low-side DURATION defect: a deviation that dies in
+  under 10 min is exactly a force that comes back during the climb out of a shallow low.
+- **The slow part is NOT ours to fix on this evidence, and that is the finding that stops an arm.** Our 39-42 min
+  sits on top of ice's generator's 41, not on the donors' 21. Sizing a component to the donors' slow decay would be
+  tuning our body to a 2x discrepancy that the best available learned model of the same donors also shows — so
+  either both forward models omit the same thing, or donor ICE carries something neither reproduces (rescue carbs
+  the ICE absorbs, the ICE derivation itself, sensor processing). Asked of ice, since their generator is the
+  instrument that localises it. **Do not size the slow part until that is answered.**
+- **No state dependence in persistence on either side**: donors falling 0.59 against flat 0.58, generator 0.56
+  against 0.46, ours 0.99 against 0.99, half-lives 39 against 38. The two-state finding of L 643 is about the force's
+  LEVEL SLOPE, and it does not extend to how long a deviation lasts. A1e / `sg_rate` therefore cannot address either
+  half of this: it steepens the slope while glucose moves and leaves the decay untouched.
+- **Method notes.** `b_k` is the slope of `e(t+5k)` on `e(t)` where `e` is the force minus that person's own mean
+  force in the same 5 mg/dL glucose bin. Both sides include meal appearance (their `e` has meal pulses as ours has
+  `ra`). The no-meal subset is NOT usable for the flat state — with `ra` excluded the flat deviation drops to sd
+  10-15 and is dominated by slow diurnal drift, so its ratios run ABOVE 1 (deviations grow). The falling no-meal
+  rows behave (half-life 35-58 min at n 12-15k) and do not change the conclusion; quote the all-minutes read, which
+  replicates on both draws.
