@@ -1953,4 +1953,8 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Teacher-forced on held-out real inputs, the network's predicted one-step spread matches the realised error at
       night (50 against 48 mg/dL/h, both trainings) and by day (58 against 59). So the excess builds up in free running
       at night: own-history feedback, plant calibrations, or the closed-loop state drifting from what the network saw.
-      Next: the same structure function from freerun.py with real insulin (no plant calibrations) to split these.
+    - Not the plant's glucose-band calibration or low/high kernels (the ns arm, which removes them: 1.19–1.21×), not
+      the level adaptation (1.18–1.23×), and not meals: on quiet nights (no meal episode for 3 h, 13% of night steps in
+      both) the excess is 1.13–1.20×, the same as on busy ones (night_quiet.py).
+      Next: the same structure function from freerun.py with real insulin (no plant) to split own-history feedback
+      from closed-loop drift.
