@@ -1809,3 +1809,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       the fade matches the field's mean response in both directions; the cost is 2 points of own-settings level,
       plausibly because the level calibrations were fit without it. Physiological reading: counter-regulation and
       symptom thresholds follow a person's average glucose. Full e pool on oc0/oc1 running (launch_ba05f_full*.sh).
+
+160. **Lesson 140a's "about twice below 130" for lowered glucose is mostly level curvature, not direction.** Re-read
+    of the saved probe_bg CSVs (of0 / of1, 60 donors, 1,363 points; probe_bg_asym.py in runs/2026-10-24-ice-ge/), for
+    additive (handoff 2026-11-02-additive-ice-direction-asymmetry.md):
+    - At the same base glucose, H 3, D −40 against +40: below 90 −0.28 / −0.34 vs −0.17 / −0.16; 90–130 −0.19 / −0.18
+      vs −0.07 / −0.06; 130–180 −0.09 / −0.08 vs −0.04 / −0.03; above 180 about equal (ratio 1.0–1.1).
+    - Binned by the midpoint of the span crossed (same levels, either direction): 40–90 ratio about 1.0, 90–180
+      1.3–1.6, above 180 about 1. The residual is an upper bound: the force is steepest across 90–130, so curvature
+      inside a bin inflates it.
+    - H 1 slopes are 1.5–2× the H 3 slopes in both directions; H 3 ≈ H 6: a recent step reads stronger, symmetrically,
+      and nothing builds beyond 3 h.
+    - Limit: the probe moves only the bg channel (trend, predicted glucose, low30, heading_low held), so it cannot read a
+      response to rate or depth through those inputs, and the perturbed inputs are off-distribution.
