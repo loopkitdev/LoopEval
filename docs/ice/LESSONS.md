@@ -1842,5 +1842,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       the next step), and while it does the level pull toward the person's usual glucose about doubles in 90–130.
       Whether that is damping depends on the comparison: against a force that stays fully on, it is faster recovery.
       The H 1 vs H 3 recency of lesson 160 is the same recent-counteraction dependence seen through the bg channel.
+    - Arm A is the weaker evidence: a state where glucose fell for an hour while the ICE history shows nothing that
+      caused it cannot occur in a consistent body, so its null (and its fall/rise asymmetry below 90) is a response off
+      the training manifold. Arm B is the measurement that transfers. Additive (LESSONS 643) found its body's level
+      force is the same in both states by construction, near this falling value, and twice the flat one.
     - Limits: the ramp starts with a step one hour back, and the medians of small slopes are noisy; arm B's 45% is a
       one-step conditional mean, which sensor noise in real ICE also shrinks.
