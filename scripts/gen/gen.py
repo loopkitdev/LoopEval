@@ -1,17 +1,23 @@
 """The ICE generator (plant_v3, pilot ice_v32 pool) in closed loop: each donor's held-out last 28 days after one warm-up
-day, the generator plant against the donor's deployed controller config, on the Mac or gamepc.
-  S=0 RUN_DIR=<run dir> ARMS=gr,stock [ARMS_FILE=<run dir>/arms.py] [BIN=<engine path or ~/frozen commit>] [DONORS=a,b]
-  [SEEDS=1] [PAR=6] ~/.venv/bin/python3 scripts/gen/gen.py run|score
-Use the torch venv (gamepc ~/venv): the plant inherits this interpreter. One RUN_DIR per experiment: scores go to scores_<TAG>.csv.
+day, the generator plant against the donor's deployed controller config.
+  S=0 RUN_DIR=<run dir> ARMS=gr,stock [ARMS_FILE=<run dir>/arms.py] [BIN=<engine>] [DONORS=a,b] [SEEDS=1] [PAR=6]
+  python3 scripts/gen/gen.py run|score
+Run it with a Python that has torch: the plant inherits this interpreter. One RUN_DIR per experiment: scores go to
+scores_<TAG>.csv.
 Scores: cgm_ / true_ TIR, t70, t54, mean (_c: clean time), insulin_u, and plant IOB at 54 crossings
 (scoring.crossing_iob_stats; clean time, compression artifacts excluded: compare with cgm_t54_c, not cgm_t54).
 Built-in arms: stock, and gr (guard + runway at the frozen constants). Any other arm is the experiment's own, in ARMS_FILE:
   arm(a, name, gr) -> None (built-in) | False (skip this donor) | [flags] | {"flags": [...], "env": {...}, "bin": ...}
   gr(a) is a fresh copy of the gr flag list. env overrides that arm's simulator and plant env (REGIME, ANNOUNCE, SG,
-  ICE_TREE = the plant tree, ...); bin is an engine path or a commit frozen at ~/frozen/<commit>. Keep the hook pure.
-Host layout, the same on both: GEN_DATA (default ~/frozen/gen-v32) = checkpoints icegen_<TAG>.pt, config.csv,
-controller_curves.json, donor_extra_flags.json, eoff_map_oc.json, size_person_oc.json; plant tree ~/frozen/ice-cobt;
-data ~/.loop-eval/ice_v32. A frozen engine: git worktree add --detach ~/frozen/<c> <c>, submodule update, swift build."""
+  ICE_TREE = the plant tree, ...); bin is an engine path. Keep the hook pure.
+Inputs, each an env var:
+  GEN_DATA (default ~/.loop-eval/gen-v32): the generator bundle, everything the run reads besides donor data:
+    checkpoints icegen_<TAG>.pt, config.csv, controller_curves.json, donor_extra_flags.json, eoff_map_oc.json,
+    size_person_oc.json, rc_mode.csv, sigma5_p50.json, r2_multipliers.csv, compression_layer.json, and plant/ (the
+    frozen plant tree, not this checkout's analysis/). Its MANIFEST lists where each file came from, with md5s.
+  ICE_ROOT (default ~/.loop-eval/ice_v32): the donor pool, steps/ and full/<alias>/.
+  BIN (default this checkout's .build/release/loop-eval). A frozen engine for an arm: build a detached worktree of the
+  commit and pass its binary as the arm's bin."""
 import json, os, subprocess, sys, warnings
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np, pandas as pd
@@ -19,24 +25,24 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../
 from loopeval_analysis.scoring import clean_mask, crossing_iob_stats
 warnings.filterwarnings("ignore")
 H = os.path.expanduser
-GEN = H(os.environ.get("GEN_DATA", "~/frozen/gen-v32")); RUNS = H("~/.loop-eval/runs")
-S = os.environ["S"]; HERE = os.path.abspath(H(os.environ["RUN_DIR"])); ROOT = H("~/.loop-eval/ice_v32")
+GEN = H(os.environ.get("GEN_DATA", "~/.loop-eval/gen-v32"))
+S = os.environ["S"]; HERE = os.path.abspath(H(os.environ["RUN_DIR"])); ROOT = H(os.environ.get("ICE_ROOT", "~/.loop-eval/ice_v32"))
 TAG = f"v32oc{S}TcB2FGUCGLBGGSKaLK"; CKPT = f"{GEN}/icegen_{TAG}.pt"; OUT = f"{HERE}/runs_{TAG}"
 # plant_v3 settings, read by the plant from its env
-PLANT_ENV = dict(ICE_ROOT=ROOT, ICE_TREE=H("~/frozen/ice-cobt/analysis"), PYTHONWARNINGS="ignore", IOBNET_COB="1", PUMPLESS="1",
+PLANT_ENV = dict(ICE_ROOT=ROOT, ICE_TREE=f"{GEN}/plant", PYTHONWARNINGS="ignore", IOBNET_COB="1", PUMPLESS="1",
                  BOLUSMASK="1", ARCH="m21", FEATS="m2i", LOWW="5", TRAIT_SD="3", PLANT_FEEDBACK="sample", PLANT_BGBAND_AFTER="1",
                  PLANT_FOLLOW_MIN="60", PLANT_EOFF_MAP=f"{GEN}/eoff_map_oc.json", PLANT_SIZE_PERSON=f"{GEN}/size_person_oc.json")
-PLANT_ARGS = f"--rewarm-h 24 --compression {RUNS}/2026-10-11-ice-compression/compression_layer.json --compression-scale 1"
+PLANT_ARGS = f"--rewarm-h 24 --compression {GEN}/compression_layer.json --compression-scale 1"
 BIN = H(os.environ.get("BIN", os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../.build/release/loop-eval")))
 
 CONFIG = pd.read_csv(f"{GEN}/config.csv").set_index("alias")   # recovered deployed config (24 held-out donors)
 CURVES = {k: v for k, v in json.load(open(f"{GEN}/controller_curves.json")).items() if not k.startswith("_")}
 EXTRA_DONOR = {k: v for k, v in json.load(open(f"{GEN}/donor_extra_flags.json")).items() if not k.startswith("_")}   # GBAF, increments
 # RC mode per donor and era, recovered by simulator from forecast match (docs/handoffs/2026-10-15-frontier-rc-switches.md)
-RCM = pd.read_csv(f"{RUNS}/2026-10-15-replay-change/rc/rc_mode.csv").set_index("alias")
+RCM = pd.read_csv(f"{GEN}/rc_mode.csv").set_index("alias")
 # per-donor sigma5 median (gr band k) and frontier's R2 donor list
-SIG = json.load(open(f"{RUNS}/2026-10-25-ice-r2/sigma5_p50.json"))
-M = pd.read_csv(f"{RUNS}/2026-10-25-ice-r2/r2_multipliers.csv").set_index("donor")
+SIG = json.load(open(f"{GEN}/sigma5_p50.json"))
+M = pd.read_csv(f"{GEN}/r2_multipliers.csv").set_index("donor")
 FLAGS = ["--candidate-counterfactual", "--no-mid-absorption-isf", "--no-gradual-transitions-gate", "--legacy-rc-decay",
          "--no-candidate-manual-bolus-from-recommendation", "--no-candidate-iob-adjust-manual-boluses", "--cgm-stale-guard-min", "5"]
 
@@ -119,8 +125,7 @@ def spec(a, arm):
         s = gr(a) if arm == "gr" else []
     if s is False: return None
     s = {"flags": s} if isinstance(s, list) else dict(s)
-    b = s.get("bin")
-    s["bin"] = BIN if not b else H(b if os.sep in b else f"~/frozen/{b}/.build/release/loop-eval")
+    s["bin"] = H(s.get("bin") or BIN)
     s["env"] = env = {**os.environ, **PLANT_ENV, **{k: str(v) for k, v in s.get("env", {}).items()}}
     env["ICE_TREE"] = env["PYTHONPATH"] = H(env["ICE_TREE"])
     return s
@@ -175,7 +180,7 @@ if __name__ == "__main__":
     if os.environ.get("DONORS"): donors = [a for a in donors if a in os.environ["DONORS"].split(",")]
     arms = os.environ["ARMS"].split(","); seeds = range(int(os.environ.get("SEEDS", 1)))
     try: os.nice(10)   # sims and plants inherit it
-    except PermissionError: pass   # already niced (Mac jobq runs at 20; macOS refuses a further increment)
+    except PermissionError: pass   # already at the limit (a runner at nice 20; macOS refuses a further increment)
     if sys.argv[1] == "run":
         jobs = [(a, arm, s) for s in seeds for arm in arms for a in donors if spec(a, arm) is not None]
         print(f"{TAG}: {len(donors)} donors, {len(jobs)} runs", flush=True)
