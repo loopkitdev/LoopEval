@@ -3193,3 +3193,19 @@ low sits in the 90-180 band — not at the nadir.** (job 164, `164_sm.sh`; arms 
   `sg_kappa` 0.15 for change-prediction work only, the way `ex_abs` is used for exercise — never on the cohort
   reference. The third option, holding the level with something glucose-dependent instead of `resid_m`'s constant,
   is now the only live research direction and it is OUTSIDE this component.
+- **The follow-on is implemented and queued as job 165 (A1e, `sg_rate`).** The trilemma A1d leaves is that a
+  band-faithful LEVEL force is needed for the change response and costs the lows, and that no level-keyed shape
+  escapes it. A RATE-keyed force is a different object on exactly the two axes that matter: it is
+  **mean-preserving** (the flux is `sg x sg_rate x (G - G_slow)`, exactly 0.000000 at steady glucose of 70 / 119 /
+  180 / 250), so the `resid_m` level refit cannot convert it back the way it did five level-mediated gains; and it
+  **does not resist a settings edit** (pin glucose at a new level and the force decays 7.26 -> 4.38 -> 2.65 ->
+  0.97 -> 0.13 mg/dL/h over 4 h as `G_slow` follows). So it could supply the descent brake A1d's cut removes
+  WITHOUT handing back A1d's change-response gain — the one configuration in which the band evidence becomes
+  adoptable at all. It is also the first mechanism in the model that acts asymmetrically in TIME around a peak
+  rather than at a level, which is what L 575 concluded the missing fall / rise term must do, and the only
+  candidate besides `ge_beta` with a route to `acf_zero_min`. The sharpest prediction is the level debt: it should
+  be ~0 on the unrefit pair, and if bg_mean drifts materially then the term is not mean-preserving inside a closed
+  loop and the whole rationale collapses. The row at risk is the meal tail, since a fast post-meal rise is
+  precisely what it brakes. Magnitude is UNMEASURED — `sg_rate` 1.0 is chosen to be visible, not to be right — and
+  ice's trend-consistent probe is asked for it in
+  `docs/handoffs/2026-11-02-additive-ice-rate-dependent-force.md`.
