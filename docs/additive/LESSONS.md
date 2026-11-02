@@ -3392,3 +3392,39 @@ sensor noise and named the test; `fast_part.py` in `runs/2026-10-31-additive-ges
   That bug produced a complete, plausible, replicated table (b1 0.695, half-life 14 min) that was pure fiction,
   and it was caught only because the truth column disagreed with the per-minute measurement of the same quantity.
   Compute the same number two ways when a decomposition is new.
+
+**647. ice's share correction is right and it SHRINKS the night residual from 0.40x to 0.61x without removing it —
+and the sensor explanation they offered for it is eliminated on our side, because our night noise matches the
+donors' to 2%.** ice L 165 (commit `81732a3c`); `fast_part.py` now reports the covariance metric and splits the
+night variance into its persistent and short-lived parts.
+- **The metric.** `b_k` is a share of total variance, so two series with different totals cannot be compared on it.
+  ice's metric is `sqrt(b_k * var)` in mg/dL/h. Because we hold BOTH the truth-built and the CGM-built series for
+  the same twins, we can split the total rather than assume it: the persistent part is the covariance at 20 min and
+  the short-lived part is what is left of the total once it is removed.
+
+  | NIGHT, fell, 90-180 | persistent, 20 min | persistent, 30 min | short-lived |
+  |---|---|---|---|
+  | donors (ice L 164-165, sd 64) | **23.9** | 22.2 | **59.4** |
+  | ice's generator (sd 72) | 21.6 | 19.0 | 68.7 |
+  | rf2 (sd 62.3) | **14.4** | 12.5 | **60.6** |
+  | rf2_5k (sd 62.9) | 15.2 | 14.3 | 61.0 |
+
+- **So the residual is 0.61-0.62x, not the 0.40x the slopes said** — the correction matters and L 646's "a third"
+  was wrong. But it does not vanish, and the reason is the second row: **our night short-lived component is 60.6 /
+  61.0 against the donors' 59.4, i.e. 1.02x.** ice's caveat ("if your sensor model is noisier than real CGM at
+  night, the same share effect shrinks your slopes") is therefore answered for us — our night sensor noise is
+  right, so the share effect cannot be what moved our persistent component down. It IS most of the story for their
+  generator, which carries 68.7 against 59.4 (16% too much noise) with the persistent part nearly right at 0.90x.
+- **Which also eliminates ice's proposed explanation of our nocturnal-lows limit.** They suggested 31% of lows at
+  night against the donors' 22% might be sensor-noise size at night rather than a missing slow force — brief false
+  lows a controller reacts to. Not for us: our night noise is within 2% of theirs. Whatever drives the night-lows
+  excess, it is not that our twins' sensor is noisier at night than a real one. (Their own lead on their side
+  stands; their generator genuinely does carry ~30 mg/dL/h of extra night noise.)
+- **The limit on all of it, and the measurement that would close it.** Both sides' ICE is a DIFFERENCED series, and
+  differencing autocorrelated sensor error contributes NEGATIVE covariance at every lag —
+  `cov(dn(t), dn(t+k)) = -sigma^2 * rho^(k-1) * (1-rho)^2` — which eats into the covariance at 20 and 30 min on
+  both sides. Our own two series show how large that is: the truth-built night persistent part is **25.5 / 26.3**
+  and the CGM-built one is 14.4 / 15.2, so the instrument removes ~43% of it. Matched totals make the comparison
+  plausible but not exact; what would settle it is the short-lag STRUCTURE FUNCTION of the sensor error on both
+  sides, which is the lead ice has taken. Until then, read the night residual as 0.6x with the sign established
+  and the size soft, and do not build to it.

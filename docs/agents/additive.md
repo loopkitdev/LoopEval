@@ -229,11 +229,17 @@ reference changes.
   rerun — our `b_k` profile sits on the donors' at every lag (0.620 / 0.405 / 0.274 / 0.200 / 0.163 / 0.150
   against 0.56 / 0.33 / 0.30 / 0.26 / 0.22 / 0.19) and our sensor alone reproduces their fast part, including
   the ~90% night collapse, with no fast-returning force anywhere in the body. There is nothing to build here.
-  **One small residual survives and it is nocturnal**: after the noise dies (b4-b6) at night the donors keep
-  **0.14 / 0.14 / 0.12** of a deviation, ice's generator 0.09 / 0.07 / 0.07 and our twins **0.054 / 0.040 /
-  0.040** — both forward models under-carry a persistent night-time counteraction deviation, ours by ~3x, which
-  sits exactly where the standing night-lows limit is (31% of our lows at night against 22%). Persistence has no
-  state dependence on either side, so A1e / `sg_rate` is a separate matter from all of this.
+  **One small residual survives, it is nocturnal, and it is 0.6x — not the 3x the slopes
+  suggested (L 647)**: `b_k` is a share of total variance, so the comparison must be made as `sqrt(b_k * var)` in
+  mg/dL/h. In that metric the donors' persistent night component is **23.9** at 20 min, ice's generator **21.6**
+  and our twins **14.4 / 15.2** — 0.61-0.62x. It survives ice's own explanation for it, because our night
+  **short-lived** component is 60.6 / 61.0 against their 59.4 (1.02x): our night sensor noise is right, so the
+  share effect cannot be what lowered our persistent part, and the nocturnal-lows limit (31% against 22%) is
+  therefore NOT our sensor being noisier at night. Soft on size: both sides' ICE is a differenced series, which
+  contributes negative covariance at every lag (our own truth-built value is 25.5 against the CGM-built 14.4, so
+  the instrument removes ~43%), so the sign is established and the magnitude is not. **Do not build to it** until
+  the short-lag structure function of the sensor error is matched on both sides. Persistence has no state
+  dependence on either side, so A1e / `sg_rate` is a separate matter from all of this.
 - **`acf_zero_min` and the meal ratio are ONE defect, but NOT the same one as low-side recovery** (L 594, corrected
   by L 615): `cr_tau_off` fixes the recovery rows (t54 0.124/0.232 -> 0.175/0.177, nadir dwell 20 -> 15 min, the
   donors' exactly) and leaves `acf_zero_min` at 60 and the meal ratio at 0.61-0.65. So counter-regulatory TIMING
