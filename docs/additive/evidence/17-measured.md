@@ -23,8 +23,24 @@ name (c135, lg12, sd3) is a run under the matching dated run dir. Values are the
   is a record flag, not an insulin-free state (ice LESSONS 140b; L 636) — so the prior rests on literature.
   **ice's learned background force independently puts it at 0.0015/min (3× below our draw) and defense-SHAPED:
   −0.17/h below 90 against −0.02/h at 180–250, ~10× below our prior on the high side** (ice LESSONS 140a). A linear
-  −SG·(G−Gb) cannot have that shape, so the correction is to the HIGH-side term (`ge_split`'s A1b `sg_h`), not to the
-  scalar. Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
+  −SG·(G−Gb) cannot have that shape. **It is NOT `ge_split`'s `sg_h` either** (L 637): with the split on, the slope is
+  `sg_p` below Gb and `sg_p + sg_h` ABOVE, because A1b is modelled as the liver WITHHOLDING output above basal, so the
+  high side is ≥ the low side by construction — 2.4× too weak below Gb (0.070 /h) and 15× too strong above it. The one
+  saturating element the split does have, the EGP floor (`min(sg_h·VG·(G−Gb), max(EGP, 0))`), **never engages in the
+  physiological range**: at `egp_b` 2.5 mg/kg/min and `sg_h` 0.0038 it binds only at **G 469 mg/dL**. The same
+  arithmetic rules out the obvious physiological account of the measured saturation — glucose-induced EGP suppression
+  running out of EGP to suppress would need (G − Gb) = 469 mg/dL at ice's own low-band strength — so the shape is
+  non-linear hepatic autoregulation and/or saturating uptake, which this model does not express and the literature in
+  hand does not size. **`sg_kappa` therefore rests on two things and should be read as resting on them only**: (1) the
+  structural symmetry — `kappa` 0.15 already saturates insulin-MEDIATED uptake above Gb (LESSONS 7) while the
+  insulin-independent term beside it is exactly linear, an asymmetry with no justification, since both are
+  glucose-driven uptake into the same tissues; and (2) ice's measured profile, which `sg` 0.00247 + `sg_kappa` 0.15
+  reproduces across all five bands within 0.044 /h (0.148 / 0.114 / 0.022 / 0.022 against 0.170 / 0.070 / 0.040 /
+  0.020) with neither parameter fitted to it. It is a kink at Gb, not a smooth saturation, and over-predicts the
+  90–130 band for that reason. Also ice LESSONS 146, a direct test: a literature-strength SG in the generator's plant
+  was worse on every held-out row with no change-prediction gain ("a restoring force the TDD-ISF ICE already holds"),
+  which transfers here because additive's ISF is the same ICE yardstick on the same pool — so the high side is
+  plausibly DOUBLE-COUNTED with our own fitted ISF. Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
   the donors' (151.7 vs 151.4), CV 33.2 (34.8), breakfast tail +30 / 26 / 21 at 3–4 h (+27 / 22 / 16), lows 0.58 → 0.42 /
   day (L 208). Lower SG brings lows on but raises the level: `sg_mult` 0.7 / 0.5 (c349) t54 0.123 / 0.190% (0.190), but
   mean 160.9 / 163.9 and TIR 69.2 / 67.0 fail (L 349, 356). Gb stays drawn: `gb_own` (donor median quiet CGM 00–06 h,

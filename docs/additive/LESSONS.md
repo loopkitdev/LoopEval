@@ -2908,5 +2908,16 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
        also previews the cohort cost — highs become less self-correcting, so expect t180 to rise and Loop to spend
        more, and expect the `resid_m` refit to reabsorb the LEVEL part of it (L 597). The change response is a dG/dI
        effect, not a level one, so that is the part which should survive the refit.
+     - **The obvious physiological account of the saturation is RULED OUT by arithmetic, so `sg_kappa` has no
+       mechanistic derivation and must not be presented as having one.** The tempting story is that part of SG is
+       glucose-induced suppression of hepatic output, which is bounded because EGP cannot fall below zero, so its
+       contribution to the slope must die out at high glucose. It does not die out anywhere near the right place: at
+       `egp_b` 2.5 mg/kg/min and VG 1.88, exhausting EGP at ice's own low-band strength needs (G − Gb) = **469
+       mg/dL**. The same number is why `ge_split`'s one saturating element is inert — its EGP floor
+       `min(sg_h·VG·(G−Gb), max(EGP, 0))` binds only at **G 469**, i.e. never in the physiological range, which is a
+       second and independent reason cutting `sg_h` cannot make the shape. So the physiological content of the
+       measured saturation is non-linear hepatic autoregulation and/or saturating uptake, which this model does not
+       express and the literature in hand does not size. `sg_kappa` rests on the structural symmetry with κ and on
+       ice's measured profile, and on nothing else.
      Code: `sg_kappa` in `physiology.py` (`_sg_excess`), plumbed in `world.py` from `--set`; default 0, so every
-     existing run is bit-unchanged.
+     existing run is bit-unchanged. Registry: A1d in COMPONENTS.md; evidence in `evidence/17-measured.md` § A1.
