@@ -2921,3 +2921,62 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
        ice's measured profile, and on nothing else.
      Code: `sg_kappa` in `physiology.py` (`_sg_excess`), plumbed in `world.py` from `--set`; default 0, so every
      existing run is bit-unchanged. Registry: A1d in COMPONENTS.md; evidence in `evidence/17-measured.md` § A1.
+
+**638. The damped change response is a SHAPE error in glucose effectiveness, not a magnitude error — and the
+magnitude arm's apparent gain was entirely its own level drift.** Jobs 160 and 161 ran the 2x2 L 637 designed:
+`sg_mult` 0.67 / 0.40 at `sg_kappa` 0 (magnitude), and `sg_kappa` 0.15 with and without `sg_mult` 0.55 (shape).
+All six arms verified real (no-op and knob checks). On the e pool's 580 edit events, field / variant, field = 1.0,
+higher = more damped:
+
+| arm | what it changes | mean | tir | t70 | t54 | pre-edit level |
+|---|---|---|---|---|---|---|
+| rf2e_s | — | 1.33 | 1.28 | 1.15 | 0.56 | +3.3 |
+| sg7_e | sg x0.67, both sides | 1.29 | 1.18 | 1.27 | 0.80 | +10.1 |
+| sg4_e | sg x0.40, both sides | 1.28 | 1.18 | 1.26 | 0.57 | +15.5 |
+| **sk1_e** | **`sg_kappa` 0.15, high side only** | **1.06** | **1.06** | **1.08** | 0.76 | +19.1 |
+| sk2_e | `sg_kappa` 0.15 + sg x0.55 | 0.98 | 0.95 | 1.19 | 0.82 | +20.5 |
+
+- **The magnitude route is dead, and it is dead for a reason worth keeping: its gain was its own level drift.**
+  `dG/dI = -SI·G / (SG + SI·I·…)` is PROPORTIONAL TO G, so an arm whose pre-edit level sits higher must respond
+  more to the same proportional edit with no mechanism at all. `score_change_lvl.py` (in `change_e/`) decomposes
+  it — the level-only expectation is `ratio_ref x (level_ref / level_arm)` on the arms' own median pre-edit mean
+  glucose (rf2e_s 143.5, sg4_e 153.5, sk1_e 157.0). **sg4's observed mean ratio is 1.25 and its level-only
+  expectation is 1.25**: the whole apparent gain is the drift, to two decimals. On TIR, 1.16 observed against
+  1.20 expected — the same. And on t70 it is WORSE than level predicts (1.27 against 1.04), which is the uniform
+  cut thinning the sub-basal force L 563/589 want strengthened, exactly as job 160's cancellation guard said it
+  would. A magnitude cut has no structural effect on the response.
+- **The shape route is real at a FIXED level.** sk1's observed mean ratio is 1.05 against a level-only expectation
+  of 1.22, TIR 1.07 against 1.17, so the form carries 1.22 -> 1.05 and 1.17 -> 1.07 after the drift is taken out.
+  Per unit of glucose the response rises 1.16x (slope / level 0.1425 against rf2's 0.1226). Re-fitting each arm's
+  slope with its OWN pre-edit mean as a covariate gives the same answer (sk1 1.06, sg4 1.27), so the conclusion
+  does not depend on which correction is used. **The magnitude arm reproducing its own confound to two decimals
+  is what validates the correction** — it is an internal control, not an assumption.
+- **And the form alone is right: `sk2` OVERSHOOTS.** Adding the uniform cut on top takes mean to 0.98 and TIR to
+  0.95 — past the field — and puts the low-side damage back (t70 1.19 against a 1.00 level expectation). So the
+  pair BRACKETS the field, `sg_kappa` 0.15 alone is the configuration, and the extra magnitude cut is not wanted.
+  Two independent reasons now say the same thing: the e pool brackets it, and ice L 140a's bands are matched at
+  `sg_kappa` 0.15 with `sg` left where it is.
+- **160's own saturation was the first sign, misread at first.** `sg_mult` 0.67 and 0.40 are indistinguishable on
+  every ratio despite one cut being 1.5x and the other 2.5x. That looked like "the high side is exhausted"; it was
+  "there is no mechanism here at all, only level", and the two readings were separated by the decomposition above
+  rather than by more compute. The discriminator had been recorded before 161 ran (sk1's mean ratio below ~1.22 =
+  shape is a real further lever) and 1.05 settles it.
+- **Still unmeasured: the cohort cost.** 161's cohort arms ran on the UNREFIT templates, so sk1 carried a +13
+  mg/dL level error and every level-fed row collapsed (score 0.309 -> 0.440 / 0.357 -> 0.434, bg_mean 151 -> 164,
+  t180 25.8 -> 36.9, TIR 72.2 -> 61.6, TDD 41.9 -> 45.8). None of that is interpretable before the `resid_m` refit
+  (L 597). Refit round 1 ran inside 161; job 162 runs rounds 2-3 and scores the converged arm on three draws.
+  Two rows are NOT level-fed and are the real cost to watch: **bg_cv** 34.2 -> 38.8 (donors 34.6) and
+  **`acf_zero_min`** 60 -> 70 (donors 40). The low side is already fine unrefit — t70 1.973 / 1.920 against sg4's
+  2.362 / 3.043, `min_below70` exactly the donors' 20.0, lows/day 1.083 against rf2_5k's 1.250 — which is the
+  shape's whole point. Paired per-person ranking was better even at the wrong level (rho_tir 0.856 / 0.843 against
+  0.815 / 0.830; rho_t70 0.665 against 0.631).
+- **`acf_zero_min` moved on an SG arm**, which L 594 / 617 said only gastric-emptying shape does: 60 -> 67.5 /
+  70 as the high-side force weakens. Job 160's header had predicted it would be unmoved and that this would void
+  L 208's second objection ("excursions too persistent"); it is corroborated instead. Confounded with the level
+  until job 162, but the direction is what a weaker restoring force must do.
+
+**Trap this produced: a change-response ratio is meaningless without its arm's own pre-edit level.** Every arm
+compared on the e pool before this one drifted +3.3 to +9.7, small enough that the ratios could be read directly;
+`sk1` drifts +19.1, and at that size the drift alone moves the mean ratio by 0.11. Read `score_change_lvl.py`'s
+level-only expectation beside every ratio from now on, and treat an arm whose observed ratio equals that
+expectation as having NO mechanism whatever its raw number looks like.

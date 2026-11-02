@@ -371,11 +371,22 @@ linear term that is wrong by 0.10–0.27 /h in every band. **A third line is a d
 literature-strength SG in the generator's plant and it was worse on every held-out row with no change-prediction gain
 ("a restoring force the TDD-ISF ICE already holds") — which transfers here because additive's ISF comes from the same
 ICE yardstick on the same pool, and the +0.53–0.71 collinearity above is how that disposal loads onto a fitted insulin
-effect. So the high side is plausibly double-counted with our own ISF. Arms `sk1` (`sg_kappa` 0.15 alone) and `sk2`
-(plus `sg_mult` 0.55) nest with job 160's uniform pair to separate MAGNITUDE from SHAPE; the prediction on record is
-that `sk1` buys the uniform cut's change response at a smaller low-side cost. Caveats before reading it: ice's
-high-side slope is biased LOW by their own confound, and `sg_kappa` is a kink at Gb rather than a smooth saturation,
-which is why it over-predicts the 90–130 band.
+effect. So the high side is plausibly double-counted with our own ISF. **MEASURED, and the 2x2 separates magnitude
+from shape decisively (L 638).** On the e pool's 580 events, `sg_kappa` 0.15 alone (`sk1`) brings every response row
+to the field — mean 1.33 -> **1.06**, TIR 1.28 -> **1.06**, t70 1.15 -> **1.08** — while the uniform cuts move
+nothing structural: `sg_mult` 0.40's observed mean ratio is 1.25 against a LEVEL-ONLY expectation of 1.25, i.e. its
+whole apparent gain is its own +15.5 mg/dL pre-edit drift, since dG/dI is proportional to G. Corrected the same way,
+`sk1`'s 1.05 sits against an expectation of 1.22, so the FORM carries 1.22 -> 1.05 at a fixed level (1.16x more
+response per unit glucose), and the magnitude arm reproducing its own confound to two decimals is what validates the
+correction. `sk2` (plus `sg_mult` 0.55) OVERSHOOTS (mean 0.98, TIR 0.95) and puts the low-side damage back (t70 1.19),
+so the pair brackets the field and **`sg_kappa` 0.15 alone is the configuration**. The low side is intact unrefit
+(t70 1.973 / 1.920 against the uniform cut's 2.362 / 3.043, `min_below70` exactly the donors' 20.0), which was the
+point of the shape. **The cohort cost is NOT yet known**: 161's cohort arms ran on unrefit templates at +13 mg/dL, so
+read nothing from their score (0.440 / 0.434) until job 162's `resid_m` refit lands; the two rows a level fit cannot
+absorb, and so the real cost, are bg_cv (34.2 -> 38.8, donors 34.6) and `acf_zero_min` (60 -> 70, donors 40 — the
+first SG arm ever to move it, corroborating L 208's second objection). Caveats: ice's high-side slope is biased LOW
+by their own confound, and `sg_kappa` is a kink at Gb rather than a smooth saturation, which is why it over-predicts
+the 90–130 band.
 
 **The natural-experiment half is limited by the FIELD, not by compute (L 611).** With 63 edit events the field / twin
 response ratios carry CIs like [1.22, 3.79], so `rf2`'s t70 improvement (3.51 -> 2.17) is "best measured, not
@@ -511,6 +522,15 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
 
 ## Analysis traps (each cost a session)
+
+- **A change-response ratio is meaningless without its arm's own PRE-EDIT LEVEL** (L 638). `dG/dI = -SI·G /
+  (SG + SI·I·…)` is proportional to G, so an arm whose pre-edit level drifts up responds more to the same
+  proportional edit with no mechanism at all. Every arm compared on the e pool before `sk1` drifted +3.3 to +9.7,
+  small enough to ignore; `sk1` drifts +19.1, where the drift alone moves the mean ratio by 0.11. Read the
+  level-only expectation — `ratio_ref x (level_ref / level_arm)` on the arms' own median pre-edit mean glucose —
+  beside every ratio (`change_e/score_change_lvl.py`), and treat an arm whose observed ratio EQUALS that
+  expectation as having no mechanism whatever its raw number looks like. That is exactly what the uniform
+  `sg_mult` cut turned out to be (observed 1.25, expected 1.25).
 
 - **`truth["sent_overrides"]` is the REACTIVE override class only** (world.py:728). The person's PLANNED overrides
   reach the controller through `loopeval_io._override_windows`, which writes `beh.overrides` into the twin's own

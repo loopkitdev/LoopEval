@@ -40,7 +40,14 @@ name (c135, lg12, sd3) is a run under the matching dated run dir. Values are the
   90–130 band for that reason. Also ice LESSONS 146, a direct test: a literature-strength SG in the generator's plant
   was worse on every held-out row with no change-prediction gain ("a restoring force the TDD-ISF ICE already holds"),
   which transfers here because additive's ISF is the same ICE yardstick on the same pool — so the high side is
-  plausibly DOUBLE-COUNTED with our own fitted ISF. Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
+  plausibly DOUBLE-COUNTED with our own fitted ISF. **Now MEASURED on the natural experiments, and the two routes
+  separate (LESSONS 638)**: on the e pool's 580 edit events `sg_kappa` 0.15 alone brings the change response to the
+  field (mean 1.33 -> 1.06, TIR 1.28 -> 1.06, t70 1.15 -> 1.08) while a uniform `sg_mult` cut brings nothing — its
+  observed mean ratio of 1.25 is exactly its LEVEL-ONLY expectation of 1.25, because dG/dI is proportional to G and
+  the cut raises the pre-edit level +15.5 mg/dL. At a fixed level the form carries 1.22 -> 1.05, i.e. 1.16x more
+  response per unit glucose. `sg_mult` 0.55 on top overshoots (mean 0.98, TIR 0.95), so the pair brackets the field
+  and 0.15 alone is the value. This is the first evidence for the SHAPE that is independent of ice's learned bands,
+  and it is a prediction test rather than a fit. Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
   the donors' (151.7 vs 151.4), CV 33.2 (34.8), breakfast tail +30 / 26 / 21 at 3–4 h (+27 / 22 / 16), lows 0.58 → 0.42 /
   day (L 208). Lower SG brings lows on but raises the level: `sg_mult` 0.7 / 0.5 (c349) t54 0.123 / 0.190% (0.190), but
   mean 160.9 / 163.9 and TIR 69.2 / 67.0 fail (L 349, 356). Gb stays drawn: `gb_own` (donor median quiet CGM 00–06 h,
