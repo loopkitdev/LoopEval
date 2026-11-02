@@ -74,15 +74,22 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   where it identifies them; where it does not, fitting them to the donor data is fine (the sensor included), kept inside
   the component's own evidence (e.g. a sensor fit keeps its FDA accuracy loss).
 - **Publishing**: updates to this model are self-approved (merge to `main`, move the board task to Done); changes to
-  general LoopEval code still go to Pete first.
+  general LoopEval code still go to Pete first. **Check the submodule pointer before every publish** — `git diff --cached
+  --submodule` must show no `LoopAlgorithm` pointer change you did not mean, and the commit should build in a fresh
+  worktree after `git submodule update`. A docs-only additive commit moved it back and broke clean checkouts of `main`
+  (1d916cfa, restored by trio in 7668fbde) — the second such break on the trunk.
 
 ## Running and comparing a cohort
 
 - **Reference run**: `python -m loopeval_analysis.patient_sim.cohort --n 112 --days 14 --templates
-  templates_pilot_logs.csv --enable rc_own --out runs/<arm>` on gamepc from frozen code (`git archive <sha> analysis` into
-  `~/frozen/<sha>`, launched through an ssh held in a Mac `tmux -L fast` session). Templates live outside the repo
-  (`~/.loop-eval/runs/2026-10-15-additive-templates/`) and must be copied to gamepc after every change; template columns
-  are built by `templates.py` (`add_isf_yardstick`, `add_insulin_from_iob`, `add_delivered_profile`, …).
+  templates_pilot_logs.csv --enable rc_own --out runs/<arm>`. What the step needs, whatever the hardware:
+  **frozen code** (`git archive <sha> analysis` unpacked into a tree outside the checkout, so a later edit cannot change
+  a running arm — `arm2.py` honours `ARM_TREE`); a host with enough cores for `--par`, and a session that survives a
+  disconnect if the arm is launched remotely; and the **templates directory beside that tree**, since templates live
+  outside the repo (`~/.loop-eval/runs/2026-10-15-additive-templates/`) and must be re-copied to a remote host after
+  every change. Template columns are built by `templates.py` (`add_isf_yardstick`, `add_insulin_from_iob`,
+  `add_delivered_profile`, …). The host this project actually uses, and how its long-running sessions are held, are
+  recorded in the git-ignored `PRIVATE.md`.
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. A different draw of people (seed0) moves the count by up to 6 (LESSONS 444): score an arm whose
   effect is within that scatter on two draws (seed0 1000 and 5000) before adopting it.
