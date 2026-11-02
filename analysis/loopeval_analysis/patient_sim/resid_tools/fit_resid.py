@@ -10,10 +10,10 @@ Writes templates_pilot_resid.csv (templates_pilot_logs.csv + resid_f / resid_b /
 import sys, os, glob, pickle, numpy as np, pandas as pd
 from pathlib import Path
 from scipy.optimize import nnls
-HERE = Path(__file__).resolve().parent; sys.path.insert(0, str(HERE))
-from ice_var import stats
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))   # this tree's analysis/ (live or frozen)
+from loopeval_analysis.patient_sim.resid_tools.ice_var import stats
 H = Path.home()
-TPL = H / ".loop-eval/runs/2026-10-15-additive-templates/templates_pilot_logs.csv"
+TPL = Path(os.environ.get("TPL_CSV", str(H / ".loop-eval/runs/2026-10-15-additive-templates/templates_pilot_logs.csv")))
 ST = ["fast_sd_quiet", "block_sd_quiet", "day_sd_quiet"]
 TF, TB = 20.0, 180.0
 

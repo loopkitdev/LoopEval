@@ -8,7 +8,7 @@ import pickle, sys
 from pathlib import Path
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
-HERE = Path(__file__).resolve().parent
+HERE = Path.cwd()                  # the change dir: events.csv, field_and_tools.csv, the arms
 BURN = 2880.0
 M = ["tir", "t70", "t54", "mean"]
 F = pd.read_csv(HERE / "field_and_tools.csv")

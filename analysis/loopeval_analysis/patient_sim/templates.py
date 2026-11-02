@@ -142,6 +142,10 @@ def build_pilot(root: Path | None = None, sensor_csv: str | None = None, age_csv
                  free_bolus_u_med=float(corr.units[_free(corr)].median()) if _free(corr).any() else np.nan,
                  true_corrections_per_day=float((~_free(corr)).sum() / span),
                  rescues_per_day=len(rs) / span, rescue_size_med=float(rs.size_g.median()) if len(rs) else np.nan,
+                 # the donor's own PRE-EMPTIVE low-side eating: labelled pulses starting below 80 that the labeller
+                 # did not call a rescue. `pro_grams` was a fixed 12 g while `treat_grams` came from the donor (L 588)
+                 low_pro_g=(float(nr[nr.bg_onset < 80].size_g.median())
+                            if "bg_onset" in nr.columns and (nr.bg_onset < 80).sum() >= 5 else np.nan),
                  rescue_bg_med=float(rs.bg_onset.median()) if len(rs) else np.nan,
                  carb_entries_per_day=float(meals.entry_g.gt(0).sum() / span),
                  user_boluses_per_day=float((ann.bolus_u > 0).sum() / span + len(corr) / span),
@@ -208,7 +212,14 @@ def add_override_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice
       less  factor < 0.99 — less insulin (activity, low prevention): starts ~126 mg/dL and falling, afternoon
       more  factor > 1.01 — more insulin (reaction to highs): starts ~210 and rising, evening
       tgt   target only — mostly a lowered target ahead of eating (Loop's pre-meal preset), ~0.8 h
-    rate/day, median factor, target low/high and duration (h) per class."""
+    rate/day, median factor, target low/high and duration (h) per class, plus the class's own duration SPREAD
+    (`ov_<cls>_s`, the SD of log duration): the twins' windows ran 41 min against the donors' 65 and missed their long
+    tail because the draw used a fixed log-SD of 0.6 (LESSONS 586).
+
+    A real override is >= 5 min. Shorter records are cancellations — the ETL keeps an edit-version per change — and
+    they are therapy-free but wreck the fit: left in, the log-duration SD reads 2.01 (and a lognormal at that sigma
+    puts 31% of windows under 30 min against the donors' real 18%); dropped, the donors show a median of 79 min with
+    SD 0.83, and lognormal(79 min, 0.8) reproduces both their tails (8% under 30 min, 8% over 4 h)."""
     import json
     import numpy as np
     t = pd.read_csv(path)
@@ -222,6 +233,7 @@ def add_override_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice
             span = (pd.Timestamp(th["basal"][-1]["endDate"]) - pd.Timestamp(th["basal"][0]["startDate"])).total_seconds() / 86400
             W = pd.DataFrame([dict(f=w.get("factor", np.nan), lo=w.get("targetLo", np.nan), hi=w.get("targetHi", np.nan),
                                    d=(pd.Timestamp(w["end"]) - pd.Timestamp(w["start"])).total_seconds() / 3600) for w in ow])
+            W = W[W.d >= 5 / 60.0] if len(W) else W          # a cancellation is not an override
             for cls, m in (("less", W.f < 0.99), ("more", W.f > 1.01),
                            ("tgt", W.f.isna() | ((W.f >= 0.99) & (W.f <= 1.01)))) if len(W) else ():
                 x = W[m]
@@ -229,7 +241,10 @@ def add_override_rates(path: str, ice_root: Path = Path.home() / ".loop-eval/ice
                             f"ov_{cls}_f": float(x.f.median()) if len(x) and x.f.notna().any() else np.nan,
                             f"ov_{cls}_lo": float(x.lo.median()) if len(x) and x.lo.notna().any() else np.nan,
                             f"ov_{cls}_hi": float(x.hi.median()) if len(x) and x.hi.notna().any() else np.nan,
-                            f"ov_{cls}_h": float(x.d.median()) if len(x) else np.nan})
+                            f"ov_{cls}_h": float(x.d.median()) if len(x) else np.nan,
+                            # the donor's own spread of window length, so a heavy-tailed or indefinite user keeps it
+                            f"ov_{cls}_s": (float(np.clip(np.log(x.d).std(), 0.3, 1.3))
+                                            if len(x) > 2 else np.nan)})
         out.append(row)
     r = pd.DataFrame(out)
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
@@ -871,3 +886,41 @@ def add_gb_own(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32", q
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_metmax_own(path: str, p: float = 0.90, min_bouts: int = 5, frac_of_max: float = 0.80):
+    """Per donor, an aerobic-capacity ANCHOR measured from the intensity they actually sustain, replacing the free
+    `metmax` draw for the donors who record workouts (L 631).
+
+    `metmax` is currently drawn lnN(9, 0.25) with an age decline, so it is uncorrelated with the person — and L 551,
+    556, 564 name per-person capacity as the one missing MEASUREMENT behind the 6-8 MET activity band. The donors'
+    workout records carry `HKAverageMETs` per bout, from which:
+
+      - the donor's **p90 bout METs** is a stable person trait: split-half correlation +0.790 over 22 donors with
+        >= 20 bouts, with real spread (p10-p90 of 4.6-9.8 METs);
+      - the donor's **maximum** bout METs is NOT usable - it correlates +0.783 with log bout count, so it measures
+        how often they exercise, not how hard they can (the p90's confound is +0.350, the median's +0.114).
+
+    This is a LOWER BOUND on capacity, not capacity: it is the intensity chosen, and a hard session sits at roughly
+    70-85% of VO2max, so the anchor is p90 / `frac_of_max`. Donors without workout records keep the prior draw.
+
+    Column `metmax_p90` (the raw measurement) and `metmax_anchor` (the capacity estimate).
+    """
+    import numpy as np
+    from . import lifestats as L
+
+    t = pd.read_csv(path)
+    A = L._workouts_all()
+    if A is None or not len(A):
+        return
+    A = A[A.mets.notna()]
+    g = A.groupby("alias").mets
+    S = pd.DataFrame(dict(n=g.size(), p90=g.quantile(p))).dropna()
+    S = S[S.n >= min_bouts]
+    t["metmax_p90"] = t.alias.map(S.p90)
+    t["metmax_anchor"] = (t.metmax_p90 / max(frac_of_max, 0.1)).clip(4.0, 16.0)
+    t.to_csv(path, index=False)
+    got = int(t.metmax_anchor.notna().sum())
+    print(f"metmax_anchor on {got}/{len(t)} donors; "
+          f"p10/p50/p90 = {t.metmax_anchor.quantile(.1):.1f} / {t.metmax_anchor.median():.1f} / "
+          f"{t.metmax_anchor.quantile(.9):.1f} METs")

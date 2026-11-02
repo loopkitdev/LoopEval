@@ -153,7 +153,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 
 | Component | Form | Settings | How set | Rationale / evidence | Personal basis |
 |---|---|---|---|---|---|
-| B1 Circadian sensitivity | one of Visentin's 7 B/L/D classes, switches 04 / 11 / 17 h with 1-h ramps, daily mean 1 | classes equally likely; low/high N(0.40, 0.23) at half the swing | equal classes put 09 h on the donors' (L 59); swing from circadian_amp | Hinshaw 2013 (pattern individual) | **Drawn** |
+| B1 Circadian sensitivity | one of Visentin's 7 B/L/D classes, switches 07 / 11 / 17 h with 1-h ramps, daily mean 1 | classes equally likely; low/high N(0.40, 0.23) at the full swing (L 38) | equal classes put 09 h on the donors' (L 59); swing from circadian_amp | Hinshaw 2013 (pattern individual) | **Drawn** |
 | B1b Basal-need shape | EGP × the donor's quiet-hour delivered-insulin shape (mean 1) | quiet = no entry / manual bolus in 4 h, not disrupted | `add_delivered_profile` | donors' schedule shape over-states quiet need (L 214, 250); flat or schedule^0.5 shapes trade the lows (L 371) | **Donor** |
 | B1c Per-donor circadian SI | the donor's own B / L / D SI posterior (`circ_own`) | — | `fit_body --segments` | reliability B 0.53, L 0.08, D 0.37 (L 335) | Donor, **off** |
 | B2 Dawn phenomenon | EGP ramp to a 07:00 peak | p 0.52; amp lnN(0.3, 0.6) [J] | Ostrovski 2020 | only for people without a donor basal shape (the shape carries dawn, L 51) | Drawn (mostly unused) |
@@ -161,7 +161,7 @@ The template is one of 168 ice pilot donors (DIY Loop, BDDP). `templates.py` bui
 | B5 Menstrual cycle | SI falls through the late luteal phase to a low at onset, recovers by day 3 | 63% respond; amp lnN(0.08, 0.5); cycle N(28, 3) d | BDDP G7 cycle logs (493 events): +2 to +4.7 mg/dL to onset | L 136 | **Drawn** (F 13–50) |
 | B6 Illness | Poisson episodes 1.5–15 d; SI −10 to −35%, EGP +0–15%; 20% GI (SI up, intake ×0.7) | 3 / yr adults, 5 / yr children | Mehta 2010; Tinti 2025 | evidence/02 | **Event** |
 | B7–B10 Nightly factors | sleep loss (−5% SI / h), nocturnal GH (CV 0.32 on a 20% dawn increment), evening alcohol (63% drink, 3–20% of nights), stress (1/3 react; −18% SI 1–6 h, Moberg 1994) | — | Donga 2010, Edge 1990, Turner 2001, Riazi 2004 | evidence/12; L 77 | **Drawn** + Event |
-| B11 Hyperglycaemic resistance | SI × (1 − H), H → 0.26·clip((G − 140)/220), τ 12 h [J τ] | — | Vuorinen-Markkola 1992; Yki-Järvinen 1987 | L 43 | Cohort |
+| B11 Hyperglycaemic resistance | SI × (1 − H), H → 0.26·clip((G − 140)/220), builds τ 6 h, fades τ 24 h [J τ; L 80] | — | Vuorinen-Markkola 1992; Yki-Järvinen 1987 | L 43 | Cohort |
 | B14 Oral glucocorticoids | courses 0.09 / yr; morning dose; SI loss U(0.35, 0.60) tapering | — | Bevier 2008; Waljee 2017 | L 140 | **Event** |
 | Scenarios (off) | pregnancy (X9), thyrotoxicosis (X12), niacin (D14), damaged insulin (D34), GLP-1 RA (B12) | `--set` / `--enable` | per factor catalog | L 87, 141, 336, 354 | — |
 
@@ -192,11 +192,11 @@ calibration, noise level and transient rate.
 | D2 Calibration | gain a0 × drift × day-1 deficit + offset b0 | a0 N(0.98, 0.04) / N(0.96, 0.05) / N(0.965, 0.03); b0 N(3, 3) / N(2, 3) / N(0, 2) | fitted to FDA accuracy by range and two-sensor PARD (`sensor_fit.py`) | **Event** |
 | D3 Sensor-specific noise | AR(2) (1.30, −0.42), Student-t (df 30 / 4 / 4), scale √(q² + (1 − q²)(IG/130)²) | σ N(1.3, 0.8) / N(1.0, 0.8) / N(1.5, 0.5); q 0.55 / 0.6 / 0.5 | G7 σ and q from the FDA accuracy tables by range (K213919, L 393); G6 q from DEN170088 (L 393), σ from donors' measurement noise (L 362) | **Event** |
 | D3b Common (interstitial) noise | AR(3), continuous across sessions | σ 2.2 / 2.5 / 3.0 | Biagi 2017 form; G7 σ fitted jointly to the FDA tables and the donors' 5-min steps (L 384, 393) | **Drawn** (one process per person) |
-| D3c Transient biases | ±lnN(8 mg/dL, 0.4), τ 10 min; low first 62% / 72% / 55% | 6.5 / 7.5 / 4 per day, session lnN(0.9) | each family's own donor quiet-window reversals (L 32, 390) | **Event** |
+| D3c Transient biases | ±lnN(8 mg/dL, 0.4) (Libre 3 12), τ 10 min; low first 62% / 72% / 55% | 6.5 / 7.5 / 4 per day, session lnN(0.9) | each family's own donor quiet-window reversals (L 32, 390) | **Event** |
 | D3d Noise wander, slow bias, early noise | noise level × exp(log-OU); slow bias (τ 3 h); day-1 extra noise | wander sd 0.45 / 0.7 / 0.7, τ 2 / 2 / 8 h; slow bias sd 5 / 3 / 5 | form Facchinetti 2011; wander fitted to the donors' 5-min step tails, clustering and dispersion where the FDA tables do not identify it (`sensor_eda.py`, L 384); Breton & Kovatchev 2008; G6 Pro day-1 MARD | **Event** |
 | D4 Device smoothing | causal EMA | Libre 3 0.35 [J] | eda L33 | Cohort |
 | D5 Compression lows | while asleep; depth lnN(35), 45 min | rate Gamma(2.37, 1/75.7) / day | donor detector (ice compression run) | **Drawn** |
-| D6 Availability | warm-up, session length, early failure 5% [J], random gaps | gaps 4.4 / 1.7 / 1.5 per day | 153 donors | **Event** |
+| D6 Availability | warm-up, session length, early failure 5% [J], random gaps | gaps 4.11 / 2.10 / 1.50 per day, scaled to the donor's own (`gap_own`) | pilot donors (L 45, 107) | **Event** |
 | D7 Reporting | 5-min grid, integer, 39 / 401 clamps | — | eda L3, L6 | Cohort |
 
 The sensor is fitted only to sensor evidence (FDA tables, donors' measurement noise), never to CGM shape (L 299, 363).
@@ -216,7 +216,7 @@ records carry only the commanded side.
 | E2 Flow error | device bias N(0, 1.5%) + AR(1) τ 45 min | 1-h sd Omnipod 11%, durable 4.5%, twiist 3% at 1 U/h | Freckmann 2019; Ziegler 2021 | **Drawn** (device) |
 | E3 Bolus error | sd c/√U, floor 0.6% | Omnipod c 0.12, durable 0.03 | evidence/06 | **Event** |
 | E4 Start-up transient | after each site change, decays 4 h | Omnipod N(+5%, 5%) | evidence/06 | **Event** |
-| E5 / E5b Site life | absorption 0.9 → 1.15 by day 4; efficacy −2.5% / day after day 1; per-site speed lnN CV 27% | site change every N(3.0, 0.4) d | Swan 2009; Sampson Perrin 2015; Haidar 2013 | **Event** (site), Drawn interval |
+| E5 / E5b Site life | absorption 0.9 → 1.15 by day 4; efficacy −2.5% / day after day 1; per-site speed lnN CV 27% | site change every N(3.0, 0.4) d; `site_clock` (reference): whole days at an evening hour N(19.5, 1.5) (L 523) | Swan 2009; Sampson Perrin 2015; Haidar 2013 | **Event** (site), Drawn interval |
 | E6 Failing site | absorbed fraction → 0.3 (τ 4 h) | p 0.012 per site | Kanapka 2022 | **Event** |
 | E7–E10 Occlusion, bubble, dislodgement | partial (0.4 / wear), full + alarm (0.003), bubble (0.2), dislodge (0.004) | splits [J] | evidence/06; Kanapka 2022 | **Event** |
 | E11 Lipohypertrophy | half of LH people's sites at bioavailability 0.78, dose CV 0.5 | 26% adults, 42% children | Pickup 2014; Famulla 2016 | **Drawn** |
@@ -314,22 +314,100 @@ The level is what carries a donor's control level (L 448's far-from-meal load); 
   recording habit (L 496).
 - **The KS count** ("matched of 51", KS p > 0.05) is still written to `compare_pilot.csv` / `compare_life.csv`. Its
   cut depends on the sample size, so the weighted score ranks runs.
-- **Two draws of people:** draw 1 is seed 1000, draw 2 is seed 5000. The draw moves the score by about 0.04 and tier 1 by
-  about 0.07, so adopt a change only when it holds on both draws (L 444, 492).
+- **THREE draws of people:** seed0 1000, 5000 and 9000 — read the mean (L 567). The draw moves the score by about 0.04
+  and tier 1 by about 0.07, so a change is adopted when it holds across them (L 444, 492). **Draw 1 is this lineage's
+  own development draw and scores anomalously well on it** (ad3: 0.321 against 0.425 / 0.410, which agree with each
+  other), so a candidate that gives up draw-1 fit looks worse than it is; where the three disagree, discount 1000.
 - **Running it:** cohort, then `python -m loopeval_analysis.patient_sim.meal_response <run>` (the labeller), then
   `python -m loopeval_analysis.patient_sim.lifestats sim <run>`, then `python -m loopeval_analysis.patient_sim.score
   <run> [<run> ...] --detail`. Scores from before L 494's rows do not compare with later ones.
 
-**Status at the reference sd3 (draw 1) / sd3_5k (draw 2):**
+**Status at the reference rf2** (2026-11-01; runs/2026-10-31-additive-gesplit, templates
+`templates_pilot_resid_rf1.csv` with `--set resid_mult=0.0`, L 592):
 
-| | Tier 1 | Tier 2 | Tier 3 | Score | Close (of 51) |
+| | Tier 1 | Tier 2 | Tier 3 | Score | Close |
 |---|---|---|---|---|---|
-| draw 1 | 0.243 | 0.444 | 0.450 | 0.370 | 22 |
-| draw 2 | 0.401 | 0.494 | 0.416 | 0.454 | 19 |
+| draw 1 (1000) | 0.135 | 0.445 | 0.464 | **0.332** | 27 of 51 |
+| draw 2 (5000) | 0.209 | 0.462 | 0.442 | **0.371** | 24 of 54 |
+| draw 3 (9000) | 0.178 | 0.530 | 0.526 | **0.406** | 21 of 54 |
+| draw 4 (13000) | 0.289 | 0.486 | 0.444 | **0.409** | 14 of 51 |
+| draw 5 (17000) | 0.156 | 0.508 | 0.455 | **0.380** | 25 of 54 |
+
+rf2 is ov0 with the residual's dynamic part off, keeping only its per-person level. **Read its standing on three
+instruments, in increasing order of power** (L 609, 610):
+
+| instrument | rf2 against its predecessor |
+|---|---|
+| cohort weighted score | 0.370 against ov0's 0.372 — **level**, and the weakest instrument: the trait-draw sd is 2.19 on TIR, so 20 draws are needed to resolve a 1-point effect |
+| **paired per-person deviation** (`twin.csv`, sum of \|median twin − its own donor\| over TIR, bg_mean, t70, t54, TDD) | **2.28 against ov0's 5.36 — a 57% cut**, carried by TIR (−2.03 → −0.51) and the level (+1.66 → +0.20) |
+| change response, e pool (580 events) | better on **all four** ratios and **all three** rho: mean 1.33 against 1.60, TIR 1.28 against 1.37, **t70 1.15 against 1.43**, rho 0.33 / 0.16 / 0.17 against 0.26 / 0.13 / 0.15 |
+
+Against the reference of three days earlier (sd3, 2026-10-28), scored with the same code on matched draws: score
+0.370 → 0.332 and 0.454 → 0.371, with **tier 1 roughly halved** (0.243 → 0.135 and 0.401 → 0.209).
+
+**Quote change-response ratios with their pool** (L 614): the pilot pool's 108 events give rf2 t70 2.17 against ov0's
+3.51, the e pool's 580 give 1.15 against 1.43 — the ordering is the same, the levels are not comparable, and the x
+pool is poorly conditioned for change questions (its field t70 response is −0.57, the unexpected sign). Pooled by
+Fisher z over the 643 well-conditioned events, rf2 leads all three correlations at 0.5–1.2 SE: **consistent, not
+established** (L 616). Costs: TDD, and a draw-2 level drift the refit does not fully remove (L 592).
+
+**Previous reference ov0** (2026-11-01, L 586):
+
+| | Tier 1 | Tier 2 | Tier 3 | Score | Close |
+|---|---|---|---|---|---|
+| draw 1 (1000) | 0.178 | 0.417 | 0.455 | **0.332** | 27 of 51 |
+| draw 2 (5000) | 0.218 | 0.497 | 0.438 | **0.394** | 22 of 54 |
+| draw 3 (9000) | 0.197 | 0.505 | 0.442 | **0.391** | 26 of 54 |
+
+ov0 is ad3 with each override class's duration fitted over the windows the model can produce — a donor record under
+5 min is a cancellation and `_override` clips at 15 min, so including them understated every window the twins ran
+(`ov_less_h` 1.42 → 1.88 h; realized length 72 → 83 min against the donors' comparable 79). Mean score **0.372
+against ad3's 0.385**, better on both fresh draws and on tier 2, worse only on draw 1 — ad3's own development draw.
+The gain is where the mechanism predicts: more time at reduced needs, so Loop commands less (bg_mean gap 0.263 →
+0.119, TDD 0.262 → 0.177 on draw 2). On the natural experiments it is level with ad3 inside the sampling error
+(mean-response ratio 2.32 vs 2.25, t70 3.61 vs 3.38, t54 **4.64 vs 6.22**; the rho differences at n = 63 sit inside
+their CIs). The reversal is exact on true BG (0.00e+00), which is the identity instrument — `trace.json` md5 differs
+between identical runs on key order alone (L 586).
+
+**Previous reference ad3** (2026-11-01, L 568):
+
+| | Tier 1 | Tier 2 | Tier 3 | Score | Close |
+|---|---|---|---|---|---|
+| draw 1 (1000) | 0.108 | 0.444 | 0.462 | **0.321** | 26 of 51 |
+| draw 2 (5000) | 0.291 | 0.505 | 0.453 | **0.425** | 17 of 54 |
+| draw 3 (9000) | 0.161 | 0.555 | 0.485 | **0.410** | 23 of 54 |
+
+ad3 is sd3 plus, in order: C4's surge threshold keyed to 8 absolute METs with session intensity capped by length and
+METmax made consistent (L 554, 556, 564, 566); A12b's post-meal window at its own target, `ppr_a` 0.6 (L 558); and the
+residual's fast and block parts weighted to waking hours, `resid_diurnal` 0.9 (L 568). On the natural experiments it
+takes the tight − rest TIR and mean contrasts (−1.63, +0.93 against the field's −7.18, +1.65) with t70 +0.74
+[+0.12, +1.39] (L 568). Previous reference sd3 reads 0.370 / 0.454 / 0.420 (L 580), so the gain is 0.049 / 0.029 /
+**0.010** — it shrinks from the development draw to the fresh one, and the out-of-sample figure is ~0.010–0.029 in
+score with 0.075–0.135 in tier 1. Decomposed (L 580): the soundness adoptions cost 0.010 of score on the fresh draw
+while cutting tier 1 from 0.236 to 0.154; the distributional one pays 0.020 and leaves tier 1 flat.
+
+**Configurations, each best at something — pick by the question** (all one flag plus a template from the reference):
+
+| | score mean | best at | L |
+|---|---|---|---|
+| **rf2** (reference) | **0.370** | paired per-person fidelity (2.28 against 5.36), tier 1, and the change response — t70 **1.15** on the e pool, 2.17 on the pilot pool (quote the pool, L 614) | 592, 610, 612 |
+| ov0 | 0.372 | the mean score, tier 2, and t54 change response (ratio 4.64 vs ad3's 6.22) | 586 |
+| ad3 | 0.385 | TDD, and the tight − rest control-level contrasts | 568 |
+| `si_norm` 1.0 + level refit | **0.372** | the mean score, and the LEAST DAMPED change response (t70 ratio 2.09 vs 3.32) | 577 |
+| + life modulators on | 0.386 | the glucose LEVEL (bg_mean gap 0.015 / 0.094 / 0.019, essentially exact) | 582 |
+| exercise-faithful (`ex_abs`, `ex_headroom` 1.5, `ex_surge_width` 0.75) | — | C4's by-METs table (≥ 8 MET band +0.9 vs +1.2) | 566 |
+
+The first two are the `si_norm` decision awaiting Pete (core vs residual, trade roughly linear, L 577, 579).
+
+**Open at this reference:** the shallow-low recovery (+20 against the donors' +26 mg/dL over 30 min after a 60–70
+nadir, mechanism unevidenced — L 559–563); the 6–8 MET band (−14 against −21.5, reachable only in the
+exercise-faithful configuration at a score cost — L 565, 566); `entry_fast_fall` (4.8 against 14.3, which trades
+against the meal tail through the same window — L 568, 570); and TIR 69.8 / 71.1 / 68.2 against 71.9.
 
 **Running it:** `--templates templates_pilot_resid_sd3.csv --enable rc_own,night_pro,uls,resid,site_clock --disable
 day,stress,illness,menstrual,steroid,act_frag --set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.6,si_norm=0.92`.
-The template file (outside the repo, beside the others) is built by `patient_sim/resid_tools/`: `ice_var.py` (the
+The template file (outside the repo, beside the others) is built by `patient_sim/resid_tools/` (one copy, run by path
+from the run's frozen tree with the run dir as the working directory): `ice_var.py` (the
 unexplained drive by time scale, donors and a core run), `fit_resid.py` (fast / block / day amplitudes), `lvl_resid.py`
 (one round of the level; three rounds on both draws), `heldout.py` (the odd / even block check).
 
@@ -368,9 +446,24 @@ donor), so they drop out of this joint table. On draw 2 they pass (35 vs 45 min,
 | 2 | `med_nonzero` | typical nonzero 5-min delivery (U) | 0.085 | 0.096 / 0.094 | 0.40 / 0.22 |
 | 2 | `night_cv` | night-to-night CV of night insulin (%) | 35.4 | 30.5 / 33.2 | 0.41 / 0.28 |
 | 2 | `p99` | 99th percentile of 5-min delivery (U) | 1.83 | 1.73 / 1.93 | 0.17 / 0.14 |
-| 2 | `pulse_dur_h` | meal pulse: duration (h) | 1.92 | 1.82 / 1.68 | 0.33 / 0.60 |
-| 2 | `pulse_peak_h` | meal pulse: time to peak appearance (h) | 0.750 | 0.622 / 0.622 | 1.04 / 1.03 |
+| 2 | `pulse_dur_h` ⚠ | meal pulse: duration (h) | 1.92 ⚠ | 1.82 / 1.68 | 0.33 / 0.60 |
+| 2 | `pulse_peak_h` ⚠ | meal pulse: time to peak appearance (h) | 0.750 ⚠ | 0.622 / 0.622 | 1.04 / 1.03 |
 | 2 | `pulse_peak_per_g` | meal pulse: peak g-eq/h per g | 1.18 | 1.09 / 1.11 | 0.64 / 0.48 |
+
+⚠ **These three rows' donor values are the STALE pre-`fit_shapes` definition; the corrected targets are below**
+(L 625, 626). ice has regenerated all 168 donors with the current labeller (`ice_v32/meals_fit/`), so the rows can
+be read like for like — per-person median then cross-person, non-rescue:
+
+| row | donor value as scored | donor value CORRECTED | twins (rf2 / rf2_5k) | real state |
+|---|---|---|---|---|
+| `pulse_peak_h` | 0.750 | **0.622** | 0.622 / 0.622 | **exact — the scored gap of 1.04 was entirely the stale definition** |
+| `pulse_dur_h` | 1.92 | **1.577** | 1.876 / 1.863 | twins ~**19% too long** — a real defect the stale target scored as near-passing |
+| `pulse_peak_per_g` | 1.18 | 1.190 | 1.043 / 1.056 | ~10% low; unaffected by the staleness, so always real |
+
+The scored `pulse_peak_h` median is additionally pinned to one `FIT_MODES` grid cell, which is why no arm ever
+moved it. **Do not fit to the scored values**; use the corrected column until `meals_fit` becomes the scored
+source. The labeller itself reads ~16% early and ~10% short against twin ground truth on isolated pulses
+(L 626), so none of these numbers is the body's — they are fair labelled-to-labelled only.
 | 2 | `sigma_disp` | dispersion of volatility across days | 3.57 | 3.01 / 2.97 | 1.15 / 1.21 |
 | 2 | `tdd_cv` | day-to-day CV of TDD (%) | 15.9 | 15.1 / 15.7 | 0.28 / 0.10 |
 | 2 | `unann_pulses_day` | unannounced meal pulses per day (ice labeller) | 3.46 | 3.75 / 3.79 | 0.27 / 0.22 |
@@ -439,8 +532,8 @@ meal drops and the 3-h change, behaviour rates. The measure scripts sit beside e
 `prof_deliv`, `suspend_own`, `csf_geq`, `ge_var`, `ge_circ`, `fat`, `slot_true`, `entry_split`, `entry_win`,
 `skip_own`, `missed_own`, `macro_own`, `fat_rel`, `ppr_rel`, `night_pro`, `uls`, `posture`, `act_frag`, `lipohypertrophy`, `outages`, `overrides`, `edits`, `counterreg`, `glucotox`.
 Off by default (`--enable`): `rc_own` (on in every validation run), `night_own`, `circ_own`, `intake_own`,
-`prof_np`, `csf_lvl`, scenarios. Numeric: `ins_p2`, `pro_glc`, `meal_slow`, `ge_am` / `ge_pm`, `cr_mult`, `sg_mult`,
-`kappa_mult`, `csf_lvl`, `ex_sat` (C2 saturation, default 0.1; 0 = linear), `ex_alpha`, `ex_up_mult`, `ex_surge_thr` (C4 threshold, default 0.6), `sensor_act_k` (activity-dependent CGM noise, off), `sleep_own` (donor-own sleep window, off), sensor fit
+`prof_np`, scenarios. `csf_lvl` defaults to 1.05 (L 401). Numeric: `ins_p2`, `pro_glc`, `meal_slow`, `ge_am` / `ge_pm`, `cr_mult`, `sg_mult`,
+`kappa_mult`, `csf_lvl`, `ex_sat` (C2 saturation, default 0.1; 0 = linear), `ex_alpha`, `ex_up_mult`, `ex_surge_thr` (C4 threshold in %reserve, default 0.9, used only when `ex_surge_mets`=0), `ex_surge_mets` (C4 threshold in absolute METs, default 8.0; L 556), `ex_cap_fit` (session intensity capped by length + METmax made consistent, default ON; L 554), `sensor_act_k` (activity-dependent CGM noise, off), `sleep_own` (donor-own sleep window, off), sensor fit
 parameters (`sensor_*`).
 
 ## 12. Open items

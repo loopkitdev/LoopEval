@@ -183,7 +183,8 @@ if __name__ == "__main__":
     donors = [a for a in M.index if a in people and os.path.isdir(f"{ROOT}/full/{a}") and os.path.exists(f"{ROOT}/steps/{a}.parquet")]
     if os.environ.get("DONORS"): donors = [a for a in donors if a in os.environ["DONORS"].split(",")]
     arms = os.environ["ARMS"].split(","); seeds = range(int(os.environ.get("SEEDS", 1)))
-    os.nice(10)   # sims and plants inherit it
+    try: os.nice(10)   # sims and plants inherit it
+    except PermissionError: pass   # already niced (Mac jobq runs at 20; macOS refuses a further increment)
     if sys.argv[1] == "run":
         jobs = [(a, arm, s) for s in seeds for arm in arms for a in donors if spec(a, arm) is not None]
         print(f"{TAG}: {len(donors)} donors, {len(jobs)} runs", flush=True)
