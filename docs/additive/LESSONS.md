@@ -3209,3 +3209,62 @@ low sits in the 90-180 band — not at the nadir.** (job 164, `164_sm.sh`; arms 
   precisely what it brakes. Magnitude is UNMEASURED — `sg_rate` 1.0 is chosen to be visible, not to be right — and
   ice's trend-consistent probe is asked for it in
   `docs/handoffs/2026-11-02-additive-ice-rate-dependent-force.md`.
+
+**643. ice's rate probe refutes the keying I asked for and supplies something better: the donors' restoring force
+has TWO STATES, and my model has been running the FALLING one all along — which resolves L 642's trilemma and
+re-reads L 635-636.** (ice LESSONS 161: 60 donors, 1,186 held-out points, two trainings, the last hour of glucose
+ramped from −2 to +2 mg/dL/min with `bg_trend` / `bg_pred30` / `heading_low` / `low30` recomputed; their branch
+`ice` commit `4086c500`, per-point CSVs on gamepc under `runs/2026-11-01-ice-stateabl/`.)
+
+- **There is no force keyed to dG/dt.** With the glucose channels moved and the ICE history held at its real
+  values (their arm A), background ICE shifts by at most 2 mg/dL/h across the whole ±120 mg/dL/h range, `dICE/dr`
+  is +0.7 and −0.7 in the two trainings — opposite signs, both near zero — and the falling / flat level-slope
+  ratio I asked for is **0.75 and 1.01**: no effect and no agreement on sign. Below 90 a fast RISE adds +9 to +12
+  (a treatment still acting) while a fast fall gives −1 to −3. So the question as I posed it is answered no.
+- **There IS a fall-state gain, keyed to the recent counteraction.** With the ICE history moved consistently too
+  (their arm B), the level slope in 90-130 is **−0.29 / −0.28 /h after an hour of falling against −0.13 / −0.12
+  flat — a gain of 2.2x / 2.4x** — and ~45% of the imposed velocity carries into the next predicted ICE, which is
+  momentum, not braking. In 130-180 the flat slope is near zero so no ratio is stable there.
+- **Arm B is the measurement that transfers and arm A is not.** A state where glucose fell over an hour but the
+  counteraction history says nothing caused it cannot occur in a self-consistent body, so arm A is off-manifold
+  and a network's response there is weak evidence about mechanism; arm B's positive is strong. My body is
+  self-consistent by construction, so `sg_rate` keyed to (G − G_slow) is a defensible REDUCED FORM of arm B: in a
+  trajectory the body itself produced, a fall IS the record that the non-insulin forces dropped. ice's own reading
+  is that the keying is to the counteraction and that the drop decays (~45% persists one step), which is a
+  sharper mechanism than mine and the thing to build if the reduced form works.
+- **MY MODEL HAS ONE STATE, AND IT IS THEIR FALLING ONE.** Measured on the arms' own traces
+  (`two_state_force.py`, 96,158 twin-minutes falling through 90-130 at ≤ −0.3 mg/dL/min):
+
+  | arm | 90-130 flat | 90-130 falling | gain |
+  |---|---|---|---|
+  | rf2 | 0.270 /h | 0.270 /h | 1.00x |
+  | `sk1` kink | 0.270 | 0.270 | 1.00x |
+  | `smf` smooth | 0.114 | 0.114 | 1.00x |
+  | **donors (ice arm B)** | **0.13** | **0.29** | **2.2-2.4x** |
+
+  Every restoring force in my body model is a function of the level, so the gain is 1.00 by construction. rf2
+  therefore **matches the donors' FALLING slope (0.270 against 0.29) and is ~2x their FLAT one.**
+- **So "SG is too high" (L 635, 636) was comparing two different states.** The prior was set against the
+  flat/unconditional band profile, and the 90-130 band is not uniformly too strong — it is about right for falls
+  and 2x too strong when glucose is steady. That is not a small correction: it is the difference between "cut the
+  force" and "make it state-dependent".
+- **It resolves L 642's trilemma, and the resolution PREDICTS the result I already have.** A uniform or high-side
+  cut lowers both states at once, so it fixes the change response — a settings edit is a sustained, quasi-steady
+  level shift, i.e. the FLAT regime — and removes the brake on descents, which is the doubled t70. Check it
+  against the two forms already measured: the smooth form cut 90-130 to **0.114**, right for flat and HALF what a
+  fall needs, and it had the **worst lows of any arm** (t70 3.97 / 3.93); `sk1` left 90-130 at **0.270**, near the
+  falling value, and its lows were **better** (3.38 / 3.76). **The two forms' low-side ordering is predicted by
+  their 90-130 force**, which is the consistency check that makes the reading credible rather than merely
+  available.
+- **Queued as job 167, sized from the measurement with nothing fitted.** Flat state: the L 641 smooth form, which
+  already reproduces ice's flat bands at RMS 0.0008 /h. Fall state: `sg_rate`, whose size is set by the deviation
+  the twins actually reach — median (G − G_slow) **−25.8 mg/dL while falling against −1.6 flat**, which is also
+  what makes the term inert in the flat state. `sg_rate` 0.55 gives **flat 0.114, falling 0.247, gain 2.17x**
+  against their 0.13 / 0.29 / 2.2-2.4x; `sr2` at 0.80 brackets above (0.308, 2.70x). The control is already run:
+  `sr1` differs from `sm1` by `sg_rate` alone. **The prediction that decides it** is that t70 comes back toward
+  rf2's 1.76 / 2.12 while the smooth form's change response (1.06 mean, 1.05 TIR level-adjusted) is kept, because
+  the rate term is transparent to a sustained level shift. **The isolation arm `rt1`** (the term alone, full
+  baseline) carries the sharpest falsifier: its level debt should be ~0, and if bg_mean drifts materially the term
+  is not mean-preserving in a closed loop and this whole class loses the L 597 immunity that makes it worth
+  compute. **The row at risk is the meal tail** — a fast post-meal rise is braked too, and ice's arm A hints their
+  gain may be fall-only, in which case the next form is a one-sided gate.
