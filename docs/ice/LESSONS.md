@@ -1897,3 +1897,27 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - So the 45% of lesson 161 arm B is mostly the one-step attenuation of a noisy channel, not a fast-recovering
       force. Against additive's body (0.94–0.95 kept per step, half-life about 55 min) the real slow part recovers
       about twice as fast — a smaller gap than 0.45 suggested, but still a gap.
+
+164. **The fast part of ICE persistence is mostly sensor noise; the slow part is mostly meals; donors decay it in
+    about 26 min, the generator in about 36.** Correction to 163, whose donor rows came from the pilot pool while the
+    generated rows came from the e pool, and whose "slow part matches" was read from b1 rather than from b2 on.
+    Matched now: the 273 e-pool donors that have generated runs (ice_e32, clean rows, whole record) against all 346
+    oc0 own-settings runs; half-life from b6/b2 (ice_persist2.py in runs/2026-11-01-ice-stateabl/):
+
+    | 90–180 | b1 | b2 | b3 | b4 | b5 | b6 | half-life from b6/b2 |
+    |---|---|---|---|---|---|---|---|
+    | Donors, fell ≥ 20 | 0.56 | 0.33 | 0.30 | 0.26 | 0.22 | 0.19 | 26 min |
+    | Donors, flat | 0.54 | 0.31 | 0.30 | 0.26 | 0.22 | 0.19 | 27 min |
+    | Donors, fell, 00–06 local | 0.40 | 0.09 | 0.13 | 0.14 | 0.14 | 0.12 | no decay in 30 min |
+    | Generated, fell | 0.50 | 0.26 | 0.25 | 0.22 | 0.19 | 0.17 | 36 min |
+    | Generated, flat | 0.47 | 0.21 | 0.22 | 0.18 | 0.16 | 0.14 | 35 min |
+    | Generated, fell, 00–06 | 0.39 | 0.10 | 0.10 | 0.09 | 0.07 | 0.07 | 37 min |
+
+    - At night, with meals gone, about 90% of the deviation dies within 10 minutes, in donors and generator alike, and
+      what is left (0.1) barely decays over 30 minutes. A component that large and that fast with nothing eaten is
+      sensor noise (CGM noise is itself smoothed over a few readings), which the generator is trained to reproduce. It
+      is not evidence of a fast-returning force.
+    - The slow part that decays over 20–40 min is a daytime thing: meal-shaped. There the generator's pulses last
+      about 1.35× the donors' (36 against 26 min, matched donors). A candidate shortfall in meal-pulse shape, not in
+      counter-regulation; check against the meal-shape statistics before acting.
+    - No state dependence anywhere: fell equals flat in both.
