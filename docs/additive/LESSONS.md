@@ -3026,3 +3026,47 @@ verified real.
   level it doubles the lows. t54 and lows/day are safety axes, where AGENTS.md's rule is that a win on one metric
   costing the other is not a win — so this is not a case the 2026-11-01 "level but better explained" rule covers,
   and it is not mine to decide. Both sides are on record and the arm is one `--set sg_kappa=0.15` away.
+
+**640. Three results that close the form route on SG, correct a parameter I had misread, and turn up the first
+sizing of the post-nadir term L 600 asked for.** All from arithmetic and reading, no new cohort arms.
+
+- **A smoother saturation cannot buy back L 639's cost, and that is settled without running it.** L 637 left the
+  form open ("a kink at Gb, not a smooth saturation; a Michaelis-Menten form would fit better and needs its own
+  evidence"), and ice L 140a's four bands are that evidence. Fitting forms to them (band-averaged over the Gb
+  prior, `runs/2026-10-31-additive-gesplit/fit_sgkm*.py`): the kink reaches RMS 0.0251 /h, MM anchored at Gb is WORSE at 0.0319, and
+  **MM with a free breakpoint fits essentially exactly, RMS 0.0015** (0.170 / 0.072 / 0.038 / 0.020 against ice's
+  0.17 / 0.07 / 0.04 / 0.02) — with the breakpoint running to the bottom of the range, i.e. the saturation is in
+  ABSOLUTE glucose with no basal anchor. So a 17x better form exists. **It does not help**, because what sets
+  L 639's cost is not the shape but the total force removed, and that is pinned: weighted by the twins' own
+  glucose dwell distribution (806,440 min of ground truth, mean 149), the restoring force is x0.25 of the default
+  for `sk2`, x0.25 for the best kink, x0.25 for MM-at-Gb and **x0.22 for the near-perfect free-breakpoint fit** —
+  every band-faithful configuration lands within x0.22-0.25, and all of them below `sk1`'s x0.46, which already
+  cost 12.7 mg/dL/h of constant drift and doubled the lows. **ice's profile pins the dwell-weighted
+  insulin-independent force to about a quarter of our prior; the dispersion cost follows from that quantity, so no
+  parameterisation of A1d avoids it.** Do not spend another arm on the shape of this term.
+- **κ's live median is 1.0, not 0.15 — I misread the dataclass default, and the "both disposal paths saturate"
+  idea it suggested is void.** `physiology.py` declares `kappa: float = 0.15`, but `person.py:285` draws
+  `kappa = kappa_mult * exp(N(0, 0.4))` with `kappa_mult` 1.0, so every sampled person gets κ median 1.0 — L 303's
+  adopted Bergman value, from Best 1981 read in full. The insulin-mediated path therefore ALREADY scales fully
+  with glucose, and the tempting story for L 639's runaway highs (that `sg_kappa` leaves nothing removing glucose
+  faster as glucose rises) is simply false. **Trap: never read a live parameter from the dataclass default** —
+  `person.py` overrides most of them per person, and the two disagree by 6.7x here. Check a built person's value,
+  as the `--enable k=v` and `BEHAVIOR_COLS` traps already require for template columns.
+- **ice's bands ARE the insulin-independent force, so L 635-639's comparison is sound.** ICE is observed change
+  minus the modelled insulin effect, so the force ice fits to it has insulin removed. Their own caveat is the one
+  already recorded in L 637: where Loop doses to glucose, a TDD-ISF rule that absorbs high-side uptake biases the
+  HIGH bands low. Checked because κ 1.0 means our total restoring force is SG + X·κ, and had their profile been
+  the TOTAL, three lessons would have been comparing unlike quantities. It is not.
+- **NEW, and on a different limit: the learned force is DIRECTION-dependent, and that sizes the term L 600 said
+  was required.** ice L 140a's probe raises glucose by D = +40 to get the band profile above, and records that
+  **lowering it (D = −40) gives about TWICE that slope below 130**. So the donors' restoring force is roughly 2x
+  stronger when glucose has been pushed DOWN than when it has been pushed up, at the same level. L 600 states the
+  open requirement exactly: "the requirement is a term acting AFTER the nadir, during the climb", and every
+  `sg_h_lo` variant failed because a (Gb − G)-proportional term "peaks AT the nadir and lifts it". A
+  direction-dependent force is not level-proportional, so it is NOT excluded by that rule — it acts on the way
+  down and during the climb and not at a level, which is the shape L 575 and L 594 also ask for. This is the first
+  quantitative sizing of it (x2 below 130) from a measurement rather than a literature search, and it comes from
+  the same probe that produced the SG bands, so it costs nothing to ask for in more detail. Handoff written:
+  `docs/handoffs/2026-11-02-additive-ice-direction-asymmetry.md`. It does NOT resolve the standing evidence
+  request (a study lowering glucose below basal at basal insulin in T1D), which is about the sub-basal
+  MAGNITUDE; this is about its direction dependence.

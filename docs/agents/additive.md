@@ -201,7 +201,11 @@ reference changes.
   is wrong (25 min against 20). Every `sg_h_lo` variant fixes duration and breaks penetration, because a
   (Gb − G)-proportional term peaks AT the nadir and lifts it. **The requirement is a term acting AFTER the nadir,
   during the climb** — the same time-asymmetry L 575 and L 594 ask for. Do not propose level-proportional low-side
-  terms; they cannot meet it.
+  terms; they cannot meet it. **There is now a candidate that is not level-proportional, and it is measured
+  (L 640)**: ice L 140a's probe finds the donors' learned restoring force about **2x stronger when glucose is
+  pushed DOWN (D = −40) than up, below 130** — a direction-dependent gain, which acts on the descent and the climb
+  rather than at a level. Asked for by band, and whether it is direction or path dependence, in
+  `docs/handoffs/2026-11-02-additive-ice-direction-asymmetry.md`; the two answers need different components.
 
 - **`acf_zero_min` and the meal ratio are ONE defect, but NOT the same one as low-side recovery** (L 594, corrected
   by L 615): `cr_tau_off` fixes the recovery rows (t54 0.124/0.232 -> 0.175/0.177, nadir dwell 20 -> 15 min, the
@@ -391,8 +395,12 @@ low side at full strength and its lows still doubled, TDD is flat so Loop is not
 costs `resid_m` a mean of -20.43 mg/dL/h against rf2's -7.69 — ~12.7 mg/dL/h of extra CONSTANT downward drift, which
 holds the mean and widens both tails. **So `sg_kappa` stays OFF and the choice is Pete's**: it is the only mechanism
 that has ever closed the damped change response, and it doubles the lows, which is a safety axis AGENTS.md does not
-let a change-prediction win buy. Caveats on the form: ice's high-side slope is biased LOW by their own confound, and
-`sg_kappa` is a kink at Gb rather than a smooth saturation, which is why it over-predicts the 90–130 band.
+let a change-prediction win buy. **The FORM route is closed too (L 640)**: a free-breakpoint Michaelis-Menten fits ice's bands
+essentially exactly (RMS 0.0015 /h against the kink's 0.0251), but what sets the cost is the TOTAL force removed,
+and that is pinned — every band-faithful configuration lands at x0.22-0.25 of the default dwell-weighted restoring
+force, the best-fitting one LOWEST of all. So no parameterisation of A1d avoids the dispersion cost; do not spend
+another arm on its shape. Remaining caveat: ice's high-side slope is biased LOW by their own confound, so if
+anything the force should be stronger than their bands say.
 
 **The natural-experiment half is limited by the FIELD, not by compute (L 611).** With 63 edit events the field / twin
 response ratios carry CIs like [1.22, 3.79], so `rf2`'s t70 improvement (3.51 -> 2.17) is "best measured, not
@@ -528,6 +536,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
 
 ## Analysis traps (each cost a session)
+
+- **Never read a live parameter value from its dataclass default in `physiology.py`** (L 640). `person.py`
+  overrides most of them per sampled person, and the two can disagree badly: `kappa` is declared 0.15 but drawn as
+  `kappa_mult * exp(N(0, 0.4))` with `kappa_mult` 1.0, so the live median is **1.0** — L 303's adopted Bergman
+  value, 6.7x the default. Reading the default suggested that `sg_kappa` left no disposal path scaling with
+  glucose, which is false and nearly bought an arm. Check a built person's value, as the `--enable k=v` and
+  `BEHAVIOR_COLS` traps already require.
 
 - **A change-response ratio is meaningless without its arm's own PRE-EDIT LEVEL** (L 638). `dG/dI = -SI·G /
   (SG + SI·I·…)` is proportional to G, so an arm whose pre-edit level drifts up responds more to the same
