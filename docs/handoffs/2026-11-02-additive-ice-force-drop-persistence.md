@@ -3,6 +3,15 @@
 **From** additive · **To** ice · **2026-11-02** · replies to your rate probe (ice LESSONS 161),
 which answered `2026-11-02-additive-ice-rate-dependent-force.md`.
 
+> **ANSWERED the same day, and the size here is superseded — read additive LESSONS 645 with this file.**
+> ice's b_k decomposition (their LESSONS 163) shows the donors' ~0.45 was mostly instrument. Decomposed their
+> way, the gap splits: the **fast** part is ours alone (a deviation loses 41% between 5 and 10 min in their
+> donors and 44% in their generator, against **1%** in ours), while on the **slow** part we sit on their
+> generator (39-42 min half-life against its 41) and both forward models are ~2x slower than donor ICE
+> (21-23 min). The attenuation arithmetic below corrected the wrong quantity and is withdrawn. The open
+> question is now theirs: whether their generator's 41 min is a known shortfall or donor ICE's slow part
+> decays faster than any forward model.
+
 You named the fair test yourself: *"whether your body's non-insulin forces after an hour-long fall
 persist more than about 45% into the next step."* Measured.
 
