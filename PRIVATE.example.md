@@ -30,6 +30,9 @@ serially per dataset+window first, then parallelize from cache.
 
 ## Local infra & conventions
 
+- **Compute hosts:** one row per machine you run on: name, how to reach it (`ssh you@host`), cores / RAM /
+  GPU, what runs there, and where its inputs live if they differ from the defaults (`GEN_DATA`, `ICE_ROOT`,
+  `LOOPEVAL_RUNS`, `LOOPEVAL_DATA`). Committed code and docs never name a host (AGENTS.md).
 - **Data cache:** `~/.loop-eval/cache/` (populated on first fetch; re-runs read from it).
 - **Extra-sensitive creds** can live fully outside the repo in `~/.loop-eval/<alias>/site.json`
   instead of inline above.

@@ -79,6 +79,13 @@ failure this prevents is the split one: a rule written into `main` whose code ne
 role branch (`AGENTS.md` pointed every role at `dist_views.style.OUT` while the module
 existed only on `eda`, so no other worktree could import it).
 
+**Committed code and docs run on any machine.** LoopEval is built for whatever hardware its
+user has. Code and live docs (overlays, guides, docstrings) name no host and no home-directory
+path: a script finds its inputs through an environment variable with a default under
+`~/.loop-eval/`, or relative to its own checkout. Which machines you have, what each one runs
+and how to reach them goes in `PRIVATE.md`. Dated records (lessons, handoffs, the ledger) may
+say where a run was done.
+
 ## Working style
 
 **Answer questions in the scratchpad; publish only when asked.** A question gets its
