@@ -32,12 +32,26 @@ class ExerciseParams:
                                 # which the delayed sensitivity repletes, rises steeply with intensity (LESSONS 57)
     tau_z: float = 600.0        # min (ETH / UVA)
     absorb: float = 0.5         # absorption speed-up per unit intensity
-    surge_thr: float = 0.6      # intensity above which the C4 EGP surge builds (LESSONS 247)
+    surge_thr: float = 0.9      # intensity above which the C4 EGP surge builds. 0.9 of VO2-reserve is ~8.2 METs at the
+                                # median METmax of 9: below it a session falls, above it the catecholamine surge takes over.
+                                # Default since 2026-11-01 (was 0.6, ~5.8 METs, which cancelled the fall from moderate work;
+                                # LESSONS 553). The donors' own drop-to-nadir keeps deepening through 7-9 METs and shrinks
+                                # only at >=9, and C4's Pemberton table has them deepest at 6-8 METs (LESSONS 247, 551)
     z_threshold: float = 0.12   # intensity above which delayed sensitivity builds (UVA / Deichmann) [I]
     filt_tau: float = 7.0       # min, intensity → physiological activity lag
     sat_k: float = 0.0          # > 0: the acute SI boost saturates in intensity, α·(0.6 + k)·Y/(Y + k), equal to the linear α·Y at
                                 # Y 0.6 (Romeres 2021's clamp point) and larger at light effort (Pemberton 2025: no intensity
                                 # dependence of the 20-min drop; donors' workouts by METs < 4 / 4–6 / ≥ 6: −7 / −13 / −9; LESSONS 495)
+    surge_mets: float = 8.0     # > 0: C4's threshold read in ABSOLUTE METs instead of %VO2-reserve, ramping to full
+                                # 2 METs above it. The two framings disagree once METmax is drawn consistently
+                                # (LESSONS 554): the donors' bouts rise at >= 8 METs, but for a person whose METmax is
+                                # 11 that is only 0.70 of reserve, far below any anaerobic threshold in reserve terms.
+                                # Default 8.0 since 2026-11-01 (LESSONS 556): the only keying under which C4's own
+                                # >= 8 MET band takes the donors' sign. 0 restores the %reserve form (surge_thr)
+    surge_width: float = 2.0    # METs over which the surge ramps from nothing to full above surge_mets. The donors
+                                # fall deepest at 6-8 METs and RISE at >= 8, a switch inside about two METs, so the
+                                # width is the form parameter for that transition (LESSONS 565, 566)
+    metmax: float = 9.0         # the person's ceiling, needed only to read intensity back as absolute METs
     gain: float = 1.0           # per-person responsiveness (set from behavior traits)
     background: float = 0.0     # waking-hours background intensity (set from behavior traits)
     frag: bool = False          # the waking background as alternating sitting and short light-activity bouts with the
@@ -94,7 +108,15 @@ class Exercise:
             self.sessions.pop(0)
         # C4: the catecholamine EGP surge appears only at hard effort (above ~60% of reserve; Marliss & Vranic 2002) —
         # zero below, linear to full at 100% (LESSONS 247); the session's anaerobic share scales it
-        anaerobic = anaerobic * min(1.0, max(0.0, (intensity - self.p.surge_thr) / (1.0 - self.p.surge_thr)))
-        return dict(ex_intensity=self.p.gain * self.y, ex_anaerobic=anaerobic,
+        if self.p.surge_mets > 0:
+            mets_ = 1.0 + intensity * (self.p.metmax - 1.0)
+            anaerobic = anaerobic * min(1.0, max(0.0, (mets_ - self.p.surge_mets) / max(self.p.surge_width, 0.1)))
+        else:
+            anaerobic = anaerobic * min(1.0, max(0.0, (intensity - self.p.surge_thr) / (1.0 - self.p.surge_thr)))
+        # C1 keyed to ABSOLUTE work rate (L 565): muscle glucose uptake follows the work being done, not the strain
+        # relative to the person's ceiling, so a 7-MET effort takes similar glucose whether the person is fit or not.
+        # Expressed on a reference METmax of 9 so a median-fitness person is unchanged.
+        work = self.p.gain * self.y * (self.p.metmax - 1.0) / 8.0
+        return dict(ex_intensity=self.p.gain * self.y, ex_work=work, ex_anaerobic=anaerobic,
                     ex_si_boost=self._acute() + self.z,
                     abs_mult=1.0 + self.p.absorb * self.y)

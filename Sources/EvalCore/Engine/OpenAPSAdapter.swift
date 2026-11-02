@@ -215,9 +215,9 @@ struct OpenAPSAdapter: DosingEngine {
         // (Earlier these were inflated — max_basal×3, multipliers 10 — to "measure
         // algorithm behavior, not the safety ceiling"; that double-doses vs a real
         // oref user, which delivers via SMB and lets the temp cap bind. max_iob is
-        // genuinely per-user and not uploaded by Trio → supply via --candidate-oaps-
-        // max-iob; the non-binding maxBolus×10 fallback is NOT faithful.)
-        let maxIob = req.config.oapsMaxIob ?? (req.therapy.maxBolus(at: req.t) * 10.0)
+        // genuinely per-user and not uploaded by Trio → supply `max_iob` in
+        // --candidate-oaps-prefs-json; the non-binding maxBolus×10 fallback is NOT faithful.)
+        let maxIob = req.therapy.maxBolus(at: req.t) * 10.0
         var prefs: [String: Any] = [
             "max_iob": maxIob,
             "max_basal": req.therapy.maxBasalRate(at: req.t),
@@ -236,62 +236,10 @@ struct OpenAPSAdapter: DosingEngine {
             "max_daily_safety_multiplier": 3,
             "current_basal_safety_multiplier": 4
         ]
-        // Optional per-experiment overrides.
-        if let thr = req.config.oapsThresholdSetting {
-            prefs["threshold_setting"] = thr
-        }
-        if let ratio = req.config.oapsSmbDeliveryRatio {
-            prefs["smb_delivery_ratio"] = ratio
-        }
+        // --candidate-oaps-max-smb-min sets both SMB caps; every other preference comes from the prefs JSON.
         if let mins = req.config.oapsMaxSmbBasalMinutes {
             prefs["maxSMBBasalMinutes"] = mins
             prefs["maxUAMSMBBasalMinutes"] = mins
-        }
-        if let unf = req.config.oapsUseNewFormula {
-            prefs["useNewFormula"] = unf
-        }
-        if let sig = req.config.oapsSigmoid {
-            prefs["sigmoid"] = sig
-        }
-        // Ablations (mechanism isolation). UAM-off: drop only the UAM forecast/SMB on
-        // unannounced rises (SMB_always still fires on the base forecast). SMB-off: disable all
-        // SMB → temp-basal-only delivery.
-        if req.config.oapsEnableUAM == false {
-            prefs["enableUAM"] = false
-        }
-        if req.config.oapsEnableSMB == false {
-            prefs["enableSMB_always"]     = false
-            prefs["enableSMB_with_COB"]   = false
-            prefs["enableSMB_after_carbs"] = false
-            prefs["enableUAM"]            = false
-        }
-        if let af = req.config.oapsAdjustmentFactor {
-            prefs["adjustmentFactor"] = af
-        }
-        // Sensitivity-ratio clamps (autosens and/or Dynamic ISF). Load-bearing for
-        // matching a user who runs a non-stock Dynamic limit (e.g. autosens_max 1.9).
-        if let am = req.config.oapsAutosensMax {
-            prefs["autosens_max"] = am
-        }
-        if let an = req.config.oapsAutosensMin {
-            prefs["autosens_min"] = an
-        }
-        // Insulin peak time → drives both the IOB curve and Dynamic ISF's
-        // insulinFactor (= 120 − peak). Use the ultra-rapid curve so oref permits
-        // a custom peak below 50 (the rapid-acting curve clamps peak to ≥50, i.e.
-        // insulinFactor ≤ 70; ultra-rapid clamps to [35,100]).
-        if let peak = req.config.oapsInsulinPeakTime {
-            prefs["curve"] = "ultra-rapid"
-            prefs["useCustomPeakTime"] = true
-            prefs["insulinPeakTime"] = peak
-        } else if let curve = req.config.oapsCurve {
-            // Preset curve, NO custom peak: oref's ultra-rapid branch sets IOB
-            // peak 55 AND dynISF insulinFactor 70 (120−50), decoupling the two —
-            // the Lyumjev/Fiasp config (see EvalConfig.oapsCurve).
-            prefs["curve"] = curve
-        }
-        if let afs = req.config.oapsAdjustmentFactorSigmoid {
-            prefs["adjustmentFactorSigmoid"] = afs
         }
         // Merge a raw oref-preferences JSON over the defaults/knobs (faithful
         // reproduction: supply a real user's complete Trio settings verbatim).

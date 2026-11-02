@@ -46,6 +46,8 @@ def _one(args):
                           lvl_own=bool(enable.get("lvl_own", False)),
                           basal_fit=bool(enable.get("basal_fit", False)),
                           gb_own=bool(enable.get("gb_own", False)),
+                          ge_split=bool(enable.get("ge_split", False)),   # glucose effectiveness from named parts (LESSONS 548)
+                          ge_spare=bool(enable.get("ge_spare", False)),   # A1c alone: uptake falling below 81 (LESSONS 561)
                           suspend_own=bool(enable.get("suspend_own", True)),   # default since 2026-10-19 (LESSONS 232)
                           night_add=bool(enable.get("night_add", True)),   # night need added on top; default since 2026-10-19 (LESSONS 263)
                           night_own=bool(enable.get("night_own", False)),   # body night need from the donor's steady nights (LESSONS 251); off since 2026-10-19: the evening's own fat carries it (LESSONS 370)
@@ -57,6 +59,7 @@ def _one(args):
                           csf_geq=bool(enable.get("csf_geq", True)),
                           csf_lvl=enable.get("csf_lvl") if isinstance(enable.get("csf_lvl"), float) else 1.05,   # LESSONS 401
                           csf_lvl_keepg=bool(enable.get("csf_lvl_keepg")),
+                          csf_sd_w=float(enable["csf_sd_w"]) if isinstance(enable.get("csf_sd_w"), float) else 1.0,   # L 632
                           prof_np=bool(enable.get("prof_np")))   # default since 2026-10-19 (LESSONS 358)   # default since 2026-10-19 (LESSONS 300)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
@@ -90,6 +93,10 @@ def main():
     ap.add_argument("--set", default="", help="numeric component overrides, e.g. meal_k=0.6 (multiplies meal kempt/kabs)")
     a = ap.parse_args()
     enable = {k: False for k in a.disable.split(",") if k}
+    # a numeric override belongs in --set: in --enable it becomes a switch NAMED "k=v", the code's isinstance(..., float)
+    # check fails, and the arm runs as its own control without a word (it voided the ex_surge_mets arms, 2026-11-01)
+    bad = [k for k in (a.enable + "," + a.disable).split(",") if "=" in k]
+    if bad: ap.error(f"--enable/--disable take switch names, not values: {bad}. Pass numeric overrides in --set.")
     enable.update({k: True for k in a.enable.split(",") if k})
     enable.update({kv.split("=")[0]: float(kv.split("=")[1]) for kv in a.set.split(",") if "=" in kv})
     root = Path(a.out); root.mkdir(parents=True, exist_ok=True)

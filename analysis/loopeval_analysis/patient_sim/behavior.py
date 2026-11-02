@@ -46,6 +46,18 @@ def _count_size_err(t, grams: float) -> float:
     return -0.1 * math.log(max(grams, 5) / 45.0)
 
 
+LABEL_PRO_F = 0.49    # eaten grams per labelled gram at a low onset: the twins' 12 g snack labels as 24-26 g (L 588)
+EX_MET_HEADROOM = 0.0   # METs of capacity above the person's usual session (`ex_headroom`). 1.5 = the within-donor
+                        # per-session SD, which restores the upper tail of sessions and validates C4's size, at a score
+                        # cost on both draws (L 564); 0 keeps the reference ad2's behaviour
+
+
+def _sus(minutes: float) -> float:
+    """The fraction of aerobic reserve a person holds for a whole session of this length (LESSONS 554): about all of
+    it for a few minutes, ~0.87 for 20 min, ~0.77 for 40, ~0.72 for an hour (the intensity-duration relation) [J]."""
+    return float(min(1.0, max(0.6, 1.0 - 0.14 * math.log(max(minutes, 8.0) / 8.0))))
+
+
 @dataclass
 class BehaviorTraits:
     # sleep
@@ -62,6 +74,8 @@ class BehaviorTraits:
     meal_cv: float = 0.35                # within-person per-event size spread (log sd); the person's measured pulse spread when known
     meal_slow_frac: float = 0.15         # share of a meal emptied in the Dalla Man slow late phase (kmin) [J share; Pete 2026-10-17, LESSONS 120]
     meal_slow_k: float = 0.008           # /min, Dalla Man kmin
+    meal_wave2: float = 0.0              # A10c: share of the solid phase held back as a second wave (L 573) [J]
+    meal_wave2_delay: float = 100.0      # min it is held back; the donors' second wave peaks inside the 4-h window [J]
     snack_fast_frac: float = -1.0        # < 0: as meal_fast_frac; snacks lean on sugary drinks, candy and desserts
                                          # (Piernas & Popkin 2010) so their fast share may be higher [J] (LESSONS 159)
     meal_fast_frac: float = 0.35         # share of a meal's carbohydrate in its fast-emptying phase: 0.5 fits the donors' 5-min step tail but overshoots CV; 0.35 balances (LESSONS 268, 270; was 0.2 [J], LESSONS 44)
@@ -122,20 +136,26 @@ class BehaviorTraits:
     ov_less_lo: float = float("nan")
     ov_less_hi: float = float("nan")
     ov_less_h: float = 1.4
+    ov_less_s: float = 0.6               # SD of log window length, the donor's own where measured (LESSONS 586)
     ov_more_day: float = 0.0             # more-insulin overrides/day, started in reaction to a rising high (plant-sent)
     ov_more_f: float = 1.33
     ov_more_lo: float = float("nan")
     ov_more_hi: float = float("nan")
     ov_more_h: float = 1.0
+    ov_more_s: float = 0.6
     p_more: float = 0.0                  # per qualifying awake minute (CGM > 180 and rising)
     ov_tgt_day: float = 0.0              # target-only overrides/day (pre-meal when the target is lowered)
     ov_tgt_lo: float = float("nan")
     ov_tgt_hi: float = float("nan")
     ov_tgt_h: float = 1.0
+    ov_tgt_s: float = 0.6
+    ov_dur_own: bool = False             # each class's duration spread from the donor rather than a fixed 0.6:
+                                         # score-neutral and it halves the share of people who never override, so off (L 586)
     intake_cv: float = 0.22              # day-to-day CV of food eaten (Tarasuk & Beaton 1992; ~20% for carbohydrate)
     intake_rho: float = 0.29             # next-day intake correlation (Levitsky 2017)
     intake_comp: float = 1.0             # 24-h regulation of the day total across its eating events (1 = full) [J]
     act_day_var: bool = True             # day-level gamma(3) on the activity rate (ablation switch)
+    act_rho: float = 0.0                 # day-to-day persistence of that factor, Gaussian copula on the gamma (L 584)
     p_topup: float = 0.0                 # planned top-ups per meal bolus (≤ 1: a chance; > 1: Poisson mean), each 20–60 min after the last
     p_split: float = 0.0                 # P(a meal bolus is split: 60% at the entry, the rest 10–30 min later) [J split]
     p_free_bolus: float = 0.0            # P(an un-entered eating event gets a hand-dosed bolus)
@@ -149,11 +169,24 @@ class BehaviorTraits:
     p_wake_unaided: float = 1.0 / 16     # per low episode (Schultes 2007)
     # defense
     pro_onset: float = 60.0              # projected glucose (mg/dL) below which they act proactively (person draw N(60, 20), fitted to the donors' lows, LESSONS 409)
-    pro_grams: float = 12.0              # proactive snack size [J]
+    meal_lag: float = 0.0                # gastric LAG PHASE before a meal's carbohydrate starts to empty, minutes.
+                                         # Emptying of a mixed solid meal does not begin at once (Siegel 1988: a lag
+                                         # of ~20-30 min for solids; it is what Elashoff's beta > 1 represents
+                                         # implicitly). Every carb parcel has had delay 0, so appearance started the
+                                         # instant food was eaten, and the twins' labelled pulses peak at 37 min
+                                         # against the donors' 50 (L 595). A lag shifts appearance later WITHOUT
+                                         # changing any rate, so it cannot compress the pulse the way ge_beta did.
+    pro_grams: float = 12.0              # proactive snack size [J]; `pro_g_own` takes it from the donor instead
+    low_pro_g: float = float('nan')       # the donor's measured value, applied when pro_g_own is on
+    pro_g_own: bool = False              # the donor's own pre-emptive low-side pulse size (`low_pro_g`), halved for
+                                         # the labeller: a 12 g snack is labelled 24-26 g, so a donor labelled 31 g
+                                         # corresponds to ~15 g eaten (L 588; same logic as the g-eq per entered gram)
     unl_mult: float = 1.0                # unlogged eating × this (unl_own: from the donor's far-from-meal unannounced load, LESSONS 449)
     night_pro: bool = False              # woken by an alarm, the person may act proactively (LESSONS 442; on by default in World)
     uls: bool = False                    # Dexcom Urgent Low Soon predictive alert (LESSONS 442; on by default in World)
     pro_refractory: float = 45.0         # min
+    pro_carb_fix: bool = True            # with `pro_g_own`, stretch the refractory by the same factor the size grew,
+                                         # so grams per hour below 80 stay at the donors' 16.4 (L 588)
     treat_thr: float = 70.0              # CGM level that triggers a rescue [J; alert 74–78]
     treat_grams: float = 25.0            # lnN median; Savard 2016: 32 ± 24 g
     treat_latency: float = 5.0           # min after seeing it
@@ -166,6 +199,11 @@ class BehaviorTraits:
     # corrections
     corr_thr: float = 200.0              # glance-time CGM above which they may correct [J]
     ex_mets: bool = True                 # session intensity from donors' workout METs (LESSONS 247; default 2026-10-19)
+    ex_dur_cap: bool = False             # cap a session's intensity by what a person holds for its length (L 554)
+    ex_headroom: float = EX_MET_HEADROOM   # METs of capacity above the usual session (L 564)
+    ex_cap_fit: bool = True              # that cap, plus METmax raised to what the person's own sessions need.
+                                         # Default since 2026-11-01 (LESSONS 554, 556): without it 19% of sessions ran at
+                                         # 1.00 of reserve for a median 39 min and their glucose fall was cancelled outright
     ex_no_eat: bool = False              # no meals, snacks or grazes inside a structured session (LESSONS 244)
     ex_time: bool = False                # sessions timed as the donors' recorded workouts (LESSONS 497): a share start 0–120 min after a
                                          # carb entry (own, else the recorders' 0.51), the rest on the person's own workout clock (own,
@@ -260,6 +298,24 @@ def _num(rates, k):
 POOLED_ESTIMATE_RATIO = 0.77      # ice pilot median entered grams per pulse g-eq (pulse/entered 1.30, ice L54)
 
 
+def _metmax(rng, person, rates, lj) -> float:
+    """The person's aerobic ceiling. Prior: lnN(9, 0.25) with an age decline (T1D adults VO2max 32 +/- 9, so
+    METmax ~ 9; Munoz-Hernandez 2025). Where the donor RECORDS workouts and `met_own` is set, the prior is replaced
+    by the capacity anchor measured from the intensity they actually sustain (`metmax_anchor` = p90 bout METs / 0.80;
+    templates.add_metmax_own, L 631) - the one missing per-person measurement behind the 6-8 MET activity band
+    (L 551, 556, 564). The draw is taken either way so the random stream does not shift.
+    """
+    draw = float(np.clip(lj(9.0, 0.25) * (1 - 0.0075 * max(0.0, person.age - 30)), 4.0, 16.0))
+    if not person.traits.get("met_own"):
+        return draw
+    a = _num(rates, "metmax_anchor")
+    if not np.isfinite(a):
+        return draw
+    # the anchor is a LOWER bound (intensity chosen, not capacity), so it only ever raises a prior that is
+    # inconsistent with what the person demonstrably sustains; above it, keep the draw's person-to-person spread
+    return float(np.clip(max(draw, a), 4.0, 16.0))
+
+
 def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     """Literature priors (evidence/04), replaced by the person's own MEASURED behavior wherever the
     donor template carries it (ice pilot meals tables: pulses, entries, boluses, corrections, rescues)."""
@@ -330,6 +386,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         low_alert=float(rng.normal(76, 8)), high_alert=float(rng.normal(240, 25)),
         p_wake_alarm=float(np.clip(rng.normal(0.72, 0.2), 0.05, 0.98)),   # mean 0.45 -> 0.72: donors' night rescue timing and low duration (Buckingham 2005 measured children and adolescents; the mostly adult donors set it; LESSONS 274)
         pro_onset=float(rng.normal(60, 20)), pro_grams=lj(12, 0.4),   # onset 80 -> 60: fitted to the donors' lows (LESSONS 409; was [J])
+        low_pro_g=_num(rates, 'low_pro_g'),
         treat_thr=float(np.clip(rbg - 5, 55, 85)) if np.isfinite(rbg) else float(rng.normal(70, 6)),
         treat_grams=float(np.clip(rsz, 8, 60)) if np.isfinite(rsz) else lj(25, 0.5),
         treat_latency=lj(5, 0.6), p_retreat=float(np.clip(rng.normal(0.34, 0.1), 0, 1)),
@@ -355,7 +412,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
         ex_anaerobic=float(np.clip(rng.beta(1.2, 6), 0, 1)), ex_hour=float(rng.choice([7.0, 12.5, 17.5, 19.0])),
         site_days=float(np.clip(rng.normal(3.0, 0.4), 2.0, 4.0)),
-        act_rate=lj(2.0, 0.55), metmax=float(np.clip(lj(9.0, 0.25) * (1 - 0.0075 * max(0.0, person.age - 30)), 4.0, 16.0)),
+        act_rate=lj(2.0, 0.55), metmax=_metmax(rng, person, rates, lj),
         act_bg=lj(0.06, 0.4), act_gain=lj(1.0, 0.5),
         # unlogged small intake (drinks, sweets): 5–15 g each (Piernas & Popkin 2010: 97% of adults snack daily, 24% of
         # energy; Groat 2017: carbs logged on 77% of pump-user days); per-person rate heavy-tailed, a minority grazes a lot
@@ -363,7 +420,8 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         graze_per_day=lj(2.0, 1.0), graze_g=lj(10.0, 0.4),
     )
     for k in ("ov_less_day", "ov_less_f", "ov_less_lo", "ov_less_hi", "ov_less_h", "ov_tgt_day", "ov_tgt_lo", "ov_tgt_hi", "ov_tgt_h",
-              "ov_more_day", "ov_more_f", "ov_more_lo", "ov_more_hi", "ov_more_h"):
+              "ov_more_day", "ov_more_f", "ov_more_lo", "ov_more_hi", "ov_more_h",
+              "ov_less_s", "ov_tgt_s", "ov_more_s"):
         v = _num(rates, k)
         if np.isfinite(v) or k.endswith(("_lo", "_hi")):
             setattr(t, k, v if np.isfinite(v) else (0.0 if k.endswith("_day") else getattr(t, k)))
@@ -527,6 +585,18 @@ class Behavior:
         self.r_exmet = np.random.default_rng(int(getattr(person, "seed", 0)) + 5003)     # session intensity (ex_mets)
         self.r_extime = np.random.default_rng(int(getattr(person, "seed", 0)) + 5107)    # session timing (ex_time)
         self.ex_met_person = float(np.exp(np.random.default_rng(int(getattr(person, "seed", 0)) + 5011).normal(1.657, 0.357)))
+        if self.t.ex_cap_fit:
+            # C5 × capacity, the consistent version (LESSONS 554): the person's habitual session METs are MEASURED
+            # (donors' workouts) while METmax is only a prior, so raise the prior to what their own sessions need
+            # rather than squeezing the sessions into it. A 40-min session sits at ~0.775 of reserve (`_sus`), so
+            # someone whose usual workout is 8.6 METs has a METmax of at least 10.8 — capping intensity alone instead
+            # left almost no session above 8 METs, against the donors' 30% of workouts.
+            # Headroom of one per-session SD (1.5 METs, the within-donor spread): tuning METmax to the MEAN session
+            # exactly meant every session above the mean was clipped back to it, so the upper tail vanished — the
+            # twins ran 18% of sessions at >= 7 METs against the donors' 37%, and the >= 8 MET band held too few
+            # bouts to refit C4's size (LESSONS 557, 564)
+            need = 1.0 + (self.ex_met_person + self.t.ex_headroom - 1.0) / _sus(self.t.ex_minutes)
+            self.t.metmax = float(min(16.0, max(self.t.metmax, need)))
         self.r_ann = np.random.default_rng(int(getattr(person, "seed", 0)) + 1213)        # announce_mult drops
         self.r_gz = np.random.default_rng(int(getattr(person, "seed", 0)) + 1409)         # graze_keep thinning
         self.r_usplit = np.random.default_rng(int(getattr(person, "seed", 0)) + 2851)     # unent_split portion times
@@ -538,6 +608,7 @@ class Behavior:
         self.planned: list = []                 # (minute, action) sorted
         self.planned_day = -1
         self.day_z = 0.0
+        self._act_z = 0.0
         self.overrides: list[dict] = []        # planned Temporary Overrides: start, end (min), factor, lo, hi
         self.defense = True                     # rescues and proactive snacks (World's behavior_defense switch)
         self.more_until = -1e9                  # a reactive more-insulin override is running until this minute
@@ -605,9 +676,10 @@ class Behavior:
             self.plan_day(d, carb_scale_of(d) if carb_scale_of else 1.0)
         self.planned_day = days
 
-    def _override(self, start: float, hours: float, factor: float, lo: float, hi: float):
+    def _override(self, start: float, hours: float, factor: float, lo: float, hi: float, sigma: float = 0.6):
         r = self.rng
-        dur = 60.0 * float(np.clip(np.exp(r.normal(math.log(max(hours, 0.25)), 0.6)), 0.25, 12.0))
+        sd = float(sigma) if (self.t.ov_dur_own and np.isfinite(sigma) and sigma > 0) else 0.6
+        dur = 60.0 * float(np.clip(np.exp(r.normal(math.log(max(hours, 0.25)), sd)), 0.25, 12.0))
         w = dict(start=start, end=start + dur, factor=factor)
         if np.isfinite(lo) and np.isfinite(hi): w.update(lo=lo, hi=max(hi, lo))
         self.overrides.append(w)
@@ -708,7 +780,7 @@ class Behavior:
                 # target-only overrides lower the target; raised-target ones go at random waking times below
                 if t.ov_tgt_day > 0 and np.isfinite(t.ov_tgt_lo) and t.ov_tgt_lo < 110 \
                         and r.random() < min(1.0, t.ov_tgt_day / max(t.p_entry_meal * 3 + t.p_entry_snack * t.snack_rate, 0.1)):
-                    self._override(et - float(r.uniform(15, 60)), t.ov_tgt_h, 1.0, t.ov_tgt_lo, t.ov_tgt_hi)
+                    self._override(et - float(r.uniform(15, 60)), t.ov_tgt_h, 1.0, t.ov_tgt_lo, t.ov_tgt_hi, t.ov_tgt_s)
                 if r.random() < t.p_bolus_with_entry:
                     u = r.random()
                     bolus = 1.0 if u > t.calc_up + t.calc_down else (float(r.uniform(1.1, 1.5)) if u < t.calc_up else float(r.uniform(0.5, 0.9)))
@@ -794,7 +866,17 @@ class Behavior:
         # a share after eating [J]; duration lnN(18 min, 0.75) in 5–150; intensity = (MET − 1)/(METmax − 1) × duty 0.7
         # with MET lnN(3.0, 0.2) and 10% brisk episodes MET U(4.5, 6) (2024 Compendium; Pemberton 2025 mix)
         eat_times = sorted(base + st for _, st, _, _ in slots)
-        day_act = r.gamma(3.0, 1 / 3.0)
+        if t.act_rho > 0:
+            # Everyday activity was drawn INDEPENDENTLY each day, so nothing carries across days — yet C2's delayed
+            # sensitivity has tau 600 min and spans into the next day, so persistent activity would give persistent
+            # insulin NEED. That is the half of the donors' TDD persistence `intake_rho` does not supply (~+0.07 of
+            # correlation, L 583); daily activity clusters in accelerometry much as intake does (L 584).
+            # A Gaussian copula keeps the gamma(3, 1/3) marginal EXACTLY and only adds the dependence.
+            from scipy.stats import gamma as _ga, norm as _no
+            self._act_z = t.act_rho * self._act_z + math.sqrt(1 - t.act_rho ** 2) * float(r.normal())
+            day_act = float(_ga.ppf(_no.cdf(self._act_z), 3.0, scale=1 / 3.0))
+        else:
+            day_act = r.gamma(3.0, 1 / 3.0)
         n_act = r.poisson(t.act_rate * (day_act if t.act_day_var else 1.0))
         for _ in range(n_act):
             st = None
@@ -812,11 +894,11 @@ class Behavior:
             self.planned.append((st, ("walk", st, dur, inten, 0.0)))
             # a less-insulin override set ahead of the activity, at the donor's rate per episode
             if t.ov_less_day > 0 and r.random() < min(1.0, t.ov_less_day / max(t.act_rate, 0.1)):
-                self._override(st - float(r.uniform(0, 30)), t.ov_less_h, t.ov_less_f, t.ov_less_lo, t.ov_less_hi)
+                self._override(st - float(r.uniform(0, 30)), t.ov_less_h, t.ov_less_f, t.ov_less_lo, t.ov_less_hi, t.ov_less_s)
         # raised-target-only overrides (the donor's target-only windows sit at >= 110): random waking times [J timing]
         if t.ov_tgt_day > 0 and np.isfinite(t.ov_tgt_lo) and t.ov_tgt_lo >= 110:
             for _ in range(r.poisson(t.ov_tgt_day)):
-                self._override(base + float(r.uniform(t.wake, t.bed)), t.ov_tgt_h, 1.0, t.ov_tgt_lo, t.ov_tgt_hi)
+                self._override(base + float(r.uniform(t.wake, t.bed)), t.ov_tgt_h, 1.0, t.ov_tgt_lo, t.ov_tgt_hi, t.ov_tgt_s)
         # grazing: never entered, never bolused
         for _ in range(r.poisson(t.graze_per_day)):
             # on the person's own eating clock over waking hours, like snacks (evening-heavy for most donors), not uniform
@@ -867,7 +949,16 @@ class Behavior:
                 # (within-donor SD), as %VO2-reserve on the person's METmax; own streams, other draws stay paired
                 rm_ = self.r_exmet
                 met = max(1.5, self.ex_met_person + float(rm_.normal(0, 1.5)))
-                it_ = float(np.clip((met - 1.0) / max(t.metmax - 1.0, 1.0), 0.1, 1.0))
+                hi_ = 1.0
+                if t.ex_dur_cap or t.ex_cap_fit:
+                    # C5 × the person's capacity (LESSONS 554): METs are drawn from the donor's own workouts but
+                    # converted on THIS twin's METmax, which is drawn independently, so a low-capacity twin was given
+                    # sessions at or above its ceiling — 19% of sessions sat at 1.00 of reserve for a median 39 min,
+                    # which no one sustains, and every one of them fired C4's surge. The intensity a person holds for
+                    # a whole session falls with its length (the intensity-duration relation: about all of the reserve
+                    # for a few minutes, ~0.85 for 20 min, ~0.75 for 40) [J constants]
+                    hi_ = _sus(dur)
+                it_ = float(np.clip((met - 1.0) / max(t.metmax - 1.0, 1.0), 0.1, hi_))
             self.planned.append((st, ("exercise", st, dur, it_, t.ex_anaerobic)))
             if r.random() < t.p_ex_carbs:
                 self.planned.append((st - 10, ("ex_carbs", t.ex_carbs)))
@@ -917,7 +1008,7 @@ class Behavior:
                 # the linear chain keeps the fast phase, a slow fraction carries the tail (LESSONS 27) [J size]
                 sf = t.meal_slow_frac
                 if sf > 0:
-                    acts.append(("eat", Parcel(m, meal.grams * sf, kempt=t.meal_slow_k * meal.speed, kabs=bp.kabs,
+                    acts.append(("eat", Parcel(m, meal.grams * sf, kempt=t.meal_slow_k * meal.speed, kabs=bp.kabs, delay=t.meal_lag,
                                                f=bp.f, label=meal.kind + "_tail")))
                 # the liquid part of a mixed meal empties first and fast (nutrient liquids: early delivery 3–8 kcal/min,
                 # glucose t½ ~9 min; Calbet 1997, Hunt 1985): a share of the carbohydrate bypasses the energy-limited
@@ -929,7 +1020,7 @@ class Behavior:
                 if t.meal_drink_p > 0 and meal.kind == "meal" and self.r_drink.random() < t.meal_drink_p:
                     ff = t.meal_drink_share + (1 - t.meal_drink_share) * ff     # a sugary drink with the food (LESSONS 119)
                 if ff > 0:
-                    acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * ff, kempt=0.08 * meal.speed, kabs=0.08 * meal.speed,
+                    acts.append(("eat", Parcel(m, meal.grams * (1 - sf) * ff, kempt=0.08 * meal.speed, kabs=0.08 * meal.speed, delay=t.meal_lag,
                                                f=bp.f, label=meal.kind + "_liquid", kcal_per_g=0.0)))
                 g_main = meal.grams * (1 - sf) * (1 - ff)
                 if t.ge_full_kcal and g_main > 0:
@@ -938,8 +1029,19 @@ class Behavior:
                     # to the energy ceiling (Hunt & Stubbs 1975: per kcal, fat and protein slow emptying as carbohydrate; LESSONS 305)
                     kcal_g = 4.0 + (9.0 * meal.fat + 4.0 * meal.protein) / g_main
                 ms_ = t.main_speed                       # experiment (LESSONS 319): the solid main parcel only; liquid share unchanged
-                acts.append(("eat", Parcel(m, g_main, kempt=bp.kempt * meal.speed * phi_fat * ms_, kabs=bp.kabs * meal.speed * ms_,
+                w2 = t.meal_wave2 if meal.kind == "meal" else 0.0
+                acts.append(("eat", Parcel(m, g_main * (1 - w2), kempt=bp.kempt * meal.speed * phi_fat * ms_, kabs=bp.kabs * meal.speed * ms_, delay=t.meal_lag,
                                            f=bp.f, label=meal.kind, kcal_per_g=kcal_g, speed=meal.speed)))
+                if w2 > 0:
+                    # A10c second gastric wave (experiment; LESSONS 573): a share of the solid phase held back and then
+                    # released at the SAME rate as the main parcel. L 571 sized the gap as one oscillation — the donors
+                    # fall 10-14 mg/dL further after the peak and rise 8-10 further after that trough, and 43% show both
+                    # against the twins' 28%. L 572 showed why a slow tail cannot do it: mass at kmin 0.008 dribbles out
+                    # under the whole curve and lowers the peak instead. A delayed pulse at the normal rate is the form
+                    # that deepens the trough AND makes a wave. Mass-preserving: the main parcel gives up the share.
+                    acts.append(("eat", Parcel(m, g_main * w2, kempt=bp.kempt * meal.speed * phi_fat * ms_,
+                                               kabs=bp.kabs * meal.speed * ms_, delay=t.meal_wave2_delay,
+                                               f=bp.f, label=meal.kind + "_wave2", kcal_per_g=0.0, speed=meal.speed)))
                 # protein → late glucose appearance: 0.1 g glucose per g protein, delayed ~90 min, peak 3–5 h
                 # (Smart 2013; Paterson 2017; evidence/01 §6.3); it is glucose, so fast-glucose bioavailability
                 if meal.protein > 0:
@@ -1052,7 +1154,8 @@ class Behavior:
         # so this is not gated on a discrete glance.
         # reactive more-insulin override (plant-sent; engine 14b2d58): a rising high while awake, one at a time
         if not asleep and t.p_more > 0 and m >= self.more_until and cgm > 180 and self.trend() > 0 and r.random() < t.p_more:
-            dur = 60.0 * float(np.clip(np.exp(r.normal(math.log(max(t.ov_more_h, 0.25)), 0.6)), 0.25, 12.0))
+            sd_ = t.ov_more_s if (t.ov_dur_own and np.isfinite(t.ov_more_s) and t.ov_more_s > 0) else 0.6
+            dur = 60.0 * float(np.clip(np.exp(r.normal(math.log(max(t.ov_more_h, 0.25)), sd_)), 0.25, 12.0))
             ov = dict(start=m, end=m + dur, factor=t.ov_more_f)
             if np.isfinite(t.ov_more_lo) and np.isfinite(t.ov_more_hi): ov.update(lo=t.ov_more_lo, hi=max(t.ov_more_hi, t.ov_more_lo))
             acts.append(("override", ov)); self.more_until = m + dur

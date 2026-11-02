@@ -49,7 +49,9 @@
    the same no-entry setup gives +0.95 TIR for +0.206 t<70. At matched t<70 the primer is +0.12 TIR [−0.08, +0.31] over
    the dial line; at matched t<54 it is −0.11 [−0.54, +0.20]. Replay's large lift (+1.03) does not survive:
    replay treats moved insulin as nearly free on lows, while the generator charges it about the dial's rate. The dial
-   comparison has to be run in the same regime: ice's deployed-regime dial gave a misleading edge. See `E6-primer.md`.
+   comparison has to be run in the same regime: ice's deployed-regime dial gave a misleading edge. Per training the
+   matched-t70 lift is +0.29 (oc0) and −0.03 (oc1), a sign flip, which ice's rule (LESSONS 153) reads as noise. E7's
+   Δt<70 ratios hold in both trainings (dial 0.22 / 0.23, primer 0.11 / 0.15). See `E6-primer.md`.
 10. **On a body with a known answer, replay overstates low-side change 4–8× (E7, 2026-10-29).** Generator reference
     runs, replayed as records under needs 1.05 and two primers, against the generator's own re-runs: slope of true on
     predicted Δt<70 0.12 [0.08, 0.17], Δt<54 0.06, ΔTIR 0.62. Replay adds almost no net insulin (+0.06 U/day for needs
@@ -62,3 +64,14 @@
     force, and the generator's force is a model too. On field settings edits SG 0.01 sizes TIR (coefficient 0.95) but
     leaves t<70 at 0.21, still about 5× overstated (ice LESSONS 152): the generator agrees with replay-plus-SG, the field
     does not, so the force is not the whole low-side story. See `E7-truth-test.md`.
+11. **A glucose-based application factor gives lift on gr, none on the ledger base (E8, 2026-11-01/02).** Loop's
+    deployed ramp (0.2 at lower target + 10 → 0.8 at 200) on gr: +0.72 TIR, +0.41 [+0.21, +0.64] over the dial at
+    matched t<70, +0.43 / +0.39 per training; on gr2 + stateless slow RC: −0.00 [−0.25, +0.23], Δt<54 above the dial's.
+    The default ramp below shows the same pattern at about half the lift.
+    CamAPS's glucose-dependent delivery in Loop form. On the ice generator (166 donors × 2 trainings, no entries, AF 0.4
+    base) the engine's default ramp (0.4 at 140 → 0.7 at 220; not Loop's deployed 0.2 → 0.8 ramp, which also cuts
+    below 0.4 near target) gives +0.60 TIR for +0.073 t<70, +0.23 TIR [+0.04, +0.42] over the dial at matched t<70, +0.21 and +0.25 per
+    training. A steeper ramp (to 1.0 at 250) gives more TIR at the same lift. Insulin spent when glucose is high is
+    cheaper on lows than the same insulin spread by the dial. The lift is at the low edge of what training noise can
+    hide, and below C38's +0.33. On gr2 + stateless slow RC it is −0.03 [−0.27, +0.18]: the slow RC takes it up.
+    See `E8-gbaf-gr.md`.

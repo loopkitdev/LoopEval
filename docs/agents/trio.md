@@ -26,7 +26,7 @@ frontier).
 | `OpenAPSSwift/` (submodule) | oref port extracted from Trio's `feat/dev-oref-swift` (June 2026), JSON-in/JSON-out |
 | `Sources/EvalCore/Engine/OpenAPSAdapter.swift` | Sim state → oref inputs (profile, IOB, meal, autosens, TDD, temp targets, smoothing) |
 | `Sources/EvalCore/Engine/LoopMimicViaOpenAPSAdapter.swift` | Loop-like config run through the oref path (cross-engine control) |
-| `Sources/LoopEvalCLI/SimulateFlags.swift` | `--candidate-openaps`, `--candidate-oaps-*`, `--oaps-preset-target`, `--candidate-oaps-prefs-json` |
+| `Sources/LoopEvalCLI/SimulateFlags.swift` | `--candidate-openaps`; oref preferences only through `--candidate-oaps-prefs-json`; `--candidate-oaps-*` for DIA, AF schedule, override presets, smoothing, pump pulse, SMB caps |
 | `scripts/oref-oracle/` | Golden master: Trio's real oref JS on raw NS data, to diff the Swift port |
 | `docs/candidates/README.md` § C17 | Ledger state: fidelity only, no frontier number |
 | `PRIVATE.md` | `orefuser`, `orefuser2` config (Trio NS sites); prefs under `~/.loop-eval/<alias>/` |

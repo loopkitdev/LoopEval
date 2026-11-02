@@ -456,6 +456,12 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Option(name: .long, help: "Slow RC: freeze the level for this many minutes after glucose was below 70, so rescue carbs are not read as resistance (0 = off). Try 720 (C20's window).")
     var candidateSlowRcPostlowFreezeMin: Double = 0
 
+    @Flag(name: .long, help: "Slow RC, stateless form: read the residual from a forecast at the scheduled ISF, not the slow-RC-scaled one (as the LoopAlgorithm port recomputes it from history).")
+    var candidateSlowRcScheduleFeed: Bool = false
+
+    @Option(name: .long, help: "Slow RC, stateless form: EWMA over only the last this-many minutes of residuals, from 0 (default 0 = unbounded).")
+    var candidateSlowRcWindowMin: Double = 0
+
     @Option(name: .long, help: "Slow RC timing gate: JSON {\"windows\": [{\"start\", \"end\", \"min\"}], \"resets\": [ISO dates]}. Inside a window the multiplier's lower clamp is that window's min, outside it --candidate-slow-rc-min; at each reset the level returns to 0 (a user switching the adjustment off).")
     var candidateSlowRcGateJson: String?
 
@@ -648,14 +654,8 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
     @Option(name: .long, help: "Control-IQ reference arm: automatic bolus only when the 30-min forecast exceeds this (mg/dL). 0 = off.")
     var candidateAutoBolusPred30Min: Double = 0
 
-    @Option(name: .long, help: "E6 primer: one extra automatic bolus of this many mg/dL / ISF at a rise seen on the candidate's CGM (slope >= primer-slope, rise >= primer-rise over the 60-min minimum, no BG < 80 in 60 min), then a lockout. 0 = off.")
+    @Option(name: .long, help: "E6 primer: one extra automatic bolus of this many mg/dL / ISF at a rise seen on the candidate's CGM (30-min slope >= 1.5 mg/dL/min, >= 30 mg/dL over the 60-min minimum, no BG < 80 in 60 min), then none for 180 min. 0 = off.")
     var candidatePrimerMgdl: Double = 0
-    @Option(name: .long, help: "E6 primer: trailing 30-min slope threshold, mg/dL/min.")
-    var candidatePrimerSlope: Double = 1.5
-    @Option(name: .long, help: "E6 primer: rise above the 60-min minimum, mg/dL.")
-    var candidatePrimerRise: Double = 30
-    @Option(name: .long, help: "E6 primer: minutes before another primer.")
-    var candidatePrimerLockoutMin: Double = 180
     @Option(name: .long, help: "E6 primer, retractable form: deliver it as extra temp basal over this many minutes, cancelled when CGM rises < 5 mg/dL over 15 min. 0 = bolus.")
     var candidatePrimerTempMin: Double = 0
 
@@ -682,6 +682,27 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
 
     @Flag(name: .long, help: "Runway reserve only with no carbs on board.")
     var candidateRunwayCobGate: Bool = false
+
+    @Option(name: .long, help: "Runway COB gate threshold: the runway stays open while carbs on board are at most this (g, default 0 = any carbs close it).")
+    var candidateRunwayCobMaxG: Double = 0
+
+    @Option(name: .long, help: "Runway COB gate fade: above --candidate-runway-cob-max-g the runway scales down linearly to zero over this many grams (default 0 = closes at once).")
+    var candidateRunwayCobFadeG: Double = 0
+
+    @Option(name: .long, help: "Post-exercise mitigation: CSV of exercise windows (header start,end; ISO-8601 UTC). The mitigation starts at each window's end.")
+    var candidateExerciseWindowsCsv: String?
+
+    @Option(name: .long, help: "Post-exercise mitigation: ISF multiplier after an exercise window ends (default 1 = off; >1 = more sensitive).")
+    var candidatePostExerciseIsfMult: Double = 1.0
+
+    @Option(name: .long, help: "Post-exercise mitigation: hours after the window ends that it lasts (default 0 = off).")
+    var candidatePostExerciseHours: Double = 0
+
+    @Option(name: .long, help: "Post-exercise mitigation: the ISF multiplier fades linearly to 1 over the last this-many hours (default 0 = step).")
+    var candidatePostExerciseFadeHours: Double = 0
+
+    @Flag(name: .long, help: "Post-exercise mitigation: close the runway reserve inside the post-exercise period.")
+    var candidatePostExerciseRunwayOff: Bool = false
 
     @Option(name: .long, help: "Curve-split diagnostic: peak (min) of a second curve used by one part of the controller only (see --split-curve-part). 0 = off.")
     var splitCurvePeakMin: Double = 0
@@ -741,47 +762,11 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
 
 // Candidate OpenAPS (with --candidate-openaps)
 struct SimulateOpenAPSFlags: ParsableArguments {
-    @Option(name: .customLong("oaps-preset-target"), help: "Map a Trio Exercise preset NAME to a target (mg/dL) for presets whose target is carried only in the preset name, not the treatment fields/notes (e.g. a \"Dienst\" shift preset → 110). Format NAME:TARGET, repeatable. Matched case-insensitively against the Exercise note.")
-    var oapsPresetTarget: [String] = []
-
-    @Option(name: .long, help: "OpenAPS threshold_setting (mg/dL) — oref's minGuardBG safety floor. SMB is gated off when minGuardBG drops below this. Default 60 (oref stock). Raising it directly suppresses SMB-firing into the suspend zone.")
-    var candidateOapsThreshold: Double?
-
-    @Option(name: .long, help: "OpenAPS smb_delivery_ratio (0..1). Fraction of computed needed-correction delivered as SMB each cycle. Default 0.5. Lower = smaller SMBs, less aggressive bolus pathway.")
-    var candidateOapsSmbRatio: Double?
-
     @Option(name: .long, help: "OpenAPS maxSMBBasalMinutes / maxUAMSMBBasalMinutes — single-SMB size cap in minutes of current basal. Default 30. Lower = smaller per-SMB cap.")
     var candidateOapsMaxSmbMin: Double?
 
-    @Flag(name: .long, help: "OpenAPS useNewFormula — enable Dynamic ISF (auto-scales ISF with current BG — analog of Loop's GBAF). Off by default in oref stock.")
-    var candidateOapsDynamicIsf: Bool = false
-
-    @Flag(name: .long, help: "OpenAPS sigmoid — sigmoid-shaped Dynamic ISF curve (alternative to power-law). Use with --candidate-oaps-dynamic-isf.")
-    var candidateOapsSigmoid: Bool = false
-
-    @Option(name: .long, help: "OpenAPS adjustmentFactor (power-law Dynamic ISF aggression). Default 0.8. Higher = more aggressive scaling with BG.")
-    var candidateOapsAdjustmentFactor: Double?
-
-    @Option(name: .long, help: "OpenAPS adjustmentFactorSigmoid (sigmoid Dynamic ISF aggression). Default 0.5.")
-    var candidateOapsAdjustmentFactorSigmoid: Double?
-
-    @Option(name: .long, help: "OpenAPS autosens_max — upper clamp on the sensitivity/Dynamic-ISF ratio. Trio stock 1.2; match the user's 'Dynamic limit' (e.g. 1.9).")
-    var candidateOapsAutosensMax: Double?
-
-    @Option(name: .long, help: "OpenAPS autosens_min — lower clamp on the sensitivity/Dynamic-ISF ratio. Trio stock 0.7.")
-    var candidateOapsAutosensMin: Double?
-
-    @Option(name: .long, help: "OpenAPS insulin peak time (min) — drives the IOB curve AND Dynamic ISF insulinFactor (=120−peak). Uses an ultra-rapid curve so peaks <50 are allowed. Match the user's insulin (~41–45 Lyumjev/ultra-rapid). Default: rapid-acting (insulinFactor 55).")
-    var candidateOapsInsulinPeak: Double?
-
     @Option(name: .long, help: "OpenAPS DIA (hours) = insulin_action_curve = insulin curve END time. Set to the user's profile DIA (e.g. 9); adapter otherwise hardcodes 6, which decays IOB too fast.")
     var candidateOapsDia: Double?
-
-    @Option(name: .long, help: "OpenAPS insulin curve PRESET, no custom peak ('ultra-rapid' | 'rapid-acting'). ultra-rapid = Lyumjev/Fiasp: IOB peak 55 AND dynISF insulinFactor 70 (decoupled). Use instead of --candidate-oaps-insulin-peak.")
-    var candidateOapsCurve: String?
-
-    @Option(name: .long, help: "OpenAPS max_iob (U) — the user's real safety cap. Not uploaded by Trio; set for faithful reproduction (else a non-binding maxBolus×10 fallback is used).")
-    var candidateOapsMaxIob: Double?
 
     @Option(name: .long, help: "OpenAPS preferences JSON (object) merged over the adapter defaults — supply a user's complete Trio settings verbatim. Inline JSON or @path/to/file.json.")
     var candidateOapsPrefsJson: String?
@@ -798,11 +783,6 @@ struct SimulateOpenAPSFlags: ParsableArguments {
     @Option(name: .long, help: "Pump basal-pulse increment (U) for the oref TDD (floors each temp-basal segment). Omnipod 0.05 (default); 0.025/0.1 for other pumps.")
     var candidateOapsPumpPulse: Double = 0.05
 
-    @Flag(name: .long, help: "OpenAPS ablation: disable UAM (enableUAM=false) — drop the unannounced-meal forecast/SMB while keeping SMB on the base forecast. Isolates UAM's forecast contribution.")
-    var candidateOapsNoUam: Bool = false
-
-    @Flag(name: .long, help: "OpenAPS ablation: disable all SMB (temp-basal-only delivery). Isolates the SMB delivery cadence from the forecast.")
-    var candidateOapsNoSmb: Bool = false
 }
 
 extension SimulateCommand {
@@ -953,6 +933,8 @@ extension SimulateCommand {
     var candidateSlowRcClipMgdl: Double { get { loopExperiments.candidateSlowRcClipMgdl } set { loopExperiments.candidateSlowRcClipMgdl = newValue } }
     var candidateSlowRcLeakMin: Double { get { loopExperiments.candidateSlowRcLeakMin } set { loopExperiments.candidateSlowRcLeakMin = newValue } }
     var candidateSlowRcPostlowFreezeMin: Double { get { loopExperiments.candidateSlowRcPostlowFreezeMin } set { loopExperiments.candidateSlowRcPostlowFreezeMin = newValue } }
+    var candidateSlowRcScheduleFeed: Bool { get { loopExperiments.candidateSlowRcScheduleFeed } set { loopExperiments.candidateSlowRcScheduleFeed = newValue } }
+    var candidateSlowRcWindowMin: Double { get { loopExperiments.candidateSlowRcWindowMin } set { loopExperiments.candidateSlowRcWindowMin = newValue } }
     var candidateSlowRcGateJson: String? { get { loopExperiments.candidateSlowRcGateJson } set { loopExperiments.candidateSlowRcGateJson = newValue } }
     var candidateSlowRcNeeds: Bool { get { loopExperiments.candidateSlowRcNeeds } set { loopExperiments.candidateSlowRcNeeds = newValue } }
     var candidateSlowRcLowShrink: Double { get { loopExperiments.candidateSlowRcLowShrink } set { loopExperiments.candidateSlowRcLowShrink = newValue } }
@@ -1018,9 +1000,6 @@ extension SimulateCommand {
     var candidateAutoBolusMinIntervalMin: Double { get { loopExperiments.candidateAutoBolusMinIntervalMin } set { loopExperiments.candidateAutoBolusMinIntervalMin = newValue } }
     var candidateAutoBolusPred30Min: Double { get { loopExperiments.candidateAutoBolusPred30Min } set { loopExperiments.candidateAutoBolusPred30Min = newValue } }
     var candidatePrimerMgdl: Double { get { loopExperiments.candidatePrimerMgdl } set { loopExperiments.candidatePrimerMgdl = newValue } }
-    var candidatePrimerSlope: Double { get { loopExperiments.candidatePrimerSlope } set { loopExperiments.candidatePrimerSlope = newValue } }
-    var candidatePrimerRise: Double { get { loopExperiments.candidatePrimerRise } set { loopExperiments.candidatePrimerRise = newValue } }
-    var candidatePrimerLockoutMin: Double { get { loopExperiments.candidatePrimerLockoutMin } set { loopExperiments.candidatePrimerLockoutMin = newValue } }
     var candidatePrimerTempMin: Double { get { loopExperiments.candidatePrimerTempMin } set { loopExperiments.candidatePrimerTempMin = newValue } }
     var candidateRunwayFraction: Double { get { loopExperiments.candidateRunwayFraction } set { loopExperiments.candidateRunwayFraction = newValue } }
     var candidateSigmaPrior: Double { get { loopExperiments.candidateSigmaPrior } set { loopExperiments.candidateSigmaPrior = newValue } }
@@ -1030,6 +1009,13 @@ extension SimulateCommand {
     var candidateRunwayMaxMgdl: Double { get { loopExperiments.candidateRunwayMaxMgdl } set { loopExperiments.candidateRunwayMaxMgdl = newValue } }
     var candidateRunwayBgMin: Double { get { loopExperiments.candidateRunwayBgMin } set { loopExperiments.candidateRunwayBgMin = newValue } }
     var candidateRunwayCobGate: Bool { get { loopExperiments.candidateRunwayCobGate } set { loopExperiments.candidateRunwayCobGate = newValue } }
+    var candidateRunwayCobMaxG: Double { get { loopExperiments.candidateRunwayCobMaxG } set { loopExperiments.candidateRunwayCobMaxG = newValue } }
+    var candidateRunwayCobFadeG: Double { get { loopExperiments.candidateRunwayCobFadeG } set { loopExperiments.candidateRunwayCobFadeG = newValue } }
+    var candidateExerciseWindowsCsv: String? { get { loopExperiments.candidateExerciseWindowsCsv } set { loopExperiments.candidateExerciseWindowsCsv = newValue } }
+    var candidatePostExerciseIsfMult: Double { get { loopExperiments.candidatePostExerciseIsfMult } set { loopExperiments.candidatePostExerciseIsfMult = newValue } }
+    var candidatePostExerciseHours: Double { get { loopExperiments.candidatePostExerciseHours } set { loopExperiments.candidatePostExerciseHours = newValue } }
+    var candidatePostExerciseFadeHours: Double { get { loopExperiments.candidatePostExerciseFadeHours } set { loopExperiments.candidatePostExerciseFadeHours = newValue } }
+    var candidatePostExerciseRunwayOff: Bool { get { loopExperiments.candidatePostExerciseRunwayOff } set { loopExperiments.candidatePostExerciseRunwayOff = newValue } }
     var splitCurvePeakMin: Double { get { loopExperiments.splitCurvePeakMin } set { loopExperiments.splitCurvePeakMin = newValue } }
     var splitCurveDurationMin: Double { get { loopExperiments.splitCurveDurationMin } set { loopExperiments.splitCurveDurationMin = newValue } }
     var splitCurvePart: String { get { loopExperiments.splitCurvePart } set { loopExperiments.splitCurvePart = newValue } }
@@ -1050,25 +1036,11 @@ extension SimulateCommand {
     var candidateSensDampMax: Double { get { loopExperiments.candidateSensDampMax } set { loopExperiments.candidateSensDampMax = newValue } }
     var candidateEgpPhysical: Bool { get { loopExperiments.candidateEgpPhysical } set { loopExperiments.candidateEgpPhysical = newValue } }
     // Candidate OpenAPS (with --candidate-openaps)
-    var oapsPresetTarget: [String] { get { openaps.oapsPresetTarget } set { openaps.oapsPresetTarget = newValue } }
-    var candidateOapsThreshold: Double? { get { openaps.candidateOapsThreshold } set { openaps.candidateOapsThreshold = newValue } }
-    var candidateOapsSmbRatio: Double? { get { openaps.candidateOapsSmbRatio } set { openaps.candidateOapsSmbRatio = newValue } }
     var candidateOapsMaxSmbMin: Double? { get { openaps.candidateOapsMaxSmbMin } set { openaps.candidateOapsMaxSmbMin = newValue } }
-    var candidateOapsDynamicIsf: Bool { get { openaps.candidateOapsDynamicIsf } set { openaps.candidateOapsDynamicIsf = newValue } }
-    var candidateOapsSigmoid: Bool { get { openaps.candidateOapsSigmoid } set { openaps.candidateOapsSigmoid = newValue } }
-    var candidateOapsAdjustmentFactor: Double? { get { openaps.candidateOapsAdjustmentFactor } set { openaps.candidateOapsAdjustmentFactor = newValue } }
-    var candidateOapsAdjustmentFactorSigmoid: Double? { get { openaps.candidateOapsAdjustmentFactorSigmoid } set { openaps.candidateOapsAdjustmentFactorSigmoid = newValue } }
-    var candidateOapsAutosensMax: Double? { get { openaps.candidateOapsAutosensMax } set { openaps.candidateOapsAutosensMax = newValue } }
-    var candidateOapsAutosensMin: Double? { get { openaps.candidateOapsAutosensMin } set { openaps.candidateOapsAutosensMin = newValue } }
-    var candidateOapsInsulinPeak: Double? { get { openaps.candidateOapsInsulinPeak } set { openaps.candidateOapsInsulinPeak = newValue } }
     var candidateOapsDia: Double? { get { openaps.candidateOapsDia } set { openaps.candidateOapsDia = newValue } }
-    var candidateOapsCurve: String? { get { openaps.candidateOapsCurve } set { openaps.candidateOapsCurve = newValue } }
-    var candidateOapsMaxIob: Double? { get { openaps.candidateOapsMaxIob } set { openaps.candidateOapsMaxIob = newValue } }
     var candidateOapsPrefsJson: String? { get { openaps.candidateOapsPrefsJson } set { openaps.candidateOapsPrefsJson = newValue } }
     var candidateOapsAfCsv: String? { get { openaps.candidateOapsAfCsv } set { openaps.candidateOapsAfCsv = newValue } }
     var candidateOapsOverridePresets: String? { get { openaps.candidateOapsOverridePresets } set { openaps.candidateOapsOverridePresets = newValue } }
     var candidateOapsSmoothGlucose: Bool { get { openaps.candidateOapsSmoothGlucose } set { openaps.candidateOapsSmoothGlucose = newValue } }
     var candidateOapsPumpPulse: Double { get { openaps.candidateOapsPumpPulse } set { openaps.candidateOapsPumpPulse = newValue } }
-    var candidateOapsNoUam: Bool { get { openaps.candidateOapsNoUam } set { openaps.candidateOapsNoUam = newValue } }
-    var candidateOapsNoSmb: Bool { get { openaps.candidateOapsNoSmb } set { openaps.candidateOapsNoSmb = newValue } }
 }

@@ -122,7 +122,7 @@ def sample_mod_traits(rng: np.random.Generator, age: float, sex: str) -> ModTrai
         circ_class=cls,
         # Visentin's low/high SI ratio (0.40 ± 0.23) is an estimate from meal tests whose noise inflates the
         # swing: at that amplitude the simulated 24-h glucose amplitude was 0.23 vs the field's 0.12
-        # (ablation 2026-10-15). Half the swing [J; to be settled on circadian_amp]
+        # (ablation 2026-10-15). Scaled by circ_swing (full since LESSONS 38)
         circ_raw=float(rng.normal(0.40, 0.23)),
         dawn=bool(rng.random() < 0.52),
         dawn_amp=float(np.clip(np.exp(rng.normal(math.log(0.3), 0.6)), 0.05, 1.2)),
