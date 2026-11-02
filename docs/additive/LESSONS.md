@@ -3555,3 +3555,33 @@ traces were already on disk.
   mean-reverting), a cleared suspect (the sensor, by the night row) and a cleared candidate (the dynamic residual).
   That is the best-specified open defect in the model, and it is where the next component belongs — NOT another
   draw, and NOT a restoring force, which L 649 has just shown pushes this row the wrong way.
+
+**651. The twins' own daytime 5-min motion is strongly MEAL-KEYED — 7.04 right after a carb entry falling to 5.20
+by 2-3 h — and 38% of their daytime minutes sit more than 5 h from any entry at 5.77, against the donors' pooled
+7.35. So the deficit of L 648-650 is largest where the model has least to say, and one donor-side table decides the
+mechanism.** `struct_by_meal.py`, three draws, the split L 648 prescribes (time since the last ENTERED carb, never
+`ra`).
+
+| minutes since the last entered carb | 0-30m | 30-60m | 1-2h | 2-3h | 3-5h | >5h |
+|---|---|---|---|---|---|---|
+| rf2 | **7.04** | 6.47 | 5.52 | 5.29 | 5.20 | **5.77** |
+| rf2_5k | 6.63 | 6.18 | 5.59 | 5.15 | 5.49 | 5.70 |
+| rf2_9k | 6.64 | 5.90 | 5.60 | 5.33 | 5.37 | 5.87 |
+| share of daytime minutes | 0.10-0.13 | 0.09-0.11 | 0.15-0.17 | 0.11-0.12 | 0.15-0.16 | **0.33-0.38** |
+
+- **The twins only reach the donors' POOLED day figure in the half hour after an entry** (7.04 against 7.35) and
+  run 0.75-0.78x of it everywhere else. Meal absorption is the one mechanism supplying short-scale motion in this
+  model, and it stops supplying within an hour.
+- **Which makes the discriminator a single donor-side table**, requested of ice (their pipeline already has the
+  local clock and clean rows this needs): the same rms by time since entry. If the donors PEAK post-meal as we do
+  but higher, the missing component is in absorption or insulin action. If they are FLAT near 7.35 across the day,
+  it is activity, posture or behaviour. If they are highest FAR from entries, it is unlogged eating. The three
+  answers point at three different components and the table separates them in one round.
+- **Why nothing is queued on it yet.** L 161 already measured the two obvious candidates and both fail on shape:
+  `act_frag`'s 4-min bouts, smoothed by the 7-min activity lag, "move glucose too little and too fast", and
+  grazing at 2 entries a day of ~10 g cannot supply motion at every 5-min step. L 161 guessed the wander needs a
+  ~30-60 min process; **L 650's measurement says 15-20 min**, so its candidate list needs re-aiming, not
+  re-running. And L 517 / 522 already rejected `graze_keep` 0.25 (score 0.407 against 0.379) and `flow_sd` 0.5
+  (lows 1.13-1.29/day, t54 0.24-0.31) on the cohort — both pre-date any structure function, so the instrument is
+  new, but the SAFETY rows they broke are the ones AGENTS.md does not let a win buy. Pick the mechanism from the
+  donor table first.
