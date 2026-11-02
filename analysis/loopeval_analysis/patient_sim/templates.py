@@ -886,3 +886,41 @@ def add_gb_own(path: str, ice_root: Path = Path.home() / ".loop-eval/ice_v32", q
     t = t.drop(columns=[c for c in r.columns if c != "alias" and c in t.columns]).merge(r, on="alias", how="left")
     t.to_csv(path, index=False)
     return t
+
+
+def add_metmax_own(path: str, p: float = 0.90, min_bouts: int = 5, frac_of_max: float = 0.80):
+    """Per donor, an aerobic-capacity ANCHOR measured from the intensity they actually sustain, replacing the free
+    `metmax` draw for the donors who record workouts (L 631).
+
+    `metmax` is currently drawn lnN(9, 0.25) with an age decline, so it is uncorrelated with the person — and L 551,
+    556, 564 name per-person capacity as the one missing MEASUREMENT behind the 6-8 MET activity band. The donors'
+    workout records carry `HKAverageMETs` per bout, from which:
+
+      - the donor's **p90 bout METs** is a stable person trait: split-half correlation +0.790 over 22 donors with
+        >= 20 bouts, with real spread (p10-p90 of 4.6-9.8 METs);
+      - the donor's **maximum** bout METs is NOT usable - it correlates +0.783 with log bout count, so it measures
+        how often they exercise, not how hard they can (the p90's confound is +0.350, the median's +0.114).
+
+    This is a LOWER BOUND on capacity, not capacity: it is the intensity chosen, and a hard session sits at roughly
+    70-85% of VO2max, so the anchor is p90 / `frac_of_max`. Donors without workout records keep the prior draw.
+
+    Column `metmax_p90` (the raw measurement) and `metmax_anchor` (the capacity estimate).
+    """
+    import numpy as np
+    from . import lifestats as L
+
+    t = pd.read_csv(path)
+    A = L._workouts_all()
+    if A is None or not len(A):
+        return
+    A = A[A.mets.notna()]
+    g = A.groupby("alias").mets
+    S = pd.DataFrame(dict(n=g.size(), p90=g.quantile(p))).dropna()
+    S = S[S.n >= min_bouts]
+    t["metmax_p90"] = t.alias.map(S.p90)
+    t["metmax_anchor"] = (t.metmax_p90 / max(frac_of_max, 0.1)).clip(4.0, 16.0)
+    t.to_csv(path, index=False)
+    got = int(t.metmax_anchor.notna().sum())
+    print(f"metmax_anchor on {got}/{len(t)} donors; "
+          f"p10/p50/p90 = {t.metmax_anchor.quantile(.1):.1f} / {t.metmax_anchor.median():.1f} / "
+          f"{t.metmax_anchor.quantile(.9):.1f} METs")

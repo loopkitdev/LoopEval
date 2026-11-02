@@ -2610,3 +2610,36 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
        <- t70) is not obviously improvable on these five rows, and L 606 already measured what happens when a fit is
        pointed at an unreachable target. If this is revisited, the target should come from OUTSIDE the outcome rows —
        something with mechanism-specific leverage and low draw noise — not from this list.
+
+631. **The exercise limit's "missing measurement" exists but covers 13% of donors, so it cannot close a cohort band —
+     and the mechanism I was going to add instead is refuted by the literature. Both routes to the 6-8 MET band are
+     now shut.** L 551, 556, 564 record the 6-8 MET activity band at −13 against the donors' −21.5, blamed on
+     per-person aerobic capacity being a prior (`metmax` lnN(9, 0.25) with an age decline, uncorrelated with the
+     person). Two things were checked.
+
+     - **The form change I proposed is counter-evidenced.** L 565 says the band trade needs a form change, and the
+       obvious one was to let plasma-glucose uptake fall off as the anaerobic share rises (a substrate crossover), so
+       that raising C1 could deepen 6-8 without fighting the surge at >= 8. **Romijn 1993 says the opposite**: at 25 /
+       65 / 85% VO2max, plasma glucose tissue uptake INCREASES with intensity, as does muscle glycogen oxidation —
+       the crossover is fat-versus-carbohydrate, not plasma-glucose-versus-glycogen. So uptake genuinely keeps rising
+       and the model's structure (uptake monotone, EGP surge above threshold) is right. Not implemented.
+     - **Per-person capacity IS measurable, from `HKAverageMETs` on the donors' own workout bouts** — and which
+       statistic matters:
+
+       | statistic | corr with log bout count | split-half (22 donors, >= 20 bouts) | verdict |
+       |---|---|---|---|
+       | max bout METs | **+0.783** | — | **unusable — it measures how OFTEN they exercise** |
+       | p90 bout METs | +0.350 | **+0.790** | usable: a stable person trait, spread 4.6-9.8 METs |
+       | median bout METs | +0.114 | — | least confounded, but it is habit not ceiling |
+
+     - **But coverage kills it: only 22 of 168 donors (13%) have >= 5 bouts with METs.** Implemented anyway as
+       `templates.add_metmax_own` + `--enable met_own` (off by default), and then measured before spending a run:
+       **6 of 112 twins change and the cohort mean metmax moves x1.0047.** A predictable no-op, so no arm was run.
+       Do not re-run it expecting an effect; the facility is there for a future cohort with better workout coverage.
+     - **The wiring is deliberately one-sided** (`max(draw, anchor)`), because the p90 is the intensity CHOSEN and so
+       a lower bound on capacity: a donor whose p90 is 4.6 METs may be unfit or merely unmotivated, and the data
+       cannot tell. Setting `metmax = anchor` would use the full per-person signal for those 22 donors but would
+       understate capacity for the sedentary — an identifiability problem, not a tuning choice.
+     - **Reclassify the limit**: the 6-8 MET band is not "awaiting a measurement" — the measurement exists, is sound
+       for the donors who have it, and reaches too few of them to move a cohort statistic. Closing it needs either
+       workout records for most of the cohort or an intensity prior conditioned on something every donor has.

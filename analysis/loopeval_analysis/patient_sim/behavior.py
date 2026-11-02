@@ -298,6 +298,24 @@ def _num(rates, k):
 POOLED_ESTIMATE_RATIO = 0.77      # ice pilot median entered grams per pulse g-eq (pulse/entered 1.30, ice L54)
 
 
+def _metmax(rng, person, rates, lj) -> float:
+    """The person's aerobic ceiling. Prior: lnN(9, 0.25) with an age decline (T1D adults VO2max 32 +/- 9, so
+    METmax ~ 9; Munoz-Hernandez 2025). Where the donor RECORDS workouts and `met_own` is set, the prior is replaced
+    by the capacity anchor measured from the intensity they actually sustain (`metmax_anchor` = p90 bout METs / 0.80;
+    templates.add_metmax_own, L 631) - the one missing per-person measurement behind the 6-8 MET activity band
+    (L 551, 556, 564). The draw is taken either way so the random stream does not shift.
+    """
+    draw = float(np.clip(lj(9.0, 0.25) * (1 - 0.0075 * max(0.0, person.age - 30)), 4.0, 16.0))
+    if not person.traits.get("met_own"):
+        return draw
+    a = _num(rates, "metmax_anchor")
+    if not np.isfinite(a):
+        return draw
+    # the anchor is a LOWER bound (intensity chosen, not capacity), so it only ever raises a prior that is
+    # inconsistent with what the person demonstrably sustains; above it, keep the draw's person-to-person spread
+    return float(np.clip(max(draw, a), 4.0, 16.0))
+
+
 def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
     """Literature priors (evidence/04), replaced by the person's own MEASURED behavior wherever the
     donor template carries it (ice pilot meals tables: pulses, entries, boluses, corrections, rescues)."""
@@ -394,7 +412,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
         ex_anaerobic=float(np.clip(rng.beta(1.2, 6), 0, 1)), ex_hour=float(rng.choice([7.0, 12.5, 17.5, 19.0])),
         site_days=float(np.clip(rng.normal(3.0, 0.4), 2.0, 4.0)),
-        act_rate=lj(2.0, 0.55), metmax=float(np.clip(lj(9.0, 0.25) * (1 - 0.0075 * max(0.0, person.age - 30)), 4.0, 16.0)),
+        act_rate=lj(2.0, 0.55), metmax=_metmax(rng, person, rates, lj),
         act_bg=lj(0.06, 0.4), act_gain=lj(1.0, 0.5),
         # unlogged small intake (drinks, sweets): 5–15 g each (Piernas & Popkin 2010: 97% of adults snack daily, 24% of
         # energy; Groat 2017: carbs logged on 77% of pump-user days); per-person rate heavy-tailed, a minority grazes a lot

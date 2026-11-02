@@ -261,6 +261,9 @@ class World:
         # the donor's own meal / snack split of carb entries, default since 2026-10-19 (LESSONS 280); --disable entry_split
         person.traits["entry_split"] = bool(enable.get("entry_split", True)) if enable else True
         person.traits["entry_win"] = bool((enable or {}).get("entry_win", True))      # default since 2026-10-19 (LESSONS 345)
+        # per-person aerobic capacity from the donor's own recorded workout intensity instead of the lnN(9, 0.25)
+        # prior, for the donors who record them (templates.add_metmax_own; L 631)
+        person.traits["met_own"] = bool((enable or {}).get("met_own", False))
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
         if person.traits.get("beh_set"):     # diagnostic trait overrides carried on the Person (the plant runs in its own process)
             self.beh_traits = copy.deepcopy(self.beh_traits)
