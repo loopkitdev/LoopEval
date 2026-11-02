@@ -1935,3 +1935,22 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Open lead for the low side: generated CGM at night is noisier than the donors', which can make brief false lows
       and false falls the controller then reacts to. Check generated against donor night noise statistics (short-lag
       structure function) before acting.
+
+166. **Generated CGM is about 20% too jumpy at night only, and the network's one-step spread is not the cause.**
+    night_noise.py and calib_hour.py in runs/2026-11-01-ice-stateabl/; 265 matched e-pool donors against oc0
+    own-settings runs, 90–180, rms change of CGM over k steps, median over people:
+
+    | | 5 min | 10 min | 15 min | 30 min | second difference |
+    |---|---|---|---|---|---|
+    | Night 00–06, donors | 4.97 | 8.20 | 10.72 | 16.32 | 5.21 |
+    | Night, generated | 6.13 | 9.96 | 12.81 | 19.32 | 6.95 |
+    | Day 10–22, donors | 7.35 | 12.85 | 17.49 | 28.77 | 6.48 |
+    | Day, generated | 7.40 | 12.79 | 17.29 | 28.51 | 7.66 |
+
+    - By day the motion matches at every lag; at night it is 18–23% too large at every lag up to 30 min. Removing the
+      compression term changes nothing. Per-person correlation of these traits is weak (0.37–0.51 at night).
+    - The second difference (fastest wiggle) is too large day and night (1.18 / 1.33).
+    - Teacher-forced on held-out real inputs, the network's predicted one-step spread matches the realised error at
+      night (50 against 48 mg/dL/h, both trainings) and by day (58 against 59). So the excess builds up in free running
+      at night: own-history feedback, plant calibrations, or the closed-loop state drifting from what the network saw.
+      Next: the same structure function from freerun.py with real insulin (no plant calibrations) to split these.
