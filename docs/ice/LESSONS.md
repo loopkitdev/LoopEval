@@ -1956,5 +1956,7 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Not the plant's glucose-band calibration or low/high kernels (the ns arm, which removes them: 1.19–1.21×), not
       the level adaptation (1.18–1.23×), and not meals: on quiet nights (no meal episode for 3 h, 13% of night steps in
       both) the excess is 1.13–1.20×, the same as on busy ones (night_quiet.py).
-      Next: the same structure function from freerun.py with real insulin (no plant) to split own-history feedback
-      from closed-loop drift.
+    - This is the known calm-state over-spread (LESSONS 104–106: calm people and stretches too wide; 127/129: built by
+      the background path's recursion through its own previous draw, open loop as well as closed). Night is the calmest
+      stretch, so it shows there; by day real volatility hides it. No new test needed; the open fix is still to train
+      the path on its own draws without losing the level (43, 47, 86, 107 not kept).
