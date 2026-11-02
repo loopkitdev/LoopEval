@@ -217,7 +217,8 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0, intake_own: bool = False, csf_geq: bool = False,
-                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False, gb_own: bool = False, ge_split: bool = False, ge_spare: bool = False) -> Person:
+                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False, gb_own: bool = False, ge_split: bool = False, ge_spare: bool = False,
+                  csf_sd_w: float = 1.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -350,8 +351,13 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         if k_ is not None and np.isfinite(float(k_)): k_csf_geq = float(k_); csf_target *= k_csf_geq
     # per-person meal glucose fitted to the donor's glucose spread (LESSONS 529; Pete 2026-10-28): a tight donor's twin
     # swung too widely and a loose one's too narrowly (L 528); grams eaten stay the donor's, each meal's glucose x this
+    # `csf_sd_w` weights that fit (1 = full, 0 = off, 0.5 = halfway). L 544: the spread fit carries per-person
+    # spread (SD rho 0.92) but DAMPS the TIR response to a settings edit, and the hybrid keeps the response with
+    # about half the spread (rho 0.52) - so the trade is continuous, and the weight is how it is read.
     k_ = row.get("csf_sd_mult") if hasattr(row, "get") else None
-    if k_ is not None and np.isfinite(float(k_)): k_csf_geq *= float(k_); csf_target *= float(k_)
+    if k_ is not None and np.isfinite(float(k_)):
+        kk = 1.0 + float(csf_sd_w) * (float(k_) - 1.0)
+        k_csf_geq *= kk; csf_target *= kk
     # csf_lvl (experiment, LESSONS 366): the carb-sensitivity level × this, read from the unsegmented meal counteraction (ICE
     # above pre-meal over 0-360 min per entered gram, donors 47.4 vs twins 38.5) instead of the labeler's pulse g-eq, which
     # ends a pulse at a plateau; the intake budget stays in glucose (fewer grams eaten) unless csf_lvl_keepg
