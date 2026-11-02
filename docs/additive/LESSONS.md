@@ -2439,8 +2439,8 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
 
        | row | donors as scored | donors, current labeller | twins (rf2) | verdict |
        |---|---|---|---|---|
-       | `pulse_peak_h` | 0.750 | **0.536** | 0.622 | scored "0.13 h too EARLY"; really 0.086 h (5 min) too **LATE** |
-       | `pulse_dur_h` | 1.917 | **1.463** | 1.885 | scored near-passing (0.105); really ~**29% too long** |
+       | `pulse_peak_h` | 0.750 | 0.536 ⚠ | 0.622 | ⚠ **SUPERSEDED by L 626: on all 168 donors it is 0.622 and the gap VANISHES**, it does not reverse — 0.536 is the first 45 aliases only |
+       | `pulse_dur_h` | 1.917 | 1.463 ⚠ | 1.885 | ⚠ L 626: 1.577 on all 168; the direction holds, twins ~19% too long |
 
      - **The scored median was additionally quantization-pinned**, which is why no arm could move it: the grid spacing
        near the twins' value is 3.4–5.9 min, so a sub-cell shift never changes the median. The MEAN is not pinned and
@@ -2457,3 +2457,43 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      - **General trap**: when a statistic is identical across arms that should move it, suspect the measurement, not
        the model — and check the two sides' values for a lattice (are they all multiples of something? all members of
        a fitted grid?). That one test found this in a minute after four arms had been spent around it.
+
+626. **Correction to L 625, and the corrected appearance picture: `pulse_peak_h`'s gap does not reverse — it
+     VANISHES. The real appearance defects are DURATION (19% too long) and PEAK HEIGHT PER GRAM (10% low), with
+     time-to-peak already exact.** ice regenerated all 168 donors with the current labeller
+     (``~/.loop-eval/ice_v32/meals_fit/``, code rev 67be7d92, `../meals` left in place), so the two rows can be scored
+     like for like instead of estimated. Scored in the scorer's own convention — per-person median, then cross-person,
+     non-rescue pulses only:
+
+     | row | donors STALE (scored) | donors FITTED | twins rf2 / rf2_5k | go3 / go3_5k | corrected verdict |
+     |---|---|---|---|---|---|
+     | `pulse_peak_h` | 0.750 | **0.622** | 0.622 / 0.622 | 0.622 / 0.622 | **exact — no gap at all** |
+     | `pulse_dur_h` | 1.917 | **1.577** | 1.876 / 1.863 | 1.853 / 1.803 | twins **~19% too long** (scored as near-passing) |
+     | `pulse_peak_per_g` | 1.175 | 1.190 | 1.043 / 1.056 | 1.072 / 1.090 | ~10% low; unaffected by staleness, always real |
+
+     - **Where L 625's "reverses sign" came from: a non-representative sample, not a convention.** Pooled and
+       per-person medians agree exactly on all 168 donors (0.622 both ways), but the **first 45 aliases give 0.536** —
+       `relabel_donors.py` walked `persons.csv` in order, and on a 24-cell log grid a median hops a whole cell easily.
+       Two thirds of a cohort is not a cohort. ice's independently reported 0.536 is a third variant: its 125,128
+       pulses **include rescue pulses**, which the scorer excludes (118,761); with rescues in, the figure is 0.558.
+       Three numbers, one statistic, all arithmetically right — state the sample AND the filter beside any of them.
+     - **The corrected picture is coherent and it is NOT about timing**: the twins' pulses start rising on time and
+       reach their peak on time, then spread the same carbohydrate over a longer window at a lower peak. Duration and
+       peak height are one defect with one sign, which is exactly what too LOW an Erlang transit order looks like.
+     - **It supports `ge_order` 3 for a better reason than L 625 gave.** Order 3 moves both real rows toward the
+       corrected targets (dur_h 1.876 → 1.853 / 1.803 against 1.577; peak_per_g 1.043 → 1.072 / 1.090 against 1.190)
+       and leaves the matched row untouched at 0.622. It does not overshoot anything. The TIR cost (L 622, 623) is
+       unchanged and still the reason it is Pete's call, but the appearance case for it is now measured against
+       correct targets rather than stale ones.
+     - **Even at order 3 the duration gap is only a sixth closed** (1.876 → 1.803 against a target of 1.577), so
+       order alone is not the whole mechanism.
+     - **Instrument check, with the ground truth only this role has** (`resid_tools/label_vs_truth.py`): on
+       **isolated** pulses the labeller reads peak 58.1 min against the twins' TRUE `ra` peak of 69.2 and duration
+       184 min against 204 — about 16% and 10% early/short. So the labelled numbers are not the body's, on either
+       side; they are fair labelled-to-labelled, and **a labelled target must never be used to calibrate the body's
+       appearance directly.**
+     - **That check itself nearly produced a phantom**: measured over ALL pulses the apparent instrument bias was
+       37.3 against 66.8 min (−44%), because a second pulse inside the 4-hour window owns the true-`ra` argmax. The
+       isolation filter cut it to −16%. Any statistic that integrates forward over hours needs an overlap filter
+       before it means anything. Note also that the scored median (0.622 = 37.3 min) is dominated by clustered
+       pulses — isolated ones label at 58 min.

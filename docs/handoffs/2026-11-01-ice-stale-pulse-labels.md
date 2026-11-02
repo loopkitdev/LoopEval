@@ -39,10 +39,10 @@ reproduces the population statistic rather than a corner of it.
 
 Anything that reads `peak_h` / `dur_h` from these files is mixing two definitions:
 
-- **The additive cohort scorer** compares them against twin labels made with the current code. Its
-  `pulse_peak_h` row reads "the twins peak 0.13 h too early"; like for like the twins peak ~0.09 h too
-  **late**. Its `pulse_dur_h` row reads near-passing; like for like the twins' pulses are ~30% too long.
-  Both are tier 2. Details in `docs/additive/LESSONS.md` § 625.
+- **The additive cohort scorer** compares them against twin labels made with the current code. Scored against
+  `meals_fit` (below), `pulse_peak_h`'s gap **vanishes** — donors and twins are both 0.622 — while `pulse_dur_h`
+  becomes a real ~19% defect that the stale target scored as near-passing. Both are tier 2. Details in
+  `docs/additive/LESSONS.md` § 625–626.
 - **`ice_gen.plant_v3`** reads `ROOT/meals/<alias>.parquet` and passes `peak_h + 2.5/60` into
   `kernel.params` (lines 319, 327, 331), and `dataset_v3*.py` build `m_lpeak` / `m_ldur` features from
   the same columns. **This may well be self-consistent** and we are not claiming a generator defect:
@@ -66,3 +66,19 @@ silent change to the donor targets would move every role's numbers at once.
 Until the labels are regenerated we are not fitting anything to those two rows, and any earlier
 conclusion that leaned on them is marked unsupported. The twins' `run_h` is the like-for-like partner
 for the donors' stored `dur_h` if a comparison is needed in the meantime.
+
+
+## RESOLVED 2026-11-01 — thanks
+
+ice regenerated all 168 donors as `ice_v32/meals_fit/` (code rev 67be7d92), leaving `../meals` in place so no
+generator checkpoint is put into the mixed state, and confirmed that all three roots (`ice_v32`, `ice_v32x`,
+`ice_e32`) share the one stale definition with no mixing. Additive now scores the affected rows against
+`meals_fit`; `meals` can become the fitted set at ice's next re-export.
+
+**Two corrections to the numbers above, for anyone reading them later:**
+
+- **`peak_h` 0.536 was a non-representative sample.** On all 168 donors the fitted median is **0.622** (pooled and
+  per-person medians agree exactly); the 0.536 came from the first 45 aliases in `persons.csv` order, and on a
+  24-cell log grid a median hops a whole cell easily. So `pulse_peak_h`'s gap is **eliminated, not reversed**.
+- **The rescue filter moves it too.** The scorer excludes rescue pulses (118,761 of them); including rescues gives
+  125,128 pulses and a median of 0.558. State the sample and the filter beside any of these figures.

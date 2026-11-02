@@ -450,15 +450,20 @@ donor), so they drop out of this joint table. On draw 2 they pass (35 vs 45 min,
 | 2 | `pulse_peak_h` ⚠ | meal pulse: time to peak appearance (h) | 0.750 ⚠ | 0.622 / 0.622 | 1.04 / 1.03 |
 | 2 | `pulse_peak_per_g` | meal pulse: peak g-eq/h per g | 1.18 | 1.09 / 1.11 | 0.64 / 0.48 |
 
-⚠ **`pulse_dur_h` and `pulse_peak_h` compare two different quantities and their donor values are WRONG** (L 625).
-The stored donor pulse labels predate `ice_gen.meals.fit_shapes`, so they carry the raw 5-min argmax peak and the
-run length, while the twins' labels carry the fitted lognormal mode and the fitted 90th percentile. Re-labelled
-with the current code (42 donors, 31.3k pulses, all moving the same way) the donor values are **0.536** and
-**1.463**, not 0.750 and 1.92 — so `pulse_peak_h`'s gap REVERSES sign (the twins peak ~5 min too LATE, not 0.13 h
-too early) and `pulse_dur_h` becomes ~29% too long instead of near-passing. The scored median is additionally
-pinned to one `FIT_MODES` grid cell for the twins, which is why no arm has ever moved it. **Do not fit to these
-two rows** until `ice_v32/meals` is regenerated (handoff `docs/handoffs/2026-11-01-ice-stale-pulse-labels.md`).
-`pulse_peak_per_g` is unaffected — `peak_geq_h` and `size_g` are raw on both sides.
+⚠ **These three rows' donor values are the STALE pre-`fit_shapes` definition; the corrected targets are below**
+(L 625, 626). ice has regenerated all 168 donors with the current labeller (`ice_v32/meals_fit/`), so the rows can
+be read like for like — per-person median then cross-person, non-rescue:
+
+| row | donor value as scored | donor value CORRECTED | twins (rf2 / rf2_5k) | real state |
+|---|---|---|---|---|
+| `pulse_peak_h` | 0.750 | **0.622** | 0.622 / 0.622 | **exact — the scored gap of 1.04 was entirely the stale definition** |
+| `pulse_dur_h` | 1.92 | **1.577** | 1.876 / 1.863 | twins ~**19% too long** — a real defect the stale target scored as near-passing |
+| `pulse_peak_per_g` | 1.18 | 1.190 | 1.043 / 1.056 | ~10% low; unaffected by the staleness, so always real |
+
+The scored `pulse_peak_h` median is additionally pinned to one `FIT_MODES` grid cell, which is why no arm ever
+moved it. **Do not fit to the scored values**; use the corrected column until `meals_fit` becomes the scored
+source. The labeller itself reads ~16% early and ~10% short against twin ground truth on isolated pulses
+(L 626), so none of these numbers is the body's — they are fair labelled-to-labelled only.
 | 2 | `sigma_disp` | dispersion of volatility across days | 3.57 | 3.01 / 2.97 | 1.15 / 1.21 |
 | 2 | `tdd_cv` | day-to-day CV of TDD (%) | 15.9 | 15.1 / 15.7 | 0.28 / 0.10 |
 | 2 | `unann_pulses_day` | unannounced meal pulses per day (ice labeller) | 3.46 | 3.75 / 3.79 | 0.27 / 0.22 |
