@@ -2558,8 +2558,12 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
        insulin. So the gain was never a lower insulin NEED at the donor's level; it was a lower level.
      - **L 605 now has five independent sightings** (sensitivity, dynamics, the pair, load, and gut absorption).
        Treat it as settled: **no single body parameter can move TDD while `resid_m` is fitted to the level alone.**
-       The two-parameter fit L 604 proposed — `resid_m` and a per-person sensitivity factor against the level AND
-       TDD together — is the only route left, and it is a change to `lvl_resid`, not to the body.
+       (**Correction to this lesson as first written**: I called the two-parameter fit "the only route left". It is
+       not a route at all — it was already run in L 605 (`resid_m` <- level, `twin_isf_mult` <- TDD, `tdd_isf.py`)
+       and rejected in L 606, because TDD is unreachable by a body parameter, so the fit drove `twin_isf_mult` to its
+       clip bounds and cost `acf_zero_min`, `circadian_amp` and `night_cv` consistently on all three draws. The real
+       open question is L 606's: a second fitted parameter needs a target that is both REACHABLE and signal-bearing,
+       and neither TDD (signal-bearing, unreachable) nor t70 (reachable, noise-dominated) is.)
      - **`kabs` 0.057 is not adopted.** It is a null on the duration row it was aimed at (L 627), its one consistent
        gain is the level, and everything else is inside the draw scatter (score mean 0.366 against 0.370, paired mean
        3.019 against 3.245 — better on two draws of three, which L 444 rejects as noise). The literature argument for
