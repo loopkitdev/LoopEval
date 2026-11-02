@@ -46,7 +46,7 @@ hash have no surviving traces.
 |---|---|---|---|---|
 | [C01](#c01-asymmetric-integral-rc-airc) | Asymmetric integral RC (aIRC) | pull-back | scored (band, 4 donors) | **IMPROVES** bddp11 90 d (+0.019 [+0.005,+0.029]); **NEUTRAL** on all four 2-mo hands-off beds (mean +0.005) |
 | [C02](#c02-integral-rc-irc) | Integral RC (IRC) | dial-like (hotter) | scored | **WORSE** in band on bddp11 (hooks); gentle-end wins elsewhere |
-| [C03](#c03-gbaf--application-factor) | GBAF / application factor | dial-like | scored, closed | rides the reference — don't re-sweep |
+| [C03](#c03-gbaf--application-factor) | GBAF / application factor | dial-like on the early beds; lift on the pilot and generator | re-opened | pilot replay (Loop's 0.2→0.8) +0.56 TIR over the stock dial, +0.45 on gr; generator on gr (0.4→0.7) +0.23 [+0.04, +0.42] |
 | [C04](#c04-package-flags--momentum-knobs) | Package flags / momentum knobs | dial-like | scored | gate ~orthogonal but NEUTRAL; others dial-like |
 | [C05](#c05-uam-projection) | UAM projection | dose-more | scored (bddp11; bddp07/03/08 unannounced) | **WORSE** on hands-off bddp11 and unannounced bddp03/08; **REVISED 2026-08-27**: at a retuned op the bddp07 win is **uam45 +4.6 TIR** (IMPROVES), not uam90 +16.6 — half the headline was the donor not having retuned. Still patient-conditional, and every UAM arm buys TIR with lows on the other beds |
 | [C06](#c06-early-rise-projection) | Early-rise projection | dose-more | scored (bddp11) | **WORSE** (−0.05 / −0.76) |
@@ -105,7 +105,7 @@ hash have no surviving traces.
 | [C41](#c41--oref-style-dynisf-ramp-on-loop) | oref-style dose-sizing dynISF ramp on Loop (`--candidate-dynisf-mult-high 0.65`) | dial-like | scored (40 pilot donors, trio) | **NEUTRAL** — lift −0.05 [−0.92, +0.58] at ×1.0, −2.57 at ×1.05; it is the dial |
 | [C42](#c42--faster-carb-expiry-on-guard--runway) | Faster carb expiry on guard + runway: absorption overrun 1.0 / 1.2 (stock 1.5), adaptive absorption | pull-back | scored (189 donors) | **WORSE** — every arm loses TIR to gr (−1.23 / −0.62 / −0.32) at no better t<54 or t<70; cuts post-meal lows by acting on every meal. Closed in blanket form |
 | [C43](#c43--outcome-keyed-insulin-needs-rule-r2) | Outcome-keyed insulin needs (R2): per-person needs ×0.95–1.10 from the prior 28 days' CGM, on gr | personalisation, dial-like per person | scored (189 donors replay; 166 donors ICE generator, two versions) | **Passes the scaled guard; confirm on the meal-aware generator** — retrain +1.15 TIR, t<54 +0.085 against scaled lines ~0.10–0.12 (crosses the unscaled +0.05); first generator +1.29 TIR, t<54 +0.034; tight t<70 flat on both; replay +1.98 TIR [+1.59, +2.40], t<54 +0.16 [+0.08, +0.24] vs gr: fails the pre-registered replay bar (≤ +0.02), but +1.2 TIR above the uniform dial at equal t<54; gains are in the middle/high tertiles, tight ≈ 0 / 0. Field edits by eligible people agree in direction |
-| [E61](#e61--switching-from-irc--gbaf-to-guard--runway) | *Experiment*: what a person running IRC + GBAF sees if they move to guard + runway (189 donors) | — | done | **Keep IRC and GBAF on top of gr.** gr alone vs IRC + GBAF: −2.21 TIR, t<54 −0.66 (high tertile −5.0); gr + IRC + GBAF: −0.21 [−0.57, +0.26], t<54 +0.03 |
+| [E61](#e61--switching-from-irc--gbaf-to-guard--runway) | *Experiment*: what a person running IRC + GBAF sees if they move to guard + runway (189 donors) | — | done | **With gr: IRC off, GBAF on, needs ×1.05–1.10 unless already tight.** IRC removes gr's lift (gr + IRC +0.08 vs gr +1.02); gr + GBAF +0.45 above gr's dial |
 | [E62](#e62--cycle-override-cohort-what-loop-recovers-without-the-override) | *Experiment*: menstrual-cycle override cohort — replay each cycle run with the person's insulin-up cycle override removed, on stock and on gr, with slow RC (C38) as the stand-in adapter (194 runs, 61 people) | — | done | **Loop does not recover the override: TIR −7.6 [−10.3, −5.5] on override days without it.** Slow RC recovers about a third (24 h: −5.2; 6 h: −4.7, but t<54 +0.12 on every other phase — guard flag). On gr the same: −7.0 → −5.0 with 24 h. Not a substitute; the 3-day run-up (field TIR −2.1) is the opening |
 
 ---
@@ -221,7 +221,18 @@ superimposed on ns3 and user2 — **no lever**. IRC low-memory carry
 ## C03 · GBAF / application factor
 `--candidate-gbaf …`, `--candidate-application-factor`. Every run (ns3 1 yr, user2 1 yr,
 bddp05/09 ISF-dial, bddp11 2 mo + 90 d) rides the reference; on bddp11 mildly above-left.
-Reparameterization of the dial — **closed**; only revisit combined with a state-dependent trigger.
+On those beds it is a reparameterization of the dial.
+
+**Re-opened 2026-11-02** on wider evidence. GBAF as E61 defines it: lower target + 10 → 200, 0.2 → 0.8.
+- **Pilot replay** (189 donors, `runs/2026-11-02-irc-vs-settings/lift70.txt`, read from the E61 traces):
+  - against the stock dial: +0.56 [+0.26, +0.86] (TIR +1.18, t<70 +0.29, t<54 +0.09);
+  - on gr, against gr's needs dial: +0.45 [+0.21, +0.68];
+  - alone, against gr's dial: −0.07. It is about as good as gr with stronger settings, not better.
+- **ICE generator** (166 × 2, myloop E8, `docs/myloop/E8-gbaf-gr.md`), on gr against the needs dial at matched t<70: +0.23 [+0.04, +0.42], both trainings agreeing. Change: +0.60 TIR, +0.073 t<70, +0.026 t<54.
+  - This is a different ramp from Loop's: 0.4 at ≤ 140 to 0.7 at ≥ 220 (the engine default), so it never delivers less than flat 0.4.
+  - A steeper 0.4 → 1.0 (140 → 250) gives the same lift: +0.24.
+  - Loop's own ramp (0.2 → 0.8), which cuts delivery below about 140, has not been run on the generator.
+- **Not yet known:** whether it adds anything on top of gr2 + slow RC (myloop job 158, run, not yet read). GBAF without gr has not been run on the generator.
 
 ## C04 · Package flags / momentum knobs
 Per-flag decomposition vs the class-1 base (bddp11 90 d): midAbsorptionISF = main
@@ -1970,8 +1981,24 @@ gr_irc_gbaf. 189 donors, paired, person bootstrap (`hetero/vsgr.py`). irc_gbaf v
 | gr_irc_gbaf | −0.21 [−0.57, +0.26] | +0.03 [−0.04, +0.09] | −0.05 | −0.47 / −0.68 / +0.52 |
 
 Yes: gr alone gives back IRC + GBAF's TIR, almost all of it in the high tertile, in exchange for its lows. Keeping IRC
-and GBAF on and adding gr is TIR- and lows-neutral against IRC + GBAF. **Recommendation:** people already on IRC + GBAF
-keep both when they turn on guard + runway.
+and GBAF on and adding gr is TIR- and lows-neutral against IRC + GBAF. That holds with the person's settings fixed.
+
+Against gr's own needs dial instead (gr at ×0.95–1.10, read at each arm's t<70; `runs/2026-11-02-irc-vs-settings/vsdial.txt`):
+
+| arm | above gr's dial: all | tight | middle | high |
+|---|---|---|---|---|
+| irc_gbaf | +0.38 [−0.28, +0.97] | +0.21 | −0.82 [−1.63, −0.04] | −0.44 ¹ |
+| gr_irc_gbaf | +0.19 [−0.38, +0.72] | −0.32 | −1.61 [−2.26, −0.87] | +0.08 ¹ |
+| gr_gbaf | +0.45 [+0.21, +0.68] | +0.11 | −0.11 | +0.41 |
+
+¹ Beyond the dial's range. gr ×1.10 still has more TIR at less t<70.
+
+Lift over the stock dial: gr +1.02 [+0.56, +1.53], gr + IRC +0.08 [−0.91, +1.04], gr + GBAF +1.09 [+0.50, +1.68].
+IRC removes almost all of gr's lift. In the middle and high tertiles, turning IRC off and raising insulin needs ×1.05–1.10 gives about 0.8 more TIR at the same t<70 than keeping IRC. In the tight tertile, gr alone reaches irc_gbaf's TIR with t<70 4.0 against 5.8.
+
+**Recommendation:** people on IRC + GBAF who turn on guard + runway should turn IRC off and keep GBAF. Unless already in tight control, they should also strengthen basal, ISF and CR by about 5–10 % (R2 sizes this per person).
+
+This is replay only, which overstates changes, the lows most. gr + GBAF along the dial has not been run, so the full recommendation is not compared with irc_gbaf directly.
 
 ## E62 · Cycle-override cohort: what Loop recovers without the override
 Question (research TIDEPOOL-96): Loop users who run a named cycle override (insulin needs ×~1.2 for ~5 days) — how
