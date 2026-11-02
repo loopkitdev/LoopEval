@@ -58,8 +58,12 @@ class BodyParams:
                                    # insulin-independent uptake, mg/dL above `sg_g0`. 0 = off (use sg_kappa / linear).
                                    # Fitted 63.2 with sg_g0 80.4 and sg 0.00403 to ice's UNBIASED band profile
                                    # (their 2026-11-02 reply: same-span bins, 0.235 / 0.118 / 0.053 / 0.024 /h),
-                                   # RMS 0.0008 /h. Keeps the near-low force at 0.242 /h (default 0.270) while
-                                   # cutting 130-250 five- to tenfold; the kink forms cannot do both.
+                                   # RMS 0.0008 /h. MEASURED AND REJECTED (L 642): band-faithful here means
+                                   # x0.32 of the default dwell-weighted force, and the cohort cost orders with that
+                                   # integral whatever shape removes it - t70 ~2.3x the reference and t54 3-4.7x on
+                                   # all three draws, worse than either kink. The "near-low force 0.242" of L 641 is
+                                   # the LOCAL SLOPE; the force a low feels is the span average from Gb, 0.177 at
+                                   # G 65, so this form is WEAKER below 130 than `sg_kappa`, not stronger. Off.
     sg_g0: float = 80.0            # glucose below which the insulin-independent force is at FULL strength (mg/dL).
                                    # Below Gb deliberately: ice's profile is steepest below 90, and the zero of the
                                    # term stays at Gb by construction (the excess is F(G) - F(Gb)).

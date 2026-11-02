@@ -206,6 +206,17 @@ reference changes.
   pushed DOWN (D = −40) than up, below 130** — a direction-dependent gain, which acts on the descent and the climb
   rather than at a level. Asked for by band, and whether it is direction or path dependence, in
   `docs/handoffs/2026-11-02-additive-ice-direction-asymmetry.md`; the two answers need different components.
+  **ANSWERED, and the direction lead is mostly WITHDRAWN (L 641)**: binned by the midpoint of the span crossed, so
+  both perturbations are compared over the same glucose levels, the asymmetry is ~**1.0 near lows** and 1.3-1.6x at
+  90-180 — i.e. mostly the force's convexity in level, not direction. Near lows, which is where L 600 wants a
+  post-nadir term, there is no sign gain at all. **But the requirement itself is now amended by a direct
+  measurement (L 642): the nadir force has almost no leverage over t70, and the mid-band force has all of it.**
+  Below Gb, `sg_kappa` 0.15 is bit-identical to the reference (0.270 /h at G 65 and at G 90) and its t70 still
+  roughly DOUBLES — so every bit of that extra low time is bought by what the term does ABOVE Gb. The term that
+  stops a descent becoming a low therefore acts in the **90-180 band on the way DOWN**, not at the bottom, and the
+  model's existing linear SG is what supplies it today. This explains from the other side why every `sg_h_lo`
+  variant fixed duration and broke penetration: a term peaking at the nadir acts where there is no leverage. Read
+  L 600's requirement as "before or through the nadir, in the mid band", not "after it".
 
 - **`acf_zero_min` and the meal ratio are ONE defect, but NOT the same one as low-side recovery** (L 594, corrected
   by L 615): `cr_tau_off` fixes the recovery rows (t54 0.124/0.232 -> 0.175/0.177, nadir dwell 20 -> 15 min, the
@@ -400,7 +411,21 @@ essentially exactly (RMS 0.0015 /h against the kink's 0.0251), but what sets the
 and that is pinned — every band-faithful configuration lands at x0.22-0.25 of the default dwell-weighted restoring
 force, the best-fitting one LOWEST of all. So no parameterisation of A1d avoids the dispersion cost; do not spend
 another arm on its shape. Remaining caveat: ice's high-side slope is biased LOW by their own confound, so if
-anything the force should be stronger than their bands say.
+anything the force should be stronger than their bands say. **That caveat was right, the corrected profile was
+fitted, the second form was RUN, and the component is now CLOSED on measurement (L 641, 642).** ice's same-span
+bands are 1.2-1.7x stronger than the D = +40 ones (0.235 / 0.118 / 0.053 / 0.024 /h) and a Michaelis-Menten
+saturation in absolute glucose fits them at RMS 0.0008 /h (`sg_km` 63.2, `sg_g0` 80.4, `sg` 0.00403). Run as job
+164, it replicates the change response on mean (1.21 -> 1.06) and TIR (1.16 -> 1.05) but moves **t70's the WRONG
+way (1.01 -> 1.24)**, and the low side is worse than BOTH kinks on all three draws — t70 3.97 / 3.93 / 2.91
+against the donors' 1.60, **t54 0.58 / 0.70 / 0.48 against 0.190**, 3-4.7x the reference on the guard row — with
+bg_mean held at 151.3 / 150.8 and TDD flat. The prediction that it would cost LESS on the low side rested on a
+false premise: `_sg_excess` returns `g - gb` UNCHANGED below Gb, so `sg_kappa` already leaves the sub-basal force
+at the full default, and the smooth form's "0.242 near-low" is a LOCAL SLOPE — the force a low feels is the span
+average from Gb, **0.177 at G 65**, making it the weaker of the two below 130. Ordered by the dwell-weighted force
+kept (1.00 / 0.46 / 0.32 / 0.25) the cohort cost is monotone across two quite different shapes, so
+band-faithfulness IS a constraint on the integral and **no parameterisation of A1d escapes it**. Both knobs stay
+off; the only live direction left is outside this component — holding the donor's level with something
+glucose-dependent instead of `resid_m`'s constant.
 
 **The natural-experiment half is limited by the FIELD, not by compute (L 611).** With 63 edit events the field / twin
 response ratios carry CIs like [1.22, 3.79], so `rf2`'s t70 improvement (3.51 -> 2.17) is "best measured, not
@@ -479,7 +504,16 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   while the MAX is frequency-confounded (+0.783) and must never be used — but it reaches only **22 of 168 donors**, so
   `met_own` moves 6 of 112 twins and the cohort mean METmax by ×1.0047: a measured no-op, not run. This band needs
   workout records for most of the cohort, not a new mechanism.
-- Off-by-default experiments with their verdicts: `sg_kappa` 0.15 (A1d, the saturating insulin-independent uptake: **the only mechanism that has ever closed the damped change response** — e-pool mean 1.33 -> 1.06, TIR 1.28 -> 1.06, t70 1.15 -> 1.08, and 1.22 -> 1.05 after its own level drift is taken out, where a uniform `sg_mult` cut carries nothing at all (observed 1.25 = its level-only expectation 1.25). After the `resid_m` refit held the mean exactly it costs bg_cv +6 points and doubles t70 and lows/day on all three draws, because the fit can only pay for a lost restoring force with a constant drift. Off pending Pete's call, L 637-639), `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
+- Off-by-default experiments with their verdicts: `sg_kappa` 0.15 (A1d, the saturating insulin-independent uptake: **the only mechanism that has ever closed the damped change response** — e-pool mean 1.33 -> 1.06, TIR 1.28 -> 1.06, t70 1.15 -> 1.08, and 1.22 -> 1.05 after its own level drift is taken out, where a uniform `sg_mult` cut carries nothing at all (observed 1.25 = its level-only expectation 1.25). After the `resid_m` refit held the mean exactly it costs bg_cv +6 points and doubles t70 and lows/day on all three draws, because the fit can only pay for a lost restoring force with a constant drift. **The second form settles it (L 642): the
+  component is closed, not pending** — ordered by the dwell-weighted force kept, the cost is monotone across both
+  shapes, so the choice is only (a) off, or (b) on for change-prediction work alone, as `ex_abs` is used for
+  exercise, never on the cohort reference. L 637-639, 642), `sg_km` 63.2 / `sg_g0` 80.4 (A1d's SMOOTH form,
+  Michaelis-Menten in absolute glucose, fitted to ice's corrected same-span bands at RMS 0.0008 /h: replicates the
+  change response on mean (1.21 -> 1.06) and TIR (1.16 -> 1.05), moves **t70's the wrong way** (1.01 -> 1.24), and
+  costs MORE on the low side than either kink — t70 3.97 / 3.93 / 2.91 against the donors' 1.60 and t54 0.58 / 0.70
+  / 0.48 against 0.190 — with the level held exactly. Its premise was false: the kink leaves the sub-basal force at
+  the full default by construction and this form is the weaker of the two below 130, because `excess = F(G) - F(Gb)`
+  makes the force a low feels the SPAN AVERAGE from Gb (0.177 at G 65), not the local slope (0.242). L 642), `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
   instead of 0.05: a NULL on the labelled duration it was aimed at, x0.999, against a single-parcel prediction of
   x0.96 that two corrections could not rescue; scores marginally better than the reference on two draws of three and
   its one consistent gain — paired TDD on all three — is level-mediated and returns on refit, L 627, 629),
@@ -543,6 +577,14 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   value, 6.7x the default. Reading the default suggested that `sg_kappa` left no disposal path scaling with
   glucose, which is false and nearly bought an arm. Check a built person's value, as the `--enable k=v` and
   `BEHAVIOR_COLS` traps already require.
+
+- **A force expressed as `excess(G)` is felt as the SPAN AVERAGE from Gb, not as its local slope** (L 642). Where
+  a term applies `sg x excess(G)` and the excess is built as `F(G) - F(Gb)`, the restoring force at G is
+  `sg x excess(G) / (G - Gb)` — an average over everything between Gb and G. So a form whose slope near lows is 90%
+  of the default can still deliver only 66% of the force at G 65, if the span from Gb crosses a saturated region.
+  Quoting the local slope as "the near-low defense" inverted a whole arm's low-side prediction. Compute the force
+  profile from the real step path at the glucose levels that matter, and the dwell-weighted total beside it — that
+  integral, not the shape, is what the cohort cost tracks.
 
 - **A change-response ratio is meaningless without its arm's own PRE-EDIT LEVEL** (L 638). `dG/dI = -SI·G /
   (SG + SI·I·…)` is proportional to G, so an arm whose pre-edit level drifts up responds more to the same
