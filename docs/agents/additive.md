@@ -224,8 +224,11 @@ reference changes.
   gap ~+0.06), and five mechanisms are null — the residual's day level, the life modulators with B3's own AR(1),
   everyday activity, `intake_rho` (carbs only) and `day_rho`, whose ceiling is **+0.02** of delivered-insulin persistence
   whatever ρ is, since the day factor is half of daily-mean SI variance and that series reaches delivered insulin at
-  r −0.32. Closing it by amplitude would need a day-to-day SI CV near 25%, far outside the 6–15% clamp evidence; L 583–585)
-  (LESSONS 457);
+  r −0.32. Closing it by amplitude would need a day-to-day SI CV near 25%, far outside the 6–15% clamp evidence; L 583–585).
+  **The last named candidate is now measured and refuted too** (L 624, `resid_tools/twin_limb_ac.py`): the twins' basal
+  is NOT near-constant — within 13-day blocks its day-to-day CV is 0.170 / 0.172 against the donors' 0.176, and the
+  bolus limb varies MORE than the donors' (0.329 against 0.289). Amplitude is right in both limbs and the whole deficit
+  is persistence, so there is nothing left to try (LESSONS 457);
 - **the excess low-side EATING is downstream of this same gap, not a behaviour defect** (L 588): per low episode the
   twins' low-side eating is about the donors' (0.62 / 0.64 events against 0.50, two-or-more rare on both sides); what
   differs is the share of episodes treated at all (0.60 against 0.49), and that follows from episode DURATION — median
@@ -329,9 +332,14 @@ was calibrated at c378 and has DRIFTED. **REFUTED (L 604)**: load is level-media
 within 0.9–2.1 U/day of the donors with the level 6 mg/dL low, and the refit restores the level and the insulin
 both. **TDD cannot be moved by any component while `resid_m` is fitted to the level alone** — the fit restores
 whatever net glucose a candidate removes (sensitivity, dynamics, the pair, load: four sightings). The limit's real
-statement is an insulin-to-glucose EXCHANGE-RATE error of 3.5–4.4% paired, and the fix belongs in `lvl_resid`:
-fit `resid_m` and a per-person sensitivity factor jointly against the donor's level AND TDD, two parameters for
-two targets. Do not spend further single-component arms on TDD. A fixed-magnitude term cannot improve a row whose scatter exceeds its bias — it helps on the heavy draw and
+statement is an insulin-to-glucose EXCHANGE-RATE error of 3.5–4.4% paired. **SETTLED as unreachable, on five
+sightings** (sensitivity, dynamics, the pair, load, and gut absorption — L 629, where `kabs` 0.057 improved paired TDD
+on all three draws and the `resid_m` refit handed every bit of it back, as predicted before the run). **The
+two-parameter fit is NOT the route left**: it was run in L 605 and rejected in L 606, because a fit pointed at an
+unreachable target drove `twin_isf_mult` to its clips and cost `acf_zero_min`, `circadian_amp` and `night_cv` on all
+three draws. **And no replacement target exists among the outcome rows** (L 630, `resid_tools/target_screen.py`):
+t54's leverage is BELOW the draw noise (ratio 0.89) and TIR's high leverage (3.88) is 59% the level (r −0.768 with
+`bg_mean`), which `resid_m` already owns. Do not spend further arms on TDD, and do not add a second fitted parameter. A fixed-magnitude term cannot improve a row whose scatter exceeds its bias — it helps on the heavy draw and
 overshoots on the light one, which is what `sg_h_lo`, `cr_tau_off` and `pro_g_own` each did. **Do not spend further arms
 on t54 / t70 / lows-per-day without more draws first**; three draws give an sd with two degrees of freedom, so this
 means "not established as a bias at n = 3", not "zero".
@@ -368,6 +376,16 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   co-located sensor error (LESSONS 299); the sensor's noise wander was fitted to them, so a candidate that only changes
   the body's fast motion will read against a sensor that already carries it. G6 skew, the ACF zero crossing and
   volatility dispersion still differ.
+- **`pulse_peak_h` and `pulse_dur_h`'s DONOR VALUES in the scorecard are the stale pre-`fit_shapes` definition**
+  (L 625, 626): the stored donor labels carry the raw 5-min argmax peak and the run length, the twins' carry the fitted
+  lognormal mode and 90th percentile. ice has regenerated all 168 donors as `ice_v32/meals_fit/`; scored like for like,
+  **`pulse_peak_h` is EXACT** (0.622 both sides — the scored gap of 1.04 was entirely the definition) while
+  **`pulse_dur_h` is a real ~19% defect** (donors 1.577, twins 1.876) that the stale target scored as near-passing, and
+  `pulse_peak_per_g` (~10% low) was always real. **No appearance arm closes the duration gap** — `ge_order` 3 plus
+  `kabs` 0.057 reaches 1.775 and is the worst-scoring arm tried (L 627). The labeller itself reads ~16% early against
+  twin ground truth on isolated pulses, so **never calibrate the body's appearance to a labelled target** (L 628:
+  the duration half of that instrument check is withdrawn — `ra` is never zero between meals, so a cumulative-90%
+  measure is a statistic about the window).
 - **the meal tail has a NAMED lever now** (L 617): the stomach's Erlang transit order. At order 3-4 `meal_d3h` goes
   31.0 -> 37.0-39.0 against the donors' 38.0 (gap 0.373 -> 0.053), `acf_zero_min` 60 -> 50 (its best ever) and the
   fall / rise ratio 0.63 -> 0.69 — four standing limits moving together, which is what a shared cause looks like. The
@@ -395,9 +413,21 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   the 6–8 MET band is still −13 against the donors' −21.5. C4's threshold and size ARE settled (8 absolute METs, 28
   mg/kg/min): the ≥ 8 MET band reads +1.8 against the donors' +1.2 once `ex_headroom` gives it enough bouts (L 554).
   The 6–8 shortfall is now understood as a REGIME SWITCH the smooth terms cannot make (L 565): the donors fall deepest at
-  6–8 METs and rise at ≥ 8, so any setting that deepens one deepens the other. It needs a form change (a steeper anaerobic
-  share), not a parameter.
-- Off-by-default experiments with their verdicts: `meal_lag` 10 / 20 (the gastric lag phase, genuinely missing — every
+  6–8 METs and rise at ≥ 8, so any setting that deepens one deepens the other. **Both remaining routes are shut** (L 631).
+  The obvious form change — plasma-glucose uptake falling off as the anaerobic share rises — is counter-evidenced:
+  Romijn 1993 has plasma glucose uptake INCREASING across 25 / 65 / 85% VO2max, so the crossover is
+  fat-versus-carbohydrate and the model's monotone-uptake structure is already right. And the missing per-person
+  capacity IS measurable from the donors' own `HKAverageMETs` — p90 bout METs is a stable trait (split-half +0.790),
+  while the MAX is frequency-confounded (+0.783) and must never be used — but it reaches only **22 of 168 donors**, so
+  `met_own` moves 6 of 112 twins and the cohort mean METmax by ×1.0047: a measured no-op, not run. This band needs
+  workout records for most of the cohort, not a new mechanism.
+- Off-by-default experiments with their verdicts: `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
+  instead of 0.05: a NULL on the labelled duration it was aimed at, x0.999, against a single-parcel prediction of
+  x0.96 that two corrections could not rescue; scores marginally better than the reference on two draws of three and
+  its one consistent gain — paired TDD on all three — is level-mediated and returns on refit, L 627, 629),
+  `met_own` (per-person aerobic capacity from the donor's own p90 workout METs: sound for the 22 of 168 donors who
+  record workouts, a measured no-op for the cohort, L 631), `csf_sd_w` (a weight on the per-person meal-spread fit,
+  for reading L 544's spread-versus-change-response trade on the current reference), `meal_lag` 10 / 20 (the gastric lag phase, genuinely missing — every
   carb parcel had delay 0 against Siegel 1988's ~20–30 min for solids. It works on an isolated parcel and does
   nothing on the cohort, because `peak_h` is onset-relative and so shift-invariant; the ratio drifts the wrong way,
   0.63 -> 0.59. Score level, tier 1 a little better at lag 20. L 595), `ge_beta` 1.3 / 1.6 (Elashoff power-exponential gastric emptying,
