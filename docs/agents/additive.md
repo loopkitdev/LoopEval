@@ -379,14 +379,20 @@ whole apparent gain is its own +15.5 mg/dL pre-edit drift, since dG/dI is propor
 `sk1`'s 1.05 sits against an expectation of 1.22, so the FORM carries 1.22 -> 1.05 at a fixed level (1.16x more
 response per unit glucose), and the magnitude arm reproducing its own confound to two decimals is what validates the
 correction. `sk2` (plus `sg_mult` 0.55) OVERSHOOTS (mean 0.98, TIR 0.95) and puts the low-side damage back (t70 1.19),
-so the pair brackets the field and **`sg_kappa` 0.15 alone is the configuration**. The low side is intact unrefit
-(t70 1.973 / 1.920 against the uniform cut's 2.362 / 3.043, `min_below70` exactly the donors' 20.0), which was the
-point of the shape. **The cohort cost is NOT yet known**: 161's cohort arms ran on unrefit templates at +13 mg/dL, so
-read nothing from their score (0.440 / 0.434) until job 162's `resid_m` refit lands; the two rows a level fit cannot
-absorb, and so the real cost, are bg_cv (34.2 -> 38.8, donors 34.6) and `acf_zero_min` (60 -> 70, donors 40 — the
-first SG arm ever to move it, corroborating L 208's second objection). Caveats: ice's high-side slope is biased LOW
-by their own confound, and `sg_kappa` is a kink at Gb rather than a smooth saturation, which is why it over-predicts
-the 90–130 band.
+so the pair brackets the field. (Note which arm the band evidence picks: L 637's match is at `sg` 0.00247 WITH
+`sg_kappa` 0.15, and 0.00247 = 0.0045 x 0.55, so that is **`sk2`**, not `sk1`; `sk1` runs the sub-basal force 1.6x
+stronger than ice's 0.17 /h — L 639.) **AND THE COHORT COST IS NOW MEASURED, AFTER THE REFIT, AND IT IS SEVERE
+(L 639).** The refit converged (|gap| p50 12.7 -> 3.9 -> 2.2) and held the level exactly — bg_mean 151.8 / 150.9
+against the donors' 151.9 on draws 1-2, TDD level or better — so none of the cost is the level. What the fit cannot
+hold is DISPERSION: **bg_cv 34.2 -> 40.6 / 41.5 / 42.0** (donors 34.6), **t70 and lows/day roughly DOUBLED** (t70
+3.38 / 3.76 / 2.58 against 1.76 / 2.12 / 1.51; lows 1.79 / 2.08 / 1.46 against 1.00 / 1.25 / 0.88), t54 1.5-2.5x,
+score +0.11 worse on all three draws. The cause is the INSTRUMENT, not the sub-basal physiology: `sk1` leaves the
+low side at full strength and its lows still doubled, TDD is flat so Loop is not over-dosing, and holding the mean
+costs `resid_m` a mean of -20.43 mg/dL/h against rf2's -7.69 — ~12.7 mg/dL/h of extra CONSTANT downward drift, which
+holds the mean and widens both tails. **So `sg_kappa` stays OFF and the choice is Pete's**: it is the only mechanism
+that has ever closed the damped change response, and it doubles the lows, which is a safety axis AGENTS.md does not
+let a change-prediction win buy. Caveats on the form: ice's high-side slope is biased LOW by their own confound, and
+`sg_kappa` is a kink at Gb rather than a smooth saturation, which is why it over-predicts the 90–130 band.
 
 **The natural-experiment half is limited by the FIELD, not by compute (L 611).** With 63 edit events the field / twin
 response ratios carry CIs like [1.22, 3.79], so `rf2`'s t70 improvement (3.51 -> 2.17) is "best measured, not
@@ -465,7 +471,7 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   while the MAX is frequency-confounded (+0.783) and must never be used — but it reaches only **22 of 168 donors**, so
   `met_own` moves 6 of 112 twins and the cohort mean METmax by ×1.0047: a measured no-op, not run. This band needs
   workout records for most of the cohort, not a new mechanism.
-- Off-by-default experiments with their verdicts: `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
+- Off-by-default experiments with their verdicts: `sg_kappa` 0.15 (A1d, the saturating insulin-independent uptake: **the only mechanism that has ever closed the damped change response** — e-pool mean 1.33 -> 1.06, TIR 1.28 -> 1.06, t70 1.15 -> 1.08, and 1.22 -> 1.05 after its own level drift is taken out, where a uniform `sg_mult` cut carries nothing at all (observed 1.25 = its level-only expectation 1.25). After the `resid_m` refit held the mean exactly it costs bg_cv +6 points and doubles t70 and lows/day on all three draws, because the fit can only pay for a lost restoring force with a constant drift. Off pending Pete's call, L 637-639), `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
   instead of 0.05: a NULL on the labelled duration it was aimed at, x0.999, against a single-parcel prediction of
   x0.96 that two corrections could not rescue; scores marginally better than the reference on two draws of three and
   its one consistent gain — paired TDD on all three — is level-mediated and returns on refit, L 627, 629),

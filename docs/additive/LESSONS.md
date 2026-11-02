@@ -2980,3 +2980,49 @@ compared on the e pool before this one drifted +3.3 to +9.7, small enough that t
 `sk1` drifts +19.1, and at that size the drift alone moves the mean ratio by 0.11. Read `score_change_lvl.py`'s
 level-only expectation beside every ratio from now on, and treat an arm whose observed ratio equals that
 expectation as having NO mechanism whatever its raw number looks like.
+
+**639. `sg_kappa` closes the change response and wrecks the distribution, and the cause is the LEVEL FIT, not the
+physiology — the two clauses of the goal now disagree on one component.** Job 162 ran refit rounds 2-3 (|gap| p50
+12.7 -> 3.9 -> 2.2, twin-donor rho 0.99) and scored the converged arm against rf2 on three draws. All three arms
+verified real.
+
+| row | donors | rf2 (1000 / 5000 / 9000) | skf |
+|---|---|---|---|
+| bg_mean | 151.9 | 151.0 / 148.2 / 152.1 | 151.8 / 150.9 / 157.9 |
+| tdd | 38.7 | 41.9 / 42.6 / 42.7 | 41.4 / 43.8 / 43.0 |
+| **bg_cv** | 34.6 | 34.2 / 35.4 / 35.1 | **40.6 / 41.5 / 42.0** |
+| **t70** | 1.60 | 1.76 / 2.12 / 1.51 | **3.38 / 3.76 / 2.58** |
+| **t54** | 0.190 | 0.124 / 0.232 / 0.148 | **0.396 / 0.479 / 0.282** |
+| **lows/day** | 1.00 | 1.00 / 1.25 / 0.88 | **1.79 / 2.08 / 1.46** |
+| tir | 71.9 | 72.2 / 71.3 / 69.3 | 68.5 / 68.9 / 65.4 |
+| acf_zero_min | 40 | 60 / 55 / 60 | 65 / 65 / 70 |
+| score | — | 0.309 / 0.357 / 0.397 | 0.427 / 0.477 / 0.510 |
+
+- **The level prediction held exactly, so none of the cost is the level.** bg_mean lands on the donors' on draws
+  1-2 (and closer than rf2 on draw 2) and TDD is level or better. What the refit could not hold is DISPERSION:
+  CV +6 points, t70 and lows/day roughly DOUBLED, t54 1.5-2.5x, score +0.11 worse, on every draw. `acf_zero_min`
+  is worse at a held level too, so L 208's second objection is confirmed as a real effect and not a level artefact.
+- **The cause is the instrument.** Two candidates are ruled out by arms in hand. It is NOT the sub-basal force:
+  `sk1` leaves `sg` at its default below Gb and cuts only the high side, and its lows still doubled. It is NOT the
+  controller over-dosing runaway highs: TDD is flat (41.4 / 43.8 / 43.0 against 41.9 / 42.6 / 42.7). What is left
+  is the level fit. Holding the donor's mean after removing 85% of the restoring force above Gb costs `resid_m` a
+  mean of **-20.43 mg/dL/h against rf2's -7.69** (median -12.03 against 0.00) — ~12.7 mg/dL/h of extra CONSTANT
+  downward drift per person. **A constant drift is not a restoring force**: it holds the mean and widens both
+  tails, highs because nothing pulls them back and lows because the drift keeps pulling after the insulin has
+  landed. Mean right, CV +6, both tails up is exactly that signature.
+- **This is the converse of L 597 and belongs beside it.** L 597: a gain that runs through the mean is handed back
+  by the refit. This: a change to the RESTORING FORCE is converted by the refit into a distributional cost,
+  because the only instrument the fit has is a constant. `resid_m` can hold a level; it cannot stand in for a
+  feedback term. Any future candidate that alters SG, κ, or anything else that acts proportionally to the glucose
+  excess must be judged on CV and the tails after refit, never on the mean.
+- **The evidenced configuration would cost MORE, not less — and L 638's phrasing needs this correction.** L 637's
+  band match is at `sg` 0.00247 WITH `sg_kappa` 0.15, and 0.00247 = 0.0045 x 0.55, so the ice-band-matched arm is
+  **`sk2`**, not `sk1`. `sk1` runs the sub-basal force at 0.27 /h against ice's 0.17, 1.6x too strong. So the arm
+  that landed on the field's change response is not the one the band evidence picks, and the one it picks weakens
+  the sub-basal side as well — `sk2`'s unrefit t70 was already 2.332 / 2.317 against `sk1`'s 1.973 / 1.920. Its
+  refit was not run: it starts further from the donors on the row that already fails.
+- **Verdict: `sg_kappa` stays off by default, and the choice goes to Pete.** It is the only mechanism ever found
+  that closes the damped change response (L 638, mean 1.33 -> 1.06 with the level confound removed), and at a held
+  level it doubles the lows. t54 and lows/day are safety axes, where AGENTS.md's rule is that a win on one metric
+  costing the other is not a win — so this is not a case the 2026-11-01 "level but better explained" rule covers,
+  and it is not mine to decide. Both sides are on record and the arm is one `--set sg_kappa=0.15` away.
