@@ -2745,3 +2745,39 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      0.334 / 0.304 (sw0 nominally the BEST), d2 0.357 / 0.365 / 0.372 — while the paired instrument moves by 3x and
      the twin-donor TIR rho halves. A change that destroys per-person fidelity can read level or better on the
      weighted score. Judge per-person changes on `twin.csv`, never on the score alone.
+
+635. **The glucose-effectiveness draw is out of its own evidence range on the high side: 47% of the cohort is drawn
+     above the top of a range the evidence base records as PER PERSON.** Found while setting up the SG arm, and it is
+     a soundness defect independent of any target. `person.py` draws `sg` as lnN(0.0045 /min, 0.5) and
+     `evidence/17` called that "inside UVA/Padova's 0.0013-0.0047". But `evidence/05` records that range as
+     **0.0013-0.0047 per person** (a plant impulse fit) — the spread of individual values, not a bracket on the
+     centre. The lognormal puts **47% of people above 0.0047**, with p95 at **0.0102, 2.2x the top of the range**.
+     The claim was true of the median alone. Read as a per-person bracket the evidence implies
+
+     | | current draw | implied |
+     |---|---|---|
+     | median | 0.00450 | **0.00247** = sqrt(0.0013 x 0.0047), i.e. `sg_mult` **0.55** |
+     | log-sd | 0.50 | **0.39** = ln(3.615) / (2 x 1.645), the range as 5-95% |
+
+     so the draw is **1.8x too high and 1.3x too wide**. `evidence/15` independently carries a standing unactioned
+     check pointing the same way — Del Prato 1997 has T1D mass-action self-correction at ~1/3 of healthy, with the
+     note "check that the sim's SG / GEZI term is T1D-sized". **Rule: a lognormal whose MEDIAN sits inside a
+     per-person range is not inside that range.** Check the coverage, not the centre, whenever a draw is justified by
+     a measured spread — and check whether the cited range is a range of per-person values or of reported centres,
+     because the two license completely different distributions.
+
+     **Why it matters beyond bookkeeping.** SG is the insulin-INDEPENDENT share of glucose disposal, so it sets how
+     much of a settings change glucose can respond to at all: holding appearance, dG/dI = −SI·G / (SG + SI·I·…). The
+     twins respond at 0.75 of the field on the e pool (L 634 left mean 1.33, TIR 1.28, t70 1.15 with every named
+     candidate eliminated), i.e. an effective denominator ~1.33x too large, and SI is fitted per donor from their own
+     glucose response. **SG is the one structural term with slack, and the algebra fixes its sign in advance** — the
+     first candidate on this gap for which that is true. Queued as a two-value screen, `sg_mult` 0.67 (0.0030,
+     mid-range) and 0.40 (0.0018, near the floor), bracketing the evidenced 0.55, with the e-pool arms deliberately
+     run on UNREFIT templates so the level drift works AGAINST a positive result (`run_sg.sh` records the asymmetric
+     reading rule: better-despite-drift is real, flat-or-worse is ambiguous and needs the refit).
+
+     **Both prior SG rejections were on the LEVEL, and both predate `resid_m`.** L 208 raised the centre off 0.003
+     because it "left the level +6 and its excursions too persistent"; L 349 / 356 rejected `sg_mult` 0.7 / 0.5 at
+     c349 for mean 160.9 / 163.9 and TIR 69.2 / 67.0 — while t54 went to **0.190% against the donors' 0.190%,
+     exactly**. A level objection is exactly what the residual-level refit now absorbs (L 597), so neither rejection
+     transfers to the current reference. Neither was ever run on the change response.

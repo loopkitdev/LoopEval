@@ -10,8 +10,15 @@ name (c135, lg12, sd3) is a run under the matching dated run dir. Values are the
 
 ## A. Physiology
 
-- **A1 Glucose kinetics.** SG lnN(0.0045 /min, 0.5), inside UVA/Padova's 0.0013–0.0047 (Pete 2026-10-16: calibratable against slow structure
-  in that range); VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
+- **A1 Glucose kinetics.** SG lnN(0.0045 /min, 0.5) (Pete 2026-10-16: calibratable against slow structure inside
+  UVA/Padova's 0.0013–0.0047). ⚠ **That range is PER PERSON** (§05: a plant impulse fit), and only the MEDIAN of this
+  draw is inside it: the lognormal puts **47% of the cohort above 0.0047** and p95 at 0.0102, 2.2× the top. Read as a
+  per-person bracket the evidence implies median √(0.0013·0.0047) = **0.00247** (`sg_mult` 0.55) and log-sd
+  ln(3.615)/(2·1.645) = **0.39** — the draw is 1.8× too high and 1.3× too wide. §15's standing check ("is the sim's
+  SG / GEZI term T1D-sized?", Del Prato 1997: T1D mass action ~1/3 of healthy) points the same way. Being the
+  insulin-INDEPENDENT share of disposal, SG also sets how much of a settings change glucose can respond to
+  (dG/dI = −SI·G/(SG + SI·I·…)), so this is the one structural candidate left for the damped change response;
+  screened as `sg_mult` 0.67 / 0.40 (L 635). Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
   the donors' (151.7 vs 151.4), CV 33.2 (34.8), breakfast tail +30 / 26 / 21 at 3–4 h (+27 / 22 / 16), lows 0.58 → 0.42 /
   day (L 208). Lower SG brings lows on but raises the level: `sg_mult` 0.7 / 0.5 (c349) t54 0.123 / 0.190% (0.190), but
   mean 160.9 / 163.9 and TIR 69.2 / 67.0 fail (L 349, 356). Gb stays drawn: `gb_own` (donor median quiet CGM 00–06 h,
