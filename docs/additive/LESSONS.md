@@ -3111,7 +3111,7 @@ the high side, which is the first configuration of A1d that could plausibly surv
   against an adapting own average faded out below 120 so that near lows the level stays absolute. Their summary —
   "about half of the slow level-holding force has to go for the change response to be right; the part that should
   stay is the absolute force near lows" — is exactly this form's shape, reached independently on a different model.
-- **Queued as job 163 with the predictions on record.** The honest position is that the level debt is NOT clearly
+- **Queued as job 164 with the predictions on record.** The honest position is that the level debt is NOT clearly
   smaller: dwell-weighted over the twins' own glucose distribution the smooth form keeps x0.34 of the default
   force against `sk1`'s x0.46 and `sk2`'s x0.25, but it is WEAKER than `sk1` above 250, so the open-loop excursion
   from 200 runs slightly further. Which of those dominates decides the arm, and it cannot be settled on paper —
