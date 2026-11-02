@@ -2497,3 +2497,46 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
        isolation filter cut it to −16%. Any statistic that integrates forward over hours needs an overlap filter
        before it means anything. Note also that the scored median (0.622 = 37.3 min) is dominated by clustered
        pulses — isolated ones label at 58 min.
+
+627. **`kabs` at the literature value is a NULL on the duration row it was aimed at — the appearance TAIL is not
+     what the labelled `dur_h` measures — and my single-parcel sizing over-predicted it by ~20x. An unrelated,
+     consistent TDD improvement came out of it, which needs the level refit before it means anything.** The arm:
+     `kabs_m` 1.14 (0.05 -> Dalla Man's identified 0.057; UVA/Padova 0.21 +/- 0.21) alone (`ka1`) and with
+     `ge_order` 3 (`ka2`), two draws, against the CORRECTED donor labels of L 626.
+
+     | arm | dur_h (donors 1.577) | peak_per_g (1.190) | peak_h (0.622) | score d1 / d2 | paired SUM\|dev\| d1 / d2 |
+     |---|---|---|---|---|---|
+     | rf2 | 1.876 | 1.043 | 0.622 ✓ | 0.332 / 0.371 | 3.040 / 2.568 |
+     | ka1 | **1.874** | 1.057 | 0.622 ✓ | **0.329 / 0.355** | 3.656 / **1.754** |
+     | go3 | 1.853 | 1.072 | 0.622 ✓ | 0.336 / 0.385 | 5.137 / — |
+     | ka2 | 1.814 / 1.775 | 1.076 / 1.099 | 0.622 ✓ | 0.350 / 0.427 | 4.462 / 8.500 |
+
+     - **The stated hypothesis is refuted.** `kabs` 0.057 moved the labelled duration by **x0.999** (1.876 ->
+       1.874). The single-parcel integration in the run script predicted x0.96, and correcting it twice did not
+       rescue it: using the actual per-person `kempt` (0.037, not the 0.05 class default) still predicts x0.97, and
+       adding the energy ceiling (`ge_kcal_max` 3) still predicts x0.98. `ge_order` 3 under-delivered the same way
+       (predicted x0.92, observed x0.988), so the attenuation is shared and is not about which first-order rate binds.
+     - **No appearance arm closes the duration gap.** The best is `ka2` at 1.775 against a target of 1.577, a third
+       of the way, and it is the WORST-scoring arm of the four on both draws (0.350 / 0.427) and on the paired
+       instrument (4.462 / 8.500). Treat `pulse_dur_h` as not addressable by the appearance path.
+     - **`ka1` scores better than the reference on both draws** (0.329 / 0.355 against 0.332 / 0.371) **for a reason
+       other than its rationale** — t70 (1.666 / 1.754 against 1.764 / 2.119) and t180 improve, TIR holds. The
+       paired instrument SPLITS, though (3.656 against 3.040 on draw 1, 1.754 against 2.568 on draw 2), so it is not
+       established; draw 3 and a refit are needed before any adoption.
+     - **The one consistent effect is paired TDD**: 1.404 -> 0.824 and 1.399 -> 0.982, ~0.4-0.6 U/day on both draws,
+       on the only row documented as a genuine outcome bias (L 602, 607). That is in apparent tension with L 605
+       ("TDD is unreachable by a body parameter while `resid_m` is fitted to the level") — **but `bg_mean`'s paired
+       deviation moves too** (1.378 -> 2.252 on draw 1, 0.210 -> 0.021 on draw 2), so on draw 1 the TDD gain may
+       simply be the level drifting down. Per L 597 this cannot be judged until `lvl_resid.py` is re-run. Queued.
+     - **A parameter at its literature value, replacing one fitted to a target since corrected, is worth keeping on
+       the table even when its mechanism story fails** — but on the measures, not on the story.
+
+628. **My own `label_vs_truth.py` duration column is INVALID and L 626's "~10% short" instrument claim with it: a
+     twin's true `ra` is never zero between meals, so "minutes until 90% of cumulative appearance in a window" is a
+     statistic about the WINDOW, not about a pulse.** Widening the window from 240 to 480 min moves the "true
+     duration" from ~204 to ~410 min — it simply tracks the window — and the isolation filter then leaves 16-24
+     pulses across 4-7 people, so the wide setting cannot adjudicate either. The PEAK column survives (an argmax
+     inside the window, on isolated pulses: labelled 58.1 min against a true 69.2), but read it as window-sensitive
+     too. **Withdraw the duration half of L 626's instrument finding**; the labeller may or may not read durations
+     short, and this script cannot say. A pulse-duration measure needs a defined end (a return to a local
+     appearance floor), not a share of a window's integral.
