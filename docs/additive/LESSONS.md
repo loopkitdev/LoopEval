@@ -2541,3 +2541,34 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      too. **Withdraw the duration half of L 626's instrument finding**; the labeller may or may not read durations
      short, and this script cannot say. A pulse-duration measure needs a defined end (a return to a local
      appearance floor), not a share of a window's integral.
+
+629. **The `kabs` TDD gain was the level, exactly as predicted: the `resid_m` refit hands it straight back. Fifth
+     sighting of L 605, and `kabs` 0.057 is NOT adopted.** The prediction was recorded in `run_kr.sh` before the
+     run — "if the TDD gain is level-mediated it returns to ~1.4 after the refit" — and it did, on both draws:
+
+     | arm | paired TDD dev | paired bg_mean dev | SUM\|dev\| | score |
+     |---|---|---|---|---|
+     | rf2 / rf2_5k / rf2_9k | 1.404 / 1.399 / 1.670 | 1.378 / 0.210 / 1.769 | 3.040 / 2.568 / 4.128 | 0.332 / 0.371 / 0.406 |
+     | ka1 (no refit) | **0.824 / 0.982 / 1.445** | 2.252 / 0.021 / 0.530 | 3.656 / 1.754 / 3.647 | 0.329 / 0.355 / 0.413 |
+     | ka1 REFITTED (3 rounds) | **1.330 / 1.381** | 1.767 / 0.341 | 3.227 / 2.488 | — |
+
+     - **Unrefitted, `kabs` 0.057 improved paired TDD on all three draws** (0.4–0.6 U/day) — the most consistent
+       signal any single parameter has produced on that row. **Refitted, it is back at 1.330 / 1.381 against the
+       reference's 1.404 / 1.399.** The refit raises `resid_m` to hold each donor's level and Loop re-commands the
+       insulin. So the gain was never a lower insulin NEED at the donor's level; it was a lower level.
+     - **L 605 now has five independent sightings** (sensitivity, dynamics, the pair, load, and gut absorption).
+       Treat it as settled: **no single body parameter can move TDD while `resid_m` is fitted to the level alone.**
+       The two-parameter fit L 604 proposed — `resid_m` and a per-person sensitivity factor against the level AND
+       TDD together — is the only route left, and it is a change to `lvl_resid`, not to the body.
+     - **`kabs` 0.057 is not adopted.** It is a null on the duration row it was aimed at (L 627), its one consistent
+       gain is the level, and everything else is inside the draw scatter (score mean 0.366 against 0.370, paired mean
+       3.019 against 3.245 — better on two draws of three, which L 444 rejects as noise). The literature argument for
+       0.057 over 0.05 stands on its own, but it buys nothing measurable, so the reference keeps 0.05 and `kabs_m`
+       stays available as a documented null.
+     - **Method, and it nearly cost a false finding: always run the SAME-DRAW control before reading a rho.**
+       `ka1_9k`'s per-person TIR rho is 0.467 against 0.815 / 0.850 on draws 1 and 2, which looks like the candidate
+       destroying the ranking. It is not — `rf2_9k` on the same draw reads **0.450**. Draw 3 is simply a bad draw for
+       per-person ranking across every row (bg_mean 0.556, t70 0.406). A rho compared across draws is meaningless.
+     - Housekeeping: a frozen tree archived before a new script exists cannot run it — `paired_dev.py` failed inside
+       the job and had to be re-run from the live tree. Freeze AFTER adding the tooling the job calls, or call such
+       tools from the live tree deliberately.
