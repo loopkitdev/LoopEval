@@ -1921,3 +1921,17 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       about 1.35× the donors' (36 against 26 min, matched donors). A candidate shortfall in meal-pulse shape, not in
       counter-regulation; check against the meal-shape statistics before acting.
     - No state dependence anywhere: fell equals flat in both.
+
+165. **The overnight slow counteraction is nearly right in size; what the generator overdoes at night is fast noise.**
+    Lags to 3 h (ice_persist3.py), matched e-pool donors against oc0 own-settings runs, 90–180, slopes b at 5 / 10 /
+    20 / 30 / 45 / 60 / 120 min:
+    - Night (00–06), fell: donors 0.40 / 0.09 / 0.14 / 0.12 / 0.09 / 0.05 / 0.04, generated 0.39 / 0.09 / 0.09 /
+      0.07 / 0.05 / 0.04 / 0.02. Day, fell: donors 0.56 / 0.33 / 0.26 / 0.19 / 0.12 / 0.09 / 0.07, generated 0.50 /
+      0.26 / 0.22 / 0.18 / 0.13 / 0.10 / 0.08. Past an hour both are at 0.05–0.10 and agree.
+    - Slopes are shares of total variance, and the generated total is larger: sd(e) at night 72 against 64 mg/dL/h
+      (flat 64 against 50), by day 82 against 78. In covariance terms the overnight slow part at 20 min is 24 against
+      22 mg/dL/h (fell) and 18 against 16 (flat): the generator carries about 85–90% of it. The lower slopes are mostly
+      the extra fast variance, about 30 mg/dL/h sd of extra short-lived noise at night.
+    - Open lead for the low side: generated CGM at night is noisier than the donors', which can make brief false lows
+      and false falls the controller then reacts to. Check generated against donor night noise statistics (short-lag
+      structure function) before acting.
