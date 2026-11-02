@@ -1875,3 +1875,25 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       −3.1 → −3.4 → −5.5, mid −5.3 → −6.2 → −10.0, high −8.7 → −10.0 → −9.5. The arm helps where it is least needed;
       the low and middle thirds, who spend time below 120 where the fade turns adaptation off, still cancel about
       half the change. Next arm: fade 70–100 (launch_ba05f70_full*.sh).
+
+163. **Real donor ICE keeps a dropped counteraction with a 25–35 min half-life, the same falling or flat; arm B's 45%
+    is the instrument.** For additive (handoff 2026-11-02-additive-ice-force-drop-persistence.md; ice_persist.py in
+    runs/2026-11-01-ice-stateabl/). e = ICE minus the person's mean ICE in its 5 mg/dL glucose bin, points in 90–180,
+    slopes b_k of e(t+k) on e(t), k = 1..6 five-minute steps:
+
+    | | n | sd(e) | b1 | b2 | b3 | b4 | b5 | b6 |
+    |---|---|---|---|---|---|---|---|---|
+    | Donors, fell ≥ 20 in the last hour | 730k | 75 | 0.56 | 0.33 | 0.30 | 0.25 | 0.21 | 0.17 |
+    | Donors, flat | 374k | 60 | 0.57 | 0.33 | 0.31 | 0.26 | 0.22 | 0.18 |
+    | Generated (oc0, own settings), fell | 74k | 82 | 0.50 | 0.28 | 0.27 | 0.24 | 0.21 | 0.20 |
+    | Generated, flat | 37k | 73 | 0.48 | 0.22 | 0.22 | 0.19 | 0.17 | 0.14 |
+
+    - Not one AR(1) plus white noise: the drop from b1 to b2 is fast, then the decay settles at 0.84–0.93 per step. A
+      slow part holds about 40% of the deviation variance and keeps 0.87–0.90 per 5 min (half-life 25–35 min); the
+      rest is gone within 10 min, sensor noise included (white CGM noise makes differenced velocity anti-correlated at
+      lag 1, so it pulls b1 down, not b2).
+    - No state dependence in persistence: falling and flat are the same, in the donors and in the generator.
+    - The generator's one-step 0.48–0.50 sits a little under the donors' 0.56; its slow part matches.
+    - So the 45% of lesson 161 arm B is mostly the one-step attenuation of a noisy channel, not a fast-recovering
+      force. Against additive's body (0.94–0.95 kept per step, half-life about 55 min) the real slow part recovers
+      about twice as fast — a smaller gap than 0.45 suggested, but still a gap.
