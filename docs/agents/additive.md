@@ -258,8 +258,15 @@ reference changes.
   are **18–19% too SMOOTH BY DAY at 5–15 min** (0.81 / 0.86 / 0.88, 2nd difference 0.74, both draws), recovering to
   0.91–0.96 by 30 min. Same sensor, same people, right at night: the missing variance is the BODY's daytime motion,
   not sensor noise, and it is the same defect as `acf_zero_min` read at a fixed lag. The missing 5-min rms is
-  **4.2–4.3 mg/dL** (robust); the correlation time is NOT pinned at two draws, so do not specify a timescale from
-  it. Split on time since the last carb entry, never on `ra`, which is never zero between meals (L 628, 648).
+  **4.31 mg/dL** (4.30 / 4.20 / 4.42 on three draws), and the lag growth now PARTLY pins the timescale (L 650):
+  the missing component grows as `k^0.66` to 10 min, `k^0.60` to 15 and `k^0.43` by 30, against 0.50 for a random
+  walk — super-diffusive at short lags and reverting by half an hour, i.e. a **mean-reverting component with a
+  correlation time around 15–20 min**, not independent jitter (0.50 throughout) and not a slow drift (~1.0). The
+  30-min column still scatters 7.8–12.0 across draws, so read 0.43 as soft. **Three draws agree to 0.02 on a 0.19
+  deficit, so more draws are not the bottleneck — a mechanism is.** The one existing mechanism of the right shape
+  is ruled out: `resid_mult` 0.6 (ad3, daytime-weighted) supplies **8–18%** of the missing variance and nothing at
+  night, and closing the gap with it would need ≈ 1.5, well past what L 592 rejected. Split on time since the last
+  carb entry, never on `ra`, which is never zero between meals (L 628, 648).
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (**read `ac1` against the independent-day null of −0.086, not 0**, and against **+0.118, not +0.18**: half the donors'
   persistence is their SETTINGS — a basal / ISF edit or a multi-day override persists by construction, and on day pairs

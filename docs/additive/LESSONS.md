@@ -3517,3 +3517,41 @@ it does to get there is suppress fast motion, which is the one thing L 648 says 
   exonerated). **So A1e asks the body to move less when the measurement says it already moves too little.** A
   component can be mechanically validated, evidenced, and still have the wrong sign for the defect that is
   actually there; that is the whole of this verdict, and `acf_zero_min` 60 → 55 on one draw does not buy it back.
+
+**650. Three draws of the structure function: the night PASSES (ratio 0.99 / 1.06 / 1.01) and the daytime deficit
+is as stable as anything this role measures (0.81 / 0.82 / 0.80 at 5 min, 2nd difference 0.74 / 0.74 / 0.76) — and
+the dynamic residual, the one existing mechanism of the right shape, supplies 8-18% of it, so it is not the
+answer.** The timescale is now partly pinned: the missing component's increments are POSITIVELY correlated out to
+~15 min and revert by 30. `struct_fn.py` on rf2 / rf2_5k / rf2_9k and ad3 / ad3_5k / ad3_9k — no new compute, the
+traces were already on disk.
+- **Both rows replicate on three draws.** Night 4.90 / 5.27 / 5.04 against the donors' 4.97 (ratios 0.99 / 1.06 /
+  1.01, mean 1.02) — draw 2's jumpiness was draw scatter, and the night sensor is confirmed right. Day 5.96 / 6.03
+  / 5.87 against 7.35 (0.81 / 0.82 / 0.80) with the 2nd difference at 0.74-0.76 on every draw. A three-draw spread
+  of 0.02 on a 0.19 deficit is unusually tight for this cohort, so **more draws are NOT the bottleneck here** — the
+  bottleneck is a mechanism.
+- **The missing component, sized and partly characterised** (treating it as independent of what we have, mg/dL):
+
+  | lag | 5 min | 10 | 15 | 30 |
+  |---|---|---|---|---|
+  | rf2 / rf2_5k / rf2_9k | 4.30 / 4.20 / 4.42 | 6.46 / 7.09 / 6.82 | 8.16 / 9.03 / 7.73 | 8.32 / 12.04 / 7.77 |
+  | mean | **4.31** | **6.79** | **8.31** | **9.38** |
+  | growth exponent `p` in `k^p` | — | **0.66** | **0.60** | **0.43** |
+
+  A random walk is `p` = 0.50. So the missing motion is SUPER-diffusive out to 15 min and sub-diffusive by 30:
+  its increments are positively correlated at the short lags and it reverts by half an hour. That rules out
+  independent 5-min jitter (which would give 0.50 throughout) and rules out a slow drift (which would give ~1.0),
+  and points at a **mean-reverting component with a correlation time around 15-20 min, amplitude 4.3 mg/dL per
+  5-min step**. Caveat kept: the 30-min column still scatters 7.8-12.0 across draws, so 0.43 is soft and √k growth
+  is not excluded there.
+- **The dynamic residual is the wrong instrument, which closes the obvious shortcut.** `ad3` is this reference with
+  `resid_mult` 0.6 (the dynamic part ON, dropped at L 592), and it is daytime-weighted by `resid_diurnal`, so it is
+  the right SHAPE. It adds 2.9 / 1.5 / 3.6 of the 18.5 / 17.7 / 19.6 mg/dL² of missing 5-min variance — **8-18%**
+  — and nothing at all at night (0.99 / 1.05 / 1.00, the same as rf2). Closing the gap by turning it up would need
+  `resid_mult` ≈ 1.5, two and a half times the value L 592 already rejected for damaging the twin-donor
+  correlations and the change response. So the deficit needs a named component, not a bigger mystery term — which
+  is what Pete's standing rule says anyway, and it is now a measurement rather than a preference.
+- **What this does to the open-threads list.** The short-scale rows have been failing on every draw since c382
+  with the sensor a permanent live suspect; they now have a target (4.3 mg/dL at 5 min), a timescale (~15-20 min,
+  mean-reverting), a cleared suspect (the sensor, by the night row) and a cleared candidate (the dynamic residual).
+  That is the best-specified open defect in the model, and it is where the next component belongs — NOT another
+  draw, and NOT a restoring force, which L 649 has just shown pushes this row the wrong way.
