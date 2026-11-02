@@ -2643,3 +2643,34 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      - **Reclassify the limit**: the 6-8 MET band is not "awaiting a measurement" — the measurement exists, is sound
        for the donors who have it, and reaches too few of them to move a cohort statistic. Closing it needs either
        workout records for most of the cohort or an intensity prior conditioned on something every donor has.
+
+632. **The change harness silently ignored every `--set` knob added after 2026-10-28, so an e-pool arm could be a
+     perfect no-op that the scorer still printed a plausible ratio for. L 613's `sg_h_lo` half is RETRACTED.**
+     `arm2.py` did `sys.path.insert(0, HERE.parent / "frozen2/analysis")` — a hard-coded frozen tree that takes
+     precedence over `PYTHONPATH`, so the tree a change run actually executed was fixed at Oct 28 whatever the
+     launcher set. A newer knob rides along in `enable`, the old `cohort.py` never reads it, and **both arms of the
+     comparison run identically**.
+
+     | arm | knob | in `frozen2`? | variant tir / t70 | real? |
+     |---|---|---|---|---|
+     | `rf2e_s` | (reference) | — | +7.53 / +1.80 | — |
+     | `sn_e` | `si_norm` 1.0 | yes (world.py) | +6.32 / +1.54 | **real** |
+     | `hl_e` | `sg_h_lo` 0.0019 | **no** | +7.53 / +1.80 | **NO-OP** |
+     | `sw5_e` / `sw0_e` | `csf_sd_w` | **no** | identical | **NO-OP** (60/60 events byte-identical on `truth.bg`) |
+
+     - **What is retracted**: L 613 resolved two pending decisions on 580 events. The `si_norm` half stands —
+       `frozen2` has `si_norm`, `sn_e`'s numbers genuinely differ, and the conclusion (NO) is unaffected. The
+       `sg_h_lo` half — "neutral on change prediction" — is an **artifact of the arm not running**, and sg_h_lo's
+       change response is now simply **unmeasured**. Its cohort result (closes t70 on draw 2, overshoots on draw 1)
+       was run through `cohort.py` on a current tree and is unaffected.
+     - **Detection, since the scorer gives no warning**: the printed `variant` values are identical between a no-op
+       arm and the reference (and `mean BG median` too), while the ratio still differs in the second decimal —
+       `score_change.py`'s point ratio is stochastic enough to move without any input change, so **the ratio alone
+       cannot reveal a no-op**. Compare `truth.pkl`'s `truth.bg` across the two arms; that is bit-stable (L 586).
+     - **Fixed**: `arm2.py` now honours `ARM_TREE` (defaulting to `frozen2`), and the re-run builds `frozen3` from
+       HEAD. The re-run script checks for the no-op BEFORE scoring, so a repeat is caught rather than interpreted.
+     - **The general shape — a frozen tree is a silent version pin.** It has now bitten three ways in one session: a
+       tree frozen before a script existed could not run it (L 629), a tree frozen before a knob existed ignored it
+       here, and a stale `.done` sentinel from an earlier job made a watcher fire before its job had started. **Any
+       harness that pins its own code must say so where the launcher can see it, and any new knob needs a positive
+       control — an arm that MUST differ — before its result is read.**
