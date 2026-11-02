@@ -3268,3 +3268,45 @@ ramped from −2 to +2 mg/dL/min with `bg_trend` / `bg_pred30` / `heading_low` /
   is not mean-preserving in a closed loop and this whole class loses the L 597 immunity that makes it worth
   compute. **The row at risk is the meal tail** — a fast post-meal rise is braked too, and ice's arm A hints their
   gain may be fall-only, in which case the next form is a one-sided gate.
+
+**644. ice's own fair test, answered: a drop in my body's non-insulin forces keeps ~95% of itself five minutes
+later, against the donors' ~45% — a second structural gap, independent of the two-state one, and it is the
+mechanism that fits the standing low-side limit (excursion DURATION).** `momentum.py` in
+`runs/2026-10-31-additive-gesplit`, rf2 draws 1 and 2.
+- **The test ice named** (their L 161): "whether your body's non-insulin forces after an hour-long fall persist
+  more than about 45% into the next step", from their arm B's `d ICE / d r` = +26 / +28 mg/dL/h per mg/dL/min,
+  which they read as "a fall made by a drop in those forces decays: about half of it is left at the next step".
+- **It is NOT the regression of our force on our glucose velocity, and that mistake was made and discarded first.**
+  `dG/dt` is mostly MADE of this force, so that slope is the identity in disguise: measured, it comes out at 0.88
+  of the velocity in 90-180, which would be ~1.0 if the insulin term were constant. It says nothing about a
+  response to motion. The quantity ice's reading asks for is how long a DROP in the force lasts.
+- **Measured as the one-step persistence of the force's deviation from its own level-conditional mean.** The
+  non-insulin force is `F = 60 * ((egp + ra) / vg - sg * excess(G))` per minute from `truth.pkl`; the deviation `e`
+  is `F` minus the person's own mean `F` in that 5 mg/dL glucose bin, so the measure cannot be the force's level
+  dependence in disguise. Then the AR slope of `e(t+5)` on `e(t)`, and separately ice's own wording — of the
+  minutes where the force had dropped at least 5 mg/dL/h below its level norm, the share still there one step on.
+
+  | state | AR slope `e(t+5)` ~ `e(t)` | share of a DROP kept at +5 min |
+  |---|---|---|
+  | rf2, fell >= 20 mg/dL in the last hour | 1.048 / 1.049 | **0.937 / 0.941** |
+  | rf2, flat | 1.076 / 1.049 | 0.987 / 1.003 |
+  | rf2, falling, **no meal appearing** (`ra` <= 0.05) | 0.989 / 0.983 | **0.942 / 0.953** |
+  | **donors (ice arm B)** | — | **~0.45** |
+
+  Two draws, both bands, meal minutes in or out: **0.94-0.96 kept, and no state dependence** (falling 0.94 against
+  flat 0.99-1.00), which is the same by-construction one-state result as L 643's force gain of 1.00x. The no-meal
+  split matters because a drop in `ra` SHOULD persist — the meal is over — and it is the subset where lows happen;
+  the answer does not change.
+- **Why it is the mechanism L 600 has been asking for.** The standing low-side defect is excursion DURATION, 25 min
+  against the donors' 20, with depth and frequency already matched; and L 642 amended the requirement to a force
+  acting in the mid band before or through the nadir, not at it. A body whose dropped forces come back with a ~5-min
+  half-life climbs out of a shallow low while a body that holds the dropped state keeps dwelling in it. This is also
+  a DIFFERENT term from A1e: `sg_rate` steepens the level slope while glucose is moving, and does nothing to restore
+  a force that has already dropped.
+- **The caveat is real and it is theirs to close.** 0.45 is a one-step conditional mean from a network trained on
+  noisy ICE, and ice flagged the attenuation themselves. The arithmetic: turning 0.95 into 0.45 needs
+  `var(noise) / var(signal)` = 1.11, i.e. a measurement noise of **24.3 mg/dL/h on an ICE deviation whose own sd is
+  23.1** in this state — noise as large as the signal. That is not absurd for ICE from 5-min CGM differences, so the
+  gap is MEASURED on my side and SUGGESTIVE across the pair, not established. Asked of ice: the same persistence on
+  their noise-free generated trajectories, or a reliability estimate for ICE in the 90-180 band. Do not size a
+  component to 0.45 until that comes back.

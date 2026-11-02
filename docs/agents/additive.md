@@ -223,7 +223,16 @@ reference changes.
   stops a descent becoming a low therefore acts in the **90-180 band on the way DOWN**, not at the bottom, and the
   model's existing linear SG is what supplies it today. This explains from the other side why every `sg_h_lo`
   variant fixed duration and broke penetration: a term peaking at the nadir acts where there is no leverage. Read
-  L 600's requirement as "before or through the nadir, in the mid band", not "after it".
+  L 600's requirement as "before or through the nadir, in the mid band", not "after it". **And there is now a second
+  measured gap that fits the requirement exactly (L 644)**: a drop in the twins' non-insulin forces keeps
+  **0.94-0.96** of itself five minutes later, on two draws and with meal minutes excluded, where ice's arm B puts
+  the donors at **~0.45** — so the donors' forces come back with a ~5-min half-life while the twins hold the
+  dropped state, which is what dwelling in a shallow low looks like. It is a DIFFERENT term from A1e: `sg_rate`
+  steepens the level slope while glucose moves and does nothing to restore a force that already dropped. The
+  caveat before it is sized: 0.45 is a one-step conditional mean from a network trained on noisy ICE, and turning
+  0.95 into 0.45 needs a measurement noise as large as the signal (24.3 mg/dL/h against sd 23.1), so the gap is
+  measured here and suggestive across the pair. ice has been asked for the same number on noise-free generated
+  trajectories.
 
 - **`acf_zero_min` and the meal ratio are ONE defect, but NOT the same one as low-side recovery** (L 594, corrected
   by L 615): `cr_tau_off` fixes the recovery rows (t54 0.124/0.232 -> 0.175/0.177, nadir dwell 20 -> 15 min, the
@@ -584,6 +593,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   value, 6.7x the default. Reading the default suggested that `sg_kappa` left no disposal path scaling with
   glucose, which is false and nearly bought an arm. Check a built person's value, as the `--enable k=v` and
   `BEHAVIOR_COLS` traps already require.
+
+- **The non-insulin force regressed on glucose velocity is the IDENTITY, not a response** (L 644). `dG/dt` is
+  mostly made OF that force, so the slope comes out near 1 whatever the body does — measured, 0.88 of the velocity
+  in 90-180, where 1.0 is what a constant insulin term alone would give. It cannot be compared with an
+  interventional `d ICE / d r` from a probe that imposes the velocity exogenously. To ask how long a force drop
+  lasts, measure the force's deviation from its OWN level-conditional mean and carry that forward a step
+  (`momentum.py`); to ask how it responds to motion, impose the motion.
 
 - **A force expressed as `excess(G)` is felt as the SPAN AVERAGE from Gb, not as its local slope** (L 642). Where
   a term applies `sg x excess(G)` and the excess is built as `F(G) - F(Gb)`, the restoring force at G is
