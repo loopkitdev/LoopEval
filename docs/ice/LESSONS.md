@@ -1822,3 +1822,25 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       and nothing builds beyond 3 h.
     - Limit: the probe moves only the bg channel (trend, predicted glucose, low30, heading_low held), so it cannot read a
       response to rate or depth through those inputs, and the perturbed inputs are off-distribution.
+
+161. **The learned person has no glucose-rate restoring force; what it keys on is its own recent counteraction.**
+    Trend-consistent probe for additive (handoff 2026-11-02-additive-ice-rate-dependent-force.md): on oc0 / oc1 (raw
+    network, no calibrations; 60 donors, 1,186 held-out points; probe_rate.py in runs/2026-11-01-ice-stateabl/), the
+    last hour of glucose becomes a ramp of slope r (−2 … +2 mg/dL/min) ending at the real value, with bg_trend,
+    bg_pred30, heading_low and low30 recomputed from it. Arm A holds the ICE history real; arm B moves it by the
+    velocity the ramp implies (insulin unchanged), so the whole state agrees.
+    - **A, glucose channels only:** in 90–180 the predicted background ICE moves by at most 2 mg/dL/h across the whole
+      ±2 mg/dL/min range (±120 mg/dL/h of fall), with opposite signs in the two trainings (d ICE / d r +0.7, −0.7
+      mg/dL/h per mg/dL/min). The level force while falling fast is 0.75× / 1.01× the flat one. Below 90, a fast rise
+      adds +9 to +12 mg/dL/h (a treatment still acting) and a fast fall −1 to −3: no braking on the way down.
+    - **B, consistent state:** about 45% of the imposed velocity carries into the next predicted ICE (d ICE / d r +26 /
+      +28), the same in every band below 250 — momentum, not braking. With the fall in the ICE history the level force
+      in 90–130 is 2.2× / 2.4× the flat one (−0.29 / −0.28 vs −0.13 / −0.12 per hour); 130–180 is too near zero
+      when flat for a stable ratio.
+    - **Reading:** what additive's rate term would have to be is not a function of the glucose rate. The donors' data,
+      as the network learned it, says: a fall made by the counteraction dropping persists for a while (about half at
+      the next step), and while it does the level pull toward the person's usual glucose about doubles in 90–130.
+      Whether that is damping depends on the comparison: against a force that stays fully on, it is faster recovery.
+      The H 1 vs H 3 recency of lesson 160 is the same recent-counteraction dependence seen through the bg channel.
+    - Limits: the ramp starts with a step one hour back, and the medians of small slopes are noisy; arm B's 45% is a
+      one-step conditional mean, which sensor noise in real ICE also shrinks.
