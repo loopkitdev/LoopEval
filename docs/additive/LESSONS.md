@@ -3468,3 +3468,52 @@ daytime motion, with a lag-resolved target for the first time.** ice's L 166 def
   leaves only 3-8 of 112 twins with 100 base points, because `ra` is essentially never zero between meals in the
   10-22 window. Its apparent ratio of 0.50-0.56 is 3 people and must not be quoted. To ask whether the deficit is
   meal-driven, split on time since the last carb entry, not on `ra`.
+
+**649. Job 167: the rate-keyed force does everything it was designed to do — it delivers ice's measured two states
+with nothing fitted, it is the first restoring-force change that is MEAN-PRESERVING in a closed loop, and it
+confirms the descent-brake reading by bringing the smooth form's t70 back — and it is still REJECTED, because what
+it does to get there is suppress fast motion, which is the one thing L 648 says we are already 19% short of.**
+`sg_rate` stays off; the reference stays rf2. All arms passed their no-op and knob checks.
+- **The two states were delivered as sized** (`two_state_sr.log`), nothing fitted to them:
+
+  | arm | 90-130 FLAT | FALLING | gain | fall deviation median |
+  |---|---|---|---|---|
+  | `sr1` (smooth + `sg_rate` 0.55) | 0.114 /h | 0.246 /h | **2.16x** | −28.0 mg/dL |
+  | `sr2` (+ `sg_rate` 0.80) | 0.115 | 0.307 | 2.66x | −27.0 |
+  | `rt1` (`sg_rate` 0.55 alone) | 0.270 | 0.418 | 1.55x | −24.9 |
+  | **donors (ice L 161)** | **0.13** | **0.29** | **2.2-2.4x** | — |
+
+- **The registered falsifier PASSED: the term is mean-preserving inside a closed loop.** `rt1`'s unrefit bg_mean is
+  **149.5 / 148.9 against rf2's 151.0 / 148.2** — within ~1.5 mg/dL, where the A1d arms sit 11-14 mg/dL high
+  (`sm1` 165.3 / 162.3, `sr1` 162.7 / 160.4). This is the first change to a restoring force that the `resid_m`
+  level refit has no work to do on, i.e. the first with the L 597 immunity. Keep that: **if a low-side term is
+  ever needed again, keying it to (G − G_slow) is how it survives the level fit.**
+- **The descent-brake reading of L 642-643 is CONFIRMED.** Adding the fall state to the smooth form moves exactly
+  the rows it was predicted to: t70 **2.362 → 1.807** and **2.524 → 2.164** (rf2 1.764 / 2.119), t54 0.213 → 0.206
+  and **0.264 → 0.180** (donors 0.190), lows/day 1.167 → 1.083 and 1.250 → 1.208, TIR 61.4 → 64.5. So the smooth
+  form's doubled lows WERE the missing descent brake, as predicted before the run.
+- **But A1d + A1e is not adoptable, and for a reason the pairing cannot fix**: the smooth form's cost is its LEVEL
+  DEBT (bg_mean 162.7 / 160.4 against the donors' 151.9), and a mean-preserving term cannot touch a level debt by
+  construction. `sr1` scores 0.418 / 0.459 against rf2's 0.309 / 0.357 with paired SUM|dev| 18.0 / 22.8 against
+  3.0 / 2.6. L 642 closed A1d on the dwell-weighted force integral; this closes it a second way, from the level.
+- **The isolation arm is the real result, and it splits by draw in the now-familiar way.** `rt1` = rf2 +
+  `sg_rate` 0.55 alone: score 0.352 / 0.358 against 0.309 / 0.357, tier 1 0.185 / 0.151 against 0.116 / 0.196 —
+  **worse on draw 1, better on draw 2**, which is draw 1 being the lineage's own development draw where rf2's low
+  side is already near-perfect (t70 1.764, donors 1.599) and draw 2 being where it is weak (2.119). On draw 2 it
+  lands almost exactly: t70 1.640, t54 0.183, lows/day 1.000, bg_cv 34.27 against the donors' 1.599 / 0.190 /
+  1.000 / 34.65. On draw 1 it overshoots (lows/day 0.875). **That is the fixed-magnitude signature of L 602 for
+  the FOURTH time** after `sg_h_lo`, `cr_tau_off` and `pro_g_own`: a constant term helps the heavy draw and
+  overshoots the light one, and paired per-person it is worse on both (4.485 / 2.630 against 3.040 / 2.568).
+- **It is WORSE on the prediction half**, which is the half it was hoped to serve. Level-adjusted on the e pool's
+  580 events: mean **1.52 against rf2's 1.35**, TIR **1.46 against 1.30**, t70 1.21 against 1.09 — more damped on
+  every outcome. In hindsight that is forced: the term adds restoring force precisely while glucose is moving, and
+  responding to a settings edit IS glucose moving. The change-response gain in `sr1` (mean 1.04, TIR 0.97) is the
+  smooth form's, not the rate term's — `sm1` alone already gives 1.06 / 1.05.
+- **The decisive argument is mechanistic and it only exists because of L 648.** A brake against fast motion
+  suppresses fast motion, and it does: `fast_fall_share` G7 1.167 → 1.011 and 1.333 → 1.134 against the donors'
+  2.802; `sigma_disp` 3.109 → 3.058 and 3.025 → 2.960 against 3.574; `entry_fast_fall` 5.000 → 4.762 against
+  14.286. Every one of those is a row the twins ALREADY fail in the same direction, and L 648 has just measured
+  that deficit lag by lag and placed it in the body's daytime motion (19% too smooth at 5-15 min, sensor
+  exonerated). **So A1e asks the body to move less when the measurement says it already moves too little.** A
+  component can be mechanically validated, evidenced, and still have the wrong sign for the defect that is
+  actually there; that is the whole of this verdict, and `acf_zero_min` 60 → 55 on one draw does not buy it back.
