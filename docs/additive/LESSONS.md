@@ -3070,3 +3070,51 @@ sizing of the post-nadir term L 600 asked for.** All from arithmetic and reading
   `docs/handoffs/2026-11-02-additive-ice-direction-asymmetry.md`. It does NOT resolve the standing evidence
   request (a study lowering glucose below basal at basal insulin in T1D), which is about the sub-basal
   MAGNITUDE; this is about its direction dependence.
+
+**641. ice's reply withdraws most of L 640's direction lead and, more usefully, shows the band profile I had been
+fitting is BIASED LOW — the corrected profile picks a smooth form that keeps the near-low defense while cutting
+the high side, which is the first configuration of A1d that could plausibly survive both halves.** (ice reply
+2026-11-02, from the saved L 140a probe CSVs plus a new `probe_bg_asym.py`; their handoff reply, no retraining.)
+
+- **The "2x on lowering" is mostly level CURVATURE, not direction, and the residual is bounded.** Binning both
+  directions by the midpoint of the span CROSSED — so the two perturbations are compared over the same glucose
+  levels — the asymmetry is about **1.0 near lows** and **1.3-1.6x at 90-180**, against the 2x that the
+  base-level binning suggested. ice's reading: "a stateless force, steeper at low glucose (convex in level),
+  accounts for most of the 2x", and their 1.5x is an upper bound because the force is steepest across 90-130 so
+  curvature inside a bin still inflates it. **So L 640's lead is largely withdrawn**: near lows, which is where
+  L 600 wants a post-nadir term, there is no sign gain at all. Also measured: H = 1 slopes are 1.5-2x the H = 3
+  slopes in BOTH directions, and H = 3 and H = 6 match — so the fast part depends on RECENCY, symmetrically, and
+  nothing accumulates past 3 h. The probe moves only the raw bg channel and holds `bg_trend`, `bg_pred30`,
+  `low30` and `heading_low` at their real values, so it cannot see a response to the recent RATE or to the depth
+  already reached; a trend-consistent probe would be needed and ice say it is runnable without retraining.
+- **The profile L 635-640 fitted is biased low, because the same curvature biases the D = +40 reading.** ice's
+  same-span bands are 1.2-1.7x stronger in every band: **0.235 / 0.118 / 0.053 / 0.024 /h** against the
+  0.17 / 0.07 / 0.04 / 0.02 those lessons used. Everything resting on the weaker numbers has to be re-read, and
+  one conclusion flips outright: **`sk2` — which L 639 called "the evidenced configuration" — runs the near-low
+  force at 0.148 /h against the corrected 0.235, i.e. 37% TOO WEAK**, which is the obvious reason it had the worst
+  lows of any arm. The evidence never asked for the sub-basal force to be cut; the uniform `sg_mult` in `sk2` did
+  that as a side effect of fixing the high side.
+- **The corrected profile picks a SMOOTH form, and it is the one shape that does both things.** Michaelis-Menten
+  saturation in ABSOLUTE glucose, fitted to the unbiased bands: `sg` 0.00403, half-saturation 63.2 mg/dL above a
+  full-strength threshold of 80.4 — **RMS 0.0008 /h** (the kink reaches 0.0251, MM anchored at Gb 0.0319). Its
+  profile is 0.235 / 0.118 / 0.053 / 0.026, so it holds the near-low force at **0.242 against the default's
+  0.270** — within 13%, no low-side defense lost — while cutting 130-250 five- to tenfold, where a settings
+  edit's glucose response lives. Neither kink can do both: `sk1` keeps the low side but only reaches 0.206 at
+  90-130 (against 0.118) and `sk2` buys the high side by thinning the low side.
+- **Implemented as `sg_km` / `sg_g0`, with the excess taken as F(G) − F(Gb)** so the term's zero stays exactly at
+  Gb however low the threshold sits — the basal balance is untouched, which is why `sg_kappa`'s kink could not
+  place a breakpoint below Gb at all. Verified before queueing: the band profile is reproduced in the real step
+  path (RMS 0.0008 /h, max 0.0015), excess(Gb) = 0 exactly for all three forms, the default is a BIT-EXACT no-op
+  over G 40-400, and the knob bites (open loop 6 h from G 200: 329.5 default, 431.1 `sk1`, **437.0** smooth).
+- **ice's own LESSONS 159 converges on the same shape from the other side.** Their generated person cancels about
+  half of any lasting level change, which is the push-back on settings edits, and their fix judges the level
+  against an adapting own average faded out below 120 so that near lows the level stays absolute. Their summary —
+  "about half of the slow level-holding force has to go for the change response to be right; the part that should
+  stay is the absolute force near lows" — is exactly this form's shape, reached independently on a different model.
+- **Queued as job 163 with the predictions on record.** The honest position is that the level debt is NOT clearly
+  smaller: dwell-weighted over the twins' own glucose distribution the smooth form keeps x0.34 of the default
+  force against `sk1`'s x0.46 and `sk2`'s x0.25, but it is WEAKER than `sk1` above 250, so the open-loop excursion
+  from 200 runs slightly further. Which of those dominates decides the arm, and it cannot be settled on paper —
+  which is the point of running it. What IS predicted: the change response should improve about as `sk1`'s did
+  (the cut at 130-250 is comparable or deeper), and the low-side cost should be SMALLER than both kinks, because
+  this is the only form that leaves the sub-basal force essentially at the default.

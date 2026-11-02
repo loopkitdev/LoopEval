@@ -47,7 +47,15 @@ name (c135, lg12, sd3) is a run under the matching dated run dir. Values are the
   the cut raises the pre-edit level +15.5 mg/dL. At a fixed level the form carries 1.22 -> 1.05, i.e. 1.16x more
   response per unit glucose. `sg_mult` 0.55 on top overshoots (mean 0.98, TIR 0.95), so the pair brackets the field
   and 0.15 alone is the value. This is the first evidence for the SHAPE that is independent of ice's learned bands,
-  and it is a prediction test rather than a fit. Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
+  and it is a prediction test rather than a fit. **CORRECTION to the band numbers (L 641, ice reply 2026-11-02)**:
+  the D = +40 profile used above is biased LOW, because the force is convex in level and binning by the BASE level
+  attributes the slope to the wrong place. Binning both perturbation directions by the midpoint of the span crossed
+  gives **0.235 / 0.118 / 0.053 / 0.024 /h**, 1.2-1.7x stronger in every band. Re-read against that, `sg_kappa` 0.15
+  with `sg_mult` 0.55 is 37% too WEAK near lows, and the form the corrected profile picks is a Michaelis-Menten
+  saturation in absolute glucose (`sg` 0.00403, `sg_km` 63.2, `sg_g0` 80.4; RMS 0.0008 /h) which holds the near-low
+  force at 0.242 against the default 0.270. ice also bound the direction asymmetry that L 640 reported at ~1.0 near
+  lows and 1.3-1.6x at 90-180, i.e. mostly curvature, and measured the fast part as depending on recency (H = 1
+  slopes 1.5-2x H = 3, symmetric in direction) rather than on direction. Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
   the donors' (151.7 vs 151.4), CV 33.2 (34.8), breakfast tail +30 / 26 / 21 at 3–4 h (+27 / 22 / 16), lows 0.58 → 0.42 /
   day (L 208). Lower SG brings lows on but raises the level: `sg_mult` 0.7 / 0.5 (c349) t54 0.123 / 0.190% (0.190), but
   mean 160.9 / 163.9 and TIR 69.2 / 67.0 fail (L 349, 356). Gb stays drawn: `gb_own` (donor median quiet CGM 00–06 h,

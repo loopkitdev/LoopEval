@@ -54,6 +54,15 @@ class BodyParams:
     # glucose
     vg: float = 1.88               # dL/kg (UVA/Padova; ReplayBG's 1.45 gives ~2x the carb sensitivity people's settings imply)
     sg: float = 0.003              # insulin-INDEPENDENT glucose effectiveness, 1/min (see COMPONENTS: physiology)
+    sg_km: float = 0.0             # A1d, SMOOTH form (L 641): Michaelis-Menten half-saturation of the
+                                   # insulin-independent uptake, mg/dL above `sg_g0`. 0 = off (use sg_kappa / linear).
+                                   # Fitted 63.2 with sg_g0 80.4 and sg 0.00403 to ice's UNBIASED band profile
+                                   # (their 2026-11-02 reply: same-span bins, 0.235 / 0.118 / 0.053 / 0.024 /h),
+                                   # RMS 0.0008 /h. Keeps the near-low force at 0.242 /h (default 0.270) while
+                                   # cutting 130-250 five- to tenfold; the kink forms cannot do both.
+    sg_g0: float = 80.0            # glucose below which the insulin-independent force is at FULL strength (mg/dL).
+                                   # Below Gb deliberately: ice's profile is steepest below 90, and the zero of the
+                                   # term stays at Gb by construction (the excess is F(G) - F(Gb)).
     sg_kappa: float = 0.0          # glucose-dependence of INSULIN-INDEPENDENT uptake, by analogy with kappa (L 637):
                                    # above Gb the excess it acts on rises at this fraction, below Gb full strength.
                                    # 0 = linear in (G - Gb), as before. ice L 140a's learned background slope falls
@@ -284,8 +293,25 @@ class Body:
         -0.17/h below 90 against -0.02/h at 180-250), which no linear -SG*(G - Gb) can produce.
         """
         p = self.p
+        if p.sg_km > 0.0:
+            return self._sg_F(g) - self._sg_F(p.gb)
         d = g - p.gb
         return d if (d <= 0.0 or p.sg_kappa <= 0.0) else p.sg_kappa * d
+
+    def _sg_F(self, x: float) -> float:
+        """Antiderivative of the SMOOTH relative uptake slope (L 641), so the excess is F(G) - F(Gb).
+
+        The slope is 1 below `sg_g0` and 1 / (1 + (x - g0) / km)^2 above it, which is a Michaelis-Menten
+        saturation in ABSOLUTE glucose - the form ice's unbiased profile picks (RMS 0.0008 /h against their
+        same-span bands, where a kink at Gb reaches 0.0251 and MM anchored at Gb 0.0319). Taking the excess as
+        a DIFFERENCE of F keeps the term's zero exactly at Gb however low `sg_g0` sits, so the basal balance
+        is untouched; `sg_kappa`'s kink could not place the breakpoint below Gb without moving that zero.
+        """
+        p = self.p
+        if x <= p.sg_g0:
+            return x
+        d = x - p.sg_g0
+        return p.sg_g0 + p.sg_km * d / (p.sg_km + d)
 
     def risk(self, g: float) -> float:
         p = self.p
