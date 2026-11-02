@@ -2576,3 +2576,37 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      - Housekeeping: a frozen tree archived before a new script exists cannot run it — `paired_dev.py` failed inside
        the job and had to be re-run from the live tree. Freeze AFTER adding the tooling the job calls, or call such
        tools from the live tree deliberately.
+
+630. **L 606's open question has a negative answer on the obvious candidates: none of the five outcome rows is both
+     reachable-independently-of-the-level and signal-bearing, so a second fitted parameter has no good target and
+     `twin_isf_mult` should stay on t70.** L 606 asked for a target that is both REACHABLE (body parameters move it,
+     or the fit runs to its clips) and SIGNAL-BEARING (not dominated by the draw), and named per-person t54 and TIR
+     as candidates. Both are now measured from arms already on disk — 39 draw-3 arms for leverage, the reference's
+     three draws for noise, all on `twin.csv`'s paired deviation (`resid_tools/target_screen.py`):
+
+     | row | leverage (IQR across 39 arms) | noise (ref sd across draws) | ratio | r with `bg_mean` | verdict |
+     |---|---|---|---|---|---|
+     | `tir` | 1.557 | 0.402 | **3.88** | **−0.768** | highest leverage, but **59% of it is the level** |
+     | `bg_mean` | 2.662 | 1.573 | 1.69 | — | `resid_m` already owns this |
+     | `tdd` | 0.320 | 0.156 | 2.05 | +0.491 | known false positive — see below |
+     | `t70` | 0.126 | 0.115 | 1.10 | −0.053 | reachable, noise-dominated (confirms L 602) |
+     | `t54` | 0.033 | 0.037 | **0.89** | +0.175 | **RULED OUT: the draw moves it as much as any body parameter** |
+
+     - **t54 is eliminated as a fitting target** — leverage BELOW the draw noise. That half of L 606's question is
+       settled: a fit against it would chase the draw.
+     - **TIR, the other candidate, fails for the opposite reason.** Its raw leverage-to-noise is the best of the five
+       (3.88), but it correlates at −0.768 with the level, so 59% of that leverage is `bg_mean`'s, which `resid_m`
+       already fits. Its level-independent leverage is 0.654 against a noise of 0.402 — ratio ~1.6, no better than
+       t70's position.
+     - **The screen's own limitation, stated because it produces one known false positive**: leverage across arms
+       cannot tell genuine from level-mediated reach. `tdd` reads 2.05 "usable" here, yet L 629 showed by refit that
+       the one parameter that moved it did so entirely through the level. So read this screen WITH the `bg_mean`
+       column, and treat a high ratio with a high |r| as unproven. (`tdd`'s r of +0.491 is the screen's weakest
+       point: the refit test is decisive where this projection is not.)
+     - **Leverage here is an UPPER BOUND for any single parameter**, since the 39 arms carry different mechanisms.
+       A row no heterogeneous set of 39 arms can move beyond the draw noise certainly cannot be moved by one
+       parameter; the converse does not follow.
+     - **Consequence: do not add a second fitted parameter.** The status quo (`resid_m` <- level, `twin_isf_mult`
+       <- t70) is not obviously improvable on these five rows, and L 606 already measured what happens when a fit is
+       pointed at an unreachable target. If this is revisited, the target should come from OUTSIDE the outcome rows —
+       something with mechanism-specific leverage and low draw noise — not from this list.
