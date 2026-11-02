@@ -58,11 +58,32 @@ class BodyParams:
                                    # insulin-independent uptake, mg/dL above `sg_g0`. 0 = off (use sg_kappa / linear).
                                    # Fitted 63.2 with sg_g0 80.4 and sg 0.00403 to ice's UNBIASED band profile
                                    # (their 2026-11-02 reply: same-span bins, 0.235 / 0.118 / 0.053 / 0.024 /h),
-                                   # RMS 0.0008 /h. Keeps the near-low force at 0.242 /h (default 0.270) while
-                                   # cutting 130-250 five- to tenfold; the kink forms cannot do both.
+                                   # RMS 0.0008 /h. MEASURED AND REJECTED (L 642): band-faithful here means
+                                   # x0.32 of the default dwell-weighted force, and the cohort cost orders with that
+                                   # integral whatever shape removes it - t70 ~2.3x the reference and t54 3-4.7x on
+                                   # all three draws, worse than either kink. The "near-low force 0.242" of L 641 is
+                                   # the LOCAL SLOPE; the force a low feels is the span average from Gb, 0.177 at
+                                   # G 65, so this form is WEAKER below 130 than `sg_kappa`, not stronger. Off.
     sg_g0: float = 80.0            # glucose below which the insulin-independent force is at FULL strength (mg/dL).
                                    # Below Gb deliberately: ice's profile is steepest below 90, and the zero of the
                                    # term stays at Gb by construction (the excess is F(G) - F(Gb)).
+    sg_rate: float = 0.0           # A1e, RATE-keyed restoring force (L 642), as a multiple of `sg`: the flux opposing
+                                   # (G - G_slow), where G_slow is the body's own exponential average of glucose over
+                                   # `sg_rate_tau`. 0 = off (the default). (G - G_slow) / tau IS the filtered rate of
+                                   # change, so this is a force against fast MOTION rather than against a level, and it
+                                   # is zero whenever glucose is steady - at ANY level. Two consequences are the point
+                                   # of it: it acts during a descent, in whatever band the descent crosses, which is
+                                   # where L 642 measured the leverage over t70 to be; and it is mean-preserving, so
+                                   # the `resid_m` level refit cannot convert it back the way it did five level-mediated
+                                   # gains (L 597, 604, 629). It also does NOT resist a settings edit: a sustained level
+                                   # change is followed by G_slow within ~tau and the force decays to zero, which is what
+                                   # no level-keyed term can do. Magnitude UNMEASURED - asked of ice's trend-consistent
+                                   # probe (handoff 2026-11-02-additive-ice-rate-dependent-force); this knob exists to
+                                   # cost the mechanism CLASS first. Mechanistic candidate: counter-regulation's known
+                                   # rate-dependence (the hormonal threshold is higher during a rapid fall).
+    sg_rate_tau: float = 60.0      # the averaging window for G_slow, min. 60 from ice's own probe result that the fast
+                                   # part of the learned force depends on recency (H = 1 slopes 1.5-2x H = 3, in BOTH
+                                   # directions, with H = 3 and H = 6 matching - so nothing accumulates past ~3 h).
     sg_kappa: float = 0.0          # glucose-dependence of INSULIN-INDEPENDENT uptake, by analogy with kappa (L 637):
                                    # above Gb the excess it acts on rises at this fraction, below Gb full strength.
                                    # 0 = linear in (G - Gb), as before. ice L 140a's learned background slope falls
@@ -224,6 +245,7 @@ class Body:
         self.p = p
         self.form = get(formulation)
         self.g = p.gb
+        self.g_slow = p.gb                   # A1e: the body's own exponential average of glucose (sg_rate, L 642)
         self.ip = p.ib * p.vi                # mU/kg
         self.xd = p.si_d * p.ib
         self.xe = 0.0
@@ -482,6 +504,9 @@ class Body:
             ge = p.sg * self._sg_excess(g) - (p.f_ii * (1.0 - g / p.g_ii) if g < p.g_ii else 0.0) / p.vg
         else:
             ge = p.sg * self._sg_excess(g)
+        if p.sg_rate > 0.0:                  # A1e (L 642): a force against fast MOTION, zero at any steady level
+            ge += p.sg * p.sg_rate * (g - self.g_slow)
+            self.g_slow += dt * (g - self.g_slow) / max(p.sg_rate_tau, 1e-6)
         dg = (-ge - (xact * mm * self.risk(g) - p.si_d * p.ib * p.gb)
               + (egp - p.egp_b - uex + ra + util_drop) / p.vg - renal)
         self.g = max(10.0, g + dt * dg)

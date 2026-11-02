@@ -55,7 +55,19 @@ name (c135, lg12, sd3) is a run under the matching dated run dir. Values are the
   saturation in absolute glucose (`sg` 0.00403, `sg_km` 63.2, `sg_g0` 80.4; RMS 0.0008 /h) which holds the near-low
   force at 0.242 against the default 0.270. ice also bound the direction asymmetry that L 640 reported at ~1.0 near
   lows and 1.3-1.6x at 90-180, i.e. mostly curvature, and measured the fast part as depending on recency (H = 1
-  slopes 1.5-2x H = 3, symmetric in direction) rather than on direction. Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
+  slopes 1.5-2x H = 3, symmetric in direction) rather than on direction. **BOTH FORMS ARE NOW MEASURED AND THE
+  COMPONENT IS CLOSED (L 642)**: the smooth form replicates the change response on mean (1.21 -> 1.06) and TIR
+  (1.16 -> 1.05) and makes t70's WORSE (1.01 -> 1.24), while costing more on the low side than either kink
+  (t70 3.97 / 3.93 / 2.91 against the donors' 1.60; t54 0.58 / 0.70 / 0.48 against 0.190, the guard row at 3-4.7x
+  the reference) with the level held exactly. The "near-low force 0.242" above is a LOCAL SLOPE and not what a low
+  feels: the term applies `excess = F(G) - F(Gb)`, whose span from Gb crosses the saturated region, giving 0.177 at
+  G 65 against the kink's full-strength 0.270 - so the smooth form is the WEAKER of the two below 130, the reverse
+  of what L 641 predicted. Ordered by the dwell-weighted force kept (default 1.00, `sg_kappa` 0.15 x0.46, smooth
+  x0.32, `sg_kappa` + `sg_mult` 0.55 x0.25) the cohort cost is monotone across both shapes, so band-faithfulness to
+  this profile IS a constraint on the integral and no parameterisation of A1d avoids the cost. One result survives
+  and is useful: below Gb `sg_kappa` 0.15 is bit-identical to the reference (0.270 /h at G 65 and G 90) and its t70
+  still doubles, so **the restoring force that prevents a low acts in the 90-180 band during the descent, not at
+  the nadir** - which is why every nadir-peaked `sg_h_lo` variant fixed duration and broke penetration. Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
   the donors' (151.7 vs 151.4), CV 33.2 (34.8), breakfast tail +30 / 26 / 21 at 3–4 h (+27 / 22 / 16), lows 0.58 → 0.42 /
   day (L 208). Lower SG brings lows on but raises the level: `sg_mult` 0.7 / 0.5 (c349) t54 0.123 / 0.190% (0.190), but
   mean 160.9 / 163.9 and TIR 69.2 / 67.0 fail (L 349, 356). Gb stays drawn: `gb_own` (donor median quiet CGM 00–06 h,

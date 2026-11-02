@@ -3101,6 +3101,9 @@ the high side, which is the first configuration of A1d that could plausibly surv
   0.270** — within 13%, no low-side defense lost — while cutting 130-250 five- to tenfold, where a settings
   edit's glucose response lives. Neither kink can do both: `sk1` keeps the low side but only reaches 0.206 at
   90-130 (against 0.118) and `sk2` buys the high side by thinning the low side.
+  **WRONG, corrected in L 642**: 0.242 is the LOCAL SLOPE near lows, not the force a low feels. The term applies
+  `excess = F(G) - F(Gb)`, whose span from Gb down to 65 crosses the saturated region above `sg_g0`, so the force
+  at G 65 is **0.177** - two thirds of the default, not 90% of it.
 - **Implemented as `sg_km` / `sg_g0`, with the excess taken as F(G) − F(Gb)** so the term's zero stays exactly at
   Gb however low the threshold sits — the basal balance is untouched, which is why `sg_kappa`'s kink could not
   place a breakpoint below Gb at all. Verified before queueing: the band profile is reproduced in the real step
@@ -3118,3 +3121,150 @@ the high side, which is the first configuration of A1d that could plausibly surv
   which is the point of running it. What IS predicted: the change response should improve about as `sk1`'s did
   (the cut at 130-250 is comparable or deeper), and the low-side cost should be SMALLER than both kinks, because
   this is the only form that leaves the sub-basal force essentially at the default.
+  **The second prediction is REFUTED and its premise was false (L 642)**: `_sg_excess` returns `g - gb` unchanged
+  below Gb, so `sk1` already leaves the sub-basal force at the FULL default (0.270 /h at G 65), and the smooth
+  form is the weaker of the two there. The low side came out worse than both kinks on all three draws.
+
+**642. The smooth form's low-side prediction was BACKWARDS, and the reason closes the whole A1d mechanism class:
+the cost is the dwell-weighted force removed, whatever shape removes it, and the restoring force that prevents a
+low sits in the 90-180 band — not at the nadir.** (job 164, `164_sm.sh`; arms `sm1_e` on the e pool's 580 events,
+`sm1`/`sm1_5k` unrefit, `smf`/`smf_5k`/`smf_9k` after three `lvl_resid` rounds; `force_cmp.py` in the run dir.)
+
+- **It ran clean.** No-op check "real arm" on all 60 e-pool events and all three cohort draws, the knob check
+  shows `sg_km=63.2,sg_g0=80.4,sg_mult=0.896` on every arm, `sm1` has no cached people, and the refit converged
+  (|gap| p50 13.9 -> 2.7, twin-donor rho 0.97). So every number below is the arm, not the control.
+- **CHANGE RESPONSE: replicated on mean and TIR, WORSE than the reference on t70.** Level-adjusted
+  (`score_change_lvl.py`, never the raw ratio) the smooth form carries mean 1.21 -> **1.06** and TIR 1.16 ->
+  **1.05**, matching `sk1`'s 1.22 -> 1.06 and 1.17 -> 1.08. But t70 goes 1.01 -> **1.24** against `sk1`'s 1.03 and
+  rf2's 1.09 — the variant responds +1.58 where the field responds +2.00, so the low-side response is now the most
+  damped of any arm. Its one gain is `rho_t70` +0.24, the best measured, but the ratio is the row that matters.
+- **LOW SIDE: worse than both kinks, on all three draws, which is the opposite of the prediction.**
+
+  | row | donors | rf2 | skf (kink) | smf (smooth) |
+  |---|---|---|---|---|
+  | t70 | 1.599 | 1.76 / 2.12 / 1.51 | 3.38 / 3.76 / 2.58 | **3.97 / 3.93 / 2.91** |
+  | lows / day | 1.000 | 1.00 / 1.25 / 0.88 | 1.79 / 2.08 / 1.46 | **1.92 / 2.00 / 1.54** |
+  | t54 (guard) | 0.190 | 0.12 / 0.23 / 0.15 | 0.40 / 0.48 / 0.28 | **0.58 / 0.70 / 0.48** |
+  | bg_cv | 34.65 | 34.2 / 35.4 / 35.1 | 40.6 / 41.5 / 42.0 | 41.2 / 41.2 / 42.1 |
+  | score | | 0.309 / 0.357 / 0.397 | 0.427 / 0.477 / 0.510 | **0.453 / 0.540 / 0.532** |
+
+  The level is held exactly again (bg_mean 151.3 / 150.8 against the donors' 151.9 on draws 1-2), so none of this
+  is the level. **t54 at 0.58-0.70 against the donors' 0.190 is 3-4.7x the reference on a guard row** — AGENTS.md
+  treats an unusually large rise in t<54 as disqualifying on its own.
+- **WHY it was backwards: I compared the smooth form's LOCAL SLOPE near lows with the kink's SPAN-AVERAGED force.**
+  The simulation applies `sg x excess(G)` with the excess taken as F(G) - F(Gb), so the force a low actually feels
+  is the average over the span from Gb down to G — and that span crosses the saturated region between `sg_g0` 80.4
+  and Gb ~119. Measured in the real step path over 806,440 min of rf2 ground truth:
+
+  | arm | G 65 | G 90 | G 130 | G 180 | G 250 | dwell-weighted | x default |
+  |---|---|---|---|---|---|---|---|
+  | rf2 default | 0.270 | 0.270 | 0.270 | 0.270 | 0.270 | 0.2700 | 1.00 |
+  | `sk1` kink 0.15 | **0.270** | **0.270** | 0.054 | 0.040 | 0.040 | 0.1249 | 0.46 |
+  | `sk2` kink + x0.55 | 0.148 | 0.148 | 0.030 | 0.022 | 0.022 | 0.0687 | 0.25 |
+  | `smf` smooth | **0.177** | **0.131** | 0.085 | 0.059 | 0.041 | 0.0876 | 0.32 |
+
+  So L 641's "0.242 against the default's 0.270, no low-side defense lost" is wrong: the force at G 65 is
+  **0.177**, two thirds of the default. And the premise that this is "the only form that leaves the sub-basal force
+  essentially at the default" is wrong the other way — `_sg_excess` returns `g - gb` UNCHANGED for d <= 0, so
+  **`sk1` leaves the low side at the full default by construction**, and the smooth form is the weaker of the two
+  below 130. There was never a low-side distinction to test.
+- **THE CLASS IS CLOSED, and now with a mechanism rather than an arithmetic bound.** Order the four arms by the
+  dwell-weighted force they keep — 1.00, 0.46, 0.32, 0.25 — and the cohort cost orders with it monotonically,
+  across two forms with quite different shapes. L 640 predicted this from the integral alone; it is now measured on
+  a second form. **No parameterisation of A1d escapes it**, because band-faithfulness to ice's profile IS a
+  constraint on the integral. `sg_kappa` and `sg_km` both stay off by default. Do not spend another arm here.
+- **The L 639 and L 640 readings are the same finding, but NOT the same number.** `resid_m`'s fitted mean goes
+  -7.69 (rf2) -> -20.43 (`skf`) -> **-20.96** (`smf`), so the drift the refit must supply orders exactly as the
+  force removed does, and the lows order with both. They are co-monotone by construction. They are not an
+  identity: the force lost dwell-averages to ~4.8 mg/dL/h between rf2 and `skf` while the drift rises 12.7, about
+  2.6x more, because the refit is holding a LEVEL inside a closed loop rather than replacing a flux — Loop's own
+  response is part of the balance (TDD is flat across all three arms, 41.9 -> 41.4 -> 40.9 on draw 1, so the
+  controller is not dosing more).
+- **The useful finding is for L 600, and it is a direct measurement: the nadir force has almost no leverage over
+  t70; the mid-band force has all of it.** Below Gb, `sk1` is bit-identical to rf2 — 0.270 /h at G 65 and at G 90
+  — and its t70 still roughly DOUBLES. Every bit of that extra low time is bought by what happens ABOVE Gb. So the
+  term that keeps a descent from becoming a low acts in the 90-180 band on the way DOWN, not at the bottom. This
+  explains, from the opposite direction, why every `sg_h_lo` variant of L 596-600 fixed duration and broke
+  penetration: a term peaking at the nadir is acting where there is no leverage. **Amend L 600's requirement**: it
+  is not only "a term acting AFTER the nadir" — a term acting BEFORE it, during the descent, is the one the
+  measurement supports, and the model's existing linear SG is what currently supplies it.
+- **What this does to the question with Pete.** It does not make it moot, it narrows it: there is no version of
+  A1d that buys the change response without the lows, so the choice is strictly (a) leave it off, or (b) enable
+  `sg_kappa` 0.15 for change-prediction work only, the way `ex_abs` is used for exercise — never on the cohort
+  reference. The third option, holding the level with something glucose-dependent instead of `resid_m`'s constant,
+  is now the only live research direction and it is OUTSIDE this component.
+- **The follow-on is implemented and queued as job 165 (A1e, `sg_rate`).** The trilemma A1d leaves is that a
+  band-faithful LEVEL force is needed for the change response and costs the lows, and that no level-keyed shape
+  escapes it. A RATE-keyed force is a different object on exactly the two axes that matter: it is
+  **mean-preserving** (the flux is `sg x sg_rate x (G - G_slow)`, exactly 0.000000 at steady glucose of 70 / 119 /
+  180 / 250), so the `resid_m` level refit cannot convert it back the way it did five level-mediated gains; and it
+  **does not resist a settings edit** (pin glucose at a new level and the force decays 7.26 -> 4.38 -> 2.65 ->
+  0.97 -> 0.13 mg/dL/h over 4 h as `G_slow` follows). So it could supply the descent brake A1d's cut removes
+  WITHOUT handing back A1d's change-response gain — the one configuration in which the band evidence becomes
+  adoptable at all. It is also the first mechanism in the model that acts asymmetrically in TIME around a peak
+  rather than at a level, which is what L 575 concluded the missing fall / rise term must do, and the only
+  candidate besides `ge_beta` with a route to `acf_zero_min`. The sharpest prediction is the level debt: it should
+  be ~0 on the unrefit pair, and if bg_mean drifts materially then the term is not mean-preserving inside a closed
+  loop and the whole rationale collapses. The row at risk is the meal tail, since a fast post-meal rise is
+  precisely what it brakes. Magnitude is UNMEASURED — `sg_rate` 1.0 is chosen to be visible, not to be right — and
+  ice's trend-consistent probe is asked for it in
+  `docs/handoffs/2026-11-02-additive-ice-rate-dependent-force.md`.
+
+**643. ice's rate probe refutes the keying I asked for and supplies something better: the donors' restoring force
+has TWO STATES, and my model has been running the FALLING one all along — which resolves L 642's trilemma and
+re-reads L 635-636.** (ice LESSONS 161: 60 donors, 1,186 held-out points, two trainings, the last hour of glucose
+ramped from −2 to +2 mg/dL/min with `bg_trend` / `bg_pred30` / `heading_low` / `low30` recomputed; their branch
+`ice` commit `4086c500`, per-point CSVs on gamepc under `runs/2026-11-01-ice-stateabl/`.)
+
+- **There is no force keyed to dG/dt.** With the glucose channels moved and the ICE history held at its real
+  values (their arm A), background ICE shifts by at most 2 mg/dL/h across the whole ±120 mg/dL/h range, `dICE/dr`
+  is +0.7 and −0.7 in the two trainings — opposite signs, both near zero — and the falling / flat level-slope
+  ratio I asked for is **0.75 and 1.01**: no effect and no agreement on sign. Below 90 a fast RISE adds +9 to +12
+  (a treatment still acting) while a fast fall gives −1 to −3. So the question as I posed it is answered no.
+- **There IS a fall-state gain, keyed to the recent counteraction.** With the ICE history moved consistently too
+  (their arm B), the level slope in 90-130 is **−0.29 / −0.28 /h after an hour of falling against −0.13 / −0.12
+  flat — a gain of 2.2x / 2.4x** — and ~45% of the imposed velocity carries into the next predicted ICE, which is
+  momentum, not braking. In 130-180 the flat slope is near zero so no ratio is stable there.
+- **Arm B is the measurement that transfers and arm A is not.** A state where glucose fell over an hour but the
+  counteraction history says nothing caused it cannot occur in a self-consistent body, so arm A is off-manifold
+  and a network's response there is weak evidence about mechanism; arm B's positive is strong. My body is
+  self-consistent by construction, so `sg_rate` keyed to (G − G_slow) is a defensible REDUCED FORM of arm B: in a
+  trajectory the body itself produced, a fall IS the record that the non-insulin forces dropped. ice's own reading
+  is that the keying is to the counteraction and that the drop decays (~45% persists one step), which is a
+  sharper mechanism than mine and the thing to build if the reduced form works.
+- **MY MODEL HAS ONE STATE, AND IT IS THEIR FALLING ONE.** Measured on the arms' own traces
+  (`two_state_force.py`, 96,158 twin-minutes falling through 90-130 at ≤ −0.3 mg/dL/min):
+
+  | arm | 90-130 flat | 90-130 falling | gain |
+  |---|---|---|---|
+  | rf2 | 0.270 /h | 0.270 /h | 1.00x |
+  | `sk1` kink | 0.270 | 0.270 | 1.00x |
+  | `smf` smooth | 0.114 | 0.114 | 1.00x |
+  | **donors (ice arm B)** | **0.13** | **0.29** | **2.2-2.4x** |
+
+  Every restoring force in my body model is a function of the level, so the gain is 1.00 by construction. rf2
+  therefore **matches the donors' FALLING slope (0.270 against 0.29) and is ~2x their FLAT one.**
+- **So "SG is too high" (L 635, 636) was comparing two different states.** The prior was set against the
+  flat/unconditional band profile, and the 90-130 band is not uniformly too strong — it is about right for falls
+  and 2x too strong when glucose is steady. That is not a small correction: it is the difference between "cut the
+  force" and "make it state-dependent".
+- **It resolves L 642's trilemma, and the resolution PREDICTS the result I already have.** A uniform or high-side
+  cut lowers both states at once, so it fixes the change response — a settings edit is a sustained, quasi-steady
+  level shift, i.e. the FLAT regime — and removes the brake on descents, which is the doubled t70. Check it
+  against the two forms already measured: the smooth form cut 90-130 to **0.114**, right for flat and HALF what a
+  fall needs, and it had the **worst lows of any arm** (t70 3.97 / 3.93); `sk1` left 90-130 at **0.270**, near the
+  falling value, and its lows were **better** (3.38 / 3.76). **The two forms' low-side ordering is predicted by
+  their 90-130 force**, which is the consistency check that makes the reading credible rather than merely
+  available.
+- **Queued as job 167, sized from the measurement with nothing fitted.** Flat state: the L 641 smooth form, which
+  already reproduces ice's flat bands at RMS 0.0008 /h. Fall state: `sg_rate`, whose size is set by the deviation
+  the twins actually reach — median (G − G_slow) **−25.8 mg/dL while falling against −1.6 flat**, which is also
+  what makes the term inert in the flat state. `sg_rate` 0.55 gives **flat 0.114, falling 0.247, gain 2.17x**
+  against their 0.13 / 0.29 / 2.2-2.4x; `sr2` at 0.80 brackets above (0.308, 2.70x). The control is already run:
+  `sr1` differs from `sm1` by `sg_rate` alone. **The prediction that decides it** is that t70 comes back toward
+  rf2's 1.76 / 2.12 while the smooth form's change response (1.06 mean, 1.05 TIR level-adjusted) is kept, because
+  the rate term is transparent to a sustained level shift. **The isolation arm `rt1`** (the term alone, full
+  baseline) carries the sharpest falsifier: its level debt should be ~0, and if bg_mean drifts materially the term
+  is not mean-preserving in a closed loop and this whole class loses the L 597 immunity that makes it worth
+  compute. **The row at risk is the meal tail** — a fast post-meal rise is braked too, and ice's arm A hints their
+  gain may be fall-only, in which case the next form is a one-sided gate.

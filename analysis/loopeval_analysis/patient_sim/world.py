@@ -699,6 +699,8 @@ class World:
         if enable and isinstance(enable.get("sg_kappa"), float): bp = bp.scaled(sg_kappa=float(enable["sg_kappa"]))  # insulin-independent uptake saturation (L 637)
         if enable and isinstance(enable.get("sg_km"), float): bp = bp.scaled(sg_km=float(enable["sg_km"]))            # smooth (MM) form of the same term (L 641)
         if enable and isinstance(enable.get("sg_g0"), float): bp = bp.scaled(sg_g0=float(enable["sg_g0"]))            # its full-strength threshold (L 641)
+        if enable and isinstance(enable.get("sg_rate"), float): bp = bp.scaled(sg_rate=float(enable["sg_rate"]))      # A1e rate-keyed restoring force (L 642)
+        if enable and isinstance(enable.get("sg_rate_tau"), float): bp = bp.scaled(sg_rate_tau=float(enable["sg_rate_tau"]))  # its averaging window (L 642)
         if enable and "sg_h_lo_ins" in enable: bp = bp.scaled(sg_h_lo_ins=bool(enable["sg_h_lo_ins"]))   # L 599
         if enable and isinstance(enable.get("cr_tau_off"), float): bp = bp.scaled(cr_tau_off=float(enable["cr_tau_off"]))  # L 601
         if enable and isinstance(enable.get("cr_g"), float): bp = bp.scaled(cr_g=float(enable["cr_g"]))   # A9 half-activation glucose (L 559)
