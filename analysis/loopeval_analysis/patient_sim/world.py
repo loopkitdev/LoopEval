@@ -155,6 +155,13 @@ class World:
             person.body = person.body.scaled(ge_kcal_max=person.body.ge_kcal_max * m_, kempt=person.body.kempt * m_)
         if enable and isinstance(enable.get("ge_beta"), float):   # Elashoff power-exponential emptying shape (L 591)
             person = copy.copy(person); person.body = person.body.scaled(ge_beta=float(enable["ge_beta"]))
+        if enable and isinstance(enable.get("kabs_m"), float):
+            # GUT absorption alone, unlike `meal_k` which scales emptying with it (L 627). The default 0.05 was
+            # calibrated to the donors' LABELLED small pulses, a target the stale-label fix moved (L 626); Dalla Man
+            # identifies 0.057 and UVA/Padova 0.21 +/- 0.21. kabs sets the appearance TAIL, so it is the lever for
+            # the corrected duration and peak-height rows that gastric order barely touches.
+            person = copy.deepcopy(person)
+            person.body = person.body.scaled(kabs=person.body.kabs * float(enable["kabs_m"]))
         if enable and isinstance(enable.get("ge_kcal"), float):
             person = copy.deepcopy(person)        # gastric-emptying energy ceiling, kcal/min (the body and behavior both read it)
             person.body = person.body.scaled(ge_kcal_max=enable["ge_kcal"])
