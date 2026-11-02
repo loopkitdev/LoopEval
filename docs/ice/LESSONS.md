@@ -1783,3 +1783,29 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       little per unit (−3.4 mg/dL per U/day against the field's −10.2), which makes Loop add more. Neither pending
       insulin (157) nor the state calibrations carry it, leaving the network's own response to glucose and insulin
       history as the cause.
+
+159. **The push-back is the network holding the person's usual glucose level; judging the level against an adapting
+    own average removes it.** Test-time plant changes on the oc0 e checkpoint (frozen tree ~/frozen/ice-bgview on
+    gamepc, plant_v3 PLANT_BGVIEW / PLANT_BGADAPT / PLANT_BGADAPT_FADE; drivers probe_bv.sh, probe_view.sh in
+    runs/2026-11-01-ice-stateabl/; bv_compare.py, dirmeans_vs_oc.py in runs/2026-10-13-ice-change/):
+    - **Probe:** the network shown glucose 15 mg/dL lower than real (Loop and the calibrations see real glucose), first
+      80 e edits, paired by seed against oc0: ICE +3.0 mg/dL/h [+2.8, +3.3], real glucose +7.6 [+7.0, +8.2] although Loop
+      adds +1.65 U/day, t<70 −2.0. The generated person cancels about half of any lasting change in its glucose level.
+    - **Adapting view** (the level the network sees is bg − λ·(24 h EMA of CGM − the 14-day field mean before the run);
+      first 80 e edits, 76 without a blown-up run; on this subset oc already overstates t<70: +1.11 vs field +0.63):
+
+      | 76 edits, oc0 checkpoint | Field | oc0–4 | λ 1 | λ 1, fade 80–120 | λ 0.5, fade 80–120 |
+      |---|---|---|---|---|---|
+      | Mean, more insulin | −7.8 | −7.1 ± 0.9 | −11.0 | −10.4 | −8.5 |
+      | Mean, less insulin | +4.5 | +3.2 ± 0.5 | +4.6 | +5.1 | +4.4 |
+      | TIR, more insulin | +3.5 | +2.0 ± 0.4 | +2.9 | +3.8 | +2.8 |
+      | t<70, more insulin | +0.63 | +1.11 ± 0.09 | +2.35 | +1.40 | +1.24 |
+      | t<54, more insulin | +0.15 | +0.52 ± 0.04 | +1.52 | +0.75 | +0.59 |
+      | Own-settings TIR vs field, median | | −4.4 to −6.9 | −12.1 | −11.6 | −8.6 |
+
+    - **Reading:** with λ 1 the person no longer defends its level at all: glucose overshoots, the low side doubles and
+      the own-settings level drifts (no homeostasis left to hold the calibrated level). The fade keeps the level
+      absolute near lows (adaptation full above 120 mg/dL, none below 80), which is what tamed t<70/t<54. λ 0.5 with
+      the fade matches the field's mean response in both directions; the cost is 2 points of own-settings level,
+      plausibly because the level calibrations were fit without it. Physiological reading: counter-regulation and
+      symptom thresholds follow a person's average glucose. Full e pool on oc0/oc1 running (launch_ba05f_full*.sh).
