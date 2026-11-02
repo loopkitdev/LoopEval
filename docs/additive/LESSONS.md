@@ -2678,3 +2678,22 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
        here, and a stale `.done` sentinel from an earlier job made a watcher fire before its job had started. **Any
        harness that pins its own code must say so where the launcher can see it, and any new knob needs a positive
        control — an arm that MUST differ — before its result is read.**
+
+633. **`git add -A` stages a STALE SUBMODULE POINTER, and that broke clean builds of `main`.** Commit 1d916cfa
+     (a C4 threshold change, LESSONS 553) also moved `LoopAlgorithm` from c35b73b back to 9b5f3e5, because this
+     worktree's submodule checkout was behind and `git add -A` at the repo root stages that difference as a real
+     change. The engine's `generatePrediction` call needs c35b's `iceDoses` parameters, so a clean checkout of `main`
+     stopped building; the trio role found it and restored the pointer in 7668fbde.
+
+     - **Nothing in my own workflow would have caught it.** This role's commits are documentation and Python under
+       `analysis/`; the submodule is invisible to every check I run, and `git status` reads CLEAN once the stale
+       pointer is committed, because the index then agrees with the stale checkout. The regression is only visible
+       as `git ls-tree HEAD LoopAlgorithm` against `origin/main`'s.
+     - **Practice, from now on:** stage explicit paths — `git add docs analysis` — not `-A`, in any worktree with a
+       submodule. Before a commit that used `-A` anyway, check `git ls-tree HEAD LoopAlgorithm` against
+       `git ls-tree origin/main LoopAlgorithm` and run `git submodule update` if they differ.
+     - **The `--ff-only` publish rule is what limits the damage** (AGENTS.md): my branch recorded 9b5f3e5 while
+       `main` had c35b73b, so the next `git -C <main> merge --ff-only` would have REFUSED rather than silently
+       regressing the fix. The rule earns its keep here — do not work around a refusal by merging the other way.
+     - Recovered by merging `origin/main` (bringing 7668fbde) and then `git submodule update --init`, which checked
+       out c35b73b; `git status` clean and `git ls-tree HEAD LoopAlgorithm` now matches `main`.
