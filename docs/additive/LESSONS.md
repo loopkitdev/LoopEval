@@ -2488,10 +2488,11 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      - **Even at order 3 the duration gap is only a sixth closed** (1.876 → 1.803 against a target of 1.577), so
        order alone is not the whole mechanism.
      - **Instrument check, with the ground truth only this role has** (`resid_tools/label_vs_truth.py`): on
-       **isolated** pulses the labeller reads peak 58.1 min against the twins' TRUE `ra` peak of 69.2 and duration
-       184 min against 204 — about 16% and 10% early/short. So the labelled numbers are not the body's, on either
-       side; they are fair labelled-to-labelled, and **a labelled target must never be used to calibrate the body's
-       appearance directly.**
+       **isolated** pulses the labeller reads peak 58.1 min against the twins' TRUE `ra` peak of 69.2 — about 16%
+       early. (The duration half of this check, "184 against 204", is **WITHDRAWN** — see L 628: it is a window
+       statistic, not a pulse duration.) So the labelled peak is not the body's, on either side; the rows are fair
+       labelled-to-labelled, and **a labelled target must never be used to calibrate the body's appearance
+       directly.**
      - **That check itself nearly produced a phantom**: measured over ALL pulses the apparent instrument bias was
        37.3 against 66.8 min (−44%), because a second pulse inside the 4-hour window owns the true-`ra` argmax. The
        isolation filter cut it to −16%. Any statistic that integrates forward over hours needs an overlap filter
