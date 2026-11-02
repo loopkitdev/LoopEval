@@ -1848,3 +1848,30 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       force is the same in both states by construction, near this falling value, and twice the flat one.
     - Limits: the ramp starts with a step one hour back, and the medians of small slopes are noisy; arm B's 45% is a
       one-step conditional mean, which sensor noise in real ICE also shrinks.
+
+162. **On the full e pool the half-adapting level view closes a third of the more-insulin gap and overshoots the
+    less-insulin side; not kept as is.** λ 0.5, fade 80–120, both trainings (oc0 / oc1 checkpoints), 335 scored edits,
+    against oc0–4 (dirmeans_vs_oc.py, level_check.py in runs/2026-10-13-ice-change/):
+
+    | 335 edits | Field | oc0–4 | λ 0.5, fade 80–120 | z |
+    |---|---|---|---|---|
+    | Mean, more insulin (n 159) | −8.60 | −5.74 ± 0.56 | −6.86 | −2.4 |
+    | Mean, less insulin (n 139) | +5.05 | +5.03 ± 0.28 | +5.73 | +3.0 |
+    | TIR, more insulin | +3.76 | +1.99 ± 0.19 | +2.51 | +3.2 |
+    | TIR, less insulin | −1.24 | −1.87 ± 0.06 | −2.13 | −5.4 |
+    | t<70, more insulin | +0.73 | +0.77 ± 0.09 | +0.84 | +0.9 |
+    | t<70, less insulin | −0.85 | −0.71 ± 0.08 | −0.80 | −1.3 |
+    | t<54, more / less | +0.15 / −0.12 | +0.32 / −0.28 | +0.33 / −0.31 | |
+    | Own-settings TIR vs field, median | | −4.1 to −6.0 | −7.1 / −5.7 | |
+
+    - The 76-edit subset (lesson 159) over-promised: there oc's more-insulin mean was already near the field; on the
+      full pool the gap is larger and the arm closes 1.1 of 2.9 mg/dL. Per-edit correlation is unchanged (TIR r 0.29 /
+      0.31 against 0.24–0.33).
+    - The less-insulin side, which oc already matched on mean, now overshoots beyond noise: the adaptation is full
+      above 120 mg/dL, where less insulin takes the person, so it lets the level drift up as freely as down.
+    - **Not a level confound:** own-settings levels differ from oc by 1–3 mg/dL; the level correction moves the
+      more-insulin response by 0.1.
+    - **Where the remaining push-back is:** by tertile of the person's own level, more insulin, oc → arm → field: low
+      −3.1 → −3.4 → −5.5, mid −5.3 → −6.2 → −10.0, high −8.7 → −10.0 → −9.5. The arm helps where it is least needed;
+      the low and middle thirds, who spend time below 120 where the fade turns adaptation off, still cancel about
+      half the change. Next arm: fade 70–100 (launch_ba05f70_full*.sh).
