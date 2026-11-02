@@ -20,8 +20,8 @@ through its guard, which frontier found should be left alone. Does GBAF on top o
     ramp Loop ships (below): it never delivers less than the flat 0.4, so it tests only the "more when high" half.
   - `gr_gbaf10`: steeper, 0.4 at ≤ 140 rising to 1.0 at ≥ 250.
   - Loop's deployed `GlucoseBasedApplicationFactorStrategy` ramps 0.2 at lower target + 10 to 0.8 at 200 mg/dL, keyed on
-    current BG, and so also delivers less than 0.4 near target. It is run as `gr_gbafL` and `sl2_gbafL` (job 166), low
-    anchor from each donor's scheduled lower target over the last 35 days.
+    current BG, and so also delivers less than 0.4 near target. It is run as `gr_gbafL` and `sl2_gbafL`, low anchor from
+    each donor's duration-weighted scheduled lower target over the last 35 days (median 110 mg/dL).
 - **Run dir:** `runs/2026-10-31-myloop-e8-gbaf/` (`arms.py`).
 
 ## Measures
@@ -44,7 +44,24 @@ and `gr_pn110`.
 - The generator's body uses each donor's deployed insulin curve, so this tests delivery timing and amount, not curve
   shape.
 
-## Result (2026-11-01): the default ramp on gr gives a small lift over the dial, in both trainings
+## Result: Loop's deployed ramp gives +0.41 on gr and nothing on the ledger base
+
+| Base | Arm | ΔTIR | Δt<70 | Δt<54 | Δ IOB at 54 (U) | lift at matched t<70 | training 0 / 1 |
+|---|---|---|---|---|---|---|---|
+| gr | `gr_gbafL` (deployed, 0.2 → 0.8) | +0.72 [+0.53, +0.93] | +0.057 | +0.024 | +0.045 | **+0.41 [+0.21, +0.64]** | +0.43 / +0.39 |
+| gr | `gr_gbaf` (default, 0.4 → 0.7) | +0.60 [+0.44, +0.76] | +0.073 | +0.026 | +0.019 | +0.23 [+0.04, +0.42] | +0.21 / +0.25 |
+| ledger | `sl2_gbafL` (deployed) | +0.32 [+0.14, +0.50] | +0.068 | +0.040 | +0.094 | −0.00 [−0.25, +0.23] | −0.01 / −0.00 |
+| ledger | `sl2_gbaf` (default) | +0.29 [+0.12, +0.45] | +0.064 | +0.028 | +0.069 | −0.03 [−0.27, +0.18] | +0.03 / −0.10 |
+
+- **On gr the deployed ramp passes all three bars.** Its lift is above the 0.2–0.4 training-noise band and nearly twice
+  the default ramp's: cutting delivery below 0.4 near target buys TIR at less t<70 than the dial (bar 2: Δt<54 0.024
+  against the dial's ≈ 0.036 at +0.72 TIR).
+- **On the ledger base (gr2 + stateless slow RC) neither ramp gives lift**, and the deployed ramp's Δt<54 (0.040) is
+  above the dial's at the same ΔTIR (≈ 0.026), so it fails bar 2 there. The slow RC takes up what GBAF adds on gr.
+- GBAF is therefore not a candidate on top of the shipped base. On its own it is a lift of the same order as the slow
+  RC's (+0.46 over the dial on gr2), measured on a different base, and the two do not add.
+
+## Detail (2026-11-01): the default ramp on gr
 
 Run: `runs/2026-10-31-myloop-e8-gbaf/` (`arms.py`, `scores_*.csv`). 166 donors × 2 trainings, all 664 new runs scored.
 Change against `gr_p0`, mean of the two trainings, 95 % person bootstrap:
