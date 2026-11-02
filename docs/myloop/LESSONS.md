@@ -64,3 +64,9 @@
     force, and the generator's force is a model too. On field settings edits SG 0.01 sizes TIR (coefficient 0.95) but
     leaves t<70 at 0.21, still about 5× overstated (ice LESSONS 152): the generator agrees with replay-plus-SG, the field
     does not, so the force is not the whole low-side story. See `E7-truth-test.md`.
+11. **Loop's GBAF on gr gives a small lift over the needs dial (E8, 2026-11-01).** The Loop form of CamAPS's
+    glucose-dependent delivery: on the ice generator (166 donors × 2 trainings, no entries, AF 0.4 base) the shipped
+    GBAF gives +0.60 TIR for +0.073 t<70, +0.23 TIR [+0.04, +0.42] over the dial at matched t<70, +0.21 and +0.25 per
+    training. A steeper ramp (to 1.0 at 250) gives more TIR at the same lift. Insulin spent when glucose is high is
+    cheaper on lows than the same insulin spread by the dial. The lift is at the low edge of what training noise can
+    hide, and below C38's +0.33. See `E8-gbaf-gr.md`.

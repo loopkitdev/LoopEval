@@ -39,3 +39,31 @@ and `gr_pn110`.
 - Only the no-entry regime with automatic bolus for everyone. Announced meals and temp-basal users are not tested.
 - The generator's body uses each donor's deployed insulin curve, so this tests delivery timing and amount, not curve
   shape.
+
+## Result (2026-11-01): GBAF on gr gives a small lift over the dial, in both trainings
+
+Run: `runs/2026-10-31-myloop-e8-gbaf/` (`arms.py`, `scores_*.csv`). 166 donors × 2 trainings, all 664 new runs scored.
+Change against `gr_p0`, mean of the two trainings, 95 % person bootstrap:
+
+| | ΔTIR | Δt<70 | Δt<54 | Δ IOB at 54 (U) | ΔU/day |
+|---|---|---|---|---|---|
+| needs 1.05 (dial) | +1.02 [+0.84, +1.20] | +0.203 | +0.051 | +0.066 | +0.72 |
+| needs 1.10 (dial) | +1.78 [+1.52, +2.05] | +0.415 | +0.112 | +0.127 | +1.54 |
+| `gr_gbaf` (0.4→0.7, 140→220) | +0.60 [+0.44, +0.76] | +0.073 | +0.026 | +0.019 [−0.007, +0.046] | +0.52 |
+| `gr_gbaf10` (0.4→1.0, 140→250) | +0.77 [+0.58, +0.97] | +0.107 | +0.037 | +0.054 | +0.80 |
+
+TIR over the dial line at matched t<70:
+
+| | lift | training 0 | training 1 |
+|---|---|---|---|
+| `gr_gbaf` | +0.23 [+0.04, +0.42] | +0.21 | +0.25 |
+| `gr_gbaf10` | +0.24 [+0.03, +0.44] | +0.13 | +0.34 |
+
+- **Bar 1 passes** for both arms: CI above 0, same sign in both trainings. At matched t<54 the lift is +0.08 and +0.02,
+  CIs spanning 0.
+- **Bar 2 passes:** Δt<54 is at or below the dial's at the same ΔTIR (dial ≈ 0.030 at +0.60 TIR; `gr_gbaf` 0.026).
+- **Bar 3, borderline:** a lift of +0.23 sits at the bottom of the 0.2–0.4 band set from ice's training-to-training
+  SD. The paired arms agree across trainings (+0.21 / +0.25), which that SD does not measure.
+- The steeper form buys more TIR for proportionally more t<70; its lift is no larger. GBAF's edge is where it spends
+  insulin (when glucose is high), not how much.
+- Smaller than C38 slow RC on gr (+0.33 [+0.07, +0.56], frontier). Whether the two add up is not measured.
