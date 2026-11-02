@@ -223,22 +223,17 @@ reference changes.
   stops a descent becoming a low therefore acts in the **90-180 band on the way DOWN**, not at the bottom, and the
   model's existing linear SG is what supplies it today. This explains from the other side why every `sg_h_lo`
   variant fixed duration and broke penetration: a term peaking at the nadir acts where there is no leverage. Read
-  L 600's requirement as "before or through the nadir, in the mid band", not "after it". **And there is now a second
-  measured gap that fits the requirement exactly, in its CORRECTED form (L 644, resized by L 645)**: decomposed as
-  ice's L 163 prescribes — `b_k` = the slope of the force deviation at +5k min on its value at t, with `b1`
-  discarded because differencing biases it and our truth carries no noise — **the donors lose 41% of a force
-  deviation between 5 and 10 min and we lose 1%** (`b2/b1` 0.59 against 0.99, both draws). Every term in our
-  non-insulin force is either level-keyed, so it returns only when glucose does, or slow (gut transit, EGP
-  suppression); nothing of ours dies inside ten minutes, and a deviation that does is exactly a force coming back
-  during the climb out of a shallow low. **ice's own generator has that fast part too** (`b2/b1` 0.56), so the
-  absence is ours alone and is confirmed by an independent model of the same donors. **The SLOW part is a
-  different matter and is NOT ours to size**: our half-life is 39-42 min against ice's generator at 41 and the
-  donors at 21-23, so a component tuned to the donors' slow decay would chase a 2x discrepancy the best learned
-  model of those donors also shows. Persistence has NO state dependence on either side (falling equals flat
-  everywhere), so A1e / `sg_rate` cannot address either half — it steepens the level slope while glucose moves and
-  leaves the decay untouched. L 644's own sizing arithmetic (noise as large as the signal) is withdrawn: it
-  corrected the wrong quantity.
-
+  L 600's requirement as "before or through the nadir, in the mid band", not "after it". **The force-PERSISTENCE line of
+  L 644-645 is CLOSED and did not survive (L 646)**: matched on the instrument — our own sensor model put in the
+  path, which for a CGM-derived rate is a closed-form addition (`ICE_cgm = F + 12*(eps(t+5) - eps(t))`), not a
+  rerun — our `b_k` profile sits on the donors' at every lag (0.620 / 0.405 / 0.274 / 0.200 / 0.163 / 0.150
+  against 0.56 / 0.33 / 0.30 / 0.26 / 0.22 / 0.19) and our sensor alone reproduces their fast part, including
+  the ~90% night collapse, with no fast-returning force anywhere in the body. There is nothing to build here.
+  **One small residual survives and it is nocturnal**: after the noise dies (b4-b6) at night the donors keep
+  **0.14 / 0.14 / 0.12** of a deviation, ice's generator 0.09 / 0.07 / 0.07 and our twins **0.054 / 0.040 /
+  0.040** — both forward models under-carry a persistent night-time counteraction deviation, ours by ~3x, which
+  sits exactly where the standing night-lows limit is (31% of our lows at night against 22%). Persistence has no
+  state dependence on either side, so A1e / `sg_rate` is a separate matter from all of this.
 - **`acf_zero_min` and the meal ratio are ONE defect, but NOT the same one as low-side recovery** (L 594, corrected
   by L 615): `cr_tau_off` fixes the recovery rows (t54 0.124/0.232 -> 0.175/0.177, nadir dwell 20 -> 15 min, the
   donors' exactly) and leaves `acf_zero_min` at 60 and the meal ratio at 0.61-0.65. So counter-regulatory TIMING

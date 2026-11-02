@@ -3350,3 +3350,45 @@ models sit ~2x slower than donor ICE (21-23 min).** ice replied with b_k out to 
   10-15 and is dominated by slow diurnal drift, so its ratios run ABOVE 1 (deviations grow). The falling no-meal
   rows behave (half-life 35-58 min at n 12-15k) and do not change the conclusion; quote the all-minutes read, which
   replicates on both draws.
+
+**646. Both halves of L 645 dissolve when the INSTRUMENT is matched: our own sensor model reproduces the donors'
+fast part with no fast-returning force at all, and once a sensor is in our path our whole b_k profile sits on the
+donors'. What survives is small, specific and nocturnal: after the noise dies, the donors keep ~0.13 of a
+deviation out to 30 min at night and our twins keep 0.04.** ice's L 164 (commit `88839178`) called the fast part
+sensor noise and named the test; `fast_part.py` in `runs/2026-10-31-additive-gesplit`, rf2 draws 1 and 2.
+- **The test needed no new simulation.** Donor ICE is the observed glucose rate minus a smooth insulin effect, so
+  an ICE built from CGM differs from one built from truth by the DIFFERENCED SENSOR ERROR alone — the insulin term
+  cancels: `ICE_cgm(t) = F_true(t) + (60/5)(eps(t+5) - eps(t))`, `eps = cgm - bg`. So the twins' own simulated CGM
+  gives the matched-instrument series directly, binned by CGM level as the donors' must be.
+
+  | b_k, 90-180, fell >= 20 in the last hour | b1 | b2 | b3 | b4 | b5 | b6 | b2/b1 |
+  |---|---|---|---|---|---|---|---|
+  | **ours, truth (no sensor)** | 1.048 | 1.026 | 0.953 | 0.854 | 0.747 | 0.646 | **0.98** |
+  | **ours, OUR sensor in the path** | **0.620** | **0.405** | **0.274** | **0.200** | **0.163** | **0.150** | **0.65** |
+  | donors (ice L 164, matched e pool) | 0.56 | 0.33 | 0.30 | 0.26 | 0.22 | 0.19 | **0.59** |
+  | ice's generator | 0.50 | 0.26 | 0.25 | 0.22 | 0.19 | 0.17 | **0.52** |
+
+- **So there is NO fast-returning force to build, and L 645's "the fast part is ours alone" is refuted by our own
+  model.** Our sensor alone takes `b2/b1` from 0.98 to 0.65 against the donors' 0.59, and at night it reproduces
+  their collapse too — ours 0.52 / 0.254 / 0.115 / 0.054 against theirs 0.40 / 0.09 / 0.13 / 0.14, i.e. ~90% of
+  the deviation gone inside 15 min with nothing eaten and no fast force anywhere in the body. Ours is if anything
+  slightly LARGER than theirs, which is the expected direction: donor ICE is derived through Loop's own smoothing
+  while ours is a raw difference.
+- **And the slow gap of L 645 goes too.** Matched on the instrument our profile is within 0.03-0.08 of the donors'
+  at every lag, slightly MORE front-loaded rather than slower (b6 0.150 against 0.19). The 39-42 min against 21-26
+  min of L 644 / L 645 was comparing a noise-free series with noisy ones. Both draws agree.
+- **What is left is a NIGHT floor, and it is in the right place.** Once the noise has died (b4-b6), at night in
+  90-180: **donors 0.14 / 0.14 / 0.12, ice's generator 0.09 / 0.07 / 0.07, our twins 0.054 / 0.040 / 0.040**
+  (draw 2: 0.058 / 0.043 / 0.052). A small deviation in the donors' non-insulin force persists unchanged for half
+  an hour at night, our twins carry a third of it, and ice's generator sits between — so **both forward models
+  under-carry it, ours more.** That is not covered by ice's "fast is noise, slow is meals" reading, because this
+  is measured with nothing eaten. It is also exactly where our standing limit lives: **31% of our lows fall at
+  night against the donors' 22%**, and a persistent nocturnal counteraction deviation is the shape of thing that
+  would separate the nights that drift low from the ones that do not.
+- **The method rule this cost twice over.** (a) Never compare a persistence statistic between a noise-free series
+  and a measured one — put your own sensor in the path first, which for any CGM-derived rate is a closed-form
+  addition, not a rerun. (b) In a lagged-deviation statistic the lags must be built PER PERSON and BEFORE any
+  state filter: shifting after the filter makes `e(t+k)` the k-th next QUALIFYING row, which can be hours later.
+  That bug produced a complete, plausible, replicated table (b1 0.695, half-life 14 min) that was pure fiction,
+  and it was caught only because the truth column disagreed with the per-minute measurement of the same quantity.
+  Compute the same number two ways when a decomposition is new.
