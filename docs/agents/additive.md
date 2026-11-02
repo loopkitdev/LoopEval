@@ -349,6 +349,20 @@ overshoots on the light one, which is what `sg_h_lo`, `cr_tau_off` and `pro_g_ow
 on t54 / t70 / lows-per-day without more draws first**; three draws give an sd with two degrees of freedom, so this
 means "not established as a bias at n = 3", not "zero".
 
+**Glucose effectiveness is too high, by two independent lines, and it is the one structural term left on the damped
+change response (L 635, 636).** SG is the insulin-INDEPENDENT share of disposal, so it bounds how much of a settings
+edit glucose can respond to (dG/dI = −SI·G / (SG + SI·I·…)); the twins respond at 0.75 of the field with every other
+named candidate eliminated (L 634). The draw is lnN(0.0045, 0.5), whose MEDIAN alone sits inside UVA/Padova's
+0.0013–0.0047 — a range `evidence/05` records as PER PERSON, and 47% of the cohort is drawn above its top (p95 0.0102,
+2.2x it). Read as a bracket the evidence implies median 0.00247 / log-sd 0.39 (1.8x too high, 1.3x too wide); ice's
+learned background force says 0.0015/min (3x). **SG is not measurable from this pool** — the controller makes glucose
+and insulin activity collinear at r +0.5–0.7 so an ICE-against-glucose slope comes out the wrong SIGN, and
+`no_insulin` is a record flag, not an insulin-free state (ice L 140b) — so the prior rests on literature. **The error
+is SHAPED, concentrated on the high side** (ice L 140a: ~10x below our prior above 180, but −0.17/h below 90), so the
+fix is the high-side term (`ge_split`'s A1b `sg_h`), NOT a uniform `sg_mult` cut, which would thin the low side that
+L 563/589 want strengthened. Screened uniformly first (`sg_mult` 0.67 / 0.40, bracketing both estimates, 0.40
+central); both prior rejections (L 208, L 349/356) were on the LEVEL and predate `resid_m`, so neither transfers.
+
 **The natural-experiment half is limited by the FIELD, not by compute (L 611).** With 63 edit events the field / twin
 response ratios carry CIs like [1.22, 3.79], so `rf2`'s t70 improvement (3.51 -> 2.17) is "best measured, not
 established", and MORE DRAWS CANNOT HELP — the limiting variance is one noisy field response per event. Narrowing it
@@ -474,7 +488,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   score (mean 0.380 against 0.372; its L 561 t70 gain was on ad3, whose t70 ov0 has since partly fixed) and it does
   not move the target L 588 created for it — low-episode duration stays 25 min against the donors' 20, events per
   episode 0.62 → 0.61, low-side eating rate unchanged. At G 65 its sparing is 0.20 mg/kg/min, ~3.7 mg/dL per 30 min,
-  the same too-small class as A9's 2.4; the missing hepatic term is ~3x either), `ge_split` (glucose effectiveness from named parts; too many lows, and superseded by the C4 threshold fix on change prediction too, L 548, 555), `ex_dur_cap` (the cap without the METmax fit — leaves almost no hard session, L 554), `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
+  the same too-small class as A9's 2.4; the missing hepatic term is ~3x either), `ge_split` (glucose effectiveness from named parts: rejected for too many lows and superseded by the C4 threshold
+  fix on change prediction, L 548, 555 — but **now the indicated route again on new evidence**, because ice's learned
+  background force is defense-SHAPED (−0.17/h below 90 against −0.02/h at 180–250) and a linear −SG·(G−Gb) cannot be,
+  so the correction is to the HIGH-side term `sg_h` alone rather than to the scalar; the earlier "too many lows" is
+  consistent with having cut both sides, L 636), `ex_dur_cap` (the cap without the METmax fit — leaves almost no hard session, L 554), `prof_deliv` off, `unent_light`, `unent_split`, `ge_var` off,
   `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
 
 ## Analysis traps (each cost a session)

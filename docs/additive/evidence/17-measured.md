@@ -18,7 +18,13 @@ name (c135, lg12, sd3) is a run under the matching dated run dir. Values are the
   SG / GEZI term T1D-sized?", Del Prato 1997: T1D mass action ~1/3 of healthy) points the same way. Being the
   insulin-INDEPENDENT share of disposal, SG also sets how much of a settings change glucose can respond to
   (dG/dI = −SI·G/(SG + SI·I·…)), so this is the one structural candidate left for the damped change response;
-  screened as `sg_mult` 0.67 / 0.40 (L 635). Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
+  screened as `sg_mult` 0.67 / 0.40 (L 635). **SG is NOT measurable from this donor pool** — ICE-against-glucose is
+  confounded by the controller (corr(G, insulin activity) +0.5–0.7, slope comes out the wrong sign) and `no_insulin`
+  is a record flag, not an insulin-free state (ice LESSONS 140b; L 636) — so the prior rests on literature.
+  **ice's learned background force independently puts it at 0.0015/min (3× below our draw) and defense-SHAPED:
+  −0.17/h below 90 against −0.02/h at 180–250, ~10× below our prior on the high side** (ice LESSONS 140a). A linear
+  −SG·(G−Gb) cannot have that shape, so the correction is to the HIGH-side term (`ge_split`'s A1b `sg_h`), not to the
+  scalar. Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
   the donors' (151.7 vs 151.4), CV 33.2 (34.8), breakfast tail +30 / 26 / 21 at 3–4 h (+27 / 22 / 16), lows 0.58 → 0.42 /
   day (L 208). Lower SG brings lows on but raises the level: `sg_mult` 0.7 / 0.5 (c349) t54 0.123 / 0.190% (0.190), but
   mean 160.9 / 163.9 and TIR 69.2 / 67.0 fail (L 349, 356). Gb stays drawn: `gb_own` (donor median quiet CGM 00–06 h,

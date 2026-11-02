@@ -2759,7 +2759,10 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      | median | 0.00450 | **0.00247** = sqrt(0.0013 x 0.0047), i.e. `sg_mult` **0.55** |
      | log-sd | 0.50 | **0.39** = ln(3.615) / (2 x 1.645), the range as 5-95% |
 
-     so the draw is **1.8x too high and 1.3x too wide**. `evidence/15` independently carries a standing unactioned
+     so the draw is **1.8x too high and 1.3x too wide**. **Corroborated independently and more strongly by ice's
+     LEARNED background force at 0.0015/min = 3x too high, which also shows the error is concentrated on the HIGH
+     side — see L 636, and read `sg_mult` 0.40 as the central estimate rather than the extreme.**
+     `evidence/15` independently carries a standing unactioned
      check pointing the same way — Del Prato 1997 has T1D mass-action self-correction at ~1/3 of healthy, with the
      note "check that the sim's SG / GEZI term is T1D-sized". **Rule: a lognormal whose MEDIAN sits inside a
      per-person range is not inside that range.** Check the coverage, not the centre, whenever a draw is justified by
@@ -2781,3 +2784,57 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      c349 for mean 160.9 / 163.9 and TIR 69.2 / 67.0 — while t54 went to **0.190% against the donors' 0.190%,
      exactly**. A level objection is exactly what the residual-level refit now absorbs (L 597), so neither rejection
      transfers to the current reference. Neither was ever run on the change response.
+
+636. **SG cannot be measured from this donor pool — three routes are closed, one of them already by ice — but ice's
+     LEARNED background force corroborates L 635 independently, at 3x rather than 1.8x, and says the defect is a
+     SHAPE error concentrated on the high side.** Two routes tried here before finding ice lesson 140 had done the
+     third:
+
+     - **ICE against glucose in quiet closed-loop windows** (clean, undisrupted, no carb entry or manual bolus in the
+       prior 4 h, outside labelled pulses + 120 min, G in [100, 180]). The slope comes out **positive** — the wrong
+       sign for self-correction — because `ice` carries the insulin model's residual and Loop's dosing makes glucose
+       and insulin activity collinear at **r +0.5 to +0.7**. At high glucose Loop has dosed hard, so the modelled
+       insulin effect is strongly negative and ICE must be positive to reconcile.
+     - **The same regression controlling for insulin activity and IOB** is WORSE, not better (slope +0.56 -> +2.07
+       mg/dL/h per mg/dL, implied SG −0.02 to −0.07 /min, physiologically impossible). With that collinearity the
+       controls absorb the signal. **A control cannot rescue a regressor the controller determines.**
+     - **Insulin-free windows.** `no_insulin` is a LOCAL-DAY, RECORD-based flag (`ice_gen/extract.py`: a day with CGM
+       and zero recorded insulin), not a physiological one. Over 21,098 h on 32 donors the mean glucose inside those
+       windows is only **+3.3 mg/dL** above each donor's own rest, and NEGATIVE for 11 of 32 — i130 averages 111
+       mg/dL over 575 h of "no insulin". A genuinely insulin-deprived T1D rises to 300-400 within hours, so these are
+       overwhelmingly delivery off the record (pumpless Loop). Only i056 (+151, mean 379) and i068 (+80, mean 247)
+       look real, and selecting windows BY glucose level biases the very regression they would feed.
+
+     **ice got there first and cleaner** (ice LESSONS 140b, `sg_free.py`): 2,503 stretches, 19,013 h on 33 pilot
+     donors, **median velocity 0.0 mg/dL/h at median glucose 156** — the decisive diagnostic, better than the
+     level-delta above — concluding "no SG reading is possible from these data, so SG's prior rests on the
+     literature". Check the other roles' lessons for a measurement before building the instrument.
+
+     **The corroboration (ice LESSONS 140a) is the valuable half.** The generator's learned glucose-dependent
+     background force, probed by raising the glucose input 40 mg/dL and reading the slope of the predicted mean
+     background, has a sustained slope b/(1−a) of **−0.09/h = 0.0015/min**, against additive's prior of 0.0045/min =
+     **−0.27/h**. Two independent lines now say the same thing, and they bracket it:
+
+     | line | implied SG median | vs the 0.0045 draw |
+     |---|---|---|
+     | L 635, the per-person range read as a bracket | 0.00247 (`sg_mult` 0.55) | 1.8x too high |
+     | ice 140a, learned background force | 0.0015 (`sg_mult` 0.33) | 3.0x too high |
+
+     The queued screen's bracket (`sg_mult` 0.67 and 0.40) spans both, so **0.40 is the central estimate, not the
+     extreme** — read it that way. Both are plausibly bounds rather than points: ice flags the same confound that
+     closed the routes above ("where Loop doses to glucose, the TDD ISF rule likely absorbed any high-side uptake"),
+     which biases a LEARNED slope LOW, while the literature centre is biased high; the truth sits between, which is
+     where L 635's 0.00247 falls.
+
+     **The shape finding, which reframes the mechanism.** The learned force is not a smaller version of ours, it is a
+     differently shaped one — by glucose band: below 90 **−0.17/h**, 90-130 −0.07, 130-180 −0.04, 180-250 −0.02,
+     above 250 ~0. "Defense-shaped: large near lows, about **10x below the prior above 180**." A linear −SG·(G − Gb)
+     gives one slope everywhere, so **a uniform `sg_mult` cut is the wrong correction**: it would thin the low-side
+     force, which is already the weakest part of the model (L 563/589 want MORE sub-basal response, sized ~3x either
+     existing mechanism). What the shape asks for is a weaker HIGH side and an intact-or-stronger low side — and the
+     model already has those as separate named components: `ge_split`'s A1b hepatic autoregulation (`sg_h`, above Gb
+     only) against A1a peripheral mass action (`sg_p`), with `sg_h_lo` extending below. **That is the adoption arm:
+     cut the high-side term, not the scalar.** It also predicts the change-response gain the uniform cut is being
+     screened for, and for the right reason — most of a settings edit's glucose response happens in 130-250, exactly
+     where the learned force is ~10x below the prior. The uniform screen still answers "does SG magnitude move the
+     response at all", which is the question worth one job; the split is the follow-up.
