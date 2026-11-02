@@ -252,6 +252,14 @@ reference changes.
   (60 -> 55, gap 1.59 -> 1.22), which corrects L 385–389's "no body lever moves it". Its blocker is that
   `ge_beta`'s score penalty is prohibitive, so look for a mechanism that speeds reversals WITHOUT compressing the
   meal pulse.
+- **the short-scale deficit is now SPLIT FROM THE SENSOR and lag-resolved (L 648)**: on ice's structure function
+  (rms of `cgm(t+k) − cgm(t)`, per person, median over people, CGM in 90–180) the twins land on the donors **at
+  night** — 4.90 / 8.36 / 11.17 / 17.04 against 4.97 / 8.20 / 10.72 / 16.32 on draw 1, 6–18% jumpy on draw 2 — and
+  are **18–19% too SMOOTH BY DAY at 5–15 min** (0.81 / 0.86 / 0.88, 2nd difference 0.74, both draws), recovering to
+  0.91–0.96 by 30 min. Same sensor, same people, right at night: the missing variance is the BODY's daytime motion,
+  not sensor noise, and it is the same defect as `acf_zero_min` read at a fixed lag. The missing 5-min rms is
+  **4.2–4.3 mg/dL** (robust); the correlation time is NOT pinned at two draws, so do not specify a timescale from
+  it. Split on time since the last carb entry, never on `ra`, which is never zero between meals (L 628, 648).
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (**read `ac1` against the independent-day null of −0.086, not 0**, and against **+0.118, not +0.18**: half the donors'
   persistence is their SETTINGS — a basal / ISF edit or a multi-day override persists by construction, and on day pairs

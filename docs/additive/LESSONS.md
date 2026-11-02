@@ -3428,3 +3428,43 @@ night variance into its persistent and short-lived parts.
   plausible but not exact; what would settle it is the short-lag STRUCTURE FUNCTION of the sensor error on both
   sides, which is the lead ice has taken. Until then, read the night residual as 0.6x with the sign established
   and the size soft, and do not build to it.
+
+**648. The twins' CGM passes ice's structure function AT NIGHT and is 18-19% too SMOOTH BY DAY at 5-15 min — and
+because the sensor is the same in both windows, that localises the long-standing short-scale deficit in the BODY's
+daytime motion, with a lag-resolved target for the first time.** ice's L 166 definition copied exactly;
+`struct_fn.py` in `runs/2026-10-31-additive-gesplit`, rf2 draws 1 and 2, 112 twins each.
+- **Definition** (theirs, unchanged): rms of `cgm(t+k) - cgm(t)` per person, median over people; base points with
+  CGM in 90-180, contiguous 5-min steps only; night 00-06, day 10-22; 2nd diff = rms of
+  `cgm(t+1) - 2 cgm(t) + cgm(t-1)`.
+
+  | | 5 min | 10 | 15 | 30 | 2nd diff |
+  |---|---|---|---|---|---|
+  | **donors, night** (265 matched) | **4.97** | **8.20** | **10.72** | **16.32** | **5.21** |
+  | rf2, night | 4.90 (0.99) | 8.36 (1.02) | 11.17 (1.04) | 17.04 (1.04) | 4.72 (0.91) |
+  | rf2_5k, night | 5.27 (1.06) | 9.11 (1.11) | 12.14 (1.13) | 19.20 (1.18) | 4.83 (0.93) |
+  | **donors, day** | **7.35** | **12.85** | **17.49** | **28.77** | **6.48** |
+  | rf2, day | 5.96 (**0.81**) | 11.11 (0.86) | 15.47 (0.88) | 27.54 (0.96) | 4.83 (**0.74**) |
+  | rf2_5k, day | 6.03 (**0.82**) | 10.72 (0.83) | 14.98 (0.86) | 26.13 (0.91) | 4.80 (**0.74**) |
+
+- **Night passes** (draw 1 essentially exact at 0.99-1.04; draw 2 runs 6-18% jumpy, so the draw scatter is real and
+  the honest read is "on target, +/- a draw"). For contrast ice's generator is 18-23% too jumpy at night and exact
+  by day — the mirror image of us.
+- **Day fails at the short lags and recovers by 30 min**: 0.81-0.82 at 5 min, 0.83-0.88 at 10-15, 0.91-0.96 at 30,
+  with the 2nd difference at **0.74** on both draws. So the twins' daytime glucose has about the right 30-min
+  excursion SIZE and too little motion inside it — which is the same defect as `acf_zero_min` (momentum reverses in
+  60 min against the donors' 40) seen at a fixed lag instead of through an ACF.
+- **The sensor is exonerated, which is the structural half of this.** The same sensor model, on the same people,
+  lands on the donors at night and 19% short by day, so the missing variance cannot be sensor noise — it is the
+  body's own daytime motion. (Softener, stated: parts of the sensor model ARE rate-dependent, e.g. the G7 lag x1.5
+  while falling, so its CONTRIBUTION is larger by day than at night. That makes the body deficit larger than 19%,
+  not smaller.) This is the first time the short-scale limit has been split from the sensor by measurement rather
+  than argued.
+- **Size, as the component that would close it.** Treating it as independent of what we have, the missing daytime
+  rms is **4.30 / 4.20 mg/dL per 5-min step** (robust across draws), rising to 6.5-7.1 at 10 min and 8.2-9.0 at 15.
+  At 30 min the two draws disagree (8.3 against 12.0) and `sqrt(k)` growth from the 5-min value predicts 10.5, so
+  **the correlation time is NOT pinned** by two draws — do not specify a mean-reverting component's timescale from
+  this yet. The 5-min amplitude is the solid number.
+- **The meal/no-meal split cannot be done this way, and that confirms L 628.** Restricting day points to `ra <= 0.05`
+  leaves only 3-8 of 112 twins with 100 base points, because `ra` is essentially never zero between meals in the
+  10-22 window. Its apparent ratio of 0.50-0.56 is 3 people and must not be quoted. To ask whether the deficit is
+  meal-driven, split on time since the last carb entry, not on `ra`.
