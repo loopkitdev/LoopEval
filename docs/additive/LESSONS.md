@@ -2108,7 +2108,11 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
      against the pilot pool\'s +4.46, so the pilot pool\'s ratios (rf2 2.17, ov0 3.51) and the e pool\'s (1.14, 1.43)
      are not comparable in level — but both rank the arms the same way. Quote ratios with their pool.
 
-613. **Both pending decisions resolve on 580 events: `si_norm` 1.0 is NO, and `sg_h_lo` is neutral on change
+613. **(⚠ HALF RETRACTED — L 632: the `sg_h_lo` arm (`hl_e`) was a silent NO-OP, because the change harness pinned
+   an Oct-28 frozen tree that has no `sg_h_lo`. Its "neutral on change prediction" verdict is an artifact of the arm
+   not running, and sg_h_lo's change response is UNMEASURED pending the re-run. The `si_norm` half STANDS — that knob
+   is in the pinned tree and `sn_e`'s numbers genuinely differ.)**
+   **Both pending decisions resolve on 580 events: `si_norm` 1.0 is NO, and `sg_h_lo` is neutral on change
    prediction so its case rests entirely on the cohort trade.** Both had been judged on the pilot pool\'s 108 events,
    where L 611 showed the CIs cannot separate arms. On the e pool, all three arms on the rf2 baseline:
 

@@ -242,7 +242,10 @@ reference changes.
   lows (counts 1.000 -> 0.750, t54 0.124 -> 0.091), suppressed it acts at the NADIR and shortens them (counts 0.833 /
   1.042, t54 0.181 against the donors' 0.190). Still not adopted: it helps where the reference is weak (draw 2) and
   overshoots where it is strong (draw 1, where rf2 is already near-perfect), so the weighted mean reads
-  level-to-worse — a genuine which-row-to-spend question for Pete, not a defect.
+  level-to-worse — a genuine which-row-to-spend question for Pete, not a defect. **Its CHANGE response is
+  UNMEASURED** (L 632): the e-pool arm that was thought to settle it (`hl_e`, "neutral") was a silent no-op, because
+  the change harness pinned a frozen tree with no `sg_h_lo` in it. Re-run queued; the cohort result above is
+  unaffected.
 - **the shallow-low recovery gap is down to one named, unevidenced mechanism** (L 563, sized L 589): a
   glucose-dependent hepatic response below Gb, worth ~0.34 mg/kg/min at G 65 — **about 3x either of the two sub-basal
   mechanisms the model has**, both now measured too small (A9 counter-regulation 2.4 mg/dL per 30 min, L 559–560; A1c
