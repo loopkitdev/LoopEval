@@ -1767,3 +1767,19 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       settings change moves along although the field's ICE barely moves (+0.7 mg/dL/h, lesson 155). Under test: arm
       ns = oc0/oc1 e checkpoints with those removed (runs/2026-11-01-ice-stateabl/). Seed 2 of on stopped; its chain
       had waited 22 h on a partner seed (O = 1 − S; now pairs seed 2+ with 1).
+
+158. **The state calibrations are not the push-back; they keep the low-side response in proportion. Base stays oc
+    with them.** Arm ns = the oc0/oc1 e checkpoints with calib_bg_band zeroed and the low/high kernels removed at
+    test time (runs/2026-11-01-ice-stateabl/abl_ns.sh), 337 e edits against oc0–4 (dirspread_ns.py, ins_change.py in
+    runs/2026-10-13-ice-change/; 2 edits with a blown-up run change nothing below):
+    - **More-insulin edits, unchanged:** mean glucose field −8.5, oc −6.5 ± 1.1, ns −6.5 (z −0.1); TIR +3.7 / +2.1 /
+      +1.9 (z −1.1); generated ICE +3.4 mg/dL/h against oc's +3.5 and the field's +0.7; Loop delivers +1.9 U/day
+      against the field's +0.8. Less-insulin mean +5.1 / +5.0 / +5.1. Per-edit r inside oc's range on every measure.
+    - **The low side overshoots without them:** t<70 more +1.03 vs field +0.71 and oc +0.76 (z +3.6); t<54 more +0.55
+      vs +0.15 and +0.32 (z +7.0); less −0.89 / −0.41 against field −0.85 / −0.12. Own-settings TIR level falls to
+      median −8.1 vs field (oc −4.1 to −6.0).
+    - **Reading:** over two-week windows glucose is stationary, so mean ICE rises with delivered insulin by
+      construction; the ICE gap restates the insulin gap. The push-back is the generated person's glucose falling too
+      little per unit (−3.4 mg/dL per U/day against the field's −10.2), which makes Loop add more. Neither pending
+      insulin (157) nor the state calibrations carry it, leaving the network's own response to glucose and insulin
+      history as the cause.
