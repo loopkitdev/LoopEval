@@ -242,10 +242,12 @@ reference changes.
   lows (counts 1.000 -> 0.750, t54 0.124 -> 0.091), suppressed it acts at the NADIR and shortens them (counts 0.833 /
   1.042, t54 0.181 against the donors' 0.190). Still not adopted: it helps where the reference is weak (draw 2) and
   overshoots where it is strong (draw 1, where rf2 is already near-perfect), so the weighted mean reads
-  level-to-worse — a genuine which-row-to-spend question for Pete, not a defect. **Its CHANGE response is
-  UNMEASURED** (L 632): the e-pool arm that was thought to settle it (`hl_e`, "neutral") was a silent no-op, because
-  the change harness pinned a frozen tree with no `sg_h_lo` in it. Re-run queued; the cohort result above is
-  unaffected.
+  level-to-worse — a genuine which-row-to-spend question for Pete, not a defect. **Its CHANGE response is now MEASURED and
+  NEGATIVE** (L 634, the e-pool re-run after L 632's no-op): the cohort gain does NOT transfer — the t70 response
+  ratio is bit-flat at 1.15, while the mean response goes 1.33 -> 1.43 and TIR 1.28 -> 1.40 (more damped), all three
+  correlations fall (+0.33 / +0.16 / +0.17 -> +0.26 / +0.13 / +0.12) and the pre-edit level drifts +3.3 -> +6.3. t54's
+  ratio improves (0.56 -> 0.82) but t54 is a guard, not a target. **The cohort and the change response disagree, so
+  `sg_h_lo` stays off on both halves** and the which-row-to-spend question above is settled against it.
 - **the shallow-low recovery gap is down to one named, unevidenced mechanism** (L 563, sized L 589): a
   glucose-dependent hepatic response below Gb, worth ~0.34 mg/kg/min at G 65 — **about 3x either of the two sub-basal
   mechanisms the model has**, both now measured too small (A9 counter-regulation 2.4 mg/dL per 30 min, L 559–560; A1c
@@ -429,8 +431,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   x0.96 that two corrections could not rescue; scores marginally better than the reference on two draws of three and
   its one consistent gain — paired TDD on all three — is level-mediated and returns on refit, L 627, 629),
   `met_own` (per-person aerobic capacity from the donor's own p90 workout METs: sound for the 22 of 168 donors who
-  record workouts, a measured no-op for the cohort, L 631), `csf_sd_w` (a weight on the per-person meal-spread fit,
-  for reading L 544's spread-versus-change-response trade on the current reference), `meal_lag` 10 / 20 (the gastric lag phase, genuinely missing — every
+  record workouts, a measured no-op for the cohort, L 631), `csf_sd_w` 0.5 / 0.0 (a weight on the per-person meal-spread fit:
+  **L 544's spread-versus-change-response trade does NOT exist on rf2** — weakening the fit moves the response ratios
+  AWAY from the field (mean 1.33 -> 1.47 / 1.44, t70 1.15 -> 1.55 / 1.28, pre-edit level +3.3 -> +9.1 / +9.7) for a
+  large per-person cost confirmed on both draws (paired SUM|dev| 3.040 -> 5.165 -> 10.168 and 2.568 -> 7.451 ->
+  9.648; twin-donor TIR rho 0.815 -> 0.681 -> 0.425 and 0.830 -> 0.735 -> 0.456), while the weighted score barely
+  separates the arms. L 544 measured the trade on sd3, whose DYNAMIC residual carried the damping; rf2 dropped it
+  (L 592) and the spread fit is no longer the binding term. Stays at 1.0, L 634), `meal_lag` 10 / 20 (the gastric lag phase, genuinely missing — every
   carb parcel had delay 0 against Siegel 1988's ~20–30 min for solids. It works on an isolated parcel and does
   nothing on the cohort, because `peak_h` is onset-relative and so shift-invariant; the ratio drifts the wrong way,
   0.63 -> 0.59. Score level, tier 1 a little better at lag 20. L 595), `ge_beta` 1.3 / 1.6 (Elashoff power-exponential gastric emptying,

@@ -2697,3 +2697,51 @@ citations resolve here: 549, 555 → 548 · 552 → 550 · 557 → 553 · 564 �
        regressing the fix. The rule earns its keep here — do not work around a refusal by merging the other way.
      - Recovered by merging `origin/main` (bringing 7668fbde) and then `git submodule update --init`, which checked
        out c35b73b; `git status` clean and `git ls-tree HEAD LoopAlgorithm` now matches `main`.
+
+634. **Both open arms of 2026-11-01 come back negative on the real harness: `sg_h_lo`'s cohort t70 gain does NOT
+     transfer to the change response, and the per-person meal-spread fit is NOT what damps it (L 544's trade does not
+     exist on `rf2`).** Job 156 re-ran the three e-pool arms that L 632 found to be silent no-ops, with `arm2.py`
+     honouring `ARM_TREE` and `frozen3` built from HEAD. The no-op check passed first: all three differ from `rf2e_s`
+     on 60 of 60 events, so these are real arms (`runs/.../noop_check_sw2.log`, `score_sw2_epool.log`, 580 scored
+     events).
+
+     **`hl2_e` — `sg_h_lo` 0.0019 with its insulin suppression. Field / variant ratios (field = 1.0, higher = more
+     damped), against the reference `rf2e_s`:**
+
+     | row | rf2e_s | hl2_e | rho rf2e_s | rho hl2_e |
+     |---|---|---|---|---|
+     | mean | 1.33 | **1.43** | +0.33 | **+0.26** |
+     | TIR | 1.28 | **1.40** | +0.16 | **+0.13** |
+     | t70 | 1.15 | **1.15** | +0.17 | **+0.12** |
+     | t54 | 0.56 | 0.82 | +0.04 | +0.16 |
+
+     Pre-edit level +3.3 -> **+6.3** mg/dL against the field. So the cohort and the change response **disagree**, which
+     `run_sw2.sh` recorded in advance as the interesting outcome: the mechanism closes the t70 LEVEL row on the cohort
+     (L 596: draw-2 gap 0.325 -> 0.034) and leaves the t70 RESPONSE ratio bit-flat at 1.15 while costing the mean and
+     TIR response, all three correlations, and the starting level. t54's ratio moves toward 1.0, but t54 is a guard,
+     not a target. **`sg_h_lo` stays off, now on both halves**, and L 632's "change response UNMEASURED" is closed.
+     L 613's retracted claim was right in substance on t70 and too kind elsewhere: the honest statement is *neutral on
+     t70, worse on mean, TIR and every correlation*.
+
+     **`sw5b_e` / `sw0b_e` — `csf_sd_w` 0.5 / 0.0, weakening the per-person meal-spread fit.** The prediction was that
+     the ratios move toward 1.0 as the fit is weakened. **Refuted — they move AWAY:**
+
+     | row | rf2 (1.0) | sw5b (0.5) | sw0b (0.0) |
+     |---|---|---|---|
+     | mean ratio | **1.33** | 1.47 | 1.44 |
+     | TIR ratio | **1.28** | 1.25 | 1.28 |
+     | t70 ratio | **1.15** | 1.55 | 1.28 |
+     | pre-edit level | **+3.3** | +9.1 | +9.7 |
+
+     And the cohort cost is the one already measured, confirmed on both draws: paired SUM|dev| 3.040 -> 5.165 ->
+     10.168 (d1) and 2.568 -> 7.451 -> 9.648 (d2); twin-donor TIR rho 0.815 -> 0.681 -> 0.425 (d1), 0.830 -> 0.735 ->
+     0.456 (d2). **A large per-person cost for no response gain: `csf_sd_w` stays at 1.0.** L 544 measured its trade on
+     the sd3 lineage, where the DYNAMIC residual was on; `rf2` dropped that residual and took the damping with it
+     (L 592: t70 response 3.51 -> 2.17), so the spread fit is no longer the binding term. **A finding about a damping
+     source does not survive the removal of another damping source — re-read it on the current reference, which is why
+     this arm was run rather than quoted.**
+
+     **Method note, a third sighting of L 610.** The weighted cohort score barely separates these arms — d1 0.309 /
+     0.334 / 0.304 (sw0 nominally the BEST), d2 0.357 / 0.365 / 0.372 — while the paired instrument moves by 3x and
+     the twin-donor TIR rho halves. A change that destroys per-person fidelity can read level or better on the
+     weighted score. Judge per-person changes on `twin.csv`, never on the score alone.
