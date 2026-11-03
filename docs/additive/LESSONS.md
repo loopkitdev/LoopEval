@@ -3780,3 +3780,30 @@ carries the damped response is refuted.**
   damped response on both primary change rows. The one row it wins on the prediction half is t70's ratio (0.98).
   Stays off; `ge_order` 0 remains the default and the reference stays rf2. The honest summary of the day's work on
   it: the measurement that was missing has been taken, and it argues against the component it was meant to rescue.
+
+**657. The reference silently drops an ADOPTED DEFAULT, and the component it drops is the best remaining fit to
+the daytime deficit — rejected in L 161 against a target that no longer exists.** C7 `act_frag` queued back on as
+job 174.
+- **It is a default that the reference does not run.** Pete adopted `posture` and `act_frag` as defaults on
+  2026-10-18 (L 163), `world.py:526` carries `act_frag=True` as the code default, and L 517 placed C7 in the core
+  — "UK Biobank-sized, not a free term". Yet every arm in this lineage runs `--disable
+  stress,illness,menstrual,steroid,act_frag`, where the other four are B-series LIFE MODULATORS and C7 is everyday
+  activity. **No lesson records a decision to disable it**; it appears to have been swept into the modulator group.
+  Checked every arm in the run dir: not one has it on, so nothing on disk can answer this without a run.
+- **Why its rejection no longer applies.** L 161 turned it down because its 4-min bouts, smoothed by the 7-min
+  activity lag, "move glucose too little and too fast to make a 40-min wave" — the daytime-wander statistic of the
+  time. The deficit measured since is not a 40-min wave: **4.31 mg/dL per 5-min step, growth exponents 0.66 / 0.60
+  / 0.43 at 10 / 15 / 30 min** (mean-reverting, ~15-20 min correlation time), plus a sub-10-min piece at FLAT
+  glucose by day where the donors carry **1.41 mg/dL of sigma against our 0.33** (L 650, 654). "Too fast for a
+  40-min wave" is the right speed for this one. A rejection is only as good as the target it was measured against,
+  and this target did not exist until today.
+- **The falsifier is the NIGHT row**, which is what makes this a real test rather than a knob: `act_frag` is WAKING
+  movement, so the night structure function — already right at 0.99 / 1.06 — must not move. If night rises with
+  day, the arm is not acting through waking activity and cannot be read as a daytime mechanism.
+- **And the guard is where it died before**, so it is pre-registered: L 161 had lows 0.67 → 0.83/day, L 517 had
+  lows 1.08 and t54 0.29 with C7 in the core, against the donors' 1.000 and 0.190. `act_frag` feeds the exercise
+  term as well as the sensor, so it raises sensitivity in bouts — expect TDD down and the low side up. If the
+  structure function closes and the guard holds, it is a genuine candidate AND a configuration fix; if the guard
+  breaks, the daytime deficit needs a sensor-side mechanism and `act_k` is the next question.
+- **Deliberately NOT bundled with the e pool** (L 656): short-scale realism and change-response accuracy are not
+  the same axis, so the response half earns its own arm only if this one survives.
