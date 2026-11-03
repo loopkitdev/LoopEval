@@ -4591,3 +4591,64 @@ motion-adders and more in the force-cutters, with perfect sign separation on bot
 the controller under-delivering (L 672), measurement smearing (L 670 / 671), unequal need (here), `kappa`'s
 kink and the renal term (L 673). Not licensed: calling the ratio `dG/dI` or a body property. Open: whether
 the covariance channel accounts for it.
+
+**675. The covariance channel FAILS, backwards — so five accounts of the damped change response are now
+excluded and the reason is identification, not effort. The measurement that can settle it does not need a
+controller at all, and the first look says the BODY is innocent.**
+
+Job 186 measured the term job 184 held out, `cov(absorbed, mm(bg)) / (E[absorbed]*E[mm])`, at three action
+lags. The registered sign was that a damped arm should be LESS positive — insulin arriving when glucose is
+high does more lowering per unit:
+
+| arm | rel_cov@0 | /ref@0 | /ref@60 | g/dose_frac |
+|---|---|---|---|---|
+| rf2e_s | 0.0997 | 1.000 | 1.000 | 1.000 |
+| **go3e2** | 0.1296 | **1.300** | **1.616** | **0.745** |
+| rt1_e | 0.1011 | 1.014 | 1.422 | 0.812 |
+| afe1 | 0.1055 | 1.058 | 1.162 | 0.817 |
+| akfe1 | 0.1058 | 1.061 | 1.243 | 0.983 |
+| sk1_e | 0.1318 | 1.322 | 2.046 | 1.313 |
+| sm1_e | 0.1340 | 1.344 | 2.011 | 1.302 |
+| sr1_e | 0.1310 | 1.314 | 2.045 | 1.419 |
+
+**It orders them BACKWARDS.** `go3e2` carries the highest relative covariance of any motion-adder (1.300,
+and 1.616 at the 60-minute lag — right among the force-cutters) while being the MOST damped arm at 0.745,
+and the reference has the lowest covariance of all eight. The magnitude fails too: `rel_cov` is ~0.10, so a
+0.34 relative spread moves the insulin term by ~3%, against a 0.67 span in `g/dose_frac`. Both registered
+tests fail, so by condition (3) the effect has **no account in the model's own ODE** and I am not reaching
+for a sixth candidate.
+
+**The five exclusions, in one place:** the controller under-delivering (L 672 — it over-delivers in every
+variant), measurement smearing (L 670, bounded at 0.008 per mg/dL by L 671), unequal insulin need (L 674 —
+the dose response exceeds baseline need by 5–15% in the motion-adders), `kappa`'s kink and the renal term
+(L 673 — 0.01% and the ordering backwards), and now the delivery-to-need covariance.
+
+**Why that pattern is expected rather than frustrating.** L 674's identification argument says `g/dose`
+divides two closed-loop OUTCOMES of the same edit, so it is not a structural parameter and there need be no
+mechanism to find. The way out is to stop inferring `dG/dI` and measure it, which means varying insulin
+EXOGENOUSLY — impossible with a controller in the loop, and straightforward against `physiology.Body`
+directly. Job 187 does exactly that: each person's own `person.body`, the arm's knobs through the same
+`bp.scaled(...)` call `world.py:711` uses, a fixed meal pattern, a fixed insulin schedule, **no Loop
+anywhere**, each configuration calibrated to the same 145 mg/dL mean, then insulin x1.1.
+
+**Two arms are excluded on principle rather than skipped.** `akfe1` touches the SENSOR only, so its body is
+bit-identical to the reference's and its open-loop `dG/dI` is analytically equal — consistent with its being
+the least damped motion-adder at 0.983. `afe1`'s `act_frag` is world-level activity generation, not a
+`BodyParams` field, so it cannot be applied here at all.
+
+**A two-person smoke test before queueing caught two defects, and one of them would have invalidated the
+gate.** `sg_mult` is not a `BodyParams` field — `person.py:270` applies it when `sg` is SAMPLED — so three
+configurations were erroring rather than running. And uncalibrated, the reference settles at **216 mg/dL**
+with `sg_kappa` at **286**: the first sitting ON the per-person renal threshold (~218) and the second well
+past it, where every force term here is level-dependent and `dG/dI` is proportional to G besides. Comparing
+configurations at different levels would have measured the level — the L 638 trap in a new place — so each
+(person, configuration) is now bisected to the same mean first. **Smoke-test a new driver on two cases
+before queueing it; the defects it finds are the ones that would otherwise be read as results.**
+
+**First look, n = 3, gate PASSING — and it points away from the body.** The three force-cutters read 1.517 /
+1.636 / 1.654 against the reference, which is the registered gate and the direction their mechanism
+requires, so the driver works. `ge_order` 3 reads **0.973** and `sg_rate` **1.014** — EQUAL within 3% —
+against closed-loop damping of 0.745 and 0.812. If that holds at n = 60, the body responds to exogenous
+insulin exactly as the reference does, the damping is a controller-and-signal phenomenon rather than a
+physiological one, and the whole search for a body mechanism was looking in the wrong place. Three people is
+not a result; job 187 runs sixty.
