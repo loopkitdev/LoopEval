@@ -3715,7 +3715,9 @@ from `pending` before it started (`grep -c "171_rk"` on the runner log = 0, stil
   real daytime body motion, so this needs the attribution settled before a parameter, not after. **Do not queue a
   coefficient for it on the strength of the fit alone — that is exactly what this lesson caught.**
 
-**655. A JSON arm file passing an INTEGER silently drops the knob, and it cost the one verdict that mattered most:
+**655. [The FIX in this lesson was INCOMPLETE — see L 659: `cohort.py` and the whole residual block were missed,
+including `resid_mult`. The diagnosis below stands; "fixed in 106 places" did not cover the class.]
+A JSON arm file passing an INTEGER silently drops the knob, and it cost the one verdict that mattered most:
 `ge_order` 3's change response was never measured, so "prediction neutral" rests on an arm that ran as its own
 control.** `enable` knobs were guarded by `isinstance(v, float)` in 106 places, and `isinstance(3, float)` is
 **False** — so `ARM_ENABLE='{..., "ge_order": 3}'` reached the body as nothing at all. Fixed: `_num()` now accepts
@@ -3844,3 +3846,64 @@ on 40/40 people, so this is a real arm.
 - **Method note worth keeping:** two of the three pre-registered predictions were wrong (the aim, and the
   direction of the low-side cost) and the arm is still informative, because the falsifier and the guard were
   registered separately from the aim. Registering only what you hope for makes a failed arm unreadable.
+
+**659. ice's family split comes back family-INDEPENDENT, which should have settled the daytime attribution and
+does not — because my own discriminator was too strong. It rules out a family-SPECIFIC sensor property, not a
+generic wear artefact, and that distinction hands the row to a named, evidenced, wired knob sitting at zero.**
+ice ran it on the iNNN pilot pool with my alias → family map, which already existed on disk (`sensor` column of
+`templates_pilot_resid_rf1.csv`) and needed no warehouse query at all — worth remembering before asking anyone
+for a Databricks pull.
+- **The donor table** (2nd difference, ≥ 200 points per window, CGM 90–180, night 00–06 / day 10–22, per-person
+  day/night, median over people): **G7 n=135 → 1.233 [1.18, 1.26], G6 n=26 → 1.190 [1.08, 1.26], Libre 3 n=6 →
+  1.117**, pooled 1.220. The families are alike behaviourally (carb entries 3.6–3.7/day). G6's CI contains G7's
+  median, so no family dependence is detectable.
+- **MY DISCRIMINATOR WAS WRONG, and this is the lesson worth keeping.** I told ice that a sensor artefact "must be
+  family-dependent". That holds for a family-SPECIFIC property — noise level, filtering, lag, calibration — and is
+  **false for a wear or motion artefact common to every CGM class**: all three families sit in subcutaneous
+  interstitium under tape, so movement against the adhesive, compression, perfusion and temperature while awake
+  would be exactly as family-independent as a body effect. A cross-group test only excludes what actually VARIES
+  across the groups. So the result leaves two live hypotheses, not one, and I had told a peer it left one.
+- **Which is lucky, because the body branch is empty and the wear branch is not.** C7 is measured out (L 658),
+  appearance does not touch this row (L 652), `resid_mult` would need ≈1.5 (L 648), `flow_sd` breaks the low side
+  (L 522), and `sg_rate` moves it the wrong way (L 649). The wear branch has **D `act_k`** — Biagi 2018
+  (PMC5872070), CGM MARD 9.5 → 16.5 → 9.3% before / during / 1 h after aerobic exercise — wired since L 498,
+  **sitting at 0.0 against its own evidence**, and matching all four signatures of this row: awake-keyed by
+  construction (activity is identically 0 asleep), acting at FLAT glucose (it scales noise, which ignores level),
+  acting at the SUB-10-MIN scale (it scales the white term), and family-independent.
+- **It is aimed at ONE half of the deficit and the split is principled, not convenient.** White noise is FLAT in
+  lag, so it cannot produce L 650's `k^0.66 / 0.60 / 0.43` growth — that multi-step part is a correlated ~15–20
+  min process and `act_k` must not be read against it. The 2nd difference is the white-noise-dominated row and
+  the one L 652 called "the piece nothing in the model makes".
+- **Sized against ice's table, and the evidence falls SHORT of the row — which is the honest finding.** On G7
+  (80% of the cohort): ours/donors night 0.919, day 0.780, so ×1.089 is needed at ALL hours and ×1.281 by day,
+  leaving an **awake-specific shortfall of ×1.177**. At a steady waking `ex_intensity` of 0.06 that is
+  `act_k` ≈ **2.95**, against **≈1.48** implied by Biagi. So the evidenced size supplies about half, and
+  `act_k` **cannot reach 1.00** because 9% of the day gap is an all-hours noise-level shortfall visible at night
+  too — pre-registered as job 176 so that residue is not later read as the arm failing. ice saw the same
+  all-hours gap from their side (their G7 night 5.16 against G6 4.76; my G7/G6 night ratio 1.056 against their
+  1.084, so the families' RELATIVE night noise is right and both are 6–8% too quiet absolutely).
+- **A falsifier that is structural rather than expected**: activity is identically 0 while asleep, so if the
+  night 2nd difference moves at all, the wiring is wrong and neither arm is interpretable.
+- **And a caution with teeth**: my G6 cell already reads 1.011 against the donors' 0.989, so a global `act_k`
+  pushes G6 over while G7 lands. At n=21 that is inside the ±0.2 floor my own draws measure, but if it survives
+  the arm, the term wants family scaling — which would itself be evidence for the wear reading over the body one.
+
+**660. The `_num` sweep of L 655 did not close the class it claimed to: `cohort.py`'s 14 knob guards and the
+WHOLE residual block in `world.py` still tested `isinstance(v, float)`.** Found while reading the reference's
+`--set` string for an unrelated reason. The exposed knobs included `sg_mult`, `csf_mult`, `kappa_mult`,
+`csf_sd_w`, `basal_share`, `isf_level`, `csf_lvl`, `isf_w`, `prof_w`, `egp_share`, `p2e_cal`, `csf_w`,
+`isf_blend`, `preg_week`, `ppr_b/l/d`, `resid_m`, `resid_skew`, `resid_diurnal`, `resid_tf`, `resid_tb`,
+`resid_meal`, `resid_day_ar` and — worst of them — **`resid_mult`**, where a JSON `0` would have defaulted to
+**1.0** and turned the dynamic residual back ON at full strength in an arm written to run the reference's own
+configuration.
+- **No past result is reinterpreted, and the argument is by construction rather than by smoke test.** The CLI
+  puts only floats into `enable` (`--set` calls `float()`) and only bools (`--enable` / `--disable`), and `_num`
+  agrees with `isinstance(.,float)` on both, so every `--set`-driven arm including the reference is bit-identical
+  — no rerun needed to know that. A sweep of all 658 arm scripts on disk then found **no JSON integer on any
+  newly-fixed knob**, so no ARM_ENABLE arm relied on the old drop either.
+- **The method lesson, which is the reusable part:** a fix counted in call sites ("106 places") is not a fix
+  scoped to a class. The grep that finds the bug is the grep that must come back EMPTY afterwards, run over the
+  whole package and not the file the bug was found in — and the few legitimate survivors (a NaN guard in
+  `person.py`, rounding in `insulins.py`, `_num`'s own docstring) should be enumerated so the empty result is
+  checkable next time. Claiming a class closed on a partial sweep is worse than not claiming it, because the
+  next reader stops looking.
