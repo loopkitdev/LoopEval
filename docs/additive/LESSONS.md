@@ -4652,3 +4652,60 @@ against closed-loop damping of 0.745 and 0.812. If that holds at n = 60, the bod
 insulin exactly as the reference does, the damping is a controller-and-signal phenomenon rather than a
 physiological one, and the whole search for a body mechanism was looking in the wrong place. Three people is
 not a result; job 187 runs sixty.
+
+**676. SETTLED, AND IT RETIRES A WHOLE CLASS OF SEARCHING: the short-timescale arms' damped change response
+is ENTIRELY a CONTROLLER phenomenon. Their bodies respond to exogenous insulin exactly as the reference's
+do. Measured open loop, with no Loop in the path, at a matched glucose level, on 60 people.**
+
+| config | open-loop `dG/dlogI` / ref | closed-loop `g/dose_frac` | agree? |
+|---|---|---|---|
+| reference | 1.000 | 1.000 | — |
+| `ge_order` 3 | **1.013** | **0.745** | **NO — 0.27 apart** |
+| `sg_rate` 0.55 | **0.993** | **0.812** | **NO — 0.18 apart** |
+| `sg_kappa` 0.15 | 1.303 | 1.313 | YES — 0.01 |
+| smooth A1d | 1.390 | 1.302 | 0.09 |
+| smooth A1d + `sg_rate` | 1.408 | 1.419 | YES — 0.01 |
+
+**The gate passed**: the three force-cutters all read above the reference, as the ODE requires of anything
+that shrinks `dG/dI`'s denominator, so the driver measures what it claims to.
+
+**And then the table splits in two, which is the result.** For every arm that genuinely changes the BODY, the
+closed-loop ratio recovers the open-loop structural sensitivity almost exactly — 1.303 against 1.313, 1.408
+against 1.419, 1.390 against 1.302. So `g/dose_frac` IS a good estimator of `dG/dI` when a body parameter
+moved. For the two short-timescale arms it is not: their open-loop sensitivity is **equal to the reference's
+within 1-2%** while their closed-loop response is damped by 19-26%. **The whole of that damping is
+controller-side.**
+
+**What this retires.** Four arms have been read as evidence about the body's response to a settings edit —
+`ge_order` 3 (L 656), `act_frag` (L 661), `sg_rate` (L 649) and `act_k` (L 669) — and the overlay carried
+"nothing yet explains why an added short-timescale body component damps the response" as an open question
+for three of them. It is not a body question. Adding short-timescale motion does not change how the body
+answers insulin; it changes how **Loop** answers the glucose it sees, and a body candidate will never fix it.
+That also explains, without any further mechanism, why five successive accounts came up empty (L 670-675):
+they were all looking inside the body.
+
+**What it does NOT say.** The REFERENCE's own damping against the field (mean 1.35, TIR 1.30) is a different
+quantity — twin against donor, not arm against arm — and this instrument cannot address it, because there is
+no open-loop field. The claim here is narrow and firm: the EXTRA damping an added short-timescale component
+brings is controller-side. Whether the reference's baseline 1.35 is too is a separate question, and the one
+worth asking next.
+
+**Caveat, stated with its size.** The per-person insulin calibration bisects on [0.6, 2.0] and CLIPS at the
+ceiling for the force-cutters — they settle at 161 mg/dL against the reference's 153, so roughly 5% of their
+1.30-1.41 is the level (`dG/dI` is proportional to G), making them ~1.24-1.34 corrected. The gate passes
+either way. The two rows that carry the conclusion are clean: `ge_order` 3 at 151.4 and `sg_rate` at 153.4
+against the reference's 153.2, so their nulls are measured at a matched level and if anything `ge_order` 3's
+1.013 understates it slightly. Widen the ceiling if the force-cutters' magnitude ever matters.
+
+**Limits of the instrument, as registered before the run:** no modulators, one fixed meal pattern, no
+activity, no sensor, no behaviour. It measures the body's sensitivity to exogenous insulin under a clean
+schedule, which is exactly the structural quantity and nothing more. `akfe1` was excluded on principle — it
+touches the sensor only, so its body is bit-identical and its open-loop value is analytically equal, which
+is consistent with its being the least damped motion-adder (0.983) — and `afe1` because `act_frag` is
+world-level activity generation, not a `BodyParams` field.
+
+**Method, the part worth keeping.** Six accounts were tested on closed-loop outcome ratios and all six
+failed, because the ratio of two outcomes of the same exogenous shock is not a structural parameter (L 674).
+One open-loop measurement, built in an afternoon against `physiology.Body` with no controller, answered it
+in one table. **When a quantity is defined as a ratio of two endogenous outcomes, stop looking for the
+mechanism and go build the exogenous version of the experiment.**

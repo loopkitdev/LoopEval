@@ -648,8 +648,19 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   peaks, so there is less high-side excursion for an edit to act on — **is itself withdrawn as measured false
   (L 662)**: `go3e2` sits with MORE high-side excursion than the reference (t180 24.7 against 21.4, sd 58.7
   against 51.8) and at a HIGHER level, both of which predict MORE response, and it damps anyway. The verdict
-  stands and is strengthened; only the explanation is gone. **ANSWERED at L 672, and it is NOT the
-  controller**: measured on `truth["delivered"]` across eight arms, Loop delivers 3-19% MORE insulin per
+  stands and is strengthened; only the explanation is gone. **SETTLED at L 676, and it is ENTIRELY CONTROLLER-SIDE — not a
+  body question at all.** Measured OPEN LOOP against `physiology.Body` with no Loop in the path, 60 people,
+  each configuration bisected to a matched glucose level: `ge_order` 3's body responds to exogenous insulin at
+  **1.013** of the reference and `sg_rate`'s at **0.993** — equal within 1-2% — against closed-loop damping of
+  0.745 and 0.812. The gate passed (the force-cutters read 1.303 / 1.390 / 1.408, as the ODE requires), and
+  the table splits cleanly: for every arm that genuinely changes the BODY the closed-loop ratio recovers the
+  open-loop sensitivity almost exactly (1.303 against 1.313, 1.408 against 1.419), and for the two
+  short-timescale arms it does not. **Adding short-timescale motion does not change how the body answers
+  insulin; it changes how Loop answers the glucose it sees, so no body candidate will fix it** — which is why
+  five successive accounts came up empty (L 670-675), all of them looking inside the body. It does NOT speak
+  to the reference's own 1.35 damping against the FIELD, which is twin-against-donor with no open-loop
+  counterpart; that is the question worth asking next. The closed-loop measurement behind it, for the record:
+  on `truth["delivered"]` across eight arms, Loop delivers 3-19% MORE insulin per
   log-unit edit in every variant, and what differs is glucose moved per DELIVERED unit — 0.727 (`ge_order` 3),
   0.798 (`sg_rate`), 0.825 (`act_frag`), 0.944 (`act_k`) against 1.141 / 1.131 / 1.270 for the three arms that
   CUT the insulin-independent force. Perfect sign separation, and it SURVIVES the unequal-need artefact
@@ -795,6 +806,17 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   0.005-0.015 against a 0.027 difference between the reference's own two draws, which passes. A falsifier
   stated absolutely would have thrown away a sound arm.
 
+- **When a quantity is a RATIO OF TWO ENDOGENOUS OUTCOMES, stop hunting the mechanism and build the
+  exogenous experiment** (L 674, 676). `g/dose` — the glucose response to a settings edit over the
+  delivered-insulin response to the SAME edit — is a Wald estimator whose exclusion restriction fails, because
+  an ISF/CR/target edit changes the timing and shape of delivery and not just its total. Six accounts of its
+  variation were tested on closed-loop outcomes and all six failed (controller under-delivery, measurement
+  smearing, unequal need, `kappa`'s kink, the renal term, the delivery-to-need covariance), because there was
+  no structural quantity there to find. ONE open-loop measurement against `physiology.Body` — no controller,
+  insulin varied exogenously, each configuration bisected to a matched glucose level — settled it in a single
+  table. Smoke-test such a driver on two cases before queueing it: on this one that caught `sg_mult` not being
+  a `BodyParams` field (`person.py:270` applies it at sampling) and an uncalibrated level of 216 mg/dL sitting
+  ON the per-person renal threshold, either of which would have been read as a result.
 - **An inference about an instrument is not a measurement of it, and I published one as the other** (L 669,
   refuted at sensor scale by L 670, **scale-resolved and CLOSED at L 671: the CGM's width moves the TIR ratio
   by only ~0.008 per mg/dL, so nothing in this record needs a TIR discount and the mean-row rule is right in
