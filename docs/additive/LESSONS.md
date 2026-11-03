@@ -5012,3 +5012,64 @@ ice's clean-row filter off, which lifts the donors 2-4% — L 679). That is a LA
 L 678 published off the `day`-OFF pool, so the conclusion is strengthened, and the headroom before the twins
 fall below the donors widens from 14% to about 17% — still three to five times what `unl_mult` can deliver,
 so **L 681's refutation of the pair stands on the restated numbers too.**
+
+**684. The nocturnal slow-motion excess, and the nocturnal share of lows with it, are attributable to the
+FORM of the model's one fitted term: `resid_m`, a per-person CONSTANT drift, which drives Loop into actuator
+saturation. Measured on both pools, three draws, zero new simulations.** L 681 having killed the load lever,
+the question was what else makes the twins' slow motion. The attribution script's first cut was unreadable,
+and for a reason recorded in my own overlay: I stratified 2-4 h windows on whether `ra` was zero, and
+**`ra` is never zero between meals (L 628)**, so every window came out "active" and the quiet stratum was
+empty. I cited that lesson's neighbours in the pre-registration and walked into it anyway. What the cut did
+give is the regime: within-window `si` CV at night is **2.25%** at 2 h and 9.1% at 4 h against **14.1%** and
+23.3% by day, so at night neither eating we can cut nor sensitivity variation is a candidate — while the one
+thing present every night is the residual's drift, e pool p10/p50/p90 **−48.3 / −14.2 / +13.4 mg/dL/h**
+against a basal hepatic output of ~80 mg/dL/h at the default `vg`. For the lowest decile the fitted term is
+**over half of basal EGP**; it is not a small nuisance.
+
+Registered before the numbers and confirmed: each twin's own night 2-h rms against its |`resid_m`| over the
+e pool's 408 people gives **rho +0.313, partial +0.325** controlling for the twin's own night mean glucose —
+larger when controlled, so not the level artefact the fit could have produced — while **the DAY rows are
+flat (−0.016 and −0.084)**, which is the registered discriminator, since the day row is the one that is
+already right. By quartile of |`resid_m`| (p50 4.6 → 46.2 mg/dL/h) the night 2-h rms runs **32.99 / 36.21 /
+43.17 / 45.57** against the donors' 29.84 — ratio **1.105 → 1.527** where the cohort reads 1.303, so
+**about 65% of the night excess sits in the large-drift tail.** Signed, it is entirely one-sided: rho +0.312
+over the 310 people with `resid_m` < 0 and **+0.034 over the 98 with `resid_m` > 0**, whose night 2-h rms
+(31.36) is 1.05x the donors'.
+
+**The mechanism is measured, not inferred.** A downward drift can only be opposed by withholding insulin,
+and withholding saturates at zero. Across |`resid_m`| quartiles the share of night 5-min blocks with **zero
+delivery** runs **23.9 / 26.7 / 31.5 / 42.8%** (rho +0.284; 33.9% for negative drift against 21.1% for
+positive) and night delivery falls 1.150 → 0.785 U/h. So the large-sink twins have Loop pinned at the bottom
+of its range for nearly half the night, and while pinned the glucose is uncontrolled. That also explains why
+the effect is strongest at 2 h (rho +0.313) and weaker at 4 h (+0.119): it is motion at the controller's own
+timescale, not a random walk.
+
+**And it accounts for the nocturnal-lows limit open since L 438-441.** Night t70 by |`resid_m`| quartile is
+**0.33 / 0.55 / 1.54 / 7.16%** on the e pool (rho **+0.434**, the strongest association measured here), and
+it replicates on the PILOT cohort — the pool the limit was measured on — on both draws: 0.54 / 0.21 / 1.29 /
+**7.58** and 0.50 / 1.00 / 1.51 / **5.12** (rho +0.374 / +0.371), with night zero-delivery 24.5 → 39.6% and
+28.8 → 40.4%, and the night 2-h rms association reproducing the e pool's (+0.287 / +0.289). **A 14-to-22-fold
+grading of night hypoglycaemia by the fitted drift.**
+
+**Doing so corrects the limit's own statement.** The twins' night share of lows is **29.4% / 29.7% POOLED**,
+reproducing the 31% on record, and **20.4% / 20.1% as a per-person MEDIAN**, which sits on the donors' 22%.
+The two differ because lows concentrate in the large-drift tail (rho(|`resid_m`|, low count) **+0.437 /
++0.420**), so pooling weights those people up. **The typical twin's night is right; the cohort's pooled night
+is wrong because of a minority.** Which reading is the defect depends on whether the donors' 22% was pooled
+or a per-person median, and that is NOT recoverable from anything on disk — the donor templates carry `t70`,
+`lows_per_day` and `min_below70` but no night share, so the figure came from a bespoke c446-era measurement.
+Both readings are actionable and they differ: pooled, the limit is real and now explained; per-person, it was
+a definitional mismatch all along and the body's night was never wrong. **Ask ice for the donors' night share
+of lows computed both ways** before quoting either.
+
+**What follows, including the part that is uncomfortable.** L 642 independently named the only live direction
+as "holding the donor's level with something glucose-dependent instead of `resid_m`'s constant", and this is
+direct support for it: the constant's form, not its size, is what produces the defect. **But the identity of
+L 678 says a glucose-dependent level-holder RAISES `lam`, and R = flux/lam, so it would damp the response
+further — the very thing L 680 established as the baseline limit.** The two goals are opposed through the
+same one number, exactly as response and dispersion are. The escape is not a better form for the residual:
+it is to need less of it, by finding the measured causes of the level error, which is what the ground rule
+has asked for all along. **This raises the value of that search, because the residual is now shown to be not
+merely unexplained but measurably unphysical** — a constant sink comparable to half of basal hepatic output,
+which the real body does not have, and whose signature (a pinned controller and a wandering nocturnal
+glucose) is visible in the traces.

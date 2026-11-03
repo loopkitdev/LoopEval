@@ -243,7 +243,16 @@ reference changes.
   excess — but **`si_norm` 1.0 is NOT the fix (L 597)**: the level refit raises `resid_m` to hold the donor's level
   and the insulin comes straight back (TDD 41.6 -> 42.1 with it on). A reference that fits `resid_m` to the level
   cannot improve TDD through a sensitivity scalar; it needs a mechanism that lowers insulin need AT that level;
-- night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458);
+- night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458)
+  — **ATTRIBUTED, and the limit's own statement needs correcting (L 684).** The grading is by `resid_m`, the
+  one fitted term: night t70 by |`resid_m`| quartile is 0.54 / 0.21 / 1.29 / **7.58**% on draw 1 and 0.50 /
+  1.00 / 1.51 / **5.12** on draw 2 (rho +0.374 / +0.371), because a negative drift can only be opposed by
+  WITHHOLDING and that saturates — night zero-delivery share runs 24.5 → 39.6% and 28.8 → 40.4% across the
+  same quartiles. And the twins' night share of lows is **29.4 / 29.7% POOLED** (reproducing the 31%) but
+  **20.4 / 20.1% as a per-person MEDIAN**, which sits on the donors' 22%: lows concentrate in the large-drift
+  tail (rho +0.437 / +0.420) so pooling weights it up. The typical twin's night is right. Whether the defect
+  is real or definitional turns on whether the donors' 22% was pooled or per-person, which is not recoverable
+  on disk — **ask ice for both before quoting either**;
 - **The low side's one defect is excursion DURATION, not depth or frequency** (L 600): rf2 already matches the donors'
   excursion count below 80 (1.67 against 1.75) and their penetration rate to 70 (60% against 57%); only the duration
   is wrong (25 min against 20). Every `sg_h_lo` variant fixes duration and breaks penetration, because a
@@ -307,7 +316,9 @@ reference changes.
   deficit, so more draws are not the bottleneck — a mechanism is.** The one existing mechanism of the right shape
   is ruled out: `resid_mult` 0.6 (ad3, daytime-weighted) supplies **8–18%** of the missing variance and nothing at
   night, and closing the gap with it would need ≈ 1.5, well past what L 592 rejected. Split on time since the last
-  carb entry, never on `ra`, which is never zero between meals (L 628, 648). **LOCATED AND SPLIT IN TWO (L 651,
+  carb entry, never on `ra`, which is never zero between meals (L 628, 648) — **and this re-bit on
+  2026-11-03: I cited its neighbours in a pre-registration and stratified on `ra` anyway, emptying the very
+  stratum the test rested on (L 684).** **LOCATED AND SPLIT IN TWO (L 651,
   652)**: against ice's donor table by time since the last entered carb (donors 8.86 / 8.31 / 7.23 / 6.83 / 6.65 /
   6.21 from 0-30m to >5h), the deficit is a POST-ENTRY TAIL — rf2 is flat after an hour where the donors stay
   1.14x their own floor at 1-2 h — and **the multi-step part IS the appearance dispersion**: `ge_order` 3 halves
@@ -417,7 +428,15 @@ reference changes.
   before the twins fall below the donors. The lever is short by a factor of 3-7, and it is near-uniform in
   lag, so unlogged eating is not a slow-scale lever at all. The twins' slow motion is not mostly driven by
   the part of the eating that is ours to cut, so with A1d's shape closed (L 642) and its magnitude priced by
-  the same identity, **the pair has no sizing and is not queued**. The idea was: **the PAIR, cut the load
+  the same identity, **the pair has no sizing and is not queued**. **What DOES drive the night excess is now measured
+  (L 684): `resid_m`'s constant drift.** At night our own `si` barely varies (within-window CV 2.25% at 2 h
+  against 14.1% by day), so the one thing acting is the fitted drift, and the twin's night 2-h rms tracks
+  |`resid_m`| at rho +0.313 (partial +0.325, DAY flat at −0.016) — 32.99 → 45.57 across its quartiles against
+  the donors' 29.84, so ~65% of the night excess is the large-drift tail, all of it on the NEGATIVE side
+  (rho +0.312 over 310 people, +0.034 over the 98 positive). The mechanism is Loop pinned at zero delivery
+  23.9 → 42.8% of the night. **The tension to hold on to: L 642's glucose-dependent level-holder would raise
+  `lam` and so damp the response further, which is this identity again — the escape is needing LESS residual,
+  not a better form for it.** The idea was: **the PAIR, cut the load
   and the force together**, each a named
   lever with its own evidence (`unl_mult`, L 610's only real TDD lever; A1d's magnitude), and they should cancel
   on the LEVEL too — the force cut raising it, the load cut lowering it — which is what would stop `resid_m`
