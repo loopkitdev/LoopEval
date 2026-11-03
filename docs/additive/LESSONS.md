@@ -3807,3 +3807,40 @@ job 174.
   breaks, the daytime deficit needs a sensor-side mechanism and `act_k` is the next question.
 - **Deliberately NOT bundled with the e pool** (L 656): short-scale realism and change-response accuracy are not
   the same axis, so the response half earns its own arm only if this one survives.
+
+**658. `act_frag` answered BOTH questions L 657 put to it, and they came apart: as the daytime mechanism it
+FAILS, as a configuration fix it survives the guard and is score-level.** Job 174, two draws, run from
+`frozen655`; the knob check confirms `act_frag` absent from the disable list and the arm differs from its control
+on 40/40 people, so this is a real arm.
+- **The AIM failed, and it failed cleanly.** The day structure function moved **0.81 / 0.86 / 0.88 → 0.83 / 0.88 /
+  0.91** at 5 / 10 / 15 min on draw 1 and **not at all on draw 2** (0.82 → 0.82), with the 2nd difference 0.74 →
+  0.75 on both. Against a deficit of 0.19 that is at most ~15% of the missing daytime variance on one draw and
+  none on the other. By time since the last entered carb the post-entry tail barely fills either (1-2 h 5.52 →
+  5.77 against the donors' 8.31). **So C7 is not the daytime mechanism**, and the sub-10-min flat-glucose piece it
+  was the nearest named candidate for is untouched.
+- **The falsifier HELD, which is what makes the negative interpretable.** Night 0.99 → 0.97 on draw 1 and 1.06 →
+  1.05 on draw 2 (30-min lag 1.04 → 1.09 and 1.18 → 1.17). The component acted on waking hours as its evidence
+  says it should; it simply does not move glucose enough. A negative result with its falsifier intact is worth
+  more than a positive one without, because it rules the mechanism out rather than the wiring.
+- **The guard HELD too, and this is the surprise.** L 161 had lows 0.67 → 0.83/day and L 517 had lows 1.08 with
+  t54 0.29. Here draw 1 goes t54 **0.124 → 0.177 TOWARD the donors' 0.190** with lows 1.000 → 0.917, and draw 2
+  t54 0.232 → 0.263 with lows 1.250 → 1.292 — a modest rise on one draw, an improvement on the other, nothing
+  resembling disqualifying. The prediction that it would cost the low side was wrong in direction on draw 1.
+  What it does cost is TDD on draw 1 (41.88 → 43.17, draw 2 flat), which is the row no component can move anyway
+  (L 605).
+- **Score-level to marginally better on both draws**: 0.309 → **0.305** and 0.357 → **0.355**, tier 1 worse on
+  draw 1 (0.116 → 0.138) and better on draw 2 (0.196 → 0.181), TIR better on both (72.15 → 72.41, 71.25 → 71.78).
+  Paired per-person splits the same way — 3.040 → 3.552 on draw 1, 2.568 → **2.056** on draw 2 — and draw 1's
+  worsening is mostly bg_mean (1.378 → 2.011) on an arm whose level drifted 151.0 → 150.1 with **no `resid_m`
+  refit**, which is exactly the drift a refit exists to remove (L 597).
+- **So the question that remains is not "does it help" but "should the reference run its own adopted default".**
+  Under Pete's rule of 2026-11-01 — level on the measures but better explained is a win — a component that is
+  score-level, guard-safe and already adopted should be ON unless the prediction half says otherwise, and that
+  half has never been measured for it. Queued as job 175 (`afe1`) on the e pool's 580 events with the decision
+  rule fixed in advance: level on mean / TIR / t70 → adopt as a defect removal; materially more damped → stays
+  off with the measurement recorded, as `ge_order` 3 did in L 656. The level trap is live (af1's cohort level
+  runs BELOW rf2's, which biases the RAW ratio toward looking damped with no mechanism), so it is read with
+  `score_change_lvl.py`.
+- **Method note worth keeping:** two of the three pre-registered predictions were wrong (the aim, and the
+  direction of the low-side cost) and the arm is still informative, because the falsifier and the guard were
+  registered separately from the aim. Registering only what you hope for makes a failed arm unreadable.
