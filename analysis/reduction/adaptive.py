@@ -35,6 +35,13 @@ Families
            own_manual: also answer the bolus calculator ("manual_rec" = max(0, need), the full need with no
            application factor or glucose gate), so a user's meal bolus is sized from the TDD carb ratio and ISF,
            not the person's schedules.
+           gsl > 0: glucose safety limit, as Loop's suspend threshold. L = the request's settings "suspend" when
+           gsl_settings and it is set, else gsl. Forecast over gsl_h minutes, 5-min steps: momentum (capped slope over
+           h), RC (ramped in over h), insulin (net IOB above b absorbed, x ISF_T), entered carbs (linear absorption, at
+           the TDD carb ratio, only when cr_k > 0). Glucose or the forecast minimum below L: no automatic bolus, temp 0.
+           The bolus-calculator answer (own_manual) is capped, as Loop's is, so the forecast WITH the bolus stays at or
+           above L: x <= (fc(k) - L) / (ISF_T * absorbed fraction of x by k) at every k. Glucose below L alone does not
+           block a meal bolus; a forecast that cannot carry any insulin above L does.
 """
 import json, math, sys
 from datetime import datetime, timezone
@@ -59,6 +66,26 @@ class ExpCurve:
         """IOB (in hours of rate) of a constant infusion that has run forever: ∫ remaining dt / 60."""
         t = np.arange(0, self.td + self.delay + 5, 1.0)
         return float(self.remaining(t).sum() / 60.0)
+
+def future(m, curve, t, ks):
+    """U of insulin and g of entered carbs absorbed in (t, t + k min] for each k in ks."""
+    pts, w = [], []
+    for s0, s1, u, kind, _a in m["doses"]:
+        a0, a1 = ts(s0), ts(s1)
+        if kind == "bolus" or a1 - a0 < 1: pts.append(a0); w.append(u)
+        else:
+            n = max(1, int(round((a1 - a0) / 300))); pts += list(a0 + (np.arange(n) + 0.5) * (a1 - a0) / n); w += [u / n] * n
+    pts, w = np.array(pts, float), np.array(w, float); k = pts < t; pts, w = pts[k], w[k]
+    ks = np.asarray(ks, float); ins = np.zeros(len(ks))
+    if len(pts):
+        age = (t - pts) / 60.0
+        ins = (w[:, None] * (curve.remaining(age)[:, None] - curve.remaining(age[:, None] + ks[None, :]))).sum(0)
+    carbs = np.zeros(len(ks))
+    for c0, g_, ab in m["carbs"]:
+        el = (t - ts(c0)) / 60.0; dur = (ab or 10800) / 60.0
+        frac = lambda e: np.clip(e / dur, 0, 1)
+        carbs += g_ * (frac(el + ks) - frac(np.array(el)))
+    return ins, carbs
 
 def features(m, curve, manual_tau=0.0):
     t = ts(m["t"])
@@ -117,7 +144,8 @@ class TddPD:
                     manual_tau=0.0, prop_temp=0, temp_floor_bg=80.0,
                     basal_uh=0.0, ad_basal=1.0, ad_isf=1.0, iob_cap_h=0.0, rc_k=0.0, rc_cap=150.0,
                     ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0, ad_brake_h=0.0,
-                    use_target=0, use_override=0, target_min=87.0, own_manual=0)
+                    use_target=0, use_override=0, target_min=87.0, own_manual=0,
+                    gsl=0.0, gsl_settings=1, gsl_h=180.0)
     def __init__(self, **p):
         self.p = {**self.defaults, **p}
         self.curve = ExpCurve(peak=self.p["peak"])
@@ -184,8 +212,25 @@ class TddPD:
             if f["G"] < p["t_low"] or Gh < p["t_low"]: temp = 0.0
         else:
             temp = 0.0 if (Gh < p["t_low"] or need < -p["withhold_u"] or f["G"] < p["t_low"]) else b
+        gsl_hold = False
+        if p["gsl"] > 0:
+            L = st.get("suspend") if p["gsl_settings"] and st.get("suspend") else p["gsl"]
+            ks = np.arange(5.0, p["gsl_h"] + 1, 5.0)
+            ins, cg = future(m, self.curve, ts(m["t"]), ks)
+            fc = f["G"] + s * np.minimum(ks, p["h"]) + rc * np.minimum(ks, p["h"]) / p["h"] - isf * (ins - b * ks / 60.0)
+            if p["cr_k"] > 0: fc = fc + isf * cg / (p["cr_k"] / (tdd * fac))
+            f["fc_min"] = float(fc.min()); f["gsl"] = float(L)
+            if f["G"] < L or fc.min() < L: bolus, temp, gsl_hold = 0.0, 0.0, True
+        f["gsl_hold"] = gsl_hold
         r = dict(bolus=floor_to(bolus, st.get("bolus_inc")), temp_rate=temp, _f=f, _need=need)
-        if p["own_manual"]: r["manual_rec"] = max(0.0, need)
+        if p["own_manual"]:
+            rec = max(0.0, need)
+            if p["gsl"] > 0 and rec > 0:
+                fr = 1 - self.curve.remaining(ks)                       # share of a bolus given now absorbed by k
+                act = fr > 1e-6
+                if np.any(act & (fc < L)): rec = 0.0
+                elif np.any(act): rec = min(rec, float(((fc[act] - L) / (isf * fr[act])).min()))
+            r["manual_rec"] = rec
         return r
 
 FAMILIES = {"tdd_pd": TddPD}
