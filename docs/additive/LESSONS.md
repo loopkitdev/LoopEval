@@ -3715,7 +3715,7 @@ from `pending` before it started (`grep -c "171_rk"` on the runner log = 0, stil
   real daytime body motion, so this needs the attribution settled before a parameter, not after. **Do not queue a
   coefficient for it on the strength of the fit alone — that is exactly what this lesson caught.**
 
-**655. [The FIX in this lesson was INCOMPLETE — see L 659: `cohort.py` and the whole residual block were missed,
+**655. [The FIX in this lesson was INCOMPLETE — see L 660: `cohort.py` and the whole residual block were missed,
 including `resid_mult`. The diagnosis below stands; "fixed in 106 places" did not cover the class.]
 A JSON arm file passing an INTEGER silently drops the knob, and it cost the one verdict that mattered most:
 `ge_order` 3's change response was never measured, so "prediction neutral" rests on an arm that ran as its own
@@ -3910,3 +3910,53 @@ configuration.
   `person.py`, rounding in `insulins.py`, `_num`'s own docstring) should be enumerated so the empty result is
   checkable next time. Claiming a class closed on a partial sweep is worse than not claiming it, because the
   next reader stops looking.
+
+**661. The `act_frag` configuration question is settled AGAINST the adopted default: on the e pool it is
+materially MORE damped, by the rule registered before the run, and the reference's undocumented `--disable` is
+right after all.** Job 175 (`afe1`, 580 events, real arm on the bitwise check — 60/60 differ). Its level drift
+is negligible, which is what makes this arm easy to read: own pre-edit level 143.3 against the reference's
+143.5, so the level-only expectation is 1.34 / 1.28 / 1.11 — the reference's own numbers — and every bit of
+the move is the form. Level-adjusted, **mean 1.35 -> 1.56 and TIR 1.30 -> 1.57** against the field's 1.0, with
+t70 1.09 -> 1.13 and the per-person rankings slipping on both primary rows (mean rho 0.33 -> 0.31, TIR 0.16 ->
+0.14). The one row moving toward the field is **t54, 0.56 -> 1.01**, and t54 is a guard, not a target
+(AGENTS.md), so it cannot buy the adoption. The pre-registered rule was "level on mean / TIR / t70 -> adopt as
+a defect removal; materially more damped -> stays off with the measurement recorded, exactly as `ge_order` 3
+did in L 656", so `act_frag` **stays off** and L 657's question — should the reference run its own adopted
+default? — is answered no, on measurement rather than on the silence in the record. Note how the two halves
+disagreed in full: on the cohort (L 658) it is score-level to marginally better on both draws, better on TIR
+on both, and its guard rows move TOWARD the donors; on the prediction half it is one of the most damped arms
+run. A component can be a small cohort improvement and a real prediction cost at once, and this role's
+reference is judged on both.
+
+**662. L 656's EXPLANATION for the damping is refuted, and the refutation validates the change-response
+instrument: beyond the glucose LEVEL, the pre-edit distribution does not carry the response ratio.** L 656
+explained `ge_order` 3's damping by saying dispersion lowers the post-meal peaks, "so there is less high-side
+excursion for an insulin change to act on, and `dG/dI` is proportional to G". Measured on the arms' own
+`_before` runs (120 events each, pickles already on disk), **both halves of that sentence are false for the
+arm it was written about**: `go3e2` sits with MORE high-side excursion than the reference, not less (t180
+24.7 against 21.4, sd 58.7 against 51.8, TIR 69.6 against 74.4) and at a HIGHER level (145.9 against 145.2),
+which on `dG/dI` proportional to G predicts MORE response, not less. It damps anyway. And `afe1` damps by
+almost the same amount from a pre-edit state statistically INDISTINGUISHABLE from the reference's (paired
+per-event medians: TIR −0.09, t180 −0.17, t250 +0.05, sd +1.07 over 150 events). So the two arms reach the
+same damping from opposite pre-edit states, and the state cannot be the cause. Tested as a general mediator
+across eight real arms (level-adjusted the L 638 way), dispersion correlates only −0.17 to −0.43 with the
+damping — the wrong SIGN for the story — and a matched pair breaks it outright: **`sk1_e` and `sr1_e` have the
+same pre-edit mean (158.5 / 158.6), the same sd (64.1 / 63.5) and the same t180 (32.7 / 31.3), and their
+level-adjusted responses are 1.16 and 1.66.** Identical distribution for the edit to act on, a 43% difference
+in response. The practical upshot is the opposite of a caveat: the level confound of L 638 is real and must be
+corrected for, but once it is, the ratio is a property of the MECHANISM and not of the glucose distribution,
+so a damping result is a fact about the component. L 656's verdict on `ge_order` 3 therefore stands and is
+strengthened; only its mechanism sentence is withdrawn. Nothing yet explains WHY an added short-timescale body
+component damps the response — two of two have — and that is now a stated open question rather than an
+answered one.
+
+**663. The no-op versions of corrected arms are still on disk under the OBVIOUS names, so picking arms from a
+directory listing silently selects the broken ones.** Building L 662's table I took `hl_e`, `sw0_e` and
+`sw5_e` — and all three are bit-identical to the reference over 60/60 events. The real arms are `hl2_e`,
+`sw0b_e` and `sw5b_e`, which the fresh-name discipline of L 603 created precisely BECAUSE the first versions
+no-opped; the lessons that record them (L 632 / L 634) name the corrected arms correctly, and the run dir's
+own `noop_check_sw2.log` says "real arm" for the `b` pair. So nothing in the record is wrong — the hazard is
+that the discipline leaves the dead arm sitting next to the live one with the shorter, more obvious name, and
+a later reader scanning `ls` output gets the control. Two rules: pick arms from the LESSON that recorded the
+result, not from the directory; and when a table is assembled from a listing, run the bitwise `truth["cgm"]`
+check over every arm in it before reading a single number, which is how these three were caught here.
