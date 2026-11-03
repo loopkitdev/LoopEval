@@ -541,7 +541,14 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   action delay between ~4 and 15 U in T1D and `p2` 0.025 is defensible for meal doses. **Order 3 is the fitted
   order** (labelled decay 59 min against the donors' 60) and costs 0.009 of score and 3.7 TIR points, which is no
   longer attributable to any evidenced component — so the open question is now why matching the donors' measured
-  appearance dispersion costs time in range, which points at the controller's response rather than the body. If yes, `ge_order` 3 + a faster `p2` is a pair of evidenced changes that close the meal tail,
+  appearance dispersion costs time in range, which points at the controller's response rather than the body.
+  **Its "prediction neutral" verdict is WITHDRAWN as UNMEASURED (L 655)**: the e-pool arm behind it passed
+  `"ge_order": 3` as a JSON INTEGER into a guard testing `isinstance(v, float)`, so the knob was silently dropped —
+  60/60 events bit-identical to the reference, all four response ratios equal to it to four decimals. The cohort
+  arms used `--set`, which parses to float, so L 617's cohort numbers and L 652's structure-function result stand;
+  only the change response was lost. Fixed (`_num` accepts int, rejects bool) and re-queued as job 172. Until it
+  returns, quote `ge_order` 3 as four cohort rows better, 3.7 TIR points worse, **change response UNKNOWN**.
+  If yes, `ge_order` 3 + a faster `p2` is a pair of evidenced changes that close the meal tail,
   `acf_zero_min` and the fall / rise ratio together. **NOT a behaviour refit (L 618)**: `bolus_lead_min`, `p_bolus_ann` and
   `bolus_ratio` are already per-donor, so the twins already dose like their donors. The cost is a clash between two
   independently calibrated components — appearance dispersion against insulin action (`p2` 0.025, the lispro clamp)
@@ -729,6 +736,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 
 - **An arm rerun into an existing output dir returns the CACHED previous run** (`v0… cached` in its log), so a fixed
   arm can come back byte-identical to the broken one it replaces. Use a fresh arm name, or clear the dir.
+- **A numeric knob must be verified as a NUMBER where it enters, and there are now THREE ways it silently is not**
+  (L 554, 655). `--enable k=v` makes a switch named `k=v`; `--set` parses to float and is safe; an `ARM_ENABLE`
+  JSON **integer** was dropped outright until 2026-11-02, because the guard tested `isinstance(v, float)` and
+  `isinstance(3, float)` is False — which cost `ge_order` 3's whole change-response verdict. All three have the
+  same signature, an arm that reproduces its control exactly, and all three are caught by the same two checks:
+  compare `truth.pkl`'s `truth.bg` across the arm and its control, and look for identical `variant` values in
+  `score_change.py`'s output. Run both on every arm; never read a ratio alone.
 - **A numeric override passed to `--enable` is a switch named `k=v`, so the component keeps its default and the arm
   silently runs as its own control** (L 554). Numeric values go in `--set`; `cohort.py` now rejects `=` in `--enable`.
   An arm that reproduces its control exactly is the signature — check `cohort.json` in the run dir.
