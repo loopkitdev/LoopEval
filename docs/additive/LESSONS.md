@@ -4394,9 +4394,10 @@ refutation to what was measured, which left the reinstatement available instead 
 One thing did not: three of the four steps would have been unnecessary if the mechanism had been labelled an
 inference and tested before any of it was written down.
 
-**672. (ITS `g/dose` METRIC IS UNDER TEST AT L 673 — both nonlinearities that could justify it are
-excluded, and the division by an ABSOLUTE dose response may be an artefact of unequal insulin need. The
-dose and glucose columns stand either way.) THE DAMPED CHANGE RESPONSE IS NOT THE CONTROLLER. Loop delivers MORE insulin per unit edit in every
+**672. (READ L 674. The unequal-need artefact is REFUTED and the separation survives on a fractional
+basis, sharper — but calling the ratio `dG/dI` is NOT licensed: both the glucose and the dose response are
+closed-loop OUTCOMES of the same edit, so their ratio is not a body parameter. The columns stand; the
+dG/dI label does not.) THE DAMPED CHANGE RESPONSE IS NOT THE CONTROLLER. Loop delivers MORE insulin per unit edit in every
 variant; what differs is how much glucose moves per delivered unit, and that separates PERFECTLY by what the
 arm does to the insulin-INDEPENDENT restoring force.** Jobs 182 and 183, zero simulations — `truth["delivered"]`
 out of eight e-pool arms already on disk, each labelled from its own `meta.json` and printed in the log.
@@ -4525,3 +4526,68 @@ uses.
 whatever job 185 says: Loop's delivery response to an edit is LARGER in every variant, and the glucose
 response is smaller in the motion-adders — the controller is not under-delivering. What is under test is
 only the division of one by the other, which is the step that made it a statement about the body.
+
+**674. The artefact test CLEARS the metric, a registered stop condition fired and I am overriding it with
+reasons, and the interpretation is still not licensed — because in a closed loop BOTH the glucose response
+and the dose response are outcomes. What job 184 could not find, job 184 was built to miss: the nonlinearity
+is not curvature in glucose, it is the COVARIANCE between insulin action and glucose.**
+
+| arm | base_TDD / ref | dose / ref | **fdose / ref** | mean / ref | g/dose_frac |
+|---|---|---|---|---|---|
+| rf2e_s | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| go3e2 | 1.027 | 1.185 | **1.156** | 0.862 | **0.745** |
+| rt1_e | 1.008 | 1.114 | 1.095 | 0.889 | 0.812 |
+| afe1 | 1.000 | 1.048 | 1.059 | 0.865 | 0.817 |
+| akfe1 | 1.004 | 1.061 | 1.019 | 1.002 | 0.983 |
+| sk1_e | 1.090 | 1.116 | 0.970 | 1.274 | **1.313** |
+| sm1_e | 1.092 | 1.131 | 0.982 | 1.279 | 1.302 |
+| sr1_e | 1.080 | 1.029 | 0.921 | 1.307 | **1.419** |
+
+**(1) The unequal-need artefact is REFUTED, which was the registered alternative.** The motion-adders'
+dose response exceeds their baseline need by 5–15% (`go3e2` 1.185 against 1.027, `rt1_e` 1.114 against
+1.008), and the force-cutters' barely does or falls below it (`sr1_e` 1.029 against 1.080). So the absolute
+normalisation is not empty arithmetic. On the fractional basis the separation is sharper, not weaker —
+0.745 / 0.812 / 0.817 / 0.983 against 1.302 / 1.313 / 1.419 — and perfect.
+
+**(4) The registered SANITY condition fired, and I am overriding it rather than quietly dropping it.** I
+registered that the reference's own fractional dose response should be of order 1, "because a log-unit of
+commanded insulin ought to buy roughly a log-unit of delivered insulin", and that far from 1 means the rest
+should not be read. It measures **0.234**. The expectation was wrong, not the measurement: it is an
+OPEN-loop argument, and in closed loop making the settings more aggressive drives glucose down and Loop then
+backs off, so the delivered change is much smaller than the commanded one. 0.234 is what that attenuation
+looks like. The override is safe for a specific reason — the absolute scale cancels in every ratio reported
+here, since all eight arms are measured against the same index — so the condition was MIS-SPECIFIED: it
+should have been about the ratios' stability, not the scale's absolute value. Recording it because a
+pre-registration that gets waived casually is worth nothing.
+
+**(2) And the interpretation is STILL not licensed, for a reason that explains why job 184 found nothing.**
+`g/dose` divides one endogenous outcome by another: the settings edit `x` is the only exogenous variation,
+and BOTH glucose and delivered insulin respond to it. The ratio of two reduced-form responses is the Wald /
+IV estimator of `dGlucose/dDose`, which identifies a causal effect **only if `x` affects glucose solely
+through the total dose** — and that exclusion restriction plainly fails here, because an ISF / CR / target
+edit changes Loop's forecast and the TIMING and shape of delivery, not just its total. So the ratio can
+differ across arms with `dG/dI` completely unchanged, and there need be no structural mechanism for job 184
+to find. **Do not read a ratio of two closed-loop outcomes as a body parameter.**
+
+**What it IS a statement about, and the quantity to measure next.** The insulin term in the ODE is
+`xact * mm(g)` — BILINEAR — so its mean is `E[xact]*E[mm] + cov(xact, mm(g))`. Job 184 computed `E[mm]`
+alone, holding insulin out, which is exactly why it measured 1.0000: curvature in `g` is not the channel,
+the **covariance** is. Insulin delivered while glucose is already low does less glucose-lowering than the
+same insulin delivered while glucose is high, and an arm that adds short-timescale motion changes how well
+Loop's delivery lines up with the glucose it is meant to act on. That is a statement about the MATCH between
+delivery timing and need, not about the body's sensitivity — and it predicts the sign: the motion-adders
+should carry a more negative relative covariance, the force-cutters a less negative one.
+
+**Job 186, registered:** per event per arm, the relative covariance `cov(absorbed, mm(bg)) /
+(E[absorbed]*E[mm])` from the saved traces, against `g/dose_frac`. If it orders the eight arms as
+`g/dose_frac` does, the damping is delivery-to-need MISMATCH and the lever is the controller's behaviour
+under a noisier signal, not a body parameter — which would also explain why no body candidate has ever moved
+it. If it does not order them, the effect has no account in the model's own ODE and I will say exactly that
+rather than reach for a fifth candidate.
+
+**The chain of what survives, stated once.** Measured and robust: Loop's delivery response to an edit is
+larger in every variant (over baseline need, 5–15% in the motion-adders), and glucose moves less in the
+motion-adders and more in the force-cutters, with perfect sign separation on both normalisations. Refuted:
+the controller under-delivering (L 672), measurement smearing (L 670 / 671), unequal need (here), `kappa`'s
+kink and the renal term (L 673). Not licensed: calling the ratio `dG/dI` or a body property. Open: whether
+the covariance channel accounts for it.
