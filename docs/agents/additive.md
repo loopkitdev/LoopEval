@@ -781,7 +781,9 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   stated absolutely would have thrown away a sound arm.
 
 - **An inference about an instrument is not a measurement of it, and I published one as the other** (L 669,
-  **corrected by L 670 within the hour**). `act_k` 1.5 touches nothing but measurement error and yet moves
+  refuted at sensor scale by L 670, **scale-resolved and CLOSED at L 671: the CGM's width moves the TIR ratio
+  by only ~0.008 per mg/dL, so nothing in this record needs a TIR discount and the mean-row rule is right in
+  principle and irrelevant in practice**). `act_k` 1.5 touches nothing but measurement error and yet moves
   TIR's level-adjusted ratio 1.30 -> **1.48** and t70's 1.09 -> **0.95** while leaving the mean's **exactly**
   at 1.35 (pre-registered, level-corrected — the observation stands). I explained it as threshold smearing by
   the added CGM noise and wrote the consequences into LESSONS, COMPONENTS and this overlay. **Job 180 refuted
@@ -790,9 +792,12 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   probe works). Withdrawn with it: any TIR discount on L 656 / 661 / 649, and the corollary that the twins'
   TIR under-response is "worse than 1.30" because the field's CGM is already smeared. What the probe DID find
   is that `act_k` widens the CGM marginal sd 48.95 -> 50.79, an iid-equivalent **13.6 mg/dL** where its noise
-  term can add only 2-4 — so most of it is the BODY's trajectory changing through Loop's dosing. The
-  observation is **unexplained**, with measurement smearing refuted and trajectory dispersion contra-indicated
-  by L 662; job 181 extends the sd sweep to 20 mg/dL, which discriminates. The rule: when an interpretation
+  term can add only 2-4 — so most of it is the BODY's trajectory changing through Loop's dosing, which makes a
+  smaller TIR response a REAL consequence of the arm rather than an illusion. Job 181 swept to sd 20 and
+  settled it (L 671): TIR's ratio rises monotonically to 1.43 and t70's falls to 0.82 with the mean flat, so
+  the density argument including t70's sign is confirmed in FORM, while at `act_k`'s own 13.6 it accounts for
+  only ~43% of its TIR move, over-explains t70 and gets t54's sign backwards. Residue still open; artefact
+  bounded at <= 0.03 for any realistic sensor-noise difference. The rule: when an interpretation
   rests on an untested mechanism, register the test and quote the OBSERVATION as the finding until it returns,
   and never carry such a mechanism into a claim about the model's standing limits — a "held loosely" label
   does not make an inference a measurement.

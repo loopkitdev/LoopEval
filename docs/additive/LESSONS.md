@@ -4189,8 +4189,9 @@ with the knob verified bitwise, is a measurement. Both halves were needed here: 
 flat rows trustworthy, and the computed rows make the flat score mean "`day` is small" instead of "`day`
 did not run".
 
-**669. (THE OBSERVATION HERE STANDS; ITS EXPLANATION IS REFUTED AT L 670 — pure marginal CGM smearing
-moves no ratio, the field-side corollary below is WITHDRAWN, and L 656 / 661 / 649 need no TIR discount.)** The TIR
+**669. (READ L 671, WHICH CLOSES THIS. The observation stands. The mechanism is real in FORM but ~0.008 of
+TIR ratio per mg/dL, so it contaminates nothing at sensor scale; the field-side corollary below is
+WITHDRAWN, and no TIR ratio anywhere needs a discount.)** The TIR
 change-response ratio is sensitive to the CGM's OWN noise, and the MEAN row is the only
 artefact-free one. A term that touches nothing but measurement error moves TIR's ratio by 0.18 and leaves
 the mean's EXACTLY unmoved.** Job 179 ran D `act_k` 1.5 on the e pool's 580 events (real arm, 0 identical /
@@ -4263,7 +4264,9 @@ to read its own TIR number. It is valid for this question because the density ef
 width, which iid and autocorrelated noise of the same sd smear identically — and it says nothing about the
 structure function, where the autocorrelation is the whole point.
 
-**670. THE MECHANISM I PUBLISHED IN L 669 IS REFUTED AT SENSOR SCALE, ONE HOUR AFTER PUBLISHING IT. Pure
+**670. (SCALE-RESOLVED AT L 671: the mechanism IS real above ~6 mg/dL and simply too weak to matter;
+this lesson's refutation holds exactly as scoped, at sensor scale.) THE MECHANISM I PUBLISHED IN L 669 IS
+REFUTED AT SENSOR SCALE, ONE HOUR AFTER PUBLISHING IT. Pure
 marginal CGM smearing moves NO response ratio, so `act_k`'s TIR move is not measurement noise and L 669's
 field-side corollary is WITHDRAWN.** Job 180 added synthetic iid noise to the reference arm's own saved CGM
 and re-ran the same estimator — no sims, no dosing feedback, nothing but a wider marginal:
@@ -4322,3 +4325,71 @@ quote the OBSERVATION as the finding until it returns; **(2)** never carry an un
 a conclusion about the model's standing limits — the "TIR under-response is worse than 1.30" sentence was
 labelled "held loosely" and was still wrong to write, because a caveat does not make an inference a
 measurement. L 669 stands as the measurement; this lesson is its interpretation.
+
+**671. SCALE-RESOLVED AND CLOSED. The smearing mechanism is REAL in form — TIR up, t70 down, mean flat, all
+monotone — and far too WEAK to contaminate any arm in this record: about +0.008 of TIR ratio per mg/dL of
+added CGM sd. So no TIR ratio needs a discount, and L 669's field-side corollary stays withdrawn, now on a
+number rather than an argument.** Job 181 swept the same zero-simulation probe to the scale `act_k` actually
+produces:
+
+| added iid sd | mean r | TIR response | TIR r | t70 r | t54 r |
+|---|---|---|---|---|---|
+| 0 | 1.34 | +7.53 | 1.27 | 1.14 | 0.58 |
+| 6 | 1.34 | +7.48 | 1.30 | 1.04 | 0.53 |
+| 10 | 1.35 | +7.23 | 1.33 | 0.90 | 0.50 |
+| 14 | 1.36 | +7.07 | 1.36 | 0.90 | 0.42 |
+| 20 | 1.39 | +6.77 | **1.43** | **0.82** | 0.31 |
+
+Condition (C) holds throughout — the mean's response moves −17.59 -> −17.57 across the whole sweep — so every
+row is interpretable. **The two directional predictions of L 669 are now CONFIRMED by a controlled sweep**:
+TIR's ratio rises monotonically and t70's falls monotonically, which is exactly the density argument (TIR has
+two thresholds with mass inside them, t70 one with mass above it). t70's sign was flagged in L 669 as a
+post-hoc story and is now a measurement. **L 670's refutation was correctly SCOPED to sensor scale** — it
+tested 0–3 mg/dL and said so — and that scoping is the only reason the two lessons do not contradict: at
+sd 3 the effect is 0.02, below the noise; the mechanism needed four times the range to become visible.
+
+**The sensitivity is the number worth keeping, and it is what closes the thread:**
+`d(TIR r)/d(sd)` ~ **+0.008 per mg/dL** and `d(t70 r)/d(sd)` ~ **−0.016 per mg/dL** over 0–20. A sensor-noise
+difference between two arms is 1–3 mg/dL, so the ratio contamination is **<= 0.03** — negligible against the
+0.2–0.4 moves this record argues over. **So "read the mean row because TIR carries sensor variance" is right
+in principle and practically irrelevant, and no arm's TIR number in L 656, L 661, L 649 or anywhere else needs
+a correction.**
+
+**`act_k` decomposed at its own iid-equivalent widening of 13.6 mg/dL** (raw ratios, matching the probe's own
+sd = 0 row):
+
+| row | rf2 | `act_k` | width alone at sd 13.6 | verdict |
+|---|---|---|---|---|
+| TIR | 1.27 | 1.48 | ~1.36 | width explains ~**43%** |
+| t70 | 1.14 | 0.99 | ~0.90 | width **over**-explains, 1.6x |
+| t54 | 0.58 | 0.71 | ~0.43 | width predicts the **opposite sign** |
+| mean | 1.34 | 1.36 | ~1.36 | flat on both, trivially |
+
+So width is a PARTIAL account: about half of the TIR move, too much of t70, and wrong in sign on t54. The
+residue is smaller than L 670 recorded but it is still open.
+
+**And the reframing that matters more than the residue: there is no instrument artefact to correct for.**
+`act_k`'s noise term can add only 2–4 mg/dL directly, so almost all of its 13.6 is **the body's own trajectory
+getting wider** through Loop acting on a noisier signal. A smaller TIR response under a genuinely wider glucose
+distribution is a REAL consequence of the arm, not a measurement illusion. The artefact case — CGM widened
+without truth widening — is bounded at <= 0.03 by the sensitivity above.
+
+**The field-side corollary stays withdrawn, now quantitatively.** The donors carry ~1.4 mg/dL more daytime
+short-scale variance than the twins at the 5-min lag (L 648), and the marginal sd that this mechanism acts on
+is 48.95, dominated by excursions rather than short-scale noise. So the field's extra jumpiness buys <= 0.025
+of ratio, not the 0.18 L 669 attributed to it. The twins' TIR under-response is 1.30, as measured, and nothing
+here makes it worse.
+
+**L 662 is not contradicted either.** Its eight-arm null compares arms whose dispersion varied WITH mechanisms
+that moved the response the other way; this sweep holds the mechanism fixed and varies width alone. Both hold:
+width has a real, weak effect, and mechanism differences dominate it by an order of magnitude — which is why
+dispersion does not predict damping across arms.
+
+**The arc, recorded because the procedure is the transferable part.** Observation pre-registered and measured
+(L 669) -> mechanism inferred, published as a result, and carried into a claim about the model's standing
+limits (L 669, the error) -> refuted at the scale tested, with the refutation SCOPED to that scale (L 670) ->
+reinstated in form, quantified, and found too weak to matter (L 671). Two things worked: registering the
+probe's predictions alongside the lesson, which caught the over-claim within the hour, and scoping the
+refutation to what was measured, which left the reinstatement available instead of burying a real mechanism.
+One thing did not: three of the four steps would have been unnecessary if the mechanism had been labelled an
+inference and tested before any of it was written down.
