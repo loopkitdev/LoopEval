@@ -5145,3 +5145,37 @@ existence, not emptiness** — `[ -e <dir> ]` before queueing, never `ls <dir>/v
 `rmd1_5k` with the log filenames kept so the armed watcher still matched. Three letters of initials are not
 enough to keep arms apart across a 1,977-entry run dir; `rm` served `resid_meal` before `resid_m_diurnal`
 wanted it.
+
+**688. The donors' pump-suspend windows are an OUT-OF-REGIME test set we have been discarding, and
+the right thing to read off them is not SG.** L 635/636 records SG as unidentifiable in this pool: the
+controller makes glucose and insulin activity collinear at r +0.5-0.7, so an ICE-against-glucose slope comes
+out the wrong sign (ice L 140b), and the three estimates on the table span 3x (ours 0.0045/min, the evidence
+bracket 0.00247, ice's learned force 0.0015). A SUSPEND pins delivery at zero regardless of glucose, which
+restores the exclusion restriction L 674 found missing in `g/dose`. Sized: of 8,592 `suspend` records across
+203 donors, **5,253 are sub-5-minute instantaneous markers** and 4 are multi-week pump-absence markers, so
+the usable 2-24 h set is **412 windows / 74 donors / 1,496 h**, of which **389 across 68 donors** survive a
+PRORATED zero-delivery filter (<0.10 U by dose-record overlap, not by the label - the smoke test found
+windows labelled `suspend` with delivery inside them) and a no-carb-entry filter. The gate passes: median
+dG/dt is **+12.0 mg/dL/h**, per-person median of medians +12.0, 60% rising, so after proration the label
+does denote zero delivery. Two estimator failures and one reframe:
+ - **The WITHIN-window slope of dG/dt on G is the wrong estimator and comes out ANTI-restoring** (+0.13 /h
+   pooled, +0.10 per person). Inside one window glucose rises nearly monotonically while the IOB tail decays,
+   so glucose, time and insulin decay are collinear and the regression reads the insulin tail. This is L 644's
+   identity trap in a new costume: the quantity regressed on is mostly made of the thing being measured.
+ - **The BETWEEN-window estimator (early rate on onset glucose, person-demeaned) gets the right SIGN and an
+   untrustworthy MAGNITUDE**: lam 0.0077-0.0099 /min, per-person median 0.0086, i.e. 2-6x every prior. It is
+   confounded at both ends in the direction observed - unlogged rescue carbs lift the low-onset rate (the
+   carb-entry filter cannot see them) and a bolus-then-disconnect lowers the high-onset rate, where glucose
+   FALLS 12-47 mg/dL/h with zero delivery. That fall is insulin action, not an insulin-independent force. A
+   6 h delivery total does not control it: adding it moves the slope by 0.0002 /h, which is the proxy failing,
+   not the confound being absent. Identifying SG here needs insulin ACTION run forward from the dose history
+   through `insulins.py`, with the insulin-mediated term carried explicitly - not a scalar covariate.
+ - **The reframe, and the better use of this data: the ZERO-DELIVERY EQUILIBRIUM.** With no insulin the
+   donors' glucose is flat at onset ~140-155 (rate -3.8 mg/dL/h in the 140-180 band) and rises +23.6 below
+   110. That is a direct, assumption-light target - no estimator, no exclusion restriction - and this model
+   has never been tested outside closed-loop operation at all. It constrains EGP, the restoring force and
+   `resid_m`'s drift JOINTLY at a state the closed loop never visits, which is exactly where a model fitted
+   inside one regime is least constrained. Prefer it to extracting SG.
+Concentration caveat throughout: i163 holds 81 windows and i101 54, 35% of the clean set between them, so
+every number here is quoted per person as well as pooled (L 598, 610). Run dir
+`runs/2026-11-03-additive-suspend` (`feas.py`, `lam2.py`, `suspend_windows.csv`, `early_rates.csv`).

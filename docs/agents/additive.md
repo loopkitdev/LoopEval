@@ -644,6 +644,32 @@ band-faithfulness IS a constraint on the integral and **no parameterisation of A
 off; the only live direction left is outside this component — holding the donor's level with something
 glucose-dependent instead of `resid_m`'s constant.
 
+**There is an OUT-OF-REGIME test set in the donor records and this model has never been tested on it
+(L 688).** Every number in this overlay is measured inside closed-loop operation, which is also where
+`resid_m` was fitted, so the body is least constrained exactly where the controller never goes. The
+donors' pump suspends go there: 412 windows of 2-24 h across 74 donors, **389 across 68 donors** after a
+PRORATED zero-delivery filter (<0.10 U by dose-record overlap - never trust the `suspend` label, which sits
+on windows with delivery inside them) and a no-carb-entry filter. Median dG/dt +12.0 mg/dL/h, 60% rising.
+**Read the ZERO-DELIVERY EQUILIBRIUM off it, not SG**: the donors are flat at onset ~140-155 and rise
++23.6 mg/dL/h below 110, which constrains EGP, the restoring force and `resid_m` jointly with no estimator
+and no exclusion restriction. SG itself is NOT yet extractable here - the within-window slope reads the IOB
+tail and comes out anti-restoring, and the between-window slope gets the right sign at 2-6x every prior
+because unlogged rescue carbs lift the low end and bolus-then-disconnect lowers the high end (glucose falls
+12-47 mg/dL/h with zero delivery at onset >180). Doing it properly needs insulin action run forward through
+`insulins.py`, not a delivery-total covariate, which moves the slope by 0.0002 /h. Two donors hold 35% of
+the clean windows, so quote per person as well as pooled.
+
+**ACTIVITY, HR AND SLEEP ARE NOT IN THE DONATION AT ALL, so the exercise limit cannot be closed from this
+cohort (L 688).** The exercise side is recorded above as blocked on measurement rather than mechanism
+(L 551, 556, 557, 564, 631) - METmax is a prior, `met_own` reaches 22 of 168 donors and moves the cohort
+mean by x1.0047. The activity record behind that is `com.apple.HealthKit` `physicalActivity` rows carrying a
+workout duration and an `HKAverageMETs` payload fragment: 26,671 rows over **37 donors of 168**, with
+**0 rows of heart rate, 0 of workout type, 0 of sleep, 0 of energy** and `reportedIntensity` non-null for 3
+donors. So it is a PIPELINE limit, not a coverage one, and no warehouse query fixes it. `sleep_mid_h` is
+likewise INFERRED from the quietest window in the donor's own carb-entry record (`templates.py:825`), not
+measured - in a model whose worst region is the night. Closing the 6-8 MET band (-13 against the donors'
+-21.5, a tier-1 row) or re-keying `act_k` to measured movement needs an external dataset or new collection.
+
 **The natural-experiment half is limited by the FIELD, not by compute (L 611).** With 63 edit events the field / twin
 response ratios carry CIs like [1.22, 3.79], so `rf2`'s t70 improvement (3.51 -> 2.17) is "best measured, not
 established", and MORE DRAWS CANNOT HELP — the limiting variance is one noisy field response per event. Narrowing it
