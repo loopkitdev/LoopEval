@@ -682,6 +682,16 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   glucose, which is false and nearly bought an arm. Check a built person's value, as the `--enable k=v` and
   `BEHAVIOR_COLS` traps already require.
 
+- **A cross-group test only excludes what VARIES across the groups** (L 659). Splitting the donors' daytime
+  2nd difference by SENSOR FAMILY came back family-independent, and I had told a peer that this meant the body.
+  It does not: it rules out a family-SPECIFIC sensor property (noise level, filtering, lag, calibration) and
+  leaves untouched a wear or motion artefact common to every CGM class, since G6, G7 and Libre 3 all sit in
+  subcutaneous interstitium under tape and would all be affected alike. Before reading a null across groups as
+  excluding a whole mechanism class, write down what the grouping actually varies — and look for the WITHIN-group
+  cut that varies it (here, insertion site, which no donor record carries, so the attribution is simply not
+  decidable from this data). When attribution is undecidable, a candidate must be judged on its own evidence and
+  never on closing the row, because closing it is consistent with every surviving hypothesis.
+
 - **The non-insulin force regressed on glucose velocity is the IDENTITY, not a response** (L 644). `dG/dt` is
   mostly made OF that force, so the slope comes out near 1 whatever the body does — measured, 0.88 of the velocity
   in 90-180, where 1.0 is what a constant insulin term alone would give. It cannot be compared with an
@@ -781,7 +791,16 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   `isinstance(3, float)` is False — which cost `ge_order` 3's whole change-response verdict. All three have the
   same signature, an arm that reproduces its control exactly, and all three are caught by the same two checks:
   compare `truth.pkl`'s `truth.bg` across the arm and its control, and look for identical `variant` values in
-  `score_change.py`'s output. Run both on every arm; never read a ratio alone.
+  `score_change.py`'s output. Run both on every arm; never read a ratio alone. **The 2026-11-02 fix was itself
+  INCOMPLETE and the second pass is the lesson (L 660)**: it replaced 106 guards in `world.py` and left
+  `cohort.py`'s 14 (`sg_mult`, `csf_mult`, `kappa_mult`, `csf_sd_w`, `basal_share`, `isf_level`, `csf_lvl`, …)
+  and the entire residual block (`resid_m`, `resid_skew`, `resid_diurnal`, `resid_tf/tb`, `resid_meal`,
+  `resid_day_ar`, `ppr_b/l/d`) — including **`resid_mult`**, where a JSON `0` would default to **1.0** and turn
+  the dynamic residual back ON at full strength in an arm written to run the reference. **A fix counted in call
+  sites is not a fix scoped to a class: the grep that found the bug must come back EMPTY over the whole package
+  afterwards**, with the legitimate survivors enumerated so the empty result is checkable (today: a NaN guard in
+  `person.py`, rounding in `insulins.py`, `_num`'s own docstring). Claiming a class closed on a partial sweep is
+  worse than not claiming it, because the next reader stops looking.
 - **A numeric override passed to `--enable` is a switch named `k=v`, so the component keeps its default and the arm
   silently runs as its own control** (L 554). Numeric values go in `--set`; `cohort.py` now rejects `=` in `--enable`.
   An arm that reproduces its control exactly is the signature — check `cohort.json` in the run dir.
