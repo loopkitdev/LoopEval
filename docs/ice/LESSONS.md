@@ -2012,3 +2012,27 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       at most about a third of the excess ICE.
     - The user-bolus inputs carry user decisions only (bolus_decisions), not Loop's automatic boluses, so they are not
       a hidden insulin channel like iob_net was.
+
+170. **Holding the unannounced meals fixed strengthens the response both ways; it does not supply the missing
+    asymmetry.** Diagnostic arm ml: the new-settings run replays the exact unannounced meals the person ate in the
+    before-settings run of the same window (PLANT_MEAL_LOG, frozen tree only), so eating cannot respond to the
+    change. Base recipe (oc), two trainings, e pool (334 scored edits):
+
+    | | Field | oc (5 trainings) | Same meals (2) |
+    |---|---|---|---|
+    | Mean, more insulin | −8.42 | −5.57 ± 0.53 | −6.83 |
+    | Mean, less insulin | +5.05 | +5.03 ± 0.28 | +6.05 |
+    | TIR, more / less | +3.64 / −1.24 | +1.95 / −1.87 | +2.41 / −2.53 |
+    | t<70, more / less | +0.74 / −0.85 | +0.77 / −0.71 | +0.91 / −0.68 |
+    | t<54, more | +0.15 | +0.32 | +0.38 |
+    | More insulin by own-level third | −5.5 / −10.0 / −9.0 | −3.1 / −5.3 / −8.6 | −3.5 / −6.2 / −10.3 |
+
+    - Eating explains about 1.3 of the 2.9 mg/dL more-insulin shortfall, but it explains 1.0 of extra response on
+      the less-insulin side too, where the base was already right. Field ratio of more- to less-insulin response is
+      1.67; oc 1.11; same meals 1.13. The generated person's eating damps both directions about equally, so
+      eating is not what makes the field asymmetric.
+    - The fade arms (162, 168) gave the same pattern (more −6.9, less +5.7 to +5.8). Every lever tried so far scales
+      the response; none gives the field's asymmetry. The low third still moves least (−3.5 against −5.5).
+    - Next question: where does the field's asymmetry come from? Candidates are the field's selection (people who
+      raise insulin are those running high and still falling) and what changes only after more insulin (fewer rescue
+      treatments, fewer corrections). The next diagnostic compares the field's more-insulin and less-insulin edits.
