@@ -165,16 +165,25 @@ instead live fully outside the repo in `~/.loop-eval/<alias>/site.json`.
 - `bench` linearized TIR and `evaluate` forecast metrics are diagnostics — never therapy
   evidence.
 
-## Design principle: modify the forecast, not the output
+## Design principle: change the controller's inputs, not its output
 
-Loop is a feedback controller. A rule that overrides the *output* (e.g. "cut the basal
-Loop wanted") gets compensated on later cycles — Loop's forecast still says BG is heading
-high, so it adds the insulin back. Change what the controller *believes* instead: adjust
-the forecast (ISF, BG offset, model term) so the computed dose shrinks naturally. First
-question for any candidate: *"what part of the model is wrong, and what forecast change
-expresses that?"* Corollary for datasets from Loop users: a persistent forecast residual
-is evidence the **model** was wrong at that step — the leverage is in inputs and model,
-not in second-guessing the dose.
+Loop is a feedback controller. A rule that overrides its *output* (e.g. "cut the basal
+Loop wanted") gets compensated on later cycles: Loop's inputs still say BG is heading
+high, so it adds the insulin back. Change what the controller decides *from* instead, so
+the computed dose follows naturally and every later cycle agrees with it. Two inputs
+qualify:
+
+- **What it believes** — the forecast: ISF, a BG offset, a model term (retrospective
+  correction, the volatility band).
+- **What it aims for** — the correction target. The runway lowers the target while
+  glucose is high and few carbs are left to absorb; Loop then pursues that target
+  consistently rather than fighting it.
+
+First question for any candidate: *"is the model wrong here, or is the goal wrong for this
+state?"* A wrong model calls for a forecast change, a wrong goal for a target change.
+Corollary for datasets from Loop users: a persistent forecast residual is evidence the
+**model** was wrong at that step — the leverage is in inputs and model, not in
+second-guessing the dose.
 
 ## Traps (each of these has burned a session)
 
