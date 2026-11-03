@@ -5179,3 +5179,42 @@ does denote zero delivery. Two estimator failures and one reframe:
 Concentration caveat throughout: i163 holds 81 windows and i101 54, 35% of the clean set between them, so
 every number here is quoted per person as well as pooled (L 598, 610). Run dir
 `runs/2026-11-03-additive-suspend` (`feas.py`, `lam2.py`, `suspend_windows.csv`, `early_rates.csv`).
+
+**689. Out of regime, the twins' glucose FALLS ~34 mg/dL/h faster than the donors' on zero delivery, and
+it is NOT the fitted residual, the IOB tail, the level, or entry momentum.** L 688 said the zero-delivery
+equilibrium was the thing to read and that the twin half needed an arm. It does not: Loop's own withholding
+already produces **1,575 runs of >=2 h with total delivery < 0.10 U and no carb entry, across 207 twins on
+both draws**, onset glucose p10 90 / p50 156 / p90 275 - 88% inside the donors' 80-300, so the two sets
+compare directly and no suspend arm is needed. Matched filters both sides. Early rate (first 2 h, linear fit
+from onset), twin minus donor by onset band: **-35.7 / -32.2 / -33.8 / -50.5 / -33.2 mg/dL/h** at onsets
+95 / 125 / 159 / 202 / 256. The donors are flat-to-rising where the twins fall hard: +23.8 below 110 and
+-3.8 at 140-180 against the twins' -11.9 and -37.5. Four controls, each registered before it was run:
+ - **ENTRY MOMENTUM: matching WIDENS it, and I had the confound backwards.** The donors enter their suspends
+   CRASHING (onset velocity p50 **-63.4** mg/dL/h, 82% falling) because that is what a suspend is FOR, while
+   the twins enter at -14.3 with 63% falling. Matched to |v| <= 10 the gap goes to -40 to -93. So the
+   selection runs AGAINST the finding and the unmatched gap is a LOWER BOUND. (Matched n is only 37 donor
+   windows over five bands, so read the direction, not the per-band values.)
+ - **`resid_m`: REFUTED as the cause, and the INTERCEPT is the finding.** The gap is level-independent and
+   `resid_m` is a constant drift in the same units, so the registered test was a SLOPE OF 1. Measured
+   **+0.099** (R^2 0.018; +0.136 controlling for onset glucose), and by `resid_m` quartile the fall is
+   -42.1 / -33.8 / -34.1 / -32.8 across a 56 mg/dL/h swing in drift. The regression's **intercept is -35.2
+   mg/dL/h at `resid_m` = 0**: a twin with no fitted drift at all still falls at -35 where the donors sit
+   near zero. The drift explains WHICH twins withhold - the selected runs' `resid_m` is p50 -19.4 against
+   the pool's 0.0, confirming L 684 - not how fast they fall.
+ - **THE IOB TAIL: not the explanation.** The twins do carry 2.7x more insulin in (pre-onset 6 h delivery
+   p50 9.68 U against the donors' 3.61), but within twins a 7x swing in it moves the fall only ~8 mg/dL/h
+   (-34.5 / -32.2 / -38.0 / -42.9 by quartile), and RESTRICTED to the donors' own 2-5 U/6 h band (n=267)
+   the gap is -34.3 / -33.1 / -36.4 / -47.0 / -34.1, unchanged.
+ - **LEVEL: the gap does not grow with glucose**, which is the structural content. A force error scaling
+   with (G - Gb) would widen across 95 -> 256; a flat ~-34 points at a CONSTANT missing glucose input, i.e.
+   EGP, not SG. That is the lever L 678 noted the model does not have: the ODE's deviation form
+   (`egp - egp_b`) means no knob raises the insulin-independent glucose INPUT.
+**Do not promote that to an EGP verdict yet.** Two things are unmatched. The 6 h delivery total matches the
+INTEGRAL of recent insulin and not its SHAPE - a twin in closed loop receives continuous small doses while a
+donor may have bolused once two hours before - so settling it needs insulin action run forward through
+`insulins.py`, the same fix L 688 named. And unlogged rescue carbs inflate the DONOR rate where glucose is
+low, which manufactures gap; that is why the defensible statement is the 140-300 range, where rescue carbs
+are implausible and the gap is still -34 to -47. Magnitude for scale: ~34 mg/dL/h is about 43% of basal
+hepatic output (egp_b 2.5 mg/kg/min / vg 1.88 dL/kg = ~80 mg/dL/h), which is large enough that the shape
+caveat has to be closed before anything is built. Run dir `runs/2026-11-03-additive-suspend`
+(`twin_zero.py`, `matched.py`, `resid_test.py`, `iob_check.py`).
