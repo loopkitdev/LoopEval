@@ -4015,7 +4015,8 @@ Against that, the arm moved its own level — bg_mean 151.05 -> 151.19 and **148
 explicit that a candidate is judged after the `resid_m` refit, with L 658 having already seen `act_frag`'s
 draw-1 paired number turn out to be mostly an unrefit drift. A +1.4 mg/dL level move is exactly where paired
 TIR is most sensitive. So the paired cost is **unresolved, not measured**, and job 177 runs the refit with the
-adoption rule fixed in advance. Note also that rf2's own paired TIR term scatters 0.141 against 0.937 between
+adoption rule fixed in advance (**decided at L 667: the refit held the level, the paired cost stayed, and
+`act_k` stays OFF** — do not read this lesson's favourable numbers as a verdict). Note also that rf2's own paired TIR term scatters 0.141 against 0.937 between
 draws — a factor of 6.6 — so that row needs its own noise floor quoted beside it before any gap in it is
 called real.
 
@@ -4079,3 +4080,44 @@ read as `enable.get(name, default)` and my grep used `self.enable[name]`. Both d
 caught by reading the call site, which is the only check that works here — four of their five DOI reports
 were also artefacts of their extractor, and "fixing" three correct citations would have been the cost of
 trusting the report.
+
+**667. `act_k` 1.5 STAYS OFF: the refit held the level, the structure gain survived it, and the paired
+per-person cost did not come back.** Job 177 (`akf` / `akf_5k`, `sensor_act_k` 1.5 on refitted templates
+`templates_pilot_resid_akr2.csv`, both verified real arms at 0/40 identical). The refit converged better than
+L 639's benchmark — |gap| p50 **3.2 -> 1.8**, gain 1.20 -> 1.22 — and the three parts of the rule registered
+in `run_akf.sh` before the run split two to one against the component.
+
+**The aim survived the refit, exactly as pre-registered.** G7 day 2nd difference **0.780 -> 0.841** on draw 1
+and **0.784 -> 0.849** on draw 2, against the 0.851 derived from Biagi and ice's table before either arm ran;
+pooled day 5-min rms 0.81 -> 0.87 and 0.82 -> 0.84, pooled day 2nd difference 0.74 -> 0.80 / 0.81 (donors
+1.00). The night falsifier holds on the amended standard of L 664: G7 night moves 0.919 -> 0.928 and 0.946 ->
+0.950, i.e. 0.004-0.009 against the reference's own 0.027 between-draw difference. **(b) the score holds** —
+0.309 -> **0.290** and 0.357 -> **0.338**, carried by tier 3 (0.464 -> 0.370, 0.442 -> 0.380), which is the
+component's own evidence domain.
+
+**(a) fails, and it fails for the reason the deferral was meant to rule out.** L 597 says judge after the
+refit because a level move is converted back; the refit did its job — cohort bg_mean 148.20 -> **150.17**
+toward the donors' 151.93 on draw 2, with the PAIRED bg_mean deviation falling 0.210 -> 0.159 — and the
+paired cost stayed anyway: SUM|dev| **3.040 -> 4.791** and **2.568 -> 3.405**, against a separability bar of
+~0.8 taken from the paired TIR row's own draw scatter. The one row worse on BOTH draws is paired **TIR**
+(0.141 -> 0.774, 0.937 -> 1.232); draw 1's remainder is bg_mean (1.378 -> 2.521, worse per-person while the
+cohort median improved) and draw 2's is TDD (1.399 -> 1.981). Rankings are level to better where it matters
+(rho_t70 0.631 -> 0.666 and 0.484 -> 0.508), so this is deviation, not ordering. **(c) fails too**: TDD
+42.31 against the 41.9 bar and 42.83 against 42.6, and t54 lands almost exactly on the donors' 0.190 on draw
+1 (0.124 -> 0.199) while moving away from it on draw 2 (0.232 -> 0.258), with lows/day 1.083 against rf2's
+exact 1.000 on draw 1 and flat at 1.250 on draw 2.
+
+**So the record says it plainly, as registered: the one evidenced candidate for the daytime short-scale row
+reproduces that row almost exactly, holds it through a converged refit, and is declined on per-person
+fidelity and the guard.** Two rows are genuinely draw-split and adjudicate nothing — cohort TIR 72.15 ->
+70.67 on draw 1 against 71.25 -> 71.67 on draw 2 (L 609's between-draw sd is 2.19), and the activity response
+`act_net20` worse on draw 1 (gap 0.362 -> 0.656) and better on draw 2 (0.203 -> 0.065). **Its change response
+was never measured** — job 177 was cohort-only and no e-pool arm exists for `act_k` — so it must never be
+quoted as prediction-neutral, which is the mistake L 655 had to withdraw for `ge_order` 3.
+
+Disposition, the same shape as `ex_abs` for exercise: **off on the reference, correct on its own row.** At
+1.5 it is the evidenced value and the only term that has moved the daytime sub-10-min deficit at all, so use
+it where that structure is the question and say the cohort and prediction costs are unmeasured-to-negative
+when quoting it. Three candidates have now been measured against this row and the row still has no adoptable
+mechanism: `act_frag` (too small, L 658), `rate_k` (sizing withdrawn as an artefact, L 654) and `act_k` (the
+right size, declined on paired fidelity).
