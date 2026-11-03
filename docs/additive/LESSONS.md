@@ -3901,6 +3901,9 @@ configuration.
   agrees with `isinstance(.,float)` on both, so every `--set`-driven arm including the reference is bit-identical
   — no rerun needed to know that. A sweep of all 658 arm scripts on disk then found **no JSON integer on any
   newly-fixed knob**, so no ARM_ENABLE arm relied on the old drop either.
+- **`frozen655` carries only the FIRST pass.** Jobs 175 and 176 run from it, so they have `world.py`'s 106 and
+  not `cohort.py`'s 14; both pass floats only, so neither is affected, but a later arm from that tree must not
+  assume the class is closed there. The next frozen tree should be cut after this commit.
 - **The method lesson, which is the reusable part:** a fix counted in call sites ("106 places") is not a fix
   scoped to a class. The grep that finds the bug is the grep that must come back EMPTY afterwards, run over the
   whole package and not the file the bug was found in — and the few legitimate survivors (a NaN guard in
