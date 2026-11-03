@@ -17,6 +17,36 @@ Status: **built** (tested in isolation) · **wired** (runs in the closed loop th
 
 Code: `analysis/loopeval_analysis/patient_sim/`.
 
+## The ablation switches
+
+The role's selling point is that every factor is switchable, so the nine top-level booleans are
+listed here rather than left to be found in the code. They are `World.enable` (`world.py:255`), and
+that dict is a **closed allowlist** — `world.py:257` updates only keys already in it and only with
+bool values, so any other name passed to `--enable` / `--disable` is silently ignored at this level.
+
+| switch | default | what it gates |
+|---|---|---|
+| `exercise` | on | the C-series activity and workout path (`world.py:579, 582, 910`). C7 `act_frag` is switched separately |
+| `pump_faults` | on | **four E-series things at once**: per-bolus error (sd ≈ c/√U), the AR(1) basal flow error (τ 45 min, 1-h sd by pump family and rate), the start-up transient after a site change (decays τ 4 h), and the occlusion / path fraction (`device.py:186, 191, 199`) |
+| `site_failure` | on | infusion-site failure events, by setting `p_fail` to 0 (`world.py:677`) — separate from `pump_faults` |
+| `compression` | on | the sensor's compression lows (`world.py:685`) |
+| `behavior_defense` | on | the person's rescues and proactive snacks (`world.py:520`) |
+| `graze` | on | unlogged grazing, by zeroing `graze_per_day` (`world.py:515`); its kept rate is the separate numeric `graze_keep`, which rf2 sets to 0 |
+| `fat` | on | fat-induced insulin resistance after a meal (`world.py:801, 1096`) |
+| `lipohypertrophy` | on | site-tissue absorption loss (`world.py:675`) |
+| `perfect_person` | **off** | the DIAGNOSTIC person: every meal entered exactly and bolused at the meal, no snacks, no exercise (`world.py:509, 1165`). A self-consistency control, never a cohort trait |
+
+**Defaults live in three places, and only the third has ever misled anyone.** `ModTraits.enabled`
+(`modulators.py:58`) for the B-series life factors; `World.enable` above; and per-knob
+`enable.get(..., default)` fallbacks scattered through `world.py`, `sensor.py` and `device.py` for
+every numeric. Read a live value from the third kind, never from a dataclass default in
+`physiology.py` — `person.py` overrides most of those per sampled person and the two can disagree
+badly (`kappa` is declared 0.15 and drawn with a live median of 1.0; L 640).
+
+All nine were verified live against the code on 2026-11-03 — none is a dead switch — but a switch's presence here is not a claim that an arm has ever been run with it off. Note that `fat`, `lipohypertrophy` and `perfect_person` are read as `enable.get(name, default)` rather than `self.enable[name]`, so a grep for the subscript form misses them. `flow_sd` is
+**not** on this list and is not a pump switch at all: it is A4c, within-curve subcutaneous insulin
+absorption fluctuation (`world.py:759`, Heinemann 2002, L 419), and rf2 sets it to 0.
+
 ---
 
 ## A. Physiology (`physiology.py`, `insulins.py`, calibration in `person.py`)
