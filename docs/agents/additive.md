@@ -379,6 +379,33 @@ reference changes.
   candidates have now been measured against this row and it still has no adoptable mechanism**: `act_frag`
   (too small, L 658), `rate_k` (sizing withdrawn as an artefact, L 654), `act_k` (the right size, declined
   on paired fidelity).
+- **the SLOW motion is too large, and it is the first account of the damped response that is not inside A1d
+  (L 678).** The sustained insulin response of this body is `R = flux / lam` (insulin-mediated disposal at the
+  operating point over the total restoring gain) and the spread is `sigma / sqrt(2*lam)`, so **response and
+  dispersion are two readings of ONE number and cannot be traded** — k times the response means `lam/k` and
+  spread x`sqrt(k)`. That retrodicts `sg_kappa`'s exchange rate exactly (bg_cv 34.2 -> 41.4 implies lam -> 0.68;
+  its measured response gain was 1.16). Closing L 677's 0.68 needs R x1.47 and so spread x1.21, against zero
+  headroom (bg_cv 34.2, donors 34.6) — **unless the slow disturbance comes down with the force**, which is what
+  the field must be doing. Registered as a crossover before any donor number existed and **CONFIRMED like for
+  like** on the e pool's own 408 twin windows against ice's 273 donors (never on `rf2`/`rf2_5k`, which are the
+  PILOT cohort — the cross-pool slip ice caught): twin / donor at 5 / 15 / 60 / 120 / 240 / 480 min is
+  0.92 / 0.99 / 1.10 / **1.15** / **1.17** / 1.15 all-hours, crossing 1.0 at about 2 h, with the day row's
+  0.825 / 0.856 / 0.893 at 5-15 min reproducing L 648's 0.81 / 0.86 / 0.88 on a different pool and donor set.
+  **The excess is NOCTURNAL — night 1.30 at 2 h and 1.27 at 4 h against the day's 1.00-1.03 — which was NOT
+  predicted**, and which sits oddly beside the 31%-against-22% nocturnal lows limit and beside L 647's night
+  persistent component at 0.61x ice's. So: load 1.10-1.14x the donors' (L 603), slow motion 1.15-1.17x, force
+  ~1.8x too strong (L 635's bracket) — one picture in which too much slow disturbance and too much restoring
+  force **cancel on the spread**, which is why bg_cv matches and why this was invisible, while the excess force
+  damps the response. **The candidate is therefore the PAIR, cut the load and the force together**, each a named
+  lever with its own evidence (`unl_mult`, L 610's only real TDD lever; A1d's magnitude), and they should cancel
+  on the LEVEL too — the force cut raising it, the load cut lowering it — which is what would stop `resid_m`
+  handing the gain back as it did to five previous candidates (L 604, 629). Not adopted: the identity's own
+  validation is job 190, and what is confirmed is a prediction derived from it, not the identity. Two code facts
+  from the derivation: **`egp_share` is drawn `uniform(0.7, 0.9)` (`person.py:374`) and carries ~65% of each
+  twin's insulin response through hepatic EGP suppression with NO evidence entry anywhere** — large and
+  unevidenced, but a weak lever here, since `sg` is ~80% of `lam` and the split can only move the rest; and the
+  ODE's deviation form (`egp - egp_b`) means **no knob raises the insulin-independent glucose INPUT**, so the
+  only route to a larger `flux` is the glucose LOAD, the same lever the pair wants cut in the opposite direction.
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (**read `ac1` against the independent-day null of −0.086, not 0**, and against **+0.118, not +0.18**: half the donors'
   persistence is their SETTINGS — a basal / ISF edit or a multi-day override persists by construction, and on day pairs
