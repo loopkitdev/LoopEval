@@ -4433,8 +4433,18 @@ short-timescale motion lowers glucose per delivered unit — presumably because 
 where the force opposes the change, with A1b's `g > gb` gating (L 596) making it asymmetric. That account is
 NOT established here, and the table does not support it on its own: within the motion-adders, `t180` orders
 them only roughly (23.4 -> 0.727, 20.5 -> 0.798, 20.6 -> 0.825) and `akfe1` breaks it (20.9 -> 0.944). The
-direct test is L 640's instrument — each arm's **dwell-weighted restoring force** against its
-glucose-per-delivered-unit — and until that is run the mechanism is a candidate, not a finding.
+direct test I first registered here — each arm's **dwell-weighted restoring force** against its
+glucose-per-delivered-unit — is **VACUOUS, and job 184 replaces it**: read off the code, the default
+insulin-independent term is `ge = sg * (g - gb)` (physiology.py:506), LINEAR in g, so its dwell-weighted
+value depends only on the mean and has no dispersion dependence at all. A linear term has no Jensen gap.
+The model's actual nonlinearity is the **kink in the insulin coefficient**: `mm(g) = gb + kappa*(g - gb)`
+above Gb and `g` below it (physiology.py:493), and `-mm(g)*risk(g)` IS the coefficient on insulin action in
+the ODE, so for `kappa` < 1 it is CONCAVE at Gb and added dispersion lowers the average insulin effect.
+Right sign for all four motion-adders, and a named term (A5's `kappa`) rather than a new one. Job 184
+measures it with the gate stated in advance: `kappa` is drawn lognormally with median ~1.0, and at exactly 1
+the kink vanishes, so a cohort centred there cannot carry the damping this way and that result is a stop, not
+support. The renal term above ~218 mg/dL is reported beside it as the named alternative, so it cannot be
+invoked afterwards.
 
 **L 662's conclusion survives and its evidence line is REPLACED, because the pair it quotes does not
 reconcile.** It settles the dispersion explanation with "`sk1_e` and `sr1_e` share the pre-edit mean (158.5 /
