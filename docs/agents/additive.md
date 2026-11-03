@@ -551,8 +551,17 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   `"ge_order": 3` as a JSON INTEGER into a guard testing `isinstance(v, float)`, so the knob was silently dropped —
   60/60 events bit-identical to the reference, all four response ratios equal to it to four decimals. The cohort
   arms used `--set`, which parses to float, so L 617's cohort numbers and L 652's structure-function result stand;
-  only the change response was lost. Fixed (`_num` accepts int, rejects bool) and re-queued as job 172. Until it
-  returns, quote `ge_order` 3 as four cohort rows better, 3.7 TIR points worse, **change response UNKNOWN**.
+  only the change response was lost. Fixed (`_num` accepts int, rejects bool) and re-run as job 172 —
+  **which settles it AGAINST the component (L 656)**: level-adjusted the change response is more DAMPED, mean
+  1.35 → **1.57** and TIR 1.30 → **1.68** against the field's 1.0, with t70 the one gain (1.09 → **0.98**) and
+  t54 flat. Not its level drift — the level-only expectation is 1.32 / 1.27 against the observed 1.57 / 1.68, so
+  the form carries it — and the per-person rankings slip slightly too (mean rho 0.33 → 0.27). CIs overlap, so
+  "best estimate clearly negative on mean and TIR, not individually significant". **The hypothesis that a
+  too-smooth body carries the damped response is REFUTED**, and the reasoning was backwards: dispersion lowers
+  the post-meal peaks, so there is less high-side excursion for an insulin change to act on, and `dG/dI` ∝ G.
+  **Short-scale realism and change-response accuracy are not the same axis.** So `ge_order` 3 is: four cohort rows
+  better, against 3.7 TIR points, 2.3 t180 points, a night structure row that was correct, and a more damped
+  response on both primary rows. **Stays off.**
   If yes, `ge_order` 3 + a faster `p2` is a pair of evidenced changes that close the meal tail,
   `acf_zero_min` and the fall / rise ratio together. **NOT a behaviour refit (L 618)**: `bolus_lead_min`, `p_bolus_ann` and
   `bolus_ratio` are already per-donor, so the twins already dose like their donors. The cost is a clash between two

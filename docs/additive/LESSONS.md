@@ -3743,3 +3743,40 @@ int and float and still rejects bool (`True` is an int in Python and a switch mu
   integer was dropped until now. All three have the same signature — an arm that reproduces its control exactly —
   and all three are caught by the same two checks. Run them on every arm, which is why both are in every job
   script here.
+
+**656. Job 172 settles the leg that was never measured, and it goes AGAINST `ge_order` 3: the change response is
+not neutral but more DAMPED on both primary rows — level-adjusted mean 1.35 → 1.57 and TIR 1.30 → 1.68 against
+the field's 1.0 — while t70's ratio lands almost exactly (1.09 → 0.98). The hypothesis that a too-smooth body
+carries the damped response is refuted.**
+- **Both pre-registered checks passed, which validates L 655's diagnosis and its fix**: `go3e2` differs from
+  `rf2e_s` on 60 of 60 events ("real arm"), and the 2026-11-01 arm `go3e_s` is bit-identical on 60 of 60
+  ("NO-OP"), reproducing the reference's four ratios to two decimals. So the integer-dropped knob was exactly the
+  fault, and `_num` fixes it.
+
+  | level-adjusted, e pool, 580 events | mean | TIR | t70 | t54 |
+  |---|---|---|---|---|
+  | field | 1.0 | 1.0 | 1.0 | 1.0 |
+  | rf2 (reference) | **1.35** | **1.30** | 1.09 | 0.56 |
+  | `ge_order` 3 (`go3e2`) | **1.57** | **1.68** | **0.98** | 0.53 |
+  | its level-only expectation | 1.32 | 1.27 | 1.10 | 0.57 |
+
+- **It is a real effect, not its level drift.** `go3e2`'s pre-edit level is +6.8 against the reference's +3.3, worth
+  almost nothing: the level-only expectation is 1.32 / 1.27 and the observed is 1.57 / 1.68, so the FORM carries
+  the worsening (L 638's correction applied). The per-person rankings also slip a little (mean rho 0.33 → 0.27,
+  TIR 0.16 → 0.14, t70 0.17 → 0.17). CIs overlap the reference's — mean 1.59 [1.22, 1.99] against 1.33 [1.03,
+  1.68], TIR 1.69 [1.19, 2.45] against 1.28 [0.87, 1.76] — so read this as "best estimate clearly negative on
+  mean and TIR, not individually significant", which is the same standard as every other response comparison here
+  (L 611: the field's one noisy response per event is the binding variance and more draws cannot help).
+- **The hypothesis it was built to test is refuted, and the reasoning that motivated it was backwards.** L 648-652
+  showed the twins' daytime glucose is ~19% too smooth with the sensor exonerated, and I reasoned that a body
+  moving too little gives Loop less to react to. Measured, making appearance MORE dispersed damps the mean and TIR
+  response further. In hindsight the mechanism runs the other way: dispersion lowers the post-meal peaks, so there
+  is less high-side excursion for an insulin change to act on, and `dG/dI` is proportional to G. **Short-scale
+  realism and change-response accuracy are not the same axis** — which is worth holding, because the next
+  candidate for the daytime deficit will be tempting to justify the same way.
+- **So the `ge_order` 3 question is now answered on three measured legs and the answer is NO**: four cohort rows
+  better (meal tail 31 → 37-39, `acf_zero_min` 60 → 50, fall/rise 0.63 → 0.69, half the daytime structure deficit),
+  against 3.7 TIR points, 2.3 t180 points, a night structure row that was previously correct, and now a more
+  damped response on both primary change rows. The one row it wins on the prediction half is t70's ratio (0.98).
+  Stays off; `ge_order` 0 remains the default and the reference stays rf2. The honest summary of the day's work on
+  it: the measurement that was missing has been taken, and it argues against the component it was meant to rescue.
