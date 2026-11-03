@@ -1977,3 +1977,20 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       wigglier; in additive's twins, with no rate term in the model, CGM-binned growth is ×1.31 and true-rate-binned
       ×1.00. The day / night excess at flat glucose is the reading that survives. Our generator has no separate sensor
       path (its CGM is the generated glucose), so the same split is not available here.
+
+168. **Moving the fade down to 70–100 helps no one; the adapting level view is closed, the base stays oc.** λ 0.5, fade
+    70–100, both trainings, same 335 edits and oc0–4 reference as lesson 162:
+
+    | | Field | oc0–4 | fade 80–120 | fade 70–100 |
+    |---|---|---|---|---|
+    | Mean, more / less insulin | −8.60 / +5.05 | −5.74 / +5.03 | −6.86 / +5.73 | −6.88 / +5.82 |
+    | TIR, more / less | +3.76 / −1.24 | +1.99 / −1.87 | +2.51 / −2.13 | +2.32 / −2.20 |
+    | t<70, more / less | +0.73 / −0.85 | +0.77 / −0.71 | +0.84 / −0.80 | +0.92 / −0.80 |
+    | t<54, more | +0.15 | +0.32 | +0.33 | +0.39 |
+    | More insulin by own-level third, low / mid / high | −5.5 / −10.0 / −9.5 | −3.1 / −5.3 / −8.7 | −3.4 / −6.2 / −10.0 | −3.8 / −6.1 / −9.9 |
+
+    - The low third moves by 0.4 mg/dL, the middle third not at all; the low side and the less-insulin overshoot get
+      worse. So the push-back left in low- and middle-level people is not the level-holding this view adapts away;
+      the view only ever released the high third. Not a level confound (own-settings levels within 1–3 mg/dL).
+    - Closed: λ 1 (lows double), λ 0.5 at either fade (a third of one direction for an overshoot in the other).
+      The plant patch stays in the frozen tree only.
