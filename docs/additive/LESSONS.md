@@ -4394,7 +4394,9 @@ refutation to what was measured, which left the reinstatement available instead 
 One thing did not: three of the four steps would have been unnecessary if the mechanism had been labelled an
 inference and tested before any of it was written down.
 
-**672. THE DAMPED CHANGE RESPONSE IS NOT THE CONTROLLER. Loop delivers MORE insulin per unit edit in every
+**672. (ITS `g/dose` METRIC IS UNDER TEST AT L 673 — both nonlinearities that could justify it are
+excluded, and the division by an ABSOLUTE dose response may be an artefact of unequal insulin need. The
+dose and glucose columns stand either way.) THE DAMPED CHANGE RESPONSE IS NOT THE CONTROLLER. Loop delivers MORE insulin per unit edit in every
 variant; what differs is how much glucose moves per delivered unit, and that separates PERFECTLY by what the
 arm does to the insulin-INDEPENDENT restoring force.** Jobs 182 and 183, zero simulations — `truth["delivered"]`
 out of eight e-pool arms already on disk, each labelled from its own `meta.json` and printed in the log.
@@ -4476,3 +4478,50 @@ from the same quantity**, which is why no setting of A1d can satisfy both: the r
 force and the low side wants it kept near lows. A term that lowers the AVERAGE force while keeping the
 near-low defence is therefore the shape of the only remaining candidate, and by L 642 it cannot be a
 reparameterisation of A1d — it has to come from outside that component.
+
+**673. BOTH named nonlinearities are EXCLUDED, so nothing in the model is positioned to make `dG/dI` depend
+on the trajectory — and that turns the suspicion on L 672's own metric, which is now under test.** Job 184,
+the replacement for L 672's vacuous test, measured the insulin coefficient's curvature over the trajectories
+themselves:
+
+| arm | curv = K / K_lin | renal dwell | g/dose |
+|---|---|---|---|
+| rf2e_s | 1.0000 | 0.0285 | 1.000 |
+| go3e2 | 1.0001 | **0.0361** | **0.727** |
+| rt1_e | 1.0000 | 0.0277 | 0.798 |
+| afe1 | 1.0001 | 0.0286 | 0.825 |
+| akfe1 | 1.0001 | 0.0299 | 0.944 |
+| sk1_e | 1.0000 | 0.0576 | 1.141 |
+| sm1_e | 1.0000 | 0.0621 | 1.131 |
+| sr1_e | 1.0000 | 0.0554 | 1.270 |
+
+**The gate fired exactly as registered and it is a STOP.** `kappa` over 588 people: median **1.003**, p10
+0.590, p90 1.647, **50% below 1** — the cohort is centred precisely where the kink vanishes, with concave
+and convex people in equal measure. The measured curvature is **1.0000–1.0001**, a 0.01% effect against
+g/dose moves of up to 27%, so A5's `kappa` kink is excluded by three orders of magnitude. Registering that
+gate in advance is what stops this being written up as support.
+
+**The renal term is excluded too, and by its ORDERING rather than its size.** Inside the motion-adders it
+runs backwards — `go3e2` has the highest renal dwell (0.0361) and the LOWEST g/dose (0.727), `rt1_e` the
+lowest dwell (0.0277) at g/dose 0.798 — and across the groups it is simply the level (the force-cutters sit
+13 mg/dL higher, so twice the time over a ~218 mg/dL threshold). It is also the wrong SIGN for them: renal
+clearance is a loss term, so more of it means a larger denominator and LESS response, while those arms
+respond more. Reporting it in advance is what stops it being invoked afterwards.
+
+**So the model has no mechanism positioned to produce the effect, and the honest next suspect is the
+instrument.** The settings edit is a PROPORTIONAL change — `x = log(basal ratio) − log(ISF ratio)` — so a
+person who needs more insulin gets a larger ABSOLUTE dose change from the same `x`. If the damped arms'
+twins simply run on more insulin, their dose response in U/day is bigger for arithmetic reasons alone, and
+dividing the glucose response by it manufactures "the body responds less per unit" exactly as observed.
+Job 185 tests it directly: pre-edit mean delivered U/day per arm against the dose response, and g/dose
+recomputed on a FRACTIONAL dose basis. **Registered: if dose/ref tracks baseline-need/ref for every arm, the
+absolute normalisation carries no information, L 672's dG/dI reading is an artefact and reduces to "the
+damped arms need more insulin", which is already known — and L 672 gets corrected.** If dose/ref clearly
+exceeds it, the reading survives with the need component removed and the fractional column is the number to
+quote. Either way the fractional one is what carries forward, being invariant to how much insulin a person
+uses.
+
+**Recorded now rather than after the answer, because L 672 is already pushed.** What L 672 measured stands
+whatever job 185 says: Loop's delivery response to an edit is LARGER in every variant, and the glucose
+response is smaller in the motion-adders — the controller is not under-delivering. What is under test is
+only the division of one by the other, which is the step that made it a statement about the body.

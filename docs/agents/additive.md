@@ -652,9 +652,14 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   controller**: measured on `truth["delivered"]` across eight arms, Loop delivers 3-19% MORE insulin per
   log-unit edit in every variant, and what differs is glucose moved per DELIVERED unit — 0.727 (`ge_order` 3),
   0.798 (`sg_rate`), 0.825 (`act_frag`), 0.944 (`act_k`) against 1.141 / 1.131 / 1.270 for the three arms that
-  CUT the insulin-independent force. Perfect sign separation, so the damping is `dG/dI`, and it points at the
-  same SG excess L 635 indicted independently. WHY motion-adding lowers it is still inferred, not measured —
-  L 640's dwell-weighted force against glucose-per-delivered-unit is the direct test. So `ge_order` 3 is: four cohort rows
+  CUT the insulin-independent force. Perfect sign separation. **But the DIVISION is under test (L 673)**: job 184
+  excluded both nonlinearities that could make `dG/dI` trajectory-dependent — `kappa`'s kink measures
+  1.0000-1.0001 of curvature (0.01% against 27%, with the cohort median kappa 1.003 and 50% either side, the
+  registered stop) and the renal term orders BACKWARDS inside the motion-adders — so with no mechanism
+  positioned to produce it, the metric itself is the suspect: the edit is PROPORTIONAL, so a higher-need arm
+  gets a bigger ABSOLUTE dose change for free. Job 185 recomputes it on a FRACTIONAL dose basis. What stands
+  either way: Loop's delivery response is LARGER in every variant and the glucose response smaller in the
+  motion-adders, so the controller is not under-delivering. So `ge_order` 3 is: four cohort rows
   better, against 3.7 TIR points, 2.3 t180 points, a night structure row that was correct, and a more damped
   response on both primary rows. **Stays off.**
   If yes, `ge_order` 3 + a faster `p2` is a pair of evidenced changes that close the meal tail,
