@@ -2036,3 +2036,26 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Next question: where does the field's asymmetry come from? Candidates are the field's selection (people who
       raise insulin are those running high and still falling) and what changes only after more insulin (fewer rescue
       treatments, fewer corrections). The next diagnostic compares the field's more-insulin and less-insulin edits.
+
+171. **The generator's change error is all on the more-insulin side: it pushes back twice as hard as real people
+    against added insulin, and exactly as hard as they do against removed insulin.** Push-back = arm's change in mean
+    glucose minus the replay's (real ICE held fixed, the same edits and windows). oc0–4 averaged, e pool, by the oc0
+    own-settings level third; person-bootstrap se (asym.py, asym3.py in runs/2026-10-13-ice-change/):
+
+    | | Replay | Field | Generated | Field push-back | Generated push-back |
+    |---|---|---|---|---|---|
+    | More insulin, all (159) | −11.15 | −8.60 ± 1.14 | −5.74 | +2.55 ± 1.11 | +5.41 ± 0.68 |
+    | low / mid / high third | | | | +2.8 / +1.1 / +3.4 | +5.4 / +6.0 / +5.0 |
+    | Less insulin, all (139) | +9.48 | +5.05 ± 1.03 | +5.03 | −4.42 ± 1.11 | −4.44 ± 0.52 |
+    | low / mid / high third | | | | −6.2 / −3.2 / −3.5 | −6.1 / −3.4 / −3.5 |
+
+    - The replay's response is symmetric (−54 / −51 mg/dL per unit of ag); the field's is not (−41 / −22). Real
+      people cancel 47 % of a cut and 23 % of a rise; the generated person cancels 47 % of both. On the less-insulin
+      side the generator matches the field in every third to 0.2 mg/dL.
+    - So the target is a push-back that is one-sided: something that answers more insulin in the generator and not in
+      people. Lesson 170's same-meals arm removes push-back from both sides, so the eating response is not it alone.
+    - Suspect under test: iob_net subtracts a fixed basal-level IOB (median absolute IOB at 02–05 over the whole record,
+      dataset_v3.basal_iob), and the input is clipped at zero. In an arm with more basal the extra steady IOB reads as
+      pending insulin all day, which the defense answers; in an arm with less basal the deficit is mostly clipped
+      away. Loop's own IOB, what the person sees, is net of the schedule in force. Arm bi: PLANT_BASE_IOB_OWN=1, the
+      baseline is the run's own 02–05 IOB over its last 3 nights (frozen tree, probe_bi.sh).
