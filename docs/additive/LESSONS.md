@@ -3630,3 +3630,46 @@ L 166/167 (273 matched e-pool donors); `struct_by_meal.py` and `struct_fn.py` on
   a night row that was previously correct. Both sides of that trade are now measured; the choice between 3.7 TIR
   points and four-plus distributional rows is Pete's, not mine, and it is the same question L 639 and L 596 put to
   him for other components.
+
+**653. The third component is a SENSOR FORM error with a measured target, and the parameter meant for it has the
+wrong shape on two counts: our 2nd difference matches the donors' when glucose is flat at night (0.94-0.98) and
+falls to 0.73-0.80 once it moves, because the donors' noise grows x2.0 with rate and ours x1.3 — carried entirely
+by the lag, since `fall_k` is 0.0 in every family.** New parameter `rate_k` added, default off. ice L 168 (273
+matched e-pool donors, 2nd difference by |rate|); `dd_by_rate.py` on three draws.
+- **In ice's exact bins** (rms of `cgm[i+1] - 2cgm[i] + cgm[i-1]`, |rate| from a WIDER window
+  `|cgm[i+3] - cgm[i-3]|/30`, so the conditioning variable is not the thing measured), NIGHT — the cleanest window,
+  least body motion:
+
+  | \|rate\| | 0-0.25 | 0.25-0.5 | 0.5-1 | 1-2 | >2 |
+  |---|---|---|---|---|---|
+  | donors | 4.53 | 4.96 | 5.94 | 7.68 | 9.13 |
+  | rf2 / rf2_5k / rf2_9k | 4.30 / 4.46 / 4.25 | 4.46 / 4.74 / 4.35 | 4.73 / 4.85 / 4.87 | 5.63 / 5.43 / 5.56 | — |
+  | ours / donors | **0.95 / 0.98 / 0.94** | 0.90 / 0.96 / 0.88 | 0.80 / 0.82 / 0.82 | **0.73 / 0.71 / 0.72** | — |
+
+  **Flat and at night we are right to within 2-6%**; the ratio then falls monotonically as glucose moves. As an
+  implied noise sigma the donors go x1.09 / 1.31 / 1.70 / 2.02 over their flattest bin and we go x1.04 / 1.10 /
+  1.31 — so σ ∝ (1 + **0.45**·|rate|) fits all four donor bins (predicting 1.17 / 1.34 / 1.68 / 2.13) against our
+  effective **0.21**. We supply about half, and none of it from a noise term.
+- **`fall_k` cannot be the fix, and checking the LIVE value is why we know** (the L 640 trap): the dataclass
+  declares 0.0 and **all five families run 0.0**, so no rate-dependent noise is active anywhere; G7 carries only
+  `fall_lag` 1.5. Worse, its form is wrong twice over — `max(0, -rate - 1)` is one-sided and has a deadband at
+  1 mg/dL/min, while the donors' curvature grows **from the flattest bin** (x1.09 by 0.38) and on rises as well as
+  falls. A term that is zero below 1 mg/dL/min cannot touch the 0.25-1 range, which carries half the donors' day
+  points. So this is a FORM error, not a tuning one.
+- **`rate_k` added** (`sensor.py`, symmetric, no deadband, `noise × (1 + rate_k·|rate|)`), default 0.0 in every
+  family, reachable as `--set sensor_ratek=<v>` through the existing `sensor_*` override path. Verified: the flux
+  is guarded by `if f.rate_k > 0` so the default path is untouched, and on a 2-person pair it bites where intended
+  (2nd difference at |rate| ≥ 1: 9.05 → 12.30 and 7.74 → 11.41). Direction from Garg 2022 Table 5 as the existing
+  comment already cites; SIZE from the donor table above, so nothing here is fitted to a cohort statistic.
+- **It is NOT a cosmetic measurement change, and the verification run proves it**: with `rate_k` 0.45 the twins'
+  TRUE glucose diverges by 106-270 mg/dL over three days, because a different CGM makes Loop dose differently.
+  So it must be judged on the full scorecard — the safety rows included — and on the natural experiments, where a
+  sensor that under-reports curvature during fast moves feeds the controller smoother inputs than reality and is a
+  live candidate for part of the damped change response. Queued as job 171 with that as the pre-registered
+  question.
+- **This completes the decomposition of the daytime deficit into three parts with three different homes**: the
+  multi-step post-entry tail (appearance dispersion, `ge_order` 3, Pete's call — L 652); the rate-dependent
+  curvature (this, a sensor form error, ours to fix); and a residue at FLAT glucose by day that is x1.24 in the
+  donors and x1.02 in us, which ice L 168 shows does not track |rate| at all and which CGM alone cannot attribute
+  — real fast body motion, or a daytime-only sensor artefact (movement or pressure while awake, the mirror of
+  night compression). Only the second of the three is unambiguously ours.
