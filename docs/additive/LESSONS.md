@@ -3585,3 +3585,48 @@ mechanism.** `struct_by_meal.py`, three draws, the split L 648 prescribes (time 
   (lows 1.13-1.29/day, t54 0.24-0.31) on the cohort — both pre-date any structure function, so the instrument is
   new, but the SAFETY rows they broke are the ones AGENTS.md does not let a win buy. Pick the mechanism from the
   donor table first.
+
+**652. ice's donor table lands, and the daytime deficit splits into TWO components with different fates: the
+multi-step part IS the appearance dispersion — gastric transit order closes the located post-entry tail, order 3
+halving it and order 4 nearly removing it, with no new compute — while the 2nd difference is INVARIANT to every
+appearance arm (0.74 → 0.76-0.82 against the donors' 1.00) and is the one piece nothing in the model makes.** ice
+L 166/167 (273 matched e-pool donors); `struct_by_meal.py` and `struct_fn.py` on arms already on disk.
+- **The donors' table answers L 651's key: peaked post-meal like ours but higher AND far longer.** Per-person rms
+  of the 5-min step, day 10-22, CGM 90-180, by time since the last entered carb:
+
+  | since entry | 0-30m | 30-60m | 1-2h | 2-3h | 3-5h | >5h | Σ|gap|, five near bins |
+  |---|---|---|---|---|---|---|---|
+  | **donors** | **8.86** | **8.31** | **7.23** | **6.83** | **6.65** | **6.21** | — |
+  | rf2 | 7.04 | 6.47 | 5.52 | 5.29 | 5.20 | 5.77 | **8.36** |
+  | `go3` (`ge_order` 3) | 7.92 | 7.14 | 6.28 | 5.70 | 5.76 | 6.32 | **5.08** |
+  | `go4` (`ge_order` 4) | 8.53 | 8.06 | 6.75 | 6.05 | 6.14 | 6.76 | **2.35** |
+  | `ka2` (order 3 + `kabs`) | 7.93 | 7.07 | 6.01 | 5.86 | 5.86 | 6.39 | 5.15 |
+  | `gb16` (`ge_beta` 1.6) | 9.53 | 8.77 | 7.15 | 6.61 | 6.66 | 7.56 | 1.44 |
+  | `ml20` (`meal_lag` 20) | 6.46 | 6.48 | 5.98 | 5.27 | 5.47 | 5.75 | 8.22 |
+
+  The donors stay 1.14x their own >5h floor at 1-2 h and 1.07x at 3-5 h; rf2 is flat after an hour. ice's own
+  reading: absorption tail or insulin action, not activity and not unlogged eating. **Measured here, it is the
+  appearance dispersion** — and `meal_lag` 20, a pure time SHIFT, does nothing (8.22), exactly as L 595 predicts.
+- **The overshoot is the price and it is visible in two places the deficit never was.** Order 4 pushes the >5h
+  floor to +0.55 over the donors and `gb16` to +1.35; and the NIGHT row, which rf2 passes at 0.99 / 1.06, rises to
+  1.04 / 1.09 (order 3), 1.08 / 1.13 (order 4) and 1.20 (`gb16`), with the night 30-min lag going 1.04 / 1.18 →
+  1.22 / 1.24 → 1.34 / 1.35 → 1.55. So the order buys the near bins partly by making everything jumpier, including
+  where nothing was missing. **On this instrument order 3 is the better of the two** — half the tail closed, the
+  night still inside 1.09 — which agrees with L 621's independent finding that 3 is the FITTED order (labelled
+  decay 59 min against the donors' 60). That is a fourth instrument landing on the same value.
+- **The 2nd difference is the separable second component, and no appearance arm touches it**: 0.74 (rf2) → 0.76
+  (go3) → 0.77 (go4, ka2) → 0.82 (gb16) → 0.74 (ml20), against the donors' 1.00, while the multi-step lags swing
+  from 0.81 to 1.35 across the same arms. Read as an implied white-noise sigma (2nd diff / √6) the donors go
+  **2.13 at night → 2.65 by day, a ratio of 1.24**, and every arm here is **flat at 1.02-1.05**. So the donors
+  carry a sub-10-min component that RISES 24% from night to day and the model has none of it — either a
+  rate-dependent sensor error larger than the G7 falling lag supplies (L 391), or real fast body motion. It is
+  small, it is specific, and it is now clean of the appearance question.
+- **What this does to the ledger on `ge_order`, which is a which-row-to-spend question for Pete.** L 617 rejected
+  order 3-4 on the high side (TIR 72.2 → 68.6, t180 25.8 → 28.1) while it moved `meal_d3h` 31 → 37-39 (donors 38),
+  `acf_zero_min` 60 → 50 (its best ever) and the fall / rise ratio 0.63 → 0.69; L 619-621 then established the
+  appearance evidence is insulin-free, that 3 is the fitted order, and that the TIR cost is not attributable to any
+  evidenced component, pointing at the controller's response. **The structure function adds a fourth row to the
+  "for" side and a new row to the "against":** it closes half the located daytime deficit at order 3, and it lifts
+  a night row that was previously correct. Both sides of that trade are now measured; the choice between 3.7 TIR
+  points and four-plus distributional rows is Pete's, not mine, and it is the same question L 639 and L 596 put to
+  him for other components.

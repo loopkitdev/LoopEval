@@ -266,7 +266,19 @@ reference changes.
   deficit, so more draws are not the bottleneck — a mechanism is.** The one existing mechanism of the right shape
   is ruled out: `resid_mult` 0.6 (ad3, daytime-weighted) supplies **8–18%** of the missing variance and nothing at
   night, and closing the gap with it would need ≈ 1.5, well past what L 592 rejected. Split on time since the last
-  carb entry, never on `ra`, which is never zero between meals (L 628, 648).
+  carb entry, never on `ra`, which is never zero between meals (L 628, 648). **LOCATED AND SPLIT IN TWO (L 651,
+  652)**: against ice's donor table by time since the last entered carb (donors 8.86 / 8.31 / 7.23 / 6.83 / 6.65 /
+  6.21 from 0-30m to >5h), the deficit is a POST-ENTRY TAIL — rf2 is flat after an hour where the donors stay
+  1.14x their own floor at 1-2 h — and **the multi-step part IS the appearance dispersion**: `ge_order` 3 halves
+  the five-bin gap (8.36 -> 5.08) and order 4 nearly removes it (2.35), while `meal_lag` 20, a pure time shift,
+  does nothing (8.22). The price is an overshoot where nothing was missing: the night row goes 0.99 / 1.06 ->
+  1.04 / 1.09 (order 3) -> 1.08 / 1.13 (order 4) and the night 30-min lag 1.04 / 1.18 -> 1.22 / 1.24 -> 1.34 /
+  1.35, so **order 3 is the better of the two on this instrument**, agreeing with L 621's independent finding that
+  3 is the fitted order. **The 2nd difference is a SEPARATE component and no appearance arm moves it** (0.74 ->
+  0.76-0.82 against the donors' 1.00 while the multi-step lags swing 0.81-1.35): as an implied sigma the donors go
+  2.13 at night to 2.65 by day (x1.24) and every arm here is flat at 1.02-1.05, so a sub-10-min daytime component
+  is missing outright — rate-dependent sensor error beyond the G7 falling lag, or real fast body motion. Size the
+  two separately; do not expect one mechanism to close both.
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (**read `ac1` against the independent-day null of −0.086, not 0**, and against **+0.118, not +0.18**: half the donors'
   persistence is their SETTINGS — a basal / ISF edit or a multi-day override persists by construction, and on day pairs
