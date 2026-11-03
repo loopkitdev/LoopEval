@@ -2082,3 +2082,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       1.00–1.03 by day at 2–4 h. Ours is flat at night from 5 min, so the two night excesses sit at different scales
       and are probably different mechanisms. The donors' clean-row filter is not a shared cause: without it, donor
       night spread rises only 2–4 % (generated/donor 1.18–1.11).
+
+173. **Donors' lows fall at night in proportion to time; pooled and per-person shares agree** (for additive's handoff
+    2026-11-03-additive-ice-night-low-share.md). Share of time-below-70 samples at 00–06 local, clean rows (filter
+    off moves it ≤ 0.6 points per person). Pilot 202 donors: pooled 27.4 %, per-person median 28.1 %. e pool 273
+    donors: pooled 24.7 %, per-person median 25.5 %. Night is 26.3 / 26.6 % of samples. Lows are concentrated (the top
+    quarter of donors hold 56–60 % of low samples), but the night share does not rise with low count (Spearman
+    −0.15 / −0.16). A per-14-day-block median reads 21–26 %, depending on the minimum low count, because blocks with
+    few lows pull the median down (night_low_share.py in runs/2026-11-01-ice-stateabl/).
