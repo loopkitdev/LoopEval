@@ -1994,3 +1994,21 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       the view only ever released the high third. Not a level confound (own-settings levels within 1–3 mg/dL).
     - Closed: λ 1 (lows double), λ 0.5 at either fade (a third of one direction for an overshoot in the other).
       The plant patch stays in the frozen tree only.
+
+169. **Where the remaining push-back sits: everywhere in the day, inside each glucose band, and partly in extra
+    unannounced eating.** oc0 base runs, e pool, more-insulin edits (hour_resp.py, ice_comp.py, meal_resp.py,
+    parts_third.py in runs/2026-10-13-ice-change/):
+    - **By hour:** the generated drop in mean glucose is 0.55–0.72 of the replay's (real ICE held fixed) in every
+      4-hour block, low, middle and high thirds alike. In the middle third the field matches the replay by day
+      (−9 to −12) and exceeds it in the evening (18–24: −19 against −10), beyond what fixed ICE gives.
+    - **Low-side kernels are not it:** the ns arm (no low/high kernels, no glucose-band calibration) leaves the low and
+      middle thirds where they were (−3.5 / −5.2 against −3.4 / −5.2).
+    - **Inside the band:** mean ICE change = time moved between glucose bands + ICE change at the same glucose. Field:
+      −1.7 + 2.6 = +0.9 mg/dL/h; generated −0.7 + 4.4 = +3.7. At the same glucose the generated person raises ICE
+      1.8 mg/dL/h more than real people, in every third (low +4.1 against +2.2, middle +4.2 / +2.1, high +4.8 / +3.6).
+    - **Eating:** after more insulin the generated person eats +6.6 ± 0.5 g/day more (unannounced +5.7 ± 0.5); the
+      field +0.7 ± 3.4 (unannounced +1.5 ± 2.1). After less insulin both eat less (field −6.9 ± 3.7, generated
+      −5.1 ± 0.5). Episode counts move alike (+0.11 / +0.13 a day). The more-insulin gap is under 2 se, so suggestive:
+      at most about a third of the excess ICE.
+    - The user-bolus inputs carry user decisions only (bolus_decisions), not Loop's automatic boluses, so they are not
+      a hidden insulin channel like iob_net was.
