@@ -4832,3 +4832,45 @@ the ODE is in deviation form (`egp - egp_b`), so raising basal EGP changes the i
 and adds no load to dispose of, which is why `egp_b` x1.3 left `flux` at 0.999 in the smoke test. The only
 route to a larger `flux` at a held level is the glucose LOAD itself — the same lever the pair needs cut, in
 the opposite direction. That tension has to be resolved by the measurement, not by the story.
+
+**679. The two halves of the reference are NOT the same model: every e-pool arm runs B3 `day` OFF while the
+cohort reference runs it ON — the third sighting of this defect class, this time in my own premise.** Found by
+reading an arm's own `meta.json` while checking something else, which is exactly how L 657 and L 665 were
+found. rf2's `cohort.json` disables `stress,illness,menstrual,steroid,act_frag` and nothing else, so `day`
+takes its code default True (`modulators.py:58`) — the configuration L 668 separated as job 178, measured as
+small but not zero, and kept because B3 is evidenced. Every arm under `change_e` carries `"day": false`:
+`rf2e_s`, `go3e2`, `rt1_e`, `afe1`, `akfe1`, `sk1_e`, `sm1_e`, `sr1_e`.
+
+**What is NOT affected, stated first.** Every arm-to-arm comparison on this pool is sound, because all nine
+arms share the switch — that is a control, not a confound. The verdicts on `ge_order` 3 (L 656), `act_frag`
+(L 661), `sg_rate` (L 649), `act_k` (L 669), `sg_kappa` (L 638) and the smooth A1d form (L 642) stand as
+comparisons and need no re-running.
+
+**What IS affected is the field-versus-twin ratio**, because the field is not an arm and cannot share the
+switch — and that ratio is what L 677's 0.68 glucose per delivered unit and all of L 678's arithmetic rest on.
+Registered as job 191 (`dye1`), with the expectation and the decision rule fixed before it runs: B3 is
+`exp(N(0, 0.08))` per day at `day_rho` 0, so it adds day-to-day SI variation with no persistence and a mean of
+1.0032, and independent day-level noise in the OUTCOME inflates each event's standard error without biasing
+the slope — so the prediction is that all four level-adjusted ratios move by less than their CIs. The numbers
+to beat are rf2e_s's lvl_adj mean 1.35, TIR 1.30, t70 1.09, t54 0.56, own level 143.5. If |d mean| < 0.10 the
+mismatch is harmless FOR THE RATIOS and the two halves may keep their own configurations with the difference
+documented; if |d mean| >= 0.10, L 677's 0.68 and every number L 678 derives from it are restated at the
+`day`-ON value and `dye1` becomes the e-pool reference.
+
+**And the same arm bounds L 678 in the conservative direction.** B3 is a DAY-LEVEL step in insulin
+sensitivity — a slow disturbance at the 24-h scale, which is the scale L 678's excess lives at — so with
+`day` ON the 240 and 480-min structure-function rows should RISE, making the twins' 1.15-1.17 excess at 2-4 h
+LARGER than published rather than smaller. Registered: the all-hours 240-min ratio should go up from 1.168. If
+it goes DOWN, B3 is not acting as a slow disturbance and L 668's "small but not zero" needs re-reading at the
+long lags.
+
+**One correction to L 678's numbers, from ice.** Their donor table filters flagged rows (compression lows
+among them) and my twin series does not, so the comparison is asymmetric. With the filter off the donors'
+night rows rise 2-4%, taking my night ratios from 1.298 / 1.269 at 2 / 4 h to about 1.25 / 1.22; the all-hours
+effect is unmeasured but smaller, since compression is mostly nocturnal. Our own compression is rare by
+construction (0.03 events per asleep-day, ~0.4 per 14-day window), so it cannot be a large part of the twin
+side. Quote the 2-4 h excess as **1.12-1.17 all-hours and 1.22-1.30 at night**, against the 1.21 the identity
+asked for. ice also refuted the shared-cause guess I offered them: their generator's night over-spread is flat
+from 5 min and already present in the second difference, so it is a fast-motion excess carried up to long
+lags, while ours starts at 1.03 and rises — different scales, so different mechanisms, and **this does not
+point at the donors' night.**
