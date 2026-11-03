@@ -1,10 +1,11 @@
-import sys; sys.path.insert(0,'/Users/pete/dev/loopeval-eda/analysis/dist_views'); sys.path.insert(0,'/Users/pete/dev/loopeval-eda/analysis')
+import sys; from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1])); sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import numpy as np, pandas as pd, style as S
 from loopeval_analysis import dists as D
 from scipy.stats import wilcoxon
 H = pd.read_pickle(S.OUT/"pumpsettings_history.pkl")
 R = pd.read_csv(S.OUT/"isf_rules.csv").set_index("alias")
-WIN, MIN_DAYS, GUARD, CO = 28, 10, 1, 3
+WIN, MIN_DAYS, GUARD, CO = 28, 7, 1, 3
 events=[]
 for a,g in H.dropna(subset=["max_basal"]).groupby("alias"):
     g = g.set_index("t").sort_index()
@@ -45,10 +46,10 @@ for _,e in E.iterrows():
     if ok: rows.append(out)
 P = pd.DataFrame(rows)
 P["dir"] = np.where(P.new<P.old,"lowered","raised")
-P["clean"] = ~(P.co_isf|P.co_basal|P.co_target|P.co_cr)
+P["clean"] = ~P.co_isf                     # clean = no ISF change within CO days
 P["pct"] = 100*(P.new/P.old-1)
 P = P.join(R[["strategy","k1800"]], on="alias")
-P.to_csv(S.OUT/"cap_changes.csv", index=False)
+P.to_csv(S.OUT/"cap_changes_loose.csv", index=False)
 print(f"{len(P)} changes with >= {MIN_DAYS} usable days each side ({P.alias.nunique()} donors); "
       f"{int(P.clean.sum())} with no other settings change within {CO} days")
 print(P.groupby(["strategy","dir"]).size().unstack(fill_value=0).to_string())

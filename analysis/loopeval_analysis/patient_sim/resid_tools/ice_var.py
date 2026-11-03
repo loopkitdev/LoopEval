@@ -9,9 +9,11 @@ twins' length) so day statistics compare like for like.
 import sys, subprocess, tempfile, numpy as np, pandas as pd
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
-H = Path.home(); sys.path.insert(0, str(H / "dev/loopeval-additive/analysis"))
+import os
+H = Path.home(); sys.path.insert(0, str(Path(__file__).resolve().parents[3]))   # this tree's analysis/ (live or frozen)
 from loopeval_analysis.patient_sim import lifestats as L
 from loopeval_analysis.patient_sim.world import EPOCH
+if os.environ.get("ICE_ROOT"): L.ICE_ROOT = Path(os.environ["ICE_ROOT"])   # another pool's ICE root
 COLS = ["t1", "ice", "carbs_g", "clean"]
 
 
@@ -77,7 +79,7 @@ def twin(d):
 
 if __name__ == "__main__":
     if sys.argv[1] == "donors":
-        T = pd.read_csv(H / ".loop-eval/runs/2026-10-15-additive-templates/templates_pilot.csv"); items, f = sorted(T.alias), donor
+        T = pd.read_csv(os.environ.get("TPL_CSV", str(H / ".loop-eval/runs/2026-10-15-additive-templates/templates_pilot.csv"))); items, f = sorted(T.alias), donor
     else:
         items, f = [str(p) for p in sorted(Path(sys.argv[1]).glob("v0*"))], twin
     with ProcessPoolExecutor(int(sys.argv[2]) if len(sys.argv) > 2 else 4) as ex: res = list(ex.map(f, items))

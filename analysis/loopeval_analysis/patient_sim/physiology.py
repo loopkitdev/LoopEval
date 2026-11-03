@@ -41,8 +41,8 @@ class BodyParams:
     # insulin action
     p2: float = 0.025              # 1/min, disposal-action rate; back to the clamp fit since 2026-10-19 (LESSONS 365: with lows now carried by counter-regulation and sensor low-range noise, 0.025 matches 37 of 51). Was 0.04 (LESSONS 324). 0.025 was the 0.2 U/kg (~15 U) lispro clamp fit (GIR peak ~100 min,
                                    # LESSONS 9); typical boluses and Loop's automatic doses are ~0.05 U/kg and act sooner (smaller s.c.
-                                   # doses act earlier — direction known, size not found for analogues). 0.04 is data-calibrated: t54,
-                                   # p_reach54 and CV onto the donors' (LESSONS 324; 2026-10-19). Was: disposal-action rate from the lispro clamp fit (GIR peak ~100 min, 50% by ~140; LESSONS 9).
+                                   # doses act earlier — direction known, size not found for analogues). 0.04 (LESSONS 324) put t54,
+                                   # p_reach54 and CV onto the donors' before counter-regulation and the sensor's low range were refitted.
                                    # Not Loop's curve: the body follows evidence about patients (Pete 2026-10-17; LESSONS 114)
     si_d: float = 5.0e-4           # disposal sensitivity, 1/min per (mU/L)  — calibrated to ISF
     p2e: float = 0.012             # 1/min, EGP-suppression onset rate: clamp GIR peak 108 min on the share-0.8 base (target ~100; 0.006 gave 125;
@@ -54,6 +54,60 @@ class BodyParams:
     # glucose
     vg: float = 1.88               # dL/kg (UVA/Padova; ReplayBG's 1.45 gives ~2x the carb sensitivity people's settings imply)
     sg: float = 0.003              # insulin-INDEPENDENT glucose effectiveness, 1/min (see COMPONENTS: physiology)
+    sg_km: float = 0.0             # A1d, SMOOTH form (L 641): Michaelis-Menten half-saturation of the
+                                   # insulin-independent uptake, mg/dL above `sg_g0`. 0 = off (use sg_kappa / linear).
+                                   # Fitted 63.2 with sg_g0 80.4 and sg 0.00403 to ice's UNBIASED band profile
+                                   # (their 2026-11-02 reply: same-span bins, 0.235 / 0.118 / 0.053 / 0.024 /h),
+                                   # RMS 0.0008 /h. MEASURED AND REJECTED (L 642): band-faithful here means
+                                   # x0.32 of the default dwell-weighted force, and the cohort cost orders with that
+                                   # integral whatever shape removes it - t70 ~2.3x the reference and t54 3-4.7x on
+                                   # all three draws, worse than either kink. The "near-low force 0.242" of L 641 is
+                                   # the LOCAL SLOPE; the force a low feels is the span average from Gb, 0.177 at
+                                   # G 65, so this form is WEAKER below 130 than `sg_kappa`, not stronger. Off.
+    sg_g0: float = 80.0            # glucose below which the insulin-independent force is at FULL strength (mg/dL).
+                                   # Below Gb deliberately: ice's profile is steepest below 90, and the zero of the
+                                   # term stays at Gb by construction (the excess is F(G) - F(Gb)).
+    sg_rate: float = 0.0           # A1e, RATE-keyed restoring force (L 642), as a multiple of `sg`: the flux opposing
+                                   # (G - G_slow), where G_slow is the body's own exponential average of glucose over
+                                   # `sg_rate_tau`. 0 = off (the default). (G - G_slow) / tau IS the filtered rate of
+                                   # change, so this is a force against fast MOTION rather than against a level, and it
+                                   # is zero whenever glucose is steady - at ANY level. Two consequences are the point
+                                   # of it: it acts during a descent, in whatever band the descent crosses, which is
+                                   # where L 642 measured the leverage over t70 to be; and it is mean-preserving, so
+                                   # the `resid_m` level refit cannot convert it back the way it did five level-mediated
+                                   # gains (L 597, 604, 629). It also does NOT resist a settings edit: a sustained level
+                                   # change is followed by G_slow within ~tau and the force decays to zero, which is what
+                                   # no level-keyed term can do. Magnitude UNMEASURED - asked of ice's trend-consistent
+                                   # probe (handoff 2026-11-02-additive-ice-rate-dependent-force); this knob exists to
+                                   # cost the mechanism CLASS first. Mechanistic candidate: counter-regulation's known
+                                   # rate-dependence (the hormonal threshold is higher during a rapid fall).
+    sg_rate_tau: float = 60.0      # the averaging window for G_slow, min. 60 from ice's own probe result that the fast
+                                   # part of the learned force depends on recency (H = 1 slopes 1.5-2x H = 3, in BOTH
+                                   # directions, with H = 3 and H = 6 matching - so nothing accumulates past ~3 h).
+    sg_kappa: float = 0.0          # glucose-dependence of INSULIN-INDEPENDENT uptake, by analogy with kappa (L 637):
+                                   # above Gb the excess it acts on rises at this fraction, below Gb full strength.
+                                   # 0 = linear in (G - Gb), as before. ice L 140a's learned background slope falls
+                                   # 0.17 -> 0.02 /h from the low band to 180-250, which a linear term cannot make.
+    # ge_split (A1a–c, LESSONS 548): sg replaced by its named parts (sg is then unused)
+    ge_split: bool = False
+    ge_spare: bool = False         # A1c alone on the lumped SG: insulin-independent uptake falling below g_ii (L 561)
+    sg_p: float = 0.0012           # A1a peripheral insulin-independent mass action, 1/min on (G − Gb), both sides (Del Prato 1997 T1D)
+    sg_h_lo_ins: bool = True       # the below-basal hepatic term carries basal EGP's own insulin suppression (L 599)
+    sg_h_lo: float = 0.0           # A1b BELOW basal: extra hepatic release as glucose falls under Gb, 1/min on
+                                   # (Gb − G). A1b as implemented is one-sided — the liver withholds when high and
+                                   # never releases when low (see `hep` below, gated on g > gb) — so below basal the
+                                   # whole hepatic response is A9 counter-regulation, whose magnitude is pinned by the
+                                   # donors' low DEPTHS (cr_max walked 0.5 -> 0.137 across L 166/272/360/394) and can
+                                   # supply only ~2.6 mg/dL per 30 min against the 5 mg/dL recovery gap of L 559-560.
+                                   # Glucose autoregulation of hepatic output is bidirectional in the literature
+                                   # (Cherrington/Moore: HGP rises as glucose falls, independent of hormones), but
+                                   # A1b's own evidence sizes the ABOVE-basal direction only (L 563), so the symmetric
+                                   # value 0.0038 is the modelling assumption and the data-fitted range is above it:
+                                   # symmetry gives 0.182 mg/kg/min at G 65 against L 589's needed ~0.34.
+    sg_h: float = 0.0038           # A1b liver glucose autoregulation, 1/min on (G − Gb) ABOVE Gb only (UVA/Padova T1D kp2;
+                                   # absent below Gb in T1D, Mevorach 2000); EGP floored at 0
+    f_ii: float = 1.0              # A1c fixed insulin-independent uptake (brain, red cells), mg/kg/min (Best 1981, UVA Fsnc);
+    g_ii: float = 81.0             # it falls ∝ G below g_ii (Hovorka 2004 F01c, 4.5 mmol/L), sparing glucose in a low
     kappa_ins: float = 0.0         # experiment (LESSONS 292): 1 = κ follows plasma insulin per Best 1981 (0.24 / 0.68 / 0.78 at low /
                                    # mid / high insulin; mapped [J] to 1 / 3 / 8× basal), scaled by the person's κ / 0.68
     kappa: float = 0.15            # glucose-dependence of insulin-mediated uptake: 1 = Bergman (X·G), 0 = linear (Loop) [J]
@@ -75,6 +129,14 @@ class BodyParams:
     cr_g: float = 65.0             # mg/dL, half-activation glucose
     cr_s: float = 5.0              # mg/dL, sigmoid width
     cr_tau: float = 15.0           # min, activation time constant
+    cr_tau_off: float = 0.0        # min, DEACTIVATION time constant; 0 = same as cr_tau (one symmetric lag, as before).
+                                   # With a single tau the counter-regulatory EGP effect fades as fast as it builds, so
+                                   # it peaks just after the nadir and is gone during the climb. The glycogenolytic
+                                   # response outlasts the hormone pulse that triggers it (catecholamine and glucagon
+                                   # clearance plus post-receptor effects run 20-60 min), so the decay is the slower
+                                   # limb. This is the only shape that meets L 600's requirement: shorten the recovery
+                                   # limb of an 80-excursion WITHOUT raising its nadir, since the peak value of `cr`
+                                   # at the nadir is unchanged - only its persistence into the climb grows.
     haaf_tau_rec: float = 60 * 60.0  # min, recovery of the response
     haaf_kappa: float = math.log(1 / 0.6) / 120.0  # per minute below 54: 2 h → response ×0.6 [J; Dagogo-Jack 1993 thresholds shift within ~24 h]
     haaf_min: float = 0.3
@@ -105,9 +167,30 @@ class BodyParams:
     p2e_off: float = 0.0           # > 0: X_E's rate when the hepatic signal is falling (insulin withdrawn); p2e stays the onset
                                    # rate (meal tracer nadir, Romeres 2025). Gray 1982 HGO recovery half-times 59 / 119 min
                                    # after 40 / 120 mU/m²/min give 0.012–0.020 through egp_vs (LESSONS 193)
+    ge_beta: float = 1.0           # Elashoff 1982 power-exponential emptying: the fraction of a parcel still in the
+                                   # stomach is exp(−(k·t)^beta), so the emptying HAZARD is beta·(k·t)^(beta−1) — a
+                                   # flatter start and a sharper finish. beta = 1 is the first-order tail this model
+                                   # has had, and reproduces it exactly. Measured target (L 591): at a matched 35 g
+                                   # the donors' labelled pulses peak at 50 min and decay for 60 (decay/peak 1.21),
+                                   # the twins' peak at 37 and decay for 66 (1.44) — they rise too early and trail
+                                   # too long, which is the one time-asymmetric shape L 575 asks for.
+    ge_beta_cap: float = 4.0       # clip on the hazard multiplier, so a parcel's first minutes cannot empty instantly
+    ge_order: int = 2              # number of STOMACH compartments (Erlang transit order). 2 is Dalla Man / UVA-Padova
+                                   # and what this model has had; `kempt` is scaled by order / 2 so the MEAN transit
+                                   # time is unchanged, and only the transit-time DISPERSION falls. Raising it moves
+                                   # the appearance peak LATER and shortens the decay — the one form that meets
+                                   # L 615's requirement, where `ge_beta` moved the peak earlier and `meal_lag` was
+                                   # shift-invariant. Isolated 35 g parcel, mean held at 40 min: order 2 gives peak
+                                   # 40 / decay 94, order 3 gives 44 / 82, order 4 gives 46 / 74, against the donors'
+                                   # labelled 50 / 60 and the twins' 43 / 67 (L 617).
+    ge_beta_mean: bool = True      # keep the MEAN emptying time while changing its shape: a Weibull's mean is
+                                   # Gamma(1 + 1/beta)/k, so k is scaled by that factor. Without it, raising beta also
+                                   # empties faster (total pulse 120 -> 98 min against the donors' 125) and the arm
+                                   # tests speed as well as shape — which is what wrecked the first ge_beta run (L 591)
     ge_hyper: float = 0.0          # maximal slowing of emptying in hyperglycaemia: rate × (1 − h·(1 − e^(−(G−100)/50)));
                                    # h 0.45 gives ×0.74 at 8 mmol/L (Schvarcz 1997) and ×0.56 at 15–20 (Fraser 1990) [J]
     # exercise
+    ex_abs: bool = False           # C1's uptake keyed to absolute work rate, not %VO2-reserve (L 565)
     ex_uptake: float = 0.0         # mg/kg/min insulin-independent uptake at intensity 1
     ex_egp_surge: float = 28.0     # mg/kg/min EGP rise at intensity 1 for anaerobic work, above the 60% threshold; calibrated
                                    # on donors' ≥ 8-MET workouts (rise ≥ 20 during in 46%; LESSONS 247; was 0)
@@ -162,6 +245,7 @@ class Body:
         self.p = p
         self.form = get(formulation)
         self.g = p.gb
+        self.g_slow = p.gb                   # A1e: the body's own exponential average of glucose (sg_rate, L 642)
         self.ip = p.ib * p.vi                # mU/kg
         self.xd = p.si_d * p.ib
         self.xe = 0.0
@@ -222,6 +306,35 @@ class Body:
         self.parcels.append(parcel)
 
     # ------------------------------------------------------------------ helpers
+    def _sg_excess(self, g: float) -> float:
+        """The glucose excess the insulin-INDEPENDENT term acts on (L 637).
+
+        `sg_kappa` 0 keeps the linear `g - gb`. Above 0 it saturates ABOVE Gb at that fraction, exactly as
+        `kappa` already does for insulin-mediated uptake (LESSONS 7), and leaves the sub-basal side at full
+        strength. That is the shape ice L 140a measured in the donors' learned background force (slope
+        -0.17/h below 90 against -0.02/h at 180-250), which no linear -SG*(G - Gb) can produce.
+        """
+        p = self.p
+        if p.sg_km > 0.0:
+            return self._sg_F(g) - self._sg_F(p.gb)
+        d = g - p.gb
+        return d if (d <= 0.0 or p.sg_kappa <= 0.0) else p.sg_kappa * d
+
+    def _sg_F(self, x: float) -> float:
+        """Antiderivative of the SMOOTH relative uptake slope (L 641), so the excess is F(G) - F(Gb).
+
+        The slope is 1 below `sg_g0` and 1 / (1 + (x - g0) / km)^2 above it, which is a Michaelis-Menten
+        saturation in ABSOLUTE glucose - the form ice's unbiased profile picks (RMS 0.0008 /h against their
+        same-span bands, where a kink at Gb reaches 0.0251 and MM anchored at Gb 0.0319). Taking the excess as
+        a DIFFERENCE of F keeps the term's zero exactly at Gb however low `sg_g0` sits, so the basal balance
+        is untouched; `sg_kappa`'s kink could not place the breakpoint below Gb without moving that zero.
+        """
+        p = self.p
+        if x <= p.sg_g0:
+            return x
+        d = x - p.sg_g0
+        return p.sg_g0 + p.sg_km * d / (p.sg_km + d)
+
     def risk(self, g: float) -> float:
         p = self.p
         if p.risk_lambda <= 0 or g >= p.gb: return 1.0
@@ -245,9 +358,9 @@ class Body:
 
     # ------------------------------------------------------------------ dynamics
     def step(self, dt: float = 1.0, si_mult: float = 1.0, egp_mult: float = 1.0,
-             ex_intensity: float = 0.0, ex_anaerobic: float = 0.0, ex_si_boost: float = 0.0,
+             ex_intensity: float = 0.0, ex_anaerobic: float = 0.0, ex_si_boost: float = 0.0, ex_work: float = 0.0,
              abs_mult: float = 1.0, bio: float = 1.0, util_drop: float = 0.0, ge_mult: float = 1.0,
-             si_d_mult: float = 1.0):
+             si_d_mult: float = 1.0, cr_mult: float = 1.0):
         """Advance `dt` minutes (explicit midpoint for the fast states; dt ≤ 1 recommended).
 
         si_mult: product of sensitivity modulators (circadian, daily, cycle, illness, stress,
@@ -272,6 +385,8 @@ class Body:
         # meal parcels entering the stomach
         for pc in self.parcels:
             if not pc.entered and m + dt > pc.t + pc.delay:
+                if p.ge_order != 2 and len(pc.q) != p.ge_order + 1:
+                    pc.q = [0.0] * (int(p.ge_order) + 1)      # size the transit chain at entry (L 617)
                 pc.q[0] += pc.grams * pc.f * 1000.0 / p.bw    # mg/kg
                 pc.entered = True
 
@@ -303,14 +418,14 @@ class Body:
             kcal = 0.0; wsp = 0.0; wk = 0.0
             for pc in self.parcels:
                 if pc.entered:
-                    kcal += pc.kempt * (phi if pc.hypo_sensitive else 1.0) * pc.q[1] * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g
-                    w_ = pc.q[1] * pc.kcal_per_g
+                    kcal += pc.kempt * (phi if pc.hypo_sensitive else 1.0) * pc.q[len(pc.q) - 2] * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g
+                    w_ = pc.q[len(pc.q) - 2] * pc.kcal_per_g
                     wsp += w_ * pc.speed; wk += w_
             cap = p.ge_kcal_max * phi * ge_mult
             if p.ge_cap_speed > 0 and wk > 0:
                 cap *= 1.0 + p.ge_cap_speed * (wsp / wk - 1.0)
             if p.ge_gamma > 0:
-                load = sum((pc.q[0] + pc.q[1]) * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g for pc in self.parcels if pc.entered)
+                load = sum(sum(pc.q[:-1]) * p.bw / 1000.0 / max(pc.f, 1e-6) * pc.kcal_per_g for pc in self.parcels if pc.entered)
                 allowed = cap * (max(load, 1e-9) / 400.0) ** p.ge_gamma
                 scale = min(1.0, allowed / kcal) if kcal > 0 else 1.0
             else:
@@ -318,9 +433,20 @@ class Body:
         for pc in self.parcels:
             if not pc.entered: continue
             ke_ = pc.kempt * (phi if pc.hypo_sensitive else 1.0) * (ge_mult if pc.kcal_per_g > 0 else 1.0)
-            s1, s2, gut = pc.q
-            e1 = ke_ * s1; e2 = ke_ * s2 * scale; a = pc.kabs * gut
-            pc.q = [s1 - dt * e1, s2 + dt * (e1 - e2), gut + dt * (e2 - a)]
+            if p.ge_beta != 1.0:                     # Elashoff power-exponential: hazard beta·(k·age)^(beta−1)
+                age = max(m - pc.t - pc.delay, dt)
+                kb = pc.kempt * (math.gamma(1.0 + 1.0 / p.ge_beta) if p.ge_beta_mean else 1.0)
+                ke_ *= min(p.ge_beta_cap, p.ge_beta * (kb * age) ** (p.ge_beta - 1.0)) * (kb / pc.kempt)
+            n_ = len(pc.q) - 1                      # stomach stages; the last entry is the gut
+            if n_ > 1: ke_ *= n_ / 2.0                 # keep the mean transit time as order rises (L 617)
+            fl = [ke_ * pc.q[i] for i in range(n_)]
+            fl[n_ - 1] *= scale                        # the energy ceiling applies to the final emptying step
+            a = pc.kabs * pc.q[n_]
+            q_ = list(pc.q)
+            q_[0] -= dt * fl[0]
+            for i in range(1, n_): q_[i] += dt * (fl[i - 1] - fl[i])
+            q_[n_] += dt * (fl[n_ - 1] - a)
+            pc.q = q_
             ra += a
         if len(self.parcels) > 8:
             self.parcels = [pc for pc in self.parcels if not pc.entered or sum(pc.q) > 1e-3]
@@ -338,15 +464,24 @@ class Body:
         egp_ins = p.egp_b * egp_mult * min(max(1.0 - se * self.xe, 0.0), 1.0 + se)
 
         # --- counter-regulation and HAAF memory
-        target = p.cr_max * self.haaf * sigmoid((p.cr_g - g) / p.cr_s)
-        self.cr += dt * (target - self.cr) / p.cr_tau
+        target = p.cr_max * self.haaf * cr_mult * sigmoid((p.cr_g - g) / p.cr_s)
+        tau_cr = p.cr_tau if (target >= self.cr or p.cr_tau_off <= 0) else p.cr_tau_off   # slower OFF limb (L 601)
+        self.cr += dt * (target - self.cr) / tau_cr
         below = 1.0 if g < 54.0 else 0.0
         self.haaf += dt * ((1.0 - self.haaf) / p.haaf_tau_rec - p.haaf_kappa * below * self.haaf)
         self.haaf = max(p.haaf_min, min(1.0, self.haaf))
 
-        egp = egp_ins + self.cr + p.ex_egp_surge * ex_intensity * ex_anaerobic
+        # A1b below basal (L 596). Hepatic glucose output is INSULIN-SUPPRESSED, so the autoregulatory increase
+        # carries the same suppression factor as basal EGP (L 599): at full strength it acted on the way INTO a low,
+        # while insulin was still high, and so prevented lows instead of shortening them (counts 1.00 -> 0.75).
+        # Suppressed, it is quiet while IOB is high and acts once insulin has fallen, which is the low itself.
+        hep_lo = 0.0
+        if p.sg_h_lo > 0:
+            hep_lo = p.sg_h_lo * p.vg * max(p.gb - g, 0.0)
+            if p.sg_h_lo_ins: hep_lo *= min(max(1.0 - se * self.xe, 0.0), 1.0 + se)
+        egp = egp_ins + self.cr + hep_lo + p.ex_egp_surge * ex_intensity * ex_anaerobic
         self.egp = egp
-        uex = p.ex_uptake * ex_intensity * g / p.gb          # mass action: fades as glucose falls (evidence/10 §7.3)
+        uex = p.ex_uptake * (ex_work if p.ex_abs else ex_intensity) * g / p.gb   # mass action: fades as glucose falls (evidence/10 §7.3)
         renal = p.rcl * (g - p.rthr) if g > p.rthr else 0.0
         # insulin-mediated uptake's glucose dependence: weak above Gb (κ), proportional below it so
         # uptake vanishes with glucose (Bergman / UVA Michaelis–Menten at low G; LESSONS 7)
@@ -357,7 +492,22 @@ class Body:
             kap = p.kappa * kr / 0.68
         mm = p.gb + kap * (g - p.gb) if (g >= p.gb or not p.low_prop) else g
         xact = self.xd * (1.0 + ex_si_boost) if p.ex_post else self.xd
-        dg = (-p.sg * (g - p.gb) - (xact * mm * self.risk(g) - p.si_d * p.ib * p.gb)
+        if p.ge_split:
+            hep = min(p.sg_h * p.vg * (g - p.gb), max(egp, 0.0)) if g > p.gb else 0.0     # mg/kg/min the liver withholds
+            spare = p.f_ii * (1.0 - g / p.g_ii) if g < p.g_ii else 0.0                    # mg/kg/min the brain no longer takes
+            ge = p.sg_p * (g - p.gb) + (hep - spare) / p.vg
+        elif p.ge_spare:
+            # A1c alone on the lumped SG (LESSONS 561): the fixed insulin-independent uptake falls with glucose below
+            # g_ii (Best 1981 ~1 mg/kg/min; Hovorka 2004 F01c falls ∝ G below 4.5 mmol/L), which is the only part of
+            # the L 548 split aimed at the shallow-low recovery gap of L 559-560. The rest of the split stays off, so
+            # the liver's support below Gb is not removed — that is what made the full split add lows.
+            ge = p.sg * self._sg_excess(g) - (p.f_ii * (1.0 - g / p.g_ii) if g < p.g_ii else 0.0) / p.vg
+        else:
+            ge = p.sg * self._sg_excess(g)
+        if p.sg_rate > 0.0:                  # A1e (L 642): a force against fast MOTION, zero at any steady level
+            ge += p.sg * p.sg_rate * (g - self.g_slow)
+            self.g_slow += dt * (g - self.g_slow) / max(p.sg_rate_tau, 1e-6)
+        dg = (-ge - (xact * mm * self.risk(g) - p.si_d * p.ib * p.gb)
               + (egp - p.egp_b - uex + ra + util_drop) / p.vg - renal)
         self.g = max(10.0, g + dt * dg)
         self.minute = m + dt

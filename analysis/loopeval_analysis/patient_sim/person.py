@@ -28,12 +28,13 @@ from .insulins import BRAND_TO_FORMULATION, FORMULATIONS
 BEHAVIOR_COLS = ["far_unann", "corr_rec0", "carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "archetype", "meals_per_day",
                  "meal_hours", "meal_size_med", "meal_size_logsd", "announced_share", "estimate_ratio",
                  "bolus_lead_min", "p_bolus_ann", "bolus_ratio", "corrections_per_day", "corr_bg_med", "corr_ratio",
-                 "rescues_per_day", "rescue_size_med", "rescue_bg_med", "free_boluses_per_day",
+                 "rescues_per_day", "rescue_size_med", "rescue_bg_med", "low_pro_g", "free_boluses_per_day",
                  "free_bolus_u_med", "true_corrections_per_day", "tir", "t70",
                  "entries_raw", "entered_g_raw", "corr_over_share", "corr_over_u", "corr_u_med", "corr_u_lsd", "corr_p_mult", "corr_thr_adj", "stack_p", "unann_hours", "boluses_raw", "bolus_entry_raw", "topups_raw", "lone_raw", "manual_u_day",
                  "abs_fast_s", "abs_slow_s", "abs_fast_l", "abs_slow_l", "gap_short", "gap_long", "entry_hours",
-                 "clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd"] + \
-                [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h")] + \
+                 "clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd",
+                 "metmax_p90", "metmax_anchor"] + \
+                [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h", "s")] + \
                 ["edit_basal_day", "edit_isf_day", "edit_cr_day", "corr_exposure", "slot_g", "slot_ann", "ent_win", "slot_lr", "night_need_ratio", "meal_e_day", "snack_e_day", "snack_e_hours", "offline_day", "perr_day",
                  "treat_log_day", "low_entered_share", "skip_bfast", "miss1_day", "miss23_day", "entry_b", "unl_mult",
                  "ex_week_own", "ex_dur_own", "ex_am_own", "ex_hours_own", "sleep_mid_h"]
@@ -77,7 +78,7 @@ def linear_part(bp: BodyParams) -> BodyParams:
     the hypo risk amplification and counter-regulation. ISF and CSF are DEFINED on this linear
     part — the same bookkeeping ISF the eda yardstick estimates (ICE = velocity + ISF·activity) —
     and the full body then adds those terms on top."""
-    return bp.scaled(sg=0.0, kappa=0.0, risk_lambda=0.0, cr_max=0.0, low_prop=False)
+    return bp.scaled(sg=0.0, sg_p=0.0, sg_h=0.0, f_ii=0.0, ge_spare=False, kappa=0.0, risk_lambda=0.0, cr_max=0.0, low_prop=False)
 
 
 def _probe_isf(bp: BodyParams, formulation: str, dose: float = 0.1, minutes: int = 900) -> float:
@@ -216,7 +217,8 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
                   csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0, intake_own: bool = False, csf_geq: bool = False,
-                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False, gb_own: bool = False) -> Person:
+                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False, gb_own: bool = False, ge_split: bool = False, ge_spare: bool = False,
+                  csf_sd_w: float = 1.0) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -229,7 +231,7 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     # TRUE ISF: the person's own setting (tuned against their real body) moved part of the way toward
     # the eda yardstick. The yardstick/settings ratio spreads 0.41–2.69 but barely tracks lows (Spearman
     # −0.13 with t<70), so much of it is estimation noise (eda L53: ISF is not identifiable in closed
-    # loop). ISF_W is an open parameter, settled by per-donor twin validation [J 0.5].
+    # loop). ISF_W 1.0: the body takes the data fit (Pete 2026-10-19, LESSONS 259).
     r_isf = float(np.clip(row.isf_true / row.isf, 0.5, 2.0))
     isf_true = float(row.isf) * r_isf ** (ISF_W if isf_w is None else isf_w) * j_isf
     isf_true *= isf_level          # experiment (LESSONS 326): cohort level of the body's insulin sensitivity
@@ -293,6 +295,16 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         # what their Loop delivered is the fasting body's need; the population prior N(119, 7) is still drawn above
         k_ = row.get("gb_own") if hasattr(row, "get") else None
         if k_ is not None and np.isfinite(float(k_)): bp = bp.scaled(gb=float(np.clip(float(k_), 90.0, 170.0)))
+    if ge_spare and not ge_split:
+        bp = bp.scaled(ge_spare=True)      # A1c alone (LESSONS 561): f_ii / g_ii keep their defaults
+    if ge_split:
+        # glucose effectiveness from its named parts (A1a–c, LESSONS 548), own stream so the other draws do not shift.
+        # A1a: Del Prato 1997's T1D clamp at basal insulin, +4.4 µmol/kg/min of disposal per +11.2 mmol/L = 0.0039 dL/kg/min,
+        # less the body's own insulin-mediated part at basal (κ·SI_D·Ib·VG, median 0.0017) = 0.0022 dL/kg/min [J spread].
+        # A1b: UVA/Padova T1D adults' kp2, median 0.0038 /min, log-SD 0.40 (simglucose vpatient_params), above Gb only.
+        rg = np.random.default_rng(seed + 517)
+        bp = bp.scaled(ge_split=True, sg_p=float(0.0022 * np.exp(rg.normal(0.0, 0.5)) / bp.vg),
+                       sg_h=float(0.0038 * np.exp(rg.normal(0.0, 0.40))))
     if ge_var:
         # between-person gastric emptying (evidence/09 §parameters): Vmax lognormal CV 30% (Samsom 2003 SDs 28% controls,
         # 36% diabetes; Hellmig 2006), and the 28% of T1D adults with delayed emptying at ×0.6–0.8 (Samsom 2003). Km stays
@@ -339,8 +351,13 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         if k_ is not None and np.isfinite(float(k_)): k_csf_geq = float(k_); csf_target *= k_csf_geq
     # per-person meal glucose fitted to the donor's glucose spread (LESSONS 529; Pete 2026-10-28): a tight donor's twin
     # swung too widely and a loose one's too narrowly (L 528); grams eaten stay the donor's, each meal's glucose x this
+    # `csf_sd_w` weights that fit (1 = full, 0 = off, 0.5 = halfway). L 544: the spread fit carries per-person
+    # spread (SD rho 0.92) but DAMPS the TIR response to a settings edit, and the hybrid keeps the response with
+    # about half the spread (rho 0.52) - so the trade is continuous, and the weight is how it is read.
     k_ = row.get("csf_sd_mult") if hasattr(row, "get") else None
-    if k_ is not None and np.isfinite(float(k_)): k_csf_geq *= float(k_); csf_target *= float(k_)
+    if k_ is not None and np.isfinite(float(k_)):
+        kk = 1.0 + float(csf_sd_w) * (float(k_) - 1.0)
+        k_csf_geq *= kk; csf_target *= kk
     # csf_lvl (experiment, LESSONS 366): the carb-sensitivity level × this, read from the unsegmented meal counteraction (ICE
     # above pre-meal over 0-360 min per entered gram, donors 47.4 vs twins 38.5) instead of the labeler's pulse g-eq, which
     # ends a pulse at a plateau; the intake budget stays in glucose (fewer grams eaten) unless csf_lvl_keepg

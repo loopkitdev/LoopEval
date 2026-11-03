@@ -21,14 +21,6 @@ public actor NightscoutEvalDataSource: EvalDataSource {
     /// to the therapy timeline over their active windows. On by default.
     public let applyOverrides: Bool
 
-    /// Preset-name → target (mg/dL) map for Trio Exercise presets whose target is
-    /// carried only in the preset NAME, not the treatment fields or notes (e.g. a
-    /// "Dienst" shift preset that sets target 110). The NS Exercise event has null
-    /// targetTop/Bottom and notes == the bare preset name, so parseTargetFromNotes
-    /// can't recover it; this map supplies the target during those windows. Matched
-    /// case-insensitively against `notes`. Empty ⇒ no preset mapping (default).
-    public let presetTargets: [String: Double]
-
     /// Read Trio `Exercise` events as OVERRIDES (timeline.orefOverrides, by preset name)
     /// instead of as temp targets. Trio uploads its overrides as `Exercise` with only the
     /// preset name and duration; as temp targets they set `temptargetSet` and lose every
@@ -63,7 +55,6 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         defaultMaxBolus: Double = 10.0,
         defaultMaxBasalRate: Double = 3.0,
         applyOverrides: Bool = true,
-        presetTargets: [String: Double] = [:],
         trioOverrides: Bool = false,
         trioOverridesAsLoop: [String: TrioPresetAsLoop] = [:]
     ) {
@@ -73,7 +64,6 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         self.defaultMaxBolus = defaultMaxBolus
         self.defaultMaxBasalRate = defaultMaxBasalRate
         self.applyOverrides = applyOverrides
-        self.presetTargets = presetTargets
         self.trioOverrides = trioOverrides
         self.trioOverridesAsLoop = trioOverridesAsLoop
     }
@@ -176,9 +166,6 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         // TherapyTimeline carries insulinType → include it in the key (see getDoses).
         // Override application also changes the schedules → key on it too.
         let ovTag = applyOverrides ? "_ov" : ""
-        // Preset targets change orefTempTargets → must key the cache on them.
-        let ptTag = presetTargets.isEmpty ? "" : "_pt" + presetTargets.sorted { $0.key < $1.key }
-            .map { "\($0.key)=\($0.value)" }.joined(separator: ",")
         // v5ovdeep: timeline carries RAW schedules + override windows for
         // decision-time override gating (future overrides invisible to earlier
         // forecasts). v5 fetches override treatments over a DEEP look-back so a
@@ -189,7 +176,7 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             .sorted { $0.key < $1.key }
             .map { "\($0.key)=\($0.value.target.map { "\($0)" } ?? "-")@\($0.value.percentage.map { "\($0)" } ?? "-")" }
             .joined(separator: ",")
-        let cacheKey = DataCache.key(for: "therapy_v9ex_\(insulinType)\(ovTag)\(ptTag)\(trTag)\(tlTag)", url: client.baseURL, interval: interval)
+        let cacheKey = DataCache.key(for: "therapy_v10ex_\(insulinType)\(ovTag)\(trTag)\(tlTag)", url: client.baseURL, interval: interval)
         if let cached: TherapyTimeline = try await cache.load(key: cacheKey) {
             return cached
         }
@@ -247,12 +234,11 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         }
         timeline.orefTempTargets = (ttTreatments + (trioOverrides ? [] : exTreatments)).compactMap { t in
             guard let start = isoTT.date(from: t.created_at) else { return nil }
-            // explicit bounds first; then the target embedded in notes ("130 mg/dL
-            // @ 100%"); finally a preset-name → target map for named presets whose
-            // target lives only in the preset name (e.g. "Dienst" → 110).
+            // explicit bounds first, then the target embedded in notes ("130 mg/dL
+            // @ 100%"). A preset whose target lives only in its name needs
+            // --candidate-oaps-override-presets.
             guard let target = t.targetBottom ?? t.targetTop
                     ?? Self.parseTargetFromNotes(t.notes)
-                    ?? Self.presetTarget(t.notes, map: presetTargets)
             else { return nil }
             return EvalTempTarget(start: start, durationMin: t.duration ?? 0, targetMgdl: target)
         }.sorted { $0.start < $1.start }
@@ -303,12 +289,6 @@ public actor NightscoutEvalDataSource: EvalDataSource {
 
     /// Look up a named-preset target (mg/dL) by matching `notes` against the
     /// preset-name map case-insensitively (a note containing a mapped name wins).
-    static func presetTarget(_ notes: String?, map: [String: Double]) -> Double? {
-        guard let n = notes?.lowercased(), !map.isEmpty else { return nil }
-        for (name, tgt) in map where n.contains(name.lowercased()) { return tgt }
-        return nil
-    }
-
     // MARK: – Glucose conversion
 
     private func convertEntries(_ entries: [NightscoutEntry]) -> [EvalGlucoseSample] {
@@ -616,11 +596,19 @@ public actor NightscoutEvalDataSource: EvalDataSource {
         var profileEditTimes: [Date] = []
         var prevSig: String? = nil
         let mgdl = LoopUnit.milligramsPerDeciliter
+        // A schedule's identity over one day: each block's start (seconds into the UTC day) with its
+        // value, so a moved boundary counts as an edit. The window's first segment is dropped: it starts
+        // wherever the window does, and its block recurs, with its true start, within the 24 h.
         func scheduleSig(_ tl: TherapyTimeline) -> String {
-            let s = Set(tl.sensitivity.map { ($0.value.doubleValue(for: mgdl) * 100).rounded() / 100 }).sorted()
-            let b = Set(tl.basal.map { ($0.value * 1000).rounded() / 1000 }).sorted()
-            let c = Set(tl.carbRatio.map { ($0.value * 100).rounded() / 100 }).sorted()
-            let t = Set(tl.target.map { "\(Int($0.value.lowerBound.doubleValue(for: mgdl)))-\(Int($0.value.upperBound.doubleValue(for: mgdl)))" }).sorted()
+            func blocks<V>(_ s: [AbsoluteScheduleValue<V>], _ f: (V) -> String) -> [String] {
+                Set(s.dropFirst().map { e in
+                    "\(Int(e.startDate.timeIntervalSince1970.truncatingRemainder(dividingBy: 86_400)))@" + f(e.value)
+                }).sorted()
+            }
+            let s = blocks(tl.sensitivity) { "\(($0.doubleValue(for: mgdl) * 100).rounded() / 100)" }
+            let b = blocks(tl.basal) { "\(($0 * 1000).rounded() / 1000)" }
+            let c = blocks(tl.carbRatio) { "\(($0 * 100).rounded() / 100)" }
+            let t = blocks(tl.target) { "\(Int($0.lowerBound.doubleValue(for: mgdl)))-\(Int($0.upperBound.doubleValue(for: mgdl)))" }
             return "S\(s)B\(b)C\(c)T\(t)"
         }
         for (i, (start, record)) in dated.enumerated() {
@@ -630,7 +618,11 @@ public actor NightscoutEvalDataSource: EvalDataSource {
             let raw = buildTherapyTimeline(from: record,
                                            interval: DateInterval(start: activeStart, end: activeEnd),
                                            overrides: [])
-            let sig = scheduleSig(raw)
+            // Compare whole schedules: the values seen inside a short active window are a subset of the
+            // day's, so an unchanged profile re-uploaded a few hours later would otherwise read as an edit.
+            let sig = scheduleSig(buildTherapyTimeline(from: record,
+                                                       interval: DateInterval(start: activeStart, duration: 86_400),
+                                                       overrides: []))
             if let p = prevSig, p != sig, start > interval.start {
                 profileEditTimes.append(start)   // real schedule change at this boundary
             }

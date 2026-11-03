@@ -147,15 +147,7 @@ struct SimulateCommand: AsyncParsableCommand {
             highCorrectionRiseGain: candidateHighCorrectionRiseGain,
             highCorrectionEffectDurationMinutes: candidateHighCorrectionEffectMin,
             highCorrectionFastOffVelocity: candidateHighCorrectionFastOffVelocity,
-            oapsThresholdSetting: candidateOapsThreshold,
-            oapsSmbDeliveryRatio: candidateOapsSmbRatio,
             oapsMaxSmbBasalMinutes: candidateOapsMaxSmbMin,
-            oapsUseNewFormula: candidateOapsDynamicIsf ? true : nil,
-            oapsSigmoid: candidateOapsSigmoid ? true : nil,
-            oapsAdjustmentFactor: candidateOapsAdjustmentFactor,
-            oapsAdjustmentFactorSigmoid: candidateOapsAdjustmentFactorSigmoid,
-            oapsEnableUAM: candidateOapsNoUam ? false : nil,
-            oapsEnableSMB: candidateOapsNoSmb ? false : nil,
             postlowSuppressMgdl: candidatePostlowSuppress,
             postlowWindowMin: candidatePostlowWindow,
             postlowThresholdMgdl: candidatePostlowThreshold,
@@ -179,6 +171,13 @@ struct SimulateCommand: AsyncParsableCommand {
             calmHighCobGate: candidateCalmHighCobGate,
             calmHighMinSlope: candidateCalmHighMinSlope ?? -.infinity,
             calmHighTargetDelta: candidateCalmHighTargetDelta,
+            lowGateRiseDrop: candidateLowGateRiseDrop,
+            lowGateRiseSlope: candidateLowGateRiseSlope,
+            lowGateRiseBgMin: candidateLowGateRiseBgMin,
+            autoBolusMinIntervalMin: candidateAutoBolusMinIntervalMin,
+            autoBolusPred30Min: candidateAutoBolusPred30Min,
+            primerMgdl: candidatePrimerMgdl,
+            primerTempMin: candidatePrimerTempMin,
             runwayFraction: candidateRunwayFraction,
             sigmaPrior: candidateSigmaPrior,
             sigmaPriorSteps: candidateSigmaPriorSteps,
@@ -187,6 +186,8 @@ struct SimulateCommand: AsyncParsableCommand {
             runwayMaxMgdl: candidateRunwayMaxMgdl,
             runwayBgMin: candidateRunwayBgMin,
             runwayCobGate: candidateRunwayCobGate,
+            runwayCobMaxG: candidateRunwayCobMaxG,
+            runwayCobFadeG: candidateRunwayCobFadeG,
             splitCurvePeakMin: splitCurvePeakMin,
             splitCurveDurationMin: splitCurveDurationMin,
             splitCurvePart: splitCurvePart,
@@ -262,6 +263,8 @@ struct SimulateCommand: AsyncParsableCommand {
         candidateConfig.slowRcClipMgdl = candidateSlowRcClipMgdl
         candidateConfig.slowRcLeakSec = candidateSlowRcLeakMin * 60
         candidateConfig.slowRcPostlowFreezeSec = candidateSlowRcPostlowFreezeMin * 60
+        candidateConfig.slowRcScheduleFeed = candidateSlowRcScheduleFeed
+        candidateConfig.slowRcWindowSec = candidateSlowRcWindowMin * 60
         candidateConfig.slowRcNeeds = candidateSlowRcNeeds
         candidateConfig.slowRcLowShrink = candidateSlowRcLowShrink
         if let path = candidateSlowRcGateJson {
@@ -284,6 +287,22 @@ struct SimulateCommand: AsyncParsableCommand {
         // threading them into the positional EvalConfig(...) literal above.
         candidateConfig.useTempBasalStrategy = tempBasalStrategy
         candidateConfig.carbAbsorptionOverrun = carbAbsorptionOverrun
+        if let path = candidateExerciseWindowsCsv {
+            guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { throw ValidationError("cannot read --candidate-exercise-windows-csv \(path)") }
+            let iso = ISO8601DateFormatter()
+            candidateConfig.exerciseWindows = text.split(whereSeparator: \.isNewline).dropFirst().compactMap { line in
+                let p = line.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+                guard p.count >= 2, let s = iso.date(from: p[0]), let e = iso.date(from: p[1]), e > s else { return nil }
+                return DateInterval(start: s, end: e)
+            }.sorted { $0.end < $1.end }
+        }
+        guard candidatePostExerciseIsfMult > 0, candidatePostExerciseHours >= 0, candidatePostExerciseFadeHours >= 0 else {
+            throw ValidationError("--candidate-post-exercise-isf-mult must be > 0 and -hours/-fade-hours >= 0.")
+        }
+        candidateConfig.postExerciseIsfMult = candidatePostExerciseIsfMult
+        candidateConfig.postExerciseHours = candidatePostExerciseHours
+        candidateConfig.postExerciseFadeHours = candidatePostExerciseFadeHours
+        candidateConfig.postExerciseRunwayOff = candidatePostExerciseRunwayOff
         candidateConfig.basalRateMultiplier = candidateBasalRateMultiplier
         // "Overall insulin needs" preset-style factor f: basal ×f, ISF ÷f, CR ÷f.
         // Composes multiplicatively with the individual multipliers set above/in the literal.
@@ -395,14 +414,9 @@ struct SimulateCommand: AsyncParsableCommand {
         if let v = patientIsf, !(v > 0) {
             throw ValidationError("--patient-isf must be positive (mg/dL per U); got \(v).")
         }
-        candidateConfig.oapsAutosensMax = candidateOapsAutosensMax
-        candidateConfig.oapsAutosensMin = candidateOapsAutosensMin
-        candidateConfig.oapsInsulinPeakTime = candidateOapsInsulinPeak
         candidateConfig.oapsDia = candidateOapsDia
         candidateConfig.insulinPhysicalPeakMin = insulinPhysicalPeak
         candidateConfig.insulinPhysicalDiaHours = insulinPhysicalDia
-        candidateConfig.oapsCurve = candidateOapsCurve
-        candidateConfig.oapsMaxIob = candidateOapsMaxIob
         candidateConfig.oapsSmoothGlucose = candidateOapsSmoothGlucose
         candidateConfig.oapsPumpPulse = candidateOapsPumpPulse
         if let pj = candidateOapsPrefsJson {
@@ -435,11 +449,6 @@ struct SimulateCommand: AsyncParsableCommand {
             }
             let client = NightscoutClient(baseURL: baseURL, apiSecret: apiSecret, token: token)
             let cache = try DataCache(cacheDir: cacheDir)
-            var presetTargets: [String: Double] = [:]
-            for spec in oapsPresetTarget {
-                let parts = spec.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
-                if parts.count == 2, let tgt = Double(parts[1]) { presetTargets[parts[0]] = tgt }
-            }
             var trioAsLoop: [String: NightscoutEvalDataSource.TrioPresetAsLoop] = [:]
             if let spec = loopTrioOverrides {
                 guard !candidateOpenaps else {
@@ -454,7 +463,7 @@ struct SimulateCommand: AsyncParsableCommand {
                                              percentage: (d["percentage"] as? NSNumber)?.doubleValue)
                 }
             }
-            dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset, applyOverrides: applyOverrides, presetTargets: presetTargets,
+            dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset, applyOverrides: applyOverrides,
                                                   trioOverrides: candidateOapsOverridePresets != nil,
                                                   trioOverridesAsLoop: trioAsLoop)
         }
@@ -605,6 +614,16 @@ struct SimulateCommand: AsyncParsableCommand {
             candidateConfig.decisionTimesAreAuthoritative = true
         }
 
+        guard let anchor = EvalConfig.CorrectionAnchor(rawValue: correctionAnchor) else {
+            throw ValidationError("--correction-anchor must be auto, first-glucose or prediction-start")
+        }
+        baselineConfig.correctionAnchor = anchor
+        candidateConfig.correctionAnchor = anchor
+        if let dir = exportAlgorithmInputs {
+            try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+            baselineConfig.algorithmInputExportDir = dir
+            candidateConfig.algorithmInputExportDir = dir
+        }
         let lowResponse: LowResponseModel?
         if let path = lowResponseModel {
             guard candidateCounterfactual else { throw ValidationError("--low-response-model requires --candidate-counterfactual") }
@@ -854,6 +873,7 @@ struct SimulateCommand: AsyncParsableCommand {
             let patientIOBField: Double
             let patientIOBCandidate: Double
             let baselinePredCurve: [Double]?       // full baseline forecast curve (mg/dL, 5-min spaced from t); nil unless --export-forecast-curve
+            let candidatePredCurve: [Double]?      // the candidate's, same spacing and flag
         }
         struct ActualSample: Codable { let t: String; let bg: Double }
         struct CounterSample: Codable { let t: String; let bg: Double? }   // nil: the plant's CGM gave no reading
@@ -925,7 +945,8 @@ struct SimulateCommand: AsyncParsableCommand {
                  plantCarbsG: $0.plantCarbsG,
                  patientIOBField: $0.patientIOBField.isFinite ? $0.patientIOBField : 0.0,
                  patientIOBCandidate: $0.patientIOBCandidate.isFinite ? $0.patientIOBCandidate : 0.0,
-                 baselinePredCurve: $0.baselinePredCurve.isEmpty ? nil : $0.baselinePredCurve)
+                 baselinePredCurve: $0.baselinePredCurve.isEmpty ? nil : $0.baselinePredCurve,
+                 candidatePredCurve: $0.candidatePredCurve.isEmpty ? nil : $0.candidatePredCurve)
         }
         let actualOut = data.glucose.sorted { $0.startDate < $1.startDate }.map {
             ActualSample(t: formatter.string(from: $0.startDate),

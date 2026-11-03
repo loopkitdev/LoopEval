@@ -8,8 +8,8 @@ Per family, one parameter set per SESSION (evidence/03 §2.1, Vettoretti 2019 st
     out    device smoothing (EMA, twiist Libre stream), integer mg/dL, clamped to 39 / 401, or None
 
 Availability: warm-up after every session start; session length (+ optional grace); early
-failure; random gaps drawn at the measured per-family rates (runs/2026-10-15-additive-sensor/gaps.py,
-eda cohort, 153 donors), less the explicit warm-ups.
+failure; random gaps drawn at the measured per-family rates (runs/2026-10-15-additive-sensor/gaps.py; G6 / G7 from the
+pilot donors, LESSONS 45), scaled to the donor's own by `gap_own`, less the explicit warm-ups.
 
 Compression lows (evidence/05 §1d; evidence/03 §2.6): a person-level rate, only while asleep,
 first-order response to a rectangular pressure pulse (Facchinetti 2016 shape); 72% of events
@@ -82,6 +82,24 @@ class Family:
     fall_k: float = 0.0           # noise × (1 + fall_k·max(0, −rate − 1)) with rate the IG change in mg/dL/min: CGM error grows in
                                   # falls (G7 pivotal, Garg 2022 Table 5: MARD 9.3 / 8.4% at < −2 / −2..−1 vs 7.8–8.1 when slower;
                                   # rises are carried by the lag alone, LESSONS 391)
+    rate_k: float = 0.0           # D, SYMMETRIC rate-dependent noise (LESSONS 653): noise × (1 + rate_k·|rate|), no deadband.
+                                  # `fall_k` above has the wrong FORM on two counts against the donors' measured curvature
+                                  # (ice LESSONS 168, 273 donors, 2nd difference by |rate| at night, the cleanest window):
+                                  # their implied noise σ grows x1.09 / 1.31 / 1.70 / 2.02 over the flattest bin at |rate|
+                                  # ~0.38 / 0.75 / 1.5 / 2.5 mg/dL/min — smooth from the FLATTEST bin, and on rises as well as
+                                  # falls, so a one-sided term with a deadband at 1 cannot supply the 0.25-1 range at all.
+                                  # σ ∝ (1 + 0.45·|rate|) fits all four bins (1.17 / 1.34 / 1.68 / 2.13 predicted). Ours runs
+                                  # ~0.21, carried by the lag alone with no noise term, which is why our 2nd difference is
+                                  # 0.73-0.80 of the donors' once glucose moves while matching them at 0.94-0.98 when flat.
+                                  # 0 = off (the default). Direction: Garg 2022 Table 5 (G7 MARD 9.3 / 8.4% at < −2 / −2..−1
+                                  # against 7.8-8.1% when slower). **SIZE NOT ESTABLISHED (L 654)**: the 0.45 above came from
+                                  # binning by a CGM-DERIVED rate, which manufactures rate dependence - the sensor's noise LEVEL
+                                  # wanders, so a noisy stretch has both a larger apparent rate and a larger 2nd difference even
+                                  # with no sample shared. Binned by TRUE rate our own CGM grows x1.00, not x1.31, with no rate
+                                  # term at all, and the donors' x2.02 mixes that artefact with real curvature at turning points.
+                                  # The FORM argument against `fall_k` stands (one-sided, deadband at 1 mg/dL/min, 0.0 in every
+                                  # family), so this is the right shape if a rate term is ever evidenced; it has no number yet.
+                                  # The artefact-free deficit is DAYTIME, not rate: see L 654.
     fall_lag: float = 1.0         # BG → IG time constant × this while glucose falls below IG (interstitial lag longer in falls;
                                   # Cengiz & Tamborlane 2009 review), sized on Garg 2022 Table 5's falling bins (LESSONS 391)
     common_sigma: float = 0.0     # innovation sd of the error COMMON to co-located sensors (interstitial physiology):
@@ -94,7 +112,7 @@ FAMILIES = {
     # the Vettoretti 2019 values, and it carries the transients G6 donors show (reversals 5.7 per 1,000 quiet steps)
     # refit on the c235 bodies against DEN170088 (LESSONS 213): sigma 2.5 -> 1.8, transient amplitude 12 -> 8, noise wander
     # 0.7 -> 0.2, slow bias sd 3 (Breton & Kovatchev 2008); loss 23.7 -> 9.9 (a0 0.98 traded the high range, kept 0.96)
-    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(1.0, 0.8), hetero_q=0.6,   # q 0.8 -> 0.6, wander 0.7 -> 0.4: FDA loss 9.2 -> 6.0, CGM < 54 bias −16 -> −9.5 (DEN170088 −6.9; LESSONS 393)
+    "Dexcom G6": Family("Dexcom G6", warmup=120, session_days=10, df=4.0, sigma=(1.0, 0.8), hetero_q=0.6,   # q 0.8 -> 0.6 (wander kept 0.7): FDA loss 9.2 -> 6.0, CGM < 54 bias −16 -> −9.5 (DEN170088 −6.9; LESSONS 393)
                           # q 0.5 -> 0.8: FDA loss 7.51 -> 5.70 (LESSONS 361); sigma 1.4 -> 1.0: FDA tables do not identify white noise (loss falls to 0), donors' sigma_meas does (LESSONS 362);   # 1.8 -> 1.4 with early_noise (LESSONS 222)
                         a0=(0.96, 0.05), b0=(2.0, 3.0), common_sigma=2.5, trans_rate=(7.5, 0.9), trans_amp=(8.0, 0.4), trans_down=0.72,   # G6 donors'
                         # own quiet reversals: 65% low first, 5.6 per 1,000 steps (LESSONS 390; rate 6 -> 7.5, low-first 0.55 -> 0.72)
@@ -184,6 +202,7 @@ class Sensor:
             if "sensor_ttau" in overrides: kw["trans_tau"] = overrides["sensor_ttau"]
             if "sensor_falllag" in overrides: kw["fall_lag"] = overrides["sensor_falllag"]
             if "sensor_fallk" in overrides: kw["fall_k"] = overrides["sensor_fallk"]
+            if "sensor_ratek" in overrides: kw["rate_k"] = overrides["sensor_ratek"]
             if "sensor_tdown" in overrides: kw["trans_down"] = overrides["sensor_tdown"]
             if "sensor_tprop" in overrides: kw["trans_prop"] = overrides["sensor_tprop"]
             if "sensor_enoise" in overrides: kw["early_noise"] = (overrides["sensor_enoise"], overrides.get("sensor_entau", self.f.early_noise[1]))
@@ -299,6 +318,8 @@ class Sensor:
             nu *= 1.0 + f.early_noise[0] * math.exp(-max(0.0, minute - s.start) / f.early_noise[1])
         if f.fall_k > 0:
             nu *= 1.0 + f.fall_k * max(0.0, -self.ig_rate - 1.0)
+        if f.rate_k > 0:                     # D (L 653): symmetric, no deadband - the donors' curvature grows from the
+            nu *= 1.0 + f.rate_k * abs(self.ig_rate)      # flattest bin and on rises too, which fall_k cannot reach
         if self.act_k > 0 and activity > 0:
             # experiment (LESSONS 498): CGM error grows during aerobic exercise and recovers within the hour (MARD 9.5 → 16.5 →
             # 9.3% before / during / 1 h after; Biagi 2018, PMC5872070): the noise level × (1 + k · activity intensity) [J k]

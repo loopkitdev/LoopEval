@@ -47,6 +47,20 @@ OUTAGE_HOURS = [0.03, 0.027, 0.018, 0.017, 0.017, 0.019, 0.027, 0.037, 0.041, 0.
                 0.056, 0.054, 0.06, 0.06, 0.058, 0.055, 0.056, 0.046, 0.033]
 
 
+
+
+def _num(v) -> bool:
+    """True for a real number passed through `--set` or an ARM_ENABLE JSON dict.
+
+    The guard used to be `isinstance(v, float)`, which silently DROPPED integers:
+    `"ge_order": 3` in a JSON arm file is an int, `isinstance(3, float)` is False, and the
+    knob never reached the body - the arm then ran as its own control and scored
+    bit-identical to it (LESSONS 655; it cost the `ge_order` change-response verdict, which
+    was recorded as "prediction neutral" on the strength of a no-op). bool is excluded
+    because `True` is an int in Python and a switch must not be read as the number 1.
+    """
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
 def plan_outages(person, days: int, rng, missed: bool = False) -> list:
     """[(start_min, end_min, reason)] for the whole run, at the donor's own rates (templates.add_disruption_rates).
     `missed` (LESSONS 377): also the donor's short missed Loop cycles (gaps of 1 and 2–3 five-minute slots without a
@@ -137,7 +151,7 @@ class World:
     def __init__(self, person, days: int, seed: Optional[int] = None, enable: Optional[dict] = None):
         # A4d dose-dependent bolus absorption, default since 2026-10-20 (LESSONS 155, 433, 437): Heise 2017 aspart tmax 65.7 /
         # 72.1 / 75.2 min at 0.1 / 0.2 / 0.4 U/kg → β ≈ 0.1; --set dose_beta=0 turns it off
-        _db = float(enable["dose_beta"]) if enable and isinstance(enable.get("dose_beta"), float) else 0.1
+        _db = float(enable["dose_beta"]) if enable and _num(enable.get("dose_beta")) else 0.1
         if _db != person.body.dose_beta:
             person = copy.copy(person); person.body = person.body.scaled(dose_beta=_db)
         if enable and enable.get("kappa_ins"):
@@ -146,36 +160,45 @@ class World:
         if enable and enable.get("ceiling_speed"):
             # experiment (LESSONS 150): the meal's own speed scales the stomach's energy ceiling
             person = copy.copy(person); person.body = person.body.scaled(ge_cap_speed=1.0)
-        if enable and isinstance(enable.get("meal_k"), float):
+        if enable and _num(enable.get("meal_k")):
             person = copy.deepcopy(person)        # calibration override: meal absorption speed multiplier
             person.body = person.body.scaled(kempt=person.body.kempt * enable["meal_k"], kabs=person.body.kabs * enable["meal_k"])
-        if enable and isinstance(enable.get("ge_kcal_mult"), float):
+        if enable and _num(enable.get("ge_kcal_mult")):
             # experiment (LESSONS 301): the energy ceiling × m for everyone, the person's spread kept (Km fixed, so kempt follows)
             person = copy.deepcopy(person); m_ = enable["ge_kcal_mult"]
             person.body = person.body.scaled(ge_kcal_max=person.body.ge_kcal_max * m_, kempt=person.body.kempt * m_)
-        if enable and isinstance(enable.get("ge_kcal"), float):
+        if enable and _num(enable.get("ge_beta")):   # Elashoff power-exponential emptying shape (L 591)
+            person = copy.copy(person); person.body = person.body.scaled(ge_beta=float(enable["ge_beta"]))
+        if enable and _num(enable.get("kabs_m")):
+            # GUT absorption alone, unlike `meal_k` which scales emptying with it (L 627). The default 0.05 was
+            # calibrated to the donors' LABELLED small pulses, a target the stale-label fix moved (L 626); Dalla Man
+            # identifies 0.057 and UVA/Padova 0.21 +/- 0.21. kabs sets the appearance TAIL, so it is the lever for
+            # the corrected duration and peak-height rows that gastric order barely touches.
+            person = copy.deepcopy(person)
+            person.body = person.body.scaled(kabs=person.body.kabs * float(enable["kabs_m"]))
+        if enable and _num(enable.get("ge_kcal")):
             person = copy.deepcopy(person)        # gastric-emptying energy ceiling, kcal/min (the body and behavior both read it)
             person.body = person.body.scaled(ge_kcal_max=enable["ge_kcal"])
-        if enable and isinstance(enable.get("rcl_mult"), float):
+        if enable and _num(enable.get("rcl_mult")):
             person = copy.deepcopy(person)        # renal clearance above threshold: Hovorka 0.003/min (default) vs UVA/Padova
             person.body = person.body.scaled(rcl=person.body.rcl * enable["rcl_mult"])   # ke1 0.0005 on Gp ≈ ×1/6 (evidence/01 §4.3)
-        if enable and isinstance(enable.get("ge_mult"), float):
+        if enable and _num(enable.get("ge_mult")):
             person = copy.deepcopy(person)        # scales the person's emptying (Vmax and kempt together, Km fixed): centre of
             b = person.body                       # the between-person distribution, inside evidence/09's 2–5 kcal/min
             person.body = b.scaled(ge_kcal_max=b.ge_kcal_max * enable["ge_mult"], kempt=b.kempt * enable["ge_mult"])
-        if enable and (isinstance(enable.get("ins_p2"), float) or isinstance(enable.get("ins_p2e"), float)):
+        if enable and (_num(enable.get("ins_p2")) or _num(enable.get("ins_p2e"))):
             person = copy.deepcopy(person)        # insulin-action rates (ablation: clamp-fitted vs Loop-curve action)
             person.body = person.body.scaled(p2=enable.get("ins_p2", person.body.p2), p2e=enable.get("ins_p2e", person.body.p2e))
-        if enable and isinstance(enable.get("ge_gamma"), float):
+        if enable and _num(enable.get("ge_gamma")):
             person.body = person.body.scaled(ge_gamma=enable["ge_gamma"])
-        if enable and isinstance(enable.get("ge_hyper"), float):
+        if enable and _num(enable.get("ge_hyper")):
             person = copy.deepcopy(person)
             person.body = person.body.scaled(ge_hyper=enable["ge_hyper"])
         self.person = person
         self.days = days
         # per-bolus absorption spread (A4): 0.15 net of SI from repeat clamps (Heise 2017); free-living estimates are wider
         # (Schiavon ATTD 2020: intra-individual CV of absorption parameters 34–94% under closed loop) (LESSONS 209)
-        self.dose_cv = float(enable["dose_cv"]) if enable and isinstance(enable.get("dose_cv"), float) else 0.15
+        self.dose_cv = float(enable["dose_cv"]) if enable and _num(enable.get("dose_cv")) else 0.15
         seed = person.seed if seed is None else seed
         ss = np.random.SeedSequence(seed)
         r_mod, r_beh, r_sen, r_pump, r_abs, r_misc = [np.random.default_rng(s) for s in ss.spawn(6)]
@@ -189,11 +212,11 @@ class World:
             self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.dawn = False
         if enable:
             self.mod_traits.enabled.update({k: v for k, v in enable.items() if k in self.mod_traits.enabled})
-            if isinstance(enable.get("heat_a"), float) or isinstance(enable.get("heat_T"), float):
+            if _num(enable.get("heat_a")) or _num(enable.get("heat_T")):
                 self.mod_traits = copy.deepcopy(self.mod_traits)
-                if isinstance(enable.get("heat_a"), float): self.mod_traits.heat_a = enable["heat_a"]; self.mod_traits.enabled["heat"] = True
-                if isinstance(enable.get("heat_T"), float): self.mod_traits.heat_T = enable["heat_T"]
-            if isinstance(enable.get("day_rho"), float):
+                if _num(enable.get("heat_a")): self.mod_traits.heat_a = enable["heat_a"]; self.mod_traits.enabled["heat"] = True
+                if _num(enable.get("heat_T")): self.mod_traits.heat_T = enable["heat_T"]
+            if _num(enable.get("day_rho")):
                 # experiment (LESSONS 457): persistence of the intrinsic day-level SI (B3, sd from repeat clamps), which no
                 # controlled study sizes; fitted to the donors' TDD day-to-day autocorrelation (Pete 2026-10-20: fit from data)
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.day_rho = enable["day_rho"]
@@ -202,30 +225,30 @@ class World:
                 self.mod_traits.enabled["menstrual"] = True
             if "steroid" in enable and "steroid" not in self.mod_traits.enabled:      # persons sampled before B14
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.enabled["steroid"] = bool(enable["steroid"])
-            if isinstance(enable.get("preg_week"), float) and getattr(self.mod_traits, "menstruating", False):
+            if _num(enable.get("preg_week")) and getattr(self.mod_traits, "menstruating", False):
                 # scenario X9: menstruating people are pregnant at this gestational week from day 0; no menstrual cycle
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.preg_week = enable["preg_week"]
                 self.mod_traits.menstruating = False
             if enable.get("gh_pulse_net"):
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.gh_pulse_net = True
-            if isinstance(enable.get("gh_pulse_amp"), float):
+            if _num(enable.get("gh_pulse_amp")):
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.gh_pulse_amp = enable["gh_pulse_amp"]
             if "gh_pulse" in enable and "gh_pulse" not in self.mod_traits.enabled:      # persons sampled before B2b
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.enabled["gh_pulse"] = bool(enable["gh_pulse"])
-            if isinstance(enable.get("ultra_amp"), float) or isinstance(enable.get("ultra_per"), float):
+            if _num(enable.get("ultra_amp")) or _num(enable.get("ultra_per")):
                 self.mod_traits = copy.deepcopy(self.mod_traits)
-                if isinstance(enable.get("ultra_amp"), float): self.mod_traits.ultra_amp = enable["ultra_amp"]
-                if isinstance(enable.get("ultra_per"), float): self.mod_traits.ultra_per = enable["ultra_per"]
+                if _num(enable.get("ultra_amp")): self.mod_traits.ultra_amp = enable["ultra_amp"]
+                if _num(enable.get("ultra_per")): self.mod_traits.ultra_per = enable["ultra_per"]
             if "ultradian" in enable and "ultradian" not in self.mod_traits.enabled:   # persons sampled before B4b
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.enabled["ultradian"] = bool(enable["ultradian"])
-            if isinstance(enable.get("day_tau"), float):
+            if _num(enable.get("day_tau")):
                 self.mod_traits = copy.deepcopy(self.mod_traits); self.mod_traits.day_tau = enable["day_tau"]
-            if isinstance(enable.get("circ_uniform"), float) and enable["circ_uniform"] > 0:
+            if _num(enable.get("circ_uniform")) and enable["circ_uniform"] > 0:
                 # experiment: the seven Visentin classes equally likely (Hinshaw 2013: no population B/L/D pattern in T1D)
                 from .modulators import VISENTIN
                 self.mod_traits = copy.deepcopy(self.mod_traits)
                 self.mod_traits.circ_class = VISENTIN[int(np.random.default_rng(person.seed + 11).integers(len(VISENTIN)))][0]
-            if isinstance(enable.get("circ_swing"), float):
+            if _num(enable.get("circ_swing")):
                 self.mod_traits = copy.deepcopy(self.mod_traits)
                 self.mod_traits.circ_swing = enable["circ_swing"]
                 self.mod_traits.circ_low = float(np.clip(1.0 - enable["circ_swing"] * (1.0 - self.mod_traits.circ_raw), 0.4, 1.0))
@@ -243,7 +266,7 @@ class World:
             # scenario: one glucocorticoid course starting on day 3 (B14), whatever the person's own draw
             self.mods.gc = self.mods._glucocorticoid(self.mod_traits, force_day=3)
             self.mod_traits.enabled["steroid"] = True
-        if enable and isinstance(enable.get("snack_minus"), float):
+        if enable and _num(enable.get("snack_minus")):
             person.traits["snack_minus"] = float(enable["snack_minus"])   # labeled pulses that are not eating (LESSONS 127)
         # window g-eq → grams by the donor's labelled-per-entered ratio: the donor's labelled morning load holds body-made
         # dawn rises the twin's own body adds again; default since 2026-10-19 (LESSONS 346); --disable slot_true
@@ -252,29 +275,36 @@ class World:
         # the donor's own meal / snack split of carb entries, default since 2026-10-19 (LESSONS 280); --disable entry_split
         person.traits["entry_split"] = bool(enable.get("entry_split", True)) if enable else True
         person.traits["entry_win"] = bool((enable or {}).get("entry_win", True))      # default since 2026-10-19 (LESSONS 345)
+        # per-person aerobic capacity from the donor's own recorded workout intensity instead of the lnN(9, 0.25)
+        # prior, for the donors who record them (templates.add_metmax_own; L 631)
+        person.traits["met_own"] = bool((enable or {}).get("met_own", False))
         self.beh_traits = person.traits.get("behavior") or sample_behavior_traits(r_beh, person)
         if person.traits.get("beh_set"):     # diagnostic trait overrides carried on the Person (the plant runs in its own process)
             self.beh_traits = copy.deepcopy(self.beh_traits)
             for k_, v_ in person.traits["beh_set"].items(): setattr(self.beh_traits, k_, v_)
-        if enable and isinstance(enable.get("meal_slow"), float):
+        if enable and _num(enable.get("meal_slow")):
             self.beh_traits.meal_slow_frac = enable["meal_slow"]
-        if enable and isinstance(enable.get("main_w"), float):
+        if enable and _num(enable.get("meal_wave2")):      # A10c second gastric wave (L 573)
+            self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.meal_wave2 = float(enable["meal_wave2"])
+        if enable and _num(enable.get("meal_wave2_delay")):
+            self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.meal_wave2_delay = float(enable["meal_wave2_delay"])
+        if enable and _num(enable.get("main_w")):
             self.beh_traits.main_weight = enable["main_w"]
-        if enable and isinstance(enable.get("meal_fast"), float):
+        if enable and _num(enable.get("meal_fast")):
             self.beh_traits.meal_fast_frac = enable["meal_fast"]
-        if enable and isinstance(enable.get("lead_shift"), float):
+        if enable and _num(enable.get("lead_shift")):
             self.beh_traits.lead_shift = enable["lead_shift"]
         if enable and enable.get("lead_own") is False:      # back to the four category windows
             self.beh_traits.lead_own = False
-        if enable and isinstance(enable.get("lead_sd"), float):
+        if enable and _num(enable.get("lead_sd")):
             self.beh_traits.lead_sd = enable["lead_sd"]
-        if enable and isinstance(enable.get("meal_drink_p"), float):
+        if enable and _num(enable.get("meal_drink_p")):
             self.beh_traits.meal_drink_p = float(enable["meal_drink_p"])
-        if enable and isinstance(enable.get("meal_drink_share"), float):
+        if enable and _num(enable.get("meal_drink_share")):
             self.beh_traits.meal_drink_share = float(enable["meal_drink_share"])
         if (enable or {}).get("count_brazeau", True):   # default since 2026-10-19 (Brazeau 2013; LESSONS 304); --disable count_brazeau
             self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.count_size = "brazeau"   # LESSONS 146
-        if enable and isinstance(enable.get("pro_shift"), float):
+        if enable and _num(enable.get("pro_shift")):
             self.beh_traits.pro_onset = self.beh_traits.pro_onset + float(enable["pro_shift"])   # LESSONS 126
         if enable and enable.get("own_clock"):
             self.beh_traits.own_clock = True
@@ -282,22 +312,22 @@ class World:
             self.beh_traits.entry_clock = True
         if enable and "graze_fast" in enable:
             self.beh_traits.graze_fast = bool(enable["graze_fast"])      # default on (LESSONS 158); --disable graze_fast
-        if enable and isinstance(enable.get("graze_keep"), float):
+        if enable and _num(enable.get("graze_keep")):
             self.beh_traits.graze_keep = float(np.clip(enable["graze_keep"], 0.0, 1.0))
-        if enable and isinstance(enable.get("corr_x_beta"), float):
+        if enable and _num(enable.get("corr_x_beta")):
             self.beh_traits.corr_x_beta = float(enable["corr_x_beta"])     # experiment (LESSONS 539)
         if enable and enable.get("corr_rec_gate"):
             self.beh_traits.corr_rec_gate = True       # experiment (LESSONS 538)
         if enable and enable.get("site_clock"):
             self.beh_traits.site_clock = True          # experiment (LESSONS 523)
-        if enable and isinstance(enable.get("announce_mult"), float):
+        if enable and _num(enable.get("announce_mult")):
             self.beh_traits.announce_mult = float(np.clip(enable["announce_mult"], 0.0, 1.0))
         if enable and enable.get("meal_gap_gev") is False:
             self.beh_traits.meal_gap_gev = False
-        if enable and isinstance(enable.get("count_sd_mult"), float):
+        if enable and _num(enable.get("count_sd_mult")):
             # per-meal mismatch between the grams dosed for and the glucose delivered (ablation, LESSONS 149)
             self.beh_traits.count_sd = self.beh_traits.count_sd * enable["count_sd_mult"]
-        if enable and isinstance(enable.get("graze_split"), float):
+        if enable and _num(enable.get("graze_split")):
             # experiment (LESSONS 162): the same daily grazing grams as k times as many sips and bites, 1/k the size
             k_ = float(enable["graze_split"])
             self.beh_traits.graze_per_day = self.beh_traits.graze_per_day * k_
@@ -318,15 +348,15 @@ class World:
             self.beh_traits.corr_trend = True
         if enable and enable.get("ex_no_eat"):
             self.beh_traits.ex_no_eat = True
-        if enable and isinstance(enable.get("course_p"), float):
+        if enable and _num(enable.get("course_p")):
             self.beh_traits.course_p = enable["course_p"]
-        if enable and isinstance(enable.get("course_f"), float):
+        if enable and _num(enable.get("course_f")):
             self.beh_traits.course_f = enable["course_f"]
-        if enable and isinstance(enable.get("main_speed"), float):
+        if enable and _num(enable.get("main_speed")):
             self.beh_traits.main_speed = enable["main_speed"]
-        if enable and isinstance(enable.get("count_shift"), float):
+        if enable and _num(enable.get("count_shift")):
             self.beh_traits.count_shift = enable["count_shift"]
-        if enable and isinstance(enable.get("pro_glc"), float):
+        if enable and _num(enable.get("pro_glc")):
             self.beh_traits.pro_glc = enable["pro_glc"]
         if enable and enable.get("ge_full_kcal"):
             self.beh_traits.ge_full_kcal = True
@@ -334,10 +364,45 @@ class World:
             self.beh_traits.unent_light = True
         if enable and enable.get("unent_split"):
             self.beh_traits.unent_split = True
-        if enable and isinstance(enable.get("entry_size_b"), float):
+        if enable and _num(enable.get("entry_size_b")):
             self.beh_traits.entry_size_b = enable["entry_size_b"]
         if enable and enable.get("ex_mets"):
             self.beh_traits.ex_mets = True
+        if enable and enable.get("ex_dur_cap"):      # C5 intensity capped by session length (LESSONS 554)
+            self.beh_traits.ex_dur_cap = True
+        if enable and "ex_cap_fit" in enable:        # that cap + METmax raised to what the person's sessions need.
+            # Honour an explicit False: the trait defaults True since 2026-11-01, and a set-True-only branch made
+            # `--disable ex_cap_fit` a silent no-op, so the previous reference could not be reproduced (L 580)
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.ex_cap_fit = bool(enable["ex_cap_fit"])
+        if enable and _num(enable.get("meal_lag")):    # gastric lag phase, minutes (L 595)
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.meal_lag = float(enable["meal_lag"])
+        if enable and enable.get("pro_g_own"):       # proactive snack size from the donor's own low-onset pulse (L 588)
+            # the assignment happens HERE, not in sample_behavior_traits: that has already returned by now, so a
+            # flag-only branch there would never fire (the ex_cap_fit / ov_dur_own wiring bug, L 580, 586)
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.pro_g_own = True
+            if np.isfinite(self.beh_traits.low_pro_g):
+                from .behavior import LABEL_PRO_F
+                g0 = self.beh_traits.pro_grams
+                self.beh_traits.pro_grams = float(np.clip(self.beh_traits.low_pro_g * LABEL_PRO_F, 6.0, 40.0))
+                # the donors eat bigger AND less often at a low (0.548 pulses/h below 80 at 30 g against the twins'
+                # 0.672 at 24 g), holding ~16.4 g/h; sizing alone raised the carbohydrate ~25% and the TDD gap with
+                # it (L 588), so the refractory stretches by the same factor to conserve grams per hour below 80
+                if self.beh_traits.pro_carb_fix and g0 > 0:
+                    self.beh_traits.pro_refractory = float(np.clip(
+                        self.beh_traits.pro_refractory * self.beh_traits.pro_grams / g0, 10.0, 240.0))
+        if enable and "ov_dur_own" in enable:        # override length from the donor's own spread (L 586); default True
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.ov_dur_own = bool(enable["ov_dur_own"])
+        if enable and _num(enable.get("ex_min")):        # usual session length, minutes (L 567)
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.ex_minutes = float(self.beh_traits.ex_minutes * enable["ex_min"] / 40.0)
+        if enable and _num(enable.get("act_rho")):       # day-to-day persistence of everyday activity (L 584)
+            self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.act_rho = float(enable["act_rho"])
+        if enable and _num(enable.get("ex_headroom")):   # METs of capacity above the usual session (L 564)
+            self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.ex_headroom = float(enable["ex_headroom"])
         if enable and enable.get("sleep_own"):
             # experiment (LESSONS 499): the sleep window centred on the donor's own quietest hours of user actions
             # (templates.add_sleep_mid), keeping the person's drawn sleep length
@@ -362,10 +427,10 @@ class World:
             if _f("ex_dur_own") is not None: bt_.ex_minutes = _f("ex_dur_own")
             hs = tr_.get("ex_hours_own")
             if isinstance(hs, str) and hs.strip(): bt_.ex_hours = [float(x) for x in hs.split()]
-        if enable and isinstance(enable.get("wake_mult"), float):
+        if enable and _num(enable.get("wake_mult")):
             # experiment (LESSONS 274): the chance a night alarm wakes the person, scaled
             self.beh_traits.p_wake_alarm = float(min(0.98, self.beh_traits.p_wake_alarm * enable["wake_mult"]))
-        if enable and isinstance(enable.get("ex_surge"), float):
+        if enable and _num(enable.get("ex_surge")):
             # C4 calibration: catecholamine EGP surge, mg/kg/min at intensity 1 for fully anaerobic work (LESSONS 247)
             person = copy.deepcopy(person); person.body = person.body.scaled(ex_egp_surge=enable["ex_surge"]); self.person = person
         if (enable or {}).get("skip_own", True):
@@ -395,10 +460,15 @@ class World:
                         self.beh_traits.p_log_pro = self.beh_traits.p_log_rescue = float(np.clip(r_ / 1.4, 0.0, 1.0))
                 except (TypeError, ValueError):
                     pass
-        if enable and isinstance(enable.get("p_log_pro"), float):
+        if enable and _num(enable.get("p_log_pro")):
             self.beh_traits.p_log_pro = enable["p_log_pro"]
-        if enable and isinstance(enable.get("p_log_rescue"), float):
+        if enable and _num(enable.get("p_log_rescue")):
             self.beh_traits.p_log_rescue = enable["p_log_rescue"]
+        if enable and _num(enable.get("unl_mult")):
+            # direct refit hook (L 603): `unl_mult` was readable only through the off-by-default `unl_own`
+            # experiment and only from the template, so `--set unl_mult` was a silent no-op
+            self.beh_traits = copy.deepcopy(self.beh_traits)
+            self.beh_traits.unl_mult = float(enable["unl_mult"])
         if enable and enable.get("unl_own"):
             # unl_own (experiment, LESSONS 449): unlogged eating sized from the donor's own unannounced load more than 6 h from
             # a logged meal (labelled, like for like): the twins' far load is ~16 g-eq/day of body-made rises plus ~56 of
@@ -428,13 +498,13 @@ class World:
             self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.macro_own = True
         if enable and "slot_comp" in enable:
             self.beh_traits = copy.deepcopy(self.beh_traits); self.beh_traits.slot_comp = bool(enable["slot_comp"])
-        if enable and isinstance(enable.get("snack_fast"), float):
+        if enable and _num(enable.get("snack_fast")):
             self.beh_traits.snack_fast_frac = enable["snack_fast"]          # snacks' fast share (LESSONS 159)
-        if enable and isinstance(enable.get("gi_cv"), float):
+        if enable and _num(enable.get("gi_cv")):
             self.beh_traits.gi_cv = enable["gi_cv"]            # per-meal emptying-speed spread (ablation, LESSONS 147)
-        if enable and isinstance(enable.get("meal_fast_sd"), float):
+        if enable and _num(enable.get("meal_fast_sd")):
             self.beh_traits.meal_fast_sd = enable["meal_fast_sd"]
-        if enable and isinstance(enable.get("meal_slow_k"), float):
+        if enable and _num(enable.get("meal_slow_k")):
             self.beh_traits.meal_slow_k = enable["meal_slow_k"]
         if enable and enable.get("perfect_person"):
             # diagnostic: every meal entered exactly and bolused at the meal; no snacks, no exercise
@@ -444,7 +514,7 @@ class World:
             t.ex_per_week = 0.0; t.p_free_bolus = 0.0
         if not self.enable["graze"]: self.beh_traits.graze_per_day = 0.0
         if enable and enable.get("act_day_var") is False: self.beh_traits.act_day_var = False
-        if enable and isinstance(enable.get("act_after_meal"), float): self.beh_traits.act_after_meal = enable["act_after_meal"]   # experiment (LESSONS 303)
+        if enable and _num(enable.get("act_after_meal")): self.beh_traits.act_after_meal = enable["act_after_meal"]   # experiment (LESSONS 303)
         if enable and enable.get("intake_var") is False: self.beh_traits.intake_cv = 1e-6
         self.beh = Behavior(self.beh_traits, person, r_beh)
         self.beh.defense = self.enable["behavior_defense"]      # rescues and proactive snacks (switch was unwired before)
@@ -453,16 +523,18 @@ class World:
         if enable and enable.get("reactive_overrides") is False:
             self.beh_traits.p_more = 0.0
         from .exercise import ExerciseParams
-        self.ex_b = (enable.get("ex_b"), enable.get("ex_zp", 1.0)) if enable and isinstance(enable.get("ex_b"), float) else None
+        self.ex_b = (enable.get("ex_b"), enable.get("ex_zp", 1.0)) if enable and _num(enable.get("ex_b")) else None
         # C1 / C2 sizes against T1DEXI (experiment, off; LESSONS 494): ex_up_mult scales the insulin-independent uptake
         # (ex_uptake, a [J] median), ex_alpha sets the acute SI boost per unit intensity (Romeres 2021: 2.0). Both reach the
         # activity-carbs probe, so the person still eats for the activity their body now spends
-        if enable and isinstance(enable.get("ex_up_mult"), float):
+        if enable and _num(enable.get("ex_up_mult")):
             person.body = person.body.scaled(ex_uptake=person.body.ex_uptake * enable["ex_up_mult"])
-        self.ex_alpha = float(enable["ex_alpha"]) if enable and isinstance(enable.get("ex_alpha"), float) else None
+        self.ex_alpha = float(enable["ex_alpha"]) if enable and _num(enable.get("ex_alpha")) else None
         # C2 saturating in intensity, k 0.1 (default since 2026-10-23, LESSONS 495; --set ex_sat=0 restores the linear α·Y)
-        self.ex_sat = float(enable["ex_sat"]) if enable and isinstance(enable.get("ex_sat"), float) else 0.1
+        self.ex_sat = float(enable["ex_sat"]) if enable and _num(enable.get("ex_sat")) else 0.1
         if self.ex_sat <= 0: self.ex_sat = None
+        if (enable or {}).get("ex_abs"):     # C1 keyed to absolute work rate (LESSONS 565)
+            person.body = person.body.scaled(ex_abs=True)
         if (enable or {}).get("ex_post"):    # experiment (LESSONS 507): exercise boost on insulin's action, not its input
             person.body = person.body.scaled(ex_post=True)
         self.act_frag = bool((enable or {}).get("act_frag", True))     # default since 2026-10-18 (Pete, LESSONS 163)
@@ -472,7 +544,7 @@ class World:
         # half of Hildebrandt's sitting-vs-flat-supine contrast by default: real evenings include reclining and real
         # sleep is not constant flat supine, so the full step at bedtime overstated the night/day contrast [J]
         # (LESSONS 169: night lows 53% -> 46%, CV and Hurst pass, 37 of 51)
-        self.posture_p = (float(enable["posture_mult"]) if enable and isinstance(enable.get("posture_mult"), float) else 0.5) \
+        self.posture_p = (float(enable["posture_mult"]) if enable and _num(enable.get("posture_mult")) else 0.5) \
             * float(np.random.default_rng(int(person.seed) + 1907).uniform(0.19, 0.44)) \
             if (enable or {}).get("posture", True) else 0.0                   # default since 2026-10-18 (Pete, LESSONS 163)
         self.posture_ramp = bool((enable or {}).get("posture_ramp", False))   # experiment (LESSONS 172)
@@ -484,25 +556,29 @@ class World:
             if (enable or {}).get("sleep_util", True) else 0.0     # default since 2026-10-18 (LESSONS 214)
         self._sleep_since = None
         self.ex_gut = bool((enable or {}).get("ex_gut", False))      # experiment (LESSONS 344)
-        self.potency = float(enable["insulin_potency"]) if enable and isinstance(enable.get("insulin_potency"), float) else 1.0
-        self.niacin_si = float(enable["niacin_si"]) if enable and isinstance(enable.get("niacin_si"), float) else 1.0
-        self.ge_am = float(enable["ge_am"]) if enable and isinstance(enable.get("ge_am"), float) else 1.25
-        self.ge_pm = float(enable["ge_pm"]) if enable and isinstance(enable.get("ge_pm"), float) else 0.8
+        self.cr_sleep = float(enable["cr_sleep"]) if enable and _num(enable.get("cr_sleep")) else 0.0   # A9 × sleep (L 550)
+        self.potency = float(enable["insulin_potency"]) if enable and _num(enable.get("insulin_potency")) else 1.0
+        self.niacin_si = float(enable["niacin_si"]) if enable and _num(enable.get("niacin_si")) else 1.0
+        self.ge_am = float(enable["ge_am"]) if enable and _num(enable.get("ge_am")) else 1.25
+        self.ge_pm = float(enable["ge_pm"]) if enable and _num(enable.get("ge_pm")) else 0.8
         self.ge_circ = bool((enable or {}).get("ge_circ", True))     # default since 2026-10-19 (LESSONS 339)
         self.ex = Exercise(ExerciseParams(gain=self.beh_traits.act_gain, background=self.beh_traits.act_bg,
                                           frag=self.act_frag, frag_seed=int(person.seed) + 1811,
-                                          **({"frag_on_med": float(enable["frag_on"])} if enable and isinstance(enable.get("frag_on"), float) else {}),
+                                          **({"frag_on_med": float(enable["frag_on"])} if enable and _num(enable.get("frag_on")) else {}),
                                           **({} if self.ex_b is None else dict(b=self.ex_b[0], z_power=self.ex_b[1])),
                                           **({} if self.ex_alpha is None else dict(alpha=self.ex_alpha)),
                                           **({} if self.ex_sat is None else dict(sat_k=self.ex_sat)),
                                           # experiment (LESSONS 497): the C4 surge threshold, share of reserve (default 0.6)
-                                          **({"surge_thr": float(enable["ex_surge_thr"])} if enable and isinstance(enable.get("ex_surge_thr"), float) else {})))
+                                          metmax=float(self.beh_traits.metmax),
+                                          **({"surge_mets": float(enable["ex_surge_mets"])} if enable and _num(enable.get("ex_surge_mets")) else {}),
+                                          **({"surge_width": float(enable["ex_surge_width"])} if enable and _num(enable.get("ex_surge_width")) else {}),
+                                          **({"surge_thr": float(enable["ex_surge_thr"])} if enable and _num(enable.get("ex_surge_thr")) else {})))
         # energy balance: a person eats for their activity. The donor's TDD (the measured constraint, G4) was spent
         # in a life that included it, so the glucose their everyday activity uses is added to what they eat
         # (activity_carbs: clamp probe, active day vs rest day; LESSONS 34)
         if self.enable["exercise"] and not (enable or {}).get("perfect_person") and "act_carbs" not in person.traits:
             person.traits["act_carbs"] = activity_carbs(person, self.beh_traits, ex_b=self.ex_b, frag=self.act_frag, alpha=self.ex_alpha, sat_k=self.ex_sat,
-                                                        frag_on=float(enable["frag_on"]) if enable and isinstance(enable.get("frag_on"), float) else None)
+                                                        frag_on=float(enable["frag_on"]) if enable and _num(enable.get("frag_on")) else None)
         if self.enable["exercise"]:
             self.beh_traits.carbs_day += person.traits.get("act_carbs", 0.0)
         if (enable or {}).get("budget_all", True) and not (enable or {}).get("perfect_person"):
@@ -534,7 +610,7 @@ class World:
                     e_ = 30.0 * bt.bw; ec = float(np.clip(4.0 * bt.carbs_day, 0.15 * e_, 0.65 * e_))
                     pr_ = 0.87 * 0.31 * (e_ - ec) / 4.0 / (ec / 4.0)
                 bt.carbs_day /= 1.0 + bt.pro_glc * pr_
-            if enable and isinstance(enable.get("meal_budget"), float):
+            if enable and _num(enable.get("meal_budget")):
                 bt.carbs_day *= enable["meal_budget"]       # experiment (LESSONS 327): meals' share of the TDD budget × this
             self.beh.t = bt                                  # the Behavior was built above with the old traits
         # every day planned now: the export writes the planned Temporary Overrides into the therapy timeline, and
@@ -544,11 +620,11 @@ class World:
         self.glp1 = None
         if (enable or {}).get("glp1"):
             from .glp1 import GLP1, sample_glp1
-            wk = enable.get("glp1_weeks") if isinstance(enable.get("glp1_weeks"), float) else None
+            wk = enable.get("glp1_weeks") if _num(enable.get("glp1_weeks")) else None
             ag = ("semaglutide" if enable.get("glp1_sema") else "tirzepatide" if enable.get("glp1_tirz")
                   else "liraglutide" if enable.get("glp1_lira") else None)
             gt = sample_glp1(np.random.default_rng(person.seed + 41), weeks=wk, agent=ag)
-            if isinstance(enable.get("glp1_hour"), float): gt.inj_hour = enable["glp1_hour"]
+            if _num(enable.get("glp1_hour")): gt.inj_hour = enable["glp1_hour"]
             self.glp1 = GLP1(gt)
             if self.glp1.t.retuned and self.glp1.t.weeks_at_start >= 11:
                 # people re-tune on the drug: basal −8%, ISF +11%, CR +4% by day 77 (Pasqua 2025)
@@ -601,7 +677,7 @@ class World:
         site = SiteTraits(lh_person=lh, p_fail=SiteTraits.p_fail * youth if self.enable["site_failure"] else 0.0,
                           p_full=SiteTraits.p_full * youth, p_dislodge=SiteTraits.p_dislodge * youth,
                           planned_days=self.beh_traits.site_days)
-        if enable and isinstance(enable.get("site_cv"), float):
+        if enable and _num(enable.get("site_cv")):
             site.site_cv = float(enable["site_cv"])
         self.pump = Pump(site, r_pump, family=person.pump, faults=self.enable["pump_faults"])
         self.sensor = Sensor(person.sensor, r_sen,
@@ -631,13 +707,23 @@ class World:
         bp = person.body
         if enable and enable.get("risk") is False: bp = bp.scaled(risk_lambda=0.0)
         if enable and enable.get("counterreg") is False: bp = bp.scaled(cr_max=0.0)
-        if enable and isinstance(enable.get("cr_mult"), float): bp = bp.scaled(cr_max=bp.cr_max * enable["cr_mult"])   # LESSONS 166
-        if enable and isinstance(enable.get("cr_tau"), float): bp = bp.scaled(cr_tau=enable["cr_tau"])   # experiment, LESSONS 274
+        if enable and _num(enable.get("cr_mult")): bp = bp.scaled(cr_max=bp.cr_max * enable["cr_mult"])   # LESSONS 166
+        if enable and _num(enable.get("ge_order")): bp = bp.scaled(ge_order=int(enable["ge_order"]))  # L 617
+        if enable and _num(enable.get("sg_h_lo")): bp = bp.scaled(sg_h_lo=float(enable["sg_h_lo"]))  # A1b below basal (L 596)
+        if enable and _num(enable.get("sg_kappa")): bp = bp.scaled(sg_kappa=float(enable["sg_kappa"]))  # insulin-independent uptake saturation (L 637)
+        if enable and _num(enable.get("sg_km")): bp = bp.scaled(sg_km=float(enable["sg_km"]))            # smooth (MM) form of the same term (L 641)
+        if enable and _num(enable.get("sg_g0")): bp = bp.scaled(sg_g0=float(enable["sg_g0"]))            # its full-strength threshold (L 641)
+        if enable and _num(enable.get("sg_rate")): bp = bp.scaled(sg_rate=float(enable["sg_rate"]))      # A1e rate-keyed restoring force (L 642)
+        if enable and _num(enable.get("sg_rate_tau")): bp = bp.scaled(sg_rate_tau=float(enable["sg_rate_tau"]))  # its averaging window (L 642)
+        if enable and "sg_h_lo_ins" in enable: bp = bp.scaled(sg_h_lo_ins=bool(enable["sg_h_lo_ins"]))   # L 599
+        if enable and _num(enable.get("cr_tau_off")): bp = bp.scaled(cr_tau_off=float(enable["cr_tau_off"]))  # L 601
+        if enable and _num(enable.get("cr_g")): bp = bp.scaled(cr_g=float(enable["cr_g"]))   # A9 half-activation glucose (L 559)
+        if enable and _num(enable.get("cr_tau")): bp = bp.scaled(cr_tau=enable["cr_tau"])   # experiment, LESSONS 274
         # X12 thyrotoxicosis (scenario, off): plasma insulin clearance × thyro_clear — 1.41 measured (1144 vs 812 ml/min,
         # 7 thyrotoxic patients vs controls, sensitivity unchanged; Horm Metab Res 1985 / PubMed 3887944); insulin-treated
         # people need 25–100% more insulin while hyperthyroid (mean 50%, 11 of 48; Arch Intern Med 1980). The settings stay
         # the person's euthyroid ones (LESSONS 336)
-        if enable and isinstance(enable.get("thyro_clear"), float): bp = bp.scaled(ke=bp.ke * enable["thyro_clear"])
+        if enable and _num(enable.get("thyro_clear")): bp = bp.scaled(ke=bp.ke * enable["thyro_clear"])
         self.body = Body(bp, person.formulation)
         br = self.body.basal_rate_u_per_h()
         self.body.prime(br)
@@ -655,22 +741,23 @@ class World:
         self.fat_events: list = []                         # (minute, fat g) — transient fat-induced insulin resistance
         self.fat_log: list = []                            # every fat event, kept for the truth file (LESSONS 288)
         self.ppr_events: list = []                         # main-meal times for the post-meal insulin-action window (LESSONS 321)
-        self.ppr_a = float(enable["ppr_a"]) if enable and isinstance(enable.get("ppr_a"), float) else 0.4   # Pete 2026-10-20: meal shape over lows (LESSONS 408); 0.4 relative since 2026-10-20 (LESSONS 436)
-        self.ppr_shift = float(enable["ppr_shift"]) if enable and isinstance(enable.get("ppr_shift"), float) else 0.0
+        self.ppr_a = float(enable["ppr_a"]) if enable and _num(enable.get("ppr_a")) else 0.6   # Pete 2026-10-20: meal shape over lows (LESSONS 408); 0.4 relative since 2026-10-20 (LESSONS 436);
+        # 0.6 since 2026-11-01 (LESSONS 558): A12b on its OWN target, meal_d3_p50 ratio 0.58 -> 0.97. Costs TIR on both draws
+        self.ppr_shift = float(enable["ppr_shift"]) if enable and _num(enable.get("ppr_shift")) else 0.0
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
         self.fat_periph = bool((enable or {}).get("fat_periph", False))   # experiment (LESSONS 481): fat resistance on disposal only
-        self.ppr_end = float(enable["ppr_end"]) if enable and isinstance(enable.get("ppr_end"), float) else 240.0   # window out by (min; LESSONS 423)
+        self.ppr_end = float(enable["ppr_end"]) if enable and _num(enable.get("ppr_end")) else 240.0   # window out by (min; LESSONS 423)
         self.ppr_w = tuple(float(enable[k]) if enable and isinstance(enable.get(k), float) else 1.0 for k in ("ppr_b", "ppr_l", "ppr_d"))   # per-slot window weights (LESSONS 429)
         # si_norm: the ISF yardstick measures the donor's average sensitivity across their real life (stress, sleep loss,
         # illness, cycle, glucose-induced resistance included), so the life-factor modulators should average 1 around it;
         # c446_npu's twins average 0.919 (LESSONS 468). Cohort-level test of the size; the per-person form is the next step
-        self.si_norm = float(enable["si_norm"]) if enable and isinstance(enable.get("si_norm"), float) else 1.0
-        self.night_si = float(enable["night_si"]) if enable and isinstance(enable.get("night_si"), float) else 1.0
-        self.dawn_si = float(enable["dawn_si"]) if enable and isinstance(enable.get("dawn_si"), float) else 0.0
+        self.si_norm = float(enable["si_norm"]) if enable and _num(enable.get("si_norm")) else 1.0
+        self.night_si = float(enable["night_si"]) if enable and _num(enable.get("night_si")) else 1.0
+        self.dawn_si = float(enable["dawn_si"]) if enable and _num(enable.get("dawn_si")) else 0.0
         _bpf = person.truth.get("basal_profile")
         self._bp_night = float(np.mean(_bpf[0:3])) if _bpf else 1.0
-        self.flow_sd = float(enable["flow_sd"]) if enable and isinstance(enable.get("flow_sd"), float) else 0.5   # A4c, default since 2026-10-20 (Heinemann 2002; LESSONS 419)
-        self.flow_tau = float(enable["flow_tau"]) if enable and isinstance(enable.get("flow_tau"), float) else 60.0
+        self.flow_sd = float(enable["flow_sd"]) if enable and _num(enable.get("flow_sd")) else 0.5   # A4c, default since 2026-10-20 (Heinemann 2002; LESSONS 419)
+        self.flow_tau = float(enable["flow_tau"]) if enable and _num(enable.get("flow_tau")) else 60.0
         self._flow_rng = np.random.default_rng(int(person.seed) + 4421); self._flow_z = 0.0; self._flow_last = None
         # data-driven residual (experiment, off; Pete 2026-10-27, LESSONS 514): the variability the named core does not carry,
         # as an exogenous glucose rate with no causal source, sized per person on the donor's own unexplained drive (ICE by
@@ -694,16 +781,19 @@ class World:
         self.drop_p, self.drop_a, self.drop_tau = f_("resid_drop_p", 0.0), f_("resid_drop_a", 100.0), f_("resid_drop_tau", 25.0)
         self._drop_rng = np.random.default_rng(int(person.seed) + 5141); self._drop_seen = 0; self._drops: list = []
         self.resid_skew = float(en_["resid_skew"]) if isinstance(en_.get("resid_skew"), float) else 0.0
+        self.resid_diurnal = float(en_["resid_diurnal"]) if isinstance(en_.get("resid_diurnal"), float) else 0.9   # default since 2026-11-01 (L 568)
+        self.resid_meal = float(en_["resid_meal"]) if isinstance(en_.get("resid_meal"), float) else 0.0   # L 569
+        self.resid_day_ar = float(en_["resid_day_ar"]) if isinstance(en_.get("resid_day_ar"), float) else 0.0   # L 581
         self._resid_rng = np.random.default_rng(int(person.seed) + 5137)
         self._resid_x = [0.0, 0.0]; self._resid_last = None; self._resid_day = {}
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
         # per person: Wolpert 2013 measured +42% insulin (mean) after a 60 g-fat dinner; 1 − ρ·60/50 at mean ρ 0.35 gives that,
         # with a wide individual spread (evidence/01 §6.3). U(0, 0.35) gave the median person half of it (LESSONS 46)
         self.fat_rho = float(r_misc.uniform(0.1, 0.6))
-        if enable and isinstance(enable.get("fat_rho_mult"), float): self.fat_rho *= enable["fat_rho_mult"]   # experiment (LESSONS 508)
+        if enable and _num(enable.get("fat_rho_mult")): self.fat_rho *= enable["fat_rho_mult"]   # experiment (LESSONS 508)
         # onset of the fat resistance, hours after the meal (default 2, ramp to full over 1 h): Laxminarayan 2015 (DTT,
         # doi:10.1089/dia.2015.0118) found SI 17% lower already in the high-fat DINNER window (LESSONS 352)
-        self.fat_on = float(enable["fat_on"]) if enable and isinstance(enable.get("fat_on"), float) else 0.5   # default since 2026-10-19 (was 2)
+        self.fat_on = float(enable["fat_on"]) if enable and _num(enable.get("fat_on")) else 0.5   # default since 2026-10-19 (was 2)
         # fat_rel (default 2026-10-18 to 2026-10-19, Pete; LESSONS 151, 370; --enable fat_rel): the fat resistance relative to the person's own usual diet. Their ISF, CR and
         # TDD were tuned on their ordinary meals, average fat included, so the term is normalised to a mean of 1 over the
         # planned days (as caffeine is, relative to the person's habitual intake); fattier than usual still dips SI
@@ -734,12 +824,12 @@ class World:
                 self.ppr_norm = float((1.0 - self.ppr_a * w).mean())
         # hyperglycaemia-induced insulin resistance (B11): 24 h at ~360 mg/dL lowers insulin-stimulated glucose uptake by
         # 26% in T1D (Vuorinen-Markkola 1992; Yki-Järvinen 1987). State H relaxes toward 0.26·clip((G − 140)/220, 0, 1)
-        # with τ 12 h [J, both ways]; insulin sensitivity × (1 − H) (LESSONS 43)
+        # building with τ 6 h, fading with τ 24 h (below); insulin sensitivity × (1 − H) (LESSONS 43, 80)
         self.hyper_res = 0.0
         self.hyper_on = not (enable and enable.get("glucotox") is False)
         # size at 360 mg/dL: 0.26 fits the T1D clamps (Vuorinen-Markkola 1992, Yki-Järvinen 1987); Boden 1996 measured −55%
         # after 68 h at 227 mg/dL in healthy people (evidence/15)
-        self.hyper_max = enable.get("glucotox_max") if enable and isinstance(enable.get("glucotox_max"), float) else 0.26
+        self.hyper_max = enable.get("glucotox_max") if enable and _num(enable.get("glucotox_max")) else 0.26
 
     # ------------------------------------------------------------------ one minute
     # ------------------------------------------------------------------ stress scenarios (candidates.py; LESSONS 85)
@@ -749,7 +839,7 @@ class World:
         """Ground-truth events on day SCENARIO_DAY, switched on with --enable scenario_<name>; identical across arms."""
         d0 = self.SCENARIO_DAY * DAY
         self.scenario_at = {}
-        L = float(enable.get("scenario_level", 1.0)) if isinstance(enable.get("scenario_level"), float) else 1.0
+        L = float(enable.get("scenario_level", 1.0)) if _num(enable.get("scenario_level")) else 1.0
         self.scenario_level = L
         if enable.get("scenario_illness"):
             # non-gastrointestinal illness: SI −30%, EGP +10% (inside the B6 ranges), 3 days with ramps
@@ -859,8 +949,14 @@ class World:
             # it follows the filtered intensity, so emptying resumes as a session ends
             I_ = float(ex["ex_intensity"])
             gm *= (1.0 + 0.15 * min(I_ / 0.3, 1.0)) if I_ <= 0.6 else float(np.interp(I_, [0.6, 0.8], [1.15, 0.5]))
+        crm = 1.0
+        if self.cr_sleep > 0 and self.beh.asleep(m):
+            # A9 × sleep (experiment, off; LESSONS 550): asleep, the counter-regulatory answer to a low is roughly
+            # halved — epinephrine responses are markedly reduced and people are much less likely to wake (Banarer &
+            # Cryer 2003, Diabetes 52:1195, sleep-related HAAF in T1D). The only driver on A9 besides its own history.
+            crm = 1.0 - self.cr_sleep
         self.body.step(1.0, si_mult=si, si_d_mult=si_d_only, egp_mult=egp, util_drop=ud, ge_mult=gm, ex_intensity=ex["ex_intensity"],
-                       ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"],
+                       ex_anaerobic=ex["ex_anaerobic"], ex_si_boost=ex["ex_si_boost"], cr_mult=crm, ex_work=ex.get("ex_work", 0.0),
                        abs_mult=absm_env * absm_site * ex["abs_mult"] * self._posture_mult(m) * self._flow_mult(m), bio=bio)
         if int(m) % 5 == 0: self.ex_log.append((m, ex["ex_si_boost"]))     # exercise sensitivity, saved as truth ex_boost
         asleep = self.beh.asleep(m)
@@ -922,11 +1018,42 @@ class World:
                 self._resid_x[i] = a * self._resid_x[i] + math.sqrt(1 - a * a) * float(self._resid_rng.normal())
             self._resid_last = m
         def lvl(d):
-            if d not in self._resid_day: self._resid_day[d] = float(self._resid_rng.normal())
+            # The day part was drawn INDEPENDENTLY per day, so nothing in the twin's unexplained drive carries from one
+            # day to the next and TDD has no day-to-day persistence (ac1 ~0 against the donors' 0.09, a row failing on
+            # both draws). resid_day_ar makes it AR(1): x_d = rho*x_{d-1} + sqrt(1-rho^2)*eps, which is exactly
+            # variance-preserving, so the per-person amplitudes fitted on whole-record SD still hold and only the
+            # day-to-day DEPENDENCE changes — the class of fix that worked for the diurnal shape (L 568, 581)
+            if d not in self._resid_day:
+                r_ = self.resid_day_ar
+                prev = self._resid_day.get(d - 1)
+                e_ = float(self._resid_rng.normal())
+                self._resid_day[d] = e_ if (r_ <= 0 or prev is None) else r_ * prev + math.sqrt(1 - r_ * r_) * e_
             return self._resid_day[d]
         x = (m - 240.0) / DAY; d = int(math.floor(x)); w = min(1.0, (x - d) * DAY / 120.0)
         day = w * lvl(d) + (1 - w) * lvl(d - 1)
         af, ab, ad = self.resid_a
+        if self.resid_diurnal > 0.0:
+            # The residual's fast and block parts ran flat over 24 h, but the donors' unexplained drive lives in waking
+            # hours — eating and movement are most of it. Flat, the twins get night dips the donors do not have:
+            # ice_dip_day 1.42 / 1.67 against 0.692, with only 44.9% of them by day against the donors' 66%
+            # (LESSONS 494, 568). Weight by a cosine peaking at 15:00, variance-preserving over the day (the mean of
+            # w^2 is 1), so the per-person amplitudes fitted on whole-record SD still hold.
+            # cos has zero mean over the day, so mean(w^2) = 1 exactly and no renormalisation is needed
+            w = math.sqrt(max(0.0, 1.0 + self.resid_diurnal * math.cos(2 * math.pi * ((m % DAY) / DAY - 15.0 / 24.0))))
+            af, ab = af * w, ab * w
+        if self.resid_meal > 0.0:
+            # The same distributional argument as resid_diurnal (L 568), now across the MEAL cycle: much of a donor's
+            # unexplained drive is the food they did not log, so the fast part belongs in the hours after an entry.
+            # Flat, the twins' entries end in a fast fall a third as often as the donors' (entry_fast_fall 5.3 against
+            # 14.3). Variance-preserving: dividing by (1 + k·p), with p the long-run share of time in-window, keeps
+            # mean(w^2) = 1, so the per-person amplitudes fitted on whole-record SD still hold (L 569)
+            k = self.resid_meal
+            ent = [e[0] for e in self.entries if e[1] >= 5]
+            inw = any(0.0 <= m - t0 <= 180.0 for t0 in ent)
+            # p, the share of time within 3 h of an entry, estimated from THIS person's own entries so far (they
+            # accumulate as the run proceeds); the 0.375 prior only applies before the first few
+            p_ = min(0.9, len(ent) * 180.0 / max(m - 2880.0, 1440.0)) if len(ent) >= 3 else 0.375
+            af *= math.sqrt((1.0 + k * (1.0 if inw else 0.0)) / (1.0 + k * p_))
         z = self._resid_x[0]
         s = self.resid_skew
         if s > 0:    # standardised lognormal of the OU state: mean 0, SD 1, skewed toward rises as the donors' drive is
@@ -1037,7 +1164,7 @@ class World:
         bg = next((v for k, v in sorted(self.readings.items(), reverse=True) if v), st["target"])
         if self.enable.get("perfect_person"):
             # the diagnostic person doses each meal's own carbs exactly; netting the previous meal's bolus as IOB
-            # (the calculator's way) under-doses stacked meals and reads as a units fault in selfcheck (LESSONS 40)
+            # (the calculator's way) under-doses stacked meals and reads as a units fault in the self-consistency check (LESSONS 40)
             return max(0.0, carbs / st["cr"])
         return max(0.0, carbs / st["cr"] + (bg - st["target"]) / st["isf"] - max(self._calc_iob(m), 0.0))
 
