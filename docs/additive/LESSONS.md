@@ -4189,7 +4189,9 @@ with the knob verified bitwise, is a measurement. Both halves were needed here: 
 flat rows trustworthy, and the computed rows make the flat score mean "`day` is small" instead of "`day`
 did not run".
 
-**669. The TIR change-response ratio is sensitive to the CGM's OWN noise, and the MEAN row is the only
+**669. (THE OBSERVATION HERE STANDS; ITS EXPLANATION IS REFUTED AT L 670 — pure marginal CGM smearing
+moves no ratio, the field-side corollary below is WITHDRAWN, and L 656 / 661 / 649 need no TIR discount.)** The TIR
+change-response ratio is sensitive to the CGM's OWN noise, and the MEAN row is the only
 artefact-free one. A term that touches nothing but measurement error moves TIR's ratio by 0.18 and leaves
 the mean's EXACTLY unmoved.** Job 179 ran D `act_k` 1.5 on the e pool's 580 events (real arm, 0 identical /
 60 differ), for the two reasons registered in `run_akfe.sh`: to close the hole L 667 left — `act_k`'s change
@@ -4260,3 +4262,63 @@ t70's sign, and it yields the sensitivity constant d(ratio)/d(sd) that every fut
 to read its own TIR number. It is valid for this question because the density effect depends on the MARGINAL
 width, which iid and autocorrelated noise of the same sd smear identically — and it says nothing about the
 structure function, where the autocorrelation is the whole point.
+
+**670. THE MECHANISM I PUBLISHED IN L 669 IS REFUTED AT SENSOR SCALE, ONE HOUR AFTER PUBLISHING IT. Pure
+marginal CGM smearing moves NO response ratio, so `act_k`'s TIR move is not measurement noise and L 669's
+field-side corollary is WITHDRAWN.** Job 180 added synthetic iid noise to the reference arm's own saved CGM
+and re-ran the same estimator — no sims, no dosing feedback, nothing but a wider marginal:
+
+| added iid sd (mg/dL) | mean r | TIR response | TIR r | t70 r |
+|---|---|---|---|---|
+| 0.0 | 1.34 | +7.53 | 1.27 | 1.14 |
+| 1.0 | 1.36 | +7.59 | 1.27 | 1.05 |
+| 2.0 | 1.39 | +7.57 | 1.28 | 1.10 |
+| 3.0 | 1.35 | +7.55 | **1.29** | 1.11 |
+
+Prediction 1 passed, which is what makes the rest readable: **mean's ratio is flat in sd**, so the probe and
+the estimator behave as described. Predictions 2 and 3 FAILED. TIR's ratio moves **0.02** over the whole
+range and the variant's TIR response moves **+0.3%** (7.53 -> 7.55), against `act_k`'s **−13%** (7.53 ->
+6.58) — a factor of 40. t70's ratio is non-monotone (1.14 / 1.05 / 1.11 / 1.10 / 1.11) with no trend, so the
+post-hoc density story for its opposite sign is unsupported as well.
+
+**What this removes from the record.** L 669's observation stands exactly as measured — `act_k` moves TIR's
+level-adjusted ratio 1.30 -> 1.48 and t70's 1.09 -> 0.95 with the mean's at 1.35, pre-registered and
+level-corrected. Its EXPLANATION does not, and with it go three things I should not have written before this
+probe ran:
+ - "the TIR ratio is sensitive to the CGM's OWN noise" — refuted at the scale `act_k`'s term actually adds;
+ - "the TIR half of `ge_order` 3 / `act_frag`'s damping may be partly smearing" — there is no smearing to
+   attribute it to, so their TIR numbers need no discount and their verdicts stand unqualified;
+ - **"the twins' TIR under-response is probably worse than 1.30, because the field's own CGM is already
+   smeared"** — withdrawn outright. It was the one conclusion in L 669 with a bearing on the goal and it
+   rested entirely on this mechanism. A jumpier field CGM does not measurably flatten the field's TIR
+   response.
+
+**And the probe found the number that reframes the question.** `act_k`'s CGM marginal sd is **50.79 against
+the reference's 48.95** (median over 120 events) — an iid-equivalent widening of **13.6 mg/dL**, where its
+noise term can only add about 2–4 directly (G7 sigma 1.8, doubled at most while active). So the great majority
+of that widening is **the body's own trajectory changing through Loop's dosing**, not the sensor. `act_k` makes
+Loop act on a noisier signal and the real glucose distribution comes out wider.
+
+**So the honest state is: the observation is unexplained, and BOTH available accounts are now against it.**
+Measurement smearing is refuted here. Trajectory dispersion is contra-indicated by L 662, which measured
+dispersion against damping across eight arms at −0.17 to −0.43 — the WRONG sign — and settled it with a
+matched pair at equal sd responding 1.16 against 1.66. I am not inventing a third mechanism to cover the gap.
+
+**The probe's own limit, which is why this is not yet closed:** it tested 0–3 mg/dL, the scale of a sensor
+noise term, and `act_k`'s marginal widening is equivalent to 13.6. The extension is the same script at sd 6 /
+10 / 14 / 20 (job 181), and it discriminates sharply. **Pre-registered: if TIR's ratio reaches ~1.48 near
+sd 13-14, then width DOES carry the effect — not as measurement noise but as trajectory dispersion — and
+L 662's eight-arm null becomes the thing that needs resolving (most likely because dispersion there varied
+with mechanisms that moved the response the other way, a confound a controlled sd sweep does not have).** If
+TIR's ratio stays near 1.27 even at sd 20, width is excluded at every scale and `act_k`'s TIR move belongs to
+something specific about an activity-keyed daytime term, which is where edits bite hardest and which no arm
+has isolated.
+
+**Method, and it is the point of this lesson.** The observation was pre-registered and survives. The
+MECHANISM was an inference published as a result, and the only reason it was caught within the hour is that
+the probe's predictions were registered in the same breath as the lesson. Two rules follow, and the second is
+the one I broke: **(1)** when a result's interpretation rests on an untested mechanism, register the test and
+quote the OBSERVATION as the finding until it returns; **(2)** never carry an untested mechanism forward into
+a conclusion about the model's standing limits — the "TIR under-response is worse than 1.30" sentence was
+labelled "held loosely" and was still wrong to write, because a caveat does not make an inference a
+measurement. L 669 stands as the measurement; this lesson is its interpretation.
