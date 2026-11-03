@@ -4769,3 +4769,66 @@ rather than by dividing two point estimates. If its CI excludes 1.0 the baseline
 per-unit sensitivity defect and the target for this half is the force's magnitude, not its shape (L 642
 having closed the shape route). If it includes 1.0, the baseline damping is not established at this pool's
 power and L 611's "more events, not more draws" applies again.
+
+**678. The twins' slow glucose motion is 15-17% TOO LARGE, 27-30% at night, while their fast motion is 17%
+too small — a pre-registered crossover, confirmed like for like, and it is the first account of the damped
+change response that does not live inside A1d.** This started as algebra rather than a measurement, and the
+algebra is worth stating because it is exact for this model. In deviation form (`physiology.py:510`) the
+sustained response of the body to a proportional insulin change is, to first order,
+
+    R = flux / lam,  flux = -d(dg)/d(ln I),  lam = -d(dg)/dg
+
+— the insulin-mediated disposal rate at the operating point over the TOTAL restoring gain — while the
+stationary spread of a mean-reverting process goes as `sigma / sqrt(2*lam)`. So **the change response and the
+dispersion are two readings of ONE number, `lam`, and they cannot be traded**: multiplying R by k means
+dividing `lam` by k, which multiplies the spread by `sqrt(k)`. That alone explains the shape of every A1d arm
+ever run here — `sg_kappa`'s bg_cv 34.2 -> 40.6/41.5/42.0 after a converged refit that held the mean exactly
+(L 639) implies `lam` fell to (34.2/41.4)^2 = 0.68, and its response gain was 1.16: the exchange rate the
+identity predicts, not a surprise about lows.
+
+Closing L 677's 0.68 needs R x1.47, hence spread x1.21, **and we have no spread headroom — bg_cv 34.2 against
+the donors' 34.6.** But the FIELD gets the larger response at the same spread, and under the identity the only
+way to do that is a lower `lam` TOGETHER WITH a smaller slow disturbance, `sigma` down by `sqrt(1.47)` = 1.21.
+That is falsifiable, and only at long lags, because `sigma` here is the disturbance at the spread's own
+timescale (hours) and not the 5-15-min motion of L 648. **The prediction registered before any donor number
+existed (handoff 2026-11-03, commit 844d0216) was a CROSSOVER: twins smoother than donors at 5-15 min, and
+ROUGHER at 1-4 h by 15-20%.**
+
+ice answered on the e pool (273 donors, our rule, 14-day blocks, pairs only within one unbroken CGM run), and
+the comparison is made LIKE FOR LIKE on the e pool's own 408 twin windows from `rf2e_s` — not on `rf2`/`rf2_5k`,
+which are the PILOT cohort, the cross-pool slip ice flagged in the same message. Twin / donor:
+
+| lag | 5 | 10 | 15 | 30 | 60 | 120 | 240 | 480 |
+|---|---|---|---|---|---|---|---|---|
+| day 10-22 | 0.825 | 0.856 | 0.893 | 0.927 | 0.968 | 1.001 | 1.034 | 1.115 |
+| night 00-06 | 1.029 | 1.081 | 1.109 | 1.117 | 1.147 | **1.298** | **1.269** | 1.132 |
+| all hours | 0.915 | 0.949 | 0.992 | 1.047 | 1.098 | **1.153** | **1.168** | 1.146 |
+
+The day row at 5-15 min (0.825 / 0.856 / 0.893) reproduces L 648's 0.81 / 0.86 / 0.88 **on a different pool
+with a different donor set**, which is as good an independent confirmation of that defect as this project has
+produced. The crossover is real, it crosses 1.0 at about 2 h, and the excess is **1.15-1.17 all-hours at 2-4 h
+and 1.27-1.30 AT NIGHT**, against the 1.21 the identity asked for. Nocturnal, which is new and specific.
+
+**What assembles out of three independent measurements.** The twins' labelled glucose load is 1.10-1.14x the
+donors' (L 603), their slow motion is 1.15-1.17x (here), and L 635's literature bracket puts their
+insulin-independent force ~1.8x too strong. Those are consistent with ONE picture: too much slow disturbance
+and too much restoring force, **cancelling on the spread** (which is why bg_cv matches and why nobody saw it)
+while the excess force damps the insulin response to 0.68. Cutting the force alone breaks the cancellation,
+which is exactly what `sg_kappa` did. **So the candidate is the PAIR — cut the slow load and cut the force
+together** — and each half is already a named lever with its own evidence: `unl_mult` (L 610 calls it the only
+real TDD lever, and L 604 measured the 30% cut as level-mediated ALONE) and A1d's magnitude. The two should
+cancel on the level as well, the force cut raising it and the load cut lowering it, which is what would let
+`resid_m` stay put instead of handing the gain back — the failure mode of five previous candidates (L 604,
+629).
+
+**Do not read this as adopted, or as a reason to skip the gate.** The identity's own validation is job 190
+(R_pred against a perturbation measured beside it, nine configurations), and what is confirmed so far is a
+prediction DERIVED from it, not the identity itself. Two facts found while deriving it, both from the code:
+`egp_share` is drawn `uniform(0.7, 0.9)` (`person.py:374`) and routes ~65% of each twin's insulin response
+through hepatic EGP suppression, with **no evidence entry anywhere in COMPONENTS, MODEL_GUIDE or evidence/** —
+a large unevidenced parameter, but a WEAK lever here, since `sg` is ~80% of `lam` at the operating point and
+the split can only move the rest. And the model has no knob that raises the insulin-independent glucose INPUT:
+the ODE is in deviation form (`egp - egp_b`), so raising basal EGP changes the insulin-suppression leverage
+and adds no load to dispose of, which is why `egp_b` x1.3 left `flux` at 0.999 in the smoke test. The only
+route to a larger `flux` at a held level is the glucose LOAD itself — the same lever the pair needs cut, in
+the opposite direction. That tension has to be resolved by the measurement, not by the story.
