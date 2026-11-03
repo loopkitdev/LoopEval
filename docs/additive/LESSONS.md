@@ -4188,3 +4188,75 @@ and L 660, three times over. A null you predicted to three decimals from the com
 with the knob verified bitwise, is a measurement. Both halves were needed here: the knob check makes the
 flat rows trustworthy, and the computed rows make the flat score mean "`day` is small" instead of "`day`
 did not run".
+
+**669. The TIR change-response ratio is sensitive to the CGM's OWN noise, and the MEAN row is the only
+artefact-free one. A term that touches nothing but measurement error moves TIR's ratio by 0.18 and leaves
+the mean's EXACTLY unmoved.** Job 179 ran D `act_k` 1.5 on the e pool's 580 events (real arm, 0 identical /
+60 differ), for the two reasons registered in `run_akfe.sh`: to close the hole L 667 left — `act_k`'s change
+response was never measured — and to separate "a body mechanism absorbs the perturbation" from "added
+short-scale variance damps the measurement", because `act_k` is the only short-scale candidate that is
+purely a SENSOR term (`nu *= 1 + act_k * activity`, sensor.py:323-326; the body is untouched and reaches
+the trajectory only through Loop's dosing).
+
+| level-adjusted, field = 1.0 | rf2 | `act_k` 1.5 | level-only expectation |
+|---|---|---|---|
+| mean | 1.35 | **1.35** | 1.34 |
+| TIR | 1.30 | **1.48** | 1.29 |
+| t70 | 1.09 | **0.95** | 1.11 |
+| t54 | 0.56 | 0.71 | 0.58 |
+
+**The registered threshold was |d mean| >= 0.10 for a dosing-mediated effect, and the mean moved 0.00.**
+The mean is linear in the sensor error and `act_k` multiplies a zero-mean term, so no amount of smearing can
+move it; it COULD still have moved through Loop's dosing, and it did not. TIR and t70 are threshold
+functionals of the same CGM, and both moved — TIR's response 7.53 -> 6.58 and t70's 1.80 -> **2.09**, in
+OPPOSITE directions. The level carries none of it (expectations 1.34 / 1.29 / 1.11 against observed 1.35 /
+1.48 / 0.95).
+
+**So: read the MEAN row as the measure of damping.** A TIR ratio quoted on this pool carries a
+sensor-variance component worth up to 0.18 for a term with no body dynamics whatsoever, and the CGM's
+marginal width is a property of the sensor model, not of the body being tested.
+
+**This does NOT withdraw L 656, L 661 or L 649, exactly as registered in advance.** All three body arms
+moved the MEAN as well as TIR — `ge_order` 3 +0.22 / +0.38, `act_frag` +0.21 / +0.27, `sg_rate` +0.17 /
++0.16 — and the mean move is the signature smearing cannot produce. Their verdicts stand on the artefact-free
+row. What is corrected is the HEADLINE: quote the mean, and treat the TIR half as partly instrument where an
+arm added CGM variance — `ge_order` 3 is where this bites, its TIR move being 1.7x its mean move.
+**`sg_rate` is a useful control on the story**: it SUPPRESSES fast motion (L 649), so smearing predicts its
+TIR ratio should have fallen, and it rose +0.16 beside mean +0.17 — consistent with pure dosing, which is a
+second independent check.
+
+**The open question narrows rather than closes.** "Why does an added short-timescale component damp the
+change response" cannot be answered by "added short-scale variance", because the term that adds short-scale
+variance and nothing else leaves the mean exactly where it was. The question is now specifically about the
+MEAN response and BODY mechanisms, with `act_k` a measured null on it.
+
+**And there is a direction here for the standing goal, with its condition attached.** The twins are 19% too
+smooth by day (L 648). Smearing LOWERS a TIR response, so the FIELD's own TIR response — measured on donor
+CGM that carries that extra short-scale variance — is already smeared while ours is not, and closing the
+daytime deficit by ANY route raises the ratio, since the density effect depends on the CGM's width and not on
+its source. `act_k` is the one measurement of that: **1.30 -> 1.48.** So the twins' TIR under-response is
+probably WORSE than the reference's number says and the apparent 1.30 is flattered by a sensor that is too
+quiet. Condition: `act_k`'s size is not adopted (L 667) and L 659 holds that the daytime deficit's
+attribution is undecidable from this data, so read 1.48 as "the ratio under one candidate's sizing of the
+missing daytime variance", never as the corrected value.
+
+**`act_k`'s record is now complete and its disposition is unchanged**: off on the reference (declined at
+L 667 on paired fidelity and the guard), usable at 1.5 where daytime short-scale structure is the question.
+Quote its change response as **mean-neutral, TIR more damped, t70 and t54 nearer the field** (|1 - r| 0.09
+-> 0.05 and 0.44 -> 0.29, t54 a guard), **with the TIR ranking halved** (rho 0.16 -> 0.09; mean rho 0.33 ->
+0.30). Never as prediction-neutral.
+
+**Two honesty notes.** (i) My registered LEVEL prediction was wrong in direction: I expected the pre-edit
+level to drift UP, from the unrefit cohort arm running +1.4 above rf2, and it drifted DOWN 0.7 (143.5 ->
+142.8). The level-only expectation column handled it either way, which is precisely why L 638 says to read
+that column rather than to trust a predicted drift. (ii) t70's OPPOSITE sign fits the same density argument
+— one threshold with most mass above it, so smearing raises the density at 70 and a level shift moves more
+minutes — but that was NOT pre-registered, so it is a story that fits, pending the direct probe.
+
+**The probe, and it needs no simulation** (job 180): add synthetic iid noise to the REFERENCE arm's
+already-saved CGM before scoring, at a few sd values, and read the ratios against added sd. It isolates pure
+marginal smearing with no dosing feedback and no activity keying, so it tests the density story including
+t70's sign, and it yields the sensitivity constant d(ratio)/d(sd) that every future e-pool arm needs in order
+to read its own TIR number. It is valid for this question because the density effect depends on the MARGINAL
+width, which iid and autocorrelated noise of the same sd smear identically — and it says nothing about the
+structure function, where the autocorrelation is the whole point.
