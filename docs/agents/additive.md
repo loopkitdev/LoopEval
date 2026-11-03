@@ -152,8 +152,14 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Previous reference** **ov0** (runs/2026-10-31-additive-gesplit; templates
   `templates_pilot_resid_ov1.csv`) — ad3 with each Temporary Override class's duration fitted over the windows the
   model can actually produce, **plus, unrecorded until L 665, the `day` modulator coming back ON** (ad3 disabled
-  it, ov0 does not, and it defaults to True) — so quote ov0's gain over ad3 as "the override-duration fit plus
-  `day`", never as the override fit alone, until the one-arm separation of L 665 is run. A donor record under 5 min is a cancellation (the ETL keeps an edit-version per change),
+  it, ov0 does not, and it defaults to True) — **separated as job 178 and the gain is the override fit (L 668)**:
+  rf2 with `--disable day` is inside the 0.01 floor on score (0.309 -> 0.313, 0.357 -> 0.349, split in sign) and on
+  tier 2 (0.423 -> 0.427, 0.449 -> 0.452), with every pre-registered row landing on B3's own arithmetic — basal
+  limb within-13d CV 0.170 -> 0.168 against a computed 0.168, `tdd_cv` and `between_day_frac` flat, the structure
+  function unmoved, TDD split in sign at under half the 1.51 U/day draw sd. Tier 2's sign IS consistently worse with
+  `day` off (0.004 / 0.003) at a twelfth of the gain it would have to explain, so `day` is small, not zero. The
+  paired instrument improves (3.040 -> 2.946, 2.568 -> 1.985) almost entirely on TDD, which is the level-mediated
+  row of L 604 / 629 on an unrefit arm, so it is not a gain — and `day` is evidenced, so it stays ON either way. A donor record under 5 min is a cancellation (the ETL keeps an edit-version per change),
   and `_override` clips at 15 min, so including those in the per-class median systematically understated the length of
   every window the twins did run; dropping them lifts `ov_less_h` from 1.42 to 1.88 h and realized length from 72 to
   83 min against the donors' comparable 79 (L 586). Score **0.332 / 0.394 / 0.391** against ad3's 0.321 / 0.425 /

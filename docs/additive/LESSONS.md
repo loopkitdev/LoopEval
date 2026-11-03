@@ -4048,8 +4048,10 @@ L 582 concluded when it found the modulator package left `ac1` unmoved. And `si_
 decomposition, not the current reference's validity.
 
 The clean test is one arm: rf2 with `--disable day` added, on two draws, which separates ov0's override fit
-from the modulator. Worth running before any further weight is put on L 586's attribution, and cheap. Until
-then, quote ov0's gain as "the override-duration fit plus `day`", not as the override fit alone.
+from the modulator. **Run as job 178 and DECIDED at L 668: `day`'s own footprint at rf2 is below the 0.01
+floor on score and on tier 2, with every pre-registered row landing where B3's own arithmetic put it, so
+L 586's attribution stands and ov0's gain is the override-duration fit.** This lesson's caveat — quote the
+gain as "the override fit plus `day`" — is therefore withdrawn, and `day` stays on.
 
 **666. An outside read of the docs against the code found eight defects in one session, and none of them
 could have been found by me, because I write both sides.** A peer building a public explainer of this model
@@ -4121,3 +4123,68 @@ it where that structure is the question and say the cohort and prediction costs 
 when quoting it. Three candidates have now been measured against this row and the row still has no adoptable
 mechanism: `act_frag` (too small, L 658), `rate_k` (sizing withdrawn as an artefact, L 654) and `act_k` (the
 right size, declined on paired fidelity).
+
+**668. `day` contributes NOTHING measurable at rf2, so L 586's attribution stands as written and the
+L 665 caveat comes out: ov0's gain over ad3 is the override-duration fit.** Job 178 is the one-arm
+separation L 665 asked for — rf2 with `--disable day` added, two draws, knob verified (`day` PRESENT in
+disable on both arms, both bitwise real against their controls: 0 identical / 40 differ). Judged by the
+rule registered in `run_dy.sh` before it ran, outcome **(a)**: |d score| **0.004** and **0.008**, both
+inside the 0.01 floor and SPLIT in sign (0.309 -> 0.313, 0.357 -> 0.349), with tier 2 inside the same
+floor (0.423 -> 0.427, 0.449 -> 0.452).
+
+**The result is worth more than "nothing happened", because the nulls were computed in advance.** This
+arm was pre-registered as a near-null with the arithmetic shown, not as an open question, and the
+quantitative rows landed:
+
+| pre-registered | predicted | draw 1 | draw 2 |
+|---|---|---|---|
+| basal limb within-13d CV | 0.170 -> **0.168**, 0.172 -> **0.170** | 0.170 -> **0.168** | 0.172 -> 0.172 |
+| bolus limb CV | flat (B3 is a sensitivity factor, not an eating one) | 0.329 -> 0.334 | 0.313 -> 0.313 |
+| `tdd_cv`, `between_day_frac` | the only scored rows that should see it, barely | 15.599 -> 15.680; 0.124 -> 0.120 | 15.110 -> 15.149; 0.110 -> 0.117 |
+| structure function | unmoved (B3 is a daily scalar, not a short-scale term) | day 0.81/0.86/0.88 -> 0.82/0.84/0.88 | 0.82/0.83/0.86 -> 0.81/0.83/0.85 |
+| TDD, from the level confound | +0.12 U/day (0.32% of mean SI) | 41.88 -> 41.12 | 42.61 -> 42.68 |
+
+The basal-limb number is the sharpest: `day` enters as `exp(N(0, 0.08))` with `day_rho` 0, so removing it
+takes an independent 0.08 of log-SI variance out of a day-to-day basal CV of 0.170, and at L 585's
+measured r −0.32 from daily-mean SI to delivered insulin that predicts `sqrt(0.170**2 - 0.026**2)` =
+**0.168**, which is what draw 1 reads. The level confound was computed as 0.32% because B3 carries no
+`-sd**2/2` correction (E[si] = exp(0.08**2/2) = 1.0032), which is why this arm needed no `resid_m` refit;
+the measured TDD moves are −0.77 and +0.07, split in sign and under half of L 609's 1.51 U/day between-draw
+sd, so the declared sd is acting at the declared size and the registered "if it moves much more, the sd is
+not what is acting" branch does not fire.
+
+**One prediction missed, and the miss is instructive rather than dismissible.** `ac1` was registered as
+"must not move" (correct for the mechanism: `day_rho` 0 contributes variation without persistence) and it
+is flat on draw 1 (−0.053 -> −0.055) but moves **+0.041** on draw 2 (−0.054 -> −0.013). Read as noise, for
+three reasons stated together rather than one chosen after the fact: it is unreplicated; `ac1` is the
+noisiest row on the card (normalised gap 0.37–0.53 against tier-1 rows at 0.03–0.3); and it is twice
+**L 585's arithmetic ceiling of +0.02** for day-to-day SI persistence at ANY rho, which at rho = 0 should
+be 0. If `ac1` is ever a target again this is a data point to check, not a verdict to quote.
+
+**(b) does not fire, but its sign is consistent and worth recording exactly.** Tier 2 is worse with `day`
+off on BOTH draws, by 0.004 and 0.003 — the direction (b) predicted, at a twelfth of the gain it would have
+to explain, since ov0's tier-2 improvement over ad3 was 0.008 / 0.050. So `day` is not zero; it is below
+this instrument's floor, and L 586's override-duration fit owns essentially all of its own gain.
+
+**(c) fires on the PAIRED instrument only, and it is not a gain.** SUM|dev| improves on both draws
+(3.040 -> 2.946, 2.568 -> **1.985**), almost all of it paired TDD (1.404 -> 1.035, 1.399 -> 0.896). That is
+precisely the pattern L 604 and L 629 established as level-mediated and converting back: this arm is
+unrefit, its level moved (151.05 -> 150.01, 148.20 -> 148.87), and TDD is the row now unreachable on five
+sightings. Draw 1's `rho_t70` also falls 0.631 -> 0.586 and draw 2's paired t70 worsens 0.009 -> 0.156. And
+even if the TDD improvement survived a refit, `day` is evidenced (repeat-clamp day-to-day CV 6–15%,
+evidence 07) and removing an evidenced default to buy a statistic is the inverse of this role's rule, so it
+would go to Pete with the measurement rather than into the reference. **`day` stays ON.**
+
+**The limit of the test, stated so it is not over-quoted:** the separation was run at **rf2's** base, not
+by re-running ov0 against ad3 with `day` held fixed. It therefore answers directly the question that
+matters now — does the current reference's quality rest partly on a silently re-enabled modulator (no,
+below 0.01 on score and tier 2, with every computed row landing) — and answers L 586's historical
+decomposition by inference: a daily scalar with mean 1.0032 and zero persistence has no route to interact
+with an override-duration fit, and its measured footprint is flat across the board.
+
+**Method, the part that generalises: pre-register the arithmetic for a NULL arm too.** A null you merely
+observe is indistinguishable from a knob that silently failed to apply — the exact failure of L 554, L 655
+and L 660, three times over. A null you predicted to three decimals from the component's own parameters,
+with the knob verified bitwise, is a measurement. Both halves were needed here: the knob check makes the
+flat rows trustworthy, and the computed rows make the flat score mean "`day` is small" instead of "`day`
+did not run".
