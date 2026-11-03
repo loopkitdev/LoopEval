@@ -1004,8 +1004,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   any size filter then drops them all with no error (L 571).
 
 - **A `score --detail` log's first arm is the first ARGUMENT, not the donors**, so fixed awk column indices are off by one
-  arm and silently report the wrong arm's numbers (it happened three times on 2026-11-01). Read them with
-  `resid_tools/score_read.py`, which keys on the header names.
+  arm and silently report the wrong arm's numbers (it happened three times on 2026-11-01). Key on the header
+  names, never on a column index. (This entry used to point at `resid_tools/score_read.py`; **that file no
+  longer exists anywhere under `~/.loop-eval` as of 2026-11-03** — a run-dir tool lost to a cleanup while the
+  instruction to use it stayed here, which is L 666's drift in miniature. Verify a tool this overlay names
+  before building a job script around it; job 193's first draft called it and would have failed.)
+  The scorer itself is a module: `python -m loopeval_analysis.patient_sim.score <ref> <arm> --detail`, one
+  call per draw.
 
 - **Keep the summary CSVs, drop the traces.** A cohort arm is ~814 MB, of which the `v0*` per-person directories are
   ~95%; `compare_pilot.csv`, `sim_stats.csv` and the other summaries are a few MB and are all `score.py` reads. A full
