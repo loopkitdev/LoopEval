@@ -4049,3 +4049,33 @@ decomposition, not the current reference's validity.
 The clean test is one arm: rf2 with `--disable day` added, on two draws, which separates ov0's override fit
 from the modulator. Worth running before any further weight is put on L 586's attribution, and cheap. Until
 then, quote ov0's gain as "the override-duration fit plus `day`", not as the override fit alone.
+
+**666. An outside read of the docs against the code found eight defects in one session, and none of them
+could have been found by me, because I write both sides.** A peer building a public explainer of this model
+audited every component card's value and on/off status against the reference run's actual flags. The yield:
+`ppr_a` documented as 0.4 where the live default is 0.6 (two stale cells, adopted at L 558 and never
+propagated); the `day` modulator silently re-enabled at ov0, which demoted L 586's attribution (L 665); one
+DOI that 404s (Nauck 2011, corrected to 10.2337/db10-0474 and verified on Crossref); and **five of the nine
+top-level ablation switches named nowhere in COMPONENTS.md** — `pump_faults`, `site_failure`,
+`behavior_defense`, `lipohypertrophy`, `perfect_person` — in a registry whose role claims every factor is
+switchable.
+
+The mechanism behind all eight is the same and it is structural, not careless. LESSONS and the overlay are
+written at the moment a result lands, so they are accurate about results; COMPONENTS and MODEL_GUIDE describe
+*state*, and state changes without a result to hang a note on — a default adopted in code, a flag dropped
+from a run script, a switch added. Nothing in my own loop re-reads the state docs against the code, because
+every check I run is aimed at whether a number is right, not at whether the description still matches. That
+is exactly the gap an outside reader walks into first.
+
+Two things follow. **(1) The instrument now exists and is not mine**: `langerhans/tools/audit_status.py` in
+the AdventuresInDiabetes tree resolves a run's `--enable` / `--disable` / `--set` against the code's defaults
+and exits non-zero on any disagreement with its cards; it passes clean on rf2 and flags every affected card
+on a `--disable pump_faults,exercise` arm. When the reference changes, run it, or expect the drift to
+accumulate silently again. **(2) Verify a claim about my own model even when a peer states it confidently and
+their conclusion is right.** Their E2 verdict (on in rf2) was correct and their reason (no switch exists) was
+wrong; recorded as given it would have made their audit pass an ablation arm it should fail. The reverse also
+bit me in the same exchange: I nearly reported `fat` and `lipohypertrophy` as DEAD switches because they are
+read as `enable.get(name, default)` and my grep used `self.enable[name]`. Both directions of error were
+caught by reading the call site, which is the only check that works here — four of their five DOI reports
+were also artefacts of their extractor, and "fixing" three correct citations would have been the cost of
+trusting the report.

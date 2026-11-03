@@ -121,6 +121,17 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   (`cr_tau_off` 2.34, joint fit 2.40, `sg_h_lo` 2.93/3.57, `pro_g_own` 5.41), and `unl_mult` 0.70 + refit is confirmed
   as the only real TDD lever (paired TDD +0.40 against +1.49) at the cost of the level (bg_mean −1.63).
 
+- **The state docs drift from the code and my own checks cannot see it** (L 666). LESSONS and this overlay
+  are written when a result lands, so they are right about results; COMPONENTS and MODEL_GUIDE describe state,
+  which changes with no result to hang a note on. An outside read against the code found eight defects in one
+  session — `ppr_a` 0.4 against a live 0.6, `day` re-enabled at ov0, a dead DOI, and five of the nine ablation
+  switches undocumented. There is now an external instrument for it, `langerhans/tools/audit_status.py` in the
+  AdventuresInDiabetes tree, which diffs a run's flags against the code's defaults and exits non-zero on
+  disagreement; **run it when the reference changes.** And verify any claim about this model against the call
+  site even when a peer is confident and their conclusion is right — in the same exchange a correct verdict
+  came with a wrong reason that would have broken their audit, and I nearly recorded two live switches as dead
+  because my grep matched `self.enable[name]` and they are read as `enable.get(name, default)`.
+
 - **Read the reference's configuration from a run's own `cohort.json`, never from the prose** (L 657, 665): two
   switches have differed silently from what the docs implied (`act_frag`, and `day` from ov0 onward). rf2 is, in
   full: templates `templates_pilot_resid_rf1.csv`; `--enable rc_own,night_pro,uls,resid,site_clock`;
