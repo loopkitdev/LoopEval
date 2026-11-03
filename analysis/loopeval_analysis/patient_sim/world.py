@@ -747,7 +747,7 @@ class World:
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
         self.fat_periph = bool((enable or {}).get("fat_periph", False))   # experiment (LESSONS 481): fat resistance on disposal only
         self.ppr_end = float(enable["ppr_end"]) if enable and _num(enable.get("ppr_end")) else 240.0   # window out by (min; LESSONS 423)
-        self.ppr_w = tuple(float(enable[k]) if enable and isinstance(enable.get(k), float) else 1.0 for k in ("ppr_b", "ppr_l", "ppr_d"))   # per-slot window weights (LESSONS 429)
+        self.ppr_w = tuple(float(enable[k]) if enable and _num(enable.get(k)) else 1.0 for k in ("ppr_b", "ppr_l", "ppr_d"))   # per-slot window weights (LESSONS 429)
         # si_norm: the ISF yardstick measures the donor's average sensitivity across their real life (stress, sleep loss,
         # illness, cycle, glucose-induced resistance included), so the life-factor modulators should average 1 around it;
         # c446_npu's twins average 0.919 (LESSONS 468). Cohort-level test of the size; the per-person form is the next step
@@ -766,24 +766,24 @@ class World:
         rz = person.traits.get("resid") or {}
         en_ = enable or {}
         self.resid_on = bool(en_.get("resid"))
-        mult_ = float(en_["resid_mult"]) if isinstance(en_.get("resid_mult"), float) else 1.0
-        self.resid_a = tuple(mult_ * float(rz.get(k, en_.get(k, 0.0)) if isinstance(rz.get(k, en_.get(k, 0.0)), (int, float)) else 0.0)
+        mult_ = float(en_["resid_mult"]) if _num(en_.get("resid_mult")) else 1.0
+        self.resid_a = tuple(mult_ * float(rz.get(k, en_.get(k, 0.0)) if _num(rz.get(k, en_.get(k, 0.0))) else 0.0)
                              for k in ("resid_f", "resid_b", "resid_d"))
-        self.resid_tau = (float(en_["resid_tf"]) if isinstance(en_.get("resid_tf"), float) else 20.0,
-                          float(en_["resid_tb"]) if isinstance(en_.get("resid_tb"), float) else 180.0)
+        self.resid_tau = (float(en_["resid_tf"]) if _num(en_.get("resid_tf")) else 20.0,
+                          float(en_["resid_tb"]) if _num(en_.get("resid_tb")) else 180.0)
         # a constant per-person drive (mg/dL/h) fitted to the donor's own glucose level (LESSONS 515): the unlogged load far
         # from meals that separates a tight donor from a loose one at the same settings (LESSONS 448), source unnamed
-        self.resid_m = float(rz["resid_m"]) if "resid_m" in rz else (float(en_["resid_m"]) if isinstance(en_.get("resid_m"), float) else 0.0)
+        self.resid_m = float(rz["resid_m"]) if "resid_m" in rz else (float(en_["resid_m"]) if _num(en_.get("resid_m")) else 0.0)
         # the residual's down side (experiment; LESSONS 521): after a carb entry (>= 5 g), with probability resid_drop_p, a
         # sharp negative drive from 40-90 min after it (the donors' fast falls come a median 61 min after an entry, at the
         # end of the rise; LESSONS 509-511), amplitude resid_drop_a x lnN(0, 0.3) mg/dL/h decaying with tau resid_drop_tau
-        f_ = lambda k, d: float(en_[k]) if isinstance(en_.get(k), float) else d
+        f_ = lambda k, d: float(en_[k]) if _num(en_.get(k)) else d
         self.drop_p, self.drop_a, self.drop_tau = f_("resid_drop_p", 0.0), f_("resid_drop_a", 100.0), f_("resid_drop_tau", 25.0)
         self._drop_rng = np.random.default_rng(int(person.seed) + 5141); self._drop_seen = 0; self._drops: list = []
-        self.resid_skew = float(en_["resid_skew"]) if isinstance(en_.get("resid_skew"), float) else 0.0
-        self.resid_diurnal = float(en_["resid_diurnal"]) if isinstance(en_.get("resid_diurnal"), float) else 0.9   # default since 2026-11-01 (L 568)
-        self.resid_meal = float(en_["resid_meal"]) if isinstance(en_.get("resid_meal"), float) else 0.0   # L 569
-        self.resid_day_ar = float(en_["resid_day_ar"]) if isinstance(en_.get("resid_day_ar"), float) else 0.0   # L 581
+        self.resid_skew = float(en_["resid_skew"]) if _num(en_.get("resid_skew")) else 0.0
+        self.resid_diurnal = float(en_["resid_diurnal"]) if _num(en_.get("resid_diurnal")) else 0.9   # default since 2026-11-01 (L 568)
+        self.resid_meal = float(en_["resid_meal"]) if _num(en_.get("resid_meal")) else 0.0   # L 569
+        self.resid_day_ar = float(en_["resid_day_ar"]) if _num(en_.get("resid_day_ar")) else 0.0   # L 581
         self._resid_rng = np.random.default_rng(int(person.seed) + 5137)
         self._resid_x = [0.0, 0.0]; self._resid_last = None; self._resid_day = {}
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
