@@ -5123,5 +5123,25 @@ variance. So carb conversion is a real but minor contributor, not the cause.
 keyed to anything the donor record measures at a size that matters — which re-derives L 445–470's conclusion
 from the other direction: it behaves like a whole-day personal set point the templates do not carry. That
 makes the FORM question the honest next step rather than another trait hunt, and L 684's tension says the
-form cannot be glucose-keyed without raising `lam` and damping the response. **Queued as job 192 (`rm1`): a
+form cannot be glucose-keyed without raising `lam` and damping the response. **Queued as job 193 (`rmd1`): a
 TIME-keyed level-holder, which escapes that tension because it adds no glucose dependence.**
+
+**687. A cleaned run dir is neither cached nor clean, and the name collision it leaves is worse than the
+cache trap it replaces.** L 603 / 663 / 681's rule is "an arm rerun into an existing output dir returns the
+CACHED previous run, so use a fresh name" — four sightings, all of them a bitwise no-op caught by comparing
+`truth.bg`. The pre-flight on job 193 found a fifth case that rule does not cover and that my OWN cleanup
+practice manufactures. `rm1` and `rm1_5k` already existed, from the 2026-11-01 `resid_meal` arm (L 568) that
+happened to take the same three letters: different base, different templates (`..._resid_sd3.csv`),
+`resid_mult=0.6`. The `v0*` per-person directories had been removed by the keep-the-summaries cleanup, so
+there was nothing to cache and the people WOULD have re-simulated — but the summary CSVs the scorer actually
+reads (`compare_pilot.csv`, `sim_stats.csv`, `cohort.json`) were all still sitting there, two days old. So the
+dir reads as present to a cache check and as populated to a scorer, while being neither. The failure mode is
+not a silent no-op, which the `truth.bg` check catches; it is a PARTIAL run whose stale summaries get read as
+the arm's result, and in that state the knob check reads the Nov-1 `cohort.json` and reports
+`resid_m_diurnal=ABSENT - ARM IS A NO-OP` for an arm that is wired correctly. The two rules interact: cleaning
+traces to save disk is right (it recovered 141 GB) and it converts every cleaned arm's name into exactly this
+hazard. **So the fresh-name rule is not about the cache, it is about the NAME, and the pre-flight check is
+existence, not emptiness** — `[ -e <dir> ]` before queueing, never `ls <dir>/v0*`. Renamed to `rmd1` /
+`rmd1_5k` with the log filenames kept so the armed watcher still matched. Three letters of initials are not
+enough to keep arms apart across a 1,977-entry run dir; `rm` served `resid_meal` before `resid_m_diurnal`
+wanted it.

@@ -1016,7 +1016,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   ~95%; `compare_pilot.csv`, `sim_stats.csv` and the other summaries are a few MB and are all `score.py` reads. A full
   Mac stops a running job mid-arm (`OSError: No space left on device` writing a person's `.err`), so clear superseded
   arms with `rm -rf <arm>/v0*` — every arm stays re-scorable and re-comparable, and the traces are reproducible from
-  the frozen tree. This recovered 141 GB from one run dir (177 G to 36 G) on 2026-11-01.
+  the frozen tree. This recovered 141 GB from one run dir (177 G to 36 G) on 2026-11-01. **The cost is that it
+  turns every cleaned arm's NAME into a trap the cache rule does not cover (L 687)**: the dir has no `v0*` to
+  cache, so the people re-simulate, while the summary CSVs the scorer reads are still there and days old — so a
+  partial run gets scored on stale numbers, and the knob check reads the OLD `cohort.json` and reports the knob
+  ABSENT for a correctly wired arm. Job 193's pre-flight caught `rm1` / `rm1_5k` held by the 2026-11-01
+  `resid_meal` arm (L 568) on different templates. **Check a candidate arm name with `[ -e <dir> ]` before
+  queueing, never by globbing `<arm>/v0*`**, and do not let two components share an abbreviation.
 
 - **`trace.json`'s md5 is NOT an identity check.** Two identical invocations of the same frozen code produce
   byte-different `trace.json` (key order and float formatting) with content and trajectory identical. Compare
@@ -1040,6 +1046,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   the arm that ran is `um70`, with `ur1` an exact duplicate of it. Picking `ul70` by name would have measured
   the load lever's gain as zero and killed the pair candidate for the wrong reason. The bitwise `truth.bg`
   check run BEFORE reading any number is what caught it, which is the whole point of the rule.
+  **FIFTH sighting, and it is a different mechanism that this rule's own check would MISS (L 687)**: a dir
+  whose `v0*` have been cleaned away (the disk rule above) has nothing to cache, so the people re-simulate
+  and `truth.bg` differs — the arm passes the bitwise check — while the stale summary CSVs and `cohort.json`
+  sit there ready to be scored. So state the rule as about the NAME, not the cache, and pre-flight it with
+  `[ -e <dir> ]`. Job 193's `rm1` was held by the 2026-11-01 `resid_meal` arm (L 568).
 - **A numeric knob must be verified as a NUMBER where it enters, and there are now THREE ways it silently is not**
   (L 554, 655). `--enable k=v` makes a switch named `k=v`; `--set` parses to float and is safe; an `ARM_ENABLE`
   JSON **integer** was dropped outright until 2026-11-02, because the guard tested `isinstance(v, float)` and
