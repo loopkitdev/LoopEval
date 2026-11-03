@@ -3960,3 +3960,61 @@ that the discipline leaves the dead arm sitting next to the live one with the sh
 a later reader scanning `ls` output gets the control. Two rules: pick arms from the LESSON that recorded the
 result, not from the directory; and when a table is assembled from a listing, run the bitwise `truth["cgm"]`
 check over every arm in it before reading a single number, which is how these three were caught here.
+
+**664. `act_k` is the best-behaved candidate this lineage has run: the pre-registered number landed within
+0.007 on both arms, the structural falsifier passed, the weighted score improved on both draws and the guard
+moved TOWARD the donors on both — and the one instrument that disagrees is the one my own rules say is not yet
+readable, because the arm is unrefit.** Job 176, three real arms on the knob check (`sensor_act_k` 1.5 / 1.5 /
+2.9, 40/40 differ each).
+
+*The aim.* G7 day 2nd difference 0.780 -> **0.853** against a prediction of 0.851, and at the diagnostic 2.9
+-> **0.923** against 0.916. Draw 2 moves the same way (0.784 -> 0.848). Those numbers were written into the
+script before the job ran, derived from ice's family table and Biagi's MARD ratio with nothing fitted, and
+this is the first time in this lineage a quantitative pre-registration has landed to three decimals. Pooled,
+the 2nd difference goes 0.74 -> 0.81 (1.5) -> 0.88 (2.9) and the 5-min row 0.81 -> 0.87 -> 0.91, so the
+evidenced size supplies about **a third** of the deficit and twice the evidence supplies **a half**.
+
+*The ceiling behaved as predicted too,* which matters more than the aim: prediction 2 said `act_k` cannot
+reach 1.00 because ~9% of the G7 day gap is an all-hours noise shortfall visible at night. At 2.9 the G7 day
+row reads 0.923 and its own night row reads 0.934 — **the day row converges on the night floor, not on 1.00**.
+The awake-specific component is therefore fully accounted for, and what is left of this row is a flat
+noise-LEVEL shortfall that belongs to a different knob.
+
+*The falsifier passed, and I had registered it too strongly.* "If the night 2nd difference moves at all the
+wiring is wrong" is not the right standard in a closed loop: a daytime-keyed term changes doses, which changes
+the following night, so some night movement is expected downstream of correct wiring. Observed: pooled night
+2nd difference 0.91 -> 0.91 / 0.92 and 0.93 -> 0.93, G7 night 0.919 -> 0.924 -> 0.934 — all far inside the
+rf2-to-rf2_5k draw difference of 0.027. **State a falsifier as "no more than draw noise", never as "not at
+all", for anything measured downstream of the controller.** Prediction 4 also held: the 30-min lag barely
+moves (0.96 -> 0.97 -> 0.99), which is what white noise landing on the shortest lags looks like.
+
+*Score and guard, at the evidenced 1.5.* Score **0.309 -> 0.294** and **0.357 -> 0.339**, better on both draws,
+with tier 3 — the sensor fingerprint, its own evidence domain — carrying it (0.464 -> 0.399, 0.442 -> 0.375).
+The guard, which was the registered risk because this is the first candidate in a long while that changes what
+LOOP SEES rather than what the body does, does not churn and in fact improves: **t54 0.124 -> 0.176 and 0.232
+-> 0.197 against the donors' 0.190, converging from both sides**; t70 1.764 -> 1.664 and 2.119 -> 1.899
+(donors 1.599); the TIR gap 0.271 -> 0.125 and 0.630 -> 0.500; bg_cv 35.37 -> 34.55 on draw 2 against 34.65;
+TDD and lows/day flat. The feared mechanism — Loop chasing noise into dose churn — did not happen, and the
+reason is structural: `act_k` scales measurement noise only and leaves real insulin absorption alone, unlike
+`flow_sd`, the other fast-motion candidate, which was rejected at L 522 with lows 1.13-1.29/day.
+
+*2.9 is settled as not adoptable,* exactly as registered: t54 0.235 overshoots the donors' 0.190, t70 1.852
+and TIR 70.93 both move away, tier 1 0.137 against rf2's 0.116. Only the evidenced 1.5 is in play, and the
+diagnostic did its job — it showed the shape is right without being a candidate.
+
+*The G6 caution is NOT adjudicable here.* Prediction 6 expected a global `act_k` to push the G6 cell over
+while G7 landed, which would argue for family scaling. G6 day goes 1.011 -> 1.057 -> 1.072 on draw 1 but
+0.890 -> 0.956 on draw 2, and rf2's own G6 scatters 1.011 against 0.890 between draws — larger than the
+`act_k` move itself. At n = 16-21 this cell cannot decide family scaling either way; do not read the draw-1
+overshoot as evidence.
+
+*The open cost, and why it is not yet a verdict.* Paired SUM|dev| worsens on both draws (3.040 -> 3.954,
+2.568 -> 3.851) and it is almost entirely **one row, paired TIR** (0.141 -> 0.646, 0.937 -> 2.331), with
+paired TDD adding on draw 1 only; the per-person RANKINGS are level (TIR rho 0.815 -> 0.801, 0.830 -> 0.840).
+Against that, the arm moved its own level — bg_mean 151.05 -> 151.19 and **148.20 -> 149.62** — and L 597 is
+explicit that a candidate is judged after the `resid_m` refit, with L 658 having already seen `act_frag`'s
+draw-1 paired number turn out to be mostly an unrefit drift. A +1.4 mg/dL level move is exactly where paired
+TIR is most sensitive. So the paired cost is **unresolved, not measured**, and job 177 runs the refit with the
+adoption rule fixed in advance. Note also that rf2's own paired TIR term scatters 0.141 against 0.937 between
+draws — a factor of 6.6 — so that row needs its own noise floor quoted beside it before any gap in it is
+called real.

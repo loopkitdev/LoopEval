@@ -312,12 +312,29 @@ reference changes.
   evidence** — awake-keyed by construction, acting at flat glucose, at the sub-10-min scale, family-independent.
   Sized against ice's table it falls SHORT of the row and that is the honest read: on G7 the awake-specific
   shortfall is ×1.177, needing `act_k` ≈ 2.95 against ≈1.48 implied by Biagi, and it cannot reach 1.00 at all
-  because 9% of the day gap is an all-hours noise shortfall visible at night too (G7 night 0.919). Job 176 runs
-  the evidenced 1.5 on two draws plus a diagnostic 2.9; the falsifier is structural (activity is identically 0
-  asleep, so the night row cannot move) and the guard is the new risk — it is the first candidate in a long while
-  that changes what LOOP SEES rather than what the body does, so dose churn on noise is what to watch. Note also
-  that our G6 cell already reads 1.011 against the donors' 0.989, so a global `act_k` pushes G6 over while G7
-  lands; if that survives, the term wants family scaling, which would itself argue for the wear reading.
+  because 9% of the day gap is an all-hours noise shortfall visible at night too (G7 night 0.919). **MEASURED as job 176, and it is the best-behaved
+  candidate this lineage has run (L 664).** G7 day 2nd difference 0.780 -> **0.853** against a prediction of
+  0.851 registered before the run, and 0.923 against 0.916 at the diagnostic 2.9 — a quantitative
+  pre-registration landing to three decimals, derived from ice's table and Biagi with nothing fitted. The
+  CEILING behaved as predicted too: at 2.9 the G7 day row (0.923) converges on its own NIGHT row (0.934), not
+  on 1.00, so the awake-specific component is fully accounted for and the rest of this row is a flat
+  noise-LEVEL shortfall belonging to another knob. Falsifier passed (pooled night 2nd diff 0.91 -> 0.91 /
+  0.92; G7 night moves 0.005-0.015, inside the 0.027 draw difference) — though as registered it was too
+  strong: in a closed loop a daytime term changes doses and so changes the next night, so state such a
+  falsifier as "no more than draw noise". Score **better on both draws** (0.309 -> 0.294, 0.357 -> 0.339),
+  carried by tier 3, its own evidence domain (0.464 -> 0.399, 0.442 -> 0.375). The GUARD, the registered risk,
+  does not churn and improves: **t54 0.124 -> 0.176 and 0.232 -> 0.197, converging on the donors' 0.190 from
+  both sides**, t70 and the TIR gap better on both draws, TDD and lows/day flat — because `act_k` scales
+  measurement noise only and leaves insulin absorption alone, unlike `flow_sd` (rejected at L 522 with lows
+  1.13-1.29/day). 2.9 is settled as NOT adoptable (t54 0.235 overshoots, TIR 70.93, tier 1 worse); only the
+  evidenced 1.5 is in play. The G6 family-scaling caution is **not adjudicable** — rf2's own G6 cell scatters
+  1.011 against 0.890 between draws, more than the `act_k` move, at n = 16-21. **The one open cost is paired
+  per-person TIR** (SUM|dev| 3.040 -> 3.954, 2.568 -> 3.851, almost all of it that row; rankings level), and
+  it is NOT yet a verdict: the arm is unrefit and moved its own level (bg_mean 148.20 -> 149.62 on draw 2),
+  which L 597 says must be refitted out before judging and which L 658 already saw explain `act_frag`'s
+  draw-1 paired number. **Job 177 runs the `resid_m` refit with the adoption rule fixed in advance** — paired
+  back within the row's own 6.6x draw scatter, score still better, guard still toward the donors, and the
+  structure row surviving the refit, on both draws.
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (**read `ac1` against the independent-day null of −0.086, not 0**, and against **+0.118, not +0.18**: half the donors'
   persistence is their SETTINGS — a basal / ISF edit or a multi-day override persists by construction, and on day pairs
@@ -710,6 +727,14 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   Quoting the local slope as "the near-low defense" inverted a whole arm's low-side prediction. Compute the force
   profile from the real step path at the glucose levels that matter, and the dwell-weighted total beside it — that
   integral, not the shape, is what the cohort cost tracks.
+
+- **State a falsifier as "no more than draw noise", never as "not at all", for anything measured downstream of
+  the controller** (L 664). `act_k` is keyed to activity, which is identically 0 while asleep, so I registered
+  "if the night row moves at all, the wiring is broken". That is wrong in a closed loop: a daytime-only term
+  changes doses, which changes the following night, so a correctly wired arm still perturbs the night a little.
+  The right standard is the arm's move against the draw-to-draw scatter of the same row — here G7 night moved
+  0.005-0.015 against a 0.027 difference between the reference's own two draws, which passes. A falsifier
+  stated absolutely would have thrown away a sound arm.
 
 - **Beyond the level, the pre-edit DISTRIBUTION does not carry the response ratio — so a damping result is a
   fact about the component** (L 662). The obvious extension of L 638's level trap is that a wider or
