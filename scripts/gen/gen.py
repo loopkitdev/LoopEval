@@ -3,6 +3,7 @@ day, the generator plant against the donor's deployed controller config, on the 
   S=0 RUN_DIR=<run dir> ARMS=gr,stock [ARMS_FILE=<run dir>/arms.py] [BIN=<engine path or ~/frozen commit>] [DONORS=a,b]
   [SEEDS=1] [PAR=6] ~/.venv/bin/python3 scripts/gen/gen.py run|score
 Use the torch venv (gamepc ~/venv): the plant inherits this interpreter. One RUN_DIR per experiment: scores go to scores_<TAG>.csv.
+Scores: cgm_ / true_ TIR, t70, t54, mean (_c: clean time), insulin_u, and plant IOB at 54 crossings (scoring.crossing_iob_stats).
 Built-in arms: stock, and gr (guard + runway at the frozen constants). Any other arm is the experiment's own, in ARMS_FILE:
   arm(a, name, gr) -> None (built-in) | False (skip this donor) | [flags] | {"flags": [...], "env": {...}, "bin": ...}
   gr(a) is a fresh copy of the gr flag list. env overrides that arm's simulator and plant env (REGIME, ANNOUNCE, SG,
@@ -13,6 +14,8 @@ data ~/.loop-eval/ice_v32. A frozen engine: git worktree add --detach ~/frozen/<
 import json, os, subprocess, sys, warnings
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np, pandas as pd
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../analysis"))
+from loopeval_analysis.scoring import crossing_iob_stats
 warnings.filterwarnings("ignore")
 H = os.path.expanduser
 GEN = H(os.environ.get("GEN_DATA", "~/frozen/gen-v32")); RUNS = H("~/.loop-eval/runs")
@@ -171,8 +174,8 @@ def score(a, arm, seed):
     r = dict(alias=a, arm=arm, seed=seed)
     r.update({f"cgm_{k}": v for k, v in outc(lg.bg1, keep & ~art).items()})
     r.update({f"true_{k}": v for k, v in outc(lg.bg1 - lg.e - lg.comp, keep).items()})
-    b = lg.bg1.to_numpy(); x = np.flatnonzero((b[1:] < 54) & (b[:-1] >= 54)) + 1   # downward 54 crossings on CGM, plant IOB there
-    r["n_x54"] = len(x); r["iob_x54"] = float(lg.iob.to_numpy()[x].mean()) if len(x) and "iob" in lg else np.nan
+    t = lg.set_index("t1")   # plant IOB at downward 54 crossings on CGM, as frontier scores it (n_cross54, iob_cross54_med, ...)
+    r.update(crossing_iob_stats(t.bg1, t.iob, exclude=pd.Series(~keep | art, index=t.index)))
     r["insulin_u"] = pd.DataFrame(json.load(open(f"{log}.doses.json"))).volume.sum() / ((lg.t1.max() - lg.t1.min()).total_seconds() / 86400)
     return r
 
