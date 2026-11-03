@@ -4874,3 +4874,27 @@ asked for. ice also refuted the shared-cause guess I offered them: their generat
 from 5 min and already present in the second difference, so it is a fast-motion excess carried up to long
 lags, while ours starts at 1.03 and rises — different scales, so different mechanisms, and **this does not
 point at the donors' night.**
+
+**680. The baseline damping IS a glucose-response-per-delivered-unit defect, established at the registered
+level and marginally: the twins move 0.63 of the field's glucose per unit actually delivered, 90% CI
+[0.39, 0.98].** Job 189 replaces L 677's 0.68 — a quotient of two point estimates — with the ratio computed
+per event and bootstrapped over the 588 e-pool events that carry both a donor dose record and a twin pair,
+each side's outcome slope divided by its OWN dose slope on its OWN covariate set, so a covariate choice moves
+numerator and denominator together. Field −2.788 mg/dL per delivered unit against the twins' −1.753; TIR
++1.144 against +0.748 (0.65) and t70 +0.237 against +0.181 (0.77), all three rows the same direction. The
+registered decision rule was the MEAN row's CI: excluding 1.0 establishes the limit as a per-delivered-unit
+sensitivity defect and makes the FORCE'S MAGNITUDE the target, L 642 having closed its shape. It excludes
+1.0 — and the upper bound is **0.98**, so a 95% interval would include it. Quote it as established at the
+registered 90% level and marginal there; what is solid is the sign and the direction of every row, not the
+third decimal.
+
+The registered SANITY check half-missed and the reason is worth recording, because it is the same class of
+trap as L 672's: the twin dose slope reproduces job 188 exactly (+9.99 against +9.96) and the FIELD slope
+reads +8.43 against +9.14 — 8% apart. Not a defect: job 188's `field_dose.py` fits the field dose response on
+`["x", "l_cr", "dtgt"]`, and `per_unit.py` must fit it on the five columns `score_change.py` uses for the
+field's OUTCOME slopes (`+ d_ice_adj, fieldpre_mean`), or the ratio would divide slopes conditioned on
+different things. Pairing job 188's 3-covariate dose slope with this script's 5-covariate outcome slope — the
+inconsistent mix — gives exactly L 677's 0.68, which is how that number arose and why it sits inside this CI.
+**A ratio of two regression slopes is only meaningful when both are conditioned on the same covariates, so a
+"sanity check" that compares one of them against a differently-conditioned fit will mis-fire by design.**
+State the covariate set with any such ratio.

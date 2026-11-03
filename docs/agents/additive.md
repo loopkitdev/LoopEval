@@ -136,7 +136,7 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   **679**): three switches have now differed silently from what the docs implied — `act_frag`, `day` from ov0
   onward, and **`day` on the WHOLE e pool, which runs it OFF while the cohort reference runs it ON (L 679)**.
   Arm-to-arm comparisons on that pool are still sound (all nine arms share it, so it is a control), but every
-  FIELD-versus-twin ratio — L 677's 0.68 and L 678's arithmetic — rests on a body configured differently from
+  FIELD-versus-twin ratio — L 677's 0.68, L 680's 0.63 [0.39, 0.98] and L 678's arithmetic — rests on a body configured differently from
   the cohort half. Job 191 (`dye1`) tests it with the decision rule fixed in advance. rf2 is, in
   full: templates `templates_pilot_resid_rf1.csv`; `--enable rc_own,night_pro,uls,resid,site_clock`;
   `--disable stress,illness,menstrual,steroid,act_frag`; `--set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,`
@@ -388,7 +388,8 @@ reference changes.
   operating point over the total restoring gain) and the spread is `sigma / sqrt(2*lam)`, so **response and
   dispersion are two readings of ONE number and cannot be traded** — k times the response means `lam/k` and
   spread x`sqrt(k)`. That retrodicts `sg_kappa`'s exchange rate exactly (bg_cv 34.2 -> 41.4 implies lam -> 0.68;
-  its measured response gain was 1.16). Closing L 677's 0.68 needs R x1.47 and so spread x1.21, against zero
+  its measured response gain was 1.16). Closing the response gap — **0.63 with its CI as of L 680, so R x1.59
+  and spread x1.26** (the 1.47 / 1.21 here was L 677's 0.68) — asks for that spread against zero
   headroom (bg_cv 34.2, donors 34.6) — **unless the slow disturbance comes down with the force**, which is what
   the field must be doing. Registered as a crossover before any donor number existed and **CONFIRMED like for
   like** on the e pool's own 408 twin windows against ice's 273 donors (never on `rf2`/`rf2_5k`, which are the
@@ -697,7 +698,15 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   about **0.68** of the field's, which is where L 635's SG indictment already pointed and why `sg_kappa` is
   the only thing that ever closed it. The two halves are therefore cleanly separated: an added
   short-timescale component's EXTRA damping is controller-side, while the reference's BASELINE damping is the
-  glucose response per delivered unit. Job 189 puts a CI on the 0.68. The closed-loop measurement behind it, for the record:
+  glucose response per delivered unit. **MEASURED with a CI as job 189 and the limit is ESTABLISHED, at the
+  registered level and marginally (L 680): per unit actually delivered the twins move 0.63 of the field's
+  glucose, 90% CI [0.39, 0.98], from the ratio computed per event over the 588 e-pool events with both a
+  donor dose record and a twin pair — field -2.788 mg/dL/U against -1.753, with TIR 0.65 and t70 0.77 the
+  same direction.** The registered rule was the MEAN row's CI excluding 1.0, which makes the FORCE'S
+  MAGNITUDE the target now that L 642 has closed its shape; the upper bound 0.98 means a 95% interval would
+  include 1.0, so quote the sign and the direction, not the third decimal. L 677's 0.68 came from pairing a
+  3-covariate field DOSE slope with a 5-covariate field OUTCOME slope: **a ratio of two regression slopes
+  needs both conditioned on the same covariates**, and both pairings sit inside this CI. The closed-loop measurement behind it, for the record:
   on `truth["delivered"]` across eight arms, Loop delivers 3-19% MORE insulin per
   log-unit edit in every variant, and what differs is glucose moved per DELIVERED unit — 0.727 (`ge_order` 3),
   0.798 (`sg_rate`), 0.825 (`act_frag`), 0.944 (`act_k`) against 1.141 / 1.131 / 1.270 for the three arms that
