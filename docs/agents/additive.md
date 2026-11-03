@@ -90,6 +90,11 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   every change. Template columns are built by `templates.py` (`add_isf_yardstick`, `add_insulin_from_iob`,
   `add_delivered_profile`, …). The host this project actually uses, and how its long-running sessions are held, are
   recorded in the git-ignored `PRIVATE.md`.
+- **Compute etiquette on a shared machine** (loopeval relaying for Pete, 2026-11-02): run CPU work **only through
+  the jobq**, which is reniced to 10 so queued jobs inherit it, and cap each job at **8 parallel simulations** —
+  `arm2.py`'s third argument and `cohort.py --par`, both of which are one simulation per worker. Nothing heavy
+  outside the queue. Pete needs headroom for an iOS Simulator. Measured on job 172 for reference: 8 concurrent
+  `simulate` processes, all at nice 10, ~4.2 of 18 cores including the plant servers.
 - **Scoring**: `compare_runs.py` (eda's 51 statistics, KS against the donors; see Match targets below), `review.py` (each component against its own
   target), plus the measure scripts beside the run. A different draw of people (seed0) moves the count by up to 6 (LESSONS 444): score an arm whose
   effect is within that scatter on two draws (seed0 1000 and 5000) before adopting it.
