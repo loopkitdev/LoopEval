@@ -401,7 +401,14 @@ reference changes.
   persistent component at 0.61x ice's. So: load 1.10-1.14x the donors' (L 603), slow motion 1.15-1.17x, force
   ~1.8x too strong (L 635's bracket) — one picture in which too much slow disturbance and too much restoring
   force **cancel on the spread**, which is why bg_cv matches and why this was invisible, while the excess force
-  damps the response. **The candidate is therefore the PAIR, cut the load and the force together**, each a named
+  damps the response. **REFUTED ON SIZING (L 681), without a single new simulation**: `unl_mult` 0.70 — a 30% cut in unlogged
+  eating — moves the 2-8 h structure function only 0.93-0.98 (both draws, with and without the `resid_m`
+  refit, so not a level artefact) where the identity needs sigma x0.79 and L 678's own excess allows 14%
+  before the twins fall below the donors. The lever is short by a factor of 3-7, and it is near-uniform in
+  lag, so unlogged eating is not a slow-scale lever at all. The twins' slow motion is not mostly driven by
+  the part of the eating that is ours to cut, so with A1d's shape closed (L 642) and its magnitude priced by
+  the same identity, **the pair has no sizing and is not queued**. The idea was: **the PAIR, cut the load
+  and the force together**, each a named
   lever with its own evidence (`unl_mult`, L 610's only real TDD lever; A1d's magnitude), and they should cancel
   on the LEVEL too — the force cut raising it, the load cut lowering it — which is what would stop `resid_m`
   handing the gain back as it did to five previous candidates (L 604, 629). Not adopted: the identity's own
@@ -917,7 +924,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   level-only expectation — `ratio_ref x (level_ref / level_arm)` on the arms' own median pre-edit mean glucose —
   beside every ratio (`change_e/score_change_lvl.py`), and treat an arm whose observed ratio EQUALS that
   expectation as having no mechanism whatever its raw number looks like. That is exactly what the uniform
-  `sg_mult` cut turned out to be (observed 1.25, expected 1.25).
+  `sg_mult` cut turned out to be (observed 1.25, expected 1.25) — **but that reading is now contradicted and
+  the correction itself is the suspect (L 682)**: open loop at 60 people, `sg_mult` 0.40 responds at 1.399
+  of the reference and 0.67 at 1.183, structurally x1.36 and x1.17 once their own 1-3% levels are taken out.
+  `ratio_ref x (level_ref/level_arm)` is derived for a FIXED force and `sg_mult` changes the force, so for
+  such an arm the level correction and the mechanism are not separable. Keep the correction for arms that
+  leave the force alone; **do not cite `sg4_e` as its validation**, and quote L 638's `sg_mult` verdict with
+  this attached.
 
 - **`truth["sent_overrides"]` is the REACTIVE override class only** (world.py:728). The person's PLANNED overrides
   reach the controller through `loopeval_io._override_windows`, which writes `beh.overrides` into the twin's own
@@ -988,6 +1001,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 
 - **An arm rerun into an existing output dir returns the CACHED previous run** (`v0… cached` in its log), so a fixed
   arm can come back byte-identical to the broken one it replaces. Use a fresh arm name, or clear the dir.
+  **Fourth sighting, and the second where the no-op carries the shorter name (L 681)**: `ul70` holds
+  `unl_mult=0.70` in its own `cohort.json` and is bit-identical to `rf2`, its log reading `v01000 cached`;
+  the arm that ran is `um70`, with `ur1` an exact duplicate of it. Picking `ul70` by name would have measured
+  the load lever's gain as zero and killed the pair candidate for the wrong reason. The bitwise `truth.bg`
+  check run BEFORE reading any number is what caught it, which is the whole point of the rule.
 - **A numeric knob must be verified as a NUMBER where it enters, and there are now THREE ways it silently is not**
   (L 554, 655). `--enable k=v` makes a switch named `k=v`; `--set` parses to float and is safe; an `ARM_ENABLE`
   JSON **integer** was dropped outright until 2026-11-02, because the guard tested `isinstance(v, float)` and

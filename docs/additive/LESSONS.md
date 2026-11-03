@@ -4898,3 +4898,72 @@ inconsistent mix — gives exactly L 677's 0.68, which is how that number arose 
 **A ratio of two regression slopes is only meaningful when both are conditioned on the same covariates, so a
 "sanity check" that compares one of them against a differently-conditioned fit will mis-fire by design.**
 State the covariate set with any such ratio.
+
+**681. The PAIR candidate's LOAD half is refuted on measurement, from pickles already on disk: `unl_mult`
+0.70 moves the slow motion by 3-7% where the identity needs 14-21%.** L 678 registered the pair — cut the
+slow disturbance and the restoring force together, so the spread cancels — as the one direction left on the
+damped response. Sizing it needs the load lever's GAIN on the slow motion, and that is free: `um70` (with its
+duplicate `ur1`) is `rf2` plus `unl_mult` 0.70 unrefit, and `ur2` is the same with the `resid_m` refit, both
+at 112 people on two draws. Structure function, arm over `rf2`, all-hours:
+
+| lag | d1 unrefit | d1 refit | d2 unrefit | d2 refit |
+|---|---|---|---|---|
+| 120 min | 0.944 | 0.948 | 0.976 | 0.964 |
+| 240 min | 0.930 | 0.932 | 0.970 | 0.977 |
+| 480 min | 0.937 | 0.968 | 0.965 | 0.957 |
+
+A 30% cut in unlogged eating buys a 3-7% cut in the slow motion, the same on both draws and with or without
+the refit — so it is not a level artefact, the refit holding bg_mean at 148.9 / 149.0 against `rf2`'s 151.4 /
+149.1 while the unrefit arm drops to 145.0. **The identity asks for sigma x0.79 — a 21% cut — to close
+R 0.63 to 1.0 at held spread, and L 678's measured slow excess allows 14% before the twins go below the
+donors. The lever is short by a factor of 3 to 7**, and reaching 14% by extrapolation would need `unl_mult`
+near 0.16, which removes essentially all unlogged eating and puts the load far BELOW the donors' (L 603
+measures it at 1.10-1.14x theirs). The effect is also near-uniform in lag, 0.95-0.97 at 10-15 min against
+0.93-0.98 at 2-8 h, so unlogged eating is not a slow-scale lever at all — it is a small broad reduction.
+**The twins' slow motion is therefore not mostly driven by the part of the eating that is ours to cut**, and
+with the force's shape closed by L 642 and its magnitude priced by the same identity, the pair has no
+sizing. Do not queue it.
+
+Found only because the bitwise check ran first, and it caught the fourth sighting of the cached-directory
+no-op: **`ul70` — the obvious name for the `unl_mult` 0.70 arm, carrying `unl_mult=0.70` in its own
+`cohort.json` — is bit-identical to `rf2` on `truth.bg`, because its log reads `v01000 cached`.** It was
+re-queued into a directory that already held reference traces and silently returned them, exactly as this
+overlay's own trap entry says. Picking it by name would have measured the load lever's gain as ZERO and
+killed the pair for the wrong reason. The real arm is `um70`, and `ur1` is its exact duplicate. Second time
+the no-op sits under the shorter, more obvious name (L 663).
+
+**682. Job 190's internal gate FAILED on all nine configurations, so the gain decomposition may not be read
+— and that is the pre-registration working.** `R_pred = flux / lam` came out at 0.03-0.06 mg/dL per log-unit
+against the 155-219 measured beside it off the same calibration, where the registered rule was 10% on every
+row before any other column could be read. The cross-check PASSED: `meas/ref` reproduces job 187's
+`1.000 / 1.013 / 0.993 / 1.303 / 1.390 / 1.408` exactly, as a deterministic rerun of the same 60 people
+should, which validates the chain and localises the defect to the decomposition itself.
+
+The defect is isolated but not a units slip: the reference's `flux` 1.4209 and its measured R 155.17 jointly
+imply `lam` = 0.00916 /min, and the probe reports **28.499** — inflated 3112x, with the tangent path
+inflated equally, so it is the g-perturbation and not a factor shared with `flux` (which reconciles with
+R_meas to 0.1%). **And `lam/ref` is not usable either**, because the inflation is not constant across
+configurations: `ge_order` 3 reads `lam/ref` 1.479 while its `flux` and its measured R are both within 1.3%
+of the reference, which is an internal contradiction, not a finding. So the RETRODICTION the probe existed
+for — does `lam` predict `sg_kappa`'s measured bg_cv cost of 0.68? — is unanswered, and it stays that way:
+**a gate that has already failed cannot be re-passed by adjusting the instrument against the number it is
+meant to predict.** If the pricing of future A1d-magnitude candidates is wanted, it needs `lam` derived
+afresh, not a patch to this script. It is also no longer on the critical path, since L 681 refutes the pair
+the sizing was for.
+
+Two things ARE salvageable, because they are direct measurements on job 187's validated instrument rather
+than decomposition: **`egp_b` x1.3 leaves `flux/ref` at 0.994 at 60 people**, confirming at scale the
+deviation-form fact that the model has no knob raising the insulin-independent glucose INPUT (the hepatic
+channel grows, 0.515 -> 0.588, and the peripheral one shrinks, 0.906 -> 0.825, for no net flux); and the
+pre-registered contradiction fired. **`sg_mult` 0.40 responds to exogenous insulin at 1.399 of the
+reference, and 0.67 at 1.183, at levels 2.5% and 1.2% above it — so structurally about x1.36 and x1.17 —
+against L 638's closed-loop verdict on `sg4_e` that a uniform force cut "carries nothing at all" (observed
+mean ratio 1.25 against a level-only expectation of 1.25).** Registered in advance: the suspect is
+`score_change_lvl.py`'s correction `ratio_ref x (level_ref/level_arm)`, which is derived for a FIXED force,
+while `sg_mult` changes the force — so for such an arm the level correction and the mechanism are not
+separable and L 638's two-decimal agreement would be a coincidence rather than the validation it was read
+as. The alternative is that `sg_mult` behaves unlike the other force-cutters in the loop, which is the class
+where L 676 found open and closed loop AGREEING (1.303 against 1.313, 1.408 against 1.419). Separating the
+two needs `sg4_e` and `sg7_e` re-read against their own pre-edit levels; until then, **quote L 638's
+`sg_mult` verdict with this contradiction attached**, and do not cite that arm as the validation of the
+level correction.
