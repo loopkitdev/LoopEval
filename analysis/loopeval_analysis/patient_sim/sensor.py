@@ -92,7 +92,14 @@ class Family:
                                   # ~0.21, carried by the lag alone with no noise term, which is why our 2nd difference is
                                   # 0.73-0.80 of the donors' once glucose moves while matching them at 0.94-0.98 when flat.
                                   # 0 = off (the default). Direction: Garg 2022 Table 5 (G7 MARD 9.3 / 8.4% at < −2 / −2..−1
-                                  # against 7.8-8.1% when slower); SIZE from the donor table above.
+                                  # against 7.8-8.1% when slower). **SIZE NOT ESTABLISHED (L 654)**: the 0.45 above came from
+                                  # binning by a CGM-DERIVED rate, which manufactures rate dependence - the sensor's noise LEVEL
+                                  # wanders, so a noisy stretch has both a larger apparent rate and a larger 2nd difference even
+                                  # with no sample shared. Binned by TRUE rate our own CGM grows x1.00, not x1.31, with no rate
+                                  # term at all, and the donors' x2.02 mixes that artefact with real curvature at turning points.
+                                  # The FORM argument against `fall_k` stands (one-sided, deadband at 1 mg/dL/min, 0.0 in every
+                                  # family), so this is the right shape if a rate term is ever evidenced; it has no number yet.
+                                  # The artefact-free deficit is DAYTIME, not rate: see L 654.
     fall_lag: float = 1.0         # BG → IG time constant × this while glucose falls below IG (interstitial lag longer in falls;
                                   # Cengiz & Tamborlane 2009 review), sized on Garg 2022 Table 5's falling bins (LESSONS 391)
     common_sigma: float = 0.0     # innovation sd of the error COMMON to co-located sensors (interstitial physiology):

@@ -3673,3 +3673,44 @@ matched e-pool donors, 2nd difference by |rate|); `dd_by_rate.py` on three draws
   donors and x1.02 in us, which ice L 168 shows does not track |rate| at all and which CGM alone cannot attribute
   — real fast body motion, or a daytime-only sensor artefact (movement or pressure while awake, the mirror of
   night compression). Only the second of the three is unambiguously ours.
+
+**654. L 653's coefficient is WITHDRAWN before it cost an arm: binning the 2nd difference by a CGM-DERIVED rate
+manufactures the rate dependence it appears to measure. Our own CGM grows x1.31 across the rate bins when binned
+that way and x1.00 when binned by TRUE rate — with no rate-dependent term in the model at all.** ice raised the
+confound (their caveat on L 168); the split is one only we can do, because it needs true glucose. Job 171 pulled
+from `pending` before it started (`grep -c "171_rk"` on the runner log = 0, still in `pending`, 170 running).
+- **The artefact.** Conditioning on `|cgm[i+3] - cgm[i-3]|/30` uses samples DISJOINT from the 2nd difference at
+  i-1, i, i+1, so it looks safe. It is not: the sensor's noise LEVEL wanders (`noise_wander`, an OU process with
+  τ 120 min on G7), so a stretch with high noise has both a larger apparent rate and a larger 2nd difference even
+  with no sample shared. The conditioning variable and the measured quantity have a common latent factor.
+
+  | our CGM 2nd difference, night | 0-0.25 | 0.25-0.5 | 0.5-1 | 1-2 | growth |
+  |---|---|---|---|---|---|
+  | binned by CGM-derived rate | 4.30 | 4.46 | 4.73 | 5.63 | **x1.31** |
+  | binned by TRUE rate | 4.56 | 4.61 | 4.73 | 4.55 | **x1.00** |
+
+  So the x1.31 I treated as our (too-weak) rate dependence is **entirely** selection on the noise level, and the
+  donors' x2.02 contains an unknown mix of the same artefact, real curvature at turning points, and any genuine
+  rate-dependent error. **The donor table cannot size `rate_k`, and 0.45 is withdrawn.**
+- **Our body's real curvature does grow with rate, which is ice's other point, and it is small**: the TRUE-glucose
+  2nd difference goes 0.17 / 0.20 / 0.31 / 0.69 / 1.86 at night (x10.8 across the bins) against the donors' CGM
+  total of 4.53 → 9.13. So even at > 2 mg/dL/min, real curvature is 20% of the donors' figure. It cannot explain
+  their growth unless their bodies are far less smooth than ours — which this cannot test.
+- **The artefact-free comparison is the UNCONDITIONAL 2nd difference, and it says the defect is DAYTIME, not
+  rate.** Night 4.72 against the donors' 5.21 (**0.91**), day 4.83 against 6.48 (**0.74**). And in the FLAT bins,
+  where neither curvature nor rate dependence can enter: the donors carry a day-over-night excess worth **1.41
+  mg/dL of sigma** and we carry **0.33**. That is the whole measurable deficit, it is daytime-specific, and it
+  agrees with ice L 168's own reading — their day excess is largest at flat glucose and reverses above
+  1 mg/dL/min, so neither side's rate growth was ever the signal.
+- **`rate_k` stays in the code and stays off, with its SIZE marked unestablished.** The form argument against
+  `fall_k` survives untouched (one-sided, deadband at 1 mg/dL/min, and 0.0 in all five families), so a symmetric
+  deadband-free parameter is still the right shape should a rate term ever be evidenced. What it lacks is a number,
+  and the donor CGM table cannot supply one.
+- **The re-aimed candidate, not run, because its ATTRIBUTION is open.** A waking-hours sensor artefact of ~1.4
+  mg/dL would close the flat-bin day excess exactly, and the model has no such thing: `act_k` (CGM error during
+  activity, Biagi 2018, already wired) is **0.0** and reachable only through `sensor_act_k`, while `act_frag` —
+  the waking movement that would drive it — is in the reference's `--disable` list. Driving it from activity
+  brings back L 161's lows, since `act_frag` also feeds the exercise term; driving it from a bare waking flag is
+  cleaner but weaker evidence. ice L 168 is explicit that CGM alone cannot separate a daytime sensor artefact from
+  real daytime body motion, so this needs the attribution settled before a parameter, not after. **Do not queue a
+  coefficient for it on the strength of the fit alone — that is exactly what this lesson caught.**
