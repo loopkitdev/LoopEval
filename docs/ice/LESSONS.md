@@ -2078,3 +2078,7 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       donors' do.
     - Additive's twins are rougher than donors at 2–8 h by 13–27 % (their handoff 2026-11-03), as their gain/spread
       identity predicts.
+    - On their own e-pool twins (408 people) additive's ratio is 1.03 at 5 min rising to 1.30 at 2 h at night, and
+      1.00–1.03 by day at 2–4 h. Ours is flat at night from 5 min, so the two night excesses sit at different scales
+      and are probably different mechanisms. The donors' clean-row filter is not a shared cause: without it, donor
+      night spread rises only 2–4 % (generated/donor 1.18–1.11).
