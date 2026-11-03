@@ -1972,3 +1972,8 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       flat glucose, 1.07 at 0.5–1 mg/dL/min and below 1 above that. The daytime extra wiggle is not a rate-dependent
       sensor error: it is fast motion while steady and awake (body or wear-related sensor noise; the CGM cannot tell).
       Our generator's second difference runs 1.18 by day and 1.33 at night against these (lesson 166).
+    - Caveat (additive LESSONS 654): the growth with |rate| cannot size a sensor term. Rate taken from the same CGM
+      shares the sensor's wandering noise level with the second difference, so noisy stretches read as both faster and
+      wigglier; in additive's twins, with no rate term in the model, CGM-binned growth is ×1.31 and true-rate-binned
+      ×1.00. The day / night excess at flat glucose is the reading that survives. Our generator has no separate sensor
+      path (its CGM is the generated glucose), so the same split is not available here.
