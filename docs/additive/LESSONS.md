@@ -7,11 +7,14 @@ behind each component's parameters are in `evidence/17-measured.md`, the literat
 New lessons continue from 548, newest last. Keep this file to what still changes how someone works; move
 evidence to the evidence files.
 
-1. **No mystery terms.** A variability or offset term exists only if its size comes from its own controlled-condition
-   evidence; free-living variability (closed-loop TDD CV 17%, overnight 31%; Ruan 2016) is a target the named factors
-   must jointly reproduce, never an input. When a statistic misses, re-check a named component or find the missing one.
-   Intrinsic terms that pass: day-level SI CV ~8% (repeat clamps), per-dose absorption jitter ~15% (Heise 2017).
-   (Pete 2026-10-15; the data-driven residual layer is the one exception, Pete 2026-10-27.)
+1. **Keep unexplained terms to a minimum.** A source of variability becomes a NAMED component only once its size
+   comes from its own controlled-condition evidence; free-living variability (closed-loop TDD CV 17%, overnight 31%;
+   Ruan 2016) is a target the named factors must jointly reproduce, never an input. When a statistic misses, re-check a
+   named component or find the missing one. Intrinsic terms that pass: day-level SI CV ~8% (repeat clamps), per-dose
+   absorption jitter ~15% (Heise 2017). What the named parts cannot explain goes into one separate, labelled term —
+   the data-driven residual, fitted per donor — and the work is to SHRINK that term by finding measured causes, not to
+   tune the named parts until it disappears. (Pete 2026-10-15; residual layer 2026-10-27; **the rule is not exclusive
+   and it is a minimisation, not a prohibition — Pete 2026-11-03**.)
 
 4. **The measured fasting insulin rate is not the true basal.** Fasting periods carry unannounced eating and meal tails;
    taking that rate as truth left TDD − 24·basal ≈ 0 and diets of ~30 g/day. True basal comes from the TDD balance; the

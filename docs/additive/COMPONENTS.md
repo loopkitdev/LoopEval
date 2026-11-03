@@ -6,9 +6,11 @@ full citations there) or a measurement on BDDP data (a `runs/` path and the scri
 `evidence/17-measured.md`). "LESSONS N" cites `archive/LESSONS-001-547.md` for N ≤ 547.
 **[J]** marks a judgement call waiting for evidence. Those are the first things to replace.
 
-**No mystery terms.** A variability or offset term exists only if its size comes from its own
-controlled-condition evidence. Free-living statistics are targets the named factors must reproduce
-together (LESSONS 1).
+**Keep unexplained terms to a minimum** (LESSONS 1; Pete 2026-11-03). A source of variability becomes a
+NAMED component here only once its size comes from its own controlled-condition evidence, and free-living
+statistics are targets the named factors must reproduce together, never inputs to a fit. What they cannot
+explain goes into the one labelled residual (`MODEL_GUIDE.md` § 9), fitted per donor; the work is to shrink
+it by finding measured causes.
 
 The long-form companion with each component's settings, fit, rationale and personal basis (donor / drawn / event / cohort) is `MODEL_GUIDE.md`.
 

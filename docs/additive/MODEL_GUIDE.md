@@ -7,21 +7,32 @@ is the twin's own (from its donor), drawn per person, redrawn per event, or one 
 
 `COMPONENTS.md` is the compact registry; `evidence/0x` holds the full citations; `LESSONS.md` holds every test behind a
 value (`L n` below). Code: `analysis/loopeval_analysis/patient_sim/`. Values are the code defaults except where the reference run sets
-them. The reference is **sd3** (2026-10-28): 112 people × 14 days, weighted match score 0.370 (0.454 on a second draw,
-sd3_5k) over 51 statistics, tier 1 0.243 / 0.401. It is f4 (2026-10-27; 0.379 / 0.440, tier 1 0.266 / 0.379) with each
-person's meal glucose fitted to their donor's glucose spread (`csf_sd_mult`, L 529–530) and site changes on the evening
-clock (L 523) (§ 10 lists every row, its tier and its gap). It is lg13's evidenced
-core with a **data-driven residual** in place of the weakly evidenced stochastic parts (Pete 2026-10-27, L 513–519):
-- **core switched off:** day-level SI (B3), stress, illness (B6), cycle (B5), steroids (B14), waking fragments (C7),
-  grazing (F9), absorption fluctuation (A4c);
-- **residual** (`resid`, § 9): an exogenous glucose rate with no named source, per person from the donor's own data —
-  a constant level fitted to the donor's mean glucose (`resid_m`, L 515, 519) and a fast drive (OU, τ 20 min, skewed
-  toward rises) sized on the donor's unexplained 15-min motion (`resid_f`, L 514), run at 0.6×;
-- **cohort sensitivity** at 0.92 of the yardstick (`si_norm`, the level the old modulators held, L 516).
-Against lg13 (0.376 / 0.415) each twin follows its own donor's held-out weeks far better (TIR ρ 0.89 vs 0.45, CV
-0.63 vs 0.11; L 519, 529) and sits at its donor's level before a settings edit on all three natural-experiment pools.
-It does not predict the response to an edit better than lg13: its TIR response is about two thirds of the field's on
-every pool and its ranking is no better (L 531–532). The control-level split has the field's sign.
+them. **Read the reference's configuration from a run's own `cohort.json`, never from prose** — two switches have
+differed silently from what these docs implied (L 657, 665, 666). The reference is **rf2** (2026-11-01,
+runs/2026-10-31-additive-gesplit): 112 people x 14 days, weighted match score **0.370** over five draws (§ 10 gives
+every draw, every row, its tier and its gap). In full: templates `templates_pilot_resid_rf1.csv`;
+`--enable rc_own,night_pro,uls,resid,site_clock`; `--disable stress,illness,menstrual,steroid,act_frag`;
+`--set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.0,`
+`si_norm=0.92`. Everything else runs its code default, which notably leaves **`day`, `circadian`, `dawn`, `sleep`,
+`gh` and `alcohol` ON** and `ppr_a` at **0.6**.
+
+It is lg13's evidenced core with a **data-driven residual** in place of the weakly evidenced stochastic parts
+(Pete 2026-10-27, L 513–519), and with that residual's DYNAMIC part switched off again (`resid_mult` 0.0, L 592):
+- **core switched off:** stress, illness (B6), cycle (B5), steroids (B14), waking fragments (C7, L 658, 661), grazing
+  (F9) and absorption fluctuation (A4c). Day-level SI (B3) is back **ON** — it came back at ov0 unrecorded and was
+  separated and measured in L 668: small, not zero, and evidenced, so it stays;
+- **residual** (`resid`, § 9): an exogenous glucose rate with no named source, per person from the donor's own data.
+  Only its constant level is live — `resid_m`, fitted to the donor's mean glucose (L 515, 519). The fast and block
+  drives were adopted for per-person spread and measured to be doing the opposite (L 592);
+- **cohort sensitivity** at 0.92 of the yardstick (`si_norm`, the level the old modulators held, L 516; resolved to
+  stay there in L 613).
+
+On the three instruments, in increasing order of power (§ 10): the cohort score is level with ov0 (0.370 against
+0.372); the **paired per-person deviation is cut 57%** (2.28 against 5.36); and the change response to a settings edit
+is better on all four ratios and all three rankings. The response is still damped — glucose moves about 0.75 of the
+field's for the same edit — and that is now attributed rather than open: our Loop's DELIVERY reaction to an edit
+matches the real deployment's (+9.96 U/day per log-unit against the field's +9.14 at matched baselines), so what is
+left is glucose moved per delivered unit (L 677).
 
 Delivery is scored by record rate, as eda reads the donors' records (L 455). Mean, CV, TIR, TDD and every low statistic
 are on the donors' or close (gap < 0.35).
@@ -41,8 +52,11 @@ are on the donors' or close (gap < 0.35).
 
 ## 0. Ground rules
 
-1. **No mystery terms** (L 1). A variability or offset term exists only if its size has its own controlled-condition
-   evidence. Free-living statistics are targets the named parts must reproduce together, never inputs to a fit.
+1. **Keep unexplained terms to a minimum** (L 1; Pete 2026-11-03 — the rule is not exclusive). A source of
+   variability becomes a NAMED part only once its size has its own controlled-condition evidence, and free-living
+   statistics are targets the named parts must reproduce together, never inputs to a fit. What the named parts cannot
+   explain goes into one separate, labelled term — the residual (§ 9), fitted per donor. The work is to SHRINK it by
+   finding measured causes, not to tune the named parts until it disappears.
 2. **Real-world data is the primary test.** Every twin is scored by the same code as the donors (`validate.py`).
 3. **The body follows the data, not the user's entered settings** (Pete 2026-10-19). Where a donor has a data-fitted
    value (ISF from their glucose response, basal shape from delivered insulin, insulin type from Loop's recorded IOB,
@@ -277,12 +291,14 @@ entering the glucose equation as `util_drop` does.
 | Part | Form | Value | Set by | Basis |
 |---|---|---|---|---|
 | Level `resid_m` | constant, mg/dL/h | p10 / p50 / p90 −53 / 0 / +20 | rounds of `lvl_resid.py` on the donor's mean glucose (slope 0.6–1.0 mg/dL per mg/dL/h); held out on the odd / even blocks it predicts ρ 0.93 (L 519) | Donor |
-| Fast `resid_f` | OU τ 20 min, standardised-lognormal skew 0.7 | median 28 mg/dL/h × `resid_mult` 0.6; 0 for 21% | NNLS on the donor's quiet 15-min-vs-2-h ICE SD over the core twin's, through the bare process's transfer (L 514) | Donor |
+| Fast `resid_f` | OU τ 20 min, standardised-lognormal skew 0.7 | median 28 mg/dL/h × `resid_mult`, **0.0 at rf2** (0.6 at ov0 and before, L 592); 0 for 21% | NNLS on the donor's quiet 15-min-vs-2-h ICE SD over the core twin's, through the bare process's transfer (L 514) | Donor |
 | Block `resid_b`, day `resid_d` | OU τ 3 h; one level per day from 04:00 | 0 for most | as above | Donor |
 | Meal glucose `csf_sd_mult` (person.py, a core scale) | each meal's glucose ×, grams held | p10 / 50 / 90 0.50 / 1.00 / 1.64 | rounds of `sd_fit.py` on the donor's glucose SD, alternating with the level; held out, CV ρ 0.63 (L 529) | Donor |
 
-The level is what carries a donor's control level (L 448's far-from-meal load); the fast part carries their volatility
-(twin–donor ρ 0.15 → 0.73) but not their outcomes. At full size the fast part adds too many dips (L 514), hence 0.6×.
+The level is what carries a donor's control level (L 448's far-from-meal load). The fast part was held at 0.6x
+because at full size it adds too many dips (L 514), and it is **off at rf2**: it carried the donor's volatility
+(twin–donor ρ 0.15 → 0.73) but not their outcomes, and judged on per-person fidelity and on the change response it was
+costing both (L 592). The volatility rows (`bg_cv`, `sigma_disp`, `vol_cluster_60m`) are level without it.
 
 ## 10. Validation: the weighted match score (`validate.py`, `lifestats.py`, `score.py`)
 
