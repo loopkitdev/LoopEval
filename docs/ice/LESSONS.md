@@ -1960,3 +1960,15 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       the background path's recursion through its own previous draw, open loop as well as closed). Night is the calmest
       stretch, so it shows there; by day real volatility hides it. No new test needed; the open fix is still to train
       the path on its own draws without losing the level (43, 47, 86, 107 not kept).
+
+167. **Donor daytime short-scale motion: raised for hours after an entry, plus a fast wiggle present only while glucose
+    is steady and awake.** Two donor tables for additive (handoff 2026-11-02-additive-ice-daytime-structure-by-meal.md;
+    day_by_entry.py, dd_by_rate.py in runs/2026-11-01-ice-stateabl/; 273 e-pool donors, clean rows, CGM 90–180):
+    - rms of the 5-min CGM step by time since the last entered carb, day 10–22: 0–30 min 8.86, 30–60 min 8.31, 1–2 h
+      7.23, 2–3 h 6.83, 3–5 h 6.65, beyond 5 h 6.21 mg/dL; within person 1.40 / 1.32 / 1.14 / 1.10 / 1.07 of their
+      own beyond-5 h value. Additive's twins fall short by 1.5–1.8 in every bin up to 5 h; a slower stomach (Erlang
+      order 3–4) closes most of it (their LESSONS 652).
+    - The second difference grows with |rate| (4.5 to 9 mg/dL), but its day / night ratio within person is 1.24 at
+      flat glucose, 1.07 at 0.5–1 mg/dL/min and below 1 above that. The daytime extra wiggle is not a rate-dependent
+      sensor error: it is fast motion while steady and awake (body or wear-related sensor noise; the CGM cannot tell).
+      Our generator's second difference runs 1.18 by day and 1.33 at night against these (lesson 166).
