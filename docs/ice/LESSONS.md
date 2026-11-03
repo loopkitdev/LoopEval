@@ -2059,3 +2059,22 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       pending insulin all day, which the defense answers; in an arm with less basal the deficit is mostly clipped
       away. Loop's own IOB, what the person sees, is net of the schedule in force. Arm bi: PLANT_BASE_IOB_OWN=1, the
       baseline is the run's own 02–05 IOB over its last 3 nights (frozen tree, probe_bi.sh).
+
+172. **Long-lag structure function (for additive): the generator matches donors by day out to 2 h and is 8–17 %
+    rougher at 4–8 h; at night it is 1.19–1.21× at every lag.** rms of cgm(t+k) − cgm(t), cgm(t) in 90–180, per
+    person, median over people. Pairs stay within one unbroken CGM run and one 14-day block of the record. Donors use
+    clean endpoints only. e pool, 273 people; base recipe (oc) training 0, own-settings pre-window runs
+    (sf_long_ice.py in runs/2026-11-01-ice-stateabl/).
+
+    | Lag (min) | 5 | 15 | 30 | 60 | 120 | 240 | 480 |
+    |---|---|---|---|---|---|---|---|
+    | Donors, all hours | 6.35 | 14.83 | 23.88 | 35.00 | 43.96 | 49.58 | 53.10 |
+    | Generated / donors, all | 1.09 | 1.05 | 1.04 | 1.05 | 1.09 | 1.12 | 1.14 |
+    | Generated / donors, day 10–22 | 1.01 | 0.99 | 0.98 | 0.99 | 1.01 | 1.08 | 1.17 |
+    | Generated / donors, night 00–06 | 1.21 | 1.19 | 1.19 | 1.19 | 1.21 | 1.18 | 1.14 |
+
+    - The donors' day row falls from 240 to 480 min (58.5 → 52.0), because the daily cycle wraps around at that lag.
+      The generator's falls less (63.3 → 60.6): its meals or day-to-day background vary more at the 4–8 h scale than
+      donors' do.
+    - Additive's twins are rougher than donors at 2–8 h by 13–27 % (their handoff 2026-11-03), as their gain/spread
+      identity predicts.
