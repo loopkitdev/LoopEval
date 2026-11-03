@@ -4709,3 +4709,60 @@ failed, because the ratio of two outcomes of the same exogenous shock is not a s
 One open-loop measurement, built in an afternoon against `physiology.Body` with no controller, answered it
 in one table. **When a quantity is defined as a ratio of two endogenous outcomes, stop looking for the
 mechanism and go build the exogenous version of the experiment.**
+
+**677. Our replayed Loop's DELIVERY response to a settings edit matches the real deployment's — +9.96 U/day
+per log-unit against the field's +9.14, at baselines of 36.41 and 36.66. So the reference's damped glucose
+response is NOT Loop under-delivering. At matched delivered insulin the twins' glucose moves about 0.68 of
+the field's, which is a `dG/dI` statement and puts the body back in scope for the BASELINE damping, even
+though L 676 put the short-timescale arms' EXTRA damping entirely on the controller.**
+
+Job 188 took the donors' own delivered insulin from `doses.json` over each event's own `clear_before` /
+`clear_after` windows around its real `t_edit`, and regressed the change on the same insulin index
+`score_change.py` uses.
+
+| | baseline U/day | dose response per log-unit |
+|---|---|---|
+| FIELD (588 real edits) | 36.66 | **+9.14** |
+| twins (rf2e_s) | 36.41 | **+9.96** |
+
+**The sanity check passed and it is what makes the comparison valid**: the donors' baseline came out 36.66
+(p10 17.3, p90 65.0) against the twins' 36.41, so `doses.json` is being integrated right AND the two
+populations are matched on insulin need — which is precisely the condition under which the absolute
+responses can be compared at all.
+
+**My registered metric was the wrong one, and the numbers say so loudly.** I keyed the test on the FRACTIONAL
+response and the field reads **+0.938** against the twins' 0.234 — which is internally inconsistent with its
+own absolute figure, since 9.14 / 36.66 = 0.249. The tell is the inconsistency: `f_tdd = d_tdd / pre` is a
+per-event ratio and this pool's denominators span p10 17.3 to p90 65.0, so the ratio regression is dominated
+by small-`pre` events, and on the field side the numerator also carries real drift and behaviour change,
+which that leverage then amplifies. The twins' fractional (0.234 against 9.96 / 36.41 = 0.274) is
+well-behaved because its numerator is a clean paired difference. **So the fractional column is unusable on
+the field side and 0.938 means nothing.** The absolute comparison at a matched baseline answers the same
+question validly, and it is the one to quote. Lesson: a ratio-of-outcomes regression needs its denominators'
+spread checked before it is registered as the test, and an internal consistency check — does the ratio
+regression agree with absolute/baseline? — catches it immediately.
+
+**Read on the valid metric: delivery is faithful, if anything slightly strong** (9.96 against 9.14, +9%, with
+the field's figure the noisier of the two because it is consecutive real windows rather than a paired
+before/after on one person and seed — L 611's binding limit). **So the reference's damped glucose response
+cannot be Loop failing to act on the edit.** Dividing each side's mean-glucose response by its own delivered
+response: field −23.50 / 9.14 = **−2.57** mg/dL per U/day, twins −17.52 / 9.96 = **−1.76**, a ratio of
+**0.68**. The twins get roughly two thirds of the field's glucose movement per unit of insulin actually
+delivered.
+
+**That is where L 635's independent indictment already pointed**, and it now has a direct measurement behind
+it: too much insulin-independent restoring force is exactly what makes glucose move less per delivered unit.
+It is also why `sg_kappa` is the only thing that has ever closed the damped response (L 638) — and why it
+costs doubled lows (L 639), monotone in the dwell-weighted force at every parameterisation of A1d (L 642).
+
+**The two halves of the damping are now cleanly separated, which they were not this morning:**
+ - the EXTRA damping an added short-timescale component brings is **controller-side** — bodies answer
+   exogenous insulin identically (L 676);
+ - the reference's **BASELINE** damping against the field is **not** delivery — delivery matches — so it is
+   the glucose response per delivered unit, i.e. the body, and specifically the force that A1d carries.
+
+**Job 189, registered:** the 0.68 computed properly, per event with a bootstrap CI, on mean, TIR and t70,
+rather than by dividing two point estimates. If its CI excludes 1.0 the baseline limit is established as a
+per-unit sensitivity defect and the target for this half is the force's magnitude, not its shape (L 642
+having closed the shape route). If it includes 1.0, the baseline damping is not established at this pool's
+power and L 611's "more events, not more draws" applies again.

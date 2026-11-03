@@ -658,8 +658,15 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   short-timescale arms it does not. **Adding short-timescale motion does not change how the body answers
   insulin; it changes how Loop answers the glucose it sees, so no body candidate will fix it** — which is why
   five successive accounts came up empty (L 670-675), all of them looking inside the body. It does NOT speak
-  to the reference's own 1.35 damping against the FIELD, which is twin-against-donor with no open-loop
-  counterpart; that is the question worth asking next. The closed-loop measurement behind it, for the record:
+  to the reference's own 1.35 damping against the FIELD — and that half is now measured from the other side
+  (L 677): **our Loop's DELIVERY response to an edit matches the real deployment's**, +9.96 U/day per
+  log-unit against the field's +9.14 at baselines of 36.41 and 36.66 (the donors' own `doses.json` over each
+  event's own clear windows; the matched baseline is what makes the absolute comparison valid). So the
+  baseline damping is not Loop failing to act on the edit — at matched delivery the twins' glucose moves
+  about **0.68** of the field's, which is where L 635's SG indictment already pointed and why `sg_kappa` is
+  the only thing that ever closed it. The two halves are therefore cleanly separated: an added
+  short-timescale component's EXTRA damping is controller-side, while the reference's BASELINE damping is the
+  glucose response per delivered unit. Job 189 puts a CI on the 0.68. The closed-loop measurement behind it, for the record:
   on `truth["delivered"]` across eight arms, Loop delivers 3-19% MORE insulin per
   log-unit edit in every variant, and what differs is glucose moved per DELIVERED unit — 0.727 (`ge_order` 3),
   0.798 (`sg_rate`), 0.825 (`act_frag`), 0.944 (`act_k`) against 1.141 / 1.131 / 1.270 for the three arms that
