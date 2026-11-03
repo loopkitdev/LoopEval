@@ -648,8 +648,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   peaks, so there is less high-side excursion for an edit to act on — **is itself withdrawn as measured false
   (L 662)**: `go3e2` sits with MORE high-side excursion than the reference (t180 24.7 against 21.4, sd 58.7
   against 51.8) and at a HIGHER level, both of which predict MORE response, and it damps anyway. The verdict
-  stands and is strengthened; only the explanation is gone, and nothing yet explains why an added
-  short-timescale body component damps the response — two of two now have (`ge_order` 3, `act_frag`). So `ge_order` 3 is: four cohort rows
+  stands and is strengthened; only the explanation is gone. **ANSWERED at L 672, and it is NOT the
+  controller**: measured on `truth["delivered"]` across eight arms, Loop delivers 3-19% MORE insulin per
+  log-unit edit in every variant, and what differs is glucose moved per DELIVERED unit — 0.727 (`ge_order` 3),
+  0.798 (`sg_rate`), 0.825 (`act_frag`), 0.944 (`act_k`) against 1.141 / 1.131 / 1.270 for the three arms that
+  CUT the insulin-independent force. Perfect sign separation, so the damping is `dG/dI`, and it points at the
+  same SG excess L 635 indicted independently. WHY motion-adding lowers it is still inferred, not measured —
+  L 640's dwell-weighted force against glucose-per-delivered-unit is the direct test. So `ge_order` 3 is: four cohort rows
   better, against 3.7 TIR points, 2.3 t180 points, a night structure row that was correct, and a more damped
   response on both primary rows. **Stays off.**
   If yes, `ge_order` 3 + a faster `p2` is a pair of evidenced changes that close the meal tail,
@@ -805,10 +810,20 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   fact about the component** (L 662; its eight-arm null and matched pair are now ALSO what L 670's open observation has to be squared with). The obvious extension of L 638's level trap is that a wider or
   higher-excursion arm would respond differently for free, and it is measured FALSE: across eight real e-pool
   arms, level-adjusted damping correlates −0.17 to −0.43 with dispersion (the wrong sign for the story), and
-  a matched pair settles it — **`sk1_e` and `sr1_e` share the pre-edit mean (158.5 / 158.6), the sd (64.1 /
-  63.5) and t180 (32.7 / 31.3), and respond 1.16 against 1.66.** Correct for the level, which is real, and
+  a matched pair settles it — **but NOT the pair quoted here, which does not reconcile (L 672): the saved
+  canonical logs give `sk1_e` and `sr1_e` own levels 157.0 / 155.4 and responses 1.06 / 1.04, nearly identical,
+  and both are force-CUTTERS, so they were never an informative pair. The verified pair is `afe1` and `akfe1` —
+  level 143.3 / 142.8, sd 52.0 / 52.1, t180 20.6 / 20.9, matched to a tenth — responding 0.865 against 1.002,
+  a 14% difference at matched dispersion.** Correct for the level, which is real, and
   then read the ratio as the mechanism's. This is also what refuted L 656's explanation of its own result.
 
+- **Label an arm from its own `meta.json` / `cohort.json` IN the script that reads it, and print the labels
+  beside the numbers** (L 672, extending L 663). A name is a hypothesis about an arm; the config is the arm.
+  `sr1_e` is not the `sg_rate` arm — it is the smooth A1d form WITH `sg_rate` on top — and `sg_rate` alone is
+  `rt1_e`, whose 1.52 / 1.46 the record correctly quotes. I picked `sr1_e` by name in the very script that
+  cited L 663's rule against doing that, and only the meta.json check caught it. The same check found that
+  L 662's matched pair names two force-cutters with near-identical responses, which cannot support the
+  contrast it draws.
 - **The no-op versions of corrected arms are still on disk, under the SHORTER and more obvious names** (L 663).
   `hl_e`, `sw0_e` and `sw5_e` are each bit-identical to the reference over 60/60 events; the real arms are
   `hl2_e`, `sw0b_e`, `sw5b_e`, which L 603's fresh-name rule created BECAUSE the first versions no-opped. The

@@ -4393,3 +4393,76 @@ probe's predictions alongside the lesson, which caught the over-claim within the
 refutation to what was measured, which left the reinstatement available instead of burying a real mechanism.
 One thing did not: three of the four steps would have been unnecessary if the mechanism had been labelled an
 inference and tested before any of it was written down.
+
+**672. THE DAMPED CHANGE RESPONSE IS NOT THE CONTROLLER. Loop delivers MORE insulin per unit edit in every
+variant; what differs is how much glucose moves per delivered unit, and that separates PERFECTLY by what the
+arm does to the insulin-INDEPENDENT restoring force.** Jobs 182 and 183, zero simulations — `truth["delivered"]`
+out of eight e-pool arms already on disk, each labelled from its own `meta.json` and printed in the log.
+
+| arm | what it does | dose/ref | mean resp/ref | **glucose per delivered unit** |
+|---|---|---|---|---|
+| rf2e_s | reference | 1.000 | 1.000 | 1.000 |
+| go3e2 | `ge_order` 3 | 1.185 | 0.862 | **0.727** |
+| rt1_e | `sg_rate` 0.55 | 1.114 | 0.889 | **0.798** |
+| afe1 | `act_frag` on | 1.048 | 0.865 | **0.825** |
+| akfe1 | `sensor_act_k` 1.5 | 1.061 | 1.002 | **0.944** |
+| sk1_e | `sg_kappa` 0.15 | 1.116 | 1.274 | **1.141** |
+| sm1_e | smooth A1d | 1.131 | 1.279 | **1.131** |
+| sr1_e | smooth A1d + `sg_rate` | 1.029 | 1.307 | **1.270** |
+
+Condition (A) passed first — the reference's own dose response is **+9.96 U/day per log-unit**, clearly
+positive — and the instrument was validated before it was read: its glucose column reproduces
+`score_change.py` to 0.04 U and its damping ratios reproduce L 656 / 661 / 669 to three decimals.
+
+**Both registered predictions landed.** `rt1_e` was predicted at dose/ref >= 1.0 with mean/ref ~0.89 and
+glucose-per-unit clearly below 1: measured 1.114, **0.889**, 0.798. The three force-cutters were predicted
+above 1 because they remove the term in `dG/dI = −SI·G / (SG + SI·I·…)`'s denominator: measured 1.141, 1.131,
+1.270. **The sign separation is perfect — four motion-adders all below 1, three force-cutters all above —
+and the dose response is UP in all seven.**
+
+**So the CONTROLLER branch is refuted and the question the overlay has carried for three arms is answered.**
+It was never "Loop spends its authority chasing the extra motion": Loop over-delivers in every variant, by
+3–19%, and still gets less glucose movement in the damped ones. The damping is **dG/dI**, the body's response
+per unit of insulin actually delivered. And it points at the same term two independent lines already
+indicted (L 635): the insulin-independent restoring force is too strong, and the arms that cut it are
+precisely the ones that respond more per unit delivered.
+
+**What is MEASURED and what is INFERRED, kept apart this time (L 670's lesson).** Measured: the sign
+separation above, on seven arms, with the dose row as the discriminator. Inferred: *why* adding
+short-timescale motion lowers glucose per delivered unit — presumably because more motion means more dwell
+where the force opposes the change, with A1b's `g > gb` gating (L 596) making it asymmetric. That account is
+NOT established here, and the table does not support it on its own: within the motion-adders, `t180` orders
+them only roughly (23.4 -> 0.727, 20.5 -> 0.798, 20.6 -> 0.825) and `akfe1` breaks it (20.9 -> 0.944). The
+direct test is L 640's instrument — each arm's **dwell-weighted restoring force** against its
+glucose-per-delivered-unit — and until that is run the mechanism is a candidate, not a finding.
+
+**L 662's conclusion survives and its evidence line is REPLACED, because the pair it quotes does not
+reconcile.** It settles the dispersion explanation with "`sk1_e` and `sr1_e` share the pre-edit mean (158.5 /
+158.6), the sd (64.1 / 63.5) and t180 (32.7 / 31.3), and respond 1.16 against 1.66". The saved canonical logs
+give those arms own levels 157.0 / 155.4 and level-adjusted responses **1.06 / 1.04** — nearly identical,
+which cannot carry a 1.16-vs-1.66 contrast; and both are force-CUTTERS, so they were never an informative
+pair. The verified pair is **`afe1` and `akfe1`**: pre-edit level 143.3 / 142.8, sd **52.0 / 52.1**, t180
+20.6 / 20.9 — matched to a tenth — responding **0.865 against 1.002**, a 14% difference at matched
+dispersion. Quote that. The sign across all eight arms also reproduces L 662's: dispersion goes with MORE
+response, not less, which is the opposite of any smearing story — though across these arms dispersion is
+collinear with the mechanism (the force-cutters are the wide ones), which is exactly why the matched pair is
+the evidence and the correlation is not.
+
+**And `sr1_e` is NOT the `sg_rate` arm, which is the mistake this round cost.** Its `meta.json` reads
+`sg_km` 63.2, `sg_g0` 80.4, `sg_mult` 0.896, `sg_rate` 0.55 — the smooth A1d form WITH `sg_rate` on top.
+`sg_rate` alone is **`rt1_e`**, whose 1.52 / 1.46 are what L 649 and the overlay correctly quote. I picked
+`sr1_e` by name, in the very script that cited L 663's rule against doing exactly that, and only the
+meta.json check caught it. **Extend L 663: label an arm from its own `meta.json` or `cohort.json` in the
+script that reads it, and print the labels beside the numbers** — a name is a hypothesis about an arm, and
+the config is the arm. Note what it also shows: `sg_rate` adds nothing to the smooth form on this half
+(1.06 -> 1.04) while costing 1.00 -> 1.52 on top of the reference, so its effect is entirely about what else
+is carrying the force.
+
+**Where this leaves the prediction half.** The damped response is localised: not the controller, not
+dispersion, not measurement, but glucose moved per unit insulin delivered — and the only lever measured to
+improve it is cutting the insulin-independent force, which L 639 / 642 showed costs doubled lows at every
+parameterisation of A1d, monotone in the dwell-weighted force kept. **Both halves of that are now measured
+from the same quantity**, which is why no setting of A1d can satisfy both: the response wants less total
+force and the low side wants it kept near lows. A term that lowers the AVERAGE force while keeping the
+near-low defence is therefore the shape of the only remaining candidate, and by L 642 it cannot be a
+reparameterisation of A1d — it has to come from outside that component.
