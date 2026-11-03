@@ -2090,3 +2090,8 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     quarter of donors hold 56–60 % of low samples), but the night share does not rise with low count (Spearman
     −0.15 / −0.16). A per-14-day-block median reads 21–26 %, depending on the minimum low count, because blocks with
     few lows pull the median down (night_low_share.py in runs/2026-11-01-ice-stateabl/).
+    - The generator, by the same rule (base recipe (oc) training 0, pre-window own-settings runs, 268 people):
+      pooled 18.6 %, per-person median 18.7 %, flat in low count (Spearman −0.06; 20.0 / 17.6 / 19.0 / 17.0 by
+      low-count quarter, donors 26.4 / 28.6 / 21.8 / 20.9). The structure is right, but the level is 6–7 points short:
+      the generated person has too few of its lows at night, despite 1.2× the donors' night spread (lesson 172).
+      Open lead for night t<70.
