@@ -132,8 +132,12 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   came with a wrong reason that would have broken their audit, and I nearly recorded two live switches as dead
   because my grep matched `self.enable[name]` and they are read as `enable.get(name, default)`.
 
-- **Read the reference's configuration from a run's own `cohort.json`, never from the prose** (L 657, 665): two
-  switches have differed silently from what the docs implied (`act_frag`, and `day` from ov0 onward). rf2 is, in
+- **Read the reference's configuration from a run's own `cohort.json`, never from the prose** (L 657, 665,
+  **679**): three switches have now differed silently from what the docs implied — `act_frag`, `day` from ov0
+  onward, and **`day` on the WHOLE e pool, which runs it OFF while the cohort reference runs it ON (L 679)**.
+  Arm-to-arm comparisons on that pool are still sound (all nine arms share it, so it is a control), but every
+  FIELD-versus-twin ratio — L 677's 0.68 and L 678's arithmetic — rests on a body configured differently from
+  the cohort half. Job 191 (`dye1`) tests it with the decision rule fixed in advance. rf2 is, in
   full: templates `templates_pilot_resid_rf1.csv`; `--enable rc_own,night_pro,uls,resid,site_clock`;
   `--disable stress,illness,menstrual,steroid,act_frag`; `--set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,`
   `graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.0,si_norm=0.92`. Everything else runs its code
