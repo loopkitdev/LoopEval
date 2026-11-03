@@ -3714,3 +3714,32 @@ from `pending` before it started (`grep -c "171_rk"` on the runner log = 0, stil
   cleaner but weaker evidence. ice L 168 is explicit that CGM alone cannot separate a daytime sensor artefact from
   real daytime body motion, so this needs the attribution settled before a parameter, not after. **Do not queue a
   coefficient for it on the strength of the fit alone — that is exactly what this lesson caught.**
+
+**655. A JSON arm file passing an INTEGER silently drops the knob, and it cost the one verdict that mattered most:
+`ge_order` 3's change response was never measured, so "prediction neutral" rests on an arm that ran as its own
+control.** `enable` knobs were guarded by `isinstance(v, float)` in 106 places, and `isinstance(3, float)` is
+**False** — so `ARM_ENABLE='{..., "ge_order": 3}'` reached the body as nothing at all. Fixed: `_num()` now accepts
+int and float and still rejects bool (`True` is an int in Python and a switch must never read as the number 1).
+- **The evidence it was a no-op**, by the two checks arm2.py's own header prescribes: `go3e_s` is bit-identical to
+  `rf2e_s` on 60 of 60 events (`truth.bg`, max |Δ| < 1e-9), and `score_change_lvl.py` returns the reference's
+  numbers to every decimal — mean 1.34, TIR 1.28, t70 1.11, t54 0.58, own level 143.5, all four identical. A
+  variant matching its control to four decimals is the signature; never read the ratio alone.
+- **Why only this arm.** The cohort arms set it through `--set ...,ge_order=3`, and that path parses to a float, so
+  `go3` / `go4` are REAL — which is why they move the structure function in L 652 and why L 617's cohort numbers
+  stand. Only the e-pool script used an `ARM_ENABLE` JSON dict, and only it passed an integer. Swept every arm
+  script: `go3e_s` is the sole case, so no other recorded verdict is affected.
+- **What is now unsupported.** The overlay and the board question both carried `ge_order` 3 as "four cohort rows
+  better, 3.7 TIR points worse, **prediction neutral**". The first two stand on real arms; **the third has never
+  been measured.** A past session wrote that script describing it in its own comment as "the one measurement that
+  could change the judgement handed to Pete", and it silently did nothing.
+- **Why the measurement could decide the question.** L 648-652 established that the twins' daytime glucose is
+  ~19% too smooth at 5-15 min with the sensor exonerated, that the deficit is a post-entry tail, and that
+  `ge_order` 3 halves it. A body that moves too little gives Loop less to react to, and the natural-experiment
+  response is measured through Loop's reactions — so appearance dispersion is a live candidate for part of the
+  damped change response (mean 1.35, TIR 1.30 against the field). If it moves those toward 1.0, `ge_order` 3 buys
+  the prediction half as well and the 3.7 TIR points are a different trade entirely. Queued as job 172.
+- **The standing rule this adds.** A numeric knob must be verified as a NUMBER at the point it enters, not as text
+  in a script: `--enable k=v` makes a switch named `k=v` (L 554), `--set` parses to float, and an `ARM_ENABLE` JSON
+  integer was dropped until now. All three have the same signature — an arm that reproduces its control exactly —
+  and all three are caught by the same two checks. Run them on every arm, which is why both are in every job
+  script here.
