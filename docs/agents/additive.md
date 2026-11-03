@@ -135,9 +135,15 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 - **Read the reference's configuration from a run's own `cohort.json`, never from the prose** (L 657, 665,
   **679**): three switches have now differed silently from what the docs implied — `act_frag`, `day` from ov0
   onward, and **`day` on the WHOLE e pool, which runs it OFF while the cohort reference runs it ON (L 679)**.
-  Arm-to-arm comparisons on that pool are still sound (all nine arms share it, so it is a control), but every
-  FIELD-versus-twin ratio — L 677's 0.68, L 680's 0.63 [0.39, 0.98] and L 678's arithmetic — rests on a body configured differently from
-  the cohort half. Job 191 (`dye1`) tests it with the decision rule fixed in advance. rf2 is, in
+  Arm-to-arm comparisons on that pool are still sound (all nine arms share it, so it is a control).
+  **TESTED as job 191 (`dye1`) against a rule fixed in advance, and the answer is split by row (L 683):
+  the MEAN ratio is unmoved (1.35 -> 1.34), so L 677's 0.68, L 680's 0.63 [0.39, 0.98] and L 678's
+  arithmetic stand as quoted and the two halves keep their own configurations — but TIR goes 1.30 -> 1.11,
+  t70 1.09 -> 1.42, t54 0.56 -> 0.93 and all three rankings get worse.** So quote `day`'s state beside any
+  response ratio from this pool: "TIR 1.30, t70 1.09" describes a `day`-OFF body while the cohort reference
+  runs `day` ON, where they are 1.11 and 1.42. My rule named only the mean row, which passed while the rows
+  it was not watching moved more than most adopted arms — a single-row rule on a multi-row instrument can
+  pass while the thing it protects changes underneath it. rf2 is, in
   full: templates `templates_pilot_resid_rf1.csv`; `--enable rc_own,night_pro,uls,resid,site_clock`;
   `--disable stress,illness,menstrual,steroid,act_frag`; `--set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,`
   `graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.0,si_norm=0.92`. Everything else runs its code
@@ -394,7 +400,11 @@ reference changes.
   the field must be doing. Registered as a crossover before any donor number existed and **CONFIRMED like for
   like** on the e pool's own 408 twin windows against ice's 273 donors (never on `rf2`/`rf2_5k`, which are the
   PILOT cohort — the cross-pool slip ice caught): twin / donor at 5 / 15 / 60 / 120 / 240 / 480 min is
-  0.92 / 0.99 / 1.10 / **1.15** / **1.17** / 1.15 all-hours, crossing 1.0 at about 2 h, with the day row's
+  0.92 / 0.99 / 1.10 / **1.15** / **1.17** / 1.15 all-hours, crossing 1.0 at about 2 h — and **restated on
+  the cohort reference's own `day`-ON configuration (job 191, the second registered read, confirmed) every
+  slow row RISES: 1.20-1.21x all-hours at 2-4 h and 1.30-1.32x at night, so the published excess is
+  conservative and the headroom before the twins fall below the donors widens from 14% to ~17% (L 683)** —
+  with the day row's
   0.825 / 0.856 / 0.893 at 5-15 min reproducing L 648's 0.81 / 0.86 / 0.88 on a different pool and donor set.
   **The excess is NOCTURNAL — night 1.30 at 2 h and 1.27 at 4 h against the day's 1.00-1.03 — which was NOT
   predicted**, and which sits oddly beside the 31%-against-22% nocturnal lows limit and beside L 647's night

@@ -4967,3 +4967,48 @@ where L 676 found open and closed loop AGREEING (1.303 against 1.313, 1.408 agai
 two needs `sg4_e` and `sg7_e` re-read against their own pre-edit levels; until then, **quote L 638's
 `sg_mult` verdict with this contradiction attached**, and do not cite that arm as the validation of the
 level correction.
+
+**683. The e-pool/cohort `day` mismatch is harmless for the MEAN ratio and decidedly NOT harmless for TIR,
+t70 or the rankings — so L 680's 0.63 survives, and every other published response ratio now needs `day`'s
+state quoted beside it.** Job 191 ran `dye1`, `rf2e_s`'s configuration with B3 `day` switched ON, over the
+same 588 e-pool events. The no-op check passed (60 of 60 events differ; `day` is a JSON boolean, which `_num`
+rejects by design and `enable.get('day', True)` reads correctly), and the arm barely moves its own level
+(143.1 against 143.5), so these are form effects.
+
+| level-adjusted ratio | `day` OFF (`rf2e_s`) | `day` ON (`dye1`) |
+|---|---|---|
+| mean | 1.35 | **1.34** |
+| TIR | 1.30 | **1.11** |
+| t70 | 1.09 | **1.42** |
+| t54 | 0.56 | **0.93** |
+| rho mean / TIR / t70 | +0.33 / +0.16 / +0.17 | **+0.28 / +0.13 / +0.07** |
+
+The registered rule was |Δ mean ratio| < 0.10, and it is 0.01 — so **L 677's 0.68, L 680's 0.63 and L 678's
+arithmetic stand as quoted, and the two halves keep their own documented configurations.** That is also the
+cheap answer and the sound one: all nine e-pool arms share `day` OFF, so it is a control for every arm-to-arm
+comparison in the record, and promoting `dye1` would invalidate eight arms at ~37 min each to buy nothing the
+mean ratio needed.
+
+**But the rule I registered was too narrow, and saying so is the result.** I picked the mean row because it
+is linear and because L 680's verdict rests on it; `day` then moved TIR 0.19 and t70 0.33, larger than most
+arms this lineage has adopted or rejected. Three of the four rows move TOWARD the field with `day` ON (TIR
+1.30 -> 1.11, t54 0.56 -> 0.93, mean level) while t70 moves away (1.09 -> 1.42) and all three per-person
+correlations get worse — consistent with B3 being day-to-day sensitivity variation at `day_rho` 0, which adds
+within-person variance that no donor shares, diluting the rankings. **So the reference's headline
+change-response numbers are configuration-dependent: "TIR 1.30, t70 1.09" are properties of a `day`-OFF
+body, while the cohort reference runs `day` ON, where they are 1.11 and 1.42.** t70's ratio was the best
+feature rf2 had on this half (L 612-616); on the cohort reference's own configuration it is not. Quote
+`day`'s state with any response ratio from this pool from now on. A single-row decision rule on a
+multi-row instrument is a rule that can pass while the thing it was protecting changes underneath it.
+
+**The second registered read CONFIRMED, and it makes L 678's excess conservative, as predicted before the
+run.** B3 is a day-level step in insulin sensitivity, i.e. a slow disturbance at the 24-hour scale, so
+turning it on had to RAISE the long-lag structure function. All-hours 240 min goes **1.168 -> 1.212** and
+120 min 1.153 -> 1.196; night 240 min 1.269 -> 1.295 and 120 min 1.298 -> 1.323; day 120 min 1.001 -> 1.054.
+Every slow row rises and nothing falls, so `day` acts as a slow disturbance and L 668's "small but not zero"
+needs no re-reading at long lags. **Restated for the cohort reference's own configuration, the twins' slow
+motion is 1.20-1.21x the donors' all-hours at 2-4 h and 1.30-1.32x at night** (1.17-1.19 and 1.25-1.27 with
+ice's clean-row filter off, which lifts the donors 2-4% — L 679). That is a LARGER excess than the figure
+L 678 published off the `day`-OFF pool, so the conclusion is strengthened, and the headroom before the twins
+fall below the donors widens from 14% to about 17% — still three to five times what `unl_mult` can deliver,
+so **L 681's refutation of the pair stands on the restated numbers too.**
