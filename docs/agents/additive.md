@@ -297,11 +297,27 @@ reference changes.
   falsifier holds (0.99 → 0.97), so the arm is interpretable and the mechanism is ruled out rather than the
   wiring. `act_k` (Biagi 2018, wired) is 0.0 and now has nothing credible to drive it. **So there is no named
   candidate left for the sub-10-min flat-glucose daytime piece**, and ice L 168 shows CGM alone cannot separate a
-  waking sensor artefact from real waking body motion in one person. The discriminator that CAN settle it is
-  ACROSS people: the donors' 2nd difference split by SENSOR FAMILY, day-over-night ratio per family — a
-  family-dependent excess is the sensor, a family-independent one is the body, since a person's glucose does not
-  know which transmitter is on their arm. Asked of ice 2026-11-02; settle the attribution before adding any
-  coefficient.
+  waking sensor artefact from real waking body motion in one person. **MEASURED ACROSS people, and the
+  attribution is NOT DECIDABLE from this data (L 659)**: ice's donor 2nd difference split by sensor family (iNNN
+  pool, my own `templates_pilot_resid_rf1.csv` `sensor` column as the map — it was on disk all along, no warehouse
+  query needed) is **family-INDEPENDENT** — G7 n=135 → 1.233 [1.18, 1.26], G6 n=26 → 1.190 [1.08, 1.26], Libre 3
+  n=6 → 1.117, families alike on carb entries. **But that excludes less than I first claimed**: it rules out a
+  family-SPECIFIC sensor property (noise level, filtering, lag, calibration) and NOT a wear or motion artefact
+  common to every CGM class, since all three sit in subcutaneous interstitium under tape. A cross-group test only
+  excludes what VARIES across the groups. The within-family test that would separate them — the same ratio by
+  insertion SITE, arm against abdomen — is unavailable: no donor record carries the site. So no further cut of
+  this data will settle it, and **a candidate here must be judged on its own evidence, never on closing the row**,
+  because closing it is consistent with both hypotheses. The live candidate is **D `act_k`** (Biagi 2018: CGM MARD
+  9.5 → 16.5 → 9.3% before / during / 1 h after aerobic exercise), wired since L 498 and **at 0.0 against its own
+  evidence** — awake-keyed by construction, acting at flat glucose, at the sub-10-min scale, family-independent.
+  Sized against ice's table it falls SHORT of the row and that is the honest read: on G7 the awake-specific
+  shortfall is ×1.177, needing `act_k` ≈ 2.95 against ≈1.48 implied by Biagi, and it cannot reach 1.00 at all
+  because 9% of the day gap is an all-hours noise shortfall visible at night too (G7 night 0.919). Job 176 runs
+  the evidenced 1.5 on two draws plus a diagnostic 2.9; the falsifier is structural (activity is identically 0
+  asleep, so the night row cannot move) and the guard is the new risk — it is the first candidate in a long while
+  that changes what LOOP SEES rather than what the body does, so dose churn on noise is what to watch. Note also
+  that our G6 cell already reads 1.011 against the donors' 0.989, so a global `act_k` pushes G6 over while G7
+  lands; if that survives, the term wants family scaling, which would itself argue for the wear reading.
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (**read `ac1` against the independent-day null of −0.086, not 0**, and against **+0.118, not +0.18**: half the donors'
   persistence is their SETTINGS — a basal / ISF edit or a multi-day override persists by construction, and on day pairs
