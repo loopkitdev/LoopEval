@@ -278,7 +278,16 @@ reference changes.
   0.76-0.82 against the donors' 1.00 while the multi-step lags swing 0.81-1.35): as an implied sigma the donors go
   2.13 at night to 2.65 by day (x1.24) and every arm here is flat at 1.02-1.05, so a sub-10-min daytime component
   is missing outright — rate-dependent sensor error beyond the G7 falling lag, or real fast body motion. Size the
-  two separately; do not expect one mechanism to close both.
+  two separately; do not expect one mechanism to close both. **And do NOT size a rate term from a rate-binned CGM
+  table (L 654)**: conditioning the 2nd difference on a CGM-derived rate manufactures the dependence, because the
+  sensor's noise LEVEL wanders and a noisy stretch has both a larger apparent rate and a larger 2nd difference
+  even with no sample shared. Our own CGM grows x1.31 binned that way and **x1.00 binned by TRUE rate**, with no
+  rate term in the model. The artefact-free read is the UNCONDITIONAL 2nd difference — night 0.91, day 0.74 — and
+  the FLAT bins, where the donors carry a day-over-night excess worth **1.41 mg/dL of sigma** against our 0.33.
+  So the deficit is DAYTIME, not rate-dependent. `rate_k` exists, is off, and has no established size; `act_k`
+  (Biagi 2018, wired) is 0.0 and the `act_frag` that would drive it is disabled, which is the nearest named
+  candidate — but ice L 168 shows CGM alone cannot separate a waking sensor artefact from real waking body motion,
+  so settle the attribution before adding a coefficient.
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (**read `ac1` against the independent-day null of −0.086, not 0**, and against **+0.118, not +0.18**: half the donors'
   persistence is their SETTINGS — a basal / ISF edit or a multi-day override persists by construction, and on day pairs
