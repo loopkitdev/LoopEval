@@ -121,6 +121,13 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   (`cr_tau_off` 2.34, joint fit 2.40, `sg_h_lo` 2.93/3.57, `pro_g_own` 5.41), and `unl_mult` 0.70 + refit is confirmed
   as the only real TDD lever (paired TDD +0.40 against +1.49) at the cost of the level (bg_mean −1.63).
 
+- **Read the reference's configuration from a run's own `cohort.json`, never from the prose** (L 657, 665): two
+  switches have differed silently from what the docs implied (`act_frag`, and `day` from ov0 onward). rf2 is, in
+  full: templates `templates_pilot_resid_rf1.csv`; `--enable rc_own,night_pro,uls,resid,site_clock`;
+  `--disable stress,illness,menstrual,steroid,act_frag`; `--set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,`
+  `graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.0,si_norm=0.92`. Everything else runs its code
+  default — which notably leaves **`day`, `circadian`, `dawn`, `sleep`, `gh` and `alcohol` ON** and `ppr_a` at
+  **0.6** (not the 0.4 two docs carried until L 665).
 - **Current reference** (2026-11-01): **rf2** (runs/2026-10-31-additive-gesplit; templates
   `templates_pilot_resid_rf1.csv`, `--set resid_mult=0.0`) — ov0 with the residual's DYNAMIC part off, keeping only its
   per-person level `resid_m` (L 592). Score **0.332 / 0.371 / 0.406**, mean **0.370** against ov0's 0.372 — level —
@@ -133,7 +140,9 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   `ov1` templates.
 - **Previous reference** **ov0** (runs/2026-10-31-additive-gesplit; templates
   `templates_pilot_resid_ov1.csv`) — ad3 with each Temporary Override class's duration fitted over the windows the
-  model can actually produce. A donor record under 5 min is a cancellation (the ETL keeps an edit-version per change),
+  model can actually produce, **plus, unrecorded until L 665, the `day` modulator coming back ON** (ad3 disabled
+  it, ov0 does not, and it defaults to True) — so quote ov0's gain over ad3 as "the override-duration fit plus
+  `day`", never as the override fit alone, until the one-arm separation of L 665 is run. A donor record under 5 min is a cancellation (the ETL keeps an edit-version per change),
   and `_override` clips at 15 min, so including those in the per-class median systematically understated the length of
   every window the twins did run; dropping them lifts `ov_less_h` from 1.42 to 1.88 h and realized length from 72 to
   83 min against the donors' comparable 79 (L 586). Score **0.332 / 0.394 / 0.391** against ad3's 0.321 / 0.425 /

@@ -4018,3 +4018,34 @@ TIR is most sensitive. So the paired cost is **unresolved, not measured**, and j
 adoption rule fixed in advance. Note also that rf2's own paired TIR term scatters 0.141 against 0.937 between
 draws — a factor of 6.6 — so that row needs its own noise floor quoted beside it before any gap in it is
 called real.
+
+**665. A SECOND silent configuration change in the reference lineage: the `day` modulator (B3's day-to-day
+sensitivity factor) was disabled in sd3 and ad3 and is ENABLED from ov0 onward, with no lesson recording it —
+which means ov0's adoption bundled two changes, not one.** Found while answering a peer's question about what
+the reference actually runs, by reading the arms' own `cohort.json` rather than the docs:
+
+| arm | `--disable` |
+|---|---|
+| sd3 | `day,stress,illness,menstrual,steroid,act_frag` |
+| ad3 | `day,stress,illness,menstrual,steroid,act_frag` |
+| **ov0** | `stress,illness,menstrual,steroid,act_frag` |
+| rf2, and every arm since | `stress,illness,menstrual,steroid,act_frag` |
+
+`day` defaults to **True** (`modulators.py:58`), so dropping it from the list turns it on. This is the same
+class as `act_frag` (L 657) and the same lesson: the reference's configuration is only knowable from a run's
+own `cohort.json`, never from the prose. **The consequence is an attribution one.** L 586 adopted ov0 over ad3
+and attributed the gain (score 0.372 against 0.385, tier 2 better on both fresh draws) to the override-duration
+fit alone. If `day` came on in the same step, that gain is the sum of two changes and the override fit owns an
+unknown share of it. The direction is not obvious either: `day` adds day-to-day sensitivity variation, which
+should widen the per-person spread the override fit was also moving.
+
+What this does NOT overturn, checked rather than assumed: L 582's reasoning survives, because its conclusion
+rested on `day_rho` being 0 — `day` on gives day-to-day VARIATION without PERSISTENCE, which is exactly what
+L 582 concluded when it found the modulator package left `ac1` unmoved. And `si_norm` 0.92 standing in for
+"the disabled life modulators" still reads correctly, since those are the four B-series ones
+(stress, illness, menstrual, steroid) and not `day`. So the live question is narrow and it is L 586's
+decomposition, not the current reference's validity.
+
+The clean test is one arm: rf2 with `--disable day` added, on two draws, which separates ov0's override fit
+from the modulator. Worth running before any further weight is put on L 586's attribution, and cheap. Until
+then, quote ov0's gain as "the override-duration fit plus `day`", not as the override fit alone.
