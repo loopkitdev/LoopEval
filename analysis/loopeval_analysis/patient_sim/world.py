@@ -778,6 +778,18 @@ class World:
         # sharp negative drive from 40-90 min after it (the donors' fast falls come a median 61 min after an entry, at the
         # end of the rise; LESSONS 509-511), amplitude resid_drop_a x lnN(0, 0.3) mg/dL/h decaying with tau resid_drop_tau
         f_ = lambda k, d: float(en_[k]) if _num(en_.get(k)) else d
+        # resid_m's SHAPE over the day (experiment, off; LESSONS 684-685). The level above is constant over 24 h, and for
+        # the 310 of 408 e-pool people whose fit is NEGATIVE that is a glucose sink Loop can only oppose by withholding
+        # insulin - which saturates at zero. Measured: the night zero-delivery share runs 23.9 -> 42.8% across |resid_m|
+        # quartiles, the twin's night 2-h structure function tracks |resid_m| at rho +0.313 (DAY flat at -0.016) and night
+        # t70 is graded 14-22x. Weight it by the same cosine peaking at 15:00 that resid_diurnal (LESSONS 568) already
+        # applies to the residual's fast and block parts, but MEAN-preserving rather than variance-preserving, since this
+        # is a drift and not an amplitude: cos has zero mean over the day, so (1 + k*cos) has a daily mean of EXACTLY 1
+        # and the per-person level fit still holds by construction - which is what should stop the resid_m refit handing
+        # the gain back as it did to five level-mediated candidates (LESSONS 604, 629). It adds no glucose dependence, so
+        # `lam` is unchanged and the change response should be unmoved - the escape from LESSONS 684's tension, where a
+        # glucose-KEYED level-holder would raise lam and damp the response further.
+        self.resid_m_diurnal = f_("resid_m_diurnal", 0.0)
         self.drop_p, self.drop_a, self.drop_tau = f_("resid_drop_p", 0.0), f_("resid_drop_a", 100.0), f_("resid_drop_tau", 25.0)
         self._drop_rng = np.random.default_rng(int(person.seed) + 5141); self._drop_seen = 0; self._drops: list = []
         self.resid_skew = float(en_["resid_skew"]) if _num(en_.get("resid_skew")) else 0.0
@@ -1058,7 +1070,11 @@ class World:
         s = self.resid_skew
         if s > 0:    # standardised lognormal of the OU state: mean 0, SD 1, skewed toward rises as the donors' drive is
             z = (math.exp(s * z) - math.exp(s * s / 2)) / math.sqrt((math.exp(s * s) - 1) * math.exp(s * s))
-        return (self.resid_m + af * z + ab * self._resid_x[1] + ad * day - drop) / 60.0
+        rm = self.resid_m
+        if self.resid_m_diurnal > 0.0:
+            # mean-preserving over the day: mean(1 + k*cos) = 1 exactly, so the fitted daily-mean drift is untouched
+            rm *= 1.0 + self.resid_m_diurnal * math.cos(2 * math.pi * ((m % DAY) / DAY - 15.0 / 24.0))
+        return (rm + af * z + ab * self._resid_x[1] + ad * day - drop) / 60.0
 
     def _flow_mult(self, m: float) -> float:
         """A4c subcutaneous blood-flow fluctuation (experiment, off): absorption rate × exp(z − sd²/2), z a log-OU (sd, τ)

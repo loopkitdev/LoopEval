@@ -5073,3 +5073,55 @@ has asked for all along. **This raises the value of that search, because the res
 merely unexplained but measurably unphysical** — a constant sink comparable to half of basal hepatic output,
 which the real body does not have, and whose signature (a pinned controller and a wandering nocturnal
 glucose) is visible in the traces.
+
+**685. CORRECTION to L 684: the night-lows defect is a SPREAD defect, and the typical twin has too FEW of
+its lows at night, not too many. The donors' "22%" is reachable only as a per-14-day-block median.** ice
+measured their side both ways (pilot pool, 202 donors, clean filter on, which moves it by at most 0.6 points
+per person; script and per-donor CSV beside their run): **pooled 27.4%, per-person median 28.1%**, and the
+two barely differ because the donors' night share does NOT depend on how many lows a person has — rho(low
+count, night share) **−0.15**. Night is 26.3% of all samples, so the donors' lows fall at night roughly in
+proportion to time. The only route to 22% in donor data is a per-14-day-BLOCK median (23.3% at ≥1 low, 24.7%
+at ≥12, 25.6% at ≥36), which blocks holding few lows pull down.
+
+Against rf2's twins on that pool: **pooled 29.4 / 29.7 against 27.4, about +2 points; per person 20.4 / 20.1
+against 28.1, about −8 points.** So what I wrote in L 684 — "the typical twin's night is right; the pooled
+night is wrong because of a minority" — **is backwards.** The typical twin's night share is eight points too
+LOW, and the pooled figure is nearly right by cancellation: a minority of twins with heavy night lows lifts
+it to roughly the donors' level. The standing limit's "31% against 22%" compared a twin figure against a
+per-block donor median, so it was never like for like in either direction.
+
+**The attribution of L 684 is unaffected and is now better stated.** ice's own read: donors' night share is
+independent of low burden and ours is not. Our night share runs **7.1 → 34.7%** across |`resid_m`| quartiles
+where the donors sit flat near 28% whatever their burden. So `resid_m`'s constant drift does not create an
+aggregate night excess — **it creates the wrong DISTRIBUTION of night lows across people**, pushing a
+large-sink minority to 35% and leaving the majority at 7%. Both halves of that are defects, and the second
+one is new: the low-drift majority has about a third of the night low burden its donors carry. Quote the
+limit from here on as a spread defect with both numbers, never as "31% against 22%".
+
+**686. The ground rule's own search comes back essentially NULL: no measured donor trait predicts `resid_m`
+at a size that would let a named component absorb it.** Screened Spearman of `resid_m` against every numeric
+donor column, 111 columns on the pilot pool and 102 on the e pool, requiring a lead to be large, to
+REPLICATE across pools, and to survive a partial on the level family it is fitted to.
+
+The largest raw correlate is `rescues_per_day` (−0.379 / −0.425), and **it is a trap: partialled on `t70` it
+FLIPS SIGN (+0.142 / +0.069).** It was proxying the donor's low burden, which is what the fit absorbs — the
+confound registered in advance as severe. `gap_long` collapses the same way (−0.155 → +0.002). What survives
+a partial on `bg_mean`, `t70` and `t54` with the same sign in both pools is a coherent but small family:
+`entered_g_raw` −0.156 / −0.166, `carb_g_day` −0.134 / −0.164, `manual_u_day` −0.104 / −0.175,
+`corrections_per_day` −0.143 / −0.110, `isf` −0.119 / −0.144, `age_years` +0.116 / +0.173. **The more
+carbohydrate a donor enters, the bigger the sink the model needs** — i.e. we convert their entered
+carbohydrate into more glucose than their bodies did, which is a named quantity with its own evidence.
+
+**Sized, it is the right order and the wrong size.** If the sink were a carb-conversion error of d g-eq per
+entered gram, then `resid_m` = −(1000/(vg·bw)/24)·d·C, which at bw 70 and vg 1.88 is −0.00453·d·C. The
+fitted slope gives **d = 0.17 / 0.22** controlling for the level family (0.33 / 0.34 raw) — against the ~10%
+by which L 401 found the labelled g-eq per gram and the post-meal ICE integral to disagree. Same order,
+roughly twice the size, and at |rho| ≈ 0.15 it accounts for only a couple of per cent of `resid_m`'s
+variance. So carb conversion is a real but minor contributor, not the cause.
+
+**Read 4's null is therefore the result, and it is informative.** The level error the residual absorbs is not
+keyed to anything the donor record measures at a size that matters — which re-derives L 445–470's conclusion
+from the other direction: it behaves like a whole-day personal set point the templates do not carry. That
+makes the FORM question the honest next step rather than another trait hunt, and L 684's tension says the
+form cannot be glucose-keyed without raising `lam` and damping the response. **Queued as job 192 (`rm1`): a
+TIME-keyed level-holder, which escapes that tension because it adds no glucose dependence.**
