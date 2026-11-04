@@ -6272,3 +6272,48 @@ toward the donors from above on draw 2 (0.232 -> 0.162 against 0.190), further b
 **The refit decides it (L 597), as it did for `act_frag`.** The arm moves its own level by +2.5 to
 +5.0 mg/dL, which is far more than `act_frag`'s −0.9, so there is more for the fit to take back and
 the registered expectation is that some of the tier-1 gain is level-mediated. Job 209.
+
+**710. B16 `pump_off` STAYS OFF: the refit reversed its gain, exactly as registered.** Job 209, the
+same rule as jobs 204/206/208, not reopened. The refit converged better than any this session —
+|bg_mean gap| p50 **6.2 -> 3.7 -> 1.6**, band [−15.3, 8.5] -> [−3.8, 2.6], twin-donor rho 0.91 -> 0.96
+-> **0.99**, against the reference's own ~2.2 — so this is a decline on the mechanism, not on a failed
+fit.
+
+| draw | score | tier 1 |
+|---|---|---|
+| 1 | 0.328 -> 0.353 | 0.135 -> 0.179 |
+| 2 | 0.366 -> 0.366 | 0.209 -> 0.195 |
+| 3 | 0.404 -> 0.437 | 0.178 -> 0.214 |
+| **mean** | **0.3660 -> 0.3853 (+0.0193)** | **0.1740 -> 0.1960 (+0.0220)** |
+
+Both conditions fail — the score by nearly twice the 0.01 floor — so it stays off. Unrefit it was tier
+1 better on all three draws (0.1740 -> 0.1680); refitted the gain does not merely vanish, it
+**reverses** to +0.0220. **Fifth gain to die at this step** after `rs0`, `cb2`, `si_norm` and
+`act_frag`, and the clearest case yet, because the arm's +2.5 to +5.0 mg/dL level drift was the
+mechanism's own signature rather than noise: a pump-off window IS a rise.
+
+**The prediction registered before the refit was specific and it landed.** I wrote that draw 2's
+`bg_mean` gain (148.20 -> 153.20, fixing an undershoot) and its `t70` gain (0.325 -> 0.103, fewer lows
+because glucose sits higher) "should largely revert, and if the tier-1 improvement survives it has to
+come from rows the level fit cannot reach". Measured: `bg_mean` 151.31 with the gap improving further
+to 0.047 — the fit held the level better than the arm did — and **`t70` reverting 0.103 -> 0.227**,
+back toward the reference's 0.325. Nothing survived that the fit could not reach. That is what
+"level-mediated" means, measured rather than asserted.
+
+**So B16's disposition is `ex_abs`'s**: wired, evidenced, documented, **off on the reference**, and
+usable through `--enable pump_off` where the question needs it. It reproduces its targets (0.29-0.31
+episodes per person-day against the donors' 0.291, 1.8% of time against 1.89%, duration p50 36 min
+against 34) and it is the only way to put a pump-off excursion in front of a candidate algorithm at
+all — which is a capability the cohort score cannot value, since no scored row rewards it and
+`zero_frac`, the row that should, is command-based on the twin side and cannot see it (L 709).
+
+**What this session establishes about the adoption bar, across five candidates tested the same way:**
+`resid_m_diurnal` (cohort better, change half worse), `act_frag` (score better, tier 1 worse after
+refit), `pump_off` (tier 1 better, reversed by refit), plus `ge_order` 3 and `act_k` re-measured
+clean — **every one declined, and in four of five the refit or the change half is what did it.** The
+reference at 0.328 / 0.366 / 0.404 is not unchanged for want of candidates; it is unchanged because
+`resid_m`'s level fit converts any gain that runs through the glucose level back into insulin, and
+almost every mechanism that moves the cohort rows moves the level. **The standing implication for what
+to try next is L 597's, now on five sightings: a candidate is only worth an arm if its effect survives
+a held level — dynamics, within-excursion shape, or the response to a change — and a candidate whose
+mechanism is "the twins run higher or lower" is already dead before it is queued.**
