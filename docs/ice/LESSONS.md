@@ -2168,3 +2168,29 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Test arm lk1.5 (low-response kernel × 1.5, frozen plant `PLANT_LOW_KERNEL_SCALE`, probe_lk.sh), both trainings:
       kept only if t<70 and t<54 levels move toward the field without the change prediction leaving the field's
       noise (drift-removed field, lesson 175).
+
+177. **The generated person's deep lows are the ones it enters with too much insulin: Loop has dosed into an ICE rise
+    that then collapses. A stronger low-response kernel speeds the recovery but cannot reach them; not kept.**
+    - **lk1.5 (kernel × 1.5), trainings 0 / 1, e pool:** pre-window own-settings t<70 4.54 / 4.16 → 4.26 / 3.73, t<54
+      1.67 / 1.44 → 1.57 / 1.28 (field 2.45 / 0.32). Glucose 60 min after entry 101 → 109 (field 107), but at 15 min
+      still 65–67 (field 70), lowest within 90 min 55–56 (59.6), 30–35 % of entries reach < 54 (21 %). Change
+      prediction unchanged within the oc spread (mean more −5.89, less +5.00; t<70 +0.69 / −0.60), except TIR on the
+      less side −2.04 against oc's −1.87 ± 0.06. The kernel starts at the crossing; the depth is decided before it.
+    - **The approach is the field's** (low_approach.py): glucose at −60 / −30 / −15 / −5 / 0 min 111–112 / 95–96 / 85
+      / 74–75 / 66 against the field's 117 / 98 / 85 / 74 / 66. Real people level off within 5 min (65, 67 at 10 min);
+      the generated person keeps sliding (63, 63).
+    - **By insulin on board at entry** (low_ice.py; field tercile cut points), the share of entries reaching < 54:
+
+      | | Low IOB third | Middle | High third |
+      |---|---|---|---|
+      | Field | 0.14 | 0.22 | 0.27 |
+      | Replay | 0.18 | 0.28 | 0.39 |
+      | Base recipe (oc), training 0 / 1 | 0.18 / 0.15 | 0.27 / 0.24 | 0.57 / 0.53 |
+
+      In the high third the generated person enters with 5.8–6.2 U against the field's 4.9 (replay 5.2), and insulin
+      activity runs 2.0 / 2.9 / 3.4 / 3.4 U/h at −120 / −60 / −30 / 0 min against the field's 2.1 / 2.5 / 2.7 / 2.7:
+      the extra insulin was delivered in the hour or two before the low. ICE in that hour is higher than the field's
+      (79 / 47 / 26 at −30 / −5 / 0 against 49 / 25 / 14) and falls faster into the low; after entry the generated
+      response matches the field's (163 at 30 min in both). In the low and middle thirds ICE, insulin and depth are
+      close to the field's. So the excess t<54 is a dosing-into-a-collapsing-rise pattern, partly in the harness
+      (replay 0.39) and more in the generator.
