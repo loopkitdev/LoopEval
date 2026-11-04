@@ -2241,3 +2241,27 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       pools plus a 12 h chain on gamepc) was not run. Two small leads remain: the ultra-rapid preset (55) may be
       too fast for the body (about 4 % SSE), and if GE is ever turned on in the plant it would double-count the
       rebound that stock-curve ICE already carries.
+
+180. **Drawing entry-started meals 15 % larger (sz1.15) is not kept: realized ICE per gram reaches the field's, but the
+    lows barely move and level TIR gets worse.** e pool, both trainings, against the base recipe (oc) (probe_sz.sh,
+    wait_sz.sh; runs/2026-11-01-ice-stateabl/):
+    - **Per gram:** median 3.28 / 3.19 and mean 3.03 / 3.04 mg/dL per g against oc 3.03 / 2.81 and the field's
+      3.59 / 3.05.
+    - **Level lows** (field 2.45 / 0.32): t70 4.33 / 3.93 against oc 4.54 / 4.16; t54 1.58 / 1.34 against 1.67 / 1.44.
+      The high-IOB third's < 54 share is unchanged (0.57 / 0.52 against 0.57 / 0.53).
+    - **Level TIR median** against the field: −7.5 / −6.5, against oc −6.0 / −5.1. The five oc trainings span −4.1 to
+      −6.0, so this is a regression; mean level rises 146 → 149 mg/dL.
+    - **Change prediction** stays within noise of oc: more insulin TIR +2.21 against +1.95 (field +3.63); less TIR
+      −2.04 against −1.87 (field −1.24, z −3.6); t70 +0.67 / −0.65 against +0.74 / −0.71.
+    - **Why it can't work:** the field's reconstructed announced meals (158,302 meals, 468 donors) have a size-to-entry
+      ratio of median 1.11, q10 0.39, q90 3.26, with 22 % under 0.6. The generator draws median 1.13 with 14 % under
+      0.6. So meals that deliver less than was entered are at least as common in the field, and a uniform size scale
+      only adds glucose everywhere.
+    - **ICE after isolated entries, by IOB 15 min before** (ice_course.py; field cuts 1.52 / 2.79 U):
+      - High-IOB third: field and generated agree (+31 / +33 / +31 against +31 / +38 / +35 mg/dL/h at 15 / 30 / 45
+        min, with the same fall below zero after 3 h).
+      - Low-IOB third: the generated peak is short (66 against 88 at 30 min, 59 against 90 at 45 min). That is where
+        the per-gram shortfall sits, not in the meals before the high-IOB lows.
+    - **Method trap:** binning by IOB *at* the entry step mixes conventions. In the field the meal bolus is already in
+      that step's IOB; in the plant log it lands a step later. Binned that way, generated high-IOB entries look rare
+      (235 against 540) and seem to collapse to −50 mg/dL/h. Bin on IOB before the entry.
