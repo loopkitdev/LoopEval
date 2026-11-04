@@ -275,7 +275,10 @@ class BehaviorTraits:
     # shifted-time null and the paired onset enrichment is -0.75 points at p 0.42 (L 700, 701), so the clock
     # is the whole of it and there is no defence term here.
     pump_off: bool = False               # off by default; the reference has never carried this behaviour
-    pump_off_rate: float = 0.234         # episodes per person-day (donor per-person median)
+    pump_off_rate: float = float("nan")  # episodes per person-day; NaN = draw it per person from B16's own
+    #                                      stream in Behavior.__init__ (lnN(0.234, 0.60), donor median
+    #                                      0.234 / mean 0.291). A real number here means an explicit
+    #                                      override via `--set pump_off_rate=`, which suppresses the draw.
     pump_off_rate_lsd: float = 0.60      # log-sd of the per-person rate. 0.60 is the compromise: it gives a
     #                                      cohort MEAN of 0.280/day against the donors' 0.291 and a p90 of
     #                                      0.505 against 0.484, both within 4%. The one miss is the low tail
@@ -432,7 +435,6 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
         ex_anaerobic=float(np.clip(rng.beta(1.2, 6), 0, 1)), ex_hour=float(rng.choice([7.0, 12.5, 17.5, 19.0])),
         site_days=float(np.clip(rng.normal(3.0, 0.4), 2.0, 4.0)),
-        pump_off_rate=float(np.exp(rng.normal(np.log(0.234), 0.60))),   # B16, per person (L 700)
         act_rate=lj(2.0, 0.55), metmax=_metmax(rng, person, rates, lj),
         act_bg=lj(0.06, 0.4), act_gain=lj(1.0, 0.5),
         # unlogged small intake (drinks, sweets): 5–15 g each (Piernas & Popkin 2010: 97% of adults snack daily, 24% of
@@ -645,7 +647,14 @@ class Behavior:
         self.site_hour_p = float(np.clip(self.r_site.normal(19.5, 1.5), 16.0, 23.0))    # the person's habitual hour
         # B16 pump suspends: a clock-keyed Poisson process on its OWN stream, so turning it on cannot shift
         # any other behaviour's draws (the arm would otherwise differ from its control in more than one way).
+        # B16's own stream. The rate was ORIGINALLY drawn in `sample_behavior_traits` from the shared
+        # `rng`, which consumed one draw UNCONDITIONALLY and so shifted every trait sampled after it -
+        # `act_rate`, `metmax`, `act_bg`, `act_gain` and the rest - for every person, whether `pump_off`
+        # was on or off. That silently broke comparability with every arm simulated before the change
+        # (L 718). A new per-person trait must never touch a stream another trait reads.
         self.r_poff = np.random.default_rng(int(getattr(person, "seed", 0)) + 2711)
+        if not np.isfinite(getattr(traits, "pump_off_rate", float("nan"))) or traits.pump_off_rate <= 0:
+            traits.pump_off_rate = float(np.exp(self.r_poff.normal(np.log(0.234), 0.60)))
         self.pump_off_plan = []
         if getattr(traits, "pump_off", False) and traits.pump_off_rate > 0:
             # clock shares measured over the donors' episodes: 00-06 14.7%, 06-12 25.1%, 12-18 30.0%, 18-24 30.1%

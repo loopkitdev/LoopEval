@@ -6626,3 +6626,49 @@ collapses Loop's commanded temp with the user's into `"temp"`, which is now DOCU
 accidental, and the distinction is recoverable from `automatic` — the field that semantically owns it.
 **The exported data is unchanged until the next re-export**, where it will relabel ~20,228 basal
 records (14,369 suspends across 203 of 206 donors, 5,859 manual temps across 39).
+
+**718. I BROKE COMPARABILITY MID-SESSION: one unconditional draw added to the trait sampler put every
+arm run after it on a different behaviour stream than the reference, and four jobs' verdicts are
+affected.** B16 (`1a7ec8f2`) added `pump_off_rate=float(np.exp(rng.normal(np.log(0.234), 0.60)))` to
+`sample_behavior_traits` — in the MIDDLE of the trait list, between `site_days` and `act_rate`. It
+consumes one draw from the SHARED `rng` **unconditionally**, so every trait sampled after it
+(`act_rate`, `metmax`, `act_bg`, `act_gain` and the rest) takes a different value for every person
+**whether `pump_off` is on or off**. rf2 / rf2_5k / rf2_9k were simulated long before that commit, so
+every arm run after it differs from the reference for TWO reasons: its own knob, and a silent
+re-draw of most behaviour traits.
+
+**It surfaced through job 212's gate, not through any result.** `person.pkl` was identical for 106 of
+112 people — the `csf_f_floor` knob under test is properly isolated, only 6 differ — and yet
+`truth.bg` differed for **all 112**. Identical people with different trajectories can only be the
+stream. Without that gate the confound would have gone unnoticed, because every affected arm simply
+looked like "a real arm" on the `truth.bg` no-op check (L 554/655/663), which tests that an arm
+DIFFERS and cannot tell why.
+
+**Which verdicts this touches, stated by margin rather than waved at:**
+
+| job | arm | measured effect | status |
+|---|---|---|---|
+| 204-207 | `act_frag`, `af3`, `afr3` | — | **CLEAN**: all ran before the commit |
+| 208 | B16 `pump_off`, unrefit | score +0.0073, tier 1 −0.0060 | **CONFOUNDED** — the margin is the same order as a trait re-draw |
+| 209 | B16 refit | score +0.0193, tier 1 +0.0220 | **CONFOUNDED** at the same scale |
+| 210 | `resid_mult_f` 1.75 | score +0.0793, `bg_cv` +4 points | direction **robust** (an order above any re-draw), exact numbers carry the shift |
+| 212 | `csf_f_floor` | gate FAILED | **VOID** |
+
+So **L 710's decline of B16 is not established** — its margin (0.006-0.022) sits inside what a
+behaviour re-draw can produce, and L 609 puts the between-draw sd at 2.19 for TIR alone. L 712's
+refutation of the fast residual stands on direction and size. L 716's carb-clip question is unanswered.
+
+**THE FIX AND THE RULE.** B16's rate now draws from its own generator in `Behavior.__init__`, with the
+trait default NaN meaning "draw me"; verified the distribution is unchanged (p50 0.234 exactly, mean
+0.272 against the donors' 0.291) and the shared sampler no longer draws for B16. **A new per-person
+trait must never consume from a stream another trait reads** — put it on its own generator, as
+`site_clock` and B16's schedule already do, or the day it is added becomes a dividing line in the
+record. And the regression test that should have followed the session's FIRST code edit is now job
+213: run the reference's exact configuration on current code and require **112 of 112 bit-identical
+`truth.bg`** against rf2. That test costs five minutes and would have caught this immediately.
+
+**Second fault, same job, and it is L 706 for the third time: a gate that PRINTS instead of HALTING.**
+Job 212's rule said "if more differ, the knob is not isolated and nothing is readable" — and the
+script printed `FAIL: the knob is not isolated` and then went on to print
+"the CLIP IS LOAD-BEARING", a verdict I would have reported had I not read the gate line first. Every
+gate in a job script must `die`, not `echo`.
