@@ -5276,3 +5276,86 @@ mg/dL/h of insulin ALREADY COMMITTED when delivery stops. `resid = observed + IS
    with the reason recorded in the script. **Register a gate against the quantity's own evidence, not
    against the nearest familiar number** — the calibration rule ("realism, not agreement with Loop")
    applies to the instruments as well as to the body. Run dir `runs/2026-11-03-additive-suspend`.
+
+**691. A TIME-keyed level-holder was the escape from L 684's tension, and it is DECLINED: it lands the
+night-lows GRADIENT on the donors and takes the night-lows LEVEL out the other side, and the two cannot
+be separated by choosing the coefficient.** Job 193 ran `resid_m_diurnal` 0.9 — `resid_m *= 1 +
+0.9*cos(2pi*((m%1440)/1440 - 15/24))`, so the fitted drift runs 0.10x at 03:00 and 1.90x at 15:00 — on
+both draws, no refit, nothing fitted (the same cosine and the same coefficient already adopted at ad3 for
+the residual's fast and block parts, L 568). The design rested on two properties: mean-preserving on the
+minute grid, so the per-person level fit should hold by construction; and no glucose dependence, so `lam`
+is unchanged and L 678's identity cannot damp the change response the way L 642's glucose-keyed holder
+would. Read against the rule registered in the job script before any number existed, in its order:
+
+- **(0) FALSIFIER, passed.** Real arm on both draws (knob carried in `cohort.json`, `truth.bg` differs on
+  40 of 40 people checked, 112 people simulated fresh at 02:21:51-02:28:06 with no `cached` marker). The
+  term's own direct target moves where it should: night zero-delivery share in the large-sink quartile
+  38.6 -> 31.4% and 40.2 -> 25.1%, with the |`resid_m`| gradient in it flattening from rho +0.237 ->
+  +0.062 and +0.257 -> -0.012.
+- **(1) THE LEVEL, passed on draw 1 and FAILED on draw 2.** bg_mean 151.05 -> 151.60 (+0.55, inside the
+  registered ~1 mg/dL) and 148.20 -> **149.97 (+1.77, outside it)**. Mean-preservation is exact in the
+  TERM and not in the closed loop, exactly as the rule anticipated. Per the registered rule draw 2 is not
+  readable without a refit, so **draw 1 carries the verdict** — and that is enough, because draw 1 held
+  its level to half a mg/dL and shows the whole night effect at full size, which settles that the effect
+  is NOT level-mediated (the trap that killed five candidates, L 604, 629, 597).
+- **(2) THE AIM, split, and the split is the finding.** The SPREAD half succeeds emphatically and lands on
+  the measurement: rho(|`resid_m`|, night share) +0.204 -> **-0.013** and +0.156 -> **-0.208** against
+  ice's donors at **-0.15** (L 685), with night t70 in the large-sink quartile 7.31 -> 0.78% and 5.04 ->
+  0.85%, its rho +0.359 -> +0.158 and +0.316 -> +0.036, and the night 2-h structure function falling both
+  cohort-wide (37.34 -> 35.36, 40.24 -> 37.78) and in that quartile (41.56 -> 37.82, 44.33 -> 39.96). The
+  LOCATION half fails and fails the wrong way: the per-person median night share of lows was registered to
+  RISE from 20.4 / 20.1% toward the donors' **28.1%** and instead FELL to **8.4 / 9.2%** (pooled 29.4 ->
+  18.1 and 29.7 -> 15.8 against the donors' 27.4). A row that was somewhat too low is now three times too
+  low.
+- **(3) THE REGISTERED COST did not materialise.** The sink moves into the day and the day structure
+  function barely notices — day 2-h 59.22 -> 58.08 and 53.24 -> 53.72, day 30-min 27.17 -> 28.53 (+5%) and
+  26.41 -> 26.45 (+0.2%). The predicted failure mode is not what declines this arm.
+- **(4) THE GUARD holds.** t54 0.124 -> 0.136 and 0.232 -> 0.235 against the donors' 0.190 — no churn and
+  no disqualifying rise; TIR 72.15 -> 71.94 and 71.25 -> 71.56 against 71.88; TDD 41.88 -> 42.20 and 42.61
+  -> 41.81, split in sign. Two rows move with the night effect: t70 1.764 -> 1.412 and 2.119 -> 1.932
+  (donors 1.599, so draw 1 crosses below) and **lows/day 1.000 -> 0.917 and 1.250 -> 1.375** — lows leave
+  the night and some arrive in the day.
+- **(5) THE SCORE could not be evaluated as registered, because job 193's own script was defective** —
+  see the sibling lesson below. On the 37 rows it did score, rmd1 is 0.249 -> 0.256 and 0.274 -> 0.280 —
+  inside the 0.01 floor, same direction on both draws, tier 1 split (0.096 -> 0.104, 0.199 -> 0.188).
+
+**Why the location cost is STRUCTURAL and not a coefficient that wants lowering.** The multiplier is
+applied to `resid_m` itself and is blind to its sign, so at 03:00 it scales a sink and a source alike to
+(1 - k) of themselves. The cohort's `resid_m` is strongly asymmetric — negative for 84 of 112 here and 310
+of 408 on the e pool (L 684) — so scaling every night drift toward zero removes net SINK from the cohort
+and the night-lows level falls whatever k is. The quartile table shows both halves of that in one picture:
+the positive-drift quartile GAINS night lows (7.1 -> 10.6% and 7.9 -> 18.2%, its night source weakened)
+while the large-sink quartile loses them (34.7 -> 5.5 and 26.7 -> 4.5). That is a spread-narrowing
+mechanism working exactly as designed — about a centre that is itself displaced. At k = 0.9 the gradient
+lands on the donors and the location is 12 points wrong; both move with k, so a k small enough to protect
+the location leaves most of the gradient uncorrected. **The form has to change, not the coefficient**: key
+the cosine to `resid_m`'s deviation from the cohort mean (or hold the per-person daily mean of the SINK,
+not of the multiplier), so the cohort's night burden is preserved while its spread narrows. That is a
+prediction from the arithmetic, not a measurement, and it needs its own arm.
+
+**What this does NOT settle, and must not be claimed:** the change response. Point (0), (1) and (2) were
+the gate on queueing an e-pool arm and (1) and (2) did not pass, so none was run. The `lam` argument says
+a time-keyed holder cannot damp the response, and that argument alone is exactly the claim L 655 and L 667
+had to withdraw for `ge_order` 3 and `act_k`. Quote this as cohort-only.
+
+So L 684's tension is unresolved: a glucose-keyed level-holder would raise `lam` and damp the response
+(L 678's identity), and the time-keyed one that escapes the identity cannot hold the night-lows level. The
+escape L 684 named — needing LESS residual rather than a better form for it — is still the only route with
+nothing against it. Run dir `runs/2026-10-31-additive-gesplit` (arms `rmd1`, `rmd1_5k`).
+
+**692. Job 193 dropped nine scored rows, including a tier-1 one, by omitting two post-processing steps —
+and the score it printed for the UNCHANGED reference is how I caught it.** `score.py` scores a row only
+where it is present for BOTH runs, and `cohort.py` does not write the labelled-meal or life/activity
+summaries: `meal_response` and `lifestats sim` do, and every prior arm's job script runs them on the line
+after the cohort call (jobs 95, 99). Job 193's did not, so `meal_response_labeled.csv`, `life_stats.csv`,
+`life_bouts.csv` and `compare_life.csv` were missing from both new arms and ten rows vanished from both
+sides of the comparison (nine of them scored, n 46 -> 37) — tier 1 `act_net20` and `act_net20_hi` (the activity response, weight 3), tier 2
+`entry_fast_fall`, `fast_fall_share` (G7 and Libre), `ice_dip_day`, `ice_dip_day_share`, `unl_rise_rate`,
+`unl_rises_day`, `workouts_week`. The comparison that survived is still like for like, but the registered
+threshold could not be applied to it, and the one tier-1 row the arm's own registered cost would most
+plausibly damage — the activity response, since the arm moves the sink INTO the day — was among the
+missing. **The tell was free and I should have looked for it first: rf2 scored 0.249 / 0.274 where the
+record has 0.309 / 0.357 for the same arm.** A reference arm that does not reproduce its own published
+score means the ROW SET changed, not the arm. So: print the row count beside every score (`n` is already
+in the output — 37 here against 46), and check the reference's own number against the record before
+reading the candidate's. Completed as job 194 and re-scored on the full set.
