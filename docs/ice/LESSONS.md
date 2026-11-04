@@ -2095,3 +2095,27 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       low-count quarter, donors 26.4 / 28.6 / 21.8 / 20.9). The structure is right, but the level is 6–7 points short:
       the generated person has too few of its lows at night, despite 1.2× the donors' night spread (lesson 172).
       Open lead for night t<70.
+
+174. **Taking iob_net's basal baseline from the run's own nights makes the generated person respond more to both
+    directions, not only to added insulin; not kept** (tests lesson 171's hypothesis). The defense input iob_net
+    subtracts a fixed basal-IOB baseline (the donor's median 02–05 IOB over the whole record). In an arm that raises
+    basal, the extra steady IOB reads as pending insulin. The test arm (`PLANT_BASE_IOB_OWN=1`, frozen plant only)
+    replaces that baseline with the median of the run's own 02–05 IOB once an hour of night has passed. Base recipe
+    (oc) trainings 0 and 1, the 335 scored e-pool edits, mean of the two trainings (oc spread over oc0–4 after ±):
+
+    | Change in | Field | Base recipe (oc) | Own-night baseline |
+    |---|---|---|---|
+    | Mean, more insulin | −8.60 | −5.74 ± 0.56 | −6.53 |
+    | Mean, less insulin | +5.05 | +5.03 ± 0.28 | +5.60 |
+    | TIR, more | +3.76 | +1.99 ± 0.19 | +2.17 |
+    | TIR, less | −1.24 | −1.87 ± 0.06 | −1.94 |
+    | t<70, more | +0.73 | +0.77 ± 0.09 | +0.90 |
+    | t<70, less | −0.85 | −0.71 ± 0.08 | −0.83 |
+
+    - The more side moves 0.8 toward the field (z −1.7), but the less side moves 0.6 away from it (z +2.5), where the
+      base recipe already matched. The more-to-less ratio barely moves (field 1.70, oc 1.14, test 1.17). Push-back
+      against a rise falls 5.4 → 4.6 (field 2.6); against a cut it falls 4.5 → 3.9, under the field's 4.4.
+    - So the fixed baseline is not what makes push-back one-sided. Like the same-meals arm (lesson 170), this change
+      scales the whole response rather than its asymmetry. Level TIR median −6.3 / −5.5 (oc −6.0 / −5.1) and t<70 on
+      the more side rise slightly; t<54 on the less side drops 0.09 past the base recipe's.
+    - The run files were checked readable after the duplicate-launch overlap (9,748 per training, none bad).
