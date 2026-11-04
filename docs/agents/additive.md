@@ -264,8 +264,16 @@ reference changes.
   a coefficient: the multiplier is blind to `resid_m`'s SIGN while its distribution is strongly negative (84 of
   112, 310 of 408), so scaling every night drift toward zero removes net sink from the cohort at any k — the
   positive-drift quartile GAINS night lows (7.1 → 10.6, 7.9 → 18.2%) while the large-sink one loses them
-  (34.7 → 5.5, 26.7 → 4.5). **Key such a term to `resid_m`'s deviation from the cohort mean, not to `resid_m`**
-  (untested). **The decline rests on that and on the level alone: on the complete row set the arm SCORES BETTER
+  (34.7 → 5.5, 26.7 → 4.5). **The deviation-keyed fix L 691 named is now DECLINED on arithmetic with no arm
+  spent, and it corrects L 691's reason (L 694)**: the templates' `resid_m` has median **0.000** (mean −7.694,
+  p25 −17.63), so the only non-fitted centres are 0 — the arm already run — and the mean. Priced by fitting
+  night share against drift on rf2 and retrodicting the declined arm out of sample (predicted 7.67 / 9.12
+  against observed 8.38 / 9.20, gate passed), f(−7.694) = **7.55 / 15.93** against the donors' 28.1, and the
+  r0 that would reach 28.1 is **−20.8 / −31.2 mg/dL/h** — past the cohort's own p25, i.e. a uniform night sink
+  of 26–39% of basal hepatic output for every person. The binding reason is NOT the multiplier's sign-blindness
+  but the CONVEXITY: f rises steeply in the negative tail (4.4% at −3.7, 13.0% at −14.7, 38.8% at −25.1), so
+  **any** variance-narrowing night modulation of `resid_m` sends the cohort to f(r0) and cannot hold the level,
+  because the level is carried by the tail the narrowing removes. No named candidate remains here. **The decline rests on that and on the level alone: on the complete row set the arm SCORES BETTER
   on both draws (0.332 → 0.325, 0.371 → 0.359) and the registered day-side cost did not appear** (`act_net20`
   gap 0.362 → 0.380 and 0.203 → **0.170**, `act_net20_hi` 0.160 → **0.042**) — the partial 37-row read that said
   "worse on both" had dropped the rows that carried the sign (L 692). Guard held (t54 0.124 → 0.136, 0.232 →
@@ -1059,6 +1067,14 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 
 - **Donor carb entries are keyed `grams` in `carbs.json`, not `carbInput`** — the wrong key gives 0 g for every entry, and
   any size filter then drops them all with no error (L 571).
+
+- **When a candidate's whole effect flows through ONE scalar, price it from an already-failed arm before
+  running a new one** (L 694). The deviation-keyed level holder collapses every person's night drift into a
+  band around a single r0, so fitting night share against drift on the reference and retrodicting the
+  declined r0 = 0 arm out of sample (predicted 7.67 / 9.12 against observed 8.38 / 9.20) priced the whole
+  class for one read over saved pickles, and declined it. Register the retrodiction as a GATE, not a
+  diagnostic: the fit is estimated ACROSS people and read as if it applied WITHIN one, and that gate is the
+  only thing testing it. Quote the bracket across draws (here r0 −21 to −31), never a value.
 
 - **A reference arm that does not reproduce its own published score means the ROW SET changed, not the arm**
   (L 692, 693). `score.py` scores a statistic only where it is present for BOTH runs. Job 193 omitted

@@ -5439,3 +5439,57 @@ premise into job 196's registered rule before verifying it; the job had not star
 pair list were corrected and the summary now prints each arm's NAME beside its number. **A pre-registered
 rule is not a safeguard against an unverified premise inside it** — check the premise against the data
 before the rule is written, because a wrong premise in a registered rule looks exactly like rigour.
+
+**694. L 691's named follow-up — the DEVIATION-keyed level holder — is DECLINED on arithmetic, with no
+cohort arm spent, and the reason corrects L 691's own account of why the first form failed.** The form is
+`rm(t) = r0 + (resid_m - r0)*(1 + k*cos(2pi*(t/1440 - 15/24)))`, k = 0.9, whose daily mean is `resid_m` for
+**any** r0, so the per-person level fit holds by construction. At 03:00 the factor is (1 - k) = 0.1, so every
+person's night drift becomes `r0 + 0.1*(resid_m - r0)` — a tight band around r0 whatever their own fit. The
+whole cohort's night behaviour is therefore set by ONE number, which is what makes this priceable.
+
+**There are only two non-fitted choices of r0, and one of them is the arm already declined.** The templates'
+`resid_m` over 168 donors is **median 0.000**, mean **−7.694**, p25 −17.63, p10 −38.50, 44% negative. So
+"the deviation from the cohort mean" has r0 = −7.694, and r0 = 0 — the median — *is* `rmd1` (L 691).
+
+**The instrument, and it validates itself on the declined arm.** Fit f(r) = per-person night share of lows
+against the person's drift on rf2 / rf2_5k, where the drift is constant all day so r is unambiguous. The
+r0 = 0 arm maps everyone to `0.1*resid_m`, so f predicts its per-person median night share out of sample.
+Registered as a gate before any other number was read, and it **passed on all four reads**: share predicted
+**7.67 against the observed 8.38** and **9.12 against 9.20**; night t70 0.58 against 0.54 and 0.45 against
+0.67. So f prices this class.
+
+| | draw 1 | draw 2 |
+|---|---|---|
+| f(0) — the declined arm | 9.17 | 9.13 |
+| f(−7.694) — the cohort mean, the only other non-fitted r0 | **7.55** | **15.93** |
+| r0 solving f(r0) = **28.1** (ice's donors per person; 27.4 pooled) | **−20.8** | **−31.2** |
+| cohort p25 of `resid_m` | −17.63 | −17.63 |
+
+By the verdict condition fixed before the numbers — r0 more negative than the cohort's own p25 means a
+number chosen to hit the row — **the centred-narrowing class is declined.** Reaching the donors' night-lows
+level would assert a uniform night sink of **−21 to −31 mg/dL/h for every person**, 26–39% of basal hepatic
+output, more negative than three-quarters of the cohort's own fitted drifts, with a compensating POSITIVE
+daytime drift to keep each daily mean. That is a mystery term by this project's own rule.
+
+**And it corrects L 691.** I attributed the first form's location failure to the multiplier being blind to
+`resid_m`'s SIGN. That is not the binding reason: f is steeply increasing in the negative tail (draw 1:
+4.4% at r = −3.7, 13.0% at −14.7, 38.8% at −25.1) so **any** centred narrowing sends the cohort to f(r0) and
+the per-person spread to nearly zero. The gradient fix is bought by deleting the negative tail, and that
+tail IS the night lows. Centring somewhere else cannot hold both, whatever the centre. So L 691's "key it to
+the deviation from the cohort mean" is withdrawn as the fix, and its structural claim stands in a stronger
+form: **no variance-narrowing night modulation of `resid_m` can hold the night-lows level, because the level
+is carried by the tail the narrowing removes.**
+
+Limits, stated: f is estimated ACROSS people whose drift differs and read as if it applied WITHIN a person
+whose drift changes over the day — the gate is what tests that and it passed twice out of sample, but it is
+the assumption the whole read rests on. f is non-monotone at the positive end at ~18 people per bin, and the
+two draws' required r0 differ by 10 mg/dL/h, so quote the **bracket −21 to −31**, never a value; the verdict
+survives because both draws land past p25. Night share is a ratio of counts, so a changed DAY moves its
+denominator; night t70 (not a ratio) was carried beside it and gated the same way.
+
+**The method, which is the reusable part: when a candidate's entire effect flows through ONE scalar, fit the
+response to that scalar on the reference and retrodict an already-failed arm before running a new one.** This
+cost one read over saved pickles and settled a form that would have cost a two-arm cohort job, and the failed
+arm — which existed only because its own prediction was wrong — is what made the pricing checkable. So the
+nocturnal-lows limit has no named candidate again, and L 684's own escape — needing LESS residual rather than
+a better form for it — remains the only route with nothing measured against it.
