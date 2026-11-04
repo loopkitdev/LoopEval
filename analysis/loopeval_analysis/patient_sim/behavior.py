@@ -266,6 +266,26 @@ class BehaviorTraits:
     site_days: float = 3.0
     site_hour: float = 19.5
     site_clock: bool = False             # experiment (LESSONS 523): site changes on whole days at the person's hour
+    # B16 the person's own PUMP SUSPEND (L 699, 700): the donors stop the pump themselves and the model had no
+    # such behaviour at all - only `device.change_gap`, 15 min at a site change. Measured over 7302 episodes
+    # >= 5 min across 202 donors (runs/2026-11-04-additive-suspendclass/rates.py): 0.234 episodes per
+    # person-day (p10 0.055, p90 0.484, max 2.33), duration log-hours N(-0.557, 1.272) so a median of 34 min
+    # with 47% under 30 min and 18% over 2 h, and a WAKING action - 14.7% of episodes fall 00-06 against a
+    # quarter of the hours. It is NOT glucose-keyed: the low-episode association is x1.0 against a
+    # shifted-time null and the paired onset enrichment is -0.75 points at p 0.42 (L 700, 701), so the clock
+    # is the whole of it and there is no defence term here.
+    pump_off: bool = False               # off by default; the reference has never carried this behaviour
+    pump_off_rate: float = 0.234         # episodes per person-day (donor per-person median)
+    pump_off_rate_lsd: float = 0.60      # log-sd of the per-person rate. 0.60 is the compromise: it gives a
+    #                                      cohort MEAN of 0.280/day against the donors' 0.291 and a p90 of
+    #                                      0.505 against 0.484, both within 4%. The one miss is the low tail
+    #                                      (p10 0.108 against 0.055): the donors' rates are more peaked than
+    #                                      log-normal with 2% of them near zero, so a few twins who should
+    #                                      almost never suspend will suspend occasionally. The MEAN is what
+    #                                      sets the cohort's pump-off time share, so it is matched first.
+    pump_off_lmu: float = -0.557         # log-hours mean of the duration
+    pump_off_lsd: float = 1.272          # log-hours sd of the duration
+    pump_off_cap_h: float = 24.0         # a safety cap; the measured p99 is 10 h [J]
 
 
 # no-entry user boluses per hour at CGM 180–280, by 30-min trend (falling < −10 / flat / +10–30 / > +30 mg/dL): donors
@@ -412,6 +432,7 @@ def sample_behavior_traits(rng: np.random.Generator, person) -> BehaviorTraits:
         ex_minutes=lj(40, 0.4), ex_intensity=float(np.clip(rng.normal(0.5, 0.12), 0.2, 0.85)),
         ex_anaerobic=float(np.clip(rng.beta(1.2, 6), 0, 1)), ex_hour=float(rng.choice([7.0, 12.5, 17.5, 19.0])),
         site_days=float(np.clip(rng.normal(3.0, 0.4), 2.0, 4.0)),
+        pump_off_rate=float(np.exp(rng.normal(np.log(0.234), 0.60))),   # B16, per person (L 700)
         act_rate=lj(2.0, 0.55), metmax=_metmax(rng, person, rates, lj),
         act_bg=lj(0.06, 0.4), act_gain=lj(1.0, 0.5),
         # unlogged small intake (drinks, sweets): 5–15 g each (Piernas & Popkin 2010: 97% of adults snack daily, 24% of
@@ -622,6 +643,23 @@ class Behavior:
         self.next_site = (rng.uniform(0, traits.site_days) * DAY // DAY) * DAY + traits.site_hour * 60
         self.r_site = np.random.default_rng(int(getattr(person, "seed", 0)) + 1517)     # site_clock's own stream
         self.site_hour_p = float(np.clip(self.r_site.normal(19.5, 1.5), 16.0, 23.0))    # the person's habitual hour
+        # B16 pump suspends: a clock-keyed Poisson process on its OWN stream, so turning it on cannot shift
+        # any other behaviour's draws (the arm would otherwise differ from its control in more than one way).
+        self.r_poff = np.random.default_rng(int(getattr(person, "seed", 0)) + 2711)
+        self.pump_off_plan = []
+        if getattr(traits, "pump_off", False) and traits.pump_off_rate > 0:
+            # clock shares measured over the donors' episodes: 00-06 14.7%, 06-12 25.1%, 12-18 30.0%, 18-24 30.1%
+            edges = np.array([0.0, 6.0, 12.0, 18.0, 24.0]); share = np.array([0.147, 0.251, 0.300, 0.301])
+            share = share / share.sum()        # the measured shares round to 0.999 and `choice` demands exactly 1
+            for day in range(0, 60):                       # covers any window this model runs
+                for _ in range(int(self.r_poff.poisson(traits.pump_off_rate))):
+                    k = int(self.r_poff.choice(4, p=share))
+                    hour = float(self.r_poff.uniform(edges[k], edges[k + 1]))
+                    dur = float(np.exp(self.r_poff.normal(traits.pump_off_lmu, traits.pump_off_lsd)) * 60.0)
+                    self.pump_off_plan.append((day * DAY + hour * 60.0,
+                                               min(dur, traits.pump_off_cap_h * 60.0)))
+            self.pump_off_plan.sort()
+        self.pump_off_i = 0
         self.log = []                           # ground truth of every behavior event
 
     # ------------------------------------------------------------------ helpers
@@ -1113,6 +1151,9 @@ class Behavior:
             elif kind == "ex_carbs":
                 acts.append(("eat", Parcel(m, rest[0], kempt=0.06, kabs=0.06, f=self._f_glucose(), label="ex_carbs")))
                 self.log.append((m, "ex_carbs", rest[0], None))
+        while self.pump_off_i < len(self.pump_off_plan) and m >= self.pump_off_plan[self.pump_off_i][0]:
+            _t, _d = self.pump_off_plan[self.pump_off_i]; self.pump_off_i += 1
+            acts.append(("pump_off", m, _d)); self.log.append((m, "pump_off", _d, None))
         if m >= self.next_site:
             acts.append(("site_change", m)); self.log.append((m, "site_change", 0, None))
             if getattr(t, "site_clock", False):

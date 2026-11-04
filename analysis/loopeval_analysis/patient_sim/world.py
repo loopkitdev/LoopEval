@@ -320,6 +320,10 @@ class World:
             self.beh_traits.corr_rec_gate = True       # experiment (LESSONS 538)
         if enable and enable.get("site_clock"):
             self.beh_traits.site_clock = True          # experiment (LESSONS 523)
+        if enable and enable.get("pump_off"):
+            self.beh_traits.pump_off = True            # B16, the person's own pump suspend (L 700)
+        if enable and _num(enable.get("pump_off_rate")):
+            self.beh_traits.pump_off_rate = float(enable["pump_off_rate"])
         if enable and _num(enable.get("announce_mult")):
             self.beh_traits.announce_mult = float(np.clip(enable["announce_mult"], 0.0, 1.0))
         if enable and enable.get("meal_gap_gev") is False:
@@ -984,6 +988,14 @@ class World:
                 self.body.eat(a[1])
             elif kind == "exercise": self.ex.add(*a[1:])
             elif kind == "site_change": self.pump.change_site(m)
+            elif kind == "pump_off":
+                # B16 (L 700): the person stops the pump. The existing gap mechanism IS a suspend - no
+                # delivery, and queued doses are DROPPED rather than caught up, which is what a real pump
+                # does. Extend the window rather than replacing it, so overlapping episodes do not shorten
+                # one another. LIMIT: deployed Loop stops auto-dosing while suspended, whereas our Loop keeps
+                # commanding into a pump that delivers nothing - the insulin delivered is the same (zero),
+                # the recorded recommendations are not.
+                self.pump.gap_until = max(self.pump.gap_until, m + float(a[2]))
             elif kind == "fat": self.fat_events.append((a[1], a[2])); self.fat_log.append((a[1], a[2]))
             elif kind == "ppr": self.ppr_events.append(a[1])
             else: pending_actions.append(a)
