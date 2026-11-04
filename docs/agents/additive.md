@@ -259,8 +259,17 @@ defect twofold** — the underlying rate is off 1.35x while the share reads 2.5-
 −150 sits between the donors' p25 (−128) and p10 (−188) — so the physical error is 26-28%, not 190%, and a
 mechanism sized from the share would be ~2x too strong. It is also why `act_k`, a measurement term that
 cannot change potency, is one of only three arms that move this row: widening the rate distribution near a
-steep cut buys share, not potency. Over 284 arm-draws on disk the range is 3.57-8.33 against the donors'
-14.29, so no further ratio-preserving arm will help.
+steep cut buys share, not potency — **confirmed on TRUE glucose (L 704), where `ak1` reads 0.991 / 0.986 /
+1.016 / 0.970 / 1.058 against the reference, no direction, while its CGM rates moved +5 to +6%.** Over 284
+arm-draws on disk the range is 3.57-8.33 against the donors' 14.29, so no further ratio-preserving arm will
+help. **And L 704 excludes the two obvious causes of the gap itself: cutting half the dwell-weighted
+restoring force (`sk1`) leaves the median true post-entry fall rate at 0.995x and the load cut (`um70`) at
+0.954x, so the force and the load are BOTH out. The only lever that moves the body's post-meal fall rate is
+appearance shape — `go3` is +13.4% at the median and above 1 at all five quantiles on truth — which is a
+third of the x1.37 needed and is already rejected on TIR, t180 and the guard. `sg_rate` goes the wrong way
+(0.907), L 649's sign again.** With L 575's own eliminations the candidate space for this gap now excludes
+appearance scale, emptying speed, Vmax, uptake glucose-dependence, insulin-action timing, post-meal
+sensitivity, dose, κ, the restoring force, the glucose load and every sensor term.
 
 ## Known limits of the current reference (read before using its numbers)
 
