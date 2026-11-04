@@ -1419,7 +1419,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
             extra["basalType"] = str(dtype)
         doses.append({**extra, "deliveryType": "basal", "startDate": _iso(st), "endDate": _iso(en),
                       "volume": round(vol, 5), "tempRate": round(rate, 5),
-                      "insulinType": insulin_type, "automatic": True})
+                      "insulinType": insulin_type, "automatic": not manual})   # a user-set temp is not Loop's
     doses.sort(key=lambda d: d["startDate"])
 
     # ---- carbs (food: nutrition.carbohydrate.net g, estimatedAbsorptionDuration s) ----
