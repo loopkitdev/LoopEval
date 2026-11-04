@@ -6882,3 +6882,28 @@ not required and should not hold up the request.
 
 That application is Pete's to make — it is an external data agreement, not an arm — and it is the only
 route recorded anywhere that could close a tier-1 row (`act_net20`, `act_net20_hi`) without a trade.
+
+**724. THE REFERENCE'S OWN CHANGE RESPONSE HAS NEVER BEEN QUOTED CORRECTLY: it is 1.39 / 1.35 / 1.24 /
+0.79, not 1.35 / 1.30 / 1.09 / 0.56.** The goal's second half is prediction accuracy on the natural
+experiments, so the baseline matters, and the record has been carrying the wrong body's number.
+
+Every e-pool measurement in this role's files is made against **`rf2e_s`**, which runs `day: false`
+(L 679 found that; all nine arms shared it, so arm-to-arm comparisons were sound and that is why it
+went unnoticed). The **cohort reference runs `day` ON** by code default. The reference's own
+configuration on that pool is therefore `dye2`, measured clean against a matched control in job 203:
+**mean 1.39, TIR 1.35, t70 1.24, t54 0.79** (L 702), against a field of 1.0.
+
+So the body whose prediction accuracy the goal asks about responds slightly WORSE than recorded on all
+four rows — mean +0.04, TIR +0.05, t70 +0.15, t54 +0.23. Nothing in the comparative record changes:
+every arm was measured against the same `day`-OFF control, so all the arm-to-arm deltas and every
+verdict built on them stand. **Only the BASELINE was misattributed**, and the overlay now says so at
+the top of the prediction-half material rather than leaving `rf2e_s`'s numbers to be read as the
+reference's.
+
+**The general fault is one this role keeps re-finding: a CONTROL is not the REFERENCE unless its
+config says so.** L 679 found the `day` discrepancy and correctly concluded the arm-to-arm pool was
+still usable; what nobody then did was restate the reference's own number. L 672's rule — "label an
+arm from its own `meta.json`, not its name" — applies to the control as much as to the arms, and L 698
+is the same lesson a third time (four verdicts measured against a control whose `si_norm` nobody
+checked). **The check is one line per pool: diff the control's realised config against the cohort
+reference's and state any key that differs beside every number taken from it.**

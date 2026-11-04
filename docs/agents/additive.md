@@ -102,6 +102,14 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75` on the reference. It reproduces C4's own by-METs table —
   the ≥ 8 MET band reads +0.9 against the donors' +1.2 where the band has enough bouts — against the reference's +12.8 / −5.1.
   Use it whenever the response to a workout matters; the reference keeps the score-optimal settings.
+- **THE REFERENCE'S OWN CHANGE RESPONSE IS 1.39 / 1.35 / 1.24 / 0.79, not the 1.35 / 1.30 / 1.09 / 0.56 quoted
+  below and throughout (L 724).** Every e-pool number in this overlay is measured against `rf2e_s`, which runs
+  **`day: false`** (L 679) while the cohort reference runs `day` **ON** by code default. The reference's own
+  configuration on that pool is `dye2`, measured clean in job 203: mean **1.39**, TIR **1.35**, t70 **1.24**,
+  t54 **0.79** (L 702). So the body whose prediction accuracy the goal asks about is slightly WORSE than the
+  number the record has been carrying, on all four rows. **Read `rf2e_s`'s 1.35 / 1.30 / 1.09 / 0.56 as what it
+  is — a `day`-OFF CONTROL for arm-to-arm comparison, which is sound for that purpose because every arm shares
+  it — and never as the reference's own response.** Arm-to-arm deltas below are unaffected; only the baseline is.
 - **rf2 on the prediction half: response SIZE replicated on two pools; RANKING consistent but not established**
   (L 612, 614, 616) — pooled by Fisher z over the 643 well-conditioned events (pilot + e; the x pool excluded for a
   NEGATIVE field t70 response), rf2 leads on all three correlations (mean 0.326 against 0.265, TIR 0.165 against
