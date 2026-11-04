@@ -6165,3 +6165,58 @@ as L 676 settled the damping question after five closed-loop accounts had failed
 question for it: does `vg` 1.45 multiply post-meal fall AND rise velocity by ~1.30 at a matched
 glucose level, and what does it do to the g-eq per gram that `csf_geq` is fitted to? Only then is a
 cohort arm worth queueing, and only with the csf refit in the same arm.
+
+**708. L 707's `vg` CANDIDATE IS WITHDRAWN — IT IS COUNTER-INDICATED, NOT UNTESTED — and the "global
+velocity deficit" is very likely L 648's daytime short-scale deficit reached from another direction.**
+Two corrections to a lesson published an hour earlier, both found by reading the call site instead of
+the derivation.
+
+**(1) `vg` is NOT a global velocity scale in this implementation.** L 707 says "every flux reaches
+glucose as `flux / vg`, so vg is exactly a global velocity scale". The ODE (`physiology.py:510`) is
+
+    dg = -ge - (xact*mm*risk(g) - si_d*ib*gb) + (egp - egp_b - uex + ra + util_drop) / vg - renal
+
+and `vg` divides **only the mass-flux group** — EGP, carb appearance, exercise uptake, utilisation
+drop. It does NOT divide `ge`, the restoring force, nor the insulin term: both are parameterised
+directly in mg/dL/min, because `si_d` comes from the data-fitted ISF yardstick and has therefore
+ALREADY absorbed V_G. In the real body V_G divides everything, since insulin-mediated disposal is a
+mass flux too; this model parameterises half the ODE in concentration units, so V_G is not
+identifiable as a global scale here. **The consequence reverses the candidate's sign: lowering `vg`
+amplifies appearance and EGP while leaving insulin and the force untouched, which speeds RISES and not
+FALLS — it would make the fall/rise asymmetry WORSE.** So the ×1.30 coincidence with the needed ×1.37
+is numerology, the "~2x carb sensitivity" objection in the code comment is the whole of `vg`'s effect
+rather than a side effect, and the open-loop probe is not worth running for it. **The model has no
+single global velocity parameter at all**: scaling every velocity means scaling `sg`, `si_d` and
+`1/vg` together, which is a reparameterisation and not a knob — and that is a structural fact worth
+knowing before anyone looks for one. I read `/vg` off the gain probe's deviation form, which states
+the grouping correctly, and generalised it in the write-up; L 666's rule ("verify any claim about this
+model against the call site") exists for exactly this and I did not apply it to my own claim.
+
+**(2) The deficit is probably not a new finding.** Set the numbers beside L 648's daytime short-scale
+structure function (rms of `cgm(t+k) − cgm(t)`, twin/donor, per person):
+
+| | 5 min | 10 min | 15 min | 2nd diff |
+|---|---|---|---|---|
+| L 648, day, all windows | 0.81 | 0.86 | 0.88 | 0.74 |
+| L 683, same on the e pool | 0.825 | 0.856 | 0.893 | — |
+| **L 707, post-entry 15-min** | — | — | **rise 0.817, fall 0.743** | — |
+
+The rise ratio lands on L 648's day row and the fall ratio on its 2nd difference, and **L 651 had
+already localised that deficit to a POST-ENTRY TAIL** — "rf2 is flat after an hour where the donors
+stay 1.14x their own floor at 1-2 h". So L 703's row, L 707's "global velocity scale" and L 648-652's
+daytime smoothness deficit are plausibly ONE phenomenon measured three ways, not three findings. The
+conditioning differs (L 648 takes all daytime windows in 90-180; this takes 2-h post-entry windows
+ending 70-180), so this is "very likely the same", not established — but it should be treated as the
+same until someone shows otherwise, because the consequence is already known and unwelcome: **L 652
+measured `ge_order` 3 as halving that deficit, which is the same lever L 704 found to be the only one
+that moves the body's post-meal fall rate (+13.4%), and it is blocked by `bg_cv` having no headroom
+(L 697) and by the TIR / t180 / guard cost (L 696).**
+
+So the apparently new direction converges on the known blocked one, and the honest statement is that
+L 703-707 added a quantitative target (×1.37, uniform, with the threshold's twofold lever-arm removed),
+confirmed L 575 on a second instrument, inverted its sensor caution, and excluded the force, the load
+and the sensor — but did NOT find a new mechanism, and the one lever that works is the one already
+rejected on the high side. **What would actually be new is a mechanism that adds post-entry glucose
+MOTION without adding appearance DISPERSION**, since the identity of L 678/697 is what prices the
+latter; nothing in the model does that today, and L 659's attribution caveat applies — closing the row
+is consistent with more than one hypothesis, so a candidate here must come with its own evidence.

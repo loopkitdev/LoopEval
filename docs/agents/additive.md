@@ -274,12 +274,17 @@ sensitivity, dose, κ, the restoring force, the glucose load and every sensor te
   falls at 0.743, so ~0.82 of the deficit is a GLOBAL velocity scale needing no time asymmetry, and only
   0.79-0.91 is fall-specific.** L 575's donor fall/rise 0.89 and twin 0.70-0.78 are confirmed out of sample
   (0.887 / 0.702), and its sensor caution INVERTS: the twins' TRUTH fall/rise is 0.504 against their CGM
-  0.702, so the sensor inflates the apparent asymmetry by +39% and FLATTERS them. The global half has a named
-  candidate with a matching bracket: `vg` 1.88 dL/kg (`physiology.py:55`) is a pure global velocity scale and
-  1.88 -> ReplayBG's 1.45 gives x1.30 against the x1.37 needed, which would also bear on L 680's 0.63. The
-  recorded objection - 1.45 "gives ~2x the carb sensitivity people's settings imply" - is testable, not
-  decisive, because `csf_geq` fits carb sensitivity per donor and is not independent of `vg`. **Do the
-  open-loop probe against `physiology.Body` FIRST (L 676), then a cohort arm with the csf refit in it.**
+  0.702, so the sensor inflates the apparent asymmetry by +39% and FLATTERS them. **The `vg` candidate L 707 proposed is WITHDRAWN as
+  COUNTER-INDICATED (L 708), verified at the call site**: `physiology.py:510` divides only the mass-flux group
+  (EGP, appearance, exercise uptake) by `vg`, never `ge` or the insulin term, both of which are in mg/dL/min
+  because `si_d` comes from the ISF yardstick and has already absorbed V_G. So lowering `vg` speeds RISES and
+  not falls and would WORSEN the asymmetry; the x1.30 match was numerology. **This model has no single global
+  velocity parameter** — scaling every velocity means scaling `sg`, `si_d` and `1/vg` together. **And the
+  deficit is probably not new (L 708): the rise ratio 0.817 lands on L 648's daytime short-scale day row
+  (0.81 / 0.86 / 0.88) and the fall ratio 0.743 on its 2nd difference (0.74), and L 651 already localised that
+  deficit to a POST-ENTRY TAIL.** Treat L 703 / 707 and L 648-652 as one phenomenon until shown otherwise: the
+  lever is `ge_order` 3 either way, blocked by `bg_cv`'s zero headroom and the TIR / guard cost. What would be
+  new is motion WITHOUT appearance dispersion, which nothing in the model supplies.
 
 ## Known limits of the current reference (read before using its numbers)
 
