@@ -6317,3 +6317,56 @@ almost every mechanism that moves the cohort rows moves the level. **The standin
 to try next is L 597's, now on five sightings: a candidate is only worth an arm if its effect survives
 a held level — dynamics, within-excursion shape, or the response to a change — and a candidate whose
 mechanism is "the twins run higher or lower" is already dead before it is queued.**
+
+**711. A LEVEL-MEDIATION SCREEN OVER EVERY ARM ON DISK: its registered validation FAILS on `t70`, and
+the failure corrects my own five-sightings rule — the refit moves TWO things, not one.** After five
+candidates declined the same way (L 710), the screening question was worth more than a sixth arm: for
+each scored row, how much of its arm-to-arm variation is explained by the arm's own `bg_mean`? Rows
+that move WITH the level are unreachable, since `resid_m`'s fit converts the gain back. Measured as a
+within-log fixed-effects regression over **34,662 (log, arm, row) values across 235 logs and 293
+arms** (`runs/2026-11-04-additive-levelscreen/`), centring row and level inside each log so the draw,
+the people and the donor targets are held fixed.
+
+**The validation was registered first and it does not pass.** `t180` 0.815, `tir` 0.726 (against
+L 630's independently measured 0.59) and `tdd` 0.502 all read strongly level-coupled as required, and
+the sensor rows read low (0.053-0.377, mean ~0.16) as required — so conditions (1) and (3) confirm the
+instrument. But I registered that **`t70` "cannot not be" level-mediated, and it reads 0.001.** By my
+own rule the ranking is therefore NOT read as a reachability ranking, and this lesson is the diagnosis
+rather than the table.
+
+**Why the prior was wrong, and it matters.** `t70` is a ~2% tail mass where `t180` is a ~25% mass, so
+a 2 mg/dL shift in the centre moves one and barely the other; and this arm pool is full of LOW-SIDE
+mechanisms (`sg_h_lo`, `cr_tau_off`, `pro_g_own`, `sg_rate`, `sg_kappa`) that move `t70` hard at a
+nearly fixed level. So R^2 here answers "across the kinds of mechanism this project actually builds,
+which rows move independently of the level" — conditional on the arm pool, not an intrinsic property
+of the row. Quote it that way.
+
+**THE CORRECTION THAT MATTERS: "level-mediated" was my shorthand for two different channels.** The
+`resid_m` refit changes the cohort's mean level AND re-draws **each person's drift**, and L 684
+measured a direct drift channel to the low side — night `t70` tracks |`resid_m`| at rho +0.374, with
+night zero-delivery running 24.5 -> 39.6% across its quartiles. So B16's `t70` gain (0.325 -> 0.103)
+reverting to 0.227 on the refit (L 710) was NOT the mean — the mean actually improved, 151.31 at a gap
+of 0.047 — it was the per-person drift. **L 710's rule "a candidate is only worth an arm if its effect
+survives a held level" is too coarse and is hereby restated: it must survive a held level AND a
+refitted per-person drift.** Those are separable and a gain can die on either.
+
+**What the table does legitimately say, and it is the session's shape in one line.** Level-coupled in
+this pool: `t180` 0.815, `tir` 0.726, `tdd` 0.502, `workout_mets` 0.469, `meal_d3h` 0.445,
+`circadian_amp` 0.435. Level-independent: the whole low side (`t70` 0.001, `p_reach54` 0.004, `t54`
+0.008, `min_below70` 0.009, `lows_per_day` 0.043), the appearance rows (`pulse_dur_h` 0.002,
+`pulse_peak_per_g` 0.005, `entry_fast_fall` 0.019), and most dynamics (`sigma_disp` 0.067, `ac1`
+0.060, `zero_frac` 0.057). Cross that with where a defect is ESTABLISHED:
+
+- the low-side rows are reachable but have **no established bias** (L 607: `t70` −0.004, `t54` −0.048,
+  lows/day −0.050 at five draws) — reachable, nothing to fix;
+- `tdd` has the only robust bias (+3.36) and is **level-coupled** — broken, unreachable, which is
+  exactly what L 604/605/629/630 concluded one arm at a time;
+- and the **appearance rows are BOTH reachable and broken** — `pulse_dur_h` a real ~19% defect
+  (L 695), `entry_fast_fall` the ×1.37 velocity target (L 703, 707), `acf_zero_min` 0.375.
+
+**So for the rows that are both reachable and broken, the level fit is NOT the binding constraint —
+`bg_cv`'s zero headroom and the high-side cost of the only lever are (L 696, 697).** That unifies the
+session: L 703/704/707/708 narrowed the velocity deficit to appearance shape, this screen says those
+rows survive the fit, and `ge_order` 3 is blocked on TIR, t180 and the guard rather than on
+`resid_m`. The next candidate that matters is still "post-entry motion without appearance dispersion",
+and now there is a reason to believe such a candidate would not be eaten by the refit.
