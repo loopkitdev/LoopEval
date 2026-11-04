@@ -5996,3 +5996,49 @@ outputs contradicted each other. **Print the forward prediction beside any solve
 search can converge to a boundary and report it as a finding, and the cheap check is whether the
 independent direction agrees.** Third mis-signed comparison this session after the column-index read
 and L 699's denominator.
+
+**704. L 575's POST-MEAL POTENCY GAP IS NOT THE RESTORING FORCE AND NOT THE LOAD — measured on true
+glucose, with the only working lever being appearance shape at a third of the size needed.** L 703
+turned the gap into a quantitative target (post-entry fall rates x1.37, uniform), and the obvious
+candidate cause was the force: L 635-642 measure the insulin-independent restoring force as ~1.8x too
+strong, and the force is a LARGER SHARE OF THE NET during a fall than during a rise, where carb
+appearance dominates — so an over-strong force would damp falls more than rises, which is exactly the
+fall/rise asymmetry L 575 could not explain, and it would make ONE cause of the potency gap,
+`entry_fast_fall` and L 680's 0.63 change response. Tested on arms already on disk, no new simulation
+(`runs/2026-11-04-additive-fastfall/`), against bars fixed first.
+
+**It is refuted on both instruments.** On CGM, `sk1` (`sg_kappa` 0.15, which keeps ~0.46 of the
+default dwell-weighted force by L 642's ordering) moves the twin/donor constant only 0.743 → **0.758**
+against a registered bar of >= 0.85 for "main cause" and < 0.78 for "at most minor". On TRUE glucose —
+`truth.bg`, so no sensor in the path — its median post-entry fall rate is **0.995x** the reference's.
+Cutting half the restoring force does not change how fast this body falls after a meal. The glucose
+LOAD is not it either: `um70` (`unl_mult` 0.70) reads 0.954x on truth and sat within 0.003 of the
+reference on CGM, as registered for a control.
+
+**The one arm that moves the BODY's post-meal fall rate is `ge_order` 3** — 1.105 / 1.111 / 1.147 /
+1.134 / 1.359 at p5 / p10 / p25 / p50 / p75 on truth, consistently above 1 at every quantile, median
+**+13.4%**. So appearance shape is the only live lever, it supplies about a third of the x1.37 needed,
+and it is already rejected on TIR, t180 and the guard (L 696) and damps the change response (L 656,
+confirmed against a matched control at L 702). `sg_rate` goes the wrong way on truth (0.907), which is
+L 649's sign finding again on a new instrument. With L 575's own eliminations (appearance scale,
+emptying speed, Vmax, uptake glucose-dependence, insulin-action timing, post-meal sensitivity, dose,
+κ) the candidate space for this gap now also excludes **the restoring force, the glucose load and
+every sensor term**. It is a tightly bounded open problem, not an open field.
+
+**And my L 703 claim about `act_k` is RESTORED, on the right instrument.** I had written that
+`act_k`'s gain on `entry_fast_fall` is an instrument gain — sensor noise widening the rate
+distribution near a steep cut — and a CGM-based falsifier appeared to refute it (median k +0.050
+against a tail +0.064, moving comparably). **That falsifier was the wrong instrument**: the statistic
+is a MINIMUM over ~24 windows, and added noise biases a minimum downward at EVERY quantile, not only
+in the tail, so a CGM read cannot separate a noisier sensor from a faster-falling body. On truth,
+where `act_k` can reach the body only through Loop's doses, `ak1` reads **0.991 / 0.986 / 1.016 /
+0.970 / 1.058** — scattered either side of 1 with no direction. The body did not change; the gain is
+measurement.
+
+**The bar I set for that was too tight, and it is L 664 re-bitten.** I registered "within ~0.02 at the
+median" and got −0.030, which by the letter failed — but the arm-to-arm scatter among arms with no
+fall mechanism at all is ~±0.05 (`um70` −4.6%, `rmd1` −3.7%), so ±0.02 was below the instrument's own
+noise and would have condemned any null arm. L 664 says it in terms: **state a falsifier as "no more
+than the scatter of arms that cannot affect this row", never as an absolute tolerance, for anything
+measured downstream of the controller.** Read the whole quantile row for direction before reading any
+single number against a bar: `ak1`'s row has no direction, `go3`'s is above 1 five times out of five.
