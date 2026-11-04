@@ -255,6 +255,10 @@ def donors(out: str, par: int = 6):
     D.to_csv(out, index=False)
     pd.DataFrame([b for _, bs in res for b in bs]).to_csv(Path(out).with_name("life_bouts.csv"), index=False)
     mdir = "meals_fit" if (ICE_ROOT / "meals_fit").exists() else "meals"
+    # the sidecar `sim()` requires: which ice label set these donor targets were built from. Without it a
+    # table outlives the labels it was made with and silently rescores every appearance row (L 695, job 204)
+    json.dump({"labels": mdir, "built": pd.Timestamp.utcnow().isoformat(), "blocks": int(len(D)),
+               "donors": int(D.alias.nunique())}, open(Path(out).with_suffix(".provenance.json"), "w"), indent=1)
     print(f"{len(D)} blocks, {D.alias.nunique()} donors -> {out}")
     print(f"donor pulse labels from {ICE_ROOT / mdir}"
           + (f" (manifest: {json.loads((ICE_ROOT / mdir / '_manifest.json').read_text()).get('labeller', '?')})"
@@ -336,6 +340,25 @@ def sim(root: str, par: int = 6, donor_csv: str | None = None):
     dpath = Path(donor_csv) if donor_csv else Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/life_blocks.csv"
     if dpath.exists():
         _d = pd.read_csv(dpath)
+        # The donor table's MEAL LABELS must be the set this code reads. When ice regenerated the pulse
+        # labels (L 695) the corrected table was written to a new run dir and the DEFAULT path kept the
+        # stale one, so an arm post-processed without the explicit path was scored against `pulse_peak_h`
+        # 0.750 / `pulse_dur_h` 1.917 while the reference carried 0.622 / 1.588 - two different donor
+        # targets in one comparison, which is L 695's own error arriving through the default (job 204's
+        # af3). A sidecar records the source and this refuses a mismatch instead of scoring it.
+        _prov = dpath.with_suffix(".provenance.json")
+        _want = "meals_fit" if (ICE_ROOT / "meals_fit").exists() else "meals"
+        if _prov.exists():
+            _got = json.load(open(_prov)).get("labels")
+            if _got != _want:
+                raise SystemExit(f"{dpath} was built from ice labels '{_got}' but this code reads "
+                                 f"'{_want}': the donor meal-pulse targets would differ from any arm "
+                                 f"scored on the current code. Rebuild with `lifestats donors <out.csv>`.")
+            print(f"donor table {dpath.name}: labels '{_got}' (provenance verified)")
+        else:
+            raise SystemExit(f"{dpath} has no {_prov.name}: its donor meal-pulse labels are unverifiable, "
+                             f"and a stale table silently rescores every appearance row (L 695, job 204). "
+                             f"Rebuild with `lifestats donors <out.csv>`, which writes the sidecar.")
         miss = [c for c in HABIT if c not in _d.columns]
         if miss:
             raise SystemExit(f"{dpath} is missing {miss}: it was built without the workout columns, so the "

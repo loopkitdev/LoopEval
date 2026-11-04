@@ -102,10 +102,23 @@ def gaps(sim: pd.DataFrame, ref: pd.DataFrame, yard: pd.DataFrame, seed: int = 0
     return pd.DataFrame(rows)
 
 
-def summarize(G: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+def summarize(G: pd.DataFrame, no_spread: set | None = None) -> tuple[pd.DataFrame, dict]:
+    """`no_spread`: (stat, group) keys whose SPREAD half must be dropped for every arm being compared.
+
+    Why it is needed: `spread` is `log(sim_p90-p10 / real_p90-p10)` and is NaN when either width is 0,
+    and `.fillna(0)` then reads that as NO PENALTY. So an arm whose simulated spread is exactly zero
+    scores perfect on this half while an arm with a slightly NONZERO spread is charged heavily — the two
+    are scored with different gap definitions on the same row. On `workout_after_meal` (n_sim = 4,
+    weight 2) that gave the reference 1.282 and an arm 2.356 at an IDENTICAL median and d50, worth
+    +0.0205 of score, which was more than the whole draw-3 difference it appeared in (job 205). main()
+    collects the degenerate keys across all compared arms and passes them here, so a row is scored the
+    same way for everyone or not scored on spread at all."""
     G = G.copy()
     G["tier"] = G.stat.map(TIER_OF)
-    G["gap"] = G.d50.abs() + 0.5 * G.spread.abs().fillna(0)
+    sp = G.spread.abs()
+    if no_spread:
+        sp = sp.where(~pd.Series(list(zip(G.stat, G.group)), index=G.index).isin(no_spread), np.nan)
+    G["gap"] = G.d50.abs() + 0.5 * sp.fillna(0)
     G["noise"] = (G.d50.abs() <= 2 * G.se).fillna(False)
     # one value per statistic: sensor groups pooled by their simulated sample size
     P = G.groupby("stat").apply(lambda x: pd.Series(dict(tier=x.tier.iloc[0], gap=np.average(x.gap, weights=x.n_sim),
@@ -163,9 +176,18 @@ def main():
                                    Path(a.donor_meals) if a.donor_meals else None) for r in a.runs}
     # the same statistics in every run, so the scores compare (the labelled meal table exists only where ice_check ran)
     common = set.intersection(*(set(G.stat) for G in raw.values()))
+    # a row whose spread is degenerate for ANY compared arm is scored on its median alone for ALL of
+    # them: otherwise one arm gets a free pass on the spread half and the gaps are not comparable
+    no_spread = set()
+    for G in raw.values():
+        for st, g, sv in zip(G.stat, G.group, G.spread):
+            if not np.isfinite(sv): no_spread.add((st, g))
+    if no_spread:
+        print(f"[spread dropped for all arms on {len(no_spread)} degenerate row(s): "
+              f"{', '.join(sorted(st for st, _ in no_spread))}]")
     summ, tabs = {}, {}
     for n, G in raw.items():
-        tabs[n], summ[n] = summarize(G[G.stat.isin(common)])
+        tabs[n], summ[n] = summarize(G[G.stat.isin(common)], no_spread)
     names = list(tabs)
     first = tabs[names[0]]
     T = first[["tier", "stat", "group", "real_p50"]].copy()
