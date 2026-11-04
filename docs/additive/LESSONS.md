@@ -6220,3 +6220,55 @@ rejected on the high side. **What would actually be new is a mechanism that adds
 MOTION without adding appearance DISPERSION**, since the identity of L 678/697 is what prices the
 latter; nothing in the model does that today, and L 659's attribution caveat applies — closing the row
 is consistent with more than one hypothesis, so a candidate here must come with its own evidence.
+
+**709. B16 PASSES ITS REGISTERED RULE AND FAILS ONE OF ITS REGISTERED PREDICTIONS, and the failure is
+the more useful half: the donors' `zero_frac` is DELIVERY-based and the twins' is COMMAND-based, so no
+body behaviour can close L 699's attribution gap.**
+
+The arm (job 208, three draws, identity and no-op gates passed, `pump_off` the only key differing):
+
+| draw | score | tier 1 |
+|---|---|---|
+| 1 | 0.328 -> 0.328 | 0.135 -> 0.132 |
+| 2 | 0.366 -> 0.374 | 0.209 -> 0.203 |
+| 3 | 0.404 -> 0.418 | 0.178 -> 0.169 |
+| **mean** | **0.3660 -> 0.3733 (+0.0073)** | **0.1740 -> 0.1680 (−0.0060)** |
+
+Both conditions hold — score level within the 0.01 floor, tier 1 better — so by the rule registered
+before the run the verdict is **adopt pending the `resid_m` refit**, which is the mirror image of
+`act_frag` (score better, tier 1 worse, declined). Same bars, opposite signs, applied the same way.
+Tier 1 is better on **all three draws**, which no candidate this session has managed; the score cost
+is tier 2 (draw 3 0.526 -> 0.567) against a large tier-3 gain (0.526 -> 0.461).
+
+**THE FAILED PREDICTION.** I registered that `zero_frac` would RISE about +1.2 points, since 1.81% of
+bins become zero-delivery. It FELL — draw 3 29.17 -> 27.57, away from the donors' 32.49 (gap 0.303 ->
+0.463), draw 2 flat at 32.88 -> 32.72. The cause is structural and I had already written it down:
+`validate._record_delivery` builds the twin's delivery from the trace's **candidate stream rateUhr** —
+what LOOP COMMANDED — while `device.deliver` returns (0, 0) and drops the queue during a gap. So the
+pump-off is invisible to the twin's own delivery statistic. **I registered a prediction that the limit
+I had recorded in COMPONENTS an hour earlier ruled out** ("delivered insulin is the same (zero),
+recorded recommendations are not"): a limit written in one document and a prediction written in
+another, never checked against each other. The remaining `zero_frac` motion is indirect — glucose
+changes, so Loop commands differently.
+
+**And that exposes a like-for-like asymmetry bigger than the one L 699 measured.** The DONOR side is
+delivery-based: a `basalType='suspend'` record carries volume 0 and counts as zero delivery. The TWIN
+side is command-based. So the donors' `zero_frac` includes their pump-off time and the twins' excludes
+it **whether or not the twins have the behaviour** — which means **giving the body the behaviour cannot
+close that gap, and L 699's masking is the only fix for it.** I declined masking as sub-threshold
+(every row's correction under its own draw scatter) and that decision stands, but the reason is now
+different: it is not that the body will eventually supply it, it is that the statistic is built from
+two different streams. Anyone re-opening `zero_frac`, `med_nonzero` or `conc1` should read this first.
+
+**What B16 does buy, which is the goal it was built for:** the twins' traces now contain pump-off
+excursions they never could before — `bg_mean` +5.0 on draw 2 (148.20 -> 153.20, gap 0.175 -> 0.099,
+TOWARD the donors' 151.93) and +2.5 on draw 3 (gap 0.018 -> 0.140, away), `t180` up on both, `t70`
+0.325 -> 0.103 and 0.069 -> 0.151, `tdd` better on both (0.235 -> 0.185, 0.254 -> 0.221, helping the
+one robust bias). The behaviour itself is reproduced: the arms realised 0.29-0.31 episodes per
+person-day against the measured 0.291 and 1.8% of time against 1.89%. t54 is the usual draw split —
+toward the donors from above on draw 2 (0.232 -> 0.162 against 0.190), further below on draw 3
+(0.148 -> 0.097).
+
+**The refit decides it (L 597), as it did for `act_frag`.** The arm moves its own level by +2.5 to
++5.0 mg/dL, which is far more than `act_frag`'s −0.9, so there is more for the fit to take back and
+the registered expectation is that some of the tier-1 gain is level-mediated. Job 209.
