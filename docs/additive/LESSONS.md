@@ -6579,3 +6579,40 @@ changing how carb sensitivity is calibrated, which moves every meal for every pe
 the reference. That is not a "level but better explained" tweak; it is a change to the calibration
 scheme, and the right order is to measure what the clipped 9% cost on the scored rows BEFORE touching
 it. Recorded here so the next session starts from the structure rather than from `f`'s median.
+
+**717. ONE SHADOWED VARIABLE GENERATED THREE DISTINCT ERRORS IN A DAY, including the fix proposed for
+the first one.** `etl.py` builds `segs` with `btype` (the collapsed `temp | scheduled | suspend`) as
+its 7th element at line 1388, and the loop at 1391 unpacks that element as **`dtype`** — the same name
+the raw Tidepool `deliveryType` carries 300 lines earlier. Inside that loop the name means something
+narrower than it does outside it, and nothing says so. The consequences, all today:
+
+1. **The export collapses two classes.** `basalType` is written from that `dtype`, so Loop's commanded
+   temp (`deliveryType='automated'`) and the user's manual temp (`deliveryType='temp'`) both export as
+   `basalType: "temp"` — measured over the 206 `ice_v32` exports, `basalType` takes only
+   `temp` / `scheduled` / `suspend` and never `automated` (L 699).
+2. **It hid the `automatic` bug.** Every basal exported `automatic: True`; the `manual` flag was
+   computed correctly and used only for the disruption rows.
+3. **And it made MY suggested fix wrong.** After Pete corrected the domain fact — *"actual suspends are
+   always user-driven... Loop will set 0 unit per hour temp basals, but it won't actually issue a
+   suspend command"* — I proposed `"automatic": dtype == "automated"` as the simpler rule, reasoning
+   that only Loop's own uploads are automatic. At that line `"automated"` **never occurs**, so the rule
+   evaluates False for every record and would have marked all **4.2 million** basal records as manual:
+   a far worse bug than the one it was fixing. simulator caught it and shipped
+   `not (manual or dtype == "suspend")` instead (`718af25a`), which is correct across all four classes.
+   Verified at the call site before accepting it, per L 666 — and this time the peer's reason was right
+   as well as their verdict.
+
+**The rule: when a name is rebound to a narrower meaning inside a scope, every claim about it must be
+re-derived at the line, not carried in from the name.** I had *already documented* the shadowing in
+the handoff that asked for the fix, and still reasoned about `dtype` as though it were the raw field
+one screen later. Knowing about a shadow is not protection against it; only reading the binding is.
+
+**The domain fact, which is Pete's and worth stating plainly for the record:** for a Loop user a
+`suspend` record is **never the controller's action**. Loop withholds insulin by commanding a temp
+basal at 0 U/hr and never issues a suspend command, so every suspend is the person or the pump.
+Measured consequence: **14,369 suspend records across 203 of 206 donors** were exported as Loop's
+action, against the 5,859 manual-temp records across 39 donors that the first fix addressed — the
+uncaught half was 2.5x the records and 5x the donors. It also retires one of my own asks: Tidepool's
+`deviceEvent status` `reason` field is no longer needed to attribute a suspend away from the
+controller, since the rule answers it; a deliberate user suspend versus a pod fault remains a separate
+axis that our exports cannot settle.
