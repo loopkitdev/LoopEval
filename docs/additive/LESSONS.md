@@ -6536,3 +6536,46 @@ Counting L 666's eight, L 714's `egp_share` and these three, that is **twelve** 
 and its documentation disagreed, all found by instruments rather than by reading, and none of them
 visible in any result — the model runs identically whether the comment is right or wrong, which is
 exactly why they accumulate.
+
+**716. THE CARB-SENSITIVITY CALIBRATION HAS TWO BRANCHES, BINDS AT A BOUND FOR 9% OF THE COHORT, AND
+MOVES `vg` OFF ITS LITERATURE VALUE FOR 34% — found by following L 715's `f` anomaly to its cause.**
+L 715 flagged `f` (carb bioavailability) as living at a median of 0.498 against a documented prior of
+N(0.9, 0.05), and attributed it loosely to "the per-donor `csf_geq` fit". That attribution was too
+vague and the real structure matters. `person.py:289` draws `f = clip(N(0.9, 0.05), 0.7, 1.0)` — a
+floor of **0.7** — so the observed range of 0.30-1.00 cannot come from the draw. It comes from two
+later lines:
+
+    bp = bp.scaled(f=1.0, vg=float(1000.0 / (bw * csf_target)))   # 367: branch A
+    bp = bp.scaled(f=float(max(f_cal, 0.3)))                      # 369: branch B, floored at 0.3
+
+So the per-person carb sensitivity is calibrated by moving EITHER the distribution volume OR the
+bioavailability. Over the reference's own 112-person draw (`sample_person`, seeds 1000-1111):
+
+| branch | people | share | note |
+|---|---|---|---|
+| A — `f` = 1.0, `vg` recomputed | 38 | **34%** | `vg` median **1.330** against the declared 1.88 |
+| B — **clipped at the 0.3 floor** | 10 | **9%** | a saturated calibration (L 606) |
+| B — interior | 64 | 57% | `f` between the floor and 1.0 |
+
+**The clipped 9% are a coherent group, not scatter**: median body weight **46.0 kg** against the
+rest's 71.1, `isf_true` **102 against 52** (twice as insulin-sensitive), `cr` 12.75 against 9.0, `tdd`
+31.3 against 41.2. Small, insulin-sensitive, low-dose donors — plausibly the paediatric and small-adult
+end of the pool. For them the calibration wants bioavailability BELOW 0.3 and is clipped, so **their
+meals deliver more glucose than the fit asked for**, and L 606's finding applies directly: a parameter
+fitted against an unreachable target runs to its bound and damages the rows it can affect. The clip is
+not the error — a bioavailability under 30% is not physiological — **the error is that the target is
+unreachable for these people**, which points at the carb-sensitivity target derivation having an
+unmodelled body-size effect rather than at `f`.
+
+**And this is a second, independent reason `vg` is not a free parameter** (L 708 gave the first, that
+it divides only the mass-flux group): **it is already carrying the carb calibration for a third of the
+cohort**, at 1.330 against the 1.88 the declaration and the evidence state. Any future reasoning that
+treats `vg` as a tunable global quantity has to account for 34% of people whose `vg` is a derived
+calibration output. L 708's conclusion stands and is strengthened.
+
+**Status: a defect candidate for Pete, not a unilateral change.** It is a real structural problem —
+9% of the cohort on a clipped fit, concentrated in a identifiable subgroup — but fixing it means
+changing how carb sensitivity is calibrated, which moves every meal for every person and would re-base
+the reference. That is not a "level but better explained" tweak; it is a change to the calibration
+scheme, and the right order is to measure what the clipped 9% cost on the scored rows BEFORE touching
+it. Recorded here so the next session starts from the structure rather than from `f`'s median.
