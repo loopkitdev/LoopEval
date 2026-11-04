@@ -248,9 +248,19 @@ cost came up empty. **Do not spend further arms on appearance dispersion while `
 exchange rate between the shape rows and the outcome rows is set by the identity, not by the
 parameterisation — the same conclusion L 640/642 reached for A1d's shape, now for A10's. The only measured
 remedy is the LOAD lever and it is about a fifth as strong as needed (`unl_mult` 0.85 recovers 0.73 of 4.34
-CV points, 0.70 recovers 1.90 and overshoots t180 downward). Aim the next arm at `entry_fast_fall` through
-a mechanism that does not add dispersion; it is the same deficit as L 575's post-meal fall potency (80% of
-the donors' per unit spent, every named candidate eliminated) counted as events instead of mg/dL.
+CV points, 0.70 recovers 1.90 and overshoots t180 downward). **`entry_fast_fall` is now MEASURED and it is NOT an independent
+target (L 703).** The deficit is a UNIFORM SHIFT of 0.72-0.74 across the whole distribution of post-entry
+fall rates (twin/donor 0.74 / 0.70 / 0.72 / 0.76 / 0.80 at p5 / p10 / p25 / p50 / p75), not a missing tail,
+and one scalar reproduces the threshold share — the k from the quantiles is 0.743 and the k equating the
+shares is 0.721, donors cut at −208 giving 7.04% against the twins' observed 7.03%. **0.72-0.74 is L 575's
+own number** (43 against 57 mg/dL at matched insulin spend), so these are ONE defect: the row closes if and
+only if the potency gap closes and there is nothing to aim at it separately. **The row also MAGNIFIES the
+defect twofold** — the underlying rate is off 1.35x while the share reads 2.5-2.9x too few, because `FAST`
+−150 sits between the donors' p25 (−128) and p10 (−188) — so the physical error is 26-28%, not 190%, and a
+mechanism sized from the share would be ~2x too strong. It is also why `act_k`, a measurement term that
+cannot change potency, is one of only three arms that move this row: widening the rate distribution near a
+steep cut buys share, not potency. Over 284 arm-draws on disk the range is 3.57-8.33 against the donors'
+14.29, so no further ratio-preserving arm will help.
 
 ## Known limits of the current reference (read before using its numbers)
 
@@ -990,6 +1000,15 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   points at p 0.42, with the quoted "~4% of time below 80" actually 5.26%, a figure I had not measured on this
   data. A wide window over a common exposure saturates, and a pooled ratio weights donors by the exposure under
   test. Both checks are one extra read over data already on disk; run them before the lesson, not after.
+
+- **A thresholded share is a LEVER-ARM on the quantity underneath it, and a solved-for parameter needs its
+  forward prediction printed beside it** (L 703). `entry_fast_fall`'s 2.9x deficit is a 1.35x error in the
+  underlying fall rate, because the −150 cut sits on the steep part of the donors' distribution (p25 −128,
+  p10 −188) — the row magnified a 26% defect into a 190% one, and a mechanism sized from the share would be
+  ~2x too strong. Quote the quantity beside the share. In the same script my bisection for the shift constant
+  was inverted (`s(k)` increases in k; I narrowed the wrong bound), so it ran to its boundary and printed
+  "the ks DISAGREE" at k = 0.400 — caught only because the script also printed the forward prediction from
+  the independent route, which plainly agreed. A search can converge to a boundary and report it as a finding.
 
 - **A share's correction is NOT the mass you removed, and a day-level row needs the whole day** (L 699). Masking
   the donors' suspend bins out of `zero_frac` moved it 0.94 points where I had registered 1.8: removing a bin takes
