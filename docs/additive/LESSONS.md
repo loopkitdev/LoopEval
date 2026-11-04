@@ -6728,3 +6728,37 @@ source is **the arm's own `person.pkl`, which is already on disk** — the same 
 arm from its own `meta.json`, never by name", now for people rather than configs: **read the artefact,
 never re-derive it.** Every calibration-dependent number in L 715 and L 716 was wrong by 9-11% for
 this reason, and one was wrong in kind.
+
+**720. THE CARB-CALIBRATION CLIP IS LOAD-BEARING, NOT A DEFECT — L 716's framing is withdrawn and the
+question comes off Pete's plate.** Measured on the isolated arm (job 214's `clipf2`, floor 0.3 -> 0.10,
+verified to touch exactly the 6 people whose `f` changes and no others), paired per person against each
+one's own donor, read from the arms' own `person.pkl` (L 719's rule):
+
+| row | clip \|dev\| | no clip | change |
+|---|---|---|---|
+| `bg_mean` | 4.99 | 6.83 | **+1.84 worse** |
+| `tdd` | 3.39 | 4.39 | **+1.00 worse** |
+| `t180` | 0.67 | 1.08 | +0.41 worse |
+| `tir` | 6.12 | 5.43 | −0.70 better |
+| `t70` | 3.69 | 3.43 | −0.26 better |
+| `bg_cv` | 3.94 | 3.98 | flat |
+
+**Signed `bg_mean` deviation −3.08 -> −6.83 mg/dL: removing the clip DOUBLES these twins' level error**,
+which is the mechanism registered before the run — they already run low, unclipping gives them less
+carb appearance, so they run further low. Three rows worse, two better, and the level and TDD are the
+two that worsen.
+
+**So the 0.3 floor is doing useful work.** L 716 read it through L 606 ("a parameter fitted against an
+unreachable target runs to its bound and damages the rows it can affect") and called it a defect
+worth a possible re-base. That was wrong in sign: the bound is *protecting* these people from a
+calibration that wants an unphysiological bioavailability, and honouring that want makes them worse.
+**The carb-calibration question therefore does not need Pete's decision, and the re-base it implied is
+off the table.**
+
+**Stated weakness, because the result is thin:** the 6 affected people map to only **4 donor
+templates** (8 matched rows), so the row count 3-2 is not a strong signal on its own. What carries the
+verdict is the signed level deviation, which is unambiguous, large relative to the rows, and exactly
+what was predicted — not the row tally. **What remains true from L 716** is the structure: the
+calibration has two branches, `vg` is a derived calibration output for 44% of people (median 1.672
+against the declared 1.88, L 719), and the target is unreachable for the small, insulin-sensitive end
+of the pool. That is worth knowing about `vg`; it is not a defect to fix.
