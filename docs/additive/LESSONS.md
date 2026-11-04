@@ -6762,3 +6762,50 @@ what was predicted — not the row tally. **What remains true from L 716** is th
 calibration has two branches, `vg` is a derived calibration output for 44% of people (median 1.672
 against the declared 1.88, L 719), and the target is unreachable for the small, insulin-sensitive end
 of the pool. That is worth knowing about `vg`; it is not a defect to fix.
+
+**721. BOTH HALVES OF THE GOAL NOW HAVE EXACTLY ONE WORKING LEVER EACH, BOTH PRICED, AND THEY DO NOT
+COMBINE — the arithmetic says so without an arm.** The standing goal is two things: more
+representative of observed traces, and more accurate on the natural experiments. After this session's
+candidates each half reduces to a single mechanism, and in both cases what blocks it is a preference
+between axes rather than a missing measurement.
+
+**The representativeness lever: `ge_order` 3.** The only lever that moves the body's post-meal fall
+rate (+13.4% on truth, L 704) and the only one that halves the structure-function gap (L 652). It buys
+`meal_d3h` 31 -> 37 against the donors' 38, `acf_zero_min` 60 -> 55, `pulse_dur_h`, the fall/rise ratio
+0.63 -> 0.69, and half the short-scale deficit. It costs **TIR 72.15 -> 68.49, t180 +2.3, and the guard
+t54 0.124 -> 0.294** against the donors' 0.190, plus a more damped change response (1.35 -> 1.51,
+L 702). There is no milder setting: `ge_order` is an `int` with default 2, and its costs are
+front-loaded and saturate at 3 while the gain continues to 4, so a per-meal mixture is linear in its
+fraction and the gain/cost ratio is constant (L 713).
+
+**The prediction lever: `sg_kappa` 0.15.** The only mechanism that has ever closed the damped change
+response — e-pool mean **1.33 -> 1.06**, TIR 1.28 -> 1.06, t70 1.15 -> 1.08, and 1.22 -> 1.05 once its
+own level drift is removed (L 638), against a field of 1.0 and L 680's measured 0.63 per delivered
+unit. It costs **`bg_cv` 34.2 -> 40.6 / 41.5 / 42.0** against the donors' 34.6, with t70 and lows/day
+roughly DOUBLED on all three draws and t54 1.5-2.5x, after a refit that held the mean exactly (L 639).
+L 640 and L 642 closed its SHAPE: every band-faithful parameterisation lands at x0.22-0.25 of the
+dwell-weighted force and the cost is monotone in that integral, so no reshaping escapes it.
+
+**THEY DO NOT COMBINE, and this needs no arm.** By L 678's identity the stationary spread is
+`sigma / sqrt(2*lam)`. `ge_order` 3 raises `sigma` (a sharper gastric pulse at the same load) and
+`sg_kappa` 0.15 cuts `lam` (it removes ~54% of the dwell-weighted restoring force). **Both terms move
+spread the same way**, so their `bg_cv` costs ADD rather than offset — from 34.2 toward ~42 for
+`sg_kappa` alone and 38.6 for `ge_order` alone, against the donors' 34.6 and zero headroom (L 697).
+Their low-side costs add too: `ge_order` 3 takes t54 to 0.294 and `sg_kappa` roughly doubles t70 and
+lows/day. So the pairing buys the appearance rows AND most of the change response at the price of a
+low side and a dispersion that are both far outside the donors — which AGENTS.md's "a win on one
+metric that costs the other is not a win" rules out more clearly than either lever alone. **There is
+no favourable combination to find, and no arm should be spent looking for one.**
+
+**So the honest closing position.** The reference stands at 0.328 / 0.366 / 0.404. Neither half of the
+goal is blocked by a missing measurement, a missing parameter, the level fit, the force, the load or
+the sensor — all of those were excluded this session with registered rules. Each half is blocked by
+one lever whose price is known and whose purchase is a judgement about which axis matters more. **That
+judgement is Pete's by construction**, and the useful thing this session produced is that it is now a
+choice between two priced options rather than an open search.
+
+**What would change the picture, in order of expected value:** (a) Pete takes one of the two trades,
+knowing the price; (b) a mechanism that adds post-entry motion WITHOUT appearance dispersion — the
+specification is in L 712 and L 713, and `vol_cluster_60m` is the row that catches a candidate that
+gets it wrong; (c) new data for the exercise band, which L 688 shows this donation cannot supply
+(0 heart-rate, 0 workout-type, 0 sleep, 0 energy rows).
