@@ -6417,3 +6417,43 @@ reachable by fast motion rather than being structurally stuck.
 column-index read and the inverted bisection, that is three direction errors in one session from the
 same cause: **a value read without the target it is compared to has no sign.** Print the donor target
 in the same row as the value, every time; the scorer's `--detail` does it and my ad-hoc reads did not.
+
+**713. THE SHORT-SCALE / POST-ENTRY MOTION DIRECTION IS CLOSED, with every route measured rather than
+argued. Read this before spending another arm on `entry_fast_fall`, `acf_zero_min`, `sigma_disp` or the
+daytime structure function — they are one target and this is its complete state.**
+
+The target, stated once: post-entry glucose motion is 0.74-0.82 of the donors' (L 703, 707), which is
+very likely L 648's daytime short-scale deficit (5/10/15-min structure function 0.81 / 0.86 / 0.88,
+missing 4.31 mg/dL of 5-min rms) seen from another direction (L 708), and L 711 shows these rows are
+NOT level-coupled, so a gain here would survive the `resid_m` refit that killed five candidates. The
+binding constraint is `bg_cv`, which has no headroom (34.2 against the donors' 34.65).
+
+Every route, with what closed it:
+
+| route | result |
+|---|---|
+| the restoring force (`sg_kappa`, half the dwell-weighted force) | median true post-entry fall rate **0.995x** — no effect (L 704) |
+| the glucose load (`unl_mult` 0.70) | **0.954x** — no effect (L 704); and 3-7x too weak on the slow scale (L 681) |
+| every sensor term (`act_k` 1.5) | CGM moves, TRUTH does not (0.991-1.058, no direction) — instrument, not body (L 704) |
+| `vg` / a global velocity scale | **counter-indicated**: `vg` divides only the mass-flux group, so it speeds RISES not falls; and the model has no single global velocity parameter (L 708) |
+| a rate-driven fast residual (`resid_mult_f` 1.75) | **buys the motion exactly as derived** (5-min rms x1.20, deficit 0.81 -> 0.97) and costs **+4.5 `bg_cv` points**, score +0.079, tier 1 +0.220, t54 0.148 -> 0.411. No rate drive can be cheap: a fast-correlated RATE lands in glucose and decays at 1/`lam`, hours (L 712) |
+| appearance dispersion (`ge_order` 3) | the ONLY lever that moves the body's fall rate (+13.4% on truth, L 704) and halves the structure-function gap (L 652) — blocked on TIR −3.7, t180 +2.3, t54 0.124 -> 0.294 (L 696) |
+| a MILDER appearance step | **impossible and pointless**: `ge_order` is an `int` (`world.py:715`) with default 2, so 2 -> 3 is the smallest step; and the costs are FRONT-LOADED and saturate there (TIR −3.67 then +0.07, t54 +0.170 then +0.003) while the gain continues to order 4, so a per-meal mixture would be linear in its fraction and the gain/cost ratio constant — there is no sweet spot |
+| an intermittent term (`act_frag`, the only one in the model) | right SHAPE, ~15% of the needed size on its own evidence, and only on one draw (L 658); raising its amplitude ~6x is unevidenced |
+
+**What L 712 adds, and it is the specification any future candidate must meet:** the missing variance
+is **INTERMITTENT**, not merely fast. The rate-driven residual raised the 5-min increment and
+simultaneously made `sigma_disp` (3.109 -> 3.054 against the donors' 3.574) and `vol_cluster_60m`
+(0.126 -> 0.101 against 0.122) WORSE — uncorrelated fast variance lowers volatility clustering. So a
+candidate must raise the 5-min increment while HOLDING `vol_cluster_60m` and `bg_cv`, and
+`vol_cluster_60m` is the row that catches one that cannot. Nothing in the model does this today, and
+L 659's caveat stands: a candidate here must be judged on its own evidence, never on closing the row.
+
+**So the honest position: this target needs a mechanism that does not exist yet, or new data.** It is
+not blocked by the level fit (L 711), not by the force, the load or the sensor (L 704), and not by a
+missing parameter (L 708) — it is blocked by there being no evidenced intermittent fast term. The one
+decision that could change the picture without new evidence is Pete's: **spend ~3.7 TIR points,
+2.3 t180 points and the t54 guard (0.124 -> 0.294) to buy `meal_d3h` 31 -> 37, `acf_zero_min` 60 -> 55,
+`pulse_dur_h`, the fall/rise ratio 0.63 -> 0.69 and half the structure-function gap** — the `ge_order` 3
+trade, which AGENTS.md's "a win on one metric that costs the other is not a win" forbids me from taking
+unilaterally and which no measurement can settle because it is a preference between axes.

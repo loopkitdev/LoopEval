@@ -286,6 +286,19 @@ sensitivity, dose, κ, the restoring force, the glucose load and every sensor te
   lever is `ge_order` 3 either way, blocked by `bg_cv`'s zero headroom and the TIR / guard cost. What would be
   new is motion WITHOUT appearance dispersion, which nothing in the model supplies.
 
+**THE SHORT-SCALE / POST-ENTRY MOTION DIRECTION IS CLOSED — read L 713 before spending an arm on
+`entry_fast_fall`, `acf_zero_min`, `sigma_disp` or the daytime structure function, which are ONE target.**
+Measured routes and what closed each: the restoring force 0.995x and the load 0.954x on true post-entry fall
+rate (L 704), every sensor term instrument-only (L 704), `vg` counter-indicated and no global velocity
+parameter exists (L 708), a rate-driven fast residual buys the motion exactly as derived (5-min rms x1.20,
+0.81 -> 0.97) at **+4.5 `bg_cv` points** because a fast RATE decays in glucose at 1/`lam` (L 712), appearance
+dispersion the only working lever but blocked on TIR/t180/guard (L 696), no milder appearance step possible
+(`ge_order` is an int, default 2, and its costs saturate at 3), and `act_frag` the right shape at ~15% of the
+needed size (L 658). **The specification a future candidate must meet (L 712): raise the 5-min increment while
+HOLDING `vol_cluster_60m` and `bg_cv` — the missing variance is INTERMITTENT, and uncorrelated fast variance
+lowers clustering.** Nothing in the model does this; it needs a new evidenced mechanism or new data. The only
+decision that moves it without new evidence is Pete's `ge_order` 3 trade.
+
 ## Known limits of the current reference (read before using its numbers)
 
 **Status (Pete 2026-10-20): usable with LoopEval.** The limits below are documented, not blocking. They are:
