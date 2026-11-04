@@ -2211,3 +2211,33 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       per g lower. The per-person size scale (build_size_person.py, lesson 115) matches each person's median
       drawn-to-entered ratio to the reconstructed field meals, not the ICE those meals realize in closed loop.
     - Test arm sz1.15 (entry-started pulse sizes × 1.15, frozen plant `PLANT_SIZE_SCALE`, probe_sz.sh), both trainings.
+
+179. **The generator does not inherit a too-fast insulin curve: against CGM, the stock Loop curve fits the response to a
+    correction bolus best, so the plant keeps it.** Asked by simulator (2026-11-04): Loop's exponential curves are
+    PK-shaped, and clamp GIR peaks later (about 90–134 min, 5–10 % of action left at 6 h; additive evidence §3.1), so
+    ICE (= velocity + ISF × modelled activity) could carry a curve artifact.
+    - **Where the curve is used.** Extraction (`extract.py`, the donor's Loop preset: adult 75 / child 65 / ultra-rapid
+      55 min peak, 6 h, 10 min delay), so the training targets too; the plant body (`plant_v3.Insulin`, same presets),
+      so replay identity holds; the person's pending-insulin input (plant IOB minus the basal IOB, same curve and net
+      convention as Loop's IOB). Curve-free: ISF_tdd (688 / TDD^0.74, from total daily delivery). GE is off in the base
+      recipe (oc) (`ge_sg` 0). The meal, low and band calibrations are fitted in closed rollouts through the same
+      plant curve, so they are consistent with it.
+    - **Fasting corrections, ice data** (fasting_corr*.py in runs/2026-11-04-ice-curve/; manual boluses ≥ 1 U, no
+      carbs from −3 h to +6 h, no other manual bolus; 1,213 events in 207 e-pool donors, 347 with steady glucose
+      before). Raw event means are set by the trigger: ICE is +27 mg/dL/h in the 15 min before (a rise being
+      corrected), and every curve shows the same fall afterwards. Regressing ICE on dose × ISF_tdd within donor, with
+      pre-bolus velocity and glucose as controls, a bigger correction raises ICE in proportion to the modelled
+      activity under every curve tried (peak 75 / 100 / 120 / 140 min). The residual area is 68–88 % of the expected
+      fall. Confounding by indication dominates: bigger corrections go to bigger unrecorded rises. The test cannot
+      tell the curves apart, and under the stock curve it shows no late negative lobe, which a curve that acts too
+      early would leave.
+    - **Shape fit, simulator** (runs/2026-11-04-plant-curve-ice/; 440 steady-high carbless corrections, 72 v32 donors,
+      shape and scale fitted together with a per-event drift). For rapid-acting donors, peak 75 fits best; peak 100 is
+      +5.5 % SSE [+0.7, +10] and peak 120 clearly worse. A 7–8 h tail is about 0.5 % better. For ultra-rapid donors,
+      peak 75–100 beats the 55 preset (+4.5 %). On the stock curve the mean residual is −11 mg/dL at 60–90 min and +5
+      at 3–4 h: the free-living CGM response comes early and partly rebounds. Clamp GIR measures action with glucose
+      held flat; the free-living response includes the body's restoring force.
+    - **So** a slower plant curve with ICE re-extracted on it is not supported, and the full rebuild (re-extraction of both
+      pools plus a 12 h chain on gamepc) was not run. Two small leads remain: the ultra-rapid preset (55) may be
+      too fast for the body (about 4 % SSE), and if GE is ever turned on in the plant it would double-count the
+      rebound that stock-curve ICE already carries.
