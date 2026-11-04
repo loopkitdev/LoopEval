@@ -5315,9 +5315,21 @@ would. Read against the rule registered in the job script before any number exis
   -> 41.81, split in sign. Two rows move with the night effect: t70 1.764 -> 1.412 and 2.119 -> 1.932
   (donors 1.599, so draw 1 crosses below) and **lows/day 1.000 -> 0.917 and 1.250 -> 1.375** — lows leave
   the night and some arrive in the day.
-- **(5) THE SCORE could not be evaluated as registered, because job 193's own script was defective** —
-  see the sibling lesson below. On the 37 rows it did score, rmd1 is 0.249 -> 0.256 and 0.274 -> 0.280 —
-  inside the 0.01 floor, same direction on both draws, tier 1 split (0.096 -> 0.104, 0.199 -> 0.188).
+- **(5) THE SCORE, completed as job 194, and it goes the OTHER WAY from the partial read.** On the full
+  row set the arm is BETTER on both draws: **0.332 -> 0.325 and 0.371 -> 0.359** (draw 2 marginally past
+  the 0.01 floor, in the arm's favour), tier split on draw 1 (t1 0.135 -> 0.143, t2 0.445 -> 0.422, t3
+  0.464 -> 0.490) and better on all three on draw 2 (0.209 -> 0.189, 0.462 -> 0.454, 0.442 -> 0.425). The
+  partial 37-row read said 0.249 -> 0.256 and 0.274 -> 0.280, worse on both — **the dropped rows carried
+  the sign.**
+- **(4') THE DAY-SIDE COST, on the tier-1 row that was missing, did not appear either.** `act_net20`'s gap
+  0.362 -> 0.380 on draw 1 and **0.203 -> 0.170** on draw 2, with `act_net20_hi` 0.067 -> 0.066 and
+  **0.160 -> 0.042**: split in sign and better on draw 2, which is the opposite of the registered risk.
+
+**So the decline rests entirely on (1)'s draw-2 level failure and (2)'s location half.** The score is
+level-to-better and the guard holds, so this is NOT a candidate the aggregate rejects — it is one that
+fixes a documented limit's gradient and breaks its location, and it costs nothing elsewhere. That makes
+the deviation-keyed form the live follow-up rather than a tidy-up, and it is worth Pete's view on whether
+a night-lows level three times too low is a worse limit than the gradient it buys.
 
 **Why the location cost is STRUCTURAL and not a coefficient that wants lowering.** The multiplier is
 applied to `resid_m` itself and is blind to its sign, so at 03:00 it scales a sink and a source alike to
@@ -5343,19 +5355,28 @@ So L 684's tension is unresolved: a glucose-keyed level-holder would raise `lam`
 escape L 684 named — needing LESS residual rather than a better form for it — is still the only route with
 nothing against it. Run dir `runs/2026-10-31-additive-gesplit` (arms `rmd1`, `rmd1_5k`).
 
-**692. Job 193 dropped nine scored rows, including a tier-1 one, by omitting two post-processing steps —
-and the score it printed for the UNCHANGED reference is how I caught it.** `score.py` scores a row only
-where it is present for BOTH runs, and `cohort.py` does not write the labelled-meal or life/activity
-summaries: `meal_response` and `lifestats sim` do, and every prior arm's job script runs them on the line
-after the cohort call (jobs 95, 99). Job 193's did not, so `meal_response_labeled.csv`, `life_stats.csv`,
-`life_bouts.csv` and `compare_life.csv` were missing from both new arms and ten rows vanished from both
-sides of the comparison (nine of them scored, n 46 -> 37) — tier 1 `act_net20` and `act_net20_hi` (the activity response, weight 3), tier 2
-`entry_fast_fall`, `fast_fall_share` (G7 and Libre), `ice_dip_day`, `ice_dip_day_share`, `unl_rise_rate`,
-`unl_rises_day`, `workouts_week`. The comparison that survived is still like for like, but the registered
-threshold could not be applied to it, and the one tier-1 row the arm's own registered cost would most
-plausibly damage — the activity response, since the arm moves the sink INTO the day — was among the
-missing. **The tell was free and I should have looked for it first: rf2 scored 0.249 / 0.274 where the
-record has 0.309 / 0.357 for the same arm.** A reference arm that does not reproduce its own published
-score means the ROW SET changed, not the arm. So: print the row count beside every score (`n` is already
-in the output — 37 here against 46), and check the reference's own number against the record before
-reading the candidate's. Completed as job 194 and re-scored on the full set.
+**692. Job 193 dropped nine scored rows, including a tier-1 one — and the threshold I registered against
+was ITSELF a reduced-row number, so the reference disagreed with the record in two different directions
+at once.** `score.py` scores a statistic only where it is present for BOTH runs, and `cohort.py` writes
+neither the labelled-meal nor the life/activity summaries: `meal_response` and `lifestats sim` do, on the
+line after the cohort call in every prior job script. Job 193's omitted them, so ten detail rows (nine
+scored, n 51 -> 37) vanished from both sides — tier 1 `act_net20` and `act_net20_hi` (the activity
+response, weight 3), tier 2 `entry_fast_fall`, `fast_fall_share` (G7 and Libre), `ice_dip_day`,
+`ice_dip_day_share`, `unl_rise_rate`, `unl_rises_day`, `workouts_week`. **That was not a cosmetic loss:
+completed as job 194, the arm's score goes from worse on both draws to BETTER on both** (L 691), so the
+dropped rows carried the sign.
+
+**And the threshold was wrong too.** I registered rf2 at 0.309 / 0.357, which is what the `act_k` and
+`act_frag` logs print — but those arms (`af1`, `ak1`, `akf1`, and `dye1` for `day`) each lack
+`meal_response_labeled.csv`, so their comparisons dropped five further rows: tier-1 **`meal_d3h`** and
+tier-2 `pulse_dur_h`, `pulse_peak_h`, `pulse_peak_per_g`, `unann_pulses_day`. rf2's score on the complete
+set is **0.332 / 0.371**, which this overlay's own Current-reference block has recorded all along. So the
+same arm carries two score pairs in the record, 46-row and 51-row, and I pre-registered against the
+wrong one. The deltas quoted in L 658, 661, 664, 667 and 683 are still like for like within their own
+logs; their ABSOLUTE pairs are on the reduced set and must be quoted with it, and whether the five
+labelled-meal rows move under those arms is simply unmeasured. Queued as job 195 to complete them.
+
+**The rule, and it was free:** a reference arm that does not reproduce its own published score means the
+ROW SET changed, not the arm. Print `n` beside every score and check the reference against the record
+before reading the candidate — and when the record carries two numbers for one arm, that is the defect,
+not a choice. L 666's drift, in the instrument this time rather than the prose.
