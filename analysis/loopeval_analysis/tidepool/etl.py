@@ -1419,7 +1419,11 @@ def export_donor(user, start, end, outdir, insulin_type=None):
             extra["basalType"] = str(dtype)
         doses.append({**extra, "deliveryType": "basal", "startDate": _iso(st), "endDate": _iso(en),
                       "volume": round(vol, 5), "tempRate": round(rate, 5),
-                      "insulinType": insulin_type, "automatic": not manual})   # a user-set temp is not Loop's
+                      "insulinType": insulin_type,
+                      # Loop's own actions only: a user-set temp is not Loop's, and neither is a suspend
+                      # (Loop withholds with a 0 U/h temp; it never commands a suspend). `dtype` here is the
+                      # collapsed btype (temp | scheduled | suspend), never "automated".
+                      "automatic": not (manual or dtype == "suspend")})
     doses.sort(key=lambda d: d["startDate"])
 
     # ---- carbs (food: nutrition.carbohydrate.net g, estimatedAbsorptionDuration s) ----
