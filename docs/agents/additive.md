@@ -304,12 +304,9 @@ the donors' per unit spent, every named candidate eliminated) counted as events 
   excursion count below 80 (1.67 against 1.75) and their penetration rate to 70 (60% against 57%); only the duration
   is wrong (25 min against 20). Every `sg_h_lo` variant fixes duration and breaks penetration, because a
   (Gb − G)-proportional term peaks AT the nadir and lifts it. **The requirement is a term acting AFTER the nadir,
-  during the climb** — the same time-asymmetry L 575 and L 594 ask for. **A BEHAVIOURAL term meets it and is now
-  measured (L 700): the person's own pump suspend, 8.7% of which start below 80 and whose 30 min–2 h class starts at
-  131 falling at −24 mg/dL/h. It acts on the descent and through the climb by construction, carries its own donor
-  evidence, and is not level-proportional. Registered risk: lows are at parity (t70 bias −0.004, L 607), so a defence
-  that PREVENTS lows overshoots — it must shorten episodes without cutting their count, so read `min_below70` and the
-  penetration rate to 70 beside t70.** Do not propose level-proportional low-side
+  during the climb** — the same time-asymmetry L 575 and L 594 ask for. **One behavioural term looked like it and is REFUTED
+  (L 700, 701): the donors' own pump suspends are not keyed to glucose at all — the low-episode association is x1.0
+  against a shifted-time null and the paired onset enrichment is −0.75 points at p 0.42. No candidate remains here.** Do not propose level-proportional low-side
   terms; they cannot meet it. **There is now a candidate that is not level-proportional, and it is measured
   (L 640)**: ice L 140a's probe finds the donors' learned restoring force about **2x stronger when glucose is
   pushed DOWN (D = −40) than up, below 130** — a direction-dependent gain, which acts on the descent and the climb
@@ -517,12 +514,11 @@ the donors' per unit spent, every named candidate eliminated) counted as events 
   twins' low-side eating is about the donors' (0.62 / 0.64 events against 0.50, two-or-more rare on both sides); what
   differs is the share of episodes treated at all (0.60 against 0.49), and that follows from episode DURATION — median
   25 min against 20, x1.25 against the treated-share's x1.23. Four arms on the eating side (size, refractory, onset
-  −10 / −20) were all rejected. Do not spend more there. **There is now a measured
-  candidate for the treated-share half, and it is a behaviour the model does not have (L 700): the donors ALSO
-  defend a low by turning the pump off.** 7302 suspend episodes over 202 donors, 0.234 per person-day, p50 34 min,
-  14.7% at night (a waking action) — and **8.7% start below 80 against the ~4% of time donors spend there, with the
-  30 min–2 h class starting at 131 and falling −24 mg/dL/h.** The twins have one low defence (eating) where the
-  donors have two, so they would EAT on the episodes a donor SUSPENDED, which is the 0.60-against-0.49 shape.
+  −10 / −20) were all rejected. Do not spend more there. **The one candidate
+  that looked like it — the donors defending a low by turning the pump off — is REFUTED (L 700, 701): the share of
+  low episodes with a suspend in the window is 26.9% against a shifted-time base rate of 25.4–27.4% (x1.0), and
+  paired against each donor's own waking below-80 share the onset enrichment is −0.75 points at p 0.42. The donors'
+  suspends are an interruption keyed to TIME, not to glucose. L 588's duration reading stands.**
 - **the sub-basal gap was a missing CODE BRANCH, not missing evidence** (L 596): A1b's `hep` is gated on `g > gb`, so
   the liver never released extra glucose in a low. Extending it symmetrically below basal (`sg_h_lo`, off by default)
   supplies 0.386 mg/kg/min at G 65 against the ~0.34 L 589 derived independently, and at HALF symmetry it closes the
@@ -973,6 +969,14 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   `entry_size_b`, `heat_a`, posture off, `kappa_ins` (needs Best 1981's insulin levels), G7 common error 1.0.
 
 ## Analysis traps (each cost a session)
+
+- **Every conditional rate needs a shifted-time placebo in the same script, and every "against the donors' X%"
+  needs to be paired per person** (L 700, 701). A suspend-in-the-window rate of 26.9% over low episodes passed a
+  registered 10% bar and was **exactly its base rate** — the same windows moved by a day read 25.4–27.4%. And an
+  onset enrichment of 1.66x pooled was composition: paired against each donor's own waking share it is −0.75
+  points at p 0.42, with the quoted "~4% of time below 80" actually 5.26%, a figure I had not measured on this
+  data. A wide window over a common exposure saturates, and a pooled ratio weights donors by the exposure under
+  test. Both checks are one extra read over data already on disk; run them before the lesson, not after.
 
 - **A share's correction is NOT the mass you removed, and a day-level row needs the whole day** (L 699). Masking
   the donors' suspend bins out of `zero_frac` moved it 0.94 points where I had registered 1.8: removing a bin takes

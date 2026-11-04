@@ -5802,11 +5802,40 @@ donors, records p50 128 d, episodes merged across gaps ≤ 5 min):
 - **Duration** p50 **0.56 h**, p90 3.20, p99 10.0; 47% under 30 min, 35% from 30 min to 2 h, 18% over
   2 h. log-h mean −0.557, sd 1.272.
 - **Clock** 14.7% of episodes fall 00–06 against a quarter of the hours, so it is a WAKING action.
-- **Onset glucose** p50 144, and the enrichment is what splits the class: **8.7% start below 80
-  against the ~4% of time donors spend there (2.2x), 31.8% start above 180 against ~26% (1.2x)**, and
-  the 45-min slope at onset is **−9.0 mg/dL/h with 56% falling**. By duration the 30 min–2 h class is
-  the low-defence-shaped one: onset 131, **11.6% below 80, slope −24 mg/dL/h**; the under-30-min class
-  starts at 152 with a flat slope, which is a site change, a shower or a pod fault.
+- **Onset glucose** p50 144, 8.7% below 80, 31.8% above 180, 45-min slope p50 −9.0 mg/dL/h with 56%
+  falling. By duration the 30 min–2 h class starts at 131 falling at −24 mg/dL/h against the
+  under-30-min class's 152 and flat.
+
+**THE LOW-DEFENCE READING OF THOSE ONSETS IS REFUTED, BY BOTH NULLS, WITHIN THE HOUR I WROTE IT.** I
+read the onset distribution as evidence that part of this is a low defence — a person turning the pump
+off while falling — and registered it against L 588's treated share and L 600's duration defect. Two
+matched tests kill it. **(a) Episode level.** The share of low episodes (CGM < 70, merged under 20 min)
+with a suspend starting in [onset − 45 min, end + 30 min] is **26.9% pooled** — which looked decisive
+against a registered 10% bar, and is **exactly its own base rate**: the identical windows shifted
+−24 / −12 / +12 / +24 h and +7 d give 25.4–27.4%, enrichment **x1.0**. The measure is saturated and
+could not have detected a defence if one existed. **(b) Onset level, paired.** Against each donor's
+OWN waking below-80 share instead of the pooled figure, the onset enrichment is **p50 −0.75 points,
+39% of donors positive, Wilcoxon p 0.42** — and the pooled ratio is 1.66, not the 2.2 I quoted,
+because the donors' real below-80 share is **5.26%**, not the ~4% I asserted without measuring it on
+this data. The pooled enrichment is COMPOSITION: donors who suspend often also run low often.
+
+**So the suspend is an INTERRUPTION KEYED TO TIME, not a glucose-keyed defence** — the under-30-min
+class was the whole story and the model's `site_change` gap is its home. It does NOT answer L 588's
+excess treated share (0.60 against 0.49) and it does NOT meet L 600's requirement; **L 588's duration
+reading stands and the low side still has no mechanism.** What survives of this lesson is only the
+unconditional distributions above, which is enough to size a time-keyed `pump_off` and nothing more.
+
+**701. A POOLED RATIO AGAINST A FIGURE I DID NOT MEASURE ON THE SAME DATA, WEIGHTED BY THE EXPOSURE
+ITSELF.** L 700's refutation is L 598's trap in a new place, and it reached a published lesson because
+I registered a bar for the CONDITIONAL rate and no bar for its BASE rate. Both failures have one fix
+each, and they are cheap: **(1) every conditional rate gets a shifted-time placebo in the same script**
+— same episodes, same window widths, the window moved by a day — and the number is reported as the
+pair, never alone; an enrichment of x1.0 is what a saturated measure looks like, and a wide window over
+a common exposure saturates easily (here 90 min against a suspend that is near-ambient for heavy users).
+**(2) Any "against the donors' X%" comparison is computed in the same pass, per person, paired** — the
+pooled version weights donors by how much of the exposure they have, which is precisely the variable
+under test. The two tests cost one extra read each over data already on disk, and together they turned
+a 26.9%-against-10% pass into a null.
 
 So part of this is an interruption keyed to time — the model's `site_change` gap is the right home for
 it, and the 47% of episodes under 30 min bracket its unverified 15 from above — and part is **a LOW DEFENCE the model does
