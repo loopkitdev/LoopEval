@@ -2119,3 +2119,30 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       scales the whole response rather than its asymmetry. Level TIR median −6.3 / −5.5 (oc −6.0 / −5.1) and t<70 on
       the more side rise slightly; t<54 on the less side drops 0.09 past the base recipe's.
     - The run files were checked readable after the duplicate-launch overlap (9,748 per training, none bad).
+
+175. **The field's asymmetry is regression to the mean. With it removed, the base recipe (oc) predicts the change
+    within one standard error on mean, TIR and t<70 in both directions.** People raise insulin after a bad fortnight:
+    in the 14 days before a more-insulin edit, mean glucose was 4.7 mg/dL above the 14 days before that, and TIR
+    2.1 points below. Before a cut it was 0.9 lower. Some of the post − pre change would have happened with no edit.
+    The generator's and the replay's changes (after − before settings on the same window) contain no such drift.
+    Expected drift is taken from pseudo-edits on the same donors (967 days at least 28 days from any edit): the
+    post − pre change regressed on the pre − earlier rise, with slope −0.44 for mean (−0.46 TIR, −0.39 t<70,
+    −0.59 t<54). The field change minus that drift, by direction, person-bootstrap se (field_rtm.py,
+    field_rtm2.py, field_rtm2.csv in runs/2026-11-01-ice-stateabl/):
+
+    | | Field, raw | Field, drift removed | Base recipe (oc), 5 trainings | Replay |
+    |---|---|---|---|---|
+    | Mean, more insulin (161) | −8.47 | −6.24 ± 0.89 | −5.74 | −11.15 |
+    | Mean, less insulin (139) | +5.05 | +4.49 ± 0.93 | +5.03 | +9.48 |
+    | TIR, more / less | +3.73 / −1.24 | +2.36 ± 0.54 / −1.67 ± 0.58 | +1.99 / −1.87 | +2.89 / −2.12 |
+    | t<70, more / less | +0.71 / −0.85 | +0.60 ± 0.16 / −0.64 ± 0.15 | +0.77 / −0.71 | +2.27 / −2.26 |
+    | t<54, more / less | +0.15 / −0.12 | +0.09 ± 0.04 / −0.09 ± 0.04 | +0.32 / −0.28 | |
+
+    - With the drift removed, real people cancel 44 % of a rise and 53 % of a cut, against the replay's response:
+      symmetric, as the generated person is (47 % / 47 %). The one-sided push-back of lesson 171 was the field's
+      selection, not a generator error, so lessons 170–174 chased a gap that is mostly not there.
+    - The base recipe's change error is now inside the field's own uncertainty on every target outcome. What is
+      left is t<54: it moves 3× the field's in both directions (a guard, but the largest relative error).
+    - Limits: the drift slope treats the pre-edit rise as passing noise. Where an edit answers a lasting shift (a
+      real change in needs), less of it reverts, so the true field change lies between the raw and the adjusted
+      column. The slope's own uncertainty is not in the se. From here, change scores report both columns.
