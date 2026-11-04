@@ -5678,3 +5678,50 @@ L 684/694 in another statistic, which has no named candidate either.
 0.328 / 0.366 / 0.404 / 0.402 / 0.374, every candidate measured in this lineage costs the guard or the
 change half, and the honest gain of the last day is that the scorecard is correct, two of its rows now say
 the opposite of what they said, and the largest remaining block has a mechanism rather than a mystery.
+
+**698. FOUR published change-response verdicts were measured against a control they did not match: the arms
+ran at `si_norm` 1.0 and the control at 0.92, and `si_norm` 1.0 alone is one of the largest damping effects
+on this pool.** `arm2.py` builds `enable = {"rc_own": True, "edits": False, **ARM_ENABLE}`, so a key left
+out of `ARM_ENABLE` takes the CODE default and not the reference's value. `rf2e_s`, the control, carries
+`si_norm: 0.92` in its own `meta.json`. Four arms were queued from a hand-retyped base string that omitted
+it — **`afe1` (`act_frag`, L 661), `akfe1` (`act_k`, L 669), `dye1` (`day`, L 683) and `go3e2` (`ge_order`
+3, L 656)** — and `world.py:754` defaults `si_norm` to **1.0**. Every other arm in the pool carries 0.92
+explicitly, which is how the four stand out when the arms are listed from their own configs.
+
+The confound is not small. `sn_e` is `si_norm` 1.0 and nothing else, measured on the same 588 events
+(L 613): level-adjusted **mean 1.55, TIR 1.54**, t70 1.33, t54 0.75, against `rf2e_s`'s 1.35 / 1.30 / 1.09 /
+0.56. Beside it the four read:
+
+| arm | its own knob | lvl-adj mean / TIR | against `sn_e` 1.55 / 1.54 |
+|---|---|---|---|
+| `afe1` | `act_frag` | **1.56 / 1.57** | indistinguishable — `act_frag`'s own contribution may be ~0 |
+| `go3e2` | `ge_order` 3 | **1.57 / 1.68** | mean identical; at most ~0.14 of the TIR move is the mechanism |
+| `akfe1` | `act_k` 1.5 | **1.35 / 1.48** | mean BELOW it, so `act_k` must push damping DOWN |
+| `dye1` | `day` ON | **1.34 / 1.11** | same, and TIR well below both |
+
+So L 661's "materially more damped… one of the most damped prediction arms run" and L 656's "the best
+estimate is clearly negative on mean and TIR" are **not established**, and L 669's and L 683's numbers are
+not their mechanisms' either. Four verdicts, all measured by me, all from the same retyped base.
+
+**The root cause is the one I had already written down and then did not apply to the BASE.** L 663 and
+L 672 say to label an arm from its own `cohort.json` / `meta.json` in the script that reads it, and I
+applied that to the ARM and not to the CONTROL. A base configuration retyped into a job script is a
+hypothesis about the control; the control's own `meta.json` is the control. **Build the base by READING the
+control's config at run time and merging the knob onto it** — job 203 does this, so the pool's base can no
+longer drift from the arm it is compared against, and it prints the full enable diff as a gate (exactly one
+key may differ).
+
+**What follows for the record.** None of the four verdicts flips on this alone, because all four were also
+judged on cohort rows no e-pool arm touches (`act_frag` on the configuration question, `act_k` on paired
+per-person fidelity and the guard, `ge_order` 3 on TIR / t54 / `bg_cv`, `day` on its split rows). What
+changes is that **the change-half evidence against them is withdrawn pending re-measurement**, and with it
+two things the record leans on: L 656's "short-scale realism and change-response accuracy are not the same
+axis" rested on `go3e2`, and L 661's decision that `act_frag` stays off rested on its damping. Re-run clean
+as job 203, which also gives `resid_m_diurnal` its first e-pool arm — the one candidate whose honest-label
+cohort case (0.321 / 0.352 against 0.328 / 0.366, carried by the two `ice_dip` rows its mechanism targets,
+with `bg_cv` preserved and the guard holding) could still change the reference.
+
+**Method, and it generalises past this pool:** when a harness merges a partial dict over code defaults,
+every key the caller omits is a silent experimental variable. The signature is not a no-op — the arm runs
+and differs — so the `truth.bg` check (L 554, 655, 663) passes and says nothing. **The check that catches it
+is a full diff of the arm's realised config against the control's, with the intended key named in advance.**
