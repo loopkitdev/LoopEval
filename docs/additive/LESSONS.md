@@ -6494,3 +6494,45 @@ sitting in the largest unevidenced term in the model, found only because L 678 f
 different reason. **The check this suggests, for anyone with an hour: diff every live default in
 `physiology.py` / `person.py` against the value its own lesson or evidence entry claims.** L 666's
 external audit found eight such defects in one session; this is a ninth, and it was found by accident.
+
+**715. L 640's CHECK, SCRIPTED: 19 of 63 `BodyParams` defaults are not the live value, and one of them
+is a documentation error on a quantity that multiplies every meal.** L 714 found `egp_share`'s drift by
+accident and recommended diffing every live default against what its documentation claims. Done, the
+definitive way L 640 prescribes — build people and read their values, rather than reading the source
+(`runs/2026-11-04-additive-defaultaudit/`, 12 sampled people against the dataclass).
+
+**The instrument validates itself**: it recovers L 640's own case, `kappa` declared 0.15 and live at a
+median of **1.045** (7x), which is the defect that "nearly bought an arm".
+
+**19 of 63 defaults are not live.** Most are benign — a per-person draw centred on its own default
+(`gb` 119 -> 119.3, `egp_b` 2.5 -> 2.56, `ka2` 0.018 -> 0.0181, `bw` 70 -> 75.7) — and two are
+placeholders by design, since `calibrate` sets them from the ISF yardstick (`se` 1.0 -> 0.257,
+`si_d` 0.0005 -> 0.000104). Three are worth knowing:
+
+- **`ex_uptake` declared `0.0`, live median 3.18** (lnN(3.0, 0.3), range 1.83-4.46). A default that
+  reads as "off" on a term that is ALWAYS on, and the most misleading declaration in the file.
+  COMPONENTS states the draw correctly, so this is a code-comment defect only.
+- **`cr_max` declared `1.0`, live median 0.148.** The declaration is the original pre-fit value and is
+  **6.8x** the live one, which has been lnN(0.137, 0.5) since LESSONS 394.
+- **`f` (carb bioavailability) declared `0.9`; COMPONENTS' A10 row states the prior as `f N(0.9, 0.05)`
+  — and the LIVE median is 0.498 over a range of 0.30-1.00.** That span is far wider than N(0.9, 0.05)
+  allows, so the per-donor carb-sensitivity fit (`csf_geq`, LESSONS 358) is overwriting the prior for
+  most people. **This one is a real documentation error, not a stale comment: anyone reasoning about
+  meal glucose from the stated prior is wrong by about 1.8x**, and `f` multiplies every meal's glucose.
+  COMPONENTS' row is corrected and the three declarations now carry `[NOT LIVE: ...]` comments.
+
+**And the audit's first attempt returned a FALSE CLEAN BILL, which is the lesson to carry.** My first
+detector read `person.py` with a regex for a draw adjacent to each field name and reported **"0 fields
+are DRAWN"** — impossible, since L 640 documents two. `egp_share = egp_share_draw` defeats it, as does
+any draw routed through an intermediate variable or a `scaled()` call. **An empty result from a
+detector I had not validated would have been published as "no defects found"** — L 706's
+average-of-an-empty-list in a new costume, and the second time in one session that a broken instrument
+produced a confident clean answer. The fix was not a better regex: it was to stop parsing the source
+and **run the thing**, which is what L 640 said in the first place. **Any audit of this model should
+build a person and read it; source-reading audits of a model with per-person sampling are unsound by
+construction.**
+
+Counting L 666's eight, L 714's `egp_share` and these three, that is **twelve** places where the code
+and its documentation disagreed, all found by instruments rather than by reading, and none of them
+visible in any result — the model runs identically whether the comment is right or wrong, which is
+exactly why they accumulate.
