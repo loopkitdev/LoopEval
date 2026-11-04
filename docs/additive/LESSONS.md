@@ -5934,3 +5934,65 @@ clean arms are no longer dispersion-matched (own levels 144.2 against 145.6, not
 so it cannot simply be re-verified with `afe2` / `akfe2`. The correlation across the eight arms is
 partly contaminated too. Treat L 662's "pre-edit distribution does not carry the response ratio" as
 unverified pending a pair matched among clean arms, and do not cite its numbers.
+
+**703. `entry_fast_fall` IS L 575's POST-MEAL POTENCY DEFICIT, THE SAME CONSTANT, AND THE ROW
+EXAGGERATES IT BY ABOUT TWO TIMES.** The row is 6.8% of the weighted score and the only tier-1 row
+among L 697's nine, donors 14.29% against the twins' 5.00%, and **no arm has ever moved it**: over
+**284 arm-draws on disk the whole range is 3.57 to 8.33**. The three biggest movers are `ge_beta`
+(8.33, the worst-scoring arm ever run), `resid_drop_p` (8.00, which L 568 priced as spending ~5
+points of the meal tail to buy ~2.4 of this) and `act_k` (7.41, declined on paired fidelity).
+
+Before proposing a 285th mechanism I measured the deficit's SHAPE, which the record had never done.
+The row is a THRESHOLD on a per-entry quantity — the share of carb entries followed within 2 h by a
+15-min window falling faster than −150 mg/dL/h — so a 2.9x deficit in the share is consistent with a
+uniform SHIFT (every meal falls too slowly; a potency defect needing a term on every meal) or with a
+MISSING TAIL (the bulk matches and the donors carry fast falls the twins never make; a term on every
+meal would then break the bulk to buy the tail). Those need different candidates and the record has
+been testing shift-shaped ones. Measured per entry with `lifestats`' own `_grid` and `FAST` and its
+exact entry selection (`runs/2026-11-04-additive-fastfall/`), the minimum 15-min rate in the 2 h
+after each entry, pooled over 36,739 donor and 4,352 twin entries:
+
+| quantile | p5 | p10 | p25 | p50 | p75 |
+|---|---|---|---|---|---|
+| donors | −228 | −188 | −128 | −79.3 | −40.0 |
+| twins | −168 | −132 | −92 | −60.0 | −32.0 |
+| **twin / donor** | **0.74** | **0.70** | **0.72** | **0.76** | **0.80** |
+
+**It is a SHIFT, flat across the whole distribution, and one constant reproduces the threshold
+share.** The k read off the quantiles is 0.743; the k that makes the donors' share at `FAST/k` equal
+the twins' share at `FAST` is **0.721** (donors cut at −208 give 7.04% against the twins' observed
+7.03%). Two independent routes to one scalar, agreeing to 0.02. And **0.72–0.74 is L 575's number**:
+at matched insulin spend L 575 measured the twins falling 43 against 57 mg/dL, "a pure 75% potency
+gap", on a completely different instrument. So these are one defect, and `entry_fast_fall` is **not
+an independent target** — it closes if and only if the potency gap closes, and there is nothing to
+aim at it that is not already L 575's open problem.
+
+**The row magnifies the defect because the cut sits on the steep part of the distribution.** The
+underlying quantity is off by **1.35x** while the scored share reads **2.5x** too few pooled (2.9x as
+scored): a 26% shift in rate becomes a 61% deficit in the share, with `FAST` −150 sitting between the
+donors' p25 (−128) and p10 (−188). So the physical error here is **26–28%, not 190%** — and the
+headroom this row appears to offer in L 697's ranking is a lever-arm on a modest defect, not a large
+defect. **The general rule: a thresholded share is a lever-arm on the quantity underneath it, so
+quote the quantity beside the share, and never size a mechanism from the share.** It also explains
+why `act_k` — a pure measurement term that cannot change potency — is one of the three arms that
+"moves" this row: widening the rate distribution near a steep cut buys share without buying potency,
+which is an instrument gain, not a body gain.
+
+Caveats, both real. **(1) The absolute level is not reproduced and is not claimed**: my pooled read
+is 17.80% for the donors against the scored 14.286%, and blocking into 13-day blocks as the scorer
+does moves it only to 16.67%, the residual being the scorer's per-block windows and coverage filter
+dropping entries near block ends. Every conclusion above is from the pooled, like-for-like comparison
+and from the internally consistent shift test; none of it needs the level. **(2) The shift is in CGM
+terms on both sides.** L 575 already bounds this — the sensor amplifies a fall ~27% against a rise
+~7%, and family-matched the deficit is 9–16 mg/dL in CGM terms against 10–13 in estimated truth
+terms — so the shift is genuine but its third decimal is not.
+
+**Method, caught in the act: my own bisection was inverted and printed a false verdict.** `s(k)`, the
+donors' share at the scaled cut, INCREASES in k, and I had narrowed the wrong bound, so the search
+ran to its boundary and reported "the ks DISAGREE — shape differs, not a pure shift" with k = 0.400
+and a cut of −375 mg/dL/h. What caught it was that the script also printed the forward PREDICTION
+from the quantile k (−202 → 7.83% against an observed 7.03%), which plainly agreed, so the two
+outputs contradicted each other. **Print the forward prediction beside any solved-for parameter: a
+search can converge to a boundary and report it as a finding, and the cheap check is whether the
+independent direction agrees.** Third mis-signed comparison this session after the column-index read
+and L 699's denominator.
