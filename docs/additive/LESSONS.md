@@ -5725,3 +5725,98 @@ with `bg_cv` preserved and the guard holding) could still change the reference.
 every key the caller omits is a silent experimental variable. The signature is not a no-op — the arm runs
 and differs — so the `truth.bg` check (L 554, 655, 663) passes and says nothing. **The check that catches it
 is a full diff of the arm's realised config against the control's, with the intended key named in advance.**
+
+**699. WHAT LOOP DID AND WHAT THE PERSON DID ARE ONE STREAM IN THE SCORECARD, and the model has
+almost none of the second.** Pete asked whether this work keeps a temp basal of 0 U/hr, which Loop
+commands, apart from a pump suspend, which the person usually does, and a manual temp apart from an
+automatic one. The pipeline does; the export and the scorer do not; the body does not.
+
+**The ETL separates all four classes**, and by the right discriminator: Tidepool's `deliveryType` is
+`automated` for Loop's own temps and `temp` for one the USER set on the pump, with HealthKit mirror
+rows stripped to `temp` so only a native row counts (`etl.py` ~1383; 39 of 207 pilot donors use them,
+i040 for 6.4% of its time). A suspend arrives in two shapes, a `basal deliveryType='suspend'` record
+with a duration and a `deviceEvent subType='status'` suspended→resumed pair, and `_suspends` reads
+both. **The EXPORT then collapses the first two**: `doses.json` carries `basalType` ∈ {temp,
+scheduled, suspend} with Loop's temps and the person's in one bucket, and the manual flag survives
+only as `disruptions.csv` rows tagged `tidepool/manual_temp_basal`. `validate.delivered_5min` reads
+`doses.json` alone, so on the donor side **a suspend bin counts as zero delivery exactly as Loop's
+temp at 0 does, and a manual temp counts as Loop's dose.**
+
+**Measured over the 205 exports** (`runs/2026-11-04-additive-suspendclass/`): of a donor's
+zero-delivery 5-min bins the median **96.4%** are a Loop temp at 0 and **2.3%** a suspend record —
+but the MEAN is **5.9%**, **65 of 205** donors are over 5%, three are over 30%, and i193 has no Loop
+zero-temps at all so 100% of its zero time is suspend. Manual temps: **31 of the 168 scored donors**,
+3007 episodes / 2118 h. Of known delivery time the classes run suspend 0.93% (p50) / 1.89% (mean),
+Loop temp-0 40.2%, temp > 0 20.8%, scheduled 45.7%.
+
+**The twin has neither class, bar one 15-minute window.** `patient_sim` has no user suspend and no
+manual temp — the only `suspend` in it is `suspend_own`, the donor's glucose SAFETY THRESHOLD
+(`person.py:483`). The one pump-off it does have is `device.change_gap`, **15 min of no delivery at a
+site change** (`device.py:41`, marked `[unverified: "minutes"]`), about 0.35% of time against the
+donors' ~1.9%. The measured episodes do not settle that 15 — the all-episode p50 is 34 min and the
+site-change subset is not separable from showers, exercise and pod faults in this record. It does distinguish the person's BOLUSES from Loop's (`manual_u_day`,
+`user_boluses_per_day` are scored rows) — the gap is the basal side only.
+
+**The scorecard consequence, measured like for like** (gate passed first: the control rebuild
+reproduced the live block file's nine delivery rows at **0.0000** relative on p10/p50/p90, so the
+2026-10-22 targets are current code). Taking the person's own pump actions out as unknown insulin
+moves the donor targets: `zero_frac` 32.49 → **31.54**, `night_cv` 35.36 → **34.30**, `conc1` 28.05 →
+27.72, `tdd_cv` 15.93 → 15.77, `p99` 1.834 → 1.798, `ac1` 0.091 → 0.089, `day_night` 2.000 → 2.006,
+`med_nonzero` unmoved. Re-scored, **the reference is LEVEL: 0.328 → 0.325 on draw 1 and 0.366 →
+0.368 on draw 2** — `night_cv`, `tdd_cv` and `ac1` better on both draws, `conc1`, `day_night` and
+`tdd` worse on both, `zero_frac` and `p99` split.
+
+**So the attribution error is real and SUB-THRESHOLD: every row's correction is smaller than that
+row's own between-draw scatter** — `zero_frac`'s 0.94 against the twins' 30.21 / 32.88 (2.66), and
+`night_cv`'s 1.06 against 31.79 / 34.92 (3.14). The twins STRADDLE the corrected `zero_frac` target
+instead of sitting below it, so that row is not evidence of a deficit in either direction, which is
+L 602's rule arriving on the delivery block. **The scorecard is therefore NOT re-based for it** — a
+third re-basing in one session (L 693's row set, L 695's labels) would cost every comparison for a
+level result — but the per-row corrections are saved (`targets.json`) and **a candidate that moves a
+delivery row must be read against the masked target as well.**
+
+**Two of my own claims corrected by this.** (a) The registered prediction for `zero_frac` was −1.8
+points and "at least 1.0", and the observed −0.94 FAILS it: masking a bin removes it from the
+DENOMINATOR too, so the drop is `s(1 − Z/N)/(N − s)` ≈ 0.68 of the masked mass, not `s/N`. **A
+share's correction is not the mass you removed.** (b) `tdd` moved DOWN (−0.15), which is the mask's
+artefact and not a measurement: `core_stats` keeps a day with more than 240 of 288 valid bins, so a
+partly-masked day survives with an under-counted total, and the right treatment for a day-level row
+is to drop the whole day. Bounded either way — suspend time is ~1.9% of known time and basal ~40% of
+TDD, so the true TDD-target correction is at most **~+0.3 U/day against the +3.36 bias**, under 10%:
+**the TDD limit is not instrument.**
+
+**And one null that closes a live contamination route:** `resid_m`, the model's one fitted term, does
+NOT absorb the donors' pump-off time — rho(`resid_m`, suspend share of time) **+0.023 (p 0.77)**,
+with the per-quartile median at 0.000 in three quartiles of four. A donor who spends 19% of their
+record with the pump off did not get that written into their twin's drift. (TDD rises across those
+quartiles, 31 → 47 U/day, so suspend frequency tracks insulin need, not the fitted residual.)
+For the change half, 9% of the 588 e-pool events have a manual temp inside their ±7 d window, so
+L 677's field delivery response (+9.14 U/day per log-unit) is ~91% free of the user's own hand.
+
+**700. THE PERSON'S PUMP SUSPEND IS A NAMED, MEASURED BEHAVIOUR THIS MODEL LACKS, AND IT IS A
+TWO-PART ONE** (`runs/2026-11-04-additive-suspendclass/rates.py`, 7302 episodes ≥ 5 min across 202
+donors, records p50 128 d, episodes merged across gaps ≤ 5 min):
+
+- **Rate** 0.234 episodes per person-day (p10 0.055, p90 0.484, max 2.33) — the typical donor stops
+  the pump about once every four days, the heaviest once or twice a day.
+- **Duration** p50 **0.56 h**, p90 3.20, p99 10.0; 47% under 30 min, 35% from 30 min to 2 h, 18% over
+  2 h. log-h mean −0.557, sd 1.272.
+- **Clock** 14.7% of episodes fall 00–06 against a quarter of the hours, so it is a WAKING action.
+- **Onset glucose** p50 144, and the enrichment is what splits the class: **8.7% start below 80
+  against the ~4% of time donors spend there (2.2x), 31.8% start above 180 against ~26% (1.2x)**, and
+  the 45-min slope at onset is **−9.0 mg/dL/h with 56% falling**. By duration the 30 min–2 h class is
+  the low-defence-shaped one: onset 131, **11.6% below 80, slope −24 mg/dL/h**; the under-30-min class
+  starts at 152 with a flat slope, which is a site change, a shower or a pod fault.
+
+So part of this is an interruption keyed to time — the model's `site_change` gap is the right home for
+it, and the 47% of episodes under 30 min bracket its unverified 15 from above — and part is **a LOW DEFENCE the model does
+not have at all.** That matters more than the row it would close: L 588 measured the twins treating
+**0.60 of low episodes against the donors' 0.49** while their per-episode eating is right, and L 600
+left the low side's one open defect as excursion **DURATION** (25 min against 20) needing a term that
+acts **through the climb rather than at the nadir**, after every level-proportional candidate failed.
+A person who turns the pump off while falling at −24 mg/dL/h from 131 is exactly that: time-asymmetric,
+behavioural, evidenced, and it would explain the excess treated share as the twins EATING on episodes
+a donor would have SUSPENDED. Registered risk before any arm: lows are already at parity (t70 bias
+−0.004 at five draws, L 607) and a defence that prevents lows pushes them under the donors, so the
+candidate has to shorten episodes without cutting their count — read `min_below70` and the penetration
+rate to 70 (L 600's 60% against 57%) beside t70, never t70 alone.
