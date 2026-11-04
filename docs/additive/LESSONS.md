@@ -5618,3 +5618,63 @@ honest net is a restatement — order 3 is score-level on draw 1, marginally wor
 question is sharpened rather than answered: matching the donors' measured appearance dispersion costs time
 in range because Loop cannot cover a sharper pulse, which points at the controller's response and not at
 the body.
+
+**697. The first headroom ranking on an honest scorecard, and it closes the appearance direction with a
+mechanism instead of a list of failed arms: every member of it raises DISPERSION, and dispersion is the one
+row the reference already has exactly right.** With the donor meal labels corrected (L 695) the reference's
+score can be decomposed for the first time without two mis-signed rows in it. Per statistic, weighted by
+tier, rf2's score is carried by:
+
+| stat | tier | gap d1 / d2 | % of score | donors -> twins |
+|---|---|---|---|---|
+| **`entry_fast_fall`** | 2 | 1.084 / 1.173 | **6.8%** | 14.29% -> 5.00% |
+| `sigma_disp` | 2 | 0.995 / 1.125 | 6.4% | 3.574 -> 3.109 |
+| `ice_dip_day_share` | 2 | 1.056 / 0.901 | 6.0% | 0.660 -> 0.452 |
+| `pulse_peak_per_g` | 2 | 1.013 / 0.924 | 5.9% | 1.195 -> 1.039 |
+| `ice_dip_day` | 2 | 0.753 / 1.157 | 5.6% | 0.692 -> 1.125 |
+| `pulse_dur_h` | 2 | 0.907 / 0.761 | 5.2% | 1.588 -> 1.885 |
+| `acf_zero_min` | 3 | 1.734 / 1.320 | 4.8% | 40 -> 60 min |
+| `v_skew` | 3 | 1.044 / 2.202 | 4.6% | — |
+| `meal_d3h` | 1 | 0.373 / 0.373 | 3.4% | 38.0 -> 31.0 |
+
+Nine rows are 49% of the score and only one is tier 1. **The biggest single contributor is
+`entry_fast_fall`** — the share of carb entries followed within 2 h by a fast fall — where the twins run
+**5.0 / 4.3% against the donors' 14.3%**, nearly three times too few.
+
+**`ge_order` 3 improves SIX of those nine rows** — `entry_fast_fall` 5.00 -> 6.25 and 4.35 -> 6.06,
+`sigma_disp` 3.109 -> 3.241, `pulse_peak_per_g` 1.039 -> 1.072, `pulse_dur_h` 1.885 -> 1.863, `acf_zero_min`
+60 -> 55, `meal_d3h` 31 -> 37 — and still cannot be adopted. **The reason is one row the headroom table does
+not show because it has no headroom: `bg_cv` is 34.25 / 35.37 against the donors' 34.65, a gap of 0.139 /
+0.145, essentially exact.** Order 3 takes it to **38.58 / 38.03**, order 4 to 40.90, `ka2` 37.64, `ol85`
+37.85, `ol70` 36.68. That single quantity is also what moves t70, t54, t180 and TIR together in L 696, and
+it is why the whole family reads "better shape, worse outcomes".
+
+**The synthesis, and it is the part worth keeping.** By L 678's identity the stationary spread is
+`sigma / sqrt(2*lam)`. A sharper gastric pulse delivers the same carbohydrate in a shorter window, so it
+raises **sigma** and leaves **lam** alone — spread up, and no response gain, because `R = flux / lam` is
+untouched. That retrodicts L 656's measurement, which found order 3 MORE damped rather than neutral, once
+L 676 is added: the extra damping from a short-timescale component is controller-side, Loop answering a
+noisier glucose signal. So one quantity accounts for both halves of the cost. **And it makes the appearance
+direction structurally opposed to BOTH halves of the goal**: the change response needs `lam` cut by 1/1.59
+to close L 680's 0.63, which by the same identity costs spread x1.26 (bg_cv -> ~43) unless sigma falls
+x0.79 — and appearance sharpening moves sigma the wrong way, x1.13. That is why five successive accounts of
+order 3's cost came up empty (L 617, 621, 627, 652, 656): they looked for a defect in the mechanism, and the
+cost is an identity.
+
+**What this licenses and what it forbids.** It forbids spending further arms on appearance DISPERSION while
+`bg_cv` is exact — any gain on the shape rows is paid for at a fixed exchange rate in the outcome rows, and
+the rate is set by the identity, not by the parameterisation (the same conclusion L 640/642 reached for
+A1d's shape, now for A10's). The one partial remedy measured is the LOAD lever: `unl_mult` 0.85 recovers
+0.73 of order 3's 4.34 CV points and about 2 of its 3.7 TIR points (L 696), 0.70 recovers 1.90 and puts TIR
+ABOVE the reference while overshooting t180 downward — so cutting sigma elsewhere is directionally right and
+roughly a fifth as strong as needed. It licenses the next arm being aimed at **`entry_fast_fall`**, the
+largest contributor, through a mechanism that does not add dispersion — and that is a genuine gap in the
+model, not a knob: the twins' post-meal fall is 80% of the donors' per unit spent (L 575) with every named
+candidate eliminated, and `entry_fast_fall` is the same deficit counted as events rather than mg/dL. Two
+rows of the nine (`ice_dip_day` too many, `ice_dip_day_share` too nocturnal) are the night defect of
+L 684/694 in another statistic, which has no named candidate either.
+
+**No adoption is available from this.** Stated plainly rather than softened: the reference stands at
+0.328 / 0.366 / 0.404 / 0.402 / 0.374, every candidate measured in this lineage costs the guard or the
+change half, and the honest gain of the last day is that the scorecard is correct, two of its rows now say
+the opposite of what they said, and the largest remaining block has a mechanism rather than a mystery.

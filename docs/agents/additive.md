@@ -230,6 +230,26 @@ the activity response. Tier 2 has weight 2: dynamics, plus meal absorption, unlo
 (LESSONS 494). Tier 3 has weight 1: the sensor fingerprint. The KS count is secondary. Update § 10's table when the
 reference changes.
 
+## Where the score actually sits (L 697, honest labels)
+
+Nine statistics are 49% of the weighted score and only one is tier 1: `entry_fast_fall` 6.8% (donors 14.29%
+-> twins 5.00%, nearly 3x too few), `sigma_disp` 6.4%, `ice_dip_day_share` 6.0%, `pulse_peak_per_g` 5.9%,
+`ice_dip_day` 5.6%, `pulse_dur_h` 5.2%, `acf_zero_min` 4.8%, `v_skew` 4.6%, `meal_d3h` 3.4%. **`bg_cv` is
+NOT among them because it has no headroom — 34.25 / 35.37 against the donors' 34.65 — and it is the binding
+constraint on the whole appearance family.** `ge_order` 3 improves six of the nine and takes `bg_cv` to
+38.58 / 38.03; order 4 to 40.90; `ol85` 37.85; `ol70` 36.68.
+
+**The identity behind it (L 678 + L 676):** spread is `sigma / sqrt(2*lam)`, and a sharper gastric pulse
+raises `sigma` with `lam` untouched — so dispersion rises and the response does NOT, while the extra damping
+L 656 measured is controller-side. One quantity carries both costs, which is why five accounts of order 3's
+cost came up empty. **Do not spend further arms on appearance dispersion while `bg_cv` is exact**: the
+exchange rate between the shape rows and the outcome rows is set by the identity, not by the
+parameterisation — the same conclusion L 640/642 reached for A1d's shape, now for A10's. The only measured
+remedy is the LOAD lever and it is about a fifth as strong as needed (`unl_mult` 0.85 recovers 0.73 of 4.34
+CV points, 0.70 recovers 1.90 and overshoots t180 downward). Aim the next arm at `entry_fast_fall` through
+a mechanism that does not add dispersion; it is the same deficit as L 575's post-meal fall potency (80% of
+the donors' per unit spent, every named candidate eliminated) counted as events instead of mg/dL.
+
 ## Known limits of the current reference (read before using its numbers)
 
 **Status (Pete 2026-10-20): usable with LoopEval.** The limits below are documented, not blocking. They are:
