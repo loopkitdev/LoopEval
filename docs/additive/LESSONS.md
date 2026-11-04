@@ -6042,3 +6042,76 @@ noise and would have condemned any null arm. L 664 says it in terms: **state a f
 than the scatter of arms that cannot affect this row", never as an absolute tolerance, for anything
 measured downstream of the controller.** Read the whole quantile row for direction before reading any
 single number against a bar: `ak1`'s row has no direction, `go3`'s is above 1 five times out of five.
+
+**705. `act_frag` STAYS OFF: the cohort case does not survive the `resid_m` refit, and it fails the
+condition registered before the run.** This closes a configuration question open since L 657/658 and
+reopened by L 702, and it is the first candidate taken all the way through a three-draw refitted
+adoption test against a rule fixed in advance.
+
+The case for running it was real: C7 is evidenced (UK-Biobank-sized), it is ON by default in
+`world.py:526`, Pete adopted it as a default on 2026-10-18, the reference turns it off through an
+undocumented `--disable` bundled with four B-series life modulators, and the measurement that
+justified that — a change response of 1.56 / 1.57 against 1.35 / 1.30 — was taken against a
+`si_norm`-mismatched control (L 698) and reads 1.41 / 1.38 clean, inside this instrument's noise
+(L 702). UNREFIT, with one donor label set and the spread-comparability bug fixed, it was better on
+score on all three draws (mean 0.3660 → 0.3630) and better on mean tier 1 (0.1740 → 0.1727).
+
+**The refit converged and reversed the tier-1 half.** Rounds gave |bg_mean gap| p50 3.2 → 2.2 → **2.0**
+with the band halving ([−5.2, 9.2] → [−2.9, 4.5]) and twin-donor rho 0.96 → 0.98, against the
+reference's own ~2.2 — better convergence than `sg_kappa`'s (12.7 → 3.9 → 2.2). `resid_m` barely moved
+(p10 −37.7 → −34.8, p50 0.000, p90 14.9 → 15.6): with everyday movement on, the cohort needs slightly
+LESS negative drift, which is the direction a glucose-disposing term should push it. Refitted:
+
+| draw | score | tier 1 |
+|---|---|---|
+| 1 | 0.328 → 0.332 | 0.135 → **0.183** |
+| 2 | 0.366 → 0.362 | 0.209 → **0.178** |
+| 3 | 0.404 → 0.400 | 0.178 → 0.179 |
+| **mean** | **0.3660 → 0.3647 (−0.0013)** | **0.1740 → 0.1800 (+0.0060)** |
+
+So the SCORE gain survives the refit and the TIER-1 gain does not. By the registered rule — mean score
+level or better AND mean tier 1 level or better — (a) passes and (b) fails, so it stays off. **Fourth
+gain to die at this step** after `rs0`'s TIR response, `cb2`'s whole response and `si_norm`'s TDD, and
+L 597's statement needs no amendment: the fit holds the donor's level, so anything running through the
+level is converted back.
+
+**I am not discounting draw 1 to rescue it.** Tier 1 moves +0.048 / −0.031 / +0.001 across the draws,
+and draw 1 is the reference lineage's development draw that L 567 says to discount where draws
+disagree — but the rule I registered was the MEAN of three draws, and re-reading it as "discount draw
+1" after seeing which draw hurt is exactly what pre-registration exists to stop. Draw 1's cost is
+concentrated in the two ACTIVITY rows (`act_net20_hi` +0.220, `act_net20` +0.120) plus `lows_per_day`
++0.109, `t70` +0.103 and `tdd` +0.080, against `t54` −0.048 and `p_reach54` −0.042.
+
+**What is genuinely better after the refit, recorded because the arm is not useless:** draw 2's tier 1
+falls 0.209 → 0.178 with **t54 landing on the donors** (0.180 against 0.190), TIR 73.45 and t70 1.901;
+and draw 3's `meal_d3h` goes 0.267 → **0.053** (39.0 against the donors' 38.01, essentially exact) on
+the nearly-closed meal tail. This is L 602's draw split again — better where the reference is weak,
+worse where it is strong — for the sixth time.
+
+**One bound on draw 3: the refit is fitted on draws 1–2 only, so draw 3's level is out of sample for
+it** and overshot (bg_mean 154.19 against the donors' 151.93, gap 0.018 → 0.102). The reference's own
+templates are fitted the same way, so this is not specific to the arm, but do not read draw 3's level
+rows as a fitted result.
+
+**706. A VERDICT PARSER THAT AVERAGES AN EMPTY LIST PRINTS A CONFIDENT FALSE DECLINE, and three
+path-keyed gates failed silently in one session to feed it.** Job 206 printed "act_frag STAYS OFF" and
+it was a NaN, not a result: `validate.py` gated the whole donor comparison on `"pilot" in
+str(templates_path)`, the refit's templates are `templates_af_r3.csv`, so no `compare_pilot.csv` was
+written for any of nine arms, the scorer died on the missing file, the parser read zero rows, and
+`np.mean([]) <= 0.01` is False — so **both** adoption conditions "failed" and the script declined the
+candidate. The arms and the refit were sound all along. The three failures of the day are one shape:
+
+- the **default** donor table still held the stale pre-`fit_shapes` labels, so an arm post-processed
+  without an explicit path was scored against different donor targets than the reference (L 699/703's
+  af3);
+- `gap`'s spread half read a NaN as NO PENALTY, so an arm with exactly zero spread scored perfect while
+  one with a slightly nonzero spread was charged 1.07 on a 4-person row;
+- and this filename substring.
+
+Each failed quietly and each produced a confident wrong number several steps downstream. Fixed at the
+source rather than by passing the right argument again: a `.provenance.json` sidecar the donor table
+must carry and `sim()` verifies; a spread half dropped for every compared arm wherever it is degenerate
+for one of them; a pilot gate keyed on the template POPULATION (>= 90% of aliases in `real_pilot.csv`)
+that prints why it skips. **The rules: prefer a content check to a path check, and make a parser ABORT
+on a short read rather than average it** — job 207's now refuses to report a verdict it cannot build
+from three draws.
