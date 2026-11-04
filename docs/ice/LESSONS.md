@@ -2265,3 +2265,33 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - **Method trap:** binning by IOB *at* the entry step mixes conventions. In the field the meal bolus is already in
       that step's IOB; in the plant log it lands a step later. Binned that way, generated high-IOB entries look rare
       (235 against 540) and seem to collapse to −50 mg/dL/h. Bin on IOB before the entry.
+
+181. **Before the generated high-IOB lows, the extra insulin is Loop's automatic delivery, not the person's boluses;
+    generated background ICE is noisier at short lags than the field's.** e pool, pre window, own settings, base
+    recipe (oc) training 0 (runs/2026-11-01-ice-stateabl/):
+    - **Small entries are not missing** (entry_rate.py, entry_bg.py, entry_near.py). The field logs 6.18 entries a day
+      against 5.20 generated, all of the gap in entries of 15 g or less (2.83 against 1.72 a day; carbs a day 149
+      against 140). But 72 % of the field's small entries sit within 30 min of another entry: one meal entered in
+      pieces. Isolated small entries are more common generated (1.12 against 0.79 a day).
+    - **Size against entry by pre-entry IOB** (meal_by_iob.py): the generated draw is close to the reconstructed field
+      meal in every IOB third (median 1.32 / 1.13 / 1.02 against 1.58 / 1.26 / 0.93).
+    - **Insulin in the 3 h before crossing 70** (low_dose.py; person boluses = engine boluses within 2 min of a plant
+      bolus action):
+
+      | IOB at crossing | Person boluses, field / gen | Loop automatic (boluses + basal), field / gen | < 54 share, field / gen |
+      |---|---|---|---|
+      | Low third | 0.25 / 0.15 U | 1.11 / 1.03 U | 0.14 / 0.18 |
+      | Middle | 1.06 / 0.80 | 2.20 / 2.42 | 0.22 / 0.27 |
+      | High third | 4.49 / 4.69 | 3.18 / 4.80 | 0.27 / 0.57 |
+
+      The person doses as in the field; Loop delivers 1.6 U more in the high third. IOB at the crossing is
+      4.92 / 5.19 / 5.82 U for field / replay / generated, so about a third of the excess is the harness and two
+      thirds the generator. Loop doses into the higher generated ICE of the half hour before (79 against 49 mg/dL/h
+      at −30 min), mostly background (47).
+    - **Background persistence** (bg_acf.py; 15-min ICE means with no entry in the 3 h before): the mean after a
+      15-min ICE above +40 is the field's (63 / 56 / 49 / 52 against 61 / 56 / 51 / 53 at 15 / 30 / 60 / 90 min).
+      But the generated sd is 57.8 against 53.5, and autocorrelation at 15 / 30 min is 0.29 / 0.16 against 0.39 /
+      0.21: about 22 mg/dL/h of extra uncorrelated spread. Momentum and retrospective correction dose on that noise.
+    - Test arm sp0.9 (background-ICE draws shrunk ×0.9 toward the predicted mean, `BGICE_SPREAD`, probe_sp.sh), both
+      trainings. Keep only if the short-lag spread and autocorrelation move toward the field's, the high-third
+      automatic insulin and < 54 share fall, and change prediction stays within noise.
