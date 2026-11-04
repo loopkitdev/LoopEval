@@ -126,8 +126,8 @@ class BodyParams:
                                    # t<54 8.5% vs the field's 0.13% (ablation 2026-10-15, LESSONS 10)
     # counter-regulation (adrenaline-led in T1D) with HAAF memory
     cr_max: float = 1.0            # mg/kg/min EGP boost at full activation
-    #   [NOT LIVE: drawn lnN(0.137, 0.5) since LESSONS 394, live median ~0.148 (L 715); 1.0 is the
-    #    original pre-fit value and is 6.8x the live one.]
+    #   [NOT LIVE: drawn lnN(0.137, 0.5) since LESSONS 394, reference median 0.135 (L 719); 1.0 is
+    #    the original pre-fit value and is 7.4x the live one.]
     cr_g: float = 65.0             # mg/dL, half-activation glucose
     cr_s: float = 5.0              # mg/dL, sigmoid width
     cr_tau: float = 15.0           # min, activation time constant
@@ -144,9 +144,11 @@ class BodyParams:
     haaf_min: float = 0.3
     # gut
     f: float = 0.9                 # bioavailability
-    #   [NOT LIVE for most people: the per-donor carb-sensitivity fit (`csf_geq`, LESSONS 358)
-    #    overwrites it, giving a live median ~0.498 over 0.30-1.00 (L 715). COMPONENTS' A10 row
-    #    states "f N(0.9, 0.05)", which is the PRIOR and not what runs - fix the row, not the code.]
+    #   [the DECLARED value is close to what runs: the reference's median f is 0.912 (L 719). What the
+    #    N(0.9, 0.05) prior gets wrong is the SPREAD - the per-person carb-sensitivity calibration
+    #    (person.py:367-373) takes it to p10 0.397, with 6 of 112 pinned at the 0.3 floor and 49 at
+    #    1.0. L 715 reported a live median of 0.498 and that was an ARTEFACT of sampling people
+    #    without the reference's enable dict - read the arm's own person.pkl, never re-sample.]
     kempt: float = 0.05            # initial (small-meal) emptying rate = Vmax/Km with Km 60 kcal (evidence/09)
     kabs: float = 0.05             # gut absorption; a 25 g snack peaks at ~45 min as the donor pool's small pulses do
     hypo_empty_gain: float = 1.5   # φ_hypo = 1 + gain·σ((70 − G)/5)
@@ -197,7 +199,7 @@ class BodyParams:
     # exercise
     ex_abs: bool = False           # C1's uptake keyed to absolute work rate, not %VO2-reserve (L 565)
     ex_uptake: float = 0.0         # mg/kg/min insulin-independent uptake at intensity 1
-    #   [NOT LIVE: drawn lnN(3.0, 0.3) per person, live median ~3.18 (L 715). This 0.0 reads as
+    #   [NOT LIVE: drawn lnN(3.0, 0.3) per person, reference median 2.84 (L 719). This 0.0 reads as
     #    "off" and the term is always on - never quote it. COMPONENTS states the draw correctly.]
     ex_egp_surge: float = 28.0     # mg/kg/min EGP rise at intensity 1 for anaerobic work, above the 60% threshold; calibrated
                                    # on donors' ≥ 8-MET workouts (rise ≥ 20 during in 46%; LESSONS 247; was 0)

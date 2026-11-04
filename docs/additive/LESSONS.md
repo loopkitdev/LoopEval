@@ -6672,3 +6672,59 @@ Job 212's rule said "if more differ, the knob is not isolated and nothing is rea
 script printed `FAIL: the knob is not isolated` and then went on to print
 "the CLIP IS LOAD-BEARING", a verdict I would have reported had I not read the gate line first. Every
 gate in a job script must `die`, not `echo`.
+
+**719. B16's DECLINE IS NOW ESTABLISHED, and my defaults audit was measured on people the reference
+never ran — L 715's `f` finding is WITHDRAWN.** Job 213 confirmed current code reproduces the
+reference bit-for-bit (112 of 112), so the arms L 718 confounded were re-run on clean streams.
+
+**(1) B16 `pump_off` FAILS AT THE UNREFIT STAGE, so the refit was never needed.**
+
+| draw | score | tier 1 |
+|---|---|---|
+| 1 | 0.328 -> 0.356 | 0.135 -> 0.169 |
+| 2 | 0.366 -> 0.370 | 0.209 -> 0.191 |
+| 3 | 0.404 -> 0.414 | 0.178 -> 0.184 |
+| **mean** | **0.3660 -> 0.3800 (+0.0140)** | **0.1740 -> 0.1813 (+0.0073)** |
+
+Both registered conditions fail — the score by more than the 0.01 floor. Job 208's confounded read had
++0.0073 / −0.0060, i.e. BOTH passing, which is what sent it to the refit (job 209) where it was
+declined. So the "passes unrefit, dies at the refit" story was the stream shift, and the truth is
+simpler: **B16 is declined outright.** L 709 and L 710 are superseded on their numbers; their
+structural findings (the command-vs-delivery `zero_frac` asymmetry; the behaviour reproducing its
+targets) stand, since neither depends on the comparison.
+
+**(2) THE CARB CLIP: the knob is perfectly isolated and job 212's gate failure was MY GATE's fault.**
+Read from the arms' own `person.pkl`, `f` differs for exactly 6 people and `truth.bg` for exactly the
+same 6 — the sets are equal. My gate had re-derived the expected set with `sample_person(T, seed,
+csf_f_floor=...)`, **omitting the reference's enable dict**, so it compared against a set neither arm
+used and reported a mismatch that did not exist.
+
+**(3) AND THAT SAME ERROR INVALIDATES L 715's HEADLINE.** The whole defaults audit sampled people with
+bare `sample_person(T, seed)` instead of reading the reference arm's `person.pkl`. Measured properly:
+
+| field | declared | L 715 said | reference | verdict |
+|---|---|---|---|---|
+| `kappa` | 0.15 | 1.045 | **1.0255** | holds — L 640's 7x case confirmed |
+| `vg` | 1.88 | 1.66 | **1.672** | holds |
+| `ex_uptake` | 0.0 | 3.18 | **2.84** | holds qualitatively (a default of 0 on an always-on term) |
+| `cr_max` | 1.0 | 0.148 | **0.135** | holds qualitatively (7.4x, not 6.8x) |
+| **`f`** | 0.9 | 0.498 | **0.912** | **WITHDRAWN** |
+| count not live | — | 19 of 63 | **21 of 63** | holds |
+
+**So L 715's claim that `f`'s documented prior is "a real documentation error... wrong by about 1.8x"
+is false and is withdrawn.** The reference's median `f` is 0.912, which matches both the declaration
+and COMPONENTS' `N(0.9, 0.05)`. What IS wrong is only the SPREAD: the live p10 is 0.397, with 6 of 112
+pinned at the 0.3 floor and 49 at 1.0, where the prior would span 0.80-1.00. COMPONENTS is reverted to
+the prior with that caveat attached, and the `[NOT LIVE]` comment on `f` now records the artefact so
+the next reader does not rediscover 0.498. **L 716's shares are corrected too: branch A is 49 of 112
+(44%), not 38 (34%), and the clip binds for 6 (5.4%), not 10 (9%).**
+
+**THE METHOD LESSON, and it is the same one three layers deep.** L 715 concluded "source-reading
+audits of a model with per-person sampling are unsound by construction — build a person and read it".
+That was right and insufficient: **a person built with different arguments than the arm used is also
+the wrong person.** The reference's `enable` dict (`isf_w`, `csf_mult`, `csf_geq`, …) changes the
+calibration, so re-sampling reproduces neither the arm's `f` nor its branch shares. The only sound
+source is **the arm's own `person.pkl`, which is already on disk** — the same rule as L 672's "label an
+arm from its own `meta.json`, never by name", now for people rather than configs: **read the artefact,
+never re-derive it.** Every calibration-dependent number in L 715 and L 716 was wrong by 9-11% for
+this reason, and one was wrong in kind.
