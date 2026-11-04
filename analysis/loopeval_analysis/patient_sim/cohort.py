@@ -34,6 +34,7 @@ def _one(args):
         # LESSONS 531) instead of drawing templates at random
         P = sample_person(T, seed, alias=(T.alias.iloc[seed % len(T)] if enable.get("tmpl_cycle") else None), isf_w=enable.get("isf_w") if _num(enable.get("isf_w")) else None,
                           csf_mult=enable.get("csf_mult", 1.0) if _num(enable.get("csf_mult")) else 1.0,
+                          csf_f_floor=float(enable["csf_f_floor"]) if _num(enable.get("csf_f_floor")) else 0.3,
                           sg_mult=enable.get("sg_mult", 1.0) if _num(enable.get("sg_mult")) else 1.0,
                           prof_w=enable.get("prof_w") if _num(enable.get("prof_w")) else None,
                           egp_share=enable.get("egp_share") if _num(enable.get("egp_share")) else None,

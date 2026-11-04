@@ -214,7 +214,7 @@ def _formulation(brand: str, rng) -> str:
 
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
-                  csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
+                  csf_f_floor: float = 0.3, csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0, intake_own: bool = False, csf_geq: bool = False,
                   csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False, gb_own: bool = False, ge_split: bool = False, ge_spare: bool = False,
@@ -366,7 +366,11 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     if f_cal > 1.0:
         bp = bp.scaled(f=1.0, vg=float(1000.0 / (bw * csf_target)))
     else:
-        bp = bp.scaled(f=float(max(f_cal, 0.3)))
+        # the 0.3 floor BINDS for 9% of the cohort - small, insulin-sensitive, low-TDD donors whose
+        # carb-sensitivity target is unreachable at any physiological bioavailability (L 716). The floor
+        # is exposed so the clip's cost can be PRICED on the same people (L 717); values below ~0.3 are
+        # not physiological, so a lowered floor is a DIAGNOSTIC and never an adoption candidate.
+        bp = bp.scaled(f=float(max(f_cal, csf_f_floor)))
     # share of insulin's effect through EGP suppression on the linear part, centred on T1D meal tracer data: per-person
     # nadir suppression 44 ± 17% (time 160 ± 110 min) after a mixed meal with the usual bolus (Romeres 2025). Read like-for-
     # like (each person's own nadir, the liver's part of SG included), U(0.5, 0.7) gave 0.34 on the total-drop base and 0.8
