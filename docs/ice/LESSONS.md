@@ -2194,3 +2194,20 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       response matches the field's (163 at 30 min in both). In the low and middle thirds ICE, insulin and depth are
       close to the field's. So the excess t<54 is a dosing-into-a-collapsing-rise pattern, partly in the harness
       (replay 0.39) and more in the generator.
+
+178. **The generated person's high-IOB lows follow meals that deliver less than was entered and bolused for; the
+    generated meals realize about 8–16 % less ICE per entered gram than real ones.** e pool, pre window, own
+    settings, base recipe (oc) training 0 (low_parts.py, low_meal.py, ice_per_g.py in runs/2026-11-01-ice-stateabl/):
+    - **Parts of ICE before a high-IOB low** (IOB at entry ≥ 2.67 U): at −30 / −15 / 0 min, pulse 32 / 23 / 19 and
+      background 47 / 49 / 9 mg/dL/h, total 79 / 72 / 25 against the field's 49 / 38 / 13. Glucose an hour before is a
+      little lower than the field's (111 against 117), so Loop's extra insulin is not chasing a higher glucose.
+    - **A carb entry in the 4 h before:** high-IOB lows 84 % in the field, 82–88 % generated, so the meal context is
+      the field's. But for the generated ones the drawn meal tied to that entry is a median 0.62 (reaching < 54) or
+      0.72 (not) of the entry, and 41–48 % are under 0.6, against 14 % of all generated entries (median 1.13, q10
+      0.41, q90 3.62). Low and middle IOB thirds: drawn/entered median 0.96–1.31, as for all entries.
+    - **Realized ICE per entered gram** (isolated entries ≥ 15 g, mean ICE over 0–3 h minus the hour before, × 3 h):
+      field (1,619 meals) q10 / q25 / median / q75 / q90 −2.79 / 0.95 / 3.59 / 5.88 / 8.40, mean 3.05; generated
+      (5,127) −2.76 / 0.61 / 3.03 / 5.43 / 8.13, mean 2.81. Same spread and lower tail, the body about 0.4–0.6 mg/dL
+      per g lower. The per-person size scale (build_size_person.py, lesson 115) matches each person's median
+      drawn-to-entered ratio to the reconstructed field meals, not the ICE those meals realize in closed loop.
+    - Test arm sz1.15 (entry-started pulse sizes × 1.15, frozen plant `PLANT_SIZE_SCALE`, probe_sz.sh), both trainings.
