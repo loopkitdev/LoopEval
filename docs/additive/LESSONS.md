@@ -5849,3 +5849,88 @@ a donor would have SUSPENDED. Registered risk before any arm: lows are already a
 −0.004 at five draws, L 607) and a defence that prevents lows pushes them under the donors, so the
 candidate has to shorten episodes without cutting their count — read `min_below70` and the penetration
 rate to 70 (L 600's 60% against 57%) beside t70, never t70 alone.
+
+**702. THE FIVE CLEAN E-POOL ARMS (job 203): the one adoption candidate is DECLINED, one published
+verdict is confirmed, and three are wrong in three different directions.** Base read from
+`rf2e_s`'s own `meta.json` at run time and one knob merged onto it, so the identity gate printed a
+full enable diff per arm: **all five differ in exactly the intended key and all five differ from the
+control on 60/60 sampled events** — real arms, matched control, no retyped base. (The control's own
+config also confirms L 679 from the file rather than by inference: the e pool runs `day: false` and
+`si_norm: 0.92`.) Every ratio below is level-adjusted, and the logs carry the level-only expectation
+beside it, so form and level are separable per row. Field = 1.0; higher = more damped.
+
+| arm | knob | mean | TIR | t70 | t54 | published pair it replaces |
+|---|---|---|---|---|---|---|
+| `rf2e_s` | control | 1.35 | 1.30 | 1.09 | 0.56 | — |
+| **`rmd1e`** | `resid_m_diurnal` 0.9 | **1.45** | **1.42** | **1.29** | 0.95 | (new) |
+| `go3e3` | `ge_order` 3 | 1.51 | 1.68 | 1.08 | 0.62 | `go3e2` 1.57 / 1.68 |
+| `dye2` | `day` true | 1.39 | 1.35 | 1.24 | 0.79 | `dye1` 1.34 / 1.11 |
+| `afe2` | `act_frag` true | 1.41 | 1.38 | 1.04 | 1.04 | `afe1` 1.56 / 1.57 |
+| `akfe2` | `sensor_act_k` 1.5 | 1.56 | 1.66 | 1.02 | 0.75 | `akfe1` 1.35 / 1.48 |
+
+In all five the observed raw ratio EXCEEDS its level-only expectation (`rmd1e` 1.43 against 1.31 on
+mean, 1.40 against 1.26 on TIR; `akfe2` 1.55 against 1.32 and 1.63 against 1.26), so none of this is
+the arms' own level drift — the form carries it everywhere.
+
+**`resid_m_diurnal` 0.9 is DECLINED, on the condition registered before the run.** The rule was
+"adopt only if the level-adjusted mean and TIR are no worse than 1.35 / 1.30 beyond noise; if it damps
+like `sn_e` did, it is declined like every other arm that bought the cohort with the change half, and
+I say so." It damps all three primary rows — mean +0.10, TIR +0.12, **t70 +0.20** — with the form, not
+the +2.5 mg/dL level, carrying it. t54 0.56 → 0.95 moves toward the field, and t54 is a guard and not
+a target, so it cannot buy an adoption; that is the same ground `act_frag` and `sg_h_lo` were refused
+on. So the arm with the best cohort case of the session (score 0.328 → 0.321 and 0.366 → 0.352 with
+the gain in the two `ice_dip` rows its mechanism acts on, `bg_cv` preserved at 34.16 / 35.17, guard
+holding) fails the other half. **Sixth arm to do exactly this** (`ge_order` 3, `act_frag`, `act_k`,
+`sg_h_lo`, `sg_rate`, now `resid_m_diurnal`), and the reference is unchanged at 0.328 / 0.366.
+
+**It also CLOSES a question I had left open for Pete.** L 691 asked whether a night-lows level three
+times too low (per-person median night share 20.4 / 20.1 → 8.4 / 9.2% against the donors' 28.1) is a
+worse limit than the gradient it buys. That trade no longer needs deciding: whichever side of it one
+prefers, the arm damps prediction too, so there is nothing to adopt. Retire the question.
+
+**`ge_order` 3 — L 656 CONFIRMED, and its one gain was the artefact.** 1.51 / 1.68 against the
+published 1.57 / 1.68: the mean moves 0.06 and TIR is identical, so "clearly negative on mean and
+TIR" stands as written. What does NOT stand is the published **t70 gain (1.09 → 0.98)**: clean it is
+**1.08**, i.e. flat. So order 3 damps mean and TIR and gains nothing anywhere — a stronger and
+simpler verdict than the one it replaces.
+
+**`act_k` 1.5 — L 669's HEADLINE IS WRONG, and so is the puzzle built on it.** Published: "the MEAN
+ratio is EXACTLY unmoved (1.35 → 1.35) while TIR goes 1.30 → 1.48". Clean: mean 1.35 → **1.56**, TIR
+→ **1.66**, t70 → 1.02. It is one of the most damped arms in the pool, not mean-neutral. **The
+"exactly unmoved" mean was `si_norm` 1.0's damping sitting against the control's 0.92** — and that
+coincidence is what L 670 and L 671 spent two jobs trying to explain ("why a measurement-only term
+moves TIR but leaves the mean exactly unmoved"). The clean arm moves everything, which is still
+unexplained for a term that touches only measurement error, but it is no longer the specific paradox
+that drove those jobs. L 671's "sensor width accounts for ~43% of its TIR move" must be re-read
+against 1.66, not 1.48. Its decline on paired per-person fidelity (L 667) is unaffected and
+strengthened; drop "mean-neutral" from how it is quoted.
+
+**`act_frag` — L 661's DECLINE LOSES MOST OF ITS BASIS, and this is the consequential one.**
+Published 1.56 / 1.57; clean **1.41 / 1.38** against the control's 1.35 / 1.30, i.e. mean **+0.06**
+and TIR **+0.08** where the published figures were +0.21 / +0.27. For scale, L 656's own +0.22 / +0.38
+was reported as "CIs overlap, not individually significant", so +0.06 / +0.08 is comfortably inside
+noise — and t70 (1.09 → 1.04) and t54 (0.56 → 1.04) both move TOWARD the field. L 661's "materially
+more damped" is **withdrawn**. Its cohort side was already score-level on both draws with the guard
+moving toward the donors, TIR better on both and paired better on draw 2 (L 658, L 693). **So the
+configuration question is reopened, and the burden now sits the other way:** `act_frag` is C7, an
+evidenced component and a default Pete adopted on 2026-10-18 which the reference turns off through an
+undocumented `--disable`, and the only measurement that justified keeping it off was taken against a
+mismatched control. Nothing here establishes it as BETTER; what is gone is the reason to keep it off.
+**This is a decision for Pete, not a unilateral reference change.**
+
+**`day` true — L 683's TIR claim WITHDRAWN, and the two-halves caveat shrinks.** Published 1.34 /
+1.11; clean **1.39 / 1.35**. The mean row holds near-unmoved (+0.04), so L 677's 0.68, L 680's 0.63
+[0.39, 0.98] and L 678's arithmetic stand as quoted — that was the load-bearing claim and it survives.
+But the apparent TIR **improvement** 1.30 → 1.11 was the `si_norm` artefact: clean it is 1.35, +0.05.
+t70 is 1.24 rather than 1.42 and t54 0.79 rather than 0.93. So L 683's instruction to quote `day`'s
+state beside every ratio from this pool because "TIR 1.30 against 1.11" overstates the gap by about
+four times; it is ~0.05 on TIR and ~0.15 on t70. The two halves' differing configurations matter much
+less than recorded.
+
+**One further casualty to flag rather than fix: L 662's eight-arm dispersion correlation and its
+matched pair both include contaminated arms.** The pair it names, `afe1` and `akfe1`, were BOTH at
+`si_norm` 1.0, so the contamination is common-mode and the within-pair contrast may survive — but the
+clean arms are no longer dispersion-matched (own levels 144.2 against 145.6, not 143.3 against 142.8),
+so it cannot simply be re-verified with `afe2` / `akfe2`. The correlation across the eight arms is
+partly contaminated too. Treat L 662's "pre-edit distribution does not carry the response ratio" as
+unverified pending a pair matched among clean arms, and do not cite its numbers.
