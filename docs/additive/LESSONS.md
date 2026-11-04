@@ -6616,3 +6616,13 @@ uncaught half was 2.5x the records and 5x the donors. It also retires one of my 
 `deviceEvent status` `reason` field is no longer needed to attribute a suspend away from the
 controller, since the rule answers it; a deliberate user suspend versus a pod fault remains a separate
 axis that our exports cannot settle.
+
+**RESOLVED on `main` the same day, all three.** `57d4da38` (manual temps -> `automatic: false`),
+`4b265a80` (suspends too, from Pete's correction) and `47e61a5c` (the dose loop unpacks `btype`, so the
+shadowing that caused all three errors is gone). Verified at the call site and then behaviourally
+across all five record classes: Loop's temp and Loop's scheduled segment -> `true`, the user's native
+temp -> `false`, the HealthKit mirror of Loop's temp -> `true`, a suspend -> `false`. `basalType` still
+collapses Loop's commanded temp with the user's into `"temp"`, which is now DOCUMENTED rather than
+accidental, and the distinction is recoverable from `automatic` — the field that semantically owns it.
+**The exported data is unchanged until the next re-export**, where it will relabel ~20,228 basal
+records (14,369 suspends across 203 of 206 donors, 5,859 manual temps across 39).
