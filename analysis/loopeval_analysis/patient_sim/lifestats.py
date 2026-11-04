@@ -227,6 +227,13 @@ _BOUTS: list = []
 
 
 def _donor_one(a):
+    # _A is set in the PARENT by donors(); these run in ProcessPoolExecutor children, and macOS defaults to
+    # `spawn`, so the child re-imports this module with _A back at None and every donor loses its workouts.
+    # The symptom is silent: the table simply comes out without the four workout columns, which then raises
+    # KeyError in _recorders the next time it is used. Load it per child instead (once, cached here).
+    global _A
+    if _A is None and ACTIVITY.exists():
+        _A = _workouts_all()
     _BOUTS.clear()
     try:
         return donor_blocks(a, _A), list(_BOUTS)
@@ -327,7 +334,16 @@ def sim(root: str, par: int = 6, donor_csv: str | None = None):
     from .validate import compare_blocks, INSTRUMENT
     root = Path(root)
     dpath = Path(donor_csv) if donor_csv else Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/life_blocks.csv"
-    rec = _recorders(pd.read_csv(dpath)) if dpath.exists() else None
+    if dpath.exists():
+        _d = pd.read_csv(dpath)
+        miss = [c for c in HABIT if c not in _d.columns]
+        if miss:
+            raise SystemExit(f"{dpath} is missing {miss}: it was built without the workout columns, so the "
+                             f"workout rows would silently leave the scorecard. Rebuild it with "
+                             f"`lifestats donors <out.csv>` on code that loads ACTIVITY in the worker.")
+        rec = _recorders(_d)
+    else:
+        rec = None
     runs = sorted(str(p) for p in root.glob("v*") if (p / "truth.pkl").exists())
     with ProcessPoolExecutor(par) as ex:
         res = list(ex.map(_sim_one, [(r, rec) for r in runs]))

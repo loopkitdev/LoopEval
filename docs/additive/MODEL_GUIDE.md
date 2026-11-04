@@ -343,11 +343,17 @@ costing both (L 592). The volatility rows (`bg_cv`, `sigma_disp`, `vol_cluster_6
 
 | | Tier 1 | Tier 2 | Tier 3 | Score | Close |
 |---|---|---|---|---|---|
-| draw 1 (1000) | 0.135 | 0.445 | 0.464 | **0.332** | 27 of 51 |
-| draw 2 (5000) | 0.209 | 0.462 | 0.442 | **0.371** | 24 of 54 |
-| draw 3 (9000) | 0.178 | 0.530 | 0.526 | **0.406** | 21 of 54 |
-| draw 4 (13000) | 0.289 | 0.486 | 0.444 | **0.409** | 14 of 51 |
-| draw 5 (17000) | 0.156 | 0.508 | 0.455 | **0.380** | 25 of 54 |
+| draw 1 (1000) | 0.135 | 0.439 | 0.464 | **0.328** | 27 of 51 |
+| draw 2 (5000) | 0.209 | 0.452 | 0.442 | **0.366** | 24 of 54 |
+| draw 3 (9000) | 0.178 | 0.526 | 0.526 | **0.404** | 22 of 54 |
+| draw 4 (13000) | 0.289 | 0.474 | 0.444 | **0.402** | 15 of 51 |
+| draw 5 (17000) | 0.156 | 0.498 | 0.455 | **0.374** | 25 of 54 |
+
+Scored on the **corrected** donor meal labels (L 695, 2026-11-04): `lifestats.py` reads ice's regenerated
+`ice_v32/meals_fit/`, the definition the twin side already used. The previous pairs — 0.332 / 0.371 / 0.406 /
+0.409 / 0.380, mean 0.380 against the corrected mean **0.375** — were measured against the stale
+pre-`fit_shapes` targets below and are not comparable to anything scored after this date. Only tier 2 moves;
+tiers 1 and 3 are untouched, as the affected rows are tier 2.
 
 rf2 is ov0 with the residual's dynamic part off, keeping only its per-person level. **Read its standing on three
 instruments, in increasing order of power** (L 609, 610):
@@ -462,24 +468,27 @@ donor), so they drop out of this joint table. On draw 2 they pass (35 vs 45 min,
 | 2 | `med_nonzero` | typical nonzero 5-min delivery (U) | 0.085 | 0.096 / 0.094 | 0.40 / 0.22 |
 | 2 | `night_cv` | night-to-night CV of night insulin (%) | 35.4 | 30.5 / 33.2 | 0.41 / 0.28 |
 | 2 | `p99` | 99th percentile of 5-min delivery (U) | 1.83 | 1.73 / 1.93 | 0.17 / 0.14 |
-| 2 | `pulse_dur_h` ⚠ | meal pulse: duration (h) | 1.92 ⚠ | 1.82 / 1.68 | 0.33 / 0.60 |
-| 2 | `pulse_peak_h` ⚠ | meal pulse: time to peak appearance (h) | 0.750 ⚠ | 0.622 / 0.622 | 1.04 / 1.03 |
-| 2 | `pulse_peak_per_g` | meal pulse: peak g-eq/h per g | 1.18 | 1.09 / 1.11 | 0.64 / 0.48 |
+| 2 | `pulse_dur_h` | meal pulse: duration (h) | **1.588** | 1.885 / 1.863 | **0.91 / 0.76** |
+| 2 | `pulse_peak_h` | meal pulse: time to peak appearance (h) | **0.622** | 0.622 / 0.622 | **0.07 / 0.12** |
+| 2 | `pulse_peak_per_g` | meal pulse: peak g-eq/h per g | **1.195** | 1.039 / 1.052 | 1.01 / 0.92 |
 
-⚠ **These three rows' donor values are the STALE pre-`fit_shapes` definition; the corrected targets are below**
-(L 625, 626). ice has regenerated all 168 donors with the current labeller (`ice_v32/meals_fit/`), so the rows can
-be read like for like — per-person median then cross-person, non-rescue:
+**These three rows are now scored like for like** (L 695, 2026-11-04): `lifestats.py` reads ice's regenerated
+`ice_v32/meals_fit/` instead of the pre-`fit_shapes` `ice_v32/meals/`, so donor and twin pulses carry the same
+definition — per-person median then cross-person, non-rescue. What the correction revealed:
 
-| row | donor value as scored | donor value CORRECTED | twins (rf2 / rf2_5k) | real state |
+| row | donor value as SCORED BEFORE | donor value NOW | twins (rf2 / rf2_5k) | what it was |
 |---|---|---|---|---|
-| `pulse_peak_h` | 0.750 | **0.622** | 0.622 / 0.622 | **exact — the scored gap of 1.04 was entirely the stale definition** |
-| `pulse_dur_h` | 1.92 | **1.577** | 1.876 / 1.863 | twins ~**19% too long** — a real defect the stale target scored as near-passing |
-| `pulse_peak_per_g` | 1.18 | 1.190 | 1.043 / 1.056 | ~10% low; unaffected by the staleness, so always real |
+| `pulse_peak_h` | 0.750 | **0.622** | 0.622 / 0.622 | a **phantom** — exact all along; the 1.04 gap was entirely the stale definition |
+| `pulse_dur_h` | 1.917 | **1.588** | 1.885 / 1.863 | **real, +19%, and scored with the wrong SIGN** (0.105 before, 0.907 now) |
+| `pulse_peak_per_g` | 1.176 | 1.195 | 1.039 / 1.052 | ~13% low; barely affected, so always real |
 
-The scored `pulse_peak_h` median is additionally pinned to one `FIT_MODES` grid cell, which is why no arm ever
-moved it. **Do not fit to the scored values**; use the corrected column until `meals_fit` becomes the scored
-source. The labeller itself reads ~16% early and ~10% short against twin ground truth on isolated pulses
-(L 626), so none of these numbers is the body's — they are fair labelled-to-labelled only.
+A wrongly-signed target mis-RANKS every candidate that moves the row, not just the level: on the stale 1.917,
+rf2's 1.885 looked near-exact and `act_k`'s shorter 1.823 scored further away, while on the true 1.588 the
+ordering reverses (L 695). The scored `pulse_peak_h` median is pinned to one `FIT_MODES` grid cell, which is
+why no arm ever moved it. The labeller itself reads ~16% early and ~10% short against twin ground truth on
+isolated pulses (L 626), so none of these numbers is the body's — they are fair labelled-to-labelled only, and
+**the body is never calibrated to a labelled target** (L 628), which applies to crediting an arm on one as much
+as to fitting.
 | 2 | `sigma_disp` | dispersion of volatility across days | 3.57 | 3.01 / 2.97 | 1.15 / 1.21 |
 | 2 | `tdd_cv` | day-to-day CV of TDD (%) | 15.9 | 15.1 / 15.7 | 0.28 / 0.10 |
 | 2 | `unann_pulses_day` | unannounced meal pulses per day (ice labeller) | 3.46 | 3.75 / 3.79 | 0.27 / 0.22 |

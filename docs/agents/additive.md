@@ -151,7 +151,8 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   **0.6** (not the 0.4 two docs carried until L 665).
 - **Current reference** (2026-11-01): **rf2** (runs/2026-10-31-additive-gesplit; templates
   `templates_pilot_resid_rf1.csv`, `--set resid_mult=0.0`) — ov0 with the residual's DYNAMIC part off, keeping only its
-  per-person level `resid_m` (L 592). Score **0.332 / 0.371 / 0.406**, mean **0.370** against ov0's 0.372 — level —
+  per-person level `resid_m` (L 592). Score **0.328 / 0.366 / 0.404** on the corrected donor meal labels (L 695; the
+  stale-label pair was 0.332 / 0.371 / 0.406), mean **0.370** against ov0's 0.372 on the labels both were scored with — level —
   with **tier 1 better on all three draws** (0.135 / 0.209 / 0.178 against 0.178 / 0.218 / 0.197), twin-donor rho
   better on five of six outcome rows (TIR 0.815 / 0.830, bg_mean 0.885 / 0.896, t70 0.631 / 0.484, t54 0.526, bg_cv
   0.616), and the **t70 change response 3.51 -> 2.17 with its ranking +0.22 -> +0.34**, both the best of any arm. The
@@ -1084,10 +1085,12 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   been added since: **a file's existence says nothing about which code version wrote its columns, and its
   mtime does not order code versions** (`af1`'s copy is NEWER and narrower). Check the COLUMNS a scorer needs,
   not the path — the `BEHAVIOR_COLS` signature one level up. **RESOLVED as job 196**: all thirteen arms are on
-  one version at n 51 / 54, the reference's **0.332 / 0.371 survives regeneration unchanged**, and of the four
+  one version at n 51 / 54, the reference's 0.332 / 0.371 survived regeneration unchanged, and of the four
   restated records only `act_frag` draw 2 changes sign (−0.002 -> +0.001, a tenth of the floor, so "level on
-  both draws", not "marginally better"). Restated pairs: `act_k` 1.5 **0.332 -> 0.321 / 0.371 -> 0.353**, its
-  refit **0.322 / 0.355**, `day` off **0.336 / 0.364**, `act_frag` **0.331 / 0.372**. **Post-processing belongs
+  both draws", not "marginally better"). **Then the donor meal labels themselves were corrected (L 695), so
+  the current pairs are: reference 0.328 / 0.366 / 0.404 / 0.402 / 0.374, `act_k` 1.5 **0.307 / 0.339**, its
+  refit **0.308 / 0.332**, `day` off **0.330 / 0.359**, `act_frag` **0.327 / 0.365**, `resid_m_diurnal`
+  **0.321 / 0.352**.** No score from before 2026-11-04 compares with one after it. **Post-processing belongs
   on the current analysis tree, not the arm's frozen one — the simulation is frozen on purpose, the measurement
   is not.** Caveat on the complete set: `pulse_peak_h` and `pulse_dur_h` are scored against L 626's stale donor
   labels (gap 1.042 identical on both sides; donor `pulse_dur_h` 1.917 where like-for-like is 1.577), so quote

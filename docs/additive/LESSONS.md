@@ -5493,3 +5493,67 @@ cost one read over saved pickles and settled a form that would have cost a two-a
 arm — which existed only because its own prediction was wrong — is what made the pricing checkable. So the
 nocturnal-lows limit has no named candidate again, and L 684's own escape — needing LESS residual rather than
 a better form for it — remains the only route with nothing measured against it.
+
+**695. The scorer now measures the donors' meal pulses with the definition the twins use. One scored defect
+was a phantom, one was real and inverted, and the reference's own score moves: 0.332 / 0.371 -> 0.328 /
+0.366.** L 626 identified this and MODEL_GUIDE has carried it as a ⚠ caveat ever since — "do not fit to the
+scored values; use the corrected column until `meals_fit` becomes the scored source". It now is.
+`lifestats.py` read `ice_v32/meals/`, which that directory's own manifest calls "the pre-fit_shapes
+definition", while the twin side used the current labeller. One path, with `meals` as fallback.
+
+Measured (jobs 197, 199, 200; donor table rebuilt from `meals_fit`, 1423 blocks / 168 donors, provenance
+printed):
+
+| row | donor label | twins (rf2) | gap before | gap after | what it was |
+|---|---|---|---|---|---|
+| `pulse_peak_h` | 0.750 -> **0.622** | 0.622 | 1.042 / 0.989 | **0.069 / 0.123** | a PHANTOM: exact all along |
+| `pulse_dur_h` | 1.917 -> **1.588** | 1.885 | 0.105 / 0.184 | **0.907 / 0.761** | REAL, +19%, and scored with the wrong SIGN |
+| `pulse_peak_per_g` | 1.176 -> 1.195 | 1.039 | 0.917 | 1.013 | real either way |
+| `unann_pulses_day` | 3.462 -> 3.615 | 3.666 | 0.245 | 0.148 | better than scored |
+
+Both halves of the registered prediction landed, including the half that had to get WORSE — `pulse_dur_h`
+by more than predicted (registered 0.2-0.3, measured 0.76-0.91), which is why the direction and not the size
+was registered. Reference, all five draws on the corrected labels: **0.328 / 0.366 / 0.404 / 0.402 / 0.374**, mean **0.375**
+against the stale 0.332 / 0.371 / 0.406 / 0.409 / 0.380, mean 0.380. Only tier 2 moves (0.445 -> 0.439, 0.462
+-> 0.452, 0.530 -> 0.526, 0.486 -> 0.474, 0.508 -> 0.498); tiers 1 and 3 are untouched, since both affected
+rows are tier 2. **No score from before 2026-11-04 is comparable with one after it** — MODEL_GUIDE § 10 now
+carries the corrected table and the previous pairs are labelled as superseded.
+
+**The registered difference check fired on four arms, and the explanation is not an interaction.** Each
+arm-minus-reference difference was required to stay within 0.003, since both sides read the same donor label.
+Eight held; the four `act_k` arms roughly DOUBLED — `ak1` −0.011 -> −0.021, `ak1_5k` −0.018 -> −0.027, `akf`
+−0.010 -> −0.020, `akf_5k` −0.016 -> −0.034. The cause is visible in the rows and it is not the mechanism:
+the twins' own values are **bit-identical** across the two scorings (`pulse_dur_h` 1.885 / 1.823 / 1.812 for
+rf2 / ak1 / akf in both logs). What moved is which direction counts as toward the donors. Against the stale
+1.917, rf2's 1.885 was nearly exact and `act_k`'s shorter 1.823 scored FURTHER away; against the true 1.588,
+rf2 is far off and 1.823 is closer. The same flip runs through `pulse_peak_h`, where the stale target scored
+every twin at a 1.04-1.16 gap and `act_k` WORSE than the reference, and the corrected one makes all three
+exact with `act_k` marginally better. **A wrongly-signed target does not just mis-score the level; it
+mis-ranks every candidate that moves the row.**
+
+**That enlarged gain is not stronger evidence for `act_k`, and should not be read as any.** `act_k` scales
+measurement error and nothing else (L 669, 670; job 180 refuted the smearing account), so a labelled
+appearance statistic moving under it is the LABELLER reading noisier CGM-derived ICE differently, not the
+body's appearance becoming more realistic — L 628's rule, that the body is never calibrated to a labelled
+target, applies to crediting an arm on one as much as to fitting. What the correction does change is the
+size of what L 667 declined: `act_k` is now the best-scoring candidate ever declined on paired per-person
+fidelity (SUM|dev| 3.040 -> 4.791 and 2.568 -> 3.405) and the guard (TDD 42.31 / 42.83 against 41.9 / 42.6).
+The verdict's basis was never the score and is unchanged.
+
+**Two defects exposed on the way, both worth more than the fix.**
+
+- **A crash scored as a no-op.** Job 197 rebuilt the donor table correctly — hitting both registered numbers
+  — and then every row came out bit-identical, because `lifestats sim` died with `KeyError:
+  ['workouts_week']` and `score.py` re-read the old `compare_life.csv`. The job script sent stderr to a log
+  and read the downstream file without checking either. **A job that writes a log and then reads a
+  downstream artefact must fail on `Traceback` in that log**, or a dead step is indistinguishable from a
+  null result — the same family as L 687's stale-summary trap, and the second time in two days that a
+  no-op was the symptom.
+- **The code could not reproduce the donor table it had been scored against for weeks.** `_A`, the workouts
+  frame, is set in the PARENT by `donors()` and read inside `_donor_one`, which runs in
+  `ProcessPoolExecutor` children; macOS defaults to `spawn`, so each child re-imports the module with `_A`
+  back at `None` and every donor silently loses its workouts. The rebuilt table came out with 12 columns
+  instead of 16 and no error at all until the next consumer raised `KeyError`. Fixed by loading ACTIVITY in
+  the worker, plus an explicit message naming the missing columns. **A module global set in the parent is
+  not shared with a spawned worker** — the generalisation of L 660's guard-scope lesson from a value class
+  to a process boundary, and it had been latent long enough that the file in use could not be regenerated.
