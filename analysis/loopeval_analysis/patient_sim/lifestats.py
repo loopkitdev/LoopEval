@@ -196,7 +196,11 @@ def donor_blocks(alias: str, A: pd.DataFrame | None, block_days: int = 13) -> li
     st = pd.DataFrame(dict(t=_mins(to_local(s.t1, off)), ice=s.ice.to_numpy(float),
                            clean=(s.clean & ~s.compression).to_numpy(bool)))
     iob_t, iob_v = st.t.to_numpy(), s.iob.to_numpy(float)
-    mp = ICE_ROOT / "meals" / f"{alias}.parquet"
+    # `meals` is ice's PRE-fit_shapes definition (raw 5-min argmax peak, run length); `meals_fit` is the
+    # regenerated one, and it is the definition the TWIN side uses, so the donor side must read it too or
+    # pulse_peak_h / pulse_dur_h are scored against a different measurement (L 626, 693).
+    mp = ICE_ROOT / "meals_fit" / f"{alias}.parquet"
+    if not mp.exists(): mp = ICE_ROOT / "meals" / f"{alias}.parquet"
     pulses = None
     if mp.exists():
         ml = pd.read_parquet(mp)
@@ -243,7 +247,11 @@ def donors(out: str, par: int = 6):
     D = pd.DataFrame([r for rs, _ in res for r in rs])
     D.to_csv(out, index=False)
     pd.DataFrame([b for _, bs in res for b in bs]).to_csv(Path(out).with_name("life_bouts.csv"), index=False)
+    mdir = "meals_fit" if (ICE_ROOT / "meals_fit").exists() else "meals"
     print(f"{len(D)} blocks, {D.alias.nunique()} donors -> {out}")
+    print(f"donor pulse labels from {ICE_ROOT / mdir}"
+          + (f" (manifest: {json.loads((ICE_ROOT / mdir / '_manifest.json').read_text()).get('labeller', '?')})"
+             if (ICE_ROOT / mdir / "_manifest.json").exists() else ""))
 
 
 # ------------------------------------------------------------------------------------------------------- simulated
@@ -366,4 +374,5 @@ if __name__ == "__main__":
     if sys.argv[1] == "donors":
         donors(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 6)
     else:
-        sim(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 6)
+        sim(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 6,
+            sys.argv[4] if len(sys.argv) > 4 else None)
