@@ -6847,3 +6847,38 @@ identically whichever the reader believes. **The only sound check is the one in 
 reference arm's `person.pkl` and diff it against the declarations.** It takes seconds, it found seven
 misleading declarations, and it should be run whenever the reference changes — alongside
 `langerhans/tools/audit_status.py`, which checks a run's flags and would not catch any of these.
+
+**723. THE EXERCISE LIMIT DOES NOT NEED HEART-RATE DATA — it needs PRESCRIBED-INTENSITY exercise with
+CGM, and T1DEXI has exactly that for 497 adults. OhioT1DM is too small to help.** L 688 closed the
+exercise band as a *collection* problem: this donation carries 0 heart-rate, 0 workout-type, 0 sleep
+and 0 energy rows, `met_own` reaches 22 of 168 donors and moves the cohort METmax by x1.0047, and the
+6-8 MET band sits at −13 against the donors' −21.5. I had offered to check the external candidates and
+had not. Checked 2026-11-04:
+
+**OhioT1DM — too small, and thinner than it looks.** 12 people, 8 weeks each, but heart rate exists
+only for the **2018 cohort of six** (Basis Peak band); the 2020 six wore an Empatica Embrace, the two
+cohorts' activity coverage is inconsistent, and activity is not available for the full day. Access is
+by email plus a DUA. Six people with HR is fewer than the 22 donors `met_own` already reaches, where
+it was a measured no-op — so this cannot settle a band that our own 37-donor MET payload could not.
+**Not worth pursuing for this limit.**
+
+**T1DEXI — the right dataset, for a reason that is not the sensor streams.** 497 adults with CGM,
+insulin and diet, and the exercise is **video-guided at prescribed intensities**. Vivli states the
+platform carries only PROCESSED activity data, which I first read as disqualifying — and it is not,
+because **what this limit needs is not measured movement at all.** L 551 states the blocker precisely:
+"per-person aerobic capacity is a prior (METmax lnN(9, 0.25)), and without it C1 / C2's size at
+moderate intensity cannot be settled". A prescribed-intensity protocol gives the glucose response AT A
+KNOWN intensity directly, which is the designed-experiment version of the quantity we have been trying
+to recover observationally from `HKAverageMETs` payloads. The 6-8 MET band is a dose-response question
+and T1DEXI is a dose-response study.
+
+**So the limit's statement changes: it is not blocked on heart-rate collection, it is blocked on one
+controlled-access data application.** Vivli, dataset "Type 1 Diabetes EXercise Initiative (T1DEXI)",
+standard request with a concept note; a companion pediatric set (T1DEXIP) is on the same platform, and
+Vivli notes other T1D sets there can be combined with it. What to ask for, in one line: **CGM, insulin
+and the per-session prescribed intensity and duration, so the glucose response can be binned by
+intensity the way `act_net20` and the 6-8 MET band already are.** Raw accelerometry and heart rate are
+not required and should not hold up the request.
+
+That application is Pete's to make — it is an external data agreement, not an arm — and it is the only
+route recorded anywhere that could close a tier-1 row (`act_net20`, `act_net20_hi`) without a trade.
