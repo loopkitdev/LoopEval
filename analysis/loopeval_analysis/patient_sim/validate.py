@@ -319,7 +319,23 @@ def main():
     cj = root / "cohort.json"
     tp = json.load(open(cj)).get("templates") if cj.exists() else None
     rp = Path(tp).parent / "real_pilot.csv" if tp else None
-    if rp is not None and rp.exists() and "pilot" in str(tp):
+    # Whether to compare against the PILOT donors is a question about the template POPULATION, not about
+    # the template FILENAME. This used to read `"pilot" in str(tp)`, so a refit's templates named
+    # `templates_af_r3.csv` silently skipped the whole donor comparison: no compare_pilot.csv, and the
+    # scorer then died on a missing file three jobs later (job 206). Key it on the aliases instead - if
+    # the templates' people are the pilot people, the pilot donors are the right comparison.
+    _pilot = False
+    if rp is not None and rp.exists() and tp and Path(tp).exists():
+        try:
+            _ta = set(pd.read_csv(tp, usecols=["alias"]).alias.astype(str))
+            _ra = set(pd.read_csv(rp, usecols=["alias"]).alias.astype(str))
+            _pilot = bool(_ta) and len(_ta & _ra) >= 0.9 * len(_ta)
+            if not _pilot:
+                print(f"compare_pilot skipped: {len(_ta & _ra)} of {len(_ta)} template aliases are in "
+                      f"{rp.name}, under the 90% needed to call this the pilot population")
+        except Exception as ex:                      # noqa: BLE001
+            print(f"compare_pilot skipped: could not read aliases ({ex!r})")
+    if _pilot:
         tt = pd.read_csv(tp)
         if "entries_raw" in tt:   # the raw-record rates, counted like the simulator's own (templates.add_raw_rates)
             tt = tt.drop(columns=["carb_entries_per_day", "user_boluses_per_day"]).rename(
