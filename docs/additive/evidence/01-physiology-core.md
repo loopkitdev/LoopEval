@@ -391,6 +391,49 @@ UVA/Padova delay-based fast-analogue model (n = 116).
 - **EGP cannot go negative.** At low insulin it rises back toward EGP0. This is the "floor" that
   makes a suspended pump stop a fall, and linear models lack it.
 
+### 4.1a How insulin's effect splits between the liver and the periphery (`egp_share`)
+
+`person.calibrate` splits the body's insulin effect between the EGP-suppression arm (`se`) and the
+disposal arm (`si_d`) by `egp_share`, then rescales BOTH so the effective ISF of the full body equals
+the per-person yardstick. So `egp_share` does not set how much insulin lowers glucose — the yardstick
+pins that — it sets HOW: the hepatic arm acts on production and the peripheral arm on disposal, which
+is glucose-dependent through `mm(g)`. It therefore changes the response's timing and its
+glucose-dependence, which is why it bears on the change-response question (L 680) and on meal shape.
+It routes about 65% of each twin's insulin response (L 678).
+
+**No source pins it, and that is the state of the evidence rather than a gap waiting on one search.**
+Searched 2026-11-04 for the hepatic-versus-peripheral split of insulin's glucose-lowering effect at
+near-physiological insulin in T1D, and for a published ratio in the UVA/Padova family:
+
+- There is **no T1D clamp-with-tracer study at insulin-replacement doses** that reports the split. The
+  clamp literature that does separate the two components mostly uses supraphysiological insulin, and
+  mostly in people without diabetes or with obesity, so it does not transfer to basal replacement.
+- The **direction is agreed and supports a HIGH hepatic share at the doses that matter here**: hepatic
+  glucose output is more sensitive to insulin than peripheral uptake, so at basal and correction-sized
+  insulin — the range basal rates and correction boluses live in — suppression of production carries
+  more of the effect than stimulation of disposal, with the periphery taking over as insulin rises
+  (Edgerton/Cherrington, Cell Metab 2021; Sindelar 1998 in dogs, where both routes contribute and
+  peripheral insulin is the more potent per unit; Ter Horst 2006 on the relative sensitivities).
+- **UVA/Padova does not publish the ratio.** It carries hepatic and peripheral insulin sensitivity as
+  two independent free parameters (`kp3` on `EGP = kp1 − kp2·Gp − kp3·XL`, and `Vmx` on
+  insulin-dependent utilisation), fitted per subject; their relative contribution to glucose lowering
+  is not reported, so our `egp_share` is a derived quantity that family does not state.
+
+**It is also a measured WEAK lever in this model, which is why the missing prior has not cost
+anything.** Both ends have been tried: `egp_share` 0.4 (archive c143) moved the tracer EGP nadir the
+right way and made the entry-anchored trajectory worse, with the recorded conclusion "the timing
+matters, not the share"; and `egp_share` 0.95 was ruled out for raising the meal and the level
+(LESSONS 481). L 678's derivation says the same structurally: `sg` is ~80% of the total restoring gain
+`lam`, so the split can only move the remainder.
+
+**Status: unevidenced by literature, directionally defensible, measured weak at both ends.** Current
+draw `uniform(0.7, 0.9)` (`person.py:374`). **Caveat for anyone reading the history:** the archive
+records the default as `U(0.5, 0.7)` and later `U(0.3, 0.5)`, and **no lesson records the move to
+`U(0.7, 0.9)`** — it is the one parameter known to have drifted without a recorded decision (L 666's
+drift problem in the largest unevidenced term). The current value is defensible on the direction above,
+not on a decision anyone wrote down.
+
+
 ### 4.2 Glucose effectiveness
 - ReplayBG prior SG median 0.022 min⁻¹ (log-sd 0.5) (verified code). Kanderian GEZI varied across
   windows (values per subject, Table 1).

@@ -6457,3 +6457,40 @@ decision that could change the picture without new evidence is Pete's: **spend ~
 `pulse_dur_h`, the fall/rise ratio 0.63 -> 0.69 and half the structure-function gap** — the `ge_order` 3
 trade, which AGENTS.md's "a win on one metric that costs the other is not a win" forbids me from taking
 unilaterally and which no measurement can settle because it is a preference between axes.
+
+**714. `egp_share`'s MISSING EVIDENCE ENTRY IS CLOSED — unevidenced by literature, directionally
+defensible, measured weak at both ends, and the one parameter known to have drifted without a recorded
+decision.** L 678 flagged it as the model's largest unevidenced quantity: drawn `uniform(0.7, 0.9)`
+(`person.py:374`) and routing ~65% of each twin's insulin response, with no entry anywhere. Written up
+now as `evidence/01 § 4.1a`, and the answer is not an adoption.
+
+**What it actually does, which the flag did not say.** `person.calibrate` splits the insulin effect
+between the EGP-suppression arm and the disposal arm by `egp_share`, **then rescales BOTH so the
+effective ISF equals the per-person yardstick**. So it does not set how MUCH insulin lowers glucose —
+the yardstick pins that — it sets HOW, and the two arms differ in timing and in glucose-dependence
+(disposal runs through `mm(g)`, production does not). That is why it bears on the change response
+(L 680) and on meal shape rather than on the level.
+
+**The literature state, searched 2026-11-04.** There is **no T1D clamp-with-tracer study at
+insulin-replacement doses** that reports the split; the clamp work that separates the components uses
+supraphysiological insulin, mostly in people without diabetes or with obesity. The DIRECTION is agreed
+and favours a HIGH hepatic share at basal and correction-sized doses — hepatic output is more
+insulin-sensitive than peripheral uptake, with the periphery taking over as insulin rises — so
+`U(0.7, 0.9)` is defensible where basal rates and corrections live, and `U(0.3, 0.5)` would not be.
+And **UVA/Padova does not publish the ratio**: it carries `kp3` (hepatic) and `Vmx` (peripheral) as
+two independent fitted parameters and never states their relative contribution, so our `egp_share` is
+a derived quantity that family does not report. No prior is available to adopt.
+
+**And it is a measured weak lever, which is why the missing prior cost nothing.** Both ends were
+already tried: 0.4 (archive c143) moved the tracer EGP nadir the right way and made the
+entry-anchored trajectory worse — recorded conclusion, "the timing matters, not the share" — and 0.95
+was ruled out for raising the meal and the level (L 481). L 678's own derivation agrees structurally:
+`sg` is ~80% of `lam`, so the split can only move the remainder. So this is not a candidate.
+
+**The one thing worth carrying forward is the drift.** The archive records the default as `U(0.5, 0.7)`
+and later `U(0.3, 0.5)`; **no lesson records the move to `U(0.7, 0.9)`.** The current value is
+defensible on the direction above and not on any decision anyone wrote down — L 666's drift problem
+sitting in the largest unevidenced term in the model, found only because L 678 flagged the term for a
+different reason. **The check this suggests, for anyone with an hour: diff every live default in
+`physiology.py` / `person.py` against the value its own lesson or evidence entry claims.** L 666's
+external audit found eight such defects in one session; this is a ninth, and it was found by accident.
