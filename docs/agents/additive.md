@@ -758,7 +758,16 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   cost is high-side: TIR 72.2 -> 68.6, t180 25.8 -> 28.1, because less dispersion delivers the same carbohydrate in a
   shorter window and Loop cannot cover the peak, so the score rejects it. **The appearance evidence is insulin-free (L 619)**: the labeller builds every pulse from `ice`,
   not glucose, so the donors' 60-min decay against the twins' 67 IS an appearance difference and `ge_order` 3-4 moves
-  toward measured truth. The cost is therefore an INSULIN-ACTION mismatch: `p2` 0.025 is fitted to a 0.2 U/kg
+  toward measured truth. **Re-judged on honest donor labels its score penalty roughly HALVES and is no longer
+  what rejects it (L 696): 0.326 / 0.376 against rf2's 0.328 / 0.366 — score-level on draw 1, marginally worse
+  on draw 2 — with `meal_d3h`'s tier-1 gap 0.373 -> 0.054 / 0.160 and `acf_zero_min` 1.734 -> 1.272. What
+  rejects it is the GUARD and TIR: t54 0.124 -> 0.294 and 0.232 -> 0.275 against the donors' 0.190, t70 up,
+  TIR 72.15 -> 68.49 and 71.25 -> 67.40, t180 up — a sharper pulse gives a bigger peak AND a deeper post-peak
+  fall, the same thing that improves the fall/rise ratio. Plus L 656's damping, which no donor label touches.
+  `ol85` (order 3 + `unl_mult` 0.85) recovers ~2 of the 3.7 TIR points and lands t180 on the donors while
+  keeping the appearance gains, and is still blocked by t70/t54 — the first cohort evidence that the load lever
+  offsets a sharper pulse's HIGH-side cost, a different job from the slow-scale one L 681 refuted it for.**
+  The cost is therefore an INSULIN-ACTION mismatch: `p2` 0.025 is fitted to a 0.2 U/kg
   (~15 U) SUBCUTANEOUS lispro clamp while meal boluses are ~0.05 U/kg, and while A4d already dose-corrects
   ABSORPTION (normalised at that clamp dose), nothing dose-corrects the ACTION rate — a limitation `p2`'s own
   comment records as "direction known, size not found for analogues" (L 620). **ANSWERED and refuted (L 621)**: Gagnon-Auger 2010 (lispro 10 / 30 / 50 U under clamp) finds
@@ -1068,6 +1077,14 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 
 - **Donor carb entries are keyed `grams` in `carbs.json`, not `carbInput`** — the wrong key gives 0 g for every entry, and
   any size filter then drops them all with no error (L 571).
+
+- **`gap = |d50| + 0.5*|spread|`, so an arm can be charged on a row where its median is IDENTICAL** (L 696).
+  On the corrected labels `pulse_peak_h` is 0.622 for the reference and every appearance arm while their gaps
+  run 0.069 to 0.170 — entirely the spread half. A score difference attributed to a median is wrong whenever
+  the medians agree, and my pre-registered arithmetic for `ge_order` 3 ignored it. The same derivation also
+  **priced a row from a number belonging to a different arm** — L 627's 1.775 is `ge_order` 3 PLUS `kabs`
+  0.057, while `go3`'s own duration is 1.863 — the L 663/672 trap inside a derivation rather than a directory
+  listing. Read the arm's own row out of the log before predicting what it is worth.
 
 - **When a candidate's whole effect flows through ONE scalar, price it from an already-failed arm before
   running a new one** (L 694). The deviation-keyed level holder collapses every person's night drift into a

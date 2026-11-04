@@ -5557,3 +5557,64 @@ The verdict's basis was never the score and is unchanged.
   the worker, plus an explicit message naming the missing columns. **A module global set in the parent is
   not shared with a spawned worker** — the generalisation of L 660's guard-scope lesson from a value class
   to a process boundary, and it had been latent long enough that the file in use could not be regenerated.
+
+**696. On honest donor labels `ge_order` 3's score penalty roughly HALVES and stops being the reason to
+reject it — the low side is. My registered prediction of the size FAILED, by using another arm's number.**
+L 617 showed order 3 moves four standing limits together and L 621 found 3 is the fitted order; it was
+rejected because the score rejected it. Part of that penalty was `pulse_dur_h` scored with the wrong sign
+(L 695), so the arms were re-judged on the corrected labels (job 202; all five share rf2's exact `--set`,
+switches and templates plus their own knob, each labelled from its own `cohort.json`).
+
+| arm | stale d1 / d2 | corrected d1 / d2 | deficit stale | deficit now |
+|---|---|---|---|---|
+| rf2 | 0.332 / 0.371 | 0.328 / 0.366 | — | — |
+| `go3` order 3 | 0.336 / 0.385 | **0.326 / 0.376** | +0.004 / +0.014 | **−0.002 / +0.010** |
+| `go4` order 4 | 0.412 / 0.442 | 0.386 / 0.415 | +0.080 / +0.071 | +0.058 / +0.049 |
+| `ka2` order 3 + `kabs_m` 1.14 | 0.350 / 0.427 | 0.335 / 0.405 | +0.018 / +0.056 | +0.007 / +0.039 |
+| `ol70` order 3 + `unl_mult` 0.70 | 0.361 / — | 0.345 / 0.381 | +0.029 | +0.017 / +0.015 |
+| `ol85` order 3 + `unl_mult` 0.85 | 0.337 / — | **0.324 / 0.378** | +0.005 | **−0.004 / +0.012** |
+
+**(2) The falsifier passed**: on the corrected label `pulse_dur_h`'s gap is rf2 0.907 against `go3` 0.769,
+`go4` 0.413, `ka2` 0.655, `ol85` 0.664 — order 3 IS nearer the donors' 1.588, where the stale 1.917 scored
+it further away. Draw 2 is a wash for `go3` specifically (0.761 against 0.782) because its spread half
+worsens.
+
+**(1) The prediction failed and here is the error.** I registered a swing of **0.008-0.012** on both draws
+from a one-row calculation; the observed swing is **0.006 and 0.004**. The inputs were wrong: I took order
+3's labelled duration as **1.775** — which is L 627's figure for `ge_order` 3 PLUS `kabs` 0.057, a different
+arm, and which even `ka2` does not reproduce here (1.823) — when `go3`'s is **1.863**, a shortening of 1.3
+minutes from rf2's 1.885, not the 6.6 I assumed. So that row's swing is 0.071 + 0.138 = 0.209 (= 0.0040 of
+score), not the 0.52 (= 0.0099) I derived. Re-done with the measured gaps across all four moved rows —
+`pulse_dur_h` +0.209, `pulse_peak_h` +0.138, `pulse_peak_per_g` +0.003, `unann_pulses_day` +0.090 — the
+arithmetic predicts **0.0084**, close to the observed 0.006 once the score's pooling and rounding are
+allowed for. Two generalisable errors in it: **I priced a row from a number belonging to a different arm**
+(the L 663/672 trap, in a derivation rather than a directory listing), and I forgot that
+**`gap = |d50| + 0.5*|spread|`**, so an arm can be charged on a row where its median is IDENTICAL —
+`pulse_peak_h` is 0.622 for every arm here and its gaps run 0.069 to 0.170, which is pure spread.
+
+**What now rejects order 3, and it is not the aggregate.** Tier 1 is worse on both draws (0.135 -> 0.162,
+0.209 -> 0.225) and tier 3 clearly worse (0.464 -> 0.506, 0.442 -> 0.529), while tier 2 improves (0.439 ->
+0.408, 0.452 -> 0.447) and the two rows L 617 named land: **`meal_d3h` gap 0.373 -> 0.054 / 0.160**, a
+tier-1 weight-3 row nearly closed, and `acf_zero_min` 1.734 -> 1.272 / 1.320 -> 1.165. The cost is the low
+AND high side together — TIR 72.15 -> 68.49 and 71.25 -> 67.40, t70 1.76 -> 2.39 and 2.12 -> 2.06, **t54
+0.124 -> 0.294 and 0.232 -> 0.275 against the donors' 0.190**, t180 25.8 -> 28.6 and 24.3 -> 27.1. A
+sharper pulse gives a bigger peak and then a deeper post-peak fall, which is the same thing that improves
+the fall/rise ratio: **more time high and more time low at once.** So the objection has moved from "it
+costs score" to "it costs the guard and TIR", which is a better-specified rejection and the one AGENTS.md
+actually forbids trading.
+
+**One new thing worth keeping: `ol85` recovers most of order 3's TIR cost.** Order 3 plus a 15% cut in
+unlogged eating reads TIR **70.65 / 70.14** against `go3`'s 68.49 / 67.40 and t180 **26.29 / 25.72** against
+the donors' 25.88 / 25.88 — so about 2 of the 3.7 lost TIR points come back and the high side lands almost
+exactly, while the appearance gains are kept (`meal_d3h` 36.0 / 37.0). It is still not adoptable: t70 and
+t54 are worse than the reference on both draws, and t54 is a guard. But this is the first cohort evidence
+that the load lever OFFSETS a sharper pulse's high-side cost — a different job from the slow-scale one
+L 681 refuted it for, and the pairing is worth a proper arm if the appearance direction is ever revived.
+
+**Unchanged by any of this, and why none of it is an adoption:** L 656 measured order 3 as MORE damped on
+the change half (level-adjusted mean 1.35 -> 1.57, TIR 1.30 -> 1.68), and no donor label touches that. The
+honest net is a restatement — order 3 is score-level on draw 1, marginally worse on draw 2, closes
+`meal_d3h` and `acf_zero_min`, and is rejected on the low side and the change response. L 621's open
+question is sharpened rather than answered: matching the donors' measured appearance dispersion costs time
+in range because Loop cannot cover a sharper pulse, which points at the controller's response and not at
+the body.
