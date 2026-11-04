@@ -5380,3 +5380,62 @@ labelled-meal rows move under those arms is simply unmeasured. Queued as job 195
 ROW SET changed, not the arm. Print `n` beside every score and check the reference against the record
 before reading the candidate — and when the record carries two numbers for one arm, that is the defect,
 not a choice. L 666's drift, in the instrument this time rather than the prose.
+
+**693. The row set is unified, the reference's own score SURVIVES regeneration, and of the four published
+records only one delta changes sign — but the complete set re-admits two rows scored against stale donor
+definitions.** Job 196 put all thirteen cohort arms' summaries on one analysis version (`meal_response` +
+`lifestats sim` from the current tree) and re-scored every pair by name.
+
+- **(1) GATE, passed.** `life_stats.csv` is 17 columns for all thirteen arms (it was **13** for `af1`,
+  `af1_5k`, `ak1`, `ak2`, `ak1_5k`, `akf`, `akf_5k`, `dy1`, `dy1_5k`) and every log now prints **n 51** on
+  draw 1 and **n 54** on draw 2.
+- **(2) THE REFERENCE IS CONFIRMED.** rf2 scores **0.332** and rf2_5k **0.371** after regeneration, to
+  three decimals the same as before, tier by tier (0.135 / 0.445 / 0.464 and 0.209 / 0.462 / 0.442). So
+  the published pair was never stale on the twin side, and the Current-reference block's numbers stand.
+- **(3) THE FOUR RECORDS, restated on the complete set** (published 46/49-row pair → complete 51/54):
+
+| arm | what it is | draw 1 | draw 2 |
+|---|---|---|---|
+| `af1` / `af1_5k` | `act_frag` (L 658, 661) | 0.309→0.305 ⇒ **0.332→0.331** | 0.357→0.355 ⇒ **0.371→0.372** |
+| `ak1` / `ak1_5k` | `act_k` 1.5 unrefit (L 664) | 0.309→0.294 ⇒ **0.332→0.321** | 0.357→0.339 ⇒ **0.371→0.353** |
+| `akf` / `akf_5k` | `act_k` 1.5 refit (L 667) | 0.309→0.290 ⇒ **0.332→0.322** | 0.357→0.338 ⇒ **0.371→0.355** |
+| `dy1` / `dy1_5k` | `day` OFF (L 668, 683) | 0.309→0.313 ⇒ **0.332→0.336** | 0.357→0.349 ⇒ **0.371→0.364** |
+
+  `act_k`'s gain survives on both draws and stays carried by tier 3, its own evidence domain (0.464 →
+  0.399 / 0.442 → 0.375 unrefit), though draw 1's margin halves. `day`'s split sign is reproduced exactly.
+  **One restatement is needed: `act_frag` draw 2 FLIPS from −0.002 to +0.001**, so L 658's "score-level to
+  marginally better on both draws" becomes **level on both draws** — both values are a tenth of the 0.01
+  floor, so the word that was right is "level", and the one argument that pointed toward adopting it is
+  gone. Its verdict (off, L 661) rested on the change half and is untouched.
+
+**The catch in the complete set, and it is L 626 again.** Two of the five restored rows are scored against
+the stale donor labels: `pulse_peak_h` reads donors **0.750** against the twins' 0.622 for a gap of
+**1.042 identical on both sides**, which is precisely the 1.04 L 626 identified as entirely definitional,
+and `pulse_dur_h`'s donor label is **1.917** where the like-for-like value is 1.577 (so it scores as
+near-passing, 0.105, while the real defect is ~19%). Neither can move a delta — both sides carry the same
+number — but both inflate every absolute score on this row set, and `pulse_dur_h`'s sign is inverted
+relative to the truth. The other three are live (`meal_d3h` tier 1, `pulse_peak_per_g` 1.039 vs 1.054,
+`unann_pulses_day` 3.666 vs 3.791). **So the complete set is the right instrument for comparing arms and
+carries a known artefact in its level; the fix is to point the scorer at ice's regenerated
+`ice_v32/meals_fit/` labels, not to drop the rows.** Until that is done, quote score DIFFERENCES, not the
+absolute level, and never compare a score across row sets.
+
+**The method lesson, and it is a new failure mode for this project.** The defect was not a missing step:
+`life_stats.csv` was PRESENT for every arm, 13 columns wide instead of 17, and `af1`'s copy is NEWER than
+the reference's. **A file's existence says nothing about which code version wrote its columns, and its
+mtime does not order code versions.** Two rules follow. Check the column count — or the specific columns a
+scorer needs — not the path, which is the same signature as the `BEHAVIOR_COLS` and `--enable k=v` traps
+one level up. And: **an arm's SIMULATION is frozen on purpose; its MEASUREMENT should not be.** These arms
+ran post-processing out of their own frozen tree, which is why a row added to `lifestats.py` never reached
+them. Post-processing belongs on the current analysis tree, reading the frozen run's `truth.pkl`.
+
+**And the trap that nearly put a false correction in the record, on its third sighting.** Checking which
+`act_k` arm carried the published draw-1 score, I read column 5 of `score_ak_d1.log` and concluded it was
+`ak2` at the diagnostic 2.9 rather than the evidenced 1.5 — which would have meant L 664 paired two
+different arms across draws. The log is **three-arm** (`rf2`, `ak1`, `ak2`), so a fixed column index reads
+the wrong arm, exactly as this record's own standing trap says ("key on the header names, never on a
+column index"). Read by header, L 664 and L 667 are right as published. I had already written the false
+premise into job 196's registered rule before verifying it; the job had not started, so the rule and its
+pair list were corrected and the summary now prints each arm's NAME beside its number. **A pre-registered
+rule is not a safeguard against an unverified premise inside it** — check the premise against the data
+before the rule is written, because a wrong premise in a registered rule looks exactly like rigour.
