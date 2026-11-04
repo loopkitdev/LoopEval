@@ -6370,3 +6370,50 @@ session: L 703/704/707/708 narrowed the velocity deficit to appearance shape, th
 rows survive the fit, and `ge_order` 3 is blocked on TIR, t180 and the guard rather than on
 `resid_m`. The next candidate that matters is still "post-entry motion without appearance dispersion",
 and now there is a reason to believe such a candidate would not be eaten by the refit.
+
+**712. THE 5-MIN MOTION DEFICIT IS CLOSABLE AND THE PRICE IS NOW MEASURED: ~4.5 points of `bg_cv` and
+0.08 of score. "Motion without dispersion" via a RATE drive is refuted, and the reason is that the OU
+identity applies to GLUCOSE, not to the drive.** Job 210, the residual's FAST part alone at 1.75
+(`resid_mult_f`, new per-timescale multipliers; block and day at zero), against bars fixed first.
+
+**The amplitude derivation was right.** The 5-min daytime increment rms rose **x1.216 / 1.195 / 1.197**
+against a prediction of x1.15-1.25 made from L 648's "8-18% of the missing variance at 0.6" scaling as
+mult^2. L 648 puts the reference at 0.81 of the donors, so this lands at **~0.97 — the 5-min deficit is
+essentially closed.** The quantity was derived, not fitted, and it landed.
+
+**The premise was wrong, and badly.** I registered `bg_cv` 34.4-35.0 with ">35.5 refutes". Measured:
+**38.20 / 37.79 / 39.62** against the donors' 34.65. Score 0.3660 -> **0.4453** (+0.0793, eight times
+the floor), tier 1 0.1740 -> **0.3937**, t70 1.51 -> 3.07 and t54 0.148 -> 0.411 on draw 3. Refuted on
+every count. **The error: I applied the OU identity — increment variance `2*s^2*(1 - exp(-dt/tau))`, so
+a short tau is cheap on stationary variance — as though the residual were mean-reverting IN GLUCOSE.
+It is an OU in the RATE (mg/dL/h).** A 20-min-correlated rate perturbation lands in glucose and then
+decays at glucose's OWN reversion time, 1/`lam`, which is hours. The shortness belongs to the drive's
+correlation, not to the excursion it creates. **So no rate-based drive can buy glucose motion cheaply,
+however fast its correlation** — which closes the route generally, not just at this amplitude. A term
+that adds glucose motion reverting in 20 minutes has to act on glucose directly with its own fast
+reversion, and the only such thing in this model is measurement error, which L 704 showed moves the
+CGM statistic without moving the body.
+
+**And the SHAPE is wrong too, which is the new structural finding.** The fast residual made the other
+two short-scale rows WORSE, not better: `sigma_disp` 3.109 -> 3.054 against the donors' 3.574 (the
+twins are BELOW and went further below, gap 0.995 -> 1.132) and `vol_cluster_60m` 0.126 -> 0.101
+against 0.122 (gap 0.182 -> 0.454, from nearly exact to badly off). Adding fast variance that is
+uncorrelated in time RAISES the 5-min increment while LOWERING volatility clustering and the
+dispersion of volatility. **So the donors' short-scale structure is not "more fast variance" — it is
+INTERMITTENT fast variance**, and a component that supplies the first without the second moves three
+rows in two directions. That is consistent with L 654's day-over-night excess in the 2nd difference
+and it is a sharper specification than L 650's "mean-reverting with tau 15-20 min": the next candidate
+for this row must be intermittent, and `vol_cluster_60m` is the row that will catch it if it is not.
+
+**One genuine gain, recorded because it is the only arm that has ever produced it outside `ge_beta`:**
+`acf_zero_min` 60 -> **50** on draw 3 (gap 1.770 -> 0.858) and 55 -> 55 with the gap 1.320 -> 1.159 on
+draw 1. That row has resisted everything (L 385-389's "no body lever moves it", corrected only by
+`ge_beta` at a prohibitive price). It moved here at a prohibitive price too, but it confirms the row is
+reachable by fast motion rather than being structurally stuck.
+
+**My own reading error, the third of the session.** In the message before the full result I called
+`sigma_disp` and `vol_cluster_60m` "improved slightly" from their raw values (3.109 -> 3.054, 0.126 ->
+0.101) without checking either against its donor target — and both had moved AWAY. After the
+column-index read and the inverted bisection, that is three direction errors in one session from the
+same cause: **a value read without the target it is compared to has no sign.** Print the donor target
+in the same row as the value, every time; the scorer's `--detail` does it and my ad-hoc reads did not.

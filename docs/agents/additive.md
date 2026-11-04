@@ -941,7 +941,16 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   while the MAX is frequency-confounded (+0.783) and must never be used — but it reaches only **22 of 168 donors**, so
   `met_own` moves 6 of 112 twins and the cohort mean METmax by ×1.0047: a measured no-op, not run. This band needs
   workout records for most of the cohort, not a new mechanism.
-- Off-by-default experiments with their verdicts: **`pump_off` (B16, the person's own pump suspend, measured on
+- Off-by-default experiments with their verdicts: **`resid_mult_f` 1.75 (the residual's FAST part alone, tau 20
+  min, block and day at zero: the derived amplitude LANDED - 5-min daytime increment rms x1.216 / 1.195 / 1.197
+  against a predicted x1.15-1.25, closing L 648's deficit from 0.81 to ~0.97 of the donors - and the premise was
+  REFUTED, `bg_cv` 34.25 -> 38.20 / 37.79 / 39.62 against the donors' 34.65, score 0.3660 -> 0.4453, tier 1 ->
+  0.3937, t54 0.148 -> 0.411. The OU identity applies to GLUCOSE, not to a RATE drive: a 20-min-correlated rate
+  lands in glucose and decays at 1/`lam`, hours, so NO rate-based drive buys motion cheaply. It also made
+  `sigma_disp` and `vol_cluster_60m` worse, so the donors' short-scale structure is INTERMITTENT fast variance,
+  not more fast variance - the sharpest specification yet for this row, and `vol_cluster_60m` is the row that
+  catches a candidate that gets it wrong. One real gain: `acf_zero_min` 60 -> 50, which only `ge_beta` had ever
+  moved. L 712),** **`pump_off` (B16, the person's own pump suspend, measured on
   7302 donor episodes: clock-keyed Poisson at lnN(0.234, 0.60)/day, duration log-hours N(−0.557, 1.272), onset
   from the donors' clock shares; reproduces its targets to 4% on the time share. Unrefit it was tier 1 better on
   ALL THREE draws (0.1740 -> 0.1680) with score level; after a refit that converged to |gap| p50 1.6 and rho 0.99
