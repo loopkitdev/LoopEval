@@ -6115,3 +6115,53 @@ for one of them; a pilot gate keyed on the template POPULATION (>= 90% of aliase
 that prints why it skips. **The rules: prefer a content check to a path check, and make a parser ABORT
 on a short read rather than average it** — job 207's now refuses to report a verdict it cannot build
 from three draws.
+
+**707. THE POST-MEAL DEFICIT IS MOSTLY A GLOBAL VELOCITY SCALE, NOT A FALL ASYMMETRY — so the
+mechanism L 575 has been asking for is the smaller half of the problem.** L 703 measured post-entry
+FALL rates at a uniform 0.743 of the donors'. The matching RISE had never been measured. It is
+**0.817** (`runs/2026-11-04-additive-fastfall/rise.py`, 36,739 donor and 4,352 twin entries, the same
+grid, the same 15-min difference, the same entry selection):
+
+| quantile | p5 | p10 | p25 | p50 | p75 | p90 | p95 |
+|---|---|---|---|---|---|---|---|
+| fall, twin/donor | 0.737 | 0.702 | 0.719 | 0.757 | 0.800 | — | — |
+| rise, twin/donor | — | 0.832 | 0.706 | 0.750 | 0.806 | 0.887 | 0.935 |
+
+Registered bars were <= 0.78 for a global scale and >= 0.85 for fall-specific; **0.817 is between, so
+the registered reading is SPLIT and neither verdict is claimed.** What it decomposes into is the
+finding: a **global component of about 0.82** that slows rises as much as falls and needs no time
+asymmetry at all, plus a **fall-specific residual of 0.79-0.91** (0.743/0.817 = 0.909 on the quantile
+averages, 0.702/0.887 = 0.791 pairing fall p10 against rise p90 — quote the bracket, not a point).
+So most of what L 575 called a 72%-of-potency gap, and framed as a fall/rise RATIO needing a
+mechanism "asymmetric in TIME around the peak", is a body whose glucose simply moves too slowly in
+both directions.
+
+**L 575 is confirmed out of sample on a second instrument**: the donors' fall/rise reads **0.887**
+against its 0.89, and the twins' **0.702** against its 0.70-0.78.
+
+**And one of its cautions inverts.** L 575 warns that the sensor amplifies a fall (~27%) far more than
+a rise (~7%), so "the CGM comparison exaggerates the gap". Measured on the twins' own truth, where the
+sensor can be removed from one side: their TRUTH fall/rise is **0.504** against their CGM **0.702** —
+the sensor **inflates** the apparent asymmetry by **+39.3%**, i.e. it FLATTERS the twins toward the
+donors' 0.887. So a claim about the body's asymmetry read off CGM is understated, not overstated. The
+twin/donor comparison survives only because the effect is common-mode, which is what L 575's own
+"24-35% on BOTH sides, it inflates the level but NOT the gap" already said; what is new is the size
+and the direction on the twin side, and that the body's own asymmetry is far worse than it looks.
+
+**The global half has a named candidate with a bracket that matches, and it is NOT yet tested.**
+`vg` is 1.88 dL/kg (`physiology.py:55`, UVA/Padova), drawn `exp(N(log 1.88, 0.15))`. Every flux
+reaches glucose as `flux / vg`, so vg is exactly a global velocity scale: **1.88 -> ReplayBG's 1.45
+multiplies every velocity by x1.30**, against the **x1.37** L 703 says is needed. It would also bear
+on L 680's change response (0.63 of the field per delivered unit), since a settings edit's effect on
+glucose is diluted by the same constant — three standing limits, one parameter, one literature
+bracket. The code records why 1.45 was rejected: it "gives ~2x the carb sensitivity people's settings
+imply". That objection is testable rather than decisive, because carb sensitivity is **separately
+fitted per donor** (`csf_geq`, L 358) to each donor's own measured meal response, so vg and the fitted
+csf are not independent and the 2x may be an artefact of holding csf fixed while vg moves.
+
+**Do the open-loop probe FIRST (L 676).** Velocity per unit flux is a BODY property, so it is settled
+against `physiology.Body` with no controller in the path — one table, minutes, no cohort arm — exactly
+as L 676 settled the damping question after five closed-loop accounts had failed. The registered
+question for it: does `vg` 1.45 multiply post-meal fall AND rise velocity by ~1.30 at a matched
+glucose level, and what does it do to the g-eq per gram that `csf_geq` is fitted to? Only then is a
+cohort arm worth queueing, and only with the csf refit in the same arm.

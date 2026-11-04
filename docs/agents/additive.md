@@ -270,6 +270,16 @@ third of the x1.37 needed and is already rejected on TIR, t180 and the guard. `s
 (0.907), L 649's sign again.** With L 575's own eliminations the candidate space for this gap now excludes
 appearance scale, emptying speed, Vmax, uptake glucose-dependence, insulin-action timing, post-meal
 sensitivity, dose, κ, the restoring force, the glucose load and every sensor term.
+  **AND THE PROBLEM IS NOW MOSTLY A DIFFERENT ONE (L 707): post-entry RISES are 0.817 of the donors' against
+  falls at 0.743, so ~0.82 of the deficit is a GLOBAL velocity scale needing no time asymmetry, and only
+  0.79-0.91 is fall-specific.** L 575's donor fall/rise 0.89 and twin 0.70-0.78 are confirmed out of sample
+  (0.887 / 0.702), and its sensor caution INVERTS: the twins' TRUTH fall/rise is 0.504 against their CGM
+  0.702, so the sensor inflates the apparent asymmetry by +39% and FLATTERS them. The global half has a named
+  candidate with a matching bracket: `vg` 1.88 dL/kg (`physiology.py:55`) is a pure global velocity scale and
+  1.88 -> ReplayBG's 1.45 gives x1.30 against the x1.37 needed, which would also bear on L 680's 0.63. The
+  recorded objection - 1.45 "gives ~2x the carb sensitivity people's settings imply" - is testable, not
+  decisive, because `csf_geq` fits carb sensitivity per donor and is not independent of `vg`. **Do the
+  open-loop probe against `physiology.Body` FIRST (L 676), then a cohort arm with the csf refit in it.**
 
 ## Known limits of the current reference (read before using its numbers)
 
