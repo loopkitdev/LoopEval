@@ -167,11 +167,16 @@ class BodyParams:
                                    # kcal/min keeps rising with load — doubling the load: ×1.45 (Schirra 1996, γ 0.54),
                                    # +0.72 on 2.5 kcal/min (Hunt 1985, γ ≈ 0.37) — where Km 60 kcal had flattened it to
                                    # ×1.07 above ~300 kcal (LESSONS 53)
-    egp_vs: float = 0.0            # > 0: the hepatic insulin signal saturates, in suppression units v = sE·(I − Ib)/Ib:
+    egp_vs: float = 0.0            # [NOT LIVE: person.py:404 sets 2.57 for EVERY person, unconditionally, so the
+    #                                saturation is ALWAYS ON and this 0.0 reads as 'off' (L 722). The "> 0" below
+    #                                describes the code path, not the configuration.]
+    #                              > 0: the hepatic insulin signal saturates, in suppression units v = sE·(I − Ib)/Ib:
                                    # v_eff = vs·v / (vs + v). 2.57 puts half suppression at v 0.62 and full at 1.64, the
                                    # 29 / 60 µU/mL of Rizza 1981 (half-max / complete HGO suppression) scaled to the T1D arm,
                                    # so clamp-level insulin no longer drives X_E far past full suppression (LESSONS 192–193)
-    p2e_off: float = 0.0           # > 0: X_E's rate when the hepatic signal is falling (insulin withdrawn); p2e stays the onset
+    p2e_off: float = 0.0           # [NOT LIVE: person.py:404 sets 0.015 for EVERY person, unconditionally, so the
+    #                                asymmetric off-rate is ALWAYS ON (L 722); evidence is LESSONS 193's 0.012-0.020.]
+    #                              > 0: X_E's rate when the hepatic signal is falling (insulin withdrawn); p2e stays the onset
                                    # rate (meal tracer nadir, Romeres 2025). Gray 1982 HGO recovery half-times 59 / 119 min
                                    # after 40 / 120 mU/m²/min give 0.012–0.020 through egp_vs (LESSONS 193)
     ge_beta: float = 1.0           # Elashoff 1982 power-exponential emptying: the fraction of a parcel still in the

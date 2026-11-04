@@ -6809,3 +6809,41 @@ knowing the price; (b) a mechanism that adds post-entry motion WITHOUT appearanc
 specification is in L 712 and L 713, and `vol_cluster_60m` is the row that catches a candidate that
 gets it wrong; (c) new data for the exercise band, which L 688 shows this donation cannot supply
 (0 heart-rate, 0 workout-type, 0 sleep, 0 energy rows).
+
+**722. THE DEFAULTS AUDIT REDONE CORRECTLY: 21 of 56 numeric defaults are not live, SEVEN mislead by
+more than 2x, and two of those are always-on hepatic mechanisms declared as `0.0`.** L 715's audit
+re-sampled people and got several numbers wrong; L 719 established the rule (read the arm's own
+`person.pkl`). This is that audit done right, over the reference's 112 people.
+
+| field | declared | live p50 | live range | ratio |
+|---|---|---|---|---|
+| **`egp_vs`** | **0.0** | **2.57** | constant | **always on** |
+| **`p2e_off`** | **0.0** | **0.015** | constant | **always on** |
+| `ex_uptake` | 0.0 | 2.84 | 1.31-6.17 | always on |
+| `kappa` | 0.15 | 1.0255 | 0.53-2.23 | **6.84x** |
+| `cr_max` | 1.0 | 0.135 | 0.050-0.444 | 0.14x |
+| `si_d` | 0.0005 | 9.52e-05 | — | 0.19x |
+| `se` | 1.0 | 0.349 | 0.083-1.554 | 0.35x |
+
+The remaining fourteen are per-person draws centred within 10% of their own default (`sg` 1.48x and
+`vg` 0.89x being the widest) and are not misleading.
+
+**The two new ones are the most misleading declarations in the file**, and they are in the hepatic
+path — the same path L 714 found to be the least evidenced. `person.py:404` reads
+`bp = bp.scaled(egp_vs=2.57, p2e_off=0.015)`: unconditional, every person, never drawn. So the hepatic
+insulin signal's SATURATION and its asymmetric OFF-RATE are both permanently enabled while their
+declarations say `0.0`, and both declaration comments begin `"> 0: ..."`, which reads as a description
+of an optional feature rather than of a code path that always runs. `p2e_off`'s value has evidence
+(LESSONS 193's 0.012-0.020); the defect is purely that nothing at the declaration says it is live.
+Annotated with `[NOT LIVE: ...]`, as `ex_uptake`, `cr_max` and `f` now are.
+
+**Why this class of defect keeps appearing — thirteen instances now** (L 666's eight, L 714's
+`egp_share`, `ex_uptake`, `cr_max`, and these two): **a dataclass default in this model is a
+declaration about the TYPE, not about the configuration**, because `person.py` rewrites values at
+three separate stages — the per-person draw, `calibrate`'s ISF split, and unconditional `scaled()`
+calls like line 404. Nothing in the file distinguishes "this is what runs" from "this is a placeholder
+the sampler always overwrites", and no result can expose the difference because the model behaves
+identically whichever the reader believes. **The only sound check is the one in this lesson: read the
+reference arm's `person.pkl` and diff it against the declarations.** It takes seconds, it found seven
+misleading declarations, and it should be run whenever the reference changes — alongside
+`langerhans/tools/audit_status.py`, which checks a run's flags and would not catch any of these.
