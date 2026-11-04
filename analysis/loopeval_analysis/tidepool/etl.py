@@ -1388,7 +1388,7 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         segs.append((st, st + dur_ms, rate, delivered, dur_ms, recv, btype, manual))
     segs.sort(key=lambda s: (s[0], s[1]))   # sort by (start, end); `delivered` may be None
     manual_iv = []
-    for i, (st, en, rate, delivered, rec_dur, recv, dtype, manual) in enumerate(segs):
+    for i, (st, en, rate, delivered, rec_dur, recv, btype, manual) in enumerate(segs):
         if i + 1 < len(segs):
             en = min(en, segs[i + 1][0])      # clip to next start (no overlap)
         if en <= st: continue
@@ -1408,22 +1408,23 @@ def export_donor(user, start, end, outdir, insulin_type=None):
         # future portion (the basal-dominant forecast-tail residual). Tidepool carries
         # `rate` (+ suppressed.rate for scheduled) on every basal record.
         extra = {"receivedDate": _iso(recv)} if recv else {}
-        # basalType = Tidepool deliveryType (temp | scheduled | suspend): a COMMANDED
-        # temp vs the pod running its schedule. The temp-strategy continuation logic
+        # basalType = btype (temp | scheduled | suspend), collapsed from Tidepool's deliveryType:
+        # suspend stays suspend; any other record with a suppressed (scheduled) rate is a COMMANDED
+        # temp, whether Loop's ('automated') or the user's ('temp'), and the rest is the pod running
+        # its schedule. Who commanded a temp is in `automatic`. The temp-strategy continuation logic
         # (deployed ifNecessary lastTempBasal.type == .tempBasal) must only treat
-        # dtype=temp segments as a running temp — every basal record carries tempRate,
+        # basalType=temp segments as a running temp — every basal record carries tempRate,
         # so rate-presence alone misread post-cancel SCHEDULED resumption as a running
         # temp (bddp07 05-08 16:52: replay "cancel" where the field correctly had no
         # command).
-        if dtype:
-            extra["basalType"] = str(dtype)
+        if btype:
+            extra["basalType"] = str(btype)
         doses.append({**extra, "deliveryType": "basal", "startDate": _iso(st), "endDate": _iso(en),
                       "volume": round(vol, 5), "tempRate": round(rate, 5),
                       "insulinType": insulin_type,
                       # Loop's own actions only: a user-set temp is not Loop's, and neither is a suspend
-                      # (Loop withholds with a 0 U/h temp; it never commands a suspend). `dtype` here is the
-                      # collapsed btype (temp | scheduled | suspend), never "automated".
-                      "automatic": not (manual or dtype == "suspend")})
+                      # (Loop withholds with a 0 U/h temp; it never commands a suspend).
+                      "automatic": not (manual or btype == "suspend")})
     doses.sort(key=lambda d: d["startDate"])
 
     # ---- carbs (food: nutrition.carbohydrate.net g, estimatedAbsorptionDuration s) ----
