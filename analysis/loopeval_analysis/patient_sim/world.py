@@ -771,8 +771,19 @@ class World:
         en_ = enable or {}
         self.resid_on = bool(en_.get("resid"))
         mult_ = float(en_["resid_mult"]) if _num(en_.get("resid_mult")) else 1.0
-        self.resid_a = tuple(mult_ * float(rz.get(k, en_.get(k, 0.0)) if _num(rz.get(k, en_.get(k, 0.0))) else 0.0)
-                             for k in ("resid_f", "resid_b", "resid_d"))
+        # PER-TIMESCALE multipliers (experiment, off): `resid_mult` scales the fast, block and day parts
+        # TOGETHER, which is what L 592 rejected as a bundle at 0.6 - and the three have opposite costs. The
+        # FAST part (tau 20 min, already L 650's measured 15-20 min band) is the only one that can supply
+        # L 648's missing 4.31 mg/dL of 5-min increment rms, and by the OU identity a short correlation time
+        # contributes little STATIONARY variance, so it is cheap on `bg_cv` - the row with no headroom
+        # (L 697). The BLOCK part (tau 180 min) is the reverse: it buys stationary spread, which raises the
+        # damping through L 678's identity. So the bundle confounds the benefit with the cost, and these
+        # separate them. 1.0 each leaves `resid_mult` exactly as it was.
+        mf_ = float(en_["resid_mult_f"]) if _num(en_.get("resid_mult_f")) else 1.0
+        mb_ = float(en_["resid_mult_b"]) if _num(en_.get("resid_mult_b")) else 1.0
+        md_ = float(en_["resid_mult_d"]) if _num(en_.get("resid_mult_d")) else 1.0
+        self.resid_a = tuple(mult_ * mm_ * float(rz.get(k, en_.get(k, 0.0)) if _num(rz.get(k, en_.get(k, 0.0))) else 0.0)
+                             for k, mm_ in (("resid_f", mf_), ("resid_b", mb_), ("resid_d", md_)))
         self.resid_tau = (float(en_["resid_tf"]) if _num(en_.get("resid_tf")) else 20.0,
                           float(en_["resid_tb"]) if _num(en_.get("resid_tb")) else 180.0)
         # a constant per-person drive (mg/dL/h) fitted to the donor's own glucose level (LESSONS 515): the unlogged load far
