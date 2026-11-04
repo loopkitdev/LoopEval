@@ -5218,3 +5218,61 @@ are implausible and the gap is still -34 to -47. Magnitude for scale: ~34 mg/dL/
 hepatic output (egp_b 2.5 mg/kg/min / vg 1.88 dL/kg = ~80 mg/dL/h), which is large enough that the shape
 caveat has to be closed before anything is built. Run dir `runs/2026-11-03-additive-suspend`
 (`twin_zero.py`, `matched.py`, `resid_test.py`, `iob_check.py`).
+
+**690. L 689's EGP read is WITHDRAWN. Run the insulin forward and the ~34 mg/dL/h zero-delivery offset is
+the insulin TAIL, not a missing constant glucose input: the per-person non-insulin gap is +4.0 mg/dL/h.**
+L 689 registered exactly one caveat against itself — the 6 h delivery total it controlled on is the
+INTEGRAL of recent insulin and not its SHAPE — and named the fix, insulin action run forward through the
+model's own chain. Done (`insulin_fwd.py`, a read over the same windows, no simulation). One kernel, both
+sides, population defaults from the code and nothing fitted per side: depot tau 8 / kd 0.030 / ka2 0.018,
+plasma ke 0.127, action `dXd = p2 (si*I - Xd)` at p2 0.025. `w(m) = Xd(m) / sum Xd` is the share of one
+unit's total glucose-lowering effect falling in minute m; `E` is the sum over pre-window delivery of the
+share landing inside the window's first 2 h, and `ISF * E / 2` (the donor's own ICE yardstick) is the
+mg/dL/h of insulin ALREADY COMMITTED when delivery stops. `resid = observed + ISF*E/2` is the non-insulin net.
+ - **THE RESULT, against the rule registered before it ran** ("collapsed to within ~10 => the offset IS the
+   insulin tail and L 689's finding must be WITHDRAWN as a shape artefact"): per-person median non-insulin
+   net **+74.3 mg/dL/h for the donors against +78.3 for the twins, a gap of +4.0** where the observed gap is
+   -34. Pooled, -44.8 observed -> **-9.7** non-insulin. By onset band the observed -34.9 / -26.1 / -41.3 /
+   -51.4 / -32.0 becomes **-47.6 / -13.4 / -4.5 / -8.1 / +67.2**, so in the 140-230 middle of L 689's own
+   defensible range it is gone. Withdrawn with it: the claim that the model lacks a lever for the
+   insulin-independent glucose INPUT is still true of the code (L 678) but is no longer evidenced as a
+   DEFECT by this test.
+ - **WHY the totals matched and the effect did not, which is the mechanism L 689 could not see.** The
+   kernel's weight on recent delivery is steep — a dose at onset lands 0.461 of its effect in the next 2 h,
+   one an hour earlier 0.649, one six hours earlier **0.013** — and the twins' insulin sits closer to onset
+   (E / 6 h total p50 **0.346** against the donors' 0.295), because Loop withholds straight out of dosing
+   while a donor's suspend follows a tail. Committed insulin by band is **58 / 86 / 100 / 135 / 188** for
+   the twins against **45 / 64 / 70 / 87 / 64** for the donors: at a 230-300 onset the twins carry 2.9x the
+   donors' committed insulin at a matched 6 h total.
+ - **AND THAT IS WHY THE STRUCTURAL ARGUMENT WAS WRONG.** L 689's weight rested on the observed gap being
+   FLAT in glucose, which a (G - Gb)-proportional force error cannot produce and a constant input can. But
+   the flatness is a cancellation: the twins' committed insulin GROWS steeply with glucose while the
+   donors' is flat, so a widening insulin gap offset a narrowing something else. **A flat difference is
+   evidence about structure only once both sides are matched on the dominant term** — here insulin, which
+   is 60-190 mg/dL/h against a 34 mg/dL/h gap. I read structure off a residual two and a half times
+   smaller than the term I had not decomposed.
+ - **KERNEL SENSITIVITY, registered in advance** (the verdict depends on the kernel, since the twins'
+   insulin is the more recent): across the model's own documented range the per-person gap is **-4.6 at
+   p2 0.015 (peak 114 min) / +2.3 at 0.025 (98) / +3.3 at 0.040 (86)** and pooled -16.4 / -9.9 / -7.3. The
+   slow end is the direction that would REVIVE the EGP read and it does not. Rule was +/-15; passed.
+ - **WHAT SURVIVES, and it is L 688's own framing confirmed.** With insulin added back, BOTH sides' zero-delivery
+   non-insulin net is +74 to +78 mg/dL/h, against a basal hepatic output of ~80 (egp_b 2.5 mg/kg/min / vg
+   1.88 dL/kg). So the out-of-regime equilibrium L 688 said these windows could constrain "with no estimator
+   and no exclusion restriction" has now been read, and the model PASSES it: EGP, the restoring force and
+   `resid_m` are jointly about right where the controller never goes. Do not over-read the agreement with 80
+   — `resid` still contains the restoring force and `resid_m`, so it is not gross EGP — the content is that
+   the two SIDES agree.
+ - **Limits.** 193 of L 688's 389 clean windows survive (only pilot-cohort donors carry an ISF yardstick),
+   55 donors, 15-44 windows per band; the 80-110 band keeps -47.6 and is the band where unlogged rescue
+   carbs inflate the donor rate, exactly as feas.py registered; the 230-300 band REVERSES to +67.2 on n=15
+   and is unexplained. The ISF guard (twins' own `twin_isf_mult`, p10/p50/p90 0.75/1.00/1.33) gives
+   -42.7 / -2.3 / +3.0 / +1.4 / +92.1 — same verdict. This applies the MODEL's insulin chain to the donors'
+   doses, so it answers whether OUR insulin accounting explains the gap, not what the donors' true insulin
+   action was; a donor on an ultra-rapid analogue carries a slightly faster kernel than this lispro one.
+ - **Method note on the gate, which failed as registered and should not have.** I set the kernel's peak
+   band at 60-90 min from Loop's `rapidActingAdult` preset. That is a CONTROLLER SETTING and the wrong
+   reference for a body quantity: `physiology.py:42` documents p2 0.025's own fit target as "GIR peak
+   ~100 min" on the 0.2 U/kg lispro clamp, and the kernel measured 98. The band was corrected to 85-115
+   with the reason recorded in the script. **Register a gate against the quantity's own evidence, not
+   against the nearest familiar number** — the calibration rule ("realism, not agreement with Loop")
+   applies to the instruments as well as to the body. Run dir `runs/2026-11-03-additive-suspend`.

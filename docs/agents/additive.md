@@ -657,7 +657,20 @@ tail and comes out anti-restoring, and the between-window slope gets the right s
 because unlogged rescue carbs lift the low end and bolus-then-disconnect lowers the high end (glucose falls
 12-47 mg/dL/h with zero delivery at onset >180). Doing it properly needs insulin action run forward through
 `insulins.py`, not a delivery-total covariate, which moves the slope by 0.0002 /h. Two donors hold 35% of
-the clean windows, so quote per person as well as pooled.
+the clean windows, so quote per person as well as pooled. **THE EQUILIBRIUM HAS NOW BEEN READ AND THE
+MODEL PASSES IT (L 690).** Running the dose history forward through the model's own insulin chain on
+BOTH sides (one kernel, population defaults, nothing fitted per side) and adding the committed insulin
+back, the zero-delivery non-insulin net is **+74.3 mg/dL/h for the donors against +78.3 for the twins, a
+per-person gap of +4.0**, stable across p2 0.015-0.040 (-4.6 / +2.3 / +3.3). So EGP, the restoring force
+and `resid_m` are jointly about right where the controller never goes - the first out-of-regime check this
+model has had. **It also WITHDRAWS L 689's -34 mg/dL/h core offset and its EGP read**: that gap was the
+insulin TAIL, because the twins' insulin sits closer to onset (E / 6 h total 0.346 against 0.295) so they
+carry 58-188 mg/dL/h of committed insulin against the donors' 45-87 at a matched 6 h TOTAL. L 689's
+level-independence argument was a cancellation of two terms that both grow, not evidence of a constant
+input - **a flat difference says nothing about structure until both sides are matched on the dominant
+term**, and insulin here is 2-5x the gap. Still open where it always was: the 80-110 band keeps -47.6,
+which is exactly where unlogged rescue carbs inflate the donor rate, and the 230-300 band reverses to
++67.2 on n=15.
 
 **ACTIVITY, HR AND SLEEP ARE NOT IN THE DONATION AT ALL, so the exercise limit cannot be closed from this
 cohort (L 688).** The exercise side is recorded above as blocked on measurement rather than mechanism
