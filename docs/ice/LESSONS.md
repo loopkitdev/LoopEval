@@ -2146,3 +2146,25 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Limits: the drift slope treats the pre-edit rise as passing noise. Where an edit answers a lasting shift (a
       real change in needs), less of it reverts, so the true field change lies between the raw and the adjusted
       column. The slope's own uncertainty is not in the se. From here, change scores report both columns.
+
+176. **With change prediction inside the field's noise, the largest gap is the depth of the generated person's lows:
+    it enters lows as often as real people but goes deeper and recovers slower.** e pool, 337 scored edits, pre
+    window with the person's own settings (level_lows.py, low_course.py in runs/2026-11-01-ice-stateabl/; base recipe
+    (oc) trainings 0 / 1):
+
+    | | t<70 | t<54 | t<54 per t<70 | TIR | Mean |
+    |---|---|---|---|---|---|
+    | Field | 2.45 | 0.32 | 0.13 | 78.2 | 141.4 |
+    | Replay | 2.85 | 0.75 | 0.26 | 75.5 | 145.1 |
+    | Base recipe (oc) | 4.54 / 4.16 | 1.67 / 1.44 | 0.37 / 0.35 | 73.0 / 73.0 | 145.3 / 146.7 |
+
+    After glucose enters < 70 (2 h refractory), mean glucose at 15 / 30 / 60 / 120 min: field 70 / 85 / 107 / 119,
+    lowest within 90 min 59.6, 21 % of entries reach < 54. Base recipe 65–67 / 78–80 / 101 / 106–109, lowest 55–56,
+    31–34 %. Replay 69 / 81 / 102 / 114, lowest 57.6, 29 %. Entries per run are about the same in all three (field
+    2,390, replay 2,307, generated 9,232–9,411 over its seeds), so the excess time below 70 is depth and duration, not
+    frequency. The recovery lag runs past 60 min, where lesson 136's low-response kernel (fit on the pilot) ends.
+    Part of the depth is the harness: the replay, with real ICE, already reaches < 54 after 29 % of entries.
+    - This is also why the t<54 change is 3× the field's (lesson 175): both arms of an edit carry the deep lows.
+    - Test arm lk1.5 (low-response kernel × 1.5, frozen plant `PLANT_LOW_KERNEL_SCALE`, probe_lk.sh), both trainings:
+      kept only if t<70 and t<54 levels move toward the field without the change prediction leaving the field's
+      noise (drift-removed field, lesson 175).
