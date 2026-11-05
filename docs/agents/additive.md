@@ -240,6 +240,35 @@ the activity response. Tier 2 has weight 2: dynamics, plus meal absorption, unlo
 (LESSONS 494). Tier 3 has weight 1: the sensor fingerprint. The KS count is secondary. Update § 10's table when the
 reference changes.
 
+## The named core against the per-person fit (L 725)
+
+**The live fitted layer is FOUR terms** — read off rf2's own `cohort.json`, since `twin`, `csf_own` and
+`lvl_own` are OFF so `twin_isf_mult`, `twin_csf_mult`, `csf_own_mult` and `lvl_isf_mult` never apply:
+`resid_m` (constant drift per person, ITERATED), `csf_geq_mult` (the donor's labelled meal response over
+the twin's, ITERATED), `csf_sd_mult` (the donor's glucose spread fit, ITERATED, ungated at `csf_sd_w` 1.0)
+and `isf_true` (the ICE yardstick, MEASURED).
+
+**Ablated (job 215, three nested arms x three draws) it is LOAD-BEARING: mean score 0.3660 -> 0.4467,
++0.081, and +0.063 of that is `resid_m` ALONE** — one scalar per person is 78% of the layer's value.
+Tier 1 doubles (0.174 -> 0.345) and the paired per-person instrument collapses 4.3x (SUM|dev| 3.245 ->
+13.961) with the rankings (rho_tir 0.698 -> 0.403, rho_bg_mean 0.779 -> 0.389, rho_t70 0.507 -> 0.168).
+**What it buys:** the level (bg_mean 150.4 -> 158.8 against the donors' 151.9, same sign on every draw,
+because `resid_m`'s distribution has median 0.000 but mean −7.694 — a cohort-wide offset dressed as
+per-person variation), the low side (t70 1.80 -> 0.86, lows/day 1.04 -> 0.60, t54 0.168 -> 0.069 against
+0.190) and per-person identity. **What it does NOT buy:** `bg_cv` is flat on all three draws (34.90 ->
+34.37), so the dispersion that binds the whole appearance family is entirely the CORE's, and the TDD
+ranking holds (rho_tdd 0.860 -> 0.899). **And it COSTS the meal tail:** `meal_d3h` 31 / 31 / 33 -> 34.5 /
+37 / 35 with the drift off alone, against the donors' 38.0 — about 60% of a standing deficit, with no
+load confound. So it is at once the biggest score asset and the cause of a standing limit, which is
+L 617/696's trade from the other side.
+
+**Read the +0.081 as the price of the LEVEL, not as the share of the model that is fitted** — L 630
+measures TIR's leverage as 59% the level, so a term holding each donor's level scores well close to by
+construction. The consequence for candidates: the `resid_m` refit that has killed seven gains (L 604,
+629, 639, 667, 710) is handing back a fifth of the score, so a candidate can only beat it by acting on
+something the level cannot see. `meal_d3h`, a row the drift actively damages, is the most promising
+place left.
+
 ## Where the score actually sits (L 697, honest labels)
 
 Nine statistics are 49% of the weighted score and only one is tier 1: `entry_fast_fall` 6.8% (donors 14.29%

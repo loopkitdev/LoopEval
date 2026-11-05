@@ -6907,3 +6907,94 @@ arm from its own `meta.json`, not its name" — applies to the control as much a
 is the same lesson a third time (four verdicts measured against a control whose `si_norm` nobody
 checked). **The check is one line per pool: diff the control's realised config against the cohort
 reference's and state any key that differs beside every number taken from it.**
+
+**725. HOW MUCH OF THIS MODEL IS THE NAMED CORE AND HOW MUCH IS THE PER-PERSON FIT: the fitted layer
+is LOAD-BEARING by the registered rule, almost all of it is ONE scalar, and what it buys is the LEVEL,
+the LOW SIDE and WHO IS WHO — not the dynamics, not the dispersion, and it COSTS the meal tail.**
+Pete asked whether the whole model could be expressed as one function fitted to the observed data. The
+honest answer in text was that it is already a hybrid — a mechanistic core (63 `BodyParams`, 164
+`BehaviorTraits`) wrapped in a per-person layer read or fitted from each donor's own record (143
+template columns) — and he authorised the measurement that prices the balance. Job 215, three nested
+arms x three draws, with the reading rule fixed before any number existed.
+
+**FIRST, A CORRECTION TO MY OWN ANSWER: the live fitted layer is FOUR terms, not the three I named.**
+Read off rf2's own `cohort.json` (L 657 / 665 / 679's rule), `twin`, `csf_own` and `lvl_own` are all
+OFF, so `twin_isf_mult`, `twin_csf_mult`, `csf_own_mult` and `lvl_isf_mult` are never applied. Live:
+`resid_m` (constant drift per person, ITERATED against the donor's glucose level), `csf_geq_mult` (the
+donor's labelled meal response over the twin's, ITERATED), `csf_sd_mult` (the donor's glucose spread
+fit, ITERATED, ungated at `csf_sd_w` 1.0) and `isf_true` (the ICE yardstick, MEASURED, not iterated).
+
+| arm | what is removed | score (3 draws) | mean | tier 1 | paired SUM\|dev\| |
+|---|---|---|---|---|---|
+| rf2 | — | 0.328 / 0.366 / 0.404 | **0.3660** | 0.1740 | **3.245** |
+| fab1 | `resid_m` | 0.417 / 0.413 / 0.457 | **0.4290** | 0.2940 | 10.210 |
+| fab2 | + `csf_geq_mult`, `csf_sd_mult` | 0.395 / 0.447 / 0.485 | **0.4423** | 0.3420 | 13.795 |
+| fab3 | + ISF back on the entered setting | 0.419 / 0.442 / 0.480 | **0.4467** | 0.3447 | 13.961 |
+
+**LOAD-BEARING: +0.081 of mean score, 1.6x the registered 0.05 bar and 22% of the reference's own
+0.366 — and +0.063 of it is `resid_m` alone.** One scalar per person is 78% of the whole fitted
+layer's value. Tier 1 doubles (0.174 -> 0.345) and the close count falls 24.3 -> 17.3 of 51-54.
+
+**MY REGISTERED PREDICTION WAS HALF WRONG, AND THE WRONG HALF IS THE FINDING.** I predicted the cohort
+score would move MODESTLY while the paired instrument COLLAPSED, on the reasoning that a per-person fit
+barely shows in a median over 112 twins against a median over the donors. The paired half landed —
+SUM\|dev\| 3.245 -> 13.961, **4.3x**, and the rankings fall with it: rho_tir 0.698 -> 0.403,
+rho_bg_mean 0.779 -> 0.389, rho_t70 0.507 -> **0.168**. The cohort half did not, and the reason is that
+**`resid_m` is NOT a zero-mean per-person fit**: its template distribution is median 0.000 but mean
+**−7.694** (L 694), so removing it moves EVERY twin's level — bg_mean 150.4 -> 158.8 against the
+donors' 151.9, +4.9 / +11.5 / +7.2 on the three draws, same sign every time. The term is doing two
+jobs: a cohort-wide level bias correction, and per-person spread on top of it. Only the second is a
+per-person fit, and the first is what the cohort score was measuring.
+
+**WHAT IT BUYS, mean of three draws, donors in brackets:** the level (bg_mean 150.4 -> 158.8 [151.9]),
+TIR (70.9 -> 67.7 [71.9]), the whole low side (t70 1.80 -> 0.86 [1.60]; lows/day 1.04 -> 0.60 [1.00];
+t54 0.168 -> 0.069 [0.190], i.e. the GUARD moves AWAY from the donors, too few severe lows — reported
+per AGENTS.md, no adoption question since this is a measurement), and per-person identity (the rho rows
+above). **WHAT IT DOES NOT BUY:** `bg_cv` is FLAT on all three draws (34.90 -> 34.37 against 34.65), so
+the dispersion L 697 calls the binding constraint on the whole appearance family is **entirely the
+core's**; and the TDD ranking HOLDS (rho_tdd 0.860 -> 0.899), which belongs to the entered settings.
+
+**AND IT COSTS THE MEAL TAIL — the fitted term is simultaneously the biggest score asset and the cause
+of a standing limit.** `meal_d3h` goes 31 / 31 / 33 -> 34.5 / 37 / 35 with the drift off and 39 / 42 /
+38 with the whole iterated layer off, against the donors' **38.0**: monotone on all three draws, and
+`fab1`'s +3.8 is about 60% of a 6.3-point deficit the record has chased since c365 — with no load
+confound, since `fab1` does not touch the carb terms. A constant sink flattens the 3-h post-meal change.
+(`fab2`/`fab3`'s further move IS partly load: `person.py:417` divides `k_csf_geq` back out of the
+intake budget, so turning `csf_geq` off changes the grams eaten as well as the carb sensitivity.
+Registered as a confound before the run, not fixed.) This is L 617/696's trade from the other side: a
+sharper pulse closes `meal_d3h` and costs TIR and the guard; the fitted drift closes TIR and the guard
+and costs `meal_d3h`. **One trade, two handles.**
+
+**SO THE ANSWER TO PETE'S QUESTION.** Neither framing he offered is right. It is not a named core with
+mechanistic decoration — remove the fit and the score degrades 22%. It is not a 143-parameter
+per-person fit with mechanistic decoration either — the core carries the dispersion, the appearance
+shape, the dynamics, the TDD ranking and the insulin response, and the fitted layer reduces to **one
+scalar per person whose cohort mean is a level offset**. What the measurement actually prices is
+**how level-dominated the scoring instrument is**: L 630 already measured TIR's leverage as 59% the
+level (r −0.768 with `bg_mean`), so a term that holds each donor's level looks load-bearing on this
+scorecard close to by construction. Read the +0.081 as the price of the LEVEL, not as the share of the
+model that is fitted.
+
+**The methodological consequence, which is the useful part.** Every gain that has died at the
+`resid_m` refit — sensitivity, dynamics, the pair, load, gut absorption, `act_frag`, `pump_off` (L 604,
+629, 639, 667, 710) — died because the fit converts the candidate's net glucose back into drift. This
+measurement says what that fit is worth if it were not there: 0.063 of score and 4.3x the per-person
+error. So the standing rule "judge every candidate AFTER the refit" (L 597) is right, and the reason is
+now priced: the refit is not a formality, it is handing back a term that carries a fifth of the score.
+A candidate can only beat it by acting on something the LEVEL cannot see — which is exactly the two
+survivors the record has (`rf2`'s t70 change response, `sg_h_lo`'s excursion shape) and exactly why
+`meal_d3h`, a row the drift actively damages, is the most promising place left to look.
+
+**Gates, all three passed.** (0) every arm differs from its parent for all 112 people, so no arm is a
+no-op (L 681's cache trap). (1) each arm's own `cohort.json` records the intended `--disable` /
+`--set` and drops exactly `resid` from `--enable` — needed because `cohort.py:98-103` applies
+`--disable` BEFORE `--enable`, so `--enable resid --disable resid` would have left it ON. (2) **the
+isolation invariant, read off each arm's own `person.pkl` `template` field against the template
+column** (L 719's rule): on draw 3, where 30 of 112 people carry `resid_m` = 0, those 30 are
+bit-identical to the reference and the 82 with a non-zero drift all moved, with no exceptions either
+way. Draws 1 and 2 drew 112 non-zero people, so they carry no information on this. Note that
+`--set resid_m=0` would have silently FAILED — `world.py:791` reads the template column in preference
+to the enable dict — which is why the arm is `--disable resid`, clean here because `resid_mult=0.0`
+already zeroes `resid_a` and `resid_drop_p` defaults to 0.0.
+
+Run dir `runs/2026-11-04-additive-fitablate/` (`215_fitablate.sh`, `score_215_ablate.log`).
