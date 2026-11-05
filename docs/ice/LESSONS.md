@@ -2295,3 +2295,30 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Test arm sp0.9 (background-ICE draws shrunk ×0.9 toward the predicted mean, `BGICE_SPREAD`, probe_sp.sh), both
       trainings. Keep only if the short-lag spread and autocorrelation move toward the field's, the high-third
       automatic insulin and < 54 share fall, and change prediction stays within noise.
+
+182. **Shrinking the background-ICE draw ×0.9 brings the absolute level close to the field's but dulls the response to
+    a settings change: not kept; ×0.95 under test.** Arm sp0.9 against the base recipe (oc), both trainings, e pool,
+    333 scored edits (runs/2026-11-01-ice-stateabl/probe_sp.sh, `BGICE_SPREAD=0.9`):
+    - **Level, own settings, pre window** (field / oc trainings 0–1 / sp0.9 trainings 0–1): t<70 2.45 / 4.33, 3.93 /
+      3.63, 3.41; t<54 0.32 / 1.58, 1.34 / 1.19, 1.02; TIR 78.2 / 71.7, 71.7 / 76.7, 76.9; mean 141.4 / 148.4, 149.6 /
+      141.4, 142.3. Median per-person TIR level −2.0 / −0.9, against −4.1 to −6.0 across five oc trainings. The
+      largest level gain of any arm so far.
+    - **Background overshoots:** sd 47.8 / 47.0 (field 53.5, oc 57.8); autocorrelation at 15 min 0.48 / 0.50 (field
+      0.39, oc 0.29). Shrinking the draw 10 % cut the sd 17 %: fewer lows, fewer rescue swings. So ×0.9 is too far.
+    - **High-IOB lows:** < 54 share in the high-IOB third 0.51 / 0.46 (oc 0.57, field 0.27). Loop's automatic insulin
+      in the 3 h before crossing 70 is 4.6 / 4.7 U (oc 4.8, field 3.2). It moved only a little, so background noise is
+      a small part of the extra automatic insulin.
+    - **Change prediction** (more-insulin / less-insulin edits; field, oc mean ± sd over five trainings, sp0.9):
+      - mean −8.46 (−6.24 drift-removed) / −5.50 ± 0.53 / −4.79; +5.05 / +5.03 ± 0.28 / +4.43 (z −2.6);
+      - TIR +3.68 (+2.36) / +1.95 / +1.72; −1.24 / −1.87 / −1.80;
+      - t<70 +0.72 (+0.60) / +0.74 ± 0.10 / +0.51 (z −2.8); −0.85 / −0.71 / −0.52 (z +2.8);
+      - t<54 +0.14 / +0.31 / +0.17; −0.12 / −0.28 / −0.20. t<54 change moves to the field's.
+      - Per-edit correlation with the field: t<70 0.20 / 0.15 against 0.22–0.31 for oc; mean 0.41 / 0.36 against
+        0.39–0.48.
+      The generated person responds less to a settings change in both directions. With a quieter, more predictable
+      background, Loop absorbs more of the change. The less-insulin response falls short of the field's, where oc
+      matched it.
+    - **Verdict:** fails the keep bar (change prediction regresses beyond noise on the less side and in t<70
+      correlation), though it fixes most of the level gap. The overshoot in sd and autocorrelation says the field sits
+      between ×0.9 and ×1. Arm sp0.95 (both trainings, pinned to CPUs 4–15) tests whether half the shrink keeps most of
+      the level gain without losing the response.
