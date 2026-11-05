@@ -2299,8 +2299,8 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
 182. **Shrinking the background-ICE draw ×0.9 brings the absolute level close to the field's but dulls the response to
     a settings change: not kept; ×0.95 under test.** Arm sp0.9 against the base recipe (oc), both trainings, e pool,
     333 scored edits (runs/2026-11-01-ice-stateabl/probe_sp.sh, `BGICE_SPREAD=0.9`):
-    - **Level, own settings, pre window** (field / oc trainings 0–1 / sp0.9 trainings 0–1): t<70 2.45 / 4.33, 3.93 /
-      3.63, 3.41; t<54 0.32 / 1.58, 1.34 / 1.19, 1.02; TIR 78.2 / 71.7, 71.7 / 76.7, 76.9; mean 141.4 / 148.4, 149.6 /
+    - **Level, own settings, pre window** (field / oc trainings 0–1 / sp0.9 trainings 0–1): t<70 2.45 / 4.54, 4.16 /
+      3.63, 3.41; t<54 0.32 / 1.67, 1.44 / 1.19, 1.02; TIR 78.2 / 73.0, 73.0 / 76.7, 76.9; mean 141.4 / 145.3, 146.7 /
       141.4, 142.3. Median per-person TIR level −2.0 / −0.9, against −4.1 to −6.0 across five oc trainings. The
       largest level gain of any arm so far.
     - **Background overshoots:** sd 47.8 / 47.0 (field 53.5, oc 57.8); autocorrelation at 15 min 0.48 / 0.50 (field
@@ -2322,3 +2322,28 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       correlation), though it fixes most of the level gap. The overshoot in sd and autocorrelation says the field sits
       between ×0.9 and ×1. Arm sp0.95 (both trainings, pinned to CPUs 4–15) tests whether half the shrink keeps most of
       the level gain without losing the response.
+
+183. **Shrinking the background-ICE draw ×0.95 is kept: the background's spread and persistence match the field's, the
+    level gap narrows beyond training noise, and change prediction holds.** New base = oc with `BGICE_SPREAD=0.95`
+    (sp0.95). Both trainings, e pool, 334 scored edits (probe_sp.sh, wait_sp95.sh):
+    - **Background shape** (bg_acf.py; field / oc / sp0.95 trainings 0–1): sd 53.5 / 57.8 / 52.0, 51.0;
+      autocorrelation at 15 / 30 / 60 min 0.39 / 0.21 / 0.09 against oc 0.29 / 0.16 / 0.07 and 0.39, 0.41 / 0.21, 0.20 /
+      0.09, 0.10. The mean after a 15-min ICE above +40 is unchanged and still the field's.
+    - **Level, own settings, pre window** (field / oc 0–1 / sp0.95 0–1): t<70 2.45 / 4.54, 4.16 / 3.95, 3.67; t<54 0.32
+      / 1.67, 1.44 / 1.35, 1.17; TIR 78.2 / 73.0, 73.0 / 74.8, 75.3; mean 141.4 / 145.3, 146.7 / 143.9, 143.9. Median
+      per-person TIR against the field −3.6 / −2.6, outside the five oc trainings' −4.1 to −6.0. High-IOB third < 54
+      share 0.54 / 0.49 (oc 0.57 / 0.53, field 0.27).
+    - **Change prediction** (field, drift-removed in brackets where known / oc mean ± sd of five / sp0.95):
+      - mean, more insulin −8.53 (−6.24) / −5.62 ± 0.53 / −5.40; less +5.05 / +5.03 ± 0.28 / +4.74 (z −1.3);
+      - TIR +3.74 (+2.36) / +1.99 / +1.98; −1.24 / −1.87 / −1.91;
+      - t<70 +0.72 (+0.60) / +0.74 ± 0.10 / +0.58 (z −2.0); −0.85 / −0.71 ± 0.08 / −0.57 (z +2.0);
+      - t<54 +0.14 / +0.31 ± 0.04 / +0.22; −0.12 / −0.28 ± 0.04 / −0.23. Both closer to the field.
+      - Per-edit correlation with the field: TIR 0.23 / 0.28, t<70 0.25 / 0.24, mean 0.42 / 0.38, all inside oc's
+        range (0.23–0.32, 0.22–0.31, 0.39–0.48) bar mean training 1 at its edge.
+    - **Verdict:** kept. TIR change is unchanged. t<54 change and the level move toward the field beyond noise. t<70
+      change on more insulin moves to the drift-removed field (+0.58 against +0.60) but undershoots on less insulin by
+      the same amount (−0.57 against −0.85). Summed t<70 change error is unchanged, 0.28 against 0.30. The remaining
+      cost is a slightly dull less-insulin response (mean +4.74 against +5.05), within 1.3 sd.
+    - Lesson 182's ×0.9 overshot both shape statistics (sd 47, autocorrelation 0.49) and dulled the response further,
+      so the field sits near ×0.95. The level lows that remain (t<70 3.8 against 2.45) are not background noise. They
+      sit in the high-IOB third, where Loop's automatic insulin before crossing 70 is still 4.4 / 4.5 U against 3.2.
