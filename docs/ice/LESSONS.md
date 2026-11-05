@@ -2346,4 +2346,4 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       cost is a slightly dull less-insulin response (mean +4.74 against +5.05), within 1.3 sd.
     - Lesson 182's ×0.9 overshot both shape statistics (sd 47, autocorrelation 0.49) and dulled the response further,
       so the field sits near ×0.95. The level lows that remain (t<70 3.8 against 2.45) are not background noise. They
-      sit in the high-IOB third, where Loop's automatic insulin before crossing 70 is still 4.4 / 4.5 U against 3.2.
+      sit in the high-IOB third, where Loop's automatic insulin before crossing 70 is still 4.6 / 4.7 U against 3.1 (oc 4.8).
