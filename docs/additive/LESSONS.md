@@ -6998,3 +6998,107 @@ to the enable dict — which is why the arm is `--disable resid`, clean here bec
 already zeroes `resid_a` and `resid_drop_p` defaults to 0.0.
 
 Run dir `runs/2026-11-04-additive-fitablate/` (`215_fitablate.sh`, `score_215_ablate.log`).
+
+---
+
+## 726. THE FIELD'S CARBLESS CORRECTIONS DO NOT INDICT THIS BODY'S GLUCOSE-DEPENDENCE OR ITS PER-UNIT POTENCY: both apparent discrepancies were INSTRUMENT artefacts — one a live value absent from the artefact (`dose_beta` 0.1, set at run time), one a fitted scale at a COMMON curve reading SHAPE as SCALE. What survives is the shape, and the peer's proposed fix has a live form the record does not contain.
+
+The loopeval peer fitted the rf2 body as a kernel against 440 carbless manual corrections (>= 1 U, 72 donors,
+median 2.6 U at 236 mg/dL; `runs/2026-11-04-plant-curve-ice/review_package/`) and reported three things: the body
+fits ~15% worse than Loop's 360/75 curve, the misfit is early, and **within donor the field's fitted correction
+scale `k` is FLAT in glucose** (0.90 / 0.99 / 1.14 / 0.99 across 160-200 / 200-250 / 250-300 / >300, where the
+pooled 0.51 / 0.72 / 0.86 / 0.86 is composition across donors). Their reading: that flatness argues against this
+body's restoring force at 180-250. **Their field work is verified and their inference about my side is refuted.**
+
+**(0) Their field table reproduces exactly**, twice — once with matmul and once with explicit scalar projection
+(0.513 / 0.722 / 0.863 / 0.859 pooled; 0.90 / 0.99 / 1.14 / 0.99 within donor). The `RuntimeWarning: divide by
+zero / overflow encountered in matmul` their script suppresses is **spurious**: every modelled `I` and every `obs`
+is finite, |I| max 805, and the divisor `TM @ TM` is 884.06. It is numpy's unreliable floating-point flag
+reporting from matmul, not a data defect.
+
+**(1) `dose_beta` IS 0.0 IN EVERY `person.pkl` AND 0.1 LIVE, so their whole probe ran A4d OFF.** `world.py:154`
+reads `_db = float(enable["dose_beta"]) if enable and _num(enable.get("dose_beta")) else 0.1` and applies it to
+`person.body` at RUN time; rf2's enable string carries no `dose_beta`, so the live value is **0.1** while all 112
+pickles hold **0.0**. A probe that loads `person.pkl`'s `BodyParams` unmodified — the sound thing to do by L 719 —
+therefore gets a body with no dose-dependent bolus absorption. It is not small: at a 2.1 U correction, beta 0.1
+absorbs 22% faster than the 15-U clamp dose, and the body's fitted CGM-seen peak moves **65 -> 55 min**. So the
+live body is FASTER than they measured, their "+15%" baseline is rf2-minus-A4d, and their `dose_beta` 0.3 arm is a
+RAISE from a live 0.1, not an addition to zero. **This is a THIRD member of the L 640 / 666 class** — after the
+`kappa` dataclass default (0.15 declared, 1.0 live) and `ppr_a` — and the worst-placed yet: the value is in
+neither the dataclass default NOR the artefact, only in a run-time line. **Check `world.py`'s unconditional
+patches before probing a pickled body**; for rf2's enable string `dose_beta` is the only one.
+
+**(2) At the field's OWN dose growth and the live beta, the twins match the field's flatness exactly.** The field's
+median correction is 2.12 / 2.20 / 2.50 / 3.70 U across those bands — a **1.75x** rise, NOT the 3.5x that
+`(G - 120)/ISF` implies — so a probe must use the field's dose structure, since dose and glucose are only weakly
+coupled there (Spearman 0.21). Within-person `k(band)/k(person)`, same estimator both sides:
+
+| dose policy across bands | 160-200 | 200-250 | 250-300 | >300 | end-to-end |
+|---|---|---|---|---|---|
+| FIELD, within donor, all | 0.90 | 0.99 | 1.14 | 0.99 | **1.09x** |
+| FIELD, within donor, rapid | 0.90 | 1.02 | 1.17 | 0.98 | **1.09x** |
+| twins, live beta, field growth (x1.75), rapid | 0.93 | 0.98 | 1.03 | 1.01 | **1.09x** |
+| twins, beta 0 (THEIR probe), field growth, rapid | 0.89 | 0.96 | 1.02 | 1.04 | 1.17x |
+| twins, live beta, FIXED dose | 0.89 | 0.96 | 1.03 | 1.12 | 1.26x |
+| twins, live beta, `(G-120)/ISF` (x3.5) | 1.00 | 0.99 | 1.00 | 1.00 | 1.00x |
+
+**1.09x against 1.09x.** The mechanism is not the two-term cancellation it first looks like: most of the
+dose-driven flattening survives with A4d OFF (fixed dose 1.30x -> field growth 1.17x), so it is mainly the
+glucose-proportional insulin term **saturating itself** as the bolus drives glucose down — `kappa` is drawn
+`exp(N(0, 0.4))` with live median **1.026** over these 112 people (p5 0.60, p95 1.72), so `mm = gb + kappa*(g-gb)`
+is ~`g` — with A4d adding about a third of it (1.17 -> 1.09). **Two consequences:** the field's flat `k` is NOT
+evidence about this body's force at 180-250, and it is NOT evidence about `kappa` either, because the field's own
+dose structure confounds glucose with dose. Testing `kappa` against the field needs field corrections at MATCHED
+dose across glucose bands.
+
+**(3) THE PER-UNIT POTENCY IS RIGHT, AND I NEARLY RECORDED A 1.5x ERROR.** At the field's median band the twins'
+`k` against Loop's 360/75 is 1.378 (rapid) against the field's 0.932 (rapid, < 3 U, the twins' own dose range) —
+**1.48x**, which reads as gross over-potency. But 360/75 is the field's OWN best-fitting curve and NOT the twins',
+whose best is **55 min** (live) / 65 (beta 0): forcing a faster response onto a slower curve inflates the fitted
+scale. Each side at its own best-fitting curve: twins **1.003** against 0.932, i.e. **1.08x** for rapid and 0.88x
+for ultra-rapid. **A fitted scale at a COMMON curve mixes shape and scale** — quote it at each side's own best
+curve, or as a shape-free integral, before calling it potency. The 1.48x is the ~20-min peak difference, not a
+sensitivity error, and it would have contradicted L 575's post-meal 0.75x for no reason.
+
+**(4) THE FIELD DOES NOT SIZE `dose_beta`, AND THE READ THAT SAID IT DOES IS L 701 FOR THE THIRD TIME.** Pooled,
+the field's `k` falls steeply with dose — 1.5 U gives 0.82-1.14 across bands, 8 U gives 0.17-0.80 — which looks
+like direct field support for A4d's direction. **Within donor it is FLAT: 0.97 / 1.03 / 0.92** by dose tercile
+(all), **0.97 / 1.01 / 1.00** (rapid). Donors who take large carbless corrections simply have a lower `k`, and
+pooling weights them in. A pooled one-parameter fit `obs = k0 (units/15)^(-b) I` prefers b 0.15-0.20 at an SSE
+gain of only 0.6-1.6%, and inherits the same confound, so quote it as nothing. The live 0.1 keeps its own
+evidence (Heise 2017) and 0.3 has no field support.
+
+**(5) THE PEER'S PROPOSED FIX IS CLOSED IN THE FORM THEY STATE IT AND HAS A LIVE ONE THEY DID NOT.** They suggest
+"a glucose-dependent force, weak high and strong below about 90". The second half cannot work: `sg_kappa` 0.15 is
+bit-identical below Gb by construction and its t70 still roughly DOUBLED (L 642), because **the t70 leverage is in
+the 90-180 band on the descent, not at the nadir** — so strengthening below 90 cannot buy back what weakening
+above it costs. But `sg_g0` is a FREE breakpoint (default 80) and the excess is built as `F(G) - F(Gb)`, which
+holds the term's zero at Gb for any breakpoint, so a breakpoint ABOVE the leverage band is untested. Priced on
+rf2's own dwell (112 twins, 2,258,032 minutes; 3.1% below 70, 29.2% at 90-130, 28.9% at 130-180, 21.0% above 200):
+
+| configuration | dwell-wtd force kept | 65 | 90 | 130 | 180 | 236 | 300 |
+|---|---|---|---|---|---|---|---|
+| default linear | 1.000 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
+| `sg_kappa` 0.15 — rejected L 639/642 | 0.254 | 1.00 | 1.00 | 0.15 | 0.15 | 0.15 | 0.15 |
+| smooth fitted `sg_g0` 80.4 — rejected L 642 | 0.267 | 0.73 | 0.54 | 0.35 | 0.24 | 0.18 | 0.14 |
+| **`sg_g0` 180 `sg_km` 63.2** | **0.860** | 1.00 | 1.00 | 1.00 | 1.00 | **0.78** | **0.57** |
+| `sg_g0` 200 `sg_km` 63.2 | 0.910 | 1.00 | 1.00 | 1.00 | 1.00 | 0.89 | 0.66 |
+| `sg_g0` 150 `sg_km` 63.2 | 0.738 | 1.00 | 1.00 | 1.00 | 0.84 | 0.58 | 0.42 |
+
+(Gate: the two forms L 642 priced at x0.22-0.25 land at 0.254 and 0.267 here, so the instrument agrees with the
+record. Quote `|kept|`; the signed variant is not what L 642 used.) **`sg_g0` 180 is the candidate** — the highest
+breakpoint that leaves the whole 90-180 leverage band and the entire low side at EXACTLY full strength while
+cutting the force 22% at 236 and 43% at 300, where both the field corrections and L 635/680 say it is too strong.
+Every A1d form rejected so far kept 0.25-0.27 of the dwell-weighted force; this keeps 0.86, which on L 642's own
+monotone cost relationship is the first A1d shape outside the regime that doubled the lows.
+
+**What it costs to believe it, stated plainly: it is NOT faithful to ice's learned band profile**, which weakens
+from ~90 upward, and L 642's closure rested on that faithfulness. So the two evidence sources imply different
+breakpoints — ice's probe says weaken from 90, the field's carbless corrections say too strong at 180-250 and are
+silent below 160 — and only the high breakpoint is cheap on the cohort. **Which governs A1d's shape is a decision,
+not a measurement.** Before spending an arm, read ice's absolute band table directly rather than reconstructing it
+from L 641's prose: my ratio column and their /h bands did not reconcile on a back-of-envelope check, which is
+exactly the L 666 drift this entry is otherwise about.
+
+Run dir `runs/2026-11-05-additive-kbg/` (`216_kbg.sh`, `217_fieldm.sh`, `218_level.sh`, `220_force.sh`;
+`kbg_result.txt`, `field_dose.txt`, `level_probe.txt`, `force_profile.txt`, `fieldm.log`).

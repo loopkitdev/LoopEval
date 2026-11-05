@@ -269,6 +269,50 @@ construction. The consequence for candidates: the `resid_m` refit that has kille
 something the level cannot see. `meal_d3h`, a row the drift actively damages, is the most promising
 place left.
 
+## The field's carbless corrections against this body (L 726)
+
+The loopeval peer fitted this body as a kernel against **440 carbless manual corrections >= 1 U (72 donors,
+median 2.6 U at 236 mg/dL)**, `runs/2026-11-04-plant-curve-ice/review_package/`. Their field work reproduces
+exactly (twice, incl. without matmul; the matmul warnings their script suppresses are spurious - every `I` and
+`obs` is finite and `TM @ TM` is 884). **Their inference about this body does not.**
+
+- **`dose_beta` is 0.0 in EVERY `person.pkl` and 0.1 LIVE**, applied at RUN time by `world.py:154` (rf2's enable
+  string carries no `dose_beta`, so the fallback 0.1 is the live value). A probe loading `person.pkl`'s
+  `BodyParams` unmodified - correct by L 719 - gets A4d OFF. At a 2.1 U correction beta 0.1 absorbs 22% faster
+  and moves the fitted CGM-seen peak **65 -> 55 min**. **Check `world.py`'s unconditional patches before probing
+  a pickled body**; third member of the L 640/666 class and the worst-placed, being in neither the dataclass
+  default nor the artefact.
+- **No glucose-dependence discrepancy.** The field's within-donor `k(band)/k(donor)` is 0.90 / 0.99 / 1.14 / 0.99
+  (**1.09x** end to end; the pooled 0.51 / 0.72 / 0.86 / 0.86 is composition). At the field's OWN dose growth -
+  **1.75x** across bands (2.12 / 2.20 / 2.50 / 3.70 U), not the 3.5x `(G-120)/ISF` implies - and the live beta,
+  the twins read 0.93 / 0.98 / 1.03 / 1.01, **1.09x**. Their configuration (beta 0) gives 1.17x; fixed dose gives
+  1.26x. Most of the flattening survives A4d off (1.30 -> 1.17), so it is mainly the glucose-proportional insulin
+  term saturating itself (`kappa` live median **1.026**, so `mm` ~ `g`). **So the field's flat `k` is evidence
+  about neither the force at 180-250 nor `kappa`** - its dose structure confounds glucose with dose.
+- **Per-unit potency is right.** At a COMMON curve the twins read 1.378 against the field's 0.932 (rapid, < 3 U) =
+  1.48x; at **each side's own best-fitting curve** 1.003 against 0.932 = **1.08x** (0.88x ultra-rapid). The 1.48x
+  is the ~20-min peak difference. **A fitted scale at a common curve mixes shape and scale** - quote it at each
+  side's own best curve, or shape-free, before calling it potency.
+- **The field does not size `dose_beta`.** Pooled, `k` falls steeply with dose (1.5 U 0.82-1.14, 8 U 0.17-0.80);
+  **within donor it is FLAT** (0.97 / 1.03 / 0.92 by tercile, rapid 0.97 / 1.01 / 1.00). L 701 for the third
+  time. The live 0.1 keeps its own evidence; 0.3 has no field support.
+- **What survives is the SHAPE**: the body's CGM-seen response peaks ~55 min against the field's 75, and the live
+  beta makes it faster still. Their "+15% SSE" baseline needs redoing at beta 0.1, and the clean question is SSE
+  with the force ON vs OFF *at the live beta*, which isolates A1d from the three changes their best arm bundles.
+
+**A LIVE A1d CANDIDATE THE RECORD DOES NOT CONTAIN: `sg_g0` 180 (with `sg_km` 63.2).** Their proposed "weak high,
+strong below 90" is closed in that form - `sg_kappa` 0.15 is bit-identical below Gb and still doubled t70, because
+the t70 leverage is in **90-180 on the descent**, not at the nadir (L 642). But `sg_g0` is a free breakpoint
+(default 80) and the excess `F(G) - F(Gb)` holds the zero at Gb for any breakpoint, so a breakpoint ABOVE the
+leverage band is untested. On rf2's own dwell (2,258,032 min) the dwell-weighted force kept is **0.86** for
+`sg_g0` 180 - against **0.254** for `sg_kappa` 0.15 and **0.267** for the fitted smooth form, the two L 642 priced
+at x0.22-0.25 - with the force at 65 / 90 / 130 / 180 EXACTLY unchanged and 0.78 at 236, 0.57 at 300. First A1d
+shape outside the regime that doubled the lows. **But it is not faithful to ice's learned band profile** (which
+weakens from ~90 up), and L 642's closure rested on that faithfulness, so the two evidence sources imply different
+breakpoints and **which governs A1d's shape is a decision, not a measurement**. Before spending an arm, read ice's
+absolute band table directly - my ratio column and their /h bands did not reconcile on a quick check, which is the
+L 666 drift this entry is otherwise about.
+
 ## Where the score actually sits (L 697, honest labels)
 
 Nine statistics are 49% of the weighted score and only one is tier 1: `entry_fast_fall` 6.8% (donors 14.29%
