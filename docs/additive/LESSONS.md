@@ -7102,3 +7102,88 @@ exactly the L 666 drift this entry is otherwise about.
 
 Run dir `runs/2026-11-05-additive-kbg/` (`216_kbg.sh`, `217_fieldm.sh`, `218_level.sh`, `220_force.sh`;
 `kbg_result.txt`, `field_dose.txt`, `level_probe.txt`, `force_profile.txt`, `fieldm.log`).
+
+**727. THE HIGH BREAKPOINT ESCAPES THE LOWS AND NOT THE DISPERSION, so L 642's closure SPLITS: its
+dispersion half is CONFIRMED and now GENERALISED BEYOND A1d (the renal term pays the same price for the
+same force), and its low-side half is REFUTED (t54 lands on the donors on all three draws where
+`sg_kappa` 0.15 doubled t70). Both candidates decline, the refit is priced and NOT spent, and what is
+left is one soundness decision about the renal term's VALUE.** Job 221, three arms x three draws
+(seed0 1000 / 5000 / 9000), unrefit, all gates passed — the arms differ from rf2 on 111 of 112 people
+and are bit-identical on the 1 person whose glucose never exceeds their own `rthr`, which isolates the
+renal arm by construction. Arms: `rn1` = `rcl_mult` 0.16667 (our 0.003/min cut to UVA/Padova's
+0.0005), `sgb1` = `sg_g0` 180 with `sg_km` 63.2 (A1d's breakpoint ABOVE the leverage band), `pr1` =
+both. Three-draw means against the reference and the donors:
+
+| row | donors | rf2 | rn1 | sgb1 | pr1 |
+|---|---|---|---|---|---|
+| **bg_cv** | 34.65 | 34.90 | **36.71** | **36.82** | **38.88** |
+| t54 | 0.190 | 0.168 | **0.188** | **0.178** | **0.166** |
+| t70 | 1.599 | 1.798 | 1.648 | 1.747 | 1.738 |
+| lows/day | 1.000 | 1.042 | 1.028 | 1.056 | 1.083 |
+| bg_mean | 151.93 | 150.45 | 153.49 | 152.32 | 156.16 |
+| TIR | 71.88 | 70.89 | 69.22 | 70.30 | 68.24 |
+| t180 | 25.88 | 25.86 | 27.12 | 26.81 | 28.63 |
+| TDD | 38.70 | 42.39 | 42.74 | 42.55 | 43.83 |
+| `meal_d3h` | 38.01 | 31.67 | 33.67 | 33.33 | **35.17** |
+| score | — | **0.366** | 0.379 | 0.378 | 0.408 |
+| tier 1 | — | 0.174 | 0.173 | 0.172 | 0.203 |
+
+- **(0) THE GUARD HELD, AND THAT IS THE NEW FACT.** t54 is 0.188 / 0.178 / 0.166 against the donors'
+  0.190 — on target for all three arms on all three draws — with t70 and lows/day FLAT. Against
+  `sg_kappa` 0.15's t70 3.38 / 3.76 / 2.58 and the smooth form's t54 0.58 / 0.70 / 0.48 (L 639, 642),
+  this is a different regime entirely. **So "no parameterisation of A1d escapes the cost" was two
+  claims bundled, and only one of them was about the integral.** The low-side cost is set by WHERE the
+  force is cut, not by HOW MUCH — which is L 642's own finding (the t70 leverage is 90-180 on the
+  descent) read forward instead of backward, and the first A1d form to act on it.
+- **(1) THE DISPERSION COST IS CONFIRMED AND THE IDENTITY RETRODICTS IT TO 0.6%.** `sgb1` keeps 0.860
+  of the dwell-weighted restoring force and `sg` is ~80% of `lam` (L 678), so `lam` goes to
+  0.8 x 0.860 + 0.2 = **0.888** and the identity `spread = sigma / sqrt(2*lam)` predicts bg_cv
+  **37.04** against an observed **36.82** — nothing fitted, from the force profile and L 678 alone.
+  The registered bar was "holds bg_cv within ~1 point" and the observed rise is **+1.91**, so the arm
+  FAILS its own decisive row at about twice the allowance.
+- **(2) AND IT IS NOT AN A1d PROPERTY — the renal term pays the SAME price.** `rn1` costs +1.81 bg_cv
+  points against `sgb1`'s +1.91, and renal is not A1d at all. Inverted through the identity, cutting
+  renal to a sixth removes 9.6% of `lam`, i.e. **the renal term carries 11.5% of this body's total
+  restoring gain**. So the cost tracks `lam`, whatever supplies it, and L 640's "the total force
+  removed is what sets the cost" generalises past the component it was measured on.
+- **(3) THE TWO ARMS COMPOSE ADDITIVELY IN `lam`, as the ODE requires** — a check worth having before
+  trusting the pair: the singles imply `lam` cuts of 1/1.106 and 1/1.113, whose product is **1.231**
+  against the pair's observed **1.241**.
+- **(4) THE EXCHANGE RATE IS THEREFORE UNCHANGED, which is why no shape helps.** These arms cut `lam`
+  by 10% and cost +1.9 bg_cv points. L 678's response gap needs `lam` cut to 1/1.59, i.e. spread
+  x1.26, i.e. bg_cv ~44 against the donors' 34.65. **A third and a fourth shape, one of them outside
+  A1d, land on the same line.** Do not look for a better-shaped force cut again.
+- **(5) THE REFIT IS PRICED AND DECLINED WITHOUT SPENDING IT** (L 694's rule). bg_cv is `sd / mean` and
+  the refit's whole job is to put the mean BACK, so on the level arithmetic alone `sgb1`'s post-refit
+  bg_cv is 36.816 x (152.323 / 150.449) = **37.28**, i.e. **+2.4** over the reference before any
+  tail-widening — and L 639 measured that the fit can only hold a mean against a lost force by adding
+  CONSTANT downward drift, which widens both tails. The refit can only move this row the wrong way, so
+  the registered bar cannot be met and there is nothing to learn by paying for it.
+- **(6) ONE ROW WITH HEADROOM IMPROVED, AND IT IS THE ONE L 725 NAMED.** `meal_d3h` 31.67 -> 33.33 /
+  33.67 / **35.17** against the donors' 38.01 (gap 0.338 -> 0.151 for the pair) — the tier-1 row the
+  fitted drift actively damages. It is not enough to carry an arm whose dispersion fails, but it is
+  the first thing outside the appearance path to move it.
+- **(7) MY REGISTERED TDD PREDICTION WAS BELOW THE INSTRUMENT'S RESOLUTION AND SHOULD NOT HAVE BEEN
+  REGISTERED AS A BAR.** Predicted +0.90 / +0.79 / +1.74 U/day from the dwell-weighted sink removed
+  assuming Loop covers it; observed **+0.35 / +0.16 / +1.44** — all three inside the 1.51 U/day
+  between-draw sd (L 609), which also says resolving a 1 U/day effect needs **10 draws**. A
+  pre-registered number on a row the design cannot resolve is not a test; it is a coin flip with
+  arithmetic attached. Check the row's own between-draw sd against the predicted effect BEFORE
+  registering it, which L 609 states and I did not apply to my own prediction.
+
+**WHAT IS LEFT, AND IT IS A SOUNDNESS QUESTION, NOT A SCORE ONE.** Our `rcl` 0.003/min is Hovorka's,
+marked `[unverified]` in `evidence/01-physiology-core.md` §4.3 beside UVA/Padova's 0.0005 — "the two
+disagree about 6x", our own note — and the field's 440 carbless corrections prefer the LOWER value
+(the peer's isolated pricing at the live `dose_beta`: live rf2 **+17.9%** worse than Loop's own curve
+at explaining them, renal at 1/6 **+12.8**, `sg_g0` 180 **+11.8**, the pair **+9.5**, both removed
+entirely +3.5, every CI excluding 0). So three independent lines — one literature value, the field
+corrections, and the dwell-weighted force profile — say our renal term is too strong, and the cohort
+says cutting it costs 1.8 bg_cv points, 1.7 TIR points and 0.013 of score. That is not "level on the
+measures but better explained" (Pete 2026-11-01), so it does not self-adopt; it is the same
+which-row-to-spend decision as `ge_order` 3 and it is Pete's. **Not measured and deliberately not
+queued:** the change response, because the identity fixes the exchange rate at x1.11 for `sgb1` and
+has now landed quantitatively twice, so an e-pool arm can confirm the line and cannot find a better
+point on it.
+
+Run dir `runs/2026-11-05-additive-highbreak/score_221.log` (`221_highbreak.sh`); arms `rn1`, `sgb1`,
+`pr1` and their `_5k` / `_9k` draws in `runs/2026-10-31-additive-gesplit/`.

@@ -307,11 +307,37 @@ the t70 leverage is in **90-180 on the descent**, not at the nadir (L 642). But 
 leverage band is untested. On rf2's own dwell (2,258,032 min) the dwell-weighted force kept is **0.86** for
 `sg_g0` 180 - against **0.254** for `sg_kappa` 0.15 and **0.267** for the fitted smooth form, the two L 642 priced
 at x0.22-0.25 - with the force at 65 / 90 / 130 / 180 EXACTLY unchanged and 0.78 at 236, 0.57 at 300. First A1d
-shape outside the regime that doubled the lows. **But it is not faithful to ice's learned band profile** (which
-weakens from ~90 up), and L 642's closure rested on that faithfulness, so the two evidence sources imply different
-breakpoints and **which governs A1d's shape is a decision, not a measurement**. Before spending an arm, read ice's
-absolute band table directly - my ratio column and their /h bands did not reconcile on a quick check, which is the
-L 666 drift this entry is otherwise about.
+shape outside the regime that doubled the lows. **There is NO conflict with ice's evidence and no decision here -
+that framing was mine and it was wrong.** 90-130 is ice's BEST-sampled band (438 points, all 60 donors, CI
++-10-15%), its uncertainty is interpretive rather than sampling, their H-and-state factor runs ~2x UPWARD, and
+their answer is verbatim: "if your breakpoint keeps 65 / 90 / 130 exactly unchanged, my evidence is consistent
+with it: nothing in this table argues for cutting below 130". So the sub-130 cut that doubled the lows in every
+previous A1d form was never required by the evidence; it was where the existing knob happened to put the
+breakpoint. **Owed correction to L 641**: its 0.235 / 0.118 / 0.053 / 0.024 row is approximately ice's
+midpoint / D=+40 / **H=1** column (0.223 / 0.136 / 0.083) while L 140a quoted H=3 - an H=1 reading carried under
+an H=3 citation, the L 666 drift this entry is otherwise about.
+
+**RUN AS JOB 221 AND BOTH CANDIDATES DECLINE, SPLITTING L 642's CLOSURE IN TWO (L 727).** Three arms x three
+draws, unrefit, gates passed (111 of 112 people differ from rf2; the 1 person never above their own `rthr` is
+bit-identical in the renal arm). **The guard HELD - the new fact**: t54 0.188 / 0.178 / 0.166 against the donors'
+0.190 for `rn1` / `sgb1` / `pr1`, t70 and lows/day FLAT, against `sg_kappa`'s doubled t70 and the smooth form's
+t54 0.48-0.70. So the LOW-side cost is set by WHERE the force is cut and a high breakpoint escapes it outright.
+**The DISPERSION cost is confirmed, generalised and retrodicted to 0.6%**: bg_cv 34.90 -> 36.71 / 36.82 / 38.88
+against the donors' 34.65, where `sgb1`'s 0.860 force kept and `sg` at ~80% of `lam` (L 678) predict 37.04 from
+the identity with nothing fitted. **And it is not an A1d property** - the renal cut costs the same +1.81, so
+renal carries **11.5% of this body's total restoring gain** and the cost tracks `lam` whatever supplies it. The
+arms compose additively in `lam` (1.106 x 1.113 = 1.231 against the pair's 1.241). The exchange rate is therefore
+unchanged: 10% of `lam` for +1.9 bg_cv points, where L 678's response gap needs `lam` cut to 1/1.59 (bg_cv ~44).
+`sgb1` FAILS its own registered decisive row (+1.91 against "within ~1 point") and **the refit is priced and NOT
+spent** - bg_cv is `sd / mean` and the refit restores the mean, so post-refit it is 37.28 on the level arithmetic
+alone, before L 639's tail-widening. One gain: `meal_d3h` 31.67 -> 33.33 / 33.67 / **35.17** (donors 38.01), the
+tier-1 row L 725 named. **Do not look for a better-shaped force cut again** - four shapes, one outside A1d, all
+on the same line. **What is left is a SOUNDNESS decision for Pete about the renal term's VALUE**: our `rcl`
+0.003/min is Hovorka's, marked `[unverified]` beside UVA/Padova's 0.0005 ("the two disagree about 6x", our own
+`evidence/01` §4.3), and the field's 440 carbless corrections prefer the lower one - live rf2 **+17.9%** worse
+than Loop's own curve at explaining them, renal 1/6 **+12.8**, `sg_g0` 180 **+11.8**, the pair **+9.5**, both
+removed entirely +3.5, every CI excluding 0. Three lines say the term is too strong; the cohort charges 1.8
+bg_cv points, 1.7 TIR points and 0.013 of score. Not "level but better explained", so it does not self-adopt.
 
 ## Where the score actually sits (L 697, honest labels)
 
@@ -1079,7 +1105,18 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   costs MORE on the low side than either kink — t70 3.97 / 3.93 / 2.91 against the donors' 1.60 and t54 0.58 / 0.70
   / 0.48 against 0.190 — with the level held exactly. Its premise was false: the kink leaves the sub-basal force at
   the full default by construction and this form is the weaker of the two below 130, because `excess = F(G) - F(Gb)`
-  makes the force a low feels the SPAN AVERAGE from Gb (0.177 at G 65), not the local slope (0.242). L 642), `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
+  makes the force a low feels the SPAN AVERAGE from Gb (0.177 at G 65), not the local slope (0.242). L 642),
+  **`sg_g0` 180 with `sg_km` 63.2** (A1d's breakpoint ABOVE the t70 leverage band, the first form to keep the
+  force at 65 / 90 / 130 / 180 exactly unchanged: **the guard HOLDS** — t54 0.178 against the donors' 0.190, t70
+  and lows/day flat, where every previous A1d form doubled the lows — and it FAILS on dispersion, bg_cv +1.91
+  against a registered "within ~1 point", retrodicted to 0.6% by L 678's identity from the 0.860 force kept.
+  `meal_d3h` 31.67 -> 33.33 is its one gain. Refit priced and not spent: bg_cv is `sd / mean` and the refit
+  restores the mean, so 37.28 before any tail-widening. L 727), **`rcl_mult` 0.16667** (the renal term at
+  UVA/Padova's 0.0005/min instead of Hovorka's 0.003: the guard holds identically (t54 0.188) and it costs the
+  SAME dispersion as the force cut (+1.81), which measures **renal at 11.5% of total restoring gain** and shows
+  the dispersion price is a property of `lam`, not of A1d. Score 0.366 -> 0.379, TIR −1.7, `meal_d3h` -> 33.67.
+  **A live soundness decision for Pete, not a closed arm**: three lines — UVA/Padova, the field's 440 carbless
+  corrections (+17.9% -> +12.8%) and the force profile — say our value is too strong. L 727), `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
   instead of 0.05: a NULL on the labelled duration it was aimed at, x0.999, against a single-parcel prediction of
   x0.96 that two corrections could not rescue; scores marginally better than the reference on two draws of three and
   its one consistent gain — paired TDD on all three — is level-mediated and returns on refit, L 627, 629),
