@@ -2347,3 +2347,30 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Lesson 182's ×0.9 overshot both shape statistics (sd 47, autocorrelation 0.49) and dulled the response further,
       so the field sits near ×0.95. The level lows that remain (t<70 3.8 against 2.45) are not background noise. They
       sit in the high-IOB third, where Loop's automatic insulin before crossing 70 is still 4.6 / 4.7 U against 3.1 (oc 4.8).
+
+184. **The ×0.95 background shrink does not hold on trainings 2–3: the level gain repeats, but the response to a
+    settings change dulls beyond noise, so lesson 183's keep is withdrawn and the base recipe (oc) stays the base.**
+    Trainings 2 and 3, e pool, 335 scored edits (probe_sp_oc.sh, wait_sp95b.sh):
+    - **Level, own settings, pre window** (field / oc 2–3 / sp0.95 2–3): t<70 2.45 / 4.37, 4.70 / 3.74, 4.00; t<54 0.32
+      / 1.51, 1.69 / 1.18, 1.29; TIR 78.2 / 74.3, 72.6 / 76.3, 74.4; mean 141.4 / 144.1, 146.3 / 142.1, 145.2. The same
+      gain as trainings 0–1 (t<70 about −0.6, TIR about +1.9). Median per-person TIR against the field −1.9 / −3.9.
+    - **Background shape:** sd 52.8 / 53.5 (field 53.5); autocorrelation at 15 / 30 / 60 min 0.35, 0.36 / 0.17, 0.18 /
+      0.06, 0.08 against the field's 0.39 / 0.21 / 0.09, slightly under where trainings 0–1 matched.
+    - **Change prediction** (field, drift-removed in brackets / oc mean ± sd of five / sp0.95 2–3):
+      - mean, more insulin −8.60 (−6.24) / −5.74 ± 0.56 / −4.84 (z +1.9); less +5.05 / +5.03 ± 0.28 / +4.62 (z −1.8);
+      - TIR +3.76 (+2.36) / +1.99 ± 0.19 / +1.62 (z −2.3); −1.24 / −1.87 ± 0.06 / −1.98 (z −2.4);
+      - t<70 +0.73 (+0.60) / +0.77 ± 0.09 / +0.63 (z −1.8); −0.85 / −0.71 ± 0.08 / −0.54 (z +2.5);
+      - t<54 +0.15 / +0.32 / +0.20; −0.12 / −0.28 / −0.20;
+      - per-edit correlation with the field: TIR 0.26 / 0.24, t<70 0.19 / 0.23, mean 0.41 / 0.39, at the low end of oc's
+        range.
+    - **Verdict:** not kept. Over four trainings every response measure except t<54 moves the same way, away from the
+      field: the generated person reacts less to more or less insulin. TIR and the less-insulin t<70 change lose about
+      2 sd on trainings 2–3. Two trainings were not enough to see it; lesson 183 read a 1–2 sd dulling as noise.
+      Change prediction is the use case, so the level gain does not pay for it.
+    - **What it says about the lows that remain:** in the field, the more-insulin edits add t<70 equal to about 29% of
+      the starting level (0.72 on 2.45). The generator adds about 16% under both recipes (0.74 on 4.4; 0.60 on 3.8).
+      The generator's surplus lows barely respond to insulin, and shrinking the background removes responsive and
+      unresponsive lows alike. The next fix should take out lows that do not move with insulin and leave the
+      insulin-driven ones.
+    - Watcher pitfall: level_lows.py names each run dir by its training (`rd[8:11]`), so a base and an arm of the same
+      training overwrite each other in one call. Run it once per dir.
