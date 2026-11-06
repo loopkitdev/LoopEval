@@ -2415,3 +2415,25 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       the generated total is over three seeds. Per run the generator enters < 70 about 3,100 times against the
       field's 2,400, +30 % (lesson 185 has the same from low_dip.py: 9,613 / 3 against 2,453). The excess time below
       70 is frequency as well as depth.
+
+187. **The extra entries below 70 are the generator's, not the harness's, and they start from glucose already under
+    120 with ICE pushing up.** Entries per person-day, pre window, own settings, clean rows, 2 h refractory (base
+    recipe (oc) training 0; low_rate.py in runs/2026-11-01-ice-stateabl/):
+
+    | | Field | Replay | Generated |
+    |---|---|---|---|
+    | All entries | 1.14 | 1.10 | 1.41 |
+    | IOB at entry, low / middle / high third (field cuts) | 0.38 / 0.39 / 0.38 | 0.34 / 0.38 / 0.38 | 0.50 / 0.41 / 0.50 |
+    | Glucose 60 min before < 90 / 90–120 / 120–160 / > 160 | 0.19 / 0.42 / 0.30 / 0.23 | 0.20 / 0.41 / 0.27 / 0.22 | 0.31 / 0.55 / 0.33 / 0.23 |
+    | Mean ICE 60–30 min before < 0 / 0–40 / 40–80 / > 80 | 0.21 / 0.38 / 0.26 / 0.30 | 0.17 / 0.36 / 0.26 / 0.31 | 0.20 / 0.45 / 0.34 / 0.42 |
+    | Night (22–6) / day | 0.32 / 0.83 | 0.29 / 0.81 | 0.40 / 1.01 |
+    | Share reaching < 54 | 0.22 | 0.29 | 0.34 |
+
+    - With the measured ICE the harness enters lows at the field's rate (1.10 against 1.14), so the +24 % is the
+      generator. Its share reaching < 54 adds to it: the replay's 0.29 is the harness, the rest the generator.
+    - The excess starts low and slow: all of it from glucose under 120 an hour before, none from above 120; none
+      where ICE was falling (< 0) an hour before, all where it was positive. The generated person drifts across 70
+      from the 80–120 range while counteraction is pushing up. Real people in that state mostly stay above.
+    - It is spread over night and day in proportion, and over both the low and high IOB thirds (not the middle).
+    - Next: compare time spent in 70–120 and the glucose and ICE course in it, field against generated, to see
+      whether the generated person spends longer there or crosses from it more often per hour spent.
