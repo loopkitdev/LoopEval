@@ -2374,3 +2374,28 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       insulin-driven ones.
     - Watcher pitfall: level_lows.py names each run dir by its training (`rd[8:11]`), so a base and an arm of the same
       training overwrite each other in one call. Run it once per dir.
+
+185. **Most generated low time does not move with a settings change: about 80 % falls at the same moments under both
+    settings. Those shared lows are the deep ones, entered through a sharp ICE drop. The drops themselves have the
+    field's size; the generator has more entries, recovers more slowly in the first minutes, and more of its entries
+    go below 54.** Base recipe (oc) training 0, e pool, scored edits (runs/2026-11-01-ice-stateabl/low_pair.py,
+    low_dip.py):
+    - **Pairing:** each edit's before-settings and after-settings rollouts share window and seed. Low time (< 70) is
+      split into shared (low in the other arm within ±15 min), only-before and only-after. More-insulin edits: low
+      minutes +19 %, of which shared stay level and only-after time almost doubles the only-before time (274 k against
+      144 k). Less-insulin: −15 %. Training 1 is the same (+15 %, −12 %).
+    - **Shared against unshared lows** (more-insulin edits, after arm): lowest glucose 52.6 against 59.4; least ICE
+      within 30 min of entry −72 against −62 mg/dL/h. The 2 h before is alike: background ICE 33.5 / 35.0, meal pulse
+      28.6 / 25.5, IOB 3.27 / 3.03 U, insulin activity 1.87 / 1.95 U/h, glucose 2 h before 120 / 122, night share 0.27
+      / 0.31. Compression dips are rare (comp below −5 in few entries) and do not explain them.
+    - **ICE drop at entry, field / generated / replay:** least ICE within 30 min, 10th / 25th / 50th / 75th percentile
+      −170 / −105 / −52 / −14 against −173 / −112 / −55 / −14 and −173 / −104 / −52 / −13. The size of the drops is
+      the field's. But the generator enters 70 about 30 % more often per run (9,613 entries over three seeds against
+      2,453), and more entries reach < 54 even without a sharp drop (0.32 against 0.17 where the least ICE stays above −100).
+    - **ICE just after entry** (low_ice.py): +5 min 36 against the field's 54 mg/dL/h (low IOB third 8 against 26, high
+      third 71 against 89); 75–90 min 61 / 53 against 74 / 71. By 15–30 min it is the field's. The generated rescue
+      starts about 5 min late and fades earlier.
+    - **Reading:** the excess lows are not the insulin-responsive kind. Removing background noise (lessons 182–184)
+      takes out lows that move with insulin and lows that do not, alike. The levers left are how often the person
+      drifts down to 70 and how fast the response starts once there. The share of lows that respond to insulin falls
+      with them: field t<70 rises 0.72 on 2.45 under more insulin (24 % drift-removed), the generator 0.74 on 4.4 (17 %).
