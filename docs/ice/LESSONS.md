@@ -2437,3 +2437,26 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - It is spread over night and day in proportion, and over both the low and high IOB thirds (not the middle).
     - Next: compare time spent in 70–120 and the glucose and ICE course in it, field against generated, to see
       whether the generated person spends longer there or crosses from it more often per hour spent.
+
+188. **The generated person does not spend longer near 70; it falls fast through 80–120 more often, and each fast fall
+    looks like a real one. Judged against the drift-removed field, lesson 184's background shrink is a trade, not a
+    loss.** Base recipe (oc) training 0, pre window, own settings (low_rate.py):
+    - **Hours a day in 70–80 / 80–90 / 90–100 / 100–120:** field 0.90 / 1.52 / 2.05 / 4.83, replay 0.86 / 1.39 / 1.90 /
+      4.55, generated 0.97 / 1.51 / 1.90 / 4.14. **Share of that time falling faster than 30 mg/dL/h:** field 0.22 /
+      0.22 / 0.23 / 0.25, replay the same, generated 0.26 / 0.26 / 0.28 / 0.30.
+    - **During fast falls in 80–120,** ICE now / 30 / 60 min before 21 / 46 / 56 field, 22 / 47 / 56 replay, 26 / 48 / 55
+      generated; insulin activity 1.37 / 1.34 / 1.30, 1.38 / 1.34 / 1.29, 1.41 / 1.36 / 1.29 U/h. The mechanism is the
+      field's: a counteraction that fades over the hour, with the insulin of the moment. The generator only has more of
+      these fades, which is the excess short-lag background spread of lesson 181.
+    - **Lesson 184 re-read against the field's own target.** The z-scores in 182–184 measure distance from the base
+      recipe, not from the field. Against the drift-removed field (lesson 175, its person-bootstrap se), error / se of
+      oc against sp0.95 (four-training mean): mean more 0.56 / 1.26, less 0.58 / 0.20; TIR more 0.69 / 1.04, less 0.34
+      / 0.48; t<70 more 1.06 / 0.03, less 0.47 / 0.57. Summed 3.70 against 3.58. The t<54 change, the largest relative
+      error, falls from 3.4× the field's to 2.3×. So the shrink trades a duller more-insulin response in mean and TIR
+      for better t<70 and t<54 change and level. Lesson 184 stands as not kept on the rule (response measures moved
+      beyond training noise), but the response error against the field did not grow overall.
+    - **Test arm spown:** shrink ×0.95 plus lesson 174's own-night iob_net baseline (`PLANT_BASE_IOB_OWN=1`), which
+      strengthened the response both ways by about as much as the shrink weakens it. All four trainings (0–3,
+      probe_spown.sh, 0 and 2 then 1 and 3 in sequence, CPUs 4–15). Kept if the level and t<54-change gains of the
+      shrink hold and the mean, TIR and t<70 change stay within the base recipe's training spread or move toward the
+      drift-removed field.
