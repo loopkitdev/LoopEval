@@ -1174,6 +1174,17 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 
 ## Analysis traps (each cost a session)
 
+- **THE BINARY EVERY COHORT ARM RUNS LIVES IN AN OLD RUN DIR, BY SYMLINK, AND NOTHING DOCUMENTS IT**
+  (L 728). `rf2`'s own `cohort.json` names `bin =
+  runs/2026-10-27-additive-natexp/loop-eval-7272515`, which is a 0-byte symlink into
+  `runs/2026-10-25-additive-rebuild/`. So the reference's reproducibility hangs off two run dirs that
+  look like finished experiments, one of them three references out of date and a standing candidate for
+  cleanup. Job 221's arms happen to point at `/Users/pete/dev/LoopEval/.build/release/loop-eval`
+  instead, so the two halves of the record do not even share a binary path. **Before agreeing to any
+  cleanup, archive or move of a run dir, read `bin` out of the `cohort.json` of every arm you still
+  read** — not the arm names, not the mtimes, which both said natexp was dead. The same check belongs
+  in a publish: a run dir is not scratch just because nothing has written to it.
+
 - **Every conditional rate needs a shifted-time placebo in the same script, and every "against the donors' X%"
   needs to be paired per person** (L 700, 701). A suspend-in-the-window rate of 26.9% over low episodes passed a
   registered 10% bar and was **exactly its base rate** — the same windows moved by a day read 25.4–27.4%. And an

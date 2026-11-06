@@ -7187,3 +7187,32 @@ point on it.
 
 Run dir `runs/2026-11-05-additive-highbreak/score_221.log` (`221_highbreak.sh`); arms `rn1`, `sgb1`,
 `pr1` and their `_5k` / `_9k` draws in `runs/2026-10-31-additive-gesplit/`.
+
+728. THE REFERENCE'S BINARY IS A SYMLINK INSIDE A RUN DIR THAT LOOKS DEAD, so "nothing has been
+written here since 28 Oct" is not evidence a run dir is inert. Asked by the loopeval peer which of
+four run dirs (600 GB, Mac data disk at 98%) could go to the NAS, three were straightforward and
+`2026-10-27-additive-natexp` was not: `rf2`'s own `cohort.json` carries `bin =
+runs/2026-10-27-additive-natexp/loop-eval-7272515`, a 0-byte symlink into
+`runs/2026-10-25-additive-rebuild/loop-eval-7272515` — a dir not on the cleanup list at all. Archiving
+either one breaks the re-run path for every arm of the current reference lineage (`rf2`, `go3`, `sk1`
+and the rest all name it); job 221's three arms name
+`/Users/pete/dev/LoopEval/.build/release/loop-eval` instead, so the record's two halves do not share a
+binary path. Found by reading `bin` out of the `cohort.json` files, which is the only place it is
+recorded — the overlay, LESSONS and COMPONENTS are all silent on it, L 666's drift in its most
+expensive form yet, since the cost here is not a wrong number but an unreproducible reference.
+
+The method half, for the next cleanup: the per-person `v0*` trace dirs are ~95% of a cohort arm
+(112 x 7.5 MB against 170 KB of summary CSVs), and the summaries are everything `score.py` and the
+measure scripts read. So staging those eleven files per arm — `cohort.json`, `compare*.csv`,
+`life_stats.csv`, `meal_response*.csv`, `sim_stats.csv`, `twin.csv`, `life_bouts.csv` — into
+`~/.loop-eval/archive_keep` keeps every archived arm scorable and comparable with no restore, for
+68.5 MB over 471 arm dirs. Kept with their traces: the reference's three draws, job 221's nine, and
+the arms behind the three decisions still open with Pete (`sk1`/`skf`, `go3`, and 221's `rn1`/`sgb1`/
+`pr1`); on the e pool, `rf2e_s` and `dye2` as the two controls plus `sk1_e`. The e-pool arm dirs hold
+no summaries at all — their results are in the `*.log` files one level up — so those archive whole.
+List at `~/.loop-eval/additive_archive_list.txt` (297 folders, ~520 GB).
+
+And zsh does not word-split an unquoted parameter: `for f in $SUM` over a space-separated string of
+filenames iterates ONCE, over the whole string, so a staging loop reported "471 staged" having copied
+nothing. The directories it had already made were there to prove it, and `du` reading 104K against an
+expected 68 MB is what caught it. Use an array.
