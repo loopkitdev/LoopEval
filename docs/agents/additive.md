@@ -1183,7 +1183,12 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   instead, so the two halves of the record do not even share a binary path. **Before agreeing to any
   cleanup, archive or move of a run dir, read `bin` out of the `cohort.json` of every arm you still
   read** — not the arm names, not the mtimes, which both said natexp was dead. The same check belongs
-  in a publish: a run dir is not scratch just because nothing has written to it.
+  in a publish: a run dir is not scratch just because nothing has written to it. **After the
+  2026-11-06 NAS archive, a restored arm dir carries `ARCHIVED.txt` and holds its summary CSVs with
+  NO `v0*`** — so marker present means a scorable shell whose traces are on the NAS (restore command
+  inside), marker absent means a complete arm. An arm whose archive FAILED stays local and complete
+  and correctly has no marker. `[ -e <dir> ]` still fires on both, which is what catches a name
+  collision; the marker only says which kind you are looking at.
 
 - **Every conditional rate needs a shifted-time placebo in the same script, and every "against the donors' X%"
   needs to be paired per person** (L 700, 701). A suspend-in-the-window rate of 26.9% over low episodes passed a
