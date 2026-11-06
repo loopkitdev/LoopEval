@@ -2399,3 +2399,19 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       takes out lows that move with insulin and lows that do not, alike. The levers left are how often the person
       drifts down to 70 and how fast the response starts once there. The share of lows that respond to insulin falls
       with them: field t<70 rises 0.72 on 2.45 under more insulin (24 % drift-removed), the generator 0.74 on 4.4 (17 %).
+
+186. **Starting the low response at 75 instead of 70 changes nothing; not kept. Correction to lesson 176: the
+    generator enters lows about 30 % more often than the field, not as often.** Arm lk75 (frozen plant
+    `PLANT_LK_THR=75`, probe_lk.sh), trainings 0 and 1, e pool, 335 scored edits:
+    - **Change prediction** (field / oc mean ± sd of five / lk75): mean, more insulin −8.60 / −5.74 ± 0.56 / −5.91;
+      less +5.05 / +5.03 ± 0.28 / +5.04; TIR +3.76 / +1.99 ± 0.19 / +2.09, −1.24 / −1.87 ± 0.06 / −1.82; t<70 +0.73 /
+      +0.77 ± 0.09 / +0.76, −0.85 / −0.71 ± 0.08 / −0.71; t<54 +0.15 / +0.32 / +0.34, −0.12 / −0.28 / −0.29. Every z
+      within ±1. Per-edit correlation TIR 0.31 / 0.31, t<70 0.27 / 0.28, mean 0.49 / 0.42, oc's.
+    - **Level, own settings, pre window, training 0:** t<70 4.49 (oc 4.54), t<54 1.68 (1.67), TIR 72.9 (73.0), mean
+      145.8 (145.3). Training 1's level table was lost to a gamepc reboot; its median per-person TIR is oc's (−5.1).
+    - Moving the trigger 5 min earlier does not reach the depth, as lesson 177 found for a stronger kernel: the low
+      is set before the response starts.
+    - **Correction:** lesson 176 compared entry totals (generated 9,232–9,411 against field 2,390) as if per run, but
+      the generated total is over three seeds. Per run the generator enters < 70 about 3,100 times against the
+      field's 2,400, +30 % (lesson 185 has the same from low_dip.py: 9,613 / 3 against 2,453). The excess time below
+      70 is frequency as well as depth.
