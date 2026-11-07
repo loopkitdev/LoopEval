@@ -302,6 +302,13 @@ costing both (L 592). The volatility rows (`bg_cv`, `sigma_disp`, `vol_cluster_6
 
 ## 10. Validation: the weighted match score (`validate.py`, `lifestats.py`, `score.py`)
 
+> **The reference this table scores is being rebuilt (2026-11-07).** Pete adopted the renal clearance cut
+> (`rcl_mult` 0.16667, UVA/Padova's 0.0005/min over Hovorka's 0.003) on evidence, accepting a worse cohort
+> match — L 729. `resid_m` was fitted at the old value, so job 230 refits the templates before the new
+> reference is named. **Every number below is rf2's and stays correct for rf2**; expect `bg_cv` ~34.9 → ~36.7
+> against the donors' 34.65, TIR −1.7 and score 0.366 → 0.379 when it is renamed, with the guard holding
+> (t<54 0.188 against 0.190). Do not mix a number from below with one measured on the new body.
+
 **How a run is scored.**
 - **Reference:** 206 pilot donors, one 13-day block per donor against each twin's 14-day window (`real_pilot_blocks.csv`,
   `life_blocks.csv`; L 330).
