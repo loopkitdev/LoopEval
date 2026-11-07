@@ -2460,3 +2460,32 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       probe_spown.sh, 0 and 2 then 1 and 3 in sequence, CPUs 4–15). Kept if the level and t<54-change gains of the
       shrink hold and the mean, TIR and t<70 change stay within the base recipe's training spread or move toward the
       drift-removed field.
+
+189. **The background shrink ×0.95 combined with the own-night insulin-on-board baseline (spown) keeps the shrink's
+    gain in level lows and restores the change response in mean glucose, t<70, and TIR when insulin increases. It loses
+    the shrink's t<54-change gain, and it overstates the TIR loss when insulin decreases by about 0.1 point on all four
+    trainings. Not kept on the rule; the trade is put to Pete.**
+    Trainings 0–3, e pool, 333 scored edits (probe_spown.sh, score_spown.sh):
+    - **Level, own settings, pre window** (field / oc 0–3 / spown 0–3): t<70 2.45 / 4.54, 4.16, 4.37, 4.70 / 3.96, 3.66,
+      3.72, 4.07; t<54 0.32 / 1.67, 1.44, 1.51, 1.69 / 1.36, 1.18, 1.21, 1.37; median per-person TIR against the field
+      −6.0, −5.1, −4.1, −5.7 / −4.0, −3.2, −2.7, −4.2. These are the same gains as the shrink alone (lessons 183–184).
+    - **Change prediction** (field, drift-removed in brackets / oc mean ± sd of five / spown four-training mean, z
+      against oc's spread):
+      - mean glucose: more insulin −8.46 (−6.24) / −5.50 ± 0.53 / −5.51 (z 0.0); less +5.05 (+4.49) / +5.03 ± 0.28 /
+        +5.09 (z +0.3);
+      - TIR: more +3.68 (+2.36) / +1.95 ± 0.18 / +1.91 (z −0.4); less −1.24 (−1.67) / −1.87 ± 0.06 / −1.98 (z −3.0).
+        Per training −1.90, −2.01, −2.03, −1.99 against oc's −1.80 to −1.94;
+      - t<70: more +0.72 (+0.60) / +0.74 ± 0.10 / +0.73; less −0.85 (−0.64) / −0.71 ± 0.08 / −0.69;
+      - t<54: more +0.14 / +0.31 ± 0.04 / +0.29; less −0.12 / −0.28 ± 0.04 / −0.30. The shrink alone gave +0.20 / −0.20.
+        The own-night baseline gives back all of that gain;
+      - per-edit correlation with the field: TIR 0.23–0.27, t<70 0.24–0.31, mean 0.38–0.46, all inside oc's range.
+    - **Against the drift-removed field,** error / se summed over mean, TIR, and t<70 in both directions (same 333 edits):
+      oc 3.86, spown 3.97. Change prediction is unchanged within noise.
+    - **Verdict:** not kept on the bar set in lesson 188. The level gain holds. The t<54-change gain does not. The TIR
+      change when insulin decreases moves away from the field: 0.11 point, beyond oc's training spread of 0.06 but 0.2
+      of the field's se. This is the first arm that lowers level lows on four trainings without dulling the response in
+      mean glucose, TIR when insulin increases, or t<70. Whether a realism gain in level that leaves change prediction
+      the same is worth keeping is a question of what the generator is for, so it goes to Pete.
+    - The own-night baseline strengthens every response, the t<54 one included. So it cannot both offset the shrink's
+      dulling and keep the shrink's t<54 gain. A fix aimed at the fast-fall excess of lesson 188 has to act on the
+      short-lag spread alone, not on the whole background.
