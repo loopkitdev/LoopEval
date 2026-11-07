@@ -53,6 +53,44 @@ burn-in history, the sensor's sample schedule), then `simulate --candidate-count
 --external-plant '<plant server>' --plant-behavior` hands every step after burn-in to the plant:
 LoopEval doses, the plant's body responds, the plant's person eats, boluses and treats lows.
 
+## Running a CONTROLLER candidate on this body (for the other roles)
+
+This overlay is otherwise about judging BODY candidates against the donors; a role arriving with a
+Loop candidate wants a different path, and nothing but L 83/85/86 recorded it, so the frontier role
+had to ask (2026-11-07) — L 666's drift, in the form where the missing doc costs someone else a
+session rather than me.
+
+- **There is no separate driver.** Candidate flags go through `cohort.py --flags-json <file>`, the file
+  being `{"*": ["--candidate-foo", "1.10", ...]}` or keyed by `person.name` for per-person arms; they are
+  appended LAST to each person's `simulate` line (`loopeval_io.py:222`). Copy
+  `runs/2026-10-30-reduction-additive/` — `run_loop.sh` / `run_gr.sh` (arm loop with a resume guard), 30
+  `flags_*.json`, a pinned binary, a `frozen/` tree and a `score.py`.
+- **Score with `candidates.py`, not `score.py`** — paired per-person deltas with bootstrap CIs on CGM
+  **and on true glucose**, plus `dial_lift`, the arm's TIR minus Loop's at the arm's OWN lows interpolated
+  along an `--candidate-insulin-needs` dial. That construction is what stops a TIR win bought with lows
+  reading as a win, so run the dial arms beside the candidate. First two days drop (`BURN` 2880).
+- **Cost: ~75 s per 112-person 14-day arm at `--par 12`** (measured on three reduction arms; rf2 0.7 min),
+  i.e. a sweep is minutes, not hours — far cheaper than the generator.
+- **Five ground-truth stress scenarios** inject one event on day 4, identical across arms (`world.py:862`):
+  `scenario_illness`, `scenario_exercise`, `scenario_missed_bolus`, `scenario_site_failure`,
+  `scenario_sensor_fault`, severity by `--set scenario_level=`. **The false low costs pull-back candidates
+  TIR because they believe it** (L 86) — a sensor-robustness cost replay cannot isolate, since a donor
+  record cannot be made to assert a KNOWN-false low or that no insulin is arriving.
+- **Four limits to state with any result.** (1) `rc_own` already spends `--candidate-integral-rc`,
+  `--candidate-integral-rc-clamp` and `--candidate-gbaf*` on the donors who deployed them
+  (`_rc_flags`), so a candidate touching RC or GBAF collides for a SUBSET and the arm stops being
+  uniform. (2) Per unit delivered the twins move **0.63** of the field's glucose, CI [0.39, 0.98]
+  (L 680), while Loop's delivery response matches the field — so ranking is supported and magnitude is
+  a lower bound, never a field prediction. (3) `resid_m` is fitted per person to the donor's level and is
+  NOT refit for a controller arm, which is correct, but a candidate that moves the level is then read at a
+  drifted level and response scales with G — print each arm's own post-burn-in mean beside its result
+  (L 638). (4) Judge TIR + t70 with t54 as a guard beside it, on deltas; a 1-point TIR effect needs ~20
+  draws against trait-draw scatter (L 609), so prefer the paired rows.
+- **Read only the candidate arm**: the baseline arm replays placeholder glucose the plant never supplied.
+- **Pin the binary with `--bin` and run your own control with the same one.** rf2's published arms ran a
+  0-byte symlink into an old run dir (L 728) and the dev-tree binary has moved since, so a candidate must
+  never be compared against rf2's published numbers — binary, body and donor labels have all changed.
+
 ## Calibration rules (Pete)
 
 - **The body follows the data, not the user's entered settings** (2026-10-19). Where a donor has a data-fitted value —
