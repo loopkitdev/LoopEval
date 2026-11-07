@@ -63,6 +63,8 @@ def _one(args):
                           csf_lvl=enable.get("csf_lvl") if _num(enable.get("csf_lvl")) else 1.05,   # LESSONS 401
                           csf_lvl_keepg=bool(enable.get("csf_lvl_keepg")),
                           csf_sd_w=float(enable["csf_sd_w"]) if _num(enable.get("csf_sd_w")) else 1.0,   # L 632
+                          strategy_ab=bool(enable.get("strategy_ab")),
+                          strategy_temp=bool(enable.get("strategy_temp")),
                           prof_np=bool(enable.get("prof_np")))   # default since 2026-10-19 (LESSONS 358)   # default since 2026-10-19 (LESSONS 300)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])

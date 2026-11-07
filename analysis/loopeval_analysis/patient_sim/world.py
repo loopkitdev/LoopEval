@@ -35,7 +35,7 @@ from .sensor import Sensor
 EPOCH = pd.Timestamp("2026-01-05T00:00:00Z")      # a Monday; local time = UTC in the simulation
 AUTOBOLUS_AF = 0.4                                 # LoopEval's default auto-bolus application factor (SimulateCommand)
 import os as _os
-NET_AF = _os.environ.get("PLANT_NET_AF") == "1"     # workaround for binaries older than main 8e86860
+NET_AF = _os.environ.get("PLANT_NET_AF") == "1"     # workaround for binaries older than main 8e86860 -> ead37028 (post-2026-10-25-rewrite hash; the old one is NOT an ancestor of current main, so test against ead37028)
 DAY = 1440.0
 
 
@@ -1230,7 +1230,7 @@ class World:
                     carbs.append(dict(t=ts(a[1]), grams=float(a[2]), absorption_s=float(a[3])))
                     self.entries.append((a[1], a[2], a[3]))
                 elif a[0] == "bolus":
-                    # LoopEval before main 8e86860 decided the automatic dose WITHOUT the plant bolus (~1.4x
+                    # LoopEval before main 8e86860 -> ead37028 decided the automatic dose WITHOUT the plant bolus (~1.4x
                     # every meal; LESSONS 21). Fixed in the engine; PLANT_NET_AF=1 restores the old workaround
                     # (ask for ratio - AF) only for runs on an older binary.
                     r = float(a[2])
