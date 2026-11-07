@@ -19,7 +19,7 @@ through its guard, which frontier found should be left alone. Does GBAF on top o
   - `gr_gbaf`: gr + the engine's default GBAF ramp, AF 0.4 at ≤ 140 mg/dL rising to 0.7 at ≥ 220. This is **not** the
     ramp Loop ships (below): it never delivers less than the flat 0.4, so it tests only the "more when high" half.
   - `gr_gbaf10`: steeper, 0.4 at ≤ 140 rising to 1.0 at ≥ 250.
-  - Loop's deployed `GlucoseBasedApplicationFactorStrategy` ramps 0.2 at lower target + 10 to 0.8 at 200 mg/dL, keyed on
+  - **GBAF** here means Loop's experiment `GlucoseBasedApplicationFactorStrategy`, which ramps 0.2 at lower target + 10 to 0.8 at 200 mg/dL, keyed on
     current BG, and so also delivers less than 0.4 near target. It is run as `gr_gbafL` and `sl2_gbafL`, low anchor from
     each donor's duration-weighted scheduled lower target over the last 35 days (median 110 mg/dL).
 - **Run dir:** `runs/2026-10-31-myloop-e8-gbaf/` (`arms.py`).
@@ -44,22 +44,24 @@ and `gr_pn110`.
 - The generator's body uses each donor's deployed insulin curve, so this tests delivery timing and amount, not curve
   shape.
 
-## Result: Loop's deployed ramp gives +0.41 on gr and nothing on the ledger base
+## Result: GBAF gives +0.41 on gr; without carb entries, nothing on top of slow RC
 
 | Base | Arm | ΔTIR | Δt<70 | Δt<54 | Δ IOB at 54 (U) | lift at matched t<70 | training 0 / 1 |
 |---|---|---|---|---|---|---|---|
-| gr | `gr_gbafL` (deployed, 0.2 → 0.8) | +0.72 [+0.53, +0.93] | +0.057 | +0.024 | +0.045 | **+0.41 [+0.21, +0.64]** | +0.43 / +0.39 |
+| gr | `gr_gbafL` (GBAF, 0.2 → 0.8) | +0.72 [+0.53, +0.93] | +0.057 | +0.024 | +0.045 | **+0.41 [+0.21, +0.64]** | +0.43 / +0.39 |
 | gr | `gr_gbaf` (default, 0.4 → 0.7) | +0.60 [+0.44, +0.76] | +0.073 | +0.026 | +0.019 | +0.23 [+0.04, +0.42] | +0.21 / +0.25 |
-| ledger | `sl2_gbafL` (deployed) | +0.32 [+0.14, +0.50] | +0.068 | +0.040 | +0.094 | −0.00 [−0.25, +0.23] | −0.01 / −0.00 |
+| ledger | `sl2_gbafL` (GBAF) | +0.32 [+0.14, +0.50] | +0.068 | +0.040 | +0.094 | −0.00 [−0.25, +0.23] | −0.01 / −0.00 |
 | ledger | `sl2_gbaf` (default) | +0.29 [+0.12, +0.45] | +0.064 | +0.028 | +0.069 | −0.03 [−0.27, +0.18] | +0.03 / −0.10 |
 
-- **On gr the deployed ramp passes all three bars.** Its lift is above the 0.2–0.4 training-noise band and nearly twice
+- **On gr GBAF passes all three bars.** Its lift is above the 0.2–0.4 training-noise band and nearly twice
   the default ramp's: cutting delivery below 0.4 near target buys TIR at less t<70 than the dial (bar 2: Δt<54 0.024
   against the dial's ≈ 0.036 at +0.72 TIR).
-- **On the ledger base (gr2 + stateless slow RC) neither ramp gives lift**, and the deployed ramp's Δt<54 (0.040) is
+- **On the ledger base (gr2 + stateless slow RC) neither ramp gives lift**, and GBAF's Δt<54 (0.040) is
   above the dial's at the same ΔTIR (≈ 0.026), so it fails bar 2 there. The slow RC takes up what GBAF adds on gr.
-- GBAF is therefore not a candidate on top of the shipped base. On its own it is a lift of the same order as the slow
-  RC's (+0.46 over the dial on gr2), measured on a different base, and the two do not add.
+- **With carb entries the two add** (frontier, `runs/2026-11-05-gr2-announce`, paired on one engine and start, slow RC
+  in its EWMA form): over gr2's dial, slow RC +0.60 [+0.40, +0.82], GBAF +0.49 [+0.29, +0.70], both +0.90; both at
+  needs ×0.95 +1.09, and better than gr2 on TIR, t<70 and t<54 at once. Without entries (this table) GBAF adds nothing
+  on top of the slow RC.
 
 ## Detail (2026-11-01): the default ramp on gr
 

@@ -64,12 +64,13 @@
     force, and the generator's force is a model too. On field settings edits SG 0.01 sizes TIR (coefficient 0.95) but
     leaves t<70 at 0.21, still about 5× overstated (ice LESSONS 152): the generator agrees with replay-plus-SG, the field
     does not, so the force is not the whole low-side story. See `E7-truth-test.md`.
-11. **A glucose-based application factor gives lift on gr, none on the ledger base (E8, 2026-11-01/02).** Loop's
-    deployed ramp (0.2 at lower target + 10 → 0.8 at 200) on gr: +0.72 TIR, +0.41 [+0.21, +0.64] over the dial at
-    matched t<70, +0.43 / +0.39 per training; on gr2 + stateless slow RC: −0.00 [−0.25, +0.23], Δt<54 above the dial's.
+11. **GBAF gives lift on gr; on top of slow RC only with carb entries (E8, 2026-11-01/07).** GBAF (Loop's experiment,
+    0.2 at lower target + 10 → 0.8 at 200) on gr: +0.72 TIR, +0.41 [+0.21, +0.64] over the dial at
+    matched t<70, +0.43 / +0.39 per training; on gr2 + stateless slow RC with no entries: −0.00 [−0.25, +0.23], Δt<54 above the dial's; with entries (frontier,
+    paired) slow RC + GBAF +0.90 over gr2's dial against +0.60 and +0.49 alone.
     The default ramp below shows the same pattern at about half the lift.
     CamAPS's glucose-dependent delivery in Loop form. On the ice generator (166 donors × 2 trainings, no entries, AF 0.4
-    base) the engine's default ramp (0.4 at 140 → 0.7 at 220; not Loop's deployed 0.2 → 0.8 ramp, which also cuts
+    base) the engine's default ramp (0.4 at 140 → 0.7 at 220; not GBAF's 0.2 → 0.8 ramp, which also cuts
     below 0.4 near target) gives +0.60 TIR for +0.073 t<70, +0.23 TIR [+0.04, +0.42] over the dial at matched t<70, +0.21 and +0.25 per
     training. A steeper ramp (to 1.0 at 250) gives more TIR at the same lift. Insulin spent when glucose is high is
     cheaper on lows than the same insulin spread by the dial. The lift is at the low edge of what training noise can
