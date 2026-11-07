@@ -85,7 +85,12 @@ session rather than me.
   +1.0 TIR among autobolus users reads as +0.54 cohort-wide, with a CI built over rows 46% of which
   cannot move. Score such an arm on the autobolus subgroup; `candidates.paired` does not subset. The
   needs dial, RC and anything basal-side are fine on all 112. (Measured 2026-11-07, for frontier's
-  job 320, which had GBAF pinned "for everyone".)
+  job 320, which had GBAF pinned "for everyone".) **Or put the whole cohort in one regime with
+  `--enable strategy_ab`** (or `strategy_temp`), both off by default, landed 2026-11-07 in `a9b4813d`:
+  it overrides the donor draw, so it ranks candidates at regime parity but discards LESSONS 331's
+  calibration and no longer reproduces the donors — label the result and never read it against the
+  reference's own numbers, the `rf2e_s` discipline of L 679. It can also switch rc_own's deployed GBAF
+  ON for someone who would have drawn temp, creating a collision the standard draw did not have.
 - **Four further limits to state with any result.** (1) `rc_own` already spends `--candidate-integral-rc`,
   `--candidate-integral-rc-clamp` and `--candidate-gbaf*` on the donors who deployed them
   (`_rc_flags`), so a candidate touching RC or GBAF collides for a SUBSET and the arm stops being
