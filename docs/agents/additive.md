@@ -217,6 +217,11 @@ session rather than me.
   `graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.0,si_norm=0.92`. Everything else runs its code
   default — which notably leaves **`day`, `circadian`, `dawn`, `sleep`, `gh` and `alcohol` ON** and `ppr_a` at
   **0.6** (not the 0.4 two docs carried until L 665).
+- **THE REFERENCE IS BEING REBUILT (job 230, queued 2026-11-07).** Pete adopted the renal clearance cut
+  (`rcl_mult` 0.16667) on evidence, accepting a worse cohort match (L 729). The level term `resid_m` was fitted
+  at the old value, so the templates are being refitted before the new reference is named. **Until job 230 lands
+  and is scored, rf2 below IS the reference** and every number in this overlay is measured against it; frontier's
+  2026-11-07 candidate screen is on rf2 and needs no redo.
 - **Current reference** (2026-11-01): **rf2** (runs/2026-10-31-additive-gesplit; templates
   `templates_pilot_resid_rf1.csv`, `--set resid_mult=0.0`) — ov0 with the residual's DYNAMIC part off, keeping only its
   per-person level `resid_m` (L 592). Score **0.328 / 0.366 / 0.404** on the corrected donor meal labels (L 695; the
@@ -390,12 +395,17 @@ unchanged: 10% of `lam` for +1.9 bg_cv points, where L 678's response gap needs 
 spent** - bg_cv is `sd / mean` and the refit restores the mean, so post-refit it is 37.28 on the level arithmetic
 alone, before L 639's tail-widening. One gain: `meal_d3h` 31.67 -> 33.33 / 33.67 / **35.17** (donors 38.01), the
 tier-1 row L 725 named. **Do not look for a better-shaped force cut again** - four shapes, one outside A1d, all
-on the same line. **What is left is a SOUNDNESS decision for Pete about the renal term's VALUE**: our `rcl`
-0.003/min is Hovorka's, marked `[unverified]` beside UVA/Padova's 0.0005 ("the two disagree about 6x", our own
+on the same line. **The renal term's VALUE was the one decision left, and PETE DECIDED IT ON 2026-11-07: cut it (L 729).**
+Our `rcl` 0.003/min is Hovorka's, marked `[unverified]` beside UVA/Padova's 0.0005 ("the two disagree about 6x", our own
 `evidence/01` §4.3), and the field's 440 carbless corrections prefer the lower one - live rf2 **+17.9%** worse
 than Loop's own curve at explaining them, renal 1/6 **+12.8**, `sg_g0` 180 **+11.8**, the pair **+9.5**, both
 removed entirely +3.5, every CI excluding 0. Three lines say the term is too strong; the cohort charges 1.8
-bg_cv points, 1.7 TIR points and 0.013 of score. Not "level but better explained", so it does not self-adopt.
+bg_cv points, 1.7 TIR points and 0.013 of score. It did NOT self-adopt - it is not "level but better explained" -
+so it went to Pete, who took the worse match on evidence, overriding job 221's registered bar with the LESSONS 303
+precedent. **`sg_g0` 180 is NOT adopted and remains closed**: the two were measured together but only the renal
+value had an independent literature disagreement behind it. His hypothesis, registered in L 729 for later test:
+the dispersion cost "might be explained by other factors" - which is L 678's un-cancelled pair, so `bg_cv` here is
+the first row to re-measure if a working load lever ever appears.
 
 ## Where the score actually sits (L 697, honest labels)
 
@@ -1173,8 +1183,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   UVA/Padova's 0.0005/min instead of Hovorka's 0.003: the guard holds identically (t54 0.188) and it costs the
   SAME dispersion as the force cut (+1.81), which measures **renal at 11.5% of total restoring gain** and shows
   the dispersion price is a property of `lam`, not of A1d. Score 0.366 -> 0.379, TIR −1.7, `meal_d3h` -> 33.67.
-  **A live soundness decision for Pete, not a closed arm**: three lines — UVA/Padova, the field's 440 carbless
-  corrections (+17.9% -> +12.8%) and the force profile — say our value is too strong. L 727), `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
+  **ADOPTED BY PETE 2026-11-07 (L 729)** on three lines — UVA/Padova, the field's 440 carbless corrections
+  (+17.9% -> +12.8%) and the force profile. His words: "cut it based on evidence and accept the worse match."
+  It FAILS the bar job 221 registered (score +0.013) and the adoption is an OVERRIDE, not a pass, with the
+  LESSONS 303 precedent that a sounder model may match fewer statistics. No longer off by default once job 230's
+  refit lands. L 727, 729), `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
   instead of 0.05: a NULL on the labelled duration it was aimed at, x0.999, against a single-parcel prediction of
   x0.96 that two corrections could not rescue; scores marginally better than the reference on two draws of three and
   its one consistent gain — paired TDD on all three — is level-mediated and returns on refit, L 627, 629),
@@ -1241,7 +1254,11 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   instead, so the two halves of the record do not even share a binary path. **Before agreeing to any
   cleanup, archive or move of a run dir, read `bin` out of the `cohort.json` of every arm you still
   read** — not the arm names, not the mtimes, which both said natexp was dead. The same check belongs
-  in a publish: a run dir is not scratch just because nothing has written to it. **After the
+  in a publish: a run dir is not scratch just because nothing has written to it. **And PASS `--bin`
+  EXPLICITLY on every arm**: `cohort.py`'s default is the mutable dev tree, so job 221 scored its
+  three arms (Oct 29 dev binary) against rf2 (Oct 25 symlink) without anything saying so — a
+  cross-binary comparison, demonstrated inert only because `v01018`, the one person the knob cannot
+  touch, came out bit-identical across the two builds (L 729). Pin an immutable COPY in the run dir. **After the
   2026-11-06 NAS archive, a restored arm dir carries `ARCHIVED.txt` and holds its summary CSVs with
   NO `v0*`** — so marker present means a scorable shell whose traces are on the NAS (restore command
   inside), marker absent means a complete arm. An arm whose archive FAILED stays local and complete

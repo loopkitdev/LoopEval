@@ -7216,3 +7216,60 @@ And zsh does not word-split an unquoted parameter: `for f in $SUM` over a space-
 filenames iterates ONCE, over the whole string, so a staging loop reported "471 staged" having copied
 nothing. The directories it had already made were there to prove it, and `du` reading 104K against an
 expected 68 MB is what caught it. Use an array.
+
+729. **THE RENAL CLEARANCE IS CUT TO UVA/PADOVA'S SIXTH ON EVIDENCE, AND THE REFERENCE TAKES THE WORSE
+MATCH — Pete's decision, 2026-11-07, overriding the bar job 221 registered.** Verbatim: *"Yes, let's
+cut it based on evidence and accept the worse match. Increased residuals might be explained by other
+factors."* `rcl_mult` 0.16667 (0.003 -> 0.0005 /min) is adopted into the reference configuration.
+
+**What decided it.** Three independent lines, none of them the cohort score. Our 0.003/min is
+Hovorka's, carried `[unverified]` in our own `evidence/01` §4.3 directly beside UVA/Padova's 0.0005
+with "The two disagree about 6x" written next to it — at G 300 that is 0.67 against 0.11 mg/kg/min.
+The field's 440 carbless manual corrections prefer the lower value: live rf2 explains them **+17.9%**
+worse (SSE) than Loop's own curve, renal at a sixth **+12.8**, the pair with `sg_g0` 180 **+9.5**,
+both sinks removed entirely +3.5, every CI excluding 0. And the force profile across the band.
+
+**What it costs, measured unrefit over three draws (job 221, L 727).** `bg_cv` 34.90 -> 36.70 against
+the donors' 34.65; TIR −1.7; score 0.3660 -> 0.3793; TDD worse, as the job predicted from the sink
+arithmetic before it ran (+0.90 U/day median). One gain: `meal_d3h` 31.0 -> 32-34 against 38.0, the
+tier-1 row L 725 named. **The guard HOLDS and that is the new fact** — t54 0.188 against the donors'
+0.190, t70 and lows/day flat, where every previous cut of the restoring force doubled the lows.
+
+**THE REGISTERED BAR FAILED AND THE ADOPTION IS AN OVERRIDE, NOT A PASS.** Job 221 registered, before
+any number existed: "mean score level or better, mean tier 1 level or better, TDD not worse by more
+than the 1.51 U/day between-draw sd." Score is +0.013 worse, so the arm fails it. Pete overrode it on
+soundness, which is his to do and has a precedent in this record — LESSONS 303, where `kappa` took
+Best 1981's value on the explicit grounds that a sounder model may match fewer statistics. **Do not
+later read this as having met the bar.** The honest statement is: a better-evidenced parameter bought
+at a measured cost to the cohort match, with the guard intact.
+
+**PETE'S HYPOTHESIS, REGISTERED SO IT CAN BE TESTED.** "Increased residuals might be explained by
+other factors" has a specific mechanism in this record, L 678: the twins' slow disturbance runs
+1.15-1.17x the donors' while the total restoring pull is ~1.8x too strong, two errors in opposite
+directions that CANCEL on `bg_cv` — which is why `bg_cv` matched at all and why this was invisible.
+Cutting renal removes 11.5% of the restoring gain (L 727 measures it there, since the renal cut and
+the force cut cost the same +1.8 dispersion), so it un-cancels the pair and `bg_cv` must rise. The
+prediction that follows: **if a working load lever ever appears, `bg_cv` here is the first row to
+re-measure, and it should come back down without touching renal.** L 681 refuted the only sizing
+attempt so far (`unl_mult` 0.70 moves the 2-8 h structure function 0.93-0.98 where the identity needs
+0.79, short by 3-7x), so this is open, not solved.
+
+**Two method facts from building it.** (a) **Job 221's arms and rf2 ran DIFFERENT BINARIES** — rf2's
+`cohort.json` names the Oct 25 symlink (L 728) and job 221 passes no `--bin`, so `cohort.py` defaulted
+to the Oct 29 dev tree; the two differ in size and md5. The comparison is therefore cross-binary, and
+it is **demonstrated inert rather than assumed**: `v01018`, the one person of 112 whose glucose never
+reaches their own renal threshold, is bit-identical between rf2 and rn1 across the two builds, and all
+14 engine commits in that window are opt-in flags or paths additive does not use. A bit-identical
+14-day closed-loop trace is a strong instrument; still, **pass `--bin` explicitly on every arm**, and
+pin an immutable copy in the run dir rather than inheriting a symlink. Job 230 does both.
+(b) **The jobq runs `bash`, one job at a time, oldest mtime first** (`runner.sh`), so `zsh -n` is the
+wrong validator for a job script — `$P - <<'PY'` fails `zsh -n` and is fine under bash — and queueing
+is non-contending by construction: a job added last waits.
+
+**Status: the value is adopted; the REFERENCE is not rebuilt yet.** `resid_m` is one constant drift
+per person fitted to that donor's level at `rcl` 0.003, so removing a high-side sink raises the level
+(bg_mean 151.0 -> 153.2 on draw 1) and the templates must be refitted or the new reference carries a
+known drift. Job 230 does rf2's own procedure (L 515, 525; job 134's structure), reusing `rn1`/`rn1_5k`
+as round 1 since they are already rf2's config plus the knob on `templates_pilot_resid_rf1.csv`.
+**Until job 230 lands and is scored, rf2 remains the current reference** — frontier's 2026-11-07
+candidate screen is against rf2 and needs no redo.

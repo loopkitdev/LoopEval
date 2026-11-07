@@ -470,7 +470,14 @@ not on a decision anyone wrote down.
     ~180 mg/dL. That gives near-zero excretion at the threshold, rising to GFR-limited slopes well above it
     [textbook, unverified].
   This bounds prolonged highs and matters for TIR comparisons of high-running arms (LESSONS 93).
-- **Prior:** Rthr ~ N(180, 25²) mg/dL; Rcl ~ lognormal(median 0.003 min⁻¹ in Hovorka units, CV 30%).
+- **Prior:** Rthr ~ N(180, 25²) mg/dL; Rcl ~ lognormal(median **0.0005** min⁻¹, CV 30%).
+- **Resolved 2026-11-07 (L 729):** the 6× disagreement above is settled in favour of **UVA/Padova's
+  0.0005**, by Pete, on this disagreement plus the field's 440 carbless corrections (Hovorka's value
+  explains them +17.9% worse by SSE than Loop's own curve, UVA/Padova's +12.8, every CI excluding 0)
+  plus the restoring-force profile. Hovorka's 0.003 was ours until then and was always marked
+  `[unverified]` here. The cohort match is WORSE for it (`bg_cv` 34.9 → 36.7 against the donors' 34.65,
+  TIR −1.7, score +0.013) and the guard holds (t<54 0.188 against 0.190); the trade was taken
+  deliberately, on the LESSONS 303 principle that a sounder model may match fewer statistics.
 
 ### 4.4 Counter-regulation in T1D, HAAF, rebound
 - **Glucagon** response to hypoglycaemia is lost early in T1D. In adolescents (n = 28), the peak was

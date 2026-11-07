@@ -117,7 +117,9 @@ class BodyParams:
     gb: float = 119.0              # mg/dL, rest point at true basal insulin
     egp_b: float = 2.5             # mg/kg/min at basal insulin
     rthr: float = 180.0            # renal threshold, mg/dL
-    rcl: float = 0.003             # renal clearance, 1/min on (G − Rthr)
+    rcl: float = 0.003             # renal clearance, 1/min on (G − Rthr). Hovorka's. THE REFERENCE RUNS
+                                   # rcl_mult=0.16667 (UVA/Padova's 0.0005) since 2026-11-07 (L 729), applied
+                                   # at world.py:182 -- so this default is NOT the live value (L 640).
     # hypoglycaemic risk amplification of insulin-dependent uptake (S2013 / ReplayBG)
     risk_r1: float = 1.4407
     risk_r2: float = 0.8124
