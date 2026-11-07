@@ -76,10 +76,25 @@ session rather than me.
   `scenario_sensor_fault`, severity by `--set scenario_level=`. **The false low costs pull-back candidates
   TIR because they believe it** (L 86) — a sensor-robustness cost replay cannot isolate, since a donor
   record cannot be made to assert a KNOWN-false low or that no insulin is arriving.
-- **Four limits to state with any result.** (1) `rc_own` already spends `--candidate-integral-rc`,
+- **FIRST, check how much of the cohort your candidate can even act on.** The drawn strategy decides:
+  `loopeval_io.py:138` writes `--temp-basal-strategy` for every `temp` person, and under it Loop's
+  recommendationType is `tempBasal` (`AlgorithmInputExport.swift:140`) — no automatic boluses at all.
+  **So anything acting on the automatic bolus is bit-identical to its control for those people.** On the
+  rf2 templates at seed0 1000, n 112, the mix is **51 temp-basal / 61 autobolus**, so a GBAF or
+  application-factor candidate carries **51 structural zeros in a 112-row paired statistic** — a real
+  +1.0 TIR among autobolus users reads as +0.54 cohort-wide, with a CI built over rows 46% of which
+  cannot move. Score such an arm on the autobolus subgroup; `candidates.paired` does not subset. The
+  needs dial, RC and anything basal-side are fine on all 112. (Measured 2026-11-07, for frontier's
+  job 320, which had GBAF pinned "for everyone".)
+- **Four further limits to state with any result.** (1) `rc_own` already spends `--candidate-integral-rc`,
   `--candidate-integral-rc-clamp` and `--candidate-gbaf*` on the donors who deployed them
   (`_rc_flags`), so a candidate touching RC or GBAF collides for a SUBSET and the arm stops being
-  uniform. (2) Per unit delivered the twins move **0.63** of the field's glucose, CI [0.39, 0.98]
+  uniform — but enumerate the draw before sizing it: of the three GBAF donors only **i010 is drawn
+  (seed 1067)**, so it is 1 person of 112, while **19 of 112 run integral RC**, which makes any
+  RC candidate a MIXTURE over two controller baselines rather than a test against standard RC.
+  Duplicated options do not error (`candidateGbafLowAnchor` is a single-value `@Option`, last wins),
+  and either way that person has the feature ON in the control, so their delta is ~0 — the dilution,
+  not the duplication, is the damage. (2) Per unit delivered the twins move **0.63** of the field's glucose, CI [0.39, 0.98]
   (L 680), while Loop's delivery response matches the field — so ranking is supported and magnitude is
   a lower bound, never a field prediction. (3) `resid_m` is fitted per person to the donor's level and is
   NOT refit for a controller arm, which is correct, but a candidate that moves the level is then read at a
