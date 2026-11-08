@@ -40,7 +40,9 @@ and `gr_pn110`.
 
 ## Limits
 
-- Only the no-entry regime with automatic bolus for everyone. Announced meals and temp-basal users are not tested.
+- Automatic bolus for everyone; temp-basal users are not tested. The tables above this section are the no-entry regime.
+- The generator's no-entry runs eat about 15 % less food than the entry runs, because it ties part of each meal to
+  its carb entry (ice, 2026-11-07): no-entry results are optimistic until that fix is frozen and rerun.
 - The generator's body uses each donor's deployed insulin curve, so this tests delivery timing and amount, not curve
   shape.
 
@@ -58,10 +60,21 @@ and `gr_pn110`.
   against the dial's ≈ 0.036 at +0.72 TIR).
 - **On the ledger base (gr2 + stateless slow RC) neither ramp gives lift**, and GBAF's Δt<54 (0.040) is
   above the dial's at the same ΔTIR (≈ 0.026), so it fails bar 2 there. The slow RC takes up what GBAF adds on gr.
-- **With carb entries the two add** (frontier, `runs/2026-11-05-gr2-announce`, paired on one engine and start, slow RC
-  in its EWMA form): over gr2's dial, slow RC +0.60 [+0.40, +0.82], GBAF +0.49 [+0.29, +0.70], both +0.90; both at
-  needs ×0.95 +1.09, and better than gr2 on TIR, t<70 and t<54 at once. Without entries (this table) GBAF adds nothing
-  on top of the slow RC.
+
+## GBAF with slow RC (frontier's paired runs, 2026-11-07)
+
+Lift over gr2's own needs dial at matched t<70, 166 × 2, paired person by person (slow RC in its EWMA form):
+
+| | slow RC | GBAF | both | both at needs ×0.95 |
+|---|---|---|---|---|
+| with carb entries (`runs/2026-11-05-gr2-announce`) | +0.60 [+0.40, +0.82] | +0.49 [+0.29, +0.70] | +0.90 | +1.09 |
+| no entries (`runs/2026-11-07-noentry`) | +0.22 | +0.39 | +0.21 | +0.56 |
+
+- **With entries the two add**, and both at ×0.95 beats gr2 on TIR, t<70 and t<54 at once (+0.54, −0.14, −0.06).
+- **The stateless form (LoopAlgorithm port) behaves the same** with entries, read against gr2 on its own binary and
+  early start: slow RC +0.93 TIR [+0.71, +1.19], + GBAF +1.40 [+1.09, +1.74]; GBAF's share +0.47 [+0.33, +0.60] raw.
+- **Without entries** GBAF still adds TIR on top of the slow RC (+0.29 [+0.10, +0.47]), but the pair is no better than
+  the dial unless needs come down to ×0.95.
 
 ## Detail (2026-11-01): the default ramp on gr
 

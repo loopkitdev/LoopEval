@@ -67,7 +67,8 @@
 11. **GBAF gives lift on gr; on top of slow RC only with carb entries (E8, 2026-11-01/07).** GBAF (Loop's experiment,
     0.2 at lower target + 10 → 0.8 at 200) on gr: +0.72 TIR, +0.41 [+0.21, +0.64] over the dial at
     matched t<70, +0.43 / +0.39 per training; on gr2 + stateless slow RC with no entries: −0.00 [−0.25, +0.23], Δt<54 above the dial's; with entries (frontier,
-    paired) slow RC + GBAF +0.90 over gr2's dial against +0.60 and +0.49 alone.
+    paired) slow RC + GBAF +0.90 over gr2's dial against +0.60 and +0.49 alone, the stateless form alike; without entries
+    the pair is +0.21, at the dial. No-entry generator runs eat ~15 % less food (ice), so they read optimistic.
     The default ramp below shows the same pattern at about half the lift.
     CamAPS's glucose-dependent delivery in Loop form. On the ice generator (166 donors × 2 trainings, no entries, AF 0.4
     base) the engine's default ramp (0.4 at 140 → 0.7 at 220; not GBAF's 0.2 → 0.8 ramp, which also cuts
