@@ -7273,3 +7273,37 @@ known drift. Job 230 does rf2's own procedure (L 515, 525; job 134's structure),
 as round 1 since they are already rf2's config plus the knob on `templates_pilot_resid_rf1.csv`.
 **Until job 230 lands and is scored, rf2 remains the current reference** — frontier's 2026-11-07
 candidate screen is against rf2 and needs no redo.
+
+730. **A UNIFORM-REGIME ARM CANNOT PRICE THE REGIME SWITCH, BECAUSE THE DRAWN STRATEGY IS DISCARDED
+BEFORE ANYTHING READS IT — and what such a split actually finds is `resid_m`'s tail.** frontier split
+job 320's uniform-autobolus control arms (gr2, 112 people, entries on and off) by each person's DRAWN
+strategy and found the 51 switched people carrying 51% of the cohort's t<70 and 55% of its t<54 for 46%
+of heads, mean t70 +0.65 [−0.81, +2.39], with a LOWER median — reading it as "a few outliers, not a
+regime cost across the group". The disposition is right and the reasoning is not available, for three
+separate reasons, all measured on the arms already on disk (`runs/2026-11-07-additive-screen/`).
+  - **The label is causally inert in that arm.** Verified at the call site in frontier's own frozen copy:
+    `person.py:425-431` draws `strategy`, **`:436` overwrites it** under `ADD_STRATEGY`, and its only
+    consumers are `loopeval_io.py:138` (`--temp-basal-strategy`) and `:195` (rc_own's GBAF gate), both
+    downstream of the override — so the drawn value never reaches the simulation. The draw also runs on
+    `np.random.default_rng(seed + 331)`, a fresh stream, so it advances no other trait. The contrast is
+    therefore between two DONOR groups, not between a treated and a control one, and it cannot measure
+    the switch in either direction. (The draw reproduces exactly from the templates: 51 temp / 61
+    autobolus at seed0 1000, v01000 and v01001 both temp.)
+  - **And there is no propensity-adjusted read either**, because `auto_day_share` IS the draw's own
+    probability and is nearly degenerate on this cohort: median **0.000** among the drawn-temp people
+    against **1.000** among the drawn-autobolus (means 0.079 / 0.850). Share and the label are almost the
+    same variable, so adjusting for it buys nothing — the switched coefficient is +0.54 ± 1.60 (entries
+    on) and +1.10 ± 1.50 (off). A propensity score that separates the groups perfectly leaves no overlap
+    to compare inside.
+  - **The split's real content is L 684's limit.** t70 on |`resid_m`| gives **+0.118 ± 0.016** points per
+    mg/dL/h with entries and +0.107 ± 0.015 without (7+ SE), and with that term in the model the switched
+    coefficient is **−0.36 ± 1.31 / +0.29 ± 1.25** — nothing. The large-|`resid_m`| quartile is 26% of
+    heads and carries **54-56% of t70 and 67-68% of t54**, MORE concentration than the switched group's
+    51-53% / 52-55% for 46% of heads. The three people frontier flagged as the outliers to look at are
+    **v01080, v01078, v01018 — all three at `auto_day_share` exactly 0.00 and `resid_m` −135.5 / −37.9 /
+    −37.9**, i.e. the drift tail that already owns this body's night lows, not a dosing-regime cost.
+  **So no regime limit is written.** The test that would price the switch is PAIRED — the same person
+  under the drawn mix and under the forced regime, same binary, same templates, same seeds, read as
+  per-person deltas — which is one ~75 s arm with `ADD_STRATEGY` unset and does not exist in that run
+  dir. Method, generally: when a switch is applied by overwriting a drawn trait, the drawn trait becomes
+  a label on donor composition, and the group means it splits are L 701's pooled ratio again, one level up.

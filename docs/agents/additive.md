@@ -91,6 +91,14 @@ session rather than me.
   calibration and no longer reproduces the donors — label the result and never read it against the
   reference's own numbers, the `rf2e_s` discipline of L 679. It can also switch rc_own's deployed GBAF
   ON for someone who would have drawn temp, creating a collision the standard draw did not have.
+  **And do NOT price the switch by splitting a uniform arm on the DRAWN strategy (L 730)**: the override
+  overwrites `strategy` before anything reads it (`person.py:436`, consumers at `loopeval_io.py:138` and
+  `:195`), so the drawn label has no causal path into the run and the split is two donor groups — nor is
+  there a propensity-adjusted read, since `auto_day_share` is the draw's own probability and is nearly
+  degenerate (median 0.000 against 1.000). Measured on frontier's job-320 control arms, the t<70 spread
+  such a split picks up is **`resid_m`'s tail** (+0.118 +- 0.016 t70 points per mg/dL/h of |`resid_m`|;
+  the large-|`resid_m`| quartile is 26% of heads and carries 54-56% of t70) — L 684's limit, not a dosing
+  cost. The test is PAIRED: the same person under the drawn mix and the forced regime, one ~75 s arm.
 - **Four further limits to state with any result.** (1) `rc_own` already spends `--candidate-integral-rc`,
   `--candidate-integral-rc-clamp` and `--candidate-gbaf*` on the donors who deployed them
   (`_rc_flags`), so a candidate touching RC or GBAF collides for a SUBSET and the arm stops being
