@@ -2508,3 +2508,25 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     Its five trainings are runs_v32oc{0-4}TcB2FGUCGLBGGSKaLKELsp0.95own_v32st_noslow_e; later arms are built on it and
     scored against those five. Probes already running on the old base (the announcement and clock tests of lessons
     192 on) are paired within it, and any fix they keep is re-checked on the new base before it is frozen for frontier.
+
+192. **Per-edit skill is real but modest, and replay ranks edits better than the generator on time below 70 and mean
+    glucose. The generator's lead is size, not ranking.** e pool, 333–337 edits, five trainings averaged, predictions
+    from the pre-edit window alone (score_change.py `SC_WINS=pre`; peredit.py, field_rtm2p.py in
+    runs/2026-11-01-ice-stateabl/). Pearson r of predicted against field change, drift removed (lesson 175), 90% bootstrap:
+    | | TIR | t<70 | mean |
+    |---|---|---|---|
+    | New base (lesson 191) | 0.30 [0.21, 0.39] | 0.27 [0.14, 0.38] | 0.39 [0.30, 0.52] |
+    | Old base (oc) | 0.33 [0.24, 0.42] | 0.20 [0.07, 0.33] | 0.40 [0.30, 0.52] |
+    | Replay | 0.30 [0.20, 0.39] | 0.38 [0.25, 0.50] | 0.47 [0.40, 0.54] |
+    - Removing the drift barely moves r, so the skill is not regression to the mean lining up with edit direction.
+    - Within one direction the generator's r drops: TIR 0.17 (more) / 0.22 (less), t<70 0.17 / 0.04, mean 0.20 / 0.22.
+      Replay holds t<70 at 0.27 / 0.42 and mean at 0.36 / 0.17. The generator knows the size of a type of change; it ranks
+      edits of the same type less well than replay does, most of all on the low side.
+    - Averaging in the post-edit window (the scorer's default) changes nothing material: replay's lead is not from seeing
+      the future.
+    - The "noise ceiling" from real-edit against pseudo-edit spread (TIR 7.49 against 7.07, so r ≤ 0.33; t<70 0.34; mean
+      0.45) is not a ceiling: replay's mean r exceeds it. Pseudo-edit change is not a clean stand-in for the noise at a
+      real edit, so it cannot bound skill. Lesson 139's "near the noise ceiling" reading is withdrawn.
+    - What this sets as a target: per-edit ranking within a direction on t<70 and mean, where replay is ahead while
+      overstating size about 2×. The generator's person reacts to the new settings; replay keeps the old disturbance. Why
+      the frozen disturbance ranks better is the next question.
