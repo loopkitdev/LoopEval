@@ -439,7 +439,11 @@ cost came up empty. **Do not spend further arms on appearance dispersion while `
 exchange rate between the shape rows and the outcome rows is set by the identity, not by the
 parameterisation — the same conclusion L 640/642 reached for A1d's shape, now for A10's. The only measured
 remedy is the LOAD lever and it is about a fifth as strong as needed (`unl_mult` 0.85 recovers 0.73 of 4.34
-CV points, 0.70 recovers 1.90 and overshoots t180 downward). **`entry_fast_fall` is now MEASURED and it is NOT an independent
+CV points, 0.70 recovers 1.90 and overshoots t180 downward). **With ANNOUNCEMENTS OFF the load lever is about
+2x stronger per unit cut (L 733)**: `unl_mult` 0.85 paired over 112 people, unrefit, is mean glucose
+−6.35 +- 0.41 mg/dL, TIR +3.70 +- 0.32, t70 +0.26 +- 0.10, TDD −2.49 +- 0.21 U/day — against L 604's ~6 mg/dL
+for a 30% cut with entries on, because without entries Loop does not dose for the load in advance. It still
+costs low time, and the refit still hands the level and the TDD back. **`entry_fast_fall` is now MEASURED and it is NOT an independent
 target (L 703).** The deficit is a UNIFORM SHIFT of 0.72-0.74 across the whole distribution of post-entry
 fall rates (twin/donor 0.74 / 0.70 / 0.72 / 0.76 / 0.80 at p5 / p10 / p25 / p50 / p75), not a missing tail,
 and one scalar reproduces the threshold share — the k from the quantiles is 0.743 and the k equating the
