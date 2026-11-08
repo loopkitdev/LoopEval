@@ -2530,3 +2530,26 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - What this sets as a target: per-edit ranking within a direction on t<70 and mean, where replay is ahead while
       overstating size about 2×. The generator's person reacts to the new settings; replay keeps the old disturbance. Why
       the frozen disturbance ranks better is the next question.
+
+193. **Feeding a dropped carb entry back to the person as eaten (PLANT_SHADOW_ENTRY=1) brings back only a quarter of
+    the background food lost when entries are switched off, and costs another 3.8 TIR points.** oc0, e pool, pre-edit
+    window, own settings, 1,023 runs per arm (runs/2026-11-07-ice-habit/ann_parts.py). With ANNOUNCE=0 each entry the
+    person would have made is dropped from Loop; under the shadow arm the person still counts it as food in their own
+    inputs. Medians per run:
+    | | entries on | entries off | off + shadow |
+    |---|---|---|---|
+    | ICE per day | 1699 | 1404 | 1471 |
+    | meal-pulse ICE per day | 723 | 792 | 689 |
+    | background after a meal | 42.5 | 21.2 | 31.9 |
+    | meals per day | 6.6 | 7.2 | 6.5 |
+    | mean glucose | 146 | 155 | 163 |
+    | TIR | 72.7 | 68.9 | 65.1 |
+    | t<70 | 3.6 | 2.3 | 1.5 |
+    - With entries off, the person draws more and larger meal pulses (7.2 a day), which hides part of the background loss.
+      The shadow puts the meal count and pulse size back to the entries-on level and recovers half of the after-meal
+      background, but the total stays 228 mg/dL·day short of entries-on.
+    - Same-clock habit of the background (sk_rest) stays at 0.13 against 0.25 with entries on: the entry was carrying the
+      daily rhythm, and the shadow doesn't bring it back.
+    - Which no-entry TIR is right (−3.8 or −7.6 against entries on) cannot be read off these runs: no-entry candidates
+      need a real-data anchor (days or people with few entries, matched on intake) before the shadow is frozen for
+      frontier. Kept off by default until then.
