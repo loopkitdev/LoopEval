@@ -125,6 +125,11 @@ class BehaviorTraits:
     meal_clock: Optional[tuple] = None   # donor's own (b_med, b_sd, l_med, l_sd, d_med, d_sd), hours (LESSONS 123)
     own_clock: bool = True               # main meals on the donor's own clock (default since 2026-10-18: day/night insulin
                                          # ratio 2.03 vs donors 2.06; LESSONS 206)
+    clk_sd_mult: float = 1.0             # experiment (L 731): multiplies the WITHIN-person meal-clock SDs above, so 0.5 is
+                                         # a person who keeps their own meal times twice as regularly. The donors' own SDs
+                                         # (median 1.03 / 1.22 / 1.56 h for breakfast / lunch / dinner) are mostly real --
+                                         # the labeler's ~0.45 h onset noise is ~10% of them in quadrature -- so this is a
+                                         # COUNTERFACTUAL, not a correction. Label any arm that uses it accordingly
     entry_clock: bool = False            # switch: use snack_entry_w
     graze_unann: bool = True             # grazes on the donor's unannounced-pulse clock (LESSONS 230)
     unann_hours: Optional[object] = None
@@ -755,6 +760,7 @@ class Behavior:
             # the donor's own meal clock, on its own stream (the gap draws above were still taken: other draws stay
             # paired). Within-person SDs include the labeler's onset noise (~0.45 h), so they are upper bounds [J]
             bm, bs, lm, ls, dm, ds = t.meal_clock
+            if t.clk_sd_mult != 1.0: bs, ls, ds = (bs * t.clk_sd_mult, ls * t.clk_sd_mult, ds * t.clk_sd_mult)
             rc = self.r_clock
             zb, zl, zd = rc.normal(size=3)
             b_new = (bm + bs * zb) * 60 + shift if np.isfinite(bm) and np.isfinite(bs) else b

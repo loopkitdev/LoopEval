@@ -1137,7 +1137,17 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   while the MAX is frequency-confounded (+0.783) and must never be used — but it reaches only **22 of 168 donors**, so
   `met_own` moves 6 of 112 twins and the cohort mean METmax by ×1.0047: a measured no-op, not run. This band needs
   workout records for most of the cohort, not a new mechanism.
-- Off-by-default experiments with their verdicts: **`resid_mult_f` 1.75 (the residual's FAST part alone, tau 20
+- Off-by-default experiments with their verdicts: **`clk_sd_mult` 0.5 / 0.0 (the WITHIN-person meal-clock SD
+  multiplier, added 2026-11-07 for the peer's day-to-day meal-rhythm question, L 731: the twins' carb appearance
+  scores 0.350 on the peer's same-clock habit metric against the donors' real ICE 0.54, and the gap is ~36%
+  COMPOSITION — a donor ICE carries the clock-fixed non-meal structure `ra` omits, and `ra + egp` scores 0.419
+  while `egp` ALONE scores 0.641, above the donors' pooled number — plus a hard floor, since only 55.5% of the
+  twins' grams ride the meal clock at all (snacks 23.9% are an i.i.d. hour draw, and proactive + rescue 20.6%
+  are glucose-triggered at habit skill 0.052). Bracketed by resampling the saved meals with a gate at k = 1.0:
+  0.312 -> 0.374 at k 0.5 -> 0.445 at k 0.0, so even a perfectly regular clock falls short of 0.54. The donors'
+  own SDs (1.03 / 1.22 / 1.56 h, labeller noise ~10% of them) are real, so this is a COUNTERFACTUAL knob — label
+  the arm. Realized spread falls only to ~0.64x at 0.5, because `weekend_shift`'s +60 min on 2 days of 7 is a
+  floor. L 731),** **`resid_mult_f` 1.75 (the residual's FAST part alone, tau 20
   min, block and day at zero: the derived amplitude LANDED - 5-min daytime increment rms x1.216 / 1.195 / 1.197
   against a predicted x1.15-1.25, closing L 648's deficit from 0.81 to ~0.97 of the donors - and the premise was
   REFUTED, `bg_cv` 34.25 -> 38.20 / 37.79 / 39.62 against the donors' 34.65, score 0.3660 -> 0.4453, tier 1 ->

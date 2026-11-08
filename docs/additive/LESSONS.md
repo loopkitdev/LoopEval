@@ -7307,3 +7307,53 @@ separate reasons, all measured on the arms already on disk (`runs/2026-11-07-add
   per-person deltas — which is one ~75 s arm with `ADD_STRATEGY` unset and does not exist in that run
   dir. Method, generally: when a switch is applied by overwriting a drawn trait, the drawn trait becomes
   a label on donor composition, and the group means it splits are L 701's pooled ratio again, one level up.
+
+731. **THE TWINS' DAY-TO-DAY MEAL RHYTHM IS WEAK, AND IT SPLITS ~55 / 45 BETWEEN WHAT THE MEAL CLOCK
+CANNOT REACH AND THE MEAL CLOCK'S OWN SD — bracketed with no simulation, and `clk_sd_mult` lands to
+bracket it properly.** The loopeval peer measured, per person, 2-h clock blocks with each day's mean
+removed, habit = the mean of the same block over the previous 1-7 days (>= 3 needed), skill =
+Spearman(habit, actual): the twins' carb appearance `ra` on `e1_gr2` after burn-in scores **0.350
+[0.189, 0.460]** with daily-shape split-half stability **0.641**, against the donors' real ICE **0.54
+[0.41, 0.62]** at stability **0.95** (their generator 0.18). Their number reproduces exactly on their
+own script (`~/.loop-eval/runs/2026-11-07-meal-habit/habit_skill.py`).
+  - **Their comparison is not like for like, and the correction is worth 36% of the gap.** A donor's ICE
+    carries the clock-fixed NON-MEAL structure — dawn, circadian EGP and SI, sleep — that `ra` omits by
+    construction, which they flagged as an unknown. Priced on the same 112 people: the whole non-insulin
+    MASS FLUX, `ra + egp`, scores **0.419 [0.294, 0.523]** at stability 0.705, and the clock-fixed part
+    **`egp` ALONE scores 0.641** at stability **0.892** — above the donors' pooled 0.54 and near their
+    0.95. **So this body's non-meal rhythm is not weak at all; the meal part dilutes it** (`ra`'s sd is
+    1.06 mg/kg/min against `egp`'s 0.43, so `ra` dominates the sum). Per person `vg` and `resid_m` are
+    constants and the metric is rank-based on day-mean-removed blocks, so dividing by `vg` or adding
+    `resid_m` cannot move any of these numbers. Exactly like for like would run ice's own yardstick
+    estimator over the twins' saved CGM and doses — still owed, and even `ra + egp` does not match the
+    meal / non-meal mix WEIGHT, so read 0.419 as a floor on the correction, not as the corrected value.
+  - **A hard composition floor: only 55.5% of the twins' carbohydrate grams ride the meal clock at all.**
+    Over 112 people x 12 days: main meals 55.5%, snacks 23.9% — an i.i.d. draw over the donor's own
+    eating-hour distribution with a Poisson count per day, so no day-to-day habit beyond that
+    distribution's concentration — and proactive 13.2% + rescue 7.4% = **20.6% triggered by GLUCOSE**,
+    whose own habit skill is **0.052**. Scored on the eating SCHEDULE itself (grams at the event on the
+    5-min grid): all 0.313, clocked (meal + snack) 0.324, **meal alone 0.216**, snack alone 0.160,
+    glucose 0.052. Main meals alone are the LEAST habitual class, because a 1.0-1.6 h SD against 2-h
+    blocks randomises which block a meal lands in.
+  - **BRACKETED WITHOUT A SIMULATION, BEHIND A GATE.** Re-placing each person's saved main meals from
+    their own `clk_*` template columns at multiplier k — their own ordering clamps and weekend shift
+    kept, snacks and the glucose-triggered events left exactly as the arm produced them — gives at
+    **k = 1.0** 0.312 / 0.333 / 0.216 for all / clocked / meal against the arm's measured 0.313 / 0.324 /
+    0.216, i.e. the resampling reproduces the live arm to 0.001-0.009, **which is the gate**; then
+    **k 0.5 -> 0.374, k 0.25 -> 0.411, k 0.0 -> 0.445**, stability 0.676 -> 0.763 -> 0.814 -> 0.866. So a
+    PERFECTLY regular meal clock leaves the schedule at 0.445 against the donors' 0.54 and stability at
+    0.866 against 0.95, and halving the SD buys about a third of the gap. Direct effect only: the
+    resampling cannot carry the feedback, since different meal times mean different glucose and so
+    different proactive and rescue events.
+  - **The SDs are real, so k 0.5 is a COUNTERFACTUAL and not a correction.** Template medians are
+    **1.03 / 1.22 / 1.56 h** for breakfast / lunch / dinner (`clk_{b,l,d}_sd`, n 138-143 of 168) and the
+    labeller's ~0.45 h onset noise is ~10% of them in quadrature, leaving 0.93 / 1.13 / 1.49. Label any
+    arm that uses the knob accordingly.
+  - **`clk_sd_mult` (new, default 1.0 = unchanged; `behavior.py:128`, wired at `world.py:311` through
+    `_num`)** multiplies the three within-person meal-clock SDs. At 1.0 the guard skips the arithmetic
+    entirely, so no draw and no number on the reference path changes. Realized within-person SD, measured
+    straight off `plan_day` with no simulation (13 people, 70 days, weekends dropped): **1.012 / 1.028 /
+    1.382 h at 1.0, 0.644 / 0.674 / 0.802 at 0.5, and 0.453 at 0.0 — a FLOOR, which is `weekend_shift`'s
+    deterministic +60 min on 2 days of 7** (and the b -> l -> d ordering clamps). So `clk_sd_mult` 0.5
+    realizes about 0.64x the spread, not 0.5x; taking the floor out as well means `weekend_shift=0`,
+    which is unfaithful, since the donors have their own weekend shift.

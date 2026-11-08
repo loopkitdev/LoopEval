@@ -308,6 +308,8 @@ class World:
             self.beh_traits.pro_onset = self.beh_traits.pro_onset + float(enable["pro_shift"])   # LESSONS 126
         if enable and enable.get("own_clock"):
             self.beh_traits.own_clock = True
+        if enable and _num(enable.get("clk_sd_mult")):      # within-person meal-clock regularity (L 731)
+            self.beh_traits.clk_sd_mult = float(max(0.0, enable["clk_sd_mult"]))
         if enable and enable.get("entry_clock"):
             self.beh_traits.entry_clock = True
         if enable and "graze_fast" in enable:
