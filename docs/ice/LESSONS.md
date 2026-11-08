@@ -2624,5 +2624,7 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       other-edit miss does not help as a predictor: the window's own level is what counts.
     - Blending replay and generator gains little (50/50: TIR 0.34, t<70 0.37, mean 0.47 against replay 0.30 / 0.38 /
       0.47): on t<70 and mean, replay's ranking already holds most of what the generator adds.
-    - Next: anchor each window's generated level to the person's recent field level before predicting the change (a
-      per-window background offset fitted to the pre-window field mean), and score change prediction on it.
+    - Shifting the level to the pre-window field was already tried (lesson 144: level right, change prediction no
+      better, lows up). So the level miss marks the edits the generator gets wrong rather than causing them; read as a
+      regression term, it is a calibration of the prediction, not a plant fix. What both point at is the generated
+      person's glucose spread and response at their real operating point, the same fault lessons 134 and 143 found.
