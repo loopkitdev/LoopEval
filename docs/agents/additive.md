@@ -1099,6 +1099,23 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   times is on fair ground here where one keyed to the skill correlation is not. The composition floor (L 731)
   bounds all of it: 55.5% of the twins' grams ride the meal clock, so even a perfectly regular clock reaches
   0.445 against the donors' 0.54.
+  **CORRECTED ON THE GATE'S ACTUAL INPUT (2026-11-08).** frontier's gate does not threshold that `habit_skill`
+  at all: it is each person's own running correlation between a same-clock prediction of the CONTROLLER'S
+  RESIDUAL (ICE minus carb effect) and the residual that followed. Measured on that signal over my own 112
+  people per arm (rf2-era `e1_gr2` / `e0_gr2`, `candidateICE - candidateCarbEffect`), the entries-ON figure
+  is much LOWER than the appearance read: mean **0.267** against total ICE's 0.418, paired within person
+  **−0.151** — because Loop's modelled absorption is over half the signal (rms 65 against ICE's 115) and
+  subtracting it leaves the MISMATCH, which carries little clock. With entries OFF the carb effect is near
+  zero (rms 12.5) so residual and ICE coincide (0.374 against 0.371, paired +0.003). Share of people above
+  the gate's 0.3 full-ramp point: **0.47 entries-on, 0.63 entries-off** (above 0.4: 0.31 / 0.51), which
+  brackets frontier's own logged 54% of steps at full. So the firing-rate warning above is WEAKENED for this
+  body with entries on and UNCHANGED where it matters most — with entries off the two signals are the same
+  quantity, so the generator's 0.187 mean and 4% above 0.4 still say its gate is nearly always shut.
+  **TRAP: `candidateDiscrepancy` is NOT ICE minus carb effect.** It correlates 0.895 with it and differs by
+  up to 755 mg/dL/h, and on a same-clock day-to-day correlation the two behave nothing alike — with entries
+  off, ICE−carbEffect scores 0.374 while `candidateDiscrepancy` scores **−0.073**. Verify a residual-keyed
+  gate from `candidateICE - candidateCarbEffect`; reading the field whose name matches would measure no habit
+  at all and declare the gate shut.
 - **the meal tail has a NAMED lever now** (L 617): the stomach's Erlang transit order. At order 3-4 `meal_d3h` goes
   31.0 -> 37.0-39.0 against the donors' 38.0 (gap 0.373 -> 0.053), `acf_zero_min` 60 -> 50 (its best ever) and the
   fall / rise ratio 0.63 -> 0.69 — four standing limits moving together, which is what a shared cause looks like. The
