@@ -2690,3 +2690,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       (calib_low_kernel, a lift for about an hour after each drop below 70) at strength ×2 and with its trigger moved to
       80 (probe_lk.sh, training 0), to measure how each moves each person's lows, then a two-number fit per person:
       spread to the highs, low response to the lows.
+201. **Real days show no distinct meal-timing types, only a weak weekday/weekend difference, which the generator lacks.**
+    Meals from meal_stats.events on ICE (same detector both sources); per day a load-weighted onset density on the 24-h
+    circle; two-group clustering share of variance against "blended" days (each day keeps its meal count, onsets resampled
+    from the person's pooled meals) (runs/2026-11-08-ice-daytypes/day_types.py, e pool, base arm training 0).
+    - Distinct types: none beyond the blended null. Excess −0.029 ± 0.006 real, −0.023 ± 0.005 generated (163 two-week
+      windows, 133 people); on full real records (263 people, median 68 days) 2% of people beat the null at p < 0.05,
+      below the 5% expected by chance.
+    - Weekday vs weekend: real same-kind day pairs are more alike by 0.021 ± 0.008 cosine (full records 0.026; 21% of
+      people above 0.05); generated 0.000 ± 0.004, although the network is fed the weekday.
+    - Day-to-day persistence, weekday held: real 0.011 ± 0.009, generated −0.003 ± 0.006; none in either.
+    - Person-level agreement real vs generated is near zero on all three (−0.12, 0.14, 0.05).
+    Limits: the ICE detector is noisy, two weeks is short, and rare regimes (travel) would not show as a second type. Day
+    types are not worth building on this evidence; the weekday difference is a small, specific gap.
