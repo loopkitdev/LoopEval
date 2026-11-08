@@ -2489,3 +2489,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - The own-night baseline strengthens every response, the t<54 one included. So it cannot both offset the shrink's
       dulling and keep the shrink's t<54 gain. A fix aimed at the fast-fall excess of lesson 188 has to act on the
       short-lag spread alone, not on the whole background.
+
+190. **A fifth training confirms lesson 189: the background shrink plus own-night baseline (spown) overstates the TIR loss
+    when insulin decreases on every training, so on the rule it is not kept.** Training 4, e pool, 333 edits, five
+    trainings of spown against the base recipe's (oc) five (score_spown5.sh):
+    - TIR change, less insulin: spown −1.90 / −2.01 / −2.03 / −1.99 / −1.95 against oc −1.80 to −1.94 (field −1.24,
+      drift-removed −1.67); z −3.0 unchanged. Every other change measure is inside oc's spread: mean −5.63 / +5.08, TIR
+      more +1.96, t<70 +0.74 / −0.68, t<54 +0.28 / −0.28 (|z| ≤ 0.8).
+    - Error / se against the drift-removed field, summed over mean, TIR and t<70 in both directions: oc 3.86, spown 3.74.
+    - Level, training 4: t<70 3.62, t<54 1.07, TIR 75.2; median per-person TIR against the field −3.5 (oc4 −5.2).
+    - So the trade stands as lesson 189 put it: level lows closer to the field on five trainings out of five, change
+      prediction unchanged against the field, one change measure 0.1 point further from it. Pete's call.
