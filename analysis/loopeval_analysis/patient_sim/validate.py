@@ -335,6 +335,11 @@ def main():
                       f"{rp.name}, under the 90% needed to call this the pilot population")
         except Exception as ex:                      # noqa: BLE001
             print(f"compare_pilot skipped: could not read aliases ({ex!r})")
+    if _pilot and len(sim) < 3:   # a smoke run: every row would be dropped, so skip rather than die
+        print(f"compare_pilot skipped: only {len(sim)} people have stats, under the 3 `compare` needs per "
+              f"statistic. sim_stats.csv and the traces are written and valid; the donor comparison is not "
+              f"defined at this n.")
+        _pilot = False
     if _pilot:
         tt = pd.read_csv(tp)
         if "entries_raw" in tt:   # the raw-record rates, counted like the simulator's own (templates.add_raw_rates)
@@ -398,10 +403,19 @@ def compare_blocks(sim: pd.DataFrame, blocks: pd.DataFrame, ndraw: int = 40, see
     between-day share) and too narrow is hidden (LESSONS 330). The KS p is the median over `ndraw` random
     draws of one block per donor; `pass_share` is the share of draws with p > 0.05; quantiles pool all blocks."""
     rng = np.random.default_rng(seed)
+    # `compare` drops a statistic whose simulated side has under 3 people, so a cohort of 1 or 2 yields NO
+    # rows at all and `.set_index(["stat", "group"])` below raised a bare `KeyError: ['stat', 'group']` --
+    # which reads like a schema bug and is really "too few people to compare". Say so instead.
+    out = compare(sim, real=blocks)
+    if out.empty:
+        raise ValueError(f"nothing to compare: {len(sim)} simulated people, and `compare` needs at least 3 "
+                         f"on each side per statistic (see its `len(rs) < 3 or len(ss) < 3` guard). A smoke "
+                         f"run of 1-2 people cannot be scored against the donors; run the arm at full n, or "
+                         f"call `validate.person_stats` / read `sim_stats.csv` directly.")
     draws = [compare(sim, real=blocks.groupby("alias").sample(1, random_state=int(rng.integers(1 << 30))))
              .set_index(["stat", "group"]).ks_p for _ in range(ndraw)]
     P = pd.concat(draws, axis=1)
-    out = compare(sim, real=blocks).set_index(["stat", "group"])
+    out = out.set_index(["stat", "group"])
     out["ks_p_pooled"] = out.pop("ks_p")
     out["ks_p"] = P.median(axis=1)
     out["pass_share"] = (P > 0.05).mean(axis=1)

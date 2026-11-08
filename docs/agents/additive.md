@@ -1333,6 +1333,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   and correctly has no marker. `[ -e <dir> ]` still fires on both, which is what catches a name
   collision; the marker only says which kind you are looking at.
 
+- **A 1-2 person smoke run cannot be validated, and until 2026-11-08 it said so as `KeyError: ['stat', 'group']`.**
+  `validate.compare` drops a statistic whose simulated side has under 3 people, so at n < 3 it returns NO rows and
+  `compare_blocks`'s `.set_index(["stat", "group"])` failed on an empty frame — a schema-looking error whose real
+  cause is the sample size. The traces and `cohort.json` of such a run are fine; only the donor comparison is
+  undefined. Now `compare_blocks` raises a message that says this, and `validate`'s `main` SKIPS the pilot
+  comparison with a printed reason at n < 3 instead of dying, so a smoke run completes. Smoke-test an arm at
+  **n >= 3**, or read `sim_stats.csv` / call `person_stats` directly.
 - **Every conditional rate needs a shifted-time placebo in the same script, and every "against the donors' X%"
   needs to be paired per person** (L 700, 701). A suspend-in-the-window rate of 26.9% over low episodes passed a
   registered 10% bar and was **exactly its base rate** — the same windows moved by a day read 25.4–27.4%. And an
