@@ -1129,7 +1129,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   >= 3 previous days present, so real gaps push a real person's gate toward partial for an instrument reason.
   Report such a rate over a matched POST-warm-up span with the required previous days present on both sides,
   and report warm-up and gap exclusions as their own line. This is L 585's window rule applied to a running
-  controller statistic rather than to an autocorrelation.
+  controller statistic rather than to an autocorrelation. **And size the matched span to what a 14-day arm
+  actually yields: a median of 12 coverage-passing days**, since the 1800-min burn-in leaves 13 day labels of
+  which the partial first (18 h, 216 bins) and sometimes the last fail a >= 250-of-288 filter (measured p10 11,
+  max 12, over 112 people on both `e1_gr2` and `e0_gr2`). After a 3-day habit history and a 2-day gate warm-up
+  that leaves a **median 7 days, p10 6** — and **0 of 112 twins reach 8** — so a fixed 8-day window cannot be
+  measured on this body at all, and 6 days keeps 92% of the cohort (7 keeps 81%). Check a span against this
+  before matching beds on it.
 - **the meal tail has a NAMED lever now** (L 617): the stomach's Erlang transit order. At order 3-4 `meal_d3h` goes
   31.0 -> 37.0-39.0 against the donors' 38.0 (gap 0.373 -> 0.053), `acf_zero_min` 60 -> 50 (its best ever) and the
   fall / rise ratio 0.63 -> 0.69 — four standing limits moving together, which is what a shared cause looks like. The
