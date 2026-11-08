@@ -2652,3 +2652,21 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - For lessons 193 and 196: the glucose channel that lowers the shadow-entry background is right in the 140–220 range
       where most of that arm's time sits. So the shadow arm's extra TIR loss is not a glucose artifact there, and above
       260 the generator understates the background, if anything.
+
+199. **The generator's weak low-side ranking is its per-person low exposure, not its response: it gives lows to the
+    wrong people.** New base, e pool, pre window, drift removed (runs/2026-11-01-ice-stateabl/peredit_noise.py,
+    pre_lows.py, spread_sens.py).
+    - Not simulation noise: r of the average over k of the five trainings rises only 0.27 → 0.30 (TIR), 0.24 → 0.27
+      (t<70), 0.37 → 0.39 (mean) from k = 1 to 5; training-to-training r 0.72–0.77, so infinitely many trainings would
+      reach 0.31 / 0.28 / 0.43.
+    - The field's t<70 change on less-insulin edits follows the person's pre-window t<70: r −0.53 (136 edits); more
+      lows, more to lose. On more-insulin edits, −0.09.
+    - The generator's own logic is right: its predicted t<70 change on less-insulin edits follows its own pre-window
+      t<70 at r −0.67 (replay −0.62). But its pre-window t<70 tracks the field's at only r 0.39 per edit, 0.43 per
+      person (replay 0.77), so its predicted change carries none of the field's signal (r with the field change 0.00).
+    - A uniform spread change does not fix who has lows: person-level r with field t<70 is 0.45 / 0.46 / 0.48 at
+      background spread ×0.9 / ×0.95 / ×1.0 (oc0). Spread moves a person's lows by a median 8.5 points of t<70 per
+      unit (IQR 2.8–14.8). The generator's people have more lows than the field (median 3.2 against 1.9) and less TIR
+      (73.9 against 80.1) in the same windows.
+    - Under test: a per-person spread fitted so each person's generated pre-window t<70 matches the field's
+      (build_ps.py, calib_bg_spread_person in a copy of the checkpoint, probe_ps.sh, pre window both settings).
