@@ -2630,3 +2630,20 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       better, lows up). So the level miss marks the edits the generator gets wrong rather than causing them; read as a
       regression term, it is a calibration of the prediction, not a plant fix. What both point at is the generated
       person's glucose spread and response at their real operating point, the same fault lessons 134 and 143 found.
+
+198. **Background ICE by glucose matches the field up to 220 mg/dL and collapses above 260.** Same people and pre-edit
+    windows, new base training 0, entries on, seed 0; away from meals (outside detected meal events plus 2 h, no entry in
+    the 3 h before); per person, ICE minus the person's own mean, median over people (runs/2026-11-07-ice-habit/
+    bg_by_glucose.py). Both sources carry the same confound (food raises glucose), so the comparison is like for like:
+    | glucose | <80 | 80–100 | 100–120 | 140–160 | 180–220 | 220–260 | ≥260 |
+    |---|---|---|---|---|---|---|---|
+    | real (250) | −14.5 | −8.9 | −4.0 | +8.1 | +14.4 | +19.7 | +33.6 |
+    | generated (301) | −14.7 | −8.4 | −2.5 | +7.0 | +13.9 | +14.6 | +0.1 |
+    - Per-person slope from 90–130 to 180–260, per 100 mg/dL: real +24.7 (IQR 10.8–44.7), generated +22.2 (6.8–36.8).
+    - Above 260 the generated person's background is ~33 mg/dL/h below a real person's at the same glucose. The plant's
+      high kernel (calib_high_kernel, applied after each crossing above 250) is the first suspect: it would put exactly
+      this dent where the field has none.
+    - For lessons 193 and 196: the glucose channel that lowers the shadow-entry background is right in the 140–220 range
+      where most of that arm's time sits. So the shadow arm's extra TIR loss is not a glucose artifact there, and above
+      260 the generator understates the background, if anything. Under test next: the high kernel off (or scaled), level
+      and change prediction on the new base.
