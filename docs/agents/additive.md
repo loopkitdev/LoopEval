@@ -1079,6 +1079,26 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   −7.0 +- 2.5 — a fourth instrument on L 707's velocity deficit, closed only by `ge_order` 3. Its `tdd` row was
   broken on the donor side and is FIXED: paired, the twins are +1.36 median / +1.96 mean U/day, confirming
   L 598's +1.40-1.67 rather than reducing it.
+  **A HABIT-GATED CONTROLLER CANDIDATE IS NOT EQUALLY TESTABLE ON THE TWO BEDS, and the numbers are on disk**
+  (measured 2026-11-08 from `runs/2026-11-07-meal-habit/meal_stats.csv`, the peer's own detector and reader, no
+  new compute). Per-person `habit_skill` means are donors **0.526** (n 127), additive **0.419** with entries on
+  and **0.372** with them off, the ICE generator **0.316** and **0.187** — and paired against each person's own
+  donor, additive is **−0.102 +- 0.024** / **−0.153 +- 0.027** against the generator's **−0.211 +- 0.014** /
+  **−0.342 +- 0.015** (n 81 / 127; 69-70% of twins below their own donor against the generator's 91-96%). So
+  additive carries about **twice** the generator's day-to-day habit, and both under-read. **What this does to a
+  per-person GATE is larger than the means suggest**, because the gate samples the tail: the share of people
+  above a threshold of 0.4 is donors **0.79**, additive 0.57 / 0.49, generator 0.31 / **0.04**, and above 0.5 it
+  is 0.63, 0.36 / 0.27, 0.08 / **0.02**. A gate calibrated on the donors therefore fires for a few per cent of
+  the generator's no-entry people — **a null there is not evidence about the candidate**. Report each bed's own
+  distribution and the gate's realized firing rate beside any such result, set the threshold as a quantile of
+  the bed's own distribution rather than an absolute donor-calibrated number, and prefer this body for the
+  question. **And check WHAT the gate is keyed to**: on this body `ra` (carb appearance) alone scores 0.350 while
+  `egp` alone scores **0.641**, so a running habit estimate read off total ICE is dominated by the clock-fixed
+  NON-meal structure, not by meal habit — whereas the two rows that measure habitual TIMING, `noshow_vs_chance`
+  (+0.019 +- 0.016) and `habitual_excess` (−0.012 +- 0.018), have NO paired deficit, so a gate keyed to habitual
+  times is on fair ground here where one keyed to the skill correlation is not. The composition floor (L 731)
+  bounds all of it: 55.5% of the twins' grams ride the meal clock, so even a perfectly regular clock reaches
+  0.445 against the donors' 0.54.
 - **the meal tail has a NAMED lever now** (L 617): the stomach's Erlang transit order. At order 3-4 `meal_d3h` goes
   31.0 -> 37.0-39.0 against the donors' 38.0 (gap 0.373 -> 0.053), `acf_zero_min` 60 -> 50 (its best ever) and the
   fall / rise ratio 0.63 -> 0.69 — four standing limits moving together, which is what a shared cause looks like. The
