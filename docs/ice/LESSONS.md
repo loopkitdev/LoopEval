@@ -2703,3 +2703,15 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Person-level agreement real vs generated is near zero on all three (−0.12, 0.14, 0.05).
     Limits: the ICE detector is noisy, two weeks is short, and rare regimes (travel) would not show as a second type. Day
     types are not worth building on this evidence; the weekday difference is a small, specific gap.
+202. **The low-response kernel cannot set a person's lows; the per-person anticipatory defense is collapsed to one
+    person.** Training 0, e pool, own settings, pre window (runs/2026-11-01-ice-stateabl/probe_lk.sh, lk_sens.py).
+    - Low kernel ×2 cuts a person's time below 70 by a median 0.25 points (IQR 0.06–0.61), about a tenth; triggering
+      it below 80 instead of 70 moves 0.08. Person-level r with field lows stays 0.49–0.50. The field gap is about
+      1.3 points (generated median 3.17, field 1.90). Lows are set by how often a person approaches one, not by recovery
+      once below 70.
+    - The network's anticipatory defense (v3m13: a ramp on background ICE keyed to projected glucose, with a per-person
+      onset and strength) has both per-person rows at zero in every person (10th–90th percentile within ±0.01): the
+      prior collapsed them, so every generated person defends identically, against the field's personal onset
+      (lesson 69, memory "low response is a personal trait").
+    - Under test: the defense moved for everyone, onset 20 mg/dL earlier and strength ×2 (build_def.py, probe_def.sh),
+      to measure how each moves each person's lows and highs before a per-person fit.
