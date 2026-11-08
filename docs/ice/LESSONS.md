@@ -2500,3 +2500,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Level, training 4: t<70 3.62, t<54 1.07, TIR 75.2; median per-person TIR against the field −3.5 (oc4 −5.2).
     - So the trade stands as lesson 189 put it: level lows closer to the field on five trainings out of five, change
       prediction unchanged against the field, one change measure 0.1 point further from it. Pete's call.
+
+191. **New base recipe (Pete, 2026-11-08): the base recipe (oc) with the background draw narrowed ×0.95
+    (`BGICE_SPREAD=0.95`) and the own-night insulin-on-board baseline (`PLANT_BASE_IOB_OWN=1`).** Adopted on lessons
+    189–190. Low time is closer to the field on all five trainings; change prediction against the drift-removed field is
+    unchanged (3.74 against 3.86). The cost is that it overstates the TIR loss on less-insulin edits by 0.1 point.
+    Its five trainings are runs_v32oc{0-4}TcB2FGUCGLBGGSKaLKELsp0.95own_v32st_noslow_e; later arms are built on it and
+    scored against those five. Probes already running on the old base (the announcement and clock tests of lessons
+    192 on) are paired within it, and any fix they keep is re-checked on the new base before it is frozen for frontier.
