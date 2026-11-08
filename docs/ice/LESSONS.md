@@ -2591,3 +2591,38 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - What's left is repetition: habitual_excess, habit against a clock-shuffled null, is a third of the field's on every
       arm. Closing it needs meal starts that follow the person's own previous days (a model-side memory), not a fixed
       profile. Recorded as the meal-rhythm target; change prediction (lesson 192) stays first.
+
+196. **The no-entry background drop is food tied to carb entries, plus a glucose push, both multiplied about fourfold
+    by the model's own persistence. It is not a response to insulin.** oc0, first 60 e edits, pre window, inputs logged
+    every step (PLANT_XLOG=1), 177 matched run pairs; the network teacher-forced day by day as the plant runs it (24 h
+    re-warm), one input group at a time taken from the entries-on run (runs/2026-11-07-ice-habit/swap_inputs.py).
+    Share of the background gap each group closes (off with on's group / on with off's group):
+    | group | entries off (gap 395/day) | shadow entry (gap 216/day) |
+    |---|---|---|
+    | own recent background (bgice_ema, bgice) | 77% / 75% | 80% / 73% |
+    | entry inputs (carbs, since_entry, unbolused, entered_unabsorbed) | 10% / 15% | −6% / −6% |
+    | glucose (bg, trend, forecast, low flags) | 7% / 1% | 23% / 11% |
+    | net IOB, bolus, meal | ≤ 3% each | ≤ 7% each |
+    - Per run, the ICE drop with entries off is 95% of the withheld insulin's nominal effect (ISF × −5.6 U/day, r 0.81),
+      but that is coincidence: people with more entries lose both more insulin and more entry-tied food. The net-IOB input
+      carries almost none of it.
+    - With the shadow entry, the entry inputs are restored, and what's left is higher glucose (163 against 146) lowering
+      the background, amplified by persistence. Whether that is right depends on the real glucose effect on background
+      ICE at matched state, which is not yet measured. The persistence gain (about 4×) is the larger lever; it is also
+      why the generator's day-level background spread runs above the field (bg_day_sd +0.9 to +1.8, lesson 195).
+
+197. **The generator's per-edit misses track its own level miss in the pre-edit window. Knowing the person's real
+    recent level would lift within-direction ranking on TIR and mean by about 0.1 r.** New base, five trainings, pre
+    window, drift removed (runs/2026-11-01-ice-stateabl/peredit_why.py, peredit_lvl.py, blend.py).
+    - Residual of the field change after the generator's prediction correlates with the generator's level miss (arm with
+      own settings minus field TIR, same pre window): TIR +0.30 (more) / +0.34 (less), mean −0.35 / −0.27, t<70 ~0. A
+      person generated too well controlled gains too little from more insulin and loses too little from less.
+    - The generator with its level miss as a second predictor, cross-fitted by person (5 folds): TIR 0.17 → 0.27 (more)
+      and 0.22 → 0.35 (less), mean 0.20 → 0.29 and 0.22 → 0.28. The pre-window field level is known before the edit, so
+      this is usable information, not a peek.
+    - The miss is partly a person trait (r 0.57 with the same person's miss at their other edits, 134 edits), but the
+      other-edit miss does not help as a predictor: the window's own level is what counts.
+    - Blending replay and generator gains little (50/50: TIR 0.34, t<70 0.37, mean 0.47 against replay 0.30 / 0.38 /
+      0.47): on t<70 and mean, replay's ranking already holds most of what the generator adds.
+    - Next: anchor each window's generated level to the person's recent field level before predicting the change (a
+      per-window background offset fitted to the pre-window field mean), and score change prediction on it.
