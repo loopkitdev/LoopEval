@@ -1030,7 +1030,15 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   `kabs` 0.057 reaches 1.775 and is the worst-scoring arm tried (L 627). The labeller itself reads ~16% early against
   twin ground truth on isolated pulses, so **never calibrate the body's appearance to a labelled target** (L 628:
   the duration half of that instrument check is withdrawn — `ra` is never zero between meals, so a cumulative-90%
-  measure is a statistic about the window).
+  measure is a statistic about the window). **Four rows of the peer's unannounced-meal yardstick are
+  DOWNSTREAM of this one defect (L 732)**: a flatter pulse of the same grams clears their detector's fixed
+  +40 mg/dL/h bar less often, so small events fall under its load threshold and close pairs merge — which lowers
+  detected meals/day (4.30 against the donors' 4.75) and stacking (0.303 against 0.412) and raises `load_med` and
+  day-to-day load CV. Measured on `ge_order` 3 with their own reader: all four move the right way and `onset_rate`
+  closes outright (66.5 -> 79.9 against 78.0). Read their yardstick PAIRED and against twin truth before building to
+  it — the twins' TRUE stacking is 0.527 at >= 10 g and their TRUE daily carb CV 0.200, both better than the donors'
+  DETECTED values — and do not quote its `tdd` row at all, since the donor side there is 0.891x the templates' own
+  measured donor TDD per person (rho 0.964, n 151), which makes the paired excess +0.79 U/day, not +8.9.
 - **the meal tail has a NAMED lever now** (L 617): the stomach's Erlang transit order. At order 3-4 `meal_d3h` goes
   31.0 -> 37.0-39.0 against the donors' 38.0 (gap 0.373 -> 0.053), `acf_zero_min` 60 -> 50 (its best ever) and the
   fall / rise ratio 0.63 -> 0.69 — four standing limits moving together, which is what a shared cause looks like. The

@@ -7357,3 +7357,72 @@ own script (`~/.loop-eval/runs/2026-11-07-meal-habit/habit_skill.py`).
     deterministic +60 min on 2 days of 7** (and the b -> l -> d ordering clamps). So `clk_sd_mult` 0.5
     realizes about 0.64x the spread, not 0.5x; taking the floor out as well means `weekend_shift=0`,
     which is unfaithful, since the donors have their own weekend shift.
+
+732. **THE PEER'S UNANNOUNCED-MEAL YARDSTICK, RE-READ PAIRED AND AGAINST TWIN GROUND TRUTH: ONE ROW IS
+BROKEN ON THE DONOR SIDE, TWO ARE NOT DEFECTS AT ALL, AND THE REST ARE ONE DOCUMENTED DEFECT — APPEARANCE
+DISPERSION — SEEN FOUR TIMES.** Their detector (`~/.loop-eval/runs/2026-11-07-meal-habit/meal_stats.py`:
+background = the day's median ICE, a rise = ICE above background + 40 mg/dL/h for >= 2 steps, a MEAL if
+its excess load >= 30 mg/dL, rises within 30 min merged) run identically on donors, their generator and
+my arms, reported `e1_gr2` / `e0_gr2` against 151 donors over 28 days. Checks, each cheap, all on data
+already on disk:
+  - **`tdd` 42.4 against 33.6 is an instrument fault on THEIR side, and the honest paired number is
+    +0.79 U/day.** Their donors' TDD is **0.891x the templates' own measured donor TDD, per person, with
+    rho 0.964 over all 151** — a clean scale shift, not a window or composition difference — where the
+    templates' median 38.84 agrees with the scorecard's donor TDD of 38.7. Paired twin minus its OWN
+    donor reads **+6.41 U/day on their donor number and +0.79 on the templates'**, so ~5.6 U/day of the
+    8.9 is the donor side under-counted. Their `ins_u` is `basal_u + bolus_auto_u + bolus_manual_u` from
+    `ice_v32/steps`; the first suspect is AGENTS.md's standing trap, that a basal timeline's NaN rate
+    means SCHEDULED basal running and not zero. Flagged to them; **do not quote this row either way**,
+    and note my own +0.79 is BETTER than L 598's paired +1.40 / +1.40 / +1.67, so it needs its own check
+    before being believed.
+  - **"Habit beyond chance" has NO paired deficit: `habitual_excess` −0.0132 +- 0.0176, with 46% of twins
+    above their own donor** (n 98). The published 0.098 against 0.133 is composition. `noshow_vs_chance`
+    is +0.0221 +- 0.0161, i.e. level. So the twins DO put their load at habitual clock times as often as
+    their donors do — which is consistent with L 731, since `habitual_excess` uses a +-60 min window and
+    the twins' meal-clock SD is ~1.0-1.6 h.
+  - **`habit_skill` IS real: −0.0994 +- 0.0260 paired (n 81), and matching donors on detected meals per
+    day makes it WORSE (−0.136), so it is not an event-count artefact.** Their read of my arms, 0.442,
+    lands on the 0.419 L 731 predicted for the full non-insulin flux against `ra`'s 0.350 — an
+    independent confirmation of that composition correction on their own instrument. This is the row
+    `clk_sd_mult` brackets.
+  - **`stack_frac` and `load_day_cv` are mostly the DETECTOR and the event count, and twin ground truth
+    runs the OTHER WAY.** Among donors rho(`meals_day`, `stack_frac`) = **+0.777** (quartile medians
+    0.302 / 0.356 / 0.442 / 0.500), so with the twins finding 4.30 meal-sized events a day against the
+    donors' 4.75-4.82, fewer consecutive pairs can fall inside 3 h by arithmetic alone: donors restricted
+    to the twins' own `meals_day` IQR read **0.340 against the twins' 0.303, a gap of −0.038 rather than
+    −0.109**, and `load_med`'s +5.5 gap vanishes entirely (108.5 against 107.5). Same for the day-level
+    row (rho −0.345): matched, **+0.055 rather than +0.083**. And on the twins' own truth, **the share of
+    consecutive eating events within 3 h is 0.527 at >= 10 g and 0.644 over all events, against the
+    donors' DETECTED 0.412**, while **the TRUE daily carbohydrate CV is 0.200 on grams and 0.212 on the
+    appearance integral, BELOW the donors' detected 0.240** — `intake_cv` 0.22 (Tarasuk & Beaton 1992)
+    doing exactly what it was set to. So the body eats more stacked and more regularly day to day than
+    the detector reports; the censoring is what differs.
+  - **The one upstream quantity is appearance dispersion, and THEIR OWN ROWS MEASURE IT**: `dur_min` 90
+    against 80 and `peak_min` 35 against 30, which is L 625/626's `pulse_dur_h` 1.876 against 1.577
+    (+19%) and `pulse_peak_per_g` ~10% low. A flatter pulse of the same grams clears a fixed
+    +40 mg/dL/h bar less often and for less time, so small events fall under load 30 and close pairs
+    merge — which lowers `meals_day` and `stack_frac`, raises `load_med` and `load_day_cv`, all four
+    observed.
+  - **TESTED within the model on `ge_order` 3, their detector and their own `add()` reader, rf2 against
+    go3** (same binary, same templates, same seeds; go3 carries `ge_order=3` in its `cohort.json` and
+    differs from rf2 bitwise on `truth.bg` for all 112). **Gate: rf2 read this way reproduces their
+    `e1_gr2` numbers across a different binary AND controller** — `meals_day` 4.333 / 4.303,
+    `stack_frac` 0.320 / 0.303, `load_day_cv` 0.326 / 0.323, `load_med` 104.3 / 107.5, `onset_rate` 66.5 /
+    67.4, `habit_skill` 0.443 / 0.442 — so these rows are BODY properties, not gr2's. Paired go3 − rf2:
+    **`meals_day` +0.191 +- 0.056, `stack_frac` +0.021 +- 0.008, `load_day_cv` −0.022 +- 0.009, and
+    `onset_rate` +11.52 +- 1.41, which takes 66.5 to 79.9 against the donors' 78.0-79.0 and CLOSES that
+    row** — the right direction on four rows at once, 19-35% of the three count-driven ones and all of
+    the onset one, with `load_med` +12.3 going the wrong way and `habit_skill` flat at +0.005, as it
+    must be. The onset result is L 704's finding on a third instrument: appearance shape is the only
+    lever that moves this body's post-entry rate. **And `ge_order` 3 is already rejected** on TIR −3.7,
+    t180 +2.3, t54 0.124 -> 0.294 against the donors' 0.190 and a more damped change response (L 696,
+    702), so the lever that moves their rows is the one Pete's `ge_order` trade is about. Nothing else
+    named reaches the remaining 65-80%.
+  - **Method, and a gate that saved a wrong answer: `(ra + egp) / vg * 60` is a sound ICE analogue for a
+    RANK-BASED, day-mean-removed metric and useless for an ABSOLUTE-THRESHOLD detector.** It reproduces
+    the habit skill (0.419) and fails the detector outright — `load_med` 502 against 107.5, `dur_min` 345
+    against 90, `stack_frac` 0.000, `continue_frac` 0.984 — because a real ICE has the insulin-mediated
+    disposal subtracted and so returns to a baseline, while the mass-flux sum never does. Run the
+    instrument's own reader (here their `add()`, `trace.json`'s `candidateICE * 12`) whenever a statistic
+    has a dimensional threshold in it, and gate every proxy against a published number before reading a
+    difference from it.
