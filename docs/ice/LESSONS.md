@@ -2574,3 +2574,20 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Showing the person's model the meal bolus that a dropped entry would have carried (PLANT_SHADOW_BOLUS=1, not
       delivered) changes nothing beside lesson 193's shadow entry (ICE 1480 against 1471 per day, TIR 65.1 both). The
       missing bolus input is not why no-entry food stays short.
+
+195. **Fitted on held-out days, the meal-timing clock closes a sixth of the habit gap, not half: most of lesson 194's
+    gain was in-sample fit. Not added to the base.** New base (lesson 191), trainings 0 and 1, pre-edit window, own
+    settings, 220 rollouts; clock refitted with each person's scored days left out (build_clock.py `HELDOUT=1
+    MEAL_ONLY=1`, clock_ho_meal_s{0,1}.json; probe_spck.sh). Simulated minus own real days:
+    | | training 0: base → clock | training 1: base → clock |
+    |---|---|---|
+    | habit_skill | −0.076 → −0.064 (se 0.013) | −0.070 → −0.057 |
+    | habitual_excess | −0.090 → −0.085 | −0.095 → −0.091 |
+    | meal_jitter_min | +8.0 → +6.5 | +8.7 → +8.0 |
+    | level t<70 / TIR | 2.90 / 76.3 → 2.78 / 76.1 | 2.48 / 76.1 → 2.60 / 76.5 |
+    - Same sign on both trainings, no lows cost, but small, and it moves the average daily profile only. The new base is
+      already nearer the field on habit than oc was (−0.076 against −0.103), and its meal count is close (+0.1 to +0.2 a
+      day against +0.8).
+    - What's left is repetition: habitual_excess, habit against a clock-shuffled null, is a third of the field's on every
+      arm. Closing it needs meal starts that follow the person's own previous days (a model-side memory), not a fixed
+      profile. Recorded as the meal-rhythm target; change prediction (lesson 192) stays first.
