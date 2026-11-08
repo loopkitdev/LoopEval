@@ -233,12 +233,32 @@ session rather than me.
   `graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.0,si_norm=0.92`. Everything else runs its code
   default — which notably leaves **`day`, `circadian`, `dawn`, `sleep`, `gh` and `alcohol` ON** and `ppr_a` at
   **0.6** (not the 0.4 two docs carried until L 665).
-- **THE REFERENCE IS BEING REBUILT (job 230, queued 2026-11-07).** Pete adopted the renal clearance cut
-  (`rcl_mult` 0.16667) on evidence, accepting a worse cohort match (L 729). The level term `resid_m` was fitted
-  at the old value, so the templates are being refitted before the new reference is named. **Until job 230 lands
-  and is scored, rf2 below IS the reference** and every number in this overlay is measured against it; frontier's
-  2026-11-07 candidate screen is on rf2 and needs no redo.
-- **Current reference** (2026-11-01): **rf2** (runs/2026-10-31-additive-gesplit; templates
+- **THE REFERENCE CHANGED ON 2026-11-07: it is `kd2`, and EVERY OTHER NUMBER IN THIS OVERLAY IS STILL rf2's.**
+  Job 230 built it (L 729): rf2's exact configuration plus `rcl_mult=0.16667` — renal clearance at UVA/Padova's
+  0.0005/min instead of Hovorka's 0.003 — with `resid_m` refitted over two further rounds on the new body, since
+  the old templates were fitted at the old renal value. **Nothing else in this file has been re-measured against
+  kd2**, so read every other figure here as rf2's and say which body a new number is on. A candidate screen
+  already run on rf2 needs no redo, but it cannot be compared with one run on kd2.
+- **Current reference** (2026-11-07): **kd2** (runs/2026-10-31-additive-gesplit; templates
+  `templates_pilot_resid_kd2.csv`, `--set rcl_mult=0.16667,resid_mult=0.0`, binary pinned at
+  runs/2026-11-07-additive-renal/loop-eval-renal, L 728). Score **0.340 / 0.382 / 0.396**, mean **0.373** against
+  rf2's **0.366** on the same three draws — so the adoption costs 0.007, HALF of job 221's unrefit 0.013, the refit
+  having given the rest back. **Tier 1 is BETTER**: 0.174 -> **0.165**, carried by the two activity-response rows
+  (gap 0.227 -> 0.155, 0.162 -> 0.095) and `meal_d3h` (31.7 -> 33.3 against the donors' 38.0). **The guard holds
+  and converges on the donors**: t54 0.168 -> **0.203** against their **0.190**, lows/day 1.04 -> 1.07 against 1.00,
+  t70 1.80 -> 1.92 against 1.60, TIR 70.9 -> 70.1, TDD 42.39 -> 42.86 (inside the 1.51 U/day draw sd). **The price
+  is dispersion and it landed on L 727's pre-registered number**: `bg_cv` 34.90 -> **37.28** against the donors'
+  34.65, where L 727 predicted 37.28 post-refit to two decimals — though the premise of that arithmetic only
+  partly held, since the refit did NOT bring the cohort mean back (153.3, against rf2's 150.4 and the donors'
+  151.9) and `resid_m`'s negative tail deepened instead (p10 −40.7 -> −43.8), L 639's widening. **So the level
+  gap is the same size and the OPPOSITE sign**: per person it converged (|gap| p50 4.1 -> 1.9 -> **1.8** mg/dL,
+  twin-donor rho 0.97 -> 0.98 -> **0.99**, so a fourth round would not pay) while the cohort median now sits
+  +1.4 ABOVE the donors where rf2 sat 1.5 below. Tier 3 0.477 -> 0.523, most of it small-n Libre 3 cells moving
+  in both directions. **`day` runs ON** (code default), as on rf2. Revert by dropping `rcl_mult` from the `--set`
+  string and using the `rf1` templates. **Pete's hypothesis is registered, not tested**: the dispersion cost
+  "might be explained by other factors" — L 678's un-cancelled pair — so if a working load lever ever appears,
+  `bg_cv` here is the first row to re-measure.
+- **Previous reference** (2026-11-01): **rf2** (runs/2026-10-31-additive-gesplit; templates
   `templates_pilot_resid_rf1.csv`, `--set resid_mult=0.0`) — ov0 with the residual's DYNAMIC part off, keeping only its
   per-person level `resid_m` (L 592). Score **0.328 / 0.366 / 0.404** on the corrected donor meal labels (L 695; the
   stale-label pair was 0.332 / 0.371 / 0.406), mean **0.370** against ov0's 0.372 on the labels both were scored with — level —
@@ -312,8 +332,11 @@ session rather than me.
 
 ## Match targets
 
-The primary test, kept in one place: **`docs/additive/MODEL_GUIDE.md` § 10** lists every scored row (51 statistics,
-with the sensor-split rows), its tier and weight, the donors' value, the reference's value on both draws and the gap.
+The primary test, kept in one place: **`docs/additive/MODEL_GUIDE.md` § 10** lists every scored row (**70 rows,
+67 of them on draw 1**, sensor-split rows included — the "of 51" / "of 54" in the score tables is the separate KS
+count, not the row count), its tier and weight, the donors' value, the reference's value on both draws and the gap.
+**Regenerated on the current reference `kd2` on 2026-11-07** (job 230); before that it carried values of mixed
+vintage, several of them sd3-era.
 Runs are ranked by the weighted gap score (`score.py`, LESSONS 492). Tier 1 has weight 3: outcomes, what Loop sees, and
 the activity response. Tier 2 has weight 2: dynamics, plus meal absorption, unlogged rises, falls and workouts
 (LESSONS 494). Tier 3 has weight 1: the sensor fingerprint. The KS count is secondary. Update § 10's table when the
@@ -1229,8 +1252,10 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   **ADOPTED BY PETE 2026-11-07 (L 729)** on three lines — UVA/Padova, the field's 440 carbless corrections
   (+17.9% -> +12.8%) and the force profile. His words: "cut it based on evidence and accept the worse match."
   It FAILS the bar job 221 registered (score +0.013) and the adoption is an OVERRIDE, not a pass, with the
-  LESSONS 303 precedent that a sounder model may match fewer statistics. No longer off by default once job 230's
-  refit lands. L 727, 729), `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
+  LESSONS 303 precedent that a sounder model may match fewer statistics. **NO LONGER OFF BY DEFAULT: job 230
+  landed it as the reference `kd2` on 2026-11-07, and refitted, the cost is score +0.007 with tier 1 BETTER
+  (0.174 -> 0.165) and the guard converging on the donors (t54 0.203 against 0.190); `bg_cv` 37.28 is exactly the
+  post-refit figure predicted here.** L 727, 729), `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
   instead of 0.05: a NULL on the labelled duration it was aimed at, x0.999, against a single-parcel prediction of
   x0.96 that two corrections could not rescue; scores marginally better than the reference on two draws of three and
   its one consistent gain — paired TDD on all three — is level-mediated and returns on refit, L 627, 629),

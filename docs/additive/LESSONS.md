@@ -7266,13 +7266,52 @@ pin an immutable copy in the run dir rather than inheriting a symlink. Job 230 d
 wrong validator for a job script — `$P - <<'PY'` fails `zsh -n` and is fine under bash — and queueing
 is non-contending by construction: a job added last waits.
 
-**Status: the value is adopted; the REFERENCE is not rebuilt yet.** `resid_m` is one constant drift
-per person fitted to that donor's level at `rcl` 0.003, so removing a high-side sink raises the level
-(bg_mean 151.0 -> 153.2 on draw 1) and the templates must be refitted or the new reference carries a
-known drift. Job 230 does rf2's own procedure (L 515, 525; job 134's structure), reusing `rn1`/`rn1_5k`
-as round 1 since they are already rf2's config plus the knob on `templates_pilot_resid_rf1.csv`.
-**Until job 230 lands and is scored, rf2 remains the current reference** — frontier's 2026-11-07
-candidate screen is against rf2 and needs no redo.
+**LANDED AS JOB 230, AND THE REFERENCE IS NOW `kd2` (2026-11-07).** `resid_m` is one constant drift per
+person fitted to that donor's level at `rcl` 0.003, so removing a high-side sink raises the level
+(bg_mean 151.0 -> 153.2 on draw 1) and the templates had to be refitted. Job 230 ran rf2's own procedure
+(L 515, 525; job 134's structure), reusing `rn1`/`rn1_5k` as round 1 since they are already rf2's config
+plus the knob on `templates_pilot_resid_rf1.csv`, then two further rounds (`kd1` -> `kd2`), all five new
+arms on an immutable binary copy pinned in the run dir. **Gates passed**: all 112 people differ from rf2,
+from the unrefit `rn1` and from `kd1`; `rcl_mult=0.16667`, `resid` and the pinned binary verified in every
+arm's own `cohort.json`.
+
+**The refit CONVERGED and a fourth round would not pay**: per-person |gap| p50 **4.1 -> 1.9 -> 1.8** mg/dL
+with twin-donor rho **0.97 -> 0.98 -> 0.99**, which is at or better than rf2's own refit (L 639's 2.2,
+L 667's 1.8-2.0). The reference is the `kd2` arm on `templates_pilot_resid_kd2.csv`; the next round's
+output `kd3` exists on disk and is NOT the reference's.
+
+**The refit gave back HALF the cost, and tier 1 came out BETTER.** Score **0.340 / 0.382 / 0.396**, mean
+**0.3727** against rf2's **0.3660** and the unrefit `rn1`'s 0.3793 — so the adoption's price is +0.007,
+not +0.013. **Tier 1 0.1740 -> 0.1653**, carried by the two activity-response rows (`act_net20` gap
+0.227 -> 0.155, `act_net20_hi` 0.162 -> 0.095) and `meal_d3h` (31.67 -> 33.33 against the donors' 38.01),
+so the one tier-1 gain job 221 found SURVIVES the refit. **The guard holds and converges on the donors
+from the low side**: t54 0.168 -> **0.203** against their **0.190**, lows/day 1.042 -> 1.069 against 1.000,
+t70 1.798 -> 1.919 against 1.599. TIR 70.89 -> 70.07 (unrefit it was 69.22, so the refit recovered half of
+the −1.7 too); TDD 42.39 -> 42.86 against 38.70, inside the 1.51 U/day draw sd; tier 2 0.472 -> 0.482 and
+tier 3 0.477 -> 0.523, the latter mostly small-n Libre 3 cells moving in BOTH directions (`v_skew` +0.51
+and `sigma_meas` +0.29 against `acf_min` −0.25, `fast_fall_share` −0.23, `hurst_short` −0.18).
+
+**`bg_cv` LANDED ON L 727'S PRE-REGISTERED 37.28 — and the premise of that arithmetic only partly held, so
+read the hit with that attached.** Measured 37.293 / 37.044 / 37.496, mean **37.278**, against the donors'
+34.65 and rf2's 34.90. L 727 priced the refit as "bg_cv is `sd / mean` and the refit restores the mean, so
+post-refit it is 37.28 before any tail-widening". The number is exact to two decimals; the mechanism is not
+what happened. The refit did **not** restore the cohort mean — 153.49 unrefit -> **153.33** refitted, where
+the donors are 151.93 — and what moved instead was `resid_m`'s negative tail, p10 **−40.7 -> −43.8**, which
+is L 639's tail-widening. So the right reading is: the SIZE was predicted correctly from the force removed,
+and the route it took through the fit was the other one of the two L 727 named. Pete's hypothesis above is
+unaffected and still the first thing to re-measure here.
+
+**One consequence to carry: the level gap is the same size and the OPPOSITE SIGN.** Per person the fit
+converged, but the cohort median `bg_mean` now sits **+1.4 ABOVE** the donors (153.33 against 151.93) where
+rf2 sat **1.5 below** (150.45) — scored gap 0.077 -> 0.088, level. Draw 2 is now almost exact (151.49) where
+rf2 was 3.7 low, and draws 1 and 3 run +1.6 and +3.0 high. Every L 638-style level correction on a kd2 arm
+must therefore use kd2's own pre-edit level, and a candidate that moves the level is being read at a
+drifted level of the opposite sign to every figure in the record before today.
+
+**EVERY OTHER NUMBER IN THE OVERLAY, IN MODEL_GUIDE AND IN THESE LESSONS IS STILL rf2's.** Only §10's
+scorecard has been regenerated on kd2. A candidate screen already run on rf2 needs no redo and remains
+valid against rf2, but it cannot be compared with an arm run on kd2 — the L 679 `rf2e_s` discipline, now
+for the body rather than a switch. Say which body a new number is on.
 
 730. **A UNIFORM-REGIME ARM CANNOT PRICE THE REGIME SWITCH, BECAUSE THE DRAWN STRATEGY IS DISCARDED
 BEFORE ANYTHING READS IT — and what such a split actually finds is `resid_m`'s tail.** frontier split
