@@ -7365,16 +7365,23 @@ background = the day's median ICE, a rise = ICE above background + 40 mg/dL/h fo
 its excess load >= 30 mg/dL, rises within 30 min merged) run identically on donors, their generator and
 my arms, reported `e1_gr2` / `e0_gr2` against 151 donors over 28 days. Checks, each cheap, all on data
 already on disk:
-  - **`tdd` 42.4 against 33.6 is an instrument fault on THEIR side, and the honest paired number is
-    +0.79 U/day.** Their donors' TDD is **0.891x the templates' own measured donor TDD, per person, with
-    rho 0.964 over all 151** — a clean scale shift, not a window or composition difference — where the
-    templates' median 38.84 agrees with the scorecard's donor TDD of 38.7. Paired twin minus its OWN
-    donor reads **+6.41 U/day on their donor number and +0.79 on the templates'**, so ~5.6 U/day of the
-    8.9 is the donor side under-counted. Their `ins_u` is `basal_u + bolus_auto_u + bolus_manual_u` from
-    `ice_v32/steps`; the first suspect is AGENTS.md's standing trap, that a basal timeline's NaN rate
-    means SCHEDULED basal running and not zero. Flagged to them; **do not quote this row either way**,
-    and note my own +0.79 is BETTER than L 598's paired +1.40 / +1.40 / +1.67, so it needs its own check
-    before being believed.
+  - **`tdd` 42.4 against 33.6 was an instrument fault on THEIR side, now FIXED, and the paired excess
+    lands on L 598.** Their donors' TDD was **0.891x the templates' own measured donor TDD, per person,
+    with rho 0.964 over all 151** — a clean scale shift, not a window or composition difference — where
+    the templates' median 38.84 agrees with the scorecard's donor TDD of 38.7. **The cause was NOT the
+    trap I named.** I pointed at AGENTS.md's standing one, a basal timeline's NaN rate read as zero
+    instead of as scheduled basal; they checked the steps against the raw dose records (18.35 against
+    18.43 U/day on one donor) and the pipeline was right. The fault was upstream of the sum: their
+    `person_stats` dropped rows with unclean ICE **before** totalling insulin, so those rows' doses
+    vanished. **A plausible entry from the trap list is not a diagnosis** — name it as a hypothesis and
+    let the owner check their own pipeline, which is what settled it here in one read. Fixed, their
+    donors read **37.78 with a per-person ratio to the templates of 0.991 and rho 0.975**, and the paired
+    twin-minus-own-donor excess is **+1.36 median / +1.96 mean +- 0.98 U/day** (their bootstrap: +1.96
+    +- 0.94), against **+0.79 median / +1.15 mean** on the templates' own TDD — the residual difference
+    being the 28-day window, which runs 0.50 U/day under the templates' full-record value over the drawn
+    donors. So this is a THIRD instrument landing on L 598's paired **+1.40 / +1.40 / +1.67 U/day**, and
+    the limit is confirmed, not reduced. **Quote the median and the mean separately**: they differ by
+    0.6 U/day here because the mean is pulled by the high-TDD tail, and L 598's figures are medians.
   - **"Habit beyond chance" has NO paired deficit: `habitual_excess` −0.0132 +- 0.0176, with 46% of twins
     above their own donor** (n 98). The published 0.098 against 0.133 is composition. `noshow_vs_chance`
     is +0.0221 +- 0.0161, i.e. level. So the twins DO put their load at habitual clock times as often as

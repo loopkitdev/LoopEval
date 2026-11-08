@@ -1037,8 +1037,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   day-to-day load CV. Measured on `ge_order` 3 with their own reader: all four move the right way and `onset_rate`
   closes outright (66.5 -> 79.9 against 78.0). Read their yardstick PAIRED and against twin truth before building to
   it — the twins' TRUE stacking is 0.527 at >= 10 g and their TRUE daily carb CV 0.200, both better than the donors'
-  DETECTED values — and do not quote its `tdd` row at all, since the donor side there is 0.891x the templates' own
-  measured donor TDD per person (rho 0.964, n 151), which makes the paired excess +0.79 U/day, not +8.9.
+  DETECTED values. **The yardstick is now settled with them (L 732): the load-bearing rows are `onset_rate`,
+  `habit_skill` and `noshow_vs_chance`, with `meals_day` primary and `stack_frac` / `load_day_cv` reported
+  conditioned on it.** Of those, `noshow_vs_chance` and `habitual_excess` show NO paired deficit (+0.019 +- 0.016,
+  −0.012 +- 0.018), `habit_skill` is −0.102 +- 0.027 (the meal clock, `clk_sd_mult`, L 731) and `onset_rate`
+  −7.0 +- 2.5 — a fourth instrument on L 707's velocity deficit, closed only by `ge_order` 3. Its `tdd` row was
+  broken on the donor side and is FIXED: paired, the twins are +1.36 median / +1.96 mean U/day, confirming
+  L 598's +1.40-1.67 rather than reducing it.
 - **the meal tail has a NAMED lever now** (L 617): the stomach's Erlang transit order. At order 3-4 `meal_d3h` goes
   31.0 -> 37.0-39.0 against the donors' 38.0 (gap 0.373 -> 0.053), `acf_zero_min` 60 -> 50 (its best ever) and the
   fall / rise ratio 0.63 -> 0.69 — four standing limits moving together, which is what a shared cause looks like. The
