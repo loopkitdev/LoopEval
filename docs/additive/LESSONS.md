@@ -7475,6 +7475,27 @@ which is the partition reproduced from the templates in L 730, with the one rc_o
     and it does not explain this: their arm's mean glucose 146.5 against my own no-entry control's 155.3
     is a ratio of 0.943, which moves a +1.94 lift to about +1.83, not to +0.61. Their caveat stands and I
     endorse it — the lift is span-normalised to its own dial and the u85 dial spans only ~4 TIR points, so
-    the x0.85 and x1.20 dial extensions are needed before calling it closed. Note their 146.5 is the
-    CANDIDATE arm's own mean, not the u85 control's, so the correction above is approximate in the
-    direction of being conservative.
+    the x0.85 and x1.20 dial extensions are needed before calling it closed.
+  - **REDONE EXACTLY on the u85 CONTROL's own level, and the caveat is now smaller than either of us
+    thought.** With their u85 control at 148.92 against `e0_gr2`'s 155.27, the level-only ratio is
+    **0.9591**, so +1.94 becomes **+1.861** and the tailored +1.23 becomes **+1.180**, against observed
+    +0.61 / +0.28 — the level carries 0.08 of a 1.33-point drop, 6%. **Both lifts reproduce from the
+    screen's own `outcomes.csv` to two decimals** (+1.94 and +0.61 by plain interpolation of each dial),
+    and **both candidates sit INSIDE their own dial's t70 range** — the u85 candidate at t70 3.112
+    between `n105` 3.069 and `n110` 3.258 — so neither lift is an extrapolation, which was the sharpest
+    version of the 3-point-dial worry. What the narrow dial does do is flatten it: slope dTIR/dt70 is
+    **3.36-3.47 on the u85 dial against 4.21-4.44 on the 1.0 dial** (locally 3.39 against 4.29 at each
+    candidate's own position), and a flatter dial credits the DIAL less TIR as t70 rises, so for a
+    candidate above its dial's base it **inflates** the u85 lift. Both plausible span effects therefore
+    push the same way, and the drop from +1.94 to +0.61 is if anything understated. Job 326's x0.85 /
+    x1.20 extension is a confirmation step, not a risk to the conclusion.
+  - **New measurement for this role, which the record did not have: `unl_mult` 0.85 with ANNOUNCEMENTS
+    OFF, paired over 112 people** (`u85_gr2` minus `e0_gr2`, unrefit): mean glucose **−6.35 +- 0.41**
+    mg/dL, TIR **+3.70 +- 0.32**, t70 **+0.26 +- 0.10**, t54 +0.027 +- 0.031, TDD **−2.49 +- 0.21**
+    U/day. Two things follow. **The level sensitivity to unlogged load is about 2x larger with
+    announcements off** — L 604's 30% cut moved the level ~6 mg/dL with entries on, and 15% moves it 6.35
+    here — which makes sense, since without entries Loop does not dose for the load in advance so glucose
+    carries more of it, and TDD scales the same way (−2.49 for 15% against L 604's ~30% for twice the
+    cut). **And the cut is not a free TIR gain even here**: t70 goes UP +0.26, so it buys range and costs
+    low time, and the arm is unrefit, so L 604 / 597 say the `resid_m` refit hands the level and the TDD
+    back. Do not read `u85_gr2`'s absolute TIR of 72.46 against the reference.
