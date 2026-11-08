@@ -7307,6 +7307,9 @@ separate reasons, all measured on the arms already on disk (`runs/2026-11-07-add
   per-person deltas — which is one ~75 s arm with `ADD_STRATEGY` unset and does not exist in that run
   dir. Method, generally: when a switch is applied by overwriting a drawn trait, the drawn trait becomes
   a label on donor composition, and the group means it splits are L 701's pooled ratio again, one level up.
+  **PRICED at L 733**: that paired arm ran as job 323, the 61 / 51 gate passed exactly, and the switch is
+  worth TIR +2.34 / +2.46 at t70 +0.38 / +0.57 for the 51 switched people — with a dial-adjusted lift of
+  +0.8 to +1.7 TIR, so it is not a needs-dial step.
 
 731. **THE TWINS' DAY-TO-DAY MEAL RHYTHM IS WEAK, AND IT SPLITS ~55 / 45 BETWEEN WHAT THE MEAL CLOCK
 CANNOT REACH AND THE MEAL CLOCK'S OWN SD — bracketed with no simulation, and `clk_sd_mult` lands to
@@ -7433,3 +7436,45 @@ already on disk:
     instrument's own reader (here their `add()`, `trace.json`'s `candidateICE * 12`) whenever a statistic
     has a dimensional threshold in it, and gate every proxy against a published number before reading a
     difference from it.
+
+733. **THE REGIME SWITCH IS NOW PRICED, THE GATE L 730 SPECIFIED PASSED EXACTLY, AND IT IS NOT A
+NEEDS-DIAL STEP IN DISGUISE — it carries a dial-adjusted lift of +0.8 to +1.7 TIR.** Job 323 (frontier's,
+rf2 body, frozen copy, engine `03e0ce3`, gr2 controller) ran the paired arm L 730 asked for: the same
+people under the drawn mix and under `ADD_STRATEGY=autobolus`. **The free exact gate passed on both
+arms — 61 of 61 drawn-autobolus people bit-identical on `truth.bg` and 51 of 51 drawn-temp different**,
+which is the partition reproduced from the templates in L 730, with the one rc_own GBAF collision person
+(i010 = v01067, drawn autobolus at share 1.0) on the untouched side as predicted.
+  - **The price, forced autobolus minus each person's own temp basal over the 51 switched people** (their
+    means, 95% CI): entries ON, TIR **+2.34 [+1.62, +3.05]**, t70 **+0.38 [+0.17, +0.61]**, t54 **+0.095
+    [+0.010, +0.218]**, TDD +3.06 U/day, mean glucose −5.1; entries OFF, TIR **+2.46 [+1.43, +3.41]**,
+    t70 **+0.57 [+0.31, +0.85]**, t54 **+0.118 [+0.047, +0.200]**, TDD +4.18 U/day, mean −5.7. So the
+    switch buys time in range and costs low time, which by AGENTS.md is not a win on its own.
+  - **BUT IT IS NOT JUST MORE INSULIN, and the peer's "about what a needs-dial step costs" is too
+    pessimistic.** The screen carries the gr2 needs dial on the same arms (`e{0,1}_gr2_n085` ... `n130`),
+    so the `dial_lift` construction this role's overlay already prescribes can be run on the SAME 51
+    people, who stay on temp basal in every dial arm while the dial scales basal / ISF / CR together.
+    Interpolated to the switch's own low-side cost: at matched **t70** the dial gives **+0.67 TIR
+    (entries on) and +1.69 (off)** against the switch's +2.34 / +2.46, so the switch leads by **+1.67 and
+    +0.77 TIR**; at matched **t54** the dial gives **+0.93 and +1.39**, so it leads by **+1.41 and
+    +1.07**. Two independent guard matchings agree in sign and rough size, and the switch's own t54 at
+    matched t70 is a little worse on e1 (0.095 against 0.053) and a little better on e0 (0.118 against
+    0.132), so there is no consistent extra severe-low cost. **Automatic bolusing is therefore a genuinely
+    more efficient delivery of the same extra insulin for these people, not a dial step.** Read that as
+    a statement about this BODY and this controller, with L 680's 0.63 glucose-per-delivered-unit caveat
+    attached: ranking is supported, magnitude is a lower bound.
+  - **The correction factor the `strategy_ab` warning needed.** Only the 51 drawn-temp people move, so
+    forcing the whole cohort to one regime shifts the COHORT by **TIR +1.07 / +1.12, t70 +0.17 / +0.26,
+    t54 +0.043 / +0.054 and TDD +1.39 / +1.90 U/day** (entries on / off, the paired means x 51/112).
+    Subtract that before reading a `--enable strategy_ab` arm against the reference's own numbers; it does
+    NOT make the arm comparable, since the switched people are a selected 46% of the cohort, but it sizes
+    the offset instead of leaving it unquantified.
+  - **And the unannounced-load lead of L 603 IS implicated in the no-entry disagreement, surviving the
+    level correction.** Their second arm: at `unl_mult` 0.85 with no entries, their candidate's lift over
+    its own u85 dial falls to **+0.61 [−0.11, +1.49]** (tailored +0.28) from **+1.94 / +1.23** at
+    `unl_mult` 1.0, most of the way to the generator's +0.56. L 638's trap says to check the level first,
+    and it does not explain this: their arm's mean glucose 146.5 against my own no-entry control's 155.3
+    is a ratio of 0.943, which moves a +1.94 lift to about +1.83, not to +0.61. Their caveat stands and I
+    endorse it — the lift is span-normalised to its own dial and the u85 dial spans only ~4 TIR points, so
+    the x0.85 and x1.20 dial extensions are needed before calling it closed. Note their 146.5 is the
+    CANDIDATE arm's own mean, not the u85 control's, so the correction above is approximate in the
+    direction of being conservative.

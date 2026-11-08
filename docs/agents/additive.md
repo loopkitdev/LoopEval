@@ -99,6 +99,14 @@ session rather than me.
   such a split picks up is **`resid_m`'s tail** (+0.118 +- 0.016 t70 points per mg/dL/h of |`resid_m`|;
   the large-|`resid_m`| quartile is 26% of heads and carries 54-56% of t70) — L 684's limit, not a dosing
   cost. The test is PAIRED: the same person under the drawn mix and the forced regime, one ~75 s arm.
+  **RUN as job 323 and the regime IS now priced (L 733)**, with the 61 bit-identical / 51 different gate passing
+  exactly: forced autobolus minus each person's own temp basal, over the 51 switched people, is TIR **+2.34
+  [+1.62, +3.05]** / t70 **+0.38 [+0.17, +0.61]** / t54 +0.095 / TDD +3.06 U with entries on, and +2.46 / +0.57 /
+  0.118 / +4.18 U with them off. **It is NOT a needs-dial step**: against the gr2 needs dial on the same 51 people,
+  at matched t70 the dial gives +0.67 / +1.69 TIR and at matched t54 +0.93 / +1.39, so the switch leads by +0.8 to
+  +1.7 TIR. **Cohort-wide offset for a `strategy_ab` arm** (only the 51 move, so x 51/112): TIR +1.07 / +1.12,
+  t70 +0.17 / +0.26, t54 +0.043 / +0.054, TDD +1.39 / +1.90 U/day — subtract it before reading such an arm against
+  the reference, which still does not make the two comparable, since the switched people are a selected 46%.
 - **Four further limits to state with any result.** (1) `rc_own` already spends `--candidate-integral-rc`,
   `--candidate-integral-rc-clamp` and `--candidate-gbaf*` on the donors who deployed them
   (`_rc_flags`), so a candidate touching RC or GBAF collides for a SUBSET and the arm stops being
