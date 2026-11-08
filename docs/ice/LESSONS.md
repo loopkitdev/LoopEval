@@ -2608,8 +2608,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       carries almost none of it.
     - With the shadow entry, the entry inputs are restored, and what's left is higher glucose (163 against 146) lowering
       the background, amplified by persistence. Whether that is right depends on the real glucose effect on background
-      ICE at matched state, which is not yet measured. The persistence gain (about 4×) is the larger lever; it is also
-      why the generator's day-level background spread runs above the field (bg_day_sd +0.9 to +1.8, lesson 195).
+      ICE at matched state, which is not yet measured. The fourfold multiplier is how much the model leans on its own
+      recent background, not proof that its persistence is wrong: lesson 183 found background persistence at the
+      field's under the ×0.95 shrink. Whether it explains the day-level spread excess (bg_day_sd +0.9 to +1.8, lesson
+      195) is untested.
 
 197. **The generator's per-edit misses track its own level miss in the pre-edit window. Knowing the person's real
     recent level would lift within-direction ranking on TIR and mean by about 0.1 r.** New base, five trainings, pre
