@@ -1116,6 +1116,20 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   off, ICE−carbEffect scores 0.374 while `candidateDiscrepancy` scores **−0.073**. Verify a residual-keyed
   gate from `candidateICE - candidateCarbEffect`; reading the field whose name matches would measure no habit
   at all and declare the gate shut.
+  **COMPARING A GATE'S OPEN RATE ACROSS BEDS HAS TWO BIASES IN OPPOSITE DIRECTIONS, AND NEITHER IS ABOUT
+  HABIT** (2026-11-08, for frontier's donor-replay open rate). (a) The STATISTIC is nearly window-invariant:
+  the donors' `habit_skill` over 13 days against the 28 days `meal_stats` uses is **−0.017 +- 0.008** paired
+  per donor (median −0.007, n 111), with the share above 0.3 / 0.4 / 0.5 moving 0.883 / 0.784 / 0.613 ->
+  0.829 / 0.748 / 0.568 — so a few points, not a confound. (b) A RUNNING gate's share of steps at full is
+  NOT window-invariant, because the warm-up is a fixed length of time: 2 days is **16%** of a twin's 12.75-day
+  scored span (14 days less the 1800-min burn-in, 13 local days) and **7%** of a 26-day donor span, so the
+  donor side reads ~9 points more open for no behavioural reason. (c) The other way, the donors lose days to
+  CGM coverage where the twins do not — under `meal_stats`' own >= 250-of-288-bin filter the median donor keeps
+  **19 of 28** days and **9 of 13**, against modelled wear 0.976 — and a same-clock running correlation needs
+  >= 3 previous days present, so real gaps push a real person's gate toward partial for an instrument reason.
+  Report such a rate over a matched POST-warm-up span with the required previous days present on both sides,
+  and report warm-up and gap exclusions as their own line. This is L 585's window rule applied to a running
+  controller statistic rather than to an autocorrelation.
 - **the meal tail has a NAMED lever now** (L 617): the stomach's Erlang transit order. At order 3-4 `meal_d3h` goes
   31.0 -> 37.0-39.0 against the donors' 38.0 (gap 0.373 -> 0.053), `acf_zero_min` 60 -> 50 (its best ever) and the
   fall / rise ratio 0.63 -> 0.69 — four standing limits moving together, which is what a shared cause looks like. The
