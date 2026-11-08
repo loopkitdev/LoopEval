@@ -2553,3 +2553,24 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Which no-entry TIR is right (−3.8 or −7.6 against entries on) cannot be read off these runs: no-entry candidates
       need a real-data anchor (days or people with few entries, matched on intake) before the shadow is frozen for
       frontier. Kept off by default until then.
+
+194. **A per-person clock on meal-start timing alone halves the habit-predictability gap without new lows; the clock's
+    background and meal-size parts add lows and are dropped.** oc0, e pool, pre-edit window, own settings, 220 rollouts
+    paired with the same people's real days (runs/2026-11-07-ice-habit/build_clock.py, meal_eval.py; frontier's
+    meal_stats detector). Simulated minus own real days, mean ± bootstrap se:
+    | | base | full clock | meal timing only |
+    |---|---|---|---|
+    | habit_skill | −0.103 ± 0.013 | −0.085 ± 0.015 | −0.051 ± 0.013 |
+    | habitual_excess | −0.104 | −0.091 | −0.100 |
+    | meals per day | +0.77 | +0.65 | +0.64 |
+    | meal_jitter_min | +7.5 | +6.2 | +7.1 |
+    | level t<70 / TIR | 3.61 / 75.0 | 4.26 / 73.6 | 3.32 / 74.8 |
+    - These clocks were fitted on all of each person's real days, the scored days included. A refit leaving the scored
+      days out (`HELDOUT=1 MEAL_ONLY=1`, on the new base for trainings 0 and 1) agrees with the in-sample offsets at
+      r 0.86; its runs are the test that decides it.
+    - The meal clock moves the average daily profile, not the day-to-day repetition: habitual_excess (habit against a
+      clock-shuffled null) is unchanged. The remaining habit gap needs meal times that follow the person's own previous
+      days, which a fixed profile can't give.
+    - Showing the person's model the meal bolus that a dropped entry would have carried (PLANT_SHADOW_BOLUS=1, not
+      delivered) changes nothing beside lesson 193's shadow entry (ICE 1480 against 1471 per day, TIR 65.1 both). The
+      missing bolus input is not why no-entry food stays short.
