@@ -2642,9 +2642,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Per-person slope from 90–130 to 180–260, per 100 mg/dL: real +24.7 (IQR 10.8–44.7), generated +22.2 (6.8–36.8).
     - Above 260 the generated person's background is ~33 mg/dL/h below a real person's at the same glucose. Not the
       plant's add-ons: the ns arm (oc0 with calib_bg_band zeroed and the low/high kernels removed, 276 people) reads
-      +15.6 / +12.2 / +6.2 in the top three bands, the same collapse. It is the network's own. Open: whether the network
-      fed real inputs at real high-glucose steps also predicts it low (a model fault), or whether closed loop reaches
-      260+ by other routes than the field (insulin shortfall rather than food), so the same glucose carries less food.
+      +15.6 / +12.2 / +6.2 in the top three bands, the same collapse.
+    - Not the network fed real history either: teacher-forced on 60 trained donors' held-out tails
+      (runs/2026-11-01-ice-stateabl/calib_glucose.py), the background head's mean error is −0.4 to −2.6 mg/dL/h in every
+      band, −2.4 at ≥260 (real 51.9, predicted 53.1). The collapse exists only in closed loop. The generated person
+      reaches 260+ by a different route than the field, through their own generated history, with less food behind the
+      high. Generated highs then fall back faster than real ones, the high-side twin of lesson 188's fast falls through
+      80–120.
     - For lessons 193 and 196: the glucose channel that lowers the shadow-entry background is right in the 140–220 range
       where most of that arm's time sits. So the shadow arm's extra TIR loss is not a glucose artifact there, and above
       260 the generator understates the background, if anything.
