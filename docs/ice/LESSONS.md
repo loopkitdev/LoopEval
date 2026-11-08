@@ -2670,3 +2670,23 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       (73.9 against 80.1) in the same windows.
     - Under test: a per-person spread fitted so each person's generated pre-window t<70 matches the field's
       (build_ps.py, calib_bg_spread_person in a copy of the checkpoint, probe_ps.sh, pre window both settings).
+200. **A per-person spread fitted to each person's lows fixes who has lows and the low-side ranking, but costs the
+    more-insulin ranking: the generator's lows are wrong apart from its highs, so one spread number cannot fit both.**
+    Training 0, e pool, 337 edits, pre window, drift removed; spread s = 0.95 + (field − generated pre-window t<70) /
+    slope, clipped to [0.6, 1.2] (83 of 265 people at a clip; median 0.85) (runs/2026-11-01-ice-stateabl/build_ps.py,
+    probe_ps.sh, ps_eval.py, ps_split.py).
+    - Who has lows: person-level r with field t<70 0.47 → 0.69 (log scale 0.49 → 0.71); median t<70 3.17 → 3.51
+      (field 1.9), TIR 73.9 → 74.9 (field 80.1).
+    - Per-edit r, base → per-person spread (90% of the difference), replay beside it: t<70 on less-insulin edits
+      0.10 → 0.32 (+0.07 to +0.34; replay 0.42), TIR on less-insulin 0.15 → 0.25 (+0.01 to +0.19). On more-insulin
+      edits TIR 0.13 → 0.02 (−0.27 to +0.04) and mean 0.29 → 0.17 (−0.20 to −0.01); mean over all 0.45 → 0.40.
+    - Not leakage from a person's other edits: on the 203 edits of single-edit people, t<70 on less-insulin edits goes
+      0.10 → 0.40 (+0.11 to +0.49).
+    - The cost comes from the 134 people whose spread was narrowed. Their generated time below 70 falls only 4.8 → 3.7
+      (field 1.4) while time above 180 falls 20.6 → 15.5, past the field's 17.1, and their predicted TIR gain from more
+      insulin drops to +0.6 against the field's +2.4. The 79 widened people match on lows (1.7 → 4.0, field 3.1) but
+      their highs, already too many, rise (24.8 → 27.4, field 15.3).
+    - Not kept. The low side needs its own per-person lever. Under test: the closed-loop low-response kernel
+      (calib_low_kernel, a lift for about an hour after each drop below 70) at strength ×2 and with its trigger moved to
+      80 (probe_lk.sh, training 0), to measure how each moves each person's lows, then a two-number fit per person:
+      spread to the highs, low response to the lows.
