@@ -2640,10 +2640,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     | real (250) | −14.5 | −8.9 | −4.0 | +8.1 | +14.4 | +19.7 | +33.6 |
     | generated (301) | −14.7 | −8.4 | −2.5 | +7.0 | +13.9 | +14.6 | +0.1 |
     - Per-person slope from 90–130 to 180–260, per 100 mg/dL: real +24.7 (IQR 10.8–44.7), generated +22.2 (6.8–36.8).
-    - Above 260 the generated person's background is ~33 mg/dL/h below a real person's at the same glucose. The plant's
-      high kernel (calib_high_kernel, applied after each crossing above 250) is the first suspect: it would put exactly
-      this dent where the field has none.
+    - Above 260 the generated person's background is ~33 mg/dL/h below a real person's at the same glucose. Not the
+      plant's add-ons: the ns arm (oc0 with calib_bg_band zeroed and the low/high kernels removed, 276 people) reads
+      +15.6 / +12.2 / +6.2 in the top three bands, the same collapse. It is the network's own. Open: whether the network
+      fed real inputs at real high-glucose steps also predicts it low (a model fault), or whether closed loop reaches
+      260+ by other routes than the field (insulin shortfall rather than food), so the same glucose carries less food.
     - For lessons 193 and 196: the glucose channel that lowers the shadow-entry background is right in the 140–220 range
       where most of that arm's time sits. So the shadow arm's extra TIR loss is not a glucose artifact there, and above
-      260 the generator understates the background, if anything. Under test next: the high kernel off (or scaled), level
-      and change prediction on the new base.
+      260 the generator understates the background, if anything.
