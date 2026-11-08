@@ -1134,8 +1134,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   which the partial first (18 h, 216 bins) and sometimes the last fail a >= 250-of-288 filter (measured p10 11,
   max 12, over 112 people on both `e1_gr2` and `e0_gr2`). After a 3-day habit history and a 2-day gate warm-up
   that leaves a **median 7 days, p10 6** — and **0 of 112 twins reach 8** — so a fixed 8-day window cannot be
-  measured on this body at all, and 6 days keeps 92% of the cohort (7 keeps 81%). Check a span against this
-  before matching beds on it.
+  measured on this body at all. **Re-measured against the criterion a running gate actually uses** — the first
+  step whose 2-h clock block has >= 3 of the previous 1-7 days present, which is more permissive than a
+  whole-day coverage filter — the first habit-valid day is **exactly 4 for all 112 twins** (p10 = median = max,
+  because modelled wear leaves almost no gaps) and the last is 13, so with a 2-day warm-up **a span of 6 or 7
+  days qualifies 112 of 112 and 8 qualifies none**. The limit is 7 with no margin; 6 has a day spare. Note the
+  asymmetry this exposes: this body's span start is DETERMINISTIC while a donor's moves with their gaps, so on
+  a matched-span comparison it is the donor side's qualifying count that needs watching, not ours.
 - **the meal tail has a NAMED lever now** (L 617): the stomach's Erlang transit order. At order 3-4 `meal_d3h` goes
   31.0 -> 37.0-39.0 against the donors' 38.0 (gap 0.373 -> 0.053), `acf_zero_min` 60 -> 50 (its best ever) and the
   fall / rise ratio 0.63 -> 0.69 — four standing limits moving together, which is what a shared cause looks like. The
