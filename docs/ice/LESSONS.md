@@ -2738,3 +2738,20 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       (BGICE_SPREAD_LO, calib_bg_spread_lo_person in plant_v3), which trims the low tail without reacting to insulin on
       board; ×0.8 for everyone first (probe_slo.sh, slo_post.sh), to measure its effect on lows, highs and the pooled
       response before a per-person fit with the spread.
+204. **A low-side spread cuts lows without the defense's resistance, but alone it raises highs and overstates the
+    response to insulin.** Training 0, e pool, pre window, drift removed: the background draw's glucose-lowering
+    deviations ×0.8 for everyone on top of the base (runs/2026-11-01-ice-stateabl/probe_slo.sh, slo_post.sh, slo_sens.py).
+    - Levels: median lows 3.17 → 1.17 (field 1.90), highs 21.7 → 30.6 (field 17.0); TIR level error median −4.0 → −8.1.
+      Per person it cuts lows a median 1.70 points (IQR 0.86–2.92) and adds 6.9 above 180 (IQR 3.3–11.8): per unit it
+      moves highs about four times as hard as lows, against the spread, which moves them the same way. The two are
+      well conditioned for a per-person fit.
+    - The response grows instead of shrinking: on more-insulin edits the predicted mean-glucose change is −14.3 against
+      the field's drift-removed −6.24 (base −6.30), and the TIR gain +4.03 (field +2.36). The cause is the level: the
+      generated people run higher, so the controller and the edit act on more time above range. The defense (lesson
+      203) damps the response and this lever amplifies it, so the response tracks how high the person runs, not the lever.
+    - Per-edit r, base → arm: t<70 0.23 → 0.11 (−0.17 to −0.07), more-insulin t<70 0.08 → −0.08; mean 0.45 → 0.26; TIR
+      0.25 → 0.30 (0.00 to +0.11).
+    - Not kept as a uniform factor. Under test: spread and low-side spread fitted per person to the field's pre-window
+      lows and highs (build_pss.py: spread median 0.83, IQR 0.69–0.93; low-side median 1.01, IQR 0.84–1.20; 79 values
+      at a limit; linear prediction lows 2.05, highs 18.6), which brings the level back, to see whether the response
+      returns to the field's with it (probe_pss.sh, pss_post.sh, training 0).
