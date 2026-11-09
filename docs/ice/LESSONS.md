@@ -2779,3 +2779,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       +5.5, +5.3). With the glucose-lowering swings trimmed, nothing offsets the insulin removed. Under test: the
       low-side factor floored at 0.9, spread refit by least squares where floored (pssq9, 88 and 73 people), trainings 0
       and 1.
+    - Floor at 0.9 (pssq9), trainings 0 / 1, base → floored (90% of the difference): t<70 on less-insulin edits 0.10 →
+      0.30 (+0.06 to +0.32) / 0.11 → 0.28 (−0.02 to +0.33); TIR on more-insulin edits 0.13 → 0.24 / 0.05 → 0.21 (+0.05 to
+      +0.28); mean over all edits back within noise (0.45 → 0.40, 0.39 → 0.34); still lost on less-insulin edits: mean
+      0.21 → 0.09 (−0.23 to −0.02) / 0.26 → 0.11 (−0.25 to −0.06), TIR 0.15 → 0.06 / 0.27 → 0.14 (−0.26 to −0.02).
+      Pooled mean change −5.39 / +4.03 and −5.29 / +4.24 (field −6.24 / +4.49); TIR level error |.| 4.5 / 5.4 (base 7.6
+      / 6.9). Under test on trainings 2 and 3.
