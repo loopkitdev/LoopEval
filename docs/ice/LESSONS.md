@@ -2770,3 +2770,12 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Under test: the same fit on training 1 (its own base levels, training 0's per-person effects), and a second
       linear step on training 0 from the fitted point (pss2: spread median 0.72, 98 of 265 at the 0.6 limit), to see
       whether closing the remaining lows gap helps the ranking.
+    - Training 1 repeats it (90% of the difference): t<70 on less-insulin edits 0.11 → 0.33 (+0.06 to +0.37), TIR on
+      more-insulin edits 0.05 → 0.27 (+0.09 to +0.36); mean on less-insulin edits 0.26 → 0.01 (−0.37 to −0.11), TIR on
+      less-insulin edits 0.27 → 0.16 (−0.23 to +0.01). Pooled mean change −5.51 / +5.96 (field −6.24 / +4.49).
+    - The second step (pss2) is worse on every ranking and doubles the more-insulin response (−10.2): dropped.
+    - The cost sits with people fitted to a low-side factor below 0.9 (pss_split.py): when they cut insulin the field's
+      mean glucose barely moves (−0.4 and −1.5 drift-removed, n 40 and 29), but the fit predicts +7.1 and +13.9 (base
+      +5.5, +5.3). With the glucose-lowering swings trimmed, nothing offsets the insulin removed. Under test: the
+      low-side factor floored at 0.9, spread refit by least squares where floored (pssq9, 88 and 73 people), trainings 0
+      and 1.
