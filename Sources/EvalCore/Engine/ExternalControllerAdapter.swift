@@ -138,14 +138,27 @@ public final class ExternalController: @unchecked Sendable {
     }
 }
 
+/// The candidate's decision from an external process or, with --candidate-loop-adaptive, from LoopAdaptive in-process.
+enum CandidateController: @unchecked Sendable {
+    case external(ExternalController)
+    case loopAdaptive(LoopAdaptiveController)
+}
+
 struct ExternalControllerAdapter: DosingEngine {
-    let controller: ExternalController
+    let controller: CandidateController
     private let loop = LoopAdapter()
+
+    init(controller: CandidateController) { self.controller = controller }
 
     func step(_ req: EngineStepRequest) -> EngineStepResult {
         let r = loop.step(req)
         let reply: (bolus: Double, tempRate: Double, manualRec: Double?)
-        do { reply = try controller.decide(req, loop: r) } catch {
+        do {
+            switch controller {
+            case .external(let c): reply = try c.decide(req, loop: r)
+            case .loopAdaptive(let c): reply = c.decide(req)
+            }
+        } catch {
             FileHandle.standardError.write(Data("\(error)\n".utf8))
             exit(1)
         }

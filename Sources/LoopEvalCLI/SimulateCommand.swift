@@ -693,6 +693,19 @@ struct SimulateCommand: AsyncParsableCommand {
         } else {
             controller = nil
         }
+        let loopAdaptive: LoopAdaptiveController?
+        if let json = candidateLoopAdaptive {
+            guard candidateCounterfactual else {
+                throw ValidationError("--candidate-loop-adaptive requires --candidate-counterfactual")
+            }
+            guard controller == nil && !candidateOpenaps && !candidateLoopMimicOaps else {
+                throw ValidationError("--candidate-loop-adaptive replaces the candidate engine; drop --candidate-external-controller / --candidate-openaps / --candidate-loop-mimic-oaps")
+            }
+            do { loopAdaptive = try LoopAdaptiveController(json: json) } catch { throw ValidationError("\(error)") }
+            printStderr("Loop Adaptive (in-process): \(json)\n")
+        } else {
+            loopAdaptive = nil
+        }
         printStderr("Running closed-loop simulation (sequential, ~10× slower than bench)...\n")
         var candidateTherapy: TherapyTimeline? = nil
         if let path = candidateSchedulesJson {
@@ -760,6 +773,7 @@ struct SimulateCommand: AsyncParsableCommand {
             sensorCapMgdl: sensorCapMgdl,
             externalPlant: plant,
             externalController: controller,
+            loopAdaptive: loopAdaptive,
             plantBehavior: plantBehavior,
             candidateTherapy: candidateTherapy,
             lowResponse: lowResponse,

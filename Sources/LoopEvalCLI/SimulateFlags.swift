@@ -263,6 +263,9 @@ struct SimulateCandidateFlags: ParsableArguments {
 
     @Option(name: .customLong("candidate-external-controller"), help: "Shell command for an external dosing function (candidate engine). Each candidate decision sends the process the decision's glucose window, the candidate's own dose history, the visible carb entries, the settings and limits at t, and Loop's own decision (for the echo identity check only) as one JSON line; the reply {\"bolus\": U, \"temp_rate\": U/h} is clamped to the limits and floored to the pump's increments. Loop still supplies the trace's forecast/IOB/COB diagnostics and the bolus-calculator recommendation for manual boluses. Protocol in ExternalControllerAdapter.swift.")
     var candidateExternalController: String? = nil
+
+    @Option(name: .customLong("candidate-loop-adaptive"), help: "Candidate engine = the Loop Adaptive Algorithm in-process (LoopAdaptive module of the LoopAlgorithm package). Takes analysis/reduction/adaptive.py's tdd_pd params as JSON, e.g. '{\"tdd\": 36, \"basal_uh\": 0.7, ...}', and makes the same decision as --candidate-external-controller running adaptive.py with them, without the process. Exclusive with --candidate-external-controller.")
+    var candidateLoopAdaptive: String? = nil
 }
 
 // Person: manual boluses and carbs
@@ -911,6 +914,7 @@ extension SimulateCommand {
     var candidateOpenaps: Bool { get { candidate.candidateOpenaps } set { candidate.candidateOpenaps = newValue } }
     var candidateLoopMimicOaps: Bool { get { candidate.candidateLoopMimicOaps } set { candidate.candidateLoopMimicOaps = newValue } }
     var candidateExternalController: String? { get { candidate.candidateExternalController } set { candidate.candidateExternalController = newValue } }
+    var candidateLoopAdaptive: String? { get { candidate.candidateLoopAdaptive } set { candidate.candidateLoopAdaptive = newValue } }
     // Person: manual boluses and carbs
     var noUserBoluses: Bool { get { person.noUserBoluses } set { person.noUserBoluses = newValue } }
     var noCarbEntries: Bool { get { person.noCarbEntries } set { person.noCarbEntries = newValue } }

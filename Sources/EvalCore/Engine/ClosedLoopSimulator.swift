@@ -244,6 +244,9 @@ extension EvaluationEngine {
         // EXTERNAL CONTROLLER: the candidate's dose decision comes from another process
         // (ExternalControllerAdapter.swift). nil = the engine chosen by the flags above.
         externalController: ExternalController? = nil,
+        // LOOP ADAPTIVE in-process: the same decision as adaptive.py through externalController, from the
+        // LoopAdaptive module (LoopAdaptiveController.swift). Exclusive with externalController.
+        loopAdaptive: LoopAdaptiveController? = nil,
         // PLANT BEHAVIOR (protocol v2): the plant's person makes the carb entries and manual
         // boluses. From cfActiveStart the candidate ignores the REAL ones; carbs the plant returns
         // join the candidate's carb store, boluses are delivered at the next decision as
@@ -293,7 +296,9 @@ extension EvaluationEngine {
         let baselineEngine: DosingEngine = LoopAdapter()
         let candidateEngine: DosingEngine
         if let controller = externalController {
-            candidateEngine = ExternalControllerAdapter(controller: controller)
+            candidateEngine = ExternalControllerAdapter(controller: .external(controller))
+        } else if let controller = loopAdaptive {
+            candidateEngine = ExternalControllerAdapter(controller: .loopAdaptive(controller))
         } else if useLoopMimicForCandidate {
             candidateEngine = LoopMimicViaOpenAPSAdapter()
         } else if useOpenAPSForCandidate {
