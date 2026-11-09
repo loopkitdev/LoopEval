@@ -2755,3 +2755,18 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       lows and highs (build_pss.py: spread median 0.83, IQR 0.69–0.93; low-side median 1.01, IQR 0.84–1.20; 79 values
       at a limit; linear prediction lows 2.05, highs 18.6), which brings the level back, to see whether the response
       returns to the field's with it (probe_pss.sh, pss_post.sh, training 0).
+205. **Fitting spread and low-side spread per person sets the levels and keeps the response to insulin: the first fit
+    that does both.** Training 0, e pool, pre window, drift removed (runs/2026-11-01-ice-stateabl/build_pss.py,
+    probe_pss.sh, pss_post.sh, pss_sens.py).
+    - Levels: TIR level error median |.| 7.6 → 4.5; median lows 3.17 → 2.92 (field 1.90; the linear step predicted
+      2.05, so lows respond less than linearly to the cut), highs 21.7 → 18.4 (field 17.0); person-level r with field
+      lows 0.49 → 0.80 (spread + defense: 0.66).
+    - Pooled response: mean-glucose change on more-insulin edits −6.49 (field drift-removed −6.24, base −6.30), on
+      less-insulin edits +4.41 (field +4.49, base +5.25). TIR gain on more-insulin edits +1.78 (field +2.36, base +2.20);
+      t<70 change unchanged from the base (+0.87 / −0.77 against the field's +0.60 / −0.64).
+    - Per-edit r, base → fitted (90% of the difference): t<70 on less-insulin edits 0.10 → 0.33 (+0.07 to +0.36); TIR on
+      more-insulin edits 0.13 → 0.30 (0.00 to +0.34); TIR on less-insulin edits 0.15 → 0.04 (−0.23 to +0.02); mean 0.45
+      → 0.32 (−0.17 to −0.03), its loss on less-insulin edits (0.21 → 0.07). TIR and t<70 over all edits within noise.
+    - Under test: the same fit on training 1 (its own base levels, training 0's per-person effects), and a second
+      linear step on training 0 from the fitted point (pss2: spread median 0.72, 98 of 265 at the 0.6 limit), to see
+      whether closing the remaining lows gap helps the ranking.
