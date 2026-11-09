@@ -2721,3 +2721,20 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       spread moves them together, so the two set a person's lows and highs separately. Under test: both fitted per
       person to the field's pre-window lows and highs (build_psd.py: spread median 0.83, defense ×0.94 median, IQR
       ×0.25–×2.97, 121 of 265 at a limit; probe_psd.sh, training 0).
+203. **Fitting spread and defense strength per person sets the levels and the low-side ranking but makes the generator
+    resist insulin: the defense is triggered by insulin on board.** Training 0, e pool, pre window, drift removed
+    (runs/2026-11-01-ice-stateabl/build_psd.py, probe_psd.sh, psd_post.sh).
+    - Levels: TIR level error median |.| 7.6 → 4.4; median lows 3.17 → 2.73 (field 1.90), highs 21.7 → 20.1 (field
+      17.0); person-level r with field lows 0.49 → 0.66.
+    - Per-edit r, base → fitted (90% of the difference): t<70 on less-insulin edits 0.10 → 0.33 (+0.07 to +0.36; single-
+      edit people 0.10 → 0.35); TIR within noise everywhere; mean 0.45 → 0.27 (−0.27 to −0.11), more-insulin mean 0.29 →
+      0.11 (−0.29 to −0.05).
+    - The pooled response breaks: on more-insulin edits the predicted mean-glucose change shrinks from −6.30 (base) to
+      −3.39 against the field's drift-removed −6.24, and the TIR gain from +2.20 to +1.13 (field +2.36). The defense acts
+      when glucose minus insulin on board points low, so extra insulin sets it off and it cancels part of the insulin;
+      at the strengths the fit asked for (121 of 265 people at ×0.25 or ×4) it is a resistance. Spread alone (lesson 200)
+      shrank the same change less (−5.09).
+    - Not kept. Under test: a low-side spread, an extra factor on the background draw's glucose-lowering deviations only
+      (BGICE_SPREAD_LO, calib_bg_spread_lo_person in plant_v3), which trims the low tail without reacting to insulin on
+      board; ×0.8 for everyone first (probe_slo.sh, slo_post.sh), to measure its effect on lows, highs and the pooled
+      response before a per-person fit with the spread.
