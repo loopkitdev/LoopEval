@@ -2715,3 +2715,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       (lesson 69, memory "low response is a personal trait").
     - Under test: the defense moved for everyone, onset 20 mg/dL earlier and strength ×2 (build_def.py, probe_def.sh),
       to measure how each moves each person's lows and highs before a per-person fit.
+    - Result of the defense arms (def_sens.py): strength ×2 cuts a person's lows by a median 0.89 points (IQR 0.40–1.90;
+      median 3.17 → 1.92, field 1.90) and adds 2.6 points above 180; onset 20 mg/dL earlier cuts 0.63 and adds 1.5.
+      Spread moves both the same way (per +0.1: lows +0.85, highs +2.4). The defense trades lows for highs and the
+      spread moves them together, so the two set a person's lows and highs separately. Under test: both fitted per
+      person to the field's pre-window lows and highs (build_psd.py: spread median 0.83, defense ×0.94 median, IQR
+      ×0.25–×2.97, 121 of 265 at a limit; probe_psd.sh, training 0).
