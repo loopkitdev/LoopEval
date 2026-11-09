@@ -10,8 +10,64 @@ name (c135, lg12, sd3) is a run under the matching dated run dir. Values are the
 
 ## A. Physiology
 
-- **A1 Glucose kinetics.** SG lnN(0.0045 /min, 0.5), inside UVA/Padova's 0.0013–0.0047 (Pete 2026-10-16: calibratable against slow structure
-  in that range); VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
+- **A1 Glucose kinetics.** SG lnN(0.0045 /min, 0.5) (Pete 2026-10-16: calibratable against slow structure inside
+  UVA/Padova's 0.0013–0.0047). ⚠ **That range is PER PERSON** (§05: a plant impulse fit), and only the MEDIAN of this
+  draw is inside it: the lognormal puts **47% of the cohort above 0.0047** and p95 at 0.0102, 2.2× the top. Read as a
+  per-person bracket the evidence implies median √(0.0013·0.0047) = **0.00247** (`sg_mult` 0.55) and log-sd
+  ln(3.615)/(2·1.645) = **0.39** — the draw is 1.8× too high and 1.3× too wide. §15's standing check ("is the sim's
+  SG / GEZI term T1D-sized?", Del Prato 1997: T1D mass action ~1/3 of healthy) points the same way. Being the
+  insulin-INDEPENDENT share of disposal, SG also sets how much of a settings change glucose can respond to
+  (dG/dI = −SI·G/(SG + SI·I·…)), so this is the one structural candidate left for the damped change response;
+  screened as `sg_mult` 0.67 / 0.40 (L 635). **SG is NOT measurable from this donor pool** — ICE-against-glucose is
+  confounded by the controller (corr(G, insulin activity) +0.5–0.7, slope comes out the wrong sign) and `no_insulin`
+  is a record flag, not an insulin-free state (ice LESSONS 140b; L 636) — so the prior rests on literature.
+  **ice's learned background force independently puts it at 0.0015/min (3× below our draw) and defense-SHAPED:
+  −0.17/h below 90 against −0.02/h at 180–250, ~10× below our prior on the high side** (ice LESSONS 140a). A linear
+  −SG·(G−Gb) cannot have that shape. **It is NOT `ge_split`'s `sg_h` either** (L 637): with the split on, the slope is
+  `sg_p` below Gb and `sg_p + sg_h` ABOVE, because A1b is modelled as the liver WITHHOLDING output above basal, so the
+  high side is ≥ the low side by construction — 2.4× too weak below Gb (0.070 /h) and 15× too strong above it. The one
+  saturating element the split does have, the EGP floor (`min(sg_h·VG·(G−Gb), max(EGP, 0))`), **never engages in the
+  physiological range**: at `egp_b` 2.5 mg/kg/min and `sg_h` 0.0038 it binds only at **G 469 mg/dL**. The same
+  arithmetic rules out the obvious physiological account of the measured saturation — glucose-induced EGP suppression
+  running out of EGP to suppress would need (G − Gb) = 469 mg/dL at ice's own low-band strength — so the shape is
+  non-linear hepatic autoregulation and/or saturating uptake, which this model does not express and the literature in
+  hand does not size. **`sg_kappa` therefore rests on two things and should be read as resting on them only**: (1) the
+  structural symmetry — `kappa` 0.15 already saturates insulin-MEDIATED uptake above Gb (LESSONS 7) while the
+  insulin-independent term beside it is exactly linear, an asymmetry with no justification, since both are
+  glucose-driven uptake into the same tissues; and (2) ice's measured profile, which `sg` 0.00247 + `sg_kappa` 0.15
+  reproduces across all five bands within 0.044 /h (0.148 / 0.114 / 0.022 / 0.022 against 0.170 / 0.070 / 0.040 /
+  0.020) with neither parameter fitted to it. It is a kink at Gb, not a smooth saturation, and over-predicts the
+  90–130 band for that reason. Also ice LESSONS 146, a direct test: a literature-strength SG in the generator's plant
+  was worse on every held-out row with no change-prediction gain ("a restoring force the TDD-ISF ICE already holds"),
+  which transfers here because additive's ISF is the same ICE yardstick on the same pool — so the high side is
+  plausibly DOUBLE-COUNTED with our own fitted ISF. **Now MEASURED on the natural experiments, and the two routes
+  separate (LESSONS 638)**: on the e pool's 580 edit events `sg_kappa` 0.15 alone brings the change response to the
+  field (mean 1.33 -> 1.06, TIR 1.28 -> 1.06, t70 1.15 -> 1.08) while a uniform `sg_mult` cut brings nothing — its
+  observed mean ratio of 1.25 is exactly its LEVEL-ONLY expectation of 1.25, because dG/dI is proportional to G and
+  the cut raises the pre-edit level +15.5 mg/dL. At a fixed level the form carries 1.22 -> 1.05, i.e. 1.16x more
+  response per unit glucose. `sg_mult` 0.55 on top overshoots (mean 0.98, TIR 0.95), so the pair brackets the field
+  and 0.15 alone is the value. This is the first evidence for the SHAPE that is independent of ice's learned bands,
+  and it is a prediction test rather than a fit. **CORRECTION to the band numbers (L 641, ice reply 2026-11-02)**:
+  the D = +40 profile used above is biased LOW, because the force is convex in level and binning by the BASE level
+  attributes the slope to the wrong place. Binning both perturbation directions by the midpoint of the span crossed
+  gives **0.235 / 0.118 / 0.053 / 0.024 /h**, 1.2-1.7x stronger in every band. Re-read against that, `sg_kappa` 0.15
+  with `sg_mult` 0.55 is 37% too WEAK near lows, and the form the corrected profile picks is a Michaelis-Menten
+  saturation in absolute glucose (`sg` 0.00403, `sg_km` 63.2, `sg_g0` 80.4; RMS 0.0008 /h) which holds the near-low
+  force at 0.242 against the default 0.270. ice also bound the direction asymmetry that L 640 reported at ~1.0 near
+  lows and 1.3-1.6x at 90-180, i.e. mostly curvature, and measured the fast part as depending on recency (H = 1
+  slopes 1.5-2x H = 3, symmetric in direction) rather than on direction. **BOTH FORMS ARE NOW MEASURED AND THE
+  COMPONENT IS CLOSED (L 642)**: the smooth form replicates the change response on mean (1.21 -> 1.06) and TIR
+  (1.16 -> 1.05) and makes t70's WORSE (1.01 -> 1.24), while costing more on the low side than either kink
+  (t70 3.97 / 3.93 / 2.91 against the donors' 1.60; t54 0.58 / 0.70 / 0.48 against 0.190, the guard row at 3-4.7x
+  the reference) with the level held exactly. The "near-low force 0.242" above is a LOCAL SLOPE and not what a low
+  feels: the term applies `excess = F(G) - F(Gb)`, whose span from Gb crosses the saturated region, giving 0.177 at
+  G 65 against the kink's full-strength 0.270 - so the smooth form is the WEAKER of the two below 130, the reverse
+  of what L 641 predicted. Ordered by the dwell-weighted force kept (default 1.00, `sg_kappa` 0.15 x0.46, smooth
+  x0.32, `sg_kappa` + `sg_mult` 0.55 x0.25) the cohort cost is monotone across both shapes, so band-faithfulness to
+  this profile IS a constraint on the integral and no parameterisation of A1d avoids the cost. One result survives
+  and is useful: below Gb `sg_kappa` 0.15 is bit-identical to the reference (0.270 /h at G 65 and G 90) and its t70
+  still doubles, so **the restoring force that prevents a low acts in the 90-180 band during the descent, not at
+  the nadir** - which is why every nadir-peaked `sg_h_lo` variant fixed duration and broke penetration. Note both prior rejections were on the LEVEL, which predates `resid_m`; VG lnN(1.88, 0.15); Gb N(119, 7) clipped 95–150. SG ×1.5 on the old 0.003 centre (c232) put the mean on
   the donors' (151.7 vs 151.4), CV 33.2 (34.8), breakfast tail +30 / 26 / 21 at 3–4 h (+27 / 22 / 16), lows 0.58 → 0.42 /
   day (L 208). Lower SG brings lows on but raises the level: `sg_mult` 0.7 / 0.5 (c349) t54 0.123 / 0.190% (0.190), but
   mean 160.9 / 163.9 and TIR 69.2 / 67.0 fail (L 349, 356). Gb stays drawn: `gb_own` (donor median quiet CGM 00–06 h,

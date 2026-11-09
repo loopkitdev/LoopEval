@@ -147,15 +147,7 @@ struct SimulateCommand: AsyncParsableCommand {
             highCorrectionRiseGain: candidateHighCorrectionRiseGain,
             highCorrectionEffectDurationMinutes: candidateHighCorrectionEffectMin,
             highCorrectionFastOffVelocity: candidateHighCorrectionFastOffVelocity,
-            oapsThresholdSetting: candidateOapsThreshold,
-            oapsSmbDeliveryRatio: candidateOapsSmbRatio,
             oapsMaxSmbBasalMinutes: candidateOapsMaxSmbMin,
-            oapsUseNewFormula: candidateOapsDynamicIsf ? true : nil,
-            oapsSigmoid: candidateOapsSigmoid ? true : nil,
-            oapsAdjustmentFactor: candidateOapsAdjustmentFactor,
-            oapsAdjustmentFactorSigmoid: candidateOapsAdjustmentFactorSigmoid,
-            oapsEnableUAM: candidateOapsNoUam ? false : nil,
-            oapsEnableSMB: candidateOapsNoSmb ? false : nil,
             postlowSuppressMgdl: candidatePostlowSuppress,
             postlowWindowMin: candidatePostlowWindow,
             postlowThresholdMgdl: candidatePostlowThreshold,
@@ -422,14 +414,9 @@ struct SimulateCommand: AsyncParsableCommand {
         if let v = patientIsf, !(v > 0) {
             throw ValidationError("--patient-isf must be positive (mg/dL per U); got \(v).")
         }
-        candidateConfig.oapsAutosensMax = candidateOapsAutosensMax
-        candidateConfig.oapsAutosensMin = candidateOapsAutosensMin
-        candidateConfig.oapsInsulinPeakTime = candidateOapsInsulinPeak
         candidateConfig.oapsDia = candidateOapsDia
         candidateConfig.insulinPhysicalPeakMin = insulinPhysicalPeak
         candidateConfig.insulinPhysicalDiaHours = insulinPhysicalDia
-        candidateConfig.oapsCurve = candidateOapsCurve
-        candidateConfig.oapsMaxIob = candidateOapsMaxIob
         candidateConfig.oapsSmoothGlucose = candidateOapsSmoothGlucose
         candidateConfig.oapsPumpPulse = candidateOapsPumpPulse
         if let pj = candidateOapsPrefsJson {
@@ -462,11 +449,6 @@ struct SimulateCommand: AsyncParsableCommand {
             }
             let client = NightscoutClient(baseURL: baseURL, apiSecret: apiSecret, token: token)
             let cache = try DataCache(cacheDir: cacheDir)
-            var presetTargets: [String: Double] = [:]
-            for spec in oapsPresetTarget {
-                let parts = spec.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
-                if parts.count == 2, let tgt = Double(parts[1]) { presetTargets[parts[0]] = tgt }
-            }
             var trioAsLoop: [String: NightscoutEvalDataSource.TrioPresetAsLoop] = [:]
             if let spec = loopTrioOverrides {
                 guard !candidateOpenaps else {
@@ -481,7 +463,7 @@ struct SimulateCommand: AsyncParsableCommand {
                                              percentage: (d["percentage"] as? NSNumber)?.doubleValue)
                 }
             }
-            dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset, applyOverrides: applyOverrides, presetTargets: presetTargets,
+            dataSource = NightscoutEvalDataSource(client: client, cache: cache, insulinType: baselinePreset, applyOverrides: applyOverrides,
                                                   trioOverrides: candidateOapsOverridePresets != nil,
                                                   trioOverridesAsLoop: trioAsLoop)
         }

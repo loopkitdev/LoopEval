@@ -1604,3 +1604,376 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     to add and the pulse glucose still to come, so unannounced meals net nothing, as in oc (on i001 iob_net mean 0.45,
     against oc 0.41 and oq 0.29). It tests whether oq's TIR loss came from netting unannounced meals; given the above,
     the post-meal lows need a cause outside the defense's input.
+
+151. **Gating the netting on the smaller of entered and drawn carbs (or, IOBNET_COB=3) loses TIR change prediction as
+    oq did; not kept, oc stays the base.** Paired person bootstrap of or − oc (90 %), mean over both trainings
+    (or_vs_oc_boot.py in runs/2026-10-13-ice-change/):
+    - **e pool (337 edits, 265 donors):** TIR |err| +0.16 [+0.03, +0.30] (r −0.03 [−0.07, +0.01]); t<70 |err| −0.06
+      [−0.12, −0.01] (r −0.02, within noise); t<54 |err| −0.10 [−0.13, −0.06]; mean glucose within noise. oq had TIR
+      |err| +0.15 and t<70 |err| −0.08 on the same pool.
+    - **pilot, switch, x:** within noise on TIR and t<70 r. On x, t<70 |err| is −0.09 [−0.17, −0.01]; on switch, t<54
+      |err| is −0.06 [−0.09, −0.02].
+    - **The netting is not what costs TIR.** or nets less pending insulin than oc (on i001 iob_net 0.45 against 0.41)
+      and oq nets more (0.29), yet both lose the same TIR |err| on e, on both trainings. The loss tracks a retrain
+      away from oc, not the direction of the netting. Training-to-training noise in TIR |err| on e has not been
+      measured against a second oc retrain at a different seed; until it is, 0.15 on e is about the smallest change a
+      two-training comparison can resolve.
+    - **Lows:** held-out overall t<70 2.88 / 2.37 (oc) → 2.16 / 2.29 (or), field 1.41; low within 1–4 h of an isolated
+      meal 15.1 % → 14.1 %, field 6.8 %; t<70 at 2–4 h after an entry still about 3.3–4.1, field 1.3. Of these
+      post-meal lows, 33 % come from entries where the generator drew no meal (25 % of entries; low rate 18 % against
+      12.7 % with a meal drawn), so both kinds of entry run about twice the field's rate (ms_nomeal.py).
+    - **What the meal looks like (ice_after_entry.py, ice_profile.py, runs/2026-10-25-ice-cob/):** over 0–3 h after an
+      isolated entry, the ICE rise per entered gram (median 0.06), IOB at entry (2.0–2.2 U, field 2.4) and IOB at +2 h
+      (3.3 U, field 3.35) match the field. On the larger field sample (1,061 meals, every day of the same donors) the
+      early ICE peak is about 15 % short (+58–63 against +69 at 30–45 min) and the glucose rise at 1–1.5 h matches
+      (+20–22 against +22–24). The 250-meal held-out field sample showed a 30 % shortfall that did not hold.
+    - **Where the excess is (ms_cond_all.py, full field sample of the same donors, 1,067 meals):** on every day, not
+      only the held-out windows, the field goes low within 1–4 h of an isolated meal on 10.5 % of meals (held-out
+      windows 6.8 %), so the gap is about 1.4×, not 2×. What follows a given level at +2 h matches: from ≤90, 90–110,
+      110–130 and 130–160 mg/dL the generator goes below 70 on 76 / 31 / 16 / 6 % of meals, the field 73 / 26 / 14 / 7 %.
+      The falls are caught as often as in the field. The excess is in where meals start and end up: the generator
+      starts 30 % of meals below 110 mg/dL (field 24 %), rises less from there (+48 against +56 at 2 h), and from a
+      110–140 start goes low on 18 % of meals against the field's 9 %. The 23-meal held-out field sample had put the
+      fall from 90–110 at 9 %, which did not hold.
+
+152. **A restoring force in replay (glucose effectiveness) fixes the size of replay's TIR and mean-glucose predictions
+    on real settings edits, but not its low side (Pete's ask, 2026-10-30; the open item in
+    `docs/handoffs/2026-10-29-frontier-replay-truth-test.md`).** The field settings-edit study (102 edits / 72 donors,
+    41 strategy switches / 37 donors; frontier harness, manual boluses verbatim) re-run on engine 7c3eae3a with
+    `--glucose-effectiveness` 0, 0.003 and 0.01 (runs/2026-10-30-ice-sg-edits/, boot.py). Coefficient of the field
+    change on replay's predicted change, with the ICE level shift in the regression, person bootstrap 95 %:
+    - **Edits:** TIR 0.55 [0.24, 0.81] → 0.68 → 0.95 [0.38, 1.54]; mean glucose 0.33 → 0.44 → 0.68; t<70 0.13 [0.03,
+      0.25] → 0.16 → 0.21 [0.03, 0.41]; t<54 0.12 → 0.14 → 0.18 [−0.28, 0.82]. SG 0.01 minus SG 0: TIR +0.40 [+0.12,
+      +0.77], t<70 +0.08 [−0.00, +0.16].
+    - **Strategy switches:** TIR 0.73 → 0.99 → 1.61 [1.16, 2.13]; mean 0.47 → 0.70 → 1.19; t<70 0.07 → 0.10 → 0.16.
+      One SG does not size both kinds of event: 0.01 sizes edit TIR about right and overshoots switch TIR 1.6×.
+    - **Low side stays overstated about 5×.** At SG 0.01, replay's t<70 |err| falls from 2.49 to 1.70 on edits and from
+      2.83 to 1.38 on switches, still worse than predicting no change (1.25 / 0.86). Ranking does not improve (edit
+      t<70 r 0.32 → 0.30). The same coefficient for the generator on the field edits is 1.35 [0.83, 2.23] (2026-10-21
+      tool comparison), so the generator sizes the low-side change and replay with a restoring force still does not.
+    - **Identity improves:** own-settings replay within 10 mg/dL and 5 TIR of the field on 84 → 93 of 102 edits.
+    - On generator records (E7) SG 0.01 cut replay's t<70 overstatement from about 4.5× to 1.8×; on field records it
+      cuts it from about 8× to 5×. What replay misses on the low side of real people is mostly not a missing restoring
+      force. Not measured: what it is. The generator responds to state (rescue and snack behaviour from the
+      counterfactual glucose); replay keeps the field's reactive intake frozen in ICE.
+
+153. **Retrain noise in change prediction is larger than the person bootstrap shows. On it, the TIR losses that sank
+    oq and or (lessons 150, 151) are noise, and or's low-side gain is not; or is the base candidate, pending a third
+    training.** Four oc trainings (same recipe, seeds 0–3) on all four change pools (oc_noise.py, vsnoise.py in
+    runs/2026-10-13-ice-change/):
+    - **Two more oc retrains lose what oq and or lost.** On e (337 edits / 265 donors), mean(oc2, oc3) − mean(oc0, oc1):
+      TIR |err| +0.16 [+0.04, +0.28], r −0.05 [−0.09, −0.01], paired person bootstrap 90 %. That is the same size and
+      the same "significance" as oq (+0.15) and or (+0.16) against oc0/oc1. A person bootstrap holds the trainings
+      fixed, so it does not measure training noise. oc0 and oc1 were the two best oc trainings on e TIR.
+    - **Training-to-training SD (4 trainings), TIR |err| / t<70 |err| / t<70 r:** pilot 0.19 / 0.07 / 0.05; switch
+      0.15 / 0.09 / 0.11; x 0.09 / 0.03 / 0.06; e 0.10 / 0.05 / 0.04. A two-against-two comparison resolves about
+      2× these. These SDs come from 4 values, so a z built on one is rough, more so where the SD is tiny (switch t<54
+      |err| 0.004).
+    - **or against the 4-oc spread (z = difference / (SD × √(1/2 + 1/4))):** TIR |err| within noise on every pool
+      (pilot +0.7, switch +0.2, x +0.9, e +1.0); TIR r within noise except switch (0.64 against oc 0.67–0.71, z −2.7).
+      t<70 |err| better on x (1.28 against oc 1.32–1.38, z −3.8) and e (1.45 against 1.46–1.56, z −1.8); t<54 |err|
+      better on e (0.39 against 0.46–0.52, z −4.3), x and switch. Pilot and switch t<70 within noise.
+    - **oq against the same spread:** low side as good as or (e t<70 |err| 1.43, z −2.2; t<54 0.40, z −3.9), but TIR r
+      falls beyond noise on pilot (0.13 against oc 0.20–0.25, z −5.0) and switch (0.57 against 0.67–0.71, z −7.4).
+      Not kept.
+    - **So the rule for keeping a change needs the training spread.** Compare a variant's trainings against the base's
+      training-to-training SD, not against a person bootstrap of two trainings. Below 4 base trainings that SD is a
+      guess. oc4 (seed 4, in progress) firms it. A third or training (or2, in progress) decides whether or replaces oc:
+      or would be kept if or2 holds the low-side gain on e and x and its switch TIR r is inside the oc range.
+
+154. **Per-edit error against zero is the wrong reading of the change test. Averaged by edit direction, the generator
+    sizes the t<70 change; it is too pessimistic on TIR and about 2× too strong on t<54.** e pool, 337 edits / 265
+    donors, model = mean of oc0–4, person bootstrap 90 % (dirmeans.py in runs/2026-10-13-ice-change/). Direction =
+    log basal ratio − log ISF ratio − log CR ratio, + = more insulin.
+    - **The per-edit slope of 0.5 is field noise, not over-response.** Predicting no change has a lower per-edit
+      |err| than every model on e and switch for t<70 (e: 1.41 against oc 1.52, or 1.45), and the field-on-model
+      slope is about 0.5. But the generator's predictions spread half as widely as the field changes (SD 1.15 against
+      2.15) at r 0.29: each person's before/after difference carries week-to-week variation the edit did not cause,
+      and any predictor at that r shows that slope. A lower |err| can also come from smaller predictions alone (or's
+      t<54 |err| gain is mostly that: prediction SD 0.37 against oc 0.61 on e). Judge mean response by edit class,
+      plus r and sign agreement; |err| against zero only bounds the per-edit noise.
+    - **t<70 by direction:** more insulin by >10 % (161 edits) field +0.71 [+0.47, +0.97], generator +0.76 [+0.64,
+      +0.92], replay +2.28; less by >10 % (139) field −0.85 [−1.19, −0.61], generator −0.71 [−0.87, −0.57], replay
+      −2.26. The generator sizes it; replay is 3× too strong.
+    - **TIR by direction:** more insulin field +3.73 [+2.62, +4.91], generator +2.08 [+1.72, +2.44]; less insulin field
+      −1.24 [−2.26, −0.18], generator −1.87 [−2.33, −1.43]; all edits field +1.25, generator +0.20. The generator is
+      1–1.5 TIR too pessimistic in both directions. Part of that may be field drift after any edit (people edit when
+      things go badly); the 37 edits within ±10 % are too few to separate it.
+    - **t<54 by direction:** more insulin field +0.15 [+0.08, +0.23], generator +0.32 [+0.26, +0.40], replay +1.04;
+      less insulin field −0.12 [−0.19, −0.06], generator −0.28 [−0.36, −0.22]. About 2× too strong (replay 7×).
+      Per-edit t<54 is still not predicted: zero beats both models on every pool and sign agreement is 0.50–0.56
+      except x (0.64–0.66). One lead: on switch, or's t<54 slope is 0.57–1.13 on all three trainings against oc
+      −0.19–0.31 (r 0.33 against 0.07), on 37 switches.
+    - **With oc4 the oc spread widens and or's x gain goes inside noise:** oc4 x t<70 |err| 1.26 (oc0–3 1.32–1.38);
+      or x 1.30 (z −1.2), or2 alone 1.34. or's switch TIR r 0.649 is inside oc 0.60–0.71. e awaits or2.
+    - **Next gap:** TIR on the more-insulin edits (generator gives 56 % of the field's gain) and the 2× t<54 response.
+
+155. **The generated person pushes back on extra insulin about 5× harder than real people: a more aggressive setting
+    gets twice the field's extra insulin for less glucose drop.** e pool, edits that moved insulin more than 10 %, oc0,
+    clean time (ins_change.py, pseudo_drift.py, ice_parts.py in runs/2026-10-13-ice-change/):
+    - **Regression to the mean is small.** Pseudo-edits (no edit within 14 d, 827) fitted on the pre-window level predict
+      a drift at the real edits' levels of −1.2 mg/dL / +0.7 TIR (more insulin) and +0.9 / −0.4 (less). Edit effect after
+      drift, field: more insulin −7.2 mg/dL / +2.8 TIR, less +4.0 / −0.7; generator (oc0–4) −6.3 / +2.1 and +5.1 / −1.9.
+    - **Delivered insulin and ICE:** more-insulin edits (162), absorbed U/day field +0.83 [+0.04, +1.63], generator +1.92
+      [+1.65, +2.25]; mean ICE field +0.66 mg/dL/h [−0.46, +1.85], generator +3.54 [+3.07, +3.99]. Less-insulin edits
+      (140): −1.15 / −1.52 U/day, ICE −1.95 / −2.91. Only the settings differ between the generator's arms, so its ICE
+      change is the person's response to the new state; it raises glucose appearance enough that Loop must deliver twice
+      the extra insulin. Pooled, field glucose moves about 5 mg/dL per U/day, the generator 3.3.
+    - **Where:** of the +3.54, the network background gives +2.54 and meal pulses +1.00; glucose effectiveness, slow
+      state and cycle 0 (off in oc). oq0 (pending insulin net of reconstructed meals) +3.88 (+2.85 / +1.04) and or0
+      +2.10 U/day, −5.4 mg/dL: netting meals out of the input does not remove it.
+    - **Reading:** in closed-loop data Loop raises insulin because glucose is arriving (unannounced meals, rising
+      background), so high pending insulin goes with high ICE even net of entered or reconstructed meals, and the
+      network learns more insulin → more glucose. Lesson 145 hid the input at test time and got the field's response
+      per unit, but the calibrations, fit with the input, lost 23 mg/dL of level.
+    - **Test (in progress):** arm on = oc retrained with iob_net zeroed in training, calibration, enrolment and the
+      plant (FEATURE_DROP=iob_net; runs/2026-10-31-ice-noiob/, seeds 0 and 1). fit_traits.py, calibrate_band.py and
+      calibrate_bolus_bg.py rebuilt inputs without the checkpoint's drop list; patched to zero it (no-op for every
+      earlier checkpoint, whose list is empty). Kept if more-insulin edits get the field's extra insulin and ICE without
+      losing level, t<70 sizing or TIR r beyond the oc spread.
+
+156. **The meal-capped variant (or, IOBNET_COB=3) sizes t<54 right by responding less to everything, so the base
+    stays oc.** e pool, 337 edits, direction means per training (dirspread.py, vsnoise.py in runs/2026-10-13-ice-change/;
+    or0–2 against oc0–4, z on the training spread):
+    - **t<54 is sized and reliable:** more-insulin edits field +0.15, oc +0.32 ± 0.04, or +0.17 (z −5.4); less −0.12,
+      oc −0.28, or −0.16 (z +4.0); all three or trainings within 0.02. Per-edit |err| lower on all four pools (z −0.3
+      pilot, −19.8 switch, −1.5 x, −5.5 e); switch t<54 r 0.33 against oc 0.07 ± 0.13; e r unchanged (0.13 vs 0.12).
+    - **The primary measures weaken by the same move:** t<70 more +0.64 vs field +0.71 and oc +0.76 (z −2.0), less −0.59
+      vs field −0.85 and oc −0.71 (z +2.0), total direction error 0.33 against oc's 0.19; TIR more +1.82 vs oc +2.08
+      (field +3.73, z −1.6); mean glucose more −5.3 vs oc −6.5 (field −8.5). TIR r inside oc's range on switch, x, e.
+    - **Reading:** or shrinks the generated person's whole response to a settings change, and t<54, where oc was 2×
+      too strong, is the one measure that shrinkage helps. That is the case lesson 154's caveat names: lower error from
+      shrinkage, not from the right mechanism. The fix for the weak TIR and glucose response is the push-back of
+      lesson 155 (arm on), which should move t<54 too; or3 stopped as no longer informative.
+    - **Design rule (Pete, 2026-10-31):** the person's reactive inputs are what a real person knows: entered carbs,
+      Loop's insulin on board, glucose. The meal-netted and meal-capped variants netted the drawn meal, which no person
+      sees, and unannounced carbs, which Loop and people underreact to. oc's netting of entered carbs is the principled
+      form; arm on is a test of the push-back's cause, not a candidate base by default.
+
+157. **Retrained without pending insulin (arm on), the generated person cancels a settings change completely; the
+    push-back is not learned through iob_net, and the input reduces it.** e pool, on0–1 against oc0–4, the 331 edits
+    without a blown-up run (6 edits had one run with |Δmean| > 60 mg/dL, up to −2185; dirspread_on.py,
+    vsnoise_on.py in runs/2026-10-13-ice-change/; chain runs/2026-10-31-ice-noiob/):
+    - **More-insulin edits:** mean glucose field −8.5, oc −5.7, on +1.1 [+0.7, +1.6]; TIR +3.7 / +2.0 / −0.4; t<70
+      +0.70 / +0.77 / −0.18. Less-insulin edits mirror it (mean +5.1 / +5.1 / −0.8). Both trainings agree within 0.1 on
+      every t<70 and t<54 figure. Per-edit r on TIR, t<70 and mean drops to about 0 on every pool.
+    - **Meals grow without the input:** in the meal-kernel calibration the generated glucose after an isolated entry
+      runs 112–142 mg/dL against the field's 76–124 (oc 89–112), so the fitted kernel is negative everywhere and
+      clips to zero. Pending insulin is how the network tells a bolused meal from an unbolused one.
+    - **Reading:** lesson 145's test-time hiding gave the field's response per unit because the network then saw no
+      pending insulin and did not raise its defense; retrained without it, the network finds another route to the
+      same push-back. Remaining candidates: the network's response to glucose itself, and the calibrations fit to the
+      cross-sectional ICE-by-glucose curve (calib_bg_band +5–8 mg/dL/h below 90, the post-low kernel), which a
+      settings change moves along although the field's ICE barely moves (+0.7 mg/dL/h, lesson 155). Under test: arm
+      ns = oc0/oc1 e checkpoints with those removed (runs/2026-11-01-ice-stateabl/). Seed 2 of on stopped; its chain
+      had waited 22 h on a partner seed (O = 1 − S; now pairs seed 2+ with 1).
+
+158. **The state calibrations are not the push-back; they keep the low-side response in proportion. Base stays oc
+    with them.** Arm ns = the oc0/oc1 e checkpoints with calib_bg_band zeroed and the low/high kernels removed at
+    test time (runs/2026-11-01-ice-stateabl/abl_ns.sh), 337 e edits against oc0–4 (dirspread_ns.py, ins_change.py in
+    runs/2026-10-13-ice-change/; 2 edits with a blown-up run change nothing below):
+    - **More-insulin edits, unchanged:** mean glucose field −8.5, oc −6.5 ± 1.1, ns −6.5 (z −0.1); TIR +3.7 / +2.1 /
+      +1.9 (z −1.1); generated ICE +3.4 mg/dL/h against oc's +3.5 and the field's +0.7; Loop delivers +1.9 U/day
+      against the field's +0.8. Less-insulin mean +5.1 / +5.0 / +5.1. Per-edit r inside oc's range on every measure.
+    - **The low side overshoots without them:** t<70 more +1.03 vs field +0.71 and oc +0.76 (z +3.6); t<54 more +0.55
+      vs +0.15 and +0.32 (z +7.0); less −0.89 / −0.41 against field −0.85 / −0.12. Own-settings TIR level falls to
+      median −8.1 vs field (oc −4.1 to −6.0).
+    - **Reading:** over two-week windows glucose is stationary, so mean ICE rises with delivered insulin by
+      construction; the ICE gap restates the insulin gap. The push-back is the generated person's glucose falling too
+      little per unit (−3.4 mg/dL per U/day against the field's −10.2), which makes Loop add more. Neither pending
+      insulin (157) nor the state calibrations carry it, leaving the network's own response to glucose and insulin
+      history as the cause.
+
+159. **The push-back is the network holding the person's usual glucose level; judging the level against an adapting
+    own average removes it.** Test-time plant changes on the oc0 e checkpoint (frozen tree ~/frozen/ice-bgview on
+    gamepc, plant_v3 PLANT_BGVIEW / PLANT_BGADAPT / PLANT_BGADAPT_FADE; drivers probe_bv.sh, probe_view.sh in
+    runs/2026-11-01-ice-stateabl/; bv_compare.py, dirmeans_vs_oc.py in runs/2026-10-13-ice-change/):
+    - **Probe:** the network shown glucose 15 mg/dL lower than real (Loop and the calibrations see real glucose), first
+      80 e edits, paired by seed against oc0: ICE +3.0 mg/dL/h [+2.8, +3.3], real glucose +7.6 [+7.0, +8.2] although Loop
+      adds +1.65 U/day, t<70 −2.0. The generated person cancels about half of any lasting change in its glucose level.
+    - **Adapting view** (the level the network sees is bg − λ·(24 h EMA of CGM − the 14-day field mean before the run);
+      first 80 e edits, 76 without a blown-up run; on this subset oc already overstates t<70: +1.11 vs field +0.63):
+
+      | 76 edits, oc0 checkpoint | Field | oc0–4 | λ 1 | λ 1, fade 80–120 | λ 0.5, fade 80–120 |
+      |---|---|---|---|---|---|
+      | Mean, more insulin | −7.8 | −7.1 ± 0.9 | −11.0 | −10.4 | −8.5 |
+      | Mean, less insulin | +4.5 | +3.2 ± 0.5 | +4.6 | +5.1 | +4.4 |
+      | TIR, more insulin | +3.5 | +2.0 ± 0.4 | +2.9 | +3.8 | +2.8 |
+      | t<70, more insulin | +0.63 | +1.11 ± 0.09 | +2.35 | +1.40 | +1.24 |
+      | t<54, more insulin | +0.15 | +0.52 ± 0.04 | +1.52 | +0.75 | +0.59 |
+      | Own-settings TIR vs field, median | | −4.4 to −6.9 | −12.1 | −11.6 | −8.6 |
+
+    - **Reading:** with λ 1 the person no longer defends its level at all: glucose overshoots, the low side doubles and
+      the own-settings level drifts (no homeostasis left to hold the calibrated level). The fade keeps the level
+      absolute near lows (adaptation full above 120 mg/dL, none below 80), which is what tamed t<70/t<54. λ 0.5 with
+      the fade matches the field's mean response in both directions; the cost is 2 points of own-settings level,
+      plausibly because the level calibrations were fit without it. Physiological reading: counter-regulation and
+      symptom thresholds follow a person's average glucose. Full e pool on oc0/oc1 running (launch_ba05f_full*.sh).
+
+160. **Lesson 140a's "about twice below 130" for lowered glucose is mostly level curvature, not direction.** Re-read
+    of the saved probe_bg CSVs (of0 / of1, 60 donors, 1,363 points; probe_bg_asym.py in runs/2026-10-24-ice-ge/), for
+    additive (handoff 2026-11-02-additive-ice-direction-asymmetry.md):
+    - At the same base glucose, H 3, D −40 against +40: below 90 −0.28 / −0.34 vs −0.17 / −0.16; 90–130 −0.19 / −0.18
+      vs −0.07 / −0.06; 130–180 −0.09 / −0.08 vs −0.04 / −0.03; above 180 about equal (ratio 1.0–1.1).
+    - Binned by the midpoint of the span crossed (same levels, either direction): 40–90 ratio about 1.0, 90–180
+      1.3–1.6, above 180 about 1. The residual is an upper bound: the force is steepest across 90–130, so curvature
+      inside a bin inflates it.
+    - H 1 slopes are 1.5–2× the H 3 slopes in both directions; H 3 ≈ H 6: a recent step reads stronger, symmetrically,
+      and nothing builds beyond 3 h.
+    - Limit: the probe moves only the bg channel (trend, predicted glucose, low30, heading_low held), so it cannot read a
+      response to rate or depth through those inputs, and the perturbed inputs are off-distribution.
+
+161. **The learned person has no glucose-rate restoring force; what it keys on is its own recent counteraction.**
+    Trend-consistent probe for additive (handoff 2026-11-02-additive-ice-rate-dependent-force.md): on oc0 / oc1 (raw
+    network, no calibrations; 60 donors, 1,186 held-out points; probe_rate.py in runs/2026-11-01-ice-stateabl/), the
+    last hour of glucose becomes a ramp of slope r (−2 … +2 mg/dL/min) ending at the real value, with bg_trend,
+    bg_pred30, heading_low and low30 recomputed from it. Arm A holds the ICE history real; arm B moves it by the
+    velocity the ramp implies (insulin unchanged), so the whole state agrees.
+    - **A, glucose channels only:** in 90–180 the predicted background ICE moves by at most 2 mg/dL/h across the whole
+      ±2 mg/dL/min range (±120 mg/dL/h of fall), with opposite signs in the two trainings (d ICE / d r +0.7, −0.7
+      mg/dL/h per mg/dL/min). The level force while falling fast is 0.75× / 1.01× the flat one. Below 90, a fast rise
+      adds +9 to +12 mg/dL/h (a treatment still acting) and a fast fall −1 to −3: no braking on the way down.
+    - **B, consistent state:** about 45% of the imposed velocity carries into the next predicted ICE (d ICE / d r +26 /
+      +28), the same in every band below 250 — momentum, not braking. With the fall in the ICE history the level force
+      in 90–130 is 2.2× / 2.4× the flat one (−0.29 / −0.28 vs −0.13 / −0.12 per hour); 130–180 is too near zero
+      when flat for a stable ratio.
+    - **Reading:** what additive's rate term would have to be is not a function of the glucose rate. The donors' data,
+      as the network learned it, says: a fall made by the counteraction dropping persists for a while (about half at
+      the next step), and while it does the level pull toward the person's usual glucose about doubles in 90–130.
+      Whether that is damping depends on the comparison: against a force that stays fully on, it is faster recovery.
+      The H 1 vs H 3 recency of lesson 160 is the same recent-counteraction dependence seen through the bg channel.
+    - Arm A is the weaker evidence: a state where glucose fell for an hour while the ICE history shows nothing that
+      caused it cannot occur in a consistent body, so its null (and its fall/rise asymmetry below 90) is a response off
+      the training manifold. Arm B is the measurement that transfers. Additive (LESSONS 643) found its body's level
+      force is the same in both states by construction, near this falling value, and twice the flat one.
+    - Limits: the ramp starts with a step one hour back, and the medians of small slopes are noisy; arm B's 45% is a
+      one-step conditional mean, which sensor noise in real ICE also shrinks.
+
+162. **On the full e pool the half-adapting level view closes a third of the more-insulin gap and overshoots the
+    less-insulin side; not kept as is.** λ 0.5, fade 80–120, both trainings (oc0 / oc1 checkpoints), 335 scored edits,
+    against oc0–4 (dirmeans_vs_oc.py, level_check.py in runs/2026-10-13-ice-change/):
+
+    | 335 edits | Field | oc0–4 | λ 0.5, fade 80–120 | z |
+    |---|---|---|---|---|
+    | Mean, more insulin (n 159) | −8.60 | −5.74 ± 0.56 | −6.86 | −2.4 |
+    | Mean, less insulin (n 139) | +5.05 | +5.03 ± 0.28 | +5.73 | +3.0 |
+    | TIR, more insulin | +3.76 | +1.99 ± 0.19 | +2.51 | +3.2 |
+    | TIR, less insulin | −1.24 | −1.87 ± 0.06 | −2.13 | −5.4 |
+    | t<70, more insulin | +0.73 | +0.77 ± 0.09 | +0.84 | +0.9 |
+    | t<70, less insulin | −0.85 | −0.71 ± 0.08 | −0.80 | −1.3 |
+    | t<54, more / less | +0.15 / −0.12 | +0.32 / −0.28 | +0.33 / −0.31 | |
+    | Own-settings TIR vs field, median | | −4.1 to −6.0 | −7.1 / −5.7 | |
+
+    - The 76-edit subset (lesson 159) over-promised: there oc's more-insulin mean was already near the field; on the
+      full pool the gap is larger and the arm closes 1.1 of 2.9 mg/dL. Per-edit correlation is unchanged (TIR r 0.29 /
+      0.31 against 0.24–0.33).
+    - The less-insulin side, which oc already matched on mean, now overshoots beyond noise: the adaptation is full
+      above 120 mg/dL, where less insulin takes the person, so it lets the level drift up as freely as down.
+    - **Not a level confound:** own-settings levels differ from oc by 1–3 mg/dL; the level correction moves the
+      more-insulin response by 0.1.
+    - **Where the remaining push-back is:** by tertile of the person's own level, more insulin, oc → arm → field: low
+      −3.1 → −3.4 → −5.5, mid −5.3 → −6.2 → −10.0, high −8.7 → −10.0 → −9.5. The arm helps where it is least needed;
+      the low and middle thirds, who spend time below 120 where the fade turns adaptation off, still cancel about
+      half the change. Next arm: fade 70–100 (launch_ba05f70_full*.sh).
+
+163. **Real donor ICE keeps a dropped counteraction with a 25–35 min half-life, the same falling or flat; arm B's 45%
+    is the instrument.** For additive (handoff 2026-11-02-additive-ice-force-drop-persistence.md; ice_persist.py in
+    runs/2026-11-01-ice-stateabl/). e = ICE minus the person's mean ICE in its 5 mg/dL glucose bin, points in 90–180,
+    slopes b_k of e(t+k) on e(t), k = 1..6 five-minute steps:
+
+    | | n | sd(e) | b1 | b2 | b3 | b4 | b5 | b6 |
+    |---|---|---|---|---|---|---|---|---|
+    | Donors, fell ≥ 20 in the last hour | 730k | 75 | 0.56 | 0.33 | 0.30 | 0.25 | 0.21 | 0.17 |
+    | Donors, flat | 374k | 60 | 0.57 | 0.33 | 0.31 | 0.26 | 0.22 | 0.18 |
+    | Generated (oc0, own settings), fell | 74k | 82 | 0.50 | 0.28 | 0.27 | 0.24 | 0.21 | 0.20 |
+    | Generated, flat | 37k | 73 | 0.48 | 0.22 | 0.22 | 0.19 | 0.17 | 0.14 |
+
+    - Not one AR(1) plus white noise: the drop from b1 to b2 is fast, then the decay settles at 0.84–0.93 per step. A
+      slow part holds about 40% of the deviation variance and keeps 0.87–0.90 per 5 min (half-life 25–35 min); the
+      rest is gone within 10 min, sensor noise included (white CGM noise makes differenced velocity anti-correlated at
+      lag 1, so it pulls b1 down, not b2).
+    - No state dependence in persistence: falling and flat are the same, in the donors and in the generator.
+    - The generator's one-step 0.48–0.50 sits a little under the donors' 0.56; its slow part matches.
+    - So the 45% of lesson 161 arm B is mostly the one-step attenuation of a noisy channel, not a fast-recovering
+      force. Against additive's body (0.94–0.95 kept per step, half-life about 55 min) the real slow part recovers
+      about twice as fast — a smaller gap than 0.45 suggested, but still a gap.
+
+164. **The fast part of ICE persistence is mostly sensor noise; the slow part is mostly meals; donors decay it in
+    about 26 min, the generator in about 36.** Correction to 163, whose donor rows came from the pilot pool while the
+    generated rows came from the e pool, and whose "slow part matches" was read from b1 rather than from b2 on.
+    Matched now: the 273 e-pool donors that have generated runs (ice_e32, clean rows, whole record) against all 346
+    oc0 own-settings runs; half-life from b6/b2 (ice_persist2.py in runs/2026-11-01-ice-stateabl/):
+
+    | 90–180 | b1 | b2 | b3 | b4 | b5 | b6 | half-life from b6/b2 |
+    |---|---|---|---|---|---|---|---|
+    | Donors, fell ≥ 20 | 0.56 | 0.33 | 0.30 | 0.26 | 0.22 | 0.19 | 26 min |
+    | Donors, flat | 0.54 | 0.31 | 0.30 | 0.26 | 0.22 | 0.19 | 27 min |
+    | Donors, fell, 00–06 local | 0.40 | 0.09 | 0.13 | 0.14 | 0.14 | 0.12 | no decay in 30 min |
+    | Generated, fell | 0.50 | 0.26 | 0.25 | 0.22 | 0.19 | 0.17 | 36 min |
+    | Generated, flat | 0.47 | 0.21 | 0.22 | 0.18 | 0.16 | 0.14 | 35 min |
+    | Generated, fell, 00–06 | 0.39 | 0.10 | 0.10 | 0.09 | 0.07 | 0.07 | 37 min |
+
+    - At night, with meals gone, about 90% of the deviation dies within 10 minutes, in donors and generator alike, and
+      what is left (0.1) barely decays over 30 minutes. A component that large and that fast with nothing eaten is
+      sensor noise (CGM noise is itself smoothed over a few readings), which the generator is trained to reproduce. It
+      is not evidence of a fast-returning force.
+    - The slow part that decays over 20–40 min is a daytime thing: meal-shaped. There the generator's pulses last
+      about 1.35× the donors' (36 against 26 min, matched donors). A candidate shortfall in meal-pulse shape, not in
+      counter-regulation; check against the meal-shape statistics before acting.
+    - No state dependence anywhere: fell equals flat in both.
+
+165. **The overnight slow counteraction is nearly right in size; what the generator overdoes at night is fast noise.**
+    Lags to 3 h (ice_persist3.py), matched e-pool donors against oc0 own-settings runs, 90–180, slopes b at 5 / 10 /
+    20 / 30 / 45 / 60 / 120 min:
+    - Night (00–06), fell: donors 0.40 / 0.09 / 0.14 / 0.12 / 0.09 / 0.05 / 0.04, generated 0.39 / 0.09 / 0.09 /
+      0.07 / 0.05 / 0.04 / 0.02. Day, fell: donors 0.56 / 0.33 / 0.26 / 0.19 / 0.12 / 0.09 / 0.07, generated 0.50 /
+      0.26 / 0.22 / 0.18 / 0.13 / 0.10 / 0.08. Past an hour both are at 0.05–0.10 and agree.
+    - Slopes are shares of total variance, and the generated total is larger: sd(e) at night 72 against 64 mg/dL/h
+      (flat 64 against 50), by day 82 against 78. In covariance terms the overnight slow part at 20 min is 24 against
+      22 mg/dL/h (fell) and 18 against 16 (flat): the generator carries about 85–90% of it. The lower slopes are mostly
+      the extra fast variance, about 30 mg/dL/h sd of extra short-lived noise at night.
+    - Open lead for the low side: generated CGM at night is noisier than the donors', which can make brief false lows
+      and false falls the controller then reacts to. Check generated against donor night noise statistics (short-lag
+      structure function) before acting.
+
+166. **Generated CGM is about 20% too jumpy at night only, and the network's one-step spread is not the cause.**
+    night_noise.py and calib_hour.py in runs/2026-11-01-ice-stateabl/; 265 matched e-pool donors against oc0
+    own-settings runs, 90–180, rms change of CGM over k steps, median over people:
+
+    | | 5 min | 10 min | 15 min | 30 min | second difference |
+    |---|---|---|---|---|---|
+    | Night 00–06, donors | 4.97 | 8.20 | 10.72 | 16.32 | 5.21 |
+    | Night, generated | 6.13 | 9.96 | 12.81 | 19.32 | 6.95 |
+    | Day 10–22, donors | 7.35 | 12.85 | 17.49 | 28.77 | 6.48 |
+    | Day, generated | 7.40 | 12.79 | 17.29 | 28.51 | 7.66 |
+
+    - By day the motion matches at every lag; at night it is 18–23% too large at every lag up to 30 min. Removing the
+      compression term changes nothing. Per-person correlation of these traits is weak (0.37–0.51 at night).
+    - The second difference (fastest wiggle) is too large day and night (1.18 / 1.33).
+    - Teacher-forced on held-out real inputs, the network's predicted one-step spread matches the realised error at
+      night (50 against 48 mg/dL/h, both trainings) and by day (58 against 59). So the excess builds up in free running
+      at night: own-history feedback, plant calibrations, or the closed-loop state drifting from what the network saw.
+    - Not the plant's glucose-band calibration or low/high kernels (the ns arm, which removes them: 1.19–1.21×), not
+      the level adaptation (1.18–1.23×), and not meals: on quiet nights (no meal episode for 3 h, 13% of night steps in
+      both) the excess is 1.13–1.20×, the same as on busy ones (night_quiet.py).
+    - This is the known calm-state over-spread (LESSONS 104–106: calm people and stretches too wide; 127/129: built by
+      the background path's recursion through its own previous draw, open loop as well as closed). Night is the calmest
+      stretch, so it shows there; by day real volatility hides it. No new test needed; the open fix is still to train
+      the path on its own draws without losing the level (43, 47, 86, 107 not kept).
+
+167. **Donor daytime short-scale motion: raised for hours after an entry, plus a fast wiggle present only while glucose
+    is steady and awake.** Two donor tables for additive (handoff 2026-11-02-additive-ice-daytime-structure-by-meal.md;
+    day_by_entry.py, dd_by_rate.py in runs/2026-11-01-ice-stateabl/; 273 e-pool donors, clean rows, CGM 90–180):
+    - rms of the 5-min CGM step by time since the last entered carb, day 10–22: 0–30 min 8.86, 30–60 min 8.31, 1–2 h
+      7.23, 2–3 h 6.83, 3–5 h 6.65, beyond 5 h 6.21 mg/dL; within person 1.40 / 1.32 / 1.14 / 1.10 / 1.07 of their
+      own beyond-5 h value. Additive's twins fall short by 1.5–1.8 in every bin up to 5 h; a slower stomach (Erlang
+      order 3–4) closes most of it (their LESSONS 652).
+    - The second difference grows with |rate| (4.5 to 9 mg/dL), but its day / night ratio within person is 1.24 at
+      flat glucose, 1.07 at 0.5–1 mg/dL/min and below 1 above that. The daytime extra wiggle is not a rate-dependent
+      sensor error: it is fast motion while steady and awake (body or wear-related sensor noise; the CGM cannot tell).
+      Our generator's second difference runs 1.18 by day and 1.33 at night against these (lesson 166).
+    - Caveat (additive LESSONS 654): the growth with |rate| cannot size a sensor term. Rate taken from the same CGM
+      shares the sensor's wandering noise level with the second difference, so noisy stretches read as both faster and
+      wigglier; in additive's twins, with no rate term in the model, CGM-binned growth is ×1.31 and true-rate-binned
+      ×1.00. The day / night excess at flat glucose is the reading that survives. Our generator has no separate sensor
+      path (its CGM is the generated glucose), so the same split is not available here.

@@ -1,12 +1,12 @@
-# E8 — Glucose-dependent delivery (CamAPS) as Loop's GBAF, on gr (pre-registration)
+# E8 — Glucose-dependent delivery (CamAPS) as a glucose-based application factor, on gr (pre-registration)
 
 Written 2026-10-31, before the cohort ran. Board: TIDEPOOL-101. Baseline: gr (Pete, 2026-10-31).
 
 ## Question
 
 CamAPS sets how much it may deliver by glucose: it delivers more when glucose is high and cuts back when low or falling
-(idea 5 in the overlay). Loop already has the high-side half as the glucose-based application factor (GBAF): the share
-of each recommended correction delivered as an automatic bolus rises with current BG. gr already covers the low side
+(idea 5 in the overlay). Loop has a glucose-based application factor (GBAF): the share of each recommended correction
+delivered as an automatic bolus rises with current BG. gr already covers the low side
 through its guard, which frontier found should be left alone. Does GBAF on top of gr give lift over the needs dial?
 
 ## Design
@@ -16,8 +16,12 @@ through its guard, which frontier found should be left alone. Does GBAF on top o
   (`runs/2026-10-30-gr2-gen`, engine 03e0ce3), driver `scripts/gen/gen.py` (main 290c9b6, the same code as the 8a3a222
   copy used there). Reference and dial logs (`gr_p0`, `gr_pn105`, `gr_pn110`) come from that run, unchanged.
 - **Arms:**
-  - `gr_gbaf`: gr + Loop's shipped GBAF, AF 0.4 at ≤ 140 mg/dL rising to 0.7 at ≥ 220.
+  - `gr_gbaf`: gr + the engine's default GBAF ramp, AF 0.4 at ≤ 140 mg/dL rising to 0.7 at ≥ 220. This is **not** the
+    ramp Loop ships (below): it never delivers less than the flat 0.4, so it tests only the "more when high" half.
   - `gr_gbaf10`: steeper, 0.4 at ≤ 140 rising to 1.0 at ≥ 250.
+  - **GBAF** here means Loop's experiment `GlucoseBasedApplicationFactorStrategy`, which ramps 0.2 at lower target + 10 to 0.8 at 200 mg/dL, keyed on
+    current BG, and so also delivers less than 0.4 near target. It is run as `gr_gbafL` and `sl2_gbafL`, low anchor from
+    each donor's duration-weighted scheduled lower target over the last 35 days (median 110 mg/dL).
 - **Run dir:** `runs/2026-10-31-myloop-e8-gbaf/` (`arms.py`).
 
 ## Measures
@@ -36,6 +40,80 @@ and `gr_pn110`.
 
 ## Limits
 
-- Only the no-entry regime with automatic bolus for everyone. Announced meals and temp-basal users are not tested.
+- Automatic bolus for everyone; temp-basal users are not tested. The tables above this section are the no-entry regime.
+- The generator's no-entry runs eat about 15 % less food than the entry runs, because it ties part of each meal to
+  its carb entry (ice, 2026-11-07): no-entry results are optimistic until that fix is frozen and rerun.
 - The generator's body uses each donor's deployed insulin curve, so this tests delivery timing and amount, not curve
   shape.
+
+## Result: GBAF gives +0.41 on gr; without carb entries, nothing on top of slow RC
+
+| Base | Arm | ΔTIR | Δt<70 | Δt<54 | Δ IOB at 54 (U) | lift at matched t<70 | training 0 / 1 |
+|---|---|---|---|---|---|---|---|
+| gr | `gr_gbafL` (GBAF, 0.2 → 0.8) | +0.72 [+0.53, +0.93] | +0.057 | +0.024 | +0.045 | **+0.41 [+0.21, +0.64]** | +0.43 / +0.39 |
+| gr | `gr_gbaf` (default, 0.4 → 0.7) | +0.60 [+0.44, +0.76] | +0.073 | +0.026 | +0.019 | +0.23 [+0.04, +0.42] | +0.21 / +0.25 |
+| ledger | `sl2_gbafL` (GBAF) | +0.32 [+0.14, +0.50] | +0.068 | +0.040 | +0.094 | −0.00 [−0.25, +0.23] | −0.01 / −0.00 |
+| ledger | `sl2_gbaf` (default) | +0.29 [+0.12, +0.45] | +0.064 | +0.028 | +0.069 | −0.03 [−0.27, +0.18] | +0.03 / −0.10 |
+
+- **On gr GBAF passes all three bars.** Its lift is above the 0.2–0.4 training-noise band and nearly twice
+  the default ramp's: cutting delivery below 0.4 near target buys TIR at less t<70 than the dial (bar 2: Δt<54 0.024
+  against the dial's ≈ 0.036 at +0.72 TIR).
+- **On the ledger base (gr2 + stateless slow RC) neither ramp gives lift**, and GBAF's Δt<54 (0.040) is
+  above the dial's at the same ΔTIR (≈ 0.026), so it fails bar 2 there. The slow RC takes up what GBAF adds on gr.
+
+## GBAF with slow RC (frontier's paired runs, 2026-11-07)
+
+Lift over gr2's own needs dial at matched t<70, 166 × 2, paired person by person (slow RC in its EWMA form):
+
+| | slow RC | GBAF | both | both at needs ×0.95 |
+|---|---|---|---|---|
+| with carb entries (`runs/2026-11-05-gr2-announce`) | +0.60 [+0.40, +0.82] | +0.49 [+0.29, +0.70] | +0.90 | +1.09 |
+| no entries (`runs/2026-11-07-noentry`) | +0.22 | +0.39 | +0.21 | +0.56 |
+
+- **With entries the two add**, and both at ×0.95 beats gr2 on TIR, t<70 and t<54 at once (+0.54, −0.14, −0.06).
+- **The stateless form (LoopAlgorithm port) behaves the same** with entries, read against gr2 on its own binary and
+  early start: slow RC +0.93 TIR [+0.71, +1.19], + GBAF +1.40 [+1.09, +1.74]; GBAF's share +0.47 [+0.33, +0.60] raw.
+- **Without entries** GBAF still adds TIR on top of the slow RC (+0.29 [+0.10, +0.47]), but the pair is no better than
+  the dial unless needs come down to ×0.95.
+
+## Detail (2026-11-01): the default ramp on gr
+
+Run: `runs/2026-10-31-myloop-e8-gbaf/` (`arms.py`, `scores_*.csv`). 166 donors × 2 trainings, all 664 new runs scored.
+Change against `gr_p0`, mean of the two trainings, 95 % person bootstrap:
+
+| | ΔTIR | Δt<70 | Δt<54 | Δ IOB at 54 (U) | ΔU/day |
+|---|---|---|---|---|---|
+| needs 1.05 (dial) | +1.02 [+0.84, +1.20] | +0.203 | +0.051 | +0.066 | +0.72 |
+| needs 1.10 (dial) | +1.78 [+1.52, +2.05] | +0.415 | +0.112 | +0.127 | +1.54 |
+| `gr_gbaf` (0.4→0.7, 140→220) | +0.60 [+0.44, +0.76] | +0.073 | +0.026 | +0.019 [−0.007, +0.046] | +0.52 |
+| `gr_gbaf10` (0.4→1.0, 140→250) | +0.77 [+0.58, +0.97] | +0.107 | +0.037 | +0.054 | +0.80 |
+
+TIR over the dial line at matched t<70:
+
+| | lift | training 0 | training 1 |
+|---|---|---|---|
+| `gr_gbaf` | +0.23 [+0.04, +0.42] | +0.21 | +0.25 |
+| `gr_gbaf10` | +0.24 [+0.03, +0.44] | +0.13 | +0.34 |
+
+- **Bar 1 passes** for both arms: CI above 0, same sign in both trainings. At matched t<54 the lift is +0.08 and +0.02,
+  CIs spanning 0.
+- **Bar 2 passes:** Δt<54 is at or below the dial's at the same ΔTIR (dial ≈ 0.030 at +0.60 TIR; `gr_gbaf` 0.026).
+- **Bar 3, borderline:** a lift of +0.23 sits at the bottom of the 0.2–0.4 band set from ice's training-to-training
+  SD. The paired arms agree across trainings (+0.21 / +0.25), which that SD does not measure.
+- The steeper form buys more TIR for proportionally more t<70; its lift is no larger. GBAF's edge is where it spends
+  insulin (when glucose is high), not how much.
+- Smaller than C38 slow RC on gr (+0.33 [+0.07, +0.56], frontier).
+
+## On the ledger base, the default ramp adds nothing (2026-11-02)
+
+Base: gr2 + stateless slow RC as shipped in LoopKit/LoopAlgorithm#16 (frontier's `g2w_t1440_g5_sl2`, engine 6b1969a,
+35-day window; its logs symlinked in). New arms: `sl2_gbaf` (default ramp, as `gr_gbaf`) and `sl2_pn105` (needs 1.05,
+the dial on this base). Change against the base, mean of two trainings, 95 % person bootstrap, 166 donors:
+
+| | ΔTIR | Δt<70 | Δt<54 | Δ IOB at 54 (U) | Δ insulin |
+|---|---|---|---|---|---|
+| needs 1.05 (dial) | +0.56 [+0.39, +0.73] | +0.159 | +0.046 | +0.073 [+0.03, +0.12] | +2.8 % |
+| `sl2_gbaf` | +0.29 [+0.12, +0.45] | +0.064 | +0.028 | +0.069 [+0.02, +0.12] | +3.1 % |
+
+Lift over the dial at matched t<70: −0.03 [−0.27, +0.18], training 0 +0.03, training 1 −0.10. Bar 1 fails: the
+default ramp's lift on gr is taken up by the slow RC. The dial line here is a straight line through two points.

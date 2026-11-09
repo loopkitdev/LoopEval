@@ -18,6 +18,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from .world import _num
+
 
 def _one(args):
     seed, days, root, tmpl, binp, enable, controller, flags = args
@@ -30,16 +32,17 @@ def _one(args):
         T = pd.read_csv(tmpl)
         # tmpl_cycle: twin i takes template row seed mod len(T), so n = len(T) seeds cover every template once (per-donor fits;
         # LESSONS 531) instead of drawing templates at random
-        P = sample_person(T, seed, alias=(T.alias.iloc[seed % len(T)] if enable.get("tmpl_cycle") else None), isf_w=enable.get("isf_w") if isinstance(enable.get("isf_w"), float) else None,
-                          csf_mult=enable.get("csf_mult", 1.0) if isinstance(enable.get("csf_mult"), float) else 1.0,
-                          sg_mult=enable.get("sg_mult", 1.0) if isinstance(enable.get("sg_mult"), float) else 1.0,
-                          prof_w=enable.get("prof_w") if isinstance(enable.get("prof_w"), float) else None,
-                          egp_share=enable.get("egp_share") if isinstance(enable.get("egp_share"), float) else None,
+        P = sample_person(T, seed, alias=(T.alias.iloc[seed % len(T)] if enable.get("tmpl_cycle") else None), isf_w=enable.get("isf_w") if _num(enable.get("isf_w")) else None,
+                          csf_mult=enable.get("csf_mult", 1.0) if _num(enable.get("csf_mult")) else 1.0,
+                          csf_f_floor=float(enable["csf_f_floor"]) if _num(enable.get("csf_f_floor")) else 0.3,
+                          sg_mult=enable.get("sg_mult", 1.0) if _num(enable.get("sg_mult")) else 1.0,
+                          prof_w=enable.get("prof_w") if _num(enable.get("prof_w")) else None,
+                          egp_share=enable.get("egp_share") if _num(enable.get("egp_share")) else None,
                           isf_total=bool(enable.get("isf_total", True)),   # total-drop ISF + full intake budget, the base since 2026-10-18 (Pete; LESSONS 143)
-                          kappa_mult=enable.get("kappa_mult", 1.0) if isinstance(enable.get("kappa_mult"), float) else 1.0,
+                          kappa_mult=enable.get("kappa_mult", 1.0) if _num(enable.get("kappa_mult")) else 1.0,
                           ge_var=bool(enable.get("ge_var", True)), basal_own=bool(enable.get("basal_own", False)),
                           egp_sat=bool(enable.get("egp_sat", True)),   # default since 2026-10-18 (A5 review loop, LESSONS 196)
-                          p2e=enable.get("p2e_cal") if isinstance(enable.get("p2e_cal"), float) else None,
+                          p2e=enable.get("p2e_cal") if _num(enable.get("p2e_cal")) else None,
                           prof_deliv=bool(enable.get("prof_deliv", True)),   # default since 2026-10-19 (LESSONS 250)
                           csf_own=bool(enable.get("csf_own", False)),
                           twin=bool(enable.get("twin", False)),
@@ -47,21 +50,25 @@ def _one(args):
                           basal_fit=bool(enable.get("basal_fit", False)),
                           gb_own=bool(enable.get("gb_own", False)),
                           ge_split=bool(enable.get("ge_split", False)),   # glucose effectiveness from named parts (LESSONS 548)
+                          ge_spare=bool(enable.get("ge_spare", False)),   # A1c alone: uptake falling below 81 (LESSONS 561)
                           suspend_own=bool(enable.get("suspend_own", True)),   # default since 2026-10-19 (LESSONS 232)
                           night_add=bool(enable.get("night_add", True)),   # night need added on top; default since 2026-10-19 (LESSONS 263)
                           night_own=bool(enable.get("night_own", False)),   # body night need from the donor's steady nights (LESSONS 251); off since 2026-10-19: the evening's own fat carries it (LESSONS 370)
-                          basal_share=enable.get("basal_share") if isinstance(enable.get("basal_share"), float) else 0.42,
-                          isf_blend=enable.get("isf_blend") if isinstance(enable.get("isf_blend"), float) else 0.0,
-                          csf_w=enable.get("csf_w") if isinstance(enable.get("csf_w"), float) else 0.5,
-                          isf_level=enable.get("isf_level") if isinstance(enable.get("isf_level"), float) else 1.0,
+                          basal_share=enable.get("basal_share") if _num(enable.get("basal_share")) else 0.42,
+                          isf_blend=enable.get("isf_blend") if _num(enable.get("isf_blend")) else 0.0,
+                          csf_w=enable.get("csf_w") if _num(enable.get("csf_w")) else 0.5,
+                          isf_level=enable.get("isf_level") if _num(enable.get("isf_level")) else 1.0,
                           intake_own=bool(enable.get("intake_own")),
                           csf_geq=bool(enable.get("csf_geq", True)),
-                          csf_lvl=enable.get("csf_lvl") if isinstance(enable.get("csf_lvl"), float) else 1.05,   # LESSONS 401
+                          csf_lvl=enable.get("csf_lvl") if _num(enable.get("csf_lvl")) else 1.05,   # LESSONS 401
                           csf_lvl_keepg=bool(enable.get("csf_lvl_keepg")),
+                          csf_sd_w=float(enable["csf_sd_w"]) if _num(enable.get("csf_sd_w")) else 1.0,   # L 632
+                          strategy_ab=bool(enable.get("strategy_ab")),
+                          strategy_temp=bool(enable.get("strategy_temp")),
                           prof_np=bool(enable.get("prof_np")))   # default since 2026-10-19 (LESSONS 358)   # default since 2026-10-19 (LESSONS 300)   # per-person gastric emptying, default on (Pete 2026-10-16, LESSONS 88)
         if enable.get("settings_mismatch") is False:      # ablation: the person tells Loop the truth
             P.settings.update(isf=P.truth["isf"], cr=P.truth["cr"], basal_uh=P.truth["basal_uh"])
-        if isinstance(enable.get("preg_week"), float) and P.sex == "F" and 13 <= P.age <= 50:
+        if _num(enable.get("preg_week")) and P.sex == "F" and 13 <= P.age <= 50:
             # X9: settings titrated to the need at the starting week (clinic care adjusts doses as pregnancy goes on), so
             # only the change inside the window is new to the controller
             from .modulators import Modulators
@@ -91,6 +98,10 @@ def main():
     ap.add_argument("--set", default="", help="numeric component overrides, e.g. meal_k=0.6 (multiplies meal kempt/kabs)")
     a = ap.parse_args()
     enable = {k: False for k in a.disable.split(",") if k}
+    # a numeric override belongs in --set: in --enable it becomes a switch NAMED "k=v", the code's isinstance(..., float)
+    # check fails, and the arm runs as its own control without a word (it voided the ex_surge_mets arms, 2026-11-01)
+    bad = [k for k in (a.enable + "," + a.disable).split(",") if "=" in k]
+    if bad: ap.error(f"--enable/--disable take switch names, not values: {bad}. Pass numeric overrides in --set.")
     enable.update({k: True for k in a.enable.split(",") if k})
     enable.update({kv.split("=")[0]: float(kv.split("=")[1]) for kv in a.set.split(",") if "=" in kv})
     root = Path(a.out); root.mkdir(parents=True, exist_ok=True)

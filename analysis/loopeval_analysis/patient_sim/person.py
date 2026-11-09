@@ -28,12 +28,13 @@ from .insulins import BRAND_TO_FORMULATION, FORMULATIONS
 BEHAVIOR_COLS = ["far_unann", "corr_rec0", "carb_entries_per_day", "user_boluses_per_day", "carb_g_day", "archetype", "meals_per_day",
                  "meal_hours", "meal_size_med", "meal_size_logsd", "announced_share", "estimate_ratio",
                  "bolus_lead_min", "p_bolus_ann", "bolus_ratio", "corrections_per_day", "corr_bg_med", "corr_ratio",
-                 "rescues_per_day", "rescue_size_med", "rescue_bg_med", "free_boluses_per_day",
+                 "rescues_per_day", "rescue_size_med", "rescue_bg_med", "low_pro_g", "free_boluses_per_day",
                  "free_bolus_u_med", "true_corrections_per_day", "tir", "t70",
                  "entries_raw", "entered_g_raw", "corr_over_share", "corr_over_u", "corr_u_med", "corr_u_lsd", "corr_p_mult", "corr_thr_adj", "stack_p", "unann_hours", "boluses_raw", "bolus_entry_raw", "topups_raw", "lone_raw", "manual_u_day",
                  "abs_fast_s", "abs_slow_s", "abs_fast_l", "abs_slow_l", "gap_short", "gap_long", "entry_hours",
-                 "clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd"] + \
-                [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h")] + \
+                 "clk_b_med", "clk_b_sd", "clk_l_med", "clk_l_sd", "clk_d_med", "clk_d_sd",
+                 "metmax_p90", "metmax_anchor"] + \
+                [f"ov_{c}_{k}" for c in ("less", "more", "tgt") for k in ("day", "f", "lo", "hi", "h", "s")] + \
                 ["edit_basal_day", "edit_isf_day", "edit_cr_day", "corr_exposure", "slot_g", "slot_ann", "ent_win", "slot_lr", "night_need_ratio", "meal_e_day", "snack_e_day", "snack_e_hours", "offline_day", "perr_day",
                  "treat_log_day", "low_entered_share", "skip_bfast", "miss1_day", "miss23_day", "entry_b", "unl_mult",
                  "ex_week_own", "ex_dur_own", "ex_am_own", "ex_hours_own", "sleep_mid_h"]
@@ -77,7 +78,7 @@ def linear_part(bp: BodyParams) -> BodyParams:
     the hypo risk amplification and counter-regulation. ISF and CSF are DEFINED on this linear
     part — the same bookkeeping ISF the eda yardstick estimates (ICE = velocity + ISF·activity) —
     and the full body then adds those terms on top."""
-    return bp.scaled(sg=0.0, sg_p=0.0, sg_h=0.0, f_ii=0.0, kappa=0.0, risk_lambda=0.0, cr_max=0.0, low_prop=False)
+    return bp.scaled(sg=0.0, sg_p=0.0, sg_h=0.0, f_ii=0.0, ge_spare=False, kappa=0.0, risk_lambda=0.0, cr_max=0.0, low_prop=False)
 
 
 def _probe_isf(bp: BodyParams, formulation: str, dose: float = 0.1, minutes: int = 900) -> float:
@@ -213,10 +214,11 @@ def _formulation(brand: str, rng) -> str:
 
 def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = None,
                   jitter: float = 0.10, name: Optional[str] = None, isf_w: Optional[float] = None,
-                  csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
+                  csf_f_floor: float = 0.3, csf_mult: float = 1.0, sg_mult: float = 1.0, prof_w: float | None = None, egp_share: float | None = None, isf_total: bool = True,
                   kappa_mult: float = 1.0, ge_var: bool = True, basal_own: bool = False, egp_sat: bool = False, p2e: float | None = None, prof_deliv: bool = False, csf_own: bool = False, twin: bool = False, suspend_own: bool = False, night_own: bool = False, night_add: bool = False,
                   basal_share: float | None = 0.42, isf_blend: float = 0.0, csf_w: float | None = None, isf_level: float = 1.0, intake_own: bool = False, csf_geq: bool = False,
-                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False, gb_own: bool = False, ge_split: bool = False) -> Person:
+                  csf_lvl: float = 1.0, csf_lvl_keepg: bool = False, prof_np: bool = False, lvl_own: bool = False, basal_fit: bool = False, gb_own: bool = False, ge_split: bool = False, ge_spare: bool = False,
+                  csf_sd_w: float = 1.0, strategy_ab: bool = False, strategy_temp: bool = False) -> Person:
     rng = np.random.default_rng(seed)
     row = templates[templates.alias == alias].iloc[0] if alias else templates.iloc[rng.integers(len(templates))]
     lj = lambda: float(np.exp(rng.normal(0.0, jitter)))
@@ -293,6 +295,8 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         # what their Loop delivered is the fasting body's need; the population prior N(119, 7) is still drawn above
         k_ = row.get("gb_own") if hasattr(row, "get") else None
         if k_ is not None and np.isfinite(float(k_)): bp = bp.scaled(gb=float(np.clip(float(k_), 90.0, 170.0)))
+    if ge_spare and not ge_split:
+        bp = bp.scaled(ge_spare=True)      # A1c alone (LESSONS 561): f_ii / g_ii keep their defaults
     if ge_split:
         # glucose effectiveness from its named parts (A1a–c, LESSONS 548), own stream so the other draws do not shift.
         # A1a: Del Prato 1997's T1D clamp at basal insulin, +4.4 µmol/kg/min of disposal per +11.2 mmol/L = 0.0039 dL/kg/min,
@@ -347,8 +351,13 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
         if k_ is not None and np.isfinite(float(k_)): k_csf_geq = float(k_); csf_target *= k_csf_geq
     # per-person meal glucose fitted to the donor's glucose spread (LESSONS 529; Pete 2026-10-28): a tight donor's twin
     # swung too widely and a loose one's too narrowly (L 528); grams eaten stay the donor's, each meal's glucose x this
+    # `csf_sd_w` weights that fit (1 = full, 0 = off, 0.5 = halfway). L 544: the spread fit carries per-person
+    # spread (SD rho 0.92) but DAMPS the TIR response to a settings edit, and the hybrid keeps the response with
+    # about half the spread (rho 0.52) - so the trade is continuous, and the weight is how it is read.
     k_ = row.get("csf_sd_mult") if hasattr(row, "get") else None
-    if k_ is not None and np.isfinite(float(k_)): k_csf_geq *= float(k_); csf_target *= float(k_)
+    if k_ is not None and np.isfinite(float(k_)):
+        kk = 1.0 + float(csf_sd_w) * (float(k_) - 1.0)
+        k_csf_geq *= kk; csf_target *= kk
     # csf_lvl (experiment, LESSONS 366): the carb-sensitivity level × this, read from the unsegmented meal counteraction (ICE
     # above pre-meal over 0-360 min per entered gram, donors 47.4 vs twins 38.5) instead of the labeler's pulse g-eq, which
     # ends a pulse at a plateau; the intake budget stays in glucose (fewer grams eaten) unless csf_lvl_keepg
@@ -357,7 +366,11 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     if f_cal > 1.0:
         bp = bp.scaled(f=1.0, vg=float(1000.0 / (bw * csf_target)))
     else:
-        bp = bp.scaled(f=float(max(f_cal, 0.3)))
+        # the 0.3 floor BINDS for 9% of the cohort - small, insulin-sensitive, low-TDD donors whose
+        # carb-sensitivity target is unreachable at any physiological bioavailability (L 716). The floor
+        # is exposed so the clip's cost can be PRICED on the same people (L 717); values below ~0.3 are
+        # not physiological, so a lowered floor is a DIAGNOSTIC and never an adoption candidate.
+        bp = bp.scaled(f=float(max(f_cal, csf_f_floor)))
     # share of insulin's effect through EGP suppression on the linear part, centred on T1D meal tracer data: per-person
     # nadir suppression 44 ± 17% (time 160 ± 110 min) after a mixed meal with the usual bolus (Romeres 2025). Read like-for-
     # like (each person's own nadir, the liver's part of SG included), U(0.5, 0.7) gave 0.34 on the total-drop base and 0.8
@@ -416,6 +429,20 @@ def sample_person(templates: pd.DataFrame, seed: int, alias: Optional[str] = Non
     sh = row.get("auto_day_share") if hasattr(row, "get") else None
     if sh is not None and np.isfinite(float(sh)):
         strategy = "autobolus" if np.random.default_rng(seed + 331).random() < float(sh) else "temp"
+    # strategy_ab / strategy_temp (experiment, both off): put the WHOLE cohort in one dosing regime, overriding the
+    # donor draw above. Strategy is controller configuration, not a patient trait (Pete 2026-10-18), so forcing it does
+    # not corrupt the person — but it discards LESSONS 331's calibration (the draw is what put the twins' automated
+    # total at 1.04x their donors'), so such a cohort ranks candidates and no longer reproduces the donors. Needed
+    # because anything acting on the AUTOMATIC BOLUS is inert under --temp-basal-strategy (loopeval_io.py:138), which
+    # 51 of the 112 standard-draw people run: a GBAF or application-factor arm is then bit-identical to its control for
+    # them. Label any result "uniform autobolus"/"uniform temp-basal" and never read it against the reference's own
+    # numbers. One side effect to watch: rc_own's GBAF is gated on strategy == "autobolus" (loopeval_io.py:195), so
+    # forcing autobolus can switch a donor's deployed GBAF ON for someone who would have drawn temp, CREATING a flag
+    # collision that the standard draw did not have. Both switches on is a contradiction, so it is refused.
+    if strategy_ab and strategy_temp:
+        raise ValueError("strategy_ab and strategy_temp are mutually exclusive")
+    if strategy_ab: strategy = "autobolus"
+    elif strategy_temp: strategy = "temp"
     # the donor's tuned 24-h basal shape (local hour, mean 1): Loop's schedule uses it as is; the body's basal need
     # follows it shrunk halfway (log), the same weight as ISF and CSF — people tune it on their body (LESSONS 48)
     prof = np.ones(24)

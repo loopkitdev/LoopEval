@@ -196,7 +196,11 @@ def donor_blocks(alias: str, A: pd.DataFrame | None, block_days: int = 13) -> li
     st = pd.DataFrame(dict(t=_mins(to_local(s.t1, off)), ice=s.ice.to_numpy(float),
                            clean=(s.clean & ~s.compression).to_numpy(bool)))
     iob_t, iob_v = st.t.to_numpy(), s.iob.to_numpy(float)
-    mp = ICE_ROOT / "meals" / f"{alias}.parquet"
+    # `meals` is ice's PRE-fit_shapes definition (raw 5-min argmax peak, run length); `meals_fit` is the
+    # regenerated one, and it is the definition the TWIN side uses, so the donor side must read it too or
+    # pulse_peak_h / pulse_dur_h are scored against a different measurement (L 626, 693).
+    mp = ICE_ROOT / "meals_fit" / f"{alias}.parquet"
+    if not mp.exists(): mp = ICE_ROOT / "meals" / f"{alias}.parquet"
     pulses = None
     if mp.exists():
         ml = pd.read_parquet(mp)
@@ -223,6 +227,13 @@ _BOUTS: list = []
 
 
 def _donor_one(a):
+    # _A is set in the PARENT by donors(); these run in ProcessPoolExecutor children, and macOS defaults to
+    # `spawn`, so the child re-imports this module with _A back at None and every donor loses its workouts.
+    # The symptom is silent: the table simply comes out without the four workout columns, which then raises
+    # KeyError in _recorders the next time it is used. Load it per child instead (once, cached here).
+    global _A
+    if _A is None and ACTIVITY.exists():
+        _A = _workouts_all()
     _BOUTS.clear()
     try:
         return donor_blocks(a, _A), list(_BOUTS)
@@ -243,7 +254,15 @@ def donors(out: str, par: int = 6):
     D = pd.DataFrame([r for rs, _ in res for r in rs])
     D.to_csv(out, index=False)
     pd.DataFrame([b for _, bs in res for b in bs]).to_csv(Path(out).with_name("life_bouts.csv"), index=False)
+    mdir = "meals_fit" if (ICE_ROOT / "meals_fit").exists() else "meals"
+    # the sidecar `sim()` requires: which ice label set these donor targets were built from. Without it a
+    # table outlives the labels it was made with and silently rescores every appearance row (L 695, job 204)
+    json.dump({"labels": mdir, "built": pd.Timestamp.utcnow().isoformat(), "blocks": int(len(D)),
+               "donors": int(D.alias.nunique())}, open(Path(out).with_suffix(".provenance.json"), "w"), indent=1)
     print(f"{len(D)} blocks, {D.alias.nunique()} donors -> {out}")
+    print(f"donor pulse labels from {ICE_ROOT / mdir}"
+          + (f" (manifest: {json.loads((ICE_ROOT / mdir / '_manifest.json').read_text()).get('labeller', '?')})"
+             if (ICE_ROOT / mdir / "_manifest.json").exists() else ""))
 
 
 # ------------------------------------------------------------------------------------------------------- simulated
@@ -319,7 +338,35 @@ def sim(root: str, par: int = 6, donor_csv: str | None = None):
     from .validate import compare_blocks, INSTRUMENT
     root = Path(root)
     dpath = Path(donor_csv) if donor_csv else Path.home() / ".loop-eval/runs/2026-10-15-additive-templates/life_blocks.csv"
-    rec = _recorders(pd.read_csv(dpath)) if dpath.exists() else None
+    if dpath.exists():
+        _d = pd.read_csv(dpath)
+        # The donor table's MEAL LABELS must be the set this code reads. When ice regenerated the pulse
+        # labels (L 695) the corrected table was written to a new run dir and the DEFAULT path kept the
+        # stale one, so an arm post-processed without the explicit path was scored against `pulse_peak_h`
+        # 0.750 / `pulse_dur_h` 1.917 while the reference carried 0.622 / 1.588 - two different donor
+        # targets in one comparison, which is L 695's own error arriving through the default (job 204's
+        # af3). A sidecar records the source and this refuses a mismatch instead of scoring it.
+        _prov = dpath.with_suffix(".provenance.json")
+        _want = "meals_fit" if (ICE_ROOT / "meals_fit").exists() else "meals"
+        if _prov.exists():
+            _got = json.load(open(_prov)).get("labels")
+            if _got != _want:
+                raise SystemExit(f"{dpath} was built from ice labels '{_got}' but this code reads "
+                                 f"'{_want}': the donor meal-pulse targets would differ from any arm "
+                                 f"scored on the current code. Rebuild with `lifestats donors <out.csv>`.")
+            print(f"donor table {dpath.name}: labels '{_got}' (provenance verified)")
+        else:
+            raise SystemExit(f"{dpath} has no {_prov.name}: its donor meal-pulse labels are unverifiable, "
+                             f"and a stale table silently rescores every appearance row (L 695, job 204). "
+                             f"Rebuild with `lifestats donors <out.csv>`, which writes the sidecar.")
+        miss = [c for c in HABIT if c not in _d.columns]
+        if miss:
+            raise SystemExit(f"{dpath} is missing {miss}: it was built without the workout columns, so the "
+                             f"workout rows would silently leave the scorecard. Rebuild it with "
+                             f"`lifestats donors <out.csv>` on code that loads ACTIVITY in the worker.")
+        rec = _recorders(_d)
+    else:
+        rec = None
     runs = sorted(str(p) for p in root.glob("v*") if (p / "truth.pkl").exists())
     with ProcessPoolExecutor(par) as ex:
         res = list(ex.map(_sim_one, [(r, rec) for r in runs]))
@@ -366,4 +413,5 @@ if __name__ == "__main__":
     if sys.argv[1] == "donors":
         donors(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 6)
     else:
-        sim(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 6)
+        sim(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 6,
+            sys.argv[4] if len(sys.argv) > 4 else None)

@@ -768,47 +768,11 @@ struct SimulateLoopExperimentFlags: ParsableArguments {
 
 // Candidate OpenAPS (with --candidate-openaps)
 struct SimulateOpenAPSFlags: ParsableArguments {
-    @Option(name: .customLong("oaps-preset-target"), help: "Map a Trio Exercise preset NAME to a target (mg/dL) for presets whose target is carried only in the preset name, not the treatment fields/notes (e.g. a \"Dienst\" shift preset → 110). Format NAME:TARGET, repeatable. Matched case-insensitively against the Exercise note.")
-    var oapsPresetTarget: [String] = []
-
-    @Option(name: .long, help: "OpenAPS threshold_setting (mg/dL) — oref's minGuardBG safety floor. SMB is gated off when minGuardBG drops below this. Default 60 (oref stock). Raising it directly suppresses SMB-firing into the suspend zone.")
-    var candidateOapsThreshold: Double?
-
-    @Option(name: .long, help: "OpenAPS smb_delivery_ratio (0..1). Fraction of computed needed-correction delivered as SMB each cycle. Default 0.5. Lower = smaller SMBs, less aggressive bolus pathway.")
-    var candidateOapsSmbRatio: Double?
-
     @Option(name: .long, help: "OpenAPS maxSMBBasalMinutes / maxUAMSMBBasalMinutes — single-SMB size cap in minutes of current basal. Default 30. Lower = smaller per-SMB cap.")
     var candidateOapsMaxSmbMin: Double?
 
-    @Flag(name: .long, help: "OpenAPS useNewFormula — enable Dynamic ISF (auto-scales ISF with current BG — analog of Loop's GBAF). Off by default in oref stock.")
-    var candidateOapsDynamicIsf: Bool = false
-
-    @Flag(name: .long, help: "OpenAPS sigmoid — sigmoid-shaped Dynamic ISF curve (alternative to power-law). Use with --candidate-oaps-dynamic-isf.")
-    var candidateOapsSigmoid: Bool = false
-
-    @Option(name: .long, help: "OpenAPS adjustmentFactor (power-law Dynamic ISF aggression). Default 0.8. Higher = more aggressive scaling with BG.")
-    var candidateOapsAdjustmentFactor: Double?
-
-    @Option(name: .long, help: "OpenAPS adjustmentFactorSigmoid (sigmoid Dynamic ISF aggression). Default 0.5.")
-    var candidateOapsAdjustmentFactorSigmoid: Double?
-
-    @Option(name: .long, help: "OpenAPS autosens_max — upper clamp on the sensitivity/Dynamic-ISF ratio. Trio stock 1.2; match the user's 'Dynamic limit' (e.g. 1.9).")
-    var candidateOapsAutosensMax: Double?
-
-    @Option(name: .long, help: "OpenAPS autosens_min — lower clamp on the sensitivity/Dynamic-ISF ratio. Trio stock 0.7.")
-    var candidateOapsAutosensMin: Double?
-
-    @Option(name: .long, help: "OpenAPS insulin peak time (min) — drives the IOB curve AND Dynamic ISF insulinFactor (=120−peak). Uses an ultra-rapid curve so peaks <50 are allowed. Match the user's insulin (~41–45 Lyumjev/ultra-rapid). Default: rapid-acting (insulinFactor 55).")
-    var candidateOapsInsulinPeak: Double?
-
     @Option(name: .long, help: "OpenAPS DIA (hours) = insulin_action_curve = insulin curve END time. Set to the user's profile DIA (e.g. 9); adapter otherwise hardcodes 6, which decays IOB too fast.")
     var candidateOapsDia: Double?
-
-    @Option(name: .long, help: "OpenAPS insulin curve PRESET, no custom peak ('ultra-rapid' | 'rapid-acting'). ultra-rapid = Lyumjev/Fiasp: IOB peak 55 AND dynISF insulinFactor 70 (decoupled). Use instead of --candidate-oaps-insulin-peak.")
-    var candidateOapsCurve: String?
-
-    @Option(name: .long, help: "OpenAPS max_iob (U) — the user's real safety cap. Not uploaded by Trio; set for faithful reproduction (else a non-binding maxBolus×10 fallback is used).")
-    var candidateOapsMaxIob: Double?
 
     @Option(name: .long, help: "OpenAPS preferences JSON (object) merged over the adapter defaults — supply a user's complete Trio settings verbatim. Inline JSON or @path/to/file.json.")
     var candidateOapsPrefsJson: String?
@@ -825,11 +789,6 @@ struct SimulateOpenAPSFlags: ParsableArguments {
     @Option(name: .long, help: "Pump basal-pulse increment (U) for the oref TDD (floors each temp-basal segment). Omnipod 0.05 (default); 0.025/0.1 for other pumps.")
     var candidateOapsPumpPulse: Double = 0.05
 
-    @Flag(name: .long, help: "OpenAPS ablation: disable UAM (enableUAM=false) — drop the unannounced-meal forecast/SMB while keeping SMB on the base forecast. Isolates UAM's forecast contribution.")
-    var candidateOapsNoUam: Bool = false
-
-    @Flag(name: .long, help: "OpenAPS ablation: disable all SMB (temp-basal-only delivery). Isolates the SMB delivery cadence from the forecast.")
-    var candidateOapsNoSmb: Bool = false
 }
 
 extension SimulateCommand {
@@ -1085,25 +1044,11 @@ extension SimulateCommand {
     var candidateSensDampMax: Double { get { loopExperiments.candidateSensDampMax } set { loopExperiments.candidateSensDampMax = newValue } }
     var candidateEgpPhysical: Bool { get { loopExperiments.candidateEgpPhysical } set { loopExperiments.candidateEgpPhysical = newValue } }
     // Candidate OpenAPS (with --candidate-openaps)
-    var oapsPresetTarget: [String] { get { openaps.oapsPresetTarget } set { openaps.oapsPresetTarget = newValue } }
-    var candidateOapsThreshold: Double? { get { openaps.candidateOapsThreshold } set { openaps.candidateOapsThreshold = newValue } }
-    var candidateOapsSmbRatio: Double? { get { openaps.candidateOapsSmbRatio } set { openaps.candidateOapsSmbRatio = newValue } }
     var candidateOapsMaxSmbMin: Double? { get { openaps.candidateOapsMaxSmbMin } set { openaps.candidateOapsMaxSmbMin = newValue } }
-    var candidateOapsDynamicIsf: Bool { get { openaps.candidateOapsDynamicIsf } set { openaps.candidateOapsDynamicIsf = newValue } }
-    var candidateOapsSigmoid: Bool { get { openaps.candidateOapsSigmoid } set { openaps.candidateOapsSigmoid = newValue } }
-    var candidateOapsAdjustmentFactor: Double? { get { openaps.candidateOapsAdjustmentFactor } set { openaps.candidateOapsAdjustmentFactor = newValue } }
-    var candidateOapsAdjustmentFactorSigmoid: Double? { get { openaps.candidateOapsAdjustmentFactorSigmoid } set { openaps.candidateOapsAdjustmentFactorSigmoid = newValue } }
-    var candidateOapsAutosensMax: Double? { get { openaps.candidateOapsAutosensMax } set { openaps.candidateOapsAutosensMax = newValue } }
-    var candidateOapsAutosensMin: Double? { get { openaps.candidateOapsAutosensMin } set { openaps.candidateOapsAutosensMin = newValue } }
-    var candidateOapsInsulinPeak: Double? { get { openaps.candidateOapsInsulinPeak } set { openaps.candidateOapsInsulinPeak = newValue } }
     var candidateOapsDia: Double? { get { openaps.candidateOapsDia } set { openaps.candidateOapsDia = newValue } }
-    var candidateOapsCurve: String? { get { openaps.candidateOapsCurve } set { openaps.candidateOapsCurve = newValue } }
-    var candidateOapsMaxIob: Double? { get { openaps.candidateOapsMaxIob } set { openaps.candidateOapsMaxIob = newValue } }
     var candidateOapsPrefsJson: String? { get { openaps.candidateOapsPrefsJson } set { openaps.candidateOapsPrefsJson = newValue } }
     var candidateOapsAfCsv: String? { get { openaps.candidateOapsAfCsv } set { openaps.candidateOapsAfCsv = newValue } }
     var candidateOapsOverridePresets: String? { get { openaps.candidateOapsOverridePresets } set { openaps.candidateOapsOverridePresets = newValue } }
     var candidateOapsSmoothGlucose: Bool { get { openaps.candidateOapsSmoothGlucose } set { openaps.candidateOapsSmoothGlucose = newValue } }
     var candidateOapsPumpPulse: Double { get { openaps.candidateOapsPumpPulse } set { openaps.candidateOapsPumpPulse = newValue } }
-    var candidateOapsNoUam: Bool { get { openaps.candidateOapsNoUam } set { openaps.candidateOapsNoUam = newValue } }
-    var candidateOapsNoSmb: Bool { get { openaps.candidateOapsNoSmb } set { openaps.candidateOapsNoSmb = newValue } }
 }

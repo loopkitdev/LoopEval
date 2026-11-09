@@ -769,8 +769,8 @@ A "candidate" is an `EvalConfig` + CLI flags expressing one change. The key leve
 | Sensitivity inference | `--candidate-infer-sensitivity` | The fidelity physiology model (§9) — also a research substrate, not only a therapy lever. Tuning: `-max` (cap, default 2.0), `-window-min` (default 30), and the off-by-default smoothers `-smooth-min` / `-smooth-prior`. |
 | **Double-low prevention** | `--candidate-sensitive-mode-tau-min / -gain` | An EWMA of recent *negative* discrepancy that raises effective ISF on subsequent cycles — damps re-dosing into the rebound *after* a low. A **leading lift lever** (paired with asymmetric IRC) on Loop datasets. |
 | Predictive sens-damp | `--candidate-sens-damp-gain` | Causal sustained-ICE trigger → proactive ISF reduction before a low. |
-| Forecast-offset (CSV) | `--candidate-forecast-offset-csv` | Per-step additive offset to the candidate's forecast, from a CSV — a general hook for testing an arbitrary "what Loop believes" shift (the §16 principle: modify the forecast, not the output). |
-| **OpenAPS engine** | `--candidate-openaps` (+ `-oaps-*`) | Swap the candidate's whole dosing algorithm to oref/OpenAPS instead of Loop. Sub-flags expose oref knobs: `-oaps-threshold` (SMB safety floor), `-oaps-dynamic-isf` / `-oaps-sigmoid` (Dynamic ISF), `-oaps-smb-ratio`, `-oaps-preset-target`, etc. |
+| Forecast-offset (CSV) | `--candidate-forecast-offset-csv` | Per-step additive offset to the candidate's forecast, from a CSV — a general hook for testing an arbitrary "what Loop believes" shift (the §16 principle: change the controller's inputs, not its output). |
+| **OpenAPS engine** | `--candidate-openaps` (+ `-oaps-*`) | Swap the candidate's whole dosing algorithm to oref/OpenAPS instead of Loop. oref preferences go verbatim in `--candidate-oaps-prefs-json` (inline or `@path`); the other `-oaps-*` flags set what is not a preference: DIA (`-oaps-dia`), a dated adjustment-factor schedule (`-oaps-af-csv`), Trio override presets (`-oaps-override-presets`), glucose smoothing (`-oaps-smooth-glucose`), the pump pulse (`-oaps-pump-pulse`) and the SMB caps (`-oaps-max-smb-min`). |
 | Sensor cap | `--sensor-cap-mgdl` | Ceiling on the BG the controller sees (default 400 — real sensor behavior). §4. |
 | **Overrides** | `--apply-overrides` | Replay the temp overrides (presets, target/ISF/basal/CR scaling) the person actually ran. Deployed Loop applies an **active** override's *target* flat across the whole forecast while ISF/basal/CR revert at the scheduled end — the sim matches that asymmetry. Without this flag, override windows replay as if no override ran. |
 | RC decay form | `--legacy-rc-decay` | Step-by-step `decayEffect` as Loop-main computed it before LoopKit#556, for donors whose deployed Loop predates the continuous-quadratic form. |
@@ -984,9 +984,10 @@ isolates one meal at a time.
 
 ## 16. Methodological principles & traps
 
-- **Modify the forecast, not the output.** Loop is a feedback controller: a rule that cuts the dose
-  Loop just chose gets compensated next cycle (Loop's forecast still says "high"). Effective changes
-  alter what Loop *sees* (forecast / ISF / set-point), not what it *does*.
+- **Change the controller's inputs, not its output.** Loop is a feedback controller: a rule that cuts
+  the dose Loop just chose gets compensated next cycle (Loop's forecast still says "high"). Effective
+  changes alter what Loop *believes* (forecast / ISF) or what it *aims for* (target, as the runway
+  does), not what it *does*.
 - **The suspend wall.** At the moment of most lows, Loop is already fully suspended (0 U/hr) — there
   is nothing left to cut. Real-time "reduce dose now" rules find the IOB already committed. Hypo
   prevention must act *earlier* (before the IOB pipeline crosses), or it needs foresight.
