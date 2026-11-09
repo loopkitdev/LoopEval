@@ -2785,3 +2785,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       0.21 → 0.09 (−0.23 to −0.02) / 0.26 → 0.11 (−0.25 to −0.06), TIR 0.15 → 0.06 / 0.27 → 0.14 (−0.26 to −0.02).
       Pooled mean change −5.39 / +4.03 and −5.29 / +4.24 (field −6.24 / +4.49); TIR level error |.| 4.5 / 5.4 (base 7.6
       / 6.9). Under test on trainings 2 and 3.
+    - Trainings 2 / 3 (pssq9), base → floored: t<70 on less-insulin edits −0.03 → 0.27 (+0.10 to +0.45) / −0.06 → 0.33
+      (+0.20 to +0.58); t<70 over all edits 0.22 → 0.29 / 0.22 → 0.36 (+0.05 to +0.22); TIR on less-insulin edits 0.21 →
+      0.02 (−0.31 to −0.03) / 0.20 → 0.08 (−0.20 to −0.03); TIR on more-insulin edits +0.05 / +0.10 (inside noise); mean
+      within noise. The pooled response to added insulin is dulled on these two: mean change −4.09 / −3.96 against base
+      −5.71 / −5.95 and field −6.24; TIR gain +1.24 / +0.99 against base +1.88 / +1.72 and field +2.36. Level error |.|
+      4.9 / 5.0 (base 6.9 / 7.6).
+    - Four trainings, then: the low-side change ranking on less-insulin edits gains +0.20, +0.17, +0.30, +0.39 (beyond
+      noise on three) and level error falls on all four; the TIR ranking on less-insulin edits loses 0.09, 0.13, 0.19,
+      0.12 (beyond noise on three), and on two trainings the response to added insulin is a third too small. Not kept
+      on the rule; the trade is put to Pete. Training 4 under test to complete the five.
