@@ -2827,7 +2827,13 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       to a person's lows sends most people to a limit (170 of 265 at 0.6 / 2.0 with per-person effects; 223 of 265 at 0.7
       / 1.6 with pooled ones). Not a per-person lever on lows; no per-person fit run (build_psg.py kept in the run dir;
       plant_v3 reads calib_ins_gain_person, inert without it).
-    - Under test: ×1.25 for everyone on trainings 1 and 2 (ig_postS.sh).
+    - Trainings 1 and 2 (base → ×1.25; 90% of the difference): mean-glucose ranking 0.39 → 0.46 (+0.04 to +0.10) and 0.40
+      → 0.43 (−0.00 to +0.08); more-insulin mean 0.20 → 0.32 and 0.19 → 0.28 (both beyond noise); TIR over all edits 0.26 →
+      0.29 and 0.26 → 0.27 (inside noise); less-insulin TIR 0.27 → 0.24 and 0.21 → 0.13 (−0.15 to −0.00); t<70 inside
+      noise. So the mean ranking gain replicates on three of three, the TIR gain only on training 0. The response
+      overshoots on both sides: more-insulin mean −7.1 (field drift-removed −6.24), less-insulin mean +6.0 / +6.3 (+4.49),
+      less-insulin TIR −2.5 / −2.8 (−1.67 ± 0.58); t<54 change ±0.35–0.46 (field ±0.09–0.12). Not kept on the old base;
+      tested on the new base (lesson 207).
 207. **The floored per-person fit (pssq9) is the base from 2026-11-10 (Pete).** Kept against the strict rule, as lesson 191
     was: per-person lows match the field (r 0.80 against 0.49), the time-below-70 ranking on insulin cuts gains on all
     five trainings, and the TIR level error falls, at a TIR ranking cost on four of five (lesson 205). New arms are built
