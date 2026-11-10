@@ -2828,3 +2828,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       / 1.6 with pooled ones). Not a per-person lever on lows; no per-person fit run (build_psg.py kept in the run dir;
       plant_v3 reads calib_ins_gain_person, inert without it).
     - Under test: ×1.25 for everyone on trainings 1 and 2 (ig_postS.sh).
+207. **The floored per-person fit (pssq9) is the base from 2026-11-10 (Pete).** Kept against the strict rule, as lesson 191
+    was: per-person lows match the field (r 0.80 against 0.49), the time-below-70 ranking on insulin cuts gains on all
+    five trainings, and the TIR level error falls, at a TIR ranking cost on four of five (lesson 205). New arms are built
+    on the pssq9 checkpoints (icegen_v32oc{S}TcB2FGUCGLBGGSKaLKELpssq9.pt, BGICE_SPREAD and BGICE_SPREAD_LO unset,
+    PLANT_BASE_IOB_OWN=1) and scored against its five runs (runs_v32oc{S}TcB2FGUCGLBGGSKaLKELpssq9_v32st_noslow_e).
+    - Under test: pssq9 + insulin-response gain ×1.25 for everyone on all five trainings (lane_pg.sh), to see whether the
+      gain's TIR ranking gain (lesson 206) offsets the fit's TIR ranking cost.
