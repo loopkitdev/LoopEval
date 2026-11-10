@@ -2801,3 +2801,17 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       Over five trainings: low-side ranking on less-insulin edits +0.20 to +0.39 on all five (beyond noise on four),
       level error lower on all five, TIR ranking lower somewhere on four of five (all edits −0.01, 0.00, −0.07, −0.05,
       −0.13). Not kept on the rule; with Pete.
+    - Spread rescaled to the base median 0.95, between-person differences kept (pssq9r, trainings 2 / 4): t<70 on
+      less-insulin edits still gains (−0.03 → 0.29, 0.05 → 0.43), but TIR on less-insulin edits still loses (0.21 →
+      −0.02, 0.16 → 0.03, both beyond noise), TIR over all edits on training 4 0.33 → 0.23 (−0.16 to −0.04), the t<54
+      change inflates to ±0.47–0.53 (field ±0.09–0.12, base ±0.20–0.28), and half the level gain goes (|.| 5.5 / 5.8).
+      So the narrowed median spread is not the cost; the TIR loss is the per-person low-side fit's own.
+206. **Why the per-person low-side fit costs the TIR ranking: it sets each person's response with the wrong sign.**
+    In the field (pss_split.py, lesson 205) the people whose real lows exceed the generator's (fitted low-side factor >
+    1.1) lose the most TIR when they cut insulin (−3.4 / −3.6 drift-removed) and the people with fewer real lows (< 0.9)
+    lose none (+0.5); the fit predicts −0.3 / −1.2 and −2.4 / −2.3, the reverse. More glucose-lowering background swings
+    stand in for the lows but make the person respond less to the insulin removed. A person who is more sensitive to
+    insulin than the population rule (ISF from TDD) would have both: more lows and a larger response. Under test: the
+    plant's existing insulin-response gain (PATIENT_INSULIN_GAIN, insulin away from the person's typical rate TDD/24 acts
+    at the gain; lesson 52 tried it on levels only), ×0.8 and ×1.25 for everyone on training 0 (probe_ig.sh, ig_post.sh,
+    ig_sens.py), to measure its effect on each person's lows, highs and response before a per-person fit.
