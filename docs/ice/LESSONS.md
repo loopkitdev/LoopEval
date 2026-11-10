@@ -2815,3 +2815,16 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     plant's existing insulin-response gain (PATIENT_INSULIN_GAIN, insulin away from the person's typical rate TDD/24 acts
     at the gain; lesson 52 tried it on levels only), ×0.8 and ×1.25 for everyone on training 0 (probe_ig.sh, ig_post.sh,
     ig_sens.py), to measure its effect on each person's lows, highs and response before a per-person fit.
+    - Result, training 0, for everyone (base → gain ×0.8 / ×1.25; 90% of the ×1.25 difference): per-edit r TIR 0.25 →
+      0.21 / 0.30 (+0.01 to +0.10), mean 0.45 → 0.38 / 0.50 (+0.02 to +0.08), more-insulin mean 0.29 → 0.22 / 0.38 (+0.03
+      to +0.17); t<70 0.23 → 0.20 / 0.19 (inside noise), more-insulin t<70 0.08 → −0.02. Pooled change, more insulin:
+      mean −6.30 → −5.16 / −8.04 (field drift-removed −6.24, raw −8.47), TIR +2.20 → +1.65 / +3.17 (+2.36, raw +3.73);
+      less: mean +5.25 → +3.83 / +6.39 (+4.49); t<54 ±0.33–0.35 → ±0.25 / ±0.52 (field ±0.09–0.12). Levels: lows 3.09
+      / 3.63, highs 24.6 / 20.4 (base 3.17 / 21.7), TIR level |.| 9.0 / 7.1 (base 7.6). The ranking rises with the gain:
+      the edit's own effect grows against the rollout's noise. The response overshoots the drift-removed field by a third
+      and the t<54 change grows.
+    - Per person the gain moves lows weakly and unevenly (+0.98 per unit, IQR −0.71 to +4.16; highs −4.9), so fitting it
+      to a person's lows sends most people to a limit (170 of 265 at 0.6 / 2.0 with per-person effects; 223 of 265 at 0.7
+      / 1.6 with pooled ones). Not a per-person lever on lows; no per-person fit run (build_psg.py kept in the run dir;
+      plant_v3 reads calib_ins_gain_person, inert without it).
+    - Under test: ×1.25 for everyone on trainings 1 and 2 (ig_postS.sh).
