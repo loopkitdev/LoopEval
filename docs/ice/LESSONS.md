@@ -2841,3 +2841,14 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     PLANT_BASE_IOB_OWN=1) and scored against its five runs (runs_v32oc{S}TcB2FGUCGLBGGSKaLKELpssq9_v32st_noslow_e).
     - Under test: pssq9 + insulin-response gain ×1.25 for everyone on all five trainings (lane_pg.sh), to see whether the
       gain's TIR ranking gain (lesson 206) offsets the fit's TIR ranking cost.
+    - Result, trainings 0–3 (pssq9 → pssq9 + gain ×1.25; ps_eval.py PS_BASE=pssq9; 90% of the difference): mean ranking
+      0.40 → 0.47, 0.34 → 0.46, 0.37 → 0.46, 0.38 → 0.43, beyond noise on all four; TIR 0.24 → 0.30 (−0.00 to +0.13), 0.26 →
+      0.28, 0.19 → 0.27 (+0.02 to +0.14), 0.20 → 0.24; t<70 0.30 → 0.34, 0.27 → 0.30, 0.29 → 0.30, 0.36 → 0.40; no ranking
+      worse beyond noise anywhere. Change size moves onto the field for TIR and mean: more-insulin mean −5.4 / −5.3 / −4.1 /
+      −4.0 → −6.8 / −6.3 / −5.8 / −5.4 (field drift-removed −6.24 ± 0.89), TIR +1.4 / +1.3 / +1.2 / +1.0 → +2.1 / +1.9 / +1.8 /
+      +1.3 (+2.36 ± 0.54); less-insulin TIR −1.0 / −1.4 / −1.1 / −1.1 → −1.4 / −1.8 / −1.8 / −1.6 (−1.67 ± 0.58), mean +4.0 /
+      +4.2 / +4.0 / +4.0 → +5.4 / +5.2 / +5.4 / +4.9 (+4.49 ± 0.93). The cost is the low side's size: more-insulin t<70
+      +0.88 / +0.52 / +0.74 / +0.81 → +1.13 / +0.97 / +1.04 / +1.07 (+0.60 ± 0.16), less −0.87 / −0.64 / −0.82 / −0.82 → −1.18 /
+      −0.90 / −1.03 / −0.97 (−0.64 ± 0.15), t<54 change ±0.22–0.41 → ±0.45–0.67 (±0.09–0.12). Levels unchanged (TIR |.| 4.5–5.5).
+      Together the two fix each other's response size on TIR and mean, but the lows respond about 1.7× the field. Training 4
+      and a middle gain ×1.12 (lane_pg2.sh, trainings 0–1) under test; the trade goes to Pete.
