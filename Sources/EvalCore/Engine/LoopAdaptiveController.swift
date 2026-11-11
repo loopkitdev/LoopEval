@@ -31,6 +31,7 @@ public final class LoopAdaptiveController: @unchecked Sendable {
         "use_target": 0, "use_override": 0, "target_min": 87, "own_manual": 0,
         "gsl": 0, "gsl_settings": 1, "gsl_h": 180,
         "hab_k": 0, "hab_ref": 0.3, "hab_days": 7, "hab_min_days": 3, "hab_hl": 7, "hab_lo": -60, "hab_hi": 80,
+        "guard": 0, "g_stale_min": 15, "g_iob_mult": 2, "g_carb_max": 250, "g_jump": 40,
     ]
     /// Params LoopAdaptive fixes at the candidate's value.
     static let fixed: [String: Double] = ["prop_temp": 1, "ad_isf": 0, "ad_basal": 1, "manual_w": 0, "manual_tau": 0, "iob_cap_h": 0]
@@ -65,6 +66,11 @@ public final class LoopAdaptiveController: @unchecked Sendable {
         p.habitGain = q["hab_k"]!; p.habitSkillReference = q["hab_ref"]!
         p.habitDays = Int(q["hab_days"]!); p.habitMinimumDays = Int(q["hab_min_days"]!)
         p.habitSkillHalfLifeDays = q["hab_hl"]!; p.habitLow = q["hab_lo"]!; p.habitHigh = q["hab_hi"]!
+        // guardrails: the reference's default (off) unless "guard" is set. The issued-dose ledger stays off: the
+        // engine's dose records are complete, and with it on a dose the engine withholds (a disruption) would still
+        // be counted as delivered, unlike the reference.
+        p.guardrails = q["guard"]! != 0; p.staleGlucoseMinutes = q["g_stale_min"]!; p.activeInsulinMultiplier = q["g_iob_mult"]!
+        p.carbEntryMaximum = q["g_carb_max"]!; p.jumpLimit = q["g_jump"]!; p.rememberIssuedBoluses = false
         parameters = p
         let tdd = q["tdd"]!
         profile = AdaptiveProfile(totalDailyDose: tdd,

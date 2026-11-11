@@ -21,7 +21,10 @@ iso = lambda t: datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%dT%H:%M
 PROFILE = dict(tdd=36.0, basal_uh=0.72, ad_sp=130.0)
 CAND = dict(cr_k=500.0, prop_temp=1, rc_k=1.0, own_manual=1, ad_basal=1.0, ad_isf=0.0, ad_min=0.5, ad_max=2.0, ad_brake_h=12.0)
 
-def run(name, extra, days, announce, overrides, user_target, suspend, seed):
+def run(name, extra, days, announce, overrides, user_target, suspend, seed, artifacts=False, max_bolus=6.0):
+    """artifacts: the CGM reads the body plus injected faults (guard fixture): no readings for the first 3 cycles;
+    then every 3 h one of: a single spike, a calibration step held 1 h, a compression low for 25 min, a 25-min gap,
+    a zero reading, a repeated timestamp. Plus a 400 g carb typo and an entry dated 2 h ahead."""
     rng = np.random.default_rng(seed)
     t0 = 1_760_000_000 - 1_760_000_000 % 86400
     P = {**CAND, **PROFILE, **extra}
@@ -29,7 +32,7 @@ def run(name, extra, days, announce, overrides, user_target, suspend, seed):
     meals = [(t0 + d * 86400 + hh * 3600 + float(rng.normal(0, 1200)), float(rng.uniform(30, 70)), bool(rng.random() < announce))
              for d in range(days) for hh in (7.5, 18.5)]
     ov = [(t0 + d * 86400 + 14 * 3600, t0 + d * 86400 + 16 * 3600) for d in range(days)] if overrides else []
-    limits = dict(max_bolus=6.0, bolus_inc=0.05, **({"suspend": suspend} if suspend else {}))
+    limits = dict(max_bolus=max_bolus, bolus_inc=0.05, **({"suspend": suspend} if suspend else {}))
     G = 125.0; glu, doses, carbs, outs, entered = [], [], [], [], set()
     all_glu, all_doses, all_carbs = [], [], []
     for i in range(days * 288):
@@ -38,18 +41,36 @@ def run(name, extra, days, announce, overrides, user_target, suspend, seed):
                   for s0, s1, u, k, au in doses)
         carb = sum(g * 3.5 * 300 / 7200 for mt, g, _ in meals if 0 <= t - mt < 7200)
         G = max(40.0, G + carb - isf_body * (act - 0.8 * 300 / 3600) + float(rng.normal(0, 1.5)))
-        sample = [iso(t), round(G, 1)]; glu.append(sample); glu = glu[-40:]; all_glu.append(sample)
+        if artifacts:
+            k, ph = divmod(i, 36)                                  # 3-h blocks, phase in 5-min cycles
+            kind = k % 6
+            reads = [round(G, 1)]
+            if i < 3: reads = []
+            elif kind == 0 and ph == 10: reads = [round(G + 80, 1)]
+            elif kind == 1 and 10 <= ph < 22: reads = [round(G + 55, 1)]
+            elif kind == 2 and 10 <= ph < 15: reads = [round(max(40.0, G - 65), 1)]
+            elif kind == 3 and 10 <= ph < 15: reads = []
+            elif kind == 4 and ph == 10: reads = [0.0]
+            elif kind == 5 and ph == 10: reads = [round(G, 1), round(G + 7, 1)]
+            for v in reads:
+                sample = [iso(t), v]; glu.append(sample); all_glu.append(sample + [i])
+            glu = glu[-40:]
+        else:
+            sample = [iso(t), round(G, 1)]; glu.append(sample); glu = glu[-40:]; all_glu.append(sample + [i])
         doses = [x for x in doses if A.ts(x[0]) > t - 7 * 3600]
         new_entry = False
         for j, (mt, g, ann) in enumerate(meals):
-            if ann and j not in entered and mt <= t:
-                e = [iso(mt), round(g, 1), 10800]; carbs.append(e); all_carbs.append(dict(entry=e, cycle=i)); entered.add(j); new_entry = True
+            if (ann or (artifacts and j in (3, 5))) and j not in entered and mt <= t:
+                e = [iso(mt), round(g, 1), 10800]
+                if artifacts and j == 3: e = [iso(mt), 400.0, 10800]                # carb typo
+                if artifacts and j == 5: e = [iso(mt + 7200), round(g, 1), 10800]   # dated 2 h ahead
+                carbs.append(e); all_carbs.append(dict(entry=e, cycle=i)); entered.add(j); new_entry = True
         m = dict(t=iso(t + 5), glucose=glu, doses=doses, carbs=carbs, settings=limits, loop=dict(bolus=0, temp_rate=0, iob=0))
         if user_target: m["user_target"] = user_target
         if any(a <= t < b for a, b in ov): m["override"] = dict(target_lo=140.0, target_hi=150.0, factor=0.8)
         r = c(m); f = r["_f"]
         outs.append(dict(bolus=r["bolus"], temp_rate=r["temp_rate"], manual_rec=r.get("manual_rec"), need=r["_need"],
-                         scale=f["scale"], rc=f["rc"], hab=f.get("hab", 0.0), gsl_hold=f.get("gsl_hold", False)))
+                         scale=f["scale"], rc=f.get("rc", 0.0), hab=f.get("hab", 0.0), gsl_hold=f.get("gsl_hold", False)))
         issued = []
         if r["bolus"] > 0: issued.append([iso(t + 5), iso(t + 5), r["bolus"], "bolus", True])
         if new_entry and r.get("manual_rec", 0) > 0:
@@ -70,3 +91,6 @@ run("target_override", dict(use_target=1, use_override=1), 4, 0.5, True, [100.0,
 run("gsl", dict(gsl=80.0, gsl_settings=1), 4, 0.5, False, None, 75.0, 3)
 run("habit", dict(hab_k=0.4, hab_ref=0.3), 9, 0.0, False, None, None, 4)
 run("habit_gsl_override", dict(hab_k=0.2, hab_ref=0.3, gsl=80.0, use_target=1, use_override=1), 8, 0.3, True, [105.0, 115.0], None, 5)
+run("guard", dict(guard=1), 4, 0.6, False, None, None, 6, artifacts=True, max_bolus=1.0)
+run("guard_habit_gsl_override", dict(guard=1, hab_k=0.2, hab_ref=0.3, gsl=80.0, use_target=1, use_override=1), 8, 0.6, True,
+    [105.0, 115.0], 75.0, 7, artifacts=True, max_bolus=1.5)

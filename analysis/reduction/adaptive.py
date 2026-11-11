@@ -51,6 +51,22 @@ Families
            prediction with the 2 h of residual that followed; 0 until 576 scored predictions. The offset moves the need,
            the automatic bolus and the temp taper; it does not move the G_h < t_low stop, the GSL forecast or the
            bolus-calculator answer (manual_rec).
+           guard: input guardrails (the Swift LoopAdaptive package has them on by default).
+             - Readings that are not finite, <= 0 or dated after t + 60 s are dropped; readings are sorted; at a
+               repeated time the last wins. Doses with non-finite or negative units, or that start after t + 60 s, are
+               dropped. Carb entries that are not finite or <= 0 are dropped; each is capped at g_carb_max g.
+             - Upward jumps of more than g_jump mg/dL between readings <= 10.5 min apart:
+               - an isolated spike (above both neighbours by more than g_jump) is dropped;
+               - a jump on the newest reading waits for the next reading;
+               - a confirmed jump is a level change, not a rate (momentum and RC read only readings from it on).
+               Downward jumps are kept: they only ever withhold insulin.
+             - Newest reading older than g_stale_min minutes: no automatic bolus; the temp is 0 below t_low, else b
+               (the pump's own fallback); the scale m does not learn.
+             - No usable reading: no automatic bolus, temp b, no bolus-calculator answer; m does not learn.
+             - Automatic boluses keep net insulin on board at or below g_iob_mult x max bolus (Loop's
+               maxActiveInsulin, 2 x max bolus).
+             - Carb entries dated after t + 60 s are left out of automatic dosing (and of the GSL forecast); the
+               bolus-calculator answer still counts them (a pre-bolus).
 """
 import json, math, sys
 from datetime import datetime, timezone
@@ -125,7 +141,8 @@ def features(m, curve, manual_tau=0.0):
         k = gt >= gt[-1] - minutes * 60 - 30
         if k.sum() < 2: return 0.0
         x = (gt[k] - gt[-1]) / 60.0; y = gv[k]
-        return float(np.polyfit(x, y, 1)[0]) if np.ptp(x) > 0 else 0.0   # mg/dL per min
+        return round(float(np.polyfit(x, y, 1)[0]), 9) if np.ptp(x) > 0 else 0.0   # mg/dL per min; rounded so an exact tie
+                                                                                     # at a gate does not hang on the last bit
     # absolute insulin on board: boluses at their time, basal segments spread in 5-min pieces
     k30 = gt >= gt[-1] - 30 * 60 - 30
     dG30 = float(gv[-1] - gv[k30][0]) if k30.sum() >= 2 else 0.0
@@ -152,6 +169,26 @@ def features(m, curve, manual_tau=0.0):
     return dict(G=G, s15=slope(15), s30=slope(30), iob=iob, iob_manual=iob_manual, cob=cob, age=(t - gt[-1]) / 60.0,
                 dG30=dG30, span30=span30, ab30=ab30, tg=float(gt[-1]))
 
+def sanitize(m, p):
+    """guard: a cleaned copy of the request (rules in the module docstring). Also returns the carb entries dated
+    after t + 60 s, which automatic dosing leaves out."""
+    t = ts(m["t"]); J = p["g_jump"]
+    fin = lambda x: x is not None and isinstance(x, (int, float)) and math.isfinite(x)
+    by = {}
+    for x in m["glucose"]:
+        if fin(x[1]) and x[1] > 0 and ts(x[0]) <= t + 60: by[ts(x[0])] = (ts(x[0]), float(x[1]), x[0])
+    g = [by[k] for k in sorted(by)]
+    close = lambda a, b: 0 < b[0] - a[0] <= 630
+    g = [z for i, z in enumerate(g) if not (0 < i < len(g) - 1 and close(g[i - 1], z) and close(z, g[i + 1])
+                                            and z[1] - g[i - 1][1] > J and z[1] - g[i + 1][1] > J)]
+    if len(g) >= 2 and close(g[-2], g[-1]) and g[-1][1] - g[-2][1] > J: g = g[:-1]
+    for i in range(len(g) - 1, 0, -1):
+        if close(g[i - 1], g[i]) and g[i][1] - g[i - 1][1] > J: g = g[i:]; break
+    doses = [d for d in m["doses"] if fin(d[2]) and d[2] >= 0 and ts(d[0]) <= t + 60]
+    carbs = [[c[0], min(float(c[1]), p["g_carb_max"]), c[2]] for c in m["carbs"] if fin(c[1]) and c[1] > 0]
+    now_c = [c for c in carbs if ts(c[0]) <= t + 60]
+    return {**m, "glucose": [[z[2], z[1]] for z in g], "doses": doses, "carbs": now_c}, carbs
+
 def floor_to(x, inc):
     return math.floor(x / inc + 1e-9) * inc if inc and inc > 0 else x
 
@@ -164,7 +201,8 @@ class TddPD:
                     ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0, ad_brake_h=0.0,
                     use_target=0, use_override=0, target_min=87.0, own_manual=0,
                     gsl=0.0, gsl_settings=1, gsl_h=180.0,
-                    hab_k=0.0, hab_ref=0.3, hab_days=7, hab_min_days=3, hab_hl=7.0, hab_lo=-60.0, hab_hi=80.0)
+                    hab_k=0.0, hab_ref=0.3, hab_days=7, hab_min_days=3, hab_hl=7.0, hab_lo=-60.0, hab_hi=80.0,
+                    guard=0, g_stale_min=15.0, g_iob_mult=2.0, g_carb_max=250.0, g_jump=40.0)
     def __init__(self, **p):
         self.p = {**self.defaults, **p}
         self.curve = ExpCurve(peak=self.p["peak"])
@@ -179,7 +217,7 @@ class TddPD:
         (ad_klo times faster, downward). Reads glucose only, never delivered insulin."""
         p = self.p
         if p["ad_sp"] <= 0: return 1.0
-        if self.last_t is not None and not frozen:
+        if self.last_t is not None and not frozen and math.isfinite(G):
             sp = p["ad_sp"] + sp_shift
             dt = min(max(t - self.last_t, 0), 1800) / 86400.0
             if G < 70: self.last_low = t
@@ -189,6 +227,15 @@ class TddPD:
             self.logm = min(max(self.logm, math.log(p["ad_min"])), math.log(p["ad_max"]))
         self.last_t = t
         return math.exp(self.logm)
+    def no_glucose(self, m):
+        """guard, no usable reading: no automatic bolus, the background rate b (the pump's own fallback), m frozen."""
+        p = self.p; T, fac = self.target_and_factor(m); fac = fac or 1.0
+        self.adapt(ts(m["t"]), float("nan"), T - p["target"], frozen=True)
+        scale = math.exp(self.logm) if p["ad_sp"] > 0 else 1.0
+        b0 = p["basal_uh"] if p["basal_uh"] > 0 else p["basal_frac"] * p["tdd"] / 24.0
+        r = dict(bolus=0.0, temp_rate=b0 * scale ** p["ad_basal"] * fac, _f=dict(no_glucose=True, scale=scale), _need=0.0)
+        if p["own_manual"]: r["manual_rec"] = 0.0
+        return r
     @staticmethod
     def hbin(t): return int(t // 1800)
     def hval(self, b):
@@ -244,10 +291,16 @@ class TddPD:
             fac = ov["factor"] if ov.get("factor") else 1.0
         return max(T, p["target_min"]), fac
     def __call__(self, m):
-        p = self.p; f = features(m, self.curve, p["manual_tau"]); st = m["settings"]
+        p = self.p; st = m["settings"]
+        all_carbs = None
+        if p["guard"]:
+            m, all_carbs = sanitize(m, p)
+            if not m["glucose"]: return self.no_glucose(m)
+        f = features(m, self.curve, p["manual_tau"])
+        stale = bool(p["guard"]) and f["age"] > p["g_stale_min"]
         T, fac = self.target_and_factor(m)
         dT = T - p["target"]
-        tdd = p["tdd"] * self.adapt(ts(m["t"]), f["G"], dT, frozen=fac is not None)
+        tdd = p["tdd"] * self.adapt(ts(m["t"]), f["G"], dT, frozen=fac is not None or stale)
         fac = fac or 1.0
         f["scale"] = tdd / p["tdd"]; f["T"] = T; f["factor"] = fac
         isf = p["isf_k"] / (p["tdd"] * f["scale"] ** p["ad_isf"]) ** p["isf_e"] / fac
@@ -283,6 +336,8 @@ class TddPD:
             bolus = min(p["af"] * need, st.get("max_bolus") or 1e9)
             if p["iob_cap_h"] > 0:   # net insulin on board never above iob_cap_h hours of average delivery
                 bolus = max(0.0, min(bolus, p["iob_cap_h"] * tdd / 24.0 - net))
+            if p["guard"] and st.get("max_bolus"):   # Loop's maxActiveInsulin
+                capped = max(0.0, min(bolus, p["g_iob_mult"] * st["max_bolus"] - net)); f["iob_capped"] = capped < bolus; bolus = capped
         if p["prop_temp"]:
             # basal in proportion to where the IOB-aware forecast lands between temp_floor_bg and target
             Gev = min(Ghh, f["G"] + p["rise_cap"]) - (net - carb_u) * isf
@@ -290,6 +345,9 @@ class TddPD:
             if f["G"] < p["t_low"] or Gh < p["t_low"]: temp = 0.0
         else:
             temp = 0.0 if (Gh < p["t_low"] or need < -p["withhold_u"] or f["G"] < p["t_low"]) else b
+        if stale:
+            bolus = 0.0; temp = 0.0 if f["G"] < p["t_low"] else b
+        f["stale"] = stale
         gsl_hold = False
         if p["gsl"] > 0:
             L = st.get("suspend") if p["gsl_settings"] and st.get("suspend") else p["gsl"]
@@ -302,6 +360,9 @@ class TddPD:
         f["gsl_hold"] = gsl_hold
         r = dict(bolus=floor_to(bolus, st.get("bolus_inc")), temp_rate=temp, _f=f, _need=need)
         if p["own_manual"]:
+            if all_carbs is not None and len(all_carbs) > len(m["carbs"]) and p["cr_k"] > 0:   # future entries: pre-bolus
+                fm = dict(m, carbs=all_carbs)
+                need0 += (features(fm, self.curve, p["manual_tau"])["cob"] - f["cob"]) / (p["cr_k"] / (tdd * fac))
             rec = max(0.0, need0)
             if p["gsl"] > 0 and rec > 0:
                 fr = 1 - self.curve.remaining(ks)                       # share of a bolus given now absorbed by k
