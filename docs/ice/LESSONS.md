@@ -2852,3 +2852,8 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       −0.90 / −1.03 / −0.97 (−0.64 ± 0.15), t<54 change ±0.22–0.41 → ±0.45–0.67 (±0.09–0.12). Levels unchanged (TIR |.| 4.5–5.5).
       Together the two fix each other's response size on TIR and mean, but the lows respond about 1.7× the field. Training 4
       and a middle gain ×1.12 (lane_pg2.sh, trainings 0–1) under test; the trade goes to Pete.
+    - Training 4 replicates: TIR ranking 0.20 → 0.27 (+0.02 to +0.13) and mean 0.18 → 0.27 (+0.03 to +0.12), both beyond
+      noise; t<70 0.35 → 0.37. Change sizes: more-insulin TIR +1.45 → +2.05, mean −7.9 → −8.2, less-insulin TIR −1.29 →
+      −1.70, mean +4.6 → +5.5; t<70 +0.78 → +1.11 and −0.73 → −1.07, t<54 ±0.32 → ±0.54. So on five trainings the mean
+      ranking gains beyond noise on all five, TIR on two (up on all five), and the low-side change is 1.7× the field on all
+      five.
