@@ -52,6 +52,8 @@ def run(name, extra, days, announce, overrides, user_target, suspend, seed, arti
             elif kind == 3 and 10 <= ph < 15: reads = []
             elif kind == 4 and ph == 10: reads = [0.0]
             elif kind == 5 and ph == 10: reads = [round(G, 1), round(G + 7, 1)]
+            if artifacts and k % 8 == 7 and 4 <= ph < 16: reads = [401.0] if reads else []      # sensor HIGH for an hour
+            if artifacts and k % 8 == 3 and 20 <= ph < 26: reads = [39.0] if reads else []      # sensor LOW for 30 min
             for v in reads:
                 sample = [iso(t), v]; glu.append(sample); all_glu.append(sample + [i])
             glu = glu[-40:]

@@ -55,6 +55,10 @@ Families
              - Readings that are not finite, <= 0 or dated after t + 60 s are dropped; readings are sorted; at a
                repeated time the last wins. Doses with non-finite or negative units, or that start after t + 60 s, are
                dropped. Carb entries that are not finite or <= 0 are dropped; each is capped at g_carb_max g.
+             - Sensor limits (Pete 2026-11-11): a reading >= g_cgm_hi means at least g_cgm_hi, one <= g_cgm_lo means
+               below g_cgm_lo. Such a reading counts as the limit (a bound: the dose for at least 400 is the dose for
+               400) and is censored: momentum and RC read uncensored readings only, and are 0 when the newest reading
+               is censored; the habit is not fed across a censored reading.
              - Upward jumps of more than g_jump mg/dL between readings <= 10.5 min apart:
                - an isolated spike (above both neighbours by more than g_jump) is dropped;
                - a jump on the newest reading waits for the next reading;
@@ -137,16 +141,18 @@ def features(m, curve, manual_tau=0.0):
     g = m["glucose"]
     gt = np.array([ts(x[0]) for x in g]); gv = np.array([x[1] for x in g], float)
     G = gv[-1]
+    cens = np.array(m["_cens"], bool) if "_cens" in m else np.zeros(len(gv), bool)   # guard: censored at a sensor limit
     def slope(minutes):
-        k = gt >= gt[-1] - minutes * 60 - 30
-        if k.sum() < 2: return 0.0
+        k = (gt >= gt[-1] - minutes * 60 - 30) & ~cens
+        if cens[-1] or k.sum() < 2: return 0.0
         x = (gt[k] - gt[-1]) / 60.0; y = gv[k]
         return round(float(np.polyfit(x, y, 1)[0]), 9) if np.ptp(x) > 0 else 0.0   # mg/dL per min; rounded so an exact tie
                                                                                      # at a gate does not hang on the last bit
     # absolute insulin on board: boluses at their time, basal segments spread in 5-min pieces
-    k30 = gt >= gt[-1] - 30 * 60 - 30
-    dG30 = float(gv[-1] - gv[k30][0]) if k30.sum() >= 2 else 0.0
-    span30 = float((gt[-1] - gt[k30][0]) / 60.0) if k30.sum() >= 2 else 0.0
+    k30 = (gt >= gt[-1] - 30 * 60 - 30) & ~cens
+    ok30 = k30.sum() >= 2 and not cens[-1]
+    dG30 = float(gv[-1] - gv[k30][0]) if ok30 else 0.0
+    span30 = float((gt[-1] - gt[k30][0]) / 60.0) if ok30 else 0.0
     ab30 = absorbed(m, curve, gt[-1] - span30 * 60, gt[-1]) if span30 > 0 else 0.0
     iob = iob_manual = 0.0
     for s0, s1, u, kind, auto in m["doses"]:
@@ -167,7 +173,7 @@ def features(m, curve, manual_tau=0.0):
         if 0 <= el < dur: cob += g_ * (1 - el / dur)
         elif el < 0: cob += g_
     return dict(G=G, s15=slope(15), s30=slope(30), iob=iob, iob_manual=iob_manual, cob=cob, age=(t - gt[-1]) / 60.0,
-                dG30=dG30, span30=span30, ab30=ab30, tg=float(gt[-1]))
+                dG30=dG30, span30=span30, ab30=ab30, tg=float(gt[-1]), cens=bool(cens[-1]))
 
 def sanitize(m, p):
     """guard: a cleaned copy of the request (rules in the module docstring). Also returns the carb entries dated
@@ -177,7 +183,8 @@ def sanitize(m, p):
     by = {}
     for x in m["glucose"]:
         if fin(x[1]) and x[1] > 0 and ts(x[0]) <= t + 60: by[ts(x[0])] = (ts(x[0]), float(x[1]), x[0])
-    g = [by[k] for k in sorted(by)]
+    lo, hi = p["g_cgm_lo"], p["g_cgm_hi"]
+    g = [(z[0], min(max(z[1], lo), hi), z[2], z[1] <= lo or z[1] >= hi) for z in (by[k] for k in sorted(by))]
     close = lambda a, b: 0 < b[0] - a[0] <= 630
     g = [z for i, z in enumerate(g) if not (0 < i < len(g) - 1 and close(g[i - 1], z) and close(z, g[i + 1])
                                             and z[1] - g[i - 1][1] > J and z[1] - g[i + 1][1] > J)]
@@ -187,7 +194,7 @@ def sanitize(m, p):
     doses = [d for d in m["doses"] if fin(d[2]) and d[2] >= 0 and ts(d[0]) <= t + 60]
     carbs = [[c[0], min(float(c[1]), p["g_carb_max"]), c[2]] for c in m["carbs"] if fin(c[1]) and c[1] > 0]
     now_c = [c for c in carbs if ts(c[0]) <= t + 60]
-    return {**m, "glucose": [[z[2], z[1]] for z in g], "doses": doses, "carbs": now_c}, carbs
+    return {**m, "glucose": [[z[2], z[1]] for z in g], "_cens": [z[3] for z in g], "doses": doses, "carbs": now_c}, carbs
 
 def floor_to(x, inc):
     return math.floor(x / inc + 1e-9) * inc if inc and inc > 0 else x
@@ -202,7 +209,7 @@ class TddPD:
                     use_target=0, use_override=0, target_min=87.0, own_manual=0,
                     gsl=0.0, gsl_settings=1, gsl_h=180.0,
                     hab_k=0.0, hab_ref=0.3, hab_days=7, hab_min_days=3, hab_hl=7.0, hab_lo=-60.0, hab_hi=80.0,
-                    guard=0, g_stale_min=15.0, g_iob_mult=2.0, g_carb_max=250.0, g_jump=40.0)
+                    guard=0, g_stale_min=15.0, g_iob_mult=2.0, g_carb_max=250.0, g_jump=40.0, g_cgm_lo=40.0, g_cgm_hi=400.0)
     def __init__(self, **p):
         self.p = {**self.defaults, **p}
         self.curve = ExpCurve(peak=self.p["peak"])
@@ -261,13 +268,13 @@ class TddPD:
         tg, G = f["tg"], f["G"]
         if self.hlast is not None and tg > self.hlast[0]:
             span = (tg - self.hlast[0]) / 60.0
-            if span <= 15 and not override:
+            if span <= 15 and not override and not f["cens"] and not self.hlast[2]:
                 r = (G - self.hlast[1]) + isf * (absorbed(m, self.curve, self.hlast[0], tg) - b * span / 60.0)
                 if cr: r -= isf * carbs_absorbed(m, self.hlast[0], tg) / cr
                 v = r * 5.0 / span
                 bb = self.hbin(tg); self.hsum[bb] = self.hsum.get(bb, 0.0) + v; self.hcnt[bb] = self.hcnt.get(bb, 0) + 1
                 self.hfeeds.append((tg, v))
-        if self.hlast is None or tg > self.hlast[0]: self.hlast = (tg, G)
+        if self.hlast is None or tg > self.hlast[0]: self.hlast = (tg, G, f["cens"])
         self.hfeeds = [x for x in self.hfeeds if x[0] > t - 7200]
         while self.hpreds and self.hpreds[0][0] <= t - 7200 + 150:
             pt, pr, pb = self.hpreds.pop(0)

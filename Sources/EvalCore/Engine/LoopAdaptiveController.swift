@@ -31,7 +31,7 @@ public final class LoopAdaptiveController: @unchecked Sendable {
         "use_target": 0, "use_override": 0, "target_min": 87, "own_manual": 0,
         "gsl": 0, "gsl_settings": 1, "gsl_h": 180,
         "hab_k": 0, "hab_ref": 0.3, "hab_days": 7, "hab_min_days": 3, "hab_hl": 7, "hab_lo": -60, "hab_hi": 80,
-        "guard": 0, "g_stale_min": 15, "g_iob_mult": 2, "g_carb_max": 250, "g_jump": 40,
+        "guard": 0, "g_stale_min": 15, "g_iob_mult": 2, "g_carb_max": 250, "g_jump": 40, "g_cgm_lo": 40, "g_cgm_hi": 400,
     ]
     /// Params LoopAdaptive fixes at the candidate's value.
     static let fixed: [String: Double] = ["prop_temp": 1, "ad_isf": 0, "ad_basal": 1, "manual_w": 0, "manual_tau": 0, "iob_cap_h": 0]
@@ -71,6 +71,7 @@ public final class LoopAdaptiveController: @unchecked Sendable {
         // be counted as delivered, unlike the reference.
         p.guardrails = q["guard"]! != 0; p.staleGlucoseMinutes = q["g_stale_min"]!; p.activeInsulinMultiplier = q["g_iob_mult"]!
         p.carbEntryMaximum = q["g_carb_max"]!; p.jumpLimit = q["g_jump"]!; p.rememberIssuedBoluses = false
+        p.sensorLow = q["g_cgm_lo"]!; p.sensorHigh = q["g_cgm_hi"]!
         parameters = p
         let tdd = q["tdd"]!
         profile = AdaptiveProfile(totalDailyDose: tdd,
