@@ -2862,4 +2862,10 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       0.35, 0.27 → 0.28; nothing worse beyond noise. Change sizes: mean −6.0 / −6.1 and +4.8 / +4.8 (field −6.24, +4.49),
       TIR +1.6 / +1.9 and −1.3 / −1.7 (+2.36, −1.67); t<70 +1.00 / +0.75 and −1.02 / −0.71 (×1.25: +1.13 / +0.97, −1.18 /
       −0.90; field +0.60, −0.64), t<54 ±0.31–0.48. ×1.12 keeps nearly all of the ranking gain, puts mean change on the
-      field, and cuts the low-side overshoot to 1.2–1.6× (training 0's pssq9 alone is already 1.4×). Recommended to Pete.
+      field, and cuts the low-side overshoot to 1.2–1.6× (training 0's pssq9 alone is already 1.4×).
+    - ×1.12 on trainings 2–4 does not hold that up: mean ranking 0.37 → 0.43 (+0.02 to +0.09), 0.38 → 0.37, 0.18 → 0.23
+      (−0.01 to +0.08); TIR 0.19 → 0.21, 0.20 → 0.22, 0.20 → 0.22, all inside noise. Over five trainings ×1.12 gains mean
+      ranking beyond noise on two (×1.25: five) and TIR on one at the edge (×1.25: two). Change sizes averaged over five:
+      mean −5.8 / +4.8 (field −6.24 / +4.49), TIR +1.5 / −1.4 (+2.36 / −1.67), t<70 +0.91 / −0.90, about 1.45× the field
+      (×1.25 about 1.7×, pssq9 alone about 1.25×). Only ×1.25 passes the keep rule on ranking; its low-side change is
+      overstated. The choice between them goes to Pete.
