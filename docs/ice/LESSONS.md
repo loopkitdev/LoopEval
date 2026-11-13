@@ -2869,3 +2869,28 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       mean −5.8 / +4.8 (field −6.24 / +4.49), TIR +1.5 / −1.4 (+2.36 / −1.67), t<70 +0.91 / −0.90, about 1.45× the field
       (×1.25 about 1.7×, pssq9 alone about 1.25×). Only ×1.25 passes the keep rule on ranking; its low-side change is
       overstated. The choice between them goes to Pete.
+
+208. **frontier's held-out gen.py donors had no per-person fit; two steps of the pssq9 recipe, fitted on the 28 days
+    before each scored window, bring their levels to the field on the unseen window.** The checkpoint fit (lesson 207)
+    covers the e pool only, so gen.py's 166 i-donors ran at BGICE_SPREAD 0.95 with lows about twice the field's.
+    runs/2026-11-12-ice-ifit/ (gamepc; fit_i.py, compare.py, lane*.sh): gen.py with the window moved back 28 days
+    (WIN_SHIFT_DAYS) as the fit window; field = clean-masked CGM, as score_change.field; generated = non-compression CGM,
+    two seeds. Slopes are the e pool's medians (pss_sens.pkl), what a person with no slopes of their own gets after
+    shrinkage; QMIN 0.9, floored refit weight 3, s clipped [0.6, 1.2]. 156 donors fitted; 10 without a week of clean data
+    in the fit window keep 0.95 / 1.0. Scored window (not used in fitting), 152 donors, training 0 / 1, base → step 1 →
+    step 2, field in brackets:
+    | | median | median abs. error per donor | mean bias |
+    |---|---|---|---|
+    | t<70 [1.12] | 2.32/1.72 → 2.10/1.66 → 1.71/1.35 | 1.17/0.91 → 0.94/0.93 → 0.81/0.73 | +1.31/+0.63 → +1.90/+1.30 → +0.84/+0.37 |
+    | >180 [19.9] | 22.8/22.6 → 21.0/21.8 → 20.2/20.1 | 6.84/5.38 → 4.59/4.69 → 4.49/4.22 | |
+    | TIR [78.2] | 74.3/75.1 → 75.5/75.4 → 77.0/78.5 | 7.03/5.44 → 4.25/4.94 → 4.01/3.95 | −1.69/−2.08 → −2.17/−2.78 → −0.45/−0.21 |
+    | mean [145.0] | 149.1/148.6 → 144.0/144.8 → 143.8/143.5 | 9.65/8.18 → 7.45/7.44 → 7.46/6.26 | |
+    - One step with median slopes sets highs and TIR but not lows: on the low side the median slope is too weak for the
+      low-prone people, and lows rose for those whose low-side spread went above 1. The second step, from the measured
+      fit-window levels, fixes most of it. Donors over 4% t<70: field 15, base 40/22, step 2 23/21.
+    - Left: median t<70 still 0.2–0.6 above the field; training 0's worst donor (+16.2 over field) is worse than at base
+      (+11.8). Step 2 puts spread at the 0.6 floor for 40/27 donors and low-side at the 0.9 floor for 68/45: the spread
+      range, not the step count, now limits the low-prone people.
+    - Checkpoints: gamepc ~/frozen/gen-v32-ifit2/icegen_v32oc{0,1}TcB2FGUCGLBGGSKaLK.pt (md5 bde1bce9 / 5eb456e8; the rest
+      of the dir links ~/frozen/gen-v32). Run with that GEN_DATA, PLANT_BASE_IOB_OWN=1 and no BGICE_SPREAD (it overrides
+      the per-person values).
