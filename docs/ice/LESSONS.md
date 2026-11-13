@@ -2902,3 +2902,18 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     worse on lows than they are and insulin-cutting ones look better. Scored runs: suffix `pssq9ig1.25_v32st_noslow_e`,
     five trainings. gen.py donors: the lesson 208 fit with the gain added; levels re-checked in runs/2026-11-12-ice-ifit
     (arm fit2g) before frontier rebuilds on it.
+
+210. **On frontier's gen.py donors the gain ×1.25 lifts absolute lows off the field, and the spread fit cannot take it
+    back: keep the lesson 208 fit (ifit2) under the gain.** runs/2026-11-12-ice-ifit, 152 donors scored, trainings 0 / 1.
+    - ifit2 → ifit2 + gain, scored window: median t<70 1.71 / 1.35 → 2.52 / 2.12 (field 1.12); donors over 4% 23 / 21 →
+      40 / 40 (field 15). TIR 77.8 / 79.1 (field 78.2), highs 18.3 / 17.9 (field 19.9), per-donor TIR error 4.2 / 3.9:
+      everything but the lows stays on the field.
+    - A third step refit with the gain on (ifit3, fit_i.py STEP=3) does not help: median t<70 2.57 / 2.34, donors over
+      4% 40 / 38, per-donor t<70 error 1.26 / 1.19 against 1.17 / 1.10. The step's slopes were right (low-side change
+      per unit spread 9.9 / 7.4 against the assumed 8.5), but of the ~100 donors whose lows had to fall, half sit on the
+      floors (spread 0.6, low-side 0.9) and moved −0.06 / −0.13 against −1.7 / −1.5 wanted; the ~20 whose lows were too
+      low rose as asked, so the median went up.
+    - The floors stay: below 0.9 the low-side factor and a deeper spread step cost change prediction on insulin cuts
+      (lesson 207). So with the gain, absolute time below 70 on these donors reads about 1.4 points high at the median,
+      and over twice the field's count of donors exceed the 4% budget. Matters for the per-person low budget that sets
+      the operating point: the generator will pick operating points more cautiously than the field would support.
