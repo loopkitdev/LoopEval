@@ -2894,3 +2894,11 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Checkpoints: gamepc ~/frozen/gen-v32-ifit2/icegen_v32oc{0,1}TcB2FGUCGLBGGSKaLK.pt (md5 bde1bce9 / 5eb456e8; the rest
       of the dir links ~/frozen/gen-v32). Run with that GEN_DATA, PLANT_BASE_IOB_OWN=1 and no BGICE_SPREAD (it overrides
       the per-person values).
+
+209. **The base from 2026-11-13 (Pete): pssq9 plus insulin-response gain ×1.25 (PATIENT_INSULIN_GAIN=1.25).** Chosen
+    over ×1.12 (lesson 207): only ×1.25 gains ranking of edits beyond training noise (mean glucose on five trainings of
+    five, TIR on two), and puts the mean and TIR change sizes onto the field. Its known cost, reported beside every
+    result: the change in time below 70 is about 1.7× the field's, in both directions, so insulin-adding candidates look
+    worse on lows than they are and insulin-cutting ones look better. Scored runs: suffix `pssq9ig1.25_v32st_noslow_e`,
+    five trainings. gen.py donors: the lesson 208 fit with the gain added; levels re-checked in runs/2026-11-12-ice-ifit
+    (arm fit2g) before frontier rebuilds on it.
