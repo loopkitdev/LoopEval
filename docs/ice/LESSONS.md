@@ -2917,3 +2917,23 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       (lesson 207). So with the gain, absolute time below 70 on these donors reads about 1.4 points high at the median,
       and over twice the field's count of donors exceed the 4% budget. Matters for the per-person low budget that sets
       the operating point: the generator will pick operating points more cautiously than the field would support.
+
+211. **The gain's excess lows come from lows that last too long at high insulin-on-board; applying the gain to sustained
+    insulin only (PATIENT_INSULIN_GAIN_TAU=24) puts levels back on the field but gives up most of the ranking gain.** Put
+    to Pete. runs/2026-11-12-ice-ifit (lowanat.py, compare_g2.py), runs/2026-11-01-ice-stateabl (lane_gtau.sh, ps_eval.py
+    with PS_BASE).
+    - Anatomy, gen.py donors' scored window: field ~1.0 lows a day, mean 25 min, 8% an hour or longer, insulin-on-board
+      at entry 1.8 U. ifit2 without gain: same count, mean 34–39 min, 14–16% over an hour. With gain ×1.25: mean 43–45
+      min, 21–22% over an hour, entry IOB 2.6–2.8 U. The count is right; the duration and the IOB are not.
+    - Cause: the gain acts on every deviation from the typical rate (TDD/24), boluses included, though the generator
+      learned ICE around boluses at gain 1. A gain anchored to field insulin at the same clock time is not possible:
+      generated insulin correlates 0.28 with the field's (0.34 over 3 h); meals are drawn.
+    - PATIENT_INSULIN_GAIN_TAU=<h>: the gain applies to the person's own insulin activity averaged over ~tau hours
+      (exponential) against the typical rate; each bolus pulse acts at gain 1. Default off.
+    - gen.py donors (ifit2, trainings 0 / 1): median t<70 1.81 / 1.34 (field 1.12, gain 2.52 / 2.12, no gain 1.71 /
+      1.35), donors over 4% 17 / 17 (field 15, gain 40 / 40); low anatomy back to the no-gain shape.
+    - e pool, five trainings, against gain ×1.25 (paired): mean-glucose ranking −0.02, −0.05, −0.01, −0.03, −0.05
+      (beyond noise on 1 and 4); TIR and t<70 ranking within noise. Against no gain, the more-insulin mean ranking gain
+      holds on 2 of 5 (×1.25: 5 of 5), about where ×1.12 sat. Change sizes, mean of five: mean glucose −6.20 / +5.02
+      (field −6.24 / +4.49; ×1.25 −6.49 / +5.25); t<70 1.55× / 1.43× the field (×1.25 1.77× / 1.61×); TIR on added
+      insulin +1.66 (field +2.36; ×1.25 +1.83).

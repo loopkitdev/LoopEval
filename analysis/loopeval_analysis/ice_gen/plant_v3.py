@@ -117,6 +117,11 @@ class PlantV3:
         # confounded by Loop reacting to ICE), and the field moved 0.6-0.9x what replay predicted for real settings edits (LESSONS
         # 40): the rule likely overstates the effect of insulin the person did not get in the field. Replay is unaffected.
         self.ins_gain = float(os.environ.get("PATIENT_INSULIN_GAIN", "1"))
+        # PATIENT_INSULIN_GAIN_TAU=<h>: apply the gain to sustained changes only, the person's own insulin activity averaged over
+        # ~tau hours (exponential) against the typical rate; each bolus pulse then acts at the ISF_tdd rule the ICE was
+        # extracted at. Unset: the gain applies to every deviation from the typical rate (ice LESSONS 210-211).
+        self.ins_gain_tau = float(os.environ.get("PATIENT_INSULIN_GAIN_TAU", "0"))
+        self.act_ema = self.act_typ
         # PLANT_AUTO_AF=<f> (auto-bolus donors): the engine decides the automatic dose at a decision without that decision's
         # plant boluses, so a calculator bolus lands on top of ~f x the recommendation (handoff
         # 2026-10-15-simulator-plant-bolus-autodose). Until the engine orders them, ask for ratio - f so the step totals ~ratio x rec.
@@ -681,7 +686,10 @@ class PlantV3:
             mc = self.mc_amp * self.isf * self.act_typ * np.sin(2 * np.pi * (t.value / 8.64e13) / 28.0 + self.mc_phase) if self.mc_amp else 0.0
             ice += mc
             act = absorbed / dt_h
-            if self.ins_gain != 1.0:   # insulin above / below the person's typical rate acts at a gain (PATIENT_INSULIN_GAIN)
+            if self.ins_gain != 1.0 and self.ins_gain_tau > 0:   # gain on the sustained part only (PATIENT_INSULIN_GAIN_TAU)
+                self.act_ema += (act - self.act_ema) * min(1.0, dt_h / self.ins_gain_tau)
+                act = act + (self.ins_gain - 1.0) * (self.act_ema - self.act_typ)
+            elif self.ins_gain != 1.0:   # insulin above / below the person's typical rate acts at a gain (PATIENT_INSULIN_GAIN)
                 act = self.act_typ + self.ins_gain * (act - self.act_typ)
             self.bg = max(self.bg + (ice - self.isf * act) * dt_h, 20.0)
             j = self.steps.t1.searchsorted(t)
