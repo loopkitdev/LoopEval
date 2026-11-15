@@ -2954,3 +2954,6 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Not tested: insulin's effect near and below 100 (15 events). The night-time slope of background ICE on insulin
       (+0.43, lesson 52) is closed-loop confounded and was not used.
     - So the boost's mismatch (extraction at gain 1, plant at 1.25; lesson 211) stays to be fixed another way.
+    - Against the TDD rule ICE uses (isfcheck.py): the rule sits at 1.04× the scheduled ISF (IQR 0.81–1.14), and
+      insulin acted at 0.86× it [0.71, 1.02]. Per donor (25 with 4+ corrections) median 0.74, IQR 0.58–0.99, unrelated to
+      TDD (r −0.08). So the rule looks 15–25% too strong on these corrections, with a wide personal spread.
