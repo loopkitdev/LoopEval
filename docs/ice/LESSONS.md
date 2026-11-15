@@ -2957,3 +2957,18 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - Against the TDD rule ICE uses (isfcheck.py): the rule sits at 1.04× the scheduled ISF (IQR 0.81–1.14), and
       insulin acted at 0.86× it [0.71, 1.02]. Per donor (25 with 4+ corrections) median 0.74, IQR 0.58–0.99, unrelated to
       TDD (r −0.08). So the rule looks 15–25% too strong on these corrections, with a wide personal spread.
+
+213. **The generator's direct insulin input gives back only a small share of a sustained insulin change, so it does not
+    explain why the plant needs the ×1.25 boost.** runs/2026-11-15-ice-insmodel (iobprobe.py, pairprobe.py), pssq9 seed 0,
+    teacher-forced on 177 logged closed-loop rollouts (40 people), one input moved, all else fixed.
+    - Pending insulin (iob_net, ISF_tdd × IOB above the night level): +20 mg/dL where insulin is pending raises
+      background ICE +0.55 mg/dL/h, all of it through the defense term; ×1.25 → +0.98, ×0.86 → −0.44, removed → −1.52.
+      Over a mean IOB life of 2.0 h that hands back 7–18% of a sustained change's plant effect. Concentrated near lows:
+      +2.06 below 90 mg/dL, +0.6 above 140.
+    - Glucose input 20 mg/dL lower: background +1.61 mg/dL/h (defense +0.68, the rest the recurrent path). On a more-insulin
+      edit (glucose −4 to −6 mg/dL) that is about 10% of the plant effect.
+    - Bolus inputs do not move with settings: they carry only the person's own boluses, ratio boluses at a fixed 2 U.
+    - Paired before/after arms (same draws) show generated ICE rising 0.97× the extra insulin's plant effect, but that is
+      bookkeeping: over a long run glucose returns, so mean ICE equals mean insulin effect in each arm whatever the
+      generator does. Of it, meal pulses +0.22, background +0.75. The direct inputs above account for about a quarter;
+      the rest runs through glucose history, rescues and the plant's low-band offsets.
