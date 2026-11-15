@@ -2937,3 +2937,20 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       holds on 2 of 5 (×1.25: 5 of 5), about where ×1.12 sat. Change sizes, mean of five: mean glucose −6.20 / +5.02
       (field −6.24 / +4.49; ×1.25 −6.49 / +5.25); t<70 1.55× / 1.43× the field (×1.25 1.77× / 1.61×); TIR on added
       insulin +1.66 (field +2.36; ×1.25 +1.83).
+
+212. **Real carb-free corrections favour today's linear insulin effect (ISF × Loop's curve) over the additive body's
+    structure, so ICE is not recomputed with it.** Test before a rebuild (Pete, 2026-11-15). runs/2026-11-15-ice-insmodel
+    (insmodel.py; events as runs/2026-11-04-plant-curve-ice/fit.py, rapid-acting only: 278 corrections, 53 donors, all
+    starting at 160 or above). Insulin absolute, timing fixed at 360/75, per-event drift removed, one global scale.
+    - Every variant fits worse than linear (donor-weighted SSE, donor bootstrap 95%): uptake on observed glucose κ 0.15
+      +8.8% [+5.9, +11.9], κ 0.3 +15%, Bergman κ 1 +30%. A separate slower liver-suppression arm, capped at 2× basal or
+      not, +6.4% at best (half share, rate 0.03/min) up to +29% (share 0.8, the additive's rate 0.012). The cap does not help.
+    - Starting glucose barely moves the response: scale 0.70 / 0.73 / 0.84 at 160–200 / 200–250 / 250+, intervals
+      overlapping; per-event slope +0.036 per 50 mg/dL with dose held, the size κ 0.15 predicts, and too small to matter.
+      Dose size does not move it (0.80 / 0.82 / 0.79 at 1–2 / 2–4 / 4+ U).
+    - What sinks κ: corrections whose glucose stayed high responded less (scale 0.55 when the 6-hour mean is above 200,
+      0.93–0.98 below 160). Insulin on observed glucose credits those events with the most effect. An ICE extraction
+      would face the same thing.
+    - Not tested: insulin's effect near and below 100 (15 events). The night-time slope of background ICE on insulin
+      (+0.43, lesson 52) is closed-loop confounded and was not used.
+    - So the boost's mismatch (extraction at gain 1, plant at 1.25; lesson 211) stays to be fixed another way.
