@@ -3033,3 +3033,7 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       ICE rise at the same glucose is close to the field's (+4.6 vs +3.6 mg/dL/h, excess spread over 110–250, not near
       lows), and the generated meal pulses grow +0.69 mg/dL/h while field meal grams do not move (+0.2 g/day). The
       generated person's highs shrink less: time above 180 20.9 → 19.3% against the field's 24.3 → 20.0%.
+    - The meal lead is weak (mealdelta.py): the generator draws +0.11 meals/day and +5.3 g/day after more-insulin edits
+      (−0.11 / −5.2 after less), a 2% change. The field's more-insulin change, +0.2 g/day [−4.7, +4.9], does not
+      exclude it, and its less-insulin change (−5.6 g/day) matches. So the excess push-back is in the background level
+      (+2.96 vs about +1.5 in the field), not in meals.
