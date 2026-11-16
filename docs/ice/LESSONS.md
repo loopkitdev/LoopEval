@@ -2994,3 +2994,27 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       response to more insulin. The field gets twice the TIR from added insulin that the generator does; the cause is on
       the high side, not in ISF strength. A candidate: behaviour that changes with the edit (lesson 213).
     - Follow-up running: k86 with gain ×1.25 and ×1.16 on top (lane_g.sh).
+
+215. **No sign that people pay more attention after a settings edit. The TIR gap on more-insulin edits is the
+    generated person pushing back too hard: its ICE rises 2.3× the field's, all of it in the background level.**
+    gamepc runs/2026-11-15-ice-isf86 (attn.py, attn86.py, gendelta.py, genparts.py), 275 edits that moved insulin ±10%
+    (247 donors) against 960 pseudo-edits (no edit within 28 d). Windows and the regression-to-the-mean term as
+    field_rtm2.py.
+    - Any edit, either direction, minus pseudo-edits (90% person bootstrap): carbs entered +0.7 g/day [−3.0, +4.5], carb
+      entries −0.02/day, manual bolus U +0.3 [−0.2, +0.8], manual bolus count 0.0, meal-pulse rate and grams, unannounced
+      meals, rescues, share announced: all inside noise. Only bolus timing moves, by 1.7 min [0.6, 2.9]. Nothing like
+      extra attention.
+    - What changes with direction looks like the new settings and the new glucose, not effort. On more-insulin edits:
+      carb entries −0.23/day, manual bolus count −0.64/day while manual units rise +0.8, rescues +0.06/day. Less-insulin
+      edits show the opposite on each.
+    - Insulin and ICE after − before, with ISF ×0.86 units on both sides:
+      | | delivered U/day, gen / field | ICE mg/dL/h, gen / field [90%] |
+      |---|---|---|
+      | more insulin (146) | +2.49 / +2.30 | +3.64 / +1.55 [+0.71, +2.45] |
+      | less insulin (129) | −1.73 / −1.23 | −2.65 / −2.19 [−3.35, −0.96] |
+      Of the generator's +3.64, background level +2.96, meal pulses +0.69. Bases oc0 pssq9 without and with the gain:
+      ICE +3.64 / +3.76, insulin +2.14 / +1.80. The gain only adds insulin strength on top of the same push-back.
+    - So the generator delivers the right extra insulin and then cancels too much of it, on the more-insulin side
+      only. That is where TIR and mean go missing, and why ×1.25 sizes TIR while overshooting lows. Lesson 213 puts a
+      quarter of the background rise on the direct insulin input; the rest is glucose history, rescues and the plant's
+      low-band offsets. Next: find which part, per state band.
