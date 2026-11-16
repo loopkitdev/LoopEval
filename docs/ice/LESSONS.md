@@ -2972,3 +2972,25 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       bookkeeping: over a long run glucose returns, so mean ICE equals mean insulin effect in each arm whatever the
       generator does. Of it, meal pulses +0.22, background +0.75. The direct inputs above account for about a quarter;
       the rest runs through glucose history, rescues and the plant's low-band offsets.
+
+214. **ISF ×0.86 in both the ICE extraction and the plant, with no boost, sizes the change in t<70 like the field and
+    improves levels, but the TIR and mean gain from more insulin stays at about half the field's.** gamepc
+    runs/2026-11-15-ice-isf86: roots ice_v32s86 / ice_e32s86 (persons.isf_tdd ×0.86, ice = v + 0.86·ia, meals relabeled:
+    +9% meals, since g-eq sizes grow), full chain retrained to pssq9 on two trainings (arm k86), 337 edits.
+    Per training 0 / 1, drift-removed field in brackets:
+    | | base, gain 1.25 | base, no gain | k86, no gain |
+    |---|---|---|---|
+    | ΔTIR, more insulin [+2.36] | +2.12 / +1.92 | +1.44 / +1.34 | +1.18 / +1.35 |
+    | ΔTIR, less insulin [−1.67] | −1.43 / −1.84 | −0.96 / −1.40 | −1.12 / −1.62 |
+    | Δt<70, more [+0.60] | +1.13 / +0.97 | +0.88 / +0.52 | +0.65 / +0.69 |
+    | Δt<70, less [−0.64] | −1.18 / −0.90 | −0.87 / −0.64 | −0.60 / −0.70 |
+    | Δmean, more [−6.24] | −6.83 / −6.25 | −5.39 / −5.29 | −4.22 / −4.36 |
+    | Δt<54, more [+0.09] | +0.59 / +0.55 | +0.36 / +0.31 | +0.32 / +0.25 |
+    | r with field edits, TIR / t<70 / mean | .30 .34 .47 / .28 .30 .46 | .24 .30 .40 / .26 .27 .34 | .23 .29 .40 / .23 .35 .34 |
+    | level TIR error, median abs. | 4.6 / 5.5 | 4.5 / 5.4 | 4.2 / 4.3 |
+    - Against the gain base: ranking of mean glucose worse on both trainings (diff 90% −0.13..−0.02 / −0.18..−0.05), TIR
+      ranking worse but inside noise, t<70 ranking mixed. Against the no-gain base: no ranking change beyond noise.
+    - So a weaker ISF fixes the size of the low-side response, which the gain overshoots ~1.7×, but not the high-side
+      response to more insulin. The field gets twice the TIR from added insulin that the generator does; the cause is on
+      the high side, not in ISF strength. A candidate: behaviour that changes with the edit (lesson 213).
+    - Follow-up running: k86 with gain ×1.25 and ×1.16 on top (lane_g.sh).
