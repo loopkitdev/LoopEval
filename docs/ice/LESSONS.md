@@ -3018,3 +3018,18 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       only. That is where TIR and mean go missing, and why ×1.25 sizes TIR while overshooting lows. Lesson 213 puts a
       quarter of the background rise on the direct insulin input; the rest is glucose history, rescues and the plant's
       low-band offsets. Next: find which part, per state band.
+
+216. **ISF ×0.86 with a gain on top does not beat the base either; keep the base (lesson 209).** lane_g.sh, k86 pssq9,
+    two trainings, 337 edits, against the base (oc pssq9 ×1.25), field drift removed in brackets:
+    | | base | k86 ×1.25 | k86 ×1.16 |
+    |---|---|---|---|
+    | ΔTIR more [+2.36] | +2.12 / +1.92 | +1.81 / +1.68 | +1.54 / +1.32 |
+    | Δt<70 more / less [+0.60 / −0.64] | +1.13 −1.18 / +0.97 −0.90 | +0.97 −1.05 / +0.93 −0.93 | +0.90 −0.83 / +1.03 −0.92 |
+    | Δmean more [−6.24] | −6.83 / −6.25 | −5.80 / −5.51 | −5.13 / −5.13 |
+    - Ranking of mean glucose is worse than the base beyond noise for ×1.25 on both trainings and ×1.16 on one; t<70
+      ranking better for ×1.16 on one (+0.02..+0.14). The gain brings back the low-side overshoot in proportion to the
+      TIR it buys, as lesson 215 predicts: it scales the insulin that survives the push-back, not the push-back.
+    - Lead for the push-back (bandsplit.py, bandsplit_tot.py; field raw, not drift-adjusted): on more-insulin edits the
+      ICE rise at the same glucose is close to the field's (+4.6 vs +3.6 mg/dL/h, excess spread over 110–250, not near
+      lows), and the generated meal pulses grow +0.69 mg/dL/h while field meal grams do not move (+0.2 g/day). The
+      generated person's highs shrink less: time above 180 20.9 → 19.3% against the field's 24.3 → 20.0%.
