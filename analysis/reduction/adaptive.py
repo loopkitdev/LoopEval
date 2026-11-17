@@ -51,6 +51,15 @@ Families
            prediction with the 2 h of residual that followed; 0 until 576 scored predictions. The offset moves the need,
            the automatic bolus and the temp taper; it does not move the G_h < t_low stop, the GSL forecast or the
            bolus-calculator answer (manual_rec).
+           dn_k > 0: day/night shape, a needs factor by clock hour learned from the person's own meal-free hours. Each new
+           CGM interval with no carb entry and no manual bolus in the previous 5 h (and no override) gives the need it
+           implies, U/h = U absorbed / span + ΔG / (ISF_T * span), filed by UTC hour. Shape s(h) = 3-h circular smoothing
+           of each clock hour's median over the last dn_days days of its daily means (hours with >= 3 intervals), / their
+           mean, shrunk toward 1 by n/(n + dn_n0) days, clipped to [dn_lo, dn_hi], mean 1. Nothing before dn_min_days.
+           Skill rho: every 24 h, corr(the shape held 24 h ago, the 24 h of hourly need that followed), EWMA half-life
+           dn_hl days. Applied at t + dn_lead minutes as factor 1 + dn_k * clamp(rho / dn_ref, 0, 1) * (s - 1): b x f,
+           ISF / f (as Loop's insulin-needs factor; carb ratio unchanged). A person whose day does not repeat (rotating
+           shifts) gets low rho and so the flat profile; a stable night-shift pattern is learned like any other.
            guard: input guardrails (the Swift LoopAdaptive package has them on by default).
              - Readings that are not finite, <= 0 or dated after t + 60 s are dropped; readings are sorted; at a
                repeated time the last wins. Doses with non-finite or negative units, or that start after t + 60 s, are
@@ -209,6 +218,7 @@ class TddPD:
                     use_target=0, use_override=0, target_min=87.0, own_manual=0,
                     gsl=0.0, gsl_settings=1, gsl_h=180.0,
                     hab_k=0.0, hab_ref=0.3, hab_days=7, hab_min_days=3, hab_hl=7.0, hab_lo=-60.0, hab_hi=80.0,
+                    dn_k=0.0, dn_days=14, dn_min_days=5, dn_n0=4.0, dn_lo=0.75, dn_hi=1.33, dn_hl=7.0, dn_ref=0.3, dn_lead=60.0,
                     guard=0, g_stale_min=15.0, g_iob_mult=2.0, g_carb_max=250.0, g_jump=40.0, g_cgm_lo=40.0, g_cgm_hi=400.0)
     def __init__(self, **p):
         self.p = {**self.defaults, **p}
@@ -219,6 +229,9 @@ class TddPD:
         self.hpreds, self.hfeeds = [], []                         # (t, rel, base) awaiting scoring; (t, v) last 2 h
         self.hPP = self.hRR = self.hPR = 0.0; self.hN = 0
         self.hdecay = 0.5 ** (1.0 / max(1.0, self.p["hab_hl"] * 288))
+        self.dsum, self.dcnt, self.dlast = {}, {}, None           # day/night: hour bins of implied need, last CGM point
+        self.dsnap, self.dPP, self.dRR, self.dPR = None, 0.0, 0.0, 0.0  # shape held at the last 24 h mark; skill sums
+        self.dshape_t, self.dshape = None, None
     def adapt(self, t, G, sp_shift=0.0, frozen=False):
         """Outcome-keyed scale: log m integrates glucose above the set point (+ad_k per mg/dL·day) and below ad_lo
         (ad_klo times faster, downward). Reads glucose only, never delivered insulin."""
@@ -286,6 +299,57 @@ class TddPD:
         if len(self.hsum) > 48 * (int(self.p["hab_days"]) + 2):     # keep only the bins habit_parts can read
             lo = self.hbin(t) - 48 * (int(self.p["hab_days"]) + 1)
             for k in [k for k in self.hsum if k < lo]: del self.hsum[k]; del self.hcnt[k]
+    def dn_feed(self, m, f, isf, t, override):
+        """File the need implied by the newest CGM interval when the previous 5 h hold no entry and no manual bolus."""
+        tg, G = f["tg"], f["G"]
+        if self.dlast is not None and tg > self.dlast[0]:
+            span = (tg - self.dlast[0]) / 60.0
+            quiet = not any(ts(c0) > t - 18000 for c0, _g, _a in m["carbs"]) and \
+                    not any(kind == "bolus" and not auto and ts(s0) > t - 18000 for s0, _s1, _u, kind, auto in m["doses"])
+            if span <= 15 and quiet and not override and not f["cens"] and not self.dlast[2]:
+                need = (absorbed(m, self.curve, self.dlast[0], tg) + (G - self.dlast[1]) / isf) / (span / 60.0)
+                hb = int(tg // 3600); self.dsum[hb] = self.dsum.get(hb, 0.0) + need; self.dcnt[hb] = self.dcnt.get(hb, 0) + 1
+        if self.dlast is None or tg > self.dlast[0]: self.dlast = (tg, G, f["cens"])
+        lo = int(t // 3600) - 24 * (int(self.p["dn_days"]) + 1)
+        for k in [k for k in self.dsum if k < lo]: del self.dsum[k]; del self.dcnt[k]
+    def dn_hourly(self, h0, h1):
+        """{clock hour: [daily means]} over absolute hour bins [h0, h1), hours with >= 3 intervals."""
+        out = {}
+        for hb in range(h0, h1):
+            if self.dcnt.get(hb, 0) >= 3: out.setdefault(hb % 24, []).append(self.dsum[hb] / self.dcnt[hb])
+        return out
+    def dn_profile(self, t):
+        p = self.p; h1 = int(t // 3600); d = self.dn_hourly(h1 - 24 * int(p["dn_days"]), h1)
+        days = {hb // 24 for hb in range(h1 - 24 * int(p["dn_days"]), h1) if self.dcnt.get(hb, 0) >= 3}
+        if len(days) < p["dn_min_days"]: return None
+        med = np.array([np.median(d[h]) if h in d else np.nan for h in range(24)]); n = np.array([len(d.get(h, [])) for h in range(24)])
+        sm = np.full(24, np.nan)
+        for h in range(24):
+            w = med[[(h - 1) % 24, h, (h + 1) % 24]]; w = w[np.isfinite(w)]
+            if len(w): sm[h] = w.mean()
+        if not np.isfinite(sm).any() or np.nanmean(sm) <= 0: return None
+        sh = np.where(np.isfinite(sm), sm / np.nanmean(sm), 1.0)
+        sh = np.clip(1 + (sh - 1) * n / (n + p["dn_n0"]), p["dn_lo"], p["dn_hi"])
+        return sh / sh.mean()
+    def dn_factor(self, t):
+        """Factor applied now, and the skill update every 24 h."""
+        p = self.p
+        if self.dshape_t is None or t - self.dshape_t >= 3600:      # shape refreshed hourly
+            self.dshape, self.dshape_t = self.dn_profile(t), t
+        if self.dsnap is None: self.dsnap = (t, self.dshape)
+        elif t - self.dsnap[0] >= 86400:
+            t0, sh0 = self.dsnap; h0 = int(t0 // 3600); d = self.dn_hourly(h0, h0 + 24)
+            if sh0 is not None and len(d) >= 6:
+                x = np.array([sh0[h] for h in d]); y = np.array([d[h][0] for h in d])
+                if x.std() > 0 and y.std() > 0:
+                    x, y = x - x.mean(), y / y.mean() - 1; dec = 0.5 ** (1.0 / max(1.0, p["dn_hl"]))
+                    self.dPP = dec * self.dPP + x @ x; self.dRR = dec * self.dRR + y @ y; self.dPR = dec * self.dPR + x @ y
+            self.dsnap = (t, self.dshape)
+        if self.dshape is None or self.dPP <= 0 or self.dRR <= 0: return 1.0, 0.0
+        rho = self.dPR / math.sqrt(self.dPP * self.dRR)
+        g = max(0.0, min(1.0, rho / p["dn_ref"])) if p["dn_ref"] > 0 else 1.0
+        sh = self.dshape[int((t + 60 * p["dn_lead"]) // 3600) % 24]
+        return 1 + p["dn_k"] * g * (sh - 1), rho
     def target_and_factor(self, m):
         """Correction target and the active override's needs factor (None = no override): the person's target when
         use_target, else `target`; an override's target and factor when use_override. Targets floored at target_min."""
@@ -313,6 +377,10 @@ class TddPD:
         isf = p["isf_k"] / (p["tdd"] * f["scale"] ** p["ad_isf"]) ** p["isf_e"] / fac
         b0 = p["basal_uh"] if p["basal_uh"] > 0 else p["basal_frac"] * p["tdd"] / 24.0
         b = b0 * f["scale"] ** p["ad_basal"] * fac
+        if p["dn_k"] > 0:
+            t_ = ts(m["t"]); self.dn_feed(m, f, isf, t_, m.get("override") is not None and p["use_override"])
+            dnf, f["dn_rho"] = self.dn_factor(t_); f["dn"] = dnf
+            b, isf = b * dnf, isf / dnf
         s = max(-p["slope_cap"], min(p["slope_cap"], f["s15"]))
         Gh = f["G"] + s * p["h"]
         net = f["iob"] - p["manual_w"] * f["iob_manual"] - b * self.ieq
@@ -389,7 +457,7 @@ def main():
         r = fam(m)
         if log: log.write(json.dumps({"t": m["t"], **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in r["_f"].items()},
                                       "need": round(r["_need"], 4), "bolus": r["bolus"], "temp": r["temp_rate"],
-                                      "loop_bolus": m["loop"]["bolus"], "loop_temp": m["loop"]["temp_rate"], "loop_iob": m["loop"]["iob"]}) + "\n")
+                                      "loop_bolus": m["loop"]["bolus"], "loop_temp": m["loop"]["temp_rate"], "loop_iob": m["loop"]["iob"]}, default=lambda o: o.item() if hasattr(o, "item") else str(o)) + "\n")
         sys.stdout.write(json.dumps({k: r[k] for k in ("bolus", "temp_rate", "manual_rec") if k in r}) + "\n"); sys.stdout.flush()
 
 if __name__ == "__main__":
