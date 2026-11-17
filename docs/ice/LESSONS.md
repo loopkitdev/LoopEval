@@ -3056,4 +3056,21 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - So the generated push-back is wrong in where it acts, not only in size. Real people's added insulin comes off
       the highs while lows stay defended; the generator's push-back acts at every glucose. Lesson 213 already showed
       the insulin input's effect concentrated near lows; the self-feedback is not.
-    - Running: the own feedback held only at glucose ≥ 140 (PLANT_HOLD_OWNBG_ABOVE=140).
+    - The own feedback held only at glucose ≥ 140: lesson 218.
+
+218. **Holding the model's feedback on its own background only while glucose is at or above 140 puts all three
+    more-insulin changes on the field.** Same set-up as lesson 217, arm holdhi (PLANT_HOLD_OWNBG_ABOVE=140: bgice and
+    bgice_ema held at the person's 24 h mean when bg ≥ 140, live below), trainings 0 / 1:
+    | arm | insulin U/day | ICE | background | Δmean | ΔTIR | Δt<70 | level mean bg |
+    |---|---|---|---|---|---|---|---|
+    | full | +2.49 / +2.30 | +3.64 / +3.38 | +2.96 / +2.57 | −3.6 / −3.9 | +1.0 / +1.3 | +0.57 / +0.57 | 142 / 144 |
+    | held ≥ 140 | +1.89 / +1.89 | +2.81 / +2.85 | +1.92 / +1.75 | −5.9 / −6.4 | +2.26 / +2.25 | +0.71 / +0.62 | 146 / 149 |
+    | field, drift removed | +2.30 | +1.55 | | −6.2 | +2.4 | +0.60 | |
+    - TIR, t<70 and mean change all land on the field on both trainings; the ICE rise is still about 1.8× the field's.
+    - So the excess push-back is the self-feedback acting on highs. Left live near lows it keeps the defence; held on
+      highs, the added insulin comes off the highs as in the field.
+    - Cost: the level rises 4–5 mg/dL (the held value is a 24 h mean, lower than the live background on highs, so
+      highs run longer). Level fidelity and the less-insulin side are untested here.
+    - This is a plant switch, not a fix. Running: holdhi on all 355 edits with score_change + ps_eval_k against the
+      gain base (lane_i.sh, arm pssq9hh140). If it holds there, the principled form is a retrain in which the
+      background feedback is state-dependent, judged on 4–5 trainings.
