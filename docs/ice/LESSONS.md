@@ -3092,4 +3092,18 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       The level bias is gone (median −0.5 / −0.9) but the median absolute level TIR error is still 6.1 / 7.1
       against 4.6 / 5.5: the hold adds person-to-person scatter, not a shift. One day's mean is a noisy hold value
       for a 14-day run.
-    - Running: hold value from the 14 days before the run (PLANT_HOLD_DAYS=14, arm pssq9hh180d14).
+    - Hold value from the 14 days before the run (PLANT_HOLD_DAYS=14, arm pssq9hh180d14): level TIR error
+      5.1 / 6.1 against the base's 4.6 / 5.5, most of the scatter gone. Change sizes: ΔTIR more +1.92 / +2.11,
+      less −2.21 / −2.46 (field −1.67); Δt<70 more +0.80 / +0.69, less −0.79 / −0.67 (field ±0.60); Δt<54 about
+      half the base's error. Rankings within noise of the base (mean 0.44 / 0.44 vs 0.47 / 0.46).
+    - Not kept as a plant switch: the less-insulin TIR drop overshoots (error 0.5–0.8 vs the base's 0.2) and level
+      fit is still 0.5 worse. The model was trained with its live own-background input, so holding it in rollouts
+      alone is out of distribution; the learned form is lesson 219.
+
+219. **Learned hold (running).** Retrain with the bgice and bgice_ema inputs replaced, wherever glucose ≥ 180, by
+    the person's trailing 14-day mean background, in training (dataset_v3m/v3m3) and in every rollout and
+    calibration step (plant_v3), so the model learns to predict background on highs without its own recent
+    background and every closed-loop calibration fits to that. ISF ×0.86, no gain, otherwise the k86 recipe. Frozen
+    trees ~/frozen/ice-cobt-hold and ~/frozen/ice-bgview-holdt (mkhold_t.py), env PLANT_HOLD_OWNBG_ABOVE=180
+    PLANT_HOLD_DAYS=14, run dir runs/2026-11-17-ice-hold, arm k86h, trainings 0 and 1. Checked: on one person the
+    build changes the inputs only on the 14% of steps at ≥ 180, targets unchanged.
