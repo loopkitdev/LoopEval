@@ -3071,6 +3071,20 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       highs, the added insulin comes off the highs as in the field.
     - Cost: the level rises 4–5 mg/dL (the held value is a 24 h mean, lower than the live background on highs, so
       highs run longer). Level fidelity and the less-insulin side are untested here.
-    - This is a plant switch, not a fix. Running: holdhi on all 355 edits with score_change + ps_eval_k against the
-      gain base (lane_i.sh, arm pssq9hh140). If it holds there, the principled form is a retrain in which the
-      background feedback is state-dependent, judged on 4–5 trainings.
+    - On all 337 scored edits against the gain base (lane_i.sh, arm pssq9hh140, ps_eval_k), trainings 0 / 1:
+      | | field | gain base | held ≥ 140 |
+      |---|---|---|---|
+      | ΔTIR more | +2.36 | +2.12 / +1.92 | +2.24 / +2.19 |
+      | ΔTIR less | −1.67 | −1.43 / −1.84 | −2.13 / −2.46 |
+      | Δt<70 more | +0.60 | +1.13 / +0.97 | +0.75 / +0.65 |
+      | Δt<70 less | −0.64 | −1.18 / −0.90 | −0.70 / −0.66 |
+      | Δt<54 more / less | +0.09 / −0.09 | +0.59 / −0.67, +0.55 / −0.45 | +0.32 / −0.27, +0.19 / −0.27 |
+      | Δmean more / less | −6.24 / +4.49 | −6.8 / +5.4, −6.3 / +5.2 | −6.0 / +5.1, −6.6 / +5.6 |
+      | ranking TIR / t<70 / mean | | .30 .34 .47 / .28 .30 .46 | .21 .37 .42 / .25 .39 .40 |
+      | level TIR error, median abs | | 4.6 / 5.5 | 6.7 / 7.9 |
+    - Without the gain it sizes the low-side change like the field on both edit directions (the gain base
+      overstates it about 1.7×) and gets the more-insulin TIR right; the less-insulin TIR drop overshoots
+      (−2.1/−2.5 vs −1.67). Rankings are within noise of the base (mean ranking lower, CI touching 0).
+    - It is not kept: level TIR error rises about 2 points on both trainings, beyond noise. The held value (24 h
+      mean) sits below the live background on highs, so highs persist and the level runs high.
+    - Running: the same hold at glucose ≥ 180 (TH=180), which should shift the level less.
