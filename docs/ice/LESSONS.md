@@ -3087,4 +3087,9 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       (−2.1/−2.5 vs −1.67). Rankings are within noise of the base (mean ranking lower, CI touching 0).
     - It is not kept: level TIR error rises about 2 points on both trainings, beyond noise. The held value (24 h
       mean) sits below the live background on highs, so highs persist and the level runs high.
-    - Running: the same hold at glucose ≥ 180 (TH=180), which should shift the level less.
+    - Held at ≥ 180 instead (arm pssq9hh180): change sizes as good or slightly better (ΔTIR more +2.22 / +2.14,
+      less −2.13 / −1.96; Δt<70 more +0.77 / +0.70, less −0.69 / −0.71; Δmean more −5.8 / −6.2, less +4.8 / +4.5).
+      The level bias is gone (median −0.5 / −0.9) but the median absolute level TIR error is still 6.1 / 7.1
+      against 4.6 / 5.5: the hold adds person-to-person scatter, not a shift. One day's mean is a noisy hold value
+      for a 14-day run.
+    - Running: hold value from the 14 days before the run (PLANT_HOLD_DAYS=14, arm pssq9hh180d14).
