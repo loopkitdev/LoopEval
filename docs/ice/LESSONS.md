@@ -3037,3 +3037,23 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       (−0.11 / −5.2 after less), a 2% change. The field's more-insulin change, +0.2 g/day [−4.7, +4.9], does not
       exclude it, and its less-insulin change (−5.6 g/day) matches. So the excess push-back is in the background level
       (+2.96 vs about +1.5 in the field), not in meals.
+
+217. **Both the pending-insulin input and the model's feedback on its own background carry the push-back, the
+    feedback more. Cutting them puts the mean-glucose change on the field, but the extra effect lands on lows, not
+    highs.** k86 pssq9, 146 more-insulin edits, pre window, after − before, trainings 0 / 1 (lane_h.sh, ablsum.py; frozen
+    tree ~/frozen/ice-bgview-hold: PLANT_IOBNET_SCALE=0 hides iob_net, PLANT_HOLD_OWNBG=1 holds the bgice and bgice_ema
+    inputs at the person's real mean over the 24 h before the run):
+    | arm | insulin U/day | ICE | background | Δmean | ΔTIR | Δt<70 | level mean bg |
+    |---|---|---|---|---|---|---|---|
+    | full | +2.49 / +2.30 | +3.64 / +3.38 | +2.96 / +2.57 | −3.6 / −3.9 | +1.0 / +1.3 | +0.57 / +0.57 | 142 / 144 |
+    | insulin input hidden | +1.71 / +1.73 | +2.25 / +2.34 | +1.90 / +1.68 | −5.7 / −5.5 | +1.0 / +0.9 | +1.54 / +1.41 | 133 / 134 |
+    | own feedback held | +1.47 / +1.54 | +2.07 / +2.08 | +1.14 / +0.95 | −6.3 / −7.1 | +1.1 / +1.2 | +1.54 / +1.59 | 138 / 139 |
+    | both | +1.25 / +1.26 | +1.52 / +1.45 | +0.84 / +0.66 | −6.8 / −7.1 | +0.8 / +0.8 | +2.03 / +1.99 | 133 / 133 |
+    | field, drift removed | +2.30 | +1.55 | | −6.2 | +2.4 | +0.60 | |
+    - Without the push-back glucose falls as far as the field's, Loop then delivers less extra insulin, and the drop
+      shows as lows (2.5–3.4× the field) instead of fewer highs: TIR does not move. Cutting either channel also lowers
+      the person's level (−5 to −10 mg/dL), which puts more time near lows; that confounds part of the t<70 rise.
+    - So the generated push-back is wrong in where it acts, not only in size. Real people's added insulin comes off
+      the highs while lows stay defended; the generator's push-back acts at every glucose. Lesson 213 already showed
+      the insulin input's effect concentrated near lows; the self-feedback is not.
+    - Running: the own feedback held only at glucose ≥ 140 (PLANT_HOLD_OWNBG_ABOVE=140).
