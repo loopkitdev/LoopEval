@@ -284,3 +284,21 @@ The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Al
    0.63, slope 0.45 / 0.55 on the old base (lesson 20). Known costs of the new base: absolute t<70 reads high (median 2.5 /
    2.1 vs field 1.1) and Δt<70 is about 1.7× the field's in both directions. Rerun staged: runs/2026-11-18-adaptive-ifit2
    (job 347).
+
+25. **On the current generator base Loop Adaptive beats the gr2 dial, and more so per person (2026-11-18).** Job 347:
+   166 pilot donors, trainings oc0 / oc1, against frontier's gr2 dial (job 351, ×0.85–1.30), arms adPg (in-process,
+   c48eaa05) and adPw (ad_win_h 24). Against gr2 ×1.0:
+
+   | | ΔTIR | Δt<70 | Δt<54 | pooled gap @t<70 |
+   |---|---|---|---|---|
+   | no entries, oc0 / oc1 | +6.0 / +5.5 | +0.24 / +0.20 | +0.06 / +0.07 | +4.6 / +4.1 |
+   | entries, oc0 / oc1 | +3.9 / +3.8 | −1.03 / −0.97 | −0.43 / −0.40 | below the dial's lowest t<70 |
+
+   Per person, against the person's own dial at no more t<70: median +1.9 / +1.1 without entries (27 / 35 % below 0),
+   +2.0 / +2.3 with entries (defined for half: the other half sit below their whole dial on t<70, at median ΔTIR +1.0).
+   The gain follows how high the person runs under gr: median by gr mean ≤135 / 135–150 / 150–165 / 165–180 / >180 is
+   +0.4 / −0.2 / +1.3 / +2.1 / +7.1 (oc0, no entries), and oc1 has −1.5 in the tightest band. The 24 h window (adPw)
+   changes nothing that matters. Worst cases: i087 with entries −12 to −18.5 TIR (Δt<70 +2.8 to +5.0), i089 without
+   −7 to −8.5. Lesson 20's "per-person gap about 0" was the old base. On this base the generator and replay disagree in
+   sign for high runners (ns3's replay −14 TIR, lesson 22). The base reads Δt<70 about 1.7× the field (lesson 24), so
+   the low-side deltas are likely overstated in both directions. runs/2026-11-18-adaptive-ifit2 (score_all.txt).
