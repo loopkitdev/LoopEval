@@ -190,3 +190,18 @@ The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Al
    more than 1 point 6 / 1 (Loop ×1.10: 1 / 1), max +2.0 / +1.2. The six are high-mean people (gr mean 157–187) who
    take 1.0–1.4× the insulin and gain 2–14 TIR; i081 is the poor trade (t<54 0.44 → 2.47 for +3.4 TIR, and 2.29 under
    Loop ×1.25 too: a person whose lows answer strongly to any extra insulin).
+
+18. **Against stock Loop (no guard + runway) the generator gap is +5.6 / +4.9 TIR at equal t<70** (job 340, hands-off,
+   163 people; CI [+4.5, +6.7] / [+3.8, +6.2]); ΔTIR +5.1 / +5.1, Δt<70 −0.11 / +0.05, Δt<54 −0.01 / +0.03 against
+   stock ×1.0, +1.3–1.4 U/d. gr's own lift over stock here is +0.4 / +0.8 TIR with fewer lows; its October runs
+   reproduced bit-exactly. 23–26 % of people lose TIR against stock (worst i089, −6.9 / −9.2, with fewer lows). Run dir
+   runs/2026-11-12-adaptive-stock (vs_stock_oc*.csv through gen_score.py). Additive sim: +4.6 [+3.0, +6.3].
+
+19. **A learned day/night needs factor does nothing on the generator** (dn_k 1, adaptive.py c002e2c4, job 341; paired
+   against job 339's adPg, 163 people). ΔTIR −0.04 / +0.12 with entries, −0.28 / +0.28 without (the two trainings
+   disagree in sign); Δt<70 within ±0.06; insulin +0.5–0.6 U/d without entries (meals learned as need). Per-person
+   ΔTIR ±2–9 either way, uncorrelated with the offline profile skill (|r| ≤ 0.18). Offline, a 14-day clock profile
+   predicts the next day's meal-free need only 1.5 % better than flat (median; 23 % of people > 5 %), irregular sleep
+   timing no worse. Not established: whether the generator carries a person's clock-dependent sensitivity at all; if
+   it does not, it cannot reward the term. Run dir runs/2026-11-17-adaptive-daynight. Motivated by ns3, whose
+   generator gap is −1.1 (entries) / −2.0 (no entries) with lows at 00–08 and highs at 12–18.
