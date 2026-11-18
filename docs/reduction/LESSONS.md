@@ -205,3 +205,22 @@ The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Al
    timing no worse. Not established: whether the generator carries a person's clock-dependent sensitivity at all; if
    it does not, it cannot reward the term. Run dir runs/2026-11-17-adaptive-daynight. Motivated by ns3, whose
    generator gap is −1.1 (entries) / −2.0 (no entries) with lows at 00–08 and highs at 12–18.
+
+20. **Most of the generator gap is insulin moved between people; on each person's own dial the median gain over gr is
+   about zero, and ns3 is typical (2026-11-17).** The gap in lessons 15–18 compares the pooled mean against one
+   needs multiplier shared by everyone, so the candidate scores for sending more insulin to people running high and less
+   to people running tight. Scored per person instead (the person's own gr dial ×0.95–1.50, the best TIR it reaches at or
+   below the candidate's t<70; job 70's G runs), trainings 0 / 1: median gap −0.01 / +0.09, mean +1.1 [+0.5, +1.8] /
+   +0.6 [−0.2, +1.4], half the people below zero. It grows with how high the person runs under gr: by gr mean BG
+   135–150 / 150–165 / 165–180 / > 180 the median is −0.2 / −0.4 / +1.1 / +3.5 (training 0; training 1 −1.2 / −0.5 /
+   −0.1 / +3.7). 20–23 % of people end with fewer lows than their whole dial reaches (ΔTIR −0.1 / −0.7 at Δt<70
+   −1.0 / −0.9); no gap is defined for them, and the dial's slope suggests it would be positive. Against stock Loop's
+   own dial the per-person gap stays positive (median +2.5 / +2.0, mean +3.1 / +3.0). Without entries (announce study,
+   dial ×0.95–1.10 only, mostly extrapolated) the pooled gap is +2.5 / +2.3, but the per-person result is no clearer.
+   Schedule shape does not predict who gains: day/night basal ratio, ISF ratio and their product |ρ| ≤ 0.17 with ΔTIR
+   or Δt<70. ns3 (gr mean 152 on its bed, gap −1.1 against its own dial) sits where its band's median sits. In replay
+   it is in the tail, not alone there: ΔTIR −14.1 / Δt<70 +7.2 against the 35-donor subset's median −5.4 / +1.9 (10th
+   percentile −13.1, 90th +6.2; lesson 13). Its hourly insulin matches the deployed arm's (38.7 vs 38.0 U/d), but about
+   1.3 U more goes in 21–01 local, after the evening rise, and less at 12–13; t<70 at 00–09 is 16–27 % against ≤ 4.5 %.
+   ns3 enters almost no carbs (COB ≈ 0), so every meal arrives as an unexplained rise. Run dir
+   runs/2026-11-17-adaptive-perperson (pp2.py, perperson.py, shape.py).
