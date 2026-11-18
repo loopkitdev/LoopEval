@@ -3121,3 +3121,18 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - The plant does not compress; what is left enters in generation, mostly people in the 170–190 band (generated
       median 161 against replay 179). The plant-only hold compresses the top more (> 190 band 174 vs 198), one more
       reason it was not kept; the learned hold (219) must be checked on this table too.
+
+221. **The Nightscout user's bed rebuilt on the current base reads her level on the unseen weeks; lows read high, as on
+    the pool.** adaptive's ask (Pete-approved, 2026-11-18). Fresh Nightscout export through 11-17 (root ice_ns3n, pool
+    labeler 21b2c3c; on the overlap with the October root glucose identical, ICE r 0.99999). Enrolled onto the ifit2
+    checkpoints (fit_person → level band + pulse size → the ifit2 two-step spread fit on the 28 days before the held-out
+    28), run dir gamepc runs/2026-11-18-ns3-ifit (ns3b.sh, fit_ns3.py, ns3_run.py with NS3_CUR), bed on the Mac at
+    ~/frozen/gen-v32-ifit2-ns3. Held-out 28 days, stock class-1 Loop, gain 1.25, 10 seeds, trainings 0 / 1:
+    | | TIR / mean, all time | TIR / mean, clean | t<70 clean | insulin U/d |
+    |---|---|---|---|---|
+    | field | 65.7 / 156.8 | 73.1 / 146.5 | 0.89 | 37.3 |
+    | generated | 65.7 / 161.3, 66.9 / 152.4 | 66.3 / 161.0, 67.4 / 153.5 | 1.95 / 4.29 | 37.7 / 36.9 |
+    | measured-ICE replay | 63.8 / 158.6 | 71.2 / 148.6 | 1.31 | 37.1 |
+    - One person's two-step fit is noisy on 4 seeds: training 0's second step overshot inside the fit window (mean 169
+      against 155) yet lands close on the unseen window. Read her results averaged over both trainings.
+    - Not run: her current setup (class 2 + gr + slow RC): no gamepc engine has --candidate-slow-rc-schedule-feed.
