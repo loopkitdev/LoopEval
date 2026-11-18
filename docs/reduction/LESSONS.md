@@ -218,7 +218,13 @@ The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Al
    own dial the per-person gap stays positive (median +2.5 / +2.0, mean +3.1 / +3.0). Without entries (announce study,
    dial ×0.95–1.10 only, mostly extrapolated) the pooled gap is +2.5 / +2.3, but the per-person result is no clearer.
    Schedule shape does not predict who gains: day/night basal ratio, ISF ratio and their product |ρ| ≤ 0.17 with ΔTIR
-   or Δt<70. ns3 (gr mean 152 on its bed, gap −1.1 against its own dial) sits where its band's median sits. In replay
+   or Δt<70. The bands are the generator's: its gr mean correlates only 0.47 with the person's own field mean over the
+   same 28 days (difference SD 26 mg/dL). Binned by field control instead, the gap against gr barely moves with how high
+   people really run (field mean ≤ 140 / 140–155 / 155–170 / 170–185 / > 185: +1.3 / −0.5 / −0.2 / −0.2 / +3.5, training 1
+   −0.8 / +0.4 / −0.3 / −0.3 / +0.6); against stock it rises gently (+2.4 → +3.3, +1.7 → +3.7). So the candidate gains on
+   people who run high on the bed, which is not the same people as those who run high in life. ns3: gr mean 152 on its
+   bed (TIR 71), field 179 / TIR 54.5 over Aug–Oct and 159 / 65.3 over 10-27 → 11-17 (gr, then gr2 + slow RC), so its
+   bed makes it look better controlled than it is; gap −1.1 against its own dial. In replay
    it is in the tail, not alone there: ΔTIR −14.1 / Δt<70 +7.2 against the 35-donor subset's median −5.4 / +1.9 (10th
    percentile −13.1, 90th +6.2; lesson 13). Its hourly insulin matches the deployed arm's (38.7 vs 38.0 U/d), but about
    1.3 U more goes in 21–01 local, after the evening rise, and less at 12–13; t<70 at 00–09 is 16–27 % against ≤ 4.5 %.
