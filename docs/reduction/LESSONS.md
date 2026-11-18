@@ -247,3 +247,19 @@ The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Al
    insensitive to how Loop Adaptive is designed, as the population replay was to every law, gain and cap (lesson 5), so it
    cannot rank these changes; the generator has to. Run dir runs/2026-11-17-adaptive-unann (jobs 342–344; code 2365af82,
    530bc161, all new parameters off by default and Swift fixtures unchanged).
+
+22. **The replay body ran at ns3's scheduled ISF; a population ISF removes about a quarter of the penalty, not the
+   penalty (2026-11-17).** `--candidate-infer-sensitivity`, used on ns3 and on the tier-A population replays, runs the
+   body at the person's scheduled ISF (ns3 51–90 over the export, 72 / 67 / 51 now) times an inferred m(t) (ns3:
+   m > 1 at 23–25 % of steps, mean 1.65 there, cap 2). With the body at a flat 55.3 mg/dL/U instead (`--patient-isf`,
+   the ISF yardstick's start rule 1870 / TDD), Loop Adaptive against deployed ×1.0 is:
+
+   | Body ISF | ΔTIR | Δt<70 | Δt<54 |
+   |---|---|---|---|
+   | scheduled × m | −14.1 | +7.2 | +3.0 |
+   | flat × m | −12.5 | +6.5 | +2.4 |
+   | flat, no m | −10.3 | +5.8 | +2.1 |
+
+   With ad_win_h 24 the last row is −10.4 / +4.7 / +1.4. The deployed dial barely moves (×1.0 66.4–66.5 TIR in all
+   three; the identity holds). Night t<70 is still 16–19 % against 1.7 %. So the scheduled ISF is a part of ns3's replay
+   loss, and the rest is not explained by the body's ISF. Job 345, runs/2026-11-17-adaptive-unann/pisf.
