@@ -28,6 +28,9 @@ Families
            below ad_lo still pull it down at once.
            basal_uh > 0: b = basal_uh (the person's pre-window background rate, tdd.basal_hat) instead of basal_frac TDD/24
            rc_k > 0: retrospective correction, D = ΔG_30 + ISF_T * (U absorbed in 30 min - b/2), G_h += clamp(rc_k D, ±rc_cap)
+           rc_rise_gate: a positive RC counts only while glucose is rising (15-min slope > 0): on a meal's slow tail,
+           glucose falling under a large IOB reads as unexplained rise and would keep adding insulin.
+           af_rise > 0: the application factor while the 15-min slope is at least rise_s mg/dL/min (the early rise).
            iob_cap_h > 0: a bolus never lifts net IOB above iob_cap_h * TDD/24 (hours of average delivery)
            the correction ISF follows m ** ad_isf; the basal follows m ** ad_basal (0 = basal stays at its TDD0 value, only ISF adapts).
            User inputs (the only settings it may take; Pete 2026-10-30):
@@ -218,6 +221,7 @@ class TddPD:
                     manual_tau=0.0, prop_temp=0, temp_floor_bg=80.0,
                     basal_uh=0.0, ad_basal=1.0, ad_isf=1.0, iob_cap_h=0.0, rc_k=0.0, rc_cap=150.0,
                     ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0, ad_brake_h=0.0, ad_win_h=0.0,
+                    rc_rise_gate=0, af_rise=0.0, rise_s=1.0,
                     use_target=0, use_override=0, target_min=87.0, own_manual=0,
                     gsl=0.0, gsl_settings=1, gsl_h=180.0,
                     hab_k=0.0, hab_ref=0.3, hab_days=7, hab_min_days=3, hab_hl=7.0, hab_lo=-60.0, hab_hi=80.0,
@@ -399,6 +403,7 @@ class TddPD:
         if p["rc_k"] > 0 and f["span30"] >= 20:
             D = f["dG30"] + isf * (f["ab30"] - b * f["span30"] / 60.0)
             rc = max(-p["rc_cap"], min(p["rc_cap"], p["rc_k"] * D))
+            if p["rc_rise_gate"] and rc > 0 and f["s15"] <= 0: rc = 0.0
         f["rc"] = rc
         Gh = Gh + rc
         carb_u = f["cob"] / (p["cr_k"] / (tdd * fac)) if p["cr_k"] > 0 else 0.0
@@ -417,7 +422,8 @@ class TddPD:
         need = (min(Ghh, f["G"] + p["rise_cap"]) - T) / isf - net + carb_u
         bolus = 0.0
         if need > 0 and f["G"] >= p["t_bolus"] + dT and s > p["fall_gate"]:
-            bolus = min(p["af"] * need, st.get("max_bolus") or 1e9)
+            af = p["af_rise"] if p["af_rise"] > 0 and f["s15"] >= p["rise_s"] else p["af"]
+            bolus = min(af * need, st.get("max_bolus") or 1e9)
             if p["iob_cap_h"] > 0:   # net insulin on board never above iob_cap_h hours of average delivery
                 bolus = max(0.0, min(bolus, p["iob_cap_h"] * tdd / 24.0 - net))
             if p["guard"] and st.get("max_bolus"):   # Loop's maxActiveInsulin
