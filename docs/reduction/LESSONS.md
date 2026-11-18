@@ -230,3 +230,20 @@ The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Al
    1.3 U more goes in 21–01 local, after the evening rise, and less at 12–13; t<70 at 00–09 is 16–27 % against ≤ 4.5 %.
    ns3 enters almost no carbs (COB ≈ 0), so every meal arrives as an unexplained rise. Run dir
    runs/2026-11-17-adaptive-perperson (pp2.py, perperson.py, shape.py).
+
+21. **On ns3's replay no change to Loop Adaptive's timing moves the result (2026-11-17).** Python reference
+   controller, parity with the in-process arm (TIR 52.19 vs 52.44, t<54 3.05 vs 3.07). The adaptive scale swings within
+   the day on ns3 (m 0.97 at 10–18 local, 1.25 by midnight after evening glucose of 200–245, back by mid-morning), and
+   the background rate follows it. Changes tried, each against the default candidate (TIR 52.2 / t<70 9.3 / t<54 3.05;
+   deployed ×1.0 66.5 / 2.1 / 0.11):
+   - scale learning from the trailing 24 h / 72 h mean (ad_win_h, swing 1.00–1.13): 51.7 / 8.6 / 2.30, 51.7 / 8.6 / 2.30;
+   - ad_k / 3: 55.5 / 8.8 / 2.67;
+   - positive RC only while rising (rc_rise_gate): 51.3 / 9.3 / 3.11;
+   - application factor 0.6 on rises ≥ 1 mg/dL/min (af_rise): 51.2 / 9.7 / 3.37;
+   - both: 52.0 / 9.8 / 3.78; both + 24 h window: 50.6 / 9.0 / 2.35.
+   Every arm gives the deployed arm's insulin (38.4–38.8 vs 38.0 U/d) and the same shape: night t<70 17.7–22.4 % against
+   1.3 %, > 180 at 12–24 55–63 % against 42 %. Per meal, timing differs by tenths of a unit; with fixed ICE and a night ISF
+   of 72, about 0.35 U more on board after the evening moves the whole night 20–28 mg/dL down. ns3's replay is
+   insensitive to how Loop Adaptive is designed, as the population replay was to every law, gain and cap (lesson 5), so it
+   cannot rank these changes; the generator has to. Run dir runs/2026-11-17-adaptive-unann (jobs 342–344; code 2365af82,
+   530bc161, all new parameters off by default and Swift fixtures unchanged).
