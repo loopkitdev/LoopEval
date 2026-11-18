@@ -3110,7 +3110,7 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
 
 220. **Per-person level fidelity on the current base: slope 0.9 on mean glucose, not 0.5.** adaptive's handoff
     (docs/handoffs/2026-11-17-ice-person-level-compression.md) found slope 0.45–0.55 and r 0.50/0.63, but on the
-    pre-per-person-fit bed (…LK, no pssq9) with announce arms that replace each person's own carb entry. Same check
+    pre-per-person-fit bed (…LK, no pssq9; own-entry arms, stock and gr at ×1.0, announce 100). Same check
     on the base (pssq9 + own-night IOB + gain ×1.25): own settings, 14-day pre-edit window vs field, 268 edit-pool
     people, trainings 0 / 1 (levelslope_ice.py in the change dir):
     | | r mean | slope mean | bias | SD diff | > 20 off | r TIR | slope TIR |
