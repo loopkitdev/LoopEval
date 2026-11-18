@@ -411,8 +411,8 @@ struct SimulateCommand: AsyncParsableCommand {
         if insulinPhysicalPeak != nil || insulinPhysicalDia != nil {
             printStderr("WARNING: --insulin-physical-peak/--insulin-physical-dia only size the effect window; they do NOT change the plant's insulin curve. Use --patient-insulin-model.\n")
         }
-        if let v = patientIsf, !(v > 0) {
-            throw ValidationError("--patient-isf must be positive (mg/dL per U); got \(v).")
+        guard let parsedBodyISF = BodyISF(argument: patientIsf) else {
+            throw ValidationError("--patient-isf takes calculated, schedule, controller or a positive mg/dL/U; got \(patientIsf).")
         }
         candidateConfig.oapsDia = candidateOapsDia
         candidateConfig.insulinPhysicalPeakMin = insulinPhysicalPeak
@@ -487,14 +487,14 @@ struct SimulateCommand: AsyncParsableCommand {
                 var x = d; x.insulinType = cm; return x
             }
             data = PreloadedData(glucose: data.glucose, doses: restamped,
-                                 carbs: data.carbs, therapyTimeline: tl)
+                                 carbs: data.carbs, therapyTimeline: tl, tddBasal: data.tddBasal)
             printStderr("controller insulin model: \(was) -> \(cm) (therapy belief + \(restamped.count) dose stamps); plant unaffected\n")
         }
         if !insulinTypeChanges.isEmpty {
             var tl = data.therapyTimeline
             tl.insulinTypeChanges = insulinTypeChanges
             data = PreloadedData(glucose: data.glucose, doses: data.doses,
-                                 carbs: data.carbs, therapyTimeline: tl)
+                                 carbs: data.carbs, therapyTimeline: tl, tddBasal: data.tddBasal)
         }
 
         // Optional per-step ISF multiplier CSV (time → multiplier).
@@ -742,7 +742,7 @@ struct SimulateCommand: AsyncParsableCommand {
             counterRegTauMin: counterRegTauMin,
             glucoseEffectivenessPerMin: glucoseEffectiveness,
             cfGapReanchorSec: cfGapReanchorMin * 60,
-            patientISF: patientIsf,
+            bodyISF: parsedBodyISF,
             patientInsulinType: parsedPatientInsulinModel,
             inferSensitivity: candidateInferSensitivity,
             inferSensitivityMax: candidateInferSensitivityMax,
@@ -938,6 +938,7 @@ struct SimulateCommand: AsyncParsableCommand {
             let closedLoop: Bool
             let exportDataVersion: Int?          // --data-dir export's manifest version (nil = unstamped)
             let provenanceWarnings: [String]     // stale export / missing donor flags; empty = clean
+            let bodyISF: BodyISFInfo?            // counterfactual body's ISF (nil: no counterfactual / external plant)
         }
 
         let preds = simResult.steps.map {
@@ -1102,7 +1103,8 @@ struct SimulateCommand: AsyncParsableCommand {
             insulinActivityCurve: curve,
             closedLoop: true,
             exportDataVersion: exportDataVersion,
-            provenanceWarnings: provenanceWarnings
+            provenanceWarnings: provenanceWarnings,
+            bodyISF: simResult.bodyISF
         )
 
         let encoder = JSONEncoder()

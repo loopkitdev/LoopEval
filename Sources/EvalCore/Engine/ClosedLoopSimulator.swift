@@ -94,6 +94,8 @@ public struct ClosedLoopSimResult: Codable, Sendable {
     /// the ground-truth candidate delivery — use it for the delivery stream so
     /// manual boluses (automatic == false) are represented, not just auto-boluses.
     public var counterfactualDoses: [EvalInsulinDose] = []
+    /// The counterfactual body's ISF (nil without a counterfactual).
+    public var bodyISF: BodyISFInfo? = nil
 }
 
 extension EvaluationEngine {
@@ -199,21 +201,16 @@ extension EvaluationEngine {
         // at candidate==real, stepDelta==realBGdelta so the advance lands on the
         // actual anyway ⇒ no-op at identity. 0 disables (legacy).
         cfGapReanchorSec: TimeInterval = 1800,
-        // PATIENT ISF as an ABSOLUTE, FLAT value in mg/dL/U, referencing no therapy
-        // configuration at all — not the donor's schedule shape, not its time-of-day
-        // variation, not its dated settings eras. The simulated body is an independent
-        // object from the settings the controller runs.
+        // PATIENT (body) ISF: the gain that turns a candidate-vs-field insulin difference into
+        // glucose in the counterfactual. It is the body's, not the controller's: the controller
+        // still runs the configured schedule (`scaledSensitivity`). See `BodyISF`.
         //
-        // The invariant this exists to test: the patient model is a DIFFERENCE form
-        // (see the counter advance below), so with the controller left at the field's
-        // own settings, candidate doses == field doses makes the insulin bracket vanish
-        // and the counter reproduces the substrate for ANY patient ISF. Dosing is
-        // therefore patient-ISF-INVARIANT at identity, and measured sensitivity to it
-        // is a readout of replay infidelity, amplified by the ISF gain.
-        //
-        // The only thing borrowed from the schedule is its DATE SPAN, which is coverage
-        // (glucoseEffects preconditions on closestPrior(dose.startDate)), not therapy.
-        patientISF: Double? = nil,
+        // The patient model is a DIFFERENCE form (see the counter advance below), so with the
+        // controller left at the field's own settings, candidate doses == field doses makes the
+        // insulin bracket vanish and the counter reproduces the substrate for ANY body ISF.
+        // Dosing is patient-ISF-invariant at identity; away from it the body ISF sets how much
+        // each unit of difference costs.
+        bodyISF: BodyISF = .calculated,
         // PATIENT-side insulin model: the pharmacodynamics of the SIMULATED BODY,
         // used to strip the field's insulin out of the observed trace (ICE) and to
         // put the candidate's insulin back in. Distinct from the controller's model
@@ -456,16 +453,42 @@ extension EvaluationEngine {
         // insulin back in. Distinct from the controller's ISF BELIEF, which is always
         // `scaledSensitivity` (generatePrediction).
         //
-        // Three cases, in precedence order:
-        //   1. `patientISF` set -> plant at a FLAT ABSOLUTE ISF, independent of every
-        //      therapy setting. The body becomes its own object.
-        //   2. sensitivity-inference (fidelity) mode -> plant at SCHEDULED ISF, with
-        //      the inferred per-step m(t) correcting it.
-        //   3. default -> COUPLED to the controller (`scaledSensitivity`), i.e. an
-        //      ISF-multiplier / insulin-needs sweep moves the body along with the
-        //      belief. Preserved as the default so existing sweeps are unchanged.
+        // Body ISF (`BodyISF`). With --candidate-infer-sensitivity the inferred m(t) scales
+        // whichever base is chosen here.
+        let schedLo = data.therapyTimeline.sensitivity.map { $0.value.doubleValue(for: mgdlUnit) }.min() ?? 0
+        let schedHi = data.therapyTimeline.sensitivity.map { $0.value.doubleValue(for: mgdlUnit) }.max() ?? 0
+        var bodyISFInfo = BodyISFInfo(source: "controller", isf: nil, tdd: nil, tddDays: nil, tddWindow: nil)
+        let flatISF: Double? = {
+            switch bodyISF {
+            case .flat(let v):
+                bodyISFInfo = BodyISFInfo(source: "flat", isf: v, tdd: nil, tddDays: nil, tddWindow: nil)
+                return v
+            case .calculated:
+                guard counterfactualMode, externalPlant == nil else { return nil }
+                let pre = Self.measuredTDD(doses: data.doses, basal: data.tddBasal, from: interval.start.addingTimeInterval(-BodyISF.tddDays * 86400), to: interval.start)
+                let (tdd, window) = pre.map { ($0, "before") }
+                    ?? (Self.measuredTDD(doses: data.doses, basal: data.therapyTimeline.basal, from: interval.start, to: interval.end).map { ($0, "window") } ?? (nil, "none"))
+                guard let t = tdd else {
+                    FileHandle.standardError.write(Data("WARNING: body ISF: under \(Int(BodyISF.minTDDDays)) days of dose history before or in the window; the body falls back to the configured schedule (\(String(format: "%.0f", schedLo))-\(String(format: "%.0f", schedHi)) mg/dL/U).\n".utf8))
+                    bodyISFInfo = BodyISFInfo(source: "schedule (no TDD)", isf: nil, tdd: nil, tddDays: nil, tddWindow: nil)
+                    return nil
+                }
+                let v = BodyISF.startRule(tdd: t.tdd)
+                bodyISFInfo = BodyISFInfo(source: "calculated", isf: v, tdd: t.tdd, tddDays: t.days, tddWindow: window)
+                if window == "window" {
+                    FileHandle.standardError.write(Data("WARNING: body ISF: under \(Int(BodyISF.minTDDDays)) days of dose history before the window; TDD taken from the window itself.\n".utf8))
+                }
+                FileHandle.standardError.write(Data("body ISF: calculated \(String(format: "%.1f", v)) mg/dL/U = \(BodyISF.startRuleK) / TDD^\(BodyISF.startRuleB), TDD \(String(format: "%.2f", t.tdd)) U/day over \(String(format: "%.1f", t.days)) days \(window == "before" ? "before" : "of") the window (configured schedule \(String(format: "%.0f", schedLo))-\(String(format: "%.0f", schedHi)) runs the controller only)\n".utf8))
+                return v
+            case .schedule:
+                bodyISFInfo = BodyISFInfo(source: "schedule", isf: nil, tdd: nil, tddDays: nil, tddWindow: nil)
+                return nil
+            case .controller:
+                return nil
+            }
+        }()
         let physiologySensitivity: [AbsoluteScheduleValue<LoopQuantity>] = {
-            if let absISF = patientISF {
+            if let absISF = flatISF {
                 // One entry spanning the schedule's full coverage. Borrowing the span
                 // (not the values) keeps the dose filter below unchanged, so the same
                 // doses are modelled as in every other arm.
@@ -476,11 +499,10 @@ extension EvaluationEngine {
                     value: LoopQuantity(unit: mgdlUnit, doubleValue: absISF)
                 )]
             }
-            return inferSensitivity ? data.therapyTimeline.sensitivity : scaledSensitivity
+            if case .controller = bodyISF { return scaledSensitivity }
+            return data.therapyTimeline.sensitivity
         }()
-        if let absISF = patientISF {
-            let schedLo = data.therapyTimeline.sensitivity.map { $0.value.doubleValue(for: mgdlUnit) }.min() ?? 0
-            let schedHi = data.therapyTimeline.sensitivity.map { $0.value.doubleValue(for: mgdlUnit) }.max() ?? 0
+        if case .flat(let absISF) = bodyISF {
             FileHandle.standardError.write(Data("patient ISF INDEPENDENT of configuration: plant = FLAT \(String(format: "%.4f", absISF)) mg/dL/U (configured schedule \(String(format: "%.2f", schedLo))-\(String(format: "%.2f", schedHi)) is NOT used for the plant; controller still runs it)\n".utf8))
         }
 
@@ -1770,7 +1792,8 @@ extension EvaluationEngine {
             candidateLabel: candidateLabel,
             intervalStart: evalStart,
             intervalEnd: interval.end,
-            counterfactualDoses: counterfactualDoses
+            counterfactualDoses: counterfactualDoses,
+            bodyISF: counterfactualMode && externalPlant == nil ? bodyISFInfo : nil
         )
     }
 
