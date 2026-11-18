@@ -263,3 +263,13 @@ The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Al
    With ad_win_h 24 the last row is −10.4 / +4.7 / +1.4. The deployed dial barely moves (×1.0 66.4–66.5 TIR in all
    three; the identity holds). Night t<70 is still 16–19 % against 1.7 %. So the scheduled ISF is a part of ns3's replay
    loss, and the rest is not explained by the body's ISF. Job 345, runs/2026-11-17-adaptive-unann/pisf.
+
+23. **With a calculated body ISF the population replay verdict barely moves (2026-11-17).** Lesson 13's 35-donor
+   subset, the same binary and arms, with one change: `--patient-isf` = the yardstick start rule from pre-window TDD
+   (per donor 30–81 mg/dL/U; calculated / scheduled median 0.98, 10–90 % 0.59–1.29), m(t) kept on top. The gr dial
+   is nearly unchanged (×1.0 70.0 → 69.8 TIR, t<70 1.77 → 1.94). Loop Adaptive (set point 140, 12 h brake) against gr
+   ×1.0: ΔTIR −3.77 [−6.5, −0.9] → −3.12 [−5.8, −0.3], Δt<70 +2.84 → +2.42, Δt<54 +0.87 → +0.67. The per-donor change
+   has median −0.1 TIR and follows the ratio (Spearman −0.54): where the schedule is much weaker than the calculated ISF
+   (i054, i165: 80–95 against 32–40) the penalty shrinks by about 6 TIR. Replay's penalty on timing that departs from the
+   field remains; the body's ISF is a small part of it. Job 346, runs/2026-11-17-adaptive-replay-pisf
+   (per_donor_sched_vs_calc.csv). i202 fails on every arm, as before.
