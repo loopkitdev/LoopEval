@@ -3136,3 +3136,21 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - One person's two-step fit is noisy on 4 seeds: training 0's second step overshot inside the fit window (mean 169
       against 155) yet lands close on the unseen window. Read her results averaged over both trainings.
     - Not run: her current setup (class 2 + gr + slow RC): no gamepc engine has --candidate-slow-rc-schedule-feed.
+
+222. **Training with the own-background inputs held at the 14-day mean above 180 (lesson 219) over-responds: not kept.**
+    k86h (ice-cobt-hold / ice-bgview-holdt, PLANT_HOLD_OWNBG_ABOVE=180 PLANT_HOLD_DAYS=14 in training and plant),
+    337 edits against the gain base, trainings 0 / 1 (run dir gamepc runs/2026-11-17-ice-hold):
+    | mean change, drift-removed | field | base | learned hold |
+    |---|---|---|---|
+    | TIR, more insulin | +2.36 | +2.12 / +1.92 | +4.03 / +4.73 |
+    | TIR, less insulin | −1.67 | −1.43 / −1.84 | −2.75 / −3.32 |
+    | t<70, more | +0.60 | +1.13 / +0.97 | +0.91 / +0.98 |
+    | t<70, less | −0.64 | −1.18 / −0.90 | −0.87 / −0.82 |
+    | mean BG, more | −6.2 | −6.8 / −6.3 | −18.4 / −28.9 |
+    | mean BG, less | +4.5 | +5.4 / +5.2 | +8.0 / +11.8 |
+    - The base already gets the glucose-level change right; the learned hold triples it (more TIR and mean change than
+      the field on both trainings) while the low-side gain is small (t<70 change 1.7× → 1.5× field). Mean-change
+      ranking r drops (diff 90% CI −0.37..−0.11 / −0.42..−0.22); TIR / t70 ranking unchanged. Level TIR error
+      5.2 / 5.5 against 4.6 / 5.5: no gain.
+    - Taking the own-background feedback out above 180 removes the push-back the field shows, not only the level pull.
+      The hold line (218–222) is closed; the low-side overstatement is not in this feedback.
