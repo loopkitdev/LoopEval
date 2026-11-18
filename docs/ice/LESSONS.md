@@ -3107,3 +3107,17 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     trees ~/frozen/ice-cobt-hold and ~/frozen/ice-bgview-holdt (mkhold_t.py), env PLANT_HOLD_OWNBG_ABOVE=180
     PLANT_HOLD_DAYS=14, run dir runs/2026-11-17-ice-hold, arm k86h, trainings 0 and 1. Checked: on one person the
     build changes the inputs only on the 14% of steps at ≥ 180, targets unchanged.
+
+220. **Per-person level fidelity on the current base: slope 0.9 on mean glucose, not 0.5.** adaptive's handoff
+    (docs/handoffs/2026-11-17-ice-person-level-compression.md) found slope 0.45–0.55 and r 0.50/0.63, but on the
+    pre-per-person-fit bed (…LK, no pssq9) with announce arms that replace each person's own carb entry. Same check
+    on the base (pssq9 + own-night IOB + gain ×1.25): own settings, 14-day pre-edit window vs field, 268 edit-pool
+    people, trainings 0 / 1 (levelslope_ice.py in the change dir):
+    | | r mean | slope mean | bias | SD diff | > 20 off | r TIR | slope TIR |
+    |---|---|---|---|---|---|---|---|
+    | generator | 0.88 / 0.79 | 0.90 / 0.88 | −5 / −3 | 12 / 16 | 9% / 17% | 0.78 / 0.73 | 0.70 / 0.73 |
+    | measured-ICE replay | 0.95 | 1.04 | +4 | 8 | 6% | 0.93 | 0.99 |
+    | hold ≥ 180, 14 d (lesson 218) | 0.78 | 0.79 | −4 | 16 | 16% | 0.64 | 0.58 |
+    - The plant does not compress; what is left enters in generation, mostly people in the 170–190 band (generated
+      median 161 against replay 179). The plant-only hold compresses the top more (> 190 band 174 vs 198), one more
+      reason it was not kept; the learned hold (219) must be checked on this table too.
