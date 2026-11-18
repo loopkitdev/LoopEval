@@ -206,7 +206,9 @@ The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Al
    it does not, it cannot reward the term. Run dir runs/2026-11-17-adaptive-daynight. Motivated by ns3, whose
    generator gap is −1.1 (entries) / −2.0 (no entries) with lows at 00–08 and highs at 12–18.
 
-20. **Most of the generator gap is insulin moved between people; on each person's own dial the median gain over gr is
+20. **(Old generator base: v32oc checkpoints, plant tree ice-cobt, before ice's 2026-11-13 per-person fit; ice reports level
+   fidelity on the current base at r 0.88 / 0.79, slope 0.90 / 0.88, so the level argument below is superseded; the
+   per-person-dial result is to be re-measured there, job 347.)** **Most of the generator gap is insulin moved between people; on each person's own dial the median gain over gr is
    about zero, and ns3 is typical (2026-11-17).** The gap in lessons 15–18 compares the pooled mean against one
    needs multiplier shared by everyone, so the candidate scores for sending more insulin to people running high and less
    to people running tight. Scored per person instead (the person's own gr dial ×0.95–1.50, the best TIR it reaches at or
@@ -273,3 +275,12 @@ The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Al
    (i054, i165: 80–95 against 32–40) the penalty shrinks by about 6 TIR. Replay's penalty on timing that departs from the
    field remains; the body's ISF is a small part of it. Job 346, runs/2026-11-17-adaptive-replay-pisf
    (per_donor_sched_vs_calc.csv). i202 fails on every arm, as before.
+
+24. **Every Loop Adaptive generator result from lessons 7–20 is on the old base (2026-11-18).** Jobs 70, 336–341 ran gen.py's
+   defaults (GEN_DATA gen-v32, ICE_TREE ice-cobt, each donor's deployed regime). Ice's base since 2026-11-13 is the per-person
+   fit (GEN_DATA gen-v32-ifit2, PLANT_BASE_IOB_OWN=1, PATIENT_INSULIN_GAIN=1.25, plant_pss); frontier rebuilt the gr2 dial on
+   it (job 351, regime ab for everyone, entries off / on). On it, per-person mean BG tracks the field at r 0.88 / 0.79,
+   slope 0.90 / 0.88 (ice, 268 edit-pool people; measured-ICE replay through the plant r 0.95, slope 1.04), against r 0.50 /
+   0.63, slope 0.45 / 0.55 on the old base (lesson 20). Known costs of the new base: absolute t<70 reads high (median 2.5 /
+   2.1 vs field 1.1) and Δt<70 is about 1.7× the field's in both directions. Rerun staged: runs/2026-11-18-adaptive-ifit2
+   (job 347).
