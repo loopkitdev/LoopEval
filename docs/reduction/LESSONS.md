@@ -275,6 +275,9 @@ The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Al
    (i054, i165: 80–95 against 32–40) the penalty shrinks by about 6 TIR. Replay's penalty on timing that departs from the
    field remains; the body's ISF is a small part of it. Job 346, runs/2026-11-17-adaptive-replay-pisf
    (per_donor_sched_vs_calc.csv). i202 fails on every arm, as before.
+   i195's calculated ISF (81) came from a TDD that averaged in pre-export days with basal and no boluses; the engine's
+   default (simulator b0e300dd: gap-filled, days with ≥ 22 h of dose records) gives 42, near its schedule of 40. Without
+   i195 the shift is −3.54 → −3.01 TIR, Δt<70 +3.01 → +2.72, so the conclusion stands.
 
 24. **Every Loop Adaptive generator result from lessons 7–20 is on the old base (2026-11-18).** Jobs 70, 336–341 ran gen.py's
    defaults (GEN_DATA gen-v32, ICE_TREE ice-cobt, each donor's deployed regime). Ice's base since 2026-11-13 is the per-person
