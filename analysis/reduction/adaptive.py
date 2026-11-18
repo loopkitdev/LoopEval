@@ -23,6 +23,9 @@ Families
            adaptive scale (ad_sp > 0): TDD above is TDD0 * m(t), log m integrating glucose error against the set
            point ad_sp (ad_k per mg/dL per day), ad_klo times faster below ad_lo, clipped to [ad_min, ad_max];
            ad_brake_h > 0: the scale does not rise for ad_brake_h hours after any glucose below 70 (it may still fall).
+           ad_win_h > 0: above ad_lo the integrand is the mean of the readings over the last ad_win_h hours (minus the set
+           point), not the newest reading, so m learns the person's level and does not swing within the day; readings
+           below ad_lo still pull it down at once.
            basal_uh > 0: b = basal_uh (the person's pre-window background rate, tdd.basal_hat) instead of basal_frac TDD/24
            rc_k > 0: retrospective correction, D = ΔG_30 + ISF_T * (U absorbed in 30 min - b/2), G_h += clamp(rc_k D, ±rc_cap)
            iob_cap_h > 0: a bolus never lifts net IOB above iob_cap_h * TDD/24 (hours of average delivery)
@@ -81,7 +84,7 @@ Families
              - Carb entries dated after t + 60 s are left out of automatic dosing (and of the GSL forecast); the
                bolus-calculator answer still counts them (a pre-bolus).
 """
-import json, math, sys
+import collections, json, math, sys
 from datetime import datetime, timezone
 import numpy as np
 
@@ -214,7 +217,7 @@ class TddPD:
                     manual_w=0.0, cr_k=0.0,
                     manual_tau=0.0, prop_temp=0, temp_floor_bg=80.0,
                     basal_uh=0.0, ad_basal=1.0, ad_isf=1.0, iob_cap_h=0.0, rc_k=0.0, rc_cap=150.0,
-                    ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0, ad_brake_h=0.0,
+                    ad_sp=0.0, ad_k=0.0139, ad_lo=80.0, ad_klo=3.0, ad_min=0.33, ad_max=3.0, ad_brake_h=0.0, ad_win_h=0.0,
                     use_target=0, use_override=0, target_min=87.0, own_manual=0,
                     gsl=0.0, gsl_settings=1, gsl_h=180.0,
                     hab_k=0.0, hab_ref=0.3, hab_days=7, hab_min_days=3, hab_hl=7.0, hab_lo=-60.0, hab_hi=80.0,
@@ -225,6 +228,7 @@ class TddPD:
         self.curve = ExpCurve(peak=self.p["peak"])
         self.ieq = self.curve.iob_eq()
         self.logm, self.last_t, self.last_low = 0.0, None, None
+        self.awin = collections.deque()                           # (t, G) readings fed to the scale, for ad_win_h
         self.hsum, self.hcnt, self.hlast = {}, {}, None          # habit bins, last CGM point fed
         self.hpreds, self.hfeeds = [], []                         # (t, rel, base) awaiting scoring; (t, v) last 2 h
         self.hPP = self.hRR = self.hPR = 0.0; self.hN = 0
@@ -241,7 +245,12 @@ class TddPD:
             sp = p["ad_sp"] + sp_shift
             dt = min(max(t - self.last_t, 0), 1800) / 86400.0
             if G < 70: self.last_low = t
-            d = dt * p["ad_k"] * ((G - sp) if G >= p["ad_lo"] else -p["ad_klo"] * (p["ad_lo"] - G) + (p["ad_lo"] - sp))
+            Gu = G
+            if p["ad_win_h"] > 0:
+                self.awin.append((t, G))
+                while self.awin and self.awin[0][0] < t - p["ad_win_h"] * 3600: self.awin.popleft()
+                Gu = sum(g for _, g in self.awin) / len(self.awin)
+            d = dt * p["ad_k"] * ((Gu - sp) if G >= p["ad_lo"] else -p["ad_klo"] * (p["ad_lo"] - G) + (p["ad_lo"] - sp))
             if d > 0 and self.last_low is not None and t - self.last_low < p["ad_brake_h"] * 3600: d = 0.0
             self.logm += d
             self.logm = min(max(self.logm, math.log(p["ad_min"])), math.log(p["ad_max"]))
