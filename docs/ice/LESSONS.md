@@ -3154,3 +3154,27 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       5.2 / 5.5 against 4.6 / 5.5: no gain.
     - Taking the own-background feedback out above 180 removes the push-back the field shows, not only the level pull.
       The hold line (218–222) is closed; the low-side overstatement is not in this feedback.
+
+223. **The generated person's extra lows are lows that last twice as long, not more of them; the insulin boost acting at
+    low glucose is the visible cause. Each extra low then costs twice the time, which is why the change in t<70 reads
+    about 1.7× the field.** gamepc runs/2026-11-19-ice-lowedit (lowedit.py, lowrec.py), scored edits, base oc pssq9 gain
+    1.25, trainings 0 / 1. Field: pre d−13..d vs post d+1..d+14, clean only, minus the pseudo-edit drift fit as attn.py.
+    | pre window, more-insulin edits | field | generated |
+    |---|---|---|
+    | approaches below 90 per day | 3.1 | 3.1 / 3.2 |
+    | share of approaches that go below 70 | 0.34 | 0.44 / 0.43 |
+    | lows per day | 1.37 | 1.78 / 1.73 |
+    | mean low duration, min | 21 | 50 / 44 |
+    | share of lows ≥ 60 min | 6% | 26% / 23% |
+    | IOB at entry, U | 2.8 | 3.6 / 3.6 |
+    | t<70 % | 2.6 | 5.9 / 5.3 |
+    - Change after − before: lows per day more +0.18 field [90% +0.08, +0.28] / +0.27, +0.21 generated; less −0.43
+      [−0.55, −0.30] / −0.27, −0.24. The generator gets the count change about right or small; at twice the duration the
+      same count change gives 2× the time below 70 (more +0.39 field / +1.07, +0.85; less −1.00 / −1.28, −1.05).
+      Approaches below 90 change +0.59 field / +0.36 generated on more-insulin edits.
+    - Field lows stay short when the cleaning flags are ignored (mean 29 min, 11% ≥ 60 min), so it is not the flags.
+    - In the first hour after entry the generated ICE (the person's rescue and counter-response) is the field's size
+      (median 88 / 93 against 87–93 mg/dL/h), but glucose climbs 24 mg/dL against 37–39: implied insulin effect 64–68
+      against 48–56 mg/dL/h, the ×1.25 boost's size. The response is right; the insulin it answers is too strong.
+    - Arm running: the boost ramped from 1 at glucose ≤ LO to 1.25 at ≥ HI (PATIENT_INSULIN_GAIN_BG_LO/HI, frozen tree
+      ~/frozen/ice-bgview-glo), 70–120 and 90–160, trainings 0 / 1, lane_glo.sh.
