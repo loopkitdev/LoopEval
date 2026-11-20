@@ -305,3 +305,17 @@ The algorithm these lessons call "the surrogate" is named the **Loop Adaptive Al
    −7 to −8.5. Lesson 20's "per-person gap about 0" was the old base. On this base the generator and replay disagree in
    sign for high runners (ns3's replay −14 TIR, lesson 22). The base reads Δt<70 about 1.7× the field (lesson 24), so
    the low-side deltas are likely overstated in both directions. runs/2026-11-18-adaptive-ifit2 (score_all.txt).
+
+26. **On ns3's rebuilt bed Loop Adaptive falls short of the gr2 dial, but by little (2026-11-18).** Ice's ns3
+   enrolment on the current base (fresh export, fit 09-22 → 10-20; held-out 10-20 → 11-17, where the bed reads mean
+   161 / 152 and TIR 66 / 67 against the field's 157 / 66). Job 417: two trainings × 10 seeds. Gap at Loop Adaptive's t<70
+   on the gr2 dial (paired seed bootstrap): −3.2 [−4.2, −2.1] without entries, −1.7 [−3.1, −0.4] with them. At ×1.0 the
+   trainings split (ΔTIR +2.5 / −2.0 off, +2.6 / −2.8 on), and both put Loop Adaptive's t<70 higher (+1.0 / +0.6 on
+   average). Her current setup (slow RC schedule feed, recorded settings) sits above the gr2 dial: +0.8 [+0.1, +1.5].
+   In this window ns3 runs at 158–160 under gr2, not above 180: their Aug–Oct mean of 179 predates the 10-27 settings
+   change. The pool's median for the 150–165 band is about +1, with about 30 % of people below 0, so ns3 is a low
+   case but not an outlier. Replay gives the same sign at four times the size (−14, lesson 22), which fits replay's
+   known overstatement of change. runs/2026-11-18-adaptive-ns3-ifit2 (summ.py).
+   Lessons 25 and 26 are on plant_pss with a flat ×1.25 insulin gain. Since ice ee9ebdbb (ice LESSONS 225, 2026-11-20) the
+   base ramps that gain to 1.0 between 160 and 90 mg/dL (plant_pss_glo), which brings Δt<70 from 1.7× to 1.4× the field;
+   neither run has been repeated on it.
