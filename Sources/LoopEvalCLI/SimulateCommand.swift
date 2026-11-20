@@ -411,8 +411,8 @@ struct SimulateCommand: AsyncParsableCommand {
         if insulinPhysicalPeak != nil || insulinPhysicalDia != nil {
             printStderr("WARNING: --insulin-physical-peak/--insulin-physical-dia only size the effect window; they do NOT change the plant's insulin curve. Use --patient-insulin-model.\n")
         }
-        if let v = patientIsf, !(v > 0) {
-            throw ValidationError("--patient-isf must be positive (mg/dL per U); got \(v).")
+        guard let parsedBodyISF = BodyISF(argument: patientIsf) else {
+            throw ValidationError("--patient-isf takes calculated, schedule, controller or a positive mg/dL/U; got \(patientIsf).")
         }
         candidateConfig.oapsDia = candidateOapsDia
         candidateConfig.insulinPhysicalPeakMin = insulinPhysicalPeak
@@ -487,14 +487,14 @@ struct SimulateCommand: AsyncParsableCommand {
                 var x = d; x.insulinType = cm; return x
             }
             data = PreloadedData(glucose: data.glucose, doses: restamped,
-                                 carbs: data.carbs, therapyTimeline: tl)
+                                 carbs: data.carbs, therapyTimeline: tl, tddBasal: data.tddBasal)
             printStderr("controller insulin model: \(was) -> \(cm) (therapy belief + \(restamped.count) dose stamps); plant unaffected\n")
         }
         if !insulinTypeChanges.isEmpty {
             var tl = data.therapyTimeline
             tl.insulinTypeChanges = insulinTypeChanges
             data = PreloadedData(glucose: data.glucose, doses: data.doses,
-                                 carbs: data.carbs, therapyTimeline: tl)
+                                 carbs: data.carbs, therapyTimeline: tl, tddBasal: data.tddBasal)
         }
 
         // Optional per-step ISF multiplier CSV (time → multiplier).
@@ -662,6 +662,32 @@ struct SimulateCommand: AsyncParsableCommand {
             guard !plantBehavior else { throw ValidationError("--plant-behavior requires --external-plant") }
             plant = nil
         }
+        let controller: ExternalController?
+        if let cmd = candidateExternalController {
+            guard candidateCounterfactual else {
+                throw ValidationError("--candidate-external-controller requires --candidate-counterfactual")
+            }
+            guard !candidateOpenaps && !candidateLoopMimicOaps else {
+                throw ValidationError("--candidate-external-controller replaces the candidate engine; drop --candidate-openaps / --candidate-loop-mimic-oaps")
+            }
+            controller = try ExternalController(command: cmd)
+            printStderr("External controller: \(cmd)\n")
+        } else {
+            controller = nil
+        }
+        let loopAdaptive: LoopAdaptiveController?
+        if let json = candidateLoopAdaptive {
+            guard candidateCounterfactual else {
+                throw ValidationError("--candidate-loop-adaptive requires --candidate-counterfactual")
+            }
+            guard controller == nil && !candidateOpenaps && !candidateLoopMimicOaps else {
+                throw ValidationError("--candidate-loop-adaptive replaces the candidate engine; drop --candidate-external-controller / --candidate-openaps / --candidate-loop-mimic-oaps")
+            }
+            do { loopAdaptive = try LoopAdaptiveController(json: json) } catch { throw ValidationError("\(error)") }
+            printStderr("Loop Adaptive (in-process): \(json)\n")
+        } else {
+            loopAdaptive = nil
+        }
         printStderr("Running closed-loop simulation (sequential, ~10× slower than bench)...\n")
         var candidateTherapy: TherapyTimeline? = nil
         if let path = candidateSchedulesJson {
@@ -716,7 +742,7 @@ struct SimulateCommand: AsyncParsableCommand {
             counterRegTauMin: counterRegTauMin,
             glucoseEffectivenessPerMin: glucoseEffectiveness,
             cfGapReanchorSec: cfGapReanchorMin * 60,
-            patientISF: patientIsf,
+            bodyISF: parsedBodyISF,
             patientInsulinType: parsedPatientInsulinModel,
             inferSensitivity: candidateInferSensitivity,
             inferSensitivityMax: candidateInferSensitivityMax,
@@ -728,6 +754,8 @@ struct SimulateCommand: AsyncParsableCommand {
             useLoopMimicForCandidate: candidateLoopMimicOaps,
             sensorCapMgdl: sensorCapMgdl,
             externalPlant: plant,
+            externalController: controller,
+            loopAdaptive: loopAdaptive,
             plantBehavior: plantBehavior,
             candidateTherapy: candidateTherapy,
             lowResponse: lowResponse,
@@ -736,6 +764,7 @@ struct SimulateCommand: AsyncParsableCommand {
             progress: Self.makeProgressReporter()
         )
         plant?.finish()
+        controller?.finish()
         printStderr("Progress: 100%\n")
 
         // Emit trace JSON in the same shape as bench --trace-out so the
@@ -909,6 +938,7 @@ struct SimulateCommand: AsyncParsableCommand {
             let closedLoop: Bool
             let exportDataVersion: Int?          // --data-dir export's manifest version (nil = unstamped)
             let provenanceWarnings: [String]     // stale export / missing donor flags; empty = clean
+            let bodyISF: BodyISFInfo?            // counterfactual body's ISF (nil: no counterfactual / external plant)
         }
 
         let preds = simResult.steps.map {
@@ -1073,7 +1103,8 @@ struct SimulateCommand: AsyncParsableCommand {
             insulinActivityCurve: curve,
             closedLoop: true,
             exportDataVersion: exportDataVersion,
-            provenanceWarnings: provenanceWarnings
+            provenanceWarnings: provenanceWarnings,
+            bodyISF: simResult.bodyISF
         )
 
         let encoder = JSONEncoder()

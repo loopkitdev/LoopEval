@@ -604,23 +604,28 @@ Both are identity-safe for the same reason: the *same* body is used to remove th
 to add the candidate's, so when the candidate doses what the field dosed, the two terms are equal
 and the bracket vanishes exactly — for any patient ISF and any patient insulin model.
 
-**ISF** has three cases, in precedence order:
+**ISF** is chosen by `--patient-isf`. `--candidate-infer-sensitivity`'s `m(t)` multiplies whichever
+base it picks.
 
-| Plant ISF | When | Body vs. controller |
+| `--patient-isf` | Plant ISF | Body vs. controller |
 |---|---|---|
-| **Flat absolute** `--patient-isf X` | explicitly set | **Independent** — references no therapy setting at all: not the schedule shape, not its time-of-day variation, not its dated eras |
-| **Scheduled ISF × `m(t)`** | `--candidate-infer-sensitivity` | **Decoupled** — plant sits at the *scheduled* ISF with the inferred `m(t)` correcting it, so a candidate ISF multiplier moves only the belief |
-| **`scaledSensitivity`** | **default** | **Coupled** — the plant moves *with* the belief |
+| `calculated` (**default**) | flat, the ISF yardstick's start rule 1266.76 / TDD^0.902, from the TDD of the clean days (basal record ≥ 90% complete) among the 10 before `--start` | **Independent**: one value per person, from what they were delivered, not from any setting |
+| a number | that flat value | **Independent** |
+| `schedule` | the configured schedule | **Decoupled**: a candidate ISF multiplier moves only the belief, but the body carries the schedule's shape |
+| `controller` | `scaledSensitivity` | **Coupled**: the plant moves *with* the belief |
+
+The trace's `bodyISF` records what ran: source, ISF, and the TDD and day count behind a calculated
+value.
 
 > [!IMPORTANT]
-> **The default is coupled, and that is what a plain sweep runs.** With neither `--patient-isf` nor
-> `--candidate-infer-sensitivity`, an ISF-multiplier or insulin-needs sweep moves the simulated body
-> along with the controller's belief — it is not a pure controller-belief sweep. This is the
-> deliberate default so that existing sweeps are unchanged, but it means **"candidate ISF ×0.8"
-> under the default is "a controller that thinks it is more sensitive, in a body that also became
-> more sensitive"**. Use `--patient-isf` to hold the body fixed and move only the belief. (The
-> patient's ISF is a nuisance parameter for candidate lift, not a free win: at field settings the
-> dosing is patient-ISF-invariant, and lift moves <1% across ±10% of plant ISF.)
+> **The body does not read the settings under test.** A candidate that ignores the person's
+> schedule (Loop Adaptive) is not judged by a body built from that schedule, and a wrong or strongly
+> shaped schedule does not set what each unit of dosing difference costs (Pete, 2026-11-17). Replay
+> results before 2026-11-17 used `schedule` (with `--candidate-infer-sensitivity`, every frontier
+> harness run) or `controller` (without it); pass those to reproduce them. The start rule is
+> about ±25% per person. That matters less than it sounds: at field settings dosing is
+> patient-ISF-invariant, and lift moves under 1% across ±10% of plant ISF on mid- and low-ISF
+> donors. It matters most where the candidate's doses differ most from the field's.
 
 **Insulin model** follows the same shape — `--patient-insulin-model` sets the body's curve,
 `--controller-insulin-model` sets the belief, and with neither the two are coupled to the therapy
@@ -769,12 +774,12 @@ A "candidate" is an `EvalConfig` + CLI flags expressing one change. The key leve
 | Sensitivity inference | `--candidate-infer-sensitivity` | The fidelity physiology model (§9) — also a research substrate, not only a therapy lever. Tuning: `-max` (cap, default 2.0), `-window-min` (default 30), and the off-by-default smoothers `-smooth-min` / `-smooth-prior`. |
 | **Double-low prevention** | `--candidate-sensitive-mode-tau-min / -gain` | An EWMA of recent *negative* discrepancy that raises effective ISF on subsequent cycles — damps re-dosing into the rebound *after* a low. A **leading lift lever** (paired with asymmetric IRC) on Loop datasets. |
 | Predictive sens-damp | `--candidate-sens-damp-gain` | Causal sustained-ICE trigger → proactive ISF reduction before a low. |
-| Forecast-offset (CSV) | `--candidate-forecast-offset-csv` | Per-step additive offset to the candidate's forecast, from a CSV — a general hook for testing an arbitrary "what Loop believes" shift (the §16 principle: modify the forecast, not the output). |
+| Forecast-offset (CSV) | `--candidate-forecast-offset-csv` | Per-step additive offset to the candidate's forecast, from a CSV — a general hook for testing an arbitrary "what Loop believes" shift (the §16 principle: change the controller's inputs, not its output). |
 | **OpenAPS engine** | `--candidate-openaps` (+ `-oaps-*`) | Swap the candidate's whole dosing algorithm to oref/OpenAPS instead of Loop. oref preferences go verbatim in `--candidate-oaps-prefs-json` (inline or `@path`); the other `-oaps-*` flags set what is not a preference: DIA (`-oaps-dia`), a dated adjustment-factor schedule (`-oaps-af-csv`), Trio override presets (`-oaps-override-presets`), glucose smoothing (`-oaps-smooth-glucose`), the pump pulse (`-oaps-pump-pulse`) and the SMB caps (`-oaps-max-smb-min`). |
 | Sensor cap | `--sensor-cap-mgdl` | Ceiling on the BG the controller sees (default 400 — real sensor behavior). §4. |
 | **Overrides** | `--apply-overrides` | Replay the temp overrides (presets, target/ISF/basal/CR scaling) the person actually ran. Deployed Loop applies an **active** override's *target* flat across the whole forecast while ISF/basal/CR revert at the scheduled end — the sim matches that asymmetry. Without this flag, override windows replay as if no override ran. |
 | RC decay form | `--legacy-rc-decay` | Step-by-step `decayEffect` as Loop-main computed it before LoopKit#556, for donors whose deployed Loop predates the continuous-quadratic form. |
-| **Patient ISF (plant)** | `--patient-isf` | Not an algorithm lever — a **patient** parameter. Sets the simulated body's ISF to a flat absolute value referencing no therapy configuration, so the controller's belief can be swept while the body is held fixed. Unset = the plant is coupled to the belief (§10). |
+| **Patient ISF (plant)** | `--patient-isf` | Not an algorithm lever — a **patient** parameter. Sets the simulated body's ISF: `calculated` (default, a flat per-person value from pre-window TDD), a flat number, `schedule` or `controller` (§10). The controller's belief can be swept while the body is held fixed. |
 | **Patient insulin model (plant)** | `--patient-insulin-model` | Also a **patient** parameter, not an algorithm lever. The body's pharmacodynamics — how fast insulin acts — set by re-stamping the doses on the plant path (§5). Unset = coupled to the controller's model. |
 
 > [!IMPORTANT]
@@ -984,9 +989,10 @@ isolates one meal at a time.
 
 ## 16. Methodological principles & traps
 
-- **Modify the forecast, not the output.** Loop is a feedback controller: a rule that cuts the dose
-  Loop just chose gets compensated next cycle (Loop's forecast still says "high"). Effective changes
-  alter what Loop *sees* (forecast / ISF / set-point), not what it *does*.
+- **Change the controller's inputs, not its output.** Loop is a feedback controller: a rule that cuts
+  the dose Loop just chose gets compensated next cycle (Loop's forecast still says "high"). Effective
+  changes alter what Loop *believes* (forecast / ISF) or what it *aims for* (target, as the runway
+  does), not what it *does*.
 - **The suspend wall.** At the moment of most lows, Loop is already fully suspended (0 U/hr) — there
   is nothing left to cut. Real-time "reduce dose now" rules find the IOB already committed. Hypo
   prevention must act *earlier* (before the IOB pipeline crosses), or it needs foresight.

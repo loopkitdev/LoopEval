@@ -39,6 +39,9 @@ from .dataset import ICE_SCALE
 REC_ZERO_U = D3.REC_ZERO
 # PLANT_IOBNET_SCALE (diagnostic): scales the pending-insulin input the network sees (iob_net); 0 hides it (LESSONS 145)
 IOBNET_SCALE = float(os.environ.get("PLANT_IOBNET_SCALE", "1"))
+# PLANT_BASE_IOB_OWN=1: the basal-level IOB under iob_net is the median of this run's own IOB at 02-05 local
+# over its last 3 nights, so a settings arm's basal is its own baseline (not the record's) (ice LESSONS 174, 191)
+BASE_IOB_OWN = os.environ.get("PLANT_BASE_IOB_OWN") == "1"
 from .extract import MODELS, RAPID_ACTING_ADULT
 from .kernel import params, rate, remaining
 from .model_v3 import ICEGenV3
@@ -114,6 +117,15 @@ class PlantV3:
         # confounded by Loop reacting to ICE), and the field moved 0.6-0.9x what replay predicted for real settings edits (LESSONS
         # 40): the rule likely overstates the effect of insulin the person did not get in the field. Replay is unaffected.
         self.ins_gain = float(os.environ.get("PATIENT_INSULIN_GAIN", "1"))
+        # PATIENT_INSULIN_GAIN_TAU=<h>: apply the gain to sustained changes only, the person's own insulin activity averaged over
+        # ~tau hours (exponential) against the typical rate; each bolus pulse then acts at the ISF_tdd rule the ICE was
+        # extracted at. Unset: the gain applies to every deviation from the typical rate (ice LESSONS 210-211).
+        self.ins_gain_tau = float(os.environ.get("PATIENT_INSULIN_GAIN_TAU", "0"))
+        self.act_ema = self.act_typ
+        # PATIENT_INSULIN_GAIN_BG_LO / _HI: the gain ramps from 1 at plant glucose <= LO to its full value at >= HI. At the full
+        # gain generated lows last twice the field's (insulin too strong where the person is defending a low) and the change in
+        # t<70 after settings edits reads ~1.7x the field; 90 / 160 brings it to ~1.4x on five trainings (ice LESSONS 223, 225).
+        self.gain_lo = float(os.environ.get("PATIENT_INSULIN_GAIN_BG_LO", "nan")); self.gain_hi = float(os.environ.get("PATIENT_INSULIN_GAIN_BG_HI", "nan"))
         # PLANT_AUTO_AF=<f> (auto-bolus donors): the engine decides the automatic dose at a decision without that decision's
         # plant boluses, so a calculator bolus lands on top of ~f x the recommendation (handoff
         # 2026-10-15-simulator-plant-bolus-autodose). Until the engine orders them, ask for ratio - f so the step totals ~ratio x rec.
@@ -162,6 +174,7 @@ class PlantV3:
         self.rng_v4 = np.random.default_rng(seed + 7_368_787); self.seed_v4 = seed % 2_147_483_647
         self.xlog = [] if os.environ.get("PLANT_XLOG") else None   # PLANT_XLOG=1: write the inputs fed each step beside the log
         self.base_iob = D3.basal_iob(self.steps)
+        self.own_night_iob = []
         bd = pd.read_parquet(ROOT / "bolus_decisions.parquet"); self.bd_real = bd[bd.alias == alias]
         self.meals_real = pd.read_parquet(ROOT / "meals" / f"{alias}.parquet")
         self.corr_real = pd.read_parquet(ROOT / "meals" / f"{alias}_corrections.parquet")
@@ -242,6 +255,11 @@ class PlantV3:
         # population's (calm low-insulin people too wide, volatile ones too narrow; LESSONS 104)
         if not self.drawn and alias in ck.get("calib_bg_spread_person", {}) and "BGICE_SPREAD" not in os.environ:
             self.bg_spread *= float(ck["calib_bg_spread_person"][alias])
+        # low-side spread (ice LESSONS 203, 207): an extra factor on the draw's glucose-lowering deviations only (below the
+        # predicted mean). BGICE_SPREAD_LO, or per person from ck["calib_bg_spread_lo_person"] (the pssq9 base)
+        self.bg_spread_lo = float(os.environ.get("BGICE_SPREAD_LO", "1"))
+        if not self.drawn and alias in ck.get("calib_bg_spread_lo_person", {}) and "BGICE_SPREAD_LO" not in os.environ:
+            self.bg_spread_lo = float(ck["calib_bg_spread_lo_person"][alias])
         # per-person logit offsets on the behavior heads (meal, m_ann, m_hasbol, corr), stacked on the pooled ones
         # (calibrate_closed_rates_person.py): how often a person eats, announces, boluses and corrects is their own
         for k, b in ({} if self.drawn else ck.get("calib_person", {}).get(alias, {})).items():
@@ -380,6 +398,10 @@ class PlantV3:
             if "eventual" in F:
                 to_come = sum(float(remaining([(t - on).total_seconds() / 3600], sz, m, s_)[0]) for on, sz, m, s_ in self.pulses)
                 x[F["eventual"]] = float(D3.eventual(np.array([now]), np.array([self.ins.iob(t)]), self.isf, self.base_iob, to_come)[0]) / 100
+        if BASE_IOB_OWN and 2 <= hour < 5:
+            self.own_night_iob = (self.own_night_iob + [self.ins.iob(t)])[-108:]
+            if len(self.own_night_iob) >= 12:
+                self.base_iob = float(np.median(self.own_night_iob))
         if "iob_net" in F:
             net_ = self.isf * (self.ins.iob(t) - self.base_iob)
             if self.iobnet_cob == "1":   # pending insulin net of the glucose entered carbs still to absorb add (linear over 3 h)
@@ -596,10 +618,10 @@ class PlantV3:
                     self.fs[0] = pf * self.fs[0] + sg * np.sqrt(1 - pf * pf) * self.rng_v4.standard_normal()
                     self.fs[1] = ps * self.fs[1] + np.sqrt(qs) * self.rng_v4.standard_normal()
                 bgice = float(out["mu"][0, -1]) + float(out["react"][0, -1]) + self.fs[0] + self.fs[1]
-            if self.bg_spread != 1.0:   # shrink the draw's deviation from the predicted mean (closed-loop spread calibration)
+            if self.bg_spread != 1.0 or self.bg_spread_lo != 1.0:   # shrink the draw's deviation from the predicted mean (closed-loop spread calibration)
                 lg_, mu_, _ = out["bgice"][0, -1].split(self.net.K_ICE)
                 m_ = float((torch.softmax(lg_, -1) * mu_).sum())
-                bgice = m_ + self.bg_spread * (bgice - m_)
+                bgice = m_ + self.bg_spread * (self.bg_spread_lo if bgice < m_ else 1.0) * (bgice - m_)
             if self.bgice_rho > 0:   # correlated draw: the model's distribution this step, at a quantile that follows an AR(1)
                 rho = self.bgice_rho ** (dt_h * 12)
                 self.bg_z = rho * self.bg_z + np.sqrt(1 - rho ** 2) * self.rng_z.standard_normal()
@@ -668,8 +690,14 @@ class PlantV3:
             mc = self.mc_amp * self.isf * self.act_typ * np.sin(2 * np.pi * (t.value / 8.64e13) / 28.0 + self.mc_phase) if self.mc_amp else 0.0
             ice += mc
             act = absorbed / dt_h
-            if self.ins_gain != 1.0:   # insulin above / below the person's typical rate acts at a gain (PATIENT_INSULIN_GAIN)
-                act = self.act_typ + self.ins_gain * (act - self.act_typ)
+            g_ = self.ins_gain
+            if g_ != 1.0 and self.gain_lo == self.gain_lo:   # PATIENT_INSULIN_GAIN_BG_LO / _HI
+                g_ = 1.0 + (g_ - 1.0) * min(1.0, max(0.0, (self.bg - self.gain_lo) / (self.gain_hi - self.gain_lo)))
+            if self.ins_gain != 1.0 and self.ins_gain_tau > 0:   # gain on the sustained part only (PATIENT_INSULIN_GAIN_TAU)
+                self.act_ema += (act - self.act_ema) * min(1.0, dt_h / self.ins_gain_tau)
+                act = act + (g_ - 1.0) * (self.act_ema - self.act_typ)
+            elif self.ins_gain != 1.0:   # insulin above / below the person's typical rate acts at a gain (PATIENT_INSULIN_GAIN)
+                act = self.act_typ + g_ * (act - self.act_typ)
             self.bg = max(self.bg + (ice - self.isf * act) * dt_h, 20.0)
             j = self.steps.t1.searchsorted(t)
             near = [k for k in (j - 1, j) if 0 <= k < len(self.steps) and abs((self.steps.t1.iloc[k] - t).total_seconds()) < 600]

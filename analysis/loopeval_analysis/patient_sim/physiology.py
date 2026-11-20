@@ -117,7 +117,9 @@ class BodyParams:
     gb: float = 119.0              # mg/dL, rest point at true basal insulin
     egp_b: float = 2.5             # mg/kg/min at basal insulin
     rthr: float = 180.0            # renal threshold, mg/dL
-    rcl: float = 0.003             # renal clearance, 1/min on (G − Rthr)
+    rcl: float = 0.003             # renal clearance, 1/min on (G − Rthr). Hovorka's. THE REFERENCE RUNS
+                                   # rcl_mult=0.16667 (UVA/Padova's 0.0005) since 2026-11-07 (L 729), applied
+                                   # at world.py:182 -- so this default is NOT the live value (L 640).
     # hypoglycaemic risk amplification of insulin-dependent uptake (S2013 / ReplayBG)
     risk_r1: float = 1.4407
     risk_r2: float = 0.8124
@@ -126,6 +128,8 @@ class BodyParams:
                                    # t<54 8.5% vs the field's 0.13% (ablation 2026-10-15, LESSONS 10)
     # counter-regulation (adrenaline-led in T1D) with HAAF memory
     cr_max: float = 1.0            # mg/kg/min EGP boost at full activation
+    #   [NOT LIVE: drawn lnN(0.137, 0.5) since LESSONS 394, reference median 0.135 (L 719); 1.0 is
+    #    the original pre-fit value and is 7.4x the live one.]
     cr_g: float = 65.0             # mg/dL, half-activation glucose
     cr_s: float = 5.0              # mg/dL, sigmoid width
     cr_tau: float = 15.0           # min, activation time constant
@@ -142,6 +146,11 @@ class BodyParams:
     haaf_min: float = 0.3
     # gut
     f: float = 0.9                 # bioavailability
+    #   [the DECLARED value is close to what runs: the reference's median f is 0.912 (L 719). What the
+    #    N(0.9, 0.05) prior gets wrong is the SPREAD - the per-person carb-sensitivity calibration
+    #    (person.py:367-373) takes it to p10 0.397, with 6 of 112 pinned at the 0.3 floor and 49 at
+    #    1.0. L 715 reported a live median of 0.498 and that was an ARTEFACT of sampling people
+    #    without the reference's enable dict - read the arm's own person.pkl, never re-sample.]
     kempt: float = 0.05            # initial (small-meal) emptying rate = Vmax/Km with Km 60 kcal (evidence/09)
     kabs: float = 0.05             # gut absorption; a 25 g snack peaks at ~45 min as the donor pool's small pulses do
     hypo_empty_gain: float = 1.5   # φ_hypo = 1 + gain·σ((70 − G)/5)
@@ -160,11 +169,16 @@ class BodyParams:
                                    # kcal/min keeps rising with load — doubling the load: ×1.45 (Schirra 1996, γ 0.54),
                                    # +0.72 on 2.5 kcal/min (Hunt 1985, γ ≈ 0.37) — where Km 60 kcal had flattened it to
                                    # ×1.07 above ~300 kcal (LESSONS 53)
-    egp_vs: float = 0.0            # > 0: the hepatic insulin signal saturates, in suppression units v = sE·(I − Ib)/Ib:
+    egp_vs: float = 0.0            # [NOT LIVE: person.py:404 sets 2.57 for EVERY person, unconditionally, so the
+    #                                saturation is ALWAYS ON and this 0.0 reads as 'off' (L 722). The "> 0" below
+    #                                describes the code path, not the configuration.]
+    #                              > 0: the hepatic insulin signal saturates, in suppression units v = sE·(I − Ib)/Ib:
                                    # v_eff = vs·v / (vs + v). 2.57 puts half suppression at v 0.62 and full at 1.64, the
                                    # 29 / 60 µU/mL of Rizza 1981 (half-max / complete HGO suppression) scaled to the T1D arm,
                                    # so clamp-level insulin no longer drives X_E far past full suppression (LESSONS 192–193)
-    p2e_off: float = 0.0           # > 0: X_E's rate when the hepatic signal is falling (insulin withdrawn); p2e stays the onset
+    p2e_off: float = 0.0           # [NOT LIVE: person.py:404 sets 0.015 for EVERY person, unconditionally, so the
+    #                                asymmetric off-rate is ALWAYS ON (L 722); evidence is LESSONS 193's 0.012-0.020.]
+    #                              > 0: X_E's rate when the hepatic signal is falling (insulin withdrawn); p2e stays the onset
                                    # rate (meal tracer nadir, Romeres 2025). Gray 1982 HGO recovery half-times 59 / 119 min
                                    # after 40 / 120 mU/m²/min give 0.012–0.020 through egp_vs (LESSONS 193)
     ge_beta: float = 1.0           # Elashoff 1982 power-exponential emptying: the fraction of a parcel still in the
@@ -192,6 +206,8 @@ class BodyParams:
     # exercise
     ex_abs: bool = False           # C1's uptake keyed to absolute work rate, not %VO2-reserve (L 565)
     ex_uptake: float = 0.0         # mg/kg/min insulin-independent uptake at intensity 1
+    #   [NOT LIVE: drawn lnN(3.0, 0.3) per person, reference median 2.84 (L 719). This 0.0 reads as
+    #    "off" and the term is always on - never quote it. COMPONENTS states the draw correctly.]
     ex_egp_surge: float = 28.0     # mg/kg/min EGP rise at intensity 1 for anaerobic work, above the 60% threshold; calibrated
                                    # on donors' ≥ 8-MET workouts (rise ≥ 20 during in 46%; LESSONS 247; was 0)
 

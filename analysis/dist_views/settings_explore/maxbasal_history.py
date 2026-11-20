@@ -1,4 +1,5 @@
-import sys; sys.path.insert(0,'/Users/pete/dev/loopeval-eda/analysis/dist_views'); sys.path.insert(0,'/Users/pete/dev/loopeval-eda/analysis')
+import sys; from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1])); sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import numpy as np, pandas as pd, style as S, screen_cohort as SC
 from loopeval_analysis.tidepool.conn import query
 amap = SC._ids(); co = S.cohort()

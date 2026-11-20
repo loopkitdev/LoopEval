@@ -158,8 +158,8 @@ public struct EvalConfig: Codable, Sendable {
     /// still running at the prediction instant as ENDED at t (only the elapsed portion
     /// counts; scheduled resumes after) — this MATCHES deployed Loop-main, which trims
     /// every non-bolus dose to `basalDosingEnd = now()` before forecasting (LoopKit
-    /// DoseStore.getGlucoseEffects → DoseEntry.trimmed(to:)). Verified in
-    /// /Users/pete/dev/LoopWorkspace 2026-08-10. false: project the running temp forward
+    /// DoseStore.getGlucoseEffects → DoseEntry.trimmed(to:)). Verified against
+    /// LoopWorkspace (Loop main) 2026-08-10. false: project the running temp forward
     /// for its recorded duration — matches the recorded dosingDecision.bgForecast (an
     /// UNTRUNCATED display variant) but NOT Loop's dosing forecast; opt out only to
     /// reproduce that display curve. When a dose carries `tempRate` the truncation is

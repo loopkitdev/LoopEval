@@ -24,6 +24,7 @@ let package = Package(
             name: "EvalCore",
             dependencies: [
                 .product(name: "LoopAlgorithm", package: "LoopAlgorithm"),
+                .product(name: "LoopAdaptive", package: "LoopAlgorithm"),
                 .product(name: "OpenAPSSwift", package: "OpenAPSSwift"),
                 // TODO: add NightscoutKit dependency here in Phase 2
             ]

@@ -94,7 +94,9 @@ GBAF_VAL = ("--candidate-gbaf-low-anchor", "--candidate-gbaf-high-anchor", "--ca
 
 
 def regime(f, env):
-    """REGIME=ab: automatic bolus at application factor 0.4 for every donor (temp-basal strategy and GBAF dropped)"""
+    """REGIME=ab: drops GBAF and the static temp-basal flag (automatic bolus at application factor 0.4 where the
+    strategy is not given per cycle). Does NOT switch temp-basal cycles: the engine takes each cycle's strategy from
+    the decision_times mode, which overrides the static flag."""
     if env.get("REGIME") != "ab": return f
     o, i = [], 0
     while i < len(f):
