@@ -3178,3 +3178,18 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       against 48–56 mg/dL/h, the ×1.25 boost's size. The response is right; the insulin it answers is too strong.
     - Arm running: the boost ramped from 1 at glucose ≤ LO to 1.25 at ≥ HI (PATIENT_INSULIN_GAIN_BG_LO/HI, frozen tree
       ~/frozen/ice-bgview-glo), 70–120 and 90–160, trainings 0 / 1, lane_glo.sh.
+
+224. **On the window the per-person fit was made on, the generator has the field's bad days; frontier's missing third is
+    on unseen weeks.** frontier handoff 2026-11-19 (generator TIR < 50 on 7.5% of days against 11.7%, held-out 28 days,
+    gen.py donors). Same count on the edit pool's pre windows, own settings, base oc pssq9 gain 1.25, 208 people
+    (baddays.py, runs/2026-11-19-ice-lowedit):
+    | | days TIR < 50 | SD of daily mean ICE, median | SD of daily TIR | mean TIR |
+    |---|---|---|---|---|
+    | field | 10.9% | 12.1 | 11.2 | 75.2 |
+    | generated 0 / 1 | 9.0% / 11.2% | 14.5 / 14.6 | 11.2 / 11.6 | 74.5 / 73.7 |
+    - Bad days come from the same thing on both sides: daily mean ICE +9.0 (field) / +8.2 (generated) mg/dL/h above the
+      person's mean day, insulin barely up (+0.25 / +0.17 U/h). Not missed boluses or less insulin.
+    - Per person, the day-to-day ICE spread is ranked poorly: r 0.16 / 0.17 with the field, though its size is right.
+    - The pssq9 spread is fitted to each person's lows and highs on this window, so the match here is partly by
+      construction. The gap frontier sees is generalization of the per-person day-to-day spread to other weeks: the fit
+      sets the size for the window it sees and the model does not carry who is variable.
