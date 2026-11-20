@@ -13,10 +13,10 @@ into glucose, comes from `ClosedLoopSimulator` `physiologySensitivity`:
 
 The `dr` harness passes `--candidate-infer-sensitivity` (`pc.COMMON`), so every tier-A replay ran the body at the
 person's own schedule. A candidate that does not read the schedule (Loop Adaptive) is then judged by a body built from
-the very settings it ignores. A wrong or strongly shaped schedule (rloop: 72 overnight, 51 from 12:00) sets how much
+the very settings it ignores. A wrong or strongly shaped schedule (ns3: 72 overnight, 51 from 12:00) sets how much
 each unit of timing difference costs.
 
-**Measured (rloop, 21 days, adaptive LESSONS 22).** Loop Adaptive against the deployed setup ×1.0:
+**Measured (ns3, 21 days, adaptive LESSONS 22).** Loop Adaptive against the deployed setup ×1.0:
 
 | Body ISF | ΔTIR | Δt<70 |
 |---|---|---|
