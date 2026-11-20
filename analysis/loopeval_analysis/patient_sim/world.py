@@ -35,7 +35,7 @@ from .sensor import Sensor
 EPOCH = pd.Timestamp("2026-01-05T00:00:00Z")      # a Monday; local time = UTC in the simulation
 AUTOBOLUS_AF = 0.4                                 # LoopEval's default auto-bolus application factor (SimulateCommand)
 import os as _os
-NET_AF = _os.environ.get("PLANT_NET_AF") == "1"     # workaround for binaries older than main 8e86860
+NET_AF = _os.environ.get("PLANT_NET_AF") == "1"     # workaround for binaries older than main 8e86860 -> ead37028 (post-2026-10-25-rewrite hash; the old one is NOT an ancestor of current main, so test against ead37028)
 DAY = 1440.0
 
 
@@ -308,6 +308,8 @@ class World:
             self.beh_traits.pro_onset = self.beh_traits.pro_onset + float(enable["pro_shift"])   # LESSONS 126
         if enable and enable.get("own_clock"):
             self.beh_traits.own_clock = True
+        if enable and _num(enable.get("clk_sd_mult")):      # within-person meal-clock regularity (L 731)
+            self.beh_traits.clk_sd_mult = float(max(0.0, enable["clk_sd_mult"]))
         if enable and enable.get("entry_clock"):
             self.beh_traits.entry_clock = True
         if enable and "graze_fast" in enable:
@@ -320,6 +322,10 @@ class World:
             self.beh_traits.corr_rec_gate = True       # experiment (LESSONS 538)
         if enable and enable.get("site_clock"):
             self.beh_traits.site_clock = True          # experiment (LESSONS 523)
+        if enable and enable.get("pump_off"):
+            self.beh_traits.pump_off = True            # B16, the person's own pump suspend (L 700)
+        if enable and _num(enable.get("pump_off_rate")):
+            self.beh_traits.pump_off_rate = float(enable["pump_off_rate"])
         if enable and _num(enable.get("announce_mult")):
             self.beh_traits.announce_mult = float(np.clip(enable["announce_mult"], 0.0, 1.0))
         if enable and enable.get("meal_gap_gev") is False:
@@ -747,7 +753,7 @@ class World:
         self.ppr_periph = bool((enable or {}).get("ppr_periph", False))   # experiment (LESSONS 410)
         self.fat_periph = bool((enable or {}).get("fat_periph", False))   # experiment (LESSONS 481): fat resistance on disposal only
         self.ppr_end = float(enable["ppr_end"]) if enable and _num(enable.get("ppr_end")) else 240.0   # window out by (min; LESSONS 423)
-        self.ppr_w = tuple(float(enable[k]) if enable and isinstance(enable.get(k), float) else 1.0 for k in ("ppr_b", "ppr_l", "ppr_d"))   # per-slot window weights (LESSONS 429)
+        self.ppr_w = tuple(float(enable[k]) if enable and _num(enable.get(k)) else 1.0 for k in ("ppr_b", "ppr_l", "ppr_d"))   # per-slot window weights (LESSONS 429)
         # si_norm: the ISF yardstick measures the donor's average sensitivity across their real life (stress, sleep loss,
         # illness, cycle, glucose-induced resistance included), so the life-factor modulators should average 1 around it;
         # c446_npu's twins average 0.919 (LESSONS 468). Cohort-level test of the size; the per-person form is the next step
@@ -766,24 +772,47 @@ class World:
         rz = person.traits.get("resid") or {}
         en_ = enable or {}
         self.resid_on = bool(en_.get("resid"))
-        mult_ = float(en_["resid_mult"]) if isinstance(en_.get("resid_mult"), float) else 1.0
-        self.resid_a = tuple(mult_ * float(rz.get(k, en_.get(k, 0.0)) if isinstance(rz.get(k, en_.get(k, 0.0)), (int, float)) else 0.0)
-                             for k in ("resid_f", "resid_b", "resid_d"))
-        self.resid_tau = (float(en_["resid_tf"]) if isinstance(en_.get("resid_tf"), float) else 20.0,
-                          float(en_["resid_tb"]) if isinstance(en_.get("resid_tb"), float) else 180.0)
+        mult_ = float(en_["resid_mult"]) if _num(en_.get("resid_mult")) else 1.0
+        # PER-TIMESCALE multipliers (experiment, off): `resid_mult` scales the fast, block and day parts
+        # TOGETHER, which is what L 592 rejected as a bundle at 0.6 - and the three have opposite costs. The
+        # FAST part (tau 20 min, already L 650's measured 15-20 min band) is the only one that can supply
+        # L 648's missing 4.31 mg/dL of 5-min increment rms, and by the OU identity a short correlation time
+        # contributes little STATIONARY variance, so it is cheap on `bg_cv` - the row with no headroom
+        # (L 697). The BLOCK part (tau 180 min) is the reverse: it buys stationary spread, which raises the
+        # damping through L 678's identity. So the bundle confounds the benefit with the cost, and these
+        # separate them. 1.0 each leaves `resid_mult` exactly as it was.
+        mf_ = float(en_["resid_mult_f"]) if _num(en_.get("resid_mult_f")) else 1.0
+        mb_ = float(en_["resid_mult_b"]) if _num(en_.get("resid_mult_b")) else 1.0
+        md_ = float(en_["resid_mult_d"]) if _num(en_.get("resid_mult_d")) else 1.0
+        self.resid_a = tuple(mult_ * mm_ * float(rz.get(k, en_.get(k, 0.0)) if _num(rz.get(k, en_.get(k, 0.0))) else 0.0)
+                             for k, mm_ in (("resid_f", mf_), ("resid_b", mb_), ("resid_d", md_)))
+        self.resid_tau = (float(en_["resid_tf"]) if _num(en_.get("resid_tf")) else 20.0,
+                          float(en_["resid_tb"]) if _num(en_.get("resid_tb")) else 180.0)
         # a constant per-person drive (mg/dL/h) fitted to the donor's own glucose level (LESSONS 515): the unlogged load far
         # from meals that separates a tight donor from a loose one at the same settings (LESSONS 448), source unnamed
-        self.resid_m = float(rz["resid_m"]) if "resid_m" in rz else (float(en_["resid_m"]) if isinstance(en_.get("resid_m"), float) else 0.0)
+        self.resid_m = float(rz["resid_m"]) if "resid_m" in rz else (float(en_["resid_m"]) if _num(en_.get("resid_m")) else 0.0)
         # the residual's down side (experiment; LESSONS 521): after a carb entry (>= 5 g), with probability resid_drop_p, a
         # sharp negative drive from 40-90 min after it (the donors' fast falls come a median 61 min after an entry, at the
         # end of the rise; LESSONS 509-511), amplitude resid_drop_a x lnN(0, 0.3) mg/dL/h decaying with tau resid_drop_tau
-        f_ = lambda k, d: float(en_[k]) if isinstance(en_.get(k), float) else d
+        f_ = lambda k, d: float(en_[k]) if _num(en_.get(k)) else d
+        # resid_m's SHAPE over the day (experiment, off; LESSONS 684-685). The level above is constant over 24 h, and for
+        # the 310 of 408 e-pool people whose fit is NEGATIVE that is a glucose sink Loop can only oppose by withholding
+        # insulin - which saturates at zero. Measured: the night zero-delivery share runs 23.9 -> 42.8% across |resid_m|
+        # quartiles, the twin's night 2-h structure function tracks |resid_m| at rho +0.313 (DAY flat at -0.016) and night
+        # t70 is graded 14-22x. Weight it by the same cosine peaking at 15:00 that resid_diurnal (LESSONS 568) already
+        # applies to the residual's fast and block parts, but MEAN-preserving rather than variance-preserving, since this
+        # is a drift and not an amplitude: cos has zero mean over the day, so (1 + k*cos) has a daily mean of EXACTLY 1
+        # and the per-person level fit still holds by construction - which is what should stop the resid_m refit handing
+        # the gain back as it did to five level-mediated candidates (LESSONS 604, 629). It adds no glucose dependence, so
+        # `lam` is unchanged and the change response should be unmoved - the escape from LESSONS 684's tension, where a
+        # glucose-KEYED level-holder would raise lam and damp the response further.
+        self.resid_m_diurnal = f_("resid_m_diurnal", 0.0)
         self.drop_p, self.drop_a, self.drop_tau = f_("resid_drop_p", 0.0), f_("resid_drop_a", 100.0), f_("resid_drop_tau", 25.0)
         self._drop_rng = np.random.default_rng(int(person.seed) + 5141); self._drop_seen = 0; self._drops: list = []
-        self.resid_skew = float(en_["resid_skew"]) if isinstance(en_.get("resid_skew"), float) else 0.0
-        self.resid_diurnal = float(en_["resid_diurnal"]) if isinstance(en_.get("resid_diurnal"), float) else 0.9   # default since 2026-11-01 (L 568)
-        self.resid_meal = float(en_["resid_meal"]) if isinstance(en_.get("resid_meal"), float) else 0.0   # L 569
-        self.resid_day_ar = float(en_["resid_day_ar"]) if isinstance(en_.get("resid_day_ar"), float) else 0.0   # L 581
+        self.resid_skew = float(en_["resid_skew"]) if _num(en_.get("resid_skew")) else 0.0
+        self.resid_diurnal = float(en_["resid_diurnal"]) if _num(en_.get("resid_diurnal")) else 0.9   # default since 2026-11-01 (L 568)
+        self.resid_meal = float(en_["resid_meal"]) if _num(en_.get("resid_meal")) else 0.0   # L 569
+        self.resid_day_ar = float(en_["resid_day_ar"]) if _num(en_.get("resid_day_ar")) else 0.0   # L 581
         self._resid_rng = np.random.default_rng(int(person.seed) + 5137)
         self._resid_x = [0.0, 0.0]; self._resid_last = None; self._resid_day = {}
         self.sent_overrides: list = []                     # reactive Temporary Overrides sent to LoopEval (plant-sent)
@@ -972,6 +1001,14 @@ class World:
                 self.body.eat(a[1])
             elif kind == "exercise": self.ex.add(*a[1:])
             elif kind == "site_change": self.pump.change_site(m)
+            elif kind == "pump_off":
+                # B16 (L 700): the person stops the pump. The existing gap mechanism IS a suspend - no
+                # delivery, and queued doses are DROPPED rather than caught up, which is what a real pump
+                # does. Extend the window rather than replacing it, so overlapping episodes do not shorten
+                # one another. LIMIT: deployed Loop stops auto-dosing while suspended, whereas our Loop keeps
+                # commanding into a pump that delivers nothing - the insulin delivered is the same (zero),
+                # the recorded recommendations are not.
+                self.pump.gap_until = max(self.pump.gap_until, m + float(a[2]))
             elif kind == "fat": self.fat_events.append((a[1], a[2])); self.fat_log.append((a[1], a[2]))
             elif kind == "ppr": self.ppr_events.append(a[1])
             else: pending_actions.append(a)
@@ -1058,7 +1095,11 @@ class World:
         s = self.resid_skew
         if s > 0:    # standardised lognormal of the OU state: mean 0, SD 1, skewed toward rises as the donors' drive is
             z = (math.exp(s * z) - math.exp(s * s / 2)) / math.sqrt((math.exp(s * s) - 1) * math.exp(s * s))
-        return (self.resid_m + af * z + ab * self._resid_x[1] + ad * day - drop) / 60.0
+        rm = self.resid_m
+        if self.resid_m_diurnal > 0.0:
+            # mean-preserving over the day: mean(1 + k*cos) = 1 exactly, so the fitted daily-mean drift is untouched
+            rm *= 1.0 + self.resid_m_diurnal * math.cos(2 * math.pi * ((m % DAY) / DAY - 15.0 / 24.0))
+        return (rm + af * z + ab * self._resid_x[1] + ad * day - drop) / 60.0
 
     def _flow_mult(self, m: float) -> float:
         """A4c subcutaneous blood-flow fluctuation (experiment, off): absorption rate × exp(z − sd²/2), z a log-OU (sd, τ)
@@ -1191,7 +1232,7 @@ class World:
                     carbs.append(dict(t=ts(a[1]), grams=float(a[2]), absorption_s=float(a[3])))
                     self.entries.append((a[1], a[2], a[3]))
                 elif a[0] == "bolus":
-                    # LoopEval before main 8e86860 decided the automatic dose WITHOUT the plant bolus (~1.4x
+                    # LoopEval before main 8e86860 -> ead37028 decided the automatic dose WITHOUT the plant bolus (~1.4x
                     # every meal; LESSONS 21). Fixed in the engine; PLANT_NET_AF=1 restores the old workaround
                     # (ask for ratio - AF) only for runs on an older binary.
                     r = float(a[2])

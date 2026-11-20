@@ -53,6 +53,80 @@ burn-in history, the sensor's sample schedule), then `simulate --candidate-count
 --external-plant '<plant server>' --plant-behavior` hands every step after burn-in to the plant:
 LoopEval doses, the plant's body responds, the plant's person eats, boluses and treats lows.
 
+## Running a CONTROLLER candidate on this body (for the other roles)
+
+This overlay is otherwise about judging BODY candidates against the donors; a role arriving with a
+Loop candidate wants a different path, and nothing but L 83/85/86 recorded it, so the frontier role
+had to ask (2026-11-07) — L 666's drift, in the form where the missing doc costs someone else a
+session rather than me.
+
+- **There is no separate driver.** Candidate flags go through `cohort.py --flags-json <file>`, the file
+  being `{"*": ["--candidate-foo", "1.10", ...]}` or keyed by `person.name` for per-person arms; they are
+  appended LAST to each person's `simulate` line (`loopeval_io.py:222`). Copy
+  `runs/2026-10-30-reduction-additive/` — `run_loop.sh` / `run_gr.sh` (arm loop with a resume guard), 30
+  `flags_*.json`, a pinned binary, a `frozen/` tree and a `score.py`.
+- **Score with `candidates.py`, not `score.py`** — paired per-person deltas with bootstrap CIs on CGM
+  **and on true glucose**, plus `dial_lift`, the arm's TIR minus Loop's at the arm's OWN lows interpolated
+  along an `--candidate-insulin-needs` dial. That construction is what stops a TIR win bought with lows
+  reading as a win, so run the dial arms beside the candidate. First two days drop (`BURN` 2880).
+- **Cost: ~75 s per 112-person 14-day arm at `--par 12`** (measured on three reduction arms; rf2 0.7 min),
+  i.e. a sweep is minutes, not hours — far cheaper than the generator.
+- **Five ground-truth stress scenarios** inject one event on day 4, identical across arms (`world.py:862`):
+  `scenario_illness`, `scenario_exercise`, `scenario_missed_bolus`, `scenario_site_failure`,
+  `scenario_sensor_fault`, severity by `--set scenario_level=`. **The false low costs pull-back candidates
+  TIR because they believe it** (L 86) — a sensor-robustness cost replay cannot isolate, since a donor
+  record cannot be made to assert a KNOWN-false low or that no insulin is arriving.
+- **FIRST, check how much of the cohort your candidate can even act on.** The drawn strategy decides:
+  `loopeval_io.py:138` writes `--temp-basal-strategy` for every `temp` person, and under it Loop's
+  recommendationType is `tempBasal` (`AlgorithmInputExport.swift:140`) — no automatic boluses at all.
+  **So anything acting on the automatic bolus is bit-identical to its control for those people.** On the
+  rf2 templates at seed0 1000, n 112, the mix is **51 temp-basal / 61 autobolus**, so a GBAF or
+  application-factor candidate carries **51 structural zeros in a 112-row paired statistic** — a real
+  +1.0 TIR among autobolus users reads as +0.54 cohort-wide, with a CI built over rows 46% of which
+  cannot move. Score such an arm on the autobolus subgroup; `candidates.paired` does not subset. The
+  needs dial, RC and anything basal-side are fine on all 112. (Measured 2026-11-07, for frontier's
+  job 320, which had GBAF pinned "for everyone".) **Or put the whole cohort in one regime with
+  `--enable strategy_ab`** (or `strategy_temp`), both off by default, landed 2026-11-07 in `a9b4813d`:
+  it overrides the donor draw, so it ranks candidates at regime parity but discards LESSONS 331's
+  calibration and no longer reproduces the donors — label the result and never read it against the
+  reference's own numbers, the `rf2e_s` discipline of L 679. It can also switch rc_own's deployed GBAF
+  ON for someone who would have drawn temp, creating a collision the standard draw did not have.
+  **And do NOT price the switch by splitting a uniform arm on the DRAWN strategy (L 730)**: the override
+  overwrites `strategy` before anything reads it (`person.py:436`, consumers at `loopeval_io.py:138` and
+  `:195`), so the drawn label has no causal path into the run and the split is two donor groups — nor is
+  there a propensity-adjusted read, since `auto_day_share` is the draw's own probability and is nearly
+  degenerate (median 0.000 against 1.000). Measured on frontier's job-320 control arms, the t<70 spread
+  such a split picks up is **`resid_m`'s tail** (+0.118 +- 0.016 t70 points per mg/dL/h of |`resid_m`|;
+  the large-|`resid_m`| quartile is 26% of heads and carries 54-56% of t70) — L 684's limit, not a dosing
+  cost. The test is PAIRED: the same person under the drawn mix and the forced regime, one ~75 s arm.
+  **RUN as job 323 and the regime IS now priced (L 733)**, with the 61 bit-identical / 51 different gate passing
+  exactly: forced autobolus minus each person's own temp basal, over the 51 switched people, is TIR **+2.34
+  [+1.62, +3.05]** / t70 **+0.38 [+0.17, +0.61]** / t54 +0.095 / TDD +3.06 U with entries on, and +2.46 / +0.57 /
+  0.118 / +4.18 U with them off. **It is NOT a needs-dial step**: against the gr2 needs dial on the same 51 people,
+  at matched t70 the dial gives +0.67 / +1.69 TIR and at matched t54 +0.93 / +1.39, so the switch leads by +0.8 to
+  +1.7 TIR. **Cohort-wide offset for a `strategy_ab` arm** (only the 51 move, so x 51/112): TIR +1.07 / +1.12,
+  t70 +0.17 / +0.26, t54 +0.043 / +0.054, TDD +1.39 / +1.90 U/day — subtract it before reading such an arm against
+  the reference, which still does not make the two comparable, since the switched people are a selected 46%.
+- **Four further limits to state with any result.** (1) `rc_own` already spends `--candidate-integral-rc`,
+  `--candidate-integral-rc-clamp` and `--candidate-gbaf*` on the donors who deployed them
+  (`_rc_flags`), so a candidate touching RC or GBAF collides for a SUBSET and the arm stops being
+  uniform — but enumerate the draw before sizing it: of the three GBAF donors only **i010 is drawn
+  (seed 1067)**, so it is 1 person of 112, while **19 of 112 run integral RC**, which makes any
+  RC candidate a MIXTURE over two controller baselines rather than a test against standard RC.
+  Duplicated options do not error (`candidateGbafLowAnchor` is a single-value `@Option`, last wins),
+  and either way that person has the feature ON in the control, so their delta is ~0 — the dilution,
+  not the duplication, is the damage. (2) Per unit delivered the twins move **0.63** of the field's glucose, CI [0.39, 0.98]
+  (L 680), while Loop's delivery response matches the field — so ranking is supported and magnitude is
+  a lower bound, never a field prediction. (3) `resid_m` is fitted per person to the donor's level and is
+  NOT refit for a controller arm, which is correct, but a candidate that moves the level is then read at a
+  drifted level and response scales with G — print each arm's own post-burn-in mean beside its result
+  (L 638). (4) Judge TIR + t70 with t54 as a guard beside it, on deltas; a 1-point TIR effect needs ~20
+  draws against trait-draw scatter (L 609), so prefer the paired rows.
+- **Read only the candidate arm**: the baseline arm replays placeholder glucose the plant never supplied.
+- **Pin the binary with `--bin` and run your own control with the same one.** rf2's published arms ran a
+  0-byte symlink into an old run dir (L 728) and the dev-tree binary has moved since, so a candidate must
+  never be compared against rf2's published numbers — binary, body and donor labels have all changed.
+
 ## Calibration rules (Pete)
 
 - **The body follows the data, not the user's entered settings** (2026-10-19). Where a donor has a data-fitted value —
@@ -102,6 +176,14 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   `--enable ex_abs --set ex_headroom=1.5,ex_surge_width=0.75` on the reference. It reproduces C4's own by-METs table —
   the ≥ 8 MET band reads +0.9 against the donors' +1.2 where the band has enough bouts — against the reference's +12.8 / −5.1.
   Use it whenever the response to a workout matters; the reference keeps the score-optimal settings.
+- **THE REFERENCE'S OWN CHANGE RESPONSE IS 1.39 / 1.35 / 1.24 / 0.79, not the 1.35 / 1.30 / 1.09 / 0.56 quoted
+  below and throughout (L 724).** Every e-pool number in this overlay is measured against `rf2e_s`, which runs
+  **`day: false`** (L 679) while the cohort reference runs `day` **ON** by code default. The reference's own
+  configuration on that pool is `dye2`, measured clean in job 203: mean **1.39**, TIR **1.35**, t70 **1.24**,
+  t54 **0.79** (L 702). So the body whose prediction accuracy the goal asks about is slightly WORSE than the
+  number the record has been carrying, on all four rows. **Read `rf2e_s`'s 1.35 / 1.30 / 1.09 / 0.56 as what it
+  is — a `day`-OFF CONTROL for arm-to-arm comparison, which is sound for that purpose because every arm shares
+  it — and never as the reference's own response.** Arm-to-arm deltas below are unaffected; only the baseline is.
 - **rf2 on the prediction half: response SIZE replicated on two pools; RANKING consistent but not established**
   (L 612, 614, 616) — pooled by Fisher z over the 643 well-conditioned events (pilot + e; the x pool excluded for a
   NEGATIVE field t70 response), rf2 leads on all three correlations (mean 0.326 against 0.265, TIR 0.165 against
@@ -121,9 +203,65 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   (`cr_tau_off` 2.34, joint fit 2.40, `sg_h_lo` 2.93/3.57, `pro_g_own` 5.41), and `unl_mult` 0.70 + refit is confirmed
   as the only real TDD lever (paired TDD +0.40 against +1.49) at the cost of the level (bg_mean −1.63).
 
-- **Current reference** (2026-11-01): **rf2** (runs/2026-10-31-additive-gesplit; templates
+- **The state docs drift from the code and my own checks cannot see it** (L 666). LESSONS and this overlay
+  are written when a result lands, so they are right about results; COMPONENTS and MODEL_GUIDE describe state,
+  which changes with no result to hang a note on. An outside read against the code found eight defects in one
+  session — `ppr_a` 0.4 against a live 0.6, `day` re-enabled at ov0, a dead DOI, and five of the nine ablation
+  switches undocumented. There is now an external instrument for it, `langerhans/tools/audit_status.py` in the
+  AdventuresInDiabetes tree, which diffs a run's flags against the code's defaults and exits non-zero on
+  disagreement; **run it when the reference changes.** And verify any claim about this model against the call
+  site even when a peer is confident and their conclusion is right — in the same exchange a correct verdict
+  came with a wrong reason that would have broken their audit, and I nearly recorded two live switches as dead
+  because my grep matched `self.enable[name]` and they are read as `enable.get(name, default)`.
+
+- **Read the reference's configuration from a run's own `cohort.json`, never from the prose** (L 657, 665,
+  **679**): three switches have now differed silently from what the docs implied — `act_frag`, `day` from ov0
+  onward, and **`day` on the WHOLE e pool, which runs it OFF while the cohort reference runs it ON (L 679)**.
+  Arm-to-arm comparisons on that pool are still sound (all nine arms share it, so it is a control).
+  **TESTED as job 191 (`dye1`) against a rule fixed in advance, and the answer is split by row (L 683):
+  the MEAN ratio is unmoved, so L 677's 0.68, L 680's 0.63 [0.39, 0.98] and L 678's
+  arithmetic stand as quoted — that was the load-bearing claim and it survives. **RE-MEASURED against a
+  matched control as job 203 (L 702) the rest does not: the published TIR IMPROVEMENT 1.30 -> 1.11 was the
+  `si_norm` artefact, and clean it is 1.39 / 1.35 / 1.24 / 0.79 — mean +0.04, TIR +0.05, t70 +0.15. So the
+  gap between the two halves' configurations is about a quarter of what job 191 recorded.** Still quote
+  `day`'s state beside any response ratio from this pool, since the cohort reference
+  runs `day` ON, where they are 1.35 and 1.24. The method lesson survives the correction: my job-191 rule
+  named only the mean row, which passed while the rows it was not watching moved — a single-row rule on a
+  multi-row instrument can pass while the thing it protects changes underneath it. rf2 is, in
+  full: templates `templates_pilot_resid_rf1.csv`; `--enable rc_own,night_pro,uls,resid,site_clock`;
+  `--disable stress,illness,menstrual,steroid,act_frag`; `--set ex_sat=0.1,p_log_pro=0.12,p_log_rescue=0.12,`
+  `graze_keep=0.0,flow_sd=0.0,resid_skew=0.7,resid_mult=0.0,si_norm=0.92`. Everything else runs its code
+  default — which notably leaves **`day`, `circadian`, `dawn`, `sleep`, `gh` and `alcohol` ON** and `ppr_a` at
+  **0.6** (not the 0.4 two docs carried until L 665).
+- **THE REFERENCE CHANGED ON 2026-11-07: it is `kd2`, and EVERY OTHER NUMBER IN THIS OVERLAY IS STILL rf2's.**
+  Job 230 built it (L 729): rf2's exact configuration plus `rcl_mult=0.16667` — renal clearance at UVA/Padova's
+  0.0005/min instead of Hovorka's 0.003 — with `resid_m` refitted over two further rounds on the new body, since
+  the old templates were fitted at the old renal value. **Nothing else in this file has been re-measured against
+  kd2**, so read every other figure here as rf2's and say which body a new number is on. A candidate screen
+  already run on rf2 needs no redo, but it cannot be compared with one run on kd2.
+- **Current reference** (2026-11-07): **kd2** (runs/2026-10-31-additive-gesplit; templates
+  `templates_pilot_resid_kd2.csv`, `--set rcl_mult=0.16667,resid_mult=0.0`, binary pinned at
+  runs/2026-11-07-additive-renal/loop-eval-renal, L 728). Score **0.340 / 0.382 / 0.396**, mean **0.373** against
+  rf2's **0.366** on the same three draws — so the adoption costs 0.007, HALF of job 221's unrefit 0.013, the refit
+  having given the rest back. **Tier 1 is BETTER**: 0.174 -> **0.165**, carried by the two activity-response rows
+  (gap 0.227 -> 0.155, 0.162 -> 0.095) and `meal_d3h` (31.7 -> 33.3 against the donors' 38.0). **The guard holds
+  and converges on the donors**: t54 0.168 -> **0.203** against their **0.190**, lows/day 1.04 -> 1.07 against 1.00,
+  t70 1.80 -> 1.92 against 1.60, TIR 70.9 -> 70.1, TDD 42.39 -> 42.86 (inside the 1.51 U/day draw sd). **The price
+  is dispersion and it landed on L 727's pre-registered number**: `bg_cv` 34.90 -> **37.28** against the donors'
+  34.65, where L 727 predicted 37.28 post-refit to two decimals — though the premise of that arithmetic only
+  partly held, since the refit did NOT bring the cohort mean back (153.3, against rf2's 150.4 and the donors'
+  151.9) and `resid_m`'s negative tail deepened instead (p10 −40.7 -> −43.8), L 639's widening. **So the level
+  gap is the same size and the OPPOSITE sign**: per person it converged (|gap| p50 4.1 -> 1.9 -> **1.8** mg/dL,
+  twin-donor rho 0.97 -> 0.98 -> **0.99**, so a fourth round would not pay) while the cohort median now sits
+  +1.4 ABOVE the donors where rf2 sat 1.5 below. Tier 3 0.477 -> 0.523, most of it small-n Libre 3 cells moving
+  in both directions. **`day` runs ON** (code default), as on rf2. Revert by dropping `rcl_mult` from the `--set`
+  string and using the `rf1` templates. **Pete's hypothesis is registered, not tested**: the dispersion cost
+  "might be explained by other factors" — L 678's un-cancelled pair — so if a working load lever ever appears,
+  `bg_cv` here is the first row to re-measure.
+- **Previous reference** (2026-11-01): **rf2** (runs/2026-10-31-additive-gesplit; templates
   `templates_pilot_resid_rf1.csv`, `--set resid_mult=0.0`) — ov0 with the residual's DYNAMIC part off, keeping only its
-  per-person level `resid_m` (L 592). Score **0.332 / 0.371 / 0.406**, mean **0.370** against ov0's 0.372 — level —
+  per-person level `resid_m` (L 592). Score **0.328 / 0.366 / 0.404** on the corrected donor meal labels (L 695; the
+  stale-label pair was 0.332 / 0.371 / 0.406), mean **0.370** against ov0's 0.372 on the labels both were scored with — level —
   with **tier 1 better on all three draws** (0.135 / 0.209 / 0.178 against 0.178 / 0.218 / 0.197), twin-donor rho
   better on five of six outcome rows (TIR 0.815 / 0.830, bg_mean 0.885 / 0.896, t70 0.631 / 0.484, t54 0.526, bg_cv
   0.616), and the **t70 change response 3.51 -> 2.17 with its ranking +0.22 -> +0.34**, both the best of any arm. The
@@ -133,7 +271,15 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
   `ov1` templates.
 - **Previous reference** **ov0** (runs/2026-10-31-additive-gesplit; templates
   `templates_pilot_resid_ov1.csv`) — ad3 with each Temporary Override class's duration fitted over the windows the
-  model can actually produce. A donor record under 5 min is a cancellation (the ETL keeps an edit-version per change),
+  model can actually produce, **plus, unrecorded until L 665, the `day` modulator coming back ON** (ad3 disabled
+  it, ov0 does not, and it defaults to True) — **separated as job 178 and the gain is the override fit (L 668)**:
+  rf2 with `--disable day` is inside the 0.01 floor on score (0.309 -> 0.313, 0.357 -> 0.349, split in sign) and on
+  tier 2 (0.423 -> 0.427, 0.449 -> 0.452), with every pre-registered row landing on B3's own arithmetic — basal
+  limb within-13d CV 0.170 -> 0.168 against a computed 0.168, `tdd_cv` and `between_day_frac` flat, the structure
+  function unmoved, TDD split in sign at under half the 1.51 U/day draw sd. Tier 2's sign IS consistently worse with
+  `day` off (0.004 / 0.003) at a twelfth of the gain it would have to explain, so `day` is small, not zero. The
+  paired instrument improves (3.040 -> 2.946, 2.568 -> 1.985) almost entirely on TDD, which is the level-mediated
+  row of L 604 / 629 on an unrefit arm, so it is not a gain — and `day` is evidenced, so it stays ON either way. A donor record under 5 min is a cancellation (the ETL keeps an edit-version per change),
   and `_override` clips at 15 min, so including those in the per-class median systematically understated the length of
   every window the twins did run; dropping them lifts `ov_less_h` from 1.42 to 1.88 h and realized length from 72 to
   83 min against the donors' comparable 79 (L 586). Score **0.332 / 0.394 / 0.391** against ad3's 0.321 / 0.425 /
@@ -186,12 +332,190 @@ LoopEval doses, the plant's body responds, the plant's person eats, boluses and 
 
 ## Match targets
 
-The primary test, kept in one place: **`docs/additive/MODEL_GUIDE.md` § 10** lists every scored row (51 statistics,
-with the sensor-split rows), its tier and weight, the donors' value, the reference's value on both draws and the gap.
+The primary test, kept in one place: **`docs/additive/MODEL_GUIDE.md` § 10** lists every scored row (**70 rows,
+67 of them on draw 1**, sensor-split rows included — the "of 51" / "of 54" in the score tables is the separate KS
+count, not the row count), its tier and weight, the donors' value, the reference's value on both draws and the gap.
+**Regenerated on the current reference `kd2` on 2026-11-07** (job 230); before that it carried values of mixed
+vintage, several of them sd3-era.
 Runs are ranked by the weighted gap score (`score.py`, LESSONS 492). Tier 1 has weight 3: outcomes, what Loop sees, and
 the activity response. Tier 2 has weight 2: dynamics, plus meal absorption, unlogged rises, falls and workouts
 (LESSONS 494). Tier 3 has weight 1: the sensor fingerprint. The KS count is secondary. Update § 10's table when the
 reference changes.
+
+## The named core against the per-person fit (L 725)
+
+**The live fitted layer is FOUR terms** — read off rf2's own `cohort.json`, since `twin`, `csf_own` and
+`lvl_own` are OFF so `twin_isf_mult`, `twin_csf_mult`, `csf_own_mult` and `lvl_isf_mult` never apply:
+`resid_m` (constant drift per person, ITERATED), `csf_geq_mult` (the donor's labelled meal response over
+the twin's, ITERATED), `csf_sd_mult` (the donor's glucose spread fit, ITERATED, ungated at `csf_sd_w` 1.0)
+and `isf_true` (the ICE yardstick, MEASURED).
+
+**Ablated (job 215, three nested arms x three draws) it is LOAD-BEARING: mean score 0.3660 -> 0.4467,
++0.081, and +0.063 of that is `resid_m` ALONE** — one scalar per person is 78% of the layer's value.
+Tier 1 doubles (0.174 -> 0.345) and the paired per-person instrument collapses 4.3x (SUM|dev| 3.245 ->
+13.961) with the rankings (rho_tir 0.698 -> 0.403, rho_bg_mean 0.779 -> 0.389, rho_t70 0.507 -> 0.168).
+**What it buys:** the level (bg_mean 150.4 -> 158.8 against the donors' 151.9, same sign on every draw,
+because `resid_m`'s distribution has median 0.000 but mean −7.694 — a cohort-wide offset dressed as
+per-person variation), the low side (t70 1.80 -> 0.86, lows/day 1.04 -> 0.60, t54 0.168 -> 0.069 against
+0.190) and per-person identity. **What it does NOT buy:** `bg_cv` is flat on all three draws (34.90 ->
+34.37), so the dispersion that binds the whole appearance family is entirely the CORE's, and the TDD
+ranking holds (rho_tdd 0.860 -> 0.899). **And it COSTS the meal tail:** `meal_d3h` 31 / 31 / 33 -> 34.5 /
+37 / 35 with the drift off alone, against the donors' 38.0 — about 60% of a standing deficit, with no
+load confound. So it is at once the biggest score asset and the cause of a standing limit, which is
+L 617/696's trade from the other side.
+
+**Read the +0.081 as the price of the LEVEL, not as the share of the model that is fitted** — L 630
+measures TIR's leverage as 59% the level, so a term holding each donor's level scores well close to by
+construction. The consequence for candidates: the `resid_m` refit that has killed seven gains (L 604,
+629, 639, 667, 710) is handing back a fifth of the score, so a candidate can only beat it by acting on
+something the level cannot see. `meal_d3h`, a row the drift actively damages, is the most promising
+place left.
+
+## The field's carbless corrections against this body (L 726)
+
+The loopeval peer fitted this body as a kernel against **440 carbless manual corrections >= 1 U (72 donors,
+median 2.6 U at 236 mg/dL)**, `runs/2026-11-04-plant-curve-ice/review_package/`. Their field work reproduces
+exactly (twice, incl. without matmul; the matmul warnings their script suppresses are spurious - every `I` and
+`obs` is finite and `TM @ TM` is 884). **Their inference about this body does not.**
+
+- **`dose_beta` is 0.0 in EVERY `person.pkl` and 0.1 LIVE**, applied at RUN time by `world.py:154` (rf2's enable
+  string carries no `dose_beta`, so the fallback 0.1 is the live value). A probe loading `person.pkl`'s
+  `BodyParams` unmodified - correct by L 719 - gets A4d OFF. At a 2.1 U correction beta 0.1 absorbs 22% faster
+  and moves the fitted CGM-seen peak **65 -> 55 min**. **Check `world.py`'s unconditional patches before probing
+  a pickled body**; third member of the L 640/666 class and the worst-placed, being in neither the dataclass
+  default nor the artefact.
+- **No glucose-dependence discrepancy.** The field's within-donor `k(band)/k(donor)` is 0.90 / 0.99 / 1.14 / 0.99
+  (**1.09x** end to end; the pooled 0.51 / 0.72 / 0.86 / 0.86 is composition). At the field's OWN dose growth -
+  **1.75x** across bands (2.12 / 2.20 / 2.50 / 3.70 U), not the 3.5x `(G-120)/ISF` implies - and the live beta,
+  the twins read 0.93 / 0.98 / 1.03 / 1.01, **1.09x**. Their configuration (beta 0) gives 1.17x; fixed dose gives
+  1.26x. Most of the flattening survives A4d off (1.30 -> 1.17), so it is mainly the glucose-proportional insulin
+  term saturating itself (`kappa` live median **1.026**, so `mm` ~ `g`). **So the field's flat `k` is evidence
+  about neither the force at 180-250 nor `kappa`** - its dose structure confounds glucose with dose.
+- **Per-unit potency is right.** At a COMMON curve the twins read 1.378 against the field's 0.932 (rapid, < 3 U) =
+  1.48x; at **each side's own best-fitting curve** 1.003 against 0.932 = **1.08x** (0.88x ultra-rapid). The 1.48x
+  is the ~20-min peak difference. **A fitted scale at a common curve mixes shape and scale** - quote it at each
+  side's own best curve, or shape-free, before calling it potency.
+- **The field does not size `dose_beta`.** Pooled, `k` falls steeply with dose (1.5 U 0.82-1.14, 8 U 0.17-0.80);
+  **within donor it is FLAT** (0.97 / 1.03 / 0.92 by tercile, rapid 0.97 / 1.01 / 1.00). L 701 for the third
+  time. The live 0.1 keeps its own evidence; 0.3 has no field support.
+- **What survives is the SHAPE**: the body's CGM-seen response peaks ~55 min against the field's 75, and the live
+  beta makes it faster still. Their "+15% SSE" baseline needs redoing at beta 0.1, and the clean question is SSE
+  with the force ON vs OFF *at the live beta*, which isolates A1d from the three changes their best arm bundles.
+
+**A LIVE A1d CANDIDATE THE RECORD DOES NOT CONTAIN: `sg_g0` 180 (with `sg_km` 63.2).** Their proposed "weak high,
+strong below 90" is closed in that form - `sg_kappa` 0.15 is bit-identical below Gb and still doubled t70, because
+the t70 leverage is in **90-180 on the descent**, not at the nadir (L 642). But `sg_g0` is a free breakpoint
+(default 80) and the excess `F(G) - F(Gb)` holds the zero at Gb for any breakpoint, so a breakpoint ABOVE the
+leverage band is untested. On rf2's own dwell (2,258,032 min) the dwell-weighted force kept is **0.86** for
+`sg_g0` 180 - against **0.254** for `sg_kappa` 0.15 and **0.267** for the fitted smooth form, the two L 642 priced
+at x0.22-0.25 - with the force at 65 / 90 / 130 / 180 EXACTLY unchanged and 0.78 at 236, 0.57 at 300. First A1d
+shape outside the regime that doubled the lows. **There is NO conflict with ice's evidence and no decision here -
+that framing was mine and it was wrong.** 90-130 is ice's BEST-sampled band (438 points, all 60 donors, CI
++-10-15%), its uncertainty is interpretive rather than sampling, their H-and-state factor runs ~2x UPWARD, and
+their answer is verbatim: "if your breakpoint keeps 65 / 90 / 130 exactly unchanged, my evidence is consistent
+with it: nothing in this table argues for cutting below 130". So the sub-130 cut that doubled the lows in every
+previous A1d form was never required by the evidence; it was where the existing knob happened to put the
+breakpoint. **Owed correction to L 641**: its 0.235 / 0.118 / 0.053 / 0.024 row is approximately ice's
+midpoint / D=+40 / **H=1** column (0.223 / 0.136 / 0.083) while L 140a quoted H=3 - an H=1 reading carried under
+an H=3 citation, the L 666 drift this entry is otherwise about.
+
+**RUN AS JOB 221 AND BOTH CANDIDATES DECLINE, SPLITTING L 642's CLOSURE IN TWO (L 727).** Three arms x three
+draws, unrefit, gates passed (111 of 112 people differ from rf2; the 1 person never above their own `rthr` is
+bit-identical in the renal arm). **The guard HELD - the new fact**: t54 0.188 / 0.178 / 0.166 against the donors'
+0.190 for `rn1` / `sgb1` / `pr1`, t70 and lows/day FLAT, against `sg_kappa`'s doubled t70 and the smooth form's
+t54 0.48-0.70. So the LOW-side cost is set by WHERE the force is cut and a high breakpoint escapes it outright.
+**The DISPERSION cost is confirmed, generalised and retrodicted to 0.6%**: bg_cv 34.90 -> 36.71 / 36.82 / 38.88
+against the donors' 34.65, where `sgb1`'s 0.860 force kept and `sg` at ~80% of `lam` (L 678) predict 37.04 from
+the identity with nothing fitted. **And it is not an A1d property** - the renal cut costs the same +1.81, so
+renal carries **11.5% of this body's total restoring gain** and the cost tracks `lam` whatever supplies it. The
+arms compose additively in `lam` (1.106 x 1.113 = 1.231 against the pair's 1.241). The exchange rate is therefore
+unchanged: 10% of `lam` for +1.9 bg_cv points, where L 678's response gap needs `lam` cut to 1/1.59 (bg_cv ~44).
+`sgb1` FAILS its own registered decisive row (+1.91 against "within ~1 point") and **the refit is priced and NOT
+spent** - bg_cv is `sd / mean` and the refit restores the mean, so post-refit it is 37.28 on the level arithmetic
+alone, before L 639's tail-widening. One gain: `meal_d3h` 31.67 -> 33.33 / 33.67 / **35.17** (donors 38.01), the
+tier-1 row L 725 named. **Do not look for a better-shaped force cut again** - four shapes, one outside A1d, all
+on the same line. **The renal term's VALUE was the one decision left, and PETE DECIDED IT ON 2026-11-07: cut it (L 729).**
+Our `rcl` 0.003/min is Hovorka's, marked `[unverified]` beside UVA/Padova's 0.0005 ("the two disagree about 6x", our own
+`evidence/01` §4.3), and the field's 440 carbless corrections prefer the lower one - live rf2 **+17.9%** worse
+than Loop's own curve at explaining them, renal 1/6 **+12.8**, `sg_g0` 180 **+11.8**, the pair **+9.5**, both
+removed entirely +3.5, every CI excluding 0. Three lines say the term is too strong; the cohort charges 1.8
+bg_cv points, 1.7 TIR points and 0.013 of score. It did NOT self-adopt - it is not "level but better explained" -
+so it went to Pete, who took the worse match on evidence, overriding job 221's registered bar with the LESSONS 303
+precedent. **`sg_g0` 180 is NOT adopted and remains closed**: the two were measured together but only the renal
+value had an independent literature disagreement behind it. His hypothesis, registered in L 729 for later test:
+the dispersion cost "might be explained by other factors" - which is L 678's un-cancelled pair, so `bg_cv` here is
+the first row to re-measure if a working load lever ever appears.
+
+## Where the score actually sits (L 697, honest labels)
+
+Nine statistics are 49% of the weighted score and only one is tier 1: `entry_fast_fall` 6.8% (donors 14.29%
+-> twins 5.00%, nearly 3x too few), `sigma_disp` 6.4%, `ice_dip_day_share` 6.0%, `pulse_peak_per_g` 5.9%,
+`ice_dip_day` 5.6%, `pulse_dur_h` 5.2%, `acf_zero_min` 4.8%, `v_skew` 4.6%, `meal_d3h` 3.4%. **`bg_cv` is
+NOT among them because it has no headroom — 34.25 / 35.37 against the donors' 34.65 — and it is the binding
+constraint on the whole appearance family.** `ge_order` 3 improves six of the nine and takes `bg_cv` to
+38.58 / 38.03; order 4 to 40.90; `ol85` 37.85; `ol70` 36.68.
+
+**The identity behind it (L 678 + L 676):** spread is `sigma / sqrt(2*lam)`, and a sharper gastric pulse
+raises `sigma` with `lam` untouched — so dispersion rises and the response does NOT, while the extra damping
+L 656 measured is controller-side. One quantity carries both costs, which is why five accounts of order 3's
+cost came up empty. **Do not spend further arms on appearance dispersion while `bg_cv` is exact**: the
+exchange rate between the shape rows and the outcome rows is set by the identity, not by the
+parameterisation — the same conclusion L 640/642 reached for A1d's shape, now for A10's. The only measured
+remedy is the LOAD lever and it is about a fifth as strong as needed (`unl_mult` 0.85 recovers 0.73 of 4.34
+CV points, 0.70 recovers 1.90 and overshoots t180 downward). **With ANNOUNCEMENTS OFF the load lever is about
+2x stronger per unit cut (L 733)**: `unl_mult` 0.85 paired over 112 people, unrefit, is mean glucose
+−6.35 +- 0.41 mg/dL, TIR +3.70 +- 0.32, t70 +0.26 +- 0.10, TDD −2.49 +- 0.21 U/day — against L 604's ~6 mg/dL
+for a 30% cut with entries on, because without entries Loop does not dose for the load in advance. It still
+costs low time, and the refit still hands the level and the TDD back. **`entry_fast_fall` is now MEASURED and it is NOT an independent
+target (L 703).** The deficit is a UNIFORM SHIFT of 0.72-0.74 across the whole distribution of post-entry
+fall rates (twin/donor 0.74 / 0.70 / 0.72 / 0.76 / 0.80 at p5 / p10 / p25 / p50 / p75), not a missing tail,
+and one scalar reproduces the threshold share — the k from the quantiles is 0.743 and the k equating the
+shares is 0.721, donors cut at −208 giving 7.04% against the twins' observed 7.03%. **0.72-0.74 is L 575's
+own number** (43 against 57 mg/dL at matched insulin spend), so these are ONE defect: the row closes if and
+only if the potency gap closes and there is nothing to aim at it separately. **The row also MAGNIFIES the
+defect twofold** — the underlying rate is off 1.35x while the share reads 2.5-2.9x too few, because `FAST`
+−150 sits between the donors' p25 (−128) and p10 (−188) — so the physical error is 26-28%, not 190%, and a
+mechanism sized from the share would be ~2x too strong. It is also why `act_k`, a measurement term that
+cannot change potency, is one of only three arms that move this row: widening the rate distribution near a
+steep cut buys share, not potency — **confirmed on TRUE glucose (L 704), where `ak1` reads 0.991 / 0.986 /
+1.016 / 0.970 / 1.058 against the reference, no direction, while its CGM rates moved +5 to +6%.** Over 284
+arm-draws on disk the range is 3.57-8.33 against the donors' 14.29, so no further ratio-preserving arm will
+help. **And L 704 excludes the two obvious causes of the gap itself: cutting half the dwell-weighted
+restoring force (`sk1`) leaves the median true post-entry fall rate at 0.995x and the load cut (`um70`) at
+0.954x, so the force and the load are BOTH out. The only lever that moves the body's post-meal fall rate is
+appearance shape — `go3` is +13.4% at the median and above 1 at all five quantiles on truth — which is a
+third of the x1.37 needed and is already rejected on TIR, t180 and the guard. `sg_rate` goes the wrong way
+(0.907), L 649's sign again.** With L 575's own eliminations the candidate space for this gap now excludes
+appearance scale, emptying speed, Vmax, uptake glucose-dependence, insulin-action timing, post-meal
+sensitivity, dose, κ, the restoring force, the glucose load and every sensor term.
+  **AND THE PROBLEM IS NOW MOSTLY A DIFFERENT ONE (L 707): post-entry RISES are 0.817 of the donors' against
+  falls at 0.743, so ~0.82 of the deficit is a GLOBAL velocity scale needing no time asymmetry, and only
+  0.79-0.91 is fall-specific.** L 575's donor fall/rise 0.89 and twin 0.70-0.78 are confirmed out of sample
+  (0.887 / 0.702), and its sensor caution INVERTS: the twins' TRUTH fall/rise is 0.504 against their CGM
+  0.702, so the sensor inflates the apparent asymmetry by +39% and FLATTERS them. **The `vg` candidate L 707 proposed is WITHDRAWN as
+  COUNTER-INDICATED (L 708), verified at the call site**: `physiology.py:510` divides only the mass-flux group
+  (EGP, appearance, exercise uptake) by `vg`, never `ge` or the insulin term, both of which are in mg/dL/min
+  because `si_d` comes from the ISF yardstick and has already absorbed V_G. So lowering `vg` speeds RISES and
+  not falls and would WORSEN the asymmetry; the x1.30 match was numerology. **This model has no single global
+  velocity parameter** — scaling every velocity means scaling `sg`, `si_d` and `1/vg` together. **And the
+  deficit is probably not new (L 708): the rise ratio 0.817 lands on L 648's daytime short-scale day row
+  (0.81 / 0.86 / 0.88) and the fall ratio 0.743 on its 2nd difference (0.74), and L 651 already localised that
+  deficit to a POST-ENTRY TAIL.** Treat L 703 / 707 and L 648-652 as one phenomenon until shown otherwise: the
+  lever is `ge_order` 3 either way, blocked by `bg_cv`'s zero headroom and the TIR / guard cost. What would be
+  new is motion WITHOUT appearance dispersion, which nothing in the model supplies.
+
+**THE SHORT-SCALE / POST-ENTRY MOTION DIRECTION IS CLOSED — read L 713 before spending an arm on
+`entry_fast_fall`, `acf_zero_min`, `sigma_disp` or the daytime structure function, which are ONE target.**
+Measured routes and what closed each: the restoring force 0.995x and the load 0.954x on true post-entry fall
+rate (L 704), every sensor term instrument-only (L 704), `vg` counter-indicated and no global velocity
+parameter exists (L 708), a rate-driven fast residual buys the motion exactly as derived (5-min rms x1.20,
+0.81 -> 0.97) at **+4.5 `bg_cv` points** because a fast RATE decays in glucose at 1/`lam` (L 712), appearance
+dispersion the only working lever but blocked on TIR/t180/guard (L 696), no milder appearance step possible
+(`ge_order` is an int, default 2, and its costs saturate at 3), and `act_frag` the right shape at ~15% of the
+needed size (L 658). **The specification a future candidate must meet (L 712): raise the 5-min increment while
+HOLDING `vol_cluster_60m` and `bg_cv` — the missing variance is INTERMITTENT, and uncorrelated fast variance
+lowers clustering.** Nothing in the model does this; it needs a new evidenced mechanism or new data. The only
+decision that moves it without new evidence is Pete's `ge_order` 3 trade.
 
 ## Known limits of the current reference (read before using its numbers)
 
@@ -207,12 +531,50 @@ reference changes.
   excess — but **`si_norm` 1.0 is NOT the fix (L 597)**: the level refit raises `resid_m` to hold the donor's level
   and the insulin comes straight back (TDD 41.6 -> 42.1 with it on). A reference that fits `resid_m` to the level
   cannot improve TDD through a sensitivity scalar; it needs a mechanism that lowers insulin need AT that level;
-- night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458);
+- night lows build toward dawn: 31% of lows fall at night, against the donors' 22% (LESSONS 438–441, 458)
+  — **ATTRIBUTED, and the limit's own statement needs correcting (L 684).** The grading is by `resid_m`, the
+  one fitted term: night t70 by |`resid_m`| quartile is 0.54 / 0.21 / 1.29 / **7.58**% on draw 1 and 0.50 /
+  1.00 / 1.51 / **5.12** on draw 2 (rho +0.374 / +0.371), because a negative drift can only be opposed by
+  WITHHOLDING and that saturates — night zero-delivery share runs 24.5 → 39.6% and 28.8 → 40.4% across the
+  same quartiles. And the twins' night share of lows is **29.4 / 29.7% POOLED** (reproducing the 31%) but
+  **20.4 / 20.1% as a per-person MEDIAN**, which sits on the donors' 22%: lows concentrate in the large-drift
+  tail (rho +0.437 / +0.420) so pooling weights it up. **ice has now measured both and "the typical twin's
+  night is right" is WITHDRAWN (L 685)**: the donors are **27.4% pooled / 28.1% per person** and FLAT in low
+  burden (rho −0.15), so the per-person median 20.4 / 20.1% is too FEW and the pooled 29.4 / 29.7% is about
+  right — this is a **SPREAD defect**, the typical twin having too few night lows while a large-sink minority
+  has far too many. The search for a measured CAUSE of `resid_m` came back null over 111 and 102 candidate
+  columns, the largest correlate flipping sign partialled on t70 (L 686), so the next step was the residual's
+  FORM. **TESTED as job 193 and the form that escapes L 678's identity is DECLINED (L 691)**: a TIME-keyed
+  holder (`resid_m_diurnal` 0.9, the cosine already adopted at ad3) lands the GRADIENT on the donors —
+  rho(|`resid_m`|, night share) +0.204 / +0.156 → **−0.013 / −0.208** against their −0.15, large-sink-quartile
+  night t70 7.31 → 0.78% and 5.04 → 0.85% — and takes the LEVEL out the other side, the per-person median
+  falling 20.4 / 20.1 → **8.4 / 9.2%** where it was registered to RISE toward 28.1. The cost is structural, not
+  a coefficient: the multiplier is blind to `resid_m`'s SIGN while its distribution is strongly negative (84 of
+  112, 310 of 408), so scaling every night drift toward zero removes net sink from the cohort at any k — the
+  positive-drift quartile GAINS night lows (7.1 → 10.6, 7.9 → 18.2%) while the large-sink one loses them
+  (34.7 → 5.5, 26.7 → 4.5). **The deviation-keyed fix L 691 named is now DECLINED on arithmetic with no arm
+  spent, and it corrects L 691's reason (L 694)**: the templates' `resid_m` has median **0.000** (mean −7.694,
+  p25 −17.63), so the only non-fitted centres are 0 — the arm already run — and the mean. Priced by fitting
+  night share against drift on rf2 and retrodicting the declined arm out of sample (predicted 7.67 / 9.12
+  against observed 8.38 / 9.20, gate passed), f(−7.694) = **7.55 / 15.93** against the donors' 28.1, and the
+  r0 that would reach 28.1 is **−20.8 / −31.2 mg/dL/h** — past the cohort's own p25, i.e. a uniform night sink
+  of 26–39% of basal hepatic output for every person. The binding reason is NOT the multiplier's sign-blindness
+  but the CONVEXITY: f rises steeply in the negative tail (4.4% at −3.7, 13.0% at −14.7, 38.8% at −25.1), so
+  **any** variance-narrowing night modulation of `resid_m` sends the cohort to f(r0) and cannot hold the level,
+  because the level is carried by the tail the narrowing removes. No named candidate remains here. **The decline rests on that and on the level alone: on the complete row set the arm SCORES BETTER
+  on both draws (0.332 → 0.325, 0.371 → 0.359) and the registered day-side cost did not appear** (`act_net20`
+  gap 0.362 → 0.380 and 0.203 → **0.170**, `act_net20_hi` 0.160 → **0.042**) — the partial 37-row read that said
+  "worse on both" had dropped the rows that carried the sign (L 692). Guard held (t54 0.124 → 0.136, 0.232 →
+  0.235 against the donors' 0.190); lows/day 1.000 → 0.917 and 1.250 → 1.375, so some lows move from night into
+  day. **That question is now CLOSED and needs no decision (L 702): the arm damps the change half on all three
+  primary rows, so whichever side of the cohort trade one prefers there is nothing to adopt.**;
 - **The low side's one defect is excursion DURATION, not depth or frequency** (L 600): rf2 already matches the donors'
   excursion count below 80 (1.67 against 1.75) and their penetration rate to 70 (60% against 57%); only the duration
   is wrong (25 min against 20). Every `sg_h_lo` variant fixes duration and breaks penetration, because a
   (Gb − G)-proportional term peaks AT the nadir and lifts it. **The requirement is a term acting AFTER the nadir,
-  during the climb** — the same time-asymmetry L 575 and L 594 ask for. Do not propose level-proportional low-side
+  during the climb** — the same time-asymmetry L 575 and L 594 ask for. **One behavioural term looked like it and is REFUTED
+  (L 700, 701): the donors' own pump suspends are not keyed to glucose at all — the low-episode association is x1.0
+  against a shifted-time null and the paired onset enrichment is −0.75 points at p 0.42. No candidate remains here.** Do not propose level-proportional low-side
   terms; they cannot meet it. **There is now a candidate that is not level-proportional, and it is measured
   (L 640)**: ice L 140a's probe finds the donors' learned restoring force about **2x stronger when glucose is
   pushed DOWN (D = −40) than up, below 130** — a direction-dependent gain, which acts on the descent and the climb
@@ -271,7 +633,9 @@ reference changes.
   deficit, so more draws are not the bottleneck — a mechanism is.** The one existing mechanism of the right shape
   is ruled out: `resid_mult` 0.6 (ad3, daytime-weighted) supplies **8–18%** of the missing variance and nothing at
   night, and closing the gap with it would need ≈ 1.5, well past what L 592 rejected. Split on time since the last
-  carb entry, never on `ra`, which is never zero between meals (L 628, 648). **LOCATED AND SPLIT IN TWO (L 651,
+  carb entry, never on `ra`, which is never zero between meals (L 628, 648) — **and this re-bit on
+  2026-11-03: I cited its neighbours in a pre-registration and stratified on `ra` anyway, emptying the very
+  stratum the test rested on (L 684).** **LOCATED AND SPLIT IN TWO (L 651,
   652)**: against ice's donor table by time since the last entered carb (donors 8.86 / 8.31 / 7.23 / 6.83 / 6.65 /
   6.21 from 0-30m to >5h), the deficit is a POST-ENTRY TAIL — rf2 is flat after an hour where the donors stay
   1.14x their own floor at 1-2 h — and **the multi-step part IS the appearance dispersion**: `ge_order` 3 halves
@@ -289,10 +653,117 @@ reference changes.
   even with no sample shared. Our own CGM grows x1.31 binned that way and **x1.00 binned by TRUE rate**, with no
   rate term in the model. The artefact-free read is the UNCONDITIONAL 2nd difference — night 0.91, day 0.74 — and
   the FLAT bins, where the donors carry a day-over-night excess worth **1.41 mg/dL of sigma** against our 0.33.
-  So the deficit is DAYTIME, not rate-dependent. `rate_k` exists, is off, and has no established size; `act_k`
-  (Biagi 2018, wired) is 0.0 and the `act_frag` that would drive it is disabled, which is the nearest named
-  candidate — but ice L 168 shows CGM alone cannot separate a waking sensor artefact from real waking body motion,
-  so settle the attribution before adding a coefficient.
+  So the deficit is DAYTIME, not rate-dependent. `rate_k` exists, is off, and has no established size. **The
+  nearest named candidate has now been MEASURED and it is not the answer (L 658)**: C7 `act_frag` (everyday
+  fragmented waking movement, UK-Biobank-sized, and an adopted default the reference silently dropped) moves the
+  day row only 0.81 / 0.86 / 0.88 → 0.83 / 0.88 / 0.91 on draw 1 and **not at all on draw 2**, with the 2nd
+  difference 0.74 → 0.75 — at most ~15% of a 0.19 deficit on one draw and none on the other — while the night
+  falsifier holds (0.99 → 0.97), so the arm is interpretable and the mechanism is ruled out rather than the
+  wiring. `act_k` (Biagi 2018, wired) is 0.0 and now has nothing credible to drive it. **So there is no named
+  candidate left for the sub-10-min flat-glucose daytime piece**, and ice L 168 shows CGM alone cannot separate a
+  waking sensor artefact from real waking body motion in one person. **MEASURED ACROSS people, and the
+  attribution is NOT DECIDABLE from this data (L 659)**: ice's donor 2nd difference split by sensor family (iNNN
+  pool, my own `templates_pilot_resid_rf1.csv` `sensor` column as the map — it was on disk all along, no warehouse
+  query needed) is **family-INDEPENDENT** — G7 n=135 → 1.233 [1.18, 1.26], G6 n=26 → 1.190 [1.08, 1.26], Libre 3
+  n=6 → 1.117, families alike on carb entries. **But that excludes less than I first claimed**: it rules out a
+  family-SPECIFIC sensor property (noise level, filtering, lag, calibration) and NOT a wear or motion artefact
+  common to every CGM class, since all three sit in subcutaneous interstitium under tape. A cross-group test only
+  excludes what VARIES across the groups. The within-family test that would separate them — the same ratio by
+  insertion SITE, arm against abdomen — is unavailable: no donor record carries the site. So no further cut of
+  this data will settle it, and **a candidate here must be judged on its own evidence, never on closing the row**,
+  because closing it is consistent with both hypotheses. The live candidate is **D `act_k`** (Biagi 2018: CGM MARD
+  9.5 → 16.5 → 9.3% before / during / 1 h after aerobic exercise), wired since L 498 and **at 0.0 against its own
+  evidence** — awake-keyed by construction, acting at flat glucose, at the sub-10-min scale, family-independent.
+  Sized against ice's table it falls SHORT of the row and that is the honest read: on G7 the awake-specific
+  shortfall is ×1.177, needing `act_k` ≈ 2.95 against ≈1.48 implied by Biagi, and it cannot reach 1.00 at all
+  because 9% of the day gap is an all-hours noise shortfall visible at night too (G7 night 0.919). **MEASURED as job 176, and it is the best-behaved
+  candidate this lineage has run (L 664).** G7 day 2nd difference 0.780 -> **0.853** against a prediction of
+  0.851 registered before the run, and 0.923 against 0.916 at the diagnostic 2.9 — a quantitative
+  pre-registration landing to three decimals, derived from ice's table and Biagi with nothing fitted. The
+  CEILING behaved as predicted too: at 2.9 the G7 day row (0.923) converges on its own NIGHT row (0.934), not
+  on 1.00, so the awake-specific component is fully accounted for and the rest of this row is a flat
+  noise-LEVEL shortfall belonging to another knob. Falsifier passed (pooled night 2nd diff 0.91 -> 0.91 /
+  0.92; G7 night moves 0.005-0.015, inside the 0.027 draw difference) — though as registered it was too
+  strong: in a closed loop a daytime term changes doses and so changes the next night, so state such a
+  falsifier as "no more than draw noise". Score **better on both draws** (0.309 -> 0.294, 0.357 -> 0.339),
+  carried by tier 3, its own evidence domain (0.464 -> 0.399, 0.442 -> 0.375). The GUARD, the registered risk,
+  does not churn and improves: **t54 0.124 -> 0.176 and 0.232 -> 0.197, converging on the donors' 0.190 from
+  both sides**, t70 and the TIR gap better on both draws, TDD and lows/day flat — because `act_k` scales
+  measurement noise only and leaves insulin absorption alone, unlike `flow_sd` (rejected at L 522 with lows
+  1.13-1.29/day). 2.9 is settled as NOT adoptable (t54 0.235 overshoots, TIR 70.93, tier 1 worse); only the
+  evidenced 1.5 is in play. The G6 family-scaling caution is **not adjudicable** — rf2's own G6 cell scatters
+  1.011 against 0.890 between draws, more than the `act_k` move, at n = 16-21. **The one open cost is paired
+  per-person TIR** (SUM|dev| 3.040 -> 3.954, 2.568 -> 3.851, almost all of it that row; rankings level), and
+  it is NOT yet a verdict: the arm is unrefit and moved its own level (bg_mean 148.20 -> 149.62 on draw 2),
+  which L 597 says must be refitted out before judging and which L 658 already saw explain `act_frag`'s
+  draw-1 paired number. **JOB 177 DECIDED IT AND THE ANSWER IS OFF (L 667).** The refit converged
+  (|gap| p50 3.2 -> 1.8, better than L 639's 2.2) and **the aim survived it exactly as pre-registered** —
+  G7 day 0.780 -> **0.841** and 0.784 -> **0.849** against the 0.851 derived before either arm ran, pooled
+  day 2nd difference 0.74 -> 0.80 / 0.81, night flat within draw noise (0.004-0.009 against 0.027). The
+  score still holds on both draws (0.309 -> **0.290**, 0.357 -> **0.338**, tier 3 carrying it). What fails
+  is the two conditions the deferral existed to test. The refit DID hold the level — cohort bg_mean 148.20
+  -> **150.17** toward the donors' 151.93, paired bg_mean deviation 0.210 -> 0.159 — **and the paired cost
+  did not come back**: SUM|dev| 3.040 -> **4.791** and 2.568 -> **3.405** against a ~0.8 separability bar,
+  with paired TIR the one row worse on both draws (0.141 -> 0.774, 0.937 -> 1.232) while the rankings held
+  or improved (rho_t70 0.631 -> 0.666, 0.484 -> 0.508). The guard fails too: TDD 42.31 / 42.83 against the
+  registered 41.9 / 42.6, and t54 lands almost exactly on the donors' 0.190 on draw 1 (0.124 -> 0.199) while
+  moving away on draw 2 (0.232 -> 0.258). **So the one evidenced candidate for this row reproduces the row
+  and is declined on per-person fidelity** — stated plainly as registered, not softened. Cohort TIR (72.15
+  -> 70.67 against 71.25 -> 71.67) and `act_net20` (worse draw 1, better draw 2) are draw-split and
+  adjudicate nothing. **Its change response was never measured** (job 177 was cohort-only; no e-pool arm
+  exists for `act_k`), so never quote it as prediction-neutral — that is the claim L 655 had to withdraw for
+  `ge_order` 3. Disposition is `ex_abs`'s: off on the reference, usable at the evidenced 1.5 where the
+  daytime short-scale structure is the question, with its cohort and prediction costs stated. **Three
+  candidates have now been measured against this row and it still has no adoptable mechanism**: `act_frag`
+  (too small, L 658), `rate_k` (sizing withdrawn as an artefact, L 654), `act_k` (the right size, declined
+  on paired fidelity).
+- **the SLOW motion is too large, and it is the first account of the damped response that is not inside A1d
+  (L 678).** The sustained insulin response of this body is `R = flux / lam` (insulin-mediated disposal at the
+  operating point over the total restoring gain) and the spread is `sigma / sqrt(2*lam)`, so **response and
+  dispersion are two readings of ONE number and cannot be traded** — k times the response means `lam/k` and
+  spread x`sqrt(k)`. That retrodicts `sg_kappa`'s exchange rate exactly (bg_cv 34.2 -> 41.4 implies lam -> 0.68;
+  its measured response gain was 1.16). Closing the response gap — **0.63 with its CI as of L 680, so R x1.59
+  and spread x1.26** (the 1.47 / 1.21 here was L 677's 0.68) — asks for that spread against zero
+  headroom (bg_cv 34.2, donors 34.6) — **unless the slow disturbance comes down with the force**, which is what
+  the field must be doing. Registered as a crossover before any donor number existed and **CONFIRMED like for
+  like** on the e pool's own 408 twin windows against ice's 273 donors (never on `rf2`/`rf2_5k`, which are the
+  PILOT cohort — the cross-pool slip ice caught): twin / donor at 5 / 15 / 60 / 120 / 240 / 480 min is
+  0.92 / 0.99 / 1.10 / **1.15** / **1.17** / 1.15 all-hours, crossing 1.0 at about 2 h — and **restated on
+  the cohort reference's own `day`-ON configuration (job 191, the second registered read, confirmed) every
+  slow row RISES: 1.20-1.21x all-hours at 2-4 h and 1.30-1.32x at night, so the published excess is
+  conservative and the headroom before the twins fall below the donors widens from 14% to ~17% (L 683)** —
+  with the day row's
+  0.825 / 0.856 / 0.893 at 5-15 min reproducing L 648's 0.81 / 0.86 / 0.88 on a different pool and donor set.
+  **The excess is NOCTURNAL — night 1.30 at 2 h and 1.27 at 4 h against the day's 1.00-1.03 — which was NOT
+  predicted**, and which sits oddly beside the 31%-against-22% nocturnal lows limit and beside L 647's night
+  persistent component at 0.61x ice's. So: load 1.10-1.14x the donors' (L 603), slow motion 1.15-1.17x, force
+  ~1.8x too strong (L 635's bracket) — one picture in which too much slow disturbance and too much restoring
+  force **cancel on the spread**, which is why bg_cv matches and why this was invisible, while the excess force
+  damps the response. **REFUTED ON SIZING (L 681), without a single new simulation**: `unl_mult` 0.70 — a 30% cut in unlogged
+  eating — moves the 2-8 h structure function only 0.93-0.98 (both draws, with and without the `resid_m`
+  refit, so not a level artefact) where the identity needs sigma x0.79 and L 678's own excess allows 14%
+  before the twins fall below the donors. The lever is short by a factor of 3-7, and it is near-uniform in
+  lag, so unlogged eating is not a slow-scale lever at all. The twins' slow motion is not mostly driven by
+  the part of the eating that is ours to cut, so with A1d's shape closed (L 642) and its magnitude priced by
+  the same identity, **the pair has no sizing and is not queued**. **What DOES drive the night excess is now measured
+  (L 684): `resid_m`'s constant drift.** At night our own `si` barely varies (within-window CV 2.25% at 2 h
+  against 14.1% by day), so the one thing acting is the fitted drift, and the twin's night 2-h rms tracks
+  |`resid_m`| at rho +0.313 (partial +0.325, DAY flat at −0.016) — 32.99 → 45.57 across its quartiles against
+  the donors' 29.84, so ~65% of the night excess is the large-drift tail, all of it on the NEGATIVE side
+  (rho +0.312 over 310 people, +0.034 over the 98 positive). The mechanism is Loop pinned at zero delivery
+  23.9 → 42.8% of the night. **The tension to hold on to: L 642's glucose-dependent level-holder would raise
+  `lam` and so damp the response further, which is this identity again — the escape is needing LESS residual,
+  not a better form for it.** The idea was: **the PAIR, cut the load
+  and the force together**, each a named
+  lever with its own evidence (`unl_mult`, L 610's only real TDD lever; A1d's magnitude), and they should cancel
+  on the LEVEL too — the force cut raising it, the load cut lowering it — which is what would stop `resid_m`
+  handing the gain back as it did to five previous candidates (L 604, 629). Not adopted: the identity's own
+  validation is job 190, and what is confirmed is a prediction derived from it, not the identity. Two code facts
+  from the derivation: **`egp_share` is drawn `uniform(0.7, 0.9)` (`person.py:374`) and carries ~65% of each
+  twin's insulin response through hepatic EGP suppression with NO evidence entry anywhere** — large and
+  unevidenced, but a weak lever here, since `sg` is ~80% of `lam` and the split can only move the rest; and the
+  ODE's deviation form (`egp - egp_b`) means **no knob raises the insulin-independent glucose INPUT**, so the
+  only route to a larger `flux` is the glucose LOAD, the same lever the pair wants cut in the opposite direction.
 - failing on both draws: G7 short-scale rows, acf_zero_min, sigma_disp, med_nonzero, ac1, day / night and Box-Cox λ
   (**read `ac1` against the independent-day null of −0.086, not 0**, and against **+0.118, not +0.18**: half the donors'
   persistence is their SETTINGS — a basal / ISF edit or a multi-day override persists by construction, and on day pairs
@@ -311,7 +782,11 @@ reference changes.
   twins' low-side eating is about the donors' (0.62 / 0.64 events against 0.50, two-or-more rare on both sides); what
   differs is the share of episodes treated at all (0.60 against 0.49), and that follows from episode DURATION — median
   25 min against 20, x1.25 against the treated-share's x1.23. Four arms on the eating side (size, refractory, onset
-  −10 / −20) were all rejected. Do not spend more there.
+  −10 / −20) were all rejected. Do not spend more there. **The one candidate
+  that looked like it — the donors defending a low by turning the pump off — is REFUTED (L 700, 701): the share of
+  low episodes with a suspend in the window is 26.9% against a shifted-time base rate of 25.4–27.4% (x1.0), and
+  paired against each donor's own waking below-80 share the onset enrichment is −0.75 points at p 0.42. The donors'
+  suspends are an interruption keyed to TIME, not to glucose. L 588's duration reading stands.**
 - **the sub-basal gap was a missing CODE BRANCH, not missing evidence** (L 596): A1b's `hep` is gated on `g > gb`, so
   the liver never released extra glucose in a low. Extending it symmetrically below basal (`sg_h_lo`, off by default)
   supplies 0.386 mg/kg/min at G 65 against the ~0.34 L 589 derived independently, and at HALF symmetry it closes the
@@ -490,6 +965,65 @@ band-faithfulness IS a constraint on the integral and **no parameterisation of A
 off; the only live direction left is outside this component — holding the donor's level with something
 glucose-dependent instead of `resid_m`'s constant.
 
+**There is an OUT-OF-REGIME test set in the donor records and this model has never been tested on it
+(L 688).** Every number in this overlay is measured inside closed-loop operation, which is also where
+`resid_m` was fitted, so the body is least constrained exactly where the controller never goes. The
+donors' pump suspends go there: 412 windows of 2-24 h across 74 donors, **389 across 68 donors** after a
+PRORATED zero-delivery filter (<0.10 U by dose-record overlap - never trust the `suspend` label, which sits
+on windows with delivery inside them) and a no-carb-entry filter. Median dG/dt +12.0 mg/dL/h, 60% rising.
+**Read the ZERO-DELIVERY EQUILIBRIUM off it, not SG**: the donors are flat at onset ~140-155 and rise
++23.6 mg/dL/h below 110, which constrains EGP, the restoring force and `resid_m` jointly with no estimator
+and no exclusion restriction. SG itself is NOT yet extractable here - the within-window slope reads the IOB
+tail and comes out anti-restoring, and the between-window slope gets the right sign at 2-6x every prior
+because unlogged rescue carbs lift the low end and bolus-then-disconnect lowers the high end (glucose falls
+12-47 mg/dL/h with zero delivery at onset >180). Doing it properly needs insulin action run forward through
+`insulins.py`, not a delivery-total covariate, which moves the slope by 0.0002 /h. Two donors hold 35% of
+the clean windows, so quote per person as well as pooled. **THE EQUILIBRIUM HAS NOW BEEN READ AND THE
+MODEL PASSES IT (L 690).** Running the dose history forward through the model's own insulin chain on
+BOTH sides (one kernel, population defaults, nothing fitted per side) and adding the committed insulin
+back, the zero-delivery non-insulin net is **+74.3 mg/dL/h for the donors against +78.3 for the twins, a
+per-person gap of +4.0**, stable across p2 0.015-0.040 (-4.6 / +2.3 / +3.3). So EGP, the restoring force
+and `resid_m` are jointly about right where the controller never goes - the first out-of-regime check this
+model has had. **It also WITHDRAWS L 689's -34 mg/dL/h core offset and its EGP read**: that gap was the
+insulin TAIL, because the twins' insulin sits closer to onset (E / 6 h total 0.346 against 0.295) so they
+carry 58-188 mg/dL/h of committed insulin against the donors' 45-87 at a matched 6 h TOTAL. L 689's
+level-independence argument was a cancellation of two terms that both grow, not evidence of a constant
+input - **a flat difference says nothing about structure until both sides are matched on the dominant
+term**, and insulin here is 2-5x the gap. Still open where it always was: the 80-110 band keeps -47.6,
+which is exactly where unlogged rescue carbs inflate the donor rate, and the 230-300 band reverses to
++67.2 on n=15.
+
+**WHAT LOOP DID AND WHAT THE PERSON DID ARE ONE STREAM IN THE SCORECARD, and the body has almost none of
+the second (L 699).** The ETL separates all four classes on the right discriminator — Tidepool's `deliveryType`
+is `automated` for Loop's temp and `temp` for one the USER set (HealthKit mirrors stripped, `etl.py` ~1383),
+and `_suspends` reads both the `basal deliveryType='suspend'` record and the `deviceEvent status`
+suspended→resumed pair. **The EXPORT collapses the first two** (`doses.json` carries `basalType` ∈ {temp,
+scheduled, suspend}, the manual flag surviving only as `disruptions.csv` rows tagged
+`tidepool/manual_temp_basal`), and `validate.delivered_5min` reads `doses.json` alone — so on the donor side
+**a suspend bin counts as zero delivery exactly as Loop's temp at 0 does, and a manual temp counts as Loop's
+dose.** Measured: of a donor's zero-delivery bins the median 96.4% are a Loop temp-0 and 2.3% a suspend, but
+the MEAN is 5.9%, **65 of 205 donors are over 5%** and three over 30%; manual temps reach **31 of the 168
+scored donors** (3007 episodes / 2118 h). The twin has neither, bar `device.change_gap`'s **15 min of no
+delivery at a site change** (`device.py:41`, `[unverified: "minutes"]`) — it
+does distinguish the person's BOLUSES from Loop's (`manual_u_day`, `user_boluses_per_day`), so the gap is the
+basal side alone. **Re-scored like for like the reference is LEVEL — 0.328 → 0.325 and 0.366 → 0.368** with
+`night_cv`/`tdd_cv`/`ac1` better on both draws and `conc1`/`day_night`/`tdd` worse on both, and **every row's
+correction is smaller than that row's own between-draw scatter** (`zero_frac` 0.94 against 2.66; the twins
+STRADDLE the corrected target), so the scorecard is NOT re-based — but the corrections are saved in
+`runs/2026-11-04-additive-suspendclass/targets.json` and **a candidate that moves a delivery row must be read
+against the masked target too.** `resid_m` is clean of it: rho(`resid_m`, suspend share) +0.023, p 0.77.
+
+**ACTIVITY, HR AND SLEEP ARE NOT IN THE DONATION AT ALL, so the exercise limit cannot be closed from this
+cohort (L 688).** The exercise side is recorded above as blocked on measurement rather than mechanism
+(L 551, 556, 557, 564, 631) - METmax is a prior, `met_own` reaches 22 of 168 donors and moves the cohort
+mean by x1.0047. The activity record behind that is `com.apple.HealthKit` `physicalActivity` rows carrying a
+workout duration and an `HKAverageMETs` payload fragment: 26,671 rows over **37 donors of 168**, with
+**0 rows of heart rate, 0 of workout type, 0 of sleep, 0 of energy** and `reportedIntensity` non-null for 3
+donors. So it is a PIPELINE limit, not a coverage one, and no warehouse query fixes it. `sleep_mid_h` is
+likewise INFERRED from the quietest window in the donor's own carb-entry record (`templates.py:825`), not
+measured - in a model whose worst region is the night. Closing the 6-8 MET band (-13 against the donors'
+-21.5, a tier-1 row) or re-keying `act_k` to measured movement needs an external dataset or new collection.
+
 **The natural-experiment half is limited by the FIELD, not by compute (L 611).** With 63 edit events the field / twin
 response ratios carry CIs like [1.22, 3.79], so `rf2`'s t70 improvement (3.51 -> 2.17) is "best measured, not
 established", and MORE DRAWS CANNOT HELP — the limiting variance is one noisy field response per event. Narrowing it
@@ -531,14 +1065,98 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   `kabs` 0.057 reaches 1.775 and is the worst-scoring arm tried (L 627). The labeller itself reads ~16% early against
   twin ground truth on isolated pulses, so **never calibrate the body's appearance to a labelled target** (L 628:
   the duration half of that instrument check is withdrawn — `ra` is never zero between meals, so a cumulative-90%
-  measure is a statistic about the window).
+  measure is a statistic about the window). **Four rows of the peer's unannounced-meal yardstick are
+  DOWNSTREAM of this one defect (L 732)**: a flatter pulse of the same grams clears their detector's fixed
+  +40 mg/dL/h bar less often, so small events fall under its load threshold and close pairs merge — which lowers
+  detected meals/day (4.30 against the donors' 4.75) and stacking (0.303 against 0.412) and raises `load_med` and
+  day-to-day load CV. Measured on `ge_order` 3 with their own reader: all four move the right way and `onset_rate`
+  closes outright (66.5 -> 79.9 against 78.0). Read their yardstick PAIRED and against twin truth before building to
+  it — the twins' TRUE stacking is 0.527 at >= 10 g and their TRUE daily carb CV 0.200, both better than the donors'
+  DETECTED values. **The yardstick is now settled with them (L 732): the load-bearing rows are `onset_rate`,
+  `habit_skill` and `noshow_vs_chance`, with `meals_day` primary and `stack_frac` / `load_day_cv` reported
+  conditioned on it.** Of those, `noshow_vs_chance` and `habitual_excess` show NO paired deficit (+0.019 +- 0.016,
+  −0.012 +- 0.018), `habit_skill` is −0.102 +- 0.027 (the meal clock, `clk_sd_mult`, L 731) and `onset_rate`
+  −7.0 +- 2.5 — a fourth instrument on L 707's velocity deficit, closed only by `ge_order` 3. Its `tdd` row was
+  broken on the donor side and is FIXED: paired, the twins are +1.36 median / +1.96 mean U/day, confirming
+  L 598's +1.40-1.67 rather than reducing it.
+  **A HABIT-GATED CONTROLLER CANDIDATE IS NOT EQUALLY TESTABLE ON THE TWO BEDS, and the numbers are on disk**
+  (measured 2026-11-08 from `runs/2026-11-07-meal-habit/meal_stats.csv`, the peer's own detector and reader, no
+  new compute). Per-person `habit_skill` means are donors **0.526** (n 127), additive **0.419** with entries on
+  and **0.372** with them off, the ICE generator **0.316** and **0.187** — and paired against each person's own
+  donor, additive is **−0.102 +- 0.024** / **−0.153 +- 0.027** against the generator's **−0.211 +- 0.014** /
+  **−0.342 +- 0.015** (n 81 / 127; 69-70% of twins below their own donor against the generator's 91-96%). So
+  additive carries about **twice** the generator's day-to-day habit, and both under-read. **What this does to a
+  per-person GATE is larger than the means suggest**, because the gate samples the tail: the share of people
+  above a threshold of 0.4 is donors **0.79**, additive 0.57 / 0.49, generator 0.31 / **0.04**, and above 0.5 it
+  is 0.63, 0.36 / 0.27, 0.08 / **0.02**. A gate calibrated on the donors therefore fires for a few per cent of
+  the generator's no-entry people — **a null there is not evidence about the candidate**. Report each bed's own
+  distribution and the gate's realized firing rate beside any such result, set the threshold as a quantile of
+  the bed's own distribution rather than an absolute donor-calibrated number, and prefer this body for the
+  question. **And check WHAT the gate is keyed to**: on this body `ra` (carb appearance) alone scores 0.350 while
+  `egp` alone scores **0.641**, so a running habit estimate read off total ICE is dominated by the clock-fixed
+  NON-meal structure, not by meal habit — whereas the two rows that measure habitual TIMING, `noshow_vs_chance`
+  (+0.019 +- 0.016) and `habitual_excess` (−0.012 +- 0.018), have NO paired deficit, so a gate keyed to habitual
+  times is on fair ground here where one keyed to the skill correlation is not. The composition floor (L 731)
+  bounds all of it: 55.5% of the twins' grams ride the meal clock, so even a perfectly regular clock reaches
+  0.445 against the donors' 0.54.
+  **CORRECTED ON THE GATE'S ACTUAL INPUT (2026-11-08).** frontier's gate does not threshold that `habit_skill`
+  at all: it is each person's own running correlation between a same-clock prediction of the CONTROLLER'S
+  RESIDUAL (ICE minus carb effect) and the residual that followed. Measured on that signal over my own 112
+  people per arm (rf2-era `e1_gr2` / `e0_gr2`, `candidateICE - candidateCarbEffect`), the entries-ON figure
+  is much LOWER than the appearance read: mean **0.267** against total ICE's 0.418, paired within person
+  **−0.151** — because Loop's modelled absorption is over half the signal (rms 65 against ICE's 115) and
+  subtracting it leaves the MISMATCH, which carries little clock. With entries OFF the carb effect is near
+  zero (rms 12.5) so residual and ICE coincide (0.374 against 0.371, paired +0.003). Share of people above
+  the gate's 0.3 full-ramp point: **0.47 entries-on, 0.63 entries-off** (above 0.4: 0.31 / 0.51), which
+  brackets frontier's own logged 54% of steps at full. So the firing-rate warning above is WEAKENED for this
+  body with entries on and UNCHANGED where it matters most — with entries off the two signals are the same
+  quantity, so the generator's 0.187 mean and 4% above 0.4 still say its gate is nearly always shut.
+  **TRAP: `candidateDiscrepancy` is NOT ICE minus carb effect.** It correlates 0.895 with it and differs by
+  up to 755 mg/dL/h, and on a same-clock day-to-day correlation the two behave nothing alike — with entries
+  off, ICE−carbEffect scores 0.374 while `candidateDiscrepancy` scores **−0.073**. Verify a residual-keyed
+  gate from `candidateICE - candidateCarbEffect`; reading the field whose name matches would measure no habit
+  at all and declare the gate shut.
+  **COMPARING A GATE'S OPEN RATE ACROSS BEDS HAS TWO BIASES IN OPPOSITE DIRECTIONS, AND NEITHER IS ABOUT
+  HABIT** (2026-11-08, for frontier's donor-replay open rate). (a) The STATISTIC is nearly window-invariant:
+  the donors' `habit_skill` over 13 days against the 28 days `meal_stats` uses is **−0.017 +- 0.008** paired
+  per donor (median −0.007, n 111), with the share above 0.3 / 0.4 / 0.5 moving 0.883 / 0.784 / 0.613 ->
+  0.829 / 0.748 / 0.568 — so a few points, not a confound. (b) A RUNNING gate's share of steps at full is
+  NOT window-invariant, because the warm-up is a fixed length of time: 2 days is **16%** of a twin's 12.75-day
+  scored span (14 days less the 1800-min burn-in, 13 local days) and **7%** of a 26-day donor span, so the
+  donor side reads ~9 points more open for no behavioural reason. (c) The other way, the donors lose days to
+  CGM coverage where the twins do not — under `meal_stats`' own >= 250-of-288-bin filter the median donor keeps
+  **19 of 28** days and **9 of 13**, against modelled wear 0.976 — and a same-clock running correlation needs
+  >= 3 previous days present, so real gaps push a real person's gate toward partial for an instrument reason.
+  Report such a rate over a matched POST-warm-up span with the required previous days present on both sides,
+  and report warm-up and gap exclusions as their own line. This is L 585's window rule applied to a running
+  controller statistic rather than to an autocorrelation. **And size the matched span to what a 14-day arm
+  actually yields: a median of 12 coverage-passing days**, since the 1800-min burn-in leaves 13 day labels of
+  which the partial first (18 h, 216 bins) and sometimes the last fail a >= 250-of-288 filter (measured p10 11,
+  max 12, over 112 people on both `e1_gr2` and `e0_gr2`). After a 3-day habit history and a 2-day gate warm-up
+  that leaves a **median 7 days, p10 6** — and **0 of 112 twins reach 8** — so a fixed 8-day window cannot be
+  measured on this body at all. **Re-measured against the criterion a running gate actually uses** — the first
+  step whose 2-h clock block has >= 3 of the previous 1-7 days present, which is more permissive than a
+  whole-day coverage filter — the first habit-valid day is **exactly 4 for all 112 twins** (p10 = median = max,
+  because modelled wear leaves almost no gaps) and the last is 13, so with a 2-day warm-up **a span of 6 or 7
+  days qualifies 112 of 112 and 8 qualifies none**. The limit is 7 with no margin; 6 has a day spare. Note the
+  asymmetry this exposes: this body's span start is DETERMINISTIC while a donor's moves with their gaps, so on
+  a matched-span comparison it is the donor side's qualifying count that needs watching, not ours.
 - **the meal tail has a NAMED lever now** (L 617): the stomach's Erlang transit order. At order 3-4 `meal_d3h` goes
   31.0 -> 37.0-39.0 against the donors' 38.0 (gap 0.373 -> 0.053), `acf_zero_min` 60 -> 50 (its best ever) and the
   fall / rise ratio 0.63 -> 0.69 — four standing limits moving together, which is what a shared cause looks like. The
   cost is high-side: TIR 72.2 -> 68.6, t180 25.8 -> 28.1, because less dispersion delivers the same carbohydrate in a
   shorter window and Loop cannot cover the peak, so the score rejects it. **The appearance evidence is insulin-free (L 619)**: the labeller builds every pulse from `ice`,
   not glucose, so the donors' 60-min decay against the twins' 67 IS an appearance difference and `ge_order` 3-4 moves
-  toward measured truth. The cost is therefore an INSULIN-ACTION mismatch: `p2` 0.025 is fitted to a 0.2 U/kg
+  toward measured truth. **Re-judged on honest donor labels its score penalty roughly HALVES and is no longer
+  what rejects it (L 696): 0.326 / 0.376 against rf2's 0.328 / 0.366 — score-level on draw 1, marginally worse
+  on draw 2 — with `meal_d3h`'s tier-1 gap 0.373 -> 0.054 / 0.160 and `acf_zero_min` 1.734 -> 1.272. What
+  rejects it is the GUARD and TIR: t54 0.124 -> 0.294 and 0.232 -> 0.275 against the donors' 0.190, t70 up,
+  TIR 72.15 -> 68.49 and 71.25 -> 67.40, t180 up — a sharper pulse gives a bigger peak AND a deeper post-peak
+  fall, the same thing that improves the fall/rise ratio. Plus L 656's damping, which no donor label touches.
+  `ol85` (order 3 + `unl_mult` 0.85) recovers ~2 of the 3.7 TIR points and lands t180 on the donors while
+  keeping the appearance gains, and is still blocked by t70/t54 — the first cohort evidence that the load lever
+  offsets a sharper pulse's HIGH-side cost, a different job from the slow-scale one L 681 refuted it for.**
+  The cost is therefore an INSULIN-ACTION mismatch: `p2` 0.025 is fitted to a 0.2 U/kg
   (~15 U) SUBCUTANEOUS lispro clamp while meal boluses are ~0.05 U/kg, and while A4d already dose-corrects
   ABSORPTION (normalised at that clamp dose), nothing dose-corrects the ACTION rate — a limitation `p2`'s own
   comment records as "direction known, size not found for analogues" (L 620). **ANSWERED and refuted (L 621)**: Gagnon-Auger 2010 (lispro 10 / 30 / 50 U under clamp) finds
@@ -553,13 +1171,59 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   arms used `--set`, which parses to float, so L 617's cohort numbers and L 652's structure-function result stand;
   only the change response was lost. Fixed (`_num` accepts int, rejects bool) and re-run as job 172 —
   **which settles it AGAINST the component (L 656)**: level-adjusted the change response is more DAMPED, mean
-  1.35 → **1.57** and TIR 1.30 → **1.68** against the field's 1.0, with t70 the one gain (1.09 → **0.98**) and
-  t54 flat. Not its level drift — the level-only expectation is 1.32 / 1.27 against the observed 1.57 / 1.68, so
+  1.35 → **1.57** and TIR 1.30 → **1.68** against the field's 1.0, with t70 published as the one gain (1.09 → 0.98) — **and that gain was the artefact: re-measured
+  against a matched control as job 203 the mean is 1.51, TIR 1.68 unchanged, and t70 is 1.08, i.e. FLAT, so order 3
+  damps mean and TIR and gains nothing anywhere (L 702)** — and t54 flat. Not its level drift — the level-only expectation is 1.32 / 1.27 against the observed 1.57 / 1.68, so
   the form carries it — and the per-person rankings slip slightly too (mean rho 0.33 → 0.27). CIs overlap, so
   "best estimate clearly negative on mean and TIR, not individually significant". **The hypothesis that a
-  too-smooth body carries the damped response is REFUTED**, and the reasoning was backwards: dispersion lowers
-  the post-meal peaks, so there is less high-side excursion for an insulin change to act on, and `dG/dI` ∝ G.
-  **Short-scale realism and change-response accuracy are not the same axis.** So `ge_order` 3 is: four cohort rows
+  too-smooth body carries the damped response is REFUTED**, and **Short-scale realism and change-response
+  accuracy are not the same axis.** The MECHANISM first offered for that — dispersion lowers the post-meal
+  peaks, so there is less high-side excursion for an edit to act on — **is itself withdrawn as measured false
+  (L 662)**: `go3e2` sits with MORE high-side excursion than the reference (t180 24.7 against 21.4, sd 58.7
+  against 51.8) and at a HIGHER level, both of which predict MORE response, and it damps anyway. The verdict
+  stands and is strengthened; only the explanation is gone. **SETTLED at L 676, and it is ENTIRELY CONTROLLER-SIDE — not a
+  body question at all.** Measured OPEN LOOP against `physiology.Body` with no Loop in the path, 60 people,
+  each configuration bisected to a matched glucose level: `ge_order` 3's body responds to exogenous insulin at
+  **1.013** of the reference and `sg_rate`'s at **0.993** — equal within 1-2% — against closed-loop damping of
+  0.745 and 0.812. The gate passed (the force-cutters read 1.303 / 1.390 / 1.408, as the ODE requires), and
+  the table splits cleanly: for every arm that genuinely changes the BODY the closed-loop ratio recovers the
+  open-loop sensitivity almost exactly (1.303 against 1.313, 1.408 against 1.419), and for the two
+  short-timescale arms it does not. **Adding short-timescale motion does not change how the body answers
+  insulin; it changes how Loop answers the glucose it sees, so no body candidate will fix it** — which is why
+  five successive accounts came up empty (L 670-675), all of them looking inside the body. It does NOT speak
+  to the reference's own 1.35 damping against the FIELD — and that half is now measured from the other side
+  (L 677): **our Loop's DELIVERY response to an edit matches the real deployment's**, +9.96 U/day per
+  log-unit against the field's +9.14 at baselines of 36.41 and 36.66 (the donors' own `doses.json` over each
+  event's own clear windows; the matched baseline is what makes the absolute comparison valid). So the
+  baseline damping is not Loop failing to act on the edit — at matched delivery the twins' glucose moves
+  about **0.68** of the field's, which is where L 635's SG indictment already pointed and why `sg_kappa` is
+  the only thing that ever closed it. The two halves are therefore cleanly separated: an added
+  short-timescale component's EXTRA damping is controller-side, while the reference's BASELINE damping is the
+  glucose response per delivered unit. **MEASURED with a CI as job 189 and the limit is ESTABLISHED, at the
+  registered level and marginally (L 680): per unit actually delivered the twins move 0.63 of the field's
+  glucose, 90% CI [0.39, 0.98], from the ratio computed per event over the 588 e-pool events with both a
+  donor dose record and a twin pair — field -2.788 mg/dL/U against -1.753, with TIR 0.65 and t70 0.77 the
+  same direction.** The registered rule was the MEAN row's CI excluding 1.0, which makes the FORCE'S
+  MAGNITUDE the target now that L 642 has closed its shape; the upper bound 0.98 means a 95% interval would
+  include 1.0, so quote the sign and the direction, not the third decimal. L 677's 0.68 came from pairing a
+  3-covariate field DOSE slope with a 5-covariate field OUTCOME slope: **a ratio of two regression slopes
+  needs both conditioned on the same covariates**, and both pairings sit inside this CI. The closed-loop measurement behind it, for the record:
+  on `truth["delivered"]` across eight arms, Loop delivers 3-19% MORE insulin per
+  log-unit edit in every variant, and what differs is glucose moved per DELIVERED unit — 0.727 (`ge_order` 3),
+  0.798 (`sg_rate`), 0.825 (`act_frag`), 0.944 (`act_k`) against 1.141 / 1.131 / 1.270 for the three arms that
+  CUT the insulin-independent force. Perfect sign separation, and it SURVIVES the unequal-need artefact
+  test — the motion-adders' dose response exceeds their baseline need by 5-15% and the fractional metric
+  separates them more sharply (0.745 / 0.812 / 0.817 / 0.983 against 1.302 / 1.313 / 1.419, L 674).
+  **But do NOT call the ratio `dG/dI` or a body property (L 674)**: the settings edit is the only exogenous
+  variation and BOTH glucose and delivered insulin respond to it, so their ratio is a Wald/IV estimator whose
+  exclusion restriction fails outright — an ISF/CR/target edit changes the TIMING and shape of delivery, not
+  just its total. That is also why job 184 found no mechanism: there need not be one. `kappa`'s kink measures
+  1.0000-1.0001 of curvature (the registered stop fired: cohort median kappa 1.003, 50% either side) and the
+  renal term orders BACKWARDS inside the motion-adders. The live account is the COVARIANCE the probe held
+  out — the insulin term `xact * mm(g)` is bilinear, so `cov(xact, mm(g))` is a delivery-to-need MATCH term
+  and a controller property, not a body one (job 186). What stands regardless: Loop's delivery response is
+  larger in every variant and glucose moves less in the motion-adders, so the controller is not
+  under-delivering. So `ge_order` 3 is: four cohort rows
   better, against 3.7 TIR points, 2.3 t180 points, a night structure row that was correct, and a more damped
   response on both primary rows. **Stays off.**
   If yes, `ge_order` 3 + a faster `p2` is a pair of evidenced changes that close the meal tail,
@@ -583,7 +1247,52 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   while the MAX is frequency-confounded (+0.783) and must never be used — but it reaches only **22 of 168 donors**, so
   `met_own` moves 6 of 112 twins and the cohort mean METmax by ×1.0047: a measured no-op, not run. This band needs
   workout records for most of the cohort, not a new mechanism.
-- Off-by-default experiments with their verdicts: `sg_rate` 0.55 / 0.80 (A1e, the rate-keyed restoring force: **the one change that is MEAN-PRESERVING in a closed loop** - unrefit bg_mean 149.5 / 148.9 against the reference's 151.0 / 148.2, so the `resid_m` refit has nothing to undo, which no other low-side term has managed; it delivers ice's measured two states with nothing fitted, flat 0.114 / falling 0.246 / gain 2.16x against their 0.13 / 0.29 / 2.2-2.4x; and it confirms the descent brake, taking A1d's smooth form from t70 2.362 / 2.524 to 1.807 / 2.164 and t54 0.264 to 0.180. REJECTED on three counts: score 0.352 / 0.358 against 0.309 / 0.357 and paired 4.485 / 2.630 against 3.040 / 2.568; the draw split of L 602 for the fourth time (better where the reference's low side is weak, overshooting where it is strong); and MORE damped on the change half, level-adjusted mean 1.52 against 1.35 and TIR 1.46 against 1.30, which is forced because responding to an edit IS glucose moving. The decisive count is the SIGN: it suppresses fast motion (`fast_fall_share` G7 1.167 -> 1.011, `sigma_disp` 3.109 -> 3.058, `entry_fast_fall` 5.000 -> 4.762) and L 648 measures the twins as already 19% too smooth by day with the sensor exonerated. **Keep the keying though**: (G - G_slow) is how any future low-side term survives the level fit. L 643, 649), `sg_kappa` 0.15 (A1d, the saturating insulin-independent uptake: **the only mechanism that has ever closed the damped change response** — e-pool mean 1.33 -> 1.06, TIR 1.28 -> 1.06, t70 1.15 -> 1.08, and 1.22 -> 1.05 after its own level drift is taken out, where a uniform `sg_mult` cut carries nothing at all (observed 1.25 = its level-only expectation 1.25). After the `resid_m` refit held the mean exactly it costs bg_cv +6 points and doubles t70 and lows/day on all three draws, because the fit can only pay for a lost restoring force with a constant drift. **The second form settles it (L 642): the
+- Off-by-default experiments with their verdicts: **`clk_sd_mult` 0.5 / 0.0 (the WITHIN-person meal-clock SD
+  multiplier, added 2026-11-07 for the peer's day-to-day meal-rhythm question, L 731: the twins' carb appearance
+  scores 0.350 on the peer's same-clock habit metric against the donors' real ICE 0.54, and the gap is ~36%
+  COMPOSITION — a donor ICE carries the clock-fixed non-meal structure `ra` omits, and `ra + egp` scores 0.419
+  while `egp` ALONE scores 0.641, above the donors' pooled number — plus a hard floor, since only 55.5% of the
+  twins' grams ride the meal clock at all (snacks 23.9% are an i.i.d. hour draw, and proactive + rescue 20.6%
+  are glucose-triggered at habit skill 0.052). Bracketed by resampling the saved meals with a gate at k = 1.0:
+  0.312 -> 0.374 at k 0.5 -> 0.445 at k 0.0, so even a perfectly regular clock falls short of 0.54. The donors'
+  own SDs (1.03 / 1.22 / 1.56 h, labeller noise ~10% of them) are real, so this is a COUNTERFACTUAL knob — label
+  the arm. Realized spread falls only to ~0.64x at 0.5, because `weekend_shift`'s +60 min on 2 days of 7 is a
+  floor. L 731),** **`resid_mult_f` 1.75 (the residual's FAST part alone, tau 20
+  min, block and day at zero: the derived amplitude LANDED - 5-min daytime increment rms x1.216 / 1.195 / 1.197
+  against a predicted x1.15-1.25, closing L 648's deficit from 0.81 to ~0.97 of the donors - and the premise was
+  REFUTED, `bg_cv` 34.25 -> 38.20 / 37.79 / 39.62 against the donors' 34.65, score 0.3660 -> 0.4453, tier 1 ->
+  0.3937, t54 0.148 -> 0.411. The OU identity applies to GLUCOSE, not to a RATE drive: a 20-min-correlated rate
+  lands in glucose and decays at 1/`lam`, hours, so NO rate-based drive buys motion cheaply. It also made
+  `sigma_disp` and `vol_cluster_60m` worse, so the donors' short-scale structure is INTERMITTENT fast variance,
+  not more fast variance - the sharpest specification yet for this row, and `vol_cluster_60m` is the row that
+  catches a candidate that gets it wrong. One real gain: `acf_zero_min` 60 -> 50, which only `ge_beta` had ever
+  moved. L 712),** **`pump_off` (B16, the person's own pump suspend, measured on
+  7302 donor episodes: clock-keyed Poisson at lnN(0.234, 0.60)/day, duration log-hours N(−0.557, 1.272), onset
+  from the donors' clock shares; reproduces its targets to 4% on the time share. Unrefit it was tier 1 better on
+  ALL THREE draws (0.1740 -> 0.1680) with score level; after a refit that converged to |gap| p50 1.6 and rho 0.99
+  the gain REVERSED - score 0.3660 -> 0.3853, tier 1 -> 0.1960 - so it stays OFF as level-mediated, the fifth gain
+  to die there. Its registered prediction landed: draw 2's t70 gain 0.325 -> 0.103 reverted to 0.227. It cannot
+  move `zero_frac` by construction, because the twin side of that row is COMMAND-based and the donor side
+  delivery-based (L 709). Usable at `--enable pump_off` where a pump-off excursion is the question - the only way
+  to put one in front of a candidate algorithm. L 699, 700, 709, 710),** **`act_frag` (C7, everyday fragmented waking movement) is the odd one out — it is ON by default in the CODE (`world.py:526`) and adopted as a default by Pete on 2026-10-18 (L 163), and the reference turns it OFF through its own `--disable` list, bundled in with four B-series LIFE modulators, with no lesson recording the decision. Measured at last as job 174 (L 658): as the daytime mechanism it FAILS (day row 0.81 / 0.86 / 0.88 -> 0.83 / 0.88 / 0.91 on draw 1, unmoved on draw 2, 2nd difference 0.74 -> 0.75 against a 0.19 deficit), with the night falsifier intact (0.99 -> 0.97) so the mechanism is ruled out and not the wiring. But the GUARD HOLDS, against both prior rejections — draw 1 t54 0.124 -> 0.177 TOWARD the donors' 0.190 with lows 1.000 -> 0.917, draw 2 t54 0.232 -> 0.263 — and it is score-LEVEL on both draws (complete row set: 0.332 -> 0.331, 0.371 -> 0.372; the published 0.309 -> 0.305 / 0.357 -> 0.355 was a reduced set and draw 2's sign flips, L 693) with TIR better on both and paired better on draw 2 (2.568 -> 2.056; draw 1's 3.040 -> 3.552 is mostly an unrefit level drift, 151.0 -> 150.1). So the open question is a CONFIGURATION one, not a mechanism one: should the reference run its own adopted default? **ANSWERED, and the reference's undocumented `--disable` is right: it STAYS OFF (L 661).** Job 175 (`afe1`, 580 e-pool events, real arm) drifts its level almost not at all — own pre-edit 143.3 against 143.5, so the level-only expectation IS the reference's own 1.34 / 1.28 / 1.11 and the whole move is the form — and level-adjusted it is **materially more damped: mean 1.35 -> 1.56, TIR 1.30 -> 1.57**, t70 1.09 -> 1.13, with mean rho 0.33 -> 0.31 and TIR rho 0.16 -> 0.14. t54 goes 0.56 -> 1.01, the one row toward the field, and t54 is a guard not a target, so it cannot buy the adoption. **SETTLED: it STAYS OFF (L 705), failing a condition registered before the run.** Re-measured
+  against a matched control as job 203, L 661's decline loses most of its basis (L 702):
+  clean it is 1.41 / 1.38 against the control's 1.35 / 1.30 — mean +0.06, TIR +0.08, where the published figures were
+  +0.21 / +0.27 — which is inside noise for this instrument, with t70 (1.04) and t54 (1.04) both moving TOWARD the
+  field. "Materially more damped" is withdrawn. Since the cohort side is score-level with the guard improving, and
+  since this is C7, an evidenced component and a default Pete adopted 2026-10-18 that the reference turns off through
+  an undocumented `--disable`, the burden now sits the other way: nothing establishes it as BETTER, but the reason to
+  keep it off is gone. **Tested properly as jobs 204-207 and the answer is OFF, so this is NOT a
+  decision for Pete any more:** unrefit it was better on score on all three draws (0.3660 -> 0.3630) and on mean
+  tier 1, but after a converged `resid_m` refit (|gap| p50 3.2 -> 2.2 -> 2.0, rho 0.96 -> 0.98) the SCORE gain
+  survives (0.3660 -> 0.3647) and the TIER-1 gain does not (0.1740 -> **0.1800**), so it fails the registered
+  "mean tier 1 level or better" and stays off - the fourth gain to die at the refit. Draw 1 carries the cost
+  (tier 1 +0.048, in the two `act_net20` rows) and draw 1 is the development draw, but the rule named the MEAN
+  and re-reading it afterwards is what pre-registration exists to stop. Genuinely better where the reference is
+  weak: draw 2's tier 1 0.209 -> 0.178 with t54 on the donors (0.180 against 0.190), draw 3's `meal_d3h` 0.267
+  -> 0.053. L 602's draw split for the sixth time.** The two halves disagree in full — a small cohort gain with the guard moving toward the donors, against one of the most damped prediction arms run — which is the clearest case yet that this reference has to be judged on both halves. L 657, 658, 661), `act_k` 1.5 (D, activity-keyed sensor error, Biagi 2018: the ONLY term that has moved the daytime sub-10-min deficit, and it hit a pre-registered number to three decimals — G7 day 0.780 -> 0.841 / 0.849 against 0.851 predicted, holding through a converged `resid_m` refit, night flat within draw noise, score better on both draws (0.309 -> 0.290, 0.357 -> 0.338) carried by tier 3, its own evidence domain. DECLINED on the two conditions registered before the run: paired SUM|dev| 3.040 -> 4.791 and 2.568 -> 3.405 against a ~0.8 separability bar — and NOT level drift, since the refit held the level and the paired bg_mean deviation actually fell — plus the guard, TDD 42.31 / 42.83 against 41.9 / 42.6 and t54 away from the donors on draw 2. **Change response MEASURED as job 179 (L 669)**: level-adjusted the MEAN ratio is EXACTLY unmoved (1.35 -> 1.35) while TIR goes 1.30 -> 1.48 and t70 1.09 -> 0.95 — and **why a measurement-only term does that is UNEXPLAINED** (L 670: smearing refuted by job 180, dispersion contra-indicated by L 662; it widens the CGM marginal sd by an iid-equivalent 13.6 mg/dL, almost all of it the trajectory rather than the sensor). **RE-MEASURED as job 203 and the mean-neutral headline is WRONG (L 702): clean it is mean 1.35 -> 1.56 and
+  TIR 1.30 -> 1.66, one of the most damped arms in the pool. The "exactly unmoved" mean was `si_norm` 1.0's damping
+  sitting against the control's 0.92 — the very coincidence L 670 and L 671 spent two jobs explaining. Quote it as
+  damped on mean AND TIR; never as mean-neutral or prediction-neutral, and re-read L 671's ~43% against 1.66.** Off on the reference; usable at 1.5 for short-scale structure work as `ex_abs` is for exercise. L 659, 664, 667), `resid_m_diurnal` 0.9 (the residual LEVEL's time-keyed modulator, the same cosine adopted at ad3 for its fast and block parts: the first test of the residual's FORM and the one holder that escapes L 678's identity, since it has no glucose dependence and so cannot raise `lam`. Lands the night-lows GRADIENT on ice's donors and takes the LEVEL out the other side — per-person median night share 20.4 / 20.1 → 8.4 / 9.2% against their 28.1 — because the multiplier is blind to `resid_m`'s sign while its distribution is strongly negative, so no k separates the two. Level held on draw 1 (+0.55 mg/dL) and FAILED the registered ~1 on draw 2 (+1.77), guard held, score BETTER on both draws on the complete row set (0.332 -> 0.325, 0.371 -> 0.359), registered day-side cost did not materialise. **Change response MEASURED as job 203 against a matched control and DECLINED on the condition registered before the run (L 702): mean 1.35 -> 1.45, TIR 1.30 -> 1.42, t70 1.09 -> 1.29, with the form and not its +2.5 mg/dL level carrying it; t54 0.56 -> 0.95 moves toward the field but t54 is a guard, not a target, so it cannot buy the adoption. Sixth arm to buy a cohort gain with the change half, and it CLOSES L 691's open question for Pete — whichever side of the night-lows trade one prefers, there is nothing to adopt.** L 691, 702), `sg_rate` 0.55 / 0.80 (A1e, the rate-keyed restoring force: **the one change that is MEAN-PRESERVING in a closed loop** - unrefit bg_mean 149.5 / 148.9 against the reference's 151.0 / 148.2, so the `resid_m` refit has nothing to undo, which no other low-side term has managed; it delivers ice's measured two states with nothing fitted, flat 0.114 / falling 0.246 / gain 2.16x against their 0.13 / 0.29 / 2.2-2.4x; and it confirms the descent brake, taking A1d's smooth form from t70 2.362 / 2.524 to 1.807 / 2.164 and t54 0.264 to 0.180. REJECTED on three counts: score 0.352 / 0.358 against 0.309 / 0.357 and paired 4.485 / 2.630 against 3.040 / 2.568; the draw split of L 602 for the fourth time (better where the reference's low side is weak, overshooting where it is strong); and MORE damped on the change half, level-adjusted mean 1.52 against 1.35 and TIR 1.46 against 1.30, which is forced because responding to an edit IS glucose moving. The decisive count is the SIGN: it suppresses fast motion (`fast_fall_share` G7 1.167 -> 1.011, `sigma_disp` 3.109 -> 3.058, `entry_fast_fall` 5.000 -> 4.762) and L 648 measures the twins as already 19% too smooth by day with the sensor exonerated. **Keep the keying though**: (G - G_slow) is how any future low-side term survives the level fit. L 643, 649), `sg_kappa` 0.15 (A1d, the saturating insulin-independent uptake: **the only mechanism that has ever closed the damped change response** — e-pool mean 1.33 -> 1.06, TIR 1.28 -> 1.06, t70 1.15 -> 1.08, and 1.22 -> 1.05 after its own level drift is taken out, where a uniform `sg_mult` cut carries nothing at all (observed 1.25 = its level-only expectation 1.25). After the `resid_m` refit held the mean exactly it costs bg_cv +6 points and doubles t70 and lows/day on all three draws, because the fit can only pay for a lost restoring force with a constant drift. **The second form settles it (L 642): the
   component is closed, not pending** — ordered by the dwell-weighted force kept, the cost is monotone across both
   shapes, so the choice is only (a) off, or (b) on for change-prediction work alone, as `ex_abs` is used for
   exercise, never on the cohort reference. L 637-639, 642), `sg_km` 63.2 / `sg_g0` 80.4 (A1d's SMOOTH form,
@@ -592,7 +1301,23 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   costs MORE on the low side than either kink — t70 3.97 / 3.93 / 2.91 against the donors' 1.60 and t54 0.58 / 0.70
   / 0.48 against 0.190 — with the level held exactly. Its premise was false: the kink leaves the sub-basal force at
   the full default by construction and this form is the weaker of the two below 130, because `excess = F(G) - F(Gb)`
-  makes the force a low feels the SPAN AVERAGE from Gb (0.177 at G 65), not the local slope (0.242). L 642), `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
+  makes the force a low feels the SPAN AVERAGE from Gb (0.177 at G 65), not the local slope (0.242). L 642),
+  **`sg_g0` 180 with `sg_km` 63.2** (A1d's breakpoint ABOVE the t70 leverage band, the first form to keep the
+  force at 65 / 90 / 130 / 180 exactly unchanged: **the guard HOLDS** — t54 0.178 against the donors' 0.190, t70
+  and lows/day flat, where every previous A1d form doubled the lows — and it FAILS on dispersion, bg_cv +1.91
+  against a registered "within ~1 point", retrodicted to 0.6% by L 678's identity from the 0.860 force kept.
+  `meal_d3h` 31.67 -> 33.33 is its one gain. Refit priced and not spent: bg_cv is `sd / mean` and the refit
+  restores the mean, so 37.28 before any tail-widening. L 727), **`rcl_mult` 0.16667** (the renal term at
+  UVA/Padova's 0.0005/min instead of Hovorka's 0.003: the guard holds identically (t54 0.188) and it costs the
+  SAME dispersion as the force cut (+1.81), which measures **renal at 11.5% of total restoring gain** and shows
+  the dispersion price is a property of `lam`, not of A1d. Score 0.366 -> 0.379, TIR −1.7, `meal_d3h` -> 33.67.
+  **ADOPTED BY PETE 2026-11-07 (L 729)** on three lines — UVA/Padova, the field's 440 carbless corrections
+  (+17.9% -> +12.8%) and the force profile. His words: "cut it based on evidence and accept the worse match."
+  It FAILS the bar job 221 registered (score +0.013) and the adoption is an OVERRIDE, not a pass, with the
+  LESSONS 303 precedent that a sounder model may match fewer statistics. **NO LONGER OFF BY DEFAULT: job 230
+  landed it as the reference `kd2` on 2026-11-07, and refitted, the cost is score +0.007 with tier 1 BETTER
+  (0.174 -> 0.165) and the guard converging on the donors (t54 0.203 against 0.190); `bg_cv` 37.28 is exactly the
+  post-refit figure predicted here.** L 727, 729), `kabs_m` 1.14 (gut absorption at Dalla Man's identified 0.057
   instead of 0.05: a NULL on the labelled duration it was aimed at, x0.999, against a single-parcel prediction of
   x0.96 that two corrections could not rescue; scores marginally better than the reference on two draws of three and
   its one consistent gain — paired TDD on all three — is level-mediated and returns on refit, L 627, 629),
@@ -650,12 +1375,73 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 
 ## Analysis traps (each cost a session)
 
+- **THE BINARY EVERY COHORT ARM RUNS LIVES IN AN OLD RUN DIR, BY SYMLINK, AND NOTHING DOCUMENTS IT**
+  (L 728). `rf2`'s own `cohort.json` names `bin =
+  runs/2026-10-27-additive-natexp/loop-eval-7272515`, which is a 0-byte symlink into
+  `runs/2026-10-25-additive-rebuild/`. So the reference's reproducibility hangs off two run dirs that
+  look like finished experiments, one of them three references out of date and a standing candidate for
+  cleanup. Job 221's arms happen to point at `/Users/pete/dev/LoopEval/.build/release/loop-eval`
+  instead, so the two halves of the record do not even share a binary path. **Before agreeing to any
+  cleanup, archive or move of a run dir, read `bin` out of the `cohort.json` of every arm you still
+  read** — not the arm names, not the mtimes, which both said natexp was dead. The same check belongs
+  in a publish: a run dir is not scratch just because nothing has written to it. **And PASS `--bin`
+  EXPLICITLY on every arm**: `cohort.py`'s default is the mutable dev tree, so job 221 scored its
+  three arms (Oct 29 dev binary) against rf2 (Oct 25 symlink) without anything saying so — a
+  cross-binary comparison, demonstrated inert only because `v01018`, the one person the knob cannot
+  touch, came out bit-identical across the two builds (L 729). Pin an immutable COPY in the run dir. **After the
+  2026-11-06 NAS archive, a restored arm dir carries `ARCHIVED.txt` and holds its summary CSVs with
+  NO `v0*`** — so marker present means a scorable shell whose traces are on the NAS (restore command
+  inside), marker absent means a complete arm. An arm whose archive FAILED stays local and complete
+  and correctly has no marker. `[ -e <dir> ]` still fires on both, which is what catches a name
+  collision; the marker only says which kind you are looking at.
+
+- **A 1-2 person smoke run cannot be validated, and until 2026-11-08 it said so as `KeyError: ['stat', 'group']`.**
+  `validate.compare` drops a statistic whose simulated side has under 3 people, so at n < 3 it returns NO rows and
+  `compare_blocks`'s `.set_index(["stat", "group"])` failed on an empty frame — a schema-looking error whose real
+  cause is the sample size. The traces and `cohort.json` of such a run are fine; only the donor comparison is
+  undefined. Now `compare_blocks` raises a message that says this, and `validate`'s `main` SKIPS the pilot
+  comparison with a printed reason at n < 3 instead of dying, so a smoke run completes. Smoke-test an arm at
+  **n >= 3**, or read `sim_stats.csv` / call `person_stats` directly.
+- **Every conditional rate needs a shifted-time placebo in the same script, and every "against the donors' X%"
+  needs to be paired per person** (L 700, 701). A suspend-in-the-window rate of 26.9% over low episodes passed a
+  registered 10% bar and was **exactly its base rate** — the same windows moved by a day read 25.4–27.4%. And an
+  onset enrichment of 1.66x pooled was composition: paired against each donor's own waking share it is −0.75
+  points at p 0.42, with the quoted "~4% of time below 80" actually 5.26%, a figure I had not measured on this
+  data. A wide window over a common exposure saturates, and a pooled ratio weights donors by the exposure under
+  test. Both checks are one extra read over data already on disk; run them before the lesson, not after.
+
+- **A thresholded share is a LEVER-ARM on the quantity underneath it, and a solved-for parameter needs its
+  forward prediction printed beside it** (L 703). `entry_fast_fall`'s 2.9x deficit is a 1.35x error in the
+  underlying fall rate, because the −150 cut sits on the steep part of the donors' distribution (p25 −128,
+  p10 −188) — the row magnified a 26% defect into a 190% one, and a mechanism sized from the share would be
+  ~2x too strong. Quote the quantity beside the share. In the same script my bisection for the shift constant
+  was inverted (`s(k)` increases in k; I narrowed the wrong bound), so it ran to its boundary and printed
+  "the ks DISAGREE" at k = 0.400 — caught only because the script also printed the forward prediction from
+  the independent route, which plainly agreed. A search can converge to a boundary and report it as a finding.
+
+- **A share's correction is NOT the mass you removed, and a day-level row needs the whole day** (L 699). Masking
+  the donors' suspend bins out of `zero_frac` moved it 0.94 points where I had registered 1.8: removing a bin takes
+  it out of the DENOMINATOR as well, so the drop is `s(1 − Z/N)/(N − s)`, about 0.68 of the masked mass. And `tdd`
+  moved the WRONG WAY for the same reason in reverse — `core_stats` keeps a day with over 240 of 288 valid bins, so
+  a partly-masked day survives with an under-counted total. Price a masked share with the denominator in it, and for
+  a day-level statistic drop the day rather than its bins.
+
 - **Never read a live parameter value from its dataclass default in `physiology.py`** (L 640). `person.py`
   overrides most of them per sampled person, and the two can disagree badly: `kappa` is declared 0.15 but drawn as
   `kappa_mult * exp(N(0, 0.4))` with `kappa_mult` 1.0, so the live median is **1.0** — L 303's adopted Bergman
   value, 6.7x the default. Reading the default suggested that `sg_kappa` left no disposal path scaling with
   glucose, which is false and nearly bought an arm. Check a built person's value, as the `--enable k=v` and
   `BEHAVIOR_COLS` traps already require.
+
+- **A cross-group test only excludes what VARIES across the groups** (L 659). Splitting the donors' daytime
+  2nd difference by SENSOR FAMILY came back family-independent, and I had told a peer that this meant the body.
+  It does not: it rules out a family-SPECIFIC sensor property (noise level, filtering, lag, calibration) and
+  leaves untouched a wear or motion artefact common to every CGM class, since G6, G7 and Libre 3 all sit in
+  subcutaneous interstitium under tape and would all be affected alike. Before reading a null across groups as
+  excluding a whole mechanism class, write down what the grouping actually varies — and look for the WITHIN-group
+  cut that varies it (here, insertion site, which no donor record carries, so the attribution is simply not
+  decidable from this data). When attribution is undecidable, a candidate must be judged on its own evidence and
+  never on closing the row, because closing it is consistent with every surviving hypothesis.
 
 - **The non-insulin force regressed on glucose velocity is the IDENTITY, not a response** (L 644). `dG/dt` is
   mostly made OF that force, so the slope comes out near 1 whatever the body does — measured, 0.88 of the velocity
@@ -672,6 +1458,73 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   profile from the real step path at the glucose levels that matter, and the dwell-weighted total beside it — that
   integral, not the shape, is what the cohort cost tracks.
 
+- **State a falsifier as "no more than draw noise", never as "not at all", for anything measured downstream of
+  the controller** (L 664). `act_k` is keyed to activity, which is identically 0 while asleep, so I registered
+  "if the night row moves at all, the wiring is broken". That is wrong in a closed loop: a daytime-only term
+  changes doses, which changes the following night, so a correctly wired arm still perturbs the night a little.
+  The right standard is the arm's move against the draw-to-draw scatter of the same row — here G7 night moved
+  0.005-0.015 against a 0.027 difference between the reference's own two draws, which passes. A falsifier
+  stated absolutely would have thrown away a sound arm.
+
+- **When a quantity is a RATIO OF TWO ENDOGENOUS OUTCOMES, stop hunting the mechanism and build the
+  exogenous experiment** (L 674, 676). `g/dose` — the glucose response to a settings edit over the
+  delivered-insulin response to the SAME edit — is a Wald estimator whose exclusion restriction fails, because
+  an ISF/CR/target edit changes the timing and shape of delivery and not just its total. Six accounts of its
+  variation were tested on closed-loop outcomes and all six failed (controller under-delivery, measurement
+  smearing, unequal need, `kappa`'s kink, the renal term, the delivery-to-need covariance), because there was
+  no structural quantity there to find. ONE open-loop measurement against `physiology.Body` — no controller,
+  insulin varied exogenously, each configuration bisected to a matched glucose level — settled it in a single
+  table. Smoke-test such a driver on two cases before queueing it: on this one that caught `sg_mult` not being
+  a `BodyParams` field (`person.py:270` applies it at sampling) and an uncalibrated level of 216 mg/dL sitting
+  ON the per-person renal threshold, either of which would have been read as a result.
+- **An inference about an instrument is not a measurement of it, and I published one as the other** (L 669,
+  refuted at sensor scale by L 670, **scale-resolved and CLOSED at L 671: the CGM's width moves the TIR ratio
+  by only ~0.008 per mg/dL, so nothing in this record needs a TIR discount and the mean-row rule is right in
+  principle and irrelevant in practice**). `act_k` 1.5 touches nothing but measurement error and yet moves
+  TIR's level-adjusted ratio 1.30 -> **1.48** and t70's 1.09 -> **0.95** while leaving the mean's **exactly**
+  at 1.35 (pre-registered, level-corrected — the observation stands). I explained it as threshold smearing by
+  the added CGM noise and wrote the consequences into LESSONS, COMPONENTS and this overlay. **Job 180 refuted
+  the mechanism**: adding synthetic iid noise to the reference's own saved CGM, 0 to 3 mg/dL, moves TIR's
+  ratio 0.02 and its response +0.3% against `act_k`'s −13%, with t70 non-monotone and the mean flat (so the
+  probe works). Withdrawn with it: any TIR discount on L 656 / 661 / 649, and the corollary that the twins'
+  TIR under-response is "worse than 1.30" because the field's CGM is already smeared. What the probe DID find
+  is that `act_k` widens the CGM marginal sd 48.95 -> 50.79, an iid-equivalent **13.6 mg/dL** where its noise
+  term can add only 2-4 — so most of it is the BODY's trajectory changing through Loop's dosing, which makes a
+  smaller TIR response a REAL consequence of the arm rather than an illusion. Job 181 swept to sd 20 and
+  settled it (L 671): TIR's ratio rises monotonically to 1.43 and t70's falls to 0.82 with the mean flat, so
+  the density argument including t70's sign is confirmed in FORM, while at `act_k`'s own 13.6 it accounts for
+  only ~43% of its TIR move, over-explains t70 and gets t54's sign backwards. Residue still open; artefact
+  bounded at <= 0.03 for any realistic sensor-noise difference. The rule: when an interpretation
+  rests on an untested mechanism, register the test and quote the OBSERVATION as the finding until it returns,
+  and never carry such a mechanism into a claim about the model's standing limits — a "held loosely" label
+  does not make an inference a measurement.
+- **Beyond the level, the pre-edit DISTRIBUTION does not carry the response ratio — so a damping result is a
+  fact about the component** (L 662; its eight-arm null and matched pair are now ALSO what L 670's open observation has to be squared with). The obvious extension of L 638's level trap is that a wider or
+  higher-excursion arm would respond differently for free, and it is measured FALSE: across eight real e-pool
+  arms, level-adjusted damping correlates −0.17 to −0.43 with dispersion (the wrong sign for the story), and
+  a matched pair settles it — **but NOT the pair quoted here, which does not reconcile (L 672): the saved
+  canonical logs give `sk1_e` and `sr1_e` own levels 157.0 / 155.4 and responses 1.06 / 1.04, nearly identical,
+  and both are force-CUTTERS, so they were never an informative pair. The pair it names, `afe1` and `akfe1`, were BOTH at `si_norm` 1.0 (L 698), so the contamination is
+  common-mode and the within-pair contrast may survive — but the clean arms are no longer dispersion-matched (own
+  levels 144.2 against 145.6), so it cannot be re-verified with `afe2` / `akfe2`, and the eight-arm correlation
+  includes four contaminated arms. **Treat L 662 as UNVERIFIED pending a pair matched among clean arms, and do not
+  cite its numbers (L 702).** Correct for the level, which is real, and
+  then read the ratio as the mechanism's. This is also what refuted L 656's explanation of its own result.
+
+- **Label an arm from its own `meta.json` / `cohort.json` IN the script that reads it, and print the labels
+  beside the numbers** (L 672, extending L 663). A name is a hypothesis about an arm; the config is the arm.
+  `sr1_e` is not the `sg_rate` arm — it is the smooth A1d form WITH `sg_rate` on top — and `sg_rate` alone is
+  `rt1_e`, whose 1.52 / 1.46 the record correctly quotes. I picked `sr1_e` by name in the very script that
+  cited L 663's rule against doing that, and only the meta.json check caught it. The same check found that
+  L 662's matched pair names two force-cutters with near-identical responses, which cannot support the
+  contrast it draws.
+- **The no-op versions of corrected arms are still on disk, under the SHORTER and more obvious names** (L 663).
+  `hl_e`, `sw0_e` and `sw5_e` are each bit-identical to the reference over 60/60 events; the real arms are
+  `hl2_e`, `sw0b_e`, `sw5b_e`, which L 603's fresh-name rule created BECAUSE the first versions no-opped. The
+  record is right and the directory is the trap: pick arms from the lesson that recorded the result, never
+  from an `ls`, and run the bitwise `truth["cgm"]` check over every arm of an assembled table before reading a
+  number from it.
+
 - **A change-response ratio is meaningless without its arm's own PRE-EDIT LEVEL** (L 638). `dG/dI = -SI·G /
   (SG + SI·I·…)` is proportional to G, so an arm whose pre-edit level drifts up responds more to the same
   proportional edit with no mechanism at all. Every arm compared on the e pool before `sk1` drifted +3.3 to +9.7,
@@ -679,7 +1532,13 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
   level-only expectation — `ratio_ref x (level_ref / level_arm)` on the arms' own median pre-edit mean glucose —
   beside every ratio (`change_e/score_change_lvl.py`), and treat an arm whose observed ratio EQUALS that
   expectation as having no mechanism whatever its raw number looks like. That is exactly what the uniform
-  `sg_mult` cut turned out to be (observed 1.25, expected 1.25).
+  `sg_mult` cut turned out to be (observed 1.25, expected 1.25) — **but that reading is now contradicted and
+  the correction itself is the suspect (L 682)**: open loop at 60 people, `sg_mult` 0.40 responds at 1.399
+  of the reference and 0.67 at 1.183, structurally x1.36 and x1.17 once their own 1-3% levels are taken out.
+  `ratio_ref x (level_ref/level_arm)` is derived for a FIXED force and `sg_mult` changes the force, so for
+  such an arm the level correction and the mechanism are not separable. Keep the correction for arms that
+  leave the force alone; **do not cite `sg4_e` as its validation**, and quote L 638's `sg_mult` verdict with
+  this attached.
 
 - **`truth["sent_overrides"]` is the REACTIVE override class only** (world.py:728). The person's PLANNED overrides
   reach the controller through `loopeval_io._override_windows`, which writes `beh.overrides` into the twin's own
@@ -723,15 +1582,61 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 - **Donor carb entries are keyed `grams` in `carbs.json`, not `carbInput`** — the wrong key gives 0 g for every entry, and
   any size filter then drops them all with no error (L 571).
 
+- **`gap = |d50| + 0.5*|spread|`, so an arm can be charged on a row where its median is IDENTICAL** (L 696).
+  On the corrected labels `pulse_peak_h` is 0.622 for the reference and every appearance arm while their gaps
+  run 0.069 to 0.170 — entirely the spread half. A score difference attributed to a median is wrong whenever
+  the medians agree, and my pre-registered arithmetic for `ge_order` 3 ignored it. The same derivation also
+  **priced a row from a number belonging to a different arm** — L 627's 1.775 is `ge_order` 3 PLUS `kabs`
+  0.057, while `go3`'s own duration is 1.863 — the L 663/672 trap inside a derivation rather than a directory
+  listing. Read the arm's own row out of the log before predicting what it is worth.
+
+- **When a candidate's whole effect flows through ONE scalar, price it from an already-failed arm before
+  running a new one** (L 694). The deviation-keyed level holder collapses every person's night drift into a
+  band around a single r0, so fitting night share against drift on the reference and retrodicting the
+  declined r0 = 0 arm out of sample (predicted 7.67 / 9.12 against observed 8.38 / 9.20) priced the whole
+  class for one read over saved pickles, and declined it. Register the retrodiction as a GATE, not a
+  diagnostic: the fit is estimated ACROSS people and read as if it applied WITHIN one, and that gate is the
+  only thing testing it. Quote the bracket across draws (here r0 −21 to −31), never a value.
+
+- **A reference arm that does not reproduce its own published score means the ROW SET changed, not the arm**
+  (L 692, 693). `score.py` scores a statistic only where it is present for BOTH runs. Job 193 omitted
+  `meal_response` and `lifestats sim`, dropping nine rows (n 51 -> 37) including tier-1 `act_net20` — **and
+  that reversed the arm's score sign**. Separately, nine arms carried a 13-column `life_stats.csv` against the
+  reference's 17, because their jobs ran post-processing from their own frozen tree and four pulse rows had
+  been added since: **a file's existence says nothing about which code version wrote its columns, and its
+  mtime does not order code versions** (`af1`'s copy is NEWER and narrower). Check the COLUMNS a scorer needs,
+  not the path — the `BEHAVIOR_COLS` signature one level up. **RESOLVED as job 196**: all thirteen arms are on
+  one version at n 51 / 54, the reference's 0.332 / 0.371 survived regeneration unchanged, and of the four
+  restated records only `act_frag` draw 2 changes sign (−0.002 -> +0.001, a tenth of the floor, so "level on
+  both draws", not "marginally better"). **Then the donor meal labels themselves were corrected (L 695), so
+  the current pairs are: reference 0.328 / 0.366 / 0.404 / 0.402 / 0.374, `act_k` 1.5 **0.307 / 0.339**, its
+  refit **0.308 / 0.332**, `day` off **0.330 / 0.359**, `act_frag` **0.327 / 0.365**, `resid_m_diurnal`
+  **0.321 / 0.352**.** No score from before 2026-11-04 compares with one after it. **Post-processing belongs
+  on the current analysis tree, not the arm's frozen one — the simulation is frozen on purpose, the measurement
+  is not.** Caveat on the complete set: `pulse_peak_h` and `pulse_dur_h` are scored against L 626's stale donor
+  labels (gap 1.042 identical on both sides; donor `pulse_dur_h` 1.917 where like-for-like is 1.577), so quote
+  score DIFFERENCES, never the absolute level, until the scorer reads ice's `ice_v32/meals_fit/`.
+
 - **A `score --detail` log's first arm is the first ARGUMENT, not the donors**, so fixed awk column indices are off by one
-  arm and silently report the wrong arm's numbers (it happened three times on 2026-11-01). Read them with
-  `resid_tools/score_read.py`, which keys on the header names.
+  arm and silently report the wrong arm's numbers (it happened three times on 2026-11-01). Key on the header
+  names, never on a column index. (This entry used to point at `resid_tools/score_read.py`; **that file no
+  longer exists anywhere under `~/.loop-eval` as of 2026-11-03** — a run-dir tool lost to a cleanup while the
+  instruction to use it stayed here, which is L 666's drift in miniature. Verify a tool this overlay names
+  before building a job script around it; job 193's first draft called it and would have failed.)
+  The scorer itself is a module: `python -m loopeval_analysis.patient_sim.score <ref> <arm> --detail`, one
+  call per draw.
 
 - **Keep the summary CSVs, drop the traces.** A cohort arm is ~814 MB, of which the `v0*` per-person directories are
   ~95%; `compare_pilot.csv`, `sim_stats.csv` and the other summaries are a few MB and are all `score.py` reads. A full
   Mac stops a running job mid-arm (`OSError: No space left on device` writing a person's `.err`), so clear superseded
   arms with `rm -rf <arm>/v0*` — every arm stays re-scorable and re-comparable, and the traces are reproducible from
-  the frozen tree. This recovered 141 GB from one run dir (177 G to 36 G) on 2026-11-01.
+  the frozen tree. This recovered 141 GB from one run dir (177 G to 36 G) on 2026-11-01. **The cost is that it
+  turns every cleaned arm's NAME into a trap the cache rule does not cover (L 687)**: the dir has no `v0*` to
+  cache, so the people re-simulate, while the summary CSVs the scorer reads are still there and days old — so a
+  partial run gets scored on stale numbers, and the knob check reads the OLD `cohort.json` and reports the knob
+  ABSENT for a correctly wired arm. Job 193's pre-flight caught `rm1` / `rm1_5k` held by the 2026-11-01
+  `resid_meal` arm (L 568) on different templates. **Check a candidate arm name with `[ -e <dir> ]` before
+  queueing, never by globbing `<arm>/v0*`**, and do not let two components share an abbreviation.
 
 - **`trace.json`'s md5 is NOT an identity check.** Two identical invocations of the same frozen code produce
   byte-different `trace.json` (key order and float formatting) with content and trajectory identical. Compare
@@ -750,13 +1655,32 @@ Measured like for like against the donors (LESSONS 282–299); read a candidate'
 
 - **An arm rerun into an existing output dir returns the CACHED previous run** (`v0… cached` in its log), so a fixed
   arm can come back byte-identical to the broken one it replaces. Use a fresh arm name, or clear the dir.
+  **Fourth sighting, and the second where the no-op carries the shorter name (L 681)**: `ul70` holds
+  `unl_mult=0.70` in its own `cohort.json` and is bit-identical to `rf2`, its log reading `v01000 cached`;
+  the arm that ran is `um70`, with `ur1` an exact duplicate of it. Picking `ul70` by name would have measured
+  the load lever's gain as zero and killed the pair candidate for the wrong reason. The bitwise `truth.bg`
+  check run BEFORE reading any number is what caught it, which is the whole point of the rule.
+  **FIFTH sighting, and it is a different mechanism that this rule's own check would MISS (L 687)**: a dir
+  whose `v0*` have been cleaned away (the disk rule above) has nothing to cache, so the people re-simulate
+  and `truth.bg` differs — the arm passes the bitwise check — while the stale summary CSVs and `cohort.json`
+  sit there ready to be scored. So state the rule as about the NAME, not the cache, and pre-flight it with
+  `[ -e <dir> ]`. Job 193's `rm1` was held by the 2026-11-01 `resid_meal` arm (L 568).
 - **A numeric knob must be verified as a NUMBER where it enters, and there are now THREE ways it silently is not**
   (L 554, 655). `--enable k=v` makes a switch named `k=v`; `--set` parses to float and is safe; an `ARM_ENABLE`
   JSON **integer** was dropped outright until 2026-11-02, because the guard tested `isinstance(v, float)` and
   `isinstance(3, float)` is False — which cost `ge_order` 3's whole change-response verdict. All three have the
   same signature, an arm that reproduces its control exactly, and all three are caught by the same two checks:
   compare `truth.pkl`'s `truth.bg` across the arm and its control, and look for identical `variant` values in
-  `score_change.py`'s output. Run both on every arm; never read a ratio alone.
+  `score_change.py`'s output. Run both on every arm; never read a ratio alone. **The 2026-11-02 fix was itself
+  INCOMPLETE and the second pass is the lesson (L 660)**: it replaced 106 guards in `world.py` and left
+  `cohort.py`'s 14 (`sg_mult`, `csf_mult`, `kappa_mult`, `csf_sd_w`, `basal_share`, `isf_level`, `csf_lvl`, …)
+  and the entire residual block (`resid_m`, `resid_skew`, `resid_diurnal`, `resid_tf/tb`, `resid_meal`,
+  `resid_day_ar`, `ppr_b/l/d`) — including **`resid_mult`**, where a JSON `0` would default to **1.0** and turn
+  the dynamic residual back ON at full strength in an arm written to run the reference. **A fix counted in call
+  sites is not a fix scoped to a class: the grep that found the bug must come back EMPTY over the whole package
+  afterwards**, with the legitimate survivors enumerated so the empty result is checkable (today: a NaN guard in
+  `person.py`, rounding in `insulins.py`, `_num`'s own docstring). Claiming a class closed on a partial sweep is
+  worse than not claiming it, because the next reader stops looking.
 - **A numeric override passed to `--enable` is a switch named `k=v`, so the component keeps its default and the arm
   silently runs as its own control** (L 554). Numeric values go in `--set`; `cohort.py` now rejects `=` in `--enable`.
   An arm that reproduces its control exactly is the signature — check `cohort.json` in the run dir.

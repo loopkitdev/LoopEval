@@ -90,6 +90,7 @@ public actor EvaluationEngine {
         async let doses   = dataSource.getDoses(interval: doseInterval)
         async let carbs   = dataSource.getCarbEntries(interval: carbInterval)
         async let therapy = dataSource.getTherapyTimeline(interval: therapyInterval)
+        async let tddTherapy = dataSource.getTherapyTimeline(interval: DateInterval(start: doseStart, end: interval.start))
 
         var carbEntries = try await carbs
         // Reconstruct the as-seen carb history: splice edited entries into their
@@ -119,7 +120,8 @@ public actor EvaluationEngine {
             glucose: try await glucose,
             doses: try await doses,
             carbs: carbEntries,
-            therapyTimeline: therapyTimeline
+            therapyTimeline: therapyTimeline,
+            tddBasal: (try? await tddTherapy)?.basal ?? []
         )
     }
 

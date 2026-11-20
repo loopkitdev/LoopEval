@@ -260,6 +260,12 @@ struct SimulateCandidateFlags: ParsableArguments {
 
     @Flag(name: .long, help: "DIAGNOSTIC: candidate engine = Loop's recommendation re-routed through the OpenAPSAdapter dose-translation path. If the resulting counter trace matches a plain Loop CF run, the OpenAPS translation is sound and any Loop-vs-OpenAPS divergence is genuine algorithm differences, not framework artifacts.")
     var candidateLoopMimicOaps: Bool = false
+
+    @Option(name: .customLong("candidate-external-controller"), help: "Shell command for an external dosing function (candidate engine). Each candidate decision sends the process the decision's glucose window, the candidate's own dose history, the visible carb entries, the settings and limits at t, and Loop's own decision (for the echo identity check only) as one JSON line; the reply {\"bolus\": U, \"temp_rate\": U/h} is clamped to the limits and floored to the pump's increments. Loop still supplies the trace's forecast/IOB/COB diagnostics and the bolus-calculator recommendation for manual boluses. Protocol in ExternalControllerAdapter.swift.")
+    var candidateExternalController: String? = nil
+
+    @Option(name: .customLong("candidate-loop-adaptive"), help: "Candidate engine = the Loop Adaptive Algorithm in-process (LoopAdaptive module of the LoopAlgorithm package). Takes analysis/reduction/adaptive.py's tdd_pd params as JSON, e.g. '{\"tdd\": 36, \"basal_uh\": 0.7, ...}', and makes the same decision as --candidate-external-controller running adaptive.py with them, without the process. Exclusive with --candidate-external-controller.")
+    var candidateLoopAdaptive: String? = nil
 }
 
 // Person: manual boluses and carbs
@@ -312,8 +318,8 @@ struct SimulateBodyFlags: ParsableArguments {
     @Option(name: .long, help: "CGM-gap re-anchor threshold (minutes). Across a CGM gap longer than this the counterfactual has no ground truth and the single big-step physiological advance is unreliable (manual boluses given during the gap are on the field side but not the candidate history ⇒ runaway asymmetry that blew the counter to 700+). Re-anchor the counter to the real CGM at gap-end. Identity-safe. Default 30. 0 disables (legacy).")
     var cfGapReanchorMin: Double = 30
 
-    @Option(name: .long, help: "PATIENT-side ISF as an ABSOLUTE FLAT value (mg/dL/U), referencing NO therapy configuration — not the donor's schedule shape, not its time-of-day variation, not its dated settings eras. The simulated body becomes an independent object from the settings the controller runs, which still uses the real configured schedule. Unset = the plant is COUPLED to the controller's ISF belief (the historical behavior, so existing sweeps are unchanged). Set it when the patient's insulin sensitivity must be a free parameter — e.g. sweeping it to ask how much a result depends on the assumed patient.")
-    var patientIsf: Double?
+    @Option(name: .long, help: "The counterfactual BODY's ISF (mg/dL/U): how much glucose a unit of insulin moves in the simulated person. The controller always runs the configured schedule. `calculated` (default): flat K / TDD^b (ISF yardstick start rule, 1266.76 / TDD^0.902) from the insulin delivered on the clean days (basal record ≥ 90% complete) among the 10 before --start (the window's own if under 2). `schedule`: the configured schedule (the body of every replay before 2026-11-17 with --candidate-infer-sensitivity). `controller`: the controller's scaled ISF, so the body moves with --candidate-insulin-needs / ISF sweeps (before 2026-11-17, the body without --candidate-infer-sensitivity). A number: that flat ISF. --candidate-infer-sensitivity's m(t) scales any of these. The trace's `bodyISF` records what ran.")
+    var patientIsf: String = "calculated"
 
     @Option(name: .long, help: "PATIENT-side INSULIN MODEL — the pharmacodynamics of the simulated BODY. RA (rapid-acting): rapidActingAdult peak 75min, rapidActingChild peak 65min. URA (ultra-rapid): fiasp, lyumjev -- peak 55min, and IDENTICAL to each other in this preset set (same peak/DIA/delay), so picking one over the other is a no-op. Also afrezza (inhaled, peak 29min) and lateShort90dia4 (experimental, peak 90min/DIA 4h). All RA/URA presets share DIA 6h -- the class difference is PEAK TIME, not duration. The controller keeps believing its own model, so this decouples 'how fast insulin really acts' from 'how fast the algorithm thinks it acts'. Unset = the body uses the controller's model too (coupled; the historical behavior). Identity-safe: the same curve removes the field's doses and adds the candidate's, so an unchanged candidate still reproduces the recording exactly.")
     var patientInsulinModel: String?
@@ -866,6 +872,8 @@ extension SimulateCommand {
     var candidateCarbAbsorptionCapMin: Double { get { candidate.candidateCarbAbsorptionCapMin } set { candidate.candidateCarbAbsorptionCapMin = newValue } }
     var candidateOpenaps: Bool { get { candidate.candidateOpenaps } set { candidate.candidateOpenaps = newValue } }
     var candidateLoopMimicOaps: Bool { get { candidate.candidateLoopMimicOaps } set { candidate.candidateLoopMimicOaps = newValue } }
+    var candidateExternalController: String? { get { candidate.candidateExternalController } set { candidate.candidateExternalController = newValue } }
+    var candidateLoopAdaptive: String? { get { candidate.candidateLoopAdaptive } set { candidate.candidateLoopAdaptive = newValue } }
     // Person: manual boluses and carbs
     var noUserBoluses: Bool { get { person.noUserBoluses } set { person.noUserBoluses = newValue } }
     var noCarbEntries: Bool { get { person.noCarbEntries } set { person.noCarbEntries = newValue } }
@@ -885,7 +893,7 @@ extension SimulateCommand {
     var highResponseModel: String? { get { body.highResponseModel } set { body.highResponseModel = newValue } }
     var lowResponseSubtractCsv: String? { get { body.lowResponseSubtractCsv } set { body.lowResponseSubtractCsv = newValue } }
     var cfGapReanchorMin: Double { get { body.cfGapReanchorMin } set { body.cfGapReanchorMin = newValue } }
-    var patientIsf: Double? { get { body.patientIsf } set { body.patientIsf = newValue } }
+    var patientIsf: String { get { body.patientIsf } set { body.patientIsf = newValue } }
     var patientInsulinModel: String? { get { body.patientInsulinModel } set { body.patientInsulinModel = newValue } }
     var candidateInferSensitivity: Bool { get { body.candidateInferSensitivity } set { body.candidateInferSensitivity = newValue } }
     var candidateInferSensitivityMax: Double { get { body.candidateInferSensitivityMax } set { body.candidateInferSensitivityMax = newValue } }

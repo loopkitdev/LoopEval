@@ -125,6 +125,11 @@ class BehaviorTraits:
     meal_clock: Optional[tuple] = None   # donor's own (b_med, b_sd, l_med, l_sd, d_med, d_sd), hours (LESSONS 123)
     own_clock: bool = True               # main meals on the donor's own clock (default since 2026-10-18: day/night insulin
                                          # ratio 2.03 vs donors 2.06; LESSONS 206)
+    clk_sd_mult: float = 1.0             # experiment (L 731): multiplies the WITHIN-person meal-clock SDs above, so 0.5 is
+                                         # a person who keeps their own meal times twice as regularly. The donors' own SDs
+                                         # (median 1.03 / 1.22 / 1.56 h for breakfast / lunch / dinner) are mostly real --
+                                         # the labeler's ~0.45 h onset noise is ~10% of them in quadrature -- so this is a
+                                         # COUNTERFACTUAL, not a correction. Label any arm that uses it accordingly
     entry_clock: bool = False            # switch: use snack_entry_w
     graze_unann: bool = True             # grazes on the donor's unannounced-pulse clock (LESSONS 230)
     unann_hours: Optional[object] = None
@@ -266,6 +271,29 @@ class BehaviorTraits:
     site_days: float = 3.0
     site_hour: float = 19.5
     site_clock: bool = False             # experiment (LESSONS 523): site changes on whole days at the person's hour
+    # B16 the person's own PUMP SUSPEND (L 699, 700): the donors stop the pump themselves and the model had no
+    # such behaviour at all - only `device.change_gap`, 15 min at a site change. Measured over 7302 episodes
+    # >= 5 min across 202 donors (runs/2026-11-04-additive-suspendclass/rates.py): 0.234 episodes per
+    # person-day (p10 0.055, p90 0.484, max 2.33), duration log-hours N(-0.557, 1.272) so a median of 34 min
+    # with 47% under 30 min and 18% over 2 h, and a WAKING action - 14.7% of episodes fall 00-06 against a
+    # quarter of the hours. It is NOT glucose-keyed: the low-episode association is x1.0 against a
+    # shifted-time null and the paired onset enrichment is -0.75 points at p 0.42 (L 700, 701), so the clock
+    # is the whole of it and there is no defence term here.
+    pump_off: bool = False               # off by default; the reference has never carried this behaviour
+    pump_off_rate: float = float("nan")  # episodes per person-day; NaN = draw it per person from B16's own
+    #                                      stream in Behavior.__init__ (lnN(0.234, 0.60), donor median
+    #                                      0.234 / mean 0.291). A real number here means an explicit
+    #                                      override via `--set pump_off_rate=`, which suppresses the draw.
+    pump_off_rate_lsd: float = 0.60      # log-sd of the per-person rate. 0.60 is the compromise: it gives a
+    #                                      cohort MEAN of 0.280/day against the donors' 0.291 and a p90 of
+    #                                      0.505 against 0.484, both within 4%. The one miss is the low tail
+    #                                      (p10 0.108 against 0.055): the donors' rates are more peaked than
+    #                                      log-normal with 2% of them near zero, so a few twins who should
+    #                                      almost never suspend will suspend occasionally. The MEAN is what
+    #                                      sets the cohort's pump-off time share, so it is matched first.
+    pump_off_lmu: float = -0.557         # log-hours mean of the duration
+    pump_off_lsd: float = 1.272          # log-hours sd of the duration
+    pump_off_cap_h: float = 24.0         # a safety cap; the measured p99 is 10 h [J]
 
 
 # no-entry user boluses per hour at CGM 180–280, by 30-min trend (falling < −10 / flat / +10–30 / > +30 mg/dL): donors
@@ -622,6 +650,30 @@ class Behavior:
         self.next_site = (rng.uniform(0, traits.site_days) * DAY // DAY) * DAY + traits.site_hour * 60
         self.r_site = np.random.default_rng(int(getattr(person, "seed", 0)) + 1517)     # site_clock's own stream
         self.site_hour_p = float(np.clip(self.r_site.normal(19.5, 1.5), 16.0, 23.0))    # the person's habitual hour
+        # B16 pump suspends: a clock-keyed Poisson process on its OWN stream, so turning it on cannot shift
+        # any other behaviour's draws (the arm would otherwise differ from its control in more than one way).
+        # B16's own stream. The rate was ORIGINALLY drawn in `sample_behavior_traits` from the shared
+        # `rng`, which consumed one draw UNCONDITIONALLY and so shifted every trait sampled after it -
+        # `act_rate`, `metmax`, `act_bg`, `act_gain` and the rest - for every person, whether `pump_off`
+        # was on or off. That silently broke comparability with every arm simulated before the change
+        # (L 718). A new per-person trait must never touch a stream another trait reads.
+        self.r_poff = np.random.default_rng(int(getattr(person, "seed", 0)) + 2711)
+        if not np.isfinite(getattr(traits, "pump_off_rate", float("nan"))) or traits.pump_off_rate <= 0:
+            traits.pump_off_rate = float(np.exp(self.r_poff.normal(np.log(0.234), 0.60)))
+        self.pump_off_plan = []
+        if getattr(traits, "pump_off", False) and traits.pump_off_rate > 0:
+            # clock shares measured over the donors' episodes: 00-06 14.7%, 06-12 25.1%, 12-18 30.0%, 18-24 30.1%
+            edges = np.array([0.0, 6.0, 12.0, 18.0, 24.0]); share = np.array([0.147, 0.251, 0.300, 0.301])
+            share = share / share.sum()        # the measured shares round to 0.999 and `choice` demands exactly 1
+            for day in range(0, 60):                       # covers any window this model runs
+                for _ in range(int(self.r_poff.poisson(traits.pump_off_rate))):
+                    k = int(self.r_poff.choice(4, p=share))
+                    hour = float(self.r_poff.uniform(edges[k], edges[k + 1]))
+                    dur = float(np.exp(self.r_poff.normal(traits.pump_off_lmu, traits.pump_off_lsd)) * 60.0)
+                    self.pump_off_plan.append((day * DAY + hour * 60.0,
+                                               min(dur, traits.pump_off_cap_h * 60.0)))
+            self.pump_off_plan.sort()
+        self.pump_off_i = 0
         self.log = []                           # ground truth of every behavior event
 
     # ------------------------------------------------------------------ helpers
@@ -708,6 +760,7 @@ class Behavior:
             # the donor's own meal clock, on its own stream (the gap draws above were still taken: other draws stay
             # paired). Within-person SDs include the labeler's onset noise (~0.45 h), so they are upper bounds [J]
             bm, bs, lm, ls, dm, ds = t.meal_clock
+            if t.clk_sd_mult != 1.0: bs, ls, ds = (bs * t.clk_sd_mult, ls * t.clk_sd_mult, ds * t.clk_sd_mult)
             rc = self.r_clock
             zb, zl, zd = rc.normal(size=3)
             b_new = (bm + bs * zb) * 60 + shift if np.isfinite(bm) and np.isfinite(bs) else b
@@ -1113,6 +1166,9 @@ class Behavior:
             elif kind == "ex_carbs":
                 acts.append(("eat", Parcel(m, rest[0], kempt=0.06, kabs=0.06, f=self._f_glucose(), label="ex_carbs")))
                 self.log.append((m, "ex_carbs", rest[0], None))
+        while self.pump_off_i < len(self.pump_off_plan) and m >= self.pump_off_plan[self.pump_off_i][0]:
+            _t, _d = self.pump_off_plan[self.pump_off_i]; self.pump_off_i += 1
+            acts.append(("pump_off", m, _d)); self.log.append((m, "pump_off", _d, None))
         if m >= self.next_site:
             acts.append(("site_change", m)); self.log.append((m, "site_change", 0, None))
             if getattr(t, "site_clock", False):

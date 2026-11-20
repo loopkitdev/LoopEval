@@ -120,7 +120,7 @@ tirzepatide 2.5 mg ×4 wk → 5 mg, n=24, mixed pump/MDI **[checked]**:
 | Semaglutide, 12 wk, PCOS/obesity, scintigraphy: T½ 171 vs 118 min (+53 min) | **[abstract]** PMID 36511825 |
 | Liraglutide 3 mg: solid T½ +70 min (median) at 5 wk, smaller at 16 wk (partial tachyphylaxis). Halawi 2017, Lancet Gastro Hep 2:890 (doi 10.1016/S2468-1253(17)30285-6). Maselli (n=136): 191.6 vs 105.9 min at 5 wk → 154.4 vs 111.4 at 16 wk | **[secondary]** |
 | Tirzepatide: paracetamol Cmax −55% and tmax +1 h after the first 5 mg dose, "diminished after subsequent doses" (Zepbound label). Registry NCT04407234: Cmax 11,925 (none) → 5,314 (day 2 after 5 mg) → 8,099 ng/mL (day 37, 15 mg) | **[secondary]** |
-| Tachyphylaxis, mechanism. Nauck 2011, Diabetes 60:1561 (doi 10.2337/db10-1318): IV GLP-1 slowed the 2nd meal 4 h later less than the 1st (healthy, n=9). Umapathysivam 2014, Diabetes 63:785 (doi 10.2337/db13-0951): continuous 24 h GLP-1 attenuated slowing; intermittent exposure preserved it. Vagal mechanism | **[abstract]** |
+| Tachyphylaxis, mechanism. Nauck 2011, Diabetes 60:1561 (doi 10.2337/db10-0474): IV GLP-1 slowed the 2nd meal 4 h later less than the 1st (healthy, n=9). Umapathysivam 2014, Diabetes 63:785 (doi 10.2337/db13-0951): continuous 24 h GLP-1 attenuated slowing; intermittent exposure preserved it. Vagal mechanism | **[abstract]** |
 | Review: long-acting agents (lira, exenatide QW, sema) slow emptying with a declining effect; residual slowing persists at 4–8 wk; no data beyond ~16–21 wk; short-acting agents show no decline. GE explains ~1/3 of variance in the early (15–30 min) glucose rise. Jalleh et al. 2025, JCEM 110:1 (doi 10.1210/clinem/dgae719) | **[checked]** (qualitative) |
 | T1D exenatide (Herold group; Ghazi 2014 Diabetes Care, doi 10.2337/dc13-1169): GE delayed and glucagon suppressed in a mixed meal. Raman 2010 (pediatric): GE delayed, no glucagon suppression | **[secondary]** |
 
@@ -266,7 +266,7 @@ glp1: {
 - Mathieu 2016: 10.2337/dc16-0691
 - Sarkar 2014: 10.2337/dc13-1473
 - Jalleh 2025 JCEM: 10.1210/clinem/dgae719
-- Nauck 2011: 10.2337/db10-1318
+- Nauck 2011: 10.2337/db10-0474
 - Umapathysivam 2014: 10.2337/db13-0951
 - Halawi 2017: 10.1016/S2468-1253(17)30285-6
 - Blundell 2017: 10.1111/dom.12932
