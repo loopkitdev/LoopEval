@@ -13,17 +13,22 @@ public struct PreloadedData: Sendable {
     public let doses: [EvalInsulinDose]
     public let carbs: [EvalCarbEntry]
     public let therapyTimeline: TherapyTimeline
+    /// Scheduled basal over the dose history before the interval (the oref TDD reach, 11 days), so the
+    /// body-ISF TDD can count the scheduled basal a dose record leaves implicit (`BodyISF.calculated`).
+    public let tddBasal: [AbsoluteScheduleValue<Double>]
 
     public init(
         glucose: [EvalGlucoseSample],
         doses: [EvalInsulinDose],
         carbs: [EvalCarbEntry],
-        therapyTimeline: TherapyTimeline
+        therapyTimeline: TherapyTimeline,
+        tddBasal: [AbsoluteScheduleValue<Double>] = []
     ) {
         self.glucose         = glucose
         self.doses           = doses
         self.carbs           = carbs
         self.therapyTimeline = therapyTimeline
+        self.tddBasal        = tddBasal
     }
 }
 

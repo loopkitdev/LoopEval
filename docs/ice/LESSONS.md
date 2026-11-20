@@ -1977,3 +1977,1241 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
       wigglier; in additive's twins, with no rate term in the model, CGM-binned growth is ×1.31 and true-rate-binned
       ×1.00. The day / night excess at flat glucose is the reading that survives. Our generator has no separate sensor
       path (its CGM is the generated glucose), so the same split is not available here.
+
+168. **Moving the fade down to 70–100 helps no one; the adapting level view is closed, the base stays oc.** λ 0.5, fade
+    70–100, both trainings, same 335 edits and oc0–4 reference as lesson 162:
+
+    | | Field | oc0–4 | fade 80–120 | fade 70–100 |
+    |---|---|---|---|---|
+    | Mean, more / less insulin | −8.60 / +5.05 | −5.74 / +5.03 | −6.86 / +5.73 | −6.88 / +5.82 |
+    | TIR, more / less | +3.76 / −1.24 | +1.99 / −1.87 | +2.51 / −2.13 | +2.32 / −2.20 |
+    | t<70, more / less | +0.73 / −0.85 | +0.77 / −0.71 | +0.84 / −0.80 | +0.92 / −0.80 |
+    | t<54, more | +0.15 | +0.32 | +0.33 | +0.39 |
+    | More insulin by own-level third, low / mid / high | −5.5 / −10.0 / −9.5 | −3.1 / −5.3 / −8.7 | −3.4 / −6.2 / −10.0 | −3.8 / −6.1 / −9.9 |
+
+    - The low third moves by 0.4 mg/dL, the middle third not at all; the low side and the less-insulin overshoot get
+      worse. So the push-back left in low- and middle-level people is not the level-holding this view adapts away;
+      the view only ever released the high third. Not a level confound (own-settings levels within 1–3 mg/dL).
+    - Closed: λ 1 (lows double), λ 0.5 at either fade (a third of one direction for an overshoot in the other).
+      The plant patch stays in the frozen tree only.
+
+169. **Where the remaining push-back sits: everywhere in the day, inside each glucose band, and partly in extra
+    unannounced eating.** oc0 base runs, e pool, more-insulin edits (hour_resp.py, ice_comp.py, meal_resp.py,
+    parts_third.py in runs/2026-10-13-ice-change/):
+    - **By hour:** the generated drop in mean glucose is 0.55–0.72 of the replay's (real ICE held fixed) in every
+      4-hour block, low, middle and high thirds alike. In the middle third the field matches the replay by day
+      (−9 to −12) and exceeds it in the evening (18–24: −19 against −10), beyond what fixed ICE gives.
+    - **Low-side kernels are not it:** the ns arm (no low/high kernels, no glucose-band calibration) leaves the low and
+      middle thirds where they were (−3.5 / −5.2 against −3.4 / −5.2).
+    - **Inside the band:** mean ICE change = time moved between glucose bands + ICE change at the same glucose. Field:
+      −1.7 + 2.6 = +0.9 mg/dL/h; generated −0.7 + 4.4 = +3.7. At the same glucose the generated person raises ICE
+      1.8 mg/dL/h more than real people, in every third (low +4.1 against +2.2, middle +4.2 / +2.1, high +4.8 / +3.6).
+    - **Eating:** after more insulin the generated person eats +6.6 ± 0.5 g/day more (unannounced +5.7 ± 0.5); the
+      field +0.7 ± 3.4 (unannounced +1.5 ± 2.1). After less insulin both eat less (field −6.9 ± 3.7, generated
+      −5.1 ± 0.5). Episode counts move alike (+0.11 / +0.13 a day). The more-insulin gap is under 2 se, so suggestive:
+      at most about a third of the excess ICE.
+    - The user-bolus inputs carry user decisions only (bolus_decisions), not Loop's automatic boluses, so they are not
+      a hidden insulin channel like iob_net was.
+
+170. **Holding the unannounced meals fixed strengthens the response both ways; it does not supply the missing
+    asymmetry.** Diagnostic arm ml: the new-settings run replays the exact unannounced meals the person ate in the
+    before-settings run of the same window (PLANT_MEAL_LOG, frozen tree only), so eating cannot respond to the
+    change. Base recipe (oc), two trainings, e pool (334 scored edits):
+
+    | | Field | oc (5 trainings) | Same meals (2) |
+    |---|---|---|---|
+    | Mean, more insulin | −8.42 | −5.57 ± 0.53 | −6.83 |
+    | Mean, less insulin | +5.05 | +5.03 ± 0.28 | +6.05 |
+    | TIR, more / less | +3.64 / −1.24 | +1.95 / −1.87 | +2.41 / −2.53 |
+    | t<70, more / less | +0.74 / −0.85 | +0.77 / −0.71 | +0.91 / −0.68 |
+    | t<54, more | +0.15 | +0.32 | +0.38 |
+    | More insulin by own-level third | −5.5 / −10.0 / −9.0 | −3.1 / −5.3 / −8.6 | −3.5 / −6.2 / −10.3 |
+
+    - Eating explains about 1.3 of the 2.9 mg/dL more-insulin shortfall, but it explains 1.0 of extra response on
+      the less-insulin side too, where the base was already right. Field ratio of more- to less-insulin response is
+      1.67; oc 1.11; same meals 1.13. The generated person's eating damps both directions about equally, so
+      eating is not what makes the field asymmetric.
+    - The fade arms (162, 168) gave the same pattern (more −6.9, less +5.7 to +5.8). Every lever tried so far scales
+      the response; none gives the field's asymmetry. The low third still moves least (−3.5 against −5.5).
+    - Next question: where does the field's asymmetry come from? Candidates are the field's selection (people who
+      raise insulin are those running high and still falling) and what changes only after more insulin (fewer rescue
+      treatments, fewer corrections). The next diagnostic compares the field's more-insulin and less-insulin edits.
+
+171. **The generator's change error is all on the more-insulin side: it pushes back twice as hard as real people
+    against added insulin, and exactly as hard as they do against removed insulin.** Push-back = arm's change in mean
+    glucose minus the replay's (real ICE held fixed, the same edits and windows). oc0–4 averaged, e pool, by the oc0
+    own-settings level third; person-bootstrap se (asym.py, asym3.py in runs/2026-10-13-ice-change/):
+
+    | | Replay | Field | Generated | Field push-back | Generated push-back |
+    |---|---|---|---|---|---|
+    | More insulin, all (159) | −11.15 | −8.60 ± 1.14 | −5.74 | +2.55 ± 1.11 | +5.41 ± 0.68 |
+    | low / mid / high third | | | | +2.8 / +1.1 / +3.4 | +5.4 / +6.0 / +5.0 |
+    | Less insulin, all (139) | +9.48 | +5.05 ± 1.03 | +5.03 | −4.42 ± 1.11 | −4.44 ± 0.52 |
+    | low / mid / high third | | | | −6.2 / −3.2 / −3.5 | −6.1 / −3.4 / −3.5 |
+
+    - The replay's response is symmetric (−54 / −51 mg/dL per unit of ag); the field's is not (−41 / −22). Real
+      people cancel 47 % of a cut and 23 % of a rise; the generated person cancels 47 % of both. On the less-insulin
+      side the generator matches the field in every third to 0.2 mg/dL.
+    - So the target is a push-back that is one-sided: something that answers more insulin in the generator and not in
+      people. Lesson 170's same-meals arm removes push-back from both sides, so the eating response is not it alone.
+    - Suspect under test: iob_net subtracts a fixed basal-level IOB (median absolute IOB at 02–05 over the whole record,
+      dataset_v3.basal_iob), and the input is clipped at zero. In an arm with more basal the extra steady IOB reads as
+      pending insulin all day, which the defense answers; in an arm with less basal the deficit is mostly clipped
+      away. Loop's own IOB, what the person sees, is net of the schedule in force. Arm bi: PLANT_BASE_IOB_OWN=1, the
+      baseline is the run's own 02–05 IOB over its last 3 nights (frozen tree, probe_bi.sh).
+
+172. **Long-lag structure function (for additive): the generator matches donors by day out to 2 h and is 8–17 %
+    rougher at 4–8 h; at night it is 1.19–1.21× at every lag.** rms of cgm(t+k) − cgm(t), cgm(t) in 90–180, per
+    person, median over people. Pairs stay within one unbroken CGM run and one 14-day block of the record. Donors use
+    clean endpoints only. e pool, 273 people; base recipe (oc) training 0, own-settings pre-window runs
+    (sf_long_ice.py in runs/2026-11-01-ice-stateabl/).
+
+    | Lag (min) | 5 | 15 | 30 | 60 | 120 | 240 | 480 |
+    |---|---|---|---|---|---|---|---|
+    | Donors, all hours | 6.35 | 14.83 | 23.88 | 35.00 | 43.96 | 49.58 | 53.10 |
+    | Generated / donors, all | 1.09 | 1.05 | 1.04 | 1.05 | 1.09 | 1.12 | 1.14 |
+    | Generated / donors, day 10–22 | 1.01 | 0.99 | 0.98 | 0.99 | 1.01 | 1.08 | 1.17 |
+    | Generated / donors, night 00–06 | 1.21 | 1.19 | 1.19 | 1.19 | 1.21 | 1.18 | 1.14 |
+
+    - The donors' day row falls from 240 to 480 min (58.5 → 52.0), because the daily cycle wraps around at that lag.
+      The generator's falls less (63.3 → 60.6): its meals or day-to-day background vary more at the 4–8 h scale than
+      donors' do.
+    - Additive's twins are rougher than donors at 2–8 h by 13–27 % (their handoff 2026-11-03), as their gain/spread
+      identity predicts.
+    - On their own e-pool twins (408 people) additive's ratio is 1.03 at 5 min rising to 1.30 at 2 h at night, and
+      1.00–1.03 by day at 2–4 h. Ours is flat at night from 5 min, so the two night excesses sit at different scales
+      and are probably different mechanisms. The donors' clean-row filter is not a shared cause: without it, donor
+      night spread rises only 2–4 % (generated/donor 1.18–1.11).
+
+173. **Donors' lows fall at night in proportion to time; pooled and per-person shares agree** (for additive's handoff
+    2026-11-03-additive-ice-night-low-share.md). Share of time-below-70 samples at 00–06 local, clean rows (filter
+    off moves it ≤ 0.6 points per person). Pilot 202 donors: pooled 27.4 %, per-person median 28.1 %. e pool 273
+    donors: pooled 24.7 %, per-person median 25.5 %. Night is 26.3 / 26.6 % of samples. Lows are concentrated (the top
+    quarter of donors hold 56–60 % of low samples), but the night share does not rise with low count (Spearman
+    −0.15 / −0.16). A per-14-day-block median reads 21–26 %, depending on the minimum low count, because blocks with
+    few lows pull the median down (night_low_share.py in runs/2026-11-01-ice-stateabl/).
+    - The generator, by the same rule (base recipe (oc) training 0, pre-window own-settings runs, 268 people):
+      pooled 18.6 %, per-person median 18.7 %, flat in low count (Spearman −0.06; 20.0 / 17.6 / 19.0 / 17.0 by
+      low-count quarter, donors 26.4 / 28.6 / 21.8 / 20.9). The structure is right, but the level is 6–7 points short:
+      the generated person has too few of its lows at night, despite 1.2× the donors' night spread (lesson 172).
+      Open lead for night t<70.
+
+174. **Taking iob_net's basal baseline from the run's own nights makes the generated person respond more to both
+    directions, not only to added insulin; not kept** (tests lesson 171's hypothesis). The defense input iob_net
+    subtracts a fixed basal-IOB baseline (the donor's median 02–05 IOB over the whole record). In an arm that raises
+    basal, the extra steady IOB reads as pending insulin. The test arm (`PLANT_BASE_IOB_OWN=1`, frozen plant only)
+    replaces that baseline with the median of the run's own 02–05 IOB once an hour of night has passed. Base recipe
+    (oc) trainings 0 and 1, the 335 scored e-pool edits, mean of the two trainings (oc spread over oc0–4 after ±):
+
+    | Change in | Field | Base recipe (oc) | Own-night baseline |
+    |---|---|---|---|
+    | Mean, more insulin | −8.60 | −5.74 ± 0.56 | −6.53 |
+    | Mean, less insulin | +5.05 | +5.03 ± 0.28 | +5.60 |
+    | TIR, more | +3.76 | +1.99 ± 0.19 | +2.17 |
+    | TIR, less | −1.24 | −1.87 ± 0.06 | −1.94 |
+    | t<70, more | +0.73 | +0.77 ± 0.09 | +0.90 |
+    | t<70, less | −0.85 | −0.71 ± 0.08 | −0.83 |
+
+    - The more side moves 0.8 toward the field (z −1.7), but the less side moves 0.6 away from it (z +2.5), where the
+      base recipe already matched. The more-to-less ratio barely moves (field 1.70, oc 1.14, test 1.17). Push-back
+      against a rise falls 5.4 → 4.6 (field 2.6); against a cut it falls 4.5 → 3.9, under the field's 4.4.
+    - So the fixed baseline is not what makes push-back one-sided. Like the same-meals arm (lesson 170), this change
+      scales the whole response rather than its asymmetry. Level TIR median −6.3 / −5.5 (oc −6.0 / −5.1) and t<70 on
+      the more side rise slightly; t<54 on the less side drops 0.09 past the base recipe's.
+    - The run files were checked readable after the duplicate-launch overlap (9,748 per training, none bad).
+
+175. **The field's asymmetry is regression to the mean. With it removed, the base recipe (oc) predicts the change
+    within one standard error on mean, TIR and t<70 in both directions.** People raise insulin after a bad fortnight:
+    in the 14 days before a more-insulin edit, mean glucose was 4.7 mg/dL above the 14 days before that, and TIR
+    2.1 points below. Before a cut it was 0.9 lower. Some of the post − pre change would have happened with no edit.
+    The generator's and the replay's changes (after − before settings on the same window) contain no such drift.
+    Expected drift is taken from pseudo-edits on the same donors (967 days at least 28 days from any edit): the
+    post − pre change regressed on the pre − earlier rise, with slope −0.44 for mean (−0.46 TIR, −0.39 t<70,
+    −0.59 t<54). The field change minus that drift, by direction, person-bootstrap se (field_rtm.py,
+    field_rtm2.py, field_rtm2.csv in runs/2026-11-01-ice-stateabl/):
+
+    | | Field, raw | Field, drift removed | Base recipe (oc), 5 trainings | Replay |
+    |---|---|---|---|---|
+    | Mean, more insulin (161) | −8.47 | −6.24 ± 0.89 | −5.74 | −11.15 |
+    | Mean, less insulin (139) | +5.05 | +4.49 ± 0.93 | +5.03 | +9.48 |
+    | TIR, more / less | +3.73 / −1.24 | +2.36 ± 0.54 / −1.67 ± 0.58 | +1.99 / −1.87 | +2.89 / −2.12 |
+    | t<70, more / less | +0.71 / −0.85 | +0.60 ± 0.16 / −0.64 ± 0.15 | +0.77 / −0.71 | +2.27 / −2.26 |
+    | t<54, more / less | +0.15 / −0.12 | +0.09 ± 0.04 / −0.09 ± 0.04 | +0.32 / −0.28 | |
+
+    - With the drift removed, real people cancel 44 % of a rise and 53 % of a cut, against the replay's response:
+      symmetric, as the generated person is (47 % / 47 %). The one-sided push-back of lesson 171 was the field's
+      selection, not a generator error, so lessons 170–174 chased a gap that is mostly not there.
+    - The base recipe's change error is now inside the field's own uncertainty on every target outcome. What is
+      left is t<54: it moves 3× the field's in both directions (a guard, but the largest relative error).
+    - Limits: the drift slope treats the pre-edit rise as passing noise. Where an edit answers a lasting shift (a
+      real change in needs), less of it reverts, so the true field change lies between the raw and the adjusted
+      column. The slope's own uncertainty is not in the se. From here, change scores report both columns.
+
+176. **With change prediction inside the field's noise, the largest gap is the depth of the generated person's lows:
+    it enters lows as often as real people but goes deeper and recovers slower.** e pool, 337 scored edits, pre
+    window with the person's own settings (level_lows.py, low_course.py in runs/2026-11-01-ice-stateabl/; base recipe
+    (oc) trainings 0 / 1):
+
+    | | t<70 | t<54 | t<54 per t<70 | TIR | Mean |
+    |---|---|---|---|---|---|
+    | Field | 2.45 | 0.32 | 0.13 | 78.2 | 141.4 |
+    | Replay | 2.85 | 0.75 | 0.26 | 75.5 | 145.1 |
+    | Base recipe (oc) | 4.54 / 4.16 | 1.67 / 1.44 | 0.37 / 0.35 | 73.0 / 73.0 | 145.3 / 146.7 |
+
+    After glucose enters < 70 (2 h refractory), mean glucose at 15 / 30 / 60 / 120 min: field 70 / 85 / 107 / 119,
+    lowest within 90 min 59.6, 21 % of entries reach < 54. Base recipe 65–67 / 78–80 / 101 / 106–109, lowest 55–56,
+    31–34 %. Replay 69 / 81 / 102 / 114, lowest 57.6, 29 %. Entries per run are about the same in all three (field
+    2,390, replay 2,307, generated 9,232–9,411 over its seeds), so the excess time below 70 is depth and duration, not
+    frequency. The recovery lag runs past 60 min, where lesson 136's low-response kernel (fit on the pilot) ends.
+    Part of the depth is the harness: the replay, with real ICE, already reaches < 54 after 29 % of entries.
+    - This is also why the t<54 change is 3× the field's (lesson 175): both arms of an edit carry the deep lows.
+    - Test arm lk1.5 (low-response kernel × 1.5, frozen plant `PLANT_LOW_KERNEL_SCALE`, probe_lk.sh), both trainings:
+      kept only if t<70 and t<54 levels move toward the field without the change prediction leaving the field's
+      noise (drift-removed field, lesson 175).
+
+177. **The generated person's deep lows are the ones it enters with too much insulin: Loop has dosed into an ICE rise
+    that then collapses. A stronger low-response kernel speeds the recovery but cannot reach them; not kept.**
+    - **lk1.5 (kernel × 1.5), trainings 0 / 1, e pool:** pre-window own-settings t<70 4.54 / 4.16 → 4.26 / 3.73, t<54
+      1.67 / 1.44 → 1.57 / 1.28 (field 2.45 / 0.32). Glucose 60 min after entry 101 → 109 (field 107), but at 15 min
+      still 65–67 (field 70), lowest within 90 min 55–56 (59.6), 30–35 % of entries reach < 54 (21 %). Change
+      prediction unchanged within the oc spread (mean more −5.89, less +5.00; t<70 +0.69 / −0.60), except TIR on the
+      less side −2.04 against oc's −1.87 ± 0.06. The kernel starts at the crossing; the depth is decided before it.
+    - **The approach is the field's** (low_approach.py): glucose at −60 / −30 / −15 / −5 / 0 min 111–112 / 95–96 / 85
+      / 74–75 / 66 against the field's 117 / 98 / 85 / 74 / 66. Real people level off within 5 min (65, 67 at 10 min);
+      the generated person keeps sliding (63, 63).
+    - **By insulin on board at entry** (low_ice.py; field tercile cut points), the share of entries reaching < 54:
+
+      | | Low IOB third | Middle | High third |
+      |---|---|---|---|
+      | Field | 0.14 | 0.22 | 0.27 |
+      | Replay | 0.18 | 0.28 | 0.39 |
+      | Base recipe (oc), training 0 / 1 | 0.18 / 0.15 | 0.27 / 0.24 | 0.57 / 0.53 |
+
+      In the high third the generated person enters with 5.8–6.2 U against the field's 4.9 (replay 5.2), and insulin
+      activity runs 2.0 / 2.9 / 3.4 / 3.4 U/h at −120 / −60 / −30 / 0 min against the field's 2.1 / 2.5 / 2.7 / 2.7:
+      the extra insulin was delivered in the hour or two before the low. ICE in that hour is higher than the field's
+      (79 / 47 / 26 at −30 / −5 / 0 against 49 / 25 / 14) and falls faster into the low; after entry the generated
+      response matches the field's (163 at 30 min in both). In the low and middle thirds ICE, insulin and depth are
+      close to the field's. So the excess t<54 is a dosing-into-a-collapsing-rise pattern, partly in the harness
+      (replay 0.39) and more in the generator.
+
+178. **The generated person's high-IOB lows follow meals that deliver less than was entered and bolused for; the
+    generated meals realize about 8–16 % less ICE per entered gram than real ones.** e pool, pre window, own
+    settings, base recipe (oc) training 0 (low_parts.py, low_meal.py, ice_per_g.py in runs/2026-11-01-ice-stateabl/):
+    - **Parts of ICE before a high-IOB low** (IOB at entry ≥ 2.67 U): at −30 / −15 / 0 min, pulse 32 / 23 / 19 and
+      background 47 / 49 / 9 mg/dL/h, total 79 / 72 / 25 against the field's 49 / 38 / 13. Glucose an hour before is a
+      little lower than the field's (111 against 117), so Loop's extra insulin is not chasing a higher glucose.
+    - **A carb entry in the 4 h before:** high-IOB lows 84 % in the field, 82–88 % generated, so the meal context is
+      the field's. But for the generated ones the drawn meal tied to that entry is a median 0.62 (reaching < 54) or
+      0.72 (not) of the entry, and 41–48 % are under 0.6, against 14 % of all generated entries (median 1.13, q10
+      0.41, q90 3.62). Low and middle IOB thirds: drawn/entered median 0.96–1.31, as for all entries.
+    - **Realized ICE per entered gram** (isolated entries ≥ 15 g, mean ICE over 0–3 h minus the hour before, × 3 h):
+      field (1,619 meals) q10 / q25 / median / q75 / q90 −2.79 / 0.95 / 3.59 / 5.88 / 8.40, mean 3.05; generated
+      (5,127) −2.76 / 0.61 / 3.03 / 5.43 / 8.13, mean 2.81. Same spread and lower tail, the body about 0.4–0.6 mg/dL
+      per g lower. The per-person size scale (build_size_person.py, lesson 115) matches each person's median
+      drawn-to-entered ratio to the reconstructed field meals, not the ICE those meals realize in closed loop.
+    - Test arm sz1.15 (entry-started pulse sizes × 1.15, frozen plant `PLANT_SIZE_SCALE`, probe_sz.sh), both trainings.
+
+179. **The generator does not inherit a too-fast insulin curve: against CGM, the stock Loop curve fits the response to a
+    correction bolus best, so the plant keeps it.** Asked by simulator (2026-11-04): Loop's exponential curves are
+    PK-shaped, and clamp GIR peaks later (about 90–134 min, 5–10 % of action left at 6 h; additive evidence §3.1), so
+    ICE (= velocity + ISF × modelled activity) could carry a curve artifact.
+    - **Where the curve is used.** Extraction (`extract.py`, the donor's Loop preset: adult 75 / child 65 / ultra-rapid
+      55 min peak, 6 h, 10 min delay), so the training targets too; the plant body (`plant_v3.Insulin`, same presets),
+      so replay identity holds; the person's pending-insulin input (plant IOB minus the basal IOB, same curve and net
+      convention as Loop's IOB). Curve-free: ISF_tdd (688 / TDD^0.74, from total daily delivery). GE is off in the base
+      recipe (oc) (`ge_sg` 0). The meal, low and band calibrations are fitted in closed rollouts through the same
+      plant curve, so they are consistent with it.
+    - **Fasting corrections, ice data** (fasting_corr*.py in runs/2026-11-04-ice-curve/; manual boluses ≥ 1 U, no
+      carbs from −3 h to +6 h, no other manual bolus; 1,213 events in 207 e-pool donors, 347 with steady glucose
+      before). Raw event means are set by the trigger: ICE is +27 mg/dL/h in the 15 min before (a rise being
+      corrected), and every curve shows the same fall afterwards. Regressing ICE on dose × ISF_tdd within donor, with
+      pre-bolus velocity and glucose as controls, a bigger correction raises ICE in proportion to the modelled
+      activity under every curve tried (peak 75 / 100 / 120 / 140 min). The residual area is 68–88 % of the expected
+      fall. Confounding by indication dominates: bigger corrections go to bigger unrecorded rises. The test cannot
+      tell the curves apart, and under the stock curve it shows no late negative lobe, which a curve that acts too
+      early would leave.
+    - **Shape fit, simulator** (runs/2026-11-04-plant-curve-ice/; 440 steady-high carbless corrections, 72 v32 donors,
+      shape and scale fitted together with a per-event drift). For rapid-acting donors, peak 75 fits best; peak 100 is
+      +5.5 % SSE [+0.7, +10] and peak 120 clearly worse. A 7–8 h tail is about 0.5 % better. For ultra-rapid donors,
+      peak 75–100 beats the 55 preset (+4.5 %). On the stock curve the mean residual is −11 mg/dL at 60–90 min and +5
+      at 3–4 h: the free-living CGM response comes early and partly rebounds. Clamp GIR measures action with glucose
+      held flat; the free-living response includes the body's restoring force.
+    - **So** a slower plant curve with ICE re-extracted on it is not supported, and the full rebuild (re-extraction of both
+      pools plus a 12 h chain on gamepc) was not run. Two small leads remain: the ultra-rapid preset (55) may be
+      too fast for the body (about 4 % SSE), and if GE is ever turned on in the plant it would double-count the
+      rebound that stock-curve ICE already carries.
+
+180. **Drawing entry-started meals 15 % larger (sz1.15) is not kept: realized ICE per gram reaches the field's, but the
+    lows barely move and level TIR gets worse.** e pool, both trainings, against the base recipe (oc) (probe_sz.sh,
+    wait_sz.sh; runs/2026-11-01-ice-stateabl/):
+    - **Per gram:** median 3.28 / 3.19 and mean 3.03 / 3.04 mg/dL per g against oc 3.03 / 2.81 and the field's
+      3.59 / 3.05.
+    - **Level lows** (field 2.45 / 0.32): t70 4.33 / 3.93 against oc 4.54 / 4.16; t54 1.58 / 1.34 against 1.67 / 1.44.
+      The high-IOB third's < 54 share is unchanged (0.57 / 0.52 against 0.57 / 0.53).
+    - **Level TIR median** against the field: −7.5 / −6.5, against oc −6.0 / −5.1. The five oc trainings span −4.1 to
+      −6.0, so this is a regression; mean level rises 146 → 149 mg/dL.
+    - **Change prediction** stays within noise of oc: more insulin TIR +2.21 against +1.95 (field +3.63); less TIR
+      −2.04 against −1.87 (field −1.24, z −3.6); t70 +0.67 / −0.65 against +0.74 / −0.71.
+    - **Why it can't work:** the field's reconstructed announced meals (158,302 meals, 468 donors) have a size-to-entry
+      ratio of median 1.11, q10 0.39, q90 3.26, with 22 % under 0.6. The generator draws median 1.13 with 14 % under
+      0.6. So meals that deliver less than was entered are at least as common in the field, and a uniform size scale
+      only adds glucose everywhere.
+    - **ICE after isolated entries, by IOB 15 min before** (ice_course.py; field cuts 1.52 / 2.79 U):
+      - High-IOB third: field and generated agree (+31 / +33 / +31 against +31 / +38 / +35 mg/dL/h at 15 / 30 / 45
+        min, with the same fall below zero after 3 h).
+      - Low-IOB third: the generated peak is short (66 against 88 at 30 min, 59 against 90 at 45 min). That is where
+        the per-gram shortfall sits, not in the meals before the high-IOB lows.
+    - **Method trap:** binning by IOB *at* the entry step mixes conventions. In the field the meal bolus is already in
+      that step's IOB; in the plant log it lands a step later. Binned that way, generated high-IOB entries look rare
+      (235 against 540) and seem to collapse to −50 mg/dL/h. Bin on IOB before the entry.
+
+181. **Before the generated high-IOB lows, the extra insulin is Loop's automatic delivery, not the person's boluses;
+    generated background ICE is noisier at short lags than the field's.** e pool, pre window, own settings, base
+    recipe (oc) training 0 (runs/2026-11-01-ice-stateabl/):
+    - **Small entries are not missing** (entry_rate.py, entry_bg.py, entry_near.py). The field logs 6.18 entries a day
+      against 5.20 generated, all of the gap in entries of 15 g or less (2.83 against 1.72 a day; carbs a day 149
+      against 140). But 72 % of the field's small entries sit within 30 min of another entry: one meal entered in
+      pieces. Isolated small entries are more common generated (1.12 against 0.79 a day).
+    - **Size against entry by pre-entry IOB** (meal_by_iob.py): the generated draw is close to the reconstructed field
+      meal in every IOB third (median 1.32 / 1.13 / 1.02 against 1.58 / 1.26 / 0.93).
+    - **Insulin in the 3 h before crossing 70** (low_dose.py; person boluses = engine boluses within 2 min of a plant
+      bolus action):
+
+      | IOB at crossing | Person boluses, field / gen | Loop automatic (boluses + basal), field / gen | < 54 share, field / gen |
+      |---|---|---|---|
+      | Low third | 0.25 / 0.15 U | 1.11 / 1.03 U | 0.14 / 0.18 |
+      | Middle | 1.06 / 0.80 | 2.20 / 2.42 | 0.22 / 0.27 |
+      | High third | 4.49 / 4.69 | 3.18 / 4.80 | 0.27 / 0.57 |
+
+      The person doses as in the field; Loop delivers 1.6 U more in the high third. IOB at the crossing is
+      4.92 / 5.19 / 5.82 U for field / replay / generated, so about a third of the excess is the harness and two
+      thirds the generator. Loop doses into the higher generated ICE of the half hour before (79 against 49 mg/dL/h
+      at −30 min), mostly background (47).
+    - **Background persistence** (bg_acf.py; 15-min ICE means with no entry in the 3 h before): the mean after a
+      15-min ICE above +40 is the field's (63 / 56 / 49 / 52 against 61 / 56 / 51 / 53 at 15 / 30 / 60 / 90 min).
+      But the generated sd is 57.8 against 53.5, and autocorrelation at 15 / 30 min is 0.29 / 0.16 against 0.39 /
+      0.21: about 22 mg/dL/h of extra uncorrelated spread. Momentum and retrospective correction dose on that noise.
+    - Test arm sp0.9 (background-ICE draws shrunk ×0.9 toward the predicted mean, `BGICE_SPREAD`, probe_sp.sh), both
+      trainings. Keep only if the short-lag spread and autocorrelation move toward the field's, the high-third
+      automatic insulin and < 54 share fall, and change prediction stays within noise.
+
+182. **Shrinking the background-ICE draw ×0.9 brings the absolute level close to the field's but dulls the response to
+    a settings change: not kept; ×0.95 under test.** Arm sp0.9 against the base recipe (oc), both trainings, e pool,
+    333 scored edits (runs/2026-11-01-ice-stateabl/probe_sp.sh, `BGICE_SPREAD=0.9`):
+    - **Level, own settings, pre window** (field / oc trainings 0–1 / sp0.9 trainings 0–1): t<70 2.45 / 4.54, 4.16 /
+      3.63, 3.41; t<54 0.32 / 1.67, 1.44 / 1.19, 1.02; TIR 78.2 / 73.0, 73.0 / 76.7, 76.9; mean 141.4 / 145.3, 146.7 /
+      141.4, 142.3. Median per-person TIR level −2.0 / −0.9, against −4.1 to −6.0 across five oc trainings. The
+      largest level gain of any arm so far.
+    - **Background overshoots:** sd 47.8 / 47.0 (field 53.5, oc 57.8); autocorrelation at 15 min 0.48 / 0.50 (field
+      0.39, oc 0.29). Shrinking the draw 10 % cut the sd 17 %: fewer lows, fewer rescue swings. So ×0.9 is too far.
+    - **High-IOB lows:** < 54 share in the high-IOB third 0.51 / 0.46 (oc 0.57, field 0.27). Loop's automatic insulin
+      in the 3 h before crossing 70 is 4.6 / 4.7 U (oc 4.8, field 3.2). It moved only a little, so background noise is
+      a small part of the extra automatic insulin.
+    - **Change prediction** (more-insulin / less-insulin edits; field, oc mean ± sd over five trainings, sp0.9):
+      - mean −8.46 (−6.24 drift-removed) / −5.50 ± 0.53 / −4.79; +5.05 / +5.03 ± 0.28 / +4.43 (z −2.6);
+      - TIR +3.68 (+2.36) / +1.95 / +1.72; −1.24 / −1.87 / −1.80;
+      - t<70 +0.72 (+0.60) / +0.74 ± 0.10 / +0.51 (z −2.8); −0.85 / −0.71 / −0.52 (z +2.8);
+      - t<54 +0.14 / +0.31 / +0.17; −0.12 / −0.28 / −0.20. t<54 change moves to the field's.
+      - Per-edit correlation with the field: t<70 0.20 / 0.15 against 0.22–0.31 for oc; mean 0.41 / 0.36 against
+        0.39–0.48.
+      The generated person responds less to a settings change in both directions. With a quieter, more predictable
+      background, Loop absorbs more of the change. The less-insulin response falls short of the field's, where oc
+      matched it.
+    - **Verdict:** fails the keep bar (change prediction regresses beyond noise on the less side and in t<70
+      correlation), though it fixes most of the level gap. The overshoot in sd and autocorrelation says the field sits
+      between ×0.9 and ×1. Arm sp0.95 (both trainings, pinned to CPUs 4–15) tests whether half the shrink keeps most of
+      the level gain without losing the response.
+
+183. **Shrinking the background-ICE draw ×0.95 is kept: the background's spread and persistence match the field's, the
+    level gap narrows beyond training noise, and change prediction holds.** New base = oc with `BGICE_SPREAD=0.95`
+    (sp0.95). Both trainings, e pool, 334 scored edits (probe_sp.sh, wait_sp95.sh):
+    - **Background shape** (bg_acf.py; field / oc / sp0.95 trainings 0–1): sd 53.5 / 57.8 / 52.0, 51.0;
+      autocorrelation at 15 / 30 / 60 min 0.39 / 0.21 / 0.09 against oc 0.29 / 0.16 / 0.07 and 0.39, 0.41 / 0.21, 0.20 /
+      0.09, 0.10. The mean after a 15-min ICE above +40 is unchanged and still the field's.
+    - **Level, own settings, pre window** (field / oc 0–1 / sp0.95 0–1): t<70 2.45 / 4.54, 4.16 / 3.95, 3.67; t<54 0.32
+      / 1.67, 1.44 / 1.35, 1.17; TIR 78.2 / 73.0, 73.0 / 74.8, 75.3; mean 141.4 / 145.3, 146.7 / 143.9, 143.9. Median
+      per-person TIR against the field −3.6 / −2.6, outside the five oc trainings' −4.1 to −6.0. High-IOB third < 54
+      share 0.54 / 0.49 (oc 0.57 / 0.53, field 0.27).
+    - **Change prediction** (field, drift-removed in brackets where known / oc mean ± sd of five / sp0.95):
+      - mean, more insulin −8.53 (−6.24) / −5.62 ± 0.53 / −5.40; less +5.05 / +5.03 ± 0.28 / +4.74 (z −1.3);
+      - TIR +3.74 (+2.36) / +1.99 / +1.98; −1.24 / −1.87 / −1.91;
+      - t<70 +0.72 (+0.60) / +0.74 ± 0.10 / +0.58 (z −2.0); −0.85 / −0.71 ± 0.08 / −0.57 (z +2.0);
+      - t<54 +0.14 / +0.31 ± 0.04 / +0.22; −0.12 / −0.28 ± 0.04 / −0.23. Both closer to the field.
+      - Per-edit correlation with the field: TIR 0.23 / 0.28, t<70 0.25 / 0.24, mean 0.42 / 0.38, all inside oc's
+        range (0.23–0.32, 0.22–0.31, 0.39–0.48) bar mean training 1 at its edge.
+    - **Verdict:** kept. TIR change is unchanged. t<54 change and the level move toward the field beyond noise. t<70
+      change on more insulin moves to the drift-removed field (+0.58 against +0.60) but undershoots on less insulin by
+      the same amount (−0.57 against −0.85). Summed t<70 change error is unchanged, 0.28 against 0.30. The remaining
+      cost is a slightly dull less-insulin response (mean +4.74 against +5.05), within 1.3 sd.
+    - Lesson 182's ×0.9 overshot both shape statistics (sd 47, autocorrelation 0.49) and dulled the response further,
+      so the field sits near ×0.95. The level lows that remain (t<70 3.8 against 2.45) are not background noise. They
+      sit in the high-IOB third, where Loop's automatic insulin before crossing 70 is still 4.6 / 4.7 U against 3.1 (oc 4.8).
+
+184. **The ×0.95 background shrink does not hold on trainings 2–3: the level gain repeats, but the response to a
+    settings change dulls beyond noise, so lesson 183's keep is withdrawn and the base recipe (oc) stays the base.**
+    Trainings 2 and 3, e pool, 335 scored edits (probe_sp_oc.sh, wait_sp95b.sh):
+    - **Level, own settings, pre window** (field / oc 2–3 / sp0.95 2–3): t<70 2.45 / 4.37, 4.70 / 3.74, 4.00; t<54 0.32
+      / 1.51, 1.69 / 1.18, 1.29; TIR 78.2 / 74.3, 72.6 / 76.3, 74.4; mean 141.4 / 144.1, 146.3 / 142.1, 145.2. The same
+      gain as trainings 0–1 (t<70 about −0.6, TIR about +1.9). Median per-person TIR against the field −1.9 / −3.9.
+    - **Background shape:** sd 52.8 / 53.5 (field 53.5); autocorrelation at 15 / 30 / 60 min 0.35, 0.36 / 0.17, 0.18 /
+      0.06, 0.08 against the field's 0.39 / 0.21 / 0.09, slightly under where trainings 0–1 matched.
+    - **Change prediction** (field, drift-removed in brackets / oc mean ± sd of five / sp0.95 2–3):
+      - mean, more insulin −8.60 (−6.24) / −5.74 ± 0.56 / −4.84 (z +1.9); less +5.05 / +5.03 ± 0.28 / +4.62 (z −1.8);
+      - TIR +3.76 (+2.36) / +1.99 ± 0.19 / +1.62 (z −2.3); −1.24 / −1.87 ± 0.06 / −1.98 (z −2.4);
+      - t<70 +0.73 (+0.60) / +0.77 ± 0.09 / +0.63 (z −1.8); −0.85 / −0.71 ± 0.08 / −0.54 (z +2.5);
+      - t<54 +0.15 / +0.32 / +0.20; −0.12 / −0.28 / −0.20;
+      - per-edit correlation with the field: TIR 0.26 / 0.24, t<70 0.19 / 0.23, mean 0.41 / 0.39, at the low end of oc's
+        range.
+    - **Verdict:** not kept. Over four trainings every response measure except t<54 moves the same way, away from the
+      field: the generated person reacts less to more or less insulin. TIR and the less-insulin t<70 change lose about
+      2 sd on trainings 2–3. Two trainings were not enough to see it; lesson 183 read a 1–2 sd dulling as noise.
+      Change prediction is the use case, so the level gain does not pay for it.
+    - **What it says about the lows that remain:** in the field, the more-insulin edits add t<70 equal to about 29% of
+      the starting level (0.72 on 2.45). The generator adds about 16% under both recipes (0.74 on 4.4; 0.60 on 3.8).
+      The generator's surplus lows barely respond to insulin, and shrinking the background removes responsive and
+      unresponsive lows alike. The next fix should take out lows that do not move with insulin and leave the
+      insulin-driven ones.
+    - Watcher pitfall: level_lows.py names each run dir by its training (`rd[8:11]`), so a base and an arm of the same
+      training overwrite each other in one call. Run it once per dir.
+
+185. **Most generated low time does not move with a settings change: about 80 % falls at the same moments under both
+    settings. Those shared lows are the deep ones, entered through a sharp ICE drop. The drops themselves have the
+    field's size; the generator has more entries, recovers more slowly in the first minutes, and more of its entries
+    go below 54.** Base recipe (oc) training 0, e pool, scored edits (runs/2026-11-01-ice-stateabl/low_pair.py,
+    low_dip.py):
+    - **Pairing:** each edit's before-settings and after-settings rollouts share window and seed. Low time (< 70) is
+      split into shared (low in the other arm within ±15 min), only-before and only-after. More-insulin edits: low
+      minutes +19 %, of which shared stay level and only-after time almost doubles the only-before time (274 k against
+      144 k). Less-insulin: −15 %. Training 1 is the same (+15 %, −12 %).
+    - **Shared against unshared lows** (more-insulin edits, after arm): lowest glucose 52.6 against 59.4; least ICE
+      within 30 min of entry −72 against −62 mg/dL/h. The 2 h before is alike: background ICE 33.5 / 35.0, meal pulse
+      28.6 / 25.5, IOB 3.27 / 3.03 U, insulin activity 1.87 / 1.95 U/h, glucose 2 h before 120 / 122, night share 0.27
+      / 0.31. Compression dips are rare (comp below −5 in few entries) and do not explain them.
+    - **ICE drop at entry, field / generated / replay:** least ICE within 30 min, 10th / 25th / 50th / 75th percentile
+      −170 / −105 / −52 / −14 against −173 / −112 / −55 / −14 and −173 / −104 / −52 / −13. The size of the drops is
+      the field's. But the generator enters 70 about 30 % more often per run (9,613 entries over three seeds against
+      2,453), and more entries reach < 54 even without a sharp drop (0.32 against 0.17 where the least ICE stays above −100).
+    - **ICE just after entry** (low_ice.py): +5 min 36 against the field's 54 mg/dL/h (low IOB third 8 against 26, high
+      third 71 against 89); 75–90 min 61 / 53 against 74 / 71. By 15–30 min it is the field's. The generated rescue
+      starts about 5 min late and fades earlier.
+    - **Reading:** the excess lows are not the insulin-responsive kind. Removing background noise (lessons 182–184)
+      takes out lows that move with insulin and lows that do not, alike. The levers left are how often the person
+      drifts down to 70 and how fast the response starts once there. The share of lows that respond to insulin falls
+      with them: field t<70 rises 0.72 on 2.45 under more insulin (24 % drift-removed), the generator 0.74 on 4.4 (17 %).
+
+186. **Starting the low response at 75 instead of 70 changes nothing; not kept. Correction to lesson 176: the
+    generator enters lows about 30 % more often than the field, not as often.** Arm lk75 (frozen plant
+    `PLANT_LK_THR=75`, probe_lk.sh), trainings 0 and 1, e pool, 335 scored edits:
+    - **Change prediction** (field / oc mean ± sd of five / lk75): mean, more insulin −8.60 / −5.74 ± 0.56 / −5.91;
+      less +5.05 / +5.03 ± 0.28 / +5.04; TIR +3.76 / +1.99 ± 0.19 / +2.09, −1.24 / −1.87 ± 0.06 / −1.82; t<70 +0.73 /
+      +0.77 ± 0.09 / +0.76, −0.85 / −0.71 ± 0.08 / −0.71; t<54 +0.15 / +0.32 / +0.34, −0.12 / −0.28 / −0.29. Every z
+      within ±1. Per-edit correlation TIR 0.31 / 0.31, t<70 0.27 / 0.28, mean 0.49 / 0.42, oc's.
+    - **Level, own settings, pre window, training 0:** t<70 4.49 (oc 4.54), t<54 1.68 (1.67), TIR 72.9 (73.0), mean
+      145.8 (145.3). Training 1's level table was lost to a gamepc reboot; its median per-person TIR is oc's (−5.1).
+    - Moving the trigger 5 min earlier does not reach the depth, as lesson 177 found for a stronger kernel: the low
+      is set before the response starts.
+    - **Correction:** lesson 176 compared entry totals (generated 9,232–9,411 against field 2,390) as if per run, but
+      the generated total is over three seeds. Per run the generator enters < 70 about 3,100 times against the
+      field's 2,400, +30 % (lesson 185 has the same from low_dip.py: 9,613 / 3 against 2,453). The excess time below
+      70 is frequency as well as depth.
+
+187. **The extra entries below 70 are the generator's, not the harness's, and they start from glucose already under
+    120 with ICE pushing up.** Entries per person-day, pre window, own settings, clean rows, 2 h refractory (base
+    recipe (oc) training 0; low_rate.py in runs/2026-11-01-ice-stateabl/):
+
+    | | Field | Replay | Generated |
+    |---|---|---|---|
+    | All entries | 1.14 | 1.10 | 1.41 |
+    | IOB at entry, low / middle / high third (field cuts) | 0.38 / 0.39 / 0.38 | 0.34 / 0.38 / 0.38 | 0.50 / 0.41 / 0.50 |
+    | Glucose 60 min before < 90 / 90–120 / 120–160 / > 160 | 0.19 / 0.42 / 0.30 / 0.23 | 0.20 / 0.41 / 0.27 / 0.22 | 0.31 / 0.55 / 0.33 / 0.23 |
+    | Mean ICE 60–30 min before < 0 / 0–40 / 40–80 / > 80 | 0.21 / 0.38 / 0.26 / 0.30 | 0.17 / 0.36 / 0.26 / 0.31 | 0.20 / 0.45 / 0.34 / 0.42 |
+    | Night (22–6) / day | 0.32 / 0.83 | 0.29 / 0.81 | 0.40 / 1.01 |
+    | Share reaching < 54 | 0.22 | 0.29 | 0.34 |
+
+    - With the measured ICE the harness enters lows at the field's rate (1.10 against 1.14), so the +24 % is the
+      generator. Its share reaching < 54 adds to it: the replay's 0.29 is the harness, the rest the generator.
+    - The excess starts low and slow: all of it from glucose under 120 an hour before, none from above 120; none
+      where ICE was falling (< 0) an hour before, all where it was positive. The generated person drifts across 70
+      from the 80–120 range while counteraction is pushing up. Real people in that state mostly stay above.
+    - It is spread over night and day in proportion, and over both the low and high IOB thirds (not the middle).
+    - Next: compare time spent in 70–120 and the glucose and ICE course in it, field against generated, to see
+      whether the generated person spends longer there or crosses from it more often per hour spent.
+
+188. **The generated person does not spend longer near 70; it falls fast through 80–120 more often, and each fast fall
+    looks like a real one. Judged against the drift-removed field, lesson 184's background shrink is a trade, not a
+    loss.** Base recipe (oc) training 0, pre window, own settings (low_rate.py):
+    - **Hours a day in 70–80 / 80–90 / 90–100 / 100–120:** field 0.90 / 1.52 / 2.05 / 4.83, replay 0.86 / 1.39 / 1.90 /
+      4.55, generated 0.97 / 1.51 / 1.90 / 4.14. **Share of that time falling faster than 30 mg/dL/h:** field 0.22 /
+      0.22 / 0.23 / 0.25, replay the same, generated 0.26 / 0.26 / 0.28 / 0.30.
+    - **During fast falls in 80–120,** ICE now / 30 / 60 min before 21 / 46 / 56 field, 22 / 47 / 56 replay, 26 / 48 / 55
+      generated; insulin activity 1.37 / 1.34 / 1.30, 1.38 / 1.34 / 1.29, 1.41 / 1.36 / 1.29 U/h. The mechanism is the
+      field's: a counteraction that fades over the hour, with the insulin of the moment. The generator only has more of
+      these fades, which is the excess short-lag background spread of lesson 181.
+    - **Lesson 184 re-read against the field's own target.** The z-scores in 182–184 measure distance from the base
+      recipe, not from the field. Against the drift-removed field (lesson 175, its person-bootstrap se), error / se of
+      oc against sp0.95 (four-training mean): mean more 0.56 / 1.26, less 0.58 / 0.20; TIR more 0.69 / 1.04, less 0.34
+      / 0.48; t<70 more 1.06 / 0.03, less 0.47 / 0.57. Summed 3.70 against 3.58. The t<54 change, the largest relative
+      error, falls from 3.4× the field's to 2.3×. So the shrink trades a duller more-insulin response in mean and TIR
+      for better t<70 and t<54 change and level. Lesson 184 stands as not kept on the rule (response measures moved
+      beyond training noise), but the response error against the field did not grow overall.
+    - **Test arm spown:** shrink ×0.95 plus lesson 174's own-night iob_net baseline (`PLANT_BASE_IOB_OWN=1`), which
+      strengthened the response both ways by about as much as the shrink weakens it. All four trainings (0–3,
+      probe_spown.sh, 0 and 2 then 1 and 3 in sequence, CPUs 4–15). Kept if the level and t<54-change gains of the
+      shrink hold and the mean, TIR and t<70 change stay within the base recipe's training spread or move toward the
+      drift-removed field.
+
+189. **The background shrink ×0.95 combined with the own-night insulin-on-board baseline (spown) keeps the shrink's
+    gain in level lows and restores the change response in mean glucose, t<70, and TIR when insulin increases. It loses
+    the shrink's t<54-change gain, and it overstates the TIR loss when insulin decreases by about 0.1 point on all four
+    trainings. Not kept on the rule; the trade is put to Pete.**
+    Trainings 0–3, e pool, 333 scored edits (probe_spown.sh, score_spown.sh):
+    - **Level, own settings, pre window** (field / oc 0–3 / spown 0–3): t<70 2.45 / 4.54, 4.16, 4.37, 4.70 / 3.96, 3.66,
+      3.72, 4.07; t<54 0.32 / 1.67, 1.44, 1.51, 1.69 / 1.36, 1.18, 1.21, 1.37; median per-person TIR against the field
+      −6.0, −5.1, −4.1, −5.7 / −4.0, −3.2, −2.7, −4.2. These are the same gains as the shrink alone (lessons 183–184).
+    - **Change prediction** (field, drift-removed in brackets / oc mean ± sd of five / spown four-training mean, z
+      against oc's spread):
+      - mean glucose: more insulin −8.46 (−6.24) / −5.50 ± 0.53 / −5.51 (z 0.0); less +5.05 (+4.49) / +5.03 ± 0.28 /
+        +5.09 (z +0.3);
+      - TIR: more +3.68 (+2.36) / +1.95 ± 0.18 / +1.91 (z −0.4); less −1.24 (−1.67) / −1.87 ± 0.06 / −1.98 (z −3.0).
+        Per training −1.90, −2.01, −2.03, −1.99 against oc's −1.80 to −1.94;
+      - t<70: more +0.72 (+0.60) / +0.74 ± 0.10 / +0.73; less −0.85 (−0.64) / −0.71 ± 0.08 / −0.69;
+      - t<54: more +0.14 / +0.31 ± 0.04 / +0.29; less −0.12 / −0.28 ± 0.04 / −0.30. The shrink alone gave +0.20 / −0.20.
+        The own-night baseline gives back all of that gain;
+      - per-edit correlation with the field: TIR 0.23–0.27, t<70 0.24–0.31, mean 0.38–0.46, all inside oc's range.
+    - **Against the drift-removed field,** error / se summed over mean, TIR, and t<70 in both directions (same 333 edits):
+      oc 3.86, spown 3.97. Change prediction is unchanged within noise.
+    - **Verdict:** not kept on the bar set in lesson 188. The level gain holds. The t<54-change gain does not. The TIR
+      change when insulin decreases moves away from the field: 0.11 point, beyond oc's training spread of 0.06 but 0.2
+      of the field's se. This is the first arm that lowers level lows on four trainings without dulling the response in
+      mean glucose, TIR when insulin increases, or t<70. Whether a realism gain in level that leaves change prediction
+      the same is worth keeping is a question of what the generator is for, so it goes to Pete.
+    - The own-night baseline strengthens every response, the t<54 one included. So it cannot both offset the shrink's
+      dulling and keep the shrink's t<54 gain. A fix aimed at the fast-fall excess of lesson 188 has to act on the
+      short-lag spread alone, not on the whole background.
+
+190. **A fifth training confirms lesson 189: the background shrink plus own-night baseline (spown) overstates the TIR loss
+    when insulin decreases on every training, so on the rule it is not kept.** Training 4, e pool, 333 edits, five
+    trainings of spown against the base recipe's (oc) five (score_spown5.sh):
+    - TIR change, less insulin: spown −1.90 / −2.01 / −2.03 / −1.99 / −1.95 against oc −1.80 to −1.94 (field −1.24,
+      drift-removed −1.67); z −3.0 unchanged. Every other change measure is inside oc's spread: mean −5.63 / +5.08, TIR
+      more +1.96, t<70 +0.74 / −0.68, t<54 +0.28 / −0.28 (|z| ≤ 0.8).
+    - Error / se against the drift-removed field, summed over mean, TIR and t<70 in both directions: oc 3.86, spown 3.74.
+    - Level, training 4: t<70 3.62, t<54 1.07, TIR 75.2; median per-person TIR against the field −3.5 (oc4 −5.2).
+    - So the trade stands as lesson 189 put it: level lows closer to the field on five trainings out of five, change
+      prediction unchanged against the field, one change measure 0.1 point further from it. Pete's call.
+
+191. **New base recipe (Pete, 2026-11-08): the base recipe (oc) with the background draw narrowed ×0.95
+    (`BGICE_SPREAD=0.95`) and the own-night insulin-on-board baseline (`PLANT_BASE_IOB_OWN=1`).** Adopted on lessons
+    189–190. Low time is closer to the field on all five trainings; change prediction against the drift-removed field is
+    unchanged (3.74 against 3.86). The cost is that it overstates the TIR loss on less-insulin edits by 0.1 point.
+    Its five trainings are runs_v32oc{0-4}TcB2FGUCGLBGGSKaLKELsp0.95own_v32st_noslow_e; later arms are built on it and
+    scored against those five. Probes already running on the old base (the announcement and clock tests of lessons
+    192 on) are paired within it, and any fix they keep is re-checked on the new base before it is frozen for frontier.
+
+192. **Per-edit skill is real but modest, and replay ranks edits better than the generator on time below 70 and mean
+    glucose. The generator's lead is size, not ranking.** e pool, 333–337 edits, five trainings averaged, predictions
+    from the pre-edit window alone (score_change.py `SC_WINS=pre`; peredit.py, field_rtm2p.py in
+    runs/2026-11-01-ice-stateabl/). Pearson r of predicted against field change, drift removed (lesson 175), 90% bootstrap:
+    | | TIR | t<70 | mean |
+    |---|---|---|---|
+    | New base (lesson 191) | 0.30 [0.21, 0.39] | 0.27 [0.14, 0.38] | 0.39 [0.30, 0.52] |
+    | Old base (oc) | 0.33 [0.24, 0.42] | 0.20 [0.07, 0.33] | 0.40 [0.30, 0.52] |
+    | Replay | 0.30 [0.20, 0.39] | 0.38 [0.25, 0.50] | 0.47 [0.40, 0.54] |
+    - Removing the drift barely moves r, so the skill is not regression to the mean lining up with edit direction.
+    - Within one direction the generator's r drops: TIR 0.17 (more) / 0.22 (less), t<70 0.17 / 0.04, mean 0.20 / 0.22.
+      Replay holds t<70 at 0.27 / 0.42 and mean at 0.36 / 0.17. The generator knows the size of a type of change; it ranks
+      edits of the same type less well than replay does, most of all on the low side.
+    - Averaging in the post-edit window (the scorer's default) changes nothing material: replay's lead is not from seeing
+      the future.
+    - The "noise ceiling" from real-edit against pseudo-edit spread (TIR 7.49 against 7.07, so r ≤ 0.33; t<70 0.34; mean
+      0.45) is not a ceiling: replay's mean r exceeds it. Pseudo-edit change is not a clean stand-in for the noise at a
+      real edit, so it cannot bound skill. Lesson 139's "near the noise ceiling" reading is withdrawn.
+    - What this sets as a target: per-edit ranking within a direction on t<70 and mean, where replay is ahead while
+      overstating size about 2×. The generator's person reacts to the new settings; replay keeps the old disturbance. Why
+      the frozen disturbance ranks better is the next question.
+
+193. **Feeding a dropped carb entry back to the person as eaten (PLANT_SHADOW_ENTRY=1) brings back only a quarter of
+    the background food lost when entries are switched off, and costs another 3.8 TIR points.** oc0, e pool, pre-edit
+    window, own settings, 1,023 runs per arm (runs/2026-11-07-ice-habit/ann_parts.py). With ANNOUNCE=0 each entry the
+    person would have made is dropped from Loop; under the shadow arm the person still counts it as food in their own
+    inputs. Medians per run:
+    | | entries on | entries off | off + shadow |
+    |---|---|---|---|
+    | ICE per day | 1699 | 1404 | 1471 |
+    | meal-pulse ICE per day | 723 | 792 | 689 |
+    | background after a meal | 42.5 | 21.2 | 31.9 |
+    | meals per day | 6.6 | 7.2 | 6.5 |
+    | mean glucose | 146 | 155 | 163 |
+    | TIR | 72.7 | 68.9 | 65.1 |
+    | t<70 | 3.6 | 2.3 | 1.5 |
+    - With entries off, the person draws more and larger meal pulses (7.2 a day), which hides part of the background loss.
+      The shadow puts the meal count and pulse size back to the entries-on level and recovers half of the after-meal
+      background, but the total stays 228 mg/dL·day short of entries-on.
+    - Same-clock habit of the background (sk_rest) stays at 0.13 against 0.25 with entries on: the entry was carrying the
+      daily rhythm, and the shadow doesn't bring it back.
+    - Which no-entry TIR is right (−3.8 or −7.6 against entries on) cannot be read off these runs: no-entry candidates
+      need a real-data anchor (days or people with few entries, matched on intake) before the shadow is frozen for
+      frontier. Kept off by default until then.
+
+194. **A per-person clock on meal-start timing alone halves the habit-predictability gap without new lows; the clock's
+    background and meal-size parts add lows and are dropped.** oc0, e pool, pre-edit window, own settings, 220 rollouts
+    paired with the same people's real days (runs/2026-11-07-ice-habit/build_clock.py, meal_eval.py; frontier's
+    meal_stats detector). Simulated minus own real days, mean ± bootstrap se:
+    | | base | full clock | meal timing only |
+    |---|---|---|---|
+    | habit_skill | −0.103 ± 0.013 | −0.085 ± 0.015 | −0.051 ± 0.013 |
+    | habitual_excess | −0.104 | −0.091 | −0.100 |
+    | meals per day | +0.77 | +0.65 | +0.64 |
+    | meal_jitter_min | +7.5 | +6.2 | +7.1 |
+    | level t<70 / TIR | 3.61 / 75.0 | 4.26 / 73.6 | 3.32 / 74.8 |
+    - These clocks were fitted on all of each person's real days, the scored days included. A refit leaving the scored
+      days out (`HELDOUT=1 MEAL_ONLY=1`, on the new base for trainings 0 and 1) agrees with the in-sample offsets at
+      r 0.86; its runs are the test that decides it.
+    - The meal clock moves the average daily profile, not the day-to-day repetition: habitual_excess (habit against a
+      clock-shuffled null) is unchanged. The remaining habit gap needs meal times that follow the person's own previous
+      days, which a fixed profile can't give.
+    - Showing the person's model the meal bolus that a dropped entry would have carried (PLANT_SHADOW_BOLUS=1, not
+      delivered) changes nothing beside lesson 193's shadow entry (ICE 1480 against 1471 per day, TIR 65.1 both). The
+      missing bolus input is not why no-entry food stays short.
+
+195. **Fitted on held-out days, the meal-timing clock closes a sixth of the habit gap, not half: most of lesson 194's
+    gain was in-sample fit. Not added to the base.** New base (lesson 191), trainings 0 and 1, pre-edit window, own
+    settings, 220 rollouts; clock refitted with each person's scored days left out (build_clock.py `HELDOUT=1
+    MEAL_ONLY=1`, clock_ho_meal_s{0,1}.json; probe_spck.sh). Simulated minus own real days:
+    | | training 0: base → clock | training 1: base → clock |
+    |---|---|---|
+    | habit_skill | −0.076 → −0.064 (se 0.013) | −0.070 → −0.057 |
+    | habitual_excess | −0.090 → −0.085 | −0.095 → −0.091 |
+    | meal_jitter_min | +8.0 → +6.5 | +8.7 → +8.0 |
+    | level t<70 / TIR | 2.90 / 76.3 → 2.78 / 76.1 | 2.48 / 76.1 → 2.60 / 76.5 |
+    - Same sign on both trainings, no lows cost, but small, and it moves the average daily profile only. The new base is
+      already nearer the field on habit than oc was (−0.076 against −0.103), and its meal count is close (+0.1 to +0.2 a
+      day against +0.8).
+    - What's left is repetition: habitual_excess, habit against a clock-shuffled null, is a third of the field's on every
+      arm. Closing it needs meal starts that follow the person's own previous days (a model-side memory), not a fixed
+      profile. Recorded as the meal-rhythm target; change prediction (lesson 192) stays first.
+
+196. **The no-entry background drop is food tied to carb entries, plus a glucose push, both multiplied about fourfold
+    by the model's own persistence. It is not a response to insulin.** oc0, first 60 e edits, pre window, inputs logged
+    every step (PLANT_XLOG=1), 177 matched run pairs; the network teacher-forced day by day as the plant runs it (24 h
+    re-warm), one input group at a time taken from the entries-on run (runs/2026-11-07-ice-habit/swap_inputs.py).
+    Share of the background gap each group closes (off with on's group / on with off's group):
+    | group | entries off (gap 395/day) | shadow entry (gap 216/day) |
+    |---|---|---|
+    | own recent background (bgice_ema, bgice) | 77% / 75% | 80% / 73% |
+    | entry inputs (carbs, since_entry, unbolused, entered_unabsorbed) | 10% / 15% | −6% / −6% |
+    | glucose (bg, trend, forecast, low flags) | 7% / 1% | 23% / 11% |
+    | net IOB, bolus, meal | ≤ 3% each | ≤ 7% each |
+    - Per run, the ICE drop with entries off is 95% of the withheld insulin's nominal effect (ISF × −5.6 U/day, r 0.81),
+      but that is coincidence: people with more entries lose both more insulin and more entry-tied food. The net-IOB input
+      carries almost none of it.
+    - With the shadow entry, the entry inputs are restored, and what's left is higher glucose (163 against 146) lowering
+      the background, amplified by persistence. Whether that is right depends on the real glucose effect on background
+      ICE at matched state, which is not yet measured. The fourfold multiplier is how much the model leans on its own
+      recent background, not proof that its persistence is wrong: lesson 183 found background persistence at the
+      field's under the ×0.95 shrink. Whether it explains the day-level spread excess (bg_day_sd +0.9 to +1.8, lesson
+      195) is untested.
+
+197. **The generator's per-edit misses track its own level miss in the pre-edit window. Knowing the person's real
+    recent level would lift within-direction ranking on TIR and mean by about 0.1 r.** New base, five trainings, pre
+    window, drift removed (runs/2026-11-01-ice-stateabl/peredit_why.py, peredit_lvl.py, blend.py).
+    - Residual of the field change after the generator's prediction correlates with the generator's level miss (arm with
+      own settings minus field TIR, same pre window): TIR +0.30 (more) / +0.34 (less), mean −0.35 / −0.27, t<70 ~0. A
+      person generated too well controlled gains too little from more insulin and loses too little from less.
+    - The generator with its level miss as a second predictor, cross-fitted by person (5 folds): TIR 0.17 → 0.27 (more)
+      and 0.22 → 0.35 (less), mean 0.20 → 0.29 and 0.22 → 0.28. The pre-window field level is known before the edit, so
+      this is usable information, not a peek.
+    - The miss is partly a person trait (r 0.57 with the same person's miss at their other edits, 134 edits), but the
+      other-edit miss does not help as a predictor: the window's own level is what counts.
+    - Blending replay and generator gains little (50/50: TIR 0.34, t<70 0.37, mean 0.47 against replay 0.30 / 0.38 /
+      0.47): on t<70 and mean, replay's ranking already holds most of what the generator adds.
+    - Shifting the level to the pre-window field was already tried (lesson 144: level right, change prediction no
+      better, lows up). So the level miss marks the edits the generator gets wrong rather than causing them; read as a
+      regression term, it is a calibration of the prediction, not a plant fix. What both point at is the generated
+      person's glucose spread and response at their real operating point, the same fault lessons 134 and 143 found.
+
+198. **Background ICE by glucose matches the field up to 220 mg/dL and collapses above 260.** Same people and pre-edit
+    windows, new base training 0, entries on, seed 0; away from meals (outside detected meal events plus 2 h, no entry in
+    the 3 h before); per person, ICE minus the person's own mean, median over people (runs/2026-11-07-ice-habit/
+    bg_by_glucose.py). Both sources carry the same confound (food raises glucose), so the comparison is like for like:
+    | glucose | <80 | 80–100 | 100–120 | 140–160 | 180–220 | 220–260 | ≥260 |
+    |---|---|---|---|---|---|---|---|
+    | real (250) | −14.5 | −8.9 | −4.0 | +8.1 | +14.4 | +19.7 | +33.6 |
+    | generated (301) | −14.7 | −8.4 | −2.5 | +7.0 | +13.9 | +14.6 | +0.1 |
+    - Per-person slope from 90–130 to 180–260, per 100 mg/dL: real +24.7 (IQR 10.8–44.7), generated +22.2 (6.8–36.8).
+    - Above 260 the generated person's background is ~33 mg/dL/h below a real person's at the same glucose. Not the
+      plant's add-ons: the ns arm (oc0 with calib_bg_band zeroed and the low/high kernels removed, 276 people) reads
+      +15.6 / +12.2 / +6.2 in the top three bands, the same collapse.
+    - Not the network fed real history either: teacher-forced on 60 trained donors' held-out tails
+      (runs/2026-11-01-ice-stateabl/calib_glucose.py), the background head's mean error is −0.4 to −2.6 mg/dL/h in every
+      band, −2.4 at ≥260 (real 51.9, predicted 53.1). The collapse exists only in closed loop. The generated person
+      reaches 260+ by a different route than the field, through their own generated history, with less food behind the
+      high. Generated highs then fall back faster than real ones, the high-side twin of lesson 188's fast falls through
+      80–120.
+    - For lessons 193 and 196: the glucose channel that lowers the shadow-entry background is right in the 140–220 range
+      where most of that arm's time sits. So the shadow arm's extra TIR loss is not a glucose artifact there, and above
+      260 the generator understates the background, if anything.
+
+199. **The generator's weak low-side ranking is its per-person low exposure, not its response: it gives lows to the
+    wrong people.** New base, e pool, pre window, drift removed (runs/2026-11-01-ice-stateabl/peredit_noise.py,
+    pre_lows.py, spread_sens.py).
+    - Not simulation noise: r of the average over k of the five trainings rises only 0.27 → 0.30 (TIR), 0.24 → 0.27
+      (t<70), 0.37 → 0.39 (mean) from k = 1 to 5; training-to-training r 0.72–0.77, so infinitely many trainings would
+      reach 0.31 / 0.28 / 0.43.
+    - The field's t<70 change on less-insulin edits follows the person's pre-window t<70: r −0.53 (136 edits); more
+      lows, more to lose. On more-insulin edits, −0.09.
+    - The generator's own logic is right: its predicted t<70 change on less-insulin edits follows its own pre-window
+      t<70 at r −0.67 (replay −0.62). But its pre-window t<70 tracks the field's at only r 0.39 per edit, 0.43 per
+      person (replay 0.77), so its predicted change carries none of the field's signal (r with the field change 0.00).
+    - A uniform spread change does not fix who has lows: person-level r with field t<70 is 0.45 / 0.46 / 0.48 at
+      background spread ×0.9 / ×0.95 / ×1.0 (oc0). Spread moves a person's lows by a median 8.5 points of t<70 per
+      unit (IQR 2.8–14.8). The generator's people have more lows than the field (median 3.2 against 1.9) and less TIR
+      (73.9 against 80.1) in the same windows.
+    - Under test: a per-person spread fitted so each person's generated pre-window t<70 matches the field's
+      (build_ps.py, calib_bg_spread_person in a copy of the checkpoint, probe_ps.sh, pre window both settings).
+200. **A per-person spread fitted to each person's lows fixes who has lows and the low-side ranking, but costs the
+    more-insulin ranking: the generator's lows are wrong apart from its highs, so one spread number cannot fit both.**
+    Training 0, e pool, 337 edits, pre window, drift removed; spread s = 0.95 + (field − generated pre-window t<70) /
+    slope, clipped to [0.6, 1.2] (83 of 265 people at a clip; median 0.85) (runs/2026-11-01-ice-stateabl/build_ps.py,
+    probe_ps.sh, ps_eval.py, ps_split.py).
+    - Who has lows: person-level r with field t<70 0.47 → 0.69 (log scale 0.49 → 0.71); median t<70 3.17 → 3.51
+      (field 1.9), TIR 73.9 → 74.9 (field 80.1).
+    - Per-edit r, base → per-person spread (90% of the difference), replay beside it: t<70 on less-insulin edits
+      0.10 → 0.32 (+0.07 to +0.34; replay 0.42), TIR on less-insulin 0.15 → 0.25 (+0.01 to +0.19). On more-insulin
+      edits TIR 0.13 → 0.02 (−0.27 to +0.04) and mean 0.29 → 0.17 (−0.20 to −0.01); mean over all 0.45 → 0.40.
+    - Not leakage from a person's other edits: on the 203 edits of single-edit people, t<70 on less-insulin edits goes
+      0.10 → 0.40 (+0.11 to +0.49).
+    - The cost comes from the 134 people whose spread was narrowed. Their generated time below 70 falls only 4.8 → 3.7
+      (field 1.4) while time above 180 falls 20.6 → 15.5, past the field's 17.1, and their predicted TIR gain from more
+      insulin drops to +0.6 against the field's +2.4. The 79 widened people match on lows (1.7 → 4.0, field 3.1) but
+      their highs, already too many, rise (24.8 → 27.4, field 15.3).
+    - Not kept. The low side needs its own per-person lever. Under test: the closed-loop low-response kernel
+      (calib_low_kernel, a lift for about an hour after each drop below 70) at strength ×2 and with its trigger moved to
+      80 (probe_lk.sh, training 0), to measure how each moves each person's lows, then a two-number fit per person:
+      spread to the highs, low response to the lows.
+201. **Real days show no distinct meal-timing types, only a weak weekday/weekend difference, which the generator lacks.**
+    Meals from meal_stats.events on ICE (same detector both sources); per day a load-weighted onset density on the 24-h
+    circle; two-group clustering share of variance against "blended" days (each day keeps its meal count, onsets resampled
+    from the person's pooled meals) (runs/2026-11-08-ice-daytypes/day_types.py, e pool, base arm training 0).
+    - Distinct types: none beyond the blended null. Excess −0.029 ± 0.006 real, −0.023 ± 0.005 generated (163 two-week
+      windows, 133 people); on full real records (263 people, median 68 days) 2% of people beat the null at p < 0.05,
+      below the 5% expected by chance.
+    - Weekday vs weekend: real same-kind day pairs are more alike by 0.021 ± 0.008 cosine (full records 0.026; 21% of
+      people above 0.05); generated 0.000 ± 0.004, although the network is fed the weekday.
+    - Day-to-day persistence, weekday held: real 0.011 ± 0.009, generated −0.003 ± 0.006; none in either.
+    - Person-level agreement real vs generated is near zero on all three (−0.12, 0.14, 0.05).
+    Limits: the ICE detector is noisy, two weeks is short, and rare regimes (travel) would not show as a second type. Day
+    types are not worth building on this evidence; the weekday difference is a small, specific gap.
+202. **The low-response kernel cannot set a person's lows; the per-person anticipatory defense is collapsed to one
+    person.** Training 0, e pool, own settings, pre window (runs/2026-11-01-ice-stateabl/probe_lk.sh, lk_sens.py).
+    - Low kernel ×2 cuts a person's time below 70 by a median 0.25 points (IQR 0.06–0.61), about a tenth; triggering
+      it below 80 instead of 70 moves 0.08. Person-level r with field lows stays 0.49–0.50. The field gap is about
+      1.3 points (generated median 3.17, field 1.90). Lows are set by how often a person approaches one, not by recovery
+      once below 70.
+    - The network's anticipatory defense (v3m13: a ramp on background ICE keyed to projected glucose, with a per-person
+      onset and strength) has both per-person rows at zero in every person (10th–90th percentile within ±0.01): the
+      prior collapsed them, so every generated person defends identically, against the field's personal onset
+      (lesson 69, memory "low response is a personal trait").
+    - Under test: the defense moved for everyone, onset 20 mg/dL earlier and strength ×2 (build_def.py, probe_def.sh),
+      to measure how each moves each person's lows and highs before a per-person fit.
+    - Result of the defense arms (def_sens.py): strength ×2 cuts a person's lows by a median 0.89 points (IQR 0.40–1.90;
+      median 3.17 → 1.92, field 1.90) and adds 2.6 points above 180; onset 20 mg/dL earlier cuts 0.63 and adds 1.5.
+      Spread moves both the same way (per +0.1: lows +0.85, highs +2.4). The defense trades lows for highs and the
+      spread moves them together, so the two set a person's lows and highs separately. Under test: both fitted per
+      person to the field's pre-window lows and highs (build_psd.py: spread median 0.83, defense ×0.94 median, IQR
+      ×0.25–×2.97, 121 of 265 at a limit; probe_psd.sh, training 0).
+203. **Fitting spread and defense strength per person sets the levels and the low-side ranking but makes the generator
+    resist insulin: the defense is triggered by insulin on board.** Training 0, e pool, pre window, drift removed
+    (runs/2026-11-01-ice-stateabl/build_psd.py, probe_psd.sh, psd_post.sh).
+    - Levels: TIR level error median |.| 7.6 → 4.4; median lows 3.17 → 2.73 (field 1.90), highs 21.7 → 20.1 (field
+      17.0); person-level r with field lows 0.49 → 0.66.
+    - Per-edit r, base → fitted (90% of the difference): t<70 on less-insulin edits 0.10 → 0.33 (+0.07 to +0.36; single-
+      edit people 0.10 → 0.35); TIR within noise everywhere; mean 0.45 → 0.27 (−0.27 to −0.11), more-insulin mean 0.29 →
+      0.11 (−0.29 to −0.05).
+    - The pooled response breaks: on more-insulin edits the predicted mean-glucose change shrinks from −6.30 (base) to
+      −3.39 against the field's drift-removed −6.24, and the TIR gain from +2.20 to +1.13 (field +2.36). The defense acts
+      when glucose minus insulin on board points low, so extra insulin sets it off and it cancels part of the insulin;
+      at the strengths the fit asked for (121 of 265 people at ×0.25 or ×4) it is a resistance. Spread alone (lesson 200)
+      shrank the same change less (−5.09).
+    - Not kept. Under test: a low-side spread, an extra factor on the background draw's glucose-lowering deviations only
+      (BGICE_SPREAD_LO, calib_bg_spread_lo_person in plant_v3), which trims the low tail without reacting to insulin on
+      board; ×0.8 for everyone first (probe_slo.sh, slo_post.sh), to measure its effect on lows, highs and the pooled
+      response before a per-person fit with the spread.
+204. **A low-side spread cuts lows without the defense's resistance, but alone it raises highs and overstates the
+    response to insulin.** Training 0, e pool, pre window, drift removed: the background draw's glucose-lowering
+    deviations ×0.8 for everyone on top of the base (runs/2026-11-01-ice-stateabl/probe_slo.sh, slo_post.sh, slo_sens.py).
+    - Levels: median lows 3.17 → 1.17 (field 1.90), highs 21.7 → 30.6 (field 17.0); TIR level error median −4.0 → −8.1.
+      Per person it cuts lows a median 1.70 points (IQR 0.86–2.92) and adds 6.9 above 180 (IQR 3.3–11.8): per unit it
+      moves highs about four times as hard as lows, against the spread, which moves them the same way. The two are
+      well conditioned for a per-person fit.
+    - The response grows instead of shrinking: on more-insulin edits the predicted mean-glucose change is −14.3 against
+      the field's drift-removed −6.24 (base −6.30), and the TIR gain +4.03 (field +2.36). The cause is the level: the
+      generated people run higher, so the controller and the edit act on more time above range. The defense (lesson
+      203) damps the response and this lever amplifies it, so the response tracks how high the person runs, not the lever.
+    - Per-edit r, base → arm: t<70 0.23 → 0.11 (−0.17 to −0.07), more-insulin t<70 0.08 → −0.08; mean 0.45 → 0.26; TIR
+      0.25 → 0.30 (0.00 to +0.11).
+    - Not kept as a uniform factor. Under test: spread and low-side spread fitted per person to the field's pre-window
+      lows and highs (build_pss.py: spread median 0.83, IQR 0.69–0.93; low-side median 1.01, IQR 0.84–1.20; 79 values
+      at a limit; linear prediction lows 2.05, highs 18.6), which brings the level back, to see whether the response
+      returns to the field's with it (probe_pss.sh, pss_post.sh, training 0).
+205. **Fitting spread and low-side spread per person sets the levels and keeps the response to insulin: the first fit
+    that does both.** Training 0, e pool, pre window, drift removed (runs/2026-11-01-ice-stateabl/build_pss.py,
+    probe_pss.sh, pss_post.sh, pss_sens.py).
+    - Levels: TIR level error median |.| 7.6 → 4.5; median lows 3.17 → 2.92 (field 1.90; the linear step predicted
+      2.05, so lows respond less than linearly to the cut), highs 21.7 → 18.4 (field 17.0); person-level r with field
+      lows 0.49 → 0.80 (spread + defense: 0.66).
+    - Pooled response: mean-glucose change on more-insulin edits −6.49 (field drift-removed −6.24, base −6.30), on
+      less-insulin edits +4.41 (field +4.49, base +5.25). TIR gain on more-insulin edits +1.78 (field +2.36, base +2.20);
+      t<70 change unchanged from the base (+0.87 / −0.77 against the field's +0.60 / −0.64).
+    - Per-edit r, base → fitted (90% of the difference): t<70 on less-insulin edits 0.10 → 0.33 (+0.07 to +0.36); TIR on
+      more-insulin edits 0.13 → 0.30 (0.00 to +0.34); TIR on less-insulin edits 0.15 → 0.04 (−0.23 to +0.02); mean 0.45
+      → 0.32 (−0.17 to −0.03), its loss on less-insulin edits (0.21 → 0.07). TIR and t<70 over all edits within noise.
+    - Under test: the same fit on training 1 (its own base levels, training 0's per-person effects), and a second
+      linear step on training 0 from the fitted point (pss2: spread median 0.72, 98 of 265 at the 0.6 limit), to see
+      whether closing the remaining lows gap helps the ranking.
+    - Training 1 repeats it (90% of the difference): t<70 on less-insulin edits 0.11 → 0.33 (+0.06 to +0.37), TIR on
+      more-insulin edits 0.05 → 0.27 (+0.09 to +0.36); mean on less-insulin edits 0.26 → 0.01 (−0.37 to −0.11), TIR on
+      less-insulin edits 0.27 → 0.16 (−0.23 to +0.01). Pooled mean change −5.51 / +5.96 (field −6.24 / +4.49).
+    - The second step (pss2) is worse on every ranking and doubles the more-insulin response (−10.2): dropped.
+    - The cost sits with people fitted to a low-side factor below 0.9 (pss_split.py): when they cut insulin the field's
+      mean glucose barely moves (−0.4 and −1.5 drift-removed, n 40 and 29), but the fit predicts +7.1 and +13.9 (base
+      +5.5, +5.3). With the glucose-lowering swings trimmed, nothing offsets the insulin removed. Under test: the
+      low-side factor floored at 0.9, spread refit by least squares where floored (pssq9, 88 and 73 people), trainings 0
+      and 1.
+    - Floor at 0.9 (pssq9), trainings 0 / 1, base → floored (90% of the difference): t<70 on less-insulin edits 0.10 →
+      0.30 (+0.06 to +0.32) / 0.11 → 0.28 (−0.02 to +0.33); TIR on more-insulin edits 0.13 → 0.24 / 0.05 → 0.21 (+0.05 to
+      +0.28); mean over all edits back within noise (0.45 → 0.40, 0.39 → 0.34); still lost on less-insulin edits: mean
+      0.21 → 0.09 (−0.23 to −0.02) / 0.26 → 0.11 (−0.25 to −0.06), TIR 0.15 → 0.06 / 0.27 → 0.14 (−0.26 to −0.02).
+      Pooled mean change −5.39 / +4.03 and −5.29 / +4.24 (field −6.24 / +4.49); TIR level error |.| 4.5 / 5.4 (base 7.6
+      / 6.9). Under test on trainings 2 and 3.
+    - Trainings 2 / 3 (pssq9), base → floored: t<70 on less-insulin edits −0.03 → 0.27 (+0.10 to +0.45) / −0.06 → 0.33
+      (+0.20 to +0.58); t<70 over all edits 0.22 → 0.29 / 0.22 → 0.36 (+0.05 to +0.22); TIR on less-insulin edits 0.21 →
+      0.02 (−0.31 to −0.03) / 0.20 → 0.08 (−0.20 to −0.03); TIR on more-insulin edits +0.05 / +0.10 (inside noise); mean
+      within noise. The pooled response to added insulin is dulled on these two: mean change −4.09 / −3.96 against base
+      −5.71 / −5.95 and field −6.24; TIR gain +1.24 / +0.99 against base +1.88 / +1.72 and field +2.36. Level error |.|
+      4.9 / 5.0 (base 6.9 / 7.6).
+    - Four trainings, then: the low-side change ranking on less-insulin edits gains +0.20, +0.17, +0.30, +0.39 (beyond
+      noise on three) and level error falls on all four; the TIR ranking on less-insulin edits loses 0.09, 0.13, 0.19,
+      0.12 (beyond noise on three), and on two trainings the response to added insulin is a third too small. Not kept
+      on the rule; the trade is put to Pete. Training 4 under test to complete the five.
+    - Training 4 (pssq9): t<70 on less-insulin edits 0.05 → 0.38 (+0.08 to +0.55); but TIR over all edits 0.33 → 0.20
+      (−0.19 to −0.07) and on more-insulin edits 0.30 → 0.14 (−0.27 to −0.05), where trainings 0–3 gained; mean within
+      noise; pooled mean change −7.88 / +4.63 (base −8.76 / +5.16, field −6.24 / +4.49); level error |.| 5.1 (base 6.8).
+      Over five trainings: low-side ranking on less-insulin edits +0.20 to +0.39 on all five (beyond noise on four),
+      level error lower on all five, TIR ranking lower somewhere on four of five (all edits −0.01, 0.00, −0.07, −0.05,
+      −0.13). Not kept on the rule; with Pete.
+    - Spread rescaled to the base median 0.95, between-person differences kept (pssq9r, trainings 2 / 4): t<70 on
+      less-insulin edits still gains (−0.03 → 0.29, 0.05 → 0.43), but TIR on less-insulin edits still loses (0.21 →
+      −0.02, 0.16 → 0.03, both beyond noise), TIR over all edits on training 4 0.33 → 0.23 (−0.16 to −0.04), the t<54
+      change inflates to ±0.47–0.53 (field ±0.09–0.12, base ±0.20–0.28), and half the level gain goes (|.| 5.5 / 5.8).
+      So the narrowed median spread is not the cost; the TIR loss is the per-person low-side fit's own.
+206. **Why the per-person low-side fit costs the TIR ranking: it sets each person's response with the wrong sign.**
+    In the field (pss_split.py, lesson 205) the people whose real lows exceed the generator's (fitted low-side factor >
+    1.1) lose the most TIR when they cut insulin (−3.4 / −3.6 drift-removed) and the people with fewer real lows (< 0.9)
+    lose none (+0.5); the fit predicts −0.3 / −1.2 and −2.4 / −2.3, the reverse. More glucose-lowering background swings
+    stand in for the lows but make the person respond less to the insulin removed. A person who is more sensitive to
+    insulin than the population rule (ISF from TDD) would have both: more lows and a larger response. Under test: the
+    plant's existing insulin-response gain (PATIENT_INSULIN_GAIN, insulin away from the person's typical rate TDD/24 acts
+    at the gain; lesson 52 tried it on levels only), ×0.8 and ×1.25 for everyone on training 0 (probe_ig.sh, ig_post.sh,
+    ig_sens.py), to measure its effect on each person's lows, highs and response before a per-person fit.
+    - Result, training 0, for everyone (base → gain ×0.8 / ×1.25; 90% of the ×1.25 difference): per-edit r TIR 0.25 →
+      0.21 / 0.30 (+0.01 to +0.10), mean 0.45 → 0.38 / 0.50 (+0.02 to +0.08), more-insulin mean 0.29 → 0.22 / 0.38 (+0.03
+      to +0.17); t<70 0.23 → 0.20 / 0.19 (inside noise), more-insulin t<70 0.08 → −0.02. Pooled change, more insulin:
+      mean −6.30 → −5.16 / −8.04 (field drift-removed −6.24, raw −8.47), TIR +2.20 → +1.65 / +3.17 (+2.36, raw +3.73);
+      less: mean +5.25 → +3.83 / +6.39 (+4.49); t<54 ±0.33–0.35 → ±0.25 / ±0.52 (field ±0.09–0.12). Levels: lows 3.09
+      / 3.63, highs 24.6 / 20.4 (base 3.17 / 21.7), TIR level |.| 9.0 / 7.1 (base 7.6). The ranking rises with the gain:
+      the edit's own effect grows against the rollout's noise. The response overshoots the drift-removed field by a third
+      and the t<54 change grows.
+    - Per person the gain moves lows weakly and unevenly (+0.98 per unit, IQR −0.71 to +4.16; highs −4.9), so fitting it
+      to a person's lows sends most people to a limit (170 of 265 at 0.6 / 2.0 with per-person effects; 223 of 265 at 0.7
+      / 1.6 with pooled ones). Not a per-person lever on lows; no per-person fit run (build_psg.py kept in the run dir;
+      plant_v3 reads calib_ins_gain_person, inert without it).
+    - Trainings 1 and 2 (base → ×1.25; 90% of the difference): mean-glucose ranking 0.39 → 0.46 (+0.04 to +0.10) and 0.40
+      → 0.43 (−0.00 to +0.08); more-insulin mean 0.20 → 0.32 and 0.19 → 0.28 (both beyond noise); TIR over all edits 0.26 →
+      0.29 and 0.26 → 0.27 (inside noise); less-insulin TIR 0.27 → 0.24 and 0.21 → 0.13 (−0.15 to −0.00); t<70 inside
+      noise. So the mean ranking gain replicates on three of three, the TIR gain only on training 0. The response
+      overshoots on both sides: more-insulin mean −7.1 (field drift-removed −6.24), less-insulin mean +6.0 / +6.3 (+4.49),
+      less-insulin TIR −2.5 / −2.8 (−1.67 ± 0.58); t<54 change ±0.35–0.46 (field ±0.09–0.12). Not kept on the old base;
+      tested on the new base (lesson 207).
+207. **The floored per-person fit (pssq9) is the base from 2026-11-10 (Pete).** Kept against the strict rule, as lesson 191
+    was: per-person lows match the field (r 0.80 against 0.49), the time-below-70 ranking on insulin cuts gains on all
+    five trainings, and the TIR level error falls, at a TIR ranking cost on four of five (lesson 205). New arms are built
+    on the pssq9 checkpoints (icegen_v32oc{S}TcB2FGUCGLBGGSKaLKELpssq9.pt, BGICE_SPREAD and BGICE_SPREAD_LO unset,
+    PLANT_BASE_IOB_OWN=1) and scored against its five runs (runs_v32oc{S}TcB2FGUCGLBGGSKaLKELpssq9_v32st_noslow_e).
+    - Under test: pssq9 + insulin-response gain ×1.25 for everyone on all five trainings (lane_pg.sh), to see whether the
+      gain's TIR ranking gain (lesson 206) offsets the fit's TIR ranking cost.
+    - Result, trainings 0–3 (pssq9 → pssq9 + gain ×1.25; ps_eval.py PS_BASE=pssq9; 90% of the difference): mean ranking
+      0.40 → 0.47, 0.34 → 0.46, 0.37 → 0.46, 0.38 → 0.43, beyond noise on all four; TIR 0.24 → 0.30 (−0.00 to +0.13), 0.26 →
+      0.28, 0.19 → 0.27 (+0.02 to +0.14), 0.20 → 0.24; t<70 0.30 → 0.34, 0.27 → 0.30, 0.29 → 0.30, 0.36 → 0.40; no ranking
+      worse beyond noise anywhere. Change size moves onto the field for TIR and mean: more-insulin mean −5.4 / −5.3 / −4.1 /
+      −4.0 → −6.8 / −6.3 / −5.8 / −5.4 (field drift-removed −6.24 ± 0.89), TIR +1.4 / +1.3 / +1.2 / +1.0 → +2.1 / +1.9 / +1.8 /
+      +1.3 (+2.36 ± 0.54); less-insulin TIR −1.0 / −1.4 / −1.1 / −1.1 → −1.4 / −1.8 / −1.8 / −1.6 (−1.67 ± 0.58), mean +4.0 /
+      +4.2 / +4.0 / +4.0 → +5.4 / +5.2 / +5.4 / +4.9 (+4.49 ± 0.93). The cost is the low side's size: more-insulin t<70
+      +0.88 / +0.52 / +0.74 / +0.81 → +1.13 / +0.97 / +1.04 / +1.07 (+0.60 ± 0.16), less −0.87 / −0.64 / −0.82 / −0.82 → −1.18 /
+      −0.90 / −1.03 / −0.97 (−0.64 ± 0.15), t<54 change ±0.22–0.41 → ±0.45–0.67 (±0.09–0.12). Levels unchanged (TIR |.| 4.5–5.5).
+      Together the two fix each other's response size on TIR and mean, but the lows respond about 1.7× the field. Training 4
+      and a middle gain ×1.12 (lane_pg2.sh, trainings 0–1) under test; the trade goes to Pete.
+    - Training 4 replicates: TIR ranking 0.20 → 0.27 (+0.02 to +0.13) and mean 0.18 → 0.27 (+0.03 to +0.12), both beyond
+      noise; t<70 0.35 → 0.37. Change sizes: more-insulin TIR +1.45 → +2.05, mean −7.9 → −8.2, less-insulin TIR −1.29 →
+      −1.70, mean +4.6 → +5.5; t<70 +0.78 → +1.11 and −0.73 → −1.07, t<54 ±0.32 → ±0.54. So on five trainings the mean
+      ranking gains beyond noise on all five, TIR on two (up on all five), and the low-side change is 1.7× the field on all
+      five.
+    - Middle gain ×1.12 on trainings 0–1 (pssq9 → ×1.12, against ×1.25): mean ranking 0.40 → 0.45 (+0.01 to +0.08) and
+      0.34 → 0.43 (×1.25: 0.47, 0.46); TIR 0.24 → 0.29 (+0.00 to +0.11) and 0.26 → 0.32 (×1.25: 0.30, 0.28); t<70 0.30 →
+      0.35, 0.27 → 0.28; nothing worse beyond noise. Change sizes: mean −6.0 / −6.1 and +4.8 / +4.8 (field −6.24, +4.49),
+      TIR +1.6 / +1.9 and −1.3 / −1.7 (+2.36, −1.67); t<70 +1.00 / +0.75 and −1.02 / −0.71 (×1.25: +1.13 / +0.97, −1.18 /
+      −0.90; field +0.60, −0.64), t<54 ±0.31–0.48. ×1.12 keeps nearly all of the ranking gain, puts mean change on the
+      field, and cuts the low-side overshoot to 1.2–1.6× (training 0's pssq9 alone is already 1.4×).
+    - ×1.12 on trainings 2–4 does not hold that up: mean ranking 0.37 → 0.43 (+0.02 to +0.09), 0.38 → 0.37, 0.18 → 0.23
+      (−0.01 to +0.08); TIR 0.19 → 0.21, 0.20 → 0.22, 0.20 → 0.22, all inside noise. Over five trainings ×1.12 gains mean
+      ranking beyond noise on two (×1.25: five) and TIR on one at the edge (×1.25: two). Change sizes averaged over five:
+      mean −5.8 / +4.8 (field −6.24 / +4.49), TIR +1.5 / −1.4 (+2.36 / −1.67), t<70 +0.91 / −0.90, about 1.45× the field
+      (×1.25 about 1.7×, pssq9 alone about 1.25×). Only ×1.25 passes the keep rule on ranking; its low-side change is
+      overstated. The choice between them goes to Pete.
+
+208. **frontier's held-out gen.py donors had no per-person fit; two steps of the pssq9 recipe, fitted on the 28 days
+    before each scored window, bring their levels to the field on the unseen window.** The checkpoint fit (lesson 207)
+    covers the e pool only, so gen.py's 166 i-donors ran at BGICE_SPREAD 0.95 with lows about twice the field's.
+    runs/2026-11-12-ice-ifit/ (gamepc; fit_i.py, compare.py, lane*.sh): gen.py with the window moved back 28 days
+    (WIN_SHIFT_DAYS) as the fit window; field = clean-masked CGM, as score_change.field; generated = non-compression CGM,
+    two seeds. Slopes are the e pool's medians (pss_sens.pkl), what a person with no slopes of their own gets after
+    shrinkage; QMIN 0.9, floored refit weight 3, s clipped [0.6, 1.2]. 156 donors fitted; 10 without a week of clean data
+    in the fit window keep 0.95 / 1.0. Scored window (not used in fitting), 152 donors, training 0 / 1, base → step 1 →
+    step 2, field in brackets:
+    | | median | median abs. error per donor | mean bias |
+    |---|---|---|---|
+    | t<70 [1.12] | 2.32/1.72 → 2.10/1.66 → 1.71/1.35 | 1.17/0.91 → 0.94/0.93 → 0.81/0.73 | +1.31/+0.63 → +1.90/+1.30 → +0.84/+0.37 |
+    | >180 [19.9] | 22.8/22.6 → 21.0/21.8 → 20.2/20.1 | 6.84/5.38 → 4.59/4.69 → 4.49/4.22 | |
+    | TIR [78.2] | 74.3/75.1 → 75.5/75.4 → 77.0/78.5 | 7.03/5.44 → 4.25/4.94 → 4.01/3.95 | −1.69/−2.08 → −2.17/−2.78 → −0.45/−0.21 |
+    | mean [145.0] | 149.1/148.6 → 144.0/144.8 → 143.8/143.5 | 9.65/8.18 → 7.45/7.44 → 7.46/6.26 | |
+    - One step with median slopes sets highs and TIR but not lows: on the low side the median slope is too weak for the
+      low-prone people, and lows rose for those whose low-side spread went above 1. The second step, from the measured
+      fit-window levels, fixes most of it. Donors over 4% t<70: field 15, base 40/22, step 2 23/21.
+    - Left: median t<70 still 0.2–0.6 above the field; training 0's worst donor (+16.2 over field) is worse than at base
+      (+11.8). Step 2 puts spread at the 0.6 floor for 40/27 donors and low-side at the 0.9 floor for 68/45: the spread
+      range, not the step count, now limits the low-prone people.
+    - Checkpoints: gamepc ~/frozen/gen-v32-ifit2/icegen_v32oc{0,1}TcB2FGUCGLBGGSKaLK.pt (md5 bde1bce9 / 5eb456e8; the rest
+      of the dir links ~/frozen/gen-v32). Run with that GEN_DATA, PLANT_BASE_IOB_OWN=1 and no BGICE_SPREAD (it overrides
+      the per-person values).
+
+209. **The base from 2026-11-13 (Pete): pssq9 plus insulin-response gain ×1.25 (PATIENT_INSULIN_GAIN=1.25).** Chosen
+    over ×1.12 (lesson 207): only ×1.25 gains ranking of edits beyond training noise (mean glucose on five trainings of
+    five, TIR on two), and puts the mean and TIR change sizes onto the field. Its known cost, reported beside every
+    result: the change in time below 70 is about 1.7× the field's, in both directions, so insulin-adding candidates look
+    worse on lows than they are and insulin-cutting ones look better. Scored runs: suffix `pssq9ig1.25_v32st_noslow_e`,
+    five trainings. gen.py donors: the lesson 208 fit with the gain added; levels re-checked in runs/2026-11-12-ice-ifit
+    (arm fit2g) before frontier rebuilds on it.
+
+210. **On frontier's gen.py donors the gain ×1.25 lifts absolute lows off the field, and the spread fit cannot take it
+    back: keep the lesson 208 fit (ifit2) under the gain.** runs/2026-11-12-ice-ifit, 152 donors scored, trainings 0 / 1.
+    - ifit2 → ifit2 + gain, scored window: median t<70 1.71 / 1.35 → 2.52 / 2.12 (field 1.12); donors over 4% 23 / 21 →
+      40 / 40 (field 15). TIR 77.8 / 79.1 (field 78.2), highs 18.3 / 17.9 (field 19.9), per-donor TIR error 4.2 / 3.9:
+      everything but the lows stays on the field.
+    - A third step refit with the gain on (ifit3, fit_i.py STEP=3) does not help: median t<70 2.57 / 2.34, donors over
+      4% 40 / 38, per-donor t<70 error 1.26 / 1.19 against 1.17 / 1.10. The step's slopes were right (low-side change
+      per unit spread 9.9 / 7.4 against the assumed 8.5), but of the ~100 donors whose lows had to fall, half sit on the
+      floors (spread 0.6, low-side 0.9) and moved −0.06 / −0.13 against −1.7 / −1.5 wanted; the ~20 whose lows were too
+      low rose as asked, so the median went up.
+    - The floors stay: below 0.9 the low-side factor and a deeper spread step cost change prediction on insulin cuts
+      (lesson 207). So with the gain, absolute time below 70 on these donors reads about 1.4 points high at the median,
+      and over twice the field's count of donors exceed the 4% budget. Matters for the per-person low budget that sets
+      the operating point: the generator will pick operating points more cautiously than the field would support.
+
+211. **The gain's excess lows come from lows that last too long at high insulin-on-board; applying the gain to sustained
+    insulin only (PATIENT_INSULIN_GAIN_TAU=24) puts levels back on the field but gives up most of the ranking gain.** Put
+    to Pete. runs/2026-11-12-ice-ifit (lowanat.py, compare_g2.py), runs/2026-11-01-ice-stateabl (lane_gtau.sh, ps_eval.py
+    with PS_BASE).
+    - Anatomy, gen.py donors' scored window: field ~1.0 lows a day, mean 25 min, 8% an hour or longer, insulin-on-board
+      at entry 1.8 U. ifit2 without gain: same count, mean 34–39 min, 14–16% over an hour. With gain ×1.25: mean 43–45
+      min, 21–22% over an hour, entry IOB 2.6–2.8 U. The count is right; the duration and the IOB are not.
+    - Cause: the gain acts on every deviation from the typical rate (TDD/24), boluses included, though the generator
+      learned ICE around boluses at gain 1. A gain anchored to field insulin at the same clock time is not possible:
+      generated insulin correlates 0.28 with the field's (0.34 over 3 h); meals are drawn.
+    - PATIENT_INSULIN_GAIN_TAU=<h>: the gain applies to the person's own insulin activity averaged over ~tau hours
+      (exponential) against the typical rate; each bolus pulse acts at gain 1. Default off.
+    - gen.py donors (ifit2, trainings 0 / 1): median t<70 1.81 / 1.34 (field 1.12, gain 2.52 / 2.12, no gain 1.71 /
+      1.35), donors over 4% 17 / 17 (field 15, gain 40 / 40); low anatomy back to the no-gain shape.
+    - e pool, five trainings, against gain ×1.25 (paired): mean-glucose ranking −0.02, −0.05, −0.01, −0.03, −0.05
+      (beyond noise on 1 and 4); TIR and t<70 ranking within noise. Against no gain, the more-insulin mean ranking gain
+      holds on 2 of 5 (×1.25: 5 of 5), about where ×1.12 sat. Change sizes, mean of five: mean glucose −6.20 / +5.02
+      (field −6.24 / +4.49; ×1.25 −6.49 / +5.25); t<70 1.55× / 1.43× the field (×1.25 1.77× / 1.61×); TIR on added
+      insulin +1.66 (field +2.36; ×1.25 +1.83).
+
+212. **Real carb-free corrections favour today's linear insulin effect (ISF × Loop's curve) over the additive body's
+    structure, so ICE is not recomputed with it.** Test before a rebuild (Pete, 2026-11-15). runs/2026-11-15-ice-insmodel
+    (insmodel.py; events as runs/2026-11-04-plant-curve-ice/fit.py, rapid-acting only: 278 corrections, 53 donors, all
+    starting at 160 or above). Insulin absolute, timing fixed at 360/75, per-event drift removed, one global scale.
+    - Every variant fits worse than linear (donor-weighted SSE, donor bootstrap 95%): uptake on observed glucose κ 0.15
+      +8.8% [+5.9, +11.9], κ 0.3 +15%, Bergman κ 1 +30%. A separate slower liver-suppression arm, capped at 2× basal or
+      not, +6.4% at best (half share, rate 0.03/min) up to +29% (share 0.8, the additive's rate 0.012). The cap does not help.
+    - Starting glucose barely moves the response: scale 0.70 / 0.73 / 0.84 at 160–200 / 200–250 / 250+, intervals
+      overlapping; per-event slope +0.036 per 50 mg/dL with dose held, the size κ 0.15 predicts, and too small to matter.
+      Dose size does not move it (0.80 / 0.82 / 0.79 at 1–2 / 2–4 / 4+ U).
+    - What sinks κ: corrections whose glucose stayed high responded less (scale 0.55 when the 6-hour mean is above 200,
+      0.93–0.98 below 160). Insulin on observed glucose credits those events with the most effect. An ICE extraction
+      would face the same thing.
+    - Not tested: insulin's effect near and below 100 (15 events). The night-time slope of background ICE on insulin
+      (+0.43, lesson 52) is closed-loop confounded and was not used.
+    - So the boost's mismatch (extraction at gain 1, plant at 1.25; lesson 211) stays to be fixed another way.
+    - Against the TDD rule ICE uses (isfcheck.py): the rule sits at 1.04× the scheduled ISF (IQR 0.81–1.14), and
+      insulin acted at 0.86× it [0.71, 1.02]. Per donor (25 with 4+ corrections) median 0.74, IQR 0.58–0.99, unrelated to
+      TDD (r −0.08). So the rule looks 15–25% too strong on these corrections, with a wide personal spread.
+
+213. **The generator's direct insulin input gives back only a small share of a sustained insulin change, so it does not
+    explain why the plant needs the ×1.25 boost.** runs/2026-11-15-ice-insmodel (iobprobe.py, pairprobe.py), pssq9 seed 0,
+    teacher-forced on 177 logged closed-loop rollouts (40 people), one input moved, all else fixed.
+    - Pending insulin (iob_net, ISF_tdd × IOB above the night level): +20 mg/dL where insulin is pending raises
+      background ICE +0.55 mg/dL/h, all of it through the defense term; ×1.25 → +0.98, ×0.86 → −0.44, removed → −1.52.
+      Over a mean IOB life of 2.0 h that hands back 7–18% of a sustained change's plant effect. Concentrated near lows:
+      +2.06 below 90 mg/dL, +0.6 above 140.
+    - Glucose input 20 mg/dL lower: background +1.61 mg/dL/h (defense +0.68, the rest the recurrent path). On a more-insulin
+      edit (glucose −4 to −6 mg/dL) that is about 10% of the plant effect.
+    - Bolus inputs do not move with settings: they carry only the person's own boluses, ratio boluses at a fixed 2 U.
+    - Paired before/after arms (same draws) show generated ICE rising 0.97× the extra insulin's plant effect, but that is
+      bookkeeping: over a long run glucose returns, so mean ICE equals mean insulin effect in each arm whatever the
+      generator does. Of it, meal pulses +0.22, background +0.75. The direct inputs above account for about a quarter;
+      the rest runs through glucose history, rescues and the plant's low-band offsets.
+
+214. **ISF ×0.86 in both the ICE extraction and the plant, with no boost, sizes the change in t<70 like the field and
+    improves levels, but the TIR and mean gain from more insulin stays at about half the field's.** gamepc
+    runs/2026-11-15-ice-isf86: roots ice_v32s86 / ice_e32s86 (persons.isf_tdd ×0.86, ice = v + 0.86·ia, meals relabeled:
+    +9% meals, since g-eq sizes grow), full chain retrained to pssq9 on two trainings (arm k86), 337 edits.
+    Per training 0 / 1, drift-removed field in brackets:
+    | | base, gain 1.25 | base, no gain | k86, no gain |
+    |---|---|---|---|
+    | ΔTIR, more insulin [+2.36] | +2.12 / +1.92 | +1.44 / +1.34 | +1.18 / +1.35 |
+    | ΔTIR, less insulin [−1.67] | −1.43 / −1.84 | −0.96 / −1.40 | −1.12 / −1.62 |
+    | Δt<70, more [+0.60] | +1.13 / +0.97 | +0.88 / +0.52 | +0.65 / +0.69 |
+    | Δt<70, less [−0.64] | −1.18 / −0.90 | −0.87 / −0.64 | −0.60 / −0.70 |
+    | Δmean, more [−6.24] | −6.83 / −6.25 | −5.39 / −5.29 | −4.22 / −4.36 |
+    | Δt<54, more [+0.09] | +0.59 / +0.55 | +0.36 / +0.31 | +0.32 / +0.25 |
+    | r with field edits, TIR / t<70 / mean | .30 .34 .47 / .28 .30 .46 | .24 .30 .40 / .26 .27 .34 | .23 .29 .40 / .23 .35 .34 |
+    | level TIR error, median abs. | 4.6 / 5.5 | 4.5 / 5.4 | 4.2 / 4.3 |
+    - Against the gain base: ranking of mean glucose worse on both trainings (diff 90% −0.13..−0.02 / −0.18..−0.05), TIR
+      ranking worse but inside noise, t<70 ranking mixed. Against the no-gain base: no ranking change beyond noise.
+    - So a weaker ISF fixes the size of the low-side response, which the gain overshoots ~1.7×, but not the high-side
+      response to more insulin. The field gets twice the TIR from added insulin that the generator does; the cause is on
+      the high side, not in ISF strength. A candidate: behaviour that changes with the edit (lesson 213).
+    - Follow-up running: k86 with gain ×1.25 and ×1.16 on top (lane_g.sh).
+
+215. **No sign that people pay more attention after a settings edit. The TIR gap on more-insulin edits is the
+    generated person pushing back too hard: its ICE rises 2.3× the field's, all of it in the background level.**
+    gamepc runs/2026-11-15-ice-isf86 (attn.py, attn86.py, gendelta.py, genparts.py), 275 edits that moved insulin ±10%
+    (247 donors) against 960 pseudo-edits (no edit within 28 d). Windows and the regression-to-the-mean term as
+    field_rtm2.py.
+    - Any edit, either direction, minus pseudo-edits (90% person bootstrap): carbs entered +0.7 g/day [−3.0, +4.5], carb
+      entries −0.02/day, manual bolus U +0.3 [−0.2, +0.8], manual bolus count 0.0, meal-pulse rate and grams, unannounced
+      meals, rescues, share announced: all inside noise. Only bolus timing moves, by 1.7 min [0.6, 2.9]. Nothing like
+      extra attention.
+    - What changes with direction looks like the new settings and the new glucose, not effort. On more-insulin edits:
+      carb entries −0.23/day, manual bolus count −0.64/day while manual units rise +0.8, rescues +0.06/day. Less-insulin
+      edits show the opposite on each.
+    - Insulin and ICE after − before, with ISF ×0.86 units on both sides:
+      | | delivered U/day, gen / field | ICE mg/dL/h, gen / field [90%] |
+      |---|---|---|
+      | more insulin (146) | +2.49 / +2.30 | +3.64 / +1.55 [+0.71, +2.45] |
+      | less insulin (129) | −1.73 / −1.23 | −2.65 / −2.19 [−3.35, −0.96] |
+      Of the generator's +3.64, background level +2.96, meal pulses +0.69. Bases oc0 pssq9 without and with the gain:
+      ICE +3.64 / +3.76, insulin +2.14 / +1.80. The gain only adds insulin strength on top of the same push-back.
+    - So the generator delivers the right extra insulin and then cancels too much of it, on the more-insulin side
+      only. That is where TIR and mean go missing, and why ×1.25 sizes TIR while overshooting lows. Lesson 213 puts a
+      quarter of the background rise on the direct insulin input; the rest is glucose history, rescues and the plant's
+      low-band offsets. Next: find which part, per state band.
+
+216. **ISF ×0.86 with a gain on top does not beat the base either; keep the base (lesson 209).** lane_g.sh, k86 pssq9,
+    two trainings, 337 edits, against the base (oc pssq9 ×1.25), field drift removed in brackets:
+    | | base | k86 ×1.25 | k86 ×1.16 |
+    |---|---|---|---|
+    | ΔTIR more [+2.36] | +2.12 / +1.92 | +1.81 / +1.68 | +1.54 / +1.32 |
+    | Δt<70 more / less [+0.60 / −0.64] | +1.13 −1.18 / +0.97 −0.90 | +0.97 −1.05 / +0.93 −0.93 | +0.90 −0.83 / +1.03 −0.92 |
+    | Δmean more [−6.24] | −6.83 / −6.25 | −5.80 / −5.51 | −5.13 / −5.13 |
+    - Ranking of mean glucose is worse than the base beyond noise for ×1.25 on both trainings and ×1.16 on one; t<70
+      ranking better for ×1.16 on one (+0.02..+0.14). The gain brings back the low-side overshoot in proportion to the
+      TIR it buys, as lesson 215 predicts: it scales the insulin that survives the push-back, not the push-back.
+    - Lead for the push-back (bandsplit.py, bandsplit_tot.py; field raw, not drift-adjusted): on more-insulin edits the
+      ICE rise at the same glucose is close to the field's (+4.6 vs +3.6 mg/dL/h, excess spread over 110–250, not near
+      lows), and the generated meal pulses grow +0.69 mg/dL/h while field meal grams do not move (+0.2 g/day). The
+      generated person's highs shrink less: time above 180 20.9 → 19.3% against the field's 24.3 → 20.0%.
+    - The meal lead is weak (mealdelta.py): the generator draws +0.11 meals/day and +5.3 g/day after more-insulin edits
+      (−0.11 / −5.2 after less), a 2% change. The field's more-insulin change, +0.2 g/day [−4.7, +4.9], does not
+      exclude it, and its less-insulin change (−5.6 g/day) matches. So the excess push-back is in the background level
+      (+2.96 vs about +1.5 in the field), not in meals.
+
+217. **Both the pending-insulin input and the model's feedback on its own background carry the push-back, the
+    feedback more. Cutting them puts the mean-glucose change on the field, but the extra effect lands on lows, not
+    highs.** k86 pssq9, 146 more-insulin edits, pre window, after − before, trainings 0 / 1 (lane_h.sh, ablsum.py; frozen
+    tree ~/frozen/ice-bgview-hold: PLANT_IOBNET_SCALE=0 hides iob_net, PLANT_HOLD_OWNBG=1 holds the bgice and bgice_ema
+    inputs at the person's real mean over the 24 h before the run):
+    | arm | insulin U/day | ICE | background | Δmean | ΔTIR | Δt<70 | level mean bg |
+    |---|---|---|---|---|---|---|---|
+    | full | +2.49 / +2.30 | +3.64 / +3.38 | +2.96 / +2.57 | −3.6 / −3.9 | +1.0 / +1.3 | +0.57 / +0.57 | 142 / 144 |
+    | insulin input hidden | +1.71 / +1.73 | +2.25 / +2.34 | +1.90 / +1.68 | −5.7 / −5.5 | +1.0 / +0.9 | +1.54 / +1.41 | 133 / 134 |
+    | own feedback held | +1.47 / +1.54 | +2.07 / +2.08 | +1.14 / +0.95 | −6.3 / −7.1 | +1.1 / +1.2 | +1.54 / +1.59 | 138 / 139 |
+    | both | +1.25 / +1.26 | +1.52 / +1.45 | +0.84 / +0.66 | −6.8 / −7.1 | +0.8 / +0.8 | +2.03 / +1.99 | 133 / 133 |
+    | field, drift removed | +2.30 | +1.55 | | −6.2 | +2.4 | +0.60 | |
+    - Without the push-back glucose falls as far as the field's, Loop then delivers less extra insulin, and the drop
+      shows as lows (2.5–3.4× the field) instead of fewer highs: TIR does not move. Cutting either channel also lowers
+      the person's level (−5 to −10 mg/dL), which puts more time near lows; that confounds part of the t<70 rise.
+    - So the generated push-back is wrong in where it acts, not only in size. Real people's added insulin comes off
+      the highs while lows stay defended; the generator's push-back acts at every glucose. Lesson 213 already showed
+      the insulin input's effect concentrated near lows; the self-feedback is not.
+    - The own feedback held only at glucose ≥ 140: lesson 218.
+
+218. **Holding the model's feedback on its own background only while glucose is at or above 140 puts all three
+    more-insulin changes on the field.** Same set-up as lesson 217, arm holdhi (PLANT_HOLD_OWNBG_ABOVE=140: bgice and
+    bgice_ema held at the person's 24 h mean when bg ≥ 140, live below), trainings 0 / 1:
+    | arm | insulin U/day | ICE | background | Δmean | ΔTIR | Δt<70 | level mean bg |
+    |---|---|---|---|---|---|---|---|
+    | full | +2.49 / +2.30 | +3.64 / +3.38 | +2.96 / +2.57 | −3.6 / −3.9 | +1.0 / +1.3 | +0.57 / +0.57 | 142 / 144 |
+    | held ≥ 140 | +1.89 / +1.89 | +2.81 / +2.85 | +1.92 / +1.75 | −5.9 / −6.4 | +2.26 / +2.25 | +0.71 / +0.62 | 146 / 149 |
+    | field, drift removed | +2.30 | +1.55 | | −6.2 | +2.4 | +0.60 | |
+    - TIR, t<70 and mean change all land on the field on both trainings; the ICE rise is still about 1.8× the field's.
+    - So the excess push-back is the self-feedback acting on highs. Left live near lows it keeps the defence; held on
+      highs, the added insulin comes off the highs as in the field.
+    - Cost: the level rises 4–5 mg/dL (the held value is a 24 h mean, lower than the live background on highs, so
+      highs run longer). Level fidelity and the less-insulin side are untested here.
+    - On all 337 scored edits against the gain base (lane_i.sh, arm pssq9hh140, ps_eval_k), trainings 0 / 1:
+      | | field | gain base | held ≥ 140 |
+      |---|---|---|---|
+      | ΔTIR more | +2.36 | +2.12 / +1.92 | +2.24 / +2.19 |
+      | ΔTIR less | −1.67 | −1.43 / −1.84 | −2.13 / −2.46 |
+      | Δt<70 more | +0.60 | +1.13 / +0.97 | +0.75 / +0.65 |
+      | Δt<70 less | −0.64 | −1.18 / −0.90 | −0.70 / −0.66 |
+      | Δt<54 more / less | +0.09 / −0.09 | +0.59 / −0.67, +0.55 / −0.45 | +0.32 / −0.27, +0.19 / −0.27 |
+      | Δmean more / less | −6.24 / +4.49 | −6.8 / +5.4, −6.3 / +5.2 | −6.0 / +5.1, −6.6 / +5.6 |
+      | ranking TIR / t<70 / mean | | .30 .34 .47 / .28 .30 .46 | .21 .37 .42 / .25 .39 .40 |
+      | level TIR error, median abs | | 4.6 / 5.5 | 6.7 / 7.9 |
+    - Without the gain it sizes the low-side change like the field on both edit directions (the gain base
+      overstates it about 1.7×) and gets the more-insulin TIR right; the less-insulin TIR drop overshoots
+      (−2.1/−2.5 vs −1.67). Rankings are within noise of the base (mean ranking lower, CI touching 0).
+    - It is not kept: level TIR error rises about 2 points on both trainings, beyond noise. The held value (24 h
+      mean) sits below the live background on highs, so highs persist and the level runs high.
+    - Held at ≥ 180 instead (arm pssq9hh180): change sizes as good or slightly better (ΔTIR more +2.22 / +2.14,
+      less −2.13 / −1.96; Δt<70 more +0.77 / +0.70, less −0.69 / −0.71; Δmean more −5.8 / −6.2, less +4.8 / +4.5).
+      The level bias is gone (median −0.5 / −0.9) but the median absolute level TIR error is still 6.1 / 7.1
+      against 4.6 / 5.5: the hold adds person-to-person scatter, not a shift. One day's mean is a noisy hold value
+      for a 14-day run.
+    - Hold value from the 14 days before the run (PLANT_HOLD_DAYS=14, arm pssq9hh180d14): level TIR error
+      5.1 / 6.1 against the base's 4.6 / 5.5, most of the scatter gone. Change sizes: ΔTIR more +1.92 / +2.11,
+      less −2.21 / −2.46 (field −1.67); Δt<70 more +0.80 / +0.69, less −0.79 / −0.67 (field ±0.60); Δt<54 about
+      half the base's error. Rankings within noise of the base (mean 0.44 / 0.44 vs 0.47 / 0.46).
+    - Not kept as a plant switch: the less-insulin TIR drop overshoots (error 0.5–0.8 vs the base's 0.2) and level
+      fit is still 0.5 worse. The model was trained with its live own-background input, so holding it in rollouts
+      alone is out of distribution; the learned form is lesson 219.
+
+219. **Learned hold (running).** Retrain with the bgice and bgice_ema inputs replaced, wherever glucose ≥ 180, by
+    the person's trailing 14-day mean background, in training (dataset_v3m/v3m3) and in every rollout and
+    calibration step (plant_v3), so the model learns to predict background on highs without its own recent
+    background and every closed-loop calibration fits to that. ISF ×0.86, no gain, otherwise the k86 recipe. Frozen
+    trees ~/frozen/ice-cobt-hold and ~/frozen/ice-bgview-holdt (mkhold_t.py), env PLANT_HOLD_OWNBG_ABOVE=180
+    PLANT_HOLD_DAYS=14, run dir runs/2026-11-17-ice-hold, arm k86h, trainings 0 and 1. Checked: on one person the
+    build changes the inputs only on the 14% of steps at ≥ 180, targets unchanged.
+
+220. **Per-person level fidelity on the current base: slope 0.9 on mean glucose, not 0.5.** adaptive's handoff
+    (docs/handoffs/2026-11-17-ice-person-level-compression.md) found slope 0.45–0.55 and r 0.50/0.63, but on the
+    pre-per-person-fit bed (…LK, no pssq9; own-entry arms, stock and gr at ×1.0, announce 100). Same check
+    on the base (pssq9 + own-night IOB + gain ×1.25): own settings, 14-day pre-edit window vs field, 268 edit-pool
+    people, trainings 0 / 1 (levelslope_ice.py in the change dir):
+    | | r mean | slope mean | bias | SD diff | > 20 off | r TIR | slope TIR |
+    |---|---|---|---|---|---|---|---|
+    | generator | 0.88 / 0.79 | 0.90 / 0.88 | −5 / −3 | 12 / 16 | 9% / 17% | 0.78 / 0.73 | 0.70 / 0.73 |
+    | measured-ICE replay | 0.95 | 1.04 | +4 | 8 | 6% | 0.93 | 0.99 |
+    | hold ≥ 180, 14 d (lesson 218) | 0.78 | 0.79 | −4 | 16 | 16% | 0.64 | 0.58 |
+    - The plant does not compress; what is left enters in generation, mostly people in the 170–190 band (generated
+      median 161 against replay 179). The plant-only hold compresses the top more (> 190 band 174 vs 198), one more
+      reason it was not kept; the learned hold (219) must be checked on this table too.
+
+221. **The Nightscout user's bed rebuilt on the current base reads her level on the unseen weeks; lows read high, as on
+    the pool.** adaptive's ask (Pete-approved, 2026-11-18). Fresh Nightscout export through 11-17 (root ice_ns3n, pool
+    labeler 21b2c3c; on the overlap with the October root glucose identical, ICE r 0.99999). Enrolled onto the ifit2
+    checkpoints (fit_person → level band + pulse size → the ifit2 two-step spread fit on the 28 days before the held-out
+    28), run dir gamepc runs/2026-11-18-ns3-ifit (ns3b.sh, fit_ns3.py, ns3_run.py with NS3_CUR), bed on the Mac at
+    ~/frozen/gen-v32-ifit2-ns3. Held-out 28 days, stock class-1 Loop, gain 1.25, 10 seeds, trainings 0 / 1:
+    | | TIR / mean, all time | TIR / mean, clean | t<70 clean | insulin U/d |
+    |---|---|---|---|---|
+    | field | 65.7 / 156.8 | 73.1 / 146.5 | 0.89 | 37.3 |
+    | generated | 65.7 / 161.3, 66.9 / 152.4 | 66.3 / 161.0, 67.4 / 153.5 | 1.95 / 4.29 | 37.7 / 36.9 |
+    | measured-ICE replay | 63.8 / 158.6 | 71.2 / 148.6 | 1.31 | 37.1 |
+    - One person's two-step fit is noisy on 4 seeds: training 0's second step overshot inside the fit window (mean 169
+      against 155) yet lands close on the unseen window. Read her results averaged over both trainings.
+    - Not run: her current setup (class 2 + gr + slow RC): no gamepc engine has --candidate-slow-rc-schedule-feed.
+
+222. **Training with the own-background inputs held at the 14-day mean above 180 (lesson 219) over-responds: not kept.**
+    k86h (ice-cobt-hold / ice-bgview-holdt, PLANT_HOLD_OWNBG_ABOVE=180 PLANT_HOLD_DAYS=14 in training and plant),
+    337 edits against the gain base, trainings 0 / 1 (run dir gamepc runs/2026-11-17-ice-hold):
+    | mean change, drift-removed | field | base | learned hold |
+    |---|---|---|---|
+    | TIR, more insulin | +2.36 | +2.12 / +1.92 | +4.03 / +4.73 |
+    | TIR, less insulin | −1.67 | −1.43 / −1.84 | −2.75 / −3.32 |
+    | t<70, more | +0.60 | +1.13 / +0.97 | +0.91 / +0.98 |
+    | t<70, less | −0.64 | −1.18 / −0.90 | −0.87 / −0.82 |
+    | mean BG, more | −6.2 | −6.8 / −6.3 | −18.4 / −28.9 |
+    | mean BG, less | +4.5 | +5.4 / +5.2 | +8.0 / +11.8 |
+    - The base already gets the glucose-level change right; the learned hold triples it (more TIR and mean change than
+      the field on both trainings) while the low-side gain is small (t<70 change 1.7× → 1.5× field). Mean-change
+      ranking r drops (diff 90% CI −0.37..−0.11 / −0.42..−0.22); TIR / t70 ranking unchanged. Level TIR error
+      5.2 / 5.5 against 4.6 / 5.5: no gain.
+    - Taking the own-background feedback out above 180 removes the push-back the field shows, not only the level pull.
+      The hold line (218–222) is closed; the low-side overstatement is not in this feedback.
+
+223. **The generated person's extra lows are lows that last twice as long, not more of them; the insulin boost acting at
+    low glucose is the visible cause. Each extra low then costs twice the time, which is why the change in t<70 reads
+    about 1.7× the field.** gamepc runs/2026-11-19-ice-lowedit (lowedit.py, lowrec.py), scored edits, base oc pssq9 gain
+    1.25, trainings 0 / 1. Field: pre d−13..d vs post d+1..d+14, clean only, minus the pseudo-edit drift fit as attn.py.
+    | pre window, more-insulin edits | field | generated |
+    |---|---|---|
+    | approaches below 90 per day | 3.1 | 3.1 / 3.2 |
+    | share of approaches that go below 70 | 0.34 | 0.44 / 0.43 |
+    | lows per day | 1.37 | 1.78 / 1.73 |
+    | mean low duration, min | 21 | 50 / 44 |
+    | share of lows ≥ 60 min | 6% | 26% / 23% |
+    | IOB at entry, U | 2.8 | 3.6 / 3.6 |
+    | t<70 % | 2.6 | 5.9 / 5.3 |
+    - Change after − before: lows per day more +0.18 field [90% +0.08, +0.28] / +0.27, +0.21 generated; less −0.43
+      [−0.55, −0.30] / −0.27, −0.24. The generator gets the count change about right or small; at twice the duration the
+      same count change gives 2× the time below 70 (more +0.39 field / +1.07, +0.85; less −1.00 / −1.28, −1.05).
+      Approaches below 90 change +0.59 field / +0.36 generated on more-insulin edits.
+    - Field lows stay short when the cleaning flags are ignored (mean 29 min, 11% ≥ 60 min), so it is not the flags.
+    - In the first hour after entry the generated ICE (the person's rescue and counter-response) is the field's size
+      (median 88 / 93 against 87–93 mg/dL/h), but glucose climbs 24 mg/dL against 37–39: implied insulin effect 64–68
+      against 48–56 mg/dL/h, the ×1.25 boost's size. The response is right; the insulin it answers is too strong.
+    - Arm running: the boost ramped from 1 at glucose ≤ LO to 1.25 at ≥ HI (PATIENT_INSULIN_GAIN_BG_LO/HI, frozen tree
+      ~/frozen/ice-bgview-glo), 70–120 and 90–160, trainings 0 / 1, lane_glo.sh.
+
+224. **On the window the per-person fit was made on, the generator has the field's bad days; frontier's missing third is
+    on unseen weeks.** frontier handoff 2026-11-19 (generator TIR < 50 on 7.5% of days against 11.7%, held-out 28 days,
+    gen.py donors). Same count on the edit pool's pre windows, own settings, base oc pssq9 gain 1.25, 208 people
+    (baddays.py, runs/2026-11-19-ice-lowedit):
+    | | days TIR < 50 | SD of daily mean ICE, median | SD of daily TIR | mean TIR |
+    |---|---|---|---|---|
+    | field | 10.9% | 12.1 | 11.2 | 75.2 |
+    | generated 0 / 1 | 9.0% / 11.2% | 14.5 / 14.6 | 11.2 / 11.6 | 74.5 / 73.7 |
+    - Bad days come from the same thing on both sides: daily mean ICE +9.0 (field) / +8.2 (generated) mg/dL/h above the
+      person's mean day, insulin barely up (+0.25 / +0.17 U/h). Not missed boluses or less insulin.
+    - Per person, the day-to-day ICE spread is ranked poorly: r 0.16 / 0.17 with the field, though its size is right.
+    - The pssq9 spread is fitted to each person's lows and highs on this window, so the match here is partly by
+      construction. The gap frontier sees is generalization of the per-person day-to-day spread to other weeks: the fit
+      sets the size for the window it sees and the model does not carry who is variable.
+
+225. **The boost faded out below 160 to none at 90 mg/dL brings the predicted change in t<70 toward the field on all five
+    trainings, without a cost elsewhere: kept, new base.** PATIENT_INSULIN_GAIN_BG_LO=90 PATIENT_INSULIN_GAIN_BG_HI=160 on
+    top of the base (oc pssq9, gain 1.25, own-night IOB), 337 edits, lane_glo.sh, runs/2026-11-19-ice-lowedit. Trainings 0–4:
+    | mean change, drift-removed | field | base | ramp 90–160 |
+    |---|---|---|---|
+    | t<70, more insulin | +0.60 | +1.13 +0.97 +1.04 +1.07 +1.11 | +0.99 +0.67 +0.86 +0.76 +0.87 |
+    | t<70, less insulin | −0.64 | −1.18 −0.90 −1.03 −0.97 −1.07 | −0.96 −0.67 −0.85 −0.90 −0.84 |
+    | t<54, more insulin | +0.09 | +0.59 +0.55 +0.55 +0.58 +0.54 | +0.40 +0.32 +0.42 +0.36 +0.36 |
+    | TIR, more insulin | +2.36 | +2.12 +1.92 +1.79 +1.25 +2.05 | +2.13 +2.04 +1.69 +1.55 +2.24 |
+    | mean BG, more insulin | −6.24 | −6.83 −6.25 −5.80 −5.39 −8.19 | −6.26 −5.82 −5.22 −4.99 −7.72 |
+    - The low-side change falls from 1.7× to 1.4× the field (mean of five, more insulin; 1.6× → 1.3× on less). TIR
+      and mean-glucose change sizes hold. Ranking against the field: no difference beyond noise on TIR, t<70 or mean on any
+      training (one borderline, mean on more-insulin edits, training 1: −0.07..−0.00). Level TIR error unchanged (median
+      |.| 4.6–5.4 against 4.6–5.5).
+    - Ramp 70–120 (trainings 0 / 1) moved t<70 on one training only (+1.11 / +0.64); not taken.
+    - Absolute lows improve only part way: mean low 49 / 46 → 44 / 41 min (field 21–29), ≥ 60 min 26 / 25% → 21 / 20%
+      (field 6–11%). With less insulin to answer, the generated counter-response in the first hour drops (ICE 88 / 93 → 76 /
+      79 mg/dL/h) and the climb out is no faster (bg +25 in an hour, field 37–39). The rest of the duration gap sits in the
+      learned response, not in the plant.
+    - Plant: PATIENT_INSULIN_GAIN_BG_LO / _HI in plant_v3 (ice branch). Frozen trees: gamepc ~/frozen/ice-bgview-glo; Mac
+      runs/2026-10-30-gr2-gen/plant_pss_glo (plant_pss plus this switch only).
