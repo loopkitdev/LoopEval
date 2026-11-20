@@ -124,7 +124,7 @@ class PlantV3:
         self.act_ema = self.act_typ
         # PATIENT_INSULIN_GAIN_BG_LO / _HI: the gain ramps from 1 at plant glucose <= LO to its full value at >= HI. At the full
         # gain generated lows last twice the field's (insulin too strong where the person is defending a low) and the change in
-        # t<70 after settings edits reads ~1.7x the field; 90 / 160 brings it to ~1.3x on five trainings (ice LESSONS 223, 225).
+        # t<70 after settings edits reads ~1.7x the field; 90 / 160 brings it to ~1.4x on five trainings (ice LESSONS 223, 225).
         self.gain_lo = float(os.environ.get("PATIENT_INSULIN_GAIN_BG_LO", "nan")); self.gain_hi = float(os.environ.get("PATIENT_INSULIN_GAIN_BG_HI", "nan"))
         # PLANT_AUTO_AF=<f> (auto-bolus donors): the engine decides the automatic dose at a decision without that decision's
         # plant boluses, so a calculator bolus lands on top of ~f x the recommendation (handoff
