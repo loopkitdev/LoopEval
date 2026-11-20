@@ -3193,3 +3193,25 @@ Method lessons from building the ICE generator. Each one cost time; the run dire
     - The pssq9 spread is fitted to each person's lows and highs on this window, so the match here is partly by
       construction. The gap frontier sees is generalization of the per-person day-to-day spread to other weeks: the fit
       sets the size for the window it sees and the model does not carry who is variable.
+
+225. **The boost faded out below 160 to none at 90 mg/dL brings the predicted change in t<70 toward the field on all five
+    trainings, without a cost elsewhere: kept, new base.** PATIENT_INSULIN_GAIN_BG_LO=90 PATIENT_INSULIN_GAIN_BG_HI=160 on
+    top of the base (oc pssq9, gain 1.25, own-night IOB), 337 edits, lane_glo.sh, runs/2026-11-19-ice-lowedit. Trainings 0–4:
+    | mean change, drift-removed | field | base | ramp 90–160 |
+    |---|---|---|---|
+    | t<70, more insulin | +0.60 | +1.13 +0.97 +1.04 +1.07 +1.11 | +0.99 +0.67 +0.86 +0.76 +0.87 |
+    | t<70, less insulin | −0.64 | −1.18 −0.90 −1.03 −0.97 −1.07 | −0.96 −0.67 −0.85 −0.90 −0.84 |
+    | t<54, more insulin | +0.09 | +0.59 +0.55 +0.55 +0.58 +0.54 | +0.40 +0.32 +0.42 +0.36 +0.36 |
+    | TIR, more insulin | +2.36 | +2.12 +1.92 +1.79 +1.25 +2.05 | +2.13 +2.04 +1.69 +1.55 +2.24 |
+    | mean BG, more insulin | −6.24 | −6.83 −6.25 −5.80 −5.39 −8.19 | −6.26 −5.82 −5.22 −4.99 −7.72 |
+    - The low-side change falls from 1.7× to 1.4× the field (mean of five, more insulin; 1.6× → 1.3× on less). TIR
+      and mean-glucose change sizes hold. Ranking against the field: no difference beyond noise on TIR, t<70 or mean on any
+      training (one borderline, mean on more-insulin edits, training 1: −0.07..−0.00). Level TIR error unchanged (median
+      |.| 4.6–5.4 against 4.6–5.5).
+    - Ramp 70–120 (trainings 0 / 1) moved t<70 on one training only (+1.11 / +0.64); not taken.
+    - Absolute lows improve only part way: mean low 49 / 46 → 44 / 41 min (field 21–29), ≥ 60 min 26 / 25% → 21 / 20%
+      (field 6–11%). With less insulin to answer, the generated counter-response in the first hour drops (ICE 88 / 93 → 76 /
+      79 mg/dL/h) and the climb out is no faster (bg +25 in an hour, field 37–39). The rest of the duration gap sits in the
+      learned response, not in the plant.
+    - Plant: PATIENT_INSULIN_GAIN_BG_LO / _HI in plant_v3 (ice branch). Frozen trees: gamepc ~/frozen/ice-bgview-glo; Mac
+      runs/2026-10-30-gr2-gen/plant_pss_glo (plant_pss plus this switch only).

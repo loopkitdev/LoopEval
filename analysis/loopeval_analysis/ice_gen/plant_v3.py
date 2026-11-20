@@ -122,6 +122,10 @@ class PlantV3:
         # extracted at. Unset: the gain applies to every deviation from the typical rate (ice LESSONS 210-211).
         self.ins_gain_tau = float(os.environ.get("PATIENT_INSULIN_GAIN_TAU", "0"))
         self.act_ema = self.act_typ
+        # PATIENT_INSULIN_GAIN_BG_LO / _HI: the gain ramps from 1 at plant glucose <= LO to its full value at >= HI. At the full
+        # gain generated lows last twice the field's (insulin too strong where the person is defending a low) and the change in
+        # t<70 after settings edits reads ~1.7x the field; 90 / 160 brings it to ~1.3x on five trainings (ice LESSONS 223, 225).
+        self.gain_lo = float(os.environ.get("PATIENT_INSULIN_GAIN_BG_LO", "nan")); self.gain_hi = float(os.environ.get("PATIENT_INSULIN_GAIN_BG_HI", "nan"))
         # PLANT_AUTO_AF=<f> (auto-bolus donors): the engine decides the automatic dose at a decision without that decision's
         # plant boluses, so a calculator bolus lands on top of ~f x the recommendation (handoff
         # 2026-10-15-simulator-plant-bolus-autodose). Until the engine orders them, ask for ratio - f so the step totals ~ratio x rec.
@@ -686,11 +690,14 @@ class PlantV3:
             mc = self.mc_amp * self.isf * self.act_typ * np.sin(2 * np.pi * (t.value / 8.64e13) / 28.0 + self.mc_phase) if self.mc_amp else 0.0
             ice += mc
             act = absorbed / dt_h
+            g_ = self.ins_gain
+            if g_ != 1.0 and self.gain_lo == self.gain_lo:   # PATIENT_INSULIN_GAIN_BG_LO / _HI
+                g_ = 1.0 + (g_ - 1.0) * min(1.0, max(0.0, (self.bg - self.gain_lo) / (self.gain_hi - self.gain_lo)))
             if self.ins_gain != 1.0 and self.ins_gain_tau > 0:   # gain on the sustained part only (PATIENT_INSULIN_GAIN_TAU)
                 self.act_ema += (act - self.act_ema) * min(1.0, dt_h / self.ins_gain_tau)
-                act = act + (self.ins_gain - 1.0) * (self.act_ema - self.act_typ)
+                act = act + (g_ - 1.0) * (self.act_ema - self.act_typ)
             elif self.ins_gain != 1.0:   # insulin above / below the person's typical rate acts at a gain (PATIENT_INSULIN_GAIN)
-                act = self.act_typ + self.ins_gain * (act - self.act_typ)
+                act = self.act_typ + g_ * (act - self.act_typ)
             self.bg = max(self.bg + (ice - self.isf * act) * dt_h, 20.0)
             j = self.steps.t1.searchsorted(t)
             near = [k for k in (j - 1, j) if 0 <= k < len(self.steps) and abs((self.steps.t1.iloc[k] - t).total_seconds()) < 600]
